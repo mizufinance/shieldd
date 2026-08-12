@@ -274,19 +274,41 @@ jobs:
 
   # ---------------------------------------------------------------- snarkpack
 
-  snarkpack-static:
-    name: 'snarkpack: static'
+  snarkpack-host:
+    name: 'snarkpack: host checks'
     needs: applicability
     if: >-
       needs.applicability.result == 'success' &&
-      needs.applicability.outputs.snarkpack_static_run == 'true'
+      (
+        needs.applicability.outputs.snarkpack_static_run == 'true' ||
+        (
+          needs.applicability.outputs.snarkpack_fstar_run == 'true' &&
+          (
+            needs.applicability.outputs.snarkpack_fstar_force_all == 'true' ||
+            needs.applicability.outputs.snarkpack_fstar_cache_hit != 'true'
+          )
+        ) ||
+        (
+          (
+            needs.applicability.outputs.snarkpack_rust_reference_run == 'true' ||
+            needs.applicability.outputs.snarkpack_fuzz_run == 'true' ||
+            needs.applicability.outputs.snarkpack_dos_run == 'true'
+          ) &&
+          needs.applicability.outputs.snarkpack_runtime_cache_hit != 'true'
+        )
+      )
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 350
+    outputs:
+      static: ${{ steps.results.outputs.static }}
+      fstar: ${{ steps.results.outputs.fstar }}
+      runtime: ${{ steps.results.outputs.runtime }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ needs.applicability.outputs.candidate_sha }}
       - name: Validate the locally generated Lean cache
+        id: lean_cache
         if: needs.applicability.outputs.snarkpack_lean_run == 'true'
         env:
           LEAN_MODULES_JSON: ${{ needs.applicability.outputs.snarkpack_lean_modules }}
@@ -299,8 +321,10 @@ jobs:
             --modules-json "$LEAN_MODULES_JSON"
       - uses: ./.github/actions/setup-nix-rust
         with:
-          rust-cache-prefix: snarkpack-static
+          rust-cache-prefix: snarkpack-host
       - name: Run static FV invariants
+        id: static_check
+        if: needs.applicability.outputs.snarkpack_static_run == 'true'
         env:
           SNARKPACK_FV_MODE: static
           # A stale row may bypass its committed source/checker evidence only
@@ -312,6 +336,249 @@ jobs:
           python3 scripts/ci/run_with_annotation.py
           --title "SnarkPack static FV"
           -- nix develop --command just snarkpack-fv
+
+      # F* intentionally stays outside the Aeneas container. Every downloaded
+      # tool is checked again against the repository's formal toolchain pin.
+      - name: Install pinned Z3
+        if: >-
+          needs.applicability.outputs.snarkpack_fstar_run == 'true' &&
+          (
+            needs.applicability.outputs.snarkpack_fstar_force_all == 'true' ||
+            needs.applicability.outputs.snarkpack_fstar_cache_hit != 'true'
+          )
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.local/opt"
+          curl -fsSL -o /tmp/z3.zip \
+            https://github.com/Z3Prover/z3/releases/download/z3-4.14.1/z3-4.14.1-x64-glibc-2.35.zip
+          unzip -q /tmp/z3.zip -d "$HOME/.local/opt"
+          echo "$HOME/.local/opt/z3-4.14.1-x64-glibc-2.35/bin" >> "$GITHUB_PATH"
+      - name: Install pinned F*
+        if: >-
+          needs.applicability.outputs.snarkpack_fstar_run == 'true' &&
+          (
+            needs.applicability.outputs.snarkpack_fstar_force_all == 'true' ||
+            needs.applicability.outputs.snarkpack_fstar_cache_hit != 'true'
+          )
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.local/opt"
+          curl -fsSL -o /tmp/fstar.tar.gz \
+            https://github.com/FStarLang/FStar/releases/download/v2026.05.24/fstar-v2026.05.24-Linux-x86_64.tar.gz
+          tar -xzf /tmp/fstar.tar.gz -C "$HOME/.local/opt"
+          echo "$HOME/.local/opt/fstar/bin" >> "$GITHUB_PATH"
+      - name: Install pinned hax
+        if: >-
+          needs.applicability.outputs.snarkpack_fstar_run == 'true' &&
+          (
+            needs.applicability.outputs.snarkpack_fstar_force_all == 'true' ||
+            needs.applicability.outputs.snarkpack_fstar_cache_hit != 'true'
+          )
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.local/opt"
+          hax_dir="$HOME/.local/opt/hax-v0.3.7"
+          git clone --depth 1 --branch hax-lib-v0.3.7 https://github.com/cryspen/hax "$hax_dir"
+          nix profile install "$hax_dir#hax" "$hax_dir#hax-engine"
+          echo "HAX_PROOF_LIBS_HOME=$hax_dir/hax-lib/proof-libs/fstar" >> "$GITHUB_ENV"
+      - name: Restore exact F* Rust-boundary extraction cache
+        id: fstar_boundary_cache
+        if: >-
+          needs.applicability.outputs.snarkpack_fstar_run == 'true' &&
+          (
+            needs.applicability.outputs.snarkpack_fstar_force_all == 'true' ||
+            needs.applicability.outputs.snarkpack_fstar_cache_hit != 'true'
+          )
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            crates/crypto/proof-aggregation/proofs/fstar/extraction
+            crates/crypto/proof-aggregation/src/ipp/ip_proofs/proofs/fstar/extraction
+            crates/core/component/shielded-pool/proofs/fstar/extraction
+          key: snarkpack-fstar-boundary-v1-${{ runner.os }}-${{ hashFiles('.cargo/config.toml', 'Cargo.lock', 'Cargo.toml', 'rust-toolchain.toml', 'crates/crypto/proof-aggregation/Cargo.toml', 'crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml', 'crates/core/component/shielded-pool/Cargo.toml', 'crates/crypto/proof-aggregation/formal/snarkpack/toolchain.toml', 'scripts/snarkpack-formal.sh', 'crates/crypto/proof-aggregation/src/**/*.rs', 'crates/core/component/shielded-pool/src/**/*.rs') }}
+      - name: Run SnarkPack F* gate
+        id: fstar_check
+        if: >-
+          needs.applicability.outputs.snarkpack_fstar_run == 'true' &&
+          (
+            needs.applicability.outputs.snarkpack_fstar_force_all == 'true' ||
+            needs.applicability.outputs.snarkpack_fstar_cache_hit != 'true'
+          )
+        env:
+          SNARKPACK_FSTAR_EVIDENCE_UPDATE: "1"
+          SNARKPACK_FSTAR_PROOFS_JSON: ${{ needs.applicability.outputs.snarkpack_fstar_proofs }}
+          SNARKPACK_FSTAR_BOUNDARY_CACHE_HIT: ${{ steps.fstar_boundary_cache.outputs.cache-hit == 'true' && '1' || '0' }}
+          SNARKPACK_FSTAR_FORCE_ALL: ${{ needs.applicability.outputs.snarkpack_fstar_force_all == 'true' && '1' || '0' }}
+        run: >-
+          python3 scripts/ci/run_with_annotation.py
+          --title "SnarkPack F*"
+          -- nix develop --command scripts/snarkpack-formal.sh
+      - name: Validate newly checked F* evidence
+        id: fstar_artifact_validation
+        if: steps.fstar_check.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 \
+            crates/crypto/proof-aggregation/formal/lean-ipp/scripts/verification_manifest.py \
+            validate-fstar-artifact \
+            --artifact \
+            crates/crypto/proof-aggregation/formal/snarkpack/fstar-checker-evidence.json
+      - name: Upload exact F* evidence refresh
+        if: steps.fstar_artifact_validation.outcome == 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: snarkpack-fstar-refresh-${{ needs.applicability.outputs.candidate_sha }}-${{ github.run_attempt }}
+          path: crates/crypto/proof-aggregation/formal/snarkpack/fstar-checker-evidence.json
+          if-no-files-found: error
+          retention-days: 7
+      - name: Materialize exact successful F* attestation
+        if: steps.fstar_artifact_validation.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cache_dir=".ci-cache/snarkpack-fstar-pass"
+          mkdir -p "$cache_dir"
+          cp \
+            crates/crypto/proof-aggregation/formal/snarkpack/fstar-checker-evidence.json \
+            "$cache_dir/fstar-checker-evidence.json"
+      - name: Save exact successful F* attestation
+        if: steps.fstar_artifact_validation.outcome == 'success'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: .ci-cache/snarkpack-fstar-pass
+          key: snarkpack-fstar-pass-v2-${{ runner.os }}-${{ needs.applicability.outputs.snarkpack_fstar_environment_sha256 }}-${{ needs.applicability.outputs.snarkpack_fstar_exact_sha256 }}
+      - name: Upload checked F* evidence
+        if: steps.fstar_artifact_validation.outcome == 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: snarkpack-fstar-checker-evidence-${{ needs.applicability.outputs.candidate_sha }}-${{ github.run_attempt }}
+          path: crates/crypto/proof-aggregation/formal/snarkpack/fstar-checker-evidence.json
+          if-no-files-found: error
+
+      - name: Run production and independent-reference suites
+        id: rust_reference
+        if: >-
+          needs.applicability.outputs.snarkpack_rust_reference_run == 'true' &&
+          needs.applicability.outputs.snarkpack_runtime_cache_hit != 'true'
+        run: |
+          set -euo pipefail
+          app_shipping_log="$(mktemp)"
+          trap 'rm -f "$app_shipping_log"' EXIT
+          python3 scripts/ci/run_with_annotation.py \
+            --title "SnarkPack production Rust suite" \
+            -- nix develop --command cargo test \
+              -p shieldd-sdk-proof-aggregation --lib
+          python3 scripts/ci/run_with_annotation.py \
+            --title "SnarkPack independent reference suite" \
+            -- nix develop --command cargo test \
+              -p shieldd-sdk-proof-aggregation-reference --lib
+          python3 scripts/ci/run_with_annotation.py \
+            --title "SnarkPack application aggregate suite" \
+            -- nix develop --command cargo test \
+              -p shieldd-sdk-app --lib aggregate_ -- --test-threads=1
+          python3 scripts/ci/run_with_annotation.py \
+            --title "SnarkPack shipping-input retention" \
+            -- nix develop --command cargo test \
+              -p shieldd-sdk-app --lib \
+              app::tests::async_verifier_outcome_retains_its_exact_shipping_input \
+              -- --exact --test-threads=1 2>&1 | tee "$app_shipping_log"
+          python3 scripts/ci/run_with_annotation.py \
+            --title "SnarkPack shipping-input test evidence" \
+            -- nix develop --command python3 \
+              crates/crypto/proof-aggregation/formal/lean-ipp/scripts/verification_manifest.py \
+              test-log "$app_shipping_log" \
+              --expected 1 \
+              --label "async_verifier_outcome_retains_its_exact_shipping_input" \
+              --test-name "app::tests::async_verifier_outcome_retains_its_exact_shipping_input"
+          python3 scripts/ci/run_with_annotation.py \
+            --title "SnarkPack challenge boundaries" \
+            -- nix develop --command just snarkpack-challenge-boundaries
+      - name: Run the slow interoperability suite
+        if: >-
+          needs.applicability.outputs.snarkpack_rust_reference_run == 'true' &&
+          needs.applicability.outputs.snarkpack_runtime_cache_hit != 'true'
+        run: >-
+          python3 scripts/ci/run_with_annotation.py
+          --title "SnarkPack slow interoperability suite"
+          -- nix develop --command just snarkpack-slow
+      - name: Install exact cargo-fuzz
+        if: >-
+          needs.applicability.outputs.snarkpack_fuzz_run == 'true' &&
+          needs.applicability.outputs.snarkpack_runtime_cache_hit != 'true'
+        run: |
+          rustup toolchain install "$SNARKPACK_FUZZ_TOOLCHAIN" --profile minimal
+          cargo +"$SNARKPACK_FUZZ_TOOLCHAIN" install cargo-fuzz --locked --version "$CARGO_FUZZ_VERSION"
+      - name: Run fuzz smoke
+        if: >-
+          needs.applicability.outputs.snarkpack_fuzz_run == 'true' &&
+          needs.applicability.outputs.snarkpack_runtime_cache_hit != 'true'
+        env:
+          SNARKPACK_FUZZ_RUNS: ${{ (github.event_name == 'workflow_call' || github.event_name == 'workflow_dispatch' || github.event_name == 'merge_group') && '256' || '16' }}
+        run: >-
+          python3 scripts/ci/run_with_annotation.py
+          --title "SnarkPack fuzz"
+          -- nix develop --command just snarkpack-fuzz-smoke
+      - name: Run DoS thresholds
+        if: >-
+          needs.applicability.outputs.snarkpack_dos_run == 'true' &&
+          needs.applicability.outputs.snarkpack_runtime_cache_hit != 'true'
+        run: >-
+          python3 scripts/ci/run_with_annotation.py
+          --title "SnarkPack DoS"
+          -- nix develop --command just snarkpack-dos-gate
+      - name: Materialize successful runtime attestation
+        if: >-
+          (
+            needs.applicability.outputs.snarkpack_rust_reference_run == 'true' ||
+            needs.applicability.outputs.snarkpack_fuzz_run == 'true' ||
+            needs.applicability.outputs.snarkpack_dos_run == 'true'
+          ) &&
+          needs.applicability.outputs.snarkpack_runtime_cache_hit != 'true'
+        shell: bash
+        env:
+          CURRENT_SHA256: ${{ needs.applicability.outputs.snarkpack_runtime_fingerprint }}
+        run: |
+          set -euo pipefail
+          cache_dir=".ci-cache/snarkpack-runtime-pass"
+          mkdir -p "$cache_dir"
+          printf '%s\n' "$CURRENT_SHA256" > "$cache_dir/sha256"
+      - name: Save exact successful runtime attestation
+        if: >-
+          (
+            needs.applicability.outputs.snarkpack_rust_reference_run == 'true' ||
+            needs.applicability.outputs.snarkpack_fuzz_run == 'true' ||
+            needs.applicability.outputs.snarkpack_dos_run == 'true'
+          ) &&
+          needs.applicability.outputs.snarkpack_runtime_cache_hit != 'true'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: .ci-cache/snarkpack-runtime-pass
+          key: snarkpack-runtime-pass-v2-${{ runner.os }}-${{ needs.applicability.outputs.snarkpack_runtime_fingerprint }}
+
+      - name: Report host lane results
+        id: results
+        if: always()
+        shell: bash
+        env:
+          JOB_STATUS: ${{ job.status }}
+          STATIC_SELECTED: ${{ needs.applicability.outputs.snarkpack_static_run }}
+          FSTAR_SELECTED: ${{ needs.applicability.outputs.snarkpack_fstar_run == 'true' && (needs.applicability.outputs.snarkpack_fstar_force_all == 'true' || needs.applicability.outputs.snarkpack_fstar_cache_hit != 'true') }}
+          RUNTIME_SELECTED: ${{ (needs.applicability.outputs.snarkpack_rust_reference_run == 'true' || needs.applicability.outputs.snarkpack_fuzz_run == 'true' || needs.applicability.outputs.snarkpack_dos_run == 'true') && needs.applicability.outputs.snarkpack_runtime_cache_hit != 'true' }}
+        run: |
+          set -euo pipefail
+          for lane in STATIC FSTAR RUNTIME; do
+            selected_name="${lane}_SELECTED"
+            selected="${!selected_name}"
+            result="skipped"
+            if [[ "$selected" == "true" ]]; then
+              result="$JOB_STATUS"
+            fi
+            echo "${lane,,}=$result" >> "$GITHUB_OUTPUT"
+          done
 
   # Reproduce every affected extraction graph in one process. The source
   # inventory cache and compiler cache are shared across graphs, and one PR can
@@ -433,128 +700,16 @@ jobs:
           path: .ci-cache/snarkpack-extract-pass
           key: snarkpack-extract-pass-v2-${{ runner.os }}-${{ needs.applicability.outputs.snarkpack_extract_parity_fingerprint }}
 
-  # Runs outside the Aeneas FV image on purpose.
-  # snarkpack-formal.sh re-checks every version it is given against
-  # formal/snarkpack/toolchain.toml, so a drifted pin here fails loudly.
-  snarkpack-fstar:
-    name: 'snarkpack: fstar'
-    needs: applicability
-    if: >-
-      needs.applicability.result == 'success' &&
-      needs.applicability.outputs.snarkpack_fstar_run == 'true' &&
-      (
-        needs.applicability.outputs.snarkpack_fstar_force_all == 'true' ||
-        needs.applicability.outputs.snarkpack_fstar_cache_hit != 'true'
-      )
-    runs-on: ubuntu-24.04
-    timeout-minutes: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 45 || 90 }}
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          ref: ${{ needs.applicability.outputs.candidate_sha }}
-      - uses: ./.github/actions/setup-nix-rust
-        with:
-          rust-cache-prefix: snarkpack-formal
-      - name: Install pinned Z3
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p "$HOME/.local/opt"
-          curl -fsSL -o /tmp/z3.zip \
-            https://github.com/Z3Prover/z3/releases/download/z3-4.14.1/z3-4.14.1-x64-glibc-2.35.zip
-          unzip -q /tmp/z3.zip -d "$HOME/.local/opt"
-          echo "$HOME/.local/opt/z3-4.14.1-x64-glibc-2.35/bin" >> "$GITHUB_PATH"
-      - name: Install pinned F*
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p "$HOME/.local/opt"
-          curl -fsSL -o /tmp/fstar.tar.gz \
-            https://github.com/FStarLang/FStar/releases/download/v2026.05.24/fstar-v2026.05.24-Linux-x86_64.tar.gz
-          tar -xzf /tmp/fstar.tar.gz -C "$HOME/.local/opt"
-          echo "$HOME/.local/opt/fstar/bin" >> "$GITHUB_PATH"
-      - name: Install pinned hax
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p "$HOME/.local/opt"
-          hax_dir="$HOME/.local/opt/hax-v0.3.7"
-          git clone --depth 1 --branch hax-lib-v0.3.7 https://github.com/cryspen/hax "$hax_dir"
-          nix profile install "$hax_dir#hax" "$hax_dir#hax-engine"
-          echo "HAX_PROOF_LIBS_HOME=$hax_dir/hax-lib/proof-libs/fstar" >> "$GITHUB_ENV"
-      - name: Restore exact F* Rust-boundary extraction cache
-        id: fstar_boundary_cache
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-        with:
-          path: |
-            crates/crypto/proof-aggregation/proofs/fstar/extraction
-            crates/crypto/proof-aggregation/src/ipp/ip_proofs/proofs/fstar/extraction
-            crates/core/component/shielded-pool/proofs/fstar/extraction
-          key: snarkpack-fstar-boundary-v1-${{ runner.os }}-${{ hashFiles('.cargo/config.toml', 'Cargo.lock', 'Cargo.toml', 'rust-toolchain.toml', 'crates/crypto/proof-aggregation/Cargo.toml', 'crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml', 'crates/core/component/shielded-pool/Cargo.toml', 'crates/crypto/proof-aggregation/formal/snarkpack/toolchain.toml', 'scripts/snarkpack-formal.sh', 'crates/crypto/proof-aggregation/src/**/*.rs', 'crates/core/component/shielded-pool/src/**/*.rs') }}
-      - name: Run SnarkPack F* gate
-        id: fstar_check
-        env:
-          SNARKPACK_FSTAR_EVIDENCE_UPDATE: "1"
-          SNARKPACK_FSTAR_PROOFS_JSON: ${{ needs.applicability.outputs.snarkpack_fstar_proofs }}
-          SNARKPACK_FSTAR_BOUNDARY_CACHE_HIT: ${{ steps.fstar_boundary_cache.outputs.cache-hit == 'true' && '1' || '0' }}
-          # Reusable and manual full runs must re-check every module even when committed
-          # per-module evidence is current.
-          SNARKPACK_FSTAR_FORCE_ALL: ${{ needs.applicability.outputs.snarkpack_fstar_force_all == 'true' && '1' || '0' }}
-        run: >-
-          python3 scripts/ci/run_with_annotation.py
-          --title "SnarkPack F*"
-          -- nix develop --command scripts/snarkpack-formal.sh
-      - name: Validate newly checked F* evidence
-        id: fstar_artifact_validation
-        if: steps.fstar_check.outcome == 'success'
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 \
-            crates/crypto/proof-aggregation/formal/lean-ipp/scripts/verification_manifest.py \
-            validate-fstar-artifact \
-            --artifact \
-            crates/crypto/proof-aggregation/formal/snarkpack/fstar-checker-evidence.json
-      - name: Upload exact F* evidence refresh
-        if: steps.fstar_artifact_validation.outcome == 'success'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: snarkpack-fstar-refresh-${{ needs.applicability.outputs.candidate_sha }}-${{ github.run_attempt }}
-          path: crates/crypto/proof-aggregation/formal/snarkpack/fstar-checker-evidence.json
-          if-no-files-found: error
-          retention-days: 7
-      - name: Materialize exact successful F* attestation
-        if: steps.fstar_artifact_validation.outcome == 'success'
-        shell: bash
-        run: |
-          set -euo pipefail
-          cache_dir=".ci-cache/snarkpack-fstar-pass"
-          mkdir -p "$cache_dir"
-          cp \
-            crates/crypto/proof-aggregation/formal/snarkpack/fstar-checker-evidence.json \
-            "$cache_dir/fstar-checker-evidence.json"
-      - name: Save exact successful F* attestation
-        if: steps.fstar_artifact_validation.outcome == 'success'
-        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-        with:
-          path: .ci-cache/snarkpack-fstar-pass
-          key: snarkpack-fstar-pass-v2-${{ runner.os }}-${{ needs.applicability.outputs.snarkpack_fstar_environment_sha256 }}-${{ needs.applicability.outputs.snarkpack_fstar_exact_sha256 }}
-      - name: Upload checked F* evidence
-        if: steps.fstar_artifact_validation.outcome == 'success'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: snarkpack-fstar-checker-evidence-${{ needs.applicability.outputs.candidate_sha }}-${{ github.run_attempt }}
-          path: crates/crypto/proof-aggregation/formal/snarkpack/fstar-checker-evidence.json
-          if-no-files-found: error
-
-  snarkpack-parity:
-    name: 'snarkpack: parity'
-    needs: [applicability, snarkpack-extract]
+  # Parity must follow extraction when both are selected. Publication then
+  # closes over the committed evidence after every selected compute lane.
+  snarkpack-closure:
+    name: 'snarkpack: parity and publication'
+    needs: [applicability, snarkpack-host, snarkpack-extract]
     if: >-
       always() &&
       needs.applicability.result == 'success' &&
-      needs.applicability.outputs.snarkpack_parity_run == 'true' &&
-      needs.applicability.outputs.snarkpack_parity_cache_hit != 'true' &&
+      needs.applicability.outputs.snarkpack_status == 'run' &&
+      needs.snarkpack-host.result == 'success' &&
       (
         needs.applicability.outputs.snarkpack_extract_run != 'true' ||
         needs.applicability.outputs.snarkpack_extract_cache_hit == 'true' ||
@@ -562,15 +717,24 @@ jobs:
       )
     runs-on: ubuntu-24.04
     timeout-minutes: 25
+    outputs:
+      parity: ${{ steps.results.outputs.parity }}
+      publication: ${{ steps.results.outputs.publication }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ needs.applicability.outputs.candidate_sha }}
       - uses: ./.github/actions/setup-nix-rust
+        if: >-
+          needs.applicability.outputs.snarkpack_parity_run == 'true' &&
+          needs.applicability.outputs.snarkpack_parity_cache_hit != 'true'
         with:
           rust-cache-prefix: snarkpack-parity
       - name: Run Rust/reference parity once
         id: parity_check
+        if: >-
+          needs.applicability.outputs.snarkpack_parity_run == 'true' &&
+          needs.applicability.outputs.snarkpack_parity_cache_hit != 'true'
         env:
           SNARKPACK_FV_MODE: parity-changed
           SNARKPACK_FV_GRAPHS_JSON: ${{ needs.applicability.outputs.snarkpack_extract_graphs }}
@@ -595,157 +759,8 @@ jobs:
           path: .ci-cache/snarkpack-parity-pass
           key: snarkpack-parity-pass-v2-${{ runner.os }}-${{ needs.applicability.outputs.snarkpack_extract_parity_fingerprint }}
 
-  # Runtime checks share one checkout and one Cargo closure fingerprint. Exact
-  # pass evidence skips every selected runtime mode.
-  snarkpack-runtime:
-    name: 'snarkpack: runtime'
-    needs: applicability
-    if: >-
-      needs.applicability.result == 'success' &&
-      (
-        needs.applicability.outputs.snarkpack_rust_reference_run == 'true' ||
-        needs.applicability.outputs.snarkpack_fuzz_run == 'true' ||
-        needs.applicability.outputs.snarkpack_dos_run == 'true'
-      ) &&
-      needs.applicability.outputs.snarkpack_runtime_cache_hit != 'true'
-    # Candidate runs defer this exhaustive lane. Manual replays use
-    # GitHub-hosted runners so the assurance path has no external-runner dependency.
-    runs-on: ubuntu-24.04
-    timeout-minutes: 180
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          ref: ${{ needs.applicability.outputs.candidate_sha }}
-      - uses: ./.github/actions/setup-nix-rust
-        with:
-          rust-cache-prefix: snarkpack-runtime
-      - name: Run production and independent-reference suites
-        if: >-
-          needs.applicability.outputs.snarkpack_rust_reference_run == 'true'
-        run: |
-          set -euo pipefail
-          app_shipping_log="$(mktemp)"
-          trap 'rm -f "$app_shipping_log"' EXIT
-          python3 scripts/ci/run_with_annotation.py \
-            --title "SnarkPack production Rust suite" \
-            -- nix develop --command cargo test \
-              -p shieldd-sdk-proof-aggregation --lib
-          python3 scripts/ci/run_with_annotation.py \
-            --title "SnarkPack independent reference suite" \
-            -- nix develop --command cargo test \
-              -p shieldd-sdk-proof-aggregation-reference --lib
-          python3 scripts/ci/run_with_annotation.py \
-            --title "SnarkPack application aggregate suite" \
-            -- nix develop --command cargo test \
-              -p shieldd-sdk-app --lib aggregate_ -- --test-threads=1
-          python3 scripts/ci/run_with_annotation.py \
-            --title "SnarkPack shipping-input retention" \
-            -- nix develop --command cargo test \
-              -p shieldd-sdk-app --lib \
-              app::tests::async_verifier_outcome_retains_its_exact_shipping_input \
-              -- --exact --test-threads=1 2>&1 | tee "$app_shipping_log"
-          python3 scripts/ci/run_with_annotation.py \
-            --title "SnarkPack shipping-input test evidence" \
-            -- nix develop --command python3 \
-              crates/crypto/proof-aggregation/formal/lean-ipp/scripts/verification_manifest.py \
-              test-log "$app_shipping_log" \
-              --expected 1 \
-              --label "async_verifier_outcome_retains_its_exact_shipping_input" \
-              --test-name "app::tests::async_verifier_outcome_retains_its_exact_shipping_input"
-          python3 scripts/ci/run_with_annotation.py \
-            --title "SnarkPack challenge boundaries" \
-            -- nix develop --command just snarkpack-challenge-boundaries
-      - name: Run the slow interoperability suite
-        if: >-
-          needs.applicability.outputs.snarkpack_rust_reference_run == 'true'
-        run: >-
-          python3 scripts/ci/run_with_annotation.py
-          --title "SnarkPack slow interoperability suite"
-          -- nix develop --command just snarkpack-slow
-      - name: Install exact cargo-fuzz
-        if: >-
-          needs.applicability.outputs.snarkpack_fuzz_run == 'true'
-        run: |
-          rustup toolchain install "$SNARKPACK_FUZZ_TOOLCHAIN" --profile minimal
-          cargo +"$SNARKPACK_FUZZ_TOOLCHAIN" install cargo-fuzz --locked --version "$CARGO_FUZZ_VERSION"
-      - name: Run fuzz smoke
-        if: >-
-          needs.applicability.outputs.snarkpack_fuzz_run == 'true'
-        env:
-          SNARKPACK_FUZZ_RUNS: ${{ (github.event_name == 'workflow_call' || github.event_name == 'workflow_dispatch' || github.event_name == 'merge_group') && '256' || '16' }}
-        run: >-
-          python3 scripts/ci/run_with_annotation.py
-          --title "SnarkPack fuzz"
-          -- nix develop --command just snarkpack-fuzz-smoke
-      - name: Run DoS thresholds
-        if: >-
-          needs.applicability.outputs.snarkpack_dos_run == 'true'
-        run: >-
-          python3 scripts/ci/run_with_annotation.py
-          --title "SnarkPack DoS"
-          -- nix develop --command just snarkpack-dos-gate
-      - name: Materialize successful runtime attestation
-        shell: bash
-        env:
-          CURRENT_SHA256: ${{ needs.applicability.outputs.snarkpack_runtime_fingerprint }}
-        run: |
-          set -euo pipefail
-          cache_dir=".ci-cache/snarkpack-runtime-pass"
-          mkdir -p "$cache_dir"
-          printf '%s\n' "$CURRENT_SHA256" > "$cache_dir/sha256"
-      - name: Save exact successful runtime attestation
-        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-        with:
-          path: .ci-cache/snarkpack-runtime-pass
-          key: snarkpack-runtime-pass-v2-${{ runner.os }}-${{ needs.applicability.outputs.snarkpack_runtime_fingerprint }}
-
-  # Publication runs after every selected compute lane and accepts committed
-  # evidence only. Lean evidence was already validated in the static job.
-  snarkpack-publication:
-    name: 'snarkpack: publication closure'
-    if: >-
-      always() &&
-      needs.applicability.result == 'success' &&
-      needs.applicability.outputs.snarkpack_status == 'run' &&
-      needs.snarkpack-static.result == 'success' &&
-      (
-        needs.applicability.outputs.snarkpack_extract_run != 'true' ||
-        needs.applicability.outputs.snarkpack_extract_cache_hit == 'true' ||
-        needs.snarkpack-extract.result == 'success'
-      ) &&
-      (
-        needs.applicability.outputs.snarkpack_fstar_run != 'true' ||
-        needs.applicability.outputs.snarkpack_fstar_cache_hit == 'true' ||
-        needs.snarkpack-fstar.result == 'success'
-      ) &&
-      (
-        needs.applicability.outputs.snarkpack_parity_run != 'true' ||
-        needs.applicability.outputs.snarkpack_parity_cache_hit == 'true' ||
-        needs.snarkpack-parity.result == 'success'
-      ) &&
-      (
-        (
-          needs.applicability.outputs.snarkpack_rust_reference_run != 'true' &&
-          needs.applicability.outputs.snarkpack_fuzz_run != 'true' &&
-          needs.applicability.outputs.snarkpack_dos_run != 'true'
-        ) ||
-        needs.applicability.outputs.snarkpack_runtime_cache_hit == 'true' ||
-        needs.snarkpack-runtime.result == 'success'
-      )
-    needs:
-      - applicability
-      - snarkpack-static
-      - snarkpack-extract
-      - snarkpack-fstar
-      - snarkpack-parity
-      - snarkpack-runtime
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          ref: ${{ needs.applicability.outputs.candidate_sha }}
       - name: Require closed committed SnarkPack evidence
+        id: publication_check
         env:
           SNARKPACK_FV_MODE: publication
         run: >-
@@ -753,119 +768,145 @@ jobs:
           --title "SnarkPack publication closure"
           -- bash scripts/snarkpack-fv.sh
 
-  # ---------------------------------------------------------------- soundness
+      - name: Report closure lane results
+        id: results
+        if: always()
+        shell: bash
+        env:
+          JOB_STATUS: ${{ job.status }}
+          PARITY_SELECTED: ${{ needs.applicability.outputs.snarkpack_parity_run == 'true' && needs.applicability.outputs.snarkpack_parity_cache_hit != 'true' }}
+        run: |
+          set -euo pipefail
+          parity="skipped"
+          if [[ "$PARITY_SELECTED" == "true" ]]; then
+            parity="$JOB_STATUS"
+          fi
+          echo "parity=$parity" >> "$GITHUB_OUTPUT"
+          echo "publication=$JOB_STATUS" >> "$GITHUB_OUTPUT"
 
-  soundness-policy:
-    name: 'soundness: policy'
+  # Policy-only and semantic host checks share one checkout. Semantic tiers
+  # prepare the full proof bundle once and consume it in this workspace.
+  soundness-host:
+    name: 'soundness: host checks'
     needs: applicability
     if: >-
       needs.applicability.result == 'success' &&
-      needs.applicability.outputs.soundness_run == 'true' &&
-      needs.applicability.outputs.soundness_tier == 'policy'
+      needs.applicability.outputs.soundness_run == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 240
+    outputs:
+      policy: ${{ steps.results.outputs.policy }}
+      artifacts: ${{ steps.results.outputs.artifacts }}
+      gate: ${{ steps.results.outputs.gate }}
+      seam: ${{ steps.results.outputs.seam }}
+      alloy: ${{ steps.results.outputs.alloy }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ needs.applicability.outputs.candidate_sha }}
           fetch-depth: 0
       - name: Validate formal applicability and artifact policy
+        id: policy_check
+        if: needs.applicability.outputs.soundness_tier == 'policy'
         run: |
           python3 scripts/ci/test_gate_applicability.py
           python3 scripts/tests/test_proof_artifacts.py
           python3 scripts/check_lfs_policy.py
 
-  soundness-artifacts:
-    name: 'soundness: prepare proof artifacts once'
-    needs: applicability
-    if: >-
-      needs.applicability.result == 'success' &&
-      needs.applicability.outputs.soundness_run == 'true' &&
-      needs.applicability.outputs.soundness_tier != 'policy'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          ref: ${{ needs.applicability.outputs.candidate_sha }}
-      - uses: ./.github/actions/prepare-proof-artifacts
+      - name: Prepare proof artifacts
+        id: artifacts
+        if: needs.applicability.outputs.soundness_tier != 'policy'
+        uses: ./.github/actions/prepare-proof-artifacts
         with:
           bundle: full
 
-  soundness-gate:
-    name: 'soundness: gate'
-    needs: [applicability, soundness-artifacts]
-    if: >-
-      needs.applicability.result == 'success' &&
-      needs.applicability.outputs.soundness_run == 'true' &&
-      needs.applicability.outputs.soundness_tier != 'policy'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 60
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          ref: ${{ needs.applicability.outputs.candidate_sha }}
-      - uses: ./.github/actions/restore-proof-artifacts
-        with:
-          bundle: full
       - name: Install ripgrep
+        if: needs.applicability.outputs.soundness_tier != 'policy'
         run: sudo apt-get update && sudo apt-get install -y ripgrep
+
       - name: Check soundness invariants
+        id: gate_check
+        if: needs.applicability.outputs.soundness_tier != 'policy'
         run: bash scripts/check-soundness-invariants.sh candidate
 
-  soundness-seam-and-pin:
-    name: 'soundness: seam-and-pin'
-    needs: [applicability, soundness-artifacts]
-    if: needs.applicability.result == 'success' && needs.applicability.outputs.soundness_run == 'true' && needs.applicability.outputs.soundness_tier != 'policy'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 45
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          ref: ${{ needs.applicability.outputs.candidate_sha }}
-      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5
+      - name: Set up Go
+        if: needs.applicability.outputs.soundness_tier != 'policy'
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5
         with:
           go-version-file: tools/gnark/go.mod
           cache-dependency-path: tools/gnark/go.sum
-      - name: Install ripgrep
-        run: sudo apt-get update && sudo apt-get install -y ripgrep
-      - uses: ./.github/actions/restore-proof-artifacts
-        with:
-          bundle: full
-      - name: Statement-field seam and parity
-        working-directory: tools/gnark
-        run: |
-          go test ./internal/abi/ -run TestRustGoStatementFieldDifferential -count=1
-          go test ./internal/primitives/ -run TestNoteReshapeStatementSeamsMatchShielddVectors -count=1
-      - name: Manifest pin
-        run: bash scripts/check-manifest-pin.sh
-      - name: DLEQ Lean stamps
-        run: bash scripts/compliance-lean-dleq.sh stamps
 
-  soundness-alloy:
-    name: 'soundness: alloy'
-    needs: applicability
-    if: needs.applicability.result == 'success' && needs.applicability.outputs.soundness_run == 'true' && needs.applicability.outputs.soundness_tier != 'policy' && (github.event_name == 'pull_request' || github.event_name == 'merge_group')
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          ref: ${{ needs.applicability.outputs.candidate_sha }}
-      - uses: ./.github/actions/setup-nix-rust
+      - name: Check statement seams, manifest pin, and DLEQ stamps
+        id: seam_check
+        if: needs.applicability.outputs.soundness_tier != 'policy'
+        shell: bash
+        run: |
+          set -euo pipefail
+          (
+            cd tools/gnark
+            go test ./internal/abi/ -run TestRustGoStatementFieldDifferential -count=1
+            go test ./internal/primitives/ -run TestNoteReshapeStatementSeamsMatchShielddVectors -count=1
+          )
+          bash scripts/check-manifest-pin.sh
+          bash scripts/compliance-lean-dleq.sh stamps
+
+      - name: Set up Nix for Alloy
+        if: >-
+          needs.applicability.outputs.soundness_tier != 'policy' &&
+          (github.event_name == 'pull_request' || github.event_name == 'merge_group')
+        uses: ./.github/actions/setup-nix-rust
         with:
           rust-cache: "false"
+
       - name: Run compliance Alloy outcome gate
+        id: alloy_check
+        if: >-
+          needs.applicability.outputs.soundness_tier != 'policy' &&
+          (github.event_name == 'pull_request' || github.event_name == 'merge_group')
         run: nix shell nixpkgs#alloy6 --command bash scripts/compliance-alloy.sh
+
+      - name: Report soundness host results
+        id: results
+        if: always()
+        shell: bash
+        env:
+          JOB_STATUS: ${{ job.status }}
+          POLICY_SELECTED: ${{ needs.applicability.outputs.soundness_tier == 'policy' }}
+          HEAVY_SELECTED: ${{ needs.applicability.outputs.soundness_tier != 'policy' }}
+          ALLOY_SELECTED: ${{ needs.applicability.outputs.soundness_tier != 'policy' && (github.event_name == 'pull_request' || github.event_name == 'merge_group') }}
+        run: |
+          set -euo pipefail
+          policy="skipped"
+          artifacts="skipped"
+          gate="skipped"
+          seam="skipped"
+          alloy="skipped"
+          if [[ "$POLICY_SELECTED" == "true" ]]; then
+            policy="$JOB_STATUS"
+          fi
+          if [[ "$HEAVY_SELECTED" == "true" ]]; then
+            artifacts="$JOB_STATUS"
+            gate="$JOB_STATUS"
+            seam="$JOB_STATUS"
+          fi
+          if [[ "$ALLOY_SELECTED" == "true" ]]; then
+            alloy="$JOB_STATUS"
+          fi
+          echo "policy=$policy" >> "$GITHUB_OUTPUT"
+          echo "artifacts=$artifacts" >> "$GITHUB_OUTPUT"
+          echo "gate=$gate" >> "$GITHUB_OUTPUT"
+          echo "seam=$seam" >> "$GITHUB_OUTPUT"
+          echo "alloy=$alloy" >> "$GITHUB_OUTPUT"
 
   soundness-artifact-replay:
     name: 'soundness: artifact replay'
-    needs: [applicability, soundness-artifacts]
+    needs: [applicability, soundness-host]
     # Candidate events validate committed evidence. Manual runs also
     # regenerate every artifact and prove/verify every deployed circuit. Lean
     # kernel replay remains the local operation that creates that evidence.
     if: >-
       needs.applicability.result == 'success' &&
+      needs.soundness-host.result == 'success' &&
       needs.applicability.outputs.soundness_run == 'true' &&
       needs.applicability.outputs.soundness_tier == 'full'
     runs-on: ubuntu-24.04
@@ -911,17 +952,10 @@ jobs:
     if: always()
     needs:
       - applicability
-      - snarkpack-static
+      - snarkpack-host
       - snarkpack-extract
-      - snarkpack-fstar
-      - snarkpack-parity
-      - snarkpack-runtime
-      - snarkpack-publication
-      - soundness-policy
-      - soundness-artifacts
-      - soundness-gate
-      - soundness-seam-and-pin
-      - soundness-alloy
+      - snarkpack-closure
+      - soundness-host
       - soundness-artifact-replay
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -956,16 +990,16 @@ jobs:
           SOUNDNESS_STATUS: ${{ needs.applicability.outputs.soundness_status }}
           SOUNDNESS_TIER: ${{ needs.applicability.outputs.soundness_tier }}
           SOUNDNESS_EXPLANATION: ${{ needs.applicability.outputs.soundness_explanation }}
-          STATIC: ${{ needs.snarkpack-static.result }}
+          STATIC: ${{ needs.snarkpack-host.outputs.static || 'skipped' }}
           EXTRACT: ${{ needs.snarkpack-extract.result }}
-          FSTAR: ${{ needs.snarkpack-fstar.result }}
-          PARITY: ${{ needs.snarkpack-parity.result }}
-          RUNTIME: ${{ needs.snarkpack-runtime.result }}
-          PUBLICATION: ${{ needs.snarkpack-publication.result }}
-          POLICY: ${{ needs.soundness-policy.result }}
-          ARTIFACTS: ${{ needs.soundness-artifacts.result }}
-          GATE: ${{ needs.soundness-gate.result }}
-          SEAM: ${{ needs.soundness-seam-and-pin.result }}
-          ALLOY: ${{ needs.soundness-alloy.result }}
+          FSTAR: ${{ needs.snarkpack-host.outputs.fstar || 'skipped' }}
+          PARITY: ${{ needs.snarkpack-closure.outputs.parity || 'skipped' }}
+          RUNTIME: ${{ needs.snarkpack-host.outputs.runtime || 'skipped' }}
+          PUBLICATION: ${{ needs.snarkpack-closure.outputs.publication || 'skipped' }}
+          POLICY: ${{ needs.soundness-host.outputs.policy || 'skipped' }}
+          ARTIFACTS: ${{ needs.soundness-host.outputs.artifacts || 'skipped' }}
+          GATE: ${{ needs.soundness-host.outputs.gate || 'skipped' }}
+          SEAM: ${{ needs.soundness-host.outputs.seam || 'skipped' }}
+          ALLOY: ${{ needs.soundness-host.outputs.alloy || 'skipped' }}
           REPLAY: ${{ needs.soundness-artifact-replay.result }}
         run: python3 scripts/ci/enforce_formal_result.py

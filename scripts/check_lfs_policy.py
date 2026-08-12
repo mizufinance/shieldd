@@ -32,11 +32,9 @@ ALLOWED_LFS_PATHS = {
 }
 EXPECTED_WORKFLOW_RESTORES = {
     "containers.yml": 2,
-    "formal.yml": 3,
-    "orbis-integration.yml": 1,
+    "formal.yml": 1,
     "release.yml": 1,
-    "rust.yml": 5,
-    "smoke.yml": 1,
+    "rust.yml": 2,
 }
 
 
@@ -151,24 +149,23 @@ def enforce_workflow_fanout() -> None:
         fail("the obsolete self-fetching proof-artifact action still exists")
 
     rust = (workflows / "rust.yml").read_text(encoding="utf-8")
-    go_gnark = rust.partition("\n  go-gnark:")[2].partition("\n  gnark-rust:")[0]
-    if "uses: ./.github/actions/restore-proof-artifacts" not in go_gnark:
-        fail("the Go gnark tests do not restore the prepared runtime bundle")
-    gnark_rust = rust.partition("\n  gnark-rust:")[2].partition("\n  summary:")[0]
+    tests = rust.partition("\n  tests:")[2].partition("\n  summary:")[0]
     if (
-        "uses: ./.github/actions/restore-proof-artifacts" not in gnark_rust
-        or "bundle: full" not in gnark_rust
+        "uses: ./.github/actions/restore-proof-artifacts" not in tests
+        or "'runtime' || 'full'" not in tests
+        or "go test ./..." not in tests
+        or "just ci-gnark-proof-tests" not in tests
     ):
-        fail("manual gnark replay does not restore the prepared full bundle")
+        fail("the combined Rust test lane does not restore and test its bundle")
 
     formal = (workflows / "formal.yml").read_text(encoding="utf-8")
-    soundness_artifacts = formal.partition("\n  soundness-artifacts:")[2].partition(
-        "\n  soundness-gate:"
+    soundness_host = formal.partition("\n  soundness-host:")[2].partition(
+        "\n  soundness-artifact-replay:"
     )[0]
     if (
         "uses: ./.github/actions/prepare-proof-artifacts"
-        not in soundness_artifacts
-        or "bundle: full" not in soundness_artifacts
+        not in soundness_host
+        or "bundle: full" not in soundness_host
     ):
         fail("semantic soundness does not prepare one full artifact bundle")
 
