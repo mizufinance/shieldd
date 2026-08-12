@@ -23,6 +23,9 @@ jobs:
 
       - uses: ./.github/actions/setup-nix-rust
 
+      - name: Test rustdoc package selection
+        run: python3 deployments/scripts/tests/test_rust_doc_packages.py
+
       # Building with warm cache takes ~40s, depending on changes.
       - name: Build rustdocs
         # jemalloc's configure probes use -Werror, while Nix's fortify headers
