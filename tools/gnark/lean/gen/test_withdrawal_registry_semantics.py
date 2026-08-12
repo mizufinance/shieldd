@@ -33,6 +33,15 @@ class WithdrawalRegistrySemanticsTest(unittest.TestCase):
             ],
             [
                 (
+                    "gadget.note_commitment@"
+                    "252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c",
+                    5,
+                    1395601591349183338445327673196897598598470771863946901251414766570764147135,
+                    390,
+                    398,
+                    (372, 377, 382, 387, 392, 397),
+                ),
+                (
                     "gadget.asset_registry_params_hash@"
                     "d65f2514fa1b17e8679203e682583ee8344352bd12416241ef63007b11e2c086",
                     4,
@@ -70,12 +79,12 @@ class WithdrawalRegistrySemanticsTest(unittest.TestCase):
                 ),
                 (
                     "gadget.compliance_leaf@"
-                    "89974c69097fec1fe7276409b30d17170b41afc739ec6a0392be21d56a7c6d68",
-                    7,
-                    168430640865250000792698691211246566687485655593739355441774434546766203703,
-                    470,
-                    480,
-                    (444, 449, 454, 459, 464, 469, 474, 479),
+                    "dcb0a1040c535cf394b8bda4f381260121926f7d477fb80a22e4e84b0cb431bc",
+                    6,
+                    5091441079939941903017664305347261861704474070005805806880013805880773073215,
+                    430,
+                    439,
+                    (408, 413, 418, 423, 428, 433, 438),
                 ),
             ],
         )
@@ -124,7 +133,7 @@ class WithdrawalRegistrySemanticsTest(unittest.TestCase):
             for template in subject.HASH_TEMPLATES
         }
         self.assertEqual(mains & self.outputs.keys(), mains)
-        self.assertEqual(len(self.outputs), 210)
+        self.assertEqual(len(self.outputs), 252)
         for template in subject.HASH_TEMPLATES:
             source = self.outputs[
                 subject.SEMANTICS / f"{template.name}.lean"

@@ -48,7 +48,6 @@ def sender (rho : Nat → DeployedF) : Address DeployedF :=
     transmission :=
       ⟨senderTransmissionComputed0 rho, senderTransmissionComputed1 rho⟩
     transmissionEncoding := senderTransmissionFq rho
-    clueKey := senderClueKey rho
   }
 
 def receiverAddress (rho : Nat → DeployedF) : Address DeployedF :=
@@ -60,7 +59,6 @@ def receiverAddress (rho : Nat → DeployedF) : Address DeployedF :=
       ⟨output0RecipientTransmission0 rho,
        output0RecipientTransmission1 rho⟩
     transmissionEncoding := output0RecipientTransmissionFq rho
-    clueKey := output0NoteClueKey rho
   }
 
 def authorization (rho : Nat → DeployedF) : Authorization DeployedF :=
@@ -297,6 +295,11 @@ def action (rho : Nat → DeployedF) :
     targetTimestamp := targetTimestamp rho
     balanceCommitmentEncoding := balanceCommitmentFq rho
     balanceBlinding := actionBalanceBlinding rho
+    routingTags := routingTagsAt rho
+    routingParameterSetId := routingParameterSetId rho
+    regulatedPrecision := routingRegulatedPrecision rho
+    unregulatedPrecision := routingUnregulatedPrecision rho
+    routingAsOfHeight := routingAsOfHeight rho
     publicStatementHash := claimedStatementHash rho
   }
 

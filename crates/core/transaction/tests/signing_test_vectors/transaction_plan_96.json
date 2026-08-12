@@ -16,7 +16,7 @@
               },
               "rseed": "Ub32n4VJolG8EmUALckDkvmjtEUQOhV/Zls3RWlucoo=",
               "address": {
-                "inner": "7bEWRlizqZ4vAB0HfGwal9wO0F61QxZgldbzykCF/w2letP1RG2bbuac8GfFTSjAhBrwjYIBfl4w/lB7y9Ok+MAi8jmPQJ5xZRrdh8RqbeE="
+                "inner": "4orbiqwyJ5trsWCN/MkP+eLsoDz10QiQN2s/LE5zucrWQ1/BbmM4tXV1Vfv3oaOs"
               }
             },
             "position": "138632497646959",
@@ -25,7 +25,7 @@
             "targetTimestamp": "1700000000",
             "complianceLeaf": {
               "address": {
-                "inner": "7bEWRlizqZ4vAB0HfGwal9wO0F61QxZgldbzykCF/w2letP1RG2bbuac8GfFTSjAhBrwjYIBfl4w/lB7y9Ok+MAi8jmPQJ5xZRrdh8RqbeE="
+                "inner": "4orbiqwyJ5trsWCN/MkP+eLsoDz10QiQN2s/LE5zucrWQ1/BbmM4tXV1Vfv3oaOs"
               },
               "assetId": {
                 "inner": "0Kp7JZHSfpBSYp/mDtlw0t435eDriqJHN8dYSUFLNQI="
@@ -35,7 +35,7 @@
             },
             "txBlindingNonce": "UYMXsHMDIIfVXZKPRVRdXVN26vVn+3xSX8ckrg+ogAM=",
             "complianceAnchor": {
-              "inner": "/NXznbpagyFsghsj5bUPo9oOtnNhrP5p3PBoXwWeqAw="
+              "inner": "nf7FxnQaz/otTQ02na5l4WrLqKnuR4hRiubxeuFibQo="
             },
             "assetAnchor": {
               "inner": "WeZWVgf3pZ3tZArtd0wkQGvY0sNG3eO018K7FR3Qsgc="
@@ -294,9 +294,9 @@
           "denom": {
             "denom": "ushieldd"
           },
-          "destinationChainAddress": "shieldd1lr5dj9h766qu2dfaqaj3cmdns55ky8672yd93qd584pjctfkqgrcdrpzsld5jtkek9u68mssvcgt04wre0cyfmrxjcm26yh52pzwd50p3a864rlnz0vq4y9pqajltmaxq3rv35",
+          "destinationChainAddress": "shieldd1xdqahavkg6ahu303s4e0w7nv3qakwll6c2me0mvlfhh5nxwrk7zxp6zexgy0wk9rwcyy20g9f79aw3easee",
           "returnAddress": {
-            "inner": "+OjZFv7WgcU1PQdlHG2zhSliH15RGliBtD1DLC02AgeGjCKH20ku2bF5o+4QZhC31cPL8ETsZpY2rRL0UETm0eGPT6qP8xPYCpChB2X176Y="
+            "inner": "M0Hb9ZZGu35F8YVy93psiDtnf/rCt5ftn03vSZnDt4Rg6FkyCPdYo3YIRT0FT4vX"
           },
           "timeoutHeight": {
             "revisionNumber": "430088122",
@@ -305,7 +305,11 @@
           "timeoutTime": "50656620000000000",
           "sourceChannel": "channel-0"
         },
-        "discoveryPrecisionBits": 16
+        "routingParameters": {
+          "regulatedPrecisionBits": 12,
+          "unregulatedPrecisionBits": 18,
+          "asOfHeight": "1"
+        }
       }
     },
     {

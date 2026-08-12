@@ -23,6 +23,8 @@ pub(crate) struct ProofPublicData<'a> {
     pub change_output: &'a ShieldedIcs20WithdrawalChangeBody,
     pub outbound_value: Value,
     pub withdrawal_effect_hash: EffectHash,
+    pub routing_tag: crate::discovery::RoutingTag,
+    pub routing_parameter_set_id: decaf377::Fq,
 }
 
 pub(crate) fn verify_auth_sigs(
@@ -71,6 +73,8 @@ pub(crate) fn extract_public(
             crate::shielded_ics20_withdrawal::withdrawal_effect_hash_limbs(
                 data.withdrawal_effect_hash.as_bytes(),
             ),
+        routing_tag: data.routing_tag,
+        routing_parameter_set_id: data.routing_parameter_set_id,
     };
     public.validate_shape()?;
     Ok(public)

@@ -40,8 +40,8 @@ CANONICAL_RELATIONS = ROOT / "tools/gnark/artifacts/proof-template-relations"
 
 KEY = "gadget.state_commitment_path@f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb"
 NAME = "TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb"
-WITHDRAWAL_KEY = "gadget.state_commitment_path@925881caa7382e3f2e29b610c396d78e8b7d8aca0859bce49a2f7fb99c5384d0"
-WITHDRAWAL_NAME = "TGadgetStateCommitmentPath_925881caa7382e3f2e29b610c396d78e8b7d8aca0859bce49a2f7fb99c5384d0"
+WITHDRAWAL_KEY = "gadget.state_commitment_path@de54b1d0646cc1ad6f619aa080bfafd4a6edb63989b142c5c0b284d84e09d69b"
+WITHDRAWAL_NAME = "TGadgetStateCommitmentPath_de54b1d0646cc1ad6f619aa080bfafd4a6edb63989b142c5c0b284d84e09d69b"
 ORDER = 8444461749428370424248824938781546531375899335154063827935233455917409239041
 EXACT = f"Shieldd.GnarkFormal.Deployed.Templates.Relations.{NAME}"
 EXACT_IMPORT = f"ShielddGnarkFormal.Deployed.Templates.Relations.{NAME}"
@@ -52,18 +52,18 @@ ROW_COUNT = 9015
 LOCAL_WIRE_COUNT = 8993
 REFERENCE_LOCAL_WIRE_COUNT = 8993
 PART_SIZE = 80
-SOURCE_SEGMENT = 15
+SOURCE_SEGMENT = 33
 
 DIRECT_INSTANCES = (
-    ("note_reshape1x8", 15),
-    ("note_reshape8x1", 24),
-    ("note_reshape8x1", 38),
-    ("note_reshape8x1", 52),
-    ("note_reshape8x1", 66),
-    ("note_reshape8x1", 80),
-    ("note_reshape8x1", 94),
-    ("note_reshape8x1", 108),
-    ("note_reshape8x1", 122),
+    ("note_reshape1x8", 33),
+    ("note_reshape8x1", 42),
+    ("note_reshape8x1", 56),
+    ("note_reshape8x1", 70),
+    ("note_reshape8x1", 84),
+    ("note_reshape8x1", 98),
+    ("note_reshape8x1", 112),
+    ("note_reshape8x1", 126),
+    ("note_reshape8x1", 140),
 )
 DIRECT_CONSTANT_VECTOR = (
     "02b3d6f5192c3b01e169435bcb1e038a"
@@ -71,29 +71,28 @@ DIRECT_CONSTANT_VECTOR = (
 )
 DIRECT_CLASS_KEY = "gadget.state_commitment_path@088ab48133b9d3af"
 WITHDRAWAL_INSTANCES = (
-    ("shielded_ics20_withdrawal", 22),
-    ("shielded_ics20_withdrawal", 32),
+    ("shielded_ics20_withdrawal", 30),
+    ("shielded_ics20_withdrawal", 40),
     ("transfer", 34),
     ("transfer", 45),
 )
 WITHDRAWAL_CONSTANT_VECTOR = (
-    "9368cc95120ed4d0d19d3dcc5ca9dea5"
-    "ae19c2802c4e25b2f3cbd6d8e5edd8e9"
+    "64c43dfa0781373078a353d0673f774a0"
+    "fb05cf88d5c0732a8be710d28bd88cf"
 )
-WITHDRAWAL_CLASS_KEY = "gadget.state_commitment_path@1fb4124ff9d8cc66"
+WITHDRAWAL_CLASS_KEY = "gadget.state_commitment_path@b4d6328ac94579d4"
 
-# The Withdrawal circuit commits to the seven-field note body inline.  These
+# Transfer and Withdrawal commit to the five-field note body inline. These
 # are the authoritative note-commitment output coefficients; the canonical
 # relation transport below verifies all 9,015 normalized rows, rather than
 # assuming that the six-wire namespace shift is sufficient.
 WITHDRAWAL_COMMITMENT_LC = (
-    (7388904030749824121217721821433853214953911918259805849443329273927733084161, 1),
-    (4691367638571316902360458299323081406319944075085591015519574142176338466134, 2),
-    (7600015574485533381823942444903391878238309401638657445141710110325668315137, 3),
-    (2303035022571373752067861346940421781284336182314744680345972760704747974284, 4),
-    (7740756603642672888894756193883084320427907723891225175607297334590958469121, 5),
-    (7794887768703111160845069174259889105885445540142212764247907805462223912961, 6),
-    (7841285910183486822516766014582864636277620811214487840225573923351880007681, 7),
+    (7238110070938603220784707090384182741179342287274911852515914390786350776321, 1),
+    (7388904030749824121217721821433853214953911918259805849443329273927733084161, 2),
+    (4691367638571316902360458299323081406319944075085591015519574142176338466134, 3),
+    (7600015574485533381823942444903391878238309401638657445141710110325668315137, 4),
+    (2303035022571373752067861346940421781284336182314744680345972760704747974284, 5),
+    (7740756603642672888894756193883084320427907723891225175607297334590958469121, 6),
 )
 COMMITMENT_LC: tuple[tuple[int, int], ...] | None = None
 
@@ -257,7 +256,7 @@ def _withdrawal_substitution(side: dict[int, int]) -> dict[int, int]:
                     coefficient * commitment_coefficient,
                 )
         else:
-            _lc_add(result, wire + 6, coefficient)
+            _lc_add(result, wire + 5, coefficient)
     return result
 
 
@@ -278,9 +277,9 @@ def _validate_withdrawal_relation_transport() -> None:
                 f"{WITHDRAWAL_KEY}: exact specialization failed at row {row}"
             )
     wires = canonical.used_wires(target)
-    if wires != set(range(8999)):
+    if wires != set(range(8998)):
         raise SystemExit(
-            f"{WITHDRAWAL_KEY}: target wire namespace is not exactly 0..8998"
+            f"{WITHDRAWAL_KEY}: target wire namespace is not exactly 0..8997"
         )
 
 
@@ -360,7 +359,7 @@ def _normalized_emitter_inputs(rows: dict[int, str]):
         global_wire: (
             local_wire
             if COMMITMENT_LC is None or local_wire < 2
-            else local_wire + 6
+            else local_wire + 5
         )
         for local_wire, global_wire in enumerate(_reviewed_reference_seating())
     }
@@ -600,11 +599,11 @@ def generated_files() -> dict[Path, str]:
 
     _validate_registry_target(
         WITHDRAWAL_KEY,
-        local_wire_count=8999,
+        local_wire_count=8998,
     )
     _validate_inventory_target(
         WITHDRAWAL_KEY,
-        local_wire_count=8999,
+        local_wire_count=8998,
         instances=WITHDRAWAL_INSTANCES,
         constant_vector=WITHDRAWAL_CONSTANT_VECTOR,
         class_key=WITHDRAWAL_CLASS_KEY,
@@ -613,7 +612,7 @@ def generated_files() -> dict[Path, str]:
     with _target(
         key=WITHDRAWAL_KEY,
         name=WITHDRAWAL_NAME,
-        local_wire_count=8999,
+        local_wire_count=8998,
         commitment_lc=WITHDRAWAL_COMMITMENT_LC,
     ):
         withdrawal = _target_outputs(benchmarks=False)

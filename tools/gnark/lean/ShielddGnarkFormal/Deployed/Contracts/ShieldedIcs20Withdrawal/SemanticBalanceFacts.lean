@@ -30,7 +30,7 @@ theorem conservationSpec_of_circuitFacts
     (facts : ShieldedIcs20WithdrawalCircuitFacts rho) :
     ConservationSpec rho :=
   conservationSpec_of_segmentSpec rho
-    facts.exact.DecafConservationNetBalanceCommitment2Seg47
+    facts.conservation.DecafConservationNetBalanceCommitment2Seg55
 
 
 end Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal

@@ -25,8 +25,8 @@ PREDICATE_CONSEQUENCE_ROSTER = (
 LEAN = ROOT / "tools/gnark/lean"
 EXPECTED_PREDICATE_CONSEQUENCE_COUNTS: Mapping[str, int] = MappingProxyType(
     {
-        "note_reshape1x8": 22,
-        "note_reshape8x1": 26,
+        "note_reshape1x8": 29,
+        "note_reshape8x1": 33,
         "shielded_ics20_withdrawal": 39,
         "transfer": 55,
     }

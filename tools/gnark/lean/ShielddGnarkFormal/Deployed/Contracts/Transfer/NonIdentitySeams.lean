@@ -15,9 +15,9 @@ theorem authAkNonIdentity_of_exact
     (rho : Nat → SemanticF)
     (facts : TransferCircuitFacts rho) :
     authAk0 rho ≠ 0 := by
-  have h := facts.exact.AssertDecafNonIdentitySeg3.2
+  have h := facts.canonicalSender.AssertDecafNonIdentitySeg3.2
   change Seg3.localRho rho 2 ≠ 0 at h
-  have hseat : Seg3.wireSeating 2 = 8 := by
+  have hseat : Seg3.wireSeating 2 = 14 := by
     decide +kernel
   simpa only [
     authAk0, authAk0LC,
@@ -30,9 +30,9 @@ theorem senderDivGenNonIdentity_of_exact
     (rho : Nat → SemanticF)
     (facts : TransferCircuitFacts rho) :
     senderDivGen0 rho ≠ 0 := by
-  have h := facts.exact.AssertDecafNonIdentitySeg4.2
+  have h := facts.canonicalSender.AssertDecafNonIdentitySeg4.2
   change Seg4.localRho rho 2 ≠ 0 at h
-  have hseat : Seg4.wireSeating 2 = 76 := by
+  have hseat : Seg4.wireSeating 2 = 82 := by
     decide +kernel
   simpa only [
     senderDivGen0, senderDivGen0LC,
@@ -45,9 +45,9 @@ theorem senderTransmissionNonIdentity_of_exact
     (rho : Nat → SemanticF)
     (facts : TransferCircuitFacts rho) :
     senderTransmission0 rho ≠ 0 := by
-  have h := facts.exact.AssertDecafNonIdentitySeg17.2
+  have h := facts.canonicalSender.AssertDecafNonIdentitySeg17.2
   change Seg17.localRho rho 2 ≠ 0 at h
-  have hseat : Seg17.wireSeating 2 = 78 := by
+  have hseat : Seg17.wireSeating 2 = 84 := by
     decide +kernel
   simpa only [
     senderTransmission0, senderTransmission0LC,
@@ -60,9 +60,9 @@ theorem output0RecipientDivGenNonIdentity_of_exact
     (rho : Nat → SemanticF)
     (facts : TransferCircuitFacts rho) :
     output0RecipientDivGen0 rho ≠ 0 := by
-  have h := facts.exact.AssertDecafNonIdentitySeg56.2
+  have h := facts.receiverOutput.AssertDecafNonIdentitySeg56.2
   change Seg56.localRho rho 2 ≠ 0 at h
-  have hseat : Seg56.wireSeating 2 = 338 := by
+  have hseat : Seg56.wireSeating 2 = 342 := by
     decide +kernel
   simpa only [
     output0RecipientDivGen0, output0RecipientDivGen0LC,
@@ -75,9 +75,9 @@ theorem output0RecipientTransmissionNonIdentity_of_exact
     (rho : Nat → SemanticF)
     (facts : TransferCircuitFacts rho) :
     output0RecipientTransmission0 rho ≠ 0 := by
-  have h := facts.exact.AssertDecafNonIdentitySeg57.2
+  have h := facts.receiverOutput.AssertDecafNonIdentitySeg57.2
   change Seg57.localRho rho 2 ≠ 0 at h
-  have hseat : Seg57.wireSeating 2 = 340 := by
+  have hseat : Seg57.wireSeating 2 = 344 := by
     decide +kernel
   simpa only [
     output0RecipientTransmission0, output0RecipientTransmission0LC,
@@ -90,9 +90,9 @@ theorem authIvkReducedNonzero_of_exact
     (rho : Nat → SemanticF)
     (facts : TransferCircuitFacts rho) :
     authIvkReduced rho ≠ 0 := by
-  have h := facts.exact.AssertNeSeg14.2
+  have h := facts.canonicalSender.AssertNeSeg14.2
   change Seg14.localRho rho 2 ≠ 0 at h
-  have hseat : Seg14.wireSeating 2 = 11 := by
+  have hseat : Seg14.wireSeating 2 = 17 := by
     decide +kernel
   simpa only [
     authIvkReduced, authIvkReducedLC,

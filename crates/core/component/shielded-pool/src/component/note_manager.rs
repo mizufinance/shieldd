@@ -13,7 +13,7 @@ use super::StateReadExt;
 #[cfg(test)]
 use super::StateWriteExt;
 use crate::state_key;
-use crate::{discovery, Note, NotePayload, Rseed};
+use crate::{Note, NotePayload, Rseed};
 
 #[cfg(feature = "benchmark-helpers")]
 use shieldd_sdk_ibc::benchmarking::{record_inbound_stage, InboundStage};
@@ -39,8 +39,6 @@ pub trait NoteManager: StateWrite + StateReadExt {
         let mint_note_start = Instant::now();
 
         tracing::debug!(?value, ?address, "minting tokens");
-        let discovery_precision = self.get_current_discovery_parameters().await?.precision;
-
         // These notes are public, so we don't need a blinding factor for
         // privacy, but since the note commitments are determined by the note
         // contents, we need to have unique (deterministic) blinding factors for
@@ -56,12 +54,7 @@ pub trait NoteManager: StateWrite + StateReadExt {
             .add_sct_commitment_from_position(source_for_append, |position| {
                 #[cfg(feature = "benchmark-helpers")]
                 let note_build_start = Instant::now();
-                let note_payload = build_position_derived_mint_payload(
-                    value,
-                    address,
-                    position,
-                    discovery_precision,
-                )?;
+                let note_payload = build_position_derived_mint_payload(value, address, position)?;
                 #[cfg(feature = "benchmark-helpers")]
                 record_inbound_stage(InboundStage::MintNoteBuild, note_build_start.elapsed());
 
@@ -156,10 +149,9 @@ pub fn build_position_derived_mint_payload(
     value: Value,
     address: &Address,
     position: tct::Position,
-    discovery_precision: discovery::Precision,
 ) -> Result<NotePayload> {
     let note = Note::from_parts(address.clone(), value, mint_rseed(position)?)?;
-    Ok(note.payload(discovery_precision))
+    Ok(note.payload())
 }
 
 fn mint_rseed(position: tct::Position) -> Result<Rseed> {
@@ -177,6 +169,7 @@ fn mint_rseed(position: tct::Position) -> Result<Rseed> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::discovery;
     use cnidarium::{StateDelta, TempStorage};
     use shieldd_sdk_asset::{Value, BASE_ASSET_ID};
     use shieldd_sdk_keys::test_keys;
@@ -210,7 +203,7 @@ mod tests {
 
         for (position, payload, source) in payloads {
             let expected_note = Note::from_parts(address.clone(), value, mint_rseed(position)?)?;
-            let expected_payload = expected_note.payload(discovery::Precision::default());
+            let expected_payload = expected_note.payload();
             assert_eq!(payload.note_commitment, expected_payload.note_commitment);
             assert_eq!(payload.ephemeral_key.0, expected_payload.ephemeral_key.0);
             assert_eq!(payload.encrypted_note.0, expected_payload.encrypted_note.0);
@@ -237,12 +230,7 @@ mod tests {
         let payloads = state.pending_note_payloads();
         let (position, immediate_payload, _) = &payloads[0];
 
-        let rebuilt_payload = build_position_derived_mint_payload(
-            value,
-            &address,
-            *position,
-            discovery::Precision::default(),
-        )?;
+        let rebuilt_payload = build_position_derived_mint_payload(value, &address, *position)?;
 
         assert_eq!(
             immediate_payload.note_commitment,

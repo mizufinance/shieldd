@@ -11,6 +11,7 @@ use shieldd_sdk_sct::Nullifier;
 use shieldd_sdk_tct as tct;
 
 use crate::{
+    discovery::{Parameters as RoutingParameters, TransferRouting},
     public_input_hash::{transfer_statement_hash_from_public, StatementHashError},
     transfer::{transfer_input_count, transfer_output_count, TRANSFER_PROOF_LABEL},
     Note,
@@ -54,6 +55,8 @@ pub struct TransferProofPublic {
     pub inputs: Vec<TransferSpendPublic>,
     pub outputs: Vec<TransferOutputPublic>,
     pub compliance: TransferCompliancePublic,
+    pub routing: TransferRouting,
+    pub routing_parameter_set_id: Fq,
 }
 
 impl TransferProofPublic {
@@ -129,6 +132,7 @@ pub struct TransferProofPrivate {
     pub asset_position: u64,
     pub asset_indexed_leaf: IndexedLeaf,
     pub is_regulated: bool,
+    pub routing_parameters: RoutingParameters,
     pub sender_compliance_path: MerklePath,
     pub sender_compliance_position: u64,
     pub sender_leaf: ComplianceLeaf,

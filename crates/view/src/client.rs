@@ -804,6 +804,7 @@ where
         async move {
             let address = self2.address_by_index(tonic::Request::new(pb::AddressByIndexRequest {
                 address_index: Some(address_index.into()),
+                purpose: None,
             }));
             let address = address
                 .await?

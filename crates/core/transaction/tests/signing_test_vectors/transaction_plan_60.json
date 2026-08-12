@@ -4,7 +4,7 @@
       "ibcRelayAction": {
         "rawAction": {
           "typeUrl": "/ibc.core.channel.v1.MsgRecvPacket",
-          "value": "CrIBCI3G0DQSC2RlZmF1bHRQb3J0GgljaGFubmVsLTAiC2RlZmF1bHRQb3J0KgljaGFubmVsLTAyZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA6CwjW2oGmAhD3ksZTQLuwyZrFoZDlChICCgAaCwjW2oGmAhD3ksZTIo4Bc2hpZWxkZDF4cWp3NXo5dTZuMjQ5NHdxbWZ1ajg4bjd2cng3cDZyOHJxN3FmZWszMGNrem1seHN0NzJka2t5bDc1bmhnNzY4aHJwNzQ4d243NWhhbThweHd2aDA5eXVrZm00azdyMmdtOTVhczhqbjl4NjczbGNwdXJ3dW1ocG43a3Zzc2o1azd2Zmw3cA=="
+          "value": "CrIBCI3G0DQSC2RlZmF1bHRQb3J0GgljaGFubmVsLTAiC2RlZmF1bHRQb3J0KgljaGFubmVsLTAyZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA6CwjW2oGmAhD3ksZTQLuwyZrFoZDlChICCgAaCwjW2oGmAhD3ksZTIltzaGllbGRkMXU3dzVmd3hlcTU2bnRrOGgwbXFmcGRreDM1Z3R5bnM1MDY1ZHVjY2Z6dmEwa2trOWQydzd4YXg5NzQzaHR2ZW1zZzBxNnJxMHM0bnRzdXMwbjk3"
         }
       }
     },
@@ -24,7 +24,7 @@
               },
               "rseed": "bQ/gDZ4cR/F8sUoBVYZD2GpBDQaO+x5Isr/wq/RdnZg=",
               "address": {
-                "inner": "7bEWRlizqZ4vAB0HfGwal9wO0F61QxZgldbzykCF/w2letP1RG2bbuac8GfFTSjAhBrwjYIBfl4w/lB7y9Ok+MAi8jmPQJ5xZRrdh8RqbeE="
+                "inner": "4orbiqwyJ5trsWCN/MkP+eLsoDz10QiQN2s/LE5zucrWQ1/BbmM4tXV1Vfv3oaOs"
               }
             },
             "position": "148370125708789",
@@ -33,7 +33,7 @@
             "targetTimestamp": "1700000000",
             "complianceLeaf": {
               "address": {
-                "inner": "7bEWRlizqZ4vAB0HfGwal9wO0F61QxZgldbzykCF/w2letP1RG2bbuac8GfFTSjAhBrwjYIBfl4w/lB7y9Ok+MAi8jmPQJ5xZRrdh8RqbeE="
+                "inner": "4orbiqwyJ5trsWCN/MkP+eLsoDz10QiQN2s/LE5zucrWQ1/BbmM4tXV1Vfv3oaOs"
               },
               "assetId": {
                 "inner": "0Kp7JZHSfpBSYp/mDtlw0t435eDriqJHN8dYSUFLNQI="
@@ -43,7 +43,7 @@
             },
             "txBlindingNonce": "V9ycdvpaIgxYuOYXpbulmQJ+FKNDOw0ucTCBGq/P4QM=",
             "complianceAnchor": {
-              "inner": "/NXznbpagyFsghsj5bUPo9oOtnNhrP5p3PBoXwWeqAw="
+              "inner": "nf7FxnQaz/otTQ02na5l4WrLqKnuR4hRiubxeuFibQo="
             },
             "assetAnchor": {
               "inner": "WeZWVgf3pZ3tZArtd0wkQGvY0sNG3eO018K7FR3Qsgc="
@@ -302,9 +302,9 @@
           "denom": {
             "denom": "ushieldd"
           },
-          "destinationChainAddress": "shieldd1twte6a0j5v30azd837n4t0lpp35gaxdufy4ye6g5wq7vqndlfqmvpfc562yfvzlkxp45t9j3pkduwv9kqdnfw7urz75rvrlxh66lur007hud3hghzp0nmfqtdxv95g3kqadmhv",
+          "destinationChainAddress": "shieldd1sal82m3f9v2cgu6t0enk20aa0fhupyl509m38d5hkwvm7a76g32eac4xtjqc356c3lt58f2uwyxsgv7wa2m",
           "returnAddress": {
-            "inner": "W5eddfKjIv6Jp4+nVb/hDGiOmbxJKkzpFHA8wE2/SDbApxTSiJYL9jBrRZZRDZvHMLYDZpd7gxeoNg/mvrX+De/1+NjdFxBfPaQLaZhaIjY="
+            "inner": "h351bikrFYRzS35nZT+9em/Ak/R5dxO2l7OZv3faRFWe4qZcgYjTWI/XQ6VccQ0E"
           },
           "timeoutHeight": {
             "revisionNumber": "816184723",
@@ -313,7 +313,11 @@
           "timeoutTime": "34206960000000000",
           "sourceChannel": "channel-0"
         },
-        "discoveryPrecisionBits": 16
+        "routingParameters": {
+          "regulatedPrecisionBits": 12,
+          "unregulatedPrecisionBits": 18,
+          "asOfHeight": "1"
+        }
       }
     }
   ],

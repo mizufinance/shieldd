@@ -31,14 +31,25 @@ message GenesisContent {
 
 // Protocol-controlled precision for public note-discovery tags.
 message DiscoveryParameters {
-  uint32 precision_bits = 1;
-  uint64 as_of_block_height = 2;
+  uint32 regulated_precision_bits = 1;
+  uint32 unregulated_precision_bits = 2;
+  uint64 as_of_height = 3;
 }
 
-// Public best-effort routing tag for an encrypted note.
-message DiscoveryTag {
+// Fixed-width public routing value. Precision is deliberately not encoded.
+message RoutingTag {
+  fixed32 value = 1;
+}
+
+// Local or query-side matcher for routing tags.
+message RoutingSelector {
   uint32 precision_bits = 1;
-  fixed32 value = 2;
+  fixed32 prefix = 2;
+}
+
+// Fixed public routing shape for a transfer action.
+message TransferRouting {
+  repeated RoutingTag tags = 1;
 }
 
 message Note {
@@ -54,7 +65,7 @@ message NoteView {
 }
 
 // An encrypted note.
-// 176 = 80(address) + 16(amount) + 32(asset ID) + 32(rseed) + 16(MAC) bytes.
+// 144 = 48(address) + 16(amount) + 32(asset ID) + 32(rseed) + 16(MAC) bytes.
 message NoteCiphertext {
   bytes inner = 1;
 }
@@ -67,10 +78,8 @@ message NotePayload {
   // The encoding of an ephemeral public key. 32 bytes.
   bytes ephemeral_key = 2;
   // An encryption of the newly created note.
-  // 176 = 80(address) + 16(amount) + 32(asset ID) + 32(rseed) + 16(MAC) bytes.
+  // 144 = 48(address) + 16(amount) + 32(asset ID) + 32(rseed) + 16(MAC) bytes.
   NoteCiphertext encrypted_note = 3;
-  // Public best-effort routing metadata. It does not grant decryption capability.
-  DiscoveryTag discovery_tag = 4;
 }
 
 // A Shieldd ZK transfer proof.
@@ -139,6 +148,10 @@ message TransferBody {
   crypto.tct.v1.StateCommitment compliance_anchor = 5;
   // Asset tree anchor used during proof generation.
   crypto.tct.v1.StateCommitment asset_anchor = 6;
+  // Fixed two-slot routing bundle; slot roles are private.
+  TransferRouting routing = 7;
+  // Poseidon identifier of the privately selected protocol parameter set.
+  bytes routing_parameter_set_id = 8;
 }
 
 message TransferView {
@@ -168,8 +181,8 @@ message TransferPlan {
   repeated ShieldedInputPlan spends = 4;
   // The shielded output plans fused into this transfer.
   repeated ShieldedOutputPlan outputs = 5;
-  // Protocol precision used by all real and padded output discovery tags.
-  uint32 discovery_precision_bits = 6;
+  // Protocol routing parameter set used to construct and prove the action.
+  DiscoveryParameters routing_parameters = 6;
 }
 
 // Releases shielded value for transfer or execution on the host chain.
@@ -233,6 +246,10 @@ message ShieldedHostWithdrawalBody {
   crypto.tct.v1.StateCommitment compliance_anchor = 8;
   // Asset tree anchor used during proof generation.
   crypto.tct.v1.StateCommitment asset_anchor = 9;
+  // Sender routing tag, present even when the change output is dummy.
+  RoutingTag routing_tag = 10;
+  // Poseidon identifier of the privately selected protocol parameter set.
+  bytes routing_parameter_set_id = 11;
 }
 
 message ShieldedHostWithdrawalView {
@@ -264,8 +281,8 @@ message ShieldedHostWithdrawalPlan {
   ShieldedOutputPlan change_output = 5;
   // The embedded host-chain withdrawal payload.
   HostWithdrawal withdrawal = 6;
-  // Discovery precision used for the encrypted change output.
-  uint32 discovery_precision_bits = 7;
+  // Protocol-wide routing parameters bound by the reused withdrawal proof.
+  DiscoveryParameters routing_parameters = 7;
 }
 
 message ShieldedIcs20WithdrawalChangeBody {
@@ -306,6 +323,10 @@ message ShieldedIcs20WithdrawalBody {
   crypto.tct.v1.StateCommitment compliance_anchor = 8;
   // Asset tree anchor used during proof generation.
   crypto.tct.v1.StateCommitment asset_anchor = 9;
+  // Sender routing tag, present even when the change output is dummy.
+  RoutingTag routing_tag = 10;
+  // Poseidon identifier of the privately selected protocol parameter set.
+  bytes routing_parameter_set_id = 11;
 }
 
 message ShieldedIcs20WithdrawalView {
@@ -337,8 +358,8 @@ message ShieldedIcs20WithdrawalPlan {
   ShieldedOutputPlan change_output = 5;
   // The embedded outbound ICS-20 withdrawal payload.
   shieldd.core.component.ibc.v1.Ics20Withdrawal withdrawal = 6;
-  // Protocol precision used by the change or padded output discovery tag.
-  uint32 discovery_precision_bits = 7;
+  // Protocol routing parameter set used to construct and prove the action.
+  DiscoveryParameters routing_parameters = 7;
 }
 
 message NoteReshapeInputBody {
@@ -380,6 +401,12 @@ message NoteReshapeBody {
   repeated NoteReshapeInputBody inputs = 4;
   // The created notes.
   repeated NoteReshapeOutputBody outputs = 5;
+  // Owner routing tag for this action.
+  RoutingTag routing_tag = 6;
+  // Poseidon identifier of the privately selected protocol parameter set.
+  bytes routing_parameter_set_id = 7;
+  // Asset-registry root binding the private class-dependent routing precision.
+  crypto.tct.v1.StateCommitment asset_anchor = 8;
 }
 
 message NoteReshapeView {
@@ -411,8 +438,8 @@ message NoteReshapePlan {
   repeated ShieldedOutputPlan outputs = 5;
   // The deployed proving family selected for this reshape.
   uint32 family_id = 6;
-  // Protocol precision used by all real and padded output discovery tags.
-  uint32 discovery_precision_bits = 7;
+  // Protocol routing parameter set used to construct and prove the action.
+  DiscoveryParameters routing_parameters = 7;
 }
 
 // ABCI Event recording a spent nullifier.

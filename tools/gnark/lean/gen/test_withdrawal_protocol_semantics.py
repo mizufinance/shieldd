@@ -58,7 +58,7 @@ class WithdrawalProtocolSemanticsTests(unittest.TestCase):
             self.label_value("pad1"),
         )
         self.assertIn(
-            "(statementFields action).length = 16",
+            "(statementFields action).length = 18",
             self.concrete,
         )
 
@@ -79,7 +79,8 @@ class WithdrawalProtocolSemanticsTests(unittest.TestCase):
             "action.withdrawal.effectHashLimbs 0, "
             "action.withdrawal.effectHashLimbs 1, "
             "action.withdrawal.effectHashLimbs 2, "
-            "action.withdrawal.effectHashLimbs 3]"
+            "action.withdrawal.effectHashLimbs 3, "
+            "action.routingTag, action.routingParameterSetId]"
         )
         self.assertIn(expected, normalized)
 

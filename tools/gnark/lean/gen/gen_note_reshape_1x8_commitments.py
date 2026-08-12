@@ -20,11 +20,11 @@ OUTPUT = (
 
 NOTE_COMMITMENT_TEMPLATE = (
     "gadget.note_commitment@"
-    "9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5"
+    "252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c"
 )
 ASSERT_EQ_TEMPLATE = (
     "assert.eq@"
-    "2f18e0b1e4152025fc1e73ed096bfe9b60336485134a1f7abc982c129828ff55"
+    "c4acc0cb39ee1820ee3eb4fda139846ccb6ea995c7d6605854f111a0b177b240"
 )
 
 
@@ -53,7 +53,6 @@ def note_segments(model: Deployment) -> list[Note]:
                 "asset_id=shared.asset_id",
                 "div_gen_fq=shared.div_gen_fq",
                 "transmission_key_s=shared.transmission.fq",
-                "clue_key=shared.clue_key",
                 f"out={computed_role}",
             ),
         )
@@ -85,7 +84,7 @@ def note_segments(model: Deployment) -> list[Note]:
             f"{prefix}.note_commitment.inputs",
             "input",
             exact=True,
-            arity=6,
+            arity=5,
         )
         model.require_binding_role(
             hash_segment,
@@ -137,16 +136,15 @@ theorem {prefix}NoteCommitmentHash
     (rho : Nat → DeployedF)
     (facts : NoteReshape1x8CircuitFacts rho) :
     {prefix}NoteCommitmentComputed rho =
-      Poseidon6Bridge.permSpec6 NoteReshapeCanonical.noteCommitmentDomain
+      Poseidon5Bridge.permSpec5 NoteReshapeCanonical.noteCommitmentDomain
         ({prefix}NoteCommitmentInputs0 rho)
         ({prefix}NoteCommitmentInputs1 rho)
         ({prefix}NoteCommitmentInputs2 rho)
         ({prefix}NoteCommitmentInputs3 rho)
-        ({prefix}NoteCommitmentInputs4 rho)
-        ({prefix}NoteCommitmentInputs5 rho) := by
+        ({prefix}NoteCommitmentInputs4 rho) := by
   have h := facts.{owner}.GadgetNoteCommitmentSeg{segment}
   change
-    Deployed.Templates.Semantics.TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5.spec
+    Deployed.Templates.Semantics.TGadgetNoteCommitment_252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c.spec
       (Seg{segment}.localRho rho) at h
   have hw1 : Seg{segment}.wireSeating 1 = {wire(model, segment_data, 1)} := by decide +kernel
   have hw7 : Seg{segment}.wireSeating 7 = {wire(model, segment_data, 7)} := by decide +kernel
@@ -155,14 +153,12 @@ theorem {prefix}NoteCommitmentHash
   have hw20 : Seg{segment}.wireSeating 20 = {wire(model, segment_data, 20)} := by decide +kernel
   have hw26 : Seg{segment}.wireSeating 26 = {wire(model, segment_data, 26)} := by decide +kernel
   have hw27 : Seg{segment}.wireSeating 27 = {wire(model, segment_data, 27)} := by decide +kernel
-  have hw33 : Seg{segment}.wireSeating 33 = {wire(model, segment_data, 33)} := by decide +kernel
-  have hw408 : Seg{segment}.wireSeating 408 = {wire(model, segment_data, 408)} := by decide +kernel
-  have hw413 : Seg{segment}.wireSeating 413 = {wire(model, segment_data, 413)} := by decide +kernel
-  have hw418 : Seg{segment}.wireSeating 418 = {wire(model, segment_data, 418)} := by decide +kernel
-  have hw423 : Seg{segment}.wireSeating 423 = {wire(model, segment_data, 423)} := by decide +kernel
-  have hw428 : Seg{segment}.wireSeating 428 = {wire(model, segment_data, 428)} := by decide +kernel
-  have hw433 : Seg{segment}.wireSeating 433 = {wire(model, segment_data, 433)} := by decide +kernel
-  have hw438 : Seg{segment}.wireSeating 438 = {wire(model, segment_data, 438)} := by decide +kernel
+  have hw372 : Seg{segment}.wireSeating 372 = {wire(model, segment_data, 372)} := by decide +kernel
+  have hw377 : Seg{segment}.wireSeating 377 = {wire(model, segment_data, 377)} := by decide +kernel
+  have hw382 : Seg{segment}.wireSeating 382 = {wire(model, segment_data, 382)} := by decide +kernel
+  have hw387 : Seg{segment}.wireSeating 387 = {wire(model, segment_data, 387)} := by decide +kernel
+  have hw392 : Seg{segment}.wireSeating 392 = {wire(model, segment_data, 392)} := by decide +kernel
+  have hw397 : Seg{segment}.wireSeating 397 = {wire(model, segment_data, 397)} := by decide +kernel
   have hneg :
       (8444461749428370424248824938781546531375899335154063827935233455917409239040 :
         DeployedF) = -1 := by decide +kernel
@@ -170,10 +166,12 @@ theorem {prefix}NoteCommitmentHash
     (Seg{segment}.localRho rho) h
   · simp only [
       {prefix}NoteCommitmentComputed, {prefix}NoteCommitmentComputedLC,
-      Deployed.NoteCommitment.s38_1, Poseidon6Bridge.row7,
+      Deployed.Templates.Semantics.TGadgetNoteCommitment_252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c.output,
+      Deployed.CertifiedGadgetNoteCommitment_252c34d237e9Poseidon.s38_1,
+      Deployed.Poseidon5Link.row6,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
       Seg{segment}.localRho, Deployed.Templates.seated,
-      hw408, hw413, hw418, hw423, hw428, hw433, hw438,
+      hw372, hw377, hw382, hw387, hw392, hw397,
       zero_add, add_zero, one_mul]
     ring
   · simp [{prefix}NoteCommitmentInputs0, {prefix}NoteCommitmentInputs0LC,
@@ -193,9 +191,6 @@ theorem {prefix}NoteCommitmentHash
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
       Seg{segment}.localRho, Deployed.Templates.seated, hw26, hw27, hneg]
     ring
-  · simp [{prefix}NoteCommitmentInputs5, {prefix}NoteCommitmentInputs5LC,
-      StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg{segment}.localRho, Deployed.Templates.seated, hw33]
 """
 
 
@@ -210,7 +205,7 @@ def render_asserted(
     seating_facts = "\n".join(
         f"  have hw{index} : Seg{segment}.wireSeating {index} = "
         f"{wire(model, segment_data, index)} := by decide +kernel"
-        for index in range(1, 9)
+        for index in range(1, 8)
     )
     return f"""
 theorem {prefix}NoteCommitmentAsserted
@@ -219,13 +214,13 @@ theorem {prefix}NoteCommitmentAsserted
     {claimed} rho = {prefix}NoteCommitmentComputed rho := by
   have h := facts.{owner}.AssertEqSeg{segment}
   change
-    Deployed.Templates.Semantics.TAssertEq_2f18e0b1e4152025fc1e73ed096bfe9b60336485134a1f7abc982c129828ff55.spec
+    Deployed.Templates.Semantics.TAssertEq_c4acc0cb39ee1820ee3eb4fda139846ccb6ea995c7d6605854f111a0b177b240.spec
       (Seg{segment}.localRho rho) at h
 {seating_facts}
   simp only [
-    Deployed.Templates.Semantics.TAssertEq_2f18e0b1e4152025fc1e73ed096bfe9b60336485134a1f7abc982c129828ff55.spec,
+    Deployed.Templates.Semantics.TAssertEq_c4acc0cb39ee1820ee3eb4fda139846ccb6ea995c7d6605854f111a0b177b240.spec,
     one_mul, Seg{segment}.localRho, Deployed.Templates.seated,
-    hw1, hw2, hw3, hw4, hw5, hw6, hw7, hw8
+    hw1, hw2, hw3, hw4, hw5, hw6, hw7
   ] at h
   simp only [
     {claimed}, {claimed}LC,
@@ -264,10 +259,6 @@ theorem {prefix}Commitment
         rho
     ]
     rfl
-  have hclue :
-      {prefix}NoteCommitmentInputs5 rho =
-        (NoteReshapeCanonicalAddress1x8.shared rho).clueKey := by
-    rfl
   refine NoteReshapeCanonical.noteCommitment_of_hash
     (NoteReshapeCanonicalAddress1x8.shared rho)
     ({prefix}NoteCommitmentInputs0 rho)
@@ -276,7 +267,7 @@ theorem {prefix}Commitment
   rw [
     {prefix}NoteCommitmentAsserted rho facts,
     {prefix}NoteCommitmentHash rho facts,
-    hasset, hdivFq, htransmissionFq, hclue
+    hasset, hdivFq, htransmissionFq
   ]
   rfl
 """

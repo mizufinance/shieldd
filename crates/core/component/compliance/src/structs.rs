@@ -78,7 +78,7 @@ const _: () = {
 
 /// The domain separator used to generate compliance leaf commitments.
 pub(crate) static COMPLIANCE_LEAF_DOMAIN_SEP: Lazy<Fq> = Lazy::new(|| {
-    Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(b"shieldd.compliance.leaf.v2").as_bytes())
+    Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(b"shieldd.compliance.leaf.v3").as_bytes())
 });
 
 /// A compliance leaf in the public on-chain registry for regulated assets.
@@ -173,16 +173,13 @@ impl ComplianceLeaf {
             .vartime_compress_to_field();
         let transmission_key_s = Fq::from_bytes_checked(&self.address.transmission_key().0)
             .expect("transmission key is valid");
-        let discovery_key = Fq::from_bytes_checked(&self.address.discovery_key().0)
-            .expect("validated address discovery key is a canonical Fq encoding");
         let asset_id_field = self.asset_id.0;
 
-        let commit = poseidon377::hash_7(
+        let commit = poseidon377::hash_6(
             &COMPLIANCE_LEAF_DOMAIN_SEP,
             (
                 diversified_generator,
                 transmission_key_s,
-                discovery_key,
                 asset_id_field,
                 Fq::from(self.slot_id),
                 self.slot_derivation,
@@ -1447,42 +1444,6 @@ mod tests {
             leaf1.commit(),
             leaf2.commit(),
             "Different addresses must have different commitments"
-        );
-    }
-
-    #[test]
-    fn test_compliance_leaf_commitment_binds_discovery_key() {
-        let mut rng = rand::thread_rng();
-        let address = Address::dummy(&mut rng);
-        let different_discovery_key = loop {
-            let candidate = Address::dummy(&mut rng);
-            if candidate.discovery_key() != address.discovery_key() {
-                break *candidate.discovery_key();
-            }
-        };
-        let alias = Address::from_components(
-            *address.diversifier(),
-            *address.transmission_key(),
-            different_discovery_key,
-        )
-        .expect("validated discovery key remains valid with the same transmission key");
-
-        assert_eq!(
-            address.diversified_generator(),
-            alias.diversified_generator()
-        );
-        assert_eq!(address.transmission_key(), alias.transmission_key());
-        assert_ne!(address.discovery_key(), alias.discovery_key());
-
-        let asset_id = asset::Id(decaf377::Fq::from(100u64));
-        let slot_derivation = decaf377::Fq::from(42u64);
-        let registered = ComplianceLeaf::with_slot(address, asset_id, 3, slot_derivation);
-        let substituted = ComplianceLeaf::with_slot(alias, asset_id, 3, slot_derivation);
-
-        assert_ne!(
-            registered.commit(),
-            substituted.commit(),
-            "a user-tree path must authenticate the full registered address"
         );
     }
 

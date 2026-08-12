@@ -5,6 +5,7 @@ import "shieldd/core/component/compliance/v1/compliance.proto";
 import "shieldd/core/component/fee/v1/fee.proto";
 import "shieldd/core/component/sct/v1/sct.proto";
 import "shieldd/core/component/shielded_pool/v1/shielded_pool.proto";
+import "shieldd/core/txhash/v1/txhash.proto";
 import "shieldd/crypto/tct/v1/tct.proto";
 
 // Contains the minimum data needed to update client state.
@@ -22,6 +23,8 @@ message CompactBlock {
   bool proposal_started = 6;
   // Latest note-discovery parameters. Absent when unchanged.
   shielded_pool.v1.DiscoveryParameters discovery_parameters = 7;
+  // Fixed-shape action-level routing records emitted by transactions in this block.
+  repeated RoutingRecord routing_records = 8;
   // Indicates updated app parameters.
   bool app_parameters_updated = 9;
   // Updated gas prices, if they have changed.
@@ -38,6 +41,8 @@ message CompactBlock {
   repeated compliance.v1.EventUserRegistered compliance_user_registrations = 14;
   // Asset registrations in this block (for client sync).
   repeated compliance.v1.EventAssetRegistered compliance_asset_registrations = 15;
+  // Encrypted note payloads grouped by their producing action for candidate retrieval.
+  repeated RoutingActionPayloads routing_action_payloads = 16;
 }
 
 // An encrypted payload, corresponding to a single commitment in the state commitment tree.
@@ -65,10 +70,10 @@ service QueryService {
   //
   // Clients requesting multiple compact blocks should generally use the streaming RPC.
   rpc CompactBlock(CompactBlockRequest) returns (CompactBlockResponse);
-  // Streams public discovery tags without encrypted note payloads.
-  rpc DiscoveryBlockRange(DiscoveryBlockRangeRequest) returns (stream DiscoveryBlockRangeResponse);
-  // Finds encrypted note candidates by public discovery tag without requiring an index.
-  rpc NoteCandidates(NoteCandidatesRequest) returns (stream NoteCandidatesResponse);
+  // Streams typed action-level routing records without filtering.
+  rpc RoutingBlockRange(RoutingBlockRangeRequest) returns (stream RoutingBlockRangeResponse);
+  // Finds action-level candidates by routing selector.
+  rpc RoutingCandidates(RoutingCandidatesRequest) returns (stream RoutingCandidatesResponse);
 }
 
 // Requests a range of compact block data.
@@ -94,31 +99,46 @@ message CompactBlockResponse {
   core.component.compact_block.v1.CompactBlock compact_block = 1;
 }
 
-message DiscoveryBlock {
+message RoutingBlock {
   uint64 height = 1;
   crypto.tct.v1.MerkleRoot block_root = 2;
   crypto.tct.v1.MerkleRoot epoch_root = 3;
-  repeated shielded_pool.v1.DiscoveryTag tags = 4;
+  repeated RoutingRecord records = 4;
   shielded_pool.v1.DiscoveryParameters discovery_parameters = 5;
 }
 
-message DiscoveryBlockRangeRequest {
+// One public tag attached to an action. Slot roles are deliberately absent.
+message RoutingRecord {
+  shielded_pool.v1.RoutingTag tag = 1;
+  uint64 height = 2;
+  core.txhash.v1.TransactionId transaction_id = 3;
+  uint32 action_index = 4;
+  uint32 tag_slot = 5;
+}
+
+// Encrypted payloads associated with one public action position.
+message RoutingActionPayloads {
+  core.txhash.v1.TransactionId transaction_id = 1;
+  uint32 action_index = 2;
+  repeated shielded_pool.v1.NotePayload note_payloads = 3;
+}
+
+message RoutingBlockRangeRequest {
   uint64 start_height = 1;
   uint64 end_height = 2;
 }
 
-message DiscoveryBlockRangeResponse {
-  DiscoveryBlock discovery_block = 1;
+message RoutingBlockRangeResponse {
+  RoutingBlock routing_block = 1;
 }
 
-message NoteCandidatesRequest {
+message RoutingCandidatesRequest {
   uint64 start_height = 1;
   uint64 end_height = 2;
-  repeated shielded_pool.v1.DiscoveryTag tags = 3;
+  repeated shielded_pool.v1.RoutingSelector selectors = 3;
 }
 
-message NoteCandidatesResponse {
-  uint64 height = 1;
-  uint32 state_payload_index = 2;
-  shielded_pool.v1.NotePayload note_payload = 3;
+message RoutingCandidatesResponse {
+  RoutingRecord record = 1;
+  repeated shielded_pool.v1.NotePayload note_payloads = 2;
 }

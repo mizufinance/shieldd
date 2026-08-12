@@ -54,7 +54,7 @@ use shieldd_sdk_transaction::{
 use crate::{
     compliance_tree::{ComplianceAssetTree, ComplianceUserTree},
     worker::Worker,
-    NoteManager, Storage, TransferPlanningResult,
+    AddressPurpose, IssuedAddress, NoteManager, Storage, TransferPlanningResult,
 };
 
 /// A [`futures::Stream`] of broadcast transaction responses.
@@ -229,6 +229,44 @@ pub struct ViewServer {
 }
 
 impl ViewServer {
+    fn address_purpose(purpose: Option<pb::AddressPurpose>) -> Result<AddressPurpose, Status> {
+        match purpose.and_then(|purpose| purpose.regulated_asset_id) {
+            Some(asset_id) => Ok(AddressPurpose::Regulated {
+                asset_id: asset_id.try_into().map_err(|error| {
+                    Status::invalid_argument(format!("invalid regulated asset ID: {error:#}"))
+                })?,
+            }),
+            None => Ok(AddressPurpose::General),
+        }
+    }
+
+    async fn persist_issued_address(
+        &self,
+        address_index: AddressIndex,
+        address: Address,
+        purpose: AddressPurpose,
+    ) -> Result<Address, Status> {
+        let birth_height = self
+            .storage
+            .last_sync_height()
+            .await
+            .map_err(|error| Status::internal(format!("could not read sync height: {error:#}")))?
+            .unwrap_or(0);
+        self.storage
+            .record_issued_address(IssuedAddress {
+                address_index,
+                address: address.clone(),
+                purpose,
+                birth_height,
+                retired_height: None,
+            })
+            .await
+            .map_err(|error| {
+                Status::internal(format!("could not persist issued address: {error:#}"))
+            })?;
+        Ok(address)
+    }
+
     /// Convenience method that calls [`Storage::load_or_initialize`] and then [`Self::new`].
     pub async fn load_or_initialize(
         storage_path: Option<impl AsRef<Utf8Path>>,
@@ -862,8 +900,9 @@ impl ViewService for ViewServer {
                 tonic::Status::failed_precondition("Error retrieving full viewing key")
             })?;
 
+        let request = request.into_inner();
+        let purpose = Self::address_purpose(request.purpose)?;
         let address_index = request
-            .into_inner()
             .address_index
             .ok_or_else(|| tonic::Status::invalid_argument("Missing address index"))?
             .try_into()
@@ -871,8 +910,11 @@ impl ViewService for ViewServer {
                 tonic::Status::invalid_argument(format!("Could not parse address index: {e:#}"))
             })?;
 
+        let address = self
+            .persist_issued_address(address_index, fvk.payment_address(address_index), purpose)
+            .await?;
         Ok(tonic::Response::new(pb::AddressByIndexResponse {
-            address: Some(fvk.payment_address(address_index).0.into()),
+            address: Some(address.into()),
         }))
     }
 
@@ -912,6 +954,12 @@ impl ViewService for ViewServer {
         let address: Address = encoding
             .parse()
             .map_err(|_| tonic::Status::internal("could not parse newly generated address"))?;
+        let address_index = fvk.address_index(&address).ok_or_else(|| {
+            tonic::Status::internal("could not recover transparent address index")
+        })?;
+        let address = self
+            .persist_issued_address(address_index, address, AddressPurpose::General)
+            .await?;
 
         Ok(tonic::Response::new(pb::TransparentAddressResponse {
             address: Some(address.into()),
@@ -929,8 +977,9 @@ impl ViewService for ViewServer {
                 tonic::Status::failed_precondition("Error retrieving full viewing key")
             })?;
 
-        let address_index = request
-            .into_inner()
+        let request = request.into_inner();
+        let purpose = Self::address_purpose(request.purpose)?;
+        let account_index: AddressIndex = request
             .address_index
             .ok_or_else(|| tonic::Status::invalid_argument("Missing address index"))?
             .try_into()
@@ -938,8 +987,12 @@ impl ViewService for ViewServer {
                 tonic::Status::invalid_argument(format!("Could not parse address index: {e:#}"))
             })?;
 
+        let address_index = AddressIndex::new_ephemeral(account_index.account, OsRng);
+        let address = self
+            .persist_issued_address(address_index, fvk.payment_address(address_index), purpose)
+            .await?;
         Ok(tonic::Response::new(pb::EphemeralAddressResponse {
-            address: Some(fvk.ephemeral_address(OsRng, address_index).0.into()),
+            address: Some(address.into()),
         }))
     }
 
@@ -1210,6 +1263,7 @@ impl ViewService for ViewServer {
                 let address: Address = self2
                   .address_by_index(Request::new(pb::AddressByIndexRequest {
                        address_index: account_filter.map(Into::into),
+                       purpose: None,
                    }))
                    .await?
                     .into_inner()

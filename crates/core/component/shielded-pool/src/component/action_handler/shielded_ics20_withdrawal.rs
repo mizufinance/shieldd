@@ -83,6 +83,8 @@ fn shielded_ics20_withdrawal_extract_public(
         outbound_amount: decaf377::Fq::from(action.body.withdrawal.amount),
         withdrawal_effect_hash_limbs:
             crate::shielded_ics20_withdrawal::withdrawal_effect_hash_limbs(effect_hash_bytes),
+        routing_tag: action.body.routing_tag,
+        routing_parameter_set_id: action.body.routing_parameter_set_id,
     };
     public
         .validate_shape()

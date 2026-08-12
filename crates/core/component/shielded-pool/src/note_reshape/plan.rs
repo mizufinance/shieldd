@@ -10,7 +10,7 @@ use shieldd_sdk_tct as tct;
 use shieldd_sdk_txhash::EffectingData;
 use std::convert::{TryFrom, TryInto};
 
-use crate::discovery::Precision;
+use crate::discovery::{self, Parameters};
 
 #[cfg(any(unix, windows))]
 use super::{NoteReshape, NoteReshapeProof};
@@ -29,7 +29,7 @@ pub struct NoteReshapePlan {
     pub value_blinding: Fr,
     pub spends: Vec<ShieldedInputPlan>,
     pub outputs: Vec<ShieldedOutputPlan>,
-    pub discovery_precision: Precision,
+    pub routing_parameters: Parameters,
 }
 
 impl NoteReshapePlan {
@@ -63,7 +63,7 @@ impl NoteReshapePlan {
             value_blinding,
             spends,
             outputs,
-            discovery_precision: Precision::default(),
+            routing_parameters: Parameters::default(),
         };
         plan.validate()?;
         Ok(plan)
@@ -109,7 +109,6 @@ impl NoteReshapePlan {
         fvk: &FullViewingKey,
         memo_key: &PayloadKey,
         action_balance_commitment: shieldd_sdk_asset::balance::Commitment,
-        discovery_precision: Precision,
     ) -> NoteReshapeOutputBody {
         let wrapped_memo_key = WrappedMemoKey::encrypt(
             memo_key,
@@ -119,14 +118,14 @@ impl NoteReshapePlan {
         );
         let ovk_wrapped_key = note.encrypt_key(fvk.outgoing(), action_balance_commitment);
         NoteReshapeOutputBody {
-            note_payload: note.payload(discovery_precision),
+            note_payload: note.payload(),
             wrapped_memo_key,
             ovk_wrapped_key,
         }
     }
 
-    pub fn set_discovery_precision(&mut self, precision: Precision) {
-        self.discovery_precision = precision;
+    pub fn set_routing_parameters(&mut self, parameters: Parameters) {
+        self.routing_parameters = parameters;
     }
 
     pub fn validate(&self) -> anyhow::Result<()> {
@@ -167,6 +166,16 @@ impl NoteReshapePlan {
                     .iter()
                     .all(|output| output.value.asset_id == shared_asset_id),
             "note_reshape requires all spends and outputs to use the same asset",
+        );
+        ensure!(
+            self.spends.iter().all(|spend| {
+                spend.asset_anchor == first_spend.asset_anchor
+                    && spend.asset_path == first_spend.asset_path
+                    && spend.asset_position == first_spend.asset_position
+                    && spend.asset_indexed_leaf == first_spend.asset_indexed_leaf
+                    && spend.is_regulated == first_spend.is_regulated
+            }),
+            "note_reshape spends must share one asset-registry witness and class",
         );
         Ok(())
     }
@@ -287,11 +296,23 @@ impl NoteReshapePlan {
             },
         );
 
+        let first_spend = &self.spends[0];
+        let routing_nonce = Fq::from_le_bytes_mod_order(&first_spend.tx_blinding_nonce.to_bytes());
+        let routing_tag = discovery::single_tag(
+            &first_spend.note.address(),
+            first_spend.is_regulated,
+            &self.routing_parameters,
+            routing_nonce,
+        );
+
         Ok((
             NoteReshapeProofPublic {
                 family_id: self.family_id,
                 anchor,
                 balance_commitment: self.balance().commit(self.value_blinding),
+                asset_anchor: first_spend.asset_anchor,
+                routing_tag,
+                routing_parameter_set_id: self.routing_parameters.id(),
                 inputs: input_publics,
                 outputs: output_publics,
             },
@@ -300,6 +321,12 @@ impl NoteReshapePlan {
                 action_balance_blinding: self.value_blinding,
                 ak: *fvk.spend_verification_key(),
                 nk: *fvk.nullifier_key(),
+                asset_path: first_spend.asset_path.clone(),
+                asset_position: first_spend.asset_position,
+                asset_indexed_leaf: first_spend.asset_indexed_leaf.clone(),
+                is_regulated: first_spend.is_regulated,
+                routing_parameters: self.routing_parameters.clone(),
+                routing_nonce,
                 inputs: input_privates,
                 outputs: output_privates,
             },
@@ -345,7 +372,6 @@ impl NoteReshapePlan {
                     fvk,
                     memo_key,
                     action_balance_commitment,
-                    self.discovery_precision,
                 )
             })
             .collect::<Vec<_>>();
@@ -355,9 +381,17 @@ impl NoteReshapePlan {
                 fvk,
                 memo_key,
                 action_balance_commitment,
-                self.discovery_precision,
             )
         });
+
+        let first_spend = &self.spends[0];
+        let routing_nonce = Fq::from_le_bytes_mod_order(&first_spend.tx_blinding_nonce.to_bytes());
+        let routing_tag = discovery::single_tag(
+            &first_spend.note.address(),
+            first_spend.is_regulated,
+            &self.routing_parameters,
+            routing_nonce,
+        );
 
         Ok(NoteReshapeBody {
             family_id: self.family_id,
@@ -365,6 +399,9 @@ impl NoteReshapePlan {
             balance_commitment: action_balance_commitment,
             inputs,
             outputs,
+            routing_tag,
+            routing_parameter_set_id: self.routing_parameters.id(),
+            asset_anchor: first_spend.asset_anchor,
         })
     }
 
@@ -414,7 +451,7 @@ impl From<NoteReshapePlan> for pb::NoteReshapePlan {
             value_blinding: msg.value_blinding.to_bytes_le().to_vec(),
             spends: msg.spends.into_iter().map(Into::into).collect(),
             outputs: msg.outputs.into_iter().map(Into::into).collect(),
-            discovery_precision_bits: msg.discovery_precision.into(),
+            routing_parameters: Some(msg.routing_parameters.into()),
         }
     }
 }
@@ -443,7 +480,10 @@ impl TryFrom<pb::NoteReshapePlan> for NoteReshapePlan {
                 .into_iter()
                 .map(TryInto::try_into)
                 .collect::<Result<_, _>>()?,
-            discovery_precision: proto.discovery_precision_bits.try_into()?,
+            routing_parameters: proto
+                .routing_parameters
+                .ok_or_else(|| anyhow!("missing routing parameters"))?
+                .try_into()?,
         };
         plan.validate()?;
         Ok(plan)

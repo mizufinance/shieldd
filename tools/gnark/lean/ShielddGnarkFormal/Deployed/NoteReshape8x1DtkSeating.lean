@@ -14,27 +14,27 @@ open Contracts.NoteReshape8x1
 
 theorem dtkXWires :
     (Seg17.wireSeating 4961, Seg17.wireSeating 4969) =
-      (6349, 6357) := by
+      (6419, 6427) := by
   decide +kernel
 
 theorem dtkYWires :
     (Seg17.wireSeating 4962, Seg17.wireSeating 4970) =
-      (6350, 6358) := by
+      (6420, 6428) := by
   decide +kernel
 
 theorem compressXWires :
     (Seg19.wireSeating 1, Seg19.wireSeating 2) =
-      (6349, 6357) := by
+      (6419, 6427) := by
   decide +kernel
 
 theorem compressYWires :
     (Seg19.wireSeating 4, Seg19.wireSeating 5) =
-      (6350, 6358) := by
+      (6420, 6428) := by
   decide +kernel
 
 theorem nonIdentityXWires :
     (Seg18.wireSeating 2,
-      Seg18.wireSeating 3) = (6349, 6357) := by
+      Seg18.wireSeating 3) = (6419, 6427) := by
   decide +kernel
 
 end Shieldd.GnarkFormal.Deployed.NoteReshape8x1DtkSeating

@@ -291,6 +291,31 @@ class RustWorkflowWiringTests(unittest.TestCase):
                 )
                 self.assertIn(f'--title "{title}"', self.workflow)
 
+    def test_dependency_policy_uses_a_current_native_binary(self) -> None:
+        self.assertIn("cargo-deny-0.20.2-x86_64-unknown-linux-musl", self.workflow)
+        self.assertIn("9f12ed4c49936e09b48bf862b595cde2", self.workflow)
+        self.assertIn("sha256sum --check", self.workflow)
+        self.assertIn("run: cargo deny check --allow unmaintained", self.workflow)
+        self.assertNotIn("nix develop --command cargo deny", self.workflow)
+        self.assertNotIn("cargo-deny-action", self.workflow)
+        self.assertNotIn("taiki-e/install-action", self.workflow)
+
+    def test_ordinary_rust_lane_excludes_only_formal_lfs_tests(self) -> None:
+        justfile = (SCRIPT.parents[2] / "Justfile").read_text(encoding="utf-8")
+        formal_lfs_tests = (
+            "ltchain::tests::recovers_r_ladder_from_real_sr1cs_and_gate_holds",
+            "ltchain::tests::recovers_q4_ladder_from_real_sr1cs",
+            "ltchain::tests::gate_fails_closed_on_wrong_bound",
+            "ltchain::tests::production_gate_recovers_both_ladders",
+            "rowmap::tests::real_rvk_slice_is_exhaustive_and_bit_exact",
+        )
+        ci_test = justfile.split("ci-test:", 1)[1].split("ci-go-check:", 1)[0]
+        self.assertIn("package(shieldd-constraint-coverage)", ci_test)
+        for test_name in formal_lfs_tests:
+            with self.subTest(test_name=test_name):
+                self.assertIn(f"test(={test_name})", ci_test)
+                self.assertIn(f"--skip {test_name}", ci_test)
+
     def test_runner_policy_accelerates_only_critical_rust_lanes(self) -> None:
         jobs = dict(
             re.findall(
@@ -299,9 +324,7 @@ class RustWorkflowWiringTests(unittest.TestCase):
                 self.workflow,
             )
         )
-        self.assertEqual(
-            set(jobs), {"proof-artifacts", "checks", "tests", "summary"}
-        )
+        self.assertEqual(set(jobs), {"checks", "tests", "summary"})
         self.assertIn("github.event_name != 'pull_request'", jobs["tests"])
         self.assertIn("just ci-gnark-proof-tests", jobs["tests"])
         for lane in ("checks", "tests"):

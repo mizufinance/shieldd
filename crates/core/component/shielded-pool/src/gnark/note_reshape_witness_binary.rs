@@ -1,18 +1,18 @@
 use anyhow::{bail, Context, Result};
 
 use crate::gnark::{
-    binary::{encode_triple_path_32, put_bytes, put_u32, put_u64, BinaryCursor},
+    binary::{encode_triple_path_32, put_bytes, put_u32, put_u64, put_u8, BinaryCursor},
     note_reshape_witness::{
-        NoteReshapeOutputWitnessV3, NoteReshapeSharedNoteContextWitnessV3,
-        NoteReshapeSpendWitnessV3, NoteReshapeWitnessV3,
+        NoteReshapeOutputWitnessV4, NoteReshapeSharedNoteContextWitnessV4,
+        NoteReshapeSpendWitnessV4, NoteReshapeWitnessV4,
     },
-    typed::encode_point_affine,
+    typed::{decode_indexed_leaf, encode_indexed_leaf, encode_merkle_path, encode_point_affine},
 };
 
 const NOTE_RESHAPE_WITNESS_MAGIC: &[u8; 4] = b"PNWG";
-const NOTE_RESHAPE_WITNESS_VERSION: u32 = 3;
+const NOTE_RESHAPE_WITNESS_VERSION: u32 = 4;
 
-impl NoteReshapeWitnessV3 {
+impl NoteReshapeWitnessV4 {
     pub fn encode(&self) -> Result<Vec<u8>> {
         let mut buf = Vec::new();
         put_bytes(&mut buf, NOTE_RESHAPE_WITNESS_MAGIC);
@@ -23,10 +23,22 @@ impl NoteReshapeWitnessV3 {
         put_u32(&mut buf, self.n_out);
         put_bytes(&mut buf, &self.anchor);
         put_bytes(&mut buf, &self.claimed_statement_hash);
+        put_bytes(&mut buf, &self.asset_anchor);
+        put_bytes(&mut buf, &self.routing_tag);
+        put_bytes(&mut buf, &self.routing_parameter_set_id);
         put_bytes(&mut buf, &self.action_balance_blinding);
         put_bytes(&mut buf, &self.nk);
+        encode_merkle_path(&mut buf, &self.asset_path)?;
+        put_u64(&mut buf, self.asset_position);
+        encode_indexed_leaf(&mut buf, &self.asset_indexed_leaf);
+        encode_point_affine(&mut buf, &self.asset_indexed_leaf_dk_pub_affine);
+        encode_point_affine(&mut buf, &self.asset_indexed_leaf_ring_pk_affine);
+        put_u8(&mut buf, u8::from(self.is_regulated));
+        put_u8(&mut buf, self.regulated_precision);
+        put_u8(&mut buf, self.unregulated_precision);
+        put_u64(&mut buf, self.routing_as_of_height);
+        put_bytes(&mut buf, &self.routing_nonce);
         put_bytes(&mut buf, &self.shared.asset_id);
-        put_bytes(&mut buf, &self.shared.clue_key);
         encode_point_affine(&mut buf, &self.shared.diversified_generator_affine);
         for spend in &self.spends {
             encode_spend(
@@ -70,11 +82,23 @@ impl NoteReshapeWitnessV3 {
         let n_out = cursor.read_u32()?;
         let anchor = cursor.read_fixed::<32>()?;
         let claimed_statement_hash = cursor.read_fixed::<32>()?;
+        let asset_anchor = cursor.read_fixed::<32>()?;
+        let routing_tag = cursor.read_fixed::<32>()?;
+        let routing_parameter_set_id = cursor.read_fixed::<32>()?;
         let action_balance_blinding = cursor.read_fr()?;
         let nk = cursor.read_fixed::<32>()?;
-        let shared = NoteReshapeSharedNoteContextWitnessV3 {
+        let asset_path = cursor.read_merkle_path()?;
+        let asset_position = cursor.read_u64()?;
+        let asset_indexed_leaf = decode_indexed_leaf(&mut cursor)?;
+        let asset_indexed_leaf_dk_pub_affine = cursor.read_point_affine()?;
+        let asset_indexed_leaf_ring_pk_affine = cursor.read_point_affine()?;
+        let is_regulated = cursor.read_bool()?;
+        let regulated_precision = cursor.read_u8()?;
+        let unregulated_precision = cursor.read_u8()?;
+        let routing_as_of_height = cursor.read_u64()?;
+        let routing_nonce = cursor.read_fixed::<32>()?;
+        let shared = NoteReshapeSharedNoteContextWitnessV4 {
             asset_id: cursor.read_fixed::<32>()?,
-            clue_key: cursor.read_fixed::<32>()?,
             diversified_generator_affine: cursor.read_point_affine()?,
         };
         if n_in as usize != family_id.input_count() || n_out as usize != family_id.output_count() {
@@ -110,8 +134,21 @@ impl NoteReshapeWitnessV3 {
             n_out,
             anchor,
             claimed_statement_hash,
+            asset_anchor,
+            routing_tag,
+            routing_parameter_set_id,
             action_balance_blinding,
             nk,
+            asset_path,
+            asset_position,
+            asset_indexed_leaf,
+            asset_indexed_leaf_dk_pub_affine,
+            asset_indexed_leaf_ring_pk_affine,
+            is_regulated,
+            regulated_precision,
+            unregulated_precision,
+            routing_as_of_height,
+            routing_nonce,
             shared,
             spends,
             outputs,
@@ -123,7 +160,7 @@ impl NoteReshapeWitnessV3 {
 
 fn encode_spend(
     buf: &mut Vec<u8>,
-    spend: &NoteReshapeSpendWitnessV3,
+    spend: &NoteReshapeSpendWitnessV4,
     synthetic_private_padding: bool,
 ) -> Result<()> {
     if synthetic_private_padding {
@@ -144,7 +181,7 @@ fn encode_spend(
 fn decode_spend(
     cursor: &mut BinaryCursor<'_>,
     synthetic_private_padding: bool,
-) -> Result<NoteReshapeSpendWitnessV3> {
+) -> Result<NoteReshapeSpendWitnessV4> {
     let (is_dummy, dummy_nullifier_seed) = if synthetic_private_padding {
         let is_dummy = match cursor.read_u32()? {
             0 => false,
@@ -155,7 +192,7 @@ fn decode_spend(
     } else {
         (false, [0u8; 32])
     };
-    Ok(NoteReshapeSpendWitnessV3 {
+    Ok(NoteReshapeSpendWitnessV4 {
         is_dummy,
         nullifier: cursor.read_fixed::<32>()?,
         dummy_nullifier_seed,
@@ -169,14 +206,14 @@ fn decode_spend(
     })
 }
 
-fn encode_output(buf: &mut Vec<u8>, output: &NoteReshapeOutputWitnessV3) {
+fn encode_output(buf: &mut Vec<u8>, output: &NoteReshapeOutputWitnessV4) {
     put_bytes(buf, &output.note_commitment);
     put_bytes(buf, &output.created_note_blinding);
     put_bytes(buf, &output.created_note_amount);
 }
 
-fn decode_output(cursor: &mut BinaryCursor<'_>) -> Result<NoteReshapeOutputWitnessV3> {
-    Ok(NoteReshapeOutputWitnessV3 {
+fn decode_output(cursor: &mut BinaryCursor<'_>) -> Result<NoteReshapeOutputWitnessV4> {
+    Ok(NoteReshapeOutputWitnessV4 {
         note_commitment: cursor.read_fixed::<32>()?,
         created_note_blinding: cursor.read_fixed::<32>()?,
         created_note_amount: cursor.read_fixed::<32>()?,

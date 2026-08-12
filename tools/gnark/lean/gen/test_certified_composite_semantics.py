@@ -72,7 +72,7 @@ class CertifiedCompositeSemanticsTests(unittest.TestCase):
         )
         self.assertEqual(
             gen.recovery.DETECTION_DIGEST,
-            "cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25",
+            "63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49c",
         )
         families = (
             (gen._address_compress_family(), 2191, 3),
@@ -124,8 +124,8 @@ class CertifiedCompositeSemanticsTests(unittest.TestCase):
                 )
         changed_ir = copy.deepcopy(ir)
         segment = next(segment for segment in changed_ir["segments"]
-                       if segment.get("index") == 90)
-        segment["index"] = 93
+                       if segment.get("index") == 103)
+        segment["index"] = 108
         with self.assertRaisesRegex(ValueError, "IR segment roster drifted"):
             gen._validate_deployment_roster(registry, inventory, changed_ir)
 
@@ -141,7 +141,7 @@ class CertifiedCompositeSemanticsTests(unittest.TestCase):
         )
         self.assertEqual(
             recovery.plaintext_lcs[2],
-            ((33, 1), (2112, 1 << 32)),
+            ((33, 1), (2112, 1 << 33), (2113, 1 << 32)),
         )
         slot = self.outputs[
             gen.OUT / f"{gen.DETECTION_NAME}SlotBits.lean"

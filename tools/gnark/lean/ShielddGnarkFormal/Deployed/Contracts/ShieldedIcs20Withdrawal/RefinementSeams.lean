@@ -5,7 +5,7 @@ import ShielddGnarkFormal.Deployed.NoteReshapeRefinement
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_a03dfc8083159402252a47c3be906c0878137600765dd0717aecbad037a5042c
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafCompressToField_cb894e50f7cc665026bb25271f9bec0190867613208193b18d883d11ce856a46
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TGadgetAssetRegistryLeafHash_9424c990190c4128118a2906eaddfab647443257691dff0a8fc5b9b9caa7ebff
-import ShielddGnarkFormal.Deployed.Templates.Semantics.TGadgetComplianceLeaf_89974c69097fec1fe7276409b30d17170b41afc739ec6a0392be21d56a7c6d68
+import ShielddGnarkFormal.Deployed.Templates.Semantics.TGadgetComplianceLeaf_dcb0a1040c535cf394b8bda4f381260121926f7d477fb80a22e4e84b0cb431bc
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TAssertEqIf_8ce5774e50355d2a29c59780aba5615b3b4386e8925bffa9de0ad683cdc7cf8d
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TAssertEq_f65d80594ca3008a765694d28652f6f340f2fac809070ad4534a8c26871bd06b
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TGadgetSyntheticDummyNullifier_a10de15a91d3ea84d283d8eb39cda0f9fdbeeab9de2f8d7df5acbc90e22093bb
@@ -49,22 +49,22 @@ theorem diversifiedTransmissionKey_of_exact
       (authIvkReduced rho) (authIvkQuotientA rho)
       ⟨senderTransmissionComputed0 rho, senderTransmissionComputed1 rho⟩ := by
   have h :=
-    facts.exact.DecafDiversifiedTransmissionKeySeg7
+    facts.canonicalSender.DecafDiversifiedTransmissionKeySeg7
   change Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_a03dfc8083159402252a47c3be906c0878137600765dd0717aecbad037a5042c.DtkSupport.spec
     (Seg7.localRho rho) at h
-  have hw1 : Seg7.wireSeating 1 = 14 := by
+  have hw1 : Seg7.wireSeating 1 = 20 := by
     decide +kernel
-  have hw3 : Seg7.wireSeating 3 = 15 := by
+  have hw3 : Seg7.wireSeating 3 = 21 := by
     decide +kernel
-  have hw706 : Seg7.wireSeating 706 = 16 := by
+  have hw706 : Seg7.wireSeating 706 = 22 := by
     decide +kernel
-  have hw977 : Seg7.wireSeating 977 = 17 := by
+  have hw977 : Seg7.wireSeating 977 = 23 := by
     decide +kernel
-  have hw978 : Seg7.wireSeating 978 = 18 := by
+  have hw978 : Seg7.wireSeating 978 = 24 := by
     decide +kernel
-  have hw2211 : Seg7.wireSeating 2211 = 73 := by
+  have hw2211 : Seg7.wireSeating 2211 = 79 := by
     decide +kernel
-  have hw2212 : Seg7.wireSeating 2212 = 74 := by
+  have hw2212 : Seg7.wireSeating 2212 = 80 := by
     decide +kernel
   have hCurveProtocol :=
     Decaf377Assumptions.onCurve_of_compress
@@ -128,7 +128,7 @@ theorem transmissionCompressed_of_exact
     Decaf377Assumptions.CompressToFieldSpec
       ⟨senderTransmissionComputed0 rho, senderTransmissionComputed1 rho⟩
       (senderTransmissionFq rho) := by
-  have h := facts.exact.DecafCompressToFieldSeg8
+  have h := facts.canonicalSender.DecafCompressToFieldSeg8
   change Deployed.Templates.Semantics.TDecafCompressToField_cb894e50f7cc665026bb25271f9bec0190867613208193b18d883d11ce856a46.spec
     (Seg8.localRho rho) at h
   unfold Deployed.Templates.Semantics.TDecafCompressToField_cb894e50f7cc665026bb25271f9bec0190867613208193b18d883d11ce856a46.spec at h
@@ -147,25 +147,25 @@ theorem requiredNullifierAsserted_of_exact
     (rho : Nat → SemanticF)
     (facts : ShieldedIcs20WithdrawalCircuitFacts rho) :
     spend0NullifierClaimed rho = spend0NullifierReal rho := by
-  have h := facts.exact.AssertEqSeg25
+  have h := facts.requiredSpend.AssertEqSeg33
   change Deployed.Templates.Semantics.TAssertEq_f65d80594ca3008a765694d28652f6f340f2fac809070ad4534a8c26871bd06b.spec
-    (Seg25.localRho rho) at h
-  have hw1 : Seg25.wireSeating 1 = 128 := by
+    (Seg33.localRho rho) at h
+  have hw1 : Seg33.wireSeating 1 = 133 := by
     decide +kernel
-  have hw2 : Seg25.wireSeating 2 = 22875 := by
+  have hw2 : Seg33.wireSeating 2 = 25040 := by
     decide +kernel
-  have hw3 : Seg25.wireSeating 3 = 22880 := by
+  have hw3 : Seg33.wireSeating 3 = 25045 := by
     decide +kernel
-  have hw4 : Seg25.wireSeating 4 = 22885 := by
+  have hw4 : Seg33.wireSeating 4 = 25050 := by
     decide +kernel
-  have hw5 : Seg25.wireSeating 5 = 22890 := by
+  have hw5 : Seg33.wireSeating 5 = 25055 := by
     decide +kernel
   simp only [
     Deployed.Templates.Semantics.TAssertEq_f65d80594ca3008a765694d28652f6f340f2fac809070ad4534a8c26871bd06b.spec,
     spend0NullifierClaimed, spend0NullifierClaimedLC,
     spend0NullifierReal, spend0NullifierRealLC,
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-    Seg25.localRho,
+    Seg33.localRho,
     Deployed.Templates.seated,
     hw1, hw2, hw3, hw4, hw5,
     zero_add, one_mul, add_zero
@@ -182,33 +182,33 @@ theorem syntheticNullifierHash_of_exact
         Protocol.ShieldedIcs20Withdrawal.Concrete.syntheticDummyNullifierDomain
         (spend1DummyNullifierSeed rho) (spend1AuthRandomizer rho) 1 := by
   have h :=
-    facts.exact.GadgetSyntheticDummyNullifierSeg36
+    facts.optionalSpend.GadgetSyntheticDummyNullifierSeg44
   change Deployed.Templates.Semantics.TGadgetSyntheticDummyNullifier_a10de15a91d3ea84d283d8eb39cda0f9fdbeeab9de2f8d7df5acbc90e22093bb.spec
-    (Seg36.localRho rho) at h
-  have hw1 : Seg36.wireSeating 1 = 287 := by
+    (Seg44.localRho rho) at h
+  have hw1 : Seg44.wireSeating 1 = 292 := by
     decide +kernel
-  have hw7 : Seg36.wireSeating 7 = 285 := by
+  have hw7 : Seg44.wireSeating 7 = 290 := by
     decide +kernel
-  have hw292 : Seg36.wireSeating 292 = 46786 := by
+  have hw292 : Seg44.wireSeating 292 = 48911 := by
     decide +kernel
-  have hw297 : Seg36.wireSeating 297 = 46791 := by
+  have hw297 : Seg44.wireSeating 297 = 48916 := by
     decide +kernel
-  have hw302 : Seg36.wireSeating 302 = 46796 := by
+  have hw302 : Seg44.wireSeating 302 = 48921 := by
     decide +kernel
-  have hw307 : Seg36.wireSeating 307 = 46801 := by
+  have hw307 : Seg44.wireSeating 307 = 48926 := by
     decide +kernel
   calc
     spend1NullifierSynthetic rho =
         Deployed.Nullifier.s38_1
-          (Seg36.localRho rho 292)
-          (Seg36.localRho rho 297)
-          (Seg36.localRho rho 302)
-          (Seg36.localRho rho 307) := by
+          (Seg44.localRho rho 292)
+          (Seg44.localRho rho 297)
+          (Seg44.localRho rho 302)
+          (Seg44.localRho rho 307) := by
       simp only [
         spend1NullifierSynthetic, spend1NullifierSyntheticLC,
         Deployed.Nullifier.s38_1, Deployed.Poseidon3Link.row4,
         StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-        Seg36.localRho, Deployed.Templates.seated,
+        Seg44.localRho, Deployed.Templates.seated,
         hw292, hw297, hw302, hw307,
         zero_add, one_mul, add_zero
       ]
@@ -224,7 +224,7 @@ theorem syntheticNullifierHash_of_exact
         spend1DummyNullifierSeed, spend1DummyNullifierSeedLC,
         spend1AuthRandomizer, spend1AuthRandomizerLC,
         StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-        Seg36.localRho, Deployed.Templates.seated,
+        Seg44.localRho, Deployed.Templates.seated,
         hw1, hw7, zero_add, one_mul, add_zero
       ] using h
 
@@ -238,29 +238,29 @@ theorem assetLeafHash_of_exact
         (assetLeafValue rho) (assetLeafNextIndex rho)
         (assetLeafNextValue rho)
         (assetLeafParamsHash rho) (assetLeafRingHash rho) := by
-  have h := facts.exact.GadgetAssetRegistryLeafHashSeg10
+  have h := facts.assetRegistry.GadgetAssetRegistryLeafHashSeg10
   change Deployed.Templates.Semantics.TGadgetAssetRegistryLeafHash_9424c990190c4128118a2906eaddfab647443257691dff0a8fc5b9b9caa7ebff.spec (Seg10.localRho rho) at h
-  have hw1 : Seg10.wireSeating 1 = 19 := by
+  have hw1 : Seg10.wireSeating 1 = 25 := by
     decide +kernel
-  have hw7 : Seg10.wireSeating 7 = 20 := by
+  have hw7 : Seg10.wireSeating 7 = 26 := by
     decide +kernel
-  have hw13 : Seg10.wireSeating 13 = 21 := by
+  have hw13 : Seg10.wireSeating 13 = 27 := by
     decide +kernel
-  have hw19 : Seg10.wireSeating 19 = 22 := by
+  have hw19 : Seg10.wireSeating 19 = 28 := by
     decide +kernel
-  have hw25 : Seg10.wireSeating 25 = 23 := by
+  have hw25 : Seg10.wireSeating 25 = 29 := by
     decide +kernel
-  have hw370 : Seg10.wireSeating 370 = 7028 := by
+  have hw370 : Seg10.wireSeating 370 = 7033 := by
     decide +kernel
-  have hw375 : Seg10.wireSeating 375 = 7033 := by
+  have hw375 : Seg10.wireSeating 375 = 7038 := by
     decide +kernel
-  have hw380 : Seg10.wireSeating 380 = 7038 := by
+  have hw380 : Seg10.wireSeating 380 = 7043 := by
     decide +kernel
-  have hw385 : Seg10.wireSeating 385 = 7043 := by
+  have hw385 : Seg10.wireSeating 385 = 7048 := by
     decide +kernel
-  have hw390 : Seg10.wireSeating 390 = 7048 := by
+  have hw390 : Seg10.wireSeating 390 = 7053 := by
     decide +kernel
-  have hw395 : Seg10.wireSeating 395 = 7053 := by
+  have hw395 : Seg10.wireSeating 395 = 7058 := by
     decide +kernel
   unfold Deployed.Templates.Semantics.TGadgetAssetRegistryLeafHash_9424c990190c4128118a2906eaddfab647443257691dff0a8fc5b9b9caa7ebff.spec at h
   calc
@@ -307,84 +307,77 @@ theorem complianceLeafHash_of_exact
     (rho : Nat → SemanticF)
     (facts : ShieldedIcs20WithdrawalCircuitFacts rho) :
     senderLeafCommitment rho =
-      Poseidon7Bridge.permSpec7
+      Poseidon6Bridge.permSpec6
         Protocol.ShieldedIcs20Withdrawal.Concrete.complianceLeafDomain
         (senderDivGenFq rho) (senderTransmissionFq rho)
-        (senderClueKey rho) (outboundAssetId rho) (senderSlotId rho)
+        (outboundAssetId rho) (senderSlotId rho)
         (senderSlotDerivation rho) (senderD rho) := by
-  have h := facts.exact.GadgetComplianceLeafSeg16
-  change Deployed.Templates.Semantics.TGadgetComplianceLeaf_89974c69097fec1fe7276409b30d17170b41afc739ec6a0392be21d56a7c6d68.spec
+  have h := facts.senderCompliance.GadgetComplianceLeafSeg16
+  change Deployed.Templates.Semantics.TGadgetComplianceLeaf_dcb0a1040c535cf394b8bda4f381260121926f7d477fb80a22e4e84b0cb431bc.spec
     (Seg16.localRho rho) at h
-  have hw1 : Seg16.wireSeating 1 = 655 := by
+  have hw1 : Seg16.wireSeating 1 = 660 := by
     decide +kernel
-  have hw2 : Seg16.wireSeating 2 = 995 := by
+  have hw2 : Seg16.wireSeating 2 = 1000 := by
     decide +kernel
-  have hw8 : Seg16.wireSeating 8 = 6322 := by
+  have hw8 : Seg16.wireSeating 8 = 6327 := by
     decide +kernel
-  have hw9 : Seg16.wireSeating 9 = 6662 := by
+  have hw9 : Seg16.wireSeating 9 = 6667 := by
     decide +kernel
-  have hw15 : Seg16.wireSeating 15 = 75 := by
+  have hw15 : Seg16.wireSeating 15 = 8 := by
     decide +kernel
-  have hw21 : Seg16.wireSeating 21 = 6 := by
+  have hw21 : Seg16.wireSeating 21 = 81 := by
     decide +kernel
-  have hw27 : Seg16.wireSeating 27 = 76 := by
+  have hw27 : Seg16.wireSeating 27 = 82 := by
     decide +kernel
-  have hw33 : Seg16.wireSeating 33 = 77 := by
+  have hw33 : Seg16.wireSeating 33 = 83 := by
     decide +kernel
-  have hw39 : Seg16.wireSeating 39 = 78 := by
+  have hw408 : Seg16.wireSeating 408 = 16292 := by
     decide +kernel
-  have hw444 : Seg16.wireSeating 444 = 16322 := by
+  have hw413 : Seg16.wireSeating 413 = 16297 := by
     decide +kernel
-  have hw449 : Seg16.wireSeating 449 = 16327 := by
+  have hw418 : Seg16.wireSeating 418 = 16302 := by
     decide +kernel
-  have hw454 : Seg16.wireSeating 454 = 16332 := by
+  have hw423 : Seg16.wireSeating 423 = 16307 := by
     decide +kernel
-  have hw459 : Seg16.wireSeating 459 = 16337 := by
+  have hw428 : Seg16.wireSeating 428 = 16312 := by
     decide +kernel
-  have hw464 : Seg16.wireSeating 464 = 16342 := by
+  have hw433 : Seg16.wireSeating 433 = 16317 := by
     decide +kernel
-  have hw469 : Seg16.wireSeating 469 = 16347 := by
+  have hw438 : Seg16.wireSeating 438 = 16322 := by
     decide +kernel
-  have hw474 : Seg16.wireSeating 474 = 16352 := by
-    decide +kernel
-  have hw479 : Seg16.wireSeating 479 = 16357 := by
-    decide +kernel
-  unfold Deployed.Templates.Semantics.TGadgetComplianceLeaf_89974c69097fec1fe7276409b30d17170b41afc739ec6a0392be21d56a7c6d68.spec at h
+  unfold Deployed.Templates.Semantics.TGadgetComplianceLeaf_dcb0a1040c535cf394b8bda4f381260121926f7d477fb80a22e4e84b0cb431bc.spec at h
   calc
     senderLeafCommitment rho =
-        Deployed.Templates.Semantics.TGadgetComplianceLeaf_89974c69097fec1fe7276409b30d17170b41afc739ec6a0392be21d56a7c6d68.output
+        Deployed.Templates.Semantics.TGadgetComplianceLeaf_dcb0a1040c535cf394b8bda4f381260121926f7d477fb80a22e4e84b0cb431bc.output
           (Seg16.localRho rho) := by
       change
         senderLeafCommitment rho =
-          (4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF) * id (α := SemanticF) (Seg16.localRho rho 444) +
-        (7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF) * id (α := SemanticF) (Seg16.localRho rho 449) +
-        (2303035022571373752067861346940421781284336182314744680345972760704747974284 : SemanticF) * id (α := SemanticF) (Seg16.localRho rho 454) +
-        (7740756603642672888894756193883084320427907723891225175607297334590958469121 : SemanticF) * id (α := SemanticF) (Seg16.localRho rho 459) +
-        (7794887768703111160845069174259889105885445540142212764247907805462223912961 : SemanticF) * id (α := SemanticF) (Seg16.localRho rho 464) +
-        (7841285910183486822516766014582864636277620811214487840225573923351880007681 : SemanticF) * id (α := SemanticF) (Seg16.localRho rho 469) +
-        (7881497632799812395965569942862776762617506046143792906072884558856248623105 : SemanticF) * id (α := SemanticF) (Seg16.localRho rho 474) +
-        (7916682890089097272733273380107699873164905626706934838689281364922571161601 : SemanticF) * id (α := SemanticF) (Seg16.localRho rho 479)
+          (7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF) * id (α := SemanticF) (Seg16.localRho rho 408) +
+        (4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF) * id (α := SemanticF) (Seg16.localRho rho 413) +
+        (7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF) * id (α := SemanticF) (Seg16.localRho rho 418) +
+        (2303035022571373752067861346940421781284336182314744680345972760704747974284 : SemanticF) * id (α := SemanticF) (Seg16.localRho rho 423) +
+        (7740756603642672888894756193883084320427907723891225175607297334590958469121 : SemanticF) * id (α := SemanticF) (Seg16.localRho rho 428) +
+        (7794887768703111160845069174259889105885445540142212764247907805462223912961 : SemanticF) * id (α := SemanticF) (Seg16.localRho rho 433) +
+        (7841285910183486822516766014582864636277620811214487840225573923351880007681 : SemanticF) * id (α := SemanticF) (Seg16.localRho rho 438)
       simp only [
         senderLeafCommitment, senderLeafCommitmentLC,
         StructuredLC.eval, StructuredLC.sumRuns,
         StructuredLC.sumResidual, StrideRun.eval,
         Seg16.localRho,
         Deployed.Templates.seated,
-        hw1, hw2, hw8, hw9, hw15, hw21, hw27, hw33, hw39, hw444, hw449, hw454, hw459, hw464, hw469, hw474, hw479,
+        hw1, hw2, hw8, hw9, hw15, hw21, hw27, hw33, hw408, hw413, hw418, hw423, hw428, hw433, hw438,
         id_eq, zero_add, one_mul, add_zero
       ]
       ring
-    _ = Poseidon7Bridge.permSpec7
+    _ = Poseidon6Bridge.permSpec6
           Protocol.ShieldedIcs20Withdrawal.Concrete.complianceLeafDomain
           (senderDivGenFq rho) (senderTransmissionFq rho)
-          (senderClueKey rho) (outboundAssetId rho)
-          (senderSlotId rho) (senderSlotDerivation rho)
+          (outboundAssetId rho) (senderSlotId rho) (senderSlotDerivation rho)
           (senderD rho) := by
       simpa only [
         Protocol.ShieldedIcs20Withdrawal.Concrete.complianceLeafDomain,
         senderDivGenFq, senderDivGenFqLC,
         senderTransmissionFq, senderTransmissionFqLC,
-        senderClueKey, senderClueKeyLC,
         outboundAssetId, outboundAssetIdLC,
         senderSlotId, senderSlotIdLC,
         senderSlotDerivation, senderSlotDerivationLC,
@@ -393,7 +386,7 @@ theorem complianceLeafHash_of_exact
         StructuredLC.sumResidual, StrideRun.eval,
         Seg16.localRho,
         Deployed.Templates.seated,
-        hw1, hw2, hw8, hw9, hw15, hw21, hw27, hw33, hw39, hw444, hw449, hw454, hw459, hw464, hw469, hw474, hw479,
+        hw1, hw2, hw8, hw9, hw15, hw21, hw27, hw33, hw408, hw413, hw418, hw423, hw428, hw433, hw438,
         negOne, zero_add, one_mul, add_zero
       ] using h
 
@@ -404,22 +397,22 @@ theorem complianceRootAsserted_of_exact
     isRegulated rho = 1 →
       senderComplianceRoot rho = complianceAnchor rho := by
   intro regulated
-  have h := facts.exact.AssertEqIfSeg18
+  have h := facts.senderCompliance.AssertEqIfSeg18
   change Deployed.Templates.Semantics.TAssertEqIf_8ce5774e50355d2a29c59780aba5615b3b4386e8925bffa9de0ad683cdc7cf8d.spec
     (Seg18.localRho rho) at h
-  have hw1 : Seg18.wireSeating 1 = 13 := by
+  have hw1 : Seg18.wireSeating 1 = 15 := by
     decide +kernel
-  have hw2 : Seg18.wireSeating 2 = 4 := by
+  have hw2 : Seg18.wireSeating 2 = 6 := by
     decide +kernel
-  have hw3 : Seg18.wireSeating 3 = 22129 := by
+  have hw3 : Seg18.wireSeating 3 = 22094 := by
     decide +kernel
-  have hw4 : Seg18.wireSeating 4 = 22134 := by
+  have hw4 : Seg18.wireSeating 4 = 22099 := by
     decide +kernel
-  have hw5 : Seg18.wireSeating 5 = 22139 := by
+  have hw5 : Seg18.wireSeating 5 = 22104 := by
     decide +kernel
-  have hw6 : Seg18.wireSeating 6 = 22144 := by
+  have hw6 : Seg18.wireSeating 6 = 22109 := by
     decide +kernel
-  have hw7 : Seg18.wireSeating 7 = 22149 := by
+  have hw7 : Seg18.wireSeating 7 = 22114 := by
     decide +kernel
   simp only [
     Deployed.Templates.Semantics.TAssertEqIf_8ce5774e50355d2a29c59780aba5615b3b4386e8925bffa9de0ad683cdc7cf8d.spec,
@@ -431,7 +424,7 @@ theorem complianceRootAsserted_of_exact
     one_mul
   ] at h
   have regulatedGlobal :
-      rho 13 = 1 := by
+      rho 15 = 1 := by
     simpa only [
       isRegulated, isRegulatedLC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
@@ -455,9 +448,9 @@ theorem balanceCompressed_of_exact
     Decaf377Assumptions.CompressToFieldSpec
       ⟨balanceCommitmentComputed0 rho, balanceCommitmentComputed1 rho⟩
       (balanceCommitmentFq rho) := by
-  have h := facts.exact.DecafCompressToFieldSeg48
+  have h := facts.conservation.DecafCompressToFieldSeg56
   change Deployed.Templates.Semantics.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.spec
-    (Seg48.localRho rho) at h
+    (Seg56.localRho rho) at h
   unfold Deployed.Templates.Semantics.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.spec at h
   unfold Decaf377Assumptions.CompressToFieldSpec
   rw [

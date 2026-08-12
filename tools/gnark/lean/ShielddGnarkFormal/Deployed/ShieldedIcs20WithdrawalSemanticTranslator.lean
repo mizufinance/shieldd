@@ -10,7 +10,7 @@ import ShielddGnarkFormal.StateMembership925Bridge
 import ShielddGnarkFormal.Poseidon3Spec
 import ShielddGnarkFormal.Poseidon5Bridge
 import ShielddGnarkFormal.Poseidon6Spec
-import ShielddGnarkFormal.Poseidon7Bridge
+import ShielddGnarkFormal.Poseidon6Bridge
 import ShielddGnarkFormal.Protocol.ShieldedIcs20Withdrawal.Concrete
 import ShielddGnarkFormal.Protocol.ShieldedIcs20Withdrawal.Refinement
 
@@ -71,25 +71,25 @@ theorem spend0NoteCommitmentHash
     (rho : Nat → DeployedF)
     (facts : ShieldedIcs20WithdrawalCircuitFacts rho) :
     spend0NoteCommitmentComputed rho =
-      Poseidon6Bridge.permSpec6 Common.noteCommitmentDomain
+      Poseidon5Bridge.permSpec5 Common.noteCommitmentDomain
         (spend0NoteCommitmentInputs0 rho)
         (spend0NoteCommitmentInputs1 rho)
         (spend0NoteCommitmentInputs2 rho)
         (spend0NoteCommitmentInputs3 rho)
-        (spend0NoteCommitmentInputs4 rho)
-        (spend0NoteCommitmentInputs5 rho) := by
+        (spend0NoteCommitmentInputs4 rho) := by
   have h := requiredNoteCommitmentSemanticSpec_of_exact rho facts
   unfold RequiredNoteCommitmentSemanticSpec at h
   apply NoteReshapeCommitmentBridge.noteCommitmentHash_of_spec
     (RequiredNoteCommitmentValuation rho) h
   · simp only [
       spend0NoteCommitmentComputed, spend0NoteCommitmentComputedLC,
-      Deployed.NoteCommitment.s38_1, Poseidon6Bridge.row7,
+      NoteReshapeCommitmentBridge.templateOutput_eq,
+      NoteReshapeCommitmentBridge.output,
+      Deployed.Poseidon5Link.row6,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      requiredNoteCommitmentAt408, requiredNoteCommitmentAt413,
-      requiredNoteCommitmentAt418, requiredNoteCommitmentAt423,
-      requiredNoteCommitmentAt428, requiredNoteCommitmentAt433,
-      requiredNoteCommitmentAt438,
+      requiredNoteCommitmentAt372, requiredNoteCommitmentAt377,
+      requiredNoteCommitmentAt382, requiredNoteCommitmentAt387,
+      requiredNoteCommitmentAt392, requiredNoteCommitmentAt397,
       zero_add, add_zero, one_mul]
     ring
   · simp [spend0NoteCommitmentInputs0, spend0NoteCommitmentInputs0LC,
@@ -111,33 +111,30 @@ theorem spend0NoteCommitmentHash
       requiredNoteCommitmentAt26, requiredNoteCommitmentAt27,
       negOne, semanticNegOne]
     ring_nf
-  · simp [spend0NoteCommitmentInputs5, spend0NoteCommitmentInputs5LC,
-      StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      requiredNoteCommitmentAt33]
 
 theorem spend1NoteCommitmentHash
     (rho : Nat → DeployedF)
     (facts : ShieldedIcs20WithdrawalCircuitFacts rho) :
     spend1NoteCommitmentComputed rho =
-      Poseidon6Bridge.permSpec6 Common.noteCommitmentDomain
+      Poseidon5Bridge.permSpec5 Common.noteCommitmentDomain
         (spend1NoteCommitmentInputs0 rho)
         (spend1NoteCommitmentInputs1 rho)
         (spend1NoteCommitmentInputs2 rho)
         (spend1NoteCommitmentInputs3 rho)
-        (spend1NoteCommitmentInputs4 rho)
-        (spend1NoteCommitmentInputs5 rho) := by
+        (spend1NoteCommitmentInputs4 rho) := by
   have h := optionalNoteCommitmentSemanticSpec_of_exact rho facts
   unfold OptionalNoteCommitmentSemanticSpec at h
   apply NoteReshapeCommitmentBridge.noteCommitmentHash_of_spec
     (OptionalNoteCommitmentValuation rho) h
   · simp only [
       spend1NoteCommitmentComputed, spend1NoteCommitmentComputedLC,
-      Deployed.NoteCommitment.s38_1, Poseidon6Bridge.row7,
+      NoteReshapeCommitmentBridge.templateOutput_eq,
+      NoteReshapeCommitmentBridge.output,
+      Deployed.Poseidon5Link.row6,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      optionalNoteCommitmentAt408, optionalNoteCommitmentAt413,
-      optionalNoteCommitmentAt418, optionalNoteCommitmentAt423,
-      optionalNoteCommitmentAt428, optionalNoteCommitmentAt433,
-      optionalNoteCommitmentAt438,
+      optionalNoteCommitmentAt372, optionalNoteCommitmentAt377,
+      optionalNoteCommitmentAt382, optionalNoteCommitmentAt387,
+      optionalNoteCommitmentAt392, optionalNoteCommitmentAt397,
       zero_add, add_zero, one_mul]
     ring
   · simp [spend1NoteCommitmentInputs0, spend1NoteCommitmentInputs0LC,
@@ -159,33 +156,30 @@ theorem spend1NoteCommitmentHash
       optionalNoteCommitmentAt26, optionalNoteCommitmentAt27,
       negOne, semanticNegOne]
     ring_nf
-  · simp [spend1NoteCommitmentInputs5, spend1NoteCommitmentInputs5LC,
-      StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      optionalNoteCommitmentAt33]
 
 theorem output0NoteCommitmentHash
     (rho : Nat → DeployedF)
     (facts : ShieldedIcs20WithdrawalCircuitFacts rho) :
     output0NoteCommitmentComputed rho =
-      Poseidon6Bridge.permSpec6 Common.noteCommitmentDomain
+      Poseidon5Bridge.permSpec5 Common.noteCommitmentDomain
         (output0NoteCommitmentInputs0 rho)
         (output0NoteCommitmentInputs1 rho)
         (output0NoteCommitmentInputs2 rho)
         (output0NoteCommitmentInputs3 rho)
-        (output0NoteCommitmentInputs4 rho)
-        (output0NoteCommitmentInputs5 rho) := by
+        (output0NoteCommitmentInputs4 rho) := by
   have h := changeNoteCommitmentSemanticSpec_of_exact rho facts
   unfold ChangeNoteCommitmentSemanticSpec at h
   apply NoteReshapeCommitmentBridge.noteCommitmentHash_of_spec
     (ChangeNoteCommitmentValuation rho) h
   · simp only [
       output0NoteCommitmentComputed, output0NoteCommitmentComputedLC,
-      Deployed.NoteCommitment.s38_1, Poseidon6Bridge.row7,
+      NoteReshapeCommitmentBridge.templateOutput_eq,
+      NoteReshapeCommitmentBridge.output,
+      Deployed.Poseidon5Link.row6,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      changeNoteCommitmentAt408, changeNoteCommitmentAt413,
-      changeNoteCommitmentAt418, changeNoteCommitmentAt423,
-      changeNoteCommitmentAt428, changeNoteCommitmentAt433,
-      changeNoteCommitmentAt438,
+      changeNoteCommitmentAt372, changeNoteCommitmentAt377,
+      changeNoteCommitmentAt382, changeNoteCommitmentAt387,
+      changeNoteCommitmentAt392, changeNoteCommitmentAt397,
       zero_add, add_zero, one_mul]
     ring
   · simp [output0NoteCommitmentInputs0, output0NoteCommitmentInputs0LC,
@@ -207,9 +201,6 @@ theorem output0NoteCommitmentHash
       changeNoteCommitmentAt26, changeNoteCommitmentAt27,
       negOne, semanticNegOne]
     ring_nf
-  · simp [output0NoteCommitmentInputs5, output0NoteCommitmentInputs5LC,
-      StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      changeNoteCommitmentAt33]
 
 theorem output0NoteCommitmentAsserted
     (rho : Nat → DeployedF)
@@ -224,7 +215,7 @@ theorem requiredNoteCommitment
     Concrete.noteCommitment (requiredNote rho) := by
   unfold Concrete.noteCommitment Common.noteCommitmentHash
   simp only [requiredNote, sender]
-  simpa [Poseidon6Bridge.permSpec6, Common.noteCommitmentDomain] using
+  simpa [Poseidon5Bridge.permSpec5, Common.noteCommitmentDomain] using
     spend0NoteCommitmentHash rho facts
 
 theorem optionalRealNoteCommitment
@@ -233,7 +224,7 @@ theorem optionalRealNoteCommitment
     Concrete.noteCommitment (optionalRealNote rho) := by
   unfold Concrete.noteCommitment Common.noteCommitmentHash
   simp only [optionalRealNote, sender]
-  simpa [Poseidon6Bridge.permSpec6, Common.noteCommitmentDomain] using
+  simpa [Poseidon5Bridge.permSpec5, Common.noteCommitmentDomain] using
     spend1NoteCommitmentHash rho facts
 
 theorem changeNoteCommitment
@@ -243,7 +234,7 @@ theorem changeNoteCommitment
   unfold Concrete.noteCommitment Common.noteCommitmentHash
   simp only [change, sender]
   rw [output0NoteCommitmentAsserted rho facts]
-  simpa [Poseidon6Bridge.permSpec6, Common.noteCommitmentDomain] using
+  simpa [Poseidon5Bridge.permSpec5, Common.noteCommitmentDomain] using
     output0NoteCommitmentHash rho facts
 
 theorem changeOutput
@@ -919,9 +910,9 @@ theorem complianceLeafHash_of_circuitSpec
     (rho : Nat → DeployedF)
     (leafHash :
       senderLeafCommitment rho =
-        Poseidon7Bridge.permSpec7 Concrete.complianceLeafDomain
+        Poseidon6Bridge.permSpec6 Concrete.complianceLeafDomain
           (senderDivGenFq rho) (senderTransmissionFq rho)
-          (senderClueKey rho) (outboundAssetId rho) (senderSlotId rho)
+          (outboundAssetId rho) (senderSlotId rho)
           (senderSlotDerivation rho) (senderD rho)) :
     senderLeafCommitment rho =
       Concrete.complianceLeafHash (action rho) := by
@@ -1040,7 +1031,9 @@ theorem actionStatementFields
        withdrawalEffectHashLimb rho 0,
        withdrawalEffectHashLimb rho 1,
        withdrawalEffectHashLimb rho 2,
-       withdrawalEffectHashLimb rho 3] := by
+       withdrawalEffectHashLimb rho 3,
+       routingTag rho,
+       routingParameterSetId rho] := by
   unfold Concrete.statementFields
   dsimp only [action, required, change, withdrawal]
   rw [optionalNullifier_eq, optionalRkEncoding_eq]
@@ -1066,7 +1059,9 @@ theorem statementBinding_of_exactHash
            withdrawalEffectHashLimb rho 0,
            withdrawalEffectHashLimb rho 1,
            withdrawalEffectHashLimb rho 2,
-           withdrawalEffectHashLimb rho 3]) :
+           withdrawalEffectHashLimb rho 3,
+           routingTag rho,
+           routingParameterSetId rho]) :
     Concrete.statementBinding (action rho) := by
   unfold Concrete.statementBinding
   change
@@ -1118,9 +1113,9 @@ theorem semanticCircuitFacts_of_exactSeams
         (assetLeafValue rho) (assetLeafNextValue rho))
     (complianceLeaf :
       senderLeafCommitment rho =
-        Poseidon7Bridge.permSpec7 Concrete.complianceLeafDomain
+        Poseidon6Bridge.permSpec6 Concrete.complianceLeafDomain
           (senderDivGenFq rho) (senderTransmissionFq rho)
-          (senderClueKey rho) (outboundAssetId rho) (senderSlotId rho)
+          (outboundAssetId rho) (senderSlotId rho)
           (senderSlotDerivation rho) (senderD rho))
     (compliancePositionBound : (senderPosition rho).val < 2 ^ 32)
     (compliancePathRoot :
@@ -1167,7 +1162,9 @@ theorem semanticCircuitFacts_of_exactSeams
            withdrawalEffectHashLimb rho 0,
            withdrawalEffectHashLimb rho 1,
            withdrawalEffectHashLimb rho 2,
-           withdrawalEffectHashLimb rho 3]) :
+           withdrawalEffectHashLimb rho 3,
+           routingTag rho,
+           routingParameterSetId rho]) :
     Protocol.ShieldedIcs20Withdrawal.CircuitFacts
       Concrete.circuitPrimitives (action rho) := by
   have authorizationKeyOnCurve :=

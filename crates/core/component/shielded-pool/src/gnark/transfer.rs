@@ -10,7 +10,7 @@ use crate::gnark::transport::{auto_lib_path, load_bundled_transport, load_librar
 use crate::{
     gnark::{
         transfer_proof_result::parse_transfer_binary_proof_result,
-        transfer_witness::TransferWitnessV16,
+        transfer_witness::TransferWitnessV17,
         transport::{
             load_daemon_transport, load_from_env_paths, prove_with_transport, shutdown_transport,
             GnarkFamilyConfig, GnarkTransport,
@@ -42,15 +42,15 @@ static TRANSFER_FAMILY_CONFIG: GnarkFamilyConfig = GnarkFamilyConfig {
     shutdown_symbol: TRANSFER_SHUTDOWN_SYMBOL,
 };
 
-pub fn encode_transfer_witness_v16(
+pub fn encode_transfer_witness_v17(
     public: &TransferProofPublic,
     private: &TransferProofPrivate,
 ) -> Result<Vec<u8>> {
-    TransferWitnessV16::from_public_private(public, private)?.encode()
+    TransferWitnessV17::from_public_private(public, private)?.encode()
 }
 
-pub fn decode_transfer_witness_v16(bytes: &[u8]) -> Result<TransferWitnessV16> {
-    TransferWitnessV16::decode(bytes)
+pub fn decode_transfer_witness_v17(bytes: &[u8]) -> Result<TransferWitnessV17> {
+    TransferWitnessV17::decode(bytes)
 }
 
 pub struct GnarkTransferClient {
@@ -206,7 +206,7 @@ impl GnarkTransferClient {
         public: &TransferProofPublic,
         private: &TransferProofPrivate,
     ) -> Result<TransferProof> {
-        let witness_model = TransferWitnessV16::from_public_private(public, private)?;
+        let witness_model = TransferWitnessV17::from_public_private(public, private)?;
         let expected_hash = Fq::from_bytes_checked(&witness_model.claimed_statement_hash)
             .map_err(|_| anyhow::anyhow!("transfer witness statement hash is non-canonical"))?;
         let witness = witness_model.encode()?;
@@ -246,77 +246,45 @@ mod tests {
     use rand::SeedableRng;
 
     #[test]
-    fn transfer_witness_v16_roundtrip() {
+    fn transfer_witness_v17_roundtrip() {
         let (public, private) =
             crate::test_proof_helpers::proof_test_helpers::build_transfer_roundtrip_inputs(true);
         let encoded =
-            encode_transfer_witness_v16(&public, &private).expect("encode transfer witness");
-        assert_eq!(u32::from_le_bytes(encoded[4..8].try_into().unwrap()), 16);
-        let decoded = decode_transfer_witness_v16(&encoded).expect("decode transfer witness");
-        let expected = TransferWitnessV16::from_public_private(&public, &private)
+            encode_transfer_witness_v17(&public, &private).expect("encode transfer witness");
+        assert_eq!(u32::from_le_bytes(encoded[4..8].try_into().unwrap()), 17);
+        let decoded = decode_transfer_witness_v17(&encoded).expect("decode transfer witness");
+        let expected = TransferWitnessV17::from_public_private(&public, &private)
             .expect("build transfer witness");
         assert_eq!(decoded, expected);
     }
 
     #[test]
-    fn transfer_hidden_arity_witness_v16_roundtrip() {
+    fn transfer_hidden_arity_witness_v17_roundtrip() {
         let mut rng = rand::rngs::StdRng::seed_from_u64(0x0000_0054_5831_5831);
         let (public, private) = crate::test_proof_helpers::proof_test_helpers::
             build_transfer_hidden_arity_roundtrip_inputs_with_rng(&mut rng, true, false);
         assert!(private.optional_input.is_dummy);
 
         let encoded =
-            encode_transfer_witness_v16(&public, &private).expect("encode hidden-arity witness");
+            encode_transfer_witness_v17(&public, &private).expect("encode hidden-arity witness");
         let decoded =
-            decode_transfer_witness_v16(&encoded).expect("decode hidden-arity transfer witness");
-        let expected = TransferWitnessV16::from_public_private(&public, &private)
+            decode_transfer_witness_v17(&encoded).expect("decode hidden-arity transfer witness");
+        let expected = TransferWitnessV17::from_public_private(&public, &private)
             .expect("build hidden-arity transfer witness");
         assert_eq!(decoded, expected);
     }
 
     #[test]
-    fn transfer_witness_v16_rejects_legacy_v15_layout() {
+    fn transfer_witness_v17_rejects_legacy_v15_layout() {
         let (public, private) =
             crate::test_proof_helpers::proof_test_helpers::build_transfer_roundtrip_inputs(true);
         let mut encoded =
-            encode_transfer_witness_v16(&public, &private).expect("encode transfer witness");
+            encode_transfer_witness_v17(&public, &private).expect("encode transfer witness");
         encoded[4..8].copy_from_slice(&15u32.to_le_bytes());
-        let err = decode_transfer_witness_v16(&encoded)
+        let err = decode_transfer_witness_v17(&encoded)
             .expect_err("version 16 decoder must reject the obsolete version 15 layout");
         assert!(err
             .to_string()
             .contains("unsupported transfer witness version 15"));
-    }
-
-    #[test]
-    fn transfer_witness_v16_rejects_mixed_sender_clue_keys() {
-        for role in ["required spend", "optional spend", "change output"] {
-            let (public, mut private) =
-                crate::test_proof_helpers::proof_test_helpers::build_transfer_roundtrip_inputs(
-                    true,
-                );
-            let value = match role {
-                "required spend" => private.required_input.spent_note.value(),
-                "optional spend" => private.optional_input.spend.spent_note.value(),
-                "change output" => private.change_output.created_note.value(),
-                _ => unreachable!(),
-            };
-            let replacement = crate::Note::generate(
-                &mut rand::thread_rng(),
-                &shieldd_sdk_keys::test_keys::ADDRESS_1,
-                value,
-            );
-            match role {
-                "required spend" => private.required_input.spent_note = replacement,
-                "optional spend" => private.optional_input.spend.spent_note = replacement,
-                "change output" => private.change_output.created_note = replacement,
-                _ => unreachable!(),
-            }
-
-            assert!(
-                TransferWitnessV16::from_public_private(&public, &private).is_err(),
-                "V16 witness must reject mixed {role} clue key"
-            );
-        }
     }
 }

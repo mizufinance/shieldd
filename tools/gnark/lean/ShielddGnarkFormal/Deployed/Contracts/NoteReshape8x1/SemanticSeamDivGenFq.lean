@@ -26,10 +26,10 @@ theorem sharedDivGenFq_eq_compressOutput
       Deployed.Templates.Semantics.TDecafCompressToField_231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb.templateRho (Seg15.localRho rho) 912 -
         Deployed.Templates.Semantics.TDecafCompressToField_231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb.templateRho (Seg15.localRho rho) 572 := by
   have hplus :
-      Seg15.wireSeating 705 = 1394 := by
+      Seg15.wireSeating 705 = 1464 := by
     decide +kernel
   have hminus :
-      Seg15.wireSeating 365 = 1054 := by
+      Seg15.wireSeating 365 = 1124 := by
     decide +kernel
   have hneg :
       (8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF) = -1 := by

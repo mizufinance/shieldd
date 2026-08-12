@@ -187,12 +187,47 @@ def _mask_comments_and_strings(source: str, label: object) -> str:
     return "".join(output)
 
 
+def _import_preamble_end(source: str, label: object) -> int:
+    """Find the first real command after imports without scanning its body."""
+
+    index = 0
+    while index < len(source):
+        while index < len(source) and source[index] in " \t\r":
+            index += 1
+        if index == len(source):
+            return index
+        if source[index] == "\n":
+            index += 1
+            continue
+        if source.startswith("--", index):
+            newline = source.find("\n", index + 2)
+            if newline < 0:
+                return len(source)
+            index = newline + 1
+            continue
+        if source.startswith("/-", index):
+            index = _block_comment_end(source, index, label)
+            continue
+
+        line_start = source.rfind("\n", 0, index) + 1
+        if _IMPORT_TOKEN.match(source, index) is None:
+            return line_start
+        newline = source.find("\n", index)
+        if newline < 0:
+            return len(source)
+        index = newline + 1
+    return len(source)
+
+
 def parse_lean_imports(
     source: str, *, label: object = "Lean source"
 ) -> tuple[str, ...]:
     """Return imports or reject syntax outside the audited one-line grammar."""
 
-    scrubbed = _mask_comments_and_strings(source, label)
+    # Lean imports form a source preamble. Most generated proof files are very
+    # large, so do not rescan theorem bodies that cannot contain legal imports.
+    preamble_end = _import_preamble_end(source, label)
+    scrubbed = _mask_comments_and_strings(source[:preamble_end], label)
     modules: list[str] = []
     for line_number, line in enumerate(scrubbed.splitlines(), 1):
         match = _IMPORT_LINE.fullmatch(line)

@@ -7,7 +7,7 @@ use shieldd_sdk_ibc::IbcRelay;
 use shieldd_sdk_keys::{Address, FullViewingKey, PayloadKey};
 use shieldd_sdk_proto::{core::transaction::v1 as pb, DomainType};
 use shieldd_sdk_shielded_pool::{
-    discovery::Precision, HostWithdrawal, Ics20Withdrawal, ShieldedHostWithdrawalPlan,
+    discovery::Parameters, HostWithdrawal, Ics20Withdrawal, ShieldedHostWithdrawalPlan,
     ShieldedIcs20WithdrawalPlan, TransferPlan,
 };
 use shieldd_sdk_txhash::{EffectHash, EffectingData};
@@ -265,25 +265,27 @@ impl TransactionPlan {
         action_proofs + usize::from(self.fee_funding.is_some())
     }
 
-    pub fn populate_discovery_precision(&mut self, precision: Precision) {
+    pub fn populate_routing_parameters(&mut self, parameters: Parameters) {
         for action in &mut self.actions {
             match action {
-                ActionPlan::Transfer(plan) => plan.set_discovery_precision(precision),
-                ActionPlan::NoteReshape(plan) => plan.set_discovery_precision(precision),
+                ActionPlan::Transfer(plan) => plan.set_routing_parameters(parameters.clone()),
+                ActionPlan::NoteReshape(plan) => plan.set_routing_parameters(parameters.clone()),
                 ActionPlan::ShieldedIcs20Withdrawal(plan) => {
-                    plan.set_discovery_precision(precision)
+                    plan.set_routing_parameters(parameters.clone())
                 }
-                ActionPlan::ShieldedHostWithdrawal(plan) => plan.set_discovery_precision(precision),
+                ActionPlan::ShieldedHostWithdrawal(plan) => {
+                    plan.set_routing_parameters(parameters.clone())
+                }
                 _ => {}
             }
         }
         if let Some(fee_funding) = &mut self.fee_funding {
-            fee_funding.transfer.set_discovery_precision(precision);
+            fee_funding.transfer.set_routing_parameters(parameters);
         }
     }
 
-    pub fn with_discovery_precision(mut self, precision: Precision) -> Self {
-        self.populate_discovery_precision(precision);
+    pub fn with_routing_parameters(mut self, parameters: Parameters) -> Self {
+        self.populate_routing_parameters(parameters);
         self
     }
 
@@ -339,8 +341,10 @@ mod tests {
     use shieldd_sdk_keys::keys::{AddressIndex, Bip44Path, SeedPhrase, SpendKey};
     use shieldd_sdk_keys::test_keys;
     use shieldd_sdk_shielded_pool::{
-        Ics20Withdrawal, Note, NoteReshape, NoteReshapeFamilyId, NoteReshapePlan, NoteReshapeProof,
-        Rseed, ShieldedInputPlan, ShieldedOutputPlan,
+        discovery::{Parameters, Precision},
+        HostTransfer, HostWithdrawalDestination, Ics20Withdrawal, Note, NoteReshape,
+        NoteReshapeFamilyId, NoteReshapePlan, NoteReshapeProof, Rseed, ShieldedInputPlan,
+        ShieldedOutputPlan,
     };
     use shieldd_sdk_txhash::EffectHash;
     use std::{ops::Deref, str::FromStr};
@@ -409,13 +413,11 @@ mod tests {
         let sender = sender_sk
             .full_viewing_key()
             .incoming()
-            .payment_address(AddressIndex::from(0u32))
-            .0;
+            .payment_address(AddressIndex::from(0u32));
         let recipient = recipient_sk
             .full_viewing_key()
             .incoming()
-            .payment_address(AddressIndex::from(0u32))
-            .0;
+            .payment_address(AddressIndex::from(0u32));
         let value = Value {
             amount: 100u64.into(),
             asset_id: *BASE_ASSET_ID,
@@ -440,7 +442,7 @@ mod tests {
     }
 
     #[test]
-    fn discovery_precision_propagates_to_transfer_family() {
+    fn routing_parameters_propagate_to_transfer_family() {
         let mut rng = OsRng;
         let sender_sk =
             SpendKey::from_seed_phrase_bip44(SeedPhrase::generate(&mut rng), &Bip44Path::new(0))
@@ -451,13 +453,11 @@ mod tests {
         let sender = sender_sk
             .full_viewing_key()
             .incoming()
-            .payment_address(AddressIndex::from(0u32))
-            .0;
+            .payment_address(AddressIndex::from(0u32));
         let recipient = recipient_sk
             .full_viewing_key()
             .incoming()
-            .payment_address(AddressIndex::from(0u32))
-            .0;
+            .payment_address(AddressIndex::from(0u32));
         let value = Value {
             amount: 100u64.into(),
             asset_id: *BASE_ASSET_ID,
@@ -483,8 +483,9 @@ mod tests {
             fee_funding: None,
             memo: None,
         };
-        let precision = Precision::new(20).unwrap();
-        plan.populate_discovery_precision(precision);
+        let parameters =
+            Parameters::new(Precision::new(12).unwrap(), Precision::new(20).unwrap(), 42).unwrap();
+        plan.populate_routing_parameters(parameters.clone());
 
         assert_eq!(
             plan.num_outputs(),
@@ -493,12 +494,12 @@ mod tests {
         );
         assert!(matches!(
             &plan.actions[0],
-            ActionPlan::Transfer(transfer) if transfer.discovery_precision == precision
+            ActionPlan::Transfer(transfer) if transfer.routing_parameters == parameters
         ));
     }
 
     #[test]
-    fn shielded_ics20_withdrawal_counts_change_output_for_discovery() {
+    fn shielded_ics20_withdrawal_counts_change_output_for_routing() {
         let spend_value = Value {
             amount: 50_000u64.into(),
             asset_id: *BASE_ASSET_ID,
@@ -536,8 +537,9 @@ mod tests {
             fee_funding: None,
             memo: None,
         };
-        let precision = Precision::new(18).unwrap();
-        plan.populate_discovery_precision(precision);
+        let parameters =
+            Parameters::new(Precision::new(12).unwrap(), Precision::new(18).unwrap(), 42).unwrap();
+        plan.populate_routing_parameters(parameters.clone());
 
         assert_eq!(plan.num_outputs(), 1);
         assert_eq!(
@@ -547,12 +549,12 @@ mod tests {
         assert!(matches!(
             &plan.actions[0],
             ActionPlan::ShieldedIcs20Withdrawal(withdrawal)
-                if withdrawal.discovery_precision == precision
+                if withdrawal.routing_parameters == parameters
         ));
     }
 
     #[test]
-    fn shielded_ics20_withdrawal_without_explicit_change_still_counts_hidden_change_note() {
+    fn shielded_ics20_withdrawal_without_explicit_change_still_counts_hidden_routing_note() {
         let spend_value = Value {
             amount: 40_000u64.into(),
             asset_id: *BASE_ASSET_ID,
@@ -581,8 +583,9 @@ mod tests {
             fee_funding: None,
             memo: None,
         };
-        let precision = Precision::new(14).unwrap();
-        plan.populate_discovery_precision(precision);
+        let parameters =
+            Parameters::new(Precision::new(10).unwrap(), Precision::new(14).unwrap(), 42).unwrap();
+        plan.populate_routing_parameters(parameters.clone());
 
         assert_eq!(plan.num_outputs(), 1);
         assert_eq!(
@@ -592,7 +595,47 @@ mod tests {
         assert!(matches!(
             &plan.actions[0],
             ActionPlan::ShieldedIcs20Withdrawal(withdrawal)
-                if withdrawal.discovery_precision == precision
+                if withdrawal.routing_parameters == parameters
+        ));
+    }
+
+    #[test]
+    fn shielded_host_withdrawal_uses_current_routing_parameters() {
+        let value = Value {
+            amount: 40_000u64.into(),
+            asset_id: *BASE_ASSET_ID,
+        };
+        let note = Note::generate(&mut OsRng, &test_keys::ADDRESS_0, value);
+        let spend = ShieldedInputPlan::new(&mut OsRng, note, 0u64.into());
+        let withdrawal = HostWithdrawal {
+            value,
+            destination: HostWithdrawalDestination::Transfer(HostTransfer {
+                recipient: "bank1destination".to_owned(),
+            }),
+        };
+        let withdrawal =
+            ShieldedHostWithdrawalPlan::new(vec![spend], None, withdrawal, Fr::from(7u64))
+                .expect("plan should be valid");
+
+        let mut plan = TransactionPlan {
+            actions: vec![ActionPlan::ShieldedHostWithdrawal(withdrawal)],
+            transaction_parameters: Default::default(),
+            fee_funding: None,
+            memo: None,
+        };
+        let parameters =
+            Parameters::new(Precision::new(11).unwrap(), Precision::new(19).unwrap(), 42).unwrap();
+        plan.populate_routing_parameters(parameters.clone());
+
+        assert_eq!(plan.num_outputs(), 1);
+        assert_eq!(
+            plan.dest_addresses(),
+            vec![test_keys::ADDRESS_0.deref().clone()]
+        );
+        assert!(matches!(
+            &plan.actions[0],
+            ActionPlan::ShieldedHostWithdrawal(withdrawal)
+                if withdrawal.routing_parameters == parameters
         ));
     }
 

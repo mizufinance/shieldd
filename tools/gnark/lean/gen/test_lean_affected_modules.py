@@ -140,6 +140,20 @@ class LeanAffectedModulesTest(unittest.TestCase):
                 ("ShielddGnarkFormal.Protocol.Present",),
             )
 
+    def test_command_words_in_header_comments_do_not_end_import_scan(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "Root.lean"
+            source.write_text(
+                "/- namespace Hidden\nset_option pp.all true -/\n"
+                "import ShielddGnarkFormal.Protocol.Present\n"
+                "namespace Root\n",
+                encoding="utf-8",
+            )
+            self.assertEqual(
+                declared_imports(source),
+                ("ShielddGnarkFormal.Protocol.Present",),
+            )
+
     def test_limits_reverse_impact_to_root_closure(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

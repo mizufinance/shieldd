@@ -64,11 +64,6 @@ jobs:
             exit 1
           fi
 
-      - name: Prepare proof artifacts
-        id: proof_artifacts
-        if: steps.classify.outputs.run == 'true'
-        uses: ./.github/actions/prepare-proof-artifacts
-
       - name: Set up Nix and Rust
         id: setup
         if: steps.classify.outputs.run == 'true'
@@ -87,7 +82,6 @@ jobs:
         env:
           SHOULD_RUN: ${{ steps.classify.outputs.run }}
           CLASSIFY_RESULT: ${{ steps.classify.outcome }}
-          PROOF_ARTIFACTS_RESULT: ${{ steps.proof_artifacts.outcome }}
           SETUP_RESULT: ${{ steps.setup.outcome }}
           SMOKE_RESULT: ${{ steps.smoke.outcome }}
         run: |
@@ -98,7 +92,6 @@ jobs:
           fi
           if [[ "$SHOULD_RUN" == "true" ]]; then
             for step in \
-              "proof-artifacts:$PROOF_ARTIFACTS_RESULT" \
               "setup:$SETUP_RESULT" \
               "smoke:$SMOKE_RESULT"
             do
@@ -111,7 +104,7 @@ jobs:
             done
             echo "smoke passed"
           else
-            if [[ "$PROOF_ARTIFACTS_RESULT" != "skipped" || "$SETUP_RESULT" != "skipped" || "$SMOKE_RESULT" != "skipped" ]]; then
+            if [[ "$SETUP_RESULT" != "skipped" || "$SMOKE_RESULT" != "skipped" ]]; then
               echo "unrelated changes unexpectedly ran integration work" >&2
               exit 1
             fi

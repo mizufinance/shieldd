@@ -11,7 +11,7 @@ class NoteReshapePaddedCommitmentTests(unittest.TestCase):
     def test_real_spend_assertions_unfold_the_conditional_guard(self) -> None:
         guard = (
             "Deployed.Templates.Semantics."
-            "TAssertEqIf_ce0e02a1deb2ef2e836cbed67d37f3678356db1d6c5cfaa61678d01652034f8f.guard,"
+            "TAssertEqIf_0c09e0bc61a185f0693b2140c57a5eb8ceb0b7d68fbce9495598afef74a6ecd3.guard,"
         )
         for config in commitments.CONFIGS:
             with self.subTest(circuit=config.circuit):
@@ -27,16 +27,16 @@ class NoteReshapePaddedCommitmentTests(unittest.TestCase):
         expected = {
             "note_reshape8x1": (
                 [
-                    (21, 22),
-                    (35, 36),
-                    (49, 50),
-                    (63, 64),
-                    (77, 78),
-                    (91, 92),
-                    (105, 106),
-                    (119, 120),
+                    (39, 40),
+                    (53, 54),
+                    (67, 68),
+                    (81, 82),
+                    (95, 96),
+                    (109, 110),
+                    (123, 124),
+                    (137, 138),
                 ],
-                (133, 134),
+                (151, 152),
             ),
         }
         for config in commitments.CONFIGS:

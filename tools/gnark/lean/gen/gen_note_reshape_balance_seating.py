@@ -46,55 +46,55 @@ EXCLUDED = {
 }
 REVIEWED_TEMPLATE_DIGESTS = {
     "NoteReshape1x8Balance.lean":
-        "3505829585111ddaebe74ef996a5c8bfa52c9252ef41aaf45fd8cdd6d37a560d",
+        "0d016b54b82cbcfbc27eb35cc758b9d2598769d1e6210f0e8561a96517071f39",
     "NoteReshape1x8BalanceAccFinal.lean":
-        "6b24cc939c34a81df17591cce4f30cb52560c4870fc30b3cd36fe73b3822a31d",
+        "23d6fc047adc2dd9eae6293d8f6cd8ff8a2d4377b0507da78bc720b243e836f5",
     "NoteReshape1x8BalanceCompress.lean":
-        "e7e8726f817b174071e3c07272ba98fb15f29add49d8657f45b23cf2efcee778",
+        "99749c299b684c122dfd8c50f6130f3d56c842a3e773541f5978da507c4bdac9",
     "NoteReshape1x8BalanceCompressRunX0.lean":
-        "ce15821754ca5ad2ef9ac8e17ab634c53f5432e0bc41a8973a2243c3b71fc76f",
+        "650029c2e5569a990220f69f6e9209119d6313e6a87230239dc1a8218c946873",
     "NoteReshape1x8BalanceCompressRunX1.lean":
-        "7056ca48d42330f5b67fab81e682d06412ecac29cb780b199e324226706087bf",
+        "5e9645d3d63390a3d0157b10dcf7a80e683a0ef8b22ae3c6f85035d31c2ddd32",
     "NoteReshape1x8BalanceCompressRunY0.lean":
-        "489891e2edf3db7c9ce49bfbd60e0483664bbf2755b7d7fc0be7979ff81412cd",
+        "6e195b6d57d994535ca08a994425918aa18d300a92aab3f7544b7734456dec23",
     "NoteReshape1x8BalanceCompressRunY1.lean":
-        "4141aaf2f4687478688b4d2b0a4b4a11c220b10fd640e9a75aea594eaf3b9354",
+        "75258b9aabb35e75b1fe1a7d3720caf8315d91fbc92a0e8426d78378a8b00dc6",
     "NoteReshape1x8BalanceCompressRuns.lean":
-        "df4af88294665ee337c9893a98c715f3ca563719ac87597273f2bb6fd21fa779",
+        "59a0fe20e9de1ab5403303024230a100f8b9d8ad1381c3fdd41325f36d7c7bac",
     "NoteReshape1x8BalanceCompressRunsSupport.lean":
-        "4dd984571fe3e13d51f520c5a858dec4c80aacde0b576df7032de18c024d783c",
+        "d0b5fdc09e46d3176e14daaab366bfdd32215779c9c1efb59a52fbc829702843",
     "NoteReshape1x8BalanceCross.lean":
-        "a8ec5b85b85272991a06305ec129e375cb39f4f1512468a1b796a033ed920892",
+        "fced162aaa4fa09f2a5485922f61d71db353e98eebe2659f715648e80d8786bf",
     "NoteReshape1x8BalanceCrossRunX0.lean":
-        "0be913eba17b7fbf6ae16226555ff82184c11b288c9cab2adfb0af10982a34f1",
+        "520e67c827fe5ccdff095bf3007ff0e8530423799590233c903b31797805d054",
     "NoteReshape1x8BalanceCrossRunX1.lean":
-        "9d55c80f51fa9bf099a31d690b543ad74e181817ebf442e3bc83f3714c5095ed",
+        "c0ca5fc7d08ba70f4d9a78f2021c6ef5fdd317ee0240cb3bcf46b25d47016394",
     "NoteReshape1x8BalanceCrossRunY0.lean":
-        "04377c0e170641923f4924a53e0a6af1aa6d0ad8c4e8b1b89a25d2246b096cee",
+        "06897fe846dbe8fe2319504a4bc257950d51b3b243ed34e4d1604395aaee8582",
     "NoteReshape1x8BalanceCrossRunY1.lean":
-        "7b219f23b48d0e95f96567cf67b5f3d4b527fa6c82ff0ba2b78e9247e683f0e2",
+        "6bb36437af1efba9cbb17812be47b0bf3945cb372d29cc16b31e6b5bd4740ffc",
     "NoteReshape1x8BalanceCrossRuns.lean":
-        "4011e3ba3f2fb0bd17c4f8c23cf824a60920792c2bf1b74ab67f5f6021e324cc",
+        "b9f93eec76a65b99e88fe489fd95ab497e75ad13d89a849fb461aeb29f52a182",
     "NoteReshape1x8BalanceCrossRunsSupport.lean":
-        "abccce0b705497e0178aa20a2484f6d2199791f075a65876b3a4ba734bb9fe77",
+        "2b3179b5e49dab46ef85ba4cd288a824b86f4b42f62326c02870f64fbcfeddd2",
     "NoteReshape1x8BalanceRunX0.lean":
-        "6a5c0505f0dd6138aa7c9b2fe927f9cda6026622d60c6bf610ccc2c1685c10db",
+        "d873fc22c8e58a67077fb00c1acb9c81211562e777b12f258f5a759643b486d0",
     "NoteReshape1x8BalanceRunX1.lean":
-        "e276e3f1024e31b0615d0f293aa812ac85d9698c61da2779905a3f97897f2b2c",
+        "3bc1dc67e06b60d261178205395be6a19235a3ce8fdfed5a657adcb318b10837",
     "NoteReshape1x8BalanceRunY0.lean":
-        "9028015a37e9443e8f52beef55d5f52d7f9c7146a7af4b4f9281fff81cb18b7f",
+        "d2d1db26ff792e7401bcceb1fe44bb54a71aed7eddc0c2a63aee1ec77247a69c",
     "NoteReshape1x8BalanceRunY1.lean":
-        "4f9dfb3c2d01dfc4d555ee15504a3a3647f8714ce5c021cdec745f356b081c22",
+        "16031e547339ef6327efd0fa44a36215ab00e8dc6516e27648e1c090104188ae",
     "NoteReshape1x8BalanceRuns.lean":
-        "4bb663e79e049faa1fc09c610480617942f22316aee9bb9b63bbddb411a6b291",
+        "a8acfc596439cada2137783d1a5a0cc8df2b7abb046beac03724f67cc095faa6",
     "NoteReshape1x8BalanceRunsSupport.lean":
-        "a88e3b8fc2c047479b1408576e94c2c0be240c1d2487a652162950f2fb20d075",
+        "6627a8b0d393a823f39345a26cc4d2b7562d02c8724e950edddef6edcf326678",
     "NoteReshape1x8BalanceRunsX.lean":
-        "52651f6729498dd28a20aec1a992c2e1f5b18d0ab9fc61941512d6fbe855eaaa",
+        "5e4f2bdb4b1c9e4d841e4e2f5030ee5105f66fbae1953c99103278442b10c7c4",
     "NoteReshape1x8BalanceRunsY.lean":
-        "a8c29b07e6f615c70eef7f0886114f9b29571108133ffd4d5876c79f8622f236",
+        "3687f528f479c18897f1a8b290208da56a8f8b76d0a7c7fc0c7c52f297330434",
     "NoteReshape8x1Balance.lean":
-        "8ea9c311047cbfe637bd7d71c581776dd02ec4b7edad8555f52988339ea03b3a",
+        "fa4161366472bfbf17de4e2271d3f73b8d3c32f236b85a0dab9fd172393c0dfd",
 }
 
 
@@ -285,9 +285,9 @@ def replace_numbers(source: str, mapping: dict[int, int]) -> str:
     if not mapping:
         return source
     pattern = re.compile(
-        r"(?<![0-9])(" +
+        r"(?<![A-Za-z0-9_])(" +
         "|".join(str(value) for value in sorted(mapping, reverse=True)) +
-        r")(?![0-9])"
+        r")(?![A-Za-z0-9_])"
     )
     return pattern.sub(lambda match: str(mapping[int(match.group(1))]), source)
 

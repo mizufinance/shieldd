@@ -25,7 +25,7 @@ def assetLeafDomain : F :=
   7414146286439358428123110060125696348906971675449116418017868010797147357618
 
 def complianceLeafDomain : F :=
-  168430640865250000792698691211246566687485655593739355441774434546766203703
+  5091441079939941903017664305347261861704474070005805806880013805880773073215
 
 def statementDomain : F :=
   11562480839827259321168437808450194058358371620726691747900573498783905884392534551361200233147325592705389748210636261539996907509390357900570883716335361
@@ -61,7 +61,7 @@ def noteCommitment (note : Note F) : Prop :=
     Common.noteCommitmentHash
       note.blinding note.amount note.assetId
       note.owner.diversifiedGeneratorEncoding
-      note.owner.transmissionEncoding note.owner.clueKey
+      note.owner.transmissionEncoding
 
 def realSpend
     (action : Action F Path24 Path16) (spend : RealSpend F Path24) : Prop :=
@@ -124,10 +124,9 @@ def assetRegistry (action : Action F Path24 Path16) : Prop :=
 
 def complianceLeafHash
     (action : Action F Path24 Path16) : F :=
-  Poseidon377.hash7 complianceLeafDomain
+  Poseidon377.hash6 complianceLeafDomain
     action.sender.diversifiedGeneratorEncoding
-    action.sender.transmissionEncoding action.sender.clueKey
-    action.withdrawal.outboundAssetId
+    action.sender.transmissionEncoding action.withdrawal.outboundAssetId
     action.senderCompliance.slotId
     action.senderCompliance.slotDerivation action.senderCompliance.d
 
@@ -162,11 +161,13 @@ def statementFields
    action.withdrawal.effectHashLimbs 0,
    action.withdrawal.effectHashLimbs 1,
    action.withdrawal.effectHashLimbs 2,
-   action.withdrawal.effectHashLimbs 3]
+   action.withdrawal.effectHashLimbs 3,
+   action.routingTag,
+   action.routingParameterSetId]
 
 theorem statementFields_length
     (action : Action F Path24 Path16) :
-    (statementFields action).length = 16 := by
+    (statementFields action).length = 18 := by
   rfl
 
 def statementBinding (action : Action F Path24 Path16) : Prop :=

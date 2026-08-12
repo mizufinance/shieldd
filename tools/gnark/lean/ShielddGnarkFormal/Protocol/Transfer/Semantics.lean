@@ -17,7 +17,6 @@ structure Address (F : Type u) where
   diversifiedGeneratorEncoding : F
   transmission : Point F
   transmissionEncoding : F
-  clueKey : F
   deriving DecidableEq, Repr
 
 structure Authorization (F : Type u) where
@@ -34,10 +33,6 @@ structure Note (F : Type u) where
   owner : Address F
   commitment : F
   deriving DecidableEq, Repr
-
-/-- A note's clue key is derived from its owner, never an independent fact. -/
-def Note.clueKey (note : Note F) : F :=
-  note.owner.clueKey
 
 structure RealSpend (F : Type u) (Path24 : Type v) where
   note : Note F
@@ -178,6 +173,11 @@ structure Action
   targetTimestamp : F
   balanceCommitmentEncoding : F
   balanceBlinding : F
+  routingTags : Fin 2 → F
+  routingParameterSetId : F
+  regulatedPrecision : F
+  unregulatedPrecision : F
+  routingAsOfHeight : F
   publicStatementHash : F
   deriving DecidableEq, Repr
 
@@ -306,7 +306,7 @@ structure ExternalChecks
   /-- The body witness anchor equals the enclosing transaction's proof context anchor. -/
   anchorMatchesTransactionContext : Action F Path24 Path16 → Prop
   /--
-  Runtime reconstruction of the 41-field public statement matches the decoded
+  Runtime reconstruction of the 44-field public statement matches the decoded
   body and validated receiver compliance payload. Interpreting equality of the
   sole Poseidon public input as equality of every reconstructed field
   additionally assumes statement-hash collision resistance.
@@ -353,9 +353,8 @@ structure ExternalChecks
   -/
   assetRegistryCryptoKeysValid : F → Prop
   /--
-  Every v2 leaf committed by the append-only user root binds the complete
-  address, including the injective canonical field encoding of its checked
-  Decaf clue key, has a valid nonzero leaf derivation, and was admitted by an
+  Every v3 leaf committed by the append-only user root binds the complete
+  address, has a valid nonzero leaf derivation, and was admitted by an
   authorized grant that was unexpired at admission for the matching policy ID
   with `slotId < slotCount`. This is an admission invariant, not a revocation
   or continuing-expiry check.

@@ -4,12 +4,14 @@ use ark_snark::SNARK;
 use decaf377::{Bls12_377, Fq, Fr};
 use decaf377_rdsa::{SpendAuth, VerificationKey};
 use shieldd_sdk_asset::balance;
+use shieldd_sdk_compliance::{IndexedLeaf, MerklePath};
 use shieldd_sdk_keys::keys::NullifierKey;
 use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
 use shieldd_sdk_sct::Nullifier;
 use shieldd_sdk_tct as tct;
 
 use crate::{
+    discovery::{Parameters as RoutingParameters, RoutingTag},
     public_input_hash::{note_reshape_statement_hash_from_public, StatementHashError},
     Note,
 };
@@ -58,6 +60,9 @@ pub struct NoteReshapeProofPublic {
     pub family_id: NoteReshapeFamilyId,
     pub anchor: tct::Root,
     pub balance_commitment: balance::Commitment,
+    pub asset_anchor: tct::StateCommitment,
+    pub routing_tag: RoutingTag,
+    pub routing_parameter_set_id: Fq,
     pub inputs: Vec<NoteReshapeInputPublic>,
     pub outputs: Vec<NoteReshapeOutputPublic>,
 }
@@ -119,6 +124,12 @@ pub struct NoteReshapeProofPrivate {
     pub action_balance_blinding: Fr,
     pub ak: VerificationKey<SpendAuth>,
     pub nk: NullifierKey,
+    pub asset_path: MerklePath,
+    pub asset_position: u64,
+    pub asset_indexed_leaf: IndexedLeaf,
+    pub is_regulated: bool,
+    pub routing_parameters: RoutingParameters,
+    pub routing_nonce: Fq,
     pub inputs: Vec<NoteReshapeInputPrivate>,
     pub outputs: Vec<NoteReshapeOutputPrivate>,
 }

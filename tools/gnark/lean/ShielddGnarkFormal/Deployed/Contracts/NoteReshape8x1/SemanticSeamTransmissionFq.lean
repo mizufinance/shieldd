@@ -29,11 +29,11 @@ theorem sharedTransmissionFq_eq_compressOutput
           (Seg19.localRho rho) 572 := by
   have hplus :
       Seg19.wireSeating 707 =
-        7062 := by
+        7132 := by
     decide +kernel
   have hminus :
       Seg19.wireSeating 367 =
-        6722 := by
+        6792 := by
     decide +kernel
   have hneg :
       (8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF) = -1 := by

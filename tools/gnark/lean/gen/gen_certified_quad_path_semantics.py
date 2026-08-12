@@ -134,6 +134,24 @@ TEMPLATES = (
         5848,
         (
             PathDeployment(
+                "note_reshape1x8",
+                (
+                    "leaf=asset.leaf.commitment",
+                    "path=asset.path",
+                    "position=asset.position",
+                    "out=asset.root.computed",
+                ),
+            ),
+            PathDeployment(
+                "note_reshape8x1",
+                (
+                    "leaf=asset.leaf.commitment",
+                    "path=asset.path",
+                    "position=asset.position",
+                    "out=asset.root.computed",
+                ),
+            ),
+            PathDeployment(
                 "shielded_ics20_withdrawal",
                 (
                     "leaf=asset.leaf.commitment",
@@ -155,8 +173,8 @@ TEMPLATES = (
     ),
     PathTemplate(
         "gadget.compliance_path",
-        "3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b",
-        5850,
+        "d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686",
+        5849,
         (
             PathDeployment(
                 "shielded_ics20_withdrawal",

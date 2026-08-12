@@ -471,7 +471,7 @@ impl ValidatorCmd {
                 file,
                 tendermint_validator_keyfile,
             }) => {
-                let (_address, _dtk) = fvk.incoming().payment_address(0u32.into());
+                let _address = fvk.incoming().payment_address(0u32.into());
                 let identity_key = IdentityKey::try_from(fvk.spend_verification_key().clone())
                     .expect("full viewing keys have nonidentity spend verification keys");
                 // By default, the template sets the governance key to the same verification key as

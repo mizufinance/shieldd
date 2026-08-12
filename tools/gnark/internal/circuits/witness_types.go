@@ -12,7 +12,6 @@ type NoteFields struct {
 	DivGen           Point2D
 	TransmissionKeyS frontend.Variable
 	Transmission     Point2D
-	ClueKey          frontend.Variable
 }
 
 type StateCommitmentFields struct {

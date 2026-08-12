@@ -820,6 +820,13 @@ func classifyConstraintSegment(op string) (kind, gadgetLabel, bridgeTheorem, not
 		return "glue", "", "", "allowed assertion/copy constraint segment"
 	case op == "select.field" || op == "select.point" || op == "dummy.mux":
 		return "glue", "", "", "allowed selector/range glue segment"
+	case op == "routing.precision.select" ||
+		op == "routing.parameters.bind" ||
+		op == "routing.permutation.compose" ||
+		op == "routing.tag.public_range" ||
+		op == "routing.tag.route_bits" ||
+		op == "routing.tag.compose":
+		return "glue", "", "", "routing selector, range, or equality constraints"
 	default:
 		return "unclassified", "", "", "must be discharged by a gadget mapping or by re-authoring"
 	}
@@ -851,6 +858,12 @@ func segmentGadget(op string) (gadgetLabel, bridgeTheorem string, ok bool) {
 		return "gadget-shared-secrets", "Shieldd.GnarkFormal.SharedSecretBridge.shared_secrets_sound", true
 	case "gadget.nullifier":
 		return "gadget-nullifier", "Shieldd.GnarkFormal.Poseidon3Bridge.circuit_sound", true
+	case "routing.route_word", "routing.permutation.hash":
+		return "gadget-poseidon-hash2", "Shieldd.GnarkFormal.Poseidon2Bridge.perm2_uncps", true
+	case "routing.tag.random_word":
+		return "gadget-poseidon-hash3", "Shieldd.GnarkFormal.Poseidon3Bridge.circuit_sound", true
+	case "routing.parameters.hash":
+		return "gadget-poseidon-hash4", "Shieldd.GnarkFormal.Poseidon4Bridge.circuit_sound", true
 	case "gadget.synthetic_dummy_nullifier":
 		return "gadget-poseidon-hash3-specialized", "Shieldd.GnarkFormal.Poseidon3Bridge.perm3_uncps", true
 	case "gadget.is_zero":

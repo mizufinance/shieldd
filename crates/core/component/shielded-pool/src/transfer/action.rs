@@ -1,6 +1,7 @@
 use std::convert::TryInto;
 
 use anyhow::{Context, Error};
+use decaf377::Fq;
 use decaf377_rdsa::{Signature, SpendAuth, VerificationKey};
 use shieldd_sdk_asset::balance;
 use shieldd_sdk_keys::symmetric::{OvkWrappedKey, WrappedMemoKey};
@@ -10,7 +11,8 @@ use shieldd_sdk_txhash::{EffectHash, EffectingData};
 
 use super::generated::{transfer_auth_sig_count, transfer_input_count, transfer_output_count};
 use crate::{
-    backref::ENCRYPTED_BACKREF_LEN, transfer::TransferProof, EncryptedBackref, NotePayload,
+    backref::ENCRYPTED_BACKREF_LEN, discovery::TransferRouting, transfer::TransferProof,
+    EncryptedBackref, NotePayload,
 };
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
@@ -42,6 +44,8 @@ pub struct TransferBody {
     pub target_timestamp: u64,
     pub compliance_anchor: shieldd_sdk_tct::StateCommitment,
     pub asset_anchor: shieldd_sdk_tct::StateCommitment,
+    pub routing: TransferRouting,
+    pub routing_parameter_set_id: Fq,
 }
 
 #[derive(Clone, Debug)]
@@ -236,6 +240,8 @@ impl From<TransferBody> for pb::TransferBody {
             target_timestamp: msg.target_timestamp,
             compliance_anchor: Some(msg.compliance_anchor.into()),
             asset_anchor: Some(msg.asset_anchor.into()),
+            routing: Some(msg.routing.into()),
+            routing_parameter_set_id: msg.routing_parameter_set_id.to_bytes().to_vec(),
         }
     }
 }
@@ -276,6 +282,18 @@ impl TryFrom<pb::TransferBody> for TransferBody {
                 .ok_or_else(|| anyhow::anyhow!("missing asset anchor"))?
                 .try_into()
                 .context("malformed asset anchor")?,
+            routing: proto
+                .routing
+                .ok_or_else(|| anyhow::anyhow!("missing transfer routing"))?
+                .try_into()
+                .context("malformed transfer routing")?,
+            routing_parameter_set_id: Fq::from_bytes_checked(
+                &proto
+                    .routing_parameter_set_id
+                    .try_into()
+                    .map_err(|_| anyhow::anyhow!("routing parameter set id must be 32 bytes"))?,
+            )
+            .map_err(|_| anyhow::anyhow!("routing parameter set id must be canonical"))?,
         };
         body.validate_shape()?;
         Ok(body)

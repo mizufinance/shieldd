@@ -39,7 +39,7 @@ theorem isRegulated_eq_booleanInput
       Seg1.localRho rho 1 := by
   have hseat :
       Seg1.wireSeating 1 =
-        13 := by
+        15 := by
     decide +kernel
   simp only [
     isRegulated, isRegulatedLC,
@@ -53,7 +53,7 @@ theorem isRegulatedBoolean_of_exact
     (rho : Nat → SemanticF)
     (facts : ShieldedIcs20WithdrawalCircuitFacts rho) :
     isRegulated rho = 0 ∨ isRegulated rho = 1 := by
-  have h := facts.exact.AssertBooleanSeg1
+  have h := facts.assetRegistry.AssertBooleanSeg1
   change Deployed.Templates.Semantics.TAssertBoolean_469df3cb92f6ee26f90120fa5a2d5ab48448c3e42be090ebb81d77d5431164fc.spec
     (Seg1.localRho rho) at h
   unfold Deployed.Templates.Semantics.TAssertBoolean_469df3cb92f6ee26f90120fa5a2d5ab48448c3e42be090ebb81d77d5431164fc.spec at h
@@ -68,7 +68,7 @@ theorem outboundAssetId_eq_nonzeroInput
   have hseat :
       Seg13.wireSeating
         2 =
-          6 := by
+          8 := by
     decide +kernel
   simp only [
     outboundAssetId, outboundAssetIdLC,
@@ -83,7 +83,7 @@ theorem outboundAssetIdNonzero_of_exact
     (facts : ShieldedIcs20WithdrawalCircuitFacts rho) :
     outboundAssetId rho ≠ 0 := by
   have h :=
-    facts.exact.AssertNeSeg13.2
+    facts.assetRegistry.AssertNeSeg13.2
   change
     Seg13.localRho rho
       2 ≠ 0 at h
@@ -96,7 +96,7 @@ theorem outboundAssetId_eq_gapInput
       Seg14.localRho rho 594 := by
   have hseat :
       Seg14.wireSeating 594 =
-        6 := by
+        8 := by
     decide +kernel
   simp only [
     outboundAssetId, outboundAssetIdLC,
@@ -112,7 +112,7 @@ theorem isRegulated_eq_gapInput
       Seg14.localRho rho 3044 := by
   have hseat :
       Seg14.wireSeating 3044 =
-        13 := by
+        15 := by
     decide +kernel
   simp only [
     isRegulated, isRegulatedLC,
@@ -128,7 +128,7 @@ theorem assetLeafValue_eq_gapInput
       Seg14.localRho rho 254 := by
   have hseat :
       Seg14.wireSeating 254 =
-        19 := by
+        25 := by
     decide +kernel
   simp only [
     assetLeafValue, assetLeafValueLC,
@@ -144,7 +144,7 @@ theorem assetLeafNextValue_eq_gapInput
       Seg14.localRho rho 934 := by
   have hseat :
       Seg14.wireSeating 934 =
-        21 := by
+        27 := by
     decide +kernel
   simp only [
     assetLeafNextValue, assetLeafNextValueLC,
@@ -161,11 +161,11 @@ theorem assetGapValid_eq_gapOutput
         Seg14.localRho rho 3045 := by
   have hleft :
       Seg14.wireSeating 3043 =
-        15886 := by
+        15891 := by
     decide +kernel
   have hright :
       Seg14.wireSeating 3045 =
-        15887 := by
+        15892 := by
     decide +kernel
   simp only [
     assetGapValid, assetGapValidLC,
@@ -182,11 +182,11 @@ theorem gapAcceptanceInputs_eq_gapOutput
       assetGapValid rho := by
   have hleft :
       Seg15.wireSeating 1 =
-        15886 := by
+        15891 := by
     decide +kernel
   have hright :
       Seg15.wireSeating 2 =
-        15887 := by
+        15892 := by
     decide +kernel
   simp only [
     assetGapValid, assetGapValidLC,
@@ -211,7 +211,7 @@ theorem assetGap_of_exact
     · rw [hone]
       simp [GatesDef.is_bool]
   have hBody :=
-    facts.exact.GadgetAssetRegistryGapSeg14
+    facts.assetRegistry.GadgetAssetRegistryGapSeg14
   change Deployed.Templates.Semantics.TGadgetAssetRegistryGap_065363064f972be51f745a7bec46e6e0f0c9c09b4e427ff20db1f565927ea6c3.spec
     (Seg14.localRho rho) at hBody
   unfold Deployed.Templates.Semantics.TGadgetAssetRegistryGap_065363064f972be51f745a7bec46e6e0f0c9c09b4e427ff20db1f565927ea6c3.spec at hBody
@@ -227,7 +227,7 @@ theorem assetGap_of_exact
       assetLeafNextValue_eq_gapInput,
       assetGapValid_eq_gapOutput]
     exact hBody
-  have hAcceptSpec := facts.exact.AssertEqSeg15
+  have hAcceptSpec := facts.assetRegistry.AssertEqSeg15
   change Deployed.Templates.Semantics.TAssertEq_8d8c35e681ce1b5e96aa42ceee0013036302fc4e1b1594a361d481be589b6d6c.spec
     (Seg15.localRho rho) at hAcceptSpec
   unfold Deployed.Templates.Semantics.TAssertEq_8d8c35e681ce1b5e96aa42ceee0013036302fc4e1b1594a361d481be589b6d6c.spec at hAcceptSpec

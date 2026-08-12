@@ -526,10 +526,12 @@ pub fn validate_and_save_evidence_object(
 pub fn export_detected_refs(store: &SqliteScannerStore) -> Result<Vec<AuditDetectedRef>> {
     let conn = store.lock_conn()?;
     let mut rows = conn.prepare(
-        "SELECT height, tx_hash, action_index, output_index, asset_id, is_flagged, ?1
+        "SELECT height, tx_hash, action_index, output_index, asset_id, is_flagged,
+                routing_tag_0, routing_tag_1, routing_roles_swapped, ?1
          FROM scanner_detections
          UNION ALL
-         SELECT height, tx_hash, action_index, output_index, asset_id, 0, flow_type
+         SELECT height, tx_hash, action_index, output_index, asset_id, 0,
+                NULL, NULL, 0, flow_type
          FROM scanner_clear_flows
          ORDER BY height, tx_hash, action_index, output_index",
     )?;
@@ -541,7 +543,13 @@ pub fn export_detected_refs(store: &SqliteScannerStore) -> Result<Vec<AuditDetec
             let output_index: i64 = row.get(3)?;
             let asset_id: String = row.get(4)?;
             let is_flagged: i64 = row.get(5)?;
-            let flow_type: String = row.get(6)?;
+            let routing_tag_0: Option<i64> = row.get(6)?;
+            let routing_tag_1: Option<i64> = row.get(7)?;
+            let routing_roles_swapped: i64 = row.get(8)?;
+            let flow_type: String = row.get(9)?;
+            let routing_tags = routing_tag_0
+                .zip(routing_tag_1)
+                .map(|(first, second)| [first as u32, second as u32]);
             Ok(detected_ref_from_row_parts(DetectedRefRowParts {
                 height: height as u64,
                 tx_hash,
@@ -549,9 +557,11 @@ pub fn export_detected_refs(store: &SqliteScannerStore) -> Result<Vec<AuditDetec
                 output_index: output_index as u32,
                 asset_id,
                 is_flagged: is_flagged != 0,
+                routing_tags,
+                routing_roles_swapped: routing_roles_swapped != 0,
                 flow_type: FlowType::from_str(&flow_type).map_err(|error| {
                     rusqlite::Error::FromSqlConversionFailure(
-                        6,
+                        9,
                         rusqlite::types::Type::Text,
                         error.into(),
                     )
@@ -1043,6 +1053,7 @@ mod tests {
         store
             .save_ciphertext(&ExtractedComplianceCiphertext {
                 output_ref: evidence.output_ref.clone(),
+                routing_tags: [11, 22],
                 raw_bytes,
                 metadata_bytes: Some(metadata.to_bytes().unwrap()),
             })
@@ -1056,6 +1067,8 @@ mod tests {
                 salt: evidence.detection_salt,
                 sender_slot_id: 0,
                 receiver_slot_id: 0,
+                routing_roles_swapped: false,
+                routing_tags: [11, 22],
                 ciphertext: evidence.transfer_ciphertext.clone(),
                 raw_bytes: evidence.transfer_ciphertext.to_bytes(),
             })

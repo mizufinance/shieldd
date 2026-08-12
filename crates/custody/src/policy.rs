@@ -342,7 +342,6 @@ mod tests {
             .full_viewing_key()
             .incoming()
             .payment_address(index.into())
-            .0
     }
 
     fn test_ibc_action() -> IbcRelay {

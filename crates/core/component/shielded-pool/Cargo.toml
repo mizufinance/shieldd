@@ -90,7 +90,12 @@ tonic = {workspace = true, optional = true}
 tracing = {workspace = true}
 
 [dev-dependencies]
+criterion = {workspace = true}
 shieldd-sdk-compliance = {workspace = true, default-features = false, features = ["test-helpers"]}
 shieldd-sdk-proof-params = {workspace = true, default-features = false}
 proptest = {workspace = true}
 tokio = {workspace = true, features = ["rt-multi-thread", "macros"]}
+
+[[bench]]
+name = "routing"
+harness = false

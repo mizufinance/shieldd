@@ -101,7 +101,6 @@ type legacyWithdrawalIdentitySenderCircuit struct {
 	NoteBlinding frontend.Variable
 	NoteAmount   frontend.Variable
 	AssetID      frontend.Variable
-	ClueKey      frontend.Variable
 	Position     frontend.Variable
 	Path         [StateCommitmentDepth][3]frontend.Variable
 }
@@ -136,7 +135,6 @@ func (c *legacyWithdrawalIdentitySenderCircuit) Define(api frontend.API) error {
 		c.AssetID,
 		divGenFq,
 		transmissionFq,
-		c.ClueKey,
 	)
 	if err != nil {
 		return err
@@ -179,15 +177,14 @@ func withdrawalIdentitySenderValues(
 	if err != nil {
 		t.Fatalf("load prototype vectors: %v", err)
 	}
-	commitment, err := primitives.Poseidon377Hash6Native(
+	commitment, err := primitives.Poseidon377Hash5Native(
 		primitives.MustBigInt(vectors.Poseidon377.NoteCommitDomain),
-		[6]*big.Int{
+		[5]*big.Int{
 			big.NewInt(1234),
 			big.NewInt(55),
 			big.NewInt(777),
 			big.NewInt(0),
 			big.NewInt(0),
-			big.NewInt(888),
 		},
 	)
 	if err != nil {
@@ -299,7 +296,6 @@ func legacyWithdrawalIdentitySenderAssignment(
 		NoteBlinding:   1234,
 		NoteAmount:     55,
 		AssetID:        777,
-		ClueKey:        888,
 		Position:       values.position,
 		Path:           path,
 	}, nullifier

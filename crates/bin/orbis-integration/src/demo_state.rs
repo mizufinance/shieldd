@@ -432,7 +432,7 @@ mod tests {
             "Alice",
             "alice",
             ".localnet/audit-demo/wallets/alice".to_string(),
-            "shieldd1akc3v3jckw5eutcqr5rhcmq6jlwqa5z7k4p3vcy46meu5sy9lux627kn74zxmxmwu6w0qe79f55vppq67zxcyqt7tcc0u5rme0f6f7xqyternr6qneck2xkaslzx5m0pf4gzgc".to_string(),
+            "shieldd1u29dhz4vxgnek6a3vzxlejg0l83wegpu7hgs3yphdvljcnnnh89dvs6lc9hxxw94w464t7lh5x36cxnxyx0".to_string(),
         ));
         let encoded = serde_json::to_vec(&state).expect("state should encode");
         let decoded: AuditDemoState =

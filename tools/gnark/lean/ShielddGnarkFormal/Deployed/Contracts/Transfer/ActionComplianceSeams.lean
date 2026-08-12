@@ -11,8 +11,8 @@ import ShielddGnarkFormal.Deployed.Templates.Semantics.TGadgetAssetRegistryPath_
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TAssertEq_5e5758a2d4a6d172e743a9ad78863e351485ec2c3a01a4ef7fdc4d01f6c826ef
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TGadgetAssetRegistryGap_591fb66ca52e78949435ff7a2c295491598433f2c79f6bc52f502bf9c7dc4b16
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TAssertEq_8d8c35e681ce1b5e96aa42ceee0013036302fc4e1b1594a361d481be589b6d6c
-import ShielddGnarkFormal.Deployed.Templates.Semantics.TGadgetComplianceLeaf_89974c69097fec1fe7276409b30d17170b41afc739ec6a0392be21d56a7c6d68
-import ShielddGnarkFormal.Deployed.Templates.Semantics.TGadgetCompliancePath_3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b
+import ShielddGnarkFormal.Deployed.Templates.Semantics.TGadgetComplianceLeaf_dcb0a1040c535cf394b8bda4f381260121926f7d477fb80a22e4e84b0cb431bc
+import ShielddGnarkFormal.Deployed.Templates.Semantics.TGadgetCompliancePath_d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TAssertEqIf_8ce5774e50355d2a29c59780aba5615b3b4386e8925bffa9de0ad683cdc7cf8d
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafAck_e3974880eca25a8b5cfa17d94f28498f1dc082a93526c584816508afe0778ca1
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafNetBalanceCommitment_efd414b95488606e99678399b0406544c9fda192bad5db9de83ce274ba09a681
@@ -127,7 +127,7 @@ private theorem unregulatedPolicyNeg :
 
 /-! ## Sender compliance -/
 
-/-- The `sender` compliance leaf is the exact protocol Poseidon7 leaf. -/
+/-- The `sender` compliance leaf is the exact protocol Poseidon6 leaf. -/
 theorem senderComplianceLeafHash_of_semantic
     (rho : Nat → DeployedF)
     (semantic : TransferSemanticProviders rho) :
@@ -136,29 +136,28 @@ theorem senderComplianceLeafHash_of_semantic
         (C.senderCompliance rho) := by
   have h := semantic.senderComplianceLeaf
   unfold SenderComplianceLeafSemanticSpec
-    Deployed.Templates.Semantics.TGadgetComplianceLeaf_89974c69097fec1fe7276409b30d17170b41afc739ec6a0392be21d56a7c6d68.spec at h
+    Deployed.Templates.Semantics.TGadgetComplianceLeaf_dcb0a1040c535cf394b8bda4f381260121926f7d477fb80a22e4e84b0cb431bc.spec at h
   have hOutput :
       senderLeafCommitment rho =
-        Deployed.Templates.Semantics.TGadgetComplianceLeaf_89974c69097fec1fe7276409b30d17170b41afc739ec6a0392be21d56a7c6d68.output
+        Deployed.Templates.Semantics.TGadgetComplianceLeaf_dcb0a1040c535cf394b8bda4f381260121926f7d477fb80a22e4e84b0cb431bc.output
           (SenderComplianceLeafValuation rho) := by
     simp only [
-      Deployed.Templates.Semantics.TGadgetComplianceLeaf_89974c69097fec1fe7276409b30d17170b41afc739ec6a0392be21d56a7c6d68.output,
-      Deployed.CertifiedGadgetComplianceLeaf_89974c69097fPoseidon.s38_1,
-      Poseidon7Bridge.row8,
+      Deployed.Templates.Semantics.TGadgetComplianceLeaf_dcb0a1040c535cf394b8bda4f381260121926f7d477fb80a22e4e84b0cb431bc.output,
+      Deployed.CertifiedGadgetComplianceLeaf_dcb0a1040c53Poseidon.s38_1,
+      Poseidon6Bridge.row7,
       senderLeafCommitment, senderLeafCommitmentLC,
       StructuredLC.eval, StructuredLC.sumRuns,
       StructuredLC.sumResidual, StrideRun.eval,
-      senderComplianceLeafAt1, senderComplianceLeafAt2, senderComplianceLeafAt8, senderComplianceLeafAt9, senderComplianceLeafAt15, senderComplianceLeafAt21, senderComplianceLeafAt27, senderComplianceLeafAt33, senderComplianceLeafAt39, senderComplianceLeafAt444, senderComplianceLeafAt449, senderComplianceLeafAt454, senderComplianceLeafAt459, senderComplianceLeafAt464, senderComplianceLeafAt469, senderComplianceLeafAt474, senderComplianceLeafAt479,
+      senderComplianceLeafAt1, senderComplianceLeafAt2, senderComplianceLeafAt8, senderComplianceLeafAt9, senderComplianceLeafAt15, senderComplianceLeafAt21, senderComplianceLeafAt27, senderComplianceLeafAt33, senderComplianceLeafAt408, senderComplianceLeafAt413, senderComplianceLeafAt418, senderComplianceLeafAt423, senderComplianceLeafAt428, senderComplianceLeafAt433, senderComplianceLeafAt438,
       zero_add, one_mul, add_zero
     ]
     ring
   have hLeaf :
       senderLeafCommitment rho =
-        Poseidon7Bridge.permSpec7
+        Poseidon6Bridge.permSpec6
           Protocol.Transfer.Concrete.complianceLeafDomain
           ((C.senderCompliance rho).address.diversifiedGeneratorEncoding)
           ((C.senderCompliance rho).address.transmissionEncoding)
-          ((C.senderCompliance rho).address.clueKey)
           ((C.senderCompliance rho).assetId)
           ((C.senderCompliance rho).slotId)
           ((C.senderCompliance rho).slotDerivation)
@@ -169,11 +168,9 @@ theorem senderComplianceLeafHash_of_semantic
       C.senderCompliance, C.sender, C.receiverAddress,
       senderDivGenFq, senderDivGenFqLC,
       senderTransmissionFq, senderTransmissionFqLC,
-      senderClueKey, senderClueKeyLC,
       output0RecipientDivGenFq, output0RecipientDivGenFqLC,
       output0RecipientTransmissionFq,
       output0RecipientTransmissionFqLC,
-      output0NoteClueKey, output0NoteClueKeyLC,
       sharedAssetId, sharedAssetIdLC,
       senderSlotId, senderSlotIdLC,
       senderSlotDerivation, senderSlotDerivationLC,
@@ -184,19 +181,19 @@ theorem senderComplianceLeafHash_of_semantic
       output0RecipientD, output0RecipientDLC,
       StructuredLC.eval, StructuredLC.sumRuns,
       StructuredLC.sumResidual, StrideRun.eval,
-      senderComplianceLeafAt1, senderComplianceLeafAt2, senderComplianceLeafAt8, senderComplianceLeafAt9, senderComplianceLeafAt15, senderComplianceLeafAt21, senderComplianceLeafAt27, senderComplianceLeafAt33, senderComplianceLeafAt39, senderComplianceLeafAt444, senderComplianceLeafAt449, senderComplianceLeafAt454, senderComplianceLeafAt459, senderComplianceLeafAt464, senderComplianceLeafAt469, senderComplianceLeafAt474, senderComplianceLeafAt479,
+      senderComplianceLeafAt1, senderComplianceLeafAt2, senderComplianceLeafAt8, senderComplianceLeafAt9, senderComplianceLeafAt15, senderComplianceLeafAt21, senderComplianceLeafAt27, senderComplianceLeafAt33, senderComplianceLeafAt408, senderComplianceLeafAt413, senderComplianceLeafAt418, senderComplianceLeafAt423, senderComplianceLeafAt428, senderComplianceLeafAt433, senderComplianceLeafAt438,
       negOne, zero_add, one_mul, add_zero
     ] using h
   rw [hLeaf]
   simp only [
     Protocol.Transfer.Concrete.complianceLeafHash,
-    Poseidon7Bridge.permSpec7
+    Poseidon6Bridge.permSpec6
   ]
 
 /-- The provider-local `sender` path is exactly the action path. -/
 theorem senderComplianceProviderPath_eq_action
     (rho : Nat → DeployedF) :
-    Deployed.Templates.Semantics.TGadgetCompliancePath_3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b.path (SenderCompliancePathValuation rho) =
+    Deployed.Templates.Semantics.TGadgetCompliancePath_d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686.path (SenderCompliancePathValuation rho) =
       QuadPathProtocolBridge.vectorPath (C.senderPath rho) := by
   apply List.Vector.ext
   intro level
@@ -206,12 +203,12 @@ theorem senderComplianceProviderPath_eq_action
   rcases sibling with ⟨sibling, sibling_lt⟩
   interval_cases level <;> interval_cases sibling <;>
     simp [
-      Deployed.Templates.Semantics.TGadgetCompliancePath_3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b.path,
+      Deployed.Templates.Semantics.TGadgetCompliancePath_d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686.path,
       QuadPathProtocolBridge.vectorPath,
       C.senderPath, C.directPath16,
       senderPathAt, senderPathVector,
       senderPath0, senderPath0LC, senderPath1, senderPath1LC, senderPath2, senderPath2LC, senderPath3, senderPath3LC, senderPath4, senderPath4LC, senderPath5, senderPath5LC, senderPath6, senderPath6LC, senderPath7, senderPath7LC, senderPath8, senderPath8LC, senderPath9, senderPath9LC, senderPath10, senderPath10LC, senderPath11, senderPath11LC, senderPath12, senderPath12LC, senderPath13, senderPath13LC, senderPath14, senderPath14LC, senderPath15, senderPath15LC, senderPath16, senderPath16LC, senderPath17, senderPath17LC, senderPath18, senderPath18LC, senderPath19, senderPath19LC, senderPath20, senderPath20LC, senderPath21, senderPath21LC, senderPath22, senderPath22LC, senderPath23, senderPath23LC, senderPath24, senderPath24LC, senderPath25, senderPath25LC, senderPath26, senderPath26LC, senderPath27, senderPath27LC, senderPath28, senderPath28LC, senderPath29, senderPath29LC, senderPath30, senderPath30LC, senderPath31, senderPath31LC, senderPath32, senderPath32LC, senderPath33, senderPath33LC, senderPath34, senderPath34LC, senderPath35, senderPath35LC, senderPath36, senderPath36LC, senderPath37, senderPath37LC, senderPath38, senderPath38LC, senderPath39, senderPath39LC, senderPath40, senderPath40LC, senderPath41, senderPath41LC, senderPath42, senderPath42LC, senderPath43, senderPath43LC, senderPath44, senderPath44LC, senderPath45, senderPath45LC, senderPath46, senderPath46LC, senderPath47, senderPath47LC,
-      senderCompliancePathAt38, senderCompliancePathAt48, senderCompliancePathAt51, senderCompliancePathAt409, senderCompliancePathAt411, senderCompliancePathAt414, senderCompliancePathAt772, senderCompliancePathAt774, senderCompliancePathAt777, senderCompliancePathAt1135, senderCompliancePathAt1137, senderCompliancePathAt1140, senderCompliancePathAt1498, senderCompliancePathAt1500, senderCompliancePathAt1503, senderCompliancePathAt1861, senderCompliancePathAt1863, senderCompliancePathAt1866, senderCompliancePathAt2224, senderCompliancePathAt2226, senderCompliancePathAt2229, senderCompliancePathAt2587, senderCompliancePathAt2589, senderCompliancePathAt2592, senderCompliancePathAt2950, senderCompliancePathAt2952, senderCompliancePathAt2955, senderCompliancePathAt3313, senderCompliancePathAt3315, senderCompliancePathAt3318, senderCompliancePathAt3676, senderCompliancePathAt3678, senderCompliancePathAt3681, senderCompliancePathAt4039, senderCompliancePathAt4041, senderCompliancePathAt4044, senderCompliancePathAt4402, senderCompliancePathAt4404, senderCompliancePathAt4407, senderCompliancePathAt4765, senderCompliancePathAt4767, senderCompliancePathAt4770, senderCompliancePathAt5128, senderCompliancePathAt5130, senderCompliancePathAt5133, senderCompliancePathAt5491, senderCompliancePathAt5493, senderCompliancePathAt5496,
+      senderCompliancePathAt38, senderCompliancePathAt47, senderCompliancePathAt50, senderCompliancePathAt408, senderCompliancePathAt410, senderCompliancePathAt413, senderCompliancePathAt771, senderCompliancePathAt773, senderCompliancePathAt776, senderCompliancePathAt1134, senderCompliancePathAt1136, senderCompliancePathAt1139, senderCompliancePathAt1497, senderCompliancePathAt1499, senderCompliancePathAt1502, senderCompliancePathAt1860, senderCompliancePathAt1862, senderCompliancePathAt1865, senderCompliancePathAt2223, senderCompliancePathAt2225, senderCompliancePathAt2228, senderCompliancePathAt2586, senderCompliancePathAt2588, senderCompliancePathAt2591, senderCompliancePathAt2949, senderCompliancePathAt2951, senderCompliancePathAt2954, senderCompliancePathAt3312, senderCompliancePathAt3314, senderCompliancePathAt3317, senderCompliancePathAt3675, senderCompliancePathAt3677, senderCompliancePathAt3680, senderCompliancePathAt4038, senderCompliancePathAt4040, senderCompliancePathAt4043, senderCompliancePathAt4401, senderCompliancePathAt4403, senderCompliancePathAt4406, senderCompliancePathAt4764, senderCompliancePathAt4766, senderCompliancePathAt4769, senderCompliancePathAt5127, senderCompliancePathAt5129, senderCompliancePathAt5132, senderCompliancePathAt5490, senderCompliancePathAt5492, senderCompliancePathAt5495,
       StructuredLC.eval, StructuredLC.sumRuns,
       StructuredLC.sumResidual, StrideRun.eval
     ] <;> rfl
@@ -219,10 +216,10 @@ theorem senderComplianceProviderPath_eq_action
 /-- The `sender` path consumes the exact certified leaf. -/
 theorem senderCompliancePathLeaf_eq
     (rho : Nat → DeployedF) :
-    Deployed.Templates.Semantics.TGadgetCompliancePath_3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b.leaf (SenderCompliancePathValuation rho) =
+    Deployed.Templates.Semantics.TGadgetCompliancePath_d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686.leaf (SenderCompliancePathValuation rho) =
       senderLeafCommitment rho := by
   simp only [
-    Deployed.Templates.Semantics.TGadgetCompliancePath_3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b.leaf,
+    Deployed.Templates.Semantics.TGadgetCompliancePath_d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686.leaf,
     senderLeafCommitment, senderLeafCommitmentLC,
     StructuredLC.eval, StructuredLC.sumRuns,
     StructuredLC.sumResidual, StrideRun.eval,
@@ -251,10 +248,10 @@ theorem senderCompliancePathPosition_eq
 /-- The `sender` path output is the compiler-labelled computed root. -/
 theorem senderCompliancePathOutput_eq
     (rho : Nat → DeployedF) :
-    Deployed.Templates.Semantics.TGadgetCompliancePath_3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b.output (SenderCompliancePathValuation rho) =
+    Deployed.Templates.Semantics.TGadgetCompliancePath_d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686.output (SenderCompliancePathValuation rho) =
       senderComplianceRoot rho := by
   simp only [
-    Deployed.Templates.Semantics.TGadgetCompliancePath_3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b.output, Deployed.Templates.Semantics.TGadgetCompliancePath_3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b.nodeOut15,
+    Deployed.Templates.Semantics.TGadgetCompliancePath_d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686.output, Deployed.Templates.Semantics.TGadgetCompliancePath_d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686.nodeOut15,
     senderComplianceRoot, senderComplianceRootLC,
     StructuredLC.eval, StructuredLC.sumRuns,
     StructuredLC.sumResidual, StrideRun.eval,
@@ -278,7 +275,7 @@ theorem senderCompliancePathFacts_of_semantic
           senderComplianceRoot rho := by
   have hPath := semantic.senderCompliancePath
   unfold SenderCompliancePathSemanticSpec at hPath
-  have hBinary := Deployed.Templates.Semantics.TGadgetCompliancePath_3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b.toBinary_of_spec
+  have hBinary := Deployed.Templates.Semantics.TGadgetCompliancePath_d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686.toBinary_of_spec
     (SenderCompliancePathValuation rho) hPath
   rw [senderCompliancePathPosition_eq] at hBinary
   have hComputed := hPath.2.2
@@ -290,8 +287,8 @@ theorem senderCompliancePathFacts_of_semantic
     (C.senderCompliance rho).position
     (senderLeafCommitment rho) (senderComplianceRoot rho)
     (C.senderPath rho)
-    (Deployed.Templates.Semantics.TGadgetCompliancePath_3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b.path (SenderCompliancePathValuation rho))
-    (Deployed.Templates.Semantics.TGadgetCompliancePath_3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b.bits (SenderCompliancePathValuation rho))
+    (Deployed.Templates.Semantics.TGadgetCompliancePath_d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686.path (SenderCompliancePathValuation rho))
+    (Deployed.Templates.Semantics.TGadgetCompliancePath_d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686.bits (SenderCompliancePathValuation rho))
     hBinary (senderComplianceProviderPath_eq_action rho) hComputed
 
 /-- The regulated conditional assertion binds the `sender` root publicly. -/
@@ -377,7 +374,7 @@ theorem senderComplianceFacts_of_semanticProviders
 
 /-! ## Receiver compliance -/
 
-/-- The `receiver` compliance leaf is the exact protocol Poseidon7 leaf. -/
+/-- The `receiver` compliance leaf is the exact protocol Poseidon6 leaf. -/
 theorem receiverComplianceLeafHash_of_semantic
     (rho : Nat → DeployedF)
     (semantic : TransferSemanticProviders rho) :
@@ -386,29 +383,28 @@ theorem receiverComplianceLeafHash_of_semantic
         (C.receiverCompliance rho) := by
   have h := semantic.receiverComplianceLeaf
   unfold ReceiverComplianceLeafSemanticSpec
-    Deployed.Templates.Semantics.TGadgetComplianceLeaf_89974c69097fec1fe7276409b30d17170b41afc739ec6a0392be21d56a7c6d68.spec at h
+    Deployed.Templates.Semantics.TGadgetComplianceLeaf_dcb0a1040c535cf394b8bda4f381260121926f7d477fb80a22e4e84b0cb431bc.spec at h
   have hOutput :
       output0RecipientLeafCommitment rho =
-        Deployed.Templates.Semantics.TGadgetComplianceLeaf_89974c69097fec1fe7276409b30d17170b41afc739ec6a0392be21d56a7c6d68.output
+        Deployed.Templates.Semantics.TGadgetComplianceLeaf_dcb0a1040c535cf394b8bda4f381260121926f7d477fb80a22e4e84b0cb431bc.output
           (ReceiverComplianceLeafValuation rho) := by
     simp only [
-      Deployed.Templates.Semantics.TGadgetComplianceLeaf_89974c69097fec1fe7276409b30d17170b41afc739ec6a0392be21d56a7c6d68.output,
-      Deployed.CertifiedGadgetComplianceLeaf_89974c69097fPoseidon.s38_1,
-      Poseidon7Bridge.row8,
+      Deployed.Templates.Semantics.TGadgetComplianceLeaf_dcb0a1040c535cf394b8bda4f381260121926f7d477fb80a22e4e84b0cb431bc.output,
+      Deployed.CertifiedGadgetComplianceLeaf_dcb0a1040c53Poseidon.s38_1,
+      Poseidon6Bridge.row7,
       output0RecipientLeafCommitment, output0RecipientLeafCommitmentLC,
       StructuredLC.eval, StructuredLC.sumRuns,
       StructuredLC.sumResidual, StrideRun.eval,
-      receiverComplianceLeafAt1, receiverComplianceLeafAt2, receiverComplianceLeafAt8, receiverComplianceLeafAt9, receiverComplianceLeafAt15, receiverComplianceLeafAt21, receiverComplianceLeafAt27, receiverComplianceLeafAt33, receiverComplianceLeafAt39, receiverComplianceLeafAt444, receiverComplianceLeafAt449, receiverComplianceLeafAt454, receiverComplianceLeafAt459, receiverComplianceLeafAt464, receiverComplianceLeafAt469, receiverComplianceLeafAt474, receiverComplianceLeafAt479,
+      receiverComplianceLeafAt1, receiverComplianceLeafAt2, receiverComplianceLeafAt8, receiverComplianceLeafAt9, receiverComplianceLeafAt15, receiverComplianceLeafAt21, receiverComplianceLeafAt27, receiverComplianceLeafAt33, receiverComplianceLeafAt408, receiverComplianceLeafAt413, receiverComplianceLeafAt418, receiverComplianceLeafAt423, receiverComplianceLeafAt428, receiverComplianceLeafAt433, receiverComplianceLeafAt438,
       zero_add, one_mul, add_zero
     ]
     ring
   have hLeaf :
       output0RecipientLeafCommitment rho =
-        Poseidon7Bridge.permSpec7
+        Poseidon6Bridge.permSpec6
           Protocol.Transfer.Concrete.complianceLeafDomain
           ((C.receiverCompliance rho).address.diversifiedGeneratorEncoding)
           ((C.receiverCompliance rho).address.transmissionEncoding)
-          ((C.receiverCompliance rho).address.clueKey)
           ((C.receiverCompliance rho).assetId)
           ((C.receiverCompliance rho).slotId)
           ((C.receiverCompliance rho).slotDerivation)
@@ -419,11 +415,9 @@ theorem receiverComplianceLeafHash_of_semantic
       C.receiverCompliance, C.sender, C.receiverAddress,
       senderDivGenFq, senderDivGenFqLC,
       senderTransmissionFq, senderTransmissionFqLC,
-      senderClueKey, senderClueKeyLC,
       output0RecipientDivGenFq, output0RecipientDivGenFqLC,
       output0RecipientTransmissionFq,
       output0RecipientTransmissionFqLC,
-      output0NoteClueKey, output0NoteClueKeyLC,
       sharedAssetId, sharedAssetIdLC,
       senderSlotId, senderSlotIdLC,
       senderSlotDerivation, senderSlotDerivationLC,
@@ -434,19 +428,19 @@ theorem receiverComplianceLeafHash_of_semantic
       output0RecipientD, output0RecipientDLC,
       StructuredLC.eval, StructuredLC.sumRuns,
       StructuredLC.sumResidual, StrideRun.eval,
-      receiverComplianceLeafAt1, receiverComplianceLeafAt2, receiverComplianceLeafAt8, receiverComplianceLeafAt9, receiverComplianceLeafAt15, receiverComplianceLeafAt21, receiverComplianceLeafAt27, receiverComplianceLeafAt33, receiverComplianceLeafAt39, receiverComplianceLeafAt444, receiverComplianceLeafAt449, receiverComplianceLeafAt454, receiverComplianceLeafAt459, receiverComplianceLeafAt464, receiverComplianceLeafAt469, receiverComplianceLeafAt474, receiverComplianceLeafAt479,
+      receiverComplianceLeafAt1, receiverComplianceLeafAt2, receiverComplianceLeafAt8, receiverComplianceLeafAt9, receiverComplianceLeafAt15, receiverComplianceLeafAt21, receiverComplianceLeafAt27, receiverComplianceLeafAt33, receiverComplianceLeafAt408, receiverComplianceLeafAt413, receiverComplianceLeafAt418, receiverComplianceLeafAt423, receiverComplianceLeafAt428, receiverComplianceLeafAt433, receiverComplianceLeafAt438,
       negOne, zero_add, one_mul, add_zero
     ] using h
   rw [hLeaf]
   simp only [
     Protocol.Transfer.Concrete.complianceLeafHash,
-    Poseidon7Bridge.permSpec7
+    Poseidon6Bridge.permSpec6
   ]
 
 /-- The provider-local `receiver` path is exactly the action path. -/
 theorem receiverComplianceProviderPath_eq_action
     (rho : Nat → DeployedF) :
-    Deployed.Templates.Semantics.TGadgetCompliancePath_3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b.path (ReceiverCompliancePathValuation rho) =
+    Deployed.Templates.Semantics.TGadgetCompliancePath_d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686.path (ReceiverCompliancePathValuation rho) =
       QuadPathProtocolBridge.vectorPath (C.receiverPath rho) := by
   apply List.Vector.ext
   intro level
@@ -456,12 +450,12 @@ theorem receiverComplianceProviderPath_eq_action
   rcases sibling with ⟨sibling, sibling_lt⟩
   interval_cases level <;> interval_cases sibling <;>
     simp [
-      Deployed.Templates.Semantics.TGadgetCompliancePath_3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b.path,
+      Deployed.Templates.Semantics.TGadgetCompliancePath_d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686.path,
       QuadPathProtocolBridge.vectorPath,
       C.receiverPath, C.directPath16,
       output0RecipientPathAt, output0RecipientPathVector,
       output0RecipientPath0, output0RecipientPath0LC, output0RecipientPath1, output0RecipientPath1LC, output0RecipientPath2, output0RecipientPath2LC, output0RecipientPath3, output0RecipientPath3LC, output0RecipientPath4, output0RecipientPath4LC, output0RecipientPath5, output0RecipientPath5LC, output0RecipientPath6, output0RecipientPath6LC, output0RecipientPath7, output0RecipientPath7LC, output0RecipientPath8, output0RecipientPath8LC, output0RecipientPath9, output0RecipientPath9LC, output0RecipientPath10, output0RecipientPath10LC, output0RecipientPath11, output0RecipientPath11LC, output0RecipientPath12, output0RecipientPath12LC, output0RecipientPath13, output0RecipientPath13LC, output0RecipientPath14, output0RecipientPath14LC, output0RecipientPath15, output0RecipientPath15LC, output0RecipientPath16, output0RecipientPath16LC, output0RecipientPath17, output0RecipientPath17LC, output0RecipientPath18, output0RecipientPath18LC, output0RecipientPath19, output0RecipientPath19LC, output0RecipientPath20, output0RecipientPath20LC, output0RecipientPath21, output0RecipientPath21LC, output0RecipientPath22, output0RecipientPath22LC, output0RecipientPath23, output0RecipientPath23LC, output0RecipientPath24, output0RecipientPath24LC, output0RecipientPath25, output0RecipientPath25LC, output0RecipientPath26, output0RecipientPath26LC, output0RecipientPath27, output0RecipientPath27LC, output0RecipientPath28, output0RecipientPath28LC, output0RecipientPath29, output0RecipientPath29LC, output0RecipientPath30, output0RecipientPath30LC, output0RecipientPath31, output0RecipientPath31LC, output0RecipientPath32, output0RecipientPath32LC, output0RecipientPath33, output0RecipientPath33LC, output0RecipientPath34, output0RecipientPath34LC, output0RecipientPath35, output0RecipientPath35LC, output0RecipientPath36, output0RecipientPath36LC, output0RecipientPath37, output0RecipientPath37LC, output0RecipientPath38, output0RecipientPath38LC, output0RecipientPath39, output0RecipientPath39LC, output0RecipientPath40, output0RecipientPath40LC, output0RecipientPath41, output0RecipientPath41LC, output0RecipientPath42, output0RecipientPath42LC, output0RecipientPath43, output0RecipientPath43LC, output0RecipientPath44, output0RecipientPath44LC, output0RecipientPath45, output0RecipientPath45LC, output0RecipientPath46, output0RecipientPath46LC, output0RecipientPath47, output0RecipientPath47LC,
-      receiverCompliancePathAt38, receiverCompliancePathAt48, receiverCompliancePathAt51, receiverCompliancePathAt409, receiverCompliancePathAt411, receiverCompliancePathAt414, receiverCompliancePathAt772, receiverCompliancePathAt774, receiverCompliancePathAt777, receiverCompliancePathAt1135, receiverCompliancePathAt1137, receiverCompliancePathAt1140, receiverCompliancePathAt1498, receiverCompliancePathAt1500, receiverCompliancePathAt1503, receiverCompliancePathAt1861, receiverCompliancePathAt1863, receiverCompliancePathAt1866, receiverCompliancePathAt2224, receiverCompliancePathAt2226, receiverCompliancePathAt2229, receiverCompliancePathAt2587, receiverCompliancePathAt2589, receiverCompliancePathAt2592, receiverCompliancePathAt2950, receiverCompliancePathAt2952, receiverCompliancePathAt2955, receiverCompliancePathAt3313, receiverCompliancePathAt3315, receiverCompliancePathAt3318, receiverCompliancePathAt3676, receiverCompliancePathAt3678, receiverCompliancePathAt3681, receiverCompliancePathAt4039, receiverCompliancePathAt4041, receiverCompliancePathAt4044, receiverCompliancePathAt4402, receiverCompliancePathAt4404, receiverCompliancePathAt4407, receiverCompliancePathAt4765, receiverCompliancePathAt4767, receiverCompliancePathAt4770, receiverCompliancePathAt5128, receiverCompliancePathAt5130, receiverCompliancePathAt5133, receiverCompliancePathAt5491, receiverCompliancePathAt5493, receiverCompliancePathAt5496,
+      receiverCompliancePathAt38, receiverCompliancePathAt47, receiverCompliancePathAt50, receiverCompliancePathAt408, receiverCompliancePathAt410, receiverCompliancePathAt413, receiverCompliancePathAt771, receiverCompliancePathAt773, receiverCompliancePathAt776, receiverCompliancePathAt1134, receiverCompliancePathAt1136, receiverCompliancePathAt1139, receiverCompliancePathAt1497, receiverCompliancePathAt1499, receiverCompliancePathAt1502, receiverCompliancePathAt1860, receiverCompliancePathAt1862, receiverCompliancePathAt1865, receiverCompliancePathAt2223, receiverCompliancePathAt2225, receiverCompliancePathAt2228, receiverCompliancePathAt2586, receiverCompliancePathAt2588, receiverCompliancePathAt2591, receiverCompliancePathAt2949, receiverCompliancePathAt2951, receiverCompliancePathAt2954, receiverCompliancePathAt3312, receiverCompliancePathAt3314, receiverCompliancePathAt3317, receiverCompliancePathAt3675, receiverCompliancePathAt3677, receiverCompliancePathAt3680, receiverCompliancePathAt4038, receiverCompliancePathAt4040, receiverCompliancePathAt4043, receiverCompliancePathAt4401, receiverCompliancePathAt4403, receiverCompliancePathAt4406, receiverCompliancePathAt4764, receiverCompliancePathAt4766, receiverCompliancePathAt4769, receiverCompliancePathAt5127, receiverCompliancePathAt5129, receiverCompliancePathAt5132, receiverCompliancePathAt5490, receiverCompliancePathAt5492, receiverCompliancePathAt5495,
       StructuredLC.eval, StructuredLC.sumRuns,
       StructuredLC.sumResidual, StrideRun.eval
     ] <;> rfl
@@ -469,10 +463,10 @@ theorem receiverComplianceProviderPath_eq_action
 /-- The `receiver` path consumes the exact certified leaf. -/
 theorem receiverCompliancePathLeaf_eq
     (rho : Nat → DeployedF) :
-    Deployed.Templates.Semantics.TGadgetCompliancePath_3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b.leaf (ReceiverCompliancePathValuation rho) =
+    Deployed.Templates.Semantics.TGadgetCompliancePath_d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686.leaf (ReceiverCompliancePathValuation rho) =
       output0RecipientLeafCommitment rho := by
   simp only [
-    Deployed.Templates.Semantics.TGadgetCompliancePath_3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b.leaf,
+    Deployed.Templates.Semantics.TGadgetCompliancePath_d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686.leaf,
     output0RecipientLeafCommitment, output0RecipientLeafCommitmentLC,
     StructuredLC.eval, StructuredLC.sumRuns,
     StructuredLC.sumResidual, StrideRun.eval,
@@ -501,10 +495,10 @@ theorem receiverCompliancePathPosition_eq
 /-- The `receiver` path output is the compiler-labelled computed root. -/
 theorem receiverCompliancePathOutput_eq
     (rho : Nat → DeployedF) :
-    Deployed.Templates.Semantics.TGadgetCompliancePath_3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b.output (ReceiverCompliancePathValuation rho) =
+    Deployed.Templates.Semantics.TGadgetCompliancePath_d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686.output (ReceiverCompliancePathValuation rho) =
       output0RecipientComplianceRoot rho := by
   simp only [
-    Deployed.Templates.Semantics.TGadgetCompliancePath_3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b.output, Deployed.Templates.Semantics.TGadgetCompliancePath_3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b.nodeOut15,
+    Deployed.Templates.Semantics.TGadgetCompliancePath_d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686.output, Deployed.Templates.Semantics.TGadgetCompliancePath_d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686.nodeOut15,
     output0RecipientComplianceRoot, output0RecipientComplianceRootLC,
     StructuredLC.eval, StructuredLC.sumRuns,
     StructuredLC.sumResidual, StrideRun.eval,
@@ -528,7 +522,7 @@ theorem receiverCompliancePathFacts_of_semantic
           output0RecipientComplianceRoot rho := by
   have hPath := semantic.receiverCompliancePath
   unfold ReceiverCompliancePathSemanticSpec at hPath
-  have hBinary := Deployed.Templates.Semantics.TGadgetCompliancePath_3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b.toBinary_of_spec
+  have hBinary := Deployed.Templates.Semantics.TGadgetCompliancePath_d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686.toBinary_of_spec
     (ReceiverCompliancePathValuation rho) hPath
   rw [receiverCompliancePathPosition_eq] at hBinary
   have hComputed := hPath.2.2
@@ -540,8 +534,8 @@ theorem receiverCompliancePathFacts_of_semantic
     (C.receiverCompliance rho).position
     (output0RecipientLeafCommitment rho) (output0RecipientComplianceRoot rho)
     (C.receiverPath rho)
-    (Deployed.Templates.Semantics.TGadgetCompliancePath_3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b.path (ReceiverCompliancePathValuation rho))
-    (Deployed.Templates.Semantics.TGadgetCompliancePath_3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b.bits (ReceiverCompliancePathValuation rho))
+    (Deployed.Templates.Semantics.TGadgetCompliancePath_d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686.path (ReceiverCompliancePathValuation rho))
+    (Deployed.Templates.Semantics.TGadgetCompliancePath_d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686.bits (ReceiverCompliancePathValuation rho))
     hBinary (receiverComplianceProviderPath_eq_action rho) hComputed
 
 /-- The regulated conditional assertion binds the `receiver` root publicly. -/

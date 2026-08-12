@@ -499,7 +499,7 @@ class ProfilePromotionTests(unittest.TestCase):
             CHECK.profile_path(
                 "transfer",
                 "witness",
-                "internal/testfixtures/../testfixtures/vectors/transfer_witness_v16.bin",
+                "internal/testfixtures/../testfixtures/vectors/transfer_witness_v17.bin",
                 base=CHECK.GNARK,
                 expected_kind="file",
             )
@@ -750,7 +750,7 @@ var TransferFamilies = []TransferFamilySpec{
                         (
                             "regulated_unflagged",
                             "internal/testfixtures/vectors/"
-                            "transfer_witness_v16.bin",
+                            "transfer_witness_v17.bin",
                         ),
                     ),
                 ),
@@ -760,7 +760,7 @@ var TransferFamilies = []TransferFamilySpec{
                         (
                             "regulated_unflagged",
                             "internal/testfixtures/vectors/"
-                            "transfer3x3_witness_v16.bin",
+                            "transfer3x3_witness_v17.bin",
                         ),
                     ),
                 ),
@@ -799,7 +799,7 @@ var TransferFamilies = []TransferFamilySpec{
         version, proof_witnesses = CHECK.PROFILE_ABI[
             "shielded_ics20_withdrawal"
         ]
-        self.assertEqual(version, 8)
+        self.assertEqual(version, 9)
         self.assertEqual(
             tuple(proof_case for proof_case, _ in proof_witnesses),
             ("regulated_optional_real", "unregulated_optional_dummy"),

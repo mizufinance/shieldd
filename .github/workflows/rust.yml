@@ -13,19 +13,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  proof-artifacts:
-    name: Prepare proof artifacts once
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - uses: ./.github/actions/prepare-proof-artifacts
-        with:
-          bundle: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 'runtime' || 'full' }}
-
   checks:
     name: Rust checks
-    needs: proof-artifacts
     runs-on: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 'blacksmith-8vcpu-ubuntu-2404' || 'ubuntu-24.04' }}
     timeout-minutes: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 150 || 180 }}
     steps:
@@ -35,10 +24,6 @@ jobs:
 
       - name: Enforce narrow LFS and proof scheduling policy
         run: python3 scripts/check_lfs_policy.py
-
-      - uses: ./.github/actions/restore-proof-artifacts
-        with:
-          bundle: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 'runtime' || 'full' }}
 
       - uses: ./.github/actions/setup-nix-rust
         with:
@@ -65,10 +50,18 @@ jobs:
           fi
           echo "OK: no uncommitted changes detected"
 
+      - name: Install current cargo-deny
+        shell: bash
+        run: |
+          archive="$RUNNER_TEMP/cargo-deny.tar.gz"
+          url="https://github.com/EmbarkStudios/cargo-deny/releases/download/0.20.2/cargo-deny-0.20.2-x86_64-unknown-linux-musl.tar.gz"
+          curl --proto '=https' --tlsv1.2 --fail --location --retry 3 "$url" --output "$archive"
+          echo "9f12ed4c49936e09b48bf862b595cde2fe64fcbd9d74dfacac6131ca824c8d5f  $archive" | sha256sum --check
+          tar --extract --gzip --file "$archive" --directory "$RUNNER_TEMP"
+          install "$RUNNER_TEMP/cargo-deny-0.20.2-x86_64-unknown-linux-musl/cargo-deny" "$HOME/.cargo/bin/cargo-deny"
+
       - name: Check dependency policy
-        uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2
-        with:
-          command: check
+        run: cargo deny check --allow unmaintained
 
       - name: Check crate features
         run: >-
@@ -84,15 +77,10 @@ jobs:
 
   tests:
     name: Rust and gnark tests
-    needs: proof-artifacts
     runs-on: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 'blacksmith-8vcpu-ubuntu-2404' || 'ubuntu-24.04' }}
     timeout-minutes: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 150 || 300 }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-
-      - uses: ./.github/actions/restore-proof-artifacts
-        with:
-          bundle: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 'runtime' || 'full' }}
 
       - uses: ./.github/actions/setup-nix-rust
         with:
@@ -135,6 +123,12 @@ jobs:
         working-directory: tools/gnark
         run: go vet ./...
 
+      - name: Prepare full proof artifacts for manual replay
+        if: github.event_name != 'pull_request' && github.event_name != 'merge_group'
+        uses: ./.github/actions/prepare-proof-artifacts
+        with:
+          bundle: full
+
       - name: Run gnark-backed Rust proof tests
         if: github.event_name != 'pull_request' && github.event_name != 'merge_group'
         run: nix develop --command just ci-gnark-proof-tests
@@ -146,21 +140,19 @@ jobs:
         run: nix develop --command bash scripts/check-fv-specification-evidence.sh
 
   summary:
-    needs: [proof-artifacts, checks, tests]
+    needs: [checks, tests]
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - name: Check Rust workflow result
         env:
-          PROOF_ARTIFACTS_RESULT: ${{ needs.proof-artifacts.result }}
           CHECKS_RESULT: ${{ needs.checks.result }}
           TESTS_RESULT: ${{ needs.tests.result }}
         run: |
           set -euo pipefail
           failed=0
           for job in \
-            "proof-artifacts:$PROOF_ARTIFACTS_RESULT" \
             "checks:$CHECKS_RESULT" \
             "tests:$TESTS_RESULT"
           do

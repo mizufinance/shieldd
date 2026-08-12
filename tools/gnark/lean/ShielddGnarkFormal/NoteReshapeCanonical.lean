@@ -1,5 +1,5 @@
 import ShielddGnarkFormal.Protocol.NoteReshape.Concrete
-import ShielddGnarkFormal.Poseidon6Bridge
+import ShielddGnarkFormal.Poseidon5Bridge
 import ShielddGnarkFormal.Decaf377Assumptions
 import ShielddGnarkFormal.ChoiceFreeZMod
 
@@ -40,21 +40,21 @@ def statePositionFromBits := Protocol.Common.statePositionFromBits
 def member := Concrete.member
 def noteCommitment := Concrete.noteCommitment
 
-/-- Turn the extracted rate-6 hash equality into the protocol commitment fact. -/
+/-- Turn the extracted rate-5 hash equality into the protocol commitment fact. -/
 theorem noteCommitment_of_hash
     (shared : SharedContext F)
     (blinding amount commitment : F)
     (hcommitment :
       commitment =
-        Poseidon6Bridge.permSpec6 noteCommitmentDomain
+        Poseidon5Bridge.permSpec5 noteCommitmentDomain
           blinding amount shared.assetId shared.diversifiedGeneratorEncoding
-            shared.transmissionEncoding shared.clueKey) :
+            shared.transmissionEncoding) :
     Concrete.noteCommitment shared blinding amount commitment := by
   simpa [
     noteCommitmentDomain,
     Concrete.noteCommitment,
     Protocol.Common.noteCommitmentHash,
-    Poseidon6Bridge.permSpec6
+    Poseidon5Bridge.permSpec5
   ] using hcommitment
 
 def canonicalTransmission

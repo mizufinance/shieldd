@@ -1,6 +1,6 @@
 # Compliance Constraint Checklist
 
-This checklist covers the V16 compliance surface. General spend, note,
+This checklist covers the V17 compliance surface. General spend, note,
 nullifier, and value constraints are tracked in
 `docs/transfer-circuit/constraint-checklist.md`.
 
@@ -28,10 +28,9 @@ nullifier, and value constraints are tracked in
   diversified generators with three exact one-row Decaf predicates. This
   matches native key/address allocation and prevents identity-DTK ownership
   aliasing; it is not merely an honest-construction precondition.
-- Regulated transfers bind the diversified generator, transmission key,
-  checked canonical clue key, asset id, slot id, `slot_derivation`, and `d`
-  into version-2 compliance-leaf commitments under the accepted compliance
-  anchor.
+- Regulated transfers bind the diversified generator, transmission key, asset
+  id, slot id, `slot_derivation`, and `d` into version-3 compliance-leaf
+  commitments under the accepted compliance anchor.
 - Native registration rejects a derived `d = 0`, preventing an identity ACK.
 - ACK derivation uses the selected ring point and the bound `d`.
 - Unregulated transfers keep the same witness shape but gate membership against
@@ -88,8 +87,8 @@ nullifier, and value constraints are tracked in
 
 ### Public Statement
 
-- Rust and Go reconstruct the same 41-field preimage.
-- The statement hash domain is transfer `v4`.
+- Rust and Go reconstruct the same 44-field preimage.
+- The statement hash domain is transfer `v5`.
 - The public tail commits all ten non-duplicate metadata Fq values.
 - ABI tests reject legacy V15 witnesses and wrong vector lengths.
 - Differential tests compare native Rust/Go reconstruction, circuit public
@@ -148,6 +147,6 @@ nullifier, and value constraints are tracked in
 - Public DH shared points and upload packages were deleted.
 - The duplicate AES seed envelope and its unbound-seed failure mode were
   deleted.
-- Per-tier DLEQ statement fields and validation are absent from Transfer V16.
+- Per-tier DLEQ statement fields and validation are absent from Transfer V17.
 - Generic DLEQ Lean/Tamarin work is research-only and does not count toward
   deployed Transfer certification.

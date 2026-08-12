@@ -103,7 +103,10 @@ pub mod audit_status;
 pub use audit_status::{AuditStatus, DecryptedVia, FlowType};
 
 pub mod audit_records;
-pub use audit_records::{AuditDetectedRef, AuditScanExport, OrbisAuditEntry};
+pub use audit_records::{
+    filter_subject_candidates, AuditDetectedRef, AuditRoutingSelector, AuditScanExport,
+    AuditSubjectCandidate, AuditSubjectRegistration, AuditSubjectRole, OrbisAuditEntry,
+};
 
 #[cfg(feature = "component")]
 pub mod audit;
@@ -194,8 +197,7 @@ pub mod test_helpers {
         let scalar = Fr::rand(&mut rng);
         let point = decaf377::Element::GENERATOR * scalar;
         let pk_d = decaf377_ka::Public(point.vartime_compress().0);
-        let ck = shieldd_sdk_keys::DiscoveryKey(Fq::from(u64::from(div_byte) + 1).to_bytes());
-        Address::from_components(diversifier, pk_d, ck).unwrap()
+        Address::from_components(diversifier, pk_d).unwrap()
     }
 
     /// Create a test IndexedLeaf with default (unregulated) policy.
@@ -434,6 +436,7 @@ mod tests {
             false,
             0,
             0,
+            false,
             Fq::from(0u64),
         )
         .unwrap()
@@ -514,6 +517,7 @@ mod tests {
             true,
             0,
             0,
+            false,
             Fq::from(7u64),
         )
         .unwrap()
@@ -524,6 +528,14 @@ mod tests {
                 actions: vec![ActionProto {
                     action: Some(Action::Transfer(Transfer {
                         body: Some(TransferBody {
+                            routing: Some(
+                                shieldd_sdk_proto::core::component::shielded_pool::v1::TransferRouting {
+                                    tags: vec![
+                                        shieldd_sdk_proto::core::component::shielded_pool::v1::RoutingTag { value: 11 },
+                                        shieldd_sdk_proto::core::component::shielded_pool::v1::RoutingTag { value: 22 },
+                                    ],
+                                },
+                            ),
                             outputs: vec![TransferOutputBody {
                                 compliance_ciphertext: ciphertext.to_bytes(),
                                 ..Default::default()

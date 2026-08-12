@@ -40,28 +40,28 @@ open Contracts.NoteReshape8x1.Witness (
 )
 
 def path0 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
-  NoteReshapeMembershipBridge.segmentPath (Seg24.localRho rho)
+  NoteReshapeMembershipBridge.segmentPath (Seg42.localRho rho)
 
 def path1 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
-  NoteReshapeMembershipBridge.segmentPath (Seg38.localRho rho)
+  NoteReshapeMembershipBridge.segmentPath (Seg56.localRho rho)
 
 def path2 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
-  NoteReshapeMembershipBridge.segmentPath (Seg52.localRho rho)
+  NoteReshapeMembershipBridge.segmentPath (Seg70.localRho rho)
 
 def path3 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
-  NoteReshapeMembershipBridge.segmentPath (Seg66.localRho rho)
+  NoteReshapeMembershipBridge.segmentPath (Seg84.localRho rho)
 
 def path4 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
-  NoteReshapeMembershipBridge.segmentPath (Seg80.localRho rho)
+  NoteReshapeMembershipBridge.segmentPath (Seg98.localRho rho)
 
 def path5 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
-  NoteReshapeMembershipBridge.segmentPath (Seg94.localRho rho)
+  NoteReshapeMembershipBridge.segmentPath (Seg112.localRho rho)
 
 def path6 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
-  NoteReshapeMembershipBridge.segmentPath (Seg108.localRho rho)
+  NoteReshapeMembershipBridge.segmentPath (Seg126.localRho rho)
 
 def path7 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
-  NoteReshapeMembershipBridge.segmentPath (Seg122.localRho rho)
+  NoteReshapeMembershipBridge.segmentPath (Seg140.localRho rho)
 
 def realInput0 (rho : Nat → DeployedF) :
     RealInput DeployedF NoteReshapeCanonical.Path24 :=
@@ -409,6 +409,9 @@ def action (rho : Nat → DeployedF) :
        input4 rho, input5 rho, input6 rho, input7 rho]
     outputs := [output0 rho]
     anchor := anchor rho
+    assetAnchor := assetAnchor rho
+    routingTag := routingTag rho
+    routingParameterSetId := routingParameterSetId rho
     balanceCommitment := ⟨claimedBalanceCommitment0 rho, claimedBalanceCommitment1 rho⟩
     balanceBlinding := actionBalanceBlinding rho
     publicStatementHash := claimedStatementHash rho

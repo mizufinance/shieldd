@@ -1,0 +1,19 @@
+import ShielddGnarkFormal.Deployed.Templates.Relations.TAssertEq_c4acc0cb39ee1820ee3eb4fda139846ccb6ea995c7d6605854f111a0b177b240
+import Mathlib.Data.ZMod.Basic
+
+set_option maxRecDepth 1000000
+set_option maxHeartbeats 4000000
+
+namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TAssertEq_c4acc0cb39ee1820ee3eb4fda139846ccb6ea995c7d6605854f111a0b177b240
+
+def Order : Nat := 8444461749428370424248824938781546531375899335154063827935233455917409239041
+abbrev F := ZMod Order
+
+def spec (rho : Nat -> F) : Prop :=
+  ((1 : F) * rho 7) = ((1 : F)) * ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : F) * rho 1 + (7388904030749824121217721821433853214953911918259805849443329273927733084161 : F) * rho 2 + (4691367638571316902360458299323081406319944075085591015519574142176338466134 : F) * rho 3 + (7600015574485533381823942444903391878238309401638657445141710110325668315137 : F) * rho 4 + (2303035022571373752067861346940421781284336182314744680345972760704747974284 : F) * rho 5 + (7740756603642672888894756193883084320427907723891225175607297334590958469121 : F) * rho 6)
+
+theorem sound (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TAssertEq_c4acc0cb39ee1820ee3eb4fda139846ccb6ea995c7d6605854f111a0b177b240.relation rho) : spec rho := by
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TAssertEq_c4acc0cb39ee1820ee3eb4fda139846ccb6ea995c7d6605854f111a0b177b240.relation Shieldd.GnarkFormal.Deployed.Templates.Relations.TAssertEq_c4acc0cb39ee1820ee3eb4fda139846ccb6ea995c7d6605854f111a0b177b240.relationSegment0 at h
+  exact h.1.symm
+
+end Shieldd.GnarkFormal.Deployed.Templates.Semantics.TAssertEq_c4acc0cb39ee1820ee3eb4fda139846ccb6ea995c7d6605854f111a0b177b240

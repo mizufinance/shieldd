@@ -22,12 +22,12 @@ class ImpactPolicyTests(unittest.TestCase):
         self.assertEqual(impact.MODULES, impact.certified_modules())
         self.assertEqual(set(impact.FAMILIES), set(impact.MODULES))
 
-    def test_contract_inventory_includes_every_generated_semantic_seam_leaf(
+    def test_contract_inventory_includes_every_generated_lean_artifact(
         self,
     ) -> None:
-        self.assertIn(
-            "SemanticSeam*.lean",
+        self.assertEqual(
             impact.contract_patterns("note_reshape8x1"),
+            ("**/*.lean",),
         )
 
     def test_clean_policy_rejects_every_drift_signal(self) -> None:

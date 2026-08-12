@@ -1,67 +1,159 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_proto::{shieldd::core::component::compact_block::v1 as pb, DomainType};
 use shieldd_sdk_shielded_pool::{discovery, NotePayload};
 use shieldd_sdk_tct::builder::{block, epoch};
+use shieldd_sdk_txhash::TransactionId;
 
-use crate::{CompactBlock, StatePayload};
+use crate::CompactBlock;
 
-/// Public note selectors and roots for one block.
+/// One public tag attached to an action. Slot roles are deliberately absent.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(try_from = "pb::RoutingRecord", into = "pb::RoutingRecord")]
+pub struct RoutingRecord {
+    pub tag: discovery::RoutingTag,
+    pub height: u64,
+    pub transaction_id: TransactionId,
+    pub action_index: u32,
+    pub tag_slot: u8,
+}
+
+impl DomainType for RoutingRecord {
+    type Proto = pb::RoutingRecord;
+}
+
+impl From<RoutingRecord> for pb::RoutingRecord {
+    fn from(record: RoutingRecord) -> Self {
+        Self {
+            tag: Some(record.tag.into()),
+            height: record.height,
+            transaction_id: Some(record.transaction_id.into()),
+            action_index: record.action_index,
+            tag_slot: record.tag_slot.into(),
+        }
+    }
+}
+
+impl TryFrom<pb::RoutingRecord> for RoutingRecord {
+    type Error = anyhow::Error;
+
+    fn try_from(record: pb::RoutingRecord) -> Result<Self> {
+        Ok(Self {
+            tag: record
+                .tag
+                .context("routing record is missing its tag")?
+                .try_into()?,
+            height: record.height,
+            transaction_id: record
+                .transaction_id
+                .context("routing record is missing its transaction ID")?
+                .try_into()?,
+            action_index: record.action_index,
+            tag_slot: record
+                .tag_slot
+                .try_into()
+                .context("routing record tag slot exceeds u8")?,
+        })
+    }
+}
+
+/// Encrypted note payloads grouped by their producing action.
 #[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(try_from = "pb::DiscoveryBlock", into = "pb::DiscoveryBlock")]
-pub struct DiscoveryBlock {
+#[serde(
+    try_from = "pb::RoutingActionPayloads",
+    into = "pb::RoutingActionPayloads"
+)]
+pub struct RoutingActionPayloads {
+    pub transaction_id: TransactionId,
+    pub action_index: u32,
+    pub note_payloads: Vec<NotePayload>,
+}
+
+impl DomainType for RoutingActionPayloads {
+    type Proto = pb::RoutingActionPayloads;
+}
+
+impl From<RoutingActionPayloads> for pb::RoutingActionPayloads {
+    fn from(action: RoutingActionPayloads) -> Self {
+        Self {
+            transaction_id: Some(action.transaction_id.into()),
+            action_index: action.action_index,
+            note_payloads: action.note_payloads.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+impl TryFrom<pb::RoutingActionPayloads> for RoutingActionPayloads {
+    type Error = anyhow::Error;
+
+    fn try_from(action: pb::RoutingActionPayloads) -> Result<Self> {
+        Ok(Self {
+            transaction_id: action
+                .transaction_id
+                .context("routing action is missing its transaction ID")?
+                .try_into()?,
+            action_index: action.action_index,
+            note_payloads: action
+                .note_payloads
+                .into_iter()
+                .map(TryInto::try_into)
+                .collect::<Result<_>>()?,
+        })
+    }
+}
+
+/// Transaction execution output staged until compact-block finalization.
+#[derive(Clone, Debug)]
+pub struct PendingRoutingAction {
+    pub transaction_id: TransactionId,
+    pub action_index: u32,
+    pub tags: Vec<discovery::RoutingTag>,
+    pub note_payloads: Vec<NotePayload>,
+}
+
+/// Public routing records and roots for one block.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(try_from = "pb::RoutingBlock", into = "pb::RoutingBlock")]
+pub struct RoutingBlock {
     pub height: u64,
     pub block_root: block::Root,
     pub epoch_root: Option<epoch::Root>,
-    pub tags: Vec<discovery::Tag>,
+    pub records: Vec<RoutingRecord>,
     pub parameters: Option<discovery::Parameters>,
 }
 
-impl From<CompactBlock> for DiscoveryBlock {
+impl From<CompactBlock> for RoutingBlock {
     fn from(block: CompactBlock) -> Self {
-        let tags = block
-            .state_payloads
-            .iter()
-            .filter_map(|payload| match payload {
-                StatePayload::Note { note, .. } if !note.is_dummy() => Some(note.discovery_tag),
-                _ => None,
-            })
-            .collect();
-
         Self {
             height: block.height,
             block_root: block.block_root,
             epoch_root: block.epoch_root,
-            tags,
+            records: block.routing_records,
             parameters: block.discovery_parameters,
         }
     }
 }
 
-impl DomainType for DiscoveryBlock {
-    type Proto = pb::DiscoveryBlock;
+impl DomainType for RoutingBlock {
+    type Proto = pb::RoutingBlock;
 }
 
-impl From<DiscoveryBlock> for pb::DiscoveryBlock {
-    fn from(block: DiscoveryBlock) -> Self {
+impl From<RoutingBlock> for pb::RoutingBlock {
+    fn from(block: RoutingBlock) -> Self {
         Self {
             height: block.height,
-            block_root: if block.block_root.is_empty_finalized() {
-                None
-            } else {
-                Some(block.block_root.into())
-            },
+            block_root: (!block.block_root.is_empty_finalized()).then(|| block.block_root.into()),
             epoch_root: block.epoch_root.map(Into::into),
-            tags: block.tags.into_iter().map(Into::into).collect(),
+            records: block.records.into_iter().map(Into::into).collect(),
             discovery_parameters: block.parameters.map(Into::into),
         }
     }
 }
 
-impl TryFrom<pb::DiscoveryBlock> for DiscoveryBlock {
+impl TryFrom<pb::RoutingBlock> for RoutingBlock {
     type Error = anyhow::Error;
 
-    fn try_from(block: pb::DiscoveryBlock) -> Result<Self> {
+    fn try_from(block: pb::RoutingBlock) -> Result<Self> {
         Ok(Self {
             height: block.height,
             block_root: block
@@ -70,8 +162,8 @@ impl TryFrom<pb::DiscoveryBlock> for DiscoveryBlock {
                 .transpose()?
                 .unwrap_or_else(|| block::Finalized::default().root()),
             epoch_root: block.epoch_root.map(TryInto::try_into).transpose()?,
-            tags: block
-                .tags
+            records: block
+                .records
                 .into_iter()
                 .map(TryInto::try_into)
                 .collect::<Result<_>>()?,
@@ -83,38 +175,19 @@ impl TryFrom<pb::DiscoveryBlock> for DiscoveryBlock {
     }
 }
 
-/// A tagged encrypted note and its compact-block position.
-#[derive(Clone, Debug)]
-pub struct NoteCandidate {
-    pub height: u64,
-    pub state_payload_index: u32,
-    pub note_payload: NotePayload,
-}
-
-impl From<NoteCandidate> for pb::NoteCandidatesResponse {
-    fn from(candidate: NoteCandidate) -> Self {
-        Self {
-            height: candidate.height,
-            state_payload_index: candidate.state_payload_index,
-            note_payload: Some(candidate.note_payload.into()),
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn discovery_block_omits_dummy_notes() {
-        let block = CompactBlock {
-            state_payloads: vec![StatePayload::Note {
-                source: shieldd_sdk_sct::CommitmentSource::transaction(),
-                note: Box::new(NotePayload::dummy()),
-            }],
-            ..Default::default()
+    fn tag_slot_is_narrowed_at_the_domain_boundary() {
+        let record = pb::RoutingRecord {
+            tag: Some(discovery::RoutingTag { value: 7 }.into()),
+            height: 9,
+            transaction_id: Some(TransactionId([1; 32]).into()),
+            action_index: 3,
+            tag_slot: 256,
         };
-
-        assert!(DiscoveryBlock::from(block).tags.is_empty());
+        assert!(RoutingRecord::try_from(record).is_err());
     }
 }

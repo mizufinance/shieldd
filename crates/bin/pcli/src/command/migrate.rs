@@ -126,14 +126,14 @@ impl MigrateCmd {
                     .ok_or(anyhow!("no account with the ability to pay fees exists"))?;
 
                 // Set this account to be the change address.
-                planner.change_address(dest_fvk.payment_address(largest_account.into()).0);
+                planner.change_address(dest_fvk.payment_address(largest_account.into()));
 
                 // Create explicit outputs for the other addresses.
                 for (&(account, asset_id), &amount) in &account_values {
                     if account == largest_account {
                         continue;
                     }
-                    let (address, _) = dest_fvk.payment_address(account.into());
+                    let address = dest_fvk.payment_address(account.into());
                     planner.output(Value { asset_id, amount }, address);
                 }
 
@@ -240,7 +240,7 @@ impl MigrateCmd {
                     ))?;
 
                 // Set the change address to the destination's corresponding subaccount
-                planner.change_address(dest_fvk.payment_address(fee_account.into()).0);
+                planner.change_address(dest_fvk.payment_address(fee_account.into()));
 
                 // Create outputs for all assets to their corresponding destination subaccounts
                 for (&(account, asset_id), &amount) in &subaccount_values {
@@ -254,7 +254,7 @@ impl MigrateCmd {
                         continue;
                     }
 
-                    let (dest_address, _) = dest_fvk.payment_address(account.into());
+                    let dest_address = dest_fvk.payment_address(account.into());
                     planner.output(Value { asset_id, amount }, dest_address);
                 }
 

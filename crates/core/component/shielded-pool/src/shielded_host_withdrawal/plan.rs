@@ -12,7 +12,7 @@ use shieldd_sdk_tct as tct;
 use shieldd_sdk_txhash::EffectingData;
 
 use crate::{
-    discovery::Precision,
+    discovery::{self, Parameters},
     note_reshape_padding::{
         dummy_spend_auth_sig, dummy_state_commitment_proof, pad_to_len, HiddenArityPadder,
     },
@@ -39,7 +39,7 @@ pub struct ShieldedHostWithdrawalPlan {
     pub spends: Vec<ShieldedInputPlan>,
     pub change_output: Option<ShieldedOutputPlan>,
     pub withdrawal: HostWithdrawal,
-    pub discovery_precision: Precision,
+    pub routing_parameters: Parameters,
 }
 
 impl ShieldedHostWithdrawalPlan {
@@ -54,7 +54,7 @@ impl ShieldedHostWithdrawalPlan {
             spends,
             change_output,
             withdrawal,
-            discovery_precision: Precision::default(),
+            routing_parameters: Parameters::default(),
         };
         plan.validate()?;
         Ok(plan)
@@ -64,8 +64,8 @@ impl ShieldedHostWithdrawalPlan {
         ShieldedIcs20WithdrawalFamilyId::Canonical
     }
 
-    pub fn set_discovery_precision(&mut self, precision: Precision) {
-        self.discovery_precision = precision;
+    pub fn set_routing_parameters(&mut self, parameters: Parameters) {
+        self.routing_parameters = parameters;
     }
 
     pub fn balance(&self) -> Balance {
@@ -308,6 +308,14 @@ impl ShieldedHostWithdrawalPlan {
             .map(ShieldedOutputPlan::output_note)
             .unwrap_or_else(|| self.padder().synthetic_dummy_output_note(1));
         let withdrawal_effect_hash_limbs = self.withdrawal_effect_hash_limbs();
+        let routing_nonce =
+            Fq::from_le_bytes_mod_order(&self.first_spend().tx_blinding_nonce.to_bytes());
+        let routing_tag = discovery::single_tag(
+            &self.sender_address(),
+            self.first_spend().is_regulated,
+            &self.routing_parameters,
+            routing_nonce,
+        );
 
         Ok((
             ShieldedIcs20WithdrawalProofPublic {
@@ -324,6 +332,8 @@ impl ShieldedHostWithdrawalPlan {
                 outbound_asset_id: self.withdrawal.value.asset_id.0,
                 outbound_amount: Fq::from(self.withdrawal.value.amount),
                 withdrawal_effect_hash_limbs,
+                routing_tag,
+                routing_parameter_set_id: self.routing_parameters.id(),
             },
             ShieldedIcs20WithdrawalProofPrivate {
                 family_id: ShieldedIcs20WithdrawalFamilyId::Canonical,
@@ -334,6 +344,8 @@ impl ShieldedHostWithdrawalPlan {
                 asset_position: self.first_spend().asset_position,
                 asset_indexed_leaf: self.first_spend().asset_indexed_leaf.clone(),
                 is_regulated: self.first_spend().is_regulated,
+                routing_parameters: self.routing_parameters.clone(),
+                routing_nonce,
                 sender_compliance_path: self.first_spend().compliance_path.clone(),
                 sender_compliance_position: self.first_spend().compliance_position,
                 sender_leaf: self.sender_leaf(),
@@ -389,10 +401,18 @@ impl ShieldedHostWithdrawalPlan {
             &change_note.diversified_generator(),
         );
         let change_output = ShieldedIcs20WithdrawalChangeBody {
-            note_payload: change_note.payload(self.discovery_precision),
+            note_payload: change_note.payload(),
             wrapped_memo_key,
             ovk_wrapped_key,
         };
+        let routing_nonce =
+            Fq::from_le_bytes_mod_order(&self.first_spend().tx_blinding_nonce.to_bytes());
+        let routing_tag = discovery::single_tag(
+            &self.sender_address(),
+            self.first_spend().is_regulated,
+            &self.routing_parameters,
+            routing_nonce,
+        );
 
         Ok(ShieldedHostWithdrawalBody {
             family_id: ShieldedIcs20WithdrawalFamilyId::Canonical,
@@ -404,6 +424,8 @@ impl ShieldedHostWithdrawalPlan {
             target_timestamp: self.first_spend().target_timestamp,
             compliance_anchor: self.first_spend().compliance_anchor,
             asset_anchor: self.first_spend().asset_anchor,
+            routing_tag,
+            routing_parameter_set_id: self.routing_parameters.id(),
         })
     }
 
@@ -491,7 +513,7 @@ impl From<ShieldedHostWithdrawalPlan> for pb::ShieldedHostWithdrawalPlan {
             spends: value.spends.into_iter().map(Into::into).collect(),
             change_output: value.change_output.map(Into::into),
             withdrawal: Some(value.withdrawal.into()),
-            discovery_precision_bits: value.discovery_precision.into(),
+            routing_parameters: Some(value.routing_parameters.into()),
         }
     }
 }
@@ -519,7 +541,10 @@ impl TryFrom<pb::ShieldedHostWithdrawalPlan> for ShieldedHostWithdrawalPlan {
                 .withdrawal
                 .ok_or_else(|| anyhow!("missing embedded shielded host withdrawal payload"))?
                 .try_into()?,
-            discovery_precision: value.discovery_precision_bits.try_into()?,
+            routing_parameters: value
+                .routing_parameters
+                .ok_or_else(|| anyhow!("missing routing parameters"))?
+                .try_into()?,
         };
         plan.validate()?;
         Ok(plan)
@@ -564,8 +589,17 @@ mod tests {
                 recipient: "bank1recipient".to_owned(),
             }),
         };
-        let plan = ShieldedHostWithdrawalPlan::new(vec![spend], None, withdrawal, Fr::from(7u64))
-            .expect("plan should be valid");
+        let mut plan =
+            ShieldedHostWithdrawalPlan::new(vec![spend], None, withdrawal, Fr::from(7u64))
+                .expect("plan should be valid");
+        plan.set_routing_parameters(
+            Parameters::new(
+                crate::discovery::Precision::new(11).unwrap(),
+                crate::discovery::Precision::new(19).unwrap(),
+                42,
+            )
+            .unwrap(),
+        );
 
         plan.shielded_host_withdrawal_public_private(
             &test_keys::FULL_VIEWING_KEY,
@@ -627,6 +661,25 @@ mod tests {
         ));
 
         assert_eq!(public.inputs[1].nullifier, expected);
+    }
+
+    #[test]
+    fn host_withdrawal_binds_routing_parameters() {
+        let (public, private) = padded_proof_inputs();
+
+        assert_eq!(
+            public.routing_parameter_set_id,
+            private.routing_parameters.id()
+        );
+        assert_eq!(
+            public.routing_tag,
+            discovery::single_tag(
+                &test_keys::ADDRESS_0,
+                private.is_regulated,
+                &private.routing_parameters,
+                private.routing_nonce,
+            )
+        );
     }
 
     #[cfg(any(unix, windows))]

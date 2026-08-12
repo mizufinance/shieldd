@@ -18,50 +18,50 @@ abbrev F := Seg15.F
 
 theorem dtkXWires :
     (Seg15.wireSeating 4961, Seg15.wireSeating 4969) =
-      (6768, 6776) := by
+      (6772, 6780) := by
   decide +kernel
 
 theorem dtkYWires :
     (Seg15.wireSeating 4962, Seg15.wireSeating 4970) =
-      (6769, 6777) := by
+      (6773, 6781) := by
   decide +kernel
 
 theorem equivalentXWires :
     (Seg16.wireSeating 2, Seg16.wireSeating 3) =
-      (6768, 6776) := by
+      (6772, 6780) := by
   decide +kernel
 
 theorem equivalentYWires :
     (Seg16.wireSeating 6, Seg16.wireSeating 7) =
-      (6769, 6777) := by
+      (6773, 6781) := by
   decide +kernel
 
 theorem dtkX (rho : Nat → F) :
     rho (Seg15.wireSeating 4961) +
         rho (Seg15.wireSeating 4969) =
-      rho 6768 + rho 6776 := by
-  rw [show Seg15.wireSeating 4961 = 6768 by decide +kernel]
-  rw [show Seg15.wireSeating 4969 = 6776 by decide +kernel]
+      rho 6772 + rho 6780 := by
+  rw [show Seg15.wireSeating 4961 = 6772 by decide +kernel]
+  rw [show Seg15.wireSeating 4969 = 6780 by decide +kernel]
 
 theorem dtkY (rho : Nat → F) :
     rho (Seg15.wireSeating 4962) +
         rho (Seg15.wireSeating 4970) =
-      rho 6769 + rho 6777 := by
-  rw [show Seg15.wireSeating 4962 = 6769 by decide +kernel]
-  rw [show Seg15.wireSeating 4970 = 6777 by decide +kernel]
+      rho 6773 + rho 6781 := by
+  rw [show Seg15.wireSeating 4962 = 6773 by decide +kernel]
+  rw [show Seg15.wireSeating 4970 = 6781 by decide +kernel]
 
 theorem equivalentX (rho : Nat → F) :
     rho (Seg16.wireSeating 2) +
         rho (Seg16.wireSeating 3) =
-      rho 6768 + rho 6776 := by
-  rw [show Seg16.wireSeating 2 = 6768 by decide +kernel]
-  rw [show Seg16.wireSeating 3 = 6776 by decide +kernel]
+      rho 6772 + rho 6780 := by
+  rw [show Seg16.wireSeating 2 = 6772 by decide +kernel]
+  rw [show Seg16.wireSeating 3 = 6780 by decide +kernel]
 
 theorem equivalentY (rho : Nat → F) :
     rho (Seg16.wireSeating 6) +
         rho (Seg16.wireSeating 7) =
-      rho 6769 + rho 6777 := by
-  rw [show Seg16.wireSeating 6 = 6769 by decide +kernel]
-  rw [show Seg16.wireSeating 7 = 6777 by decide +kernel]
+      rho 6773 + rho 6781 := by
+  rw [show Seg16.wireSeating 6 = 6773 by decide +kernel]
+  rw [show Seg16.wireSeating 7 = 6781 by decide +kernel]
 
 end Shieldd.GnarkFormal.Deployed.TransferCryptoSeating

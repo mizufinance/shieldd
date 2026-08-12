@@ -41,7 +41,7 @@
 - [Addresses and Keys](./addresses_keys.md)
   - [Spending Keys](./addresses_keys/spend_key.md)
   - [Viewing Keys](./addresses_keys/viewing_keys.md)
-  - [Addresses and Detection Keys](./addresses_keys/addresses.md)
+  - [Addresses](./addresses_keys/addresses.md)
   - [Payload Keys](./addresses_keys/transaction_crypto.md)
 - [State Commitment Tree](./sct.md)
   - [Tiered Commitment Tree](./sct/tct.md)

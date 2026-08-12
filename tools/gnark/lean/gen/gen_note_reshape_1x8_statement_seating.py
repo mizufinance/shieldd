@@ -26,7 +26,7 @@ ASSERT_ARGS = (
 )
 HASH_TEMPLATE = (
     "statement.hash@"
-    "253f0669df9a88c5d0d1fd54142634236d1f927edf40a3baefb3981c2bc88c5e"
+    "93008bb67ca1e31e6bd8c1584faf21ee43e1a101d4d1a7b8126fb6df6761802a"
 )
 ASSERT_TEMPLATE = (
     "assert.eq@"
@@ -34,25 +34,26 @@ ASSERT_TEMPLATE = (
 )
 FIRST_A_LOCALS = (
     1,
-    *range(7, 14),
-    *range(19, 26),
-    *range(31, 38),
+    *range(7, 13),
+    *range(18, 24),
+    *range(29, 35),
 )
 FIRST_B_LOCALS = (
-    *range(43, 50),
-    *range(55, 62),
-    *range(67, 74),
+    *range(40, 46),
+    *range(51, 57),
+    *range(62, 68),
 )
 SECOND_LOCALS = (
-    *range(519, 526),
-    *range(531, 538),
-    543,
-    544,
-    *range(550, 554),
-    559,
-    560,
+    *range(513, 519),
+    *range(524, 530),
+    535,
+    536,
+    542,
+    548,
+    554,
 )
-HASH_OUTPUT_LOCALS = tuple(range(965, 1001, 5))
+THIRD_LOCALS = (*range(1000, 1004), 1009, 1010)
+HASH_OUTPUT_LOCALS = tuple(range(1415, 1451, 5))
 ASSERT_INPUT_LOCALS = tuple(range(1, 9))
 ASSERT_OUTPUT_LOCAL = 9
 SEATING_SPECS = (
@@ -71,16 +72,23 @@ SEATING_SPECS = (
         "statement block 1",
         SECOND_LOCALS,
     ),
+    (
+        "NoteReshape1x8StatementSeatingThird.lean",
+        "statement block 2",
+        THIRD_LOCALS,
+    ),
 )
 REVIEWED_CONSUMER_DIGESTS = {
     "NoteReshape1x8StatementFirst.lean":
-        "facae14645ee1062bfebb06bf7f7950b5ac18547bacab846c5fffdd12a301bd0",
+        "6c688790dec78229b7bcf687c9108d64650cd3552bc6948d6a85825c5701ffb0",
     "NoteReshape1x8StatementSecond.lean":
-        "95e0b60934bd7b008ac2c32400b69511d6e60570dca8424e32b85e0b2895d565",
+        "0b7c706f0498c92217baaf0a01f11a93ee32e0f4b3a833015e67c74f7879c3c9",
+    "NoteReshape1x8StatementThird.lean":
+        "d291e8b43bd1055f2acc262e74fc203356ae15631e9d0cfb51643383fc17902b",
     "NoteReshape1x8StatementOutput.lean":
-        "65421f8c707fc4a0c445cded8d90fdf1095d09429895dc840e39489ee7e83aad",
+        "232d5df7ce55223b732e4bfe047d3ebbad8459d67ed30a5dbc9295b97c6dd685",
     "NoteReshape1x8TranscriptSeams.lean":
-        "0a1ebacee1f13a826adfb0e705732b9dacd4e91ee90b62e3ff301ba5cc836336",
+        "d037f324b17a0dad8d1837694621e47009415178b5f4d9ada5d8512a05b1c1e6",
 }
 
 
@@ -113,7 +121,7 @@ def discover(
             "note_reshape1x8: statement seam templates drifted"
         )
     model.require_binding_role(
-        statement, "statement.fields", "input", exact=True, arity=12
+        statement, "statement.fields", "input", exact=True, arity=15
     )
     model.require_binding_role(
         statement, "statement.hash", "output", exact=True, arity=1
@@ -135,6 +143,7 @@ def discover(
         *FIRST_A_LOCALS,
         *FIRST_B_LOCALS,
         *SECOND_LOCALS,
+        *THIRD_LOCALS,
     )
     if (
         len(input_locals) != len(set(input_locals))
@@ -257,7 +266,7 @@ def validate_consumers(roles: StatementRoles | None = None) -> None:
         roles = discover()
     if not REVIEWED_CONSUMER_DIGESTS:
         raise ValueError("reviewed 1x8 statement consumer digests are absent")
-    stale_segments = ("Seg57", "Seg58", "Seg59")
+    stale_segments = ("Seg60", "Seg61")
     for filename, expected in REVIEWED_CONSUMER_DIGESTS.items():
         path = DEPLOYED / filename
         source = path.read_bytes()

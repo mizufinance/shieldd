@@ -9,6 +9,7 @@ namespace Shieldd.GnarkFormal.Deployed.NoteReshape8x1StatementSecond
 
 open Shieldd.GnarkFormal
 open Contracts.NoteReshape8x1
+abbrev DeployedF := Contracts.NoteReshape8x1.SemanticF
 open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 attribute [-instance] ZMod.instField
@@ -31,29 +32,31 @@ def secondBlock (fields : List DeployedF) : DeployedF :=
     (NoteReshapeCanonical.statementField fields 12
       (NoteReshapeCanonical.statementPad1 .reshape8x1))
 
-theorem canonicalSecondBlockNineteen
-    (f0 f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 f13 f14 f15 f16 f17 f18 :
-      DeployedF) :
+theorem canonicalSecondBlockTwentyTwo
+    (f0 f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 f13 f14 f15 f16 f17 f18
+      f19 f20 f21 : DeployedF) :
     secondBlock
-        [f0, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10,
-         f11, f12, f13, f14, f15, f16, f17, f18] =
+        [f0, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13,
+         f14, f15, f16, f17, f18, f19, f20, f21] =
       Poseidon7Bridge.permSpec7
-        (8151566796627494957780365425260097767647931594965532798107827918965818197203 :
+        (6633002048635308567879967754963729389552746207601986158379347440968324263659 :
           DeployedF)
         (NoteReshapeCanonical.statementFirstBlock .reshape8x1
-          [f0, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10,
-           f11, f12, f13, f14, f15, f16, f17, f18])
+          [f0, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13,
+           f14, f15, f16, f17, f18, f19, f20, f21])
         f7 f8 f9 f10 f11 f12 := by
   rfl
 
-theorem hash
-    (rho : Nat → DeployedF) :
-    Deployed.Templates.Semantics.TStatementHash_ebf331d76bfb4fc16f6904f05f7a363037842a713a0f5be16fe61ce6b10043f1.Trace.hash1
-        (Seg143.localRho rho) =
+theorem hash (rho : Nat → DeployedF) :
+    Deployed.Templates.Semantics.TStatementHash_c73724e5718898979d9030c39225b26e62b7d4a45d01d4aa5c1e35cabda8b3c5.Trace.hash1
+        (Seg161.localRho rho) =
       secondBlock
         [anchor rho,
          output0NoteCommitmentComputed rho,
          balanceCommitmentFq rho,
+         assetAnchor rho,
+         routingTag rho,
+         routingParameterSetId rho,
          spend0NullifierSelected rho,
          spend0RkCompressed rho,
          spend1NullifierSelected rho,
@@ -70,37 +73,37 @@ theorem hash
          spend6RkCompressed rho,
          spend7NullifierSelected rho,
          spend7RkCompressed rho] := by
-  have hw494 : Seg143.wireSeating 494 = 42000 := by decide +kernel
-  have hw495 : Seg143.wireSeating 495 = 42001 := by decide +kernel
-  have hw501 : Seg143.wireSeating 501 = 44180 := by decide +kernel
-  have hw502 : Seg143.wireSeating 502 = 44520 := by decide +kernel
-  have hw508 : Seg143.wireSeating 508 = 54486 := by decide +kernel
-  have hw509 : Seg143.wireSeating 509 = 54487 := by decide +kernel
-  have hw515 : Seg143.wireSeating 515 = 56666 := by decide +kernel
-  have hw516 : Seg143.wireSeating 516 = 57006 := by decide +kernel
-  have hw522 : Seg143.wireSeating 522 = 66972 := by decide +kernel
-  have hw523 : Seg143.wireSeating 523 = 66973 := by decide +kernel
-  have hw529 : Seg143.wireSeating 529 = 69152 := by decide +kernel
-  have hw530 : Seg143.wireSeating 530 = 69492 := by decide +kernel
+  have hw490 : Seg161.wireSeating 490 = 32847 := by decide +kernel
+  have hw491 : Seg161.wireSeating 491 = 33187 := by decide +kernel
+  have hw497 : Seg161.wireSeating 497 = 43113 := by decide +kernel
+  have hw498 : Seg161.wireSeating 498 = 43114 := by decide +kernel
+  have hw504 : Seg161.wireSeating 504 = 45293 := by decide +kernel
+  have hw505 : Seg161.wireSeating 505 = 45633 := by decide +kernel
+  have hw511 : Seg161.wireSeating 511 = 55559 := by decide +kernel
+  have hw512 : Seg161.wireSeating 512 = 55560 := by decide +kernel
+  have hw518 : Seg161.wireSeating 518 = 57739 := by decide +kernel
+  have hw519 : Seg161.wireSeating 519 = 58079 := by decide +kernel
+  have hw525 : Seg161.wireSeating 525 = 68005 := by decide +kernel
+  have hw526 : Seg161.wireSeating 526 = 68006 := by decide +kernel
   have hneg :
       (8444461749428370424248824938781546531375899335154063827935233455917409239040 :
         DeployedF) = -1 := by decide +kernel
   rw [
-    Deployed.Templates.Semantics.TStatementHash_ebf331d76bfb4fc16f6904f05f7a363037842a713a0f5be16fe61ce6b10043f1.Trace.hash1,
+    Deployed.Templates.Semantics.TStatementHash_c73724e5718898979d9030c39225b26e62b7d4a45d01d4aa5c1e35cabda8b3c5.Trace.hash1,
     NoteReshape8x1StatementFirst.hash,
-    canonicalSecondBlockNineteen
+    canonicalSecondBlockTwentyTwo
   ]
   simp [
+    spend0RkCompressed, spend0RkCompressedLC,
+    spend1NullifierSelected, spend1NullifierSelectedLC,
+    spend1RkCompressed, spend1RkCompressedLC,
     spend2NullifierSelected, spend2NullifierSelectedLC,
     spend2RkCompressed, spend2RkCompressedLC,
     spend3NullifierSelected, spend3NullifierSelectedLC,
-    spend3RkCompressed, spend3RkCompressedLC,
-    spend4NullifierSelected, spend4NullifierSelectedLC,
-    spend4RkCompressed, spend4RkCompressedLC,
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-    Seg143.localRho, Deployed.Templates.seated,
-    hw494, hw495, hw501, hw502, hw508, hw509,
-    hw515, hw516, hw522, hw523, hw529, hw530,
+    Seg161.localRho, Deployed.Templates.seated,
+    hw490, hw491, hw497, hw498, hw504, hw505,
+    hw511, hw512, hw518, hw519, hw525, hw526,
     hneg
   ]
 

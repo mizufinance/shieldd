@@ -471,15 +471,15 @@ def netBalanceCommitment2
 end Decaf
 
 def noteCommitmentDomain : F :=
-  1434889507249773667048406511864487084155637425201771740895788105903307238157
+  1395601591349183338445327673196897598598470771863946901251414766570764147135
 
 def stateCommitmentDomain : F :=
   545001158149490383238005163525397553024965043366546261617421270984613353336
 
 def noteCommitmentHash
-    (blinding amount assetId diversifiedGenerator transmission clueKey : F) : F :=
-  Poseidon377.hash6 noteCommitmentDomain
-    blinding amount assetId diversifiedGenerator transmission clueKey
+    (blinding amount assetId diversifiedGenerator transmission : F) : F :=
+  Poseidon377.hash5 noteCommitmentDomain
+    blinding amount assetId diversifiedGenerator transmission
 
 def nullifier (nullifierKey commitment position : F) : F :=
   Poseidon377.hash3 Poseidon377.nullifierDomain

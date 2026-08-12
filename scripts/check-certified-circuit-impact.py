@@ -136,15 +136,7 @@ def tree_hash(root: Path, patterns: tuple[str, ...]) -> str | None:
 
 
 def contract_patterns(circuit: str) -> tuple[str, ...]:
-    return (
-        "Seg*.lean",
-        "Bounds.lean",
-        "Capstone.lean",
-        "CircuitFacts.lean",
-        "RoleBindings.lean",
-        "SemanticBindings.lean",
-        "SemanticSeam*.lean",
-    )
+    return ("**/*.lean",)
 
 
 def change_is_failure(

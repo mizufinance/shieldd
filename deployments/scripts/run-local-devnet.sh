@@ -54,7 +54,7 @@ else
         --tendermint-p2p-bind "0.0.0.0:${SHIELDD_COMETBFT_P2P_PORT}" \
         --allocations-input-file deployments/compose/devnet-allocations.csv \
         --validators-input-file testnets/validators-single.json \
-        --allocation-address "shieldd1cvp32r5wp4lfnnww3g3fytxccqnu2xcj0r2qm0sa8ekjdezlm3gzk34qtg2xscqx9r6yrhz24k3l6j88q98rexyp7dnupq66cxllvpp9v0lw0xuqf0yfhv5ksfxzv0m98upx5w"
+        --allocation-address "shieldd1u29dhz4vxgnek6a3vzxlejg0l83wegpu7hgs3yphdvljcnnnh89dvs6lc9hxxw94w464t7lh5x36cxnxyx0"
 
     # opt in to cometbft abci indexing to postgres
     postgresql_db_url="postgresql://shieldd:shieldd@127.0.0.1:${SHIELDD_POSTGRES_PORT}/shieldd_cometbft?sslmode=disable"

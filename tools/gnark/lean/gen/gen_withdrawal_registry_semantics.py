@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Generate exact registry semantics used by shielded ICS-20 withdrawal.
+"""Generate exact constant-domain Poseidon template semantics.
 
-The registry hash templates are constant-domain Poseidon permutations whose
+These hash templates are constant-domain Poseidon permutations whose
 domain-lane first S-box is folded by gnark.  Consequently, templates with the
 same row count but different domains are not interchangeable.  This generator
 reconstructs a CPS relation from each canonical normalized SR1CS, proves the
@@ -78,10 +78,19 @@ class HashTemplate:
 
     @property
     def config_name(self) -> str:
-        return f"withdrawal_{self.digest[:16]}"
+        return f"template_{self.digest[:16]}"
 
 
 HASH_TEMPLATES = (
+    HashTemplate(
+        "gadget.note_commitment",
+        "252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c",
+        5,
+        1395601591349183338445327673196897598598470771863946901251414766570764147135,
+        390,
+        398,
+        (372, 377, 382, 387, 392, 397),
+    ),
     HashTemplate(
         "gadget.asset_registry_params_hash",
         "d65f2514fa1b17e8679203e682583ee8344352bd12416241ef63007b11e2c086",
@@ -120,16 +129,17 @@ HASH_TEMPLATES = (
     ),
     HashTemplate(
         "gadget.compliance_leaf",
-        "89974c69097fec1fe7276409b30d17170b41afc739ec6a0392be21d56a7c6d68",
-        7,
-        168430640865250000792698691211246566687485655593739355441774434546766203703,
-        470,
-        480,
-        (444, 449, 454, 459, 464, 469, 474, 479),
+        "dcb0a1040c535cf394b8bda4f381260121926f7d477fb80a22e4e84b0cb431bc",
+        6,
+        5091441079939941903017664305347261861704474070005805806880013805880773073215,
+        430,
+        439,
+        (408, 413, 418, 423, 428, 433, 438),
     ),
 )
 
 AUTHORITATIVE_DOMAIN_KEYS = {
+    "gadget.note_commitment": "note_commit_domain",
     "gadget.asset_registry_params_hash": "imt_params_domain",
     "gadget.asset_registry_ring_hash": "imt_ring_domain",
     "gadget.asset_registry_leaf_hash": "imt_leaf_domain",
@@ -736,7 +746,7 @@ def _hash_outputs(template: HashTemplate) -> dict[Path, str]:
     )
     outputs: dict[Path, str] = {}
     with tempfile.TemporaryDirectory(
-        prefix=f"withdrawal-{template.digest[:8]}-"
+        prefix=f"poseidon-template-{template.digest[:8]}-"
     ) as temp_name:
         temp = Path(temp_name)
         extracted_dir = temp / "Extracted/Deployed"
@@ -815,7 +825,7 @@ def generated_files() -> dict[Path, str]:
         overlap = set(outputs) & set(generated)
         if overlap:
             raise ValueError(
-                "withdrawal registry generators overlap: "
+                "Poseidon template generators overlap: "
                 + ", ".join(str(path) for path in sorted(overlap))
             )
         outputs.update(generated)
@@ -828,7 +838,7 @@ def generated_files() -> dict[Path, str]:
     ):
         if forbidden in combined:
             raise ValueError(
-                f"withdrawal registry provider contains forbidden {forbidden}"
+                f"Poseidon template provider contains forbidden {forbidden}"
             )
     return outputs
 

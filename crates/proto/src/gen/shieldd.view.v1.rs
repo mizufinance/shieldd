@@ -302,6 +302,8 @@ pub struct AddressByIndexRequest {
     pub address_index: ::core::option::Option<
         super::super::core::keys::v1::AddressIndex,
     >,
+    #[prost(message, optional, tag = "2")]
+    pub purpose: ::core::option::Option<AddressPurpose>,
 }
 impl ::prost::Name for AddressByIndexRequest {
     const NAME: &'static str = "AddressByIndexRequest";
@@ -394,6 +396,8 @@ pub struct EphemeralAddressRequest {
     pub address_index: ::core::option::Option<
         super::super::core::keys::v1::AddressIndex,
     >,
+    #[prost(message, optional, tag = "2")]
+    pub purpose: ::core::option::Option<AddressPurpose>,
 }
 impl ::prost::Name for EphemeralAddressRequest {
     const NAME: &'static str = "EphemeralAddressRequest";
@@ -418,6 +422,25 @@ impl ::prost::Name for EphemeralAddressResponse {
     }
     fn type_url() -> ::prost::alloc::string::String {
         "/shieldd.view.v1.EphemeralAddressResponse".into()
+    }
+}
+/// Local-only metadata describing why the wallet issued an address.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AddressPurpose {
+    /// Absent means a general-purpose address.
+    #[prost(message, optional, tag = "1")]
+    pub regulated_asset_id: ::core::option::Option<
+        super::super::core::asset::v1::AssetId,
+    >,
+}
+impl ::prost::Name for AddressPurpose {
+    const NAME: &'static str = "AddressPurpose";
+    const PACKAGE: &'static str = "shieldd.view.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.view.v1.AddressPurpose".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.view.v1.AddressPurpose".into()
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]

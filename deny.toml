@@ -68,7 +68,6 @@ license-files = []
 # remove them.
 # ---------------------------------------------------------------------------
 [advisories]
-unmaintained = "none"
 yanked = "allow"
 ignore = [
     # ed25519-dalek 1.x and curve25519-dalek 3.x are pulled in by did-key 0.2.1

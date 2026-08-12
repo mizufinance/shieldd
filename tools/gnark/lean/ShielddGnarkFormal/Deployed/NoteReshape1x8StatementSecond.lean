@@ -10,31 +10,46 @@ namespace Shieldd.GnarkFormal.Deployed.NoteReshape1x8StatementSecond
 
 open Shieldd.GnarkFormal
 open Contracts.NoteReshape1x8
+abbrev DeployedF := Contracts.NoteReshape1x8.SemanticF
 open NoteReshape1x8StatementSeating
 open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 attribute [-instance] ZMod.instField
 local instance choiceFreeStatementSecondCommRing : CommRing DeployedF := ZMod.commRing _
 
-theorem canonicalHashTwelve
-    (f0 f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 : DeployedF) :
-    NoteReshapeCanonical.statementHash .reshape1x8
-        [f0, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11] =
+def secondBlock (fields : List DeployedF) : DeployedF :=
+  Poseidon7Bridge.permSpec7
+    (NoteReshapeCanonical.statementDomain .reshape1x8)
+    (NoteReshapeCanonical.statementFirstBlock .reshape1x8 fields)
+    (NoteReshapeCanonical.statementField fields 7
+      (NoteReshapeCanonical.statementPad0 .reshape1x8))
+    (NoteReshapeCanonical.statementField fields 8
+      (NoteReshapeCanonical.statementPad1 .reshape1x8))
+    (NoteReshapeCanonical.statementField fields 9
+      (NoteReshapeCanonical.statementPad0 .reshape1x8))
+    (NoteReshapeCanonical.statementField fields 10
+      (NoteReshapeCanonical.statementPad1 .reshape1x8))
+    (NoteReshapeCanonical.statementField fields 11
+      (NoteReshapeCanonical.statementPad0 .reshape1x8))
+    (NoteReshapeCanonical.statementField fields 12
+      (NoteReshapeCanonical.statementPad1 .reshape1x8))
+
+theorem canonicalSecondBlockFifteen
+    (f0 f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 f13 f14 : DeployedF) :
+    secondBlock
+        [f0, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14] =
       Poseidon7Bridge.permSpec7
-        (2598058543572663691928291801991083332834406653466399970650219017347474033401 :
+        (4241182688873131096588087403843978305304926756205733284227994496152505846817 :
           DeployedF)
         (NoteReshapeCanonical.statementFirstBlock .reshape1x8
-          [f0, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11])
-        f7 f8 f9 f10 f11
-        (7628228517115617761731724754875004303107790596370304736275780016796853259057 :
-          DeployedF) := by
+          [f0, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14])
+        f7 f8 f9 f10 f11 f12 := by
   rfl
 
-theorem hash
-    (rho : Nat → DeployedF) :
-    Deployed.Templates.Semantics.TStatementHash_253f0669df9a88c5d0d1fd54142634236d1f927edf40a3baefb3981c2bc88c5e.Trace.hash1
-        (Seg60.localRho rho) =
-      NoteReshapeCanonical.statementHash .reshape1x8
+theorem hash (rho : Nat → DeployedF) :
+    Deployed.Templates.Semantics.TStatementHash_93008bb67ca1e31e6bd8c1584faf21ee43e1a101d4d1a7b8126fb6df6761802a.Trace.hash1
+        (Seg78.localRho rho) =
+      secondBlock
         [anchor rho,
          output0NoteCommitmentComputed rho,
          output1NoteCommitmentComputed rho,
@@ -45,12 +60,15 @@ theorem hash
          output6NoteCommitmentComputed rho,
          output7NoteCommitmentComputed rho,
          balanceCommitmentFq rho,
+         assetAnchor rho,
+         routingTag rho,
+         routingParameterSetId rho,
          spend0NullifierComputed rho,
          spend0RkCompressed rho] := by
   rw [
-    Deployed.Templates.Semantics.TStatementHash_253f0669df9a88c5d0d1fd54142634236d1f927edf40a3baefb3981c2bc88c5e.Trace.hash1,
+    Deployed.Templates.Semantics.TStatementHash_93008bb67ca1e31e6bd8c1584faf21ee43e1a101d4d1a7b8126fb6df6761802a.Trace.hash1,
     NoteReshape1x8StatementFirst.hash,
-    canonicalHashTwelve
+    canonicalSecondBlockFifteen
   ]
   have hneg :
       (8444461749428370424248824938781546531375899335154063827935233455917409239040 :
@@ -59,15 +77,16 @@ theorem hash
     output6NoteCommitmentComputed, output6NoteCommitmentComputedLC,
     output7NoteCommitmentComputed, output7NoteCommitmentComputedLC,
     balanceCommitmentFq, balanceCommitmentFqLC,
-    spend0NullifierComputed, spend0NullifierComputedLC,
-    spend0RkCompressed, spend0RkCompressedLC,
+    assetAnchor, assetAnchorLC,
+    routingTag, routingTagLC,
+    routingParameterSetId, routingParameterSetIdLC,
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-    Seg60.localRho, Deployed.Templates.seated,
-    hw519, hw520, hw521, hw522, hw523, hw524, hw525,
-    hw531, hw532, hw533, hw534, hw535, hw536, hw537,
-    hw543, hw544, hw550, hw551, hw552, hw553, hw559, hw560
+    Seg78.localRho, Deployed.Templates.seated,
+    hw513, hw514, hw515, hw516, hw517, hw518,
+    hw524, hw525, hw526, hw527, hw528, hw529,
+    hw535, hw536, hw542, hw548, hw554,
+    hneg
   ]
-  rw [hneg]
   congr 1 <;> simp only [add_assoc, neg_one_mul]
 
 end Shieldd.GnarkFormal.Deployed.NoteReshape1x8StatementSecond

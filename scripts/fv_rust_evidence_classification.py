@@ -215,10 +215,21 @@ PROPERTY_OWNER_SPECS: dict[str, tuple[TestSpec, ...]] = {
     "DETECTION-CORRECTNESS": (
         *_specs(
             "invariant",
+            "crates/core/component/compliance/src/audit_records.rs",
+            """
+            subject_filter_applies_asset_before_each_registered_address_selector
+            subject_filter_finds_receiver_and_both_regulated_parties
+            subject_filter_finds_sender_with_or_without_change_and_after_permutation
+            """,
+        ),
+        *_specs(
+            "invariant",
             "crates/core/component/shielded-pool/src/discovery.rs",
             """
-            tag_masks_every_precision_canonically
-            tag_prefixes_are_stable_across_precision_changes
+            full_tags_vary_while_prefixes_stay_stable
+            parameters_reject_inverted_precisions
+            selectors_are_nested_and_match_honest_tags
+            transfer_shape_hides_roles_and_no_change_branch
             """,
         ),
         *_specs(
@@ -294,6 +305,16 @@ PROPERTY_OWNER_SPECS: dict[str, tuple[TestSpec, ...]] = {
             """,
         ),
     ),
+    "ISSUED-ADDRESS-RECOVERY": _specs(
+        "parity",
+        "crates/view/src/storage.rs",
+        "restore_recovers_standard_and_randomized_issued_addresses",
+    )
+    + _specs(
+        "negative",
+        "crates/view/src/storage.rs",
+        "issued_address_metadata_is_idempotent_but_cannot_be_reclassified",
+    ),
     "NATIVE-KEY-AND-ADDRESS-PARITY": (
         *_specs(
             "boundary_negative",
@@ -309,7 +330,7 @@ PROPERTY_OWNER_SPECS: dict[str, tuple[TestSpec, ...]] = {
             """
             address_components_reject_identity_diversified_generator
             address_components_reject_identity_or_invalid_transmission_key
-            rejects_noncanonical_discovery_key_field_alias
+            rejects_legacy_80_byte_address
             """,
         ),
         *_specs(

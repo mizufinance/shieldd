@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Materialize and validate scoped Git LFS proof-artifact bundles."""
+"""Materialize and validate scoped proof-artifact bundles."""
 
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ FAMILIES = (
     "transfer",
 )
 POINTER_VERSION = "https://git-lfs.github.com/spec/v1"
-CACHE_IDENTITY_SCHEMA = "shieldd.proof-artifact-cache.v1"
+CACHE_IDENTITY_SCHEMA = "shieldd.proof-artifact-cache.v2"
 BUNDLE_BYTE_BUDGETS = {
     "runtime": 110_000_000,
     "constraints": 560_000_000,
@@ -136,6 +136,7 @@ def lfs_paths(bundle: str | Bundle = Bundle.FULL) -> list[str]:
     return [
         artifact.path.relative_to(REPO_ROOT).as_posix()
         for artifact in artifact_files(bundle)
+        if artifact.kind is ArtifactKind.SR1CS
     ]
 
 
@@ -192,22 +193,21 @@ def cache_info(bundle: str | Bundle, ref: str = "HEAD") -> CacheInfo:
     artifacts = artifact_files(selected)
     for artifact in artifacts:
         path = artifact.path.relative_to(REPO_ROOT).as_posix()
-        pointer = committed_lfs_pointer(path, ref)
-        if pointer.oid != artifact.sha256_hex:
-            raise ArtifactError(
-                f"committed Git LFS object id for {path} does not match circuit metadata"
-            )
-        if (
-            artifact.size_bytes is not None
-            and pointer.size_bytes != artifact.size_bytes
-        ):
-            raise ArtifactError(
-                f"committed Git LFS size for {path} does not match circuit metadata"
-            )
-        digest.update(
-            f"{path}\0{pointer.oid}\0{pointer.size_bytes}\n".encode()
-        )
-        total_size += pointer.size_bytes
+        if artifact.kind is ArtifactKind.SR1CS:
+            pointer = committed_lfs_pointer(path, ref)
+            if pointer.oid != artifact.sha256_hex:
+                raise ArtifactError(
+                    f"committed Git LFS object id for {path} does not match circuit metadata"
+                )
+            oid = pointer.oid
+            size_bytes = pointer.size_bytes
+        else:
+            if artifact.size_bytes is None:
+                raise ArtifactError(f"missing committed size for {path}")
+            oid = artifact.sha256_hex
+            size_bytes = artifact.size_bytes
+        digest.update(f"{path}\0{oid}\0{size_bytes}\n".encode())
+        total_size += size_bytes
     budget = BUNDLE_BYTE_BUDGETS[selected.value]
     if total_size > budget:
         raise ArtifactError(
@@ -262,6 +262,8 @@ def install_lfs_filters() -> None:
 
 def refresh_git_index(bundle: str | Bundle = Bundle.FULL) -> None:
     paths = lfs_paths(bundle)
+    if not paths:
+        return
     diff_command = ["git", "diff", "--cached", "--quiet", "--", *paths]
     if subprocess.run(diff_command, cwd=REPO_ROOT, check=False).returncode != 0:
         raise ArtifactError("proof artifacts already have staged changes")
@@ -285,14 +287,16 @@ def refresh_git_index(bundle: str | Bundle = Bundle.FULL) -> None:
 
 def restore(bundle: str | Bundle = Bundle.FULL) -> None:
     selected = parse_bundle(bundle)
-    install_lfs_filters()
+    if lfs_paths(selected):
+        install_lfs_filters()
     verify(selected)
     refresh_git_index(selected)
 
 
 def materialize(bundle: str | Bundle = Bundle.FULL) -> None:
     selected = parse_bundle(bundle)
-    install_lfs_filters()
+    if lfs_paths(selected):
+        install_lfs_filters()
     missing_or_invalid: list[ArtifactFile] = []
     for artifact in artifact_files(selected):
         try:
@@ -300,6 +304,20 @@ def materialize(bundle: str | Bundle = Bundle.FULL) -> None:
         except ArtifactError:
             missing_or_invalid.append(artifact)
     if missing_or_invalid:
+        unavailable_git_artifacts = [
+            artifact
+            for artifact in missing_or_invalid
+            if artifact.kind is ArtifactKind.PROVING_KEY
+        ]
+        if unavailable_git_artifacts:
+            paths = ", ".join(
+                artifact.path.relative_to(REPO_ROOT).as_posix()
+                for artifact in unavailable_git_artifacts
+            )
+            raise ArtifactError(
+                f"committed runtime artifacts are missing or invalid: {paths}; "
+                "restore them from Git"
+            )
         include = ",".join(
             artifact.path.relative_to(REPO_ROOT).as_posix()
             for artifact in missing_or_invalid

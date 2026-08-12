@@ -37,7 +37,10 @@ use jmt::RootHash;
 use prost::bytes::Bytes;
 use prost::Message as _;
 use serde::{Deserialize, Serialize};
-use shieldd_sdk_compact_block::{component::CompactBlockManager, StatePayload};
+use shieldd_sdk_compact_block::{
+    component::{CompactBlockManager, RoutingManager as _},
+    StatePayload,
+};
 use shieldd_sdk_compliance::params::{StateReadExt as _, StateWriteExt as _};
 use shieldd_sdk_compliance::registry::ComplianceRegistryRead as _;
 use shieldd_sdk_compliance::Compliance;
@@ -6040,6 +6043,8 @@ impl App {
         }
         profile.serial_sct_append_ms = sct_append_start.elapsed().as_secs_f64() * 1000.0;
 
+        state_tx.stage_routing_actions(prepared.effects.routing_actions.clone());
+
         profile.check_and_execute_ms = prepared.execution_profile.action_execute_ms
             + check_and_execute_start.elapsed().as_secs_f64() * 1000.0;
 
@@ -6215,6 +6220,8 @@ impl App {
         self.pending_sct_append_log
             .append_positioned(positioned_sct_payloads);
         profile.serial_sct_append_ms = sct_append_start.elapsed().as_secs_f64() * 1000.0;
+
+        state_tx.stage_routing_actions(prepared.effects.routing_actions.clone());
 
         profile.check_and_execute_ms = prepared.execution_profile.action_execute_ms
             + check_and_execute_start.elapsed().as_secs_f64() * 1000.0;
@@ -7307,6 +7314,9 @@ mod tests {
                     wrapped_memo_key: shieldd_sdk_keys::symmetric::WrappedMemoKey([31u8; 48]),
                     ovk_wrapped_key: shieldd_sdk_keys::symmetric::OvkWrappedKey([32u8; 48]),
                 }],
+                routing_tag: Default::default(),
+                routing_parameter_set_id: Fq::from(0u64),
+                asset_anchor: tct::StateCommitment(Fq::from(0u64)),
             },
             auth_sigs: vec![[0u8; 64].into(); 8],
             proof: shieldd_sdk_shielded_pool::NoteReshapeProof::default(),
@@ -7447,6 +7457,9 @@ mod tests {
                                     [9u8; 48],
                                 ),
                             }],
+                            routing_tag: Default::default(),
+                            routing_parameter_set_id: Fq::from(0u64),
+                            asset_anchor: tct::StateCommitment(Fq::from(0u64)),
                         },
                         auth_sigs: vec![[0u8; 64].into(); 8],
                         proof: shieldd_sdk_shielded_pool::NoteReshapeProof::default(),

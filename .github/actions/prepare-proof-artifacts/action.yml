@@ -1,11 +1,11 @@
 name: Prepare proof artifacts
-description: Fetch one scoped proof-artifact bundle and publish its exact cache entry.
+description: Fetch one constraint bundle and publish its exact cache entry.
 
 inputs:
   bundle:
-    description: One of runtime, constraints, or full.
+    description: One of constraints or full.
     required: false
-    default: runtime
+    default: full
   enable-cross-os-archive:
     description: Allow the cache to be restored by a different runner OS.
     required: false
@@ -14,23 +14,19 @@ inputs:
     description: Checkout path relative to the GitHub workspace.
     required: false
     default: .
-  seed-full:
-    description: Publish a missing full cache while preparing the runtime bundle.
-    required: false
-    default: "false"
 
 outputs:
   key:
-    description: Exact immutable cache key for the selected committed LFS objects.
-    value: proof-artifacts-lfs-v2-${{ inputs.bundle }}-${{ steps.selected.outputs.identity }}
+    description: Exact immutable cache key for the selected constraints.
+    value: proof-constraints-lfs-v3-${{ steps.selected.outputs.identity }}
   cache-hit:
-    description: Whether the selected bundle was already cached.
-    value: ${{ steps.restore-runtime.outputs.cache-hit || steps.restore-constraints.outputs.cache-hit || steps.restore-full.outputs.cache-hit }}
+    description: Whether the selected constraint bundle was already cached.
+    value: ${{ steps.restore.outputs.cache-hit }}
   bytes:
     description: Total committed byte size of the selected bundle.
     value: ${{ steps.selected.outputs.bytes }}
   objects:
-    description: Number of committed LFS objects in the selected bundle.
+    description: Number of committed objects in the selected bundle.
     value: ${{ steps.selected.outputs.objects }}
 
 runs:
@@ -45,87 +41,13 @@ runs:
         python3 "$GITHUB_ACTION_PATH/../../../scripts/proof_artifacts.py"
         cache-info --bundle "$BUNDLE" --github-output "$GITHUB_OUTPUT"
 
-    - name: Resolve runtime subset identity
-      if: inputs.bundle == 'full'
-      id: runtime
-      shell: bash
-      run: >-
-        python3 "$GITHUB_ACTION_PATH/../../../scripts/proof_artifacts.py"
-        cache-info --bundle runtime --github-output "$GITHUB_OUTPUT"
-
-    - name: Validate cache preparation mode
-      if: inputs.seed-full == 'true' && inputs.bundle != 'runtime'
-      shell: bash
-      env:
-        BUNDLE: ${{ inputs.bundle }}
-      run: |
-        echo "seed-full is valid only with the runtime bundle, not $BUNDLE" >&2
-        exit 1
-
-    - name: Resolve full seed identity
-      if: inputs.seed-full == 'true'
-      id: full-seed
-      shell: bash
-      run: >-
-        python3 "$GITHUB_ACTION_PATH/../../../scripts/proof_artifacts.py"
-        cache-info --bundle full --github-output "$GITHUB_OUTPUT"
-
-    - name: Look up full seed cache
-      if: inputs.seed-full == 'true'
-      id: lookup-full-seed
-      uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-      with:
-        path: |
-          ${{ inputs.repository-path }}/tools/gnark/artifacts/*/proving_key.bin
-          ${{ inputs.repository-path }}/tools/gnark/artifacts/*/*.sr1cs
-        key: proof-artifacts-lfs-v2-full-${{ steps.full-seed.outputs.identity }}
-        enableCrossOsArchive: ${{ inputs.enable-cross-os-archive }}
-        lookup-only: true
-
-    - name: Restore runtime artifact cache
-      if: inputs.bundle == 'runtime'
-      id: restore-runtime
-      uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-      with:
-        path: ${{ inputs.repository-path }}/tools/gnark/artifacts/*/proving_key.bin
-        key: proof-artifacts-lfs-v2-runtime-${{ steps.selected.outputs.identity }}
-        enableCrossOsArchive: ${{ inputs.enable-cross-os-archive }}
-
-    - name: Restore constraints artifact cache
-      if: inputs.bundle == 'constraints'
-      id: restore-constraints
+    - name: Restore exact constraint cache
+      id: restore
       uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
       with:
         path: ${{ inputs.repository-path }}/tools/gnark/artifacts/*/*.sr1cs
-        key: proof-artifacts-lfs-v2-constraints-${{ steps.selected.outputs.identity }}
+        key: proof-constraints-lfs-v3-${{ steps.selected.outputs.identity }}
         enableCrossOsArchive: ${{ inputs.enable-cross-os-archive }}
-
-    - name: Restore full artifact cache
-      if: inputs.bundle == 'full'
-      id: restore-full
-      uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-      with:
-        path: |
-          ${{ inputs.repository-path }}/tools/gnark/artifacts/*/proving_key.bin
-          ${{ inputs.repository-path }}/tools/gnark/artifacts/*/*.sr1cs
-        key: proof-artifacts-lfs-v2-full-${{ steps.selected.outputs.identity }}
-        enableCrossOsArchive: ${{ inputs.enable-cross-os-archive }}
-
-    - name: Restore runtime subset cache
-      if: inputs.bundle == 'full'
-      id: restore-runtime-subset
-      uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-      with:
-        path: ${{ inputs.repository-path }}/tools/gnark/artifacts/*/proving_key.bin
-        key: proof-artifacts-lfs-v2-runtime-${{ steps.runtime.outputs.identity }}
-        enableCrossOsArchive: ${{ inputs.enable-cross-os-archive }}
-
-    - name: Materialize missing full seed
-      if: inputs.seed-full == 'true' && steps.lookup-full-seed.outputs.cache-hit != 'true'
-      shell: bash
-      run: >-
-        python3 "$GITHUB_ACTION_PATH/../../../scripts/proof_artifacts.py"
-        materialize --bundle full
 
     - name: Materialize and validate selected proof artifacts
       shell: bash
@@ -135,48 +57,12 @@ runs:
         python3 "$GITHUB_ACTION_PATH/../../../scripts/proof_artifacts.py"
         materialize --bundle "$BUNDLE"
 
-    - name: Save runtime artifact cache
-      if: inputs.bundle == 'runtime' && steps.restore-runtime.outputs.cache-hit != 'true'
-      uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-      with:
-        path: ${{ inputs.repository-path }}/tools/gnark/artifacts/*/proving_key.bin
-        key: proof-artifacts-lfs-v2-runtime-${{ steps.selected.outputs.identity }}
-        enableCrossOsArchive: ${{ inputs.enable-cross-os-archive }}
-
-    - name: Save constraints artifact cache
-      if: inputs.bundle == 'constraints' && steps.restore-constraints.outputs.cache-hit != 'true'
+    - name: Save exact constraint cache
+      if: steps.restore.outputs.cache-hit != 'true'
       uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
       with:
         path: ${{ inputs.repository-path }}/tools/gnark/artifacts/*/*.sr1cs
-        key: proof-artifacts-lfs-v2-constraints-${{ steps.selected.outputs.identity }}
-        enableCrossOsArchive: ${{ inputs.enable-cross-os-archive }}
-
-    - name: Save full artifact cache
-      if: inputs.bundle == 'full' && steps.restore-full.outputs.cache-hit != 'true'
-      uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-      with:
-        path: |
-          ${{ inputs.repository-path }}/tools/gnark/artifacts/*/proving_key.bin
-          ${{ inputs.repository-path }}/tools/gnark/artifacts/*/*.sr1cs
-        key: proof-artifacts-lfs-v2-full-${{ steps.selected.outputs.identity }}
-        enableCrossOsArchive: ${{ inputs.enable-cross-os-archive }}
-
-    - name: Save runtime subset cache
-      if: inputs.bundle == 'full' && steps.restore-runtime-subset.outputs.cache-hit != 'true'
-      uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-      with:
-        path: ${{ inputs.repository-path }}/tools/gnark/artifacts/*/proving_key.bin
-        key: proof-artifacts-lfs-v2-runtime-${{ steps.runtime.outputs.identity }}
-        enableCrossOsArchive: ${{ inputs.enable-cross-os-archive }}
-
-    - name: Save full seed cache
-      if: inputs.seed-full == 'true' && steps.lookup-full-seed.outputs.cache-hit != 'true'
-      uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-      with:
-        path: |
-          ${{ inputs.repository-path }}/tools/gnark/artifacts/*/proving_key.bin
-          ${{ inputs.repository-path }}/tools/gnark/artifacts/*/*.sr1cs
-        key: proof-artifacts-lfs-v2-full-${{ steps.full-seed.outputs.identity }}
+        key: proof-constraints-lfs-v3-${{ steps.selected.outputs.identity }}
         enableCrossOsArchive: ${{ inputs.enable-cross-os-archive }}
 
     - name: Report artifact preparation
@@ -185,25 +71,13 @@ runs:
         BUNDLE: ${{ inputs.bundle }}
         BYTES: ${{ steps.selected.outputs.bytes }}
         OBJECTS: ${{ steps.selected.outputs.objects }}
-        RUNTIME_HIT: ${{ steps.restore-runtime.outputs.cache-hit }}
-        CONSTRAINTS_HIT: ${{ steps.restore-constraints.outputs.cache-hit }}
-        FULL_HIT: ${{ steps.restore-full.outputs.cache-hit }}
-        FULL_SEED_HIT: ${{ steps.lookup-full-seed.outputs.cache-hit }}
-        SEED_FULL: ${{ inputs.seed-full }}
+        CACHE_HIT: ${{ steps.restore.outputs.cache-hit }}
       run: |
-        case "$BUNDLE" in
-          runtime) hit="$RUNTIME_HIT" ;;
-          constraints) hit="$CONSTRAINTS_HIT" ;;
-          full) hit="$FULL_HIT" ;;
-        esac
         {
           echo "### Proof artifact preparation"
           echo
           echo "- Bundle: \`$BUNDLE\`"
           echo "- Objects: $OBJECTS"
           echo "- Committed bytes: $BYTES"
-          echo "- Exact cache hit: ${hit:-false}"
-          if [[ "$SEED_FULL" == "true" ]]; then
-            echo "- Full base-cache seed already present: ${FULL_SEED_HIT:-false}"
-          fi
+          echo "- Exact constraint-cache hit: ${CACHE_HIT:-false}"
         } >> "$GITHUB_STEP_SUMMARY"

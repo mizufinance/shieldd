@@ -51,6 +51,7 @@ pub(crate) fn build_transfer_compliance(
     asset_indexed_leaf: &IndexedLeaf,
     target_timestamp: u64,
     transfer_nonce_root: Fr,
+    routing_roles_swapped: bool,
 ) -> Result<BuildTransferComplianceResult> {
     let receiver_output = outputs
         .get(RECEIVER_OUTPUT_INDEX)
@@ -108,6 +109,7 @@ pub(crate) fn build_transfer_compliance(
         is_flagged,
         sender_leaf.slot_id,
         receiver_leaf.slot_id,
+        routing_roles_swapped,
         detection_salt,
     )?;
 

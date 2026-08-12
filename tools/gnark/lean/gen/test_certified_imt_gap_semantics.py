@@ -15,12 +15,15 @@ class CertifiedImtGapSemanticsTests(unittest.TestCase):
 
     def test_exact_relation_and_semantic_blocks_are_pinned(self) -> None:
         self.assertEqual(
-            tuple(provider.circuit for provider in gap.PROVIDERS),
-            ("shielded_ics20_withdrawal", "transfer"),
-        )
-        self.assertEqual(
-            tuple(provider.segment_index for provider in gap.PROVIDERS),
-            (14, 25),
+            tuple(provider.deployments for provider in gap.PROVIDERS),
+            (
+                (
+                    ("note_reshape1x8", 18),
+                    ("note_reshape8x1", 28),
+                    ("shielded_ics20_withdrawal", 14),
+                ),
+                (("transfer", 25),),
+            ),
         )
         gap._validate_inventory()
         self.assertEqual(len(self.rows), gap.ROW_COUNT)
@@ -109,27 +112,30 @@ class CertifiedImtGapSemanticsTests(unittest.TestCase):
 
     @staticmethod
     def inventory_entry(provider: gap.Provider) -> dict:
-        instance = {
-            "circuit": provider.circuit,
-            "segment_index": provider.segment_index,
-            "constraint_count": gap.ROW_COUNT,
-            "constant_vector_sha256_hex": (
-                provider.constant_vector_sha256_hex
-            ),
-            "class_key": provider.class_key,
-        }
+        instances = [
+            {
+                "circuit": circuit,
+                "segment_index": segment_index,
+                "constraint_count": gap.ROW_COUNT,
+                "constant_vector_sha256_hex": (
+                    provider.constant_vector_sha256_hex
+                ),
+                "class_key": provider.class_key,
+            }
+            for circuit, segment_index in provider.deployments
+        ]
         return {
             "template_key": provider.key,
             "op": gap.OPERATION,
             "normalized_relation_sha256_hex": provider.digest,
             "constraint_count": gap.ROW_COUNT,
             "local_wire_count": gap.LOCAL_WIRE_COUNT,
-            "instances": [instance],
-            "circuits": [provider.circuit],
+            "instances": instances,
+            "circuits": sorted({circuit for circuit, _ in provider.deployments}),
             "distinct_constant_vectors": 1,
             "representative": {
-                "circuit": provider.circuit,
-                "segment_index": provider.segment_index,
+                "circuit": provider.deployments[0][0],
+                "segment_index": provider.deployments[0][1],
             },
         }
 

@@ -228,7 +228,7 @@ theorem specification_cir_shape_fixed
     (rho : Nat → SemanticF)
     (h : relationAll rho) :
     (Protocol.Transfer.Concrete.statementFields
-      (action rho)).length = 41 := by
+      (action rho)).length = 44 := by
   exact Protocol.Transfer.Concrete.statementFields_length
     (action rho)
 
@@ -906,23 +906,18 @@ theorem specification_note_output_asset_binding
     ⟨(relationReceiverOutput rho h).1,
       (relationChangeOutput rho h).2.2.1⟩
 
-/-- `NOTE-OUTPUT-CLUE-KEY-BINDING` for the exact deployed relation. -/
-theorem specification_note_output_clue_key_binding
+/-- `ROUTING-PARAMETERS` for the exact deployed relation. -/
+theorem specification_routing_parameters
     (rho : Nat → SemanticF)
     (h : relationAll rho) :
-    Protocol.Transfer.Concrete.noteCommitment
-        (action rho).receiver.note ∧
-      Protocol.Transfer.Concrete.noteCommitment
-        (action rho).change.note ∧
-      (action rho).receiver.note.clueKey =
-        (action rho).receiver.note.owner.clueKey ∧
-      (action rho).change.note.clueKey =
-        (action rho).sender.clueKey := by
+    Seg72.contract.spec rho ∧
+      Seg73.contract.spec rho ∧
+      Seg74.contract.spec rho := by
+  have facts := (transfer_circuitFacts rho h).exact
   exact
-    ⟨(relationReceiverOutput rho h).2.2.1,
-      (relationChangeOutput rho h).2.2.2,
-      rfl,
-      (relationChangeOutput rho h).2.1⟩
+    ⟨facts.RoutingPrecisionSelectSeg72,
+      facts.RoutingParametersHashSeg73,
+      facts.RoutingParametersBindSeg74⟩
 
 /-- `NOTE-OUTPUT-OWNER-BINDING` for the exact deployed relation. -/
 theorem specification_note_output_owner_binding
@@ -962,23 +957,36 @@ theorem specification_note_spend_asset_binding
   rw [selected] at optional
   exact optional.2.2.1
 
-/-- `NOTE-SPEND-CLUE-KEY-BINDING` for the exact deployed relation. -/
-theorem specification_note_spend_clue_key_binding
+/-- `ROUTING-TAG-DERIVATION` for the exact deployed relation. -/
+theorem specification_routing_tag_derivation
     (rho : Nat → SemanticF)
     (h : relationAll rho) :
-    (action rho).required.note.clueKey =
-        (action rho).sender.clueKey ∧
-      ∀ spend,
-        (action rho).optional = .real spend →
-          spend.note.clueKey = (action rho).sender.clueKey := by
-  rcases relationRequiredSpend rho h with
-    ⟨_, requiredClueKey, _, _, _, _, _, _, _⟩
-  refine ⟨requiredClueKey, ?_⟩
-  intro spend selected
-  have optional := relationOptionalSpend rho h
-  unfold Protocol.Transfer.Concrete.optionalSpend at optional
-  rw [selected] at optional
-  exact optional.2.1
+    Seg75.contract.spec rho ∧
+      Seg76.contract.spec rho ∧
+      Seg77.contract.spec rho ∧
+      Seg78.contract.spec rho ∧
+      Seg79.contract.spec rho ∧
+      Seg80.contract.spec rho ∧
+      Seg81.contract.spec rho ∧
+      Seg82.contract.spec rho ∧
+      Seg83.contract.spec rho ∧
+      Seg84.contract.spec rho ∧
+      Seg85.contract.spec rho ∧
+      Seg86.contract.spec rho := by
+  have facts := (transfer_circuitFacts rho h).exact
+  exact
+    ⟨facts.RoutingRouteWordSeg75,
+      facts.RoutingRouteWordSeg76,
+      facts.RoutingPermutationHashSeg77,
+      facts.RoutingPermutationComposeSeg78,
+      facts.RoutingTagPublicRangeSeg79,
+      facts.RoutingTagRouteBitsSeg80,
+      facts.RoutingTagRandomWordSeg81,
+      facts.RoutingTagComposeSeg82,
+      facts.RoutingTagPublicRangeSeg83,
+      facts.RoutingTagRouteBitsSeg84,
+      facts.RoutingTagRandomWordSeg85,
+      facts.RoutingTagComposeSeg86⟩
 
 /-- `NOTE-SPEND-COMMITMENT` for the exact deployed relation. -/
 theorem specification_note_spend_commitment
@@ -1080,22 +1088,20 @@ theorem specification_user_leaf_policy_slot_binding
     (h : relationAll rho) :
     Protocol.Transfer.Concrete.complianceLeafHash
           (action rho).senderCompliance =
-        Poseidon377.hash7
+        Poseidon377.hash6
           Protocol.Transfer.Concrete.complianceLeafDomain
           (action rho).senderCompliance.address.diversifiedGeneratorEncoding
           (action rho).senderCompliance.address.transmissionEncoding
-          (action rho).senderCompliance.address.clueKey
           (action rho).senderCompliance.assetId
           (action rho).senderCompliance.slotId
           (action rho).senderCompliance.slotDerivation
           (action rho).senderCompliance.d ∧
       Protocol.Transfer.Concrete.complianceLeafHash
           (action rho).receiverCompliance =
-        Poseidon377.hash7
+        Poseidon377.hash6
           Protocol.Transfer.Concrete.complianceLeafDomain
           (action rho).receiverCompliance.address.diversifiedGeneratorEncoding
           (action rho).receiverCompliance.address.transmissionEncoding
-          (action rho).receiverCompliance.address.clueKey
           (action rho).receiverCompliance.assetId
           (action rho).receiverCompliance.slotId
           (action rho).receiverCompliance.slotDerivation

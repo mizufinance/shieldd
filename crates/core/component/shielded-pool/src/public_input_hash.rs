@@ -14,13 +14,13 @@ use crate::{
     NoteReshapeFamilyId,
 };
 
-pub const NOTE_RESHAPE_STATEMENT_BASE_FIELDS: usize = 2;
+pub const NOTE_RESHAPE_STATEMENT_BASE_FIELDS: usize = 5;
 pub const NOTE_RESHAPE_STATEMENT_FIELDS_PER_INPUT: usize = 2;
 pub const NOTE_RESHAPE_STATEMENT_FIELDS_PER_OUTPUT: usize = 1;
-pub const TRANSFER_STATEMENT_BASE_FIELDS: usize = 35;
+pub const TRANSFER_STATEMENT_BASE_FIELDS: usize = 38;
 pub const TRANSFER_STATEMENT_FIELDS_PER_INPUT: usize = 2;
 pub const TRANSFER_STATEMENT_FIELDS_PER_OUTPUT: usize = 1;
-pub const SHIELDED_ICS20_WITHDRAWAL_STATEMENT_BASE_FIELDS: usize = 12;
+pub const SHIELDED_ICS20_WITHDRAWAL_STATEMENT_BASE_FIELDS: usize = 14;
 pub const SHIELDED_ICS20_WITHDRAWAL_STATEMENT_FIELDS_PER_INPUT: usize = 2;
 
 pub const fn note_reshape_statement_field_count(n_in: usize, n_out: usize) -> usize {
@@ -215,14 +215,23 @@ pub fn note_reshape_statement_fields(
         public.family_id.input_count(),
         public.family_id.output_count(),
     );
-    let fields = note_reshape_statement_fields_inner(
+    let mut fields = note_reshape_statement_fields_inner(
         public.anchor,
         public.balance_commitment,
         &public.inputs,
         &public.outputs,
-        expected,
+        expected - 3,
         note_reshape_field_encoding_error,
     )?;
+    let routing_offset = 2 + public.outputs.len();
+    fields.splice(
+        routing_offset..routing_offset,
+        [
+            public.asset_anchor.0,
+            Fq::from(public.routing_tag.value),
+            public.routing_parameter_set_id,
+        ],
+    );
     if fields.len() != expected {
         return Err(StatementHashError::InvalidFieldLength {
             expected,
@@ -302,6 +311,8 @@ pub fn transfer_statement_fields(
             .to_field_elements()
             .ok_or_else(|| transfer_field_encoding_error("balance_commitment"))?,
     );
+    fields.extend(public.routing.tags.map(|tag| Fq::from(tag.value)));
+    fields.push(public.routing_parameter_set_id);
     for (index, spend) in public.inputs.iter().enumerate() {
         fields.extend(
             spend
@@ -454,6 +465,8 @@ pub fn shielded_ics20_withdrawal_statement_fields(
         }
     })?);
     fields.extend(public.withdrawal_effect_hash_limbs);
+    fields.push(Fq::from(public.routing_tag.value));
+    fields.push(public.routing_parameter_set_id);
 
     if fields.len() != expected {
         return Err(StatementHashError::InvalidFieldLength {
@@ -470,7 +483,7 @@ pub fn note_reshape_statement_hash(
     fields: &[Fq],
 ) -> Result<Fq, StatementHashError> {
     hash_statement_fields(
-        &note_reshape_statement_hash_constant(family_id, "v1"),
+        &note_reshape_statement_hash_constant(family_id, "v2"),
         note_reshape_statement_hash_constant(family_id, "pad0"),
         note_reshape_statement_hash_constant(family_id, "pad1"),
         fields,
@@ -480,7 +493,7 @@ pub fn note_reshape_statement_hash(
 }
 
 pub fn transfer_statement_hash(fields: &[Fq]) -> Result<Fq, StatementHashError> {
-    let domain = transfer_statement_hash_constant("v4");
+    let domain = transfer_statement_hash_constant("v5");
     let pad_0 = transfer_statement_hash_constant("pad0");
     let pad_1 = transfer_statement_hash_constant("pad1");
     hash_statement_fields(
@@ -495,7 +508,7 @@ pub fn transfer_statement_hash(fields: &[Fq]) -> Result<Fq, StatementHashError> 
 
 pub fn shielded_ics20_withdrawal_statement_hash(fields: &[Fq]) -> Result<Fq, StatementHashError> {
     hash_statement_fields(
-        &shielded_ics20_withdrawal_statement_hash_constant("v2"),
+        &shielded_ics20_withdrawal_statement_hash_constant("v3"),
         shielded_ics20_withdrawal_statement_hash_constant("pad0"),
         shielded_ics20_withdrawal_statement_hash_constant("pad1"),
         fields,
@@ -532,7 +545,7 @@ pub fn note_reshape_statement_hash_var(
 ) -> Result<FqVar, SynthesisError> {
     hash_statement_fields_var(
         cs,
-        &note_reshape_statement_hash_constant(family_id, "v1"),
+        &note_reshape_statement_hash_constant(family_id, "v2"),
         note_reshape_statement_hash_constant(family_id, "pad0"),
         note_reshape_statement_hash_constant(family_id, "pad1"),
         fields,
@@ -544,7 +557,7 @@ pub fn transfer_statement_hash_var(
     cs: ConstraintSystemRef<Fq>,
     fields: &[FqVar],
 ) -> Result<FqVar, SynthesisError> {
-    let domain = transfer_statement_hash_constant("v4");
+    let domain = transfer_statement_hash_constant("v5");
     let pad_0 = transfer_statement_hash_constant("pad0");
     let pad_1 = transfer_statement_hash_constant("pad1");
     hash_statement_fields_var(
@@ -569,7 +582,7 @@ mod tests {
 
     fn go_fixture_statement_hash(path: &str) -> (NoteReshapeFamilyId, Fq) {
         let bytes = std::fs::read(path).expect("read Go note reshape fixture");
-        let witness = crate::gnark::decode_note_reshape_witness_v3(&bytes)
+        let witness = crate::gnark::decode_note_reshape_witness_v4(&bytes)
             .expect("decode Go note reshape fixture");
         let mut fields = Vec::with_capacity(note_reshape_statement_field_count(
             witness.n_in as usize,
@@ -584,6 +597,11 @@ mod tests {
         );
         fields.push(Fq::from_le_bytes_mod_order(
             &crate::gnark::point_affine_compress_to_field_bytes(&witness.balance_commitment_affine),
+        ));
+        fields.push(Fq::from_le_bytes_mod_order(&witness.asset_anchor));
+        fields.push(Fq::from_le_bytes_mod_order(&witness.routing_tag));
+        fields.push(Fq::from_le_bytes_mod_order(
+            &witness.routing_parameter_set_id,
         ));
         for spend in &witness.spends {
             fields.push(Fq::from_le_bytes_mod_order(&spend.nullifier));
@@ -630,15 +648,15 @@ mod tests {
             .join("../../../..")
             .join("tools/gnark/internal/testfixtures/vectors");
         for (label, filename) in [
-            ("note_reshape1x8", "note_reshape1x8_witness_v3.bin"),
-            ("note_reshape8x1", "note_reshape8x1_witness_v3.bin"),
+            ("note_reshape1x8", "note_reshape1x8_witness_v4.bin"),
+            ("note_reshape8x1", "note_reshape8x1_witness_v4.bin"),
         ] {
             let (family_id, hash) = go_fixture_statement_hash(
                 root.join(filename).to_str().expect("fixture path is UTF-8"),
             );
             assert_eq!(family_id.label(), label);
             let bytes = std::fs::read(root.join(filename)).expect("read Go note reshape fixture");
-            let witness = crate::gnark::decode_note_reshape_witness_v3(&bytes)
+            let witness = crate::gnark::decode_note_reshape_witness_v4(&bytes)
                 .expect("decode Go note reshape fixture");
             assert_eq!(
                 hash,
@@ -660,7 +678,7 @@ mod tests {
         let correct =
             note_reshape_statement_hash(family_id, &fields).expect("correct family statement hash");
         let wrong = hash_statement_fields(
-            &note_reshape_statement_hash_constant(NoteReshapeFamilyId::OneByEight, "v1"),
+            &note_reshape_statement_hash_constant(NoteReshapeFamilyId::OneByEight, "v2"),
             note_reshape_statement_hash_constant(NoteReshapeFamilyId::OneByEight, "pad0"),
             note_reshape_statement_hash_constant(NoteReshapeFamilyId::OneByEight, "pad1"),
             &fields,
@@ -759,8 +777,8 @@ mod tests {
     fn transfer_statement_binds_one_factored_metadata_record() {
         let (public, _) = proof_test_helpers::build_transfer_roundtrip_inputs(true);
         let fields = transfer_statement_fields(&public).expect("transfer statement fields");
-        assert_eq!(fields.len(), 41);
-        assert_eq!(fields[30], public.target_timestamp);
+        assert_eq!(fields.len(), TRANSFER_STATEMENT_FIELD_COUNT);
+        assert_eq!(fields[33], public.target_timestamp);
 
         let metadata = &public.compliance.metadata;
         let expected_metadata = [
@@ -775,9 +793,9 @@ mod tests {
             metadata.output_core_salt().unwrap(),
             metadata.output_ext_salt().unwrap(),
         ];
-        assert_eq!(&fields[31..], expected_metadata.as_slice());
+        assert_eq!(&fields[34..], expected_metadata.as_slice());
 
-        let v4 = transfer_statement_hash(&fields).expect("v4 transfer hash");
+        let v5 = transfer_statement_hash(&fields).expect("v5 transfer hash");
         let v3 = hash_statement_fields(
             &transfer_statement_hash_constant("v3"),
             transfer_statement_hash_constant("pad0"),
@@ -787,7 +805,7 @@ mod tests {
             |expected, got| StatementHashError::InvalidFieldLength { expected, got },
         )
         .expect("legacy domain hash");
-        assert_ne!(v4, v3, "V16 must not verify under the V15 hash domain");
+        assert_ne!(v5, v3, "V17 must not verify under the V15 hash domain");
     }
 
     #[test]

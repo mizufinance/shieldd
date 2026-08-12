@@ -17,16 +17,16 @@ namespace CompressRelation
 open Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e
 
 theorem x (rho : Nat → DeployedF) :
-    relationLc0 (Seg138.localRho rho) = balanceCommitmentComputed0 rho := by
+    relationLc0 (Seg156.localRho rho) = balanceCommitmentComputed0 rho := by
   unfold relationLc0
   simp only [
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
     StrideRun.eval, zero_add, one_mul, add_zero
   ]
-  rw [StrideRun.sumAux_add (Seg138.localRho rho) 2 1 149 101]
+  rw [StrideRun.sumAux_add (Seg156.localRho rho) 2 1 149 101]
   rw [NoteReshape8x1BalanceCompressRuns.x0, NoteReshape8x1BalanceCompressRuns.x1]
-  have hw1 : Seg138.wireSeating 1 = 108533 := by decide +kernel
-  simp only [Seg138.localRho, Deployed.Templates.seated, hw1]
+  have hw1 : Seg156.wireSeating 1 = 121852 := by decide +kernel
+  simp only [Seg156.localRho, Deployed.Templates.seated, hw1]
   simp only [
     balanceCommitmentComputed0, balanceCommitmentComputed0LC,
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
@@ -34,16 +34,16 @@ theorem x (rho : Nat → DeployedF) :
   ]
 
 theorem y (rho : Nat → DeployedF) :
-    relationLc1 (Seg138.localRho rho) = balanceCommitmentComputed1 rho := by
+    relationLc1 (Seg156.localRho rho) = balanceCommitmentComputed1 rho := by
   unfold relationLc1
   simp only [
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
     StrideRun.eval, zero_add, one_mul, add_zero
   ]
-  rw [StrideRun.sumAux_add (Seg138.localRho rho) 253 1 149 101]
+  rw [StrideRun.sumAux_add (Seg156.localRho rho) 253 1 149 101]
   rw [NoteReshape8x1BalanceCompressRuns.y0, NoteReshape8x1BalanceCompressRuns.y1]
-  have hw1 : Seg138.wireSeating 1 = 108533 := by decide +kernel
-  simp only [Seg138.localRho, Deployed.Templates.seated, hw1]
+  have hw1 : Seg156.wireSeating 1 = 121852 := by decide +kernel
+  simp only [Seg156.localRho, Deployed.Templates.seated, hw1]
   simp only [
     balanceCommitmentComputed1, balanceCommitmentComputed1LC,
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
@@ -58,19 +58,19 @@ theorem computed
     Decaf377Assumptions.CompressToFieldSpec
       (NoteReshape8x1Balance.Nb.computed rho)
       (balanceCommitmentFq rho) := by
-  have h := facts.balance.DecafCompressToFieldSeg138
+  have h := facts.balance.DecafCompressToFieldSeg156
   change
     Deployed.Templates.Semantics.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.spec
-      (Seg138.localRho rho) at h
+      (Seg156.localRho rho) at h
   unfold
     Deployed.Templates.Semantics.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.spec at h
   unfold
     Deployed.Templates.Semantics.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.inputX
     Deployed.Templates.Semantics.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.inputY at h
   rw [CompressRelation.x, CompressRelation.y] at h
-  have hw1204 : Seg138.wireSeating 1204 = 111041 := by decide +kernel
-  have hw864 : Seg138.wireSeating 864 = 110701 := by decide +kernel
-  have hFq : balanceCommitmentFq rho = rho 111041 - rho 110701 := by
+  have hw1204 : Seg156.wireSeating 1204 = 124360 := by decide +kernel
+  have hw864 : Seg156.wireSeating 864 = 124020 := by decide +kernel
+  have hFq : balanceCommitmentFq rho = rho 124360 - rho 124020 := by
     simp only [
       balanceCommitmentFq, balanceCommitmentFqLC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual
@@ -90,7 +90,7 @@ theorem computed
     balanceCommitmentFq, balanceCommitmentFqLC,
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
     Deployed.Templates.Semantics.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.templateRho,
-    Seg138.localRho, Deployed.Templates.seated,
+    Seg156.localRho, Deployed.Templates.seated,
     hw1204, hw864
   ] using h
 

@@ -68,3 +68,4 @@ pbjson-types = { workspace = true }
 
 [dev-dependencies]
 shieldd-sdk-keys = {workspace = true, features = ["demo"]}
+tempfile = {workspace = true}

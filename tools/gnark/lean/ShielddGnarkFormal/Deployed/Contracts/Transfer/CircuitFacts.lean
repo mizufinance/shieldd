@@ -1,4 +1,15 @@
 import ShielddGnarkFormal.Deployed.Contracts.Transfer.Capstone
+import ShielddGnarkFormal.Deployed.Contracts.Transfer.Facts.CanonicalSender
+import ShielddGnarkFormal.Deployed.Contracts.Transfer.Facts.RequiredSpend
+import ShielddGnarkFormal.Deployed.Contracts.Transfer.Facts.OptionalSpend
+import ShielddGnarkFormal.Deployed.Contracts.Transfer.Facts.ReceiverOutput
+import ShielddGnarkFormal.Deployed.Contracts.Transfer.Facts.ChangeOutput
+import ShielddGnarkFormal.Deployed.Contracts.Transfer.Facts.AssetRegistry
+import ShielddGnarkFormal.Deployed.Contracts.Transfer.Facts.SenderCompliance
+import ShielddGnarkFormal.Deployed.Contracts.Transfer.Facts.ReceiverCompliance
+import ShielddGnarkFormal.Deployed.Contracts.Transfer.Facts.ComplianceTranscript
+import ShielddGnarkFormal.Deployed.Contracts.Transfer.Facts.BalanceComputedAndCompressed
+import ShielddGnarkFormal.Deployed.Contracts.Transfer.Facts.StatementBinding
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 4000000
@@ -10,113 +21,33 @@ namespace Shieldd.GnarkFormal.Deployed.Contracts.Transfer
 
 open Shieldd.GnarkFormal
 
-/-- Exact deployed exact row facts. -/
-structure ExactCircuitFacts (rho : Nat → DeployedF) : Prop where
-  AssertBooleanSeg1 : Seg1.contract.spec rho
-  AssertDecafNonIdentitySeg3 : Seg3.contract.spec rho
-  AssertDecafNonIdentitySeg4 : Seg4.contract.spec rho
-  AssertNeSeg5 : Seg5.contract.spec rho
-  SelectPointSeg6 : Seg6.contract.spec rho
-  SelectPointSeg7 : Seg7.contract.spec rho
-  SelectFieldSeg8 : Seg8.contract.spec rho
-  SelectFieldSeg9 : Seg9.contract.spec rho
-  SelectFieldSeg10 : Seg10.contract.spec rho
-  SelectFieldSeg11 : Seg11.contract.spec rho
-  DecafCompressToFieldSeg12 : Seg12.contract.spec rho
-  DecafCompressToFieldSeg13 : Seg13.contract.spec rho
-  AssertNeSeg14 : Seg14.contract.spec rho
-  DecafDiversifiedTransmissionKeySeg15 : Seg15.contract.spec rho
-  DecafAssertEquivalentSeg16 : Seg16.contract.spec rho
-  AssertDecafNonIdentitySeg17 : Seg17.contract.spec rho
-  DecafCompressToFieldSeg18 : Seg18.contract.spec rho
-  GadgetAssetRegistryParamsHashSeg19 : Seg19.contract.spec rho
-  DecafCompressToFieldSeg20 : Seg20.contract.spec rho
-  GadgetAssetRegistryRingHashSeg21 : Seg21.contract.spec rho
-  GadgetAssetRegistryLeafHashSeg22 : Seg22.contract.spec rho
-  GadgetAssetRegistryPathSeg23 : Seg23.contract.spec rho
-  AssertEqSeg24 : Seg24.contract.spec rho
-  GadgetAssetRegistryGapSeg25 : Seg25.contract.spec rho
-  AssertEqSeg26 : Seg26.contract.spec rho
-  GadgetComplianceLeafSeg27 : Seg27.contract.spec rho
-  GadgetCompliancePathSeg28 : Seg28.contract.spec rho
-  AssertEqIfSeg29 : Seg29.contract.spec rho
-  DecafAckSeg30 : Seg30.contract.spec rho
-  GadgetNoteCommitmentSeg32 : Seg32.contract.spec rho
-  GadgetNullifierSeg33 : Seg33.contract.spec rho
-  GadgetStateCommitmentPathSeg34 : Seg34.contract.spec rho
-  AssertEqSeg35 : Seg35.contract.spec rho
-  AssertEqSeg36 : Seg36.contract.spec rho
-  DecafRandomizedVerificationKeySeg37 : Seg37.contract.spec rho
-  DecafAssertEquivalentSeg38 : Seg38.contract.spec rho
-  DecafCompressToFieldSeg39 : Seg39.contract.spec rho
-  AssertBooleanSeg42 : Seg42.contract.spec rho
-  GadgetNoteCommitmentSeg43 : Seg43.contract.spec rho
-  GadgetNullifierSeg44 : Seg44.contract.spec rho
-  GadgetStateCommitmentPathSeg45 : Seg45.contract.spec rho
-  GadgetSyntheticDummyNullifierSeg46 : Seg46.contract.spec rho
-  DummyMuxSeg47 : Seg47.contract.spec rho
-  AssertEqSeg48 : Seg48.contract.spec rho
-  AssertEqIfSeg49 : Seg49.contract.spec rho
-  DecafRandomizedVerificationKeySeg50 : Seg50.contract.spec rho
-  DecafAssertEquivalentIfSeg51 : Seg51.contract.spec rho
-  AssertEqIfSeg52 : Seg52.contract.spec rho
-  DecafCompressToFieldSeg53 : Seg53.contract.spec rho
-  AssertDecafNonIdentitySeg56 : Seg56.contract.spec rho
-  AssertDecafNonIdentitySeg57 : Seg57.contract.spec rho
-  GadgetIsZeroSeg58 : Seg58.contract.spec rho
-  DecafCompressToFieldSeg59 : Seg59.contract.spec rho
-  DecafCompressToFieldSeg60 : Seg60.contract.spec rho
-  GadgetNoteCommitmentSeg61 : Seg61.contract.spec rho
-  AssertEqSeg62 : Seg62.contract.spec rho
-  GadgetComplianceLeafSeg63 : Seg63.contract.spec rho
-  GadgetCompliancePathSeg64 : Seg64.contract.spec rho
-  AssertEqIfSeg65 : Seg65.contract.spec rho
-  AssertEqSeg66 : Seg66.contract.spec rho
-  DecafAckSeg67 : Seg67.contract.spec rho
-  GadgetNoteCommitmentSeg70 : Seg70.contract.spec rho
-  AssertEqSeg71 : Seg71.contract.spec rho
-  ThresholdFlagSeg74 : Seg74.contract.spec rho
-  DecafCompressToFieldSeg75 : Seg75.contract.spec rho
-  DecafCompressToFieldSeg76 : Seg76.contract.spec rho
-  DecafCompressToFieldSeg77 : Seg77.contract.spec rho
-  DecafCompressToFieldSeg78 : Seg78.contract.spec rho
-  GadgetTransferSaltSeg79 : Seg79.contract.spec rho
-  GadgetTransferSaltSeg80 : Seg80.contract.spec rho
-  GadgetTransferSaltSeg81 : Seg81.contract.spec rho
-  GadgetTransferSaltSeg82 : Seg82.contract.spec rho
-  GadgetTransferSaltSeg83 : Seg83.contract.spec rho
-  DecafSharedSecretSeg84 : Seg84.contract.spec rho
-  DecafSharedSecretSeg85 : Seg85.contract.spec rho
-  DecafSharedSecretSeg86 : Seg86.contract.spec rho
-  DecafSharedSecretSeg87 : Seg87.contract.spec rho
-  GadgetPoseidonEncryptionDetectionSeg88 : Seg88.contract.spec rho
-  GadgetPoseidonEncryptionAmountSeg89 : Seg89.contract.spec rho
-  GadgetPoseidonEncryptionAddressSeg90 : Seg90.contract.spec rho
-  GadgetPoseidonEncryptionAmountSeg91 : Seg91.contract.spec rho
-  GadgetPoseidonEncryptionAddressSeg92 : Seg92.contract.spec rho
-  AssertEqSeg94 : Seg94.contract.spec rho
-  AssertEqSeg95 : Seg95.contract.spec rho
-  AssertEqSeg96 : Seg96.contract.spec rho
-  AssertEqSeg97 : Seg97.contract.spec rho
-  AssertEqSeg98 : Seg98.contract.spec rho
-  AssertEqSeg99 : Seg99.contract.spec rho
-  AssertEqSeg100 : Seg100.contract.spec rho
-  AssertEqSeg101 : Seg101.contract.spec rho
-  AssertEqSeg102 : Seg102.contract.spec rho
-  AssertEqSeg103 : Seg103.contract.spec rho
-  AssertEqSeg104 : Seg104.contract.spec rho
-  DecafNetBalanceCommitmentSeg106 : Seg106.contract.spec rho
-  DecafCompressToFieldSeg107 : Seg107.contract.spec rho
-  StatementHashSeg109 : Seg109.contract.spec rho
-  AssertEqSeg110 : Seg110.contract.spec rho
-
 structure TransferCircuitFacts (rho : Nat → DeployedF) : Prop where
-  exact : ExactCircuitFacts rho
+  canonicalSender : CanonicalSenderCircuitFacts rho
+  requiredSpend : RequiredSpendCircuitFacts rho
+  optionalSpend : OptionalSpendCircuitFacts rho
+  receiverOutput : ReceiverOutputCircuitFacts rho
+  changeOutput : ChangeOutputCircuitFacts rho
+  assetRegistry : AssetRegistryCircuitFacts rho
+  senderCompliance : SenderComplianceCircuitFacts rho
+  receiverCompliance : ReceiverComplianceCircuitFacts rho
+  complianceTranscript : ComplianceTranscriptCircuitFacts rho
+  balanceComputedAndCompressed : BalanceComputedAndCompressedCircuitFacts rho
+  statementBinding : StatementBindingCircuitFacts rho
 
 theorem transfer_circuitFacts (rho : Nat → DeployedF) (h : relationAll rho) :
     TransferCircuitFacts rho := by
   exact {
-    exact := ⟨specOf1 rho h, specOf3 rho h, specOf4 rho h, specOf5 rho h, specOf6 rho h, specOf7 rho h, specOf8 rho h, specOf9 rho h, specOf10 rho h, specOf11 rho h, specOf12 rho h, specOf13 rho h, specOf14 rho h, specOf15 rho h, specOf16 rho h, specOf17 rho h, specOf18 rho h, specOf19 rho h, specOf20 rho h, specOf21 rho h, specOf22 rho h, specOf23 rho h, specOf24 rho h, specOf25 rho h, specOf26 rho h, specOf27 rho h, specOf28 rho h, specOf29 rho h, specOf30 rho h, specOf32 rho h, specOf33 rho h, specOf34 rho h, specOf35 rho h, specOf36 rho h, specOf37 rho h, specOf38 rho h, specOf39 rho h, specOf42 rho h, specOf43 rho h, specOf44 rho h, specOf45 rho h, specOf46 rho h, specOf47 rho h, specOf48 rho h, specOf49 rho h, specOf50 rho h, specOf51 rho h, specOf52 rho h, specOf53 rho h, specOf56 rho h, specOf57 rho h, specOf58 rho h, specOf59 rho h, specOf60 rho h, specOf61 rho h, specOf62 rho h, specOf63 rho h, specOf64 rho h, specOf65 rho h, specOf66 rho h, specOf67 rho h, specOf70 rho h, specOf71 rho h, specOf74 rho h, specOf75 rho h, specOf76 rho h, specOf77 rho h, specOf78 rho h, specOf79 rho h, specOf80 rho h, specOf81 rho h, specOf82 rho h, specOf83 rho h, specOf84 rho h, specOf85 rho h, specOf86 rho h, specOf87 rho h, specOf88 rho h, specOf89 rho h, specOf90 rho h, specOf91 rho h, specOf92 rho h, specOf94 rho h, specOf95 rho h, specOf96 rho h, specOf97 rho h, specOf98 rho h, specOf99 rho h, specOf100 rho h, specOf101 rho h, specOf102 rho h, specOf103 rho h, specOf104 rho h, specOf106 rho h, specOf107 rho h, specOf109 rho h, specOf110 rho h⟩
+    canonicalSender := ⟨specOf3 rho h, specOf4 rho h, specOf12 rho h, specOf13 rho h, specOf14 rho h, specOf15 rho h, specOf16 rho h, specOf17 rho h⟩
+    requiredSpend := ⟨specOf32 rho h, specOf33 rho h, specOf34 rho h, specOf35 rho h, specOf36 rho h, specOf37 rho h, specOf38 rho h, specOf39 rho h⟩
+    optionalSpend := ⟨specOf42 rho h, specOf43 rho h, specOf44 rho h, specOf45 rho h, specOf46 rho h, specOf47 rho h, specOf48 rho h, specOf49 rho h, specOf50 rho h, specOf51 rho h, specOf52 rho h, specOf53 rho h⟩
+    receiverOutput := ⟨specOf56 rho h, specOf57 rho h, specOf58 rho h, specOf59 rho h, specOf60 rho h, specOf61 rho h, specOf62 rho h, specOf66 rho h⟩
+    changeOutput := ⟨specOf70 rho h, specOf71 rho h⟩
+    assetRegistry := ⟨specOf1 rho h, specOf5 rho h, specOf18 rho h, specOf19 rho h, specOf20 rho h, specOf21 rho h, specOf22 rho h, specOf23 rho h, specOf24 rho h, specOf25 rho h, specOf26 rho h⟩
+    senderCompliance := ⟨specOf27 rho h, specOf28 rho h, specOf29 rho h, specOf30 rho h⟩
+    receiverCompliance := ⟨specOf63 rho h, specOf64 rho h, specOf65 rho h, specOf67 rho h⟩
+    complianceTranscript := ⟨specOf6 rho h, specOf7 rho h, specOf8 rho h, specOf9 rho h, specOf10 rho h, specOf11 rho h, specOf89 rho h, specOf90 rho h, specOf91 rho h, specOf92 rho h, specOf93 rho h, specOf94 rho h, specOf95 rho h, specOf96 rho h, specOf97 rho h, specOf98 rho h, specOf99 rho h, specOf100 rho h, specOf101 rho h, specOf102 rho h, specOf103 rho h, specOf104 rho h, specOf105 rho h, specOf106 rho h, specOf107 rho h, specOf109 rho h, specOf110 rho h, specOf111 rho h, specOf112 rho h, specOf113 rho h, specOf114 rho h, specOf115 rho h, specOf116 rho h, specOf117 rho h, specOf118 rho h, specOf119 rho h⟩
+    balanceComputedAndCompressed := ⟨specOf121 rho h, specOf122 rho h⟩
+    statementBinding := ⟨specOf72 rho h, specOf73 rho h, specOf74 rho h, specOf75 rho h, specOf76 rho h, specOf77 rho h, specOf78 rho h, specOf79 rho h, specOf80 rho h, specOf81 rho h, specOf82 rho h, specOf83 rho h, specOf84 rho h, specOf85 rho h, specOf86 rho h, specOf124 rho h, specOf125 rho h⟩
   }
 
 end Shieldd.GnarkFormal.Deployed.Contracts.Transfer

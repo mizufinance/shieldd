@@ -390,20 +390,26 @@ impl serde::Serialize for DiscoveryParameters {
     {
         use serde::ser::SerializeStruct;
         let mut len = 0;
-        if self.precision_bits != 0 {
+        if self.regulated_precision_bits != 0 {
             len += 1;
         }
-        if self.as_of_block_height != 0 {
+        if self.unregulated_precision_bits != 0 {
+            len += 1;
+        }
+        if self.as_of_height != 0 {
             len += 1;
         }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.DiscoveryParameters", len)?;
-        if self.precision_bits != 0 {
-            struct_ser.serialize_field("precisionBits", &self.precision_bits)?;
+        if self.regulated_precision_bits != 0 {
+            struct_ser.serialize_field("regulatedPrecisionBits", &self.regulated_precision_bits)?;
         }
-        if self.as_of_block_height != 0 {
+        if self.unregulated_precision_bits != 0 {
+            struct_ser.serialize_field("unregulatedPrecisionBits", &self.unregulated_precision_bits)?;
+        }
+        if self.as_of_height != 0 {
             #[allow(clippy::needless_borrow)]
             #[allow(clippy::needless_borrows_for_generic_args)]
-            struct_ser.serialize_field("asOfBlockHeight", ToString::to_string(&self.as_of_block_height).as_str())?;
+            struct_ser.serialize_field("asOfHeight", ToString::to_string(&self.as_of_height).as_str())?;
         }
         struct_ser.end()
     }
@@ -415,16 +421,19 @@ impl<'de> serde::Deserialize<'de> for DiscoveryParameters {
         D: serde::Deserializer<'de>,
     {
         const FIELDS: &[&str] = &[
-            "precision_bits",
-            "precisionBits",
-            "as_of_block_height",
-            "asOfBlockHeight",
+            "regulated_precision_bits",
+            "regulatedPrecisionBits",
+            "unregulated_precision_bits",
+            "unregulatedPrecisionBits",
+            "as_of_height",
+            "asOfHeight",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
-            PrecisionBits,
-            AsOfBlockHeight,
+            RegulatedPrecisionBits,
+            UnregulatedPrecisionBits,
+            AsOfHeight,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -447,8 +456,9 @@ impl<'de> serde::Deserialize<'de> for DiscoveryParameters {
                         E: serde::de::Error,
                     {
                         match value {
-                            "precisionBits" | "precision_bits" => Ok(GeneratedField::PrecisionBits),
-                            "asOfBlockHeight" | "as_of_block_height" => Ok(GeneratedField::AsOfBlockHeight),
+                            "regulatedPrecisionBits" | "regulated_precision_bits" => Ok(GeneratedField::RegulatedPrecisionBits),
+                            "unregulatedPrecisionBits" | "unregulated_precision_bits" => Ok(GeneratedField::UnregulatedPrecisionBits),
+                            "asOfHeight" | "as_of_height" => Ok(GeneratedField::AsOfHeight),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -468,23 +478,32 @@ impl<'de> serde::Deserialize<'de> for DiscoveryParameters {
                 where
                     V: serde::de::MapAccess<'de>,
             {
-                let mut precision_bits__ = None;
-                let mut as_of_block_height__ = None;
+                let mut regulated_precision_bits__ = None;
+                let mut unregulated_precision_bits__ = None;
+                let mut as_of_height__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
-                        GeneratedField::PrecisionBits => {
-                            if precision_bits__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("precisionBits"));
+                        GeneratedField::RegulatedPrecisionBits => {
+                            if regulated_precision_bits__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("regulatedPrecisionBits"));
                             }
-                            precision_bits__ = 
+                            regulated_precision_bits__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
-                        GeneratedField::AsOfBlockHeight => {
-                            if as_of_block_height__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("asOfBlockHeight"));
+                        GeneratedField::UnregulatedPrecisionBits => {
+                            if unregulated_precision_bits__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("unregulatedPrecisionBits"));
                             }
-                            as_of_block_height__ = 
+                            unregulated_precision_bits__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::AsOfHeight => {
+                            if as_of_height__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("asOfHeight"));
+                            }
+                            as_of_height__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -494,129 +513,13 @@ impl<'de> serde::Deserialize<'de> for DiscoveryParameters {
                     }
                 }
                 Ok(DiscoveryParameters {
-                    precision_bits: precision_bits__.unwrap_or_default(),
-                    as_of_block_height: as_of_block_height__.unwrap_or_default(),
+                    regulated_precision_bits: regulated_precision_bits__.unwrap_or_default(),
+                    unregulated_precision_bits: unregulated_precision_bits__.unwrap_or_default(),
+                    as_of_height: as_of_height__.unwrap_or_default(),
                 })
             }
         }
         deserializer.deserialize_struct("shieldd.core.component.shielded_pool.v1.DiscoveryParameters", FIELDS, GeneratedVisitor)
-    }
-}
-impl serde::Serialize for DiscoveryTag {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut len = 0;
-        if self.precision_bits != 0 {
-            len += 1;
-        }
-        if self.value != 0 {
-            len += 1;
-        }
-        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.DiscoveryTag", len)?;
-        if self.precision_bits != 0 {
-            struct_ser.serialize_field("precisionBits", &self.precision_bits)?;
-        }
-        if self.value != 0 {
-            struct_ser.serialize_field("value", &self.value)?;
-        }
-        struct_ser.end()
-    }
-}
-impl<'de> serde::Deserialize<'de> for DiscoveryTag {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "precision_bits",
-            "precisionBits",
-            "value",
-        ];
-
-        #[allow(clippy::enum_variant_names)]
-        enum GeneratedField {
-            PrecisionBits,
-            Value,
-            __SkipField__,
-        }
-        impl<'de> serde::Deserialize<'de> for GeneratedField {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                struct GeneratedVisitor;
-
-                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-                    type Value = GeneratedField;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(formatter, "expected one of: {:?}", &FIELDS)
-                    }
-
-                    #[allow(unused_variables)]
-                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        match value {
-                            "precisionBits" | "precision_bits" => Ok(GeneratedField::PrecisionBits),
-                            "value" => Ok(GeneratedField::Value),
-                            _ => Ok(GeneratedField::__SkipField__),
-                        }
-                    }
-                }
-                deserializer.deserialize_identifier(GeneratedVisitor)
-            }
-        }
-        struct GeneratedVisitor;
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = DiscoveryTag;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct shieldd.core.component.shielded_pool.v1.DiscoveryTag")
-            }
-
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<DiscoveryTag, V::Error>
-                where
-                    V: serde::de::MapAccess<'de>,
-            {
-                let mut precision_bits__ = None;
-                let mut value__ = None;
-                while let Some(k) = map_.next_key()? {
-                    match k {
-                        GeneratedField::PrecisionBits => {
-                            if precision_bits__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("precisionBits"));
-                            }
-                            precision_bits__ = 
-                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
-                            ;
-                        }
-                        GeneratedField::Value => {
-                            if value__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("value"));
-                            }
-                            value__ = 
-                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
-                            ;
-                        }
-                        GeneratedField::__SkipField__ => {
-                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
-                        }
-                    }
-                }
-                Ok(DiscoveryTag {
-                    precision_bits: precision_bits__.unwrap_or_default(),
-                    value: value__.unwrap_or_default(),
-                })
-            }
-        }
-        deserializer.deserialize_struct("shieldd.core.component.shielded_pool.v1.DiscoveryTag", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for EventInboundFungibleTokenTransfer {
@@ -2428,9 +2331,6 @@ impl serde::Serialize for NotePayload {
         if self.encrypted_note.is_some() {
             len += 1;
         }
-        if self.discovery_tag.is_some() {
-            len += 1;
-        }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.NotePayload", len)?;
         if let Some(v) = self.note_commitment.as_ref() {
             struct_ser.serialize_field("noteCommitment", v)?;
@@ -2442,9 +2342,6 @@ impl serde::Serialize for NotePayload {
         }
         if let Some(v) = self.encrypted_note.as_ref() {
             struct_ser.serialize_field("encryptedNote", v)?;
-        }
-        if let Some(v) = self.discovery_tag.as_ref() {
-            struct_ser.serialize_field("discoveryTag", v)?;
         }
         struct_ser.end()
     }
@@ -2462,8 +2359,6 @@ impl<'de> serde::Deserialize<'de> for NotePayload {
             "ephemeralKey",
             "encrypted_note",
             "encryptedNote",
-            "discovery_tag",
-            "discoveryTag",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -2471,7 +2366,6 @@ impl<'de> serde::Deserialize<'de> for NotePayload {
             NoteCommitment,
             EphemeralKey,
             EncryptedNote,
-            DiscoveryTag,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -2497,7 +2391,6 @@ impl<'de> serde::Deserialize<'de> for NotePayload {
                             "noteCommitment" | "note_commitment" => Ok(GeneratedField::NoteCommitment),
                             "ephemeralKey" | "ephemeral_key" => Ok(GeneratedField::EphemeralKey),
                             "encryptedNote" | "encrypted_note" => Ok(GeneratedField::EncryptedNote),
-                            "discoveryTag" | "discovery_tag" => Ok(GeneratedField::DiscoveryTag),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -2520,7 +2413,6 @@ impl<'de> serde::Deserialize<'de> for NotePayload {
                 let mut note_commitment__ = None;
                 let mut ephemeral_key__ = None;
                 let mut encrypted_note__ = None;
-                let mut discovery_tag__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::NoteCommitment => {
@@ -2543,12 +2435,6 @@ impl<'de> serde::Deserialize<'de> for NotePayload {
                             }
                             encrypted_note__ = map_.next_value()?;
                         }
-                        GeneratedField::DiscoveryTag => {
-                            if discovery_tag__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("discoveryTag"));
-                            }
-                            discovery_tag__ = map_.next_value()?;
-                        }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
                         }
@@ -2558,7 +2444,6 @@ impl<'de> serde::Deserialize<'de> for NotePayload {
                     note_commitment: note_commitment__,
                     ephemeral_key: ephemeral_key__.unwrap_or_default(),
                     encrypted_note: encrypted_note__,
-                    discovery_tag: discovery_tag__,
                 })
             }
         }
@@ -2718,6 +2603,15 @@ impl serde::Serialize for NoteReshapeBody {
         if !self.outputs.is_empty() {
             len += 1;
         }
+        if self.routing_tag.is_some() {
+            len += 1;
+        }
+        if !self.routing_parameter_set_id.is_empty() {
+            len += 1;
+        }
+        if self.asset_anchor.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.NoteReshapeBody", len)?;
         if self.family_id != 0 {
             struct_ser.serialize_field("familyId", &self.family_id)?;
@@ -2733,6 +2627,17 @@ impl serde::Serialize for NoteReshapeBody {
         }
         if !self.outputs.is_empty() {
             struct_ser.serialize_field("outputs", &self.outputs)?;
+        }
+        if let Some(v) = self.routing_tag.as_ref() {
+            struct_ser.serialize_field("routingTag", v)?;
+        }
+        if !self.routing_parameter_set_id.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("routingParameterSetId", pbjson::private::base64::encode(&self.routing_parameter_set_id).as_str())?;
+        }
+        if let Some(v) = self.asset_anchor.as_ref() {
+            struct_ser.serialize_field("assetAnchor", v)?;
         }
         struct_ser.end()
     }
@@ -2751,6 +2656,12 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeBody {
             "balanceCommitment",
             "inputs",
             "outputs",
+            "routing_tag",
+            "routingTag",
+            "routing_parameter_set_id",
+            "routingParameterSetId",
+            "asset_anchor",
+            "assetAnchor",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -2760,6 +2671,9 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeBody {
             BalanceCommitment,
             Inputs,
             Outputs,
+            RoutingTag,
+            RoutingParameterSetId,
+            AssetAnchor,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -2787,6 +2701,9 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeBody {
                             "balanceCommitment" | "balance_commitment" => Ok(GeneratedField::BalanceCommitment),
                             "inputs" => Ok(GeneratedField::Inputs),
                             "outputs" => Ok(GeneratedField::Outputs),
+                            "routingTag" | "routing_tag" => Ok(GeneratedField::RoutingTag),
+                            "routingParameterSetId" | "routing_parameter_set_id" => Ok(GeneratedField::RoutingParameterSetId),
+                            "assetAnchor" | "asset_anchor" => Ok(GeneratedField::AssetAnchor),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -2811,6 +2728,9 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeBody {
                 let mut balance_commitment__ = None;
                 let mut inputs__ = None;
                 let mut outputs__ = None;
+                let mut routing_tag__ = None;
+                let mut routing_parameter_set_id__ = None;
+                let mut asset_anchor__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::FamilyId => {
@@ -2845,6 +2765,26 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeBody {
                             }
                             outputs__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::RoutingTag => {
+                            if routing_tag__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("routingTag"));
+                            }
+                            routing_tag__ = map_.next_value()?;
+                        }
+                        GeneratedField::RoutingParameterSetId => {
+                            if routing_parameter_set_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("routingParameterSetId"));
+                            }
+                            routing_parameter_set_id__ = 
+                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::AssetAnchor => {
+                            if asset_anchor__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("assetAnchor"));
+                            }
+                            asset_anchor__ = map_.next_value()?;
+                        }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
                         }
@@ -2856,6 +2796,9 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeBody {
                     balance_commitment: balance_commitment__,
                     inputs: inputs__.unwrap_or_default(),
                     outputs: outputs__.unwrap_or_default(),
+                    routing_tag: routing_tag__,
+                    routing_parameter_set_id: routing_parameter_set_id__.unwrap_or_default(),
+                    asset_anchor: asset_anchor__,
                 })
             }
         }
@@ -3156,7 +3099,7 @@ impl serde::Serialize for NoteReshapePlan {
         if self.family_id != 0 {
             len += 1;
         }
-        if self.discovery_precision_bits != 0 {
+        if self.routing_parameters.is_some() {
             len += 1;
         }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.NoteReshapePlan", len)?;
@@ -3174,8 +3117,8 @@ impl serde::Serialize for NoteReshapePlan {
         if self.family_id != 0 {
             struct_ser.serialize_field("familyId", &self.family_id)?;
         }
-        if self.discovery_precision_bits != 0 {
-            struct_ser.serialize_field("discoveryPrecisionBits", &self.discovery_precision_bits)?;
+        if let Some(v) = self.routing_parameters.as_ref() {
+            struct_ser.serialize_field("routingParameters", v)?;
         }
         struct_ser.end()
     }
@@ -3193,8 +3136,8 @@ impl<'de> serde::Deserialize<'de> for NoteReshapePlan {
             "outputs",
             "family_id",
             "familyId",
-            "discovery_precision_bits",
-            "discoveryPrecisionBits",
+            "routing_parameters",
+            "routingParameters",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -3203,7 +3146,7 @@ impl<'de> serde::Deserialize<'de> for NoteReshapePlan {
             Spends,
             Outputs,
             FamilyId,
-            DiscoveryPrecisionBits,
+            RoutingParameters,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -3230,7 +3173,7 @@ impl<'de> serde::Deserialize<'de> for NoteReshapePlan {
                             "spends" => Ok(GeneratedField::Spends),
                             "outputs" => Ok(GeneratedField::Outputs),
                             "familyId" | "family_id" => Ok(GeneratedField::FamilyId),
-                            "discoveryPrecisionBits" | "discovery_precision_bits" => Ok(GeneratedField::DiscoveryPrecisionBits),
+                            "routingParameters" | "routing_parameters" => Ok(GeneratedField::RoutingParameters),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -3254,7 +3197,7 @@ impl<'de> serde::Deserialize<'de> for NoteReshapePlan {
                 let mut spends__ = None;
                 let mut outputs__ = None;
                 let mut family_id__ = None;
-                let mut discovery_precision_bits__ = None;
+                let mut routing_parameters__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::ValueBlinding => {
@@ -3285,13 +3228,11 @@ impl<'de> serde::Deserialize<'de> for NoteReshapePlan {
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
-                        GeneratedField::DiscoveryPrecisionBits => {
-                            if discovery_precision_bits__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("discoveryPrecisionBits"));
+                        GeneratedField::RoutingParameters => {
+                            if routing_parameters__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("routingParameters"));
                             }
-                            discovery_precision_bits__ = 
-                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
-                            ;
+                            routing_parameters__ = map_.next_value()?;
                         }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
@@ -3303,7 +3244,7 @@ impl<'de> serde::Deserialize<'de> for NoteReshapePlan {
                     spends: spends__.unwrap_or_default(),
                     outputs: outputs__.unwrap_or_default(),
                     family_id: family_id__.unwrap_or_default(),
-                    discovery_precision_bits: discovery_precision_bits__.unwrap_or_default(),
+                    routing_parameters: routing_parameters__,
                 })
             }
         }
@@ -3802,6 +3743,220 @@ impl<'de> serde::Deserialize<'de> for NoteView {
         deserializer.deserialize_struct("shieldd.core.component.shielded_pool.v1.NoteView", FIELDS, GeneratedVisitor)
     }
 }
+impl serde::Serialize for RoutingSelector {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.precision_bits != 0 {
+            len += 1;
+        }
+        if self.prefix != 0 {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.RoutingSelector", len)?;
+        if self.precision_bits != 0 {
+            struct_ser.serialize_field("precisionBits", &self.precision_bits)?;
+        }
+        if self.prefix != 0 {
+            struct_ser.serialize_field("prefix", &self.prefix)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for RoutingSelector {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "precision_bits",
+            "precisionBits",
+            "prefix",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            PrecisionBits,
+            Prefix,
+            __SkipField__,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "precisionBits" | "precision_bits" => Ok(GeneratedField::PrecisionBits),
+                            "prefix" => Ok(GeneratedField::Prefix),
+                            _ => Ok(GeneratedField::__SkipField__),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = RoutingSelector;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct shieldd.core.component.shielded_pool.v1.RoutingSelector")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<RoutingSelector, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut precision_bits__ = None;
+                let mut prefix__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::PrecisionBits => {
+                            if precision_bits__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("precisionBits"));
+                            }
+                            precision_bits__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::Prefix => {
+                            if prefix__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("prefix"));
+                            }
+                            prefix__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::__SkipField__ => {
+                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
+                        }
+                    }
+                }
+                Ok(RoutingSelector {
+                    precision_bits: precision_bits__.unwrap_or_default(),
+                    prefix: prefix__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("shieldd.core.component.shielded_pool.v1.RoutingSelector", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for RoutingTag {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.value != 0 {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.RoutingTag", len)?;
+        if self.value != 0 {
+            struct_ser.serialize_field("value", &self.value)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for RoutingTag {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "value",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Value,
+            __SkipField__,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "value" => Ok(GeneratedField::Value),
+                            _ => Ok(GeneratedField::__SkipField__),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = RoutingTag;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct shieldd.core.component.shielded_pool.v1.RoutingTag")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<RoutingTag, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut value__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Value => {
+                            if value__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("value"));
+                            }
+                            value__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::__SkipField__ => {
+                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
+                        }
+                    }
+                }
+                Ok(RoutingTag {
+                    value: value__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("shieldd.core.component.shielded_pool.v1.RoutingTag", FIELDS, GeneratedVisitor)
+    }
+}
 impl serde::Serialize for ShieldedHostWithdrawal {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -3967,6 +4122,12 @@ impl serde::Serialize for ShieldedHostWithdrawalBody {
         if self.asset_anchor.is_some() {
             len += 1;
         }
+        if self.routing_tag.is_some() {
+            len += 1;
+        }
+        if !self.routing_parameter_set_id.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.ShieldedHostWithdrawalBody", len)?;
         if self.family_id != 0 {
             struct_ser.serialize_field("familyId", &self.family_id)?;
@@ -3997,6 +4158,14 @@ impl serde::Serialize for ShieldedHostWithdrawalBody {
         if let Some(v) = self.asset_anchor.as_ref() {
             struct_ser.serialize_field("assetAnchor", v)?;
         }
+        if let Some(v) = self.routing_tag.as_ref() {
+            struct_ser.serialize_field("routingTag", v)?;
+        }
+        if !self.routing_parameter_set_id.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("routingParameterSetId", pbjson::private::base64::encode(&self.routing_parameter_set_id).as_str())?;
+        }
         struct_ser.end()
     }
 }
@@ -4022,6 +4191,10 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalBody {
             "complianceAnchor",
             "asset_anchor",
             "assetAnchor",
+            "routing_tag",
+            "routingTag",
+            "routing_parameter_set_id",
+            "routingParameterSetId",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -4035,6 +4208,8 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalBody {
             TargetTimestamp,
             ComplianceAnchor,
             AssetAnchor,
+            RoutingTag,
+            RoutingParameterSetId,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -4066,6 +4241,8 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalBody {
                             "targetTimestamp" | "target_timestamp" => Ok(GeneratedField::TargetTimestamp),
                             "complianceAnchor" | "compliance_anchor" => Ok(GeneratedField::ComplianceAnchor),
                             "assetAnchor" | "asset_anchor" => Ok(GeneratedField::AssetAnchor),
+                            "routingTag" | "routing_tag" => Ok(GeneratedField::RoutingTag),
+                            "routingParameterSetId" | "routing_parameter_set_id" => Ok(GeneratedField::RoutingParameterSetId),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -4094,6 +4271,8 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalBody {
                 let mut target_timestamp__ = None;
                 let mut compliance_anchor__ = None;
                 let mut asset_anchor__ = None;
+                let mut routing_tag__ = None;
+                let mut routing_parameter_set_id__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::FamilyId => {
@@ -4154,6 +4333,20 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalBody {
                             }
                             asset_anchor__ = map_.next_value()?;
                         }
+                        GeneratedField::RoutingTag => {
+                            if routing_tag__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("routingTag"));
+                            }
+                            routing_tag__ = map_.next_value()?;
+                        }
+                        GeneratedField::RoutingParameterSetId => {
+                            if routing_parameter_set_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("routingParameterSetId"));
+                            }
+                            routing_parameter_set_id__ = 
+                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
+                        }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
                         }
@@ -4169,6 +4362,8 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalBody {
                     target_timestamp: target_timestamp__.unwrap_or_default(),
                     compliance_anchor: compliance_anchor__,
                     asset_anchor: asset_anchor__,
+                    routing_tag: routing_tag__,
+                    routing_parameter_set_id: routing_parameter_set_id__.unwrap_or_default(),
                 })
             }
         }
@@ -4195,7 +4390,7 @@ impl serde::Serialize for ShieldedHostWithdrawalPlan {
         if self.withdrawal.is_some() {
             len += 1;
         }
-        if self.discovery_precision_bits != 0 {
+        if self.routing_parameters.is_some() {
             len += 1;
         }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.ShieldedHostWithdrawalPlan", len)?;
@@ -4213,8 +4408,8 @@ impl serde::Serialize for ShieldedHostWithdrawalPlan {
         if let Some(v) = self.withdrawal.as_ref() {
             struct_ser.serialize_field("withdrawal", v)?;
         }
-        if self.discovery_precision_bits != 0 {
-            struct_ser.serialize_field("discoveryPrecisionBits", &self.discovery_precision_bits)?;
+        if let Some(v) = self.routing_parameters.as_ref() {
+            struct_ser.serialize_field("routingParameters", v)?;
         }
         struct_ser.end()
     }
@@ -4232,8 +4427,8 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalPlan {
             "change_output",
             "changeOutput",
             "withdrawal",
-            "discovery_precision_bits",
-            "discoveryPrecisionBits",
+            "routing_parameters",
+            "routingParameters",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -4242,7 +4437,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalPlan {
             Spends,
             ChangeOutput,
             Withdrawal,
-            DiscoveryPrecisionBits,
+            RoutingParameters,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -4269,7 +4464,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalPlan {
                             "spends" => Ok(GeneratedField::Spends),
                             "changeOutput" | "change_output" => Ok(GeneratedField::ChangeOutput),
                             "withdrawal" => Ok(GeneratedField::Withdrawal),
-                            "discoveryPrecisionBits" | "discovery_precision_bits" => Ok(GeneratedField::DiscoveryPrecisionBits),
+                            "routingParameters" | "routing_parameters" => Ok(GeneratedField::RoutingParameters),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -4293,7 +4488,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalPlan {
                 let mut spends__ = None;
                 let mut change_output__ = None;
                 let mut withdrawal__ = None;
-                let mut discovery_precision_bits__ = None;
+                let mut routing_parameters__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::ValueBlinding => {
@@ -4322,13 +4517,11 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalPlan {
                             }
                             withdrawal__ = map_.next_value()?;
                         }
-                        GeneratedField::DiscoveryPrecisionBits => {
-                            if discovery_precision_bits__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("discoveryPrecisionBits"));
+                        GeneratedField::RoutingParameters => {
+                            if routing_parameters__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("routingParameters"));
                             }
-                            discovery_precision_bits__ = 
-                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
-                            ;
+                            routing_parameters__ = map_.next_value()?;
                         }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
@@ -4340,7 +4533,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalPlan {
                     spends: spends__.unwrap_or_default(),
                     change_output: change_output__,
                     withdrawal: withdrawal__,
-                    discovery_precision_bits: discovery_precision_bits__.unwrap_or_default(),
+                    routing_parameters: routing_parameters__,
                 })
             }
         }
@@ -4869,6 +5062,12 @@ impl serde::Serialize for ShieldedIcs20WithdrawalBody {
         if self.asset_anchor.is_some() {
             len += 1;
         }
+        if self.routing_tag.is_some() {
+            len += 1;
+        }
+        if !self.routing_parameter_set_id.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.ShieldedIcs20WithdrawalBody", len)?;
         if self.family_id != 0 {
             struct_ser.serialize_field("familyId", &self.family_id)?;
@@ -4899,6 +5098,14 @@ impl serde::Serialize for ShieldedIcs20WithdrawalBody {
         if let Some(v) = self.asset_anchor.as_ref() {
             struct_ser.serialize_field("assetAnchor", v)?;
         }
+        if let Some(v) = self.routing_tag.as_ref() {
+            struct_ser.serialize_field("routingTag", v)?;
+        }
+        if !self.routing_parameter_set_id.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("routingParameterSetId", pbjson::private::base64::encode(&self.routing_parameter_set_id).as_str())?;
+        }
         struct_ser.end()
     }
 }
@@ -4924,6 +5131,10 @@ impl<'de> serde::Deserialize<'de> for ShieldedIcs20WithdrawalBody {
             "complianceAnchor",
             "asset_anchor",
             "assetAnchor",
+            "routing_tag",
+            "routingTag",
+            "routing_parameter_set_id",
+            "routingParameterSetId",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -4937,6 +5148,8 @@ impl<'de> serde::Deserialize<'de> for ShieldedIcs20WithdrawalBody {
             TargetTimestamp,
             ComplianceAnchor,
             AssetAnchor,
+            RoutingTag,
+            RoutingParameterSetId,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -4968,6 +5181,8 @@ impl<'de> serde::Deserialize<'de> for ShieldedIcs20WithdrawalBody {
                             "targetTimestamp" | "target_timestamp" => Ok(GeneratedField::TargetTimestamp),
                             "complianceAnchor" | "compliance_anchor" => Ok(GeneratedField::ComplianceAnchor),
                             "assetAnchor" | "asset_anchor" => Ok(GeneratedField::AssetAnchor),
+                            "routingTag" | "routing_tag" => Ok(GeneratedField::RoutingTag),
+                            "routingParameterSetId" | "routing_parameter_set_id" => Ok(GeneratedField::RoutingParameterSetId),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -4996,6 +5211,8 @@ impl<'de> serde::Deserialize<'de> for ShieldedIcs20WithdrawalBody {
                 let mut target_timestamp__ = None;
                 let mut compliance_anchor__ = None;
                 let mut asset_anchor__ = None;
+                let mut routing_tag__ = None;
+                let mut routing_parameter_set_id__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::FamilyId => {
@@ -5056,6 +5273,20 @@ impl<'de> serde::Deserialize<'de> for ShieldedIcs20WithdrawalBody {
                             }
                             asset_anchor__ = map_.next_value()?;
                         }
+                        GeneratedField::RoutingTag => {
+                            if routing_tag__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("routingTag"));
+                            }
+                            routing_tag__ = map_.next_value()?;
+                        }
+                        GeneratedField::RoutingParameterSetId => {
+                            if routing_parameter_set_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("routingParameterSetId"));
+                            }
+                            routing_parameter_set_id__ = 
+                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
+                        }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
                         }
@@ -5071,6 +5302,8 @@ impl<'de> serde::Deserialize<'de> for ShieldedIcs20WithdrawalBody {
                     target_timestamp: target_timestamp__.unwrap_or_default(),
                     compliance_anchor: compliance_anchor__,
                     asset_anchor: asset_anchor__,
+                    routing_tag: routing_tag__,
+                    routing_parameter_set_id: routing_parameter_set_id__.unwrap_or_default(),
                 })
             }
         }
@@ -5237,7 +5470,7 @@ impl serde::Serialize for ShieldedIcs20WithdrawalPlan {
         if self.withdrawal.is_some() {
             len += 1;
         }
-        if self.discovery_precision_bits != 0 {
+        if self.routing_parameters.is_some() {
             len += 1;
         }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.ShieldedIcs20WithdrawalPlan", len)?;
@@ -5255,8 +5488,8 @@ impl serde::Serialize for ShieldedIcs20WithdrawalPlan {
         if let Some(v) = self.withdrawal.as_ref() {
             struct_ser.serialize_field("withdrawal", v)?;
         }
-        if self.discovery_precision_bits != 0 {
-            struct_ser.serialize_field("discoveryPrecisionBits", &self.discovery_precision_bits)?;
+        if let Some(v) = self.routing_parameters.as_ref() {
+            struct_ser.serialize_field("routingParameters", v)?;
         }
         struct_ser.end()
     }
@@ -5274,8 +5507,8 @@ impl<'de> serde::Deserialize<'de> for ShieldedIcs20WithdrawalPlan {
             "change_output",
             "changeOutput",
             "withdrawal",
-            "discovery_precision_bits",
-            "discoveryPrecisionBits",
+            "routing_parameters",
+            "routingParameters",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -5284,7 +5517,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedIcs20WithdrawalPlan {
             Spends,
             ChangeOutput,
             Withdrawal,
-            DiscoveryPrecisionBits,
+            RoutingParameters,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -5311,7 +5544,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedIcs20WithdrawalPlan {
                             "spends" => Ok(GeneratedField::Spends),
                             "changeOutput" | "change_output" => Ok(GeneratedField::ChangeOutput),
                             "withdrawal" => Ok(GeneratedField::Withdrawal),
-                            "discoveryPrecisionBits" | "discovery_precision_bits" => Ok(GeneratedField::DiscoveryPrecisionBits),
+                            "routingParameters" | "routing_parameters" => Ok(GeneratedField::RoutingParameters),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -5335,7 +5568,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedIcs20WithdrawalPlan {
                 let mut spends__ = None;
                 let mut change_output__ = None;
                 let mut withdrawal__ = None;
-                let mut discovery_precision_bits__ = None;
+                let mut routing_parameters__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::ValueBlinding => {
@@ -5364,13 +5597,11 @@ impl<'de> serde::Deserialize<'de> for ShieldedIcs20WithdrawalPlan {
                             }
                             withdrawal__ = map_.next_value()?;
                         }
-                        GeneratedField::DiscoveryPrecisionBits => {
-                            if discovery_precision_bits__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("discoveryPrecisionBits"));
+                        GeneratedField::RoutingParameters => {
+                            if routing_parameters__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("routingParameters"));
                             }
-                            discovery_precision_bits__ = 
-                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
-                            ;
+                            routing_parameters__ = map_.next_value()?;
                         }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
@@ -5382,7 +5613,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedIcs20WithdrawalPlan {
                     spends: spends__.unwrap_or_default(),
                     change_output: change_output__,
                     withdrawal: withdrawal__,
-                    discovery_precision_bits: discovery_precision_bits__.unwrap_or_default(),
+                    routing_parameters: routing_parameters__,
                 })
             }
         }
@@ -6802,6 +7033,12 @@ impl serde::Serialize for TransferBody {
         if self.asset_anchor.is_some() {
             len += 1;
         }
+        if self.routing.is_some() {
+            len += 1;
+        }
+        if !self.routing_parameter_set_id.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.TransferBody", len)?;
         if let Some(v) = self.anchor.as_ref() {
             struct_ser.serialize_field("anchor", v)?;
@@ -6826,6 +7063,14 @@ impl serde::Serialize for TransferBody {
         if let Some(v) = self.asset_anchor.as_ref() {
             struct_ser.serialize_field("assetAnchor", v)?;
         }
+        if let Some(v) = self.routing.as_ref() {
+            struct_ser.serialize_field("routing", v)?;
+        }
+        if !self.routing_parameter_set_id.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("routingParameterSetId", pbjson::private::base64::encode(&self.routing_parameter_set_id).as_str())?;
+        }
         struct_ser.end()
     }
 }
@@ -6847,6 +7092,9 @@ impl<'de> serde::Deserialize<'de> for TransferBody {
             "complianceAnchor",
             "asset_anchor",
             "assetAnchor",
+            "routing",
+            "routing_parameter_set_id",
+            "routingParameterSetId",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -6858,6 +7106,8 @@ impl<'de> serde::Deserialize<'de> for TransferBody {
             TargetTimestamp,
             ComplianceAnchor,
             AssetAnchor,
+            Routing,
+            RoutingParameterSetId,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -6887,6 +7137,8 @@ impl<'de> serde::Deserialize<'de> for TransferBody {
                             "targetTimestamp" | "target_timestamp" => Ok(GeneratedField::TargetTimestamp),
                             "complianceAnchor" | "compliance_anchor" => Ok(GeneratedField::ComplianceAnchor),
                             "assetAnchor" | "asset_anchor" => Ok(GeneratedField::AssetAnchor),
+                            "routing" => Ok(GeneratedField::Routing),
+                            "routingParameterSetId" | "routing_parameter_set_id" => Ok(GeneratedField::RoutingParameterSetId),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -6913,6 +7165,8 @@ impl<'de> serde::Deserialize<'de> for TransferBody {
                 let mut target_timestamp__ = None;
                 let mut compliance_anchor__ = None;
                 let mut asset_anchor__ = None;
+                let mut routing__ = None;
+                let mut routing_parameter_set_id__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Anchor => {
@@ -6959,6 +7213,20 @@ impl<'de> serde::Deserialize<'de> for TransferBody {
                             }
                             asset_anchor__ = map_.next_value()?;
                         }
+                        GeneratedField::Routing => {
+                            if routing__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("routing"));
+                            }
+                            routing__ = map_.next_value()?;
+                        }
+                        GeneratedField::RoutingParameterSetId => {
+                            if routing_parameter_set_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("routingParameterSetId"));
+                            }
+                            routing_parameter_set_id__ = 
+                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
+                        }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
                         }
@@ -6972,6 +7240,8 @@ impl<'de> serde::Deserialize<'de> for TransferBody {
                     target_timestamp: target_timestamp__.unwrap_or_default(),
                     compliance_anchor: compliance_anchor__,
                     asset_anchor: asset_anchor__,
+                    routing: routing__,
+                    routing_parameter_set_id: routing_parameter_set_id__.unwrap_or_default(),
                 })
             }
         }
@@ -7335,7 +7605,7 @@ impl serde::Serialize for TransferPlan {
         if !self.outputs.is_empty() {
             len += 1;
         }
-        if self.discovery_precision_bits != 0 {
+        if self.routing_parameters.is_some() {
             len += 1;
         }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.TransferPlan", len)?;
@@ -7350,8 +7620,8 @@ impl serde::Serialize for TransferPlan {
         if !self.outputs.is_empty() {
             struct_ser.serialize_field("outputs", &self.outputs)?;
         }
-        if self.discovery_precision_bits != 0 {
-            struct_ser.serialize_field("discoveryPrecisionBits", &self.discovery_precision_bits)?;
+        if let Some(v) = self.routing_parameters.as_ref() {
+            struct_ser.serialize_field("routingParameters", v)?;
         }
         struct_ser.end()
     }
@@ -7367,8 +7637,8 @@ impl<'de> serde::Deserialize<'de> for TransferPlan {
             "valueBlinding",
             "spends",
             "outputs",
-            "discovery_precision_bits",
-            "discoveryPrecisionBits",
+            "routing_parameters",
+            "routingParameters",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -7376,7 +7646,7 @@ impl<'de> serde::Deserialize<'de> for TransferPlan {
             ValueBlinding,
             Spends,
             Outputs,
-            DiscoveryPrecisionBits,
+            RoutingParameters,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -7402,7 +7672,7 @@ impl<'de> serde::Deserialize<'de> for TransferPlan {
                             "valueBlinding" | "value_blinding" => Ok(GeneratedField::ValueBlinding),
                             "spends" => Ok(GeneratedField::Spends),
                             "outputs" => Ok(GeneratedField::Outputs),
-                            "discoveryPrecisionBits" | "discovery_precision_bits" => Ok(GeneratedField::DiscoveryPrecisionBits),
+                            "routingParameters" | "routing_parameters" => Ok(GeneratedField::RoutingParameters),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -7425,7 +7695,7 @@ impl<'de> serde::Deserialize<'de> for TransferPlan {
                 let mut value_blinding__ = None;
                 let mut spends__ = None;
                 let mut outputs__ = None;
-                let mut discovery_precision_bits__ = None;
+                let mut routing_parameters__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::ValueBlinding => {
@@ -7448,13 +7718,11 @@ impl<'de> serde::Deserialize<'de> for TransferPlan {
                             }
                             outputs__ = Some(map_.next_value()?);
                         }
-                        GeneratedField::DiscoveryPrecisionBits => {
-                            if discovery_precision_bits__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("discoveryPrecisionBits"));
+                        GeneratedField::RoutingParameters => {
+                            if routing_parameters__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("routingParameters"));
                             }
-                            discovery_precision_bits__ = 
-                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
-                            ;
+                            routing_parameters__ = map_.next_value()?;
                         }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
@@ -7465,11 +7733,106 @@ impl<'de> serde::Deserialize<'de> for TransferPlan {
                     value_blinding: value_blinding__.unwrap_or_default(),
                     spends: spends__.unwrap_or_default(),
                     outputs: outputs__.unwrap_or_default(),
-                    discovery_precision_bits: discovery_precision_bits__.unwrap_or_default(),
+                    routing_parameters: routing_parameters__,
                 })
             }
         }
         deserializer.deserialize_struct("shieldd.core.component.shielded_pool.v1.TransferPlan", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for TransferRouting {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.tags.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.TransferRouting", len)?;
+        if !self.tags.is_empty() {
+            struct_ser.serialize_field("tags", &self.tags)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for TransferRouting {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "tags",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Tags,
+            __SkipField__,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "tags" => Ok(GeneratedField::Tags),
+                            _ => Ok(GeneratedField::__SkipField__),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = TransferRouting;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct shieldd.core.component.shielded_pool.v1.TransferRouting")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<TransferRouting, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut tags__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Tags => {
+                            if tags__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("tags"));
+                            }
+                            tags__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::__SkipField__ => {
+                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
+                        }
+                    }
+                }
+                Ok(TransferRouting {
+                    tags: tags__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("shieldd.core.component.shielded_pool.v1.TransferRouting", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for TransferView {

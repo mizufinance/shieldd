@@ -17,7 +17,6 @@ structure Address (F : Type u) where
   diversifiedGeneratorEncoding : F
   transmission : Point F
   transmissionEncoding : F
-  clueKey : F
   deriving DecidableEq, Repr
 
 structure Authorization (F : Type u) where
@@ -125,6 +124,12 @@ structure Action
   targetTimestamp : F
   balanceCommitmentEncoding : F
   balanceBlinding : F
+  routingTag : F
+  routingParameterSetId : F
+  regulatedPrecision : F
+  unregulatedPrecision : F
+  routingAsOfHeight : F
+  routingNonce : F
   publicStatementHash : F
   deriving DecidableEq, Repr
 

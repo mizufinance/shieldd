@@ -29,7 +29,7 @@ open Contracts.NoteReshape1x8.Witness (
 )
 
 def path0 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
-  NoteReshapeMembershipBridge.segmentPath (Seg15.localRho rho)
+  NoteReshapeMembershipBridge.segmentPath (Seg33.localRho rho)
 
 def input0 (rho : Nat → DeployedF) :
     RealInput DeployedF NoteReshapeCanonical.Path24 :=
@@ -113,6 +113,9 @@ def action (rho : Nat → DeployedF) :
       output4 rho, output5 rho, output6 rho, output7 rho
     ]
     anchor := anchor rho
+    assetAnchor := assetAnchor rho
+    routingTag := routingTag rho
+    routingParameterSetId := routingParameterSetId rho
     balanceCommitment :=
       ⟨claimedBalanceCommitment0 rho, claimedBalanceCommitment1 rho⟩
     balanceBlinding := actionBalanceBlinding rho

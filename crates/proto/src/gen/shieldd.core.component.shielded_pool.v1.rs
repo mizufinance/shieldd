@@ -64,9 +64,11 @@ impl ::prost::Name for GenesisContent {
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct DiscoveryParameters {
     #[prost(uint32, tag = "1")]
-    pub precision_bits: u32,
-    #[prost(uint64, tag = "2")]
-    pub as_of_block_height: u64,
+    pub regulated_precision_bits: u32,
+    #[prost(uint32, tag = "2")]
+    pub unregulated_precision_bits: u32,
+    #[prost(uint64, tag = "3")]
+    pub as_of_height: u64,
 }
 impl ::prost::Name for DiscoveryParameters {
     const NAME: &'static str = "DiscoveryParameters";
@@ -78,22 +80,54 @@ impl ::prost::Name for DiscoveryParameters {
         "/shieldd.core.component.shielded_pool.v1.DiscoveryParameters".into()
     }
 }
-/// Public best-effort routing tag for an encrypted note.
+/// Fixed-width public routing value. Precision is deliberately not encoded.
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
-pub struct DiscoveryTag {
+pub struct RoutingTag {
+    #[prost(fixed32, tag = "1")]
+    pub value: u32,
+}
+impl ::prost::Name for RoutingTag {
+    const NAME: &'static str = "RoutingTag";
+    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.shielded_pool.v1.RoutingTag".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.shielded_pool.v1.RoutingTag".into()
+    }
+}
+/// Local or query-side matcher for routing tags.
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct RoutingSelector {
     #[prost(uint32, tag = "1")]
     pub precision_bits: u32,
     #[prost(fixed32, tag = "2")]
-    pub value: u32,
+    pub prefix: u32,
 }
-impl ::prost::Name for DiscoveryTag {
-    const NAME: &'static str = "DiscoveryTag";
+impl ::prost::Name for RoutingSelector {
+    const NAME: &'static str = "RoutingSelector";
     const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
     fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.shielded_pool.v1.DiscoveryTag".into()
+        "shieldd.core.component.shielded_pool.v1.RoutingSelector".into()
     }
     fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.shielded_pool.v1.DiscoveryTag".into()
+        "/shieldd.core.component.shielded_pool.v1.RoutingSelector".into()
+    }
+}
+/// Fixed public routing shape for a transfer action.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TransferRouting {
+    #[prost(message, repeated, tag = "1")]
+    pub tags: ::prost::alloc::vec::Vec<RoutingTag>,
+}
+impl ::prost::Name for TransferRouting {
+    const NAME: &'static str = "TransferRouting";
+    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.shielded_pool.v1.TransferRouting".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.shielded_pool.v1.TransferRouting".into()
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -135,7 +169,7 @@ impl ::prost::Name for NoteView {
     }
 }
 /// An encrypted note.
-/// 176 = 80(address) + 16(amount) + 32(asset ID) + 32(rseed) + 16(MAC) bytes.
+/// 144 = 48(address) + 16(amount) + 32(asset ID) + 32(rseed) + 16(MAC) bytes.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct NoteCiphertext {
     #[prost(bytes = "vec", tag = "1")]
@@ -164,12 +198,9 @@ pub struct NotePayload {
     #[prost(bytes = "vec", tag = "2")]
     pub ephemeral_key: ::prost::alloc::vec::Vec<u8>,
     /// An encryption of the newly created note.
-    /// 176 = 80(address) + 16(amount) + 32(asset ID) + 32(rseed) + 16(MAC) bytes.
+    /// 144 = 48(address) + 16(amount) + 32(asset ID) + 32(rseed) + 16(MAC) bytes.
     #[prost(message, optional, tag = "3")]
     pub encrypted_note: ::core::option::Option<NoteCiphertext>,
-    /// Public best-effort routing metadata. It does not grant decryption capability.
-    #[prost(message, optional, tag = "4")]
-    pub discovery_tag: ::core::option::Option<DiscoveryTag>,
 }
 impl ::prost::Name for NotePayload {
     const NAME: &'static str = "NotePayload";
@@ -342,6 +373,12 @@ pub struct TransferBody {
     pub asset_anchor: ::core::option::Option<
         super::super::super::super::crypto::tct::v1::StateCommitment,
     >,
+    /// Fixed two-slot routing bundle; slot roles are private.
+    #[prost(message, optional, tag = "7")]
+    pub routing: ::core::option::Option<TransferRouting>,
+    /// Poseidon identifier of the privately selected protocol parameter set.
+    #[prost(bytes = "vec", tag = "8")]
+    pub routing_parameter_set_id: ::prost::alloc::vec::Vec<u8>,
 }
 impl ::prost::Name for TransferBody {
     const NAME: &'static str = "TransferBody";
@@ -427,9 +464,9 @@ pub struct TransferPlan {
     /// The shielded output plans fused into this transfer.
     #[prost(message, repeated, tag = "5")]
     pub outputs: ::prost::alloc::vec::Vec<ShieldedOutputPlan>,
-    /// Protocol precision used by all real and padded output discovery tags.
-    #[prost(uint32, tag = "6")]
-    pub discovery_precision_bits: u32,
+    /// Protocol routing parameter set used to construct and prove the action.
+    #[prost(message, optional, tag = "6")]
+    pub routing_parameters: ::core::option::Option<DiscoveryParameters>,
 }
 impl ::prost::Name for TransferPlan {
     const NAME: &'static str = "TransferPlan";
@@ -590,6 +627,12 @@ pub struct ShieldedHostWithdrawalBody {
     pub asset_anchor: ::core::option::Option<
         super::super::super::super::crypto::tct::v1::StateCommitment,
     >,
+    /// Sender routing tag, present even when the change output is dummy.
+    #[prost(message, optional, tag = "10")]
+    pub routing_tag: ::core::option::Option<RoutingTag>,
+    /// Poseidon identifier of the privately selected protocol parameter set.
+    #[prost(bytes = "vec", tag = "11")]
+    pub routing_parameter_set_id: ::prost::alloc::vec::Vec<u8>,
 }
 impl ::prost::Name for ShieldedHostWithdrawalBody {
     const NAME: &'static str = "ShieldedHostWithdrawalBody";
@@ -687,9 +730,9 @@ pub struct ShieldedHostWithdrawalPlan {
     /// The embedded host-chain withdrawal payload.
     #[prost(message, optional, tag = "6")]
     pub withdrawal: ::core::option::Option<HostWithdrawal>,
-    /// Discovery precision used for the encrypted change output.
-    #[prost(uint32, tag = "7")]
-    pub discovery_precision_bits: u32,
+    /// Protocol-wide routing parameters bound by the reused withdrawal proof.
+    #[prost(message, optional, tag = "7")]
+    pub routing_parameters: ::core::option::Option<DiscoveryParameters>,
 }
 impl ::prost::Name for ShieldedHostWithdrawalPlan {
     const NAME: &'static str = "ShieldedHostWithdrawalPlan";
@@ -787,6 +830,12 @@ pub struct ShieldedIcs20WithdrawalBody {
     pub asset_anchor: ::core::option::Option<
         super::super::super::super::crypto::tct::v1::StateCommitment,
     >,
+    /// Sender routing tag, present even when the change output is dummy.
+    #[prost(message, optional, tag = "10")]
+    pub routing_tag: ::core::option::Option<RoutingTag>,
+    /// Poseidon identifier of the privately selected protocol parameter set.
+    #[prost(bytes = "vec", tag = "11")]
+    pub routing_parameter_set_id: ::prost::alloc::vec::Vec<u8>,
 }
 impl ::prost::Name for ShieldedIcs20WithdrawalBody {
     const NAME: &'static str = "ShieldedIcs20WithdrawalBody";
@@ -884,9 +933,9 @@ pub struct ShieldedIcs20WithdrawalPlan {
     /// The embedded outbound ICS-20 withdrawal payload.
     #[prost(message, optional, tag = "6")]
     pub withdrawal: ::core::option::Option<super::super::ibc::v1::Ics20Withdrawal>,
-    /// Protocol precision used by the change or padded output discovery tag.
-    #[prost(uint32, tag = "7")]
-    pub discovery_precision_bits: u32,
+    /// Protocol routing parameter set used to construct and prove the action.
+    #[prost(message, optional, tag = "7")]
+    pub routing_parameters: ::core::option::Option<DiscoveryParameters>,
 }
 impl ::prost::Name for ShieldedIcs20WithdrawalPlan {
     const NAME: &'static str = "ShieldedIcs20WithdrawalPlan";
@@ -990,6 +1039,17 @@ pub struct NoteReshapeBody {
     /// The created notes.
     #[prost(message, repeated, tag = "5")]
     pub outputs: ::prost::alloc::vec::Vec<NoteReshapeOutputBody>,
+    /// Owner routing tag for this action.
+    #[prost(message, optional, tag = "6")]
+    pub routing_tag: ::core::option::Option<RoutingTag>,
+    /// Poseidon identifier of the privately selected protocol parameter set.
+    #[prost(bytes = "vec", tag = "7")]
+    pub routing_parameter_set_id: ::prost::alloc::vec::Vec<u8>,
+    /// Asset-registry root binding the private class-dependent routing precision.
+    #[prost(message, optional, tag = "8")]
+    pub asset_anchor: ::core::option::Option<
+        super::super::super::super::crypto::tct::v1::StateCommitment,
+    >,
 }
 impl ::prost::Name for NoteReshapeBody {
     const NAME: &'static str = "NoteReshapeBody";
@@ -1078,9 +1138,9 @@ pub struct NoteReshapePlan {
     /// The deployed proving family selected for this reshape.
     #[prost(uint32, tag = "6")]
     pub family_id: u32,
-    /// Protocol precision used by all real and padded output discovery tags.
-    #[prost(uint32, tag = "7")]
-    pub discovery_precision_bits: u32,
+    /// Protocol routing parameter set used to construct and prove the action.
+    #[prost(message, optional, tag = "7")]
+    pub routing_parameters: ::core::option::Option<DiscoveryParameters>,
 }
 impl ::prost::Name for NoteReshapePlan {
     const NAME: &'static str = "NoteReshapePlan";

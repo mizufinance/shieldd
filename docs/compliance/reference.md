@@ -1,6 +1,6 @@
 # Compliance Reference
 
-Technical lookup material for the deployed V16 transfer compliance surface.
+Technical lookup material for the deployed V17 transfer compliance surface.
 See `flow.md` for the end-to-end lifecycle.
 
 ## Transfer Wire Format
@@ -36,7 +36,7 @@ TransferComplianceMetadata: 328 bytes
 Every Fq and compressed point must decode canonically. Metadata timestamp zero
 is invalid. Tier labels are not serialized; fixed ordering is the tier domain.
 
-The V16 transport has no upload bundle, encrypted seed envelope, public shared
+The V17 transport has no upload bundle, encrypted seed envelope, public shared
 point, DLEQ challenge, or DLEQ response.
 
 After decryption, the four detection words are:
@@ -44,12 +44,13 @@ After decryption, the four detection words are:
 ```text
 0  asset_id
 1  detection_salt
-2  sender_slot_id + is_flagged * 2^32
+2  sender_slot_id + is_flagged * 2^32 + routing_roles_swapped * 2^33
 3  receiver_slot_id
 ```
 
-Both slots are canonical `u32` values. Word 0 is the exact asset id; V16 does
-not combine the asset with the flag.
+Both slots are canonical `u32` values, and the routing permutation is a
+canonical bit. Word 0 is the exact asset id; V17 does not combine the asset
+with either flag.
 
 ## Transfer Key And Address Validity
 
@@ -69,24 +70,26 @@ malicious proof from creating a note with that ambiguous owner.
 
 ## Transfer Public Statement
 
-The fixed 2x2 Transfer statement has 41 Fq fields. Its hash uses the
-`shieldd.shielded_pool.transfer.public_input_hash.v4` domain.
+The fixed 2x2 Transfer statement has 44 Fq fields. Its hash uses the
+`shieldd.shielded_pool.transfer.public_input_hash.v5` domain.
 
 ```text
  0       anchor
  1..2    receiver and change note commitments
  3       balance commitment
- 4..7    two (nullifier, randomized verification key) pairs
- 8..9    asset and compliance anchors
-10..13   detection ciphertext
-14..16   sender_core: EPK, c2, one ciphertext word
-17..21   sender_ext: EPK, c2, three ciphertext words
-22..24   output_core: EPK, c2, one ciphertext word
-25..29   output_ext: EPK, c2, three ciphertext words
-30       target_timestamp
-31..32   sender and output subject derivations
-33..36   ring, policy, resource, and permission hashes
-37..40   sender-core, sender-ext, output-core, and output-ext salts
+ 4..5    fixed two-slot routing tags
+ 6       routing parameter-set identifier
+ 7..10   two (nullifier, randomized verification key) pairs
+11..12   asset and compliance anchors
+13..16   detection ciphertext
+17..19   sender_core: EPK, c2, one ciphertext word
+20..24   sender_ext: EPK, c2, three ciphertext words
+25..27   output_core: EPK, c2, one ciphertext word
+28..32   output_ext: EPK, c2, three ciphertext words
+33       target_timestamp
+34..35   sender and output subject derivations
+36..39   ring, policy, resource, and permission hashes
+40..43   sender-core, sender-ext, output-core, and output-ext salts
 ```
 
 The exact tail append order is:
@@ -108,7 +111,7 @@ output_ext_salt
 The metadata timestamp is not appended twice: its serialized value must equal
 the statement's existing `target_timestamp`. The authoritative builders are
 `transfer_statement_fields` in Rust and `buildTransferStatementFields` /
-`ReconstructedTransferStatementFieldsFromWitnessV16` in Go.
+`ReconstructedTransferStatementFieldsFromWitnessV17` in Go.
 
 ## Effective Policy Selection
 
@@ -149,14 +152,13 @@ recorded root of the separate append-only compliance tree. Large node
 materialization is nonverifiable storage checked against those committed
 roots.
 
-`ComplianceLeaf` v2 is
+`ComplianceLeaf` v3 is
 
 ```text
-PoseidonHash7(
-  "shieldd.compliance.leaf.v2",
+PoseidonHash6(
+  "shieldd.compliance.leaf.v3",
   diversified_generator_fq,
   transmission_key_fq,
-  clue_key_fq,
   asset_id,
   slot_id,
   slot_derivation,
@@ -164,8 +166,8 @@ PoseidonHash7(
 )
 ```
 
-The address must carry a valid canonical clue-key encoding, and the derived
-`d` must be nonzero. Multiple addresses may share a slot, but then they
+The address encodings must be canonical, and the derived `d` must be nonzero.
+Multiple addresses may share a slot, but then they
 intentionally share derivation material and ACK. Asset id zero is reserved for
 the indexed-tree sentinel and cannot be registered or used as a Transfer or
 Withdrawal action asset.
@@ -183,7 +185,7 @@ BlockRef { height, block_hash, parent_hash, block_time_unix }
 TxRef { block, tx_index, tx_hash }
 ActionRef { tx, action_index }
 OutputRef { action, output_index }
-ExtractedComplianceCiphertext { output_ref, raw_bytes, metadata_bytes }
+ExtractedComplianceCiphertext { output_ref, routing_tags, raw_bytes, metadata_bytes }
 ```
 
 | Table | Purpose |
@@ -223,7 +225,7 @@ facts before advancing the row to `evidence_valid`.
 Flagged transfers can be completed by issuer-DK decryption after evidence
 validation. Orbis v0 export and import always return errors because its public
 proof reveals the seed-opening DH point. Consequently, unflagged ACK-tier PRE
-audit is unavailable in V16.
+audit is unavailable in V17.
 
 The retained DLEQ implementation and Lean/Tamarin material are standalone
 research. No deployed statement field, transaction byte, evidence object, or

@@ -44,13 +44,6 @@ jobs:
           echo "run=false" >> "$GITHUB_OUTPUT"
           echo "explanation=Orbis v0 transfer PRE is disabled until a non-disclosing protocol is available." >> "$GITHUB_OUTPUT"
 
-      - name: Prepare proof artifacts
-        id: proof_artifacts
-        if: steps.classify.outputs.run == 'true'
-        uses: ./shieldd/.github/actions/prepare-proof-artifacts
-        with:
-          repository-path: shieldd
-
       - name: Set up Nix and Rust
         id: setup
         if: steps.classify.outputs.run == 'true'
@@ -117,7 +110,6 @@ jobs:
           TIER: ${{ steps.classify.outputs.tier }}
           EXPLANATION: ${{ steps.classify.outputs.explanation }}
           CLASSIFY_RESULT: ${{ steps.classify.outcome }}
-          PROOF_ARTIFACTS_RESULT: ${{ steps.proof_artifacts.outcome }}
           SETUP_RESULT: ${{ steps.setup.outcome }}
           PRECLEAN_RESULT: ${{ steps.preclean.outcome }}
           FLOW_RESULT: ${{ steps.flow.outcome }}
@@ -129,7 +121,7 @@ jobs:
             exit 1
           fi
           if [[ "$STATUS" == "skip" ]]; then
-            if [[ "$PROOF_ARTIFACTS_RESULT" != "skipped" || "$SETUP_RESULT" != "skipped" || "$PRECLEAN_RESULT" != "skipped" || "$FLOW_RESULT" != "skipped" ]]; then
+            if [[ "$SETUP_RESULT" != "skipped" || "$PRECLEAN_RESULT" != "skipped" || "$FLOW_RESULT" != "skipped" ]]; then
               echo "skip tier unexpectedly ran Orbis work" >&2
               exit 1
             fi
@@ -140,8 +132,8 @@ jobs:
             echo "invalid applicability result: status=$STATUS tier=$TIER" >&2
             exit 1
           fi
-          if [[ "$PROOF_ARTIFACTS_RESULT" != "success" || "$SETUP_RESULT" != "success" || "$PRECLEAN_RESULT" != "success" || "$FLOW_RESULT" != "success" || "$CLEANUP_RESULT" != "success" ]]; then
-            echo "required Orbis contract failed: artifacts=$PROOF_ARTIFACTS_RESULT setup=$SETUP_RESULT preclean=$PRECLEAN_RESULT flow=$FLOW_RESULT cleanup=$CLEANUP_RESULT" >&2
+          if [[ "$SETUP_RESULT" != "success" || "$PRECLEAN_RESULT" != "success" || "$FLOW_RESULT" != "success" || "$CLEANUP_RESULT" != "success" ]]; then
+            echo "required Orbis contract failed: setup=$SETUP_RESULT preclean=$PRECLEAN_RESULT flow=$FLOW_RESULT cleanup=$CLEANUP_RESULT" >&2
             exit 1
           fi
           echo "Orbis tier $TIER passed"

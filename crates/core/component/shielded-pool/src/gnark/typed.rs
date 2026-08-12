@@ -19,7 +19,7 @@ pub struct MerklePathBinary {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ComplianceLeafBinary {
-    pub address: [u8; 80],
+    pub address: [u8; 48],
     pub asset_id: [u8; 32],
     pub slot_id: [u8; 32],
     pub slot_derivation: [u8; 32],
@@ -141,11 +141,11 @@ pub(crate) fn compliance_leaf_from_typed(
 ) -> anyhow::Result<ComplianceLeafBinary> {
     let address_bytes = leaf.address.to_vec();
     anyhow::ensure!(
-        address_bytes.len() == 80,
-        "compliance leaf address is {} bytes, expected 80",
+        address_bytes.len() == 48,
+        "compliance leaf address is {} bytes, expected 48",
         address_bytes.len()
     );
-    let mut address = [0u8; 80];
+    let mut address = [0u8; 48];
     address.copy_from_slice(&address_bytes);
     Ok(ComplianceLeafBinary {
         address,

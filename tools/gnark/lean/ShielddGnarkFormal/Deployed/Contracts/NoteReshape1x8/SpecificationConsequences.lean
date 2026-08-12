@@ -25,6 +25,75 @@ theorem circuitFacts_of_relationAll
     (action rho)
     (Shieldd.GnarkFormal.Deployed.NoteReshape1x8Refinement.C.deployedRelation_to_circuitFacts rho h)
 
+/-- `ASSET-LEAF-HASH` for the exact deployed relation. -/
+theorem specification_asset_leaf_hash
+    (rho : Nat → DeployedF)
+    (h : relationAll rho) :
+    Seg15.contract.spec rho := by
+  have facts := note_reshape1x8_circuitFacts rho h
+  exact facts.shared.GadgetAssetRegistryLeafHashSeg15
+
+/-- `ASSET-PARAMETERS-HASH` for the exact deployed relation. -/
+theorem specification_asset_parameters_hash
+    (rho : Nat → DeployedF)
+    (h : relationAll rho) :
+    Seg12.contract.spec rho := by
+  have facts := note_reshape1x8_circuitFacts rho h
+  exact facts.shared.GadgetAssetRegistryParamsHashSeg12
+
+/-- `ASSET-POLICY-KEY-ENCODING` for the exact deployed relation. -/
+theorem specification_asset_policy_key_encoding
+    (rho : Nat → DeployedF)
+    (h : relationAll rho) :
+    Seg11.contract.spec rho ∧
+      Seg12.contract.spec rho ∧
+      Seg13.contract.spec rho ∧
+      Seg14.contract.spec rho := by
+  have facts := note_reshape1x8_circuitFacts rho h
+  exact
+    ⟨facts.shared.DecafCompressToFieldSeg11,
+      facts.shared.GadgetAssetRegistryParamsHashSeg12,
+      facts.shared.DecafCompressToFieldSeg13,
+      facts.shared.GadgetAssetRegistryRingHashSeg14⟩
+
+/-- `ASSET-REGISTRY-GAP-ORDERING` for the exact deployed relation. -/
+theorem specification_asset_registry_gap_ordering
+    (rho : Nat → DeployedF)
+    (h : relationAll rho) :
+    Seg18.contract.spec rho ∧
+      Seg19.contract.spec rho := by
+  have facts := note_reshape1x8_circuitFacts rho h
+  exact
+    ⟨facts.shared.GadgetAssetRegistryGapSeg18,
+      facts.shared.AssertEqSeg19⟩
+
+/-- `ASSET-REGISTRY-MEMBERSHIP` for the exact deployed relation. -/
+theorem specification_asset_registry_membership
+    (rho : Nat → DeployedF)
+    (h : relationAll rho) :
+    Seg16.contract.spec rho ∧
+      Seg17.contract.spec rho := by
+  have facts := note_reshape1x8_circuitFacts rho h
+  exact
+    ⟨facts.shared.GadgetAssetRegistryPathSeg16,
+      facts.shared.AssertEqSeg17⟩
+
+/-- `ASSET-REGULATED-BOOLEAN` for the exact deployed relation. -/
+theorem specification_asset_regulated_boolean
+    (rho : Nat → DeployedF)
+    (h : relationAll rho) :
+    Seg10.contract.spec rho := by
+  have facts := note_reshape1x8_circuitFacts rho h
+  exact facts.control.AssertBooleanSeg10
+
+/-- `ASSET-RING-HASH` for the exact deployed relation. -/
+theorem specification_asset_ring_hash
+    (rho : Nat → DeployedF)
+    (h : relationAll rho) :
+    Seg14.contract.spec rho := by
+  have facts := note_reshape1x8_circuitFacts rho h
+  exact facts.shared.GadgetAssetRegistryRingHashSeg14
+
 /-- `CIR-SHAPE-FIXED` for the exact deployed relation. -/
 theorem specification_cir_shape_fixed
     (rho : Nat → DeployedF)
@@ -171,16 +240,6 @@ theorem specification_note_output_asset_binding
   intro output member
   exact (circuitFacts_of_relationAll rho h).outputsBound output member
 
-/-- `NOTE-OUTPUT-CLUE-KEY-BINDING` for the exact deployed relation. -/
-theorem specification_note_output_clue_key_binding
-    (rho : Nat → DeployedF)
-    (h : relationAll rho) :
-    ∀ output ∈ (action rho).outputs,
-      Protocol.NoteReshape.Concrete.noteCommitment
-        (action rho).shared output.blinding output.amount output.commitment := by
-  intro output member
-  exact (circuitFacts_of_relationAll rho h).outputsBound output member
-
 /-- `NOTE-OUTPUT-COMMITMENT` for the exact deployed relation. -/
 theorem specification_note_output_commitment
     (rho : Nat → DeployedF)
@@ -203,24 +262,6 @@ theorem specification_note_output_owner_binding
 
 /-- `NOTE-SPEND-ASSET-BINDING` for the exact deployed relation. -/
 theorem specification_note_spend_asset_binding
-    (rho : Nat → DeployedF)
-    (h : relationAll rho) :
-    ∀ input ∈ (action rho).inputs,
-      match input with
-      | .real real =>
-          Protocol.NoteReshape.Concrete.noteCommitment
-            (action rho).shared real.blinding real.amount real.commitment
-      | .dummy _ => True := by
-  intro input member
-  have fact := (circuitFacts_of_relationAll rho h).inputsBound input member
-  cases input with
-  | real real =>
-      exact fact
-  | dummy _ =>
-      trivial
-
-/-- `NOTE-SPEND-CLUE-KEY-BINDING` for the exact deployed relation. -/
-theorem specification_note_spend_clue_key_binding
     (rho : Nat → DeployedF)
     (h : relationAll rho) :
     ∀ input ∈ (action rho).inputs,
@@ -290,6 +331,36 @@ theorem specification_note_spend_owner_binding
       exact fact
   | dummy _ =>
       trivial
+
+/-- `ROUTING-PARAMETERS` for the exact deployed relation. -/
+theorem specification_routing_parameters
+    (rho : Nat → DeployedF)
+    (h : relationAll rho) :
+    Seg20.contract.spec rho ∧
+      Seg21.contract.spec rho ∧
+      Seg22.contract.spec rho := by
+  have facts := note_reshape1x8_circuitFacts rho h
+  exact
+    ⟨facts.shared.RoutingPrecisionSelectSeg20,
+      facts.shared.RoutingParametersHashSeg21,
+      facts.shared.RoutingParametersBindSeg22⟩
+
+/-- `ROUTING-TAG-DERIVATION` for the exact deployed relation. -/
+theorem specification_routing_tag_derivation
+    (rho : Nat → DeployedF)
+    (h : relationAll rho) :
+    Seg23.contract.spec rho ∧
+      Seg24.contract.spec rho ∧
+      Seg25.contract.spec rho ∧
+      Seg26.contract.spec rho ∧
+      Seg27.contract.spec rho := by
+  have facts := note_reshape1x8_circuitFacts rho h
+  exact
+    ⟨facts.shared.RoutingRouteWordSeg23,
+      facts.shared.RoutingTagPublicRangeSeg24,
+      facts.shared.RoutingTagRouteBitsSeg25,
+      facts.shared.RoutingTagRandomWordSeg26,
+      facts.shared.RoutingTagComposeSeg27⟩
 
 /-- `SCT-SPEND-MEMBERSHIP` for the exact deployed relation. -/
 theorem specification_sct_spend_membership

@@ -1,6 +1,7 @@
 use std::convert::TryInto;
 
 use anyhow::{Context, Error};
+use decaf377::Fq;
 use decaf377_rdsa::{Signature, SpendAuth, VerificationKey};
 use shieldd_sdk_asset::balance;
 use shieldd_sdk_keys::symmetric::{OvkWrappedKey, WrappedMemoKey};
@@ -10,7 +11,7 @@ use shieldd_sdk_tct as tct;
 use shieldd_sdk_txhash::{EffectHash, EffectingData};
 
 use super::{NoteReshapeFamilyId, NoteReshapeProof};
-use crate::{backref::ENCRYPTED_BACKREF_LEN, EncryptedBackref, NotePayload};
+use crate::{backref::ENCRYPTED_BACKREF_LEN, discovery::RoutingTag, EncryptedBackref, NotePayload};
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(
@@ -42,6 +43,9 @@ pub struct NoteReshapeBody {
     pub balance_commitment: balance::Commitment,
     pub inputs: Vec<NoteReshapeInputBody>,
     pub outputs: Vec<NoteReshapeOutputBody>,
+    pub routing_tag: RoutingTag,
+    pub routing_parameter_set_id: Fq,
+    pub asset_anchor: tct::StateCommitment,
 }
 
 #[derive(Clone, Debug)]
@@ -232,6 +236,9 @@ impl From<NoteReshapeBody> for pb::NoteReshapeBody {
             balance_commitment: Some(msg.balance_commitment.into()),
             inputs: msg.inputs.into_iter().map(Into::into).collect(),
             outputs: msg.outputs.into_iter().map(Into::into).collect(),
+            routing_tag: Some(msg.routing_tag.into()),
+            routing_parameter_set_id: msg.routing_parameter_set_id.to_bytes().to_vec(),
+            asset_anchor: Some(msg.asset_anchor.into()),
         }
     }
 }
@@ -262,6 +269,22 @@ impl TryFrom<pb::NoteReshapeBody> for NoteReshapeBody {
                 .into_iter()
                 .map(TryInto::try_into)
                 .collect::<Result<_, _>>()?,
+            routing_tag: proto
+                .routing_tag
+                .ok_or_else(|| anyhow::anyhow!("missing note reshape routing tag"))?
+                .try_into()?,
+            routing_parameter_set_id: Fq::from_bytes_checked(
+                &proto
+                    .routing_parameter_set_id
+                    .try_into()
+                    .map_err(|_| anyhow::anyhow!("routing parameter set id must be 32 bytes"))?,
+            )
+            .map_err(|_| anyhow::anyhow!("routing parameter set id must be canonical"))?,
+            asset_anchor: proto
+                .asset_anchor
+                .ok_or_else(|| anyhow::anyhow!("missing asset anchor"))?
+                .try_into()
+                .context("malformed asset anchor")?,
         };
         body.validate_shape()?;
         Ok(body)
@@ -328,7 +351,7 @@ mod tests {
             ),
             (
                 include_str!("../gnark/note_reshape_witness.rs"),
-                vec!["NoteReshapeOutputWitnessV3"],
+                vec!["NoteReshapeOutputWitnessV4"],
             ),
         ] {
             for name in names {

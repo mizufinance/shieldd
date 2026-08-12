@@ -73,6 +73,8 @@ pub(crate) fn transfer_extract_public(
         inputs,
         outputs,
         compliance: transfer_compliance_public_from_parts(&ciphertext, &metadata)?,
+        routing: transfer.body.routing,
+        routing_parameter_set_id: transfer.body.routing_parameter_set_id,
     };
     public
         .validate_shape()

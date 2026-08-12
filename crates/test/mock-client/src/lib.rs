@@ -254,7 +254,7 @@ impl MockClient {
             .await?;
         // Populate memo if outputs exist but no memo set.
         if plan.memo.is_none() && plan.num_outputs() > 0 {
-            let (return_address, _) = self.fvk.incoming().payment_address(0u32.into());
+            let return_address = self.fvk.incoming().payment_address(0u32.into());
             plan.memo = Some(MemoPlan::new(
                 &mut OsRng,
                 MemoPlaintext::new(return_address, String::new())?,
@@ -572,7 +572,7 @@ mod tests {
                 .expect("test spend key should satisfy key refinements");
         let mut client = MockClient::new(sk);
         let fvk = client.fvk.clone();
-        let (address, _) = fvk.incoming().payment_address(0u32.into());
+        let address = fvk.incoming().payment_address(0u32.into());
 
         let note = Note::from_parts(
             address.clone(),
@@ -632,7 +632,7 @@ mod tests {
                 .expect("test spend key should satisfy key refinements");
         let mut client = MockClient::new(sk);
         let fvk = client.fvk.clone();
-        let (address, _) = fvk.incoming().payment_address(0u32.into());
+        let address = fvk.incoming().payment_address(0u32.into());
 
         let note = Note::from_parts(
             address.clone(),

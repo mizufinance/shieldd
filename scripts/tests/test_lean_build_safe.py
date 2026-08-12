@@ -9,9 +9,27 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 SAFE_BUILD = ROOT / "scripts/lean-build-safe.sh"
 LEAF_BENCH = ROOT / "scripts/lean-leaf-bench.sh"
+FV_LEAN = ROOT / "scripts/fv-lean.sh"
 
 
 class SafeLeanBuildTests(unittest.TestCase):
+    def test_tier_wrapper_names_fast_affected_and_full_explicitly(self) -> None:
+        source = FV_LEAN.read_text(encoding="utf-8")
+        self.assertIn("fast|affected|full", source)
+        self.assertIn('check-lean-circuit-fv.sh" fast', source)
+        self.assertIn('check-lean-circuit-fv.sh" affected', source)
+        self.assertIn('check-lean-circuit-fv.sh" release', source)
+
+    def test_edit_loop_tiers_exit_before_release_evidence_closure(self) -> None:
+        source = (ROOT / "scripts/check-lean-circuit-fv.sh").read_text()
+        fast_exit = source.index('lean circuit fv ok (fast)')
+        affected_exit = source.index('lean circuit fv ok (affected)')
+        evidence_closure = source.index('echo "==> family evidence closure"')
+        drift_exit = source.index('lean circuit fv ok (drift)')
+        self.assertLess(fast_exit, evidence_closure)
+        self.assertLess(affected_exit, evidence_closure)
+        self.assertLess(evidence_closure, drift_exit)
+
     def test_rss_sampler_uses_portable_ps_output_selection(self) -> None:
         for script in (SAFE_BUILD, LEAF_BENCH):
             with self.subTest(script=script.name):

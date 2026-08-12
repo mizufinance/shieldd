@@ -141,6 +141,29 @@ fi
 printf 'lean-build-safe: target=%s time=%ss peak_rss=%sMB threads=1\n' \
   "$TARGET" "$elapsed" "$((peak_rss_kb / 1024))"
 
+if [[ -n "${LEAN_BUILD_METRICS_OUT:-}" ]]; then
+  metrics_status=passed
+  [[ -n "$killed" || "$build_rc" -ne 0 ]] && metrics_status=failed
+  metrics_args=(
+    record
+    --target "${TARGET#+}"
+    --change-class "${LEAN_BUILD_CHANGE_CLASS:-full_refinement}"
+    --cache-state "${LEAN_BUILD_CACHE_STATE:-warm}"
+    --wall-seconds "$elapsed"
+    --peak-rss-mb "$((peak_rss_kb / 1024))"
+    --status "$metrics_status"
+    --output "$LEAN_BUILD_METRICS_OUT"
+  )
+  if [[ -n "${LEAN_BUILD_BASELINE_METRICS:-}" ]]; then
+    metrics_args+=(--baseline "$LEAN_BUILD_BASELINE_METRICS")
+  fi
+  if [[ "${LEAN_BUILD_CHECK_BUDGET:-0}" == "1" ]]; then
+    metrics_args+=(--check-budget)
+  fi
+  python3 "$ROOT/scripts/fv_lean_build_metrics.py" "${metrics_args[@]}" \
+    || fail "build metrics or budget check failed"
+fi
+
 if [[ -n "$killed" ]]; then
   fail "terminated on $killed ceiling"
 fi

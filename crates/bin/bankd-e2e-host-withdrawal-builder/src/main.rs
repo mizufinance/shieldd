@@ -197,12 +197,11 @@ async fn build_host_withdrawal_tx(opt: Opt) -> Result<Vec<u8>> {
     };
 
     let snapshot = storage.latest_snapshot();
-    let discovery_precision = snapshot
+    let routing_parameters = snapshot
         .get_current_discovery_parameters()
         .await
-        .context("failed to read Shieldd discovery parameters")?
-        .precision;
-    plan.populate_discovery_precision(discovery_precision);
+        .context("failed to read Shieldd discovery parameters")?;
+    plan.populate_routing_parameters(routing_parameters);
     let tx = client
         .witness_auth_build_with_compliance(&mut plan, snapshot)
         .await

@@ -906,7 +906,7 @@ def reviewed_predicates() -> dict[str, tuple[str, frozenset[str]]]:
             "FIELD-AUTH-RANDOMIZER-RANGE",
             "NOTE-SPEND-OWNER-BINDING",
             "NOTE-SPEND-ASSET-BINDING",
-            "NOTE-SPEND-CLUE-KEY-BINDING",
+            "ROUTING-TAG-DERIVATION",
             "NOTE-SPEND-COMMITMENT",
             "SCT-SPEND-MEMBERSHIP",
             "NOTE-SPEND-NULLIFIER-DERIVATION",
@@ -914,7 +914,7 @@ def reviewed_predicates() -> dict[str, tuple[str, frozenset[str]]]:
             "DEC-SPEND-RK-ENCODING",
             "NOTE-OUTPUT-OWNER-BINDING",
             "NOTE-OUTPUT-ASSET-BINDING",
-            "NOTE-OUTPUT-CLUE-KEY-BINDING",
+            "ROUTING-PARAMETERS",
             "NOTE-OUTPUT-COMMITMENT",
             "VALUE-AMOUNT-128-RANGE",
             "FIELD-BALANCE-BLINDING-RANGE",
@@ -942,13 +942,28 @@ def reviewed_predicates() -> dict[str, tuple[str, frozenset[str]]]:
     add("circuit", TRANSFER, ("NOTE-RECEIVER-AMOUNT-NONZERO",))
     add(
         "circuit",
-        TX,
+        ALL,
         (
-            "ASSET-ID-NONZERO",
             "ASSET-REGULATED-BOOLEAN",
             "ASSET-LEAF-HASH",
             "ASSET-REGISTRY-MEMBERSHIP",
             "ASSET-REGISTRY-GAP-ORDERING",
+        ),
+    )
+    add(
+        "circuit",
+        NR | TRANSFER,
+        (
+            "ASSET-POLICY-KEY-ENCODING",
+            "ASSET-PARAMETERS-HASH",
+            "ASSET-RING-HASH",
+        ),
+    )
+    add(
+        "circuit",
+        TX,
+        (
+            "ASSET-ID-NONZERO",
             "USER-LEAF-ADDRESS-BINDING",
             "USER-LEAF-ASSET-BINDING",
             "USER-LEAF-POLICY-SLOT-BINDING",
@@ -962,9 +977,6 @@ def reviewed_predicates() -> dict[str, tuple[str, frozenset[str]]]:
         "circuit",
         TRANSFER,
         (
-            "ASSET-POLICY-KEY-ENCODING",
-            "ASSET-PARAMETERS-HASH",
-            "ASSET-RING-HASH",
             "VALUE-THRESHOLD-128-RANGE",
             "COMPLIANCE-FLAG-BOOLEAN",
             "COMPLIANCE-THRESHOLD-FLAG",
@@ -1080,7 +1092,6 @@ _REAL_SPEND_BRANCH = frozenset(
     {
         "DEC-SPEND-RK-DERIVATION",
         "NOTE-SPEND-ASSET-BINDING",
-        "NOTE-SPEND-CLUE-KEY-BINDING",
         "NOTE-SPEND-COMMITMENT",
         "NOTE-SPEND-NULLIFIER-DERIVATION",
         "NOTE-SPEND-OWNER-BINDING",
@@ -1120,7 +1131,6 @@ _ANCHOR_OR_NULLIFIER_BINDING = frozenset(
         "ASSET-REGISTRY-GAP-ORDERING",
         "ASSET-REGISTRY-MEMBERSHIP",
         "NOTE-SPEND-ASSET-BINDING",
-        "NOTE-SPEND-CLUE-KEY-BINDING",
         "NOTE-SPEND-COMMITMENT",
         "NOTE-SPEND-NULLIFIER-DERIVATION",
         "NOTE-SPEND-OWNER-BINDING",
@@ -1153,10 +1163,11 @@ _DERIVED_STATEMENT_BINDING = frozenset(
         "DUMMY-NULLIFIER-DOMAIN-BINDING",
         "DUMMY-SLOT-POSITION-BINDING",
         "NOTE-OUTPUT-ASSET-BINDING",
-        "NOTE-OUTPUT-CLUE-KEY-BINDING",
         "NOTE-OUTPUT-COMMITMENT",
         "NOTE-OUTPUT-OWNER-BINDING",
         "NOTE-SPEND-NULLIFIER-DERIVATION",
+        "ROUTING-PARAMETERS",
+        "ROUTING-TAG-DERIVATION",
         "VALUE-CONSERVATION",
     }
 )
@@ -1232,7 +1243,7 @@ _OWNERSHIP = frozenset(
         "FIELD-AUTH-RANDOMIZER-RANGE",
         "NOTE-SPEND-OWNER-BINDING",
         "NOTE-SPEND-ASSET-BINDING",
-        "NOTE-SPEND-CLUE-KEY-BINDING",
+        "ROUTING-TAG-DERIVATION",
         "NOTE-SPEND-COMMITMENT",
         "DEC-SPEND-RK-DERIVATION",
         "DEC-SPEND-RK-ENCODING",
@@ -1275,7 +1286,7 @@ _OUTPUTS = frozenset(
         "DEC-TRANSMISSION-KEY-NONIDENTITY",
         "NOTE-OUTPUT-OWNER-BINDING",
         "NOTE-OUTPUT-ASSET-BINDING",
-        "NOTE-OUTPUT-CLUE-KEY-BINDING",
+        "ROUTING-PARAMETERS",
         "NOTE-OUTPUT-COMMITMENT",
         "NOTE-RECEIVER-AMOUNT-NONZERO",
         "EXT-OUTPUT-PERSISTENCE",
@@ -1360,6 +1371,8 @@ _WITNESS_ABI = frozenset(
 _FIXED_ARITY = frozenset(
     {
         "CIR-SHAPE-FIXED",
+        "ROUTING-PARAMETERS",
+        "ROUTING-TAG-DERIVATION",
         "CIR-SELECTOR-BOOLEAN",
         "DUMMY-AMOUNT-ZERO",
         "DUMMY-NULLIFIER-DOMAIN-BINDING",
@@ -1698,7 +1711,6 @@ def trace_predicates(profile: str, segment: dict) -> set[str]:
                 {
                     "NOTE-SPEND-OWNER-BINDING",
                     "NOTE-SPEND-ASSET-BINDING",
-                    "NOTE-SPEND-CLUE-KEY-BINDING",
                     "NOTE-SPEND-COMMITMENT",
                 }
             )
@@ -1707,10 +1719,17 @@ def trace_predicates(profile: str, segment: dict) -> set[str]:
                 {
                     "NOTE-OUTPUT-OWNER-BINDING",
                     "NOTE-OUTPUT-ASSET-BINDING",
-                    "NOTE-OUTPUT-CLUE-KEY-BINDING",
                     "NOTE-OUTPUT-COMMITMENT",
                 }
             )
+    elif op in {
+        "routing.precision.select",
+        "routing.parameters.hash",
+        "routing.parameters.bind",
+    }:
+        result.add("ROUTING-PARAMETERS")
+    elif op.startswith("routing."):
+        result.add("ROUTING-TAG-DERIVATION")
     elif op == "gadget.nullifier":
         result.add("NOTE-SPEND-NULLIFIER-DERIVATION")
     elif op == "gadget.state_commitment_path":
@@ -2108,6 +2127,12 @@ def evidence_sets(test_rows: list[dict]) -> list[dict]:
             source_evidence = [
                 source(PROFILES[next(iter(profiles))]["circuit_source"], "Define")
             ]
+            source_evidence.append(
+                source(
+                    "tools/gnark/internal/circuits/routing.go",
+                    "verifyRoutingAssetRegistry",
+                )
+            )
             fact_path = f"{protocol_dir}/CircuitFacts.lean"
             fact_symbols = ("structure CircuitFacts",)
         elif placement == "external_acceptance":
@@ -2380,6 +2405,19 @@ def tests() -> list[dict]:
             "profiles": sorted(NR_SYNTHETIC),
         },
         {
+            "id": "NOTE-RESHAPE-ROUTING-FAMILIES-VALID",
+            "kind": "integration",
+            "path": "tools/gnark/internal/circuits/family_test.go",
+            "symbol": "TestCircuitFamiliesAcceptValidAssignment",
+            "predicate_ids": sorted(
+                predicate_id
+                for predicate_id in CIRCUIT_IDS
+                if NR <= PREDICATES[predicate_id][1]
+                and PREDICATES[predicate_id][1] != ALL
+            ),
+            "profiles": sorted(NR),
+        },
+        {
             "id": "TRANSFER-FAMILY-VALID",
             "kind": "integration",
             "path": "tools/gnark/internal/circuits/family_test.go",
@@ -2425,6 +2463,8 @@ def tests() -> list[dict]:
                 "NOTE-OUTPUT-COMMITMENT",
                 "NOTE-SPEND-NULLIFIER-DERIVATION",
                 "PUBLIC-STATEMENT-BINDING",
+                "ROUTING-PARAMETERS",
+                "ROUTING-TAG-DERIVATION",
                 "SCT-SPEND-MEMBERSHIP",
             ],
             "profiles": ["transfer"],
@@ -3397,10 +3437,10 @@ def tests() -> list[dict]:
             "profiles": sorted(ALL),
         },
         {
-            "id": "TRANSFER-ADDRESS-PLAINTEXT-FIELDS",
+            "id": "ADDRESS-LEGACY-WIDTH-REJECTED",
             "kind": "boundary_negative",
-            "path": "crates/core/component/compliance/src/transfer.rs",
-            "symbol": "compliance_address_plaintext_excludes_discovery_key",
+            "path": "crates/core/keys/src/address.rs",
+            "symbol": "rejects_legacy_80_byte_address",
             "predicate_ids": ["ADDRESS-CANONICAL-PACKING"],
             "profiles": ["transfer"],
         },
@@ -3763,10 +3803,10 @@ def tests() -> list[dict]:
             "profiles": sorted(TX),
         },
         {
-            "id": "COMPLIANCE-LEAF-DISCOVERY-KEY-COMMITMENT",
+            "id": "COMPLIANCE-LEAF-ADDRESS-COMMITMENT",
             "kind": "negative",
             "path": "crates/core/component/compliance/src/structs.rs",
-            "symbol": "test_compliance_leaf_commitment_binds_discovery_key",
+            "symbol": "test_compliance_leaf_different_addresses_different_commits",
             "predicate_ids": ["USER-COMPLIANCE-LEAF-HASH"],
             "profiles": sorted(TX),
         },
@@ -4832,15 +4872,15 @@ def tests() -> list[dict]:
                 "WITHDRAWAL-COMPACT-WITNESS-LAYOUT",
                 "invariant",
                 "shielded_ics20_withdrawal_metamorphic_test.go",
-                "TestShieldedIcs20WithdrawalV8OmitsPolicyOpeningsAndRedundantFields",
+                "TestShieldedIcs20WithdrawalV9OmitsPolicyOpeningsAndRedundantFields",
                 ("CIR-SHAPE-FIXED",),
                 WITHDRAWAL,
             ),
             circuit_test(
-                "WITHDRAWAL-SHARED-SENDER-CLUE-KEY",
+                "WITHDRAWAL-FIXED-ROUTING-FIELDS",
                 "invariant",
                 "shielded_ics20_withdrawal_metamorphic_test.go",
-                "TestShieldedIcs20WithdrawalV8UsesOneSharedSenderClueKey",
+                "TestShieldedIcs20WithdrawalV9CarriesFixedRoutingFields",
                 ("CIR-SHAPE-FIXED",),
                 WITHDRAWAL,
             ),
@@ -4875,10 +4915,10 @@ def tests() -> list[dict]:
                 WITHDRAWAL,
             ),
             circuit_test(
-                "WITHDRAWAL-COMPACT-LEAF-SENTINEL-CLUE-WIRING",
+                "WITHDRAWAL-COMPACT-LEAF-SENTINEL-WIRING",
                 "invariant",
                 "shielded_ics20_withdrawal_metamorphic_test.go",
-                "TestShieldedIcs20WithdrawalWiringBindsCompactLeafSentinelAndClueKey",
+                "TestShieldedIcs20WithdrawalWiringBindsCompactLeafAndSentinel",
                 (
                     "ASSET-ID-NONZERO",
                     "ASSET-LEAF-HASH",
@@ -5051,14 +5091,6 @@ def tests() -> list[dict]:
                 TRANSFER,
             ),
             circuit_test(
-                "TRANSFER-RECEIVER-CLUE-KEY-COMPLIANCE-PATH",
-                "full_circuit_negative",
-                "transfer_metamorphic_test.go",
-                "TestTransferCircuitRejectsReceiverClueKeySubstitutionWithStaleCompliancePath",
-                ("USER-LEAF-ADDRESS-BINDING",),
-                TRANSFER,
-            ),
-            circuit_test(
                 "TRANSFER-DETECTION-SLOT-U32-RANGE",
                 "boundary_negative",
                 "transfer_metamorphic_test.go",
@@ -5095,10 +5127,10 @@ def tests() -> list[dict]:
                 WITHDRAWAL,
             ),
             circuit_test(
-                "TRANSFER-V16-ROLE-SPECIFIC-LAYOUT",
+                "TRANSFER-V17-ROLE-SPECIFIC-LAYOUT",
                 "invariant",
                 "transfer_metamorphic_test.go",
-                "TestTransferV16UsesRoleSpecificSemanticLayout",
+                "TestTransferV17UsesRoleSpecificSemanticLayout",
                 ("CIR-SHAPE-FIXED",),
                 TRANSFER,
             ),
@@ -5255,10 +5287,8 @@ def tests() -> list[dict]:
                 (
                     "DEC-TRANSMISSION-KEY-DERIVATION",
                     "NOTE-OUTPUT-ASSET-BINDING",
-                    "NOTE-OUTPUT-CLUE-KEY-BINDING",
                     "NOTE-OUTPUT-OWNER-BINDING",
                     "NOTE-SPEND-ASSET-BINDING",
-                    "NOTE-SPEND-CLUE-KEY-BINDING",
                     "NOTE-SPEND-OWNER-BINDING",
                 ),
                 NR,
@@ -5329,11 +5359,9 @@ def tests() -> list[dict]:
                     "DEC-INCOMING-VIEWING-KEY-NONZERO",
                     "DEC-TRANSMISSION-KEY-NONIDENTITY",
                     "NOTE-OUTPUT-ASSET-BINDING",
-                    "NOTE-OUTPUT-CLUE-KEY-BINDING",
                     "NOTE-OUTPUT-COMMITMENT",
                     "NOTE-OUTPUT-OWNER-BINDING",
                     "NOTE-SPEND-ASSET-BINDING",
-                    "NOTE-SPEND-CLUE-KEY-BINDING",
                     "NOTE-SPEND-COMMITMENT",
                     "NOTE-SPEND-OWNER-BINDING",
                     "PUBLIC-STATEMENT-BINDING",
@@ -6631,17 +6659,17 @@ def property_test_contract() -> dict:
                 (
                     "invariant",
                     _TRANSACTION_PLAN_TESTS,
-                    "discovery_precision_propagates_to_transfer_family",
+                    "routing_parameters_propagate_to_transfer_family",
                 ),
                 (
                     "invariant",
                     _TRANSACTION_PLAN_TESTS,
-                    "shielded_ics20_withdrawal_counts_change_output_for_discovery",
+                    "shielded_ics20_withdrawal_counts_change_output_for_routing",
                 ),
                 (
                     "invariant",
                     _TRANSACTION_PLAN_TESTS,
-                    "shielded_ics20_withdrawal_without_explicit_change_still_counts_hidden_change_note",
+                    "shielded_ics20_withdrawal_without_explicit_change_still_counts_hidden_routing_note",
                 ),
             ),
             "REGULATED-STATUS-SOUNDNESS": (
@@ -6862,72 +6890,62 @@ def property_test_contract() -> dict:
                 (
                     "parity",
                     _GNARK_NOTE_RESHAPE_TESTS,
-                    "note_reshape_witness_v3_roundtrip",
+                    "note_reshape_witness_v4_roundtrip",
                 ),
                 (
                     "negative",
                     _GNARK_NOTE_RESHAPE_TESTS,
-                    "note_reshape_witness_v3_rejects_bad_magic",
+                    "note_reshape_witness_v4_rejects_bad_magic",
                 ),
                 (
                     "negative",
                     _GNARK_NOTE_RESHAPE_TESTS,
-                    "note_reshape_witness_v3_rejects_bad_version",
+                    "note_reshape_witness_v4_rejects_bad_version",
                 ),
                 (
                     "boundary_negative",
                     _GNARK_NOTE_RESHAPE_TESTS,
-                    "note_reshape_witness_v3_rejects_bad_length",
+                    "note_reshape_witness_v4_rejects_bad_length",
                 ),
                 (
                     "parity",
                     _GNARK_TRANSFER_TESTS,
-                    "transfer_witness_v16_roundtrip",
+                    "transfer_witness_v17_roundtrip",
                 ),
                 (
                     "parity",
                     _GNARK_TRANSFER_TESTS,
-                    "transfer_hidden_arity_witness_v16_roundtrip",
+                    "transfer_hidden_arity_witness_v17_roundtrip",
                 ),
                 (
                     "negative",
                     _GNARK_TRANSFER_TESTS,
-                    "transfer_witness_v16_rejects_legacy_v15_layout",
-                ),
-                (
-                    "negative",
-                    _GNARK_TRANSFER_TESTS,
-                    "transfer_witness_v16_rejects_mixed_sender_clue_keys",
+                    "transfer_witness_v17_rejects_legacy_v15_layout",
                 ),
                 (
                     "parity",
                     _GNARK_WITHDRAWAL_TESTS,
-                    "shielded_ics20_withdrawal_witness_v8_roundtrip",
+                    "shielded_ics20_withdrawal_witness_v9_roundtrip",
                 ),
                 (
                     "negative",
                     _GNARK_WITHDRAWAL_TESTS,
-                    "shielded_ics20_withdrawal_witness_v8_rejects_legacy_version",
+                    "shielded_ics20_withdrawal_witness_v9_rejects_legacy_version",
                 ),
                 (
                     "negative",
                     _GNARK_WITHDRAWAL_TESTS,
-                    "shielded_ics20_withdrawal_witness_v8_rejects_non_canonical_boolean_flags",
+                    "shielded_ics20_withdrawal_witness_v9_rejects_non_canonical_boolean_flags",
                 ),
                 (
                     "negative",
                     _GNARK_WITHDRAWAL_TESTS,
-                    "shielded_ics20_withdrawal_witness_v8_rejects_mixed_clue_keys",
+                    "shielded_ics20_withdrawal_witness_v9_rejects_unbalanced_amounts",
                 ),
                 (
                     "negative",
                     _GNARK_WITHDRAWAL_TESTS,
-                    "shielded_ics20_withdrawal_witness_v8_rejects_unbalanced_amounts",
-                ),
-                (
-                    "negative",
-                    _GNARK_WITHDRAWAL_TESTS,
-                    "shielded_ics20_withdrawal_witness_v8_rejects_non_blinding_balance_commitment",
+                    "shielded_ics20_withdrawal_witness_v9_rejects_non_blinding_balance_commitment",
                 ),
                 (
                     "negative",
@@ -6987,7 +7005,7 @@ def property_test_contract() -> dict:
                 (
                     "invariant",
                     _GO_ABI_WITNESS_TESTS,
-                    "TestShieldedIcs20WithdrawalV8FixtureBranchMatrix",
+                    "TestShieldedIcs20WithdrawalV9FixtureBranchMatrix",
                 ),
                 (
                     "negative",
@@ -7002,47 +7020,47 @@ def property_test_contract() -> dict:
                 (
                     "negative",
                     _GO_ABI_WITNESS_TESTS,
-                    "TestNoteReshapeV3RejectsLegacyVersion",
+                    "TestNoteReshapeV4RejectsLegacyVersion",
                 ),
                 (
                     "negative",
                     _GO_ABI_WITNESS_TESTS,
-                    "TestTransferV16RejectsLegacyVersion",
+                    "TestTransferV17RejectsLegacyVersion",
                 ),
                 (
                     "negative",
                     _GO_ABI_WITNESS_TESTS,
-                    "TestTransferV16AssignmentRejectsClaimedHashMismatch",
+                    "TestTransferV17AssignmentRejectsClaimedHashMismatch",
                 ),
                 (
                     "negative",
                     _GO_ABI_WITNESS_TESTS,
-                    "TestTransferV16AssignmentRejectsSerializedSemanticMutation",
+                    "TestTransferV17AssignmentRejectsSerializedSemanticMutation",
                 ),
                 (
                     "negative",
                     _GO_ABI_WITNESS_TESTS,
-                    "TestShieldedIcs20WithdrawalV8RejectsLegacyVersion",
+                    "TestShieldedIcs20WithdrawalV9RejectsLegacyVersion",
                 ),
                 (
                     "negative",
                     _GO_ABI_WITNESS_TESTS,
-                    "TestShieldedIcs20WithdrawalV8AssignmentRejectsClaimedHashMismatch",
+                    "TestShieldedIcs20WithdrawalV9AssignmentRejectsClaimedHashMismatch",
                 ),
                 (
                     "boundary_negative",
                     _GO_ABI_WITNESS_TESTS,
-                    "TestShieldedIcs20WithdrawalV8RejectsOversizedEffectHashLimb",
+                    "TestShieldedIcs20WithdrawalV9RejectsOversizedEffectHashLimb",
                 ),
                 (
                     "negative",
                     _GO_ABI_WITNESS_TESTS,
-                    "TestShieldedIcs20WithdrawalV8RejectsNonCanonicalBalanceBlinding",
+                    "TestShieldedIcs20WithdrawalV9RejectsNonCanonicalBalanceBlinding",
                 ),
                 (
                     "negative",
                     _GO_ABI_WITNESS_TESTS,
-                    "TestShieldedIcs20WithdrawalV8RejectsNonCanonicalBooleanFlags",
+                    "TestShieldedIcs20WithdrawalV9RejectsNonCanonicalBooleanFlags",
                 ),
                 (
                     "invariant",
@@ -7052,7 +7070,7 @@ def property_test_contract() -> dict:
                 (
                     "negative",
                     _GO_ABI_WITNESS_TESTS,
-                    "TestNoteReshapeV3RejectsSplitAddressRepresentationPayload",
+                    "TestNoteReshapeV4RejectsSplitAddressRepresentationPayload",
                 ),
                 (
                     "parity",
@@ -7963,7 +7981,6 @@ SPEND_NOTE_PREDICATES = frozenset(
     {
         "NOTE-SPEND-OWNER-BINDING",
         "NOTE-SPEND-ASSET-BINDING",
-        "NOTE-SPEND-CLUE-KEY-BINDING",
         "NOTE-SPEND-COMMITMENT",
         "SCT-SPEND-MEMBERSHIP",
         "NOTE-SPEND-NULLIFIER-DERIVATION",
@@ -7976,7 +7993,6 @@ OUTPUT_NOTE_PREDICATES = frozenset(
     {
         "NOTE-OUTPUT-OWNER-BINDING",
         "NOTE-OUTPUT-ASSET-BINDING",
-        "NOTE-OUTPUT-CLUE-KEY-BINDING",
         "NOTE-OUTPUT-COMMITMENT",
     }
 )
@@ -8094,7 +8110,6 @@ FORMAL_FACT_PREDICATES: dict[
             {
                 "NOTE-SPEND-OWNER-BINDING",
                 "NOTE-SPEND-ASSET-BINDING",
-                "NOTE-SPEND-CLUE-KEY-BINDING",
                 "NOTE-SPEND-COMMITMENT",
             }
         ),
@@ -8113,7 +8128,6 @@ FORMAL_FACT_PREDICATES: dict[
             {
                 "NOTE-OUTPUT-OWNER-BINDING",
                 "NOTE-OUTPUT-ASSET-BINDING",
-                "NOTE-OUTPUT-CLUE-KEY-BINDING",
                 "NOTE-OUTPUT-COMMITMENT",
             }
         ),
@@ -8127,9 +8141,18 @@ FORMAL_FACT_PREDICATES: dict[
         ),
         "NoteReshape.CircuitFacts.statementBound": frozenset(
             {
+                "ASSET-REGULATED-BOOLEAN",
+                "ASSET-LEAF-HASH",
+                "ASSET-REGISTRY-MEMBERSHIP",
+                "ASSET-REGISTRY-GAP-ORDERING",
+                "ASSET-POLICY-KEY-ENCODING",
+                "ASSET-PARAMETERS-HASH",
+                "ASSET-RING-HASH",
                 "DEC-SPEND-RK-ENCODING",
                 "DEC-BALANCE-COMMITMENT-ENCODING",
                 "PUBLIC-STATEMENT-BINDING",
+                "ROUTING-PARAMETERS",
+                "ROUTING-TAG-DERIVATION",
             }
         ),
     },
@@ -8170,7 +8193,12 @@ FORMAL_FACT_PREDICATES: dict[
         "Transfer.CircuitFacts.balanceComputedAndCompressed":
             VALUE_PREDICATES,
         "Transfer.CircuitFacts.statementBinding": frozenset(
-            {"CIR-SHAPE-FIXED", "PUBLIC-STATEMENT-BINDING"}
+            {
+                "CIR-SHAPE-FIXED",
+                "PUBLIC-STATEMENT-BINDING",
+                "ROUTING-PARAMETERS",
+                "ROUTING-TAG-DERIVATION",
+            }
         ),
     },
     "WITHDRAWAL-CIRCUIT": {
@@ -8200,6 +8228,8 @@ FORMAL_FACT_PREDICATES: dict[
             {
                 "CIR-SHAPE-FIXED",
                 "PUBLIC-STATEMENT-BINDING",
+                "ROUTING-PARAMETERS",
+                "ROUTING-TAG-DERIVATION",
                 "WITHDRAWAL-INTENT-FIELD-BINDING",
             }
         ),
@@ -8622,10 +8652,8 @@ NR_LEDGER_PREDICATES = {
             {
                 "NOTE-SPEND-OWNER-BINDING",
                 "NOTE-SPEND-ASSET-BINDING",
-                "NOTE-SPEND-CLUE-KEY-BINDING",
                 "NOTE-OUTPUT-OWNER-BINDING",
                 "NOTE-OUTPUT-ASSET-BINDING",
-                "NOTE-OUTPUT-CLUE-KEY-BINDING",
             }
         )
     ),
@@ -8633,7 +8661,6 @@ NR_LEDGER_PREDICATES = {
         {
             "NOTE-SPEND-OWNER-BINDING",
             "NOTE-SPEND-ASSET-BINDING",
-            "NOTE-SPEND-CLUE-KEY-BINDING",
             "NOTE-SPEND-COMMITMENT",
         }
     ),
@@ -8669,7 +8696,6 @@ NR_LEDGER_PREDICATES = {
         {
             "NOTE-OUTPUT-OWNER-BINDING",
             "NOTE-OUTPUT-ASSET-BINDING",
-            "NOTE-OUTPUT-CLUE-KEY-BINDING",
             "NOTE-OUTPUT-COMMITMENT",
             "EXT-OUTPUT-PERSISTENCE",
             "EXT-TRANSACTION-EFFECTS-ATOMICITY",
@@ -8684,6 +8710,19 @@ NR_LEDGER_PREDICATES = {
             "PUBLIC-STATEMENT-BINDING",
             "EXT-PUBLIC-INPUT-PROJECTION",
             "EXT-PROOF-VERIFICATION",
+        }
+    ),
+    "NR-ROUTING": frozenset(
+        {
+            "ASSET-REGULATED-BOOLEAN",
+            "ASSET-LEAF-HASH",
+            "ASSET-REGISTRY-MEMBERSHIP",
+            "ASSET-REGISTRY-GAP-ORDERING",
+            "ASSET-POLICY-KEY-ENCODING",
+            "ASSET-PARAMETERS-HASH",
+            "ASSET-RING-HASH",
+            "ROUTING-PARAMETERS",
+            "ROUTING-TAG-DERIVATION",
         }
     ),
 }
@@ -8705,9 +8744,7 @@ T_LEDGER_PREDICATES = {
         | frozenset(
             {
                 "NOTE-SPEND-OWNER-BINDING",
-                "NOTE-SPEND-CLUE-KEY-BINDING",
                 "NOTE-OUTPUT-OWNER-BINDING",
-                "NOTE-OUTPUT-CLUE-KEY-BINDING",
                 "EXT-USER-REGISTRY-AUTHORIZED",
             }
         )
@@ -8780,6 +8817,9 @@ T_LEDGER_PREDICATES = {
             "EXT-PROOF-VERIFICATION",
         }
     ),
+    "T-ROUTING": frozenset(
+        {"ROUTING-PARAMETERS", "ROUTING-TAG-DERIVATION"}
+    ),
 }
 
 W_LEDGER_PREDICATES = {
@@ -8799,9 +8839,7 @@ W_LEDGER_PREDICATES = {
         | frozenset(
             {
                 "NOTE-SPEND-OWNER-BINDING",
-                "NOTE-SPEND-CLUE-KEY-BINDING",
                 "NOTE-OUTPUT-OWNER-BINDING",
-                "NOTE-OUTPUT-CLUE-KEY-BINDING",
                 "EXT-USER-REGISTRY-AUTHORIZED",
             }
         )
@@ -8830,6 +8868,9 @@ W_LEDGER_PREDICATES = {
                 "EXT-TRANSACTION-EFFECTS-ATOMICITY",
             }
         )
+    ),
+    "W-ROUTING": frozenset(
+        {"ROUTING-PARAMETERS", "ROUTING-TAG-DERIVATION"}
     ),
     "W-ASSET-REGISTRY": (
         SHARED_ASSET_PREDICATES

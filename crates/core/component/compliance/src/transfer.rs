@@ -261,6 +261,7 @@ pub fn encrypt_transfer(
     is_flagged: bool,
     sender_slot_id: u32,
     receiver_slot_id: u32,
+    routing_roles_swapped: bool,
     detection_salt: Fq,
 ) -> Result<TransferEncryptionResult> {
     let sender = PartyTierMaterial {
@@ -323,7 +324,7 @@ pub fn encrypt_transfer(
     );
     let detection_0 = receiver_value.asset_id.0 + compliance_stream_block(seed_detection, 0);
     let detection_1 = detection_salt + compliance_stream_block(seed_detection, 1);
-    let detection_2 = detection_sender_plaintext(sender_slot_id, is_flagged)
+    let detection_2 = detection_sender_plaintext(sender_slot_id, is_flagged, routing_roles_swapped)
         + compliance_stream_block(seed_detection, 2);
     let detection_3 = Fq::from(receiver_slot_id) + compliance_stream_block(seed_detection, 3);
     let mut detection_tag = [0u8; DETECTION_TAG_BYTES];
@@ -382,37 +383,6 @@ fn address_bytes(address: &Address) -> Vec<u8> {
 mod tests {
     use super::*;
     use rand_core::Error;
-
-    #[test]
-    fn compliance_address_plaintext_excludes_discovery_key() {
-        let address = crate::test_helpers::make_address(7);
-        let mut rng = rand_core::OsRng;
-        let different_discovery_address = loop {
-            let candidate = Address::dummy(&mut rng);
-            let discovery_key = *candidate.discovery_key();
-            if &discovery_key == address.discovery_key() {
-                continue;
-            }
-            break Address::from_components(
-                address.diversifier().clone(),
-                address.transmission_key().clone(),
-                discovery_key,
-            )
-            .expect("alternate discovery key is canonical");
-        };
-
-        assert!(address != different_discovery_address);
-        assert_eq!(
-            address_bytes(&address),
-            address_bytes(&different_discovery_address),
-            "compliance disclosure must not include the independently bound discovery key"
-        );
-
-        let mut expected = Vec::with_capacity(64);
-        expected.extend_from_slice(&address.diversified_generator().vartime_compress().0);
-        expected.extend_from_slice(&address.transmission_key().0);
-        assert_eq!(address_bytes(&address), expected);
-    }
 
     struct ZeroThenOneRng {
         word_calls: usize,
