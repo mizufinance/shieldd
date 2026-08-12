@@ -51,7 +51,9 @@ jobs:
           echo "OK: no uncommitted changes detected"
 
       - name: Check dependency policy
-        run: nix develop --command cargo deny check
+        # cargo-deny 0.17 removed the config key that 0.18 later restored.
+        # The CLI lint override preserves the policy across both versions.
+        run: nix develop --command cargo deny check --allow unmaintained
 
       - name: Check crate features
         run: >-

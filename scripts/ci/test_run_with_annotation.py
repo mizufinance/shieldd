@@ -293,7 +293,7 @@ class RustWorkflowWiringTests(unittest.TestCase):
 
     def test_dependency_policy_uses_the_prepared_nix_toolchain(self) -> None:
         self.assertIn(
-            "nix develop --command cargo deny check",
+            "nix develop --command cargo deny check --allow unmaintained",
             self.workflow,
         )
         self.assertNotIn("cargo-deny-action", self.workflow)
