@@ -80,6 +80,17 @@ class ProofArtifactsTest(unittest.TestCase):
             "--include=tools/gnark/artifacts/transfer/transfer.sr1cs,"
             "tools/gnark/artifacts/transfer/proving_key.bin",
         )
+        self.assertEqual(
+            run.call_args_list[2].args[0],
+            [
+                "git",
+                "add",
+                "--refresh",
+                "--",
+                "tools/gnark/artifacts/transfer/transfer.sr1cs",
+                "tools/gnark/artifacts/transfer/proving_key.bin",
+            ],
+        )
 
     def test_materialize_installs_filters_without_pull_when_files_are_valid(self) -> None:
         completed = subprocess.CompletedProcess([], 0)
@@ -87,10 +98,19 @@ class ProofArtifactsTest(unittest.TestCase):
             PROOF_ARTIFACTS.subprocess, "run", return_value=completed
         ) as run:
             PROOF_ARTIFACTS.materialize()
-        run.assert_called_once_with(
-            ["git", "lfs", "install", "--local", "--skip-smudge"],
-            cwd=self.root,
-            check=False,
+        self.assertEqual(
+            [call.args[0] for call in run.call_args_list],
+            [
+                ["git", "lfs", "install", "--local", "--skip-smudge"],
+                [
+                    "git",
+                    "add",
+                    "--refresh",
+                    "--",
+                    "tools/gnark/artifacts/transfer/transfer.sr1cs",
+                    "tools/gnark/artifacts/transfer/proving_key.bin",
+                ],
+            ],
         )
 
     def test_materialize_rejects_missing_lfs_filters(self) -> None:
@@ -101,6 +121,24 @@ class ProofArtifactsTest(unittest.TestCase):
             with self.assertRaisesRegex(
                 PROOF_ARTIFACTS.ArtifactError,
                 "repository-local filters",
+            ):
+                PROOF_ARTIFACTS.materialize()
+
+    def test_materialize_rejects_index_mismatch(self) -> None:
+        def fake_run(command: list[str], **kwargs: object) -> subprocess.CompletedProcess:
+            return subprocess.CompletedProcess(
+                command,
+                1 if command[:3] == ["git", "add", "--refresh"] else 0,
+            )
+
+        with mock.patch.object(
+            PROOF_ARTIFACTS.subprocess,
+            "run",
+            side_effect=fake_run,
+        ):
+            with self.assertRaisesRegex(
+                PROOF_ARTIFACTS.ArtifactError,
+                "committed Git LFS pointers",
             ):
                 PROOF_ARTIFACTS.materialize()
 

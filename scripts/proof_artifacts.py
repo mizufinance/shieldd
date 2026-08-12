@@ -112,10 +112,21 @@ def install_lfs_filters() -> None:
         )
 
 
+def refresh_git_index() -> None:
+    command = ["git", "add", "--refresh", "--", *lfs_paths()]
+    result = subprocess.run(command, cwd=REPO_ROOT, check=False)
+    if result.returncode != 0:
+        raise ArtifactError(
+            "materialized proof artifacts do not match their committed Git LFS "
+            "pointers"
+        )
+
+
 def materialize() -> None:
     install_lfs_filters()
     try:
         verify()
+        refresh_git_index()
         return
     except ArtifactError:
         pass
@@ -134,6 +145,7 @@ def materialize() -> None:
             "authenticate to the repository, and retry"
         )
     verify()
+    refresh_git_index()
 
 
 def main() -> int:
