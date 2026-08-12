@@ -13,8 +13,8 @@ ENV ELAN_HOME=/usr/local/elan
 ENV OPAMROOT=/usr/local/opam
 ENV PATH="/usr/local/elan/bin:/usr/local/cargo/bin:/usr/local/opam/hax/bin:${PATH}"
 
-# Manual artifact replay materializes the current proving bundle inside this
-# job container, so the image still needs the Git LFS client.
+# git-lfs is required by the consuming jobs' `actions/checkout` with `lfs: true`,
+# which fails with "Unable to locate executable file: git-lfs" without it.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
       build-essential ca-certificates curl git git-lfs jq libgmp-dev nodejs opam \
