@@ -122,7 +122,6 @@ zip = "0.6"
 [dev-dependencies]
 shieldd-sdk-proof-params = { workspace = true, features = [
     "bundled-proving-keys",
-    "download-proving-keys",
 ], default-features = true }
 assert_cmd = { workspace = true }
 predicates = "2.1"

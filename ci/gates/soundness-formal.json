@@ -3,6 +3,7 @@
   "gate": "soundness-formal",
   "tiers": [
     "skip",
+    "policy",
     "pr",
     "full"
   ],
@@ -45,6 +46,55 @@
     }
   ],
   "explicit_inputs": [
+    {
+      "patterns": [
+        ".gitattributes",
+        ".github/actions/materialize-proof-artifacts/**",
+        ".github/workflows/formal-scheduled.yml",
+        ".github/workflows/formal.yml",
+        ".github/workflows/rust.yml",
+        ".github/workflows/soundness-provers.yml",
+        "Cargo.lock",
+        "ci/gates/soundness-formal.json",
+        "crates/bench/Cargo.toml",
+        "crates/bin/bankd-e2e-host-withdrawal-builder/Cargo.toml",
+        "crates/bin/bankd-e2e-spend-builder/Cargo.toml",
+        "crates/bin/pcli/Cargo.toml",
+        "crates/bin/pclientd/Cargo.toml",
+        "crates/bin/pd/Cargo.toml",
+        "crates/bin/pd/build.rs",
+        "crates/core/app-tests/Cargo.toml",
+        "crates/core/component/shielded-pool/Cargo.toml",
+        "crates/core/component/shielded-pool/src/gnark/artifacts.rs",
+        "crates/core/transaction/Cargo.toml",
+        "crates/crypto/proof-aggregation/formal/snarkpack/fstar-checker-evidence.json",
+        "crates/crypto/proof-aggregation/formal/snarkpack/verification-manifest.json",
+        "crates/crypto/proof-params/Cargo.toml",
+        "crates/crypto/proof-params/build.rs",
+        "crates/crypto/proof-params/src/gen/gnark/**",
+        "crates/crypto/proof-params/src/gnark_artifact_validation.rs",
+        "crates/proto/build.rs",
+        "justfile",
+        "scripts/check_lfs_policy.py",
+        "scripts/ci/enforce_formal_result.py",
+        "scripts/ci/gate-applicability.py",
+        "scripts/ci/snarkpack_fv_impact.py",
+        "scripts/ci/test_enforce_formal_result.py",
+        "scripts/ci/test_gate_applicability.py",
+        "scripts/ci/test_run_with_annotation.py",
+        "scripts/ci/test_snarkpack_fv_impact.py",
+        "scripts/fixtures/**",
+        "scripts/proof_artifacts.py",
+        "scripts/tests/test_*.py",
+        "tools/gnark/artifacts/README.md"
+      ],
+      "tiers": {
+        "pull_request": "policy",
+        "merge_group": "policy",
+        "default": "full"
+      },
+      "reason": "proof-artifact storage, materialization, packaging, or gate-policy input"
+    },
     {
       "patterns": [
         "scripts/fv_certification.py",
@@ -155,7 +205,6 @@
         "scripts/fv_specification_completeness.py",
         "scripts/run-fv-specification-tests.py",
         "scripts/sync-fv-certification-backends.py",
-        "scripts/tests/test_*.py",
         "scripts/check_poseidon377_parity.sh",
         "scripts/circuit-constraint-check.sh",
         "scripts/circuit-gadget-proof-check.sh",
@@ -166,7 +215,24 @@
         "scripts/lint-emitted-lean.py",
         "scripts/run-picus-bounded.sh",
         "scripts/shielded-pool-formal.sh",
-        "tools/gnark/**"
+        "tools/gnark/*.go",
+        "tools/gnark/go.mod",
+        "tools/gnark/go.sum",
+        "tools/gnark/artifacts/*/*.sr1cs",
+        "tools/gnark/artifacts/*/circuit_metadata.json",
+        "tools/gnark/artifacts/*/proving_key.bin",
+        "tools/gnark/artifacts/*/verifying_key.bin",
+        "tools/gnark/cmd/**",
+        "tools/gnark/internal/abi/**",
+        "tools/gnark/internal/artifacts/**",
+        "tools/gnark/internal/circuits/**",
+        "tools/gnark/internal/compliance/**",
+        "tools/gnark/internal/cshared/**",
+        "tools/gnark/internal/generated/**",
+        "tools/gnark/internal/primitives/**",
+        "tools/gnark/lean/**",
+        "tools/gnark/rust-vectors/**",
+        "tools/gnark/third_party/**"
       ],
       "tiers": {
         "pull_request": "pr",

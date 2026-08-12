@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import io
 import json
@@ -379,7 +380,8 @@ class GateApplicabilityTests(unittest.TestCase):
                     decision.tier,
                     (
                         "static"
-                        if path in {"flake.nix", "flake.lock"}
+                        if path
+                        in {"Cargo.toml", "Cargo.lock", "flake.nix", "flake.lock"}
                         else "extract-all"
                     ),
                 )
@@ -387,7 +389,10 @@ class GateApplicabilityTests(unittest.TestCase):
                 decision = GATE.classify(
                     self.soundness, "pull_request", [path], []
                 )
-                self.assertEqual(decision.tier, "pr")
+                self.assertEqual(
+                    decision.tier,
+                    "policy" if path == "Cargo.lock" else "pr",
+                )
 
     def test_circuit_refinement_inputs_select_pr_gate(self) -> None:
         paths = (
@@ -477,6 +482,15 @@ class GateApplicabilityTests(unittest.TestCase):
         self.assertNotIn("  soundness-source-drift:", workflow)
         self.assertNotIn("  soundness-lean-circuit-fv:", workflow)
 
+        policy_job = workflow[
+            workflow.index("  soundness-policy:") : workflow.index(
+                "  soundness-gate:"
+            )
+        ]
+        self.assertIn("soundness_tier == 'policy'", policy_job)
+        self.assertIn("test_gate_applicability.py", policy_job)
+        self.assertNotIn("check-soundness-invariants.sh", policy_job)
+
         soundness_gate_job = workflow[
             workflow.index("  soundness-gate:") : workflow.index(
                 "  soundness-seam-and-pin:"
@@ -507,16 +521,17 @@ class GateApplicabilityTests(unittest.TestCase):
             summary,
         )
 
-    def test_soundness_gate_materializes_lfs_witnesses(self) -> None:
+    def test_soundness_pin_materializes_current_proof_bundle(self) -> None:
         workflow = (self.root / ".github/workflows/formal.yml").read_text(
             encoding="utf-8"
         )
-        soundness_gate = workflow[
-            workflow.index("  soundness-gate:") : workflow.index(
-                "  soundness-seam-and-pin:"
+        soundness_pin = workflow[
+            workflow.index("  soundness-seam-and-pin:") : workflow.index(
+                "  soundness-alloy:"
             )
         ]
-        self.assertIn("          lfs: true", soundness_gate)
+        self.assertIn(".github/actions/materialize-proof-artifacts", soundness_pin)
+        self.assertNotIn("lfs: true", workflow)
 
     def test_candidate_soundness_defers_only_the_reviewed_semantic_pin(self) -> None:
         runner = (self.root / "scripts/check-soundness-invariants.sh").read_text(
@@ -1089,6 +1104,54 @@ class GateApplicabilityTests(unittest.TestCase):
         self.assertFalse(classified.unknown_files)
         self.assertIn("base declaration", classified.matched[0]["reason"])
 
+    def test_current_audit_can_reclassify_a_former_input_as_irrelevant(self) -> None:
+        path = "storage/proof-key.packaging"
+        previous = GATE.Declaration(
+            gate=self.soundness.gate,
+            tiers=self.soundness.tiers,
+            events=self.soundness.events,
+            derived_inputs=(),
+            explicit_inputs=(
+                {
+                    "patterns": (path,),
+                    "tiers": {
+                        "pull_request": "pr",
+                        "merge_group": "pr",
+                        "default": "full",
+                    },
+                    "reason": "former broad formal input",
+                },
+            ),
+            irrelevant_inputs=(),
+        )
+        current = GATE.Declaration(
+            gate=self.soundness.gate,
+            tiers=self.soundness.tiers,
+            events=self.soundness.events,
+            derived_inputs=(),
+            explicit_inputs=(),
+            irrelevant_inputs=(
+                {
+                    "patterns": (path,),
+                    "reason": "audited storage-only input",
+                },
+            ),
+        )
+
+        decision = GATE.classify(
+            current,
+            "pull_request",
+            [path],
+            [],
+            previous_declaration=previous,
+        )
+
+        self.assertEqual((decision.status, decision.tier), ("skip", "skip"))
+        self.assertFalse(decision.unknown_files)
+        self.assertEqual(
+            decision.matched[0]["reason"], "audited storage-only input"
+        )
+
     def test_removed_base_tier_uses_current_conservative_tier(self) -> None:
         retired_path = "retired-formal-control/proof-input.lean"
         previous = GATE.Declaration(
@@ -1171,6 +1234,9 @@ class GateApplicabilityTests(unittest.TestCase):
             "scripts/gen-note-reshape-family-artifacts.py",
             "scripts/check-circuit-fv.sh",
             "scripts/fv_specification_completeness.py",
+            "scripts/check_lfs_policy.py",
+            "scripts/proof_artifacts.py",
+            "scripts/tests/test_proof_artifacts.py",
             "scripts/lib/soundness-symbol-cell.sh",
             "scripts/tests/test_wiring_certificates.py",
             "scripts/fixtures/fv-census/signed-coefficients.sr1cs",
@@ -1184,6 +1250,73 @@ class GateApplicabilityTests(unittest.TestCase):
                 )
                 self.assertEqual((decision.status, decision.tier), ("skip", "skip"))
                 self.assertFalse(decision.unknown_files)
+
+    def test_proof_artifact_controls_select_soundness_validation(self) -> None:
+        for path in (
+            ".gitattributes",
+            "justfile",
+            "scripts/check_lfs_policy.py",
+            "scripts/proof_artifacts.py",
+            "scripts/tests/test_proof_artifacts.py",
+        ):
+            with self.subTest(path=path):
+                decision = GATE.classify(
+                    self.soundness,
+                    "pull_request",
+                    [path],
+                    [],
+                )
+                self.assertEqual(
+                    (decision.status, decision.tier), ("run", "policy")
+                )
+                self.assertFalse(decision.unknown_files)
+
+    def test_packaging_policy_overrides_broad_runtime_closure(self) -> None:
+        source = next(
+            item
+            for item in self.soundness.derived_inputs
+            if item["type"] == "cargo_local_closure"
+        )
+        rules = GATE.cargo_closure_rules(self.root, source, "pull_request")
+        decision = GATE.classify(
+            self.soundness,
+            "pull_request",
+            ["crates/core/component/shielded-pool/Cargo.toml"],
+            rules,
+        )
+        self.assertEqual((decision.status, decision.tier), ("run", "policy"))
+
+    def test_snarkpack_evidence_uses_policy_not_circuit_soundness(self) -> None:
+        for path in (
+            "crates/crypto/proof-aggregation/formal/snarkpack/fstar-checker-evidence.json",
+            "crates/crypto/proof-aggregation/formal/snarkpack/verification-manifest.json",
+            "scripts/ci/enforce_formal_result.py",
+            "scripts/ci/snarkpack_fv_impact.py",
+            "scripts/ci/test_enforce_formal_result.py",
+            "scripts/ci/test_snarkpack_fv_impact.py",
+        ):
+            with self.subTest(path=path):
+                decision = GATE.classify(
+                    self.soundness, "pull_request", [path], []
+                )
+                self.assertEqual(
+                    (decision.status, decision.tier), ("run", "policy")
+                )
+
+    def test_proof_artifact_content_still_selects_soundness_gate(self) -> None:
+        for path in (
+            "tools/gnark/artifacts/transfer/transfer.sr1cs",
+            "tools/gnark/artifacts/transfer/circuit_metadata.json",
+            "tools/gnark/artifacts/transfer/proving_key.bin",
+            "tools/gnark/artifacts/transfer/verifying_key.bin",
+        ):
+            with self.subTest(path=path):
+                decision = GATE.classify(
+                    self.soundness, "pull_request", [path], []
+                )
+                self.assertEqual(
+                    (decision.status, decision.tier), ("run", "pr")
+                )
 
     def test_shared_strict_json_helper_selects_snarkpack_static_gate(self) -> None:
         for path in (
@@ -1553,6 +1686,7 @@ class GateApplicabilityTests(unittest.TestCase):
         self.assertEqual(
             {lane for lane, _ in lanes},
             {
+                "soundness-policy",
                 "soundness-gate",
                 "soundness-seam-and-pin",
                 "soundness-alloy",
@@ -1757,6 +1891,52 @@ class GateApplicabilityTests(unittest.TestCase):
             ).strip()
             self.assertEqual(
                 GATE.changed_files(root, base, head), ("new.txt", "old.txt")
+            )
+
+    def test_lfs_pointer_to_identical_blob_is_not_a_semantic_change(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+            subprocess.run(
+                ["git", "config", "user.email", "test@example.invalid"],
+                cwd=root,
+                check=True,
+            )
+            subprocess.run(
+                ["git", "config", "user.name", "Test"], cwd=root, check=True
+            )
+            payload = b"current proving material\n"
+            digest = hashlib.sha256(payload).hexdigest()
+            artifact = root / "artifact.bin"
+            artifact.write_bytes(
+                (
+                    "version https://git-lfs.github.com/spec/v1\n"
+                    f"oid sha256:{digest}\n"
+                    f"size {len(payload)}\n"
+                ).encode("ascii")
+            )
+            subprocess.run(["git", "add", "artifact.bin"], cwd=root, check=True)
+            subprocess.run(["git", "commit", "-qm", "pointer"], cwd=root, check=True)
+            base = subprocess.check_output(
+                ["git", "rev-parse", "HEAD"], cwd=root, text=True
+            ).strip()
+
+            artifact.write_bytes(payload)
+            subprocess.run(["git", "add", "artifact.bin"], cwd=root, check=True)
+            subprocess.run(["git", "commit", "-qm", "materialize"], cwd=root, check=True)
+            head = subprocess.check_output(
+                ["git", "rev-parse", "HEAD"], cwd=root, text=True
+            ).strip()
+            self.assertEqual(GATE.changed_files(root, base, head), ())
+
+            artifact.write_bytes(b"different proving material\n")
+            subprocess.run(["git", "add", "artifact.bin"], cwd=root, check=True)
+            subprocess.run(["git", "commit", "-qm", "change"], cwd=root, check=True)
+            changed = subprocess.check_output(
+                ["git", "rev-parse", "HEAD"], cwd=root, text=True
+            ).strip()
+            self.assertEqual(
+                GATE.changed_files(root, base, changed), ("artifact.bin",)
             )
 
 

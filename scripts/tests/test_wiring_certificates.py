@@ -32,11 +32,14 @@ class WiringCertificateClosureTests(unittest.TestCase):
                 self.assertEqual(certificate["circuit"], circuit)
                 self.assertEqual(
                     certificate["sr1cs_sha256_hex"],
-                    hashlib.sha256(
+                    json.loads(
                         (
-                            GNARK / "artifacts" / circuit / f"{circuit}.sr1cs"
-                        ).read_bytes()
-                    ).hexdigest(),
+                            GNARK
+                            / "artifacts"
+                            / circuit
+                            / "circuit_metadata.json"
+                        ).read_text()
+                    )["sr1cs_sha256_hex"],
                 )
                 self.assertEqual(
                     sidecar_path.read_text().strip(),

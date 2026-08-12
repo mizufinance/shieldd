@@ -2,7 +2,7 @@
   "schema_version": 1,
   "fstar_checker_evidence": {
     "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar-checker-evidence.json",
-    "sha256": "5efa37e7828c9b93e36d63236150e62fd4b7d3765b9537b67ee2512540922614"
+    "sha256": "ea154dcf8bc426ad99bd98e378df0e3f91bb4ca7a63f06a1c8e25217a6a07ec3"
   },
   "deployed_srs_evidence": {
     "schema_version": 1,

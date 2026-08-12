@@ -285,14 +285,14 @@ pub(crate) fn validate_circuit_metadata(
     Ok(())
 }
 
-/// Validate every byte-level binding for one deployed artifact directory.
-pub(crate) fn validate_family_artifacts(
+/// Validate the metadata and verification material kept in Git.
+pub(crate) fn validate_repository_artifacts(
     artifact_root: &Path,
     family: DeployedFamily,
 ) -> Result<()> {
     let dir = artifact_root.join(family.artifact_name);
     require_directory(&dir)?;
-    validate_artifact_directory_roster(artifact_root, family)?;
+    validate_artifact_directory_roster(artifact_root, family, false)?;
 
     let metadata_path = dir.join("circuit_metadata.json");
     let metadata_bytes = read_regular_file(&metadata_path)?;
@@ -308,9 +308,6 @@ pub(crate) fn validate_family_artifacts(
         .with_context(|| format!("decode {}", manifest_path.display()))?;
     validate_manifest(&manifest, family, &metadata)?;
 
-    let sr1cs_path = dir.join(format!("{}.sr1cs", family.artifact_name));
-    validate_hash(&sr1cs_path, "SR1CS", &metadata.sr1cs_sha256_hex, None)?;
-
     let setup_path = dir.join("setup_provenance.json");
     let setup_bytes = read_regular_file(&setup_path)?;
     validate_bytes_hash(
@@ -325,12 +322,6 @@ pub(crate) fn validate_family_artifacts(
     )?;
     validate_setup_provenance(&setup, family.label, &metadata)?;
 
-    validate_hash(
-        &dir.join("proving_key.bin"),
-        "proving key",
-        &metadata.proving_key_sha256_hex,
-        Some(metadata.proving_key_size_bytes),
-    )?;
     validate_hash(
         &dir.join("verifying_key.bin"),
         "binary verifying key",
@@ -355,6 +346,53 @@ pub(crate) fn validate_family_artifacts(
     Ok(())
 }
 
+/// Validate the materialized SR1CS and proving key against committed metadata.
+pub(crate) fn validate_materialized_artifacts(
+    artifact_root: &Path,
+    family: DeployedFamily,
+) -> Result<()> {
+    validate_repository_artifacts(artifact_root, family)?;
+    validate_artifact_directory_roster(artifact_root, family, true)?;
+    let dir = artifact_root.join(family.artifact_name);
+    let metadata_path = dir.join("circuit_metadata.json");
+    let metadata: CircuitMetadataJson = decode_canonical_json(
+        &read_regular_file(&metadata_path)?,
+        &format!("{} circuit_metadata.json", family.label),
+    )?;
+    validate_hash(
+        &dir.join(format!("{}.sr1cs", family.artifact_name)),
+        "SR1CS",
+        &metadata.sr1cs_sha256_hex,
+        None,
+    )?;
+    validate_hash(
+        &dir.join("proving_key.bin"),
+        "proving key",
+        &metadata.proving_key_sha256_hex,
+        Some(metadata.proving_key_size_bytes),
+    )?;
+    Ok(())
+}
+
+#[cfg(test)]
+fn validate_family_artifacts(artifact_root: &Path, family: DeployedFamily) -> Result<()> {
+    validate_materialized_artifacts(artifact_root, family)
+}
+
+pub(crate) fn repository_artifact_paths(
+    artifact_root: &Path,
+    family: DeployedFamily,
+) -> [PathBuf; 5] {
+    let dir = artifact_root.join(family.artifact_name);
+    [
+        dir.join("circuit_metadata.json"),
+        dir.join(format!("{}-manifest.json", family.artifact_name)),
+        dir.join("setup_provenance.json"),
+        dir.join("verifying_key.bin"),
+        dir.join("verifying_key.json"),
+    ]
+}
+
 pub(crate) fn artifact_paths(artifact_root: &Path, family: DeployedFamily) -> [PathBuf; 7] {
     let dir = artifact_root.join(family.artifact_name);
     [
@@ -368,9 +406,21 @@ pub(crate) fn artifact_paths(artifact_root: &Path, family: DeployedFamily) -> [P
     ]
 }
 
-fn validate_artifact_directory_roster(artifact_root: &Path, family: DeployedFamily) -> Result<()> {
+fn validate_artifact_directory_roster(
+    artifact_root: &Path,
+    family: DeployedFamily,
+    require_materialized: bool,
+) -> Result<()> {
     let dir = artifact_root.join(family.artifact_name);
-    let expected = artifact_paths(artifact_root, family)
+    let repository = repository_artifact_paths(artifact_root, family)
+        .into_iter()
+        .map(|path| {
+            path.file_name()
+                .expect("artifact paths always have file names")
+                .to_owned()
+        })
+        .collect::<BTreeSet<_>>();
+    let materialized = artifact_paths(artifact_root, family)
         .into_iter()
         .map(|path| {
             path.file_name()
@@ -386,10 +436,20 @@ fn validate_artifact_directory_roster(artifact_root: &Path, family: DeployedFami
                 .map(|entry| entry.file_name())
         })
         .collect::<Result<BTreeSet<_>>>()?;
-    if actual != expected {
+    let matches = if require_materialized {
+        actual == materialized
+    } else {
+        actual == repository || actual == materialized
+    };
+    if !matches {
         bail!(
-            "{} artifact directory roster mismatch: expected {expected:?}, got {actual:?}",
-            family.label
+            "{} artifact directory roster mismatch: expected {:?}, got {actual:?}",
+            family.label,
+            if require_materialized {
+                &materialized
+            } else {
+                &repository
+            },
         );
     }
     Ok(())
@@ -888,7 +948,7 @@ mod tests {
         let artifact_root =
             Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../tools/gnark/artifacts");
         for family in DEPLOYED_FAMILIES {
-            validate_family_artifacts(&artifact_root, family)
+            validate_repository_artifacts(&artifact_root, family)
                 .unwrap_or_else(|error| panic!("{} artifacts failed: {error:#}", family.label));
         }
     }

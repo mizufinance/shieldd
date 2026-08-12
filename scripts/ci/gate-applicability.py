@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import fnmatch
+import hashlib
 import json
 import re
 import subprocess
@@ -384,6 +385,44 @@ def _run_git(
         raise ClassificationError(f"git {' '.join(args)} failed: {error}") from error
 
 
+LFS_POINTER = re.compile(
+    rb"\Aversion https://git-lfs\.github\.com/spec/v1\n"
+    rb"oid sha256:([0-9a-f]{64})\n"
+    rb"size ([0-9]+)\n\Z"
+)
+
+
+def _git_blob(root: Path, revision: str, path: str) -> bytes | None:
+    result = _run_git(root, ["show", f"{revision}:{path}"], text=False)
+    if result.returncode:
+        return None
+    return bytes(result.stdout)
+
+
+def _lfs_representation_only_change(
+    root: Path, base: str, head: str, path: str
+) -> bool:
+    """Return true when Git changed only pointer-vs-blob representation."""
+
+    base_blob = _git_blob(root, base, path)
+    head_blob = _git_blob(root, head, path)
+    if base_blob is None or head_blob is None:
+        return False
+    base_pointer = LFS_POINTER.fullmatch(base_blob)
+    head_pointer = LFS_POINTER.fullmatch(head_blob)
+    if (base_pointer is None) == (head_pointer is None):
+        return False
+    pointer = base_pointer or head_pointer
+    assert pointer is not None
+    payload = head_blob if base_pointer is not None else base_blob
+    expected_size = int(pointer.group(2))
+    expected_digest = pointer.group(1).decode("ascii")
+    return (
+        len(payload) == expected_size
+        and hashlib.sha256(payload).hexdigest() == expected_digest
+    )
+
+
 def changed_files(root: Path, base: str, head: str) -> tuple[str, ...]:
     for label, revision in (("base", base), ("head", head)):
         if not revision:
@@ -412,8 +451,19 @@ def changed_files(root: Path, base: str, head: str) -> tuple[str, ...]:
         path_count = 2 if status.startswith(("R", "C")) else 1
         if index + path_count > len(fields):
             raise ClassificationError("git diff returned a truncated name-status record")
-        for path in fields[index : index + path_count]:
-            paths.add(normalize_repo_path(path, "changed path"))
+        record_paths = tuple(
+            normalize_repo_path(path, "changed path")
+            for path in fields[index : index + path_count]
+        )
+        if (
+            status == "M"
+            and _lfs_representation_only_change(
+                root, base, head, record_paths[0]
+            )
+        ):
+            index += path_count
+            continue
+        paths.update(record_paths)
         index += path_count
     return tuple(sorted(paths))
 
@@ -1502,15 +1552,17 @@ def classify(
             graphs=(),
         )
 
-    rules = list(derived)
+    current_derived_rules = list(derived)
+    current_explicit_rules: list[InputRule] = []
     for item in declaration.explicit_inputs:
-        rules.append(
+        current_explicit_rules.append(
             InputRule(
                 patterns=item["patterns"],
                 tier=tier_for(item["tiers"], event, "explicit input"),
                 reason=item["reason"],
             )
         )
+    previous_rules: list[InputRule] = []
     if previous_declaration is not None:
         if previous_declaration.gate != declaration.gate:
             raise ClassificationError(
@@ -1531,10 +1583,10 @@ def classify(
                 )
             if any(
                 rule.patterns == item["patterns"] and rule.tier == tier
-                for rule in rules
+                for rule in current_explicit_rules
             ):
                 continue
-            rules.append(
+            previous_rules.append(
                 InputRule(
                     patterns=item["patterns"],
                     tier=tier,
@@ -1542,21 +1594,18 @@ def classify(
                 )
             )
 
-    irrelevant_inputs = declaration.irrelevant_inputs
+    previous_irrelevant_inputs: tuple[dict[str, Any], ...] = ()
     if previous_declaration is not None:
-        irrelevant_inputs = (
-            *irrelevant_inputs,
-            *(
-                {
-                    **item,
-                    "reason": f"base declaration: {item['reason']}",
-                }
-                for item in previous_declaration.irrelevant_inputs
-                if not any(
-                    current["patterns"] == item["patterns"]
-                    for current in declaration.irrelevant_inputs
-                )
-            ),
+        previous_irrelevant_inputs = tuple(
+            {
+                **item,
+                "reason": f"base declaration: {item['reason']}",
+            }
+            for item in previous_declaration.irrelevant_inputs
+            if not any(
+                current["patterns"] == item["patterns"]
+                for current in declaration.irrelevant_inputs
+            )
         )
 
     selected_tier = "skip"
@@ -1564,7 +1613,19 @@ def classify(
     unknown: list[str] = []
     graphs: set[str] = set()
     for path in normalized_files:
-        path_matches = [rule for rule in rules if _matches(path, rule.patterns)]
+        policy_matches = [
+            rule
+            for rule in current_explicit_rules
+            if rule.tier == "policy" and _matches(path, rule.patterns)
+        ]
+        if policy_matches:
+            path_matches = policy_matches
+        else:
+            path_matches = [
+                rule
+                for rule in (*current_derived_rules, *current_explicit_rules)
+                if _matches(path, rule.patterns)
+            ]
         if path_matches:
             for rule in path_matches:
                 if declaration.rank(rule.tier) > declaration.rank(selected_tier):
@@ -1574,20 +1635,53 @@ def classify(
                     {"path": path, "tier": rule.tier, "reason": rule.reason}
                 )
             continue
-        irrelevant = next(
+        current_irrelevant = next(
             (
                 item
-                for item in irrelevant_inputs
+                for item in declaration.irrelevant_inputs
                 if _matches(path, item["patterns"])
             ),
             None,
         )
-        if irrelevant is None:
-            unknown.append(path)
-        else:
+        if current_irrelevant is not None:
             matched.append(
-                {"path": path, "tier": "skip", "reason": irrelevant["reason"]}
+                {
+                    "path": path,
+                    "tier": "skip",
+                    "reason": current_irrelevant["reason"],
+                }
             )
+            continue
+        path_matches = [
+            rule for rule in previous_rules if _matches(path, rule.patterns)
+        ]
+        if path_matches:
+            for rule in path_matches:
+                if declaration.rank(rule.tier) > declaration.rank(selected_tier):
+                    selected_tier = rule.tier
+                graphs.update(rule.graphs)
+                matched.append(
+                    {"path": path, "tier": rule.tier, "reason": rule.reason}
+                )
+            continue
+        previous_irrelevant = next(
+            (
+                item
+                for item in previous_irrelevant_inputs
+                if _matches(path, item["patterns"])
+            ),
+            None,
+        )
+        if previous_irrelevant is not None:
+            matched.append(
+                {
+                    "path": path,
+                    "tier": "skip",
+                    "reason": previous_irrelevant["reason"],
+                }
+            )
+            continue
+        unknown.append(path)
 
     if unknown:
         conservative = declaration.events[event]["conservative_tier"]

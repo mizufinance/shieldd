@@ -6,9 +6,6 @@ on:
       - 'docs/**'
   merge_group:
     types: [checks_requested]
-  # Slow proving runs off the merge-critical path on the default branch.
-  schedule:
-    - cron: '23 8 * * *'
   # Also support ad-hoc calls for workflow.
   workflow_call:
   workflow_dispatch:
@@ -23,8 +20,11 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          lfs: true
+
+      - name: Enforce narrow LFS and proof scheduling policy
+        run: python3 scripts/check_lfs_policy.py
+
+      - uses: ./.github/actions/materialize-proof-artifacts
 
       - uses: ./.github/actions/setup-nix-rust
 
@@ -58,8 +58,6 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          lfs: true
       - uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2
         with:
           command: check
@@ -71,8 +69,8 @@ jobs:
     timeout-minutes: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 45 || 90 }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          lfs: true
+
+      - uses: ./.github/actions/materialize-proof-artifacts
 
       - uses: ./.github/actions/setup-nix-rust
         with:
@@ -97,8 +95,8 @@ jobs:
     timeout-minutes: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 45 || 90 }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          lfs: true
+
+      - uses: ./.github/actions/materialize-proof-artifacts
 
       - uses: ./.github/actions/setup-nix-rust
         with:
@@ -117,8 +115,8 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          lfs: true
+
+      - uses: ./.github/actions/materialize-proof-artifacts
 
       - name: Setup Go
         uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5
@@ -151,18 +149,18 @@ jobs:
 
   gnark-rust:
     # Proofs and their evidence are produced locally and committed. The slow
-    # end-to-end replay runs nightly/manual, not on PRs or the merge queue.
+    # end-to-end replay runs manually, not on PRs or the merge queue.
     if: github.event_name != 'pull_request' && github.event_name != 'merge_group'
     runs-on: ubuntu-24.04
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          lfs: true
 
       - uses: ./.github/actions/setup-nix-rust
         with:
           free-disk: "true"
+
+      - uses: ./.github/actions/materialize-proof-artifacts
 
       - name: Run gnark-backed Rust proof tests
         run: nix develop --command just ci-gnark-proof-tests
@@ -213,7 +211,7 @@ jobs:
               echo "gnark-rust should be skipped on $EVENT_NAME: $GNARK_RUST_RESULT"
               failed=1
             else
-              echo "gnark-rust deferred to nightly"
+              echo "gnark-rust deferred to a manual run"
             fi
           elif [[ "$GNARK_RUST_RESULT" != "success" ]]; then
             echo "gnark-rust did not pass: $GNARK_RUST_RESULT"

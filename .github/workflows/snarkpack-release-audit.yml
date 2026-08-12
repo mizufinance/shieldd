@@ -1,9 +1,6 @@
 name: snarkpack-release-audit
 
 on:
-  schedule:
-    - cron: '17 11 * * *' # nightly dev
-    - cron: '41 11 * * 0' # weekly main
   workflow_dispatch:
     inputs:
       target_ref:
@@ -16,7 +13,7 @@ on:
           - main
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name == 'workflow_dispatch' && inputs.target_ref || (github.event.schedule == '17 11 * * *' && 'dev' || 'main') }}
+  group: ${{ github.workflow }}-${{ inputs.target_ref }}
   cancel-in-progress: true
 
 permissions:
@@ -24,7 +21,7 @@ permissions:
   packages: read
 
 env:
-  CANDIDATE_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.target_ref || (github.event.schedule == '17 11 * * *' && 'dev' || 'main') }}
+  CANDIDATE_REF: ${{ inputs.target_ref }}
   SNARKPACK_FV_IMAGE: ghcr.io/mizufinance/shieldd-snarkpack-fv-toolchain@sha256:63fb57a0c07de6c4a3ded67410b26a2804d090a3ae51929708c8e4650a686282
   SNARKPACK_FUZZ_TOOLCHAIN: nightly-2025-09-30
   CARGO_FUZZ_VERSION: 0.13.2
@@ -38,7 +35,6 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ env.CANDIDATE_REF }}
-          lfs: true
 
       - uses: ./.github/actions/setup-nix-rust
         with:
