@@ -197,7 +197,7 @@ ci-test:
     # LFS artifact. The formal workflow owns that artifact and runs the tests;
     # the ordinary Rust lane keeps every artifact-independent test.
     if command -v cargo-nextest >/dev/null 2>&1; then \
-      cargo nextest run --cargo-profile ci -E 'not (package(shieldd-constraint-coverage) and (test(=ltchain::tests::recovers_r_ladder_from_real_sr1cs_and_gate_holds) or test(=ltchain::tests::recovers_q4_ladder_from_real_sr1cs) or test(=ltchain::tests::gate_fails_closed_on_wrong_bound) or test(=ltchain::tests::production_gate_recovers_both_ladders) or test(=rowmap::tests::real_rvk_slice_is_exhaustive_and_bit_exact)))'; \
+      cargo nextest run --cargo-profile ci --no-fail-fast -E 'not (package(shieldd-constraint-coverage) and (test(=ltchain::tests::recovers_r_ladder_from_real_sr1cs_and_gate_holds) or test(=ltchain::tests::recovers_q4_ladder_from_real_sr1cs) or test(=ltchain::tests::gate_fails_closed_on_wrong_bound) or test(=ltchain::tests::production_gate_recovers_both_ladders) or test(=rowmap::tests::real_rvk_slice_is_exhaustive_and_bit_exact)))'; \
     else \
       echo "warning: cargo-nextest not found; falling back to 'cargo test --release --no-fail-fast'"; \
       cargo test --release --no-fail-fast -- \

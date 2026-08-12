@@ -310,11 +310,20 @@ class RustWorkflowWiringTests(unittest.TestCase):
             "rowmap::tests::real_rvk_slice_is_exhaustive_and_bit_exact",
         )
         ci_test = justfile.split("ci-test:", 1)[1].split("ci-go-check:", 1)[0]
+        self.assertIn("cargo nextest run --cargo-profile ci --no-fail-fast", ci_test)
         self.assertIn("package(shieldd-constraint-coverage)", ci_test)
         for test_name in formal_lfs_tests:
             with self.subTest(test_name=test_name):
                 self.assertIn(f"test(={test_name})", ci_test)
                 self.assertIn(f"--skip {test_name}", ci_test)
+
+    def test_signing_vectors_fail_before_full_nextest(self) -> None:
+        vector_step = "- name: Verify transaction signing vectors"
+        nextest_step = "- name: Run tests with nextest"
+        self.assertIn(vector_step, self.workflow)
+        self.assertLess(self.workflow.index(vector_step), self.workflow.index(nextest_step))
+        self.assertIn("-p shieldd-sdk-transaction", self.workflow)
+        self.assertIn("effect_hash_test_vectors", self.workflow)
 
     def test_runner_policy_accelerates_only_critical_rust_lanes(self) -> None:
         jobs = dict(

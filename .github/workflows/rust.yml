@@ -86,6 +86,13 @@ jobs:
         with:
           free-disk: "true"
 
+      - name: Verify transaction signing vectors
+        run: >-
+          nix develop --command cargo test --profile ci
+          -p shieldd-sdk-transaction
+          --test generate_transaction_signing_test_vectors
+          effect_hash_test_vectors
+
       - name: Run tests with nextest
         run: >-
           nix develop --command python3 scripts/ci/run_with_annotation.py
