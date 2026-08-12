@@ -1291,7 +1291,9 @@ class GateApplicabilityTests(unittest.TestCase):
             "crates/crypto/proof-aggregation/formal/snarkpack/fstar-checker-evidence.json",
             "crates/crypto/proof-aggregation/formal/snarkpack/verification-manifest.json",
             "scripts/ci/enforce_formal_result.py",
+            "scripts/ci/snarkpack_fv_impact.py",
             "scripts/ci/test_enforce_formal_result.py",
+            "scripts/ci/test_snarkpack_fv_impact.py",
         ):
             with self.subTest(path=path):
                 decision = GATE.classify(
