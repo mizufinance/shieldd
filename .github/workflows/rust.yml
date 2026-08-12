@@ -15,18 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  proof-artifacts:
-    name: Prepare proof artifacts once
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - uses: ./.github/actions/prepare-proof-artifacts
-        with:
-          bundle: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 'runtime' || 'full' }}
-
   lint:
-    needs: proof-artifacts
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
@@ -36,8 +25,6 @@ jobs:
 
       - name: Enforce narrow LFS and proof scheduling policy
         run: python3 scripts/check_lfs_policy.py
-
-      - uses: ./.github/actions/restore-proof-artifacts
 
       - uses: ./.github/actions/setup-nix-rust
 
@@ -78,13 +65,10 @@ jobs:
   # As of 2025Q1, the "features" job is the slowest in the CI suite.
   # Consider moving to a scheduled job on main, rather than running on PRs.
   features:
-    needs: proof-artifacts
     runs-on: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 'blacksmith-8vcpu-ubuntu-2404' || 'ubuntu-24.04' }}
     timeout-minutes: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 45 || 90 }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-
-      - uses: ./.github/actions/restore-proof-artifacts
 
       - uses: ./.github/actions/setup-nix-rust
         with:
@@ -105,13 +89,10 @@ jobs:
           -- ./deployments/scripts/check-wasm-compat.sh
 
   test:
-    needs: proof-artifacts
     runs-on: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 'blacksmith-8vcpu-ubuntu-2404' || 'ubuntu-24.04' }}
     timeout-minutes: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 45 || 90 }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-
-      - uses: ./.github/actions/restore-proof-artifacts
 
       - uses: ./.github/actions/setup-nix-rust
         with:
@@ -126,13 +107,10 @@ jobs:
           CARGO_TERM_COLOR: always
 
   go-gnark:
-    needs: proof-artifacts
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-
-      - uses: ./.github/actions/restore-proof-artifacts
 
       - name: Setup Go
         uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5
@@ -167,7 +145,6 @@ jobs:
     # Proofs and their evidence are produced locally and committed. The slow
     # end-to-end replay runs manually, not on PRs or the merge queue.
     if: github.event_name != 'pull_request' && github.event_name != 'merge_group'
-    needs: proof-artifacts
     runs-on: ubuntu-24.04
     timeout-minutes: 180
     steps:
@@ -177,7 +154,7 @@ jobs:
         with:
           free-disk: "true"
 
-      - uses: ./.github/actions/restore-proof-artifacts
+      - uses: ./.github/actions/prepare-proof-artifacts
         with:
           bundle: full
 
@@ -192,7 +169,7 @@ jobs:
         run: nix develop --command bash scripts/check-fv-specification-evidence.sh
 
   summary:
-    needs: [proof-artifacts, lint, deny, features, test, go-gnark, gnark-rust]
+    needs: [lint, deny, features, test, go-gnark, gnark-rust]
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -200,7 +177,6 @@ jobs:
       - name: Check Rust workflow result
         env:
           LINT_RESULT: ${{ needs.lint.result }}
-          PROOF_ARTIFACTS_RESULT: ${{ needs.proof-artifacts.result }}
           DENY_RESULT: ${{ needs.deny.result }}
           FEATURES_RESULT: ${{ needs.features.result }}
           TEST_RESULT: ${{ needs.test.result }}
@@ -210,7 +186,6 @@ jobs:
         run: |
           failed=0
           for job in \
-            "proof-artifacts:$PROOF_ARTIFACTS_RESULT" \
             "lint:$LINT_RESULT" \
             "deny:$DENY_RESULT" \
             "features:$FEATURES_RESULT" \

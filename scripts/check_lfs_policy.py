@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Enforce bounded Git LFS storage, download, and artifact-rotation policy."""
+"""Keep runtime proof artifacts independent of Git LFS."""
 
 from __future__ import annotations
 
@@ -11,7 +11,13 @@ import re
 import subprocess
 import sys
 
-from proof_artifacts import ArtifactError, BUNDLE_BYTE_BUDGETS, Bundle, cache_info
+from proof_artifacts import (
+    ArtifactError,
+    BUNDLE_BYTE_BUDGETS,
+    Bundle,
+    POINTER_VERSION,
+    cache_info,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -23,20 +29,11 @@ FAMILIES = (
     "transfer",
 )
 ALLOWED_LFS_PATHS = {
-    path
+    f"tools/gnark/artifacts/{family}/{family}.sr1cs"
     for family in FAMILIES
-    for path in (
-        f"tools/gnark/artifacts/{family}/{family}.sr1cs",
-        f"tools/gnark/artifacts/{family}/proving_key.bin",
-    )
 }
 EXPECTED_WORKFLOW_RESTORES = {
-    "containers.yml": 2,
     "formal.yml": 3,
-    "orbis-integration.yml": 1,
-    "release.yml": 1,
-    "rust.yml": 5,
-    "smoke.yml": 1,
 }
 
 
@@ -132,17 +129,17 @@ def enforce_workflow_fanout() -> None:
     restore = (
         ROOT / ".github/actions/restore-proof-artifacts/action.yml"
     ).read_text(encoding="utf-8")
-    if prepare.count("materialize --bundle") != 2:
-        fail("the preparer must contain only primary and full-seed materialization")
+    if prepare.count("materialize --bundle") != 1:
+        fail("the preparer must contain exactly one scoped materialization")
     if "actions/cache/save@" not in prepare:
         fail("the preparer does not publish its cache before consumers start")
-    if prepare.count("lookup-only: true") != 1:
-        fail("full base-cache seeding must use one lookup-only cache probe")
+    if "proving_key.bin" in prepare or "proving_key.bin" in restore:
+        fail("workflow caches must not duplicate Git-backed runtime proving keys")
     if "materialize" in restore or "git lfs pull" in restore.lower():
         fail("the restore-only action contains an LFS fallback")
     for name, action in (("prepare", prepare), ("restore", restore)):
-        if "proof-artifacts-lfs-v2-" not in action:
-            fail(f"the {name} action does not use deterministic v2 cache keys")
+        if "proof-constraints-lfs-v3-" not in action:
+            fail(f"the {name} action does not use deterministic v3 cache keys")
         if "restore-keys:" in action:
             fail(f"the {name} action permits inexact proof-artifact cache restores")
 
@@ -150,16 +147,22 @@ def enforce_workflow_fanout() -> None:
     if legacy.exists():
         fail("the obsolete self-fetching proof-artifact action still exists")
 
+    def extract_job(text: str, name: str) -> str:
+        body = text.partition(f"\n  {name}:")[2]
+        boundary = re.search(r"(?m)^  [a-zA-Z0-9_-]+:\s*$", body)
+        return body[: boundary.start()] if boundary else body
+
     rust = (workflows / "rust.yml").read_text(encoding="utf-8")
-    go_gnark = rust.partition("\n  go-gnark:")[2].partition("\n  gnark-rust:")[0]
-    if "uses: ./.github/actions/restore-proof-artifacts" not in go_gnark:
-        fail("the Go gnark tests do not restore the prepared runtime bundle")
-    gnark_rust = rust.partition("\n  gnark-rust:")[2].partition("\n  summary:")[0]
+    for job_name in ("lint", "features", "test", "go-gnark"):
+        body = extract_job(rust, job_name)
+        if "proof-artifacts" in body:
+            fail(f"the non-formal Rust {job_name} job depends on proof-artifact hydration")
+    gnark_rust = extract_job(rust, "gnark-rust")
     if (
-        "uses: ./.github/actions/restore-proof-artifacts" not in gnark_rust
+        "uses: ./.github/actions/prepare-proof-artifacts" not in gnark_rust
         or "bundle: full" not in gnark_rust
     ):
-        fail("manual gnark replay does not restore the prepared full bundle")
+        fail("manual gnark replay does not prepare its full bundle")
 
     formal = (workflows / "formal.yml").read_text(encoding="utf-8")
     soundness_artifacts = formal.partition("\n  soundness-artifacts:")[2].partition(
@@ -172,17 +175,10 @@ def enforce_workflow_fanout() -> None:
     ):
         fail("semantic soundness does not prepare one full artifact bundle")
 
-    containers = (workflows / "containers.yml").read_text(encoding="utf-8")
-    container_preparer = containers.partition("\n  proof-artifacts:")[2].partition(
-        "\n  build_amd64:"
-    )[0]
-    if (
-        "github.ref_type == 'branch'" not in container_preparer
-        or "seed-full:" not in container_preparer
-    ):
-        fail("base-branch container runs do not seed the full artifact cache")
-    if "bundle: full" in container_preparer:
-        fail("base-branch cache seeding hydrates the full bundle on every push")
+    for name in ("containers.yml", "docs-lint.yml", "orbis-integration.yml", "release.yml", "smoke.yml"):
+        text = (workflows / name).read_text(encoding="utf-8")
+        if "proof-artifacts" in text:
+            fail(f"the non-formal {name} workflow depends on proof-artifact hydration")
 
 
 def enforce_proof_scheduling() -> None:
@@ -249,7 +245,19 @@ def enforce_paired_rotations(base: str | None) -> None:
 
 
 def enforce_tracked_files() -> None:
-    tracked_paths = set(run_git("lfs", "ls-files", "--name-only").splitlines())
+    tracked_paths = set(
+        run_git(
+            "grep",
+            "--cached",
+            "-l",
+            "-I",
+            "-e",
+            f"^version {POINTER_VERSION}$",
+            "--",
+            ".",
+            ":!tools/gnark/lean/**",
+        ).splitlines()
+    )
     if tracked_paths != ALLOWED_LFS_PATHS:
         fail(
             "tracked LFS files differ from the current proof artifacts: "
@@ -270,7 +278,7 @@ def main() -> int:
     enforce_bundle_budgets()
     enforce_paired_rotations(args.base or event_base())
     enforce_tracked_files()
-    print("LFS policy: bounded storage, download fan-out, and rotations verified")
+    print("LFS policy: runtime artifacts are Git-backed; constraint hydration is bounded")
     return 0
 
 

@@ -36,21 +36,8 @@ jobs:
           echo "run=false" >> "$GITHUB_OUTPUT"
           echo "explanation=Orbis v0 transfer PRE is disabled until a non-disclosing protocol is available." >> "$GITHUB_OUTPUT"
 
-  proof-artifacts:
-    needs: applicability
-    if: needs.applicability.result == 'success' && needs.applicability.outputs.run == 'true'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          path: shieldd
-      - uses: ./shieldd/.github/actions/prepare-proof-artifacts
-        with:
-          repository-path: shieldd
-
   flow:
-    needs: [applicability, proof-artifacts]
+    needs: applicability
     if: needs.applicability.result == 'success' && needs.applicability.outputs.run == 'true'
     runs-on: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 'blacksmith-16vcpu-ubuntu-2404' || 'ubuntu-24.04' }}
     timeout-minutes: 45
@@ -69,10 +56,6 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           path: shieldd
-
-      - uses: ./shieldd/.github/actions/restore-proof-artifacts
-        with:
-          repository-path: shieldd
 
       - uses: ./shieldd/.github/actions/setup-nix-rust
         with:
@@ -134,7 +117,7 @@ jobs:
 
   summary:
     name: Orbis Integration Summary
-    needs: [applicability, proof-artifacts, flow]
+    needs: [applicability, flow]
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -145,7 +128,6 @@ jobs:
           STATUS: ${{ needs.applicability.outputs.status }}
           TIER: ${{ needs.applicability.outputs.tier }}
           EXPLANATION: ${{ needs.applicability.outputs.explanation }}
-          PROOF_ARTIFACTS_RESULT: ${{ needs.proof-artifacts.result }}
           ORBIS_RESULT: ${{ needs.flow.result }}
         run: |
           if [[ "$APPLICABILITY_RESULT" != "success" ]]; then
@@ -153,10 +135,6 @@ jobs:
             exit 1
           fi
           if [[ "$STATUS" == "skip" ]]; then
-            if [[ "$PROOF_ARTIFACTS_RESULT" != "skipped" ]]; then
-              echo "skip tier unexpectedly prepared proof artifacts: $PROOF_ARTIFACTS_RESULT"
-              exit 1
-            fi
             if [[ "$ORBIS_RESULT" != "skipped" ]]; then
               echo "skip tier unexpectedly ran flow: $ORBIS_RESULT"
               exit 1
@@ -168,8 +146,8 @@ jobs:
             echo "invalid applicability status: $STATUS"
             exit 1
           fi
-          if [[ "$TIER" != "full" || "$PROOF_ARTIFACTS_RESULT" != "success" || "$ORBIS_RESULT" != "success" ]]; then
-            echo "required Orbis contract failed: tier=$TIER artifacts=$PROOF_ARTIFACTS_RESULT flow=$ORBIS_RESULT"
+          if [[ "$TIER" != "full" || "$ORBIS_RESULT" != "success" ]]; then
+            echo "required Orbis contract failed: tier=$TIER flow=$ORBIS_RESULT"
             exit 1
           fi
           echo "Orbis tier $TIER passed"
