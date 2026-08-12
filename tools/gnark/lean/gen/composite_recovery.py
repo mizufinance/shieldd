@@ -43,7 +43,7 @@ MDS = (
 
 ADDRESS_DIGEST = "9a677aa48c09d5d9ae8091bb7349f6026be67ea81d0c4df2429a8a1f9aba905f"
 AMOUNT_DIGEST = "da3ae2f5f8f6a3fba6819c9764c9ee26010f080750d76981e9a4bef43587730e"
-DETECTION_DIGEST = "cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25"
+DETECTION_DIGEST = "63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49c"
 DLEQ_DIGEST = "93cf915ec9286a31df97111073868ec2c4d2ea2bdda3b352386a12a6649fb54b"
 COMPRESS_REFERENCE_DIGEST = (
     "f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e"
@@ -1091,6 +1091,7 @@ class DetectionRecovery:
     ]
     asset_id_wire: int
     flag_wire: int
+    swap_wire: int
     ciphertext_wires: tuple[int, int, int, int]
     compress_extracted_head_mapping: tuple[int, ...]
     compress_extracted_affine_delta: int
@@ -1100,8 +1101,8 @@ def recover_detection() -> DetectionRecovery:
     relation = rows(DETECTION_DIGEST)
     if len(relation) != 2446:
         raise ValueError(f"detection: expected 2446 rows, got {len(relation)}")
-    if used_wires(relation) != set(range(2115)):
-        raise ValueError("detection: local wire domain is not exactly 0..2114")
+    if used_wires(relation) != set(range(2116)):
+        raise ValueError("detection: local wire domain is not exactly 0..2115")
 
     sender_slot_binary = _recover_binary32(
         relation, 0, label="detection sender slot"
@@ -1191,8 +1192,16 @@ def recover_detection() -> DetectionRecovery:
         },
         "detection sender-word flag",
     )
-    if flag_terms != {flag_wire: 1 << 32}:
-        raise ValueError("detection: sender-word flag coefficient drifted")
+    swap_wire = _singleton(
+        {
+            wire: coefficient // (1 << 33)
+            for wire, coefficient in flag_terms.items()
+            if coefficient == 1 << 33
+        },
+        "detection sender-word swap",
+    )
+    if flag_terms != {flag_wire: 1 << 32, swap_wire: 1 << 33}:
+        raise ValueError("detection: sender-word flags drifted")
     if plaintext_lcs[3] != {receiver_slot_binary.value_wire: 1}:
         raise ValueError("detection: receiver-slot plaintext drifted")
 
@@ -1212,6 +1221,7 @@ def recover_detection() -> DetectionRecovery:
         ),  # type: ignore[arg-type]
         asset_id_wire=asset_id_wire,
         flag_wire=flag_wire,
+        swap_wire=swap_wire,
         ciphertext_wires=ciphertext_wires,
         compress_extracted_head_mapping=head_mapping,
         compress_extracted_affine_delta=affine_delta,

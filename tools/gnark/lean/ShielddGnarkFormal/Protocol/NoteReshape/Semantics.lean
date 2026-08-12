@@ -38,7 +38,6 @@ structure SharedContext (F : Type u) where
   diversifiedGeneratorEncoding : F
   transmission : Point F
   transmissionEncoding : F
-  clueKey : F
   deriving DecidableEq, Repr
 
 /-- Authorization material from which the canonical transmission key is derived. -/
@@ -92,6 +91,9 @@ structure Action (F : Type u) (Path : Type v) where
   inputs : List (Input F Path)
   outputs : List (Output F)
   anchor : F
+  assetAnchor : F
+  routingTag : F
+  routingParameterSetId : F
   balanceCommitment : Point F
   balanceBlinding : F
   publicStatementHash : F

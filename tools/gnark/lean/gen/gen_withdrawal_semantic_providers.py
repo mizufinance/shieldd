@@ -41,11 +41,11 @@ SYNTHETIC_NULLIFIER_KEY = (
 STATEMENT_KEYS = frozenset(
     {
         "statement.hash@"
-        "8253f80f52335edfca85a06da1c48600b988651a0803cf829d27056e3670eb00",
+        "afd0be82d84896e98b8fdc0f4b8eaec88930b85f4b40c03ff06a87a4eaebd1b8",
         "statement.hash@"
-        "6c1f41225e160eb2aa699b149bd08dfe3831726da0f6240bba58c892c6e27193",
+        "59fc709325ca9b0194b7adef9fe91a97d88a5c690c5278f59425a351790b2376",
         "statement.hash@"
-        "0cf7625f3041ed713c8f3634f6d3914aad6059b5f8113ba50facad312738e969",
+        "0a6a7d5c079d0a2e952c00450800860c1faf28396d74678cd2ea2a7dc4ee85ce",
     }
 )
 TARGET_KEYS = frozenset(

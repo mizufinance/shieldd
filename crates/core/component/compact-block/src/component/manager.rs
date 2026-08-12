@@ -10,7 +10,23 @@ use shieldd_sdk_sct::component::tree::{SctManager as _, SctRead};
 use shieldd_sdk_shielded_pool::component::NoteManager as _;
 use tracing::instrument;
 
-use crate::{state_key, CompactBlock};
+use crate::{state_key, CompactBlock, PendingRoutingAction, RoutingActionPayloads, RoutingRecord};
+
+pub trait RoutingManager: StateWrite {
+    /// Stage proof-bound routing data until the current compact block is finalized.
+    fn stage_routing_actions(&mut self, actions: impl IntoIterator<Item = PendingRoutingAction>) {
+        let mut pending = self.pending_routing_actions();
+        pending.extend(actions);
+        self.object_put(state_key::pending_routing_actions(), pending);
+    }
+
+    fn pending_routing_actions(&self) -> Vec<PendingRoutingAction> {
+        self.object_get(state_key::pending_routing_actions())
+            .unwrap_or_default()
+    }
+}
+
+impl<T: StateWrite + ?Sized> RoutingManager for T {}
 
 #[async_trait]
 pub trait CompactBlockManager: StateWrite {
@@ -71,7 +87,7 @@ trait Inner: StateWrite {
             .await
             .context("could not get discovery parameters")?;
         let discovery_parameters = (height == 0
-            || current_discovery_parameters.as_of_block_height == height)
+            || current_discovery_parameters.as_of_height == height)
             .then_some(current_discovery_parameters);
 
         // Check to see if a governance proposal has started, and mark this fact if so.
@@ -121,6 +137,29 @@ trait Inner: StateWrite {
         let compliance_user_registrations = self.pending_user_registrations();
         let compliance_asset_registrations = self.pending_asset_registrations();
 
+        let pending_routing_actions = self.pending_routing_actions();
+        let mut routing_records = Vec::new();
+        let mut routing_action_payloads = Vec::with_capacity(pending_routing_actions.len());
+        for action in pending_routing_actions {
+            for (tag_slot, tag) in action.tags.into_iter().enumerate() {
+                routing_records.push(RoutingRecord {
+                    tag,
+                    height,
+                    transaction_id: action.transaction_id,
+                    action_index: action.action_index,
+                    tag_slot: tag_slot
+                        .try_into()
+                        .context("routing action has more than 256 tag slots")?,
+                });
+            }
+            routing_action_payloads.push(RoutingActionPayloads {
+                transaction_id: action.transaction_id,
+                action_index: action.action_index,
+                note_payloads: action.note_payloads,
+            });
+        }
+        self.object_delete(state_key::pending_routing_actions());
+
         let compact_block = CompactBlock {
             height,
             state_payloads,
@@ -129,6 +168,8 @@ trait Inner: StateWrite {
             epoch_root,
             proposal_started,
             discovery_parameters,
+            routing_records,
+            routing_action_payloads,
             app_parameters_updated,
             gas_prices,
             alt_gas_prices,

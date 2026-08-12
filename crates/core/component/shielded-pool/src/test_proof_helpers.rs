@@ -180,14 +180,14 @@ pub mod proof_test_helpers {
             .expect("test spend key should satisfy key refinements");
         let fvk = sk.full_viewing_key();
         let ivk = fvk.incoming();
-        let (address, _dtk_d) = ivk.payment_address(0u32.into());
+        let address = ivk.payment_address(0u32.into());
 
         // Distinct sender identity for transfer-side compliance fixtures.
         let sender_seed = SeedPhrase::generate(&mut *rng);
         let sender_sk = SpendKey::from_seed_phrase_bip44(sender_seed, &Bip44Path::new(0))
             .expect("test spend key should satisfy key refinements");
         let sender_ivk = sender_sk.full_viewing_key().incoming();
-        let (sender_address, _) = sender_ivk.payment_address(0u32.into());
+        let sender_address = sender_ivk.payment_address(0u32.into());
 
         let value = Value {
             amount: Amount::from(amount),
@@ -533,7 +533,6 @@ pub mod proof_test_helpers {
                 .full_viewing_key()
                 .incoming()
                 .payment_address(0u32.into())
-                .0
         };
 
         let note = crate::Note::from_parts(
@@ -1078,6 +1077,15 @@ pub mod proof_test_helpers {
             }
         };
 
+        let routing_parameters = crate::discovery::Parameters::default();
+        let routing_nonce = Fq::from(29u64);
+        let routing_tag = crate::discovery::single_tag(
+            &base.address,
+            is_regulated,
+            &routing_parameters,
+            routing_nonce,
+        );
+
         (
             ShieldedIcs20WithdrawalProofPublic {
                 family_id,
@@ -1098,6 +1106,8 @@ pub mod proof_test_helpers {
                     Fq::from(23u64),
                     Fq::from(24u64),
                 ],
+                routing_tag,
+                routing_parameter_set_id: routing_parameters.id(),
             },
             ShieldedIcs20WithdrawalProofPrivate {
                 family_id,
@@ -1108,6 +1118,8 @@ pub mod proof_test_helpers {
                 asset_position: base.asset_position,
                 asset_indexed_leaf: base.asset_indexed_leaf,
                 is_regulated,
+                routing_parameters,
+                routing_nonce,
                 sender_compliance_path: base.compliance_path,
                 sender_compliance_position: base.compliance_position,
                 sender_leaf: base.user_leaf,

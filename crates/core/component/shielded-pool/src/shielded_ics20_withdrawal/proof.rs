@@ -10,7 +10,11 @@ use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
 use shieldd_sdk_sct::Nullifier;
 use shieldd_sdk_tct as tct;
 
-use crate::{public_input_hash::shielded_ics20_withdrawal_statement_hash_from_public, Note};
+use crate::{
+    discovery::{Parameters as RoutingParameters, RoutingTag},
+    public_input_hash::shielded_ics20_withdrawal_statement_hash_from_public,
+    Note,
+};
 
 use super::ShieldedIcs20WithdrawalFamilyId;
 
@@ -70,6 +74,8 @@ pub struct ShieldedIcs20WithdrawalProofPublic {
     pub outbound_asset_id: Fq,
     pub outbound_amount: Fq,
     pub withdrawal_effect_hash_limbs: [Fq; 4],
+    pub routing_tag: RoutingTag,
+    pub routing_parameter_set_id: Fq,
 }
 
 pub(crate) fn withdrawal_effect_hash_limbs(bytes: &[u8]) -> [Fq; 4] {
@@ -134,6 +140,8 @@ pub struct ShieldedIcs20WithdrawalProofPrivate {
     pub asset_position: u64,
     pub asset_indexed_leaf: IndexedLeaf,
     pub is_regulated: bool,
+    pub routing_parameters: RoutingParameters,
+    pub routing_nonce: Fq,
     pub sender_compliance_path: MerklePath,
     pub sender_compliance_position: u64,
     pub sender_leaf: ComplianceLeaf,

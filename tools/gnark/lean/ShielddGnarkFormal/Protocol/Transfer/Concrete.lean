@@ -32,7 +32,7 @@ def assetLeafDomain : F :=
   7414146286439358428123110060125696348906971675449116418017868010797147357618
 
 def complianceLeafDomain : F :=
-  168430640865250000792698691211246566687485655593739355441774434546766203703
+  5091441079939941903017664305347261861704474070005805806880013805880773073215
 
 def transferSaltDomain : F :=
   9814218119045249492697294661951473569697737758904858008162255371556112438507966978708003569286295669273377765221863563035644922446591724449801876769478652
@@ -106,12 +106,11 @@ def noteCommitment (note : Note F) : Prop :=
     Common.noteCommitmentHash
       note.blinding note.amount note.assetId
       note.owner.diversifiedGeneratorEncoding
-      note.owner.transmissionEncoding note.clueKey
+      note.owner.transmissionEncoding
 
 def realSpend
     (action : Action F Path24 Path16) (spend : RealSpend F Path24) : Prop :=
   spend.note.owner = action.sender ∧
-    spend.note.clueKey = action.sender.clueKey ∧
     spend.note.assetId = action.assetId ∧
     spend.authRandomizer.val < 2 ^ 251 ∧
     noteCommitment spend.note ∧
@@ -153,7 +152,6 @@ def receiverOutput (action : Action F Path24 Path16) : Prop :=
 
 def changeOutput (action : Action F Path24 Path16) : Prop :=
   action.change.note.owner = action.sender ∧
-    action.change.note.clueKey = action.sender.clueKey ∧
     action.change.note.assetId = action.assetId ∧
     noteCommitment action.change.note
 
@@ -189,10 +187,10 @@ def assetRegistry (action : Action F Path24 Path16) : Prop :=
 
 def complianceLeafHash
     (proof : ComplianceProof F Path16) : F :=
-  Poseidon377.hash7 complianceLeafDomain
+  Poseidon377.hash6 complianceLeafDomain
     proof.address.diversifiedGeneratorEncoding
-    proof.address.transmissionEncoding proof.address.clueKey
-    proof.assetId proof.slotId proof.slotDerivation proof.d
+    proof.address.transmissionEncoding proof.assetId
+    proof.slotId proof.slotDerivation proof.d
 
 def complianceMembership
     (action : Action F Path24 Path16)
@@ -464,11 +462,14 @@ def statementFields (action : Action F Path24 Path16) : List F :=
    action.transcript.metadata.senderCoreSalt,
    action.transcript.metadata.senderExtSalt,
    action.transcript.metadata.outputCoreSalt,
-   action.transcript.metadata.outputExtSalt]
+   action.transcript.metadata.outputExtSalt,
+   action.routingTags 0,
+   action.routingTags 1,
+   action.routingParameterSetId]
 
 theorem statementFields_length
     (action : Action F Path24 Path16) :
-    (statementFields action).length = 41 := by
+    (statementFields action).length = 44 := by
   rfl
 
 def statementBinding (action : Action F Path24 Path16) : Prop :=

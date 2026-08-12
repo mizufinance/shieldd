@@ -1,4 +1,3 @@
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.CircuitFacts
 import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.SemanticBindings
 import ShielddGnarkFormal.Deployed.NoteReshape1x8StatementSeatingOutput
 
@@ -11,20 +10,20 @@ namespace Shieldd.GnarkFormal.Deployed.NoteReshape1x8StatementOutput
 
 open Shieldd.GnarkFormal
 open Contracts.NoteReshape1x8
+abbrev DeployedF := Contracts.NoteReshape1x8.SemanticF
 open NoteReshape1x8StatementSeating
 
-theorem hash
-    (rho : Nat → DeployedF) :
+theorem hash (rho : Nat → DeployedF) :
     statementHash rho =
-      (Deployed.Templates.Semantics.TStatementHash_253f0669df9a88c5d0d1fd54142634236d1f927edf40a3baefb3981c2bc88c5e.Trace.rawState1_38
-        (Seg60.localRho rho))[1] := by
+      (Deployed.Templates.Semantics.TStatementHash_93008bb67ca1e31e6bd8c1584faf21ee43e1a101d4d1a7b8126fb6df6761802a.Trace.rawState2_38
+        (Seg78.localRho rho))[1] := by
   simp [
     statementHash, statementHashLC,
-    Deployed.Templates.Semantics.TStatementHash_253f0669df9a88c5d0d1fd54142634236d1f927edf40a3baefb3981c2bc88c5e.Trace.rawState1_38,
-    Deployed.Templates.Semantics.TStatementHash_253f0669df9a88c5d0d1fd54142634236d1f927edf40a3baefb3981c2bc88c5e.Trace.flatState1_38Lane1,
+    Deployed.Templates.Semantics.TStatementHash_93008bb67ca1e31e6bd8c1584faf21ee43e1a101d4d1a7b8126fb6df6761802a.Trace.rawState2_38,
+    Deployed.Templates.Semantics.TStatementHash_93008bb67ca1e31e6bd8c1584faf21ee43e1a101d4d1a7b8126fb6df6761802a.Trace.flatState2_38Lane1,
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-    Seg60.localRho, Deployed.Templates.seated,
-    hw965, hw970, hw975, hw980, hw985, hw990, hw995, hw1000
+    Seg78.localRho, Deployed.Templates.seated,
+    hw1415, hw1420, hw1425, hw1430, hw1435, hw1440, hw1445, hw1450
   ]
   ring
 

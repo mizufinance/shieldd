@@ -195,7 +195,6 @@ type SpendPrivateFixture struct {
 	DiversifiedGeneratorAffine     PointAffineFixture          `json:"diversified_generator_affine"`
 	TransmissionKeyHex             string                      `json:"transmission_key_hex"`
 	TransmissionKeyAffine          PointAffineFixture          `json:"transmission_key_affine"`
-	ClueKey                        string                      `json:"clue_key"`
 	StateCommitmentProof           StateCommitmentProofFixture `json:"state_commitment_proof"`
 	VBlinding                      string                      `json:"v_blinding"`
 	SpendAuthRandomizer            string                      `json:"spend_auth_randomizer"`

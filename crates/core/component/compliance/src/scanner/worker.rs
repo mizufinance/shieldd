@@ -684,6 +684,8 @@ mod tests {
             salt: evidence.detection_salt,
             sender_slot_id: 0,
             receiver_slot_id: 0,
+            routing_roles_swapped: false,
+            routing_tags: [11, 22],
             ciphertext: evidence.transfer_ciphertext.clone(),
             raw_bytes: evidence.transfer_ciphertext.to_bytes(),
         };
@@ -692,6 +694,7 @@ mod tests {
         store
             .save_ciphertext(&ExtractedComplianceCiphertext {
                 output_ref: evidence.output_ref.clone(),
+                routing_tags: [11, 22],
                 raw_bytes: evidence.transfer_ciphertext.to_bytes(),
                 metadata_bytes: Some(metadata.to_bytes().unwrap()),
             })

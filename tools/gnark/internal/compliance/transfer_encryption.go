@@ -18,13 +18,14 @@ const (
 )
 
 var (
-	TransferSaltDomain          = transferSaltConstant("shieldd.transfer.compliance.salt")
-	TransferDetectionSaltLabel  = transferSaltConstant("detection")
-	TransferSenderCoreSaltLabel = transferSaltConstant("sender_core")
-	TransferSenderExtSaltLabel  = transferSaltConstant("sender_ext")
-	TransferOutputCoreSaltLabel = transferSaltConstant("output_core")
-	TransferOutputExtSaltLabel  = transferSaltConstant("output_ext")
-	transferDetectionFlagBit    = new(big.Int).Lsh(big.NewInt(1), TransferSlotIDBits)
+	TransferSaltDomain              = transferSaltConstant("shieldd.transfer.compliance.salt")
+	TransferDetectionSaltLabel      = transferSaltConstant("detection")
+	TransferSenderCoreSaltLabel     = transferSaltConstant("sender_core")
+	TransferSenderExtSaltLabel      = transferSaltConstant("sender_ext")
+	TransferOutputCoreSaltLabel     = transferSaltConstant("output_core")
+	TransferOutputExtSaltLabel      = transferSaltConstant("output_ext")
+	transferDetectionFlagBit        = new(big.Int).Lsh(big.NewInt(1), TransferSlotIDBits)
+	transferDetectionRoutingSwapBit = new(big.Int).Lsh(big.NewInt(1), TransferSlotIDBits+1)
 )
 
 func transferSaltConstant(label string) *big.Int {
@@ -76,9 +77,11 @@ func VerifyPoseidonEncryptionTransferDetection(
 	assetID frontend.Variable,
 	senderSlotID frontend.Variable,
 	receiverSlotID frontend.Variable,
+	routingRolesSwapped frontend.Variable,
 	ciphertext [TransferDetectionFQCount]frontend.Variable,
 ) error {
 	api.AssertIsBoolean(isFlagged)
+	api.AssertIsBoolean(routingRolesSwapped)
 	api.ToBinary(senderSlotID, TransferSlotIDBits)
 	api.ToBinary(receiverSlotID, TransferSlotIDBits)
 
@@ -102,6 +105,7 @@ func VerifyPoseidonEncryptionTransferDetection(
 	senderDetectionPlaintext := api.Add(
 		senderSlotID,
 		api.Mul(isFlagged, transferDetectionFlagBit),
+		api.Mul(routingRolesSwapped, transferDetectionRoutingSwapBit),
 	)
 	keystream0, err := complianceStreamBlock(api, seedDetection, 0)
 	if err != nil {

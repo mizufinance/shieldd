@@ -772,6 +772,8 @@ mod tests {
                 target_timestamp: 0,
                 compliance_anchor: shieldd_sdk_tct::StateCommitment(decaf377::Fq::from(0u64)),
                 asset_anchor: shieldd_sdk_tct::StateCommitment(decaf377::Fq::from(0u64)),
+                routing_tag: Default::default(),
+                routing_parameter_set_id: decaf377::Fq::from(0u64),
             },
             auth_sigs: Vec::new(),
             proof: ShieldedIcs20WithdrawalProof::default(),

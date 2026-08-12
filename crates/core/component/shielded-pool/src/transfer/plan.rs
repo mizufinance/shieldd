@@ -13,7 +13,7 @@ use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
 use shieldd_sdk_tct as tct;
 use std::convert::{TryFrom, TryInto};
 
-use crate::discovery::Precision;
+use crate::discovery::{self, Parameters};
 
 use super::compliance::{
     build_transfer_compliance, change_output_transfer_compliance, is_change_output_index,
@@ -39,7 +39,7 @@ pub struct TransferPlan {
     pub value_blinding: Fr,
     pub spends: Vec<ShieldedInputPlan>,
     pub outputs: Vec<ShieldedOutputPlan>,
-    pub discovery_precision: Precision,
+    pub routing_parameters: Parameters,
 }
 
 impl TransferPlan {
@@ -52,7 +52,7 @@ impl TransferPlan {
             value_blinding,
             spends,
             outputs,
-            discovery_precision: Precision::default(),
+            routing_parameters: Parameters::default(),
         };
         plan.validate()?;
         Ok(plan)
@@ -78,8 +78,8 @@ impl TransferPlan {
         &self.outputs
     }
 
-    pub fn set_discovery_precision(&mut self, precision: Precision) {
-        self.discovery_precision = precision;
+    pub fn set_routing_parameters(&mut self, parameters: Parameters) {
+        self.routing_parameters = parameters;
     }
 
     pub fn spend_randomizers(&self) -> impl Iterator<Item = Fr> + '_ {
@@ -120,6 +120,19 @@ impl TransferPlan {
 
     fn sender_address(&self) -> Address {
         self.first_spend().note.address()
+    }
+
+    fn routing(&self) -> (crate::discovery::TransferRouting, bool) {
+        let routing_nonce =
+            Fq::from_le_bytes_mod_order(&self.first_spend().tx_blinding_nonce.to_bytes());
+        discovery::transfer_routing(
+            &self.sender_address(),
+            &self.outputs[0].dest_address,
+            self.first_spend().is_regulated,
+            self.outputs.get(CHANGE_OUTPUT_INDEX).is_some(),
+            &self.routing_parameters,
+            routing_nonce,
+        )
     }
 
     fn transfer_asset_id(&self) -> asset::Id {
@@ -321,6 +334,7 @@ impl TransferPlan {
                 .ok_or_else(|| anyhow!("transfer requires at least one spend"))?,
         );
         let asset_policy = self.asset_policy()?;
+        let (routing, routing_roles_swapped) = self.routing();
         let compliance = build_transfer_compliance(
             &self.outputs,
             &sender_leaf,
@@ -328,6 +342,7 @@ impl TransferPlan {
             &self.spends[0].asset_indexed_leaf,
             self.spends[0].target_timestamp,
             self.spends[0].tx_blinding_nonce,
+            routing_roles_swapped,
         )?;
 
         let inputs = self
@@ -359,7 +374,6 @@ impl TransferPlan {
                     fvk.outgoing(),
                     memo_key,
                     action_balance_commitment,
-                    self.discovery_precision,
                 );
                 let compliance_bytes = if is_receiver_output_index(index) {
                     receiver_output_transfer_compliance(
@@ -388,7 +402,6 @@ impl TransferPlan {
                 fvk.outgoing(),
                 memo_key,
                 action_balance_commitment,
-                self.discovery_precision,
             );
             TransferOutputBody {
                 note_payload,
@@ -407,6 +420,8 @@ impl TransferPlan {
             target_timestamp: self.spends[0].target_timestamp,
             compliance_anchor: self.spends[0].compliance_anchor,
             asset_anchor: self.spends[0].asset_anchor,
+            routing,
+            routing_parameter_set_id: self.routing_parameters.id(),
         })
     }
 
@@ -429,6 +444,7 @@ impl TransferPlan {
         let asset_policy = self
             .asset_policy()
             .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))?;
+        let (routing, routing_roles_swapped) = self.routing();
         let compliance = build_transfer_compliance(
             &self.outputs,
             &sender_leaf,
@@ -436,6 +452,7 @@ impl TransferPlan {
             &self.spends[0].asset_indexed_leaf,
             self.spends[0].target_timestamp,
             self.spends[0].tx_blinding_nonce,
+            routing_roles_swapped,
         )
         .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))?;
 
@@ -533,6 +550,8 @@ impl TransferPlan {
                 inputs: input_publics,
                 outputs: output_publics,
                 compliance: compliance.public,
+                routing,
+                routing_parameter_set_id: self.routing_parameters.id(),
             },
             TransferProofPrivate {
                 action_balance_blinding: self.value_blinding,
@@ -542,6 +561,7 @@ impl TransferPlan {
                 asset_position: self.spends[0].asset_position,
                 asset_indexed_leaf: self.spends[0].asset_indexed_leaf.clone(),
                 is_regulated: self.spends[0].is_regulated,
+                routing_parameters: self.routing_parameters.clone(),
                 sender_compliance_path: self.spends[0].compliance_path.clone(),
                 sender_compliance_position: self.spends[0].compliance_position,
                 sender_leaf,
@@ -596,7 +616,7 @@ impl TransferPlan {
     ) -> Result<Vec<u8>, crate::ProofError> {
         let (public, private) =
             self.transfer_public_private(fvk, &state_commitment_proofs, anchor)?;
-        crate::gnark::encode_transfer_witness_v16(&public, &private)
+        crate::gnark::encode_transfer_witness_v17(&public, &private)
             .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))
     }
 
@@ -641,7 +661,7 @@ impl From<TransferPlan> for pb::TransferPlan {
             value_blinding: msg.value_blinding.to_bytes().to_vec(),
             spends: msg.spends.into_iter().map(Into::into).collect(),
             outputs: msg.outputs.into_iter().map(Into::into).collect(),
-            discovery_precision_bits: msg.discovery_precision.into(),
+            routing_parameters: Some(msg.routing_parameters.into()),
         }
     }
 }
@@ -668,7 +688,10 @@ impl TryFrom<pb::TransferPlan> for TransferPlan {
                 .into_iter()
                 .map(TryInto::try_into)
                 .collect::<Result<Vec<_>, _>>()?,
-            discovery_precision: proto.discovery_precision_bits.try_into()?,
+            routing_parameters: proto
+                .routing_parameters
+                .ok_or_else(|| anyhow!("missing routing parameters"))?
+                .try_into()?,
         };
         plan.validate()?;
         Ok(plan)
@@ -698,7 +721,6 @@ fn transfer_output_parts(
     ovk: &OutgoingViewingKey,
     memo_key: &PayloadKey,
     action_balance_commitment: balance::Commitment,
-    discovery_precision: Precision,
 ) -> (crate::NotePayload, WrappedMemoKey, OvkWrappedKey) {
     let esk = note.ephemeral_secret_key();
     let wrapped_memo_key = WrappedMemoKey::encrypt(
@@ -708,11 +730,7 @@ fn transfer_output_parts(
         &note.diversified_generator(),
     );
     let ovk_wrapped_key = note.encrypt_key(ovk, action_balance_commitment);
-    (
-        note.payload(discovery_precision),
-        wrapped_memo_key,
-        ovk_wrapped_key,
-    )
+    (note.payload(), wrapped_memo_key, ovk_wrapped_key)
 }
 
 #[cfg(test)]

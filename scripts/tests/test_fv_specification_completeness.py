@@ -881,12 +881,12 @@ structure ClaimedFacts where
                     for status in statuses
                 )
             )
-        self.assertEqual(len(validated["trace_instances"]), 301)
+        self.assertEqual(len(validated["trace_instances"]), 360)
         self.assertEqual(len(validated["tests"]), 289)
         self.assertEqual(len(validated["runtime_policy_tests"]), 70)
-        self.assertEqual(len(validated["property_contract_tests"]), 269)
+        self.assertEqual(len(validated["property_contract_tests"]), 274)
         self.assertEqual(len(validated["artifact_contract_tests"]), 291)
-        self.assertEqual(len(CHECK.execution_tests(matrix())), 919)
+        self.assertEqual(len(CHECK.execution_tests(matrix())), 924)
         self.assertEqual(len(validated["property_contract"]), 25)
         self.assertEqual(
             len(
@@ -904,9 +904,9 @@ structure ClaimedFacts where
             ),
             3,
         )
-        self.assertEqual(len(validated["applicable"]), 278)
+        self.assertEqual(len(validated["applicable"]), 292)
         self.assertEqual(len(CHECK.expected_formal_fact_ids(ROOT)), 103)
-        self.assertEqual(len(CHECK.expected_ledger_ids(ROOT)), 43)
+        self.assertEqual(len(CHECK.expected_ledger_ids(ROOT)), 46)
 
     def test_independent_requirement_source_is_closed_and_fail_closed(
         self,
@@ -1050,7 +1050,7 @@ structure ClaimedFacts where
                             selected_facts,
                         )
                     checked += 1
-        self.assertEqual(checked, 278)
+        self.assertEqual(checked, 292)
 
     def test_high_impact_trace_semantics_reject_branch_and_disclosure_drift(
         self,
@@ -1070,7 +1070,7 @@ structure ClaimedFacts where
         address = traces_for("ADDRESS-CANONICAL-PACKING", "transfer")
         address[0]["args"] = tuple(
             (
-                "clue_key=receiver.clue_key"
+                "extra_address_field=receiver.extra_address_field"
                 if argument.startswith("tier=")
                 else argument
             )
@@ -1078,7 +1078,7 @@ structure ClaimedFacts where
         )
         with self.assertRaisesRegex(
             CHECK.SpecificationCompletenessError,
-            "must not include the clue key",
+            "must use the exact two-field address inputs",
         ):
             CHECK.validate_selected_trace_semantics(
                 "ADDRESS-CANONICAL-PACKING", address
@@ -2091,7 +2091,7 @@ structure ClaimedFacts where
             set(CHECK.GENERATED_CONSEQUENCE_PAIRS),
             expected,
         )
-        self.assertEqual(len(expected), 142)
+        self.assertEqual(len(expected), 156)
         self.assertEqual(
             {
                 profile: sum(
@@ -3694,7 +3694,7 @@ structure ClaimedFacts where
             )
         }
         self.assertEqual(execution_ids, expected)
-        self.assertEqual(len(execution_ids), 919)
+        self.assertEqual(len(execution_ids), 924)
 
     def test_application_test_selection_is_the_exact_evidence_union(self) -> None:
         value = matrix()

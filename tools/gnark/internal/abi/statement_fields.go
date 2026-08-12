@@ -55,7 +55,7 @@ func ensureFieldCount(label string, fields [][32]byte, expected int) error {
 // circuit computes. Transfer does not serialize a second prover-chosen affine
 // copy: the sole public statement binds this value directly.
 func transferBalanceCommitmentField(
-	witness *TransferWitnessV16Binary,
+	witness *TransferWitnessV17Binary,
 ) ([32]byte, error) {
 	inputs := [2]*big.Int{
 		primitives.LittleEndianBytesToBigInt(witness.RequiredSpend.SpentNoteAmount[:]),
@@ -195,10 +195,10 @@ func transferBalanceCommitmentField(
 	return bigIntToLE32(compressed)
 }
 
-// ReconstructedTransferStatementFieldsFromWitnessV16 mirrors the Go transfer
-// circuit's statement-field order using the canonical v16 witness records.
-func ReconstructedTransferStatementFieldsFromWitnessV16(
-	witness *TransferWitnessV16Binary,
+// ReconstructedTransferStatementFieldsFromWitnessV17 mirrors the Go transfer
+// circuit's statement-field order using the canonical v17 witness records.
+func ReconstructedTransferStatementFieldsFromWitnessV17(
+	witness *TransferWitnessV17Binary,
 ) ([][32]byte, error) {
 	expected := expectedTransferStatementFieldCount()
 	fields := make([][32]byte, 0, expected)
@@ -213,6 +213,8 @@ func ReconstructedTransferStatementFieldsFromWitnessV16(
 		return nil, err
 	}
 	fields = append(fields, balanceCommitment)
+	fields = append(fields, witness.RoutingTags[:]...)
+	fields = append(fields, witness.RoutingParameterSetID)
 	for index, spend := range []struct {
 		nullifier [32]byte
 		rk        PointAffineBinary
@@ -237,7 +239,7 @@ func ReconstructedTransferStatementFieldsFromWitnessV16(
 	}
 	fields = append(fields, witness.DetectionCiphertext...)
 
-	appendTier := func(label string, tier TransferComplianceCiphertextWitnessV16Binary, expectedCiphertext int) error {
+	appendTier := func(label string, tier TransferComplianceCiphertextWitnessV17Binary, expectedCiphertext int) error {
 		if len(tier.Ciphertext) != expectedCiphertext {
 			return fmt.Errorf(
 				"expected %d %s ciphertext elements, got %d",
@@ -257,7 +259,7 @@ func ReconstructedTransferStatementFieldsFromWitnessV16(
 
 	for _, tier := range []struct {
 		label              string
-		value              TransferComplianceCiphertextWitnessV16Binary
+		value              TransferComplianceCiphertextWitnessV17Binary
 		expectedCiphertext int
 	}{
 		{"sender_core", witness.SenderCore, compliance.TransferCoreCiphertextFQCount},
@@ -296,8 +298,11 @@ func appendNoteReshapeStatementFields(
 	fields [][32]byte,
 	anchor [32]byte,
 	balanceCommitmentAffine PointAffineBinary,
-	spends []NoteReshapeSpendWitnessV3Binary,
-	outputs []NoteReshapeOutputWitnessV3Binary,
+	assetAnchor [32]byte,
+	routingTag [32]byte,
+	routingParameterSetID [32]byte,
+	spends []NoteReshapeSpendWitnessV4Binary,
+	outputs []NoteReshapeOutputWitnessV4Binary,
 	expected int,
 ) ([][32]byte, error) {
 	fields = append(fields, anchor)
@@ -309,6 +314,12 @@ func appendNoteReshapeStatementFields(
 		return nil, fmt.Errorf("compress %s balance commitment: %w", label, err)
 	}
 	fields = append(fields, balanceCommitment)
+	fields = append(
+		fields,
+		assetAnchor,
+		routingTag,
+		routingParameterSetID,
+	)
 	for index, spend := range spends {
 		fields = append(fields, spend.Nullifier)
 		rk, err := pointAffineToField(spend.RKAffine)
@@ -323,10 +334,10 @@ func appendNoteReshapeStatementFields(
 	return fields, nil
 }
 
-// ReconstructedNoteReshapeStatementFieldsFromWitnessV3 mirrors the unified
+// ReconstructedNoteReshapeStatementFieldsFromWitnessV4 mirrors the unified
 // note-reshape circuit's statement-field order using decoded witness fields.
-func ReconstructedNoteReshapeStatementFieldsFromWitnessV3(
-	witness *NoteReshapeWitnessV3Binary,
+func ReconstructedNoteReshapeStatementFieldsFromWitnessV4(
+	witness *NoteReshapeWitnessV4Binary,
 ) ([][32]byte, error) {
 	expected := primitives.NoteReshapeStatementFieldCount(int(witness.NIn), int(witness.NOut))
 	fields, err := appendNoteReshapeStatementFields(
@@ -334,6 +345,9 @@ func ReconstructedNoteReshapeStatementFieldsFromWitnessV3(
 		make([][32]byte, 0, expected),
 		witness.Anchor,
 		witness.BalanceCommitmentAffine,
+		witness.AssetAnchor,
+		witness.RoutingTag,
+		witness.RoutingParameterSetID,
 		witness.Spends,
 		witness.Outputs,
 		expected,
@@ -348,7 +362,7 @@ func ReconstructedNoteReshapeStatementFieldsFromWitnessV3(
 }
 
 func shieldedIcs20WithdrawalBalanceCommitmentField(
-	witness *ShieldedIcs20WithdrawalWitnessV8Binary,
+	witness *ShieldedIcs20WithdrawalWitnessV9Binary,
 ) ([32]byte, error) {
 	valueBlindingGenerator, err := circuits.ValueBlindingGeneratorNative()
 	if err != nil {
@@ -373,12 +387,12 @@ func shieldedIcs20WithdrawalBalanceCommitmentField(
 	return bigIntToLE32(compressed)
 }
 
-// ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitnessV8 mirrors the
+// ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitnessV9 mirrors the
 // Go shielded ICS-20 withdrawal circuit's statement-field order using decoded
 // witness fields. Internal conservation makes the balance commitment depend
 // only on the action balance blinding.
-func ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitnessV8(
-	witness *ShieldedIcs20WithdrawalWitnessV8Binary,
+func ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitnessV9(
+	witness *ShieldedIcs20WithdrawalWitnessV9Binary,
 ) ([][32]byte, error) {
 	expected := primitives.ShieldedIcs20WithdrawalStatementFieldCount(int(witness.NIn))
 	fields := make([][32]byte, 0, expected)
@@ -388,9 +402,9 @@ func ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitnessV8(
 		return nil, err
 	}
 	fields = append(fields, balanceCommitment)
-	for index, spend := range []ShieldedIcs20WithdrawalRequiredSpendWitnessV8Binary{
+	for index, spend := range []ShieldedIcs20WithdrawalRequiredSpendWitnessV9Binary{
 		witness.RequiredSpend,
-		witness.OptionalSpend.ShieldedIcs20WithdrawalRequiredSpendWitnessV8Binary,
+		witness.OptionalSpend.ShieldedIcs20WithdrawalRequiredSpendWitnessV9Binary,
 	} {
 		fields = append(fields, spend.Nullifier)
 		rk, err := pointAffineToField(spend.RKAffine)
@@ -408,16 +422,17 @@ func ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitnessV8(
 		witness.OutboundAmount,
 	)
 	fields = append(fields, witness.WithdrawalEffectHashLimbs[:]...)
+	fields = append(fields, witness.RoutingTag, witness.RoutingParameterSetID)
 	if err := ensureFieldCount("shielded ICS-20 withdrawal", fields, expected); err != nil {
 		return nil, err
 	}
 	return fields, nil
 }
 
-func reconstructedShieldedIcs20WithdrawalStatementHashFromWitnessV8(
-	witness *ShieldedIcs20WithdrawalWitnessV8Binary,
+func reconstructedShieldedIcs20WithdrawalStatementHashFromWitnessV9(
+	witness *ShieldedIcs20WithdrawalWitnessV9Binary,
 ) (*big.Int, error) {
-	fields, err := ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitnessV8(witness)
+	fields, err := ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitnessV9(witness)
 	if err != nil {
 		return nil, fmt.Errorf("reconstruct shielded ICS-20 withdrawal statement fields: %w", err)
 	}

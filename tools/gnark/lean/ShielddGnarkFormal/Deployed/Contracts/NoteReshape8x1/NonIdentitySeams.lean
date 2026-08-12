@@ -17,7 +17,7 @@ theorem authAkNonIdentity_of_exact
     authAk0 rho ≠ 0 := by
   have h := facts.shared.AssertDecafNonIdentitySeg12.2
   change Seg12.localRho rho 2 ≠ 0 at h
-  have hseat : Seg12.wireSeating 2 = 10 := by
+  have hseat : Seg12.wireSeating 2 = 17 := by
     decide +kernel
   simpa only [
     authAk0, authAk0LC,
@@ -32,7 +32,7 @@ theorem sharedDivGenNonIdentity_of_exact
     sharedDivGen0 rho ≠ 0 := by
   have h := facts.shared.AssertDecafNonIdentitySeg13.2
   change Seg13.localRho rho 2 ≠ 0 at h
-  have hseat : Seg13.wireSeating 2 = 7 := by
+  have hseat : Seg13.wireSeating 2 = 15 := by
     decide +kernel
   simpa only [
     sharedDivGen0, sharedDivGen0LC,
@@ -47,9 +47,9 @@ theorem sharedTransmissionComputedNonIdentity_of_exact
     sharedTransmissionComputed0 rho ≠ 0 := by
   have h := facts.shared.AssertDecafNonIdentitySeg18.2
   change Seg18.localRho rho 2 + Seg18.localRho rho 3 ≠ 0 at h
-  have h1 : Seg18.wireSeating 2 = 6349 := by
+  have h1 : Seg18.wireSeating 2 = 6419 := by
     decide +kernel
-  have h2 : Seg18.wireSeating 3 = 6357 := by
+  have h2 : Seg18.wireSeating 3 = 6427 := by
     decide +kernel
   simpa only [
     sharedTransmissionComputed0, sharedTransmissionComputed0LC,
@@ -64,7 +64,7 @@ theorem authIvkReducedNonzero_of_exact
     authIvkReduced rho ≠ 0 := by
   have h := facts.shared.AssertNeSeg16.2
   change Seg16.localRho rho 2 ≠ 0 at h
-  have hseat : Seg16.wireSeating 2 = 13 := by
+  have hseat : Seg16.wireSeating 2 = 20 := by
     decide +kernel
   simpa only [
     authIvkReduced, authIvkReducedLC,

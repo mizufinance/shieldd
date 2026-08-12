@@ -6,7 +6,7 @@ use decaf377::Fq;
 use once_cell::sync::Lazy;
 use parking_lot::Mutex;
 use r2d2_sqlite::{
-    rusqlite::{OpenFlags, OptionalExtension},
+    rusqlite::{self, OpenFlags, OptionalExtension},
     SqliteConnectionManager,
 };
 use sha2::{Digest, Sha256};
@@ -36,7 +36,11 @@ use shieldd_sdk_tct::{self as tct, builder::epoch::Root};
 use shieldd_sdk_transaction::Transaction;
 use tct::StateCommitment;
 
-use crate::{sync::FilteredBlock, SpendableNoteRecord};
+use crate::{
+    issued_address::{AddressPurpose, IssuedAddress},
+    sync::FilteredBlock,
+    SpendableNoteRecord,
+};
 
 pub(crate) mod compliance;
 mod sct;
@@ -46,6 +50,80 @@ pub struct BalanceEntry {
     pub id: Id,
     pub amount: u128,
     pub address_index: AddressIndex,
+}
+
+#[cfg(test)]
+mod issued_address_tests {
+    use super::*;
+    use camino::Utf8Path;
+    use shieldd_sdk_app::params::AppParameters;
+    use shieldd_sdk_keys::{keys::AddressIndex, test_keys};
+
+    #[tokio::test]
+    async fn restore_recovers_standard_and_randomized_issued_addresses() {
+        let directory = tempfile::tempdir().unwrap();
+        let raw_path = directory.path().join("view.sqlite");
+        let path = Utf8Path::from_path(&raw_path).unwrap().to_owned();
+        let fvk = (*test_keys::FULL_VIEWING_KEY).clone();
+        let storage = Storage::initialize(Some(&path), fvk.clone(), AppParameters::default())
+            .await
+            .unwrap();
+        let general_index = AddressIndex::new(7);
+        let regulated_index = AddressIndex {
+            account: 9,
+            randomizer: [0x5a; 12],
+        };
+        let regulated_asset = asset::Id(decaf377::Fq::from(42u64));
+        let issued = [
+            IssuedAddress {
+                address_index: general_index,
+                address: fvk.payment_address(general_index),
+                purpose: AddressPurpose::General,
+                birth_height: 11,
+                retired_height: None,
+            },
+            IssuedAddress {
+                address_index: regulated_index,
+                address: fvk.payment_address(regulated_index),
+                purpose: AddressPurpose::Regulated {
+                    asset_id: regulated_asset,
+                },
+                birth_height: 12,
+                retired_height: None,
+            },
+        ];
+        for address in issued.clone() {
+            storage.record_issued_address(address).await.unwrap();
+        }
+        drop(storage);
+
+        let restored = Storage::load(&path).await.unwrap();
+        assert_eq!(restored.issued_addresses().await.unwrap(), issued);
+    }
+
+    #[tokio::test]
+    async fn issued_address_metadata_is_idempotent_but_cannot_be_reclassified() {
+        let fvk = (*test_keys::FULL_VIEWING_KEY).clone();
+        let storage = Storage::initialize(None::<&Utf8Path>, fvk.clone(), AppParameters::default())
+            .await
+            .unwrap();
+        let index = AddressIndex::new(3);
+        let issued = IssuedAddress {
+            address_index: index,
+            address: fvk.payment_address(index),
+            purpose: AddressPurpose::General,
+            birth_height: 8,
+            retired_height: None,
+        };
+        storage.record_issued_address(issued.clone()).await.unwrap();
+        storage.record_issued_address(issued.clone()).await.unwrap();
+
+        let mut conflicting = issued;
+        conflicting.purpose = AddressPurpose::Regulated {
+            asset_id: asset::Id(decaf377::Fq::from(9u64)),
+        };
+        assert!(storage.record_issued_address(conflicting).await.is_err());
+    }
 }
 
 /// The hash of the schema for the database.
@@ -500,6 +578,126 @@ impl Storage {
                 .query_row([], |row| row.get::<_, Option<i64>>(0))?;
 
             anyhow::Ok(u64::try_from(height.ok_or_else(|| anyhow!("missing sync height"))?).ok())
+        })
+        .await?
+    }
+
+    /// Persist an issued address before it is returned to a caller.
+    pub async fn record_issued_address(&self, issued: IssuedAddress) -> anyhow::Result<()> {
+        let pool = self.pool.clone();
+        spawn_blocking(move || {
+            let address_index = issued.address_index.to_bytes();
+            let address = issued.address.to_vec();
+            let birth_height = i64::try_from(issued.birth_height)
+                .context("issued-address birth height exceeds SQLite i64")?;
+            let retired_height = issued
+                .retired_height
+                .map(i64::try_from)
+                .transpose()
+                .context("issued-address retirement height exceeds SQLite i64")?;
+            let (purpose_kind, regulated_asset_id): (i64, Option<Vec<u8>>) = match issued.purpose {
+                AddressPurpose::General => (0, None),
+                AddressPurpose::Regulated { asset_id } => (1, Some(asset_id.to_bytes().to_vec())),
+            };
+
+            let conn = pool.get()?;
+            conn.execute(
+                "INSERT INTO issued_addresses
+                 (address_index, address, purpose_kind, regulated_asset_id, birth_height, retired_height)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+                 ON CONFLICT(address) DO NOTHING",
+                rusqlite::params![
+                    &address_index[..],
+                    address,
+                    purpose_kind,
+                    regulated_asset_id,
+                    birth_height,
+                    retired_height,
+                ],
+            )?;
+
+            let existing: (Vec<u8>, i64, Option<Vec<u8>>, i64, Option<i64>) = conn.query_row(
+                "SELECT address, purpose_kind, regulated_asset_id, birth_height, retired_height
+                 FROM issued_addresses WHERE address = ?1",
+                [&address[..]],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?)),
+            )?;
+            anyhow::ensure!(
+                existing == (address, purpose_kind, regulated_asset_id, birth_height, retired_height),
+                "address index was already issued with different durable metadata"
+            );
+            Ok(())
+        })
+        .await?
+    }
+
+    /// Load every issued address, including randomized indices needed by backups.
+    pub async fn issued_addresses(&self) -> anyhow::Result<Vec<IssuedAddress>> {
+        let pool = self.pool.clone();
+        spawn_blocking(move || {
+            let conn = pool.get()?;
+            let mut statement = conn.prepare_cached(
+                "SELECT address_index, address, purpose_kind, regulated_asset_id,
+                        birth_height, retired_height
+                 FROM issued_addresses ORDER BY birth_height, address_index",
+            )?;
+            let rows = statement
+                .query_map([], |row| {
+                    Ok((
+                        row.get::<_, Vec<u8>>(0)?,
+                        row.get::<_, Vec<u8>>(1)?,
+                        row.get::<_, i64>(2)?,
+                        row.get::<_, Option<Vec<u8>>>(3)?,
+                        row.get::<_, i64>(4)?,
+                        row.get::<_, Option<i64>>(5)?,
+                    ))
+                })?
+                .collect::<Result<Vec<_>, _>>()?;
+
+            rows.into_iter()
+                .map(|(index, address, kind, asset_id, birth, retired)| {
+                    let purpose = match (kind, asset_id) {
+                        (0, None) => AddressPurpose::General,
+                        (1, Some(asset_id)) => AddressPurpose::Regulated {
+                            asset_id: asset::Id::try_from(asset_id.as_slice())?,
+                        },
+                        _ => anyhow::bail!("invalid issued-address purpose encoding"),
+                    };
+                    Ok(IssuedAddress {
+                        address_index: AddressIndex::try_from(index.as_slice())?,
+                        address: Address::try_from(address.as_slice())?,
+                        purpose,
+                        birth_height: u64::try_from(birth)
+                            .context("negative issued-address birth height")?,
+                        retired_height: retired
+                            .map(u64::try_from)
+                            .transpose()
+                            .context("negative issued-address retirement height")?,
+                    })
+                })
+                .collect()
+        })
+        .await?
+    }
+
+    pub async fn retire_issued_address(
+        &self,
+        address_index: AddressIndex,
+        retired_height: u64,
+    ) -> anyhow::Result<()> {
+        let pool = self.pool.clone();
+        spawn_blocking(move || {
+            let changed = pool.get()?.execute(
+                "UPDATE issued_addresses SET retired_height = ?2
+                 WHERE address_index = ?1 AND retired_height IS NULL",
+                rusqlite::params![
+                    &address_index.to_bytes()[..],
+                    i64::try_from(retired_height)
+                        .context("retirement height exceeds SQLite i64")?,
+                ],
+            )?;
+            anyhow::ensure!(changed == 1, "issued address is unknown or already retired");
+            Ok(())
         })
         .await?
     }

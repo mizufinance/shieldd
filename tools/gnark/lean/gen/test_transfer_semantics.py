@@ -318,11 +318,11 @@ class TransferSemanticsTests(unittest.TestCase):
         self.assertEqual(definition("statementPad0"), label_value("pad0"))
         self.assertEqual(definition("statementPad1"), label_value("pad1"))
         self.assertIn(
-            "(statementFields action).length = 41",
+            "(statementFields action).length = 44",
             concrete,
         )
 
-    def test_v16_statement_fields_have_exact_deployed_indices(self):
+    def test_v17_statement_fields_have_exact_deployed_indices(self):
         concrete = (
             transfer.FORMAL / "Protocol" / "Transfer" / "Concrete.lean"
         ).read_text()
@@ -372,9 +372,12 @@ class TransferSemanticsTests(unittest.TestCase):
             "action.transcript.metadata.senderExtSalt",
             "action.transcript.metadata.outputCoreSalt",
             "action.transcript.metadata.outputExtSalt",
+            "action.routingTags 0",
+            "action.routingTags 1",
+            "action.routingParameterSetId",
         ]
         self.assertEqual(fields, expected)
-        self.assertEqual(len(fields), 41)
+        self.assertEqual(len(fields), 44)
 
 
 if __name__ == "__main__":

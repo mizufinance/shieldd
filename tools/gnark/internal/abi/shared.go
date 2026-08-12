@@ -145,7 +145,6 @@ func noteFields(
 	divGenX, divGenY frontend.Variable,
 	transmissionKeyS frontend.Variable,
 	transX, transY frontend.Variable,
-	clueKey frontend.Variable,
 ) circuits.NoteFields {
 	return circuits.NoteFields{
 		Blinding:         blinding,
@@ -154,7 +153,6 @@ func noteFields(
 		DivGen:           circuits.Point2D{X: divGenX, Y: divGenY},
 		TransmissionKeyS: transmissionKeyS,
 		Transmission:     circuits.Point2D{X: transX, Y: transY},
-		ClueKey:          clueKey,
 	}
 }
 

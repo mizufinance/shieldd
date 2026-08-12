@@ -96,9 +96,9 @@ class NoteReshapeFamilyTests(unittest.TestCase):
             / "tools/gnark/lean/ShielddGnarkFormal/Deployed/"
             "NoteReshape1x8Spend.lean"
         ).read_text()
-        for current_wire in (7219, 16132, 17962, 18328, 18668):
+        for current_wire in (20858, 29771, 31601, 31967, 32307):
             self.assertIn(f"= {current_wire} := by decide", spend_1x8_source)
-        for retired_wire in (7819, 16732, 18562, 18928, 19268):
+        for retired_wire in (7219, 16132, 17962, 18328, 18668):
             self.assertNotIn(f"= {retired_wire} := by decide", spend_1x8_source)
         ir = next(ir for ir in self.irs if ir["circuit"] == "note_reshape8x1")
         consequences = family.render_specification_consequences(ir)
@@ -160,8 +160,8 @@ class NoteReshapeFamilyTests(unittest.TestCase):
     ) -> None:
         roster = family.predicate_consequence_roster()
         expected_counts = {
-            "note_reshape1x8": 22,
-            "note_reshape8x1": 26,
+            "note_reshape1x8": 29,
+            "note_reshape8x1": 33,
         }
         for ir in self.irs:
             for renderer in (
@@ -218,6 +218,20 @@ class NoteReshapeFamilyTests(unittest.TestCase):
                 "consensusAccepted_atomicSecurityConsequences",
                 source,
             )
+
+    def test_asset_and_routing_consequences_name_every_exact_segment(self) -> None:
+        for ir in self.irs:
+            source = family.render_specification_consequences(ir)
+            for predicate in family.EXACT_SHARED_PREDICATES:
+                for segment in family._segments_for_exact_predicate(ir, predicate):
+                    field = f"{family.camel(segment['op'])}Seg{segment['index']}"
+                    self.assertIn(field, source, (ir["circuit"], predicate, field))
+            for predicate in ("ROUTING-PARAMETERS", "ROUTING-TAG-DERIVATION"):
+                theorem = family.specification_theorem_name(predicate)
+                start = source.index(f"theorem {theorem}")
+                end = source.find("\n/--", start)
+                declaration = source[start : None if end == -1 else end]
+                self.assertNotIn("noteCommitment", declaration)
 
     def test_specification_consequences_fail_closed_on_roster_drift(self) -> None:
         ir = self.irs[0]
@@ -428,8 +442,8 @@ class NoteReshapeFamilyTests(unittest.TestCase):
 
     def test_window2_transmission_seam_is_exact_and_fails_closed(self) -> None:
         expected = {
-            "note_reshape1x8": ((5781, 5789), (5782, 5790)),
-            "note_reshape8x1": ((6349, 6357), (6350, 6358)),
+            "note_reshape1x8": ((5851, 5859), (5852, 5860)),
+            "note_reshape8x1": ((6419, 6427), (6420, 6428)),
         }
         for ir in self.irs:
             manifest = self.constraint_manifests[ir["circuit"]]
@@ -687,6 +701,7 @@ class NoteReshapeFamilyTests(unittest.TestCase):
             "NoteReshape8x1StatementFirst.lean",
             "NoteReshape8x1StatementSecond.lean",
             "NoteReshape8x1StatementThird.lean",
+            "NoteReshape8x1StatementFourth.lean",
             "NoteReshape8x1StatementOutput.lean",
         ):
             source = (deployed / filename).read_text()

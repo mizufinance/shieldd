@@ -14,27 +14,27 @@ open Contracts.ShieldedIcs20Withdrawal
 
 theorem dtkXWires :
     (Seg7.wireSeating 4961, Seg7.wireSeating 4969) =
-      (5950, 5958) := by
+      (5955, 5963) := by
   decide +kernel
 
 theorem dtkYWires :
     (Seg7.wireSeating 4962, Seg7.wireSeating 4970) =
-      (5951, 5959) := by
+      (5956, 5964) := by
   decide +kernel
 
 theorem compressXWires :
     (Seg8.wireSeating 1, Seg8.wireSeating 2) =
-      (5950, 5958) := by
+      (5955, 5963) := by
   decide +kernel
 
 theorem compressYWires :
     (Seg8.wireSeating 4, Seg8.wireSeating 5) =
-      (5951, 5959) := by
+      (5956, 5964) := by
   decide +kernel
 
 theorem nonIdentityXWires :
     (Seg9.wireSeating 2,
-      Seg9.wireSeating 3) = (5950, 5958) := by
+      Seg9.wireSeating 3) = (5955, 5963) := by
   decide +kernel
 
 end Shieldd.GnarkFormal.Deployed.ShieldedIcs20WithdrawalDtkSeating

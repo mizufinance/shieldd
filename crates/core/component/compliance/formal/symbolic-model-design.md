@@ -44,7 +44,7 @@ be enabled.
 | `FACT-UnregulatedGap(asset,lo,hi,root)` | State fact | Canonical ordered neighbors prove the asset absent at `root`. |
 | `RULE-SelectPolicy` | Circuit rule | Membership selects registered values; non-membership selects fixed sink keys and empty hashes. The threshold comparator consumes the authenticated member/predecessor leaf threshold, and its result is regulation-gated. |
 | `RULE-EncryptDetection` | Circuit rule | Detection encryption is always checked under the selected DK and binds exact asset, salt, bounded sender slot plus flag, and bounded receiver slot. |
-| `RULE-BindComplianceLeaf` | Circuit/state rule | A regulated v2 leaf authenticates the complete canonical address including its discovery key; admission rejects zero `d`. |
+| `RULE-BindComplianceLeaf` | Circuit/state rule | A regulated v3 leaf authenticates the canonical diversifier and transmission key; admission rejects zero `d`. |
 | `RULE-EncryptTier` | Circuit rule | Each tier checks independent EPK, selected shared secret, c2, and stream ciphertext equations. |
 | `RULE-BindMetadata` | Circuit rule | One record binds two subject derivations, four effective policy hashes, timestamp, and four salts. |
 | `RULE-FreshActionNonce` | Honest-construction premise | A CSPRNG samples one private nonce root per Transfer, distinct from sibling actions and fee funding; deterministic expansion of one root never crosses an action boundary. This is not a consensus or circuit rule. |

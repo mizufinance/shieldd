@@ -1,4 +1,4 @@
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.Seg60
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.Seg78
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 1000000
@@ -10,27 +10,24 @@ namespace Shieldd.GnarkFormal.Deployed.NoteReshape1x8StatementSeating
 
 open Contracts.NoteReshape1x8
 
-theorem hw1 : Seg60.wireSeating 1 = 2 := by decide +kernel
-theorem hw7 : Seg60.wireSeating 7 = 19068 := by decide +kernel
-theorem hw8 : Seg60.wireSeating 8 = 19073 := by decide +kernel
-theorem hw9 : Seg60.wireSeating 9 = 19078 := by decide +kernel
-theorem hw10 : Seg60.wireSeating 10 = 19083 := by decide +kernel
-theorem hw11 : Seg60.wireSeating 11 = 19088 := by decide +kernel
-theorem hw12 : Seg60.wireSeating 12 = 19093 := by decide +kernel
-theorem hw13 : Seg60.wireSeating 13 = 19098 := by decide +kernel
-theorem hw19 : Seg60.wireSeating 19 = 19498 := by decide +kernel
-theorem hw20 : Seg60.wireSeating 20 = 19503 := by decide +kernel
-theorem hw21 : Seg60.wireSeating 21 = 19508 := by decide +kernel
-theorem hw22 : Seg60.wireSeating 22 = 19513 := by decide +kernel
-theorem hw23 : Seg60.wireSeating 23 = 19518 := by decide +kernel
-theorem hw24 : Seg60.wireSeating 24 = 19523 := by decide +kernel
-theorem hw25 : Seg60.wireSeating 25 = 19528 := by decide +kernel
-theorem hw31 : Seg60.wireSeating 31 = 19928 := by decide +kernel
-theorem hw32 : Seg60.wireSeating 32 = 19933 := by decide +kernel
-theorem hw33 : Seg60.wireSeating 33 = 19938 := by decide +kernel
-theorem hw34 : Seg60.wireSeating 34 = 19943 := by decide +kernel
-theorem hw35 : Seg60.wireSeating 35 = 19948 := by decide +kernel
-theorem hw36 : Seg60.wireSeating 36 = 19953 := by decide +kernel
-theorem hw37 : Seg60.wireSeating 37 = 19958 := by decide +kernel
+theorem hw1 : Seg78.wireSeating 1 = 5 := by decide +kernel
+theorem hw7 : Seg78.wireSeating 7 = 32672 := by decide +kernel
+theorem hw8 : Seg78.wireSeating 8 = 32677 := by decide +kernel
+theorem hw9 : Seg78.wireSeating 9 = 32682 := by decide +kernel
+theorem hw10 : Seg78.wireSeating 10 = 32687 := by decide +kernel
+theorem hw11 : Seg78.wireSeating 11 = 32692 := by decide +kernel
+theorem hw12 : Seg78.wireSeating 12 = 32697 := by decide +kernel
+theorem hw18 : Seg78.wireSeating 18 = 33062 := by decide +kernel
+theorem hw19 : Seg78.wireSeating 19 = 33067 := by decide +kernel
+theorem hw20 : Seg78.wireSeating 20 = 33072 := by decide +kernel
+theorem hw21 : Seg78.wireSeating 21 = 33077 := by decide +kernel
+theorem hw22 : Seg78.wireSeating 22 = 33082 := by decide +kernel
+theorem hw23 : Seg78.wireSeating 23 = 33087 := by decide +kernel
+theorem hw29 : Seg78.wireSeating 29 = 33452 := by decide +kernel
+theorem hw30 : Seg78.wireSeating 30 = 33457 := by decide +kernel
+theorem hw31 : Seg78.wireSeating 31 = 33462 := by decide +kernel
+theorem hw32 : Seg78.wireSeating 32 = 33467 := by decide +kernel
+theorem hw33 : Seg78.wireSeating 33 = 33472 := by decide +kernel
+theorem hw34 : Seg78.wireSeating 34 = 33477 := by decide +kernel
 
 end Shieldd.GnarkFormal.Deployed.NoteReshape1x8StatementSeating

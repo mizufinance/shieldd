@@ -58,7 +58,6 @@ def shared (rho : Nat → NoteReshapeCanonical.F) :
     diversifiedGeneratorEncoding := divGenFq rho
     transmission := NoteReshapeCanonical.toProtocolPoint (transmission rho)
     transmissionEncoding := transmissionFq rho
-    clueKey := Contracts.@@MODULE@@.sharedClueKey rho
   }
 
 @@ENCODING_SEAMS@@@@CANONICAL_FACTS@@theorem canonicalTransmission_of_exact

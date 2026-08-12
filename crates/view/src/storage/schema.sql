@@ -12,6 +12,21 @@ CREATE TABLE kv (
 
 CREATE TABLE sync_height (height BIGINT NOT NULL);
 
+-- Addresses returned by the view service, including randomized address indices.
+CREATE TABLE issued_addresses (
+    address_index           BLOB NOT NULL,
+    address                 BLOB PRIMARY KEY NOT NULL,
+    purpose_kind            TINYINT NOT NULL,
+    regulated_asset_id      BLOB,
+    birth_height            BIGINT NOT NULL,
+    retired_height          BIGINT,
+    CHECK (
+        (purpose_kind = 0 AND regulated_asset_id IS NULL) OR
+        (purpose_kind = 1 AND regulated_asset_id IS NOT NULL)
+    )
+);
+CREATE INDEX issued_addresses_by_index ON issued_addresses(address_index);
+
 -- used for storing a cache of known assets
 CREATE TABLE assets (
     asset_id                BLOB PRIMARY KEY NOT NULL,

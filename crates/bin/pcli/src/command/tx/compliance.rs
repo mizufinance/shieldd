@@ -553,7 +553,7 @@ impl ComplianceCmd {
                 let address = match address {
                     Some(address) => address.parse().context("invalid Shieldd address")?,
                     None => {
-                        let (address, _detection_key) = fvk.payment_address(address_index);
+                        let address = fvk.payment_address(address_index);
                         address
                     }
                 };

@@ -1,4 +1,4 @@
-import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg48
+import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg56
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 2000000
@@ -11,9 +11,9 @@ open Contracts.ShieldedIcs20Withdrawal
 
 theorem wires :
     (List.range 149).map
-        (fun offset => Seg48.wireSeating (2 + offset)) =
+        (fun offset => Seg56.wireSeating (2 + offset)) =
       (List.range 149).map
-        (fun offset => 48006 + offset * 5) := by
+        (fun offset => 50091 + offset * 5) := by
   decide +kernel
 
 end Shieldd.GnarkFormal.Deployed.ShieldedIcs20WithdrawalBalanceCompressSeatingX0

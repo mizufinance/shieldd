@@ -31,13 +31,13 @@ func TestTransferWiringSeparatesRequiredAndOptionalSpend(t *testing.T) {
 		}
 	}
 	for _, binding := range []string{
-		"gadget.note_commitment blinding=spend0.note.blinding amount=spend0.note.amount asset_id=shared.asset_id div_gen_fq=sender.div_gen_fq transmission_key_s=sender.transmission_fq clue_key=sender.clue_key out=spend0.note.commitment.computed",
+		"gadget.note_commitment blinding=spend0.note.blinding amount=spend0.note.amount asset_id=shared.asset_id div_gen_fq=sender.div_gen_fq transmission_key_s=sender.transmission_fq out=spend0.note.commitment.computed",
 		"gadget.state_commitment_path commitment=spend0.note.commitment.computed position=spend0.state_proof.position path=spend0.state_proof.path out=spend0.anchor.computed",
 		"assert.eq lhs=spend0.nullifier rhs=spend0.nullifier.real",
 		"assert.eq lhs=spend0.anchor.computed rhs=anchor",
 		"decaf.assert_equivalent lhs=spend0.rk.computed rhs=spend0.rk.claimed",
 		"assert.boolean var=spend1.is_dummy",
-		"gadget.note_commitment blinding=spend1.note.blinding amount=spend1.note.amount asset_id=shared.asset_id div_gen_fq=sender.div_gen_fq transmission_key_s=sender.transmission_fq clue_key=sender.clue_key out=spend1.note.commitment.computed",
+		"gadget.note_commitment blinding=spend1.note.blinding amount=spend1.note.amount asset_id=shared.asset_id div_gen_fq=sender.div_gen_fq transmission_key_s=sender.transmission_fq out=spend1.note.commitment.computed",
 		"gadget.state_commitment_path commitment=spend1.note.commitment.computed position=spend1.state_proof.position path=spend1.state_proof.path out=spend1.anchor.computed",
 		"gadget.synthetic_dummy_nullifier seed=spend1.dummy_nullifier_seed",
 		"dummy.mux is_dummy=spend1.is_dummy",
@@ -148,7 +148,7 @@ func TestTransferWiringUsesCanonicalRoleAddresses(t *testing.T) {
 	for _, binding := range []string{
 		"decaf.assert_equivalent lhs=sender.transmission.computed rhs=sender.transmission",
 		"gadget.note_commitment blinding=output0.note.blinding amount=output0.note.amount asset_id=shared.asset_id div_gen_fq=output0.recipient.div_gen_fq transmission_key_s=output0.recipient.transmission_fq",
-		"gadget.compliance_leaf div_gen_fq=output0.recipient.div_gen_fq transmission_fq=output0.recipient.transmission_fq clue_key=output0.note.clue_key asset_id=shared.asset_id",
+		"gadget.compliance_leaf div_gen_fq=output0.recipient.div_gen_fq transmission_fq=output0.recipient.transmission_fq asset_id=shared.asset_id",
 		"gadget.note_commitment blinding=output1.note.blinding amount=output1.note.amount asset_id=shared.asset_id div_gen_fq=sender.div_gen_fq transmission_key_s=sender.transmission_fq",
 	} {
 		if got := strings.Count(transcript, binding); got != 1 {
@@ -303,7 +303,7 @@ func TestTransferWiringJoinsDerivedSharedSecretsToEncryption(t *testing.T) {
 	}
 
 	encryptionBindings := []string{
-		"gadget.poseidon_encryption.detection flag=is_flagged ss=sender_core.shared.issuer epk_fq=compliance.sender_core.epk_fq salt=salt0 asset_id=shared.asset_id sender_slot=sender.slot_id:u32 receiver_slot=receiver.slot_id:u32 sender_word=sender.slot_id+flag*2^32 out=compliance.detection_ciphertext",
+		"gadget.poseidon_encryption.detection flag=is_flagged ss=sender_core.shared.issuer epk_fq=compliance.sender_core.epk_fq salt=salt0 asset_id=shared.asset_id sender_slot=sender.slot_id:u32 receiver_slot=receiver.slot_id:u32 routing_roles_swapped=permutation_bit out=compliance.detection_ciphertext",
 		"gadget.poseidon_encryption.amount tier=sender_core ss=sender_core.shared.selected c2=compliance.sender_core.c2 amount=receiver.amount out=compliance.sender_core.ciphertext",
 		"gadget.poseidon_encryption.address tier=sender_ext ss=sender_ext.shared.selected c2=compliance.sender_ext.c2 div_gen_fq=receiver.div_gen_fq transmission_fq=receiver.transmission_fq out=compliance.sender_ext.ciphertext",
 		"gadget.poseidon_encryption.amount tier=output_core ss=output_core.shared.selected c2=compliance.output_core.c2 amount=receiver.amount out=compliance.output_core.ciphertext",

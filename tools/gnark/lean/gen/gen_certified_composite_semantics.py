@@ -56,17 +56,17 @@ class Deployment:
 
 DEPLOYMENTS = (
     Deployment(f"gadget.poseidon_encryption.address@{recovery.ADDRESS_DIGEST}",
-               "gadget.poseidon_encryption.address", 2856, 2191, (90, 92),
+               "gadget.poseidon_encryption.address", 2856, 2191, (105, 107),
                "9f95984ebe58e37464b11e794a3411317da3fe6fe246824c402af8d30f712745",
                "gadget.poseidon_encryption.address@1808b9687f711325"),
     Deployment(f"gadget.poseidon_encryption.amount@{recovery.AMOUNT_DIGEST}",
-               "gadget.poseidon_encryption.amount", 1312, 978, (89, 91),
+               "gadget.poseidon_encryption.amount", 1312, 978, (104, 106),
                "892c99b0bb81422368c0daf5ce37187f7235f230d6ae0ce22b474cac2b6938d7",
                "gadget.poseidon_encryption.amount@6d2d73f6dbb6bf24"),
     Deployment(f"gadget.poseidon_encryption.detection@{recovery.DETECTION_DIGEST}",
-               "gadget.poseidon_encryption.detection", 2446, 2115, (88,),
-               "27e5030720fbd6ac2415e1c1b01f54ea73d8d604b3df0e73ab31a20a7ff4bda1",
-               "gadget.poseidon_encryption.detection@9099cfd3f80d98d1"),
+               "gadget.poseidon_encryption.detection", 2446, 2116, (103,),
+               "7f25ad680d81728108fb0478c1e95d1f32428773915094f6fbd7238b5ea581e6",
+               "gadget.poseidon_encryption.detection@e05752542c0ac1c3"),
 )
 
 
@@ -1690,6 +1690,7 @@ def _render_detection_slot_bits(
         raise ValueError("detection receiver plaintext accessor drifted")
     expected_sender_word = (
         (sender.value_wire, 1),
+        (detection.swap_wire, 1 << 33),
         (detection.flag_wire, 1 << 32),
     )
     if plaintexts[2] != expected_sender_word:
@@ -1737,8 +1738,11 @@ def detectionSalt (rho : Nat → F) : F :=
 
 def isFlagged (rho : Nat → F) : F := rho {detection.flag_wire}
 
+def isSwapped (rho : Nat → F) : F := rho {detection.swap_wire}
+
 def senderWord (rho : Nat → F) : F :=
-  senderSlot rho + (2 ^ 32 : F) * isFlagged rho
+  senderSlot rho + (2 ^ 32 : F) * isFlagged rho +
+    (2 ^ 33 : F) * isSwapped rho
 
 def plaintext0 (rho : Nat → F) : F := {_lc(plaintexts[0])}
 
@@ -1754,7 +1758,7 @@ theorem plaintexts_eq_accessors (rho : Nat → F) :
       plaintext2 rho = senderWord rho ∧
       plaintext3 rho = receiverSlot rho := by
   simp only [plaintext0, plaintext1, plaintext2, plaintext3, assetId,
-    detectionSalt, senderWord, senderSlot, isFlagged, receiverSlot]
+    detectionSalt, senderWord, senderSlot, isFlagged, isSwapped, receiverSlot]
   norm_num <;> ring
 
 def spec (rho : Nat → F) : Prop :=

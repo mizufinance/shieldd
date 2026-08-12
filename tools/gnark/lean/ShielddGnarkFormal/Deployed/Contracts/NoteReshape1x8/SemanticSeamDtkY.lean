@@ -19,9 +19,9 @@ theorem sharedTransmissionComputed1_eq_dtkOutY
     (rho : Nat → SemanticF) :
     sharedTransmissionComputed1 rho =
       (Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_a03dfc8083159402252a47c3be906c0878137600765dd0717aecbad037a5042c.DtkWindowSupport.output (Seg7.localRho rho)).y := by
-  have h1 : Seg7.wireSeating 4962 = 5782 := by
+  have h1 : Seg7.wireSeating 4962 = 5852 := by
     decide +kernel
-  have h2 : Seg7.wireSeating 4970 = 5790 := by
+  have h2 : Seg7.wireSeating 4970 = 5860 := by
     decide +kernel
   simpa only [
     sharedTransmissionComputed1,

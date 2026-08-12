@@ -64,7 +64,7 @@ impl AddressCmd {
                     eprintln!("");
                     println!("{}", fvk);
                 } else if let Some(fvk) = &self.from_fvk {
-                    let (address, _) = FullViewingKey::payment_address(
+                    let address = FullViewingKey::payment_address(
                         &FullViewingKey::from_str(&fvk[..])?,
                         AddressIndex::new(0),
                     );

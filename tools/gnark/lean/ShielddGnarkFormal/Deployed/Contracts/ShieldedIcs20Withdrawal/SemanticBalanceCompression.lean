@@ -2,7 +2,7 @@ import ShielddGnarkFormal.ChoiceFreeZMod
 import ShielddGnarkFormal.Deployed.PrimeOrder
 import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.SemanticBindings
 import ShielddGnarkFormal.Protocol.ShieldedIcs20Withdrawal.Concrete
-import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg48
+import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg56
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e
 import Mathlib.Tactic.FinCases
 import Mathlib.Tactic.LinearCombination
@@ -29,15 +29,15 @@ local instance withdrawalSeamPrimeBalanceCompression : Fact (Nat.Prime SemanticO
 theorem balanceCommitmentFq_eq_compressOutput
     (rho : Nat → SemanticF) :
     balanceCommitmentFq rho =
-      Deployed.Templates.Semantics.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.templateRho (Seg48.localRho rho) 912 -
-        Deployed.Templates.Semantics.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.templateRho (Seg48.localRho rho) 572 := by
+      Deployed.Templates.Semantics.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.templateRho (Seg56.localRho rho) 912 -
+        Deployed.Templates.Semantics.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.templateRho (Seg56.localRho rho) 572 := by
   have hplus :
-      Seg48.wireSeating 1204 =
-        50258 := by
+      Seg56.wireSeating 1204 =
+        52343 := by
     decide +kernel
   have hminus :
-      Seg48.wireSeating 864 =
-        49918 := by
+      Seg56.wireSeating 864 =
+        52003 := by
     decide +kernel
   have hneg : (8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF) = -1 := by
     decide +kernel
@@ -45,7 +45,7 @@ theorem balanceCommitmentFq_eq_compressOutput
     balanceCommitmentFq, balanceCommitmentFqLC,
     Deployed.Templates.Semantics.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.templateRho,
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-    StrideRun.eval, Seg48.localRho, Deployed.Templates.seated,
+    StrideRun.eval, Seg56.localRho, Deployed.Templates.seated,
     zero_add, one_mul, add_zero,
     if_pos (by decide +kernel : 231 ≤ 912 ∧ 912 ≤ 912),
     if_pos (by decide +kernel : 231 ≤ 572 ∧ 572 ≤ 912),

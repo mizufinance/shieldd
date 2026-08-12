@@ -105,46 +105,61 @@ structure ComplianceTranscriptExactProviders (rho : Nat → DeployedF) : Prop wh
   effectivePolicyIdHash : Seg9.contract.spec rho
   effectiveResourceHash : Seg10.contract.spec rho
   effectivePermissionHash : Seg11.contract.spec rho
-  thresholdFlag : Seg74.contract.spec rho
-  senderCoreEpkCompress : Seg75.contract.spec rho
-  senderExtEpkCompress : Seg76.contract.spec rho
-  outputCoreEpkCompress : Seg77.contract.spec rho
-  outputExtEpkCompress : Seg78.contract.spec rho
-  salt0 : Seg79.contract.spec rho
-  salt1 : Seg80.contract.spec rho
-  salt2 : Seg81.contract.spec rho
-  salt3 : Seg82.contract.spec rho
-  salt4 : Seg83.contract.spec rho
-  senderCoreSharedSecret : Seg84.contract.spec rho
-  senderExtSharedSecret : Seg85.contract.spec rho
-  outputCoreSharedSecret : Seg86.contract.spec rho
-  outputExtSharedSecret : Seg87.contract.spec rho
-  detectionEncryption : Seg88.contract.spec rho
-  senderAmountEncryption : Seg89.contract.spec rho
-  senderAddressEncryption : Seg90.contract.spec rho
-  outputAmountEncryption : Seg91.contract.spec rho
-  outputAddressEncryption : Seg92.contract.spec rho
-  metadataSenderSubjectDerivation : Seg94.contract.spec rho
-  metadataOutputSubjectDerivation : Seg95.contract.spec rho
-  metadataRingIdHash : Seg96.contract.spec rho
-  metadataPolicyIdHash : Seg97.contract.spec rho
-  metadataResourceHash : Seg98.contract.spec rho
-  metadataPermissionHash : Seg99.contract.spec rho
-  metadataTargetTimestamp : Seg100.contract.spec rho
-  metadataSenderCoreSalt : Seg101.contract.spec rho
-  metadataSenderExtSalt : Seg102.contract.spec rho
-  metadataOutputCoreSalt : Seg103.contract.spec rho
-  metadataOutputExtSalt : Seg104.contract.spec rho
+  thresholdFlag : Seg89.contract.spec rho
+  senderCoreEpkCompress : Seg90.contract.spec rho
+  senderExtEpkCompress : Seg91.contract.spec rho
+  outputCoreEpkCompress : Seg92.contract.spec rho
+  outputExtEpkCompress : Seg93.contract.spec rho
+  salt0 : Seg94.contract.spec rho
+  salt1 : Seg95.contract.spec rho
+  salt2 : Seg96.contract.spec rho
+  salt3 : Seg97.contract.spec rho
+  salt4 : Seg98.contract.spec rho
+  senderCoreSharedSecret : Seg99.contract.spec rho
+  senderExtSharedSecret : Seg100.contract.spec rho
+  outputCoreSharedSecret : Seg101.contract.spec rho
+  outputExtSharedSecret : Seg102.contract.spec rho
+  detectionEncryption : Seg103.contract.spec rho
+  senderAmountEncryption : Seg104.contract.spec rho
+  senderAddressEncryption : Seg105.contract.spec rho
+  outputAmountEncryption : Seg106.contract.spec rho
+  outputAddressEncryption : Seg107.contract.spec rho
+  metadataSenderSubjectDerivation : Seg109.contract.spec rho
+  metadataOutputSubjectDerivation : Seg110.contract.spec rho
+  metadataRingIdHash : Seg111.contract.spec rho
+  metadataPolicyIdHash : Seg112.contract.spec rho
+  metadataResourceHash : Seg113.contract.spec rho
+  metadataPermissionHash : Seg114.contract.spec rho
+  metadataTargetTimestamp : Seg115.contract.spec rho
+  metadataSenderCoreSalt : Seg116.contract.spec rho
+  metadataSenderExtSalt : Seg117.contract.spec rho
+  metadataOutputCoreSalt : Seg118.contract.spec rho
+  metadataOutputExtSalt : Seg119.contract.spec rho
 
 /-- Exact provider inventory for the `balanceComputedAndCompressed` obligation. -/
 structure BalanceComputedAndCompressedExactProviders (rho : Nat → DeployedF) : Prop where
-  netBalance : Seg106.contract.spec rho
-  balanceCompress : Seg107.contract.spec rho
+  netBalance : Seg121.contract.spec rho
+  balanceCompress : Seg122.contract.spec rho
 
 /-- Exact provider inventory for the `statementBinding` obligation. -/
 structure StatementBindingExactProviders (rho : Nat → DeployedF) : Prop where
-  statementHash : Seg109.contract.spec rho
-  statementAssert : Seg110.contract.spec rho
+  routingPrecisionSelect : Seg72.contract.spec rho
+  routingParametersHash : Seg73.contract.spec rho
+  routingParametersBind : Seg74.contract.spec rho
+  routingSenderRouteWord : Seg75.contract.spec rho
+  routingReceiverRouteWord : Seg76.contract.spec rho
+  routingPermutationHash : Seg77.contract.spec rho
+  routingPermutationCompose : Seg78.contract.spec rho
+  routingTag0PublicRange : Seg79.contract.spec rho
+  routingTag0RouteBits : Seg80.contract.spec rho
+  routingTag0RandomWord : Seg81.contract.spec rho
+  routingTag0Compose : Seg82.contract.spec rho
+  routingTag1PublicRange : Seg83.contract.spec rho
+  routingTag1RouteBits : Seg84.contract.spec rho
+  routingTag1RandomWord : Seg85.contract.spec rho
+  routingTag1Compose : Seg86.contract.spec rho
+  statementHash : Seg124.contract.spec rho
+  statementAssert : Seg125.contract.spec rho
 
 structure TransferExactProviders (rho : Nat → DeployedF) : Prop where
   canonicalSender : CanonicalSenderExactProviders rho
@@ -245,44 +260,59 @@ theorem transferExactProviders
       effectivePolicyIdHash := facts.exact.SelectFieldSeg9
       effectiveResourceHash := facts.exact.SelectFieldSeg10
       effectivePermissionHash := facts.exact.SelectFieldSeg11
-      thresholdFlag := facts.exact.ThresholdFlagSeg74
-      senderCoreEpkCompress := facts.exact.DecafCompressToFieldSeg75
-      senderExtEpkCompress := facts.exact.DecafCompressToFieldSeg76
-      outputCoreEpkCompress := facts.exact.DecafCompressToFieldSeg77
-      outputExtEpkCompress := facts.exact.DecafCompressToFieldSeg78
-      salt0 := facts.exact.GadgetTransferSaltSeg79
-      salt1 := facts.exact.GadgetTransferSaltSeg80
-      salt2 := facts.exact.GadgetTransferSaltSeg81
-      salt3 := facts.exact.GadgetTransferSaltSeg82
-      salt4 := facts.exact.GadgetTransferSaltSeg83
-      senderCoreSharedSecret := facts.exact.DecafSharedSecretSeg84
-      senderExtSharedSecret := facts.exact.DecafSharedSecretSeg85
-      outputCoreSharedSecret := facts.exact.DecafSharedSecretSeg86
-      outputExtSharedSecret := facts.exact.DecafSharedSecretSeg87
-      detectionEncryption := facts.exact.GadgetPoseidonEncryptionDetectionSeg88
-      senderAmountEncryption := facts.exact.GadgetPoseidonEncryptionAmountSeg89
-      senderAddressEncryption := facts.exact.GadgetPoseidonEncryptionAddressSeg90
-      outputAmountEncryption := facts.exact.GadgetPoseidonEncryptionAmountSeg91
-      outputAddressEncryption := facts.exact.GadgetPoseidonEncryptionAddressSeg92
-      metadataSenderSubjectDerivation := facts.exact.AssertEqSeg94
-      metadataOutputSubjectDerivation := facts.exact.AssertEqSeg95
-      metadataRingIdHash := facts.exact.AssertEqSeg96
-      metadataPolicyIdHash := facts.exact.AssertEqSeg97
-      metadataResourceHash := facts.exact.AssertEqSeg98
-      metadataPermissionHash := facts.exact.AssertEqSeg99
-      metadataTargetTimestamp := facts.exact.AssertEqSeg100
-      metadataSenderCoreSalt := facts.exact.AssertEqSeg101
-      metadataSenderExtSalt := facts.exact.AssertEqSeg102
-      metadataOutputCoreSalt := facts.exact.AssertEqSeg103
-      metadataOutputExtSalt := facts.exact.AssertEqSeg104
+      thresholdFlag := facts.exact.ThresholdFlagSeg89
+      senderCoreEpkCompress := facts.exact.DecafCompressToFieldSeg90
+      senderExtEpkCompress := facts.exact.DecafCompressToFieldSeg91
+      outputCoreEpkCompress := facts.exact.DecafCompressToFieldSeg92
+      outputExtEpkCompress := facts.exact.DecafCompressToFieldSeg93
+      salt0 := facts.exact.GadgetTransferSaltSeg94
+      salt1 := facts.exact.GadgetTransferSaltSeg95
+      salt2 := facts.exact.GadgetTransferSaltSeg96
+      salt3 := facts.exact.GadgetTransferSaltSeg97
+      salt4 := facts.exact.GadgetTransferSaltSeg98
+      senderCoreSharedSecret := facts.exact.DecafSharedSecretSeg99
+      senderExtSharedSecret := facts.exact.DecafSharedSecretSeg100
+      outputCoreSharedSecret := facts.exact.DecafSharedSecretSeg101
+      outputExtSharedSecret := facts.exact.DecafSharedSecretSeg102
+      detectionEncryption := facts.exact.GadgetPoseidonEncryptionDetectionSeg103
+      senderAmountEncryption := facts.exact.GadgetPoseidonEncryptionAmountSeg104
+      senderAddressEncryption := facts.exact.GadgetPoseidonEncryptionAddressSeg105
+      outputAmountEncryption := facts.exact.GadgetPoseidonEncryptionAmountSeg106
+      outputAddressEncryption := facts.exact.GadgetPoseidonEncryptionAddressSeg107
+      metadataSenderSubjectDerivation := facts.exact.AssertEqSeg109
+      metadataOutputSubjectDerivation := facts.exact.AssertEqSeg110
+      metadataRingIdHash := facts.exact.AssertEqSeg111
+      metadataPolicyIdHash := facts.exact.AssertEqSeg112
+      metadataResourceHash := facts.exact.AssertEqSeg113
+      metadataPermissionHash := facts.exact.AssertEqSeg114
+      metadataTargetTimestamp := facts.exact.AssertEqSeg115
+      metadataSenderCoreSalt := facts.exact.AssertEqSeg116
+      metadataSenderExtSalt := facts.exact.AssertEqSeg117
+      metadataOutputCoreSalt := facts.exact.AssertEqSeg118
+      metadataOutputExtSalt := facts.exact.AssertEqSeg119
     }
     balanceComputedAndCompressed := {
-      netBalance := facts.exact.DecafNetBalanceCommitmentSeg106
-      balanceCompress := facts.exact.DecafCompressToFieldSeg107
+      netBalance := facts.exact.DecafNetBalanceCommitmentSeg121
+      balanceCompress := facts.exact.DecafCompressToFieldSeg122
     }
     statementBinding := {
-      statementHash := facts.exact.StatementHashSeg109
-      statementAssert := facts.exact.AssertEqSeg110
+      routingPrecisionSelect := facts.exact.RoutingPrecisionSelectSeg72
+      routingParametersHash := facts.exact.RoutingParametersHashSeg73
+      routingParametersBind := facts.exact.RoutingParametersBindSeg74
+      routingSenderRouteWord := facts.exact.RoutingRouteWordSeg75
+      routingReceiverRouteWord := facts.exact.RoutingRouteWordSeg76
+      routingPermutationHash := facts.exact.RoutingPermutationHashSeg77
+      routingPermutationCompose := facts.exact.RoutingPermutationComposeSeg78
+      routingTag0PublicRange := facts.exact.RoutingTagPublicRangeSeg79
+      routingTag0RouteBits := facts.exact.RoutingTagRouteBitsSeg80
+      routingTag0RandomWord := facts.exact.RoutingTagRandomWordSeg81
+      routingTag0Compose := facts.exact.RoutingTagComposeSeg82
+      routingTag1PublicRange := facts.exact.RoutingTagPublicRangeSeg83
+      routingTag1RouteBits := facts.exact.RoutingTagRouteBitsSeg84
+      routingTag1RandomWord := facts.exact.RoutingTagRandomWordSeg85
+      routingTag1Compose := facts.exact.RoutingTagComposeSeg86
+      statementHash := facts.exact.StatementHashSeg124
+      statementAssert := facts.exact.AssertEqSeg125
     }
   }
 
@@ -311,7 +341,7 @@ theorem isRegulatedBoolean_of_exact
   unfold Deployed.Templates.Semantics.TAssertBoolean_469df3cb92f6ee26f90120fa5a2d5ab48448c3e42be090ebb81d77d5431164fc.spec at h
   have hseat :
       Seg1.wireSeating 1 =
-        7 := by
+        10 := by
     decide +kernel
   simpa only [
     Protocol.Common.boolean,
@@ -335,7 +365,7 @@ theorem assetIdNonzero_of_exact
   have hseat :
       Seg5.wireSeating
         2 =
-          178 := by
+          183 := by
     decide +kernel
   simpa only [
     sharedAssetId, sharedAssetIdLC,

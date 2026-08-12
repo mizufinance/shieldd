@@ -56,12 +56,12 @@ CERTIFIED_PROFILE_SPECS = (
         "note_reshape",
         8,
         1,
-        3,
+        4,
         "ShielddGnarkFormal.Deployed.NoteReshape8x1Soundness",
         (
             (
                 "note_reshape8x1",
-                "internal/testfixtures/vectors/note_reshape8x1_witness_v3.bin",
+                "internal/testfixtures/vectors/note_reshape8x1_witness_v4.bin",
             ),
         ),
     ),
@@ -70,12 +70,12 @@ CERTIFIED_PROFILE_SPECS = (
         "note_reshape",
         1,
         8,
-        3,
+        4,
         "ShielddGnarkFormal.Deployed.NoteReshape1x8Soundness",
         (
             (
                 "note_reshape1x8",
-                "internal/testfixtures/vectors/note_reshape1x8_witness_v3.bin",
+                "internal/testfixtures/vectors/note_reshape1x8_witness_v4.bin",
             ),
         ),
     ),
@@ -84,20 +84,20 @@ CERTIFIED_PROFILE_SPECS = (
         "transfer",
         2,
         2,
-        16,
+        17,
         "ShielddGnarkFormal.Deployed.TransferRefinement",
         (
             (
                 "regulated_unflagged",
-                "internal/testfixtures/vectors/transfer_witness_v16.bin",
+                "internal/testfixtures/vectors/transfer_witness_v17.bin",
             ),
             (
                 "regulated_flagged_hidden",
-                "internal/testfixtures/vectors/transfer_flagged_witness_v16.bin",
+                "internal/testfixtures/vectors/transfer_flagged_witness_v17.bin",
             ),
             (
                 "unregulated_hidden",
-                "internal/testfixtures/vectors/transfer_unregulated_witness_v16.bin",
+                "internal/testfixtures/vectors/transfer_unregulated_witness_v17.bin",
             ),
         ),
     ),
@@ -106,16 +106,16 @@ CERTIFIED_PROFILE_SPECS = (
         "shielded_ics20_withdrawal",
         2,
         1,
-        8,
+        9,
         "ShielddGnarkFormal.Deployed.ShieldedIcs20WithdrawalRefinement",
         (
             (
                 "regulated_optional_real",
-                "internal/testfixtures/vectors/shielded_ics20_withdrawal_witness_v8.bin",
+                "internal/testfixtures/vectors/shielded_ics20_withdrawal_witness_v9.bin",
             ),
             (
                 "unregulated_optional_dummy",
-                "internal/testfixtures/vectors/shielded_ics20_withdrawal_unregulated_witness_v8.bin",
+                "internal/testfixtures/vectors/shielded_ics20_withdrawal_unregulated_witness_v9.bin",
             ),
         ),
     ),
@@ -161,7 +161,8 @@ GENERATED_SHARED_POSEIDON = (
     ("CertifiedGadgetAssetRegistryLeafHash_9611146d6691Poseidon", 390),
     ("CertifiedGadgetAssetRegistryParamsHash_d65f2514fa1bPoseidon", 350),
     ("CertifiedGadgetAssetRegistryRingHash_fca220e542b4Poseidon", 390),
-    ("CertifiedGadgetComplianceLeaf_89974c69097fPoseidon", 470),
+    ("CertifiedGadgetComplianceLeaf_dcb0a1040c53Poseidon", 430),
+    ("CertifiedGadgetNoteCommitment_252c34d237e9Poseidon", 390),
     ("CertifiedQuadPathNodePoseidon", 350),
 )
 POSEIDON_SUPPORT_FILES = (

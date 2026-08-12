@@ -4,7 +4,7 @@
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Address {
     /// The bytes of the address. Must be represented as a series of
-    /// `uint8` (i.e. values 0 through 255), with a length of 80 elements.
+    /// `uint8` (i.e. values 0 through 255), with a length of 48 elements.
     #[prost(bytes = "vec", tag = "1")]
     pub inner: ::prost::alloc::vec::Vec<u8>,
     /// Alternatively, a Bech32m-encoded string representation of the `inner`

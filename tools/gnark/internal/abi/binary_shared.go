@@ -143,6 +143,14 @@ func readBool(r io.Reader) (bool, error) {
 	}
 }
 
+func readU8(r io.Reader) (uint8, error) {
+	value, err := readExact(r, 1)
+	if err != nil {
+		return 0, err
+	}
+	return value[0], nil
+}
+
 func readVec32(r io.Reader) ([][32]byte, error) {
 	length, err := readU32(r)
 	if err != nil {

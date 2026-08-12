@@ -32,7 +32,6 @@ type noteReshapeIdentityOwnershipAliasProbe struct {
 	Blinding     frontend.Variable
 	Amount       frontend.Variable
 	AssetID      frontend.Variable
-	ClueKey      frontend.Variable
 	Position     frontend.Variable
 	Path         [circuits.StateCommitmentDepth][3]frontend.Variable
 }
@@ -89,7 +88,6 @@ func defineNoteReshapeIdentityOwnershipAlias(
 		probe.AssetID,
 		divGenFq,
 		transmission0Fq,
-		probe.ClueKey,
 	)
 	if err != nil {
 		return err
@@ -101,7 +99,6 @@ func defineNoteReshapeIdentityOwnershipAlias(
 		probe.AssetID,
 		divGenFq,
 		transmission1Fq,
-		probe.ClueKey,
 	)
 	if err != nil {
 		return err
@@ -186,15 +183,14 @@ func noteReshapeIdentityOwnershipAliasAssignment(
 	ivkReduced0, ivkQuotient0 := noteReshapeIdentityIVK(t, nk0, akFq)
 	ivkReduced1, ivkQuotient1 := noteReshapeIdentityIVK(t, nk1, akFq)
 
-	commitment, err := primitives.Poseidon377Hash6Native(
+	commitment, err := primitives.Poseidon377Hash5Native(
 		primitives.MustBigInt(vectors.Poseidon377.NoteCommitDomain),
-		[6]*big.Int{
+		[5]*big.Int{
 			big.NewInt(1234),
 			big.NewInt(55),
 			big.NewInt(777),
 			big.NewInt(0),
 			big.NewInt(0),
-			big.NewInt(888),
 		},
 	)
 	if err != nil {
@@ -232,7 +228,6 @@ func noteReshapeIdentityOwnershipAliasAssignment(
 		Blinding:     1234,
 		Amount:       55,
 		AssetID:      777,
-		ClueKey:      888,
 		Position:     position,
 		Path:         path,
 	}

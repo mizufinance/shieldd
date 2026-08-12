@@ -619,22 +619,22 @@ theorem senderCoreSharedAck_eq_action
   · simp only [
       senderCoreSharedAck, Deployed.Templates.Semantics.TDecafSharedSecret_0a9405fe9fa7b69f5919b41caaa6165a64f58cf75a38a13283885fbfe7b30f0b.ack,
       Deployed.Templates.Semantics.TDecafSharedSecret_0a9405fe9fa7b69f5919b41caaa6165a64f58cf75a38a13283885fbfe7b30f0b.UserWindowSupport.base, senderAckPoint, Deployed.Templates.Semantics.TDecafAck_e3974880eca25a8b5cfa17d94f28498f1dc082a93526c584816508afe0778ca1.AckSupport.output,
-      SenderCoreSharedSecretValuation, Seg84.localRho,
+      SenderCoreSharedSecretValuation, Seg99.localRho,
       SenderAckValuation, ReceiverAckValuation,
       Seg30.localRho, Deployed.Templates.seated]
-    rw [show Seg84.wireSeating 1811 =
+    rw [show Seg99.wireSeating 1811 =
       Seg30.wireSeating 3003 by decide +kernel]
-    rw [show Seg84.wireSeating 1812 =
+    rw [show Seg99.wireSeating 1812 =
       Seg30.wireSeating 3011 by decide +kernel]
   · simp only [
       senderCoreSharedAck, Deployed.Templates.Semantics.TDecafSharedSecret_0a9405fe9fa7b69f5919b41caaa6165a64f58cf75a38a13283885fbfe7b30f0b.ack,
       Deployed.Templates.Semantics.TDecafSharedSecret_0a9405fe9fa7b69f5919b41caaa6165a64f58cf75a38a13283885fbfe7b30f0b.UserWindowSupport.base, senderAckPoint, Deployed.Templates.Semantics.TDecafAck_e3974880eca25a8b5cfa17d94f28498f1dc082a93526c584816508afe0778ca1.AckSupport.output,
-      SenderCoreSharedSecretValuation, Seg84.localRho,
+      SenderCoreSharedSecretValuation, Seg99.localRho,
       SenderAckValuation, ReceiverAckValuation,
       Seg30.localRho, Deployed.Templates.seated]
-    rw [show Seg84.wireSeating 1813 =
+    rw [show Seg99.wireSeating 1813 =
       Seg30.wireSeating 3004 by decide +kernel]
-    rw [show Seg84.wireSeating 1814 =
+    rw [show Seg99.wireSeating 1814 =
       Seg30.wireSeating 3012 by decide +kernel]
 
 /-- The `senderCore` shared ladder consumes the selected action detection key. -/
@@ -715,22 +715,22 @@ theorem senderExtSharedAck_eq_action
   · simp only [
       senderExtSharedAck, Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.ack,
       Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.UserWindowSupport.base, senderAckPoint, Deployed.Templates.Semantics.TDecafAck_e3974880eca25a8b5cfa17d94f28498f1dc082a93526c584816508afe0778ca1.AckSupport.output,
-      SenderExtSharedSecretValuation, Seg85.localRho,
+      SenderExtSharedSecretValuation, Seg100.localRho,
       SenderAckValuation, ReceiverAckValuation,
       Seg30.localRho, Deployed.Templates.seated]
-    rw [show Seg85.wireSeating 1810 =
+    rw [show Seg100.wireSeating 1810 =
       Seg30.wireSeating 3003 by decide +kernel]
-    rw [show Seg85.wireSeating 1811 =
+    rw [show Seg100.wireSeating 1811 =
       Seg30.wireSeating 3011 by decide +kernel]
   · simp only [
       senderExtSharedAck, Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.ack,
       Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.UserWindowSupport.base, senderAckPoint, Deployed.Templates.Semantics.TDecafAck_e3974880eca25a8b5cfa17d94f28498f1dc082a93526c584816508afe0778ca1.AckSupport.output,
-      SenderExtSharedSecretValuation, Seg85.localRho,
+      SenderExtSharedSecretValuation, Seg100.localRho,
       SenderAckValuation, ReceiverAckValuation,
       Seg30.localRho, Deployed.Templates.seated]
-    rw [show Seg85.wireSeating 1812 =
+    rw [show Seg100.wireSeating 1812 =
       Seg30.wireSeating 3004 by decide +kernel]
-    rw [show Seg85.wireSeating 1813 =
+    rw [show Seg100.wireSeating 1813 =
       Seg30.wireSeating 3012 by decide +kernel]
 
 /-- The `senderExt` shared ladder consumes the selected action detection key. -/
@@ -811,22 +811,22 @@ theorem outputCoreSharedAck_eq_action
   · simp only [
       outputCoreSharedAck, Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.ack,
       Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.UserWindowSupport.base, receiverAckPoint, Deployed.Templates.Semantics.TDecafAck_e3974880eca25a8b5cfa17d94f28498f1dc082a93526c584816508afe0778ca1.AckSupport.output,
-      OutputCoreSharedSecretValuation, Seg86.localRho,
+      OutputCoreSharedSecretValuation, Seg101.localRho,
       SenderAckValuation, ReceiverAckValuation,
       Seg67.localRho, Deployed.Templates.seated]
-    rw [show Seg86.wireSeating 1810 =
+    rw [show Seg101.wireSeating 1810 =
       Seg67.wireSeating 3003 by decide +kernel]
-    rw [show Seg86.wireSeating 1811 =
+    rw [show Seg101.wireSeating 1811 =
       Seg67.wireSeating 3011 by decide +kernel]
   · simp only [
       outputCoreSharedAck, Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.ack,
       Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.UserWindowSupport.base, receiverAckPoint, Deployed.Templates.Semantics.TDecafAck_e3974880eca25a8b5cfa17d94f28498f1dc082a93526c584816508afe0778ca1.AckSupport.output,
-      OutputCoreSharedSecretValuation, Seg86.localRho,
+      OutputCoreSharedSecretValuation, Seg101.localRho,
       SenderAckValuation, ReceiverAckValuation,
       Seg67.localRho, Deployed.Templates.seated]
-    rw [show Seg86.wireSeating 1812 =
+    rw [show Seg101.wireSeating 1812 =
       Seg67.wireSeating 3004 by decide +kernel]
-    rw [show Seg86.wireSeating 1813 =
+    rw [show Seg101.wireSeating 1813 =
       Seg67.wireSeating 3012 by decide +kernel]
 
 /-- The `outputCore` shared ladder consumes the selected action detection key. -/
@@ -907,22 +907,22 @@ theorem outputExtSharedAck_eq_action
   · simp only [
       outputExtSharedAck, Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.ack,
       Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.UserWindowSupport.base, receiverAckPoint, Deployed.Templates.Semantics.TDecafAck_e3974880eca25a8b5cfa17d94f28498f1dc082a93526c584816508afe0778ca1.AckSupport.output,
-      OutputExtSharedSecretValuation, Seg87.localRho,
+      OutputExtSharedSecretValuation, Seg102.localRho,
       SenderAckValuation, ReceiverAckValuation,
       Seg67.localRho, Deployed.Templates.seated]
-    rw [show Seg87.wireSeating 1810 =
+    rw [show Seg102.wireSeating 1810 =
       Seg67.wireSeating 3003 by decide +kernel]
-    rw [show Seg87.wireSeating 1811 =
+    rw [show Seg102.wireSeating 1811 =
       Seg67.wireSeating 3011 by decide +kernel]
   · simp only [
       outputExtSharedAck, Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.ack,
       Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.UserWindowSupport.base, receiverAckPoint, Deployed.Templates.Semantics.TDecafAck_e3974880eca25a8b5cfa17d94f28498f1dc082a93526c584816508afe0778ca1.AckSupport.output,
-      OutputExtSharedSecretValuation, Seg87.localRho,
+      OutputExtSharedSecretValuation, Seg102.localRho,
       SenderAckValuation, ReceiverAckValuation,
       Seg67.localRho, Deployed.Templates.seated]
-    rw [show Seg87.wireSeating 1812 =
+    rw [show Seg102.wireSeating 1812 =
       Seg67.wireSeating 3004 by decide +kernel]
-    rw [show Seg87.wireSeating 1813 =
+    rw [show Seg102.wireSeating 1813 =
       Seg67.wireSeating 3012 by decide +kernel]
 
 /-- The `outputExt` shared ladder consumes the selected action detection key. -/
@@ -1017,33 +1017,33 @@ theorem senderAmountEncryptionShared_eq_selected
       Deployed.Templates.Semantics.TGadgetPoseidonEncryptionAmount_da3ae2f5f8f6a3fba6819c9764c9ee26010f080750d76981e9a4bef43587730eCompress.inputX,
       senderCoreSharedSecrets, Deployed.Templates.Semantics.TDecafSharedSecret_0a9405fe9fa7b69f5919b41caaa6165a64f58cf75a38a13283885fbfe7b30f0b.output,
       Deployed.Templates.Semantics.TDecafSharedSecret_0a9405fe9fa7b69f5919b41caaa6165a64f58cf75a38a13283885fbfe7b30f0b.userOutX, Deployed.Templates.Semantics.TDecafSharedSecret_0a9405fe9fa7b69f5919b41caaa6165a64f58cf75a38a13283885fbfe7b30f0b.UserWindowSupport.output,
-      SenderAmountEncryptionValuation, Seg89.localRho,
+      SenderAmountEncryptionValuation, Seg104.localRho,
       SenderCoreSharedSecretValuation,
-      Seg84.localRho, Deployed.Templates.seated,
+      Seg99.localRho, Deployed.Templates.seated,
       one_mul
     ]
-    rw [show Seg89.wireSeating 1 =
-      Seg84.wireSeating 4563 by decide +kernel]
-    rw [show Seg89.wireSeating 2 =
-      Seg84.wireSeating 4571 by decide +kernel]
-    rw [show Seg89.wireSeating 3 =
-      Seg84.wireSeating 7333 by decide +kernel]
+    rw [show Seg104.wireSeating 1 =
+      Seg99.wireSeating 4563 by decide +kernel]
+    rw [show Seg104.wireSeating 2 =
+      Seg99.wireSeating 4571 by decide +kernel]
+    rw [show Seg104.wireSeating 3 =
+      Seg99.wireSeating 7333 by decide +kernel]
   · simp only [
       senderAmountEncryptionShared, AckBridge.toProtocolPoint,
       Deployed.Templates.Semantics.TGadgetPoseidonEncryptionAmount_da3ae2f5f8f6a3fba6819c9764c9ee26010f080750d76981e9a4bef43587730eCompress.inputY,
       senderCoreSharedSecrets, Deployed.Templates.Semantics.TDecafSharedSecret_0a9405fe9fa7b69f5919b41caaa6165a64f58cf75a38a13283885fbfe7b30f0b.output,
       Deployed.Templates.Semantics.TDecafSharedSecret_0a9405fe9fa7b69f5919b41caaa6165a64f58cf75a38a13283885fbfe7b30f0b.userOutY, Deployed.Templates.Semantics.TDecafSharedSecret_0a9405fe9fa7b69f5919b41caaa6165a64f58cf75a38a13283885fbfe7b30f0b.UserWindowSupport.output,
-      SenderAmountEncryptionValuation, Seg89.localRho,
+      SenderAmountEncryptionValuation, Seg104.localRho,
       SenderCoreSharedSecretValuation,
-      Seg84.localRho, Deployed.Templates.seated,
+      Seg99.localRho, Deployed.Templates.seated,
       one_mul
     ]
-    rw [show Seg89.wireSeating 5 =
-      Seg84.wireSeating 4564 by decide +kernel]
-    rw [show Seg89.wireSeating 6 =
-      Seg84.wireSeating 4572 by decide +kernel]
-    rw [show Seg89.wireSeating 7 =
-      Seg84.wireSeating 7334 by decide +kernel]
+    rw [show Seg104.wireSeating 5 =
+      Seg99.wireSeating 4564 by decide +kernel]
+    rw [show Seg104.wireSeating 6 =
+      Seg99.wireSeating 4572 by decide +kernel]
+    rw [show Seg104.wireSeating 7 =
+      Seg99.wireSeating 7334 by decide +kernel]
 
 /-- Exact `senderAmount` compression before protocol-point promotion. -/
 theorem senderAmountEncryptionCompressSpec_of_semantic
@@ -1165,33 +1165,33 @@ theorem senderAddressEncryptionShared_eq_selected
       Deployed.Templates.Semantics.TGadgetPoseidonEncryptionAddress_9a677aa48c09d5d9ae8091bb7349f6026be67ea81d0c4df2429a8a1f9aba905fCompress.inputX,
       senderExtSharedSecrets, Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.output,
       Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.userOutX, Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.UserWindowSupport.output,
-      SenderAddressEncryptionValuation, Seg90.localRho,
+      SenderAddressEncryptionValuation, Seg105.localRho,
       SenderExtSharedSecretValuation,
-      Seg85.localRho, Deployed.Templates.seated,
+      Seg100.localRho, Deployed.Templates.seated,
       one_mul
     ]
-    rw [show Seg90.wireSeating 1 =
-      Seg85.wireSeating 4562 by decide +kernel]
-    rw [show Seg90.wireSeating 2 =
-      Seg85.wireSeating 4570 by decide +kernel]
-    rw [show Seg90.wireSeating 3 =
-      Seg85.wireSeating 7333 by decide +kernel]
+    rw [show Seg105.wireSeating 1 =
+      Seg100.wireSeating 4562 by decide +kernel]
+    rw [show Seg105.wireSeating 2 =
+      Seg100.wireSeating 4570 by decide +kernel]
+    rw [show Seg105.wireSeating 3 =
+      Seg100.wireSeating 7333 by decide +kernel]
   · simp only [
       senderAddressEncryptionShared, AckBridge.toProtocolPoint,
       Deployed.Templates.Semantics.TGadgetPoseidonEncryptionAddress_9a677aa48c09d5d9ae8091bb7349f6026be67ea81d0c4df2429a8a1f9aba905fCompress.inputY,
       senderExtSharedSecrets, Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.output,
       Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.userOutY, Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.UserWindowSupport.output,
-      SenderAddressEncryptionValuation, Seg90.localRho,
+      SenderAddressEncryptionValuation, Seg105.localRho,
       SenderExtSharedSecretValuation,
-      Seg85.localRho, Deployed.Templates.seated,
+      Seg100.localRho, Deployed.Templates.seated,
       one_mul
     ]
-    rw [show Seg90.wireSeating 5 =
-      Seg85.wireSeating 4563 by decide +kernel]
-    rw [show Seg90.wireSeating 6 =
-      Seg85.wireSeating 4571 by decide +kernel]
-    rw [show Seg90.wireSeating 7 =
-      Seg85.wireSeating 7334 by decide +kernel]
+    rw [show Seg105.wireSeating 5 =
+      Seg100.wireSeating 4563 by decide +kernel]
+    rw [show Seg105.wireSeating 6 =
+      Seg100.wireSeating 4571 by decide +kernel]
+    rw [show Seg105.wireSeating 7 =
+      Seg100.wireSeating 7334 by decide +kernel]
 
 /-- Exact `senderAddress` compression before protocol-point promotion. -/
 theorem senderAddressEncryptionCompressSpec_of_semantic
@@ -1414,33 +1414,33 @@ theorem outputAmountEncryptionShared_eq_selected
       Deployed.Templates.Semantics.TGadgetPoseidonEncryptionAmount_da3ae2f5f8f6a3fba6819c9764c9ee26010f080750d76981e9a4bef43587730eCompress.inputX,
       outputCoreSharedSecrets, Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.output,
       Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.userOutX, Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.UserWindowSupport.output,
-      OutputAmountEncryptionValuation, Seg91.localRho,
+      OutputAmountEncryptionValuation, Seg106.localRho,
       OutputCoreSharedSecretValuation,
-      Seg86.localRho, Deployed.Templates.seated,
+      Seg101.localRho, Deployed.Templates.seated,
       one_mul
     ]
-    rw [show Seg91.wireSeating 1 =
-      Seg86.wireSeating 4562 by decide +kernel]
-    rw [show Seg91.wireSeating 2 =
-      Seg86.wireSeating 4570 by decide +kernel]
-    rw [show Seg91.wireSeating 3 =
-      Seg86.wireSeating 7333 by decide +kernel]
+    rw [show Seg106.wireSeating 1 =
+      Seg101.wireSeating 4562 by decide +kernel]
+    rw [show Seg106.wireSeating 2 =
+      Seg101.wireSeating 4570 by decide +kernel]
+    rw [show Seg106.wireSeating 3 =
+      Seg101.wireSeating 7333 by decide +kernel]
   · simp only [
       outputAmountEncryptionShared, AckBridge.toProtocolPoint,
       Deployed.Templates.Semantics.TGadgetPoseidonEncryptionAmount_da3ae2f5f8f6a3fba6819c9764c9ee26010f080750d76981e9a4bef43587730eCompress.inputY,
       outputCoreSharedSecrets, Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.output,
       Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.userOutY, Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.UserWindowSupport.output,
-      OutputAmountEncryptionValuation, Seg91.localRho,
+      OutputAmountEncryptionValuation, Seg106.localRho,
       OutputCoreSharedSecretValuation,
-      Seg86.localRho, Deployed.Templates.seated,
+      Seg101.localRho, Deployed.Templates.seated,
       one_mul
     ]
-    rw [show Seg91.wireSeating 5 =
-      Seg86.wireSeating 4563 by decide +kernel]
-    rw [show Seg91.wireSeating 6 =
-      Seg86.wireSeating 4571 by decide +kernel]
-    rw [show Seg91.wireSeating 7 =
-      Seg86.wireSeating 7334 by decide +kernel]
+    rw [show Seg106.wireSeating 5 =
+      Seg101.wireSeating 4563 by decide +kernel]
+    rw [show Seg106.wireSeating 6 =
+      Seg101.wireSeating 4571 by decide +kernel]
+    rw [show Seg106.wireSeating 7 =
+      Seg101.wireSeating 7334 by decide +kernel]
 
 /-- Exact `outputAmount` compression before protocol-point promotion. -/
 theorem outputAmountEncryptionCompressSpec_of_semantic
@@ -1562,33 +1562,33 @@ theorem outputAddressEncryptionShared_eq_selected
       Deployed.Templates.Semantics.TGadgetPoseidonEncryptionAddress_9a677aa48c09d5d9ae8091bb7349f6026be67ea81d0c4df2429a8a1f9aba905fCompress.inputX,
       outputExtSharedSecrets, Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.output,
       Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.userOutX, Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.UserWindowSupport.output,
-      OutputAddressEncryptionValuation, Seg92.localRho,
+      OutputAddressEncryptionValuation, Seg107.localRho,
       OutputExtSharedSecretValuation,
-      Seg87.localRho, Deployed.Templates.seated,
+      Seg102.localRho, Deployed.Templates.seated,
       one_mul
     ]
-    rw [show Seg92.wireSeating 1 =
-      Seg87.wireSeating 4562 by decide +kernel]
-    rw [show Seg92.wireSeating 2 =
-      Seg87.wireSeating 4570 by decide +kernel]
-    rw [show Seg92.wireSeating 3 =
-      Seg87.wireSeating 7333 by decide +kernel]
+    rw [show Seg107.wireSeating 1 =
+      Seg102.wireSeating 4562 by decide +kernel]
+    rw [show Seg107.wireSeating 2 =
+      Seg102.wireSeating 4570 by decide +kernel]
+    rw [show Seg107.wireSeating 3 =
+      Seg102.wireSeating 7333 by decide +kernel]
   · simp only [
       outputAddressEncryptionShared, AckBridge.toProtocolPoint,
       Deployed.Templates.Semantics.TGadgetPoseidonEncryptionAddress_9a677aa48c09d5d9ae8091bb7349f6026be67ea81d0c4df2429a8a1f9aba905fCompress.inputY,
       outputExtSharedSecrets, Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.output,
       Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.userOutY, Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.UserWindowSupport.output,
-      OutputAddressEncryptionValuation, Seg92.localRho,
+      OutputAddressEncryptionValuation, Seg107.localRho,
       OutputExtSharedSecretValuation,
-      Seg87.localRho, Deployed.Templates.seated,
+      Seg102.localRho, Deployed.Templates.seated,
       one_mul
     ]
-    rw [show Seg92.wireSeating 5 =
-      Seg87.wireSeating 4563 by decide +kernel]
-    rw [show Seg92.wireSeating 6 =
-      Seg87.wireSeating 4571 by decide +kernel]
-    rw [show Seg92.wireSeating 7 =
-      Seg87.wireSeating 7334 by decide +kernel]
+    rw [show Seg107.wireSeating 5 =
+      Seg102.wireSeating 4563 by decide +kernel]
+    rw [show Seg107.wireSeating 6 =
+      Seg102.wireSeating 4571 by decide +kernel]
+    rw [show Seg107.wireSeating 7 =
+      Seg102.wireSeating 7334 by decide +kernel]
 
 /-- Exact `outputAddress` compression before protocol-point promotion. -/
 theorem outputAddressEncryptionCompressSpec_of_semantic
@@ -1787,14 +1787,14 @@ theorem outputAddressEncryption_of_semantic
 /-- Circuit representative compressed by the detection-encryption provider. -/
 def detectionIssuerShared (rho : Nat → DeployedF) :
     Decaf377Assumptions.Point :=
-  ⟨Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25Compress.inputX (DetectionEncryptionValuation rho),
-   Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25Compress.inputY (DetectionEncryptionValuation rho)⟩
+  ⟨Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49cCompress.inputX (DetectionEncryptionValuation rho),
+   Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49cCompress.inputY (DetectionEncryptionValuation rho)⟩
 
 /-- Field encoding produced by the exact issuer-point compressor. -/
 def detectionIssuerCompressed (rho : Nat → DeployedF) : DeployedF :=
-  Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25Compress.templateRho
+  Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49cCompress.templateRho
       (DetectionEncryptionValuation rho) 912 -
-    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25Compress.templateRho
+    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49cCompress.templateRho
       (DetectionEncryptionValuation rho) 572
 
 /--
@@ -1813,62 +1813,62 @@ theorem detectionIssuerShared_eq_senderCoreIssuer
   constructor
   · simp only [
       detectionIssuerShared, AckBridge.toProtocolPoint,
-      Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25Compress.inputX,
+      Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49cCompress.inputX,
       senderCoreSharedSecrets, Deployed.Templates.Semantics.TDecafSharedSecret_0a9405fe9fa7b69f5919b41caaa6165a64f58cf75a38a13283885fbfe7b30f0b.output,
       Deployed.Templates.Semantics.TDecafSharedSecret_0a9405fe9fa7b69f5919b41caaa6165a64f58cf75a38a13283885fbfe7b30f0b.issuerOutX, Deployed.Templates.Semantics.TDecafSharedSecret_0a9405fe9fa7b69f5919b41caaa6165a64f58cf75a38a13283885fbfe7b30f0b.IssuerWindowSupport.output,
-      Seg84.localRho, Seg88.localRho,
+      Seg99.localRho, Seg103.localRho,
       DetectionEncryptionValuation,
       SenderCoreSharedSecretValuation,
       Deployed.Templates.seated, one_mul
     ]
-    rw [show Seg88.wireSeating 67 =
-      Seg84.wireSeating 7323 by decide +kernel]
-    rw [show Seg88.wireSeating 68 =
-      Seg84.wireSeating 7331 by decide +kernel]
+    rw [show Seg103.wireSeating 67 =
+      Seg99.wireSeating 7323 by decide +kernel]
+    rw [show Seg103.wireSeating 68 =
+      Seg99.wireSeating 7331 by decide +kernel]
   · simp only [
       detectionIssuerShared, AckBridge.toProtocolPoint,
-      Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25Compress.inputY,
+      Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49cCompress.inputY,
       senderCoreSharedSecrets, Deployed.Templates.Semantics.TDecafSharedSecret_0a9405fe9fa7b69f5919b41caaa6165a64f58cf75a38a13283885fbfe7b30f0b.output,
       Deployed.Templates.Semantics.TDecafSharedSecret_0a9405fe9fa7b69f5919b41caaa6165a64f58cf75a38a13283885fbfe7b30f0b.issuerOutY, Deployed.Templates.Semantics.TDecafSharedSecret_0a9405fe9fa7b69f5919b41caaa6165a64f58cf75a38a13283885fbfe7b30f0b.IssuerWindowSupport.output,
-      Seg84.localRho, Seg88.localRho,
+      Seg99.localRho, Seg103.localRho,
       DetectionEncryptionValuation,
       SenderCoreSharedSecretValuation,
       Deployed.Templates.seated, one_mul
     ]
-    rw [show Seg88.wireSeating 70 =
-      Seg84.wireSeating 7324 by decide +kernel]
-    rw [show Seg88.wireSeating 71 =
-      Seg84.wireSeating 7332 by decide +kernel]
+    rw [show Seg103.wireSeating 70 =
+      Seg99.wireSeating 7324 by decide +kernel]
+    rw [show Seg103.wireSeating 71 =
+      Seg99.wireSeating 7332 by decide +kernel]
 
 private theorem detectionSeedDomain :
-    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25Poseidon.Block0.block0Domain =
+    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49cPoseidon.Block0.block0Domain =
       Protocol.Transfer.Concrete.issuerDetectionDomain := by
   decide +kernel
 
 private theorem detectionStreamDomain :
-    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25Poseidon.Block1.block1Domain =
+    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49cPoseidon.Block1.block1Domain =
       Protocol.Transfer.Concrete.streamDomain := by
   decide +kernel
 
 private theorem detectionSeedInput0 (rho : Nat → DeployedF) :
-    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25Poseidon.Block0.block0Input0
+    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49cPoseidon.Block0.block0Input0
         (DetectionEncryptionValuation rho) =
       detectionIssuerCompressed rho := by
   simp [
-    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25Poseidon.Block0.block0Input0,
+    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49cPoseidon.Block0.block0Input0,
     detectionIssuerCompressed,
-    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25Compress.templateRho,
+    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49cCompress.templateRho,
     negOne
   ]
   rw [negOne]
   ring
 
 private theorem detectionSeedInput1 (rho : Nat → DeployedF) :
-    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25Poseidon.Block0.block0Input1
+    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49cPoseidon.Block0.block0Input1
         (DetectionEncryptionValuation rho) =
       (C.action rho).transcript.senderCore.epkEncoding := by
   simp [
-    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25Poseidon.Block0.block0Input1,
+    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49cPoseidon.Block0.block0Input1,
     C.action, C.transcript, C.senderCore,
     complianceSenderCoreEpkFq, complianceSenderCoreEpkFqLC,
     StructuredLC.eval, StructuredLC.sumRuns,
@@ -1877,11 +1877,11 @@ private theorem detectionSeedInput1 (rho : Nat → DeployedF) :
   ]
 
 private theorem detectionSenderSlot_eq_action (rho : Nat → DeployedF) :
-    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25.SlotBits.senderSlot
+    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49c.SlotBits.senderSlot
         (DetectionEncryptionValuation rho) =
       (C.action rho).senderCompliance.slotId := by
   simp [
-    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25.SlotBits.senderSlot,
+    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49c.SlotBits.senderSlot,
     C.action, C.senderCompliance,
     senderSlotId, senderSlotIdLC,
     StructuredLC.eval, StructuredLC.sumRuns,
@@ -1889,11 +1889,11 @@ private theorem detectionSenderSlot_eq_action (rho : Nat → DeployedF) :
   ]
 
 private theorem detectionReceiverSlot_eq_action (rho : Nat → DeployedF) :
-    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25.SlotBits.receiverSlot
+    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49c.SlotBits.receiverSlot
         (DetectionEncryptionValuation rho) =
       (C.action rho).receiverCompliance.slotId := by
   simp [
-    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25.SlotBits.receiverSlot,
+    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49c.SlotBits.receiverSlot,
     C.action, C.receiverCompliance,
     output0RecipientSlotId, output0RecipientSlotIdLC,
     StructuredLC.eval, StructuredLC.sumRuns,
@@ -1901,22 +1901,22 @@ private theorem detectionReceiverSlot_eq_action (rho : Nat → DeployedF) :
   ]
 
 private theorem detectionPlaintext0_eq_action (rho : Nat → DeployedF) :
-    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25.SlotBits.plaintext0
+    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49c.SlotBits.plaintext0
         (DetectionEncryptionValuation rho) =
       (C.action rho).assetId := by
   simp [
-    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25.SlotBits.plaintext0,
+    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49c.SlotBits.plaintext0,
     C.action, sharedAssetId, sharedAssetIdLC,
     StructuredLC.eval, StructuredLC.sumRuns,
     StructuredLC.sumResidual, StrideRun.eval
   ]
 
 private theorem detectionPlaintext1_eq_action (rho : Nat → DeployedF) :
-    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25.SlotBits.plaintext1
+    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49c.SlotBits.plaintext1
         (DetectionEncryptionValuation rho) =
       (C.action rho).transcript.salts 0 := by
   simp [
-    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25.SlotBits.plaintext1,
+    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49c.SlotBits.plaintext1,
     C.action, C.transcript, C.saltAt,
     salt0, salt0LC,
     StructuredLC.eval, StructuredLC.sumRuns,
@@ -1925,12 +1925,12 @@ private theorem detectionPlaintext1_eq_action (rho : Nat → DeployedF) :
   ring
 
 private theorem detectionPlaintext2_eq_action (rho : Nat → DeployedF) :
-    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25.SlotBits.plaintext2
+    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49c.SlotBits.plaintext2
         (DetectionEncryptionValuation rho) =
       (C.action rho).senderCompliance.slotId +
         (C.action rho).transcript.isFlagged * (2 ^ 32 : DeployedF) := by
   simp [
-    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25.SlotBits.plaintext2,
+    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49c.SlotBits.plaintext2,
     C.action, C.senderCompliance, C.transcript,
     senderSlotId, senderSlotIdLC,
     isFlagged, isFlaggedLC,
@@ -1940,11 +1940,11 @@ private theorem detectionPlaintext2_eq_action (rho : Nat → DeployedF) :
   ring
 
 private theorem detectionPlaintext3_eq_action (rho : Nat → DeployedF) :
-    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25.SlotBits.plaintext3
+    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49c.SlotBits.plaintext3
         (DetectionEncryptionValuation rho) =
       (C.action rho).receiverCompliance.slotId := by
   simp [
-    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25.SlotBits.plaintext3,
+    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49c.SlotBits.plaintext3,
     C.action, C.receiverCompliance,
     output0RecipientSlotId, output0RecipientSlotIdLC,
     StructuredLC.eval, StructuredLC.sumRuns,
@@ -2020,62 +2020,62 @@ theorem detectionBody_of_semantic
         (detectionIssuerShared rho)
         (detectionIssuerCompressed rho) := by
     simpa [
-      Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25Compress.spec,
+      Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49cCompress.spec,
       detectionIssuerShared, detectionIssuerCompressed,
       Decaf377Assumptions.CompressToFieldSpec
     ] using hcompress
-  unfold Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25Poseidon.Block0.spec
+  unfold Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49cPoseidon.Block0.spec
     TransferSaltBridge.TransferSaltSpec at hseed
   rw [
     detectionSeedDomain,
     detectionSeedInput0,
     detectionSeedInput1
   ] at hseed
-  unfold Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25Poseidon.Block1.spec
+  unfold Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49cPoseidon.Block1.spec
     TransferSaltBridge.TransferSaltSpec at hblock0
-  unfold Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25Poseidon.Block2.spec
+  unfold Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49cPoseidon.Block2.spec
     TransferSaltBridge.TransferSaltSpec at hblock1
-  unfold Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25Poseidon.Block3.spec
+  unfold Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49cPoseidon.Block3.spec
     TransferSaltBridge.TransferSaltSpec at hblock2
-  unfold Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25Poseidon.Block4.spec
+  unfold Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49cPoseidon.Block4.spec
     TransferSaltBridge.TransferSaltSpec at hblock3
   rw [detectionStreamDomain] at hblock0
   have hstreamDomain2 :
-      Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25Poseidon.Block2.block2Domain =
+      Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49cPoseidon.Block2.block2Domain =
         Protocol.Transfer.Concrete.streamDomain := by
     decide +kernel
   have hstreamDomain3 :
-      Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25Poseidon.Block3.block3Domain =
+      Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49cPoseidon.Block3.block3Domain =
         Protocol.Transfer.Concrete.streamDomain := by
     decide +kernel
   have hstreamDomain4 :
-      Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25Poseidon.Block4.block4Domain =
+      Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49cPoseidon.Block4.block4Domain =
         Protocol.Transfer.Concrete.streamDomain := by
     decide +kernel
   rw [hstreamDomain2] at hblock1
   rw [hstreamDomain3] at hblock2
   rw [hstreamDomain4] at hblock3
   simp only [
-    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25Poseidon.Block1.block1Input0,
-    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25Poseidon.Block1.block1Input1
+    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49cPoseidon.Block1.block1Input0,
+    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49cPoseidon.Block1.block1Input1
   ] at hblock0
   simp only [
-    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25Poseidon.Block2.block2Input0,
-    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25Poseidon.Block2.block2Input1
+    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49cPoseidon.Block2.block2Input0,
+    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49cPoseidon.Block2.block2Input1
   ] at hblock1
   simp only [
-    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25Poseidon.Block3.block3Input0,
-    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25Poseidon.Block3.block3Input1
+    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49cPoseidon.Block3.block3Input0,
+    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49cPoseidon.Block3.block3Input1
   ] at hblock2
   simp only [
-    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25Poseidon.Block4.block4Input0,
-    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25Poseidon.Block4.block4Input1
+    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49cPoseidon.Block4.block4Input0,
+    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49cPoseidon.Block4.block4Input1
   ] at hblock3
   rw [
-    ← Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25Poseidon.block0Endpoint38Lane1
+    ← Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49cPoseidon.block0Endpoint38Lane1
   ] at hblock0 hblock1 hblock2 hblock3
   have hbounds :=
-    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25.SlotBits.slotBounds_of_spec
+    Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49c.SlotBits.slotBounds_of_spec
       (DetectionEncryptionValuation rho) hslots
   refine ⟨detectionIssuerCompressed rho, ?_, ?_⟩
   · exact DecafCompressionBridge.compressesTo_of_spec
@@ -2091,10 +2091,10 @@ theorem detectionBody_of_semantic
             DetectionEncryptionValuation rho 2107 :=
           (detectionCiphertext0_eq_action rho).symm
         _ = (show DeployedF from
-              Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25.SlotBits.plaintext0
+              Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49c.SlotBits.plaintext0
                 (DetectionEncryptionValuation rho)) +
             (show DeployedF from
-              (Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25Poseidon.block1Endpoint38
+              (Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49cPoseidon.block1Endpoint38
                 (DetectionEncryptionValuation rho))[1]) := hcipher0.symm
         _ = (C.action rho).assetId +
               (show DeployedF from
@@ -2114,10 +2114,10 @@ theorem detectionBody_of_semantic
             DetectionEncryptionValuation rho 2111 :=
           (detectionCiphertext1_eq_action rho).symm
         _ = (show DeployedF from
-              Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25.SlotBits.plaintext1
+              Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49c.SlotBits.plaintext1
                 (DetectionEncryptionValuation rho)) +
             (show DeployedF from
-              (Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25Poseidon.block2Endpoint38
+              (Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49cPoseidon.block2Endpoint38
                 (DetectionEncryptionValuation rho))[1]) := hcipher1.symm
         _ = (C.action rho).transcript.salts 0 +
               (show DeployedF from
@@ -2137,10 +2137,10 @@ theorem detectionBody_of_semantic
             DetectionEncryptionValuation rho 2113 :=
           (detectionCiphertext2_eq_action rho).symm
         _ = (show DeployedF from
-              Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25.SlotBits.plaintext2
+              Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49c.SlotBits.plaintext2
                 (DetectionEncryptionValuation rho)) +
             (show DeployedF from
-              (Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25Poseidon.block3Endpoint38
+              (Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49cPoseidon.block3Endpoint38
                 (DetectionEncryptionValuation rho))[1]) := hcipher2.symm
         _ = (C.action rho).senderCompliance.slotId +
               (C.action rho).transcript.isFlagged * (2 ^ 32 : DeployedF) +
@@ -2161,10 +2161,10 @@ theorem detectionBody_of_semantic
             DetectionEncryptionValuation rho 2114 :=
           (detectionCiphertext3_eq_action rho).symm
         _ = (show DeployedF from
-              Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25.SlotBits.plaintext3
+              Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49c.SlotBits.plaintext3
                 (DetectionEncryptionValuation rho)) +
             (show DeployedF from
-              (Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25Poseidon.block4Endpoint38
+              (Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49cPoseidon.block4Endpoint38
                 (DetectionEncryptionValuation rho))[1]) := hcipher3.symm
         _ = (C.action rho).receiverCompliance.slotId +
               (show DeployedF from
@@ -2551,12 +2551,12 @@ theorem complianceTranscript_of_semanticProviders
     metadataBinding_of_semantic rho semantic
   ⟩
 
-/-- Exact seven-block provider output before the public equality assertion. -/
+/-- Exact eight-block provider output before the public equality assertion. -/
 def computedStatementHash (rho : Nat → DeployedF) : DeployedF :=
-  Deployed.Templates.Semantics.TStatementHash_042c03f6fbeb384ad6230b63ee320b87cd0d4f74a820f0cac6e6f7499e9350bd.Trace.hash6 (StatementHashValuation rho)
+  Deployed.Templates.Semantics.TStatementHash_f091e489b9a220b0436835ce5343e78627a43408ea621e9d71e60917c2e7c77f.Trace.hash7 (StatementHashValuation rho)
 
 private theorem statementDomain :
-    Deployed.Templates.Semantics.TStatementHash_042c03f6fbeb384ad6230b63ee320b87cd0d4f74a820f0cac6e6f7499e9350bd.Trace.domainLit =
+    Deployed.Templates.Semantics.TStatementHash_f091e489b9a220b0436835ce5343e78627a43408ea621e9d71e60917c2e7c77f.Trace.domainLit =
       Protocol.Transfer.Concrete.statementDomain := by
   decide +kernel
 
@@ -2618,18 +2618,16 @@ private theorem statementProviderField4 (rho : Nat → DeployedF) :
   ]
 
 private theorem statementProviderField5 (rho : Nat → DeployedF) :
-    (-1 : DeployedF) * StatementHashValuation rho 32 + StatementHashValuation rho 33 = statementField005 rho := by
+    StatementHashValuation rho 32 = statementField005 rho := by
   simp [
     statementField005, statementField005LC,
     StructuredLC.eval, StructuredLC.sumRuns,
     StructuredLC.sumResidual, StrideRun.eval,
     negOne
   ]
-  rw [negOne]
-  ring
 
 private theorem statementProviderField6 (rho : Nat → DeployedF) :
-    StatementHashValuation rho 39 = statementField006 rho := by
+    StatementHashValuation rho 38 = statementField006 rho := by
   simp [
     statementField006, statementField006LC,
     StructuredLC.eval, StructuredLC.sumRuns,
@@ -2638,9 +2636,18 @@ private theorem statementProviderField6 (rho : Nat → DeployedF) :
   ]
 
 private theorem statementProviderField7 (rho : Nat → DeployedF) :
-    (-1 : DeployedF) * StatementHashValuation rho 485 + StatementHashValuation rho 486 = statementField007 rho := by
+    StatementHashValuation rho 484 = statementField007 rho := by
   simp [
     statementField007, statementField007LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    negOne
+  ]
+
+private theorem statementProviderField8 (rho : Nat → DeployedF) :
+    (-1 : DeployedF) * StatementHashValuation rho 490 + StatementHashValuation rho 491 = statementField008 rho := by
+  simp [
+    statementField008, statementField008LC,
     StructuredLC.eval, StructuredLC.sumRuns,
     StructuredLC.sumResidual, StrideRun.eval,
     negOne
@@ -2648,17 +2655,8 @@ private theorem statementProviderField7 (rho : Nat → DeployedF) :
   rw [negOne]
   ring
 
-private theorem statementProviderField8 (rho : Nat → DeployedF) :
-    StatementHashValuation rho 492 = statementField008 rho := by
-  simp [
-    statementField008, statementField008LC,
-    StructuredLC.eval, StructuredLC.sumRuns,
-    StructuredLC.sumResidual, StrideRun.eval,
-    negOne
-  ]
-
 private theorem statementProviderField9 (rho : Nat → DeployedF) :
-    StatementHashValuation rho 498 = statementField009 rho := by
+    StatementHashValuation rho 497 = statementField009 rho := by
   simp [
     statementField009, statementField009LC,
     StructuredLC.eval, StructuredLC.sumRuns,
@@ -2667,13 +2665,15 @@ private theorem statementProviderField9 (rho : Nat → DeployedF) :
   ]
 
 private theorem statementProviderField10 (rho : Nat → DeployedF) :
-    StatementHashValuation rho 504 = statementField010 rho := by
+    (-1 : DeployedF) * StatementHashValuation rho 503 + StatementHashValuation rho 504 = statementField010 rho := by
   simp [
     statementField010, statementField010LC,
     StructuredLC.eval, StructuredLC.sumRuns,
     StructuredLC.sumResidual, StrideRun.eval,
     negOne
   ]
+  rw [negOne]
+  ring
 
 private theorem statementProviderField11 (rho : Nat → DeployedF) :
     StatementHashValuation rho 510 = statementField011 rho := by
@@ -2703,18 +2703,16 @@ private theorem statementProviderField13 (rho : Nat → DeployedF) :
   ]
 
 private theorem statementProviderField14 (rho : Nat → DeployedF) :
-    (-1 : DeployedF) * StatementHashValuation rho 968 + StatementHashValuation rho 969 = statementField014 rho := by
+    StatementHashValuation rho 968 = statementField014 rho := by
   simp [
     statementField014, statementField014LC,
     StructuredLC.eval, StructuredLC.sumRuns,
     StructuredLC.sumResidual, StrideRun.eval,
     negOne
   ]
-  rw [negOne]
-  ring
 
 private theorem statementProviderField15 (rho : Nat → DeployedF) :
-    StatementHashValuation rho 975 = statementField015 rho := by
+    StatementHashValuation rho 974 = statementField015 rho := by
   simp [
     statementField015, statementField015LC,
     StructuredLC.eval, StructuredLC.sumRuns,
@@ -2723,7 +2721,7 @@ private theorem statementProviderField15 (rho : Nat → DeployedF) :
   ]
 
 private theorem statementProviderField16 (rho : Nat → DeployedF) :
-    StatementHashValuation rho 981 = statementField016 rho := by
+    StatementHashValuation rho 980 = statementField016 rho := by
   simp [
     statementField016, statementField016LC,
     StructuredLC.eval, StructuredLC.sumRuns,
@@ -2732,7 +2730,7 @@ private theorem statementProviderField16 (rho : Nat → DeployedF) :
   ]
 
 private theorem statementProviderField17 (rho : Nat → DeployedF) :
-    (-1 : DeployedF) * StatementHashValuation rho 987 + StatementHashValuation rho 988 = statementField017 rho := by
+    (-1 : DeployedF) * StatementHashValuation rho 986 + StatementHashValuation rho 987 = statementField017 rho := by
   simp [
     statementField017, statementField017LC,
     StructuredLC.eval, StructuredLC.sumRuns,
@@ -2743,7 +2741,7 @@ private theorem statementProviderField17 (rho : Nat → DeployedF) :
   ring
 
 private theorem statementProviderField18 (rho : Nat → DeployedF) :
-    StatementHashValuation rho 994 = statementField018 rho := by
+    StatementHashValuation rho 993 = statementField018 rho := by
   simp [
     statementField018, statementField018LC,
     StructuredLC.eval, StructuredLC.sumRuns,
@@ -2752,7 +2750,7 @@ private theorem statementProviderField18 (rho : Nat → DeployedF) :
   ]
 
 private theorem statementProviderField19 (rho : Nat → DeployedF) :
-    StatementHashValuation rho 1440 = statementField019 rho := by
+    StatementHashValuation rho 1439 = statementField019 rho := by
   simp [
     statementField019, statementField019LC,
     StructuredLC.eval, StructuredLC.sumRuns,
@@ -2761,13 +2759,15 @@ private theorem statementProviderField19 (rho : Nat → DeployedF) :
   ]
 
 private theorem statementProviderField20 (rho : Nat → DeployedF) :
-    StatementHashValuation rho 1446 = statementField020 rho := by
+    (-1 : DeployedF) * StatementHashValuation rho 1445 + StatementHashValuation rho 1446 = statementField020 rho := by
   simp [
     statementField020, statementField020LC,
     StructuredLC.eval, StructuredLC.sumRuns,
     StructuredLC.sumResidual, StrideRun.eval,
     negOne
   ]
+  rw [negOne]
+  ring
 
 private theorem statementProviderField21 (rho : Nat → DeployedF) :
     StatementHashValuation rho 1452 = statementField021 rho := by
@@ -2779,18 +2779,16 @@ private theorem statementProviderField21 (rho : Nat → DeployedF) :
   ]
 
 private theorem statementProviderField22 (rho : Nat → DeployedF) :
-    (-1 : DeployedF) * StatementHashValuation rho 1458 + StatementHashValuation rho 1459 = statementField022 rho := by
+    StatementHashValuation rho 1458 = statementField022 rho := by
   simp [
     statementField022, statementField022LC,
     StructuredLC.eval, StructuredLC.sumRuns,
     StructuredLC.sumResidual, StrideRun.eval,
     negOne
   ]
-  rw [negOne]
-  ring
 
 private theorem statementProviderField23 (rho : Nat → DeployedF) :
-    StatementHashValuation rho 1465 = statementField023 rho := by
+    StatementHashValuation rho 1464 = statementField023 rho := by
   simp [
     statementField023, statementField023LC,
     StructuredLC.eval, StructuredLC.sumRuns,
@@ -2799,7 +2797,7 @@ private theorem statementProviderField23 (rho : Nat → DeployedF) :
   ]
 
 private theorem statementProviderField24 (rho : Nat → DeployedF) :
-    StatementHashValuation rho 1471 = statementField024 rho := by
+    StatementHashValuation rho 1470 = statementField024 rho := by
   simp [
     statementField024, statementField024LC,
     StructuredLC.eval, StructuredLC.sumRuns,
@@ -2808,7 +2806,7 @@ private theorem statementProviderField24 (rho : Nat → DeployedF) :
   ]
 
 private theorem statementProviderField25 (rho : Nat → DeployedF) :
-    (-1 : DeployedF) * StatementHashValuation rho 1917 + StatementHashValuation rho 1918 = statementField025 rho := by
+    (-1 : DeployedF) * StatementHashValuation rho 1916 + StatementHashValuation rho 1917 = statementField025 rho := by
   simp [
     statementField025, statementField025LC,
     StructuredLC.eval, StructuredLC.sumRuns,
@@ -2819,7 +2817,7 @@ private theorem statementProviderField25 (rho : Nat → DeployedF) :
   ring
 
 private theorem statementProviderField26 (rho : Nat → DeployedF) :
-    StatementHashValuation rho 1924 = statementField026 rho := by
+    StatementHashValuation rho 1923 = statementField026 rho := by
   simp [
     statementField026, statementField026LC,
     StructuredLC.eval, StructuredLC.sumRuns,
@@ -2828,7 +2826,7 @@ private theorem statementProviderField26 (rho : Nat → DeployedF) :
   ]
 
 private theorem statementProviderField27 (rho : Nat → DeployedF) :
-    StatementHashValuation rho 1930 = statementField027 rho := by
+    StatementHashValuation rho 1929 = statementField027 rho := by
   simp [
     statementField027, statementField027LC,
     StructuredLC.eval, StructuredLC.sumRuns,
@@ -2837,13 +2835,15 @@ private theorem statementProviderField27 (rho : Nat → DeployedF) :
   ]
 
 private theorem statementProviderField28 (rho : Nat → DeployedF) :
-    StatementHashValuation rho 1936 = statementField028 rho := by
+    (-1 : DeployedF) * StatementHashValuation rho 1935 + StatementHashValuation rho 1936 = statementField028 rho := by
   simp [
     statementField028, statementField028LC,
     StructuredLC.eval, StructuredLC.sumRuns,
     StructuredLC.sumResidual, StrideRun.eval,
     negOne
   ]
+  rw [negOne]
+  ring
 
 private theorem statementProviderField29 (rho : Nat → DeployedF) :
     StatementHashValuation rho 1942 = statementField029 rho := by
@@ -2953,6 +2953,33 @@ private theorem statementProviderField40 (rho : Nat → DeployedF) :
     negOne
   ]
 
+private theorem statementProviderField41 (rho : Nat → DeployedF) :
+    StatementHashValuation rho 2894 = statementField041 rho := by
+  simp [
+    statementField041, statementField041LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    negOne
+  ]
+
+private theorem statementProviderField42 (rho : Nat → DeployedF) :
+    StatementHashValuation rho 2900 = statementField042 rho := by
+  simp [
+    statementField042, statementField042LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    negOne
+  ]
+
+private theorem statementProviderField43 (rho : Nat → DeployedF) :
+    StatementHashValuation rho 3346 = statementField043 rho := by
+  simp [
+    statementField043, statementField043LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    negOne
+  ]
+
 private theorem optionalNullifier_of_action (rho : Nat → DeployedF) :
     (C.action rho).optional.nullifier =
       spend1NullifierClaimed rho := by
@@ -3020,7 +3047,10 @@ private theorem statementFields_of_action (rho : Nat → DeployedF) :
       statementField037 rho,
       statementField038 rho,
       statementField039 rho,
-      statementField040 rho] := by
+      statementField040 rho,
+      statementField041 rho,
+      statementField042 rho,
+      statementField043 rho] := by
   unfold Protocol.Transfer.Concrete.statementFields
   rw [optionalNullifier_of_action, optionalRkEncoding_of_action]
   change [statementFields0 rho,
@@ -3063,7 +3093,10 @@ private theorem statementFields_of_action (rho : Nat → DeployedF) :
       statementFields37 rho,
       statementFields38 rho,
       statementFields39 rho,
-      statementFields40 rho] =
+      statementFields40 rho,
+      statementFields41 rho,
+      statementFields42 rho,
+      statementFields43 rho] =
     [statementField000 rho,
       statementField001 rho,
       statementField002 rho,
@@ -3104,33 +3137,36 @@ private theorem statementFields_of_action (rho : Nat → DeployedF) :
       statementField037 rho,
       statementField038 rho,
       statementField039 rho,
-      statementField040 rho]
+      statementField040 rho,
+      statementField041 rho,
+      statementField042 rho,
+      statementField043 rho]
   rfl
 
-/-- The compiler's final state LC is the certified seven-block output. -/
+/-- The compiler's final state LC is the certified eight-block output. -/
 theorem statementHash_of_semantic
     (rho : Nat → DeployedF)
     (semantic : TransferSemanticProviders rho) :
     statementHash rho = computedStatementHash rho := by
   have h := semantic.statementHash
-  change Deployed.Templates.Semantics.TStatementHash_042c03f6fbeb384ad6230b63ee320b87cd0d4f74a820f0cac6e6f7499e9350bd.spec (StatementHashValuation rho) at h
-  unfold Deployed.Templates.Semantics.TStatementHash_042c03f6fbeb384ad6230b63ee320b87cd0d4f74a820f0cac6e6f7499e9350bd.spec at h
+  change Deployed.Templates.Semantics.TStatementHash_f091e489b9a220b0436835ce5343e78627a43408ea621e9d71e60917c2e7c77f.spec (StatementHashValuation rho) at h
+  unfold Deployed.Templates.Semantics.TStatementHash_f091e489b9a220b0436835ce5343e78627a43408ea621e9d71e60917c2e7c77f.spec at h
   calc
     statementHash rho =
-        Deployed.Templates.Semantics.TStatementHash_042c03f6fbeb384ad6230b63ee320b87cd0d4f74a820f0cac6e6f7499e9350bd.Trace.flatState6_38Lane1
+        Deployed.Templates.Semantics.TStatementHash_f091e489b9a220b0436835ce5343e78627a43408ea621e9d71e60917c2e7c77f.Trace.flatState7_38Lane1
           (StatementHashValuation rho) := by
       simp [
         statementHash, statementHashLC,
-        Deployed.Templates.Semantics.TStatementHash_042c03f6fbeb384ad6230b63ee320b87cd0d4f74a820f0cac6e6f7499e9350bd.Trace.flatState6_38Lane1,
+        Deployed.Templates.Semantics.TStatementHash_f091e489b9a220b0436835ce5343e78627a43408ea621e9d71e60917c2e7c77f.Trace.flatState7_38Lane1,
         StructuredLC.eval, StructuredLC.sumRuns,
         StructuredLC.sumResidual, StrideRun.eval
       ]
       ring
-    _ = (Deployed.Templates.Semantics.TStatementHash_042c03f6fbeb384ad6230b63ee320b87cd0d4f74a820f0cac6e6f7499e9350bd.Trace.rawState6_38
+    _ = (Deployed.Templates.Semantics.TStatementHash_f091e489b9a220b0436835ce5343e78627a43408ea621e9d71e60917c2e7c77f.Trace.rawState7_38
           (StatementHashValuation rho))[1] :=
-      (Deployed.Templates.Semantics.TStatementHash_042c03f6fbeb384ad6230b63ee320b87cd0d4f74a820f0cac6e6f7499e9350bd.Trace.rawState6_output_eq_flatStateLane1
+      (Deployed.Templates.Semantics.TStatementHash_f091e489b9a220b0436835ce5343e78627a43408ea621e9d71e60917c2e7c77f.Trace.rawState7_output_eq_flatStateLane1
         (StatementHashValuation rho)).symm
-    _ = Deployed.Templates.Semantics.TStatementHash_042c03f6fbeb384ad6230b63ee320b87cd0d4f74a820f0cac6e6f7499e9350bd.Trace.hash6
+    _ = Deployed.Templates.Semantics.TStatementHash_f091e489b9a220b0436835ce5343e78627a43408ea621e9d71e60917c2e7c77f.Trace.hash7
           (StatementHashValuation rho) := h
     _ = computedStatementHash rho := rfl
 
@@ -3152,7 +3188,7 @@ theorem statementPublicHash_of_semantic
   ring_nf at h ⊢
   exact h
 
-/-- The provider's seven blocks are the independent 41-field protocol sponge. -/
+/-- The provider's eight blocks are the independent 44-field protocol sponge. -/
 theorem computedStatementHash_eq_protocol
     (rho : Nat → DeployedF) :
     computedStatementHash rho =
@@ -3163,13 +3199,14 @@ theorem computedStatementHash_eq_protocol
         (Protocol.Transfer.Concrete.statementFields (C.action rho)) := by
   rw [statementFields_of_action]
   unfold computedStatementHash
-    Deployed.Templates.Semantics.TStatementHash_042c03f6fbeb384ad6230b63ee320b87cd0d4f74a820f0cac6e6f7499e9350bd.Trace.hash6
-    Deployed.Templates.Semantics.TStatementHash_042c03f6fbeb384ad6230b63ee320b87cd0d4f74a820f0cac6e6f7499e9350bd.Trace.hash5
-    Deployed.Templates.Semantics.TStatementHash_042c03f6fbeb384ad6230b63ee320b87cd0d4f74a820f0cac6e6f7499e9350bd.Trace.hash4
-    Deployed.Templates.Semantics.TStatementHash_042c03f6fbeb384ad6230b63ee320b87cd0d4f74a820f0cac6e6f7499e9350bd.Trace.hash3
-    Deployed.Templates.Semantics.TStatementHash_042c03f6fbeb384ad6230b63ee320b87cd0d4f74a820f0cac6e6f7499e9350bd.Trace.hash2
-    Deployed.Templates.Semantics.TStatementHash_042c03f6fbeb384ad6230b63ee320b87cd0d4f74a820f0cac6e6f7499e9350bd.Trace.hash1
-    Deployed.Templates.Semantics.TStatementHash_042c03f6fbeb384ad6230b63ee320b87cd0d4f74a820f0cac6e6f7499e9350bd.Trace.hash0
+    Deployed.Templates.Semantics.TStatementHash_f091e489b9a220b0436835ce5343e78627a43408ea621e9d71e60917c2e7c77f.Trace.hash7
+    Deployed.Templates.Semantics.TStatementHash_f091e489b9a220b0436835ce5343e78627a43408ea621e9d71e60917c2e7c77f.Trace.hash6
+    Deployed.Templates.Semantics.TStatementHash_f091e489b9a220b0436835ce5343e78627a43408ea621e9d71e60917c2e7c77f.Trace.hash5
+    Deployed.Templates.Semantics.TStatementHash_f091e489b9a220b0436835ce5343e78627a43408ea621e9d71e60917c2e7c77f.Trace.hash4
+    Deployed.Templates.Semantics.TStatementHash_f091e489b9a220b0436835ce5343e78627a43408ea621e9d71e60917c2e7c77f.Trace.hash3
+    Deployed.Templates.Semantics.TStatementHash_f091e489b9a220b0436835ce5343e78627a43408ea621e9d71e60917c2e7c77f.Trace.hash2
+    Deployed.Templates.Semantics.TStatementHash_f091e489b9a220b0436835ce5343e78627a43408ea621e9d71e60917c2e7c77f.Trace.hash1
+    Deployed.Templates.Semantics.TStatementHash_f091e489b9a220b0436835ce5343e78627a43408ea621e9d71e60917c2e7c77f.Trace.hash0
   rw [
     statementDomain, statementPad0, statementPad1,
     statementProviderField0 rho,
@@ -3212,7 +3249,10 @@ theorem computedStatementHash_eq_protocol
     statementProviderField37 rho,
     statementProviderField38 rho,
     statementProviderField39 rho,
-    statementProviderField40 rho
+    statementProviderField40 rho,
+    statementProviderField41 rho,
+    statementProviderField42 rho,
+    statementProviderField43 rho
   ]
   rfl
 

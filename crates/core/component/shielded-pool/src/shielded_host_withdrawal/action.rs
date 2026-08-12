@@ -8,8 +8,8 @@ use shieldd_sdk_tct as tct;
 use shieldd_sdk_txhash::{EffectHash, EffectingData};
 
 use crate::{
-    HostWithdrawal, ShieldedIcs20WithdrawalChangeBody, ShieldedIcs20WithdrawalFamilyId,
-    ShieldedIcs20WithdrawalProof, TransferInputBody,
+    discovery::RoutingTag, HostWithdrawal, ShieldedIcs20WithdrawalChangeBody,
+    ShieldedIcs20WithdrawalFamilyId, ShieldedIcs20WithdrawalProof, TransferInputBody,
 };
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
@@ -27,6 +27,8 @@ pub struct ShieldedHostWithdrawalBody {
     pub target_timestamp: u64,
     pub compliance_anchor: tct::StateCommitment,
     pub asset_anchor: tct::StateCommitment,
+    pub routing_tag: RoutingTag,
+    pub routing_parameter_set_id: decaf377::Fq,
 }
 
 #[derive(Clone, Debug)]
@@ -136,6 +138,8 @@ impl From<ShieldedHostWithdrawalBody> for pb::ShieldedHostWithdrawalBody {
             target_timestamp: value.target_timestamp,
             compliance_anchor: Some(value.compliance_anchor.into()),
             asset_anchor: Some(value.asset_anchor.into()),
+            routing_tag: Some(value.routing_tag.into()),
+            routing_parameter_set_id: value.routing_parameter_set_id.to_bytes().to_vec(),
         }
     }
 }
@@ -186,6 +190,17 @@ impl TryFrom<pb::ShieldedHostWithdrawalBody> for ShieldedHostWithdrawalBody {
                 .ok_or_else(|| anyhow::anyhow!("missing shielded host withdrawal asset anchor"))?
                 .try_into()
                 .context("malformed shielded host withdrawal asset anchor")?,
+            routing_tag: value
+                .routing_tag
+                .ok_or_else(|| anyhow::anyhow!("missing shielded host withdrawal routing tag"))?
+                .try_into()?,
+            routing_parameter_set_id: decaf377::Fq::from_bytes_checked(
+                &value
+                    .routing_parameter_set_id
+                    .try_into()
+                    .map_err(|_| anyhow::anyhow!("routing parameter set id must be 32 bytes"))?,
+            )
+            .map_err(|_| anyhow::anyhow!("routing parameter set id must be canonical"))?,
         })
     }
 }

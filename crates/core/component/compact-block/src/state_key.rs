@@ -12,3 +12,7 @@ pub fn prefix() -> &'static str {
 pub fn height(height: u64) -> String {
     format!("{height:020}")
 }
+
+pub fn pending_routing_actions() -> &'static str {
+    "compactblock/pending_routing_actions"
+}

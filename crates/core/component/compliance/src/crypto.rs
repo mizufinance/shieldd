@@ -98,7 +98,7 @@ pub fn decrypt_detection_tier(
     epk_1: &Element,
     detection_ciphertext: &[u8; DETECTION_TIER_BYTES],
     expected_asset_id: &asset::Id,
-) -> anyhow::Result<(asset::Id, bool, Fq, u32, u32)> {
+) -> anyhow::Result<(asset::Id, bool, Fq, u32, u32, bool)> {
     let ss = *epk_1 * *dk;
 
     let epk_1_fq = epk_1.vartime_compress_to_field();
@@ -123,7 +123,8 @@ pub fn decrypt_detection_tier(
 
     let ct_sender_slot = Fq::from_le_bytes_mod_order(&detection_ciphertext[64..96]);
     let keystream_2 = compliance_stream_block(seed, 2);
-    let (sender_slot_id, is_flagged) = detection_sender_from_fq(ct_sender_slot - keystream_2)?;
+    let (sender_slot_id, is_flagged, routing_roles_swapped) =
+        detection_sender_from_fq(ct_sender_slot - keystream_2)?;
 
     let ct_receiver_slot = Fq::from_le_bytes_mod_order(&detection_ciphertext[96..128]);
     let keystream_3 = compliance_stream_block(seed, 3);
@@ -135,6 +136,7 @@ pub fn decrypt_detection_tier(
         salt,
         sender_slot_id,
         receiver_slot_id,
+        routing_roles_swapped,
     ))
 }
 

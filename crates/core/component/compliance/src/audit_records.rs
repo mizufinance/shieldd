@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::audit_status::{AuditStatus, DecryptedVia, FlowType};
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AuditDetectedRef {
     pub height: u64,
     pub tx_hash: String,
@@ -14,6 +14,10 @@ pub struct AuditDetectedRef {
     pub output_index: u32,
     pub asset_id: String,
     pub is_flagged: bool,
+    #[serde(default)]
+    pub routing_tags: Option<[u32; 2]>,
+    #[serde(default)]
+    pub routing_roles_swapped: bool,
     #[serde(default = "private_transfer_flow_type")]
     pub flow_type: FlowType,
 }
@@ -57,7 +61,94 @@ pub struct DetectedRefRowParts {
     pub output_index: u32,
     pub asset_id: String,
     pub is_flagged: bool,
+    pub routing_tags: Option<[u32; 2]>,
+    pub routing_roles_swapped: bool,
     pub flow_type: FlowType,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct AuditRoutingSelector {
+    precision: u8,
+    prefix: u32,
+}
+
+impl AuditRoutingSelector {
+    pub fn new(precision: u8, prefix: u32) -> anyhow::Result<Self> {
+        anyhow::ensure!(precision <= 32, "routing precision must be at most 32 bits");
+        let selector = Self { precision, prefix };
+        anyhow::ensure!(
+            prefix & !selector.mask() == 0,
+            "routing selector has non-zero unused bits"
+        );
+        Ok(selector)
+    }
+
+    fn mask(self) -> u32 {
+        match self.precision {
+            0 => 0,
+            32 => u32::MAX,
+            bits => (1u32 << bits) - 1,
+        }
+    }
+
+    fn matches(self, tag: u32) -> bool {
+        tag & self.mask() == self.prefix
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct AuditSubjectRegistration {
+    pub asset_id: String,
+    pub selector: AuditRoutingSelector,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AuditSubjectRole {
+    Sender,
+    Receiver,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct AuditSubjectCandidate {
+    pub detected: AuditDetectedRef,
+    pub roles: Vec<AuditSubjectRole>,
+}
+
+/// Selects subject work locally, applying the decrypted asset before routing prefixes.
+pub fn filter_subject_candidates(
+    detections: &[AuditDetectedRef],
+    registrations: &[AuditSubjectRegistration],
+) -> Vec<AuditSubjectCandidate> {
+    detections
+        .iter()
+        .filter_map(|detected| {
+            let tags = detected.routing_tags?;
+            let mut sender = false;
+            let mut receiver = false;
+            let sender_index = usize::from(detected.routing_roles_swapped);
+            let receiver_index = 1 - sender_index;
+
+            for registration in registrations
+                .iter()
+                .filter(|registration| registration.asset_id == detected.asset_id)
+            {
+                sender |= registration.selector.matches(tags[sender_index]);
+                receiver |= registration.selector.matches(tags[receiver_index]);
+            }
+
+            let mut roles = Vec::with_capacity(2);
+            if sender {
+                roles.push(AuditSubjectRole::Sender);
+            }
+            if receiver {
+                roles.push(AuditSubjectRole::Receiver);
+            }
+            (!roles.is_empty()).then(|| AuditSubjectCandidate {
+                detected: detected.clone(),
+                roles,
+            })
+        })
+        .collect()
 }
 
 pub fn classify_orbis_import_row(row: Option<AuditImportRow>) -> OrbisImportEligibility {
@@ -90,6 +181,8 @@ pub fn detected_ref_from_row_parts(row: DetectedRefRowParts) -> AuditDetectedRef
         output_index: row.output_index,
         asset_id: row.asset_id,
         is_flagged: row.is_flagged,
+        routing_tags: row.routing_tags,
+        routing_roles_swapped: row.routing_roles_swapped,
         flow_type: row.flow_type,
     }
 }
@@ -157,6 +250,8 @@ mod tests {
             output_index: 3,
             asset_id: "asset".to_owned(),
             is_flagged: true,
+            routing_tags: Some([11, 22]),
+            routing_roles_swapped: true,
             flow_type: FlowType::PrivateTransfer,
         });
 
@@ -166,7 +261,87 @@ mod tests {
         assert_eq!(detected.output_index, 3);
         assert_eq!(detected.asset_id, "asset");
         assert!(detected.is_flagged);
+        assert_eq!(detected.routing_tags, Some([11, 22]));
+        assert!(detected.routing_roles_swapped);
         assert_eq!(detected.flow_type, FlowType::PrivateTransfer);
+    }
+
+    fn selector(prefix: u32) -> AuditRoutingSelector {
+        AuditRoutingSelector::new(12, prefix).unwrap()
+    }
+
+    fn detected(asset_id: &str, tags: [u32; 2], swapped: bool) -> AuditDetectedRef {
+        AuditDetectedRef {
+            height: 1,
+            tx_hash: "01".to_owned(),
+            action_index: 0,
+            output_index: 0,
+            asset_id: asset_id.to_owned(),
+            is_flagged: false,
+            routing_tags: Some(tags),
+            routing_roles_swapped: swapped,
+            flow_type: FlowType::PrivateTransfer,
+        }
+    }
+
+    fn registration(asset_id: &str, prefix: u32) -> AuditSubjectRegistration {
+        AuditSubjectRegistration {
+            asset_id: asset_id.to_owned(),
+            selector: selector(prefix),
+        }
+    }
+
+    #[test]
+    fn subject_filter_finds_sender_with_or_without_change_and_after_permutation() {
+        let alice = registration("asset-a", 0x123);
+        for (label, detection) in [
+            ("with_change", detected("asset-a", [0xa123, 0xb456], false)),
+            (
+                "without_change",
+                detected("asset-a", [0xc123, 0xd999], false),
+            ),
+            ("permuted", detected("asset-a", [0xe888, 0xf123], true)),
+        ] {
+            let candidates = filter_subject_candidates(&[detection], std::slice::from_ref(&alice));
+            assert_eq!(candidates.len(), 1, "{label}");
+            assert_eq!(candidates[0].roles, [AuditSubjectRole::Sender], "{label}");
+        }
+    }
+
+    #[test]
+    fn subject_filter_finds_receiver_and_both_regulated_parties() {
+        let alice = registration("asset-a", 0x123);
+        let receiver = filter_subject_candidates(
+            &[detected("asset-a", [0xa456, 0xb123], false)],
+            std::slice::from_ref(&alice),
+        );
+        assert_eq!(receiver[0].roles, [AuditSubjectRole::Receiver]);
+
+        let both = filter_subject_candidates(
+            &[detected("asset-a", [0xa123, 0xb123], false)],
+            std::slice::from_ref(&alice),
+        );
+        assert_eq!(
+            both[0].roles,
+            [AuditSubjectRole::Sender, AuditSubjectRole::Receiver]
+        );
+    }
+
+    #[test]
+    fn subject_filter_applies_asset_before_each_registered_address_selector() {
+        let registrations = [
+            registration("asset-a", 0x123),
+            registration("asset-b", 0x456),
+        ];
+        let detections = [
+            detected("asset-a", [0xa123, 0xb999], false),
+            detected("asset-b", [0xc456, 0xd999], false),
+            detected("asset-a", [0xe456, 0xf999], false),
+        ];
+        let candidates = filter_subject_candidates(&detections, &registrations);
+        assert_eq!(candidates.len(), 2);
+        assert_eq!(candidates[0].detected.asset_id, "asset-a");
+        assert_eq!(candidates[1].detected.asset_id, "asset-b");
     }
 
     #[test]

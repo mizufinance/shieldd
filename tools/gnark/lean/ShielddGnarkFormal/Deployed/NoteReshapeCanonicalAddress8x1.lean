@@ -59,7 +59,6 @@ def shared (rho : Nat → NoteReshapeCanonical.F) :
     diversifiedGeneratorEncoding := divGenFq rho
     transmission := NoteReshapeCanonical.toProtocolPoint (transmission rho)
     transmissionEncoding := transmissionFq rho
-    clueKey := Contracts.NoteReshape8x1.sharedClueKey rho
   }
 
 theorem sharedDivGenFq_eq_divGenFq
@@ -137,9 +136,9 @@ theorem canonicalTransmissionFacts_of_exact
       Contracts.NoteReshape8x1.sharedDivGenNonIdentity_of_exact rho facts
   · have hdtk := facts.shared.DecafDiversifiedTransmissionKeySeg17
     have hw2211 : Contracts.NoteReshape8x1.Seg17.wireSeating 2211 =
-        7 := by rfl
+        15 := by rfl
     have hw2212 : Contracts.NoteReshape8x1.Seg17.wireSeating 2212 =
-        8 := by rfl
+        16 := by rfl
     have hCurveProtocol :=
       Decaf377Assumptions.onCurve_of_compress
         (NoteReshapeCanonical.toDecafPoint

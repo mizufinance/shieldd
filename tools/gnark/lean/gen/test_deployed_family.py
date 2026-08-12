@@ -329,13 +329,12 @@ class DeployedFamilyTests(unittest.TestCase):
                     terms("sender.transmission_fq"),
                     strict=True,
                 ),
-                (15, wire("sender.clue_key")),
-                (21, wire("outbound.asset_id")),
-                (27, wire("sender.slot_id")),
-                (33, wire("sender.slot_derivation")),
-                (39, wire("sender.d")),
+                (15, wire("outbound.asset_id")),
+                (21, wire("sender.slot_id")),
+                (27, wire("sender.slot_derivation")),
+                (33, wire("sender.d")),
                 *zip(
-                    (444, 449, 454, 459, 464, 469, 474, 479),
+                    (408, 413, 418, 423, 428, 433, 438),
                     terms("sender.leaf_commitment"),
                     strict=True,
                 ),
@@ -487,15 +486,15 @@ class DeployedFamilyTests(unittest.TestCase):
             [
                 *zip(range(1, 9), states["block1"], strict=True),
                 *zip(
-                    (14, 20, 26),
+                    (14, 20, 26, 32, 38),
                     (
                         wire(f"statement.field.{field:03d}")
-                        for field in range(13, 16)
+                        for field in range(13, 18)
                     ),
                     strict=True,
                 ),
                 *zip(
-                    (431, 436, 441, 446, 451, 456, 461, 466),
+                    (443, 448, 453, 458, 463, 468, 473, 478),
                     states["block2"],
                     strict=True,
                 ),
@@ -653,6 +652,24 @@ class DeployedFamilyTests(unittest.TestCase):
             },
             bindings=by_name,
         )
+        routing_join = next_internal
+        next_internal += 1
+        manifest["nb_internal_variables"] = next_internal
+        for label, local, role in (
+            ("routing_permutation_compose", 1, "output"),
+            ("detection_encryption", 2112, "input"),
+        ):
+            segment = plan.segments[label]
+            seating = segment["template_equivalence_witness"][
+                "canonical_local_to_deployed_wire_seating"
+            ]
+            displaced = seating[local]
+            if displaced != 0:
+                open_local = seating.index(0)
+                seating[open_local] = displaced
+            seating[local] = routing_join
+            segment["wire_roles"][role].append(routing_join)
+            segment["wire_roles"][role].sort()
         for label, (expected, _) in (
             deployed._transfer_current_protocol_seats(plan).items()
         ):
@@ -1061,7 +1078,7 @@ class DeployedFamilyTests(unittest.TestCase):
     def test_transfer_refinement_is_complete_dynamic_and_closed(self) -> None:
         ir, manifest = self.transfer_refinement_fixture()
         plan = deployed._validate_transfer_refinement_plan(ir, manifest)
-        self.assertEqual(len(plan.segments), 97)
+        self.assertEqual(len(plan.segments), 112)
         self.assertEqual(
             set(spec.fact for spec in deployed.TRANSFER_TRACE_SPECS),
             set(deployed.TRANSFER_FACT_FIELDS),
@@ -1075,14 +1092,14 @@ class DeployedFamilyTests(unittest.TestCase):
         self.assertEqual(
             [plan.segments[spec.label]["index"]
              for spec in deployed.TRANSFER_TRACE_SPECS],
-            list(range(102, 296, 2)),
+            list(range(102, 326, 2)),
         )
         self.assertEqual(
             sum(
                 spec.constraint_count
                 for spec in deployed.TRANSFER_TRACE_SPECS
             ),
-            124_428,
+            129_699,
         )
         self.assertNotIn(
             "effective_threshold",
@@ -1110,7 +1127,7 @@ class DeployedFamilyTests(unittest.TestCase):
                     ]["canonical_local_to_deployed_wire_seating"]
                 ),
             ),
-            (2446, 2115),
+            (2446, 2116),
         )
         for label in (
             "sender_compliance_path",
@@ -1122,7 +1139,7 @@ class DeployedFamilyTests(unittest.TestCase):
                         "template_equivalence_witness"
                     ]["canonical_local_to_deployed_wire_seating"]
                 ),
-                5850,
+                5849,
             )
             self.assertEqual(
                 plan.segments[label]["proof_template_id"],
@@ -1635,7 +1652,7 @@ class DeployedFamilyTests(unittest.TestCase):
 
         self.assertEqual(
             plan.segments["statement_hash"]["proof_template_id"],
-            deployed.TRANSFER_STATEMENT_V4_KEY,
+            deployed.TRANSFER_STATEMENT_V5_KEY,
         )
 
         consequences = (
@@ -1925,12 +1942,6 @@ class DeployedFamilyTests(unittest.TestCase):
                 "sender_compliance_leaf",
                 "gadget.compliance_leaf@"
                 "a9196c1f31383683ba070d601a8c3118e288bf3c77ebdd12bb6f95fa0c6e5c0c",
-            ),
-            (
-                "sender_compliance_path",
-                next(iter(
-                    deployed.WITHDRAWAL_OBSOLETE_COMPLIANCE_PATH_KEYS
-                )),
             ),
             (
                 "sender_core_shared_secret",
@@ -2276,7 +2287,7 @@ class DeployedFamilyTests(unittest.TestCase):
                 "statement_hash",
                 1,
                 7,
-                "Transfer statement v4 protocol arguments",
+                "Transfer statement v5 protocol arguments",
             ),
             (
                 "statement_assert",
@@ -2308,7 +2319,7 @@ class DeployedFamilyTests(unittest.TestCase):
     ) -> None:
         ir, manifest = self.withdrawal_plan_fixture()
         plan = deployed._validate_withdrawal_refinement_plan(ir, manifest)
-        self.assertEqual(len(plan.segments), 45)
+        self.assertEqual(len(plan.segments), 53)
         self.assertEqual(
             set(spec.fact for spec in deployed.WITHDRAWAL_TRACE_SPECS),
             set(deployed.WITHDRAWAL_FACT_FIELDS),
@@ -2324,14 +2335,14 @@ class DeployedFamilyTests(unittest.TestCase):
                 plan.segments[spec.label]["index"]
                 for spec in deployed.WITHDRAWAL_TRACE_SPECS
             ],
-            list(range(503, 638, 3)),
+            list(range(503, 662, 3)),
         )
         self.assertEqual(
             sum(
                 spec.constraint_count
                 for spec in deployed.WITHDRAWAL_TRACE_SPECS
             ),
-            54_440,
+            56_933,
         )
         self.assertEqual(
             set(plan.bindings),
@@ -2375,7 +2386,7 @@ class DeployedFamilyTests(unittest.TestCase):
         )
         self.assertEqual(
             plan.segments["sender_compliance_leaf"]["constraint_count"],
-            470,
+            430,
         )
         self.assertEqual(
             len(
@@ -2383,7 +2394,7 @@ class DeployedFamilyTests(unittest.TestCase):
                     "template_equivalence_witness"
                 ]["canonical_local_to_deployed_wire_seating"]
             ),
-            5850,
+            5849,
         )
         self.assertEqual(
             plan.segments["sender_compliance_path"][
@@ -2397,7 +2408,7 @@ class DeployedFamilyTests(unittest.TestCase):
                     "template_equivalence_witness"
                 ]["canonical_local_to_deployed_wire_seating"]
             ),
-            480,
+            439,
         )
         self.assertEqual(
             plan.segments["sender_compliance_leaf"][
@@ -2406,7 +2417,7 @@ class DeployedFamilyTests(unittest.TestCase):
             deployed.COMPLIANCE_LEAF_KEY,
         )
         self.assertIn(
-            "clue_key=sender.clue_key",
+            "asset_id=shared.asset_id",
             next(
                 spec.args
                 for spec in deployed.WITHDRAWAL_TRACE_SPECS
@@ -2517,7 +2528,7 @@ class DeployedFamilyTests(unittest.TestCase):
         providers = deployed.render_withdrawal_exact_providers(
             ir, manifest
         )
-        self.assertEqual(providers.count(".contract.spec rho"), 45)
+        self.assertEqual(providers.count(".contract.spec rho"), 53)
         for fact in deployed.WITHDRAWAL_FACT_FIELDS:
             self.assertIn(
                 f"structure {core.camel(fact)}ExactProviders",
@@ -2592,7 +2603,7 @@ class DeployedFamilyTests(unittest.TestCase):
                 config["y0"],
                 config["y1"],
             ),
-            (7, 8, 9, 5950, 5958, 5951, 5959),
+            (7, 8, 9, 5955, 5963, 5956, 5964),
         )
 
         for mutation in ("count", "locals", "provider"):
@@ -2676,7 +2687,7 @@ class DeployedFamilyTests(unittest.TestCase):
         )
 
         self.assertEqual(len(expected), 21)
-        self.assertEqual(sum(len(seats) for seats in expected.values()), 310)
+        self.assertEqual(sum(len(seats) for seats in expected.values()), 299)
         self.assertEqual(
             tuple(expected), deployed.WITHDRAWAL_CORE_PROVIDER_LABELS
         )
@@ -2747,13 +2758,9 @@ class DeployedFamilyTests(unittest.TestCase):
             ("optional_state_path", "spend1"),
         ):
             lower = core.lower_camel(label)
-            for path_index in range(72):
-                self.assertIn(
-                    f"theorem {lower}Path{path_index}", source
-                )
-                self.assertIn(
-                    f"{slot}StateProofPath{path_index} rho", source
-                )
+            self.assertEqual(
+                source.count(f"{slot}StateProofPath"), 72
+            )
             self.assertIn(
                 f"theorem {lower}ProviderPath_eq", source
             )
@@ -3055,12 +3062,12 @@ class DeployedFamilyTests(unittest.TestCase):
             )
 
         wrong_action_binding = copy.deepcopy(manifest)
-        sender_clue = next(
+        routing_tag = next(
             binding
             for binding in wrong_action_binding["semantic_bindings"]
-            if binding["name"] == "sender.clue_key"
+            if binding["name"] == "routing.tag"
         )
-        sender_clue["expressions"][0]["terms"][0]["coefficient"] = "2"
+        routing_tag["expressions"][0]["terms"][0]["coefficient"] = "2"
         with self.assertRaisesRegex(ValueError, "is not one exact wire"):
             deployed._validate_withdrawal_refinement_plan(
                 ir, wrong_action_binding
@@ -3163,7 +3170,7 @@ class DeployedFamilyTests(unittest.TestCase):
             fields["expressions"][0],
         )
         with self.assertRaisesRegex(
-            ValueError, "exact ordered 16-field spine"
+            ValueError, "exact ordered 18-field spine"
         ):
             deployed._validate_withdrawal_refinement_plan(
                 ir, wrong_statement_order
@@ -3233,30 +3240,6 @@ class DeployedFamilyTests(unittest.TestCase):
         ):
             deployed._validate_withdrawal_refinement_plan(
                 obsolete_compliance, manifest
-            )
-
-        obsolete_compliance_path = copy.deepcopy(ir)
-        compliance_path = next(
-            segment
-            for segment in obsolete_compliance_path["segments"]
-            if segment["op"] == "gadget.compliance_path"
-        )
-        compliance_path["proof_template_id"] = (
-            next(iter(
-                deployed.WITHDRAWAL_OBSOLETE_COMPLIANCE_PATH_KEYS
-            ))
-        )
-        compliance_path["template_equivalence_witness"][
-            "proof_template_id"
-        ] = compliance_path["proof_template_id"]
-        compliance_path[
-            "deployed_normalized_relation_sha256_hex"
-        ] = compliance_path["proof_template_id"].rsplit("@", 1)[-1]
-        with self.assertRaisesRegex(
-            ValueError, "sender_compliance_path shape/provider drifted"
-        ):
-            deployed._validate_withdrawal_refinement_plan(
-                obsolete_compliance_path, manifest
             )
 
         obsolete_asset_leaf = copy.deepcopy(ir)
@@ -3418,7 +3401,7 @@ class DeployedFamilyTests(unittest.TestCase):
             set(plan.segments),
             {spec.label for spec in deployed.WITHDRAWAL_TRACE_SPECS},
         )
-        self.assertEqual(len(plan.segments), 45)
+        self.assertEqual(len(plan.segments), 53)
         core_ir = copy.deepcopy(ir)
         self.seat_current_withdrawal_core(core_ir, manifest)
         core_seams = deployed.render_withdrawal_core_semantic_seams(
@@ -3563,7 +3546,7 @@ class DeployedFamilyTests(unittest.TestCase):
         registry_path = semantic_parts["SemanticRegistryPathSeams.lean"]
         self.assertEqual(registry_path.count("] <;> rfl"), 4)
         self.assertEqual(
-            registry_path.count("private theorem withdrawalSeamCoeff"), 11
+            registry_path.count("private theorem withdrawalSeamCoeff"), 9
         )
         self.assertEqual(
             registry_path.count(
@@ -3580,10 +3563,10 @@ class DeployedFamilyTests(unittest.TestCase):
             registry_path,
         )
         self.assertIn(
-            "rw [withdrawalSeamCoeff3, withdrawalSeamCoeff4, "
-            "withdrawalSeamCoeff5, withdrawalSeamCoeff6, "
-            "withdrawalSeamCoeff7, withdrawalSeamCoeff8, "
-            "withdrawalSeamCoeff9, withdrawalSeamCoeff10]",
+            "rw [withdrawalSeamCoeff2, withdrawalSeamCoeff3, "
+            "withdrawalSeamCoeff4, withdrawalSeamCoeff5, "
+            "withdrawalSeamCoeff6, withdrawalSeamCoeff7, "
+            "withdrawalSeamCoeff8]",
             registry_path,
         )
         self.assertIn(
@@ -3662,7 +3645,7 @@ class DeployedFamilyTests(unittest.TestCase):
             refinement.count(
                 f"id (α := SemanticF) (Seg{compliance_index}.localRho"
             ),
-            8,
+            7,
         )
         self.assertIn("private theorem semanticOneNeZero", refinement)
         self.assertEqual(refinement.count("id_eq, zero_add"), 2)
@@ -3979,13 +3962,13 @@ class DeployedFamilyTests(unittest.TestCase):
         third_seating = third["template_equivalence_witness"][
             "canonical_local_to_deployed_wire_seating"
         ]
-        third_seating[465], third_seating[466] = (
-            third_seating[466],
-            third_seating[465],
+        third_seating[477], third_seating[478] = (
+            third_seating[478],
+            third_seating[477],
         )
         with self.assertRaisesRegex(
             ValueError,
-            r"Withdrawal statement block2 seating\[466\] drifted",
+            r"Withdrawal statement block2 seating\[478\] drifted",
         ):
             deployed.render_withdrawal_statement_seams(
                 bad_seat, manifest
@@ -4157,10 +4140,10 @@ class DeployedFamilyTests(unittest.TestCase):
                 "dtk": 7,
                 "compress": 8,
                 "non_identity": 9,
-                "x0": 5950,
-                "x1": 5958,
-                "y0": 5951,
-                "y1": 5959,
+                "x0": 5955,
+                "x1": 5963,
+                "y0": 5956,
+                "y1": 5964,
             },
         )
 
@@ -4178,7 +4161,7 @@ class DeployedFamilyTests(unittest.TestCase):
         )
         self.assertEqual(
             (config["x0"], config["x1"], config["y0"], config["y1"]),
-            (6768, 6776, 6769, 6777),
+            (6772, 6780, 6773, 6781),
         )
 
         wrapper, parts, seating_files = (
@@ -4290,7 +4273,7 @@ class DeployedFamilyTests(unittest.TestCase):
                 lambda binding: binding["expressions"][0]["terms"][0].update(
                     wire_id=6767
                 ),
-                "coordinate wires drifted",
+                "Transfer DTK output seating",
             ),
         ):
             wrong_plan = copy.deepcopy(plan)
@@ -4435,6 +4418,15 @@ class DeployedFamilyTests(unittest.TestCase):
             "Protocol.Transfer.Concrete.statementFields (C.action rho)",
             source,
         )
+        self.assertIn("Trace.hash7 (StatementHashValuation rho)", source)
+        self.assertIn("Trace.flatState7_38Lane1", source)
+        self.assertIn("Trace.rawState7_38", source)
+        self.assertIn("Trace.rawState7_output_eq_flatStateLane1", source)
+        self.assertIn(
+            "eight blocks are the independent 44-field protocol sponge",
+            source,
+        )
+        self.assertNotIn("Trace.hash6 (StatementHashValuation rho)", source)
         self.assertIn(
             "change [statementFields0 rho,",
             source,

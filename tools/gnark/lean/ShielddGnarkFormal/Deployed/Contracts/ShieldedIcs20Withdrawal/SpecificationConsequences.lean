@@ -188,7 +188,7 @@ theorem specification_cir_shape_fixed
     (rho : Nat → SemanticF)
     (h : relationAll rho) :
     (Protocol.ShieldedIcs20Withdrawal.Concrete.statementFields
-      (action rho)).length = 16 := by
+      (action rho)).length = 18 := by
   exact
     Protocol.ShieldedIcs20Withdrawal.Concrete.statementFields_length
       (action rho)
@@ -419,18 +419,18 @@ theorem specification_note_output_asset_binding
       (action rho).withdrawal.outboundAssetId := by
   exact (relationChangeOutput rho h).2.1
 
-/-- `NOTE-OUTPUT-CLUE-KEY-BINDING` for the exact deployed relation. -/
-theorem specification_note_output_clue_key_binding
+/-- `ROUTING-PARAMETERS` for the exact deployed relation. -/
+theorem specification_routing_parameters
     (rho : Nat → SemanticF)
     (h : relationAll rho) :
-    (action rho).change.commitment =
-      Protocol.Common.noteCommitmentHash
-        (action rho).change.blinding (action rho).change.amount
-        (action rho).change.assetId
-        (action rho).change.owner.diversifiedGeneratorEncoding
-        (action rho).change.owner.transmissionEncoding
-        (action rho).change.owner.clueKey := by
-  exact (relationChangeOutput rho h).2.2
+    Seg19.contract.spec rho ∧
+      Seg20.contract.spec rho ∧
+      Seg21.contract.spec rho := by
+  have facts := (exactFactsOfRelation rho h).exact
+  exact
+    ⟨facts.RoutingPrecisionSelectSeg19,
+      facts.RoutingParametersHashSeg20,
+      facts.RoutingParametersBindSeg21⟩
 
 /-- `NOTE-OUTPUT-COMMITMENT` for the exact deployed relation. -/
 theorem specification_note_output_commitment
@@ -468,24 +468,22 @@ theorem specification_note_spend_asset_binding
   rw [selected] at optional
   exact optional.2.1
 
-/-- `NOTE-SPEND-CLUE-KEY-BINDING` for the exact deployed relation. -/
-theorem specification_note_spend_clue_key_binding
+/-- `ROUTING-TAG-DERIVATION` for the exact deployed relation. -/
+theorem specification_routing_tag_derivation
     (rho : Nat → SemanticF)
     (h : relationAll rho) :
-    Protocol.ShieldedIcs20Withdrawal.Concrete.noteCommitment
-        (action rho).required.note ∧
-      ∀ spend,
-        (action rho).optional = .real spend →
-          Protocol.ShieldedIcs20Withdrawal.Concrete.noteCommitment
-            spend.note := by
-  rcases relationRequiredSpend rho h with
-    ⟨_, _, _, requiredCommitment, _, _, _, _⟩
-  refine ⟨requiredCommitment, ?_⟩
-  intro spend selected
-  have optional := relationOptionalSpend rho h
-  unfold Protocol.ShieldedIcs20Withdrawal.Concrete.optionalSpend at optional
-  rw [selected] at optional
-  exact optional.2.2.2.1
+    Seg22.contract.spec rho ∧
+      Seg23.contract.spec rho ∧
+      Seg24.contract.spec rho ∧
+      Seg25.contract.spec rho ∧
+      Seg26.contract.spec rho := by
+  have facts := (exactFactsOfRelation rho h).exact
+  exact
+    ⟨facts.RoutingRouteWordSeg22,
+      facts.RoutingTagPublicRangeSeg23,
+      facts.RoutingTagRouteBitsSeg24,
+      facts.RoutingTagRandomWordSeg25,
+      facts.RoutingTagComposeSeg26⟩
 
 /-- `NOTE-SPEND-COMMITMENT` for the exact deployed relation. -/
 theorem specification_note_spend_commitment
@@ -571,11 +569,10 @@ theorem specification_user_compliance_leaf_hash
     (h : relationAll rho) :
     Protocol.ShieldedIcs20Withdrawal.Concrete.complianceLeafHash
         (action rho) =
-      Poseidon377.hash7
+      Poseidon377.hash6
         Protocol.ShieldedIcs20Withdrawal.Concrete.complianceLeafDomain
         (action rho).sender.diversifiedGeneratorEncoding
         (action rho).sender.transmissionEncoding
-        (action rho).sender.clueKey
         (action rho).withdrawal.outboundAssetId
         (action rho).senderCompliance.slotId
         (action rho).senderCompliance.slotDerivation
@@ -601,11 +598,10 @@ theorem specification_user_leaf_address_binding
     (h : relationAll rho) :
     Protocol.ShieldedIcs20Withdrawal.Concrete.complianceLeafHash
         (action rho) =
-      Poseidon377.hash7
+      Poseidon377.hash6
         Protocol.ShieldedIcs20Withdrawal.Concrete.complianceLeafDomain
         (action rho).sender.diversifiedGeneratorEncoding
         (action rho).sender.transmissionEncoding
-        (action rho).sender.clueKey
         (action rho).withdrawal.outboundAssetId
         (action rho).senderCompliance.slotId
         (action rho).senderCompliance.slotDerivation
@@ -618,11 +614,10 @@ theorem specification_user_leaf_asset_binding
     (h : relationAll rho) :
     Protocol.ShieldedIcs20Withdrawal.Concrete.complianceLeafHash
         (action rho) =
-      Poseidon377.hash7
+      Poseidon377.hash6
         Protocol.ShieldedIcs20Withdrawal.Concrete.complianceLeafDomain
         (action rho).sender.diversifiedGeneratorEncoding
         (action rho).sender.transmissionEncoding
-        (action rho).sender.clueKey
         (action rho).withdrawal.outboundAssetId
         (action rho).senderCompliance.slotId
         (action rho).senderCompliance.slotDerivation
@@ -635,11 +630,10 @@ theorem specification_user_leaf_policy_slot_binding
     (h : relationAll rho) :
     Protocol.ShieldedIcs20Withdrawal.Concrete.complianceLeafHash
         (action rho) =
-      Poseidon377.hash7
+      Poseidon377.hash6
         Protocol.ShieldedIcs20Withdrawal.Concrete.complianceLeafDomain
         (action rho).sender.diversifiedGeneratorEncoding
         (action rho).sender.transmissionEncoding
-        (action rho).sender.clueKey
         (action rho).withdrawal.outboundAssetId
         (action rho).senderCompliance.slotId
         (action rho).senderCompliance.slotDerivation
@@ -682,7 +676,9 @@ theorem specification_withdrawal_intent_field_binding
          (action rho).withdrawal.effectHashLimbs 0,
          (action rho).withdrawal.effectHashLimbs 1,
          (action rho).withdrawal.effectHashLimbs 2,
-         (action rho).withdrawal.effectHashLimbs 3] := by
+         (action rho).withdrawal.effectHashLimbs 3,
+         (action rho).routingTag,
+         (action rho).routingParameterSetId] := by
   exact relationStatementBinding rho h
 
 end Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal

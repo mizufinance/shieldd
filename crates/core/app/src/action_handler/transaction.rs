@@ -6,7 +6,9 @@ use std::time::Instant;
 use anyhow::{Context as _, Result};
 use async_trait::async_trait;
 use cnidarium::{Snapshot, StateRead, StateWrite};
-use shieldd_sdk_compact_block::StatePayload;
+use shieldd_sdk_compact_block::{
+    component::RoutingManager as _, PendingRoutingAction, StatePayload,
+};
 use shieldd_sdk_compliance::params::StateReadExt as _;
 use shieldd_sdk_compliance::registry::{check_timestamp_freshness, ComplianceRegistryRead as _};
 use shieldd_sdk_fee::component::FeePay as _;
@@ -77,6 +79,7 @@ pub(crate) struct TransactionExecutionProfile {
 pub(crate) struct PreparedCandidateEffects {
     pub spend_nullifiers: Vec<Nullifier>,
     pub sct_payloads: Vec<StatePayload>,
+    pub routing_actions: Vec<PendingRoutingAction>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -198,6 +201,69 @@ impl ClaimedAnchorValidationCache {
 struct TxExecutionContext {
     block_timestamp: u64,
     source: TransactionId,
+}
+
+fn transaction_routing_actions(tx: &Transaction) -> Result<Vec<PendingRoutingAction>> {
+    let transaction_id = tx.id();
+    let mut routing_actions = Vec::new();
+    for (action_index, action) in tx.actions().enumerate() {
+        let action_index = u32::try_from(action_index).context("action index exceeds u32")?;
+        let action = match action {
+            Action::Transfer(transfer) => Some(PendingRoutingAction {
+                transaction_id,
+                action_index,
+                tags: transfer.body.routing.tags.to_vec(),
+                note_payloads: transfer
+                    .body
+                    .outputs
+                    .iter()
+                    .map(|output| output.note_payload.clone())
+                    .collect(),
+            }),
+            Action::NoteReshape(note_reshape) => Some(PendingRoutingAction {
+                transaction_id,
+                action_index,
+                tags: vec![note_reshape.body.routing_tag],
+                note_payloads: note_reshape
+                    .body
+                    .outputs
+                    .iter()
+                    .map(|output| output.note_payload.clone())
+                    .collect(),
+            }),
+            Action::ShieldedIcs20Withdrawal(withdrawal) => Some(PendingRoutingAction {
+                transaction_id,
+                action_index,
+                tags: vec![withdrawal.body.routing_tag],
+                note_payloads: vec![withdrawal.body.change_output.note_payload.clone()],
+            }),
+            Action::ShieldedHostWithdrawal(withdrawal) => Some(PendingRoutingAction {
+                transaction_id,
+                action_index,
+                tags: vec![withdrawal.body.routing_tag],
+                note_payloads: vec![withdrawal.body.change_output.note_payload.clone()],
+            }),
+            _ => None,
+        };
+        routing_actions.extend(action);
+    }
+    if let Some(fee_funding) = &tx.transaction_body.fee_funding {
+        let action_index =
+            u32::try_from(tx.transaction_body.actions.len()).context("action index exceeds u32")?;
+        routing_actions.push(PendingRoutingAction {
+            transaction_id,
+            action_index,
+            tags: fee_funding.transfer.body.routing.tags.to_vec(),
+            note_payloads: fee_funding
+                .transfer
+                .body
+                .outputs
+                .iter()
+                .map(|output| output.note_payload.clone())
+                .collect(),
+        });
+    }
+    Ok(routing_actions)
 }
 
 #[derive(Clone, Debug)]
@@ -757,6 +823,7 @@ where
         .await?;
         profile.other_action_execute_ms += action_start.elapsed().as_secs_f64() * 1000.0;
     }
+    state.stage_routing_actions(transaction_routing_actions(tx)?);
     profile.action_execute_ms = action_execute_start.elapsed().as_secs_f64() * 1000.0;
 
     Ok(profile)
@@ -958,6 +1025,7 @@ pub(crate) async fn prepare_candidate_read_profiled<S: StateRead + 'static>(
         .into_iter()
         .map(|note_payload| (note_payload, execution_context.source.clone().into()).into())
         .collect();
+    prepared.effects.routing_actions = transaction_routing_actions(tx.as_ref())?;
     prepared.execution_profile.read_effects_build_ms =
         effects_build_start.elapsed().as_secs_f64() * 1000.0;
     prepared.execution_profile.output_add_note_payload_ms =
@@ -1118,6 +1186,7 @@ pub(crate) fn prepare_candidate_read_blocking_profiled(
         .into_iter()
         .map(|note_payload| (note_payload, execution_context.source.clone().into()).into())
         .collect();
+    prepared.effects.routing_actions = transaction_routing_actions(tx.as_ref())?;
     prepared.execution_profile.read_effects_build_ms =
         effects_build_start.elapsed().as_secs_f64() * 1000.0;
     prepared.execution_profile.output_add_note_payload_ms =

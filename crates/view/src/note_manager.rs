@@ -1313,7 +1313,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
         }
 
         let discovery_params = view.discovery_parameters().await?;
-        plan.populate_discovery_precision(discovery_params.precision);
+        plan.populate_routing_parameters(discovery_params);
         plan.sort_actions();
         check_transaction_plan_enabled(&plan)?;
 
@@ -1478,7 +1478,6 @@ mod tests {
             .full_viewing_key()
             .incoming()
             .payment_address(index.into())
-            .0
     }
 
     fn test_spend_key(index: u32) -> SpendKey {

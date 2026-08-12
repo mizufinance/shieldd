@@ -58,6 +58,7 @@ class NoteReshapeTemplateSemanticsTest(unittest.TestCase):
             ("gen_note_reshape_scp_semantics", "generated_files"),
             ("gen_note_reshape_compress_semantics", "generated_files"),
             ("gen_certified_composite_semantics", "generated_files"),
+            ("gen_routing_semantics", "generated_files"),
             ("gen_certified_statement_hash_semantics", "generated_files"),
         }
         actual = {

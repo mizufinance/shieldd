@@ -9,7 +9,8 @@ use shieldd_sdk_tct as tct;
 use shieldd_sdk_txhash::{EffectHash, EffectingData};
 
 use crate::{
-    shielded_ics20_withdrawal::ShieldedIcs20WithdrawalProof, Ics20Withdrawal, TransferInputBody,
+    discovery::RoutingTag, shielded_ics20_withdrawal::ShieldedIcs20WithdrawalProof,
+    Ics20Withdrawal, TransferInputBody,
 };
 
 use super::generated::ShieldedIcs20WithdrawalFamilyId;
@@ -40,6 +41,8 @@ pub struct ShieldedIcs20WithdrawalBody {
     pub target_timestamp: u64,
     pub compliance_anchor: tct::StateCommitment,
     pub asset_anchor: tct::StateCommitment,
+    pub routing_tag: RoutingTag,
+    pub routing_parameter_set_id: decaf377::Fq,
 }
 
 #[derive(Clone, Debug)]
@@ -183,6 +186,8 @@ impl From<ShieldedIcs20WithdrawalBody> for pb::ShieldedIcs20WithdrawalBody {
             target_timestamp: value.target_timestamp,
             compliance_anchor: Some(value.compliance_anchor.into()),
             asset_anchor: Some(value.asset_anchor.into()),
+            routing_tag: Some(value.routing_tag.into()),
+            routing_parameter_set_id: value.routing_parameter_set_id.to_bytes().to_vec(),
         }
     }
 }
@@ -233,6 +238,17 @@ impl TryFrom<pb::ShieldedIcs20WithdrawalBody> for ShieldedIcs20WithdrawalBody {
                 .ok_or_else(|| anyhow::anyhow!("missing shielded ICS-20 withdrawal asset anchor"))?
                 .try_into()
                 .context("malformed shielded ICS-20 withdrawal asset anchor")?,
+            routing_tag: value
+                .routing_tag
+                .ok_or_else(|| anyhow::anyhow!("missing shielded ICS-20 withdrawal routing tag"))?
+                .try_into()?,
+            routing_parameter_set_id: decaf377::Fq::from_bytes_checked(
+                &value
+                    .routing_parameter_set_id
+                    .try_into()
+                    .map_err(|_| anyhow::anyhow!("routing parameter set id must be 32 bytes"))?,
+            )
+            .map_err(|_| anyhow::anyhow!("routing parameter set id must be canonical"))?,
         };
         body.validate_shape()?;
         Ok(body)

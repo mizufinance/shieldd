@@ -1,8 +1,8 @@
 import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.RefinementSeams
 import ShielddGnarkFormal.Poseidon7Bridge
-import ShielddGnarkFormal.Deployed.Templates.Semantics.TStatementHash_8253f80f52335edfca85a06da1c48600b988651a0803cf829d27056e3670eb00
-import ShielddGnarkFormal.Deployed.Templates.Semantics.TStatementHash_6c1f41225e160eb2aa699b149bd08dfe3831726da0f6240bba58c892c6e27193
-import ShielddGnarkFormal.Deployed.Templates.Semantics.TStatementHash_0cf7625f3041ed713c8f3634f6d3914aad6059b5f8113ba50facad312738e969
+import ShielddGnarkFormal.Deployed.Templates.Semantics.TStatementHash_afd0be82d84896e98b8fdc0f4b8eaec88930b85f4b40c03ff06a87a4eaebd1b8
+import ShielddGnarkFormal.Deployed.Templates.Semantics.TStatementHash_59fc709325ca9b0194b7adef9fe91a97d88a5c690c5278f59425a351790b2376
+import ShielddGnarkFormal.Deployed.Templates.Semantics.TStatementHash_0a6a7d5c079d0a2e952c00450800860c1faf28396d74678cd2ea2a7dc4ee85ce
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TAssertEq_001662998b48830253568a34945bae30020bcb70574648b9aa58b23510a29b69
 import Mathlib.Tactic.Ring
 
@@ -27,17 +27,17 @@ private theorem negOne :
   decide +kernel
 
 private theorem firstDomain :
-    Deployed.Templates.Semantics.TStatementHash_8253f80f52335edfca85a06da1c48600b988651a0803cf829d27056e3670eb00.Trace.domainLit =
+    Deployed.Templates.Semantics.TStatementHash_afd0be82d84896e98b8fdc0f4b8eaec88930b85f4b40c03ff06a87a4eaebd1b8.Trace.domainLit =
       Protocol.ShieldedIcs20Withdrawal.Concrete.statementDomain := by
   decide +kernel
 
 private theorem secondDomain :
-    Deployed.Templates.Semantics.TStatementHash_6c1f41225e160eb2aa699b149bd08dfe3831726da0f6240bba58c892c6e27193.Trace.domainLit =
+    Deployed.Templates.Semantics.TStatementHash_59fc709325ca9b0194b7adef9fe91a97d88a5c690c5278f59425a351790b2376.Trace.domainLit =
       Protocol.ShieldedIcs20Withdrawal.Concrete.statementDomain := by
   decide +kernel
 
 private theorem thirdDomain :
-    Deployed.Templates.Semantics.TStatementHash_0cf7625f3041ed713c8f3634f6d3914aad6059b5f8113ba50facad312738e969.Trace.domainLit =
+    Deployed.Templates.Semantics.TStatementHash_0a6a7d5c079d0a2e952c00450800860c1faf28396d74678cd2ea2a7dc4ee85ce.Trace.domainLit =
       Protocol.ShieldedIcs20Withdrawal.Concrete.statementDomain := by
   decide +kernel
 
@@ -62,67 +62,67 @@ theorem statementBlock0_of_exact
         (balanceCommitmentFq rho)
         (spend0NullifierClaimed rho) (spend0RkCompressed rho)
         (spend1NullifierClaimed rho) (spend1RkCompressed rho) := by
-  have h := facts.exact.StatementHashSeg50
-  change Deployed.Templates.Semantics.TStatementHash_8253f80f52335edfca85a06da1c48600b988651a0803cf829d27056e3670eb00.spec (Seg50.localRho rho) at h
-  unfold Deployed.Templates.Semantics.TStatementHash_8253f80f52335edfca85a06da1c48600b988651a0803cf829d27056e3670eb00.spec at h
-  have hw445 : Seg50.wireSeating 445 = 50693 := by
+  have h := facts.exact.StatementHashSeg58
+  change Deployed.Templates.Semantics.TStatementHash_afd0be82d84896e98b8fdc0f4b8eaec88930b85f4b40c03ff06a87a4eaebd1b8.spec (Seg58.localRho rho) at h
+  unfold Deployed.Templates.Semantics.TStatementHash_afd0be82d84896e98b8fdc0f4b8eaec88930b85f4b40c03ff06a87a4eaebd1b8.spec at h
+  have hw445 : Seg58.wireSeating 445 = 52778 := by
     decide +kernel
-  have hw450 : Seg50.wireSeating 450 = 50698 := by
+  have hw450 : Seg58.wireSeating 450 = 52783 := by
     decide +kernel
-  have hw455 : Seg50.wireSeating 455 = 50703 := by
+  have hw455 : Seg58.wireSeating 455 = 52788 := by
     decide +kernel
-  have hw460 : Seg50.wireSeating 460 = 50708 := by
+  have hw460 : Seg58.wireSeating 460 = 52793 := by
     decide +kernel
-  have hw465 : Seg50.wireSeating 465 = 50713 := by
+  have hw465 : Seg58.wireSeating 465 = 52798 := by
     decide +kernel
-  have hw470 : Seg50.wireSeating 470 = 50718 := by
+  have hw470 : Seg58.wireSeating 470 = 52803 := by
     decide +kernel
-  have hw475 : Seg50.wireSeating 475 = 50723 := by
+  have hw475 : Seg58.wireSeating 475 = 52808 := by
     decide +kernel
-  have hw480 : Seg50.wireSeating 480 = 50728 := by
+  have hw480 : Seg58.wireSeating 480 = 52813 := by
     decide +kernel
-  have hi1 : Seg50.wireSeating 1 = 2 := by
+  have hi1 : Seg58.wireSeating 1 = 4 := by
     decide +kernel
-  have hi7 : Seg50.wireSeating 7 = 288 := by
+  have hi7 : Seg58.wireSeating 7 = 293 := by
     decide +kernel
-  have hi13 : Seg50.wireSeating 13 = 49918 := by
+  have hi13 : Seg58.wireSeating 13 = 52003 := by
     decide +kernel
-  have hi14 : Seg50.wireSeating 14 = 50258 := by
+  have hi14 : Seg58.wireSeating 14 = 52343 := by
     decide +kernel
-  have hi20 : Seg50.wireSeating 20 = 128 := by
+  have hi20 : Seg58.wireSeating 20 = 133 := by
     decide +kernel
-  have hi26 : Seg50.wireSeating 26 = 33982 := by
+  have hi26 : Seg58.wireSeating 26 = 36147 := by
     decide +kernel
-  have hi27 : Seg50.wireSeating 27 = 34322 := by
+  have hi27 : Seg58.wireSeating 27 = 36487 := by
     decide +kernel
-  have hi33 : Seg50.wireSeating 33 = 207 := by
+  have hi33 : Seg58.wireSeating 33 = 212 := by
     decide +kernel
-  have hi39 : Seg50.wireSeating 39 = 46156 := by
+  have hi39 : Seg58.wireSeating 39 = 48281 := by
     decide +kernel
-  have hi40 : Seg50.wireSeating 40 = 46496 := by
+  have hi40 : Seg58.wireSeating 40 = 48621 := by
     decide +kernel
   calc
     statementHashBlock0 rho =
-        (Deployed.Templates.Semantics.TStatementHash_8253f80f52335edfca85a06da1c48600b988651a0803cf829d27056e3670eb00.Trace.rawState0_38
-          (Seg50.localRho rho))[1] := by
+        (Deployed.Templates.Semantics.TStatementHash_afd0be82d84896e98b8fdc0f4b8eaec88930b85f4b40c03ff06a87a4eaebd1b8.Trace.rawState0_38
+          (Seg58.localRho rho))[1] := by
       simp [
         statementHashBlock0, statementHashBlock0LC,
-        Deployed.Templates.Semantics.TStatementHash_8253f80f52335edfca85a06da1c48600b988651a0803cf829d27056e3670eb00.Trace.rawState0_38,
-        Deployed.Templates.Semantics.TStatementHash_8253f80f52335edfca85a06da1c48600b988651a0803cf829d27056e3670eb00.Trace.flatState0_38Lane1,
+        Deployed.Templates.Semantics.TStatementHash_afd0be82d84896e98b8fdc0f4b8eaec88930b85f4b40c03ff06a87a4eaebd1b8.Trace.rawState0_38,
+        Deployed.Templates.Semantics.TStatementHash_afd0be82d84896e98b8fdc0f4b8eaec88930b85f4b40c03ff06a87a4eaebd1b8.Trace.flatState0_38Lane1,
         StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-        Seg50.localRho, Deployed.Templates.seated,
+        Seg58.localRho, Deployed.Templates.seated,
         hw445, hw450, hw455, hw460, hw465, hw470, hw475, hw480
       ]
       ring
-    _ = Deployed.Templates.Semantics.TStatementHash_8253f80f52335edfca85a06da1c48600b988651a0803cf829d27056e3670eb00.Trace.hash0
-          (Seg50.localRho rho) := h
+    _ = Deployed.Templates.Semantics.TStatementHash_afd0be82d84896e98b8fdc0f4b8eaec88930b85f4b40c03ff06a87a4eaebd1b8.Trace.hash0
+          (Seg58.localRho rho) := h
     _ = Poseidon7Bridge.permSpec7
           Protocol.ShieldedIcs20Withdrawal.Concrete.statementDomain
           (anchor rho) (output0NoteCommitmentClaimed rho)
           (balanceCommitmentFq rho)
           (spend0NullifierClaimed rho) (spend0RkCompressed rho)
           (spend1NullifierClaimed rho) (spend1RkCompressed rho) := by
-      unfold Deployed.Templates.Semantics.TStatementHash_8253f80f52335edfca85a06da1c48600b988651a0803cf829d27056e3670eb00.Trace.hash0
+      unfold Deployed.Templates.Semantics.TStatementHash_afd0be82d84896e98b8fdc0f4b8eaec88930b85f4b40c03ff06a87a4eaebd1b8.Trace.hash0
       rw [firstDomain]
       simp only [
         anchor, anchorLC,
@@ -133,7 +133,7 @@ theorem statementBlock0_of_exact
         spend1NullifierClaimed, spend1NullifierClaimedLC,
         spend1RkCompressed, spend1RkCompressedLC,
         StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-        Seg50.localRho, Deployed.Templates.seated,
+        Seg58.localRho, Deployed.Templates.seated,
         hi1, hi7, hi13, hi14, hi20, hi26, hi27, hi33, hi39, hi40,
         negOne, zero_add, one_mul, add_zero
       ]
@@ -149,75 +149,75 @@ theorem statementBlock1_of_exact
         (assetAnchor rho) (complianceAnchor rho) (targetTimestamp rho)
         (outboundAssetId rho) (outboundAmount rho)
         (withdrawalEffectHashLimbs0 rho) := by
-  have h := facts.exact.StatementHashSeg51
-  change Deployed.Templates.Semantics.TStatementHash_6c1f41225e160eb2aa699b149bd08dfe3831726da0f6240bba58c892c6e27193.spec (Seg51.localRho rho) at h
-  unfold Deployed.Templates.Semantics.TStatementHash_6c1f41225e160eb2aa699b149bd08dfe3831726da0f6240bba58c892c6e27193.spec at h
-  have hw449 : Seg51.wireSeating 449 = 51163 := by
+  have h := facts.exact.StatementHashSeg59
+  change Deployed.Templates.Semantics.TStatementHash_59fc709325ca9b0194b7adef9fe91a97d88a5c690c5278f59425a351790b2376.spec (Seg59.localRho rho) at h
+  unfold Deployed.Templates.Semantics.TStatementHash_59fc709325ca9b0194b7adef9fe91a97d88a5c690c5278f59425a351790b2376.spec at h
+  have hw449 : Seg59.wireSeating 449 = 53248 := by
     decide +kernel
-  have hw454 : Seg51.wireSeating 454 = 51168 := by
+  have hw454 : Seg59.wireSeating 454 = 53253 := by
     decide +kernel
-  have hw459 : Seg51.wireSeating 459 = 51173 := by
+  have hw459 : Seg59.wireSeating 459 = 53258 := by
     decide +kernel
-  have hw464 : Seg51.wireSeating 464 = 51178 := by
+  have hw464 : Seg59.wireSeating 464 = 53263 := by
     decide +kernel
-  have hw469 : Seg51.wireSeating 469 = 51183 := by
+  have hw469 : Seg59.wireSeating 469 = 53268 := by
     decide +kernel
-  have hw474 : Seg51.wireSeating 474 = 51188 := by
+  have hw474 : Seg59.wireSeating 474 = 53273 := by
     decide +kernel
-  have hw479 : Seg51.wireSeating 479 = 51193 := by
+  have hw479 : Seg59.wireSeating 479 = 53278 := by
     decide +kernel
-  have hw484 : Seg51.wireSeating 484 = 51198 := by
+  have hw484 : Seg59.wireSeating 484 = 53283 := by
     decide +kernel
-  have hi1 : Seg51.wireSeating 1 = 50693 := by
+  have hi1 : Seg59.wireSeating 1 = 52778 := by
     decide +kernel
-  have hi2 : Seg51.wireSeating 2 = 50698 := by
+  have hi2 : Seg59.wireSeating 2 = 52783 := by
     decide +kernel
-  have hi3 : Seg51.wireSeating 3 = 50703 := by
+  have hi3 : Seg59.wireSeating 3 = 52788 := by
     decide +kernel
-  have hi4 : Seg51.wireSeating 4 = 50708 := by
+  have hi4 : Seg59.wireSeating 4 = 52793 := by
     decide +kernel
-  have hi5 : Seg51.wireSeating 5 = 50713 := by
+  have hi5 : Seg59.wireSeating 5 = 52798 := by
     decide +kernel
-  have hi6 : Seg51.wireSeating 6 = 50718 := by
+  have hi6 : Seg59.wireSeating 6 = 52803 := by
     decide +kernel
-  have hi7 : Seg51.wireSeating 7 = 50723 := by
+  have hi7 : Seg59.wireSeating 7 = 52808 := by
     decide +kernel
-  have hi8 : Seg51.wireSeating 8 = 50728 := by
+  have hi8 : Seg59.wireSeating 8 = 52813 := by
     decide +kernel
-  have hf14 : Seg51.wireSeating 14 = 3 := by
+  have hf14 : Seg59.wireSeating 14 = 5 := by
     decide +kernel
-  have hf20 : Seg51.wireSeating 20 = 4 := by
+  have hf20 : Seg59.wireSeating 20 = 6 := by
     decide +kernel
-  have hf26 : Seg51.wireSeating 26 = 5 := by
+  have hf26 : Seg59.wireSeating 26 = 7 := by
     decide +kernel
-  have hf32 : Seg51.wireSeating 32 = 6 := by
+  have hf32 : Seg59.wireSeating 32 = 8 := by
     decide +kernel
-  have hf38 : Seg51.wireSeating 38 = 7 := by
+  have hf38 : Seg59.wireSeating 38 = 9 := by
     decide +kernel
-  have hf44 : Seg51.wireSeating 44 = 8 := by
+  have hf44 : Seg59.wireSeating 44 = 10 := by
     decide +kernel
   calc
     statementHashBlock1 rho =
-        (Deployed.Templates.Semantics.TStatementHash_6c1f41225e160eb2aa699b149bd08dfe3831726da0f6240bba58c892c6e27193.Trace.rawState0_38
-          (Seg51.localRho rho))[1] := by
+        (Deployed.Templates.Semantics.TStatementHash_59fc709325ca9b0194b7adef9fe91a97d88a5c690c5278f59425a351790b2376.Trace.rawState0_38
+          (Seg59.localRho rho))[1] := by
       simp [
         statementHashBlock1, statementHashBlock1LC,
-        Deployed.Templates.Semantics.TStatementHash_6c1f41225e160eb2aa699b149bd08dfe3831726da0f6240bba58c892c6e27193.Trace.rawState0_38,
-        Deployed.Templates.Semantics.TStatementHash_6c1f41225e160eb2aa699b149bd08dfe3831726da0f6240bba58c892c6e27193.Trace.flatState0_38Lane1,
+        Deployed.Templates.Semantics.TStatementHash_59fc709325ca9b0194b7adef9fe91a97d88a5c690c5278f59425a351790b2376.Trace.rawState0_38,
+        Deployed.Templates.Semantics.TStatementHash_59fc709325ca9b0194b7adef9fe91a97d88a5c690c5278f59425a351790b2376.Trace.flatState0_38Lane1,
         StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-        Seg51.localRho, Deployed.Templates.seated,
+        Seg59.localRho, Deployed.Templates.seated,
         hw449, hw454, hw459, hw464, hw469, hw474, hw479, hw484
       ]
       ring
-    _ = Deployed.Templates.Semantics.TStatementHash_6c1f41225e160eb2aa699b149bd08dfe3831726da0f6240bba58c892c6e27193.Trace.hash0
-          (Seg51.localRho rho) := h
+    _ = Deployed.Templates.Semantics.TStatementHash_59fc709325ca9b0194b7adef9fe91a97d88a5c690c5278f59425a351790b2376.Trace.hash0
+          (Seg59.localRho rho) := h
     _ = Poseidon7Bridge.permSpec7
           Protocol.ShieldedIcs20Withdrawal.Concrete.statementDomain
           (statementHashBlock0 rho)
           (assetAnchor rho) (complianceAnchor rho) (targetTimestamp rho)
           (outboundAssetId rho) (outboundAmount rho)
           (withdrawalEffectHashLimbs0 rho) := by
-      unfold Deployed.Templates.Semantics.TStatementHash_6c1f41225e160eb2aa699b149bd08dfe3831726da0f6240bba58c892c6e27193.Trace.hash0
+      unfold Deployed.Templates.Semantics.TStatementHash_59fc709325ca9b0194b7adef9fe91a97d88a5c690c5278f59425a351790b2376.Trace.hash0
       rw [secondDomain]
       simp only [
         statementHashBlock0, statementHashBlock0LC,
@@ -228,14 +228,14 @@ theorem statementBlock1_of_exact
         outboundAmount, outboundAmountLC,
         withdrawalEffectHashLimbs0, withdrawalEffectHashLimbs0LC,
         StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-        Seg51.localRho, Deployed.Templates.seated,
+        Seg59.localRho, Deployed.Templates.seated,
         hi1, hi2, hi3, hi4, hi5, hi6, hi7, hi8,
         hf14, hf20, hf26, hf32, hf38, hf44,
         zero_add, one_mul, add_zero
       ]
       congr 1 <;> ring
 
-/-- The third exact segment chains block one, fields 13–15, and fixed padding. -/
+/-- The third exact segment chains block one, fields 13–17, and fixed padding. -/
 theorem statementBlock2_of_exact
     (rho : Nat → SemanticF)
     (facts : ShieldedIcs20WithdrawalCircuitFacts rho) :
@@ -246,85 +246,91 @@ theorem statementBlock2_of_exact
         (withdrawalEffectHashLimbs1 rho)
         (withdrawalEffectHashLimbs2 rho)
         (withdrawalEffectHashLimbs3 rho)
-        Protocol.ShieldedIcs20Withdrawal.Concrete.statementPad1
-        Protocol.ShieldedIcs20Withdrawal.Concrete.statementPad0
+        (routingTag rho)
+        (routingParameterSetId rho)
         Protocol.ShieldedIcs20Withdrawal.Concrete.statementPad1 := by
-  have h := facts.exact.StatementHashSeg52
-  change Deployed.Templates.Semantics.TStatementHash_0cf7625f3041ed713c8f3634f6d3914aad6059b5f8113ba50facad312738e969.spec (Seg52.localRho rho) at h
-  unfold Deployed.Templates.Semantics.TStatementHash_0cf7625f3041ed713c8f3634f6d3914aad6059b5f8113ba50facad312738e969.spec at h
-  have hw431 : Seg52.wireSeating 431 = 51618 := by
+  have h := facts.exact.StatementHashSeg60
+  change Deployed.Templates.Semantics.TStatementHash_0a6a7d5c079d0a2e952c00450800860c1faf28396d74678cd2ea2a7dc4ee85ce.spec (Seg60.localRho rho) at h
+  unfold Deployed.Templates.Semantics.TStatementHash_0a6a7d5c079d0a2e952c00450800860c1faf28396d74678cd2ea2a7dc4ee85ce.spec at h
+  have hw443 : Seg60.wireSeating 443 = 53713 := by
     decide +kernel
-  have hw436 : Seg52.wireSeating 436 = 51623 := by
+  have hw448 : Seg60.wireSeating 448 = 53718 := by
     decide +kernel
-  have hw441 : Seg52.wireSeating 441 = 51628 := by
+  have hw453 : Seg60.wireSeating 453 = 53723 := by
     decide +kernel
-  have hw446 : Seg52.wireSeating 446 = 51633 := by
+  have hw458 : Seg60.wireSeating 458 = 53728 := by
     decide +kernel
-  have hw451 : Seg52.wireSeating 451 = 51638 := by
+  have hw463 : Seg60.wireSeating 463 = 53733 := by
     decide +kernel
-  have hw456 : Seg52.wireSeating 456 = 51643 := by
+  have hw468 : Seg60.wireSeating 468 = 53738 := by
     decide +kernel
-  have hw461 : Seg52.wireSeating 461 = 51648 := by
+  have hw473 : Seg60.wireSeating 473 = 53743 := by
     decide +kernel
-  have hw466 : Seg52.wireSeating 466 = 51653 := by
+  have hw478 : Seg60.wireSeating 478 = 53748 := by
     decide +kernel
-  have hi1 : Seg52.wireSeating 1 = 51163 := by
+  have hi1 : Seg60.wireSeating 1 = 53248 := by
     decide +kernel
-  have hi2 : Seg52.wireSeating 2 = 51168 := by
+  have hi2 : Seg60.wireSeating 2 = 53253 := by
     decide +kernel
-  have hi3 : Seg52.wireSeating 3 = 51173 := by
+  have hi3 : Seg60.wireSeating 3 = 53258 := by
     decide +kernel
-  have hi4 : Seg52.wireSeating 4 = 51178 := by
+  have hi4 : Seg60.wireSeating 4 = 53263 := by
     decide +kernel
-  have hi5 : Seg52.wireSeating 5 = 51183 := by
+  have hi5 : Seg60.wireSeating 5 = 53268 := by
     decide +kernel
-  have hi6 : Seg52.wireSeating 6 = 51188 := by
+  have hi6 : Seg60.wireSeating 6 = 53273 := by
     decide +kernel
-  have hi7 : Seg52.wireSeating 7 = 51193 := by
+  have hi7 : Seg60.wireSeating 7 = 53278 := by
     decide +kernel
-  have hi8 : Seg52.wireSeating 8 = 51198 := by
+  have hi8 : Seg60.wireSeating 8 = 53283 := by
     decide +kernel
-  have hf14 : Seg52.wireSeating 14 = 9 := by
+  have hf14 : Seg60.wireSeating 14 = 11 := by
     decide +kernel
-  have hf20 : Seg52.wireSeating 20 = 10 := by
+  have hf20 : Seg60.wireSeating 20 = 12 := by
     decide +kernel
-  have hf26 : Seg52.wireSeating 26 = 11 := by
+  have hf26 : Seg60.wireSeating 26 = 13 := by
+    decide +kernel
+  have hf32 : Seg60.wireSeating 32 = 2 := by
+    decide +kernel
+  have hf38 : Seg60.wireSeating 38 = 3 := by
     decide +kernel
   calc
     statementHashBlock2 rho =
-        (Deployed.Templates.Semantics.TStatementHash_0cf7625f3041ed713c8f3634f6d3914aad6059b5f8113ba50facad312738e969.Trace.rawState0_38
-          (Seg52.localRho rho))[1] := by
+        (Deployed.Templates.Semantics.TStatementHash_0a6a7d5c079d0a2e952c00450800860c1faf28396d74678cd2ea2a7dc4ee85ce.Trace.rawState0_38
+          (Seg60.localRho rho))[1] := by
       simp [
         statementHashBlock2, statementHashBlock2LC,
-        Deployed.Templates.Semantics.TStatementHash_0cf7625f3041ed713c8f3634f6d3914aad6059b5f8113ba50facad312738e969.Trace.rawState0_38,
-        Deployed.Templates.Semantics.TStatementHash_0cf7625f3041ed713c8f3634f6d3914aad6059b5f8113ba50facad312738e969.Trace.flatState0_38Lane1,
+        Deployed.Templates.Semantics.TStatementHash_0a6a7d5c079d0a2e952c00450800860c1faf28396d74678cd2ea2a7dc4ee85ce.Trace.rawState0_38,
+        Deployed.Templates.Semantics.TStatementHash_0a6a7d5c079d0a2e952c00450800860c1faf28396d74678cd2ea2a7dc4ee85ce.Trace.flatState0_38Lane1,
         StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-        Seg52.localRho, Deployed.Templates.seated,
-        hw431, hw436, hw441, hw446, hw451, hw456, hw461, hw466
+        Seg60.localRho, Deployed.Templates.seated,
+        hw443, hw448, hw453, hw458, hw463, hw468, hw473, hw478
       ]
       ring
-    _ = Deployed.Templates.Semantics.TStatementHash_0cf7625f3041ed713c8f3634f6d3914aad6059b5f8113ba50facad312738e969.Trace.hash0
-          (Seg52.localRho rho) := h
+    _ = Deployed.Templates.Semantics.TStatementHash_0a6a7d5c079d0a2e952c00450800860c1faf28396d74678cd2ea2a7dc4ee85ce.Trace.hash0
+          (Seg60.localRho rho) := h
     _ = Poseidon7Bridge.permSpec7
           Protocol.ShieldedIcs20Withdrawal.Concrete.statementDomain
           (statementHashBlock1 rho)
           (withdrawalEffectHashLimbs1 rho)
           (withdrawalEffectHashLimbs2 rho)
           (withdrawalEffectHashLimbs3 rho)
-          Protocol.ShieldedIcs20Withdrawal.Concrete.statementPad1
-          Protocol.ShieldedIcs20Withdrawal.Concrete.statementPad0
+          (routingTag rho)
+          (routingParameterSetId rho)
           Protocol.ShieldedIcs20Withdrawal.Concrete.statementPad1 := by
-      unfold Deployed.Templates.Semantics.TStatementHash_0cf7625f3041ed713c8f3634f6d3914aad6059b5f8113ba50facad312738e969.Trace.hash0
+      unfold Deployed.Templates.Semantics.TStatementHash_0a6a7d5c079d0a2e952c00450800860c1faf28396d74678cd2ea2a7dc4ee85ce.Trace.hash0
       simp only [thirdDomain, thirdPad0, thirdPad1]
       simp only [
         statementHashBlock1, statementHashBlock1LC,
         withdrawalEffectHashLimbs1, withdrawalEffectHashLimbs1LC,
         withdrawalEffectHashLimbs2, withdrawalEffectHashLimbs2LC,
         withdrawalEffectHashLimbs3, withdrawalEffectHashLimbs3LC,
+        routingTag, routingTagLC,
+        routingParameterSetId, routingParameterSetIdLC,
         StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-        Seg52.localRho, Deployed.Templates.seated,
+        Seg60.localRho, Deployed.Templates.seated,
         hi1, hi2, hi3, hi4, hi5, hi6, hi7, hi8,
-        hf14, hf20, hf26,
+        hf14, hf20, hf26, hf32, hf38,
         zero_add, one_mul, add_zero
       ]
       congr 1 <;> ring
@@ -334,33 +340,33 @@ theorem statementPublicHash_of_exact
     (rho : Nat → SemanticF)
     (facts : ShieldedIcs20WithdrawalCircuitFacts rho) :
     claimedStatementHash rho = statementHash rho := by
-  have h := facts.exact.AssertEqSeg53
+  have h := facts.exact.AssertEqSeg61
   change Deployed.Templates.Semantics.TAssertEq_001662998b48830253568a34945bae30020bcb70574648b9aa58b23510a29b69.spec
-    (Seg53.localRho rho) at h
-  have ha1 : Seg53.wireSeating 1 = 51618 := by
+    (Seg61.localRho rho) at h
+  have ha1 : Seg61.wireSeating 1 = 53713 := by
     decide +kernel
-  have ha2 : Seg53.wireSeating 2 = 51623 := by
+  have ha2 : Seg61.wireSeating 2 = 53718 := by
     decide +kernel
-  have ha3 : Seg53.wireSeating 3 = 51628 := by
+  have ha3 : Seg61.wireSeating 3 = 53723 := by
     decide +kernel
-  have ha4 : Seg53.wireSeating 4 = 51633 := by
+  have ha4 : Seg61.wireSeating 4 = 53728 := by
     decide +kernel
-  have ha5 : Seg53.wireSeating 5 = 51638 := by
+  have ha5 : Seg61.wireSeating 5 = 53733 := by
     decide +kernel
-  have ha6 : Seg53.wireSeating 6 = 51643 := by
+  have ha6 : Seg61.wireSeating 6 = 53738 := by
     decide +kernel
-  have ha7 : Seg53.wireSeating 7 = 51648 := by
+  have ha7 : Seg61.wireSeating 7 = 53743 := by
     decide +kernel
-  have ha8 : Seg53.wireSeating 8 = 51653 := by
+  have ha8 : Seg61.wireSeating 8 = 53748 := by
     decide +kernel
-  have ha9 : Seg53.wireSeating 9 = 1 := by
+  have ha9 : Seg61.wireSeating 9 = 1 := by
     decide +kernel
   simp [
     Deployed.Templates.Semantics.TAssertEq_001662998b48830253568a34945bae30020bcb70574648b9aa58b23510a29b69.spec,
     claimedStatementHash, claimedStatementHashLC,
     statementHash, statementHashLC,
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-    Seg53.localRho, Deployed.Templates.seated,
+    Seg61.localRho, Deployed.Templates.seated,
     ha1, ha2, ha3, ha4, ha5, ha6, ha7, ha8, ha9
   ] at h ⊢
   ring_nf at h ⊢
@@ -390,7 +396,9 @@ theorem statementHash_of_exact
          Deployed.ShieldedIcs20WithdrawalRefinement.C.withdrawalEffectHashLimb rho 0,
          Deployed.ShieldedIcs20WithdrawalRefinement.C.withdrawalEffectHashLimb rho 1,
          Deployed.ShieldedIcs20WithdrawalRefinement.C.withdrawalEffectHashLimb rho 2,
-         Deployed.ShieldedIcs20WithdrawalRefinement.C.withdrawalEffectHashLimb rho 3] := by
+         Deployed.ShieldedIcs20WithdrawalRefinement.C.withdrawalEffectHashLimb rho 3,
+         routingTag rho,
+         routingParameterSetId rho] := by
   simp [
     Deployed.ShieldedIcs20WithdrawalRefinement.C.withdrawalEffectHashLimb,
     withdrawalEffectHashLimbsAt, withdrawalEffectHashLimbsVector
@@ -405,8 +413,8 @@ theorem statementHash_of_exact
           (withdrawalEffectHashLimbs1 rho)
           (withdrawalEffectHashLimbs2 rho)
           (withdrawalEffectHashLimbs3 rho)
-          Protocol.ShieldedIcs20Withdrawal.Concrete.statementPad1
-          Protocol.ShieldedIcs20Withdrawal.Concrete.statementPad0
+          (routingTag rho)
+          (routingParameterSetId rho)
           Protocol.ShieldedIcs20Withdrawal.Concrete.statementPad1 :=
       statementBlock2_of_exact rho facts
     _ = Poseidon7Bridge.permSpec7
@@ -420,8 +428,8 @@ theorem statementHash_of_exact
           (withdrawalEffectHashLimbs1 rho)
           (withdrawalEffectHashLimbs2 rho)
           (withdrawalEffectHashLimbs3 rho)
-          Protocol.ShieldedIcs20Withdrawal.Concrete.statementPad1
-          Protocol.ShieldedIcs20Withdrawal.Concrete.statementPad0
+          (routingTag rho)
+          (routingParameterSetId rho)
           Protocol.ShieldedIcs20Withdrawal.Concrete.statementPad1 := by
       rw [statementBlock1_of_exact rho facts]
     _ = Protocol.Common.statementHash
@@ -443,7 +451,9 @@ theorem statementHash_of_exact
            withdrawalEffectHashLimbs0 rho,
            withdrawalEffectHashLimbs1 rho,
            withdrawalEffectHashLimbs2 rho,
-           withdrawalEffectHashLimbs3 rho] := by
+           withdrawalEffectHashLimbs3 rho,
+           routingTag rho,
+           routingParameterSetId rho] := by
       rw [statementBlock0_of_exact rho facts]
       rfl
 

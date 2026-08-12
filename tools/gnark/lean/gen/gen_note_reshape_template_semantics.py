@@ -47,6 +47,10 @@ DUMMY_SUFFIX = {
 }
 
 ASSERT_EQ_NEW = "assert.eq@460e4d66ff383bde603d8cffb059ede8f489117c64d82168ec67187bae7e1bc3"
+ASSERT_EQ_NOTE_COMMITMENT = (
+    "assert.eq@"
+    "c4acc0cb39ee1820ee3eb4fda139846ccb6ea995c7d6605854f111a0b177b240"
+)
 
 EQ_IF_RESIDUAL = {
     "assert.eq_if@36366df670e29c988b147701d72d7155b3720bdc777b4429912cc664e80b0b03": "((-1 : F) * rho 2 + (7037051457856975353540687448984622109479916112628386523279361213264507699201 : F) * rho 3 + (7238110070938603220784707090384182741179342287274911852515914390786350776321 : F) * rho 4 + (7388904030749824121217721821433853214953911918259805849443329273927733084161 : F) * rho 5 + (4691367638571316902360458299323081406319944075085591015519574142176338466134 : F) * rho 6 + (7600015574485533381823942444903391878238309401638657445141710110325668315137 : F) * rho 7)",
@@ -391,6 +395,11 @@ OPERATION_GENERATORS = (
         "generated_files",
     ),
     (
+        "routing semantics",
+        "gen_routing_semantics",
+        "generated_files",
+    ),
+    (
         "statement hashes",
         "gen_certified_statement_hash_semantics",
         "generated_files",
@@ -417,6 +426,7 @@ REQUIRED_OPERATION_GENERATORS = frozenset(
         ("gen_note_reshape_scp_semantics", "generated_files"),
         ("gen_note_reshape_compress_semantics", "generated_files"),
         ("gen_certified_composite_semantics", "generated_files"),
+        ("gen_routing_semantics", "generated_files"),
         ("gen_certified_statement_hash_semantics", "generated_files"),
     }
 )
@@ -1546,6 +1556,21 @@ theorem sound (rho : Nat -> F) (h : relation rho) : spec rho := by
 
 theorem sound (rho : Nat -> F) (h : relation rho) : spec rho := by
   {simplify}
+  unfold spec
+  obtain ⟨h0, _⟩ := h
+  linear_combination h0
+"""
+    elif key == ASSERT_EQ_NOTE_COMMITMENT:
+        body = """def spec (rho : Nat -> F) : Prop :=
+  (7238110070938603220784707090384182741179342287274911852515914390786350776321 : F) * rho 1 +
+    (7388904030749824121217721821433853214953911918259805849443329273927733084161 : F) * rho 2 +
+    (4691367638571316902360458299323081406319944075085591015519574142176338466134 : F) * rho 3 +
+    (7600015574485533381823942444903391878238309401638657445141710110325668315137 : F) * rho 4 +
+    (2303035022571373752067861346940421781284336182314744680345972760704747974284 : F) * rho 5 +
+    (7740756603642672888894756193883084320427907723891225175607297334590958469121 : F) * rho 6 = rho 7
+
+theorem sound (rho : Nat -> F) (h : relation rho) : spec rho := by
+  unfold relation at h
   unfold spec
   obtain ⟨h0, _⟩ := h
   linear_combination h0

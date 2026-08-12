@@ -19,7 +19,6 @@ type noteCommitmentProfileCircuit struct {
 	DiversifiedGenX  frontend.Variable
 	DiversifiedGenY  frontend.Variable
 	TransmissionKeyS frontend.Variable
-	ClueKey          frontend.Variable
 }
 
 func (c *noteCommitmentProfileCircuit) Define(api frontend.API) error {
@@ -30,7 +29,6 @@ func (c *noteCommitmentProfileCircuit) Define(api frontend.API) error {
 		c.NoteAssetID,
 		gnarkte.Point{X: c.DiversifiedGenX, Y: c.DiversifiedGenY},
 		c.TransmissionKeyS,
-		c.ClueKey,
 	)
 	return err
 }
@@ -40,7 +38,6 @@ type complianceLeafProfileCircuit struct {
 	DivGenY        frontend.Variable
 	TransX         frontend.Variable
 	TransY         frontend.Variable
-	ClueKey        frontend.Variable
 	AssetID        frontend.Variable
 	SlotID         frontend.Variable
 	SlotDerivation frontend.Variable
@@ -52,7 +49,6 @@ func (c *complianceLeafProfileCircuit) Define(api frontend.API) error {
 		api,
 		gnarkte.Point{X: c.DivGenX, Y: c.DivGenY},
 		gnarkte.Point{X: c.TransX, Y: c.TransY},
-		c.ClueKey,
 		c.AssetID,
 		c.SlotID,
 		c.SlotDerivation,
@@ -126,18 +122,19 @@ func (c *transferSaltProfileCircuit) Define(api frontend.API) error {
 }
 
 type transferDetectionProfileCircuit struct {
-	IsFlagged       frontend.Variable
-	SharedSecretX   frontend.Variable
-	SharedSecretY   frontend.Variable
-	SenderCoreEPKFq frontend.Variable
-	DetectionSalt   frontend.Variable
-	AssetID         frontend.Variable
-	SenderSlotID    frontend.Variable
-	ReceiverSlotID  frontend.Variable
-	Ciphertext0     frontend.Variable
-	Ciphertext1     frontend.Variable
-	Ciphertext2     frontend.Variable
-	Ciphertext3     frontend.Variable
+	IsFlagged           frontend.Variable
+	SharedSecretX       frontend.Variable
+	SharedSecretY       frontend.Variable
+	SenderCoreEPKFq     frontend.Variable
+	DetectionSalt       frontend.Variable
+	AssetID             frontend.Variable
+	SenderSlotID        frontend.Variable
+	ReceiverSlotID      frontend.Variable
+	RoutingRolesSwapped frontend.Variable
+	Ciphertext0         frontend.Variable
+	Ciphertext1         frontend.Variable
+	Ciphertext2         frontend.Variable
+	Ciphertext3         frontend.Variable
 }
 
 func (c *transferDetectionProfileCircuit) Define(api frontend.API) error {
@@ -150,6 +147,7 @@ func (c *transferDetectionProfileCircuit) Define(api frontend.API) error {
 		c.AssetID,
 		c.SenderSlotID,
 		c.ReceiverSlotID,
+		c.RoutingRolesSwapped,
 		[compliance.TransferDetectionFQCount]frontend.Variable{
 			c.Ciphertext0,
 			c.Ciphertext1,

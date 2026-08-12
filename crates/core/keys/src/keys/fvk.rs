@@ -14,7 +14,7 @@ use crate::PositionMetadataKey;
 use crate::{
     ka, prf,
     rdsa::{SpendAuth, VerificationKey},
-    Address, AddressView, BackreferenceKey, DiscoveryKey,
+    Address, AddressView, BackreferenceKey,
 };
 
 use super::{AddressIndex, DiversifierKey, IncomingViewingKey, NullifierKey, OutgoingViewingKey};
@@ -49,7 +49,7 @@ pub enum FullViewingKeyError {
 
 impl FullViewingKey {
     /// Derive a shielded payment address with the given [`AddressIndex`].
-    pub fn payment_address(&self, index: AddressIndex) -> (Address, DiscoveryKey) {
+    pub fn payment_address(&self, index: AddressIndex) -> Address {
         self.incoming().payment_address(index)
     }
 
@@ -58,7 +58,7 @@ impl FullViewingKey {
         &self,
         rng: R,
         address_index: AddressIndex,
-    ) -> (Address, DiscoveryKey) {
+    ) -> Address {
         self.incoming().ephemeral_address(rng, address_index)
     }
 

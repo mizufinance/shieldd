@@ -60,6 +60,12 @@ func TestConstraintSegmentClassificationFailsClosedByExactOperation(t *testing.T
 		"select.field",
 		"select.point",
 		"dummy.mux",
+		"routing.precision.select",
+		"routing.parameters.bind",
+		"routing.permutation.compose",
+		"routing.tag.public_range",
+		"routing.tag.route_bits",
+		"routing.tag.compose",
 	} {
 		kind, _, _, _ := classifyConstraintSegment(op)
 		if kind != "glue" {
@@ -120,7 +126,7 @@ shape n_in=8 n_out=1
 0008 assert.boolean value=spend7.is_dummy
 0009 assert.dummy_suffix flags=spends.is_dummy
 0010 assert.active_range value=active_input_count min=2 max=8
-0011 shared.bind shared.ak=auth.ak claimed.balance_commitment=balance_commitment shared.div_gen=witness.shared.div_gen shared.asset_id=witness.shared.asset_id shared.clue_key=witness.shared.clue_key
+0011 shared.bind shared.ak=auth.ak claimed.balance_commitment=balance_commitment shared.div_gen=witness.shared.div_gen shared.asset_id=witness.shared.asset_id
 0012 assert.decaf_non_identity point=auth.ak coordinate=x
 0013 assert.decaf_non_identity point=shared.div_gen coordinate=x
 0014 decaf.assert_on_curve point=claimed.balance_commitment
@@ -129,131 +135,149 @@ shape n_in=8 n_out=1
 0017 decaf.diversified_transmission_key nk=auth.nk ak=shared.ak div_gen=shared.div_gen ivk_reduced=auth.ivk_reduced ivk_quotient_a=auth.ivk_quotient_a out=shared.transmission.computed
 0018 assert.decaf_non_identity point=shared.transmission.computed coordinate=x
 0019 decaf.compress_to_field in=shared.transmission.computed out=shared.transmission.fq
-0020 spend.begin spend0
-0021 gadget.note_commitment blinding=spend0.note.blinding amount=spend0.note.amount asset_id=shared.asset_id div_gen_fq=shared.div_gen_fq transmission_key_s=shared.transmission.fq clue_key=shared.clue_key out=spend0.note.commitment.computed
-0022 assert.eq_if lhs=spend0.note.commitment.computed rhs=spend0.state_proof.commitment enabled=spend0.is_real
-0023 gadget.nullifier nk=auth.nk commitment=spend0.state_proof.commitment position=spend0.state_proof.position out=spend0.nullifier.real
-0024 gadget.state_commitment_path commitment=spend0.state_proof.commitment position=spend0.state_proof.position path=spend0.state_proof.path out=spend0.anchor.computed
-0025 assert.eq_if lhs=spend0.anchor.computed rhs=anchor enabled=spend0.is_real
-0026 gadget.synthetic_dummy_nullifier seed=spend0.dummy_nullifier_seed randomizer=spend0.auth_randomizer slot=0 out=spend0.nullifier.dummy
-0027 dummy.mux flag=spend0.is_dummy real=spend0.nullifier.real dummy=spend0.nullifier.dummy out=spend0.nullifier.selected
-0028 assert.eq lhs=spend0.nullifier rhs=spend0.nullifier.selected
-0029 decaf.randomized_verification_key ak=shared.ak randomizer=spend0.auth_randomizer out=spend0.rk.real
-0030 decaf.assert_equivalent_if lhs=spend0.rk.real rhs=spend0.rk.claimed enabled=spend0.is_real
-0031 assert.eq_if lhs=spend0.note.amount rhs=0 enabled=spend0.is_dummy
-0032 decaf.compress_to_field in=spend0.rk.claimed out=spend0.rk.compressed
-0033 spend.collect spend0 amount->input_amounts nullifier->statement.nullifiers_and_rks rk_compressed->statement.nullifiers_and_rks
-0034 spend.begin spend1
-0035 gadget.note_commitment blinding=spend1.note.blinding amount=spend1.note.amount asset_id=shared.asset_id div_gen_fq=shared.div_gen_fq transmission_key_s=shared.transmission.fq clue_key=shared.clue_key out=spend1.note.commitment.computed
-0036 assert.eq_if lhs=spend1.note.commitment.computed rhs=spend1.state_proof.commitment enabled=spend1.is_real
-0037 gadget.nullifier nk=auth.nk commitment=spend1.state_proof.commitment position=spend1.state_proof.position out=spend1.nullifier.real
-0038 gadget.state_commitment_path commitment=spend1.state_proof.commitment position=spend1.state_proof.position path=spend1.state_proof.path out=spend1.anchor.computed
-0039 assert.eq_if lhs=spend1.anchor.computed rhs=anchor enabled=spend1.is_real
-0040 gadget.synthetic_dummy_nullifier seed=spend1.dummy_nullifier_seed randomizer=spend1.auth_randomizer slot=1 out=spend1.nullifier.dummy
-0041 dummy.mux flag=spend1.is_dummy real=spend1.nullifier.real dummy=spend1.nullifier.dummy out=spend1.nullifier.selected
-0042 assert.eq lhs=spend1.nullifier rhs=spend1.nullifier.selected
-0043 decaf.randomized_verification_key ak=shared.ak randomizer=spend1.auth_randomizer out=spend1.rk.real
-0044 decaf.assert_equivalent_if lhs=spend1.rk.real rhs=spend1.rk.claimed enabled=spend1.is_real
-0045 assert.eq_if lhs=spend1.note.amount rhs=0 enabled=spend1.is_dummy
-0046 decaf.compress_to_field in=spend1.rk.claimed out=spend1.rk.compressed
-0047 spend.collect spend1 amount->input_amounts nullifier->statement.nullifiers_and_rks rk_compressed->statement.nullifiers_and_rks
-0048 spend.begin spend2
-0049 gadget.note_commitment blinding=spend2.note.blinding amount=spend2.note.amount asset_id=shared.asset_id div_gen_fq=shared.div_gen_fq transmission_key_s=shared.transmission.fq clue_key=shared.clue_key out=spend2.note.commitment.computed
-0050 assert.eq_if lhs=spend2.note.commitment.computed rhs=spend2.state_proof.commitment enabled=spend2.is_real
-0051 gadget.nullifier nk=auth.nk commitment=spend2.state_proof.commitment position=spend2.state_proof.position out=spend2.nullifier.real
-0052 gadget.state_commitment_path commitment=spend2.state_proof.commitment position=spend2.state_proof.position path=spend2.state_proof.path out=spend2.anchor.computed
-0053 assert.eq_if lhs=spend2.anchor.computed rhs=anchor enabled=spend2.is_real
-0054 gadget.synthetic_dummy_nullifier seed=spend2.dummy_nullifier_seed randomizer=spend2.auth_randomizer slot=2 out=spend2.nullifier.dummy
-0055 dummy.mux flag=spend2.is_dummy real=spend2.nullifier.real dummy=spend2.nullifier.dummy out=spend2.nullifier.selected
-0056 assert.eq lhs=spend2.nullifier rhs=spend2.nullifier.selected
-0057 decaf.randomized_verification_key ak=shared.ak randomizer=spend2.auth_randomizer out=spend2.rk.real
-0058 decaf.assert_equivalent_if lhs=spend2.rk.real rhs=spend2.rk.claimed enabled=spend2.is_real
-0059 assert.eq_if lhs=spend2.note.amount rhs=0 enabled=spend2.is_dummy
-0060 decaf.compress_to_field in=spend2.rk.claimed out=spend2.rk.compressed
-0061 spend.collect spend2 amount->input_amounts nullifier->statement.nullifiers_and_rks rk_compressed->statement.nullifiers_and_rks
-0062 spend.begin spend3
-0063 gadget.note_commitment blinding=spend3.note.blinding amount=spend3.note.amount asset_id=shared.asset_id div_gen_fq=shared.div_gen_fq transmission_key_s=shared.transmission.fq clue_key=shared.clue_key out=spend3.note.commitment.computed
-0064 assert.eq_if lhs=spend3.note.commitment.computed rhs=spend3.state_proof.commitment enabled=spend3.is_real
-0065 gadget.nullifier nk=auth.nk commitment=spend3.state_proof.commitment position=spend3.state_proof.position out=spend3.nullifier.real
-0066 gadget.state_commitment_path commitment=spend3.state_proof.commitment position=spend3.state_proof.position path=spend3.state_proof.path out=spend3.anchor.computed
-0067 assert.eq_if lhs=spend3.anchor.computed rhs=anchor enabled=spend3.is_real
-0068 gadget.synthetic_dummy_nullifier seed=spend3.dummy_nullifier_seed randomizer=spend3.auth_randomizer slot=3 out=spend3.nullifier.dummy
-0069 dummy.mux flag=spend3.is_dummy real=spend3.nullifier.real dummy=spend3.nullifier.dummy out=spend3.nullifier.selected
-0070 assert.eq lhs=spend3.nullifier rhs=spend3.nullifier.selected
-0071 decaf.randomized_verification_key ak=shared.ak randomizer=spend3.auth_randomizer out=spend3.rk.real
-0072 decaf.assert_equivalent_if lhs=spend3.rk.real rhs=spend3.rk.claimed enabled=spend3.is_real
-0073 assert.eq_if lhs=spend3.note.amount rhs=0 enabled=spend3.is_dummy
-0074 decaf.compress_to_field in=spend3.rk.claimed out=spend3.rk.compressed
-0075 spend.collect spend3 amount->input_amounts nullifier->statement.nullifiers_and_rks rk_compressed->statement.nullifiers_and_rks
-0076 spend.begin spend4
-0077 gadget.note_commitment blinding=spend4.note.blinding amount=spend4.note.amount asset_id=shared.asset_id div_gen_fq=shared.div_gen_fq transmission_key_s=shared.transmission.fq clue_key=shared.clue_key out=spend4.note.commitment.computed
-0078 assert.eq_if lhs=spend4.note.commitment.computed rhs=spend4.state_proof.commitment enabled=spend4.is_real
-0079 gadget.nullifier nk=auth.nk commitment=spend4.state_proof.commitment position=spend4.state_proof.position out=spend4.nullifier.real
-0080 gadget.state_commitment_path commitment=spend4.state_proof.commitment position=spend4.state_proof.position path=spend4.state_proof.path out=spend4.anchor.computed
-0081 assert.eq_if lhs=spend4.anchor.computed rhs=anchor enabled=spend4.is_real
-0082 gadget.synthetic_dummy_nullifier seed=spend4.dummy_nullifier_seed randomizer=spend4.auth_randomizer slot=4 out=spend4.nullifier.dummy
-0083 dummy.mux flag=spend4.is_dummy real=spend4.nullifier.real dummy=spend4.nullifier.dummy out=spend4.nullifier.selected
-0084 assert.eq lhs=spend4.nullifier rhs=spend4.nullifier.selected
-0085 decaf.randomized_verification_key ak=shared.ak randomizer=spend4.auth_randomizer out=spend4.rk.real
-0086 decaf.assert_equivalent_if lhs=spend4.rk.real rhs=spend4.rk.claimed enabled=spend4.is_real
-0087 assert.eq_if lhs=spend4.note.amount rhs=0 enabled=spend4.is_dummy
-0088 decaf.compress_to_field in=spend4.rk.claimed out=spend4.rk.compressed
-0089 spend.collect spend4 amount->input_amounts nullifier->statement.nullifiers_and_rks rk_compressed->statement.nullifiers_and_rks
-0090 spend.begin spend5
-0091 gadget.note_commitment blinding=spend5.note.blinding amount=spend5.note.amount asset_id=shared.asset_id div_gen_fq=shared.div_gen_fq transmission_key_s=shared.transmission.fq clue_key=shared.clue_key out=spend5.note.commitment.computed
-0092 assert.eq_if lhs=spend5.note.commitment.computed rhs=spend5.state_proof.commitment enabled=spend5.is_real
-0093 gadget.nullifier nk=auth.nk commitment=spend5.state_proof.commitment position=spend5.state_proof.position out=spend5.nullifier.real
-0094 gadget.state_commitment_path commitment=spend5.state_proof.commitment position=spend5.state_proof.position path=spend5.state_proof.path out=spend5.anchor.computed
-0095 assert.eq_if lhs=spend5.anchor.computed rhs=anchor enabled=spend5.is_real
-0096 gadget.synthetic_dummy_nullifier seed=spend5.dummy_nullifier_seed randomizer=spend5.auth_randomizer slot=5 out=spend5.nullifier.dummy
-0097 dummy.mux flag=spend5.is_dummy real=spend5.nullifier.real dummy=spend5.nullifier.dummy out=spend5.nullifier.selected
-0098 assert.eq lhs=spend5.nullifier rhs=spend5.nullifier.selected
-0099 decaf.randomized_verification_key ak=shared.ak randomizer=spend5.auth_randomizer out=spend5.rk.real
-0100 decaf.assert_equivalent_if lhs=spend5.rk.real rhs=spend5.rk.claimed enabled=spend5.is_real
-0101 assert.eq_if lhs=spend5.note.amount rhs=0 enabled=spend5.is_dummy
-0102 decaf.compress_to_field in=spend5.rk.claimed out=spend5.rk.compressed
-0103 spend.collect spend5 amount->input_amounts nullifier->statement.nullifiers_and_rks rk_compressed->statement.nullifiers_and_rks
-0104 spend.begin spend6
-0105 gadget.note_commitment blinding=spend6.note.blinding amount=spend6.note.amount asset_id=shared.asset_id div_gen_fq=shared.div_gen_fq transmission_key_s=shared.transmission.fq clue_key=shared.clue_key out=spend6.note.commitment.computed
-0106 assert.eq_if lhs=spend6.note.commitment.computed rhs=spend6.state_proof.commitment enabled=spend6.is_real
-0107 gadget.nullifier nk=auth.nk commitment=spend6.state_proof.commitment position=spend6.state_proof.position out=spend6.nullifier.real
-0108 gadget.state_commitment_path commitment=spend6.state_proof.commitment position=spend6.state_proof.position path=spend6.state_proof.path out=spend6.anchor.computed
-0109 assert.eq_if lhs=spend6.anchor.computed rhs=anchor enabled=spend6.is_real
-0110 gadget.synthetic_dummy_nullifier seed=spend6.dummy_nullifier_seed randomizer=spend6.auth_randomizer slot=6 out=spend6.nullifier.dummy
-0111 dummy.mux flag=spend6.is_dummy real=spend6.nullifier.real dummy=spend6.nullifier.dummy out=spend6.nullifier.selected
-0112 assert.eq lhs=spend6.nullifier rhs=spend6.nullifier.selected
-0113 decaf.randomized_verification_key ak=shared.ak randomizer=spend6.auth_randomizer out=spend6.rk.real
-0114 decaf.assert_equivalent_if lhs=spend6.rk.real rhs=spend6.rk.claimed enabled=spend6.is_real
-0115 assert.eq_if lhs=spend6.note.amount rhs=0 enabled=spend6.is_dummy
-0116 decaf.compress_to_field in=spend6.rk.claimed out=spend6.rk.compressed
-0117 spend.collect spend6 amount->input_amounts nullifier->statement.nullifiers_and_rks rk_compressed->statement.nullifiers_and_rks
-0118 spend.begin spend7
-0119 gadget.note_commitment blinding=spend7.note.blinding amount=spend7.note.amount asset_id=shared.asset_id div_gen_fq=shared.div_gen_fq transmission_key_s=shared.transmission.fq clue_key=shared.clue_key out=spend7.note.commitment.computed
-0120 assert.eq_if lhs=spend7.note.commitment.computed rhs=spend7.state_proof.commitment enabled=spend7.is_real
-0121 gadget.nullifier nk=auth.nk commitment=spend7.state_proof.commitment position=spend7.state_proof.position out=spend7.nullifier.real
-0122 gadget.state_commitment_path commitment=spend7.state_proof.commitment position=spend7.state_proof.position path=spend7.state_proof.path out=spend7.anchor.computed
-0123 assert.eq_if lhs=spend7.anchor.computed rhs=anchor enabled=spend7.is_real
-0124 gadget.synthetic_dummy_nullifier seed=spend7.dummy_nullifier_seed randomizer=spend7.auth_randomizer slot=7 out=spend7.nullifier.dummy
-0125 dummy.mux flag=spend7.is_dummy real=spend7.nullifier.real dummy=spend7.nullifier.dummy out=spend7.nullifier.selected
-0126 assert.eq lhs=spend7.nullifier rhs=spend7.nullifier.selected
-0127 decaf.randomized_verification_key ak=shared.ak randomizer=spend7.auth_randomizer out=spend7.rk.real
-0128 decaf.assert_equivalent_if lhs=spend7.rk.real rhs=spend7.rk.claimed enabled=spend7.is_real
-0129 assert.eq_if lhs=spend7.note.amount rhs=0 enabled=spend7.is_dummy
-0130 decaf.compress_to_field in=spend7.rk.claimed out=spend7.rk.compressed
-0131 spend.collect spend7 amount->input_amounts nullifier->statement.nullifiers_and_rks rk_compressed->statement.nullifiers_and_rks
-0132 output.begin output0
-0133 gadget.note_commitment blinding=output0.note.blinding amount=output0.note.amount asset_id=shared.asset_id div_gen_fq=shared.div_gen_fq transmission_key_s=shared.transmission.fq clue_key=shared.clue_key out=output0.note.commitment.computed
-0134 assert.eq lhs=output0.note.commitment.computed rhs=output0.note_commitment
-0135 output.collect output0 amount->output_amounts commitment->statement.output_commitments
-0136 decaf.conservation_net_balance_commitment inputs=input_amounts outputs=output_amounts blinding=action_balance_blinding out=balance_commitment.computed
-0137 decaf.assert_equivalent lhs=balance_commitment.computed rhs=claimed.balance_commitment
-0138 decaf.compress_to_field in=balance_commitment.computed out=balance_commitment.fq
-0139 statement.append field=anchor
-0140 statement.append_all fields=output_commitments
-0141 statement.append field=balance_commitment.fq
-0142 statement.append_all fields=nullifiers_and_rks
-0143 statement.hash family=note_reshape8x1 fields=statement_fields out=statement_hash
-0144 assert.eq lhs=statement_hash rhs=claimed_statement_hash
+0020 assert.boolean var=is_regulated
+0021 decaf.compress_to_field in=asset.leaf.dk_pub out=asset.leaf.dk_pub_fq
+0022 gadget.asset_registry_params_hash dk_pub_fq=asset.leaf.dk_pub_fq threshold=asset.leaf.threshold slot_count=asset.leaf.slot_count channels_hash=asset.leaf.channels_hash out=asset.leaf.params_hash
+0023 decaf.compress_to_field in=asset.leaf.ring_pk out=asset.leaf.ring_pk_fq
+0024 gadget.asset_registry_ring_hash ring_pk_fq=asset.leaf.ring_pk_fq ring_id_hash=asset.leaf.ring_id_hash policy_id_hash=asset.leaf.policy_id_hash permission_hash=asset.leaf.permission_hash resource_hash=asset.leaf.resource_hash out=asset.leaf.ring_hash
+0025 gadget.asset_registry_leaf_hash value=asset.leaf.value next_index=asset.leaf.next_index next_value=asset.leaf.next_value params_hash=asset.leaf.params_hash ring_hash=asset.leaf.ring_hash out=asset.leaf.commitment
+0026 gadget.asset_registry_path leaf=asset.leaf.commitment path=asset.path position=asset.position out=asset.root.computed
+0027 assert.eq lhs=asset.root.computed rhs=asset_anchor
+0028 gadget.asset_registry_gap asset_id=shared.asset_id is_regulated=is_regulated value=asset.leaf.value next_value=asset.leaf.next_value out=asset.gap_valid
+0029 assert.eq lhs=asset.gap_valid rhs=1
+0030 routing.precision.select regulated=regulated_precision unregulated=unregulated_precision selector=is_regulated
+0031 routing.parameters.hash regulated=regulated_precision unregulated=unregulated_precision as_of=routing_as_of_height out=routing_parameter_set_id
+0032 routing.parameters.bind expected=routing_parameter_set_id.computed public=routing_parameter_set_id
+0033 routing.route_word transmission_key_s=owner.transmission_fq out=owner.route_word
+0034 routing.tag.public_range slot=0 tag=routing_tag
+0035 routing.tag.route_bits slot=0 in=route_word
+0036 routing.tag.random_word slot=0 nonce=routing_nonce out=random_word
+0037 routing.tag.compose slot=0 route_word=route_word random_word=random_word meaningful=meaningful out=expected_tag
+0038 spend.begin spend0
+0039 gadget.note_commitment blinding=spend0.note.blinding amount=spend0.note.amount asset_id=shared.asset_id div_gen_fq=shared.div_gen_fq transmission_key_s=shared.transmission.fq out=spend0.note.commitment.computed
+0040 assert.eq_if lhs=spend0.note.commitment.computed rhs=spend0.state_proof.commitment enabled=spend0.is_real
+0041 gadget.nullifier nk=auth.nk commitment=spend0.state_proof.commitment position=spend0.state_proof.position out=spend0.nullifier.real
+0042 gadget.state_commitment_path commitment=spend0.state_proof.commitment position=spend0.state_proof.position path=spend0.state_proof.path out=spend0.anchor.computed
+0043 assert.eq_if lhs=spend0.anchor.computed rhs=anchor enabled=spend0.is_real
+0044 gadget.synthetic_dummy_nullifier seed=spend0.dummy_nullifier_seed randomizer=spend0.auth_randomizer slot=0 out=spend0.nullifier.dummy
+0045 dummy.mux flag=spend0.is_dummy real=spend0.nullifier.real dummy=spend0.nullifier.dummy out=spend0.nullifier.selected
+0046 assert.eq lhs=spend0.nullifier rhs=spend0.nullifier.selected
+0047 decaf.randomized_verification_key ak=shared.ak randomizer=spend0.auth_randomizer out=spend0.rk.real
+0048 decaf.assert_equivalent_if lhs=spend0.rk.real rhs=spend0.rk.claimed enabled=spend0.is_real
+0049 assert.eq_if lhs=spend0.note.amount rhs=0 enabled=spend0.is_dummy
+0050 decaf.compress_to_field in=spend0.rk.claimed out=spend0.rk.compressed
+0051 spend.collect spend0 amount->input_amounts nullifier->statement.nullifiers_and_rks rk_compressed->statement.nullifiers_and_rks
+0052 spend.begin spend1
+0053 gadget.note_commitment blinding=spend1.note.blinding amount=spend1.note.amount asset_id=shared.asset_id div_gen_fq=shared.div_gen_fq transmission_key_s=shared.transmission.fq out=spend1.note.commitment.computed
+0054 assert.eq_if lhs=spend1.note.commitment.computed rhs=spend1.state_proof.commitment enabled=spend1.is_real
+0055 gadget.nullifier nk=auth.nk commitment=spend1.state_proof.commitment position=spend1.state_proof.position out=spend1.nullifier.real
+0056 gadget.state_commitment_path commitment=spend1.state_proof.commitment position=spend1.state_proof.position path=spend1.state_proof.path out=spend1.anchor.computed
+0057 assert.eq_if lhs=spend1.anchor.computed rhs=anchor enabled=spend1.is_real
+0058 gadget.synthetic_dummy_nullifier seed=spend1.dummy_nullifier_seed randomizer=spend1.auth_randomizer slot=1 out=spend1.nullifier.dummy
+0059 dummy.mux flag=spend1.is_dummy real=spend1.nullifier.real dummy=spend1.nullifier.dummy out=spend1.nullifier.selected
+0060 assert.eq lhs=spend1.nullifier rhs=spend1.nullifier.selected
+0061 decaf.randomized_verification_key ak=shared.ak randomizer=spend1.auth_randomizer out=spend1.rk.real
+0062 decaf.assert_equivalent_if lhs=spend1.rk.real rhs=spend1.rk.claimed enabled=spend1.is_real
+0063 assert.eq_if lhs=spend1.note.amount rhs=0 enabled=spend1.is_dummy
+0064 decaf.compress_to_field in=spend1.rk.claimed out=spend1.rk.compressed
+0065 spend.collect spend1 amount->input_amounts nullifier->statement.nullifiers_and_rks rk_compressed->statement.nullifiers_and_rks
+0066 spend.begin spend2
+0067 gadget.note_commitment blinding=spend2.note.blinding amount=spend2.note.amount asset_id=shared.asset_id div_gen_fq=shared.div_gen_fq transmission_key_s=shared.transmission.fq out=spend2.note.commitment.computed
+0068 assert.eq_if lhs=spend2.note.commitment.computed rhs=spend2.state_proof.commitment enabled=spend2.is_real
+0069 gadget.nullifier nk=auth.nk commitment=spend2.state_proof.commitment position=spend2.state_proof.position out=spend2.nullifier.real
+0070 gadget.state_commitment_path commitment=spend2.state_proof.commitment position=spend2.state_proof.position path=spend2.state_proof.path out=spend2.anchor.computed
+0071 assert.eq_if lhs=spend2.anchor.computed rhs=anchor enabled=spend2.is_real
+0072 gadget.synthetic_dummy_nullifier seed=spend2.dummy_nullifier_seed randomizer=spend2.auth_randomizer slot=2 out=spend2.nullifier.dummy
+0073 dummy.mux flag=spend2.is_dummy real=spend2.nullifier.real dummy=spend2.nullifier.dummy out=spend2.nullifier.selected
+0074 assert.eq lhs=spend2.nullifier rhs=spend2.nullifier.selected
+0075 decaf.randomized_verification_key ak=shared.ak randomizer=spend2.auth_randomizer out=spend2.rk.real
+0076 decaf.assert_equivalent_if lhs=spend2.rk.real rhs=spend2.rk.claimed enabled=spend2.is_real
+0077 assert.eq_if lhs=spend2.note.amount rhs=0 enabled=spend2.is_dummy
+0078 decaf.compress_to_field in=spend2.rk.claimed out=spend2.rk.compressed
+0079 spend.collect spend2 amount->input_amounts nullifier->statement.nullifiers_and_rks rk_compressed->statement.nullifiers_and_rks
+0080 spend.begin spend3
+0081 gadget.note_commitment blinding=spend3.note.blinding amount=spend3.note.amount asset_id=shared.asset_id div_gen_fq=shared.div_gen_fq transmission_key_s=shared.transmission.fq out=spend3.note.commitment.computed
+0082 assert.eq_if lhs=spend3.note.commitment.computed rhs=spend3.state_proof.commitment enabled=spend3.is_real
+0083 gadget.nullifier nk=auth.nk commitment=spend3.state_proof.commitment position=spend3.state_proof.position out=spend3.nullifier.real
+0084 gadget.state_commitment_path commitment=spend3.state_proof.commitment position=spend3.state_proof.position path=spend3.state_proof.path out=spend3.anchor.computed
+0085 assert.eq_if lhs=spend3.anchor.computed rhs=anchor enabled=spend3.is_real
+0086 gadget.synthetic_dummy_nullifier seed=spend3.dummy_nullifier_seed randomizer=spend3.auth_randomizer slot=3 out=spend3.nullifier.dummy
+0087 dummy.mux flag=spend3.is_dummy real=spend3.nullifier.real dummy=spend3.nullifier.dummy out=spend3.nullifier.selected
+0088 assert.eq lhs=spend3.nullifier rhs=spend3.nullifier.selected
+0089 decaf.randomized_verification_key ak=shared.ak randomizer=spend3.auth_randomizer out=spend3.rk.real
+0090 decaf.assert_equivalent_if lhs=spend3.rk.real rhs=spend3.rk.claimed enabled=spend3.is_real
+0091 assert.eq_if lhs=spend3.note.amount rhs=0 enabled=spend3.is_dummy
+0092 decaf.compress_to_field in=spend3.rk.claimed out=spend3.rk.compressed
+0093 spend.collect spend3 amount->input_amounts nullifier->statement.nullifiers_and_rks rk_compressed->statement.nullifiers_and_rks
+0094 spend.begin spend4
+0095 gadget.note_commitment blinding=spend4.note.blinding amount=spend4.note.amount asset_id=shared.asset_id div_gen_fq=shared.div_gen_fq transmission_key_s=shared.transmission.fq out=spend4.note.commitment.computed
+0096 assert.eq_if lhs=spend4.note.commitment.computed rhs=spend4.state_proof.commitment enabled=spend4.is_real
+0097 gadget.nullifier nk=auth.nk commitment=spend4.state_proof.commitment position=spend4.state_proof.position out=spend4.nullifier.real
+0098 gadget.state_commitment_path commitment=spend4.state_proof.commitment position=spend4.state_proof.position path=spend4.state_proof.path out=spend4.anchor.computed
+0099 assert.eq_if lhs=spend4.anchor.computed rhs=anchor enabled=spend4.is_real
+0100 gadget.synthetic_dummy_nullifier seed=spend4.dummy_nullifier_seed randomizer=spend4.auth_randomizer slot=4 out=spend4.nullifier.dummy
+0101 dummy.mux flag=spend4.is_dummy real=spend4.nullifier.real dummy=spend4.nullifier.dummy out=spend4.nullifier.selected
+0102 assert.eq lhs=spend4.nullifier rhs=spend4.nullifier.selected
+0103 decaf.randomized_verification_key ak=shared.ak randomizer=spend4.auth_randomizer out=spend4.rk.real
+0104 decaf.assert_equivalent_if lhs=spend4.rk.real rhs=spend4.rk.claimed enabled=spend4.is_real
+0105 assert.eq_if lhs=spend4.note.amount rhs=0 enabled=spend4.is_dummy
+0106 decaf.compress_to_field in=spend4.rk.claimed out=spend4.rk.compressed
+0107 spend.collect spend4 amount->input_amounts nullifier->statement.nullifiers_and_rks rk_compressed->statement.nullifiers_and_rks
+0108 spend.begin spend5
+0109 gadget.note_commitment blinding=spend5.note.blinding amount=spend5.note.amount asset_id=shared.asset_id div_gen_fq=shared.div_gen_fq transmission_key_s=shared.transmission.fq out=spend5.note.commitment.computed
+0110 assert.eq_if lhs=spend5.note.commitment.computed rhs=spend5.state_proof.commitment enabled=spend5.is_real
+0111 gadget.nullifier nk=auth.nk commitment=spend5.state_proof.commitment position=spend5.state_proof.position out=spend5.nullifier.real
+0112 gadget.state_commitment_path commitment=spend5.state_proof.commitment position=spend5.state_proof.position path=spend5.state_proof.path out=spend5.anchor.computed
+0113 assert.eq_if lhs=spend5.anchor.computed rhs=anchor enabled=spend5.is_real
+0114 gadget.synthetic_dummy_nullifier seed=spend5.dummy_nullifier_seed randomizer=spend5.auth_randomizer slot=5 out=spend5.nullifier.dummy
+0115 dummy.mux flag=spend5.is_dummy real=spend5.nullifier.real dummy=spend5.nullifier.dummy out=spend5.nullifier.selected
+0116 assert.eq lhs=spend5.nullifier rhs=spend5.nullifier.selected
+0117 decaf.randomized_verification_key ak=shared.ak randomizer=spend5.auth_randomizer out=spend5.rk.real
+0118 decaf.assert_equivalent_if lhs=spend5.rk.real rhs=spend5.rk.claimed enabled=spend5.is_real
+0119 assert.eq_if lhs=spend5.note.amount rhs=0 enabled=spend5.is_dummy
+0120 decaf.compress_to_field in=spend5.rk.claimed out=spend5.rk.compressed
+0121 spend.collect spend5 amount->input_amounts nullifier->statement.nullifiers_and_rks rk_compressed->statement.nullifiers_and_rks
+0122 spend.begin spend6
+0123 gadget.note_commitment blinding=spend6.note.blinding amount=spend6.note.amount asset_id=shared.asset_id div_gen_fq=shared.div_gen_fq transmission_key_s=shared.transmission.fq out=spend6.note.commitment.computed
+0124 assert.eq_if lhs=spend6.note.commitment.computed rhs=spend6.state_proof.commitment enabled=spend6.is_real
+0125 gadget.nullifier nk=auth.nk commitment=spend6.state_proof.commitment position=spend6.state_proof.position out=spend6.nullifier.real
+0126 gadget.state_commitment_path commitment=spend6.state_proof.commitment position=spend6.state_proof.position path=spend6.state_proof.path out=spend6.anchor.computed
+0127 assert.eq_if lhs=spend6.anchor.computed rhs=anchor enabled=spend6.is_real
+0128 gadget.synthetic_dummy_nullifier seed=spend6.dummy_nullifier_seed randomizer=spend6.auth_randomizer slot=6 out=spend6.nullifier.dummy
+0129 dummy.mux flag=spend6.is_dummy real=spend6.nullifier.real dummy=spend6.nullifier.dummy out=spend6.nullifier.selected
+0130 assert.eq lhs=spend6.nullifier rhs=spend6.nullifier.selected
+0131 decaf.randomized_verification_key ak=shared.ak randomizer=spend6.auth_randomizer out=spend6.rk.real
+0132 decaf.assert_equivalent_if lhs=spend6.rk.real rhs=spend6.rk.claimed enabled=spend6.is_real
+0133 assert.eq_if lhs=spend6.note.amount rhs=0 enabled=spend6.is_dummy
+0134 decaf.compress_to_field in=spend6.rk.claimed out=spend6.rk.compressed
+0135 spend.collect spend6 amount->input_amounts nullifier->statement.nullifiers_and_rks rk_compressed->statement.nullifiers_and_rks
+0136 spend.begin spend7
+0137 gadget.note_commitment blinding=spend7.note.blinding amount=spend7.note.amount asset_id=shared.asset_id div_gen_fq=shared.div_gen_fq transmission_key_s=shared.transmission.fq out=spend7.note.commitment.computed
+0138 assert.eq_if lhs=spend7.note.commitment.computed rhs=spend7.state_proof.commitment enabled=spend7.is_real
+0139 gadget.nullifier nk=auth.nk commitment=spend7.state_proof.commitment position=spend7.state_proof.position out=spend7.nullifier.real
+0140 gadget.state_commitment_path commitment=spend7.state_proof.commitment position=spend7.state_proof.position path=spend7.state_proof.path out=spend7.anchor.computed
+0141 assert.eq_if lhs=spend7.anchor.computed rhs=anchor enabled=spend7.is_real
+0142 gadget.synthetic_dummy_nullifier seed=spend7.dummy_nullifier_seed randomizer=spend7.auth_randomizer slot=7 out=spend7.nullifier.dummy
+0143 dummy.mux flag=spend7.is_dummy real=spend7.nullifier.real dummy=spend7.nullifier.dummy out=spend7.nullifier.selected
+0144 assert.eq lhs=spend7.nullifier rhs=spend7.nullifier.selected
+0145 decaf.randomized_verification_key ak=shared.ak randomizer=spend7.auth_randomizer out=spend7.rk.real
+0146 decaf.assert_equivalent_if lhs=spend7.rk.real rhs=spend7.rk.claimed enabled=spend7.is_real
+0147 assert.eq_if lhs=spend7.note.amount rhs=0 enabled=spend7.is_dummy
+0148 decaf.compress_to_field in=spend7.rk.claimed out=spend7.rk.compressed
+0149 spend.collect spend7 amount->input_amounts nullifier->statement.nullifiers_and_rks rk_compressed->statement.nullifiers_and_rks
+0150 output.begin output0
+0151 gadget.note_commitment blinding=output0.note.blinding amount=output0.note.amount asset_id=shared.asset_id div_gen_fq=shared.div_gen_fq transmission_key_s=shared.transmission.fq out=output0.note.commitment.computed
+0152 assert.eq lhs=output0.note.commitment.computed rhs=output0.note_commitment
+0153 output.collect output0 amount->output_amounts commitment->statement.output_commitments
+0154 decaf.conservation_net_balance_commitment inputs=input_amounts outputs=output_amounts blinding=action_balance_blinding out=balance_commitment.computed
+0155 decaf.assert_equivalent lhs=balance_commitment.computed rhs=claimed.balance_commitment
+0156 decaf.compress_to_field in=balance_commitment.computed out=balance_commitment.fq
+0157 statement.append field=anchor
+0158 statement.append_all fields=output_commitments
+0159 statement.append field=balance_commitment.fq
+0160 statement.append_all fields=nullifiers_and_rks
+0161 statement.hash family=note_reshape8x1 fields=statement_fields out=statement_hash
+0162 assert.eq lhs=statement_hash rhs=claimed_statement_hash
 `
 
 func TestNoteReshape8x1WiringTranscriptExact(t *testing.T) {
@@ -435,12 +459,10 @@ func TestNoteReshapeSemanticBindingsUseCanonicalSharedContext(t *testing.T) {
 			sharedAsset := requireBinding("shared.asset_id", 1)[0]
 			sharedDivGenFq := requireBinding("shared.div_gen_fq", 1)[0]
 			sharedTransmissionFq := requireBinding("shared.transmission.fq", 1)[0]
-			sharedClueKey := requireBinding("shared.clue_key", 1)[0]
 			transmission := requireBinding("shared.transmission.computed", 2)
 			for _, name := range []string{
 				"shared.asset_id",
 				"shared.div_gen",
-				"shared.clue_key",
 				"auth.ak",
 				"auth.nk",
 			} {
@@ -474,7 +496,7 @@ func TestNoteReshapeSemanticBindingsUseCanonicalSharedContext(t *testing.T) {
 			for index := 0; index < family.NIn; index++ {
 				inputs := requireBinding(
 					fmt.Sprintf("spend%d.note_commitment.inputs", index),
-					6,
+					5,
 				)
 				assertSameExpression(
 					t, "spend asset", inputs[2], sharedAsset,
@@ -487,14 +509,11 @@ func TestNoteReshapeSemanticBindingsUseCanonicalSharedContext(t *testing.T) {
 					t, "spend transmission encoding",
 					inputs[4], sharedTransmissionFq,
 				)
-				assertSameExpression(
-					t, "spend clue key", inputs[5], sharedClueKey,
-				)
 			}
 			for index := 0; index < family.NOut; index++ {
 				inputs := requireBinding(
 					fmt.Sprintf("output%d.note_commitment.inputs", index),
-					6,
+					5,
 				)
 				assertSameExpression(t, "output asset", inputs[2], sharedAsset)
 				assertSameExpression(
@@ -505,7 +524,6 @@ func TestNoteReshapeSemanticBindingsUseCanonicalSharedContext(t *testing.T) {
 					t, "output transmission encoding",
 					inputs[4], sharedTransmissionFq,
 				)
-				assertSameExpression(t, "output clue key", inputs[5], sharedClueKey)
 			}
 		})
 	}
@@ -751,8 +769,8 @@ func TestTransferManifestClassifiesExactPathAndPoseidonShapes(t *testing.T) {
 		}
 	}
 
-	if got := transferStatementFieldCount(); got != 41 {
-		t.Fatalf("Transfer statement field count %d, want 41", got)
+	if got := transferStatementFieldCount(); got != 44 {
+		t.Fatalf("Transfer statement field count %d, want 44", got)
 	}
 	statementRows := make([]int, 0, 1)
 	for _, segment := range manifest.Segments {
@@ -767,7 +785,7 @@ func TestTransferManifestClassifiesExactPathAndPoseidonShapes(t *testing.T) {
 		}
 		statementRows = append(statementRows, segment.ConstraintCount)
 	}
-	expectedStatementRows := []int{3_280}
+	expectedStatementRows := []int{3_735}
 	if !reflect.DeepEqual(statementRows, expectedStatementRows) {
 		t.Fatalf(
 			"Transfer statement block rows %v, want %v",
@@ -821,7 +839,6 @@ func TestTransferManifestExportsSemanticBindings(t *testing.T) {
 	}
 	requireArity("statement.hash", 1)
 	requireArity("shared.asset_id", 1)
-	requireArity("sender.clue_key", 1)
 	requireArity("sender.transmission.computed", 2)
 	requireArity("asset.root.computed", 1)
 	requireArity("sender.compliance_root", 1)
@@ -883,9 +900,6 @@ func TestTransferManifestExportsSemanticBindings(t *testing.T) {
 		}
 	}
 	for _, obsolete := range []string{
-		"spend0.note.clue_key",
-		"spend1.note.clue_key",
-		"output1.note.clue_key",
 		"sender_core.metadata_hash",
 		"sender_ext.metadata_hash",
 		"output_core.metadata_hash",
@@ -939,10 +953,10 @@ func TestShieldedIcs20WithdrawalManifestIsExactAndFullyBound(t *testing.T) {
 		},
 	)
 
-	if manifest.NbConstraints != 54_440 ||
+	if manifest.NbConstraints != 56_933 ||
 		manifest.NbPublic != 2 ||
-		manifest.NbSecret != 289 ||
-		manifest.NbInternal != 51_363 {
+		manifest.NbSecret != 294 ||
+		manifest.NbInternal != 53_453 {
 		t.Fatalf(
 			"unexpected withdrawal shape: constraints=%d public=%d secret=%d internal=%d",
 			manifest.NbConstraints,
@@ -1086,13 +1100,11 @@ func TestShieldedIcs20WithdrawalManifestIsExactAndFullyBound(t *testing.T) {
 	sharedAsset := requireBinding("shared.asset_id", 1)[0]
 	sharedDivGenFq := requireBinding("sender.div_gen_fq", 1)[0]
 	sharedTransmissionFq := requireBinding("sender.transmission_fq", 1)[0]
-	sharedClueKey := requireBinding("shared.clue_key", 1)[0]
 	for _, name := range []string{"spend0", "spend1", "output0"} {
-		inputs := requireBinding(name+".note_commitment.inputs", 6)
+		inputs := requireBinding(name+".note_commitment.inputs", 5)
 		assertSameExpression(t, name+" asset", inputs[2], sharedAsset)
 		assertSameExpression(t, name+" diversified generator", inputs[3], sharedDivGenFq)
 		assertSameExpression(t, name+" transmission key", inputs[4], sharedTransmissionFq)
-		assertSameExpression(t, name+" clue key", inputs[5], sharedClueKey)
 	}
 	for _, wire := range manifest.WitnessWires {
 		if wire.ConstraintRows == 0 {

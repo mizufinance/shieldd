@@ -75,40 +75,55 @@ structure ExactCircuitFacts (rho : Nat → DeployedF) : Prop where
   DecafAckSeg67 : Seg67.contract.spec rho
   GadgetNoteCommitmentSeg70 : Seg70.contract.spec rho
   AssertEqSeg71 : Seg71.contract.spec rho
-  ThresholdFlagSeg74 : Seg74.contract.spec rho
-  DecafCompressToFieldSeg75 : Seg75.contract.spec rho
-  DecafCompressToFieldSeg76 : Seg76.contract.spec rho
-  DecafCompressToFieldSeg77 : Seg77.contract.spec rho
-  DecafCompressToFieldSeg78 : Seg78.contract.spec rho
-  GadgetTransferSaltSeg79 : Seg79.contract.spec rho
-  GadgetTransferSaltSeg80 : Seg80.contract.spec rho
-  GadgetTransferSaltSeg81 : Seg81.contract.spec rho
-  GadgetTransferSaltSeg82 : Seg82.contract.spec rho
-  GadgetTransferSaltSeg83 : Seg83.contract.spec rho
-  DecafSharedSecretSeg84 : Seg84.contract.spec rho
-  DecafSharedSecretSeg85 : Seg85.contract.spec rho
-  DecafSharedSecretSeg86 : Seg86.contract.spec rho
-  DecafSharedSecretSeg87 : Seg87.contract.spec rho
-  GadgetPoseidonEncryptionDetectionSeg88 : Seg88.contract.spec rho
-  GadgetPoseidonEncryptionAmountSeg89 : Seg89.contract.spec rho
-  GadgetPoseidonEncryptionAddressSeg90 : Seg90.contract.spec rho
-  GadgetPoseidonEncryptionAmountSeg91 : Seg91.contract.spec rho
-  GadgetPoseidonEncryptionAddressSeg92 : Seg92.contract.spec rho
-  AssertEqSeg94 : Seg94.contract.spec rho
-  AssertEqSeg95 : Seg95.contract.spec rho
-  AssertEqSeg96 : Seg96.contract.spec rho
-  AssertEqSeg97 : Seg97.contract.spec rho
-  AssertEqSeg98 : Seg98.contract.spec rho
-  AssertEqSeg99 : Seg99.contract.spec rho
-  AssertEqSeg100 : Seg100.contract.spec rho
-  AssertEqSeg101 : Seg101.contract.spec rho
-  AssertEqSeg102 : Seg102.contract.spec rho
-  AssertEqSeg103 : Seg103.contract.spec rho
-  AssertEqSeg104 : Seg104.contract.spec rho
-  DecafNetBalanceCommitmentSeg106 : Seg106.contract.spec rho
-  DecafCompressToFieldSeg107 : Seg107.contract.spec rho
-  StatementHashSeg109 : Seg109.contract.spec rho
+  RoutingPrecisionSelectSeg72 : Seg72.contract.spec rho
+  RoutingParametersHashSeg73 : Seg73.contract.spec rho
+  RoutingParametersBindSeg74 : Seg74.contract.spec rho
+  RoutingRouteWordSeg75 : Seg75.contract.spec rho
+  RoutingRouteWordSeg76 : Seg76.contract.spec rho
+  RoutingPermutationHashSeg77 : Seg77.contract.spec rho
+  RoutingPermutationComposeSeg78 : Seg78.contract.spec rho
+  RoutingTagPublicRangeSeg79 : Seg79.contract.spec rho
+  RoutingTagRouteBitsSeg80 : Seg80.contract.spec rho
+  RoutingTagRandomWordSeg81 : Seg81.contract.spec rho
+  RoutingTagComposeSeg82 : Seg82.contract.spec rho
+  RoutingTagPublicRangeSeg83 : Seg83.contract.spec rho
+  RoutingTagRouteBitsSeg84 : Seg84.contract.spec rho
+  RoutingTagRandomWordSeg85 : Seg85.contract.spec rho
+  RoutingTagComposeSeg86 : Seg86.contract.spec rho
+  ThresholdFlagSeg89 : Seg89.contract.spec rho
+  DecafCompressToFieldSeg90 : Seg90.contract.spec rho
+  DecafCompressToFieldSeg91 : Seg91.contract.spec rho
+  DecafCompressToFieldSeg92 : Seg92.contract.spec rho
+  DecafCompressToFieldSeg93 : Seg93.contract.spec rho
+  GadgetTransferSaltSeg94 : Seg94.contract.spec rho
+  GadgetTransferSaltSeg95 : Seg95.contract.spec rho
+  GadgetTransferSaltSeg96 : Seg96.contract.spec rho
+  GadgetTransferSaltSeg97 : Seg97.contract.spec rho
+  GadgetTransferSaltSeg98 : Seg98.contract.spec rho
+  DecafSharedSecretSeg99 : Seg99.contract.spec rho
+  DecafSharedSecretSeg100 : Seg100.contract.spec rho
+  DecafSharedSecretSeg101 : Seg101.contract.spec rho
+  DecafSharedSecretSeg102 : Seg102.contract.spec rho
+  GadgetPoseidonEncryptionDetectionSeg103 : Seg103.contract.spec rho
+  GadgetPoseidonEncryptionAmountSeg104 : Seg104.contract.spec rho
+  GadgetPoseidonEncryptionAddressSeg105 : Seg105.contract.spec rho
+  GadgetPoseidonEncryptionAmountSeg106 : Seg106.contract.spec rho
+  GadgetPoseidonEncryptionAddressSeg107 : Seg107.contract.spec rho
+  AssertEqSeg109 : Seg109.contract.spec rho
   AssertEqSeg110 : Seg110.contract.spec rho
+  AssertEqSeg111 : Seg111.contract.spec rho
+  AssertEqSeg112 : Seg112.contract.spec rho
+  AssertEqSeg113 : Seg113.contract.spec rho
+  AssertEqSeg114 : Seg114.contract.spec rho
+  AssertEqSeg115 : Seg115.contract.spec rho
+  AssertEqSeg116 : Seg116.contract.spec rho
+  AssertEqSeg117 : Seg117.contract.spec rho
+  AssertEqSeg118 : Seg118.contract.spec rho
+  AssertEqSeg119 : Seg119.contract.spec rho
+  DecafNetBalanceCommitmentSeg121 : Seg121.contract.spec rho
+  DecafCompressToFieldSeg122 : Seg122.contract.spec rho
+  StatementHashSeg124 : Seg124.contract.spec rho
+  AssertEqSeg125 : Seg125.contract.spec rho
 
 structure TransferCircuitFacts (rho : Nat → DeployedF) : Prop where
   exact : ExactCircuitFacts rho
@@ -116,7 +131,7 @@ structure TransferCircuitFacts (rho : Nat → DeployedF) : Prop where
 theorem transfer_circuitFacts (rho : Nat → DeployedF) (h : relationAll rho) :
     TransferCircuitFacts rho := by
   exact {
-    exact := ⟨specOf1 rho h, specOf3 rho h, specOf4 rho h, specOf5 rho h, specOf6 rho h, specOf7 rho h, specOf8 rho h, specOf9 rho h, specOf10 rho h, specOf11 rho h, specOf12 rho h, specOf13 rho h, specOf14 rho h, specOf15 rho h, specOf16 rho h, specOf17 rho h, specOf18 rho h, specOf19 rho h, specOf20 rho h, specOf21 rho h, specOf22 rho h, specOf23 rho h, specOf24 rho h, specOf25 rho h, specOf26 rho h, specOf27 rho h, specOf28 rho h, specOf29 rho h, specOf30 rho h, specOf32 rho h, specOf33 rho h, specOf34 rho h, specOf35 rho h, specOf36 rho h, specOf37 rho h, specOf38 rho h, specOf39 rho h, specOf42 rho h, specOf43 rho h, specOf44 rho h, specOf45 rho h, specOf46 rho h, specOf47 rho h, specOf48 rho h, specOf49 rho h, specOf50 rho h, specOf51 rho h, specOf52 rho h, specOf53 rho h, specOf56 rho h, specOf57 rho h, specOf58 rho h, specOf59 rho h, specOf60 rho h, specOf61 rho h, specOf62 rho h, specOf63 rho h, specOf64 rho h, specOf65 rho h, specOf66 rho h, specOf67 rho h, specOf70 rho h, specOf71 rho h, specOf74 rho h, specOf75 rho h, specOf76 rho h, specOf77 rho h, specOf78 rho h, specOf79 rho h, specOf80 rho h, specOf81 rho h, specOf82 rho h, specOf83 rho h, specOf84 rho h, specOf85 rho h, specOf86 rho h, specOf87 rho h, specOf88 rho h, specOf89 rho h, specOf90 rho h, specOf91 rho h, specOf92 rho h, specOf94 rho h, specOf95 rho h, specOf96 rho h, specOf97 rho h, specOf98 rho h, specOf99 rho h, specOf100 rho h, specOf101 rho h, specOf102 rho h, specOf103 rho h, specOf104 rho h, specOf106 rho h, specOf107 rho h, specOf109 rho h, specOf110 rho h⟩
+    exact := ⟨specOf1 rho h, specOf3 rho h, specOf4 rho h, specOf5 rho h, specOf6 rho h, specOf7 rho h, specOf8 rho h, specOf9 rho h, specOf10 rho h, specOf11 rho h, specOf12 rho h, specOf13 rho h, specOf14 rho h, specOf15 rho h, specOf16 rho h, specOf17 rho h, specOf18 rho h, specOf19 rho h, specOf20 rho h, specOf21 rho h, specOf22 rho h, specOf23 rho h, specOf24 rho h, specOf25 rho h, specOf26 rho h, specOf27 rho h, specOf28 rho h, specOf29 rho h, specOf30 rho h, specOf32 rho h, specOf33 rho h, specOf34 rho h, specOf35 rho h, specOf36 rho h, specOf37 rho h, specOf38 rho h, specOf39 rho h, specOf42 rho h, specOf43 rho h, specOf44 rho h, specOf45 rho h, specOf46 rho h, specOf47 rho h, specOf48 rho h, specOf49 rho h, specOf50 rho h, specOf51 rho h, specOf52 rho h, specOf53 rho h, specOf56 rho h, specOf57 rho h, specOf58 rho h, specOf59 rho h, specOf60 rho h, specOf61 rho h, specOf62 rho h, specOf63 rho h, specOf64 rho h, specOf65 rho h, specOf66 rho h, specOf67 rho h, specOf70 rho h, specOf71 rho h, specOf72 rho h, specOf73 rho h, specOf74 rho h, specOf75 rho h, specOf76 rho h, specOf77 rho h, specOf78 rho h, specOf79 rho h, specOf80 rho h, specOf81 rho h, specOf82 rho h, specOf83 rho h, specOf84 rho h, specOf85 rho h, specOf86 rho h, specOf89 rho h, specOf90 rho h, specOf91 rho h, specOf92 rho h, specOf93 rho h, specOf94 rho h, specOf95 rho h, specOf96 rho h, specOf97 rho h, specOf98 rho h, specOf99 rho h, specOf100 rho h, specOf101 rho h, specOf102 rho h, specOf103 rho h, specOf104 rho h, specOf105 rho h, specOf106 rho h, specOf107 rho h, specOf109 rho h, specOf110 rho h, specOf111 rho h, specOf112 rho h, specOf113 rho h, specOf114 rho h, specOf115 rho h, specOf116 rho h, specOf117 rho h, specOf118 rho h, specOf119 rho h, specOf121 rho h, specOf122 rho h, specOf124 rho h, specOf125 rho h⟩
   }
 
 end Shieldd.GnarkFormal.Deployed.Contracts.Transfer

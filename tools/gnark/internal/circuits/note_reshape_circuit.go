@@ -25,7 +25,6 @@ type NoteReshapeNoteCircuitFields struct {
 type NoteReshapeSharedNoteContextCircuitFields struct {
 	AssetID frontend.Variable
 	DivGen  Point2D
-	ClueKey frontend.Variable
 }
 
 type NoteReshapeSpendCircuitFields struct {
@@ -48,14 +47,23 @@ type NoteReshapeCircuit struct {
 	nOut        int
 	wiringTrace *WiringTranscript
 
-	ClaimedStatementHash frontend.Variable `gnark:",public"`
+	ClaimedStatementHash  frontend.Variable `gnark:",public"`
+	AssetAnchor           frontend.Variable
+	RoutingTag            frontend.Variable
+	RoutingParameterSetID frontend.Variable
 
 	Anchor                frontend.Variable
 	BalanceCommitment     Point2D
 	ActionBalanceBlinding frontend.Variable
+	IsRegulated           frontend.Variable
+	RegulatedPrecision    frontend.Variable
+	UnregulatedPrecision  frontend.Variable
+	RoutingAsOfHeight     frontend.Variable
+	RoutingNonce          frontend.Variable
 
 	Shared          NoteReshapeSharedNoteContextCircuitFields
 	Auth            TransferAuthSharedFields
+	Asset           AssetTreeFields
 	Spends          []NoteReshapeSpendCircuitFields
 	SyntheticSpends []NoteReshapeSyntheticSpendCircuitFields
 	Outputs         []NoteReshapeOutputCircuitFields
@@ -79,6 +87,13 @@ func NewNoteReshapeCircuit(label string, nIn, nOut int) *NoteReshapeCircuit {
 
 func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 	c.bindWiringTrace(api)
+	c.bindSemantic("asset_anchor", c.AssetAnchor)
+	c.bindSemantic("routing.tag", c.RoutingTag)
+	c.bindSemantic("routing.parameter_set_id", c.RoutingParameterSetID)
+	c.bindSemantic("routing.regulated_precision", c.RegulatedPrecision)
+	c.bindSemantic("routing.unregulated_precision", c.UnregulatedPrecision)
+	c.bindSemantic("routing.as_of_height", c.RoutingAsOfHeight)
+	c.bindSemantic("routing.nonce", c.RoutingNonce)
 	family, ok := generated.NoteReshapeFamilyByLabel(c.label)
 	if !ok {
 		return fmt.Errorf("unsupported note reshape family %q", c.label)
@@ -118,7 +133,6 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 	c.bindSemantic("action.balance_blinding", c.ActionBalanceBlinding)
 	c.bindSemantic("shared.asset_id", c.Shared.AssetID)
 	c.bindSemantic("shared.div_gen", sharedDivGen.X, sharedDivGen.Y)
-	c.bindSemantic("shared.clue_key", c.Shared.ClueKey)
 	c.bindSemantic("auth.ak", sharedAK.X, sharedAK.Y)
 	c.bindSemantic("auth.nk", c.Auth.NK)
 	c.bindSemantic("auth.ivk_reduced", c.Auth.IVKReduced)
@@ -129,7 +143,6 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 		"claimed.balance_commitment=balance_commitment",
 		"shared.div_gen=witness.shared.div_gen",
 		"shared.asset_id=witness.shared.asset_id",
-		"shared.clue_key=witness.shared.clue_key",
 	)
 	c.traceWiring(
 		"assert.decaf_non_identity",
@@ -183,6 +196,33 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 		return err
 	}
 	c.bindSemantic("shared.transmission.fq", sharedTransmissionFq)
+	c.traceWiring("assert.boolean", "var=is_regulated")
+	api.AssertIsBoolean(c.IsRegulated)
+	if err := verifyRoutingAssetRegistry(
+		api,
+		c.traceWiring,
+		c.bindSemantic,
+		c.Asset,
+		c.AssetAnchor,
+		c.Shared.AssetID,
+		c.IsRegulated,
+	); err != nil {
+		return err
+	}
+	if err := verifySingleRoutingTag(
+		api,
+		c.traceWiring,
+		c.RoutingTag,
+		c.RoutingParameterSetID,
+		c.IsRegulated,
+		c.RegulatedPrecision,
+		c.UnregulatedPrecision,
+		c.RoutingAsOfHeight,
+		c.RoutingNonce,
+		sharedTransmissionFq,
+	); err != nil {
+		return err
+	}
 
 	inputAmounts := make([]frontend.Variable, 0, c.nIn)
 	outputAmounts := make([]frontend.Variable, 0, c.nOut)
@@ -274,6 +314,12 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 	statementFields = append(statementFields, outputCommitments...)
 	c.traceWiring("statement.append", "field=balance_commitment.fq")
 	statementFields = append(statementFields, balanceCommitmentFq)
+	statementFields = append(
+		statementFields,
+		c.AssetAnchor,
+		c.RoutingTag,
+		c.RoutingParameterSetID,
+	)
 	c.traceWiring("statement.append_all", "fields=nullifiers_and_rks")
 	statementFields = append(statementFields, nullifiersAndRKs...)
 	c.traceWiring("statement.hash", "family="+c.label, "fields=statement_fields", "out=statement_hash")
@@ -361,7 +407,6 @@ func (c *NoteReshapeCircuit) verifyPaddedNoteReshapeSpend(
 		"asset_id=shared.asset_id",
 		"div_gen_fq=shared.div_gen_fq",
 		"transmission_key_s=shared.transmission.fq",
-		"clue_key=shared.clue_key",
 		"out="+name+".note.commitment.computed",
 	)
 	spentCommitment, err := NoteCommitmentWithCompressedDivGen(
@@ -371,7 +416,6 @@ func (c *NoteReshapeCircuit) verifyPaddedNoteReshapeSpend(
 		c.Shared.AssetID,
 		sharedDivGenFq,
 		sharedTransmissionFq,
-		c.Shared.ClueKey,
 	)
 	if err != nil {
 		return nil, nil, nil, err
@@ -383,7 +427,6 @@ func (c *NoteReshapeCircuit) verifyPaddedNoteReshapeSpend(
 		c.Shared.AssetID,
 		sharedDivGenFq,
 		sharedTransmissionFq,
-		c.Shared.ClueKey,
 	)
 	c.bindSemantic(name+".note.commitment.computed", spentCommitment)
 	c.bindSemantic(name+".state_proof.commitment", spend.StateProof.Commitment)
@@ -466,7 +509,6 @@ func (c *NoteReshapeCircuit) verifyFixedNoteReshapeSpend(
 		"asset_id=shared.asset_id",
 		"div_gen_fq=shared.div_gen_fq",
 		"transmission_key_s=shared.transmission.fq",
-		"clue_key=shared.clue_key",
 		"out="+name+".note.commitment.computed",
 	)
 	spentCommitment, err := NoteCommitmentWithCompressedDivGen(
@@ -476,7 +518,6 @@ func (c *NoteReshapeCircuit) verifyFixedNoteReshapeSpend(
 		c.Shared.AssetID,
 		sharedDivGenFq,
 		sharedTransmissionFq,
-		c.Shared.ClueKey,
 	)
 	if err != nil {
 		return nil, nil, nil, err
@@ -488,7 +529,6 @@ func (c *NoteReshapeCircuit) verifyFixedNoteReshapeSpend(
 		c.Shared.AssetID,
 		sharedDivGenFq,
 		sharedTransmissionFq,
-		c.Shared.ClueKey,
 	)
 	c.bindSemantic(name+".note.commitment.computed", spentCommitment)
 	c.bindSemantic(name+".state_proof.commitment", spend.StateProof.Commitment)
@@ -549,7 +589,6 @@ func (c *NoteReshapeCircuit) verifyFixedNoteReshapeOutput(
 		"asset_id=shared.asset_id",
 		"div_gen_fq=shared.div_gen_fq",
 		"transmission_key_s=shared.transmission.fq",
-		"clue_key=shared.clue_key",
 		"out="+name+".note.commitment.computed",
 	)
 	noteCommitment, err := NoteCommitmentWithCompressedDivGen(
@@ -559,7 +598,6 @@ func (c *NoteReshapeCircuit) verifyFixedNoteReshapeOutput(
 		c.Shared.AssetID,
 		sharedDivGenFq,
 		sharedTransmissionFq,
-		c.Shared.ClueKey,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -571,7 +609,6 @@ func (c *NoteReshapeCircuit) verifyFixedNoteReshapeOutput(
 		c.Shared.AssetID,
 		sharedDivGenFq,
 		sharedTransmissionFq,
-		c.Shared.ClueKey,
 	)
 	c.bindSemantic(name+".note.commitment.computed", noteCommitment)
 	c.bindSemantic(name+".note.commitment.claimed", output.NoteCommitment)

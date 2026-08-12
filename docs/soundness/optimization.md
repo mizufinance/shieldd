@@ -58,31 +58,28 @@ affine balance point: the statement already compressed the independently
 computed net-balance point, so the duplicate could not affect the accepted
 body. Removing its four on-curve rows and three cross-ratio rows reduces the
 historical V13 circuit from 227,192 to 227,185 constraints and removes 64
-witness bytes. V16 changes the relation again; its committed manifest and
+witness bytes. V17 changes the relation again; its committed manifest and
 circuit metadata are authoritative. The intervening mixed-purpose changes are
 not presented as one optimization delta.
 
-Transfer V13 also deletes the required-spend, optional-spend, and change-note
-discovery-key copies in favor of one sender discovery key; the receiver alone retains an
-independent key. Transfer V16 then deletes the upload bundle, public shared
+Transfer V17 deletes the upload bundle, public shared
 points, and all four DLEQ packages. Detection, amount, and address encryption
 remain unconditional in the circuit, while the regulation bit gates only the
 threshold result and shared-secret selection. This is a security simplification
 of the accepted language, not an optimization claim over the historical V13
-count. Transfer V16 further separates the exact asset from the flag, constrains
-both detection slots to 32 bits, adopts discovery-key-bearing compliance leaves,
+count. Transfer V17 further separates the exact asset from the flag, constrains
+both detection slots to 32 bits, adopts v3 six-field compliance leaves,
 rejects the asset-tree sentinel, and rejection-samples nonzero tier scalars.
 Those are mixed security changes, so no optimization percentage is claimed
-until the final V16 artifact census is pinned.
+until the final V17 artifact census is pinned.
 
 ## Withdrawal follow-up
 
-Withdrawal V7 removed duplicated per-note sender discovery keys, derived the
-fixed-family public body from canonical plan facts, and used the
-conservation-specific balance construction. Withdrawal V8 replaces repeated
+Withdrawal V7 derived the fixed-family public body from canonical plan facts and used the
+conservation-specific balance construction. Withdrawal V9 replaces repeated
 full policy openings with the canonical compact asset leaf
 `(value, nextIndex, nextValue, paramsHash, ringHash)`, adopts the shared
-discovery-key-bearing compliance leaf, rejects the zero sentinel, and removes
+v3 six-field compliance leaf, rejects the zero sentinel, and removes
 cross-spend transaction-nonce coupling. The fixed 2x1 relation moves from
 59,579 to 56,788 constraints: −2,791 (−4.68%). Because this combines
 simplification with security hardening, the number is a deployed relation
@@ -101,7 +98,7 @@ compiles to:
 These are whole-relation deltas. Transfer combines deletion of the old DLEQ
 and public shared-point surface, exact amount-pair aggregation, and radix-4
 variable-base multiplication. Withdrawal combines its conservation-specific
-balance relation and radix-4 DTK path with the V8 security changes above.
+balance relation and radix-4 DTK path with the V9 security changes above.
 Neither row is presented as a scalar-multiplication-only attribution. Transfer
 retains its optional second spend unchanged.
 

@@ -29,34 +29,42 @@ structure ExactCircuitFacts (rho : Nat → DeployedF) : Prop where
   GadgetComplianceLeafSeg16 : Seg16.contract.spec rho
   GadgetCompliancePathSeg17 : Seg17.contract.spec rho
   AssertEqIfSeg18 : Seg18.contract.spec rho
-  GadgetNoteCommitmentSeg20 : Seg20.contract.spec rho
-  GadgetNullifierSeg21 : Seg21.contract.spec rho
-  GadgetStateCommitmentPathSeg22 : Seg22.contract.spec rho
-  DecafRandomizedVerificationKeySeg23 : Seg23.contract.spec rho
-  DecafCompressToFieldSeg24 : Seg24.contract.spec rho
-  AssertEqSeg25 : Seg25.contract.spec rho
-  AssertEqSeg26 : Seg26.contract.spec rho
-  DecafAssertEquivalentSeg27 : Seg27.contract.spec rho
-  GadgetNoteCommitmentSeg30 : Seg30.contract.spec rho
-  GadgetNullifierSeg31 : Seg31.contract.spec rho
-  GadgetStateCommitmentPathSeg32 : Seg32.contract.spec rho
-  DecafRandomizedVerificationKeySeg33 : Seg33.contract.spec rho
-  DecafCompressToFieldSeg34 : Seg34.contract.spec rho
-  AssertBooleanSeg35 : Seg35.contract.spec rho
-  GadgetSyntheticDummyNullifierSeg36 : Seg36.contract.spec rho
-  DummyMuxSeg37 : Seg37.contract.spec rho
-  AssertEqSeg38 : Seg38.contract.spec rho
-  AssertEqIfSeg39 : Seg39.contract.spec rho
-  DecafAssertEquivalentIfSeg40 : Seg40.contract.spec rho
-  AssertEqIfSeg41 : Seg41.contract.spec rho
-  GadgetNoteCommitmentSeg44 : Seg44.contract.spec rho
-  AssertEqSeg45 : Seg45.contract.spec rho
-  DecafConservationNetBalanceCommitment2Seg47 : Seg47.contract.spec rho
-  DecafCompressToFieldSeg48 : Seg48.contract.spec rho
-  StatementHashSeg50 : Seg50.contract.spec rho
-  StatementHashSeg51 : Seg51.contract.spec rho
-  StatementHashSeg52 : Seg52.contract.spec rho
+  RoutingPrecisionSelectSeg19 : Seg19.contract.spec rho
+  RoutingParametersHashSeg20 : Seg20.contract.spec rho
+  RoutingParametersBindSeg21 : Seg21.contract.spec rho
+  RoutingRouteWordSeg22 : Seg22.contract.spec rho
+  RoutingTagPublicRangeSeg23 : Seg23.contract.spec rho
+  RoutingTagRouteBitsSeg24 : Seg24.contract.spec rho
+  RoutingTagRandomWordSeg25 : Seg25.contract.spec rho
+  RoutingTagComposeSeg26 : Seg26.contract.spec rho
+  GadgetNoteCommitmentSeg28 : Seg28.contract.spec rho
+  GadgetNullifierSeg29 : Seg29.contract.spec rho
+  GadgetStateCommitmentPathSeg30 : Seg30.contract.spec rho
+  DecafRandomizedVerificationKeySeg31 : Seg31.contract.spec rho
+  DecafCompressToFieldSeg32 : Seg32.contract.spec rho
+  AssertEqSeg33 : Seg33.contract.spec rho
+  AssertEqSeg34 : Seg34.contract.spec rho
+  DecafAssertEquivalentSeg35 : Seg35.contract.spec rho
+  GadgetNoteCommitmentSeg38 : Seg38.contract.spec rho
+  GadgetNullifierSeg39 : Seg39.contract.spec rho
+  GadgetStateCommitmentPathSeg40 : Seg40.contract.spec rho
+  DecafRandomizedVerificationKeySeg41 : Seg41.contract.spec rho
+  DecafCompressToFieldSeg42 : Seg42.contract.spec rho
+  AssertBooleanSeg43 : Seg43.contract.spec rho
+  GadgetSyntheticDummyNullifierSeg44 : Seg44.contract.spec rho
+  DummyMuxSeg45 : Seg45.contract.spec rho
+  AssertEqSeg46 : Seg46.contract.spec rho
+  AssertEqIfSeg47 : Seg47.contract.spec rho
+  DecafAssertEquivalentIfSeg48 : Seg48.contract.spec rho
+  AssertEqIfSeg49 : Seg49.contract.spec rho
+  GadgetNoteCommitmentSeg52 : Seg52.contract.spec rho
   AssertEqSeg53 : Seg53.contract.spec rho
+  DecafConservationNetBalanceCommitment2Seg55 : Seg55.contract.spec rho
+  DecafCompressToFieldSeg56 : Seg56.contract.spec rho
+  StatementHashSeg58 : Seg58.contract.spec rho
+  StatementHashSeg59 : Seg59.contract.spec rho
+  StatementHashSeg60 : Seg60.contract.spec rho
+  AssertEqSeg61 : Seg61.contract.spec rho
 
 structure ShieldedIcs20WithdrawalCircuitFacts (rho : Nat → DeployedF) : Prop where
   exact : ExactCircuitFacts rho
@@ -64,7 +72,7 @@ structure ShieldedIcs20WithdrawalCircuitFacts (rho : Nat → DeployedF) : Prop w
 theorem shielded_ics20_withdrawal_circuitFacts (rho : Nat → DeployedF) (h : relationAll rho) :
     ShieldedIcs20WithdrawalCircuitFacts rho := by
   exact {
-    exact := ⟨specOf1 rho h, specOf3 rho h, specOf4 rho h, specOf5 rho h, specOf6 rho h, specOf7 rho h, specOf8 rho h, specOf9 rho h, specOf10 rho h, specOf11 rho h, specOf12 rho h, specOf13 rho h, specOf14 rho h, specOf15 rho h, specOf16 rho h, specOf17 rho h, specOf18 rho h, specOf20 rho h, specOf21 rho h, specOf22 rho h, specOf23 rho h, specOf24 rho h, specOf25 rho h, specOf26 rho h, specOf27 rho h, specOf30 rho h, specOf31 rho h, specOf32 rho h, specOf33 rho h, specOf34 rho h, specOf35 rho h, specOf36 rho h, specOf37 rho h, specOf38 rho h, specOf39 rho h, specOf40 rho h, specOf41 rho h, specOf44 rho h, specOf45 rho h, specOf47 rho h, specOf48 rho h, specOf50 rho h, specOf51 rho h, specOf52 rho h, specOf53 rho h⟩
+    exact := ⟨specOf1 rho h, specOf3 rho h, specOf4 rho h, specOf5 rho h, specOf6 rho h, specOf7 rho h, specOf8 rho h, specOf9 rho h, specOf10 rho h, specOf11 rho h, specOf12 rho h, specOf13 rho h, specOf14 rho h, specOf15 rho h, specOf16 rho h, specOf17 rho h, specOf18 rho h, specOf19 rho h, specOf20 rho h, specOf21 rho h, specOf22 rho h, specOf23 rho h, specOf24 rho h, specOf25 rho h, specOf26 rho h, specOf28 rho h, specOf29 rho h, specOf30 rho h, specOf31 rho h, specOf32 rho h, specOf33 rho h, specOf34 rho h, specOf35 rho h, specOf38 rho h, specOf39 rho h, specOf40 rho h, specOf41 rho h, specOf42 rho h, specOf43 rho h, specOf44 rho h, specOf45 rho h, specOf46 rho h, specOf47 rho h, specOf48 rho h, specOf49 rho h, specOf52 rho h, specOf53 rho h, specOf55 rho h, specOf56 rho h, specOf58 rho h, specOf59 rho h, specOf60 rho h, specOf61 rho h⟩
   }
 
 end Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal

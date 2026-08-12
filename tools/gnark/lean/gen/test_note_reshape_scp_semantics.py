@@ -112,8 +112,8 @@ class NormalizedScpSemanticsTests(unittest.TestCase):
         withdrawal = self.outputs[
             scp.OUT / f"{scp.WITHDRAWAL_NAME}ScpBase.lean"
         ]
-        self.assertIn("rho 232", withdrawal)
-        self.assertIn("rho 8978", withdrawal)
+        self.assertIn("rho 231", withdrawal)
+        self.assertIn("rho 8997", withdrawal)
 
     def test_import_has_no_retired_note_reshape_dependency(self):
         self.assertEqual(scp.REFERENCE_CIRCUIT, "note_reshape1x8")
@@ -126,15 +126,15 @@ class NormalizedScpSemanticsTests(unittest.TestCase):
         self.assertEqual(
             scp.DIRECT_INSTANCES,
             (
-                ("note_reshape1x8", 15),
-                ("note_reshape8x1", 24),
-                ("note_reshape8x1", 38),
-                ("note_reshape8x1", 52),
-                ("note_reshape8x1", 66),
-                ("note_reshape8x1", 80),
-                ("note_reshape8x1", 94),
-                ("note_reshape8x1", 108),
-                ("note_reshape8x1", 122),
+                ("note_reshape1x8", 33),
+                ("note_reshape8x1", 42),
+                ("note_reshape8x1", 56),
+                ("note_reshape8x1", 70),
+                ("note_reshape8x1", 84),
+                ("note_reshape8x1", 98),
+                ("note_reshape8x1", 112),
+                ("note_reshape8x1", 126),
+                ("note_reshape8x1", 140),
             ),
         )
         scp._validate_inventory_target(
@@ -171,7 +171,7 @@ class NormalizedScpSemanticsTests(unittest.TestCase):
 
     def test_active_reference_uses_exact_ir_wire_seating(self):
         segment = scp._reference_segment()
-        self.assertEqual(segment["index"], 15)
+        self.assertEqual(segment["index"], 33)
         seating = scp.SegmentTemplate.parse(
             segment
         ).canonical_wire_seating

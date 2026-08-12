@@ -43,7 +43,6 @@ type ShieldedIcs20WithdrawalChangeCircuitFields struct {
 
 type ShieldedIcs20WithdrawalSenderCircuitFields struct {
 	DivGen         Point2D
-	ClueKey        frontend.Variable
 	SlotID         frontend.Variable
 	SlotDerivation frontend.Variable
 	D              frontend.Variable
@@ -72,7 +71,9 @@ type ShieldedIcs20WithdrawalCircuit struct {
 	nIn         int
 	wiringTrace *WiringTranscript
 
-	ClaimedStatementHash frontend.Variable `gnark:",public"`
+	ClaimedStatementHash  frontend.Variable `gnark:",public"`
+	RoutingTag            frontend.Variable
+	RoutingParameterSetID frontend.Variable
 
 	Anchor                    frontend.Variable
 	AssetAnchor               frontend.Variable
@@ -83,6 +84,10 @@ type ShieldedIcs20WithdrawalCircuit struct {
 	WithdrawalEffectHashLimbs [4]frontend.Variable
 	ActionBalanceBlinding     frontend.Variable
 	IsRegulated               frontend.Variable
+	RegulatedPrecision        frontend.Variable
+	UnregulatedPrecision      frontend.Variable
+	RoutingAsOfHeight         frontend.Variable
+	RoutingNonce              frontend.Variable
 
 	Auth   TransferAuthSharedFields
 	Asset  ShieldedIcs20WithdrawalAssetCircuitFields
@@ -108,6 +113,20 @@ func (c *ShieldedIcs20WithdrawalCircuit) Define(api frontend.API) error {
 
 	shared, err := c.verifySharedContext(api)
 	if err != nil {
+		return err
+	}
+	if err := verifySingleRoutingTag(
+		api,
+		c.traceWiring,
+		c.RoutingTag,
+		c.RoutingParameterSetID,
+		c.IsRegulated,
+		c.RegulatedPrecision,
+		c.UnregulatedPrecision,
+		c.RoutingAsOfHeight,
+		c.RoutingNonce,
+		shared.senderTransmissionFq,
+	); err != nil {
 		return err
 	}
 
@@ -188,6 +207,7 @@ func (c *ShieldedIcs20WithdrawalCircuit) Define(api frontend.API) error {
 		c.OutboundAmount,
 	)
 	fields = append(fields, c.WithdrawalEffectHashLimbs[:]...)
+	fields = append(fields, c.RoutingTag, c.RoutingParameterSetID)
 
 	for index, field := range fields {
 		c.bindSemantic(fmt.Sprintf("statement.field.%03d", index), field)
@@ -214,6 +234,12 @@ func (c *ShieldedIcs20WithdrawalCircuit) bindShieldedIcs20WithdrawalWitnessSeman
 	c.bindSemantic("withdrawal_effect_hash_limbs", c.WithdrawalEffectHashLimbs[:]...)
 	c.bindSemantic("action.balance_blinding", c.ActionBalanceBlinding)
 	c.bindSemantic("is_regulated", c.IsRegulated)
+	c.bindSemantic("routing.tag", c.RoutingTag)
+	c.bindSemantic("routing.parameter_set_id", c.RoutingParameterSetID)
+	c.bindSemantic("routing.regulated_precision", c.RegulatedPrecision)
+	c.bindSemantic("routing.unregulated_precision", c.UnregulatedPrecision)
+	c.bindSemantic("routing.as_of_height", c.RoutingAsOfHeight)
+	c.bindSemantic("routing.nonce", c.RoutingNonce)
 
 	c.bindSemantic("auth.ak", c.Auth.AK.X, c.Auth.AK.Y)
 	c.bindSemantic("auth.nk", c.Auth.NK)
@@ -229,7 +255,6 @@ func (c *ShieldedIcs20WithdrawalCircuit) bindShieldedIcs20WithdrawalWitnessSeman
 	c.bindSemantic("asset.position", c.Asset.Position)
 
 	c.bindSemantic("sender.div_gen", c.Sender.DivGen.X, c.Sender.DivGen.Y)
-	c.bindSemantic("sender.clue_key", c.Sender.ClueKey)
 	c.bindSemantic("sender.slot_id", c.Sender.SlotID)
 	c.bindSemantic("sender.slot_derivation", c.Sender.SlotDerivation)
 	c.bindSemantic("sender.d", c.Sender.D)
@@ -288,8 +313,7 @@ func (c *ShieldedIcs20WithdrawalCircuit) hashShieldedIcs20WithdrawalStatement(
 			len(fields),
 		)
 	}
-	domain := shieldedIcs20WithdrawalStatementHashConstant("v2")
-	pad0 := shieldedIcs20WithdrawalStatementHashConstant("pad0")
+	domain := shieldedIcs20WithdrawalStatementHashConstant("v3")
 	pad1 := shieldedIcs20WithdrawalStatementHashConstant("pad1")
 
 	c.traceWiring(
@@ -334,7 +358,7 @@ func (c *ShieldedIcs20WithdrawalCircuit) hashShieldedIcs20WithdrawalStatement(
 	c.traceWiring(
 		"statement.hash",
 		"block=2",
-		"inputs=statement.hash.block1,statement.field.013..015,pad1,pad0,pad1",
+		"inputs=statement.hash.block1,statement.field.013..017,pad1",
 		"out=statement.hash.block2",
 	)
 	block2, err := Poseidon377Hash7(
@@ -343,7 +367,7 @@ func (c *ShieldedIcs20WithdrawalCircuit) hashShieldedIcs20WithdrawalStatement(
 		[7]frontend.Variable{
 			block1,
 			fields[13], fields[14], fields[15],
-			pad1, pad0, pad1,
+			fields[16], fields[17], pad1,
 		},
 	)
 	if err != nil {
@@ -360,7 +384,6 @@ type shieldedIcs20WithdrawalSharedContext struct {
 	senderDivGenFq       frontend.Variable
 	senderTransmission   gnarkte.Point
 	senderTransmissionFq frontend.Variable
-	senderClueKey        frontend.Variable
 	sharedAssetID        frontend.Variable
 }
 
@@ -371,7 +394,6 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifySharedContext(
 		"shared.bind",
 		"shared.ak=auth.ak",
 		"shared.asset_id=outbound.asset_id",
-		"shared.clue_key=sender.clue_key",
 		"sender.div_gen=sender.div_gen",
 	)
 	shared := shieldedIcs20WithdrawalSharedContext{
@@ -384,11 +406,9 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifySharedContext(
 			RingHash:   c.Asset.Leaf.RingHash,
 		},
 		senderDivGen:  gnarkte.Point{X: c.Sender.DivGen.X, Y: c.Sender.DivGen.Y},
-		senderClueKey: c.Sender.ClueKey,
 		sharedAssetID: c.OutboundAssetID,
 	}
 	c.bindSemantic("shared.asset_id", shared.sharedAssetID)
-	c.bindSemantic("shared.clue_key", shared.senderClueKey)
 
 	c.traceWiring(
 		"assert.decaf_non_identity",
@@ -466,7 +486,6 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifySharedContext(
 		"gadget.compliance_leaf",
 		"div_gen_fq=sender.div_gen_fq",
 		"transmission_fq=sender.transmission_fq",
-		"clue_key=sender.clue_key",
 		"asset_id=shared.asset_id",
 		"slot_id=sender.slot_id",
 		"slot_derivation=sender.slot_derivation",
@@ -477,7 +496,6 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifySharedContext(
 		api,
 		shared.senderDivGenFq,
 		shared.senderTransmissionFq,
-		shared.senderClueKey,
 		shared.sharedAssetID,
 		c.Sender.SlotID,
 		c.Sender.SlotDerivation,
@@ -631,7 +649,6 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifySpendFacts(
 		shared.sharedAssetID,
 		shared.senderDivGenFq,
 		shared.senderTransmissionFq,
-		shared.senderClueKey,
 	)
 	c.traceWiring(
 		"gadget.note_commitment",
@@ -640,7 +657,6 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifySpendFacts(
 		"asset_id=shared.asset_id",
 		"div_gen_fq=sender.div_gen_fq",
 		"transmission_key_s=sender.transmission_fq",
-		"clue_key=shared.clue_key",
 		"out="+name+".note.commitment.computed",
 	)
 	spentCommitment, err := NoteCommitmentWithCompressedDivGen(
@@ -650,7 +666,6 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifySpendFacts(
 		shared.sharedAssetID,
 		shared.senderDivGenFq,
 		shared.senderTransmissionFq,
-		shared.senderClueKey,
 	)
 	if err != nil {
 		return shieldedIcs20WithdrawalVerifiedSpend{}, err
@@ -833,7 +848,6 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifyChangeOutput(
 		shared.sharedAssetID,
 		shared.senderDivGenFq,
 		shared.senderTransmissionFq,
-		shared.senderClueKey,
 	)
 	c.traceWiring(
 		"gadget.note_commitment",
@@ -842,7 +856,6 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifyChangeOutput(
 		"asset_id=shared.asset_id",
 		"div_gen_fq=sender.div_gen_fq",
 		"transmission_key_s=sender.transmission_fq",
-		"clue_key=shared.clue_key",
 		"out=output0.note.commitment.computed",
 	)
 	createdCommitment, err := NoteCommitmentWithCompressedDivGen(
@@ -852,7 +865,6 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifyChangeOutput(
 		shared.sharedAssetID,
 		shared.senderDivGenFq,
 		shared.senderTransmissionFq,
-		shared.senderClueKey,
 	)
 	if err != nil {
 		return nil, nil, err

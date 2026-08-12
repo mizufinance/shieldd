@@ -16,15 +16,15 @@ class NoteReshape1x8CommitmentTests(unittest.TestCase):
                 for note in notes
             ],
             [
-                (11, 12),
-                (22, 23),
-                (26, 27),
-                (30, 31),
-                (34, 35),
-                (38, 39),
-                (42, 43),
-                (46, 47),
-                (50, 51),
+                (29, 30),
+                (40, 41),
+                (44, 45),
+                (48, 49),
+                (52, 53),
+                (56, 57),
+                (60, 61),
+                (64, 65),
+                (68, 69),
             ],
         )
 
@@ -32,7 +32,14 @@ class NoteReshape1x8CommitmentTests(unittest.TestCase):
         original = commitments.deployment()
         manifest = copy.deepcopy(original.manifest)
         ir = copy.deepcopy(original.ir)
-        output1 = manifest["segments"][25]
+        output1_index = commitments.note_segments(original)[2].hash_segment[
+            "index"
+        ]
+        output1 = next(
+            segment
+            for segment in manifest["segments"]
+            if segment["index"] == output1_index
+        )
         output1["args"][-1] = "out=output0.note.commitment.computed"
         mutated = Deployment.from_data(
             "note_reshape1x8",
@@ -48,7 +55,14 @@ class NoteReshape1x8CommitmentTests(unittest.TestCase):
         original = commitments.deployment()
         manifest = copy.deepcopy(original.manifest)
         ir = copy.deepcopy(original.ir)
-        segment = ir["segments"][10]
+        spend_index = commitments.note_segments(original)[0].hash_segment[
+            "index"
+        ]
+        segment = next(
+            segment
+            for segment in ir["segments"]
+            if segment["index"] == spend_index
+        )
         wire = segment["wire_roles"]["input"].pop()
         segment["wire_roles"]["internal"].append(wire)
         segment["wire_roles"]["internal"].sort()

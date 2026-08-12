@@ -101,13 +101,14 @@ class CompositeRecoveryTests(unittest.TestCase):
         )
         self.assertEqual(
             result.ciphertext_wires,
-            (2107, 2111, 2113, 2114),
+            (2107, 2111, 2114, 2115),
         )
         self.assertEqual(result.asset_id_wire, 2106)
-        self.assertEqual(result.flag_wire, 2112)
+        self.assertEqual(result.flag_wire, 2113)
+        self.assertEqual(result.swap_wire, 2112)
         self.assertEqual(
             result.plaintext_lcs[2],
-            ((33, 1), (2112, 1 << 32)),
+            ((33, 1), (2112, 1 << 33), (2113, 1 << 32)),
         )
         self.assertEqual(result.compress_extracted_affine_delta, -139)
 
@@ -196,7 +197,7 @@ class CompositeRecoveryTests(unittest.TestCase):
         original = recovery.rows
         detection = original(recovery.DETECTION_DIGEST)
         reference = original(recovery.COMPRESS_REFERENCE_DIGEST)
-        detection[2444][1][2112] = (1 << 32) + 1
+        detection[2444][1][2113] = (1 << 32) + 1
         with mock.patch.object(
             recovery,
             "rows",

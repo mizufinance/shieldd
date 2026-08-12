@@ -71,7 +71,6 @@ type TransferReceiverOutputCircuitFields struct {
 
 type TransferReceiverNoteCircuitFields struct {
 	TransferNotePayloadCircuitFields
-	ClueKey frontend.Variable
 }
 
 type TransferChangeOutputCircuitFields struct {
@@ -92,7 +91,9 @@ const (
 type TransferCircuit struct {
 	wiringTrace *WiringTranscript
 
-	ClaimedStatementHash frontend.Variable `gnark:",public"`
+	ClaimedStatementHash  frontend.Variable `gnark:",public"`
+	RoutingTags           [2]frontend.Variable
+	RoutingParameterSetID frontend.Variable
 
 	Anchor                frontend.Variable
 	AssetAnchor           frontend.Variable
@@ -100,12 +101,14 @@ type TransferCircuit struct {
 	TargetTimestamp       frontend.Variable
 	ActionBalanceBlinding frontend.Variable
 	IsRegulated           frontend.Variable
+	RegulatedPrecision    frontend.Variable
+	UnregulatedPrecision  frontend.Variable
+	RoutingAsOfHeight     frontend.Variable
 
-	Auth          TransferAuthSharedFields
-	Asset         AssetTreeFields
-	Sender        TransferUserCircuitFields
-	SenderClueKey frontend.Variable
-	Compliance    TransferComplianceFields
+	Auth       TransferAuthSharedFields
+	Asset      AssetTreeFields
+	Sender     TransferUserCircuitFields
+	Compliance TransferComplianceFields
 
 	RequiredSpend  TransferRequiredSpendCircuitFields
 	OptionalSpend  TransferOptionalSpendCircuitFields
@@ -174,6 +177,11 @@ func (c *TransferCircuit) Define(api frontend.API) error {
 	); err != nil {
 		return err
 	}
+	routingRolesSwapped, err := c.verifyTransferRouting(api, &shared, &statementData)
+	if err != nil {
+		return err
+	}
+	statementData.routingRolesSwapped = routingRolesSwapped
 	c.traceWiring("output.collect", "output1", "amount->output_amounts", "commitment->statement.output_commitments")
 	c.traceWiring("compliance.begin", "tiers=sender_core,sender_ext,output_core,output_ext")
 	if err := c.verifyTransferComplianceCiphertexts(api, &shared, &statementData); err != nil {
@@ -271,6 +279,11 @@ func (c *TransferCircuit) bindTransferWitnessSemantics() {
 	c.bindSemantic("target_timestamp", c.TargetTimestamp)
 	c.bindSemantic("action.balance_blinding", c.ActionBalanceBlinding)
 	c.bindSemantic("is_regulated", c.IsRegulated)
+	c.bindSemantic("routing.tags", c.RoutingTags[:]...)
+	c.bindSemantic("routing.parameter_set_id", c.RoutingParameterSetID)
+	c.bindSemantic("routing.regulated_precision", c.RegulatedPrecision)
+	c.bindSemantic("routing.unregulated_precision", c.UnregulatedPrecision)
+	c.bindSemantic("routing.as_of_height", c.RoutingAsOfHeight)
 	c.bindSemantic("auth.ak", c.Auth.AK.X, c.Auth.AK.Y)
 	c.bindSemantic("auth.nk", c.Auth.NK)
 	c.bindSemantic("auth.ivk_reduced", c.Auth.IVKReduced)
@@ -302,7 +315,6 @@ func (c *TransferCircuit) bindTransferWitnessSemantics() {
 	c.bindSemantic("sender.d", c.Sender.D)
 	c.bindSemantic("sender.path", quadPathVariables(c.Sender.Path)...)
 	c.bindSemantic("sender.position", c.Sender.Position)
-	c.bindSemantic("sender.clue_key", c.SenderClueKey)
 
 	c.bindSemantic("spend0.nullifier.claimed", c.RequiredSpend.Nullifier)
 	c.bindSemantic("spend0.rk.claimed", c.RequiredSpend.RK.X, c.RequiredSpend.RK.Y)
@@ -335,7 +347,6 @@ func (c *TransferCircuit) bindTransferWitnessSemantics() {
 	c.bindSemantic("output0.note_commitment.claimed", c.ReceiverOutput.NoteCommitment)
 	c.bindSemantic("output0.note.blinding", c.ReceiverOutput.Note.Blinding)
 	c.bindSemantic("output0.note.amount", c.ReceiverOutput.Note.Amount)
-	c.bindSemantic("output0.note.clue_key", c.ReceiverOutput.Note.ClueKey)
 	c.bindSemantic(
 		"output0.recipient.div_gen",
 		c.ReceiverOutput.Recipient.DivGen.X,
@@ -429,6 +440,7 @@ type transferStatementData struct {
 	receiverSlotID         frontend.Variable
 	receiverSlotDerivation frontend.Variable
 	receiverAck            gnarkte.Point
+	routingRolesSwapped    frontend.Variable
 	senderCoreEPKFq        frontend.Variable
 	senderExtEPKFq         frontend.Variable
 	outputCoreEPKFq        frontend.Variable
@@ -725,12 +737,11 @@ func (c *TransferCircuit) verifySharedTransferContext(api frontend.API) (transfe
 		return transferSharedContext{}, err
 	}
 
-	c.traceWiring("gadget.compliance_leaf", "div_gen_fq=sender.div_gen_fq", "transmission_fq=sender.transmission_fq", "clue_key=sender.clue_key", "asset_id=shared.asset_id", "slot_id=sender.slot_id", "slot_derivation=sender.slot_derivation", "d=sender.d", "out=sender.leaf_commitment")
+	c.traceWiring("gadget.compliance_leaf", "div_gen_fq=sender.div_gen_fq", "transmission_fq=sender.transmission_fq", "asset_id=shared.asset_id", "slot_id=sender.slot_id", "slot_derivation=sender.slot_derivation", "d=sender.d", "out=sender.leaf_commitment")
 	senderLeafCommitment, err := ComplianceLeafCommitmentFromCompressed(
 		api,
 		shared.senderDivGenFq,
 		shared.senderTransmissionFq,
-		c.SenderClueKey,
 		shared.sharedAssetID,
 		c.Sender.SlotID,
 		c.Sender.SlotDerivation,
@@ -909,6 +920,7 @@ func (c *TransferCircuit) newTransferStatementData() transferStatementData {
 		receiverSlotID:         0,
 		receiverSlotDerivation: 0,
 		receiverAck:            gnarkte.Point{X: 0, Y: 0},
+		routingRolesSwapped:    0,
 		senderCoreEPKFq:        0,
 		senderExtEPKFq:         0,
 		outputCoreEPKFq:        0,
@@ -1011,9 +1023,8 @@ func (c *TransferCircuit) verifyTransferSpend(
 		shared.sharedAssetID,
 		shared.senderDivGenFq,
 		shared.senderTransmissionFq,
-		c.SenderClueKey,
 	)
-	c.traceWiring("gadget.note_commitment", "blinding="+name+".note.blinding", "amount="+name+".note.amount", "asset_id=shared.asset_id", "div_gen_fq=sender.div_gen_fq", "transmission_key_s=sender.transmission_fq", "clue_key=sender.clue_key", "out="+name+".note.commitment.computed")
+	c.traceWiring("gadget.note_commitment", "blinding="+name+".note.blinding", "amount="+name+".note.amount", "asset_id=shared.asset_id", "div_gen_fq=sender.div_gen_fq", "transmission_key_s=sender.transmission_fq", "out="+name+".note.commitment.computed")
 	spentCommitment, err := NoteCommitmentWithCompressedDivGen(
 		api,
 		spend.Note.Blinding,
@@ -1021,7 +1032,6 @@ func (c *TransferCircuit) verifyTransferSpend(
 		shared.sharedAssetID,
 		shared.senderDivGenFq,
 		shared.senderTransmissionFq,
-		c.SenderClueKey,
 	)
 	if err != nil {
 		return err
@@ -1151,9 +1161,8 @@ func (c *TransferCircuit) verifyTransferReceiverOutput(
 		shared.sharedAssetID,
 		recipientDivGenFq,
 		recipientTransmissionFq,
-		output.Note.ClueKey,
 	)
-	c.traceWiring("gadget.note_commitment", "blinding=output0.note.blinding", "amount=output0.note.amount", "asset_id=shared.asset_id", "div_gen_fq=output0.recipient.div_gen_fq", "transmission_key_s=output0.recipient.transmission_fq", "clue_key=output0.note.clue_key", "out=output0.note.commitment.computed")
+	c.traceWiring("gadget.note_commitment", "blinding=output0.note.blinding", "amount=output0.note.amount", "asset_id=shared.asset_id", "div_gen_fq=output0.recipient.div_gen_fq", "transmission_key_s=output0.recipient.transmission_fq", "out=output0.note.commitment.computed")
 	createdCommitment, err := NoteCommitmentWithCompressedDivGen(
 		api,
 		output.Note.Blinding,
@@ -1161,7 +1170,6 @@ func (c *TransferCircuit) verifyTransferReceiverOutput(
 		shared.sharedAssetID,
 		recipientDivGenFq,
 		recipientTransmissionFq,
-		output.Note.ClueKey,
 	)
 	if err != nil {
 		return err
@@ -1170,12 +1178,11 @@ func (c *TransferCircuit) verifyTransferReceiverOutput(
 	c.traceWiring("assert.eq", "lhs=output0.note.commitment.computed", "rhs=output0.note_commitment")
 	api.AssertIsEqual(createdCommitment, output.NoteCommitment)
 
-	c.traceWiring("gadget.compliance_leaf", "div_gen_fq=output0.recipient.div_gen_fq", "transmission_fq=output0.recipient.transmission_fq", "clue_key=output0.note.clue_key", "asset_id=shared.asset_id", "slot_id=output0.recipient.slot_id", "slot_derivation=output0.recipient.slot_derivation", "d=output0.recipient.d", "out=output0.recipient.leaf_commitment")
+	c.traceWiring("gadget.compliance_leaf", "div_gen_fq=output0.recipient.div_gen_fq", "transmission_fq=output0.recipient.transmission_fq", "asset_id=shared.asset_id", "slot_id=output0.recipient.slot_id", "slot_derivation=output0.recipient.slot_derivation", "d=output0.recipient.d", "out=output0.recipient.leaf_commitment")
 	recipientLeafCommitment, err := ComplianceLeafCommitmentFromCompressed(
 		api,
 		recipientDivGenFq,
 		recipientTransmissionFq,
-		output.Note.ClueKey,
 		shared.sharedAssetID,
 		output.Recipient.SlotID,
 		output.Recipient.SlotDerivation,
@@ -1240,9 +1247,8 @@ func (c *TransferCircuit) verifyTransferChangeOutput(
 		shared.sharedAssetID,
 		shared.senderDivGenFq,
 		shared.senderTransmissionFq,
-		c.SenderClueKey,
 	)
-	c.traceWiring("gadget.note_commitment", "blinding=output1.note.blinding", "amount=output1.note.amount", "asset_id=shared.asset_id", "div_gen_fq=sender.div_gen_fq", "transmission_key_s=sender.transmission_fq", "clue_key=sender.clue_key", "out=output1.note.commitment.computed")
+	c.traceWiring("gadget.note_commitment", "blinding=output1.note.blinding", "amount=output1.note.amount", "asset_id=shared.asset_id", "div_gen_fq=sender.div_gen_fq", "transmission_key_s=sender.transmission_fq", "out=output1.note.commitment.computed")
 	createdCommitment, err := NoteCommitmentWithCompressedDivGen(
 		api,
 		output.Note.Blinding,
@@ -1250,7 +1256,6 @@ func (c *TransferCircuit) verifyTransferChangeOutput(
 		shared.sharedAssetID,
 		shared.senderDivGenFq,
 		shared.senderTransmissionFq,
-		c.SenderClueKey,
 	)
 	if err != nil {
 		return err
@@ -1389,7 +1394,7 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 	c.bindSemantic("output_ext.shared.user", outputExtUser.X, outputExtUser.Y)
 	c.bindSemantic("output_ext.shared.selected", outputExtSelected.X, outputExtSelected.Y)
 
-	c.traceWiring("gadget.poseidon_encryption.detection", "flag=is_flagged", "ss=sender_core.shared.issuer", "epk_fq=compliance.sender_core.epk_fq", "salt=salt0", "asset_id=shared.asset_id", "sender_slot=sender.slot_id:u32", "receiver_slot=receiver.slot_id:u32", "sender_word=sender.slot_id+flag*2^32", "out=compliance.detection_ciphertext")
+	c.traceWiring("gadget.poseidon_encryption.detection", "flag=is_flagged", "ss=sender_core.shared.issuer", "epk_fq=compliance.sender_core.epk_fq", "salt=salt0", "asset_id=shared.asset_id", "sender_slot=sender.slot_id:u32", "receiver_slot=receiver.slot_id:u32", "routing_roles_swapped=permutation_bit", "out=compliance.detection_ciphertext")
 	if err := VerifyPoseidonEncryptionTransferDetection(
 		api,
 		isFlagged,
@@ -1399,6 +1404,7 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 		shared.sharedAssetID,
 		c.Sender.SlotID,
 		statementData.receiverSlotID,
+		statementData.routingRolesSwapped,
 		c.Compliance.DetectionCiphertext,
 	); err != nil {
 		return err
@@ -1520,6 +1526,8 @@ func (c *TransferCircuit) buildTransferStatementFields(
 	fields = append(fields, c.Anchor)
 	fields = append(fields, statementData.outputCommitments...)
 	fields = append(fields, balanceCommitmentFq)
+	fields = append(fields, c.RoutingTags[:]...)
+	fields = append(fields, c.RoutingParameterSetID)
 	fields = append(fields, statementData.nullifiersAndRKs...)
 	fields = append(fields, c.AssetAnchor, c.ComplianceAnchor)
 	fields = append(fields, c.Compliance.DetectionCiphertext[:]...)

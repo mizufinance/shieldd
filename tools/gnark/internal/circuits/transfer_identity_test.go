@@ -22,7 +22,6 @@ type transferIdentityOwnershipAliasProbe struct {
 	Blinding frontend.Variable
 	Amount   frontend.Variable
 	AssetID  frontend.Variable
-	ClueKey  frontend.Variable
 	Position frontend.Variable
 }
 
@@ -62,7 +61,6 @@ func defineTransferIdentityOwnershipAlias(
 		probe.AssetID,
 		divGenFq,
 		transmission0Fq,
-		probe.ClueKey,
 	)
 	if err != nil {
 		return err
@@ -74,7 +72,6 @@ func defineTransferIdentityOwnershipAlias(
 		probe.AssetID,
 		divGenFq,
 		transmission1Fq,
-		probe.ClueKey,
 	)
 	if err != nil {
 		return err
@@ -120,7 +117,6 @@ func transferIdentityOwnershipAliasAssignment() transferIdentityOwnershipAliasPr
 		Blinding: 5,
 		Amount:   6,
 		AssetID:  7,
-		ClueKey:  8,
 		Position: 9,
 	}
 }

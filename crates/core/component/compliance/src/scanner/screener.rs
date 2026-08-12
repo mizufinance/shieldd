@@ -36,7 +36,7 @@ impl ComplianceScreener {
             }
         };
 
-        let (asset_id, is_flagged, salt, sender_slot_id, receiver_slot_id) =
+        let (asset_id, is_flagged, salt, sender_slot_id, receiver_slot_id, routing_roles_swapped) =
             match self.detection_key.try_decrypt_detection(
                 &ciphertext.sender_core_epk,
                 &ciphertext.detection_tag,
@@ -53,6 +53,8 @@ impl ComplianceScreener {
             salt,
             sender_slot_id,
             receiver_slot_id,
+            routing_roles_swapped,
+            routing_tags: extracted.routing_tags,
             ciphertext,
             raw_bytes: extracted.raw_bytes,
         })
@@ -104,6 +106,7 @@ mod tests {
         let _ = asset_id;
         ExtractedComplianceCiphertext {
             output_ref,
+            routing_tags: [11, 22],
             raw_bytes,
             metadata_bytes: None,
         }
@@ -130,6 +133,7 @@ mod tests {
             is_flagged,
             0,
             0,
+            false,
             salt,
         )
         .unwrap()

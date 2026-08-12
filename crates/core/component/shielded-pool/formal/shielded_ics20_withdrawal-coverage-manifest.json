@@ -15,16 +15,16 @@
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst1_bound",
           "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg1",
           "constant_vector_sha256_hex": "d4ea1a93f9a5c216a62bb9ebd0b7cf19e8baf92abc95b05ad37b63a905d0f01e",
-          "relation_sha256_hex": "8dc92a89774e5338e6eb1b07a23cc71b4d69ac30ed51e654a23844153854a26d",
-          "wire_role_sha256_hex": "0f9c8647534b481a9928157f04063584f2cc475fa4955065cf6150b843492190"
+          "relation_sha256_hex": "565e3fc9761365912c7c786beba3275e023d3012014fe010f53c71bfb7ccb32c",
+          "wire_role_sha256_hex": "dc8534a05da7e4bd20eb28d359df9d1f5d425a01d01710878333990b4a73a0fa"
         },
         {
-          "segment_index": 35,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst35_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg35",
+          "segment_index": 43,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst43_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg43",
           "constant_vector_sha256_hex": "d4ea1a93f9a5c216a62bb9ebd0b7cf19e8baf92abc95b05ad37b63a905d0f01e",
-          "relation_sha256_hex": "9406312835ff023f7a85f8c778914091fd16664fa4258aebf2e3dddf01471b6e",
-          "wire_role_sha256_hex": "c00850f03670cabafc5240d34ee523733bc3e3a89598a5487144e015485d85b4"
+          "relation_sha256_hex": "b15837ee29f495779755a42a565a1f0c2986a4c2cb6f42a77078993990a71651",
+          "wire_role_sha256_hex": "57398f98e4c5ee2de4e6db84d8481e46b27c9dfdf77e458c87847302b6b6bab4"
         }
       ],
       "note": ""
@@ -41,16 +41,16 @@
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst3_bound",
           "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg3",
           "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
-          "relation_sha256_hex": "9bd35dae623500ae7ce8493781f03a674065e120be77345d36b36fe953d06d53",
-          "wire_role_sha256_hex": "c8be7ff16f1f3a885c1abc9883c7e8a9937fdedfc826659950de54a42204367e"
+          "relation_sha256_hex": "96cb7b08f3a4ce75338ed6e2917178046fb6d549d74eb4f2496ab0d12ecdcf88",
+          "wire_role_sha256_hex": "86b1dc90782d44c2e464111f2c1b0cba794467ca69ad3a42c919adc1aebb704d"
         },
         {
           "segment_index": 4,
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst4_bound",
           "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg4",
           "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
-          "relation_sha256_hex": "f13149360b6949c4ae3209e962d6c7e0e8c9b4c13c6142a9b243a3e3df5ff350",
-          "wire_role_sha256_hex": "3a4a88b1ca51265d45bc5427384da5c21f48559f79a753527612671cc7e9920d"
+          "relation_sha256_hex": "97c88cbc884cd7d0b99b439f0b9abf6a7af6ffc7d4e94cec26bd7184ca50bb1a",
+          "wire_role_sha256_hex": "e81145634b85837c744caa25155c299f2361946d4c41177879e9a4628707fb2b"
         }
       ],
       "note": "normalized template bound"
@@ -67,26 +67,26 @@
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst9_bound",
           "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg9",
           "constant_vector_sha256_hex": "9ebc369054f60e573f780564718a0be335abe6b8179928d854f5a7d24e87ff46",
-          "relation_sha256_hex": "2940d2cdfd955acafc029a85393fbe6e00484f00a703221d0619d58af31cadb3",
-          "wire_role_sha256_hex": "e58fc0fc0c1bf28d36b2e8530bbaf296241f47f0c350de5d6466ea15c8a9af0c"
+          "relation_sha256_hex": "6b010848a123e0818922fb00f3061fecefcb2463ca4f5bf9c83de42bd06c1bd0",
+          "wire_role_sha256_hex": "25208445d688430c7a9624e420134a78e62bf6fc1dfeebec4e1b3c78e92b2664"
         }
       ],
       "note": ""
     },
     {
-      "class_key": "assert.eq@06c76cbbea275f19",
+      "class_key": "assert.eq@2fecbd19e0774753",
       "op": "assert.eq",
       "status": "proven",
       "assumption_id": "",
-      "shape_sha256_hex": "06c76cbbea275f19eb68b2fdbf0d782ef5b2bfa62f70ba8874dcd31c66157d27",
+      "shape_sha256_hex": "2fecbd19e0774753716d7b7b28284d6fa160b667f3a2a14ba24cfb921db54718",
       "instances": [
         {
-          "segment_index": 45,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst45_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg45",
-          "constant_vector_sha256_hex": "a3f409519147bc8745b0e9ee111641ecae70ac7740a50be36c8502518ea81833",
-          "relation_sha256_hex": "47559cf3fadc97866af58eef3005f795dc520882402cf1a487c55d0ba5d2fdb2",
-          "wire_role_sha256_hex": "7aa0be932a16b82586786d881c4679950b98d2f283f972c4612afe8ef302c30e"
+          "segment_index": 53,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst53_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg53",
+          "constant_vector_sha256_hex": "e926ebe8658f0fef5a4a46b513cd72f7c402d85dcb7bde9e441b57d1be8d78ff",
+          "relation_sha256_hex": "c0f3acbc8c734494cfadc78afdd46ad7a08982770d0d8b0de119b2f95f2e8d40",
+          "wire_role_sha256_hex": "6952f066242cdff5f1ca1b4d5c3f21aacb4bc5c358f94af3b9e59ee79d8d4ad8"
         }
       ],
       "note": ""
@@ -103,16 +103,16 @@
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst12_bound",
           "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg12",
           "constant_vector_sha256_hex": "6be1487b637a04aaea7ea1884674bf237e63e3a2d145c85842915847bf00a32e",
-          "relation_sha256_hex": "b78825c67c0e0d15f9efe1ca4489ffccced0a6e07c5eda583026aa4b40b4ef0f",
-          "wire_role_sha256_hex": "78cf87f312cadbbbde765efdc9e7d6a8c88575c45e3b43d26dece47d6b206c87"
+          "relation_sha256_hex": "5abf4896b8ecf2b6fa89fdeefeb96bedf4b0e6867b988a76c4ab94bf04a3b094",
+          "wire_role_sha256_hex": "6cc5a474876e46f33510b9eb6fa707c2f02a7f526ccb0cb5ca1b19185b1dbbab"
         },
         {
-          "segment_index": 26,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst26_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg26",
+          "segment_index": 34,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst34_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg34",
           "constant_vector_sha256_hex": "6be1487b637a04aaea7ea1884674bf237e63e3a2d145c85842915847bf00a32e",
-          "relation_sha256_hex": "c4308f7df25afed5798a3c7ac44db266f9eceefba7db8120ee028648363a0c1b",
-          "wire_role_sha256_hex": "00de26bc1d9685783ca24ec014a7282b7d86648a5289a0470c578603baa15932"
+          "relation_sha256_hex": "9cac0faf4dae07ca1378d9f23fc7ad5c285e1295c05902cd423b33231cdabb26",
+          "wire_role_sha256_hex": "4d96b5a6d356c67186f34c89bc3ae23251eb4de97452b0b7427d41f6758c5027"
         }
       ],
       "note": ""
@@ -125,12 +125,12 @@
       "shape_sha256_hex": "c8f5f9ee8e1b47f722c6bffb7c3913d3e9b0f9fdfcf4f23bd4bb38dedc3b4d85",
       "instances": [
         {
-          "segment_index": 38,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst38_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg38",
+          "segment_index": 46,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst46_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg46",
           "constant_vector_sha256_hex": "8a4492d79b965cae54af2e4e6184cdf011e726d83e3b1bfccba952128be5d7fb",
-          "relation_sha256_hex": "370a9eeda7086dcd4c1ab8a8c318d210b7ae0e5e9d9259acded97f3625ad5b60",
-          "wire_role_sha256_hex": "82d6c595e79130e17839f475fb8b91cc51b668e3a15784a16416fd0ae8effe7b"
+          "relation_sha256_hex": "33049d0b206286afdaaa5e3ff59dd76fc32da35ed42639cf775d03dda3da4f50",
+          "wire_role_sha256_hex": "9c5b5c7dcbb0814eb6bb159b0e04e9f134db73e6f255f020074a8009c5a952f9"
         }
       ],
       "note": ""
@@ -147,8 +147,8 @@
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst15_bound",
           "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg15",
           "constant_vector_sha256_hex": "9ebc369054f60e573f780564718a0be335abe6b8179928d854f5a7d24e87ff46",
-          "relation_sha256_hex": "64f93f4a4b7b75f896177550bac3ac0540435bd4def3b7f5c357606d6dda5978",
-          "wire_role_sha256_hex": "e53c3cc50c2c7f60dd6d9b8d21aa3a1efe76149cefe108de9d6b5b4b7e0b2455"
+          "relation_sha256_hex": "4d382d4725a8a1b3f44af4c10f14f413ba8cc5490e0938c936c9f28129686d93",
+          "wire_role_sha256_hex": "21e9a09af229ea57146ae540f462294b92eac1af8ee1ccd18e2de56921a6765d"
         }
       ],
       "note": ""
@@ -161,12 +161,12 @@
       "shape_sha256_hex": "f317d4157f1c530382bb02e9d3efdd48215127886de65265086299c51cbd8d2a",
       "instances": [
         {
-          "segment_index": 25,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst25_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg25",
+          "segment_index": 33,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst33_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg33",
           "constant_vector_sha256_hex": "836c37280403f43529ca0ad27d77413aface8ff3aaf7167ddd9275199848c73a",
-          "relation_sha256_hex": "3e43f2bc6a797c38cdf2b7d4aea66b4a0b0fe16c42de3585c633251556e92439",
-          "wire_role_sha256_hex": "9b1873f9c8bce19e8e9d532d6f6e5e675402fb47aa3177e3247cc32f1bca4e49"
+          "relation_sha256_hex": "3ef554886cb27a2a45c3a5c508bddba2911c38e15fcb4c014702332192e83567",
+          "wire_role_sha256_hex": "07f784494d7fe1fba18e84cd0f7e090ad2eb0ebf7c46be4c5e6e93b022491be5"
         }
       ],
       "note": ""
@@ -179,12 +179,12 @@
       "shape_sha256_hex": "fcdce018977caef8841bd7700ba41d2ed471c63bd0c9ca1ea5ff6b831b71b392",
       "instances": [
         {
-          "segment_index": 53,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst53_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg53",
+          "segment_index": 61,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst61_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg61",
           "constant_vector_sha256_hex": "0c4eca34451f0c5e7931a3becd9818b25c3f3b68efd694651a90841c183e73ec",
-          "relation_sha256_hex": "3b9cc340b5ae4ede549297d93d0532cdd760fecf93ebff991a53d08d24795914",
-          "wire_role_sha256_hex": "b1088bac55b6d5dda81a578fa481ac15d2ce9caa2b6dc0356da2ba7470d30cb9"
+          "relation_sha256_hex": "6f3019ab580d322d1eeea754a4352fff33847784b9d70331bdef16efb88b72e7",
+          "wire_role_sha256_hex": "7fb7150269f8adc743b520c4cb8a17b4e3a1fe5ad38f0d2e0ce3afd8fc928bb0"
         }
       ],
       "note": ""
@@ -197,12 +197,12 @@
       "shape_sha256_hex": "260c4859295f1af12110f4c101e1c15ed922e3484c72c5a28bc0e62e74fc594c",
       "instances": [
         {
-          "segment_index": 39,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst39_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg39",
+          "segment_index": 47,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst47_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg47",
           "constant_vector_sha256_hex": "d97849a6302d9f2d6f6ec25a40bac4c8c9e34d00b38eea1c16856bf288212b3a",
-          "relation_sha256_hex": "27a3f4ca9eeaf964d63bef3f62ceb7fdc5a4486ed4aba1bf7b791b4e1f822d5d",
-          "wire_role_sha256_hex": "3b313f447352b6c515b689483f1fa21ffff6638598edecbc8499886d63f509a7"
+          "relation_sha256_hex": "48ebc850cec77784f1ffc27bf01be5655365c9143758093d7d4aec12456e1ed1",
+          "wire_role_sha256_hex": "3fdbe64c842e91f77148eb175b573ea8516cdd0d77f7c58bca32409be8b714ed"
         }
       ],
       "note": ""
@@ -219,8 +219,8 @@
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst18_bound",
           "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg18",
           "constant_vector_sha256_hex": "81aa13b28cb82b96d2c488e0269ae01044d7da54a5e9bdce6dfdfb1b8c08ac53",
-          "relation_sha256_hex": "2eb5209953f2d4daa326f07de919d147745f1cd4e64c4404a91990c3d162309e",
-          "wire_role_sha256_hex": "378b02d634ff8113de0ecbb4cc3b0d90702fb85c140bdf1009a0aff6a3ff4aa6"
+          "relation_sha256_hex": "f7a34a5a22940afc5f78053063a01fc9e9c3270735aa1e4aebbf601296af94c6",
+          "wire_role_sha256_hex": "e87b08620e5dcf8a276bc148fe9a9e92d839c97e7d964b1fb5d17687a8fc2f7c"
         }
       ],
       "note": ""
@@ -233,12 +233,12 @@
       "shape_sha256_hex": "85cc0c8fd7537839beab1586a0fc48afe0c08eb7823adf1e4d504f78601c8543",
       "instances": [
         {
-          "segment_index": 41,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst41_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg41",
+          "segment_index": 49,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst49_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg49",
           "constant_vector_sha256_hex": "829556af7635a21d7a1af040b61ed1e20af6747f7e92c3d0f2f616aa812b1b38",
-          "relation_sha256_hex": "2f42177acdfd86fceaa94b76651d241c94eab531bf0593e302fa12e0b414191c",
-          "wire_role_sha256_hex": "5fde569639d72a7aa11c00ad3e13d8da0b56ba82a6b8ce3b3448439b033c251a"
+          "relation_sha256_hex": "8d41b9666ea7ec5077adf1c3965c5de92e276690e788832d3db7c6ac6c59ea4e",
+          "wire_role_sha256_hex": "9810b631c868eacbfcf73081453ac21d12b94eb1e05e398767a1ffe07f2b70f8"
         }
       ],
       "note": ""
@@ -255,16 +255,16 @@
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst6_bound",
           "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg6",
           "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
-          "relation_sha256_hex": "ccd7a377be175f2a67341ce06de9e23f423f816c6e8c902950c79a71e3566cd5",
-          "wire_role_sha256_hex": "7afc0a5205540dd04bc39e1f726324b0eddc34d3dc894d2c6c2a814455a17348"
+          "relation_sha256_hex": "60773c83a9708942e1492d31f0d0e88d0541d10bb6334eb24c7da478df7ad36c",
+          "wire_role_sha256_hex": "973227012792a6e011e7d549ac34ae4828ecac84b65e18d3b56224b89714935e"
         },
         {
           "segment_index": 13,
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst13_bound",
           "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg13",
           "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
-          "relation_sha256_hex": "d81c066ee988542a61f7888aa7670ca6c6b85a9796b7d943729ad0c44220d391",
-          "wire_role_sha256_hex": "660a67ee52ab90f656815b43bacc518132baa941c6e20985aeae6ea6d95fb1ec"
+          "relation_sha256_hex": "21f4dfd645aa6b83f3ff2186a2f303e91869a7ca5488a2cae8294ef914d7a180",
+          "wire_role_sha256_hex": "f69b6b8034c77074a0f77822794cfb9728e077dd7d32ef534dce49076fedf184"
         }
       ],
       "note": "normalized template bound"
@@ -277,12 +277,12 @@
       "shape_sha256_hex": "cddeba650593d6cb4d488a1facca6de7037b8887380b94c5bcd8da43a7b875ba",
       "instances": [
         {
-          "segment_index": 27,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst27_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg27",
+          "segment_index": 35,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst35_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg35",
           "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
-          "relation_sha256_hex": "74e805dbdcaa2386e0422ede49ed76a320812cd639d3f3b1312748dca45e854e",
-          "wire_role_sha256_hex": "e27e46bc68320328acf27db3ce07c171aa97fd3d80ae0c9633cfef632157ab74"
+          "relation_sha256_hex": "49433f670ea2b9cd2342ba704cc581eca14c10dc8f19760d504622ff91a435f6",
+          "wire_role_sha256_hex": "0c6b5f6723fed98de35b6ae6b511ac60067ba8762d225d6be7b2f5867e510a16"
         }
       ],
       "note": ""
@@ -295,12 +295,12 @@
       "shape_sha256_hex": "6198d347efba32e96077e9828d2e3b0b946bd34eb3a561ac2f541e2bd9635fd5",
       "instances": [
         {
-          "segment_index": 40,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst40_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg40",
+          "segment_index": 48,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst48_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg48",
           "constant_vector_sha256_hex": "902007ddfa9357d0175e6a93f344213adce96f820e09bb56f073f95ae184b472",
-          "relation_sha256_hex": "ed3748ebe24ba5e7db70828004a38446077db24a1bb10e8e5a4530b065626865",
-          "wire_role_sha256_hex": "e1bd822426d83d3a98a4a4cbcb08be146741efa7e86c171908d41eee621a8409"
+          "relation_sha256_hex": "8a92aef1d22c7a41c9c2f3ba9c53470a3b6a68440bb1097f682baed4137ad70c",
+          "wire_role_sha256_hex": "3fe1fa643a42ddf79bd1e0343b2d3d74548f6408ead469c4d405fccf723eb608"
         }
       ],
       "note": ""
@@ -317,8 +317,8 @@
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst8_bound",
           "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg8",
           "constant_vector_sha256_hex": "0ccbd51aa951ae46343bd2029997e607bdb411f8fd1ebcd41149d224d0244467",
-          "relation_sha256_hex": "8ca87af50b54f460c6895b2275fdbc2de72cad073ffd60c5687971a2671c72a4",
-          "wire_role_sha256_hex": "73486f947c15f33d26a4456bb7caa1e2474321e50e4e7e6609e8ec7ca3344676"
+          "relation_sha256_hex": "b1972aefe387c0bfc462568a20dec431da29e1fd4e826e7b338bd2cd8753b1e9",
+          "wire_role_sha256_hex": "4ad4144f3a1f3f6013ebe9885e48ed85aed0cce00dde350cec967bee5c119b76"
         }
       ],
       "note": ""
@@ -331,12 +331,12 @@
       "shape_sha256_hex": "aaf77ee7e9fa9bd1d02f32114826d4026f8ad480f9641579f2a54fe57c0eb9c6",
       "instances": [
         {
-          "segment_index": 48,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst48_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg48",
+          "segment_index": 56,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst56_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg56",
           "constant_vector_sha256_hex": "61f670d190050635888383bb8cd74d651f5811d04ef2e0fa84317ba9fe733b9f",
-          "relation_sha256_hex": "dfb0d5e736eb2568c7665209dce2a942725b629cdffbcf53086e9e8664bad0ea",
-          "wire_role_sha256_hex": "80730cd0c3ee60f61a21bc843420d7dbbd7abf1bbc3f37263d956332f534ce65"
+          "relation_sha256_hex": "916b16538108450e51b7bce1518f24eeb325755c2e475f47d0de83820ecce443",
+          "wire_role_sha256_hex": "5bda5105e2697d9ab8b9128362f45ec1a614d7b139c81da7486cbbdaa0971710"
         }
       ],
       "note": ""
@@ -353,24 +353,24 @@
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst5_bound",
           "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg5",
           "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
-          "relation_sha256_hex": "4d5633465ec0eae8ef1ec21836d2ced712ab246c3bae088801ef85ddba8de114",
-          "wire_role_sha256_hex": "54ff6029923df2febc4d8fcf82780dab3e5265be64ef245d9b4784b048626b19"
+          "relation_sha256_hex": "defb4be6c3b909abd19f3f86479b5a406cb6816c3206c5e44d082d4a1379ab2f",
+          "wire_role_sha256_hex": "b71de32b5b3623a6e0a962b06aabb8f6bb97e915ea452f4fdc25b93efb7a40c8"
         },
         {
-          "segment_index": 24,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst24_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg24",
+          "segment_index": 32,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst32_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg32",
           "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
-          "relation_sha256_hex": "7b06a367a5e240089a190beb2698b7c7007eba92651bf698438c9a9f2054c789",
-          "wire_role_sha256_hex": "9bd0795f1f56d150c90135310acfbe57ca820a9ac85f9f371cddd2e4d7bde17c"
+          "relation_sha256_hex": "cab345f178eea30a71aaf65f3ce0a0d150bfcd3d31334c80694f54772759475c",
+          "wire_role_sha256_hex": "ab57ff560185d8260fe20938695cd50e5c6b3539946fbbb790df774a3632936f"
         },
         {
-          "segment_index": 34,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst34_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg34",
+          "segment_index": 42,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst42_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg42",
           "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
-          "relation_sha256_hex": "ac6c0a2120dc0473b90b2a86e04fce99a8204bd3aa150e0dbc630e6344b6501c",
-          "wire_role_sha256_hex": "55cd2ba09e39a5d9ccc582b3eed835ddf918d63653dc52cf4c5b471b77d68624"
+          "relation_sha256_hex": "c501cfeee36183dfe471b7943a77684303094a2177d59aabe235737fc662a7b8",
+          "wire_role_sha256_hex": "260db9f74f9208bd44e3ca066631f044ce636742083e4a4a4e2e52bebadef9f1"
         }
       ],
       "note": ""
@@ -383,12 +383,12 @@
       "shape_sha256_hex": "a82efdcf440556d81bd94141db579ad5a9d8213c131e34f7a7e1635b231d8936",
       "instances": [
         {
-          "segment_index": 47,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst47_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg47",
+          "segment_index": 55,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst55_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg55",
           "constant_vector_sha256_hex": "32c745942da8a7af6b6c111d851b4da6801d3f5e5629391dc0aec2f95eefbfbf",
-          "relation_sha256_hex": "49f10f428a96ca7672ddc79b95df46a442016f2bc0ae6eceae81c7e8991a11af",
-          "wire_role_sha256_hex": "c2a52b3a3206b98e0d97fe0c2ac5853de680a3dbc6db905a50e7afa596253ea9"
+          "relation_sha256_hex": "3c25fb659b49123fe448c38b7470fecda75369e717c0764b658666153e5a7d94",
+          "wire_role_sha256_hex": "df587bac88e12f2be4ecdde51725f278cc165e68224262b91b40ae13ead01492"
         }
       ],
       "note": ""
@@ -405,8 +405,8 @@
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst7_bound",
           "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg7",
           "constant_vector_sha256_hex": "500730942fa63a7e2f9e40502f22ca00737e04fa344ece0183f046e1d2b3e278",
-          "relation_sha256_hex": "bebf4456218bb3b07d00322a7fcbae811bdf2b7d772e507e57150344e4f3de00",
-          "wire_role_sha256_hex": "cee9dbc6c7e5df37cc028e21ec406b53efeeebcc2122062bbf14f4b54af7cca7"
+          "relation_sha256_hex": "5e2aa0fe10796e5ab9cf72658024cf7fbdc49466ba2743002ec640c54b8fa0cb",
+          "wire_role_sha256_hex": "e0052fa56eff9a42171aac8e4cde3ef50ad3fefb37e88009017468be6aef5c2a"
         }
       ],
       "note": ""
@@ -419,20 +419,20 @@
       "shape_sha256_hex": "058cff75c684a4d6db15c17a9a129fb3a28e78936c26bea3d46fc531e01c2114",
       "instances": [
         {
-          "segment_index": 23,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst23_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg23",
+          "segment_index": 31,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst31_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg31",
           "constant_vector_sha256_hex": "e60f5e5a4779e69269ded2d568dc03f18089a9096367ea91aa849c70a1582cbc",
-          "relation_sha256_hex": "ad929b96a129fcd847a12f9b1cced461692c97eeb2e6d29bfeb536ccb4582c4a",
-          "wire_role_sha256_hex": "816d8cc26c22cb19032bc24ada2ccb03cf8c6813dd8ccad026b59cf8073d6fdb"
+          "relation_sha256_hex": "9e93591dd573e8baa47744ec3d58b48e26f7dccc882a207b30e9b7341b6aae46",
+          "wire_role_sha256_hex": "6a3a68b810ec5353ce577f2ff6b442325b9c501ed70c996164cea95c864ae068"
         },
         {
-          "segment_index": 33,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst33_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg33",
+          "segment_index": 41,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst41_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg41",
           "constant_vector_sha256_hex": "e60f5e5a4779e69269ded2d568dc03f18089a9096367ea91aa849c70a1582cbc",
-          "relation_sha256_hex": "3ede9e7c8a72d2816d1cf90f48421d177df5eb08c688df946413f44c4aa44737",
-          "wire_role_sha256_hex": "618d62b62a2625731e8729951ea184016c4e80ead65c0595796a4ea72a45f3eb"
+          "relation_sha256_hex": "6a3bb326bec1b611d82b8a4c970c5b285de678b470869c8f212205d797852857",
+          "wire_role_sha256_hex": "e60aaee0d118b79644afbf124b0e5e6559b0efacc7b33aa5123488f1ba963489"
         }
       ],
       "note": ""
@@ -445,12 +445,12 @@
       "shape_sha256_hex": "68c34d6e11c35404d833d8723b94b24fa6f1796fe280f8638af47a3f6dead500",
       "instances": [
         {
-          "segment_index": 37,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst37_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg37",
+          "segment_index": 45,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst45_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg45",
           "constant_vector_sha256_hex": "42141461045fde79d3e35b8642729c1bf1adb74b1cf74e7d3ef6b73400d7d36f",
-          "relation_sha256_hex": "5c34494a4b0cbc7167ac75c4002d7dd5a25afd39ca94b050de457ec32fe13b96",
-          "wire_role_sha256_hex": "ebeeaab8d1abaedde0baddbb42f8a7006ee6f4e2b4291a7f510d986ffe6f0efd"
+          "relation_sha256_hex": "82f424786d68023e39d16bc18563ede0d669392f1d6dd0d2fddcf428e38d0ebc",
+          "wire_role_sha256_hex": "120de07cb9975d29fca4718c5937dea59e63e3cddfee24cdf504da62cbb79d4b"
         }
       ],
       "note": ""
@@ -467,8 +467,8 @@
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst14_bound",
           "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg14",
           "constant_vector_sha256_hex": "0b873499921546bdd7daf37a1d36382939d8f51f493f1e7d70a7f7432f9ad0bb",
-          "relation_sha256_hex": "070756a6a58ea47f7f2d3767ef24ff6a4a35a3fd2bd07bbe2546aa61dd1dce75",
-          "wire_role_sha256_hex": "eae90d7da5dbf81d359fdc22711576a4bc40d6b289acb40516186f437c5580fa"
+          "relation_sha256_hex": "7d3b51820704f60951a8be8bec5fca7bbb7bd9de3f5dd005ca2e5d35ffd013e1",
+          "wire_role_sha256_hex": "68ead8eedae70f2a4fe69fde81020ece46f2a7e6f8d749b129d5f96d31d7620a"
         }
       ],
       "note": "normalized template bound"
@@ -485,8 +485,8 @@
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst10_bound",
           "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg10",
           "constant_vector_sha256_hex": "ca5a9a2da8a745ca823bbcbc130a2ff586e496e2b154f520fd22b432ac3cf378",
-          "relation_sha256_hex": "6316fcf2cb67d9691bc38872af675d9dc0759cfeade232dbd108f12c2c3645b6",
-          "wire_role_sha256_hex": "9bc916508cf3e737ed4722e8ddbff64560809852afc72f208857bd6296b02a54"
+          "relation_sha256_hex": "b2dc252315827240fd118b66d896420639f66d78b38ae49b4dafbe342560985b",
+          "wire_role_sha256_hex": "6ce2b82c16cb76af259e8ccb8d5cbf013608eb0ee27f457ae95ff035cc1d3178"
         }
       ],
       "note": "normalized template bound"
@@ -503,130 +503,130 @@
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst11_bound",
           "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg11",
           "constant_vector_sha256_hex": "ff0056132da0e46efb95f251d722854798ff116c178ab20aef7024dbe668e58c",
-          "relation_sha256_hex": "0cfa1926db80de2e35e22546acd9dd78141913ab0327d1b9d2718ee71df5a4cf",
-          "wire_role_sha256_hex": "e256d17e22e25683bc15a35f847af0759240bd9141ce4bc520ebeffb1775837f"
+          "relation_sha256_hex": "f6ebb32ab0fb8d212d2c0516434f190b7d45ae54a0e9e806e6b38b2183f612d8",
+          "wire_role_sha256_hex": "9638f3b7957ac4f6fe75be3ce00b2a2134a6bd12c3f40da13c9cb15445e2aceb"
         }
       ],
       "note": ""
     },
     {
-      "class_key": "gadget.compliance_leaf@55ea2ffd47dbcf71",
+      "class_key": "gadget.compliance_leaf@60ea8c916df39d56",
       "op": "gadget.compliance_leaf",
       "status": "proven",
       "assumption_id": "",
-      "shape_sha256_hex": "55ea2ffd47dbcf71ff22044522a9268e450603937817a9767a7e816e3f94f622",
+      "shape_sha256_hex": "60ea8c916df39d569b28ee0ea5dcddb1f300868c03463b59ddcf5abaa64399ad",
       "instances": [
         {
           "segment_index": 16,
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst16_bound",
           "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg16",
-          "constant_vector_sha256_hex": "dc87e8ab08026eced0662493a7fbd6e014fb6260b3bc384ed0d14ea686cc8869",
-          "relation_sha256_hex": "dc2cb963b32d3671210e401508fb55349b82ccea3cd3f12b5bbb016afbebcb6c",
-          "wire_role_sha256_hex": "6f73ae3bd24de757ad5b43db185949916adade2338310c517a04836b14d837b9"
+          "constant_vector_sha256_hex": "da34f67e21967d5c89cbc2d5011ccea49b3acffb6e31ac3fe849e4bf0b3e54bc",
+          "relation_sha256_hex": "f46e695b8ff71579b71be6dc4e5da98b027b4caadd2b0d0856bb9f05494835c5",
+          "wire_role_sha256_hex": "2337eb853c47a54b05f35dbe3a0a58c759c0ca72c3058a6389f4a29003435f7d"
         }
       ],
-      "note": "normalized template bound"
+      "note": ""
     },
     {
-      "class_key": "gadget.compliance_path@48f5a51369e5517c",
+      "class_key": "gadget.compliance_path@b3183b2e4d971462",
       "op": "gadget.compliance_path",
       "status": "proven",
       "assumption_id": "",
-      "shape_sha256_hex": "48f5a51369e5517ca337d1c9a4f103456c5e19f3107c082404b6d9c8e656b6b0",
+      "shape_sha256_hex": "b3183b2e4d971462470ffda4fc50e1bc3d1cb3a47fc16108bc657eb1a6cbbc5f",
       "instances": [
         {
           "segment_index": 17,
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst17_bound",
           "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg17",
-          "constant_vector_sha256_hex": "d20ea0e753223eac503d76af86182dd0e9651cf7a1967a64b84a03ef9e50e772",
-          "relation_sha256_hex": "69e6d1c1728760c5fd9cee5e0fe8c2be757910939c42abe9437a3ddb83638be3",
-          "wire_role_sha256_hex": "df1317ca784de0d4149f508f7be5523f179530533383fab3d557b056c4831794"
+          "constant_vector_sha256_hex": "8a2aeafb74170ccb2e1e3ed13dc91065e2e5a94652899109e909373bbf0bb4b5",
+          "relation_sha256_hex": "bfc569f5d193790775ca1044cb67f78041cded11b5a788f588f836dd037f5aae",
+          "wire_role_sha256_hex": "6736b6cee89e9ccdaf5a80fcf192f1858a7ed1fccf54d50aca274981c23bc618"
         }
       ],
-      "note": "normalized template bound"
+      "note": ""
     },
     {
-      "class_key": "gadget.note_commitment@a214e103a156e1fd",
+      "class_key": "gadget.note_commitment@abe36562fd47d832",
       "op": "gadget.note_commitment",
       "status": "proven",
       "assumption_id": "",
-      "shape_sha256_hex": "a214e103a156e1fd3594aa629be2c8c5f770706a7ffd1323ed44d26221d76f8b",
+      "shape_sha256_hex": "abe36562fd47d832c9576c3e2e9149ccd7ec2273abfaf6598b2d3e8dc87c380c",
       "instances": [
         {
-          "segment_index": 20,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst20_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg20",
-          "constant_vector_sha256_hex": "0ec1d01ff2b5c7ec88716e2f266eb1d3a39271c8370ee45b03f4d9defe942650",
-          "relation_sha256_hex": "1d783c73ed6807477bf8c4a19980afc7ba6dc38e485e5b4988bab3d4c8fe5a66",
-          "wire_role_sha256_hex": "d25b9e1313825b84f65f20e30488876a50f779741186111ff3efd0b887136daf"
+          "segment_index": 28,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst28_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg28",
+          "constant_vector_sha256_hex": "b85efa816b70eee655305c84711b5c3655436ad972f219fe520e1ca07bb87e4d",
+          "relation_sha256_hex": "4b9795a343127de5d768548e9f1151fd60226addb7b54ffdd66471398ac0844d",
+          "wire_role_sha256_hex": "1c94beea04c2ca341827da50cfb2542e25c6b31ee1da8b579ce01317be4cf1a6"
         },
+        {
+          "segment_index": 38,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst38_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg38",
+          "constant_vector_sha256_hex": "b85efa816b70eee655305c84711b5c3655436ad972f219fe520e1ca07bb87e4d",
+          "relation_sha256_hex": "1202c59e8a793b0a52f3ace533deaba4b3660870577bcb35137c96efc3610cd9",
+          "wire_role_sha256_hex": "461fe0533b3066c584a387909f338e79851ed88435fe2389561cbb61908ae280"
+        },
+        {
+          "segment_index": 52,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst52_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg52",
+          "constant_vector_sha256_hex": "b85efa816b70eee655305c84711b5c3655436ad972f219fe520e1ca07bb87e4d",
+          "relation_sha256_hex": "62164599145b62686f64620a7b61887729f004d59802210c61a87b7851d9fb35",
+          "wire_role_sha256_hex": "742feb55a326da8cc07a1e36af5f6b808f982bf6ecec12f0ed895359ece9457a"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "class_key": "gadget.nullifier@6c34df031af48e2f",
+      "op": "gadget.nullifier",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "6c34df031af48e2fdbe4da45cd72741dc874b3ddbaf8eb5ac846ddc21cb23cf1",
+      "instances": [
+        {
+          "segment_index": 29,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst29_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg29",
+          "constant_vector_sha256_hex": "b957374c76d5001ade8be6eb84d495769fc9827079ff7f204b449bbcf647cf1d",
+          "relation_sha256_hex": "74709fcca9019e0f16ca8b4d9ddfca30f011436a5814520622f9c8b2d5b9bdac",
+          "wire_role_sha256_hex": "7d0f34fe6081047f17d3499402575a50704ceadfd74eca17df5f5c085e03c73e"
+        },
+        {
+          "segment_index": 39,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst39_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg39",
+          "constant_vector_sha256_hex": "b957374c76d5001ade8be6eb84d495769fc9827079ff7f204b449bbcf647cf1d",
+          "relation_sha256_hex": "ed844f7f508531f428b93f5d5401000a745e6b775158602c213e75723bd2709c",
+          "wire_role_sha256_hex": "9a4ef8f8a636bd08a9ab151310b297b3e7383f52d9c954a57f2454d7cd829d1e"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "class_key": "gadget.state_commitment_path@b4d6328ac94579d4",
+      "op": "gadget.state_commitment_path",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "b4d6328ac94579d4952a59bee9de135066046fede1d123835c051aa1998a0edb",
+      "instances": [
         {
           "segment_index": 30,
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst30_bound",
           "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg30",
-          "constant_vector_sha256_hex": "0ec1d01ff2b5c7ec88716e2f266eb1d3a39271c8370ee45b03f4d9defe942650",
-          "relation_sha256_hex": "6ef43bcf8d9791264acd6ec529cfba9c9248c86efaa6634439820ab719e56082",
-          "wire_role_sha256_hex": "7d91a984d3c4bf8752ece9dc44c46981e235470d4201495ea26d087a9133d796"
+          "constant_vector_sha256_hex": "64c43dfa0781373078a353d0673f774a0fb05cf88d5c0732a8be710d28bd88cf",
+          "relation_sha256_hex": "03b89e27735889404965dd5071b321fcfaa8e27f8c0a30c2feb0cf776a2fffac",
+          "wire_role_sha256_hex": "22b1d2a3278f58eb9d8b806d357249ae4258f7386da073d77fa8195aa839ee8f"
         },
         {
-          "segment_index": 44,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst44_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg44",
-          "constant_vector_sha256_hex": "0ec1d01ff2b5c7ec88716e2f266eb1d3a39271c8370ee45b03f4d9defe942650",
-          "relation_sha256_hex": "d78b65a7e59ffa03c2bed35b8aa677e6925e781c265aa55045db86359c070fef",
-          "wire_role_sha256_hex": "105140cca40e91c734c490ab314764278131a03f8a238a93eb94db1a7930d0d5"
-        }
-      ],
-      "note": ""
-    },
-    {
-      "class_key": "gadget.nullifier@7d69f698e0d7da6c",
-      "op": "gadget.nullifier",
-      "status": "proven",
-      "assumption_id": "",
-      "shape_sha256_hex": "7d69f698e0d7da6cda7d847b7e87b080cd13c5af4bac207884f8498db2c7b390",
-      "instances": [
-        {
-          "segment_index": 21,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst21_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg21",
-          "constant_vector_sha256_hex": "bfe07058ea4e37b23d92586163cfb9e8a63b50d559082b29a3c5839838f38b50",
-          "relation_sha256_hex": "9e8d70cb9fa64b2dc9fdc117ddc033613675370a10a57e709f7d8d57edb6217d",
-          "wire_role_sha256_hex": "205a2f779cd79478261e21067127e6f413e1da6da3905ce847f7ec47bedb24a4"
-        },
-        {
-          "segment_index": 31,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst31_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg31",
-          "constant_vector_sha256_hex": "bfe07058ea4e37b23d92586163cfb9e8a63b50d559082b29a3c5839838f38b50",
-          "relation_sha256_hex": "dd8bbc5c26fe2433e3b1ed8979344efbec60c27e4a7f44c246c126f7674ac391",
-          "wire_role_sha256_hex": "07ee34bee07955eed3abd1cf22360a28369ee5583f54b08e0c2684f91193a4cb"
-        }
-      ],
-      "note": ""
-    },
-    {
-      "class_key": "gadget.state_commitment_path@1fb4124ff9d8cc66",
-      "op": "gadget.state_commitment_path",
-      "status": "proven",
-      "assumption_id": "",
-      "shape_sha256_hex": "1fb4124ff9d8cc66f95dcf765fed8ce1d4265abd88ed0c9756b4b59a8b50e173",
-      "instances": [
-        {
-          "segment_index": 22,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst22_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg22",
-          "constant_vector_sha256_hex": "9368cc95120ed4d0d19d3dcc5ca9dea5ae19c2802c4e25b2f3cbd6d8e5edd8e9",
-          "relation_sha256_hex": "2f2079c0161e14572c35c9eaa06689d5897e285b4d79fb620c1810c9f671367c",
-          "wire_role_sha256_hex": "a9cf686d45b1df5f44ee2b8b6c3c6c96996c0280e4d84fe12e38b5ad4da65971"
-        },
-        {
-          "segment_index": 32,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst32_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg32",
-          "constant_vector_sha256_hex": "9368cc95120ed4d0d19d3dcc5ca9dea5ae19c2802c4e25b2f3cbd6d8e5edd8e9",
-          "relation_sha256_hex": "5d4a95f190713cd27b73b904be5387daf311821835fd2b96483676c107b4de93",
-          "wire_role_sha256_hex": "4a4a1f4d6108e9f087ca31f899ffb9be87a203dc186ed3b6cebc89d6de6ee170"
+          "segment_index": 40,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst40_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg40",
+          "constant_vector_sha256_hex": "64c43dfa0781373078a353d0673f774a0fb05cf88d5c0732a8be710d28bd88cf",
+          "relation_sha256_hex": "1180461d99cdd4255bb053dbdb3624598f58b191111c7c0d4f8f6aa4e947f820",
+          "wire_role_sha256_hex": "11c0848f8ad974d1cb0bcd9efed0cbb0a75b5c34718404983ba6a3bd4ee49bab"
         }
       ],
       "note": ""
@@ -639,30 +639,174 @@
       "shape_sha256_hex": "18c09d9eae205eb310206275a6cc01a73294a80cc36155ed13c08c10d4b2b138",
       "instances": [
         {
-          "segment_index": 36,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst36_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg36",
+          "segment_index": 44,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst44_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg44",
           "constant_vector_sha256_hex": "dd8837141137c03e6a248decbd9dd007a6afa96dd0361add85c618a7aa09d4ef",
-          "relation_sha256_hex": "ec3b54533d90bb312c7c805c780d5c6a2513c95182d33b3a4c7d8c1e98a9be05",
-          "wire_role_sha256_hex": "426835bf534a3623822294465072293502100cbec9da556943489fe5edef22d3"
+          "relation_sha256_hex": "f06aa77acad47c95fce1125afc8ffcbec622353443068a697049aa7539486bb7",
+          "wire_role_sha256_hex": "94d46e4158e645b6a2c0bf943409cbb251ac26fd188cc21858789f7756615f53"
         }
       ],
       "note": ""
     },
     {
-      "class_key": "statement.hash@87dba54a731c9e76",
+      "class_key": "routing.parameters.bind@f8397d8612618f11",
+      "op": "routing.parameters.bind",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "f8397d8612618f118ed304fe1c4ded773c155129f192bfbd35df1cf51b880568",
+      "instances": [
+        {
+          "segment_index": 21,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst21_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg21",
+          "constant_vector_sha256_hex": "f35b1b7939ad8d7a6c491c02dfb8f288d3748234010f5451cdc1b0c41fefb4da",
+          "relation_sha256_hex": "328d7449dd44a68e7c53cf3032664552cb4016bc7571a1e2d44d34d2e478387d",
+          "wire_role_sha256_hex": "f38b30674a0e7ec6c8f50c0a122fba8e4fc1b62c906003e5af45233ee00fa6cd"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "class_key": "routing.parameters.hash@96286f6f866cc60c",
+      "op": "routing.parameters.hash",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "96286f6f866cc60c9ccd821850f6b3397ad2886e46daebea663ed52341f84dd7",
+      "instances": [
+        {
+          "segment_index": 20,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst20_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg20",
+          "constant_vector_sha256_hex": "3a0fdb1849073d974f30e024af8d82c884495b826a54a5e8114e606e7bdc4825",
+          "relation_sha256_hex": "137fef92e89fdb5c7f7e43530925cd7a2b6b98459405e668c7a691edc68a79f6",
+          "wire_role_sha256_hex": "90fa84de6982b2b7b22b67beaf55a929ca5557ebe0bd28a737b180145462fc50"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "class_key": "routing.precision.select@b36ffbffcfbfe24d",
+      "op": "routing.precision.select",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "b36ffbffcfbfe24d81953737ecdbdc74ad1ec2e85ae257855e138323cdbe48c4",
+      "instances": [
+        {
+          "segment_index": 19,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst19_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg19",
+          "constant_vector_sha256_hex": "55438a17e6ac945a0ad7ded730879ce8b777742948b0329a57791a1d972677a5",
+          "relation_sha256_hex": "c8664bc8dc145bb7b760cee67162117a37198f1d63fd9fc19014e1ff1f1b6db8",
+          "wire_role_sha256_hex": "ae6188bcef5d2eb768046eae66c4f7abd8740b66e8ece4c73bcd4f2e8cadd666"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "class_key": "routing.route_word@2da3b015914f4507",
+      "op": "routing.route_word",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "2da3b015914f4507224d38f83fcfe5d65cbf8f035559f9358ae23378c859632b",
+      "instances": [
+        {
+          "segment_index": 22,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst22_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg22",
+          "constant_vector_sha256_hex": "8ab3a7e42d697bd838d726ee1d29d1327e47189b0cfe682776296caa1e7747da",
+          "relation_sha256_hex": "052ac9ca36f537b5e7e18aa0273386c4f74f8d20de87d5bdce9049a9c263749d",
+          "wire_role_sha256_hex": "4e86871a095fc08fcbf939536fca8171c19ab12e45812d3c1ea6117dfb2a770d"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "class_key": "routing.tag.compose@5573e278c6528b98",
+      "op": "routing.tag.compose",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "5573e278c6528b98a74ce95ae0f7539242af2e93362981e6d708d21131a25687",
+      "instances": [
+        {
+          "segment_index": 26,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst26_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg26",
+          "constant_vector_sha256_hex": "a4c438b55d56d0fbec37fce3c9a27ee2b76560115dd65693c7fb53af678bca7a",
+          "relation_sha256_hex": "9327521eee51a049831d38a931978b22902ca5719410f0baec6d9c3fe429ab98",
+          "wire_role_sha256_hex": "7ed36f8e79f8209bdcb31489cfbd2e076e539d683f2cdde152b7126f269c97a8"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "class_key": "routing.tag.public_range@e392b5c42053c150",
+      "op": "routing.tag.public_range",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "e392b5c42053c1505aa46e076496d8bba5de3e5c2b452e20d3df025afd31d7c5",
+      "instances": [
+        {
+          "segment_index": 23,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst23_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg23",
+          "constant_vector_sha256_hex": "6c4ffc7bf07d8f064511340e9494fe067ca8ca79f114ddf9bb73636c02a81732",
+          "relation_sha256_hex": "c90680e5b7960e7fe121c6b1a7a3e58ba9ebc4a25b85259bc5522f6aa3d78572",
+          "wire_role_sha256_hex": "0195bb63f8f2951cf992b31c7d0197edcb0bd1e426ac1efa5f4bbd5ada906f31"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "class_key": "routing.tag.random_word@ec9b475e75020561",
+      "op": "routing.tag.random_word",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "ec9b475e75020561d81146f7a7dfd0cb3fcef09ed180faa642d5e53d7c129d25",
+      "instances": [
+        {
+          "segment_index": 25,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst25_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg25",
+          "constant_vector_sha256_hex": "f925ec46cf06eb3ab0d752f85e5bce7521129084fa04271693d1c8f846bb0f61",
+          "relation_sha256_hex": "2f5b9f9646ef8de7a1675533de6dcd7b3e76cfd5d2b008fa5fc9e955dc27dfd2",
+          "wire_role_sha256_hex": "c9f5a9f8a1104e9c2ef9765903434b902477f2ec13b092dbffe51db9b806825e"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "class_key": "routing.tag.route_bits@12b61002408e23f0",
+      "op": "routing.tag.route_bits",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "12b61002408e23f04a59eb9a8a07a47f13d170d16b3239e2cdedcfa3e14c83e7",
+      "instances": [
+        {
+          "segment_index": 24,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst24_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg24",
+          "constant_vector_sha256_hex": "811019be0ff4ac400f9bbdced864a142ad15c637730f9035d88739c3ae59369b",
+          "relation_sha256_hex": "272b709eefabe38b394c2c0325b49b0d2773603650bc59eadf17a0182739d572",
+          "wire_role_sha256_hex": "1336fc30a2d786270c30517efc1589b4ad01dda77990b463b9d237320a1a9f36"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "class_key": "statement.hash@dc63bd8f78d620ee",
       "op": "statement.hash",
       "status": "proven",
       "assumption_id": "",
-      "shape_sha256_hex": "87dba54a731c9e769fadb56b0e6cb8356c653bd5685757800db8a55020b5ea63",
+      "shape_sha256_hex": "dc63bd8f78d620ee73cc787c9291992bcb5d2069ca339c25a58311c29e2631c7",
       "instances": [
         {
-          "segment_index": 52,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst52_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg52",
-          "constant_vector_sha256_hex": "54220a8e95f9ecfa178dc944d3d9544d2b0006e57627a319fea70bf70c8ef08b",
-          "relation_sha256_hex": "1ba4440cbba9c87f7f7b22f474d848a5e8f44ac64f40fd6951873f928421dd21",
-          "wire_role_sha256_hex": "12c454ac0185db224101c23b7db3d5024d7f66c275b3543665ce6f6a0c18abcb"
+          "segment_index": 60,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst60_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg60",
+          "constant_vector_sha256_hex": "c2ae806b67b9113fafc616b379ef24c7901ee4a2b0519aae4b40e83c24f333e2",
+          "relation_sha256_hex": "553a278c229b24c2d0f9dfde6a853d8b428e28f1c4bb37c2d11d7a9c2bac1a8e",
+          "wire_role_sha256_hex": "9ff01cbdb0da62bb99af26bdfd1ad441f7b0ed8668c2f9331b95bf245a546f6b"
         }
       ],
       "note": ""
@@ -675,12 +819,12 @@
       "shape_sha256_hex": "e0c07fffc08dab35bd0b7d060368d168df720e0a3ed65f61aca40448c1ef5ecb",
       "instances": [
         {
-          "segment_index": 51,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst51_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg51",
-          "constant_vector_sha256_hex": "ae843d03bc362ce1d21d490975c724532433e0ee89c4d76cc1cec4fe02e5d5b7",
-          "relation_sha256_hex": "7c00a90c9fa6fb70e345dbf14ed948138e6d976c576234b7582e48dd0a2ae1e1",
-          "wire_role_sha256_hex": "4131ae4aa423d8e32db2c0a0cb681b739f60df0037c762a3e0efcae4d856a450"
+          "segment_index": 59,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst59_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg59",
+          "constant_vector_sha256_hex": "6d7c9ef4f7ff8099da0d610368aa8201d2952f3c9577ca660b8d8efabb9c49d5",
+          "relation_sha256_hex": "35e52ad2977ce37d4c8172f121722d3cfcfe42da95c9d0a51885e9d327e6420c",
+          "wire_role_sha256_hex": "0c1f89d19413cc7313fe08d90a836c3e0382dba8068d070b99318888ca150222"
         }
       ],
       "note": ""
@@ -693,12 +837,12 @@
       "shape_sha256_hex": "e4f4b2acc8ef50234a7fe401c02971415a76abd6c3349ba33d7aa15b1399846c",
       "instances": [
         {
-          "segment_index": 50,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst50_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg50",
-          "constant_vector_sha256_hex": "b1b4c8a1430c6b36e558b7afaee183a3bd01ec53ec80c0eee55c5822b14029c7",
-          "relation_sha256_hex": "7c711e16ab3c9842eb90beff5c027594372419629bbeea937912e3bd5d78a6b3",
-          "wire_role_sha256_hex": "2ac0f7e9526e4ae7c61b9e783335c47fd66c1af8098aa0a0c25d4ec08a2614aa"
+          "segment_index": 58,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst58_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg58",
+          "constant_vector_sha256_hex": "2d24e0d9974e6ec49e0addb36653b30a27bc4f03bbbc3f6514cac796ad54d35a",
+          "relation_sha256_hex": "36cd42d06974a654b24a2f3fa6e2da195de95582f0501b26f8d301b6c180be69",
+          "wire_role_sha256_hex": "45cecaa086f7b2cd5cbc3a27024dd0e8f1443e1667b212fcee53c054534e5273"
         }
       ],
       "note": ""

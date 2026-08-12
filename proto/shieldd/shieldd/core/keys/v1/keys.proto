@@ -5,7 +5,7 @@ package shieldd.core.keys.v1;
 // string, with the human-readable prefix (HRP) `shielddv2t`.
 message Address {
   // The bytes of the address. Must be represented as a series of
-  // `uint8` (i.e. values 0 through 255), with a length of 80 elements.
+  // `uint8` (i.e. values 0 through 255), with a length of 48 elements.
   bytes inner = 1;
 
   // Alternatively, a Bech32m-encoded string representation of the `inner`

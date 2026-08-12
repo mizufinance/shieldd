@@ -11,7 +11,7 @@ namespace Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg26
 def Order : Nat := 8444461749428370424248824938781546531375899335154063827935233455917409239041
 abbrev F := ZMod Order
 
-def wireSeatingTable : List Nat := [0, 18148, 18149]
+def wireSeatingTable : List Nat := [0, 18152, 18153]
 
 def wireSeating : Nat -> Nat :=
 fun localWire => wireSeatingTable.getD localWire 0
@@ -27,8 +27,8 @@ def spec (rho : Nat -> F) : Prop :=
 
 def contract : Shieldd.GnarkFormal.Deployed.DeployedContract F := {
 segmentIndex := 26,
-relationSha256Hex := "bba296c173f12ed8d0b21e1685d962f82e8fe11bfb9d32e094e39637bb75b7d9",
-wireRoleSha256Hex := "b852fb3b47599fe61d16fa506d558d550f15d5f8a42471f50aadea80d2aba58a",
+relationSha256Hex := "ececd6d2fe9ce557139d3e27e719d54b78995452781b41c247351e4f2b174c9a",
+wireRoleSha256Hex := "64de724c6e572740438f587806fcb6a05254f2271a9eca5c6ac00737a119b21c",
 relation := relation,
 spec := spec
 }

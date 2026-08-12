@@ -32,7 +32,7 @@ def noteCommitment
   commitment =
     Common.noteCommitmentHash
       blinding amount shared.assetId shared.diversifiedGeneratorEncoding
-      shared.transmissionEncoding shared.clueKey
+      shared.transmissionEncoding
 
 def canonicalTransmission
     (authorization : AuthorizationContext F)
@@ -96,9 +96,9 @@ def conservation (action : Action F Path24) : Prop :=
 
 def statementDomain : FamilyPolicy → F
   | .reshape1x8 =>
-      2598058543572663691928291801991083332834406653466399970650219017347474033401
+      4241182688873131096588087403843978305304926756205733284227994496152505846817
   | .reshape8x1 =>
-      8151566796627494957780365425260097767647931594965532798107827918965818197203
+      6633002048635308567879967754963729389552746207601986158379347440968324263659
 
 def statementPad0 : FamilyPolicy → F
   | .reshape1x8 =>
@@ -116,42 +116,12 @@ def statementField (fields : List F) (index : Nat) (padding : F) : F :=
   fields.getD index padding
 
 def statementFirstBlock (policy : FamilyPolicy) (fields : List F) : F :=
-  Poseidon377.hash7 (statementDomain policy)
-    (statementField fields 0 (statementPad0 policy))
-    (statementField fields 1 (statementPad1 policy))
-    (statementField fields 2 (statementPad0 policy))
-    (statementField fields 3 (statementPad1 policy))
-    (statementField fields 4 (statementPad0 policy))
-    (statementField fields 5 (statementPad1 policy))
-    (statementField fields 6 (statementPad0 policy))
+  Common.statementFirstBlock
+    (statementDomain policy) (statementPad0 policy) (statementPad1 policy) fields
 
 def statementHash (policy : FamilyPolicy) (fields : List F) : F :=
-  let first := statementFirstBlock policy fields
-  match policy with
-  | .reshape1x8 =>
-      Poseidon377.hash7 (statementDomain policy) first
-        (statementField fields 7 (statementPad0 policy))
-        (statementField fields 8 (statementPad1 policy))
-        (statementField fields 9 (statementPad0 policy))
-        (statementField fields 10 (statementPad1 policy))
-        (statementField fields 11 (statementPad0 policy))
-        (statementPad1 policy)
-  | .reshape8x1 =>
-      let second :=
-        Poseidon377.hash7 (statementDomain policy) first
-          (statementField fields 7 (statementPad0 policy))
-          (statementField fields 8 (statementPad1 policy))
-          (statementField fields 9 (statementPad0 policy))
-          (statementField fields 10 (statementPad1 policy))
-          (statementField fields 11 (statementPad0 policy))
-          (statementField fields 12 (statementPad1 policy))
-      Poseidon377.hash7 (statementDomain policy) second
-        (statementField fields 13 (statementPad0 policy))
-        (statementField fields 14 (statementPad1 policy))
-        (statementField fields 15 (statementPad0 policy))
-        (statementField fields 16 (statementPad1 policy))
-        (statementField fields 17 (statementPad0 policy))
-        (statementField fields 18 (statementPad1 policy))
+  Common.statementHash
+    (statementDomain policy) (statementPad0 policy) (statementPad1 policy) fields
 
 def inputStatementFields :
     List (Input F Path24) → List F → List F
@@ -163,7 +133,8 @@ def statementFields
     (action : Action F Path24) (balanceFq : F) (rkFqs : List F) : List F :=
   [action.anchor] ++
     action.outputs.map Output.commitment ++
-    [balanceFq] ++
+    [balanceFq, action.assetAnchor, action.routingTag,
+      action.routingParameterSetId] ++
     inputStatementFields action.inputs rkFqs
 
 def statementBinding (action : Action F Path24) : Prop :=

@@ -28,6 +28,9 @@ pub struct CompactBlock {
     pub discovery_parameters: ::core::option::Option<
         super::super::shielded_pool::v1::DiscoveryParameters,
     >,
+    /// Fixed-shape action-level routing records emitted by transactions in this block.
+    #[prost(message, repeated, tag = "8")]
+    pub routing_records: ::prost::alloc::vec::Vec<RoutingRecord>,
     /// Indicates updated app parameters.
     #[prost(bool, tag = "9")]
     pub app_parameters_updated: bool,
@@ -56,6 +59,9 @@ pub struct CompactBlock {
     pub compliance_asset_registrations: ::prost::alloc::vec::Vec<
         super::super::compliance::v1::EventAssetRegistered,
     >,
+    /// Encrypted note payloads grouped by their producing action for candidate retrieval.
+    #[prost(message, repeated, tag = "16")]
+    pub routing_action_payloads: ::prost::alloc::vec::Vec<RoutingActionPayloads>,
 }
 impl ::prost::Name for CompactBlock {
     const NAME: &'static str = "CompactBlock";
@@ -202,7 +208,7 @@ impl ::prost::Name for CompactBlockResponse {
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct DiscoveryBlock {
+pub struct RoutingBlock {
     #[prost(uint64, tag = "1")]
     pub height: u64,
     #[prost(message, optional, tag = "2")]
@@ -214,92 +220,142 @@ pub struct DiscoveryBlock {
         super::super::super::super::crypto::tct::v1::MerkleRoot,
     >,
     #[prost(message, repeated, tag = "4")]
-    pub tags: ::prost::alloc::vec::Vec<super::super::shielded_pool::v1::DiscoveryTag>,
+    pub records: ::prost::alloc::vec::Vec<RoutingRecord>,
     #[prost(message, optional, tag = "5")]
     pub discovery_parameters: ::core::option::Option<
         super::super::shielded_pool::v1::DiscoveryParameters,
     >,
 }
-impl ::prost::Name for DiscoveryBlock {
-    const NAME: &'static str = "DiscoveryBlock";
+impl ::prost::Name for RoutingBlock {
+    const NAME: &'static str = "RoutingBlock";
     const PACKAGE: &'static str = "shieldd.core.component.compact_block.v1";
     fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.compact_block.v1.DiscoveryBlock".into()
+        "shieldd.core.component.compact_block.v1.RoutingBlock".into()
     }
     fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.compact_block.v1.DiscoveryBlock".into()
+        "/shieldd.core.component.compact_block.v1.RoutingBlock".into()
+    }
+}
+/// One public tag attached to an action. Slot roles are deliberately absent.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RoutingRecord {
+    #[prost(message, optional, tag = "1")]
+    pub tag: ::core::option::Option<super::super::shielded_pool::v1::RoutingTag>,
+    #[prost(uint64, tag = "2")]
+    pub height: u64,
+    #[prost(message, optional, tag = "3")]
+    pub transaction_id: ::core::option::Option<
+        super::super::super::txhash::v1::TransactionId,
+    >,
+    #[prost(uint32, tag = "4")]
+    pub action_index: u32,
+    #[prost(uint32, tag = "5")]
+    pub tag_slot: u32,
+}
+impl ::prost::Name for RoutingRecord {
+    const NAME: &'static str = "RoutingRecord";
+    const PACKAGE: &'static str = "shieldd.core.component.compact_block.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.compact_block.v1.RoutingRecord".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.compact_block.v1.RoutingRecord".into()
+    }
+}
+/// Encrypted payloads associated with one public action position.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RoutingActionPayloads {
+    #[prost(message, optional, tag = "1")]
+    pub transaction_id: ::core::option::Option<
+        super::super::super::txhash::v1::TransactionId,
+    >,
+    #[prost(uint32, tag = "2")]
+    pub action_index: u32,
+    #[prost(message, repeated, tag = "3")]
+    pub note_payloads: ::prost::alloc::vec::Vec<
+        super::super::shielded_pool::v1::NotePayload,
+    >,
+}
+impl ::prost::Name for RoutingActionPayloads {
+    const NAME: &'static str = "RoutingActionPayloads";
+    const PACKAGE: &'static str = "shieldd.core.component.compact_block.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.compact_block.v1.RoutingActionPayloads".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.compact_block.v1.RoutingActionPayloads".into()
     }
 }
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
-pub struct DiscoveryBlockRangeRequest {
+pub struct RoutingBlockRangeRequest {
     #[prost(uint64, tag = "1")]
     pub start_height: u64,
     #[prost(uint64, tag = "2")]
     pub end_height: u64,
 }
-impl ::prost::Name for DiscoveryBlockRangeRequest {
-    const NAME: &'static str = "DiscoveryBlockRangeRequest";
+impl ::prost::Name for RoutingBlockRangeRequest {
+    const NAME: &'static str = "RoutingBlockRangeRequest";
     const PACKAGE: &'static str = "shieldd.core.component.compact_block.v1";
     fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.compact_block.v1.DiscoveryBlockRangeRequest".into()
+        "shieldd.core.component.compact_block.v1.RoutingBlockRangeRequest".into()
     }
     fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.compact_block.v1.DiscoveryBlockRangeRequest".into()
+        "/shieldd.core.component.compact_block.v1.RoutingBlockRangeRequest".into()
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct DiscoveryBlockRangeResponse {
+pub struct RoutingBlockRangeResponse {
     #[prost(message, optional, tag = "1")]
-    pub discovery_block: ::core::option::Option<DiscoveryBlock>,
+    pub routing_block: ::core::option::Option<RoutingBlock>,
 }
-impl ::prost::Name for DiscoveryBlockRangeResponse {
-    const NAME: &'static str = "DiscoveryBlockRangeResponse";
+impl ::prost::Name for RoutingBlockRangeResponse {
+    const NAME: &'static str = "RoutingBlockRangeResponse";
     const PACKAGE: &'static str = "shieldd.core.component.compact_block.v1";
     fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.compact_block.v1.DiscoveryBlockRangeResponse".into()
+        "shieldd.core.component.compact_block.v1.RoutingBlockRangeResponse".into()
     }
     fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.compact_block.v1.DiscoveryBlockRangeResponse".into()
+        "/shieldd.core.component.compact_block.v1.RoutingBlockRangeResponse".into()
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct NoteCandidatesRequest {
+pub struct RoutingCandidatesRequest {
     #[prost(uint64, tag = "1")]
     pub start_height: u64,
     #[prost(uint64, tag = "2")]
     pub end_height: u64,
     #[prost(message, repeated, tag = "3")]
-    pub tags: ::prost::alloc::vec::Vec<super::super::shielded_pool::v1::DiscoveryTag>,
+    pub selectors: ::prost::alloc::vec::Vec<
+        super::super::shielded_pool::v1::RoutingSelector,
+    >,
 }
-impl ::prost::Name for NoteCandidatesRequest {
-    const NAME: &'static str = "NoteCandidatesRequest";
+impl ::prost::Name for RoutingCandidatesRequest {
+    const NAME: &'static str = "RoutingCandidatesRequest";
     const PACKAGE: &'static str = "shieldd.core.component.compact_block.v1";
     fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.compact_block.v1.NoteCandidatesRequest".into()
+        "shieldd.core.component.compact_block.v1.RoutingCandidatesRequest".into()
     }
     fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.compact_block.v1.NoteCandidatesRequest".into()
+        "/shieldd.core.component.compact_block.v1.RoutingCandidatesRequest".into()
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct NoteCandidatesResponse {
-    #[prost(uint64, tag = "1")]
-    pub height: u64,
-    #[prost(uint32, tag = "2")]
-    pub state_payload_index: u32,
-    #[prost(message, optional, tag = "3")]
-    pub note_payload: ::core::option::Option<
+pub struct RoutingCandidatesResponse {
+    #[prost(message, optional, tag = "1")]
+    pub record: ::core::option::Option<RoutingRecord>,
+    #[prost(message, repeated, tag = "2")]
+    pub note_payloads: ::prost::alloc::vec::Vec<
         super::super::shielded_pool::v1::NotePayload,
     >,
 }
-impl ::prost::Name for NoteCandidatesResponse {
-    const NAME: &'static str = "NoteCandidatesResponse";
+impl ::prost::Name for RoutingCandidatesResponse {
+    const NAME: &'static str = "RoutingCandidatesResponse";
     const PACKAGE: &'static str = "shieldd.core.component.compact_block.v1";
     fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.compact_block.v1.NoteCandidatesResponse".into()
+        "shieldd.core.component.compact_block.v1.RoutingCandidatesResponse".into()
     }
     fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.compact_block.v1.NoteCandidatesResponse".into()
+        "/shieldd.core.component.compact_block.v1.RoutingCandidatesResponse".into()
     }
 }
 /// Generated client implementations.
@@ -457,12 +513,12 @@ pub mod query_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
-        /// Streams public discovery tags without encrypted note payloads.
-        pub async fn discovery_block_range(
+        /// Streams typed action-level routing records without filtering.
+        pub async fn routing_block_range(
             &mut self,
-            request: impl tonic::IntoRequest<super::DiscoveryBlockRangeRequest>,
+            request: impl tonic::IntoRequest<super::RoutingBlockRangeRequest>,
         ) -> std::result::Result<
-            tonic::Response<tonic::codec::Streaming<super::DiscoveryBlockRangeResponse>>,
+            tonic::Response<tonic::codec::Streaming<super::RoutingBlockRangeResponse>>,
             tonic::Status,
         > {
             self.inner
@@ -475,24 +531,24 @@ pub mod query_service_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/shieldd.core.component.compact_block.v1.QueryService/DiscoveryBlockRange",
+                "/shieldd.core.component.compact_block.v1.QueryService/RoutingBlockRange",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
                         "shieldd.core.component.compact_block.v1.QueryService",
-                        "DiscoveryBlockRange",
+                        "RoutingBlockRange",
                     ),
                 );
             self.inner.server_streaming(req, path, codec).await
         }
-        /// Finds encrypted note candidates by public discovery tag without requiring an index.
-        pub async fn note_candidates(
+        /// Finds action-level candidates by routing selector.
+        pub async fn routing_candidates(
             &mut self,
-            request: impl tonic::IntoRequest<super::NoteCandidatesRequest>,
+            request: impl tonic::IntoRequest<super::RoutingCandidatesRequest>,
         ) -> std::result::Result<
-            tonic::Response<tonic::codec::Streaming<super::NoteCandidatesResponse>>,
+            tonic::Response<tonic::codec::Streaming<super::RoutingCandidatesResponse>>,
             tonic::Status,
         > {
             self.inner
@@ -505,14 +561,14 @@ pub mod query_service_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/shieldd.core.component.compact_block.v1.QueryService/NoteCandidates",
+                "/shieldd.core.component.compact_block.v1.QueryService/RoutingCandidates",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
                         "shieldd.core.component.compact_block.v1.QueryService",
-                        "NoteCandidates",
+                        "RoutingCandidates",
                     ),
                 );
             self.inner.server_streaming(req, path, codec).await
@@ -560,35 +616,38 @@ pub mod query_service_server {
             tonic::Response<super::CompactBlockResponse>,
             tonic::Status,
         >;
-        /// Server streaming response type for the DiscoveryBlockRange method.
-        type DiscoveryBlockRangeStream: tonic::codegen::tokio_stream::Stream<
+        /// Server streaming response type for the RoutingBlockRange method.
+        type RoutingBlockRangeStream: tonic::codegen::tokio_stream::Stream<
                 Item = std::result::Result<
-                    super::DiscoveryBlockRangeResponse,
+                    super::RoutingBlockRangeResponse,
                     tonic::Status,
                 >,
             >
             + std::marker::Send
             + 'static;
-        /// Streams public discovery tags without encrypted note payloads.
-        async fn discovery_block_range(
+        /// Streams typed action-level routing records without filtering.
+        async fn routing_block_range(
             &self,
-            request: tonic::Request<super::DiscoveryBlockRangeRequest>,
+            request: tonic::Request<super::RoutingBlockRangeRequest>,
         ) -> std::result::Result<
-            tonic::Response<Self::DiscoveryBlockRangeStream>,
+            tonic::Response<Self::RoutingBlockRangeStream>,
             tonic::Status,
         >;
-        /// Server streaming response type for the NoteCandidates method.
-        type NoteCandidatesStream: tonic::codegen::tokio_stream::Stream<
-                Item = std::result::Result<super::NoteCandidatesResponse, tonic::Status>,
+        /// Server streaming response type for the RoutingCandidates method.
+        type RoutingCandidatesStream: tonic::codegen::tokio_stream::Stream<
+                Item = std::result::Result<
+                    super::RoutingCandidatesResponse,
+                    tonic::Status,
+                >,
             >
             + std::marker::Send
             + 'static;
-        /// Finds encrypted note candidates by public discovery tag without requiring an index.
-        async fn note_candidates(
+        /// Finds action-level candidates by routing selector.
+        async fn routing_candidates(
             &self,
-            request: tonic::Request<super::NoteCandidatesRequest>,
+            request: tonic::Request<super::RoutingCandidatesRequest>,
         ) -> std::result::Result<
-            tonic::Response<Self::NoteCandidatesStream>,
+            tonic::Response<Self::RoutingCandidatesStream>,
             tonic::Status,
         >;
     }
@@ -762,27 +821,27 @@ pub mod query_service_server {
                     };
                     Box::pin(fut)
                 }
-                "/shieldd.core.component.compact_block.v1.QueryService/DiscoveryBlockRange" => {
+                "/shieldd.core.component.compact_block.v1.QueryService/RoutingBlockRange" => {
                     #[allow(non_camel_case_types)]
-                    struct DiscoveryBlockRangeSvc<T: QueryService>(pub Arc<T>);
+                    struct RoutingBlockRangeSvc<T: QueryService>(pub Arc<T>);
                     impl<
                         T: QueryService,
                     > tonic::server::ServerStreamingService<
-                        super::DiscoveryBlockRangeRequest,
-                    > for DiscoveryBlockRangeSvc<T> {
-                        type Response = super::DiscoveryBlockRangeResponse;
-                        type ResponseStream = T::DiscoveryBlockRangeStream;
+                        super::RoutingBlockRangeRequest,
+                    > for RoutingBlockRangeSvc<T> {
+                        type Response = super::RoutingBlockRangeResponse;
+                        type ResponseStream = T::RoutingBlockRangeStream;
                         type Future = BoxFuture<
                             tonic::Response<Self::ResponseStream>,
                             tonic::Status,
                         >;
                         fn call(
                             &mut self,
-                            request: tonic::Request<super::DiscoveryBlockRangeRequest>,
+                            request: tonic::Request<super::RoutingBlockRangeRequest>,
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as QueryService>::discovery_block_range(&inner, request)
+                                <T as QueryService>::routing_block_range(&inner, request)
                                     .await
                             };
                             Box::pin(fut)
@@ -794,7 +853,7 @@ pub mod query_service_server {
                     let max_encoding_message_size = self.max_encoding_message_size;
                     let inner = self.inner.clone();
                     let fut = async move {
-                        let method = DiscoveryBlockRangeSvc(inner);
+                        let method = RoutingBlockRangeSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
@@ -810,26 +869,28 @@ pub mod query_service_server {
                     };
                     Box::pin(fut)
                 }
-                "/shieldd.core.component.compact_block.v1.QueryService/NoteCandidates" => {
+                "/shieldd.core.component.compact_block.v1.QueryService/RoutingCandidates" => {
                     #[allow(non_camel_case_types)]
-                    struct NoteCandidatesSvc<T: QueryService>(pub Arc<T>);
+                    struct RoutingCandidatesSvc<T: QueryService>(pub Arc<T>);
                     impl<
                         T: QueryService,
-                    > tonic::server::ServerStreamingService<super::NoteCandidatesRequest>
-                    for NoteCandidatesSvc<T> {
-                        type Response = super::NoteCandidatesResponse;
-                        type ResponseStream = T::NoteCandidatesStream;
+                    > tonic::server::ServerStreamingService<
+                        super::RoutingCandidatesRequest,
+                    > for RoutingCandidatesSvc<T> {
+                        type Response = super::RoutingCandidatesResponse;
+                        type ResponseStream = T::RoutingCandidatesStream;
                         type Future = BoxFuture<
                             tonic::Response<Self::ResponseStream>,
                             tonic::Status,
                         >;
                         fn call(
                             &mut self,
-                            request: tonic::Request<super::NoteCandidatesRequest>,
+                            request: tonic::Request<super::RoutingCandidatesRequest>,
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as QueryService>::note_candidates(&inner, request).await
+                                <T as QueryService>::routing_candidates(&inner, request)
+                                    .await
                             };
                             Box::pin(fut)
                         }
@@ -840,7 +901,7 @@ pub mod query_service_server {
                     let max_encoding_message_size = self.max_encoding_message_size;
                     let inner = self.inner.clone();
                     let fut = async move {
-                        let method = NoteCandidatesSvc(inner);
+                        let method = RoutingCandidatesSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

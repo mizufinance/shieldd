@@ -252,6 +252,7 @@ message TransactionPlannerResponse {
 
 message AddressByIndexRequest {
   core.keys.v1.AddressIndex address_index = 1;
+  AddressPurpose purpose = 2;
 }
 
 message AddressByIndexResponse {
@@ -275,10 +276,17 @@ message IndexByAddressResponse {
 
 message EphemeralAddressRequest {
   core.keys.v1.AddressIndex address_index = 1;
+  AddressPurpose purpose = 2;
 }
 
 message EphemeralAddressResponse {
   core.keys.v1.Address address = 1;
+}
+
+// Local-only metadata describing why the wallet issued an address.
+message AddressPurpose {
+  // Absent means a general-purpose address.
+  core.asset.v1.AssetId regulated_asset_id = 1;
 }
 
 message BalancesRequest {

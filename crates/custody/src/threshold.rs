@@ -250,7 +250,7 @@ impl<T: Terminal> Threshold<T> {
     ///
     /// This is just to match the API of the custody trait.
     fn confirm_address(&self, index: AddressIndex) -> Address {
-        self.config.fvk().payment_address(index).0
+        self.config.fvk().payment_address(index)
     }
 }
 

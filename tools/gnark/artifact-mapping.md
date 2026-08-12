@@ -9,7 +9,7 @@ This note describes the current shielded-action artifact boundary between Rust a
 | --- | --- | --- |
 | Public inputs | Rust `TransferProofPublic` | Rust structs, flattened to one statement-hash field |
 | Private witness | Rust `TransferProofPrivate` | Rust structs |
-| Witness payload | Rust witness encoder | `TransferWitnessV16` binary payload |
+| Witness payload | Rust witness encoder | `TransferWitnessV17` binary payload |
 | Constraint system | Go / gnark | gnark `R1CS` |
 | Proving key | Go / gnark artifact bundle | gnark Groth16 proving key |
 | Verifying key | Rust canonical verification path | gnark VK represented as Rust `PreparedVerifyingKey<Bls12_377>` |

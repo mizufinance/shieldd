@@ -6,6 +6,34 @@
       "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/NoteReshape1x8/SpecificationConsequences.lean",
       "consequences": [
         [
+          "ASSET-LEAF-HASH",
+          "theorem specification_asset_leaf_hash"
+        ],
+        [
+          "ASSET-PARAMETERS-HASH",
+          "theorem specification_asset_parameters_hash"
+        ],
+        [
+          "ASSET-POLICY-KEY-ENCODING",
+          "theorem specification_asset_policy_key_encoding"
+        ],
+        [
+          "ASSET-REGISTRY-GAP-ORDERING",
+          "theorem specification_asset_registry_gap_ordering"
+        ],
+        [
+          "ASSET-REGISTRY-MEMBERSHIP",
+          "theorem specification_asset_registry_membership"
+        ],
+        [
+          "ASSET-REGULATED-BOOLEAN",
+          "theorem specification_asset_regulated_boolean"
+        ],
+        [
+          "ASSET-RING-HASH",
+          "theorem specification_asset_ring_hash"
+        ],
+        [
           "CIR-SHAPE-FIXED",
           "theorem specification_cir_shape_fixed"
         ],
@@ -50,10 +78,6 @@
           "theorem specification_note_output_asset_binding"
         ],
         [
-          "NOTE-OUTPUT-CLUE-KEY-BINDING",
-          "theorem specification_note_output_clue_key_binding"
-        ],
-        [
           "NOTE-OUTPUT-COMMITMENT",
           "theorem specification_note_output_commitment"
         ],
@@ -66,10 +90,6 @@
           "theorem specification_note_spend_asset_binding"
         ],
         [
-          "NOTE-SPEND-CLUE-KEY-BINDING",
-          "theorem specification_note_spend_clue_key_binding"
-        ],
-        [
           "NOTE-SPEND-COMMITMENT",
           "theorem specification_note_spend_commitment"
         ],
@@ -80,6 +100,14 @@
         [
           "NOTE-SPEND-OWNER-BINDING",
           "theorem specification_note_spend_owner_binding"
+        ],
+        [
+          "ROUTING-PARAMETERS",
+          "theorem specification_routing_parameters"
+        ],
+        [
+          "ROUTING-TAG-DERIVATION",
+          "theorem specification_routing_tag_derivation"
         ],
         [
           "SCT-SPEND-MEMBERSHIP",
@@ -99,6 +127,34 @@
       "profile": "note_reshape8x1",
       "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/NoteReshape8x1/SpecificationConsequences.lean",
       "consequences": [
+        [
+          "ASSET-LEAF-HASH",
+          "theorem specification_asset_leaf_hash"
+        ],
+        [
+          "ASSET-PARAMETERS-HASH",
+          "theorem specification_asset_parameters_hash"
+        ],
+        [
+          "ASSET-POLICY-KEY-ENCODING",
+          "theorem specification_asset_policy_key_encoding"
+        ],
+        [
+          "ASSET-REGISTRY-GAP-ORDERING",
+          "theorem specification_asset_registry_gap_ordering"
+        ],
+        [
+          "ASSET-REGISTRY-MEMBERSHIP",
+          "theorem specification_asset_registry_membership"
+        ],
+        [
+          "ASSET-REGULATED-BOOLEAN",
+          "theorem specification_asset_regulated_boolean"
+        ],
+        [
+          "ASSET-RING-HASH",
+          "theorem specification_asset_ring_hash"
+        ],
         [
           "CIR-DUMMY-ORDER-COUNT",
           "theorem specification_cir_dummy_order_count"
@@ -160,10 +216,6 @@
           "theorem specification_note_output_asset_binding"
         ],
         [
-          "NOTE-OUTPUT-CLUE-KEY-BINDING",
-          "theorem specification_note_output_clue_key_binding"
-        ],
-        [
           "NOTE-OUTPUT-COMMITMENT",
           "theorem specification_note_output_commitment"
         ],
@@ -176,10 +228,6 @@
           "theorem specification_note_spend_asset_binding"
         ],
         [
-          "NOTE-SPEND-CLUE-KEY-BINDING",
-          "theorem specification_note_spend_clue_key_binding"
-        ],
-        [
           "NOTE-SPEND-COMMITMENT",
           "theorem specification_note_spend_commitment"
         ],
@@ -190,6 +238,14 @@
         [
           "NOTE-SPEND-OWNER-BINDING",
           "theorem specification_note_spend_owner_binding"
+        ],
+        [
+          "ROUTING-PARAMETERS",
+          "theorem specification_routing_parameters"
+        ],
+        [
+          "ROUTING-TAG-DERIVATION",
+          "theorem specification_routing_tag_derivation"
         ],
         [
           "SCT-SPEND-MEMBERSHIP",
@@ -302,10 +358,6 @@
           "theorem specification_note_output_asset_binding"
         ],
         [
-          "NOTE-OUTPUT-CLUE-KEY-BINDING",
-          "theorem specification_note_output_clue_key_binding"
-        ],
-        [
           "NOTE-OUTPUT-COMMITMENT",
           "theorem specification_note_output_commitment"
         ],
@@ -318,10 +370,6 @@
           "theorem specification_note_spend_asset_binding"
         ],
         [
-          "NOTE-SPEND-CLUE-KEY-BINDING",
-          "theorem specification_note_spend_clue_key_binding"
-        ],
-        [
           "NOTE-SPEND-COMMITMENT",
           "theorem specification_note_spend_commitment"
         ],
@@ -332,6 +380,14 @@
         [
           "NOTE-SPEND-OWNER-BINDING",
           "theorem specification_note_spend_owner_binding"
+        ],
+        [
+          "ROUTING-PARAMETERS",
+          "theorem specification_routing_parameters"
+        ],
+        [
+          "ROUTING-TAG-DERIVATION",
+          "theorem specification_routing_tag_derivation"
         ],
         [
           "SCT-SPEND-MEMBERSHIP",
@@ -532,10 +588,6 @@
           "theorem specification_note_output_asset_binding"
         ],
         [
-          "NOTE-OUTPUT-CLUE-KEY-BINDING",
-          "theorem specification_note_output_clue_key_binding"
-        ],
-        [
           "NOTE-OUTPUT-OWNER-BINDING",
           "theorem specification_note_output_owner_binding"
         ],
@@ -548,16 +600,20 @@
           "theorem specification_note_spend_asset_binding"
         ],
         [
-          "NOTE-SPEND-CLUE-KEY-BINDING",
-          "theorem specification_note_spend_clue_key_binding"
-        ],
-        [
           "NOTE-SPEND-COMMITMENT",
           "theorem specification_note_spend_commitment"
         ],
         [
           "NOTE-SPEND-OWNER-BINDING",
           "theorem specification_note_spend_owner_binding"
+        ],
+        [
+          "ROUTING-PARAMETERS",
+          "theorem specification_routing_parameters"
+        ],
+        [
+          "ROUTING-TAG-DERIVATION",
+          "theorem specification_routing_tag_derivation"
         ],
         [
           "USER-COMPLIANCE-LEAF-HASH",

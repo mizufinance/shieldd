@@ -293,6 +293,7 @@ pub(crate) mod tests {
             false,
             0,
             0,
+            false,
             detection_salt,
         )
         .expect("fixture transfer should encrypt");

@@ -277,7 +277,7 @@ mod tests {
             .expect("test spend key should satisfy key refinements");
         let fvk = sk.full_viewing_key();
         let ivk = fvk.incoming();
-        let (dest, _dtk_d) = ivk.payment_address(0u32.into());
+        let dest = ivk.payment_address(0u32.into());
 
         let esk = ka::Secret::new(&mut rng);
 
@@ -319,7 +319,7 @@ mod tests {
         let fvk = sk.full_viewing_key();
         let ivk = fvk.incoming();
         let ovk = fvk.outgoing();
-        let (dest, _dtk_d) = ivk.payment_address(0u32.into());
+        let dest = ivk.payment_address(0u32.into());
 
         let value = Value {
             amount: 10u64.into(),

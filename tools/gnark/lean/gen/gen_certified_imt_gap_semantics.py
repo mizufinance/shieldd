@@ -39,8 +39,7 @@ OPERATION = "gadget.asset_registry_gap"
 @dataclass(frozen=True)
 class Provider:
     digest: str
-    circuit: str
-    segment_index: int
+    deployments: tuple[tuple[str, int], ...]
     constant_vector_sha256_hex: str
     class_key: str
 
@@ -58,8 +57,11 @@ WITHDRAWAL_PROVIDER = Provider(
         "065363064f972be51f745a7bec46e6e0"
         "f0c9c09b4e427ff20db1f565927ea6c3"
     ),
-    circuit="shielded_ics20_withdrawal",
-    segment_index=14,
+    deployments=(
+        ("note_reshape1x8", 18),
+        ("note_reshape8x1", 28),
+        ("shielded_ics20_withdrawal", 14),
+    ),
     constant_vector_sha256_hex=(
         "0b873499921546bdd7daf37a1d363829"
         "39d8f51f493f1e7d70a7f7432f9ad0bb"
@@ -71,8 +73,7 @@ TRANSFER_PROVIDER = Provider(
         "591fb66ca52e78949435ff7a2c295491"
         "598433f2c79f6bc52f502bf9c7dc4b16"
     ),
-    circuit="transfer",
-    segment_index=25,
+    deployments=(("transfer", 25),),
     constant_vector_sha256_hex=(
         "80f749d35ec65bcc26fc64a1eb12b16"
         "d32380937c38fe7577974926aae25f396"
@@ -359,6 +360,7 @@ def _validate_inventory_payload(payload: dict) -> None:
     }
     for provider in PROVIDERS:
         entry = by_key[provider.key]
+        representative_circuit, representative_segment = provider.deployments[0]
         if set(entry) != expected_entry_fields:
             raise ValueError(
                 f"{provider.key}: inventory entry fields drifted"
@@ -369,11 +371,11 @@ def _validate_inventory_payload(payload: dict) -> None:
             "normalized_relation_sha256_hex": provider.digest,
             "constraint_count": ROW_COUNT,
             "local_wire_count": LOCAL_WIRE_COUNT,
-            "circuits": [provider.circuit],
+            "circuits": list(dict.fromkeys(circuit for circuit, _ in provider.deployments)),
             "distinct_constant_vectors": 1,
             "representative": {
-                "circuit": provider.circuit,
-                "segment_index": provider.segment_index,
+                "circuit": representative_circuit,
+                "segment_index": representative_segment,
             },
         }
         for field, value in expected.items():
@@ -384,34 +386,30 @@ def _validate_inventory_payload(payload: dict) -> None:
                 )
 
         instances = entry.get("instances")
-        if not isinstance(instances, list) or len(instances) != 1:
+        if not isinstance(instances, list) or len(instances) != len(provider.deployments):
             raise ValueError(
-                f"{provider.key}: expected exactly one deployed instance"
+                f"{provider.key}: deployed instance count drifted"
             )
-        instance = instances[0]
-        if not isinstance(instance, dict):
-            raise ValueError(
-                f"{provider.key}: deployed instance is not an object"
-            )
-        if set(instance) != instance_fields:
-            raise ValueError(
-                f"{provider.key}: deployed instance fields drifted"
-            )
-        expected_instance = {
-            "circuit": provider.circuit,
-            "segment_index": provider.segment_index,
-            "constraint_count": ROW_COUNT,
-            "constant_vector_sha256_hex": (
-                provider.constant_vector_sha256_hex
-            ),
-            "class_key": provider.class_key,
-        }
-        for field, value in expected_instance.items():
-            if instance.get(field) != value:
+        for instance, (circuit, segment_index) in zip(
+            instances, provider.deployments, strict=True
+        ):
+            if not isinstance(instance, dict) or set(instance) != instance_fields:
                 raise ValueError(
-                    f"{provider.key}: deployed instance {field} drifted: "
-                    f"{instance.get(field)!r} != {value!r}"
+                    f"{provider.key}: deployed instance fields drifted"
                 )
+            expected_instance = {
+                "circuit": circuit,
+                "segment_index": segment_index,
+                "constraint_count": ROW_COUNT,
+                "constant_vector_sha256_hex": provider.constant_vector_sha256_hex,
+                "class_key": provider.class_key,
+            }
+            for field, value in expected_instance.items():
+                if instance.get(field) != value:
+                    raise ValueError(
+                        f"{provider.key}: deployed instance {field} drifted: "
+                        f"{instance.get(field)!r} != {value!r}"
+                    )
 
 
 def _validate_inventory() -> None:

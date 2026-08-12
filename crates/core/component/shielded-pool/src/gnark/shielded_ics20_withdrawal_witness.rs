@@ -17,7 +17,7 @@ use crate::{
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ShieldedIcs20WithdrawalRequiredSpendWitnessV8 {
+pub struct ShieldedIcs20WithdrawalRequiredSpendWitnessV9 {
     pub nullifier: [u8; 32],
     pub spent_note_blinding: [u8; 32],
     pub spent_note_amount: [u8; 32],
@@ -28,21 +28,21 @@ pub struct ShieldedIcs20WithdrawalRequiredSpendWitnessV8 {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ShieldedIcs20WithdrawalOptionalSpendWitnessV8 {
-    pub spend: ShieldedIcs20WithdrawalRequiredSpendWitnessV8,
+pub struct ShieldedIcs20WithdrawalOptionalSpendWitnessV9 {
+    pub spend: ShieldedIcs20WithdrawalRequiredSpendWitnessV9,
     pub is_dummy: bool,
     pub dummy_nullifier_seed: [u8; 32],
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ShieldedIcs20WithdrawalChangeWitnessV8 {
+pub struct ShieldedIcs20WithdrawalChangeWitnessV9 {
     pub note_commitment: [u8; 32],
     pub created_note_blinding: [u8; 32],
     pub created_note_amount: [u8; 32],
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ShieldedIcs20WithdrawalAssetLeafWitnessV8 {
+pub struct ShieldedIcs20WithdrawalAssetLeafWitnessV9 {
     pub value: [u8; 32],
     pub next_index: u64,
     pub next_value: [u8; 32],
@@ -51,7 +51,7 @@ pub struct ShieldedIcs20WithdrawalAssetLeafWitnessV8 {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ShieldedIcs20WithdrawalWitnessV8 {
+pub struct ShieldedIcs20WithdrawalWitnessV9 {
     pub family_id: ShieldedIcs20WithdrawalFamilyId,
     pub total_length: u32,
     pub n_in: u32,
@@ -63,21 +63,26 @@ pub struct ShieldedIcs20WithdrawalWitnessV8 {
     pub outbound_amount: [u8; 32],
     pub withdrawal_effect_hash_limbs: [[u8; 32]; 4],
     pub claimed_statement_hash: [u8; 32],
+    pub routing_tag: [u8; 32],
+    pub routing_parameter_set_id: [u8; 32],
     pub action_balance_blinding: [u8; 32],
     pub nk: [u8; 32],
     pub asset_path: MerklePathBinary,
     pub asset_position: u64,
-    pub asset_indexed_leaf: ShieldedIcs20WithdrawalAssetLeafWitnessV8,
+    pub asset_indexed_leaf: ShieldedIcs20WithdrawalAssetLeafWitnessV9,
     pub is_regulated: bool,
+    pub regulated_precision: u8,
+    pub unregulated_precision: u8,
+    pub routing_as_of_height: u64,
+    pub routing_nonce: [u8; 32],
     pub sender_compliance_path: MerklePathBinary,
     pub sender_compliance_position: u64,
     pub sender_slot_id: [u8; 32],
     pub sender_slot_derivation: [u8; 32],
     pub sender_d: [u8; 32],
-    pub sender_clue_key: [u8; 32],
-    pub required_spend: ShieldedIcs20WithdrawalRequiredSpendWitnessV8,
-    pub optional_spend: ShieldedIcs20WithdrawalOptionalSpendWitnessV8,
-    pub change_output: ShieldedIcs20WithdrawalChangeWitnessV8,
+    pub required_spend: ShieldedIcs20WithdrawalRequiredSpendWitnessV9,
+    pub optional_spend: ShieldedIcs20WithdrawalOptionalSpendWitnessV9,
+    pub change_output: ShieldedIcs20WithdrawalChangeWitnessV9,
     pub ak_affine: PointAffineBytes,
     pub sender_diversified_generator_affine: PointAffineBytes,
 }
@@ -99,7 +104,7 @@ fn spend_witness(
     public_input: &ShieldedIcs20WithdrawalInputPublic,
     private_input: &ShieldedIcs20WithdrawalRequiredInputPrivate,
     index: usize,
-) -> Result<ShieldedIcs20WithdrawalRequiredSpendWitnessV8> {
+) -> Result<ShieldedIcs20WithdrawalRequiredSpendWitnessV9> {
     let state_commitment_auth_path = private_input
         .state_commitment_proof
         .auth_path()
@@ -107,7 +112,7 @@ fn spend_witness(
         .map(|siblings| siblings.map(|sibling| Fq::from(sibling).to_bytes()))
         .collect::<Vec<_>>();
 
-    Ok(ShieldedIcs20WithdrawalRequiredSpendWitnessV8 {
+    Ok(ShieldedIcs20WithdrawalRequiredSpendWitnessV9 {
         nullifier: public_input.nullifier.0.to_bytes(),
         spent_note_blinding: private_input.spent_note.note_blinding().to_bytes(),
         spent_note_amount: Fq::from(private_input.spent_note.value().amount).to_bytes(),
@@ -124,8 +129,8 @@ fn spend_witness(
 fn change_witness(
     public_output: &ShieldedIcs20WithdrawalChangePublic,
     private_output: &ShieldedIcs20WithdrawalChangePrivate,
-) -> ShieldedIcs20WithdrawalChangeWitnessV8 {
-    ShieldedIcs20WithdrawalChangeWitnessV8 {
+) -> ShieldedIcs20WithdrawalChangeWitnessV9 {
+    ShieldedIcs20WithdrawalChangeWitnessV9 {
         note_commitment: public_output.note_commitment.0.to_bytes(),
         created_note_blinding: private_output.created_note.note_blinding().to_bytes(),
         created_note_amount: Fq::from(private_output.created_note.value().amount).to_bytes(),
@@ -144,7 +149,7 @@ fn u128_from_field(value: Fq, label: &str) -> Result<u128> {
     ))
 }
 
-impl ShieldedIcs20WithdrawalWitnessV8 {
+impl ShieldedIcs20WithdrawalWitnessV9 {
     pub fn from_public_private(
         public: &ShieldedIcs20WithdrawalProofPublic,
         private: &ShieldedIcs20WithdrawalProofPrivate,
@@ -157,19 +162,6 @@ impl ShieldedIcs20WithdrawalWitnessV8 {
                 public.family_id.get(),
                 private.family_id.get()
             );
-        }
-
-        let sender_clue_key = private.sender_leaf.address.discovery_key().0;
-        for (label, note) in [
-            ("required input", &private.required_input.spent_note),
-            ("optional input", &private.optional_input.spend.spent_note),
-            ("change output", &private.change_output.created_note),
-        ] {
-            if note.discovery_key().0 != sender_clue_key {
-                bail!(
-                    "shielded ICS-20 withdrawal {label} discovery key does not match the shared sender address"
-                );
-            }
         }
 
         let required_amount: u128 = private.required_input.spent_note.value().amount.into();
@@ -209,7 +201,7 @@ impl ShieldedIcs20WithdrawalWitnessV8 {
             compliance_leaf_parts(&sender_leaf);
 
         let required_spend = spend_witness(&public.inputs[0], &private.required_input, 0)?;
-        let optional_spend = ShieldedIcs20WithdrawalOptionalSpendWitnessV8 {
+        let optional_spend = ShieldedIcs20WithdrawalOptionalSpendWitnessV9 {
             spend: spend_witness(&public.inputs[1], &private.optional_input.spend, 1)?,
             is_dummy: private.optional_input.is_dummy,
             dummy_nullifier_seed: private.optional_input.dummy_nullifier_seed.to_bytes(),
@@ -230,11 +222,13 @@ impl ShieldedIcs20WithdrawalWitnessV8 {
                 .withdrawal_effect_hash_limbs
                 .map(|limb| limb.to_bytes()),
             claimed_statement_hash: claimed_statement_hash.to_bytes(),
+            routing_tag: Fq::from(public.routing_tag.value).to_bytes(),
+            routing_parameter_set_id: public.routing_parameter_set_id.to_bytes(),
             action_balance_blinding: private.action_balance_blinding.to_bytes(),
             nk: private.nk.0.to_bytes(),
             asset_path: merkle_path_from_typed(&private.asset_path)?,
             asset_position: private.asset_position,
-            asset_indexed_leaf: ShieldedIcs20WithdrawalAssetLeafWitnessV8 {
+            asset_indexed_leaf: ShieldedIcs20WithdrawalAssetLeafWitnessV9 {
                 value: private.asset_indexed_leaf.value.to_bytes(),
                 next_index: private.asset_indexed_leaf.next_index,
                 next_value: private.asset_indexed_leaf.next_value.to_bytes(),
@@ -242,18 +236,15 @@ impl ShieldedIcs20WithdrawalWitnessV8 {
                 ring_hash: asset_commitments.ring_hash.to_bytes(),
             },
             is_regulated: private.is_regulated,
+            regulated_precision: private.routing_parameters.regulated_precision.bits(),
+            unregulated_precision: private.routing_parameters.unregulated_precision.bits(),
+            routing_as_of_height: private.routing_parameters.as_of_height,
+            routing_nonce: private.routing_nonce.to_bytes(),
             sender_compliance_path: merkle_path_from_typed(&private.sender_compliance_path)?,
             sender_compliance_position: private.sender_compliance_position,
             sender_slot_id,
             sender_slot_derivation,
             sender_d,
-            sender_clue_key: Fq::from_bytes_checked(&sender_clue_key)
-                .map_err(|_| {
-                    anyhow!(
-                        "shielded ICS-20 withdrawal sender discovery key is not a canonical field encoding"
-                    )
-                })?
-                .to_bytes(),
             required_spend,
             optional_spend,
             change_output: change_witness(&public.change_output, &private.change_output),

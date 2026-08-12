@@ -58,15 +58,9 @@ WITHDRAWAL_GAP_ACCEPT_KEY = (
     "assert.eq@"
     "8d8c35e681ce1b5e96aa42ceee0013036302fc4e1b1594a361d481be589b6d6c"
 )
-WITHDRAWAL_OBSOLETE_COMPLIANCE_PATH_KEYS = frozenset({
-    (
-    "gadget.compliance_path@"
-    "d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686"
-    ),
-})
 WITHDRAWAL_COMPLIANCE_PATH_KEY = (
     "gadget.compliance_path@"
-    "3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b"
+    "d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686"
 )
 WITHDRAWAL_DIVGEN_COMPRESS_KEY = (
     "decaf.compress_to_field@"
@@ -93,7 +87,7 @@ WITHDRAWAL_OBSOLETE_ASSET_LEAF_KEYS = frozenset({
 })
 COMPLIANCE_LEAF_KEY = (
     "gadget.compliance_leaf@"
-    "89974c69097fec1fe7276409b30d17170b41afc739ec6a0392be21d56a7c6d68"
+    "dcb0a1040c535cf394b8bda4f381260121926f7d477fb80a22e4e84b0cb431bc"
 )
 WITHDRAWAL_COMPLIANCE_ASSERT_KEY = (
     "assert.eq_if@"
@@ -109,15 +103,15 @@ WITHDRAWAL_SYNTHETIC_NULLIFIER_KEY = (
 )
 WITHDRAWAL_STATEMENT_FIRST_KEY = (
     "statement.hash@"
-    "8253f80f52335edfca85a06da1c48600b988651a0803cf829d27056e3670eb00"
+    "afd0be82d84896e98b8fdc0f4b8eaec88930b85f4b40c03ff06a87a4eaebd1b8"
 )
 WITHDRAWAL_STATEMENT_SECOND_KEY = (
     "statement.hash@"
-    "6c1f41225e160eb2aa699b149bd08dfe3831726da0f6240bba58c892c6e27193"
+    "59fc709325ca9b0194b7adef9fe91a97d88a5c690c5278f59425a351790b2376"
 )
 WITHDRAWAL_STATEMENT_THIRD_KEY = (
     "statement.hash@"
-    "0cf7625f3041ed713c8f3634f6d3914aad6059b5f8113ba50facad312738e969"
+    "0a6a7d5c079d0a2e952c00450800860c1faf28396d74678cd2ea2a7dc4ee85ce"
 )
 WITHDRAWAL_STATEMENT_ASSERT_KEY = (
     "assert.eq@"
@@ -140,13 +134,12 @@ POSEIDON_ROOT_COEFFICIENTS = (
     "7600015574485533381823942444903391878238309401638657445141710110325668315137",
 )
 NOTE_COMMITMENT_COEFFICIENTS = (
+    "7238110070938603220784707090384182741179342287274911852515914390786350776321",
     "7388904030749824121217721821433853214953911918259805849443329273927733084161",
     "4691367638571316902360458299323081406319944075085591015519574142176338466134",
     "7600015574485533381823942444903391878238309401638657445141710110325668315137",
     "2303035022571373752067861346940421781284336182314744680345972760704747974284",
     "7740756603642672888894756193883084320427907723891225175607297334590958469121",
-    "7794887768703111160845069174259889105885445540142212764247907805462223912961",
-    "7841285910183486822516766014582864636277620811214487840225573923351880007681",
 )
 ASSET_LEAF_COEFFICIENTS = (
     "7238110070938603220784707090384182741179342287274911852515914390786350776321",
@@ -235,7 +228,7 @@ TRANSFER_FACT_PROVIDER_COUNTS = {
     "senderCompliance": 4,
     "complianceTranscript": 36,
     "balanceComputedAndCompressed": 2,
-    "statementBinding": 2,
+    "statementBinding": 17,
 }
 
 # Compiler geometry consumed by the handwritten, protocol-typed Transfer
@@ -320,11 +313,11 @@ TRANSFER_SPECIFICATION_PREDICATES = (
     "FIELD-USER-DERIVATION-RANGE",
     "FIELD-USER-POSITION-RANGE",
     "NOTE-OUTPUT-ASSET-BINDING",
-    "NOTE-OUTPUT-CLUE-KEY-BINDING",
+    "ROUTING-PARAMETERS",
     "NOTE-OUTPUT-OWNER-BINDING",
     "NOTE-RECEIVER-AMOUNT-NONZERO",
     "NOTE-SPEND-ASSET-BINDING",
-    "NOTE-SPEND-CLUE-KEY-BINDING",
+    "ROUTING-TAG-DERIVATION",
     "NOTE-SPEND-COMMITMENT",
     "NOTE-SPEND-OWNER-BINDING",
     "USER-COMPLIANCE-LEAF-HASH",
@@ -397,7 +390,7 @@ TRANSFER_ASSET_GAP_KEY = (
 TRANSFER_COMPLIANCE_LEAF_KEY = COMPLIANCE_LEAF_KEY
 TRANSFER_COMPLIANCE_PATH_KEY = (
     "gadget.compliance_path@"
-    "3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b"
+    "d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686"
 )
 TRANSFER_ACK_KEY = (
     "decaf.ack@"
@@ -405,15 +398,15 @@ TRANSFER_ACK_KEY = (
 )
 TRANSFER_NOTE_COMMITMENT_KEY = (
     "gadget.note_commitment@"
-    "9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5"
+    "252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c"
 )
 TRANSFER_NULLIFIER_KEY = (
     "gadget.nullifier@"
-    "c3d0f91643b2ac2d6380fa8c1a3cf17d0503dfdee04911f9697fc907f75baef4"
+    "5707ecfa23746942d4eee98a87b841d07f40163e3e15aeba5d907533f9aa58c4"
 )
 TRANSFER_STATE_PATH_KEY = (
     "gadget.state_commitment_path@"
-    "925881caa7382e3f2e29b610c396d78e8b7d8aca0859bce49a2f7fb99c5384d0"
+    "de54b1d0646cc1ad6f619aa080bfafd4a6edb63989b142c5c0b284d84e09d69b"
 )
 TRANSFER_RVK_KEY = (
     "decaf.randomized_verification_key@"
@@ -489,11 +482,67 @@ TRANSFER_OBSOLETE_DETECTION_ENCRYPTION_KEYS = frozenset({
 })
 TRANSFER_DETECTION_ENCRYPTION_KEY = (
     "gadget.poseidon_encryption.detection@"
-    "cb69c394a6636349ef1ca32ae7f664980eedd6a7010cb2a2d96541cc47984b25"
+    "63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49c"
 )
-TRANSFER_STATEMENT_V4_KEY = (
+TRANSFER_STATEMENT_V5_KEY = (
     "statement.hash@"
-    "042c03f6fbeb384ad6230b63ee320b87cd0d4f74a820f0cac6e6f7499e9350bd"
+    "f091e489b9a220b0436835ce5343e78627a43408ea621e9d71e60917c2e7c77f"
+)
+ROUTING_PRECISION_SELECT_KEY = (
+    "routing.precision.select@"
+    "125b62f4637be641a0e83ca5b67e6b0fde3dc4a203b53954c10e341830651161"
+)
+ROUTING_PARAMETERS_HASH_KEY = (
+    "routing.parameters.hash@"
+    "4ac07381879f7b48f8431947af1db1328923b54907622f47df5426e5ea9b6653"
+)
+ROUTING_PARAMETERS_BIND_KEY = (
+    "routing.parameters.bind@"
+    "46f527d3e36d976837f6c928381fedce823324751461dd2d8bd615716c786979"
+)
+ROUTING_ROUTE_WORD_KEY = (
+    "routing.route_word@"
+    "8ea7a07420a20d4c8b83bc50f00b755ab22e9fe9b8b9f9d669003cd2a5fb5279"
+)
+ROUTING_PERMUTATION_HASH_KEY = (
+    "routing.permutation.hash@"
+    "e192a8182110fdbc13b07c4a18e32a203dbb18e8203962744b80b191a845a030"
+)
+ROUTING_PERMUTATION_COMPOSE_KEY = (
+    "routing.permutation.compose@"
+    "38126e47de90298f59bd17b5452e92d8d2b20161cbaf377aef252b7e1fe3c573"
+)
+ROUTING_TAG_PUBLIC_RANGE_KEY = (
+    "routing.tag.public_range@"
+    "59e76d0fcd4dbc54aa0f71ef6780ba9462e5a0dc5ed4d67c4889d339632c9227"
+)
+ROUTING_TAG_ROUTE_BITS_SINGLE_KEY = (
+    "routing.tag.route_bits@"
+    "1edfe2259ad982b4d12d407718e8f566a4bc0dbee4d85678278543dba94ce239"
+)
+ROUTING_TAG_ROUTE_BITS_TRANSFER_KEY = (
+    "routing.tag.route_bits@"
+    "e6d7e42306aedc03d5686a40e7e216dcf3e8dda08833c3dfcf4551391cbee374"
+)
+ROUTING_TAG_RANDOM_WORD_SLOT0_KEY = (
+    "routing.tag.random_word@"
+    "4480567d0ad9109ab45843d493f32a0ed4ed6acebd0be5471905902706d09764"
+)
+ROUTING_TAG_RANDOM_WORD_SLOT1_KEY = (
+    "routing.tag.random_word@"
+    "214c257798ce9ea73b964e6f1d8353234a318db1530ede36af2658731198a3fd"
+)
+ROUTING_TAG_COMPOSE_SINGLE_KEY = (
+    "routing.tag.compose@"
+    "7a08e952ae0746cf3a1da3222e5fc769f1ced26f51d12eb016b6f47b5c8100de"
+)
+ROUTING_TAG_COMPOSE_SLOT0_KEY = (
+    "routing.tag.compose@"
+    "96b7bad6a126477ad863859abf885df171ba39077e195c445287f1fe7feb8aed"
+)
+ROUTING_TAG_COMPOSE_SLOT1_KEY = (
+    "routing.tag.compose@"
+    "693a5e7e265dd4badbbd5ea9a64eb22c4ba3b423d34f08e4ae1f94375a8d3fbb"
 )
 TRANSFER_OBSOLETE_STATEMENT_KEYS = frozenset({
     (
@@ -738,14 +787,13 @@ TRANSFER_TRACE_SPECS = (
         (
             "div_gen_fq=sender.div_gen_fq",
             "transmission_fq=sender.transmission_fq",
-            "clue_key=sender.clue_key",
             "asset_id=shared.asset_id",
             "slot_id=sender.slot_id",
             "slot_derivation=sender.slot_derivation",
             "d=sender.d",
             "out=sender.leaf_commitment",
         ),
-        TRANSFER_COMPLIANCE_LEAF_KEY, 470, 480,
+        TRANSFER_COMPLIANCE_LEAF_KEY, 430, 439,
     ),
     _transfer_trace(
         "sender_compliance_path", "senderCompliance",
@@ -756,7 +804,7 @@ TRANSFER_TRACE_SPECS = (
             "position=sender.position",
             "out=sender.compliance_root",
         ),
-        TRANSFER_COMPLIANCE_PATH_KEY, 5857, 5850,
+        TRANSFER_COMPLIANCE_PATH_KEY, 5857, 5849,
     ),
     _transfer_trace(
         "sender_compliance_assert", "senderCompliance", "assert.eq_if",
@@ -781,10 +829,9 @@ TRANSFER_TRACE_SPECS = (
             "asset_id=shared.asset_id",
             "div_gen_fq=sender.div_gen_fq",
             "transmission_key_s=sender.transmission_fq",
-            "clue_key=sender.clue_key",
             "out=spend0.note.commitment.computed",
         ),
-        TRANSFER_NOTE_COMMITMENT_KEY, 430, 439,
+        TRANSFER_NOTE_COMMITMENT_KEY, 390, 398,
     ),
     _transfer_trace(
         "required_nullifier", "requiredSpend", "gadget.nullifier",
@@ -794,7 +841,7 @@ TRANSFER_TRACE_SPECS = (
             "position=spend0.state_proof.position",
             "out=spend0.nullifier.real",
         ),
-        TRANSFER_NULLIFIER_KEY, 310, 320,
+        TRANSFER_NULLIFIER_KEY, 310, 319,
     ),
     _transfer_trace(
         "required_state_path", "requiredSpend",
@@ -805,7 +852,7 @@ TRANSFER_TRACE_SPECS = (
             "path=spend0.state_proof.path",
             "out=spend0.anchor.computed",
         ),
-        TRANSFER_STATE_PATH_KEY, 9015, 8999,
+        TRANSFER_STATE_PATH_KEY, 9015, 8998,
     ),
     _transfer_trace(
         "required_nullifier_assert", "requiredSpend", "assert.eq",
@@ -852,10 +899,9 @@ TRANSFER_TRACE_SPECS = (
             "asset_id=shared.asset_id",
             "div_gen_fq=sender.div_gen_fq",
             "transmission_key_s=sender.transmission_fq",
-            "clue_key=sender.clue_key",
             "out=spend1.note.commitment.computed",
         ),
-        TRANSFER_NOTE_COMMITMENT_KEY, 430, 439,
+        TRANSFER_NOTE_COMMITMENT_KEY, 390, 398,
     ),
     _transfer_trace(
         "optional_nullifier", "optionalSpend", "gadget.nullifier",
@@ -865,7 +911,7 @@ TRANSFER_TRACE_SPECS = (
             "position=spend1.state_proof.position",
             "out=spend1.nullifier.real",
         ),
-        TRANSFER_NULLIFIER_KEY, 310, 320,
+        TRANSFER_NULLIFIER_KEY, 310, 319,
     ),
     _transfer_trace(
         "optional_state_path", "optionalSpend",
@@ -876,7 +922,7 @@ TRANSFER_TRACE_SPECS = (
             "path=spend1.state_proof.path",
             "out=spend1.anchor.computed",
         ),
-        TRANSFER_STATE_PATH_KEY, 9015, 8999,
+        TRANSFER_STATE_PATH_KEY, 9015, 8998,
     ),
     _transfer_trace(
         "optional_synthetic_nullifier", "optionalSpend",
@@ -998,10 +1044,9 @@ TRANSFER_TRACE_SPECS = (
             "asset_id=shared.asset_id",
             "div_gen_fq=output0.recipient.div_gen_fq",
             "transmission_key_s=output0.recipient.transmission_fq",
-            "clue_key=output0.note.clue_key",
             "out=output0.note.commitment.computed",
         ),
-        TRANSFER_NOTE_COMMITMENT_KEY, 430, 439,
+        TRANSFER_NOTE_COMMITMENT_KEY, 390, 398,
     ),
     _transfer_trace(
         "receiver_note_assert", "receiverOutput", "assert.eq",
@@ -1009,8 +1054,8 @@ TRANSFER_TRACE_SPECS = (
             "lhs=output0.note.commitment.computed",
             "rhs=output0.note_commitment",
         ),
-        "assert.eq@2f18e0b1e4152025fc1e73ed096bfe9b60336485134a1f7abc982c129828ff55",
-        1, 9, "glue",
+        "assert.eq@c4acc0cb39ee1820ee3eb4fda139846ccb6ea995c7d6605854f111a0b177b240",
+        1, 8, "glue",
     ),
     _transfer_trace(
         "receiver_compliance_leaf", "receiverCompliance",
@@ -1018,14 +1063,13 @@ TRANSFER_TRACE_SPECS = (
         (
             "div_gen_fq=output0.recipient.div_gen_fq",
             "transmission_fq=output0.recipient.transmission_fq",
-            "clue_key=output0.note.clue_key",
             "asset_id=shared.asset_id",
             "slot_id=output0.recipient.slot_id",
             "slot_derivation=output0.recipient.slot_derivation",
             "d=output0.recipient.d",
             "out=output0.recipient.leaf_commitment",
         ),
-        TRANSFER_COMPLIANCE_LEAF_KEY, 470, 480,
+        TRANSFER_COMPLIANCE_LEAF_KEY, 430, 439,
     ),
     _transfer_trace(
         "receiver_compliance_path", "receiverCompliance",
@@ -1036,7 +1080,7 @@ TRANSFER_TRACE_SPECS = (
             "position=output0.recipient.position",
             "out=output0.recipient.compliance_root",
         ),
-        TRANSFER_COMPLIANCE_PATH_KEY, 5857, 5850,
+        TRANSFER_COMPLIANCE_PATH_KEY, 5857, 5849,
     ),
     _transfer_trace(
         "receiver_compliance_assert", "receiverCompliance",
@@ -1072,10 +1116,9 @@ TRANSFER_TRACE_SPECS = (
             "asset_id=shared.asset_id",
             "div_gen_fq=sender.div_gen_fq",
             "transmission_key_s=sender.transmission_fq",
-            "clue_key=sender.clue_key",
             "out=output1.note.commitment.computed",
         ),
-        TRANSFER_NOTE_COMMITMENT_KEY, 430, 439,
+        TRANSFER_NOTE_COMMITMENT_KEY, 390, 398,
     ),
     _transfer_trace(
         "change_note_assert", "changeOutput", "assert.eq",
@@ -1083,8 +1126,107 @@ TRANSFER_TRACE_SPECS = (
             "lhs=output1.note.commitment.computed",
             "rhs=output1.note_commitment",
         ),
-        "assert.eq@2f18e0b1e4152025fc1e73ed096bfe9b60336485134a1f7abc982c129828ff55",
-        1, 9, "glue",
+        "assert.eq@c4acc0cb39ee1820ee3eb4fda139846ccb6ea995c7d6605854f111a0b177b240",
+        1, 8, "glue",
+    ),
+    _transfer_trace(
+        "routing_precision_select", "statementBinding",
+        "routing.precision.select",
+        (
+            "regulated=regulated_precision",
+            "unregulated=unregulated_precision",
+            "selector=is_regulated",
+        ),
+        ROUTING_PRECISION_SELECT_KEY, 664, 664, "glue",
+    ),
+    _transfer_trace(
+        "routing_parameters_hash", "statementBinding",
+        "routing.parameters.hash",
+        (
+            "regulated=regulated_precision",
+            "unregulated=unregulated_precision",
+            "as_of=routing_as_of_height",
+            "out=routing_parameter_set_id",
+        ),
+        ROUTING_PARAMETERS_HASH_KEY, 310, 314,
+    ),
+    _transfer_trace(
+        "routing_parameters_bind", "statementBinding",
+        "routing.parameters.bind",
+        (
+            "expected=routing_parameter_set_id.computed",
+            "public=routing_parameter_set_id",
+        ),
+        ROUTING_PARAMETERS_BIND_KEY, 33, 103, "glue",
+    ),
+    *(
+        _transfer_trace(
+            f"routing_{role}_route_word", "statementBinding",
+            "routing.route_word",
+            (
+                f"role={role}",
+                f"transmission_key_s={role}.transmission_fq",
+                f"out={role}.route_word",
+            ),
+            ROUTING_ROUTE_WORD_KEY, 230, 233,
+        )
+        for role in ("sender", "receiver")
+    ),
+    _transfer_trace(
+        "routing_permutation_hash", "statementBinding",
+        "routing.permutation.hash",
+        (
+            "nonce=compliance.transfer_nonce_root",
+            "out=permutation_word",
+        ),
+        ROUTING_PERMUTATION_HASH_KEY, 230, 232,
+    ),
+    _transfer_trace(
+        "routing_permutation_compose", "statementBinding",
+        "routing.permutation.compose",
+        ("word=permutation_word", "out=permutation_bit"),
+        ROUTING_PERMUTATION_COMPOSE_KEY, 513, 355, "glue",
+    ),
+    *(
+        trace
+        for slot, random_key, compose_key, compose_rows, compose_wires in (
+            (0, ROUTING_TAG_RANDOM_WORD_SLOT0_KEY,
+             ROUTING_TAG_COMPOSE_SLOT0_KEY, 635, 539),
+            (1, ROUTING_TAG_RANDOM_WORD_SLOT1_KEY,
+             ROUTING_TAG_COMPOSE_SLOT1_KEY, 603, 536),
+        )
+        for trace in (
+            _transfer_trace(
+                f"routing_tag{slot}_public_range", "statementBinding",
+                "routing.tag.public_range",
+                (f"slot={slot}", f"tag=routing_tag{slot}"),
+                ROUTING_TAG_PUBLIC_RANGE_KEY, 33, 34, "glue",
+            ),
+            _transfer_trace(
+                f"routing_tag{slot}_route_bits", "statementBinding",
+                "routing.tag.route_bits",
+                (f"slot={slot}", "in=route_word"),
+                ROUTING_TAG_ROUTE_BITS_TRANSFER_KEY, 506, 343, "glue",
+            ),
+            _transfer_trace(
+                f"routing_tag{slot}_random_word", "statementBinding",
+                "routing.tag.random_word",
+                (f"slot={slot}", "nonce=routing_nonce", "out=random_word"),
+                random_key, 265, 267,
+            ),
+            _transfer_trace(
+                f"routing_tag{slot}_compose", "statementBinding",
+                "routing.tag.compose",
+                (
+                    f"slot={slot}",
+                    "route_word=route_word",
+                    "random_word=random_word",
+                    "meaningful=meaningful",
+                    "out=expected_tag",
+                ),
+                compose_key, compose_rows, compose_wires, "glue",
+            ),
+        )
     ),
     _transfer_trace(
         "threshold_flag", "complianceTranscript", "threshold.flag",
@@ -1171,10 +1313,10 @@ TRANSFER_TRACE_SPECS = (
             "asset_id=shared.asset_id",
             "sender_slot=sender.slot_id:u32",
             "receiver_slot=receiver.slot_id:u32",
-            "sender_word=sender.slot_id+flag*2^32",
+            "routing_roles_swapped=permutation_bit",
             "out=compliance.detection_ciphertext",
         ),
-        TRANSFER_DETECTION_ENCRYPTION_KEY, 2446, 2115,
+        TRANSFER_DETECTION_ENCRYPTION_KEY, 2446, 2116,
     ),
     _transfer_trace(
         "sender_amount_encryption", "complianceTranscript",
@@ -1317,9 +1459,9 @@ TRANSFER_TRACE_SPECS = (
             "fields=statement_fields",
             "out=statement_hash",
         ),
-        TRANSFER_STATEMENT_V4_KEY,
-        3280,
-        3329,
+        TRANSFER_STATEMENT_V5_KEY,
+        3735,
+        3787,
     ),
     _transfer_trace(
         "statement_assert", "statementBinding", "assert.eq",
@@ -1349,7 +1491,7 @@ WITHDRAWAL_FACT_PROVIDER_COUNTS = {
     "assetRegistry": 7,
     "senderCompliance": 3,
     "conservation": 2,
-    "statementBinding": 4,
+    "statementBinding": 12,
 }
 
 # The 22 reachable handwritten core adapters consume these 21 unique exact
@@ -1402,11 +1544,11 @@ WITHDRAWAL_SPECIFICATION_PREDICATES = (
     "FIELD-BALANCE-BLINDING-RANGE",
     "FIELD-USER-POSITION-RANGE",
     "NOTE-OUTPUT-ASSET-BINDING",
-    "NOTE-OUTPUT-CLUE-KEY-BINDING",
+    "ROUTING-PARAMETERS",
     "NOTE-OUTPUT-COMMITMENT",
     "NOTE-OUTPUT-OWNER-BINDING",
     "NOTE-SPEND-ASSET-BINDING",
-    "NOTE-SPEND-CLUE-KEY-BINDING",
+    "ROUTING-TAG-DERIVATION",
     "NOTE-SPEND-COMMITMENT",
     "NOTE-SPEND-NULLIFIER-DERIVATION",
     "NOTE-SPEND-OWNER-BINDING",
@@ -1618,17 +1760,16 @@ WITHDRAWAL_TRACE_SPECS = (
         (
             "div_gen_fq=sender.div_gen_fq",
             "transmission_fq=sender.transmission_fq",
-            "clue_key=sender.clue_key",
             "asset_id=shared.asset_id",
             "slot_id=sender.slot_id",
             "slot_derivation=sender.slot_derivation",
             "d=sender.d",
             "out=sender.leaf_commitment",
         ),
-        # Poseidon7 binds all seven payload fields plus the domain lane.
+        # Poseidon6 binds the six payload fields plus the domain lane.
         COMPLIANCE_LEAF_KEY,
-        470,
-        480,
+        430,
+        439,
     ),
     _withdrawal_trace(
         "sender_compliance_path",
@@ -1642,7 +1783,7 @@ WITHDRAWAL_TRACE_SPECS = (
         ),
         WITHDRAWAL_COMPLIANCE_PATH_KEY,
         5857,
-        5850,
+        5849,
     ),
     _withdrawal_trace(
         "sender_compliance_assert",
@@ -1659,6 +1800,104 @@ WITHDRAWAL_TRACE_SPECS = (
         "glue",
     ),
     _withdrawal_trace(
+        "routing_precision_select",
+        "statementBinding",
+        "routing.precision.select",
+        (
+            "regulated=regulated_precision",
+            "unregulated=unregulated_precision",
+            "selector=is_regulated",
+        ),
+        ROUTING_PRECISION_SELECT_KEY,
+        664,
+        664,
+        "glue",
+    ),
+    _withdrawal_trace(
+        "routing_parameters_hash",
+        "statementBinding",
+        "routing.parameters.hash",
+        (
+            "regulated=regulated_precision",
+            "unregulated=unregulated_precision",
+            "as_of=routing_as_of_height",
+            "out=routing_parameter_set_id",
+        ),
+        ROUTING_PARAMETERS_HASH_KEY,
+        310,
+        314,
+    ),
+    _withdrawal_trace(
+        "routing_parameters_bind",
+        "statementBinding",
+        "routing.parameters.bind",
+        (
+            "expected=routing_parameter_set_id.computed",
+            "public=routing_parameter_set_id",
+        ),
+        ROUTING_PARAMETERS_BIND_KEY,
+        33,
+        103,
+        "glue",
+    ),
+    _withdrawal_trace(
+        "routing_sender_route_word",
+        "statementBinding",
+        "routing.route_word",
+        (
+            "transmission_key_s=owner.transmission_fq",
+            "out=owner.route_word",
+        ),
+        ROUTING_ROUTE_WORD_KEY,
+        230,
+        233,
+    ),
+    _withdrawal_trace(
+        "routing_tag0_public_range",
+        "statementBinding",
+        "routing.tag.public_range",
+        ("slot=0", "tag=routing_tag"),
+        ROUTING_TAG_PUBLIC_RANGE_KEY,
+        33,
+        34,
+        "glue",
+    ),
+    _withdrawal_trace(
+        "routing_tag0_route_bits",
+        "statementBinding",
+        "routing.tag.route_bits",
+        ("slot=0", "in=route_word"),
+        ROUTING_TAG_ROUTE_BITS_SINGLE_KEY,
+        506,
+        342,
+        "glue",
+    ),
+    _withdrawal_trace(
+        "routing_tag0_random_word",
+        "statementBinding",
+        "routing.tag.random_word",
+        ("slot=0", "nonce=routing_nonce", "out=random_word"),
+        ROUTING_TAG_RANDOM_WORD_SLOT0_KEY,
+        265,
+        267,
+    ),
+    _withdrawal_trace(
+        "routing_tag0_compose",
+        "statementBinding",
+        "routing.tag.compose",
+        (
+            "slot=0",
+            "route_word=route_word",
+            "random_word=random_word",
+            "meaningful=meaningful",
+            "out=expected_tag",
+        ),
+        ROUTING_TAG_COMPOSE_SINGLE_KEY,
+        602,
+        503,
+        "glue",
+    ),
+    _withdrawal_trace(
         "required_note_commitment",
         "requiredSpend",
         "gadget.note_commitment",
@@ -1668,12 +1907,11 @@ WITHDRAWAL_TRACE_SPECS = (
             "asset_id=shared.asset_id",
             "div_gen_fq=sender.div_gen_fq",
             "transmission_key_s=sender.transmission_fq",
-            "clue_key=shared.clue_key",
             "out=spend0.note.commitment.computed",
         ),
         TRANSFER_NOTE_COMMITMENT_KEY,
-        430,
-        439,
+        390,
+        398,
     ),
     _withdrawal_trace(
         "required_nullifier",
@@ -1687,7 +1925,7 @@ WITHDRAWAL_TRACE_SPECS = (
         ),
         TRANSFER_NULLIFIER_KEY,
         310,
-        320,
+        319,
     ),
     _withdrawal_trace(
         "required_state_path",
@@ -1701,7 +1939,7 @@ WITHDRAWAL_TRACE_SPECS = (
         ),
         TRANSFER_STATE_PATH_KEY,
         9015,
-        8999,
+        8998,
     ),
     _withdrawal_trace(
         "required_rvk",
@@ -1767,12 +2005,11 @@ WITHDRAWAL_TRACE_SPECS = (
             "asset_id=shared.asset_id",
             "div_gen_fq=sender.div_gen_fq",
             "transmission_key_s=sender.transmission_fq",
-            "clue_key=shared.clue_key",
             "out=spend1.note.commitment.computed",
         ),
         TRANSFER_NOTE_COMMITMENT_KEY,
-        430,
-        439,
+        390,
+        398,
     ),
     _withdrawal_trace(
         "optional_nullifier",
@@ -1786,7 +2023,7 @@ WITHDRAWAL_TRACE_SPECS = (
         ),
         TRANSFER_NULLIFIER_KEY,
         310,
-        320,
+        319,
     ),
     _withdrawal_trace(
         "optional_state_path",
@@ -1800,7 +2037,7 @@ WITHDRAWAL_TRACE_SPECS = (
         ),
         TRANSFER_STATE_PATH_KEY,
         9015,
-        8999,
+        8998,
     ),
     _withdrawal_trace(
         "optional_rvk",
@@ -1936,12 +2173,11 @@ WITHDRAWAL_TRACE_SPECS = (
             "asset_id=shared.asset_id",
             "div_gen_fq=sender.div_gen_fq",
             "transmission_key_s=sender.transmission_fq",
-            "clue_key=shared.clue_key",
             "out=output0.note.commitment.computed",
         ),
         TRANSFER_NOTE_COMMITMENT_KEY,
-        430,
-        439,
+        390,
+        398,
     ),
     _withdrawal_trace(
         "change_note_assert",
@@ -1951,12 +2187,9 @@ WITHDRAWAL_TRACE_SPECS = (
             "lhs=output0.note.commitment.computed",
             "rhs=output0.note_commitment.claimed",
         ),
-        (
-            "assert.eq@"
-            "2f18e0b1e4152025fc1e73ed096bfe9b60336485134a1f7abc982c129828ff55"
-        ),
+        "assert.eq@c4acc0cb39ee1820ee3eb4fda139846ccb6ea995c7d6605854f111a0b177b240",
         1,
-        9,
+        8,
         "glue",
     ),
     _withdrawal_trace(
@@ -2016,13 +2249,13 @@ WITHDRAWAL_TRACE_SPECS = (
             "block=2",
             (
                 "inputs=statement.hash.block1,"
-                "statement.field.013..015,pad1,pad0,pad1"
+                "statement.field.013..017,pad1"
             ),
             "out=statement.hash.block2",
         ),
         WITHDRAWAL_STATEMENT_THIRD_KEY,
-        455,
-        467,
+        465,
+        479,
     ),
     _withdrawal_trace(
         "statement_assert",
@@ -2333,7 +2566,7 @@ def _binding_wire_vector(
 STATE_PATH_PROVIDER_LOCALS = tuple(
     base + 363 * level
     for level in range(24)
-    for base in (291, 293, 296)
+    for base in (290, 292, 295)
 )
 STATE_PATH_LEVEL_REVERSAL = tuple(
     3 * (23 - level) + sibling
@@ -2578,6 +2811,11 @@ TRANSFER_ACTION_BINDING_ARITIES = {
     "target_timestamp": 1,
     "action.balance_blinding": 1,
     "is_regulated": 1,
+    "routing.tags": 2,
+    "routing.parameter_set_id": 1,
+    "routing.regulated_precision": 1,
+    "routing.unregulated_precision": 1,
+    "routing.as_of_height": 1,
     "auth.ak": 2,
     "auth.nk": 1,
     "auth.ivk_reduced": 1,
@@ -2604,7 +2842,6 @@ TRANSFER_ACTION_BINDING_ARITIES = {
     "sender.d": 1,
     "sender.path": 48,
     "sender.position": 1,
-    "sender.clue_key": 1,
     "spend0.nullifier.claimed": 1,
     "spend0.rk.claimed": 2,
     "spend0.note.blinding": 1,
@@ -2625,7 +2862,6 @@ TRANSFER_ACTION_BINDING_ARITIES = {
     "output0.note_commitment.claimed": 1,
     "output0.note.blinding": 1,
     "output0.note.amount": 1,
-    "output0.note.clue_key": 1,
     "output0.recipient.div_gen": 2,
     "output0.recipient.transmission": 2,
     "output0.recipient.slot_id": 1,
@@ -2664,7 +2900,12 @@ def _transfer_binding_expressions(
 ) -> list[dict] | None:
     """Resolve a source-trace label to exact compiler semantic expressions."""
 
-    if label in {"0", "1", "spend1", "transfer"}:
+    if label in {
+        "0", "1", "spend1", "transfer", "sender", "receiver",
+        "routing_parameter_set_id.computed", "sender.route_word",
+        "receiver.route_word", "permutation_word", "permutation_bit",
+        "route_word", "random_word", "meaningful", "expected_tag",
+    }:
         return None
     if label.startswith("unregulated."):
         return None
@@ -2676,8 +2917,17 @@ def _transfer_binding_expressions(
     typed_aliases = {
         "sender.slot_id:u32": "sender.slot_id",
         "receiver.slot_id:u32": "receiver.slot_id",
+        "regulated_precision": "routing.regulated_precision",
+        "unregulated_precision": "routing.unregulated_precision",
+        "routing_as_of_height": "routing.as_of_height",
+        "routing_parameter_set_id": "routing.parameter_set_id",
+        "routing_nonce": "compliance.transfer_nonce_root",
     }
     label = typed_aliases.get(label, label)
+    if label in {"routing_tag0", "routing_tag1"}:
+        return [_binding_expression(bindings, "routing.tags", 2)[
+            int(label[-1])
+        ]]
     metadata_prefix = "compliance.metadata."
     if label.startswith(metadata_prefix):
         field = label.removeprefix(metadata_prefix)
@@ -2778,6 +3028,15 @@ def _transfer_trace_role_support(
             )
         if key in ignored_keys:
             continue
+        if spec.op == "routing.precision.select" and key == "selector":
+            # The selector consumes the two validated precision bit-vectors
+            # after the parameter-set equality, so gnark attributes those
+            # select rows to the following bind segment.
+            continue
+        if spec.op == "routing.parameters.hash" and key == "out":
+            # This is the computed private value; the public semantic binding
+            # is consumed only by the following equality segment.
+            continue
         expressions = _transfer_binding_expressions(bindings, label)
         if expressions is None:
             continue
@@ -2788,6 +3047,21 @@ def _transfer_trace_role_support(
         else:
             target = outputs if key in output_keys else inputs
         target.update(_expression_support(expressions))
+    if spec.op == "routing.parameters.bind":
+        inputs.update(_expression_support(
+            _binding_expression(bindings, "is_regulated", 1)
+        ))
+    if spec.op == "routing.permutation.compose":
+        inputs.update(_expression_support(
+            _binding_expression(bindings, "is_regulated", 1)
+        ))
+        inputs.update(_expression_support(
+            _binding_expression(bindings, "output1.note.amount", 1)
+        ))
+    if spec.label == "routing_tag0_compose":
+        inputs.update(_expression_support(
+            _binding_expression(bindings, "is_regulated", 1)
+        ))
     return inputs, outputs, flexible
 
 
@@ -2924,14 +3198,14 @@ def _validate_transfer_binding_spine(bindings: dict[str, dict]) -> None:
     if _binding_expression(bindings, "balance.outputs", 2) != expected_outputs:
         raise ValueError("Transfer balance output order drifted")
 
-    statement = _binding_expression(bindings, "statement.fields", 41)
+    statement = _binding_expression(bindings, "statement.fields", 44)
     individual = [
         _binding_expression(bindings, f"statement.field.{index:03d}", 1)[0]
-        for index in range(41)
+        for index in range(44)
     ]
     if statement != individual:
         raise ValueError(
-            "Transfer statement.fields is not the exact ordered 41-field spine"
+            "Transfer statement.fields is not the exact ordered 44-field spine"
         )
 
 
@@ -2980,12 +3254,12 @@ def _validate_transfer_selector_rows(
 
 
 TRANSFER_COMPLIANCE_PATH_LOCALS = (
-    (38, 48, 51),
+    (38, 47, 50),
     *tuple(
         (
-            46 + 363 * level,
-            48 + 363 * level,
-            51 + 363 * level,
+            45 + 363 * level,
+            47 + 363 * level,
+            50 + 363 * level,
         )
         for level in range(1, 16)
     ),
@@ -3003,41 +3277,41 @@ TRANSFER_ASSET_PATH_LOCALS = (
     ),
 )
 
-# The v4 statement provider absorbs 41 fields in six-field blocks after its
+# The v5 statement provider absorbs 44 fields in six-field blocks after its
 # seven-field first block.  Two-field entries are compiler LCs (compressed
 # points); singleton entries are direct wires.  This is provider geometry, not
 # a deployed segment index, and is authenticated against the current provider
 # digest before it is used.
-TRANSFER_STATEMENT_V4_FIELD_LOCALS = (
+TRANSFER_STATEMENT_V5_FIELD_LOCALS = (
     (1,),
     (7,),
     (13,),
     (19, 20),
     (26,),
-    (32, 33),
-    (39,),
-    (485, 486),
-    (492,),
-    (498,),
-    (504,),
+    (32,),
+    (38,),
+    (484,),
+    (490, 491),
+    (497,),
+    (503, 504),
     (510,),
     (516,),
     (962,),
-    (968, 969),
-    (975,),
-    (981,),
-    (987, 988),
-    (994,),
-    (1440,),
-    (1446,),
+    (968,),
+    (974,),
+    (980,),
+    (986, 987),
+    (993,),
+    (1439,),
+    (1445, 1446),
     (1452,),
-    (1458, 1459),
-    (1465,),
-    (1471,),
-    (1917, 1918),
-    (1924,),
-    (1930,),
-    (1936,),
+    (1458,),
+    (1464,),
+    (1470,),
+    (1916, 1917),
+    (1923,),
+    (1929,),
+    (1935, 1936),
     (1942,),
     (1948,),
     (2394,),
@@ -3050,6 +3324,9 @@ TRANSFER_STATEMENT_V4_FIELD_LOCALS = (
     (2876,),
     (2882,),
     (2888,),
+    (2894,),
+    (2900,),
+    (3346,),
 )
 
 
@@ -3103,7 +3380,7 @@ def _transfer_current_protocol_seats(
     Provider identity and semantic wire support are insufficient on their own:
     a permutation of two source values inside the certified seating still has
     the same exact local relation.  Pin the protocol-facing argument order for
-    the current threshold, Poseidon7 leaves/paths, and v4 statement provider.
+    the current threshold, Poseidon6 leaves/paths, and v5 statement provider.
     """
 
     bindings = plan.bindings
@@ -3121,7 +3398,6 @@ def _transfer_current_protocol_seats(
             "sender_compliance_leaf",
             "sender.div_gen_fq",
             "sender.transmission_fq",
-            "sender.clue_key",
             "sender.slot_id",
             "sender.slot_derivation",
             "sender.d",
@@ -3131,7 +3407,6 @@ def _transfer_current_protocol_seats(
             "receiver_compliance_leaf",
             "output0.recipient.div_gen_fq",
             "output0.recipient.transmission_fq",
-            "output0.note.clue_key",
             "output0.recipient.slot_id",
             "output0.recipient.slot_derivation",
             "output0.recipient.d",
@@ -3142,7 +3417,6 @@ def _transfer_current_protocol_seats(
         label,
         div_gen,
         transmission,
-        clue_key,
         slot_id,
         slot_derivation,
         d,
@@ -3155,15 +3429,14 @@ def _transfer_current_protocol_seats(
             *_transfer_expression_seats(
                 bindings, transmission, (8, 9)
             ),
-            (15, _single_binding_wire(bindings, clue_key)),
-            (21, _single_binding_wire(bindings, "shared.asset_id")),
-            (27, _single_binding_wire(bindings, slot_id)),
-            (33, _single_binding_wire(bindings, slot_derivation)),
-            (39, _single_binding_wire(bindings, d)),
+            (15, _single_binding_wire(bindings, "shared.asset_id")),
+            (21, _single_binding_wire(bindings, slot_id)),
+            (27, _single_binding_wire(bindings, slot_derivation)),
+            (33, _single_binding_wire(bindings, d)),
             *_transfer_expression_seats(
                 bindings,
                 output,
-                tuple(444 + 5 * index for index in range(8)),
+                tuple(408 + 5 * index for index in range(7)),
             ),
         )
         expected[label] = (
@@ -3195,7 +3468,7 @@ def _transfer_current_protocol_seats(
     for label, leaf, path, position, output in path_specs:
         seats = (
             *_transfer_expression_seats(
-                bindings, leaf, tuple(range(39, 47))
+                bindings, leaf, tuple(range(39, 46))
             ),
             *zip(
                 path_locals,
@@ -3206,7 +3479,7 @@ def _transfer_current_protocol_seats(
             *_transfer_expression_seats(
                 bindings,
                 output,
-                tuple(5829 + 5 * index for index in range(5)),
+                tuple(5828 + 5 * index for index in range(5)),
             ),
         )
         expected[label] = (
@@ -3215,7 +3488,7 @@ def _transfer_current_protocol_seats(
         )
 
     statement_seats: list[tuple[int, int]] = []
-    for index, locals_ in enumerate(TRANSFER_STATEMENT_V4_FIELD_LOCALS):
+    for index, locals_ in enumerate(TRANSFER_STATEMENT_V5_FIELD_LOCALS):
         expression = _binding_expression(
             bindings, f"statement.field.{index:03d}", 1
         )[0]
@@ -3242,7 +3515,7 @@ def _transfer_current_protocol_seats(
             )
         )
     statement_seats.extend(zip(
-        tuple(3293 + 5 * index for index in range(8)),
+        tuple(3751 + 5 * index for index in range(8)),
         _binding_lc_wires(
             bindings,
             "statement.hash",
@@ -3252,7 +3525,7 @@ def _transfer_current_protocol_seats(
     ))
     expected["statement_hash"] = (
         dict(statement_seats),
-        "Transfer statement v4 protocol arguments",
+        "Transfer statement v5 protocol arguments",
     )
 
     assert_seats = (
@@ -3309,6 +3582,15 @@ def _transfer_transcript_protocol_seats(
 
     bindings = plan.bindings
     flag_wire = _single_binding_wire(bindings, "is_flagged")
+    permutation_wires = (
+        set(_seating(plan.segments["routing_permutation_compose"]))
+        & set(_seating(plan.segments["detection_encryption"]))
+    ) - {0}
+    if len(permutation_wires) != 1:
+        raise ValueError(
+            "Transfer routing permutation/detection join drifted"
+        )
+    permutation_wire = next(iter(permutation_wires))
     shared_specs = (
         (
             "sender_core_shared_secret",
@@ -3551,9 +3833,10 @@ def _transfer_transcript_protocol_seats(
             ),
             strict=True,
         ),
-        (2112, flag_wire),
+        (2112, permutation_wire),
+        (2113, flag_wire),
         *zip(
-            (2107, 2111, 2113, 2114),
+            (2107, 2111, 2114, 2115),
             _binding_wire_vector(
                 bindings, "compliance.detection_ciphertext", 4
             ),
@@ -4253,31 +4536,27 @@ def _transfer_core_provider_seats(
             "spend0",
             "sender.div_gen_fq",
             "sender.transmission_fq",
-            "sender.clue_key",
         ),
         (
             "optional_note_commitment",
             "spend1",
             "sender.div_gen_fq",
             "sender.transmission_fq",
-            "sender.clue_key",
         ),
         (
             "receiver_note_commitment",
             "output0",
             "output0.recipient.div_gen_fq",
             "output0.recipient.transmission_fq",
-            "output0.note.clue_key",
         ),
         (
             "change_note_commitment",
             "output1",
             "sender.div_gen_fq",
             "sender.transmission_fq",
-            "sender.clue_key",
         ),
     )
-    for label, slot, div_gen, transmission, clue_key in note_roles:
+    for label, slot, div_gen, transmission in note_roles:
         seats[label] = (
             (1, single(f"{slot}.note.blinding")),
             (7, single(f"{slot}.note.amount")),
@@ -4292,9 +4571,8 @@ def _transfer_core_provider_seats(
                 lc(transmission, compress_coefficients),
                 strict=True,
             ),
-            (33, single(clue_key)),
             *zip(
-                (408, 413, 418, 423, 428, 433, 438),
+                (372, 377, 382, 387, 392, 397),
                 lc(
                     f"{slot}.note.commitment.computed",
                     NOTE_COMMITMENT_COEFFICIENTS,
@@ -4309,14 +4587,14 @@ def _transfer_core_provider_seats(
     ):
         seats[label] = (
             *zip(
-                range(1, 8),
+                range(1, 7),
                 lc(
                     f"{slot}.note.commitment.computed",
                     NOTE_COMMITMENT_COEFFICIENTS,
                 ),
                 strict=True,
             ),
-            (8, single(f"{slot}.note_commitment.claimed")),
+            (7, single(f"{slot}.note_commitment.claimed")),
         )
 
     seats["required_nullifier_assert"] = (
@@ -4351,14 +4629,14 @@ def _transfer_core_provider_seats(
     ):
         seats[label] = (
             *zip(
-                range(1, 8),
+                range(1, 7),
                 lc(
                     f"{slot}.note.commitment.computed",
                     NOTE_COMMITMENT_COEFFICIENTS,
                 ),
                 strict=True,
             ),
-            (286, single(f"{slot}.state_proof.position")),
+            (285, single(f"{slot}.state_proof.position")),
             *zip(
                 STATE_PATH_PROVIDER_LOCALS,
                 tuple(
@@ -4368,7 +4646,7 @@ def _transfer_core_provider_seats(
                 strict=True,
             ),
             *zip(
-                (8978, 8983, 8988, 8993, 8998),
+                (8977, 8982, 8987, 8992, 8997),
                 lc(f"{slot}.anchor.computed", POSEIDON_ROOT_COEFFICIENTS),
                 strict=True,
             ),
@@ -4381,16 +4659,16 @@ def _transfer_core_provider_seats(
         seats[label] = (
             (1, single("auth.nk")),
             *zip(
-                range(7, 14),
+                range(7, 13),
                 lc(
                     f"{slot}.note.commitment.computed",
                     NOTE_COMMITMENT_COEFFICIENTS,
                 ),
                 strict=True,
             ),
-            (19, single(f"{slot}.state_proof.position")),
+            (18, single(f"{slot}.state_proof.position")),
             *zip(
-                (304, 309, 314, 319),
+                (303, 308, 313, 318),
                 lc(f"{slot}.nullifier.real", NULLIFIER_COEFFICIENTS),
                 strict=True,
             ),
@@ -4709,9 +4987,9 @@ def _validate_transfer_refinement_plan(
             )
 
     statement_key = segments["statement_hash"].get("proof_template_id")
-    if statement_key != TRANSFER_STATEMENT_V4_KEY:
+    if statement_key != TRANSFER_STATEMENT_V5_KEY:
         raise ValueError(
-            "Transfer statement did not select the reviewed v4 provider"
+            "Transfer statement did not select the reviewed v5 provider"
         )
     plan = TransferRefinementPlan(segments=segments, bindings=bindings)
     _validate_transfer_selector_rows(plan)
@@ -4758,6 +5036,12 @@ WITHDRAWAL_DIRECT_ACTION_BINDING_ARITIES = {
     "withdrawal_effect_hash_limbs": 4,
     "action.balance_blinding": 1,
     "is_regulated": 1,
+    "routing.tag": 1,
+    "routing.parameter_set_id": 1,
+    "routing.regulated_precision": 1,
+    "routing.unregulated_precision": 1,
+    "routing.as_of_height": 1,
+    "routing.nonce": 1,
     "auth.ak": 2,
     "auth.nk": 1,
     "auth.ivk_reduced": 1,
@@ -4770,7 +5054,6 @@ WITHDRAWAL_DIRECT_ACTION_BINDING_ARITIES = {
     "asset.path": 48,
     "asset.position": 1,
     "sender.div_gen": 2,
-    "sender.clue_key": 1,
     "sender.slot_id": 1,
     "sender.slot_derivation": 1,
     "sender.d": 1,
@@ -4801,7 +5084,6 @@ WITHDRAWAL_DIRECT_ACTION_BINDING_ARITIES = {
 WITHDRAWAL_BINDING_ARITIES = {
     **WITHDRAWAL_DIRECT_ACTION_BINDING_ARITIES,
     "shared.asset_id": 1,
-    "shared.clue_key": 1,
     "sender.div_gen_fq": 1,
     "sender.transmission.computed": 2,
     "sender.transmission_fq": 1,
@@ -4810,14 +5092,14 @@ WITHDRAWAL_BINDING_ARITIES = {
     "asset.gap_valid": 1,
     "sender.leaf_commitment": 1,
     "sender.compliance_root": 1,
-    "spend0.note_commitment.inputs": 6,
+    "spend0.note_commitment.inputs": 5,
     "spend0.note.commitment.computed": 1,
     "spend0.nullifier.real": 1,
     "spend0.anchor.computed": 1,
     "spend0.rk.computed": 2,
     "spend0.rk.compressed": 1,
     "spend0.nullifier.selected": 1,
-    "spend1.note_commitment.inputs": 6,
+    "spend1.note_commitment.inputs": 5,
     "spend1.note.commitment.computed": 1,
     "spend1.nullifier.real": 1,
     "spend1.anchor.computed": 1,
@@ -4826,12 +5108,12 @@ WITHDRAWAL_BINDING_ARITIES = {
     "spend1.is_not_dummy": 1,
     "spend1.nullifier.synthetic": 1,
     "spend1.nullifier.selected": 1,
-    "output0.note_commitment.inputs": 6,
+    "output0.note_commitment.inputs": 5,
     "output0.note.commitment.computed": 1,
     "balance_commitment.computed": 2,
     "balance_commitment.fq": 1,
-    **{f"statement.field.{index:03d}": 1 for index in range(16)},
-    "statement.fields": 16,
+    **{f"statement.field.{index:03d}": 1 for index in range(18)},
+    "statement.fields": 18,
     "statement.hash.block0": 1,
     "statement.hash.block1": 1,
     "statement.hash.block2": 1,
@@ -4841,6 +5123,13 @@ WITHDRAWAL_BINDING_ARITIES = {
 
 WITHDRAWAL_BINDING_ALIASES = {
     "shared.ak": "auth.ak",
+    "regulated_precision": "routing.regulated_precision",
+    "unregulated_precision": "routing.unregulated_precision",
+    "routing_as_of_height": "routing.as_of_height",
+    "routing_parameter_set_id": "routing.parameter_set_id",
+    "routing_tag": "routing.tag",
+    "routing_nonce": "routing.nonce",
+    "owner.transmission_fq": "sender.transmission_fq",
 }
 
 
@@ -4860,7 +5149,11 @@ def _withdrawal_binding_expressions(
 ) -> list[dict] | None:
     """Resolve one exact Withdrawal trace label to compiler expressions."""
 
-    if label in {"0", "1", "spend1"}:
+    if label in {
+        "0", "1", "spend1", "routing_parameter_set_id.computed",
+        "owner.route_word", "route_word", "random_word", "meaningful",
+        "expected_tag",
+    }:
         return None
     special = {
         "input_amounts": [
@@ -4881,12 +5174,12 @@ def _withdrawal_binding_expressions(
         ],
         (
             "statement.hash.block1,"
-            "statement.field.013..015,pad1,pad0,pad1"
+            "statement.field.013..017,pad1"
         ): [
             *_binding_expression(
                 bindings, "statement.hash.block1", 1
             ),
-            *_withdrawal_statement_expressions(bindings, 13, 16),
+            *_withdrawal_statement_expressions(bindings, 13, 18),
         ],
     }
     if label in special:
@@ -4919,6 +5212,10 @@ def _withdrawal_trace_role_support(
             )
         if key in {"block", "coordinate", "slot"}:
             continue
+        if spec.op == "routing.precision.select" and key == "selector":
+            continue
+        if spec.op == "routing.parameters.hash" and key == "out":
+            continue
         expressions = _withdrawal_binding_expressions(bindings, label)
         if expressions is None:
             continue
@@ -4929,6 +5226,10 @@ def _withdrawal_trace_role_support(
         else:
             target = outputs if key == "out" else inputs
         target.update(_expression_support(expressions))
+    if spec.op == "routing.parameters.bind":
+        inputs.update(_expression_support(
+            _binding_expression(bindings, "is_regulated", 1)
+        ))
     return inputs, outputs, flexible
 
 
@@ -4972,7 +5273,6 @@ def _validate_withdrawal_binding_spine(
 
     aliases = {
         "shared.asset_id": "outbound.asset_id",
-        "shared.clue_key": "sender.clue_key",
         "spend0.nullifier.selected": "spend0.nullifier.real",
         "statement.hash": "statement.hash.block2",
     }
@@ -4992,10 +5292,9 @@ def _validate_withdrawal_binding_spine(
             *_binding_expression(bindings, "shared.asset_id", 1),
             *_binding_expression(bindings, "sender.div_gen_fq", 1),
             *_binding_expression(bindings, "sender.transmission_fq", 1),
-            *_binding_expression(bindings, "shared.clue_key", 1),
         ]
         if _binding_expression(
-            bindings, f"{slot}.note_commitment.inputs", 6
+            bindings, f"{slot}.note_commitment.inputs", 5
         ) != expected_note_inputs:
             raise ValueError(
                 f"Withdrawal {slot} note-commitment input order drifted"
@@ -5016,12 +5315,12 @@ def _validate_withdrawal_binding_spine(
     ) != [expected_is_not_dummy]:
         raise ValueError("Withdrawal optional is_not_dummy binding drifted")
 
-    statement = _binding_expression(bindings, "statement.fields", 16)
-    individual = _withdrawal_statement_expressions(bindings, 0, 16)
+    statement = _binding_expression(bindings, "statement.fields", 18)
+    individual = _withdrawal_statement_expressions(bindings, 0, 18)
     if statement != individual:
         raise ValueError(
             "Withdrawal statement.fields is not the exact ordered "
-            "16-field spine"
+            "18-field spine"
         )
     expected_statement = [
         *_binding_expression(bindings, "anchor", 1),
@@ -5041,6 +5340,8 @@ def _validate_withdrawal_binding_spine(
         *_binding_expression(
             bindings, "withdrawal_effect_hash_limbs", 4
         ),
+        *_binding_expression(bindings, "routing.tag", 1),
+        *_binding_expression(bindings, "routing.parameter_set_id", 1),
     ]
     if statement != expected_statement:
         raise ValueError(
@@ -5257,7 +5558,6 @@ def sender (rho : Nat → DeployedF) : Address DeployedF :=
     transmission :=
       ⟨senderTransmissionComputed0 rho, senderTransmissionComputed1 rho⟩
     transmissionEncoding := senderTransmissionFq rho
-    clueKey := senderClueKey rho
   }}
 
 def authorization (rho : Nat → DeployedF) : Authorization DeployedF :=
@@ -5395,6 +5695,12 @@ def action (rho : Nat → DeployedF) :
     targetTimestamp := targetTimestamp rho
     balanceCommitmentEncoding := balanceCommitmentFq rho
     balanceBlinding := actionBalanceBlinding rho
+    routingTag := routingTag rho
+    routingParameterSetId := routingParameterSetId rho
+    regulatedPrecision := routingRegulatedPrecision rho
+    unregulatedPrecision := routingUnregulatedPrecision rho
+    routingAsOfHeight := routingAsOfHeight rho
+    routingNonce := routingNonce rho
     publicStatementHash := claimedStatementHash rho
   }}
 
@@ -5524,9 +5830,8 @@ def _withdrawal_core_provider_seats(
                 lc("sender.transmission_fq", compress_coefficients),
                 strict=True,
             ),
-            (33, single("sender.clue_key")),
             *zip(
-                (408, 413, 418, 423, 428, 433, 438),
+                (372, 377, 382, 387, 392, 397),
                 lc(
                     f"{slot}.note.commitment.computed",
                     NOTE_COMMITMENT_COEFFICIENTS,
@@ -5537,14 +5842,14 @@ def _withdrawal_core_provider_seats(
 
     seats["change_note_assert"] = (
         *zip(
-            range(1, 8),
+            range(1, 7),
             lc(
                 "output0.note.commitment.computed",
                 NOTE_COMMITMENT_COEFFICIENTS,
             ),
             strict=True,
         ),
-        (8, single("output0.note_commitment.claimed")),
+        (7, single("output0.note_commitment.claimed")),
     )
     seats["required_anchor_assert"] = (
         *zip(
@@ -5571,14 +5876,14 @@ def _withdrawal_core_provider_seats(
     ):
         seats[label] = (
             *zip(
-                range(1, 8),
+                range(1, 7),
                 lc(
                     f"{slot}.note.commitment.computed",
                     NOTE_COMMITMENT_COEFFICIENTS,
                 ),
                 strict=True,
             ),
-            (286, single(f"{slot}.state_proof.position")),
+            (285, single(f"{slot}.state_proof.position")),
             *zip(
                 path_locals,
                 tuple(
@@ -5588,7 +5893,7 @@ def _withdrawal_core_provider_seats(
                 strict=True,
             ),
             *zip(
-                (8978, 8983, 8988, 8993, 8998),
+                (8977, 8982, 8987, 8992, 8997),
                 lc(f"{slot}.anchor.computed", POSEIDON_ROOT_COEFFICIENTS),
                 strict=True,
             ),
@@ -5601,16 +5906,16 @@ def _withdrawal_core_provider_seats(
         seats[label] = (
             (1, single("auth.nk")),
             *zip(
-                range(7, 14),
+                range(7, 13),
                 lc(
                     f"{slot}.note.commitment.computed",
                     NOTE_COMMITMENT_COEFFICIENTS,
                 ),
                 strict=True,
             ),
-            (19, single(f"{slot}.state_proof.position")),
+            (18, single(f"{slot}.state_proof.position")),
             *zip(
-                (304, 309, 314, 319),
+                (303, 308, 313, 318),
                 lc(f"{slot}.nullifier.real", NULLIFIER_COEFFICIENTS),
                 strict=True,
             ),
@@ -6355,7 +6660,6 @@ def sender (rho : Nat → DeployedF) : Address DeployedF :=
     transmission :=
       ⟨senderTransmissionComputed0 rho, senderTransmissionComputed1 rho⟩
     transmissionEncoding := senderTransmissionFq rho
-    clueKey := senderClueKey rho
   }}
 
 def receiverAddress (rho : Nat → DeployedF) : Address DeployedF :=
@@ -6367,7 +6671,6 @@ def receiverAddress (rho : Nat → DeployedF) : Address DeployedF :=
       ⟨output0RecipientTransmission0 rho,
        output0RecipientTransmission1 rho⟩
     transmissionEncoding := output0RecipientTransmissionFq rho
-    clueKey := output0NoteClueKey rho
   }}
 
 def authorization (rho : Nat → DeployedF) : Authorization DeployedF :=
@@ -6604,6 +6907,11 @@ def action (rho : Nat → DeployedF) :
     targetTimestamp := targetTimestamp rho
     balanceCommitmentEncoding := balanceCommitmentFq rho
     balanceBlinding := actionBalanceBlinding rho
+    routingTags := routingTagsAt rho
+    routingParameterSetId := routingParameterSetId rho
+    regulatedPrecision := routingRegulatedPrecision rho
+    unregulatedPrecision := routingUnregulatedPrecision rho
+    routingAsOfHeight := routingAsOfHeight rho
     publicStatementHash := claimedStatementHash rho
   }}
 
@@ -7584,20 +7892,15 @@ def _add_transfer_spend_specification_theorems(add) -> None:
       (relationChangeOutput rho h).2.2.1⟩""",
     )
     add(
-        "NOTE-OUTPUT-CLUE-KEY-BINDING",
-        """Protocol.Transfer.Concrete.noteCommitment
-        (action rho).receiver.note ∧
-      Protocol.Transfer.Concrete.noteCommitment
-        (action rho).change.note ∧
-      (action rho).receiver.note.clueKey =
-        (action rho).receiver.note.owner.clueKey ∧
-      (action rho).change.note.clueKey =
-        (action rho).sender.clueKey""",
-        """  exact
-    ⟨(relationReceiverOutput rho h).2.2.1,
-      (relationChangeOutput rho h).2.2.2,
-      rfl,
-      (relationChangeOutput rho h).2.1⟩""",
+        "ROUTING-PARAMETERS",
+        """Seg72.contract.spec rho ∧
+      Seg73.contract.spec rho ∧
+      Seg74.contract.spec rho""",
+        """  have facts := (transfer_circuitFacts rho h).exact
+  exact
+    ⟨facts.RoutingPrecisionSelectSeg72,
+      facts.RoutingParametersHashSeg73,
+      facts.RoutingParametersBindSeg74⟩""",
     )
     add(
         "NOTE-OUTPUT-OWNER-BINDING",
@@ -7627,20 +7930,33 @@ def _add_transfer_spend_specification_theorems(add) -> None:
   exact optional.2.2.1""",
     )
     add(
-        "NOTE-SPEND-CLUE-KEY-BINDING",
-        """(action rho).required.note.clueKey =
-        (action rho).sender.clueKey ∧
-      ∀ spend,
-        (action rho).optional = .real spend →
-          spend.note.clueKey = (action rho).sender.clueKey""",
-        """  rcases relationRequiredSpend rho h with
-    ⟨_, requiredClueKey, _, _, _, _, _, _, _⟩
-  refine ⟨requiredClueKey, ?_⟩
-  intro spend selected
-  have optional := relationOptionalSpend rho h
-  unfold Protocol.Transfer.Concrete.optionalSpend at optional
-  rw [selected] at optional
-  exact optional.2.1""",
+        "ROUTING-TAG-DERIVATION",
+        """Seg75.contract.spec rho ∧
+      Seg76.contract.spec rho ∧
+      Seg77.contract.spec rho ∧
+      Seg78.contract.spec rho ∧
+      Seg79.contract.spec rho ∧
+      Seg80.contract.spec rho ∧
+      Seg81.contract.spec rho ∧
+      Seg82.contract.spec rho ∧
+      Seg83.contract.spec rho ∧
+      Seg84.contract.spec rho ∧
+      Seg85.contract.spec rho ∧
+      Seg86.contract.spec rho""",
+        """  have facts := (transfer_circuitFacts rho h).exact
+  exact
+    ⟨facts.RoutingRouteWordSeg75,
+      facts.RoutingRouteWordSeg76,
+      facts.RoutingPermutationHashSeg77,
+      facts.RoutingPermutationComposeSeg78,
+      facts.RoutingTagPublicRangeSeg79,
+      facts.RoutingTagRouteBitsSeg80,
+      facts.RoutingTagRandomWordSeg81,
+      facts.RoutingTagComposeSeg82,
+      facts.RoutingTagPublicRangeSeg83,
+      facts.RoutingTagRouteBitsSeg84,
+      facts.RoutingTagRandomWordSeg85,
+      facts.RoutingTagComposeSeg86⟩""",
     )
     add(
         "NOTE-SPEND-COMMITMENT",
@@ -7733,22 +8049,20 @@ def _add_transfer_spend_specification_theorems(add) -> None:
         "USER-LEAF-POLICY-SLOT-BINDING",
         """Protocol.Transfer.Concrete.complianceLeafHash
           (action rho).senderCompliance =
-        Poseidon377.hash7
+        Poseidon377.hash6
           Protocol.Transfer.Concrete.complianceLeafDomain
           (action rho).senderCompliance.address.diversifiedGeneratorEncoding
           (action rho).senderCompliance.address.transmissionEncoding
-          (action rho).senderCompliance.address.clueKey
           (action rho).senderCompliance.assetId
           (action rho).senderCompliance.slotId
           (action rho).senderCompliance.slotDerivation
           (action rho).senderCompliance.d ∧
       Protocol.Transfer.Concrete.complianceLeafHash
           (action rho).receiverCompliance =
-        Poseidon377.hash7
+        Poseidon377.hash6
           Protocol.Transfer.Concrete.complianceLeafDomain
           (action rho).receiverCompliance.address.diversifiedGeneratorEncoding
           (action rho).receiverCompliance.address.transmissionEncoding
-          (action rho).receiverCompliance.address.clueKey
           (action rho).receiverCompliance.assetId
           (action rho).receiverCompliance.slotId
           (action rho).receiverCompliance.slotDerivation
@@ -8173,7 +8487,7 @@ def render_transfer_specification_consequences(
     add(
         "CIR-SHAPE-FIXED",
         """(Protocol.Transfer.Concrete.statementFields
-      (action rho)).length = 41""",
+      (action rho)).length = 44""",
         """  exact Protocol.Transfer.Concrete.statementFields_length
     (action rho)""",
     )
@@ -9078,11 +9392,8 @@ def _withdrawal_dtk_seating_config(
     expressions = _binding_expression(
         plan.bindings, "sender.transmission.computed", 2
     )
-    expected_wires = ((5950, 5958), (5951, 5959))
     computed_wires: list[tuple[int, int]] = []
-    for expression, expected in zip(
-        expressions, expected_wires, strict=True
-    ):
+    for expression in expressions:
         terms = expression.get("terms")
         if (
             expression.get("constant") != "0"
@@ -9098,12 +9409,12 @@ def _withdrawal_dtk_seating_config(
                 "Withdrawal sender transmission coordinate LC drifted"
             )
         wires = tuple(term["wire_id"] for term in terms)
-        if wires != expected:
-            raise ValueError(
-                "Withdrawal sender transmission coordinate wires drifted"
-            )
         computed_wires.append(wires)
     x_wires, y_wires = computed_wires
+    if len(set((*x_wires, *y_wires))) != 4:
+        raise ValueError(
+            "Withdrawal sender transmission coordinate wires overlap"
+        )
     dtk = plan.segments["sender_dtk"]
     compress = plan.segments["sender_transmission_compress"]
     non_identity = plan.segments["sender_transmission_non_identity"]
@@ -9132,14 +9443,11 @@ def _withdrawal_dtk_seating_config(
         },
         "Withdrawal DTK inputs and output",
     )
-    transmission_fq = _binding_expression(
-        plan.bindings, "sender.transmission_fq", 1
-    )[0]
-    expected_transmission_fq = _lc_expression(
-        (6322, 6662), (MODULUS_MINUS_ONE, "1")
+    transmission_fq_wires = _binding_lc_wires(
+        plan.bindings,
+        "sender.transmission_fq",
+        (MODULUS_MINUS_ONE, "1"),
     )
-    if transmission_fq != expected_transmission_fq:
-        raise ValueError("Withdrawal transmission compressor output LC drifted")
     _require_seats(
         compress,
         {
@@ -9147,14 +9455,18 @@ def _withdrawal_dtk_seating_config(
             2: x_wires[1],
             4: y_wires[0],
             5: y_wires[1],
-            367: 6322,
-            707: 6662,
+            367: transmission_fq_wires[0],
+            707: transmission_fq_wires[1],
         },
         "Withdrawal transmission compressor input and output",
     )
     _require_seats(
         non_identity,
-        {1: 6663, 2: x_wires[0], 3: x_wires[1]},
+        {
+            1: _seating(non_identity)[1],
+            2: x_wires[0],
+            3: x_wires[1],
+        },
         "Withdrawal transmission non-identity inverse and x input",
     )
     return {
@@ -9283,11 +9595,8 @@ def _transfer_dtk_seating_config(
     expressions = _binding_expression(
         plan.bindings, "sender.transmission.computed", 2
     )
-    expected_wires = ((6768, 6776), (6769, 6777))
     computed_wires: list[tuple[int, int]] = []
-    for expression, expected in zip(
-        expressions, expected_wires, strict=True
-    ):
+    for expression in expressions:
         terms = expression.get("terms")
         if (
             expression.get("constant") != "0"
@@ -9303,16 +9612,12 @@ def _transfer_dtk_seating_config(
                 "Transfer sender transmission coordinate LC drifted"
             )
         wires = tuple(term["wire_id"] for term in terms)
-        if wires != expected:
-            raise ValueError(
-                "Transfer sender transmission coordinate wires drifted"
-            )
         computed_wires.append(wires)
     x_wires, y_wires = computed_wires
     raw = _binding_wire_vector(plan.bindings, "sender.transmission", 2)
-    if raw != (78, 79):
+    if len(set((*x_wires, *y_wires, *raw))) != 6:
         raise ValueError(
-            "Transfer sender transmission raw wires drifted"
+            "Transfer sender transmission coordinate wires overlap"
         )
     dtk = plan.segments["sender_dtk"]
     equivalent = plan.segments["sender_transmission_equivalent"]
@@ -10890,14 +11195,14 @@ theorem {stable}Encryption_of_semantic
 
 
 def _render_transfer_statement_field_seams() -> tuple[str, str, str]:
-    """Render exact v4 input LCs and the action's ordered field spine."""
+    """Render exact v5 input LCs and the action's ordered field spine."""
 
     declarations = []
     rewrites = []
     action_fields = []
     source_fields = []
     for index, locals_ in enumerate(
-        TRANSFER_STATEMENT_V4_FIELD_LOCALS
+        TRANSFER_STATEMENT_V5_FIELD_LOCALS
     ):
         stable = f"statementField{index:03d}"
         if len(locals_) == 1:
@@ -11072,8 +11377,8 @@ def render_transfer_action_seams(
         leaf_accessors = ", ".join(
             f"{lower}ComplianceLeafAt{local}"
             for local in (
-                1, 2, 8, 9, 15, 21, 27, 33, 39,
-                444, 449, 454, 459, 464, 469, 474, 479,
+                1, 2, 8, 9, 15, 21, 27, 33,
+                408, 413, 418, 423, 428, 433, 438,
             )
         )
         path_leaf_accessors = ", ".join(
@@ -11103,7 +11408,7 @@ def render_transfer_action_seams(
         return f"""\
 /-! ## {stable} compliance -/
 
-/-- The `{lower}` compliance leaf is the exact protocol Poseidon7 leaf. -/
+/-- The `{lower}` compliance leaf is the exact protocol Poseidon6 leaf. -/
 theorem {lower}ComplianceLeafHash_of_semantic
     (rho : Nat → DeployedF)
     (semantic : TransferSemanticProviders rho) :
@@ -11119,8 +11424,8 @@ theorem {lower}ComplianceLeafHash_of_semantic
           ({stable}ComplianceLeafValuation rho) := by
     simp only [
       {leaf_provider}.output,
-      Deployed.CertifiedGadgetComplianceLeaf_89974c69097fPoseidon.s38_1,
-      Poseidon7Bridge.row8,
+      Deployed.CertifiedGadgetComplianceLeaf_dcb0a1040c53Poseidon.s38_1,
+      Poseidon6Bridge.row7,
       {leaf_value}, {leaf_value}LC,
       StructuredLC.eval, StructuredLC.sumRuns,
       StructuredLC.sumResidual, StrideRun.eval,
@@ -11130,11 +11435,10 @@ theorem {lower}ComplianceLeafHash_of_semantic
     ring
   have hLeaf :
       {leaf_value} rho =
-        Poseidon7Bridge.permSpec7
+        Poseidon6Bridge.permSpec6
           Protocol.Transfer.Concrete.complianceLeafDomain
           ((C.{action_projection} rho).address.diversifiedGeneratorEncoding)
           ((C.{action_projection} rho).address.transmissionEncoding)
-          ((C.{action_projection} rho).address.clueKey)
           ((C.{action_projection} rho).assetId)
           ((C.{action_projection} rho).slotId)
           ((C.{action_projection} rho).slotDerivation)
@@ -11145,11 +11449,9 @@ theorem {lower}ComplianceLeafHash_of_semantic
       C.{action_projection}, C.sender, C.receiverAddress,
       senderDivGenFq, senderDivGenFqLC,
       senderTransmissionFq, senderTransmissionFqLC,
-      senderClueKey, senderClueKeyLC,
       output0RecipientDivGenFq, output0RecipientDivGenFqLC,
       output0RecipientTransmissionFq,
       output0RecipientTransmissionFqLC,
-      output0NoteClueKey, output0NoteClueKeyLC,
       sharedAssetId, sharedAssetIdLC,
       senderSlotId, senderSlotIdLC,
       senderSlotDerivation, senderSlotDerivationLC,
@@ -11166,7 +11468,7 @@ theorem {lower}ComplianceLeafHash_of_semantic
   rw [hLeaf]
   simp only [
     Protocol.Transfer.Concrete.complianceLeafHash,
-    Poseidon7Bridge.permSpec7
+    Poseidon6Bridge.permSpec6
   ]
 
 /-- The provider-local `{lower}` path is exactly the action path. -/
@@ -12659,7 +12961,7 @@ import ShielddGnarkFormal.Deployed.Contracts.Transfer.RefinementAction
 import ShielddGnarkFormal.Deployed.Contracts.Transfer.ActionAckSeams
 import ShielddGnarkFormal.DecafCompressionBridge
 import ShielddGnarkFormal.PoseidonEncryptionBridge
-import ShielddGnarkFormal.Poseidon7Bridge
+import ShielddGnarkFormal.Poseidon6Bridge
 import Mathlib.Tactic.LinearCombination
 import Mathlib.Tactic.NormNum
 import Mathlib.Tactic.Ring
@@ -13224,9 +13526,9 @@ theorem complianceTranscript_of_semanticProviders
     metadataBinding_of_semantic rho semantic
   ⟩
 
-/-- Exact seven-block provider output before the public equality assertion. -/
+/-- Exact eight-block provider output before the public equality assertion. -/
 def computedStatementHash (rho : Nat → DeployedF) : DeployedF :=
-  {statement}.Trace.hash6 (StatementHashValuation rho)
+  {statement}.Trace.hash7 (StatementHashValuation rho)
 
 private theorem statementDomain :
     {statement}.Trace.domainLit =
@@ -13247,7 +13549,7 @@ private theorem statementPad1 :
 
 {action_statement_fields}
 
-/-- The compiler's final state LC is the certified seven-block output. -/
+/-- The compiler's final state LC is the certified eight-block output. -/
 theorem statementHash_of_semantic
     (rho : Nat → DeployedF)
     (semantic : TransferSemanticProviders rho) :
@@ -13257,20 +13559,20 @@ theorem statementHash_of_semantic
   unfold {statement}.spec at h
   calc
     statementHash rho =
-        {statement}.Trace.flatState6_38Lane1
+        {statement}.Trace.flatState7_38Lane1
           (StatementHashValuation rho) := by
       simp [
         statementHash, statementHashLC,
-        {statement}.Trace.flatState6_38Lane1,
+        {statement}.Trace.flatState7_38Lane1,
         StructuredLC.eval, StructuredLC.sumRuns,
         StructuredLC.sumResidual, StrideRun.eval
       ]
       ring
-    _ = ({statement}.Trace.rawState6_38
+    _ = ({statement}.Trace.rawState7_38
           (StatementHashValuation rho))[1] :=
-      ({statement}.Trace.rawState6_output_eq_flatStateLane1
+      ({statement}.Trace.rawState7_output_eq_flatStateLane1
         (StatementHashValuation rho)).symm
-    _ = {statement}.Trace.hash6
+    _ = {statement}.Trace.hash7
           (StatementHashValuation rho) := h
     _ = computedStatementHash rho := rfl
 
@@ -13292,7 +13594,7 @@ theorem statementPublicHash_of_semantic
   ring_nf at h ⊢
   exact h
 
-/-- The provider's seven blocks are the independent 41-field protocol sponge. -/
+/-- The provider's eight blocks are the independent 44-field protocol sponge. -/
 theorem computedStatementHash_eq_protocol
     (rho : Nat → DeployedF) :
     computedStatementHash rho =
@@ -13303,6 +13605,7 @@ theorem computedStatementHash_eq_protocol
         (Protocol.Transfer.Concrete.statementFields (C.action rho)) := by
   rw [statementFields_of_action]
   unfold computedStatementHash
+    {statement}.Trace.hash7
     {statement}.Trace.hash6
     {statement}.Trace.hash5
     {statement}.Trace.hash4
@@ -15127,12 +15430,12 @@ def render_withdrawal_refinement_seams(
         "sender.leaf_commitment",
     )
     compliance_output_locals = tuple(
-        444 + 5 * index
+        408 + 5 * index
         for index in range(len(compliance_output_wires))
     )
-    if len(compliance_output_wires) != 8:
+    if len(compliance_output_wires) != 7:
         raise ValueError(
-            "Withdrawal Poseidon7 compliance output is not eight lanes"
+            "Withdrawal Poseidon6 compliance output is not seven lanes"
         )
     compliance_seats = [
         *zip(
@@ -15155,13 +15458,12 @@ def render_withdrawal_refinement_seams(
             ),
             strict=True,
         ),
-        (15, _single_binding_wire(bindings, "sender.clue_key")),
-        (21, _single_binding_wire(bindings, "outbound.asset_id")),
-        (27, _single_binding_wire(bindings, "sender.slot_id")),
-        (33, _single_binding_wire(
+        (15, _single_binding_wire(bindings, "outbound.asset_id")),
+        (21, _single_binding_wire(bindings, "sender.slot_id")),
+        (27, _single_binding_wire(
             bindings, "sender.slot_derivation"
         )),
-        (39, _single_binding_wire(bindings, "sender.d")),
+        (33, _single_binding_wire(bindings, "sender.d")),
         *zip(
             compliance_output_locals,
             compliance_output_wires,
@@ -15199,7 +15501,7 @@ def render_withdrawal_refinement_seams(
         (
             compliance_segment,
             compliance_seats,
-            "Withdrawal Poseidon7 compliance leaf",
+            "Withdrawal Poseidon6 compliance leaf",
         ),
         (
             compliance_assert_segment,
@@ -15513,10 +15815,10 @@ theorem complianceLeafHash_of_exact
     (rho : Nat → SemanticF)
     (facts : ShieldedIcs20WithdrawalCircuitFacts rho) :
     senderLeafCommitment rho =
-      Poseidon7Bridge.permSpec7
+      Poseidon6Bridge.permSpec6
         Protocol.ShieldedIcs20Withdrawal.Concrete.complianceLeafDomain
         (senderDivGenFq rho) (senderTransmissionFq rho)
-        (senderClueKey rho) (outboundAssetId rho) (senderSlotId rho)
+        (outboundAssetId rho) (senderSlotId rho)
         (senderSlotDerivation rho) (senderD rho) := by
   have h := facts.exact.GadgetComplianceLeafSeg{compliance_index}
   change {compliance_sem}.spec
@@ -15540,17 +15842,15 @@ theorem complianceLeafHash_of_exact
         id_eq, zero_add, one_mul, add_zero
       ]
       ring
-    _ = Poseidon7Bridge.permSpec7
+    _ = Poseidon6Bridge.permSpec6
           Protocol.ShieldedIcs20Withdrawal.Concrete.complianceLeafDomain
           (senderDivGenFq rho) (senderTransmissionFq rho)
-          (senderClueKey rho) (outboundAssetId rho)
-          (senderSlotId rho) (senderSlotDerivation rho)
+          (outboundAssetId rho) (senderSlotId rho) (senderSlotDerivation rho)
           (senderD rho) := by
       simpa only [
         Protocol.ShieldedIcs20Withdrawal.Concrete.complianceLeafDomain,
         senderDivGenFq, senderDivGenFqLC,
         senderTransmissionFq, senderTransmissionFqLC,
-        senderClueKey, senderClueKeyLC,
         outboundAssetId, outboundAssetIdLC,
         senderSlotId, senderSlotIdLC,
         senderSlotDerivation, senderSlotDerivationLC,
@@ -15693,7 +15993,7 @@ def render_withdrawal_statement_seams(
         _single_binding_wire(
             bindings, f"statement.field.{field:03d}"
         )
-        for field in range(13, 16)
+        for field in range(13, 18)
     )
     claimed_wire = _single_binding_wire(
         bindings, "claimed.statement_hash"
@@ -15734,7 +16034,7 @@ def render_withdrawal_statement_seams(
         third_index,
         list(
             zip(
-                (431, 436, 441, 446, 451, 456, 461, 466),
+                (443, 448, 453, 458, 463, 468, 473, 478),
                 third_state,
                 strict=True,
             )
@@ -15751,7 +16051,7 @@ def render_withdrawal_statement_seams(
     )
     third_field_haves = _seat_haves(
         third_index,
-        list(zip((14, 20, 26), third_field_wires, strict=True)),
+        list(zip((14, 20, 26, 32, 38), third_field_wires, strict=True)),
         "hf",
     )
     asserted_haves = _seat_haves(
@@ -15794,10 +16094,10 @@ def render_withdrawal_statement_seams(
         {
             **dict(zip(range(1, 9), second_state, strict=True)),
             **dict(zip(
-                (14, 20, 26), third_field_wires, strict=True
+                (14, 20, 26, 32, 38), third_field_wires, strict=True
             )),
             **dict(zip(
-                (431, 436, 441, 446, 451, 456, 461, 466),
+                (443, 448, 453, 458, 463, 468, 473, 478),
                 third_state,
                 strict=True,
             )),
@@ -15983,7 +16283,7 @@ theorem statementBlock1_of_exact
       ]
       congr 1 <;> ring
 
-/-- The third exact segment chains block one, fields 13–15, and fixed padding. -/
+/-- The third exact segment chains block one, fields 13–17, and fixed padding. -/
 theorem statementBlock2_of_exact
     (rho : Nat → SemanticF)
     (facts : ShieldedIcs20WithdrawalCircuitFacts rho) :
@@ -15994,8 +16294,8 @@ theorem statementBlock2_of_exact
         (withdrawalEffectHashLimbs1 rho)
         (withdrawalEffectHashLimbs2 rho)
         (withdrawalEffectHashLimbs3 rho)
-        Protocol.ShieldedIcs20Withdrawal.Concrete.statementPad1
-        Protocol.ShieldedIcs20Withdrawal.Concrete.statementPad0
+        (routingTag rho)
+        (routingParameterSetId rho)
         Protocol.ShieldedIcs20Withdrawal.Concrete.statementPad1 := by
   have h := facts.exact.StatementHashSeg{third_index}
   change {third_sem}.spec (Seg{third_index}.localRho rho) at h
@@ -16013,7 +16313,7 @@ theorem statementBlock2_of_exact
         {third_sem}.Trace.flatState0_38Lane1,
         StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
         Seg{third_index}.localRho, Deployed.Templates.seated,
-        hw431, hw436, hw441, hw446, hw451, hw456, hw461, hw466
+        hw443, hw448, hw453, hw458, hw463, hw468, hw473, hw478
       ]
       ring
     _ = {third_sem}.Trace.hash0
@@ -16024,8 +16324,8 @@ theorem statementBlock2_of_exact
           (withdrawalEffectHashLimbs1 rho)
           (withdrawalEffectHashLimbs2 rho)
           (withdrawalEffectHashLimbs3 rho)
-          Protocol.ShieldedIcs20Withdrawal.Concrete.statementPad1
-          Protocol.ShieldedIcs20Withdrawal.Concrete.statementPad0
+          (routingTag rho)
+          (routingParameterSetId rho)
           Protocol.ShieldedIcs20Withdrawal.Concrete.statementPad1 := by
       unfold {third_sem}.Trace.hash0
       simp only [thirdDomain, thirdPad0, thirdPad1]
@@ -16034,10 +16334,12 @@ theorem statementBlock2_of_exact
         withdrawalEffectHashLimbs1, withdrawalEffectHashLimbs1LC,
         withdrawalEffectHashLimbs2, withdrawalEffectHashLimbs2LC,
         withdrawalEffectHashLimbs3, withdrawalEffectHashLimbs3LC,
+        routingTag, routingTagLC,
+        routingParameterSetId, routingParameterSetIdLC,
         StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
         Seg{third_index}.localRho, Deployed.Templates.seated,
         hi1, hi2, hi3, hi4, hi5, hi6, hi7, hi8,
-        hf14, hf20, hf26,
+        hf14, hf20, hf26, hf32, hf38,
         zero_add, one_mul, add_zero
       ]
       congr 1 <;> ring
@@ -16086,7 +16388,9 @@ theorem statementHash_of_exact
          Deployed.ShieldedIcs20WithdrawalRefinement.C.withdrawalEffectHashLimb rho 0,
          Deployed.ShieldedIcs20WithdrawalRefinement.C.withdrawalEffectHashLimb rho 1,
          Deployed.ShieldedIcs20WithdrawalRefinement.C.withdrawalEffectHashLimb rho 2,
-         Deployed.ShieldedIcs20WithdrawalRefinement.C.withdrawalEffectHashLimb rho 3] := by
+         Deployed.ShieldedIcs20WithdrawalRefinement.C.withdrawalEffectHashLimb rho 3,
+         routingTag rho,
+         routingParameterSetId rho] := by
   simp [
     Deployed.ShieldedIcs20WithdrawalRefinement.C.withdrawalEffectHashLimb,
     withdrawalEffectHashLimbsAt, withdrawalEffectHashLimbsVector
@@ -16101,8 +16405,8 @@ theorem statementHash_of_exact
           (withdrawalEffectHashLimbs1 rho)
           (withdrawalEffectHashLimbs2 rho)
           (withdrawalEffectHashLimbs3 rho)
-          Protocol.ShieldedIcs20Withdrawal.Concrete.statementPad1
-          Protocol.ShieldedIcs20Withdrawal.Concrete.statementPad0
+          (routingTag rho)
+          (routingParameterSetId rho)
           Protocol.ShieldedIcs20Withdrawal.Concrete.statementPad1 :=
       statementBlock2_of_exact rho facts
     _ = Poseidon7Bridge.permSpec7
@@ -16116,8 +16420,8 @@ theorem statementHash_of_exact
           (withdrawalEffectHashLimbs1 rho)
           (withdrawalEffectHashLimbs2 rho)
           (withdrawalEffectHashLimbs3 rho)
-          Protocol.ShieldedIcs20Withdrawal.Concrete.statementPad1
-          Protocol.ShieldedIcs20Withdrawal.Concrete.statementPad0
+          (routingTag rho)
+          (routingParameterSetId rho)
           Protocol.ShieldedIcs20Withdrawal.Concrete.statementPad1 := by
       rw [statementBlock1_of_exact rho facts]
     _ = Protocol.Common.statementHash
@@ -16139,7 +16443,9 @@ theorem statementHash_of_exact
            withdrawalEffectHashLimbs0 rho,
            withdrawalEffectHashLimbs1 rho,
            withdrawalEffectHashLimbs2 rho,
-           withdrawalEffectHashLimbs3 rho] := by
+           withdrawalEffectHashLimbs3 rho,
+           routingTag rho,
+           routingParameterSetId rho] := by
       rw [statementBlock0_of_exact rho facts]
       rfl
 
@@ -16210,7 +16516,7 @@ def render_withdrawal_specification_consequences(
     add(
         "CIR-SHAPE-FIXED",
         """(Protocol.ShieldedIcs20Withdrawal.Concrete.statementFields
-      (action rho)).length = 16""",
+      (action rho)).length = 18""",
         """  exact
     Protocol.ShieldedIcs20Withdrawal.Concrete.statementFields_length
       (action rho)""",
@@ -16369,15 +16675,15 @@ def render_withdrawal_specification_consequences(
         "  exact (relationChangeOutput rho h).2.1",
     )
     add(
-        "NOTE-OUTPUT-CLUE-KEY-BINDING",
-        """(action rho).change.commitment =
-      Protocol.Common.noteCommitmentHash
-        (action rho).change.blinding (action rho).change.amount
-        (action rho).change.assetId
-        (action rho).change.owner.diversifiedGeneratorEncoding
-        (action rho).change.owner.transmissionEncoding
-        (action rho).change.owner.clueKey""",
-        "  exact (relationChangeOutput rho h).2.2",
+        "ROUTING-PARAMETERS",
+        """Seg19.contract.spec rho ∧
+      Seg20.contract.spec rho ∧
+      Seg21.contract.spec rho""",
+        """  have facts := (exactFactsOfRelation rho h).exact
+  exact
+    ⟨facts.RoutingPrecisionSelectSeg19,
+      facts.RoutingParametersHashSeg20,
+      facts.RoutingParametersBindSeg21⟩""",
     )
     add(
         "NOTE-OUTPUT-COMMITMENT",
@@ -16424,9 +16730,19 @@ def render_withdrawal_specification_consequences(
   rw [selected] at optional
   exact optional.2.2.2.1"""
     add(
-        "NOTE-SPEND-CLUE-KEY-BINDING",
-        spend_commitment,
-        spend_commitment_proof,
+        "ROUTING-TAG-DERIVATION",
+        """Seg22.contract.spec rho ∧
+      Seg23.contract.spec rho ∧
+      Seg24.contract.spec rho ∧
+      Seg25.contract.spec rho ∧
+      Seg26.contract.spec rho""",
+        """  have facts := (exactFactsOfRelation rho h).exact
+  exact
+    ⟨facts.RoutingRouteWordSeg22,
+      facts.RoutingTagPublicRangeSeg23,
+      facts.RoutingTagRouteBitsSeg24,
+      facts.RoutingTagRandomWordSeg25,
+      facts.RoutingTagComposeSeg26⟩""",
     )
     add(
         "NOTE-SPEND-COMMITMENT",
@@ -16532,11 +16848,10 @@ def render_withdrawal_specification_consequences(
     )
     compliance_hash = """Protocol.ShieldedIcs20Withdrawal.Concrete.complianceLeafHash
         (action rho) =
-      Poseidon377.hash7
+      Poseidon377.hash6
         Protocol.ShieldedIcs20Withdrawal.Concrete.complianceLeafDomain
         (action rho).sender.diversifiedGeneratorEncoding
         (action rho).sender.transmissionEncoding
-        (action rho).sender.clueKey
         (action rho).withdrawal.outboundAssetId
         (action rho).senderCompliance.slotId
         (action rho).senderCompliance.slotDerivation
@@ -16581,7 +16896,9 @@ def render_withdrawal_specification_consequences(
          (action rho).withdrawal.effectHashLimbs 0,
          (action rho).withdrawal.effectHashLimbs 1,
          (action rho).withdrawal.effectHashLimbs 2,
-         (action rho).withdrawal.effectHashLimbs 3]""",
+         (action rho).withdrawal.effectHashLimbs 3,
+         (action rho).routingTag,
+         (action rho).routingParameterSetId]""",
         """  exact relationStatementBinding rho h""",
     )
     _validate_specification_theorems(

@@ -12,7 +12,7 @@ use super::{AddressIndex, Diversifier, DiversifierKey};
 use crate::{
     ka,
     keys::{AuthorizationKeyVar, NullifierKeyVar, IVK_DOMAIN_SEP},
-    prf, Address, DiscoveryKey,
+    Address,
 };
 
 pub const IVK_LEN_BYTES: usize = 64;
@@ -39,19 +39,12 @@ pub struct IncomingViewingKey {
 
 impl IncomingViewingKey {
     /// Derive a shielded payment address with the given [`AddressIndex`].
-    pub fn payment_address(&self, index: AddressIndex) -> (Address, DiscoveryKey) {
+    pub fn payment_address(&self, index: AddressIndex) -> Address {
         let d = self.dk.diversifier_for_index(&index);
         let g_d = d.diversified_generator();
         let pk_d = self.ivk.diversified_public(&g_d);
 
-        let discovery_key = DiscoveryKey::derive(
-            prf::expand(b"ShielddDiscovery", &self.ivk.to_bytes(), d.as_ref()).as_bytes(),
-        );
-
-        (
-            Address::from_components(d, pk_d, discovery_key).expect("pk_d is valid"),
-            discovery_key,
-        )
+        Address::from_components(d, pk_d).expect("pk_d is valid")
     }
 
     /// Derive the (encoding of the) transparent address for the given IVK.
@@ -63,10 +56,7 @@ impl IncomingViewingKey {
         let dzero = Diversifier([0u8; 16]);
         let g_dzero = dzero.diversified_generator();
         let pk_dzero = self.ivk.diversified_public(&g_dzero);
-        let discovery_key = DiscoveryKey([0u8; 32]);
-
-        let address =
-            Address::from_components(dzero, pk_dzero, discovery_key).expect("valid address");
+        let address = Address::from_components(dzero, pk_dzero).expect("valid address");
 
         // This should never fail as we just constructed a valid transparent address
         address
@@ -79,7 +69,7 @@ impl IncomingViewingKey {
         &self,
         mut rng: R,
         mut address_index: AddressIndex,
-    ) -> (Address, DiscoveryKey) {
+    ) -> Address {
         let mut random_index = [0u8; 12];
 
         rng.fill_bytes(&mut random_index);
@@ -278,7 +268,7 @@ mod test {
 
         let address_index = ivk.address_index(&reconstructed).expect("views address");
 
-        let actual_address = ivk.payment_address(address_index).0;
+        let actual_address = ivk.payment_address(address_index);
 
         // The diversifiers will not match, as the encryption of the 0 account `AddressIndex`
         // is not the null ciphertext, so when deriving `actual_address` from the 0 account
@@ -290,12 +280,6 @@ mod test {
             reconstructed.transmission_key(),
             actual_address.transmission_key()
         );
-        // The discovery keys should not match because transparent addresses use the zero sentinel.
-        assert_ne!(
-            reconstructed.discovery_key(),
-            actual_address.discovery_key()
-        );
-
         println!("Transparent address: {}", transparent_address_str);
         println!("Reconstructed address: {}", reconstructed);
         println!("Address index: {:?}", address_index);
@@ -309,7 +293,7 @@ mod test {
             SpendKey::from_seed_phrase_bip44(SeedPhrase::generate(rng), &Bip44Path::new(0))
                 .expect("generated spend key satisfies key refinements");
         let ivk = spend_key.full_viewing_key().incoming();
-        let own_address = ivk.payment_address(AddressIndex::from(0u32)).0;
+        let own_address = ivk.payment_address(AddressIndex::from(0u32));
         assert!(ivk.views_address(&own_address));
     }
 
@@ -320,7 +304,7 @@ mod test {
             let spend_key = SpendKey::from_seed_phrase_bip44(SeedPhrase::generate(rng), &Bip44Path::new(0))
                 .expect("generated spend key satisfies key refinements");
             let fvk = spend_key.full_viewing_key();
-            let (own_address, _) = fvk.ephemeral_address(rng, AddressIndex::from(address_index));
+            let own_address = fvk.ephemeral_address(rng, AddressIndex::from(address_index));
             let ivk = fvk.incoming();
             assert!(ivk.views_address(&own_address));
 
@@ -342,8 +326,7 @@ mod test {
                 .expect("generated spend key satisfies key refinements")
                 .full_viewing_key()
                 .incoming()
-                .payment_address(AddressIndex::from(0u32))
-                .0;
+                .payment_address(AddressIndex::from(0u32));
 
         assert!(!ivk.views_address(&other_address));
     }

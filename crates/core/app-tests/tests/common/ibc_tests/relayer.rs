@@ -183,7 +183,7 @@ impl MockRelayer {
             .get(&shieldd_sdk_asset::BASE_ASSET_ID)
             .expect("base asset ID should exist in asset cache")
             .clone();
-        let destination_chain_address = chain_b_client.fvk.payment_address(AddressIndex::new(0)).0;
+        let destination_chain_address = chain_b_client.fvk.payment_address(AddressIndex::new(0));
         let snapshot = self.chain_a_ibc.storage.latest_snapshot();
         let permits = Arc::new(Semaphore::new(proof_tx_build_concurrency()));
         let source_channel = self.chain_a_ibc.channel_id.clone();
@@ -210,7 +210,7 @@ impl MockRelayer {
                     revision_number: 0,
                 };
                 let timeout_time = 4_102_444_800_000_000_000u64;
-                let return_address = client.fvk.payment_address(AddressIndex::new(0)).0;
+                let return_address = client.fvk.payment_address(AddressIndex::new(0));
                 let withdrawal = Ics20Withdrawal {
                     destination_chain_address: destination_chain_address.to_string(),
                     denom,
@@ -235,7 +235,7 @@ impl MockRelayer {
                         amount: note.amount() - amount,
                         asset_id: note.asset_id(),
                     },
-                    client.fvk.payment_address(AddressIndex::new(0)).0,
+                    client.fvk.payment_address(AddressIndex::new(0)),
                 );
                 let mut plan = {
                     let ics20_msg = ShieldedIcs20WithdrawalPlan::new(
@@ -1751,7 +1751,7 @@ impl MockRelayer {
         };
 
         // Prepare and perform the transfer from chain A to chain B
-        let destination_chain_address = chain_b_client.fvk.payment_address(AddressIndex::new(0)).0;
+        let destination_chain_address = chain_b_client.fvk.payment_address(AddressIndex::new(0));
         let denom = asset_cache
             .get(&transfer_value.asset_id)
             .expect("asset ID should exist in asset cache")
@@ -1809,7 +1809,7 @@ impl MockRelayer {
             // half the note is being withdrawn, so we can use `transfer_value` both for the withdrawal action
             // and the change output
             transfer_value.clone(),
-            chain_a_client.fvk.payment_address(AddressIndex::new(0)).0,
+            chain_a_client.fvk.payment_address(AddressIndex::new(0)),
         );
 
         let mut plan = {

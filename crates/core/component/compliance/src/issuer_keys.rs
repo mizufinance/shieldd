@@ -25,9 +25,18 @@ static DETECTION_TIER_DOMAIN: Lazy<Fq> = Lazy::new(|| {
 pub const DETECTION_TIER_BYTES: usize = 128;
 
 const DETECTION_FLAG_BIT: u64 = 1 << 32;
+const DETECTION_ROUTING_SWAP_BIT: u64 = 1 << 33;
 
-pub(crate) fn detection_sender_plaintext(sender_slot_id: u32, is_flagged: bool) -> Fq {
-    Fq::from(u64::from(sender_slot_id) + u64::from(is_flagged) * DETECTION_FLAG_BIT)
+pub(crate) fn detection_sender_plaintext(
+    sender_slot_id: u32,
+    is_flagged: bool,
+    routing_roles_swapped: bool,
+) -> Fq {
+    Fq::from(
+        u64::from(sender_slot_id)
+            + u64::from(is_flagged) * DETECTION_FLAG_BIT
+            + u64::from(routing_roles_swapped) * DETECTION_ROUTING_SWAP_BIT,
+    )
 }
 
 pub(crate) fn slot_id_from_fq(value: Fq, field: &str) -> anyhow::Result<u32> {
@@ -39,13 +48,17 @@ pub(crate) fn slot_id_from_fq(value: Fq, field: &str) -> anyhow::Result<u32> {
     Ok(u32::from_le_bytes(bytes[..4].try_into()?))
 }
 
-pub(crate) fn detection_sender_from_fq(value: Fq) -> anyhow::Result<(u32, bool)> {
+pub(crate) fn detection_sender_from_fq(value: Fq) -> anyhow::Result<(u32, bool, bool)> {
     let bytes = value.to_bytes();
     anyhow::ensure!(
-        bytes[5..].iter().all(|byte| *byte == 0) && bytes[4] <= 1,
-        "sender detection word is not a canonical 33-bit value"
+        bytes[5..].iter().all(|byte| *byte == 0) && bytes[4] <= 3,
+        "sender detection word is not a canonical 34-bit value"
     );
-    Ok((u32::from_le_bytes(bytes[..4].try_into()?), bytes[4] == 1))
+    Ok((
+        u32::from_le_bytes(bytes[..4].try_into()?),
+        bytes[4] & 1 == 1,
+        bytes[4] & 2 == 2,
+    ))
 }
 
 /// Master Compliance Key (Orbis Secret).
@@ -178,7 +191,8 @@ impl DetectionKey {
     /// Try to decrypt the detection tier of a compliance ciphertext.
     ///
     /// Decrypts via Fq subtraction, requires the exact expected asset ID, and
-    /// decodes the flag from the canonical 33-bit sender-slot word. The second
+    /// decodes the flag and routing permutation from the canonical 34-bit
+    /// sender-slot word. The second
     /// word carries the detection salt.
     ///
     /// Returns `Ok((asset_id, is_flagged, salt, sender_slot_id, receiver_slot_id))`
@@ -189,7 +203,7 @@ impl DetectionKey {
         epk: &Element,
         detection_ciphertext: &[u8; DETECTION_TIER_BYTES],
         expected_asset_id: &asset::Id,
-    ) -> anyhow::Result<(asset::Id, bool, Fq, u32, u32)> {
+    ) -> anyhow::Result<(asset::Id, bool, Fq, u32, u32, bool)> {
         // 1. Compute the shared secret from the serialized detection EPK.
         let shared_secret = *epk * self.0;
 
@@ -216,7 +230,7 @@ impl DetectionKey {
 
         let ct_sender_slot = Fq::from_le_bytes_mod_order(&detection_ciphertext[64..96]);
         let keystream_sender_slot = compliance_stream_block(seed, 2);
-        let (sender_slot_id, is_flagged) =
+        let (sender_slot_id, is_flagged, routing_roles_swapped) =
             detection_sender_from_fq(ct_sender_slot - keystream_sender_slot)?;
 
         let ct_receiver_slot = Fq::from_le_bytes_mod_order(&detection_ciphertext[96..128]);
@@ -232,10 +246,11 @@ impl DetectionKey {
             salt,
             sender_slot_id,
             receiver_slot_id,
+            routing_roles_swapped,
         ))
     }
 
-    /// Encrypt a V16 detection tier for tests of issuer-side decoding.
+    /// Encrypt a V17 detection tier for tests of issuer-side decoding.
     #[cfg(test)]
     fn encrypt_to_public<R: rand_core::RngCore + rand_core::CryptoRng>(
         &self,
@@ -248,7 +263,8 @@ impl DetectionKey {
 
     /// Encrypt detection tier to a specific public key (for encryption without holding DK).
     ///
-    /// Uses the V16 plaintext layout with the flag in bit 32 of word 2.
+    /// Uses the V17 plaintext layout with the flag in bit 32 and routing
+    /// permutation in bit 33 of word 2.
     #[cfg(test)]
     fn encrypt_to_dk_pub<R: rand_core::RngCore + rand_core::CryptoRng>(
         rng: &mut R,
@@ -271,7 +287,7 @@ impl DetectionKey {
         let plaintext = [
             asset_id.0,
             Fq::from(0u64),
-            detection_sender_plaintext(0, is_flagged),
+            detection_sender_plaintext(0, is_flagged, false),
             Fq::from(0u64),
         ];
         for (counter, (word, chunk)) in plaintext
@@ -407,7 +423,7 @@ mod tests {
 
         let (ciphertext, epk) = dk.encrypt_to_public(&mut rng, &asset_id, false);
 
-        let (decrypted_asset, decrypted_flag, _salt, _sender_slot_id, _receiver_slot_id) = dk
+        let (decrypted_asset, decrypted_flag, _salt, _sender_slot_id, _receiver_slot_id, _) = dk
             .try_decrypt_detection(&epk, &ciphertext, &asset_id)
             .expect("decryption should succeed");
 
@@ -423,7 +439,7 @@ mod tests {
 
         let (ciphertext, epk) = dk.encrypt_to_public(&mut rng, &asset_id, true);
 
-        let (decrypted_asset, decrypted_flag, _salt, _sender_slot_id, _receiver_slot_id) = dk
+        let (decrypted_asset, decrypted_flag, _salt, _sender_slot_id, _receiver_slot_id, _) = dk
             .try_decrypt_detection(&epk, &ciphertext, &asset_id)
             .expect("decryption should succeed");
 
@@ -441,7 +457,7 @@ mod tests {
         let (ciphertext, epk) =
             DetectionKey::encrypt_to_dk_pub(&mut rng, &dk_pub, &asset_id, false);
 
-        let (decrypted_asset, decrypted_flag, _salt, _sender_slot_id, _receiver_slot_id) = dk
+        let (decrypted_asset, decrypted_flag, _salt, _sender_slot_id, _receiver_slot_id, _) = dk
             .try_decrypt_detection(&epk, &ciphertext, &asset_id)
             .expect("decryption should succeed");
 
@@ -469,18 +485,33 @@ mod tests {
     #[test]
     fn detection_sender_word_is_injective_and_canonical() {
         let slot_id = 0xa5a5_5a5a;
-        let unflagged = detection_sender_plaintext(slot_id, false);
-        let flagged = detection_sender_plaintext(slot_id, true);
+        let unflagged = detection_sender_plaintext(slot_id, false, false);
+        let flagged = detection_sender_plaintext(slot_id, true, false);
+        let swapped = detection_sender_plaintext(slot_id, false, true);
+        let flagged_swapped = detection_sender_plaintext(slot_id, true, true);
 
         assert_ne!(unflagged, flagged);
+        assert_ne!(unflagged, swapped);
+        assert_ne!(flagged, flagged_swapped);
         assert_eq!(
             detection_sender_from_fq(unflagged).unwrap(),
-            (slot_id, false)
+            (slot_id, false, false)
         );
-        assert_eq!(detection_sender_from_fq(flagged).unwrap(), (slot_id, true));
+        assert_eq!(
+            detection_sender_from_fq(flagged).unwrap(),
+            (slot_id, true, false)
+        );
+        assert_eq!(
+            detection_sender_from_fq(swapped).unwrap(),
+            (slot_id, false, true)
+        );
+        assert_eq!(
+            detection_sender_from_fq(flagged_swapped).unwrap(),
+            (slot_id, true, true)
+        );
 
         let mut invalid_flag = [0u8; 32];
-        invalid_flag[4] = 2;
+        invalid_flag[4] = 4;
         assert!(detection_sender_from_fq(Fq::from_le_bytes_mod_order(&invalid_flag)).is_err());
 
         let mut high_bit = [0u8; 32];
@@ -533,7 +564,7 @@ mod tests {
         for asset_id in asset_ids {
             for is_flagged in [false, true] {
                 let (ct, epk) = dk.encrypt_to_public(&mut rng, &asset_id, is_flagged);
-                let (dec_id, dec_flag, _salt, _sender_slot_id, _receiver_slot_id) = dk
+                let (dec_id, dec_flag, _salt, _sender_slot_id, _receiver_slot_id, _) = dk
                     .try_decrypt_detection(&epk, &ct, &asset_id)
                     .expect("decryption should succeed");
 
@@ -559,7 +590,7 @@ mod tests {
         let asset_id = asset::Id(Fq::from_le_bytes_mod_order(&asset_bytes));
 
         let (ciphertext, epk) = dk.encrypt_to_public(&mut rng, &asset_id, true);
-        let (decrypted_asset, decrypted_flag, _salt, _sender_slot_id, _receiver_slot_id) = dk
+        let (decrypted_asset, decrypted_flag, _salt, _sender_slot_id, _receiver_slot_id, _) = dk
             .try_decrypt_detection(&epk, &ciphertext, &asset_id)
             .expect("decryption should succeed");
 
@@ -579,7 +610,7 @@ mod tests {
         let asset_id = asset::Id(Fq::from_le_bytes_mod_order(&asset_bytes));
 
         let (ciphertext, epk) = dk.encrypt_to_public(&mut rng, &asset_id, false);
-        let (_, decrypted_flag, _salt, _sender_slot_id, _receiver_slot_id) = dk
+        let (_, decrypted_flag, _salt, _sender_slot_id, _receiver_slot_id, _) = dk
             .try_decrypt_detection(&epk, &ciphertext, &asset_id)
             .expect("decryption should succeed");
 

@@ -14,7 +14,7 @@ use crate::audit_status::{AuditStatus, DetectionStatus, ScreenStatus};
 use crate::ComplianceEvidenceObject;
 
 pub const MAX_INVALID_CIPHERTEXTS_PER_BLOCK: usize = 256;
-const SCANNER_DB_SCHEMA_VERSION: i64 = 3;
+const SCANNER_DB_SCHEMA_VERSION: i64 = 4;
 pub const HEARTBEAT_STALE_SECS: i64 = 30;
 const READ_POOL_SIZE: usize = 4;
 const SQLITE_BUSY_TIMEOUT: Duration = Duration::from_secs(5);
@@ -176,6 +176,9 @@ impl SqliteScannerStore {
                 salt BLOB NOT NULL,
                 sender_slot_id INTEGER NOT NULL,
                 receiver_slot_id INTEGER NOT NULL,
+                routing_roles_swapped INTEGER NOT NULL,
+                routing_tag_0 INTEGER NOT NULL,
+                routing_tag_1 INTEGER NOT NULL,
                 ciphertext_bytes BLOB NOT NULL,
                 detection_status TEXT NOT NULL DEFAULT 'detected'
                     CHECK (detection_status IN ('detected')),
@@ -715,9 +718,9 @@ impl ScannerStore for SqliteScannerStore {
             tx.execute(
                 "INSERT OR IGNORE INTO scanner_detections
                  (height, block_hash, tx_index, tx_hash, action_index, output_index,
-                  asset_id, is_flagged, salt, sender_slot_id, receiver_slot_id,
-                  ciphertext_bytes, detection_status, audit_status)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
+                  asset_id, is_flagged, salt, sender_slot_id, receiver_slot_id, routing_roles_swapped,
+                  routing_tag_0, routing_tag_1, ciphertext_bytes, detection_status, audit_status)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)",
                 params![
                     tx_ref.block.height as i64,
                     tx_ref.block.block_hash.as_slice(),
@@ -730,6 +733,9 @@ impl ScannerStore for SqliteScannerStore {
                     event.salt.to_bytes().as_slice(),
                     event.sender_slot_id as i64,
                     event.receiver_slot_id as i64,
+                    if event.routing_roles_swapped { 1i64 } else { 0i64 },
+                    i64::from(event.routing_tags[0]),
+                    i64::from(event.routing_tags[1]),
                     event.raw_bytes.as_slice(),
                     DetectionStatus::Detected.as_str(),
                     AuditStatus::Pending.as_str(),
@@ -1084,6 +1090,7 @@ mod tests {
     fn ciphertext(height: u64, output_index: u32) -> ExtractedComplianceCiphertext {
         ExtractedComplianceCiphertext {
             output_ref: output_ref(height, 1, 2, output_index),
+            routing_tags: [11, 22],
             raw_bytes: vec![output_index as u8, 9],
             metadata_bytes: Some(vec![8, output_index as u8]),
         }
@@ -1097,6 +1104,8 @@ mod tests {
             salt: decaf377::Fq::from(9u64),
             sender_slot_id: 1,
             receiver_slot_id: 2,
+            routing_roles_swapped: false,
+            routing_tags: [11, 22],
             ciphertext: crate::transfer::TransferComplianceCiphertext {
                 sender_core_epk: decaf377::Element::GENERATOR,
                 sender_ext_epk: decaf377::Element::GENERATOR,
@@ -1303,9 +1312,9 @@ mod tests {
             .execute(
                 "INSERT INTO scanner_detections
                  (height, block_hash, tx_index, tx_hash, action_index, output_index,
-                  asset_id, is_flagged, salt, sender_slot_id, receiver_slot_id,
-                  ciphertext_bytes, detection_status, audit_status)
-                 VALUES (1, ?1, 0, ?2, 0, 0, 'asset', 0, ?3, 0, 0, x'00', 'detected', 'unknown')",
+                  asset_id, is_flagged, salt, sender_slot_id, receiver_slot_id, routing_roles_swapped,
+                  routing_tag_0, routing_tag_1, ciphertext_bytes, detection_status, audit_status)
+                 VALUES (1, ?1, 0, ?2, 0, 0, 'asset', 0, ?3, 0, 0, 0, 11, 22, x'00', 'detected', 'unknown')",
                 params![block_hash.as_slice(), tx_hash.as_slice(), salt.as_slice()],
             )
             .expect_err("invalid audit status should fail");

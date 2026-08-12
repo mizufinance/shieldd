@@ -39,7 +39,7 @@ private theorem negOne :
       DeployedF) = -1 := by
   decide
 
-/-- The required note commitment is the certified six-input hash. -/
+/-- The required note commitment is the certified five-input hash. -/
 theorem requiredNoteCommitment
     (rho : Nat → DeployedF)
     (semantic : TransferSemanticProviders rho) :
@@ -52,12 +52,13 @@ theorem requiredNoteCommitment
     (RequiredNoteCommitmentValuation rho) h
   · simp only [
       spend0NoteCommitmentComputed, spend0NoteCommitmentComputedLC,
-      Deployed.NoteCommitment.s38_1, Poseidon6Bridge.row7,
+      NoteReshapeCommitmentBridge.templateOutput_eq,
+      NoteReshapeCommitmentBridge.output,
+      Deployed.Poseidon5Link.row6,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      requiredNoteCommitmentAt408, requiredNoteCommitmentAt413,
-      requiredNoteCommitmentAt418, requiredNoteCommitmentAt423,
-      requiredNoteCommitmentAt428, requiredNoteCommitmentAt433,
-      requiredNoteCommitmentAt438,
+      requiredNoteCommitmentAt372, requiredNoteCommitmentAt377,
+      requiredNoteCommitmentAt382, requiredNoteCommitmentAt387,
+      requiredNoteCommitmentAt392, requiredNoteCommitmentAt397,
       zero_add, add_zero, one_mul]
     ring
   · simp [spend0NoteBlinding, spend0NoteBlindingLC,
@@ -79,13 +80,8 @@ theorem requiredNoteCommitment
       requiredNoteCommitmentAt26, requiredNoteCommitmentAt27, negOne]
     rw [negOne]
     ring
-  · simp [requiredNote, sender, senderClueKey, senderClueKeyLC,
-      StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      requiredNoteCommitmentAt33]
-    change rho 132 = rho 132
-    rfl
 
-/-- The optional real note commitment is the certified six-input hash. -/
+/-- The optional real note commitment is the certified five-input hash. -/
 theorem optionalRealNoteCommitment
     (rho : Nat → DeployedF)
     (semantic : TransferSemanticProviders rho) :
@@ -98,12 +94,13 @@ theorem optionalRealNoteCommitment
     (OptionalNoteCommitmentValuation rho) h
   · simp only [
       spend1NoteCommitmentComputed, spend1NoteCommitmentComputedLC,
-      Deployed.NoteCommitment.s38_1, Poseidon6Bridge.row7,
+      NoteReshapeCommitmentBridge.templateOutput_eq,
+      NoteReshapeCommitmentBridge.output,
+      Deployed.Poseidon5Link.row6,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      optionalNoteCommitmentAt408, optionalNoteCommitmentAt413,
-      optionalNoteCommitmentAt418, optionalNoteCommitmentAt423,
-      optionalNoteCommitmentAt428, optionalNoteCommitmentAt433,
-      optionalNoteCommitmentAt438,
+      optionalNoteCommitmentAt372, optionalNoteCommitmentAt377,
+      optionalNoteCommitmentAt382, optionalNoteCommitmentAt387,
+      optionalNoteCommitmentAt392, optionalNoteCommitmentAt397,
       zero_add, add_zero, one_mul]
     ring
   · simp [spend1NoteBlinding, spend1NoteBlindingLC,
@@ -125,11 +122,6 @@ theorem optionalRealNoteCommitment
       optionalNoteCommitmentAt26, optionalNoteCommitmentAt27, negOne]
     rw [negOne]
     ring
-  · simp [optionalRealNote, sender, senderClueKey, senderClueKeyLC,
-      StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      optionalNoteCommitmentAt33]
-    change rho 132 = rho 132
-    rfl
 
 /-- The receiver's claimed commitment is the certified note hash. -/
 theorem receiverNoteCommitment
@@ -140,22 +132,22 @@ theorem receiverNoteCommitment
   unfold ReceiverNoteCommitmentSemanticSpec at hhash
   have hcomputed :
       output0NoteCommitmentComputed rho =
-        Poseidon6Bridge.permSpec6 Common.noteCommitmentDomain
+        Poseidon5Bridge.permSpec5 Common.noteCommitmentDomain
           (output0NoteBlinding rho) (output0NoteAmount rho)
           (sharedAssetId rho) (output0RecipientDivGenFq rho)
-          (output0RecipientTransmissionFq rho)
-          (output0NoteClueKey rho) := by
+          (output0RecipientTransmissionFq rho) := by
     apply NoteReshapeCommitmentBridge.noteCommitmentHash_of_spec
       (ReceiverNoteCommitmentValuation rho) hhash
     · simp only [
         output0NoteCommitmentComputed, output0NoteCommitmentComputedLC,
-        Deployed.NoteCommitment.s38_1, Poseidon6Bridge.row7,
+        NoteReshapeCommitmentBridge.templateOutput_eq,
+        NoteReshapeCommitmentBridge.output,
+        Deployed.Poseidon5Link.row6,
         StructuredLC.eval, StructuredLC.sumRuns,
         StructuredLC.sumResidual,
-        receiverNoteCommitmentAt408, receiverNoteCommitmentAt413,
-        receiverNoteCommitmentAt418, receiverNoteCommitmentAt423,
-        receiverNoteCommitmentAt428, receiverNoteCommitmentAt433,
-        receiverNoteCommitmentAt438,
+        receiverNoteCommitmentAt372, receiverNoteCommitmentAt377,
+        receiverNoteCommitmentAt382, receiverNoteCommitmentAt387,
+        receiverNoteCommitmentAt392, receiverNoteCommitmentAt397,
         zero_add, add_zero, one_mul]
       ring
     · simp [output0NoteBlinding, output0NoteBlindingLC,
@@ -181,15 +173,12 @@ theorem receiverNoteCommitment
         receiverNoteCommitmentAt26, receiverNoteCommitmentAt27, negOne]
       rw [negOne]
       ring
-    · simp [output0NoteClueKey, output0NoteClueKeyLC,
-        StructuredLC.eval, StructuredLC.sumRuns,
-        StructuredLC.sumResidual, receiverNoteCommitmentAt33]
   have hclaimed :=
     receiverNoteClaimed_eq_computed_of_semantic rho semantic
   unfold Concrete.noteCommitment Common.noteCommitmentHash
   simp only [receiverNote, receiverAddress]
   rw [hclaimed]
-  simpa [Poseidon6Bridge.permSpec6, Common.noteCommitmentDomain] using
+  simpa [Poseidon5Bridge.permSpec5, Common.noteCommitmentDomain] using
     hcomputed
 
 /-- The change output's claimed commitment is the certified note hash. -/
@@ -201,21 +190,22 @@ theorem changeNoteCommitment
   unfold ChangeNoteCommitmentSemanticSpec at hhash
   have hcomputed :
       output1NoteCommitmentComputed rho =
-        Poseidon6Bridge.permSpec6 Common.noteCommitmentDomain
+        Poseidon5Bridge.permSpec5 Common.noteCommitmentDomain
           (output1NoteBlinding rho) (output1NoteAmount rho)
           (sharedAssetId rho) (senderDivGenFq rho)
-          (senderTransmissionFq rho) (senderClueKey rho) := by
+          (senderTransmissionFq rho) := by
     apply NoteReshapeCommitmentBridge.noteCommitmentHash_of_spec
       (ChangeNoteCommitmentValuation rho) hhash
     · simp only [
         output1NoteCommitmentComputed, output1NoteCommitmentComputedLC,
-        Deployed.NoteCommitment.s38_1, Poseidon6Bridge.row7,
+        NoteReshapeCommitmentBridge.templateOutput_eq,
+        NoteReshapeCommitmentBridge.output,
+        Deployed.Poseidon5Link.row6,
         StructuredLC.eval, StructuredLC.sumRuns,
         StructuredLC.sumResidual,
-        changeNoteCommitmentAt408, changeNoteCommitmentAt413,
-        changeNoteCommitmentAt418, changeNoteCommitmentAt423,
-        changeNoteCommitmentAt428, changeNoteCommitmentAt433,
-        changeNoteCommitmentAt438,
+        changeNoteCommitmentAt372, changeNoteCommitmentAt377,
+        changeNoteCommitmentAt382, changeNoteCommitmentAt387,
+        changeNoteCommitmentAt392, changeNoteCommitmentAt397,
         zero_add, add_zero, one_mul]
       ring
     · simp [output1NoteBlinding, output1NoteBlindingLC,
@@ -239,15 +229,12 @@ theorem changeNoteCommitment
         changeNoteCommitmentAt26, changeNoteCommitmentAt27, negOne]
       rw [negOne]
       ring
-    · simp [senderClueKey, senderClueKeyLC,
-        StructuredLC.eval, StructuredLC.sumRuns,
-        StructuredLC.sumResidual, changeNoteCommitmentAt33]
   have hclaimed :=
     changeNoteClaimed_eq_computed_of_semantic rho semantic
   unfold Concrete.noteCommitment Common.noteCommitmentHash
   simp only [changeNote, sender]
   rw [hclaimed]
-  simpa [Poseidon6Bridge.permSpec6, Common.noteCommitmentDomain] using
+  simpa [Poseidon5Bridge.permSpec5, Common.noteCommitmentDomain] using
     hcomputed
 
 /-- The required state-path root is bound to the public anchor. -/

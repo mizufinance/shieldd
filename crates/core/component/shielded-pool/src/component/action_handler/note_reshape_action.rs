@@ -38,6 +38,9 @@ fn note_reshape_extract_public(
         family_id: note_reshape.body.family_id,
         anchor: context.anchor,
         balance_commitment: note_reshape.body.balance_commitment,
+        asset_anchor: note_reshape.body.asset_anchor,
+        routing_tag: note_reshape.body.routing_tag,
+        routing_parameter_set_id: note_reshape.body.routing_parameter_set_id,
         inputs: inputs
             .into_iter()
             .map(|input| NoteReshapeInputPublic {

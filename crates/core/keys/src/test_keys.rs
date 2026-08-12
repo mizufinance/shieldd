@@ -14,9 +14,11 @@ use crate::{
 pub const SEED_PHRASE: &str = "comfort ten front cycle churn burger oak absent rice ice urge result art couple benefit cabbage frequent obscure hurry trick segment cool job debate";
 
 /// These addresses both correspond to the test wallet above.
-pub const ADDRESS_0_STR: &str = "shieldd1akc3v3jckw5eutcqr5rhcmq6jlwqa5z7k4p3vcy46meu5sy9lux627kn74zxmxmwu6w0qe79f55vppq67zxcyqt7tcc0u5rme0f6f7xqyternr6qneck2xkaslzx5m0pf4gzgc";
+pub const ADDRESS_0_STR: &str =
+    "shieldd1u29dhz4vxgnek6a3vzxlejg0l83wegpu7hgs3yphdvljcnnnh89dvs6lc9hxxw94w464t7lh5x36cxnxyx0";
 /// These addresses both correspond to the test wallet above.
-pub const ADDRESS_1_STR: &str = "shieldd1kmw4mxfk5mkp6yyyylduc5ez3e6hj0ptf5f0hh86ytw7tg23y3mwh6t39zy0aqe3hjllppq7dkml2v8q7tapsv6xpsfrrhzrycadwlqhze3ggj4k25utafkhklcpj2wsa6p3y0";
+pub const ADDRESS_1_STR: &str =
+    "shieldd1nrvgexa9tq9y242r6s7mqa6qlkfqmu45k9cwyrh66faaj8eupldkw837cjgv8qkfwedsdzmlypseupefutj";
 
 pub static ADDRESS_0: Lazy<Address> = Lazy::new(|| {
     ADDRESS_0_STR
@@ -65,11 +67,11 @@ mod tests {
     fn test_addresses_match_viewing_key() {
         assert_eq!(
             ADDRESS_0_STR,
-            FULL_VIEWING_KEY.payment_address(0u32.into()).0.to_string()
+            FULL_VIEWING_KEY.payment_address(0u32.into()).to_string()
         );
         assert_eq!(
             ADDRESS_1_STR,
-            FULL_VIEWING_KEY.payment_address(1u32.into()).0.to_string()
+            FULL_VIEWING_KEY.payment_address(1u32.into()).to_string()
         );
     }
 }

@@ -39,7 +39,7 @@ theorem isRegulated_eq_booleanInput
       Seg1.localRho rho 1 := by
   have hseat :
       Seg1.wireSeating 1 =
-        13 := by
+        15 := by
     decide +kernel
   simp only [
     isRegulated, isRegulatedLC,
@@ -68,7 +68,7 @@ theorem outboundAssetId_eq_nonzeroInput
   have hseat :
       Seg13.wireSeating
         2 =
-          6 := by
+          8 := by
     decide +kernel
   simp only [
     outboundAssetId, outboundAssetIdLC,
@@ -96,7 +96,7 @@ theorem outboundAssetId_eq_gapInput
       Seg14.localRho rho 594 := by
   have hseat :
       Seg14.wireSeating 594 =
-        6 := by
+        8 := by
     decide +kernel
   simp only [
     outboundAssetId, outboundAssetIdLC,
@@ -112,7 +112,7 @@ theorem isRegulated_eq_gapInput
       Seg14.localRho rho 3044 := by
   have hseat :
       Seg14.wireSeating 3044 =
-        13 := by
+        15 := by
     decide +kernel
   simp only [
     isRegulated, isRegulatedLC,
@@ -128,7 +128,7 @@ theorem assetLeafValue_eq_gapInput
       Seg14.localRho rho 254 := by
   have hseat :
       Seg14.wireSeating 254 =
-        19 := by
+        25 := by
     decide +kernel
   simp only [
     assetLeafValue, assetLeafValueLC,
@@ -144,7 +144,7 @@ theorem assetLeafNextValue_eq_gapInput
       Seg14.localRho rho 934 := by
   have hseat :
       Seg14.wireSeating 934 =
-        21 := by
+        27 := by
     decide +kernel
   simp only [
     assetLeafNextValue, assetLeafNextValueLC,
@@ -161,11 +161,11 @@ theorem assetGapValid_eq_gapOutput
         Seg14.localRho rho 3045 := by
   have hleft :
       Seg14.wireSeating 3043 =
-        15886 := by
+        15891 := by
     decide +kernel
   have hright :
       Seg14.wireSeating 3045 =
-        15887 := by
+        15892 := by
     decide +kernel
   simp only [
     assetGapValid, assetGapValidLC,
@@ -182,11 +182,11 @@ theorem gapAcceptanceInputs_eq_gapOutput
       assetGapValid rho := by
   have hleft :
       Seg15.wireSeating 1 =
-        15886 := by
+        15891 := by
     decide +kernel
   have hright :
       Seg15.wireSeating 2 =
-        15887 := by
+        15892 := by
     decide +kernel
   simp only [
     assetGapValid, assetGapValidLC,

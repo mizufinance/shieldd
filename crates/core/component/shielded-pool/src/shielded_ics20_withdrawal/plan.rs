@@ -11,7 +11,7 @@ use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
 use shieldd_sdk_tct as tct;
 use shieldd_sdk_txhash::EffectingData;
 
-use crate::discovery::Precision;
+use crate::discovery::{self, Parameters};
 use crate::note_reshape_padding::dummy_spend_auth_sig;
 use crate::note_reshape_padding::dummy_state_commitment_proof;
 use crate::note_reshape_padding::{pad_to_len, HiddenArityPadder};
@@ -41,7 +41,7 @@ pub struct ShieldedIcs20WithdrawalPlan {
     pub spends: Vec<ShieldedInputPlan>,
     pub change_output: Option<ShieldedOutputPlan>,
     pub withdrawal: Ics20Withdrawal,
-    pub discovery_precision: Precision,
+    pub routing_parameters: Parameters,
 }
 
 impl ShieldedIcs20WithdrawalPlan {
@@ -56,7 +56,7 @@ impl ShieldedIcs20WithdrawalPlan {
             spends,
             change_output,
             withdrawal,
-            discovery_precision: Precision::default(),
+            routing_parameters: Parameters::default(),
         };
         plan.validate()?;
         Ok(plan)
@@ -66,8 +66,8 @@ impl ShieldedIcs20WithdrawalPlan {
         ShieldedIcs20WithdrawalFamilyId::Canonical
     }
 
-    pub fn set_discovery_precision(&mut self, precision: Precision) {
-        self.discovery_precision = precision;
+    pub fn set_routing_parameters(&mut self, parameters: Parameters) {
+        self.routing_parameters = parameters;
     }
 
     pub fn balance(&self) -> Balance {
@@ -309,6 +309,14 @@ impl ShieldedIcs20WithdrawalPlan {
             .map(|output| output.output_note())
             .unwrap_or_else(|| self.padder().synthetic_dummy_output_note(1));
         let withdrawal_effect_hash_limbs = self.withdrawal_effect_hash_limbs();
+        let routing_nonce =
+            Fq::from_le_bytes_mod_order(&self.first_spend().tx_blinding_nonce.to_bytes());
+        let routing_tag = discovery::single_tag(
+            &self.sender_address(),
+            self.first_spend().is_regulated,
+            &self.routing_parameters,
+            routing_nonce,
+        );
 
         Ok((
             ShieldedIcs20WithdrawalProofPublic {
@@ -325,6 +333,8 @@ impl ShieldedIcs20WithdrawalPlan {
                 outbound_asset_id: self.withdrawal.denom.id().0,
                 outbound_amount: Fq::from(self.withdrawal.amount),
                 withdrawal_effect_hash_limbs,
+                routing_tag,
+                routing_parameter_set_id: self.routing_parameters.id(),
             },
             ShieldedIcs20WithdrawalProofPrivate {
                 family_id: ShieldedIcs20WithdrawalFamilyId::Canonical,
@@ -335,6 +345,8 @@ impl ShieldedIcs20WithdrawalPlan {
                 asset_position: self.first_spend().asset_position,
                 asset_indexed_leaf: self.first_spend().asset_indexed_leaf.clone(),
                 is_regulated: self.first_spend().is_regulated,
+                routing_parameters: self.routing_parameters.clone(),
+                routing_nonce,
                 sender_compliance_path: self.first_spend().compliance_path.clone(),
                 sender_compliance_position: self.first_spend().compliance_position,
                 sender_leaf: self.sender_leaf(),
@@ -390,10 +402,19 @@ impl ShieldedIcs20WithdrawalPlan {
             &change_note.diversified_generator(),
         );
         let change_output = ShieldedIcs20WithdrawalChangeBody {
-            note_payload: change_note.payload(self.discovery_precision),
+            note_payload: change_note.payload(),
             wrapped_memo_key,
             ovk_wrapped_key,
         };
+
+        let routing_nonce =
+            Fq::from_le_bytes_mod_order(&self.first_spend().tx_blinding_nonce.to_bytes());
+        let routing_tag = discovery::single_tag(
+            &self.sender_address(),
+            self.first_spend().is_regulated,
+            &self.routing_parameters,
+            routing_nonce,
+        );
 
         Ok(ShieldedIcs20WithdrawalBody {
             family_id: ShieldedIcs20WithdrawalFamilyId::Canonical,
@@ -405,6 +426,8 @@ impl ShieldedIcs20WithdrawalPlan {
             target_timestamp: self.first_spend().target_timestamp,
             compliance_anchor: self.first_spend().compliance_anchor,
             asset_anchor: self.first_spend().asset_anchor,
+            routing_tag,
+            routing_parameter_set_id: self.routing_parameters.id(),
         })
     }
 
@@ -450,7 +473,7 @@ impl ShieldedIcs20WithdrawalPlan {
     ) -> Result<Vec<u8>, crate::ProofError> {
         let (public, private) =
             self.shielded_ics20_withdrawal_public_private(fvk, &state_commitment_proofs, anchor)?;
-        crate::gnark::encode_shielded_ics20_withdrawal_witness_v8(&public, &private)
+        crate::gnark::encode_shielded_ics20_withdrawal_witness_v9(&public, &private)
             .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))
     }
 
@@ -504,7 +527,7 @@ impl From<ShieldedIcs20WithdrawalPlan> for pb::ShieldedIcs20WithdrawalPlan {
             spends: value.spends.into_iter().map(Into::into).collect(),
             change_output: value.change_output.map(Into::into),
             withdrawal: Some(value.withdrawal.into()),
-            discovery_precision_bits: value.discovery_precision.into(),
+            routing_parameters: Some(value.routing_parameters.into()),
         }
     }
 }
@@ -532,7 +555,10 @@ impl TryFrom<pb::ShieldedIcs20WithdrawalPlan> for ShieldedIcs20WithdrawalPlan {
                 .withdrawal
                 .ok_or_else(|| anyhow!("missing embedded shielded ICS-20 withdrawal payload"))?
                 .try_into()?,
-            discovery_precision: value.discovery_precision_bits.try_into()?,
+            routing_parameters: value
+                .routing_parameters
+                .ok_or_else(|| anyhow!("missing routing parameters"))?
+                .try_into()?,
         };
         plan.validate()?;
         Ok(plan)
@@ -967,6 +993,8 @@ mod tests {
             #[prost(message, optional, tag = "6")]
             withdrawal:
                 Option<shieldd_sdk_proto::shieldd::core::component::ibc::v1::Ics20Withdrawal>,
+            #[prost(message, optional, tag = "7")]
+            routing_parameters: Option<pb::DiscoveryParameters>,
         }
 
         let plan = one_spend_plan();
@@ -984,6 +1012,7 @@ mod tests {
             spends: current.spends,
             change_output: current.change_output,
             withdrawal: current.withdrawal,
+            routing_parameters: current.routing_parameters,
         };
         let decoded = pb::ShieldedIcs20WithdrawalPlan::decode(legacy.encode_to_vec().as_slice())
             .expect("removed body tag is an ignored unknown field");

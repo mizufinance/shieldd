@@ -1,6 +1,6 @@
 import Lean.Elab.Tactic.Omega
 import Mathlib.Tactic.Ring
-import ShielddGnarkFormal.Deployed.Templates.Semantics.TGadgetStateCommitmentPath_925881caa7382e3f2e29b610c396d78e8b7d8aca0859bce49a2f7fb99c5384d0
+import ShielddGnarkFormal.Deployed.Templates.Semantics.TGadgetStateCommitmentPath_de54b1d0646cc1ad6f619aa080bfafd4a6edb63989b142c5c0b284d84e09d69b
 import ShielddGnarkFormal.NoteReshapeStateBridge
 import ShielddGnarkFormal.Protocol.Common
 
@@ -145,7 +145,7 @@ theorem member_of_spec
     (anchor commitment position : F)
     (path : Path24)
     (h :
-      Deployed.Templates.Semantics.TGadgetStateCommitmentPath_925881caa7382e3f2e29b610c396d78e8b7d8aca0859bce49a2f7fb99c5384d0.spec
+      Deployed.Templates.Semantics.TGadgetStateCommitmentPath_de54b1d0646cc1ad6f619aa080bfafd4a6edb63989b142c5c0b284d84e09d69b.spec
         sigma)
     (hcommitment : commitment = leafInput sigma)
     (hpositionInput : position = sigma 286)

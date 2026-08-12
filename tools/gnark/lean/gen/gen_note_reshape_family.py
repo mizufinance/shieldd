@@ -1731,6 +1731,140 @@ theorem specification_cir_selector_boolean
 """
 
 
+EXACT_SHARED_PREDICATES = frozenset(
+    {
+        "ASSET-LEAF-HASH",
+        "ASSET-PARAMETERS-HASH",
+        "ASSET-POLICY-KEY-ENCODING",
+        "ASSET-REGISTRY-GAP-ORDERING",
+        "ASSET-REGISTRY-MEMBERSHIP",
+        "ASSET-REGULATED-BOOLEAN",
+        "ASSET-RING-HASH",
+        "ROUTING-PARAMETERS",
+        "ROUTING-TAG-DERIVATION",
+    }
+)
+
+
+def _segments_for_exact_predicate(ir: dict, predicate: str) -> list[dict]:
+    segments = constraint_segments(ir)
+    by_index = {segment["index"]: segment for segment in segments}
+
+    def one(op: str) -> dict:
+        matches = [segment for segment in segments if segment["op"] == op]
+        if len(matches) != 1:
+            raise ValueError(
+                f"{ir['circuit']}: expected one {op} segment, got {len(matches)}"
+            )
+        return matches[0]
+
+    def adjacent(index: int, op: str) -> int:
+        segment = by_index.get(index)
+        if segment is None or segment["op"] != op:
+            actual = None if segment is None else segment["op"]
+            raise ValueError(
+                f"{ir['circuit']}: exact segment {index} for {predicate} "
+                f"must be {op}, got {actual}"
+            )
+        return index
+
+    params = one("gadget.asset_registry_params_hash")
+    ring = one("gadget.asset_registry_ring_hash")
+    selected_indices: set[int]
+    if predicate == "ASSET-LEAF-HASH":
+        selected_indices = {one("gadget.asset_registry_leaf_hash")["index"]}
+    elif predicate == "ASSET-PARAMETERS-HASH":
+        selected_indices = {params["index"]}
+    elif predicate == "ASSET-POLICY-KEY-ENCODING":
+        selected_indices = {
+            adjacent(params["index"] - 1, "decaf.compress_to_field"),
+            params["index"],
+            adjacent(ring["index"] - 1, "decaf.compress_to_field"),
+            ring["index"],
+        }
+    elif predicate == "ASSET-REGISTRY-GAP-ORDERING":
+        gap = one("gadget.asset_registry_gap")
+        selected_indices = {
+            gap["index"],
+            adjacent(gap["index"] + 1, "assert.eq"),
+        }
+    elif predicate == "ASSET-REGISTRY-MEMBERSHIP":
+        path = one("gadget.asset_registry_path")
+        selected_indices = {
+            path["index"],
+            adjacent(path["index"] + 1, "assert.eq"),
+        }
+    elif predicate == "ASSET-REGULATED-BOOLEAN":
+        selected_indices = {
+            adjacent(params["index"] - 2, "assert.boolean")
+        }
+    elif predicate == "ASSET-RING-HASH":
+        selected_indices = {ring["index"]}
+    elif predicate == "ROUTING-PARAMETERS":
+        selected_indices = {
+            segment["index"]
+            for segment in segments
+            if segment["op"]
+            in {
+                "routing.precision.select",
+                "routing.parameters.hash",
+                "routing.parameters.bind",
+            }
+        }
+    elif predicate == "ROUTING-TAG-DERIVATION":
+        selected_indices = {
+            segment["index"]
+            for segment in segments
+            if segment["op"] == "routing.route_word"
+            or segment["op"].startswith("routing.tag.")
+        }
+    else:
+        raise ValueError(f"no exact segment selector for {predicate}")
+    try:
+        selected = [by_index[index] for index in sorted(selected_indices)]
+    except KeyError as error:
+        raise ValueError(
+            f"{ir['circuit']}: missing adjacent exact segment {error.args[0]} "
+            f"for {predicate}"
+        ) from error
+    return selected
+
+
+def _exact_segment_consequence(ir: dict, predicate: str) -> str:
+    groups = phase_groups(ir)
+    segment_groups = {
+        segment["index"]: group
+        for group, segments in groups.items()
+        for segment in segments
+    }
+    selected = _segments_for_exact_predicate(ir, predicate)
+    if not selected:
+        raise ValueError(f"{ir['circuit']}: no exact segments for {predicate}")
+    selected.sort(key=lambda segment: segment["index"])
+    contracts = [
+        f"Seg{segment['index']}.contract.spec rho" for segment in selected
+    ]
+    projections = [
+        f"facts.{segment_groups[segment['index']]}."
+        f"{camel(segment['op'])}Seg{segment['index']}"
+        for segment in selected
+    ]
+    conclusion = " ∧\n      ".join(contracts)
+    if len(projections) == 1:
+        proof = f"  exact {projections[0]}"
+    else:
+        proof = "  exact\n    ⟨" + ",\n      ".join(projections) + "⟩"
+    theorem_name = specification_theorem_name(predicate)
+    return f"""/-- `{predicate}` for the exact deployed relation. -/
+theorem {theorem_name}
+    (rho : Nat → DeployedF)
+    (h : relationAll rho) :
+    {conclusion} := by
+  have facts := {ir['circuit']}_circuitFacts rho h
+{proof}
+"""
+
+
 def render_specification_consequences(
     ir: dict,
     roster: dict[str, tuple[str, tuple[tuple[str, str], ...]]] | None = None,
@@ -1994,7 +2128,6 @@ theorem specification_dummy_nullifier_domain_binding
     }
     for predicate in (
         "NOTE-SPEND-ASSET-BINDING",
-        "NOTE-SPEND-CLUE-KEY-BINDING",
         "NOTE-SPEND-COMMITMENT",
         "NOTE-SPEND-OWNER-BINDING",
     ):
@@ -2003,13 +2136,14 @@ theorem specification_dummy_nullifier_domain_binding
         )
     for predicate in (
         "NOTE-OUTPUT-ASSET-BINDING",
-        "NOTE-OUTPUT-CLUE-KEY-BINDING",
         "NOTE-OUTPUT-COMMITMENT",
         "NOTE-OUTPUT-OWNER-BINDING",
     ):
         common[predicate] = _output_commitment_consequence(
             specification_theorem_name(predicate), predicate
         )
+    for predicate in EXACT_SHARED_PREDICATES:
+        common[predicate] = _exact_segment_consequence(ir, predicate)
     if circuit == "note_reshape8x1":
         common["CIR-SELECTOR-BOOLEAN"] = _selector_boolean_consequence(
             circuit, root_namespace

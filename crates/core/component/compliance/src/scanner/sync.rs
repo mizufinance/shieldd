@@ -23,6 +23,12 @@ pub fn extract_compliance_ciphertexts(
         let Some(body) = transfer.body.as_ref() else {
             continue;
         };
+        let Some(routing_tags) = body.routing.as_ref().and_then(|routing| {
+            let tags: Vec<u32> = routing.tags.iter().map(|tag| tag.value).collect();
+            tags.try_into().ok()
+        }) else {
+            continue;
+        };
 
         for (output_index, output) in body.outputs.iter().enumerate() {
             if output.compliance_ciphertext.is_empty() {
@@ -36,6 +42,7 @@ pub fn extract_compliance_ciphertexts(
                     },
                     output_index: output_index as u32,
                 },
+                routing_tags,
                 raw_bytes: output.compliance_ciphertext.clone(),
                 metadata_bytes: (!output.compliance_metadata.is_empty())
                     .then(|| output.compliance_metadata.clone()),
@@ -142,7 +149,8 @@ fn extract_ics20_withdrawal(
 mod tests {
     use super::*;
     use shieldd_sdk_proto::core::component::shielded_pool::v1::{
-        NoteReshape, NoteReshapeBody, Transfer, TransferBody, TransferOutputBody,
+        NoteReshape, NoteReshapeBody, RoutingTag, Transfer, TransferBody, TransferOutputBody,
+        TransferRouting,
     };
     use shieldd_sdk_proto::core::transaction::v1::{
         action::Action, Action as ActionProto, TransactionBody,
@@ -188,6 +196,9 @@ mod tests {
                     ActionProto {
                         action: Some(Action::Transfer(Transfer {
                             body: Some(TransferBody {
+                                routing: Some(TransferRouting {
+                                    tags: vec![RoutingTag { value: 11 }, RoutingTag { value: 22 }],
+                                }),
                                 outputs: vec![
                                     TransferOutputBody::default(),
                                     TransferOutputBody {
@@ -217,8 +228,10 @@ mod tests {
         assert_eq!(extracted[0].output_ref.output_index, 1);
         assert_eq!(extracted[0].metadata_bytes, Some(vec![9, 9]));
         assert_eq!(extracted[0].raw_bytes, vec![1, 2, 3, 4]);
+        assert_eq!(extracted[0].routing_tags, [11, 22]);
         assert_eq!(extracted[1].output_ref.action.action_index, 1);
         assert_eq!(extracted[1].output_ref.output_index, 2);
         assert_eq!(extracted[1].raw_bytes, vec![5, 6]);
+        assert_eq!(extracted[1].routing_tags, [11, 22]);
     }
 }

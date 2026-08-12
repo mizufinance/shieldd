@@ -2,10 +2,7 @@ use crate::Address;
 use ark_ff::ToConstraintField;
 use ark_r1cs_std::prelude::*;
 use ark_relations::r1cs::SynthesisError;
-use decaf377::{
-    r1cs::{ElementVar, FqVar},
-    Element, Fq,
-};
+use decaf377::{r1cs::ElementVar, Element, Fq};
 
 fn enforce_diversified_generator_nonidentity(
     cs: ark_relations::r1cs::ConstraintSystemRef<Fq>,
@@ -27,7 +24,6 @@ fn enforce_transmission_key_nonidentity(
 pub struct AddressVar {
     pub diversified_generator: ElementVar,
     pub transmission_key: ElementVar,
-    pub clue_key: FqVar,
 }
 
 impl AddressVar {
@@ -37,10 +33,6 @@ impl AddressVar {
 
     pub fn transmission_key(&self) -> ElementVar {
         self.transmission_key.clone()
-    }
-
-    pub fn clue_key(&self) -> FqVar {
-        self.clue_key.clone()
     }
 }
 
@@ -70,19 +62,9 @@ impl AllocVar<Address, Fq> for AddressVar {
             mode,
         )?;
         enforce_transmission_key_nonidentity(cs.clone(), &transmission_key)?;
-        let clue_key = FqVar::new_variable(
-            cs,
-            || {
-                Fq::from_bytes_checked(&address.discovery_key().0)
-                    .map_err(|_| SynthesisError::AssignmentMissing)
-            },
-            mode,
-        )?;
-
         Ok(Self {
             diversified_generator,
             transmission_key,
-            clue_key,
         })
     }
 }
@@ -141,7 +123,6 @@ impl ToConstraintField<Fq> for Address {
             .vartime_decompress()
             .expect("transmission key is valid decaf377 Element");
         elements.extend([transmission_key_fq.vartime_compress_to_field()]);
-        elements.extend(Fq::from_bytes_checked(&self.discovery_key().0));
         Some(elements)
     }
 }
