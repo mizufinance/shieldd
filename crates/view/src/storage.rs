@@ -102,7 +102,7 @@ mod issued_address_tests {
     }
 
     #[tokio::test]
-    async fn issued_address_metadata_is_idempotent_but_cannot_be_reclassified() {
+    async fn issued_address_birth_height_is_write_once_and_purpose_cannot_change() {
         let fvk = (*test_keys::FULL_VIEWING_KEY).clone();
         let storage = Storage::initialize(None::<&Utf8Path>, fvk.clone(), AppParameters::default())
             .await
@@ -117,6 +117,15 @@ mod issued_address_tests {
         };
         storage.record_issued_address(issued.clone()).await.unwrap();
         storage.record_issued_address(issued.clone()).await.unwrap();
+
+        let mut reissued_later = issued.clone();
+        reissued_later.birth_height = 42;
+        storage.record_issued_address(reissued_later).await.unwrap();
+        assert_eq!(
+            storage.issued_addresses().await.unwrap(),
+            vec![issued.clone()],
+            "reissuing an address preserves its original birth height"
+        );
 
         let mut conflicting = issued;
         conflicting.purpose = AddressPurpose::Regulated {
@@ -616,15 +625,22 @@ impl Storage {
                 ],
             )?;
 
-            let existing: (Vec<u8>, i64, Option<Vec<u8>>, i64, Option<i64>) = conn.query_row(
-                "SELECT address, purpose_kind, regulated_asset_id, birth_height, retired_height
+            let existing: (Vec<u8>, Vec<u8>, i64, Option<Vec<u8>>, Option<i64>) = conn.query_row(
+                "SELECT address_index, address, purpose_kind, regulated_asset_id, retired_height
                  FROM issued_addresses WHERE address = ?1",
                 [&address[..]],
                 |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?)),
             )?;
             anyhow::ensure!(
-                existing == (address, purpose_kind, regulated_asset_id, birth_height, retired_height),
-                "address index was already issued with different durable metadata"
+                existing
+                    == (
+                        address_index.to_vec(),
+                        address,
+                        purpose_kind,
+                        regulated_asset_id,
+                        retired_height,
+                    ),
+                "address was already issued with different identity, purpose, or retirement metadata"
             );
             Ok(())
         })

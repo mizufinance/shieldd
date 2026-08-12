@@ -51,9 +51,7 @@ jobs:
           echo "OK: no uncommitted changes detected"
 
       - name: Check dependency policy
-        uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2
-        with:
-          command: check
+        run: nix develop --command cargo deny check
 
       - name: Check crate features
         run: >-

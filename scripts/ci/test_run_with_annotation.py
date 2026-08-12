@@ -291,6 +291,13 @@ class RustWorkflowWiringTests(unittest.TestCase):
                 )
                 self.assertIn(f'--title "{title}"', self.workflow)
 
+    def test_dependency_policy_uses_the_prepared_nix_toolchain(self) -> None:
+        self.assertIn(
+            "nix develop --command cargo deny check",
+            self.workflow,
+        )
+        self.assertNotIn("cargo-deny-action", self.workflow)
+
     def test_runner_policy_accelerates_only_critical_rust_lanes(self) -> None:
         jobs = dict(
             re.findall(
