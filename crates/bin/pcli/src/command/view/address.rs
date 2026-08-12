@@ -39,7 +39,7 @@ impl AddressCmd {
         if let Ok(index) = index {
             //index provided
 
-            let (address, _dtk) = match self.ephemeral {
+            let address = match self.ephemeral {
                 false => fvk.incoming().payment_address(index.into()),
                 true => fvk.incoming().ephemeral_address(OsRng, index.into()),
             };

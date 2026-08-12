@@ -1775,13 +1775,10 @@ impl MockRelayer {
         // round to the nearest 10 minutes
         timeout_time += 600_000_000_000 - (timeout_time % 600_000_000_000);
 
-        let return_address = chain_a_client
-            .fvk
-            .ephemeral_address(
-                rand_chacha::ChaChaRng::seed_from_u64(1312),
-                AddressIndex::new(0),
-            )
-            .0;
+        let return_address = chain_a_client.fvk.ephemeral_address(
+            rand_chacha::ChaChaRng::seed_from_u64(1312),
+            AddressIndex::new(0),
+        );
         let withdrawal = Ics20Withdrawal {
             destination_chain_address: destination_chain_address.to_string(),
             denom,
