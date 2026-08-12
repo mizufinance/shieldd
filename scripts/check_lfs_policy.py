@@ -44,6 +44,11 @@ for workflow in (ROOT / ".github" / "workflows").glob("*.yml"):
     if re.search(r"(?m)^\s+lfs:\s*true\s*$", workflow.read_text()):
         fail(f"{workflow.relative_to(ROOT)} hydrates every LFS object during checkout")
 
+rust_workflow = (ROOT / ".github" / "workflows" / "rust.yml").read_text()
+go_gnark_job = rust_workflow.partition("\n  go-gnark:")[2].partition("\n  gnark-rust:")[0]
+if "uses: ./.github/actions/materialize-proof-artifacts" not in go_gnark_job:
+    fail("the Go gnark test job does not materialize current proof artifacts")
+
 for scheduled_proof_workflow in (
     ROOT / ".github" / "workflows" / "formal-scheduled.yml",
     ROOT / ".github" / "workflows" / "rust.yml",
