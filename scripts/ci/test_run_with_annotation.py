@@ -291,11 +291,15 @@ class RustWorkflowWiringTests(unittest.TestCase):
                 )
                 self.assertIn(f'--title "{title}"', self.workflow)
 
-    def test_dependency_policy_uses_the_prepared_nix_toolchain(self) -> None:
+    def test_dependency_policy_uses_a_current_native_binary(self) -> None:
         self.assertIn(
-            "nix develop --command cargo deny check --allow unmaintained",
+            "uses: taiki-e/install-action@5ebac0d9522d786674368e47e92963ba13f2c376",
             self.workflow,
         )
+        self.assertIn("tool: cargo-deny@0.20.2", self.workflow)
+        self.assertIn("fallback: none", self.workflow)
+        self.assertIn("run: cargo deny check --allow unmaintained", self.workflow)
+        self.assertNotIn("nix develop --command cargo deny", self.workflow)
         self.assertNotIn("cargo-deny-action", self.workflow)
 
     def test_ordinary_rust_lane_excludes_only_formal_lfs_tests(self) -> None:

@@ -62,7 +62,6 @@
             openssl
             buf
             cargo-hack
-            cargo-deny
             cargo-nextest
             cargo-release
             cargo-watch

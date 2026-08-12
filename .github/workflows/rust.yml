@@ -50,10 +50,14 @@ jobs:
           fi
           echo "OK: no uncommitted changes detected"
 
+      - name: Install current cargo-deny
+        uses: taiki-e/install-action@5ebac0d9522d786674368e47e92963ba13f2c376 # v2.82.11
+        with:
+          tool: cargo-deny@0.20.2
+          fallback: none
+
       - name: Check dependency policy
-        # cargo-deny 0.17 removed the config key that 0.18 later restored.
-        # The CLI lint override preserves the policy across both versions.
-        run: nix develop --command cargo deny check --allow unmaintained
+        run: cargo deny check --allow unmaintained
 
       - name: Check crate features
         run: >-
