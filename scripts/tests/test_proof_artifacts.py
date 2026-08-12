@@ -84,13 +84,25 @@ class ProofArtifactsTest(unittest.TestCase):
             run.call_args_list[2].args[0],
             [
                 "git",
-                "add",
-                "--refresh",
+                "diff",
+                "--cached",
+                "--quiet",
                 "--",
                 "tools/gnark/artifacts/transfer/transfer.sr1cs",
                 "tools/gnark/artifacts/transfer/proving_key.bin",
             ],
         )
+        self.assertEqual(
+            run.call_args_list[3].args[0],
+            [
+                "git",
+                "add",
+                "--",
+                "tools/gnark/artifacts/transfer/transfer.sr1cs",
+                "tools/gnark/artifacts/transfer/proving_key.bin",
+            ],
+        )
+        self.assertEqual(run.call_args_list[4].args[0], run.call_args_list[2].args[0])
 
     def test_materialize_installs_filters_without_pull_when_files_are_valid(self) -> None:
         completed = subprocess.CompletedProcess([], 0)
@@ -104,8 +116,25 @@ class ProofArtifactsTest(unittest.TestCase):
                 ["git", "lfs", "install", "--local", "--skip-smudge"],
                 [
                     "git",
+                    "diff",
+                    "--cached",
+                    "--quiet",
+                    "--",
+                    "tools/gnark/artifacts/transfer/transfer.sr1cs",
+                    "tools/gnark/artifacts/transfer/proving_key.bin",
+                ],
+                [
+                    "git",
                     "add",
-                    "--refresh",
+                    "--",
+                    "tools/gnark/artifacts/transfer/transfer.sr1cs",
+                    "tools/gnark/artifacts/transfer/proving_key.bin",
+                ],
+                [
+                    "git",
+                    "diff",
+                    "--cached",
+                    "--quiet",
                     "--",
                     "tools/gnark/artifacts/transfer/transfer.sr1cs",
                     "tools/gnark/artifacts/transfer/proving_key.bin",
@@ -125,22 +154,48 @@ class ProofArtifactsTest(unittest.TestCase):
                 PROOF_ARTIFACTS.materialize()
 
     def test_materialize_rejects_index_mismatch(self) -> None:
+        diff_calls = 0
+
+        def fake_run(command: list[str], **kwargs: object) -> subprocess.CompletedProcess:
+            nonlocal diff_calls
+            if command[:4] == ["git", "diff", "--cached", "--quiet"]:
+                diff_calls += 1
+                return subprocess.CompletedProcess(command, 1 if diff_calls == 2 else 0)
+            return subprocess.CompletedProcess(command, 0)
+
+        with mock.patch.object(
+            PROOF_ARTIFACTS.subprocess,
+            "run",
+            side_effect=fake_run,
+        ) as run:
+            with self.assertRaisesRegex(
+                PROOF_ARTIFACTS.ArtifactError,
+                "committed Git LFS pointers",
+            ):
+                PROOF_ARTIFACTS.materialize()
+        self.assertEqual(
+            run.call_args_list[-1].args[0][:4],
+            ["git", "restore", "--staged", "--source=HEAD"],
+        )
+
+    def test_materialize_rejects_preexisting_staged_artifact(self) -> None:
         def fake_run(command: list[str], **kwargs: object) -> subprocess.CompletedProcess:
             return subprocess.CompletedProcess(
                 command,
-                1 if command[:3] == ["git", "add", "--refresh"] else 0,
+                1 if command[:4] == ["git", "diff", "--cached", "--quiet"] else 0,
             )
 
         with mock.patch.object(
             PROOF_ARTIFACTS.subprocess,
             "run",
             side_effect=fake_run,
-        ):
+        ) as run:
             with self.assertRaisesRegex(
                 PROOF_ARTIFACTS.ArtifactError,
-                "committed Git LFS pointers",
+                "already have staged changes",
             ):
                 PROOF_ARTIFACTS.materialize()
+        self.assertEqual(len(run.call_args_list), 2)
 
 
 if __name__ == "__main__":

@@ -113,9 +113,24 @@ def install_lfs_filters() -> None:
 
 
 def refresh_git_index() -> None:
-    command = ["git", "add", "--refresh", "--", *lfs_paths()]
-    result = subprocess.run(command, cwd=REPO_ROOT, check=False)
-    if result.returncode != 0:
+    paths = lfs_paths()
+    diff_command = ["git", "diff", "--cached", "--quiet", "--", *paths]
+    if subprocess.run(diff_command, cwd=REPO_ROOT, check=False).returncode != 0:
+        raise ArtifactError("proof artifacts already have staged changes")
+
+    add_command = ["git", "add", "--", *paths]
+    if subprocess.run(add_command, cwd=REPO_ROOT, check=False).returncode != 0:
+        raise ArtifactError(
+            "materialized proof artifacts do not match their committed Git LFS "
+            "pointers"
+        )
+
+    if subprocess.run(diff_command, cwd=REPO_ROOT, check=False).returncode != 0:
+        subprocess.run(
+            ["git", "restore", "--staged", "--source=HEAD", "--", *paths],
+            cwd=REPO_ROOT,
+            check=False,
+        )
         raise ArtifactError(
             "materialized proof artifacts do not match their committed Git LFS "
             "pointers"
@@ -126,25 +141,21 @@ def materialize() -> None:
     install_lfs_filters()
     try:
         verify()
-        refresh_git_index()
-        return
     except ArtifactError:
-        pass
-
-    command = [
-        "git",
-        "lfs",
-        "pull",
-        f"--include={','.join(lfs_paths())}",
-        "--exclude=",
-    ]
-    result = subprocess.run(command, cwd=REPO_ROOT, check=False)
-    if result.returncode != 0:
-        raise ArtifactError(
-            "Git LFS could not fetch the current proof artifacts; install Git LFS, "
-            "authenticate to the repository, and retry"
-        )
-    verify()
+        command = [
+            "git",
+            "lfs",
+            "pull",
+            f"--include={','.join(lfs_paths())}",
+            "--exclude=",
+        ]
+        result = subprocess.run(command, cwd=REPO_ROOT, check=False)
+        if result.returncode != 0:
+            raise ArtifactError(
+                "Git LFS could not fetch the current proof artifacts; install Git "
+                "LFS, authenticate to the repository, and retry"
+            )
+        verify()
     refresh_git_index()
 
 
