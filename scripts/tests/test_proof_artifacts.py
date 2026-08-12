@@ -60,14 +60,19 @@ class ProofArtifactsTest(unittest.TestCase):
         proving_key.unlink()
 
         def fake_run(command: list[str], **kwargs: object) -> subprocess.CompletedProcess:
-            sr1cs.write_bytes(self.sr1cs)
-            proving_key.write_bytes(self.proving_key)
+            if command[:3] == ["git", "lfs", "pull"]:
+                sr1cs.write_bytes(self.sr1cs)
+                proving_key.write_bytes(self.proving_key)
             return subprocess.CompletedProcess(command, 0)
 
         with mock.patch.object(PROOF_ARTIFACTS.subprocess, "run", side_effect=fake_run) as run:
             PROOF_ARTIFACTS.materialize()
 
-        command = run.call_args.args[0]
+        self.assertEqual(
+            run.call_args_list[0].args[0],
+            ["git", "lfs", "install", "--local", "--skip-smudge"],
+        )
+        command = run.call_args_list[1].args[0]
         self.assertEqual(command[:3], ["git", "lfs", "pull"])
         self.assertEqual(command[-1], "--exclude=")
         self.assertEqual(
@@ -76,10 +81,28 @@ class ProofArtifactsTest(unittest.TestCase):
             "tools/gnark/artifacts/transfer/proving_key.bin",
         )
 
-    def test_materialize_skips_lfs_when_files_are_valid(self) -> None:
-        with mock.patch.object(PROOF_ARTIFACTS.subprocess, "run") as run:
+    def test_materialize_installs_filters_without_pull_when_files_are_valid(self) -> None:
+        completed = subprocess.CompletedProcess([], 0)
+        with mock.patch.object(
+            PROOF_ARTIFACTS.subprocess, "run", return_value=completed
+        ) as run:
             PROOF_ARTIFACTS.materialize()
-        run.assert_not_called()
+        run.assert_called_once_with(
+            ["git", "lfs", "install", "--local", "--skip-smudge"],
+            cwd=self.root,
+            check=False,
+        )
+
+    def test_materialize_rejects_missing_lfs_filters(self) -> None:
+        completed = subprocess.CompletedProcess([], 1)
+        with mock.patch.object(
+            PROOF_ARTIFACTS.subprocess, "run", return_value=completed
+        ):
+            with self.assertRaisesRegex(
+                PROOF_ARTIFACTS.ArtifactError,
+                "repository-local filters",
+            ):
+                PROOF_ARTIFACTS.materialize()
 
 
 if __name__ == "__main__":

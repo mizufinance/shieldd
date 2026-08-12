@@ -102,7 +102,18 @@ def verify() -> None:
         verify_file(path, expected_hash, expected_size)
 
 
+def install_lfs_filters() -> None:
+    command = ["git", "lfs", "install", "--local", "--skip-smudge"]
+    result = subprocess.run(command, cwd=REPO_ROOT, check=False)
+    if result.returncode != 0:
+        raise ArtifactError(
+            "Git LFS could not install repository-local filters; install Git LFS "
+            "and retry"
+        )
+
+
 def materialize() -> None:
+    install_lfs_filters()
     try:
         verify()
         return
