@@ -772,21 +772,21 @@ mod tests {
     fn parse_allocations_from_good_csv() -> anyhow::Result<()> {
         let csv_content = r#"
 "amount","denom","address"
-"100000","ushieldd","shieldd1rqcd3hfvkvc04c4c9vc0ac87lh4y0z8l28k4xp6d0cnd5jc6f6k0neuzp6zdwtpwyfpswtdzv9jzqtpjn5t6wh96pfx3flq2dhqgc42u7c06kj57dl39w2xm6tg0wh4z9uu0qt"
-"100000","ushieldd","shieldd1xq2e9x7uhfzezwunvazdamlxepf4jr5htsuqnzlsahuayyqxjjwg9lk0aytwm6wfj3jy29rv2kdpen57903s8wxv3jmqwj6m6v5jgn6y2cypfd03rke652k8wmavxra7y7yt34"
-"100000","ushieldd","shieldd100zd92fg6x27wc0mlu48cd6phq420u7ep59kzdalg2cq66mjkyl0xr54z0c64gectnj44mv5k2vyjjsz5gyd5gq33a6wnqzvgu2fz7namz7usazsl6p8wza83gcpwt8qrpf98e"
-"100000","ushieldd","shieldd1xap8sgefy9rl2nfvsse0h4y6c25hy2n20ymr5w7hs28m9xemt3tmz88atyulswumc32sv7h937wnfhyct282de66zm75nk6ywq3d4r32p5ju0cnscj2rraesnrxr9lvk8vjqsu"
+"100000","ushieldd","shieldd1u29dhz4vxgnek6a3vzxlejg0l83wegpu7hgs3yphdvljcnnnh89dvs6lc9hxxw94w464t7lh5x36cxnxyx0"
+"100000","ushieldd","shieldd1nrvgexa9tq9y242r6s7mqa6qlkfqmu45k9cwyrh66faaj8eupldkw837cjgv8qkfwedsdzmlypseupefutj"
+"100000","ushieldd","shieldd1u29dhz4vxgnek6a3vzxlejg0l83wegpu7hgs3yphdvljcnnnh89dvs6lc9hxxw94w464t7lh5x36cxnxyx0"
+"100000","ushieldd","shieldd1nrvgexa9tq9y242r6s7mqa6qlkfqmu45k9cwyrh66faaj8eupldkw837cjgv8qkfwedsdzmlypseupefutj"
 "#;
         let allos = NetworkAllocation::from_reader(csv_content.as_bytes())?;
 
         let a1 = &allos[0];
         assert!(a1.raw_denom == "ushieldd");
-        assert!(a1.address == Address::from_str("shieldd1rqcd3hfvkvc04c4c9vc0ac87lh4y0z8l28k4xp6d0cnd5jc6f6k0neuzp6zdwtpwyfpswtdzv9jzqtpjn5t6wh96pfx3flq2dhqgc42u7c06kj57dl39w2xm6tg0wh4z9uu0qt")?);
+        assert!(a1.address == Address::from_str("shieldd1u29dhz4vxgnek6a3vzxlejg0l83wegpu7hgs3yphdvljcnnnh89dvs6lc9hxxw94w464t7lh5x36cxnxyx0")?);
         assert!(a1.raw_amount.value() == 100000);
 
         let a2 = &allos[1];
         assert!(a2.raw_denom == "ushieldd");
-        assert!(a2.address == Address::from_str("shieldd1xq2e9x7uhfzezwunvazdamlxepf4jr5htsuqnzlsahuayyqxjjwg9lk0aytwm6wfj3jy29rv2kdpen57903s8wxv3jmqwj6m6v5jgn6y2cypfd03rke652k8wmavxra7y7yt34")?);
+        assert!(a2.address == Address::from_str("shieldd1nrvgexa9tq9y242r6s7mqa6qlkfqmu45k9cwyrh66faaj8eupldkw837cjgv8qkfwedsdzmlypseupefutj")?);
         assert!(a2.raw_amount.value() == 100000);
 
         Ok(())
