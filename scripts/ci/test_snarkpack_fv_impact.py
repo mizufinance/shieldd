@@ -100,6 +100,80 @@ class ImpactPlannerTests(unittest.TestCase):
                 (),
             )
 
+    def test_storage_feature_is_outside_fstar_manifest_projection(self) -> None:
+        verifier = IMPACT._load_fstar_verifier(ROOT)
+        relative = IMPACT.FSTAR_SHIELDED_POOL_MANIFEST_INPUT
+        base = b"""\
+[package]
+name = "shieldd-sdk-shielded-pool"
+version = "0.1.0"
+
+[features]
+default = ["std"]
+std = []
+download-proving-keys = ["std"]
+"""
+        storage_only = base.replace(
+            b'download-proving-keys = ["std"]\n', b""
+        )
+        semantic = storage_only.replace(b"std = []", b'std = ["dep:serde"]')
+
+        digest = IMPACT.fstar_semantic_source_sha256
+        self.assertEqual(
+            digest(verifier, relative, base),
+            digest(verifier, relative, storage_only),
+        )
+        self.assertNotEqual(
+            digest(verifier, relative, base),
+            digest(verifier, relative, semantic),
+        )
+
+    def test_disabled_downloader_is_outside_fstar_lock_projection(self) -> None:
+        verifier = IMPACT._load_fstar_verifier(ROOT)
+        relative = verifier.FSTAR_CARGO_LOCK_INPUT
+        base = b"""\
+version = 4
+
+[[package]]
+name = "shieldd-sdk-proof-aggregation"
+version = "0.1.0"
+dependencies = ["shieldd-sdk-proof-params", "used 1.0.0"]
+
+[[package]]
+name = "shieldd-sdk-proof-params"
+version = "0.1.0"
+dependencies = ["regex", "reqwest 0.12.9"]
+
+[[package]]
+name = "regex"
+version = "1.0.0"
+
+[[package]]
+name = "reqwest"
+version = "0.12.9"
+
+[[package]]
+name = "used"
+version = "1.0.0"
+checksum = "first"
+"""
+        without_downloader = base.replace(
+            b'dependencies = ["regex", "reqwest 0.12.9"]\n', b""
+        )
+        used_change = without_downloader.replace(
+            b'checksum = "first"', b'checksum = "second"'
+        )
+
+        digest = IMPACT.fstar_semantic_source_sha256
+        self.assertEqual(
+            digest(verifier, relative, base),
+            digest(verifier, relative, without_downloader),
+        )
+        self.assertNotEqual(
+            digest(verifier, relative, base),
+            digest(verifier, relative, used_change),
+        )
+
     def test_base_without_extraction_manifest_has_no_retired_graphs(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
