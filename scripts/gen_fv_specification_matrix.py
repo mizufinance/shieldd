@@ -7617,7 +7617,8 @@ _REVIEWED_TEST_EXCLUSION_SYMBOLS = {
         "decode_host_block_converts_valid_time",
         "decode_host_block_requires_time",
         "deliver_tx_response_has_no_withdrawals_without_a_host_action",
-        "encode_withdrawals_maps_recipient_and_coin",
+        "encode_withdrawals_maps_transfer_and_coin",
+        "encode_withdrawals_preserves_execution_call_order_and_refund_address",
     ),
     "crates/core/app/src/action_handler/transaction.rs": (
         "check_stateless_fails_on_auth_path_with_wrong_root",
@@ -7732,6 +7733,14 @@ _REVIEWED_TEST_EXCLUSION_SYMBOLS = {
     ),
     (
         "crates/core/component/shielded-pool/src/"
+        "shielded_host_withdrawal/plan.rs"
+    ): (
+        "new_plan_builds_padded_host_withdrawal_body",
+        "padded_host_withdrawal_proof_roundtrip",
+        "padded_spend_uses_shared_withdrawal_circuit_nullifier_domain",
+    ),
+    (
+        "crates/core/component/shielded-pool/src/"
         "shielded_ics20_withdrawal/plan.rs"
     ): (
         "multi_spend_tx_blinding_nonces_are_independent",
@@ -7751,6 +7760,9 @@ _REVIEWED_TEST_EXCLUSION_SYMBOLS = {
         "transfer_hidden_arity_1x1_roundtrip_test_keys_base_asset_sender_to_other",
         "transfer_hidden_arity_1x2_roundtrip_registered_base_asset_with_change_real_user_tree",
         "transfer_proof_roundtrip_unregulated",
+    ),
+    "crates/core/transaction/src/gas.rs": (
+        "host_execution_charges_requested_execution_gas",
     ),
     "crates/core/transaction/src/transaction.rs": (
         "compliance_scanner_transaction_id_matches_canonical_transaction_id",

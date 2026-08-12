@@ -12410,6 +12410,7 @@
       "crates/core/component/shielded-pool/src/note_reshape/proof.rs",
       "crates/core/component/shielded-pool/src/public_input_hash.rs",
       "crates/core/component/shielded-pool/src/shielded_host_withdrawal/action.rs",
+      "crates/core/component/shielded-pool/src/shielded_host_withdrawal/plan.rs",
       "crates/core/component/shielded-pool/src/shielded_ics20_withdrawal/action.rs",
       "crates/core/component/shielded-pool/src/shielded_ics20_withdrawal/plan.rs",
       "crates/core/component/shielded-pool/src/shielded_ics20_withdrawal/proof.rs",
@@ -12439,6 +12440,7 @@
       "crates/core/num/src/fixpoint/div.rs",
       "crates/core/num/src/fixpoint/tests.rs",
       "crates/core/num/src/percentage/mod.rs",
+      "crates/core/transaction/src/gas.rs",
       "crates/core/transaction/src/is_action.rs",
       "crates/core/transaction/src/memo.rs",
       "crates/core/transaction/src/plan.rs",
@@ -16325,7 +16327,12 @@
       },
       {
         "path": "crates/bin/shieldd/src/service.rs",
-        "symbol": "encode_withdrawals_maps_recipient_and_coin",
+        "symbol": "encode_withdrawals_maps_transfer_and_coin",
+        "reason": "supporting_regression_not_claim_evidence"
+      },
+      {
+        "path": "crates/bin/shieldd/src/service.rs",
+        "symbol": "encode_withdrawals_preserves_execution_call_order_and_refund_address",
         "reason": "supporting_regression_not_claim_evidence"
       },
       {
@@ -16456,6 +16463,11 @@
       {
         "path": "crates/core/app/src/app/host.rs",
         "symbol": "host_source_requires_32_byte_tx_hash",
+        "reason": "out_of_scope_for_four_circuit_claim"
+      },
+      {
+        "path": "crates/core/app/src/app/host.rs",
+        "symbol": "host_withdrawals_preserve_withdrawal_order",
         "reason": "out_of_scope_for_four_circuit_claim"
       },
       {
@@ -17490,17 +17502,27 @@
       },
       {
         "path": "crates/core/component/shielded-pool/src/host_withdrawal.rs",
-        "symbol": "validate_accepts_non_empty_recipient_and_amount",
+        "symbol": "execution_effect_hash_binds_refund_and_calls",
         "reason": "out_of_scope_for_four_circuit_claim"
       },
       {
         "path": "crates/core/component/shielded-pool/src/host_withdrawal.rs",
-        "symbol": "validate_rejects_empty_recipient",
+        "symbol": "execution_roundtrips_through_proto",
         "reason": "out_of_scope_for_four_circuit_claim"
       },
       {
         "path": "crates/core/component/shielded-pool/src/host_withdrawal.rs",
-        "symbol": "validate_rejects_zero_amount",
+        "symbol": "rejects_invalid_destinations",
+        "reason": "out_of_scope_for_four_circuit_claim"
+      },
+      {
+        "path": "crates/core/component/shielded-pool/src/host_withdrawal.rs",
+        "symbol": "rejects_non_evm_contract_address",
+        "reason": "out_of_scope_for_four_circuit_claim"
+      },
+      {
+        "path": "crates/core/component/shielded-pool/src/host_withdrawal.rs",
+        "symbol": "validates_transfer_and_execution",
         "reason": "out_of_scope_for_four_circuit_claim"
       },
       {
@@ -17516,6 +17538,21 @@
       {
         "path": "crates/core/component/shielded-pool/src/note_reshape/plan.rs",
         "symbol": "synthetic_input_slots_have_distinct_nullifiers",
+        "reason": "supporting_regression_not_claim_evidence"
+      },
+      {
+        "path": "crates/core/component/shielded-pool/src/shielded_host_withdrawal/plan.rs",
+        "symbol": "new_plan_builds_padded_host_withdrawal_body",
+        "reason": "supporting_regression_not_claim_evidence"
+      },
+      {
+        "path": "crates/core/component/shielded-pool/src/shielded_host_withdrawal/plan.rs",
+        "symbol": "padded_host_withdrawal_proof_roundtrip",
+        "reason": "supporting_regression_not_claim_evidence"
+      },
+      {
+        "path": "crates/core/component/shielded-pool/src/shielded_host_withdrawal/plan.rs",
+        "symbol": "padded_spend_uses_shared_withdrawal_circuit_nullifier_domain",
         "reason": "supporting_regression_not_claim_evidence"
       },
       {
@@ -17767,6 +17804,11 @@
         "path": "crates/core/num/src/percentage/mod.rs",
         "symbol": "test_percentage_operations",
         "reason": "out_of_scope_for_four_circuit_claim"
+      },
+      {
+        "path": "crates/core/transaction/src/gas.rs",
+        "symbol": "host_execution_charges_requested_execution_gas",
+        "reason": "supporting_regression_not_claim_evidence"
       },
       {
         "path": "crates/core/transaction/src/memo.rs",

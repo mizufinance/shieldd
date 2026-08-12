@@ -692,6 +692,10 @@ REVIEWED_TEST_SOURCE_CENSUS = (
     "crates/core/component/shielded-pool/src/public_input_hash.rs",
     (
         "crates/core/component/shielded-pool/src/"
+        "shielded_host_withdrawal/plan.rs"
+    ),
+    (
+        "crates/core/component/shielded-pool/src/"
         "shielded_ics20_withdrawal/action.rs"
     ),
     (
@@ -709,6 +713,7 @@ REVIEWED_TEST_SOURCE_CENSUS = (
     "crates/core/component/shielded-pool/src/transfer/proof.rs",
     "crates/core/component/stake/src/governance_key.rs",
     "crates/core/component/stake/src/identity_key.rs",
+    "crates/core/transaction/src/gas.rs",
     "crates/core/transaction/src/plan.rs",
     "crates/core/transaction/src/transaction.rs",
     "crates/crypto/proof-params/src/batch.rs",
@@ -819,7 +824,7 @@ REVIEWED_TEST_SOURCE_CENSUS = (
 # This pins every path/symbol/reason triple rendered in reviewed_test_census.
 # Update only after deciding whether each changed test is normative evidence.
 REVIEWED_TEST_EXCLUSIONS_SHA256 = (
-    "cef1029b7020f594c98e5f301d86237befc8673440b0134d6c54cc07f5f88e53"
+    "5ed6d0ee7b61b2f9a6c9658bff67990963853953ef52c69ccd34fe84b6bcbbec"
 )
 PROPERTY_TEST_SOURCE_CENSUS = (
     "crates/core/component/compliance/src/structs.rs",
@@ -2926,17 +2931,16 @@ ACTION_AUTHORIZATION_MODEL = {
         "IbcAction": "IbcRelay",
         "NoteReshape": "NoteReshape",
         "ProposalSubmit": "ProposalSubmit",
+        "ShieldedHostWithdrawal": "ShieldedHostWithdrawal",
         "ShieldedIcs20Withdrawal": "ShieldedIcs20Withdrawal",
         "Transfer": "Transfer",
         "ValidatorDefinition": "ValidatorDefinition",
         "ValidatorVote": "ValidatorVote",
     },
-    "non_plan_actions": (
-        "AggregateBundle",
-        "ShieldedHostWithdrawal",
-    ),
+    "non_plan_actions": ("AggregateBundle",),
     "spend_bearing_action_plans": (
         "NoteReshape",
+        "ShieldedHostWithdrawal",
         "ShieldedIcs20Withdrawal",
         "Transfer",
     ),
@@ -2990,11 +2994,9 @@ ACTION_AUTHORIZATION_MODEL = {
             "path": "crates/view/src/client_compliance.rs",
             "declaration": (
                 r"^[ \t]*async[ \t]+fn[ \t]+"
-                r"enrich_shielded_ics20_withdrawals_with_compliance\b"
+                r"enrich_shielded_withdrawals_with_compliance\b"
             ),
-            "function": (
-                "enrich_shielded_ics20_withdrawals_with_compliance"
-            ),
+            "function": "enrich_shielded_withdrawals_with_compliance",
             "strict_catchall": False,
         },
     ),
