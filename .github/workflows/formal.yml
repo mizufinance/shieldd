@@ -768,15 +768,33 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ needs.applicability.outputs.candidate_sha }}
+          fetch-depth: 0
       - name: Validate formal applicability and artifact policy
         run: |
           python3 scripts/ci/test_gate_applicability.py
           python3 scripts/tests/test_proof_artifacts.py
           python3 scripts/check_lfs_policy.py
 
+  soundness-artifacts:
+    name: 'soundness: prepare proof artifacts once'
+    needs: applicability
+    if: >-
+      needs.applicability.result == 'success' &&
+      needs.applicability.outputs.soundness_run == 'true' &&
+      needs.applicability.outputs.soundness_tier != 'policy'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.applicability.outputs.candidate_sha }}
+      - uses: ./.github/actions/prepare-proof-artifacts
+        with:
+          bundle: full
+
   soundness-gate:
     name: 'soundness: gate'
-    needs: applicability
+    needs: [applicability, soundness-artifacts]
     if: >-
       needs.applicability.result == 'success' &&
       needs.applicability.outputs.soundness_run == 'true' &&
@@ -787,7 +805,9 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ needs.applicability.outputs.candidate_sha }}
-      - uses: ./.github/actions/materialize-proof-artifacts
+      - uses: ./.github/actions/restore-proof-artifacts
+        with:
+          bundle: full
       - name: Install ripgrep
         run: sudo apt-get update && sudo apt-get install -y ripgrep
       - name: Check soundness invariants
@@ -795,7 +815,7 @@ jobs:
 
   soundness-seam-and-pin:
     name: 'soundness: seam-and-pin'
-    needs: applicability
+    needs: [applicability, soundness-artifacts]
     if: needs.applicability.result == 'success' && needs.applicability.outputs.soundness_run == 'true' && needs.applicability.outputs.soundness_tier != 'policy'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
@@ -809,7 +829,9 @@ jobs:
           cache-dependency-path: tools/gnark/go.sum
       - name: Install ripgrep
         run: sudo apt-get update && sudo apt-get install -y ripgrep
-      - uses: ./.github/actions/materialize-proof-artifacts
+      - uses: ./.github/actions/restore-proof-artifacts
+        with:
+          bundle: full
       - name: Statement-field seam and parity
         working-directory: tools/gnark
         run: |
@@ -838,7 +860,7 @@ jobs:
 
   soundness-artifact-replay:
     name: 'soundness: artifact replay'
-    needs: applicability
+    needs: [applicability, soundness-artifacts]
     # Candidate events validate committed evidence. Manual runs also
     # regenerate every artifact and prove/verify every deployed circuit. Lean
     # kernel replay remains the local operation that creates that evidence.
@@ -863,7 +885,9 @@ jobs:
       - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
           workspaces: "."
-      - uses: ./.github/actions/materialize-proof-artifacts
+      - uses: ./.github/actions/restore-proof-artifacts
+        with:
+          bundle: full
       - name: Cache Go build
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
@@ -894,6 +918,7 @@ jobs:
       - snarkpack-runtime
       - snarkpack-publication
       - soundness-policy
+      - soundness-artifacts
       - soundness-gate
       - soundness-seam-and-pin
       - soundness-alloy
@@ -938,6 +963,7 @@ jobs:
           RUNTIME: ${{ needs.snarkpack-runtime.result }}
           PUBLICATION: ${{ needs.snarkpack-publication.result }}
           POLICY: ${{ needs.soundness-policy.result }}
+          ARTIFACTS: ${{ needs.soundness-artifacts.result }}
           GATE: ${{ needs.soundness-gate.result }}
           SEAM: ${{ needs.soundness-seam-and-pin.result }}
           ALLOY: ${{ needs.soundness-alloy.result }}

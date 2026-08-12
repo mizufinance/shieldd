@@ -69,6 +69,12 @@ meta = json.loads(
 
 workspace = []
 for pkg in meta["packages"]:
+    # Internal proof-driving binaries enable large proving keys by default.
+    # They have no useful API surface and must not make documentation hydrate
+    # runtime artifacts.
+    default_features = pkg.get("features", {}).get("default", [])
+    if "bundled-proving-keys" in default_features:
+        continue
     if any(target.get("doc", False) for target in pkg.get("targets", [])):
         workspace.append(pkg["name"])
 

@@ -19,9 +19,24 @@ env:
   IMAGE_NAME: mizufinance/shieldd
 
 jobs:
+  proof-artifacts:
+    name: Prepare proof artifacts once
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: ./.github/actions/prepare-proof-artifacts
+        with:
+          # Seed a missing full base-branch cache for PR formal jobs without
+          # restoring its 510 MB constraint subset on every container build.
+          seed-full: ${{ github.ref_type == 'branch' && 'true' || 'false' }}
+
   build_amd64:
     name: Build and Push AMD64 Image
     runs-on: ubuntu-latest
+    needs: proof-artifacts
     outputs:
       digest: ${{ steps.build.outputs.digest }}
     permissions:
@@ -31,7 +46,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: ./.github/actions/materialize-proof-artifacts
+      - uses: ./.github/actions/restore-proof-artifacts
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
@@ -63,6 +78,7 @@ jobs:
   build_arm64:
     name: Build and Push ARM64 Image
     runs-on: ubuntu-24.04-arm
+    needs: proof-artifacts
     outputs:
       digest: ${{ steps.build.outputs.digest }}
     permissions:
@@ -72,7 +88,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: ./.github/actions/materialize-proof-artifacts
+      - uses: ./.github/actions/restore-proof-artifacts
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3

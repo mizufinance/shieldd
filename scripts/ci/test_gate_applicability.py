@@ -521,7 +521,7 @@ class GateApplicabilityTests(unittest.TestCase):
             summary,
         )
 
-    def test_soundness_pin_materializes_current_proof_bundle(self) -> None:
+    def test_soundness_pin_restores_the_prepared_full_bundle(self) -> None:
         workflow = (self.root / ".github/workflows/formal.yml").read_text(
             encoding="utf-8"
         )
@@ -530,7 +530,11 @@ class GateApplicabilityTests(unittest.TestCase):
                 "  soundness-alloy:"
             )
         ]
-        self.assertIn(".github/actions/materialize-proof-artifacts", soundness_pin)
+        self.assertIn(".github/actions/restore-proof-artifacts", soundness_pin)
+        self.assertIn("bundle: full", soundness_pin)
+        self.assertEqual(
+            workflow.count(".github/actions/prepare-proof-artifacts"), 1
+        )
         self.assertNotIn("lfs: true", workflow)
 
     def test_candidate_soundness_defers_only_the_reviewed_semantic_pin(self) -> None:
@@ -1687,6 +1691,7 @@ class GateApplicabilityTests(unittest.TestCase):
             {lane for lane, _ in lanes},
             {
                 "soundness-policy",
+                "soundness-artifacts",
                 "soundness-gate",
                 "soundness-seam-and-pin",
                 "soundness-alloy",
@@ -1695,7 +1700,10 @@ class GateApplicabilityTests(unittest.TestCase):
         )
         for lane, body in lanes:
             with self.subTest(lane=lane):
-                self.assertIn("needs: applicability", body)
+                self.assertRegex(
+                    body,
+                    r"needs: (?:applicability|\[[^]]*\bapplicability\b[^]]*\])",
+                )
                 self.assertIn(
                     "needs.applicability.outputs.soundness_run == 'true'",
                     body,

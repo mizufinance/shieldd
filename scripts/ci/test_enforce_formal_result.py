@@ -45,6 +45,7 @@ def full_environment() -> dict[str, str]:
             "RUNTIME": "success",
             "PUBLICATION": "success",
             "POLICY": "skipped",
+            "ARTIFACTS": "success",
             "GATE": "success",
             "SEAM": "success",
             "ALLOY": "success",
@@ -94,7 +95,7 @@ def select_snarkpack_skip(env: dict[str, str]) -> None:
         "PUBLICATION",
     ):
         env[name] = "skipped"
-    for name in ("POLICY", "GATE", "SEAM", "ALLOY", "REPLAY"):
+    for name in ("POLICY", "ARTIFACTS", "GATE", "SEAM", "ALLOY", "REPLAY"):
         env[name] = "skipped"
 
 
@@ -120,7 +121,7 @@ class EnforceFormalResultTests(unittest.TestCase):
         env = full_environment()
         env["SOUNDNESS_TIER"] = "policy"
         env["POLICY"] = "success"
-        for name in ("GATE", "SEAM", "ALLOY", "REPLAY"):
+        for name in ("ARTIFACTS", "GATE", "SEAM", "ALLOY", "REPLAY"):
             env[name] = "skipped"
         result = run_summary(env)
         self.assertEqual(result.returncode, 0, result.stderr)
