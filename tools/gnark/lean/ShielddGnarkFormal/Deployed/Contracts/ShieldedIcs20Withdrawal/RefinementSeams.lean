@@ -49,7 +49,7 @@ theorem diversifiedTransmissionKey_of_exact
       (authIvkReduced rho) (authIvkQuotientA rho)
       ⟨senderTransmissionComputed0 rho, senderTransmissionComputed1 rho⟩ := by
   have h :=
-    facts.exact.DecafDiversifiedTransmissionKeySeg7
+    facts.canonicalSender.DecafDiversifiedTransmissionKeySeg7
   change Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_a03dfc8083159402252a47c3be906c0878137600765dd0717aecbad037a5042c.DtkSupport.spec
     (Seg7.localRho rho) at h
   have hw1 : Seg7.wireSeating 1 = 20 := by
@@ -128,7 +128,7 @@ theorem transmissionCompressed_of_exact
     Decaf377Assumptions.CompressToFieldSpec
       ⟨senderTransmissionComputed0 rho, senderTransmissionComputed1 rho⟩
       (senderTransmissionFq rho) := by
-  have h := facts.exact.DecafCompressToFieldSeg8
+  have h := facts.canonicalSender.DecafCompressToFieldSeg8
   change Deployed.Templates.Semantics.TDecafCompressToField_cb894e50f7cc665026bb25271f9bec0190867613208193b18d883d11ce856a46.spec
     (Seg8.localRho rho) at h
   unfold Deployed.Templates.Semantics.TDecafCompressToField_cb894e50f7cc665026bb25271f9bec0190867613208193b18d883d11ce856a46.spec at h
@@ -147,7 +147,7 @@ theorem requiredNullifierAsserted_of_exact
     (rho : Nat → SemanticF)
     (facts : ShieldedIcs20WithdrawalCircuitFacts rho) :
     spend0NullifierClaimed rho = spend0NullifierReal rho := by
-  have h := facts.exact.AssertEqSeg33
+  have h := facts.requiredSpend.AssertEqSeg33
   change Deployed.Templates.Semantics.TAssertEq_f65d80594ca3008a765694d28652f6f340f2fac809070ad4534a8c26871bd06b.spec
     (Seg33.localRho rho) at h
   have hw1 : Seg33.wireSeating 1 = 133 := by
@@ -182,7 +182,7 @@ theorem syntheticNullifierHash_of_exact
         Protocol.ShieldedIcs20Withdrawal.Concrete.syntheticDummyNullifierDomain
         (spend1DummyNullifierSeed rho) (spend1AuthRandomizer rho) 1 := by
   have h :=
-    facts.exact.GadgetSyntheticDummyNullifierSeg44
+    facts.optionalSpend.GadgetSyntheticDummyNullifierSeg44
   change Deployed.Templates.Semantics.TGadgetSyntheticDummyNullifier_a10de15a91d3ea84d283d8eb39cda0f9fdbeeab9de2f8d7df5acbc90e22093bb.spec
     (Seg44.localRho rho) at h
   have hw1 : Seg44.wireSeating 1 = 292 := by
@@ -238,7 +238,7 @@ theorem assetLeafHash_of_exact
         (assetLeafValue rho) (assetLeafNextIndex rho)
         (assetLeafNextValue rho)
         (assetLeafParamsHash rho) (assetLeafRingHash rho) := by
-  have h := facts.exact.GadgetAssetRegistryLeafHashSeg10
+  have h := facts.assetRegistry.GadgetAssetRegistryLeafHashSeg10
   change Deployed.Templates.Semantics.TGadgetAssetRegistryLeafHash_9424c990190c4128118a2906eaddfab647443257691dff0a8fc5b9b9caa7ebff.spec (Seg10.localRho rho) at h
   have hw1 : Seg10.wireSeating 1 = 25 := by
     decide +kernel
@@ -312,7 +312,7 @@ theorem complianceLeafHash_of_exact
         (senderDivGenFq rho) (senderTransmissionFq rho)
         (outboundAssetId rho) (senderSlotId rho)
         (senderSlotDerivation rho) (senderD rho) := by
-  have h := facts.exact.GadgetComplianceLeafSeg16
+  have h := facts.senderCompliance.GadgetComplianceLeafSeg16
   change Deployed.Templates.Semantics.TGadgetComplianceLeaf_dcb0a1040c535cf394b8bda4f381260121926f7d477fb80a22e4e84b0cb431bc.spec
     (Seg16.localRho rho) at h
   have hw1 : Seg16.wireSeating 1 = 660 := by
@@ -397,7 +397,7 @@ theorem complianceRootAsserted_of_exact
     isRegulated rho = 1 →
       senderComplianceRoot rho = complianceAnchor rho := by
   intro regulated
-  have h := facts.exact.AssertEqIfSeg18
+  have h := facts.senderCompliance.AssertEqIfSeg18
   change Deployed.Templates.Semantics.TAssertEqIf_8ce5774e50355d2a29c59780aba5615b3b4386e8925bffa9de0ad683cdc7cf8d.spec
     (Seg18.localRho rho) at h
   have hw1 : Seg18.wireSeating 1 = 15 := by
@@ -448,7 +448,7 @@ theorem balanceCompressed_of_exact
     Decaf377Assumptions.CompressToFieldSpec
       ⟨balanceCommitmentComputed0 rho, balanceCommitmentComputed1 rho⟩
       (balanceCommitmentFq rho) := by
-  have h := facts.exact.DecafCompressToFieldSeg56
+  have h := facts.conservation.DecafCompressToFieldSeg56
   change Deployed.Templates.Semantics.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.spec
     (Seg56.localRho rho) at h
   unfold Deployed.Templates.Semantics.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.spec at h

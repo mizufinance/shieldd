@@ -860,10 +860,14 @@ class DeployedFamilyTests(unittest.TestCase):
             source = deployed.render_circuit_facts(ir)
             self.assertNotIn("rows : relationAll rho", source)
             self.assertNotIn("spec := relation", source)
+            fact_sources = deployed.render_circuit_fact_files(ir)
             for segment in segments:
                 index = segment["index"]
                 self.assertEqual(
-                    source.count(f"Seg{index}.contract.spec rho"),
+                    sum(
+                        fact_source.count(f"Seg{index}.contract.spec rho")
+                        for fact_source in fact_sources.values()
+                    ),
                     1,
                     (circuit, index),
                 )
@@ -872,6 +876,8 @@ class DeployedFamilyTests(unittest.TestCase):
                     1,
                     (circuit, index),
                 )
+            for fact_source in fact_sources.values():
+                self.assertNotIn(".Capstone", fact_source)
 
             with self.assertRaisesRegex(ValueError, "exact partition"):
                 core.render_circuit_facts(
@@ -1277,7 +1283,7 @@ class DeployedFamilyTests(unittest.TestCase):
         self.assertIn("theorem isRegulatedBoolean_of_exact", seams)
         self.assertIn("theorem assetIdNonzero_of_exact", seams)
         self.assertIn(
-            "facts.exact.AssertNeSeg",
+            "facts.assetRegistry.AssertNeSeg",
             seams,
         )
 
@@ -2248,7 +2254,7 @@ class DeployedFamilyTests(unittest.TestCase):
         seating[1], seating[2] = seating[2], seating[1]
         source = deployed.render_transfer_refinement_seams(ir, manifest)
         self.assertIn(
-            f"facts.exact.AssertNeSeg{nonzero['index']}.2",
+            f"facts.assetRegistry.AssertNeSeg{nonzero['index']}.2",
             source,
         )
         self.assertIn(
@@ -2543,7 +2549,7 @@ class DeployedFamilyTests(unittest.TestCase):
                 providers,
             )
             self.assertIn(
-                "facts.exact."
+                f"facts.{spec.fact}."
                 f"{core.camel(spec.op)}Seg{segment['index']}",
                 providers,
             )
@@ -3319,7 +3325,7 @@ class DeployedFamilyTests(unittest.TestCase):
         nonzero_index = segments["asset_nonzero"]["index"]
         gap_index = segments["asset_gap"]["index"]
         self.assertIn(
-            f"facts.exact.AssertNeSeg{nonzero_index}.1", source
+            f"facts.assetRegistry.AssertNeSeg{nonzero_index}.1", source
         )
         self.assertIn(f"Seg{gap_index}.localRho rho 594", source)
         self.assertIn(f"Seg{gap_index}.localRho rho 3044", source)
@@ -3389,7 +3395,7 @@ class DeployedFamilyTests(unittest.TestCase):
             inverse_first, manifest
         )
         self.assertIn(
-            f"facts.exact.AssertNeSeg{nonzero_index}.2", source
+            f"facts.assetRegistry.AssertNeSeg{nonzero_index}.2", source
         )
 
     def test_withdrawal_refinement_root_closes_every_circuit_seam(self) -> None:
@@ -3688,7 +3694,7 @@ class DeployedFamilyTests(unittest.TestCase):
                 1,
                 module,
             )
-            self.assertIn("facts.exact.", statement)
+            self.assertIn("facts.statementBinding.", statement)
             self.assertIn(f"Seg{segment}.localRho rho", statement)
         for obsolete_segment in (49, 50, 51, 52):
             self.assertNotIn(
@@ -3860,7 +3866,7 @@ class DeployedFamilyTests(unittest.TestCase):
             self.assertEqual(seating[x_local], wire)
             self.assertIn(f"theorem {theorem}", non_identity)
             self.assertIn(
-                f"facts.exact.AssertDecafNonIdentitySeg{segment}",
+                f"facts.canonicalSender.AssertDecafNonIdentitySeg{segment}",
                 non_identity,
             )
             self.assertIn(
@@ -3875,7 +3881,7 @@ class DeployedFamilyTests(unittest.TestCase):
             non_identity,
         )
         self.assertIn(
-            f"facts.exact.AssertDecafNonIdentitySeg{transmission_segment}.2",
+            f"facts.canonicalSender.AssertDecafNonIdentitySeg{transmission_segment}.2",
             non_identity,
         )
         transmission_x = deployed._binding_expression(
@@ -3936,7 +3942,7 @@ class DeployedFamilyTests(unittest.TestCase):
             inverse_first, manifest
         )
         self.assertIn(
-            f"facts.exact.AssertDecafNonIdentitySeg{sender_index}.2",
+            f"facts.canonicalSender.AssertDecafNonIdentitySeg{sender_index}.2",
             inverse_first_source,
         )
         self.assertIn(
@@ -4427,6 +4433,7 @@ class DeployedFamilyTests(unittest.TestCase):
             source,
         )
         self.assertNotIn("Trace.hash6 (StatementHashValuation rho)", source)
+
         self.assertIn(
             "change [statementFields0 rho,",
             source,
@@ -4524,6 +4531,46 @@ class DeployedFamilyTests(unittest.TestCase):
         self.assertNotIn("senderAckAt255", action)
         self.assertNotIn("receiverAckAt255", action)
         self.assertNotIn("AckSupport.Outputs", action)
+
+    def test_transfer_transcript_seams_are_split_by_protocol_fact(self) -> None:
+        ir, manifest = self.transfer_refinement_fixture()
+        modules = deployed.render_transfer_transcript_seam_modules(ir, manifest)
+
+        self.assertEqual(
+            set(modules),
+            {
+                "TranscriptCoreSeams.lean",
+                "EncryptionSeams.lean",
+                "MetadataSeams.lean",
+                "RoutingSeams.lean",
+                "StatementSeams.lean",
+                "TranscriptSeams.lean",
+            },
+        )
+        self.assertIn(
+            "theorem thresholdFlag_of_semantic",
+            modules["TranscriptCoreSeams.lean"],
+        )
+        self.assertIn(
+            "theorem detectionSpec_of_semantic",
+            modules["EncryptionSeams.lean"],
+        )
+        self.assertIn(
+            "theorem metadataBinding_of_semantic",
+            modules["MetadataSeams.lean"],
+        )
+        self.assertIn(
+            "structure TransferRoutingSemanticProviders",
+            modules["RoutingSeams.lean"],
+        )
+        self.assertIn(
+            "theorem claimedStatementHash_of_semantic",
+            modules["StatementSeams.lean"],
+        )
+        self.assertNotIn(
+            "theorem claimedStatementHash_of_semantic",
+            modules["MetadataSeams.lean"],
+        )
 
     def test_transfer_transcript_renderer_fails_closed_on_join_drift(
         self,
@@ -4794,6 +4841,16 @@ class DeployedFamilyTests(unittest.TestCase):
         )
         action_module_patcher.start()
         self.addCleanup(action_module_patcher.stop)
+        transcript_module_patcher = mock.patch.object(
+            deployed,
+            "render_transfer_transcript_seam_modules",
+            return_value={
+                "TranscriptSeams.lean":
+                    "/- deterministic isolated transcript facade -/\n",
+            },
+        )
+        transcript_module_patcher.start()
+        self.addCleanup(transcript_module_patcher.stop)
         crypto_patcher = mock.patch.object(
             deployed,
             "render_transfer_crypto_seams",
@@ -4819,6 +4876,13 @@ class DeployedFamilyTests(unittest.TestCase):
         )
         non_identity_patcher.start()
         self.addCleanup(non_identity_patcher.stop)
+        fact_group_patcher = mock.patch.object(
+            deployed,
+            "semantic_fact_groups",
+            side_effect=lambda ir, _manifest=None: deployed.exact_groups(ir),
+        )
+        fact_group_patcher.start()
+        self.addCleanup(fact_group_patcher.stop)
         ir, previous, manifest = self.fixture("transfer")
         with tempfile.TemporaryDirectory() as raw_tmp:
             tmp = Path(raw_tmp)

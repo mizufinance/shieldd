@@ -69,7 +69,29 @@ class StatementHashSemanticsTest(unittest.TestCase):
         self.assertEqual(transfer.block_rows, (470,) * 7 + (445,))
         self.assertEqual(sum(transfer.block_rows), transfer.rows)
         self.assertEqual(transfer.final_pins[-1], transfer.wires - 1)
-        self.assertEqual(subject._managed_file_count(transfer), 8600)
+        self.assertEqual(subject._managed_file_count(transfer), 3608)
+
+    def test_all_families_share_one_validated_poseidon_schedule(self) -> None:
+        schedule = subject._poseidon_schedule()
+        self.assertEqual(schedule.round_count, 39)
+        self.assertEqual(schedule.width, 8)
+        self.assertEqual(schedule.kinds[:4], ("full",) * 4)
+        self.assertEqual(schedule.kinds[4:35], ("partial",) * 31)
+        self.assertEqual(schedule.kinds[35:], ("full",) * 4)
+        self.assertEqual(
+            tuple(
+                round_
+                for start, stop in schedule.ranges
+                for round_ in range(start, stop + 1)
+            ),
+            tuple(range(schedule.round_count)),
+        )
+        for family in subject.FAMILIES:
+            plans = subject._sponge_block_plans(family)
+            self.assertEqual(len(plans), len(family.block_rows))
+            self.assertEqual(sum(plan.field_count for plan in plans), family.field_count)
+            self.assertFalse(plans[0].chained)
+            self.assertTrue(all(plan.chained for plan in plans[1:]))
 
     def test_withdrawal_tail_geometry_has_the_continuation_pad_phase(self) -> None:
         families = subject.FAMILIES[-3:]
@@ -173,7 +195,7 @@ class StatementHashSemanticsTest(unittest.TestCase):
         first = subject.generated_files()
         second = subject.generated_files()
         self.assertEqual(first, second)
-        self.assertEqual(len(first), 19367)
+        self.assertEqual(len(first), 8135)
         self.assertEqual(
             len(first),
             sum(
@@ -199,24 +221,22 @@ class StatementHashSemanticsTest(unittest.TestCase):
     def test_scalar_lane_uses_compact_vector_mds_bridge(self) -> None:
         outputs = subject.generated_files()
         family = subject.FAMILIES[1]
-        scalar = outputs[subject.OUT / f"{family.name}ScalarBlock0Round0Lane0.lean"]
         lane = outputs[subject.OUT / f"{family.name}Block0Round0Lane0.lean"]
-        self.assertIn("Poseidon7Bridge.row8v vec![", scalar)
-        self.assertNotIn("Poseidon7Bridge.row8 ", scalar)
+        self.assertIn("Poseidon7Bridge.row8v vec![", lane)
+        self.assertNotIn("def endpoint (rho : Nat → F) : F :=\n  Shieldd.GnarkFormal.Poseidon7Bridge.row8 ", lane)
         self.assertNotIn("fr_eq8", lane)
         self.assertNotIn("pr_eq8", lane)
         self.assertNotIn("congrArg", lane)
         self.assertIn("Poseidon7Bridge.row8v_congr", lane)
         self.assertIn("ring_nf at hInput0", lane)
-        self.assertIn(f"{family.name}.Trace.Order", scalar)
-        self.assertGreaterEqual(scalar.count("Shieldd.GnarkFormal.Poseidon7Bridge.p17"), 8)
-        row = outputs[subject.OUT / f"{family.name}RowBlock0Round0Lane0.lean"]
-        self.assertIn("Fixed.b0l0), (rho ", row)
-        self.assertNotIn("Fixed.b0l0 rho", row)
-        self.assertIn("ChoiceFreeZMod.natCast_eq_natCast_of_mod_eq", row)
+        self.assertIn(f"{family.name}.Trace.Order", lane)
+        self.assertGreaterEqual(lane.count("Shieldd.GnarkFormal.Poseidon7Bridge.p17"), 8)
+        self.assertIn("Fixed.b0l0), (rho ", lane)
+        self.assertNotIn("Fixed.b0l0 rho", lane)
+        self.assertIn("ChoiceFreeZMod.natCast_eq_natCast_of_mod_eq", lane)
         fixed = outputs[subject.OUT / f"{family.name}Fixed.lean"]
         self.assertIn("ChoiceFreeZMod.natCast_eq_natCast_of_mod_eq", fixed)
-        self.assertNotIn("ZMod.natCast_eq_natCast_iff'", row + fixed)
+        self.assertNotIn("ZMod.natCast_eq_natCast_iff'", lane + fixed)
         self.assertIn("relationPart6 rho) :\n", lane)
         self.assertIn("ScalarBlock0Round0Lane0.state_eq_endpoint", lane)
         self.assertIn("RowBlock0Round0Lane0.endpoint_eq_rawState", lane)

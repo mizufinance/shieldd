@@ -206,6 +206,43 @@ class Provider:
     blocks: tuple[Block, ...]
 
 
+@dataclass(frozen=True)
+class Poseidon7Schedule:
+    """One validated full-block schedule shared by every statement family."""
+
+    constants: tuple[tuple[int, ...], ...]
+    kinds: tuple[str, ...]
+    matrix: tuple[tuple[int, ...], ...]
+    ranges: tuple[tuple[int, int], ...]
+
+    @property
+    def round_count(self) -> int:
+        return len(self.kinds)
+
+    @property
+    def width(self) -> int:
+        return len(self.matrix)
+
+    def sbox_count(self, round_index: int, variable_first_round: int) -> int:
+        if round_index == 0:
+            return variable_first_round
+        return self.width if self.kinds[round_index] == "full" else 1
+
+
+@dataclass(frozen=True)
+class SpongeBlockPlan:
+    """Validated field absorption and padding plan for one sponge block."""
+
+    index: int
+    field_start: int
+    field_count: int
+    pad_phase: int
+    chained: bool
+
+
+ROUND_RANGES = ((0, 3), (4, 14), (15, 24), (25, 34), (35, 38))
+
+
 def _constant(label: str, suffix: str) -> int:
     text = f"shieldd.shielded_pool.{label}.public_input_hash.{suffix}".encode()
     return int.from_bytes(hashlib.blake2b(text, digest_size=64).digest(), "little") % ORDER
@@ -335,7 +372,7 @@ def _boxes(family: Family, rows: dict[int, str], text: str) -> list[Box]:
     return boxes
 
 
-def _poseidon_data() -> tuple[list[list[int]], list[str], list[list[int]]]:
+def _poseidon_schedule() -> Poseidon7Schedule:
     # This legacy Go artifact has stable source bytes but no whitespace-level
     # Python encoding contract, so its reviewed source digest is the byte pin.
     data = formal_json.read_json_object(
@@ -354,13 +391,52 @@ def _poseidon_data() -> tuple[list[list[int]], list[str], list[list[int]]]:
         ),
         expected_sha256_hex=GENDATA_SHA256_HEX,
     )
-    constants = [[int(value) % ORDER for value in data["cs"][str(round_)]] for round_ in range(39)]
-    kinds = [data["kind"][str(round_)] for round_ in range(39)]
+    constants = tuple(
+        tuple(int(value) % ORDER for value in data["cs"][str(round_)])
+        for round_ in range(39)
+    )
+    kinds = tuple(data["kind"][str(round_)] for round_ in range(39))
     seq = [int(value) % ORDER for value in data["seq"]]
-    matrix = [[seq[i + j] for j in range(8)] for i in range(8)]
-    if kinds != ["full"] * 4 + ["partial"] * 31 + ["full"] * 4:
+    matrix = tuple(tuple(seq[i + j] for j in range(8)) for i in range(8))
+    if kinds != tuple(["full"] * 4 + ["partial"] * 31 + ["full"] * 4):
         raise ValueError("Poseidon7 round schedule drifted")
-    return constants, kinds, matrix
+    if any(len(row) != 8 for row in constants + matrix):
+        raise ValueError("Poseidon7 width drifted")
+    if tuple(round_ for bounds in ROUND_RANGES for round_ in range(bounds[0], bounds[1] + 1)) != tuple(range(39)):
+        raise ValueError("Poseidon7 proof range schedule drifted")
+    return Poseidon7Schedule(constants, kinds, matrix, ROUND_RANGES)
+
+
+def _poseidon_data() -> tuple[list[list[int]], list[str], list[list[int]]]:
+    """Legacy rendering view; the schedule is validated in one place."""
+
+    schedule = _poseidon_schedule()
+    return (
+        [list(row) for row in schedule.constants],
+        list(schedule.kinds),
+        [list(row) for row in schedule.matrix],
+    )
+
+
+def _sponge_block_plans(family: Family) -> tuple[SpongeBlockPlan, ...]:
+    plans = []
+    cursor = 0
+    for block_index, _ in enumerate(family.block_rows):
+        capacity = 7 if block_index == 0 else 6
+        take = min(capacity, family.field_count - cursor)
+        plans.append(
+            SpongeBlockPlan(
+                block_index,
+                cursor,
+                take,
+                family.first_block_pad_offset if block_index == 0 else 0,
+                block_index > 0,
+            )
+        )
+        cursor += take
+    if cursor != family.field_count:
+        raise ValueError(f"{family.key}: sponge plan did not consume all fields")
+    return tuple(plans)
 
 
 def _mds(state: list[LC], matrix: list[list[int]]) -> list[LC]:
@@ -380,7 +456,12 @@ def recover_provider(family: Family) -> Provider:
     _validate_wire_domain(family, text)
     rows = _rows(family, text)
     boxes = _boxes(family, rows, text)
-    constants, kinds, matrix = _poseidon_data()
+    schedule = _poseidon_schedule()
+    constants, kinds, matrix = (
+        schedule.constants,
+        schedule.kinds,
+        schedule.matrix,
+    )
     domain = _constant(family.statement_label, family.statement_version)
     pad0 = _constant(family.statement_label, "pad0")
     pad1 = _constant(family.statement_label, "pad1")
@@ -391,11 +472,16 @@ def recover_provider(family: Family) -> Provider:
     previous_output: LC | None = None
     row_cursor = 0
     recovered_fields: list[LC] = []
+    block_plans = _sponge_block_plans(family)
     for block_index, block_rows in enumerate(family.block_rows):
+        block_plan = block_plans[block_index]
         variable_boxes = block_rows // 5 - 87
         if variable_boxes not in (2, 3, 4, 5, 6, 7):
             raise ValueError(f"{family.key}: unsupported round-0 box count {variable_boxes}")
-        per_round = [variable_boxes, 8, 8, 8] + [1] * 31 + [8] * 4
+        per_round = [
+            schedule.sbox_count(round_index, variable_boxes)
+            for round_index in range(schedule.round_count)
+        ]
         round_boxes = []
         for count in per_round:
             round_boxes.append(tuple(boxes[box_cursor : box_cursor + count]))
@@ -403,13 +489,13 @@ def recover_provider(family: Family) -> Provider:
 
         remaining = family.field_count - field_cursor
         if block_index == 0:
-            take = min(7, remaining)
+            take = block_plan.field_count
             actual_inputs = [box.input + LC.make(-constants[0][lane + 1]) for lane, box in enumerate(round_boxes[0])]
             recovered_fields.extend(actual_inputs[:take])
             field_cursor += take
             expected_inputs: list[LC | int] = list(actual_inputs[:take])
         else:
-            take = min(6, remaining)
+            take = block_plan.field_count
             actual_inputs = [box.input + LC.make(-constants[0][lane + 1]) for lane, box in enumerate(round_boxes[0])]
             if previous_output is None or not actual_inputs or actual_inputs[0] != previous_output:
                 raise ValueError(f"{family.key}: block {block_index} does not absorb the previous hash")
@@ -418,7 +504,7 @@ def recover_provider(family: Family) -> Provider:
             expected_inputs = [previous_output, *actual_inputs[1 : 1 + take]]
         while len(expected_inputs) < 7:
             pad_index = (
-                len(expected_inputs) + family.first_block_pad_offset
+                len(expected_inputs) + block_plan.pad_phase
                 if block_index == 0
                 else len(expected_inputs) - 1
             )
@@ -441,7 +527,7 @@ def recover_provider(family: Family) -> Provider:
         state = _mds(state_inputs, matrix)
         states = [tuple(state)]
 
-        for round_index in range(1, 39):
+        for round_index in range(1, schedule.round_count):
             current = round_boxes[round_index]
             lanes = range(8) if kinds[round_index] == "full" else range(1)
             for lane, box in zip(lanes, current, strict=True):
@@ -469,7 +555,11 @@ def recover_provider(family: Family) -> Provider:
                 block_index,
                 row_cursor,
                 block_rows,
-                sum(len(block.rounds[round_]) for block in blocks for round_ in range(39)),
+                sum(
+                    len(block.rounds[round_])
+                    for block in blocks
+                    for round_ in range(schedule.round_count)
+                ),
                 tuple(round_boxes),
                 tuple(value if isinstance(value, LC) else LC.make(value) for value in expected_inputs),
                 tuple(states),
@@ -1139,7 +1229,49 @@ end {namespace}
 """
 
 
-ROUND_RANGES = ((0, 3), (4, 14), (15, 24), (25, 34), (35, 38))
+def _render_lane_bundle(
+    provider: Provider, block: Block, round_index: int, lane: int
+) -> str:
+    """Compile scalar, row, and round logic as one stable proof leaf."""
+
+    name = provider.family.name
+    scalar_module = (
+        f"ShielddGnarkFormal.Deployed.Templates.Semantics.{name}"
+        f"ScalarBlock{block.index}Round{round_index}Lane{lane}"
+    )
+    row_module = (
+        f"ShielddGnarkFormal.Deployed.Templates.Semantics.{name}"
+        f"RowBlock{block.index}Round{round_index}Lane{lane}"
+    )
+    sources = (
+        _render_scalar_endpoint(provider, block, round_index, lane),
+        _render_row_normalization(provider, block, round_index, lane),
+        _render_round_lane(provider, block, round_index, lane),
+    )
+    imports: list[str] = []
+    bodies: list[str] = []
+    excluded = {f"import {scalar_module}", f"import {row_module}"}
+    for source in sources:
+        body = []
+        for line in source.splitlines():
+            if line.startswith("import "):
+                if line not in excluded and line not in imports:
+                    imports.append(line)
+            else:
+                body.append(line)
+        body_source = "\n".join(body).strip()
+        namespace = re.search(r"(?m)^namespace [^\n]+\n", body_source)
+        if namespace is not None:
+            body_source = (
+                body_source[: namespace.end()]
+                + "\n"
+                + CHOICE_FREE_ZMOD_SCOPE
+                + body_source[namespace.end() :]
+            )
+        bodies.append(body_source)
+    return "\n".join(imports) + "\n\n" + "\n\n".join(bodies) + "\n"
+
+
 PROJECTIONS = (".1", ".2.1", ".2.2.1", ".2.2.2.1", ".2.2.2.2.1", ".2.2.2.2.2.1", ".2.2.2.2.2.2.1", ".2.2.2.2.2.2.2")
 
 
@@ -1290,9 +1422,12 @@ def _provider_files(provider: Provider) -> dict[Path, str]:
                 outputs[OUT / f"{name}Part{box.part}.lean"] = _render_part(provider, box)
         for round_index in range(39):
             for lane in range(8):
-                outputs[OUT / f"{name}ScalarBlock{block.index}Round{round_index}Lane{lane}.lean"] = _render_scalar_endpoint(provider, block, round_index, lane)
-                outputs[OUT / f"{name}RowBlock{block.index}Round{round_index}Lane{lane}.lean"] = _render_row_normalization(provider, block, round_index, lane)
-                outputs[OUT / f"{name}Block{block.index}Round{round_index}Lane{lane}.lean"] = _render_round_lane(provider, block, round_index, lane)
+                outputs[
+                    OUT
+                    / f"{name}Block{block.index}Round{round_index}Lane{lane}.lean"
+                ] = _render_lane_bundle(
+                    provider, block, round_index, lane
+                )
         for range_index in range(len(ROUND_RANGES)):
             outputs[OUT / f"{name}Block{block.index}Range{range_index}.lean"] = _render_range(provider, block, range_index)
         outputs[OUT / f"{name}Block{block.index}.lean"] = _render_block(provider, block)
@@ -1301,7 +1436,9 @@ def _provider_files(provider: Provider) -> dict[Path, str]:
     for path, source in outputs.items():
         source = GENERATED_HEADER + CHOICE_FREE_ZMOD_IMPORT + source
         namespace = re.search(r"(?m)^namespace [^\n]+\n", source)
-        if namespace is not None:
+        if namespace is not None and not source[
+            namespace.end() :
+        ].lstrip().startswith(CHOICE_FREE_ZMOD_SCOPE.strip()):
             source = (
                 source[: namespace.end()]
                 + "\n"
@@ -1328,7 +1465,7 @@ def _managed_file_count(family: Family) -> int:
     """Count the exact shards emitted by ``_provider_files`` for one family."""
     block_count = len(family.block_rows)
     box_count = family.rows // 5
-    return 5 + 981 * block_count + box_count
+    return 5 + 357 * block_count + box_count
 
 
 def _validate_outputs(

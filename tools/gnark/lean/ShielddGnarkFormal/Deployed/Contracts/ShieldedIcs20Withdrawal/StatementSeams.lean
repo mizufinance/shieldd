@@ -62,7 +62,7 @@ theorem statementBlock0_of_exact
         (balanceCommitmentFq rho)
         (spend0NullifierClaimed rho) (spend0RkCompressed rho)
         (spend1NullifierClaimed rho) (spend1RkCompressed rho) := by
-  have h := facts.exact.StatementHashSeg58
+  have h := facts.statementBinding.StatementHashSeg58
   change Deployed.Templates.Semantics.TStatementHash_afd0be82d84896e98b8fdc0f4b8eaec88930b85f4b40c03ff06a87a4eaebd1b8.spec (Seg58.localRho rho) at h
   unfold Deployed.Templates.Semantics.TStatementHash_afd0be82d84896e98b8fdc0f4b8eaec88930b85f4b40c03ff06a87a4eaebd1b8.spec at h
   have hw445 : Seg58.wireSeating 445 = 52778 := by
@@ -149,7 +149,7 @@ theorem statementBlock1_of_exact
         (assetAnchor rho) (complianceAnchor rho) (targetTimestamp rho)
         (outboundAssetId rho) (outboundAmount rho)
         (withdrawalEffectHashLimbs0 rho) := by
-  have h := facts.exact.StatementHashSeg59
+  have h := facts.statementBinding.StatementHashSeg59
   change Deployed.Templates.Semantics.TStatementHash_59fc709325ca9b0194b7adef9fe91a97d88a5c690c5278f59425a351790b2376.spec (Seg59.localRho rho) at h
   unfold Deployed.Templates.Semantics.TStatementHash_59fc709325ca9b0194b7adef9fe91a97d88a5c690c5278f59425a351790b2376.spec at h
   have hw449 : Seg59.wireSeating 449 = 53248 := by
@@ -249,7 +249,7 @@ theorem statementBlock2_of_exact
         (routingTag rho)
         (routingParameterSetId rho)
         Protocol.ShieldedIcs20Withdrawal.Concrete.statementPad1 := by
-  have h := facts.exact.StatementHashSeg60
+  have h := facts.statementBinding.StatementHashSeg60
   change Deployed.Templates.Semantics.TStatementHash_0a6a7d5c079d0a2e952c00450800860c1faf28396d74678cd2ea2a7dc4ee85ce.spec (Seg60.localRho rho) at h
   unfold Deployed.Templates.Semantics.TStatementHash_0a6a7d5c079d0a2e952c00450800860c1faf28396d74678cd2ea2a7dc4ee85ce.spec at h
   have hw443 : Seg60.wireSeating 443 = 53713 := by
@@ -340,7 +340,7 @@ theorem statementPublicHash_of_exact
     (rho : Nat → SemanticF)
     (facts : ShieldedIcs20WithdrawalCircuitFacts rho) :
     claimedStatementHash rho = statementHash rho := by
-  have h := facts.exact.AssertEqSeg61
+  have h := facts.statementBinding.AssertEqSeg61
   change Deployed.Templates.Semantics.TAssertEq_001662998b48830253568a34945bae30020bcb70574648b9aa58b23510a29b69.spec
     (Seg61.localRho rho) at h
   have ha1 : Seg61.wireSeating 1 = 53713 := by

@@ -94,7 +94,7 @@ REVIEWED_TEMPLATE_DIGESTS = {
     "NoteReshape1x8BalanceRunsY.lean":
         "3687f528f479c18897f1a8b290208da56a8f8b76d0a7c7fc0c7c52f297330434",
     "NoteReshape8x1Balance.lean":
-        "acbb3bc3a22184c5fd813db5181dd8f7f940ad4616376f46ebb849439a39ceed",
+        "fa4161366472bfbf17de4e2271d3f73b8d3c32f236b85a0dab9fd172393c0dfd",
 }
 
 

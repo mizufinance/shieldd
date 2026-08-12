@@ -488,7 +488,7 @@ theorem assetAnchor_eq_computedRoot_of_exact
     (rho : Nat → SemanticF)
     (facts : ShieldedIcs20WithdrawalCircuitFacts rho) :
     assetAnchor rho = assetRootComputed rho := by
-  have h := facts.exact.AssertEqSeg12
+  have h := facts.assetRegistry.AssertEqSeg12
   change Deployed.Templates.Semantics.TAssertEq_5e5758a2d4a6d172e743a9ad78863e351485ec2c3a01a4ef7fdc4d01f6c826ef.spec
     (Seg12.localRho rho) at h
   unfold Deployed.Templates.Semantics.TAssertEq_5e5758a2d4a6d172e743a9ad78863e351485ec2c3a01a4ef7fdc4d01f6c826ef.spec at h
@@ -521,7 +521,7 @@ theorem assetMember_of_exact
       (assetAnchor rho) (assetLeafCommitment rho)
       (assetProtocolPath rho) (assetPosition rho) := by
   have hPath :=
-    facts.exact.GadgetAssetRegistryPathSeg11
+    facts.assetRegistry.GadgetAssetRegistryPathSeg11
   change Deployed.Templates.Semantics.TGadgetAssetRegistryPath_15ce53a7aa20f1e3be74b254ad3c8969ad9eebbd2a6c1efaabc49db1f4e46c67.spec
     (Seg11.localRho rho) at hPath
   have hBinary :=
@@ -556,7 +556,7 @@ theorem compliancePath_of_exact
         (senderPosition rho) =
           senderComplianceRoot rho := by
   have hPath :=
-    facts.exact.GadgetCompliancePathSeg17
+    facts.senderCompliance.GadgetCompliancePathSeg17
   change Deployed.Templates.Semantics.TGadgetCompliancePath_d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686.spec
     (Seg17.localRho rho) at hPath
   have hBinary :=

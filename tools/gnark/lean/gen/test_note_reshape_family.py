@@ -56,6 +56,17 @@ class NoteReshapeFamilyTests(unittest.TestCase):
             self.assertIn("TranscriptCircuitFacts", source)
             self.assertIn("(h : relationAll rho)", source)
             self.assertNotIn("rows : relationAll rho", source)
+            fact_files = family.render_circuit_fact_files(ir)
+            self.assertIn("Facts/Control.lean", fact_files)
+            self.assertIn("Facts/Transcript.lean", fact_files)
+            for group, segments in groups.items():
+                group_source = fact_files[f"Facts/{family.camel(group)}.lean"]
+                for segment in segments:
+                    self.assertIn(
+                        f"Seg{segment['index']}.contract.spec rho",
+                        group_source,
+                    )
+                self.assertNotIn(".Capstone", group_source)
 
     def test_8x1_refinement_supports_two_through_eight_real_inputs(self) -> None:
         source = (
@@ -679,7 +690,7 @@ class NoteReshapeFamilyTests(unittest.TestCase):
     ) -> None:
         deployed = self.root / "tools/gnark/lean/ShielddGnarkFormal/Deployed"
         contract = deployed / "Contracts/NoteReshape8x1"
-        facts = (contract / "CircuitFacts.lean").read_text()
+        facts = (contract / "Facts/Transcript.lean").read_text()
         match = re.search(
             r"structure TranscriptCircuitFacts .*? where\n"
             r"  StatementHashSeg(\d+) .*?\n"
@@ -767,7 +778,7 @@ class NoteReshapeFamilyTests(unittest.TestCase):
     def test_1x8_spend_bridge_tracks_generated_fact_segments(self) -> None:
         deployed = self.root / "tools/gnark/lean/ShielddGnarkFormal/Deployed"
         contract = deployed / "Contracts/NoteReshape1x8"
-        facts = (contract / "CircuitFacts.lean").read_text()
+        facts = (contract / "Facts/Spend0.lean").read_text()
         spend = (deployed / "NoteReshape1x8Spend.lean").read_text()
         refinement = (deployed / "NoteReshape1x8Refinement.lean").read_text()
 

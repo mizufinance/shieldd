@@ -3,8 +3,11 @@ set -euo pipefail
 
 # Incremental exact Lean circuit FV gate.
 #
-#   drift   Go compilation, content impact, coverage, generator/inventory
-#           checks, and stamp integrity. No Lake command and no proving.
+#   fast    Go compilation, content impact, coverage, generator/inventory
+#           checks, and stamp integrity. No Lake, prover, or evidence refresh.
+#   drift   fast plus committed evidence-closure validation.
+#   affected fast plus the selected circuit roots only. No prover or release
+#           replay. This is the normal circuit-edit loop.
 #   typed   drift plus selected final soundness modules, typed theorem bindings,
 #           obligation coverage, axiom output, and changed-source benchmarks.
 #   release typed plus stamp validation, deployed-key prove/verify, and release
@@ -15,9 +18,9 @@ set -euo pipefail
 
 MODE="${1:-}"
 case "$MODE" in
-  drift|typed|release) shift ;;
+  fast|drift|affected|typed|release) shift ;;
   *)
-    echo "usage: $(basename "$0") [drift|typed|release] [CERTIFIED_PROFILE|all]..." >&2
+    echo "usage: $(basename "$0") [fast|drift|affected|typed|release] [CERTIFIED_PROFILE|all]..." >&2
     exit 2
     ;;
 esac
@@ -366,6 +369,25 @@ while IFS= read -r circuit; do
   check_stamp "$circuit"
 done < <(printf '%s\n' "${FAMILIES[@]}")
 
+if [[ "$MODE" == "fast" ]]; then
+  echo "lean circuit fv ok (fast): families=$(printf '%s' "$selected_circuits" | tr '\n' ',' | sed 's/,$//')"
+  exit 0
+fi
+
+if [[ "$MODE" == "affected" ]]; then
+  echo "==> affected final roots"
+  while IFS= read -r circuit; do
+    [[ -z "$circuit" ]] && continue
+    lean_module_build "$(backend_value "$circuit" theorem_root)"
+  done <<< "$selected_circuits"
+  echo "lean circuit fv ok (affected): families=$(printf '%s' "$selected_circuits" | tr '\n' ',' | sed 's/,$//')"
+  exit 0
+fi
+
+# These attestations bind the checked Lean source closure. Fast and affected
+# are edit-loop tiers: the former compiles no Lean, while the latter validates
+# selected roots without claiming release evidence. Drift, typed, and release
+# require the committed attestation to match the complete source closure.
 echo "==> family evidence closure"
 evidence_backends="$(
   for circuit in "${FAMILIES[@]}"; do

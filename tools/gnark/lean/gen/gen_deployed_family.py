@@ -2313,6 +2313,47 @@ def exact_groups(ir: dict) -> dict[str, list[dict]]:
     return {"exact": core.constraint_segments(ir)}
 
 
+def semantic_fact_groups(
+    ir: dict, constraint_manifest: dict | None = None
+) -> dict[str, list[dict]]:
+    """Partition deployed providers by the protocol fact they establish."""
+
+    circuit = ir.get("circuit")
+    if circuit == "transfer":
+        specs = TRANSFER_TRACE_SPECS
+        fields = TRANSFER_FACT_FIELDS
+    elif circuit == "shielded_ics20_withdrawal":
+        specs = WITHDRAWAL_TRACE_SPECS
+        fields = WITHDRAWAL_FACT_FIELDS
+    else:
+        raise ValueError(f"unsupported semantic fact partition: {circuit!r}")
+    if constraint_manifest is None or not isinstance(
+        constraint_manifest.get("segments"), list
+    ):
+        # Render-only unit fixtures do not carry an authenticated source-trace
+        # join. Keep them exhaustive; production generation always supplies it.
+        return exact_groups(ir)
+    if circuit == "transfer":
+        plan = _validate_transfer_refinement_plan(ir, constraint_manifest)
+    else:
+        plan = _validate_withdrawal_refinement_plan(ir, constraint_manifest)
+    assigned: set[int] = set()
+    groups = {field: [] for field in fields}
+    for spec in specs:
+        segment = plan.segments[spec.label]
+        if segment["index"] in assigned:
+            raise ValueError(f"{circuit} semantic fact partition repeats a segment")
+        assigned.add(segment["index"])
+        groups[spec.fact].append(segment)
+    segments = {segment["index"] for segment in core.constraint_segments(ir)}
+    if assigned != segments:
+        raise ValueError(
+            f"{circuit} semantic fact partition omitted segments: "
+            f"{sorted(segments - assigned)}"
+        )
+    return groups
+
+
 def render_bounds(ir: dict) -> str:
     return core.render_bounds(ir, generator=GENERATOR)
 
@@ -2321,10 +2362,22 @@ def render_capstone(ir: dict) -> str:
     return core.render_capstone(ir, generator=GENERATOR)
 
 
-def render_circuit_facts(ir: dict) -> str:
+def render_circuit_facts(
+    ir: dict, constraint_manifest: dict | None = None
+) -> str:
     return core.render_circuit_facts(
         ir,
-        groups=exact_groups(ir),
+        groups=semantic_fact_groups(ir, constraint_manifest),
+        generator=GENERATOR,
+    )
+
+
+def render_circuit_fact_files(
+    ir: dict, constraint_manifest: dict | None = None
+) -> dict[str, str]:
+    return core.render_circuit_fact_files(
+        ir,
+        groups=semantic_fact_groups(ir, constraint_manifest),
         generator=GENERATOR,
     )
 
@@ -2756,7 +2809,7 @@ def render_non_identity_seams(ir: dict, constraint_manifest: dict) -> str:
         constraint_manifest,
         NON_IDENTITY_BINDINGS[circuit],
         ("auth.ivk_reduced",),
-        groups=exact_groups(ir),
+        groups=semantic_fact_groups(ir, constraint_manifest),
         generator=GENERATOR,
     )
 
@@ -5720,7 +5773,7 @@ def _withdrawal_exact_projection(
 ) -> str:
     stable = core.lower_camel(spec.label)
     exact = f"{core.camel(spec.op)}Seg{segment['index']}"
-    return f"      {stable} := facts.exact.{exact}"
+    return f"      {stable} := facts.{spec.fact}.{exact}"
 
 
 def render_withdrawal_exact_providers(
@@ -6928,7 +6981,7 @@ def _transfer_exact_field(spec: ExactTraceSpec, segment: dict) -> str:
 def _transfer_exact_projection(spec: ExactTraceSpec, segment: dict) -> str:
     stable = core.lower_camel(spec.label)
     exact = f"{core.camel(spec.op)}Seg{segment['index']}"
-    return f"      {stable} := facts.exact.{exact}"
+    return f"      {stable} := facts.{spec.fact}.{exact}"
 
 
 def _transfer_semantic_provider(segment: dict) -> str:
@@ -7769,7 +7822,7 @@ theorem assetIdNonzero_of_exact
     (facts : TransferCircuitFacts rho) :
     sharedAssetId rho ≠ 0 := by
   have h :=
-    facts.exact.AssertNeSeg{nonzero["index"]}.{nonzero_projection}
+    facts.assetRegistry.AssertNeSeg{nonzero["index"]}.{nonzero_projection}
   change
     Seg{nonzero["index"]}.localRho rho
       {selectors.asset_id_local} ≠ 0 at h
@@ -13640,6 +13693,141 @@ end Shieldd.GnarkFormal.Deployed.Contracts.Transfer
 """
 
 
+def _transfer_transcript_slice(
+    source: str,
+    start_marker: str,
+    end_marker: str | None,
+    dependency: str | None,
+    title: str,
+) -> str:
+    """Render one independently invalidated transcript seam module."""
+
+    first_marker = "/-- The gated comparator output is exactly"
+    body_start = source.index(first_marker)
+    start = source.index(start_marker)
+    end = source.index(end_marker) if end_marker is not None else source.rindex(
+        "\nend Shieldd.GnarkFormal.Deployed.Contracts.Transfer"
+    )
+    prefix = source[:body_start]
+    if dependency is not None:
+        prefix = f"import {dependency}\n" + prefix
+    prefix = prefix.replace(
+        "Exact Transfer transcript and statement joins.",
+        title,
+        1,
+    )
+    return (
+        prefix
+        + source[start:end].rstrip()
+        + "\n\nend Shieldd.GnarkFormal.Deployed.Contracts.Transfer\n"
+    )
+
+
+def render_transfer_routing_seams() -> str:
+    """Project the routing providers behind a typed, narrow seam."""
+
+    fields = tuple(
+        spec for spec in TRANSFER_TRACE_SPECS
+        if spec.fact == "statementBinding" and spec.label.startswith("routing_")
+    )
+    declarations = "\n".join(
+        f"  {core.lower_camel(spec.label)} : "
+        f"{core.camel(spec.label)}SemanticSpec rho"
+        for spec in fields
+    )
+    projections = "\n".join(
+        f"    {core.lower_camel(spec.label)} := semantic."
+        f"{core.lower_camel(spec.label)}"
+        for spec in fields
+    )
+    return f"""import ShielddGnarkFormal.Deployed.Contracts.Transfer.RefinementAdapters
+
+/-!
+Typed boundary for the fixed Transfer routing bundle.  It excludes statement
+hash providers so routing-only consumers do not depend on transcript assembly.
+GENERATED by {GENERATOR} — do not edit by hand.
+-/
+
+namespace Shieldd.GnarkFormal.Deployed.Contracts.Transfer
+
+open Shieldd.GnarkFormal
+
+structure TransferRoutingSemanticProviders (rho : Nat → DeployedF) : Prop where
+{declarations}
+
+def transferRoutingSemanticProviders
+    (rho : Nat → DeployedF)
+    (semantic : TransferSemanticProviders rho) :
+    TransferRoutingSemanticProviders rho := {{
+{projections}
+  }}
+
+end Shieldd.GnarkFormal.Deployed.Contracts.Transfer
+"""
+
+
+def render_transfer_transcript_seam_modules(
+    ir: dict, constraint_manifest: dict
+) -> dict[str, str]:
+    """Split transcript, encryption, metadata, routing, and statement seams."""
+
+    source = render_transfer_transcript_seams(ir, constraint_manifest)
+    encryption = "/-- Circuit point compressed by the `senderAmount`"
+    metadata = "/-- Exact metadata binding for `senderSubjectDerivation`"
+    statement = "/-- Exact eight-block provider output before"
+    core_module = (
+        "ShielddGnarkFormal.Deployed.Contracts.Transfer.TranscriptCoreSeams"
+    )
+    encryption_module = (
+        "ShielddGnarkFormal.Deployed.Contracts.Transfer.EncryptionSeams"
+    )
+    modules = {
+        "TranscriptCoreSeams.lean": _transfer_transcript_slice(
+            source,
+            "/-- The gated comparator output is exactly",
+            encryption,
+            None,
+            "Exact Transfer threshold, EPK, salt, and shared-secret joins.",
+        ),
+        "EncryptionSeams.lean": _transfer_transcript_slice(
+            source,
+            encryption,
+            metadata,
+            core_module,
+            "Exact Transfer encryption and detection joins.",
+        ),
+        "MetadataSeams.lean": _transfer_transcript_slice(
+            source,
+            metadata,
+            statement,
+            encryption_module,
+            "Exact Transfer compliance metadata joins.",
+        ),
+        "StatementSeams.lean": _transfer_transcript_slice(
+            source,
+            statement,
+            None,
+            None,
+            "Exact Transfer statement-hash and public-input joins.",
+        ),
+        "RoutingSeams.lean": render_transfer_routing_seams(),
+    }
+    imports = "\n".join(
+        "import ShielddGnarkFormal.Deployed.Contracts.Transfer."
+        + Path(filename).stem
+        for filename in modules
+    )
+    modules["TranscriptSeams.lean"] = f"""{imports}
+
+/-!
+Memory-bounded facade for Transfer transcript, encryption, metadata, routing,
+and statement seams.
+GENERATED by {GENERATOR} — do not edit by hand.
+-/
+"""
+    return modules
+
+
 def _withdrawal_balance_seating_leaf(
     suffix: str,
     segment: int,
@@ -14242,7 +14430,7 @@ theorem assetAnchor_eq_computedRoot_of_exact
     (rho : Nat → SemanticF)
     (facts : ShieldedIcs20WithdrawalCircuitFacts rho) :
     assetAnchor rho = assetRootComputed rho := by
-  have h := facts.exact.AssertEqSeg{asset_root_index}
+  have h := facts.assetRegistry.AssertEqSeg{asset_root_index}
   change {root_provider}.spec
     (Seg{asset_root_index}.localRho rho) at h
   unfold {root_provider}.spec at h
@@ -14264,7 +14452,7 @@ theorem assetMember_of_exact
       (assetAnchor rho) (assetLeafCommitment rho)
       (assetProtocolPath rho) (assetPosition rho) := by
   have hPath :=
-    facts.exact.GadgetAssetRegistryPathSeg{asset_path_index}
+    facts.assetRegistry.GadgetAssetRegistryPathSeg{asset_path_index}
   change {asset_provider}.spec
     (Seg{asset_path_index}.localRho rho) at hPath
   have hBinary :=
@@ -14299,7 +14487,7 @@ theorem compliancePath_of_exact
         (senderPosition rho) =
           senderComplianceRoot rho := by
   have hPath :=
-    facts.exact.GadgetCompliancePathSeg{compliance_path_index}
+    facts.senderCompliance.GadgetCompliancePathSeg{compliance_path_index}
   change {compliance_provider}.spec
     (Seg{compliance_path_index}.localRho rho) at hPath
   have hBinary :=
@@ -14342,7 +14530,7 @@ theorem isRegulatedBoolean_of_exact
     (rho : Nat → SemanticF)
     (facts : ShieldedIcs20WithdrawalCircuitFacts rho) :
     isRegulated rho = 0 ∨ isRegulated rho = 1 := by
-  have h := facts.exact.AssertBooleanSeg{boolean_index}
+  have h := facts.assetRegistry.AssertBooleanSeg{boolean_index}
   change {boolean_provider}.spec
     (Seg{boolean_index}.localRho rho) at h
   unfold {boolean_provider}.spec at h
@@ -14372,7 +14560,7 @@ theorem outboundAssetIdNonzero_of_exact
     (facts : ShieldedIcs20WithdrawalCircuitFacts rho) :
     outboundAssetId rho ≠ 0 := by
   have h :=
-    facts.exact.AssertNeSeg{asset_nonzero_index}.{asset_id_nonzero_projection}
+    facts.assetRegistry.AssertNeSeg{asset_nonzero_index}.{asset_id_nonzero_projection}
   change
     Seg{asset_nonzero_index}.localRho rho
       {selectors.asset_id_local_wire} ≠ 0 at h
@@ -14500,7 +14688,7 @@ theorem assetGap_of_exact
     · rw [hone]
       simp [GatesDef.is_bool]
   have hBody :=
-    facts.exact.GadgetAssetRegistryGapSeg{asset_gap_index}
+    facts.assetRegistry.GadgetAssetRegistryGapSeg{asset_gap_index}
   change {gap_provider}.spec
     (Seg{asset_gap_index}.localRho rho) at hBody
   unfold {gap_provider}.spec at hBody
@@ -14516,7 +14704,7 @@ theorem assetGap_of_exact
       assetLeafNextValue_eq_gapInput,
       assetGapValid_eq_gapOutput]
     exact hBody
-  have hAcceptSpec := facts.exact.AssertEqSeg{gap_accept_index}
+  have hAcceptSpec := facts.assetRegistry.AssertEqSeg{gap_accept_index}
   change {accept_provider}.spec
     (Seg{gap_accept_index}.localRho rho) at hAcceptSpec
   unfold {accept_provider}.spec at hAcceptSpec
@@ -14755,7 +14943,7 @@ theorem conservationSpec_of_circuitFacts
     (facts : ShieldedIcs20WithdrawalCircuitFacts rho) :
     ConservationSpec rho :=
   conservationSpec_of_segmentSpec rho
-    facts.exact.DecafConservationNetBalanceCommitment2Seg{nb_index}
+    facts.conservation.DecafConservationNetBalanceCommitment2Seg{nb_index}
 
 /-- The compiler-labelled x-coordinate is exactly the net-balance output. -/
 theorem balanceCommitmentComputed0_eq_netBalanceCommitmentX
@@ -15616,7 +15804,7 @@ theorem diversifiedTransmissionKey_of_exact
       (authIvkReduced rho) (authIvkQuotientA rho)
       ⟨senderTransmissionComputed0 rho, senderTransmissionComputed1 rho⟩ := by
   have h :=
-    facts.exact.DecafDiversifiedTransmissionKeySeg{dtk_index}
+    facts.canonicalSender.DecafDiversifiedTransmissionKeySeg{dtk_index}
   change {dtk_support}.spec
     (Seg{dtk_index}.localRho rho) at h
 {dtk_haves}
@@ -15682,7 +15870,7 @@ theorem transmissionCompressed_of_exact
     Decaf377Assumptions.CompressToFieldSpec
       ⟨senderTransmissionComputed0 rho, senderTransmissionComputed1 rho⟩
       (senderTransmissionFq rho) := by
-  have h := facts.exact.DecafCompressToFieldSeg{transmission_index}
+  have h := facts.canonicalSender.DecafCompressToFieldSeg{transmission_index}
   change {transmission_sem}.spec
     (Seg{transmission_index}.localRho rho) at h
   unfold {transmission_sem}.spec at h
@@ -15701,7 +15889,7 @@ theorem requiredNullifierAsserted_of_exact
     (rho : Nat → SemanticF)
     (facts : ShieldedIcs20WithdrawalCircuitFacts rho) :
     spend0NullifierClaimed rho = spend0NullifierReal rho := by
-  have h := facts.exact.AssertEqSeg{nullifier_assert_index}
+  have h := facts.requiredSpend.AssertEqSeg{nullifier_assert_index}
   change {nullifier_assert_sem}.spec
     (Seg{nullifier_assert_index}.localRho rho) at h
 {required_nullifier_haves}
@@ -15727,7 +15915,7 @@ theorem syntheticNullifierHash_of_exact
         Protocol.ShieldedIcs20Withdrawal.Concrete.syntheticDummyNullifierDomain
         (spend1DummyNullifierSeed rho) (spend1AuthRandomizer rho) 1 := by
   have h :=
-    facts.exact.GadgetSyntheticDummyNullifierSeg{synthetic_index}
+    facts.optionalSpend.GadgetSyntheticDummyNullifierSeg{synthetic_index}
   change {synthetic_sem}.spec
     (Seg{synthetic_index}.localRho rho) at h
 {synthetic_haves}
@@ -15772,7 +15960,7 @@ theorem assetLeafHash_of_exact
         (assetLeafValue rho) (assetLeafNextIndex rho)
         (assetLeafNextValue rho)
         (assetLeafParamsHash rho) (assetLeafRingHash rho) := by
-  have h := facts.exact.GadgetAssetRegistryLeafHashSeg{leaf_index}
+  have h := facts.assetRegistry.GadgetAssetRegistryLeafHashSeg{leaf_index}
   change {leaf_sem}.spec (Seg{leaf_index}.localRho rho) at h
 {asset_haves}
   unfold {leaf_sem}.spec at h
@@ -15820,7 +16008,7 @@ theorem complianceLeafHash_of_exact
         (senderDivGenFq rho) (senderTransmissionFq rho)
         (outboundAssetId rho) (senderSlotId rho)
         (senderSlotDerivation rho) (senderD rho) := by
-  have h := facts.exact.GadgetComplianceLeafSeg{compliance_index}
+  have h := facts.senderCompliance.GadgetComplianceLeafSeg{compliance_index}
   change {compliance_sem}.spec
     (Seg{compliance_index}.localRho rho) at h
 {compliance_haves}
@@ -15870,7 +16058,7 @@ theorem complianceRootAsserted_of_exact
     isRegulated rho = 1 →
       senderComplianceRoot rho = complianceAnchor rho := by
   intro regulated
-  have h := facts.exact.AssertEqIfSeg{compliance_assert_index}
+  have h := facts.senderCompliance.AssertEqIfSeg{compliance_assert_index}
   change {compliance_assert_sem}.spec
     (Seg{compliance_assert_index}.localRho rho) at h
 {compliance_assert_haves}
@@ -15908,7 +16096,7 @@ theorem balanceCompressed_of_exact
     Decaf377Assumptions.CompressToFieldSpec
       ⟨balanceCommitmentComputed0 rho, balanceCommitmentComputed1 rho⟩
       (balanceCommitmentFq rho) := by
-  have h := facts.exact.DecafCompressToFieldSeg{balance_index}
+  have h := facts.conservation.DecafCompressToFieldSeg{balance_index}
   change {balance_sem}.spec
     (Seg{balance_index}.localRho rho) at h
   unfold {balance_sem}.spec at h
@@ -16185,7 +16373,7 @@ theorem statementBlock0_of_exact
         (balanceCommitmentFq rho)
         (spend0NullifierClaimed rho) (spend0RkCompressed rho)
         (spend1NullifierClaimed rho) (spend1RkCompressed rho) := by
-  have h := facts.exact.StatementHashSeg{first_index}
+  have h := facts.statementBinding.StatementHashSeg{first_index}
   change {first_sem}.spec (Seg{first_index}.localRho rho) at h
   unfold {first_sem}.spec at h
 {first_output_haves}
@@ -16238,7 +16426,7 @@ theorem statementBlock1_of_exact
         (assetAnchor rho) (complianceAnchor rho) (targetTimestamp rho)
         (outboundAssetId rho) (outboundAmount rho)
         (withdrawalEffectHashLimbs0 rho) := by
-  have h := facts.exact.StatementHashSeg{second_index}
+  have h := facts.statementBinding.StatementHashSeg{second_index}
   change {second_sem}.spec (Seg{second_index}.localRho rho) at h
   unfold {second_sem}.spec at h
 {second_output_haves}
@@ -16297,7 +16485,7 @@ theorem statementBlock2_of_exact
         (routingTag rho)
         (routingParameterSetId rho)
         Protocol.ShieldedIcs20Withdrawal.Concrete.statementPad1 := by
-  have h := facts.exact.StatementHashSeg{third_index}
+  have h := facts.statementBinding.StatementHashSeg{third_index}
   change {third_sem}.spec (Seg{third_index}.localRho rho) at h
   unfold {third_sem}.spec at h
 {third_output_haves}
@@ -16349,7 +16537,7 @@ theorem statementPublicHash_of_exact
     (rho : Nat → SemanticF)
     (facts : ShieldedIcs20WithdrawalCircuitFacts rho) :
     claimedStatementHash rho = statementHash rho := by
-  have h := facts.exact.AssertEqSeg{asserted_index}
+  have h := facts.statementBinding.AssertEqSeg{asserted_index}
   change {asserted_sem}.spec
     (Seg{asserted_index}.localRho rho) at h
 {asserted_haves}
@@ -17164,10 +17352,13 @@ def owned_files(
     previous: dict,
     canonical_out: Path | None = None,
 ) -> dict[Path, str]:
+    fact_files = render_circuit_fact_files(ir, constraint_manifest)
     files = {
         out_dir / "Bounds.lean": render_bounds(ir),
         out_dir / "Capstone.lean": render_capstone(ir),
-        out_dir / "CircuitFacts.lean": render_circuit_facts(ir),
+        out_dir / "CircuitFacts.lean": render_circuit_facts(
+            ir, constraint_manifest
+        ),
         out_dir / "RoleBindings.lean": render_role_bindings(
             ir, constraint_manifest
         ),
@@ -17175,6 +17366,10 @@ def owned_files(
             ir, constraint_manifest
         ),
     }
+    files.update(
+        (out_dir / filename, source)
+        for filename, source in fact_files.items()
+    )
     if any(
         segment.get("op") == "assert.decaf_non_identity"
         for segment in core.constraint_segments(ir)
@@ -17199,8 +17394,12 @@ def owned_files(
                 ir, constraint_manifest
             ).items()
         )
-        files[out_dir / "TranscriptSeams.lean"] = (
-            render_transfer_transcript_seams(ir, constraint_manifest)
+        files.update(
+            (out_dir / filename, source)
+            for filename, source in
+            render_transfer_transcript_seam_modules(
+                ir, constraint_manifest
+            ).items()
         )
         files[out_dir / "SpecificationConsequences.lean"] = (
             render_transfer_specification_consequences(

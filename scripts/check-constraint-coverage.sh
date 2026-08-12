@@ -268,11 +268,11 @@ check_generated_family_artifacts() {
 
   (
     cd "$committed_dir"
-    find . -maxdepth 1 -type f -name '*.lean' | sed 's#^\./##' | sort
+    find . -type f -name '*.lean' | sed 's#^\./##' | sort
   ) > "$committed_list"
   (
     cd "$generated_dir"
-    find . -maxdepth 1 -type f -name '*.lean' | sed 's#^\./##' | sort
+    find . -type f -name '*.lean' | sed 's#^\./##' | sort
   ) > "$generated_list"
   if ! cmp -s "$committed_list" "$generated_list"; then
     diff -u "$committed_list" "$generated_list" >&2 || true

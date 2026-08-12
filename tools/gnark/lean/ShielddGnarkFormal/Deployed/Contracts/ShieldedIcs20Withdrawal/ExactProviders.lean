@@ -108,73 +108,73 @@ theorem withdrawalExactProviders
     WithdrawalExactProviders rho := by
   exact {
     canonicalSender := {
-      authAkNonIdentity := facts.exact.AssertDecafNonIdentitySeg3
-      senderDivGenNonIdentity := facts.exact.AssertDecafNonIdentitySeg4
-      senderDivGenCompress := facts.exact.DecafCompressToFieldSeg5
-      incomingViewingKeyNonzero := facts.exact.AssertNeSeg6
-      senderDtk := facts.exact.DecafDiversifiedTransmissionKeySeg7
-      senderTransmissionCompress := facts.exact.DecafCompressToFieldSeg8
-      senderTransmissionNonIdentity := facts.exact.AssertDecafNonIdentitySeg9
+      authAkNonIdentity := facts.canonicalSender.AssertDecafNonIdentitySeg3
+      senderDivGenNonIdentity := facts.canonicalSender.AssertDecafNonIdentitySeg4
+      senderDivGenCompress := facts.canonicalSender.DecafCompressToFieldSeg5
+      incomingViewingKeyNonzero := facts.canonicalSender.AssertNeSeg6
+      senderDtk := facts.canonicalSender.DecafDiversifiedTransmissionKeySeg7
+      senderTransmissionCompress := facts.canonicalSender.DecafCompressToFieldSeg8
+      senderTransmissionNonIdentity := facts.canonicalSender.AssertDecafNonIdentitySeg9
     }
     requiredSpend := {
-      requiredNoteCommitment := facts.exact.GadgetNoteCommitmentSeg28
-      requiredNullifier := facts.exact.GadgetNullifierSeg29
-      requiredStatePath := facts.exact.GadgetStateCommitmentPathSeg30
-      requiredRvk := facts.exact.DecafRandomizedVerificationKeySeg31
-      requiredRkCompress := facts.exact.DecafCompressToFieldSeg32
-      requiredNullifierAssert := facts.exact.AssertEqSeg33
-      requiredAnchorAssert := facts.exact.AssertEqSeg34
-      requiredRkEquivalent := facts.exact.DecafAssertEquivalentSeg35
+      requiredNoteCommitment := facts.requiredSpend.GadgetNoteCommitmentSeg28
+      requiredNullifier := facts.requiredSpend.GadgetNullifierSeg29
+      requiredStatePath := facts.requiredSpend.GadgetStateCommitmentPathSeg30
+      requiredRvk := facts.requiredSpend.DecafRandomizedVerificationKeySeg31
+      requiredRkCompress := facts.requiredSpend.DecafCompressToFieldSeg32
+      requiredNullifierAssert := facts.requiredSpend.AssertEqSeg33
+      requiredAnchorAssert := facts.requiredSpend.AssertEqSeg34
+      requiredRkEquivalent := facts.requiredSpend.DecafAssertEquivalentSeg35
     }
     optionalSpend := {
-      optionalNoteCommitment := facts.exact.GadgetNoteCommitmentSeg38
-      optionalNullifier := facts.exact.GadgetNullifierSeg39
-      optionalStatePath := facts.exact.GadgetStateCommitmentPathSeg40
-      optionalRvk := facts.exact.DecafRandomizedVerificationKeySeg41
-      optionalRkCompress := facts.exact.DecafCompressToFieldSeg42
-      optionalIsDummyBoolean := facts.exact.AssertBooleanSeg43
-      optionalSyntheticNullifier := facts.exact.GadgetSyntheticDummyNullifierSeg44
-      optionalNullifierMux := facts.exact.DummyMuxSeg45
-      optionalNullifierAssert := facts.exact.AssertEqSeg46
-      optionalAnchorAssert := facts.exact.AssertEqIfSeg47
-      optionalRkEquivalent := facts.exact.DecafAssertEquivalentIfSeg48
-      optionalAmountZero := facts.exact.AssertEqIfSeg49
+      optionalNoteCommitment := facts.optionalSpend.GadgetNoteCommitmentSeg38
+      optionalNullifier := facts.optionalSpend.GadgetNullifierSeg39
+      optionalStatePath := facts.optionalSpend.GadgetStateCommitmentPathSeg40
+      optionalRvk := facts.optionalSpend.DecafRandomizedVerificationKeySeg41
+      optionalRkCompress := facts.optionalSpend.DecafCompressToFieldSeg42
+      optionalIsDummyBoolean := facts.optionalSpend.AssertBooleanSeg43
+      optionalSyntheticNullifier := facts.optionalSpend.GadgetSyntheticDummyNullifierSeg44
+      optionalNullifierMux := facts.optionalSpend.DummyMuxSeg45
+      optionalNullifierAssert := facts.optionalSpend.AssertEqSeg46
+      optionalAnchorAssert := facts.optionalSpend.AssertEqIfSeg47
+      optionalRkEquivalent := facts.optionalSpend.DecafAssertEquivalentIfSeg48
+      optionalAmountZero := facts.optionalSpend.AssertEqIfSeg49
     }
     changeOutput := {
-      changeNoteCommitment := facts.exact.GadgetNoteCommitmentSeg52
-      changeNoteAssert := facts.exact.AssertEqSeg53
+      changeNoteCommitment := facts.changeOutput.GadgetNoteCommitmentSeg52
+      changeNoteAssert := facts.changeOutput.AssertEqSeg53
     }
     assetRegistry := {
-      isRegulatedBoolean := facts.exact.AssertBooleanSeg1
-      assetLeaf := facts.exact.GadgetAssetRegistryLeafHashSeg10
-      assetPath := facts.exact.GadgetAssetRegistryPathSeg11
-      assetRootAssert := facts.exact.AssertEqSeg12
-      assetIdNonzero := facts.exact.AssertNeSeg13
-      assetGap := facts.exact.GadgetAssetRegistryGapSeg14
-      assetGapAccept := facts.exact.AssertEqSeg15
+      isRegulatedBoolean := facts.assetRegistry.AssertBooleanSeg1
+      assetLeaf := facts.assetRegistry.GadgetAssetRegistryLeafHashSeg10
+      assetPath := facts.assetRegistry.GadgetAssetRegistryPathSeg11
+      assetRootAssert := facts.assetRegistry.AssertEqSeg12
+      assetIdNonzero := facts.assetRegistry.AssertNeSeg13
+      assetGap := facts.assetRegistry.GadgetAssetRegistryGapSeg14
+      assetGapAccept := facts.assetRegistry.AssertEqSeg15
     }
     senderCompliance := {
-      senderComplianceLeaf := facts.exact.GadgetComplianceLeafSeg16
-      senderCompliancePath := facts.exact.GadgetCompliancePathSeg17
-      senderComplianceAssert := facts.exact.AssertEqIfSeg18
+      senderComplianceLeaf := facts.senderCompliance.GadgetComplianceLeafSeg16
+      senderCompliancePath := facts.senderCompliance.GadgetCompliancePathSeg17
+      senderComplianceAssert := facts.senderCompliance.AssertEqIfSeg18
     }
     conservation := {
-      conservationNetBalance := facts.exact.DecafConservationNetBalanceCommitment2Seg55
-      conservationBalanceCompress := facts.exact.DecafCompressToFieldSeg56
+      conservationNetBalance := facts.conservation.DecafConservationNetBalanceCommitment2Seg55
+      conservationBalanceCompress := facts.conservation.DecafCompressToFieldSeg56
     }
     statementBinding := {
-      routingPrecisionSelect := facts.exact.RoutingPrecisionSelectSeg19
-      routingParametersHash := facts.exact.RoutingParametersHashSeg20
-      routingParametersBind := facts.exact.RoutingParametersBindSeg21
-      routingSenderRouteWord := facts.exact.RoutingRouteWordSeg22
-      routingTag0PublicRange := facts.exact.RoutingTagPublicRangeSeg23
-      routingTag0RouteBits := facts.exact.RoutingTagRouteBitsSeg24
-      routingTag0RandomWord := facts.exact.RoutingTagRandomWordSeg25
-      routingTag0Compose := facts.exact.RoutingTagComposeSeg26
-      statementBlock0 := facts.exact.StatementHashSeg58
-      statementBlock1 := facts.exact.StatementHashSeg59
-      statementBlock2 := facts.exact.StatementHashSeg60
-      statementAssert := facts.exact.AssertEqSeg61
+      routingPrecisionSelect := facts.statementBinding.RoutingPrecisionSelectSeg19
+      routingParametersHash := facts.statementBinding.RoutingParametersHashSeg20
+      routingParametersBind := facts.statementBinding.RoutingParametersBindSeg21
+      routingSenderRouteWord := facts.statementBinding.RoutingRouteWordSeg22
+      routingTag0PublicRange := facts.statementBinding.RoutingTagPublicRangeSeg23
+      routingTag0RouteBits := facts.statementBinding.RoutingTagRouteBitsSeg24
+      routingTag0RandomWord := facts.statementBinding.RoutingTagRandomWordSeg25
+      routingTag0Compose := facts.statementBinding.RoutingTagComposeSeg26
+      statementBlock0 := facts.statementBinding.StatementHashSeg58
+      statementBlock1 := facts.statementBinding.StatementHashSeg59
+      statementBlock2 := facts.statementBinding.StatementHashSeg60
+      statementAssert := facts.statementBinding.AssertEqSeg61
     }
   }
 

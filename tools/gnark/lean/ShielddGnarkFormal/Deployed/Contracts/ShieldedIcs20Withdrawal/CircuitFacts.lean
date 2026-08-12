@@ -1,4 +1,12 @@
 import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Capstone
+import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Facts.CanonicalSender
+import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Facts.RequiredSpend
+import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Facts.OptionalSpend
+import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Facts.ChangeOutput
+import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Facts.AssetRegistry
+import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Facts.SenderCompliance
+import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Facts.Conservation
+import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Facts.StatementBinding
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 4000000
@@ -10,69 +18,27 @@ namespace Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal
 
 open Shieldd.GnarkFormal
 
-/-- Exact deployed exact row facts. -/
-structure ExactCircuitFacts (rho : Nat → DeployedF) : Prop where
-  AssertBooleanSeg1 : Seg1.contract.spec rho
-  AssertDecafNonIdentitySeg3 : Seg3.contract.spec rho
-  AssertDecafNonIdentitySeg4 : Seg4.contract.spec rho
-  DecafCompressToFieldSeg5 : Seg5.contract.spec rho
-  AssertNeSeg6 : Seg6.contract.spec rho
-  DecafDiversifiedTransmissionKeySeg7 : Seg7.contract.spec rho
-  DecafCompressToFieldSeg8 : Seg8.contract.spec rho
-  AssertDecafNonIdentitySeg9 : Seg9.contract.spec rho
-  GadgetAssetRegistryLeafHashSeg10 : Seg10.contract.spec rho
-  GadgetAssetRegistryPathSeg11 : Seg11.contract.spec rho
-  AssertEqSeg12 : Seg12.contract.spec rho
-  AssertNeSeg13 : Seg13.contract.spec rho
-  GadgetAssetRegistryGapSeg14 : Seg14.contract.spec rho
-  AssertEqSeg15 : Seg15.contract.spec rho
-  GadgetComplianceLeafSeg16 : Seg16.contract.spec rho
-  GadgetCompliancePathSeg17 : Seg17.contract.spec rho
-  AssertEqIfSeg18 : Seg18.contract.spec rho
-  RoutingPrecisionSelectSeg19 : Seg19.contract.spec rho
-  RoutingParametersHashSeg20 : Seg20.contract.spec rho
-  RoutingParametersBindSeg21 : Seg21.contract.spec rho
-  RoutingRouteWordSeg22 : Seg22.contract.spec rho
-  RoutingTagPublicRangeSeg23 : Seg23.contract.spec rho
-  RoutingTagRouteBitsSeg24 : Seg24.contract.spec rho
-  RoutingTagRandomWordSeg25 : Seg25.contract.spec rho
-  RoutingTagComposeSeg26 : Seg26.contract.spec rho
-  GadgetNoteCommitmentSeg28 : Seg28.contract.spec rho
-  GadgetNullifierSeg29 : Seg29.contract.spec rho
-  GadgetStateCommitmentPathSeg30 : Seg30.contract.spec rho
-  DecafRandomizedVerificationKeySeg31 : Seg31.contract.spec rho
-  DecafCompressToFieldSeg32 : Seg32.contract.spec rho
-  AssertEqSeg33 : Seg33.contract.spec rho
-  AssertEqSeg34 : Seg34.contract.spec rho
-  DecafAssertEquivalentSeg35 : Seg35.contract.spec rho
-  GadgetNoteCommitmentSeg38 : Seg38.contract.spec rho
-  GadgetNullifierSeg39 : Seg39.contract.spec rho
-  GadgetStateCommitmentPathSeg40 : Seg40.contract.spec rho
-  DecafRandomizedVerificationKeySeg41 : Seg41.contract.spec rho
-  DecafCompressToFieldSeg42 : Seg42.contract.spec rho
-  AssertBooleanSeg43 : Seg43.contract.spec rho
-  GadgetSyntheticDummyNullifierSeg44 : Seg44.contract.spec rho
-  DummyMuxSeg45 : Seg45.contract.spec rho
-  AssertEqSeg46 : Seg46.contract.spec rho
-  AssertEqIfSeg47 : Seg47.contract.spec rho
-  DecafAssertEquivalentIfSeg48 : Seg48.contract.spec rho
-  AssertEqIfSeg49 : Seg49.contract.spec rho
-  GadgetNoteCommitmentSeg52 : Seg52.contract.spec rho
-  AssertEqSeg53 : Seg53.contract.spec rho
-  DecafConservationNetBalanceCommitment2Seg55 : Seg55.contract.spec rho
-  DecafCompressToFieldSeg56 : Seg56.contract.spec rho
-  StatementHashSeg58 : Seg58.contract.spec rho
-  StatementHashSeg59 : Seg59.contract.spec rho
-  StatementHashSeg60 : Seg60.contract.spec rho
-  AssertEqSeg61 : Seg61.contract.spec rho
-
 structure ShieldedIcs20WithdrawalCircuitFacts (rho : Nat → DeployedF) : Prop where
-  exact : ExactCircuitFacts rho
+  canonicalSender : CanonicalSenderCircuitFacts rho
+  requiredSpend : RequiredSpendCircuitFacts rho
+  optionalSpend : OptionalSpendCircuitFacts rho
+  changeOutput : ChangeOutputCircuitFacts rho
+  assetRegistry : AssetRegistryCircuitFacts rho
+  senderCompliance : SenderComplianceCircuitFacts rho
+  conservation : ConservationCircuitFacts rho
+  statementBinding : StatementBindingCircuitFacts rho
 
 theorem shielded_ics20_withdrawal_circuitFacts (rho : Nat → DeployedF) (h : relationAll rho) :
     ShieldedIcs20WithdrawalCircuitFacts rho := by
   exact {
-    exact := ⟨specOf1 rho h, specOf3 rho h, specOf4 rho h, specOf5 rho h, specOf6 rho h, specOf7 rho h, specOf8 rho h, specOf9 rho h, specOf10 rho h, specOf11 rho h, specOf12 rho h, specOf13 rho h, specOf14 rho h, specOf15 rho h, specOf16 rho h, specOf17 rho h, specOf18 rho h, specOf19 rho h, specOf20 rho h, specOf21 rho h, specOf22 rho h, specOf23 rho h, specOf24 rho h, specOf25 rho h, specOf26 rho h, specOf28 rho h, specOf29 rho h, specOf30 rho h, specOf31 rho h, specOf32 rho h, specOf33 rho h, specOf34 rho h, specOf35 rho h, specOf38 rho h, specOf39 rho h, specOf40 rho h, specOf41 rho h, specOf42 rho h, specOf43 rho h, specOf44 rho h, specOf45 rho h, specOf46 rho h, specOf47 rho h, specOf48 rho h, specOf49 rho h, specOf52 rho h, specOf53 rho h, specOf55 rho h, specOf56 rho h, specOf58 rho h, specOf59 rho h, specOf60 rho h, specOf61 rho h⟩
+    canonicalSender := ⟨specOf3 rho h, specOf4 rho h, specOf5 rho h, specOf6 rho h, specOf7 rho h, specOf8 rho h, specOf9 rho h⟩
+    requiredSpend := ⟨specOf28 rho h, specOf29 rho h, specOf30 rho h, specOf31 rho h, specOf32 rho h, specOf33 rho h, specOf34 rho h, specOf35 rho h⟩
+    optionalSpend := ⟨specOf38 rho h, specOf39 rho h, specOf40 rho h, specOf41 rho h, specOf42 rho h, specOf43 rho h, specOf44 rho h, specOf45 rho h, specOf46 rho h, specOf47 rho h, specOf48 rho h, specOf49 rho h⟩
+    changeOutput := ⟨specOf52 rho h, specOf53 rho h⟩
+    assetRegistry := ⟨specOf1 rho h, specOf10 rho h, specOf11 rho h, specOf12 rho h, specOf13 rho h, specOf14 rho h, specOf15 rho h⟩
+    senderCompliance := ⟨specOf16 rho h, specOf17 rho h, specOf18 rho h⟩
+    conservation := ⟨specOf55 rho h, specOf56 rho h⟩
+    statementBinding := ⟨specOf19 rho h, specOf20 rho h, specOf21 rho h, specOf22 rho h, specOf23 rho h, specOf24 rho h, specOf25 rho h, specOf26 rho h, specOf58 rho h, specOf59 rho h, specOf60 rho h, specOf61 rho h⟩
   }
 
 end Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal
