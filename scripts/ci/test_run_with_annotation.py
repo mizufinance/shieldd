@@ -292,15 +292,13 @@ class RustWorkflowWiringTests(unittest.TestCase):
                 self.assertIn(f'--title "{title}"', self.workflow)
 
     def test_dependency_policy_uses_a_current_native_binary(self) -> None:
-        self.assertIn(
-            "uses: taiki-e/install-action@5ebac0d9522d786674368e47e92963ba13f2c376",
-            self.workflow,
-        )
-        self.assertIn("tool: cargo-deny@0.20.2", self.workflow)
-        self.assertIn("fallback: none", self.workflow)
+        self.assertIn("cargo-deny-0.20.2-x86_64-unknown-linux-musl", self.workflow)
+        self.assertIn("9f12ed4c49936e09b48bf862b595cde2", self.workflow)
+        self.assertIn("sha256sum --check", self.workflow)
         self.assertIn("run: cargo deny check --allow unmaintained", self.workflow)
         self.assertNotIn("nix develop --command cargo deny", self.workflow)
         self.assertNotIn("cargo-deny-action", self.workflow)
+        self.assertNotIn("taiki-e/install-action", self.workflow)
 
     def test_ordinary_rust_lane_excludes_only_formal_lfs_tests(self) -> None:
         justfile = (SCRIPT.parents[2] / "Justfile").read_text(encoding="utf-8")

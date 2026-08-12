@@ -51,10 +51,14 @@ jobs:
           echo "OK: no uncommitted changes detected"
 
       - name: Install current cargo-deny
-        uses: taiki-e/install-action@5ebac0d9522d786674368e47e92963ba13f2c376 # v2.82.11
-        with:
-          tool: cargo-deny@0.20.2
-          fallback: none
+        shell: bash
+        run: |
+          archive="$RUNNER_TEMP/cargo-deny.tar.gz"
+          url="https://github.com/EmbarkStudios/cargo-deny/releases/download/0.20.2/cargo-deny-0.20.2-x86_64-unknown-linux-musl.tar.gz"
+          curl --proto '=https' --tlsv1.2 --fail --location --retry 3 "$url" --output "$archive"
+          echo "9f12ed4c49936e09b48bf862b595cde2fe64fcbd9d74dfacac6131ca824c8d5f  $archive" | sha256sum --check
+          tar --extract --gzip --file "$archive" --directory "$RUNNER_TEMP"
+          install "$RUNNER_TEMP/cargo-deny-0.20.2-x86_64-unknown-linux-musl/cargo-deny" "$HOME/.cargo/bin/cargo-deny"
 
       - name: Check dependency policy
         run: cargo deny check --allow unmaintained
