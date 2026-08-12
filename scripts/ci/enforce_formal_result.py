@@ -228,6 +228,7 @@ def enforce() -> None:
     soundness_explanation = value("SOUNDNESS_EXPLANATION")
     soundness_results = {
         "soundness-policy": value("POLICY"),
+        "soundness-artifacts": value("ARTIFACTS"),
         "soundness-gate": value("GATE"),
         "soundness-seam-and-pin": value("SEAM"),
         "soundness-alloy": value("ALLOY"),
@@ -266,6 +267,9 @@ def enforce() -> None:
                     "semantic soundness run unexpectedly ran policy lane: "
                     f"{policy}"
                 )
+            required.append(
+                ("soundness-artifacts", soundness_results["soundness-artifacts"])
+            )
             required.append(
                 (
                     "soundness-seam-and-pin",

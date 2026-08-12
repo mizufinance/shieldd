@@ -1,0 +1,95 @@
+name: Restore proof artifacts
+description: Restore and validate an exact proof-artifact cache without Git LFS network access.
+
+inputs:
+  bundle:
+    description: One of runtime, constraints, or full.
+    required: false
+    default: runtime
+  enable-cross-os-archive:
+    description: Allow the cache to be restored from a different runner OS.
+    required: false
+    default: "false"
+  repository-path:
+    description: Checkout path relative to the GitHub workspace.
+    required: false
+    default: .
+
+outputs:
+  key:
+    description: Exact immutable cache key for the selected committed LFS objects.
+    value: proof-artifacts-lfs-v2-${{ inputs.bundle }}-${{ steps.selected.outputs.identity }}
+  bytes:
+    description: Total committed byte size of the selected bundle.
+    value: ${{ steps.selected.outputs.bytes }}
+  objects:
+    description: Number of committed LFS objects in the selected bundle.
+    value: ${{ steps.selected.outputs.objects }}
+
+runs:
+  using: composite
+  steps:
+    - name: Resolve committed artifact identity
+      id: selected
+      shell: bash
+      env:
+        BUNDLE: ${{ inputs.bundle }}
+      run: >-
+        python3 "$GITHUB_ACTION_PATH/../../../scripts/proof_artifacts.py"
+        cache-info --bundle "$BUNDLE" --github-output "$GITHUB_OUTPUT"
+
+    - name: Restore runtime artifact cache
+      if: inputs.bundle == 'runtime'
+      id: restore-runtime
+      uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+      with:
+        path: ${{ inputs.repository-path }}/tools/gnark/artifacts/*/proving_key.bin
+        key: proof-artifacts-lfs-v2-runtime-${{ steps.selected.outputs.identity }}
+        enableCrossOsArchive: ${{ inputs.enable-cross-os-archive }}
+
+    - name: Restore constraints artifact cache
+      if: inputs.bundle == 'constraints'
+      id: restore-constraints
+      uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+      with:
+        path: ${{ inputs.repository-path }}/tools/gnark/artifacts/*/*.sr1cs
+        key: proof-artifacts-lfs-v2-constraints-${{ steps.selected.outputs.identity }}
+        enableCrossOsArchive: ${{ inputs.enable-cross-os-archive }}
+
+    - name: Restore full artifact cache
+      if: inputs.bundle == 'full'
+      id: restore-full
+      uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+      with:
+        path: |
+          ${{ inputs.repository-path }}/tools/gnark/artifacts/*/proving_key.bin
+          ${{ inputs.repository-path }}/tools/gnark/artifacts/*/*.sr1cs
+        key: proof-artifacts-lfs-v2-full-${{ steps.selected.outputs.identity }}
+        enableCrossOsArchive: ${{ inputs.enable-cross-os-archive }}
+
+    - name: Require an exact prepared cache entry
+      shell: bash
+      env:
+        BUNDLE: ${{ inputs.bundle }}
+        RUNTIME_HIT: ${{ steps.restore-runtime.outputs.cache-hit }}
+        CONSTRAINTS_HIT: ${{ steps.restore-constraints.outputs.cache-hit }}
+        FULL_HIT: ${{ steps.restore-full.outputs.cache-hit }}
+      run: |
+        case "$BUNDLE" in
+          runtime) hit="$RUNTIME_HIT" ;;
+          constraints) hit="$CONSTRAINTS_HIT" ;;
+          full) hit="$FULL_HIT" ;;
+          *) echo "unsupported proof-artifact bundle: $BUNDLE" >&2; exit 1 ;;
+        esac
+        if [[ "$hit" != "true" ]]; then
+          echo "exact $BUNDLE proof-artifact cache is missing; the workflow preparer must publish it first" >&2
+          exit 1
+        fi
+
+    - name: Validate restored proof artifacts
+      shell: bash
+      env:
+        BUNDLE: ${{ inputs.bundle }}
+      run: >-
+        python3 "$GITHUB_ACTION_PATH/../../../scripts/proof_artifacts.py"
+        restore --bundle "$BUNDLE"

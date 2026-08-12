@@ -7,7 +7,7 @@ version = {workspace = true}
 license = {workspace = true}
 edition = {workspace = true}
 # Large proving artifacts are external to this crate. Repository builds that
-# enable `bundled-proving-keys` must materialize the current artifact bundle.
+# enable `bundled-proving-keys` must materialize the runtime proving-key bundle.
 
 [build-dependencies]
 serde = {workspace = true, features = ["derive"]}

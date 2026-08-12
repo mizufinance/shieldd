@@ -21,9 +21,10 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: ./.github/actions/materialize-proof-artifacts
-
       - uses: ./.github/actions/setup-nix-rust
+
+      - name: Test rustdoc package selection
+        run: python3 deployments/scripts/tests/test_rust_doc_packages.py
 
       # Building with warm cache takes ~40s, depending on changes.
       - name: Build rustdocs

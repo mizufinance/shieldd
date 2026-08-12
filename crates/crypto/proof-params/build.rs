@@ -44,10 +44,10 @@ fn main() {
                 )
             });
         if cfg!(feature = "bundled-proving-keys") {
-            gnark_artifact_validation::validate_materialized_artifacts(&artifact_root, family)
+            gnark_artifact_validation::validate_materialized_proving_key(&artifact_root, family)
                 .unwrap_or_else(|error| {
                     panic!(
-                        "deployed {} proving artifacts are not materialized or invalid: {error:#}\nrun `python3 scripts/proof_artifacts.py materialize` from the repository root",
+                        "deployed {} proving key is not materialized or invalid: {error:#}\nrun `python3 scripts/proof_artifacts.py materialize --bundle runtime` from the repository root",
                         family.label
                     )
                 });
