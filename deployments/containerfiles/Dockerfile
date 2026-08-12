@@ -84,9 +84,12 @@ COPY --from=build-env \
             /usr/src/shieldd/target/release/build \
             /usr/src/shieldd/target/release/build
 
-COPY --from=build-env \
-            /usr/src/shieldd/tools/gnark/artifacts \
-            /usr/share/shieldd/gnark/artifacts
+# Runtime deployments keep only proving material. Constraint systems and setup
+# evidence are build/formal inputs and would otherwise add about 510 MB here.
+COPY --from=build-env /usr/src/shieldd/tools/gnark/artifacts/note_reshape1x8/proving_key.bin /usr/share/shieldd/gnark/artifacts/note_reshape1x8/proving_key.bin
+COPY --from=build-env /usr/src/shieldd/tools/gnark/artifacts/note_reshape8x1/proving_key.bin /usr/share/shieldd/gnark/artifacts/note_reshape8x1/proving_key.bin
+COPY --from=build-env /usr/src/shieldd/tools/gnark/artifacts/shielded_ics20_withdrawal/proving_key.bin /usr/share/shieldd/gnark/artifacts/shielded_ics20_withdrawal/proving_key.bin
+COPY --from=build-env /usr/src/shieldd/tools/gnark/artifacts/transfer/proving_key.bin /usr/share/shieldd/gnark/artifacts/transfer/proving_key.bin
 
 WORKDIR /home/${USERNAME}
 USER ${USERNAME}

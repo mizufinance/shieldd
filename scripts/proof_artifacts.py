@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""Materialize and validate the current Git LFS proof artifacts."""
+"""Materialize and validate scoped Git LFS proof-artifact bundles."""
 
 from __future__ import annotations
 
 import argparse
+from dataclasses import dataclass
+from enum import Enum
 import hashlib
 import json
 from pathlib import Path
@@ -19,10 +21,67 @@ FAMILIES = (
     "shielded_ics20_withdrawal",
     "transfer",
 )
+POINTER_VERSION = "https://git-lfs.github.com/spec/v1"
+CACHE_IDENTITY_SCHEMA = "shieldd.proof-artifact-cache.v1"
+BUNDLE_BYTE_BUDGETS = {
+    "runtime": 110_000_000,
+    "constraints": 560_000_000,
+    "full": 670_000_000,
+}
 
 
 class ArtifactError(RuntimeError):
     pass
+
+
+class ArtifactKind(Enum):
+    PROVING_KEY = "proving-key"
+    SR1CS = "sr1cs"
+
+
+class Bundle(Enum):
+    RUNTIME = "runtime"
+    CONSTRAINTS = "constraints"
+    FULL = "full"
+
+    @property
+    def kinds(self) -> frozenset[ArtifactKind]:
+        if self is Bundle.RUNTIME:
+            return frozenset({ArtifactKind.PROVING_KEY})
+        if self is Bundle.CONSTRAINTS:
+            return frozenset({ArtifactKind.SR1CS})
+        return frozenset(ArtifactKind)
+
+
+@dataclass(frozen=True)
+class ArtifactFile:
+    family: str
+    kind: ArtifactKind
+    path: Path
+    sha256_hex: str
+    size_bytes: int | None
+
+
+@dataclass(frozen=True)
+class LfsPointer:
+    oid: str
+    size_bytes: int
+
+
+@dataclass(frozen=True)
+class CacheInfo:
+    identity: str
+    object_count: int
+    size_bytes: int
+
+
+def parse_bundle(value: str | Bundle) -> Bundle:
+    if isinstance(value, Bundle):
+        return value
+    try:
+        return Bundle(value)
+    except ValueError as error:
+        raise ArtifactError(f"unsupported proof-artifact bundle: {value}") from error
 
 
 def required_hash(metadata: dict[str, object], field: str, family: str) -> str:
@@ -41,8 +100,9 @@ def required_size(metadata: dict[str, object], field: str, family: str) -> int:
     return value
 
 
-def artifact_files() -> list[tuple[Path, str, int | None]]:
-    files: list[tuple[Path, str, int | None]] = []
+def artifact_files(bundle: str | Bundle = Bundle.FULL) -> list[ArtifactFile]:
+    selected = parse_bundle(bundle)
+    files: list[ArtifactFile] = []
     for family in FAMILIES:
         directory = ARTIFACT_ROOT / family
         metadata = json.loads((directory / "circuit_metadata.json").read_text())
@@ -50,28 +110,115 @@ def artifact_files() -> list[tuple[Path, str, int | None]]:
             raise ArtifactError(f"unsupported circuit metadata for {family}")
         if metadata.get("circuit") != family:
             raise ArtifactError(f"circuit metadata identity mismatch for {family}")
-        files.extend(
-            [
-                (
-                    directory / f"{family}.sr1cs",
-                    required_hash(metadata, "sr1cs_sha256_hex", family),
-                    None,
+        candidates = (
+            ArtifactFile(
+                family=family,
+                kind=ArtifactKind.SR1CS,
+                path=directory / f"{family}.sr1cs",
+                sha256_hex=required_hash(metadata, "sr1cs_sha256_hex", family),
+                size_bytes=None,
+            ),
+            ArtifactFile(
+                family=family,
+                kind=ArtifactKind.PROVING_KEY,
+                path=directory / "proving_key.bin",
+                sha256_hex=required_hash(metadata, "proving_key_sha256_hex", family),
+                size_bytes=required_size(
+                    metadata, "proving_key_size_bytes", family
                 ),
-                (
-                    directory / "proving_key.bin",
-                    required_hash(metadata, "proving_key_sha256_hex", family),
-                    required_size(metadata, "proving_key_size_bytes", family),
-                ),
-            ]
+            ),
         )
+        files.extend(candidate for candidate in candidates if candidate.kind in selected.kinds)
     return files
 
 
-def lfs_paths() -> list[str]:
+def lfs_paths(bundle: str | Bundle = Bundle.FULL) -> list[str]:
     return [
-        path.relative_to(REPO_ROOT).as_posix()
-        for path, _, _ in artifact_files()
+        artifact.path.relative_to(REPO_ROOT).as_posix()
+        for artifact in artifact_files(bundle)
     ]
+
+
+def parse_lfs_pointer(text: str, path: str) -> LfsPointer:
+    fields: dict[str, str] = {}
+    for line in text.splitlines():
+        key, separator, value = line.partition(" ")
+        if not separator or key in fields:
+            raise ArtifactError(f"invalid committed Git LFS pointer for {path}")
+        fields[key] = value
+    if set(fields) != {"version", "oid", "size"}:
+        raise ArtifactError(f"invalid committed Git LFS pointer fields for {path}")
+    if fields["version"] != POINTER_VERSION:
+        raise ArtifactError(f"unsupported committed Git LFS pointer for {path}")
+    algorithm, separator, oid = fields["oid"].partition(":")
+    if (
+        not separator
+        or algorithm != "sha256"
+        or len(oid) != 64
+        or any(char not in "0123456789abcdef" for char in oid)
+    ):
+        raise ArtifactError(f"invalid committed Git LFS object id for {path}")
+    try:
+        size_bytes = int(fields["size"])
+    except ValueError as error:
+        raise ArtifactError(f"invalid committed Git LFS size for {path}") from error
+    if size_bytes <= 0 or str(size_bytes) != fields["size"]:
+        raise ArtifactError(f"invalid committed Git LFS size for {path}")
+    return LfsPointer(oid=oid, size_bytes=size_bytes)
+
+
+def committed_lfs_pointer(path: str, ref: str = "HEAD") -> LfsPointer:
+    result = subprocess.run(
+        ["git", "show", f"{ref}:{path}"],
+        cwd=REPO_ROOT,
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    if result.returncode != 0:
+        raise ArtifactError(
+            f"could not read committed Git LFS pointer {ref}:{path}: "
+            f"{result.stderr.strip()}"
+        )
+    return parse_lfs_pointer(result.stdout, path)
+
+
+def cache_info(bundle: str | Bundle, ref: str = "HEAD") -> CacheInfo:
+    selected = parse_bundle(bundle)
+    digest = hashlib.sha256()
+    digest.update(f"{CACHE_IDENTITY_SCHEMA}\n{selected.value}\n".encode())
+    total_size = 0
+    artifacts = artifact_files(selected)
+    for artifact in artifacts:
+        path = artifact.path.relative_to(REPO_ROOT).as_posix()
+        pointer = committed_lfs_pointer(path, ref)
+        if pointer.oid != artifact.sha256_hex:
+            raise ArtifactError(
+                f"committed Git LFS object id for {path} does not match circuit metadata"
+            )
+        if (
+            artifact.size_bytes is not None
+            and pointer.size_bytes != artifact.size_bytes
+        ):
+            raise ArtifactError(
+                f"committed Git LFS size for {path} does not match circuit metadata"
+            )
+        digest.update(
+            f"{path}\0{pointer.oid}\0{pointer.size_bytes}\n".encode()
+        )
+        total_size += pointer.size_bytes
+    budget = BUNDLE_BYTE_BUDGETS[selected.value]
+    if total_size > budget:
+        raise ArtifactError(
+            f"{selected.value} proof-artifact bundle is {total_size} bytes; "
+            f"budget is {budget} bytes"
+        )
+    return CacheInfo(
+        identity=digest.hexdigest(),
+        object_count=len(artifacts),
+        size_bytes=total_size,
+    )
 
 
 def sha256(path: Path) -> str:
@@ -82,24 +229,25 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def verify_file(path: Path, expected_hash: str, expected_size: int | None) -> None:
+def verify_file(artifact: ArtifactFile) -> None:
+    path = artifact.path
     if not path.is_file() or path.is_symlink():
         raise ArtifactError(f"missing regular proof artifact: {path}")
     actual_size = path.stat().st_size
-    if expected_size is not None and actual_size != expected_size:
+    if artifact.size_bytes is not None and actual_size != artifact.size_bytes:
         raise ArtifactError(
-            f"size mismatch for {path}: expected {expected_size}, got {actual_size}"
+            f"size mismatch for {path}: expected {artifact.size_bytes}, got {actual_size}"
         )
     actual_hash = sha256(path)
-    if actual_hash != expected_hash:
+    if actual_hash != artifact.sha256_hex:
         raise ArtifactError(
-            f"hash mismatch for {path}: expected {expected_hash}, got {actual_hash}"
+            f"hash mismatch for {path}: expected {artifact.sha256_hex}, got {actual_hash}"
         )
 
 
-def verify() -> None:
-    for path, expected_hash, expected_size in artifact_files():
-        verify_file(path, expected_hash, expected_size)
+def verify(bundle: str | Bundle = Bundle.FULL) -> None:
+    for artifact in artifact_files(bundle):
+        verify_file(artifact)
 
 
 def install_lfs_filters() -> None:
@@ -112,8 +260,8 @@ def install_lfs_filters() -> None:
         )
 
 
-def refresh_git_index() -> None:
-    paths = lfs_paths()
+def refresh_git_index(bundle: str | Bundle = Bundle.FULL) -> None:
+    paths = lfs_paths(bundle)
     diff_command = ["git", "diff", "--cached", "--quiet", "--", *paths]
     if subprocess.run(diff_command, cwd=REPO_ROOT, check=False).returncode != 0:
         raise ArtifactError("proof artifacts already have staged changes")
@@ -121,8 +269,7 @@ def refresh_git_index() -> None:
     add_command = ["git", "add", "--", *paths]
     if subprocess.run(add_command, cwd=REPO_ROOT, check=False).returncode != 0:
         raise ArtifactError(
-            "materialized proof artifacts do not match their committed Git LFS "
-            "pointers"
+            "materialized proof artifacts do not match their committed Git LFS pointers"
         )
 
     if subprocess.run(diff_command, cwd=REPO_ROOT, check=False).returncode != 0:
@@ -132,21 +279,36 @@ def refresh_git_index() -> None:
             check=False,
         )
         raise ArtifactError(
-            "materialized proof artifacts do not match their committed Git LFS "
-            "pointers"
+            "materialized proof artifacts do not match their committed Git LFS pointers"
         )
 
 
-def materialize() -> None:
+def restore(bundle: str | Bundle = Bundle.FULL) -> None:
+    selected = parse_bundle(bundle)
     install_lfs_filters()
-    try:
-        verify()
-    except ArtifactError:
+    verify(selected)
+    refresh_git_index(selected)
+
+
+def materialize(bundle: str | Bundle = Bundle.FULL) -> None:
+    selected = parse_bundle(bundle)
+    install_lfs_filters()
+    missing_or_invalid: list[ArtifactFile] = []
+    for artifact in artifact_files(selected):
+        try:
+            verify_file(artifact)
+        except ArtifactError:
+            missing_or_invalid.append(artifact)
+    if missing_or_invalid:
+        include = ",".join(
+            artifact.path.relative_to(REPO_ROOT).as_posix()
+            for artifact in missing_or_invalid
+        )
         command = [
             "git",
             "lfs",
             "pull",
-            f"--include={','.join(lfs_paths())}",
+            f"--include={include}",
             "--exclude=",
         ]
         result = subprocess.run(command, cwd=REPO_ROOT, check=False)
@@ -155,21 +317,60 @@ def materialize() -> None:
                 "Git LFS could not fetch the current proof artifacts; install Git "
                 "LFS, authenticate to the repository, and retry"
             )
-        verify()
-    refresh_git_index()
+        verify(selected)
+    refresh_git_index(selected)
+
+
+def add_bundle_argument(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--bundle",
+        choices=[bundle.value for bundle in Bundle],
+        default=Bundle.FULL.value,
+    )
+
+
+def write_github_output(path: Path, selected: Bundle, info: CacheInfo) -> None:
+    with path.open("a", encoding="utf-8") as output:
+        output.write(f"bundle={selected.value}\n")
+        output.write(f"identity={info.identity}\n")
+        output.write(f"objects={info.object_count}\n")
+        output.write(f"bytes={info.size_bytes}\n")
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     commands = parser.add_subparsers(dest="command", required=True)
-    commands.add_parser("verify")
-    commands.add_parser("materialize")
+    for name in ("verify", "restore", "materialize"):
+        add_bundle_argument(commands.add_parser(name))
+    cache = commands.add_parser("cache-info")
+    add_bundle_argument(cache)
+    cache.add_argument("--ref", default="HEAD")
+    cache.add_argument("--github-output", type=Path)
     args = parser.parse_args()
     try:
+        selected = parse_bundle(args.bundle)
         if args.command == "verify":
-            verify()
+            verify(selected)
+        elif args.command == "restore":
+            restore(selected)
+        elif args.command == "materialize":
+            materialize(selected)
         else:
-            materialize()
+            info = cache_info(selected, args.ref)
+            if args.github_output is not None:
+                write_github_output(args.github_output, selected, info)
+            else:
+                print(
+                    json.dumps(
+                        {
+                            "bundle": selected.value,
+                            "identity": info.identity,
+                            "objects": info.object_count,
+                            "bytes": info.size_bytes,
+                        },
+                        sort_keys=True,
+                    )
+                )
     except (ArtifactError, OSError, json.JSONDecodeError) as error:
         print(f"proof-artifacts: {error}", file=sys.stderr)
         return 1

@@ -347,6 +347,7 @@ pub(crate) fn validate_repository_artifacts(
 }
 
 /// Validate the materialized SR1CS and proving key against committed metadata.
+#[cfg(test)]
 pub(crate) fn validate_materialized_artifacts(
     artifact_root: &Path,
     family: DeployedFamily,
@@ -364,6 +365,28 @@ pub(crate) fn validate_materialized_artifacts(
         "SR1CS",
         &metadata.sr1cs_sha256_hex,
         None,
+    )?;
+    validate_hash(
+        &dir.join("proving_key.bin"),
+        "proving key",
+        &metadata.proving_key_sha256_hex,
+        Some(metadata.proving_key_size_bytes),
+    )?;
+    Ok(())
+}
+
+/// Validate the materialized proving key needed by runtime builds.
+pub(crate) fn validate_materialized_proving_key(
+    artifact_root: &Path,
+    family: DeployedFamily,
+) -> Result<()> {
+    validate_repository_artifacts(artifact_root, family)?;
+    validate_artifact_directory_roster(artifact_root, family, true)?;
+    let dir = artifact_root.join(family.artifact_name);
+    let metadata_path = dir.join("circuit_metadata.json");
+    let metadata: CircuitMetadataJson = decode_canonical_json(
+        &read_regular_file(&metadata_path)?,
+        &format!("{} circuit_metadata.json", family.label),
     )?;
     validate_hash(
         &dir.join("proving_key.bin"),
@@ -886,7 +909,7 @@ mod tests {
             "nb_internal_variables": 4,
             "sr1cs_sha256_hex": metadata.sr1cs_sha256_hex,
             "witness_wires": [],
-            "semantic_bindings": {},
+            "semantic_bindings": [],
             "segments": [],
             "breakdown": {}
         });
@@ -1024,6 +1047,25 @@ mod tests {
             metadata.sr1cs_sha256_hex = "00".repeat(32)
         });
         assert!(validate_family_artifacts(&fixture.root, family).is_err());
+    }
+
+    #[test]
+    fn runtime_validation_requires_only_the_proving_key() {
+        let (fixture, family) = synthetic_fixture();
+        let sr1cs = fixture
+            .root
+            .join(family.artifact_name)
+            .join(format!("{}.sr1cs", family.artifact_name));
+        fs::write(sr1cs, b"git lfs pointer placeholder").expect("replace SR1CS");
+        validate_materialized_proving_key(&fixture.root, family)
+            .expect("runtime validation ignores unmaterialized constraints");
+
+        let proving_key = fixture
+            .root
+            .join(family.artifact_name)
+            .join("proving_key.bin");
+        fs::write(proving_key, b"corrupted proving key").expect("replace proving key");
+        assert!(validate_materialized_proving_key(&fixture.root, family).is_err());
     }
 
     #[test]

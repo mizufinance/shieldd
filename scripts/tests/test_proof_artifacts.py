@@ -3,6 +3,7 @@ import importlib.util
 import json
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 import unittest
 from unittest import mock
@@ -14,6 +15,7 @@ SPEC = importlib.util.spec_from_file_location(
 )
 assert SPEC is not None and SPEC.loader is not None
 PROOF_ARTIFACTS = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = PROOF_ARTIFACTS
 SPEC.loader.exec_module(PROOF_ARTIFACTS)
 
 
@@ -52,6 +54,134 @@ class ProofArtifactsTest(unittest.TestCase):
 
     def test_verify_accepts_metadata_pinned_files(self) -> None:
         PROOF_ARTIFACTS.verify()
+
+    def test_bundles_select_only_the_required_artifact_kind(self) -> None:
+        runtime = PROOF_ARTIFACTS.artifact_files(
+            PROOF_ARTIFACTS.Bundle.RUNTIME
+        )
+        constraints = PROOF_ARTIFACTS.artifact_files(
+            PROOF_ARTIFACTS.Bundle.CONSTRAINTS
+        )
+
+        self.assertEqual(
+            [artifact.path.name for artifact in runtime], ["proving_key.bin"]
+        )
+        self.assertEqual(
+            [artifact.path.name for artifact in constraints], ["transfer.sr1cs"]
+        )
+
+    def test_runtime_materialization_never_pulls_constraints(self) -> None:
+        proving_key = self.artifacts / "transfer" / "proving_key.bin"
+        proving_key.unlink()
+
+        def fake_run(command: list[str], **kwargs: object) -> subprocess.CompletedProcess:
+            if command[:3] == ["git", "lfs", "pull"]:
+                proving_key.write_bytes(self.proving_key)
+            return subprocess.CompletedProcess(command, 0)
+
+        with mock.patch.object(
+            PROOF_ARTIFACTS.subprocess, "run", side_effect=fake_run
+        ) as run:
+            PROOF_ARTIFACTS.materialize(PROOF_ARTIFACTS.Bundle.RUNTIME)
+
+        pull = run.call_args_list[1].args[0]
+        self.assertEqual(
+            pull,
+            [
+                "git",
+                "lfs",
+                "pull",
+                "--include=tools/gnark/artifacts/transfer/proving_key.bin",
+                "--exclude=",
+            ],
+        )
+        self.assertNotIn("sr1cs", " ".join(pull))
+
+    def test_full_materialization_reuses_an_existing_runtime_subset(self) -> None:
+        sr1cs = self.artifacts / "transfer" / "transfer.sr1cs"
+        sr1cs.unlink()
+
+        def fake_run(command: list[str], **kwargs: object) -> subprocess.CompletedProcess:
+            if command[:3] == ["git", "lfs", "pull"]:
+                sr1cs.write_bytes(self.sr1cs)
+            return subprocess.CompletedProcess(command, 0)
+
+        with mock.patch.object(
+            PROOF_ARTIFACTS.subprocess, "run", side_effect=fake_run
+        ) as run:
+            PROOF_ARTIFACTS.materialize(PROOF_ARTIFACTS.Bundle.FULL)
+
+        self.assertEqual(
+            run.call_args_list[1].args[0],
+            [
+                "git",
+                "lfs",
+                "pull",
+                "--include=tools/gnark/artifacts/transfer/transfer.sr1cs",
+                "--exclude=",
+            ],
+        )
+
+    def test_cache_identity_rejects_pointer_metadata_mismatch(self) -> None:
+        pointer = PROOF_ARTIFACTS.LfsPointer(oid="a" * 64, size_bytes=23)
+        with mock.patch.object(
+            PROOF_ARTIFACTS, "committed_lfs_pointer", return_value=pointer
+        ):
+            with self.assertRaisesRegex(
+                PROOF_ARTIFACTS.ArtifactError, "does not match circuit metadata"
+            ):
+                PROOF_ARTIFACTS.cache_info(PROOF_ARTIFACTS.Bundle.RUNTIME)
+
+    def test_restore_only_rejects_a_cache_miss_without_lfs_pull(self) -> None:
+        (self.artifacts / "transfer" / "proving_key.bin").unlink()
+        completed = subprocess.CompletedProcess([], 0)
+        with mock.patch.object(
+            PROOF_ARTIFACTS.subprocess, "run", return_value=completed
+        ) as run:
+            with self.assertRaisesRegex(
+                PROOF_ARTIFACTS.ArtifactError, "missing regular proof artifact"
+            ):
+                PROOF_ARTIFACTS.restore(PROOF_ARTIFACTS.Bundle.RUNTIME)
+
+        self.assertEqual(len(run.call_args_list), 1)
+        self.assertNotIn("pull", " ".join(run.call_args_list[0].args[0]))
+
+    def test_cache_identity_uses_committed_pointer_object_ids_and_sizes(self) -> None:
+        pointer = PROOF_ARTIFACTS.LfsPointer(
+            oid=hashlib.sha256(self.proving_key).hexdigest(),
+            size_bytes=len(self.proving_key),
+        )
+        with mock.patch.object(
+            PROOF_ARTIFACTS, "committed_lfs_pointer", return_value=pointer
+        ) as committed:
+            first = PROOF_ARTIFACTS.cache_info(PROOF_ARTIFACTS.Bundle.RUNTIME)
+            second = PROOF_ARTIFACTS.cache_info(PROOF_ARTIFACTS.Bundle.RUNTIME)
+
+        self.assertEqual(first, second)
+        self.assertEqual(first.object_count, 1)
+        self.assertEqual(first.size_bytes, len(self.proving_key))
+        self.assertEqual(committed.call_args.args[1], "HEAD")
+
+        changed_pointer = PROOF_ARTIFACTS.LfsPointer(
+            oid="b" * 64, size_bytes=len(self.proving_key)
+        )
+        metadata_path = self.artifacts / "transfer" / "circuit_metadata.json"
+        metadata = json.loads(metadata_path.read_text())
+        metadata["proving_key_sha256_hex"] = changed_pointer.oid
+        metadata_path.write_text(json.dumps(metadata))
+        with mock.patch.object(
+            PROOF_ARTIFACTS,
+            "committed_lfs_pointer",
+            return_value=changed_pointer,
+        ):
+            changed = PROOF_ARTIFACTS.cache_info(PROOF_ARTIFACTS.Bundle.RUNTIME)
+        self.assertNotEqual(first.identity, changed.identity)
+
+    def test_parse_lfs_pointer_rejects_non_pointer_content(self) -> None:
+        with self.assertRaisesRegex(
+            PROOF_ARTIFACTS.ArtifactError, "invalid committed Git LFS pointer"
+        ):
+            PROOF_ARTIFACTS.parse_lfs_pointer("not a pointer\n", "artifact")
 
     def test_materialize_pulls_only_current_paths(self) -> None:
         sr1cs = self.artifacts / "transfer" / "transfer.sr1cs"
