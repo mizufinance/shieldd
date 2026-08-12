@@ -755,18 +755,39 @@ jobs:
 
   # ---------------------------------------------------------------- soundness
 
+  soundness-policy:
+    name: 'soundness: policy'
+    needs: applicability
+    if: >-
+      needs.applicability.result == 'success' &&
+      needs.applicability.outputs.soundness_run == 'true' &&
+      needs.applicability.outputs.soundness_tier == 'policy'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.applicability.outputs.candidate_sha }}
+      - name: Validate formal applicability and artifact policy
+        run: |
+          python3 scripts/ci/test_gate_applicability.py
+          python3 scripts/tests/test_proof_artifacts.py
+          python3 scripts/check_lfs_policy.py
+
   soundness-gate:
     name: 'soundness: gate'
     needs: applicability
     if: >-
       needs.applicability.result == 'success' &&
-      needs.applicability.outputs.soundness_run == 'true'
+      needs.applicability.outputs.soundness_run == 'true' &&
+      needs.applicability.outputs.soundness_tier != 'policy'
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ needs.applicability.outputs.candidate_sha }}
+      - uses: ./.github/actions/materialize-proof-artifacts
       - name: Install ripgrep
         run: sudo apt-get update && sudo apt-get install -y ripgrep
       - name: Check soundness invariants
@@ -775,7 +796,7 @@ jobs:
   soundness-seam-and-pin:
     name: 'soundness: seam-and-pin'
     needs: applicability
-    if: needs.applicability.result == 'success' && needs.applicability.outputs.soundness_run == 'true'
+    if: needs.applicability.result == 'success' && needs.applicability.outputs.soundness_run == 'true' && needs.applicability.outputs.soundness_tier != 'policy'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -802,7 +823,7 @@ jobs:
   soundness-alloy:
     name: 'soundness: alloy'
     needs: applicability
-    if: needs.applicability.result == 'success' && needs.applicability.outputs.soundness_run == 'true' && (github.event_name == 'pull_request' || github.event_name == 'merge_group')
+    if: needs.applicability.result == 'success' && needs.applicability.outputs.soundness_run == 'true' && needs.applicability.outputs.soundness_tier != 'policy' && (github.event_name == 'pull_request' || github.event_name == 'merge_group')
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -872,6 +893,7 @@ jobs:
       - snarkpack-parity
       - snarkpack-runtime
       - snarkpack-publication
+      - soundness-policy
       - soundness-gate
       - soundness-seam-and-pin
       - soundness-alloy
@@ -915,6 +937,7 @@ jobs:
           PARITY: ${{ needs.snarkpack-parity.result }}
           RUNTIME: ${{ needs.snarkpack-runtime.result }}
           PUBLICATION: ${{ needs.snarkpack-publication.result }}
+          POLICY: ${{ needs.soundness-policy.result }}
           GATE: ${{ needs.soundness-gate.result }}
           SEAM: ${{ needs.soundness-seam-and-pin.result }}
           ALLOY: ${{ needs.soundness-alloy.result }}

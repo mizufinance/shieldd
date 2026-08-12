@@ -1288,7 +1288,7 @@
     {
       "id": "ARTIFACT-ARTIFACT-DIRECTORY-REJECTS-EXTRA-ENTRIES-AND-HARDLINK-ALIASES",
       "path": "crates/crypto/proof-params/src/gnark_artifact_validation.rs",
-      "source_sha256": "4b4e6dcc6d8c2a77e46443611d494040276694095d6e5724ce31106af45a7292"
+      "source_sha256": "cdb9eec60d1c35971cb78f38898b7a76dd7b84ca3e4693e1894100f657819f83"
     },
     {
       "id": "ARTIFACT-BLS12-377-FR-FROM-RANDOM-BYTES-DOCUMENTS-SHIPPING-REDUCTION-BOUNDARY",
@@ -1393,7 +1393,7 @@
     {
       "id": "ARTIFACT-COMMITTED-FAMILY-ARTIFACTS-CARRY-VERIFIED-HASHES",
       "path": "crates/core/component/shielded-pool/src/gnark/artifacts.rs",
-      "source_sha256": "c6534dec6634b64d0b91d7c3fd61991e83fd57444121ce7b67863329f8e8aa0a"
+      "source_sha256": "b5c71977d961c5bee726ee3c5135185c9fffc0a96cbc28bdf058167e9bd76f39"
     },
     {
       "id": "ARTIFACT-COVERAGE-PASSES-FOR-EXACT-PARTITION",
@@ -1473,7 +1473,7 @@
     {
       "id": "ARTIFACT-EVERY-METADATA-PINNED-ARTIFACT-HASH-IS-ENFORCED",
       "path": "crates/crypto/proof-params/src/gnark_artifact_validation.rs",
-      "source_sha256": "4b4e6dcc6d8c2a77e46443611d494040276694095d6e5724ce31106af45a7292"
+      "source_sha256": "cdb9eec60d1c35971cb78f38898b7a76dd7b84ca3e4693e1894100f657819f83"
     },
     {
       "id": "ARTIFACT-EVERY-REGISTERED-DIGEST-HASHES-FAMILY-DOMAIN-THEN-CHALLENGE-FRAME",
@@ -1493,7 +1493,7 @@
     {
       "id": "ARTIFACT-EXACT-ROSTER-AND-ALL-FOUR-REPOSITORY-ARTIFACTS-VALIDATE",
       "path": "crates/crypto/proof-params/src/gnark_artifact_validation.rs",
-      "source_sha256": "4b4e6dcc6d8c2a77e46443611d494040276694095d6e5724ce31106af45a7292"
+      "source_sha256": "cdb9eec60d1c35971cb78f38898b7a76dd7b84ca3e4693e1894100f657819f83"
     },
     {
       "id": "ARTIFACT-FACTORS-LARGE-LINEAR-COMBINATIONS",
@@ -1513,7 +1513,7 @@
     {
       "id": "ARTIFACT-FAMILY-VKS-EXPOSE-SINGLE-STATEMENT-HASH-PUBLIC-INPUT",
       "path": "crates/core/component/shielded-pool/src/gnark/artifacts.rs",
-      "source_sha256": "c6534dec6634b64d0b91d7c3fd61991e83fd57444121ce7b67863329f8e8aa0a"
+      "source_sha256": "b5c71977d961c5bee726ee3c5135185c9fffc0a96cbc28bdf058167e9bd76f39"
     },
     {
       "id": "ARTIFACT-FAST-BLS12-377-GT-VALIDATION-MATCHES-ARKWORKS-ON-STRUCTURED-INPUTS",
@@ -1633,7 +1633,7 @@
     {
       "id": "ARTIFACT-METADATA-REJECTS-SCHEMA-CIRCUIT-AND-MANIFEST-SHAPE-MUTATIONS",
       "path": "crates/crypto/proof-params/src/gnark_artifact_validation.rs",
-      "source_sha256": "4b4e6dcc6d8c2a77e46443611d494040276694095d6e5724ce31106af45a7292"
+      "source_sha256": "cdb9eec60d1c35971cb78f38898b7a76dd7b84ca3e4693e1894100f657819f83"
     },
     {
       "id": "ARTIFACT-NORMALIZATION-PRESERVES-CROSS-ROW-CONNECTIVITY-AND-COEFFICIENTS",
@@ -1928,7 +1928,7 @@
     {
       "id": "ARTIFACT-ROSTER-REJECTS-FAMILY-ID-AND-SHAPE-MUTATIONS",
       "path": "crates/crypto/proof-params/src/gnark_artifact_validation.rs",
-      "source_sha256": "4b4e6dcc6d8c2a77e46443611d494040276694095d6e5724ce31106af45a7292"
+      "source_sha256": "cdb9eec60d1c35971cb78f38898b7a76dd7b84ca3e4693e1894100f657819f83"
     },
     {
       "id": "ARTIFACT-ROUND-TRIP-CHECK-BITES-ON-GARBLED-ROW",
@@ -1948,7 +1948,7 @@
     {
       "id": "ARTIFACT-RUNTIME-REJECTS-NONCANONICAL-METADATA-AND-VK-JSON",
       "path": "crates/core/component/shielded-pool/src/gnark/artifacts.rs",
-      "source_sha256": "c6534dec6634b64d0b91d7c3fd61991e83fd57444121ce7b67863329f8e8aa0a"
+      "source_sha256": "b5c71977d961c5bee726ee3c5135185c9fffc0a96cbc28bdf058167e9bd76f39"
     },
     {
       "id": "ARTIFACT-SCALAR-IDENTITY-SERIALIZATION-MATCHES-ARKWORKS-SINGLETON-VECTOR",
@@ -1968,7 +1968,7 @@
     {
       "id": "ARTIFACT-SETUP-PROVENANCE-REJECTS-STATUS-AND-DUPLICATE-SELF-TEST-MUTATIONS",
       "path": "crates/crypto/proof-params/src/gnark_artifact_validation.rs",
-      "source_sha256": "4b4e6dcc6d8c2a77e46443611d494040276694095d6e5724ce31106af45a7292"
+      "source_sha256": "cdb9eec60d1c35971cb78f38898b7a76dd7b84ca3e4693e1894100f657819f83"
     },
     {
       "id": "ARTIFACT-SHARDS-CONTRACT-DEFINITIONS-ONLY-AT-TOP-LEVEL-BOUNDARIES",
@@ -3238,7 +3238,7 @@
     {
       "id": "PROPERTY-DISCOVERY-PRECISION-PROPAGATES-TO-TRANSFER-FAMILY",
       "path": "crates/core/transaction/src/plan.rs",
-      "source_sha256": "93d4ead1ca251b51f27abe595f06ab7b1bce0f2eac1830976ba3016f4f34c022"
+      "source_sha256": "8cd092773ca317b9274a9a6a07a810712304678cdf29948b6f6ed85051bc422c"
     },
     {
       "id": "PROPERTY-EFFECT-HASH-TEST-VECTORS",
@@ -3348,7 +3348,7 @@
     {
       "id": "PROPERTY-HOST-EXECUTION-ACCEPTS-WITHDRAWALS-FOR-REGISTERED-ASSETS",
       "path": "crates/core/app/src/app/host.rs",
-      "source_sha256": "8ecb01c21a7d97f13992c15f3bfe20a3f2f6d39afe74d226e6f9c4ed8ad249ff"
+      "source_sha256": "12699b40d0e676a7601cdacfcba3e687390fd3d7f8930dba693ef01d0234efe4"
     },
     {
       "id": "PROPERTY-ICS20-WITHDRAWAL-READY-PRODUCES-WALLET-FACING-ACTION-ONLY",
@@ -3618,12 +3618,12 @@
     {
       "id": "PROPERTY-SHIELDED-ICS20-WITHDRAWAL-COUNTS-CHANGE-OUTPUT-FOR-DISCOVERY",
       "path": "crates/core/transaction/src/plan.rs",
-      "source_sha256": "93d4ead1ca251b51f27abe595f06ab7b1bce0f2eac1830976ba3016f4f34c022"
+      "source_sha256": "8cd092773ca317b9274a9a6a07a810712304678cdf29948b6f6ed85051bc422c"
     },
     {
       "id": "PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITHOUT-EXPLICIT-CHANGE-STILL-COUNTS-HIDDEN-CHANGE-NOTE",
       "path": "crates/core/transaction/src/plan.rs",
-      "source_sha256": "93d4ead1ca251b51f27abe595f06ab7b1bce0f2eac1830976ba3016f4f34c022"
+      "source_sha256": "8cd092773ca317b9274a9a6a07a810712304678cdf29948b6f6ed85051bc422c"
     },
     {
       "id": "PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V8-REJECTS-LEGACY-VERSION",
@@ -3663,7 +3663,7 @@
     {
       "id": "PROPERTY-STANDALONE-EXECUTION-REJECTS-HOST-WITHDRAWALS",
       "path": "crates/core/app/src/app/host.rs",
-      "source_sha256": "8ecb01c21a7d97f13992c15f3bfe20a3f2f6d39afe74d226e6f9c4ed8ad249ff"
+      "source_sha256": "12699b40d0e676a7601cdacfcba3e687390fd3d7f8930dba693ef01d0234efe4"
     },
     {
       "id": "PROPERTY-SUM-BALANCE-COMMITMENTS",
@@ -4498,27 +4498,27 @@
     {
       "id": "RUNTIME-ACTION-PLAN-ACTION-COUNT-MISMATCH",
       "path": "crates/core/transaction/src/plan.rs",
-      "source_sha256": "93d4ead1ca251b51f27abe595f06ab7b1bce0f2eac1830976ba3016f4f34c022"
+      "source_sha256": "8cd092773ca317b9274a9a6a07a810712304678cdf29948b6f6ed85051bc422c"
     },
     {
       "id": "RUNTIME-ACTION-PLAN-EFFECT-HASH-MISMATCH",
       "path": "crates/core/transaction/src/plan.rs",
-      "source_sha256": "93d4ead1ca251b51f27abe595f06ab7b1bce0f2eac1830976ba3016f4f34c022"
+      "source_sha256": "8cd092773ca317b9274a9a6a07a810712304678cdf29948b6f6ed85051bc422c"
     },
     {
       "id": "RUNTIME-ACTION-PLAN-FEE-FUNDING-PRESENCE-MISMATCH",
       "path": "crates/core/transaction/src/plan.rs",
-      "source_sha256": "93d4ead1ca251b51f27abe595f06ab7b1bce0f2eac1830976ba3016f4f34c022"
+      "source_sha256": "8cd092773ca317b9274a9a6a07a810712304678cdf29948b6f6ed85051bc422c"
     },
     {
       "id": "RUNTIME-ACTION-PLAN-MISSING-EFFECT-HASH",
       "path": "crates/core/transaction/src/plan.rs",
-      "source_sha256": "93d4ead1ca251b51f27abe595f06ab7b1bce0f2eac1830976ba3016f4f34c022"
+      "source_sha256": "8cd092773ca317b9274a9a6a07a810712304678cdf29948b6f6ed85051bc422c"
     },
     {
       "id": "RUNTIME-ACTION-PLAN-NOTE-RESHAPE-FAMILY-MISMATCH",
       "path": "crates/core/transaction/src/plan.rs",
-      "source_sha256": "93d4ead1ca251b51f27abe595f06ab7b1bce0f2eac1830976ba3016f4f34c022"
+      "source_sha256": "8cd092773ca317b9274a9a6a07a810712304678cdf29948b6f6ed85051bc422c"
     },
     {
       "id": "RUNTIME-AGGREGATE-BAD-SRS-REJECTION",
@@ -4693,7 +4693,7 @@
     {
       "id": "RUNTIME-HOST-CHECKTX-PROOF-FRONTDOOR",
       "path": "crates/core/app/src/app/host.rs",
-      "source_sha256": "8ecb01c21a7d97f13992c15f3bfe20a3f2f6d39afe74d226e6f9c4ed8ad249ff"
+      "source_sha256": "12699b40d0e676a7601cdacfcba3e687390fd3d7f8930dba693ef01d0234efe4"
     },
     {
       "id": "RUNTIME-HOST-DELIVERTX-PROOF-FRONTDOOR",
@@ -4848,7 +4848,7 @@
     {
       "id": "TRANSACTION-NOTE-RESHAPE-DUMMY-SIGNATURE-REBIND",
       "path": "crates/core/transaction/src/plan.rs",
-      "source_sha256": "93d4ead1ca251b51f27abe595f06ab7b1bce0f2eac1830976ba3016f4f34c022"
+      "source_sha256": "8cd092773ca317b9274a9a6a07a810712304678cdf29948b6f6ed85051bc422c"
     },
     {
       "id": "TRANSACTION-PROOF-BEARING-IDENTITY-BINDING-ATTACK",
@@ -4858,7 +4858,7 @@
     {
       "id": "TRANSACTION-PROOF-BEARING-ZERO-BLINDING-BUILD-REJECT",
       "path": "crates/core/transaction/src/plan.rs",
-      "source_sha256": "93d4ead1ca251b51f27abe595f06ab7b1bce0f2eac1830976ba3016f4f34c022"
+      "source_sha256": "8cd092773ca317b9274a9a6a07a810712304678cdf29948b6f6ed85051bc422c"
     },
     {
       "id": "TRANSACTION-STAGED-EFFECTS-ROLLBACK",
@@ -4868,7 +4868,7 @@
     {
       "id": "TRANSACTION-ZERO-BLINDING-BUILD",
       "path": "crates/core/transaction/src/plan.rs",
-      "source_sha256": "93d4ead1ca251b51f27abe595f06ab7b1bce0f2eac1830976ba3016f4f34c022"
+      "source_sha256": "8cd092773ca317b9274a9a6a07a810712304678cdf29948b6f6ed85051bc422c"
     },
     {
       "id": "TRANSFER-ADDRESS-PACKING-REJECTS-FIELD-ALIAS",
@@ -5273,17 +5273,17 @@
     {
       "id": "VIEW-COMPLIANCE-PATH-CANONICAL-SHAPE",
       "path": "crates/view/src/client_compliance.rs",
-      "source_sha256": "9531e6ec0740513bbcd413c21546fe5c3692a5de03ec7102cda07726a9459468"
+      "source_sha256": "679cbf7f0a29b5f1cbb9a29242edde86b0b015fb36b2568d9b0f7bd3706519fa"
     },
     {
       "id": "VIEW-TRANSFER-NONCE-CROSS-ACTION-REUSE-REJECT",
       "path": "crates/view/src/client_compliance.rs",
-      "source_sha256": "9531e6ec0740513bbcd413c21546fe5c3692a5de03ec7102cda07726a9459468"
+      "source_sha256": "679cbf7f0a29b5f1cbb9a29242edde86b0b015fb36b2568d9b0f7bd3706519fa"
     },
     {
       "id": "VIEW-TRANSFER-NONCE-PER-ACTION-FRESHNESS",
       "path": "crates/view/src/client_compliance.rs",
-      "source_sha256": "9531e6ec0740513bbcd413c21546fe5c3692a5de03ec7102cda07726a9459468"
+      "source_sha256": "679cbf7f0a29b5f1cbb9a29242edde86b0b015fb36b2568d9b0f7bd3706519fa"
     },
     {
       "id": "WIRING-R1C-CANCELED-APPEARANCE",

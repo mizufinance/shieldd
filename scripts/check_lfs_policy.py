@@ -49,6 +49,13 @@ go_gnark_job = rust_workflow.partition("\n  go-gnark:")[2].partition("\n  gnark-
 if "uses: ./.github/actions/materialize-proof-artifacts" not in go_gnark_job:
     fail("the Go gnark test job does not materialize current proof artifacts")
 
+formal_workflow = (ROOT / ".github" / "workflows" / "formal.yml").read_text()
+soundness_job = formal_workflow.partition("\n  soundness-gate:")[2].partition(
+    "\n  soundness-seam-and-pin:"
+)[0]
+if "uses: ./.github/actions/materialize-proof-artifacts" not in soundness_job:
+    fail("the formal soundness gate does not materialize current proof artifacts")
+
 for scheduled_proof_workflow in (
     ROOT / ".github" / "workflows" / "formal-scheduled.yml",
     ROOT / ".github" / "workflows" / "rust.yml",

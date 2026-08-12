@@ -1254,7 +1254,6 @@ EXCLUSION_SYMBOLS: dict[str, tuple[str, ...]] = {
         """
         accepted_host_tx_response_accepts_empty_withdrawals
         host_execution_reports_only_the_latest_committed_state
-        host_withdrawals_preserve_withdrawal_order
         host_withdrawals_resolve_registered_asset_to_base_denom
         """
     ),
@@ -1546,11 +1545,9 @@ EXCLUSION_SYMBOLS: dict[str, tuple[str, ...]] = {
     ),
     "crates/core/component/shielded-pool/src/host_withdrawal.rs": _symbols(
         """
-        execution_effect_hash_binds_refund_and_calls
-        execution_roundtrips_through_proto
-        rejects_invalid_destinations
-        rejects_non_evm_contract_address
-        validates_transfer_and_execution
+        validate_accepts_non_empty_recipient_and_amount
+        validate_rejects_empty_recipient
+        validate_rejects_zero_amount
         """
     ),
     "crates/core/component/shielded-pool/src/gnark/mod.rs": _symbols(
