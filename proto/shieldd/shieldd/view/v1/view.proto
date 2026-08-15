@@ -45,6 +45,9 @@ service ViewService {
   // Query for the current app parameters.
   rpc AppParameters(AppParametersRequest) returns (AppParametersResponse);
 
+  // Query for the exact nullifier-generation planning window.
+  rpc NullifierWindow(NullifierWindowRequest) returns (NullifierWindowResponse);
+
   // Query for the current gas prices.
   rpc GasPrices(GasPricesRequest) returns (GasPricesResponse);
 
@@ -412,6 +415,12 @@ message AppParametersRequest {}
 
 message AppParametersResponse {
   core.app.v1.AppParameters parameters = 1;
+}
+
+message NullifierWindowRequest {}
+
+message NullifierWindowResponse {
+  core.component.sct.v1.NullifierWindow window = 1;
 }
 
 // Requests the current gas prices from the view service.

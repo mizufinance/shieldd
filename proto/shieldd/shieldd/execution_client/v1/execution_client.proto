@@ -5,6 +5,7 @@ package shieldd.execution_client.v1;
 import "cosmos/base/v1beta1/coin.proto";
 import "google/protobuf/timestamp.proto";
 import "shieldd/core/app/v1/app.proto";
+import "shieldd/core/component/sct/v1/sct.proto";
 import "shieldd/core/component/shielded_pool/v1/shielded_pool.proto";
 
 // ExecutionClientService is the gRPC boundary used by a host chain to drive Shieldd
@@ -33,6 +34,9 @@ service ExecutionClientService {
   rpc Rollback(RollbackRequest) returns (RollbackResponse) {}
   // ExportGenesis exports the currently committed Shieldd state as genesis.
   rpc ExportGenesis(ExportGenesisRequest) returns (ExportGenesisResponse) {}
+  // ArchivedNullifierProof returns a retired-generation witness for an old note.
+  rpc ArchivedNullifierProof(shieldd.core.component.sct.v1.ArchivedNullifierProofRequest)
+      returns (shieldd.core.component.sct.v1.ArchivedNullifierProofResponse) {}
 }
 
 // InitGenesisRequest carries the Shieldd genesis payload controlled by the host

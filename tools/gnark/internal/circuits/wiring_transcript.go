@@ -820,6 +820,8 @@ func classifyConstraintSegment(op string) (kind, gadgetLabel, bridgeTheorem, not
 		return "glue", "", "", "allowed assertion/copy constraint segment"
 	case op == "select.field" || op == "select.point" || op == "dummy.mux":
 		return "glue", "", "", "allowed selector/range glue segment"
+	case op == "history.classify":
+		return "glue", "", "", "48-bit position range, comparison, and required-history binding"
 	case op == "routing.precision.select" ||
 		op == "routing.parameters.bind" ||
 		op == "routing.permutation.compose" ||

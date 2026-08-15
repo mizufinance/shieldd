@@ -188,6 +188,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
         if let Some(result) = ensure_base_gas_prices(gas_prices) {
             return Ok(result);
         }
+        let nullifier_window = view.nullifier_window().await?;
 
         let mut notes = self
             .load_notes_for_asset(view, source, value.asset_id)
@@ -279,6 +280,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                                     transaction_parameters: TransactionParameters::default(),
                                     fee_funding: None,
                                     memo: None,
+                                    nullifier_window: Some(nullifier_window),
                                 }
                                 .gas_cost(),
                             )
@@ -435,7 +437,6 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
         if let Some(result) = ensure_base_gas_prices(gas_prices) {
             return Ok(result);
         }
-
         if gas_prices_are_zero(gas_prices) {
             let plan = self
                 .finalize_wallet_plan(view, source, actions, None, zero_base_fee())
@@ -476,6 +477,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
         if let Some(result) = ensure_base_gas_prices(gas_prices) {
             return Ok(result);
         }
+        let nullifier_window = view.nullifier_window().await?;
 
         let mut notes = self.load_notes_for_asset(view, source, asset_id).await?;
         let total_available = notes
@@ -560,6 +562,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                                     transaction_parameters: TransactionParameters::default(),
                                     fee_funding: None,
                                     memo: None,
+                                    nullifier_window: Some(nullifier_window),
                                 }
                                 .gas_cost(),
                             )
@@ -696,7 +699,6 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
         if let Some(result) = ensure_base_gas_prices(gas_prices) {
             return Ok(result);
         }
-
         let mut notes = self.load_notes_for_asset(view, source, asset_id).await?;
         let family_id = if let Some(family_id) = family_id {
             family_id
@@ -1155,6 +1157,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
         if let Some(result) = ensure_base_gas_prices(gas_prices) {
             return Ok(result);
         }
+        let nullifier_window = view.nullifier_window().await?;
 
         if gas_prices_are_zero(gas_prices) {
             let plan = self
@@ -1172,6 +1175,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                     transaction_parameters: TransactionParameters::default(),
                     fee_funding: None,
                     memo: None,
+                    nullifier_window: Some(nullifier_window),
                 }
                 .gas_cost(),
             )
@@ -1292,6 +1296,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             transaction_parameters,
             fee_funding,
             memo: None,
+            nullifier_window: Some(view.nullifier_window().await?),
         };
 
         if plan.num_outputs() > 0 {
@@ -1723,6 +1728,28 @@ mod tests {
             &mut self,
         ) -> Pin<Box<dyn Future<Output = Result<GasPrices>> + Send + 'static>> {
             async move { Ok(GasPrices::zero()) }.boxed()
+        }
+
+        fn nullifier_window(
+            &mut self,
+        ) -> Pin<
+            Box<
+                dyn Future<Output = Result<shieldd_sdk_sct::nullifier_generation::NullifierWindow>>
+                    + Send
+                    + 'static,
+            >,
+        > {
+            async move {
+                Ok(shieldd_sdk_sct::nullifier_generation::NullifierWindow {
+                    protocol_version: shieldd_sdk_sct::nullifier_generation::PROTOCOL_VERSION,
+                    current_generation: 0,
+                    recent_position_floor: 0,
+                    archived_generation_count: 0,
+                    archived_history_head:
+                        shieldd_sdk_sct::nullifier_generation::empty_history_head(),
+                })
+            }
+            .boxed()
         }
 
         fn discovery_parameters(
@@ -2417,6 +2444,7 @@ mod tests {
                 fvk,
                 &PayloadKey::from([0u8; 32]),
                 shieldd_sdk_tct::Tree::default().root(),
+                0,
             )
             .expect("note reshape body materialization succeeds");
         assert!(body.inputs.iter().all(|input| input.encrypted_backref.len()
@@ -2466,6 +2494,7 @@ mod tests {
                 fvk,
                 &PayloadKey::from([0u8; 32]),
                 shieldd_sdk_tct::Tree::default().root(),
+                0,
             )
             .expect("note reshape body materialization succeeds");
         assert!(body.outputs.iter().all(|output| {

@@ -48,6 +48,7 @@ impl NoteReshapeFamilyId {
 pub struct NoteReshapeInputPublic {
     pub nullifier: Nullifier,
     pub rk: VerificationKey<SpendAuth>,
+    pub history_required: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -63,6 +64,7 @@ pub struct NoteReshapeProofPublic {
     pub asset_anchor: tct::StateCommitment,
     pub routing_tag: RoutingTag,
     pub routing_parameter_set_id: Fq,
+    pub recent_position_floor: u64,
     pub inputs: Vec<NoteReshapeInputPublic>,
     pub outputs: Vec<NoteReshapeOutputPublic>,
 }

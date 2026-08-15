@@ -27,6 +27,70 @@ open Contracts.NoteReshape8x1.Witness (
   syntheticSpends6IsDummy syntheticSpends7IsDummy
 )
 
+@[simp] private theorem realHistory0
+    (rho : Nat → DeployedF) (facts : NoteReshape8x1CircuitFacts rho)
+    (real : syntheticSpends0IsDummy rho = 0) :
+    historyClassification (realInput0 rho).statePosition
+      (recentPositionFloor rho) (realInput0 rho).historyRequired := by
+  simpa only [action] using
+    Generated.NoteReshape8x1Spend0.realHistoryClassification rho facts real
+
+@[simp] private theorem realHistory1
+    (rho : Nat → DeployedF) (facts : NoteReshape8x1CircuitFacts rho)
+    (real : syntheticSpends1IsDummy rho = 0) :
+    historyClassification (realInput1 rho).statePosition
+      (recentPositionFloor rho) (realInput1 rho).historyRequired := by
+  simpa only [action] using
+    Generated.NoteReshape8x1Spend1.realHistoryClassification rho facts real
+
+@[simp] private theorem realHistory2
+    (rho : Nat → DeployedF) (facts : NoteReshape8x1CircuitFacts rho)
+    (real : syntheticSpends2IsDummy rho = 0) :
+    historyClassification (realInput2 rho).statePosition
+      (recentPositionFloor rho) (realInput2 rho).historyRequired := by
+  simpa only [action] using
+    Generated.NoteReshape8x1Spend2.realHistoryClassification rho facts real
+
+@[simp] private theorem realHistory3
+    (rho : Nat → DeployedF) (facts : NoteReshape8x1CircuitFacts rho)
+    (real : syntheticSpends3IsDummy rho = 0) :
+    historyClassification (realInput3 rho).statePosition
+      (recentPositionFloor rho) (realInput3 rho).historyRequired := by
+  simpa only [action] using
+    Generated.NoteReshape8x1Spend3.realHistoryClassification rho facts real
+
+@[simp] private theorem realHistory4
+    (rho : Nat → DeployedF) (facts : NoteReshape8x1CircuitFacts rho)
+    (real : syntheticSpends4IsDummy rho = 0) :
+    historyClassification (realInput4 rho).statePosition
+      (recentPositionFloor rho) (realInput4 rho).historyRequired := by
+  simpa only [action] using
+    Generated.NoteReshape8x1Spend4.realHistoryClassification rho facts real
+
+@[simp] private theorem realHistory5
+    (rho : Nat → DeployedF) (facts : NoteReshape8x1CircuitFacts rho)
+    (real : syntheticSpends5IsDummy rho = 0) :
+    historyClassification (realInput5 rho).statePosition
+      (recentPositionFloor rho) (realInput5 rho).historyRequired := by
+  simpa only [action] using
+    Generated.NoteReshape8x1Spend5.realHistoryClassification rho facts real
+
+@[simp] private theorem realHistory6
+    (rho : Nat → DeployedF) (facts : NoteReshape8x1CircuitFacts rho)
+    (real : syntheticSpends6IsDummy rho = 0) :
+    historyClassification (realInput6 rho).statePosition
+      (recentPositionFloor rho) (realInput6 rho).historyRequired := by
+  simpa only [action] using
+    Generated.NoteReshape8x1Spend6.realHistoryClassification rho facts real
+
+@[simp] private theorem realHistory7
+    (rho : Nat → DeployedF) (facts : NoteReshape8x1CircuitFacts rho)
+    (real : syntheticSpends7IsDummy rho = 0) :
+    historyClassification (realInput7 rho).statePosition
+      (recentPositionFloor rho) (realInput7 rho).historyRequired := by
+  simpa only [action] using
+    Generated.NoteReshape8x1Spend7.realHistoryClassification rho facts real
+
 theorem actionMembershipAndNullifiers
     (rho : Nat → DeployedF)
     (facts : NoteReshape8x1CircuitFacts rho) :
@@ -55,8 +119,22 @@ theorem actionMembershipAndNullifiers
       Generated.NoteReshape8x1Spend6.member rho facts h6,
       Generated.NoteReshape8x1Spend6.realNullifier rho facts h6,
       Generated.NoteReshape8x1Spend7.member rho facts h7,
-      Generated.NoteReshape8x1Spend7.realNullifier rho facts h7
+      Generated.NoteReshape8x1Spend7.realNullifier rho facts h7,
+      Generated.NoteReshape8x1Spend0.realHistoryClassification rho facts h0,
+      Generated.NoteReshape8x1Spend1.realHistoryClassification rho facts h1,
+      Generated.NoteReshape8x1Spend2.realHistoryClassification rho facts h2,
+      Generated.NoteReshape8x1Spend3.realHistoryClassification rho facts h3,
+      Generated.NoteReshape8x1Spend4.realHistoryClassification rho facts h4,
+      Generated.NoteReshape8x1Spend5.realHistoryClassification rho facts h5,
+      Generated.NoteReshape8x1Spend6.realHistoryClassification rho facts h6,
+      Generated.NoteReshape8x1Spend7.realHistoryClassification rho facts h7
     ]
+    exact ⟨
+      realHistory0 rho facts h0, realHistory1 rho facts h1,
+      realHistory2 rho facts h2, realHistory3 rho facts h3,
+      realHistory4 rho facts h4, realHistory5 rho facts h5,
+      realHistory6 rho facts h6, realHistory7 rho facts h7
+    ⟩
   · rcases s with ⟨h0, h1, h2, h3, h4, h5, h6, h7⟩
     simp [
       membershipAndNullifiers, action,
@@ -77,8 +155,22 @@ theorem actionMembershipAndNullifiers
       Generated.NoteReshape8x1Spend6.member rho facts h6,
       Generated.NoteReshape8x1Spend6.realNullifier rho facts h6,
       Generated.NoteReshape8x1Spend7.dummyAmountZero rho facts h7,
-      Generated.NoteReshape8x1Spend7.dummyNullifier rho facts h7
+      Generated.NoteReshape8x1Spend7.dummyNullifier rho facts h7,
+      Generated.NoteReshape8x1Spend0.realHistoryClassification rho facts h0,
+      Generated.NoteReshape8x1Spend1.realHistoryClassification rho facts h1,
+      Generated.NoteReshape8x1Spend2.realHistoryClassification rho facts h2,
+      Generated.NoteReshape8x1Spend3.realHistoryClassification rho facts h3,
+      Generated.NoteReshape8x1Spend4.realHistoryClassification rho facts h4,
+      Generated.NoteReshape8x1Spend5.realHistoryClassification rho facts h5,
+      Generated.NoteReshape8x1Spend6.realHistoryClassification rho facts h6,
+      Generated.NoteReshape8x1Spend7.dummyHistoryZero rho facts h7
     ]
+    exact ⟨
+      realHistory0 rho facts h0, realHistory1 rho facts h1,
+      realHistory2 rho facts h2, realHistory3 rho facts h3,
+      realHistory4 rho facts h4, realHistory5 rho facts h5,
+      realHistory6 rho facts h6
+    ⟩
   · rcases s with ⟨h0, h1, h2, h3, h4, h5, h6, h7⟩
     simp [
       membershipAndNullifiers, action,
@@ -99,8 +191,21 @@ theorem actionMembershipAndNullifiers
       Generated.NoteReshape8x1Spend6.dummyAmountZero rho facts h6,
       Generated.NoteReshape8x1Spend6.dummyNullifier rho facts h6,
       Generated.NoteReshape8x1Spend7.dummyAmountZero rho facts h7,
-      Generated.NoteReshape8x1Spend7.dummyNullifier rho facts h7
+      Generated.NoteReshape8x1Spend7.dummyNullifier rho facts h7,
+      Generated.NoteReshape8x1Spend0.realHistoryClassification rho facts h0,
+      Generated.NoteReshape8x1Spend1.realHistoryClassification rho facts h1,
+      Generated.NoteReshape8x1Spend2.realHistoryClassification rho facts h2,
+      Generated.NoteReshape8x1Spend3.realHistoryClassification rho facts h3,
+      Generated.NoteReshape8x1Spend4.realHistoryClassification rho facts h4,
+      Generated.NoteReshape8x1Spend5.realHistoryClassification rho facts h5,
+      Generated.NoteReshape8x1Spend6.dummyHistoryZero rho facts h6,
+      Generated.NoteReshape8x1Spend7.dummyHistoryZero rho facts h7
     ]
+    exact ⟨
+      realHistory0 rho facts h0, realHistory1 rho facts h1,
+      realHistory2 rho facts h2, realHistory3 rho facts h3,
+      realHistory4 rho facts h4, realHistory5 rho facts h5
+    ⟩
   · rcases s with ⟨h0, h1, h2, h3, h4, h5, h6, h7⟩
     simp [
       membershipAndNullifiers, action,
@@ -121,8 +226,21 @@ theorem actionMembershipAndNullifiers
       Generated.NoteReshape8x1Spend6.dummyAmountZero rho facts h6,
       Generated.NoteReshape8x1Spend6.dummyNullifier rho facts h6,
       Generated.NoteReshape8x1Spend7.dummyAmountZero rho facts h7,
-      Generated.NoteReshape8x1Spend7.dummyNullifier rho facts h7
+      Generated.NoteReshape8x1Spend7.dummyNullifier rho facts h7,
+      Generated.NoteReshape8x1Spend0.realHistoryClassification rho facts h0,
+      Generated.NoteReshape8x1Spend1.realHistoryClassification rho facts h1,
+      Generated.NoteReshape8x1Spend2.realHistoryClassification rho facts h2,
+      Generated.NoteReshape8x1Spend3.realHistoryClassification rho facts h3,
+      Generated.NoteReshape8x1Spend4.realHistoryClassification rho facts h4,
+      Generated.NoteReshape8x1Spend5.dummyHistoryZero rho facts h5,
+      Generated.NoteReshape8x1Spend6.dummyHistoryZero rho facts h6,
+      Generated.NoteReshape8x1Spend7.dummyHistoryZero rho facts h7
     ]
+    exact ⟨
+      realHistory0 rho facts h0, realHistory1 rho facts h1,
+      realHistory2 rho facts h2, realHistory3 rho facts h3,
+      realHistory4 rho facts h4
+    ⟩
   · rcases s with ⟨h0, h1, h2, h3, h4, h5, h6, h7⟩
     simp [
       membershipAndNullifiers, action,
@@ -143,8 +261,20 @@ theorem actionMembershipAndNullifiers
       Generated.NoteReshape8x1Spend6.dummyAmountZero rho facts h6,
       Generated.NoteReshape8x1Spend6.dummyNullifier rho facts h6,
       Generated.NoteReshape8x1Spend7.dummyAmountZero rho facts h7,
-      Generated.NoteReshape8x1Spend7.dummyNullifier rho facts h7
+      Generated.NoteReshape8x1Spend7.dummyNullifier rho facts h7,
+      Generated.NoteReshape8x1Spend0.realHistoryClassification rho facts h0,
+      Generated.NoteReshape8x1Spend1.realHistoryClassification rho facts h1,
+      Generated.NoteReshape8x1Spend2.realHistoryClassification rho facts h2,
+      Generated.NoteReshape8x1Spend3.realHistoryClassification rho facts h3,
+      Generated.NoteReshape8x1Spend4.dummyHistoryZero rho facts h4,
+      Generated.NoteReshape8x1Spend5.dummyHistoryZero rho facts h5,
+      Generated.NoteReshape8x1Spend6.dummyHistoryZero rho facts h6,
+      Generated.NoteReshape8x1Spend7.dummyHistoryZero rho facts h7
     ]
+    exact ⟨
+      realHistory0 rho facts h0, realHistory1 rho facts h1,
+      realHistory2 rho facts h2, realHistory3 rho facts h3
+    ⟩
   · rcases s with ⟨h0, h1, h2, h3, h4, h5, h6, h7⟩
     simp [
       membershipAndNullifiers, action,
@@ -165,8 +295,20 @@ theorem actionMembershipAndNullifiers
       Generated.NoteReshape8x1Spend6.dummyAmountZero rho facts h6,
       Generated.NoteReshape8x1Spend6.dummyNullifier rho facts h6,
       Generated.NoteReshape8x1Spend7.dummyAmountZero rho facts h7,
-      Generated.NoteReshape8x1Spend7.dummyNullifier rho facts h7
+      Generated.NoteReshape8x1Spend7.dummyNullifier rho facts h7,
+      Generated.NoteReshape8x1Spend0.realHistoryClassification rho facts h0,
+      Generated.NoteReshape8x1Spend1.realHistoryClassification rho facts h1,
+      Generated.NoteReshape8x1Spend2.realHistoryClassification rho facts h2,
+      Generated.NoteReshape8x1Spend3.dummyHistoryZero rho facts h3,
+      Generated.NoteReshape8x1Spend4.dummyHistoryZero rho facts h4,
+      Generated.NoteReshape8x1Spend5.dummyHistoryZero rho facts h5,
+      Generated.NoteReshape8x1Spend6.dummyHistoryZero rho facts h6,
+      Generated.NoteReshape8x1Spend7.dummyHistoryZero rho facts h7
     ]
+    exact ⟨
+      realHistory0 rho facts h0, realHistory1 rho facts h1,
+      realHistory2 rho facts h2
+    ⟩
   · rcases s with ⟨h0, h1, h2, h3, h4, h5, h6, h7⟩
     simp [
       membershipAndNullifiers, action,
@@ -187,8 +329,17 @@ theorem actionMembershipAndNullifiers
       Generated.NoteReshape8x1Spend6.dummyAmountZero rho facts h6,
       Generated.NoteReshape8x1Spend6.dummyNullifier rho facts h6,
       Generated.NoteReshape8x1Spend7.dummyAmountZero rho facts h7,
-      Generated.NoteReshape8x1Spend7.dummyNullifier rho facts h7
+      Generated.NoteReshape8x1Spend7.dummyNullifier rho facts h7,
+      Generated.NoteReshape8x1Spend0.realHistoryClassification rho facts h0,
+      Generated.NoteReshape8x1Spend1.realHistoryClassification rho facts h1,
+      Generated.NoteReshape8x1Spend2.dummyHistoryZero rho facts h2,
+      Generated.NoteReshape8x1Spend3.dummyHistoryZero rho facts h3,
+      Generated.NoteReshape8x1Spend4.dummyHistoryZero rho facts h4,
+      Generated.NoteReshape8x1Spend5.dummyHistoryZero rho facts h5,
+      Generated.NoteReshape8x1Spend6.dummyHistoryZero rho facts h6,
+      Generated.NoteReshape8x1Spend7.dummyHistoryZero rho facts h7
     ]
+    exact ⟨realHistory0 rho facts h0, realHistory1 rho facts h1⟩
 
 theorem actionRandomizedKeys
     (rho : Nat → DeployedF)

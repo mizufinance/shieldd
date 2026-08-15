@@ -25,6 +25,7 @@ cfg_if::cfg_if! {
         pub mod app;
         pub mod block_tx_indexing;
         pub mod metrics;
+        pub mod nullifier_generation_packs;
         pub mod rpc;
         pub mod server;
         pub mod stateless_cache;

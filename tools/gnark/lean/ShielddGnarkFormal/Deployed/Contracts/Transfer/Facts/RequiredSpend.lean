@@ -6,6 +6,7 @@ import ShielddGnarkFormal.Deployed.Contracts.Transfer.Seg36
 import ShielddGnarkFormal.Deployed.Contracts.Transfer.Seg37
 import ShielddGnarkFormal.Deployed.Contracts.Transfer.Seg38
 import ShielddGnarkFormal.Deployed.Contracts.Transfer.Seg39
+import ShielddGnarkFormal.Deployed.Contracts.Transfer.Seg40
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 4000000
@@ -23,6 +24,7 @@ structure RequiredSpendCircuitFacts (rho : Nat → Seg32.F) : Prop where
   AssertEqSeg36 : Seg36.contract.spec rho
   DecafRandomizedVerificationKeySeg37 : Seg37.contract.spec rho
   DecafAssertEquivalentSeg38 : Seg38.contract.spec rho
-  DecafCompressToFieldSeg39 : Seg39.contract.spec rho
+  HistoryClassifySeg39 : Seg39.contract.spec rho
+  DecafCompressToFieldSeg40 : Seg40.contract.spec rho
 
 end Shieldd.GnarkFormal.Deployed.Contracts.Transfer

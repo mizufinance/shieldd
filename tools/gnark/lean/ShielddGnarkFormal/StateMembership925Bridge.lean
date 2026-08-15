@@ -19,42 +19,40 @@ abbrev Path24 := Protocol.Common.Path24
 def segmentPath (sigma : Nat → F) : Path24 :=
   fun level sibling =>
     match sibling.val with
-    | 0 => sigma (291 + 363 * level.val)
-    | 1 => sigma (293 + 363 * level.val)
-    | _ => sigma (296 + 363 * level.val)
+    | 0 => sigma (290 + 363 * level.val)
+    | 1 => sigma (292 + 363 * level.val)
+    | _ => sigma (295 + 363 * level.val)
 
 def leafInput (sigma : Nat → F) : F :=
-  7388904030749824121217721821433853214953911918259805849443329273927733084161 *
+  7238110070938603220784707090384182741179342287274911852515914390786350776321 *
       sigma 1 +
-    4691367638571316902360458299323081406319944075085591015519574142176338466134 *
+    7388904030749824121217721821433853214953911918259805849443329273927733084161 *
       sigma 2 +
-    7600015574485533381823942444903391878238309401638657445141710110325668315137 *
+    4691367638571316902360458299323081406319944075085591015519574142176338466134 *
       sigma 3 +
-    2303035022571373752067861346940421781284336182314744680345972760704747974284 *
+    7600015574485533381823942444903391878238309401638657445141710110325668315137 *
       sigma 4 +
-    7740756603642672888894756193883084320427907723891225175607297334590958469121 *
+    2303035022571373752067861346940421781284336182314744680345972760704747974284 *
       sigma 5 +
-    7794887768703111160845069174259889105885445540142212764247907805462223912961 *
-      sigma 6 +
-    7841285910183486822516766014582864636277620811214487840225573923351880007681 *
-      sigma 7
+    7740756603642672888894756193883084320427907723891225175607297334590958469121 *
+      sigma 6
 
 def rootOutput (sigma : Nat → F) : F :=
   7037051457856975353540687448984622109479916112628386523279361213264507699201 *
-      sigma 8978 +
+      sigma 8977 +
     7238110070938603220784707090384182741179342287274911852515914390786350776321 *
-      sigma 8983 +
+      sigma 8982 +
     7388904030749824121217721821433853214953911918259805849443329273927733084161 *
-      sigma 8988 +
+      sigma 8987 +
     4691367638571316902360458299323081406319944075085591015519574142176338466134 *
-      sigma 8993 +
+      sigma 8992 +
     7600015574485533381823942444903391878238309401638657445141710110325668315137 *
-      sigma 8998
+      sigma 8997
 
 theorem pathSibling_segmentPath0
     (sigma : Nat → F) (level : Nat) (hlevel : level < 24) :
     Protocol.Common.pathSibling (segmentPath sigma) level 0 =
-      sigma (291 + 363 * level) := by
+      sigma (290 + 363 * level) := by
   unfold Protocol.Common.pathSibling
   rw [dif_pos hlevel, dif_pos (by decide : 0 < 3)]
   rfl
@@ -62,7 +60,7 @@ theorem pathSibling_segmentPath0
 theorem pathSibling_segmentPath1
     (sigma : Nat → F) (level : Nat) (hlevel : level < 24) :
     Protocol.Common.pathSibling (segmentPath sigma) level 1 =
-      sigma (293 + 363 * level) := by
+      sigma (292 + 363 * level) := by
   unfold Protocol.Common.pathSibling
   rw [dif_pos hlevel, dif_pos (by decide : 1 < 3)]
   rfl
@@ -70,7 +68,7 @@ theorem pathSibling_segmentPath1
 theorem pathSibling_segmentPath2
     (sigma : Nat → F) (level : Nat) (hlevel : level < 24) :
     Protocol.Common.pathSibling (segmentPath sigma) level 2 =
-      sigma (296 + 363 * level) := by
+      sigma (295 + 363 * level) := by
   unfold Protocol.Common.pathSibling
   rw [dif_pos hlevel, dif_pos (by decide : 2 < 3)]
   rfl
@@ -90,9 +88,9 @@ theorem recoverPrefix_segmentPath
         b0 b1 level =
       Deployed.StateCommitmentPathChoiceFree.recoverPrefix
         Poseidon4Bridge.permSpec4 domain leaf
-        (fun k => sigma (291 + 363 * k))
-        (fun k => sigma (293 + 363 * k))
-        (fun k => sigma (296 + 363 * k))
+        (fun k => sigma (290 + 363 * k))
+        (fun k => sigma (292 + 363 * k))
+        (fun k => sigma (295 + 363 * k))
         b0 b1 level := by
   induction level with
   | zero =>
@@ -126,9 +124,9 @@ theorem stateRecover_segmentPath_eq_deployed
         (fun k => NoteReshapeStateBridge.stateCommitmentDomain + (k : F) + 1)
         (Poseidon1Bridge.permSpec1
           NoteReshapeStateBridge.stateCommitmentDomain commitment)
-        (fun k => sigma (291 + 363 * k))
-        (fun k => sigma (293 + 363 * k))
-        (fun k => sigma (296 + 363 * k))
+        (fun k => sigma (290 + 363 * k))
+        (fun k => sigma (292 + 363 * k))
+        (fun k => sigma (295 + 363 * k))
         b0 b1 level := by
   rw [
     NoteReshapeStateBridge.stateRecover_eq_deployed
@@ -148,18 +146,18 @@ theorem member_of_spec
       Deployed.Templates.Semantics.TGadgetStateCommitmentPath_de54b1d0646cc1ad6f619aa080bfafd4a6edb63989b142c5c0b284d84e09d69b.spec
         sigma)
     (hcommitment : commitment = leafInput sigma)
-    (hpositionInput : position = sigma 286)
+    (hpositionInput : position = sigma 285)
     (hpath : path = segmentPath sigma)
     (hanchor : anchor = rootOutput sigma) :
     Protocol.Common.stateMember anchor commitment position path := by
   rcases h with ⟨hboolean, hposition, hroot⟩
-  let b0 : Nat → F := fun level => sigma (238 + 2 * level)
-  let b1 : Nat → F := fun level => sigma (239 + 2 * level)
+  let b0 : Nat → F := fun level => sigma (237 + 2 * level)
+  let b1 : Nat → F := fun level => sigma (238 + 2 * level)
   refine ⟨b0, b1, ?_, ?_, ?_, ?_⟩
   · intro level hlevel
     exact hboolean (2 * level) (by omega)
   · intro level hlevel
-    have hindex : 238 + (2 * level + 1) = 239 + 2 * level := by
+    have hindex : 237 + (2 * level + 1) = 238 + 2 * level := by
       omega
     simpa [b1, hindex] using
       hboolean (2 * level + 1) (by omega)
@@ -178,9 +176,9 @@ theorem member_of_spec
         (fun k => NoteReshapeStateBridge.stateCommitmentDomain + (k : F) + 1)
         (Poseidon1Bridge.permSpec1
           NoteReshapeStateBridge.stateCommitmentDomain (leafInput sigma))
-        (fun k => sigma (291 + 363 * k))
-        (fun k => sigma (293 + 363 * k))
-        (fun k => sigma (296 + 363 * k))
+        (fun k => sigma (290 + 363 * k))
+        (fun k => sigma (292 + 363 * k))
+        (fun k => sigma (295 + 363 * k))
         b0 b1 at hroot
     simpa [
       leafInput, rootOutput,

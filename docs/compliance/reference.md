@@ -1,6 +1,6 @@
 # Compliance Reference
 
-Technical lookup material for the deployed V17 transfer compliance surface.
+Technical lookup material for the deployed V18 transfer compliance surface.
 See `flow.md` for the end-to-end lifecycle.
 
 ## Transfer Wire Format
@@ -36,7 +36,7 @@ TransferComplianceMetadata: 328 bytes
 Every Fq and compressed point must decode canonically. Metadata timestamp zero
 is invalid. Tier labels are not serialized; fixed ordering is the tier domain.
 
-The V17 transport has no upload bundle, encrypted seed envelope, public shared
+The V18 transport has no upload bundle, encrypted seed envelope, public shared
 point, DLEQ challenge, or DLEQ response.
 
 After decryption, the four detection words are:
@@ -49,7 +49,7 @@ After decryption, the four detection words are:
 ```
 
 Both slots are canonical `u32` values, and the routing permutation is a
-canonical bit. Word 0 is the exact asset id; V17 does not combine the asset
+canonical bit. Word 0 is the exact asset id; V18 does not combine the asset
 with either flag.
 
 ## Transfer Key And Address Validity
@@ -70,8 +70,8 @@ malicious proof from creating a note with that ambiguous owner.
 
 ## Transfer Public Statement
 
-The fixed 2x2 Transfer statement has 44 Fq fields. Its hash uses the
-`shieldd.shielded_pool.transfer.public_input_hash.v5` domain.
+The fixed 2x2 Transfer statement has 47 Fq fields. Its hash uses the
+`shieldd.shielded_pool.transfer.public_input_hash.v6` domain.
 
 ```text
  0       anchor
@@ -79,17 +79,18 @@ The fixed 2x2 Transfer statement has 44 Fq fields. Its hash uses the
  3       balance commitment
  4..5    fixed two-slot routing tags
  6       routing parameter-set identifier
- 7..10   two (nullifier, randomized verification key) pairs
-11..12   asset and compliance anchors
-13..16   detection ciphertext
-17..19   sender_core: EPK, c2, one ciphertext word
-20..24   sender_ext: EPK, c2, three ciphertext words
-25..27   output_core: EPK, c2, one ciphertext word
-28..32   output_ext: EPK, c2, three ciphertext words
-33       target_timestamp
-34..35   sender and output subject derivations
-36..39   ring, policy, resource, and permission hashes
-40..43   sender-core, sender-ext, output-core, and output-ext salts
+ 7       recent position floor
+ 8..13   two (nullifier, randomized verification key, history-required bit) triples
+14..15   asset and compliance anchors
+16..19   detection ciphertext
+20..22   sender_core: EPK, c2, one ciphertext word
+23..27   sender_ext: EPK, c2, three ciphertext words
+28..30   output_core: EPK, c2, one ciphertext word
+31..35   output_ext: EPK, c2, three ciphertext words
+36       target_timestamp
+37..38   sender and output subject derivations
+39..42   ring, policy, resource, and permission hashes
+43..46   sender-core, sender-ext, output-core, and output-ext salts
 ```
 
 The exact tail append order is:
@@ -111,7 +112,7 @@ output_ext_salt
 The metadata timestamp is not appended twice: its serialized value must equal
 the statement's existing `target_timestamp`. The authoritative builders are
 `transfer_statement_fields` in Rust and `buildTransferStatementFields` /
-`ReconstructedTransferStatementFieldsFromWitnessV17` in Go.
+`ReconstructedTransferStatementFieldsFromWitnessV18` in Go.
 
 ## Effective Policy Selection
 
@@ -225,7 +226,7 @@ facts before advancing the row to `evidence_valid`.
 Flagged transfers can be completed by issuer-DK decryption after evidence
 validation. Orbis v0 export and import always return errors because its public
 proof reveals the seed-opening DH point. Consequently, unflagged ACK-tier PRE
-audit is unavailable in V17.
+audit is unavailable in V18.
 
 The retained DLEQ implementation and Lean/Tamarin material are standalone
 research. No deployed statement field, transaction byte, evidence object, or

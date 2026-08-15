@@ -881,7 +881,7 @@ structure ClaimedFacts where
                     for status in statuses
                 )
             )
-        self.assertEqual(len(validated["trace_instances"]), 360)
+        self.assertEqual(len(validated["trace_instances"]), 374)
         self.assertEqual(len(validated["tests"]), 289)
         self.assertEqual(len(validated["runtime_policy_tests"]), 70)
         self.assertEqual(len(validated["property_contract_tests"]), 274)
@@ -5586,6 +5586,8 @@ structure ClaimedFacts where
 
     def test_certified_profile_requires_closed_and_mapped_status(self) -> None:
         catalog = list(profiles())
+        certified = catalog[0]
+        certified["status"] = "certified"
         statuses = [
             {
                 "profile": profile["label"],
@@ -5612,9 +5614,6 @@ structure ClaimedFacts where
                 catalog, setup_drift
             )
 
-        certified = next(
-            profile for profile in catalog if profile["status"] == "certified"
-        )
         next(
             status
             for status in statuses

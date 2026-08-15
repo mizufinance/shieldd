@@ -58,7 +58,7 @@ affine balance point: the statement already compressed the independently
 computed net-balance point, so the duplicate could not affect the accepted
 body. Removing its four on-curve rows and three cross-ratio rows reduces the
 historical V13 circuit from 227,192 to 227,185 constraints and removes 64
-witness bytes. V17 changes the relation again; its committed manifest and
+witness bytes. V18 changes the relation again; its committed manifest and
 circuit metadata are authoritative. The intervening mixed-purpose changes are
 not presented as one optimization delta.
 
@@ -71,7 +71,8 @@ count. Transfer V17 further separates the exact asset from the flag, constrains
 both detection slots to 32 bits, adopts v3 six-field compliance leaves,
 rejects the asset-tree sentinel, and rejection-samples nonzero tier scalars.
 Those are mixed security changes, so no optimization percentage is claimed
-until the final V17 artifact census is pinned.
+for them in isolation. Transfer V18 additionally binds the consensus recent
+position floor and each spend's exact old-note classification.
 
 ## Withdrawal follow-up
 
@@ -83,7 +84,9 @@ v3 six-field compliance leaf, rejects the zero sentinel, and removes
 cross-spend transaction-nonce coupling. The fixed 2x1 relation moves from
 59,579 to 56,788 constraints: −2,791 (−4.68%). Because this combines
 simplification with security hardening, the number is a deployed relation
-delta, not a pure optimization attribution.
+delta, not a pure optimization attribution. Withdrawal V10 additionally binds
+the consensus recent-position floor and each spend's exact old-note
+classification.
 
 ## Current compiled result
 
@@ -92,15 +95,16 @@ compiles to:
 
 | Family | Committed baseline | Current | Delta |
 | --- | ---: | ---: | ---: |
-| `transfer` | 227,176 | 124,428 | −102,748 (−45.23%) |
-| `shielded_ics20_withdrawal` | 67,014 | 54,440 | −12,574 (−18.76%) |
+| `transfer` | 227,176 | 130,015 | −97,161 (−42.77%) |
+| `shielded_ics20_withdrawal` | 67,014 | 57,689 | −9,325 (−13.92%) |
 
 These are whole-relation deltas. Transfer combines deletion of the old DLEQ
 and public shared-point surface, exact amount-pair aggregation, and radix-4
 variable-base multiplication. Withdrawal combines its conservation-specific
 balance relation and radix-4 DTK path with the V9 security changes above.
-Neither row is presented as a scalar-multiplication-only attribution. Transfer
-retains its optional second spend unchanged.
+Neither row is presented as a scalar-multiplication-only attribution. Both
+rows also include the later old-note classifier; Transfer retains its optional
+second spend unchanged.
 
 ## Scalar multiplication audit
 

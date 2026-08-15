@@ -464,6 +464,7 @@ fn transaction_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = Tran
             transaction_parameters: params,
             fee_funding: None,
             memo: None,
+            nullifier_window: None,
         }
     })
 }

@@ -323,9 +323,9 @@ func (c *noteReshapeStatementSeamCircuit) Define(api frontend.API) error {
 	var label string
 	var nIn, nOut int
 	switch len(c.Fields) {
-	case 22:
+	case 31:
 		label, nIn, nOut = "note_reshape8x1", 8, 1
-	case 15:
+	case 17:
 		label, nIn, nOut = "note_reshape1x8", 1, 8
 	default:
 		return fmt.Errorf("unsupported note reshape statement field count %d", len(c.Fields))

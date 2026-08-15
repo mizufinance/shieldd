@@ -36,38 +36,40 @@ structure RequiredSpendExactProviders (rho : Nat → DeployedF) : Prop where
   requiredAnchorAssert : Seg36.contract.spec rho
   requiredRvk : Seg37.contract.spec rho
   requiredRkEquivalent : Seg38.contract.spec rho
-  requiredRkCompress : Seg39.contract.spec rho
+  requiredHistoryClassify : Seg39.contract.spec rho
+  requiredRkCompress : Seg40.contract.spec rho
 
 /-- Exact provider inventory for the `optionalSpend` obligation. -/
 structure OptionalSpendExactProviders (rho : Nat → DeployedF) : Prop where
-  optionalIsDummyBoolean : Seg42.contract.spec rho
-  optionalNoteCommitment : Seg43.contract.spec rho
-  optionalNullifier : Seg44.contract.spec rho
-  optionalStatePath : Seg45.contract.spec rho
-  optionalSyntheticNullifier : Seg46.contract.spec rho
-  optionalNullifierMux : Seg47.contract.spec rho
-  optionalNullifierAssert : Seg48.contract.spec rho
-  optionalAnchorAssert : Seg49.contract.spec rho
-  optionalRvk : Seg50.contract.spec rho
-  optionalRkEquivalent : Seg51.contract.spec rho
-  optionalAmountZero : Seg52.contract.spec rho
-  optionalRkCompress : Seg53.contract.spec rho
+  optionalIsDummyBoolean : Seg43.contract.spec rho
+  optionalNoteCommitment : Seg44.contract.spec rho
+  optionalNullifier : Seg45.contract.spec rho
+  optionalStatePath : Seg46.contract.spec rho
+  optionalSyntheticNullifier : Seg47.contract.spec rho
+  optionalNullifierMux : Seg48.contract.spec rho
+  optionalNullifierAssert : Seg49.contract.spec rho
+  optionalAnchorAssert : Seg50.contract.spec rho
+  optionalRvk : Seg51.contract.spec rho
+  optionalRkEquivalent : Seg52.contract.spec rho
+  optionalAmountZero : Seg53.contract.spec rho
+  optionalHistoryClassify : Seg54.contract.spec rho
+  optionalRkCompress : Seg55.contract.spec rho
 
 /-- Exact provider inventory for the `receiverOutput` obligation. -/
 structure ReceiverOutputExactProviders (rho : Nat → DeployedF) : Prop where
-  receiverDivGenNonIdentity : Seg56.contract.spec rho
-  receiverTransmissionNonIdentity : Seg57.contract.spec rho
-  receiverAmountIsZero : Seg58.contract.spec rho
-  receiverDivGenCompress : Seg59.contract.spec rho
-  receiverTransmissionCompress : Seg60.contract.spec rho
-  receiverNoteCommitment : Seg61.contract.spec rho
-  receiverNoteAssert : Seg62.contract.spec rho
-  receiverNonzeroAssert : Seg66.contract.spec rho
+  receiverDivGenNonIdentity : Seg58.contract.spec rho
+  receiverTransmissionNonIdentity : Seg59.contract.spec rho
+  receiverAmountIsZero : Seg60.contract.spec rho
+  receiverDivGenCompress : Seg61.contract.spec rho
+  receiverTransmissionCompress : Seg62.contract.spec rho
+  receiverNoteCommitment : Seg63.contract.spec rho
+  receiverNoteAssert : Seg64.contract.spec rho
+  receiverNonzeroAssert : Seg68.contract.spec rho
 
 /-- Exact provider inventory for the `changeOutput` obligation. -/
 structure ChangeOutputExactProviders (rho : Nat → DeployedF) : Prop where
-  changeNoteCommitment : Seg70.contract.spec rho
-  changeNoteAssert : Seg71.contract.spec rho
+  changeNoteCommitment : Seg72.contract.spec rho
+  changeNoteAssert : Seg73.contract.spec rho
 
 /-- Exact provider inventory for the `assetRegistry` obligation. -/
 structure AssetRegistryExactProviders (rho : Nat → DeployedF) : Prop where
@@ -92,10 +94,10 @@ structure SenderComplianceExactProviders (rho : Nat → DeployedF) : Prop where
 
 /-- Exact provider inventory for the `receiverCompliance` obligation. -/
 structure ReceiverComplianceExactProviders (rho : Nat → DeployedF) : Prop where
-  receiverComplianceLeaf : Seg63.contract.spec rho
-  receiverCompliancePath : Seg64.contract.spec rho
-  receiverComplianceAssert : Seg65.contract.spec rho
-  receiverAck : Seg67.contract.spec rho
+  receiverComplianceLeaf : Seg65.contract.spec rho
+  receiverCompliancePath : Seg66.contract.spec rho
+  receiverComplianceAssert : Seg67.contract.spec rho
+  receiverAck : Seg69.contract.spec rho
 
 /-- Exact provider inventory for the `complianceTranscript` obligation. -/
 structure ComplianceTranscriptExactProviders (rho : Nat → DeployedF) : Prop where
@@ -105,61 +107,61 @@ structure ComplianceTranscriptExactProviders (rho : Nat → DeployedF) : Prop wh
   effectivePolicyIdHash : Seg9.contract.spec rho
   effectiveResourceHash : Seg10.contract.spec rho
   effectivePermissionHash : Seg11.contract.spec rho
-  thresholdFlag : Seg89.contract.spec rho
-  senderCoreEpkCompress : Seg90.contract.spec rho
-  senderExtEpkCompress : Seg91.contract.spec rho
-  outputCoreEpkCompress : Seg92.contract.spec rho
-  outputExtEpkCompress : Seg93.contract.spec rho
-  salt0 : Seg94.contract.spec rho
-  salt1 : Seg95.contract.spec rho
-  salt2 : Seg96.contract.spec rho
-  salt3 : Seg97.contract.spec rho
-  salt4 : Seg98.contract.spec rho
-  senderCoreSharedSecret : Seg99.contract.spec rho
-  senderExtSharedSecret : Seg100.contract.spec rho
-  outputCoreSharedSecret : Seg101.contract.spec rho
-  outputExtSharedSecret : Seg102.contract.spec rho
-  detectionEncryption : Seg103.contract.spec rho
-  senderAmountEncryption : Seg104.contract.spec rho
-  senderAddressEncryption : Seg105.contract.spec rho
-  outputAmountEncryption : Seg106.contract.spec rho
-  outputAddressEncryption : Seg107.contract.spec rho
-  metadataSenderSubjectDerivation : Seg109.contract.spec rho
-  metadataOutputSubjectDerivation : Seg110.contract.spec rho
-  metadataRingIdHash : Seg111.contract.spec rho
-  metadataPolicyIdHash : Seg112.contract.spec rho
-  metadataResourceHash : Seg113.contract.spec rho
-  metadataPermissionHash : Seg114.contract.spec rho
-  metadataTargetTimestamp : Seg115.contract.spec rho
-  metadataSenderCoreSalt : Seg116.contract.spec rho
-  metadataSenderExtSalt : Seg117.contract.spec rho
-  metadataOutputCoreSalt : Seg118.contract.spec rho
-  metadataOutputExtSalt : Seg119.contract.spec rho
+  thresholdFlag : Seg91.contract.spec rho
+  senderCoreEpkCompress : Seg92.contract.spec rho
+  senderExtEpkCompress : Seg93.contract.spec rho
+  outputCoreEpkCompress : Seg94.contract.spec rho
+  outputExtEpkCompress : Seg95.contract.spec rho
+  salt0 : Seg96.contract.spec rho
+  salt1 : Seg97.contract.spec rho
+  salt2 : Seg98.contract.spec rho
+  salt3 : Seg99.contract.spec rho
+  salt4 : Seg100.contract.spec rho
+  senderCoreSharedSecret : Seg101.contract.spec rho
+  senderExtSharedSecret : Seg102.contract.spec rho
+  outputCoreSharedSecret : Seg103.contract.spec rho
+  outputExtSharedSecret : Seg104.contract.spec rho
+  detectionEncryption : Seg105.contract.spec rho
+  senderAmountEncryption : Seg106.contract.spec rho
+  senderAddressEncryption : Seg107.contract.spec rho
+  outputAmountEncryption : Seg108.contract.spec rho
+  outputAddressEncryption : Seg109.contract.spec rho
+  metadataSenderSubjectDerivation : Seg111.contract.spec rho
+  metadataOutputSubjectDerivation : Seg112.contract.spec rho
+  metadataRingIdHash : Seg113.contract.spec rho
+  metadataPolicyIdHash : Seg114.contract.spec rho
+  metadataResourceHash : Seg115.contract.spec rho
+  metadataPermissionHash : Seg116.contract.spec rho
+  metadataTargetTimestamp : Seg117.contract.spec rho
+  metadataSenderCoreSalt : Seg118.contract.spec rho
+  metadataSenderExtSalt : Seg119.contract.spec rho
+  metadataOutputCoreSalt : Seg120.contract.spec rho
+  metadataOutputExtSalt : Seg121.contract.spec rho
 
 /-- Exact provider inventory for the `balanceComputedAndCompressed` obligation. -/
 structure BalanceComputedAndCompressedExactProviders (rho : Nat → DeployedF) : Prop where
-  netBalance : Seg121.contract.spec rho
-  balanceCompress : Seg122.contract.spec rho
+  netBalance : Seg123.contract.spec rho
+  balanceCompress : Seg124.contract.spec rho
 
 /-- Exact provider inventory for the `statementBinding` obligation. -/
 structure StatementBindingExactProviders (rho : Nat → DeployedF) : Prop where
-  routingPrecisionSelect : Seg72.contract.spec rho
-  routingParametersHash : Seg73.contract.spec rho
-  routingParametersBind : Seg74.contract.spec rho
-  routingSenderRouteWord : Seg75.contract.spec rho
-  routingReceiverRouteWord : Seg76.contract.spec rho
-  routingPermutationHash : Seg77.contract.spec rho
-  routingPermutationCompose : Seg78.contract.spec rho
-  routingTag0PublicRange : Seg79.contract.spec rho
-  routingTag0RouteBits : Seg80.contract.spec rho
-  routingTag0RandomWord : Seg81.contract.spec rho
-  routingTag0Compose : Seg82.contract.spec rho
-  routingTag1PublicRange : Seg83.contract.spec rho
-  routingTag1RouteBits : Seg84.contract.spec rho
-  routingTag1RandomWord : Seg85.contract.spec rho
-  routingTag1Compose : Seg86.contract.spec rho
-  statementHash : Seg124.contract.spec rho
-  statementAssert : Seg125.contract.spec rho
+  routingPrecisionSelect : Seg74.contract.spec rho
+  routingParametersHash : Seg75.contract.spec rho
+  routingParametersBind : Seg76.contract.spec rho
+  routingSenderRouteWord : Seg77.contract.spec rho
+  routingReceiverRouteWord : Seg78.contract.spec rho
+  routingPermutationHash : Seg79.contract.spec rho
+  routingPermutationCompose : Seg80.contract.spec rho
+  routingTag0PublicRange : Seg81.contract.spec rho
+  routingTag0RouteBits : Seg82.contract.spec rho
+  routingTag0RandomWord : Seg83.contract.spec rho
+  routingTag0Compose : Seg84.contract.spec rho
+  routingTag1PublicRange : Seg85.contract.spec rho
+  routingTag1RouteBits : Seg86.contract.spec rho
+  routingTag1RandomWord : Seg87.contract.spec rho
+  routingTag1Compose : Seg88.contract.spec rho
+  statementHash : Seg126.contract.spec rho
+  statementAssert : Seg127.contract.spec rho
 
 structure TransferExactProviders (rho : Nat → DeployedF) : Prop where
   canonicalSender : CanonicalSenderExactProviders rho
@@ -198,35 +200,37 @@ theorem transferExactProviders
       requiredAnchorAssert := facts.requiredSpend.AssertEqSeg36
       requiredRvk := facts.requiredSpend.DecafRandomizedVerificationKeySeg37
       requiredRkEquivalent := facts.requiredSpend.DecafAssertEquivalentSeg38
-      requiredRkCompress := facts.requiredSpend.DecafCompressToFieldSeg39
+      requiredHistoryClassify := facts.requiredSpend.HistoryClassifySeg39
+      requiredRkCompress := facts.requiredSpend.DecafCompressToFieldSeg40
     }
     optionalSpend := {
-      optionalIsDummyBoolean := facts.optionalSpend.AssertBooleanSeg42
-      optionalNoteCommitment := facts.optionalSpend.GadgetNoteCommitmentSeg43
-      optionalNullifier := facts.optionalSpend.GadgetNullifierSeg44
-      optionalStatePath := facts.optionalSpend.GadgetStateCommitmentPathSeg45
-      optionalSyntheticNullifier := facts.optionalSpend.GadgetSyntheticDummyNullifierSeg46
-      optionalNullifierMux := facts.optionalSpend.DummyMuxSeg47
-      optionalNullifierAssert := facts.optionalSpend.AssertEqSeg48
-      optionalAnchorAssert := facts.optionalSpend.AssertEqIfSeg49
-      optionalRvk := facts.optionalSpend.DecafRandomizedVerificationKeySeg50
-      optionalRkEquivalent := facts.optionalSpend.DecafAssertEquivalentIfSeg51
-      optionalAmountZero := facts.optionalSpend.AssertEqIfSeg52
-      optionalRkCompress := facts.optionalSpend.DecafCompressToFieldSeg53
+      optionalIsDummyBoolean := facts.optionalSpend.AssertBooleanSeg43
+      optionalNoteCommitment := facts.optionalSpend.GadgetNoteCommitmentSeg44
+      optionalNullifier := facts.optionalSpend.GadgetNullifierSeg45
+      optionalStatePath := facts.optionalSpend.GadgetStateCommitmentPathSeg46
+      optionalSyntheticNullifier := facts.optionalSpend.GadgetSyntheticDummyNullifierSeg47
+      optionalNullifierMux := facts.optionalSpend.DummyMuxSeg48
+      optionalNullifierAssert := facts.optionalSpend.AssertEqSeg49
+      optionalAnchorAssert := facts.optionalSpend.AssertEqIfSeg50
+      optionalRvk := facts.optionalSpend.DecafRandomizedVerificationKeySeg51
+      optionalRkEquivalent := facts.optionalSpend.DecafAssertEquivalentIfSeg52
+      optionalAmountZero := facts.optionalSpend.AssertEqIfSeg53
+      optionalHistoryClassify := facts.optionalSpend.HistoryClassifySeg54
+      optionalRkCompress := facts.optionalSpend.DecafCompressToFieldSeg55
     }
     receiverOutput := {
-      receiverDivGenNonIdentity := facts.receiverOutput.AssertDecafNonIdentitySeg56
-      receiverTransmissionNonIdentity := facts.receiverOutput.AssertDecafNonIdentitySeg57
-      receiverAmountIsZero := facts.receiverOutput.GadgetIsZeroSeg58
-      receiverDivGenCompress := facts.receiverOutput.DecafCompressToFieldSeg59
-      receiverTransmissionCompress := facts.receiverOutput.DecafCompressToFieldSeg60
-      receiverNoteCommitment := facts.receiverOutput.GadgetNoteCommitmentSeg61
-      receiverNoteAssert := facts.receiverOutput.AssertEqSeg62
-      receiverNonzeroAssert := facts.receiverOutput.AssertEqSeg66
+      receiverDivGenNonIdentity := facts.receiverOutput.AssertDecafNonIdentitySeg58
+      receiverTransmissionNonIdentity := facts.receiverOutput.AssertDecafNonIdentitySeg59
+      receiverAmountIsZero := facts.receiverOutput.GadgetIsZeroSeg60
+      receiverDivGenCompress := facts.receiverOutput.DecafCompressToFieldSeg61
+      receiverTransmissionCompress := facts.receiverOutput.DecafCompressToFieldSeg62
+      receiverNoteCommitment := facts.receiverOutput.GadgetNoteCommitmentSeg63
+      receiverNoteAssert := facts.receiverOutput.AssertEqSeg64
+      receiverNonzeroAssert := facts.receiverOutput.AssertEqSeg68
     }
     changeOutput := {
-      changeNoteCommitment := facts.changeOutput.GadgetNoteCommitmentSeg70
-      changeNoteAssert := facts.changeOutput.AssertEqSeg71
+      changeNoteCommitment := facts.changeOutput.GadgetNoteCommitmentSeg72
+      changeNoteAssert := facts.changeOutput.AssertEqSeg73
     }
     assetRegistry := {
       isRegulatedBoolean := facts.assetRegistry.AssertBooleanSeg1
@@ -248,10 +252,10 @@ theorem transferExactProviders
       senderAck := facts.senderCompliance.DecafAckSeg30
     }
     receiverCompliance := {
-      receiverComplianceLeaf := facts.receiverCompliance.GadgetComplianceLeafSeg63
-      receiverCompliancePath := facts.receiverCompliance.GadgetCompliancePathSeg64
-      receiverComplianceAssert := facts.receiverCompliance.AssertEqIfSeg65
-      receiverAck := facts.receiverCompliance.DecafAckSeg67
+      receiverComplianceLeaf := facts.receiverCompliance.GadgetComplianceLeafSeg65
+      receiverCompliancePath := facts.receiverCompliance.GadgetCompliancePathSeg66
+      receiverComplianceAssert := facts.receiverCompliance.AssertEqIfSeg67
+      receiverAck := facts.receiverCompliance.DecafAckSeg69
     }
     complianceTranscript := {
       effectiveRingPk := facts.complianceTranscript.SelectPointSeg6
@@ -260,59 +264,59 @@ theorem transferExactProviders
       effectivePolicyIdHash := facts.complianceTranscript.SelectFieldSeg9
       effectiveResourceHash := facts.complianceTranscript.SelectFieldSeg10
       effectivePermissionHash := facts.complianceTranscript.SelectFieldSeg11
-      thresholdFlag := facts.complianceTranscript.ThresholdFlagSeg89
-      senderCoreEpkCompress := facts.complianceTranscript.DecafCompressToFieldSeg90
-      senderExtEpkCompress := facts.complianceTranscript.DecafCompressToFieldSeg91
-      outputCoreEpkCompress := facts.complianceTranscript.DecafCompressToFieldSeg92
-      outputExtEpkCompress := facts.complianceTranscript.DecafCompressToFieldSeg93
-      salt0 := facts.complianceTranscript.GadgetTransferSaltSeg94
-      salt1 := facts.complianceTranscript.GadgetTransferSaltSeg95
-      salt2 := facts.complianceTranscript.GadgetTransferSaltSeg96
-      salt3 := facts.complianceTranscript.GadgetTransferSaltSeg97
-      salt4 := facts.complianceTranscript.GadgetTransferSaltSeg98
-      senderCoreSharedSecret := facts.complianceTranscript.DecafSharedSecretSeg99
-      senderExtSharedSecret := facts.complianceTranscript.DecafSharedSecretSeg100
-      outputCoreSharedSecret := facts.complianceTranscript.DecafSharedSecretSeg101
-      outputExtSharedSecret := facts.complianceTranscript.DecafSharedSecretSeg102
-      detectionEncryption := facts.complianceTranscript.GadgetPoseidonEncryptionDetectionSeg103
-      senderAmountEncryption := facts.complianceTranscript.GadgetPoseidonEncryptionAmountSeg104
-      senderAddressEncryption := facts.complianceTranscript.GadgetPoseidonEncryptionAddressSeg105
-      outputAmountEncryption := facts.complianceTranscript.GadgetPoseidonEncryptionAmountSeg106
-      outputAddressEncryption := facts.complianceTranscript.GadgetPoseidonEncryptionAddressSeg107
-      metadataSenderSubjectDerivation := facts.complianceTranscript.AssertEqSeg109
-      metadataOutputSubjectDerivation := facts.complianceTranscript.AssertEqSeg110
-      metadataRingIdHash := facts.complianceTranscript.AssertEqSeg111
-      metadataPolicyIdHash := facts.complianceTranscript.AssertEqSeg112
-      metadataResourceHash := facts.complianceTranscript.AssertEqSeg113
-      metadataPermissionHash := facts.complianceTranscript.AssertEqSeg114
-      metadataTargetTimestamp := facts.complianceTranscript.AssertEqSeg115
-      metadataSenderCoreSalt := facts.complianceTranscript.AssertEqSeg116
-      metadataSenderExtSalt := facts.complianceTranscript.AssertEqSeg117
-      metadataOutputCoreSalt := facts.complianceTranscript.AssertEqSeg118
-      metadataOutputExtSalt := facts.complianceTranscript.AssertEqSeg119
+      thresholdFlag := facts.complianceTranscript.ThresholdFlagSeg91
+      senderCoreEpkCompress := facts.complianceTranscript.DecafCompressToFieldSeg92
+      senderExtEpkCompress := facts.complianceTranscript.DecafCompressToFieldSeg93
+      outputCoreEpkCompress := facts.complianceTranscript.DecafCompressToFieldSeg94
+      outputExtEpkCompress := facts.complianceTranscript.DecafCompressToFieldSeg95
+      salt0 := facts.complianceTranscript.GadgetTransferSaltSeg96
+      salt1 := facts.complianceTranscript.GadgetTransferSaltSeg97
+      salt2 := facts.complianceTranscript.GadgetTransferSaltSeg98
+      salt3 := facts.complianceTranscript.GadgetTransferSaltSeg99
+      salt4 := facts.complianceTranscript.GadgetTransferSaltSeg100
+      senderCoreSharedSecret := facts.complianceTranscript.DecafSharedSecretSeg101
+      senderExtSharedSecret := facts.complianceTranscript.DecafSharedSecretSeg102
+      outputCoreSharedSecret := facts.complianceTranscript.DecafSharedSecretSeg103
+      outputExtSharedSecret := facts.complianceTranscript.DecafSharedSecretSeg104
+      detectionEncryption := facts.complianceTranscript.GadgetPoseidonEncryptionDetectionSeg105
+      senderAmountEncryption := facts.complianceTranscript.GadgetPoseidonEncryptionAmountSeg106
+      senderAddressEncryption := facts.complianceTranscript.GadgetPoseidonEncryptionAddressSeg107
+      outputAmountEncryption := facts.complianceTranscript.GadgetPoseidonEncryptionAmountSeg108
+      outputAddressEncryption := facts.complianceTranscript.GadgetPoseidonEncryptionAddressSeg109
+      metadataSenderSubjectDerivation := facts.complianceTranscript.AssertEqSeg111
+      metadataOutputSubjectDerivation := facts.complianceTranscript.AssertEqSeg112
+      metadataRingIdHash := facts.complianceTranscript.AssertEqSeg113
+      metadataPolicyIdHash := facts.complianceTranscript.AssertEqSeg114
+      metadataResourceHash := facts.complianceTranscript.AssertEqSeg115
+      metadataPermissionHash := facts.complianceTranscript.AssertEqSeg116
+      metadataTargetTimestamp := facts.complianceTranscript.AssertEqSeg117
+      metadataSenderCoreSalt := facts.complianceTranscript.AssertEqSeg118
+      metadataSenderExtSalt := facts.complianceTranscript.AssertEqSeg119
+      metadataOutputCoreSalt := facts.complianceTranscript.AssertEqSeg120
+      metadataOutputExtSalt := facts.complianceTranscript.AssertEqSeg121
     }
     balanceComputedAndCompressed := {
-      netBalance := facts.balanceComputedAndCompressed.DecafNetBalanceCommitmentSeg121
-      balanceCompress := facts.balanceComputedAndCompressed.DecafCompressToFieldSeg122
+      netBalance := facts.balanceComputedAndCompressed.DecafNetBalanceCommitmentSeg123
+      balanceCompress := facts.balanceComputedAndCompressed.DecafCompressToFieldSeg124
     }
     statementBinding := {
-      routingPrecisionSelect := facts.statementBinding.RoutingPrecisionSelectSeg72
-      routingParametersHash := facts.statementBinding.RoutingParametersHashSeg73
-      routingParametersBind := facts.statementBinding.RoutingParametersBindSeg74
-      routingSenderRouteWord := facts.statementBinding.RoutingRouteWordSeg75
-      routingReceiverRouteWord := facts.statementBinding.RoutingRouteWordSeg76
-      routingPermutationHash := facts.statementBinding.RoutingPermutationHashSeg77
-      routingPermutationCompose := facts.statementBinding.RoutingPermutationComposeSeg78
-      routingTag0PublicRange := facts.statementBinding.RoutingTagPublicRangeSeg79
-      routingTag0RouteBits := facts.statementBinding.RoutingTagRouteBitsSeg80
-      routingTag0RandomWord := facts.statementBinding.RoutingTagRandomWordSeg81
-      routingTag0Compose := facts.statementBinding.RoutingTagComposeSeg82
-      routingTag1PublicRange := facts.statementBinding.RoutingTagPublicRangeSeg83
-      routingTag1RouteBits := facts.statementBinding.RoutingTagRouteBitsSeg84
-      routingTag1RandomWord := facts.statementBinding.RoutingTagRandomWordSeg85
-      routingTag1Compose := facts.statementBinding.RoutingTagComposeSeg86
-      statementHash := facts.statementBinding.StatementHashSeg124
-      statementAssert := facts.statementBinding.AssertEqSeg125
+      routingPrecisionSelect := facts.statementBinding.RoutingPrecisionSelectSeg74
+      routingParametersHash := facts.statementBinding.RoutingParametersHashSeg75
+      routingParametersBind := facts.statementBinding.RoutingParametersBindSeg76
+      routingSenderRouteWord := facts.statementBinding.RoutingRouteWordSeg77
+      routingReceiverRouteWord := facts.statementBinding.RoutingRouteWordSeg78
+      routingPermutationHash := facts.statementBinding.RoutingPermutationHashSeg79
+      routingPermutationCompose := facts.statementBinding.RoutingPermutationComposeSeg80
+      routingTag0PublicRange := facts.statementBinding.RoutingTagPublicRangeSeg81
+      routingTag0RouteBits := facts.statementBinding.RoutingTagRouteBitsSeg82
+      routingTag0RandomWord := facts.statementBinding.RoutingTagRandomWordSeg83
+      routingTag0Compose := facts.statementBinding.RoutingTagComposeSeg84
+      routingTag1PublicRange := facts.statementBinding.RoutingTagPublicRangeSeg85
+      routingTag1RouteBits := facts.statementBinding.RoutingTagRouteBitsSeg86
+      routingTag1RandomWord := facts.statementBinding.RoutingTagRandomWordSeg87
+      routingTag1Compose := facts.statementBinding.RoutingTagComposeSeg88
+      statementHash := facts.statementBinding.StatementHashSeg126
+      statementAssert := facts.statementBinding.AssertEqSeg127
     }
   }
 
@@ -341,7 +345,7 @@ theorem isRegulatedBoolean_of_exact
   unfold Deployed.Templates.Semantics.TAssertBoolean_469df3cb92f6ee26f90120fa5a2d5ab48448c3e42be090ebb81d77d5431164fc.spec at h
   have hseat :
       Seg1.wireSeating 1 =
-        10 := by
+        11 := by
     decide +kernel
   simpa only [
     Protocol.Common.boolean,
@@ -365,7 +369,7 @@ theorem assetIdNonzero_of_exact
   have hseat :
       Seg5.wireSeating
         2 =
-          183 := by
+          184 := by
     decide +kernel
   simpa only [
     sharedAssetId, sharedAssetIdLC,

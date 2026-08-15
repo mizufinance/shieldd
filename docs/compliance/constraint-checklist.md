@@ -1,6 +1,6 @@
 # Compliance Constraint Checklist
 
-This checklist covers the V17 compliance surface. General spend, note,
+This checklist covers the V18 compliance surface. General spend, note,
 nullifier, and value constraints are tracked in
 `docs/transfer-circuit/constraint-checklist.md`.
 
@@ -87,8 +87,10 @@ nullifier, and value constraints are tracked in
 
 ### Public Statement
 
-- Rust and Go reconstruct the same 44-field preimage.
-- The statement hash domain is transfer `v5`.
+- Rust and Go reconstruct the same 47-field preimage.
+- The statement hash domain is transfer `v6`.
+- The preimage binds the consensus recent-position floor and one
+  `history_required` bit per spend.
 - The public tail commits all ten non-duplicate metadata Fq values.
 - ABI tests reject legacy V15 witnesses and wrong vector lengths.
 - Differential tests compare native Rust/Go reconstruction, circuit public
@@ -147,6 +149,6 @@ nullifier, and value constraints are tracked in
 - Public DH shared points and upload packages were deleted.
 - The duplicate AES seed envelope and its unbound-seed failure mode were
   deleted.
-- Per-tier DLEQ statement fields and validation are absent from Transfer V17.
+- Per-tier DLEQ statement fields and validation are absent from Transfer V18.
 - Generic DLEQ Lean/Tamarin work is research-only and does not count toward
   deployed Transfer certification.

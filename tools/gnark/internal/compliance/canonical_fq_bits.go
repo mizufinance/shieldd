@@ -185,3 +185,12 @@ func AssetRegistryGap(
 	isInGap := api.Mul(gtLow, ltHigh)
 	return api.Select(isRegulated, isExactMatch, isInGap)
 }
+
+// CanonicalFqLess compares two canonical decaf377 field elements.
+func CanonicalFqLess(api frontend.API, left, right frontend.Variable) frontend.Variable {
+	return lexLess253(
+		api,
+		nativeCanonicalFqBits253(api, left),
+		nativeCanonicalFqBits253(api, right),
+	)
+}

@@ -1515,10 +1515,6 @@ impl App {
         Vec<Arc<TxArtifact>>,
         ArtifactBuildBreakdown,
     )> {
-        use crate::action_handler::transaction::stateless::{
-            check_memo_exists_if_outputs_absent_if_not, check_non_empty_transaction,
-            valid_binding_signature,
-        };
         use cnidarium_component::ActionHandler as _;
         use shieldd_sdk_shielded_pool::component::Ics20Transfer;
 
@@ -1529,9 +1525,7 @@ impl App {
         for tx in txs {
             let precheck_start = Instant::now();
             Self::ensure_user_tx_has_no_internal_actions(tx)?;
-            valid_binding_signature(tx)?;
-            check_memo_exists_if_outputs_absent_if_not(tx)?;
-            check_non_empty_transaction(tx)?;
+            crate::action_handler::transaction::validate_transaction_envelope(tx)?;
             profile.precheck_ms += precheck_start.elapsed().as_secs_f64() * 1000.0;
 
             let context = tx.context();
@@ -1973,6 +1967,8 @@ impl App {
                 },
                 fee_funding: None,
                 memo: None,
+                nullifier_window: None,
+                historical_nullifier_proofs: Vec::new(),
             },
             binding_sig: [0; 64].into(),
             anchor: shieldd_sdk_tct::Root(shieldd_sdk_tct::structure::Hash::zero()),
@@ -2006,6 +2002,8 @@ impl App {
                 },
                 fee_funding: None,
                 memo: None,
+                nullifier_window: None,
+                historical_nullifier_proofs: Vec::new(),
             },
             binding_sig: [0; 64].into(),
             anchor,
@@ -4262,7 +4260,7 @@ impl App {
         if state.is_chain_halted().await {
             return false;
         }
-        if let Err(error) = shieldd_sdk_sct::nullifier_tree::verify_committed_root(&state).await {
+        if let Err(error) = shieldd_sdk_sct::nullifier_tree::verify_committed_roots(&state).await {
             tracing::error!(?error, "nullifier tree root check failed");
             return false;
         }
@@ -7054,6 +7052,9 @@ mod tests {
     use shieldd_sdk_sct::component::tree::{SctManager as _, SctRead as _};
     use shieldd_sdk_sct::component::StateWriteExt as _;
     use shieldd_sdk_sct::epoch::Epoch;
+    use shieldd_sdk_sct::nullifier_generation::{
+        empty_history_head, NullifierWindow, PROTOCOL_VERSION,
+    };
     use shieldd_sdk_sct::params::SctParameters;
     use shieldd_sdk_sct::{CommitmentSource, Nullifier};
     use shieldd_sdk_shielded_pool::component::NoteManager as _;
@@ -7090,6 +7091,16 @@ mod tests {
         AggregateBundleFamilyEstimate, App, BlockSctAppendLog, BlockTxIndexingMode, StateReadExt,
         AGGREGATE_BUNDLE_SIZE_SAFETY_MARGIN_BYTES, AGGREGATE_PROOF_ESTIMATE_BYTES_OTHER,
     };
+
+    fn test_nullifier_window() -> NullifierWindow {
+        NullifierWindow {
+            protocol_version: PROTOCOL_VERSION,
+            current_generation: 0,
+            recent_position_floor: 0,
+            archived_generation_count: 0,
+            archived_history_head: empty_history_head(),
+        }
+    }
 
     #[cfg(feature = "orbis-dev-srs")]
     #[test]
@@ -7298,6 +7309,7 @@ mod tests {
                     [u8::try_from(index + 1).expect("small index"); 48],
                 )
                 .expect("fixed-size encrypted backref"),
+                history_required: false,
             })
             .collect();
         let note_reshape = shieldd_sdk_shielded_pool::NoteReshape {
@@ -7325,6 +7337,7 @@ mod tests {
             transaction_body: shieldd_sdk_transaction::TransactionBody {
                 actions: vec![Action::NoteReshape(note_reshape)],
                 memo: Some(MemoCiphertext([0u8; MEMO_CIPHERTEXT_LEN_BYTES])),
+                nullifier_window: Some(test_nullifier_window()),
                 ..Default::default()
             },
             anchor: action_anchor,
@@ -7433,6 +7446,7 @@ mod tests {
                     Fr::from(500u64 + index),
                 )),
                 encrypted_backref: shieldd_sdk_shielded_pool::EncryptedBackref::dummy(),
+                history_required: false,
             })
             .collect::<Vec<_>>();
         let tx = Transaction {
@@ -7600,6 +7614,7 @@ mod tests {
                     chain_id: TestNode::<()>::CHAIN_ID.to_string(),
                     ..Default::default()
                 },
+                nullifier_window: Some(test_nullifier_window()),
             };
 
             let tx = client
@@ -8437,6 +8452,8 @@ mod tests {
                 },
                 fee_funding: None,
                 memo: None,
+                nullifier_window: None,
+                historical_nullifier_proofs: Vec::new(),
             },
             binding_sig: [0; 64].into(),
             anchor: shieldd_sdk_tct::Root(shieldd_sdk_tct::structure::Hash::zero()),
@@ -8862,10 +8879,12 @@ mod tests {
         assert!(App::is_ready(storage.latest_snapshot()).await);
 
         let mut corrupt = StateDelta::new(storage.latest_snapshot());
-        let mut stream =
-            corrupt.nonverifiable_prefix_raw(
-                shieldd_sdk_sct::state_key::nullifier_set::tree_node_prefix(),
-            );
+        let tree = shieldd_sdk_sct::nullifier_tree::generation_state(&corrupt)
+            .await?
+            .current_tree;
+        let mut stream = corrupt.nonverifiable_prefix_raw(
+            &shieldd_sdk_sct::state_key::nullifier_generations::tree_node_prefix(tree),
+        );
         let mut keys = Vec::new();
         while let Some(item) = stream.next().await {
             let (key, _) = item?;
@@ -8886,6 +8905,7 @@ mod tests {
     async fn app_readiness_fails_on_corrupted_sct_nv() -> Result<()> {
         let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
         let mut state = StateDelta::new(storage.latest_snapshot());
+        shieldd_sdk_sct::nullifier_tree::initialize(&mut state).await?;
         state.put_sct_params(SctParameters {
             epoch_duration: 10,
             sct_anchor_retention_blocks: 100,
@@ -8927,6 +8947,7 @@ mod tests {
     async fn app_readiness_fails_on_corrupted_compliance_nv() -> Result<()> {
         let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
         let mut state = StateDelta::new(storage.latest_snapshot());
+        shieldd_sdk_sct::nullifier_tree::initialize(&mut state).await?;
         state
             .test_only_add_compliance_leaf(ComplianceLeaf::new(
                 Address::dummy(&mut rand::thread_rng()),

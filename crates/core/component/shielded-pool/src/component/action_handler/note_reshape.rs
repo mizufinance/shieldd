@@ -134,6 +134,7 @@ mod tests {
         let context = TransactionContext {
             anchor: shieldd_sdk_tct::Tree::default().root(),
             effect_hash: Default::default(),
+            recent_position_floor: 0,
         };
         validate_action_anchor("test action", context.anchor, &context)
             .expect("matching anchor should pass");
@@ -278,6 +279,7 @@ mod tests {
         let context = TransactionContext {
             anchor: shieldd_sdk_tct::Tree::default().root(),
             effect_hash: Default::default(),
+            recent_position_floor: 0,
         };
         let signatures = [
             real_sk.sign(OsRng, context.effect_hash.as_ref()),
@@ -299,6 +301,7 @@ mod tests {
         let context = TransactionContext {
             anchor: shieldd_sdk_tct::Tree::default().root(),
             effect_hash: Default::default(),
+            recent_position_floor: 0,
         };
         let different_message = b"different note reshape authorization hash";
         assert_ne!(&different_message[..], context.effect_hash.as_ref());

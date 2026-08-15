@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use shieldd_sdk_compact_block::{CompactBlock, StatePayload};
 use shieldd_sdk_fee::GasPrices;
 use shieldd_sdk_keys::FullViewingKey;
-use shieldd_sdk_sct::Nullifier;
+use shieldd_sdk_sct::{nullifier_generation::NullifierWindow, Nullifier};
 use shieldd_sdk_shielded_pool::{discovery, Note, NotePayload};
 use shieldd_sdk_tct::{self as tct, StateCommitment};
 use tracing::Instrument;
@@ -21,6 +21,7 @@ pub struct FilteredBlock {
     pub discovery_parameters: Option<discovery::Parameters>,
     pub app_parameters_updated: bool,
     pub gas_prices: Option<GasPrices>,
+    pub nullifier_window: Option<NullifierWindow>,
 }
 
 #[tracing::instrument(skip_all, fields(height = %height))]
@@ -36,6 +37,7 @@ pub async fn scan_block(
         discovery_parameters,
         app_parameters_updated,
         gas_prices,
+        nullifier_window,
         // TODO: do we need this, or is there a bug in scan_block?
         // proposal_started,
         ..
@@ -172,6 +174,7 @@ pub async fn scan_block(
         discovery_parameters,
         app_parameters_updated,
         gas_prices,
+        nullifier_window,
     };
 
     Ok(result)

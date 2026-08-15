@@ -28,749 +28,758 @@ def witnessWireRoles : List WitnessWireRole := [
   { wireId := 2, path := "AssetAnchor", visibility := .secret },
   { wireId := 3, path := "RoutingTag", visibility := .secret },
   { wireId := 4, path := "RoutingParameterSetID", visibility := .secret },
-  { wireId := 5, path := "Anchor", visibility := .secret },
-  { wireId := 6, path := "BalanceCommitment_X", visibility := .secret },
-  { wireId := 7, path := "BalanceCommitment_Y", visibility := .secret },
-  { wireId := 8, path := "ActionBalanceBlinding", visibility := .secret },
-  { wireId := 9, path := "IsRegulated", visibility := .secret },
-  { wireId := 10, path := "RegulatedPrecision", visibility := .secret },
-  { wireId := 11, path := "UnregulatedPrecision", visibility := .secret },
-  { wireId := 12, path := "RoutingAsOfHeight", visibility := .secret },
-  { wireId := 13, path := "RoutingNonce", visibility := .secret },
-  { wireId := 14, path := "Shared_AssetID", visibility := .secret },
-  { wireId := 15, path := "Shared_DivGen_X", visibility := .secret },
-  { wireId := 16, path := "Shared_DivGen_Y", visibility := .secret },
-  { wireId := 17, path := "Auth_AK_X", visibility := .secret },
-  { wireId := 18, path := "Auth_AK_Y", visibility := .secret },
-  { wireId := 19, path := "Auth_NK", visibility := .secret },
-  { wireId := 20, path := "Auth_IVKReduced", visibility := .secret },
-  { wireId := 21, path := "Auth_IVKQuotientA", visibility := .secret },
-  { wireId := 22, path := "Asset_Leaf_Value", visibility := .secret },
-  { wireId := 23, path := "Asset_Leaf_NextIndex", visibility := .secret },
-  { wireId := 24, path := "Asset_Leaf_NextValue", visibility := .secret },
-  { wireId := 25, path := "Asset_Leaf_DKPub_X", visibility := .secret },
-  { wireId := 26, path := "Asset_Leaf_DKPub_Y", visibility := .secret },
-  { wireId := 27, path := "Asset_Leaf_Threshold", visibility := .secret },
-  { wireId := 28, path := "Asset_Leaf_SlotCount", visibility := .secret },
-  { wireId := 29, path := "Asset_Leaf_ChannelsHash", visibility := .secret },
-  { wireId := 30, path := "Asset_Leaf_RingPK_X", visibility := .secret },
-  { wireId := 31, path := "Asset_Leaf_RingPK_Y", visibility := .secret },
-  { wireId := 32, path := "Asset_Leaf_RingIDHash", visibility := .secret },
-  { wireId := 33, path := "Asset_Leaf_PolicyIDHash", visibility := .secret },
-  { wireId := 34, path := "Asset_Leaf_PermissionHash", visibility := .secret },
-  { wireId := 35, path := "Asset_Leaf_ResourceHash", visibility := .secret },
-  { wireId := 36, path := "Asset_Path_0_0", visibility := .secret },
-  { wireId := 37, path := "Asset_Path_0_1", visibility := .secret },
-  { wireId := 38, path := "Asset_Path_0_2", visibility := .secret },
-  { wireId := 39, path := "Asset_Path_1_0", visibility := .secret },
-  { wireId := 40, path := "Asset_Path_1_1", visibility := .secret },
-  { wireId := 41, path := "Asset_Path_1_2", visibility := .secret },
-  { wireId := 42, path := "Asset_Path_2_0", visibility := .secret },
-  { wireId := 43, path := "Asset_Path_2_1", visibility := .secret },
-  { wireId := 44, path := "Asset_Path_2_2", visibility := .secret },
-  { wireId := 45, path := "Asset_Path_3_0", visibility := .secret },
-  { wireId := 46, path := "Asset_Path_3_1", visibility := .secret },
-  { wireId := 47, path := "Asset_Path_3_2", visibility := .secret },
-  { wireId := 48, path := "Asset_Path_4_0", visibility := .secret },
-  { wireId := 49, path := "Asset_Path_4_1", visibility := .secret },
-  { wireId := 50, path := "Asset_Path_4_2", visibility := .secret },
-  { wireId := 51, path := "Asset_Path_5_0", visibility := .secret },
-  { wireId := 52, path := "Asset_Path_5_1", visibility := .secret },
-  { wireId := 53, path := "Asset_Path_5_2", visibility := .secret },
-  { wireId := 54, path := "Asset_Path_6_0", visibility := .secret },
-  { wireId := 55, path := "Asset_Path_6_1", visibility := .secret },
-  { wireId := 56, path := "Asset_Path_6_2", visibility := .secret },
-  { wireId := 57, path := "Asset_Path_7_0", visibility := .secret },
-  { wireId := 58, path := "Asset_Path_7_1", visibility := .secret },
-  { wireId := 59, path := "Asset_Path_7_2", visibility := .secret },
-  { wireId := 60, path := "Asset_Path_8_0", visibility := .secret },
-  { wireId := 61, path := "Asset_Path_8_1", visibility := .secret },
-  { wireId := 62, path := "Asset_Path_8_2", visibility := .secret },
-  { wireId := 63, path := "Asset_Path_9_0", visibility := .secret },
-  { wireId := 64, path := "Asset_Path_9_1", visibility := .secret },
-  { wireId := 65, path := "Asset_Path_9_2", visibility := .secret },
-  { wireId := 66, path := "Asset_Path_10_0", visibility := .secret },
-  { wireId := 67, path := "Asset_Path_10_1", visibility := .secret },
-  { wireId := 68, path := "Asset_Path_10_2", visibility := .secret },
-  { wireId := 69, path := "Asset_Path_11_0", visibility := .secret },
-  { wireId := 70, path := "Asset_Path_11_1", visibility := .secret },
-  { wireId := 71, path := "Asset_Path_11_2", visibility := .secret },
-  { wireId := 72, path := "Asset_Path_12_0", visibility := .secret },
-  { wireId := 73, path := "Asset_Path_12_1", visibility := .secret },
-  { wireId := 74, path := "Asset_Path_12_2", visibility := .secret },
-  { wireId := 75, path := "Asset_Path_13_0", visibility := .secret },
-  { wireId := 76, path := "Asset_Path_13_1", visibility := .secret },
-  { wireId := 77, path := "Asset_Path_13_2", visibility := .secret },
-  { wireId := 78, path := "Asset_Path_14_0", visibility := .secret },
-  { wireId := 79, path := "Asset_Path_14_1", visibility := .secret },
-  { wireId := 80, path := "Asset_Path_14_2", visibility := .secret },
-  { wireId := 81, path := "Asset_Path_15_0", visibility := .secret },
-  { wireId := 82, path := "Asset_Path_15_1", visibility := .secret },
-  { wireId := 83, path := "Asset_Path_15_2", visibility := .secret },
-  { wireId := 84, path := "Asset_Position", visibility := .secret },
-  { wireId := 85, path := "SyntheticSpends_0_Nullifier", visibility := .secret },
-  { wireId := 86, path := "SyntheticSpends_0_RK_X", visibility := .secret },
-  { wireId := 87, path := "SyntheticSpends_0_RK_Y", visibility := .secret },
-  { wireId := 88, path := "SyntheticSpends_0_Note_Blinding", visibility := .secret },
-  { wireId := 89, path := "SyntheticSpends_0_Note_Amount", visibility := .secret },
-  { wireId := 90, path := "SyntheticSpends_0_StateProof_Commitment", visibility := .secret },
-  { wireId := 91, path := "SyntheticSpends_0_StateProof_Position", visibility := .secret },
-  { wireId := 92, path := "SyntheticSpends_0_StateProof_Path_0_0", visibility := .secret },
-  { wireId := 93, path := "SyntheticSpends_0_StateProof_Path_0_1", visibility := .secret },
-  { wireId := 94, path := "SyntheticSpends_0_StateProof_Path_0_2", visibility := .secret },
-  { wireId := 95, path := "SyntheticSpends_0_StateProof_Path_1_0", visibility := .secret },
-  { wireId := 96, path := "SyntheticSpends_0_StateProof_Path_1_1", visibility := .secret },
-  { wireId := 97, path := "SyntheticSpends_0_StateProof_Path_1_2", visibility := .secret },
-  { wireId := 98, path := "SyntheticSpends_0_StateProof_Path_2_0", visibility := .secret },
-  { wireId := 99, path := "SyntheticSpends_0_StateProof_Path_2_1", visibility := .secret },
-  { wireId := 100, path := "SyntheticSpends_0_StateProof_Path_2_2", visibility := .secret },
-  { wireId := 101, path := "SyntheticSpends_0_StateProof_Path_3_0", visibility := .secret },
-  { wireId := 102, path := "SyntheticSpends_0_StateProof_Path_3_1", visibility := .secret },
-  { wireId := 103, path := "SyntheticSpends_0_StateProof_Path_3_2", visibility := .secret },
-  { wireId := 104, path := "SyntheticSpends_0_StateProof_Path_4_0", visibility := .secret },
-  { wireId := 105, path := "SyntheticSpends_0_StateProof_Path_4_1", visibility := .secret },
-  { wireId := 106, path := "SyntheticSpends_0_StateProof_Path_4_2", visibility := .secret },
-  { wireId := 107, path := "SyntheticSpends_0_StateProof_Path_5_0", visibility := .secret },
-  { wireId := 108, path := "SyntheticSpends_0_StateProof_Path_5_1", visibility := .secret },
-  { wireId := 109, path := "SyntheticSpends_0_StateProof_Path_5_2", visibility := .secret },
-  { wireId := 110, path := "SyntheticSpends_0_StateProof_Path_6_0", visibility := .secret },
-  { wireId := 111, path := "SyntheticSpends_0_StateProof_Path_6_1", visibility := .secret },
-  { wireId := 112, path := "SyntheticSpends_0_StateProof_Path_6_2", visibility := .secret },
-  { wireId := 113, path := "SyntheticSpends_0_StateProof_Path_7_0", visibility := .secret },
-  { wireId := 114, path := "SyntheticSpends_0_StateProof_Path_7_1", visibility := .secret },
-  { wireId := 115, path := "SyntheticSpends_0_StateProof_Path_7_2", visibility := .secret },
-  { wireId := 116, path := "SyntheticSpends_0_StateProof_Path_8_0", visibility := .secret },
-  { wireId := 117, path := "SyntheticSpends_0_StateProof_Path_8_1", visibility := .secret },
-  { wireId := 118, path := "SyntheticSpends_0_StateProof_Path_8_2", visibility := .secret },
-  { wireId := 119, path := "SyntheticSpends_0_StateProof_Path_9_0", visibility := .secret },
-  { wireId := 120, path := "SyntheticSpends_0_StateProof_Path_9_1", visibility := .secret },
-  { wireId := 121, path := "SyntheticSpends_0_StateProof_Path_9_2", visibility := .secret },
-  { wireId := 122, path := "SyntheticSpends_0_StateProof_Path_10_0", visibility := .secret },
-  { wireId := 123, path := "SyntheticSpends_0_StateProof_Path_10_1", visibility := .secret },
-  { wireId := 124, path := "SyntheticSpends_0_StateProof_Path_10_2", visibility := .secret },
-  { wireId := 125, path := "SyntheticSpends_0_StateProof_Path_11_0", visibility := .secret },
-  { wireId := 126, path := "SyntheticSpends_0_StateProof_Path_11_1", visibility := .secret },
-  { wireId := 127, path := "SyntheticSpends_0_StateProof_Path_11_2", visibility := .secret },
-  { wireId := 128, path := "SyntheticSpends_0_StateProof_Path_12_0", visibility := .secret },
-  { wireId := 129, path := "SyntheticSpends_0_StateProof_Path_12_1", visibility := .secret },
-  { wireId := 130, path := "SyntheticSpends_0_StateProof_Path_12_2", visibility := .secret },
-  { wireId := 131, path := "SyntheticSpends_0_StateProof_Path_13_0", visibility := .secret },
-  { wireId := 132, path := "SyntheticSpends_0_StateProof_Path_13_1", visibility := .secret },
-  { wireId := 133, path := "SyntheticSpends_0_StateProof_Path_13_2", visibility := .secret },
-  { wireId := 134, path := "SyntheticSpends_0_StateProof_Path_14_0", visibility := .secret },
-  { wireId := 135, path := "SyntheticSpends_0_StateProof_Path_14_1", visibility := .secret },
-  { wireId := 136, path := "SyntheticSpends_0_StateProof_Path_14_2", visibility := .secret },
-  { wireId := 137, path := "SyntheticSpends_0_StateProof_Path_15_0", visibility := .secret },
-  { wireId := 138, path := "SyntheticSpends_0_StateProof_Path_15_1", visibility := .secret },
-  { wireId := 139, path := "SyntheticSpends_0_StateProof_Path_15_2", visibility := .secret },
-  { wireId := 140, path := "SyntheticSpends_0_StateProof_Path_16_0", visibility := .secret },
-  { wireId := 141, path := "SyntheticSpends_0_StateProof_Path_16_1", visibility := .secret },
-  { wireId := 142, path := "SyntheticSpends_0_StateProof_Path_16_2", visibility := .secret },
-  { wireId := 143, path := "SyntheticSpends_0_StateProof_Path_17_0", visibility := .secret },
-  { wireId := 144, path := "SyntheticSpends_0_StateProof_Path_17_1", visibility := .secret },
-  { wireId := 145, path := "SyntheticSpends_0_StateProof_Path_17_2", visibility := .secret },
-  { wireId := 146, path := "SyntheticSpends_0_StateProof_Path_18_0", visibility := .secret },
-  { wireId := 147, path := "SyntheticSpends_0_StateProof_Path_18_1", visibility := .secret },
-  { wireId := 148, path := "SyntheticSpends_0_StateProof_Path_18_2", visibility := .secret },
-  { wireId := 149, path := "SyntheticSpends_0_StateProof_Path_19_0", visibility := .secret },
-  { wireId := 150, path := "SyntheticSpends_0_StateProof_Path_19_1", visibility := .secret },
-  { wireId := 151, path := "SyntheticSpends_0_StateProof_Path_19_2", visibility := .secret },
-  { wireId := 152, path := "SyntheticSpends_0_StateProof_Path_20_0", visibility := .secret },
-  { wireId := 153, path := "SyntheticSpends_0_StateProof_Path_20_1", visibility := .secret },
-  { wireId := 154, path := "SyntheticSpends_0_StateProof_Path_20_2", visibility := .secret },
-  { wireId := 155, path := "SyntheticSpends_0_StateProof_Path_21_0", visibility := .secret },
-  { wireId := 156, path := "SyntheticSpends_0_StateProof_Path_21_1", visibility := .secret },
-  { wireId := 157, path := "SyntheticSpends_0_StateProof_Path_21_2", visibility := .secret },
-  { wireId := 158, path := "SyntheticSpends_0_StateProof_Path_22_0", visibility := .secret },
-  { wireId := 159, path := "SyntheticSpends_0_StateProof_Path_22_1", visibility := .secret },
-  { wireId := 160, path := "SyntheticSpends_0_StateProof_Path_22_2", visibility := .secret },
-  { wireId := 161, path := "SyntheticSpends_0_StateProof_Path_23_0", visibility := .secret },
-  { wireId := 162, path := "SyntheticSpends_0_StateProof_Path_23_1", visibility := .secret },
-  { wireId := 163, path := "SyntheticSpends_0_StateProof_Path_23_2", visibility := .secret },
-  { wireId := 164, path := "SyntheticSpends_0_AuthRandomizer", visibility := .secret },
-  { wireId := 165, path := "SyntheticSpends_0_IsDummy", visibility := .secret },
-  { wireId := 166, path := "SyntheticSpends_0_DummyNullifierSeed", visibility := .secret },
-  { wireId := 167, path := "SyntheticSpends_1_Nullifier", visibility := .secret },
-  { wireId := 168, path := "SyntheticSpends_1_RK_X", visibility := .secret },
-  { wireId := 169, path := "SyntheticSpends_1_RK_Y", visibility := .secret },
-  { wireId := 170, path := "SyntheticSpends_1_Note_Blinding", visibility := .secret },
-  { wireId := 171, path := "SyntheticSpends_1_Note_Amount", visibility := .secret },
-  { wireId := 172, path := "SyntheticSpends_1_StateProof_Commitment", visibility := .secret },
-  { wireId := 173, path := "SyntheticSpends_1_StateProof_Position", visibility := .secret },
-  { wireId := 174, path := "SyntheticSpends_1_StateProof_Path_0_0", visibility := .secret },
-  { wireId := 175, path := "SyntheticSpends_1_StateProof_Path_0_1", visibility := .secret },
-  { wireId := 176, path := "SyntheticSpends_1_StateProof_Path_0_2", visibility := .secret },
-  { wireId := 177, path := "SyntheticSpends_1_StateProof_Path_1_0", visibility := .secret },
-  { wireId := 178, path := "SyntheticSpends_1_StateProof_Path_1_1", visibility := .secret },
-  { wireId := 179, path := "SyntheticSpends_1_StateProof_Path_1_2", visibility := .secret },
-  { wireId := 180, path := "SyntheticSpends_1_StateProof_Path_2_0", visibility := .secret },
-  { wireId := 181, path := "SyntheticSpends_1_StateProof_Path_2_1", visibility := .secret },
-  { wireId := 182, path := "SyntheticSpends_1_StateProof_Path_2_2", visibility := .secret },
-  { wireId := 183, path := "SyntheticSpends_1_StateProof_Path_3_0", visibility := .secret },
-  { wireId := 184, path := "SyntheticSpends_1_StateProof_Path_3_1", visibility := .secret },
-  { wireId := 185, path := "SyntheticSpends_1_StateProof_Path_3_2", visibility := .secret },
-  { wireId := 186, path := "SyntheticSpends_1_StateProof_Path_4_0", visibility := .secret },
-  { wireId := 187, path := "SyntheticSpends_1_StateProof_Path_4_1", visibility := .secret },
-  { wireId := 188, path := "SyntheticSpends_1_StateProof_Path_4_2", visibility := .secret },
-  { wireId := 189, path := "SyntheticSpends_1_StateProof_Path_5_0", visibility := .secret },
-  { wireId := 190, path := "SyntheticSpends_1_StateProof_Path_5_1", visibility := .secret },
-  { wireId := 191, path := "SyntheticSpends_1_StateProof_Path_5_2", visibility := .secret },
-  { wireId := 192, path := "SyntheticSpends_1_StateProof_Path_6_0", visibility := .secret },
-  { wireId := 193, path := "SyntheticSpends_1_StateProof_Path_6_1", visibility := .secret },
-  { wireId := 194, path := "SyntheticSpends_1_StateProof_Path_6_2", visibility := .secret },
-  { wireId := 195, path := "SyntheticSpends_1_StateProof_Path_7_0", visibility := .secret },
-  { wireId := 196, path := "SyntheticSpends_1_StateProof_Path_7_1", visibility := .secret },
-  { wireId := 197, path := "SyntheticSpends_1_StateProof_Path_7_2", visibility := .secret },
-  { wireId := 198, path := "SyntheticSpends_1_StateProof_Path_8_0", visibility := .secret },
-  { wireId := 199, path := "SyntheticSpends_1_StateProof_Path_8_1", visibility := .secret },
-  { wireId := 200, path := "SyntheticSpends_1_StateProof_Path_8_2", visibility := .secret },
-  { wireId := 201, path := "SyntheticSpends_1_StateProof_Path_9_0", visibility := .secret },
-  { wireId := 202, path := "SyntheticSpends_1_StateProof_Path_9_1", visibility := .secret },
-  { wireId := 203, path := "SyntheticSpends_1_StateProof_Path_9_2", visibility := .secret },
-  { wireId := 204, path := "SyntheticSpends_1_StateProof_Path_10_0", visibility := .secret },
-  { wireId := 205, path := "SyntheticSpends_1_StateProof_Path_10_1", visibility := .secret },
-  { wireId := 206, path := "SyntheticSpends_1_StateProof_Path_10_2", visibility := .secret },
-  { wireId := 207, path := "SyntheticSpends_1_StateProof_Path_11_0", visibility := .secret },
-  { wireId := 208, path := "SyntheticSpends_1_StateProof_Path_11_1", visibility := .secret },
-  { wireId := 209, path := "SyntheticSpends_1_StateProof_Path_11_2", visibility := .secret },
-  { wireId := 210, path := "SyntheticSpends_1_StateProof_Path_12_0", visibility := .secret },
-  { wireId := 211, path := "SyntheticSpends_1_StateProof_Path_12_1", visibility := .secret },
-  { wireId := 212, path := "SyntheticSpends_1_StateProof_Path_12_2", visibility := .secret },
-  { wireId := 213, path := "SyntheticSpends_1_StateProof_Path_13_0", visibility := .secret },
-  { wireId := 214, path := "SyntheticSpends_1_StateProof_Path_13_1", visibility := .secret },
-  { wireId := 215, path := "SyntheticSpends_1_StateProof_Path_13_2", visibility := .secret },
-  { wireId := 216, path := "SyntheticSpends_1_StateProof_Path_14_0", visibility := .secret },
-  { wireId := 217, path := "SyntheticSpends_1_StateProof_Path_14_1", visibility := .secret },
-  { wireId := 218, path := "SyntheticSpends_1_StateProof_Path_14_2", visibility := .secret },
-  { wireId := 219, path := "SyntheticSpends_1_StateProof_Path_15_0", visibility := .secret },
-  { wireId := 220, path := "SyntheticSpends_1_StateProof_Path_15_1", visibility := .secret },
-  { wireId := 221, path := "SyntheticSpends_1_StateProof_Path_15_2", visibility := .secret },
-  { wireId := 222, path := "SyntheticSpends_1_StateProof_Path_16_0", visibility := .secret },
-  { wireId := 223, path := "SyntheticSpends_1_StateProof_Path_16_1", visibility := .secret },
-  { wireId := 224, path := "SyntheticSpends_1_StateProof_Path_16_2", visibility := .secret },
-  { wireId := 225, path := "SyntheticSpends_1_StateProof_Path_17_0", visibility := .secret },
-  { wireId := 226, path := "SyntheticSpends_1_StateProof_Path_17_1", visibility := .secret },
-  { wireId := 227, path := "SyntheticSpends_1_StateProof_Path_17_2", visibility := .secret },
-  { wireId := 228, path := "SyntheticSpends_1_StateProof_Path_18_0", visibility := .secret },
-  { wireId := 229, path := "SyntheticSpends_1_StateProof_Path_18_1", visibility := .secret },
-  { wireId := 230, path := "SyntheticSpends_1_StateProof_Path_18_2", visibility := .secret },
-  { wireId := 231, path := "SyntheticSpends_1_StateProof_Path_19_0", visibility := .secret },
-  { wireId := 232, path := "SyntheticSpends_1_StateProof_Path_19_1", visibility := .secret },
-  { wireId := 233, path := "SyntheticSpends_1_StateProof_Path_19_2", visibility := .secret },
-  { wireId := 234, path := "SyntheticSpends_1_StateProof_Path_20_0", visibility := .secret },
-  { wireId := 235, path := "SyntheticSpends_1_StateProof_Path_20_1", visibility := .secret },
-  { wireId := 236, path := "SyntheticSpends_1_StateProof_Path_20_2", visibility := .secret },
-  { wireId := 237, path := "SyntheticSpends_1_StateProof_Path_21_0", visibility := .secret },
-  { wireId := 238, path := "SyntheticSpends_1_StateProof_Path_21_1", visibility := .secret },
-  { wireId := 239, path := "SyntheticSpends_1_StateProof_Path_21_2", visibility := .secret },
-  { wireId := 240, path := "SyntheticSpends_1_StateProof_Path_22_0", visibility := .secret },
-  { wireId := 241, path := "SyntheticSpends_1_StateProof_Path_22_1", visibility := .secret },
-  { wireId := 242, path := "SyntheticSpends_1_StateProof_Path_22_2", visibility := .secret },
-  { wireId := 243, path := "SyntheticSpends_1_StateProof_Path_23_0", visibility := .secret },
-  { wireId := 244, path := "SyntheticSpends_1_StateProof_Path_23_1", visibility := .secret },
-  { wireId := 245, path := "SyntheticSpends_1_StateProof_Path_23_2", visibility := .secret },
-  { wireId := 246, path := "SyntheticSpends_1_AuthRandomizer", visibility := .secret },
-  { wireId := 247, path := "SyntheticSpends_1_IsDummy", visibility := .secret },
-  { wireId := 248, path := "SyntheticSpends_1_DummyNullifierSeed", visibility := .secret },
-  { wireId := 249, path := "SyntheticSpends_2_Nullifier", visibility := .secret },
-  { wireId := 250, path := "SyntheticSpends_2_RK_X", visibility := .secret },
-  { wireId := 251, path := "SyntheticSpends_2_RK_Y", visibility := .secret },
-  { wireId := 252, path := "SyntheticSpends_2_Note_Blinding", visibility := .secret },
-  { wireId := 253, path := "SyntheticSpends_2_Note_Amount", visibility := .secret },
-  { wireId := 254, path := "SyntheticSpends_2_StateProof_Commitment", visibility := .secret },
-  { wireId := 255, path := "SyntheticSpends_2_StateProof_Position", visibility := .secret },
-  { wireId := 256, path := "SyntheticSpends_2_StateProof_Path_0_0", visibility := .secret },
-  { wireId := 257, path := "SyntheticSpends_2_StateProof_Path_0_1", visibility := .secret },
-  { wireId := 258, path := "SyntheticSpends_2_StateProof_Path_0_2", visibility := .secret },
-  { wireId := 259, path := "SyntheticSpends_2_StateProof_Path_1_0", visibility := .secret },
-  { wireId := 260, path := "SyntheticSpends_2_StateProof_Path_1_1", visibility := .secret },
-  { wireId := 261, path := "SyntheticSpends_2_StateProof_Path_1_2", visibility := .secret },
-  { wireId := 262, path := "SyntheticSpends_2_StateProof_Path_2_0", visibility := .secret },
-  { wireId := 263, path := "SyntheticSpends_2_StateProof_Path_2_1", visibility := .secret },
-  { wireId := 264, path := "SyntheticSpends_2_StateProof_Path_2_2", visibility := .secret },
-  { wireId := 265, path := "SyntheticSpends_2_StateProof_Path_3_0", visibility := .secret },
-  { wireId := 266, path := "SyntheticSpends_2_StateProof_Path_3_1", visibility := .secret },
-  { wireId := 267, path := "SyntheticSpends_2_StateProof_Path_3_2", visibility := .secret },
-  { wireId := 268, path := "SyntheticSpends_2_StateProof_Path_4_0", visibility := .secret },
-  { wireId := 269, path := "SyntheticSpends_2_StateProof_Path_4_1", visibility := .secret },
-  { wireId := 270, path := "SyntheticSpends_2_StateProof_Path_4_2", visibility := .secret },
-  { wireId := 271, path := "SyntheticSpends_2_StateProof_Path_5_0", visibility := .secret },
-  { wireId := 272, path := "SyntheticSpends_2_StateProof_Path_5_1", visibility := .secret },
-  { wireId := 273, path := "SyntheticSpends_2_StateProof_Path_5_2", visibility := .secret },
-  { wireId := 274, path := "SyntheticSpends_2_StateProof_Path_6_0", visibility := .secret },
-  { wireId := 275, path := "SyntheticSpends_2_StateProof_Path_6_1", visibility := .secret },
-  { wireId := 276, path := "SyntheticSpends_2_StateProof_Path_6_2", visibility := .secret },
-  { wireId := 277, path := "SyntheticSpends_2_StateProof_Path_7_0", visibility := .secret },
-  { wireId := 278, path := "SyntheticSpends_2_StateProof_Path_7_1", visibility := .secret },
-  { wireId := 279, path := "SyntheticSpends_2_StateProof_Path_7_2", visibility := .secret },
-  { wireId := 280, path := "SyntheticSpends_2_StateProof_Path_8_0", visibility := .secret },
-  { wireId := 281, path := "SyntheticSpends_2_StateProof_Path_8_1", visibility := .secret },
-  { wireId := 282, path := "SyntheticSpends_2_StateProof_Path_8_2", visibility := .secret },
-  { wireId := 283, path := "SyntheticSpends_2_StateProof_Path_9_0", visibility := .secret },
-  { wireId := 284, path := "SyntheticSpends_2_StateProof_Path_9_1", visibility := .secret },
-  { wireId := 285, path := "SyntheticSpends_2_StateProof_Path_9_2", visibility := .secret },
-  { wireId := 286, path := "SyntheticSpends_2_StateProof_Path_10_0", visibility := .secret },
-  { wireId := 287, path := "SyntheticSpends_2_StateProof_Path_10_1", visibility := .secret },
-  { wireId := 288, path := "SyntheticSpends_2_StateProof_Path_10_2", visibility := .secret },
-  { wireId := 289, path := "SyntheticSpends_2_StateProof_Path_11_0", visibility := .secret },
-  { wireId := 290, path := "SyntheticSpends_2_StateProof_Path_11_1", visibility := .secret },
-  { wireId := 291, path := "SyntheticSpends_2_StateProof_Path_11_2", visibility := .secret },
-  { wireId := 292, path := "SyntheticSpends_2_StateProof_Path_12_0", visibility := .secret },
-  { wireId := 293, path := "SyntheticSpends_2_StateProof_Path_12_1", visibility := .secret },
-  { wireId := 294, path := "SyntheticSpends_2_StateProof_Path_12_2", visibility := .secret },
-  { wireId := 295, path := "SyntheticSpends_2_StateProof_Path_13_0", visibility := .secret },
-  { wireId := 296, path := "SyntheticSpends_2_StateProof_Path_13_1", visibility := .secret },
-  { wireId := 297, path := "SyntheticSpends_2_StateProof_Path_13_2", visibility := .secret },
-  { wireId := 298, path := "SyntheticSpends_2_StateProof_Path_14_0", visibility := .secret },
-  { wireId := 299, path := "SyntheticSpends_2_StateProof_Path_14_1", visibility := .secret },
-  { wireId := 300, path := "SyntheticSpends_2_StateProof_Path_14_2", visibility := .secret },
-  { wireId := 301, path := "SyntheticSpends_2_StateProof_Path_15_0", visibility := .secret },
-  { wireId := 302, path := "SyntheticSpends_2_StateProof_Path_15_1", visibility := .secret },
-  { wireId := 303, path := "SyntheticSpends_2_StateProof_Path_15_2", visibility := .secret },
-  { wireId := 304, path := "SyntheticSpends_2_StateProof_Path_16_0", visibility := .secret },
-  { wireId := 305, path := "SyntheticSpends_2_StateProof_Path_16_1", visibility := .secret },
-  { wireId := 306, path := "SyntheticSpends_2_StateProof_Path_16_2", visibility := .secret },
-  { wireId := 307, path := "SyntheticSpends_2_StateProof_Path_17_0", visibility := .secret },
-  { wireId := 308, path := "SyntheticSpends_2_StateProof_Path_17_1", visibility := .secret },
-  { wireId := 309, path := "SyntheticSpends_2_StateProof_Path_17_2", visibility := .secret },
-  { wireId := 310, path := "SyntheticSpends_2_StateProof_Path_18_0", visibility := .secret },
-  { wireId := 311, path := "SyntheticSpends_2_StateProof_Path_18_1", visibility := .secret },
-  { wireId := 312, path := "SyntheticSpends_2_StateProof_Path_18_2", visibility := .secret },
-  { wireId := 313, path := "SyntheticSpends_2_StateProof_Path_19_0", visibility := .secret },
-  { wireId := 314, path := "SyntheticSpends_2_StateProof_Path_19_1", visibility := .secret },
-  { wireId := 315, path := "SyntheticSpends_2_StateProof_Path_19_2", visibility := .secret },
-  { wireId := 316, path := "SyntheticSpends_2_StateProof_Path_20_0", visibility := .secret },
-  { wireId := 317, path := "SyntheticSpends_2_StateProof_Path_20_1", visibility := .secret },
-  { wireId := 318, path := "SyntheticSpends_2_StateProof_Path_20_2", visibility := .secret },
-  { wireId := 319, path := "SyntheticSpends_2_StateProof_Path_21_0", visibility := .secret },
-  { wireId := 320, path := "SyntheticSpends_2_StateProof_Path_21_1", visibility := .secret },
-  { wireId := 321, path := "SyntheticSpends_2_StateProof_Path_21_2", visibility := .secret },
-  { wireId := 322, path := "SyntheticSpends_2_StateProof_Path_22_0", visibility := .secret },
-  { wireId := 323, path := "SyntheticSpends_2_StateProof_Path_22_1", visibility := .secret },
-  { wireId := 324, path := "SyntheticSpends_2_StateProof_Path_22_2", visibility := .secret },
-  { wireId := 325, path := "SyntheticSpends_2_StateProof_Path_23_0", visibility := .secret },
-  { wireId := 326, path := "SyntheticSpends_2_StateProof_Path_23_1", visibility := .secret },
-  { wireId := 327, path := "SyntheticSpends_2_StateProof_Path_23_2", visibility := .secret },
-  { wireId := 328, path := "SyntheticSpends_2_AuthRandomizer", visibility := .secret },
-  { wireId := 329, path := "SyntheticSpends_2_IsDummy", visibility := .secret },
-  { wireId := 330, path := "SyntheticSpends_2_DummyNullifierSeed", visibility := .secret },
-  { wireId := 331, path := "SyntheticSpends_3_Nullifier", visibility := .secret },
-  { wireId := 332, path := "SyntheticSpends_3_RK_X", visibility := .secret },
-  { wireId := 333, path := "SyntheticSpends_3_RK_Y", visibility := .secret },
-  { wireId := 334, path := "SyntheticSpends_3_Note_Blinding", visibility := .secret },
-  { wireId := 335, path := "SyntheticSpends_3_Note_Amount", visibility := .secret },
-  { wireId := 336, path := "SyntheticSpends_3_StateProof_Commitment", visibility := .secret },
-  { wireId := 337, path := "SyntheticSpends_3_StateProof_Position", visibility := .secret },
-  { wireId := 338, path := "SyntheticSpends_3_StateProof_Path_0_0", visibility := .secret },
-  { wireId := 339, path := "SyntheticSpends_3_StateProof_Path_0_1", visibility := .secret },
-  { wireId := 340, path := "SyntheticSpends_3_StateProof_Path_0_2", visibility := .secret },
-  { wireId := 341, path := "SyntheticSpends_3_StateProof_Path_1_0", visibility := .secret },
-  { wireId := 342, path := "SyntheticSpends_3_StateProof_Path_1_1", visibility := .secret },
-  { wireId := 343, path := "SyntheticSpends_3_StateProof_Path_1_2", visibility := .secret },
-  { wireId := 344, path := "SyntheticSpends_3_StateProof_Path_2_0", visibility := .secret },
-  { wireId := 345, path := "SyntheticSpends_3_StateProof_Path_2_1", visibility := .secret },
-  { wireId := 346, path := "SyntheticSpends_3_StateProof_Path_2_2", visibility := .secret },
-  { wireId := 347, path := "SyntheticSpends_3_StateProof_Path_3_0", visibility := .secret },
-  { wireId := 348, path := "SyntheticSpends_3_StateProof_Path_3_1", visibility := .secret },
-  { wireId := 349, path := "SyntheticSpends_3_StateProof_Path_3_2", visibility := .secret },
-  { wireId := 350, path := "SyntheticSpends_3_StateProof_Path_4_0", visibility := .secret },
-  { wireId := 351, path := "SyntheticSpends_3_StateProof_Path_4_1", visibility := .secret },
-  { wireId := 352, path := "SyntheticSpends_3_StateProof_Path_4_2", visibility := .secret },
-  { wireId := 353, path := "SyntheticSpends_3_StateProof_Path_5_0", visibility := .secret },
-  { wireId := 354, path := "SyntheticSpends_3_StateProof_Path_5_1", visibility := .secret },
-  { wireId := 355, path := "SyntheticSpends_3_StateProof_Path_5_2", visibility := .secret },
-  { wireId := 356, path := "SyntheticSpends_3_StateProof_Path_6_0", visibility := .secret },
-  { wireId := 357, path := "SyntheticSpends_3_StateProof_Path_6_1", visibility := .secret },
-  { wireId := 358, path := "SyntheticSpends_3_StateProof_Path_6_2", visibility := .secret },
-  { wireId := 359, path := "SyntheticSpends_3_StateProof_Path_7_0", visibility := .secret },
-  { wireId := 360, path := "SyntheticSpends_3_StateProof_Path_7_1", visibility := .secret },
-  { wireId := 361, path := "SyntheticSpends_3_StateProof_Path_7_2", visibility := .secret },
-  { wireId := 362, path := "SyntheticSpends_3_StateProof_Path_8_0", visibility := .secret },
-  { wireId := 363, path := "SyntheticSpends_3_StateProof_Path_8_1", visibility := .secret },
-  { wireId := 364, path := "SyntheticSpends_3_StateProof_Path_8_2", visibility := .secret },
-  { wireId := 365, path := "SyntheticSpends_3_StateProof_Path_9_0", visibility := .secret },
-  { wireId := 366, path := "SyntheticSpends_3_StateProof_Path_9_1", visibility := .secret },
-  { wireId := 367, path := "SyntheticSpends_3_StateProof_Path_9_2", visibility := .secret },
-  { wireId := 368, path := "SyntheticSpends_3_StateProof_Path_10_0", visibility := .secret },
-  { wireId := 369, path := "SyntheticSpends_3_StateProof_Path_10_1", visibility := .secret },
-  { wireId := 370, path := "SyntheticSpends_3_StateProof_Path_10_2", visibility := .secret },
-  { wireId := 371, path := "SyntheticSpends_3_StateProof_Path_11_0", visibility := .secret },
-  { wireId := 372, path := "SyntheticSpends_3_StateProof_Path_11_1", visibility := .secret },
-  { wireId := 373, path := "SyntheticSpends_3_StateProof_Path_11_2", visibility := .secret },
-  { wireId := 374, path := "SyntheticSpends_3_StateProof_Path_12_0", visibility := .secret },
-  { wireId := 375, path := "SyntheticSpends_3_StateProof_Path_12_1", visibility := .secret },
-  { wireId := 376, path := "SyntheticSpends_3_StateProof_Path_12_2", visibility := .secret },
-  { wireId := 377, path := "SyntheticSpends_3_StateProof_Path_13_0", visibility := .secret },
-  { wireId := 378, path := "SyntheticSpends_3_StateProof_Path_13_1", visibility := .secret },
-  { wireId := 379, path := "SyntheticSpends_3_StateProof_Path_13_2", visibility := .secret },
-  { wireId := 380, path := "SyntheticSpends_3_StateProof_Path_14_0", visibility := .secret },
-  { wireId := 381, path := "SyntheticSpends_3_StateProof_Path_14_1", visibility := .secret },
-  { wireId := 382, path := "SyntheticSpends_3_StateProof_Path_14_2", visibility := .secret },
-  { wireId := 383, path := "SyntheticSpends_3_StateProof_Path_15_0", visibility := .secret },
-  { wireId := 384, path := "SyntheticSpends_3_StateProof_Path_15_1", visibility := .secret },
-  { wireId := 385, path := "SyntheticSpends_3_StateProof_Path_15_2", visibility := .secret },
-  { wireId := 386, path := "SyntheticSpends_3_StateProof_Path_16_0", visibility := .secret },
-  { wireId := 387, path := "SyntheticSpends_3_StateProof_Path_16_1", visibility := .secret },
-  { wireId := 388, path := "SyntheticSpends_3_StateProof_Path_16_2", visibility := .secret },
-  { wireId := 389, path := "SyntheticSpends_3_StateProof_Path_17_0", visibility := .secret },
-  { wireId := 390, path := "SyntheticSpends_3_StateProof_Path_17_1", visibility := .secret },
-  { wireId := 391, path := "SyntheticSpends_3_StateProof_Path_17_2", visibility := .secret },
-  { wireId := 392, path := "SyntheticSpends_3_StateProof_Path_18_0", visibility := .secret },
-  { wireId := 393, path := "SyntheticSpends_3_StateProof_Path_18_1", visibility := .secret },
-  { wireId := 394, path := "SyntheticSpends_3_StateProof_Path_18_2", visibility := .secret },
-  { wireId := 395, path := "SyntheticSpends_3_StateProof_Path_19_0", visibility := .secret },
-  { wireId := 396, path := "SyntheticSpends_3_StateProof_Path_19_1", visibility := .secret },
-  { wireId := 397, path := "SyntheticSpends_3_StateProof_Path_19_2", visibility := .secret },
-  { wireId := 398, path := "SyntheticSpends_3_StateProof_Path_20_0", visibility := .secret },
-  { wireId := 399, path := "SyntheticSpends_3_StateProof_Path_20_1", visibility := .secret },
-  { wireId := 400, path := "SyntheticSpends_3_StateProof_Path_20_2", visibility := .secret },
-  { wireId := 401, path := "SyntheticSpends_3_StateProof_Path_21_0", visibility := .secret },
-  { wireId := 402, path := "SyntheticSpends_3_StateProof_Path_21_1", visibility := .secret },
-  { wireId := 403, path := "SyntheticSpends_3_StateProof_Path_21_2", visibility := .secret },
-  { wireId := 404, path := "SyntheticSpends_3_StateProof_Path_22_0", visibility := .secret },
-  { wireId := 405, path := "SyntheticSpends_3_StateProof_Path_22_1", visibility := .secret },
-  { wireId := 406, path := "SyntheticSpends_3_StateProof_Path_22_2", visibility := .secret },
-  { wireId := 407, path := "SyntheticSpends_3_StateProof_Path_23_0", visibility := .secret },
-  { wireId := 408, path := "SyntheticSpends_3_StateProof_Path_23_1", visibility := .secret },
-  { wireId := 409, path := "SyntheticSpends_3_StateProof_Path_23_2", visibility := .secret },
-  { wireId := 410, path := "SyntheticSpends_3_AuthRandomizer", visibility := .secret },
-  { wireId := 411, path := "SyntheticSpends_3_IsDummy", visibility := .secret },
-  { wireId := 412, path := "SyntheticSpends_3_DummyNullifierSeed", visibility := .secret },
-  { wireId := 413, path := "SyntheticSpends_4_Nullifier", visibility := .secret },
-  { wireId := 414, path := "SyntheticSpends_4_RK_X", visibility := .secret },
-  { wireId := 415, path := "SyntheticSpends_4_RK_Y", visibility := .secret },
-  { wireId := 416, path := "SyntheticSpends_4_Note_Blinding", visibility := .secret },
-  { wireId := 417, path := "SyntheticSpends_4_Note_Amount", visibility := .secret },
-  { wireId := 418, path := "SyntheticSpends_4_StateProof_Commitment", visibility := .secret },
-  { wireId := 419, path := "SyntheticSpends_4_StateProof_Position", visibility := .secret },
-  { wireId := 420, path := "SyntheticSpends_4_StateProof_Path_0_0", visibility := .secret },
-  { wireId := 421, path := "SyntheticSpends_4_StateProof_Path_0_1", visibility := .secret },
-  { wireId := 422, path := "SyntheticSpends_4_StateProof_Path_0_2", visibility := .secret },
-  { wireId := 423, path := "SyntheticSpends_4_StateProof_Path_1_0", visibility := .secret },
-  { wireId := 424, path := "SyntheticSpends_4_StateProof_Path_1_1", visibility := .secret },
-  { wireId := 425, path := "SyntheticSpends_4_StateProof_Path_1_2", visibility := .secret },
-  { wireId := 426, path := "SyntheticSpends_4_StateProof_Path_2_0", visibility := .secret },
-  { wireId := 427, path := "SyntheticSpends_4_StateProof_Path_2_1", visibility := .secret },
-  { wireId := 428, path := "SyntheticSpends_4_StateProof_Path_2_2", visibility := .secret },
-  { wireId := 429, path := "SyntheticSpends_4_StateProof_Path_3_0", visibility := .secret },
-  { wireId := 430, path := "SyntheticSpends_4_StateProof_Path_3_1", visibility := .secret },
-  { wireId := 431, path := "SyntheticSpends_4_StateProof_Path_3_2", visibility := .secret },
-  { wireId := 432, path := "SyntheticSpends_4_StateProof_Path_4_0", visibility := .secret },
-  { wireId := 433, path := "SyntheticSpends_4_StateProof_Path_4_1", visibility := .secret },
-  { wireId := 434, path := "SyntheticSpends_4_StateProof_Path_4_2", visibility := .secret },
-  { wireId := 435, path := "SyntheticSpends_4_StateProof_Path_5_0", visibility := .secret },
-  { wireId := 436, path := "SyntheticSpends_4_StateProof_Path_5_1", visibility := .secret },
-  { wireId := 437, path := "SyntheticSpends_4_StateProof_Path_5_2", visibility := .secret },
-  { wireId := 438, path := "SyntheticSpends_4_StateProof_Path_6_0", visibility := .secret },
-  { wireId := 439, path := "SyntheticSpends_4_StateProof_Path_6_1", visibility := .secret },
-  { wireId := 440, path := "SyntheticSpends_4_StateProof_Path_6_2", visibility := .secret },
-  { wireId := 441, path := "SyntheticSpends_4_StateProof_Path_7_0", visibility := .secret },
-  { wireId := 442, path := "SyntheticSpends_4_StateProof_Path_7_1", visibility := .secret },
-  { wireId := 443, path := "SyntheticSpends_4_StateProof_Path_7_2", visibility := .secret },
-  { wireId := 444, path := "SyntheticSpends_4_StateProof_Path_8_0", visibility := .secret },
-  { wireId := 445, path := "SyntheticSpends_4_StateProof_Path_8_1", visibility := .secret },
-  { wireId := 446, path := "SyntheticSpends_4_StateProof_Path_8_2", visibility := .secret },
-  { wireId := 447, path := "SyntheticSpends_4_StateProof_Path_9_0", visibility := .secret },
-  { wireId := 448, path := "SyntheticSpends_4_StateProof_Path_9_1", visibility := .secret },
-  { wireId := 449, path := "SyntheticSpends_4_StateProof_Path_9_2", visibility := .secret },
-  { wireId := 450, path := "SyntheticSpends_4_StateProof_Path_10_0", visibility := .secret },
-  { wireId := 451, path := "SyntheticSpends_4_StateProof_Path_10_1", visibility := .secret },
-  { wireId := 452, path := "SyntheticSpends_4_StateProof_Path_10_2", visibility := .secret },
-  { wireId := 453, path := "SyntheticSpends_4_StateProof_Path_11_0", visibility := .secret },
-  { wireId := 454, path := "SyntheticSpends_4_StateProof_Path_11_1", visibility := .secret },
-  { wireId := 455, path := "SyntheticSpends_4_StateProof_Path_11_2", visibility := .secret },
-  { wireId := 456, path := "SyntheticSpends_4_StateProof_Path_12_0", visibility := .secret },
-  { wireId := 457, path := "SyntheticSpends_4_StateProof_Path_12_1", visibility := .secret },
-  { wireId := 458, path := "SyntheticSpends_4_StateProof_Path_12_2", visibility := .secret },
-  { wireId := 459, path := "SyntheticSpends_4_StateProof_Path_13_0", visibility := .secret },
-  { wireId := 460, path := "SyntheticSpends_4_StateProof_Path_13_1", visibility := .secret },
-  { wireId := 461, path := "SyntheticSpends_4_StateProof_Path_13_2", visibility := .secret },
-  { wireId := 462, path := "SyntheticSpends_4_StateProof_Path_14_0", visibility := .secret },
-  { wireId := 463, path := "SyntheticSpends_4_StateProof_Path_14_1", visibility := .secret },
-  { wireId := 464, path := "SyntheticSpends_4_StateProof_Path_14_2", visibility := .secret },
-  { wireId := 465, path := "SyntheticSpends_4_StateProof_Path_15_0", visibility := .secret },
-  { wireId := 466, path := "SyntheticSpends_4_StateProof_Path_15_1", visibility := .secret },
-  { wireId := 467, path := "SyntheticSpends_4_StateProof_Path_15_2", visibility := .secret },
-  { wireId := 468, path := "SyntheticSpends_4_StateProof_Path_16_0", visibility := .secret },
-  { wireId := 469, path := "SyntheticSpends_4_StateProof_Path_16_1", visibility := .secret },
-  { wireId := 470, path := "SyntheticSpends_4_StateProof_Path_16_2", visibility := .secret },
-  { wireId := 471, path := "SyntheticSpends_4_StateProof_Path_17_0", visibility := .secret },
-  { wireId := 472, path := "SyntheticSpends_4_StateProof_Path_17_1", visibility := .secret },
-  { wireId := 473, path := "SyntheticSpends_4_StateProof_Path_17_2", visibility := .secret },
-  { wireId := 474, path := "SyntheticSpends_4_StateProof_Path_18_0", visibility := .secret },
-  { wireId := 475, path := "SyntheticSpends_4_StateProof_Path_18_1", visibility := .secret },
-  { wireId := 476, path := "SyntheticSpends_4_StateProof_Path_18_2", visibility := .secret },
-  { wireId := 477, path := "SyntheticSpends_4_StateProof_Path_19_0", visibility := .secret },
-  { wireId := 478, path := "SyntheticSpends_4_StateProof_Path_19_1", visibility := .secret },
-  { wireId := 479, path := "SyntheticSpends_4_StateProof_Path_19_2", visibility := .secret },
-  { wireId := 480, path := "SyntheticSpends_4_StateProof_Path_20_0", visibility := .secret },
-  { wireId := 481, path := "SyntheticSpends_4_StateProof_Path_20_1", visibility := .secret },
-  { wireId := 482, path := "SyntheticSpends_4_StateProof_Path_20_2", visibility := .secret },
-  { wireId := 483, path := "SyntheticSpends_4_StateProof_Path_21_0", visibility := .secret },
-  { wireId := 484, path := "SyntheticSpends_4_StateProof_Path_21_1", visibility := .secret },
-  { wireId := 485, path := "SyntheticSpends_4_StateProof_Path_21_2", visibility := .secret },
-  { wireId := 486, path := "SyntheticSpends_4_StateProof_Path_22_0", visibility := .secret },
-  { wireId := 487, path := "SyntheticSpends_4_StateProof_Path_22_1", visibility := .secret },
-  { wireId := 488, path := "SyntheticSpends_4_StateProof_Path_22_2", visibility := .secret },
-  { wireId := 489, path := "SyntheticSpends_4_StateProof_Path_23_0", visibility := .secret },
-  { wireId := 490, path := "SyntheticSpends_4_StateProof_Path_23_1", visibility := .secret },
-  { wireId := 491, path := "SyntheticSpends_4_StateProof_Path_23_2", visibility := .secret },
-  { wireId := 492, path := "SyntheticSpends_4_AuthRandomizer", visibility := .secret },
-  { wireId := 493, path := "SyntheticSpends_4_IsDummy", visibility := .secret },
-  { wireId := 494, path := "SyntheticSpends_4_DummyNullifierSeed", visibility := .secret },
-  { wireId := 495, path := "SyntheticSpends_5_Nullifier", visibility := .secret },
-  { wireId := 496, path := "SyntheticSpends_5_RK_X", visibility := .secret },
-  { wireId := 497, path := "SyntheticSpends_5_RK_Y", visibility := .secret },
-  { wireId := 498, path := "SyntheticSpends_5_Note_Blinding", visibility := .secret },
-  { wireId := 499, path := "SyntheticSpends_5_Note_Amount", visibility := .secret },
-  { wireId := 500, path := "SyntheticSpends_5_StateProof_Commitment", visibility := .secret },
-  { wireId := 501, path := "SyntheticSpends_5_StateProof_Position", visibility := .secret },
-  { wireId := 502, path := "SyntheticSpends_5_StateProof_Path_0_0", visibility := .secret },
-  { wireId := 503, path := "SyntheticSpends_5_StateProof_Path_0_1", visibility := .secret },
-  { wireId := 504, path := "SyntheticSpends_5_StateProof_Path_0_2", visibility := .secret },
-  { wireId := 505, path := "SyntheticSpends_5_StateProof_Path_1_0", visibility := .secret },
-  { wireId := 506, path := "SyntheticSpends_5_StateProof_Path_1_1", visibility := .secret },
-  { wireId := 507, path := "SyntheticSpends_5_StateProof_Path_1_2", visibility := .secret },
-  { wireId := 508, path := "SyntheticSpends_5_StateProof_Path_2_0", visibility := .secret },
-  { wireId := 509, path := "SyntheticSpends_5_StateProof_Path_2_1", visibility := .secret },
-  { wireId := 510, path := "SyntheticSpends_5_StateProof_Path_2_2", visibility := .secret },
-  { wireId := 511, path := "SyntheticSpends_5_StateProof_Path_3_0", visibility := .secret },
-  { wireId := 512, path := "SyntheticSpends_5_StateProof_Path_3_1", visibility := .secret },
-  { wireId := 513, path := "SyntheticSpends_5_StateProof_Path_3_2", visibility := .secret },
-  { wireId := 514, path := "SyntheticSpends_5_StateProof_Path_4_0", visibility := .secret },
-  { wireId := 515, path := "SyntheticSpends_5_StateProof_Path_4_1", visibility := .secret },
-  { wireId := 516, path := "SyntheticSpends_5_StateProof_Path_4_2", visibility := .secret },
-  { wireId := 517, path := "SyntheticSpends_5_StateProof_Path_5_0", visibility := .secret },
-  { wireId := 518, path := "SyntheticSpends_5_StateProof_Path_5_1", visibility := .secret },
-  { wireId := 519, path := "SyntheticSpends_5_StateProof_Path_5_2", visibility := .secret },
-  { wireId := 520, path := "SyntheticSpends_5_StateProof_Path_6_0", visibility := .secret },
-  { wireId := 521, path := "SyntheticSpends_5_StateProof_Path_6_1", visibility := .secret },
-  { wireId := 522, path := "SyntheticSpends_5_StateProof_Path_6_2", visibility := .secret },
-  { wireId := 523, path := "SyntheticSpends_5_StateProof_Path_7_0", visibility := .secret },
-  { wireId := 524, path := "SyntheticSpends_5_StateProof_Path_7_1", visibility := .secret },
-  { wireId := 525, path := "SyntheticSpends_5_StateProof_Path_7_2", visibility := .secret },
-  { wireId := 526, path := "SyntheticSpends_5_StateProof_Path_8_0", visibility := .secret },
-  { wireId := 527, path := "SyntheticSpends_5_StateProof_Path_8_1", visibility := .secret },
-  { wireId := 528, path := "SyntheticSpends_5_StateProof_Path_8_2", visibility := .secret },
-  { wireId := 529, path := "SyntheticSpends_5_StateProof_Path_9_0", visibility := .secret },
-  { wireId := 530, path := "SyntheticSpends_5_StateProof_Path_9_1", visibility := .secret },
-  { wireId := 531, path := "SyntheticSpends_5_StateProof_Path_9_2", visibility := .secret },
-  { wireId := 532, path := "SyntheticSpends_5_StateProof_Path_10_0", visibility := .secret },
-  { wireId := 533, path := "SyntheticSpends_5_StateProof_Path_10_1", visibility := .secret },
-  { wireId := 534, path := "SyntheticSpends_5_StateProof_Path_10_2", visibility := .secret },
-  { wireId := 535, path := "SyntheticSpends_5_StateProof_Path_11_0", visibility := .secret },
-  { wireId := 536, path := "SyntheticSpends_5_StateProof_Path_11_1", visibility := .secret },
-  { wireId := 537, path := "SyntheticSpends_5_StateProof_Path_11_2", visibility := .secret },
-  { wireId := 538, path := "SyntheticSpends_5_StateProof_Path_12_0", visibility := .secret },
-  { wireId := 539, path := "SyntheticSpends_5_StateProof_Path_12_1", visibility := .secret },
-  { wireId := 540, path := "SyntheticSpends_5_StateProof_Path_12_2", visibility := .secret },
-  { wireId := 541, path := "SyntheticSpends_5_StateProof_Path_13_0", visibility := .secret },
-  { wireId := 542, path := "SyntheticSpends_5_StateProof_Path_13_1", visibility := .secret },
-  { wireId := 543, path := "SyntheticSpends_5_StateProof_Path_13_2", visibility := .secret },
-  { wireId := 544, path := "SyntheticSpends_5_StateProof_Path_14_0", visibility := .secret },
-  { wireId := 545, path := "SyntheticSpends_5_StateProof_Path_14_1", visibility := .secret },
-  { wireId := 546, path := "SyntheticSpends_5_StateProof_Path_14_2", visibility := .secret },
-  { wireId := 547, path := "SyntheticSpends_5_StateProof_Path_15_0", visibility := .secret },
-  { wireId := 548, path := "SyntheticSpends_5_StateProof_Path_15_1", visibility := .secret },
-  { wireId := 549, path := "SyntheticSpends_5_StateProof_Path_15_2", visibility := .secret },
-  { wireId := 550, path := "SyntheticSpends_5_StateProof_Path_16_0", visibility := .secret },
-  { wireId := 551, path := "SyntheticSpends_5_StateProof_Path_16_1", visibility := .secret },
-  { wireId := 552, path := "SyntheticSpends_5_StateProof_Path_16_2", visibility := .secret },
-  { wireId := 553, path := "SyntheticSpends_5_StateProof_Path_17_0", visibility := .secret },
-  { wireId := 554, path := "SyntheticSpends_5_StateProof_Path_17_1", visibility := .secret },
-  { wireId := 555, path := "SyntheticSpends_5_StateProof_Path_17_2", visibility := .secret },
-  { wireId := 556, path := "SyntheticSpends_5_StateProof_Path_18_0", visibility := .secret },
-  { wireId := 557, path := "SyntheticSpends_5_StateProof_Path_18_1", visibility := .secret },
-  { wireId := 558, path := "SyntheticSpends_5_StateProof_Path_18_2", visibility := .secret },
-  { wireId := 559, path := "SyntheticSpends_5_StateProof_Path_19_0", visibility := .secret },
-  { wireId := 560, path := "SyntheticSpends_5_StateProof_Path_19_1", visibility := .secret },
-  { wireId := 561, path := "SyntheticSpends_5_StateProof_Path_19_2", visibility := .secret },
-  { wireId := 562, path := "SyntheticSpends_5_StateProof_Path_20_0", visibility := .secret },
-  { wireId := 563, path := "SyntheticSpends_5_StateProof_Path_20_1", visibility := .secret },
-  { wireId := 564, path := "SyntheticSpends_5_StateProof_Path_20_2", visibility := .secret },
-  { wireId := 565, path := "SyntheticSpends_5_StateProof_Path_21_0", visibility := .secret },
-  { wireId := 566, path := "SyntheticSpends_5_StateProof_Path_21_1", visibility := .secret },
-  { wireId := 567, path := "SyntheticSpends_5_StateProof_Path_21_2", visibility := .secret },
-  { wireId := 568, path := "SyntheticSpends_5_StateProof_Path_22_0", visibility := .secret },
-  { wireId := 569, path := "SyntheticSpends_5_StateProof_Path_22_1", visibility := .secret },
-  { wireId := 570, path := "SyntheticSpends_5_StateProof_Path_22_2", visibility := .secret },
-  { wireId := 571, path := "SyntheticSpends_5_StateProof_Path_23_0", visibility := .secret },
-  { wireId := 572, path := "SyntheticSpends_5_StateProof_Path_23_1", visibility := .secret },
-  { wireId := 573, path := "SyntheticSpends_5_StateProof_Path_23_2", visibility := .secret },
-  { wireId := 574, path := "SyntheticSpends_5_AuthRandomizer", visibility := .secret },
-  { wireId := 575, path := "SyntheticSpends_5_IsDummy", visibility := .secret },
-  { wireId := 576, path := "SyntheticSpends_5_DummyNullifierSeed", visibility := .secret },
-  { wireId := 577, path := "SyntheticSpends_6_Nullifier", visibility := .secret },
-  { wireId := 578, path := "SyntheticSpends_6_RK_X", visibility := .secret },
-  { wireId := 579, path := "SyntheticSpends_6_RK_Y", visibility := .secret },
-  { wireId := 580, path := "SyntheticSpends_6_Note_Blinding", visibility := .secret },
-  { wireId := 581, path := "SyntheticSpends_6_Note_Amount", visibility := .secret },
-  { wireId := 582, path := "SyntheticSpends_6_StateProof_Commitment", visibility := .secret },
-  { wireId := 583, path := "SyntheticSpends_6_StateProof_Position", visibility := .secret },
-  { wireId := 584, path := "SyntheticSpends_6_StateProof_Path_0_0", visibility := .secret },
-  { wireId := 585, path := "SyntheticSpends_6_StateProof_Path_0_1", visibility := .secret },
-  { wireId := 586, path := "SyntheticSpends_6_StateProof_Path_0_2", visibility := .secret },
-  { wireId := 587, path := "SyntheticSpends_6_StateProof_Path_1_0", visibility := .secret },
-  { wireId := 588, path := "SyntheticSpends_6_StateProof_Path_1_1", visibility := .secret },
-  { wireId := 589, path := "SyntheticSpends_6_StateProof_Path_1_2", visibility := .secret },
-  { wireId := 590, path := "SyntheticSpends_6_StateProof_Path_2_0", visibility := .secret },
-  { wireId := 591, path := "SyntheticSpends_6_StateProof_Path_2_1", visibility := .secret },
-  { wireId := 592, path := "SyntheticSpends_6_StateProof_Path_2_2", visibility := .secret },
-  { wireId := 593, path := "SyntheticSpends_6_StateProof_Path_3_0", visibility := .secret },
-  { wireId := 594, path := "SyntheticSpends_6_StateProof_Path_3_1", visibility := .secret },
-  { wireId := 595, path := "SyntheticSpends_6_StateProof_Path_3_2", visibility := .secret },
-  { wireId := 596, path := "SyntheticSpends_6_StateProof_Path_4_0", visibility := .secret },
-  { wireId := 597, path := "SyntheticSpends_6_StateProof_Path_4_1", visibility := .secret },
-  { wireId := 598, path := "SyntheticSpends_6_StateProof_Path_4_2", visibility := .secret },
-  { wireId := 599, path := "SyntheticSpends_6_StateProof_Path_5_0", visibility := .secret },
-  { wireId := 600, path := "SyntheticSpends_6_StateProof_Path_5_1", visibility := .secret },
-  { wireId := 601, path := "SyntheticSpends_6_StateProof_Path_5_2", visibility := .secret },
-  { wireId := 602, path := "SyntheticSpends_6_StateProof_Path_6_0", visibility := .secret },
-  { wireId := 603, path := "SyntheticSpends_6_StateProof_Path_6_1", visibility := .secret },
-  { wireId := 604, path := "SyntheticSpends_6_StateProof_Path_6_2", visibility := .secret },
-  { wireId := 605, path := "SyntheticSpends_6_StateProof_Path_7_0", visibility := .secret },
-  { wireId := 606, path := "SyntheticSpends_6_StateProof_Path_7_1", visibility := .secret },
-  { wireId := 607, path := "SyntheticSpends_6_StateProof_Path_7_2", visibility := .secret },
-  { wireId := 608, path := "SyntheticSpends_6_StateProof_Path_8_0", visibility := .secret },
-  { wireId := 609, path := "SyntheticSpends_6_StateProof_Path_8_1", visibility := .secret },
-  { wireId := 610, path := "SyntheticSpends_6_StateProof_Path_8_2", visibility := .secret },
-  { wireId := 611, path := "SyntheticSpends_6_StateProof_Path_9_0", visibility := .secret },
-  { wireId := 612, path := "SyntheticSpends_6_StateProof_Path_9_1", visibility := .secret },
-  { wireId := 613, path := "SyntheticSpends_6_StateProof_Path_9_2", visibility := .secret },
-  { wireId := 614, path := "SyntheticSpends_6_StateProof_Path_10_0", visibility := .secret },
-  { wireId := 615, path := "SyntheticSpends_6_StateProof_Path_10_1", visibility := .secret },
-  { wireId := 616, path := "SyntheticSpends_6_StateProof_Path_10_2", visibility := .secret },
-  { wireId := 617, path := "SyntheticSpends_6_StateProof_Path_11_0", visibility := .secret },
-  { wireId := 618, path := "SyntheticSpends_6_StateProof_Path_11_1", visibility := .secret },
-  { wireId := 619, path := "SyntheticSpends_6_StateProof_Path_11_2", visibility := .secret },
-  { wireId := 620, path := "SyntheticSpends_6_StateProof_Path_12_0", visibility := .secret },
-  { wireId := 621, path := "SyntheticSpends_6_StateProof_Path_12_1", visibility := .secret },
-  { wireId := 622, path := "SyntheticSpends_6_StateProof_Path_12_2", visibility := .secret },
-  { wireId := 623, path := "SyntheticSpends_6_StateProof_Path_13_0", visibility := .secret },
-  { wireId := 624, path := "SyntheticSpends_6_StateProof_Path_13_1", visibility := .secret },
-  { wireId := 625, path := "SyntheticSpends_6_StateProof_Path_13_2", visibility := .secret },
-  { wireId := 626, path := "SyntheticSpends_6_StateProof_Path_14_0", visibility := .secret },
-  { wireId := 627, path := "SyntheticSpends_6_StateProof_Path_14_1", visibility := .secret },
-  { wireId := 628, path := "SyntheticSpends_6_StateProof_Path_14_2", visibility := .secret },
-  { wireId := 629, path := "SyntheticSpends_6_StateProof_Path_15_0", visibility := .secret },
-  { wireId := 630, path := "SyntheticSpends_6_StateProof_Path_15_1", visibility := .secret },
-  { wireId := 631, path := "SyntheticSpends_6_StateProof_Path_15_2", visibility := .secret },
-  { wireId := 632, path := "SyntheticSpends_6_StateProof_Path_16_0", visibility := .secret },
-  { wireId := 633, path := "SyntheticSpends_6_StateProof_Path_16_1", visibility := .secret },
-  { wireId := 634, path := "SyntheticSpends_6_StateProof_Path_16_2", visibility := .secret },
-  { wireId := 635, path := "SyntheticSpends_6_StateProof_Path_17_0", visibility := .secret },
-  { wireId := 636, path := "SyntheticSpends_6_StateProof_Path_17_1", visibility := .secret },
-  { wireId := 637, path := "SyntheticSpends_6_StateProof_Path_17_2", visibility := .secret },
-  { wireId := 638, path := "SyntheticSpends_6_StateProof_Path_18_0", visibility := .secret },
-  { wireId := 639, path := "SyntheticSpends_6_StateProof_Path_18_1", visibility := .secret },
-  { wireId := 640, path := "SyntheticSpends_6_StateProof_Path_18_2", visibility := .secret },
-  { wireId := 641, path := "SyntheticSpends_6_StateProof_Path_19_0", visibility := .secret },
-  { wireId := 642, path := "SyntheticSpends_6_StateProof_Path_19_1", visibility := .secret },
-  { wireId := 643, path := "SyntheticSpends_6_StateProof_Path_19_2", visibility := .secret },
-  { wireId := 644, path := "SyntheticSpends_6_StateProof_Path_20_0", visibility := .secret },
-  { wireId := 645, path := "SyntheticSpends_6_StateProof_Path_20_1", visibility := .secret },
-  { wireId := 646, path := "SyntheticSpends_6_StateProof_Path_20_2", visibility := .secret },
-  { wireId := 647, path := "SyntheticSpends_6_StateProof_Path_21_0", visibility := .secret },
-  { wireId := 648, path := "SyntheticSpends_6_StateProof_Path_21_1", visibility := .secret },
-  { wireId := 649, path := "SyntheticSpends_6_StateProof_Path_21_2", visibility := .secret },
-  { wireId := 650, path := "SyntheticSpends_6_StateProof_Path_22_0", visibility := .secret },
-  { wireId := 651, path := "SyntheticSpends_6_StateProof_Path_22_1", visibility := .secret },
-  { wireId := 652, path := "SyntheticSpends_6_StateProof_Path_22_2", visibility := .secret },
-  { wireId := 653, path := "SyntheticSpends_6_StateProof_Path_23_0", visibility := .secret },
-  { wireId := 654, path := "SyntheticSpends_6_StateProof_Path_23_1", visibility := .secret },
-  { wireId := 655, path := "SyntheticSpends_6_StateProof_Path_23_2", visibility := .secret },
-  { wireId := 656, path := "SyntheticSpends_6_AuthRandomizer", visibility := .secret },
-  { wireId := 657, path := "SyntheticSpends_6_IsDummy", visibility := .secret },
-  { wireId := 658, path := "SyntheticSpends_6_DummyNullifierSeed", visibility := .secret },
-  { wireId := 659, path := "SyntheticSpends_7_Nullifier", visibility := .secret },
-  { wireId := 660, path := "SyntheticSpends_7_RK_X", visibility := .secret },
-  { wireId := 661, path := "SyntheticSpends_7_RK_Y", visibility := .secret },
-  { wireId := 662, path := "SyntheticSpends_7_Note_Blinding", visibility := .secret },
-  { wireId := 663, path := "SyntheticSpends_7_Note_Amount", visibility := .secret },
-  { wireId := 664, path := "SyntheticSpends_7_StateProof_Commitment", visibility := .secret },
-  { wireId := 665, path := "SyntheticSpends_7_StateProof_Position", visibility := .secret },
-  { wireId := 666, path := "SyntheticSpends_7_StateProof_Path_0_0", visibility := .secret },
-  { wireId := 667, path := "SyntheticSpends_7_StateProof_Path_0_1", visibility := .secret },
-  { wireId := 668, path := "SyntheticSpends_7_StateProof_Path_0_2", visibility := .secret },
-  { wireId := 669, path := "SyntheticSpends_7_StateProof_Path_1_0", visibility := .secret },
-  { wireId := 670, path := "SyntheticSpends_7_StateProof_Path_1_1", visibility := .secret },
-  { wireId := 671, path := "SyntheticSpends_7_StateProof_Path_1_2", visibility := .secret },
-  { wireId := 672, path := "SyntheticSpends_7_StateProof_Path_2_0", visibility := .secret },
-  { wireId := 673, path := "SyntheticSpends_7_StateProof_Path_2_1", visibility := .secret },
-  { wireId := 674, path := "SyntheticSpends_7_StateProof_Path_2_2", visibility := .secret },
-  { wireId := 675, path := "SyntheticSpends_7_StateProof_Path_3_0", visibility := .secret },
-  { wireId := 676, path := "SyntheticSpends_7_StateProof_Path_3_1", visibility := .secret },
-  { wireId := 677, path := "SyntheticSpends_7_StateProof_Path_3_2", visibility := .secret },
-  { wireId := 678, path := "SyntheticSpends_7_StateProof_Path_4_0", visibility := .secret },
-  { wireId := 679, path := "SyntheticSpends_7_StateProof_Path_4_1", visibility := .secret },
-  { wireId := 680, path := "SyntheticSpends_7_StateProof_Path_4_2", visibility := .secret },
-  { wireId := 681, path := "SyntheticSpends_7_StateProof_Path_5_0", visibility := .secret },
-  { wireId := 682, path := "SyntheticSpends_7_StateProof_Path_5_1", visibility := .secret },
-  { wireId := 683, path := "SyntheticSpends_7_StateProof_Path_5_2", visibility := .secret },
-  { wireId := 684, path := "SyntheticSpends_7_StateProof_Path_6_0", visibility := .secret },
-  { wireId := 685, path := "SyntheticSpends_7_StateProof_Path_6_1", visibility := .secret },
-  { wireId := 686, path := "SyntheticSpends_7_StateProof_Path_6_2", visibility := .secret },
-  { wireId := 687, path := "SyntheticSpends_7_StateProof_Path_7_0", visibility := .secret },
-  { wireId := 688, path := "SyntheticSpends_7_StateProof_Path_7_1", visibility := .secret },
-  { wireId := 689, path := "SyntheticSpends_7_StateProof_Path_7_2", visibility := .secret },
-  { wireId := 690, path := "SyntheticSpends_7_StateProof_Path_8_0", visibility := .secret },
-  { wireId := 691, path := "SyntheticSpends_7_StateProof_Path_8_1", visibility := .secret },
-  { wireId := 692, path := "SyntheticSpends_7_StateProof_Path_8_2", visibility := .secret },
-  { wireId := 693, path := "SyntheticSpends_7_StateProof_Path_9_0", visibility := .secret },
-  { wireId := 694, path := "SyntheticSpends_7_StateProof_Path_9_1", visibility := .secret },
-  { wireId := 695, path := "SyntheticSpends_7_StateProof_Path_9_2", visibility := .secret },
-  { wireId := 696, path := "SyntheticSpends_7_StateProof_Path_10_0", visibility := .secret },
-  { wireId := 697, path := "SyntheticSpends_7_StateProof_Path_10_1", visibility := .secret },
-  { wireId := 698, path := "SyntheticSpends_7_StateProof_Path_10_2", visibility := .secret },
-  { wireId := 699, path := "SyntheticSpends_7_StateProof_Path_11_0", visibility := .secret },
-  { wireId := 700, path := "SyntheticSpends_7_StateProof_Path_11_1", visibility := .secret },
-  { wireId := 701, path := "SyntheticSpends_7_StateProof_Path_11_2", visibility := .secret },
-  { wireId := 702, path := "SyntheticSpends_7_StateProof_Path_12_0", visibility := .secret },
-  { wireId := 703, path := "SyntheticSpends_7_StateProof_Path_12_1", visibility := .secret },
-  { wireId := 704, path := "SyntheticSpends_7_StateProof_Path_12_2", visibility := .secret },
-  { wireId := 705, path := "SyntheticSpends_7_StateProof_Path_13_0", visibility := .secret },
-  { wireId := 706, path := "SyntheticSpends_7_StateProof_Path_13_1", visibility := .secret },
-  { wireId := 707, path := "SyntheticSpends_7_StateProof_Path_13_2", visibility := .secret },
-  { wireId := 708, path := "SyntheticSpends_7_StateProof_Path_14_0", visibility := .secret },
-  { wireId := 709, path := "SyntheticSpends_7_StateProof_Path_14_1", visibility := .secret },
-  { wireId := 710, path := "SyntheticSpends_7_StateProof_Path_14_2", visibility := .secret },
-  { wireId := 711, path := "SyntheticSpends_7_StateProof_Path_15_0", visibility := .secret },
-  { wireId := 712, path := "SyntheticSpends_7_StateProof_Path_15_1", visibility := .secret },
-  { wireId := 713, path := "SyntheticSpends_7_StateProof_Path_15_2", visibility := .secret },
-  { wireId := 714, path := "SyntheticSpends_7_StateProof_Path_16_0", visibility := .secret },
-  { wireId := 715, path := "SyntheticSpends_7_StateProof_Path_16_1", visibility := .secret },
-  { wireId := 716, path := "SyntheticSpends_7_StateProof_Path_16_2", visibility := .secret },
-  { wireId := 717, path := "SyntheticSpends_7_StateProof_Path_17_0", visibility := .secret },
-  { wireId := 718, path := "SyntheticSpends_7_StateProof_Path_17_1", visibility := .secret },
-  { wireId := 719, path := "SyntheticSpends_7_StateProof_Path_17_2", visibility := .secret },
-  { wireId := 720, path := "SyntheticSpends_7_StateProof_Path_18_0", visibility := .secret },
-  { wireId := 721, path := "SyntheticSpends_7_StateProof_Path_18_1", visibility := .secret },
-  { wireId := 722, path := "SyntheticSpends_7_StateProof_Path_18_2", visibility := .secret },
-  { wireId := 723, path := "SyntheticSpends_7_StateProof_Path_19_0", visibility := .secret },
-  { wireId := 724, path := "SyntheticSpends_7_StateProof_Path_19_1", visibility := .secret },
-  { wireId := 725, path := "SyntheticSpends_7_StateProof_Path_19_2", visibility := .secret },
-  { wireId := 726, path := "SyntheticSpends_7_StateProof_Path_20_0", visibility := .secret },
-  { wireId := 727, path := "SyntheticSpends_7_StateProof_Path_20_1", visibility := .secret },
-  { wireId := 728, path := "SyntheticSpends_7_StateProof_Path_20_2", visibility := .secret },
-  { wireId := 729, path := "SyntheticSpends_7_StateProof_Path_21_0", visibility := .secret },
-  { wireId := 730, path := "SyntheticSpends_7_StateProof_Path_21_1", visibility := .secret },
-  { wireId := 731, path := "SyntheticSpends_7_StateProof_Path_21_2", visibility := .secret },
-  { wireId := 732, path := "SyntheticSpends_7_StateProof_Path_22_0", visibility := .secret },
-  { wireId := 733, path := "SyntheticSpends_7_StateProof_Path_22_1", visibility := .secret },
-  { wireId := 734, path := "SyntheticSpends_7_StateProof_Path_22_2", visibility := .secret },
-  { wireId := 735, path := "SyntheticSpends_7_StateProof_Path_23_0", visibility := .secret },
-  { wireId := 736, path := "SyntheticSpends_7_StateProof_Path_23_1", visibility := .secret },
-  { wireId := 737, path := "SyntheticSpends_7_StateProof_Path_23_2", visibility := .secret },
-  { wireId := 738, path := "SyntheticSpends_7_AuthRandomizer", visibility := .secret },
-  { wireId := 739, path := "SyntheticSpends_7_IsDummy", visibility := .secret },
-  { wireId := 740, path := "SyntheticSpends_7_DummyNullifierSeed", visibility := .secret },
-  { wireId := 741, path := "Outputs_0_NoteCommitment", visibility := .secret },
-  { wireId := 742, path := "Outputs_0_Note_Blinding", visibility := .secret },
-  { wireId := 743, path := "Outputs_0_Note_Amount", visibility := .secret },
+  { wireId := 5, path := "RecentPositionFloor", visibility := .secret },
+  { wireId := 6, path := "Anchor", visibility := .secret },
+  { wireId := 7, path := "BalanceCommitment_X", visibility := .secret },
+  { wireId := 8, path := "BalanceCommitment_Y", visibility := .secret },
+  { wireId := 9, path := "ActionBalanceBlinding", visibility := .secret },
+  { wireId := 10, path := "IsRegulated", visibility := .secret },
+  { wireId := 11, path := "RegulatedPrecision", visibility := .secret },
+  { wireId := 12, path := "UnregulatedPrecision", visibility := .secret },
+  { wireId := 13, path := "RoutingAsOfHeight", visibility := .secret },
+  { wireId := 14, path := "RoutingNonce", visibility := .secret },
+  { wireId := 15, path := "Shared_AssetID", visibility := .secret },
+  { wireId := 16, path := "Shared_DivGen_X", visibility := .secret },
+  { wireId := 17, path := "Shared_DivGen_Y", visibility := .secret },
+  { wireId := 18, path := "Auth_AK_X", visibility := .secret },
+  { wireId := 19, path := "Auth_AK_Y", visibility := .secret },
+  { wireId := 20, path := "Auth_NK", visibility := .secret },
+  { wireId := 21, path := "Auth_IVKReduced", visibility := .secret },
+  { wireId := 22, path := "Auth_IVKQuotientA", visibility := .secret },
+  { wireId := 23, path := "Asset_Leaf_Value", visibility := .secret },
+  { wireId := 24, path := "Asset_Leaf_NextIndex", visibility := .secret },
+  { wireId := 25, path := "Asset_Leaf_NextValue", visibility := .secret },
+  { wireId := 26, path := "Asset_Leaf_DKPub_X", visibility := .secret },
+  { wireId := 27, path := "Asset_Leaf_DKPub_Y", visibility := .secret },
+  { wireId := 28, path := "Asset_Leaf_Threshold", visibility := .secret },
+  { wireId := 29, path := "Asset_Leaf_SlotCount", visibility := .secret },
+  { wireId := 30, path := "Asset_Leaf_ChannelsHash", visibility := .secret },
+  { wireId := 31, path := "Asset_Leaf_RingPK_X", visibility := .secret },
+  { wireId := 32, path := "Asset_Leaf_RingPK_Y", visibility := .secret },
+  { wireId := 33, path := "Asset_Leaf_RingIDHash", visibility := .secret },
+  { wireId := 34, path := "Asset_Leaf_PolicyIDHash", visibility := .secret },
+  { wireId := 35, path := "Asset_Leaf_PermissionHash", visibility := .secret },
+  { wireId := 36, path := "Asset_Leaf_ResourceHash", visibility := .secret },
+  { wireId := 37, path := "Asset_Path_0_0", visibility := .secret },
+  { wireId := 38, path := "Asset_Path_0_1", visibility := .secret },
+  { wireId := 39, path := "Asset_Path_0_2", visibility := .secret },
+  { wireId := 40, path := "Asset_Path_1_0", visibility := .secret },
+  { wireId := 41, path := "Asset_Path_1_1", visibility := .secret },
+  { wireId := 42, path := "Asset_Path_1_2", visibility := .secret },
+  { wireId := 43, path := "Asset_Path_2_0", visibility := .secret },
+  { wireId := 44, path := "Asset_Path_2_1", visibility := .secret },
+  { wireId := 45, path := "Asset_Path_2_2", visibility := .secret },
+  { wireId := 46, path := "Asset_Path_3_0", visibility := .secret },
+  { wireId := 47, path := "Asset_Path_3_1", visibility := .secret },
+  { wireId := 48, path := "Asset_Path_3_2", visibility := .secret },
+  { wireId := 49, path := "Asset_Path_4_0", visibility := .secret },
+  { wireId := 50, path := "Asset_Path_4_1", visibility := .secret },
+  { wireId := 51, path := "Asset_Path_4_2", visibility := .secret },
+  { wireId := 52, path := "Asset_Path_5_0", visibility := .secret },
+  { wireId := 53, path := "Asset_Path_5_1", visibility := .secret },
+  { wireId := 54, path := "Asset_Path_5_2", visibility := .secret },
+  { wireId := 55, path := "Asset_Path_6_0", visibility := .secret },
+  { wireId := 56, path := "Asset_Path_6_1", visibility := .secret },
+  { wireId := 57, path := "Asset_Path_6_2", visibility := .secret },
+  { wireId := 58, path := "Asset_Path_7_0", visibility := .secret },
+  { wireId := 59, path := "Asset_Path_7_1", visibility := .secret },
+  { wireId := 60, path := "Asset_Path_7_2", visibility := .secret },
+  { wireId := 61, path := "Asset_Path_8_0", visibility := .secret },
+  { wireId := 62, path := "Asset_Path_8_1", visibility := .secret },
+  { wireId := 63, path := "Asset_Path_8_2", visibility := .secret },
+  { wireId := 64, path := "Asset_Path_9_0", visibility := .secret },
+  { wireId := 65, path := "Asset_Path_9_1", visibility := .secret },
+  { wireId := 66, path := "Asset_Path_9_2", visibility := .secret },
+  { wireId := 67, path := "Asset_Path_10_0", visibility := .secret },
+  { wireId := 68, path := "Asset_Path_10_1", visibility := .secret },
+  { wireId := 69, path := "Asset_Path_10_2", visibility := .secret },
+  { wireId := 70, path := "Asset_Path_11_0", visibility := .secret },
+  { wireId := 71, path := "Asset_Path_11_1", visibility := .secret },
+  { wireId := 72, path := "Asset_Path_11_2", visibility := .secret },
+  { wireId := 73, path := "Asset_Path_12_0", visibility := .secret },
+  { wireId := 74, path := "Asset_Path_12_1", visibility := .secret },
+  { wireId := 75, path := "Asset_Path_12_2", visibility := .secret },
+  { wireId := 76, path := "Asset_Path_13_0", visibility := .secret },
+  { wireId := 77, path := "Asset_Path_13_1", visibility := .secret },
+  { wireId := 78, path := "Asset_Path_13_2", visibility := .secret },
+  { wireId := 79, path := "Asset_Path_14_0", visibility := .secret },
+  { wireId := 80, path := "Asset_Path_14_1", visibility := .secret },
+  { wireId := 81, path := "Asset_Path_14_2", visibility := .secret },
+  { wireId := 82, path := "Asset_Path_15_0", visibility := .secret },
+  { wireId := 83, path := "Asset_Path_15_1", visibility := .secret },
+  { wireId := 84, path := "Asset_Path_15_2", visibility := .secret },
+  { wireId := 85, path := "Asset_Position", visibility := .secret },
+  { wireId := 86, path := "SyntheticSpends_0_Nullifier", visibility := .secret },
+  { wireId := 87, path := "SyntheticSpends_0_RK_X", visibility := .secret },
+  { wireId := 88, path := "SyntheticSpends_0_RK_Y", visibility := .secret },
+  { wireId := 89, path := "SyntheticSpends_0_Note_Blinding", visibility := .secret },
+  { wireId := 90, path := "SyntheticSpends_0_Note_Amount", visibility := .secret },
+  { wireId := 91, path := "SyntheticSpends_0_StateProof_Commitment", visibility := .secret },
+  { wireId := 92, path := "SyntheticSpends_0_StateProof_Position", visibility := .secret },
+  { wireId := 93, path := "SyntheticSpends_0_StateProof_Path_0_0", visibility := .secret },
+  { wireId := 94, path := "SyntheticSpends_0_StateProof_Path_0_1", visibility := .secret },
+  { wireId := 95, path := "SyntheticSpends_0_StateProof_Path_0_2", visibility := .secret },
+  { wireId := 96, path := "SyntheticSpends_0_StateProof_Path_1_0", visibility := .secret },
+  { wireId := 97, path := "SyntheticSpends_0_StateProof_Path_1_1", visibility := .secret },
+  { wireId := 98, path := "SyntheticSpends_0_StateProof_Path_1_2", visibility := .secret },
+  { wireId := 99, path := "SyntheticSpends_0_StateProof_Path_2_0", visibility := .secret },
+  { wireId := 100, path := "SyntheticSpends_0_StateProof_Path_2_1", visibility := .secret },
+  { wireId := 101, path := "SyntheticSpends_0_StateProof_Path_2_2", visibility := .secret },
+  { wireId := 102, path := "SyntheticSpends_0_StateProof_Path_3_0", visibility := .secret },
+  { wireId := 103, path := "SyntheticSpends_0_StateProof_Path_3_1", visibility := .secret },
+  { wireId := 104, path := "SyntheticSpends_0_StateProof_Path_3_2", visibility := .secret },
+  { wireId := 105, path := "SyntheticSpends_0_StateProof_Path_4_0", visibility := .secret },
+  { wireId := 106, path := "SyntheticSpends_0_StateProof_Path_4_1", visibility := .secret },
+  { wireId := 107, path := "SyntheticSpends_0_StateProof_Path_4_2", visibility := .secret },
+  { wireId := 108, path := "SyntheticSpends_0_StateProof_Path_5_0", visibility := .secret },
+  { wireId := 109, path := "SyntheticSpends_0_StateProof_Path_5_1", visibility := .secret },
+  { wireId := 110, path := "SyntheticSpends_0_StateProof_Path_5_2", visibility := .secret },
+  { wireId := 111, path := "SyntheticSpends_0_StateProof_Path_6_0", visibility := .secret },
+  { wireId := 112, path := "SyntheticSpends_0_StateProof_Path_6_1", visibility := .secret },
+  { wireId := 113, path := "SyntheticSpends_0_StateProof_Path_6_2", visibility := .secret },
+  { wireId := 114, path := "SyntheticSpends_0_StateProof_Path_7_0", visibility := .secret },
+  { wireId := 115, path := "SyntheticSpends_0_StateProof_Path_7_1", visibility := .secret },
+  { wireId := 116, path := "SyntheticSpends_0_StateProof_Path_7_2", visibility := .secret },
+  { wireId := 117, path := "SyntheticSpends_0_StateProof_Path_8_0", visibility := .secret },
+  { wireId := 118, path := "SyntheticSpends_0_StateProof_Path_8_1", visibility := .secret },
+  { wireId := 119, path := "SyntheticSpends_0_StateProof_Path_8_2", visibility := .secret },
+  { wireId := 120, path := "SyntheticSpends_0_StateProof_Path_9_0", visibility := .secret },
+  { wireId := 121, path := "SyntheticSpends_0_StateProof_Path_9_1", visibility := .secret },
+  { wireId := 122, path := "SyntheticSpends_0_StateProof_Path_9_2", visibility := .secret },
+  { wireId := 123, path := "SyntheticSpends_0_StateProof_Path_10_0", visibility := .secret },
+  { wireId := 124, path := "SyntheticSpends_0_StateProof_Path_10_1", visibility := .secret },
+  { wireId := 125, path := "SyntheticSpends_0_StateProof_Path_10_2", visibility := .secret },
+  { wireId := 126, path := "SyntheticSpends_0_StateProof_Path_11_0", visibility := .secret },
+  { wireId := 127, path := "SyntheticSpends_0_StateProof_Path_11_1", visibility := .secret },
+  { wireId := 128, path := "SyntheticSpends_0_StateProof_Path_11_2", visibility := .secret },
+  { wireId := 129, path := "SyntheticSpends_0_StateProof_Path_12_0", visibility := .secret },
+  { wireId := 130, path := "SyntheticSpends_0_StateProof_Path_12_1", visibility := .secret },
+  { wireId := 131, path := "SyntheticSpends_0_StateProof_Path_12_2", visibility := .secret },
+  { wireId := 132, path := "SyntheticSpends_0_StateProof_Path_13_0", visibility := .secret },
+  { wireId := 133, path := "SyntheticSpends_0_StateProof_Path_13_1", visibility := .secret },
+  { wireId := 134, path := "SyntheticSpends_0_StateProof_Path_13_2", visibility := .secret },
+  { wireId := 135, path := "SyntheticSpends_0_StateProof_Path_14_0", visibility := .secret },
+  { wireId := 136, path := "SyntheticSpends_0_StateProof_Path_14_1", visibility := .secret },
+  { wireId := 137, path := "SyntheticSpends_0_StateProof_Path_14_2", visibility := .secret },
+  { wireId := 138, path := "SyntheticSpends_0_StateProof_Path_15_0", visibility := .secret },
+  { wireId := 139, path := "SyntheticSpends_0_StateProof_Path_15_1", visibility := .secret },
+  { wireId := 140, path := "SyntheticSpends_0_StateProof_Path_15_2", visibility := .secret },
+  { wireId := 141, path := "SyntheticSpends_0_StateProof_Path_16_0", visibility := .secret },
+  { wireId := 142, path := "SyntheticSpends_0_StateProof_Path_16_1", visibility := .secret },
+  { wireId := 143, path := "SyntheticSpends_0_StateProof_Path_16_2", visibility := .secret },
+  { wireId := 144, path := "SyntheticSpends_0_StateProof_Path_17_0", visibility := .secret },
+  { wireId := 145, path := "SyntheticSpends_0_StateProof_Path_17_1", visibility := .secret },
+  { wireId := 146, path := "SyntheticSpends_0_StateProof_Path_17_2", visibility := .secret },
+  { wireId := 147, path := "SyntheticSpends_0_StateProof_Path_18_0", visibility := .secret },
+  { wireId := 148, path := "SyntheticSpends_0_StateProof_Path_18_1", visibility := .secret },
+  { wireId := 149, path := "SyntheticSpends_0_StateProof_Path_18_2", visibility := .secret },
+  { wireId := 150, path := "SyntheticSpends_0_StateProof_Path_19_0", visibility := .secret },
+  { wireId := 151, path := "SyntheticSpends_0_StateProof_Path_19_1", visibility := .secret },
+  { wireId := 152, path := "SyntheticSpends_0_StateProof_Path_19_2", visibility := .secret },
+  { wireId := 153, path := "SyntheticSpends_0_StateProof_Path_20_0", visibility := .secret },
+  { wireId := 154, path := "SyntheticSpends_0_StateProof_Path_20_1", visibility := .secret },
+  { wireId := 155, path := "SyntheticSpends_0_StateProof_Path_20_2", visibility := .secret },
+  { wireId := 156, path := "SyntheticSpends_0_StateProof_Path_21_0", visibility := .secret },
+  { wireId := 157, path := "SyntheticSpends_0_StateProof_Path_21_1", visibility := .secret },
+  { wireId := 158, path := "SyntheticSpends_0_StateProof_Path_21_2", visibility := .secret },
+  { wireId := 159, path := "SyntheticSpends_0_StateProof_Path_22_0", visibility := .secret },
+  { wireId := 160, path := "SyntheticSpends_0_StateProof_Path_22_1", visibility := .secret },
+  { wireId := 161, path := "SyntheticSpends_0_StateProof_Path_22_2", visibility := .secret },
+  { wireId := 162, path := "SyntheticSpends_0_StateProof_Path_23_0", visibility := .secret },
+  { wireId := 163, path := "SyntheticSpends_0_StateProof_Path_23_1", visibility := .secret },
+  { wireId := 164, path := "SyntheticSpends_0_StateProof_Path_23_2", visibility := .secret },
+  { wireId := 165, path := "SyntheticSpends_0_AuthRandomizer", visibility := .secret },
+  { wireId := 166, path := "SyntheticSpends_0_HistoryRequired", visibility := .secret },
+  { wireId := 167, path := "SyntheticSpends_0_IsDummy", visibility := .secret },
+  { wireId := 168, path := "SyntheticSpends_0_DummyNullifierSeed", visibility := .secret },
+  { wireId := 169, path := "SyntheticSpends_1_Nullifier", visibility := .secret },
+  { wireId := 170, path := "SyntheticSpends_1_RK_X", visibility := .secret },
+  { wireId := 171, path := "SyntheticSpends_1_RK_Y", visibility := .secret },
+  { wireId := 172, path := "SyntheticSpends_1_Note_Blinding", visibility := .secret },
+  { wireId := 173, path := "SyntheticSpends_1_Note_Amount", visibility := .secret },
+  { wireId := 174, path := "SyntheticSpends_1_StateProof_Commitment", visibility := .secret },
+  { wireId := 175, path := "SyntheticSpends_1_StateProof_Position", visibility := .secret },
+  { wireId := 176, path := "SyntheticSpends_1_StateProof_Path_0_0", visibility := .secret },
+  { wireId := 177, path := "SyntheticSpends_1_StateProof_Path_0_1", visibility := .secret },
+  { wireId := 178, path := "SyntheticSpends_1_StateProof_Path_0_2", visibility := .secret },
+  { wireId := 179, path := "SyntheticSpends_1_StateProof_Path_1_0", visibility := .secret },
+  { wireId := 180, path := "SyntheticSpends_1_StateProof_Path_1_1", visibility := .secret },
+  { wireId := 181, path := "SyntheticSpends_1_StateProof_Path_1_2", visibility := .secret },
+  { wireId := 182, path := "SyntheticSpends_1_StateProof_Path_2_0", visibility := .secret },
+  { wireId := 183, path := "SyntheticSpends_1_StateProof_Path_2_1", visibility := .secret },
+  { wireId := 184, path := "SyntheticSpends_1_StateProof_Path_2_2", visibility := .secret },
+  { wireId := 185, path := "SyntheticSpends_1_StateProof_Path_3_0", visibility := .secret },
+  { wireId := 186, path := "SyntheticSpends_1_StateProof_Path_3_1", visibility := .secret },
+  { wireId := 187, path := "SyntheticSpends_1_StateProof_Path_3_2", visibility := .secret },
+  { wireId := 188, path := "SyntheticSpends_1_StateProof_Path_4_0", visibility := .secret },
+  { wireId := 189, path := "SyntheticSpends_1_StateProof_Path_4_1", visibility := .secret },
+  { wireId := 190, path := "SyntheticSpends_1_StateProof_Path_4_2", visibility := .secret },
+  { wireId := 191, path := "SyntheticSpends_1_StateProof_Path_5_0", visibility := .secret },
+  { wireId := 192, path := "SyntheticSpends_1_StateProof_Path_5_1", visibility := .secret },
+  { wireId := 193, path := "SyntheticSpends_1_StateProof_Path_5_2", visibility := .secret },
+  { wireId := 194, path := "SyntheticSpends_1_StateProof_Path_6_0", visibility := .secret },
+  { wireId := 195, path := "SyntheticSpends_1_StateProof_Path_6_1", visibility := .secret },
+  { wireId := 196, path := "SyntheticSpends_1_StateProof_Path_6_2", visibility := .secret },
+  { wireId := 197, path := "SyntheticSpends_1_StateProof_Path_7_0", visibility := .secret },
+  { wireId := 198, path := "SyntheticSpends_1_StateProof_Path_7_1", visibility := .secret },
+  { wireId := 199, path := "SyntheticSpends_1_StateProof_Path_7_2", visibility := .secret },
+  { wireId := 200, path := "SyntheticSpends_1_StateProof_Path_8_0", visibility := .secret },
+  { wireId := 201, path := "SyntheticSpends_1_StateProof_Path_8_1", visibility := .secret },
+  { wireId := 202, path := "SyntheticSpends_1_StateProof_Path_8_2", visibility := .secret },
+  { wireId := 203, path := "SyntheticSpends_1_StateProof_Path_9_0", visibility := .secret },
+  { wireId := 204, path := "SyntheticSpends_1_StateProof_Path_9_1", visibility := .secret },
+  { wireId := 205, path := "SyntheticSpends_1_StateProof_Path_9_2", visibility := .secret },
+  { wireId := 206, path := "SyntheticSpends_1_StateProof_Path_10_0", visibility := .secret },
+  { wireId := 207, path := "SyntheticSpends_1_StateProof_Path_10_1", visibility := .secret },
+  { wireId := 208, path := "SyntheticSpends_1_StateProof_Path_10_2", visibility := .secret },
+  { wireId := 209, path := "SyntheticSpends_1_StateProof_Path_11_0", visibility := .secret },
+  { wireId := 210, path := "SyntheticSpends_1_StateProof_Path_11_1", visibility := .secret },
+  { wireId := 211, path := "SyntheticSpends_1_StateProof_Path_11_2", visibility := .secret },
+  { wireId := 212, path := "SyntheticSpends_1_StateProof_Path_12_0", visibility := .secret },
+  { wireId := 213, path := "SyntheticSpends_1_StateProof_Path_12_1", visibility := .secret },
+  { wireId := 214, path := "SyntheticSpends_1_StateProof_Path_12_2", visibility := .secret },
+  { wireId := 215, path := "SyntheticSpends_1_StateProof_Path_13_0", visibility := .secret },
+  { wireId := 216, path := "SyntheticSpends_1_StateProof_Path_13_1", visibility := .secret },
+  { wireId := 217, path := "SyntheticSpends_1_StateProof_Path_13_2", visibility := .secret },
+  { wireId := 218, path := "SyntheticSpends_1_StateProof_Path_14_0", visibility := .secret },
+  { wireId := 219, path := "SyntheticSpends_1_StateProof_Path_14_1", visibility := .secret },
+  { wireId := 220, path := "SyntheticSpends_1_StateProof_Path_14_2", visibility := .secret },
+  { wireId := 221, path := "SyntheticSpends_1_StateProof_Path_15_0", visibility := .secret },
+  { wireId := 222, path := "SyntheticSpends_1_StateProof_Path_15_1", visibility := .secret },
+  { wireId := 223, path := "SyntheticSpends_1_StateProof_Path_15_2", visibility := .secret },
+  { wireId := 224, path := "SyntheticSpends_1_StateProof_Path_16_0", visibility := .secret },
+  { wireId := 225, path := "SyntheticSpends_1_StateProof_Path_16_1", visibility := .secret },
+  { wireId := 226, path := "SyntheticSpends_1_StateProof_Path_16_2", visibility := .secret },
+  { wireId := 227, path := "SyntheticSpends_1_StateProof_Path_17_0", visibility := .secret },
+  { wireId := 228, path := "SyntheticSpends_1_StateProof_Path_17_1", visibility := .secret },
+  { wireId := 229, path := "SyntheticSpends_1_StateProof_Path_17_2", visibility := .secret },
+  { wireId := 230, path := "SyntheticSpends_1_StateProof_Path_18_0", visibility := .secret },
+  { wireId := 231, path := "SyntheticSpends_1_StateProof_Path_18_1", visibility := .secret },
+  { wireId := 232, path := "SyntheticSpends_1_StateProof_Path_18_2", visibility := .secret },
+  { wireId := 233, path := "SyntheticSpends_1_StateProof_Path_19_0", visibility := .secret },
+  { wireId := 234, path := "SyntheticSpends_1_StateProof_Path_19_1", visibility := .secret },
+  { wireId := 235, path := "SyntheticSpends_1_StateProof_Path_19_2", visibility := .secret },
+  { wireId := 236, path := "SyntheticSpends_1_StateProof_Path_20_0", visibility := .secret },
+  { wireId := 237, path := "SyntheticSpends_1_StateProof_Path_20_1", visibility := .secret },
+  { wireId := 238, path := "SyntheticSpends_1_StateProof_Path_20_2", visibility := .secret },
+  { wireId := 239, path := "SyntheticSpends_1_StateProof_Path_21_0", visibility := .secret },
+  { wireId := 240, path := "SyntheticSpends_1_StateProof_Path_21_1", visibility := .secret },
+  { wireId := 241, path := "SyntheticSpends_1_StateProof_Path_21_2", visibility := .secret },
+  { wireId := 242, path := "SyntheticSpends_1_StateProof_Path_22_0", visibility := .secret },
+  { wireId := 243, path := "SyntheticSpends_1_StateProof_Path_22_1", visibility := .secret },
+  { wireId := 244, path := "SyntheticSpends_1_StateProof_Path_22_2", visibility := .secret },
+  { wireId := 245, path := "SyntheticSpends_1_StateProof_Path_23_0", visibility := .secret },
+  { wireId := 246, path := "SyntheticSpends_1_StateProof_Path_23_1", visibility := .secret },
+  { wireId := 247, path := "SyntheticSpends_1_StateProof_Path_23_2", visibility := .secret },
+  { wireId := 248, path := "SyntheticSpends_1_AuthRandomizer", visibility := .secret },
+  { wireId := 249, path := "SyntheticSpends_1_HistoryRequired", visibility := .secret },
+  { wireId := 250, path := "SyntheticSpends_1_IsDummy", visibility := .secret },
+  { wireId := 251, path := "SyntheticSpends_1_DummyNullifierSeed", visibility := .secret },
+  { wireId := 252, path := "SyntheticSpends_2_Nullifier", visibility := .secret },
+  { wireId := 253, path := "SyntheticSpends_2_RK_X", visibility := .secret },
+  { wireId := 254, path := "SyntheticSpends_2_RK_Y", visibility := .secret },
+  { wireId := 255, path := "SyntheticSpends_2_Note_Blinding", visibility := .secret },
+  { wireId := 256, path := "SyntheticSpends_2_Note_Amount", visibility := .secret },
+  { wireId := 257, path := "SyntheticSpends_2_StateProof_Commitment", visibility := .secret },
+  { wireId := 258, path := "SyntheticSpends_2_StateProof_Position", visibility := .secret },
+  { wireId := 259, path := "SyntheticSpends_2_StateProof_Path_0_0", visibility := .secret },
+  { wireId := 260, path := "SyntheticSpends_2_StateProof_Path_0_1", visibility := .secret },
+  { wireId := 261, path := "SyntheticSpends_2_StateProof_Path_0_2", visibility := .secret },
+  { wireId := 262, path := "SyntheticSpends_2_StateProof_Path_1_0", visibility := .secret },
+  { wireId := 263, path := "SyntheticSpends_2_StateProof_Path_1_1", visibility := .secret },
+  { wireId := 264, path := "SyntheticSpends_2_StateProof_Path_1_2", visibility := .secret },
+  { wireId := 265, path := "SyntheticSpends_2_StateProof_Path_2_0", visibility := .secret },
+  { wireId := 266, path := "SyntheticSpends_2_StateProof_Path_2_1", visibility := .secret },
+  { wireId := 267, path := "SyntheticSpends_2_StateProof_Path_2_2", visibility := .secret },
+  { wireId := 268, path := "SyntheticSpends_2_StateProof_Path_3_0", visibility := .secret },
+  { wireId := 269, path := "SyntheticSpends_2_StateProof_Path_3_1", visibility := .secret },
+  { wireId := 270, path := "SyntheticSpends_2_StateProof_Path_3_2", visibility := .secret },
+  { wireId := 271, path := "SyntheticSpends_2_StateProof_Path_4_0", visibility := .secret },
+  { wireId := 272, path := "SyntheticSpends_2_StateProof_Path_4_1", visibility := .secret },
+  { wireId := 273, path := "SyntheticSpends_2_StateProof_Path_4_2", visibility := .secret },
+  { wireId := 274, path := "SyntheticSpends_2_StateProof_Path_5_0", visibility := .secret },
+  { wireId := 275, path := "SyntheticSpends_2_StateProof_Path_5_1", visibility := .secret },
+  { wireId := 276, path := "SyntheticSpends_2_StateProof_Path_5_2", visibility := .secret },
+  { wireId := 277, path := "SyntheticSpends_2_StateProof_Path_6_0", visibility := .secret },
+  { wireId := 278, path := "SyntheticSpends_2_StateProof_Path_6_1", visibility := .secret },
+  { wireId := 279, path := "SyntheticSpends_2_StateProof_Path_6_2", visibility := .secret },
+  { wireId := 280, path := "SyntheticSpends_2_StateProof_Path_7_0", visibility := .secret },
+  { wireId := 281, path := "SyntheticSpends_2_StateProof_Path_7_1", visibility := .secret },
+  { wireId := 282, path := "SyntheticSpends_2_StateProof_Path_7_2", visibility := .secret },
+  { wireId := 283, path := "SyntheticSpends_2_StateProof_Path_8_0", visibility := .secret },
+  { wireId := 284, path := "SyntheticSpends_2_StateProof_Path_8_1", visibility := .secret },
+  { wireId := 285, path := "SyntheticSpends_2_StateProof_Path_8_2", visibility := .secret },
+  { wireId := 286, path := "SyntheticSpends_2_StateProof_Path_9_0", visibility := .secret },
+  { wireId := 287, path := "SyntheticSpends_2_StateProof_Path_9_1", visibility := .secret },
+  { wireId := 288, path := "SyntheticSpends_2_StateProof_Path_9_2", visibility := .secret },
+  { wireId := 289, path := "SyntheticSpends_2_StateProof_Path_10_0", visibility := .secret },
+  { wireId := 290, path := "SyntheticSpends_2_StateProof_Path_10_1", visibility := .secret },
+  { wireId := 291, path := "SyntheticSpends_2_StateProof_Path_10_2", visibility := .secret },
+  { wireId := 292, path := "SyntheticSpends_2_StateProof_Path_11_0", visibility := .secret },
+  { wireId := 293, path := "SyntheticSpends_2_StateProof_Path_11_1", visibility := .secret },
+  { wireId := 294, path := "SyntheticSpends_2_StateProof_Path_11_2", visibility := .secret },
+  { wireId := 295, path := "SyntheticSpends_2_StateProof_Path_12_0", visibility := .secret },
+  { wireId := 296, path := "SyntheticSpends_2_StateProof_Path_12_1", visibility := .secret },
+  { wireId := 297, path := "SyntheticSpends_2_StateProof_Path_12_2", visibility := .secret },
+  { wireId := 298, path := "SyntheticSpends_2_StateProof_Path_13_0", visibility := .secret },
+  { wireId := 299, path := "SyntheticSpends_2_StateProof_Path_13_1", visibility := .secret },
+  { wireId := 300, path := "SyntheticSpends_2_StateProof_Path_13_2", visibility := .secret },
+  { wireId := 301, path := "SyntheticSpends_2_StateProof_Path_14_0", visibility := .secret },
+  { wireId := 302, path := "SyntheticSpends_2_StateProof_Path_14_1", visibility := .secret },
+  { wireId := 303, path := "SyntheticSpends_2_StateProof_Path_14_2", visibility := .secret },
+  { wireId := 304, path := "SyntheticSpends_2_StateProof_Path_15_0", visibility := .secret },
+  { wireId := 305, path := "SyntheticSpends_2_StateProof_Path_15_1", visibility := .secret },
+  { wireId := 306, path := "SyntheticSpends_2_StateProof_Path_15_2", visibility := .secret },
+  { wireId := 307, path := "SyntheticSpends_2_StateProof_Path_16_0", visibility := .secret },
+  { wireId := 308, path := "SyntheticSpends_2_StateProof_Path_16_1", visibility := .secret },
+  { wireId := 309, path := "SyntheticSpends_2_StateProof_Path_16_2", visibility := .secret },
+  { wireId := 310, path := "SyntheticSpends_2_StateProof_Path_17_0", visibility := .secret },
+  { wireId := 311, path := "SyntheticSpends_2_StateProof_Path_17_1", visibility := .secret },
+  { wireId := 312, path := "SyntheticSpends_2_StateProof_Path_17_2", visibility := .secret },
+  { wireId := 313, path := "SyntheticSpends_2_StateProof_Path_18_0", visibility := .secret },
+  { wireId := 314, path := "SyntheticSpends_2_StateProof_Path_18_1", visibility := .secret },
+  { wireId := 315, path := "SyntheticSpends_2_StateProof_Path_18_2", visibility := .secret },
+  { wireId := 316, path := "SyntheticSpends_2_StateProof_Path_19_0", visibility := .secret },
+  { wireId := 317, path := "SyntheticSpends_2_StateProof_Path_19_1", visibility := .secret },
+  { wireId := 318, path := "SyntheticSpends_2_StateProof_Path_19_2", visibility := .secret },
+  { wireId := 319, path := "SyntheticSpends_2_StateProof_Path_20_0", visibility := .secret },
+  { wireId := 320, path := "SyntheticSpends_2_StateProof_Path_20_1", visibility := .secret },
+  { wireId := 321, path := "SyntheticSpends_2_StateProof_Path_20_2", visibility := .secret },
+  { wireId := 322, path := "SyntheticSpends_2_StateProof_Path_21_0", visibility := .secret },
+  { wireId := 323, path := "SyntheticSpends_2_StateProof_Path_21_1", visibility := .secret },
+  { wireId := 324, path := "SyntheticSpends_2_StateProof_Path_21_2", visibility := .secret },
+  { wireId := 325, path := "SyntheticSpends_2_StateProof_Path_22_0", visibility := .secret },
+  { wireId := 326, path := "SyntheticSpends_2_StateProof_Path_22_1", visibility := .secret },
+  { wireId := 327, path := "SyntheticSpends_2_StateProof_Path_22_2", visibility := .secret },
+  { wireId := 328, path := "SyntheticSpends_2_StateProof_Path_23_0", visibility := .secret },
+  { wireId := 329, path := "SyntheticSpends_2_StateProof_Path_23_1", visibility := .secret },
+  { wireId := 330, path := "SyntheticSpends_2_StateProof_Path_23_2", visibility := .secret },
+  { wireId := 331, path := "SyntheticSpends_2_AuthRandomizer", visibility := .secret },
+  { wireId := 332, path := "SyntheticSpends_2_HistoryRequired", visibility := .secret },
+  { wireId := 333, path := "SyntheticSpends_2_IsDummy", visibility := .secret },
+  { wireId := 334, path := "SyntheticSpends_2_DummyNullifierSeed", visibility := .secret },
+  { wireId := 335, path := "SyntheticSpends_3_Nullifier", visibility := .secret },
+  { wireId := 336, path := "SyntheticSpends_3_RK_X", visibility := .secret },
+  { wireId := 337, path := "SyntheticSpends_3_RK_Y", visibility := .secret },
+  { wireId := 338, path := "SyntheticSpends_3_Note_Blinding", visibility := .secret },
+  { wireId := 339, path := "SyntheticSpends_3_Note_Amount", visibility := .secret },
+  { wireId := 340, path := "SyntheticSpends_3_StateProof_Commitment", visibility := .secret },
+  { wireId := 341, path := "SyntheticSpends_3_StateProof_Position", visibility := .secret },
+  { wireId := 342, path := "SyntheticSpends_3_StateProof_Path_0_0", visibility := .secret },
+  { wireId := 343, path := "SyntheticSpends_3_StateProof_Path_0_1", visibility := .secret },
+  { wireId := 344, path := "SyntheticSpends_3_StateProof_Path_0_2", visibility := .secret },
+  { wireId := 345, path := "SyntheticSpends_3_StateProof_Path_1_0", visibility := .secret },
+  { wireId := 346, path := "SyntheticSpends_3_StateProof_Path_1_1", visibility := .secret },
+  { wireId := 347, path := "SyntheticSpends_3_StateProof_Path_1_2", visibility := .secret },
+  { wireId := 348, path := "SyntheticSpends_3_StateProof_Path_2_0", visibility := .secret },
+  { wireId := 349, path := "SyntheticSpends_3_StateProof_Path_2_1", visibility := .secret },
+  { wireId := 350, path := "SyntheticSpends_3_StateProof_Path_2_2", visibility := .secret },
+  { wireId := 351, path := "SyntheticSpends_3_StateProof_Path_3_0", visibility := .secret },
+  { wireId := 352, path := "SyntheticSpends_3_StateProof_Path_3_1", visibility := .secret },
+  { wireId := 353, path := "SyntheticSpends_3_StateProof_Path_3_2", visibility := .secret },
+  { wireId := 354, path := "SyntheticSpends_3_StateProof_Path_4_0", visibility := .secret },
+  { wireId := 355, path := "SyntheticSpends_3_StateProof_Path_4_1", visibility := .secret },
+  { wireId := 356, path := "SyntheticSpends_3_StateProof_Path_4_2", visibility := .secret },
+  { wireId := 357, path := "SyntheticSpends_3_StateProof_Path_5_0", visibility := .secret },
+  { wireId := 358, path := "SyntheticSpends_3_StateProof_Path_5_1", visibility := .secret },
+  { wireId := 359, path := "SyntheticSpends_3_StateProof_Path_5_2", visibility := .secret },
+  { wireId := 360, path := "SyntheticSpends_3_StateProof_Path_6_0", visibility := .secret },
+  { wireId := 361, path := "SyntheticSpends_3_StateProof_Path_6_1", visibility := .secret },
+  { wireId := 362, path := "SyntheticSpends_3_StateProof_Path_6_2", visibility := .secret },
+  { wireId := 363, path := "SyntheticSpends_3_StateProof_Path_7_0", visibility := .secret },
+  { wireId := 364, path := "SyntheticSpends_3_StateProof_Path_7_1", visibility := .secret },
+  { wireId := 365, path := "SyntheticSpends_3_StateProof_Path_7_2", visibility := .secret },
+  { wireId := 366, path := "SyntheticSpends_3_StateProof_Path_8_0", visibility := .secret },
+  { wireId := 367, path := "SyntheticSpends_3_StateProof_Path_8_1", visibility := .secret },
+  { wireId := 368, path := "SyntheticSpends_3_StateProof_Path_8_2", visibility := .secret },
+  { wireId := 369, path := "SyntheticSpends_3_StateProof_Path_9_0", visibility := .secret },
+  { wireId := 370, path := "SyntheticSpends_3_StateProof_Path_9_1", visibility := .secret },
+  { wireId := 371, path := "SyntheticSpends_3_StateProof_Path_9_2", visibility := .secret },
+  { wireId := 372, path := "SyntheticSpends_3_StateProof_Path_10_0", visibility := .secret },
+  { wireId := 373, path := "SyntheticSpends_3_StateProof_Path_10_1", visibility := .secret },
+  { wireId := 374, path := "SyntheticSpends_3_StateProof_Path_10_2", visibility := .secret },
+  { wireId := 375, path := "SyntheticSpends_3_StateProof_Path_11_0", visibility := .secret },
+  { wireId := 376, path := "SyntheticSpends_3_StateProof_Path_11_1", visibility := .secret },
+  { wireId := 377, path := "SyntheticSpends_3_StateProof_Path_11_2", visibility := .secret },
+  { wireId := 378, path := "SyntheticSpends_3_StateProof_Path_12_0", visibility := .secret },
+  { wireId := 379, path := "SyntheticSpends_3_StateProof_Path_12_1", visibility := .secret },
+  { wireId := 380, path := "SyntheticSpends_3_StateProof_Path_12_2", visibility := .secret },
+  { wireId := 381, path := "SyntheticSpends_3_StateProof_Path_13_0", visibility := .secret },
+  { wireId := 382, path := "SyntheticSpends_3_StateProof_Path_13_1", visibility := .secret },
+  { wireId := 383, path := "SyntheticSpends_3_StateProof_Path_13_2", visibility := .secret },
+  { wireId := 384, path := "SyntheticSpends_3_StateProof_Path_14_0", visibility := .secret },
+  { wireId := 385, path := "SyntheticSpends_3_StateProof_Path_14_1", visibility := .secret },
+  { wireId := 386, path := "SyntheticSpends_3_StateProof_Path_14_2", visibility := .secret },
+  { wireId := 387, path := "SyntheticSpends_3_StateProof_Path_15_0", visibility := .secret },
+  { wireId := 388, path := "SyntheticSpends_3_StateProof_Path_15_1", visibility := .secret },
+  { wireId := 389, path := "SyntheticSpends_3_StateProof_Path_15_2", visibility := .secret },
+  { wireId := 390, path := "SyntheticSpends_3_StateProof_Path_16_0", visibility := .secret },
+  { wireId := 391, path := "SyntheticSpends_3_StateProof_Path_16_1", visibility := .secret },
+  { wireId := 392, path := "SyntheticSpends_3_StateProof_Path_16_2", visibility := .secret },
+  { wireId := 393, path := "SyntheticSpends_3_StateProof_Path_17_0", visibility := .secret },
+  { wireId := 394, path := "SyntheticSpends_3_StateProof_Path_17_1", visibility := .secret },
+  { wireId := 395, path := "SyntheticSpends_3_StateProof_Path_17_2", visibility := .secret },
+  { wireId := 396, path := "SyntheticSpends_3_StateProof_Path_18_0", visibility := .secret },
+  { wireId := 397, path := "SyntheticSpends_3_StateProof_Path_18_1", visibility := .secret },
+  { wireId := 398, path := "SyntheticSpends_3_StateProof_Path_18_2", visibility := .secret },
+  { wireId := 399, path := "SyntheticSpends_3_StateProof_Path_19_0", visibility := .secret },
+  { wireId := 400, path := "SyntheticSpends_3_StateProof_Path_19_1", visibility := .secret },
+  { wireId := 401, path := "SyntheticSpends_3_StateProof_Path_19_2", visibility := .secret },
+  { wireId := 402, path := "SyntheticSpends_3_StateProof_Path_20_0", visibility := .secret },
+  { wireId := 403, path := "SyntheticSpends_3_StateProof_Path_20_1", visibility := .secret },
+  { wireId := 404, path := "SyntheticSpends_3_StateProof_Path_20_2", visibility := .secret },
+  { wireId := 405, path := "SyntheticSpends_3_StateProof_Path_21_0", visibility := .secret },
+  { wireId := 406, path := "SyntheticSpends_3_StateProof_Path_21_1", visibility := .secret },
+  { wireId := 407, path := "SyntheticSpends_3_StateProof_Path_21_2", visibility := .secret },
+  { wireId := 408, path := "SyntheticSpends_3_StateProof_Path_22_0", visibility := .secret },
+  { wireId := 409, path := "SyntheticSpends_3_StateProof_Path_22_1", visibility := .secret },
+  { wireId := 410, path := "SyntheticSpends_3_StateProof_Path_22_2", visibility := .secret },
+  { wireId := 411, path := "SyntheticSpends_3_StateProof_Path_23_0", visibility := .secret },
+  { wireId := 412, path := "SyntheticSpends_3_StateProof_Path_23_1", visibility := .secret },
+  { wireId := 413, path := "SyntheticSpends_3_StateProof_Path_23_2", visibility := .secret },
+  { wireId := 414, path := "SyntheticSpends_3_AuthRandomizer", visibility := .secret },
+  { wireId := 415, path := "SyntheticSpends_3_HistoryRequired", visibility := .secret },
+  { wireId := 416, path := "SyntheticSpends_3_IsDummy", visibility := .secret },
+  { wireId := 417, path := "SyntheticSpends_3_DummyNullifierSeed", visibility := .secret },
+  { wireId := 418, path := "SyntheticSpends_4_Nullifier", visibility := .secret },
+  { wireId := 419, path := "SyntheticSpends_4_RK_X", visibility := .secret },
+  { wireId := 420, path := "SyntheticSpends_4_RK_Y", visibility := .secret },
+  { wireId := 421, path := "SyntheticSpends_4_Note_Blinding", visibility := .secret },
+  { wireId := 422, path := "SyntheticSpends_4_Note_Amount", visibility := .secret },
+  { wireId := 423, path := "SyntheticSpends_4_StateProof_Commitment", visibility := .secret },
+  { wireId := 424, path := "SyntheticSpends_4_StateProof_Position", visibility := .secret },
+  { wireId := 425, path := "SyntheticSpends_4_StateProof_Path_0_0", visibility := .secret },
+  { wireId := 426, path := "SyntheticSpends_4_StateProof_Path_0_1", visibility := .secret },
+  { wireId := 427, path := "SyntheticSpends_4_StateProof_Path_0_2", visibility := .secret },
+  { wireId := 428, path := "SyntheticSpends_4_StateProof_Path_1_0", visibility := .secret },
+  { wireId := 429, path := "SyntheticSpends_4_StateProof_Path_1_1", visibility := .secret },
+  { wireId := 430, path := "SyntheticSpends_4_StateProof_Path_1_2", visibility := .secret },
+  { wireId := 431, path := "SyntheticSpends_4_StateProof_Path_2_0", visibility := .secret },
+  { wireId := 432, path := "SyntheticSpends_4_StateProof_Path_2_1", visibility := .secret },
+  { wireId := 433, path := "SyntheticSpends_4_StateProof_Path_2_2", visibility := .secret },
+  { wireId := 434, path := "SyntheticSpends_4_StateProof_Path_3_0", visibility := .secret },
+  { wireId := 435, path := "SyntheticSpends_4_StateProof_Path_3_1", visibility := .secret },
+  { wireId := 436, path := "SyntheticSpends_4_StateProof_Path_3_2", visibility := .secret },
+  { wireId := 437, path := "SyntheticSpends_4_StateProof_Path_4_0", visibility := .secret },
+  { wireId := 438, path := "SyntheticSpends_4_StateProof_Path_4_1", visibility := .secret },
+  { wireId := 439, path := "SyntheticSpends_4_StateProof_Path_4_2", visibility := .secret },
+  { wireId := 440, path := "SyntheticSpends_4_StateProof_Path_5_0", visibility := .secret },
+  { wireId := 441, path := "SyntheticSpends_4_StateProof_Path_5_1", visibility := .secret },
+  { wireId := 442, path := "SyntheticSpends_4_StateProof_Path_5_2", visibility := .secret },
+  { wireId := 443, path := "SyntheticSpends_4_StateProof_Path_6_0", visibility := .secret },
+  { wireId := 444, path := "SyntheticSpends_4_StateProof_Path_6_1", visibility := .secret },
+  { wireId := 445, path := "SyntheticSpends_4_StateProof_Path_6_2", visibility := .secret },
+  { wireId := 446, path := "SyntheticSpends_4_StateProof_Path_7_0", visibility := .secret },
+  { wireId := 447, path := "SyntheticSpends_4_StateProof_Path_7_1", visibility := .secret },
+  { wireId := 448, path := "SyntheticSpends_4_StateProof_Path_7_2", visibility := .secret },
+  { wireId := 449, path := "SyntheticSpends_4_StateProof_Path_8_0", visibility := .secret },
+  { wireId := 450, path := "SyntheticSpends_4_StateProof_Path_8_1", visibility := .secret },
+  { wireId := 451, path := "SyntheticSpends_4_StateProof_Path_8_2", visibility := .secret },
+  { wireId := 452, path := "SyntheticSpends_4_StateProof_Path_9_0", visibility := .secret },
+  { wireId := 453, path := "SyntheticSpends_4_StateProof_Path_9_1", visibility := .secret },
+  { wireId := 454, path := "SyntheticSpends_4_StateProof_Path_9_2", visibility := .secret },
+  { wireId := 455, path := "SyntheticSpends_4_StateProof_Path_10_0", visibility := .secret },
+  { wireId := 456, path := "SyntheticSpends_4_StateProof_Path_10_1", visibility := .secret },
+  { wireId := 457, path := "SyntheticSpends_4_StateProof_Path_10_2", visibility := .secret },
+  { wireId := 458, path := "SyntheticSpends_4_StateProof_Path_11_0", visibility := .secret },
+  { wireId := 459, path := "SyntheticSpends_4_StateProof_Path_11_1", visibility := .secret },
+  { wireId := 460, path := "SyntheticSpends_4_StateProof_Path_11_2", visibility := .secret },
+  { wireId := 461, path := "SyntheticSpends_4_StateProof_Path_12_0", visibility := .secret },
+  { wireId := 462, path := "SyntheticSpends_4_StateProof_Path_12_1", visibility := .secret },
+  { wireId := 463, path := "SyntheticSpends_4_StateProof_Path_12_2", visibility := .secret },
+  { wireId := 464, path := "SyntheticSpends_4_StateProof_Path_13_0", visibility := .secret },
+  { wireId := 465, path := "SyntheticSpends_4_StateProof_Path_13_1", visibility := .secret },
+  { wireId := 466, path := "SyntheticSpends_4_StateProof_Path_13_2", visibility := .secret },
+  { wireId := 467, path := "SyntheticSpends_4_StateProof_Path_14_0", visibility := .secret },
+  { wireId := 468, path := "SyntheticSpends_4_StateProof_Path_14_1", visibility := .secret },
+  { wireId := 469, path := "SyntheticSpends_4_StateProof_Path_14_2", visibility := .secret },
+  { wireId := 470, path := "SyntheticSpends_4_StateProof_Path_15_0", visibility := .secret },
+  { wireId := 471, path := "SyntheticSpends_4_StateProof_Path_15_1", visibility := .secret },
+  { wireId := 472, path := "SyntheticSpends_4_StateProof_Path_15_2", visibility := .secret },
+  { wireId := 473, path := "SyntheticSpends_4_StateProof_Path_16_0", visibility := .secret },
+  { wireId := 474, path := "SyntheticSpends_4_StateProof_Path_16_1", visibility := .secret },
+  { wireId := 475, path := "SyntheticSpends_4_StateProof_Path_16_2", visibility := .secret },
+  { wireId := 476, path := "SyntheticSpends_4_StateProof_Path_17_0", visibility := .secret },
+  { wireId := 477, path := "SyntheticSpends_4_StateProof_Path_17_1", visibility := .secret },
+  { wireId := 478, path := "SyntheticSpends_4_StateProof_Path_17_2", visibility := .secret },
+  { wireId := 479, path := "SyntheticSpends_4_StateProof_Path_18_0", visibility := .secret },
+  { wireId := 480, path := "SyntheticSpends_4_StateProof_Path_18_1", visibility := .secret },
+  { wireId := 481, path := "SyntheticSpends_4_StateProof_Path_18_2", visibility := .secret },
+  { wireId := 482, path := "SyntheticSpends_4_StateProof_Path_19_0", visibility := .secret },
+  { wireId := 483, path := "SyntheticSpends_4_StateProof_Path_19_1", visibility := .secret },
+  { wireId := 484, path := "SyntheticSpends_4_StateProof_Path_19_2", visibility := .secret },
+  { wireId := 485, path := "SyntheticSpends_4_StateProof_Path_20_0", visibility := .secret },
+  { wireId := 486, path := "SyntheticSpends_4_StateProof_Path_20_1", visibility := .secret },
+  { wireId := 487, path := "SyntheticSpends_4_StateProof_Path_20_2", visibility := .secret },
+  { wireId := 488, path := "SyntheticSpends_4_StateProof_Path_21_0", visibility := .secret },
+  { wireId := 489, path := "SyntheticSpends_4_StateProof_Path_21_1", visibility := .secret },
+  { wireId := 490, path := "SyntheticSpends_4_StateProof_Path_21_2", visibility := .secret },
+  { wireId := 491, path := "SyntheticSpends_4_StateProof_Path_22_0", visibility := .secret },
+  { wireId := 492, path := "SyntheticSpends_4_StateProof_Path_22_1", visibility := .secret },
+  { wireId := 493, path := "SyntheticSpends_4_StateProof_Path_22_2", visibility := .secret },
+  { wireId := 494, path := "SyntheticSpends_4_StateProof_Path_23_0", visibility := .secret },
+  { wireId := 495, path := "SyntheticSpends_4_StateProof_Path_23_1", visibility := .secret },
+  { wireId := 496, path := "SyntheticSpends_4_StateProof_Path_23_2", visibility := .secret },
+  { wireId := 497, path := "SyntheticSpends_4_AuthRandomizer", visibility := .secret },
+  { wireId := 498, path := "SyntheticSpends_4_HistoryRequired", visibility := .secret },
+  { wireId := 499, path := "SyntheticSpends_4_IsDummy", visibility := .secret },
+  { wireId := 500, path := "SyntheticSpends_4_DummyNullifierSeed", visibility := .secret },
+  { wireId := 501, path := "SyntheticSpends_5_Nullifier", visibility := .secret },
+  { wireId := 502, path := "SyntheticSpends_5_RK_X", visibility := .secret },
+  { wireId := 503, path := "SyntheticSpends_5_RK_Y", visibility := .secret },
+  { wireId := 504, path := "SyntheticSpends_5_Note_Blinding", visibility := .secret },
+  { wireId := 505, path := "SyntheticSpends_5_Note_Amount", visibility := .secret },
+  { wireId := 506, path := "SyntheticSpends_5_StateProof_Commitment", visibility := .secret },
+  { wireId := 507, path := "SyntheticSpends_5_StateProof_Position", visibility := .secret },
+  { wireId := 508, path := "SyntheticSpends_5_StateProof_Path_0_0", visibility := .secret },
+  { wireId := 509, path := "SyntheticSpends_5_StateProof_Path_0_1", visibility := .secret },
+  { wireId := 510, path := "SyntheticSpends_5_StateProof_Path_0_2", visibility := .secret },
+  { wireId := 511, path := "SyntheticSpends_5_StateProof_Path_1_0", visibility := .secret },
+  { wireId := 512, path := "SyntheticSpends_5_StateProof_Path_1_1", visibility := .secret },
+  { wireId := 513, path := "SyntheticSpends_5_StateProof_Path_1_2", visibility := .secret },
+  { wireId := 514, path := "SyntheticSpends_5_StateProof_Path_2_0", visibility := .secret },
+  { wireId := 515, path := "SyntheticSpends_5_StateProof_Path_2_1", visibility := .secret },
+  { wireId := 516, path := "SyntheticSpends_5_StateProof_Path_2_2", visibility := .secret },
+  { wireId := 517, path := "SyntheticSpends_5_StateProof_Path_3_0", visibility := .secret },
+  { wireId := 518, path := "SyntheticSpends_5_StateProof_Path_3_1", visibility := .secret },
+  { wireId := 519, path := "SyntheticSpends_5_StateProof_Path_3_2", visibility := .secret },
+  { wireId := 520, path := "SyntheticSpends_5_StateProof_Path_4_0", visibility := .secret },
+  { wireId := 521, path := "SyntheticSpends_5_StateProof_Path_4_1", visibility := .secret },
+  { wireId := 522, path := "SyntheticSpends_5_StateProof_Path_4_2", visibility := .secret },
+  { wireId := 523, path := "SyntheticSpends_5_StateProof_Path_5_0", visibility := .secret },
+  { wireId := 524, path := "SyntheticSpends_5_StateProof_Path_5_1", visibility := .secret },
+  { wireId := 525, path := "SyntheticSpends_5_StateProof_Path_5_2", visibility := .secret },
+  { wireId := 526, path := "SyntheticSpends_5_StateProof_Path_6_0", visibility := .secret },
+  { wireId := 527, path := "SyntheticSpends_5_StateProof_Path_6_1", visibility := .secret },
+  { wireId := 528, path := "SyntheticSpends_5_StateProof_Path_6_2", visibility := .secret },
+  { wireId := 529, path := "SyntheticSpends_5_StateProof_Path_7_0", visibility := .secret },
+  { wireId := 530, path := "SyntheticSpends_5_StateProof_Path_7_1", visibility := .secret },
+  { wireId := 531, path := "SyntheticSpends_5_StateProof_Path_7_2", visibility := .secret },
+  { wireId := 532, path := "SyntheticSpends_5_StateProof_Path_8_0", visibility := .secret },
+  { wireId := 533, path := "SyntheticSpends_5_StateProof_Path_8_1", visibility := .secret },
+  { wireId := 534, path := "SyntheticSpends_5_StateProof_Path_8_2", visibility := .secret },
+  { wireId := 535, path := "SyntheticSpends_5_StateProof_Path_9_0", visibility := .secret },
+  { wireId := 536, path := "SyntheticSpends_5_StateProof_Path_9_1", visibility := .secret },
+  { wireId := 537, path := "SyntheticSpends_5_StateProof_Path_9_2", visibility := .secret },
+  { wireId := 538, path := "SyntheticSpends_5_StateProof_Path_10_0", visibility := .secret },
+  { wireId := 539, path := "SyntheticSpends_5_StateProof_Path_10_1", visibility := .secret },
+  { wireId := 540, path := "SyntheticSpends_5_StateProof_Path_10_2", visibility := .secret },
+  { wireId := 541, path := "SyntheticSpends_5_StateProof_Path_11_0", visibility := .secret },
+  { wireId := 542, path := "SyntheticSpends_5_StateProof_Path_11_1", visibility := .secret },
+  { wireId := 543, path := "SyntheticSpends_5_StateProof_Path_11_2", visibility := .secret },
+  { wireId := 544, path := "SyntheticSpends_5_StateProof_Path_12_0", visibility := .secret },
+  { wireId := 545, path := "SyntheticSpends_5_StateProof_Path_12_1", visibility := .secret },
+  { wireId := 546, path := "SyntheticSpends_5_StateProof_Path_12_2", visibility := .secret },
+  { wireId := 547, path := "SyntheticSpends_5_StateProof_Path_13_0", visibility := .secret },
+  { wireId := 548, path := "SyntheticSpends_5_StateProof_Path_13_1", visibility := .secret },
+  { wireId := 549, path := "SyntheticSpends_5_StateProof_Path_13_2", visibility := .secret },
+  { wireId := 550, path := "SyntheticSpends_5_StateProof_Path_14_0", visibility := .secret },
+  { wireId := 551, path := "SyntheticSpends_5_StateProof_Path_14_1", visibility := .secret },
+  { wireId := 552, path := "SyntheticSpends_5_StateProof_Path_14_2", visibility := .secret },
+  { wireId := 553, path := "SyntheticSpends_5_StateProof_Path_15_0", visibility := .secret },
+  { wireId := 554, path := "SyntheticSpends_5_StateProof_Path_15_1", visibility := .secret },
+  { wireId := 555, path := "SyntheticSpends_5_StateProof_Path_15_2", visibility := .secret },
+  { wireId := 556, path := "SyntheticSpends_5_StateProof_Path_16_0", visibility := .secret },
+  { wireId := 557, path := "SyntheticSpends_5_StateProof_Path_16_1", visibility := .secret },
+  { wireId := 558, path := "SyntheticSpends_5_StateProof_Path_16_2", visibility := .secret },
+  { wireId := 559, path := "SyntheticSpends_5_StateProof_Path_17_0", visibility := .secret },
+  { wireId := 560, path := "SyntheticSpends_5_StateProof_Path_17_1", visibility := .secret },
+  { wireId := 561, path := "SyntheticSpends_5_StateProof_Path_17_2", visibility := .secret },
+  { wireId := 562, path := "SyntheticSpends_5_StateProof_Path_18_0", visibility := .secret },
+  { wireId := 563, path := "SyntheticSpends_5_StateProof_Path_18_1", visibility := .secret },
+  { wireId := 564, path := "SyntheticSpends_5_StateProof_Path_18_2", visibility := .secret },
+  { wireId := 565, path := "SyntheticSpends_5_StateProof_Path_19_0", visibility := .secret },
+  { wireId := 566, path := "SyntheticSpends_5_StateProof_Path_19_1", visibility := .secret },
+  { wireId := 567, path := "SyntheticSpends_5_StateProof_Path_19_2", visibility := .secret },
+  { wireId := 568, path := "SyntheticSpends_5_StateProof_Path_20_0", visibility := .secret },
+  { wireId := 569, path := "SyntheticSpends_5_StateProof_Path_20_1", visibility := .secret },
+  { wireId := 570, path := "SyntheticSpends_5_StateProof_Path_20_2", visibility := .secret },
+  { wireId := 571, path := "SyntheticSpends_5_StateProof_Path_21_0", visibility := .secret },
+  { wireId := 572, path := "SyntheticSpends_5_StateProof_Path_21_1", visibility := .secret },
+  { wireId := 573, path := "SyntheticSpends_5_StateProof_Path_21_2", visibility := .secret },
+  { wireId := 574, path := "SyntheticSpends_5_StateProof_Path_22_0", visibility := .secret },
+  { wireId := 575, path := "SyntheticSpends_5_StateProof_Path_22_1", visibility := .secret },
+  { wireId := 576, path := "SyntheticSpends_5_StateProof_Path_22_2", visibility := .secret },
+  { wireId := 577, path := "SyntheticSpends_5_StateProof_Path_23_0", visibility := .secret },
+  { wireId := 578, path := "SyntheticSpends_5_StateProof_Path_23_1", visibility := .secret },
+  { wireId := 579, path := "SyntheticSpends_5_StateProof_Path_23_2", visibility := .secret },
+  { wireId := 580, path := "SyntheticSpends_5_AuthRandomizer", visibility := .secret },
+  { wireId := 581, path := "SyntheticSpends_5_HistoryRequired", visibility := .secret },
+  { wireId := 582, path := "SyntheticSpends_5_IsDummy", visibility := .secret },
+  { wireId := 583, path := "SyntheticSpends_5_DummyNullifierSeed", visibility := .secret },
+  { wireId := 584, path := "SyntheticSpends_6_Nullifier", visibility := .secret },
+  { wireId := 585, path := "SyntheticSpends_6_RK_X", visibility := .secret },
+  { wireId := 586, path := "SyntheticSpends_6_RK_Y", visibility := .secret },
+  { wireId := 587, path := "SyntheticSpends_6_Note_Blinding", visibility := .secret },
+  { wireId := 588, path := "SyntheticSpends_6_Note_Amount", visibility := .secret },
+  { wireId := 589, path := "SyntheticSpends_6_StateProof_Commitment", visibility := .secret },
+  { wireId := 590, path := "SyntheticSpends_6_StateProof_Position", visibility := .secret },
+  { wireId := 591, path := "SyntheticSpends_6_StateProof_Path_0_0", visibility := .secret },
+  { wireId := 592, path := "SyntheticSpends_6_StateProof_Path_0_1", visibility := .secret },
+  { wireId := 593, path := "SyntheticSpends_6_StateProof_Path_0_2", visibility := .secret },
+  { wireId := 594, path := "SyntheticSpends_6_StateProof_Path_1_0", visibility := .secret },
+  { wireId := 595, path := "SyntheticSpends_6_StateProof_Path_1_1", visibility := .secret },
+  { wireId := 596, path := "SyntheticSpends_6_StateProof_Path_1_2", visibility := .secret },
+  { wireId := 597, path := "SyntheticSpends_6_StateProof_Path_2_0", visibility := .secret },
+  { wireId := 598, path := "SyntheticSpends_6_StateProof_Path_2_1", visibility := .secret },
+  { wireId := 599, path := "SyntheticSpends_6_StateProof_Path_2_2", visibility := .secret },
+  { wireId := 600, path := "SyntheticSpends_6_StateProof_Path_3_0", visibility := .secret },
+  { wireId := 601, path := "SyntheticSpends_6_StateProof_Path_3_1", visibility := .secret },
+  { wireId := 602, path := "SyntheticSpends_6_StateProof_Path_3_2", visibility := .secret },
+  { wireId := 603, path := "SyntheticSpends_6_StateProof_Path_4_0", visibility := .secret },
+  { wireId := 604, path := "SyntheticSpends_6_StateProof_Path_4_1", visibility := .secret },
+  { wireId := 605, path := "SyntheticSpends_6_StateProof_Path_4_2", visibility := .secret },
+  { wireId := 606, path := "SyntheticSpends_6_StateProof_Path_5_0", visibility := .secret },
+  { wireId := 607, path := "SyntheticSpends_6_StateProof_Path_5_1", visibility := .secret },
+  { wireId := 608, path := "SyntheticSpends_6_StateProof_Path_5_2", visibility := .secret },
+  { wireId := 609, path := "SyntheticSpends_6_StateProof_Path_6_0", visibility := .secret },
+  { wireId := 610, path := "SyntheticSpends_6_StateProof_Path_6_1", visibility := .secret },
+  { wireId := 611, path := "SyntheticSpends_6_StateProof_Path_6_2", visibility := .secret },
+  { wireId := 612, path := "SyntheticSpends_6_StateProof_Path_7_0", visibility := .secret },
+  { wireId := 613, path := "SyntheticSpends_6_StateProof_Path_7_1", visibility := .secret },
+  { wireId := 614, path := "SyntheticSpends_6_StateProof_Path_7_2", visibility := .secret },
+  { wireId := 615, path := "SyntheticSpends_6_StateProof_Path_8_0", visibility := .secret },
+  { wireId := 616, path := "SyntheticSpends_6_StateProof_Path_8_1", visibility := .secret },
+  { wireId := 617, path := "SyntheticSpends_6_StateProof_Path_8_2", visibility := .secret },
+  { wireId := 618, path := "SyntheticSpends_6_StateProof_Path_9_0", visibility := .secret },
+  { wireId := 619, path := "SyntheticSpends_6_StateProof_Path_9_1", visibility := .secret },
+  { wireId := 620, path := "SyntheticSpends_6_StateProof_Path_9_2", visibility := .secret },
+  { wireId := 621, path := "SyntheticSpends_6_StateProof_Path_10_0", visibility := .secret },
+  { wireId := 622, path := "SyntheticSpends_6_StateProof_Path_10_1", visibility := .secret },
+  { wireId := 623, path := "SyntheticSpends_6_StateProof_Path_10_2", visibility := .secret },
+  { wireId := 624, path := "SyntheticSpends_6_StateProof_Path_11_0", visibility := .secret },
+  { wireId := 625, path := "SyntheticSpends_6_StateProof_Path_11_1", visibility := .secret },
+  { wireId := 626, path := "SyntheticSpends_6_StateProof_Path_11_2", visibility := .secret },
+  { wireId := 627, path := "SyntheticSpends_6_StateProof_Path_12_0", visibility := .secret },
+  { wireId := 628, path := "SyntheticSpends_6_StateProof_Path_12_1", visibility := .secret },
+  { wireId := 629, path := "SyntheticSpends_6_StateProof_Path_12_2", visibility := .secret },
+  { wireId := 630, path := "SyntheticSpends_6_StateProof_Path_13_0", visibility := .secret },
+  { wireId := 631, path := "SyntheticSpends_6_StateProof_Path_13_1", visibility := .secret },
+  { wireId := 632, path := "SyntheticSpends_6_StateProof_Path_13_2", visibility := .secret },
+  { wireId := 633, path := "SyntheticSpends_6_StateProof_Path_14_0", visibility := .secret },
+  { wireId := 634, path := "SyntheticSpends_6_StateProof_Path_14_1", visibility := .secret },
+  { wireId := 635, path := "SyntheticSpends_6_StateProof_Path_14_2", visibility := .secret },
+  { wireId := 636, path := "SyntheticSpends_6_StateProof_Path_15_0", visibility := .secret },
+  { wireId := 637, path := "SyntheticSpends_6_StateProof_Path_15_1", visibility := .secret },
+  { wireId := 638, path := "SyntheticSpends_6_StateProof_Path_15_2", visibility := .secret },
+  { wireId := 639, path := "SyntheticSpends_6_StateProof_Path_16_0", visibility := .secret },
+  { wireId := 640, path := "SyntheticSpends_6_StateProof_Path_16_1", visibility := .secret },
+  { wireId := 641, path := "SyntheticSpends_6_StateProof_Path_16_2", visibility := .secret },
+  { wireId := 642, path := "SyntheticSpends_6_StateProof_Path_17_0", visibility := .secret },
+  { wireId := 643, path := "SyntheticSpends_6_StateProof_Path_17_1", visibility := .secret },
+  { wireId := 644, path := "SyntheticSpends_6_StateProof_Path_17_2", visibility := .secret },
+  { wireId := 645, path := "SyntheticSpends_6_StateProof_Path_18_0", visibility := .secret },
+  { wireId := 646, path := "SyntheticSpends_6_StateProof_Path_18_1", visibility := .secret },
+  { wireId := 647, path := "SyntheticSpends_6_StateProof_Path_18_2", visibility := .secret },
+  { wireId := 648, path := "SyntheticSpends_6_StateProof_Path_19_0", visibility := .secret },
+  { wireId := 649, path := "SyntheticSpends_6_StateProof_Path_19_1", visibility := .secret },
+  { wireId := 650, path := "SyntheticSpends_6_StateProof_Path_19_2", visibility := .secret },
+  { wireId := 651, path := "SyntheticSpends_6_StateProof_Path_20_0", visibility := .secret },
+  { wireId := 652, path := "SyntheticSpends_6_StateProof_Path_20_1", visibility := .secret },
+  { wireId := 653, path := "SyntheticSpends_6_StateProof_Path_20_2", visibility := .secret },
+  { wireId := 654, path := "SyntheticSpends_6_StateProof_Path_21_0", visibility := .secret },
+  { wireId := 655, path := "SyntheticSpends_6_StateProof_Path_21_1", visibility := .secret },
+  { wireId := 656, path := "SyntheticSpends_6_StateProof_Path_21_2", visibility := .secret },
+  { wireId := 657, path := "SyntheticSpends_6_StateProof_Path_22_0", visibility := .secret },
+  { wireId := 658, path := "SyntheticSpends_6_StateProof_Path_22_1", visibility := .secret },
+  { wireId := 659, path := "SyntheticSpends_6_StateProof_Path_22_2", visibility := .secret },
+  { wireId := 660, path := "SyntheticSpends_6_StateProof_Path_23_0", visibility := .secret },
+  { wireId := 661, path := "SyntheticSpends_6_StateProof_Path_23_1", visibility := .secret },
+  { wireId := 662, path := "SyntheticSpends_6_StateProof_Path_23_2", visibility := .secret },
+  { wireId := 663, path := "SyntheticSpends_6_AuthRandomizer", visibility := .secret },
+  { wireId := 664, path := "SyntheticSpends_6_HistoryRequired", visibility := .secret },
+  { wireId := 665, path := "SyntheticSpends_6_IsDummy", visibility := .secret },
+  { wireId := 666, path := "SyntheticSpends_6_DummyNullifierSeed", visibility := .secret },
+  { wireId := 667, path := "SyntheticSpends_7_Nullifier", visibility := .secret },
+  { wireId := 668, path := "SyntheticSpends_7_RK_X", visibility := .secret },
+  { wireId := 669, path := "SyntheticSpends_7_RK_Y", visibility := .secret },
+  { wireId := 670, path := "SyntheticSpends_7_Note_Blinding", visibility := .secret },
+  { wireId := 671, path := "SyntheticSpends_7_Note_Amount", visibility := .secret },
+  { wireId := 672, path := "SyntheticSpends_7_StateProof_Commitment", visibility := .secret },
+  { wireId := 673, path := "SyntheticSpends_7_StateProof_Position", visibility := .secret },
+  { wireId := 674, path := "SyntheticSpends_7_StateProof_Path_0_0", visibility := .secret },
+  { wireId := 675, path := "SyntheticSpends_7_StateProof_Path_0_1", visibility := .secret },
+  { wireId := 676, path := "SyntheticSpends_7_StateProof_Path_0_2", visibility := .secret },
+  { wireId := 677, path := "SyntheticSpends_7_StateProof_Path_1_0", visibility := .secret },
+  { wireId := 678, path := "SyntheticSpends_7_StateProof_Path_1_1", visibility := .secret },
+  { wireId := 679, path := "SyntheticSpends_7_StateProof_Path_1_2", visibility := .secret },
+  { wireId := 680, path := "SyntheticSpends_7_StateProof_Path_2_0", visibility := .secret },
+  { wireId := 681, path := "SyntheticSpends_7_StateProof_Path_2_1", visibility := .secret },
+  { wireId := 682, path := "SyntheticSpends_7_StateProof_Path_2_2", visibility := .secret },
+  { wireId := 683, path := "SyntheticSpends_7_StateProof_Path_3_0", visibility := .secret },
+  { wireId := 684, path := "SyntheticSpends_7_StateProof_Path_3_1", visibility := .secret },
+  { wireId := 685, path := "SyntheticSpends_7_StateProof_Path_3_2", visibility := .secret },
+  { wireId := 686, path := "SyntheticSpends_7_StateProof_Path_4_0", visibility := .secret },
+  { wireId := 687, path := "SyntheticSpends_7_StateProof_Path_4_1", visibility := .secret },
+  { wireId := 688, path := "SyntheticSpends_7_StateProof_Path_4_2", visibility := .secret },
+  { wireId := 689, path := "SyntheticSpends_7_StateProof_Path_5_0", visibility := .secret },
+  { wireId := 690, path := "SyntheticSpends_7_StateProof_Path_5_1", visibility := .secret },
+  { wireId := 691, path := "SyntheticSpends_7_StateProof_Path_5_2", visibility := .secret },
+  { wireId := 692, path := "SyntheticSpends_7_StateProof_Path_6_0", visibility := .secret },
+  { wireId := 693, path := "SyntheticSpends_7_StateProof_Path_6_1", visibility := .secret },
+  { wireId := 694, path := "SyntheticSpends_7_StateProof_Path_6_2", visibility := .secret },
+  { wireId := 695, path := "SyntheticSpends_7_StateProof_Path_7_0", visibility := .secret },
+  { wireId := 696, path := "SyntheticSpends_7_StateProof_Path_7_1", visibility := .secret },
+  { wireId := 697, path := "SyntheticSpends_7_StateProof_Path_7_2", visibility := .secret },
+  { wireId := 698, path := "SyntheticSpends_7_StateProof_Path_8_0", visibility := .secret },
+  { wireId := 699, path := "SyntheticSpends_7_StateProof_Path_8_1", visibility := .secret },
+  { wireId := 700, path := "SyntheticSpends_7_StateProof_Path_8_2", visibility := .secret },
+  { wireId := 701, path := "SyntheticSpends_7_StateProof_Path_9_0", visibility := .secret },
+  { wireId := 702, path := "SyntheticSpends_7_StateProof_Path_9_1", visibility := .secret },
+  { wireId := 703, path := "SyntheticSpends_7_StateProof_Path_9_2", visibility := .secret },
+  { wireId := 704, path := "SyntheticSpends_7_StateProof_Path_10_0", visibility := .secret },
+  { wireId := 705, path := "SyntheticSpends_7_StateProof_Path_10_1", visibility := .secret },
+  { wireId := 706, path := "SyntheticSpends_7_StateProof_Path_10_2", visibility := .secret },
+  { wireId := 707, path := "SyntheticSpends_7_StateProof_Path_11_0", visibility := .secret },
+  { wireId := 708, path := "SyntheticSpends_7_StateProof_Path_11_1", visibility := .secret },
+  { wireId := 709, path := "SyntheticSpends_7_StateProof_Path_11_2", visibility := .secret },
+  { wireId := 710, path := "SyntheticSpends_7_StateProof_Path_12_0", visibility := .secret },
+  { wireId := 711, path := "SyntheticSpends_7_StateProof_Path_12_1", visibility := .secret },
+  { wireId := 712, path := "SyntheticSpends_7_StateProof_Path_12_2", visibility := .secret },
+  { wireId := 713, path := "SyntheticSpends_7_StateProof_Path_13_0", visibility := .secret },
+  { wireId := 714, path := "SyntheticSpends_7_StateProof_Path_13_1", visibility := .secret },
+  { wireId := 715, path := "SyntheticSpends_7_StateProof_Path_13_2", visibility := .secret },
+  { wireId := 716, path := "SyntheticSpends_7_StateProof_Path_14_0", visibility := .secret },
+  { wireId := 717, path := "SyntheticSpends_7_StateProof_Path_14_1", visibility := .secret },
+  { wireId := 718, path := "SyntheticSpends_7_StateProof_Path_14_2", visibility := .secret },
+  { wireId := 719, path := "SyntheticSpends_7_StateProof_Path_15_0", visibility := .secret },
+  { wireId := 720, path := "SyntheticSpends_7_StateProof_Path_15_1", visibility := .secret },
+  { wireId := 721, path := "SyntheticSpends_7_StateProof_Path_15_2", visibility := .secret },
+  { wireId := 722, path := "SyntheticSpends_7_StateProof_Path_16_0", visibility := .secret },
+  { wireId := 723, path := "SyntheticSpends_7_StateProof_Path_16_1", visibility := .secret },
+  { wireId := 724, path := "SyntheticSpends_7_StateProof_Path_16_2", visibility := .secret },
+  { wireId := 725, path := "SyntheticSpends_7_StateProof_Path_17_0", visibility := .secret },
+  { wireId := 726, path := "SyntheticSpends_7_StateProof_Path_17_1", visibility := .secret },
+  { wireId := 727, path := "SyntheticSpends_7_StateProof_Path_17_2", visibility := .secret },
+  { wireId := 728, path := "SyntheticSpends_7_StateProof_Path_18_0", visibility := .secret },
+  { wireId := 729, path := "SyntheticSpends_7_StateProof_Path_18_1", visibility := .secret },
+  { wireId := 730, path := "SyntheticSpends_7_StateProof_Path_18_2", visibility := .secret },
+  { wireId := 731, path := "SyntheticSpends_7_StateProof_Path_19_0", visibility := .secret },
+  { wireId := 732, path := "SyntheticSpends_7_StateProof_Path_19_1", visibility := .secret },
+  { wireId := 733, path := "SyntheticSpends_7_StateProof_Path_19_2", visibility := .secret },
+  { wireId := 734, path := "SyntheticSpends_7_StateProof_Path_20_0", visibility := .secret },
+  { wireId := 735, path := "SyntheticSpends_7_StateProof_Path_20_1", visibility := .secret },
+  { wireId := 736, path := "SyntheticSpends_7_StateProof_Path_20_2", visibility := .secret },
+  { wireId := 737, path := "SyntheticSpends_7_StateProof_Path_21_0", visibility := .secret },
+  { wireId := 738, path := "SyntheticSpends_7_StateProof_Path_21_1", visibility := .secret },
+  { wireId := 739, path := "SyntheticSpends_7_StateProof_Path_21_2", visibility := .secret },
+  { wireId := 740, path := "SyntheticSpends_7_StateProof_Path_22_0", visibility := .secret },
+  { wireId := 741, path := "SyntheticSpends_7_StateProof_Path_22_1", visibility := .secret },
+  { wireId := 742, path := "SyntheticSpends_7_StateProof_Path_22_2", visibility := .secret },
+  { wireId := 743, path := "SyntheticSpends_7_StateProof_Path_23_0", visibility := .secret },
+  { wireId := 744, path := "SyntheticSpends_7_StateProof_Path_23_1", visibility := .secret },
+  { wireId := 745, path := "SyntheticSpends_7_StateProof_Path_23_2", visibility := .secret },
+  { wireId := 746, path := "SyntheticSpends_7_AuthRandomizer", visibility := .secret },
+  { wireId := 747, path := "SyntheticSpends_7_HistoryRequired", visibility := .secret },
+  { wireId := 748, path := "SyntheticSpends_7_IsDummy", visibility := .secret },
+  { wireId := 749, path := "SyntheticSpends_7_DummyNullifierSeed", visibility := .secret },
+  { wireId := 750, path := "Outputs_0_NoteCommitment", visibility := .secret },
+  { wireId := 751, path := "Outputs_0_Note_Blinding", visibility := .secret },
+  { wireId := 752, path := "Outputs_0_Note_Amount", visibility := .secret },
 ]
 
 theorem witnessWireRoles_length :
-    witnessWireRoles.length = 743 := by
+    witnessWireRoles.length = 752 := by
   rfl
 
 namespace Witness
@@ -791,2961 +800,2997 @@ def routingTag (rho : Nat → WitnessF) : WitnessF :=
 def routingParameterSetID (rho : Nat → WitnessF) : WitnessF :=
   rho 4
 
+/-- Compiler witness path `RecentPositionFloor`. -/
+def recentPositionFloor (rho : Nat → WitnessF) : WitnessF :=
+  rho 5
+
 /-- Compiler witness path `Anchor`. -/
 def anchor (rho : Nat → WitnessF) : WitnessF :=
-  rho 5
+  rho 6
 
 /-- Compiler witness path `BalanceCommitment_X`. -/
 def balanceCommitmentX (rho : Nat → WitnessF) : WitnessF :=
-  rho 6
+  rho 7
 
 /-- Compiler witness path `BalanceCommitment_Y`. -/
 def balanceCommitmentY (rho : Nat → WitnessF) : WitnessF :=
-  rho 7
+  rho 8
 
 /-- Compiler witness path `ActionBalanceBlinding`. -/
 def actionBalanceBlinding (rho : Nat → WitnessF) : WitnessF :=
-  rho 8
+  rho 9
 
 /-- Compiler witness path `IsRegulated`. -/
 def isRegulated (rho : Nat → WitnessF) : WitnessF :=
-  rho 9
+  rho 10
 
 /-- Compiler witness path `RegulatedPrecision`. -/
 def regulatedPrecision (rho : Nat → WitnessF) : WitnessF :=
-  rho 10
+  rho 11
 
 /-- Compiler witness path `UnregulatedPrecision`. -/
 def unregulatedPrecision (rho : Nat → WitnessF) : WitnessF :=
-  rho 11
+  rho 12
 
 /-- Compiler witness path `RoutingAsOfHeight`. -/
 def routingAsOfHeight (rho : Nat → WitnessF) : WitnessF :=
-  rho 12
+  rho 13
 
 /-- Compiler witness path `RoutingNonce`. -/
 def routingNonce (rho : Nat → WitnessF) : WitnessF :=
-  rho 13
+  rho 14
 
 /-- Compiler witness path `Shared_AssetID`. -/
 def sharedAssetID (rho : Nat → WitnessF) : WitnessF :=
-  rho 14
+  rho 15
 
 /-- Compiler witness path `Shared_DivGen_X`. -/
 def sharedDivGenX (rho : Nat → WitnessF) : WitnessF :=
-  rho 15
+  rho 16
 
 /-- Compiler witness path `Shared_DivGen_Y`. -/
 def sharedDivGenY (rho : Nat → WitnessF) : WitnessF :=
-  rho 16
+  rho 17
 
 /-- Compiler witness path `Auth_AK_X`. -/
 def authAKX (rho : Nat → WitnessF) : WitnessF :=
-  rho 17
+  rho 18
 
 /-- Compiler witness path `Auth_AK_Y`. -/
 def authAKY (rho : Nat → WitnessF) : WitnessF :=
-  rho 18
+  rho 19
 
 /-- Compiler witness path `Auth_NK`. -/
 def authNK (rho : Nat → WitnessF) : WitnessF :=
-  rho 19
+  rho 20
 
 /-- Compiler witness path `Auth_IVKReduced`. -/
 def authIVKReduced (rho : Nat → WitnessF) : WitnessF :=
-  rho 20
+  rho 21
 
 /-- Compiler witness path `Auth_IVKQuotientA`. -/
 def authIVKQuotientA (rho : Nat → WitnessF) : WitnessF :=
-  rho 21
+  rho 22
 
 /-- Compiler witness path `Asset_Leaf_Value`. -/
 def assetLeafValue (rho : Nat → WitnessF) : WitnessF :=
-  rho 22
+  rho 23
 
 /-- Compiler witness path `Asset_Leaf_NextIndex`. -/
 def assetLeafNextIndex (rho : Nat → WitnessF) : WitnessF :=
-  rho 23
+  rho 24
 
 /-- Compiler witness path `Asset_Leaf_NextValue`. -/
 def assetLeafNextValue (rho : Nat → WitnessF) : WitnessF :=
-  rho 24
+  rho 25
 
 /-- Compiler witness path `Asset_Leaf_DKPub_X`. -/
 def assetLeafDKPubX (rho : Nat → WitnessF) : WitnessF :=
-  rho 25
+  rho 26
 
 /-- Compiler witness path `Asset_Leaf_DKPub_Y`. -/
 def assetLeafDKPubY (rho : Nat → WitnessF) : WitnessF :=
-  rho 26
+  rho 27
 
 /-- Compiler witness path `Asset_Leaf_Threshold`. -/
 def assetLeafThreshold (rho : Nat → WitnessF) : WitnessF :=
-  rho 27
+  rho 28
 
 /-- Compiler witness path `Asset_Leaf_SlotCount`. -/
 def assetLeafSlotCount (rho : Nat → WitnessF) : WitnessF :=
-  rho 28
+  rho 29
 
 /-- Compiler witness path `Asset_Leaf_ChannelsHash`. -/
 def assetLeafChannelsHash (rho : Nat → WitnessF) : WitnessF :=
-  rho 29
+  rho 30
 
 /-- Compiler witness path `Asset_Leaf_RingPK_X`. -/
 def assetLeafRingPKX (rho : Nat → WitnessF) : WitnessF :=
-  rho 30
+  rho 31
 
 /-- Compiler witness path `Asset_Leaf_RingPK_Y`. -/
 def assetLeafRingPKY (rho : Nat → WitnessF) : WitnessF :=
-  rho 31
+  rho 32
 
 /-- Compiler witness path `Asset_Leaf_RingIDHash`. -/
 def assetLeafRingIDHash (rho : Nat → WitnessF) : WitnessF :=
-  rho 32
+  rho 33
 
 /-- Compiler witness path `Asset_Leaf_PolicyIDHash`. -/
 def assetLeafPolicyIDHash (rho : Nat → WitnessF) : WitnessF :=
-  rho 33
+  rho 34
 
 /-- Compiler witness path `Asset_Leaf_PermissionHash`. -/
 def assetLeafPermissionHash (rho : Nat → WitnessF) : WitnessF :=
-  rho 34
+  rho 35
 
 /-- Compiler witness path `Asset_Leaf_ResourceHash`. -/
 def assetLeafResourceHash (rho : Nat → WitnessF) : WitnessF :=
-  rho 35
+  rho 36
 
 /-- Compiler witness path `Asset_Path_0_0`. -/
 def assetPath00 (rho : Nat → WitnessF) : WitnessF :=
-  rho 36
+  rho 37
 
 /-- Compiler witness path `Asset_Path_0_1`. -/
 def assetPath01 (rho : Nat → WitnessF) : WitnessF :=
-  rho 37
+  rho 38
 
 /-- Compiler witness path `Asset_Path_0_2`. -/
 def assetPath02 (rho : Nat → WitnessF) : WitnessF :=
-  rho 38
+  rho 39
 
 /-- Compiler witness path `Asset_Path_1_0`. -/
 def assetPath10 (rho : Nat → WitnessF) : WitnessF :=
-  rho 39
+  rho 40
 
 /-- Compiler witness path `Asset_Path_1_1`. -/
 def assetPath11 (rho : Nat → WitnessF) : WitnessF :=
-  rho 40
+  rho 41
 
 /-- Compiler witness path `Asset_Path_1_2`. -/
 def assetPath12 (rho : Nat → WitnessF) : WitnessF :=
-  rho 41
+  rho 42
 
 /-- Compiler witness path `Asset_Path_2_0`. -/
 def assetPath20 (rho : Nat → WitnessF) : WitnessF :=
-  rho 42
+  rho 43
 
 /-- Compiler witness path `Asset_Path_2_1`. -/
 def assetPath21 (rho : Nat → WitnessF) : WitnessF :=
-  rho 43
+  rho 44
 
 /-- Compiler witness path `Asset_Path_2_2`. -/
 def assetPath22 (rho : Nat → WitnessF) : WitnessF :=
-  rho 44
+  rho 45
 
 /-- Compiler witness path `Asset_Path_3_0`. -/
 def assetPath30 (rho : Nat → WitnessF) : WitnessF :=
-  rho 45
+  rho 46
 
 /-- Compiler witness path `Asset_Path_3_1`. -/
 def assetPath31 (rho : Nat → WitnessF) : WitnessF :=
-  rho 46
+  rho 47
 
 /-- Compiler witness path `Asset_Path_3_2`. -/
 def assetPath32 (rho : Nat → WitnessF) : WitnessF :=
-  rho 47
+  rho 48
 
 /-- Compiler witness path `Asset_Path_4_0`. -/
 def assetPath40 (rho : Nat → WitnessF) : WitnessF :=
-  rho 48
+  rho 49
 
 /-- Compiler witness path `Asset_Path_4_1`. -/
 def assetPath41 (rho : Nat → WitnessF) : WitnessF :=
-  rho 49
+  rho 50
 
 /-- Compiler witness path `Asset_Path_4_2`. -/
 def assetPath42 (rho : Nat → WitnessF) : WitnessF :=
-  rho 50
+  rho 51
 
 /-- Compiler witness path `Asset_Path_5_0`. -/
 def assetPath50 (rho : Nat → WitnessF) : WitnessF :=
-  rho 51
+  rho 52
 
 /-- Compiler witness path `Asset_Path_5_1`. -/
 def assetPath51 (rho : Nat → WitnessF) : WitnessF :=
-  rho 52
+  rho 53
 
 /-- Compiler witness path `Asset_Path_5_2`. -/
 def assetPath52 (rho : Nat → WitnessF) : WitnessF :=
-  rho 53
+  rho 54
 
 /-- Compiler witness path `Asset_Path_6_0`. -/
 def assetPath60 (rho : Nat → WitnessF) : WitnessF :=
-  rho 54
+  rho 55
 
 /-- Compiler witness path `Asset_Path_6_1`. -/
 def assetPath61 (rho : Nat → WitnessF) : WitnessF :=
-  rho 55
+  rho 56
 
 /-- Compiler witness path `Asset_Path_6_2`. -/
 def assetPath62 (rho : Nat → WitnessF) : WitnessF :=
-  rho 56
+  rho 57
 
 /-- Compiler witness path `Asset_Path_7_0`. -/
 def assetPath70 (rho : Nat → WitnessF) : WitnessF :=
-  rho 57
+  rho 58
 
 /-- Compiler witness path `Asset_Path_7_1`. -/
 def assetPath71 (rho : Nat → WitnessF) : WitnessF :=
-  rho 58
+  rho 59
 
 /-- Compiler witness path `Asset_Path_7_2`. -/
 def assetPath72 (rho : Nat → WitnessF) : WitnessF :=
-  rho 59
+  rho 60
 
 /-- Compiler witness path `Asset_Path_8_0`. -/
 def assetPath80 (rho : Nat → WitnessF) : WitnessF :=
-  rho 60
+  rho 61
 
 /-- Compiler witness path `Asset_Path_8_1`. -/
 def assetPath81 (rho : Nat → WitnessF) : WitnessF :=
-  rho 61
+  rho 62
 
 /-- Compiler witness path `Asset_Path_8_2`. -/
 def assetPath82 (rho : Nat → WitnessF) : WitnessF :=
-  rho 62
+  rho 63
 
 /-- Compiler witness path `Asset_Path_9_0`. -/
 def assetPath90 (rho : Nat → WitnessF) : WitnessF :=
-  rho 63
+  rho 64
 
 /-- Compiler witness path `Asset_Path_9_1`. -/
 def assetPath91 (rho : Nat → WitnessF) : WitnessF :=
-  rho 64
+  rho 65
 
 /-- Compiler witness path `Asset_Path_9_2`. -/
 def assetPath92 (rho : Nat → WitnessF) : WitnessF :=
-  rho 65
+  rho 66
 
 /-- Compiler witness path `Asset_Path_10_0`. -/
 def assetPath100 (rho : Nat → WitnessF) : WitnessF :=
-  rho 66
+  rho 67
 
 /-- Compiler witness path `Asset_Path_10_1`. -/
 def assetPath101 (rho : Nat → WitnessF) : WitnessF :=
-  rho 67
+  rho 68
 
 /-- Compiler witness path `Asset_Path_10_2`. -/
 def assetPath102 (rho : Nat → WitnessF) : WitnessF :=
-  rho 68
+  rho 69
 
 /-- Compiler witness path `Asset_Path_11_0`. -/
 def assetPath110 (rho : Nat → WitnessF) : WitnessF :=
-  rho 69
+  rho 70
 
 /-- Compiler witness path `Asset_Path_11_1`. -/
 def assetPath111 (rho : Nat → WitnessF) : WitnessF :=
-  rho 70
+  rho 71
 
 /-- Compiler witness path `Asset_Path_11_2`. -/
 def assetPath112 (rho : Nat → WitnessF) : WitnessF :=
-  rho 71
+  rho 72
 
 /-- Compiler witness path `Asset_Path_12_0`. -/
 def assetPath120 (rho : Nat → WitnessF) : WitnessF :=
-  rho 72
+  rho 73
 
 /-- Compiler witness path `Asset_Path_12_1`. -/
 def assetPath121 (rho : Nat → WitnessF) : WitnessF :=
-  rho 73
+  rho 74
 
 /-- Compiler witness path `Asset_Path_12_2`. -/
 def assetPath122 (rho : Nat → WitnessF) : WitnessF :=
-  rho 74
+  rho 75
 
 /-- Compiler witness path `Asset_Path_13_0`. -/
 def assetPath130 (rho : Nat → WitnessF) : WitnessF :=
-  rho 75
+  rho 76
 
 /-- Compiler witness path `Asset_Path_13_1`. -/
 def assetPath131 (rho : Nat → WitnessF) : WitnessF :=
-  rho 76
+  rho 77
 
 /-- Compiler witness path `Asset_Path_13_2`. -/
 def assetPath132 (rho : Nat → WitnessF) : WitnessF :=
-  rho 77
+  rho 78
 
 /-- Compiler witness path `Asset_Path_14_0`. -/
 def assetPath140 (rho : Nat → WitnessF) : WitnessF :=
-  rho 78
+  rho 79
 
 /-- Compiler witness path `Asset_Path_14_1`. -/
 def assetPath141 (rho : Nat → WitnessF) : WitnessF :=
-  rho 79
+  rho 80
 
 /-- Compiler witness path `Asset_Path_14_2`. -/
 def assetPath142 (rho : Nat → WitnessF) : WitnessF :=
-  rho 80
+  rho 81
 
 /-- Compiler witness path `Asset_Path_15_0`. -/
 def assetPath150 (rho : Nat → WitnessF) : WitnessF :=
-  rho 81
+  rho 82
 
 /-- Compiler witness path `Asset_Path_15_1`. -/
 def assetPath151 (rho : Nat → WitnessF) : WitnessF :=
-  rho 82
+  rho 83
 
 /-- Compiler witness path `Asset_Path_15_2`. -/
 def assetPath152 (rho : Nat → WitnessF) : WitnessF :=
-  rho 83
+  rho 84
 
 /-- Compiler witness path `Asset_Position`. -/
 def assetPosition (rho : Nat → WitnessF) : WitnessF :=
-  rho 84
+  rho 85
 
 /-- Compiler witness path `SyntheticSpends_0_Nullifier`. -/
 def syntheticSpends0Nullifier (rho : Nat → WitnessF) : WitnessF :=
-  rho 85
+  rho 86
 
 /-- Compiler witness path `SyntheticSpends_0_RK_X`. -/
 def syntheticSpends0RKX (rho : Nat → WitnessF) : WitnessF :=
-  rho 86
+  rho 87
 
 /-- Compiler witness path `SyntheticSpends_0_RK_Y`. -/
 def syntheticSpends0RKY (rho : Nat → WitnessF) : WitnessF :=
-  rho 87
+  rho 88
 
 /-- Compiler witness path `SyntheticSpends_0_Note_Blinding`. -/
 def syntheticSpends0NoteBlinding (rho : Nat → WitnessF) : WitnessF :=
-  rho 88
+  rho 89
 
 /-- Compiler witness path `SyntheticSpends_0_Note_Amount`. -/
 def syntheticSpends0NoteAmount (rho : Nat → WitnessF) : WitnessF :=
-  rho 89
+  rho 90
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Commitment`. -/
 def syntheticSpends0StateProofCommitment (rho : Nat → WitnessF) : WitnessF :=
-  rho 90
+  rho 91
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Position`. -/
 def syntheticSpends0StateProofPosition (rho : Nat → WitnessF) : WitnessF :=
-  rho 91
+  rho 92
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_0_0`. -/
 def syntheticSpends0StateProofPath00 (rho : Nat → WitnessF) : WitnessF :=
-  rho 92
+  rho 93
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_0_1`. -/
 def syntheticSpends0StateProofPath01 (rho : Nat → WitnessF) : WitnessF :=
-  rho 93
+  rho 94
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_0_2`. -/
 def syntheticSpends0StateProofPath02 (rho : Nat → WitnessF) : WitnessF :=
-  rho 94
+  rho 95
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_1_0`. -/
 def syntheticSpends0StateProofPath10 (rho : Nat → WitnessF) : WitnessF :=
-  rho 95
+  rho 96
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_1_1`. -/
 def syntheticSpends0StateProofPath11 (rho : Nat → WitnessF) : WitnessF :=
-  rho 96
+  rho 97
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_1_2`. -/
 def syntheticSpends0StateProofPath12 (rho : Nat → WitnessF) : WitnessF :=
-  rho 97
+  rho 98
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_2_0`. -/
 def syntheticSpends0StateProofPath20 (rho : Nat → WitnessF) : WitnessF :=
-  rho 98
+  rho 99
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_2_1`. -/
 def syntheticSpends0StateProofPath21 (rho : Nat → WitnessF) : WitnessF :=
-  rho 99
+  rho 100
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_2_2`. -/
 def syntheticSpends0StateProofPath22 (rho : Nat → WitnessF) : WitnessF :=
-  rho 100
+  rho 101
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_3_0`. -/
 def syntheticSpends0StateProofPath30 (rho : Nat → WitnessF) : WitnessF :=
-  rho 101
+  rho 102
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_3_1`. -/
 def syntheticSpends0StateProofPath31 (rho : Nat → WitnessF) : WitnessF :=
-  rho 102
+  rho 103
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_3_2`. -/
 def syntheticSpends0StateProofPath32 (rho : Nat → WitnessF) : WitnessF :=
-  rho 103
+  rho 104
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_4_0`. -/
 def syntheticSpends0StateProofPath40 (rho : Nat → WitnessF) : WitnessF :=
-  rho 104
+  rho 105
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_4_1`. -/
 def syntheticSpends0StateProofPath41 (rho : Nat → WitnessF) : WitnessF :=
-  rho 105
+  rho 106
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_4_2`. -/
 def syntheticSpends0StateProofPath42 (rho : Nat → WitnessF) : WitnessF :=
-  rho 106
+  rho 107
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_5_0`. -/
 def syntheticSpends0StateProofPath50 (rho : Nat → WitnessF) : WitnessF :=
-  rho 107
+  rho 108
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_5_1`. -/
 def syntheticSpends0StateProofPath51 (rho : Nat → WitnessF) : WitnessF :=
-  rho 108
+  rho 109
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_5_2`. -/
 def syntheticSpends0StateProofPath52 (rho : Nat → WitnessF) : WitnessF :=
-  rho 109
+  rho 110
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_6_0`. -/
 def syntheticSpends0StateProofPath60 (rho : Nat → WitnessF) : WitnessF :=
-  rho 110
+  rho 111
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_6_1`. -/
 def syntheticSpends0StateProofPath61 (rho : Nat → WitnessF) : WitnessF :=
-  rho 111
+  rho 112
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_6_2`. -/
 def syntheticSpends0StateProofPath62 (rho : Nat → WitnessF) : WitnessF :=
-  rho 112
+  rho 113
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_7_0`. -/
 def syntheticSpends0StateProofPath70 (rho : Nat → WitnessF) : WitnessF :=
-  rho 113
+  rho 114
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_7_1`. -/
 def syntheticSpends0StateProofPath71 (rho : Nat → WitnessF) : WitnessF :=
-  rho 114
+  rho 115
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_7_2`. -/
 def syntheticSpends0StateProofPath72 (rho : Nat → WitnessF) : WitnessF :=
-  rho 115
+  rho 116
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_8_0`. -/
 def syntheticSpends0StateProofPath80 (rho : Nat → WitnessF) : WitnessF :=
-  rho 116
+  rho 117
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_8_1`. -/
 def syntheticSpends0StateProofPath81 (rho : Nat → WitnessF) : WitnessF :=
-  rho 117
+  rho 118
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_8_2`. -/
 def syntheticSpends0StateProofPath82 (rho : Nat → WitnessF) : WitnessF :=
-  rho 118
+  rho 119
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_9_0`. -/
 def syntheticSpends0StateProofPath90 (rho : Nat → WitnessF) : WitnessF :=
-  rho 119
+  rho 120
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_9_1`. -/
 def syntheticSpends0StateProofPath91 (rho : Nat → WitnessF) : WitnessF :=
-  rho 120
+  rho 121
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_9_2`. -/
 def syntheticSpends0StateProofPath92 (rho : Nat → WitnessF) : WitnessF :=
-  rho 121
+  rho 122
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_10_0`. -/
 def syntheticSpends0StateProofPath100 (rho : Nat → WitnessF) : WitnessF :=
-  rho 122
+  rho 123
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_10_1`. -/
 def syntheticSpends0StateProofPath101 (rho : Nat → WitnessF) : WitnessF :=
-  rho 123
+  rho 124
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_10_2`. -/
 def syntheticSpends0StateProofPath102 (rho : Nat → WitnessF) : WitnessF :=
-  rho 124
+  rho 125
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_11_0`. -/
 def syntheticSpends0StateProofPath110 (rho : Nat → WitnessF) : WitnessF :=
-  rho 125
+  rho 126
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_11_1`. -/
 def syntheticSpends0StateProofPath111 (rho : Nat → WitnessF) : WitnessF :=
-  rho 126
+  rho 127
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_11_2`. -/
 def syntheticSpends0StateProofPath112 (rho : Nat → WitnessF) : WitnessF :=
-  rho 127
+  rho 128
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_12_0`. -/
 def syntheticSpends0StateProofPath120 (rho : Nat → WitnessF) : WitnessF :=
-  rho 128
+  rho 129
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_12_1`. -/
 def syntheticSpends0StateProofPath121 (rho : Nat → WitnessF) : WitnessF :=
-  rho 129
+  rho 130
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_12_2`. -/
 def syntheticSpends0StateProofPath122 (rho : Nat → WitnessF) : WitnessF :=
-  rho 130
+  rho 131
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_13_0`. -/
 def syntheticSpends0StateProofPath130 (rho : Nat → WitnessF) : WitnessF :=
-  rho 131
+  rho 132
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_13_1`. -/
 def syntheticSpends0StateProofPath131 (rho : Nat → WitnessF) : WitnessF :=
-  rho 132
+  rho 133
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_13_2`. -/
 def syntheticSpends0StateProofPath132 (rho : Nat → WitnessF) : WitnessF :=
-  rho 133
+  rho 134
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_14_0`. -/
 def syntheticSpends0StateProofPath140 (rho : Nat → WitnessF) : WitnessF :=
-  rho 134
+  rho 135
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_14_1`. -/
 def syntheticSpends0StateProofPath141 (rho : Nat → WitnessF) : WitnessF :=
-  rho 135
+  rho 136
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_14_2`. -/
 def syntheticSpends0StateProofPath142 (rho : Nat → WitnessF) : WitnessF :=
-  rho 136
+  rho 137
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_15_0`. -/
 def syntheticSpends0StateProofPath150 (rho : Nat → WitnessF) : WitnessF :=
-  rho 137
+  rho 138
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_15_1`. -/
 def syntheticSpends0StateProofPath151 (rho : Nat → WitnessF) : WitnessF :=
-  rho 138
+  rho 139
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_15_2`. -/
 def syntheticSpends0StateProofPath152 (rho : Nat → WitnessF) : WitnessF :=
-  rho 139
+  rho 140
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_16_0`. -/
 def syntheticSpends0StateProofPath160 (rho : Nat → WitnessF) : WitnessF :=
-  rho 140
+  rho 141
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_16_1`. -/
 def syntheticSpends0StateProofPath161 (rho : Nat → WitnessF) : WitnessF :=
-  rho 141
+  rho 142
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_16_2`. -/
 def syntheticSpends0StateProofPath162 (rho : Nat → WitnessF) : WitnessF :=
-  rho 142
+  rho 143
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_17_0`. -/
 def syntheticSpends0StateProofPath170 (rho : Nat → WitnessF) : WitnessF :=
-  rho 143
+  rho 144
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_17_1`. -/
 def syntheticSpends0StateProofPath171 (rho : Nat → WitnessF) : WitnessF :=
-  rho 144
+  rho 145
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_17_2`. -/
 def syntheticSpends0StateProofPath172 (rho : Nat → WitnessF) : WitnessF :=
-  rho 145
+  rho 146
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_18_0`. -/
 def syntheticSpends0StateProofPath180 (rho : Nat → WitnessF) : WitnessF :=
-  rho 146
+  rho 147
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_18_1`. -/
 def syntheticSpends0StateProofPath181 (rho : Nat → WitnessF) : WitnessF :=
-  rho 147
+  rho 148
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_18_2`. -/
 def syntheticSpends0StateProofPath182 (rho : Nat → WitnessF) : WitnessF :=
-  rho 148
+  rho 149
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_19_0`. -/
 def syntheticSpends0StateProofPath190 (rho : Nat → WitnessF) : WitnessF :=
-  rho 149
+  rho 150
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_19_1`. -/
 def syntheticSpends0StateProofPath191 (rho : Nat → WitnessF) : WitnessF :=
-  rho 150
+  rho 151
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_19_2`. -/
 def syntheticSpends0StateProofPath192 (rho : Nat → WitnessF) : WitnessF :=
-  rho 151
+  rho 152
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_20_0`. -/
 def syntheticSpends0StateProofPath200 (rho : Nat → WitnessF) : WitnessF :=
-  rho 152
+  rho 153
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_20_1`. -/
 def syntheticSpends0StateProofPath201 (rho : Nat → WitnessF) : WitnessF :=
-  rho 153
+  rho 154
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_20_2`. -/
 def syntheticSpends0StateProofPath202 (rho : Nat → WitnessF) : WitnessF :=
-  rho 154
+  rho 155
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_21_0`. -/
 def syntheticSpends0StateProofPath210 (rho : Nat → WitnessF) : WitnessF :=
-  rho 155
+  rho 156
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_21_1`. -/
 def syntheticSpends0StateProofPath211 (rho : Nat → WitnessF) : WitnessF :=
-  rho 156
+  rho 157
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_21_2`. -/
 def syntheticSpends0StateProofPath212 (rho : Nat → WitnessF) : WitnessF :=
-  rho 157
+  rho 158
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_22_0`. -/
 def syntheticSpends0StateProofPath220 (rho : Nat → WitnessF) : WitnessF :=
-  rho 158
+  rho 159
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_22_1`. -/
 def syntheticSpends0StateProofPath221 (rho : Nat → WitnessF) : WitnessF :=
-  rho 159
+  rho 160
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_22_2`. -/
 def syntheticSpends0StateProofPath222 (rho : Nat → WitnessF) : WitnessF :=
-  rho 160
+  rho 161
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_23_0`. -/
 def syntheticSpends0StateProofPath230 (rho : Nat → WitnessF) : WitnessF :=
-  rho 161
+  rho 162
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_23_1`. -/
 def syntheticSpends0StateProofPath231 (rho : Nat → WitnessF) : WitnessF :=
-  rho 162
+  rho 163
 
 /-- Compiler witness path `SyntheticSpends_0_StateProof_Path_23_2`. -/
 def syntheticSpends0StateProofPath232 (rho : Nat → WitnessF) : WitnessF :=
-  rho 163
+  rho 164
 
 /-- Compiler witness path `SyntheticSpends_0_AuthRandomizer`. -/
 def syntheticSpends0AuthRandomizer (rho : Nat → WitnessF) : WitnessF :=
-  rho 164
+  rho 165
+
+/-- Compiler witness path `SyntheticSpends_0_HistoryRequired`. -/
+def syntheticSpends0HistoryRequired (rho : Nat → WitnessF) : WitnessF :=
+  rho 166
 
 /-- Compiler witness path `SyntheticSpends_0_IsDummy`. -/
 def syntheticSpends0IsDummy (rho : Nat → WitnessF) : WitnessF :=
-  rho 165
+  rho 167
 
 /-- Compiler witness path `SyntheticSpends_0_DummyNullifierSeed`. -/
 def syntheticSpends0DummyNullifierSeed (rho : Nat → WitnessF) : WitnessF :=
-  rho 166
+  rho 168
 
 /-- Compiler witness path `SyntheticSpends_1_Nullifier`. -/
 def syntheticSpends1Nullifier (rho : Nat → WitnessF) : WitnessF :=
-  rho 167
+  rho 169
 
 /-- Compiler witness path `SyntheticSpends_1_RK_X`. -/
 def syntheticSpends1RKX (rho : Nat → WitnessF) : WitnessF :=
-  rho 168
+  rho 170
 
 /-- Compiler witness path `SyntheticSpends_1_RK_Y`. -/
 def syntheticSpends1RKY (rho : Nat → WitnessF) : WitnessF :=
-  rho 169
+  rho 171
 
 /-- Compiler witness path `SyntheticSpends_1_Note_Blinding`. -/
 def syntheticSpends1NoteBlinding (rho : Nat → WitnessF) : WitnessF :=
-  rho 170
+  rho 172
 
 /-- Compiler witness path `SyntheticSpends_1_Note_Amount`. -/
 def syntheticSpends1NoteAmount (rho : Nat → WitnessF) : WitnessF :=
-  rho 171
+  rho 173
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Commitment`. -/
 def syntheticSpends1StateProofCommitment (rho : Nat → WitnessF) : WitnessF :=
-  rho 172
+  rho 174
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Position`. -/
 def syntheticSpends1StateProofPosition (rho : Nat → WitnessF) : WitnessF :=
-  rho 173
+  rho 175
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_0_0`. -/
 def syntheticSpends1StateProofPath00 (rho : Nat → WitnessF) : WitnessF :=
-  rho 174
+  rho 176
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_0_1`. -/
 def syntheticSpends1StateProofPath01 (rho : Nat → WitnessF) : WitnessF :=
-  rho 175
+  rho 177
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_0_2`. -/
 def syntheticSpends1StateProofPath02 (rho : Nat → WitnessF) : WitnessF :=
-  rho 176
+  rho 178
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_1_0`. -/
 def syntheticSpends1StateProofPath10 (rho : Nat → WitnessF) : WitnessF :=
-  rho 177
+  rho 179
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_1_1`. -/
 def syntheticSpends1StateProofPath11 (rho : Nat → WitnessF) : WitnessF :=
-  rho 178
+  rho 180
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_1_2`. -/
 def syntheticSpends1StateProofPath12 (rho : Nat → WitnessF) : WitnessF :=
-  rho 179
+  rho 181
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_2_0`. -/
 def syntheticSpends1StateProofPath20 (rho : Nat → WitnessF) : WitnessF :=
-  rho 180
+  rho 182
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_2_1`. -/
 def syntheticSpends1StateProofPath21 (rho : Nat → WitnessF) : WitnessF :=
-  rho 181
+  rho 183
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_2_2`. -/
 def syntheticSpends1StateProofPath22 (rho : Nat → WitnessF) : WitnessF :=
-  rho 182
+  rho 184
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_3_0`. -/
 def syntheticSpends1StateProofPath30 (rho : Nat → WitnessF) : WitnessF :=
-  rho 183
+  rho 185
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_3_1`. -/
 def syntheticSpends1StateProofPath31 (rho : Nat → WitnessF) : WitnessF :=
-  rho 184
+  rho 186
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_3_2`. -/
 def syntheticSpends1StateProofPath32 (rho : Nat → WitnessF) : WitnessF :=
-  rho 185
+  rho 187
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_4_0`. -/
 def syntheticSpends1StateProofPath40 (rho : Nat → WitnessF) : WitnessF :=
-  rho 186
+  rho 188
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_4_1`. -/
 def syntheticSpends1StateProofPath41 (rho : Nat → WitnessF) : WitnessF :=
-  rho 187
+  rho 189
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_4_2`. -/
 def syntheticSpends1StateProofPath42 (rho : Nat → WitnessF) : WitnessF :=
-  rho 188
+  rho 190
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_5_0`. -/
 def syntheticSpends1StateProofPath50 (rho : Nat → WitnessF) : WitnessF :=
-  rho 189
+  rho 191
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_5_1`. -/
 def syntheticSpends1StateProofPath51 (rho : Nat → WitnessF) : WitnessF :=
-  rho 190
+  rho 192
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_5_2`. -/
 def syntheticSpends1StateProofPath52 (rho : Nat → WitnessF) : WitnessF :=
-  rho 191
+  rho 193
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_6_0`. -/
 def syntheticSpends1StateProofPath60 (rho : Nat → WitnessF) : WitnessF :=
-  rho 192
+  rho 194
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_6_1`. -/
 def syntheticSpends1StateProofPath61 (rho : Nat → WitnessF) : WitnessF :=
-  rho 193
+  rho 195
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_6_2`. -/
 def syntheticSpends1StateProofPath62 (rho : Nat → WitnessF) : WitnessF :=
-  rho 194
+  rho 196
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_7_0`. -/
 def syntheticSpends1StateProofPath70 (rho : Nat → WitnessF) : WitnessF :=
-  rho 195
+  rho 197
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_7_1`. -/
 def syntheticSpends1StateProofPath71 (rho : Nat → WitnessF) : WitnessF :=
-  rho 196
+  rho 198
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_7_2`. -/
 def syntheticSpends1StateProofPath72 (rho : Nat → WitnessF) : WitnessF :=
-  rho 197
+  rho 199
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_8_0`. -/
 def syntheticSpends1StateProofPath80 (rho : Nat → WitnessF) : WitnessF :=
-  rho 198
+  rho 200
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_8_1`. -/
 def syntheticSpends1StateProofPath81 (rho : Nat → WitnessF) : WitnessF :=
-  rho 199
+  rho 201
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_8_2`. -/
 def syntheticSpends1StateProofPath82 (rho : Nat → WitnessF) : WitnessF :=
-  rho 200
+  rho 202
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_9_0`. -/
 def syntheticSpends1StateProofPath90 (rho : Nat → WitnessF) : WitnessF :=
-  rho 201
+  rho 203
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_9_1`. -/
 def syntheticSpends1StateProofPath91 (rho : Nat → WitnessF) : WitnessF :=
-  rho 202
+  rho 204
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_9_2`. -/
 def syntheticSpends1StateProofPath92 (rho : Nat → WitnessF) : WitnessF :=
-  rho 203
+  rho 205
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_10_0`. -/
 def syntheticSpends1StateProofPath100 (rho : Nat → WitnessF) : WitnessF :=
-  rho 204
+  rho 206
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_10_1`. -/
 def syntheticSpends1StateProofPath101 (rho : Nat → WitnessF) : WitnessF :=
-  rho 205
+  rho 207
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_10_2`. -/
 def syntheticSpends1StateProofPath102 (rho : Nat → WitnessF) : WitnessF :=
-  rho 206
+  rho 208
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_11_0`. -/
 def syntheticSpends1StateProofPath110 (rho : Nat → WitnessF) : WitnessF :=
-  rho 207
+  rho 209
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_11_1`. -/
 def syntheticSpends1StateProofPath111 (rho : Nat → WitnessF) : WitnessF :=
-  rho 208
+  rho 210
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_11_2`. -/
 def syntheticSpends1StateProofPath112 (rho : Nat → WitnessF) : WitnessF :=
-  rho 209
+  rho 211
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_12_0`. -/
 def syntheticSpends1StateProofPath120 (rho : Nat → WitnessF) : WitnessF :=
-  rho 210
+  rho 212
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_12_1`. -/
 def syntheticSpends1StateProofPath121 (rho : Nat → WitnessF) : WitnessF :=
-  rho 211
+  rho 213
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_12_2`. -/
 def syntheticSpends1StateProofPath122 (rho : Nat → WitnessF) : WitnessF :=
-  rho 212
+  rho 214
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_13_0`. -/
 def syntheticSpends1StateProofPath130 (rho : Nat → WitnessF) : WitnessF :=
-  rho 213
+  rho 215
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_13_1`. -/
 def syntheticSpends1StateProofPath131 (rho : Nat → WitnessF) : WitnessF :=
-  rho 214
+  rho 216
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_13_2`. -/
 def syntheticSpends1StateProofPath132 (rho : Nat → WitnessF) : WitnessF :=
-  rho 215
+  rho 217
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_14_0`. -/
 def syntheticSpends1StateProofPath140 (rho : Nat → WitnessF) : WitnessF :=
-  rho 216
+  rho 218
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_14_1`. -/
 def syntheticSpends1StateProofPath141 (rho : Nat → WitnessF) : WitnessF :=
-  rho 217
+  rho 219
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_14_2`. -/
 def syntheticSpends1StateProofPath142 (rho : Nat → WitnessF) : WitnessF :=
-  rho 218
+  rho 220
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_15_0`. -/
 def syntheticSpends1StateProofPath150 (rho : Nat → WitnessF) : WitnessF :=
-  rho 219
+  rho 221
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_15_1`. -/
 def syntheticSpends1StateProofPath151 (rho : Nat → WitnessF) : WitnessF :=
-  rho 220
+  rho 222
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_15_2`. -/
 def syntheticSpends1StateProofPath152 (rho : Nat → WitnessF) : WitnessF :=
-  rho 221
+  rho 223
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_16_0`. -/
 def syntheticSpends1StateProofPath160 (rho : Nat → WitnessF) : WitnessF :=
-  rho 222
+  rho 224
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_16_1`. -/
 def syntheticSpends1StateProofPath161 (rho : Nat → WitnessF) : WitnessF :=
-  rho 223
+  rho 225
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_16_2`. -/
 def syntheticSpends1StateProofPath162 (rho : Nat → WitnessF) : WitnessF :=
-  rho 224
+  rho 226
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_17_0`. -/
 def syntheticSpends1StateProofPath170 (rho : Nat → WitnessF) : WitnessF :=
-  rho 225
+  rho 227
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_17_1`. -/
 def syntheticSpends1StateProofPath171 (rho : Nat → WitnessF) : WitnessF :=
-  rho 226
+  rho 228
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_17_2`. -/
 def syntheticSpends1StateProofPath172 (rho : Nat → WitnessF) : WitnessF :=
-  rho 227
+  rho 229
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_18_0`. -/
 def syntheticSpends1StateProofPath180 (rho : Nat → WitnessF) : WitnessF :=
-  rho 228
+  rho 230
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_18_1`. -/
 def syntheticSpends1StateProofPath181 (rho : Nat → WitnessF) : WitnessF :=
-  rho 229
+  rho 231
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_18_2`. -/
 def syntheticSpends1StateProofPath182 (rho : Nat → WitnessF) : WitnessF :=
-  rho 230
+  rho 232
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_19_0`. -/
 def syntheticSpends1StateProofPath190 (rho : Nat → WitnessF) : WitnessF :=
-  rho 231
+  rho 233
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_19_1`. -/
 def syntheticSpends1StateProofPath191 (rho : Nat → WitnessF) : WitnessF :=
-  rho 232
+  rho 234
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_19_2`. -/
 def syntheticSpends1StateProofPath192 (rho : Nat → WitnessF) : WitnessF :=
-  rho 233
+  rho 235
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_20_0`. -/
 def syntheticSpends1StateProofPath200 (rho : Nat → WitnessF) : WitnessF :=
-  rho 234
+  rho 236
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_20_1`. -/
 def syntheticSpends1StateProofPath201 (rho : Nat → WitnessF) : WitnessF :=
-  rho 235
+  rho 237
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_20_2`. -/
 def syntheticSpends1StateProofPath202 (rho : Nat → WitnessF) : WitnessF :=
-  rho 236
+  rho 238
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_21_0`. -/
 def syntheticSpends1StateProofPath210 (rho : Nat → WitnessF) : WitnessF :=
-  rho 237
+  rho 239
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_21_1`. -/
 def syntheticSpends1StateProofPath211 (rho : Nat → WitnessF) : WitnessF :=
-  rho 238
+  rho 240
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_21_2`. -/
 def syntheticSpends1StateProofPath212 (rho : Nat → WitnessF) : WitnessF :=
-  rho 239
+  rho 241
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_22_0`. -/
 def syntheticSpends1StateProofPath220 (rho : Nat → WitnessF) : WitnessF :=
-  rho 240
+  rho 242
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_22_1`. -/
 def syntheticSpends1StateProofPath221 (rho : Nat → WitnessF) : WitnessF :=
-  rho 241
+  rho 243
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_22_2`. -/
 def syntheticSpends1StateProofPath222 (rho : Nat → WitnessF) : WitnessF :=
-  rho 242
+  rho 244
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_23_0`. -/
 def syntheticSpends1StateProofPath230 (rho : Nat → WitnessF) : WitnessF :=
-  rho 243
+  rho 245
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_23_1`. -/
 def syntheticSpends1StateProofPath231 (rho : Nat → WitnessF) : WitnessF :=
-  rho 244
+  rho 246
 
 /-- Compiler witness path `SyntheticSpends_1_StateProof_Path_23_2`. -/
 def syntheticSpends1StateProofPath232 (rho : Nat → WitnessF) : WitnessF :=
-  rho 245
+  rho 247
 
 /-- Compiler witness path `SyntheticSpends_1_AuthRandomizer`. -/
 def syntheticSpends1AuthRandomizer (rho : Nat → WitnessF) : WitnessF :=
-  rho 246
+  rho 248
+
+/-- Compiler witness path `SyntheticSpends_1_HistoryRequired`. -/
+def syntheticSpends1HistoryRequired (rho : Nat → WitnessF) : WitnessF :=
+  rho 249
 
 /-- Compiler witness path `SyntheticSpends_1_IsDummy`. -/
 def syntheticSpends1IsDummy (rho : Nat → WitnessF) : WitnessF :=
-  rho 247
+  rho 250
 
 /-- Compiler witness path `SyntheticSpends_1_DummyNullifierSeed`. -/
 def syntheticSpends1DummyNullifierSeed (rho : Nat → WitnessF) : WitnessF :=
-  rho 248
+  rho 251
 
 /-- Compiler witness path `SyntheticSpends_2_Nullifier`. -/
 def syntheticSpends2Nullifier (rho : Nat → WitnessF) : WitnessF :=
-  rho 249
+  rho 252
 
 /-- Compiler witness path `SyntheticSpends_2_RK_X`. -/
 def syntheticSpends2RKX (rho : Nat → WitnessF) : WitnessF :=
-  rho 250
+  rho 253
 
 /-- Compiler witness path `SyntheticSpends_2_RK_Y`. -/
 def syntheticSpends2RKY (rho : Nat → WitnessF) : WitnessF :=
-  rho 251
+  rho 254
 
 /-- Compiler witness path `SyntheticSpends_2_Note_Blinding`. -/
 def syntheticSpends2NoteBlinding (rho : Nat → WitnessF) : WitnessF :=
-  rho 252
+  rho 255
 
 /-- Compiler witness path `SyntheticSpends_2_Note_Amount`. -/
 def syntheticSpends2NoteAmount (rho : Nat → WitnessF) : WitnessF :=
-  rho 253
+  rho 256
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Commitment`. -/
 def syntheticSpends2StateProofCommitment (rho : Nat → WitnessF) : WitnessF :=
-  rho 254
+  rho 257
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Position`. -/
 def syntheticSpends2StateProofPosition (rho : Nat → WitnessF) : WitnessF :=
-  rho 255
+  rho 258
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_0_0`. -/
 def syntheticSpends2StateProofPath00 (rho : Nat → WitnessF) : WitnessF :=
-  rho 256
+  rho 259
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_0_1`. -/
 def syntheticSpends2StateProofPath01 (rho : Nat → WitnessF) : WitnessF :=
-  rho 257
+  rho 260
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_0_2`. -/
 def syntheticSpends2StateProofPath02 (rho : Nat → WitnessF) : WitnessF :=
-  rho 258
+  rho 261
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_1_0`. -/
 def syntheticSpends2StateProofPath10 (rho : Nat → WitnessF) : WitnessF :=
-  rho 259
+  rho 262
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_1_1`. -/
 def syntheticSpends2StateProofPath11 (rho : Nat → WitnessF) : WitnessF :=
-  rho 260
+  rho 263
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_1_2`. -/
 def syntheticSpends2StateProofPath12 (rho : Nat → WitnessF) : WitnessF :=
-  rho 261
+  rho 264
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_2_0`. -/
 def syntheticSpends2StateProofPath20 (rho : Nat → WitnessF) : WitnessF :=
-  rho 262
+  rho 265
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_2_1`. -/
 def syntheticSpends2StateProofPath21 (rho : Nat → WitnessF) : WitnessF :=
-  rho 263
+  rho 266
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_2_2`. -/
 def syntheticSpends2StateProofPath22 (rho : Nat → WitnessF) : WitnessF :=
-  rho 264
+  rho 267
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_3_0`. -/
 def syntheticSpends2StateProofPath30 (rho : Nat → WitnessF) : WitnessF :=
-  rho 265
+  rho 268
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_3_1`. -/
 def syntheticSpends2StateProofPath31 (rho : Nat → WitnessF) : WitnessF :=
-  rho 266
+  rho 269
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_3_2`. -/
 def syntheticSpends2StateProofPath32 (rho : Nat → WitnessF) : WitnessF :=
-  rho 267
+  rho 270
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_4_0`. -/
 def syntheticSpends2StateProofPath40 (rho : Nat → WitnessF) : WitnessF :=
-  rho 268
+  rho 271
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_4_1`. -/
 def syntheticSpends2StateProofPath41 (rho : Nat → WitnessF) : WitnessF :=
-  rho 269
+  rho 272
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_4_2`. -/
 def syntheticSpends2StateProofPath42 (rho : Nat → WitnessF) : WitnessF :=
-  rho 270
+  rho 273
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_5_0`. -/
 def syntheticSpends2StateProofPath50 (rho : Nat → WitnessF) : WitnessF :=
-  rho 271
+  rho 274
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_5_1`. -/
 def syntheticSpends2StateProofPath51 (rho : Nat → WitnessF) : WitnessF :=
-  rho 272
+  rho 275
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_5_2`. -/
 def syntheticSpends2StateProofPath52 (rho : Nat → WitnessF) : WitnessF :=
-  rho 273
+  rho 276
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_6_0`. -/
 def syntheticSpends2StateProofPath60 (rho : Nat → WitnessF) : WitnessF :=
-  rho 274
+  rho 277
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_6_1`. -/
 def syntheticSpends2StateProofPath61 (rho : Nat → WitnessF) : WitnessF :=
-  rho 275
+  rho 278
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_6_2`. -/
 def syntheticSpends2StateProofPath62 (rho : Nat → WitnessF) : WitnessF :=
-  rho 276
+  rho 279
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_7_0`. -/
 def syntheticSpends2StateProofPath70 (rho : Nat → WitnessF) : WitnessF :=
-  rho 277
+  rho 280
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_7_1`. -/
 def syntheticSpends2StateProofPath71 (rho : Nat → WitnessF) : WitnessF :=
-  rho 278
+  rho 281
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_7_2`. -/
 def syntheticSpends2StateProofPath72 (rho : Nat → WitnessF) : WitnessF :=
-  rho 279
+  rho 282
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_8_0`. -/
 def syntheticSpends2StateProofPath80 (rho : Nat → WitnessF) : WitnessF :=
-  rho 280
+  rho 283
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_8_1`. -/
 def syntheticSpends2StateProofPath81 (rho : Nat → WitnessF) : WitnessF :=
-  rho 281
+  rho 284
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_8_2`. -/
 def syntheticSpends2StateProofPath82 (rho : Nat → WitnessF) : WitnessF :=
-  rho 282
+  rho 285
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_9_0`. -/
 def syntheticSpends2StateProofPath90 (rho : Nat → WitnessF) : WitnessF :=
-  rho 283
+  rho 286
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_9_1`. -/
 def syntheticSpends2StateProofPath91 (rho : Nat → WitnessF) : WitnessF :=
-  rho 284
+  rho 287
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_9_2`. -/
 def syntheticSpends2StateProofPath92 (rho : Nat → WitnessF) : WitnessF :=
-  rho 285
+  rho 288
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_10_0`. -/
 def syntheticSpends2StateProofPath100 (rho : Nat → WitnessF) : WitnessF :=
-  rho 286
+  rho 289
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_10_1`. -/
 def syntheticSpends2StateProofPath101 (rho : Nat → WitnessF) : WitnessF :=
-  rho 287
+  rho 290
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_10_2`. -/
 def syntheticSpends2StateProofPath102 (rho : Nat → WitnessF) : WitnessF :=
-  rho 288
+  rho 291
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_11_0`. -/
 def syntheticSpends2StateProofPath110 (rho : Nat → WitnessF) : WitnessF :=
-  rho 289
+  rho 292
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_11_1`. -/
 def syntheticSpends2StateProofPath111 (rho : Nat → WitnessF) : WitnessF :=
-  rho 290
+  rho 293
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_11_2`. -/
 def syntheticSpends2StateProofPath112 (rho : Nat → WitnessF) : WitnessF :=
-  rho 291
+  rho 294
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_12_0`. -/
 def syntheticSpends2StateProofPath120 (rho : Nat → WitnessF) : WitnessF :=
-  rho 292
+  rho 295
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_12_1`. -/
 def syntheticSpends2StateProofPath121 (rho : Nat → WitnessF) : WitnessF :=
-  rho 293
+  rho 296
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_12_2`. -/
 def syntheticSpends2StateProofPath122 (rho : Nat → WitnessF) : WitnessF :=
-  rho 294
+  rho 297
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_13_0`. -/
 def syntheticSpends2StateProofPath130 (rho : Nat → WitnessF) : WitnessF :=
-  rho 295
+  rho 298
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_13_1`. -/
 def syntheticSpends2StateProofPath131 (rho : Nat → WitnessF) : WitnessF :=
-  rho 296
+  rho 299
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_13_2`. -/
 def syntheticSpends2StateProofPath132 (rho : Nat → WitnessF) : WitnessF :=
-  rho 297
+  rho 300
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_14_0`. -/
 def syntheticSpends2StateProofPath140 (rho : Nat → WitnessF) : WitnessF :=
-  rho 298
+  rho 301
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_14_1`. -/
 def syntheticSpends2StateProofPath141 (rho : Nat → WitnessF) : WitnessF :=
-  rho 299
+  rho 302
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_14_2`. -/
 def syntheticSpends2StateProofPath142 (rho : Nat → WitnessF) : WitnessF :=
-  rho 300
+  rho 303
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_15_0`. -/
 def syntheticSpends2StateProofPath150 (rho : Nat → WitnessF) : WitnessF :=
-  rho 301
+  rho 304
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_15_1`. -/
 def syntheticSpends2StateProofPath151 (rho : Nat → WitnessF) : WitnessF :=
-  rho 302
+  rho 305
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_15_2`. -/
 def syntheticSpends2StateProofPath152 (rho : Nat → WitnessF) : WitnessF :=
-  rho 303
+  rho 306
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_16_0`. -/
 def syntheticSpends2StateProofPath160 (rho : Nat → WitnessF) : WitnessF :=
-  rho 304
+  rho 307
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_16_1`. -/
 def syntheticSpends2StateProofPath161 (rho : Nat → WitnessF) : WitnessF :=
-  rho 305
+  rho 308
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_16_2`. -/
 def syntheticSpends2StateProofPath162 (rho : Nat → WitnessF) : WitnessF :=
-  rho 306
+  rho 309
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_17_0`. -/
 def syntheticSpends2StateProofPath170 (rho : Nat → WitnessF) : WitnessF :=
-  rho 307
+  rho 310
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_17_1`. -/
 def syntheticSpends2StateProofPath171 (rho : Nat → WitnessF) : WitnessF :=
-  rho 308
+  rho 311
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_17_2`. -/
 def syntheticSpends2StateProofPath172 (rho : Nat → WitnessF) : WitnessF :=
-  rho 309
+  rho 312
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_18_0`. -/
 def syntheticSpends2StateProofPath180 (rho : Nat → WitnessF) : WitnessF :=
-  rho 310
+  rho 313
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_18_1`. -/
 def syntheticSpends2StateProofPath181 (rho : Nat → WitnessF) : WitnessF :=
-  rho 311
+  rho 314
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_18_2`. -/
 def syntheticSpends2StateProofPath182 (rho : Nat → WitnessF) : WitnessF :=
-  rho 312
+  rho 315
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_19_0`. -/
 def syntheticSpends2StateProofPath190 (rho : Nat → WitnessF) : WitnessF :=
-  rho 313
+  rho 316
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_19_1`. -/
 def syntheticSpends2StateProofPath191 (rho : Nat → WitnessF) : WitnessF :=
-  rho 314
+  rho 317
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_19_2`. -/
 def syntheticSpends2StateProofPath192 (rho : Nat → WitnessF) : WitnessF :=
-  rho 315
+  rho 318
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_20_0`. -/
 def syntheticSpends2StateProofPath200 (rho : Nat → WitnessF) : WitnessF :=
-  rho 316
+  rho 319
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_20_1`. -/
 def syntheticSpends2StateProofPath201 (rho : Nat → WitnessF) : WitnessF :=
-  rho 317
+  rho 320
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_20_2`. -/
 def syntheticSpends2StateProofPath202 (rho : Nat → WitnessF) : WitnessF :=
-  rho 318
+  rho 321
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_21_0`. -/
 def syntheticSpends2StateProofPath210 (rho : Nat → WitnessF) : WitnessF :=
-  rho 319
+  rho 322
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_21_1`. -/
 def syntheticSpends2StateProofPath211 (rho : Nat → WitnessF) : WitnessF :=
-  rho 320
+  rho 323
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_21_2`. -/
 def syntheticSpends2StateProofPath212 (rho : Nat → WitnessF) : WitnessF :=
-  rho 321
+  rho 324
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_22_0`. -/
 def syntheticSpends2StateProofPath220 (rho : Nat → WitnessF) : WitnessF :=
-  rho 322
+  rho 325
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_22_1`. -/
 def syntheticSpends2StateProofPath221 (rho : Nat → WitnessF) : WitnessF :=
-  rho 323
+  rho 326
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_22_2`. -/
 def syntheticSpends2StateProofPath222 (rho : Nat → WitnessF) : WitnessF :=
-  rho 324
+  rho 327
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_23_0`. -/
 def syntheticSpends2StateProofPath230 (rho : Nat → WitnessF) : WitnessF :=
-  rho 325
+  rho 328
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_23_1`. -/
 def syntheticSpends2StateProofPath231 (rho : Nat → WitnessF) : WitnessF :=
-  rho 326
+  rho 329
 
 /-- Compiler witness path `SyntheticSpends_2_StateProof_Path_23_2`. -/
 def syntheticSpends2StateProofPath232 (rho : Nat → WitnessF) : WitnessF :=
-  rho 327
+  rho 330
 
 /-- Compiler witness path `SyntheticSpends_2_AuthRandomizer`. -/
 def syntheticSpends2AuthRandomizer (rho : Nat → WitnessF) : WitnessF :=
-  rho 328
+  rho 331
+
+/-- Compiler witness path `SyntheticSpends_2_HistoryRequired`. -/
+def syntheticSpends2HistoryRequired (rho : Nat → WitnessF) : WitnessF :=
+  rho 332
 
 /-- Compiler witness path `SyntheticSpends_2_IsDummy`. -/
 def syntheticSpends2IsDummy (rho : Nat → WitnessF) : WitnessF :=
-  rho 329
+  rho 333
 
 /-- Compiler witness path `SyntheticSpends_2_DummyNullifierSeed`. -/
 def syntheticSpends2DummyNullifierSeed (rho : Nat → WitnessF) : WitnessF :=
-  rho 330
+  rho 334
 
 /-- Compiler witness path `SyntheticSpends_3_Nullifier`. -/
 def syntheticSpends3Nullifier (rho : Nat → WitnessF) : WitnessF :=
-  rho 331
+  rho 335
 
 /-- Compiler witness path `SyntheticSpends_3_RK_X`. -/
 def syntheticSpends3RKX (rho : Nat → WitnessF) : WitnessF :=
-  rho 332
+  rho 336
 
 /-- Compiler witness path `SyntheticSpends_3_RK_Y`. -/
 def syntheticSpends3RKY (rho : Nat → WitnessF) : WitnessF :=
-  rho 333
+  rho 337
 
 /-- Compiler witness path `SyntheticSpends_3_Note_Blinding`. -/
 def syntheticSpends3NoteBlinding (rho : Nat → WitnessF) : WitnessF :=
-  rho 334
+  rho 338
 
 /-- Compiler witness path `SyntheticSpends_3_Note_Amount`. -/
 def syntheticSpends3NoteAmount (rho : Nat → WitnessF) : WitnessF :=
-  rho 335
+  rho 339
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Commitment`. -/
 def syntheticSpends3StateProofCommitment (rho : Nat → WitnessF) : WitnessF :=
-  rho 336
+  rho 340
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Position`. -/
 def syntheticSpends3StateProofPosition (rho : Nat → WitnessF) : WitnessF :=
-  rho 337
+  rho 341
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_0_0`. -/
 def syntheticSpends3StateProofPath00 (rho : Nat → WitnessF) : WitnessF :=
-  rho 338
+  rho 342
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_0_1`. -/
 def syntheticSpends3StateProofPath01 (rho : Nat → WitnessF) : WitnessF :=
-  rho 339
+  rho 343
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_0_2`. -/
 def syntheticSpends3StateProofPath02 (rho : Nat → WitnessF) : WitnessF :=
-  rho 340
+  rho 344
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_1_0`. -/
 def syntheticSpends3StateProofPath10 (rho : Nat → WitnessF) : WitnessF :=
-  rho 341
+  rho 345
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_1_1`. -/
 def syntheticSpends3StateProofPath11 (rho : Nat → WitnessF) : WitnessF :=
-  rho 342
+  rho 346
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_1_2`. -/
 def syntheticSpends3StateProofPath12 (rho : Nat → WitnessF) : WitnessF :=
-  rho 343
+  rho 347
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_2_0`. -/
 def syntheticSpends3StateProofPath20 (rho : Nat → WitnessF) : WitnessF :=
-  rho 344
+  rho 348
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_2_1`. -/
 def syntheticSpends3StateProofPath21 (rho : Nat → WitnessF) : WitnessF :=
-  rho 345
+  rho 349
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_2_2`. -/
 def syntheticSpends3StateProofPath22 (rho : Nat → WitnessF) : WitnessF :=
-  rho 346
+  rho 350
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_3_0`. -/
 def syntheticSpends3StateProofPath30 (rho : Nat → WitnessF) : WitnessF :=
-  rho 347
+  rho 351
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_3_1`. -/
 def syntheticSpends3StateProofPath31 (rho : Nat → WitnessF) : WitnessF :=
-  rho 348
+  rho 352
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_3_2`. -/
 def syntheticSpends3StateProofPath32 (rho : Nat → WitnessF) : WitnessF :=
-  rho 349
+  rho 353
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_4_0`. -/
 def syntheticSpends3StateProofPath40 (rho : Nat → WitnessF) : WitnessF :=
-  rho 350
+  rho 354
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_4_1`. -/
 def syntheticSpends3StateProofPath41 (rho : Nat → WitnessF) : WitnessF :=
-  rho 351
+  rho 355
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_4_2`. -/
 def syntheticSpends3StateProofPath42 (rho : Nat → WitnessF) : WitnessF :=
-  rho 352
+  rho 356
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_5_0`. -/
 def syntheticSpends3StateProofPath50 (rho : Nat → WitnessF) : WitnessF :=
-  rho 353
+  rho 357
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_5_1`. -/
 def syntheticSpends3StateProofPath51 (rho : Nat → WitnessF) : WitnessF :=
-  rho 354
+  rho 358
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_5_2`. -/
 def syntheticSpends3StateProofPath52 (rho : Nat → WitnessF) : WitnessF :=
-  rho 355
+  rho 359
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_6_0`. -/
 def syntheticSpends3StateProofPath60 (rho : Nat → WitnessF) : WitnessF :=
-  rho 356
+  rho 360
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_6_1`. -/
 def syntheticSpends3StateProofPath61 (rho : Nat → WitnessF) : WitnessF :=
-  rho 357
+  rho 361
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_6_2`. -/
 def syntheticSpends3StateProofPath62 (rho : Nat → WitnessF) : WitnessF :=
-  rho 358
+  rho 362
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_7_0`. -/
 def syntheticSpends3StateProofPath70 (rho : Nat → WitnessF) : WitnessF :=
-  rho 359
+  rho 363
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_7_1`. -/
 def syntheticSpends3StateProofPath71 (rho : Nat → WitnessF) : WitnessF :=
-  rho 360
+  rho 364
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_7_2`. -/
 def syntheticSpends3StateProofPath72 (rho : Nat → WitnessF) : WitnessF :=
-  rho 361
+  rho 365
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_8_0`. -/
 def syntheticSpends3StateProofPath80 (rho : Nat → WitnessF) : WitnessF :=
-  rho 362
+  rho 366
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_8_1`. -/
 def syntheticSpends3StateProofPath81 (rho : Nat → WitnessF) : WitnessF :=
-  rho 363
+  rho 367
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_8_2`. -/
 def syntheticSpends3StateProofPath82 (rho : Nat → WitnessF) : WitnessF :=
-  rho 364
+  rho 368
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_9_0`. -/
 def syntheticSpends3StateProofPath90 (rho : Nat → WitnessF) : WitnessF :=
-  rho 365
+  rho 369
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_9_1`. -/
 def syntheticSpends3StateProofPath91 (rho : Nat → WitnessF) : WitnessF :=
-  rho 366
+  rho 370
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_9_2`. -/
 def syntheticSpends3StateProofPath92 (rho : Nat → WitnessF) : WitnessF :=
-  rho 367
+  rho 371
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_10_0`. -/
 def syntheticSpends3StateProofPath100 (rho : Nat → WitnessF) : WitnessF :=
-  rho 368
+  rho 372
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_10_1`. -/
 def syntheticSpends3StateProofPath101 (rho : Nat → WitnessF) : WitnessF :=
-  rho 369
+  rho 373
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_10_2`. -/
 def syntheticSpends3StateProofPath102 (rho : Nat → WitnessF) : WitnessF :=
-  rho 370
+  rho 374
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_11_0`. -/
 def syntheticSpends3StateProofPath110 (rho : Nat → WitnessF) : WitnessF :=
-  rho 371
+  rho 375
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_11_1`. -/
 def syntheticSpends3StateProofPath111 (rho : Nat → WitnessF) : WitnessF :=
-  rho 372
+  rho 376
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_11_2`. -/
 def syntheticSpends3StateProofPath112 (rho : Nat → WitnessF) : WitnessF :=
-  rho 373
+  rho 377
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_12_0`. -/
 def syntheticSpends3StateProofPath120 (rho : Nat → WitnessF) : WitnessF :=
-  rho 374
+  rho 378
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_12_1`. -/
 def syntheticSpends3StateProofPath121 (rho : Nat → WitnessF) : WitnessF :=
-  rho 375
+  rho 379
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_12_2`. -/
 def syntheticSpends3StateProofPath122 (rho : Nat → WitnessF) : WitnessF :=
-  rho 376
+  rho 380
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_13_0`. -/
 def syntheticSpends3StateProofPath130 (rho : Nat → WitnessF) : WitnessF :=
-  rho 377
+  rho 381
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_13_1`. -/
 def syntheticSpends3StateProofPath131 (rho : Nat → WitnessF) : WitnessF :=
-  rho 378
+  rho 382
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_13_2`. -/
 def syntheticSpends3StateProofPath132 (rho : Nat → WitnessF) : WitnessF :=
-  rho 379
+  rho 383
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_14_0`. -/
 def syntheticSpends3StateProofPath140 (rho : Nat → WitnessF) : WitnessF :=
-  rho 380
+  rho 384
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_14_1`. -/
 def syntheticSpends3StateProofPath141 (rho : Nat → WitnessF) : WitnessF :=
-  rho 381
+  rho 385
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_14_2`. -/
 def syntheticSpends3StateProofPath142 (rho : Nat → WitnessF) : WitnessF :=
-  rho 382
+  rho 386
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_15_0`. -/
 def syntheticSpends3StateProofPath150 (rho : Nat → WitnessF) : WitnessF :=
-  rho 383
+  rho 387
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_15_1`. -/
 def syntheticSpends3StateProofPath151 (rho : Nat → WitnessF) : WitnessF :=
-  rho 384
+  rho 388
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_15_2`. -/
 def syntheticSpends3StateProofPath152 (rho : Nat → WitnessF) : WitnessF :=
-  rho 385
+  rho 389
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_16_0`. -/
 def syntheticSpends3StateProofPath160 (rho : Nat → WitnessF) : WitnessF :=
-  rho 386
+  rho 390
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_16_1`. -/
 def syntheticSpends3StateProofPath161 (rho : Nat → WitnessF) : WitnessF :=
-  rho 387
+  rho 391
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_16_2`. -/
 def syntheticSpends3StateProofPath162 (rho : Nat → WitnessF) : WitnessF :=
-  rho 388
+  rho 392
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_17_0`. -/
 def syntheticSpends3StateProofPath170 (rho : Nat → WitnessF) : WitnessF :=
-  rho 389
+  rho 393
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_17_1`. -/
 def syntheticSpends3StateProofPath171 (rho : Nat → WitnessF) : WitnessF :=
-  rho 390
+  rho 394
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_17_2`. -/
 def syntheticSpends3StateProofPath172 (rho : Nat → WitnessF) : WitnessF :=
-  rho 391
+  rho 395
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_18_0`. -/
 def syntheticSpends3StateProofPath180 (rho : Nat → WitnessF) : WitnessF :=
-  rho 392
+  rho 396
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_18_1`. -/
 def syntheticSpends3StateProofPath181 (rho : Nat → WitnessF) : WitnessF :=
-  rho 393
+  rho 397
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_18_2`. -/
 def syntheticSpends3StateProofPath182 (rho : Nat → WitnessF) : WitnessF :=
-  rho 394
+  rho 398
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_19_0`. -/
 def syntheticSpends3StateProofPath190 (rho : Nat → WitnessF) : WitnessF :=
-  rho 395
+  rho 399
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_19_1`. -/
 def syntheticSpends3StateProofPath191 (rho : Nat → WitnessF) : WitnessF :=
-  rho 396
+  rho 400
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_19_2`. -/
 def syntheticSpends3StateProofPath192 (rho : Nat → WitnessF) : WitnessF :=
-  rho 397
+  rho 401
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_20_0`. -/
 def syntheticSpends3StateProofPath200 (rho : Nat → WitnessF) : WitnessF :=
-  rho 398
+  rho 402
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_20_1`. -/
 def syntheticSpends3StateProofPath201 (rho : Nat → WitnessF) : WitnessF :=
-  rho 399
+  rho 403
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_20_2`. -/
 def syntheticSpends3StateProofPath202 (rho : Nat → WitnessF) : WitnessF :=
-  rho 400
+  rho 404
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_21_0`. -/
 def syntheticSpends3StateProofPath210 (rho : Nat → WitnessF) : WitnessF :=
-  rho 401
+  rho 405
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_21_1`. -/
 def syntheticSpends3StateProofPath211 (rho : Nat → WitnessF) : WitnessF :=
-  rho 402
+  rho 406
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_21_2`. -/
 def syntheticSpends3StateProofPath212 (rho : Nat → WitnessF) : WitnessF :=
-  rho 403
+  rho 407
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_22_0`. -/
 def syntheticSpends3StateProofPath220 (rho : Nat → WitnessF) : WitnessF :=
-  rho 404
+  rho 408
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_22_1`. -/
 def syntheticSpends3StateProofPath221 (rho : Nat → WitnessF) : WitnessF :=
-  rho 405
+  rho 409
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_22_2`. -/
 def syntheticSpends3StateProofPath222 (rho : Nat → WitnessF) : WitnessF :=
-  rho 406
+  rho 410
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_23_0`. -/
 def syntheticSpends3StateProofPath230 (rho : Nat → WitnessF) : WitnessF :=
-  rho 407
+  rho 411
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_23_1`. -/
 def syntheticSpends3StateProofPath231 (rho : Nat → WitnessF) : WitnessF :=
-  rho 408
+  rho 412
 
 /-- Compiler witness path `SyntheticSpends_3_StateProof_Path_23_2`. -/
 def syntheticSpends3StateProofPath232 (rho : Nat → WitnessF) : WitnessF :=
-  rho 409
+  rho 413
 
 /-- Compiler witness path `SyntheticSpends_3_AuthRandomizer`. -/
 def syntheticSpends3AuthRandomizer (rho : Nat → WitnessF) : WitnessF :=
-  rho 410
+  rho 414
+
+/-- Compiler witness path `SyntheticSpends_3_HistoryRequired`. -/
+def syntheticSpends3HistoryRequired (rho : Nat → WitnessF) : WitnessF :=
+  rho 415
 
 /-- Compiler witness path `SyntheticSpends_3_IsDummy`. -/
 def syntheticSpends3IsDummy (rho : Nat → WitnessF) : WitnessF :=
-  rho 411
+  rho 416
 
 /-- Compiler witness path `SyntheticSpends_3_DummyNullifierSeed`. -/
 def syntheticSpends3DummyNullifierSeed (rho : Nat → WitnessF) : WitnessF :=
-  rho 412
+  rho 417
 
 /-- Compiler witness path `SyntheticSpends_4_Nullifier`. -/
 def syntheticSpends4Nullifier (rho : Nat → WitnessF) : WitnessF :=
-  rho 413
+  rho 418
 
 /-- Compiler witness path `SyntheticSpends_4_RK_X`. -/
 def syntheticSpends4RKX (rho : Nat → WitnessF) : WitnessF :=
-  rho 414
+  rho 419
 
 /-- Compiler witness path `SyntheticSpends_4_RK_Y`. -/
 def syntheticSpends4RKY (rho : Nat → WitnessF) : WitnessF :=
-  rho 415
+  rho 420
 
 /-- Compiler witness path `SyntheticSpends_4_Note_Blinding`. -/
 def syntheticSpends4NoteBlinding (rho : Nat → WitnessF) : WitnessF :=
-  rho 416
+  rho 421
 
 /-- Compiler witness path `SyntheticSpends_4_Note_Amount`. -/
 def syntheticSpends4NoteAmount (rho : Nat → WitnessF) : WitnessF :=
-  rho 417
+  rho 422
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Commitment`. -/
 def syntheticSpends4StateProofCommitment (rho : Nat → WitnessF) : WitnessF :=
-  rho 418
+  rho 423
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Position`. -/
 def syntheticSpends4StateProofPosition (rho : Nat → WitnessF) : WitnessF :=
-  rho 419
+  rho 424
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_0_0`. -/
 def syntheticSpends4StateProofPath00 (rho : Nat → WitnessF) : WitnessF :=
-  rho 420
+  rho 425
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_0_1`. -/
 def syntheticSpends4StateProofPath01 (rho : Nat → WitnessF) : WitnessF :=
-  rho 421
+  rho 426
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_0_2`. -/
 def syntheticSpends4StateProofPath02 (rho : Nat → WitnessF) : WitnessF :=
-  rho 422
+  rho 427
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_1_0`. -/
 def syntheticSpends4StateProofPath10 (rho : Nat → WitnessF) : WitnessF :=
-  rho 423
+  rho 428
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_1_1`. -/
 def syntheticSpends4StateProofPath11 (rho : Nat → WitnessF) : WitnessF :=
-  rho 424
+  rho 429
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_1_2`. -/
 def syntheticSpends4StateProofPath12 (rho : Nat → WitnessF) : WitnessF :=
-  rho 425
+  rho 430
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_2_0`. -/
 def syntheticSpends4StateProofPath20 (rho : Nat → WitnessF) : WitnessF :=
-  rho 426
+  rho 431
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_2_1`. -/
 def syntheticSpends4StateProofPath21 (rho : Nat → WitnessF) : WitnessF :=
-  rho 427
+  rho 432
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_2_2`. -/
 def syntheticSpends4StateProofPath22 (rho : Nat → WitnessF) : WitnessF :=
-  rho 428
+  rho 433
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_3_0`. -/
 def syntheticSpends4StateProofPath30 (rho : Nat → WitnessF) : WitnessF :=
-  rho 429
+  rho 434
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_3_1`. -/
 def syntheticSpends4StateProofPath31 (rho : Nat → WitnessF) : WitnessF :=
-  rho 430
+  rho 435
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_3_2`. -/
 def syntheticSpends4StateProofPath32 (rho : Nat → WitnessF) : WitnessF :=
-  rho 431
+  rho 436
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_4_0`. -/
 def syntheticSpends4StateProofPath40 (rho : Nat → WitnessF) : WitnessF :=
-  rho 432
+  rho 437
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_4_1`. -/
 def syntheticSpends4StateProofPath41 (rho : Nat → WitnessF) : WitnessF :=
-  rho 433
+  rho 438
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_4_2`. -/
 def syntheticSpends4StateProofPath42 (rho : Nat → WitnessF) : WitnessF :=
-  rho 434
+  rho 439
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_5_0`. -/
 def syntheticSpends4StateProofPath50 (rho : Nat → WitnessF) : WitnessF :=
-  rho 435
+  rho 440
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_5_1`. -/
 def syntheticSpends4StateProofPath51 (rho : Nat → WitnessF) : WitnessF :=
-  rho 436
+  rho 441
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_5_2`. -/
 def syntheticSpends4StateProofPath52 (rho : Nat → WitnessF) : WitnessF :=
-  rho 437
+  rho 442
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_6_0`. -/
 def syntheticSpends4StateProofPath60 (rho : Nat → WitnessF) : WitnessF :=
-  rho 438
+  rho 443
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_6_1`. -/
 def syntheticSpends4StateProofPath61 (rho : Nat → WitnessF) : WitnessF :=
-  rho 439
+  rho 444
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_6_2`. -/
 def syntheticSpends4StateProofPath62 (rho : Nat → WitnessF) : WitnessF :=
-  rho 440
+  rho 445
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_7_0`. -/
 def syntheticSpends4StateProofPath70 (rho : Nat → WitnessF) : WitnessF :=
-  rho 441
+  rho 446
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_7_1`. -/
 def syntheticSpends4StateProofPath71 (rho : Nat → WitnessF) : WitnessF :=
-  rho 442
+  rho 447
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_7_2`. -/
 def syntheticSpends4StateProofPath72 (rho : Nat → WitnessF) : WitnessF :=
-  rho 443
+  rho 448
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_8_0`. -/
 def syntheticSpends4StateProofPath80 (rho : Nat → WitnessF) : WitnessF :=
-  rho 444
+  rho 449
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_8_1`. -/
 def syntheticSpends4StateProofPath81 (rho : Nat → WitnessF) : WitnessF :=
-  rho 445
+  rho 450
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_8_2`. -/
 def syntheticSpends4StateProofPath82 (rho : Nat → WitnessF) : WitnessF :=
-  rho 446
+  rho 451
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_9_0`. -/
 def syntheticSpends4StateProofPath90 (rho : Nat → WitnessF) : WitnessF :=
-  rho 447
+  rho 452
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_9_1`. -/
 def syntheticSpends4StateProofPath91 (rho : Nat → WitnessF) : WitnessF :=
-  rho 448
+  rho 453
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_9_2`. -/
 def syntheticSpends4StateProofPath92 (rho : Nat → WitnessF) : WitnessF :=
-  rho 449
+  rho 454
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_10_0`. -/
 def syntheticSpends4StateProofPath100 (rho : Nat → WitnessF) : WitnessF :=
-  rho 450
+  rho 455
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_10_1`. -/
 def syntheticSpends4StateProofPath101 (rho : Nat → WitnessF) : WitnessF :=
-  rho 451
+  rho 456
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_10_2`. -/
 def syntheticSpends4StateProofPath102 (rho : Nat → WitnessF) : WitnessF :=
-  rho 452
+  rho 457
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_11_0`. -/
 def syntheticSpends4StateProofPath110 (rho : Nat → WitnessF) : WitnessF :=
-  rho 453
+  rho 458
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_11_1`. -/
 def syntheticSpends4StateProofPath111 (rho : Nat → WitnessF) : WitnessF :=
-  rho 454
+  rho 459
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_11_2`. -/
 def syntheticSpends4StateProofPath112 (rho : Nat → WitnessF) : WitnessF :=
-  rho 455
+  rho 460
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_12_0`. -/
 def syntheticSpends4StateProofPath120 (rho : Nat → WitnessF) : WitnessF :=
-  rho 456
+  rho 461
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_12_1`. -/
 def syntheticSpends4StateProofPath121 (rho : Nat → WitnessF) : WitnessF :=
-  rho 457
+  rho 462
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_12_2`. -/
 def syntheticSpends4StateProofPath122 (rho : Nat → WitnessF) : WitnessF :=
-  rho 458
+  rho 463
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_13_0`. -/
 def syntheticSpends4StateProofPath130 (rho : Nat → WitnessF) : WitnessF :=
-  rho 459
+  rho 464
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_13_1`. -/
 def syntheticSpends4StateProofPath131 (rho : Nat → WitnessF) : WitnessF :=
-  rho 460
+  rho 465
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_13_2`. -/
 def syntheticSpends4StateProofPath132 (rho : Nat → WitnessF) : WitnessF :=
-  rho 461
+  rho 466
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_14_0`. -/
 def syntheticSpends4StateProofPath140 (rho : Nat → WitnessF) : WitnessF :=
-  rho 462
+  rho 467
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_14_1`. -/
 def syntheticSpends4StateProofPath141 (rho : Nat → WitnessF) : WitnessF :=
-  rho 463
+  rho 468
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_14_2`. -/
 def syntheticSpends4StateProofPath142 (rho : Nat → WitnessF) : WitnessF :=
-  rho 464
+  rho 469
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_15_0`. -/
 def syntheticSpends4StateProofPath150 (rho : Nat → WitnessF) : WitnessF :=
-  rho 465
+  rho 470
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_15_1`. -/
 def syntheticSpends4StateProofPath151 (rho : Nat → WitnessF) : WitnessF :=
-  rho 466
+  rho 471
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_15_2`. -/
 def syntheticSpends4StateProofPath152 (rho : Nat → WitnessF) : WitnessF :=
-  rho 467
+  rho 472
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_16_0`. -/
 def syntheticSpends4StateProofPath160 (rho : Nat → WitnessF) : WitnessF :=
-  rho 468
+  rho 473
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_16_1`. -/
 def syntheticSpends4StateProofPath161 (rho : Nat → WitnessF) : WitnessF :=
-  rho 469
+  rho 474
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_16_2`. -/
 def syntheticSpends4StateProofPath162 (rho : Nat → WitnessF) : WitnessF :=
-  rho 470
+  rho 475
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_17_0`. -/
 def syntheticSpends4StateProofPath170 (rho : Nat → WitnessF) : WitnessF :=
-  rho 471
+  rho 476
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_17_1`. -/
 def syntheticSpends4StateProofPath171 (rho : Nat → WitnessF) : WitnessF :=
-  rho 472
+  rho 477
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_17_2`. -/
 def syntheticSpends4StateProofPath172 (rho : Nat → WitnessF) : WitnessF :=
-  rho 473
+  rho 478
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_18_0`. -/
 def syntheticSpends4StateProofPath180 (rho : Nat → WitnessF) : WitnessF :=
-  rho 474
+  rho 479
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_18_1`. -/
 def syntheticSpends4StateProofPath181 (rho : Nat → WitnessF) : WitnessF :=
-  rho 475
+  rho 480
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_18_2`. -/
 def syntheticSpends4StateProofPath182 (rho : Nat → WitnessF) : WitnessF :=
-  rho 476
+  rho 481
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_19_0`. -/
 def syntheticSpends4StateProofPath190 (rho : Nat → WitnessF) : WitnessF :=
-  rho 477
+  rho 482
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_19_1`. -/
 def syntheticSpends4StateProofPath191 (rho : Nat → WitnessF) : WitnessF :=
-  rho 478
+  rho 483
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_19_2`. -/
 def syntheticSpends4StateProofPath192 (rho : Nat → WitnessF) : WitnessF :=
-  rho 479
+  rho 484
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_20_0`. -/
 def syntheticSpends4StateProofPath200 (rho : Nat → WitnessF) : WitnessF :=
-  rho 480
+  rho 485
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_20_1`. -/
 def syntheticSpends4StateProofPath201 (rho : Nat → WitnessF) : WitnessF :=
-  rho 481
+  rho 486
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_20_2`. -/
 def syntheticSpends4StateProofPath202 (rho : Nat → WitnessF) : WitnessF :=
-  rho 482
+  rho 487
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_21_0`. -/
 def syntheticSpends4StateProofPath210 (rho : Nat → WitnessF) : WitnessF :=
-  rho 483
+  rho 488
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_21_1`. -/
 def syntheticSpends4StateProofPath211 (rho : Nat → WitnessF) : WitnessF :=
-  rho 484
+  rho 489
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_21_2`. -/
 def syntheticSpends4StateProofPath212 (rho : Nat → WitnessF) : WitnessF :=
-  rho 485
+  rho 490
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_22_0`. -/
 def syntheticSpends4StateProofPath220 (rho : Nat → WitnessF) : WitnessF :=
-  rho 486
+  rho 491
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_22_1`. -/
 def syntheticSpends4StateProofPath221 (rho : Nat → WitnessF) : WitnessF :=
-  rho 487
+  rho 492
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_22_2`. -/
 def syntheticSpends4StateProofPath222 (rho : Nat → WitnessF) : WitnessF :=
-  rho 488
+  rho 493
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_23_0`. -/
 def syntheticSpends4StateProofPath230 (rho : Nat → WitnessF) : WitnessF :=
-  rho 489
+  rho 494
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_23_1`. -/
 def syntheticSpends4StateProofPath231 (rho : Nat → WitnessF) : WitnessF :=
-  rho 490
+  rho 495
 
 /-- Compiler witness path `SyntheticSpends_4_StateProof_Path_23_2`. -/
 def syntheticSpends4StateProofPath232 (rho : Nat → WitnessF) : WitnessF :=
-  rho 491
+  rho 496
 
 /-- Compiler witness path `SyntheticSpends_4_AuthRandomizer`. -/
 def syntheticSpends4AuthRandomizer (rho : Nat → WitnessF) : WitnessF :=
-  rho 492
+  rho 497
+
+/-- Compiler witness path `SyntheticSpends_4_HistoryRequired`. -/
+def syntheticSpends4HistoryRequired (rho : Nat → WitnessF) : WitnessF :=
+  rho 498
 
 /-- Compiler witness path `SyntheticSpends_4_IsDummy`. -/
 def syntheticSpends4IsDummy (rho : Nat → WitnessF) : WitnessF :=
-  rho 493
+  rho 499
 
 /-- Compiler witness path `SyntheticSpends_4_DummyNullifierSeed`. -/
 def syntheticSpends4DummyNullifierSeed (rho : Nat → WitnessF) : WitnessF :=
-  rho 494
+  rho 500
 
 /-- Compiler witness path `SyntheticSpends_5_Nullifier`. -/
 def syntheticSpends5Nullifier (rho : Nat → WitnessF) : WitnessF :=
-  rho 495
+  rho 501
 
 /-- Compiler witness path `SyntheticSpends_5_RK_X`. -/
 def syntheticSpends5RKX (rho : Nat → WitnessF) : WitnessF :=
-  rho 496
+  rho 502
 
 /-- Compiler witness path `SyntheticSpends_5_RK_Y`. -/
 def syntheticSpends5RKY (rho : Nat → WitnessF) : WitnessF :=
-  rho 497
+  rho 503
 
 /-- Compiler witness path `SyntheticSpends_5_Note_Blinding`. -/
 def syntheticSpends5NoteBlinding (rho : Nat → WitnessF) : WitnessF :=
-  rho 498
+  rho 504
 
 /-- Compiler witness path `SyntheticSpends_5_Note_Amount`. -/
 def syntheticSpends5NoteAmount (rho : Nat → WitnessF) : WitnessF :=
-  rho 499
+  rho 505
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Commitment`. -/
 def syntheticSpends5StateProofCommitment (rho : Nat → WitnessF) : WitnessF :=
-  rho 500
+  rho 506
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Position`. -/
 def syntheticSpends5StateProofPosition (rho : Nat → WitnessF) : WitnessF :=
-  rho 501
+  rho 507
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_0_0`. -/
 def syntheticSpends5StateProofPath00 (rho : Nat → WitnessF) : WitnessF :=
-  rho 502
+  rho 508
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_0_1`. -/
 def syntheticSpends5StateProofPath01 (rho : Nat → WitnessF) : WitnessF :=
-  rho 503
+  rho 509
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_0_2`. -/
 def syntheticSpends5StateProofPath02 (rho : Nat → WitnessF) : WitnessF :=
-  rho 504
+  rho 510
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_1_0`. -/
 def syntheticSpends5StateProofPath10 (rho : Nat → WitnessF) : WitnessF :=
-  rho 505
+  rho 511
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_1_1`. -/
 def syntheticSpends5StateProofPath11 (rho : Nat → WitnessF) : WitnessF :=
-  rho 506
+  rho 512
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_1_2`. -/
 def syntheticSpends5StateProofPath12 (rho : Nat → WitnessF) : WitnessF :=
-  rho 507
+  rho 513
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_2_0`. -/
 def syntheticSpends5StateProofPath20 (rho : Nat → WitnessF) : WitnessF :=
-  rho 508
+  rho 514
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_2_1`. -/
 def syntheticSpends5StateProofPath21 (rho : Nat → WitnessF) : WitnessF :=
-  rho 509
+  rho 515
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_2_2`. -/
 def syntheticSpends5StateProofPath22 (rho : Nat → WitnessF) : WitnessF :=
-  rho 510
+  rho 516
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_3_0`. -/
 def syntheticSpends5StateProofPath30 (rho : Nat → WitnessF) : WitnessF :=
-  rho 511
+  rho 517
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_3_1`. -/
 def syntheticSpends5StateProofPath31 (rho : Nat → WitnessF) : WitnessF :=
-  rho 512
+  rho 518
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_3_2`. -/
 def syntheticSpends5StateProofPath32 (rho : Nat → WitnessF) : WitnessF :=
-  rho 513
+  rho 519
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_4_0`. -/
 def syntheticSpends5StateProofPath40 (rho : Nat → WitnessF) : WitnessF :=
-  rho 514
+  rho 520
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_4_1`. -/
 def syntheticSpends5StateProofPath41 (rho : Nat → WitnessF) : WitnessF :=
-  rho 515
+  rho 521
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_4_2`. -/
 def syntheticSpends5StateProofPath42 (rho : Nat → WitnessF) : WitnessF :=
-  rho 516
+  rho 522
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_5_0`. -/
 def syntheticSpends5StateProofPath50 (rho : Nat → WitnessF) : WitnessF :=
-  rho 517
+  rho 523
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_5_1`. -/
 def syntheticSpends5StateProofPath51 (rho : Nat → WitnessF) : WitnessF :=
-  rho 518
+  rho 524
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_5_2`. -/
 def syntheticSpends5StateProofPath52 (rho : Nat → WitnessF) : WitnessF :=
-  rho 519
+  rho 525
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_6_0`. -/
 def syntheticSpends5StateProofPath60 (rho : Nat → WitnessF) : WitnessF :=
-  rho 520
+  rho 526
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_6_1`. -/
 def syntheticSpends5StateProofPath61 (rho : Nat → WitnessF) : WitnessF :=
-  rho 521
+  rho 527
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_6_2`. -/
 def syntheticSpends5StateProofPath62 (rho : Nat → WitnessF) : WitnessF :=
-  rho 522
+  rho 528
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_7_0`. -/
 def syntheticSpends5StateProofPath70 (rho : Nat → WitnessF) : WitnessF :=
-  rho 523
+  rho 529
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_7_1`. -/
 def syntheticSpends5StateProofPath71 (rho : Nat → WitnessF) : WitnessF :=
-  rho 524
+  rho 530
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_7_2`. -/
 def syntheticSpends5StateProofPath72 (rho : Nat → WitnessF) : WitnessF :=
-  rho 525
+  rho 531
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_8_0`. -/
 def syntheticSpends5StateProofPath80 (rho : Nat → WitnessF) : WitnessF :=
-  rho 526
+  rho 532
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_8_1`. -/
 def syntheticSpends5StateProofPath81 (rho : Nat → WitnessF) : WitnessF :=
-  rho 527
+  rho 533
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_8_2`. -/
 def syntheticSpends5StateProofPath82 (rho : Nat → WitnessF) : WitnessF :=
-  rho 528
+  rho 534
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_9_0`. -/
 def syntheticSpends5StateProofPath90 (rho : Nat → WitnessF) : WitnessF :=
-  rho 529
+  rho 535
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_9_1`. -/
 def syntheticSpends5StateProofPath91 (rho : Nat → WitnessF) : WitnessF :=
-  rho 530
+  rho 536
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_9_2`. -/
 def syntheticSpends5StateProofPath92 (rho : Nat → WitnessF) : WitnessF :=
-  rho 531
+  rho 537
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_10_0`. -/
 def syntheticSpends5StateProofPath100 (rho : Nat → WitnessF) : WitnessF :=
-  rho 532
+  rho 538
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_10_1`. -/
 def syntheticSpends5StateProofPath101 (rho : Nat → WitnessF) : WitnessF :=
-  rho 533
+  rho 539
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_10_2`. -/
 def syntheticSpends5StateProofPath102 (rho : Nat → WitnessF) : WitnessF :=
-  rho 534
+  rho 540
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_11_0`. -/
 def syntheticSpends5StateProofPath110 (rho : Nat → WitnessF) : WitnessF :=
-  rho 535
+  rho 541
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_11_1`. -/
 def syntheticSpends5StateProofPath111 (rho : Nat → WitnessF) : WitnessF :=
-  rho 536
+  rho 542
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_11_2`. -/
 def syntheticSpends5StateProofPath112 (rho : Nat → WitnessF) : WitnessF :=
-  rho 537
+  rho 543
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_12_0`. -/
 def syntheticSpends5StateProofPath120 (rho : Nat → WitnessF) : WitnessF :=
-  rho 538
+  rho 544
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_12_1`. -/
 def syntheticSpends5StateProofPath121 (rho : Nat → WitnessF) : WitnessF :=
-  rho 539
+  rho 545
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_12_2`. -/
 def syntheticSpends5StateProofPath122 (rho : Nat → WitnessF) : WitnessF :=
-  rho 540
+  rho 546
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_13_0`. -/
 def syntheticSpends5StateProofPath130 (rho : Nat → WitnessF) : WitnessF :=
-  rho 541
+  rho 547
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_13_1`. -/
 def syntheticSpends5StateProofPath131 (rho : Nat → WitnessF) : WitnessF :=
-  rho 542
+  rho 548
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_13_2`. -/
 def syntheticSpends5StateProofPath132 (rho : Nat → WitnessF) : WitnessF :=
-  rho 543
+  rho 549
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_14_0`. -/
 def syntheticSpends5StateProofPath140 (rho : Nat → WitnessF) : WitnessF :=
-  rho 544
+  rho 550
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_14_1`. -/
 def syntheticSpends5StateProofPath141 (rho : Nat → WitnessF) : WitnessF :=
-  rho 545
+  rho 551
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_14_2`. -/
 def syntheticSpends5StateProofPath142 (rho : Nat → WitnessF) : WitnessF :=
-  rho 546
+  rho 552
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_15_0`. -/
 def syntheticSpends5StateProofPath150 (rho : Nat → WitnessF) : WitnessF :=
-  rho 547
+  rho 553
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_15_1`. -/
 def syntheticSpends5StateProofPath151 (rho : Nat → WitnessF) : WitnessF :=
-  rho 548
+  rho 554
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_15_2`. -/
 def syntheticSpends5StateProofPath152 (rho : Nat → WitnessF) : WitnessF :=
-  rho 549
+  rho 555
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_16_0`. -/
 def syntheticSpends5StateProofPath160 (rho : Nat → WitnessF) : WitnessF :=
-  rho 550
+  rho 556
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_16_1`. -/
 def syntheticSpends5StateProofPath161 (rho : Nat → WitnessF) : WitnessF :=
-  rho 551
+  rho 557
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_16_2`. -/
 def syntheticSpends5StateProofPath162 (rho : Nat → WitnessF) : WitnessF :=
-  rho 552
+  rho 558
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_17_0`. -/
 def syntheticSpends5StateProofPath170 (rho : Nat → WitnessF) : WitnessF :=
-  rho 553
+  rho 559
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_17_1`. -/
 def syntheticSpends5StateProofPath171 (rho : Nat → WitnessF) : WitnessF :=
-  rho 554
+  rho 560
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_17_2`. -/
 def syntheticSpends5StateProofPath172 (rho : Nat → WitnessF) : WitnessF :=
-  rho 555
+  rho 561
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_18_0`. -/
 def syntheticSpends5StateProofPath180 (rho : Nat → WitnessF) : WitnessF :=
-  rho 556
+  rho 562
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_18_1`. -/
 def syntheticSpends5StateProofPath181 (rho : Nat → WitnessF) : WitnessF :=
-  rho 557
+  rho 563
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_18_2`. -/
 def syntheticSpends5StateProofPath182 (rho : Nat → WitnessF) : WitnessF :=
-  rho 558
+  rho 564
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_19_0`. -/
 def syntheticSpends5StateProofPath190 (rho : Nat → WitnessF) : WitnessF :=
-  rho 559
+  rho 565
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_19_1`. -/
 def syntheticSpends5StateProofPath191 (rho : Nat → WitnessF) : WitnessF :=
-  rho 560
+  rho 566
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_19_2`. -/
 def syntheticSpends5StateProofPath192 (rho : Nat → WitnessF) : WitnessF :=
-  rho 561
+  rho 567
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_20_0`. -/
 def syntheticSpends5StateProofPath200 (rho : Nat → WitnessF) : WitnessF :=
-  rho 562
+  rho 568
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_20_1`. -/
 def syntheticSpends5StateProofPath201 (rho : Nat → WitnessF) : WitnessF :=
-  rho 563
+  rho 569
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_20_2`. -/
 def syntheticSpends5StateProofPath202 (rho : Nat → WitnessF) : WitnessF :=
-  rho 564
+  rho 570
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_21_0`. -/
 def syntheticSpends5StateProofPath210 (rho : Nat → WitnessF) : WitnessF :=
-  rho 565
+  rho 571
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_21_1`. -/
 def syntheticSpends5StateProofPath211 (rho : Nat → WitnessF) : WitnessF :=
-  rho 566
+  rho 572
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_21_2`. -/
 def syntheticSpends5StateProofPath212 (rho : Nat → WitnessF) : WitnessF :=
-  rho 567
+  rho 573
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_22_0`. -/
 def syntheticSpends5StateProofPath220 (rho : Nat → WitnessF) : WitnessF :=
-  rho 568
+  rho 574
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_22_1`. -/
 def syntheticSpends5StateProofPath221 (rho : Nat → WitnessF) : WitnessF :=
-  rho 569
+  rho 575
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_22_2`. -/
 def syntheticSpends5StateProofPath222 (rho : Nat → WitnessF) : WitnessF :=
-  rho 570
+  rho 576
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_23_0`. -/
 def syntheticSpends5StateProofPath230 (rho : Nat → WitnessF) : WitnessF :=
-  rho 571
+  rho 577
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_23_1`. -/
 def syntheticSpends5StateProofPath231 (rho : Nat → WitnessF) : WitnessF :=
-  rho 572
+  rho 578
 
 /-- Compiler witness path `SyntheticSpends_5_StateProof_Path_23_2`. -/
 def syntheticSpends5StateProofPath232 (rho : Nat → WitnessF) : WitnessF :=
-  rho 573
+  rho 579
 
 /-- Compiler witness path `SyntheticSpends_5_AuthRandomizer`. -/
 def syntheticSpends5AuthRandomizer (rho : Nat → WitnessF) : WitnessF :=
-  rho 574
+  rho 580
+
+/-- Compiler witness path `SyntheticSpends_5_HistoryRequired`. -/
+def syntheticSpends5HistoryRequired (rho : Nat → WitnessF) : WitnessF :=
+  rho 581
 
 /-- Compiler witness path `SyntheticSpends_5_IsDummy`. -/
 def syntheticSpends5IsDummy (rho : Nat → WitnessF) : WitnessF :=
-  rho 575
+  rho 582
 
 /-- Compiler witness path `SyntheticSpends_5_DummyNullifierSeed`. -/
 def syntheticSpends5DummyNullifierSeed (rho : Nat → WitnessF) : WitnessF :=
-  rho 576
+  rho 583
 
 /-- Compiler witness path `SyntheticSpends_6_Nullifier`. -/
 def syntheticSpends6Nullifier (rho : Nat → WitnessF) : WitnessF :=
-  rho 577
+  rho 584
 
 /-- Compiler witness path `SyntheticSpends_6_RK_X`. -/
 def syntheticSpends6RKX (rho : Nat → WitnessF) : WitnessF :=
-  rho 578
+  rho 585
 
 /-- Compiler witness path `SyntheticSpends_6_RK_Y`. -/
 def syntheticSpends6RKY (rho : Nat → WitnessF) : WitnessF :=
-  rho 579
+  rho 586
 
 /-- Compiler witness path `SyntheticSpends_6_Note_Blinding`. -/
 def syntheticSpends6NoteBlinding (rho : Nat → WitnessF) : WitnessF :=
-  rho 580
+  rho 587
 
 /-- Compiler witness path `SyntheticSpends_6_Note_Amount`. -/
 def syntheticSpends6NoteAmount (rho : Nat → WitnessF) : WitnessF :=
-  rho 581
+  rho 588
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Commitment`. -/
 def syntheticSpends6StateProofCommitment (rho : Nat → WitnessF) : WitnessF :=
-  rho 582
+  rho 589
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Position`. -/
 def syntheticSpends6StateProofPosition (rho : Nat → WitnessF) : WitnessF :=
-  rho 583
+  rho 590
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_0_0`. -/
 def syntheticSpends6StateProofPath00 (rho : Nat → WitnessF) : WitnessF :=
-  rho 584
+  rho 591
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_0_1`. -/
 def syntheticSpends6StateProofPath01 (rho : Nat → WitnessF) : WitnessF :=
-  rho 585
+  rho 592
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_0_2`. -/
 def syntheticSpends6StateProofPath02 (rho : Nat → WitnessF) : WitnessF :=
-  rho 586
+  rho 593
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_1_0`. -/
 def syntheticSpends6StateProofPath10 (rho : Nat → WitnessF) : WitnessF :=
-  rho 587
+  rho 594
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_1_1`. -/
 def syntheticSpends6StateProofPath11 (rho : Nat → WitnessF) : WitnessF :=
-  rho 588
+  rho 595
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_1_2`. -/
 def syntheticSpends6StateProofPath12 (rho : Nat → WitnessF) : WitnessF :=
-  rho 589
+  rho 596
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_2_0`. -/
 def syntheticSpends6StateProofPath20 (rho : Nat → WitnessF) : WitnessF :=
-  rho 590
+  rho 597
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_2_1`. -/
 def syntheticSpends6StateProofPath21 (rho : Nat → WitnessF) : WitnessF :=
-  rho 591
+  rho 598
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_2_2`. -/
 def syntheticSpends6StateProofPath22 (rho : Nat → WitnessF) : WitnessF :=
-  rho 592
+  rho 599
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_3_0`. -/
 def syntheticSpends6StateProofPath30 (rho : Nat → WitnessF) : WitnessF :=
-  rho 593
+  rho 600
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_3_1`. -/
 def syntheticSpends6StateProofPath31 (rho : Nat → WitnessF) : WitnessF :=
-  rho 594
+  rho 601
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_3_2`. -/
 def syntheticSpends6StateProofPath32 (rho : Nat → WitnessF) : WitnessF :=
-  rho 595
+  rho 602
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_4_0`. -/
 def syntheticSpends6StateProofPath40 (rho : Nat → WitnessF) : WitnessF :=
-  rho 596
+  rho 603
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_4_1`. -/
 def syntheticSpends6StateProofPath41 (rho : Nat → WitnessF) : WitnessF :=
-  rho 597
+  rho 604
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_4_2`. -/
 def syntheticSpends6StateProofPath42 (rho : Nat → WitnessF) : WitnessF :=
-  rho 598
+  rho 605
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_5_0`. -/
 def syntheticSpends6StateProofPath50 (rho : Nat → WitnessF) : WitnessF :=
-  rho 599
+  rho 606
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_5_1`. -/
 def syntheticSpends6StateProofPath51 (rho : Nat → WitnessF) : WitnessF :=
-  rho 600
+  rho 607
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_5_2`. -/
 def syntheticSpends6StateProofPath52 (rho : Nat → WitnessF) : WitnessF :=
-  rho 601
+  rho 608
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_6_0`. -/
 def syntheticSpends6StateProofPath60 (rho : Nat → WitnessF) : WitnessF :=
-  rho 602
+  rho 609
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_6_1`. -/
 def syntheticSpends6StateProofPath61 (rho : Nat → WitnessF) : WitnessF :=
-  rho 603
+  rho 610
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_6_2`. -/
 def syntheticSpends6StateProofPath62 (rho : Nat → WitnessF) : WitnessF :=
-  rho 604
+  rho 611
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_7_0`. -/
 def syntheticSpends6StateProofPath70 (rho : Nat → WitnessF) : WitnessF :=
-  rho 605
+  rho 612
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_7_1`. -/
 def syntheticSpends6StateProofPath71 (rho : Nat → WitnessF) : WitnessF :=
-  rho 606
+  rho 613
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_7_2`. -/
 def syntheticSpends6StateProofPath72 (rho : Nat → WitnessF) : WitnessF :=
-  rho 607
+  rho 614
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_8_0`. -/
 def syntheticSpends6StateProofPath80 (rho : Nat → WitnessF) : WitnessF :=
-  rho 608
+  rho 615
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_8_1`. -/
 def syntheticSpends6StateProofPath81 (rho : Nat → WitnessF) : WitnessF :=
-  rho 609
+  rho 616
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_8_2`. -/
 def syntheticSpends6StateProofPath82 (rho : Nat → WitnessF) : WitnessF :=
-  rho 610
+  rho 617
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_9_0`. -/
 def syntheticSpends6StateProofPath90 (rho : Nat → WitnessF) : WitnessF :=
-  rho 611
+  rho 618
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_9_1`. -/
 def syntheticSpends6StateProofPath91 (rho : Nat → WitnessF) : WitnessF :=
-  rho 612
+  rho 619
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_9_2`. -/
 def syntheticSpends6StateProofPath92 (rho : Nat → WitnessF) : WitnessF :=
-  rho 613
+  rho 620
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_10_0`. -/
 def syntheticSpends6StateProofPath100 (rho : Nat → WitnessF) : WitnessF :=
-  rho 614
+  rho 621
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_10_1`. -/
 def syntheticSpends6StateProofPath101 (rho : Nat → WitnessF) : WitnessF :=
-  rho 615
+  rho 622
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_10_2`. -/
 def syntheticSpends6StateProofPath102 (rho : Nat → WitnessF) : WitnessF :=
-  rho 616
+  rho 623
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_11_0`. -/
 def syntheticSpends6StateProofPath110 (rho : Nat → WitnessF) : WitnessF :=
-  rho 617
+  rho 624
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_11_1`. -/
 def syntheticSpends6StateProofPath111 (rho : Nat → WitnessF) : WitnessF :=
-  rho 618
+  rho 625
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_11_2`. -/
 def syntheticSpends6StateProofPath112 (rho : Nat → WitnessF) : WitnessF :=
-  rho 619
+  rho 626
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_12_0`. -/
 def syntheticSpends6StateProofPath120 (rho : Nat → WitnessF) : WitnessF :=
-  rho 620
+  rho 627
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_12_1`. -/
 def syntheticSpends6StateProofPath121 (rho : Nat → WitnessF) : WitnessF :=
-  rho 621
+  rho 628
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_12_2`. -/
 def syntheticSpends6StateProofPath122 (rho : Nat → WitnessF) : WitnessF :=
-  rho 622
+  rho 629
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_13_0`. -/
 def syntheticSpends6StateProofPath130 (rho : Nat → WitnessF) : WitnessF :=
-  rho 623
+  rho 630
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_13_1`. -/
 def syntheticSpends6StateProofPath131 (rho : Nat → WitnessF) : WitnessF :=
-  rho 624
+  rho 631
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_13_2`. -/
 def syntheticSpends6StateProofPath132 (rho : Nat → WitnessF) : WitnessF :=
-  rho 625
+  rho 632
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_14_0`. -/
 def syntheticSpends6StateProofPath140 (rho : Nat → WitnessF) : WitnessF :=
-  rho 626
+  rho 633
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_14_1`. -/
 def syntheticSpends6StateProofPath141 (rho : Nat → WitnessF) : WitnessF :=
-  rho 627
+  rho 634
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_14_2`. -/
 def syntheticSpends6StateProofPath142 (rho : Nat → WitnessF) : WitnessF :=
-  rho 628
+  rho 635
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_15_0`. -/
 def syntheticSpends6StateProofPath150 (rho : Nat → WitnessF) : WitnessF :=
-  rho 629
+  rho 636
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_15_1`. -/
 def syntheticSpends6StateProofPath151 (rho : Nat → WitnessF) : WitnessF :=
-  rho 630
+  rho 637
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_15_2`. -/
 def syntheticSpends6StateProofPath152 (rho : Nat → WitnessF) : WitnessF :=
-  rho 631
+  rho 638
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_16_0`. -/
 def syntheticSpends6StateProofPath160 (rho : Nat → WitnessF) : WitnessF :=
-  rho 632
+  rho 639
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_16_1`. -/
 def syntheticSpends6StateProofPath161 (rho : Nat → WitnessF) : WitnessF :=
-  rho 633
+  rho 640
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_16_2`. -/
 def syntheticSpends6StateProofPath162 (rho : Nat → WitnessF) : WitnessF :=
-  rho 634
+  rho 641
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_17_0`. -/
 def syntheticSpends6StateProofPath170 (rho : Nat → WitnessF) : WitnessF :=
-  rho 635
+  rho 642
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_17_1`. -/
 def syntheticSpends6StateProofPath171 (rho : Nat → WitnessF) : WitnessF :=
-  rho 636
+  rho 643
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_17_2`. -/
 def syntheticSpends6StateProofPath172 (rho : Nat → WitnessF) : WitnessF :=
-  rho 637
+  rho 644
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_18_0`. -/
 def syntheticSpends6StateProofPath180 (rho : Nat → WitnessF) : WitnessF :=
-  rho 638
+  rho 645
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_18_1`. -/
 def syntheticSpends6StateProofPath181 (rho : Nat → WitnessF) : WitnessF :=
-  rho 639
+  rho 646
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_18_2`. -/
 def syntheticSpends6StateProofPath182 (rho : Nat → WitnessF) : WitnessF :=
-  rho 640
+  rho 647
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_19_0`. -/
 def syntheticSpends6StateProofPath190 (rho : Nat → WitnessF) : WitnessF :=
-  rho 641
+  rho 648
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_19_1`. -/
 def syntheticSpends6StateProofPath191 (rho : Nat → WitnessF) : WitnessF :=
-  rho 642
+  rho 649
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_19_2`. -/
 def syntheticSpends6StateProofPath192 (rho : Nat → WitnessF) : WitnessF :=
-  rho 643
+  rho 650
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_20_0`. -/
 def syntheticSpends6StateProofPath200 (rho : Nat → WitnessF) : WitnessF :=
-  rho 644
+  rho 651
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_20_1`. -/
 def syntheticSpends6StateProofPath201 (rho : Nat → WitnessF) : WitnessF :=
-  rho 645
+  rho 652
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_20_2`. -/
 def syntheticSpends6StateProofPath202 (rho : Nat → WitnessF) : WitnessF :=
-  rho 646
+  rho 653
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_21_0`. -/
 def syntheticSpends6StateProofPath210 (rho : Nat → WitnessF) : WitnessF :=
-  rho 647
+  rho 654
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_21_1`. -/
 def syntheticSpends6StateProofPath211 (rho : Nat → WitnessF) : WitnessF :=
-  rho 648
+  rho 655
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_21_2`. -/
 def syntheticSpends6StateProofPath212 (rho : Nat → WitnessF) : WitnessF :=
-  rho 649
+  rho 656
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_22_0`. -/
 def syntheticSpends6StateProofPath220 (rho : Nat → WitnessF) : WitnessF :=
-  rho 650
+  rho 657
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_22_1`. -/
 def syntheticSpends6StateProofPath221 (rho : Nat → WitnessF) : WitnessF :=
-  rho 651
+  rho 658
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_22_2`. -/
 def syntheticSpends6StateProofPath222 (rho : Nat → WitnessF) : WitnessF :=
-  rho 652
+  rho 659
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_23_0`. -/
 def syntheticSpends6StateProofPath230 (rho : Nat → WitnessF) : WitnessF :=
-  rho 653
+  rho 660
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_23_1`. -/
 def syntheticSpends6StateProofPath231 (rho : Nat → WitnessF) : WitnessF :=
-  rho 654
+  rho 661
 
 /-- Compiler witness path `SyntheticSpends_6_StateProof_Path_23_2`. -/
 def syntheticSpends6StateProofPath232 (rho : Nat → WitnessF) : WitnessF :=
-  rho 655
+  rho 662
 
 /-- Compiler witness path `SyntheticSpends_6_AuthRandomizer`. -/
 def syntheticSpends6AuthRandomizer (rho : Nat → WitnessF) : WitnessF :=
-  rho 656
+  rho 663
+
+/-- Compiler witness path `SyntheticSpends_6_HistoryRequired`. -/
+def syntheticSpends6HistoryRequired (rho : Nat → WitnessF) : WitnessF :=
+  rho 664
 
 /-- Compiler witness path `SyntheticSpends_6_IsDummy`. -/
 def syntheticSpends6IsDummy (rho : Nat → WitnessF) : WitnessF :=
-  rho 657
+  rho 665
 
 /-- Compiler witness path `SyntheticSpends_6_DummyNullifierSeed`. -/
 def syntheticSpends6DummyNullifierSeed (rho : Nat → WitnessF) : WitnessF :=
-  rho 658
+  rho 666
 
 /-- Compiler witness path `SyntheticSpends_7_Nullifier`. -/
 def syntheticSpends7Nullifier (rho : Nat → WitnessF) : WitnessF :=
-  rho 659
+  rho 667
 
 /-- Compiler witness path `SyntheticSpends_7_RK_X`. -/
 def syntheticSpends7RKX (rho : Nat → WitnessF) : WitnessF :=
-  rho 660
+  rho 668
 
 /-- Compiler witness path `SyntheticSpends_7_RK_Y`. -/
 def syntheticSpends7RKY (rho : Nat → WitnessF) : WitnessF :=
-  rho 661
+  rho 669
 
 /-- Compiler witness path `SyntheticSpends_7_Note_Blinding`. -/
 def syntheticSpends7NoteBlinding (rho : Nat → WitnessF) : WitnessF :=
-  rho 662
+  rho 670
 
 /-- Compiler witness path `SyntheticSpends_7_Note_Amount`. -/
 def syntheticSpends7NoteAmount (rho : Nat → WitnessF) : WitnessF :=
-  rho 663
+  rho 671
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Commitment`. -/
 def syntheticSpends7StateProofCommitment (rho : Nat → WitnessF) : WitnessF :=
-  rho 664
+  rho 672
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Position`. -/
 def syntheticSpends7StateProofPosition (rho : Nat → WitnessF) : WitnessF :=
-  rho 665
+  rho 673
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_0_0`. -/
 def syntheticSpends7StateProofPath00 (rho : Nat → WitnessF) : WitnessF :=
-  rho 666
+  rho 674
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_0_1`. -/
 def syntheticSpends7StateProofPath01 (rho : Nat → WitnessF) : WitnessF :=
-  rho 667
+  rho 675
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_0_2`. -/
 def syntheticSpends7StateProofPath02 (rho : Nat → WitnessF) : WitnessF :=
-  rho 668
+  rho 676
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_1_0`. -/
 def syntheticSpends7StateProofPath10 (rho : Nat → WitnessF) : WitnessF :=
-  rho 669
+  rho 677
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_1_1`. -/
 def syntheticSpends7StateProofPath11 (rho : Nat → WitnessF) : WitnessF :=
-  rho 670
+  rho 678
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_1_2`. -/
 def syntheticSpends7StateProofPath12 (rho : Nat → WitnessF) : WitnessF :=
-  rho 671
+  rho 679
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_2_0`. -/
 def syntheticSpends7StateProofPath20 (rho : Nat → WitnessF) : WitnessF :=
-  rho 672
+  rho 680
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_2_1`. -/
 def syntheticSpends7StateProofPath21 (rho : Nat → WitnessF) : WitnessF :=
-  rho 673
+  rho 681
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_2_2`. -/
 def syntheticSpends7StateProofPath22 (rho : Nat → WitnessF) : WitnessF :=
-  rho 674
+  rho 682
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_3_0`. -/
 def syntheticSpends7StateProofPath30 (rho : Nat → WitnessF) : WitnessF :=
-  rho 675
+  rho 683
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_3_1`. -/
 def syntheticSpends7StateProofPath31 (rho : Nat → WitnessF) : WitnessF :=
-  rho 676
+  rho 684
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_3_2`. -/
 def syntheticSpends7StateProofPath32 (rho : Nat → WitnessF) : WitnessF :=
-  rho 677
+  rho 685
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_4_0`. -/
 def syntheticSpends7StateProofPath40 (rho : Nat → WitnessF) : WitnessF :=
-  rho 678
+  rho 686
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_4_1`. -/
 def syntheticSpends7StateProofPath41 (rho : Nat → WitnessF) : WitnessF :=
-  rho 679
+  rho 687
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_4_2`. -/
 def syntheticSpends7StateProofPath42 (rho : Nat → WitnessF) : WitnessF :=
-  rho 680
+  rho 688
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_5_0`. -/
 def syntheticSpends7StateProofPath50 (rho : Nat → WitnessF) : WitnessF :=
-  rho 681
+  rho 689
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_5_1`. -/
 def syntheticSpends7StateProofPath51 (rho : Nat → WitnessF) : WitnessF :=
-  rho 682
+  rho 690
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_5_2`. -/
 def syntheticSpends7StateProofPath52 (rho : Nat → WitnessF) : WitnessF :=
-  rho 683
+  rho 691
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_6_0`. -/
 def syntheticSpends7StateProofPath60 (rho : Nat → WitnessF) : WitnessF :=
-  rho 684
+  rho 692
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_6_1`. -/
 def syntheticSpends7StateProofPath61 (rho : Nat → WitnessF) : WitnessF :=
-  rho 685
+  rho 693
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_6_2`. -/
 def syntheticSpends7StateProofPath62 (rho : Nat → WitnessF) : WitnessF :=
-  rho 686
+  rho 694
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_7_0`. -/
 def syntheticSpends7StateProofPath70 (rho : Nat → WitnessF) : WitnessF :=
-  rho 687
+  rho 695
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_7_1`. -/
 def syntheticSpends7StateProofPath71 (rho : Nat → WitnessF) : WitnessF :=
-  rho 688
+  rho 696
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_7_2`. -/
 def syntheticSpends7StateProofPath72 (rho : Nat → WitnessF) : WitnessF :=
-  rho 689
+  rho 697
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_8_0`. -/
 def syntheticSpends7StateProofPath80 (rho : Nat → WitnessF) : WitnessF :=
-  rho 690
+  rho 698
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_8_1`. -/
 def syntheticSpends7StateProofPath81 (rho : Nat → WitnessF) : WitnessF :=
-  rho 691
+  rho 699
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_8_2`. -/
 def syntheticSpends7StateProofPath82 (rho : Nat → WitnessF) : WitnessF :=
-  rho 692
+  rho 700
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_9_0`. -/
 def syntheticSpends7StateProofPath90 (rho : Nat → WitnessF) : WitnessF :=
-  rho 693
+  rho 701
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_9_1`. -/
 def syntheticSpends7StateProofPath91 (rho : Nat → WitnessF) : WitnessF :=
-  rho 694
+  rho 702
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_9_2`. -/
 def syntheticSpends7StateProofPath92 (rho : Nat → WitnessF) : WitnessF :=
-  rho 695
+  rho 703
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_10_0`. -/
 def syntheticSpends7StateProofPath100 (rho : Nat → WitnessF) : WitnessF :=
-  rho 696
+  rho 704
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_10_1`. -/
 def syntheticSpends7StateProofPath101 (rho : Nat → WitnessF) : WitnessF :=
-  rho 697
+  rho 705
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_10_2`. -/
 def syntheticSpends7StateProofPath102 (rho : Nat → WitnessF) : WitnessF :=
-  rho 698
+  rho 706
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_11_0`. -/
 def syntheticSpends7StateProofPath110 (rho : Nat → WitnessF) : WitnessF :=
-  rho 699
+  rho 707
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_11_1`. -/
 def syntheticSpends7StateProofPath111 (rho : Nat → WitnessF) : WitnessF :=
-  rho 700
+  rho 708
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_11_2`. -/
 def syntheticSpends7StateProofPath112 (rho : Nat → WitnessF) : WitnessF :=
-  rho 701
+  rho 709
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_12_0`. -/
 def syntheticSpends7StateProofPath120 (rho : Nat → WitnessF) : WitnessF :=
-  rho 702
+  rho 710
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_12_1`. -/
 def syntheticSpends7StateProofPath121 (rho : Nat → WitnessF) : WitnessF :=
-  rho 703
+  rho 711
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_12_2`. -/
 def syntheticSpends7StateProofPath122 (rho : Nat → WitnessF) : WitnessF :=
-  rho 704
+  rho 712
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_13_0`. -/
 def syntheticSpends7StateProofPath130 (rho : Nat → WitnessF) : WitnessF :=
-  rho 705
+  rho 713
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_13_1`. -/
 def syntheticSpends7StateProofPath131 (rho : Nat → WitnessF) : WitnessF :=
-  rho 706
+  rho 714
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_13_2`. -/
 def syntheticSpends7StateProofPath132 (rho : Nat → WitnessF) : WitnessF :=
-  rho 707
+  rho 715
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_14_0`. -/
 def syntheticSpends7StateProofPath140 (rho : Nat → WitnessF) : WitnessF :=
-  rho 708
+  rho 716
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_14_1`. -/
 def syntheticSpends7StateProofPath141 (rho : Nat → WitnessF) : WitnessF :=
-  rho 709
+  rho 717
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_14_2`. -/
 def syntheticSpends7StateProofPath142 (rho : Nat → WitnessF) : WitnessF :=
-  rho 710
+  rho 718
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_15_0`. -/
 def syntheticSpends7StateProofPath150 (rho : Nat → WitnessF) : WitnessF :=
-  rho 711
+  rho 719
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_15_1`. -/
 def syntheticSpends7StateProofPath151 (rho : Nat → WitnessF) : WitnessF :=
-  rho 712
+  rho 720
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_15_2`. -/
 def syntheticSpends7StateProofPath152 (rho : Nat → WitnessF) : WitnessF :=
-  rho 713
+  rho 721
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_16_0`. -/
 def syntheticSpends7StateProofPath160 (rho : Nat → WitnessF) : WitnessF :=
-  rho 714
+  rho 722
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_16_1`. -/
 def syntheticSpends7StateProofPath161 (rho : Nat → WitnessF) : WitnessF :=
-  rho 715
+  rho 723
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_16_2`. -/
 def syntheticSpends7StateProofPath162 (rho : Nat → WitnessF) : WitnessF :=
-  rho 716
+  rho 724
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_17_0`. -/
 def syntheticSpends7StateProofPath170 (rho : Nat → WitnessF) : WitnessF :=
-  rho 717
+  rho 725
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_17_1`. -/
 def syntheticSpends7StateProofPath171 (rho : Nat → WitnessF) : WitnessF :=
-  rho 718
+  rho 726
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_17_2`. -/
 def syntheticSpends7StateProofPath172 (rho : Nat → WitnessF) : WitnessF :=
-  rho 719
+  rho 727
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_18_0`. -/
 def syntheticSpends7StateProofPath180 (rho : Nat → WitnessF) : WitnessF :=
-  rho 720
+  rho 728
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_18_1`. -/
 def syntheticSpends7StateProofPath181 (rho : Nat → WitnessF) : WitnessF :=
-  rho 721
+  rho 729
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_18_2`. -/
 def syntheticSpends7StateProofPath182 (rho : Nat → WitnessF) : WitnessF :=
-  rho 722
+  rho 730
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_19_0`. -/
 def syntheticSpends7StateProofPath190 (rho : Nat → WitnessF) : WitnessF :=
-  rho 723
+  rho 731
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_19_1`. -/
 def syntheticSpends7StateProofPath191 (rho : Nat → WitnessF) : WitnessF :=
-  rho 724
+  rho 732
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_19_2`. -/
 def syntheticSpends7StateProofPath192 (rho : Nat → WitnessF) : WitnessF :=
-  rho 725
+  rho 733
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_20_0`. -/
 def syntheticSpends7StateProofPath200 (rho : Nat → WitnessF) : WitnessF :=
-  rho 726
+  rho 734
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_20_1`. -/
 def syntheticSpends7StateProofPath201 (rho : Nat → WitnessF) : WitnessF :=
-  rho 727
+  rho 735
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_20_2`. -/
 def syntheticSpends7StateProofPath202 (rho : Nat → WitnessF) : WitnessF :=
-  rho 728
+  rho 736
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_21_0`. -/
 def syntheticSpends7StateProofPath210 (rho : Nat → WitnessF) : WitnessF :=
-  rho 729
+  rho 737
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_21_1`. -/
 def syntheticSpends7StateProofPath211 (rho : Nat → WitnessF) : WitnessF :=
-  rho 730
+  rho 738
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_21_2`. -/
 def syntheticSpends7StateProofPath212 (rho : Nat → WitnessF) : WitnessF :=
-  rho 731
+  rho 739
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_22_0`. -/
 def syntheticSpends7StateProofPath220 (rho : Nat → WitnessF) : WitnessF :=
-  rho 732
+  rho 740
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_22_1`. -/
 def syntheticSpends7StateProofPath221 (rho : Nat → WitnessF) : WitnessF :=
-  rho 733
+  rho 741
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_22_2`. -/
 def syntheticSpends7StateProofPath222 (rho : Nat → WitnessF) : WitnessF :=
-  rho 734
+  rho 742
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_23_0`. -/
 def syntheticSpends7StateProofPath230 (rho : Nat → WitnessF) : WitnessF :=
-  rho 735
+  rho 743
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_23_1`. -/
 def syntheticSpends7StateProofPath231 (rho : Nat → WitnessF) : WitnessF :=
-  rho 736
+  rho 744
 
 /-- Compiler witness path `SyntheticSpends_7_StateProof_Path_23_2`. -/
 def syntheticSpends7StateProofPath232 (rho : Nat → WitnessF) : WitnessF :=
-  rho 737
+  rho 745
 
 /-- Compiler witness path `SyntheticSpends_7_AuthRandomizer`. -/
 def syntheticSpends7AuthRandomizer (rho : Nat → WitnessF) : WitnessF :=
-  rho 738
+  rho 746
+
+/-- Compiler witness path `SyntheticSpends_7_HistoryRequired`. -/
+def syntheticSpends7HistoryRequired (rho : Nat → WitnessF) : WitnessF :=
+  rho 747
 
 /-- Compiler witness path `SyntheticSpends_7_IsDummy`. -/
 def syntheticSpends7IsDummy (rho : Nat → WitnessF) : WitnessF :=
-  rho 739
+  rho 748
 
 /-- Compiler witness path `SyntheticSpends_7_DummyNullifierSeed`. -/
 def syntheticSpends7DummyNullifierSeed (rho : Nat → WitnessF) : WitnessF :=
-  rho 740
+  rho 749
 
 /-- Compiler witness path `Outputs_0_NoteCommitment`. -/
 def outputs0NoteCommitment (rho : Nat → WitnessF) : WitnessF :=
-  rho 741
+  rho 750
 
 /-- Compiler witness path `Outputs_0_Note_Blinding`. -/
 def outputs0NoteBlinding (rho : Nat → WitnessF) : WitnessF :=
-  rho 742
+  rho 751
 
 /-- Compiler witness path `Outputs_0_Note_Amount`. -/
 def outputs0NoteAmount (rho : Nat → WitnessF) : WitnessF :=
-  rho 743
+  rho 752
 
 end Witness
 

@@ -56,12 +56,12 @@ CERTIFIED_PROFILE_SPECS = (
         "note_reshape",
         8,
         1,
-        4,
+        5,
         "ShielddGnarkFormal.Deployed.NoteReshape8x1Soundness",
         (
             (
                 "note_reshape8x1",
-                "internal/testfixtures/vectors/note_reshape8x1_witness_v4.bin",
+                "internal/testfixtures/vectors/note_reshape8x1_witness_v5.bin",
             ),
         ),
     ),
@@ -70,12 +70,12 @@ CERTIFIED_PROFILE_SPECS = (
         "note_reshape",
         1,
         8,
-        4,
+        5,
         "ShielddGnarkFormal.Deployed.NoteReshape1x8Soundness",
         (
             (
                 "note_reshape1x8",
-                "internal/testfixtures/vectors/note_reshape1x8_witness_v4.bin",
+                "internal/testfixtures/vectors/note_reshape1x8_witness_v5.bin",
             ),
         ),
     ),
@@ -84,20 +84,20 @@ CERTIFIED_PROFILE_SPECS = (
         "transfer",
         2,
         2,
-        17,
+        18,
         "ShielddGnarkFormal.Deployed.TransferRefinement",
         (
             (
                 "regulated_unflagged",
-                "internal/testfixtures/vectors/transfer_witness_v17.bin",
+                "internal/testfixtures/vectors/transfer_witness_v18.bin",
             ),
             (
                 "regulated_flagged_hidden",
-                "internal/testfixtures/vectors/transfer_flagged_witness_v17.bin",
+                "internal/testfixtures/vectors/transfer_flagged_witness_v18.bin",
             ),
             (
                 "unregulated_hidden",
-                "internal/testfixtures/vectors/transfer_unregulated_witness_v17.bin",
+                "internal/testfixtures/vectors/transfer_unregulated_witness_v18.bin",
             ),
         ),
     ),
@@ -106,16 +106,16 @@ CERTIFIED_PROFILE_SPECS = (
         "shielded_ics20_withdrawal",
         2,
         1,
-        9,
+        10,
         "ShielddGnarkFormal.Deployed.ShieldedIcs20WithdrawalRefinement",
         (
             (
                 "regulated_optional_real",
-                "internal/testfixtures/vectors/shielded_ics20_withdrawal_witness_v9.bin",
+                "internal/testfixtures/vectors/shielded_ics20_withdrawal_witness_v10.bin",
             ),
             (
                 "unregulated_optional_dummy",
-                "internal/testfixtures/vectors/shielded_ics20_withdrawal_unregulated_witness_v9.bin",
+                "internal/testfixtures/vectors/shielded_ics20_withdrawal_unregulated_witness_v10.bin",
             ),
         ),
     ),

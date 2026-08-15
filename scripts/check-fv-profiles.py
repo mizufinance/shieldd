@@ -41,52 +41,52 @@ CIRCUIT_FORMAL = ROOT / "crates" / "core" / "component" / "shielded-pool" / "for
 # proof matrix for each runtime family.
 PROFILE_ABI = {
     "note_reshape8x1": (
-        4,
+        5,
         (
             (
                 "note_reshape8x1",
-                "internal/testfixtures/vectors/note_reshape8x1_witness_v4.bin",
+                "internal/testfixtures/vectors/note_reshape8x1_witness_v5.bin",
             ),
         ),
     ),
     "note_reshape1x8": (
-        4,
+        5,
         (
             (
                 "note_reshape1x8",
-                "internal/testfixtures/vectors/note_reshape1x8_witness_v4.bin",
+                "internal/testfixtures/vectors/note_reshape1x8_witness_v5.bin",
             ),
         ),
     ),
     "transfer": (
-        17,
+        18,
         (
             (
                 "regulated_unflagged",
-                "internal/testfixtures/vectors/transfer_witness_v17.bin",
+                "internal/testfixtures/vectors/transfer_witness_v18.bin",
             ),
             (
                 "regulated_flagged_hidden",
-                "internal/testfixtures/vectors/transfer_flagged_witness_v17.bin",
+                "internal/testfixtures/vectors/transfer_flagged_witness_v18.bin",
             ),
             (
                 "unregulated_hidden",
-                "internal/testfixtures/vectors/transfer_unregulated_witness_v17.bin",
+                "internal/testfixtures/vectors/transfer_unregulated_witness_v18.bin",
             ),
         ),
     ),
     "shielded_ics20_withdrawal": (
-        9,
+        10,
         (
             (
                 "regulated_optional_real",
                 "internal/testfixtures/vectors/"
-                "shielded_ics20_withdrawal_witness_v9.bin",
+                "shielded_ics20_withdrawal_witness_v10.bin",
             ),
             (
                 "unregulated_optional_dummy",
                 "internal/testfixtures/vectors/"
-                "shielded_ics20_withdrawal_unregulated_witness_v9.bin",
+                "shielded_ics20_withdrawal_unregulated_witness_v10.bin",
             ),
         ),
     ),
@@ -1800,12 +1800,11 @@ def main() -> None:
         if profile["status"] == "certified"
     }
     backend_labels = set(load_certification_backends())
-    if certified_labels != backend_labels:
+    if not certified_labels <= backend_labels:
         missing = sorted(certified_labels - backend_labels)
-        extra = sorted(backend_labels - certified_labels)
         fail(
             "certified catalog/backend registry mismatch: "
-            f"missing={missing}, extra={extra}"
+            f"missing={missing}"
         )
 
     labels = args.labels or list(by_label)

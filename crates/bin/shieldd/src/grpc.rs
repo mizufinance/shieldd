@@ -1,5 +1,8 @@
 use std::sync::Arc;
 
+use shieldd_sdk_proto::core::component::sct::v1::{
+    ArchivedNullifierProofRequest, ArchivedNullifierProofResponse,
+};
 use shieldd_sdk_proto::execution_client::v1::{
     execution_client_service_server::ExecutionClientService, BeginBlockRequest, BeginBlockResponse,
     CheckTxRequest, CheckTxResponse, CommitRequest, CommitResponse, DeliverTxRequest,
@@ -157,6 +160,19 @@ impl ExecutionClientService for GrpcExecutionClient {
             .read()
             .await
             .export_genesis(request.into_inner())
+            .await
+            .map(Response::new)
+            .map_err(status)
+    }
+
+    async fn archived_nullifier_proof(
+        &self,
+        request: Request<ArchivedNullifierProofRequest>,
+    ) -> std::result::Result<Response<ArchivedNullifierProofResponse>, Status> {
+        self.service
+            .read()
+            .await
+            .archived_nullifier_proof(request.into_inner())
             .await
             .map(Response::new)
             .map_err(status)

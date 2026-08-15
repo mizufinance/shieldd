@@ -276,6 +276,9 @@ pub struct TransferInputBody {
     /// Compliance ciphertext encrypting spent note details for the asset issuer.
     #[prost(bytes = "vec", tag = "4")]
     pub compliance_ciphertext: ::prost::alloc::vec::Vec<u8>,
+    /// Whether this real input must carry a complete retired-history proof.
+    #[prost(bool, tag = "5")]
+    pub history_required: bool,
 }
 impl ::prost::Name for TransferInputBody {
     const NAME: &'static str = "TransferInputBody";
@@ -960,6 +963,9 @@ pub struct NoteReshapeInputBody {
     /// An encryption of the commitment of the input note to the sender's OVK.
     #[prost(bytes = "vec", tag = "3")]
     pub encrypted_backref: ::prost::alloc::vec::Vec<u8>,
+    /// Whether this real input must carry a complete retired-history proof.
+    #[prost(bool, tag = "4")]
+    pub history_required: bool,
 }
 impl ::prost::Name for NoteReshapeInputBody {
     const NAME: &'static str = "NoteReshapeInputBody";

@@ -32,14 +32,16 @@ class StatementHashSemanticsTest(unittest.TestCase):
             "shielded_ics20_withdrawal",
             "shielded_ics20_withdrawal",
             "shielded_ics20_withdrawal",
+            "shielded_ics20_withdrawal",
         ])
         self.assertEqual([tuple(block.row_count for block in provider.blocks) for provider in providers], [
-            (470, 470, 450),
-            (470, 470, 470, 455),
-            (470,) * 7 + (445,),
+            (470, 470, 460),
+            (470,) * 5,
+            (470,) * 7 + (460,),
             (470,),
             (470,),
-            (465,),
+            (470,),
+            (450,),
         ])
         for provider in providers:
             self.assertEqual(
@@ -51,7 +53,7 @@ class StatementHashSemanticsTest(unittest.TestCase):
             self.assertTrue(all(len(block.rounds) == 39 for block in provider.blocks))
         self.assertEqual(
             [provider.family.field_count for provider in providers],
-            [15, 22, 44, 7, 7, 6],
+            [17, 31, 47, 7, 7, 7, 6],
         )
 
     def test_transfer_family_geometry_is_exact(self) -> None:
@@ -60,16 +62,16 @@ class StatementHashSemanticsTest(unittest.TestCase):
             if family.circuit == "transfer"
         )
         self.assertEqual(transfer.statement_label, "transfer")
-        self.assertEqual(transfer.statement_version, "v5")
+        self.assertEqual(transfer.statement_version, "v6")
         self.assertEqual(
             transfer.digest,
-            "f091e489b9a220b0436835ce5343e78627a43408ea621e9d71e60917c2e7c77f",
+            "0e54d8ea5fc5d0d95e113695b4b0340e4b6bab4d5abb13df4d51436c93755a86",
         )
-        self.assertEqual(transfer.field_count, 44)
-        self.assertEqual(transfer.block_rows, (470,) * 7 + (445,))
+        self.assertEqual(transfer.field_count, 47)
+        self.assertEqual(transfer.block_rows, (470,) * 7 + (460,))
         self.assertEqual(sum(transfer.block_rows), transfer.rows)
         self.assertEqual(transfer.final_pins[-1], transfer.wires - 1)
-        self.assertEqual(subject._managed_file_count(transfer), 3608)
+        self.assertEqual(subject._managed_file_count(transfer), 3611)
 
     def test_all_families_share_one_validated_poseidon_schedule(self) -> None:
         schedule = subject._poseidon_schedule()
@@ -94,33 +96,35 @@ class StatementHashSemanticsTest(unittest.TestCase):
             self.assertTrue(all(plan.chained for plan in plans[1:]))
 
     def test_withdrawal_tail_geometry_has_the_continuation_pad_phase(self) -> None:
-        families = subject.FAMILIES[-3:]
+        families = subject.FAMILIES[-4:]
         self.assertEqual(
             [family.digest for family in families],
             [
-                "afd0be82d84896e98b8fdc0f4b8eaec88930b85f4b40c03ff06a87a4eaebd1b8",
-                "59fc709325ca9b0194b7adef9fe91a97d88a5c690c5278f59425a351790b2376",
-                "0a6a7d5c079d0a2e952c00450800860c1faf28396d74678cd2ea2a7dc4ee85ce",
+                "67a3df11145400695d1528410a7903b2252ede68702e91a980098b8499e5b5d4",
+                "0092421009be06b66aa764b1a88f289569cb79dda85cba9c19428c04336af9a4",
+                "5804cb48cce27e24aa8fa559e9e23e995c25c83d8af6b4ef440384b01de85476",
+                "19301faada329781da94b45e73c6963e9c85b971e364be5e52987753c670f898",
             ],
         )
         self.assertTrue(
-            all(family.statement_version == "v3" for family in families)
+            all(family.statement_version == "v4" for family in families)
         )
         self.assertEqual(
             [(family.rows, family.wires) for family in families],
-            [(470, 481), (470, 485), (465, 479)],
+            [(470, 480), (470, 486), (470, 485), (450, 461)],
         )
         self.assertEqual(
             [family.first_block_pad_offset for family in families],
-            [0, 0, 1],
+            [0, 0, 0, 1],
         )
         provider = subject.recover_provider(families[-1])
         tail = provider.blocks[0].inputs
         self.assertEqual(
-            tail[-3:],
+            tail[-4:],
             (
-                subject.LC.make(terms={32: 1}),
-                subject.LC.make(terms={38: 1}),
+                subject.LC.make(provider.pad0),
+                subject.LC.make(provider.pad1),
+                subject.LC.make(provider.pad0),
                 subject.LC.make(provider.pad1),
             ),
         )
@@ -140,19 +144,17 @@ class StatementHashSemanticsTest(unittest.TestCase):
         provider = subject.recover_provider(subject.FAMILIES[0])
         self.assertEqual(
             provider.domain,
-            4241182688873131096588087403843978305304926756205733284227994496152505846817,
+            8083011558212890722062585281830291178644145861330407768425969219879481653955,
         )
 
     def test_tail_constants_are_pinned_to_go_padding_order(self) -> None:
         one_to_eight = subject.recover_provider(subject.FAMILIES[0])
         tail = one_to_eight.blocks[-1].inputs
         self.assertEqual(tail[0], one_to_eight.blocks[-2].output)
-        self.assertTrue(all(value.terms for value in tail[1:3]))
+        self.assertTrue(all(value.terms for value in tail[1:5]))
         self.assertEqual(
-            tail[3:],
+            tail[5:],
             (
-                subject.LC.make(one_to_eight.pad0),
-                subject.LC.make(one_to_eight.pad1),
                 subject.LC.make(one_to_eight.pad0),
                 subject.LC.make(one_to_eight.pad1),
             ),
@@ -160,15 +162,7 @@ class StatementHashSemanticsTest(unittest.TestCase):
         eight_to_one = subject.recover_provider(subject.FAMILIES[1])
         tail = eight_to_one.blocks[-1].inputs
         self.assertEqual(tail[0], eight_to_one.blocks[-2].output)
-        self.assertTrue(all(value.terms for value in tail[1:4]))
-        self.assertEqual(
-            tail[4:],
-            (
-                subject.LC.make(eight_to_one.pad1),
-                subject.LC.make(eight_to_one.pad0),
-                subject.LC.make(eight_to_one.pad1),
-            ),
-        )
+        self.assertTrue(all(value.terms for value in tail[1:]))
 
     def test_wrong_protocol_label_fails_closed(self) -> None:
         family = dataclasses.replace(subject.FAMILIES[0], statement_label="other1x8")
@@ -195,7 +189,7 @@ class StatementHashSemanticsTest(unittest.TestCase):
         first = subject.generated_files()
         second = subject.generated_files()
         self.assertEqual(first, second)
-        self.assertEqual(len(first), 8135)
+        self.assertEqual(len(first), 9047)
         self.assertEqual(
             len(first),
             sum(
@@ -216,7 +210,7 @@ class StatementHashSemanticsTest(unittest.TestCase):
             self.assertIn("theorem sound", main)
             self.assertIn("Poseidon7Bridge.permSpec7", trace)
             self.assertNotIn("def spec (rho : Nat → F) : Prop := relation rho", main)
-        self.assertEqual(len(subject.benchmark_candidates()), 33)
+        self.assertEqual(len(subject.benchmark_candidates()), 38)
 
     def test_scalar_lane_uses_compact_vector_mds_bridge(self) -> None:
         outputs = subject.generated_files()
@@ -265,7 +259,7 @@ class StatementHashSemanticsTest(unittest.TestCase):
         family = next(
             family
             for family in subject.FAMILIES
-            if family.digest.startswith("afd0be82d848")
+            if family.digest.startswith("67a3df111454")
         )
         self.assertIn(
             "(-1 : F) * rho",

@@ -45,6 +45,14 @@ class PaddedSpendGeneratorTests(unittest.TestCase):
                         rendered.count("linear_combination -he + hm.1 + hm.2"),
                         2,
                     )
+                    self.assertIn(
+                        f"change spend{slot}HistoryRequired rho = 0",
+                        rendered,
+                    )
+                    self.assertIn(
+                        f"spend{slot}HistoryRequiredLC,",
+                        rendered,
+                    )
                     self.assertIn("] using h.symm", rendered)
 
     def test_refinement_paths_track_discovered_membership_segments(self) -> None:

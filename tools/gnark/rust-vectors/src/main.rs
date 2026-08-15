@@ -194,7 +194,7 @@ fn note_reshape_statement_fixture(
     n_in: usize,
     n_out: usize,
 ) -> NoteReshapeStatementFixture {
-    let domain_label = format!("shieldd.shielded_pool.{label}.public_input_hash.v2");
+    let domain_label = format!("shieldd.shielded_pool.{label}.public_input_hash.v3");
     let pad_0_label = format!("shieldd.shielded_pool.{label}.public_input_hash.pad0");
     let pad_1_label = format!("shieldd.shielded_pool.{label}.public_input_hash.pad1");
     let domain = blake2b_fq(domain_label.as_bytes());
@@ -207,9 +207,11 @@ fn note_reshape_statement_fixture(
     field_roles.push("asset_anchor".to_string());
     field_roles.push("routing_tag".to_string());
     field_roles.push("routing_parameter_set_id".to_string());
+    field_roles.push("recent_position_floor".to_string());
     for index in 0..n_in {
         field_roles.push(format!("nullifier_{index}"));
         field_roles.push(format!("rk_{index}"));
+        field_roles.push(format!("history_required_{index}"));
     }
 
     let fields = (0..field_roles.len())

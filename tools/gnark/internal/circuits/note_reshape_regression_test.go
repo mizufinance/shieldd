@@ -34,28 +34,28 @@ func loadNoteReshapeRegressionAssignment(t *testing.T, label string) *circuits.N
 func loadNoteReshapeRegressionWitnessAndAssignment(
 	t *testing.T,
 	label string,
-) (*abi.NoteReshapeWitnessV4Binary, *circuits.NoteReshapeCircuit) {
+) (*abi.NoteReshapeWitnessV5Binary, *circuits.NoteReshapeCircuit) {
 	t.Helper()
-	fixture := testfixtures.LoadNoteReshapeWitnessV4(label)
-	witness, _, err := abi.DecodeNoteReshapeWitnessV4(fixture)
+	fixture := testfixtures.LoadNoteReshapeWitnessV5(label)
+	witness, _, err := abi.DecodeNoteReshapeWitnessV5(fixture)
 	if err != nil {
 		t.Fatalf("decode %s binary witness fixture: %v", label, err)
 	}
-	assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV4(fixture)
+	assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV5(fixture)
 	if err != nil {
 		t.Fatalf("decode %s witness fixture: %v", label, err)
 	}
 	return witness, assignment
 }
 
-func setNoteReshapeStatementHashV4(
+func setNoteReshapeStatementHashV5(
 	t *testing.T,
 	label string,
-	witness *abi.NoteReshapeWitnessV4Binary,
+	witness *abi.NoteReshapeWitnessV5Binary,
 	assignment *circuits.NoteReshapeCircuit,
 ) {
 	t.Helper()
-	fields, err := abi.ReconstructedNoteReshapeStatementFieldsFromWitnessV4(witness)
+	fields, err := abi.ReconstructedNoteReshapeStatementFieldsFromWitnessV5(witness)
 	if err != nil {
 		t.Fatalf("reconstruct %s statement fields: %v", label, err)
 	}
@@ -153,7 +153,7 @@ func noteReshapeDomainHashNative(fields []*big.Int, label string) (*big.Int, err
 
 func noteReshapeTransmissionKeyFQNative(
 	t *testing.T,
-	witness *abi.NoteReshapeWitnessV4Binary,
+	witness *abi.NoteReshapeWitnessV5Binary,
 ) *big.Int {
 	t.Helper()
 	vectors, err := primitives.LoadPrototypeVectors()
@@ -284,7 +284,7 @@ func TestNoteReshapeEverySpendAndOutputPublicFieldIsConstrained(t *testing.T) {
 						).Nullifier = primitives.LittleEndianBytesToBigInt(
 							witness.Spends[spendIndex].Nullifier[:],
 						).String()
-						setNoteReshapeStatementHashV4(
+						setNoteReshapeStatementHashV5(
 							t,
 							family.Label,
 							witness,
@@ -357,7 +357,7 @@ func TestNoteReshapeEverySpendAndOutputPublicFieldIsConstrained(t *testing.T) {
 							assignment,
 							spendIndex,
 						).RK = circuitPointFromBinary(replacement)
-						setNoteReshapeStatementHashV4(
+						setNoteReshapeStatementHashV5(
 							t,
 							family.Label,
 							witness,
@@ -406,7 +406,7 @@ func TestNoteReshapeEverySpendAndOutputPublicFieldIsConstrained(t *testing.T) {
 							primitives.LittleEndianBytesToBigInt(
 								witness.Outputs[outputIndex].NoteCommitment[:],
 							).String()
-						setNoteReshapeStatementHashV4(
+						setNoteReshapeStatementHashV5(
 							t,
 							family.Label,
 							witness,
@@ -492,7 +492,7 @@ func TestNoteReshapeFamiliesRejectIsolatedExactConservationMutation(
 				le32FromBigInt(t, commitment)
 			assignment.Outputs[outputIndex].NoteCommitment =
 				commitment.String()
-			setNoteReshapeStatementHashV4(
+			setNoteReshapeStatementHashV5(
 				t,
 				family.Label,
 				witness,
@@ -530,7 +530,7 @@ func TestNoteReshape1x8BindsEveryOutputCommitment(t *testing.T) {
 				primitives.LittleEndianBytesToBigInt(
 					witness.Outputs[outputIndex].NoteCommitment[:],
 				).String()
-			setNoteReshapeStatementHashV4(
+			setNoteReshapeStatementHashV5(
 				t,
 				"note_reshape1x8",
 				witness,
@@ -654,7 +654,7 @@ func TestNoteReshapePaddedSpendRegressions(t *testing.T) {
 
 func noteReshapeDummyNullifierForSlot(
 	t *testing.T,
-	spend abi.NoteReshapeSpendWitnessV4Binary,
+	spend abi.NoteReshapeSpendWitnessV5Binary,
 	slot int,
 ) *big.Int {
 	t.Helper()
@@ -749,7 +749,7 @@ func TestNoteReshapeSyntheticDummyNullifiersBindFixedSlot(t *testing.T) {
 					)
 					assignment.SyntheticSpends[dummyIndex].Nullifier =
 						wrongNullifier.String()
-					setNoteReshapeStatementHashV4(
+					setNoteReshapeStatementHashV5(
 						t,
 						label,
 						witness,
@@ -778,13 +778,13 @@ func TestNoteReshapeFamiliesRejectWrongFamilyDomain(t *testing.T) {
 	for _, family := range generated.NoteReshapeFamilies {
 		t.Run(family.Label, func(t *testing.T) {
 			assignment := loadNoteReshapeRegressionAssignment(t, family.Label)
-			witness, _, err := abi.DecodeNoteReshapeWitnessV4(
-				testfixtures.LoadNoteReshapeWitnessV4(family.Label),
+			witness, _, err := abi.DecodeNoteReshapeWitnessV5(
+				testfixtures.LoadNoteReshapeWitnessV5(family.Label),
 			)
 			if err != nil {
 				t.Fatalf("decode %s fixture: %v", family.Label, err)
 			}
-			fields, err := abi.ReconstructedNoteReshapeStatementFieldsFromWitnessV4(witness)
+			fields, err := abi.ReconstructedNoteReshapeStatementFieldsFromWitnessV5(witness)
 			if err != nil {
 				t.Fatalf("reconstruct %s statement fields: %v", family.Label, err)
 			}
@@ -862,7 +862,7 @@ func TestNoteReshapeFamiliesRejectWrongStatementPreimage(t *testing.T) {
 						witness.Spends[0].Nullifier[:],
 					).String()
 			}
-			setNoteReshapeStatementHashV4(
+			setNoteReshapeStatementHashV5(
 				t,
 				family.Label,
 				witness,
@@ -888,7 +888,7 @@ func TestNoteReshapeStatementsHaveNoActiveCountFieldsAfterRedesign(t *testing.T)
 }
 
 func TestNoteReshape1x8HasNoOutputDummyWitnessOrManifestOperationsAfterRedesign(t *testing.T) {
-	if _, ok := reflect.TypeOf(abi.NoteReshapeOutputWitnessV4Binary{}).FieldByName("IsDummy"); ok {
+	if _, ok := reflect.TypeOf(abi.NoteReshapeOutputWitnessV5Binary{}).FieldByName("IsDummy"); ok {
 		t.Fatal("1x8 witness still exposes an output dummy flag")
 	}
 	if _, ok := reflect.TypeOf(circuits.NoteReshapeSpendCircuitFields{}).FieldByName("IsDummy"); ok {

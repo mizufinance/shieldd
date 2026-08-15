@@ -43,6 +43,8 @@ message CompactBlock {
   repeated compliance.v1.EventAssetRegistered compliance_asset_registrations = 15;
   // Encrypted note payloads grouped by their producing action for candidate retrieval.
   repeated RoutingActionPayloads routing_action_payloads = 16;
+  // Exact nullifier-generation window, emitted at genesis and app-epoch boundaries.
+  sct.v1.NullifierWindow nullifier_window = 17;
 }
 
 // An encrypted payload, corresponding to a single commitment in the state commitment tree.

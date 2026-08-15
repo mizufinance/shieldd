@@ -2822,6 +2822,9 @@ impl serde::Serialize for NoteReshapeInputBody {
         if !self.encrypted_backref.is_empty() {
             len += 1;
         }
+        if self.history_required {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.NoteReshapeInputBody", len)?;
         if let Some(v) = self.nullifier.as_ref() {
             struct_ser.serialize_field("nullifier", v)?;
@@ -2833,6 +2836,9 @@ impl serde::Serialize for NoteReshapeInputBody {
             #[allow(clippy::needless_borrow)]
             #[allow(clippy::needless_borrows_for_generic_args)]
             struct_ser.serialize_field("encryptedBackref", pbjson::private::base64::encode(&self.encrypted_backref).as_str())?;
+        }
+        if self.history_required {
+            struct_ser.serialize_field("historyRequired", &self.history_required)?;
         }
         struct_ser.end()
     }
@@ -2848,6 +2854,8 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeInputBody {
             "rk",
             "encrypted_backref",
             "encryptedBackref",
+            "history_required",
+            "historyRequired",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -2855,6 +2863,7 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeInputBody {
             Nullifier,
             Rk,
             EncryptedBackref,
+            HistoryRequired,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -2880,6 +2889,7 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeInputBody {
                             "nullifier" => Ok(GeneratedField::Nullifier),
                             "rk" => Ok(GeneratedField::Rk),
                             "encryptedBackref" | "encrypted_backref" => Ok(GeneratedField::EncryptedBackref),
+                            "historyRequired" | "history_required" => Ok(GeneratedField::HistoryRequired),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -2902,6 +2912,7 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeInputBody {
                 let mut nullifier__ = None;
                 let mut rk__ = None;
                 let mut encrypted_backref__ = None;
+                let mut history_required__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Nullifier => {
@@ -2924,6 +2935,12 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeInputBody {
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
+                        GeneratedField::HistoryRequired => {
+                            if history_required__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("historyRequired"));
+                            }
+                            history_required__ = Some(map_.next_value()?);
+                        }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
                         }
@@ -2933,6 +2950,7 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeInputBody {
                     nullifier: nullifier__,
                     rk: rk__,
                     encrypted_backref: encrypted_backref__.unwrap_or_default(),
+                    history_required: history_required__.unwrap_or_default(),
                 })
             }
         }
@@ -7268,6 +7286,9 @@ impl serde::Serialize for TransferInputBody {
         if !self.compliance_ciphertext.is_empty() {
             len += 1;
         }
+        if self.history_required {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.TransferInputBody", len)?;
         if let Some(v) = self.nullifier.as_ref() {
             struct_ser.serialize_field("nullifier", v)?;
@@ -7285,6 +7306,9 @@ impl serde::Serialize for TransferInputBody {
             #[allow(clippy::needless_borrows_for_generic_args)]
             struct_ser.serialize_field("complianceCiphertext", pbjson::private::base64::encode(&self.compliance_ciphertext).as_str())?;
         }
+        if self.history_required {
+            struct_ser.serialize_field("historyRequired", &self.history_required)?;
+        }
         struct_ser.end()
     }
 }
@@ -7301,6 +7325,8 @@ impl<'de> serde::Deserialize<'de> for TransferInputBody {
             "encryptedBackref",
             "compliance_ciphertext",
             "complianceCiphertext",
+            "history_required",
+            "historyRequired",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -7309,6 +7335,7 @@ impl<'de> serde::Deserialize<'de> for TransferInputBody {
             Rk,
             EncryptedBackref,
             ComplianceCiphertext,
+            HistoryRequired,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -7335,6 +7362,7 @@ impl<'de> serde::Deserialize<'de> for TransferInputBody {
                             "rk" => Ok(GeneratedField::Rk),
                             "encryptedBackref" | "encrypted_backref" => Ok(GeneratedField::EncryptedBackref),
                             "complianceCiphertext" | "compliance_ciphertext" => Ok(GeneratedField::ComplianceCiphertext),
+                            "historyRequired" | "history_required" => Ok(GeneratedField::HistoryRequired),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -7358,6 +7386,7 @@ impl<'de> serde::Deserialize<'de> for TransferInputBody {
                 let mut rk__ = None;
                 let mut encrypted_backref__ = None;
                 let mut compliance_ciphertext__ = None;
+                let mut history_required__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Nullifier => {
@@ -7388,6 +7417,12 @@ impl<'de> serde::Deserialize<'de> for TransferInputBody {
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
+                        GeneratedField::HistoryRequired => {
+                            if history_required__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("historyRequired"));
+                            }
+                            history_required__ = Some(map_.next_value()?);
+                        }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
                         }
@@ -7398,6 +7433,7 @@ impl<'de> serde::Deserialize<'de> for TransferInputBody {
                     rk: rk__,
                     encrypted_backref: encrypted_backref__.unwrap_or_default(),
                     compliance_ciphertext: compliance_ciphertext__.unwrap_or_default(),
+                    history_required: history_required__.unwrap_or_default(),
                 })
             }
         }

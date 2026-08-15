@@ -54,6 +54,7 @@ pub struct ShieldedIcs20WithdrawalProof {
 pub struct ShieldedIcs20WithdrawalInputPublic {
     pub nullifier: Nullifier,
     pub rk: VerificationKey<SpendAuth>,
+    pub history_required: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -76,6 +77,7 @@ pub struct ShieldedIcs20WithdrawalProofPublic {
     pub withdrawal_effect_hash_limbs: [Fq; 4],
     pub routing_tag: RoutingTag,
     pub routing_parameter_set_id: Fq,
+    pub recent_position_floor: u64,
 }
 
 pub(crate) fn withdrawal_effect_hash_limbs(bytes: &[u8]) -> [Fq; 4] {

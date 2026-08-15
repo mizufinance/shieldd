@@ -1784,7 +1784,7 @@
   "note_reshape_statements": [
     {
       "label": "note_reshape8x1",
-      "domain": "6633002048635308567879967754963729389552746207601986158379347440968324263659",
+      "domain": "3061752669569786885963994164501899099507756727275361723004405046505540448967",
       "field_roles": [
         "anchor",
         "output_note_commitment_0",
@@ -1792,22 +1792,31 @@
         "asset_anchor",
         "routing_tag",
         "routing_parameter_set_id",
+        "recent_position_floor",
         "nullifier_0",
         "rk_0",
+        "history_required_0",
         "nullifier_1",
         "rk_1",
+        "history_required_1",
         "nullifier_2",
         "rk_2",
+        "history_required_2",
         "nullifier_3",
         "rk_3",
+        "history_required_3",
         "nullifier_4",
         "rk_4",
+        "history_required_4",
         "nullifier_5",
         "rk_5",
+        "history_required_5",
         "nullifier_6",
         "rk_6",
+        "history_required_6",
         "nullifier_7",
-        "rk_7"
+        "rk_7",
+        "history_required_7"
       ],
       "fields": [
         "70001",
@@ -1831,13 +1840,22 @@
         "70019",
         "70020",
         "70021",
-        "70022"
+        "70022",
+        "70023",
+        "70024",
+        "70025",
+        "70026",
+        "70027",
+        "70028",
+        "70029",
+        "70030",
+        "70031"
       ],
-      "statement_hash": "1019271204494224338051300272346241351573594853617414255236917265046028322331"
+      "statement_hash": "1160903288024107557048230218877352759328602629375160675272278193408467242172"
     },
     {
       "label": "note_reshape1x8",
-      "domain": "4241182688873131096588087403843978305304926756205733284227994496152505846817",
+      "domain": "8083011558212890722062585281830291178644145861330407768425969219879481653955",
       "field_roles": [
         "anchor",
         "output_note_commitment_0",
@@ -1852,8 +1870,10 @@
         "asset_anchor",
         "routing_tag",
         "routing_parameter_set_id",
+        "recent_position_floor",
         "nullifier_0",
-        "rk_0"
+        "rk_0",
+        "history_required_0"
       ],
       "fields": [
         "70001",
@@ -1870,9 +1890,11 @@
         "70012",
         "70013",
         "70014",
-        "70015"
+        "70015",
+        "70016",
+        "70017"
       ],
-      "statement_hash": "3476578432476152545628067653217597943191504947059837527735862635838584034982"
+      "statement_hash": "1126563186564855408802718635816930425955040640618495305628914295233085761922"
     }
   ]
 }

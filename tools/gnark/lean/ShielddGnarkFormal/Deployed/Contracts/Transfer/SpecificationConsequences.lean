@@ -228,7 +228,7 @@ theorem specification_cir_shape_fixed
     (rho : Nat → SemanticF)
     (h : relationAll rho) :
     (Protocol.Transfer.Concrete.statementFields
-      (action rho)).length = 44 := by
+      (action rho)).length = 47 := by
   exact Protocol.Transfer.Concrete.statementFields_length
     (action rho)
 
@@ -751,7 +751,7 @@ theorem specification_dummy_nullifier_domain_binding
   have fact := relationOptionalSpend rho h
   unfold Protocol.Transfer.Concrete.optionalSpend at fact
   rw [selected] at fact
-  exact fact.2.2.1
+  exact fact.2.2.2.1
 
 /-- `DUMMY-SLOT-POSITION-BINDING` for the exact deployed relation. -/
 theorem specification_dummy_slot_position_binding
@@ -767,7 +767,7 @@ theorem specification_dummy_slot_position_binding
   have fact := relationOptionalSpend rho h
   unfold Protocol.Transfer.Concrete.optionalSpend at fact
   rw [selected] at fact
-  exact fact.2.2.1
+  exact fact.2.2.2.1
 
 /-- `FIELD-AUTH-RANDOMIZER-RANGE` for the exact deployed relation. -/
 theorem specification_field_auth_randomizer_range
@@ -782,19 +782,19 @@ theorem specification_field_auth_randomizer_range
           spend.authRandomizer.val < 2 ^ 251) := by
   have required := relationRequiredSpend rho h
   rcases required with
-    ⟨_, _, _, requiredBound, _, _, _, _, _⟩
+    ⟨_, _, requiredBound, _, _, _, _, _, _⟩
   refine ⟨requiredBound, ?_, ?_⟩
   intro spend
   intro selected
   have optional := relationOptionalSpend rho h
   unfold Protocol.Transfer.Concrete.optionalSpend at optional
   rw [selected] at optional
-  exact optional.2.2.2.1
+  exact optional.2.2.1
   intro spend selected
   have optional := relationOptionalSpend rho h
   unfold Protocol.Transfer.Concrete.optionalSpend at optional
   rw [selected] at optional
-  exact optional.2.1
+  exact optional.2.2.1
 
 /-- `FIELD-BALANCE-BLINDING-RANGE` for the exact deployed relation. -/
 theorem specification_field_balance_blinding_range
@@ -904,20 +904,20 @@ theorem specification_note_output_asset_binding
       (action rho).change.note.assetId = (action rho).assetId := by
   exact
     ⟨(relationReceiverOutput rho h).1,
-      (relationChangeOutput rho h).2.2.1⟩
+      (relationChangeOutput rho h).2.1⟩
 
 /-- `ROUTING-PARAMETERS` for the exact deployed relation. -/
 theorem specification_routing_parameters
     (rho : Nat → SemanticF)
     (h : relationAll rho) :
-    Seg72.contract.spec rho ∧
-      Seg73.contract.spec rho ∧
-      Seg74.contract.spec rho := by
-  have facts := (transfer_circuitFacts rho h).exact
+    Seg74.contract.spec rho ∧
+      Seg75.contract.spec rho ∧
+      Seg76.contract.spec rho := by
+  have facts := transfer_circuitFacts rho h
   exact
-    ⟨facts.RoutingPrecisionSelectSeg72,
-      facts.RoutingParametersHashSeg73,
-      facts.RoutingParametersBindSeg74⟩
+    ⟨facts.statementBinding.RoutingPrecisionSelectSeg74,
+      facts.statementBinding.RoutingParametersHashSeg75,
+      facts.statementBinding.RoutingParametersBindSeg76⟩
 
 /-- `NOTE-OUTPUT-OWNER-BINDING` for the exact deployed relation. -/
 theorem specification_note_output_owner_binding
@@ -931,7 +931,7 @@ theorem specification_note_output_owner_binding
   exact
     ⟨(relationReceiverOutput rho h).2.2.1,
       (relationChangeOutput rho h).1,
-      (relationChangeOutput rho h).2.2.2⟩
+      (relationChangeOutput rho h).2.2⟩
 
 /-- `NOTE-RECEIVER-AMOUNT-NONZERO` for the exact deployed relation. -/
 theorem specification_note_receiver_amount_nonzero
@@ -949,21 +949,19 @@ theorem specification_note_spend_asset_binding
         (action rho).optional = .real spend →
           spend.note.assetId = (action rho).assetId := by
   rcases relationRequiredSpend rho h with
-    ⟨_, _, requiredAsset, _, _, _, _, _, _⟩
+    ⟨_, requiredAsset, _, _, _, _, _, _, _⟩
   refine ⟨requiredAsset, ?_⟩
   intro spend selected
   have optional := relationOptionalSpend rho h
   unfold Protocol.Transfer.Concrete.optionalSpend at optional
   rw [selected] at optional
-  exact optional.2.2.1
+  exact optional.2.1
 
 /-- `ROUTING-TAG-DERIVATION` for the exact deployed relation. -/
 theorem specification_routing_tag_derivation
     (rho : Nat → SemanticF)
     (h : relationAll rho) :
-    Seg75.contract.spec rho ∧
-      Seg76.contract.spec rho ∧
-      Seg77.contract.spec rho ∧
+    Seg77.contract.spec rho ∧
       Seg78.contract.spec rho ∧
       Seg79.contract.spec rho ∧
       Seg80.contract.spec rho ∧
@@ -972,21 +970,23 @@ theorem specification_routing_tag_derivation
       Seg83.contract.spec rho ∧
       Seg84.contract.spec rho ∧
       Seg85.contract.spec rho ∧
-      Seg86.contract.spec rho := by
-  have facts := (transfer_circuitFacts rho h).exact
+      Seg86.contract.spec rho ∧
+      Seg87.contract.spec rho ∧
+      Seg88.contract.spec rho := by
+  have facts := transfer_circuitFacts rho h
   exact
-    ⟨facts.RoutingRouteWordSeg75,
-      facts.RoutingRouteWordSeg76,
-      facts.RoutingPermutationHashSeg77,
-      facts.RoutingPermutationComposeSeg78,
-      facts.RoutingTagPublicRangeSeg79,
-      facts.RoutingTagRouteBitsSeg80,
-      facts.RoutingTagRandomWordSeg81,
-      facts.RoutingTagComposeSeg82,
-      facts.RoutingTagPublicRangeSeg83,
-      facts.RoutingTagRouteBitsSeg84,
-      facts.RoutingTagRandomWordSeg85,
-      facts.RoutingTagComposeSeg86⟩
+    ⟨facts.statementBinding.RoutingRouteWordSeg77,
+      facts.statementBinding.RoutingRouteWordSeg78,
+      facts.statementBinding.RoutingPermutationHashSeg79,
+      facts.statementBinding.RoutingPermutationComposeSeg80,
+      facts.statementBinding.RoutingTagPublicRangeSeg81,
+      facts.statementBinding.RoutingTagRouteBitsSeg82,
+      facts.statementBinding.RoutingTagRandomWordSeg83,
+      facts.statementBinding.RoutingTagComposeSeg84,
+      facts.statementBinding.RoutingTagPublicRangeSeg85,
+      facts.statementBinding.RoutingTagRouteBitsSeg86,
+      facts.statementBinding.RoutingTagRandomWordSeg87,
+      facts.statementBinding.RoutingTagComposeSeg88⟩
 
 /-- `NOTE-SPEND-COMMITMENT` for the exact deployed relation. -/
 theorem specification_note_spend_commitment
@@ -998,13 +998,13 @@ theorem specification_note_spend_commitment
         (action rho).optional = .real spend →
           Protocol.Transfer.Concrete.noteCommitment spend.note := by
   rcases relationRequiredSpend rho h with
-    ⟨_, _, _, _, requiredCommitment, _, _, _, _⟩
+    ⟨_, _, _, requiredCommitment, _, _, _, _, _⟩
   refine ⟨requiredCommitment, ?_⟩
   intro spend selected
   have optional := relationOptionalSpend rho h
   unfold Protocol.Transfer.Concrete.optionalSpend at optional
   rw [selected] at optional
-  exact optional.2.2.2.2.1
+  exact optional.2.2.2.1
 
 /-- `NOTE-SPEND-OWNER-BINDING` for the exact deployed relation. -/
 theorem specification_note_spend_owner_binding

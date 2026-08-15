@@ -19,12 +19,12 @@ open Contracts.ShieldedIcs20Withdrawal
 
 theorem netXPerm :
     ((List.range 149).map
-        (fun offset => Seg55.wireSeating (772 + offset * 5)) ++
+        (fun offset => Seg57.wireSeating (772 + offset * 5)) ++
       (List.range 101).map
-        (fun offset => Seg55.wireSeating
+        (fun offset => Seg57.wireSeating
           (1520 + offset * 8))).Perm
-      ((List.range 149).map (fun offset => 50091 + offset * 5) ++
-        (List.range 101).map (fun offset => 50839 + offset * 8)) := by
+      ((List.range 149).map (fun offset => 50387 + offset * 5) ++
+        (List.range 101).map (fun offset => 51135 + offset * 8)) := by
   rw [
     ShieldedIcs20WithdrawalBalanceNetSeatingX0.wires,
     ShieldedIcs20WithdrawalBalanceNetSeatingX1.wires
@@ -32,12 +32,12 @@ theorem netXPerm :
 
 theorem netYPerm :
     ((List.range 149).map
-        (fun offset => Seg55.wireSeating (773 + offset * 5)) ++
+        (fun offset => Seg57.wireSeating (773 + offset * 5)) ++
       (List.range 101).map
-        (fun offset => Seg55.wireSeating
+        (fun offset => Seg57.wireSeating
           (1521 + offset * 8))).Perm
-      ((List.range 149).map (fun offset => 50092 + offset * 5) ++
-        (List.range 101).map (fun offset => 50840 + offset * 8)) := by
+      ((List.range 149).map (fun offset => 50388 + offset * 5) ++
+        (List.range 101).map (fun offset => 51136 + offset * 8)) := by
   rw [
     ShieldedIcs20WithdrawalBalanceNetSeatingY0.wires,
     ShieldedIcs20WithdrawalBalanceNetSeatingY1.wires
@@ -45,9 +45,9 @@ theorem netYPerm :
 
 theorem compressXWires :
     (List.range 250).map
-        (fun offset => Seg56.wireSeating (2 + offset)) =
-      (List.range 149).map (fun offset => 50091 + offset * 5) ++
-        (List.range 101).map (fun offset => 50839 + offset * 8) := by
+        (fun offset => Seg58.wireSeating (2 + offset)) =
+      (List.range 149).map (fun offset => 50387 + offset * 5) ++
+        (List.range 101).map (fun offset => 51135 + offset * 8) := by
   have hrange :
       List.range 250 =
         List.range 149 ++
@@ -58,9 +58,9 @@ theorem compressXWires :
   have htail :
       (List.range 101).map
           ((fun offset =>
-              Seg56.wireSeating (2 + offset)) ∘
+              Seg58.wireSeating (2 + offset)) ∘
             fun offset => 149 + offset) =
-        (List.range 101).map (fun offset => 50839 + offset * 8) := by
+        (List.range 101).map (fun offset => 51135 + offset * 8) := by
     simpa only [Function.comp_def] using
       ShieldedIcs20WithdrawalBalanceCompressSeatingX1.wires
   rw [htail]
@@ -68,9 +68,9 @@ theorem compressXWires :
 theorem compressYWires :
     (List.range 250).map
         (fun offset =>
-          Seg56.wireSeating (253 + offset)) =
-      (List.range 149).map (fun offset => 50092 + offset * 5) ++
-        (List.range 101).map (fun offset => 50840 + offset * 8) := by
+          Seg58.wireSeating (253 + offset)) =
+      (List.range 149).map (fun offset => 50388 + offset * 5) ++
+        (List.range 101).map (fun offset => 51136 + offset * 8) := by
   have hrange :
       List.range 250 =
         List.range 149 ++
@@ -81,22 +81,22 @@ theorem compressYWires :
   have htail :
       (List.range 101).map
           ((fun offset =>
-              Seg56.wireSeating (253 + offset)) ∘
+              Seg58.wireSeating (253 + offset)) ∘
             fun offset => 149 + offset) =
-        (List.range 101).map (fun offset => 50840 + offset * 8) := by
+        (List.range 101).map (fun offset => 51136 + offset * 8) := by
     simpa only [Function.comp_def] using
       ShieldedIcs20WithdrawalBalanceCompressSeatingY1.wires
   rw [htail]
 
 theorem compressXPerm :
     ((List.range 149).map
-        (fun offset => Seg55.wireSeating (772 + offset * 5)) ++
+        (fun offset => Seg57.wireSeating (772 + offset * 5)) ++
       (List.range 101).map
-        (fun offset => Seg55.wireSeating
+        (fun offset => Seg57.wireSeating
           (1520 + offset * 8))).Perm
       ((List.range 250).map
         (fun offset =>
-          Seg56.wireSeating (2 + offset))) := by
+          Seg58.wireSeating (2 + offset))) := by
   rw [
     ShieldedIcs20WithdrawalBalanceNetSeatingX0.wires,
     ShieldedIcs20WithdrawalBalanceNetSeatingX1.wires,
@@ -105,13 +105,13 @@ theorem compressXPerm :
 
 theorem compressYPerm :
     ((List.range 149).map
-        (fun offset => Seg55.wireSeating (773 + offset * 5)) ++
+        (fun offset => Seg57.wireSeating (773 + offset * 5)) ++
       (List.range 101).map
-        (fun offset => Seg55.wireSeating
+        (fun offset => Seg57.wireSeating
           (1521 + offset * 8))).Perm
       ((List.range 250).map
         (fun offset =>
-          Seg56.wireSeating (253 + offset))) := by
+          Seg58.wireSeating (253 + offset))) := by
   rw [
     ShieldedIcs20WithdrawalBalanceNetSeatingY0.wires,
     ShieldedIcs20WithdrawalBalanceNetSeatingY1.wires,

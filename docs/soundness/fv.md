@@ -30,16 +30,18 @@ The obligation ledger is
 The certified set is fixed-padded `note_reshape1x8` and `note_reshape8x1`,
 fixed Transfer 2x2, and fixed shielded ICS-20 Withdrawal 2x1. The adapters cover
 commitments, membership/nullifiers,
-real/dummy selection, randomized keys, conservation, canonical encodings, and
-the exact native statement hash. Transfer additionally covers its asset/user
+real/dummy selection, the exact old/recent nullifier-history classification,
+randomized keys, conservation, canonical encodings, and the exact native
+statement hash. Transfer additionally covers its asset/user
 registry proofs, regulation-gated threshold comparison, unconditional compliance
 ciphertexts, salts, shared-secret/ACK derivations, and factored metadata.
-Transfer V17 also proves the v3 six-field compliance leaves, excludes
+Transfer V18 also proves the v3 six-field compliance leaves, excludes
 the asset-tree zero sentinel, constrains both detection slots to 32 bits, and
 keeps the exact asset separate from the flag packed into sender-slot bit 32.
-It has no DLEQ or public shared-point surface. Withdrawal V9 proves the same
+It has no DLEQ or public shared-point surface. Withdrawal V10 proves the same
 leaf/sentinel invariants, its compact canonical asset leaf, outbound value, and
-all four 128-bit effect-hash limbs.
+all four 128-bit effect-hash limbs. The recent-position floor and each
+history-required bit are included in the exact public statement projection.
 
 External proof-key selection, body/public-input projection, signatures, current
 asset policy, recent append-only user roots, registry authorization, nullifier
@@ -210,8 +212,8 @@ branch/disclosure contract, role, trace row, formal fact, transition clause,
 ledger row, required test, or stated assumption silently falls out of the
 implementation/proof chain.
 
-The version-4 NoteReshape witness contains one private shared asset ID,
-diversified generator, transmission key, and routing nonce. Transfer V17 and Withdrawal V9 likewise
+The version-5 NoteReshape witness contains one private shared asset ID,
+diversified generator, transmission key, and routing nonce. Transfer V18 and Withdrawal V10 likewise
 derive their public bodies and shared sender context from canonical plan facts.
 There is no persisted placeholder action body or duplicate balance in any of
 the three proof plans.

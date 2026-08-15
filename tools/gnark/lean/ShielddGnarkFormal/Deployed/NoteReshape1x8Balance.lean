@@ -22,8 +22,8 @@ def computed (rho : Nat → SemanticF) : Decaf377Assumptions.Point :=
 
 theorem computedX_eq_gadget (rho : Nat → SemanticF) :
     balanceCommitmentComputed0 rho =
-      (nbBlindAccState (Seg71.localRho rho) 251).x := by
-  have hw1162 : Seg71.wireSeating 1162 = 36580 := by decide +kernel
+      (nbBlindAccState (Seg72.localRho rho) 251).x := by
+  have hw1162 : Seg72.wireSeating 1162 = 36728 := by decide +kernel
   rw [NoteReshape1x8BalanceAccFinal.Nb.x]
   simp only [
     balanceCommitmentComputed0, balanceCommitmentComputed0LC,
@@ -32,13 +32,13 @@ theorem computedX_eq_gadget (rho : Nat → SemanticF) :
     StrideRun.eval, zero_add, one_mul, add_zero
   ]
   rw [NoteReshape1x8BalanceRuns.x0, NoteReshape1x8BalanceRuns.x1]
-  simp only [Seg71.localRho, Deployed.Templates.seated, hw1162]
+  simp only [Seg72.localRho, Deployed.Templates.seated, hw1162]
   ring
 
 theorem computedY_eq_gadget (rho : Nat → SemanticF) :
     balanceCommitmentComputed1 rho =
-      (nbBlindAccState (Seg71.localRho rho) 251).y := by
-  have hw1162 : Seg71.wireSeating 1162 = 36580 := by decide +kernel
+      (nbBlindAccState (Seg72.localRho rho) 251).y := by
+  have hw1162 : Seg72.wireSeating 1162 = 36728 := by decide +kernel
   rw [NoteReshape1x8BalanceAccFinal.Nb.y]
   simp only [
     balanceCommitmentComputed1, balanceCommitmentComputed1LC,
@@ -47,13 +47,13 @@ theorem computedY_eq_gadget (rho : Nat → SemanticF) :
     StrideRun.eval, zero_add, one_mul, add_zero
   ]
   rw [NoteReshape1x8BalanceRuns.y0, NoteReshape1x8BalanceRuns.y1]
-  simp only [Seg71.localRho, Deployed.Templates.seated, hw1162]
+  simp only [Seg72.localRho, Deployed.Templates.seated, hw1162]
   ring
 
 theorem computed_eq_gadget (rho : Nat → SemanticF) :
     computed rho =
-      ⟨(nbBlindAccState (Seg71.localRho rho) 251).x,
-       (nbBlindAccState (Seg71.localRho rho) 251).y⟩ := by
+      ⟨(nbBlindAccState (Seg72.localRho rho) 251).x,
+       (nbBlindAccState (Seg72.localRho rho) 251).y⟩ := by
   unfold computed
   rw [computedX_eq_gadget, computedY_eq_gadget]
 
@@ -81,20 +81,20 @@ theorem gadgetSpec
       Decaf377Assumptions.scalarMulLE 251
         Decaf377Assumptions.valueBlindingGenerator
         (actionBalanceBlinding rho) := by
-  have h := facts.balance.DecafConservationNetBalanceCommitmentSeg71
+  have h := facts.balance.DecafConservationNetBalanceCommitmentSeg72
   change
     Deployed.Templates.Semantics.TDecafConservationNetBalanceCommitment_b01b1d46d18c662eabc20c9c5434699928df7baa1f515b0cb07e99eb6598893a.spec
-      (Seg71.localRho rho) at h
-  have hw129 : Seg71.wireSeating 129 = 89 := by decide +kernel
-  have hw258 : Seg71.wireSeating 258 = 167 := by decide +kernel
-  have hw387 : Seg71.wireSeating 387 = 170 := by decide +kernel
-  have hw516 : Seg71.wireSeating 516 = 173 := by decide +kernel
-  have hw645 : Seg71.wireSeating 645 = 176 := by decide +kernel
-  have hw774 : Seg71.wireSeating 774 = 179 := by decide +kernel
-  have hw903 : Seg71.wireSeating 903 = 182 := by decide +kernel
-  have hw1032 : Seg71.wireSeating 1032 = 185 := by decide +kernel
-  have hw1161 : Seg71.wireSeating 1161 = 188 := by decide +kernel
-  have hw1413 : Seg71.wireSeating 1413 = 8 := by decide +kernel
+      (Seg72.localRho rho) at h
+  have hw129 : Seg72.wireSeating 129 = 90 := by decide +kernel
+  have hw258 : Seg72.wireSeating 258 = 169 := by decide +kernel
+  have hw387 : Seg72.wireSeating 387 = 172 := by decide +kernel
+  have hw516 : Seg72.wireSeating 516 = 175 := by decide +kernel
+  have hw645 : Seg72.wireSeating 645 = 178 := by decide +kernel
+  have hw774 : Seg72.wireSeating 774 = 181 := by decide +kernel
+  have hw903 : Seg72.wireSeating 903 = 184 := by decide +kernel
+  have hw1032 : Seg72.wireSeating 1032 = 187 := by decide +kernel
+  have hw1161 : Seg72.wireSeating 1161 = 190 := by decide +kernel
+  have hw1413 : Seg72.wireSeating 1413 = 9 := by decide +kernel
   rcases h with
     ⟨hin, hout0, hout1, hout2, hout3, hout4, hout5, hout6, hout7,
      hblind, hsum, hpoint⟩
@@ -111,7 +111,7 @@ theorem gadgetSpec
         output6NoteCommitmentInputs1, output6NoteCommitmentInputs1LC,
         output7NoteCommitmentInputs1, output7NoteCommitmentInputs1LC,
         StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-        Seg71.localRho, Deployed.Templates.seated,
+        Seg72.localRho, Deployed.Templates.seated,
         hw129, hw258, hw387, hw516, hw645, hw774, hw903, hw1032, hw1161
       ] using hin
     | simpa [
@@ -125,7 +125,7 @@ theorem gadgetSpec
         output6NoteCommitmentInputs1, output6NoteCommitmentInputs1LC,
         output7NoteCommitmentInputs1, output7NoteCommitmentInputs1LC,
         StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-        Seg71.localRho, Deployed.Templates.seated,
+        Seg72.localRho, Deployed.Templates.seated,
         hw129, hw258, hw387, hw516, hw645, hw774, hw903, hw1032, hw1161
       ] using hout0
     | simpa [
@@ -139,7 +139,7 @@ theorem gadgetSpec
         output6NoteCommitmentInputs1, output6NoteCommitmentInputs1LC,
         output7NoteCommitmentInputs1, output7NoteCommitmentInputs1LC,
         StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-        Seg71.localRho, Deployed.Templates.seated,
+        Seg72.localRho, Deployed.Templates.seated,
         hw129, hw258, hw387, hw516, hw645, hw774, hw903, hw1032, hw1161
       ] using hout1
     | simpa [
@@ -153,7 +153,7 @@ theorem gadgetSpec
         output6NoteCommitmentInputs1, output6NoteCommitmentInputs1LC,
         output7NoteCommitmentInputs1, output7NoteCommitmentInputs1LC,
         StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-        Seg71.localRho, Deployed.Templates.seated,
+        Seg72.localRho, Deployed.Templates.seated,
         hw129, hw258, hw387, hw516, hw645, hw774, hw903, hw1032, hw1161
       ] using hout2
     | simpa [
@@ -167,7 +167,7 @@ theorem gadgetSpec
         output6NoteCommitmentInputs1, output6NoteCommitmentInputs1LC,
         output7NoteCommitmentInputs1, output7NoteCommitmentInputs1LC,
         StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-        Seg71.localRho, Deployed.Templates.seated,
+        Seg72.localRho, Deployed.Templates.seated,
         hw129, hw258, hw387, hw516, hw645, hw774, hw903, hw1032, hw1161
       ] using hout3
     | simpa [
@@ -181,7 +181,7 @@ theorem gadgetSpec
         output6NoteCommitmentInputs1, output6NoteCommitmentInputs1LC,
         output7NoteCommitmentInputs1, output7NoteCommitmentInputs1LC,
         StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-        Seg71.localRho, Deployed.Templates.seated,
+        Seg72.localRho, Deployed.Templates.seated,
         hw129, hw258, hw387, hw516, hw645, hw774, hw903, hw1032, hw1161
       ] using hout4
     | simpa [
@@ -195,7 +195,7 @@ theorem gadgetSpec
         output6NoteCommitmentInputs1, output6NoteCommitmentInputs1LC,
         output7NoteCommitmentInputs1, output7NoteCommitmentInputs1LC,
         StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-        Seg71.localRho, Deployed.Templates.seated,
+        Seg72.localRho, Deployed.Templates.seated,
         hw129, hw258, hw387, hw516, hw645, hw774, hw903, hw1032, hw1161
       ] using hout5
     | simpa [
@@ -209,7 +209,7 @@ theorem gadgetSpec
         output6NoteCommitmentInputs1, output6NoteCommitmentInputs1LC,
         output7NoteCommitmentInputs1, output7NoteCommitmentInputs1LC,
         StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-        Seg71.localRho, Deployed.Templates.seated,
+        Seg72.localRho, Deployed.Templates.seated,
         hw129, hw258, hw387, hw516, hw645, hw774, hw903, hw1032, hw1161
       ] using hout6
     | simpa [
@@ -223,13 +223,13 @@ theorem gadgetSpec
         output6NoteCommitmentInputs1, output6NoteCommitmentInputs1LC,
         output7NoteCommitmentInputs1, output7NoteCommitmentInputs1LC,
         StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-        Seg71.localRho, Deployed.Templates.seated,
+        Seg72.localRho, Deployed.Templates.seated,
         hw129, hw258, hw387, hw516, hw645, hw774, hw903, hw1032, hw1161
       ] using hout7
     | simpa [
         actionBalanceBlinding, actionBalanceBlindingLC,
         StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-        Seg71.localRho, Deployed.Templates.seated, hw1413
+        Seg72.localRho, Deployed.Templates.seated, hw1413
       ] using hblind
     | simpa [
         spend0NoteCommitmentInputs1, spend0NoteCommitmentInputs1LC,
@@ -242,14 +242,14 @@ theorem gadgetSpec
         output6NoteCommitmentInputs1, output6NoteCommitmentInputs1LC,
         output7NoteCommitmentInputs1, output7NoteCommitmentInputs1LC,
         StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-        Seg71.localRho, Deployed.Templates.seated,
+        Seg72.localRho, Deployed.Templates.seated,
         hw129, hw258, hw387, hw516, hw645, hw774, hw903, hw1032, hw1161
       ] using hsum
     | rw [Nb.computed_eq_gadget rho]
       simpa [
         actionBalanceBlinding, actionBalanceBlindingLC,
         StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-        Seg71.localRho, Deployed.Templates.seated, hw1413
+        Seg72.localRho, Deployed.Templates.seated, hw1413
       ] using hpoint
 
 end Shieldd.GnarkFormal.Deployed.NoteReshape1x8Balance

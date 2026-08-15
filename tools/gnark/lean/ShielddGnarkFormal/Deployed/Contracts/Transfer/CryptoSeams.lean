@@ -228,7 +228,7 @@ theorem senderTransmissionEquivalentSpec_of_semantic
       StructuredLC.sumResidual, StrideRun.eval,
       zero_add, one_mul, add_zero]
     rw [show Seg16.wireSeating 5 =
-      84
+      85
       by decide +kernel]
   have hRawY :
       SenderTransmissionEquivalentValuation rho 1 =
@@ -241,7 +241,7 @@ theorem senderTransmissionEquivalentSpec_of_semantic
       StructuredLC.sumResidual, StrideRun.eval,
       zero_add, one_mul, add_zero]
     rw [show Seg16.wireSeating 1 =
-      85
+      86
       by decide +kernel]
   refine ⟨?_, ?_, ?_⟩
   · have hOn := (senderDtkSpec_of_semantic rho semantic).2

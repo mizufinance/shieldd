@@ -188,7 +188,7 @@ theorem specification_cir_shape_fixed
     (rho : Nat → SemanticF)
     (h : relationAll rho) :
     (Protocol.ShieldedIcs20Withdrawal.Concrete.statementFields
-      (action rho)).length = 18 := by
+      (action rho)).length = 21 := by
   exact
     Protocol.ShieldedIcs20Withdrawal.Concrete.statementFields_length
       (action rho)
@@ -257,13 +257,13 @@ theorem specification_dec_spend_rk_derivation
             Protocol.Common.Decaf.equivalent computed
               spend.randomizedVerificationKey := by
   rcases relationRequiredSpend rho h with
-    ⟨_, _, _, _, _, _, _, requiredRk⟩
+    ⟨_, _, _, _, _, _, _, _, requiredRk⟩
   refine ⟨requiredRk, ?_⟩
   intro spend selected
   have optional := relationOptionalSpend rho h
   unfold Protocol.ShieldedIcs20Withdrawal.Concrete.optionalSpend at optional
   rw [selected] at optional
-  exact optional.2.2.2.2.2.2.2
+  exact optional.2.2.2.2.2.2.2.2
 
 /-- `DEC-SPEND-RK-ENCODING` for the exact deployed relation. -/
 theorem specification_dec_spend_rk_encoding
@@ -283,19 +283,19 @@ theorem specification_dec_spend_rk_encoding
             spend.randomizedVerificationKey
             spend.randomizedVerificationKeyEncoding) := by
   rcases relationRequiredSpend rho h with
-    ⟨_, _, _, _, _, _, requiredCompressed, _⟩
+    ⟨_, _, _, _, _, _, _, requiredCompressed, _⟩
   refine ⟨requiredCompressed, ?_, ?_⟩
   intro spend
   intro selected
   have optional := relationOptionalSpend rho h
   unfold Protocol.ShieldedIcs20Withdrawal.Concrete.optionalSpend at optional
   rw [selected] at optional
-  exact optional.2.2.2.2.2.2.1
+  exact optional.2.2.2.2.2.2.2.1
   intro spend selected
   have optional := relationOptionalSpend rho h
   unfold Protocol.ShieldedIcs20Withdrawal.Concrete.optionalSpend at optional
   rw [selected] at optional
-  exact optional.2.2.1
+  exact optional.2.2.2.1
 
 /-- `DEC-TRANSMISSION-KEY-DERIVATION` for the exact deployed relation. -/
 theorem specification_dec_transmission_key_derivation
@@ -353,7 +353,7 @@ theorem specification_dummy_nullifier_domain_binding
   have fact := relationOptionalSpend rho h
   unfold Protocol.ShieldedIcs20Withdrawal.Concrete.optionalSpend at fact
   rw [selected] at fact
-  exact fact.2.2.2
+  exact fact.2.2.2.2
 
 /-- `DUMMY-SLOT-POSITION-BINDING` for the exact deployed relation. -/
 theorem specification_dummy_slot_position_binding
@@ -369,7 +369,7 @@ theorem specification_dummy_slot_position_binding
   have fact := relationOptionalSpend rho h
   unfold Protocol.ShieldedIcs20Withdrawal.Concrete.optionalSpend at fact
   rw [selected] at fact
-  exact fact.2.2.2
+  exact fact.2.2.2.2
 
 /-- `FIELD-AUTH-RANDOMIZER-RANGE` for the exact deployed relation. -/
 theorem specification_field_auth_randomizer_range
@@ -383,7 +383,7 @@ theorem specification_field_auth_randomizer_range
         (action rho).optional = .dummy spend →
           spend.authRandomizer.val < 2 ^ 251) := by
   rcases relationRequiredSpend rho h with
-    ⟨_, _, requiredBound, _, _, _, _, _⟩
+    ⟨_, _, requiredBound, _, _, _, _, _, _⟩
   refine ⟨requiredBound, ?_, ?_⟩
   intro spend
   intro selected
@@ -395,7 +395,7 @@ theorem specification_field_auth_randomizer_range
   have optional := relationOptionalSpend rho h
   unfold Protocol.ShieldedIcs20Withdrawal.Concrete.optionalSpend at optional
   rw [selected] at optional
-  exact optional.2.1
+  exact optional.2.2.1
 
 /-- `FIELD-BALANCE-BLINDING-RANGE` for the exact deployed relation. -/
 theorem specification_field_balance_blinding_range
@@ -426,7 +426,7 @@ theorem specification_routing_parameters
     Seg19.contract.spec rho ∧
       Seg20.contract.spec rho ∧
       Seg21.contract.spec rho := by
-  have facts := (exactFactsOfRelation rho h).exact
+  have facts := (exactFactsOfRelation rho h).statementBinding
   exact
     ⟨facts.RoutingPrecisionSelectSeg19,
       facts.RoutingParametersHashSeg20,
@@ -477,7 +477,7 @@ theorem specification_routing_tag_derivation
       Seg24.contract.spec rho ∧
       Seg25.contract.spec rho ∧
       Seg26.contract.spec rho := by
-  have facts := (exactFactsOfRelation rho h).exact
+  have facts := (exactFactsOfRelation rho h).statementBinding
   exact
     ⟨facts.RoutingRouteWordSeg22,
       facts.RoutingTagPublicRangeSeg23,
@@ -496,7 +496,7 @@ theorem specification_note_spend_commitment
           Protocol.ShieldedIcs20Withdrawal.Concrete.noteCommitment
             spend.note := by
   rcases relationRequiredSpend rho h with
-    ⟨_, _, _, requiredCommitment, _, _, _, _⟩
+    ⟨_, _, _, requiredCommitment, _, _, _, _, _⟩
   refine ⟨requiredCommitment, ?_⟩
   intro spend selected
   have optional := relationOptionalSpend rho h
@@ -520,7 +520,7 @@ theorem specification_note_spend_nullifier_derivation
               (action rho).authorization.nullifierKey
               spend.note.commitment spend.position := by
   rcases relationRequiredSpend rho h with
-    ⟨_, _, _, _, _, requiredNullifier, _, _⟩
+    ⟨_, _, _, _, _, requiredNullifier, _, _, _⟩
   refine ⟨requiredNullifier, ?_⟩
   intro spend selected
   have optional := relationOptionalSpend rho h
@@ -555,7 +555,7 @@ theorem specification_sct_spend_membership
           Protocol.Common.stateMember (action rho).anchor
             spend.note.commitment spend.position spend.path := by
   rcases relationRequiredSpend rho h with
-    ⟨_, _, _, _, requiredMember, _, _, _⟩
+    ⟨_, _, _, _, requiredMember, _, _, _, _⟩
   refine ⟨requiredMember, ?_⟩
   intro spend selected
   have optional := relationOptionalSpend rho h
@@ -664,10 +664,13 @@ theorem specification_withdrawal_intent_field_binding
         [(action rho).anchor,
          (action rho).change.commitment,
          (action rho).balanceCommitmentEncoding,
+         (action rho).recentPositionFloor,
          (action rho).required.nullifier,
          (action rho).required.randomizedVerificationKeyEncoding,
+         (action rho).required.historyRequired,
          (action rho).optional.nullifier,
          (action rho).optional.rkEncoding,
+         (action rho).optional.historyRequired,
          (action rho).assetAnchor,
          (action rho).complianceAnchor,
          (action rho).targetTimestamp,

@@ -6,7 +6,7 @@ assets. Ledger safety remains a Shieldd consensus and circuit responsibility.
 External policy systems do not authorize spends or establish balance
 conservation.
 
-The deployed V17 transfer surface deliberately excludes PRE envelopes, DLEQ
+The deployed V18 transfer surface deliberately excludes PRE envelopes, DLEQ
 proofs, DH shared points, and any other seed-opening material. Orbis v0 remains
 useful for ring and policy registration, but its audit export/import path is
 disabled until a non-disclosing PRE v1 exists.
@@ -160,7 +160,7 @@ order.
 
 ## Consensus And Proof Boundary
 
-The V17 transfer circuit proves:
+The V18 transfer circuit proves:
 
 - fixed two-input/two-output shape and dummy-slot semantics;
 - spend ownership, authorization-key randomization, membership, nullifiers,
@@ -177,13 +177,15 @@ The V17 transfer circuit proves:
   `sender_slot + flag * 2^32 + routing_swap * 2^33` detection packing;
 - two proof-derived, privately permuted 32-bit routing tags and their complete
   parameter-set identifier;
+- the consensus recent-position floor and, for each spend, the exact old-note
+  classification `!is_dummy && position < recent_position_floor`;
 - canonical address plaintext packing from the two 32-byte Fq encodings into
   31-byte stream words;
 - the single 11-field metadata binding; and
-- the exact 44-field statement preimage committed under statement-hash domain
-  `v5`.
+- the exact 47-field statement preimage committed under statement-hash domain
+  `v6`.
 
-The Rust verifier reconstructs the same 44 fields from typed public data.
+The Rust verifier reconstructs the same 47 fields from typed public data.
 Consensus separately checks proof verification, the current asset-policy root
 and recent append-only user root, timestamp freshness, spend signatures,
 transaction-wide nullifier uniqueness, and the
@@ -252,4 +254,4 @@ This is an intentional availability restriction, not a confidentiality
 exception. A future PRE v1 must provide a non-disclosing, circuit-bound seed
 ciphertext and new formal evidence before the export/import path is enabled.
 The generic DLEQ Lean and symbolic models remain research artifacts only; they
-are not evidence for the deployed V17 transfer.
+are not evidence for the deployed V18 transfer.

@@ -1,4 +1,5 @@
 import ShielddGnarkFormal.Protocol.NoteReshape.Semantics
+import ShielddGnarkFormal.Protocol.NullifierHistory.Semantics
 
 /-!
 Concrete NoteReshape protocol relation.
@@ -83,6 +84,9 @@ def randomizedKeyReal
       authorization.authorizationKey input.randomizer computed ∧
     Common.Decaf.equivalent computed input.randomizedVerificationKey
 
+def historyClassification :=
+  NullifierHistory.FieldClassification
+
 def conservation (action : Action F Path24) : Prop :=
   (∀ input ∈ action.inputs, input.amount.val < 2 ^ 128) ∧
   (∀ output ∈ action.outputs, output.amount.val < 2 ^ 128) ∧
@@ -96,9 +100,9 @@ def conservation (action : Action F Path24) : Prop :=
 
 def statementDomain : FamilyPolicy → F
   | .reshape1x8 =>
-      4241182688873131096588087403843978305304926756205733284227994496152505846817
+      8083011558212890722062585281830291178644145861330407768425969219879481653955
   | .reshape8x1 =>
-      6633002048635308567879967754963729389552746207601986158379347440968324263659
+      3061752669569786885963994164501899099507756727275361723004405046505540448967
 
 def statementPad0 : FamilyPolicy → F
   | .reshape1x8 =>
@@ -126,7 +130,8 @@ def statementHash (policy : FamilyPolicy) (fields : List F) : F :=
 def inputStatementFields :
     List (Input F Path24) → List F → List F
   | input :: inputs, rk :: rks =>
-      input.nullifier :: rk :: inputStatementFields inputs rks
+      input.nullifier :: rk :: input.historyRequired ::
+        inputStatementFields inputs rks
   | _, _ => []
 
 def statementFields
@@ -134,7 +139,7 @@ def statementFields
   [action.anchor] ++
     action.outputs.map Output.commitment ++
     [balanceFq, action.assetAnchor, action.routingTag,
-      action.routingParameterSetId] ++
+      action.routingParameterSetId, action.recentPositionFloor] ++
     inputStatementFields action.inputs rkFqs
 
 def statementBinding (action : Action F Path24) : Prop :=
@@ -156,6 +161,7 @@ def circuitPrimitives : CircuitPrimitives F Path24 :=
     member
     realNullifier
     dummyNullifier
+    historyClassification
     randomizedKeyReal
     conservation
     statementBinding

@@ -104,16 +104,24 @@ impl ShieldedInputPlan {
         }
     }
 
-    pub fn action_input_body(&self, fvk: &FullViewingKey) -> TransferInputBody {
+    pub fn action_input_body(
+        &self,
+        fvk: &FullViewingKey,
+        recent_position_floor: u64,
+    ) -> anyhow::Result<TransferInputBody> {
         let backref = Backref::new(self.note.commit());
         let encrypted_backref = backref.encrypt(&fvk.backref_key(), &self.nullifier(fvk));
 
-        TransferInputBody {
+        Ok(TransferInputBody {
             nullifier: self.nullifier(fvk),
             rk: self.rk(fvk),
             encrypted_backref,
             compliance_ciphertext: Vec::new(),
-        }
+            history_required: shieldd_sdk_sct::nullifier_generation::is_old(
+                u64::from(self.position),
+                recent_position_floor,
+            )?,
+        })
     }
 
     pub fn rk(&self, fvk: &FullViewingKey) -> VerificationKey<SpendAuth> {

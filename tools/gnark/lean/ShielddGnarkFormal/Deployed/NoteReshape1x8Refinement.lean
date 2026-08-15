@@ -43,6 +43,7 @@ def input0 (rho : Nat → DeployedF) :
     randomizedVerificationKey :=
       ⟨spend0RkClaimed0 rho, spend0RkClaimed1 rho⟩
     randomizer := spends0AuthRandomizer rho
+    historyRequired := spend0HistoryRequired rho
   }
 
 def output0 (rho : Nat → DeployedF) : Output DeployedF :=
@@ -116,6 +117,7 @@ def action (rho : Nat → DeployedF) :
     assetAnchor := assetAnchor rho
     routingTag := routingTag rho
     routingParameterSetId := routingParameterSetId rho
+    recentPositionFloor := recentPositionFloor rho
     balanceCommitment :=
       ⟨claimedBalanceCommitment0 rho, claimedBalanceCommitment1 rho⟩
     balanceBlinding := actionBalanceBlinding rho

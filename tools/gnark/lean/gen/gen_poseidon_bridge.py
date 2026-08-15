@@ -336,10 +336,10 @@ def build(cfgname):
     )
 
     def fr_eq():
-        return f"fr_eq{W}"
+        return "fr_eq" if W == 7 else f"fr_eq{W}"
 
     def pr_eq():
-        return f"pr_eq{W}"
+        return "pr_eq" if W == 7 else f"pr_eq{W}"
 
     # ----- per-round emission helpers -----
     def emit_state_full(lines, g):

@@ -4,8 +4,6 @@ import ShielddGnarkFormal.Deployed.Contracts.Transfer.Seg8
 import ShielddGnarkFormal.Deployed.Contracts.Transfer.Seg9
 import ShielddGnarkFormal.Deployed.Contracts.Transfer.Seg10
 import ShielddGnarkFormal.Deployed.Contracts.Transfer.Seg11
-import ShielddGnarkFormal.Deployed.Contracts.Transfer.Seg89
-import ShielddGnarkFormal.Deployed.Contracts.Transfer.Seg90
 import ShielddGnarkFormal.Deployed.Contracts.Transfer.Seg91
 import ShielddGnarkFormal.Deployed.Contracts.Transfer.Seg92
 import ShielddGnarkFormal.Deployed.Contracts.Transfer.Seg93
@@ -23,8 +21,8 @@ import ShielddGnarkFormal.Deployed.Contracts.Transfer.Seg104
 import ShielddGnarkFormal.Deployed.Contracts.Transfer.Seg105
 import ShielddGnarkFormal.Deployed.Contracts.Transfer.Seg106
 import ShielddGnarkFormal.Deployed.Contracts.Transfer.Seg107
+import ShielddGnarkFormal.Deployed.Contracts.Transfer.Seg108
 import ShielddGnarkFormal.Deployed.Contracts.Transfer.Seg109
-import ShielddGnarkFormal.Deployed.Contracts.Transfer.Seg110
 import ShielddGnarkFormal.Deployed.Contracts.Transfer.Seg111
 import ShielddGnarkFormal.Deployed.Contracts.Transfer.Seg112
 import ShielddGnarkFormal.Deployed.Contracts.Transfer.Seg113
@@ -34,6 +32,8 @@ import ShielddGnarkFormal.Deployed.Contracts.Transfer.Seg116
 import ShielddGnarkFormal.Deployed.Contracts.Transfer.Seg117
 import ShielddGnarkFormal.Deployed.Contracts.Transfer.Seg118
 import ShielddGnarkFormal.Deployed.Contracts.Transfer.Seg119
+import ShielddGnarkFormal.Deployed.Contracts.Transfer.Seg120
+import ShielddGnarkFormal.Deployed.Contracts.Transfer.Seg121
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 4000000
@@ -50,27 +50,25 @@ structure ComplianceTranscriptCircuitFacts (rho : Nat → Seg6.F) : Prop where
   SelectFieldSeg9 : Seg9.contract.spec rho
   SelectFieldSeg10 : Seg10.contract.spec rho
   SelectFieldSeg11 : Seg11.contract.spec rho
-  ThresholdFlagSeg89 : Seg89.contract.spec rho
-  DecafCompressToFieldSeg90 : Seg90.contract.spec rho
-  DecafCompressToFieldSeg91 : Seg91.contract.spec rho
+  ThresholdFlagSeg91 : Seg91.contract.spec rho
   DecafCompressToFieldSeg92 : Seg92.contract.spec rho
   DecafCompressToFieldSeg93 : Seg93.contract.spec rho
-  GadgetTransferSaltSeg94 : Seg94.contract.spec rho
-  GadgetTransferSaltSeg95 : Seg95.contract.spec rho
+  DecafCompressToFieldSeg94 : Seg94.contract.spec rho
+  DecafCompressToFieldSeg95 : Seg95.contract.spec rho
   GadgetTransferSaltSeg96 : Seg96.contract.spec rho
   GadgetTransferSaltSeg97 : Seg97.contract.spec rho
   GadgetTransferSaltSeg98 : Seg98.contract.spec rho
-  DecafSharedSecretSeg99 : Seg99.contract.spec rho
-  DecafSharedSecretSeg100 : Seg100.contract.spec rho
+  GadgetTransferSaltSeg99 : Seg99.contract.spec rho
+  GadgetTransferSaltSeg100 : Seg100.contract.spec rho
   DecafSharedSecretSeg101 : Seg101.contract.spec rho
   DecafSharedSecretSeg102 : Seg102.contract.spec rho
-  GadgetPoseidonEncryptionDetectionSeg103 : Seg103.contract.spec rho
-  GadgetPoseidonEncryptionAmountSeg104 : Seg104.contract.spec rho
-  GadgetPoseidonEncryptionAddressSeg105 : Seg105.contract.spec rho
+  DecafSharedSecretSeg103 : Seg103.contract.spec rho
+  DecafSharedSecretSeg104 : Seg104.contract.spec rho
+  GadgetPoseidonEncryptionDetectionSeg105 : Seg105.contract.spec rho
   GadgetPoseidonEncryptionAmountSeg106 : Seg106.contract.spec rho
   GadgetPoseidonEncryptionAddressSeg107 : Seg107.contract.spec rho
-  AssertEqSeg109 : Seg109.contract.spec rho
-  AssertEqSeg110 : Seg110.contract.spec rho
+  GadgetPoseidonEncryptionAmountSeg108 : Seg108.contract.spec rho
+  GadgetPoseidonEncryptionAddressSeg109 : Seg109.contract.spec rho
   AssertEqSeg111 : Seg111.contract.spec rho
   AssertEqSeg112 : Seg112.contract.spec rho
   AssertEqSeg113 : Seg113.contract.spec rho
@@ -80,5 +78,7 @@ structure ComplianceTranscriptCircuitFacts (rho : Nat → Seg6.F) : Prop where
   AssertEqSeg117 : Seg117.contract.spec rho
   AssertEqSeg118 : Seg118.contract.spec rho
   AssertEqSeg119 : Seg119.contract.spec rho
+  AssertEqSeg120 : Seg120.contract.spec rho
+  AssertEqSeg121 : Seg121.contract.spec rho
 
 end Shieldd.GnarkFormal.Deployed.Contracts.Transfer

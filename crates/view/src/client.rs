@@ -17,7 +17,7 @@ use shieldd_sdk_proto::view::v1::{
     self as pb, view_service_client::ViewServiceClient, BalancesResponse,
     BroadcastTransactionResponse, WitnessRequest,
 };
-use shieldd_sdk_sct::Nullifier;
+use shieldd_sdk_sct::{nullifier_generation::NullifierWindow, Nullifier};
 use shieldd_sdk_shielded_pool::{discovery, note};
 use shieldd_sdk_transaction::{
     txhash::TransactionId, AuthorizationData, Transaction, TransactionPlan, WitnessData,
@@ -66,6 +66,11 @@ pub trait ViewClient {
     fn app_params(
         &mut self,
     ) -> Pin<Box<dyn Future<Output = Result<AppParameters>> + Send + 'static>>;
+
+    /// Get the exact nullifier-generation planning window.
+    fn nullifier_window(
+        &mut self,
+    ) -> Pin<Box<dyn Future<Output = Result<NullifierWindow>> + Send + 'static>>;
 
     /// Get a copy of the gas prices.
     fn gas_prices(&mut self) -> Pin<Box<dyn Future<Output = Result<GasPrices>> + Send + 'static>>;
@@ -442,6 +447,24 @@ where
                 .gas_prices
                 .ok_or_else(|| anyhow::anyhow!("empty GasPricesResponse message"))?
                 .try_into()
+        }
+        .boxed()
+    }
+
+    fn nullifier_window(
+        &mut self,
+    ) -> Pin<Box<dyn Future<Output = Result<NullifierWindow>> + Send + 'static>> {
+        let mut self2 = self.clone();
+        async move {
+            ViewServiceClient::nullifier_window(
+                &mut self2,
+                tonic::Request::new(pb::NullifierWindowRequest {}),
+            )
+            .await?
+            .into_inner()
+            .window
+            .ok_or_else(|| anyhow::anyhow!("empty NullifierWindowResponse message"))?
+            .try_into()
         }
         .boxed()
     }

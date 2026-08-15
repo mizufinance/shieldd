@@ -45,7 +45,7 @@ def relationAll (rho : Nat → DeployedF) : Prop :=
   Seg33.contract.relation rho ∧
   Seg34.contract.relation rho ∧
   Seg35.contract.relation rho ∧
-  Seg38.contract.relation rho ∧
+  Seg36.contract.relation rho ∧
   Seg39.contract.relation rho ∧
   Seg40.contract.relation rho ∧
   Seg41.contract.relation rho ∧
@@ -57,14 +57,17 @@ def relationAll (rho : Nat → DeployedF) : Prop :=
   Seg47.contract.relation rho ∧
   Seg48.contract.relation rho ∧
   Seg49.contract.relation rho ∧
-  Seg52.contract.relation rho ∧
-  Seg53.contract.relation rho ∧
+  Seg50.contract.relation rho ∧
+  Seg51.contract.relation rho ∧
+  Seg54.contract.relation rho ∧
   Seg55.contract.relation rho ∧
-  Seg56.contract.relation rho ∧
+  Seg57.contract.relation rho ∧
   Seg58.contract.relation rho ∧
-  Seg59.contract.relation rho ∧
   Seg60.contract.relation rho ∧
-  Seg61.contract.relation rho
+  Seg61.contract.relation rho ∧
+  Seg62.contract.relation rho ∧
+  Seg63.contract.relation rho ∧
+  Seg64.contract.relation rho
 
 def specAll (rho : Nat → DeployedF) : Prop :=
   Seg1.contract.spec rho ∧
@@ -100,7 +103,7 @@ def specAll (rho : Nat → DeployedF) : Prop :=
   Seg33.contract.spec rho ∧
   Seg34.contract.spec rho ∧
   Seg35.contract.spec rho ∧
-  Seg38.contract.spec rho ∧
+  Seg36.contract.spec rho ∧
   Seg39.contract.spec rho ∧
   Seg40.contract.spec rho ∧
   Seg41.contract.spec rho ∧
@@ -112,19 +115,22 @@ def specAll (rho : Nat → DeployedF) : Prop :=
   Seg47.contract.spec rho ∧
   Seg48.contract.spec rho ∧
   Seg49.contract.spec rho ∧
-  Seg52.contract.spec rho ∧
-  Seg53.contract.spec rho ∧
+  Seg50.contract.spec rho ∧
+  Seg51.contract.spec rho ∧
+  Seg54.contract.spec rho ∧
   Seg55.contract.spec rho ∧
-  Seg56.contract.spec rho ∧
+  Seg57.contract.spec rho ∧
   Seg58.contract.spec rho ∧
-  Seg59.contract.spec rho ∧
   Seg60.contract.spec rho ∧
-  Seg61.contract.spec rho
+  Seg61.contract.spec rho ∧
+  Seg62.contract.spec rho ∧
+  Seg63.contract.spec rho ∧
+  Seg64.contract.spec rho
 
 theorem shielded_ics20_withdrawal_deployed_sound :
     ∀ rho, relationAll rho → specAll rho := by
   intro rho h
-  obtain ⟨h1, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17, h18, h19, h20, h21, h22, h23, h24, h25, h26, h28, h29, h30, h31, h32, h33, h34, h35, h38, h39, h40, h41, h42, h43, h44, h45, h46, h47, h48, h49, h52, h53, h55, h56, h58, h59, h60, h61⟩ := h
+  obtain ⟨h1, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17, h18, h19, h20, h21, h22, h23, h24, h25, h26, h28, h29, h30, h31, h32, h33, h34, h35, h36, h39, h40, h41, h42, h43, h44, h45, h46, h47, h48, h49, h50, h51, h54, h55, h57, h58, h60, h61, h62, h63, h64⟩ := h
   exact ⟨inst1_bound.2.2 rho h1,
     inst3_bound.2.2 rho h3,
     inst4_bound.2.2 rho h4,
@@ -158,7 +164,7 @@ theorem shielded_ics20_withdrawal_deployed_sound :
     inst33_bound.2.2 rho h33,
     inst34_bound.2.2 rho h34,
     inst35_bound.2.2 rho h35,
-    inst38_bound.2.2 rho h38,
+    inst36_bound.2.2 rho h36,
     inst39_bound.2.2 rho h39,
     inst40_bound.2.2 rho h40,
     inst41_bound.2.2 rho h41,
@@ -170,14 +176,17 @@ theorem shielded_ics20_withdrawal_deployed_sound :
     inst47_bound.2.2 rho h47,
     inst48_bound.2.2 rho h48,
     inst49_bound.2.2 rho h49,
-    inst52_bound.2.2 rho h52,
-    inst53_bound.2.2 rho h53,
+    inst50_bound.2.2 rho h50,
+    inst51_bound.2.2 rho h51,
+    inst54_bound.2.2 rho h54,
     inst55_bound.2.2 rho h55,
-    inst56_bound.2.2 rho h56,
+    inst57_bound.2.2 rho h57,
     inst58_bound.2.2 rho h58,
-    inst59_bound.2.2 rho h59,
     inst60_bound.2.2 rho h60,
-    inst61_bound.2.2 rho h61⟩
+    inst61_bound.2.2 rho h61,
+    inst62_bound.2.2 rho h62,
+    inst63_bound.2.2 rho h63,
+    inst64_bound.2.2 rho h64⟩
 
 theorem relationOf1 (rho : Nat → DeployedF) (h : relationAll rho) :
     Seg1.contract.relation rho :=
@@ -311,8 +320,8 @@ theorem relationOf35 (rho : Nat → DeployedF) (h : relationAll rho) :
     Seg35.contract.relation rho :=
   (h.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
 
-theorem relationOf38 (rho : Nat → DeployedF) (h : relationAll rho) :
-    Seg38.contract.relation rho :=
+theorem relationOf36 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg36.contract.relation rho :=
   (h.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
 
 theorem relationOf39 (rho : Nat → DeployedF) (h : relationAll rho) :
@@ -359,28 +368,28 @@ theorem relationOf49 (rho : Nat → DeployedF) (h : relationAll rho) :
     Seg49.contract.relation rho :=
   (h.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
 
-theorem relationOf52 (rho : Nat → DeployedF) (h : relationAll rho) :
-    Seg52.contract.relation rho :=
+theorem relationOf50 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg50.contract.relation rho :=
   (h.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
 
-theorem relationOf53 (rho : Nat → DeployedF) (h : relationAll rho) :
-    Seg53.contract.relation rho :=
+theorem relationOf51 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg51.contract.relation rho :=
   (h.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem relationOf54 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg54.contract.relation rho :=
+  (h.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
 
 theorem relationOf55 (rho : Nat → DeployedF) (h : relationAll rho) :
     Seg55.contract.relation rho :=
-  (h.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
-
-theorem relationOf56 (rho : Nat → DeployedF) (h : relationAll rho) :
-    Seg56.contract.relation rho :=
   (h.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem relationOf57 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg57.contract.relation rho :=
+  (h.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
 
 theorem relationOf58 (rho : Nat → DeployedF) (h : relationAll rho) :
     Seg58.contract.relation rho :=
-  (h.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
-
-theorem relationOf59 (rho : Nat → DeployedF) (h : relationAll rho) :
-    Seg59.contract.relation rho :=
   (h.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
 
 theorem relationOf60 (rho : Nat → DeployedF) (h : relationAll rho) :
@@ -389,7 +398,19 @@ theorem relationOf60 (rho : Nat → DeployedF) (h : relationAll rho) :
 
 theorem relationOf61 (rho : Nat → DeployedF) (h : relationAll rho) :
     Seg61.contract.relation rho :=
-  (h.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2 :)
+  (h.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem relationOf62 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg62.contract.relation rho :=
+  (h.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem relationOf63 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg63.contract.relation rho :=
+  (h.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem relationOf64 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg64.contract.relation rho :=
+  (h.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2 :)
 
 theorem specOf1 (rho : Nat → DeployedF) (h : relationAll rho) :
     Seg1.contract.spec rho :=
@@ -523,8 +544,8 @@ theorem specOf35 (rho : Nat → DeployedF) (h : relationAll rho) :
     Seg35.contract.spec rho :=
   ((shielded_ics20_withdrawal_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
 
-theorem specOf38 (rho : Nat → DeployedF) (h : relationAll rho) :
-    Seg38.contract.spec rho :=
+theorem specOf36 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg36.contract.spec rho :=
   ((shielded_ics20_withdrawal_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
 
 theorem specOf39 (rho : Nat → DeployedF) (h : relationAll rho) :
@@ -571,28 +592,28 @@ theorem specOf49 (rho : Nat → DeployedF) (h : relationAll rho) :
     Seg49.contract.spec rho :=
   ((shielded_ics20_withdrawal_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
 
-theorem specOf52 (rho : Nat → DeployedF) (h : relationAll rho) :
-    Seg52.contract.spec rho :=
+theorem specOf50 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg50.contract.spec rho :=
   ((shielded_ics20_withdrawal_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
 
-theorem specOf53 (rho : Nat → DeployedF) (h : relationAll rho) :
-    Seg53.contract.spec rho :=
+theorem specOf51 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg51.contract.spec rho :=
   ((shielded_ics20_withdrawal_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf54 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg54.contract.spec rho :=
+  ((shielded_ics20_withdrawal_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
 
 theorem specOf55 (rho : Nat → DeployedF) (h : relationAll rho) :
     Seg55.contract.spec rho :=
-  ((shielded_ics20_withdrawal_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
-
-theorem specOf56 (rho : Nat → DeployedF) (h : relationAll rho) :
-    Seg56.contract.spec rho :=
   ((shielded_ics20_withdrawal_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf57 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg57.contract.spec rho :=
+  ((shielded_ics20_withdrawal_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
 
 theorem specOf58 (rho : Nat → DeployedF) (h : relationAll rho) :
     Seg58.contract.spec rho :=
-  ((shielded_ics20_withdrawal_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
-
-theorem specOf59 (rho : Nat → DeployedF) (h : relationAll rho) :
-    Seg59.contract.spec rho :=
   ((shielded_ics20_withdrawal_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
 
 theorem specOf60 (rho : Nat → DeployedF) (h : relationAll rho) :
@@ -601,6 +622,18 @@ theorem specOf60 (rho : Nat → DeployedF) (h : relationAll rho) :
 
 theorem specOf61 (rho : Nat → DeployedF) (h : relationAll rho) :
     Seg61.contract.spec rho :=
-  ((shielded_ics20_withdrawal_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2 :)
+  ((shielded_ics20_withdrawal_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf62 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg62.contract.spec rho :=
+  ((shielded_ics20_withdrawal_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf63 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg63.contract.spec rho :=
+  ((shielded_ics20_withdrawal_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf64 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg64.contract.spec rho :=
+  ((shielded_ics20_withdrawal_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2 :)
 
 end Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal

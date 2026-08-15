@@ -313,7 +313,7 @@ PROPERTY_OWNER_SPECS: dict[str, tuple[TestSpec, ...]] = {
     + _specs(
         "negative",
         "crates/view/src/storage.rs",
-        "issued_address_metadata_is_idempotent_but_cannot_be_reclassified",
+        "issued_address_birth_height_is_write_once_and_purpose_cannot_change",
     ),
     "NATIVE-KEY-AND-ADDRESS-PARITY": (
         *_specs(
@@ -1275,6 +1275,7 @@ EXCLUSION_SYMBOLS: dict[str, tuple[str, ...]] = {
         """
         accepted_host_tx_response_accepts_empty_withdrawals
         host_execution_reports_only_the_latest_committed_state
+        host_withdrawals_preserve_withdrawal_order
         host_withdrawals_resolve_registered_asset_to_base_denom
         """
     ),
@@ -1566,9 +1567,11 @@ EXCLUSION_SYMBOLS: dict[str, tuple[str, ...]] = {
     ),
     "crates/core/component/shielded-pool/src/host_withdrawal.rs": _symbols(
         """
-        validate_accepts_non_empty_recipient_and_amount
-        validate_rejects_empty_recipient
-        validate_rejects_zero_amount
+        execution_effect_hash_binds_refund_and_calls
+        execution_roundtrips_through_proto
+        rejects_invalid_destinations
+        rejects_non_evm_contract_address
+        validates_transfer_and_execution
         """
     ),
     "crates/core/component/shielded-pool/src/gnark/mod.rs": _symbols(
@@ -1580,8 +1583,85 @@ EXCLUSION_SYMBOLS: dict[str, tuple[str, ...]] = {
         sct_nv_storage_skips_recalculable_hashes
         """
     ),
+    "crates/core/component/sct/src/component/rpc.rs": _symbols(
+        "archived_rpc_uses_pack_after_expanded_tree_is_pruned"
+    ),
+    "crates/core/app/src/nullifier_generation_packs.rs": _symbols(
+        """
+        compact_blocks_rebuild_the_exact_retired_root
+        invalid_pack_with_a_stored_receipt_is_rebuilt_before_pruning
+        startup_preparation_packs_and_prunes_multiple_generations
+        valid_receipt_allows_restart_after_expanded_state_is_pruned
+        """
+    ),
+    "crates/core/component/sct/src/generation_pack.rs": _symbols(
+        """
+        codec_is_canonical_and_rejects_corruption
+        inspection_is_cheap_but_full_verification_still_checks_the_root
+        reconstruction_proves_every_gap_and_rejects_membership
+        repository_reloads_verified_pack_and_quarantines_damage
+        """
+    ),
+    "crates/core/component/sct/src/indexed_nullifier_tree.rs": _symbols(
+        "sentinel_gap_includes_field_boundaries"
+    ),
     "crates/core/component/sct/src/nullifier_tree.rs": _symbols(
-        "stale_nullifier_schema_fails_closed"
+        """
+        already_spent_nullifier_is_rejected_before_mutation
+        field_boundaries_are_ordinary_nullifiers
+        indexed_tree_handles_membership_and_boundary_gaps
+        packed_generation_is_provable_until_pruned
+        reconstructed_pack_matches_live_witnesses
+        rollover_archives_poseidon_generation
+        """
+    ),
+    "crates/core/transaction/src/plan.rs": _symbols(
+        "shielded_host_withdrawal_uses_current_routing_parameters"
+    ),
+    "crates/crypto/proof-params/src/gnark_artifact_validation.rs": _symbols(
+        "runtime_validation_requires_only_the_proving_key"
+    ),
+    "crates/view/src/storage.rs": _symbols(
+        "historical_proof_cache_round_trips_and_deletes"
+    ),
+    "crates/core/component/sct/src/nullifier.rs": _symbols(
+        "malformed_field_encoding_is_rejected_without_panicking"
+    ),
+    "crates/core/component/sct/src/nullifier_generation.rs": _symbols(
+        """
+        activation_and_rollover_preserve_generation_arithmetic
+        bundle_shape_depends_only_on_global_history_count
+        canonical_historical_bundles_cover_the_complete_prefix
+        historical_bundle_structure_rejects_omission_reordering_and_bad_encoding
+        history_binds_index_root_and_end_position
+        old_boundary_is_strict
+        protobuf_round_trip_is_exact
+        public_history_records_reject_noncanonical_field_encodings
+        """
+    ),
+    "crates/core/component/shielded-pool/src/shielded_host_withdrawal/plan.rs": _symbols(
+        """
+        host_withdrawal_binds_routing_parameters
+        new_plan_builds_padded_host_withdrawal_body
+        padded_host_withdrawal_proof_roundtrip
+        padded_spend_uses_shared_withdrawal_circuit_nullifier_domain
+        """
+    ),
+    "crates/core/transaction/src/gas.rs": _symbols(
+        "host_execution_charges_requested_execution_gas"
+    ),
+    "crates/crypto/proof-params/src/historical.rs": _symbols(
+        """
+        canonical_proof_lengths_match_wire_contract
+        generated_sample_proofs_verify
+        verifier_rejects_noncanonical_public_field_encodings
+        """
+    ),
+    "crates/view/src/historical_proof_cache.rs": _symbols(
+        """
+        cache_state_machine_and_chunk_closure_are_explicit
+        updater_verifies_archive_and_groth16_proof_before_ready
+        """
     ),
     "crates/core/component/stake/src/component/stake/tests.rs": _symbols(
         "test_persistent_identity_by_ck"
@@ -1922,13 +2002,26 @@ SUPPORTING_EXCLUSION_PATHS = frozenset(
     {
         "crates/core/app-tests/tests/app_blocktimes_increment.rs",
         "crates/core/app/src/action_handler/transaction.rs",
+        "crates/core/app/src/nullifier_generation_packs.rs",
         "crates/core/app/src/app_version/component.rs",
         "crates/core/asset/src/balance/imbalance.rs",
         "crates/core/asset/src/balance.rs",
         "crates/core/asset/src/value.rs",
         "crates/core/component/stake/src/component/stake/tests.rs",
         "crates/core/component/sct/src/component/tree.rs",
+        "crates/core/component/sct/src/component/rpc.rs",
+        "crates/core/component/sct/src/generation_pack.rs",
+        "crates/core/component/sct/src/indexed_nullifier_tree.rs",
+        "crates/core/component/sct/src/nullifier.rs",
+        "crates/core/component/sct/src/nullifier_generation.rs",
         "crates/core/component/sct/src/nullifier_tree.rs",
+        "crates/core/component/shielded-pool/src/shielded_host_withdrawal/plan.rs",
+        "crates/core/transaction/src/gas.rs",
+        "crates/core/transaction/src/plan.rs",
+        "crates/crypto/proof-params/src/gnark_artifact_validation.rs",
+        "crates/crypto/proof-params/src/historical.rs",
+        "crates/view/src/historical_proof_cache.rs",
+        "crates/view/src/storage.rs",
         "crates/core/num/src/amount.rs",
         "crates/custody/src/threshold.rs",
         "crates/crypto/proof-aggregation/src/backend.rs",

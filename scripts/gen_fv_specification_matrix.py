@@ -1734,6 +1734,12 @@ def trace_predicates(profile: str, segment: dict) -> set[str]:
         result.add("NOTE-SPEND-NULLIFIER-DERIVATION")
     elif op == "gadget.state_commitment_path":
         result.add("SCT-SPEND-MEMBERSHIP")
+    elif op == "history.classify":
+        # The row derives the action-visible history_required field from the
+        # authenticated note position, the public window floor, and the dummy
+        # selector. The state path row separately certifies authentication of
+        # the position itself.
+        result.add("PUBLIC-STATEMENT-BINDING")
     elif op == "decaf.randomized_verification_key":
         result.update(
             {
@@ -4872,7 +4878,7 @@ def tests() -> list[dict]:
                 "WITHDRAWAL-COMPACT-WITNESS-LAYOUT",
                 "invariant",
                 "shielded_ics20_withdrawal_metamorphic_test.go",
-                "TestShieldedIcs20WithdrawalV9OmitsPolicyOpeningsAndRedundantFields",
+                "TestShieldedIcs20WithdrawalV10OmitsPolicyOpeningsAndRedundantFields",
                 ("CIR-SHAPE-FIXED",),
                 WITHDRAWAL,
             ),
@@ -4880,7 +4886,7 @@ def tests() -> list[dict]:
                 "WITHDRAWAL-FIXED-ROUTING-FIELDS",
                 "invariant",
                 "shielded_ics20_withdrawal_metamorphic_test.go",
-                "TestShieldedIcs20WithdrawalV9CarriesFixedRoutingFields",
+                "TestShieldedIcs20WithdrawalV10CarriesFixedRoutingFields",
                 ("CIR-SHAPE-FIXED",),
                 WITHDRAWAL,
             ),
@@ -5127,10 +5133,10 @@ def tests() -> list[dict]:
                 WITHDRAWAL,
             ),
             circuit_test(
-                "TRANSFER-V17-ROLE-SPECIFIC-LAYOUT",
+                "TRANSFER-V18-ROLE-SPECIFIC-LAYOUT",
                 "invariant",
                 "transfer_metamorphic_test.go",
-                "TestTransferV17UsesRoleSpecificSemanticLayout",
+                "TestTransferV18UsesRoleSpecificSemanticLayout",
                 ("CIR-SHAPE-FIXED",),
                 TRANSFER,
             ),
@@ -6890,62 +6896,62 @@ def property_test_contract() -> dict:
                 (
                     "parity",
                     _GNARK_NOTE_RESHAPE_TESTS,
-                    "note_reshape_witness_v4_roundtrip",
+                    "note_reshape_witness_v5_roundtrip",
                 ),
                 (
                     "negative",
                     _GNARK_NOTE_RESHAPE_TESTS,
-                    "note_reshape_witness_v4_rejects_bad_magic",
+                    "note_reshape_witness_v5_rejects_bad_magic",
                 ),
                 (
                     "negative",
                     _GNARK_NOTE_RESHAPE_TESTS,
-                    "note_reshape_witness_v4_rejects_bad_version",
+                    "note_reshape_witness_v5_rejects_bad_version",
                 ),
                 (
                     "boundary_negative",
                     _GNARK_NOTE_RESHAPE_TESTS,
-                    "note_reshape_witness_v4_rejects_bad_length",
+                    "note_reshape_witness_v5_rejects_bad_length",
                 ),
                 (
                     "parity",
                     _GNARK_TRANSFER_TESTS,
-                    "transfer_witness_v17_roundtrip",
+                    "transfer_witness_v18_roundtrip",
                 ),
                 (
                     "parity",
                     _GNARK_TRANSFER_TESTS,
-                    "transfer_hidden_arity_witness_v17_roundtrip",
+                    "transfer_hidden_arity_witness_v18_roundtrip",
                 ),
                 (
                     "negative",
                     _GNARK_TRANSFER_TESTS,
-                    "transfer_witness_v17_rejects_legacy_v15_layout",
+                    "transfer_witness_v18_rejects_legacy_v15_layout",
                 ),
                 (
                     "parity",
                     _GNARK_WITHDRAWAL_TESTS,
-                    "shielded_ics20_withdrawal_witness_v9_roundtrip",
+                    "shielded_ics20_withdrawal_witness_v10_roundtrip",
                 ),
                 (
                     "negative",
                     _GNARK_WITHDRAWAL_TESTS,
-                    "shielded_ics20_withdrawal_witness_v9_rejects_legacy_version",
+                    "shielded_ics20_withdrawal_witness_v10_rejects_legacy_version",
                 ),
                 (
                     "negative",
                     _GNARK_WITHDRAWAL_TESTS,
-                    "shielded_ics20_withdrawal_witness_v9_rejects_non_canonical_boolean_flags",
+                    "shielded_ics20_withdrawal_witness_v10_rejects_non_canonical_boolean_flags",
                 ),
                 (
                     "negative",
                     _GNARK_WITHDRAWAL_TESTS,
-                    "shielded_ics20_withdrawal_witness_v9_rejects_unbalanced_amounts",
+                    "shielded_ics20_withdrawal_witness_v10_rejects_unbalanced_amounts",
                 ),
                 (
                     "negative",
                     _GNARK_WITHDRAWAL_TESTS,
-                    "shielded_ics20_withdrawal_witness_v9_rejects_non_blinding_balance_commitment",
+                    "shielded_ics20_withdrawal_witness_v10_rejects_non_blinding_balance_commitment",
                 ),
                 (
                     "negative",
@@ -7005,7 +7011,7 @@ def property_test_contract() -> dict:
                 (
                     "invariant",
                     _GO_ABI_WITNESS_TESTS,
-                    "TestShieldedIcs20WithdrawalV9FixtureBranchMatrix",
+                    "TestShieldedIcs20WithdrawalV10FixtureBranchMatrix",
                 ),
                 (
                     "negative",
@@ -7020,47 +7026,47 @@ def property_test_contract() -> dict:
                 (
                     "negative",
                     _GO_ABI_WITNESS_TESTS,
-                    "TestNoteReshapeV4RejectsLegacyVersion",
+                    "TestNoteReshapeV5RejectsLegacyVersion",
                 ),
                 (
                     "negative",
                     _GO_ABI_WITNESS_TESTS,
-                    "TestTransferV17RejectsLegacyVersion",
+                    "TestTransferV18RejectsLegacyVersion",
                 ),
                 (
                     "negative",
                     _GO_ABI_WITNESS_TESTS,
-                    "TestTransferV17AssignmentRejectsClaimedHashMismatch",
+                    "TestTransferV18AssignmentRejectsClaimedHashMismatch",
                 ),
                 (
                     "negative",
                     _GO_ABI_WITNESS_TESTS,
-                    "TestTransferV17AssignmentRejectsSerializedSemanticMutation",
+                    "TestTransferV18AssignmentRejectsSerializedSemanticMutation",
                 ),
                 (
                     "negative",
                     _GO_ABI_WITNESS_TESTS,
-                    "TestShieldedIcs20WithdrawalV9RejectsLegacyVersion",
+                    "TestShieldedIcs20WithdrawalV10RejectsLegacyVersion",
                 ),
                 (
                     "negative",
                     _GO_ABI_WITNESS_TESTS,
-                    "TestShieldedIcs20WithdrawalV9AssignmentRejectsClaimedHashMismatch",
+                    "TestShieldedIcs20WithdrawalV10AssignmentRejectsClaimedHashMismatch",
                 ),
                 (
                     "boundary_negative",
                     _GO_ABI_WITNESS_TESTS,
-                    "TestShieldedIcs20WithdrawalV9RejectsOversizedEffectHashLimb",
+                    "TestShieldedIcs20WithdrawalV10RejectsOversizedEffectHashLimb",
                 ),
                 (
                     "negative",
                     _GO_ABI_WITNESS_TESTS,
-                    "TestShieldedIcs20WithdrawalV9RejectsNonCanonicalBalanceBlinding",
+                    "TestShieldedIcs20WithdrawalV10RejectsNonCanonicalBalanceBlinding",
                 ),
                 (
                     "negative",
                     _GO_ABI_WITNESS_TESTS,
-                    "TestShieldedIcs20WithdrawalV9RejectsNonCanonicalBooleanFlags",
+                    "TestShieldedIcs20WithdrawalV10RejectsNonCanonicalBooleanFlags",
                 ),
                 (
                     "invariant",
@@ -7070,7 +7076,7 @@ def property_test_contract() -> dict:
                 (
                     "negative",
                     _GO_ABI_WITNESS_TESTS,
-                    "TestNoteReshapeV4RejectsSplitAddressRepresentationPayload",
+                    "TestNoteReshapeV5RejectsSplitAddressRepresentationPayload",
                 ),
                 (
                     "parity",
@@ -7625,6 +7631,7 @@ _REVIEWED_TEST_EXCLUSION_SYMBOLS = {
         "buffer_free_is_idempotent_for_the_same_buffer_struct",
         "calls_sharing_a_handle_are_serialized",
         "committed_state_is_available_through_the_ffi",
+        "historical_witness_call_requires_opt_in_storage",
         "invalid_inputs_return_c_safe_statuses",
         "open_once_call_repeatedly_and_close_releases_database",
         "panics_become_status_results",
@@ -7635,7 +7642,9 @@ _REVIEWED_TEST_EXCLUSION_SYMBOLS = {
         "decode_host_block_converts_valid_time",
         "decode_host_block_requires_time",
         "deliver_tx_response_has_no_withdrawals_without_a_host_action",
-        "encode_withdrawals_maps_recipient_and_coin",
+        "encode_withdrawals_maps_transfer_and_coin",
+        "encode_withdrawals_preserves_execution_call_order_and_refund_address",
+        "embedded_service_serves_a_pack_after_expanded_state_is_pruned",
     ),
     "crates/core/app/src/action_handler/transaction.rs": (
         "check_stateless_fails_on_auth_path_with_wrong_root",
@@ -7730,15 +7739,6 @@ _REVIEWED_TEST_EXCLUSION_SYMBOLS = {
         "sct_committed_root_check_fails_on_missing_nv_state",
         "sct_incremental_nv_persistence_roundtrips_without_full_blob",
     ),
-    "crates/core/component/sct/src/nullifier_tree.rs": (
-        "already_spent_nullifier_is_rejected",
-        "batch_insertion_order_is_root_stable",
-        "batch_root_matches_repeated_insert_root",
-        "empty_tree_initializes_with_nonmembership_proof",
-        "missing_nv_node_fails_closed",
-        "old_jmt_nullifier_keys_are_not_written",
-        "single_insert_lookup_and_membership_proof",
-    ),
     "crates/core/component/shielded-pool/src/component/transfer.rs": (
         "receive_context_derives_return_source_base_denom",
         "receive_context_derives_sink_zone_voucher_denom",
@@ -7799,6 +7799,16 @@ _REVIEWED_TEST_EXCLUSION_SYMBOLS = {
         "TestAxeExportFidelityPoseidon2",
         "TestAxeExportFidelityPoseidonHash4",
         "TestPicusExportFidelityAllGadgets",
+    ),
+    "tools/gnark/cmd/historicalproofspike/main_test.go": (
+        "TestEmptyGenerationSentinelCoversFieldBoundaries",
+        "TestIndexedGenerationCircuitCompilesAndSolves",
+        "TestIndexedGenerationCircuitRejectsMalformedClaims",
+        "TestQuadPathPlacesTheLeafInEveryChildPosition",
+    ),
+    "tools/gnark/internal/circuits/nullifier_history_test.go": (
+        "TestHistoryRequiredBoundaryAndDummyGating",
+        "TestHistoryRequiredRejectsMalformedInputs",
     ),
     "tools/gnark/internal/circuits/profile_test.go": (
         "TestConstraintProfiles",

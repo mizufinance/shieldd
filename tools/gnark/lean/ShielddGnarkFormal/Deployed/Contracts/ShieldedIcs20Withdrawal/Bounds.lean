@@ -31,7 +31,7 @@ import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg32
 import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg33
 import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg34
 import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg35
-import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg38
+import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg36
 import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg39
 import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg40
 import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg41
@@ -43,14 +43,17 @@ import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg46
 import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg47
 import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg48
 import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg49
-import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg52
-import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg53
+import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg50
+import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg51
+import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg54
 import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg55
-import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg56
+import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg57
 import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg58
-import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg59
 import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg60
 import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg61
+import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg62
+import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg63
+import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg64
 import ShielddGnarkFormal.Deployed.Templates.Generated.TAssertBoolean_469df3cb92f6ee26f90120fa5a2d5ab48448c3e42be090ebb81d77d5431164fc
 import ShielddGnarkFormal.Deployed.Templates.Generated.TAssertDecafNonIdentity_50cbccf8f817daa8e44c093750c80e184e1fe6d1fc8286031e7838dfb6b344fd
 import ShielddGnarkFormal.Deployed.Templates.Generated.TAssertDecafNonIdentity_6e9fd3a3eee2e21b49a710f750999a0e29d1babc1615c644cebbf294d8fb9e61
@@ -82,6 +85,8 @@ import ShielddGnarkFormal.Deployed.Templates.Generated.TGadgetNoteCommitment_252
 import ShielddGnarkFormal.Deployed.Templates.Generated.TGadgetNullifier_5707ecfa23746942d4eee98a87b841d07f40163e3e15aeba5d907533f9aa58c4
 import ShielddGnarkFormal.Deployed.Templates.Generated.TGadgetStateCommitmentPath_de54b1d0646cc1ad6f619aa080bfafd4a6edb63989b142c5c0b284d84e09d69b
 import ShielddGnarkFormal.Deployed.Templates.Generated.TGadgetSyntheticDummyNullifier_a10de15a91d3ea84d283d8eb39cda0f9fdbeeab9de2f8d7df5acbc90e22093bb
+import ShielddGnarkFormal.Deployed.Templates.Generated.THistoryClassify_24943fd2154aa0ac8bbf9adce870214e50badfb7c18cba54c33b68fcd9222905
+import ShielddGnarkFormal.Deployed.Templates.Generated.THistoryClassify_63bcfde2aa853f39c988314bacdeeddfe5aa236959c22bd9f97803415badf545
 import ShielddGnarkFormal.Deployed.Templates.Generated.TRoutingParametersBind_46f527d3e36d976837f6c928381fedce823324751461dd2d8bd615716c786979
 import ShielddGnarkFormal.Deployed.Templates.Generated.TRoutingParametersHash_4ac07381879f7b48f8431947af1db1328923b54907622f47df5426e5ea9b6653
 import ShielddGnarkFormal.Deployed.Templates.Generated.TRoutingPrecisionSelect_125b62f4637be641a0e83ca5b67e6b0fde3dc4a203b53954c10e341830651161
@@ -90,9 +95,10 @@ import ShielddGnarkFormal.Deployed.Templates.Generated.TRoutingTagCompose_7a08e9
 import ShielddGnarkFormal.Deployed.Templates.Generated.TRoutingTagPublicRange_59e76d0fcd4dbc54aa0f71ef6780ba9462e5a0dc5ed4d67c4889d339632c9227
 import ShielddGnarkFormal.Deployed.Templates.Generated.TRoutingTagRandomWord_4480567d0ad9109ab45843d493f32a0ed4ed6acebd0be5471905902706d09764
 import ShielddGnarkFormal.Deployed.Templates.Generated.TRoutingTagRouteBits_1edfe2259ad982b4d12d407718e8f566a4bc0dbee4d85678278543dba94ce239
-import ShielddGnarkFormal.Deployed.Templates.Generated.TStatementHash_0a6a7d5c079d0a2e952c00450800860c1faf28396d74678cd2ea2a7dc4ee85ce
-import ShielddGnarkFormal.Deployed.Templates.Generated.TStatementHash_59fc709325ca9b0194b7adef9fe91a97d88a5c690c5278f59425a351790b2376
-import ShielddGnarkFormal.Deployed.Templates.Generated.TStatementHash_afd0be82d84896e98b8fdc0f4b8eaec88930b85f4b40c03ff06a87a4eaebd1b8
+import ShielddGnarkFormal.Deployed.Templates.Generated.TStatementHash_0092421009be06b66aa764b1a88f289569cb79dda85cba9c19428c04336af9a4
+import ShielddGnarkFormal.Deployed.Templates.Generated.TStatementHash_19301faada329781da94b45e73c6963e9c85b971e364be5e52987753c670f898
+import ShielddGnarkFormal.Deployed.Templates.Generated.TStatementHash_5804cb48cce27e24aa8fa559e9e23e995c25c83d8af6b4ef440384b01de85476
+import ShielddGnarkFormal.Deployed.Templates.Generated.TStatementHash_67a3df11145400695d1528410a7903b2252ede68702e91a980098b8499e5b5d4
 import ShielddGnarkFormal.Deployed.Contract
 import ShielddGnarkFormal.Deployed.Templates.Core
 
@@ -470,11 +476,11 @@ theorem inst35_bound :
     rfl
 
 
-theorem inst38_bound :
-    Deployed.BoundDeployedSound Seg38.contract
-      Seg38.contract.relationSha256Hex Seg38.contract.wireRoleSha256Hex := by
-  apply boundOfSeatedTemplate Shieldd.GnarkFormal.Deployed.Templates.Generated.TGadgetNoteCommitment_252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c.relation Shieldd.GnarkFormal.Deployed.Templates.Generated.TGadgetNoteCommitment_252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c.spec Shieldd.GnarkFormal.Deployed.Templates.Generated.TGadgetNoteCommitment_252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c.sound
-    Seg38.contract Seg38.wireSeating
+theorem inst36_bound :
+    Deployed.BoundDeployedSound Seg36.contract
+      Seg36.contract.relationSha256Hex Seg36.contract.wireRoleSha256Hex := by
+  apply boundOfSeatedTemplate Shieldd.GnarkFormal.Deployed.Templates.Generated.THistoryClassify_24943fd2154aa0ac8bbf9adce870214e50badfb7c18cba54c33b68fcd9222905.relation Shieldd.GnarkFormal.Deployed.Templates.Generated.THistoryClassify_24943fd2154aa0ac8bbf9adce870214e50badfb7c18cba54c33b68fcd9222905.spec Shieldd.GnarkFormal.Deployed.Templates.Generated.THistoryClassify_24943fd2154aa0ac8bbf9adce870214e50badfb7c18cba54c33b68fcd9222905.sound
+    Seg36.contract Seg36.wireSeating
   · intro rho
     rfl
   · intro rho
@@ -484,7 +490,7 @@ theorem inst38_bound :
 theorem inst39_bound :
     Deployed.BoundDeployedSound Seg39.contract
       Seg39.contract.relationSha256Hex Seg39.contract.wireRoleSha256Hex := by
-  apply boundOfSeatedTemplate Shieldd.GnarkFormal.Deployed.Templates.Generated.TGadgetNullifier_5707ecfa23746942d4eee98a87b841d07f40163e3e15aeba5d907533f9aa58c4.relation Shieldd.GnarkFormal.Deployed.Templates.Generated.TGadgetNullifier_5707ecfa23746942d4eee98a87b841d07f40163e3e15aeba5d907533f9aa58c4.spec Shieldd.GnarkFormal.Deployed.Templates.Generated.TGadgetNullifier_5707ecfa23746942d4eee98a87b841d07f40163e3e15aeba5d907533f9aa58c4.sound
+  apply boundOfSeatedTemplate Shieldd.GnarkFormal.Deployed.Templates.Generated.TGadgetNoteCommitment_252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c.relation Shieldd.GnarkFormal.Deployed.Templates.Generated.TGadgetNoteCommitment_252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c.spec Shieldd.GnarkFormal.Deployed.Templates.Generated.TGadgetNoteCommitment_252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c.sound
     Seg39.contract Seg39.wireSeating
   · intro rho
     rfl
@@ -495,7 +501,7 @@ theorem inst39_bound :
 theorem inst40_bound :
     Deployed.BoundDeployedSound Seg40.contract
       Seg40.contract.relationSha256Hex Seg40.contract.wireRoleSha256Hex := by
-  apply boundOfSeatedTemplate Shieldd.GnarkFormal.Deployed.Templates.Generated.TGadgetStateCommitmentPath_de54b1d0646cc1ad6f619aa080bfafd4a6edb63989b142c5c0b284d84e09d69b.relation Shieldd.GnarkFormal.Deployed.Templates.Generated.TGadgetStateCommitmentPath_de54b1d0646cc1ad6f619aa080bfafd4a6edb63989b142c5c0b284d84e09d69b.spec Shieldd.GnarkFormal.Deployed.Templates.Generated.TGadgetStateCommitmentPath_de54b1d0646cc1ad6f619aa080bfafd4a6edb63989b142c5c0b284d84e09d69b.sound
+  apply boundOfSeatedTemplate Shieldd.GnarkFormal.Deployed.Templates.Generated.TGadgetNullifier_5707ecfa23746942d4eee98a87b841d07f40163e3e15aeba5d907533f9aa58c4.relation Shieldd.GnarkFormal.Deployed.Templates.Generated.TGadgetNullifier_5707ecfa23746942d4eee98a87b841d07f40163e3e15aeba5d907533f9aa58c4.spec Shieldd.GnarkFormal.Deployed.Templates.Generated.TGadgetNullifier_5707ecfa23746942d4eee98a87b841d07f40163e3e15aeba5d907533f9aa58c4.sound
     Seg40.contract Seg40.wireSeating
   · intro rho
     rfl
@@ -506,7 +512,7 @@ theorem inst40_bound :
 theorem inst41_bound :
     Deployed.BoundDeployedSound Seg41.contract
       Seg41.contract.relationSha256Hex Seg41.contract.wireRoleSha256Hex := by
-  apply boundOfSeatedTemplate Shieldd.GnarkFormal.Deployed.Templates.Generated.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f.relation Shieldd.GnarkFormal.Deployed.Templates.Generated.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f.spec Shieldd.GnarkFormal.Deployed.Templates.Generated.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f.sound
+  apply boundOfSeatedTemplate Shieldd.GnarkFormal.Deployed.Templates.Generated.TGadgetStateCommitmentPath_de54b1d0646cc1ad6f619aa080bfafd4a6edb63989b142c5c0b284d84e09d69b.relation Shieldd.GnarkFormal.Deployed.Templates.Generated.TGadgetStateCommitmentPath_de54b1d0646cc1ad6f619aa080bfafd4a6edb63989b142c5c0b284d84e09d69b.spec Shieldd.GnarkFormal.Deployed.Templates.Generated.TGadgetStateCommitmentPath_de54b1d0646cc1ad6f619aa080bfafd4a6edb63989b142c5c0b284d84e09d69b.sound
     Seg41.contract Seg41.wireSeating
   · intro rho
     rfl
@@ -517,7 +523,7 @@ theorem inst41_bound :
 theorem inst42_bound :
     Deployed.BoundDeployedSound Seg42.contract
       Seg42.contract.relationSha256Hex Seg42.contract.wireRoleSha256Hex := by
-  apply boundOfSeatedTemplate Shieldd.GnarkFormal.Deployed.Templates.Generated.TDecafCompressToField_231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb.relation Shieldd.GnarkFormal.Deployed.Templates.Generated.TDecafCompressToField_231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb.spec Shieldd.GnarkFormal.Deployed.Templates.Generated.TDecafCompressToField_231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb.sound
+  apply boundOfSeatedTemplate Shieldd.GnarkFormal.Deployed.Templates.Generated.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f.relation Shieldd.GnarkFormal.Deployed.Templates.Generated.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f.spec Shieldd.GnarkFormal.Deployed.Templates.Generated.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f.sound
     Seg42.contract Seg42.wireSeating
   · intro rho
     rfl
@@ -528,7 +534,7 @@ theorem inst42_bound :
 theorem inst43_bound :
     Deployed.BoundDeployedSound Seg43.contract
       Seg43.contract.relationSha256Hex Seg43.contract.wireRoleSha256Hex := by
-  apply boundOfSeatedTemplate Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertBoolean_469df3cb92f6ee26f90120fa5a2d5ab48448c3e42be090ebb81d77d5431164fc.relation Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertBoolean_469df3cb92f6ee26f90120fa5a2d5ab48448c3e42be090ebb81d77d5431164fc.spec Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertBoolean_469df3cb92f6ee26f90120fa5a2d5ab48448c3e42be090ebb81d77d5431164fc.sound
+  apply boundOfSeatedTemplate Shieldd.GnarkFormal.Deployed.Templates.Generated.TDecafCompressToField_231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb.relation Shieldd.GnarkFormal.Deployed.Templates.Generated.TDecafCompressToField_231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb.spec Shieldd.GnarkFormal.Deployed.Templates.Generated.TDecafCompressToField_231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb.sound
     Seg43.contract Seg43.wireSeating
   · intro rho
     rfl
@@ -539,7 +545,7 @@ theorem inst43_bound :
 theorem inst44_bound :
     Deployed.BoundDeployedSound Seg44.contract
       Seg44.contract.relationSha256Hex Seg44.contract.wireRoleSha256Hex := by
-  apply boundOfSeatedTemplate Shieldd.GnarkFormal.Deployed.Templates.Generated.TGadgetSyntheticDummyNullifier_a10de15a91d3ea84d283d8eb39cda0f9fdbeeab9de2f8d7df5acbc90e22093bb.relation Shieldd.GnarkFormal.Deployed.Templates.Generated.TGadgetSyntheticDummyNullifier_a10de15a91d3ea84d283d8eb39cda0f9fdbeeab9de2f8d7df5acbc90e22093bb.spec Shieldd.GnarkFormal.Deployed.Templates.Generated.TGadgetSyntheticDummyNullifier_a10de15a91d3ea84d283d8eb39cda0f9fdbeeab9de2f8d7df5acbc90e22093bb.sound
+  apply boundOfSeatedTemplate Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertBoolean_469df3cb92f6ee26f90120fa5a2d5ab48448c3e42be090ebb81d77d5431164fc.relation Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertBoolean_469df3cb92f6ee26f90120fa5a2d5ab48448c3e42be090ebb81d77d5431164fc.spec Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertBoolean_469df3cb92f6ee26f90120fa5a2d5ab48448c3e42be090ebb81d77d5431164fc.sound
     Seg44.contract Seg44.wireSeating
   · intro rho
     rfl
@@ -550,7 +556,7 @@ theorem inst44_bound :
 theorem inst45_bound :
     Deployed.BoundDeployedSound Seg45.contract
       Seg45.contract.relationSha256Hex Seg45.contract.wireRoleSha256Hex := by
-  apply boundOfSeatedTemplate Shieldd.GnarkFormal.Deployed.Templates.Generated.TDummyMux_6b4f764130614aef38a5954daa8a7654deca54de7a24217406a68696772579ce.relation Shieldd.GnarkFormal.Deployed.Templates.Generated.TDummyMux_6b4f764130614aef38a5954daa8a7654deca54de7a24217406a68696772579ce.spec Shieldd.GnarkFormal.Deployed.Templates.Generated.TDummyMux_6b4f764130614aef38a5954daa8a7654deca54de7a24217406a68696772579ce.sound
+  apply boundOfSeatedTemplate Shieldd.GnarkFormal.Deployed.Templates.Generated.TGadgetSyntheticDummyNullifier_a10de15a91d3ea84d283d8eb39cda0f9fdbeeab9de2f8d7df5acbc90e22093bb.relation Shieldd.GnarkFormal.Deployed.Templates.Generated.TGadgetSyntheticDummyNullifier_a10de15a91d3ea84d283d8eb39cda0f9fdbeeab9de2f8d7df5acbc90e22093bb.spec Shieldd.GnarkFormal.Deployed.Templates.Generated.TGadgetSyntheticDummyNullifier_a10de15a91d3ea84d283d8eb39cda0f9fdbeeab9de2f8d7df5acbc90e22093bb.sound
     Seg45.contract Seg45.wireSeating
   · intro rho
     rfl
@@ -561,7 +567,7 @@ theorem inst45_bound :
 theorem inst46_bound :
     Deployed.BoundDeployedSound Seg46.contract
       Seg46.contract.relationSha256Hex Seg46.contract.wireRoleSha256Hex := by
-  apply boundOfSeatedTemplate Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEq_460e4d66ff383bde603d8cffb059ede8f489117c64d82168ec67187bae7e1bc3.relation Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEq_460e4d66ff383bde603d8cffb059ede8f489117c64d82168ec67187bae7e1bc3.spec Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEq_460e4d66ff383bde603d8cffb059ede8f489117c64d82168ec67187bae7e1bc3.sound
+  apply boundOfSeatedTemplate Shieldd.GnarkFormal.Deployed.Templates.Generated.TDummyMux_6b4f764130614aef38a5954daa8a7654deca54de7a24217406a68696772579ce.relation Shieldd.GnarkFormal.Deployed.Templates.Generated.TDummyMux_6b4f764130614aef38a5954daa8a7654deca54de7a24217406a68696772579ce.spec Shieldd.GnarkFormal.Deployed.Templates.Generated.TDummyMux_6b4f764130614aef38a5954daa8a7654deca54de7a24217406a68696772579ce.sound
     Seg46.contract Seg46.wireSeating
   · intro rho
     rfl
@@ -572,7 +578,7 @@ theorem inst46_bound :
 theorem inst47_bound :
     Deployed.BoundDeployedSound Seg47.contract
       Seg47.contract.relationSha256Hex Seg47.contract.wireRoleSha256Hex := by
-  apply boundOfSeatedTemplate Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEqIf_36366df670e29c988b147701d72d7155b3720bdc777b4429912cc664e80b0b03.relation Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEqIf_36366df670e29c988b147701d72d7155b3720bdc777b4429912cc664e80b0b03.spec Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEqIf_36366df670e29c988b147701d72d7155b3720bdc777b4429912cc664e80b0b03.sound
+  apply boundOfSeatedTemplate Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEq_460e4d66ff383bde603d8cffb059ede8f489117c64d82168ec67187bae7e1bc3.relation Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEq_460e4d66ff383bde603d8cffb059ede8f489117c64d82168ec67187bae7e1bc3.spec Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEq_460e4d66ff383bde603d8cffb059ede8f489117c64d82168ec67187bae7e1bc3.sound
     Seg47.contract Seg47.wireSeating
   · intro rho
     rfl
@@ -583,7 +589,7 @@ theorem inst47_bound :
 theorem inst48_bound :
     Deployed.BoundDeployedSound Seg48.contract
       Seg48.contract.relationSha256Hex Seg48.contract.wireRoleSha256Hex := by
-  apply boundOfSeatedTemplate Shieldd.GnarkFormal.Deployed.Templates.Generated.TDecafAssertEquivalentIf_5153b90a6cbb5f5ba2ec514e6df8b586236dbc591f653a4b7fdd7890eb4be84f.relation Shieldd.GnarkFormal.Deployed.Templates.Generated.TDecafAssertEquivalentIf_5153b90a6cbb5f5ba2ec514e6df8b586236dbc591f653a4b7fdd7890eb4be84f.spec Shieldd.GnarkFormal.Deployed.Templates.Generated.TDecafAssertEquivalentIf_5153b90a6cbb5f5ba2ec514e6df8b586236dbc591f653a4b7fdd7890eb4be84f.sound
+  apply boundOfSeatedTemplate Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEqIf_36366df670e29c988b147701d72d7155b3720bdc777b4429912cc664e80b0b03.relation Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEqIf_36366df670e29c988b147701d72d7155b3720bdc777b4429912cc664e80b0b03.spec Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEqIf_36366df670e29c988b147701d72d7155b3720bdc777b4429912cc664e80b0b03.sound
     Seg48.contract Seg48.wireSeating
   · intro rho
     rfl
@@ -594,7 +600,7 @@ theorem inst48_bound :
 theorem inst49_bound :
     Deployed.BoundDeployedSound Seg49.contract
       Seg49.contract.relationSha256Hex Seg49.contract.wireRoleSha256Hex := by
-  apply boundOfSeatedTemplate Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEqIf_ddee3f5dbb25719dc8ce88820a48ef2b56159138d939c3b768c7bcfad396079d.relation Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEqIf_ddee3f5dbb25719dc8ce88820a48ef2b56159138d939c3b768c7bcfad396079d.spec Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEqIf_ddee3f5dbb25719dc8ce88820a48ef2b56159138d939c3b768c7bcfad396079d.sound
+  apply boundOfSeatedTemplate Shieldd.GnarkFormal.Deployed.Templates.Generated.TDecafAssertEquivalentIf_5153b90a6cbb5f5ba2ec514e6df8b586236dbc591f653a4b7fdd7890eb4be84f.relation Shieldd.GnarkFormal.Deployed.Templates.Generated.TDecafAssertEquivalentIf_5153b90a6cbb5f5ba2ec514e6df8b586236dbc591f653a4b7fdd7890eb4be84f.spec Shieldd.GnarkFormal.Deployed.Templates.Generated.TDecafAssertEquivalentIf_5153b90a6cbb5f5ba2ec514e6df8b586236dbc591f653a4b7fdd7890eb4be84f.sound
     Seg49.contract Seg49.wireSeating
   · intro rho
     rfl
@@ -602,22 +608,33 @@ theorem inst49_bound :
     rfl
 
 
-theorem inst52_bound :
-    Deployed.BoundDeployedSound Seg52.contract
-      Seg52.contract.relationSha256Hex Seg52.contract.wireRoleSha256Hex := by
+theorem inst50_bound :
+    Deployed.BoundDeployedSound Seg50.contract
+      Seg50.contract.relationSha256Hex Seg50.contract.wireRoleSha256Hex := by
+  apply boundOfSeatedTemplate Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEqIf_ddee3f5dbb25719dc8ce88820a48ef2b56159138d939c3b768c7bcfad396079d.relation Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEqIf_ddee3f5dbb25719dc8ce88820a48ef2b56159138d939c3b768c7bcfad396079d.spec Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEqIf_ddee3f5dbb25719dc8ce88820a48ef2b56159138d939c3b768c7bcfad396079d.sound
+    Seg50.contract Seg50.wireSeating
+  · intro rho
+    rfl
+  · intro rho
+    rfl
+
+
+theorem inst51_bound :
+    Deployed.BoundDeployedSound Seg51.contract
+      Seg51.contract.relationSha256Hex Seg51.contract.wireRoleSha256Hex := by
+  apply boundOfSeatedTemplate Shieldd.GnarkFormal.Deployed.Templates.Generated.THistoryClassify_63bcfde2aa853f39c988314bacdeeddfe5aa236959c22bd9f97803415badf545.relation Shieldd.GnarkFormal.Deployed.Templates.Generated.THistoryClassify_63bcfde2aa853f39c988314bacdeeddfe5aa236959c22bd9f97803415badf545.spec Shieldd.GnarkFormal.Deployed.Templates.Generated.THistoryClassify_63bcfde2aa853f39c988314bacdeeddfe5aa236959c22bd9f97803415badf545.sound
+    Seg51.contract Seg51.wireSeating
+  · intro rho
+    rfl
+  · intro rho
+    rfl
+
+
+theorem inst54_bound :
+    Deployed.BoundDeployedSound Seg54.contract
+      Seg54.contract.relationSha256Hex Seg54.contract.wireRoleSha256Hex := by
   apply boundOfSeatedTemplate Shieldd.GnarkFormal.Deployed.Templates.Generated.TGadgetNoteCommitment_252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c.relation Shieldd.GnarkFormal.Deployed.Templates.Generated.TGadgetNoteCommitment_252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c.spec Shieldd.GnarkFormal.Deployed.Templates.Generated.TGadgetNoteCommitment_252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c.sound
-    Seg52.contract Seg52.wireSeating
-  · intro rho
-    rfl
-  · intro rho
-    rfl
-
-
-theorem inst53_bound :
-    Deployed.BoundDeployedSound Seg53.contract
-      Seg53.contract.relationSha256Hex Seg53.contract.wireRoleSha256Hex := by
-  apply boundOfSeatedTemplate Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEq_c4acc0cb39ee1820ee3eb4fda139846ccb6ea995c7d6605854f111a0b177b240.relation Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEq_c4acc0cb39ee1820ee3eb4fda139846ccb6ea995c7d6605854f111a0b177b240.spec Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEq_c4acc0cb39ee1820ee3eb4fda139846ccb6ea995c7d6605854f111a0b177b240.sound
-    Seg53.contract Seg53.wireSeating
+    Seg54.contract Seg54.wireSeating
   · intro rho
     rfl
   · intro rho
@@ -627,7 +644,7 @@ theorem inst53_bound :
 theorem inst55_bound :
     Deployed.BoundDeployedSound Seg55.contract
       Seg55.contract.relationSha256Hex Seg55.contract.wireRoleSha256Hex := by
-  apply boundOfSeatedTemplate Shieldd.GnarkFormal.Deployed.Templates.Generated.TDecafConservationNetBalanceCommitment2_236fd0549adf468bfd993cdf1a3c2b4bbf80d1c8f9b95e4fda163888ecd365f6.relation Shieldd.GnarkFormal.Deployed.Templates.Generated.TDecafConservationNetBalanceCommitment2_236fd0549adf468bfd993cdf1a3c2b4bbf80d1c8f9b95e4fda163888ecd365f6.spec Shieldd.GnarkFormal.Deployed.Templates.Generated.TDecafConservationNetBalanceCommitment2_236fd0549adf468bfd993cdf1a3c2b4bbf80d1c8f9b95e4fda163888ecd365f6.sound
+  apply boundOfSeatedTemplate Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEq_c4acc0cb39ee1820ee3eb4fda139846ccb6ea995c7d6605854f111a0b177b240.relation Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEq_c4acc0cb39ee1820ee3eb4fda139846ccb6ea995c7d6605854f111a0b177b240.spec Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEq_c4acc0cb39ee1820ee3eb4fda139846ccb6ea995c7d6605854f111a0b177b240.sound
     Seg55.contract Seg55.wireSeating
   · intro rho
     rfl
@@ -635,11 +652,11 @@ theorem inst55_bound :
     rfl
 
 
-theorem inst56_bound :
-    Deployed.BoundDeployedSound Seg56.contract
-      Seg56.contract.relationSha256Hex Seg56.contract.wireRoleSha256Hex := by
-  apply boundOfSeatedTemplate Shieldd.GnarkFormal.Deployed.Templates.Generated.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relation Shieldd.GnarkFormal.Deployed.Templates.Generated.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.spec Shieldd.GnarkFormal.Deployed.Templates.Generated.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.sound
-    Seg56.contract Seg56.wireSeating
+theorem inst57_bound :
+    Deployed.BoundDeployedSound Seg57.contract
+      Seg57.contract.relationSha256Hex Seg57.contract.wireRoleSha256Hex := by
+  apply boundOfSeatedTemplate Shieldd.GnarkFormal.Deployed.Templates.Generated.TDecafConservationNetBalanceCommitment2_236fd0549adf468bfd993cdf1a3c2b4bbf80d1c8f9b95e4fda163888ecd365f6.relation Shieldd.GnarkFormal.Deployed.Templates.Generated.TDecafConservationNetBalanceCommitment2_236fd0549adf468bfd993cdf1a3c2b4bbf80d1c8f9b95e4fda163888ecd365f6.spec Shieldd.GnarkFormal.Deployed.Templates.Generated.TDecafConservationNetBalanceCommitment2_236fd0549adf468bfd993cdf1a3c2b4bbf80d1c8f9b95e4fda163888ecd365f6.sound
+    Seg57.contract Seg57.wireSeating
   · intro rho
     rfl
   · intro rho
@@ -649,19 +666,8 @@ theorem inst56_bound :
 theorem inst58_bound :
     Deployed.BoundDeployedSound Seg58.contract
       Seg58.contract.relationSha256Hex Seg58.contract.wireRoleSha256Hex := by
-  apply boundOfSeatedTemplate Shieldd.GnarkFormal.Deployed.Templates.Generated.TStatementHash_afd0be82d84896e98b8fdc0f4b8eaec88930b85f4b40c03ff06a87a4eaebd1b8.relation Shieldd.GnarkFormal.Deployed.Templates.Generated.TStatementHash_afd0be82d84896e98b8fdc0f4b8eaec88930b85f4b40c03ff06a87a4eaebd1b8.spec Shieldd.GnarkFormal.Deployed.Templates.Generated.TStatementHash_afd0be82d84896e98b8fdc0f4b8eaec88930b85f4b40c03ff06a87a4eaebd1b8.sound
+  apply boundOfSeatedTemplate Shieldd.GnarkFormal.Deployed.Templates.Generated.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relation Shieldd.GnarkFormal.Deployed.Templates.Generated.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.spec Shieldd.GnarkFormal.Deployed.Templates.Generated.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.sound
     Seg58.contract Seg58.wireSeating
-  · intro rho
-    rfl
-  · intro rho
-    rfl
-
-
-theorem inst59_bound :
-    Deployed.BoundDeployedSound Seg59.contract
-      Seg59.contract.relationSha256Hex Seg59.contract.wireRoleSha256Hex := by
-  apply boundOfSeatedTemplate Shieldd.GnarkFormal.Deployed.Templates.Generated.TStatementHash_59fc709325ca9b0194b7adef9fe91a97d88a5c690c5278f59425a351790b2376.relation Shieldd.GnarkFormal.Deployed.Templates.Generated.TStatementHash_59fc709325ca9b0194b7adef9fe91a97d88a5c690c5278f59425a351790b2376.spec Shieldd.GnarkFormal.Deployed.Templates.Generated.TStatementHash_59fc709325ca9b0194b7adef9fe91a97d88a5c690c5278f59425a351790b2376.sound
-    Seg59.contract Seg59.wireSeating
   · intro rho
     rfl
   · intro rho
@@ -671,7 +677,7 @@ theorem inst59_bound :
 theorem inst60_bound :
     Deployed.BoundDeployedSound Seg60.contract
       Seg60.contract.relationSha256Hex Seg60.contract.wireRoleSha256Hex := by
-  apply boundOfSeatedTemplate Shieldd.GnarkFormal.Deployed.Templates.Generated.TStatementHash_0a6a7d5c079d0a2e952c00450800860c1faf28396d74678cd2ea2a7dc4ee85ce.relation Shieldd.GnarkFormal.Deployed.Templates.Generated.TStatementHash_0a6a7d5c079d0a2e952c00450800860c1faf28396d74678cd2ea2a7dc4ee85ce.spec Shieldd.GnarkFormal.Deployed.Templates.Generated.TStatementHash_0a6a7d5c079d0a2e952c00450800860c1faf28396d74678cd2ea2a7dc4ee85ce.sound
+  apply boundOfSeatedTemplate Shieldd.GnarkFormal.Deployed.Templates.Generated.TStatementHash_67a3df11145400695d1528410a7903b2252ede68702e91a980098b8499e5b5d4.relation Shieldd.GnarkFormal.Deployed.Templates.Generated.TStatementHash_67a3df11145400695d1528410a7903b2252ede68702e91a980098b8499e5b5d4.spec Shieldd.GnarkFormal.Deployed.Templates.Generated.TStatementHash_67a3df11145400695d1528410a7903b2252ede68702e91a980098b8499e5b5d4.sound
     Seg60.contract Seg60.wireSeating
   · intro rho
     rfl
@@ -682,8 +688,41 @@ theorem inst60_bound :
 theorem inst61_bound :
     Deployed.BoundDeployedSound Seg61.contract
       Seg61.contract.relationSha256Hex Seg61.contract.wireRoleSha256Hex := by
-  apply boundOfSeatedTemplate Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEq_001662998b48830253568a34945bae30020bcb70574648b9aa58b23510a29b69.relation Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEq_001662998b48830253568a34945bae30020bcb70574648b9aa58b23510a29b69.spec Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEq_001662998b48830253568a34945bae30020bcb70574648b9aa58b23510a29b69.sound
+  apply boundOfSeatedTemplate Shieldd.GnarkFormal.Deployed.Templates.Generated.TStatementHash_0092421009be06b66aa764b1a88f289569cb79dda85cba9c19428c04336af9a4.relation Shieldd.GnarkFormal.Deployed.Templates.Generated.TStatementHash_0092421009be06b66aa764b1a88f289569cb79dda85cba9c19428c04336af9a4.spec Shieldd.GnarkFormal.Deployed.Templates.Generated.TStatementHash_0092421009be06b66aa764b1a88f289569cb79dda85cba9c19428c04336af9a4.sound
     Seg61.contract Seg61.wireSeating
+  · intro rho
+    rfl
+  · intro rho
+    rfl
+
+
+theorem inst62_bound :
+    Deployed.BoundDeployedSound Seg62.contract
+      Seg62.contract.relationSha256Hex Seg62.contract.wireRoleSha256Hex := by
+  apply boundOfSeatedTemplate Shieldd.GnarkFormal.Deployed.Templates.Generated.TStatementHash_5804cb48cce27e24aa8fa559e9e23e995c25c83d8af6b4ef440384b01de85476.relation Shieldd.GnarkFormal.Deployed.Templates.Generated.TStatementHash_5804cb48cce27e24aa8fa559e9e23e995c25c83d8af6b4ef440384b01de85476.spec Shieldd.GnarkFormal.Deployed.Templates.Generated.TStatementHash_5804cb48cce27e24aa8fa559e9e23e995c25c83d8af6b4ef440384b01de85476.sound
+    Seg62.contract Seg62.wireSeating
+  · intro rho
+    rfl
+  · intro rho
+    rfl
+
+
+theorem inst63_bound :
+    Deployed.BoundDeployedSound Seg63.contract
+      Seg63.contract.relationSha256Hex Seg63.contract.wireRoleSha256Hex := by
+  apply boundOfSeatedTemplate Shieldd.GnarkFormal.Deployed.Templates.Generated.TStatementHash_19301faada329781da94b45e73c6963e9c85b971e364be5e52987753c670f898.relation Shieldd.GnarkFormal.Deployed.Templates.Generated.TStatementHash_19301faada329781da94b45e73c6963e9c85b971e364be5e52987753c670f898.spec Shieldd.GnarkFormal.Deployed.Templates.Generated.TStatementHash_19301faada329781da94b45e73c6963e9c85b971e364be5e52987753c670f898.sound
+    Seg63.contract Seg63.wireSeating
+  · intro rho
+    rfl
+  · intro rho
+    rfl
+
+
+theorem inst64_bound :
+    Deployed.BoundDeployedSound Seg64.contract
+      Seg64.contract.relationSha256Hex Seg64.contract.wireRoleSha256Hex := by
+  apply boundOfSeatedTemplate Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEq_001662998b48830253568a34945bae30020bcb70574648b9aa58b23510a29b69.relation Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEq_001662998b48830253568a34945bae30020bcb70574648b9aa58b23510a29b69.spec Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEq_001662998b48830253568a34945bae30020bcb70574648b9aa58b23510a29b69.sound
+    Seg64.contract Seg64.wireSeating
   · intro rho
     rfl
   · intro rho

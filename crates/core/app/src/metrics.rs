@@ -21,6 +21,7 @@ pub fn register_metrics() {
     shieldd_sdk_governance::register_metrics();
     shieldd_sdk_ibc::component::register_metrics();
     shieldd_sdk_shielded_pool::component::register_metrics();
+    crate::nullifier_generation_packs::register_metrics();
 
     describe_counter!(
         MEMPOOL_CHECKTX_TOTAL,

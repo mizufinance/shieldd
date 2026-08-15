@@ -11,6 +11,7 @@ import ShielddGnarkFormal.NoteReshapeCommitmentBridge
 import ShielddGnarkFormal.StateMembership925Bridge
 import ShielddGnarkFormal.Poseidon3Spec
 import ShielddGnarkFormal.Poseidon6Spec
+import ShielddGnarkFormal.HistoryClassifyBridge
 
 /-!
 Stable composition of action-level Transfer facts.
@@ -39,6 +40,100 @@ private theorem negOne :
       DeployedF) = -1 := by
   decide
 
+/-- The required spend's exact comparator classifies its position against the public floor. -/
+theorem requiredHistoryClassification
+    (rho : Nat → DeployedF)
+    (semantic : TransferSemanticProviders rho) :
+    NullifierHistory.FieldClassification
+      (required rho).position
+      (action rho).recentPositionFloor
+      (required rho).historyRequired := by
+  have h := semantic.requiredHistoryClassify
+  unfold RequiredHistoryClassifySemanticSpec at h
+  unfold
+    Deployed.Templates.Semantics.THistoryClassify_24943fd2154aa0ac8bbf9adce870214e50badfb7c18cba54c33b68fcd9222905.spec
+    at h
+  simpa only [
+    required, action,
+    spend0StateProofPosition, spend0StateProofPositionLC,
+    recentPositionFloor, recentPositionFloorLC,
+    spend0HistoryRequired, spend0HistoryRequiredLC,
+    StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
+    zero_add, add_zero, one_mul,
+    NullifierHistory.FieldClassification,
+    HistoryClassifyBridge.CoreSpec,
+    requiredHistoryClassifyAt49,
+    requiredHistoryClassifyAt98,
+    requiredHistoryClassifyAt149
+  ] using h
+
+/-- A real optional spend receives the ungated classifier result. -/
+theorem optionalHistoryClassification
+    (rho : Nat → DeployedF)
+    (semantic : TransferSemanticProviders rho)
+    (real : spend1IsDummy rho = 0) :
+    NullifierHistory.FieldClassification
+      (optionalReal rho).position
+      (action rho).recentPositionFloor
+      (optionalReal rho).historyRequired := by
+  have h := semantic.optionalHistoryClassify
+  unfold OptionalHistoryClassifySemanticSpec at h
+  unfold
+    Deployed.Templates.Semantics.THistoryClassify_63bcfde2aa853f39c988314bacdeeddfe5aa236959c22bd9f97803415badf545.spec
+    at h
+  have realSeat : rho 339 = 0 := by
+    simpa only [
+      spend1IsDummy, spend1IsDummyLC,
+      StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
+      zero_add, add_zero, one_mul
+    ] using real
+  simpa only [
+    optionalReal, action,
+    spend1StateProofPosition, spend1StateProofPositionLC,
+    recentPositionFloor, recentPositionFloorLC,
+    spend1HistoryRequired, spend1HistoryRequiredLC,
+    StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
+    zero_add, add_zero,
+    NullifierHistory.FieldClassification,
+    HistoryClassifyBridge.GatedSpec,
+    optionalHistoryClassifyAt49,
+    optionalHistoryClassifyAt98,
+    optionalHistoryClassifyAt149,
+    optionalHistoryClassifyAt151,
+    realSeat,
+    sub_zero,
+    one_mul
+  ] using h
+
+/-- The gated classifier clears the public history flag for a dummy spend. -/
+theorem optionalDummyHistoryZero
+    (rho : Nat → DeployedF)
+    (semantic : TransferSemanticProviders rho)
+    (dummy : spend1IsDummy rho = 1) :
+    (optionalDummy rho).historyRequired = 0 := by
+  have h := semantic.optionalHistoryClassify
+  unfold OptionalHistoryClassifySemanticSpec at h
+  unfold
+    Deployed.Templates.Semantics.THistoryClassify_63bcfde2aa853f39c988314bacdeeddfe5aa236959c22bd9f97803415badf545.spec
+    HistoryClassifyBridge.GatedSpec at h
+  have dummySeat : rho 339 = 1 := by
+    simpa only [
+      spend1IsDummy, spend1IsDummyLC,
+      StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
+      zero_add, add_zero, one_mul
+    ] using dummy
+  simpa only [
+    optionalDummy,
+    spend1HistoryRequired, spend1HistoryRequiredLC,
+    StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
+    zero_add, add_zero, one_mul,
+    optionalHistoryClassifyAt149,
+    optionalHistoryClassifyAt151,
+    dummySeat,
+    sub_self,
+    zero_mul
+  ] using h.2.2
+
 /-- The required note commitment is the certified five-input hash. -/
 theorem requiredNoteCommitment
     (rho : Nat → DeployedF)
@@ -54,6 +149,7 @@ theorem requiredNoteCommitment
       spend0NoteCommitmentComputed, spend0NoteCommitmentComputedLC,
       NoteReshapeCommitmentBridge.templateOutput_eq,
       NoteReshapeCommitmentBridge.output,
+      Deployed.CertifiedGadgetNoteCommitment_252c34d237e9Poseidon.s38_1,
       Deployed.Poseidon5Link.row6,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
       requiredNoteCommitmentAt372, requiredNoteCommitmentAt377,
@@ -96,6 +192,7 @@ theorem optionalRealNoteCommitment
       spend1NoteCommitmentComputed, spend1NoteCommitmentComputedLC,
       NoteReshapeCommitmentBridge.templateOutput_eq,
       NoteReshapeCommitmentBridge.output,
+      Deployed.CertifiedGadgetNoteCommitment_252c34d237e9Poseidon.s38_1,
       Deployed.Poseidon5Link.row6,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
       optionalNoteCommitmentAt372, optionalNoteCommitmentAt377,
@@ -142,6 +239,7 @@ theorem receiverNoteCommitment
         output0NoteCommitmentComputed, output0NoteCommitmentComputedLC,
         NoteReshapeCommitmentBridge.templateOutput_eq,
         NoteReshapeCommitmentBridge.output,
+        Deployed.CertifiedGadgetNoteCommitment_252c34d237e9Poseidon.s38_1,
         Deployed.Poseidon5Link.row6,
         StructuredLC.eval, StructuredLC.sumRuns,
         StructuredLC.sumResidual,
@@ -200,6 +298,7 @@ theorem changeNoteCommitment
         output1NoteCommitmentComputed, output1NoteCommitmentComputedLC,
         NoteReshapeCommitmentBridge.templateOutput_eq,
         NoteReshapeCommitmentBridge.output,
+        Deployed.CertifiedGadgetNoteCommitment_252c34d237e9Poseidon.s38_1,
         Deployed.Poseidon5Link.row6,
         StructuredLC.eval, StructuredLC.sumRuns,
         StructuredLC.sumResidual,
@@ -273,14 +372,13 @@ theorem requiredMember
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
       requiredStatePathAt1, requiredStatePathAt2,
       requiredStatePathAt3, requiredStatePathAt4,
-      requiredStatePathAt5, requiredStatePathAt6,
-      requiredStatePathAt7
+      requiredStatePathAt5, requiredStatePathAt6
     ]
     ring
   · simp [
       spend0StateProofPosition, spend0StateProofPositionLC,
       StructuredLC.eval, StructuredLC.sumRuns,
-      StructuredLC.sumResidual, requiredStatePathAt286
+      StructuredLC.sumResidual, requiredStatePathAt285
     ]
   · exact (requiredStatePathProviderPath_eq rho).symm
   · rw [requiredAnchorAsserted rho semantic]
@@ -288,9 +386,9 @@ theorem requiredMember
       StateMembership925Bridge.rootOutput,
       spend0AnchorComputed, spend0AnchorComputedLC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      requiredStatePathAt8978, requiredStatePathAt8983,
-      requiredStatePathAt8988, requiredStatePathAt8993,
-      requiredStatePathAt8998
+      requiredStatePathAt8977, requiredStatePathAt8982,
+      requiredStatePathAt8987, requiredStatePathAt8992,
+      requiredStatePathAt8997
     ]
     ring
 
@@ -316,14 +414,13 @@ theorem optionalMember
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
       optionalStatePathAt1, optionalStatePathAt2,
       optionalStatePathAt3, optionalStatePathAt4,
-      optionalStatePathAt5, optionalStatePathAt6,
-      optionalStatePathAt7
+      optionalStatePathAt5, optionalStatePathAt6
     ]
     ring
   · simp [
       spend1StateProofPosition, spend1StateProofPositionLC,
       StructuredLC.eval, StructuredLC.sumRuns,
-      StructuredLC.sumResidual, optionalStatePathAt286
+      StructuredLC.sumResidual, optionalStatePathAt285
     ]
   · exact (optionalStatePathProviderPath_eq rho).symm
   · rw [optionalAnchorAsserted rho semantic real]
@@ -331,9 +428,9 @@ theorem optionalMember
       StateMembership925Bridge.rootOutput,
       spend1AnchorComputed, spend1AnchorComputedLC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      optionalStatePathAt8978, optionalStatePathAt8983,
-      optionalStatePathAt8988, optionalStatePathAt8993,
-      optionalStatePathAt8998
+      optionalStatePathAt8977, optionalStatePathAt8982,
+      optionalStatePathAt8987, optionalStatePathAt8992,
+      optionalStatePathAt8997
     ]
     ring
 
@@ -348,28 +445,28 @@ theorem requiredNullifierHash
   have h := semantic.requiredNullifier
   change
     Deployed.Nullifier.s38_1
-        (RequiredNullifierValuation rho 304)
-        (RequiredNullifierValuation rho 309)
-        (RequiredNullifierValuation rho 314)
-        (RequiredNullifierValuation rho 319) =
+        (RequiredNullifierValuation rho 303)
+        (RequiredNullifierValuation rho 308)
+        (RequiredNullifierValuation rho 313)
+        (RequiredNullifierValuation rho 318) =
       Poseidon3Bridge.permSpec3 Poseidon3Bridge.nullifierDomainLit
         (RequiredNullifierValuation rho 1)
         (RequiredNullifierStateCommitment rho)
-        (RequiredNullifierValuation rho 19) at h
+        (RequiredNullifierValuation rho 18) at h
   have houtput :
       spend0NullifierReal rho =
         Deployed.Nullifier.s38_1
-          (RequiredNullifierValuation rho 304)
-          (RequiredNullifierValuation rho 309)
-          (RequiredNullifierValuation rho 314)
-          (RequiredNullifierValuation rho 319) := by
+          (RequiredNullifierValuation rho 303)
+          (RequiredNullifierValuation rho 308)
+          (RequiredNullifierValuation rho 313)
+          (RequiredNullifierValuation rho 318) := by
     simp [
       spend0NullifierReal, spend0NullifierRealLC,
       Deployed.Nullifier.s38_1, Deployed.Poseidon3Link.row4,
       StructuredLC.eval, StructuredLC.sumRuns,
       StructuredLC.sumResidual,
-      requiredNullifierAt304, requiredNullifierAt309,
-      requiredNullifierAt314, requiredNullifierAt319
+      requiredNullifierAt303, requiredNullifierAt308,
+      requiredNullifierAt313, requiredNullifierAt318
     ]
     ring
   rw [houtput, ← requiredNullifierStateCommitment_eq rho]
@@ -378,7 +475,7 @@ theorem requiredNullifierHash
     spend0StateProofPositionLC,
     StructuredLC.eval, StructuredLC.sumRuns,
     StructuredLC.sumResidual,
-    requiredNullifierAt1, requiredNullifierAt19
+    requiredNullifierAt1, requiredNullifierAt18
   ] using h
 
 /-- The optional real nullifier is the certified Poseidon3 output. -/
@@ -392,28 +489,28 @@ theorem optionalNullifierHash
   have h := semantic.optionalNullifier
   change
     Deployed.Nullifier.s38_1
-        (OptionalNullifierValuation rho 304)
-        (OptionalNullifierValuation rho 309)
-        (OptionalNullifierValuation rho 314)
-        (OptionalNullifierValuation rho 319) =
+        (OptionalNullifierValuation rho 303)
+        (OptionalNullifierValuation rho 308)
+        (OptionalNullifierValuation rho 313)
+        (OptionalNullifierValuation rho 318) =
       Poseidon3Bridge.permSpec3 Poseidon3Bridge.nullifierDomainLit
         (OptionalNullifierValuation rho 1)
         (OptionalNullifierStateCommitment rho)
-        (OptionalNullifierValuation rho 19) at h
+        (OptionalNullifierValuation rho 18) at h
   have houtput :
       spend1NullifierReal rho =
         Deployed.Nullifier.s38_1
-          (OptionalNullifierValuation rho 304)
-          (OptionalNullifierValuation rho 309)
-          (OptionalNullifierValuation rho 314)
-          (OptionalNullifierValuation rho 319) := by
+          (OptionalNullifierValuation rho 303)
+          (OptionalNullifierValuation rho 308)
+          (OptionalNullifierValuation rho 313)
+          (OptionalNullifierValuation rho 318) := by
     simp [
       spend1NullifierReal, spend1NullifierRealLC,
       Deployed.Nullifier.s38_1, Deployed.Poseidon3Link.row4,
       StructuredLC.eval, StructuredLC.sumRuns,
       StructuredLC.sumResidual,
-      optionalNullifierAt304, optionalNullifierAt309,
-      optionalNullifierAt314, optionalNullifierAt319
+      optionalNullifierAt303, optionalNullifierAt308,
+      optionalNullifierAt313, optionalNullifierAt318
     ]
     ring
   rw [houtput, ← optionalNullifierStateCommitment_eq rho]
@@ -422,7 +519,7 @@ theorem optionalNullifierHash
     spend1StateProofPositionLC,
     StructuredLC.eval, StructuredLC.sumRuns,
     StructuredLC.sumResidual,
-    optionalNullifierAt1, optionalNullifierAt19
+    optionalNullifierAt1, optionalNullifierAt18
   ] using h
 
 /-- The public required nullifier equals the real-nullifier gadget output. -/
@@ -840,6 +937,11 @@ theorem requiredSpend_of_semantics
       (required rho).nullifier =
         Common.nullifier (authorization rho).nullifierKey
           (required rho).note.commitment (required rho).position)
+    (historyClassification :
+      NullifierHistory.FieldClassification
+        (required rho).position
+        (action rho).recentPositionFloor
+        (required rho).historyRequired)
     (randomizedKey :
       ∃ computedRk,
         Common.Decaf.randomizedVerificationKey
@@ -854,8 +956,8 @@ theorem requiredSpend_of_semantics
     Concrete.requiredSpend (action rho) := by
   unfold Concrete.requiredSpend Concrete.realSpend
   exact
-    ⟨rfl, rfl, rfl, randomizerBound, commitment, member, nullifier,
-      randomizedKey, compressed⟩
+    ⟨rfl, rfl, randomizerBound, commitment, member, nullifier,
+      historyClassification, randomizedKey, compressed⟩
 
 /-- Compose the required spend from certified provider semantics. -/
 theorem requiredSpend_of_semanticProviders
@@ -879,6 +981,7 @@ theorem requiredSpend_of_semanticProviders
       Poseidon3Bridge.nullifierDomainLit,
       Poseidon377.nullifierDomain
     ] using requiredNullifierHash rho semantic
+  · exact requiredHistoryClassification rho semantic
   · exact
       requiredRandomizedKey rho semantic authorizationKeyOnCurve
   · exact
@@ -897,11 +1000,11 @@ theorem optionalRealSpend_of_semanticProviders
   refine ⟨
     rfl,
     rfl,
-    rfl,
     (optionalRvk rho semantic authorizationKeyOnCurve).1,
     optionalRealNoteCommitment rho semantic,
     optionalMember rho semantic real,
     ?_,
+    optionalHistoryClassification rho semantic real,
     optionalRandomizedKey
       rho semantic authorizationKeyOnCurve real,
     NoteReshapeRefinement.compressesTo_of_circuitSpec _ _
@@ -948,6 +1051,7 @@ theorem optionalSpend_of_semanticProviders
     rw [selected]
     refine ⟨
       optionalDummyAmountZero rho semantic dummy,
+      optionalDummyHistoryZero rho semantic dummy,
       (optionalRvk rho semantic authorizationKeyOnCurve).1,
       ?_,
       NoteReshapeRefinement.compressesTo_of_circuitSpec _ _
@@ -1022,7 +1126,7 @@ theorem changeOutput_of_semantics
     (rho : Nat → SemanticF)
     (commitment : Concrete.noteCommitment (changeNote rho)) :
     Concrete.changeOutput (action rho) := by
-  exact ⟨rfl, rfl, rfl, commitment⟩
+  exact ⟨rfl, rfl, commitment⟩
 
 /-- Compose the change output from its certified note providers. -/
 theorem changeOutput_of_semanticProviders

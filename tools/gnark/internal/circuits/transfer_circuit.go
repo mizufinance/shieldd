@@ -36,11 +36,12 @@ type TransferRequiredSpendNoteCircuitFields struct {
 }
 
 type TransferRequiredSpendCircuitFields struct {
-	Nullifier      frontend.Variable
-	RK             Point2D
-	Note           TransferRequiredSpendNoteCircuitFields
-	StateProof     TransferStatePathCircuitFields
-	AuthRandomizer frontend.Variable
+	Nullifier       frontend.Variable
+	RK              Point2D
+	Note            TransferRequiredSpendNoteCircuitFields
+	StateProof      TransferStatePathCircuitFields
+	AuthRandomizer  frontend.Variable
+	HistoryRequired frontend.Variable
 }
 
 type TransferOptionalSpendCircuitFields struct {
@@ -51,6 +52,7 @@ type TransferOptionalSpendCircuitFields struct {
 	AuthRandomizer     frontend.Variable
 	IsDummy            frontend.Variable
 	DummyNullifierSeed frontend.Variable
+	HistoryRequired    frontend.Variable
 }
 
 type TransferUserCircuitFields struct {
@@ -94,6 +96,7 @@ type TransferCircuit struct {
 	ClaimedStatementHash  frontend.Variable `gnark:",public"`
 	RoutingTags           [2]frontend.Variable
 	RoutingParameterSetID frontend.Variable
+	RecentPositionFloor   frontend.Variable
 
 	Anchor                frontend.Variable
 	AssetAnchor           frontend.Variable
@@ -284,6 +287,7 @@ func (c *TransferCircuit) bindTransferWitnessSemantics() {
 	c.bindSemantic("routing.regulated_precision", c.RegulatedPrecision)
 	c.bindSemantic("routing.unregulated_precision", c.UnregulatedPrecision)
 	c.bindSemantic("routing.as_of_height", c.RoutingAsOfHeight)
+	c.bindSemantic("recent_position_floor", c.RecentPositionFloor)
 	c.bindSemantic("auth.ak", c.Auth.AK.X, c.Auth.AK.Y)
 	c.bindSemantic("auth.nk", c.Auth.NK)
 	c.bindSemantic("auth.ivk_reduced", c.Auth.IVKReduced)
@@ -327,6 +331,7 @@ func (c *TransferCircuit) bindTransferWitnessSemantics() {
 		statePathVariables(c.RequiredSpend.StateProof.Path)...,
 	)
 	c.bindSemantic("spend0.auth_randomizer", c.RequiredSpend.AuthRandomizer)
+	c.bindSemantic("spend0.history_required", c.RequiredSpend.HistoryRequired)
 
 	c.bindSemantic("spend1.nullifier.claimed", c.OptionalSpend.Nullifier)
 	c.bindSemantic("spend1.rk.claimed", c.OptionalSpend.RK.X, c.OptionalSpend.RK.Y)
@@ -338,6 +343,7 @@ func (c *TransferCircuit) bindTransferWitnessSemantics() {
 		statePathVariables(c.OptionalSpend.StateProof.Path)...,
 	)
 	c.bindSemantic("spend1.auth_randomizer", c.OptionalSpend.AuthRandomizer)
+	c.bindSemantic("spend1.history_required", c.OptionalSpend.HistoryRequired)
 	c.bindSemantic("spend1.is_dummy", c.OptionalSpend.IsDummy)
 	c.bindSemantic(
 		"spend1.dummy_nullifier_seed",
@@ -1103,6 +1109,28 @@ func (c *TransferCircuit) verifyTransferSpend(
 	}
 
 	statementData.inputAmounts = append(statementData.inputAmounts, spend.Note.Amount)
+	claimedHistoryRequired := c.RequiredSpend.HistoryRequired
+	isDummy := frontend.Variable(0)
+	isDummyLabel := "0"
+	if optional != nil {
+		claimedHistoryRequired = optional.HistoryRequired
+		isDummy = optional.IsDummy
+		isDummyLabel = name + ".is_dummy"
+	}
+	c.traceWiring(
+		"history.classify",
+		"position="+name+".state_proof.position",
+		"floor=recent_position_floor",
+		"is_dummy="+isDummyLabel,
+		"out="+name+".history_required",
+	)
+	computedHistoryRequired := historyRequired(
+		api,
+		spend.StateProof.Position,
+		c.RecentPositionFloor,
+		isDummy,
+	)
+	api.AssertIsEqual(claimedHistoryRequired, computedHistoryRequired)
 	statementData.nullifiersAndRKs = append(statementData.nullifiersAndRKs, spend.Nullifier)
 	c.traceWiring("decaf.compress_to_field", "in="+name+".rk.claimed", "out="+name+".rk.compressed")
 	rkFq, err := decafgnark.CompressToField(api, rkClaimed)
@@ -1111,6 +1139,7 @@ func (c *TransferCircuit) verifyTransferSpend(
 	}
 	c.bindSemantic(name+".rk.compressed", rkFq)
 	statementData.nullifiersAndRKs = append(statementData.nullifiersAndRKs, rkFq)
+	statementData.nullifiersAndRKs = append(statementData.nullifiersAndRKs, claimedHistoryRequired)
 	return nil
 }
 
@@ -1528,6 +1557,7 @@ func (c *TransferCircuit) buildTransferStatementFields(
 	fields = append(fields, balanceCommitmentFq)
 	fields = append(fields, c.RoutingTags[:]...)
 	fields = append(fields, c.RoutingParameterSetID)
+	fields = append(fields, c.RecentPositionFloor)
 	fields = append(fields, statementData.nullifiersAndRKs...)
 	fields = append(fields, c.AssetAnchor, c.ComplianceAnchor)
 	fields = append(fields, c.Compliance.DetectionCiphertext[:]...)

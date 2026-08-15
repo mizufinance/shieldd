@@ -44,10 +44,10 @@ class WithdrawalProtocolSemanticsTests(unittest.TestCase):
             "little",
         )
 
-    def test_statement_domain_and_shape_match_v2(self) -> None:
+    def test_statement_domain_and_shape_match_v4(self) -> None:
         self.assertEqual(
             self.definition("statementDomain"),
-            self.label_value("v2"),
+            self.label_value("v4"),
         )
         self.assertEqual(
             self.definition("statementPad0"),
@@ -58,7 +58,7 @@ class WithdrawalProtocolSemanticsTests(unittest.TestCase):
             self.label_value("pad1"),
         )
         self.assertIn(
-            "(statementFields action).length = 18",
+            "(statementFields action).length = 21",
             self.concrete,
         )
 
@@ -70,9 +70,11 @@ class WithdrawalProtocolSemanticsTests(unittest.TestCase):
         normalized = " ".join(block.split())
         expected = (
             "[action.anchor, action.change.commitment, "
-            "action.balanceCommitmentEncoding, action.required.nullifier, "
+            "action.balanceCommitmentEncoding, action.recentPositionFloor, "
+            "action.required.nullifier, "
             "action.required.randomizedVerificationKeyEncoding, "
-            "action.optional.nullifier, action.optional.rkEncoding, "
+            "action.required.historyRequired, action.optional.nullifier, "
+            "action.optional.rkEncoding, action.optional.historyRequired, "
             "action.assetAnchor, action.complianceAnchor, "
             "action.targetTimestamp, action.withdrawal.outboundAssetId, "
             "action.withdrawal.outboundAmount, "

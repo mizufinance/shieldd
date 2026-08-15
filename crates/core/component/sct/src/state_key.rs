@@ -32,47 +32,88 @@ pub mod epoch_manager {
     }
 }
 
-pub mod nullifier_set {
-    use jmt::{storage::NodeKey, KeyHash};
+pub mod nullifier_generations {
+    use crate::nullifier_generation::NullifierTreeId;
 
-    pub fn schema_version() -> &'static str {
-        "sct/nullifier_set/schema_version"
-    }
-
-    pub fn root() -> &'static str {
-        "sct/nullifier_set/root"
-    }
-
-    pub fn tree_node_prefix() -> &'static [u8] {
-        b"sct/nullifier_set/jmt/node/"
-    }
-
-    pub fn tree_node(node_key: &NodeKey) -> Vec<u8> {
-        let mut key = tree_node_prefix().to_vec();
-        key.extend(borsh::to_vec(node_key).expect("JMT node key serialization is infallible"));
-        key
-    }
-
-    pub fn value_prefix() -> &'static [u8] {
-        b"sct/nullifier_set/jmt/value/"
-    }
-
-    pub fn value(key_hash: KeyHash) -> Vec<u8> {
-        let mut key = value_prefix().to_vec();
-        key.extend_from_slice(&key_hash.0);
-        key
-    }
-
-    pub fn rightmost_leaf_node_key() -> &'static [u8] {
-        b"sct/nullifier_set/jmt/meta/rightmost_leaf_node_key"
-    }
-
-    pub fn rightmost_leaf_node() -> &'static [u8] {
-        b"sct/nullifier_set/jmt/meta/rightmost_leaf_node"
+    pub fn state() -> &'static str {
+        "sct/nullifier_generations/state"
     }
 
     pub fn pending_nullifiers() -> &'static str {
-        "sct/nullifier_set/pending_nullifiers"
+        "sct/nullifier_generations/pending_nullifiers"
+    }
+
+    pub fn retired_record(tree: NullifierTreeId) -> Vec<u8> {
+        format!(
+            "sct/nullifier_generations/archive/{}/retired_record",
+            tree.storage_segment()
+        )
+        .into_bytes()
+    }
+
+    pub fn local_pack_receipt(tree: NullifierTreeId) -> Vec<u8> {
+        format!(
+            "sct/nullifier_generations/archive/{}/local_pack_receipt",
+            tree.storage_segment()
+        )
+        .into_bytes()
+    }
+
+    fn tree_base(tree: NullifierTreeId) -> String {
+        format!("sct/nullifier_generations/tree/{}", tree.storage_segment())
+    }
+
+    pub fn schema_version(tree: NullifierTreeId) -> String {
+        format!("{}/schema_version", tree_base(tree))
+    }
+
+    pub fn root(tree: NullifierTreeId) -> String {
+        format!("{}/root", tree_base(tree))
+    }
+
+    pub fn tree_node_prefix(tree: NullifierTreeId) -> Vec<u8> {
+        format!("{}/imt/node/", tree_base(tree)).into_bytes()
+    }
+
+    pub fn tree_node(tree: NullifierTreeId, level: u8, position: u64) -> Vec<u8> {
+        let mut key = tree_node_prefix(tree);
+        key.push(level);
+        key.extend_from_slice(&position.to_be_bytes());
+        key
+    }
+
+    pub fn leaf_prefix(tree: NullifierTreeId) -> Vec<u8> {
+        format!("{}/imt/leaf/", tree_base(tree)).into_bytes()
+    }
+
+    pub fn leaf(tree: NullifierTreeId, position: u64) -> Vec<u8> {
+        let mut key = leaf_prefix(tree);
+        key.extend_from_slice(&position.to_be_bytes());
+        key
+    }
+
+    pub fn value_prefix(tree: NullifierTreeId) -> Vec<u8> {
+        format!("{}/imt/value/", tree_base(tree)).into_bytes()
+    }
+
+    pub fn value(tree: NullifierTreeId, nullifier: [u8; 32]) -> Vec<u8> {
+        let mut key = value_prefix(tree);
+        key.extend_from_slice(&nullifier);
+        key
+    }
+
+    pub fn value_desc_prefix(tree: NullifierTreeId) -> Vec<u8> {
+        format!("{}/imt/value_desc/", tree_base(tree)).into_bytes()
+    }
+
+    pub fn value_desc(tree: NullifierTreeId, descending_key: [u8; 32]) -> Vec<u8> {
+        let mut key = value_desc_prefix(tree);
+        key.extend_from_slice(&descending_key);
+        key
+    }
+
+    pub fn leaf_count(tree: NullifierTreeId) -> String {
+        format!("{}/leaf_count", tree_base(tree))
     }
 }
 

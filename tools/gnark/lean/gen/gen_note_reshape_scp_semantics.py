@@ -57,13 +57,13 @@ SOURCE_SEGMENT = 33
 DIRECT_INSTANCES = (
     ("note_reshape1x8", 33),
     ("note_reshape8x1", 42),
-    ("note_reshape8x1", 56),
-    ("note_reshape8x1", 70),
-    ("note_reshape8x1", 84),
-    ("note_reshape8x1", 98),
-    ("note_reshape8x1", 112),
-    ("note_reshape8x1", 126),
-    ("note_reshape8x1", 140),
+    ("note_reshape8x1", 57),
+    ("note_reshape8x1", 72),
+    ("note_reshape8x1", 87),
+    ("note_reshape8x1", 102),
+    ("note_reshape8x1", 117),
+    ("note_reshape8x1", 132),
+    ("note_reshape8x1", 147),
 )
 DIRECT_CONSTANT_VECTOR = (
     "02b3d6f5192c3b01e169435bcb1e038a"
@@ -72,9 +72,9 @@ DIRECT_CONSTANT_VECTOR = (
 DIRECT_CLASS_KEY = "gadget.state_commitment_path@088ab48133b9d3af"
 WITHDRAWAL_INSTANCES = (
     ("shielded_ics20_withdrawal", 30),
-    ("shielded_ics20_withdrawal", 40),
+    ("shielded_ics20_withdrawal", 41),
     ("transfer", 34),
-    ("transfer", 45),
+    ("transfer", 46),
 )
 WITHDRAWAL_CONSTANT_VECTOR = (
     "64c43dfa0781373078a353d0673f774a0"

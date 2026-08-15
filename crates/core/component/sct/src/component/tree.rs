@@ -427,7 +427,7 @@ pub trait SctRead: StateRead {
 
     /// Return the set of nullifiers that have been spent in the current block.
     fn pending_nullifiers(&self) -> imbl::Vector<Nullifier> {
-        self.object_get(state_key::nullifier_set::pending_nullifiers())
+        self.object_get(state_key::nullifier_generations::pending_nullifiers())
             .unwrap_or_default()
     }
 }
@@ -638,7 +638,7 @@ pub trait SctManager: StateWrite {
         let mut pending_nullifiers = self.pending_nullifiers();
         pending_nullifiers.extend(nullifiers.iter().copied());
         self.object_put(
-            state_key::nullifier_set::pending_nullifiers(),
+            state_key::nullifier_generations::pending_nullifiers(),
             pending_nullifiers,
         );
 
@@ -677,7 +677,7 @@ pub trait SctManager: StateWrite {
         let mut pending_nullifiers = self.pending_nullifiers();
         pending_nullifiers.extend(entries.iter().map(|(nullifier, _)| *nullifier));
         self.object_put(
-            state_key::nullifier_set::pending_nullifiers(),
+            state_key::nullifier_generations::pending_nullifiers(),
             pending_nullifiers,
         );
         profile.pending_stage_ms = pending_stage_start.elapsed().as_secs_f64() * 1000.0;

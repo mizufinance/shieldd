@@ -4,9 +4,9 @@ use crate::{
     gnark::{
         binary::{encode_triple_path_32, put_bytes, put_u32, put_u64, put_u8, BinaryCursor},
         shielded_ics20_withdrawal_witness::{
-            ShieldedIcs20WithdrawalAssetLeafWitnessV9, ShieldedIcs20WithdrawalChangeWitnessV9,
-            ShieldedIcs20WithdrawalOptionalSpendWitnessV9,
-            ShieldedIcs20WithdrawalRequiredSpendWitnessV9, ShieldedIcs20WithdrawalWitnessV9,
+            ShieldedIcs20WithdrawalAssetLeafWitnessV10, ShieldedIcs20WithdrawalChangeWitnessV10,
+            ShieldedIcs20WithdrawalOptionalSpendWitnessV10,
+            ShieldedIcs20WithdrawalRequiredSpendWitnessV10, ShieldedIcs20WithdrawalWitnessV10,
         },
         typed::{encode_merkle_path, encode_point_affine},
     },
@@ -14,9 +14,9 @@ use crate::{
 };
 
 const SHIELDED_ICS20_WITHDRAWAL_WITNESS_MAGIC: &[u8; 4] = b"PIWG";
-const SHIELDED_ICS20_WITHDRAWAL_WITNESS_VERSION: u32 = 9;
+const SHIELDED_ICS20_WITHDRAWAL_WITNESS_VERSION: u32 = 10;
 
-impl ShieldedIcs20WithdrawalWitnessV9 {
+impl ShieldedIcs20WithdrawalWitnessV10 {
     pub fn encode(&self) -> Result<Vec<u8>> {
         let mut buf = Vec::new();
         put_bytes(&mut buf, SHIELDED_ICS20_WITHDRAWAL_WITNESS_MAGIC);
@@ -36,6 +36,7 @@ impl ShieldedIcs20WithdrawalWitnessV9 {
         put_bytes(&mut buf, &self.claimed_statement_hash);
         put_bytes(&mut buf, &self.routing_tag);
         put_bytes(&mut buf, &self.routing_parameter_set_id);
+        put_bytes(&mut buf, &self.recent_position_floor);
         put_bytes(&mut buf, &self.action_balance_blinding);
         put_bytes(&mut buf, &self.nk);
         encode_merkle_path(&mut buf, &self.asset_path)?;
@@ -111,6 +112,7 @@ impl ShieldedIcs20WithdrawalWitnessV9 {
             claimed_statement_hash: cursor.read_fixed::<32>()?,
             routing_tag: cursor.read_fixed::<32>()?,
             routing_parameter_set_id: cursor.read_fixed::<32>()?,
+            recent_position_floor: cursor.read_fixed::<32>()?,
             action_balance_blinding: cursor.read_fr()?,
             nk: cursor.read_fixed::<32>()?,
             asset_path: cursor.read_merkle_path()?,
@@ -138,7 +140,7 @@ impl ShieldedIcs20WithdrawalWitnessV9 {
     }
 }
 
-fn encode_asset_leaf(buf: &mut Vec<u8>, leaf: &ShieldedIcs20WithdrawalAssetLeafWitnessV9) {
+fn encode_asset_leaf(buf: &mut Vec<u8>, leaf: &ShieldedIcs20WithdrawalAssetLeafWitnessV10) {
     put_bytes(buf, &leaf.value);
     put_u64(buf, leaf.next_index);
     put_bytes(buf, &leaf.next_value);
@@ -148,8 +150,8 @@ fn encode_asset_leaf(buf: &mut Vec<u8>, leaf: &ShieldedIcs20WithdrawalAssetLeafW
 
 fn decode_asset_leaf(
     cursor: &mut BinaryCursor<'_>,
-) -> Result<ShieldedIcs20WithdrawalAssetLeafWitnessV9> {
-    Ok(ShieldedIcs20WithdrawalAssetLeafWitnessV9 {
+) -> Result<ShieldedIcs20WithdrawalAssetLeafWitnessV10> {
+    Ok(ShieldedIcs20WithdrawalAssetLeafWitnessV10 {
         value: cursor.read_fixed::<32>()?,
         next_index: cursor.read_u64()?,
         next_value: cursor.read_fixed::<32>()?,
@@ -160,7 +162,7 @@ fn decode_asset_leaf(
 
 fn encode_required_spend(
     buf: &mut Vec<u8>,
-    spend: &ShieldedIcs20WithdrawalRequiredSpendWitnessV9,
+    spend: &ShieldedIcs20WithdrawalRequiredSpendWitnessV10,
 ) -> Result<()> {
     put_bytes(buf, &spend.nullifier);
     put_bytes(buf, &spend.spent_note_blinding);
@@ -169,13 +171,14 @@ fn encode_required_spend(
     encode_triple_path_32(buf, &spend.state_commitment_auth_path)?;
     put_bytes(buf, &spend.spend_auth_randomizer);
     encode_point_affine(buf, &spend.rk_affine);
+    put_u8(buf, u8::from(spend.history_required));
     Ok(())
 }
 
 fn decode_required_spend(
     cursor: &mut BinaryCursor<'_>,
-) -> Result<ShieldedIcs20WithdrawalRequiredSpendWitnessV9> {
-    Ok(ShieldedIcs20WithdrawalRequiredSpendWitnessV9 {
+) -> Result<ShieldedIcs20WithdrawalRequiredSpendWitnessV10> {
+    Ok(ShieldedIcs20WithdrawalRequiredSpendWitnessV10 {
         nullifier: cursor.read_fixed::<32>()?,
         spent_note_blinding: cursor.read_fixed::<32>()?,
         spent_note_amount: cursor.read_fixed::<32>()?,
@@ -183,12 +186,13 @@ fn decode_required_spend(
         state_commitment_auth_path: cursor.read_triple_path_32()?,
         spend_auth_randomizer: cursor.read_fr()?,
         rk_affine: cursor.read_point_affine()?,
+        history_required: cursor.read_bool()?,
     })
 }
 
 fn encode_optional_spend(
     buf: &mut Vec<u8>,
-    spend: &ShieldedIcs20WithdrawalOptionalSpendWitnessV9,
+    spend: &ShieldedIcs20WithdrawalOptionalSpendWitnessV10,
 ) -> Result<()> {
     encode_required_spend(buf, &spend.spend)?;
     put_u8(buf, u8::from(spend.is_dummy));
@@ -198,15 +202,15 @@ fn encode_optional_spend(
 
 fn decode_optional_spend(
     cursor: &mut BinaryCursor<'_>,
-) -> Result<ShieldedIcs20WithdrawalOptionalSpendWitnessV9> {
-    Ok(ShieldedIcs20WithdrawalOptionalSpendWitnessV9 {
+) -> Result<ShieldedIcs20WithdrawalOptionalSpendWitnessV10> {
+    Ok(ShieldedIcs20WithdrawalOptionalSpendWitnessV10 {
         spend: decode_required_spend(cursor)?,
         is_dummy: cursor.read_bool()?,
         dummy_nullifier_seed: cursor.read_fixed::<32>()?,
     })
 }
 
-fn encode_change_output(buf: &mut Vec<u8>, output: &ShieldedIcs20WithdrawalChangeWitnessV9) {
+fn encode_change_output(buf: &mut Vec<u8>, output: &ShieldedIcs20WithdrawalChangeWitnessV10) {
     put_bytes(buf, &output.note_commitment);
     put_bytes(buf, &output.created_note_blinding);
     put_bytes(buf, &output.created_note_amount);
@@ -214,8 +218,8 @@ fn encode_change_output(buf: &mut Vec<u8>, output: &ShieldedIcs20WithdrawalChang
 
 fn decode_change_output(
     cursor: &mut BinaryCursor<'_>,
-) -> Result<ShieldedIcs20WithdrawalChangeWitnessV9> {
-    Ok(ShieldedIcs20WithdrawalChangeWitnessV9 {
+) -> Result<ShieldedIcs20WithdrawalChangeWitnessV10> {
+    Ok(ShieldedIcs20WithdrawalChangeWitnessV10 {
         note_commitment: cursor.read_fixed::<32>()?,
         created_note_blinding: cursor.read_fixed::<32>()?,
         created_note_amount: cursor.read_fixed::<32>()?,

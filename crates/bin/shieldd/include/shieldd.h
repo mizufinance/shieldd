@@ -46,6 +46,7 @@ enum shieldd_method {
   SHIELDD_METHOD_ROLLBACK = 8,
   SHIELDD_METHOD_EXPORT_GENESIS = 9,
   SHIELDD_METHOD_GET_COMMITTED_STATE = 10,
+  SHIELDD_METHOD_ARCHIVED_NULLIFIER_PROOF = 11,
 };
 
 uint32_t shieldd_abi_version(void);
@@ -59,6 +60,12 @@ uint32_t shieldd_abi_version(void);
  */
 shieldd_result_t shieldd_open(const uint8_t *db_path, size_t db_path_len,
                               shieldd_handle_t **out_handle);
+
+/* Opens Shieldd with retired-generation witness storage enabled. */
+shieldd_result_t shieldd_open_with_generation_packs(
+    const uint8_t *db_path, size_t db_path_len,
+    const uint8_t *generation_pack_path, size_t generation_pack_path_len,
+    shieldd_handle_t **out_handle);
 
 /*
  * Executes one protobuf request. Calls sharing a handle are serialized.

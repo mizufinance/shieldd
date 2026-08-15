@@ -28,11 +28,12 @@ type NoteReshapeSharedNoteContextCircuitFields struct {
 }
 
 type NoteReshapeSpendCircuitFields struct {
-	Nullifier      frontend.Variable
-	RK             Point2D
-	Note           NoteReshapeNoteCircuitFields
-	StateProof     StateCommitmentFields
-	AuthRandomizer frontend.Variable
+	Nullifier       frontend.Variable
+	RK              Point2D
+	Note            NoteReshapeNoteCircuitFields
+	StateProof      StateCommitmentFields
+	AuthRandomizer  frontend.Variable
+	HistoryRequired frontend.Variable
 }
 
 type NoteReshapeSyntheticSpendCircuitFields struct {
@@ -51,6 +52,7 @@ type NoteReshapeCircuit struct {
 	AssetAnchor           frontend.Variable
 	RoutingTag            frontend.Variable
 	RoutingParameterSetID frontend.Variable
+	RecentPositionFloor   frontend.Variable
 
 	Anchor                frontend.Variable
 	BalanceCommitment     Point2D
@@ -124,6 +126,7 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 	claimedBalanceCommitment := gnarkte.Point{X: c.BalanceCommitment.X, Y: c.BalanceCommitment.Y}
 	sharedDivGen := gnarkte.Point{X: c.Shared.DivGen.X, Y: c.Shared.DivGen.Y}
 	c.bindSemantic("claimed.statement_hash", c.ClaimedStatementHash)
+	c.bindSemantic("recent_position_floor", c.RecentPositionFloor)
 	c.bindSemantic("anchor", c.Anchor)
 	c.bindSemantic(
 		"claimed.balance_commitment",
@@ -228,12 +231,12 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 	outputAmounts := make([]frontend.Variable, 0, c.nOut)
 	statementFields := make([]frontend.Variable, 0, NoteReshapeStatementFieldCount(c.nIn, c.nOut))
 	outputCommitments := make([]frontend.Variable, 0, c.nOut)
-	nullifiersAndRKs := make([]frontend.Variable, 0, 2*c.nIn)
+	nullifiersAndRKs := make([]frontend.Variable, 0, 3*c.nIn)
 
 	for i := 0; i < c.nIn; i++ {
 		spendName := fmt.Sprintf("spend%d", i)
 		c.traceWiring("spend.begin", spendName)
-		var amount, nullifier, rkCompressed frontend.Variable
+		var amount, nullifier, rkCompressed, claimedHistoryRequired frontend.Variable
 		if family.InputPadding == generated.InputPaddingSyntheticPrivate {
 			amount, nullifier, rkCompressed, err = c.verifyPaddedNoteReshapeSpend(
 				api,
@@ -244,6 +247,7 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 				&c.SyntheticSpends[i],
 				i,
 			)
+			claimedHistoryRequired = c.SyntheticSpends[i].HistoryRequired
 		} else {
 			amount, nullifier, rkCompressed, err = c.verifyFixedNoteReshapeSpend(
 				api,
@@ -253,13 +257,14 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 				sharedTransmissionFq,
 				&c.Spends[i],
 			)
+			claimedHistoryRequired = c.Spends[i].HistoryRequired
 		}
 		if err != nil {
 			return err
 		}
 		c.traceWiring("spend.collect", spendName, "amount->input_amounts", "nullifier->statement.nullifiers_and_rks", "rk_compressed->statement.nullifiers_and_rks")
 		inputAmounts = append(inputAmounts, amount)
-		nullifiersAndRKs = append(nullifiersAndRKs, nullifier, rkCompressed)
+		nullifiersAndRKs = append(nullifiersAndRKs, nullifier, rkCompressed, claimedHistoryRequired)
 	}
 
 	for i := range c.Outputs {
@@ -320,6 +325,7 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 		c.RoutingTag,
 		c.RoutingParameterSetID,
 	)
+	statementFields = append(statementFields, c.RecentPositionFloor)
 	c.traceWiring("statement.append_all", "fields=nullifiers_and_rks")
 	statementFields = append(statementFields, nullifiersAndRKs...)
 	c.traceWiring("statement.hash", "family="+c.label, "fields=statement_fields", "out=statement_hash")
@@ -489,6 +495,18 @@ func (c *NoteReshapeCircuit) verifyPaddedNoteReshapeSpend(
 		return nil, nil, nil, err
 	}
 	c.bindSemantic(name+".rk.compressed", rkCompressed)
+	c.traceWiring(
+		"history.classify",
+		"position="+name+".state_proof.position",
+		"floor=recent_position_floor",
+		"is_dummy="+name+".is_dummy",
+		"out="+name+".history_required",
+	)
+	c.bindSemantic(name+".history_required", spend.HistoryRequired)
+	api.AssertIsEqual(
+		spend.HistoryRequired,
+		historyRequired(api, spend.StateProof.Position, c.RecentPositionFloor, spend.IsDummy),
+	)
 	return spend.Note.Amount, nullifier, rkCompressed, nil
 }
 
@@ -571,6 +589,18 @@ func (c *NoteReshapeCircuit) verifyFixedNoteReshapeSpend(
 		return nil, nil, nil, err
 	}
 	c.bindSemantic(name+".rk.compressed", rkCompressed)
+	c.traceWiring(
+		"history.classify",
+		"position="+name+".state_proof.position",
+		"floor=recent_position_floor",
+		"is_dummy=0",
+		"out="+name+".history_required",
+	)
+	c.bindSemantic(name+".history_required", spend.HistoryRequired)
+	api.AssertIsEqual(
+		spend.HistoryRequired,
+		historyRequired(api, spend.StateProof.Position, c.RecentPositionFloor, 0),
+	)
 
 	return spend.Note.Amount, nullifier, rkCompressed, nil
 }

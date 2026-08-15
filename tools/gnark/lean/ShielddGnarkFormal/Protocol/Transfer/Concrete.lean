@@ -1,4 +1,5 @@
 import ShielddGnarkFormal.Protocol.Transfer.Semantics
+import ShielddGnarkFormal.Protocol.NullifierHistory.Semantics
 
 /-!
 Concrete fixed-shape Transfer relation.
@@ -59,7 +60,7 @@ def issuerDetectionDomain : F :=
   1630815545741996755848332658063839972564516410234564928278536917260276888050
 
 def statementDomain : F :=
-  9679326415952447587225628354984424622200780504430242864539759404776546343560513834118495220807075955030964663570741481613116645563625841316719353633011956
+  11877237773364586942105401713617108086685289802554100917135822797389999768311347616117825269223570336092343956803510308383134126988224573771220069181796663
 
 def statementPad0 : F :=
   12609888291095428632089497400345157051366084348006481486870291111784441113757796759547752690031988990905393063701544100053366198169981967910654948444644964
@@ -119,6 +120,8 @@ def realSpend
     spend.nullifier =
       Common.nullifier action.authorization.nullifierKey
         spend.note.commitment spend.position ∧
+    NullifierHistory.FieldClassification
+      spend.position action.recentPositionFloor spend.historyRequired ∧
     (∃ computedRk,
       Common.Decaf.randomizedVerificationKey
         action.authorization.authorizationKey spend.authRandomizer computedRk ∧
@@ -136,6 +139,7 @@ def optionalSpend (action : Action F Path24 Path16) : Prop :=
   | .real spend => realSpend action spend
   | .dummy spend =>
       spend.amount = 0 ∧
+        spend.historyRequired = 0 ∧
         spend.authRandomizer.val < 2 ^ 251 ∧
         spend.nullifier =
           Poseidon377.hash3 syntheticDummyNullifierDomain
@@ -302,6 +306,7 @@ def detectionEncryption
     action.transcript.detectionCiphertext 2 =
       action.senderCompliance.slotId +
         action.transcript.isFlagged * (2 ^ 32 : F) +
+        action.transcript.routingRolesSwapped * (2 ^ 33 : F) +
         streamBlock seed 2 ∧
     action.transcript.detectionCiphertext 3 =
       action.receiverCompliance.slotId + streamBlock seed 3
@@ -426,10 +431,16 @@ def statementFields (action : Action F Path24 Path16) : List F :=
    action.receiver.note.commitment,
    action.change.note.commitment,
    action.balanceCommitmentEncoding,
+   action.routingTags 0,
+   action.routingTags 1,
+   action.routingParameterSetId,
+   action.recentPositionFloor,
    action.required.nullifier,
    action.required.randomizedVerificationKeyEncoding,
+   action.required.historyRequired,
    action.optional.nullifier,
    action.optional.rkEncoding,
+   action.optional.historyRequired,
    action.assetAnchor,
    action.complianceAnchor,
    action.transcript.detectionCiphertext 0,
@@ -462,14 +473,11 @@ def statementFields (action : Action F Path24 Path16) : List F :=
    action.transcript.metadata.senderCoreSalt,
    action.transcript.metadata.senderExtSalt,
    action.transcript.metadata.outputCoreSalt,
-   action.transcript.metadata.outputExtSalt,
-   action.routingTags 0,
-   action.routingTags 1,
-   action.routingParameterSetId]
+   action.transcript.metadata.outputExtSalt]
 
 theorem statementFields_length
     (action : Action F Path24 Path16) :
-    (statementFields action).length = 44 := by
+    (statementFields action).length = 47 := by
   rfl
 
 def statementBinding (action : Action F Path24 Path16) : Prop :=

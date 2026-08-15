@@ -68,7 +68,8 @@ def DetectionStreamBodyCircuit
         (action.transcript.detectionCiphertext 1) ∧
       EqualityCircuit
         (action.senderCompliance.slotId +
-          action.transcript.isFlagged * (2 ^ 32 : F) + block2)
+          action.transcript.isFlagged * (2 ^ 32 : F) +
+          action.transcript.routingRolesSwapped * (2 ^ 33 : F) + block2)
         (action.transcript.detectionCiphertext 2) ∧
       EqualityCircuit
         (action.receiverCompliance.slotId + block3)

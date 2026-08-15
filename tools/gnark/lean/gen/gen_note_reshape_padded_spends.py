@@ -65,6 +65,10 @@ EXPECTED_TEMPLATES = {
         "decaf.compress_to_field@"
         "231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb"
     ),
+    "history.classify": (
+        "history.classify@"
+        "63bcfde2aa853f39c988314bacdeeddfe5aa236959c22bd9f97803415badf545"
+    ),
 }
 DUMMY_NULLIFIER_TEMPLATES = {
     "gadget.synthetic_dummy_nullifier@" + digest
@@ -93,11 +97,13 @@ class Spend:
     equivalent: dict
     amount_assert: dict
     compress: dict
+    history: dict
     witness: int
     position: int
     randomizer: int
     flag: int
     seed: int
+    history_required: int
 
 
 def load(config: Config) -> Deployment:
@@ -230,6 +236,15 @@ def spend(model: Deployment, slot: int) -> Spend:
             f"out={prefix}.rk.compressed",
         ),
     )
+    history = model.segment(
+        "history.classify",
+        (
+            f"position={prefix}.state_proof.position",
+            "floor=recent_position_floor",
+            f"is_dummy={prefix}.is_dummy",
+            f"out={prefix}.history_required",
+        ),
+    )
     segments = (
         nullifier,
         state,
@@ -241,6 +256,7 @@ def spend(model: Deployment, slot: int) -> Spend:
         equivalent,
         amount_assert,
         compress,
+        history,
     )
     model.consecutive(segments)
     for segment, role in zip(
@@ -256,6 +272,7 @@ def spend(model: Deployment, slot: int) -> Spend:
             "decaf.assert_equivalent_if",
             "assert.eq_if.amount",
             "decaf.compress_to_field",
+            "history.classify",
         ),
         strict=True,
     ):
@@ -271,6 +288,9 @@ def spend(model: Deployment, slot: int) -> Spend:
     flag = model.witness_wire(f"SyntheticSpends_{slot}_IsDummy")
     seed = model.witness_wire(
         f"SyntheticSpends_{slot}_DummyNullifierSeed"
+    )
+    history_required = model.witness_wire(
+        f"SyntheticSpends_{slot}_HistoryRequired"
     )
     amount = model.witness_wire(f"SyntheticSpends_{slot}_Note_Amount")
     commitment = model.witness_wire(
@@ -292,11 +312,13 @@ def spend(model: Deployment, slot: int) -> Spend:
         (compress, rk_y),
     ):
         model.require_wire_role(segment, wire_id, "input")
-    model.require_wire_role(state, position, "internal")
+    # The later history classifier consumes the state position, so extraction
+    # classifies it as an output of the membership segment.
+    model.require_wire_role(state, position, "output")
     model.require_wire_role(rvk, randomizer, "internal")
     for segment, name, role, exact, arity in (
         (nullifier, f"{prefix}.nullifier.real", "output", True, 1),
-        (state, f"{prefix}.anchor.computed", "output", True, 1),
+        (state, f"{prefix}.anchor.computed", "output", False, 1),
         (anchor_assert, f"{prefix}.anchor.computed", "input", False, 1),
         (dummy, f"{prefix}.nullifier.dummy", "output", True, 1),
         (mux, f"{prefix}.nullifier.real", "input", False, 1),
@@ -326,11 +348,13 @@ def spend(model: Deployment, slot: int) -> Spend:
         equivalent=equivalent,
         amount_assert=amount_assert,
         compress=compress,
+        history=history,
         witness=witness,
         position=position,
         randomizer=randomizer,
         flag=flag,
         seed=seed,
+        history_required=history_required,
     )
 
 
@@ -349,11 +373,13 @@ def render_slot(config: Config, slot: int) -> str:
     equivalent = discovered.equivalent["index"]
     amount_assert = discovered.amount_assert["index"]
     compress = discovered.compress["index"]
+    history = discovered.history["index"]
     witness = discovered.witness
     position = discovered.position
     randomizer = discovered.randomizer
     flag = discovered.flag
     seed = discovered.seed
+    history_required = discovered.history_required
     dummy_template = template(discovered.dummy)
     anchor_template = template(discovered.anchor_assert)
     mux_template = template(discovered.mux)
@@ -361,6 +387,7 @@ def render_slot(config: Config, slot: int) -> str:
     equivalent_template = template(discovered.equivalent)
     amount_template = template(discovered.amount_assert)
     compress_template = template(discovered.compress)
+    history_template = template(discovered.history)
     family = config.module.removeprefix("NoteReshape")
     position_role = f"syntheticSpends{slot}StateProofPosition"
     randomizer_role = f"syntheticSpends{slot}AuthRandomizer"
@@ -642,6 +669,52 @@ theorem dummyNullifier
   simp only [dummyInput{slot}]
   rw [claimedNullifierDummy rho facts dummyFlag, dummyNullifierHash rho facts]
   rfl
+
+@[simp] theorem realHistoryClassification
+    (rho : Nat → DeployedF)
+    (facts : {config.module}CircuitFacts rho)
+    (real : rho {flag} = 0) :
+    NoteReshapeCanonical.historyClassification
+      (realInput{slot} rho).statePosition
+      (action rho).recentPositionFloor
+      (realInput{slot} rho).historyRequired := by
+  have h := facts.{owner}.HistoryClassifySeg{history}
+  change Deployed.Templates.Semantics.{history_template}.spec
+    (Seg{history}.localRho rho) at h
+{seating(model, discovered.history, [49, 98, 149, 151])}
+  unfold Deployed.Templates.Semantics.{history_template}.spec at h
+  unfold HistoryClassifyBridge.GatedSpec at h
+  change Protocol.NullifierHistory.FieldClassification
+    ({position_role} rho) (recentPositionFloor rho)
+      ({prefix}HistoryRequired rho)
+  unfold Protocol.NullifierHistory.FieldClassification
+  simpa [
+    realInput{slot}, {position_role},
+    recentPositionFloor, recentPositionFloorLC,
+    {prefix}HistoryRequired, {prefix}HistoryRequiredLC,
+    StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
+    Seg{history}.localRho, Deployed.Templates.seated,
+    hw49, hw98, hw149, hw151, real
+  ] using h
+
+@[simp] theorem dummyHistoryZero
+    (rho : Nat → DeployedF)
+    (facts : {config.module}CircuitFacts rho)
+    (dummyFlag : rho {flag} = 1) :
+    (dummyInput{slot} rho).historyRequired = 0 := by
+  have h := facts.{owner}.HistoryClassifySeg{history}
+  change Deployed.Templates.Semantics.{history_template}.spec
+    (Seg{history}.localRho rho) at h
+{seating(model, discovered.history, [149, 151])}
+  unfold Deployed.Templates.Semantics.{history_template}.spec at h
+  unfold HistoryClassifyBridge.GatedSpec at h
+  change {prefix}HistoryRequired rho = 0
+  simpa [
+    {prefix}HistoryRequired, {prefix}HistoryRequiredLC,
+    StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
+    Seg{history}.localRho, Deployed.Templates.seated,
+    hw149, hw151, dummyFlag
+  ] using h.2.2
 
 def computedRk (rho : Nat → DeployedF) : Decaf377Assumptions.Point :=
   ⟨{prefix}RkReal0 rho, {prefix}RkReal1 rho⟩

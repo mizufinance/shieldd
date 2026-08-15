@@ -223,13 +223,12 @@ theorem senderCompliancePathLeaf_eq
     senderLeafCommitment, senderLeafCommitmentLC,
     StructuredLC.eval, StructuredLC.sumRuns,
     StructuredLC.sumResidual, StrideRun.eval,
-    senderCompliancePathAt39, senderCompliancePathAt40, senderCompliancePathAt41, senderCompliancePathAt42, senderCompliancePathAt43, senderCompliancePathAt44, senderCompliancePathAt45, senderCompliancePathAt46,
+    senderCompliancePathAt39, senderCompliancePathAt40, senderCompliancePathAt41, senderCompliancePathAt42, senderCompliancePathAt43, senderCompliancePathAt44, senderCompliancePathAt45,
     zero_add, one_mul, add_zero
   ]
   rw [
-    assetPathCoeff2, assetPathCoeff3, assetPathCoeff4,
-    assetPathCoeff6, assetPathCoeff7,
-    assetPathCoeff8, assetPathCoeff9
+    assetPathCoeff1, assetPathCoeff2, assetPathCoeff3,
+    assetPathCoeff4, assetPathCoeff6, assetPathCoeff7
   ]
   ring
 
@@ -255,7 +254,7 @@ theorem senderCompliancePathOutput_eq
     senderComplianceRoot, senderComplianceRootLC,
     StructuredLC.eval, StructuredLC.sumRuns,
     StructuredLC.sumResidual, StrideRun.eval,
-    senderCompliancePathAt5829, senderCompliancePathAt5834, senderCompliancePathAt5839, senderCompliancePathAt5844, senderCompliancePathAt5849,
+    senderCompliancePathAt5828, senderCompliancePathAt5833, senderCompliancePathAt5838, senderCompliancePathAt5843, senderCompliancePathAt5848,
     zero_add, one_mul, add_zero
   ]
   rw [
@@ -470,13 +469,12 @@ theorem receiverCompliancePathLeaf_eq
     output0RecipientLeafCommitment, output0RecipientLeafCommitmentLC,
     StructuredLC.eval, StructuredLC.sumRuns,
     StructuredLC.sumResidual, StrideRun.eval,
-    receiverCompliancePathAt39, receiverCompliancePathAt40, receiverCompliancePathAt41, receiverCompliancePathAt42, receiverCompliancePathAt43, receiverCompliancePathAt44, receiverCompliancePathAt45, receiverCompliancePathAt46,
+    receiverCompliancePathAt39, receiverCompliancePathAt40, receiverCompliancePathAt41, receiverCompliancePathAt42, receiverCompliancePathAt43, receiverCompliancePathAt44, receiverCompliancePathAt45,
     zero_add, one_mul, add_zero
   ]
   rw [
-    assetPathCoeff2, assetPathCoeff3, assetPathCoeff4,
-    assetPathCoeff6, assetPathCoeff7,
-    assetPathCoeff8, assetPathCoeff9
+    assetPathCoeff1, assetPathCoeff2, assetPathCoeff3,
+    assetPathCoeff4, assetPathCoeff6, assetPathCoeff7
   ]
   ring
 
@@ -502,7 +500,7 @@ theorem receiverCompliancePathOutput_eq
     output0RecipientComplianceRoot, output0RecipientComplianceRootLC,
     StructuredLC.eval, StructuredLC.sumRuns,
     StructuredLC.sumResidual, StrideRun.eval,
-    receiverCompliancePathAt5829, receiverCompliancePathAt5834, receiverCompliancePathAt5839, receiverCompliancePathAt5844, receiverCompliancePathAt5849,
+    receiverCompliancePathAt5828, receiverCompliancePathAt5833, receiverCompliancePathAt5838, receiverCompliancePathAt5843, receiverCompliancePathAt5848,
     zero_add, one_mul, add_zero
   ]
   rw [

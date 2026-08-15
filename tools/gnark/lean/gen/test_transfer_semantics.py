@@ -291,7 +291,7 @@ class TransferSemanticsTests(unittest.TestCase):
             withdrawal,
         )
 
-    def test_transfer_statement_domain_and_shape_match_v4(self):
+    def test_transfer_statement_domain_and_shape_match_v6(self):
         concrete = (
             transfer.FORMAL / "Protocol" / "Transfer" / "Concrete.lean"
         ).read_text()
@@ -314,15 +314,15 @@ class TransferSemanticsTests(unittest.TestCase):
                 "little",
             )
 
-        self.assertEqual(definition("statementDomain"), label_value("v4"))
+        self.assertEqual(definition("statementDomain"), label_value("v6"))
         self.assertEqual(definition("statementPad0"), label_value("pad0"))
         self.assertEqual(definition("statementPad1"), label_value("pad1"))
         self.assertIn(
-            "(statementFields action).length = 44",
+            "(statementFields action).length = 47",
             concrete,
         )
 
-    def test_v17_statement_fields_have_exact_deployed_indices(self):
+    def test_v18_statement_fields_have_exact_deployed_indices(self):
         concrete = (
             transfer.FORMAL / "Protocol" / "Transfer" / "Concrete.lean"
         ).read_text()
@@ -342,10 +342,16 @@ class TransferSemanticsTests(unittest.TestCase):
             "action.receiver.note.commitment",
             "action.change.note.commitment",
             "action.balanceCommitmentEncoding",
+            "action.routingTags 0",
+            "action.routingTags 1",
+            "action.routingParameterSetId",
+            "action.recentPositionFloor",
             "action.required.nullifier",
             "action.required.randomizedVerificationKeyEncoding",
+            "action.required.historyRequired",
             "action.optional.nullifier",
             "action.optional.rkEncoding",
+            "action.optional.historyRequired",
             "action.assetAnchor",
             "action.complianceAnchor",
             *(f"action.transcript.detectionCiphertext {index}" for index in range(4)),
@@ -372,12 +378,9 @@ class TransferSemanticsTests(unittest.TestCase):
             "action.transcript.metadata.senderExtSalt",
             "action.transcript.metadata.outputCoreSalt",
             "action.transcript.metadata.outputExtSalt",
-            "action.routingTags 0",
-            "action.routingTags 1",
-            "action.routingParameterSetId",
         ]
         self.assertEqual(fields, expected)
-        self.assertEqual(len(fields), 44)
+        self.assertEqual(len(fields), 47)
 
 
 if __name__ == "__main__":

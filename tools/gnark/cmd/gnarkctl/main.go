@@ -1217,7 +1217,7 @@ func runReplay(args []string) error {
 	switch *circuit {
 	default:
 		if _, ok := generated.TransferFamilyByLabel(*circuit); ok {
-			assignment, _, err = abi.NewTransferCircuitAssignmentFromWitnessV17(payload)
+			assignment, _, err = abi.NewTransferCircuitAssignmentFromWitnessV18(payload)
 			if err != nil {
 				return err
 			}
@@ -1225,7 +1225,7 @@ func runReplay(args []string) error {
 			break
 		}
 		if family, ok := generated.NoteReshapeFamilyByLabel(*circuit); ok {
-			assignment, _, err = abi.NewNoteReshapeCircuitAssignmentFromWitnessV4(payload)
+			assignment, _, err = abi.NewNoteReshapeCircuitAssignmentFromWitnessV5(payload)
 			if err != nil {
 				return err
 			}
@@ -1233,7 +1233,7 @@ func runReplay(args []string) error {
 			break
 		}
 		if family, ok := generated.ShieldedIcs20WithdrawalFamilyByLabel(*circuit); ok {
-			assignment, _, err = abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV9(payload)
+			assignment, _, err = abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV10(payload)
 			if err != nil {
 				return err
 			}
@@ -1513,45 +1513,45 @@ func witnessAssignment(circuit string, witnessPayload []byte) (frontend.Circuit,
 	switch circuit {
 	default:
 		if _, ok := generated.TransferFamilyByLabel(circuit); ok {
-			decoded, _, err := abi.DecodeTransferWitnessV17(witnessPayload)
+			decoded, _, err := abi.DecodeTransferWitnessV18(witnessPayload)
 			if err != nil {
 				return nil, witnessSummary{}, err
 			}
-			statementFields, err := abi.ReconstructedTransferStatementFieldsFromWitnessV17(decoded)
+			statementFields, err := abi.ReconstructedTransferStatementFieldsFromWitnessV18(decoded)
 			if err != nil {
 				return nil, witnessSummary{}, err
 			}
-			assignment, _, err := abi.NewTransferCircuitAssignmentFromWitnessV17(witnessPayload)
+			assignment, _, err := abi.NewTransferCircuitAssignmentFromWitnessV18(witnessPayload)
 			return assignment, witnessSummary{
 				ClaimedStatementHash: primitives.LittleEndianBytesToBigInt(decoded.ClaimedStatementHash[:]).String(),
 				StatementFields:      vec32Strings(statementFields),
 			}, err
 		}
 		if _, ok := generated.NoteReshapeFamilyByLabel(circuit); ok {
-			decoded, _, err := abi.DecodeNoteReshapeWitnessV4(witnessPayload)
+			decoded, _, err := abi.DecodeNoteReshapeWitnessV5(witnessPayload)
 			if err != nil {
 				return nil, witnessSummary{}, err
 			}
-			statementFields, err := abi.ReconstructedNoteReshapeStatementFieldsFromWitnessV4(decoded)
+			statementFields, err := abi.ReconstructedNoteReshapeStatementFieldsFromWitnessV5(decoded)
 			if err != nil {
 				return nil, witnessSummary{}, err
 			}
-			assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV4(witnessPayload)
+			assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV5(witnessPayload)
 			return assignment, witnessSummary{
 				ClaimedStatementHash: primitives.LittleEndianBytesToBigInt(decoded.ClaimedStatementHash[:]).String(),
 				StatementFields:      vec32Strings(statementFields),
 			}, err
 		}
 		if _, ok := generated.ShieldedIcs20WithdrawalFamilyByLabel(circuit); ok {
-			decoded, _, err := abi.DecodeShieldedIcs20WithdrawalWitnessV9(witnessPayload)
+			decoded, _, err := abi.DecodeShieldedIcs20WithdrawalWitnessV10(witnessPayload)
 			if err != nil {
 				return nil, witnessSummary{}, err
 			}
-			statementFields, err := abi.ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitnessV9(decoded)
+			statementFields, err := abi.ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitnessV10(decoded)
 			if err != nil {
 				return nil, witnessSummary{}, err
 			}
-			assignment, _, err := abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV9(witnessPayload)
+			assignment, _, err := abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV10(witnessPayload)
 			return assignment, witnessSummary{
 				ClaimedStatementHash: primitives.LittleEndianBytesToBigInt(decoded.ClaimedStatementHash[:]).String(),
 				StatementFields:      vec32Strings(statementFields),

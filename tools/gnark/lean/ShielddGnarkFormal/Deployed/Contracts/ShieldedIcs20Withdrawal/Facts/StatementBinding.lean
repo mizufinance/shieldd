@@ -6,10 +6,11 @@ import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg23
 import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg24
 import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg25
 import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg26
-import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg58
-import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg59
 import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg60
 import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg61
+import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg62
+import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg63
+import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg64
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 4000000
@@ -28,9 +29,10 @@ structure StatementBindingCircuitFacts (rho : Nat → Seg19.F) : Prop where
   RoutingTagRouteBitsSeg24 : Seg24.contract.spec rho
   RoutingTagRandomWordSeg25 : Seg25.contract.spec rho
   RoutingTagComposeSeg26 : Seg26.contract.spec rho
-  StatementHashSeg58 : Seg58.contract.spec rho
-  StatementHashSeg59 : Seg59.contract.spec rho
   StatementHashSeg60 : Seg60.contract.spec rho
-  AssertEqSeg61 : Seg61.contract.spec rho
+  StatementHashSeg61 : Seg61.contract.spec rho
+  StatementHashSeg62 : Seg62.contract.spec rho
+  StatementHashSeg63 : Seg63.contract.spec rho
+  AssertEqSeg64 : Seg64.contract.spec rho
 
 end Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal

@@ -1,4 +1,5 @@
 import ShielddGnarkFormal.Protocol.ShieldedIcs20Withdrawal.Semantics
+import ShielddGnarkFormal.Protocol.NullifierHistory.Semantics
 
 /-!
 Concrete fixed-shape shielded ICS-20 withdrawal relation.
@@ -28,7 +29,7 @@ def complianceLeafDomain : F :=
   5091441079939941903017664305347261861704474070005805806880013805880773073215
 
 def statementDomain : F :=
-  11562480839827259321168437808450194058358371620726691747900573498783905884392534551361200233147325592705389748210636261539996907509390357900570883716335361
+  5099812247198162288685271307539979289604747326432821046846069957140094078946971247069215549355340101659434174086569865535097331579067581494923661232825375
 
 def statementPad0 : F :=
   1538017267323685134095196057316431426899034820600545484000193822744554991625960895975524932646323660082231674779460045819527207456926899726530841515060120
@@ -74,6 +75,8 @@ def realSpend
     spend.nullifier =
       Common.nullifier action.authorization.nullifierKey
         spend.note.commitment spend.position ∧
+    NullifierHistory.FieldClassification
+      spend.position action.recentPositionFloor spend.historyRequired ∧
     Common.Decaf.compressesTo
       spend.randomizedVerificationKey
       spend.randomizedVerificationKeyEncoding ∧
@@ -90,6 +93,7 @@ def optionalSpend (action : Action F Path24 Path16) : Prop :=
   | .real spend => realSpend action spend
   | .dummy spend =>
       spend.amount = 0 ∧
+        spend.historyRequired = 0 ∧
         spend.authRandomizer.val < 2 ^ 251 ∧
         Common.Decaf.compressesTo
           spend.randomizedVerificationKey
@@ -153,9 +157,12 @@ def conservation (action : Action F Path24 Path16) : Prop :=
 def statementFields
     (action : Action F Path24 Path16) : List F :=
   [action.anchor, action.change.commitment, action.balanceCommitmentEncoding,
+   action.recentPositionFloor,
    action.required.nullifier,
    action.required.randomizedVerificationKeyEncoding,
+   action.required.historyRequired,
    action.optional.nullifier, action.optional.rkEncoding,
+   action.optional.historyRequired,
    action.assetAnchor, action.complianceAnchor, action.targetTimestamp,
    action.withdrawal.outboundAssetId, action.withdrawal.outboundAmount,
    action.withdrawal.effectHashLimbs 0,
@@ -167,7 +174,7 @@ def statementFields
 
 theorem statementFields_length
     (action : Action F Path24 Path16) :
-    (statementFields action).length = 18 := by
+    (statementFields action).length = 21 := by
   rfl
 
 def statementBinding (action : Action F Path24 Path16) : Prop :=

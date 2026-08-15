@@ -32,78 +32,59 @@ def secondBlock (fields : List DeployedF) : DeployedF :=
     (NoteReshapeCanonical.statementField fields 12
       (NoteReshapeCanonical.statementPad1 .reshape8x1))
 
-theorem canonicalSecondBlockTwentyTwo
+theorem canonicalSecondBlockThirtyOne
     (f0 f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 f13 f14 f15 f16 f17 f18
-      f19 f20 f21 : DeployedF) :
+      f19 f20 f21 f22 f23 f24 f25 f26 f27 f28 f29 f30 : DeployedF) :
     secondBlock
         [f0, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13,
-         f14, f15, f16, f17, f18, f19, f20, f21] =
+         f14, f15, f16, f17, f18, f19, f20, f21, f22, f23, f24, f25,
+         f26, f27, f28, f29, f30] =
       Poseidon7Bridge.permSpec7
-        (6633002048635308567879967754963729389552746207601986158379347440968324263659 :
+        (3061752669569786885963994164501899099507756727275361723004405046505540448967 :
           DeployedF)
         (NoteReshapeCanonical.statementFirstBlock .reshape8x1
           [f0, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13,
-           f14, f15, f16, f17, f18, f19, f20, f21])
+           f14, f15, f16, f17, f18, f19, f20, f21, f22, f23, f24, f25,
+           f26, f27, f28, f29, f30])
         f7 f8 f9 f10 f11 f12 := by
   rfl
 
 theorem hash (rho : Nat → DeployedF) :
-    Deployed.Templates.Semantics.TStatementHash_c73724e5718898979d9030c39225b26e62b7d4a45d01d4aa5c1e35cabda8b3c5.Trace.hash1
-        (Seg161.localRho rho) =
-      secondBlock
-        [anchor rho,
-         output0NoteCommitmentComputed rho,
-         balanceCommitmentFq rho,
-         assetAnchor rho,
-         routingTag rho,
-         routingParameterSetId rho,
-         spend0NullifierSelected rho,
-         spend0RkCompressed rho,
-         spend1NullifierSelected rho,
-         spend1RkCompressed rho,
-         spend2NullifierSelected rho,
-         spend2RkCompressed rho,
-         spend3NullifierSelected rho,
-         spend3RkCompressed rho,
-         spend4NullifierSelected rho,
-         spend4RkCompressed rho,
-         spend5NullifierSelected rho,
-         spend5RkCompressed rho,
-         spend6NullifierSelected rho,
-         spend6RkCompressed rho,
-         spend7NullifierSelected rho,
-         spend7RkCompressed rho] := by
-  have hw490 : Seg161.wireSeating 490 = 32847 := by decide +kernel
-  have hw491 : Seg161.wireSeating 491 = 33187 := by decide +kernel
-  have hw497 : Seg161.wireSeating 497 = 43113 := by decide +kernel
-  have hw498 : Seg161.wireSeating 498 = 43114 := by decide +kernel
-  have hw504 : Seg161.wireSeating 504 = 45293 := by decide +kernel
-  have hw505 : Seg161.wireSeating 505 = 45633 := by decide +kernel
-  have hw511 : Seg161.wireSeating 511 = 55559 := by decide +kernel
-  have hw512 : Seg161.wireSeating 512 = 55560 := by decide +kernel
-  have hw518 : Seg161.wireSeating 518 = 57739 := by decide +kernel
-  have hw519 : Seg161.wireSeating 519 = 58079 := by decide +kernel
-  have hw525 : Seg161.wireSeating 525 = 68005 := by decide +kernel
-  have hw526 : Seg161.wireSeating 526 = 68006 := by decide +kernel
+    Deployed.Templates.Semantics.TStatementHash_72066204724e0232dbfe5f6b0c37434f1d4d53cf61944652f76487e540ff849c.Trace.hash1
+        (Seg169.localRho rho) =
+      secondBlock (NoteReshape8x1StatementFirst.fields rho) := by
+  have hw489 : Seg169.wireSeating 489 = 30676 := by decide +kernel
+  have hw490 : Seg169.wireSeating 490 = 30677 := by decide +kernel
+  have hw496 : Seg169.wireSeating 496 = 32856 := by decide +kernel
+  have hw497 : Seg169.wireSeating 497 = 33196 := by decide +kernel
+  have hw503 : Seg169.wireSeating 503 = 166 := by decide +kernel
+  have hw509 : Seg169.wireSeating 509 = 43269 := by decide +kernel
+  have hw510 : Seg169.wireSeating 510 = 43270 := by decide +kernel
+  have hw516 : Seg169.wireSeating 516 = 45449 := by decide +kernel
+  have hw517 : Seg169.wireSeating 517 = 45789 := by decide +kernel
+  have hw523 : Seg169.wireSeating 523 = 249 := by decide +kernel
   have hneg :
       (8444461749428370424248824938781546531375899335154063827935233455917409239040 :
         DeployedF) = -1 := by decide +kernel
+  unfold NoteReshape8x1StatementFirst.fields
   rw [
-    Deployed.Templates.Semantics.TStatementHash_c73724e5718898979d9030c39225b26e62b7d4a45d01d4aa5c1e35cabda8b3c5.Trace.hash1,
+    Deployed.Templates.Semantics.TStatementHash_72066204724e0232dbfe5f6b0c37434f1d4d53cf61944652f76487e540ff849c.Trace.hash1,
     NoteReshape8x1StatementFirst.hash,
-    canonicalSecondBlockTwentyTwo
+    canonicalSecondBlockThirtyOne
   ]
   simp [
+    Deployed.Templates.Semantics.TStatementHash_72066204724e0232dbfe5f6b0c37434f1d4d53cf61944652f76487e540ff849c.Trace.domainLit,
+    NoteReshape8x1StatementFirst.fields,
+    spend0NullifierSelected, spend0NullifierSelectedLC,
     spend0RkCompressed, spend0RkCompressedLC,
+    spend0HistoryRequired, spend0HistoryRequiredLC,
     spend1NullifierSelected, spend1NullifierSelectedLC,
     spend1RkCompressed, spend1RkCompressedLC,
-    spend2NullifierSelected, spend2NullifierSelectedLC,
-    spend2RkCompressed, spend2RkCompressedLC,
-    spend3NullifierSelected, spend3NullifierSelectedLC,
+    spend1HistoryRequired, spend1HistoryRequiredLC,
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-    Seg161.localRho, Deployed.Templates.seated,
-    hw490, hw491, hw497, hw498, hw504, hw505,
-    hw511, hw512, hw518, hw519, hw525, hw526,
+    Seg169.localRho, Deployed.Templates.seated,
+    hw489, hw490, hw496, hw497, hw503,
+    hw509, hw510, hw516, hw517, hw523,
     hneg
   ]
 

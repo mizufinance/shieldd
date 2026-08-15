@@ -215,6 +215,7 @@ impl MockClient {
         Ok(WitnessData {
             anchor: self.sct.root(),
             state_commitment_proofs: commitments.map(witness).collect::<Result<_, Error>>()?,
+            historical_nullifier_proofs: Default::default(),
         })
     }
 

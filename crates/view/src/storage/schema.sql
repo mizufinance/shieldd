@@ -119,6 +119,18 @@ CREATE INDEX spendable_notes_by_source_idx ON spendable_notes (
     source
 );
 
+-- Reconstructible per-note retired-nullifier proof cache. This is deliberately
+-- separate from note and spend state and may be deleted and rebuilt.
+CREATE TABLE historical_proof_cache (
+    nullifier                   BLOB PRIMARY KEY NOT NULL,
+    protocol_version            BIGINT NOT NULL,
+    covered_generation_count    BIGINT NOT NULL,
+    terminal_history_head       BLOB NOT NULL,
+    proof_bundle                BLOB NOT NULL,
+    cache_state                 TINYINT NOT NULL,
+    last_error                  TEXT
+);
+
 -- general purpose note queries
 CREATE INDEX spendable_notes_idx ON spendable_notes (
     address_index,

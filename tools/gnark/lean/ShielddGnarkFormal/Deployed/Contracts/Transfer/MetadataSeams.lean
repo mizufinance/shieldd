@@ -28,7 +28,7 @@ open Protocol
 open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 attribute [-instance] ZMod.instField
-local instance choiceFreeTransferTranscriptCommRing : CommRing DeployedF :=
+private local instance choiceFreeTransferTranscriptCommRing : CommRing DeployedF :=
   ZMod.commRing _
 
 private theorem negOne :
