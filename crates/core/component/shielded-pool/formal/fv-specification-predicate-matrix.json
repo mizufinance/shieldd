@@ -18533,6 +18533,11 @@
       },
       {
         "path": "crates/view/src/note_manager.rs",
+        "symbol": "historical_fee_funding_prices_complete_final_plan",
+        "reason": "out_of_scope_for_four_circuit_claim"
+      },
+      {
+        "path": "crates/view/src/note_manager.rs",
         "symbol": "zero_fee_compliance_register_user_plans_without_funding_transfer",
         "reason": "out_of_scope_for_four_circuit_claim"
       },
@@ -18570,6 +18575,11 @@
         "path": "crates/view/src/service.rs",
         "symbol": "unavailable_without_matching_transaction_remains_unavailable",
         "reason": "out_of_scope_for_four_circuit_claim"
+      },
+      {
+        "path": "crates/view/src/storage.rs",
+        "symbol": "fresh_storage_distinguishes_an_uninitialized_nullifier_window",
+        "reason": "supporting_regression_not_claim_evidence"
       },
       {
         "path": "crates/view/src/storage.rs",

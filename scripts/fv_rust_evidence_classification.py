@@ -1623,7 +1623,10 @@ EXCLUSION_SYMBOLS: dict[str, tuple[str, ...]] = {
         "runtime_validation_requires_only_the_proving_key"
     ),
     "crates/view/src/storage.rs": _symbols(
-        "historical_proof_cache_round_trips_and_deletes"
+        """
+        fresh_storage_distinguishes_an_uninitialized_nullifier_window
+        historical_proof_cache_round_trips_and_deletes
+        """
     ),
     "crates/core/component/sct/src/nullifier.rs": _symbols(
         "malformed_field_encoding_is_rejected_without_panicking"
@@ -1885,6 +1888,7 @@ EXCLUSION_SYMBOLS: dict[str, tuple[str, ...]] = {
     ),
     "crates/view/src/note_manager.rs": _symbols(
         """
+        historical_fee_funding_prices_complete_final_plan
         zero_fee_compliance_register_user_plans_without_funding_transfer
         zero_fee_ibc_action_plans_without_funding_transfer
         zero_fee_proposal_submit_plans_without_funding_transfer

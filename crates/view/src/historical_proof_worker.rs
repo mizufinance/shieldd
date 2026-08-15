@@ -132,11 +132,14 @@ impl HistoricalProofWorker {
     }
 
     async fn update_all(&self) -> anyhow::Result<()> {
-        let window = self
+        let Some(window) = self
             .storage
-            .nullifier_window()
+            .nullifier_window_if_initialized()
             .await
-            .context("load nullifier window for historical proof worker")?;
+            .context("load nullifier window for historical proof worker")?
+        else {
+            return Ok(());
+        };
         for cache in self
             .storage
             .historical_proof_caches_for_unspent_notes()

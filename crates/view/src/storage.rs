@@ -62,6 +62,24 @@ mod issued_address_tests {
     use shieldd_sdk_keys::{keys::AddressIndex, test_keys};
 
     #[tokio::test]
+    async fn fresh_storage_distinguishes_an_uninitialized_nullifier_window() {
+        let storage = Storage::initialize(
+            None::<&Utf8Path>,
+            (*test_keys::FULL_VIEWING_KEY).clone(),
+            AppParameters::default(),
+        )
+        .await
+        .unwrap();
+
+        assert!(storage
+            .nullifier_window_if_initialized()
+            .await
+            .unwrap()
+            .is_none());
+        assert!(storage.nullifier_window().await.is_err());
+    }
+
+    #[tokio::test]
     async fn restore_recovers_standard_and_randomized_issued_addresses() {
         let directory = tempfile::tempdir().unwrap();
         let raw_path = directory.path().join("view.sqlite");
@@ -933,14 +951,24 @@ impl Storage {
     }
 
     pub async fn nullifier_window(&self) -> anyhow::Result<NullifierWindow> {
+        self.nullifier_window_if_initialized()
+            .await?
+            .context("missing nullifier_window in kv table")
+    }
+
+    pub(crate) async fn nullifier_window_if_initialized(
+        &self,
+    ) -> anyhow::Result<Option<NullifierWindow>> {
         let pool = self.pool.clone();
         spawn_blocking(move || {
             let bytes = pool
                 .get()?
                 .prepare_cached("SELECT v FROM kv WHERE k IS 'nullifier_window' LIMIT 1")?
-                .query_row([], |row| row.get::<_, Option<Vec<u8>>>("v"))?
-                .ok_or_else(|| anyhow!("missing nullifier_window in kv table"))?;
-            pb_sct::NullifierWindow::decode(bytes.as_slice())?.try_into()
+                .query_row([], |row| row.get::<_, Vec<u8>>("v"))
+                .optional()?;
+            bytes
+                .map(|bytes| pb_sct::NullifierWindow::decode(bytes.as_slice())?.try_into())
+                .transpose()
         })
         .await?
     }

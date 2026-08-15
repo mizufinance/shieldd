@@ -827,7 +827,7 @@ REVIEWED_TEST_SOURCE_CENSUS = (
 # This pins every path/symbol/reason triple rendered in reviewed_test_census.
 # Update only after deciding whether each changed test is normative evidence.
 REVIEWED_TEST_EXCLUSIONS_SHA256 = (
-    "d9681155288b81bed869cb280190cbd7ab7967a97a24c0e6356030bad30361d1"
+    "6cc1c107f3c095b00f600e2066e87469d8e4c28a1701cc874580a05db12b8443"
 )
 PROPERTY_TEST_SOURCE_CENSUS = (
     "crates/core/component/compliance/src/structs.rs",

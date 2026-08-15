@@ -7,6 +7,7 @@ use shieldd_sdk_fee::{Fee, FeeTier, GasPrices};
 use shieldd_sdk_keys::{keys::AddressIndex, Address};
 use shieldd_sdk_num::Amount;
 use shieldd_sdk_proto::view::v1::NotesRequest;
+use shieldd_sdk_sct::nullifier_generation::NullifierWindow;
 use shieldd_sdk_shielded_pool::{
     note, Ics20Withdrawal, NoteReshapeFamilyId, NoteReshapePlan, ShieldedIcs20WithdrawalPlan,
     ShieldedInputPlan, ShieldedOutputPlan, TransferPlan,
@@ -83,6 +84,27 @@ enum BaseFeeFundingSelection {
     NeedsMaintenance { maintenance_plan: TransactionPlan },
     InsufficientBalance,
     UnsupportedIntent { reason: String },
+}
+
+fn price_transaction_plan(
+    gas_prices: GasPrices,
+    fee_tier: FeeTier,
+    actions: &[ActionPlan],
+    fee_funding: Option<&FeeFundingPlan>,
+    nullifier_window: NullifierWindow,
+) -> Fee {
+    gas_prices
+        .fee(
+            &TransactionPlan {
+                actions: actions.to_vec(),
+                transaction_parameters: TransactionParameters::default(),
+                fee_funding: fee_funding.cloned(),
+                memo: None,
+                nullifier_window: Some(nullifier_window),
+            }
+            .gas_cost(),
+        )
+        .apply_tier(fee_tier)
 }
 
 fn align_shielded_planning_metadata(
@@ -273,18 +295,13 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                         )?;
                         let fee_funding = self.build_fee_funding_plan(&fee_notes, fee)?;
                         let actions = vec![ActionPlan::Transfer(transfer.clone())];
-                        let new_fee = gas_prices
-                            .fee(
-                                &TransactionPlan {
-                                    actions: actions.clone(),
-                                    transaction_parameters: TransactionParameters::default(),
-                                    fee_funding: None,
-                                    memo: None,
-                                    nullifier_window: Some(nullifier_window),
-                                }
-                                .gas_cost(),
-                            )
-                            .apply_tier(self.fee_tier);
+                        let new_fee = price_transaction_plan(
+                            gas_prices,
+                            self.fee_tier,
+                            &actions,
+                            Some(&fee_funding),
+                            nullifier_window,
+                        );
 
                         if new_fee == fee {
                             let plan = self
@@ -294,6 +311,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                                     actions,
                                     Some(fee_funding),
                                     new_fee,
+                                    nullifier_window,
                                 )
                                 .await?;
                             return Ok(NoteManagerPlanningResult::Ready {
@@ -346,9 +364,9 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             }
 
             let transfer = self.build_transfer_plan(&selected, recipient.clone(), value, fee)?;
-            let new_fee = gas_prices
-                .fee(&ActionPlan::Transfer(transfer.clone()).gas_cost())
-                .apply_tier(self.fee_tier);
+            let actions = vec![ActionPlan::Transfer(transfer.clone())];
+            let new_fee =
+                price_transaction_plan(gas_prices, self.fee_tier, &actions, None, nullifier_window);
 
             if new_fee == fee {
                 let plan = self
@@ -358,6 +376,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                         vec![ActionPlan::Transfer(transfer)],
                         None,
                         new_fee,
+                        nullifier_window,
                     )
                     .await?;
                 return Ok(NoteManagerPlanningResult::Ready {
@@ -438,8 +457,16 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             return Ok(result);
         }
         if gas_prices_are_zero(gas_prices) {
+            let nullifier_window = view.nullifier_window().await?;
             let plan = self
-                .finalize_wallet_plan(view, source, actions, None, zero_base_fee())
+                .finalize_wallet_plan(
+                    view,
+                    source,
+                    actions,
+                    None,
+                    zero_base_fee(),
+                    nullifier_window,
+                )
                 .await?;
             return Ok(NoteManagerPlanningResult::Ready {
                 transaction_plan: plan,
@@ -555,18 +582,13 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                         let actions = vec![ActionPlan::ShieldedIcs20Withdrawal(
                             shielded_withdrawal.clone(),
                         )];
-                        let new_fee = gas_prices
-                            .fee(
-                                &TransactionPlan {
-                                    actions: actions.clone(),
-                                    transaction_parameters: TransactionParameters::default(),
-                                    fee_funding: None,
-                                    memo: None,
-                                    nullifier_window: Some(nullifier_window),
-                                }
-                                .gas_cost(),
-                            )
-                            .apply_tier(self.fee_tier);
+                        let new_fee = price_transaction_plan(
+                            gas_prices,
+                            self.fee_tier,
+                            &actions,
+                            Some(&fee_funding),
+                            nullifier_window,
+                        );
 
                         if new_fee == fee {
                             let plan = self
@@ -576,6 +598,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                                     actions,
                                     Some(fee_funding),
                                     new_fee,
+                                    nullifier_window,
                                 )
                                 .await?;
                             return Ok(NoteManagerPlanningResult::Ready {
@@ -627,9 +650,11 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
 
             let shielded_withdrawal =
                 self.build_ics20_withdrawal_plan(&selected, withdrawal.clone(), fee)?;
-            let new_fee = gas_prices
-                .fee(&ActionPlan::ShieldedIcs20Withdrawal(shielded_withdrawal.clone()).gas_cost())
-                .apply_tier(self.fee_tier);
+            let actions = vec![ActionPlan::ShieldedIcs20Withdrawal(
+                shielded_withdrawal.clone(),
+            )];
+            let new_fee =
+                price_transaction_plan(gas_prices, self.fee_tier, &actions, None, nullifier_window);
 
             if new_fee == fee {
                 let plan = self
@@ -639,6 +664,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                         vec![ActionPlan::ShieldedIcs20Withdrawal(shielded_withdrawal)],
                         None,
                         new_fee,
+                        nullifier_window,
                     )
                     .await?;
                 return Ok(NoteManagerPlanningResult::Ready {
@@ -806,6 +832,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
         if let Some(result) = ensure_base_gas_prices(gas_prices) {
             return Ok(result);
         }
+        let nullifier_window = view.nullifier_window().await?;
 
         let family_id = NoteReshapeFamilyId::smallest_covering(1, output_amounts.len())
             .ok_or_else(|| {
@@ -868,9 +895,14 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             let note_reshape =
                 NoteReshapePlan::new(family_id, spends, outputs, Fr::rand(&mut self.rng))?;
             if gas_prices_are_zero(gas_prices) {
-                let new_fee = gas_prices
-                    .fee(&ActionPlan::NoteReshape(note_reshape.clone()).gas_cost())
-                    .apply_tier(self.fee_tier);
+                let actions = vec![ActionPlan::NoteReshape(note_reshape.clone())];
+                let new_fee = price_transaction_plan(
+                    gas_prices,
+                    self.fee_tier,
+                    &actions,
+                    None,
+                    nullifier_window,
+                );
                 if new_fee == fee {
                     let transaction_plan = self
                         .finalize_wallet_plan(
@@ -879,6 +911,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                             vec![ActionPlan::NoteReshape(note_reshape)],
                             None,
                             new_fee,
+                            nullifier_window,
                         )
                         .await?;
                     return Ok(NoteManagerPlanningResult::Ready { transaction_plan });
@@ -941,6 +974,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
         let gas_prices = self
             .gas_prices
             .context("note manager instances must call set_gas_prices prior to planning")?;
+        let nullifier_window = view.nullifier_window().await?;
         let sender_address = selected
             .first()
             .map(|record| record.note.address())
@@ -972,9 +1006,9 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             )];
             let note_reshape =
                 NoteReshapePlan::new(family_id, spends, outputs, Fr::rand(&mut self.rng))?;
-            let new_fee = gas_prices
-                .fee(&ActionPlan::NoteReshape(note_reshape.clone()).gas_cost())
-                .apply_tier(self.fee_tier);
+            let actions = vec![ActionPlan::NoteReshape(note_reshape.clone())];
+            let new_fee =
+                price_transaction_plan(gas_prices, self.fee_tier, &actions, None, nullifier_window);
             if new_fee == fee {
                 let plan = self
                     .finalize_wallet_plan(
@@ -983,6 +1017,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                         vec![ActionPlan::NoteReshape(note_reshape)],
                         None,
                         new_fee,
+                        nullifier_window,
                     )
                     .await?;
                 return Ok(Some(plan));
@@ -1161,53 +1196,71 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
 
         if gas_prices_are_zero(gas_prices) {
             let plan = self
-                .finalize_wallet_plan(view, source, primary_actions, None, zero_base_fee())
+                .finalize_wallet_plan(
+                    view,
+                    source,
+                    primary_actions,
+                    None,
+                    zero_base_fee(),
+                    nullifier_window,
+                )
                 .await?;
             return Ok(NoteManagerPlanningResult::Ready {
                 transaction_plan: plan,
             });
         }
 
-        let fee = gas_prices
-            .fee(
-                &TransactionPlan {
-                    actions: primary_actions.clone(),
-                    transaction_parameters: TransactionParameters::default(),
-                    fee_funding: None,
-                    memo: None,
-                    nullifier_window: Some(nullifier_window),
-                }
-                .gas_cost(),
-            )
-            .apply_tier(self.fee_tier);
-
         let excluded_fee_notes = fee_funding_excluded_note_commitments(&primary_actions);
-        let fee_funding = self
-            .select_base_fee_funding(view, source, fee, &excluded_fee_notes)
-            .await?;
-        let selected_fee_notes = match fee_funding {
-            BaseFeeFundingSelection::Ready { selected } => selected,
-            BaseFeeFundingSelection::NeedsMaintenance { maintenance_plan } => {
-                return Ok(NoteManagerPlanningResult::NeedsMaintenance {
-                    maintenance_plan,
-                    resume_token,
+        let mut fee = zero_base_fee();
+
+        for _ in 0..4 {
+            let fee_funding = self
+                .select_base_fee_funding(view, source, fee, &excluded_fee_notes)
+                .await?;
+            let selected_fee_notes = match fee_funding {
+                BaseFeeFundingSelection::Ready { selected } => selected,
+                BaseFeeFundingSelection::NeedsMaintenance { maintenance_plan } => {
+                    return Ok(NoteManagerPlanningResult::NeedsMaintenance {
+                        maintenance_plan,
+                        resume_token,
+                    });
+                }
+                BaseFeeFundingSelection::InsufficientBalance => {
+                    return Ok(NoteManagerPlanningResult::InsufficientBalance);
+                }
+                BaseFeeFundingSelection::UnsupportedIntent { reason } => {
+                    return Ok(NoteManagerPlanningResult::UnsupportedIntent { reason });
+                }
+            };
+
+            let fee_funding_plan = self.build_fee_funding_plan(&selected_fee_notes, fee)?;
+            let new_fee = price_transaction_plan(
+                gas_prices,
+                self.fee_tier,
+                &primary_actions,
+                Some(&fee_funding_plan),
+                nullifier_window,
+            );
+            if new_fee == fee {
+                let plan = self
+                    .finalize_wallet_plan(
+                        view,
+                        source,
+                        primary_actions,
+                        Some(fee_funding_plan),
+                        new_fee,
+                        nullifier_window,
+                    )
+                    .await?;
+                return Ok(NoteManagerPlanningResult::Ready {
+                    transaction_plan: plan,
                 });
             }
-            BaseFeeFundingSelection::InsufficientBalance => {
-                return Ok(NoteManagerPlanningResult::InsufficientBalance);
-            }
-            BaseFeeFundingSelection::UnsupportedIntent { reason } => {
-                return Ok(NoteManagerPlanningResult::UnsupportedIntent { reason });
-            }
-        };
 
-        let fee_funding_plan = self.build_fee_funding_plan(&selected_fee_notes, fee)?;
-        let plan = self
-            .finalize_wallet_plan(view, source, primary_actions, Some(fee_funding_plan), fee)
-            .await?;
-        Ok(NoteManagerPlanningResult::Ready {
-            transaction_plan: plan,
-        })
+            fee = new_fee;
+        }
+
+        Err(anyhow!("fee-funded action planning did not converge"))
     }
 
     fn build_ics20_withdrawal_plan(
@@ -1286,6 +1339,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
         actions: Vec<ActionPlan>,
         fee_funding: Option<FeeFundingPlan>,
         fee: Fee,
+        nullifier_window: NullifierWindow,
     ) -> Result<TransactionPlan> {
         let mut transaction_parameters = self.transaction_parameters.clone();
         transaction_parameters.fee = fee;
@@ -1296,7 +1350,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             transaction_parameters,
             fee_funding,
             memo: None,
-            nullifier_window: Some(view.nullifier_window().await?),
+            nullifier_window: Some(nullifier_window),
         };
 
         if plan.num_outputs() > 0 {
@@ -1666,6 +1720,7 @@ mod tests {
     struct MockNoteManagerView {
         notes: Arc<Mutex<Vec<SpendableNoteRecord>>>,
         addresses: BTreeMap<AddressIndex, Address>,
+        nullifier_window: NullifierWindow,
     }
 
     impl MockNoteManagerView {
@@ -1676,7 +1731,20 @@ mod tests {
             Self {
                 notes: Arc::new(Mutex::new(notes)),
                 addresses,
+                nullifier_window: NullifierWindow {
+                    protocol_version: shieldd_sdk_sct::nullifier_generation::PROTOCOL_VERSION,
+                    current_generation: 0,
+                    recent_position_floor: 0,
+                    archived_generation_count: 0,
+                    archived_history_head:
+                        shieldd_sdk_sct::nullifier_generation::empty_history_head(),
+                },
             }
+        }
+
+        fn with_nullifier_window(mut self, nullifier_window: NullifierWindow) -> Self {
+            self.nullifier_window = nullifier_window;
+            self
         }
 
         fn replace_notes(&self, notes: Vec<SpendableNoteRecord>) {
@@ -1739,17 +1807,8 @@ mod tests {
                     + 'static,
             >,
         > {
-            async move {
-                Ok(shieldd_sdk_sct::nullifier_generation::NullifierWindow {
-                    protocol_version: shieldd_sdk_sct::nullifier_generation::PROTOCOL_VERSION,
-                    current_generation: 0,
-                    recent_position_floor: 0,
-                    archived_generation_count: 0,
-                    archived_history_head:
-                        shieldd_sdk_sct::nullifier_generation::empty_history_head(),
-                })
-            }
-            .boxed()
+            let nullifier_window = self.nullifier_window;
+            async move { Ok(nullifier_window) }.boxed()
         }
 
         fn discovery_parameters(
@@ -2340,7 +2399,7 @@ mod tests {
         };
         let action = ActionPlan::IbcAction(test_ibc_action());
         let exact_fee = gas_prices
-            .fee(&action.gas_cost())
+            .fee(&(action.gas_cost() + shieldd_sdk_transaction::gas::transfer_gas_cost()))
             .apply_tier(FeeTier::default());
         let amount = exact_fee.amount();
 
@@ -2364,6 +2423,14 @@ mod tests {
         let NoteManagerPlanningResult::Ready { transaction_plan } = result else {
             panic!("expected exact-fee funding plan to succeed");
         };
+        assert_eq!(transaction_plan.transaction_parameters.fee, exact_fee);
+        assert_eq!(
+            gas_prices
+                .fee(&transaction_plan.gas_cost())
+                .apply_tier(FeeTier::default()),
+            exact_fee,
+            "wallet and consensus fee inputs must cover the same complete plan",
+        );
         assert_action_only_plan(transaction_plan.clone(), |planned_action| {
             matches!(planned_action, ActionPlan::IbcAction(_))
         });
@@ -2372,6 +2439,59 @@ mod tests {
             .expect("nonzero-fee transaction should include fee funding");
         assert_eq!(fee_funding.transfer.outputs.len(), 1);
         assert_eq!(fee_funding.transfer.outputs[0].value.amount, Amount::zero());
+    }
+
+    #[tokio::test]
+    async fn historical_fee_funding_prices_complete_final_plan() {
+        let source = AddressIndex::new(0);
+        let sender = test_address(35);
+        let gas_prices = GasPrices {
+            block_space_price: 1_000,
+            compact_block_space_price: 1_000,
+            verification_price: 1_000,
+            execution_price: 1_000,
+            asset_id: *BASE_ASSET_ID,
+        };
+        let action = ActionPlan::IbcAction(test_ibc_action());
+        let baseline_fee = gas_prices
+            .fee(&(action.gas_cost() + shieldd_sdk_transaction::gas::transfer_gas_cost()))
+            .apply_tier(FeeTier::default());
+        let notes = vec![spendable_note_record(
+            &mut OsRng,
+            1_000_000,
+            source,
+            sender.clone(),
+            1,
+        )];
+        let view_addresses = BTreeMap::from([(source, sender)]);
+        let mut view = MockNoteManagerView::new(notes, view_addresses).with_nullifier_window(
+            NullifierWindow {
+                protocol_version: shieldd_sdk_sct::nullifier_generation::PROTOCOL_VERSION,
+                current_generation: 2,
+                recent_position_floor: 100,
+                archived_generation_count: 1,
+                archived_history_head: [1; 32],
+            },
+        );
+        let mut note_manager = NoteManager::new(OsRng);
+        note_manager.set_gas_prices(gas_prices);
+
+        let result = note_manager
+            .plan_actions_with_transfer_funding(&mut view, source, vec![action])
+            .await
+            .expect("historical fee-funding planning should not error");
+        let NoteManagerPlanningResult::Ready { transaction_plan } = result else {
+            panic!("expected ready historical fee-funding plan");
+        };
+        let final_fee = gas_prices
+            .fee(&transaction_plan.gas_cost())
+            .apply_tier(FeeTier::default());
+
+        assert_eq!(transaction_plan.transaction_parameters.fee, final_fee);
+        assert!(
+            final_fee.amount() > baseline_fee.amount(),
+            "an old fee input must include its historical proof and verification cost",
+        );
     }
 
     #[tokio::test]

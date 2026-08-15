@@ -3363,12 +3363,12 @@
     {
       "id": "PROPERTY-EXACT-FEE-GENERIC-FUNDING-BUILDS-ZERO-VALUE-FEE-CHANGE",
       "path": "crates/view/src/note_manager.rs",
-      "source_sha256": "d99f41f83494bae1b48e7a40c89a52886040fee83ae63f26500b08cab5379219"
+      "source_sha256": "4e5424a17945ac1050fd649e6fa3441e5a0d8b942dea3a027e47aa066f4cd41f"
     },
     {
       "id": "PROPERTY-EXPLICIT-MANY-TO-ONE-RETURNS-SINGLE-NOTE-RESHAPE-TRANSACTION",
       "path": "crates/view/src/note_manager.rs",
-      "source_sha256": "d99f41f83494bae1b48e7a40c89a52886040fee83ae63f26500b08cab5379219"
+      "source_sha256": "4e5424a17945ac1050fd649e6fa3441e5a0d8b942dea3a027e47aa066f4cd41f"
     },
     {
       "id": "PROPERTY-EXTRACT-USER-MEMO-NO-MEMO-FIELD",
@@ -3388,12 +3388,12 @@
     {
       "id": "PROPERTY-FRAGMENTED-ICS20-WITHDRAWAL-REQUESTS-NOTE-RESHAPE-THEN-RESUME-BUILDS-ACTION",
       "path": "crates/view/src/note_manager.rs",
-      "source_sha256": "d99f41f83494bae1b48e7a40c89a52886040fee83ae63f26500b08cab5379219"
+      "source_sha256": "4e5424a17945ac1050fd649e6fa3441e5a0d8b942dea3a027e47aa066f4cd41f"
     },
     {
       "id": "PROPERTY-FRAGMENTED-TRANSFER-REQUESTS-NOTE-RESHAPE-THEN-RESUME-BUILDS-TRANSFER",
       "path": "crates/view/src/note_manager.rs",
-      "source_sha256": "d99f41f83494bae1b48e7a40c89a52886040fee83ae63f26500b08cab5379219"
+      "source_sha256": "4e5424a17945ac1050fd649e6fa3441e5a0d8b942dea3a027e47aa066f4cd41f"
     },
     {
       "id": "PROPERTY-FRESH-ASSET-TREE-PERSISTS-SENTINEL-BEFORE-ADVANCING-LEAF-COUNT",
@@ -3433,7 +3433,7 @@
     {
       "id": "PROPERTY-ICS20-WITHDRAWAL-READY-PRODUCES-WALLET-FACING-ACTION-ONLY",
       "path": "crates/view/src/note_manager.rs",
-      "source_sha256": "d99f41f83494bae1b48e7a40c89a52886040fee83ae63f26500b08cab5379219"
+      "source_sha256": "4e5424a17945ac1050fd649e6fa3441e5a0d8b942dea3a027e47aa066f4cd41f"
     },
     {
       "id": "PROPERTY-INCOMING-VIEWING-KEY-VAR-ENFORCES-NONZERO-REDUCTION",
@@ -3463,7 +3463,7 @@
     {
       "id": "PROPERTY-ISSUED-ADDRESS-BIRTH-HEIGHT-IS-WRITE-ONCE-AND-PURPOSE-CANNOT-CHANGE",
       "path": "crates/view/src/storage.rs",
-      "source_sha256": "c5becbe23015d114d32757acafcee8f231617398822b83c15ad6369b5a90c0cd"
+      "source_sha256": "6e61a37b5f26bbf7884fa9187019fb70f31a9108e043b71ad6b406699116861e"
     },
     {
       "id": "PROPERTY-LEGACY-ASSET-FLAG-ALIAS-IS-REJECTED",
@@ -3473,7 +3473,7 @@
     {
       "id": "PROPERTY-MANY-TO-ONE-USES-PADDED-CANONICAL-FAMILY",
       "path": "crates/view/src/note_manager.rs",
-      "source_sha256": "d99f41f83494bae1b48e7a40c89a52886040fee83ae63f26500b08cab5379219"
+      "source_sha256": "4e5424a17945ac1050fd649e6fa3441e5a0d8b942dea3a027e47aa066f4cd41f"
     },
     {
       "id": "PROPERTY-MERKLE-PATH-DEFAULT-IS-FIXED-WIDTH-AND-CANONICAL",
@@ -3573,7 +3573,7 @@
     {
       "id": "PROPERTY-ONE-TO-MANY-PADS-REQUESTED-OUTPUTS-TO-FAMILY-CAPACITY",
       "path": "crates/view/src/note_manager.rs",
-      "source_sha256": "d99f41f83494bae1b48e7a40c89a52886040fee83ae63f26500b08cab5379219"
+      "source_sha256": "4e5424a17945ac1050fd649e6fa3441e5a0d8b942dea3a027e47aa066f4cd41f"
     },
     {
       "id": "PROPERTY-ONLY-IBC-RELAY-ACCEPTS-SELF-FUNDED-TRANSFER",
@@ -3678,7 +3678,7 @@
     {
       "id": "PROPERTY-RESTORE-RECOVERS-STANDARD-AND-RANDOMIZED-ISSUED-ADDRESSES",
       "path": "crates/view/src/storage.rs",
-      "source_sha256": "c5becbe23015d114d32757acafcee8f231617398822b83c15ad6369b5a90c0cd"
+      "source_sha256": "6e61a37b5f26bbf7884fa9187019fb70f31a9108e043b71ad6b406699116861e"
     },
     {
       "id": "PROPERTY-ROUNDTRIP-ENCODE-DECODE",
@@ -4413,7 +4413,7 @@
     {
       "id": "PROPERTY-TRANSFER-READY-PRODUCES-WALLET-FACING-TRANSFER-ONLY",
       "path": "crates/view/src/note_manager.rs",
-      "source_sha256": "d99f41f83494bae1b48e7a40c89a52886040fee83ae63f26500b08cab5379219"
+      "source_sha256": "4e5424a17945ac1050fd649e6fa3441e5a0d8b942dea3a027e47aa066f4cd41f"
     },
     {
       "id": "PROPERTY-TRANSFER-SHAPE-HIDES-ROLES-AND-NO-CHANGE-BRANCH",
