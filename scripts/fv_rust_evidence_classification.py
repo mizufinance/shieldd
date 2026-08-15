@@ -1608,6 +1608,7 @@ EXCLUSION_SYMBOLS: dict[str, tuple[str, ...]] = {
     "crates/core/component/sct/src/nullifier_tree.rs": _symbols(
         """
         already_spent_nullifier_is_rejected_before_mutation
+        committed_root_verification_accepts_only_empty_pregenesis_state
         field_boundaries_are_ordinary_nullifiers
         indexed_tree_handles_membership_and_boundary_gaps
         packed_generation_is_provable_until_pruned

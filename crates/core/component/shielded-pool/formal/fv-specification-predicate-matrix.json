@@ -16613,6 +16613,11 @@
       },
       {
         "path": "crates/core/app/src/app/mod.rs",
+        "symbol": "app_readiness_accepts_empty_pregenesis_state",
+        "reason": "supporting_regression_not_claim_evidence"
+      },
+      {
+        "path": "crates/core/app/src/app/mod.rs",
         "symbol": "app_readiness_fails_on_corrupted_compliance_nv",
         "reason": "supporting_regression_not_claim_evidence"
       },
@@ -17644,6 +17649,11 @@
       {
         "path": "crates/core/component/sct/src/nullifier_tree.rs",
         "symbol": "already_spent_nullifier_is_rejected_before_mutation",
+        "reason": "supporting_regression_not_claim_evidence"
+      },
+      {
+        "path": "crates/core/component/sct/src/nullifier_tree.rs",
+        "symbol": "committed_root_verification_accepts_only_empty_pregenesis_state",
         "reason": "supporting_regression_not_claim_evidence"
       },
       {

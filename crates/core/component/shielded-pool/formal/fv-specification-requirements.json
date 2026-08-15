@@ -2898,7 +2898,7 @@
     {
       "id": "FEE-FUNDING-IDENTITY-RK-REJECT",
       "path": "crates/core/app/src/app/mod.rs",
-      "source_sha256": "541d6a0cea18f756080e8c8e6b24d6afbac61921bb53ec71f9875f2c50a478c9"
+      "source_sha256": "bc7c24a55b8d26ae9b4a3b3dbed2b8cab784126a3ba8270bebb92b752eea0b30"
     },
     {
       "id": "FEE-FUNDING-PROCESS-REJECTS-INVALID-PROOF",
@@ -3158,7 +3158,7 @@
     {
       "id": "NULLIFIER-BATCH-DUPLICATE-REJECT",
       "path": "crates/core/component/sct/src/nullifier_tree.rs",
-      "source_sha256": "fb1076e557d7a7a8ee6934ada67b48df87629cbafa6a65c5c91612b113aecda6"
+      "source_sha256": "394f776fd38a18bb9d0550ee962991ac07542faa33edf2216456cbc103f60fd2"
     },
     {
       "id": "NULLIFIER-DERIVATION-RUST-VECTOR-PARITY",
@@ -3243,7 +3243,7 @@
     {
       "id": "PROPERTY-ARTIFACT-EXTRACTION-CANNOT-BYPASS-ACTION-STATELESS-CHECKS",
       "path": "crates/core/app/src/app/mod.rs",
-      "source_sha256": "541d6a0cea18f756080e8c8e6b24d6afbac61921bb53ec71f9875f2c50a478c9"
+      "source_sha256": "bc7c24a55b8d26ae9b4a3b3dbed2b8cab784126a3ba8270bebb92b752eea0b30"
     },
     {
       "id": "PROPERTY-ASSET-POLICY-REJECTS-IDENTITY-CRYPTO-KEYS",
@@ -3318,7 +3318,7 @@
     {
       "id": "PROPERTY-EFFECT-HASH-TEST-VECTORS",
       "path": "crates/core/transaction/tests/generate_transaction_signing_test_vectors.rs",
-      "source_sha256": "dffacea3c82b323dd2ea121392c65680a581959b10ca873f140adabe7de1de62"
+      "source_sha256": "7f91d32b2fb8eb28ba6558514fc450372f4b5148776e286c54bf9f2c8cf023cb"
     },
     {
       "id": "PROPERTY-ENCODE-MERKLE-PATH-REQUIRES-EXACT-DEPTH",
@@ -4628,47 +4628,47 @@
     {
       "id": "RUNTIME-AGGREGATE-BAD-SRS-REJECTION",
       "path": "crates/core/app/src/app/mod.rs",
-      "source_sha256": "541d6a0cea18f756080e8c8e6b24d6afbac61921bb53ec71f9875f2c50a478c9"
+      "source_sha256": "bc7c24a55b8d26ae9b4a3b3dbed2b8cab784126a3ba8270bebb92b752eea0b30"
     },
     {
       "id": "RUNTIME-AGGREGATE-HEADER-REJECTION",
       "path": "crates/core/app/src/app/mod.rs",
-      "source_sha256": "541d6a0cea18f756080e8c8e6b24d6afbac61921bb53ec71f9875f2c50a478c9"
+      "source_sha256": "bc7c24a55b8d26ae9b4a3b3dbed2b8cab784126a3ba8270bebb92b752eea0b30"
     },
     {
       "id": "RUNTIME-AGGREGATE-INCOMPLETE-SEGMENT-COVERAGE",
       "path": "crates/core/app/src/app/mod.rs",
-      "source_sha256": "541d6a0cea18f756080e8c8e6b24d6afbac61921bb53ec71f9875f2c50a478c9"
+      "source_sha256": "bc7c24a55b8d26ae9b4a3b3dbed2b8cab784126a3ba8270bebb92b752eea0b30"
     },
     {
       "id": "RUNTIME-AGGREGATE-JOIN-FAIL-CLOSED",
       "path": "crates/core/app/src/app/mod.rs",
-      "source_sha256": "541d6a0cea18f756080e8c8e6b24d6afbac61921bb53ec71f9875f2c50a478c9"
+      "source_sha256": "bc7c24a55b8d26ae9b4a3b3dbed2b8cab784126a3ba8270bebb92b752eea0b30"
     },
     {
       "id": "RUNTIME-AGGREGATE-PLAN-COUNT-ORDER",
       "path": "crates/core/app/src/app/mod.rs",
-      "source_sha256": "541d6a0cea18f756080e8c8e6b24d6afbac61921bb53ec71f9875f2c50a478c9"
+      "source_sha256": "bc7c24a55b8d26ae9b4a3b3dbed2b8cab784126a3ba8270bebb92b752eea0b30"
     },
     {
       "id": "RUNTIME-AGGREGATE-REDUCER-FAIL-CLOSED",
       "path": "crates/core/app/src/app/mod.rs",
-      "source_sha256": "541d6a0cea18f756080e8c8e6b24d6afbac61921bb53ec71f9875f2c50a478c9"
+      "source_sha256": "bc7c24a55b8d26ae9b4a3b3dbed2b8cab784126a3ba8270bebb92b752eea0b30"
     },
     {
       "id": "RUNTIME-AGGREGATE-SEGMENT-ORDER",
       "path": "crates/core/app/src/app/mod.rs",
-      "source_sha256": "541d6a0cea18f756080e8c8e6b24d6afbac61921bb53ec71f9875f2c50a478c9"
+      "source_sha256": "bc7c24a55b8d26ae9b4a3b3dbed2b8cab784126a3ba8270bebb92b752eea0b30"
     },
     {
       "id": "RUNTIME-AGGREGATE-SHIPPING-INPUT-BINDING",
       "path": "crates/core/app/src/app/mod.rs",
-      "source_sha256": "541d6a0cea18f756080e8c8e6b24d6afbac61921bb53ec71f9875f2c50a478c9"
+      "source_sha256": "bc7c24a55b8d26ae9b4a3b3dbed2b8cab784126a3ba8270bebb92b752eea0b30"
     },
     {
       "id": "RUNTIME-AGGREGATE-TX-SHAPE",
       "path": "crates/core/app/src/app/mod.rs",
-      "source_sha256": "541d6a0cea18f756080e8c8e6b24d6afbac61921bb53ec71f9875f2c50a478c9"
+      "source_sha256": "bc7c24a55b8d26ae9b4a3b3dbed2b8cab784126a3ba8270bebb92b752eea0b30"
     },
     {
       "id": "RUNTIME-CACHE-AGGREGATE-BYTE-BOUND",
@@ -4748,7 +4748,7 @@
     {
       "id": "RUNTIME-CHECKTX-INNER-SIZE",
       "path": "crates/core/app/src/app/mod.rs",
-      "source_sha256": "541d6a0cea18f756080e8c8e6b24d6afbac61921bb53ec71f9875f2c50a478c9"
+      "source_sha256": "bc7c24a55b8d26ae9b4a3b3dbed2b8cab784126a3ba8270bebb92b752eea0b30"
     },
     {
       "id": "RUNTIME-DEPLOYED-PROOF-KEY-MAPPING",
@@ -4808,7 +4808,7 @@
     {
       "id": "RUNTIME-NO-CONSENSUS-DIAGNOSTIC-IO",
       "path": "crates/core/app/src/app/mod.rs",
-      "source_sha256": "541d6a0cea18f756080e8c8e6b24d6afbac61921bb53ec71f9875f2c50a478c9"
+      "source_sha256": "bc7c24a55b8d26ae9b4a3b3dbed2b8cab784126a3ba8270bebb92b752eea0b30"
     },
     {
       "id": "RUNTIME-PREPARED-PROPOSAL-EXACT-REUSE",
@@ -4823,27 +4823,27 @@
     {
       "id": "RUNTIME-PROOF-WORKER-CONCURRENCY",
       "path": "crates/core/app/src/app/mod.rs",
-      "source_sha256": "541d6a0cea18f756080e8c8e6b24d6afbac61921bb53ec71f9875f2c50a478c9"
+      "source_sha256": "bc7c24a55b8d26ae9b4a3b3dbed2b8cab784126a3ba8270bebb92b752eea0b30"
     },
     {
       "id": "RUNTIME-PROPOSAL-NULLIFIER-COUNT",
       "path": "crates/core/app/src/app/mod.rs",
-      "source_sha256": "541d6a0cea18f756080e8c8e6b24d6afbac61921bb53ec71f9875f2c50a478c9"
+      "source_sha256": "bc7c24a55b8d26ae9b4a3b3dbed2b8cab784126a3ba8270bebb92b752eea0b30"
     },
     {
       "id": "RUNTIME-PROPOSAL-TX-COUNT",
       "path": "crates/core/app/src/app/mod.rs",
-      "source_sha256": "541d6a0cea18f756080e8c8e6b24d6afbac61921bb53ec71f9875f2c50a478c9"
+      "source_sha256": "bc7c24a55b8d26ae9b4a3b3dbed2b8cab784126a3ba8270bebb92b752eea0b30"
     },
     {
       "id": "RUNTIME-PROPOSAL-TX-PAYLOAD",
       "path": "crates/core/app/src/app/mod.rs",
-      "source_sha256": "541d6a0cea18f756080e8c8e6b24d6afbac61921bb53ec71f9875f2c50a478c9"
+      "source_sha256": "bc7c24a55b8d26ae9b4a3b3dbed2b8cab784126a3ba8270bebb92b752eea0b30"
     },
     {
       "id": "RUNTIME-PROPOSAL-TX-SIZE",
       "path": "crates/core/app/src/app/mod.rs",
-      "source_sha256": "541d6a0cea18f756080e8c8e6b24d6afbac61921bb53ec71f9875f2c50a478c9"
+      "source_sha256": "bc7c24a55b8d26ae9b4a3b3dbed2b8cab784126a3ba8270bebb92b752eea0b30"
     },
     {
       "id": "RUNTIME-RAW-NOTE-RESHAPE-CAPABILITY-GATE",
@@ -4863,7 +4863,7 @@
     {
       "id": "RUNTIME-STRUCTURED-TASK-DRAIN",
       "path": "crates/core/app/src/app/mod.rs",
-      "source_sha256": "541d6a0cea18f756080e8c8e6b24d6afbac61921bb53ec71f9875f2c50a478c9"
+      "source_sha256": "bc7c24a55b8d26ae9b4a3b3dbed2b8cab784126a3ba8270bebb92b752eea0b30"
     },
     {
       "id": "RUNTIME-STRUCTURED-TRANSACTION-TASK-DRAIN",
@@ -4968,7 +4968,7 @@
     {
       "id": "TRANSACTION-STAGED-EFFECTS-ROLLBACK",
       "path": "crates/core/app/src/app/mod.rs",
-      "source_sha256": "541d6a0cea18f756080e8c8e6b24d6afbac61921bb53ec71f9875f2c50a478c9"
+      "source_sha256": "bc7c24a55b8d26ae9b4a3b3dbed2b8cab784126a3ba8270bebb92b752eea0b30"
     },
     {
       "id": "TRANSACTION-ZERO-BLINDING-BUILD",
@@ -5103,7 +5103,7 @@
     {
       "id": "TRANSFER-EXTRACTED-CACHE-UPGRADE",
       "path": "crates/core/app/src/app/mod.rs",
-      "source_sha256": "541d6a0cea18f756080e8c8e6b24d6afbac61921bb53ec71f9875f2c50a478c9"
+      "source_sha256": "bc7c24a55b8d26ae9b4a3b3dbed2b8cab784126a3ba8270bebb92b752eea0b30"
     },
     {
       "id": "TRANSFER-FAMILY-VALID",
@@ -5363,7 +5363,7 @@
     {
       "id": "TX-NULLIFIER-DISTINCTNESS",
       "path": "crates/core/component/sct/src/nullifier_tree.rs",
-      "source_sha256": "fb1076e557d7a7a8ee6934ada67b48df87629cbafa6a65c5c91612b113aecda6"
+      "source_sha256": "394f776fd38a18bb9d0550ee962991ac07542faa33edf2216456cbc103f60fd2"
     },
     {
       "id": "VIEW-COMPLIANCE-PATH-CANONICAL-SHAPE",

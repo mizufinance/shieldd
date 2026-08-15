@@ -7653,6 +7653,7 @@ _REVIEWED_TEST_EXCLUSION_SYMBOLS = {
     "crates/core/app/src/app/mod.rs": (
         "aggregate_bundle_normal_and_profiled_verification_have_result_parity",
         "aggregate_bundle_size_estimate_is_monotonic",
+        "app_readiness_accepts_empty_pregenesis_state",
         "app_readiness_fails_on_corrupted_compliance_nv",
         "app_readiness_fails_on_corrupted_nullifier_tree_nv",
         "app_readiness_fails_on_corrupted_sct_nv",

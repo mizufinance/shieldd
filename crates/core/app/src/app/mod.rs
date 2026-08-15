@@ -8870,6 +8870,13 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn app_readiness_accepts_empty_pregenesis_state() -> Result<()> {
+        let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
+        assert!(App::is_ready(storage.latest_snapshot()).await);
+        Ok(())
+    }
+
+    #[tokio::test]
     async fn app_readiness_fails_on_corrupted_nullifier_tree_nv() -> Result<()> {
         let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
         let mut state = StateDelta::new(storage.latest_snapshot());

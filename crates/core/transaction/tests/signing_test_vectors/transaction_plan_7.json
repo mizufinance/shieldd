@@ -643,5 +643,9 @@
         "lo": "598059258711606766"
       }
     }
+  },
+  "nullifierWindow": {
+    "protocolVersion": 2,
+    "archivedHistoryHead": "E0CzAUWVu/KZcSZ7+hhfFlIUTk61EvtoiAY709iwbQ4="
   }
 }

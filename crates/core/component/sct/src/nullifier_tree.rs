@@ -19,6 +19,7 @@ use crate::{
 };
 
 const STORAGE_SCHEMA_VERSION: &[u8] = &[3];
+const LEGACY_STORAGE_PREFIX: &str = "sct/nullifier_set/";
 const MAX_CONCURRENT_MARKER_READS: usize = 256;
 
 #[derive(Clone, Debug)]
@@ -395,7 +396,44 @@ async fn verify_tree<S: StateRead + ?Sized>(
 }
 
 pub async fn verify_committed_roots<S: StateRead + ?Sized>(state: &S) -> Result<()> {
-    let generation = generation_state(state).await?;
+    let Some(generation) = state
+        .get::<NullifierGenerationState>(state_key::nullifier_generations::state())
+        .await?
+    else {
+        ensure!(
+            state
+                .get_raw(state_key::block_manager::block_height())
+                .await?
+                .is_none(),
+            "initialized chain is missing nullifier generation state"
+        );
+        let prefix = state_key::nullifier_generations::storage_prefix();
+        let verifiable = state.prefix_raw(prefix);
+        futures::pin_mut!(verifiable);
+        ensure!(
+            verifiable.try_next().await?.is_none(),
+            "nullifier generation storage exists without generation state"
+        );
+        let nonverifiable = state.nonverifiable_prefix_raw(prefix.as_bytes());
+        futures::pin_mut!(nonverifiable);
+        ensure!(
+            nonverifiable.try_next().await?.is_none(),
+            "durable nullifier generation storage exists without generation state"
+        );
+        let legacy_verifiable = state.prefix_raw(LEGACY_STORAGE_PREFIX);
+        futures::pin_mut!(legacy_verifiable);
+        ensure!(
+            legacy_verifiable.try_next().await?.is_none(),
+            "legacy nullifier storage requires protocol v2 replay"
+        );
+        let legacy_nonverifiable = state.nonverifiable_prefix_raw(LEGACY_STORAGE_PREFIX.as_bytes());
+        futures::pin_mut!(legacy_nonverifiable);
+        ensure!(
+            legacy_nonverifiable.try_next().await?.is_none(),
+            "durable legacy nullifier storage requires protocol v2 replay"
+        );
+        return Ok(());
+    };
     verify_tree(state, generation.current_tree, generation.current_root).await?;
     match (generation.previous_tree, generation.previous_root) {
         (Some(previous_tree), Some(previous_root)) => {
@@ -769,6 +807,42 @@ mod tests {
 
     fn nullifier(value: u64) -> Nullifier {
         Nullifier(Fq::from(value))
+    }
+
+    #[tokio::test]
+    async fn committed_root_verification_accepts_only_empty_pregenesis_state() -> Result<()> {
+        let storage = TempStorage::new().await?;
+        let snapshot = storage.latest_snapshot();
+        verify_committed_roots(&snapshot).await?;
+
+        let mut initialized = cnidarium::StateDelta::new(snapshot.clone());
+        initialized.put_raw(state_key::block_manager::block_height().to_owned(), vec![0]);
+        let error = verify_committed_roots(&initialized)
+            .await
+            .expect_err("initialized state without generation state must be rejected");
+        assert!(error
+            .to_string()
+            .contains("initialized chain is missing nullifier generation state"));
+
+        let mut orphaned = cnidarium::StateDelta::new(snapshot.clone());
+        orphaned.put_raw(
+            state_key::nullifier_generations::root(NullifierTreeId::Generation(0)),
+            vec![0u8; 32],
+        );
+        let error = verify_committed_roots(&orphaned)
+            .await
+            .expect_err("orphaned generation storage must be rejected");
+        assert!(error
+            .to_string()
+            .contains("storage exists without generation state"));
+
+        let mut legacy = cnidarium::StateDelta::new(snapshot);
+        legacy.put_raw(format!("{LEGACY_STORAGE_PREFIX}root"), vec![0u8; 32]);
+        let error = verify_committed_roots(&legacy)
+            .await
+            .expect_err("legacy nullifier storage must require replay");
+        assert!(error.to_string().contains("requires protocol v2 replay"));
+        Ok(())
     }
 
     #[tokio::test]

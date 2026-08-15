@@ -35,6 +35,10 @@ pub mod epoch_manager {
 pub mod nullifier_generations {
     use crate::nullifier_generation::NullifierTreeId;
 
+    pub fn storage_prefix() -> &'static str {
+        "sct/nullifier_generations/"
+    }
+
     pub fn state() -> &'static str {
         "sct/nullifier_generations/state"
     }
