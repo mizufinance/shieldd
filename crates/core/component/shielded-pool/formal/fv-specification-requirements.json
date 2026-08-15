@@ -3238,7 +3238,7 @@
     {
       "id": "PROPERTY-APP-CAN-TRANSFER-NOTES-AND-DETECT-NEW-NOTES",
       "path": "crates/core/app-tests/tests/app_can_transfer_notes_and_detect_new_notes.rs",
-      "source_sha256": "bb23fd891c05364f4b16c2d21e656882d06c39f51a723842ecbf76f1bd57b353"
+      "source_sha256": "f2f877bb4ec586dfc13b9bb6b334d5973bd7f7941cc8ae9708752ea420f3a035"
     },
     {
       "id": "PROPERTY-ARTIFACT-EXTRACTION-CANNOT-BYPASS-ACTION-STATELESS-CHECKS",
@@ -3298,7 +3298,7 @@
     {
       "id": "PROPERTY-COMPLIANCE-ENRICHMENT-PRESERVES-SENDER-DIVERSIFIER-ON-SUPPORTED-TRANSFER",
       "path": "crates/core/app-tests/tests/compliance_diversifier_fix.rs",
-      "source_sha256": "6f4f92fe1a62d1b9cb269ca0e9c58aa2f452f5972c9b09f24258faa1569220e5"
+      "source_sha256": "4aeb00a89dbd50273bf1dea7f1c4b291f2aa06ebeae76a84685d2c18acf23079"
     },
     {
       "id": "PROPERTY-DECODING-REJECTS-NON-CANONICAL-UNUSED-BITS",
@@ -4298,7 +4298,7 @@
     {
       "id": "PROPERTY-TEST-TRANSACTION-SIGNING",
       "path": "crates/custody/src/threshold.rs",
-      "source_sha256": "a60d230034dfb7ff5e13d2ee57eb1116428be3def65e588238ab34d3ef3dd322"
+      "source_sha256": "cd9dca2d968a47a5b9855666b366c671841d2ec23061537bfa0f5c6a08d7eeb0"
     },
     {
       "id": "PROPERTY-TEST-TRANSFER-COMPLIANCE-METADATA-REJECTS-FQ-MODULUS-SALT",
@@ -4553,12 +4553,12 @@
     {
       "id": "PROPERTY-WITNESS-PLAN-INCLUDES-FEE-FUNDING-TRANSFER-SPEND-PROOF",
       "path": "crates/test/mock-client/src/lib.rs",
-      "source_sha256": "907949df1d17cf9d66a5f8d16402d14b99b14da45ac6e6b723108b8b98a02cbb"
+      "source_sha256": "1afe5b539cd5ba94a957fdac2694bb1dd67351582cff2e5362b2df05f508971e"
     },
     {
       "id": "PROPERTY-WITNESS-PLAN-INCLUDES-HIDDEN-ARITY-TRANSFER-SPEND-PROOF",
       "path": "crates/test/mock-client/src/lib.rs",
-      "source_sha256": "907949df1d17cf9d66a5f8d16402d14b99b14da45ac6e6b723108b8b98a02cbb"
+      "source_sha256": "1afe5b539cd5ba94a957fdac2694bb1dd67351582cff2e5362b2df05f508971e"
     },
     {
       "id": "PROPERTY-WRONG-CIPHERTEXT-SIZE-REJECTED",
@@ -4788,12 +4788,12 @@
     {
       "id": "RUNTIME-GRPC-CHECKTX-PROOF-FRONTDOOR",
       "path": "crates/bin/shieldd/src/grpc.rs",
-      "source_sha256": "7f05ee1b8e3f1151ea7898ce23b71204cf745349f1860a2bdd88f6f85dd8e149"
+      "source_sha256": "069f25b4967cc33aa06c1a891f122d4f35f529f5cff1ae3ff8232515ebca92fe"
     },
     {
       "id": "RUNTIME-GRPC-DELIVERTX-PROOF-FRONTDOOR",
       "path": "crates/bin/shieldd/src/grpc.rs",
-      "source_sha256": "7f05ee1b8e3f1151ea7898ce23b71204cf745349f1860a2bdd88f6f85dd8e149"
+      "source_sha256": "069f25b4967cc33aa06c1a891f122d4f35f529f5cff1ae3ff8232515ebca92fe"
     },
     {
       "id": "RUNTIME-HOST-CHECKTX-PROOF-FRONTDOOR",

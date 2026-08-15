@@ -301,7 +301,7 @@ class RustWorkflowWiringTests(unittest.TestCase):
         self.assertNotIn("taiki-e/install-action", self.workflow)
 
     def test_ordinary_rust_lane_excludes_only_formal_lfs_tests(self) -> None:
-        justfile = (SCRIPT.parents[2] / "Justfile").read_text(encoding="utf-8")
+        justfile = (SCRIPT.parents[2] / "justfile").read_text(encoding="utf-8")
         formal_lfs_tests = (
             "ltchain::tests::recovers_r_ladder_from_real_sr1cs_and_gate_holds",
             "ltchain::tests::recovers_q4_ladder_from_real_sr1cs",

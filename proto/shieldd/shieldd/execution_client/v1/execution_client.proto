@@ -35,8 +35,18 @@ service ExecutionClientService {
   // ExportGenesis exports the currently committed Shieldd state as genesis.
   rpc ExportGenesis(ExportGenesisRequest) returns (ExportGenesisResponse) {}
   // ArchivedNullifierProof returns a retired-generation witness for an old note.
-  rpc ArchivedNullifierProof(shieldd.core.component.sct.v1.ArchivedNullifierProofRequest)
-      returns (shieldd.core.component.sct.v1.ArchivedNullifierProofResponse) {}
+  rpc ArchivedNullifierProof(ArchivedNullifierProofRequest)
+      returns (ArchivedNullifierProofResponse) {}
+}
+
+// ArchivedNullifierProofRequest carries the component query across the host-chain boundary.
+message ArchivedNullifierProofRequest {
+  shieldd.core.component.sct.v1.ArchivedNullifierProofRequest request = 1;
+}
+
+// ArchivedNullifierProofResponse carries the component result across the host-chain boundary.
+message ArchivedNullifierProofResponse {
+  shieldd.core.component.sct.v1.ArchivedNullifierProofResponse response = 1;
 }
 
 // InitGenesisRequest carries the Shieldd genesis payload controlled by the host

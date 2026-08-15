@@ -116,6 +116,7 @@ async fn verify_storage_proof_simple() -> anyhow::Result<()> {
         })
         .into();
         TransactionPlan {
+            nullifier_window: None,
             actions: vec![ibc_msg],
             // Now fill out the remaining parts of the transaction needed for verification:
             memo: None,

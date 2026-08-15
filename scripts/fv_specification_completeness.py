@@ -8423,12 +8423,44 @@ def _validate_grpc_execution_frontdoors(root: Path) -> None:
             f"extra={list((method_roster-EXPECTED_GRPC_EXECUTION_METHODS).elements())}"
         )
 
-    for name, request_type, lock_method in (
+    archived_proof = _one_rust_function(
+        functions,
+        "archived_nullifier_proof",
+        "gRPC archived_nullifier_proof proof frontdoor",
+    )
+    if "Request<ArchivedNullifierProofRequest>" not in archived_proof["header"]:
+        reject("gRPC archived_nullifier_proof request type drifted")
+    _require_ordered_symbols(
+        archived_proof,
         (
-            "archived_nullifier_proof",
-            "ArchivedNullifierProofRequest",
-            "read",
+            "let request = request",
+            ".into_inner()",
+            ".request",
+            ".ok_or_else(|| Status::invalid_argument(",
+            "self.service",
+            ".read()",
+            ".await",
+            ".archived_nullifier_proof(request)",
+            ".await",
+            "ArchivedNullifierProofResponse",
+            "response: Some(response)",
+            ".map_err(status)",
         ),
+        "gRPC archived_nullifier_proof ExecutionService delegation",
+    )
+    for symbol in (
+        ".into_inner()",
+        ".archived_nullifier_proof(request)",
+        "response: Some(response)",
+    ):
+        _require_occurrence_count(
+            archived_proof["body"],
+            symbol,
+            1,
+            "gRPC archived_nullifier_proof ExecutionService delegation",
+        )
+
+    for name, request_type, lock_method in (
         ("check_tx", "CheckTxRequest", "read"),
         ("deliver_tx", "DeliverTxRequest", "write"),
     ):

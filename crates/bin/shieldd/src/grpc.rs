@@ -1,15 +1,12 @@
 use std::sync::Arc;
 
-use shieldd_sdk_proto::core::component::sct::v1::{
-    ArchivedNullifierProofRequest, ArchivedNullifierProofResponse,
-};
 use shieldd_sdk_proto::execution_client::v1::{
-    execution_client_service_server::ExecutionClientService, BeginBlockRequest, BeginBlockResponse,
-    CheckTxRequest, CheckTxResponse, CommitRequest, CommitResponse, DeliverTxRequest,
-    DeliverTxResponse, DepositRequest, DepositResponse, EndBlockRequest, EndBlockResponse,
-    ExportGenesisRequest, ExportGenesisResponse, GetCommittedStateRequest,
-    GetCommittedStateResponse, InitGenesisRequest, InitGenesisResponse, RollbackRequest,
-    RollbackResponse,
+    execution_client_service_server::ExecutionClientService, ArchivedNullifierProofRequest,
+    ArchivedNullifierProofResponse, BeginBlockRequest, BeginBlockResponse, CheckTxRequest,
+    CheckTxResponse, CommitRequest, CommitResponse, DeliverTxRequest, DeliverTxResponse,
+    DepositRequest, DepositResponse, EndBlockRequest, EndBlockResponse, ExportGenesisRequest,
+    ExportGenesisResponse, GetCommittedStateRequest, GetCommittedStateResponse, InitGenesisRequest,
+    InitGenesisResponse, RollbackRequest, RollbackResponse,
 };
 use tokio::sync::RwLock;
 use tonic::{Request, Response, Status};
@@ -169,12 +166,20 @@ impl ExecutionClientService for GrpcExecutionClient {
         &self,
         request: Request<ArchivedNullifierProofRequest>,
     ) -> std::result::Result<Response<ArchivedNullifierProofResponse>, Status> {
+        let request = request
+            .into_inner()
+            .request
+            .ok_or_else(|| Status::invalid_argument("missing archived nullifier proof request"))?;
         self.service
             .read()
             .await
-            .archived_nullifier_proof(request.into_inner())
+            .archived_nullifier_proof(request)
             .await
-            .map(Response::new)
+            .map(|response| {
+                Response::new(ArchivedNullifierProofResponse {
+                    response: Some(response),
+                })
+            })
             .map_err(status)
     }
 }

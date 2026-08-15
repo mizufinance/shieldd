@@ -21,7 +21,7 @@ WITHDRAWAL-LEAN-SOUNDNESS|tools/gnark/internal/circuits/shielded_ics20_withdrawa
 ZK-FIND-GO-UNREGULATED-NONMEMBERSHIP|tools/gnark/internal/compliance/indexed_tree.go:func VerifyAssetRegistryIMT
 ZK-FIND-WITHDRAWAL-EFFECT-HASH-EXTERNAL|crates/core/component/shielded-pool/src/component/action_handler/shielded_ics20_withdrawal.rs:shielded_ics20_withdrawal_extract_public
 ZK-FIND-DUMMY-NULLIFIER-DOMAIN|crates/core/component/shielded-pool/src/note_reshape_padding.rs:synthetic_dummy_nullifier
-ZK-FIND-RUST-GO-FIELD-CORRESPONDENCE|tools/gnark/internal/abi/statement_fields.go:ReconstructedTransferStatementFieldsFromWitnessV17
+ZK-FIND-RUST-GO-FIELD-CORRESPONDENCE|tools/gnark/internal/abi/statement_fields.go:ReconstructedTransferStatementFieldsFromWitnessV18
 ZK-FIND-PROOF-BOUND-EFFECT-FILTERING|crates/core/component/shielded-pool/src/component/action_handler/note_reshape.rs:execute_proof_bound_effects
 ZK-FIND-PROOF-BOUND-EFFECT-ATOMICITY|crates/core/component/shielded-pool/src/component/action_handler/note_reshape.rs:nullify_all
 ZK-FIND-WITHDRAWAL-TRANSMISSION-BINDING|tools/gnark/internal/circuits/shielded_ics20_withdrawal_circuit.go:senderTransmissionFq
@@ -68,7 +68,7 @@ ZK-FIND-HASH-BINDING-TRUST-BOUNDARY|crates/core/component/compliance/formal/assu
 ZK-FIND-TRANSFER-SHARED-POINT-DISCONNECT|crates/core/component/compliance/src/evidence.rs:The object deliberately excludes PRE envelopes, DH shared points, and
 ZK-FIND-COMPLIANCE-EVIDENCE-CANONICALITY|crates/core/component/compliance/src/evidence.rs:pub fn from_bytes(bytes: &[u8]) -> Result<Self>
 ZK-FIND-TRANSFER-EFFECT-HASH-COMPLIANCE-SPEC|crates/core/component/shielded-pool/src/transfer/plan.rs:effect_hash_binds_proof_bound_compliance_records_but_not_witness_anchor
-ZK-FIND-FV-MUTATION-EVIDENCE-MASKING|tools/gnark/internal/circuits/transfer_metamorphic_test.go:func setTransferStatementHashV17(
+ZK-FIND-FV-MUTATION-EVIDENCE-MASKING|tools/gnark/internal/circuits/transfer_metamorphic_test.go:func setTransferStatementHashV18(
 ZK-PROP-AMOUNT-RANGE-128|tools/gnark/internal/circuits/amount_range_test.go:TestAmountRangeBoundIs128Bits
 ZK-PROP-NOTE-RESHAPE-STATEMENT-SEAM|tools/gnark/internal/primitives/crypto_primitives_test.go:TestNoteReshapeStatementSeamsMatchShielddVectors
 ZK-PROP-NOTE-RESHAPE-STATEMENT-SUFFICIENT|crates/core/component/compliance/formal/alloy/note_reshape-statement-sufficiency.als:assert NoDoubleSpend
@@ -89,11 +89,11 @@ ZK-FIND-IVK-ZERO-TRANSMISSION-IDENTITY|tools/gnark/internal/circuits/transfer_ci
 ZK-FIND-STATELESS-CACHE-IDENTITY-AND-BOUNDS|crates/core/app/src/stateless_cache.rs:pub fn get(&self, hash: &[u8; 32], raw_tx: &[u8])
 ZK-FIND-TRANSFER-ASSET-SENTINEL|tools/gnark/internal/circuits/transfer_circuit.go:api.AssertIsDifferent(shared.sharedAssetID, 0)
 ZK-FIND-TRANSFER-COMPLIANCE-NONCE-REUSE|crates/view/src/client_compliance.rs:fn fresh_transfer_nonce
-ZK-FIND-TRANSFER-DETECTION-ASSET-FLAG-ALIAS|tools/gnark/internal/circuits/transfer_circuit.go:sender_word=sender.slot_id+flag*2^32
+ZK-FIND-TRANSFER-DETECTION-ASSET-FLAG-ALIAS|tools/gnark/internal/compliance/transfer_encryption.go:api.Mul(isFlagged, transferDetectionFlagBit)
 ZK-FIND-TRANSFER-HANDWRITTEN-STATEMENT-DUPLICATE|tools/gnark/lean/ShielddGnarkFormal/Protocol/Transfer/Concrete.lean:def statementFields (action : Action F Path24 Path16) : List F :=
 ZK-FIND-TRANSFER-ZERO-TIER-SCALAR|crates/core/component/compliance/src/transfer.rs:fn sample_nonzero_scalar
 ZK-FIND-WITHDRAWAL-ASSET-SENTINEL|tools/gnark/internal/circuits/shielded_ics20_withdrawal_circuit.go:api.AssertIsDifferent(shared.sharedAssetID, 0)
 ZK-FIND-WITHDRAWAL-BARE-EXECUTOR|crates/core/component/shielded-pool/src/component/action_handler/shielded_ics20_withdrawal.rs:async fn check_and_execute<S: StateWrite>
 ZK-FIND-WITHDRAWAL-CHECK-EXECUTE-TOCTOU|crates/core/component/shielded-pool/src/component/transfer.rs:pub(super) struct CheckedWithdrawal
 ZK-FIND-WITHDRAWAL-CROSS-SPEND-NONCE-COUPLING|crates/core/component/shielded-pool/src/shielded_ics20_withdrawal/plan.rs:fn multi_spend_tx_blinding_nonces_are_independent()
-ZK-FIND-WITHDRAWAL-POLICY-OPENING-OVERREACH|tools/gnark/internal/circuits/shielded_ics20_withdrawal_metamorphic_test.go:func TestShieldedIcs20WithdrawalV9OmitsPolicyOpeningsAndRedundantFields
+ZK-FIND-WITHDRAWAL-POLICY-OPENING-OVERREACH|tools/gnark/internal/circuits/shielded_ics20_withdrawal_metamorphic_test.go:func TestShieldedIcs20WithdrawalV10OmitsPolicyOpeningsAndRedundantFields

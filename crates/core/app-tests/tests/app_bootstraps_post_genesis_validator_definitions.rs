@@ -87,6 +87,7 @@ async fn app_activates_post_genesis_validator_definitions_with_equal_weight() ->
                 chain_id: TestNode::<()>::CHAIN_ID.to_string(),
                 ..Default::default()
             },
+            nullifier_window: None,
         }
     };
 

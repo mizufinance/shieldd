@@ -8288,6 +8288,7 @@ dependencies = [
  "shieldd-sdk-ibc",
  "shieldd-sdk-keys",
  "shieldd-sdk-proto",
+ "shieldd-sdk-sct",
  "shieldd-sdk-shielded-pool",
  "shieldd-sdk-transaction",
  "shieldd-sdk-txhash",

@@ -2628,6 +2628,13 @@ structure ClaimedFacts where
                 "gRPC check_tx ExecutionService delegation",
             ),
             (
+                "gRPC archived-proof envelope bypass",
+                "crates/bin/shieldd/src/grpc.rs",
+                ".archived_nullifier_proof(request)",
+                ".archived_nullifier_proof(request.into_inner())",
+                "gRPC archived_nullifier_proof ExecutionService delegation",
+            ),
+            (
                 "split ABCI cache",
                 "crates/core/app/src/server.rs",
                 "Mempool::new(storage, stateless_cache, queue).run().await",

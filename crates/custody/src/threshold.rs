@@ -613,6 +613,13 @@ mod test {
             memo: None,
             fee_funding: None,
             transaction_parameters: shieldd_sdk_transaction::TransactionParameters::default(),
+            nullifier_window: Some(shieldd_sdk_sct::nullifier_generation::NullifierWindow {
+                protocol_version: shieldd_sdk_sct::nullifier_generation::PROTOCOL_VERSION,
+                current_generation: 0,
+                recent_position_floor: 0,
+                archived_generation_count: 0,
+                archived_history_head: shieldd_sdk_sct::nullifier_generation::empty_history_head(),
+            }),
         };
         let fvk = coordinator_config.fvk().clone();
         let authorization_data = Threshold::new(coordinator_config, coordinator_terminal)

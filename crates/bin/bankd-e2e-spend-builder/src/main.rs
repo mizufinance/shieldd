@@ -128,6 +128,7 @@ async fn build_spend_tx(opt: Opt) -> Result<Vec<u8>> {
             chain_id: opt.chain_id,
             ..Default::default()
         },
+        nullifier_window: None,
     };
 
     let tx = client

@@ -246,6 +246,7 @@ impl MockRelayer {
                     )
                     .expect("valid shielded ICS-20 withdrawal plan");
                     TransactionPlan {
+                        nullifier_window: None,
                         actions: vec![ics20_msg.into()],
                         memo: None,
                         fee_funding: None,
@@ -345,6 +346,7 @@ impl MockRelayer {
                 )
                 .into();
                 TransactionPlan {
+                    nullifier_window: None,
                     actions: vec![ics20_msg],
                     memo: None,
                     fee_funding: None,
@@ -652,6 +654,7 @@ impl MockRelayer {
                 })
                 .into();
                 TransactionPlan {
+                    nullifier_window: None,
                     actions: vec![ibc_msg],
                     // Now fill out the remaining parts of the transaction needed for verification:
                     memo: None,
@@ -701,6 +704,7 @@ impl MockRelayer {
             })
             .into();
             TransactionPlan {
+                nullifier_window: None,
                 actions: vec![ibc_msg],
                 // Now fill out the remaining parts of the transaction needed for verification:
                 memo: None,
@@ -821,6 +825,7 @@ impl MockRelayer {
             })
             .into();
             TransactionPlan {
+                nullifier_window: None,
                 actions: vec![ibc_msg],
                 // Now fill out the remaining parts of the transaction needed for verification:
                 memo: None,
@@ -912,6 +917,7 @@ impl MockRelayer {
             })
             .into();
             TransactionPlan {
+                nullifier_window: None,
                 actions: vec![ibc_msg],
                 // Now fill out the remaining parts of the transaction needed for verification:
                 memo: None,
@@ -1092,6 +1098,7 @@ impl MockRelayer {
             .into();
             // let ibc_msg = IbcRelay::ChannelOpenAck(MsgChannelOpenAck::try_from(proto_ack)?).into();
             TransactionPlan {
+                nullifier_window: None,
                 actions: vec![ibc_msg],
                 // Now fill out the remaining parts of the transaction needed for verification:
                 memo: None,
@@ -1249,6 +1256,7 @@ impl MockRelayer {
             let ibc_msg =
                 IbcRelay::ConnectionOpenAck(MsgConnectionOpenAck::try_from(proto_ack)?).into();
             TransactionPlan {
+                nullifier_window: None,
                 actions: vec![ibc_msg],
                 // Now fill out the remaining parts of the transaction needed for verification:
                 memo: None,
@@ -1431,6 +1439,7 @@ impl MockRelayer {
             })
             .into();
             TransactionPlan {
+                nullifier_window: None,
                 actions: vec![ibc_msg],
                 // Now fill out the remaining parts of the transaction needed for verification:
                 memo: None,
@@ -1542,6 +1551,7 @@ impl MockRelayer {
             })
             .into();
             TransactionPlan {
+                nullifier_window: None,
                 actions: vec![ibc_msg],
                 // Now fill out the remaining parts of the transaction needed for verification:
                 memo: None,
@@ -1642,6 +1652,7 @@ impl MockRelayer {
             })
             .into();
             TransactionPlan {
+                nullifier_window: None,
                 actions: vec![ibc_msg],
                 // Now fill out the remaining parts of the transaction needed for verification:
                 memo: None,
@@ -1818,6 +1829,7 @@ impl MockRelayer {
             )
             .expect("valid shielded ICS-20 withdrawal plan");
             TransactionPlan {
+                nullifier_window: None,
                 actions: vec![ics20_msg.into()],
                 // Now fill out the remaining parts of the transaction needed for verification:
                 memo: None,
@@ -1934,6 +1946,7 @@ impl MockRelayer {
                     )
                     .into();
                     TransactionPlan {
+                        nullifier_window: None,
                         actions: vec![ics20_msg],
                         // Now fill out the remaining parts of the transaction needed for verification:
                         memo: None,
@@ -2054,6 +2067,7 @@ impl MockRelayer {
                     )
                     .into();
                     TransactionPlan {
+                        nullifier_window: None,
                         actions: vec![ics20_msg],
                         // Now fill out the remaining parts of the transaction needed for verification:
                         memo: None,
@@ -2156,6 +2170,7 @@ async fn _build_update_client_tx(
         })
         .into();
         TransactionPlan {
+            nullifier_window: None,
             actions: vec![ibc_msg],
             // Now fill out the remaining parts of the transaction needed for verification:
             memo: None,

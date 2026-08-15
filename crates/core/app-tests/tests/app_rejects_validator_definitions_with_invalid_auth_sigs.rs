@@ -114,6 +114,7 @@ async fn app_rejects_validator_definitions_with_invalid_auth_sigs() -> anyhow::R
                 chain_id: TestNode::<()>::CHAIN_ID.to_string(),
                 ..Default::default()
             },
+            nullifier_window: None,
         }
     };
     let tx = client.witness_auth_build(&plan).await?;

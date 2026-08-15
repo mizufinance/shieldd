@@ -25,5 +25,5 @@ CC-FIND-DESIGNATED-VERIFIER-CLAIM|crates/core/component/compliance/src/evidence.
 CC-FIND-DLEQ-WEAK-FS|crates/core/component/compliance/formal/lean-dleq/Dleq/FiatShamir.lean:theorem dleq_fs_knowledge_soundness_strong
 CC-FIND-DLEQ-CHALLENGE-BIAS|crates/core/component/compliance/formal/lean-dleq/Dleq/Challenge.lean:theorem emb_injective
 CC-FIND-TRANSFER-IDENTITY-DIVERSIFIER-OWNERSHIP|tools/gnark/internal/circuits/transfer_circuit.go:AssertDecafNonIdentity(api, shared.senderDivGen)
-CC-FIND-DETECTION-ASSET-FLAG-ALIAS|tools/gnark/internal/circuits/transfer_circuit.go:sender_word=sender.slot_id+flag*2^32
+CC-FIND-DETECTION-ASSET-FLAG-ALIAS|tools/gnark/internal/compliance/transfer_encryption.go:api.Mul(isFlagged, transferDetectionFlagBit)
 CC-FIND-ZERO-EPHEMERAL-SCALAR|crates/core/component/compliance/src/transfer.rs:fn sample_nonzero_scalar
