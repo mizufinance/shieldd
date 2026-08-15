@@ -24,21 +24,21 @@ type transferMutation struct {
 	preserveStaleStatement bool
 	mutate                 func(
 		*testing.T,
-		*abi.TransferWitnessV17Binary,
+		*abi.TransferWitnessV18Binary,
 		*circuits.TransferCircuit,
 	)
 }
 
 func loadTransferAssignment(
 	t *testing.T,
-) (*abi.TransferWitnessV17Binary, *circuits.TransferCircuit) {
+) (*abi.TransferWitnessV18Binary, *circuits.TransferCircuit) {
 	t.Helper()
-	fixtureBytes := testfixtures.LoadTransferWitnessV17("transfer")
-	witness, _, err := abi.DecodeTransferWitnessV17(fixtureBytes)
+	fixtureBytes := testfixtures.LoadTransferWitnessV18("transfer")
+	witness, _, err := abi.DecodeTransferWitnessV18(fixtureBytes)
 	if err != nil {
 		t.Fatalf("decode transfer witness fixture binary: %v", err)
 	}
-	assignment, _, err := abi.NewTransferCircuitAssignmentFromWitnessV17(fixtureBytes)
+	assignment, _, err := abi.NewTransferCircuitAssignmentFromWitnessV18(fixtureBytes)
 	if err != nil {
 		t.Fatalf("decode transfer witness fixture: %v", err)
 	}
@@ -46,32 +46,32 @@ func loadTransferAssignment(
 	return witness, assignment
 }
 
-func loadUnregulatedTransferV17(
+func loadUnregulatedTransferV18(
 	t *testing.T,
-) (*abi.TransferWitnessV17Binary, *circuits.TransferCircuit) {
+) (*abi.TransferWitnessV18Binary, *circuits.TransferCircuit) {
 	t.Helper()
-	fixtureBytes := testfixtures.LoadTransferWitnessV17("transfer_unregulated")
-	witness, _, err := abi.DecodeTransferWitnessV17(fixtureBytes)
+	fixtureBytes := testfixtures.LoadTransferWitnessV18("transfer_unregulated")
+	witness, _, err := abi.DecodeTransferWitnessV18(fixtureBytes)
 	if err != nil {
 		t.Fatalf("decode unregulated transfer witness fixture: %v", err)
 	}
 	if witness.IsRegulated {
 		t.Fatal("unregulated transfer witness fixture must use the unregulated branch")
 	}
-	assignment, _, err := abi.NewTransferCircuitAssignmentFromWitnessV17(fixtureBytes)
+	assignment, _, err := abi.NewTransferCircuitAssignmentFromWitnessV18(fixtureBytes)
 	if err != nil {
 		t.Fatalf("build unregulated transfer assignment: %v", err)
 	}
 	return witness, assignment
 }
 
-func setTransferStatementHashV17(
+func setTransferStatementHashV18(
 	t *testing.T,
-	witness *abi.TransferWitnessV17Binary,
+	witness *abi.TransferWitnessV18Binary,
 	assignment *circuits.TransferCircuit,
 ) {
 	t.Helper()
-	fields, err := abi.ReconstructedTransferStatementFieldsFromWitnessV17(witness)
+	fields, err := abi.ReconstructedTransferStatementFieldsFromWitnessV18(witness)
 	if err != nil {
 		t.Fatalf("reconstruct transfer statement fields: %v", err)
 	}
@@ -98,7 +98,7 @@ func assertTransferMutationRejected(t *testing.T, mutation transferMutation) {
 	witness, assignment := loadTransferAssignment(t)
 	mutation.mutate(t, witness, assignment)
 	if !mutation.preserveStaleStatement {
-		setTransferStatementHashV17(t, witness, assignment)
+		setTransferStatementHashV18(t, witness, assignment)
 	}
 
 	if err := test.IsSolved(circuits.NewTransferCircuit(), assignment, ecc.BLS12_377.ScalarField()); err == nil {
@@ -232,8 +232,8 @@ func noteCommitmentNativeFromFields(
 func transferAssignmentWithFalseRegulatedBranch(t *testing.T) *circuits.TransferCircuit {
 	t.Helper()
 
-	fixtureBytes := testfixtures.LoadTransferWitnessV17("transfer")
-	witness, _, err := abi.DecodeTransferWitnessV17(fixtureBytes)
+	fixtureBytes := testfixtures.LoadTransferWitnessV18("transfer")
+	witness, _, err := abi.DecodeTransferWitnessV18(fixtureBytes)
 	if err != nil {
 		t.Fatalf("decode transfer witness fixture: %v", err)
 	}
@@ -241,7 +241,7 @@ func transferAssignmentWithFalseRegulatedBranch(t *testing.T) *circuits.Transfer
 		t.Fatalf("transfer fixture must start regulated for this regression")
 	}
 
-	assignment, _, err := abi.NewTransferCircuitAssignmentFromWitnessV17(fixtureBytes)
+	assignment, _, err := abi.NewTransferCircuitAssignmentFromWitnessV18(fixtureBytes)
 	if err != nil {
 		t.Fatalf("build transfer assignment: %v", err)
 	}
@@ -270,7 +270,7 @@ func TestTransferCircuitRejectsNonBooleanRegulatedSelector(t *testing.T) {
 }
 
 func TestTransferCircuitAcceptsCanonicalUnregulatedBranch(t *testing.T) {
-	witness, assignment := loadUnregulatedTransferV17(t)
+	witness, assignment := loadUnregulatedTransferV18(t)
 	if got := primitives.LittleEndianBytesToBigInt(witness.AssetIndexedLeaf.Threshold[:]); got.Cmp(big.NewInt(1)) != 0 {
 		t.Fatalf("unregulated regression fixture predecessor threshold = %s, want 1", got)
 	}
@@ -284,8 +284,8 @@ func TestTransferCircuitAcceptsCanonicalUnregulatedBranch(t *testing.T) {
 }
 
 func TestTransferCircuitAcceptsRegulatedFlaggedHiddenArity(t *testing.T) {
-	fixtureBytes := testfixtures.LoadTransferWitnessV17("transfer_flagged")
-	witness, _, err := abi.DecodeTransferWitnessV17(fixtureBytes)
+	fixtureBytes := testfixtures.LoadTransferWitnessV18("transfer_flagged")
+	witness, _, err := abi.DecodeTransferWitnessV18(fixtureBytes)
 	if err != nil {
 		t.Fatalf("decode flagged transfer witness fixture: %v", err)
 	}
@@ -314,7 +314,7 @@ func TestTransferCircuitAcceptsRegulatedFlaggedHiddenArity(t *testing.T) {
 		)
 	}
 
-	assignment, _, err := abi.NewTransferCircuitAssignmentFromWitnessV17(fixtureBytes)
+	assignment, _, err := abi.NewTransferCircuitAssignmentFromWitnessV18(fixtureBytes)
 	if err != nil {
 		t.Fatalf("build flagged transfer assignment: %v", err)
 	}
@@ -331,12 +331,12 @@ func TestTransferDetectionRejectsSlotIDsOutsideCanonicalU32Range(t *testing.T) {
 	slotAliasDelta := new(big.Int).Lsh(big.NewInt(1), 32)
 	tests := []struct {
 		name   string
-		mutate func(*abi.TransferWitnessV17Binary, *circuits.TransferCircuit)
+		mutate func(*abi.TransferWitnessV18Binary, *circuits.TransferCircuit)
 	}{
 		{
 			name: "sender",
 			mutate: func(
-				witness *abi.TransferWitnessV17Binary,
+				witness *abi.TransferWitnessV18Binary,
 				assignment *circuits.TransferCircuit,
 			) {
 				witness.SenderSlotID = addFieldElementBytes(
@@ -361,7 +361,7 @@ func TestTransferDetectionRejectsSlotIDsOutsideCanonicalU32Range(t *testing.T) {
 		{
 			name: "receiver",
 			mutate: func(
-				witness *abi.TransferWitnessV17Binary,
+				witness *abi.TransferWitnessV18Binary,
 				assignment *circuits.TransferCircuit,
 			) {
 				witness.ReceiverOutput.RecipientSlotID = addFieldElementBytes(
@@ -388,9 +388,9 @@ func TestTransferDetectionRejectsSlotIDsOutsideCanonicalU32Range(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			witness, assignment := loadUnregulatedTransferV17(t)
+			witness, assignment := loadUnregulatedTransferV18(t)
 			tc.mutate(witness, assignment)
-			setTransferStatementHashV17(t, witness, assignment)
+			setTransferStatementHashV18(t, witness, assignment)
 			if err := test.IsSolved(
 				circuits.NewTransferCircuit(),
 				assignment,
@@ -407,7 +407,7 @@ func TestTransferCircuitBindsUnregulatedCiphertextAndCanonicalPolicy(t *testing.
 		name   string
 		mutate func(
 			*testing.T,
-			*abi.TransferWitnessV17Binary,
+			*abi.TransferWitnessV18Binary,
 			*circuits.TransferCircuit,
 		)
 	}{
@@ -415,7 +415,7 @@ func TestTransferCircuitBindsUnregulatedCiphertextAndCanonicalPolicy(t *testing.
 			name: "detection ciphertext",
 			mutate: func(
 				t *testing.T,
-				w *abi.TransferWitnessV17Binary,
+				w *abi.TransferWitnessV18Binary,
 				a *circuits.TransferCircuit,
 			) {
 				w.DetectionCiphertext[0] = addFieldElementBytes(
@@ -433,7 +433,7 @@ func TestTransferCircuitBindsUnregulatedCiphertextAndCanonicalPolicy(t *testing.
 			name: "tier ciphertext",
 			mutate: func(
 				t *testing.T,
-				w *abi.TransferWitnessV17Binary,
+				w *abi.TransferWitnessV18Binary,
 				a *circuits.TransferCircuit,
 			) {
 				w.SenderCore.Ciphertext[0] = addFieldElementBytes(
@@ -451,7 +451,7 @@ func TestTransferCircuitBindsUnregulatedCiphertextAndCanonicalPolicy(t *testing.
 			name: "policy hash",
 			mutate: func(
 				t *testing.T,
-				w *abi.TransferWitnessV17Binary,
+				w *abi.TransferWitnessV18Binary,
 				a *circuits.TransferCircuit,
 			) {
 				w.Metadata.PolicyIDHash = addFieldElementBytes(
@@ -468,9 +468,9 @@ func TestTransferCircuitBindsUnregulatedCiphertextAndCanonicalPolicy(t *testing.
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			witness, assignment := loadUnregulatedTransferV17(t)
+			witness, assignment := loadUnregulatedTransferV18(t)
 			tc.mutate(t, witness, assignment)
-			setTransferStatementHashV17(t, witness, assignment)
+			setTransferStatementHashV18(t, witness, assignment)
 			if err := test.IsSolved(
 				circuits.NewTransferCircuit(),
 				assignment,
@@ -483,15 +483,15 @@ func TestTransferCircuitBindsUnregulatedCiphertextAndCanonicalPolicy(t *testing.
 }
 
 func TestShieldedIcs20WithdrawalCircuitRejectsRegulatedAssetRoutedAsUnregulated(t *testing.T) {
-	fixtureBytes := testfixtures.LoadShieldedIcs20WithdrawalWitnessV9("shielded_ics20_withdrawal")
-	witness, family, err := abi.DecodeShieldedIcs20WithdrawalWitnessV9(fixtureBytes)
+	fixtureBytes := testfixtures.LoadShieldedIcs20WithdrawalWitnessV10("shielded_ics20_withdrawal")
+	witness, family, err := abi.DecodeShieldedIcs20WithdrawalWitnessV10(fixtureBytes)
 	if err != nil {
 		t.Fatalf("decode shielded ICS-20 withdrawal fixture: %v", err)
 	}
 	if !witness.IsRegulated {
 		t.Fatalf("shielded ICS-20 withdrawal fixture must start regulated for this regression")
 	}
-	assignment, _, err := abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV9(fixtureBytes)
+	assignment, _, err := abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV10(fixtureBytes)
 	if err != nil {
 		t.Fatalf("build shielded ICS-20 withdrawal assignment: %v", err)
 	}
@@ -508,7 +508,7 @@ func TestShieldedIcs20WithdrawalCircuitRejectsRegulatedAssetRoutedAsUnregulated(
 
 func withdrawalDummyNullifierForSlot(
 	t *testing.T,
-	spend abi.ShieldedIcs20WithdrawalOptionalSpendWitnessV9Binary,
+	spend abi.ShieldedIcs20WithdrawalOptionalSpendWitnessV10Binary,
 	slot int,
 ) *big.Int {
 	t.Helper()
@@ -532,7 +532,7 @@ func withdrawalDummyNullifierForSlot(
 
 func makeWithdrawalOptionalSpendDummy(
 	t *testing.T,
-	witness *abi.ShieldedIcs20WithdrawalWitnessV9Binary,
+	witness *abi.ShieldedIcs20WithdrawalWitnessV10Binary,
 	assignment *circuits.ShieldedIcs20WithdrawalCircuit,
 ) {
 	t.Helper()
@@ -540,8 +540,10 @@ func makeWithdrawalOptionalSpendDummy(
 	spend := &witness.OptionalSpend
 	spend.IsDummy = true
 	spend.SpentNoteAmount = [32]byte{}
+	spend.HistoryRequired = false
 	assignment.OptionalSpend.IsDummy = 1
 	assignment.OptionalSpend.Note.Amount = 0
+	assignment.OptionalSpend.HistoryRequired = 0
 
 	const optionalSpendSlot = 1
 	dummyNullifier := withdrawalDummyNullifierForSlot(
@@ -555,7 +557,7 @@ func makeWithdrawalOptionalSpendDummy(
 
 func TestShieldedIcs20WithdrawalRequiredSpendOmitsDummyLayout(t *testing.T) {
 	for label, typ := range map[string]reflect.Type{
-		"binary required spend":  reflect.TypeOf(abi.ShieldedIcs20WithdrawalRequiredSpendWitnessV9Binary{}),
+		"binary required spend":  reflect.TypeOf(abi.ShieldedIcs20WithdrawalRequiredSpendWitnessV10Binary{}),
 		"circuit required spend": reflect.TypeOf(circuits.ShieldedIcs20WithdrawalRequiredSpendCircuitFields{}),
 	} {
 		for _, prohibited := range []string{"IsDummy", "DummyNullifierSeed", "DummySpendAuthKey"} {
@@ -565,7 +567,7 @@ func TestShieldedIcs20WithdrawalRequiredSpendOmitsDummyLayout(t *testing.T) {
 		}
 	}
 	for label, typ := range map[string]reflect.Type{
-		"binary optional spend":  reflect.TypeOf(abi.ShieldedIcs20WithdrawalOptionalSpendWitnessV9Binary{}),
+		"binary optional spend":  reflect.TypeOf(abi.ShieldedIcs20WithdrawalOptionalSpendWitnessV10Binary{}),
 		"circuit optional spend": reflect.TypeOf(circuits.ShieldedIcs20WithdrawalOptionalSpendCircuitFields{}),
 	} {
 		for _, required := range []string{"IsDummy", "DummyNullifierSeed"} {
@@ -579,9 +581,9 @@ func TestShieldedIcs20WithdrawalRequiredSpendOmitsDummyLayout(t *testing.T) {
 	}
 }
 
-func TestTransferV17UsesRoleSpecificSemanticLayout(t *testing.T) {
+func TestTransferV18UsesRoleSpecificSemanticLayout(t *testing.T) {
 	for label, typ := range map[string]reflect.Type{
-		"binary required spend":  reflect.TypeOf(abi.TransferRequiredSpendWitnessV17Binary{}),
+		"binary required spend":  reflect.TypeOf(abi.TransferRequiredSpendWitnessV18Binary{}),
 		"circuit required spend": reflect.TypeOf(circuits.TransferRequiredSpendCircuitFields{}),
 	} {
 		for _, prohibited := range []string{"IsDummy", "DummyNullifierSeed", "DummySpendAuthKey"} {
@@ -595,7 +597,7 @@ func TestTransferV17UsesRoleSpecificSemanticLayout(t *testing.T) {
 		required []string
 	}{
 		"binary optional spend": {
-			typ:      reflect.TypeOf(abi.TransferOptionalSpendWitnessV17Binary{}),
+			typ:      reflect.TypeOf(abi.TransferOptionalSpendWitnessV18Binary{}),
 			required: []string{"Nullifier", "RKAffine", "IsDummy", "DummyNullifierSeed"},
 		},
 		"circuit optional spend": {
@@ -615,7 +617,7 @@ func TestTransferV17UsesRoleSpecificSemanticLayout(t *testing.T) {
 		}
 	}
 	for label, typ := range map[string]reflect.Type{
-		"binary transfer witness": reflect.TypeOf(abi.TransferWitnessV17Binary{}),
+		"binary transfer witness": reflect.TypeOf(abi.TransferWitnessV18Binary{}),
 		"transfer circuit":        reflect.TypeOf(circuits.TransferCircuit{}),
 	} {
 		for _, prohibited := range []string{
@@ -640,7 +642,7 @@ func TestTransferV17UsesRoleSpecificSemanticLayout(t *testing.T) {
 		}
 	}
 
-	binaryWitness := reflect.TypeOf(abi.TransferWitnessV17Binary{})
+	binaryWitness := reflect.TypeOf(abi.TransferWitnessV18Binary{})
 	for _, prohibited := range []string{
 		"NIn",
 		"NOut",
@@ -655,8 +657,8 @@ func TestTransferV17UsesRoleSpecificSemanticLayout(t *testing.T) {
 	}
 
 	for label, typ := range map[string]reflect.Type{
-		"binary required spend":  reflect.TypeOf(abi.TransferRequiredSpendWitnessV17Binary{}),
-		"binary optional spend":  reflect.TypeOf(abi.TransferOptionalSpendWitnessV17Binary{}),
+		"binary required spend":  reflect.TypeOf(abi.TransferRequiredSpendWitnessV18Binary{}),
+		"binary optional spend":  reflect.TypeOf(abi.TransferOptionalSpendWitnessV18Binary{}),
 		"circuit required spend": reflect.TypeOf(circuits.TransferRequiredSpendCircuitFields{}),
 		"circuit optional spend": reflect.TypeOf(circuits.TransferOptionalSpendCircuitFields{}),
 	} {
@@ -675,7 +677,7 @@ func TestTransferV17UsesRoleSpecificSemanticLayout(t *testing.T) {
 	}
 
 	for label, typ := range map[string]reflect.Type{
-		"binary receiver output":  reflect.TypeOf(abi.TransferReceiverOutputWitnessV17Binary{}),
+		"binary receiver output":  reflect.TypeOf(abi.TransferReceiverOutputWitnessV18Binary{}),
 		"circuit receiver output": reflect.TypeOf(circuits.TransferReceiverOutputCircuitFields{}),
 	} {
 		for _, prohibited := range []string{
@@ -692,7 +694,7 @@ func TestTransferV17UsesRoleSpecificSemanticLayout(t *testing.T) {
 	}
 
 	for label, typ := range map[string]reflect.Type{
-		"binary change output":  reflect.TypeOf(abi.TransferChangeOutputWitnessV17Binary{}),
+		"binary change output":  reflect.TypeOf(abi.TransferChangeOutputWitnessV18Binary{}),
 		"circuit change output": reflect.TypeOf(circuits.TransferChangeOutputCircuitFields{}),
 	} {
 		for _, prohibited := range []string{
@@ -710,7 +712,7 @@ func TestTransferV17UsesRoleSpecificSemanticLayout(t *testing.T) {
 		}
 	}
 
-	binaryTier := reflect.TypeOf(abi.TransferComplianceCiphertextWitnessV17Binary{})
+	binaryTier := reflect.TypeOf(abi.TransferComplianceCiphertextWitnessV18Binary{})
 	for _, required := range []string{
 		"C2",
 		"Ciphertext",
@@ -750,7 +752,7 @@ func TestTransferV17UsesRoleSpecificSemanticLayout(t *testing.T) {
 			t.Fatalf("%s compliance circuit tier must not carry an obsolete Proof package", label)
 		}
 	}
-	binaryMetadata := reflect.TypeOf(abi.TransferComplianceMetadataWitnessV17Binary{})
+	binaryMetadata := reflect.TypeOf(abi.TransferComplianceMetadataWitnessV18Binary{})
 	circuitMetadata := reflect.TypeOf(circuits.TransferComplianceMetadataFields{})
 	for _, required := range []string{
 		"SenderSubjectDerivation",
@@ -776,7 +778,7 @@ func TestTransferV17UsesRoleSpecificSemanticLayout(t *testing.T) {
 
 func transferDummyNullifierForSlot(
 	t *testing.T,
-	optional abi.TransferOptionalSpendWitnessV17Binary,
+	optional abi.TransferOptionalSpendWitnessV18Binary,
 	slot int,
 ) *big.Int {
 	t.Helper()
@@ -797,12 +799,12 @@ func transferDummyNullifierForSlot(
 }
 
 func TestTransferSyntheticDummyNullifierBindsFixedSlot(t *testing.T) {
-	fixture := testfixtures.LoadTransferWitnessV17("transfer_flagged")
-	witness, _, err := abi.DecodeTransferWitnessV17(fixture)
+	fixture := testfixtures.LoadTransferWitnessV18("transfer_flagged")
+	witness, _, err := abi.DecodeTransferWitnessV18(fixture)
 	if err != nil {
 		t.Fatalf("decode flagged transfer fixture: %v", err)
 	}
-	assignment, _, err := abi.NewTransferCircuitAssignmentFromWitnessV17(fixture)
+	assignment, _, err := abi.NewTransferCircuitAssignmentFromWitnessV18(fixture)
 	if err != nil {
 		t.Fatalf("build flagged transfer assignment: %v", err)
 	}
@@ -829,7 +831,7 @@ func TestTransferSyntheticDummyNullifierBindsFixedSlot(t *testing.T) {
 	}
 	witness.OptionalSpend.Nullifier = le32FromBigInt(t, wrongNullifier)
 	assignment.OptionalSpend.Nullifier = wrongNullifier.String()
-	setTransferStatementHashV17(t, witness, assignment)
+	setTransferStatementHashV18(t, witness, assignment)
 
 	if err := test.IsSolved(
 		circuits.NewTransferCircuit(),
@@ -841,12 +843,12 @@ func TestTransferSyntheticDummyNullifierBindsFixedSlot(t *testing.T) {
 }
 
 func TestTransferDummySpendRKIsExternallyAuthorized(t *testing.T) {
-	fixtureBytes := testfixtures.LoadTransferWitnessV17("transfer")
-	witness, _, err := abi.DecodeTransferWitnessV17(fixtureBytes)
+	fixtureBytes := testfixtures.LoadTransferWitnessV18("transfer")
+	witness, _, err := abi.DecodeTransferWitnessV18(fixtureBytes)
 	if err != nil {
 		t.Fatalf("decode transfer witness fixture: %v", err)
 	}
-	assignment, _, err := abi.NewTransferCircuitAssignmentFromWitnessV17(fixtureBytes)
+	assignment, _, err := abi.NewTransferCircuitAssignmentFromWitnessV18(fixtureBytes)
 	if err != nil {
 		t.Fatalf("build transfer assignment: %v", err)
 	}
@@ -862,16 +864,18 @@ func TestTransferDummySpendRKIsExternallyAuthorized(t *testing.T) {
 	optional := &witness.OptionalSpend
 	optional.IsDummy = true
 	optional.SpentNoteAmount = [32]byte{}
+	optional.HistoryRequired = false
 	optional.RKAffine = witness.RequiredSpend.RKAffine
 	dummyNullifier := transferDummyNullifierForSlot(t, *optional, dummySlot)
 	optional.Nullifier = le32FromBigInt(t, dummyNullifier)
 
 	assignment.OptionalSpend.IsDummy = 1
 	assignment.OptionalSpend.Note.Amount = 0
+	assignment.OptionalSpend.HistoryRequired = 0
 	assignment.OptionalSpend.RK = assignment.RequiredSpend.RK
 	assignment.OptionalSpend.Nullifier = dummyNullifier.String()
 
-	fields, err := abi.ReconstructedTransferStatementFieldsFromWitnessV17(witness)
+	fields, err := abi.ReconstructedTransferStatementFieldsFromWitnessV18(witness)
 	if err != nil {
 		t.Fatalf("reconstruct transfer statement fields: %v", err)
 	}
@@ -896,13 +900,13 @@ func TestTransferDummySpendRKIsExternallyAuthorized(t *testing.T) {
 
 func setWithdrawalStatementHash(
 	t *testing.T,
-	witness *abi.ShieldedIcs20WithdrawalWitnessV9Binary,
+	witness *abi.ShieldedIcs20WithdrawalWitnessV10Binary,
 	assignment *circuits.ShieldedIcs20WithdrawalCircuit,
 	nIn int,
 ) {
 	t.Helper()
 
-	fields, err := abi.ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitnessV9(witness)
+	fields, err := abi.ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitnessV10(witness)
 	if err != nil {
 		t.Fatalf("reconstruct withdrawal statement fields: %v", err)
 	}
@@ -918,7 +922,7 @@ func setWithdrawalStatementHash(
 
 func balanceWithdrawalAfterOptionalDummy(
 	t *testing.T,
-	witness *abi.ShieldedIcs20WithdrawalWitnessV9Binary,
+	witness *abi.ShieldedIcs20WithdrawalWitnessV10Binary,
 	assignment *circuits.ShieldedIcs20WithdrawalCircuit,
 ) {
 	t.Helper()
@@ -944,20 +948,20 @@ func balanceWithdrawalAfterOptionalDummy(
 func loadWithdrawalFixture(
 	t *testing.T,
 ) (
-	*abi.ShieldedIcs20WithdrawalWitnessV9Binary,
+	*abi.ShieldedIcs20WithdrawalWitnessV10Binary,
 	*circuits.ShieldedIcs20WithdrawalCircuit,
 	int,
 ) {
 	t.Helper()
 
-	fixtureBytes := testfixtures.LoadShieldedIcs20WithdrawalWitnessV9(
+	fixtureBytes := testfixtures.LoadShieldedIcs20WithdrawalWitnessV10(
 		"shielded_ics20_withdrawal",
 	)
-	witness, family, err := abi.DecodeShieldedIcs20WithdrawalWitnessV9(fixtureBytes)
+	witness, family, err := abi.DecodeShieldedIcs20WithdrawalWitnessV10(fixtureBytes)
 	if err != nil {
 		t.Fatalf("decode shielded ICS-20 withdrawal fixture: %v", err)
 	}
-	assignment, _, err := abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV9(
+	assignment, _, err := abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV10(
 		fixtureBytes,
 	)
 	if err != nil {
@@ -1021,7 +1025,7 @@ func TestTransferCircuitAcceptsReboundNetValueAfterChangeAmountMutation(
 ) {
 	witness, assignment := loadTransferAssignment(t)
 	originalStatementFields, err :=
-		abi.ReconstructedTransferStatementFieldsFromWitnessV17(witness)
+		abi.ReconstructedTransferStatementFieldsFromWitnessV18(witness)
 	if err != nil {
 		t.Fatalf("reconstruct original transfer statement fields: %v", err)
 	}
@@ -1054,7 +1058,7 @@ func TestTransferCircuitAcceptsReboundNetValueAfterChangeAmountMutation(
 	witness.ChangeOutput.NoteCommitment = le32FromBigInt(t, commitment)
 	assignment.ChangeOutput.NoteCommitment = commitment.String()
 	mutatedStatementFields, err :=
-		abi.ReconstructedTransferStatementFieldsFromWitnessV17(witness)
+		abi.ReconstructedTransferStatementFieldsFromWitnessV18(witness)
 	if err != nil {
 		t.Fatalf("reconstruct mutated transfer statement fields: %v", err)
 	}
@@ -1070,7 +1074,7 @@ func TestTransferCircuitAcceptsReboundNetValueAfterChangeAmountMutation(
 		mutatedStatementFields[balanceCommitmentStatementField] {
 		t.Fatal("change-amount mutation did not alter the derived net balance commitment")
 	}
-	setTransferStatementHashV17(t, witness, assignment)
+	setTransferStatementHashV18(t, witness, assignment)
 
 	// Transfer actions deliberately expose a derived net balance commitment;
 	// they do not enforce zero net value inside this action circuit.
@@ -1093,7 +1097,7 @@ func TestTransferCircuitRejectsTransferOwnedMutations(t *testing.T) {
 			preserveStaleStatement: true,
 			mutate: func(
 				_ *testing.T,
-				_ *abi.TransferWitnessV17Binary,
+				_ *abi.TransferWitnessV18Binary,
 				c *circuits.TransferCircuit,
 			) {
 				c.ClaimedStatementHash = mutateFieldByOne(c.ClaimedStatementHash)
@@ -1103,7 +1107,7 @@ func TestTransferCircuitRejectsTransferOwnedMutations(t *testing.T) {
 			name: "routing tag meaningful prefix",
 			mutate: func(
 				t *testing.T,
-				w *abi.TransferWitnessV17Binary,
+				w *abi.TransferWitnessV18Binary,
 				c *circuits.TransferCircuit,
 			) {
 				w.RoutingTags[0] = addFieldElementBytes(t, w.RoutingTags[0], big.NewInt(1))
@@ -1116,7 +1120,7 @@ func TestTransferCircuitRejectsTransferOwnedMutations(t *testing.T) {
 			name: "routing parameter set identifier",
 			mutate: func(
 				t *testing.T,
-				w *abi.TransferWitnessV17Binary,
+				w *abi.TransferWitnessV18Binary,
 				c *circuits.TransferCircuit,
 			) {
 				w.RoutingParameterSetID = addFieldElementBytes(
@@ -1133,7 +1137,7 @@ func TestTransferCircuitRejectsTransferOwnedMutations(t *testing.T) {
 			name: "required spend nullifier",
 			mutate: func(
 				t *testing.T,
-				w *abi.TransferWitnessV17Binary,
+				w *abi.TransferWitnessV18Binary,
 				c *circuits.TransferCircuit,
 			) {
 				w.RequiredSpend.Nullifier = addFieldElementBytes(
@@ -1150,7 +1154,7 @@ func TestTransferCircuitRejectsTransferOwnedMutations(t *testing.T) {
 			name: "optional real spend nullifier",
 			mutate: func(
 				t *testing.T,
-				w *abi.TransferWitnessV17Binary,
+				w *abi.TransferWitnessV18Binary,
 				c *circuits.TransferCircuit,
 			) {
 				if w.OptionalSpend.IsDummy {
@@ -1170,7 +1174,7 @@ func TestTransferCircuitRejectsTransferOwnedMutations(t *testing.T) {
 			name: "required randomized verification key",
 			mutate: func(
 				t *testing.T,
-				w *abi.TransferWitnessV17Binary,
+				w *abi.TransferWitnessV18Binary,
 				c *circuits.TransferCircuit,
 			) {
 				if !pointsHaveDistinctCompression(
@@ -1188,7 +1192,7 @@ func TestTransferCircuitRejectsTransferOwnedMutations(t *testing.T) {
 			name: "optional real randomized verification key",
 			mutate: func(
 				t *testing.T,
-				w *abi.TransferWitnessV17Binary,
+				w *abi.TransferWitnessV18Binary,
 				c *circuits.TransferCircuit,
 			) {
 				if w.OptionalSpend.IsDummy {
@@ -1209,7 +1213,7 @@ func TestTransferCircuitRejectsTransferOwnedMutations(t *testing.T) {
 			name: "state path",
 			mutate: func(
 				_ *testing.T,
-				_ *abi.TransferWitnessV17Binary,
+				_ *abi.TransferWitnessV18Binary,
 				c *circuits.TransferCircuit,
 			) {
 				c.RequiredSpend.StateProof.Path[0][0] =
@@ -1220,7 +1224,7 @@ func TestTransferCircuitRejectsTransferOwnedMutations(t *testing.T) {
 			name: "receiver output note commitment",
 			mutate: func(
 				t *testing.T,
-				w *abi.TransferWitnessV17Binary,
+				w *abi.TransferWitnessV18Binary,
 				c *circuits.TransferCircuit,
 			) {
 				w.ReceiverOutput.NoteCommitment = addFieldElementBytes(
@@ -1238,7 +1242,7 @@ func TestTransferCircuitRejectsTransferOwnedMutations(t *testing.T) {
 			name: "change output note commitment",
 			mutate: func(
 				t *testing.T,
-				w *abi.TransferWitnessV17Binary,
+				w *abi.TransferWitnessV18Binary,
 				c *circuits.TransferCircuit,
 			) {
 				w.ChangeOutput.NoteCommitment = addFieldElementBytes(
@@ -1277,7 +1281,7 @@ func TestTransferCircuitRejectsEveryDetectionCiphertextMutation(t *testing.T) {
 				name: fmt.Sprintf("detection ciphertext[%d]", ciphertextIndex),
 				mutate: func(
 					t *testing.T,
-					w *abi.TransferWitnessV17Binary,
+					w *abi.TransferWitnessV18Binary,
 					c *circuits.TransferCircuit,
 				) {
 					if len(w.DetectionCiphertext) != compliance.TransferDetectionFQCount {
@@ -1323,12 +1327,12 @@ func TestTransferCircuitRejectsEveryTierEPKSubstitution(t *testing.T) {
 
 	tests := []struct {
 		name   string
-		target func(*abi.TransferWitnessV17Binary) *abi.PointAffineBinary
+		target func(*abi.TransferWitnessV18Binary) *abi.PointAffineBinary
 		assign func(*circuits.TransferCircuit, circuits.Point2D)
 	}{
 		{
 			name: "sender core",
-			target: func(w *abi.TransferWitnessV17Binary) *abi.PointAffineBinary {
+			target: func(w *abi.TransferWitnessV18Binary) *abi.PointAffineBinary {
 				return &w.SenderCore.EPKAffine
 			},
 			assign: func(c *circuits.TransferCircuit, point circuits.Point2D) {
@@ -1337,7 +1341,7 @@ func TestTransferCircuitRejectsEveryTierEPKSubstitution(t *testing.T) {
 		},
 		{
 			name: "sender ext",
-			target: func(w *abi.TransferWitnessV17Binary) *abi.PointAffineBinary {
+			target: func(w *abi.TransferWitnessV18Binary) *abi.PointAffineBinary {
 				return &w.SenderExt.EPKAffine
 			},
 			assign: func(c *circuits.TransferCircuit, point circuits.Point2D) {
@@ -1346,7 +1350,7 @@ func TestTransferCircuitRejectsEveryTierEPKSubstitution(t *testing.T) {
 		},
 		{
 			name: "output core",
-			target: func(w *abi.TransferWitnessV17Binary) *abi.PointAffineBinary {
+			target: func(w *abi.TransferWitnessV18Binary) *abi.PointAffineBinary {
 				return &w.OutputCore.EPKAffine
 			},
 			assign: func(c *circuits.TransferCircuit, point circuits.Point2D) {
@@ -1355,7 +1359,7 @@ func TestTransferCircuitRejectsEveryTierEPKSubstitution(t *testing.T) {
 		},
 		{
 			name: "output ext",
-			target: func(w *abi.TransferWitnessV17Binary) *abi.PointAffineBinary {
+			target: func(w *abi.TransferWitnessV18Binary) *abi.PointAffineBinary {
 				return &w.OutputExt.EPKAffine
 			},
 			assign: func(c *circuits.TransferCircuit, point circuits.Point2D) {
@@ -1397,7 +1401,7 @@ func TestTransferCircuitRejectsEveryTierEPKSubstitution(t *testing.T) {
 			compressedPointFromBinary(t, replacement)
 			*target = replacement
 			tc.assign(assignment, circuitPointFromBinary(replacement))
-			setTransferStatementHashV17(t, witness, assignment)
+			setTransferStatementHashV18(t, witness, assignment)
 
 			if err := test.IsSolved(
 				circuits.NewTransferCircuit(),
@@ -1417,12 +1421,12 @@ func TestTransferCircuitRejectsNonceRootAndEveryTierScalarMutation(t *testing.T)
 	tests := []struct {
 		name        string
 		decafScalar bool
-		target      func(*abi.TransferWitnessV17Binary) *[32]byte
+		target      func(*abi.TransferWitnessV18Binary) *[32]byte
 		assign      func(*circuits.TransferCircuit, string)
 	}{
 		{
 			name: "transfer nonce root",
-			target: func(w *abi.TransferWitnessV17Binary) *[32]byte {
+			target: func(w *abi.TransferWitnessV18Binary) *[32]byte {
 				return &w.TransferNonceRoot
 			},
 			assign: func(c *circuits.TransferCircuit, value string) {
@@ -1432,7 +1436,7 @@ func TestTransferCircuitRejectsNonceRootAndEveryTierScalarMutation(t *testing.T)
 		{
 			name:        "sender core scalar",
 			decafScalar: true,
-			target: func(w *abi.TransferWitnessV17Binary) *[32]byte {
+			target: func(w *abi.TransferWitnessV18Binary) *[32]byte {
 				return &w.SenderRCore
 			},
 			assign: func(c *circuits.TransferCircuit, value string) {
@@ -1442,7 +1446,7 @@ func TestTransferCircuitRejectsNonceRootAndEveryTierScalarMutation(t *testing.T)
 		{
 			name:        "sender ext scalar",
 			decafScalar: true,
-			target: func(w *abi.TransferWitnessV17Binary) *[32]byte {
+			target: func(w *abi.TransferWitnessV18Binary) *[32]byte {
 				return &w.SenderRExt
 			},
 			assign: func(c *circuits.TransferCircuit, value string) {
@@ -1452,7 +1456,7 @@ func TestTransferCircuitRejectsNonceRootAndEveryTierScalarMutation(t *testing.T)
 		{
 			name:        "output core scalar",
 			decafScalar: true,
-			target: func(w *abi.TransferWitnessV17Binary) *[32]byte {
+			target: func(w *abi.TransferWitnessV18Binary) *[32]byte {
 				return &w.OutputRCore
 			},
 			assign: func(c *circuits.TransferCircuit, value string) {
@@ -1462,7 +1466,7 @@ func TestTransferCircuitRejectsNonceRootAndEveryTierScalarMutation(t *testing.T)
 		{
 			name:        "output ext scalar",
 			decafScalar: true,
-			target: func(w *abi.TransferWitnessV17Binary) *[32]byte {
+			target: func(w *abi.TransferWitnessV18Binary) *[32]byte {
 				return &w.OutputRExt
 			},
 			assign: func(c *circuits.TransferCircuit, value string) {
@@ -1489,7 +1493,7 @@ func TestTransferCircuitRejectsNonceRootAndEveryTierScalarMutation(t *testing.T)
 				assignment,
 				primitives.LittleEndianBytesToBigInt(target[:]).String(),
 			)
-			setTransferStatementHashV17(t, witness, assignment)
+			setTransferStatementHashV18(t, witness, assignment)
 
 			if err := test.IsSolved(
 				circuits.NewTransferCircuit(),
@@ -1517,7 +1521,7 @@ func senderCoreMutations() []transferMutation {
 		ciphertextIndex := ciphertextIndex
 		mutations = append(mutations, transferMutation{
 			name: fmt.Sprintf("sender core ciphertext[%d]", ciphertextIndex),
-			mutate: func(t *testing.T, w *abi.TransferWitnessV17Binary, c *circuits.TransferCircuit) {
+			mutate: func(t *testing.T, w *abi.TransferWitnessV18Binary, c *circuits.TransferCircuit) {
 				if len(w.SenderCore.Ciphertext) != compliance.TransferCoreCiphertextFQCount {
 					t.Fatalf(
 						"sender core fixture ciphertext length = %d, want %d",
@@ -1538,7 +1542,7 @@ func senderCoreMutations() []transferMutation {
 		})
 	}
 	mutations = append(mutations,
-		transferMutation{name: "sender core c2", mutate: func(t *testing.T, w *abi.TransferWitnessV17Binary, c *circuits.TransferCircuit) {
+		transferMutation{name: "sender core c2", mutate: func(t *testing.T, w *abi.TransferWitnessV18Binary, c *circuits.TransferCircuit) {
 			w.SenderCore.C2 = addFieldElementBytes(t, w.SenderCore.C2, big.NewInt(1))
 			c.Compliance.SenderCore.C2 = primitives.LittleEndianBytesToBigInt(w.SenderCore.C2[:]).String()
 		}},
@@ -1552,7 +1556,7 @@ func senderExtMutations() []transferMutation {
 		ciphertextIndex := ciphertextIndex
 		mutations = append(mutations, transferMutation{
 			name: fmt.Sprintf("sender ext ciphertext[%d]", ciphertextIndex),
-			mutate: func(t *testing.T, w *abi.TransferWitnessV17Binary, c *circuits.TransferCircuit) {
+			mutate: func(t *testing.T, w *abi.TransferWitnessV18Binary, c *circuits.TransferCircuit) {
 				if len(w.SenderExt.Ciphertext) != compliance.TransferExtCiphertextFQCount {
 					t.Fatalf(
 						"sender ext fixture ciphertext length = %d, want %d",
@@ -1573,7 +1577,7 @@ func senderExtMutations() []transferMutation {
 		})
 	}
 	mutations = append(mutations,
-		transferMutation{name: "sender ext c2", mutate: func(t *testing.T, w *abi.TransferWitnessV17Binary, c *circuits.TransferCircuit) {
+		transferMutation{name: "sender ext c2", mutate: func(t *testing.T, w *abi.TransferWitnessV18Binary, c *circuits.TransferCircuit) {
 			w.SenderExt.C2 = addFieldElementBytes(t, w.SenderExt.C2, big.NewInt(1))
 			c.Compliance.SenderExt.C2 = primitives.LittleEndianBytesToBigInt(w.SenderExt.C2[:]).String()
 		}},
@@ -1587,7 +1591,7 @@ func outputCoreMutations() []transferMutation {
 		ciphertextIndex := ciphertextIndex
 		mutations = append(mutations, transferMutation{
 			name: fmt.Sprintf("output core ciphertext[%d]", ciphertextIndex),
-			mutate: func(t *testing.T, w *abi.TransferWitnessV17Binary, c *circuits.TransferCircuit) {
+			mutate: func(t *testing.T, w *abi.TransferWitnessV18Binary, c *circuits.TransferCircuit) {
 				if len(w.OutputCore.Ciphertext) != compliance.TransferCoreCiphertextFQCount {
 					t.Fatalf(
 						"output core fixture ciphertext length = %d, want %d",
@@ -1608,7 +1612,7 @@ func outputCoreMutations() []transferMutation {
 		})
 	}
 	mutations = append(mutations,
-		transferMutation{name: "output core c2", mutate: func(t *testing.T, w *abi.TransferWitnessV17Binary, c *circuits.TransferCircuit) {
+		transferMutation{name: "output core c2", mutate: func(t *testing.T, w *abi.TransferWitnessV18Binary, c *circuits.TransferCircuit) {
 			w.OutputCore.C2 = addFieldElementBytes(t, w.OutputCore.C2, big.NewInt(1))
 			c.Compliance.OutputCore.C2 = primitives.LittleEndianBytesToBigInt(w.OutputCore.C2[:]).String()
 		}},
@@ -1622,7 +1626,7 @@ func outputExtMutations() []transferMutation {
 		ciphertextIndex := ciphertextIndex
 		mutations = append(mutations, transferMutation{
 			name: fmt.Sprintf("output ext ciphertext[%d]", ciphertextIndex),
-			mutate: func(t *testing.T, w *abi.TransferWitnessV17Binary, c *circuits.TransferCircuit) {
+			mutate: func(t *testing.T, w *abi.TransferWitnessV18Binary, c *circuits.TransferCircuit) {
 				if len(w.OutputExt.Ciphertext) != compliance.TransferExtCiphertextFQCount {
 					t.Fatalf(
 						"output ext fixture ciphertext length = %d, want %d",
@@ -1643,7 +1647,7 @@ func outputExtMutations() []transferMutation {
 		})
 	}
 	mutations = append(mutations,
-		transferMutation{name: "output ext c2", mutate: func(t *testing.T, w *abi.TransferWitnessV17Binary, c *circuits.TransferCircuit) {
+		transferMutation{name: "output ext c2", mutate: func(t *testing.T, w *abi.TransferWitnessV18Binary, c *circuits.TransferCircuit) {
 			w.OutputExt.C2 = addFieldElementBytes(t, w.OutputExt.C2, big.NewInt(1))
 			c.Compliance.OutputExt.C2 = primitives.LittleEndianBytesToBigInt(w.OutputExt.C2[:]).String()
 		}},
@@ -1661,56 +1665,56 @@ func TestTransferCircuitRejectsMetadataMutations(t *testing.T) {
 
 func transferMetadataMutations() []transferMutation {
 	return []transferMutation{
-		{name: "sender subject derivation", mutate: func(t *testing.T, w *abi.TransferWitnessV17Binary, c *circuits.TransferCircuit) {
+		{name: "sender subject derivation", mutate: func(t *testing.T, w *abi.TransferWitnessV18Binary, c *circuits.TransferCircuit) {
 			w.Metadata.SenderSubjectDerivation = addFieldElementBytes(t, w.Metadata.SenderSubjectDerivation, big.NewInt(1))
 			c.Compliance.Metadata.SenderSubjectDerivation =
 				primitives.LittleEndianBytesToBigInt(w.Metadata.SenderSubjectDerivation[:]).String()
 		}},
-		{name: "output subject derivation", mutate: func(t *testing.T, w *abi.TransferWitnessV17Binary, c *circuits.TransferCircuit) {
+		{name: "output subject derivation", mutate: func(t *testing.T, w *abi.TransferWitnessV18Binary, c *circuits.TransferCircuit) {
 			w.Metadata.OutputSubjectDerivation = addFieldElementBytes(t, w.Metadata.OutputSubjectDerivation, big.NewInt(1))
 			c.Compliance.Metadata.OutputSubjectDerivation =
 				primitives.LittleEndianBytesToBigInt(w.Metadata.OutputSubjectDerivation[:]).String()
 		}},
-		{name: "ring id hash", mutate: func(t *testing.T, w *abi.TransferWitnessV17Binary, c *circuits.TransferCircuit) {
+		{name: "ring id hash", mutate: func(t *testing.T, w *abi.TransferWitnessV18Binary, c *circuits.TransferCircuit) {
 			w.Metadata.RingIDHash = addFieldElementBytes(t, w.Metadata.RingIDHash, big.NewInt(1))
 			c.Compliance.Metadata.RingIDHash =
 				primitives.LittleEndianBytesToBigInt(w.Metadata.RingIDHash[:]).String()
 		}},
-		{name: "policy hash", mutate: func(t *testing.T, w *abi.TransferWitnessV17Binary, c *circuits.TransferCircuit) {
+		{name: "policy hash", mutate: func(t *testing.T, w *abi.TransferWitnessV18Binary, c *circuits.TransferCircuit) {
 			w.Metadata.PolicyIDHash = addFieldElementBytes(t, w.Metadata.PolicyIDHash, big.NewInt(1))
 			c.Compliance.Metadata.PolicyIDHash =
 				primitives.LittleEndianBytesToBigInt(w.Metadata.PolicyIDHash[:]).String()
 		}},
-		{name: "resource hash", mutate: func(t *testing.T, w *abi.TransferWitnessV17Binary, c *circuits.TransferCircuit) {
+		{name: "resource hash", mutate: func(t *testing.T, w *abi.TransferWitnessV18Binary, c *circuits.TransferCircuit) {
 			w.Metadata.ResourceHash = addFieldElementBytes(t, w.Metadata.ResourceHash, big.NewInt(1))
 			c.Compliance.Metadata.ResourceHash =
 				primitives.LittleEndianBytesToBigInt(w.Metadata.ResourceHash[:]).String()
 		}},
-		{name: "permission hash", mutate: func(t *testing.T, w *abi.TransferWitnessV17Binary, c *circuits.TransferCircuit) {
+		{name: "permission hash", mutate: func(t *testing.T, w *abi.TransferWitnessV18Binary, c *circuits.TransferCircuit) {
 			w.Metadata.PermissionHash = addFieldElementBytes(t, w.Metadata.PermissionHash, big.NewInt(1))
 			c.Compliance.Metadata.PermissionHash =
 				primitives.LittleEndianBytesToBigInt(w.Metadata.PermissionHash[:]).String()
 		}},
-		{name: "timestamp", mutate: func(_ *testing.T, _ *abi.TransferWitnessV17Binary, c *circuits.TransferCircuit) {
+		{name: "timestamp", mutate: func(_ *testing.T, _ *abi.TransferWitnessV18Binary, c *circuits.TransferCircuit) {
 			c.Compliance.Metadata.TargetTimestamp =
 				mutateFieldByOne(c.Compliance.Metadata.TargetTimestamp)
 		}},
-		{name: "sender core salt", mutate: func(t *testing.T, w *abi.TransferWitnessV17Binary, c *circuits.TransferCircuit) {
+		{name: "sender core salt", mutate: func(t *testing.T, w *abi.TransferWitnessV18Binary, c *circuits.TransferCircuit) {
 			w.Metadata.SenderCoreSalt = addFieldElementBytes(t, w.Metadata.SenderCoreSalt, big.NewInt(1))
 			c.Compliance.Metadata.SenderCoreSalt =
 				primitives.LittleEndianBytesToBigInt(w.Metadata.SenderCoreSalt[:]).String()
 		}},
-		{name: "sender ext salt", mutate: func(t *testing.T, w *abi.TransferWitnessV17Binary, c *circuits.TransferCircuit) {
+		{name: "sender ext salt", mutate: func(t *testing.T, w *abi.TransferWitnessV18Binary, c *circuits.TransferCircuit) {
 			w.Metadata.SenderExtSalt = addFieldElementBytes(t, w.Metadata.SenderExtSalt, big.NewInt(1))
 			c.Compliance.Metadata.SenderExtSalt =
 				primitives.LittleEndianBytesToBigInt(w.Metadata.SenderExtSalt[:]).String()
 		}},
-		{name: "output core salt", mutate: func(t *testing.T, w *abi.TransferWitnessV17Binary, c *circuits.TransferCircuit) {
+		{name: "output core salt", mutate: func(t *testing.T, w *abi.TransferWitnessV18Binary, c *circuits.TransferCircuit) {
 			w.Metadata.OutputCoreSalt = addFieldElementBytes(t, w.Metadata.OutputCoreSalt, big.NewInt(1))
 			c.Compliance.Metadata.OutputCoreSalt =
 				primitives.LittleEndianBytesToBigInt(w.Metadata.OutputCoreSalt[:]).String()
 		}},
-		{name: "output ext salt", mutate: func(t *testing.T, w *abi.TransferWitnessV17Binary, c *circuits.TransferCircuit) {
+		{name: "output ext salt", mutate: func(t *testing.T, w *abi.TransferWitnessV18Binary, c *circuits.TransferCircuit) {
 			w.Metadata.OutputExtSalt = addFieldElementBytes(t, w.Metadata.OutputExtSalt, big.NewInt(1))
 			c.Compliance.Metadata.OutputExtSalt =
 				primitives.LittleEndianBytesToBigInt(w.Metadata.OutputExtSalt[:]).String()

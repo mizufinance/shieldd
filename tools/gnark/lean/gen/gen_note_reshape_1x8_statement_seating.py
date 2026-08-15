@@ -26,7 +26,7 @@ ASSERT_ARGS = (
 )
 HASH_TEMPLATE = (
     "statement.hash@"
-    "93008bb67ca1e31e6bd8c1584faf21ee43e1a101d4d1a7b8126fb6df6761802a"
+    "83a669afde34adf36b8981f04f0c381cb17040f11d8fafcf45f8451d92c98705"
 )
 ASSERT_TEMPLATE = (
     "assert.eq@"
@@ -52,8 +52,8 @@ SECOND_LOCALS = (
     548,
     554,
 )
-THIRD_LOCALS = (*range(1000, 1004), 1009, 1010)
-HASH_OUTPUT_LOCALS = tuple(range(1415, 1451, 5))
+THIRD_LOCALS = (1000, *range(1006, 1010), 1015, 1016, 1022)
+HASH_OUTPUT_LOCALS = tuple(range(1427, 1463, 5))
 ASSERT_INPUT_LOCALS = tuple(range(1, 9))
 ASSERT_OUTPUT_LOCAL = 9
 SEATING_SPECS = (
@@ -80,15 +80,15 @@ SEATING_SPECS = (
 )
 REVIEWED_CONSUMER_DIGESTS = {
     "NoteReshape1x8StatementFirst.lean":
-        "6c688790dec78229b7bcf687c9108d64650cd3552bc6948d6a85825c5701ffb0",
+        "6bd88ef6c5193d7c40eec5da41b2b0b4493c32816e2bff9ed8937689cd1e201f",
     "NoteReshape1x8StatementSecond.lean":
-        "0b7c706f0498c92217baaf0a01f11a93ee32e0f4b3a833015e67c74f7879c3c9",
+        "1dba7506399215e81a0e352dc27c63f569b6f2a76731ddf0d9da7b47b844193a",
     "NoteReshape1x8StatementThird.lean":
-        "d291e8b43bd1055f2acc262e74fc203356ae15631e9d0cfb51643383fc17902b",
+        "52ea7b0e29d052c6b3d720dfa8d48ccd9f62aad41ecb32e49216588c49ec4825",
     "NoteReshape1x8StatementOutput.lean":
-        "232d5df7ce55223b732e4bfe047d3ebbad8459d67ed30a5dbc9295b97c6dd685",
+        "ebcea351daf74d6d4e11a6303dd117172bbfc338f30ea4e7fb8ec1b118db513c",
     "NoteReshape1x8TranscriptSeams.lean":
-        "d037f324b17a0dad8d1837694621e47009415178b5f4d9ada5d8512a05b1c1e6",
+        "928783ce1e2aef1a013e80344a6ceaa2b560e48e58ffeca3b51e38bdf88d367a",
 }
 
 
@@ -121,7 +121,7 @@ def discover(
             "note_reshape1x8: statement seam templates drifted"
         )
     model.require_binding_role(
-        statement, "statement.fields", "input", exact=True, arity=15
+        statement, "statement.fields", "input", exact=True, arity=17
     )
     model.require_binding_role(
         statement, "statement.hash", "output", exact=True, arity=1

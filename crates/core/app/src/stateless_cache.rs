@@ -12,9 +12,11 @@ use shieldd_sdk_proof_params::{
     DeployedProofKey,
 };
 use shieldd_sdk_proto::DomainType;
+use shieldd_sdk_sct::nullifier_generation::NullifierWindow;
 use shieldd_sdk_sct::Nullifier;
 use shieldd_sdk_tct::{Root, StateCommitment};
 use shieldd_sdk_transaction::Transaction;
+use shieldd_sdk_txhash::{AuthHash, AuthorizingData};
 
 const MAX_ENTRIES: usize = 4_096;
 const MAX_RETAINED_RAW_TX_BYTES: usize = 64 * 1024 * 1024;
@@ -194,6 +196,28 @@ fn proof_family_and_key_for_action(
 pub struct VerifiedTxArtifact {
     extracted: Arc<TxArtifact>,
     verified_proofs: BTreeMap<ProofSlot, VerifiedBatchItem>,
+    verified_historical_inputs: Vec<VerifiedHistoricalInput>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct VerifiedHistoricalInput {
+    nullifier: Nullifier,
+    window: NullifierWindow,
+    transaction_auth_hash: AuthHash,
+}
+
+impl VerifiedHistoricalInput {
+    pub(crate) fn new(
+        nullifier: Nullifier,
+        window: NullifierWindow,
+        transaction_auth_hash: AuthHash,
+    ) -> Self {
+        Self {
+            nullifier,
+            window,
+            transaction_auth_hash,
+        }
+    }
 }
 
 fn validate_proof_capability_rows<T>(
@@ -235,10 +259,15 @@ impl VerifiedTxArtifact {
             verified_rows,
             |capability, key, item| capability.ensure_binds(key, item).map_err(Into::into),
         )?;
-        Ok(Self {
+        let verified_historical_inputs =
+            crate::action_handler::transaction::verify_historical_proofs(&extracted.tx)?;
+        let artifact = Self {
             extracted,
             verified_proofs,
-        })
+            verified_historical_inputs,
+        };
+        artifact.ensure_historical_coverage()?;
+        Ok(artifact)
     }
 
     pub(crate) fn take_family_capabilities(
@@ -272,6 +301,25 @@ impl VerifiedTxArtifact {
 
     pub(crate) fn tx(&self) -> &Arc<Transaction> {
         &self.extracted.tx
+    }
+
+    pub(crate) fn ensure_historical_coverage(&self) -> Result<()> {
+        let expected = self.extracted.tx.transaction_body.historical_nullifiers();
+        ensure!(
+            expected.len() == self.verified_historical_inputs.len(),
+            "verified historical input coverage mismatch"
+        );
+        let window = self.extracted.tx.transaction_body.nullifier_window;
+        let auth_hash = self.extracted.tx.auth_hash();
+        for (nullifier, capability) in expected.into_iter().zip(&self.verified_historical_inputs) {
+            ensure!(
+                capability.nullifier == nullifier
+                    && Some(capability.window) == window
+                    && capability.transaction_auth_hash == auth_hash,
+                "verified historical input capability binding mismatch"
+            );
+        }
+        Ok(())
     }
 
     pub(crate) fn extracted(&self) -> Arc<TxArtifact> {

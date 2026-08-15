@@ -75,6 +75,7 @@ def required (rho : Nat → DeployedF) :
       ⟨spend0RkClaimed0 rho, spend0RkClaimed1 rho⟩
     randomizedVerificationKeyEncoding := spend0RkCompressed rho
     authRandomizer := spend0AuthRandomizer rho
+    historyRequired := spend0HistoryRequired rho
   }
 
 def optionalRealNote (rho : Nat → DeployedF) : Note DeployedF :=
@@ -97,6 +98,7 @@ def optionalReal (rho : Nat → DeployedF) :
       ⟨spend1RkClaimed0 rho, spend1RkClaimed1 rho⟩
     randomizedVerificationKeyEncoding := spend1RkCompressed rho
     authRandomizer := spend1AuthRandomizer rho
+    historyRequired := spend1HistoryRequired rho
   }
 
 def optionalDummy (rho : Nat → DeployedF) : DummySpend DeployedF :=
@@ -108,6 +110,7 @@ def optionalDummy (rho : Nat → DeployedF) : DummySpend DeployedF :=
       ⟨spend1RkClaimed0 rho, spend1RkClaimed1 rho⟩
     randomizedVerificationKeyEncoding := spend1RkCompressed rho
     authRandomizer := spend1AuthRandomizer rho
+    historyRequired := spend1HistoryRequired rho
   }
 
 def optional (rho : Nat → DeployedF) :
@@ -182,6 +185,7 @@ def action (rho : Nat → DeployedF) :
     targetTimestamp := targetTimestamp rho
     balanceCommitmentEncoding := balanceCommitmentFq rho
     balanceBlinding := actionBalanceBlinding rho
+    recentPositionFloor := recentPositionFloor rho
     routingTag := routingTag rho
     routingParameterSetId := routingParameterSetId rho
     regulatedPrecision := routingRegulatedPrecision rho

@@ -28,7 +28,7 @@ open Protocol
 open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 attribute [-instance] ZMod.instField
-local instance choiceFreeTransferTranscriptCommRing : CommRing DeployedF :=
+private local instance choiceFreeTransferTranscriptCommRing : CommRing DeployedF :=
   ZMod.commRing _
 
 private theorem negOne :
@@ -62,33 +62,33 @@ theorem senderAmountEncryptionShared_eq_selected
       Deployed.Templates.Semantics.TGadgetPoseidonEncryptionAmount_da3ae2f5f8f6a3fba6819c9764c9ee26010f080750d76981e9a4bef43587730eCompress.inputX,
       senderCoreSharedSecrets, Deployed.Templates.Semantics.TDecafSharedSecret_0a9405fe9fa7b69f5919b41caaa6165a64f58cf75a38a13283885fbfe7b30f0b.output,
       Deployed.Templates.Semantics.TDecafSharedSecret_0a9405fe9fa7b69f5919b41caaa6165a64f58cf75a38a13283885fbfe7b30f0b.userOutX, Deployed.Templates.Semantics.TDecafSharedSecret_0a9405fe9fa7b69f5919b41caaa6165a64f58cf75a38a13283885fbfe7b30f0b.UserWindowSupport.output,
-      SenderAmountEncryptionValuation, Seg104.localRho,
+      SenderAmountEncryptionValuation, Seg106.localRho,
       SenderCoreSharedSecretValuation,
-      Seg99.localRho, Deployed.Templates.seated,
+      Seg101.localRho, Deployed.Templates.seated,
       one_mul
     ]
-    rw [show Seg104.wireSeating 1 =
-      Seg99.wireSeating 4563 by decide +kernel]
-    rw [show Seg104.wireSeating 2 =
-      Seg99.wireSeating 4571 by decide +kernel]
-    rw [show Seg104.wireSeating 3 =
-      Seg99.wireSeating 7333 by decide +kernel]
+    rw [show Seg106.wireSeating 1 =
+      Seg101.wireSeating 4563 by decide +kernel]
+    rw [show Seg106.wireSeating 2 =
+      Seg101.wireSeating 4571 by decide +kernel]
+    rw [show Seg106.wireSeating 3 =
+      Seg101.wireSeating 7333 by decide +kernel]
   · simp only [
       senderAmountEncryptionShared, AckBridge.toProtocolPoint,
       Deployed.Templates.Semantics.TGadgetPoseidonEncryptionAmount_da3ae2f5f8f6a3fba6819c9764c9ee26010f080750d76981e9a4bef43587730eCompress.inputY,
       senderCoreSharedSecrets, Deployed.Templates.Semantics.TDecafSharedSecret_0a9405fe9fa7b69f5919b41caaa6165a64f58cf75a38a13283885fbfe7b30f0b.output,
       Deployed.Templates.Semantics.TDecafSharedSecret_0a9405fe9fa7b69f5919b41caaa6165a64f58cf75a38a13283885fbfe7b30f0b.userOutY, Deployed.Templates.Semantics.TDecafSharedSecret_0a9405fe9fa7b69f5919b41caaa6165a64f58cf75a38a13283885fbfe7b30f0b.UserWindowSupport.output,
-      SenderAmountEncryptionValuation, Seg104.localRho,
+      SenderAmountEncryptionValuation, Seg106.localRho,
       SenderCoreSharedSecretValuation,
-      Seg99.localRho, Deployed.Templates.seated,
+      Seg101.localRho, Deployed.Templates.seated,
       one_mul
     ]
-    rw [show Seg104.wireSeating 5 =
-      Seg99.wireSeating 4564 by decide +kernel]
-    rw [show Seg104.wireSeating 6 =
-      Seg99.wireSeating 4572 by decide +kernel]
-    rw [show Seg104.wireSeating 7 =
-      Seg99.wireSeating 7334 by decide +kernel]
+    rw [show Seg106.wireSeating 5 =
+      Seg101.wireSeating 4564 by decide +kernel]
+    rw [show Seg106.wireSeating 6 =
+      Seg101.wireSeating 4572 by decide +kernel]
+    rw [show Seg106.wireSeating 7 =
+      Seg101.wireSeating 7334 by decide +kernel]
 
 /-- Exact `senderAmount` compression before protocol-point promotion. -/
 theorem senderAmountEncryptionCompressSpec_of_semantic
@@ -210,33 +210,33 @@ theorem senderAddressEncryptionShared_eq_selected
       Deployed.Templates.Semantics.TGadgetPoseidonEncryptionAddress_9a677aa48c09d5d9ae8091bb7349f6026be67ea81d0c4df2429a8a1f9aba905fCompress.inputX,
       senderExtSharedSecrets, Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.output,
       Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.userOutX, Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.UserWindowSupport.output,
-      SenderAddressEncryptionValuation, Seg105.localRho,
+      SenderAddressEncryptionValuation, Seg107.localRho,
       SenderExtSharedSecretValuation,
-      Seg100.localRho, Deployed.Templates.seated,
+      Seg102.localRho, Deployed.Templates.seated,
       one_mul
     ]
-    rw [show Seg105.wireSeating 1 =
-      Seg100.wireSeating 4562 by decide +kernel]
-    rw [show Seg105.wireSeating 2 =
-      Seg100.wireSeating 4570 by decide +kernel]
-    rw [show Seg105.wireSeating 3 =
-      Seg100.wireSeating 7333 by decide +kernel]
+    rw [show Seg107.wireSeating 1 =
+      Seg102.wireSeating 4562 by decide +kernel]
+    rw [show Seg107.wireSeating 2 =
+      Seg102.wireSeating 4570 by decide +kernel]
+    rw [show Seg107.wireSeating 3 =
+      Seg102.wireSeating 7333 by decide +kernel]
   · simp only [
       senderAddressEncryptionShared, AckBridge.toProtocolPoint,
       Deployed.Templates.Semantics.TGadgetPoseidonEncryptionAddress_9a677aa48c09d5d9ae8091bb7349f6026be67ea81d0c4df2429a8a1f9aba905fCompress.inputY,
       senderExtSharedSecrets, Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.output,
       Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.userOutY, Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.UserWindowSupport.output,
-      SenderAddressEncryptionValuation, Seg105.localRho,
+      SenderAddressEncryptionValuation, Seg107.localRho,
       SenderExtSharedSecretValuation,
-      Seg100.localRho, Deployed.Templates.seated,
+      Seg102.localRho, Deployed.Templates.seated,
       one_mul
     ]
-    rw [show Seg105.wireSeating 5 =
-      Seg100.wireSeating 4563 by decide +kernel]
-    rw [show Seg105.wireSeating 6 =
-      Seg100.wireSeating 4571 by decide +kernel]
-    rw [show Seg105.wireSeating 7 =
-      Seg100.wireSeating 7334 by decide +kernel]
+    rw [show Seg107.wireSeating 5 =
+      Seg102.wireSeating 4563 by decide +kernel]
+    rw [show Seg107.wireSeating 6 =
+      Seg102.wireSeating 4571 by decide +kernel]
+    rw [show Seg107.wireSeating 7 =
+      Seg102.wireSeating 7334 by decide +kernel]
 
 /-- Exact `senderAddress` compression before protocol-point promotion. -/
 theorem senderAddressEncryptionCompressSpec_of_semantic
@@ -459,33 +459,33 @@ theorem outputAmountEncryptionShared_eq_selected
       Deployed.Templates.Semantics.TGadgetPoseidonEncryptionAmount_da3ae2f5f8f6a3fba6819c9764c9ee26010f080750d76981e9a4bef43587730eCompress.inputX,
       outputCoreSharedSecrets, Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.output,
       Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.userOutX, Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.UserWindowSupport.output,
-      OutputAmountEncryptionValuation, Seg106.localRho,
+      OutputAmountEncryptionValuation, Seg108.localRho,
       OutputCoreSharedSecretValuation,
-      Seg101.localRho, Deployed.Templates.seated,
+      Seg103.localRho, Deployed.Templates.seated,
       one_mul
     ]
-    rw [show Seg106.wireSeating 1 =
-      Seg101.wireSeating 4562 by decide +kernel]
-    rw [show Seg106.wireSeating 2 =
-      Seg101.wireSeating 4570 by decide +kernel]
-    rw [show Seg106.wireSeating 3 =
-      Seg101.wireSeating 7333 by decide +kernel]
+    rw [show Seg108.wireSeating 1 =
+      Seg103.wireSeating 4562 by decide +kernel]
+    rw [show Seg108.wireSeating 2 =
+      Seg103.wireSeating 4570 by decide +kernel]
+    rw [show Seg108.wireSeating 3 =
+      Seg103.wireSeating 7333 by decide +kernel]
   · simp only [
       outputAmountEncryptionShared, AckBridge.toProtocolPoint,
       Deployed.Templates.Semantics.TGadgetPoseidonEncryptionAmount_da3ae2f5f8f6a3fba6819c9764c9ee26010f080750d76981e9a4bef43587730eCompress.inputY,
       outputCoreSharedSecrets, Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.output,
       Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.userOutY, Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.UserWindowSupport.output,
-      OutputAmountEncryptionValuation, Seg106.localRho,
+      OutputAmountEncryptionValuation, Seg108.localRho,
       OutputCoreSharedSecretValuation,
-      Seg101.localRho, Deployed.Templates.seated,
+      Seg103.localRho, Deployed.Templates.seated,
       one_mul
     ]
-    rw [show Seg106.wireSeating 5 =
-      Seg101.wireSeating 4563 by decide +kernel]
-    rw [show Seg106.wireSeating 6 =
-      Seg101.wireSeating 4571 by decide +kernel]
-    rw [show Seg106.wireSeating 7 =
-      Seg101.wireSeating 7334 by decide +kernel]
+    rw [show Seg108.wireSeating 5 =
+      Seg103.wireSeating 4563 by decide +kernel]
+    rw [show Seg108.wireSeating 6 =
+      Seg103.wireSeating 4571 by decide +kernel]
+    rw [show Seg108.wireSeating 7 =
+      Seg103.wireSeating 7334 by decide +kernel]
 
 /-- Exact `outputAmount` compression before protocol-point promotion. -/
 theorem outputAmountEncryptionCompressSpec_of_semantic
@@ -607,33 +607,33 @@ theorem outputAddressEncryptionShared_eq_selected
       Deployed.Templates.Semantics.TGadgetPoseidonEncryptionAddress_9a677aa48c09d5d9ae8091bb7349f6026be67ea81d0c4df2429a8a1f9aba905fCompress.inputX,
       outputExtSharedSecrets, Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.output,
       Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.userOutX, Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.UserWindowSupport.output,
-      OutputAddressEncryptionValuation, Seg107.localRho,
+      OutputAddressEncryptionValuation, Seg109.localRho,
       OutputExtSharedSecretValuation,
-      Seg102.localRho, Deployed.Templates.seated,
+      Seg104.localRho, Deployed.Templates.seated,
       one_mul
     ]
-    rw [show Seg107.wireSeating 1 =
-      Seg102.wireSeating 4562 by decide +kernel]
-    rw [show Seg107.wireSeating 2 =
-      Seg102.wireSeating 4570 by decide +kernel]
-    rw [show Seg107.wireSeating 3 =
-      Seg102.wireSeating 7333 by decide +kernel]
+    rw [show Seg109.wireSeating 1 =
+      Seg104.wireSeating 4562 by decide +kernel]
+    rw [show Seg109.wireSeating 2 =
+      Seg104.wireSeating 4570 by decide +kernel]
+    rw [show Seg109.wireSeating 3 =
+      Seg104.wireSeating 7333 by decide +kernel]
   · simp only [
       outputAddressEncryptionShared, AckBridge.toProtocolPoint,
       Deployed.Templates.Semantics.TGadgetPoseidonEncryptionAddress_9a677aa48c09d5d9ae8091bb7349f6026be67ea81d0c4df2429a8a1f9aba905fCompress.inputY,
       outputExtSharedSecrets, Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.output,
       Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.userOutY, Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.UserWindowSupport.output,
-      OutputAddressEncryptionValuation, Seg107.localRho,
+      OutputAddressEncryptionValuation, Seg109.localRho,
       OutputExtSharedSecretValuation,
-      Seg102.localRho, Deployed.Templates.seated,
+      Seg104.localRho, Deployed.Templates.seated,
       one_mul
     ]
-    rw [show Seg107.wireSeating 5 =
-      Seg102.wireSeating 4563 by decide +kernel]
-    rw [show Seg107.wireSeating 6 =
-      Seg102.wireSeating 4571 by decide +kernel]
-    rw [show Seg107.wireSeating 7 =
-      Seg102.wireSeating 7334 by decide +kernel]
+    rw [show Seg109.wireSeating 5 =
+      Seg104.wireSeating 4563 by decide +kernel]
+    rw [show Seg109.wireSeating 6 =
+      Seg104.wireSeating 4571 by decide +kernel]
+    rw [show Seg109.wireSeating 7 =
+      Seg104.wireSeating 7334 by decide +kernel]
 
 /-- Exact `outputAddress` compression before protocol-point promotion. -/
 theorem outputAddressEncryptionCompressSpec_of_semantic
@@ -861,29 +861,29 @@ theorem detectionIssuerShared_eq_senderCoreIssuer
       Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49cCompress.inputX,
       senderCoreSharedSecrets, Deployed.Templates.Semantics.TDecafSharedSecret_0a9405fe9fa7b69f5919b41caaa6165a64f58cf75a38a13283885fbfe7b30f0b.output,
       Deployed.Templates.Semantics.TDecafSharedSecret_0a9405fe9fa7b69f5919b41caaa6165a64f58cf75a38a13283885fbfe7b30f0b.issuerOutX, Deployed.Templates.Semantics.TDecafSharedSecret_0a9405fe9fa7b69f5919b41caaa6165a64f58cf75a38a13283885fbfe7b30f0b.IssuerWindowSupport.output,
-      Seg99.localRho, Seg103.localRho,
+      Seg101.localRho, Seg105.localRho,
       DetectionEncryptionValuation,
       SenderCoreSharedSecretValuation,
       Deployed.Templates.seated, one_mul
     ]
-    rw [show Seg103.wireSeating 67 =
-      Seg99.wireSeating 7323 by decide +kernel]
-    rw [show Seg103.wireSeating 68 =
-      Seg99.wireSeating 7331 by decide +kernel]
+    rw [show Seg105.wireSeating 67 =
+      Seg101.wireSeating 7323 by decide +kernel]
+    rw [show Seg105.wireSeating 68 =
+      Seg101.wireSeating 7331 by decide +kernel]
   · simp only [
       detectionIssuerShared, AckBridge.toProtocolPoint,
       Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49cCompress.inputY,
       senderCoreSharedSecrets, Deployed.Templates.Semantics.TDecafSharedSecret_0a9405fe9fa7b69f5919b41caaa6165a64f58cf75a38a13283885fbfe7b30f0b.output,
       Deployed.Templates.Semantics.TDecafSharedSecret_0a9405fe9fa7b69f5919b41caaa6165a64f58cf75a38a13283885fbfe7b30f0b.issuerOutY, Deployed.Templates.Semantics.TDecafSharedSecret_0a9405fe9fa7b69f5919b41caaa6165a64f58cf75a38a13283885fbfe7b30f0b.IssuerWindowSupport.output,
-      Seg99.localRho, Seg103.localRho,
+      Seg101.localRho, Seg105.localRho,
       DetectionEncryptionValuation,
       SenderCoreSharedSecretValuation,
       Deployed.Templates.seated, one_mul
     ]
-    rw [show Seg103.wireSeating 70 =
-      Seg99.wireSeating 7324 by decide +kernel]
-    rw [show Seg103.wireSeating 71 =
-      Seg99.wireSeating 7332 by decide +kernel]
+    rw [show Seg105.wireSeating 70 =
+      Seg101.wireSeating 7324 by decide +kernel]
+    rw [show Seg105.wireSeating 71 =
+      Seg101.wireSeating 7332 by decide +kernel]
 
 private theorem detectionSeedDomain :
     Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49cPoseidon.Block0.block0Domain =
@@ -973,12 +973,15 @@ private theorem detectionPlaintext2_eq_action (rho : Nat → DeployedF) :
     Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49c.SlotBits.plaintext2
         (DetectionEncryptionValuation rho) =
       (C.action rho).senderCompliance.slotId +
-        (C.action rho).transcript.isFlagged * (2 ^ 32 : DeployedF) := by
+        (C.action rho).transcript.isFlagged * (2 ^ 32 : DeployedF) +
+        (C.action rho).transcript.routingRolesSwapped *
+          (2 ^ 33 : DeployedF) := by
   simp [
     Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49c.SlotBits.plaintext2,
     C.action, C.senderCompliance, C.transcript,
     senderSlotId, senderSlotIdLC,
     isFlagged, isFlaggedLC,
+    C.routingRolesSwapped, detectionEncryptionAt2112,
     StructuredLC.eval, StructuredLC.sumRuns,
     StructuredLC.sumResidual, StrideRun.eval
   ]
@@ -1023,7 +1026,7 @@ private theorem detectionCiphertext1_eq_action (rho : Nat → DeployedF) :
   ] <;> rfl
 
 private theorem detectionCiphertext2_eq_action (rho : Nat → DeployedF) :
-    DetectionEncryptionValuation rho 2113 =
+    DetectionEncryptionValuation rho 2114 =
       (C.action rho).transcript.detectionCiphertext 2 := by
   simp [
     C.action, C.transcript,
@@ -1036,7 +1039,7 @@ private theorem detectionCiphertext2_eq_action (rho : Nat → DeployedF) :
   ] <;> rfl
 
 private theorem detectionCiphertext3_eq_action (rho : Nat → DeployedF) :
-    DetectionEncryptionValuation rho 2114 =
+    DetectionEncryptionValuation rho 2115 =
       (C.action rho).transcript.detectionCiphertext 3 := by
   simp [
     C.action, C.transcript,
@@ -1179,7 +1182,7 @@ theorem detectionBody_of_semantic
           rfl
     · calc
         (C.action rho).transcript.detectionCiphertext 2 =
-            DetectionEncryptionValuation rho 2113 :=
+            DetectionEncryptionValuation rho 2114 :=
           (detectionCiphertext2_eq_action rho).symm
         _ = (show DeployedF from
               Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49c.SlotBits.plaintext2
@@ -1189,6 +1192,8 @@ theorem detectionBody_of_semantic
                 (DetectionEncryptionValuation rho))[1]) := hcipher2.symm
         _ = (C.action rho).senderCompliance.slotId +
               (C.action rho).transcript.isFlagged * (2 ^ 32 : DeployedF) +
+              (C.action rho).transcript.routingRolesSwapped *
+                (2 ^ 33 : DeployedF) +
               (show DeployedF from
                 Protocol.Transfer.Concrete.streamBlock
                   (Poseidon377.hash2
@@ -1203,7 +1208,7 @@ theorem detectionBody_of_semantic
           rfl
     · calc
         (C.action rho).transcript.detectionCiphertext 3 =
-            DetectionEncryptionValuation rho 2114 :=
+            DetectionEncryptionValuation rho 2115 :=
           (detectionCiphertext3_eq_action rho).symm
         _ = (show DeployedF from
               Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49c.SlotBits.plaintext3

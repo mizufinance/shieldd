@@ -160,6 +160,23 @@ class WithdrawalRegistrySemanticsTest(unittest.TestCase):
         ):
             self.assertNotIn(forbidden, combined)
 
+    def test_width_seven_poseidon_uses_the_link_theorem_names(self) -> None:
+        template = next(
+            template
+            for template in subject.HASH_TEMPLATES
+            if template.rate == 6
+        )
+        base = self.outputs[
+            subject.FORMAL / "Deployed" / template.leaf / "Base.lean"
+        ]
+        round_four = self.outputs[
+            subject.FORMAL / "Deployed" / template.leaf / "Round04.lean"
+        ]
+        self.assertIn("exact fr_eq ", base)
+        self.assertIn("exact pr_eq ", round_four)
+        self.assertNotIn("fr_eq7", base)
+        self.assertNotIn("pr_eq7", round_four)
+
 
 if __name__ == "__main__":
     unittest.main()

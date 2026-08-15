@@ -84,6 +84,8 @@ fn pretty_print_transaction_plan(
             transaction_parameters: plan.transaction_parameters.clone(),
             fee_funding: None,
             memo_view: None,
+            nullifier_window: None,
+            historical_nullifier_proofs: vec![],
         },
     };
 

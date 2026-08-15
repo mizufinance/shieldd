@@ -34,21 +34,23 @@ def secondBlock (fields : List DeployedF) : DeployedF :=
     (NoteReshapeCanonical.statementField fields 12
       (NoteReshapeCanonical.statementPad1 .reshape1x8))
 
-theorem canonicalSecondBlockFifteen
-    (f0 f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 f13 f14 : DeployedF) :
+theorem canonicalSecondBlockSeventeen
+    (f0 f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 f13 f14 f15 f16 : DeployedF) :
     secondBlock
-        [f0, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14] =
+        [f0, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14,
+         f15, f16] =
       Poseidon7Bridge.permSpec7
-        (4241182688873131096588087403843978305304926756205733284227994496152505846817 :
+        (8083011558212890722062585281830291178644145861330407768425969219879481653955 :
           DeployedF)
         (NoteReshapeCanonical.statementFirstBlock .reshape1x8
-          [f0, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14])
+          [f0, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14,
+           f15, f16])
         f7 f8 f9 f10 f11 f12 := by
   rfl
 
 theorem hash (rho : Nat → DeployedF) :
-    Deployed.Templates.Semantics.TStatementHash_93008bb67ca1e31e6bd8c1584faf21ee43e1a101d4d1a7b8126fb6df6761802a.Trace.hash1
-        (Seg78.localRho rho) =
+    Deployed.Templates.Semantics.TStatementHash_83a669afde34adf36b8981f04f0c381cb17040f11d8fafcf45f8451d92c98705.Trace.hash1
+        (Seg79.localRho rho) =
       secondBlock
         [anchor rho,
          output0NoteCommitmentComputed rho,
@@ -63,12 +65,14 @@ theorem hash (rho : Nat → DeployedF) :
          assetAnchor rho,
          routingTag rho,
          routingParameterSetId rho,
+         recentPositionFloor rho,
          spend0NullifierComputed rho,
-         spend0RkCompressed rho] := by
+         spend0RkCompressed rho,
+         spend0HistoryRequired rho] := by
   rw [
-    Deployed.Templates.Semantics.TStatementHash_93008bb67ca1e31e6bd8c1584faf21ee43e1a101d4d1a7b8126fb6df6761802a.Trace.hash1,
+    Deployed.Templates.Semantics.TStatementHash_83a669afde34adf36b8981f04f0c381cb17040f11d8fafcf45f8451d92c98705.Trace.hash1,
     NoteReshape1x8StatementFirst.hash,
-    canonicalSecondBlockFifteen
+    canonicalSecondBlockSeventeen
   ]
   have hneg :
       (8444461749428370424248824938781546531375899335154063827935233455917409239040 :
@@ -81,7 +85,7 @@ theorem hash (rho : Nat → DeployedF) :
     routingTag, routingTagLC,
     routingParameterSetId, routingParameterSetIdLC,
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-    Seg78.localRho, Deployed.Templates.seated,
+    Seg79.localRho, Deployed.Templates.seated,
     hw513, hw514, hw515, hw516, hw517, hw518,
     hw524, hw525, hw526, hw527, hw528, hw529,
     hw535, hw536, hw542, hw548, hw554,

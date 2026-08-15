@@ -18,6 +18,8 @@ import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafCompressToField_231
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafAssertEquivalent_534c1d15097e8b552f82c9624b8deece32b50ee8ae5a2eb96ed1dd0de9146b4e
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafAssertEquivalentIf_5153b90a6cbb5f5ba2ec514e6df8b586236dbc591f653a4b7fdd7890eb4be84f
+import ShielddGnarkFormal.Deployed.Templates.Semantics.THistoryClassify_24943fd2154aa0ac8bbf9adce870214e50badfb7c18cba54c33b68fcd9222905
+import ShielddGnarkFormal.Deployed.Templates.Semantics.THistoryClassify_63bcfde2aa853f39c988314bacdeeddfe5aa236959c22bd9f97803415badf545
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 8000000
@@ -69,136 +71,136 @@ theorem requiredNoteCommitmentSemanticSpec_of_exact
 /-- Audited local-to-deployed seating for `required_note_commitment` local 1. -/
 theorem requiredNoteCommitmentAt1
     (rho : Nat → DeployedF) :
-    RequiredNoteCommitmentValuation rho 1 = rho 136 := by
+    RequiredNoteCommitmentValuation rho 1 = rho 137 := by
   simp only [
     RequiredNoteCommitmentValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 1 = 136 by
+  rw [show Seg28.wireSeating 1 = 137 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_note_commitment` local 7. -/
 theorem requiredNoteCommitmentAt7
     (rho : Nat → DeployedF) :
-    RequiredNoteCommitmentValuation rho 7 = rho 137 := by
+    RequiredNoteCommitmentValuation rho 7 = rho 138 := by
   simp only [
     RequiredNoteCommitmentValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 7 = 137 by
+  rw [show Seg28.wireSeating 7 = 138 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_note_commitment` local 13. -/
 theorem requiredNoteCommitmentAt13
     (rho : Nat → DeployedF) :
-    RequiredNoteCommitmentValuation rho 13 = rho 8 := by
+    RequiredNoteCommitmentValuation rho 13 = rho 9 := by
   simp only [
     RequiredNoteCommitmentValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 13 = 8 by
+  rw [show Seg28.wireSeating 13 = 9 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_note_commitment` local 19. -/
 theorem requiredNoteCommitmentAt19
     (rho : Nat → DeployedF) :
-    RequiredNoteCommitmentValuation rho 19 = rho 660 := by
+    RequiredNoteCommitmentValuation rho 19 = rho 663 := by
   simp only [
     RequiredNoteCommitmentValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 19 = 660 by
+  rw [show Seg28.wireSeating 19 = 663 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_note_commitment` local 20. -/
 theorem requiredNoteCommitmentAt20
     (rho : Nat → DeployedF) :
-    RequiredNoteCommitmentValuation rho 20 = rho 1000 := by
+    RequiredNoteCommitmentValuation rho 20 = rho 1003 := by
   simp only [
     RequiredNoteCommitmentValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 20 = 1000 by
+  rw [show Seg28.wireSeating 20 = 1003 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_note_commitment` local 26. -/
 theorem requiredNoteCommitmentAt26
     (rho : Nat → DeployedF) :
-    RequiredNoteCommitmentValuation rho 26 = rho 6327 := by
+    RequiredNoteCommitmentValuation rho 26 = rho 6330 := by
   simp only [
     RequiredNoteCommitmentValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 26 = 6327 by
+  rw [show Seg28.wireSeating 26 = 6330 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_note_commitment` local 27. -/
 theorem requiredNoteCommitmentAt27
     (rho : Nat → DeployedF) :
-    RequiredNoteCommitmentValuation rho 27 = rho 6667 := by
+    RequiredNoteCommitmentValuation rho 27 = rho 6670 := by
   simp only [
     RequiredNoteCommitmentValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 27 = 6667 by
+  rw [show Seg28.wireSeating 27 = 6670 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_note_commitment` local 372. -/
 theorem requiredNoteCommitmentAt372
     (rho : Nat → DeployedF) :
-    RequiredNoteCommitmentValuation rho 372 = rho 24720 := by
+    RequiredNoteCommitmentValuation rho 372 = rho 24723 := by
   simp only [
     RequiredNoteCommitmentValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 372 = 24720 by
+  rw [show Seg28.wireSeating 372 = 24723 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_note_commitment` local 377. -/
 theorem requiredNoteCommitmentAt377
     (rho : Nat → DeployedF) :
-    RequiredNoteCommitmentValuation rho 377 = rho 24725 := by
+    RequiredNoteCommitmentValuation rho 377 = rho 24728 := by
   simp only [
     RequiredNoteCommitmentValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 377 = 24725 by
+  rw [show Seg28.wireSeating 377 = 24728 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_note_commitment` local 382. -/
 theorem requiredNoteCommitmentAt382
     (rho : Nat → DeployedF) :
-    RequiredNoteCommitmentValuation rho 382 = rho 24730 := by
+    RequiredNoteCommitmentValuation rho 382 = rho 24733 := by
   simp only [
     RequiredNoteCommitmentValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 382 = 24730 by
+  rw [show Seg28.wireSeating 382 = 24733 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_note_commitment` local 387. -/
 theorem requiredNoteCommitmentAt387
     (rho : Nat → DeployedF) :
-    RequiredNoteCommitmentValuation rho 387 = rho 24735 := by
+    RequiredNoteCommitmentValuation rho 387 = rho 24738 := by
   simp only [
     RequiredNoteCommitmentValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 387 = 24735 by
+  rw [show Seg28.wireSeating 387 = 24738 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_note_commitment` local 392. -/
 theorem requiredNoteCommitmentAt392
     (rho : Nat → DeployedF) :
-    RequiredNoteCommitmentValuation rho 392 = rho 24740 := by
+    RequiredNoteCommitmentValuation rho 392 = rho 24743 := by
   simp only [
     RequiredNoteCommitmentValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 392 = 24740 by
+  rw [show Seg28.wireSeating 392 = 24743 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_note_commitment` local 397. -/
 theorem requiredNoteCommitmentAt397
     (rho : Nat → DeployedF) :
-    RequiredNoteCommitmentValuation rho 397 = rho 24745 := by
+    RequiredNoteCommitmentValuation rho 397 = rho 24748 := by
   simp only [
     RequiredNoteCommitmentValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 397 = 24745 by
+  rw [show Seg28.wireSeating 397 = 24748 by
     decide +kernel]
 
 /-- Stable deployed valuation for the `optional_note_commitment` exact provider. -/
 def OptionalNoteCommitmentValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg38.localRho rho
+  Seg39.localRho rho
 
 /-- Stable semantic proposition certified by `optional_note_commitment`. -/
 def OptionalNoteCommitmentSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -209,143 +211,143 @@ theorem optionalNoteCommitmentSemanticSpec_of_exact
     (rho : Nat → DeployedF)
     (facts : ShieldedIcs20WithdrawalCircuitFacts rho) :
     OptionalNoteCommitmentSemanticSpec rho := by
-  change Deployed.Templates.Semantics.TGadgetNoteCommitment_252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c.spec (Seg38.localRho rho)
+  change Deployed.Templates.Semantics.TGadgetNoteCommitment_252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c.spec (Seg39.localRho rho)
   exact
     (withdrawalExactProviders rho facts).optionalSpend.optionalNoteCommitment
 
 /-- Audited local-to-deployed seating for `optional_note_commitment` local 1. -/
 theorem optionalNoteCommitmentAt1
     (rho : Nat → DeployedF) :
-    OptionalNoteCommitmentValuation rho 1 = rho 215 := by
+    OptionalNoteCommitmentValuation rho 1 = rho 217 := by
   simp only [
-    OptionalNoteCommitmentValuation, Seg38.localRho,
+    OptionalNoteCommitmentValuation, Seg39.localRho,
     Deployed.Templates.seated]
-  rw [show Seg38.wireSeating 1 = 215 by
+  rw [show Seg39.wireSeating 1 = 217 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_note_commitment` local 7. -/
 theorem optionalNoteCommitmentAt7
     (rho : Nat → DeployedF) :
-    OptionalNoteCommitmentValuation rho 7 = rho 216 := by
+    OptionalNoteCommitmentValuation rho 7 = rho 218 := by
   simp only [
-    OptionalNoteCommitmentValuation, Seg38.localRho,
+    OptionalNoteCommitmentValuation, Seg39.localRho,
     Deployed.Templates.seated]
-  rw [show Seg38.wireSeating 7 = 216 by
+  rw [show Seg39.wireSeating 7 = 218 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_note_commitment` local 13. -/
 theorem optionalNoteCommitmentAt13
     (rho : Nat → DeployedF) :
-    OptionalNoteCommitmentValuation rho 13 = rho 8 := by
+    OptionalNoteCommitmentValuation rho 13 = rho 9 := by
   simp only [
-    OptionalNoteCommitmentValuation, Seg38.localRho,
+    OptionalNoteCommitmentValuation, Seg39.localRho,
     Deployed.Templates.seated]
-  rw [show Seg38.wireSeating 13 = 8 by
+  rw [show Seg39.wireSeating 13 = 9 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_note_commitment` local 19. -/
 theorem optionalNoteCommitmentAt19
     (rho : Nat → DeployedF) :
-    OptionalNoteCommitmentValuation rho 19 = rho 660 := by
+    OptionalNoteCommitmentValuation rho 19 = rho 663 := by
   simp only [
-    OptionalNoteCommitmentValuation, Seg38.localRho,
+    OptionalNoteCommitmentValuation, Seg39.localRho,
     Deployed.Templates.seated]
-  rw [show Seg38.wireSeating 19 = 660 by
+  rw [show Seg39.wireSeating 19 = 663 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_note_commitment` local 20. -/
 theorem optionalNoteCommitmentAt20
     (rho : Nat → DeployedF) :
-    OptionalNoteCommitmentValuation rho 20 = rho 1000 := by
+    OptionalNoteCommitmentValuation rho 20 = rho 1003 := by
   simp only [
-    OptionalNoteCommitmentValuation, Seg38.localRho,
+    OptionalNoteCommitmentValuation, Seg39.localRho,
     Deployed.Templates.seated]
-  rw [show Seg38.wireSeating 20 = 1000 by
+  rw [show Seg39.wireSeating 20 = 1003 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_note_commitment` local 26. -/
 theorem optionalNoteCommitmentAt26
     (rho : Nat → DeployedF) :
-    OptionalNoteCommitmentValuation rho 26 = rho 6327 := by
+    OptionalNoteCommitmentValuation rho 26 = rho 6330 := by
   simp only [
-    OptionalNoteCommitmentValuation, Seg38.localRho,
+    OptionalNoteCommitmentValuation, Seg39.localRho,
     Deployed.Templates.seated]
-  rw [show Seg38.wireSeating 26 = 6327 by
+  rw [show Seg39.wireSeating 26 = 6330 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_note_commitment` local 27. -/
 theorem optionalNoteCommitmentAt27
     (rho : Nat → DeployedF) :
-    OptionalNoteCommitmentValuation rho 27 = rho 6667 := by
+    OptionalNoteCommitmentValuation rho 27 = rho 6670 := by
   simp only [
-    OptionalNoteCommitmentValuation, Seg38.localRho,
+    OptionalNoteCommitmentValuation, Seg39.localRho,
     Deployed.Templates.seated]
-  rw [show Seg38.wireSeating 27 = 6667 by
+  rw [show Seg39.wireSeating 27 = 6670 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_note_commitment` local 372. -/
 theorem optionalNoteCommitmentAt372
     (rho : Nat → DeployedF) :
-    OptionalNoteCommitmentValuation rho 372 = rho 36854 := by
+    OptionalNoteCommitmentValuation rho 372 = rho 37003 := by
   simp only [
-    OptionalNoteCommitmentValuation, Seg38.localRho,
+    OptionalNoteCommitmentValuation, Seg39.localRho,
     Deployed.Templates.seated]
-  rw [show Seg38.wireSeating 372 = 36854 by
+  rw [show Seg39.wireSeating 372 = 37003 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_note_commitment` local 377. -/
 theorem optionalNoteCommitmentAt377
     (rho : Nat → DeployedF) :
-    OptionalNoteCommitmentValuation rho 377 = rho 36859 := by
+    OptionalNoteCommitmentValuation rho 377 = rho 37008 := by
   simp only [
-    OptionalNoteCommitmentValuation, Seg38.localRho,
+    OptionalNoteCommitmentValuation, Seg39.localRho,
     Deployed.Templates.seated]
-  rw [show Seg38.wireSeating 377 = 36859 by
+  rw [show Seg39.wireSeating 377 = 37008 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_note_commitment` local 382. -/
 theorem optionalNoteCommitmentAt382
     (rho : Nat → DeployedF) :
-    OptionalNoteCommitmentValuation rho 382 = rho 36864 := by
+    OptionalNoteCommitmentValuation rho 382 = rho 37013 := by
   simp only [
-    OptionalNoteCommitmentValuation, Seg38.localRho,
+    OptionalNoteCommitmentValuation, Seg39.localRho,
     Deployed.Templates.seated]
-  rw [show Seg38.wireSeating 382 = 36864 by
+  rw [show Seg39.wireSeating 382 = 37013 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_note_commitment` local 387. -/
 theorem optionalNoteCommitmentAt387
     (rho : Nat → DeployedF) :
-    OptionalNoteCommitmentValuation rho 387 = rho 36869 := by
+    OptionalNoteCommitmentValuation rho 387 = rho 37018 := by
   simp only [
-    OptionalNoteCommitmentValuation, Seg38.localRho,
+    OptionalNoteCommitmentValuation, Seg39.localRho,
     Deployed.Templates.seated]
-  rw [show Seg38.wireSeating 387 = 36869 by
+  rw [show Seg39.wireSeating 387 = 37018 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_note_commitment` local 392. -/
 theorem optionalNoteCommitmentAt392
     (rho : Nat → DeployedF) :
-    OptionalNoteCommitmentValuation rho 392 = rho 36874 := by
+    OptionalNoteCommitmentValuation rho 392 = rho 37023 := by
   simp only [
-    OptionalNoteCommitmentValuation, Seg38.localRho,
+    OptionalNoteCommitmentValuation, Seg39.localRho,
     Deployed.Templates.seated]
-  rw [show Seg38.wireSeating 392 = 36874 by
+  rw [show Seg39.wireSeating 392 = 37023 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_note_commitment` local 397. -/
 theorem optionalNoteCommitmentAt397
     (rho : Nat → DeployedF) :
-    OptionalNoteCommitmentValuation rho 397 = rho 36879 := by
+    OptionalNoteCommitmentValuation rho 397 = rho 37028 := by
   simp only [
-    OptionalNoteCommitmentValuation, Seg38.localRho,
+    OptionalNoteCommitmentValuation, Seg39.localRho,
     Deployed.Templates.seated]
-  rw [show Seg38.wireSeating 397 = 36879 by
+  rw [show Seg39.wireSeating 397 = 37028 by
     decide +kernel]
 
 /-- Stable deployed valuation for the `change_note_commitment` exact provider. -/
 def ChangeNoteCommitmentValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg52.localRho rho
+  Seg54.localRho rho
 
 /-- Stable semantic proposition certified by `change_note_commitment`. -/
 def ChangeNoteCommitmentSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -356,143 +358,143 @@ theorem changeNoteCommitmentSemanticSpec_of_exact
     (rho : Nat → DeployedF)
     (facts : ShieldedIcs20WithdrawalCircuitFacts rho) :
     ChangeNoteCommitmentSemanticSpec rho := by
-  change Deployed.Templates.Semantics.TGadgetNoteCommitment_252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c.spec (Seg52.localRho rho)
+  change Deployed.Templates.Semantics.TGadgetNoteCommitment_252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c.spec (Seg54.localRho rho)
   exact
     (withdrawalExactProviders rho facts).changeOutput.changeNoteCommitment
 
 /-- Audited local-to-deployed seating for `change_note_commitment` local 1. -/
 theorem changeNoteCommitmentAt1
     (rho : Nat → DeployedF) :
-    ChangeNoteCommitmentValuation rho 1 = rho 294 := by
+    ChangeNoteCommitmentValuation rho 1 = rho 297 := by
   simp only [
-    ChangeNoteCommitmentValuation, Seg52.localRho,
+    ChangeNoteCommitmentValuation, Seg54.localRho,
     Deployed.Templates.seated]
-  rw [show Seg52.wireSeating 1 = 294 by
+  rw [show Seg54.wireSeating 1 = 297 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `change_note_commitment` local 7. -/
 theorem changeNoteCommitmentAt7
     (rho : Nat → DeployedF) :
-    ChangeNoteCommitmentValuation rho 7 = rho 295 := by
+    ChangeNoteCommitmentValuation rho 7 = rho 298 := by
   simp only [
-    ChangeNoteCommitmentValuation, Seg52.localRho,
+    ChangeNoteCommitmentValuation, Seg54.localRho,
     Deployed.Templates.seated]
-  rw [show Seg52.wireSeating 7 = 295 by
+  rw [show Seg54.wireSeating 7 = 298 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `change_note_commitment` local 13. -/
 theorem changeNoteCommitmentAt13
     (rho : Nat → DeployedF) :
-    ChangeNoteCommitmentValuation rho 13 = rho 8 := by
+    ChangeNoteCommitmentValuation rho 13 = rho 9 := by
   simp only [
-    ChangeNoteCommitmentValuation, Seg52.localRho,
+    ChangeNoteCommitmentValuation, Seg54.localRho,
     Deployed.Templates.seated]
-  rw [show Seg52.wireSeating 13 = 8 by
+  rw [show Seg54.wireSeating 13 = 9 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `change_note_commitment` local 19. -/
 theorem changeNoteCommitmentAt19
     (rho : Nat → DeployedF) :
-    ChangeNoteCommitmentValuation rho 19 = rho 660 := by
+    ChangeNoteCommitmentValuation rho 19 = rho 663 := by
   simp only [
-    ChangeNoteCommitmentValuation, Seg52.localRho,
+    ChangeNoteCommitmentValuation, Seg54.localRho,
     Deployed.Templates.seated]
-  rw [show Seg52.wireSeating 19 = 660 by
+  rw [show Seg54.wireSeating 19 = 663 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `change_note_commitment` local 20. -/
 theorem changeNoteCommitmentAt20
     (rho : Nat → DeployedF) :
-    ChangeNoteCommitmentValuation rho 20 = rho 1000 := by
+    ChangeNoteCommitmentValuation rho 20 = rho 1003 := by
   simp only [
-    ChangeNoteCommitmentValuation, Seg52.localRho,
+    ChangeNoteCommitmentValuation, Seg54.localRho,
     Deployed.Templates.seated]
-  rw [show Seg52.wireSeating 20 = 1000 by
+  rw [show Seg54.wireSeating 20 = 1003 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `change_note_commitment` local 26. -/
 theorem changeNoteCommitmentAt26
     (rho : Nat → DeployedF) :
-    ChangeNoteCommitmentValuation rho 26 = rho 6327 := by
+    ChangeNoteCommitmentValuation rho 26 = rho 6330 := by
   simp only [
-    ChangeNoteCommitmentValuation, Seg52.localRho,
+    ChangeNoteCommitmentValuation, Seg54.localRho,
     Deployed.Templates.seated]
-  rw [show Seg52.wireSeating 26 = 6327 by
+  rw [show Seg54.wireSeating 26 = 6330 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `change_note_commitment` local 27. -/
 theorem changeNoteCommitmentAt27
     (rho : Nat → DeployedF) :
-    ChangeNoteCommitmentValuation rho 27 = rho 6667 := by
+    ChangeNoteCommitmentValuation rho 27 = rho 6670 := by
   simp only [
-    ChangeNoteCommitmentValuation, Seg52.localRho,
+    ChangeNoteCommitmentValuation, Seg54.localRho,
     Deployed.Templates.seated]
-  rw [show Seg52.wireSeating 27 = 6667 by
+  rw [show Seg54.wireSeating 27 = 6670 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `change_note_commitment` local 372. -/
 theorem changeNoteCommitmentAt372
     (rho : Nat → DeployedF) :
-    ChangeNoteCommitmentValuation rho 372 = rho 49299 := by
+    ChangeNoteCommitmentValuation rho 372 = rho 49595 := by
   simp only [
-    ChangeNoteCommitmentValuation, Seg52.localRho,
+    ChangeNoteCommitmentValuation, Seg54.localRho,
     Deployed.Templates.seated]
-  rw [show Seg52.wireSeating 372 = 49299 by
+  rw [show Seg54.wireSeating 372 = 49595 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `change_note_commitment` local 377. -/
 theorem changeNoteCommitmentAt377
     (rho : Nat → DeployedF) :
-    ChangeNoteCommitmentValuation rho 377 = rho 49304 := by
+    ChangeNoteCommitmentValuation rho 377 = rho 49600 := by
   simp only [
-    ChangeNoteCommitmentValuation, Seg52.localRho,
+    ChangeNoteCommitmentValuation, Seg54.localRho,
     Deployed.Templates.seated]
-  rw [show Seg52.wireSeating 377 = 49304 by
+  rw [show Seg54.wireSeating 377 = 49600 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `change_note_commitment` local 382. -/
 theorem changeNoteCommitmentAt382
     (rho : Nat → DeployedF) :
-    ChangeNoteCommitmentValuation rho 382 = rho 49309 := by
+    ChangeNoteCommitmentValuation rho 382 = rho 49605 := by
   simp only [
-    ChangeNoteCommitmentValuation, Seg52.localRho,
+    ChangeNoteCommitmentValuation, Seg54.localRho,
     Deployed.Templates.seated]
-  rw [show Seg52.wireSeating 382 = 49309 by
+  rw [show Seg54.wireSeating 382 = 49605 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `change_note_commitment` local 387. -/
 theorem changeNoteCommitmentAt387
     (rho : Nat → DeployedF) :
-    ChangeNoteCommitmentValuation rho 387 = rho 49314 := by
+    ChangeNoteCommitmentValuation rho 387 = rho 49610 := by
   simp only [
-    ChangeNoteCommitmentValuation, Seg52.localRho,
+    ChangeNoteCommitmentValuation, Seg54.localRho,
     Deployed.Templates.seated]
-  rw [show Seg52.wireSeating 387 = 49314 by
+  rw [show Seg54.wireSeating 387 = 49610 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `change_note_commitment` local 392. -/
 theorem changeNoteCommitmentAt392
     (rho : Nat → DeployedF) :
-    ChangeNoteCommitmentValuation rho 392 = rho 49319 := by
+    ChangeNoteCommitmentValuation rho 392 = rho 49615 := by
   simp only [
-    ChangeNoteCommitmentValuation, Seg52.localRho,
+    ChangeNoteCommitmentValuation, Seg54.localRho,
     Deployed.Templates.seated]
-  rw [show Seg52.wireSeating 392 = 49319 by
+  rw [show Seg54.wireSeating 392 = 49615 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `change_note_commitment` local 397. -/
 theorem changeNoteCommitmentAt397
     (rho : Nat → DeployedF) :
-    ChangeNoteCommitmentValuation rho 397 = rho 49324 := by
+    ChangeNoteCommitmentValuation rho 397 = rho 49620 := by
   simp only [
-    ChangeNoteCommitmentValuation, Seg52.localRho,
+    ChangeNoteCommitmentValuation, Seg54.localRho,
     Deployed.Templates.seated]
-  rw [show Seg52.wireSeating 397 = 49324 by
+  rw [show Seg54.wireSeating 397 = 49620 by
     decide +kernel]
 
 /-- Stable deployed valuation for the `change_note_assert` exact provider. -/
 def ChangeNoteAssertValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg53.localRho rho
+  Seg55.localRho rho
 
 /-- Stable semantic proposition certified by `change_note_assert`. -/
 def ChangeNoteAssertSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -503,78 +505,78 @@ theorem changeNoteAssertSemanticSpec_of_exact
     (rho : Nat → DeployedF)
     (facts : ShieldedIcs20WithdrawalCircuitFacts rho) :
     ChangeNoteAssertSemanticSpec rho := by
-  change Deployed.Templates.Semantics.TAssertEq_c4acc0cb39ee1820ee3eb4fda139846ccb6ea995c7d6605854f111a0b177b240.spec (Seg53.localRho rho)
+  change Deployed.Templates.Semantics.TAssertEq_c4acc0cb39ee1820ee3eb4fda139846ccb6ea995c7d6605854f111a0b177b240.spec (Seg55.localRho rho)
   exact
     (withdrawalExactProviders rho facts).changeOutput.changeNoteAssert
 
 /-- Audited local-to-deployed seating for `change_note_assert` local 1. -/
 theorem changeNoteAssertAt1
     (rho : Nat → DeployedF) :
-    ChangeNoteAssertValuation rho 1 = rho 49299 := by
+    ChangeNoteAssertValuation rho 1 = rho 49595 := by
   simp only [
-    ChangeNoteAssertValuation, Seg53.localRho,
+    ChangeNoteAssertValuation, Seg55.localRho,
     Deployed.Templates.seated]
-  rw [show Seg53.wireSeating 1 = 49299 by
+  rw [show Seg55.wireSeating 1 = 49595 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `change_note_assert` local 2. -/
 theorem changeNoteAssertAt2
     (rho : Nat → DeployedF) :
-    ChangeNoteAssertValuation rho 2 = rho 49304 := by
+    ChangeNoteAssertValuation rho 2 = rho 49600 := by
   simp only [
-    ChangeNoteAssertValuation, Seg53.localRho,
+    ChangeNoteAssertValuation, Seg55.localRho,
     Deployed.Templates.seated]
-  rw [show Seg53.wireSeating 2 = 49304 by
+  rw [show Seg55.wireSeating 2 = 49600 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `change_note_assert` local 3. -/
 theorem changeNoteAssertAt3
     (rho : Nat → DeployedF) :
-    ChangeNoteAssertValuation rho 3 = rho 49309 := by
+    ChangeNoteAssertValuation rho 3 = rho 49605 := by
   simp only [
-    ChangeNoteAssertValuation, Seg53.localRho,
+    ChangeNoteAssertValuation, Seg55.localRho,
     Deployed.Templates.seated]
-  rw [show Seg53.wireSeating 3 = 49309 by
+  rw [show Seg55.wireSeating 3 = 49605 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `change_note_assert` local 4. -/
 theorem changeNoteAssertAt4
     (rho : Nat → DeployedF) :
-    ChangeNoteAssertValuation rho 4 = rho 49314 := by
+    ChangeNoteAssertValuation rho 4 = rho 49610 := by
   simp only [
-    ChangeNoteAssertValuation, Seg53.localRho,
+    ChangeNoteAssertValuation, Seg55.localRho,
     Deployed.Templates.seated]
-  rw [show Seg53.wireSeating 4 = 49314 by
+  rw [show Seg55.wireSeating 4 = 49610 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `change_note_assert` local 5. -/
 theorem changeNoteAssertAt5
     (rho : Nat → DeployedF) :
-    ChangeNoteAssertValuation rho 5 = rho 49319 := by
+    ChangeNoteAssertValuation rho 5 = rho 49615 := by
   simp only [
-    ChangeNoteAssertValuation, Seg53.localRho,
+    ChangeNoteAssertValuation, Seg55.localRho,
     Deployed.Templates.seated]
-  rw [show Seg53.wireSeating 5 = 49319 by
+  rw [show Seg55.wireSeating 5 = 49615 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `change_note_assert` local 6. -/
 theorem changeNoteAssertAt6
     (rho : Nat → DeployedF) :
-    ChangeNoteAssertValuation rho 6 = rho 49324 := by
+    ChangeNoteAssertValuation rho 6 = rho 49620 := by
   simp only [
-    ChangeNoteAssertValuation, Seg53.localRho,
+    ChangeNoteAssertValuation, Seg55.localRho,
     Deployed.Templates.seated]
-  rw [show Seg53.wireSeating 6 = 49324 by
+  rw [show Seg55.wireSeating 6 = 49620 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `change_note_assert` local 7. -/
 theorem changeNoteAssertAt7
     (rho : Nat → DeployedF) :
-    ChangeNoteAssertValuation rho 7 = rho 293 := by
+    ChangeNoteAssertValuation rho 7 = rho 296 := by
   simp only [
-    ChangeNoteAssertValuation, Seg53.localRho,
+    ChangeNoteAssertValuation, Seg55.localRho,
     Deployed.Templates.seated]
-  rw [show Seg53.wireSeating 7 = 293 by
+  rw [show Seg55.wireSeating 7 = 296 by
     decide +kernel]
 
 /-- Stable deployed valuation for the `required_anchor_assert` exact provider. -/
@@ -597,66 +599,66 @@ theorem requiredAnchorAssertSemanticSpec_of_exact
 /-- Audited local-to-deployed seating for `required_anchor_assert` local 1. -/
 theorem requiredAnchorAssertAt1
     (rho : Nat → DeployedF) :
-    RequiredAnchorAssertValuation rho 1 = rho 33953 := by
+    RequiredAnchorAssertValuation rho 1 = rho 33956 := by
   simp only [
     RequiredAnchorAssertValuation, Seg34.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 1 = 33953 by
+  rw [show Seg34.wireSeating 1 = 33956 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_anchor_assert` local 2. -/
 theorem requiredAnchorAssertAt2
     (rho : Nat → DeployedF) :
-    RequiredAnchorAssertValuation rho 2 = rho 33958 := by
+    RequiredAnchorAssertValuation rho 2 = rho 33961 := by
   simp only [
     RequiredAnchorAssertValuation, Seg34.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 2 = 33958 by
+  rw [show Seg34.wireSeating 2 = 33961 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_anchor_assert` local 3. -/
 theorem requiredAnchorAssertAt3
     (rho : Nat → DeployedF) :
-    RequiredAnchorAssertValuation rho 3 = rho 33963 := by
+    RequiredAnchorAssertValuation rho 3 = rho 33966 := by
   simp only [
     RequiredAnchorAssertValuation, Seg34.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 3 = 33963 by
+  rw [show Seg34.wireSeating 3 = 33966 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_anchor_assert` local 4. -/
 theorem requiredAnchorAssertAt4
     (rho : Nat → DeployedF) :
-    RequiredAnchorAssertValuation rho 4 = rho 33968 := by
+    RequiredAnchorAssertValuation rho 4 = rho 33971 := by
   simp only [
     RequiredAnchorAssertValuation, Seg34.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 4 = 33968 by
+  rw [show Seg34.wireSeating 4 = 33971 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_anchor_assert` local 5. -/
 theorem requiredAnchorAssertAt5
     (rho : Nat → DeployedF) :
-    RequiredAnchorAssertValuation rho 5 = rho 33973 := by
+    RequiredAnchorAssertValuation rho 5 = rho 33976 := by
   simp only [
     RequiredAnchorAssertValuation, Seg34.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 5 = 33973 by
+  rw [show Seg34.wireSeating 5 = 33976 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_anchor_assert` local 6. -/
 theorem requiredAnchorAssertAt6
     (rho : Nat → DeployedF) :
-    RequiredAnchorAssertValuation rho 6 = rho 4 := by
+    RequiredAnchorAssertValuation rho 6 = rho 5 := by
   simp only [
     RequiredAnchorAssertValuation, Seg34.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 6 = 4 by
+  rw [show Seg34.wireSeating 6 = 5 by
     decide +kernel]
 
 /-- Stable deployed valuation for the `optional_anchor_assert` exact provider. -/
 def OptionalAnchorAssertValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg47.localRho rho
+  Seg48.localRho rho
 
 /-- Stable semantic proposition certified by `optional_anchor_assert`. -/
 def OptionalAnchorAssertSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -667,78 +669,78 @@ theorem optionalAnchorAssertSemanticSpec_of_exact
     (rho : Nat → DeployedF)
     (facts : ShieldedIcs20WithdrawalCircuitFacts rho) :
     OptionalAnchorAssertSemanticSpec rho := by
-  change Deployed.Templates.Semantics.TAssertEqIf_36366df670e29c988b147701d72d7155b3720bdc777b4429912cc664e80b0b03.spec (Seg47.localRho rho)
+  change Deployed.Templates.Semantics.TAssertEqIf_36366df670e29c988b147701d72d7155b3720bdc777b4429912cc664e80b0b03.spec (Seg48.localRho rho)
   exact
     (withdrawalExactProviders rho facts).optionalSpend.optionalAnchorAssert
 
 /-- Audited local-to-deployed seating for `optional_anchor_assert` local 1. -/
 theorem optionalAnchorAssertAt1
     (rho : Nat → DeployedF) :
-    OptionalAnchorAssertValuation rho 1 = rho 291 := by
+    OptionalAnchorAssertValuation rho 1 = rho 294 := by
   simp only [
-    OptionalAnchorAssertValuation, Seg47.localRho,
+    OptionalAnchorAssertValuation, Seg48.localRho,
     Deployed.Templates.seated]
-  rw [show Seg47.wireSeating 1 = 291 by
+  rw [show Seg48.wireSeating 1 = 294 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_anchor_assert` local 2. -/
 theorem optionalAnchorAssertAt2
     (rho : Nat → DeployedF) :
-    OptionalAnchorAssertValuation rho 2 = rho 4 := by
+    OptionalAnchorAssertValuation rho 2 = rho 5 := by
   simp only [
-    OptionalAnchorAssertValuation, Seg47.localRho,
+    OptionalAnchorAssertValuation, Seg48.localRho,
     Deployed.Templates.seated]
-  rw [show Seg47.wireSeating 2 = 4 by
+  rw [show Seg48.wireSeating 2 = 5 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_anchor_assert` local 3. -/
 theorem optionalAnchorAssertAt3
     (rho : Nat → DeployedF) :
-    OptionalAnchorAssertValuation rho 3 = rho 46087 := by
+    OptionalAnchorAssertValuation rho 3 = rho 46236 := by
   simp only [
-    OptionalAnchorAssertValuation, Seg47.localRho,
+    OptionalAnchorAssertValuation, Seg48.localRho,
     Deployed.Templates.seated]
-  rw [show Seg47.wireSeating 3 = 46087 by
+  rw [show Seg48.wireSeating 3 = 46236 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_anchor_assert` local 4. -/
 theorem optionalAnchorAssertAt4
     (rho : Nat → DeployedF) :
-    OptionalAnchorAssertValuation rho 4 = rho 46092 := by
+    OptionalAnchorAssertValuation rho 4 = rho 46241 := by
   simp only [
-    OptionalAnchorAssertValuation, Seg47.localRho,
+    OptionalAnchorAssertValuation, Seg48.localRho,
     Deployed.Templates.seated]
-  rw [show Seg47.wireSeating 4 = 46092 by
+  rw [show Seg48.wireSeating 4 = 46241 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_anchor_assert` local 5. -/
 theorem optionalAnchorAssertAt5
     (rho : Nat → DeployedF) :
-    OptionalAnchorAssertValuation rho 5 = rho 46097 := by
+    OptionalAnchorAssertValuation rho 5 = rho 46246 := by
   simp only [
-    OptionalAnchorAssertValuation, Seg47.localRho,
+    OptionalAnchorAssertValuation, Seg48.localRho,
     Deployed.Templates.seated]
-  rw [show Seg47.wireSeating 5 = 46097 by
+  rw [show Seg48.wireSeating 5 = 46246 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_anchor_assert` local 6. -/
 theorem optionalAnchorAssertAt6
     (rho : Nat → DeployedF) :
-    OptionalAnchorAssertValuation rho 6 = rho 46102 := by
+    OptionalAnchorAssertValuation rho 6 = rho 46251 := by
   simp only [
-    OptionalAnchorAssertValuation, Seg47.localRho,
+    OptionalAnchorAssertValuation, Seg48.localRho,
     Deployed.Templates.seated]
-  rw [show Seg47.wireSeating 6 = 46102 by
+  rw [show Seg48.wireSeating 6 = 46251 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_anchor_assert` local 7. -/
 theorem optionalAnchorAssertAt7
     (rho : Nat → DeployedF) :
-    OptionalAnchorAssertValuation rho 7 = rho 46107 := by
+    OptionalAnchorAssertValuation rho 7 = rho 46256 := by
   simp only [
-    OptionalAnchorAssertValuation, Seg47.localRho,
+    OptionalAnchorAssertValuation, Seg48.localRho,
     Deployed.Templates.seated]
-  rw [show Seg47.wireSeating 7 = 46107 by
+  rw [show Seg48.wireSeating 7 = 46256 by
     decide +kernel]
 
 /-- Stable deployed valuation for the `required_state_path` exact provider. -/
@@ -761,841 +763,1129 @@ theorem requiredStatePathSemanticSpec_of_exact
 /-- Audited local-to-deployed seating for `required_state_path` local 1. -/
 theorem requiredStatePathAt1
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 1 = rho 24720 := by
+    RequiredStatePathValuation rho 1 = rho 24723 := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
     Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 1 = 24720 by
+  rw [show Seg30.wireSeating 1 = 24723 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_state_path` local 2. -/
 theorem requiredStatePathAt2
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 2 = rho 24725 := by
+    RequiredStatePathValuation rho 2 = rho 24728 := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
     Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 2 = 24725 by
+  rw [show Seg30.wireSeating 2 = 24728 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_state_path` local 3. -/
 theorem requiredStatePathAt3
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 3 = rho 24730 := by
+    RequiredStatePathValuation rho 3 = rho 24733 := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
     Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 3 = 24730 by
+  rw [show Seg30.wireSeating 3 = 24733 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_state_path` local 4. -/
 theorem requiredStatePathAt4
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 4 = rho 24735 := by
+    RequiredStatePathValuation rho 4 = rho 24738 := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
     Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 4 = 24735 by
+  rw [show Seg30.wireSeating 4 = 24738 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_state_path` local 5. -/
 theorem requiredStatePathAt5
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 5 = rho 24740 := by
+    RequiredStatePathValuation rho 5 = rho 24743 := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
     Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 5 = 24740 by
+  rw [show Seg30.wireSeating 5 = 24743 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_state_path` local 6. -/
 theorem requiredStatePathAt6
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 6 = rho 24745 := by
+    RequiredStatePathValuation rho 6 = rho 24748 := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
     Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 6 = 24745 by
+  rw [show Seg30.wireSeating 6 = 24748 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_state_path` local 285. -/
 theorem requiredStatePathAt285
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 285 = rho 138 := by
+    RequiredStatePathValuation rho 285 = rho 139 := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
     Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 285 = 138 by
+  rw [show Seg30.wireSeating 285 = 139 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 290. -/
-theorem requiredStatePathAt290
+/-- Audited path accessor for `required_state_path` element 69. -/
+theorem requiredStatePathPath69
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 290 = rho 208 := by
+    RequiredStatePathValuation rho 290 = spend0StateProofPath69 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 290 = 208 by
+    Deployed.Templates.seated,
+    spend0StateProofPath69, spend0StateProofPath69LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 290 = 209 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 292. -/
-theorem requiredStatePathAt292
+/-- Audited path accessor for `required_state_path` element 70. -/
+theorem requiredStatePathPath70
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 292 = rho 209 := by
+    RequiredStatePathValuation rho 292 = spend0StateProofPath70 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 292 = 209 by
+    Deployed.Templates.seated,
+    spend0StateProofPath70, spend0StateProofPath70LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 292 = 210 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 295. -/
-theorem requiredStatePathAt295
+/-- Audited path accessor for `required_state_path` element 71. -/
+theorem requiredStatePathPath71
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 295 = rho 210 := by
+    RequiredStatePathValuation rho 295 = spend0StateProofPath71 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 295 = 210 by
+    Deployed.Templates.seated,
+    spend0StateProofPath71, spend0StateProofPath71LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 295 = 211 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 653. -/
-theorem requiredStatePathAt653
+/-- Audited path accessor for `required_state_path` element 66. -/
+theorem requiredStatePathPath66
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 653 = rho 205 := by
+    RequiredStatePathValuation rho 653 = spend0StateProofPath66 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 653 = 205 by
+    Deployed.Templates.seated,
+    spend0StateProofPath66, spend0StateProofPath66LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 653 = 206 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 655. -/
-theorem requiredStatePathAt655
+/-- Audited path accessor for `required_state_path` element 67. -/
+theorem requiredStatePathPath67
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 655 = rho 206 := by
+    RequiredStatePathValuation rho 655 = spend0StateProofPath67 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 655 = 206 by
+    Deployed.Templates.seated,
+    spend0StateProofPath67, spend0StateProofPath67LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 655 = 207 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 658. -/
-theorem requiredStatePathAt658
+/-- Audited path accessor for `required_state_path` element 68. -/
+theorem requiredStatePathPath68
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 658 = rho 207 := by
+    RequiredStatePathValuation rho 658 = spend0StateProofPath68 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 658 = 207 by
+    Deployed.Templates.seated,
+    spend0StateProofPath68, spend0StateProofPath68LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 658 = 208 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 1016. -/
-theorem requiredStatePathAt1016
+/-- Audited path accessor for `required_state_path` element 63. -/
+theorem requiredStatePathPath63
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 1016 = rho 202 := by
+    RequiredStatePathValuation rho 1016 = spend0StateProofPath63 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 1016 = 202 by
+    Deployed.Templates.seated,
+    spend0StateProofPath63, spend0StateProofPath63LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 1016 = 203 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 1018. -/
-theorem requiredStatePathAt1018
+/-- Audited path accessor for `required_state_path` element 64. -/
+theorem requiredStatePathPath64
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 1018 = rho 203 := by
+    RequiredStatePathValuation rho 1018 = spend0StateProofPath64 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 1018 = 203 by
+    Deployed.Templates.seated,
+    spend0StateProofPath64, spend0StateProofPath64LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 1018 = 204 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 1021. -/
-theorem requiredStatePathAt1021
+/-- Audited path accessor for `required_state_path` element 65. -/
+theorem requiredStatePathPath65
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 1021 = rho 204 := by
+    RequiredStatePathValuation rho 1021 = spend0StateProofPath65 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 1021 = 204 by
+    Deployed.Templates.seated,
+    spend0StateProofPath65, spend0StateProofPath65LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 1021 = 205 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 1379. -/
-theorem requiredStatePathAt1379
+/-- Audited path accessor for `required_state_path` element 60. -/
+theorem requiredStatePathPath60
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 1379 = rho 199 := by
+    RequiredStatePathValuation rho 1379 = spend0StateProofPath60 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 1379 = 199 by
+    Deployed.Templates.seated,
+    spend0StateProofPath60, spend0StateProofPath60LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 1379 = 200 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 1381. -/
-theorem requiredStatePathAt1381
+/-- Audited path accessor for `required_state_path` element 61. -/
+theorem requiredStatePathPath61
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 1381 = rho 200 := by
+    RequiredStatePathValuation rho 1381 = spend0StateProofPath61 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 1381 = 200 by
+    Deployed.Templates.seated,
+    spend0StateProofPath61, spend0StateProofPath61LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 1381 = 201 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 1384. -/
-theorem requiredStatePathAt1384
+/-- Audited path accessor for `required_state_path` element 62. -/
+theorem requiredStatePathPath62
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 1384 = rho 201 := by
+    RequiredStatePathValuation rho 1384 = spend0StateProofPath62 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 1384 = 201 by
+    Deployed.Templates.seated,
+    spend0StateProofPath62, spend0StateProofPath62LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 1384 = 202 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 1742. -/
-theorem requiredStatePathAt1742
+/-- Audited path accessor for `required_state_path` element 57. -/
+theorem requiredStatePathPath57
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 1742 = rho 196 := by
+    RequiredStatePathValuation rho 1742 = spend0StateProofPath57 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 1742 = 196 by
+    Deployed.Templates.seated,
+    spend0StateProofPath57, spend0StateProofPath57LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 1742 = 197 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 1744. -/
-theorem requiredStatePathAt1744
+/-- Audited path accessor for `required_state_path` element 58. -/
+theorem requiredStatePathPath58
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 1744 = rho 197 := by
+    RequiredStatePathValuation rho 1744 = spend0StateProofPath58 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 1744 = 197 by
+    Deployed.Templates.seated,
+    spend0StateProofPath58, spend0StateProofPath58LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 1744 = 198 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 1747. -/
-theorem requiredStatePathAt1747
+/-- Audited path accessor for `required_state_path` element 59. -/
+theorem requiredStatePathPath59
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 1747 = rho 198 := by
+    RequiredStatePathValuation rho 1747 = spend0StateProofPath59 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 1747 = 198 by
+    Deployed.Templates.seated,
+    spend0StateProofPath59, spend0StateProofPath59LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 1747 = 199 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 2105. -/
-theorem requiredStatePathAt2105
+/-- Audited path accessor for `required_state_path` element 54. -/
+theorem requiredStatePathPath54
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 2105 = rho 193 := by
+    RequiredStatePathValuation rho 2105 = spend0StateProofPath54 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 2105 = 193 by
+    Deployed.Templates.seated,
+    spend0StateProofPath54, spend0StateProofPath54LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 2105 = 194 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 2107. -/
-theorem requiredStatePathAt2107
+/-- Audited path accessor for `required_state_path` element 55. -/
+theorem requiredStatePathPath55
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 2107 = rho 194 := by
+    RequiredStatePathValuation rho 2107 = spend0StateProofPath55 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 2107 = 194 by
+    Deployed.Templates.seated,
+    spend0StateProofPath55, spend0StateProofPath55LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 2107 = 195 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 2110. -/
-theorem requiredStatePathAt2110
+/-- Audited path accessor for `required_state_path` element 56. -/
+theorem requiredStatePathPath56
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 2110 = rho 195 := by
+    RequiredStatePathValuation rho 2110 = spend0StateProofPath56 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 2110 = 195 by
+    Deployed.Templates.seated,
+    spend0StateProofPath56, spend0StateProofPath56LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 2110 = 196 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 2468. -/
-theorem requiredStatePathAt2468
+/-- Audited path accessor for `required_state_path` element 51. -/
+theorem requiredStatePathPath51
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 2468 = rho 190 := by
+    RequiredStatePathValuation rho 2468 = spend0StateProofPath51 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 2468 = 190 by
+    Deployed.Templates.seated,
+    spend0StateProofPath51, spend0StateProofPath51LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 2468 = 191 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 2470. -/
-theorem requiredStatePathAt2470
+/-- Audited path accessor for `required_state_path` element 52. -/
+theorem requiredStatePathPath52
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 2470 = rho 191 := by
+    RequiredStatePathValuation rho 2470 = spend0StateProofPath52 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 2470 = 191 by
+    Deployed.Templates.seated,
+    spend0StateProofPath52, spend0StateProofPath52LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 2470 = 192 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 2473. -/
-theorem requiredStatePathAt2473
+/-- Audited path accessor for `required_state_path` element 53. -/
+theorem requiredStatePathPath53
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 2473 = rho 192 := by
+    RequiredStatePathValuation rho 2473 = spend0StateProofPath53 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 2473 = 192 by
+    Deployed.Templates.seated,
+    spend0StateProofPath53, spend0StateProofPath53LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 2473 = 193 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 2831. -/
-theorem requiredStatePathAt2831
+/-- Audited path accessor for `required_state_path` element 48. -/
+theorem requiredStatePathPath48
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 2831 = rho 187 := by
+    RequiredStatePathValuation rho 2831 = spend0StateProofPath48 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 2831 = 187 by
+    Deployed.Templates.seated,
+    spend0StateProofPath48, spend0StateProofPath48LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 2831 = 188 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 2833. -/
-theorem requiredStatePathAt2833
+/-- Audited path accessor for `required_state_path` element 49. -/
+theorem requiredStatePathPath49
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 2833 = rho 188 := by
+    RequiredStatePathValuation rho 2833 = spend0StateProofPath49 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 2833 = 188 by
+    Deployed.Templates.seated,
+    spend0StateProofPath49, spend0StateProofPath49LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 2833 = 189 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 2836. -/
-theorem requiredStatePathAt2836
+/-- Audited path accessor for `required_state_path` element 50. -/
+theorem requiredStatePathPath50
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 2836 = rho 189 := by
+    RequiredStatePathValuation rho 2836 = spend0StateProofPath50 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 2836 = 189 by
+    Deployed.Templates.seated,
+    spend0StateProofPath50, spend0StateProofPath50LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 2836 = 190 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 3194. -/
-theorem requiredStatePathAt3194
+/-- Audited path accessor for `required_state_path` element 45. -/
+theorem requiredStatePathPath45
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 3194 = rho 184 := by
+    RequiredStatePathValuation rho 3194 = spend0StateProofPath45 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 3194 = 184 by
+    Deployed.Templates.seated,
+    spend0StateProofPath45, spend0StateProofPath45LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 3194 = 185 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 3196. -/
-theorem requiredStatePathAt3196
+/-- Audited path accessor for `required_state_path` element 46. -/
+theorem requiredStatePathPath46
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 3196 = rho 185 := by
+    RequiredStatePathValuation rho 3196 = spend0StateProofPath46 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 3196 = 185 by
+    Deployed.Templates.seated,
+    spend0StateProofPath46, spend0StateProofPath46LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 3196 = 186 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 3199. -/
-theorem requiredStatePathAt3199
+/-- Audited path accessor for `required_state_path` element 47. -/
+theorem requiredStatePathPath47
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 3199 = rho 186 := by
+    RequiredStatePathValuation rho 3199 = spend0StateProofPath47 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 3199 = 186 by
+    Deployed.Templates.seated,
+    spend0StateProofPath47, spend0StateProofPath47LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 3199 = 187 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 3557. -/
-theorem requiredStatePathAt3557
+/-- Audited path accessor for `required_state_path` element 42. -/
+theorem requiredStatePathPath42
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 3557 = rho 181 := by
+    RequiredStatePathValuation rho 3557 = spend0StateProofPath42 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 3557 = 181 by
+    Deployed.Templates.seated,
+    spend0StateProofPath42, spend0StateProofPath42LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 3557 = 182 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 3559. -/
-theorem requiredStatePathAt3559
+/-- Audited path accessor for `required_state_path` element 43. -/
+theorem requiredStatePathPath43
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 3559 = rho 182 := by
+    RequiredStatePathValuation rho 3559 = spend0StateProofPath43 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 3559 = 182 by
+    Deployed.Templates.seated,
+    spend0StateProofPath43, spend0StateProofPath43LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 3559 = 183 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 3562. -/
-theorem requiredStatePathAt3562
+/-- Audited path accessor for `required_state_path` element 44. -/
+theorem requiredStatePathPath44
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 3562 = rho 183 := by
+    RequiredStatePathValuation rho 3562 = spend0StateProofPath44 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 3562 = 183 by
+    Deployed.Templates.seated,
+    spend0StateProofPath44, spend0StateProofPath44LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 3562 = 184 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 3920. -/
-theorem requiredStatePathAt3920
+/-- Audited path accessor for `required_state_path` element 39. -/
+theorem requiredStatePathPath39
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 3920 = rho 178 := by
+    RequiredStatePathValuation rho 3920 = spend0StateProofPath39 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 3920 = 178 by
+    Deployed.Templates.seated,
+    spend0StateProofPath39, spend0StateProofPath39LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 3920 = 179 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 3922. -/
-theorem requiredStatePathAt3922
+/-- Audited path accessor for `required_state_path` element 40. -/
+theorem requiredStatePathPath40
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 3922 = rho 179 := by
+    RequiredStatePathValuation rho 3922 = spend0StateProofPath40 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 3922 = 179 by
+    Deployed.Templates.seated,
+    spend0StateProofPath40, spend0StateProofPath40LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 3922 = 180 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 3925. -/
-theorem requiredStatePathAt3925
+/-- Audited path accessor for `required_state_path` element 41. -/
+theorem requiredStatePathPath41
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 3925 = rho 180 := by
+    RequiredStatePathValuation rho 3925 = spend0StateProofPath41 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 3925 = 180 by
+    Deployed.Templates.seated,
+    spend0StateProofPath41, spend0StateProofPath41LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 3925 = 181 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 4283. -/
-theorem requiredStatePathAt4283
+/-- Audited path accessor for `required_state_path` element 36. -/
+theorem requiredStatePathPath36
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 4283 = rho 175 := by
+    RequiredStatePathValuation rho 4283 = spend0StateProofPath36 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 4283 = 175 by
+    Deployed.Templates.seated,
+    spend0StateProofPath36, spend0StateProofPath36LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 4283 = 176 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 4285. -/
-theorem requiredStatePathAt4285
+/-- Audited path accessor for `required_state_path` element 37. -/
+theorem requiredStatePathPath37
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 4285 = rho 176 := by
+    RequiredStatePathValuation rho 4285 = spend0StateProofPath37 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 4285 = 176 by
+    Deployed.Templates.seated,
+    spend0StateProofPath37, spend0StateProofPath37LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 4285 = 177 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 4288. -/
-theorem requiredStatePathAt4288
+/-- Audited path accessor for `required_state_path` element 38. -/
+theorem requiredStatePathPath38
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 4288 = rho 177 := by
+    RequiredStatePathValuation rho 4288 = spend0StateProofPath38 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 4288 = 177 by
+    Deployed.Templates.seated,
+    spend0StateProofPath38, spend0StateProofPath38LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 4288 = 178 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 4646. -/
-theorem requiredStatePathAt4646
+/-- Audited path accessor for `required_state_path` element 33. -/
+theorem requiredStatePathPath33
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 4646 = rho 172 := by
+    RequiredStatePathValuation rho 4646 = spend0StateProofPath33 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 4646 = 172 by
+    Deployed.Templates.seated,
+    spend0StateProofPath33, spend0StateProofPath33LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 4646 = 173 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 4648. -/
-theorem requiredStatePathAt4648
+/-- Audited path accessor for `required_state_path` element 34. -/
+theorem requiredStatePathPath34
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 4648 = rho 173 := by
+    RequiredStatePathValuation rho 4648 = spend0StateProofPath34 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 4648 = 173 by
+    Deployed.Templates.seated,
+    spend0StateProofPath34, spend0StateProofPath34LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 4648 = 174 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 4651. -/
-theorem requiredStatePathAt4651
+/-- Audited path accessor for `required_state_path` element 35. -/
+theorem requiredStatePathPath35
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 4651 = rho 174 := by
+    RequiredStatePathValuation rho 4651 = spend0StateProofPath35 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 4651 = 174 by
+    Deployed.Templates.seated,
+    spend0StateProofPath35, spend0StateProofPath35LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 4651 = 175 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 5009. -/
-theorem requiredStatePathAt5009
+/-- Audited path accessor for `required_state_path` element 30. -/
+theorem requiredStatePathPath30
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 5009 = rho 169 := by
+    RequiredStatePathValuation rho 5009 = spend0StateProofPath30 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 5009 = 169 by
+    Deployed.Templates.seated,
+    spend0StateProofPath30, spend0StateProofPath30LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 5009 = 170 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 5011. -/
-theorem requiredStatePathAt5011
+/-- Audited path accessor for `required_state_path` element 31. -/
+theorem requiredStatePathPath31
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 5011 = rho 170 := by
+    RequiredStatePathValuation rho 5011 = spend0StateProofPath31 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 5011 = 170 by
+    Deployed.Templates.seated,
+    spend0StateProofPath31, spend0StateProofPath31LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 5011 = 171 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 5014. -/
-theorem requiredStatePathAt5014
+/-- Audited path accessor for `required_state_path` element 32. -/
+theorem requiredStatePathPath32
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 5014 = rho 171 := by
+    RequiredStatePathValuation rho 5014 = spend0StateProofPath32 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 5014 = 171 by
+    Deployed.Templates.seated,
+    spend0StateProofPath32, spend0StateProofPath32LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 5014 = 172 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 5372. -/
-theorem requiredStatePathAt5372
+/-- Audited path accessor for `required_state_path` element 27. -/
+theorem requiredStatePathPath27
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 5372 = rho 166 := by
+    RequiredStatePathValuation rho 5372 = spend0StateProofPath27 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 5372 = 166 by
+    Deployed.Templates.seated,
+    spend0StateProofPath27, spend0StateProofPath27LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 5372 = 167 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 5374. -/
-theorem requiredStatePathAt5374
+/-- Audited path accessor for `required_state_path` element 28. -/
+theorem requiredStatePathPath28
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 5374 = rho 167 := by
+    RequiredStatePathValuation rho 5374 = spend0StateProofPath28 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 5374 = 167 by
+    Deployed.Templates.seated,
+    spend0StateProofPath28, spend0StateProofPath28LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 5374 = 168 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 5377. -/
-theorem requiredStatePathAt5377
+/-- Audited path accessor for `required_state_path` element 29. -/
+theorem requiredStatePathPath29
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 5377 = rho 168 := by
+    RequiredStatePathValuation rho 5377 = spend0StateProofPath29 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 5377 = 168 by
+    Deployed.Templates.seated,
+    spend0StateProofPath29, spend0StateProofPath29LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 5377 = 169 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 5735. -/
-theorem requiredStatePathAt5735
+/-- Audited path accessor for `required_state_path` element 24. -/
+theorem requiredStatePathPath24
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 5735 = rho 163 := by
+    RequiredStatePathValuation rho 5735 = spend0StateProofPath24 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 5735 = 163 by
+    Deployed.Templates.seated,
+    spend0StateProofPath24, spend0StateProofPath24LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 5735 = 164 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 5737. -/
-theorem requiredStatePathAt5737
+/-- Audited path accessor for `required_state_path` element 25. -/
+theorem requiredStatePathPath25
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 5737 = rho 164 := by
+    RequiredStatePathValuation rho 5737 = spend0StateProofPath25 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 5737 = 164 by
+    Deployed.Templates.seated,
+    spend0StateProofPath25, spend0StateProofPath25LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 5737 = 165 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 5740. -/
-theorem requiredStatePathAt5740
+/-- Audited path accessor for `required_state_path` element 26. -/
+theorem requiredStatePathPath26
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 5740 = rho 165 := by
+    RequiredStatePathValuation rho 5740 = spend0StateProofPath26 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 5740 = 165 by
+    Deployed.Templates.seated,
+    spend0StateProofPath26, spend0StateProofPath26LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 5740 = 166 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 6098. -/
-theorem requiredStatePathAt6098
+/-- Audited path accessor for `required_state_path` element 21. -/
+theorem requiredStatePathPath21
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 6098 = rho 160 := by
+    RequiredStatePathValuation rho 6098 = spend0StateProofPath21 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 6098 = 160 by
+    Deployed.Templates.seated,
+    spend0StateProofPath21, spend0StateProofPath21LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 6098 = 161 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 6100. -/
-theorem requiredStatePathAt6100
+/-- Audited path accessor for `required_state_path` element 22. -/
+theorem requiredStatePathPath22
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 6100 = rho 161 := by
+    RequiredStatePathValuation rho 6100 = spend0StateProofPath22 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 6100 = 161 by
+    Deployed.Templates.seated,
+    spend0StateProofPath22, spend0StateProofPath22LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 6100 = 162 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 6103. -/
-theorem requiredStatePathAt6103
+/-- Audited path accessor for `required_state_path` element 23. -/
+theorem requiredStatePathPath23
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 6103 = rho 162 := by
+    RequiredStatePathValuation rho 6103 = spend0StateProofPath23 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 6103 = 162 by
+    Deployed.Templates.seated,
+    spend0StateProofPath23, spend0StateProofPath23LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 6103 = 163 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 6461. -/
-theorem requiredStatePathAt6461
+/-- Audited path accessor for `required_state_path` element 18. -/
+theorem requiredStatePathPath18
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 6461 = rho 157 := by
+    RequiredStatePathValuation rho 6461 = spend0StateProofPath18 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 6461 = 157 by
+    Deployed.Templates.seated,
+    spend0StateProofPath18, spend0StateProofPath18LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 6461 = 158 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 6463. -/
-theorem requiredStatePathAt6463
+/-- Audited path accessor for `required_state_path` element 19. -/
+theorem requiredStatePathPath19
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 6463 = rho 158 := by
+    RequiredStatePathValuation rho 6463 = spend0StateProofPath19 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 6463 = 158 by
+    Deployed.Templates.seated,
+    spend0StateProofPath19, spend0StateProofPath19LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 6463 = 159 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 6466. -/
-theorem requiredStatePathAt6466
+/-- Audited path accessor for `required_state_path` element 20. -/
+theorem requiredStatePathPath20
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 6466 = rho 159 := by
+    RequiredStatePathValuation rho 6466 = spend0StateProofPath20 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 6466 = 159 by
+    Deployed.Templates.seated,
+    spend0StateProofPath20, spend0StateProofPath20LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 6466 = 160 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 6824. -/
-theorem requiredStatePathAt6824
+/-- Audited path accessor for `required_state_path` element 15. -/
+theorem requiredStatePathPath15
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 6824 = rho 154 := by
+    RequiredStatePathValuation rho 6824 = spend0StateProofPath15 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 6824 = 154 by
+    Deployed.Templates.seated,
+    spend0StateProofPath15, spend0StateProofPath15LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 6824 = 155 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 6826. -/
-theorem requiredStatePathAt6826
+/-- Audited path accessor for `required_state_path` element 16. -/
+theorem requiredStatePathPath16
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 6826 = rho 155 := by
+    RequiredStatePathValuation rho 6826 = spend0StateProofPath16 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 6826 = 155 by
+    Deployed.Templates.seated,
+    spend0StateProofPath16, spend0StateProofPath16LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 6826 = 156 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 6829. -/
-theorem requiredStatePathAt6829
+/-- Audited path accessor for `required_state_path` element 17. -/
+theorem requiredStatePathPath17
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 6829 = rho 156 := by
+    RequiredStatePathValuation rho 6829 = spend0StateProofPath17 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 6829 = 156 by
+    Deployed.Templates.seated,
+    spend0StateProofPath17, spend0StateProofPath17LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 6829 = 157 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 7187. -/
-theorem requiredStatePathAt7187
+/-- Audited path accessor for `required_state_path` element 12. -/
+theorem requiredStatePathPath12
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 7187 = rho 151 := by
+    RequiredStatePathValuation rho 7187 = spend0StateProofPath12 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 7187 = 151 by
+    Deployed.Templates.seated,
+    spend0StateProofPath12, spend0StateProofPath12LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 7187 = 152 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 7189. -/
-theorem requiredStatePathAt7189
+/-- Audited path accessor for `required_state_path` element 13. -/
+theorem requiredStatePathPath13
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 7189 = rho 152 := by
+    RequiredStatePathValuation rho 7189 = spend0StateProofPath13 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 7189 = 152 by
+    Deployed.Templates.seated,
+    spend0StateProofPath13, spend0StateProofPath13LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 7189 = 153 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 7192. -/
-theorem requiredStatePathAt7192
+/-- Audited path accessor for `required_state_path` element 14. -/
+theorem requiredStatePathPath14
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 7192 = rho 153 := by
+    RequiredStatePathValuation rho 7192 = spend0StateProofPath14 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 7192 = 153 by
+    Deployed.Templates.seated,
+    spend0StateProofPath14, spend0StateProofPath14LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 7192 = 154 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 7550. -/
-theorem requiredStatePathAt7550
+/-- Audited path accessor for `required_state_path` element 9. -/
+theorem requiredStatePathPath9
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 7550 = rho 148 := by
+    RequiredStatePathValuation rho 7550 = spend0StateProofPath9 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 7550 = 148 by
+    Deployed.Templates.seated,
+    spend0StateProofPath9, spend0StateProofPath9LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 7550 = 149 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 7552. -/
-theorem requiredStatePathAt7552
+/-- Audited path accessor for `required_state_path` element 10. -/
+theorem requiredStatePathPath10
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 7552 = rho 149 := by
+    RequiredStatePathValuation rho 7552 = spend0StateProofPath10 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 7552 = 149 by
+    Deployed.Templates.seated,
+    spend0StateProofPath10, spend0StateProofPath10LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 7552 = 150 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 7555. -/
-theorem requiredStatePathAt7555
+/-- Audited path accessor for `required_state_path` element 11. -/
+theorem requiredStatePathPath11
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 7555 = rho 150 := by
+    RequiredStatePathValuation rho 7555 = spend0StateProofPath11 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 7555 = 150 by
+    Deployed.Templates.seated,
+    spend0StateProofPath11, spend0StateProofPath11LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 7555 = 151 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 7913. -/
-theorem requiredStatePathAt7913
+/-- Audited path accessor for `required_state_path` element 6. -/
+theorem requiredStatePathPath6
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 7913 = rho 145 := by
+    RequiredStatePathValuation rho 7913 = spend0StateProofPath6 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 7913 = 145 by
+    Deployed.Templates.seated,
+    spend0StateProofPath6, spend0StateProofPath6LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 7913 = 146 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 7915. -/
-theorem requiredStatePathAt7915
+/-- Audited path accessor for `required_state_path` element 7. -/
+theorem requiredStatePathPath7
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 7915 = rho 146 := by
+    RequiredStatePathValuation rho 7915 = spend0StateProofPath7 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 7915 = 146 by
+    Deployed.Templates.seated,
+    spend0StateProofPath7, spend0StateProofPath7LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 7915 = 147 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 7918. -/
-theorem requiredStatePathAt7918
+/-- Audited path accessor for `required_state_path` element 8. -/
+theorem requiredStatePathPath8
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 7918 = rho 147 := by
+    RequiredStatePathValuation rho 7918 = spend0StateProofPath8 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 7918 = 147 by
+    Deployed.Templates.seated,
+    spend0StateProofPath8, spend0StateProofPath8LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 7918 = 148 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 8276. -/
-theorem requiredStatePathAt8276
+/-- Audited path accessor for `required_state_path` element 3. -/
+theorem requiredStatePathPath3
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 8276 = rho 142 := by
+    RequiredStatePathValuation rho 8276 = spend0StateProofPath3 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 8276 = 142 by
+    Deployed.Templates.seated,
+    spend0StateProofPath3, spend0StateProofPath3LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 8276 = 143 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 8278. -/
-theorem requiredStatePathAt8278
+/-- Audited path accessor for `required_state_path` element 4. -/
+theorem requiredStatePathPath4
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 8278 = rho 143 := by
+    RequiredStatePathValuation rho 8278 = spend0StateProofPath4 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 8278 = 143 by
+    Deployed.Templates.seated,
+    spend0StateProofPath4, spend0StateProofPath4LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 8278 = 144 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 8281. -/
-theorem requiredStatePathAt8281
+/-- Audited path accessor for `required_state_path` element 5. -/
+theorem requiredStatePathPath5
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 8281 = rho 144 := by
+    RequiredStatePathValuation rho 8281 = spend0StateProofPath5 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 8281 = 144 by
+    Deployed.Templates.seated,
+    spend0StateProofPath5, spend0StateProofPath5LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 8281 = 145 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 8639. -/
-theorem requiredStatePathAt8639
+/-- Audited path accessor for `required_state_path` element 0. -/
+theorem requiredStatePathPath0
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 8639 = rho 139 := by
+    RequiredStatePathValuation rho 8639 = spend0StateProofPath0 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 8639 = 139 by
+    Deployed.Templates.seated,
+    spend0StateProofPath0, spend0StateProofPath0LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 8639 = 140 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 8641. -/
-theorem requiredStatePathAt8641
+/-- Audited path accessor for `required_state_path` element 1. -/
+theorem requiredStatePathPath1
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 8641 = rho 140 := by
+    RequiredStatePathValuation rho 8641 = spend0StateProofPath1 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 8641 = 140 by
+    Deployed.Templates.seated,
+    spend0StateProofPath1, spend0StateProofPath1LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 8641 = 141 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `required_state_path` local 8644. -/
-theorem requiredStatePathAt8644
+/-- Audited path accessor for `required_state_path` element 2. -/
+theorem requiredStatePathPath2
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 8644 = rho 141 := by
+    RequiredStatePathValuation rho 8644 = spend0StateProofPath2 rho := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 8644 = 141 by
+    Deployed.Templates.seated,
+    spend0StateProofPath2, spend0StateProofPath2LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg30.wireSeating 8644 = 142 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_state_path` local 8977. -/
 theorem requiredStatePathAt8977
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 8977 = rho 33953 := by
+    RequiredStatePathValuation rho 8977 = rho 33956 := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
     Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 8977 = 33953 by
+  rw [show Seg30.wireSeating 8977 = 33956 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_state_path` local 8982. -/
 theorem requiredStatePathAt8982
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 8982 = rho 33958 := by
+    RequiredStatePathValuation rho 8982 = rho 33961 := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
     Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 8982 = 33958 by
+  rw [show Seg30.wireSeating 8982 = 33961 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_state_path` local 8987. -/
 theorem requiredStatePathAt8987
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 8987 = rho 33963 := by
+    RequiredStatePathValuation rho 8987 = rho 33966 := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
     Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 8987 = 33963 by
+  rw [show Seg30.wireSeating 8987 = 33966 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_state_path` local 8992. -/
 theorem requiredStatePathAt8992
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 8992 = rho 33968 := by
+    RequiredStatePathValuation rho 8992 = rho 33971 := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
     Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 8992 = 33968 by
+  rw [show Seg30.wireSeating 8992 = 33971 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_state_path` local 8997. -/
 theorem requiredStatePathAt8997
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 8997 = rho 33973 := by
+    RequiredStatePathValuation rho 8997 = rho 33976 := by
   simp only [
     RequiredStatePathValuation, Seg30.localRho,
     Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 8997 = 33973 by
+  rw [show Seg30.wireSeating 8997 = 33976 by
     decide +kernel]
 
 /-- The provider-local state path is the direct compiler-labelled path. -/
@@ -1607,154 +1897,154 @@ theorem requiredStatePathProviderPath_eq
   rcases level with ⟨level, level_lt⟩
   rcases sibling with ⟨sibling, sibling_lt⟩
   interval_cases level <;> interval_cases sibling
-  · change RequiredStatePathValuation rho 291 = spend0StateProofPath69 rho
+  · change RequiredStatePathValuation rho 290 = spend0StateProofPath69 rho
     exact requiredStatePathPath69 rho
-  · change RequiredStatePathValuation rho 293 = spend0StateProofPath70 rho
+  · change RequiredStatePathValuation rho 292 = spend0StateProofPath70 rho
     exact requiredStatePathPath70 rho
-  · change RequiredStatePathValuation rho 296 = spend0StateProofPath71 rho
+  · change RequiredStatePathValuation rho 295 = spend0StateProofPath71 rho
     exact requiredStatePathPath71 rho
-  · change RequiredStatePathValuation rho 654 = spend0StateProofPath66 rho
+  · change RequiredStatePathValuation rho 653 = spend0StateProofPath66 rho
     exact requiredStatePathPath66 rho
-  · change RequiredStatePathValuation rho 656 = spend0StateProofPath67 rho
+  · change RequiredStatePathValuation rho 655 = spend0StateProofPath67 rho
     exact requiredStatePathPath67 rho
-  · change RequiredStatePathValuation rho 659 = spend0StateProofPath68 rho
+  · change RequiredStatePathValuation rho 658 = spend0StateProofPath68 rho
     exact requiredStatePathPath68 rho
-  · change RequiredStatePathValuation rho 1017 = spend0StateProofPath63 rho
+  · change RequiredStatePathValuation rho 1016 = spend0StateProofPath63 rho
     exact requiredStatePathPath63 rho
-  · change RequiredStatePathValuation rho 1019 = spend0StateProofPath64 rho
+  · change RequiredStatePathValuation rho 1018 = spend0StateProofPath64 rho
     exact requiredStatePathPath64 rho
-  · change RequiredStatePathValuation rho 1022 = spend0StateProofPath65 rho
+  · change RequiredStatePathValuation rho 1021 = spend0StateProofPath65 rho
     exact requiredStatePathPath65 rho
-  · change RequiredStatePathValuation rho 1380 = spend0StateProofPath60 rho
+  · change RequiredStatePathValuation rho 1379 = spend0StateProofPath60 rho
     exact requiredStatePathPath60 rho
-  · change RequiredStatePathValuation rho 1382 = spend0StateProofPath61 rho
+  · change RequiredStatePathValuation rho 1381 = spend0StateProofPath61 rho
     exact requiredStatePathPath61 rho
-  · change RequiredStatePathValuation rho 1385 = spend0StateProofPath62 rho
+  · change RequiredStatePathValuation rho 1384 = spend0StateProofPath62 rho
     exact requiredStatePathPath62 rho
-  · change RequiredStatePathValuation rho 1743 = spend0StateProofPath57 rho
+  · change RequiredStatePathValuation rho 1742 = spend0StateProofPath57 rho
     exact requiredStatePathPath57 rho
-  · change RequiredStatePathValuation rho 1745 = spend0StateProofPath58 rho
+  · change RequiredStatePathValuation rho 1744 = spend0StateProofPath58 rho
     exact requiredStatePathPath58 rho
-  · change RequiredStatePathValuation rho 1748 = spend0StateProofPath59 rho
+  · change RequiredStatePathValuation rho 1747 = spend0StateProofPath59 rho
     exact requiredStatePathPath59 rho
-  · change RequiredStatePathValuation rho 2106 = spend0StateProofPath54 rho
+  · change RequiredStatePathValuation rho 2105 = spend0StateProofPath54 rho
     exact requiredStatePathPath54 rho
-  · change RequiredStatePathValuation rho 2108 = spend0StateProofPath55 rho
+  · change RequiredStatePathValuation rho 2107 = spend0StateProofPath55 rho
     exact requiredStatePathPath55 rho
-  · change RequiredStatePathValuation rho 2111 = spend0StateProofPath56 rho
+  · change RequiredStatePathValuation rho 2110 = spend0StateProofPath56 rho
     exact requiredStatePathPath56 rho
-  · change RequiredStatePathValuation rho 2469 = spend0StateProofPath51 rho
+  · change RequiredStatePathValuation rho 2468 = spend0StateProofPath51 rho
     exact requiredStatePathPath51 rho
-  · change RequiredStatePathValuation rho 2471 = spend0StateProofPath52 rho
+  · change RequiredStatePathValuation rho 2470 = spend0StateProofPath52 rho
     exact requiredStatePathPath52 rho
-  · change RequiredStatePathValuation rho 2474 = spend0StateProofPath53 rho
+  · change RequiredStatePathValuation rho 2473 = spend0StateProofPath53 rho
     exact requiredStatePathPath53 rho
-  · change RequiredStatePathValuation rho 2832 = spend0StateProofPath48 rho
+  · change RequiredStatePathValuation rho 2831 = spend0StateProofPath48 rho
     exact requiredStatePathPath48 rho
-  · change RequiredStatePathValuation rho 2834 = spend0StateProofPath49 rho
+  · change RequiredStatePathValuation rho 2833 = spend0StateProofPath49 rho
     exact requiredStatePathPath49 rho
-  · change RequiredStatePathValuation rho 2837 = spend0StateProofPath50 rho
+  · change RequiredStatePathValuation rho 2836 = spend0StateProofPath50 rho
     exact requiredStatePathPath50 rho
-  · change RequiredStatePathValuation rho 3195 = spend0StateProofPath45 rho
+  · change RequiredStatePathValuation rho 3194 = spend0StateProofPath45 rho
     exact requiredStatePathPath45 rho
-  · change RequiredStatePathValuation rho 3197 = spend0StateProofPath46 rho
+  · change RequiredStatePathValuation rho 3196 = spend0StateProofPath46 rho
     exact requiredStatePathPath46 rho
-  · change RequiredStatePathValuation rho 3200 = spend0StateProofPath47 rho
+  · change RequiredStatePathValuation rho 3199 = spend0StateProofPath47 rho
     exact requiredStatePathPath47 rho
-  · change RequiredStatePathValuation rho 3558 = spend0StateProofPath42 rho
+  · change RequiredStatePathValuation rho 3557 = spend0StateProofPath42 rho
     exact requiredStatePathPath42 rho
-  · change RequiredStatePathValuation rho 3560 = spend0StateProofPath43 rho
+  · change RequiredStatePathValuation rho 3559 = spend0StateProofPath43 rho
     exact requiredStatePathPath43 rho
-  · change RequiredStatePathValuation rho 3563 = spend0StateProofPath44 rho
+  · change RequiredStatePathValuation rho 3562 = spend0StateProofPath44 rho
     exact requiredStatePathPath44 rho
-  · change RequiredStatePathValuation rho 3921 = spend0StateProofPath39 rho
+  · change RequiredStatePathValuation rho 3920 = spend0StateProofPath39 rho
     exact requiredStatePathPath39 rho
-  · change RequiredStatePathValuation rho 3923 = spend0StateProofPath40 rho
+  · change RequiredStatePathValuation rho 3922 = spend0StateProofPath40 rho
     exact requiredStatePathPath40 rho
-  · change RequiredStatePathValuation rho 3926 = spend0StateProofPath41 rho
+  · change RequiredStatePathValuation rho 3925 = spend0StateProofPath41 rho
     exact requiredStatePathPath41 rho
-  · change RequiredStatePathValuation rho 4284 = spend0StateProofPath36 rho
+  · change RequiredStatePathValuation rho 4283 = spend0StateProofPath36 rho
     exact requiredStatePathPath36 rho
-  · change RequiredStatePathValuation rho 4286 = spend0StateProofPath37 rho
+  · change RequiredStatePathValuation rho 4285 = spend0StateProofPath37 rho
     exact requiredStatePathPath37 rho
-  · change RequiredStatePathValuation rho 4289 = spend0StateProofPath38 rho
+  · change RequiredStatePathValuation rho 4288 = spend0StateProofPath38 rho
     exact requiredStatePathPath38 rho
-  · change RequiredStatePathValuation rho 4647 = spend0StateProofPath33 rho
+  · change RequiredStatePathValuation rho 4646 = spend0StateProofPath33 rho
     exact requiredStatePathPath33 rho
-  · change RequiredStatePathValuation rho 4649 = spend0StateProofPath34 rho
+  · change RequiredStatePathValuation rho 4648 = spend0StateProofPath34 rho
     exact requiredStatePathPath34 rho
-  · change RequiredStatePathValuation rho 4652 = spend0StateProofPath35 rho
+  · change RequiredStatePathValuation rho 4651 = spend0StateProofPath35 rho
     exact requiredStatePathPath35 rho
-  · change RequiredStatePathValuation rho 5010 = spend0StateProofPath30 rho
+  · change RequiredStatePathValuation rho 5009 = spend0StateProofPath30 rho
     exact requiredStatePathPath30 rho
-  · change RequiredStatePathValuation rho 5012 = spend0StateProofPath31 rho
+  · change RequiredStatePathValuation rho 5011 = spend0StateProofPath31 rho
     exact requiredStatePathPath31 rho
-  · change RequiredStatePathValuation rho 5015 = spend0StateProofPath32 rho
+  · change RequiredStatePathValuation rho 5014 = spend0StateProofPath32 rho
     exact requiredStatePathPath32 rho
-  · change RequiredStatePathValuation rho 5373 = spend0StateProofPath27 rho
+  · change RequiredStatePathValuation rho 5372 = spend0StateProofPath27 rho
     exact requiredStatePathPath27 rho
-  · change RequiredStatePathValuation rho 5375 = spend0StateProofPath28 rho
+  · change RequiredStatePathValuation rho 5374 = spend0StateProofPath28 rho
     exact requiredStatePathPath28 rho
-  · change RequiredStatePathValuation rho 5378 = spend0StateProofPath29 rho
+  · change RequiredStatePathValuation rho 5377 = spend0StateProofPath29 rho
     exact requiredStatePathPath29 rho
-  · change RequiredStatePathValuation rho 5736 = spend0StateProofPath24 rho
+  · change RequiredStatePathValuation rho 5735 = spend0StateProofPath24 rho
     exact requiredStatePathPath24 rho
-  · change RequiredStatePathValuation rho 5738 = spend0StateProofPath25 rho
+  · change RequiredStatePathValuation rho 5737 = spend0StateProofPath25 rho
     exact requiredStatePathPath25 rho
-  · change RequiredStatePathValuation rho 5741 = spend0StateProofPath26 rho
+  · change RequiredStatePathValuation rho 5740 = spend0StateProofPath26 rho
     exact requiredStatePathPath26 rho
-  · change RequiredStatePathValuation rho 6099 = spend0StateProofPath21 rho
+  · change RequiredStatePathValuation rho 6098 = spend0StateProofPath21 rho
     exact requiredStatePathPath21 rho
-  · change RequiredStatePathValuation rho 6101 = spend0StateProofPath22 rho
+  · change RequiredStatePathValuation rho 6100 = spend0StateProofPath22 rho
     exact requiredStatePathPath22 rho
-  · change RequiredStatePathValuation rho 6104 = spend0StateProofPath23 rho
+  · change RequiredStatePathValuation rho 6103 = spend0StateProofPath23 rho
     exact requiredStatePathPath23 rho
-  · change RequiredStatePathValuation rho 6462 = spend0StateProofPath18 rho
+  · change RequiredStatePathValuation rho 6461 = spend0StateProofPath18 rho
     exact requiredStatePathPath18 rho
-  · change RequiredStatePathValuation rho 6464 = spend0StateProofPath19 rho
+  · change RequiredStatePathValuation rho 6463 = spend0StateProofPath19 rho
     exact requiredStatePathPath19 rho
-  · change RequiredStatePathValuation rho 6467 = spend0StateProofPath20 rho
+  · change RequiredStatePathValuation rho 6466 = spend0StateProofPath20 rho
     exact requiredStatePathPath20 rho
-  · change RequiredStatePathValuation rho 6825 = spend0StateProofPath15 rho
+  · change RequiredStatePathValuation rho 6824 = spend0StateProofPath15 rho
     exact requiredStatePathPath15 rho
-  · change RequiredStatePathValuation rho 6827 = spend0StateProofPath16 rho
+  · change RequiredStatePathValuation rho 6826 = spend0StateProofPath16 rho
     exact requiredStatePathPath16 rho
-  · change RequiredStatePathValuation rho 6830 = spend0StateProofPath17 rho
+  · change RequiredStatePathValuation rho 6829 = spend0StateProofPath17 rho
     exact requiredStatePathPath17 rho
-  · change RequiredStatePathValuation rho 7188 = spend0StateProofPath12 rho
+  · change RequiredStatePathValuation rho 7187 = spend0StateProofPath12 rho
     exact requiredStatePathPath12 rho
-  · change RequiredStatePathValuation rho 7190 = spend0StateProofPath13 rho
+  · change RequiredStatePathValuation rho 7189 = spend0StateProofPath13 rho
     exact requiredStatePathPath13 rho
-  · change RequiredStatePathValuation rho 7193 = spend0StateProofPath14 rho
+  · change RequiredStatePathValuation rho 7192 = spend0StateProofPath14 rho
     exact requiredStatePathPath14 rho
-  · change RequiredStatePathValuation rho 7551 = spend0StateProofPath9 rho
+  · change RequiredStatePathValuation rho 7550 = spend0StateProofPath9 rho
     exact requiredStatePathPath9 rho
-  · change RequiredStatePathValuation rho 7553 = spend0StateProofPath10 rho
+  · change RequiredStatePathValuation rho 7552 = spend0StateProofPath10 rho
     exact requiredStatePathPath10 rho
-  · change RequiredStatePathValuation rho 7556 = spend0StateProofPath11 rho
+  · change RequiredStatePathValuation rho 7555 = spend0StateProofPath11 rho
     exact requiredStatePathPath11 rho
-  · change RequiredStatePathValuation rho 7914 = spend0StateProofPath6 rho
+  · change RequiredStatePathValuation rho 7913 = spend0StateProofPath6 rho
     exact requiredStatePathPath6 rho
-  · change RequiredStatePathValuation rho 7916 = spend0StateProofPath7 rho
+  · change RequiredStatePathValuation rho 7915 = spend0StateProofPath7 rho
     exact requiredStatePathPath7 rho
-  · change RequiredStatePathValuation rho 7919 = spend0StateProofPath8 rho
+  · change RequiredStatePathValuation rho 7918 = spend0StateProofPath8 rho
     exact requiredStatePathPath8 rho
-  · change RequiredStatePathValuation rho 8277 = spend0StateProofPath3 rho
+  · change RequiredStatePathValuation rho 8276 = spend0StateProofPath3 rho
     exact requiredStatePathPath3 rho
-  · change RequiredStatePathValuation rho 8279 = spend0StateProofPath4 rho
+  · change RequiredStatePathValuation rho 8278 = spend0StateProofPath4 rho
     exact requiredStatePathPath4 rho
-  · change RequiredStatePathValuation rho 8282 = spend0StateProofPath5 rho
+  · change RequiredStatePathValuation rho 8281 = spend0StateProofPath5 rho
     exact requiredStatePathPath5 rho
-  · change RequiredStatePathValuation rho 8640 = spend0StateProofPath0 rho
+  · change RequiredStatePathValuation rho 8639 = spend0StateProofPath0 rho
     exact requiredStatePathPath0 rho
-  · change RequiredStatePathValuation rho 8642 = spend0StateProofPath1 rho
+  · change RequiredStatePathValuation rho 8641 = spend0StateProofPath1 rho
     exact requiredStatePathPath1 rho
-  · change RequiredStatePathValuation rho 8645 = spend0StateProofPath2 rho
+  · change RequiredStatePathValuation rho 8644 = spend0StateProofPath2 rho
     exact requiredStatePathPath2 rho
 
 /-- Stable deployed valuation for the `optional_state_path` exact provider. -/
 def OptionalStatePathValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg40.localRho rho
+  Seg41.localRho rho
 
 /-- Stable semantic proposition certified by `optional_state_path`. -/
 def OptionalStatePathSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -1765,848 +2055,1136 @@ theorem optionalStatePathSemanticSpec_of_exact
     (rho : Nat → DeployedF)
     (facts : ShieldedIcs20WithdrawalCircuitFacts rho) :
     OptionalStatePathSemanticSpec rho := by
-  change Deployed.Templates.Semantics.TGadgetStateCommitmentPath_de54b1d0646cc1ad6f619aa080bfafd4a6edb63989b142c5c0b284d84e09d69b.spec (Seg40.localRho rho)
+  change Deployed.Templates.Semantics.TGadgetStateCommitmentPath_de54b1d0646cc1ad6f619aa080bfafd4a6edb63989b142c5c0b284d84e09d69b.spec (Seg41.localRho rho)
   exact
     (withdrawalExactProviders rho facts).optionalSpend.optionalStatePath
 
 /-- Audited local-to-deployed seating for `optional_state_path` local 1. -/
 theorem optionalStatePathAt1
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 1 = rho 36854 := by
+    OptionalStatePathValuation rho 1 = rho 37003 := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
+    OptionalStatePathValuation, Seg41.localRho,
     Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 1 = 36854 by
+  rw [show Seg41.wireSeating 1 = 37003 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_state_path` local 2. -/
 theorem optionalStatePathAt2
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 2 = rho 36859 := by
+    OptionalStatePathValuation rho 2 = rho 37008 := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
+    OptionalStatePathValuation, Seg41.localRho,
     Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 2 = 36859 by
+  rw [show Seg41.wireSeating 2 = 37008 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_state_path` local 3. -/
 theorem optionalStatePathAt3
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 3 = rho 36864 := by
+    OptionalStatePathValuation rho 3 = rho 37013 := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
+    OptionalStatePathValuation, Seg41.localRho,
     Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 3 = 36864 by
+  rw [show Seg41.wireSeating 3 = 37013 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_state_path` local 4. -/
 theorem optionalStatePathAt4
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 4 = rho 36869 := by
+    OptionalStatePathValuation rho 4 = rho 37018 := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
+    OptionalStatePathValuation, Seg41.localRho,
     Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 4 = 36869 by
+  rw [show Seg41.wireSeating 4 = 37018 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_state_path` local 5. -/
 theorem optionalStatePathAt5
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 5 = rho 36874 := by
+    OptionalStatePathValuation rho 5 = rho 37023 := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
+    OptionalStatePathValuation, Seg41.localRho,
     Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 5 = 36874 by
+  rw [show Seg41.wireSeating 5 = 37023 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_state_path` local 6. -/
 theorem optionalStatePathAt6
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 6 = rho 36879 := by
+    OptionalStatePathValuation rho 6 = rho 37028 := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
+    OptionalStatePathValuation, Seg41.localRho,
     Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 6 = 36879 by
+  rw [show Seg41.wireSeating 6 = 37028 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_state_path` local 285. -/
 theorem optionalStatePathAt285
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 285 = rho 217 := by
+    OptionalStatePathValuation rho 285 = rho 219 := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
+    OptionalStatePathValuation, Seg41.localRho,
     Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 285 = 217 by
+  rw [show Seg41.wireSeating 285 = 219 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 290. -/
-theorem optionalStatePathAt290
+/-- Audited path accessor for `optional_state_path` element 69. -/
+theorem optionalStatePathPath69
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 290 = rho 287 := by
+    OptionalStatePathValuation rho 290 = spend1StateProofPath69 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 290 = 287 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath69, spend1StateProofPath69LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 290 = 289 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 292. -/
-theorem optionalStatePathAt292
+/-- Audited path accessor for `optional_state_path` element 70. -/
+theorem optionalStatePathPath70
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 292 = rho 288 := by
+    OptionalStatePathValuation rho 292 = spend1StateProofPath70 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 292 = 288 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath70, spend1StateProofPath70LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 292 = 290 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 295. -/
-theorem optionalStatePathAt295
+/-- Audited path accessor for `optional_state_path` element 71. -/
+theorem optionalStatePathPath71
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 295 = rho 289 := by
+    OptionalStatePathValuation rho 295 = spend1StateProofPath71 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 295 = 289 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath71, spend1StateProofPath71LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 295 = 291 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 653. -/
-theorem optionalStatePathAt653
+/-- Audited path accessor for `optional_state_path` element 66. -/
+theorem optionalStatePathPath66
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 653 = rho 284 := by
+    OptionalStatePathValuation rho 653 = spend1StateProofPath66 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 653 = 284 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath66, spend1StateProofPath66LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 653 = 286 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 655. -/
-theorem optionalStatePathAt655
+/-- Audited path accessor for `optional_state_path` element 67. -/
+theorem optionalStatePathPath67
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 655 = rho 285 := by
+    OptionalStatePathValuation rho 655 = spend1StateProofPath67 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 655 = 285 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath67, spend1StateProofPath67LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 655 = 287 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 658. -/
-theorem optionalStatePathAt658
+/-- Audited path accessor for `optional_state_path` element 68. -/
+theorem optionalStatePathPath68
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 658 = rho 286 := by
+    OptionalStatePathValuation rho 658 = spend1StateProofPath68 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 658 = 286 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath68, spend1StateProofPath68LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 658 = 288 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 1016. -/
-theorem optionalStatePathAt1016
+/-- Audited path accessor for `optional_state_path` element 63. -/
+theorem optionalStatePathPath63
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 1016 = rho 281 := by
+    OptionalStatePathValuation rho 1016 = spend1StateProofPath63 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 1016 = 281 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath63, spend1StateProofPath63LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 1016 = 283 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 1018. -/
-theorem optionalStatePathAt1018
+/-- Audited path accessor for `optional_state_path` element 64. -/
+theorem optionalStatePathPath64
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 1018 = rho 282 := by
+    OptionalStatePathValuation rho 1018 = spend1StateProofPath64 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 1018 = 282 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath64, spend1StateProofPath64LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 1018 = 284 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 1021. -/
-theorem optionalStatePathAt1021
+/-- Audited path accessor for `optional_state_path` element 65. -/
+theorem optionalStatePathPath65
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 1021 = rho 283 := by
+    OptionalStatePathValuation rho 1021 = spend1StateProofPath65 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 1021 = 283 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath65, spend1StateProofPath65LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 1021 = 285 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 1379. -/
-theorem optionalStatePathAt1379
+/-- Audited path accessor for `optional_state_path` element 60. -/
+theorem optionalStatePathPath60
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 1379 = rho 278 := by
+    OptionalStatePathValuation rho 1379 = spend1StateProofPath60 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 1379 = 278 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath60, spend1StateProofPath60LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 1379 = 280 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 1381. -/
-theorem optionalStatePathAt1381
+/-- Audited path accessor for `optional_state_path` element 61. -/
+theorem optionalStatePathPath61
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 1381 = rho 279 := by
+    OptionalStatePathValuation rho 1381 = spend1StateProofPath61 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 1381 = 279 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath61, spend1StateProofPath61LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 1381 = 281 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 1384. -/
-theorem optionalStatePathAt1384
+/-- Audited path accessor for `optional_state_path` element 62. -/
+theorem optionalStatePathPath62
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 1384 = rho 280 := by
+    OptionalStatePathValuation rho 1384 = spend1StateProofPath62 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 1384 = 280 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath62, spend1StateProofPath62LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 1384 = 282 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 1742. -/
-theorem optionalStatePathAt1742
+/-- Audited path accessor for `optional_state_path` element 57. -/
+theorem optionalStatePathPath57
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 1742 = rho 275 := by
+    OptionalStatePathValuation rho 1742 = spend1StateProofPath57 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 1742 = 275 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath57, spend1StateProofPath57LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 1742 = 277 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 1744. -/
-theorem optionalStatePathAt1744
+/-- Audited path accessor for `optional_state_path` element 58. -/
+theorem optionalStatePathPath58
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 1744 = rho 276 := by
+    OptionalStatePathValuation rho 1744 = spend1StateProofPath58 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 1744 = 276 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath58, spend1StateProofPath58LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 1744 = 278 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 1747. -/
-theorem optionalStatePathAt1747
+/-- Audited path accessor for `optional_state_path` element 59. -/
+theorem optionalStatePathPath59
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 1747 = rho 277 := by
+    OptionalStatePathValuation rho 1747 = spend1StateProofPath59 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 1747 = 277 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath59, spend1StateProofPath59LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 1747 = 279 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 2105. -/
-theorem optionalStatePathAt2105
+/-- Audited path accessor for `optional_state_path` element 54. -/
+theorem optionalStatePathPath54
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 2105 = rho 272 := by
+    OptionalStatePathValuation rho 2105 = spend1StateProofPath54 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 2105 = 272 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath54, spend1StateProofPath54LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 2105 = 274 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 2107. -/
-theorem optionalStatePathAt2107
+/-- Audited path accessor for `optional_state_path` element 55. -/
+theorem optionalStatePathPath55
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 2107 = rho 273 := by
+    OptionalStatePathValuation rho 2107 = spend1StateProofPath55 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 2107 = 273 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath55, spend1StateProofPath55LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 2107 = 275 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 2110. -/
-theorem optionalStatePathAt2110
+/-- Audited path accessor for `optional_state_path` element 56. -/
+theorem optionalStatePathPath56
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 2110 = rho 274 := by
+    OptionalStatePathValuation rho 2110 = spend1StateProofPath56 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 2110 = 274 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath56, spend1StateProofPath56LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 2110 = 276 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 2468. -/
-theorem optionalStatePathAt2468
+/-- Audited path accessor for `optional_state_path` element 51. -/
+theorem optionalStatePathPath51
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 2468 = rho 269 := by
+    OptionalStatePathValuation rho 2468 = spend1StateProofPath51 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 2468 = 269 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath51, spend1StateProofPath51LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 2468 = 271 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 2470. -/
-theorem optionalStatePathAt2470
+/-- Audited path accessor for `optional_state_path` element 52. -/
+theorem optionalStatePathPath52
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 2470 = rho 270 := by
+    OptionalStatePathValuation rho 2470 = spend1StateProofPath52 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 2470 = 270 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath52, spend1StateProofPath52LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 2470 = 272 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 2473. -/
-theorem optionalStatePathAt2473
+/-- Audited path accessor for `optional_state_path` element 53. -/
+theorem optionalStatePathPath53
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 2473 = rho 271 := by
+    OptionalStatePathValuation rho 2473 = spend1StateProofPath53 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 2473 = 271 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath53, spend1StateProofPath53LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 2473 = 273 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 2831. -/
-theorem optionalStatePathAt2831
+/-- Audited path accessor for `optional_state_path` element 48. -/
+theorem optionalStatePathPath48
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 2831 = rho 266 := by
+    OptionalStatePathValuation rho 2831 = spend1StateProofPath48 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 2831 = 266 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath48, spend1StateProofPath48LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 2831 = 268 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 2833. -/
-theorem optionalStatePathAt2833
+/-- Audited path accessor for `optional_state_path` element 49. -/
+theorem optionalStatePathPath49
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 2833 = rho 267 := by
+    OptionalStatePathValuation rho 2833 = spend1StateProofPath49 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 2833 = 267 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath49, spend1StateProofPath49LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 2833 = 269 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 2836. -/
-theorem optionalStatePathAt2836
+/-- Audited path accessor for `optional_state_path` element 50. -/
+theorem optionalStatePathPath50
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 2836 = rho 268 := by
+    OptionalStatePathValuation rho 2836 = spend1StateProofPath50 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 2836 = 268 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath50, spend1StateProofPath50LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 2836 = 270 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 3194. -/
-theorem optionalStatePathAt3194
+/-- Audited path accessor for `optional_state_path` element 45. -/
+theorem optionalStatePathPath45
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 3194 = rho 263 := by
+    OptionalStatePathValuation rho 3194 = spend1StateProofPath45 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 3194 = 263 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath45, spend1StateProofPath45LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 3194 = 265 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 3196. -/
-theorem optionalStatePathAt3196
+/-- Audited path accessor for `optional_state_path` element 46. -/
+theorem optionalStatePathPath46
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 3196 = rho 264 := by
+    OptionalStatePathValuation rho 3196 = spend1StateProofPath46 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 3196 = 264 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath46, spend1StateProofPath46LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 3196 = 266 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 3199. -/
-theorem optionalStatePathAt3199
+/-- Audited path accessor for `optional_state_path` element 47. -/
+theorem optionalStatePathPath47
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 3199 = rho 265 := by
+    OptionalStatePathValuation rho 3199 = spend1StateProofPath47 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 3199 = 265 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath47, spend1StateProofPath47LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 3199 = 267 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 3557. -/
-theorem optionalStatePathAt3557
+/-- Audited path accessor for `optional_state_path` element 42. -/
+theorem optionalStatePathPath42
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 3557 = rho 260 := by
+    OptionalStatePathValuation rho 3557 = spend1StateProofPath42 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 3557 = 260 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath42, spend1StateProofPath42LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 3557 = 262 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 3559. -/
-theorem optionalStatePathAt3559
+/-- Audited path accessor for `optional_state_path` element 43. -/
+theorem optionalStatePathPath43
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 3559 = rho 261 := by
+    OptionalStatePathValuation rho 3559 = spend1StateProofPath43 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 3559 = 261 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath43, spend1StateProofPath43LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 3559 = 263 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 3562. -/
-theorem optionalStatePathAt3562
+/-- Audited path accessor for `optional_state_path` element 44. -/
+theorem optionalStatePathPath44
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 3562 = rho 262 := by
+    OptionalStatePathValuation rho 3562 = spend1StateProofPath44 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 3562 = 262 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath44, spend1StateProofPath44LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 3562 = 264 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 3920. -/
-theorem optionalStatePathAt3920
+/-- Audited path accessor for `optional_state_path` element 39. -/
+theorem optionalStatePathPath39
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 3920 = rho 257 := by
+    OptionalStatePathValuation rho 3920 = spend1StateProofPath39 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 3920 = 257 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath39, spend1StateProofPath39LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 3920 = 259 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 3922. -/
-theorem optionalStatePathAt3922
+/-- Audited path accessor for `optional_state_path` element 40. -/
+theorem optionalStatePathPath40
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 3922 = rho 258 := by
+    OptionalStatePathValuation rho 3922 = spend1StateProofPath40 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 3922 = 258 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath40, spend1StateProofPath40LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 3922 = 260 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 3925. -/
-theorem optionalStatePathAt3925
+/-- Audited path accessor for `optional_state_path` element 41. -/
+theorem optionalStatePathPath41
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 3925 = rho 259 := by
+    OptionalStatePathValuation rho 3925 = spend1StateProofPath41 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 3925 = 259 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath41, spend1StateProofPath41LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 3925 = 261 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 4283. -/
-theorem optionalStatePathAt4283
+/-- Audited path accessor for `optional_state_path` element 36. -/
+theorem optionalStatePathPath36
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 4283 = rho 254 := by
+    OptionalStatePathValuation rho 4283 = spend1StateProofPath36 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 4283 = 254 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath36, spend1StateProofPath36LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 4283 = 256 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 4285. -/
-theorem optionalStatePathAt4285
+/-- Audited path accessor for `optional_state_path` element 37. -/
+theorem optionalStatePathPath37
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 4285 = rho 255 := by
+    OptionalStatePathValuation rho 4285 = spend1StateProofPath37 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 4285 = 255 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath37, spend1StateProofPath37LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 4285 = 257 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 4288. -/
-theorem optionalStatePathAt4288
+/-- Audited path accessor for `optional_state_path` element 38. -/
+theorem optionalStatePathPath38
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 4288 = rho 256 := by
+    OptionalStatePathValuation rho 4288 = spend1StateProofPath38 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 4288 = 256 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath38, spend1StateProofPath38LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 4288 = 258 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 4646. -/
-theorem optionalStatePathAt4646
+/-- Audited path accessor for `optional_state_path` element 33. -/
+theorem optionalStatePathPath33
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 4646 = rho 251 := by
+    OptionalStatePathValuation rho 4646 = spend1StateProofPath33 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 4646 = 251 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath33, spend1StateProofPath33LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 4646 = 253 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 4648. -/
-theorem optionalStatePathAt4648
+/-- Audited path accessor for `optional_state_path` element 34. -/
+theorem optionalStatePathPath34
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 4648 = rho 252 := by
+    OptionalStatePathValuation rho 4648 = spend1StateProofPath34 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 4648 = 252 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath34, spend1StateProofPath34LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 4648 = 254 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 4651. -/
-theorem optionalStatePathAt4651
+/-- Audited path accessor for `optional_state_path` element 35. -/
+theorem optionalStatePathPath35
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 4651 = rho 253 := by
+    OptionalStatePathValuation rho 4651 = spend1StateProofPath35 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 4651 = 253 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath35, spend1StateProofPath35LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 4651 = 255 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 5009. -/
-theorem optionalStatePathAt5009
+/-- Audited path accessor for `optional_state_path` element 30. -/
+theorem optionalStatePathPath30
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 5009 = rho 248 := by
+    OptionalStatePathValuation rho 5009 = spend1StateProofPath30 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 5009 = 248 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath30, spend1StateProofPath30LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 5009 = 250 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 5011. -/
-theorem optionalStatePathAt5011
+/-- Audited path accessor for `optional_state_path` element 31. -/
+theorem optionalStatePathPath31
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 5011 = rho 249 := by
+    OptionalStatePathValuation rho 5011 = spend1StateProofPath31 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 5011 = 249 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath31, spend1StateProofPath31LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 5011 = 251 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 5014. -/
-theorem optionalStatePathAt5014
+/-- Audited path accessor for `optional_state_path` element 32. -/
+theorem optionalStatePathPath32
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 5014 = rho 250 := by
+    OptionalStatePathValuation rho 5014 = spend1StateProofPath32 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 5014 = 250 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath32, spend1StateProofPath32LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 5014 = 252 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 5372. -/
-theorem optionalStatePathAt5372
+/-- Audited path accessor for `optional_state_path` element 27. -/
+theorem optionalStatePathPath27
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 5372 = rho 245 := by
+    OptionalStatePathValuation rho 5372 = spend1StateProofPath27 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 5372 = 245 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath27, spend1StateProofPath27LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 5372 = 247 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 5374. -/
-theorem optionalStatePathAt5374
+/-- Audited path accessor for `optional_state_path` element 28. -/
+theorem optionalStatePathPath28
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 5374 = rho 246 := by
+    OptionalStatePathValuation rho 5374 = spend1StateProofPath28 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 5374 = 246 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath28, spend1StateProofPath28LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 5374 = 248 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 5377. -/
-theorem optionalStatePathAt5377
+/-- Audited path accessor for `optional_state_path` element 29. -/
+theorem optionalStatePathPath29
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 5377 = rho 247 := by
+    OptionalStatePathValuation rho 5377 = spend1StateProofPath29 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 5377 = 247 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath29, spend1StateProofPath29LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 5377 = 249 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 5735. -/
-theorem optionalStatePathAt5735
+/-- Audited path accessor for `optional_state_path` element 24. -/
+theorem optionalStatePathPath24
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 5735 = rho 242 := by
+    OptionalStatePathValuation rho 5735 = spend1StateProofPath24 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 5735 = 242 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath24, spend1StateProofPath24LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 5735 = 244 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 5737. -/
-theorem optionalStatePathAt5737
+/-- Audited path accessor for `optional_state_path` element 25. -/
+theorem optionalStatePathPath25
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 5737 = rho 243 := by
+    OptionalStatePathValuation rho 5737 = spend1StateProofPath25 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 5737 = 243 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath25, spend1StateProofPath25LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 5737 = 245 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 5740. -/
-theorem optionalStatePathAt5740
+/-- Audited path accessor for `optional_state_path` element 26. -/
+theorem optionalStatePathPath26
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 5740 = rho 244 := by
+    OptionalStatePathValuation rho 5740 = spend1StateProofPath26 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 5740 = 244 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath26, spend1StateProofPath26LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 5740 = 246 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 6098. -/
-theorem optionalStatePathAt6098
+/-- Audited path accessor for `optional_state_path` element 21. -/
+theorem optionalStatePathPath21
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 6098 = rho 239 := by
+    OptionalStatePathValuation rho 6098 = spend1StateProofPath21 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 6098 = 239 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath21, spend1StateProofPath21LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 6098 = 241 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 6100. -/
-theorem optionalStatePathAt6100
+/-- Audited path accessor for `optional_state_path` element 22. -/
+theorem optionalStatePathPath22
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 6100 = rho 240 := by
+    OptionalStatePathValuation rho 6100 = spend1StateProofPath22 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 6100 = 240 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath22, spend1StateProofPath22LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 6100 = 242 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 6103. -/
-theorem optionalStatePathAt6103
+/-- Audited path accessor for `optional_state_path` element 23. -/
+theorem optionalStatePathPath23
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 6103 = rho 241 := by
+    OptionalStatePathValuation rho 6103 = spend1StateProofPath23 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 6103 = 241 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath23, spend1StateProofPath23LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 6103 = 243 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 6461. -/
-theorem optionalStatePathAt6461
+/-- Audited path accessor for `optional_state_path` element 18. -/
+theorem optionalStatePathPath18
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 6461 = rho 236 := by
+    OptionalStatePathValuation rho 6461 = spend1StateProofPath18 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 6461 = 236 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath18, spend1StateProofPath18LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 6461 = 238 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 6463. -/
-theorem optionalStatePathAt6463
+/-- Audited path accessor for `optional_state_path` element 19. -/
+theorem optionalStatePathPath19
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 6463 = rho 237 := by
+    OptionalStatePathValuation rho 6463 = spend1StateProofPath19 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 6463 = 237 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath19, spend1StateProofPath19LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 6463 = 239 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 6466. -/
-theorem optionalStatePathAt6466
+/-- Audited path accessor for `optional_state_path` element 20. -/
+theorem optionalStatePathPath20
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 6466 = rho 238 := by
+    OptionalStatePathValuation rho 6466 = spend1StateProofPath20 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 6466 = 238 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath20, spend1StateProofPath20LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 6466 = 240 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 6824. -/
-theorem optionalStatePathAt6824
+/-- Audited path accessor for `optional_state_path` element 15. -/
+theorem optionalStatePathPath15
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 6824 = rho 233 := by
+    OptionalStatePathValuation rho 6824 = spend1StateProofPath15 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 6824 = 233 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath15, spend1StateProofPath15LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 6824 = 235 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 6826. -/
-theorem optionalStatePathAt6826
+/-- Audited path accessor for `optional_state_path` element 16. -/
+theorem optionalStatePathPath16
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 6826 = rho 234 := by
+    OptionalStatePathValuation rho 6826 = spend1StateProofPath16 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 6826 = 234 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath16, spend1StateProofPath16LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 6826 = 236 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 6829. -/
-theorem optionalStatePathAt6829
+/-- Audited path accessor for `optional_state_path` element 17. -/
+theorem optionalStatePathPath17
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 6829 = rho 235 := by
+    OptionalStatePathValuation rho 6829 = spend1StateProofPath17 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 6829 = 235 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath17, spend1StateProofPath17LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 6829 = 237 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 7187. -/
-theorem optionalStatePathAt7187
+/-- Audited path accessor for `optional_state_path` element 12. -/
+theorem optionalStatePathPath12
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 7187 = rho 230 := by
+    OptionalStatePathValuation rho 7187 = spend1StateProofPath12 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 7187 = 230 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath12, spend1StateProofPath12LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 7187 = 232 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 7189. -/
-theorem optionalStatePathAt7189
+/-- Audited path accessor for `optional_state_path` element 13. -/
+theorem optionalStatePathPath13
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 7189 = rho 231 := by
+    OptionalStatePathValuation rho 7189 = spend1StateProofPath13 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 7189 = 231 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath13, spend1StateProofPath13LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 7189 = 233 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 7192. -/
-theorem optionalStatePathAt7192
+/-- Audited path accessor for `optional_state_path` element 14. -/
+theorem optionalStatePathPath14
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 7192 = rho 232 := by
+    OptionalStatePathValuation rho 7192 = spend1StateProofPath14 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 7192 = 232 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath14, spend1StateProofPath14LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 7192 = 234 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 7550. -/
-theorem optionalStatePathAt7550
+/-- Audited path accessor for `optional_state_path` element 9. -/
+theorem optionalStatePathPath9
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 7550 = rho 227 := by
+    OptionalStatePathValuation rho 7550 = spend1StateProofPath9 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 7550 = 227 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath9, spend1StateProofPath9LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 7550 = 229 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 7552. -/
-theorem optionalStatePathAt7552
+/-- Audited path accessor for `optional_state_path` element 10. -/
+theorem optionalStatePathPath10
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 7552 = rho 228 := by
+    OptionalStatePathValuation rho 7552 = spend1StateProofPath10 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 7552 = 228 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath10, spend1StateProofPath10LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 7552 = 230 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 7555. -/
-theorem optionalStatePathAt7555
+/-- Audited path accessor for `optional_state_path` element 11. -/
+theorem optionalStatePathPath11
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 7555 = rho 229 := by
+    OptionalStatePathValuation rho 7555 = spend1StateProofPath11 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 7555 = 229 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath11, spend1StateProofPath11LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 7555 = 231 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 7913. -/
-theorem optionalStatePathAt7913
+/-- Audited path accessor for `optional_state_path` element 6. -/
+theorem optionalStatePathPath6
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 7913 = rho 224 := by
+    OptionalStatePathValuation rho 7913 = spend1StateProofPath6 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 7913 = 224 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath6, spend1StateProofPath6LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 7913 = 226 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 7915. -/
-theorem optionalStatePathAt7915
+/-- Audited path accessor for `optional_state_path` element 7. -/
+theorem optionalStatePathPath7
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 7915 = rho 225 := by
+    OptionalStatePathValuation rho 7915 = spend1StateProofPath7 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 7915 = 225 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath7, spend1StateProofPath7LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 7915 = 227 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 7918. -/
-theorem optionalStatePathAt7918
+/-- Audited path accessor for `optional_state_path` element 8. -/
+theorem optionalStatePathPath8
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 7918 = rho 226 := by
+    OptionalStatePathValuation rho 7918 = spend1StateProofPath8 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 7918 = 226 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath8, spend1StateProofPath8LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 7918 = 228 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 8276. -/
-theorem optionalStatePathAt8276
+/-- Audited path accessor for `optional_state_path` element 3. -/
+theorem optionalStatePathPath3
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 8276 = rho 221 := by
+    OptionalStatePathValuation rho 8276 = spend1StateProofPath3 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 8276 = 221 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath3, spend1StateProofPath3LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 8276 = 223 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 8278. -/
-theorem optionalStatePathAt8278
+/-- Audited path accessor for `optional_state_path` element 4. -/
+theorem optionalStatePathPath4
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 8278 = rho 222 := by
+    OptionalStatePathValuation rho 8278 = spend1StateProofPath4 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 8278 = 222 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath4, spend1StateProofPath4LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 8278 = 224 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 8281. -/
-theorem optionalStatePathAt8281
+/-- Audited path accessor for `optional_state_path` element 5. -/
+theorem optionalStatePathPath5
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 8281 = rho 223 := by
+    OptionalStatePathValuation rho 8281 = spend1StateProofPath5 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 8281 = 223 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath5, spend1StateProofPath5LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 8281 = 225 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 8639. -/
-theorem optionalStatePathAt8639
+/-- Audited path accessor for `optional_state_path` element 0. -/
+theorem optionalStatePathPath0
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 8639 = rho 218 := by
+    OptionalStatePathValuation rho 8639 = spend1StateProofPath0 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 8639 = 218 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath0, spend1StateProofPath0LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 8639 = 220 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 8641. -/
-theorem optionalStatePathAt8641
+/-- Audited path accessor for `optional_state_path` element 1. -/
+theorem optionalStatePathPath1
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 8641 = rho 219 := by
+    OptionalStatePathValuation rho 8641 = spend1StateProofPath1 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 8641 = 219 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath1, spend1StateProofPath1LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 8641 = 221 by
     decide +kernel]
 
-/-- Audited local-to-deployed seating for `optional_state_path` local 8644. -/
-theorem optionalStatePathAt8644
+/-- Audited path accessor for `optional_state_path` element 2. -/
+theorem optionalStatePathPath2
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 8644 = rho 220 := by
+    OptionalStatePathValuation rho 8644 = spend1StateProofPath2 rho := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
-    Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 8644 = 220 by
+    OptionalStatePathValuation, Seg41.localRho,
+    Deployed.Templates.seated,
+    spend1StateProofPath2, spend1StateProofPath2LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    zero_add, one_mul, add_zero]
+  rw [show Seg41.wireSeating 8644 = 222 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_state_path` local 8977. -/
 theorem optionalStatePathAt8977
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 8977 = rho 46087 := by
+    OptionalStatePathValuation rho 8977 = rho 46236 := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
+    OptionalStatePathValuation, Seg41.localRho,
     Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 8977 = 46087 by
+  rw [show Seg41.wireSeating 8977 = 46236 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_state_path` local 8982. -/
 theorem optionalStatePathAt8982
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 8982 = rho 46092 := by
+    OptionalStatePathValuation rho 8982 = rho 46241 := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
+    OptionalStatePathValuation, Seg41.localRho,
     Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 8982 = 46092 by
+  rw [show Seg41.wireSeating 8982 = 46241 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_state_path` local 8987. -/
 theorem optionalStatePathAt8987
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 8987 = rho 46097 := by
+    OptionalStatePathValuation rho 8987 = rho 46246 := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
+    OptionalStatePathValuation, Seg41.localRho,
     Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 8987 = 46097 by
+  rw [show Seg41.wireSeating 8987 = 46246 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_state_path` local 8992. -/
 theorem optionalStatePathAt8992
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 8992 = rho 46102 := by
+    OptionalStatePathValuation rho 8992 = rho 46251 := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
+    OptionalStatePathValuation, Seg41.localRho,
     Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 8992 = 46102 by
+  rw [show Seg41.wireSeating 8992 = 46251 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_state_path` local 8997. -/
 theorem optionalStatePathAt8997
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 8997 = rho 46107 := by
+    OptionalStatePathValuation rho 8997 = rho 46256 := by
   simp only [
-    OptionalStatePathValuation, Seg40.localRho,
+    OptionalStatePathValuation, Seg41.localRho,
     Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 8997 = 46107 by
+  rw [show Seg41.wireSeating 8997 = 46256 by
     decide +kernel]
 
 /-- The provider-local state path is the direct compiler-labelled path. -/
@@ -2618,149 +3196,149 @@ theorem optionalStatePathProviderPath_eq
   rcases level with ⟨level, level_lt⟩
   rcases sibling with ⟨sibling, sibling_lt⟩
   interval_cases level <;> interval_cases sibling
-  · change OptionalStatePathValuation rho 291 = spend1StateProofPath69 rho
+  · change OptionalStatePathValuation rho 290 = spend1StateProofPath69 rho
     exact optionalStatePathPath69 rho
-  · change OptionalStatePathValuation rho 293 = spend1StateProofPath70 rho
+  · change OptionalStatePathValuation rho 292 = spend1StateProofPath70 rho
     exact optionalStatePathPath70 rho
-  · change OptionalStatePathValuation rho 296 = spend1StateProofPath71 rho
+  · change OptionalStatePathValuation rho 295 = spend1StateProofPath71 rho
     exact optionalStatePathPath71 rho
-  · change OptionalStatePathValuation rho 654 = spend1StateProofPath66 rho
+  · change OptionalStatePathValuation rho 653 = spend1StateProofPath66 rho
     exact optionalStatePathPath66 rho
-  · change OptionalStatePathValuation rho 656 = spend1StateProofPath67 rho
+  · change OptionalStatePathValuation rho 655 = spend1StateProofPath67 rho
     exact optionalStatePathPath67 rho
-  · change OptionalStatePathValuation rho 659 = spend1StateProofPath68 rho
+  · change OptionalStatePathValuation rho 658 = spend1StateProofPath68 rho
     exact optionalStatePathPath68 rho
-  · change OptionalStatePathValuation rho 1017 = spend1StateProofPath63 rho
+  · change OptionalStatePathValuation rho 1016 = spend1StateProofPath63 rho
     exact optionalStatePathPath63 rho
-  · change OptionalStatePathValuation rho 1019 = spend1StateProofPath64 rho
+  · change OptionalStatePathValuation rho 1018 = spend1StateProofPath64 rho
     exact optionalStatePathPath64 rho
-  · change OptionalStatePathValuation rho 1022 = spend1StateProofPath65 rho
+  · change OptionalStatePathValuation rho 1021 = spend1StateProofPath65 rho
     exact optionalStatePathPath65 rho
-  · change OptionalStatePathValuation rho 1380 = spend1StateProofPath60 rho
+  · change OptionalStatePathValuation rho 1379 = spend1StateProofPath60 rho
     exact optionalStatePathPath60 rho
-  · change OptionalStatePathValuation rho 1382 = spend1StateProofPath61 rho
+  · change OptionalStatePathValuation rho 1381 = spend1StateProofPath61 rho
     exact optionalStatePathPath61 rho
-  · change OptionalStatePathValuation rho 1385 = spend1StateProofPath62 rho
+  · change OptionalStatePathValuation rho 1384 = spend1StateProofPath62 rho
     exact optionalStatePathPath62 rho
-  · change OptionalStatePathValuation rho 1743 = spend1StateProofPath57 rho
+  · change OptionalStatePathValuation rho 1742 = spend1StateProofPath57 rho
     exact optionalStatePathPath57 rho
-  · change OptionalStatePathValuation rho 1745 = spend1StateProofPath58 rho
+  · change OptionalStatePathValuation rho 1744 = spend1StateProofPath58 rho
     exact optionalStatePathPath58 rho
-  · change OptionalStatePathValuation rho 1748 = spend1StateProofPath59 rho
+  · change OptionalStatePathValuation rho 1747 = spend1StateProofPath59 rho
     exact optionalStatePathPath59 rho
-  · change OptionalStatePathValuation rho 2106 = spend1StateProofPath54 rho
+  · change OptionalStatePathValuation rho 2105 = spend1StateProofPath54 rho
     exact optionalStatePathPath54 rho
-  · change OptionalStatePathValuation rho 2108 = spend1StateProofPath55 rho
+  · change OptionalStatePathValuation rho 2107 = spend1StateProofPath55 rho
     exact optionalStatePathPath55 rho
-  · change OptionalStatePathValuation rho 2111 = spend1StateProofPath56 rho
+  · change OptionalStatePathValuation rho 2110 = spend1StateProofPath56 rho
     exact optionalStatePathPath56 rho
-  · change OptionalStatePathValuation rho 2469 = spend1StateProofPath51 rho
+  · change OptionalStatePathValuation rho 2468 = spend1StateProofPath51 rho
     exact optionalStatePathPath51 rho
-  · change OptionalStatePathValuation rho 2471 = spend1StateProofPath52 rho
+  · change OptionalStatePathValuation rho 2470 = spend1StateProofPath52 rho
     exact optionalStatePathPath52 rho
-  · change OptionalStatePathValuation rho 2474 = spend1StateProofPath53 rho
+  · change OptionalStatePathValuation rho 2473 = spend1StateProofPath53 rho
     exact optionalStatePathPath53 rho
-  · change OptionalStatePathValuation rho 2832 = spend1StateProofPath48 rho
+  · change OptionalStatePathValuation rho 2831 = spend1StateProofPath48 rho
     exact optionalStatePathPath48 rho
-  · change OptionalStatePathValuation rho 2834 = spend1StateProofPath49 rho
+  · change OptionalStatePathValuation rho 2833 = spend1StateProofPath49 rho
     exact optionalStatePathPath49 rho
-  · change OptionalStatePathValuation rho 2837 = spend1StateProofPath50 rho
+  · change OptionalStatePathValuation rho 2836 = spend1StateProofPath50 rho
     exact optionalStatePathPath50 rho
-  · change OptionalStatePathValuation rho 3195 = spend1StateProofPath45 rho
+  · change OptionalStatePathValuation rho 3194 = spend1StateProofPath45 rho
     exact optionalStatePathPath45 rho
-  · change OptionalStatePathValuation rho 3197 = spend1StateProofPath46 rho
+  · change OptionalStatePathValuation rho 3196 = spend1StateProofPath46 rho
     exact optionalStatePathPath46 rho
-  · change OptionalStatePathValuation rho 3200 = spend1StateProofPath47 rho
+  · change OptionalStatePathValuation rho 3199 = spend1StateProofPath47 rho
     exact optionalStatePathPath47 rho
-  · change OptionalStatePathValuation rho 3558 = spend1StateProofPath42 rho
+  · change OptionalStatePathValuation rho 3557 = spend1StateProofPath42 rho
     exact optionalStatePathPath42 rho
-  · change OptionalStatePathValuation rho 3560 = spend1StateProofPath43 rho
+  · change OptionalStatePathValuation rho 3559 = spend1StateProofPath43 rho
     exact optionalStatePathPath43 rho
-  · change OptionalStatePathValuation rho 3563 = spend1StateProofPath44 rho
+  · change OptionalStatePathValuation rho 3562 = spend1StateProofPath44 rho
     exact optionalStatePathPath44 rho
-  · change OptionalStatePathValuation rho 3921 = spend1StateProofPath39 rho
+  · change OptionalStatePathValuation rho 3920 = spend1StateProofPath39 rho
     exact optionalStatePathPath39 rho
-  · change OptionalStatePathValuation rho 3923 = spend1StateProofPath40 rho
+  · change OptionalStatePathValuation rho 3922 = spend1StateProofPath40 rho
     exact optionalStatePathPath40 rho
-  · change OptionalStatePathValuation rho 3926 = spend1StateProofPath41 rho
+  · change OptionalStatePathValuation rho 3925 = spend1StateProofPath41 rho
     exact optionalStatePathPath41 rho
-  · change OptionalStatePathValuation rho 4284 = spend1StateProofPath36 rho
+  · change OptionalStatePathValuation rho 4283 = spend1StateProofPath36 rho
     exact optionalStatePathPath36 rho
-  · change OptionalStatePathValuation rho 4286 = spend1StateProofPath37 rho
+  · change OptionalStatePathValuation rho 4285 = spend1StateProofPath37 rho
     exact optionalStatePathPath37 rho
-  · change OptionalStatePathValuation rho 4289 = spend1StateProofPath38 rho
+  · change OptionalStatePathValuation rho 4288 = spend1StateProofPath38 rho
     exact optionalStatePathPath38 rho
-  · change OptionalStatePathValuation rho 4647 = spend1StateProofPath33 rho
+  · change OptionalStatePathValuation rho 4646 = spend1StateProofPath33 rho
     exact optionalStatePathPath33 rho
-  · change OptionalStatePathValuation rho 4649 = spend1StateProofPath34 rho
+  · change OptionalStatePathValuation rho 4648 = spend1StateProofPath34 rho
     exact optionalStatePathPath34 rho
-  · change OptionalStatePathValuation rho 4652 = spend1StateProofPath35 rho
+  · change OptionalStatePathValuation rho 4651 = spend1StateProofPath35 rho
     exact optionalStatePathPath35 rho
-  · change OptionalStatePathValuation rho 5010 = spend1StateProofPath30 rho
+  · change OptionalStatePathValuation rho 5009 = spend1StateProofPath30 rho
     exact optionalStatePathPath30 rho
-  · change OptionalStatePathValuation rho 5012 = spend1StateProofPath31 rho
+  · change OptionalStatePathValuation rho 5011 = spend1StateProofPath31 rho
     exact optionalStatePathPath31 rho
-  · change OptionalStatePathValuation rho 5015 = spend1StateProofPath32 rho
+  · change OptionalStatePathValuation rho 5014 = spend1StateProofPath32 rho
     exact optionalStatePathPath32 rho
-  · change OptionalStatePathValuation rho 5373 = spend1StateProofPath27 rho
+  · change OptionalStatePathValuation rho 5372 = spend1StateProofPath27 rho
     exact optionalStatePathPath27 rho
-  · change OptionalStatePathValuation rho 5375 = spend1StateProofPath28 rho
+  · change OptionalStatePathValuation rho 5374 = spend1StateProofPath28 rho
     exact optionalStatePathPath28 rho
-  · change OptionalStatePathValuation rho 5378 = spend1StateProofPath29 rho
+  · change OptionalStatePathValuation rho 5377 = spend1StateProofPath29 rho
     exact optionalStatePathPath29 rho
-  · change OptionalStatePathValuation rho 5736 = spend1StateProofPath24 rho
+  · change OptionalStatePathValuation rho 5735 = spend1StateProofPath24 rho
     exact optionalStatePathPath24 rho
-  · change OptionalStatePathValuation rho 5738 = spend1StateProofPath25 rho
+  · change OptionalStatePathValuation rho 5737 = spend1StateProofPath25 rho
     exact optionalStatePathPath25 rho
-  · change OptionalStatePathValuation rho 5741 = spend1StateProofPath26 rho
+  · change OptionalStatePathValuation rho 5740 = spend1StateProofPath26 rho
     exact optionalStatePathPath26 rho
-  · change OptionalStatePathValuation rho 6099 = spend1StateProofPath21 rho
+  · change OptionalStatePathValuation rho 6098 = spend1StateProofPath21 rho
     exact optionalStatePathPath21 rho
-  · change OptionalStatePathValuation rho 6101 = spend1StateProofPath22 rho
+  · change OptionalStatePathValuation rho 6100 = spend1StateProofPath22 rho
     exact optionalStatePathPath22 rho
-  · change OptionalStatePathValuation rho 6104 = spend1StateProofPath23 rho
+  · change OptionalStatePathValuation rho 6103 = spend1StateProofPath23 rho
     exact optionalStatePathPath23 rho
-  · change OptionalStatePathValuation rho 6462 = spend1StateProofPath18 rho
+  · change OptionalStatePathValuation rho 6461 = spend1StateProofPath18 rho
     exact optionalStatePathPath18 rho
-  · change OptionalStatePathValuation rho 6464 = spend1StateProofPath19 rho
+  · change OptionalStatePathValuation rho 6463 = spend1StateProofPath19 rho
     exact optionalStatePathPath19 rho
-  · change OptionalStatePathValuation rho 6467 = spend1StateProofPath20 rho
+  · change OptionalStatePathValuation rho 6466 = spend1StateProofPath20 rho
     exact optionalStatePathPath20 rho
-  · change OptionalStatePathValuation rho 6825 = spend1StateProofPath15 rho
+  · change OptionalStatePathValuation rho 6824 = spend1StateProofPath15 rho
     exact optionalStatePathPath15 rho
-  · change OptionalStatePathValuation rho 6827 = spend1StateProofPath16 rho
+  · change OptionalStatePathValuation rho 6826 = spend1StateProofPath16 rho
     exact optionalStatePathPath16 rho
-  · change OptionalStatePathValuation rho 6830 = spend1StateProofPath17 rho
+  · change OptionalStatePathValuation rho 6829 = spend1StateProofPath17 rho
     exact optionalStatePathPath17 rho
-  · change OptionalStatePathValuation rho 7188 = spend1StateProofPath12 rho
+  · change OptionalStatePathValuation rho 7187 = spend1StateProofPath12 rho
     exact optionalStatePathPath12 rho
-  · change OptionalStatePathValuation rho 7190 = spend1StateProofPath13 rho
+  · change OptionalStatePathValuation rho 7189 = spend1StateProofPath13 rho
     exact optionalStatePathPath13 rho
-  · change OptionalStatePathValuation rho 7193 = spend1StateProofPath14 rho
+  · change OptionalStatePathValuation rho 7192 = spend1StateProofPath14 rho
     exact optionalStatePathPath14 rho
-  · change OptionalStatePathValuation rho 7551 = spend1StateProofPath9 rho
+  · change OptionalStatePathValuation rho 7550 = spend1StateProofPath9 rho
     exact optionalStatePathPath9 rho
-  · change OptionalStatePathValuation rho 7553 = spend1StateProofPath10 rho
+  · change OptionalStatePathValuation rho 7552 = spend1StateProofPath10 rho
     exact optionalStatePathPath10 rho
-  · change OptionalStatePathValuation rho 7556 = spend1StateProofPath11 rho
+  · change OptionalStatePathValuation rho 7555 = spend1StateProofPath11 rho
     exact optionalStatePathPath11 rho
-  · change OptionalStatePathValuation rho 7914 = spend1StateProofPath6 rho
+  · change OptionalStatePathValuation rho 7913 = spend1StateProofPath6 rho
     exact optionalStatePathPath6 rho
-  · change OptionalStatePathValuation rho 7916 = spend1StateProofPath7 rho
+  · change OptionalStatePathValuation rho 7915 = spend1StateProofPath7 rho
     exact optionalStatePathPath7 rho
-  · change OptionalStatePathValuation rho 7919 = spend1StateProofPath8 rho
+  · change OptionalStatePathValuation rho 7918 = spend1StateProofPath8 rho
     exact optionalStatePathPath8 rho
-  · change OptionalStatePathValuation rho 8277 = spend1StateProofPath3 rho
+  · change OptionalStatePathValuation rho 8276 = spend1StateProofPath3 rho
     exact optionalStatePathPath3 rho
-  · change OptionalStatePathValuation rho 8279 = spend1StateProofPath4 rho
+  · change OptionalStatePathValuation rho 8278 = spend1StateProofPath4 rho
     exact optionalStatePathPath4 rho
-  · change OptionalStatePathValuation rho 8282 = spend1StateProofPath5 rho
+  · change OptionalStatePathValuation rho 8281 = spend1StateProofPath5 rho
     exact optionalStatePathPath5 rho
-  · change OptionalStatePathValuation rho 8640 = spend1StateProofPath0 rho
+  · change OptionalStatePathValuation rho 8639 = spend1StateProofPath0 rho
     exact optionalStatePathPath0 rho
-  · change OptionalStatePathValuation rho 8642 = spend1StateProofPath1 rho
+  · change OptionalStatePathValuation rho 8641 = spend1StateProofPath1 rho
     exact optionalStatePathPath1 rho
-  · change OptionalStatePathValuation rho 8645 = spend1StateProofPath2 rho
+  · change OptionalStatePathValuation rho 8644 = spend1StateProofPath2 rho
     exact optionalStatePathPath2 rho
 
 /-- Stable deployed valuation for the `required_nullifier` exact provider. -/
@@ -2787,121 +3365,121 @@ def RequiredNullifierStateCommitment (rho : Nat → DeployedF) : DeployedF :=
 /-- Audited local-to-deployed seating for `required_nullifier` local 1. -/
 theorem requiredNullifierAt1
     (rho : Nat → DeployedF) :
-    RequiredNullifierValuation rho 1 = rho 22 := by
+    RequiredNullifierValuation rho 1 = rho 23 := by
   simp only [
     RequiredNullifierValuation, Seg29.localRho,
     Deployed.Templates.seated]
-  rw [show Seg29.wireSeating 1 = 22 by
+  rw [show Seg29.wireSeating 1 = 23 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_nullifier` local 7. -/
 theorem requiredNullifierAt7
     (rho : Nat → DeployedF) :
-    RequiredNullifierValuation rho 7 = rho 24720 := by
+    RequiredNullifierValuation rho 7 = rho 24723 := by
   simp only [
     RequiredNullifierValuation, Seg29.localRho,
     Deployed.Templates.seated]
-  rw [show Seg29.wireSeating 7 = 24720 by
+  rw [show Seg29.wireSeating 7 = 24723 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_nullifier` local 8. -/
 theorem requiredNullifierAt8
     (rho : Nat → DeployedF) :
-    RequiredNullifierValuation rho 8 = rho 24725 := by
+    RequiredNullifierValuation rho 8 = rho 24728 := by
   simp only [
     RequiredNullifierValuation, Seg29.localRho,
     Deployed.Templates.seated]
-  rw [show Seg29.wireSeating 8 = 24725 by
+  rw [show Seg29.wireSeating 8 = 24728 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_nullifier` local 9. -/
 theorem requiredNullifierAt9
     (rho : Nat → DeployedF) :
-    RequiredNullifierValuation rho 9 = rho 24730 := by
+    RequiredNullifierValuation rho 9 = rho 24733 := by
   simp only [
     RequiredNullifierValuation, Seg29.localRho,
     Deployed.Templates.seated]
-  rw [show Seg29.wireSeating 9 = 24730 by
+  rw [show Seg29.wireSeating 9 = 24733 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_nullifier` local 10. -/
 theorem requiredNullifierAt10
     (rho : Nat → DeployedF) :
-    RequiredNullifierValuation rho 10 = rho 24735 := by
+    RequiredNullifierValuation rho 10 = rho 24738 := by
   simp only [
     RequiredNullifierValuation, Seg29.localRho,
     Deployed.Templates.seated]
-  rw [show Seg29.wireSeating 10 = 24735 by
+  rw [show Seg29.wireSeating 10 = 24738 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_nullifier` local 11. -/
 theorem requiredNullifierAt11
     (rho : Nat → DeployedF) :
-    RequiredNullifierValuation rho 11 = rho 24740 := by
+    RequiredNullifierValuation rho 11 = rho 24743 := by
   simp only [
     RequiredNullifierValuation, Seg29.localRho,
     Deployed.Templates.seated]
-  rw [show Seg29.wireSeating 11 = 24740 by
+  rw [show Seg29.wireSeating 11 = 24743 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_nullifier` local 12. -/
 theorem requiredNullifierAt12
     (rho : Nat → DeployedF) :
-    RequiredNullifierValuation rho 12 = rho 24745 := by
+    RequiredNullifierValuation rho 12 = rho 24748 := by
   simp only [
     RequiredNullifierValuation, Seg29.localRho,
     Deployed.Templates.seated]
-  rw [show Seg29.wireSeating 12 = 24745 by
+  rw [show Seg29.wireSeating 12 = 24748 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_nullifier` local 18. -/
 theorem requiredNullifierAt18
     (rho : Nat → DeployedF) :
-    RequiredNullifierValuation rho 18 = rho 138 := by
+    RequiredNullifierValuation rho 18 = rho 139 := by
   simp only [
     RequiredNullifierValuation, Seg29.localRho,
     Deployed.Templates.seated]
-  rw [show Seg29.wireSeating 18 = 138 by
+  rw [show Seg29.wireSeating 18 = 139 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_nullifier` local 303. -/
 theorem requiredNullifierAt303
     (rho : Nat → DeployedF) :
-    RequiredNullifierValuation rho 303 = rho 25040 := by
+    RequiredNullifierValuation rho 303 = rho 25043 := by
   simp only [
     RequiredNullifierValuation, Seg29.localRho,
     Deployed.Templates.seated]
-  rw [show Seg29.wireSeating 303 = 25040 by
+  rw [show Seg29.wireSeating 303 = 25043 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_nullifier` local 308. -/
 theorem requiredNullifierAt308
     (rho : Nat → DeployedF) :
-    RequiredNullifierValuation rho 308 = rho 25045 := by
+    RequiredNullifierValuation rho 308 = rho 25048 := by
   simp only [
     RequiredNullifierValuation, Seg29.localRho,
     Deployed.Templates.seated]
-  rw [show Seg29.wireSeating 308 = 25045 by
+  rw [show Seg29.wireSeating 308 = 25048 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_nullifier` local 313. -/
 theorem requiredNullifierAt313
     (rho : Nat → DeployedF) :
-    RequiredNullifierValuation rho 313 = rho 25050 := by
+    RequiredNullifierValuation rho 313 = rho 25053 := by
   simp only [
     RequiredNullifierValuation, Seg29.localRho,
     Deployed.Templates.seated]
-  rw [show Seg29.wireSeating 313 = 25050 by
+  rw [show Seg29.wireSeating 313 = 25053 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_nullifier` local 318. -/
 theorem requiredNullifierAt318
     (rho : Nat → DeployedF) :
-    RequiredNullifierValuation rho 318 = rho 25055 := by
+    RequiredNullifierValuation rho 318 = rho 25058 := by
   simp only [
     RequiredNullifierValuation, Seg29.localRho,
     Deployed.Templates.seated]
-  rw [show Seg29.wireSeating 318 = 25055 by
+  rw [show Seg29.wireSeating 318 = 25058 by
     decide +kernel]
 
 /-- The `required_nullifier` provider consumes the compiler-labelled note commitment. -/
@@ -2915,13 +3493,13 @@ theorem requiredNullifierStateCommitment_eq
     spend0NoteCommitmentComputedLC,
     StructuredLC.eval, StructuredLC.sumRuns,
     StructuredLC.sumResidual, StrideRun.eval,
-    requiredNullifierAt7, requiredNullifierAt8, requiredNullifierAt9, requiredNullifierAt10, requiredNullifierAt11, requiredNullifierAt12, requiredNullifierAt13,
+    requiredNullifierAt7, requiredNullifierAt8, requiredNullifierAt9, requiredNullifierAt10, requiredNullifierAt11, requiredNullifierAt12,
     zero_add, one_mul, add_zero]
   ring
 
 /-- Stable deployed valuation for the `optional_nullifier` exact provider. -/
 def OptionalNullifierValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg39.localRho rho
+  Seg40.localRho rho
 
 /-- Stable semantic proposition certified by `optional_nullifier`. -/
 def OptionalNullifierSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -2932,7 +3510,7 @@ theorem optionalNullifierSemanticSpec_of_exact
     (rho : Nat → DeployedF)
     (facts : ShieldedIcs20WithdrawalCircuitFacts rho) :
     OptionalNullifierSemanticSpec rho := by
-  change Deployed.Templates.Semantics.TGadgetNullifier_5707ecfa23746942d4eee98a87b841d07f40163e3e15aeba5d907533f9aa58c4.spec (Seg39.localRho rho)
+  change Deployed.Templates.Semantics.TGadgetNullifier_5707ecfa23746942d4eee98a87b841d07f40163e3e15aeba5d907533f9aa58c4.spec (Seg40.localRho rho)
   exact
     (withdrawalExactProviders rho facts).optionalSpend.optionalNullifier
 
@@ -2943,121 +3521,121 @@ def OptionalNullifierStateCommitment (rho : Nat → DeployedF) : DeployedF :=
 /-- Audited local-to-deployed seating for `optional_nullifier` local 1. -/
 theorem optionalNullifierAt1
     (rho : Nat → DeployedF) :
-    OptionalNullifierValuation rho 1 = rho 22 := by
+    OptionalNullifierValuation rho 1 = rho 23 := by
   simp only [
-    OptionalNullifierValuation, Seg39.localRho,
+    OptionalNullifierValuation, Seg40.localRho,
     Deployed.Templates.seated]
-  rw [show Seg39.wireSeating 1 = 22 by
+  rw [show Seg40.wireSeating 1 = 23 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_nullifier` local 7. -/
 theorem optionalNullifierAt7
     (rho : Nat → DeployedF) :
-    OptionalNullifierValuation rho 7 = rho 36854 := by
+    OptionalNullifierValuation rho 7 = rho 37003 := by
   simp only [
-    OptionalNullifierValuation, Seg39.localRho,
+    OptionalNullifierValuation, Seg40.localRho,
     Deployed.Templates.seated]
-  rw [show Seg39.wireSeating 7 = 36854 by
+  rw [show Seg40.wireSeating 7 = 37003 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_nullifier` local 8. -/
 theorem optionalNullifierAt8
     (rho : Nat → DeployedF) :
-    OptionalNullifierValuation rho 8 = rho 36859 := by
+    OptionalNullifierValuation rho 8 = rho 37008 := by
   simp only [
-    OptionalNullifierValuation, Seg39.localRho,
+    OptionalNullifierValuation, Seg40.localRho,
     Deployed.Templates.seated]
-  rw [show Seg39.wireSeating 8 = 36859 by
+  rw [show Seg40.wireSeating 8 = 37008 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_nullifier` local 9. -/
 theorem optionalNullifierAt9
     (rho : Nat → DeployedF) :
-    OptionalNullifierValuation rho 9 = rho 36864 := by
+    OptionalNullifierValuation rho 9 = rho 37013 := by
   simp only [
-    OptionalNullifierValuation, Seg39.localRho,
+    OptionalNullifierValuation, Seg40.localRho,
     Deployed.Templates.seated]
-  rw [show Seg39.wireSeating 9 = 36864 by
+  rw [show Seg40.wireSeating 9 = 37013 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_nullifier` local 10. -/
 theorem optionalNullifierAt10
     (rho : Nat → DeployedF) :
-    OptionalNullifierValuation rho 10 = rho 36869 := by
+    OptionalNullifierValuation rho 10 = rho 37018 := by
   simp only [
-    OptionalNullifierValuation, Seg39.localRho,
+    OptionalNullifierValuation, Seg40.localRho,
     Deployed.Templates.seated]
-  rw [show Seg39.wireSeating 10 = 36869 by
+  rw [show Seg40.wireSeating 10 = 37018 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_nullifier` local 11. -/
 theorem optionalNullifierAt11
     (rho : Nat → DeployedF) :
-    OptionalNullifierValuation rho 11 = rho 36874 := by
+    OptionalNullifierValuation rho 11 = rho 37023 := by
   simp only [
-    OptionalNullifierValuation, Seg39.localRho,
+    OptionalNullifierValuation, Seg40.localRho,
     Deployed.Templates.seated]
-  rw [show Seg39.wireSeating 11 = 36874 by
+  rw [show Seg40.wireSeating 11 = 37023 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_nullifier` local 12. -/
 theorem optionalNullifierAt12
     (rho : Nat → DeployedF) :
-    OptionalNullifierValuation rho 12 = rho 36879 := by
+    OptionalNullifierValuation rho 12 = rho 37028 := by
   simp only [
-    OptionalNullifierValuation, Seg39.localRho,
+    OptionalNullifierValuation, Seg40.localRho,
     Deployed.Templates.seated]
-  rw [show Seg39.wireSeating 12 = 36879 by
+  rw [show Seg40.wireSeating 12 = 37028 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_nullifier` local 18. -/
 theorem optionalNullifierAt18
     (rho : Nat → DeployedF) :
-    OptionalNullifierValuation rho 18 = rho 217 := by
+    OptionalNullifierValuation rho 18 = rho 219 := by
   simp only [
-    OptionalNullifierValuation, Seg39.localRho,
+    OptionalNullifierValuation, Seg40.localRho,
     Deployed.Templates.seated]
-  rw [show Seg39.wireSeating 18 = 217 by
+  rw [show Seg40.wireSeating 18 = 219 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_nullifier` local 303. -/
 theorem optionalNullifierAt303
     (rho : Nat → DeployedF) :
-    OptionalNullifierValuation rho 303 = rho 37174 := by
+    OptionalNullifierValuation rho 303 = rho 37323 := by
   simp only [
-    OptionalNullifierValuation, Seg39.localRho,
+    OptionalNullifierValuation, Seg40.localRho,
     Deployed.Templates.seated]
-  rw [show Seg39.wireSeating 303 = 37174 by
+  rw [show Seg40.wireSeating 303 = 37323 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_nullifier` local 308. -/
 theorem optionalNullifierAt308
     (rho : Nat → DeployedF) :
-    OptionalNullifierValuation rho 308 = rho 37179 := by
+    OptionalNullifierValuation rho 308 = rho 37328 := by
   simp only [
-    OptionalNullifierValuation, Seg39.localRho,
+    OptionalNullifierValuation, Seg40.localRho,
     Deployed.Templates.seated]
-  rw [show Seg39.wireSeating 308 = 37179 by
+  rw [show Seg40.wireSeating 308 = 37328 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_nullifier` local 313. -/
 theorem optionalNullifierAt313
     (rho : Nat → DeployedF) :
-    OptionalNullifierValuation rho 313 = rho 37184 := by
+    OptionalNullifierValuation rho 313 = rho 37333 := by
   simp only [
-    OptionalNullifierValuation, Seg39.localRho,
+    OptionalNullifierValuation, Seg40.localRho,
     Deployed.Templates.seated]
-  rw [show Seg39.wireSeating 313 = 37184 by
+  rw [show Seg40.wireSeating 313 = 37333 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_nullifier` local 318. -/
 theorem optionalNullifierAt318
     (rho : Nat → DeployedF) :
-    OptionalNullifierValuation rho 318 = rho 37189 := by
+    OptionalNullifierValuation rho 318 = rho 37338 := by
   simp only [
-    OptionalNullifierValuation, Seg39.localRho,
+    OptionalNullifierValuation, Seg40.localRho,
     Deployed.Templates.seated]
-  rw [show Seg39.wireSeating 318 = 37189 by
+  rw [show Seg40.wireSeating 318 = 37338 by
     decide +kernel]
 
 /-- The `optional_nullifier` provider consumes the compiler-labelled note commitment. -/
@@ -3071,13 +3649,13 @@ theorem optionalNullifierStateCommitment_eq
     spend1NoteCommitmentComputedLC,
     StructuredLC.eval, StructuredLC.sumRuns,
     StructuredLC.sumResidual, StrideRun.eval,
-    optionalNullifierAt7, optionalNullifierAt8, optionalNullifierAt9, optionalNullifierAt10, optionalNullifierAt11, optionalNullifierAt12, optionalNullifierAt13,
+    optionalNullifierAt7, optionalNullifierAt8, optionalNullifierAt9, optionalNullifierAt10, optionalNullifierAt11, optionalNullifierAt12,
     zero_add, one_mul, add_zero]
   ring
 
 /-- Stable deployed valuation for the `optional_is_dummy_boolean` exact provider. -/
 def OptionalIsDummyBooleanValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg43.localRho rho
+  Seg44.localRho rho
 
 /-- Stable semantic proposition certified by `optional_is_dummy_boolean`. -/
 def OptionalIsDummyBooleanSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -3088,23 +3666,23 @@ theorem optionalIsDummyBooleanSemanticSpec_of_exact
     (rho : Nat → DeployedF)
     (facts : ShieldedIcs20WithdrawalCircuitFacts rho) :
     OptionalIsDummyBooleanSemanticSpec rho := by
-  change Deployed.Templates.Semantics.TAssertBoolean_469df3cb92f6ee26f90120fa5a2d5ab48448c3e42be090ebb81d77d5431164fc.spec (Seg43.localRho rho)
+  change Deployed.Templates.Semantics.TAssertBoolean_469df3cb92f6ee26f90120fa5a2d5ab48448c3e42be090ebb81d77d5431164fc.spec (Seg44.localRho rho)
   exact
     (withdrawalExactProviders rho facts).optionalSpend.optionalIsDummyBoolean
 
 /-- Audited local-to-deployed seating for `optional_is_dummy_boolean` local 1. -/
 theorem optionalIsDummyBooleanAt1
     (rho : Nat → DeployedF) :
-    OptionalIsDummyBooleanValuation rho 1 = rho 291 := by
+    OptionalIsDummyBooleanValuation rho 1 = rho 294 := by
   simp only [
-    OptionalIsDummyBooleanValuation, Seg43.localRho,
+    OptionalIsDummyBooleanValuation, Seg44.localRho,
     Deployed.Templates.seated]
-  rw [show Seg43.wireSeating 1 = 291 by
+  rw [show Seg44.wireSeating 1 = 294 by
     decide +kernel]
 
 /-- Stable deployed valuation for the `optional_nullifier_assert` exact provider. -/
 def OptionalNullifierAssertValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg46.localRho rho
+  Seg47.localRho rho
 
 /-- Stable semantic proposition certified by `optional_nullifier_assert`. -/
 def OptionalNullifierAssertSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -3115,43 +3693,43 @@ theorem optionalNullifierAssertSemanticSpec_of_exact
     (rho : Nat → DeployedF)
     (facts : ShieldedIcs20WithdrawalCircuitFacts rho) :
     OptionalNullifierAssertSemanticSpec rho := by
-  change Deployed.Templates.Semantics.TAssertEq_460e4d66ff383bde603d8cffb059ede8f489117c64d82168ec67187bae7e1bc3.spec (Seg46.localRho rho)
+  change Deployed.Templates.Semantics.TAssertEq_460e4d66ff383bde603d8cffb059ede8f489117c64d82168ec67187bae7e1bc3.spec (Seg47.localRho rho)
   exact
     (withdrawalExactProviders rho facts).optionalSpend.optionalNullifierAssert
 
 /-- Audited local-to-deployed seating for `optional_nullifier_assert` local 1. -/
 theorem optionalNullifierAssertAt1
     (rho : Nat → DeployedF) :
-    OptionalNullifierAssertValuation rho 1 = rho 212 := by
+    OptionalNullifierAssertValuation rho 1 = rho 214 := by
   simp only [
-    OptionalNullifierAssertValuation, Seg46.localRho,
+    OptionalNullifierAssertValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 1 = 212 by
+  rw [show Seg47.wireSeating 1 = 214 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_nullifier_assert` local 2. -/
 theorem optionalNullifierAssertAt2
     (rho : Nat → DeployedF) :
-    OptionalNullifierAssertValuation rho 2 = rho 48927 := by
+    OptionalNullifierAssertValuation rho 2 = rho 49076 := by
   simp only [
-    OptionalNullifierAssertValuation, Seg46.localRho,
+    OptionalNullifierAssertValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 2 = 48927 by
+  rw [show Seg47.wireSeating 2 = 49076 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_nullifier_assert` local 3. -/
 theorem optionalNullifierAssertAt3
     (rho : Nat → DeployedF) :
-    OptionalNullifierAssertValuation rho 3 = rho 48928 := by
+    OptionalNullifierAssertValuation rho 3 = rho 49077 := by
   simp only [
-    OptionalNullifierAssertValuation, Seg46.localRho,
+    OptionalNullifierAssertValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 3 = 48928 by
+  rw [show Seg47.wireSeating 3 = 49077 by
     decide +kernel]
 
 /-- Stable deployed valuation for the `optional_nullifier_mux` exact provider. -/
 def OptionalNullifierMuxValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg45.localRho rho
+  Seg46.localRho rho
 
 /-- Stable semantic proposition certified by `optional_nullifier_mux`. -/
 def OptionalNullifierMuxSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -3162,123 +3740,123 @@ theorem optionalNullifierMuxSemanticSpec_of_exact
     (rho : Nat → DeployedF)
     (facts : ShieldedIcs20WithdrawalCircuitFacts rho) :
     OptionalNullifierMuxSemanticSpec rho := by
-  change Deployed.Templates.Semantics.TDummyMux_6b4f764130614aef38a5954daa8a7654deca54de7a24217406a68696772579ce.spec (Seg45.localRho rho)
+  change Deployed.Templates.Semantics.TDummyMux_6b4f764130614aef38a5954daa8a7654deca54de7a24217406a68696772579ce.spec (Seg46.localRho rho)
   exact
     (withdrawalExactProviders rho facts).optionalSpend.optionalNullifierMux
 
 /-- Audited local-to-deployed seating for `optional_nullifier_mux` local 1. -/
 theorem optionalNullifierMuxAt1
     (rho : Nat → DeployedF) :
-    OptionalNullifierMuxValuation rho 1 = rho 291 := by
+    OptionalNullifierMuxValuation rho 1 = rho 294 := by
   simp only [
-    OptionalNullifierMuxValuation, Seg45.localRho,
+    OptionalNullifierMuxValuation, Seg46.localRho,
     Deployed.Templates.seated]
-  rw [show Seg45.wireSeating 1 = 291 by
+  rw [show Seg46.wireSeating 1 = 294 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_nullifier_mux` local 2. -/
 theorem optionalNullifierMuxAt2
     (rho : Nat → DeployedF) :
-    OptionalNullifierMuxValuation rho 2 = rho 37174 := by
+    OptionalNullifierMuxValuation rho 2 = rho 37323 := by
   simp only [
-    OptionalNullifierMuxValuation, Seg45.localRho,
+    OptionalNullifierMuxValuation, Seg46.localRho,
     Deployed.Templates.seated]
-  rw [show Seg45.wireSeating 2 = 37174 by
+  rw [show Seg46.wireSeating 2 = 37323 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_nullifier_mux` local 3. -/
 theorem optionalNullifierMuxAt3
     (rho : Nat → DeployedF) :
-    OptionalNullifierMuxValuation rho 3 = rho 37179 := by
+    OptionalNullifierMuxValuation rho 3 = rho 37328 := by
   simp only [
-    OptionalNullifierMuxValuation, Seg45.localRho,
+    OptionalNullifierMuxValuation, Seg46.localRho,
     Deployed.Templates.seated]
-  rw [show Seg45.wireSeating 3 = 37179 by
+  rw [show Seg46.wireSeating 3 = 37328 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_nullifier_mux` local 4. -/
 theorem optionalNullifierMuxAt4
     (rho : Nat → DeployedF) :
-    OptionalNullifierMuxValuation rho 4 = rho 37184 := by
+    OptionalNullifierMuxValuation rho 4 = rho 37333 := by
   simp only [
-    OptionalNullifierMuxValuation, Seg45.localRho,
+    OptionalNullifierMuxValuation, Seg46.localRho,
     Deployed.Templates.seated]
-  rw [show Seg45.wireSeating 4 = 37184 by
+  rw [show Seg46.wireSeating 4 = 37333 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_nullifier_mux` local 5. -/
 theorem optionalNullifierMuxAt5
     (rho : Nat → DeployedF) :
-    OptionalNullifierMuxValuation rho 5 = rho 37189 := by
+    OptionalNullifierMuxValuation rho 5 = rho 37338 := by
   simp only [
-    OptionalNullifierMuxValuation, Seg45.localRho,
+    OptionalNullifierMuxValuation, Seg46.localRho,
     Deployed.Templates.seated]
-  rw [show Seg45.wireSeating 5 = 37189 by
+  rw [show Seg46.wireSeating 5 = 37338 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_nullifier_mux` local 6. -/
 theorem optionalNullifierMuxAt6
     (rho : Nat → DeployedF) :
-    OptionalNullifierMuxValuation rho 6 = rho 48927 := by
+    OptionalNullifierMuxValuation rho 6 = rho 49076 := by
   simp only [
-    OptionalNullifierMuxValuation, Seg45.localRho,
+    OptionalNullifierMuxValuation, Seg46.localRho,
     Deployed.Templates.seated]
-  rw [show Seg45.wireSeating 6 = 48927 by
+  rw [show Seg46.wireSeating 6 = 49076 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_nullifier_mux` local 7. -/
 theorem optionalNullifierMuxAt7
     (rho : Nat → DeployedF) :
-    OptionalNullifierMuxValuation rho 7 = rho 48911 := by
+    OptionalNullifierMuxValuation rho 7 = rho 49060 := by
   simp only [
-    OptionalNullifierMuxValuation, Seg45.localRho,
+    OptionalNullifierMuxValuation, Seg46.localRho,
     Deployed.Templates.seated]
-  rw [show Seg45.wireSeating 7 = 48911 by
+  rw [show Seg46.wireSeating 7 = 49060 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_nullifier_mux` local 8. -/
 theorem optionalNullifierMuxAt8
     (rho : Nat → DeployedF) :
-    OptionalNullifierMuxValuation rho 8 = rho 48916 := by
+    OptionalNullifierMuxValuation rho 8 = rho 49065 := by
   simp only [
-    OptionalNullifierMuxValuation, Seg45.localRho,
+    OptionalNullifierMuxValuation, Seg46.localRho,
     Deployed.Templates.seated]
-  rw [show Seg45.wireSeating 8 = 48916 by
+  rw [show Seg46.wireSeating 8 = 49065 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_nullifier_mux` local 9. -/
 theorem optionalNullifierMuxAt9
     (rho : Nat → DeployedF) :
-    OptionalNullifierMuxValuation rho 9 = rho 48921 := by
+    OptionalNullifierMuxValuation rho 9 = rho 49070 := by
   simp only [
-    OptionalNullifierMuxValuation, Seg45.localRho,
+    OptionalNullifierMuxValuation, Seg46.localRho,
     Deployed.Templates.seated]
-  rw [show Seg45.wireSeating 9 = 48921 by
+  rw [show Seg46.wireSeating 9 = 49070 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_nullifier_mux` local 10. -/
 theorem optionalNullifierMuxAt10
     (rho : Nat → DeployedF) :
-    OptionalNullifierMuxValuation rho 10 = rho 48926 := by
+    OptionalNullifierMuxValuation rho 10 = rho 49075 := by
   simp only [
-    OptionalNullifierMuxValuation, Seg45.localRho,
+    OptionalNullifierMuxValuation, Seg46.localRho,
     Deployed.Templates.seated]
-  rw [show Seg45.wireSeating 10 = 48926 by
+  rw [show Seg46.wireSeating 10 = 49075 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_nullifier_mux` local 11. -/
 theorem optionalNullifierMuxAt11
     (rho : Nat → DeployedF) :
-    OptionalNullifierMuxValuation rho 11 = rho 48928 := by
+    OptionalNullifierMuxValuation rho 11 = rho 49077 := by
   simp only [
-    OptionalNullifierMuxValuation, Seg45.localRho,
+    OptionalNullifierMuxValuation, Seg46.localRho,
     Deployed.Templates.seated]
-  rw [show Seg45.wireSeating 11 = 48928 by
+  rw [show Seg46.wireSeating 11 = 49077 by
     decide +kernel]
 
 /-- Stable deployed valuation for the `optional_amount_zero` exact provider. -/
 def OptionalAmountZeroValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg49.localRho rho
+  Seg50.localRho rho
 
 /-- Stable semantic proposition certified by `optional_amount_zero`. -/
 def OptionalAmountZeroSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -3289,28 +3867,28 @@ theorem optionalAmountZeroSemanticSpec_of_exact
     (rho : Nat → DeployedF)
     (facts : ShieldedIcs20WithdrawalCircuitFacts rho) :
     OptionalAmountZeroSemanticSpec rho := by
-  change Deployed.Templates.Semantics.TAssertEqIf_ddee3f5dbb25719dc8ce88820a48ef2b56159138d939c3b768c7bcfad396079d.spec (Seg49.localRho rho)
+  change Deployed.Templates.Semantics.TAssertEqIf_ddee3f5dbb25719dc8ce88820a48ef2b56159138d939c3b768c7bcfad396079d.spec (Seg50.localRho rho)
   exact
     (withdrawalExactProviders rho facts).optionalSpend.optionalAmountZero
 
 /-- Audited local-to-deployed seating for `optional_amount_zero` local 1. -/
 theorem optionalAmountZeroAt1
     (rho : Nat → DeployedF) :
-    OptionalAmountZeroValuation rho 1 = rho 216 := by
+    OptionalAmountZeroValuation rho 1 = rho 218 := by
   simp only [
-    OptionalAmountZeroValuation, Seg49.localRho,
+    OptionalAmountZeroValuation, Seg50.localRho,
     Deployed.Templates.seated]
-  rw [show Seg49.wireSeating 1 = 216 by
+  rw [show Seg50.wireSeating 1 = 218 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_amount_zero` local 2. -/
 theorem optionalAmountZeroAt2
     (rho : Nat → DeployedF) :
-    OptionalAmountZeroValuation rho 2 = rho 291 := by
+    OptionalAmountZeroValuation rho 2 = rho 294 := by
   simp only [
-    OptionalAmountZeroValuation, Seg49.localRho,
+    OptionalAmountZeroValuation, Seg50.localRho,
     Deployed.Templates.seated]
-  rw [show Seg49.wireSeating 2 = 291 by
+  rw [show Seg50.wireSeating 2 = 294 by
     decide +kernel]
 
 /-- Stable deployed valuation for the `sender_div_gen_compress` exact provider. -/
@@ -3333,41 +3911,41 @@ theorem senderDivGenCompressSemanticSpec_of_exact
 /-- Audited local-to-deployed seating for `sender_div_gen_compress` local 1. -/
 theorem senderDivGenCompressAt1
     (rho : Nat → DeployedF) :
-    SenderDivGenCompressValuation rho 1 = rho 79 := by
+    SenderDivGenCompressValuation rho 1 = rho 80 := by
   simp only [
     SenderDivGenCompressValuation, Seg5.localRho,
     Deployed.Templates.seated]
-  rw [show Seg5.wireSeating 1 = 79 by
+  rw [show Seg5.wireSeating 1 = 80 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `sender_div_gen_compress` local 3. -/
 theorem senderDivGenCompressAt3
     (rho : Nat → DeployedF) :
-    SenderDivGenCompressValuation rho 3 = rho 80 := by
+    SenderDivGenCompressValuation rho 3 = rho 81 := by
   simp only [
     SenderDivGenCompressValuation, Seg5.localRho,
     Deployed.Templates.seated]
-  rw [show Seg5.wireSeating 3 = 80 by
+  rw [show Seg5.wireSeating 3 = 81 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `sender_div_gen_compress` local 365. -/
 theorem senderDivGenCompressAt365
     (rho : Nat → DeployedF) :
-    SenderDivGenCompressValuation rho 365 = rho 660 := by
+    SenderDivGenCompressValuation rho 365 = rho 663 := by
   simp only [
     SenderDivGenCompressValuation, Seg5.localRho,
     Deployed.Templates.seated]
-  rw [show Seg5.wireSeating 365 = 660 by
+  rw [show Seg5.wireSeating 365 = 663 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `sender_div_gen_compress` local 705. -/
 theorem senderDivGenCompressAt705
     (rho : Nat → DeployedF) :
-    SenderDivGenCompressValuation rho 705 = rho 1000 := by
+    SenderDivGenCompressValuation rho 705 = rho 1003 := by
   simp only [
     SenderDivGenCompressValuation, Seg5.localRho,
     Deployed.Templates.seated]
-  rw [show Seg5.wireSeating 705 = 1000 by
+  rw [show Seg5.wireSeating 705 = 1003 by
     decide +kernel]
 
 /-- Stable deployed valuation for the `required_rk_compress` exact provider. -/
@@ -3390,46 +3968,46 @@ theorem requiredRkCompressSemanticSpec_of_exact
 /-- Audited local-to-deployed seating for `required_rk_compress` local 1. -/
 theorem requiredRkCompressAt1
     (rho : Nat → DeployedF) :
-    RequiredRkCompressValuation rho 1 = rho 134 := by
+    RequiredRkCompressValuation rho 1 = rho 135 := by
   simp only [
     RequiredRkCompressValuation, Seg32.localRho,
     Deployed.Templates.seated]
-  rw [show Seg32.wireSeating 1 = 134 by
+  rw [show Seg32.wireSeating 1 = 135 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_rk_compress` local 3. -/
 theorem requiredRkCompressAt3
     (rho : Nat → DeployedF) :
-    RequiredRkCompressValuation rho 3 = rho 135 := by
+    RequiredRkCompressValuation rho 3 = rho 136 := by
   simp only [
     RequiredRkCompressValuation, Seg32.localRho,
     Deployed.Templates.seated]
-  rw [show Seg32.wireSeating 3 = 135 by
+  rw [show Seg32.wireSeating 3 = 136 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_rk_compress` local 365. -/
 theorem requiredRkCompressAt365
     (rho : Nat → DeployedF) :
-    RequiredRkCompressValuation rho 365 = rho 36147 := by
+    RequiredRkCompressValuation rho 365 = rho 36150 := by
   simp only [
     RequiredRkCompressValuation, Seg32.localRho,
     Deployed.Templates.seated]
-  rw [show Seg32.wireSeating 365 = 36147 by
+  rw [show Seg32.wireSeating 365 = 36150 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_rk_compress` local 705. -/
 theorem requiredRkCompressAt705
     (rho : Nat → DeployedF) :
-    RequiredRkCompressValuation rho 705 = rho 36487 := by
+    RequiredRkCompressValuation rho 705 = rho 36490 := by
   simp only [
     RequiredRkCompressValuation, Seg32.localRho,
     Deployed.Templates.seated]
-  rw [show Seg32.wireSeating 705 = 36487 by
+  rw [show Seg32.wireSeating 705 = 36490 by
     decide +kernel]
 
 /-- Stable deployed valuation for the `optional_rk_compress` exact provider. -/
 def OptionalRkCompressValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg42.localRho rho
+  Seg43.localRho rho
 
 /-- Stable semantic proposition certified by `optional_rk_compress`. -/
 def OptionalRkCompressSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -3440,48 +4018,48 @@ theorem optionalRkCompressSemanticSpec_of_exact
     (rho : Nat → DeployedF)
     (facts : ShieldedIcs20WithdrawalCircuitFacts rho) :
     OptionalRkCompressSemanticSpec rho := by
-  change Deployed.Templates.Semantics.TDecafCompressToField_231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb.spec (Seg42.localRho rho)
+  change Deployed.Templates.Semantics.TDecafCompressToField_231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb.spec (Seg43.localRho rho)
   exact
     (withdrawalExactProviders rho facts).optionalSpend.optionalRkCompress
 
 /-- Audited local-to-deployed seating for `optional_rk_compress` local 1. -/
 theorem optionalRkCompressAt1
     (rho : Nat → DeployedF) :
-    OptionalRkCompressValuation rho 1 = rho 213 := by
+    OptionalRkCompressValuation rho 1 = rho 215 := by
   simp only [
-    OptionalRkCompressValuation, Seg42.localRho,
+    OptionalRkCompressValuation, Seg43.localRho,
     Deployed.Templates.seated]
-  rw [show Seg42.wireSeating 1 = 213 by
+  rw [show Seg43.wireSeating 1 = 215 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_rk_compress` local 3. -/
 theorem optionalRkCompressAt3
     (rho : Nat → DeployedF) :
-    OptionalRkCompressValuation rho 3 = rho 214 := by
+    OptionalRkCompressValuation rho 3 = rho 216 := by
   simp only [
-    OptionalRkCompressValuation, Seg42.localRho,
+    OptionalRkCompressValuation, Seg43.localRho,
     Deployed.Templates.seated]
-  rw [show Seg42.wireSeating 3 = 214 by
+  rw [show Seg43.wireSeating 3 = 216 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_rk_compress` local 365. -/
 theorem optionalRkCompressAt365
     (rho : Nat → DeployedF) :
-    OptionalRkCompressValuation rho 365 = rho 48281 := by
+    OptionalRkCompressValuation rho 365 = rho 48430 := by
   simp only [
-    OptionalRkCompressValuation, Seg42.localRho,
+    OptionalRkCompressValuation, Seg43.localRho,
     Deployed.Templates.seated]
-  rw [show Seg42.wireSeating 365 = 48281 by
+  rw [show Seg43.wireSeating 365 = 48430 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_rk_compress` local 705. -/
 theorem optionalRkCompressAt705
     (rho : Nat → DeployedF) :
-    OptionalRkCompressValuation rho 705 = rho 48621 := by
+    OptionalRkCompressValuation rho 705 = rho 48770 := by
   simp only [
-    OptionalRkCompressValuation, Seg42.localRho,
+    OptionalRkCompressValuation, Seg43.localRho,
     Deployed.Templates.seated]
-  rw [show Seg42.wireSeating 705 = 48621 by
+  rw [show Seg43.wireSeating 705 = 48770 by
     decide +kernel]
 
 /-- Stable deployed valuation for the `required_rvk` exact provider. -/
@@ -3504,56 +4082,56 @@ theorem requiredRvkSemanticSpec_of_exact
 /-- Audited local-to-deployed seating for `required_rvk` local 252. -/
 theorem requiredRvkAt252
     (rho : Nat → DeployedF) :
-    RequiredRvkValuation rho 252 = rho 211 := by
+    RequiredRvkValuation rho 252 = rho 212 := by
   simp only [
     RequiredRvkValuation, Seg31.localRho,
     Deployed.Templates.seated]
-  rw [show Seg31.wireSeating 252 = 211 by
+  rw [show Seg31.wireSeating 252 = 212 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_rvk` local 1807. -/
 theorem requiredRvkAt1807
     (rho : Nat → DeployedF) :
-    RequiredRvkValuation rho 1807 = rho 20 := by
+    RequiredRvkValuation rho 1807 = rho 21 := by
   simp only [
     RequiredRvkValuation, Seg31.localRho,
     Deployed.Templates.seated]
-  rw [show Seg31.wireSeating 1807 = 20 by
+  rw [show Seg31.wireSeating 1807 = 21 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_rvk` local 1808. -/
 theorem requiredRvkAt1808
     (rho : Nat → DeployedF) :
-    RequiredRvkValuation rho 1808 = rho 21 := by
+    RequiredRvkValuation rho 1808 = rho 22 := by
   simp only [
     RequiredRvkValuation, Seg31.localRho,
     Deployed.Templates.seated]
-  rw [show Seg31.wireSeating 1808 = 21 by
+  rw [show Seg31.wireSeating 1808 = 22 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_rvk` local 1813. -/
 theorem requiredRvkAt1813
     (rho : Nat → DeployedF) :
-    RequiredRvkValuation rho 1813 = rho 35783 := by
+    RequiredRvkValuation rho 1813 = rho 35786 := by
   simp only [
     RequiredRvkValuation, Seg31.localRho,
     Deployed.Templates.seated]
-  rw [show Seg31.wireSeating 1813 = 35783 by
+  rw [show Seg31.wireSeating 1813 = 35786 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_rvk` local 1814. -/
 theorem requiredRvkAt1814
     (rho : Nat → DeployedF) :
-    RequiredRvkValuation rho 1814 = rho 35784 := by
+    RequiredRvkValuation rho 1814 = rho 35787 := by
   simp only [
     RequiredRvkValuation, Seg31.localRho,
     Deployed.Templates.seated]
-  rw [show Seg31.wireSeating 1814 = 35784 by
+  rw [show Seg31.wireSeating 1814 = 35787 by
     decide +kernel]
 
 /-- Stable deployed valuation for the `optional_rvk` exact provider. -/
 def OptionalRvkValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg41.localRho rho
+  Seg42.localRho rho
 
 /-- Stable semantic proposition certified by `optional_rvk`. -/
 def OptionalRvkSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -3564,58 +4142,58 @@ theorem optionalRvkSemanticSpec_of_exact
     (rho : Nat → DeployedF)
     (facts : ShieldedIcs20WithdrawalCircuitFacts rho) :
     OptionalRvkSemanticSpec rho := by
-  change Deployed.Templates.Semantics.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f.spec (Seg41.localRho rho)
+  change Deployed.Templates.Semantics.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f.spec (Seg42.localRho rho)
   exact
     (withdrawalExactProviders rho facts).optionalSpend.optionalRvk
 
 /-- Audited local-to-deployed seating for `optional_rvk` local 252. -/
 theorem optionalRvkAt252
     (rho : Nat → DeployedF) :
-    OptionalRvkValuation rho 252 = rho 290 := by
+    OptionalRvkValuation rho 252 = rho 292 := by
   simp only [
-    OptionalRvkValuation, Seg41.localRho,
+    OptionalRvkValuation, Seg42.localRho,
     Deployed.Templates.seated]
-  rw [show Seg41.wireSeating 252 = 290 by
+  rw [show Seg42.wireSeating 252 = 292 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_rvk` local 1807. -/
 theorem optionalRvkAt1807
     (rho : Nat → DeployedF) :
-    OptionalRvkValuation rho 1807 = rho 20 := by
+    OptionalRvkValuation rho 1807 = rho 21 := by
   simp only [
-    OptionalRvkValuation, Seg41.localRho,
+    OptionalRvkValuation, Seg42.localRho,
     Deployed.Templates.seated]
-  rw [show Seg41.wireSeating 1807 = 20 by
+  rw [show Seg42.wireSeating 1807 = 21 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_rvk` local 1808. -/
 theorem optionalRvkAt1808
     (rho : Nat → DeployedF) :
-    OptionalRvkValuation rho 1808 = rho 21 := by
+    OptionalRvkValuation rho 1808 = rho 22 := by
   simp only [
-    OptionalRvkValuation, Seg41.localRho,
+    OptionalRvkValuation, Seg42.localRho,
     Deployed.Templates.seated]
-  rw [show Seg41.wireSeating 1808 = 21 by
+  rw [show Seg42.wireSeating 1808 = 22 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_rvk` local 1813. -/
 theorem optionalRvkAt1813
     (rho : Nat → DeployedF) :
-    OptionalRvkValuation rho 1813 = rho 47917 := by
+    OptionalRvkValuation rho 1813 = rho 48066 := by
   simp only [
-    OptionalRvkValuation, Seg41.localRho,
+    OptionalRvkValuation, Seg42.localRho,
     Deployed.Templates.seated]
-  rw [show Seg41.wireSeating 1813 = 47917 by
+  rw [show Seg42.wireSeating 1813 = 48066 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_rvk` local 1814. -/
 theorem optionalRvkAt1814
     (rho : Nat → DeployedF) :
-    OptionalRvkValuation rho 1814 = rho 47918 := by
+    OptionalRvkValuation rho 1814 = rho 48067 := by
   simp only [
-    OptionalRvkValuation, Seg41.localRho,
+    OptionalRvkValuation, Seg42.localRho,
     Deployed.Templates.seated]
-  rw [show Seg41.wireSeating 1814 = 47918 by
+  rw [show Seg42.wireSeating 1814 = 48067 by
     decide +kernel]
 
 /-- Stable deployed valuation for the `required_rk_equivalent` exact provider. -/
@@ -3638,46 +4216,46 @@ theorem requiredRkEquivalentSemanticSpec_of_exact
 /-- Audited local-to-deployed seating for `required_rk_equivalent` local 1. -/
 theorem requiredRkEquivalentAt1
     (rho : Nat → DeployedF) :
-    RequiredRkEquivalentValuation rho 1 = rho 35783 := by
+    RequiredRkEquivalentValuation rho 1 = rho 35786 := by
   simp only [
     RequiredRkEquivalentValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg35.wireSeating 1 = 35783 by
+  rw [show Seg35.wireSeating 1 = 35786 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_rk_equivalent` local 2. -/
 theorem requiredRkEquivalentAt2
     (rho : Nat → DeployedF) :
-    RequiredRkEquivalentValuation rho 2 = rho 135 := by
+    RequiredRkEquivalentValuation rho 2 = rho 136 := by
   simp only [
     RequiredRkEquivalentValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg35.wireSeating 2 = 135 by
+  rw [show Seg35.wireSeating 2 = 136 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_rk_equivalent` local 4. -/
 theorem requiredRkEquivalentAt4
     (rho : Nat → DeployedF) :
-    RequiredRkEquivalentValuation rho 4 = rho 134 := by
+    RequiredRkEquivalentValuation rho 4 = rho 135 := by
   simp only [
     RequiredRkEquivalentValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg35.wireSeating 4 = 134 by
+  rw [show Seg35.wireSeating 4 = 135 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `required_rk_equivalent` local 5. -/
 theorem requiredRkEquivalentAt5
     (rho : Nat → DeployedF) :
-    RequiredRkEquivalentValuation rho 5 = rho 35784 := by
+    RequiredRkEquivalentValuation rho 5 = rho 35787 := by
   simp only [
     RequiredRkEquivalentValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg35.wireSeating 5 = 35784 by
+  rw [show Seg35.wireSeating 5 = 35787 by
     decide +kernel]
 
 /-- Stable deployed valuation for the `optional_rk_equivalent` exact provider. -/
 def OptionalRkEquivalentValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg48.localRho rho
+  Seg49.localRho rho
 
 /-- Stable semantic proposition certified by `optional_rk_equivalent`. -/
 def OptionalRkEquivalentSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -3688,58 +4266,162 @@ theorem optionalRkEquivalentSemanticSpec_of_exact
     (rho : Nat → DeployedF)
     (facts : ShieldedIcs20WithdrawalCircuitFacts rho) :
     OptionalRkEquivalentSemanticSpec rho := by
-  change Deployed.Templates.Semantics.TDecafAssertEquivalentIf_5153b90a6cbb5f5ba2ec514e6df8b586236dbc591f653a4b7fdd7890eb4be84f.spec (Seg48.localRho rho)
+  change Deployed.Templates.Semantics.TDecafAssertEquivalentIf_5153b90a6cbb5f5ba2ec514e6df8b586236dbc591f653a4b7fdd7890eb4be84f.spec (Seg49.localRho rho)
   exact
     (withdrawalExactProviders rho facts).optionalSpend.optionalRkEquivalent
 
 /-- Audited local-to-deployed seating for `optional_rk_equivalent` local 1. -/
 theorem optionalRkEquivalentAt1
     (rho : Nat → DeployedF) :
-    OptionalRkEquivalentValuation rho 1 = rho 291 := by
+    OptionalRkEquivalentValuation rho 1 = rho 294 := by
   simp only [
-    OptionalRkEquivalentValuation, Seg48.localRho,
+    OptionalRkEquivalentValuation, Seg49.localRho,
     Deployed.Templates.seated]
-  rw [show Seg48.wireSeating 1 = 291 by
+  rw [show Seg49.wireSeating 1 = 294 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_rk_equivalent` local 2. -/
 theorem optionalRkEquivalentAt2
     (rho : Nat → DeployedF) :
-    OptionalRkEquivalentValuation rho 2 = rho 47917 := by
+    OptionalRkEquivalentValuation rho 2 = rho 48066 := by
   simp only [
-    OptionalRkEquivalentValuation, Seg48.localRho,
+    OptionalRkEquivalentValuation, Seg49.localRho,
     Deployed.Templates.seated]
-  rw [show Seg48.wireSeating 2 = 47917 by
+  rw [show Seg49.wireSeating 2 = 48066 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_rk_equivalent` local 3. -/
 theorem optionalRkEquivalentAt3
     (rho : Nat → DeployedF) :
-    OptionalRkEquivalentValuation rho 3 = rho 214 := by
+    OptionalRkEquivalentValuation rho 3 = rho 216 := by
   simp only [
-    OptionalRkEquivalentValuation, Seg48.localRho,
+    OptionalRkEquivalentValuation, Seg49.localRho,
     Deployed.Templates.seated]
-  rw [show Seg48.wireSeating 3 = 214 by
+  rw [show Seg49.wireSeating 3 = 216 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_rk_equivalent` local 5. -/
 theorem optionalRkEquivalentAt5
     (rho : Nat → DeployedF) :
-    OptionalRkEquivalentValuation rho 5 = rho 213 := by
+    OptionalRkEquivalentValuation rho 5 = rho 215 := by
   simp only [
-    OptionalRkEquivalentValuation, Seg48.localRho,
+    OptionalRkEquivalentValuation, Seg49.localRho,
     Deployed.Templates.seated]
-  rw [show Seg48.wireSeating 5 = 213 by
+  rw [show Seg49.wireSeating 5 = 215 by
     decide +kernel]
 
 /-- Audited local-to-deployed seating for `optional_rk_equivalent` local 6. -/
 theorem optionalRkEquivalentAt6
     (rho : Nat → DeployedF) :
-    OptionalRkEquivalentValuation rho 6 = rho 47918 := by
+    OptionalRkEquivalentValuation rho 6 = rho 48067 := by
   simp only [
-    OptionalRkEquivalentValuation, Seg48.localRho,
+    OptionalRkEquivalentValuation, Seg49.localRho,
     Deployed.Templates.seated]
-  rw [show Seg48.wireSeating 6 = 47918 by
+  rw [show Seg49.wireSeating 6 = 48067 by
+    decide +kernel]
+
+/-- Stable deployed valuation for the `required_history_classify` exact provider. -/
+def RequiredHistoryClassifyValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
+  Seg36.localRho rho
+
+/-- Stable semantic proposition certified by `required_history_classify`. -/
+def RequiredHistoryClassifySemanticSpec (rho : Nat → DeployedF) : Prop :=
+  Deployed.Templates.Semantics.THistoryClassify_24943fd2154aa0ac8bbf9adce870214e50badfb7c18cba54c33b68fcd9222905.spec (RequiredHistoryClassifyValuation rho)
+
+/-- The `required_history_classify` semantic proposition follows only from exact facts. -/
+theorem requiredHistoryClassifySemanticSpec_of_exact
+    (rho : Nat → DeployedF)
+    (facts : ShieldedIcs20WithdrawalCircuitFacts rho) :
+    RequiredHistoryClassifySemanticSpec rho := by
+  change Deployed.Templates.Semantics.THistoryClassify_24943fd2154aa0ac8bbf9adce870214e50badfb7c18cba54c33b68fcd9222905.spec (Seg36.localRho rho)
+  exact
+    (withdrawalExactProviders rho facts).requiredSpend.requiredHistoryClassify
+
+/-- Audited local-to-deployed seating for `required_history_classify` local 49. -/
+theorem requiredHistoryClassifyAt49
+    (rho : Nat → DeployedF) :
+    RequiredHistoryClassifyValuation rho 49 = rho 139 := by
+  simp only [
+    RequiredHistoryClassifyValuation, Seg36.localRho,
+    Deployed.Templates.seated]
+  rw [show Seg36.wireSeating 49 = 139 by
+    decide +kernel]
+
+/-- Audited local-to-deployed seating for `required_history_classify` local 98. -/
+theorem requiredHistoryClassifyAt98
+    (rho : Nat → DeployedF) :
+    RequiredHistoryClassifyValuation rho 98 = rho 4 := by
+  simp only [
+    RequiredHistoryClassifyValuation, Seg36.localRho,
+    Deployed.Templates.seated]
+  rw [show Seg36.wireSeating 98 = 4 by
+    decide +kernel]
+
+/-- Audited local-to-deployed seating for `required_history_classify` local 149. -/
+theorem requiredHistoryClassifyAt149
+    (rho : Nat → DeployedF) :
+    RequiredHistoryClassifyValuation rho 149 = rho 213 := by
+  simp only [
+    RequiredHistoryClassifyValuation, Seg36.localRho,
+    Deployed.Templates.seated]
+  rw [show Seg36.wireSeating 149 = 213 by
+    decide +kernel]
+
+/-- Stable deployed valuation for the `optional_history_classify` exact provider. -/
+def OptionalHistoryClassifyValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
+  Seg51.localRho rho
+
+/-- Stable semantic proposition certified by `optional_history_classify`. -/
+def OptionalHistoryClassifySemanticSpec (rho : Nat → DeployedF) : Prop :=
+  Deployed.Templates.Semantics.THistoryClassify_63bcfde2aa853f39c988314bacdeeddfe5aa236959c22bd9f97803415badf545.spec (OptionalHistoryClassifyValuation rho)
+
+/-- The `optional_history_classify` semantic proposition follows only from exact facts. -/
+theorem optionalHistoryClassifySemanticSpec_of_exact
+    (rho : Nat → DeployedF)
+    (facts : ShieldedIcs20WithdrawalCircuitFacts rho) :
+    OptionalHistoryClassifySemanticSpec rho := by
+  change Deployed.Templates.Semantics.THistoryClassify_63bcfde2aa853f39c988314bacdeeddfe5aa236959c22bd9f97803415badf545.spec (Seg51.localRho rho)
+  exact
+    (withdrawalExactProviders rho facts).optionalSpend.optionalHistoryClassify
+
+/-- Audited local-to-deployed seating for `optional_history_classify` local 49. -/
+theorem optionalHistoryClassifyAt49
+    (rho : Nat → DeployedF) :
+    OptionalHistoryClassifyValuation rho 49 = rho 219 := by
+  simp only [
+    OptionalHistoryClassifyValuation, Seg51.localRho,
+    Deployed.Templates.seated]
+  rw [show Seg51.wireSeating 49 = 219 by
+    decide +kernel]
+
+/-- Audited local-to-deployed seating for `optional_history_classify` local 98. -/
+theorem optionalHistoryClassifyAt98
+    (rho : Nat → DeployedF) :
+    OptionalHistoryClassifyValuation rho 98 = rho 4 := by
+  simp only [
+    OptionalHistoryClassifyValuation, Seg51.localRho,
+    Deployed.Templates.seated]
+  rw [show Seg51.wireSeating 98 = 4 by
+    decide +kernel]
+
+/-- Audited local-to-deployed seating for `optional_history_classify` local 149. -/
+theorem optionalHistoryClassifyAt149
+    (rho : Nat → DeployedF) :
+    OptionalHistoryClassifyValuation rho 149 = rho 294 := by
+  simp only [
+    OptionalHistoryClassifyValuation, Seg51.localRho,
+    Deployed.Templates.seated]
+  rw [show Seg51.wireSeating 149 = 294 by
+    decide +kernel]
+
+/-- Audited local-to-deployed seating for `optional_history_classify` local 151. -/
+theorem optionalHistoryClassifyAt151
+    (rho : Nat → DeployedF) :
+    OptionalHistoryClassifyValuation rho 151 = rho 293 := by
+  simp only [
+    OptionalHistoryClassifyValuation, Seg51.localRho,
+    Deployed.Templates.seated]
+  rw [show Seg51.wireSeating 151 = 293 by
     decide +kernel]
 
 /-- The change note's public commitment equals its computed hash output. -/
@@ -3755,7 +4437,7 @@ theorem changeNoteCommitmentAsserted_of_exact
     changeNoteAssertAt1, changeNoteAssertAt2,
     changeNoteAssertAt3, changeNoteAssertAt4,
     changeNoteAssertAt5, changeNoteAssertAt6,
-    changeNoteAssertAt7, changeNoteAssertAt8
+    changeNoteAssertAt7
   ] at h
   simp only [
     output0NoteCommitmentClaimed, output0NoteCommitmentClaimedLC,
@@ -3803,7 +4485,7 @@ theorem optionalAnchorAsserted_of_exact
     optionalAnchorAssertAt5, optionalAnchorAssertAt6,
     optionalAnchorAssertAt7
   ] at h
-  have hrealGlobal : rho 291 = 0 := by
+  have hrealGlobal : rho 294 = 0 := by
     simpa [
       spend1IsDummy, spend1IsDummyLC,
       StructuredLC.eval, StructuredLC.sumRuns,
@@ -3862,7 +4544,7 @@ theorem optionalNullifierClaimed_eq_real_of_exact
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
     zero_add, one_mul, add_zero
   ] at hselected ⊢
-  have hrealGlobal : rho 291 = 0 := by
+  have hrealGlobal : rho 294 = 0 := by
     simpa [
       spend1IsDummy, spend1IsDummyLC,
       StructuredLC.eval, StructuredLC.sumRuns,
@@ -3898,7 +4580,7 @@ theorem optionalNullifierClaimed_eq_synthetic_of_exact
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
     zero_add, one_mul, add_zero
   ] at hselected ⊢
-  have hdummyGlobal : rho 291 = 1 := by
+  have hdummyGlobal : rho 294 = 1 := by
     simpa [
       spend1IsDummy, spend1IsDummyLC,
       StructuredLC.eval, StructuredLC.sumRuns,
@@ -3927,7 +4609,7 @@ theorem optionalAmount_eq_zero_of_exact
       StructuredLC.eval, StructuredLC.sumRuns,
       StructuredLC.sumResidual
     ] using amountZero
-  · have hdummyGlobal : rho 291 = 1 := by
+  · have hdummyGlobal : rho 294 = 1 := by
       simpa [
         spend1IsDummy, spend1IsDummyLC,
         StructuredLC.eval, StructuredLC.sumRuns,
@@ -3980,7 +4662,7 @@ theorem optionalRkEquivalentSpec_of_exact
     optionalRkEquivalentAt6
   ] at h
   rcases h.2 with disabled | equal
-  · have hselector : rho 291 = 0 := by
+  · have hselector : rho 294 = 0 := by
       simpa [
         spend1IsDummy, spend1IsDummyLC,
         StructuredLC.eval, StructuredLC.sumRuns,

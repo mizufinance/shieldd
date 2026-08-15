@@ -103,15 +103,19 @@ WITHDRAWAL_SYNTHETIC_NULLIFIER_KEY = (
 )
 WITHDRAWAL_STATEMENT_FIRST_KEY = (
     "statement.hash@"
-    "afd0be82d84896e98b8fdc0f4b8eaec88930b85f4b40c03ff06a87a4eaebd1b8"
+    "67a3df11145400695d1528410a7903b2252ede68702e91a980098b8499e5b5d4"
 )
 WITHDRAWAL_STATEMENT_SECOND_KEY = (
     "statement.hash@"
-    "59fc709325ca9b0194b7adef9fe91a97d88a5c690c5278f59425a351790b2376"
+    "0092421009be06b66aa764b1a88f289569cb79dda85cba9c19428c04336af9a4"
 )
 WITHDRAWAL_STATEMENT_THIRD_KEY = (
     "statement.hash@"
-    "0a6a7d5c079d0a2e952c00450800860c1faf28396d74678cd2ea2a7dc4ee85ce"
+    "5804cb48cce27e24aa8fa559e9e23e995c25c83d8af6b4ef440384b01de85476"
+)
+WITHDRAWAL_STATEMENT_FOURTH_KEY = (
+    "statement.hash@"
+    "19301faada329781da94b45e73c6963e9c85b971e364be5e52987753c670f898"
 )
 WITHDRAWAL_STATEMENT_ASSERT_KEY = (
     "assert.eq@"
@@ -219,8 +223,8 @@ TRANSFER_FACT_FIELDS = (
 
 TRANSFER_FACT_PROVIDER_COUNTS = {
     "canonicalSender": 8,
-    "requiredSpend": 8,
-    "optionalSpend": 12,
+    "requiredSpend": 9,
+    "optionalSpend": 13,
     "receiverOutput": 8,
     "receiverCompliance": 4,
     "changeOutput": 2,
@@ -245,6 +249,7 @@ TRANSFER_CORE_PROVIDER_LABELS = (
     "required_anchor_assert",
     "required_rvk",
     "required_rk_equivalent",
+    "required_history_classify",
     "required_rk_compress",
     "optional_is_dummy_boolean",
     "optional_note_commitment",
@@ -257,6 +262,7 @@ TRANSFER_CORE_PROVIDER_LABELS = (
     "optional_rvk",
     "optional_rk_equivalent",
     "optional_amount_zero",
+    "optional_history_classify",
     "optional_rk_compress",
     "receiver_amount_is_zero",
     "receiver_div_gen_compress",
@@ -484,9 +490,17 @@ TRANSFER_DETECTION_ENCRYPTION_KEY = (
     "gadget.poseidon_encryption.detection@"
     "63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49c"
 )
-TRANSFER_STATEMENT_V5_KEY = (
+HISTORY_CLASSIFY_KEY = (
+    "history.classify@"
+    "24943fd2154aa0ac8bbf9adce870214e50badfb7c18cba54c33b68fcd9222905"
+)
+HISTORY_CLASSIFY_GATED_KEY = (
+    "history.classify@"
+    "63bcfde2aa853f39c988314bacdeeddfe5aa236959c22bd9f97803415badf545"
+)
+TRANSFER_STATEMENT_KEY = (
     "statement.hash@"
-    "f091e489b9a220b0436835ce5343e78627a43408ea621e9d71e60917c2e7c77f"
+    "0e54d8ea5fc5d0d95e113695b4b0340e4b6bab4d5abb13df4d51436c93755a86"
 )
 ROUTING_PRECISION_SELECT_KEY = (
     "routing.precision.select@"
@@ -881,6 +895,17 @@ TRANSFER_TRACE_SPECS = (
         TRANSFER_SPEND_EQUIVALENT_KEY, 3, 7,
     ),
     _transfer_trace(
+        "required_history_classify", "requiredSpend",
+        "history.classify",
+        (
+            "position=spend0.state_proof.position",
+            "floor=recent_position_floor",
+            "is_dummy=0",
+            "out=spend0.history_required",
+        ),
+        HISTORY_CLASSIFY_KEY, 150, 150, "glue",
+    ),
+    _transfer_trace(
         "required_rk_compress", "requiredSpend",
         "decaf.compress_to_field",
         ("in=spend0.rk.claimed", "out=spend0.rk.compressed"),
@@ -993,6 +1018,17 @@ TRANSFER_TRACE_SPECS = (
         ),
         "assert.eq_if@ddee3f5dbb25719dc8ce88820a48ef2b56159138d939c3b768c7bcfad396079d",
         2, 4, "glue",
+    ),
+    _transfer_trace(
+        "optional_history_classify", "optionalSpend",
+        "history.classify",
+        (
+            "position=spend1.state_proof.position",
+            "floor=recent_position_floor",
+            "is_dummy=spend1.is_dummy",
+            "out=spend1.history_required",
+        ),
+        HISTORY_CLASSIFY_GATED_KEY, 151, 152, "glue",
     ),
     _transfer_trace(
         "optional_rk_compress", "optionalSpend",
@@ -1459,9 +1495,9 @@ TRANSFER_TRACE_SPECS = (
             "fields=statement_fields",
             "out=statement_hash",
         ),
-        TRANSFER_STATEMENT_V5_KEY,
-        3735,
-        3787,
+        TRANSFER_STATEMENT_KEY,
+        3750,
+        3805,
     ),
     _transfer_trace(
         "statement_assert", "statementBinding", "assert.eq",
@@ -1485,13 +1521,13 @@ WITHDRAWAL_FACT_FIELDS = (
 
 WITHDRAWAL_FACT_PROVIDER_COUNTS = {
     "canonicalSender": 7,
-    "requiredSpend": 8,
-    "optionalSpend": 12,
+    "requiredSpend": 9,
+    "optionalSpend": 13,
     "changeOutput": 2,
     "assetRegistry": 7,
     "senderCompliance": 3,
     "conservation": 2,
-    "statementBinding": 12,
+    "statementBinding": 13,
 }
 
 # The 22 reachable handwritten core adapters consume these 21 unique exact
@@ -1518,6 +1554,8 @@ WITHDRAWAL_CORE_PROVIDER_LABELS = (
     "optional_rvk",
     "required_rk_equivalent",
     "optional_rk_equivalent",
+    "required_history_classify",
+    "optional_history_classify",
 )
 
 WITHDRAWAL_SPECIFICATION_PREDICATES = (
@@ -1996,6 +2034,21 @@ WITHDRAWAL_TRACE_SPECS = (
         7,
     ),
     _withdrawal_trace(
+        "required_history_classify",
+        "requiredSpend",
+        "history.classify",
+        (
+            "position=spend0.state_proof.position",
+            "floor=recent_position_floor",
+            "is_dummy=0",
+            "out=spend0.history_required",
+        ),
+        HISTORY_CLASSIFY_KEY,
+        150,
+        150,
+        "glue",
+    ),
+    _withdrawal_trace(
         "optional_note_commitment",
         "optionalSpend",
         "gadget.note_commitment",
@@ -2164,6 +2217,21 @@ WITHDRAWAL_TRACE_SPECS = (
         "glue",
     ),
     _withdrawal_trace(
+        "optional_history_classify",
+        "optionalSpend",
+        "history.classify",
+        (
+            "position=spend1.state_proof.position",
+            "floor=recent_position_floor",
+            "is_dummy=spend1.is_dummy",
+            "out=spend1.history_required",
+        ),
+        HISTORY_CLASSIFY_GATED_KEY,
+        151,
+        152,
+        "glue",
+    ),
+    _withdrawal_trace(
         "change_note_commitment",
         "changeOutput",
         "gadget.note_commitment",
@@ -2226,7 +2294,7 @@ WITHDRAWAL_TRACE_SPECS = (
         ),
         WITHDRAWAL_STATEMENT_FIRST_KEY,
         470,
-        481,
+        480,
     ),
     _withdrawal_trace(
         "statement_block1",
@@ -2239,7 +2307,7 @@ WITHDRAWAL_TRACE_SPECS = (
         ),
         WITHDRAWAL_STATEMENT_SECOND_KEY,
         470,
-        485,
+        486,
     ),
     _withdrawal_trace(
         "statement_block2",
@@ -2249,13 +2317,29 @@ WITHDRAWAL_TRACE_SPECS = (
             "block=2",
             (
                 "inputs=statement.hash.block1,"
-                "statement.field.013..017,pad1"
+                "statement.field.013..018"
             ),
             "out=statement.hash.block2",
         ),
         WITHDRAWAL_STATEMENT_THIRD_KEY,
-        465,
-        479,
+        470,
+        485,
+    ),
+    _withdrawal_trace(
+        "statement_block3",
+        "statementBinding",
+        "statement.hash",
+        (
+            "block=3",
+            (
+                "inputs=statement.hash.block2,"
+                "statement.field.019..020,pad0,pad1,pad0,pad1"
+            ),
+            "out=statement.hash.block3",
+        ),
+        WITHDRAWAL_STATEMENT_FOURTH_KEY,
+        450,
+        461,
     ),
     _withdrawal_trace(
         "statement_assert",
@@ -2616,10 +2700,11 @@ def _binding_wire_vector(
     return tuple(wires)
 
 
+STATE_PATH_PROVIDER_BASES = (290, 292, 295)
 STATE_PATH_PROVIDER_LOCALS = tuple(
     base + 363 * level
     for level in range(24)
-    for base in (290, 292, 295)
+    for base in STATE_PATH_PROVIDER_BASES
 )
 STATE_PATH_LEVEL_REVERSAL = tuple(
     3 * (23 - level) + sibling
@@ -2863,6 +2948,7 @@ TRANSFER_ACTION_BINDING_ARITIES = {
     "compliance_anchor": 1,
     "target_timestamp": 1,
     "action.balance_blinding": 1,
+    "recent_position_floor": 1,
     "is_regulated": 1,
     "routing.tags": 2,
     "routing.parameter_set_id": 1,
@@ -2903,6 +2989,7 @@ TRANSFER_ACTION_BINDING_ARITIES = {
     "spend0.state_proof.position": 1,
     "spend0.state_proof.path": 72,
     "spend0.auth_randomizer": 1,
+    "spend0.history_required": 1,
     "spend1.nullifier.claimed": 1,
     "spend1.rk.claimed": 2,
     "spend1.note.blinding": 1,
@@ -2912,6 +2999,7 @@ TRANSFER_ACTION_BINDING_ARITIES = {
     "spend1.auth_randomizer": 1,
     "spend1.is_dummy": 1,
     "spend1.dummy_nullifier_seed": 1,
+    "spend1.history_required": 1,
     "output0.note_commitment.claimed": 1,
     "output0.note.blinding": 1,
     "output0.note.amount": 1,
@@ -3251,14 +3339,14 @@ def _validate_transfer_binding_spine(bindings: dict[str, dict]) -> None:
     if _binding_expression(bindings, "balance.outputs", 2) != expected_outputs:
         raise ValueError("Transfer balance output order drifted")
 
-    statement = _binding_expression(bindings, "statement.fields", 44)
+    statement = _binding_expression(bindings, "statement.fields", 47)
     individual = [
         _binding_expression(bindings, f"statement.field.{index:03d}", 1)[0]
-        for index in range(44)
+        for index in range(47)
     ]
     if statement != individual:
         raise ValueError(
-            "Transfer statement.fields is not the exact ordered 44-field spine"
+            "Transfer statement.fields is not the exact ordered 47-field spine"
         )
 
 
@@ -3330,12 +3418,12 @@ TRANSFER_ASSET_PATH_LOCALS = (
     ),
 )
 
-# The v5 statement provider absorbs 44 fields in six-field blocks after its
+# The statement provider absorbs 47 fields in six-field blocks after its
 # seven-field first block.  Two-field entries are compiler LCs (compressed
 # points); singleton entries are direct wires.  This is provider geometry, not
 # a deployed segment index, and is authenticated against the current provider
 # digest before it is used.
-TRANSFER_STATEMENT_V5_FIELD_LOCALS = (
+TRANSFER_STATEMENT_FIELD_LOCALS = (
     (1,),
     (7,),
     (13,),
@@ -3344,30 +3432,30 @@ TRANSFER_STATEMENT_V5_FIELD_LOCALS = (
     (32,),
     (38,),
     (484,),
-    (490, 491),
-    (497,),
-    (503, 504),
-    (510,),
-    (516,),
+    (490,),
+    (496, 497),
+    (503,),
+    (509,),
+    (515, 516),
     (962,),
     (968,),
     (974,),
     (980,),
-    (986, 987),
-    (993,),
-    (1439,),
-    (1445, 1446),
-    (1452,),
-    (1458,),
-    (1464,),
+    (986,),
+    (992,),
+    (1438,),
+    (1444, 1445),
+    (1451,),
+    (1457,),
+    (1463, 1464),
     (1470,),
-    (1916, 1917),
-    (1923,),
-    (1929,),
-    (1935, 1936),
-    (1942,),
-    (1948,),
-    (2394,),
+    (1916,),
+    (1922,),
+    (1928,),
+    (1934, 1935),
+    (1941,),
+    (1947,),
+    (2393, 2394),
     (2400,),
     (2406,),
     (2412,),
@@ -3380,7 +3468,15 @@ TRANSFER_STATEMENT_V5_FIELD_LOCALS = (
     (2894,),
     (2900,),
     (3346,),
+    (3352,),
+    (3358,),
+    (3364,),
 )
+
+# Ciphertext outputs in the fixed detection-encryption provider.  Keep these
+# seats shared by validation, accessor emission, and the semantic seam so a
+# provider-layout change cannot leave one of the three paths stale.
+TRANSFER_DETECTION_CIPHERTEXT_LOCALS = (2107, 2111, 2114, 2115)
 
 
 def _expression_term_wires_exact(
@@ -3541,7 +3637,7 @@ def _transfer_current_protocol_seats(
         )
 
     statement_seats: list[tuple[int, int]] = []
-    for index, locals_ in enumerate(TRANSFER_STATEMENT_V5_FIELD_LOCALS):
+    for index, locals_ in enumerate(TRANSFER_STATEMENT_FIELD_LOCALS):
         expression = _binding_expression(
             bindings, f"statement.field.{index:03d}", 1
         )[0]
@@ -3568,7 +3664,7 @@ def _transfer_current_protocol_seats(
             )
         )
     statement_seats.extend(zip(
-        tuple(3751 + 5 * index for index in range(8)),
+        tuple(3769 + 5 * index for index in range(8)),
         _binding_lc_wires(
             bindings,
             "statement.hash",
@@ -3578,7 +3674,7 @@ def _transfer_current_protocol_seats(
     ))
     expected["statement_hash"] = (
         dict(statement_seats),
-        "Transfer statement v5 protocol arguments",
+        "Transfer statement protocol arguments",
     )
 
     assert_seats = (
@@ -3628,13 +3724,11 @@ def _transfer_unit_expression_seats(
     )
 
 
-def _transfer_transcript_protocol_seats(
+def _transfer_routing_permutation_wire(
     plan: TransferRefinementPlan,
-) -> dict[str, tuple[dict[int, int], str]]:
-    """Authenticate transcript-provider argument and identity-point seats."""
+) -> int:
+    """Return the one compiler wire shared by routing and detection."""
 
-    bindings = plan.bindings
-    flag_wire = _single_binding_wire(bindings, "is_flagged")
     permutation_wires = (
         set(_seating(plan.segments["routing_permutation_compose"]))
         & set(_seating(plan.segments["detection_encryption"]))
@@ -3643,7 +3737,17 @@ def _transfer_transcript_protocol_seats(
         raise ValueError(
             "Transfer routing permutation/detection join drifted"
         )
-    permutation_wire = next(iter(permutation_wires))
+    return next(iter(permutation_wires))
+
+
+def _transfer_transcript_protocol_seats(
+    plan: TransferRefinementPlan,
+) -> dict[str, tuple[dict[int, int], str]]:
+    """Authenticate transcript-provider argument and identity-point seats."""
+
+    bindings = plan.bindings
+    flag_wire = _single_binding_wire(bindings, "is_flagged")
+    permutation_wire = _transfer_routing_permutation_wire(plan)
     shared_specs = (
         (
             "sender_core_shared_secret",
@@ -3889,7 +3993,7 @@ def _transfer_transcript_protocol_seats(
         (2112, permutation_wire),
         (2113, flag_wire),
         *zip(
-            (2107, 2111, 2114, 2115),
+            TRANSFER_DETECTION_CIPHERTEXT_LOCALS,
             _binding_wire_vector(
                 bindings, "compliance.detection_ciphertext", 4
             ),
@@ -4137,6 +4241,7 @@ def _transfer_transcript_direct_protocol_seats(
             2112,
             2113,
             2114,
+            2115,
         ),
         "sender_amount_encryption": (710, 976, 977),
         "output_amount_encryption": (710, 976, 977),
@@ -4765,6 +4870,17 @@ def _transfer_core_provider_seats(
         (1, single("spend1.note.amount")),
         (2, single("spend1.is_dummy")),
     )
+    seats["required_history_classify"] = (
+        (49, single("spend0.state_proof.position")),
+        (98, single("recent_position_floor")),
+        (149, single("spend0.history_required")),
+    )
+    seats["optional_history_classify"] = (
+        (49, single("spend1.state_proof.position")),
+        (98, single("recent_position_floor")),
+        (149, single("spend1.is_dummy")),
+        (151, single("spend1.history_required")),
+    )
 
     for label, slot in (
         ("required_rvk", "spend0"),
@@ -5040,9 +5156,9 @@ def _validate_transfer_refinement_plan(
             )
 
     statement_key = segments["statement_hash"].get("proof_template_id")
-    if statement_key != TRANSFER_STATEMENT_V5_KEY:
+    if statement_key != TRANSFER_STATEMENT_KEY:
         raise ValueError(
-            "Transfer statement did not select the reviewed v5 provider"
+            "Transfer statement did not select the reviewed provider"
         )
     plan = TransferRefinementPlan(segments=segments, bindings=bindings)
     _validate_transfer_selector_rows(plan)
@@ -5088,6 +5204,7 @@ WITHDRAWAL_DIRECT_ACTION_BINDING_ARITIES = {
     "outbound.amount": 1,
     "withdrawal_effect_hash_limbs": 4,
     "action.balance_blinding": 1,
+    "recent_position_floor": 1,
     "is_regulated": 1,
     "routing.tag": 1,
     "routing.parameter_set_id": 1,
@@ -5119,6 +5236,7 @@ WITHDRAWAL_DIRECT_ACTION_BINDING_ARITIES = {
     "spend0.state_proof.position": 1,
     "spend0.state_proof.path": 72,
     "spend0.auth_randomizer": 1,
+    "spend0.history_required": 1,
     "spend1.nullifier.claimed": 1,
     "spend1.rk.claimed": 2,
     "spend1.note.blinding": 1,
@@ -5128,6 +5246,7 @@ WITHDRAWAL_DIRECT_ACTION_BINDING_ARITIES = {
     "spend1.auth_randomizer": 1,
     "spend1.is_dummy": 1,
     "spend1.dummy_nullifier_seed": 1,
+    "spend1.history_required": 1,
     "output0.note_commitment.claimed": 1,
     "output0.note.blinding": 1,
     "output0.note.amount": 1,
@@ -5165,11 +5284,12 @@ WITHDRAWAL_BINDING_ARITIES = {
     "output0.note.commitment.computed": 1,
     "balance_commitment.computed": 2,
     "balance_commitment.fq": 1,
-    **{f"statement.field.{index:03d}": 1 for index in range(18)},
-    "statement.fields": 18,
+    **{f"statement.field.{index:03d}": 1 for index in range(21)},
+    "statement.fields": 21,
     "statement.hash.block0": 1,
     "statement.hash.block1": 1,
     "statement.hash.block2": 1,
+    "statement.hash.block3": 1,
     "statement.hash": 1,
 }
 
@@ -5227,12 +5347,21 @@ def _withdrawal_binding_expressions(
         ],
         (
             "statement.hash.block1,"
-            "statement.field.013..017,pad1"
+            "statement.field.013..018"
         ): [
             *_binding_expression(
                 bindings, "statement.hash.block1", 1
             ),
-            *_withdrawal_statement_expressions(bindings, 13, 18),
+            *_withdrawal_statement_expressions(bindings, 13, 19),
+        ],
+        (
+            "statement.hash.block2,"
+            "statement.field.019..020,pad0,pad1,pad0,pad1"
+        ): [
+            *_binding_expression(
+                bindings, "statement.hash.block2", 1
+            ),
+            *_withdrawal_statement_expressions(bindings, 19, 21),
         ],
     }
     if label in special:
@@ -5327,7 +5456,7 @@ def _validate_withdrawal_binding_spine(
     aliases = {
         "shared.asset_id": "outbound.asset_id",
         "spend0.nullifier.selected": "spend0.nullifier.real",
-        "statement.hash": "statement.hash.block2",
+        "statement.hash": "statement.hash.block3",
     }
     for derived, source in aliases.items():
         if _binding_expression(bindings, derived, 1) != _binding_expression(
@@ -5368,12 +5497,12 @@ def _validate_withdrawal_binding_spine(
     ) != [expected_is_not_dummy]:
         raise ValueError("Withdrawal optional is_not_dummy binding drifted")
 
-    statement = _binding_expression(bindings, "statement.fields", 18)
-    individual = _withdrawal_statement_expressions(bindings, 0, 18)
+    statement = _binding_expression(bindings, "statement.fields", 21)
+    individual = _withdrawal_statement_expressions(bindings, 0, 21)
     if statement != individual:
         raise ValueError(
             "Withdrawal statement.fields is not the exact ordered "
-            "18-field spine"
+            "21-field spine"
         )
     expected_statement = [
         *_binding_expression(bindings, "anchor", 1),
@@ -5381,10 +5510,13 @@ def _validate_withdrawal_binding_spine(
             bindings, "output0.note_commitment.claimed", 1
         ),
         *_binding_expression(bindings, "balance_commitment.fq", 1),
+        *_binding_expression(bindings, "recent_position_floor", 1),
         *_binding_expression(bindings, "spend0.nullifier.claimed", 1),
         *_binding_expression(bindings, "spend0.rk.compressed", 1),
+        *_binding_expression(bindings, "spend0.history_required", 1),
         *_binding_expression(bindings, "spend1.nullifier.claimed", 1),
         *_binding_expression(bindings, "spend1.rk.compressed", 1),
+        *_binding_expression(bindings, "spend1.history_required", 1),
         *_binding_expression(bindings, "asset_anchor", 1),
         *_binding_expression(bindings, "compliance_anchor", 1),
         *_binding_expression(bindings, "target_timestamp", 1),
@@ -5641,6 +5773,7 @@ def required (rho : Nat → DeployedF) :
       ⟨spend0RkClaimed0 rho, spend0RkClaimed1 rho⟩
     randomizedVerificationKeyEncoding := spend0RkCompressed rho
     authRandomizer := spend0AuthRandomizer rho
+    historyRequired := spend0HistoryRequired rho
   }}
 
 def optionalRealNote (rho : Nat → DeployedF) : Note DeployedF :=
@@ -5663,6 +5796,7 @@ def optionalReal (rho : Nat → DeployedF) :
       ⟨spend1RkClaimed0 rho, spend1RkClaimed1 rho⟩
     randomizedVerificationKeyEncoding := spend1RkCompressed rho
     authRandomizer := spend1AuthRandomizer rho
+    historyRequired := spend1HistoryRequired rho
   }}
 
 def optionalDummy (rho : Nat → DeployedF) : DummySpend DeployedF :=
@@ -5674,6 +5808,7 @@ def optionalDummy (rho : Nat → DeployedF) : DummySpend DeployedF :=
       ⟨spend1RkClaimed0 rho, spend1RkClaimed1 rho⟩
     randomizedVerificationKeyEncoding := spend1RkCompressed rho
     authRandomizer := spend1AuthRandomizer rho
+    historyRequired := spend1HistoryRequired rho
   }}
 
 def optional (rho : Nat → DeployedF) :
@@ -5748,6 +5883,7 @@ def action (rho : Nat → DeployedF) :
     targetTimestamp := targetTimestamp rho
     balanceCommitmentEncoding := balanceCommitmentFq rho
     balanceBlinding := actionBalanceBlinding rho
+    recentPositionFloor := recentPositionFloor rho
     routingTag := routingTag rho
     routingParameterSetId := routingParameterSetId rho
     regulatedPrecision := routingRegulatedPrecision rho
@@ -6065,6 +6201,17 @@ def _withdrawal_core_provider_seats(
         (5, optional_claimed[0]),
         (6, optional_computed[1]),
     )
+    seats["required_history_classify"] = (
+        (49, single("spend0.state_proof.position")),
+        (98, single("recent_position_floor")),
+        (149, single("spend0.history_required")),
+    )
+    seats["optional_history_classify"] = (
+        (49, single("spend1.state_proof.position")),
+        (98, single("recent_position_floor")),
+        (149, single("spend1.is_dummy")),
+        (151, single("spend1.history_required")),
+    )
 
     if tuple(seats) != WITHDRAWAL_CORE_PROVIDER_LABELS:
         raise ValueError("Withdrawal core provider inventory drifted")
@@ -6117,7 +6264,7 @@ def _withdrawal_core_path_equality(
     bullets = []
     for index in range(72):
         level, sibling = divmod(index, 3)
-        local = (291, 293, 296)[sibling] + 363 * level
+        local = STATE_PATH_PROVIDER_BASES[sibling] + 363 * level
         path_index = 3 * (23 - level) + sibling
         bullets.append(
             "  · change "
@@ -6205,7 +6352,7 @@ def {stable}StateCommitment (rho : Nat → DeployedF) : DeployedF :=
                 base + 363 * level:
                     3 * (23 - level) + sibling
                 for level in range(24)
-                for sibling, base in enumerate((291, 293, 296))
+                for sibling, base in enumerate(STATE_PATH_PROVIDER_BASES)
             }
         for local, deployed_wire in seats_by_label[label]:
             path_position = path_local_to_index.get(local)
@@ -6243,7 +6390,7 @@ theorem {lower}Path{path_position}
         if label in {"required_nullifier", "optional_nullifier"}:
             spend = "spend0" if label.startswith("required") else "spend1"
             accessor_names = ", ".join(
-                f"{lower}At{local}" for local in range(7, 14)
+                f"{lower}At{local}" for local in range(7, 13)
             )
             declarations.append(f"""\
 /-- The `{label}` provider consumes the compiler-labelled note commitment. -/
@@ -6287,7 +6434,7 @@ theorem changeNoteCommitmentAsserted_of_exact
     changeNoteAssertAt1, changeNoteAssertAt2,
     changeNoteAssertAt3, changeNoteAssertAt4,
     changeNoteAssertAt5, changeNoteAssertAt6,
-    changeNoteAssertAt7, changeNoteAssertAt8
+    changeNoteAssertAt7
   ] at h
   simp only [
     output0NoteCommitmentClaimed, output0NoteCommitmentClaimedLC,
@@ -6663,6 +6810,7 @@ def render_transfer_refinement_action(
         binding_name="spend1.state_proof.path",
         circuit_label="Transfer optional",
     )
+    permutation_wire = _transfer_routing_permutation_wire(plan)
     return f"""import Lean.Elab.Tactic.Omega
 import ShielddGnarkFormal.Deployed.Contracts.Transfer.CircuitFacts
 import ShielddGnarkFormal.Deployed.Contracts.Transfer.SemanticBindings
@@ -6754,6 +6902,7 @@ def required (rho : Nat → DeployedF) :
       ⟨spend0RkClaimed0 rho, spend0RkClaimed1 rho⟩
     randomizedVerificationKeyEncoding := spend0RkCompressed rho
     authRandomizer := spend0AuthRandomizer rho
+    historyRequired := spend0HistoryRequired rho
   }}
 
 def optionalRealNote (rho : Nat → DeployedF) : Note DeployedF :=
@@ -6776,6 +6925,7 @@ def optionalReal (rho : Nat → DeployedF) :
       ⟨spend1RkClaimed0 rho, spend1RkClaimed1 rho⟩
     randomizedVerificationKeyEncoding := spend1RkCompressed rho
     authRandomizer := spend1AuthRandomizer rho
+    historyRequired := spend1HistoryRequired rho
   }}
 
 def optionalDummy (rho : Nat → DeployedF) : DummySpend DeployedF :=
@@ -6787,6 +6937,7 @@ def optionalDummy (rho : Nat → DeployedF) : DummySpend DeployedF :=
       ⟨spend1RkClaimed0 rho, spend1RkClaimed1 rho⟩
     randomizedVerificationKeyEncoding := spend1RkCompressed rho
     authRandomizer := spend1AuthRandomizer rho
+    historyRequired := spend1HistoryRequired rho
   }}
 
 def optional (rho : Nat → DeployedF) :
@@ -6876,6 +7027,9 @@ def saltAt (rho : Nat → DeployedF) (index : Fin 5) : DeployedF :=
   else if index.val = 3 then salt3 rho
   else salt4 rho
 
+def routingRolesSwapped (rho : Nat → DeployedF) : DeployedF :=
+  rho {permutation_wire}
+
 def metadata (rho : Nat → DeployedF) : ComplianceMetadata DeployedF :=
   {{
     senderSubjectDerivation := complianceMetadata0 rho
@@ -6931,6 +7085,7 @@ def transcript (rho : Nat → DeployedF) : ComplianceTranscript DeployedF :=
     outputRCore := complianceOutputRCore rho
     outputRExt := complianceOutputRExt rho
     isFlagged := isFlagged rho
+    routingRolesSwapped := routingRolesSwapped rho
     salts := saltAt rho
     detectionCiphertext := complianceDetectionCiphertextAt rho
     metadata := metadata rho
@@ -6960,6 +7115,7 @@ def action (rho : Nat → DeployedF) :
     targetTimestamp := targetTimestamp rho
     balanceCommitmentEncoding := balanceCommitmentFq rho
     balanceBlinding := actionBalanceBlinding rho
+    recentPositionFloor := recentPositionFloor rho
     routingTags := routingTagsAt rho
     routingParameterSetId := routingParameterSetId rho
     regulatedPrecision := routingRegulatedPrecision rho
@@ -7083,6 +7239,9 @@ def _transfer_semantic_projection(
 def _transfer_semantic_helpers(plan: TransferRefinementPlan) -> str:
     """Render stable composite accessors used by the protocol translator."""
 
+    optional_dummy_wire = _single_binding_wire(
+        plan.bindings, "spend1.is_dummy"
+    )
     helpers = []
     for label, slot, path in (
         ("required_state_path", "spend0", "requiredPath"),
@@ -7093,7 +7252,7 @@ def _transfer_semantic_helpers(plan: TransferRefinementPlan) -> str:
         bullets = []
         for case_index in range(72):
             level, sibling = divmod(case_index, 3)
-            local = (291, 293, 296)[sibling] + 363 * level
+            local = STATE_PATH_PROVIDER_BASES[sibling] + 363 * level
             path_index = 3 * (23 - level) + sibling
             bullets.append(
                 "  · change "
@@ -7127,7 +7286,7 @@ theorem {lower}ProviderPath_eq
         lower = core.lower_camel(label)
         provider = _transfer_semantic_provider(plan.segments[label])
         accessor_names = ", ".join(
-            f"{lower}At{local}" for local in range(7, 14)
+            f"{lower}At{local}" for local in range(7, 13)
         )
         helpers.append(f"""\
 /-- Stable name for the note-commitment LC consumed by `{label}`. -/
@@ -7319,7 +7478,7 @@ theorem receiverNoteClaimed_eq_computed_of_semantic
     receiverNoteAssertAt1, receiverNoteAssertAt2,
     receiverNoteAssertAt3, receiverNoteAssertAt4,
     receiverNoteAssertAt5, receiverNoteAssertAt6,
-    receiverNoteAssertAt7, receiverNoteAssertAt8
+    receiverNoteAssertAt7
   ] at h
   simp only [
     output0NoteCommitmentClaimed, output0NoteCommitmentClaimedLC,
@@ -7341,7 +7500,7 @@ theorem changeNoteClaimed_eq_computed_of_semantic
     changeNoteAssertAt1, changeNoteAssertAt2,
     changeNoteAssertAt3, changeNoteAssertAt4,
     changeNoteAssertAt5, changeNoteAssertAt6,
-    changeNoteAssertAt7, changeNoteAssertAt8
+    changeNoteAssertAt7
   ] at h
   simp only [
     output1NoteCommitmentClaimed, output1NoteCommitmentClaimedLC,
@@ -7386,7 +7545,7 @@ theorem optionalAnchor_eq_computed_of_semantic
     optionalAnchorAssertAt3, optionalAnchorAssertAt4,
     optionalAnchorAssertAt5, optionalAnchorAssertAt6,
     optionalAnchorAssertAt7] at h
-  have hreal : rho 332 = 0 := by
+  have hreal : rho {optional_dummy_wire} = 0 := by
     simpa [
       spend1IsDummy, spend1IsDummyLC,
       StructuredLC.eval, StructuredLC.sumRuns,
@@ -7442,7 +7601,7 @@ theorem optionalNullifierSelected_eq_real_of_semantic
     spend1NullifierReal, spend1NullifierRealLC,
     StructuredLC.eval, StructuredLC.sumRuns,
     StructuredLC.sumResidual, zero_add, one_mul, add_zero]
-  have hreal : rho 332 = 0 := by
+  have hreal : rho {optional_dummy_wire} = 0 := by
     simpa [
       spend1IsDummy, spend1IsDummyLC,
       StructuredLC.eval, StructuredLC.sumRuns,
@@ -7471,7 +7630,7 @@ theorem optionalNullifierSelected_eq_synthetic_of_semantic
     spend1NullifierSynthetic, spend1NullifierSyntheticLC,
     StructuredLC.eval, StructuredLC.sumRuns,
     StructuredLC.sumResidual, zero_add, one_mul, add_zero]
-  have hdummy : rho 332 = 1 := by
+  have hdummy : rho {optional_dummy_wire} = 1 := by
     simpa [
       spend1IsDummy, spend1IsDummyLC,
       StructuredLC.eval, StructuredLC.sumRuns,
@@ -7496,7 +7655,7 @@ theorem optionalDummyAmountZero_of_semantic
       spend1NoteAmount, spend1NoteAmountLC,
       StructuredLC.eval, StructuredLC.sumRuns,
       StructuredLC.sumResidual] using amountZero
-  · have hdummy : rho 332 = 1 := by
+  · have hdummy : rho {optional_dummy_wire} = 1 := by
       simpa [
         spend1IsDummy, spend1IsDummyLC,
         StructuredLC.eval, StructuredLC.sumRuns,
@@ -7547,7 +7706,7 @@ theorem optionalRkCrossRatio_of_semantic
     optionalRkEquivalentAt3, optionalRkEquivalentAt5,
     optionalRkEquivalentAt6] at h
   rcases h.2 with disabled | equal
-  · have hselector : rho 332 = 0 := by
+  · have hselector : rho {optional_dummy_wire} = 0 := by
       simpa [
         spend1IsDummy, spend1IsDummyLC,
         StructuredLC.eval, StructuredLC.sumRuns,
@@ -7877,8 +8036,21 @@ def _validate_specification_theorems(
         raise ValueError("specification consequence theorem names collide")
 
 
-def _add_transfer_spend_specification_theorems(add) -> None:
+def _add_transfer_spend_specification_theorems(
+    add, plan: TransferRefinementPlan
+) -> None:
     """Append exact spend, output, and user-registry atoms."""
+
+    specs_by_label = {spec.label: spec for spec in TRANSFER_TRACE_SPECS}
+
+    def segment_spec(label: str) -> str:
+        return f"Seg{plan.segments[label]['index']}.contract.spec rho"
+
+    def statement_fact(label: str) -> str:
+        spec = specs_by_label[label]
+        segment = plan.segments[label]
+        field = f"{core.camel(spec.op)}Seg{segment['index']}"
+        return f"facts.statementBinding.{field}"
 
     add(
         "DUMMY-AMOUNT-ZERO",
@@ -7900,7 +8072,7 @@ def _add_transfer_spend_specification_theorems(add) -> None:
   have fact := relationOptionalSpend rho h
   unfold Protocol.Transfer.Concrete.optionalSpend at fact
   rw [selected] at fact
-  exact fact.2.2.1"""
+  exact fact.2.2.2.1"""
     add(
         "DUMMY-NULLIFIER-DOMAIN-BINDING",
         dummy_nullifier,
@@ -7922,19 +8094,19 @@ def _add_transfer_spend_specification_theorems(add) -> None:
           spend.authRandomizer.val < 2 ^ 251)""",
         """  have required := relationRequiredSpend rho h
   rcases required with
-    ⟨_, _, _, requiredBound, _, _, _, _, _⟩
+    ⟨_, _, requiredBound, _, _, _, _, _, _⟩
   refine ⟨requiredBound, ?_, ?_⟩
   intro spend
   intro selected
   have optional := relationOptionalSpend rho h
   unfold Protocol.Transfer.Concrete.optionalSpend at optional
   rw [selected] at optional
-  exact optional.2.2.2.1
+  exact optional.2.2.1
   intro spend selected
   have optional := relationOptionalSpend rho h
   unfold Protocol.Transfer.Concrete.optionalSpend at optional
   rw [selected] at optional
-  exact optional.2.1""",
+  exact optional.2.2.1""",
     )
     add(
         "NOTE-OUTPUT-ASSET-BINDING",
@@ -7942,18 +8114,21 @@ def _add_transfer_spend_specification_theorems(add) -> None:
       (action rho).change.note.assetId = (action rho).assetId""",
         """  exact
     ⟨(relationReceiverOutput rho h).1,
-      (relationChangeOutput rho h).2.2.1⟩""",
+      (relationChangeOutput rho h).2.1⟩""",
+    )
+    routing_parameters = (
+        "routing_precision_select",
+        "routing_parameters_hash",
+        "routing_parameters_bind",
     )
     add(
         "ROUTING-PARAMETERS",
-        """Seg72.contract.spec rho ∧
-      Seg73.contract.spec rho ∧
-      Seg74.contract.spec rho""",
-        """  have facts := (transfer_circuitFacts rho h).exact
+        " ∧\n      ".join(segment_spec(label) for label in routing_parameters),
+        f"""  have facts := transfer_circuitFacts rho h
   exact
-    ⟨facts.RoutingPrecisionSelectSeg72,
-      facts.RoutingParametersHashSeg73,
-      facts.RoutingParametersBindSeg74⟩""",
+    ⟨{statement_fact(routing_parameters[0])},
+      {statement_fact(routing_parameters[1])},
+      {statement_fact(routing_parameters[2])}⟩""",
     )
     add(
         "NOTE-OUTPUT-OWNER-BINDING",
@@ -7965,7 +8140,7 @@ def _add_transfer_spend_specification_theorems(add) -> None:
         """  exact
     ⟨(relationReceiverOutput rho h).2.2.1,
       (relationChangeOutput rho h).1,
-      (relationChangeOutput rho h).2.2.2⟩""",
+      (relationChangeOutput rho h).2.2⟩""",
     )
     add(
         "NOTE-SPEND-ASSET-BINDING",
@@ -7974,42 +8149,34 @@ def _add_transfer_spend_specification_theorems(add) -> None:
         (action rho).optional = .real spend →
           spend.note.assetId = (action rho).assetId""",
         """  rcases relationRequiredSpend rho h with
-    ⟨_, _, requiredAsset, _, _, _, _, _, _⟩
+    ⟨_, requiredAsset, _, _, _, _, _, _, _⟩
   refine ⟨requiredAsset, ?_⟩
   intro spend selected
   have optional := relationOptionalSpend rho h
   unfold Protocol.Transfer.Concrete.optionalSpend at optional
   rw [selected] at optional
-  exact optional.2.2.1""",
+  exact optional.2.1""",
+    )
+    routing_tag_labels = (
+        "routing_sender_route_word",
+        "routing_receiver_route_word",
+        "routing_permutation_hash",
+        "routing_permutation_compose",
+        "routing_tag0_public_range",
+        "routing_tag0_route_bits",
+        "routing_tag0_random_word",
+        "routing_tag0_compose",
+        "routing_tag1_public_range",
+        "routing_tag1_route_bits",
+        "routing_tag1_random_word",
+        "routing_tag1_compose",
     )
     add(
         "ROUTING-TAG-DERIVATION",
-        """Seg75.contract.spec rho ∧
-      Seg76.contract.spec rho ∧
-      Seg77.contract.spec rho ∧
-      Seg78.contract.spec rho ∧
-      Seg79.contract.spec rho ∧
-      Seg80.contract.spec rho ∧
-      Seg81.contract.spec rho ∧
-      Seg82.contract.spec rho ∧
-      Seg83.contract.spec rho ∧
-      Seg84.contract.spec rho ∧
-      Seg85.contract.spec rho ∧
-      Seg86.contract.spec rho""",
-        """  have facts := (transfer_circuitFacts rho h).exact
+        " ∧\n      ".join(segment_spec(label) for label in routing_tag_labels),
+        f"""  have facts := transfer_circuitFacts rho h
   exact
-    ⟨facts.RoutingRouteWordSeg75,
-      facts.RoutingRouteWordSeg76,
-      facts.RoutingPermutationHashSeg77,
-      facts.RoutingPermutationComposeSeg78,
-      facts.RoutingTagPublicRangeSeg79,
-      facts.RoutingTagRouteBitsSeg80,
-      facts.RoutingTagRandomWordSeg81,
-      facts.RoutingTagComposeSeg82,
-      facts.RoutingTagPublicRangeSeg83,
-      facts.RoutingTagRouteBitsSeg84,
-      facts.RoutingTagRandomWordSeg85,
-      facts.RoutingTagComposeSeg86⟩""",
+    ⟨{",\n      ".join(statement_fact(label) for label in routing_tag_labels)}⟩""",
     )
     add(
         "NOTE-SPEND-COMMITMENT",
@@ -8019,13 +8186,13 @@ def _add_transfer_spend_specification_theorems(add) -> None:
         (action rho).optional = .real spend →
           Protocol.Transfer.Concrete.noteCommitment spend.note""",
         """  rcases relationRequiredSpend rho h with
-    ⟨_, _, _, _, requiredCommitment, _, _, _, _⟩
+    ⟨_, _, _, requiredCommitment, _, _, _, _, _⟩
   refine ⟨requiredCommitment, ?_⟩
   intro spend selected
   have optional := relationOptionalSpend rho h
   unfold Protocol.Transfer.Concrete.optionalSpend at optional
   rw [selected] at optional
-  exact optional.2.2.2.2.1""",
+  exact optional.2.2.2.1""",
     )
     add(
         "NOTE-SPEND-OWNER-BINDING",
@@ -8423,7 +8590,7 @@ def render_transfer_specification_consequences(
 ) -> str:
     """Render exact, predicate-specific Transfer consequences."""
 
-    _validate_transfer_refinement_plan(ir, constraint_manifest)
+    plan = _validate_transfer_refinement_plan(ir, constraint_manifest)
     _validate_non_identity_seams(ir, constraint_manifest)
     theorems: dict[str, str] = {}
 
@@ -8540,7 +8707,7 @@ def render_transfer_specification_consequences(
     add(
         "CIR-SHAPE-FIXED",
         """(Protocol.Transfer.Concrete.statementFields
-      (action rho)).length = 44""",
+      (action rho)).length = 47""",
         """  exact Protocol.Transfer.Concrete.statementFields_length
     (action rho)""",
     )
@@ -8663,7 +8830,7 @@ def render_transfer_specification_consequences(
     # The remaining declarations are appended below in semantic groups.  This
     # split keeps the exact predicates readable while retaining one fail-closed
     # generated module.
-    _add_transfer_spend_specification_theorems(add)
+    _add_transfer_spend_specification_theorems(add, plan)
     _add_transfer_compliance_specification_theorems(add)
     _validate_specification_theorems(
         theorems, TRANSFER_SPECIFICATION_PREDICATES
@@ -11248,14 +11415,14 @@ theorem {stable}Encryption_of_semantic
 
 
 def _render_transfer_statement_field_seams() -> tuple[str, str, str]:
-    """Render exact v5 input LCs and the action's ordered field spine."""
+    """Render exact input LCs and the action's ordered field spine."""
 
     declarations = []
     rewrites = []
     action_fields = []
     source_fields = []
     for index, locals_ in enumerate(
-        TRANSFER_STATEMENT_V5_FIELD_LOCALS
+        TRANSFER_STATEMENT_FIELD_LOCALS
     ):
         stable = f"statementField{index:03d}"
         if len(locals_) == 1:
@@ -11310,11 +11477,25 @@ private theorem optionalRkEncoding_of_action (rho : Nat → DeployedF) :
       Protocol.Transfer.OptionalSpend.rkEncoding, h
     ]
 
+private theorem optionalHistoryRequired_of_action (rho : Nat → DeployedF) :
+    (C.action rho).optional.historyRequired =
+      spend1HistoryRequired rho := by
+  by_cases h : spend1IsDummy rho = 1
+  · simp [
+      C.action, C.optional, C.optionalDummy, C.optionalReal,
+      Protocol.Transfer.OptionalSpend.historyRequired, h
+    ]
+  · simp [
+      C.action, C.optional, C.optionalDummy, C.optionalReal,
+      Protocol.Transfer.OptionalSpend.historyRequired, h
+    ]
+
 private theorem statementFields_of_action (rho : Nat → DeployedF) :
     Protocol.Transfer.Concrete.statementFields (C.action rho) =
       [{fields}] := by
   unfold Protocol.Transfer.Concrete.statementFields
-  rw [optionalNullifier_of_action, optionalRkEncoding_of_action]
+  rw [optionalNullifier_of_action, optionalRkEncoding_of_action,
+    optionalHistoryRequired_of_action]
   change [{sources}] =
     [{fields}]
   rfl"""
@@ -11436,10 +11617,10 @@ def render_transfer_action_seams(
         )
         path_leaf_accessors = ", ".join(
             f"{lower}CompliancePathAt{local}"
-            for local in range(39, 47)
+            for local in range(39, 46)
         )
         path_output_accessors = ", ".join(
-            f"{lower}CompliancePathAt{5829 + 5 * index}"
+            f"{lower}CompliancePathAt{5828 + 5 * index}"
             for index in range(5)
         )
         assert_accessors = ", ".join(
@@ -11561,9 +11742,8 @@ theorem {lower}CompliancePathLeaf_eq
     zero_add, one_mul, add_zero
   ]
   rw [
-    assetPathCoeff2, assetPathCoeff3, assetPathCoeff4,
-    assetPathCoeff6, assetPathCoeff7,
-    assetPathCoeff8, assetPathCoeff9
+    assetPathCoeff1, assetPathCoeff2, assetPathCoeff3,
+    assetPathCoeff4, assetPathCoeff6, assetPathCoeff7
   ]
   ring
 
@@ -12993,6 +13173,7 @@ def render_transfer_transcript_seams(
     detection_blocks = tuple(
         f"{detection}Poseidon.Block{index}" for index in range(5)
     )
+    detection_ciphertext_locals = TRANSFER_DETECTION_CIPHERTEXT_LOCALS
     epk_and_salt_seams = _render_transfer_epk_and_salt_seams(plan)
     shared_bodies = _render_transfer_shared_transcript_bodies(plan)
     shared_protocol_seams = _render_transfer_shared_protocol_seams(plan)
@@ -13038,7 +13219,7 @@ open Protocol
 open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 attribute [-instance] ZMod.instField
-local instance choiceFreeTransferTranscriptCommRing : CommRing DeployedF :=
+private local instance choiceFreeTransferTranscriptCommRing : CommRing DeployedF :=
   ZMod.commRing _
 
 private theorem negOne :
@@ -13221,12 +13402,15 @@ private theorem detectionPlaintext2_eq_action (rho : Nat → DeployedF) :
     {detection_slot_bits}.plaintext2
         (DetectionEncryptionValuation rho) =
       (C.action rho).senderCompliance.slotId +
-        (C.action rho).transcript.isFlagged * (2 ^ 32 : DeployedF) := by
+        (C.action rho).transcript.isFlagged * (2 ^ 32 : DeployedF) +
+        (C.action rho).transcript.routingRolesSwapped *
+          (2 ^ 33 : DeployedF) := by
   simp [
     {detection_slot_bits}.plaintext2,
     C.action, C.senderCompliance, C.transcript,
     senderSlotId, senderSlotIdLC,
     isFlagged, isFlaggedLC,
+    C.routingRolesSwapped, detectionEncryptionAt2112,
     StructuredLC.eval, StructuredLC.sumRuns,
     StructuredLC.sumResidual, StrideRun.eval
   ]
@@ -13245,7 +13429,7 @@ private theorem detectionPlaintext3_eq_action (rho : Nat → DeployedF) :
   ]
 
 private theorem detectionCiphertext0_eq_action (rho : Nat → DeployedF) :
-    DetectionEncryptionValuation rho 2107 =
+    DetectionEncryptionValuation rho {detection_ciphertext_locals[0]} =
       (C.action rho).transcript.detectionCiphertext 0 := by
   simp [
     C.action, C.transcript,
@@ -13258,7 +13442,7 @@ private theorem detectionCiphertext0_eq_action (rho : Nat → DeployedF) :
   ] <;> rfl
 
 private theorem detectionCiphertext1_eq_action (rho : Nat → DeployedF) :
-    DetectionEncryptionValuation rho 2111 =
+    DetectionEncryptionValuation rho {detection_ciphertext_locals[1]} =
       (C.action rho).transcript.detectionCiphertext 1 := by
   simp [
     C.action, C.transcript,
@@ -13271,7 +13455,7 @@ private theorem detectionCiphertext1_eq_action (rho : Nat → DeployedF) :
   ] <;> rfl
 
 private theorem detectionCiphertext2_eq_action (rho : Nat → DeployedF) :
-    DetectionEncryptionValuation rho 2113 =
+    DetectionEncryptionValuation rho {detection_ciphertext_locals[2]} =
       (C.action rho).transcript.detectionCiphertext 2 := by
   simp [
     C.action, C.transcript,
@@ -13284,7 +13468,7 @@ private theorem detectionCiphertext2_eq_action (rho : Nat → DeployedF) :
   ] <;> rfl
 
 private theorem detectionCiphertext3_eq_action (rho : Nat → DeployedF) :
-    DetectionEncryptionValuation rho 2114 =
+    DetectionEncryptionValuation rho {detection_ciphertext_locals[3]} =
       (C.action rho).transcript.detectionCiphertext 3 := by
   simp [
     C.action, C.transcript,
@@ -13381,7 +13565,7 @@ theorem detectionBody_of_semantic
     · simpa only [detectionReceiverSlot_eq_action] using hbounds.2
     · calc
         (C.action rho).transcript.detectionCiphertext 0 =
-            DetectionEncryptionValuation rho 2107 :=
+            DetectionEncryptionValuation rho {detection_ciphertext_locals[0]} :=
           (detectionCiphertext0_eq_action rho).symm
         _ = (show DeployedF from
               {detection_slot_bits}.plaintext0
@@ -13404,7 +13588,7 @@ theorem detectionBody_of_semantic
           rfl
     · calc
         (C.action rho).transcript.detectionCiphertext 1 =
-            DetectionEncryptionValuation rho 2111 :=
+            DetectionEncryptionValuation rho {detection_ciphertext_locals[1]} :=
           (detectionCiphertext1_eq_action rho).symm
         _ = (show DeployedF from
               {detection_slot_bits}.plaintext1
@@ -13427,7 +13611,7 @@ theorem detectionBody_of_semantic
           rfl
     · calc
         (C.action rho).transcript.detectionCiphertext 2 =
-            DetectionEncryptionValuation rho 2113 :=
+            DetectionEncryptionValuation rho {detection_ciphertext_locals[2]} :=
           (detectionCiphertext2_eq_action rho).symm
         _ = (show DeployedF from
               {detection_slot_bits}.plaintext2
@@ -13437,6 +13621,8 @@ theorem detectionBody_of_semantic
                 (DetectionEncryptionValuation rho))[1]) := hcipher2.symm
         _ = (C.action rho).senderCompliance.slotId +
               (C.action rho).transcript.isFlagged * (2 ^ 32 : DeployedF) +
+              (C.action rho).transcript.routingRolesSwapped *
+                (2 ^ 33 : DeployedF) +
               (show DeployedF from
                 Protocol.Transfer.Concrete.streamBlock
                   (Poseidon377.hash2
@@ -13451,7 +13637,7 @@ theorem detectionBody_of_semantic
           rfl
     · calc
         (C.action rho).transcript.detectionCiphertext 3 =
-            DetectionEncryptionValuation rho 2114 :=
+            DetectionEncryptionValuation rho {detection_ciphertext_locals[3]} :=
           (detectionCiphertext3_eq_action rho).symm
         _ = (show DeployedF from
               {detection_slot_bits}.plaintext3
@@ -13647,7 +13833,7 @@ theorem statementPublicHash_of_semantic
   ring_nf at h ⊢
   exact h
 
-/-- The provider's eight blocks are the independent 44-field protocol sponge. -/
+/-- The provider's eight blocks are the independent 47-field protocol sponge. -/
 theorem computedStatementHash_eq_protocol
     (rho : Nat → DeployedF) :
     computedStatementHash rho =
@@ -16117,7 +16303,7 @@ end Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal
 def render_withdrawal_statement_seams(
     ir: dict, constraint_manifest: dict
 ) -> str:
-    """Render the exact three-segment statement sponge and public-input join."""
+    """Render the exact four-segment statement sponge and public-input join."""
 
     plan = _validate_withdrawal_refinement_plan(
         ir, constraint_manifest
@@ -16125,18 +16311,22 @@ def render_withdrawal_statement_seams(
     first_segment = plan.segments["statement_block0"]
     second_segment = plan.segments["statement_block1"]
     third_segment = plan.segments["statement_block2"]
+    fourth_segment = plan.segments["statement_block3"]
     asserted_segment = plan.segments["statement_assert"]
     first_index = first_segment["index"]
     second_index = second_segment["index"]
     third_index = third_segment["index"]
+    fourth_index = fourth_segment["index"]
     asserted_index = asserted_segment["index"]
     first = core.template_name(first_segment["proof_template_id"])
     second = core.template_name(second_segment["proof_template_id"])
     third = core.template_name(third_segment["proof_template_id"])
+    fourth = core.template_name(fourth_segment["proof_template_id"])
     asserted = core.template_name(asserted_segment["proof_template_id"])
     first_sem = f"Deployed.Templates.Semantics.{first}"
     second_sem = f"Deployed.Templates.Semantics.{second}"
     third_sem = f"Deployed.Templates.Semantics.{third}"
+    fourth_sem = f"Deployed.Templates.Semantics.{fourth}"
     asserted_sem = f"Deployed.Templates.Semantics.{asserted}"
     bindings = plan.bindings
     first_state = _binding_lc_wires(
@@ -16148,41 +16338,46 @@ def render_withdrawal_statement_seams(
     third_state = _binding_lc_wires(
         bindings, "statement.hash.block2", STATEMENT_STATE_COEFFICIENTS
     )
+    fourth_state = _binding_lc_wires(
+        bindings, "statement.hash.block3", STATEMENT_STATE_COEFFICIENTS
+    )
     first_field_locals = (
         (1,),
         (7,),
         (13, 14),
         (20,),
-        (26, 27),
-        (33,),
-        (39, 40),
+        (26,),
+        (32, 33),
+        (39,),
     )
-    first_input_seats = []
-    for field, locals_ in enumerate(first_field_locals):
-        wires = _expression_term_wires(
-            _binding_expression(
-                bindings, f"statement.field.{field:03d}", 1
-            )[0],
-            f"statement.field.{field:03d}",
-        )
-        if len(wires) != len(locals_):
-            raise ValueError(
-                "Withdrawal statement block0 input LC geometry drifted"
+    second_field_locals = ((14,), (20, 21), (27,), (33,), (39,), (45,))
+    third_field_locals = ((14,), (20,), (26,), (32,), (38,), (44,))
+    fourth_field_locals = ((14,), (20,))
+
+    def statement_field_seats(
+        start: int, locals_by_field: tuple[tuple[int, ...], ...]
+    ) -> list[tuple[int, int]]:
+        seats: list[tuple[int, int]] = []
+        for offset, locals_ in enumerate(locals_by_field):
+            field = start + offset
+            wires = _expression_term_wires(
+                _binding_expression(
+                    bindings, f"statement.field.{field:03d}", 1
+                )[0],
+                f"statement.field.{field:03d}",
             )
-        first_input_seats.extend(zip(locals_, wires, strict=True))
-    later_field_locals = (14, 20, 26, 32, 38, 44)
-    second_field_wires = tuple(
-        _single_binding_wire(
-            bindings, f"statement.field.{field:03d}"
-        )
-        for field in range(7, 13)
-    )
-    third_field_wires = tuple(
-        _single_binding_wire(
-            bindings, f"statement.field.{field:03d}"
-        )
-        for field in range(13, 18)
-    )
+            if len(wires) != len(locals_):
+                raise ValueError(
+                    "Withdrawal statement input LC geometry drifted at "
+                    f"field {field}"
+                )
+            seats.extend(zip(locals_, wires, strict=True))
+        return seats
+
+    first_input_seats = statement_field_seats(0, first_field_locals)
+    second_field_seats = statement_field_seats(7, second_field_locals)
+    third_field_seats = statement_field_seats(13, third_field_locals)
+    fourth_field_seats = statement_field_seats(19, fourth_field_locals)
     claimed_wire = _single_binding_wire(
         bindings, "claimed.statement_hash"
     )
@@ -16190,7 +16385,7 @@ def render_withdrawal_statement_seams(
         first_index,
         list(
             zip(
-                (445, 450, 455, 460, 465, 470, 475, 480),
+                (444, 449, 454, 459, 464, 469, 474, 479),
                 first_state,
                 strict=True,
             )
@@ -16206,7 +16401,7 @@ def render_withdrawal_statement_seams(
         second_index,
         list(
             zip(
-                (449, 454, 459, 464, 469, 474, 479, 484),
+                (450, 455, 460, 465, 470, 475, 480, 485),
                 second_state,
                 strict=True,
             )
@@ -16222,7 +16417,7 @@ def render_withdrawal_statement_seams(
         third_index,
         list(
             zip(
-                (443, 448, 453, 458, 463, 468, 473, 478),
+                (449, 454, 459, 464, 469, 474, 479, 484),
                 third_state,
                 strict=True,
             )
@@ -16232,20 +16427,23 @@ def render_withdrawal_statement_seams(
     first_input_haves = _seat_haves(
         first_index, first_input_seats, "hi"
     )
-    second_field_haves = _seat_haves(
-        second_index,
-        list(zip(later_field_locals, second_field_wires, strict=True)),
-        "hf",
+    fourth_input_haves = _seat_haves(
+        fourth_index,
+        list(zip(range(1, 9), third_state, strict=True)),
+        "hi",
     )
-    third_field_haves = _seat_haves(
-        third_index,
-        list(zip((14, 20, 26, 32, 38), third_field_wires, strict=True)),
-        "hf",
+    fourth_output_haves = _seat_haves(
+        fourth_index,
+        list(zip((425, 430, 435, 440, 445, 450, 455, 460), fourth_state, strict=True)),
+        "hw",
     )
+    second_field_haves = _seat_haves(second_index, second_field_seats, "hf")
+    third_field_haves = _seat_haves(third_index, third_field_seats, "hf")
+    fourth_field_haves = _seat_haves(fourth_index, fourth_field_seats, "hf")
     asserted_haves = _seat_haves(
         asserted_index,
         [
-            *zip(range(1, 9), third_state, strict=True),
+            *zip(range(1, 9), fourth_state, strict=True),
             (9, claimed_wire),
         ],
         "ha",
@@ -16255,7 +16453,7 @@ def render_withdrawal_statement_seams(
         {
             **dict(first_input_seats),
             **dict(zip(
-                (445, 450, 455, 460, 465, 470, 475, 480),
+                (444, 449, 454, 459, 464, 469, 474, 479),
                 first_state,
                 strict=True,
             )),
@@ -16266,11 +16464,9 @@ def render_withdrawal_statement_seams(
         second_segment,
         {
             **dict(zip(range(1, 9), first_state, strict=True)),
+            **dict(second_field_seats),
             **dict(zip(
-                later_field_locals, second_field_wires, strict=True
-            )),
-            **dict(zip(
-                (449, 454, 459, 464, 469, 474, 479, 484),
+                (450, 455, 460, 465, 470, 475, 480, 485),
                 second_state,
                 strict=True,
             )),
@@ -16281,11 +16477,9 @@ def render_withdrawal_statement_seams(
         third_segment,
         {
             **dict(zip(range(1, 9), second_state, strict=True)),
+            **dict(third_field_seats),
             **dict(zip(
-                (14, 20, 26, 32, 38), third_field_wires, strict=True
-            )),
-            **dict(zip(
-                (443, 448, 453, 458, 463, 468, 473, 478),
+                (449, 454, 459, 464, 469, 474, 479, 484),
                 third_state,
                 strict=True,
             )),
@@ -16293,9 +16487,22 @@ def render_withdrawal_statement_seams(
         "Withdrawal statement block2",
     )
     _require_seats(
-        asserted_segment,
+        fourth_segment,
         {
             **dict(zip(range(1, 9), third_state, strict=True)),
+            **dict(fourth_field_seats),
+            **dict(zip(
+                (425, 430, 435, 440, 445, 450, 455, 460),
+                fourth_state,
+                strict=True,
+            )),
+        },
+        "Withdrawal statement block3",
+    )
+    _require_seats(
+        asserted_segment,
+        {
+            **dict(zip(range(1, 9), fourth_state, strict=True)),
             9: claimed_wire,
         },
         "Withdrawal statement assertion",
@@ -16308,6 +16515,7 @@ def render_withdrawal_statement_seams(
                 first_segment,
                 second_segment,
                 third_segment,
+                fourth_segment,
                 asserted_segment,
             )
         )
@@ -16320,7 +16528,7 @@ import Mathlib.Tactic.Ring
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 8000000
 
-/-! Exact three-block statement sponge and public-input join for Withdrawal.
+/-! Exact four-block statement sponge and public-input join for Withdrawal.
 GENERATED by {GENERATOR} — do not edit by hand. -/
 
 namespace Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal
@@ -16352,12 +16560,17 @@ private theorem thirdDomain :
       Protocol.ShieldedIcs20Withdrawal.Concrete.statementDomain := by
   decide +kernel
 
-private theorem thirdPad0 :
+private theorem fourthDomain :
+    {fourth_sem}.Trace.domainLit =
+      Protocol.ShieldedIcs20Withdrawal.Concrete.statementDomain := by
+  decide +kernel
+
+private theorem fourthPad0 :
     ({WITHDRAWAL_STATEMENT_PAD0} : SemanticF) =
       Protocol.ShieldedIcs20Withdrawal.Concrete.statementPad0 := by
   decide +kernel
 
-private theorem thirdPad1 :
+private theorem fourthPad1 :
     ({WITHDRAWAL_STATEMENT_PAD1} : SemanticF) =
       Protocol.ShieldedIcs20Withdrawal.Concrete.statementPad1 := by
   decide +kernel
@@ -16370,9 +16583,9 @@ theorem statementBlock0_of_exact
       Poseidon7Bridge.permSpec7
         Protocol.ShieldedIcs20Withdrawal.Concrete.statementDomain
         (anchor rho) (output0NoteCommitmentClaimed rho)
-        (balanceCommitmentFq rho)
+        (balanceCommitmentFq rho) (recentPositionFloor rho)
         (spend0NullifierClaimed rho) (spend0RkCompressed rho)
-        (spend1NullifierClaimed rho) (spend1RkCompressed rho) := by
+        (spend0HistoryRequired rho) := by
   have h := facts.statementBinding.StatementHashSeg{first_index}
   change {first_sem}.spec (Seg{first_index}.localRho rho) at h
   unfold {first_sem}.spec at h
@@ -16388,7 +16601,7 @@ theorem statementBlock0_of_exact
         {first_sem}.Trace.flatState0_38Lane1,
         StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
         Seg{first_index}.localRho, Deployed.Templates.seated,
-        hw445, hw450, hw455, hw460, hw465, hw470, hw475, hw480
+        hw444, hw449, hw454, hw459, hw464, hw469, hw474, hw479
       ]
       ring
     _ = {first_sem}.Trace.hash0
@@ -16396,22 +16609,22 @@ theorem statementBlock0_of_exact
     _ = Poseidon7Bridge.permSpec7
           Protocol.ShieldedIcs20Withdrawal.Concrete.statementDomain
           (anchor rho) (output0NoteCommitmentClaimed rho)
-          (balanceCommitmentFq rho)
+          (balanceCommitmentFq rho) (recentPositionFloor rho)
           (spend0NullifierClaimed rho) (spend0RkCompressed rho)
-          (spend1NullifierClaimed rho) (spend1RkCompressed rho) := by
+          (spend0HistoryRequired rho) := by
       unfold {first_sem}.Trace.hash0
       rw [firstDomain]
       simp only [
         anchor, anchorLC,
         output0NoteCommitmentClaimed, output0NoteCommitmentClaimedLC,
         balanceCommitmentFq, balanceCommitmentFqLC,
+        recentPositionFloor, recentPositionFloorLC,
         spend0NullifierClaimed, spend0NullifierClaimedLC,
         spend0RkCompressed, spend0RkCompressedLC,
-        spend1NullifierClaimed, spend1NullifierClaimedLC,
-        spend1RkCompressed, spend1RkCompressedLC,
+        spend0HistoryRequired, spend0HistoryRequiredLC,
         StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
         Seg{first_index}.localRho, Deployed.Templates.seated,
-        hi1, hi7, hi13, hi14, hi20, hi26, hi27, hi33, hi39, hi40,
+        hi1, hi7, hi13, hi14, hi20, hi26, hi32, hi33, hi39,
         negOne, zero_add, one_mul, add_zero
       ]
 
@@ -16423,9 +16636,9 @@ theorem statementBlock1_of_exact
       Poseidon7Bridge.permSpec7
         Protocol.ShieldedIcs20Withdrawal.Concrete.statementDomain
         (statementHashBlock0 rho)
-        (assetAnchor rho) (complianceAnchor rho) (targetTimestamp rho)
-        (outboundAssetId rho) (outboundAmount rho)
-        (withdrawalEffectHashLimbs0 rho) := by
+        (spend1NullifierClaimed rho) (spend1RkCompressed rho)
+        (spend1HistoryRequired rho)
+        (assetAnchor rho) (complianceAnchor rho) (targetTimestamp rho) := by
   have h := facts.statementBinding.StatementHashSeg{second_index}
   change {second_sem}.spec (Seg{second_index}.localRho rho) at h
   unfold {second_sem}.spec at h
@@ -16442,7 +16655,7 @@ theorem statementBlock1_of_exact
         {second_sem}.Trace.flatState0_38Lane1,
         StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
         Seg{second_index}.localRho, Deployed.Templates.seated,
-        hw449, hw454, hw459, hw464, hw469, hw474, hw479, hw484
+        hw450, hw455, hw460, hw465, hw470, hw475, hw480, hw485
       ]
       ring
     _ = {second_sem}.Trace.hash0
@@ -16450,28 +16663,28 @@ theorem statementBlock1_of_exact
     _ = Poseidon7Bridge.permSpec7
           Protocol.ShieldedIcs20Withdrawal.Concrete.statementDomain
           (statementHashBlock0 rho)
-          (assetAnchor rho) (complianceAnchor rho) (targetTimestamp rho)
-          (outboundAssetId rho) (outboundAmount rho)
-          (withdrawalEffectHashLimbs0 rho) := by
+          (spend1NullifierClaimed rho) (spend1RkCompressed rho)
+          (spend1HistoryRequired rho)
+          (assetAnchor rho) (complianceAnchor rho) (targetTimestamp rho) := by
       unfold {second_sem}.Trace.hash0
       rw [secondDomain]
       simp only [
         statementHashBlock0, statementHashBlock0LC,
+        spend1NullifierClaimed, spend1NullifierClaimedLC,
+        spend1RkCompressed, spend1RkCompressedLC,
+        spend1HistoryRequired, spend1HistoryRequiredLC,
         assetAnchor, assetAnchorLC,
         complianceAnchor, complianceAnchorLC,
         targetTimestamp, targetTimestampLC,
-        outboundAssetId, outboundAssetIdLC,
-        outboundAmount, outboundAmountLC,
-        withdrawalEffectHashLimbs0, withdrawalEffectHashLimbs0LC,
         StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
         Seg{second_index}.localRho, Deployed.Templates.seated,
         hi1, hi2, hi3, hi4, hi5, hi6, hi7, hi8,
-        hf14, hf20, hf26, hf32, hf38, hf44,
+        hf14, hf20, hf21, hf27, hf33, hf39, hf45,
         zero_add, one_mul, add_zero
       ]
       congr 1 <;> ring
 
-/-- The third exact segment chains block one, fields 13–17, and fixed padding. -/
+/-- The third exact segment chains block one and fields 13–18. -/
 theorem statementBlock2_of_exact
     (rho : Nat → SemanticF)
     (facts : ShieldedIcs20WithdrawalCircuitFacts rho) :
@@ -16479,12 +16692,12 @@ theorem statementBlock2_of_exact
       Poseidon7Bridge.permSpec7
         Protocol.ShieldedIcs20Withdrawal.Concrete.statementDomain
         (statementHashBlock1 rho)
+        (outboundAssetId rho)
+        (outboundAmount rho)
+        (withdrawalEffectHashLimbs0 rho)
         (withdrawalEffectHashLimbs1 rho)
         (withdrawalEffectHashLimbs2 rho)
-        (withdrawalEffectHashLimbs3 rho)
-        (routingTag rho)
-        (routingParameterSetId rho)
-        Protocol.ShieldedIcs20Withdrawal.Concrete.statementPad1 := by
+        (withdrawalEffectHashLimbs3 rho) := by
   have h := facts.statementBinding.StatementHashSeg{third_index}
   change {third_sem}.spec (Seg{third_index}.localRho rho) at h
   unfold {third_sem}.spec at h
@@ -16501,7 +16714,7 @@ theorem statementBlock2_of_exact
         {third_sem}.Trace.flatState0_38Lane1,
         StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
         Seg{third_index}.localRho, Deployed.Templates.seated,
-        hw443, hw448, hw453, hw458, hw463, hw468, hw473, hw478
+        hw449, hw454, hw459, hw464, hw469, hw474, hw479, hw484
       ]
       ring
     _ = {third_sem}.Trace.hash0
@@ -16509,25 +16722,82 @@ theorem statementBlock2_of_exact
     _ = Poseidon7Bridge.permSpec7
           Protocol.ShieldedIcs20Withdrawal.Concrete.statementDomain
           (statementHashBlock1 rho)
+          (outboundAssetId rho)
+          (outboundAmount rho)
+          (withdrawalEffectHashLimbs0 rho)
           (withdrawalEffectHashLimbs1 rho)
           (withdrawalEffectHashLimbs2 rho)
-          (withdrawalEffectHashLimbs3 rho)
-          (routingTag rho)
-          (routingParameterSetId rho)
-          Protocol.ShieldedIcs20Withdrawal.Concrete.statementPad1 := by
+          (withdrawalEffectHashLimbs3 rho) := by
       unfold {third_sem}.Trace.hash0
-      simp only [thirdDomain, thirdPad0, thirdPad1]
+      rw [thirdDomain]
       simp only [
         statementHashBlock1, statementHashBlock1LC,
+        outboundAssetId, outboundAssetIdLC,
+        outboundAmount, outboundAmountLC,
+        withdrawalEffectHashLimbs0, withdrawalEffectHashLimbs0LC,
         withdrawalEffectHashLimbs1, withdrawalEffectHashLimbs1LC,
         withdrawalEffectHashLimbs2, withdrawalEffectHashLimbs2LC,
         withdrawalEffectHashLimbs3, withdrawalEffectHashLimbs3LC,
-        routingTag, routingTagLC,
-        routingParameterSetId, routingParameterSetIdLC,
         StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
         Seg{third_index}.localRho, Deployed.Templates.seated,
         hi1, hi2, hi3, hi4, hi5, hi6, hi7, hi8,
-        hf14, hf20, hf26, hf32, hf38,
+        hf14, hf20, hf26, hf32, hf38, hf44,
+        zero_add, one_mul, add_zero
+      ]
+      congr 1 <;> ring
+
+/-- The fourth exact segment chains block two, routing fields, and padding. -/
+theorem statementBlock3_of_exact
+    (rho : Nat → SemanticF)
+    (facts : ShieldedIcs20WithdrawalCircuitFacts rho) :
+    statementHashBlock3 rho =
+      Poseidon7Bridge.permSpec7
+        Protocol.ShieldedIcs20Withdrawal.Concrete.statementDomain
+        (statementHashBlock2 rho)
+        (routingTag rho) (routingParameterSetId rho)
+        Protocol.ShieldedIcs20Withdrawal.Concrete.statementPad0
+        Protocol.ShieldedIcs20Withdrawal.Concrete.statementPad1
+        Protocol.ShieldedIcs20Withdrawal.Concrete.statementPad0
+        Protocol.ShieldedIcs20Withdrawal.Concrete.statementPad1 := by
+  have h := facts.statementBinding.StatementHashSeg{fourth_index}
+  change {fourth_sem}.spec (Seg{fourth_index}.localRho rho) at h
+  unfold {fourth_sem}.spec at h
+{fourth_output_haves}
+{fourth_input_haves}
+{fourth_field_haves}
+  calc
+    statementHashBlock3 rho =
+        ({fourth_sem}.Trace.rawState0_38
+          (Seg{fourth_index}.localRho rho))[1] := by
+      simp [
+        statementHashBlock3, statementHashBlock3LC,
+        {fourth_sem}.Trace.rawState0_38,
+        {fourth_sem}.Trace.flatState0_38Lane1,
+        StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
+        Seg{fourth_index}.localRho, Deployed.Templates.seated,
+        hw425, hw430, hw435, hw440, hw445, hw450, hw455, hw460
+      ]
+      ring
+    _ = {fourth_sem}.Trace.hash0
+          (Seg{fourth_index}.localRho rho) := h
+    _ = Poseidon7Bridge.permSpec7
+          Protocol.ShieldedIcs20Withdrawal.Concrete.statementDomain
+          (statementHashBlock2 rho)
+          (routingTag rho) (routingParameterSetId rho)
+          Protocol.ShieldedIcs20Withdrawal.Concrete.statementPad0
+          Protocol.ShieldedIcs20Withdrawal.Concrete.statementPad1
+          Protocol.ShieldedIcs20Withdrawal.Concrete.statementPad0
+          Protocol.ShieldedIcs20Withdrawal.Concrete.statementPad1 := by
+      unfold {fourth_sem}.Trace.hash0
+      simp only [fourthDomain, fourthPad0, fourthPad1]
+      simp only [
+        statementHashBlock2, statementHashBlock2LC,
+        routingTag, routingTagLC,
+        routingParameterSetId, routingParameterSetIdLC,
+        StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
+        Seg{fourth_index}.localRho, Deployed.Templates.seated,
+        hi1, hi2, hi3, hi4, hi5, hi6, hi7, hi8,
+        hf14, hf20,
         zero_add, one_mul, add_zero
       ]
       congr 1 <;> ring
@@ -16552,7 +16822,7 @@ theorem statementPublicHash_of_exact
   ring_nf at h ⊢
   exact h
 
-/-- The exact three-block transcript is the independent protocol statement. -/
+/-- The exact four-block transcript is the independent protocol statement. -/
 theorem statementHash_of_exact
     (rho : Nat → SemanticF)
     (facts : ShieldedIcs20WithdrawalCircuitFacts rho) :
@@ -16564,10 +16834,13 @@ theorem statementHash_of_exact
         [anchor rho,
          output0NoteCommitmentClaimed rho,
          balanceCommitmentFq rho,
+         recentPositionFloor rho,
          spend0NullifierClaimed rho,
          spend0RkCompressed rho,
+         spend0HistoryRequired rho,
          spend1NullifierClaimed rho,
          spend1RkCompressed rho,
+         spend1HistoryRequired rho,
          assetAnchor rho,
          complianceAnchor rho,
          targetTimestamp rho,
@@ -16586,32 +16859,16 @@ theorem statementHash_of_exact
   calc
     claimedStatementHash rho = statementHash rho :=
       statementPublicHash_of_exact rho facts
-    _ = statementHashBlock2 rho := by rfl
+    _ = statementHashBlock3 rho := by rfl
     _ = Poseidon7Bridge.permSpec7
           Protocol.ShieldedIcs20Withdrawal.Concrete.statementDomain
-          (statementHashBlock1 rho)
-          (withdrawalEffectHashLimbs1 rho)
-          (withdrawalEffectHashLimbs2 rho)
-          (withdrawalEffectHashLimbs3 rho)
-          (routingTag rho)
-          (routingParameterSetId rho)
+          (statementHashBlock2 rho)
+          (routingTag rho) (routingParameterSetId rho)
+          Protocol.ShieldedIcs20Withdrawal.Concrete.statementPad0
+          Protocol.ShieldedIcs20Withdrawal.Concrete.statementPad1
+          Protocol.ShieldedIcs20Withdrawal.Concrete.statementPad0
           Protocol.ShieldedIcs20Withdrawal.Concrete.statementPad1 :=
-      statementBlock2_of_exact rho facts
-    _ = Poseidon7Bridge.permSpec7
-          Protocol.ShieldedIcs20Withdrawal.Concrete.statementDomain
-          (Poseidon7Bridge.permSpec7
-            Protocol.ShieldedIcs20Withdrawal.Concrete.statementDomain
-            (statementHashBlock0 rho)
-            (assetAnchor rho) (complianceAnchor rho) (targetTimestamp rho)
-            (outboundAssetId rho) (outboundAmount rho)
-            (withdrawalEffectHashLimbs0 rho))
-          (withdrawalEffectHashLimbs1 rho)
-          (withdrawalEffectHashLimbs2 rho)
-          (withdrawalEffectHashLimbs3 rho)
-          (routingTag rho)
-          (routingParameterSetId rho)
-          Protocol.ShieldedIcs20Withdrawal.Concrete.statementPad1 := by
-      rw [statementBlock1_of_exact rho facts]
+      statementBlock3_of_exact rho facts
     _ = Protocol.Common.statementHash
           Protocol.ShieldedIcs20Withdrawal.Concrete.statementDomain
           Protocol.ShieldedIcs20Withdrawal.Concrete.statementPad0
@@ -16619,10 +16876,13 @@ theorem statementHash_of_exact
           [anchor rho,
            output0NoteCommitmentClaimed rho,
            balanceCommitmentFq rho,
+           recentPositionFloor rho,
            spend0NullifierClaimed rho,
            spend0RkCompressed rho,
+           spend0HistoryRequired rho,
            spend1NullifierClaimed rho,
            spend1RkCompressed rho,
+           spend1HistoryRequired rho,
            assetAnchor rho,
            complianceAnchor rho,
            targetTimestamp rho,
@@ -16634,7 +16894,11 @@ theorem statementHash_of_exact
            withdrawalEffectHashLimbs3 rho,
            routingTag rho,
            routingParameterSetId rho] := by
-      rw [statementBlock0_of_exact rho facts]
+      rw [
+        statementBlock2_of_exact rho facts,
+        statementBlock1_of_exact rho facts,
+        statementBlock0_of_exact rho facts
+      ]
       rfl
 
 end Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal
@@ -16704,7 +16968,7 @@ def render_withdrawal_specification_consequences(
     add(
         "CIR-SHAPE-FIXED",
         """(Protocol.ShieldedIcs20Withdrawal.Concrete.statementFields
-      (action rho)).length = 18""",
+      (action rho)).length = 21""",
         """  exact
     Protocol.ShieldedIcs20Withdrawal.Concrete.statementFields_length
       (action rho)""",
@@ -16766,7 +17030,7 @@ def render_withdrawal_specification_consequences(
   have fact := relationOptionalSpend rho h
   unfold Protocol.ShieldedIcs20Withdrawal.Concrete.optionalSpend at fact
   rw [selected] at fact
-  exact fact.2.2.2"""
+  exact fact.2.2.2.2"""
     add(
         "DUMMY-NULLIFIER-DOMAIN-BINDING",
         withdrawal_dummy_nullifier,
@@ -16787,7 +17051,7 @@ def render_withdrawal_specification_consequences(
         (action rho).optional = .dummy spend →
           spend.authRandomizer.val < 2 ^ 251)""",
         """  rcases relationRequiredSpend rho h with
-    ⟨_, _, requiredBound, _, _, _, _, _⟩
+    ⟨_, _, requiredBound, _, _, _, _, _, _⟩
   refine ⟨requiredBound, ?_, ?_⟩
   intro spend
   intro selected
@@ -16799,7 +17063,7 @@ def render_withdrawal_specification_consequences(
   have optional := relationOptionalSpend rho h
   unfold Protocol.ShieldedIcs20Withdrawal.Concrete.optionalSpend at optional
   rw [selected] at optional
-  exact optional.2.1""",
+  exact optional.2.2.1""",
     )
     add(
         "DEC-SPEND-RK-ENCODING",
@@ -16817,19 +17081,19 @@ def render_withdrawal_specification_consequences(
             spend.randomizedVerificationKey
             spend.randomizedVerificationKeyEncoding)""",
         """  rcases relationRequiredSpend rho h with
-    ⟨_, _, _, _, _, _, requiredCompressed, _⟩
+    ⟨_, _, _, _, _, _, _, requiredCompressed, _⟩
   refine ⟨requiredCompressed, ?_, ?_⟩
   intro spend
   intro selected
   have optional := relationOptionalSpend rho h
   unfold Protocol.ShieldedIcs20Withdrawal.Concrete.optionalSpend at optional
   rw [selected] at optional
-  exact optional.2.2.2.2.2.2.1
+  exact optional.2.2.2.2.2.2.2.1
   intro spend selected
   have optional := relationOptionalSpend rho h
   unfold Protocol.ShieldedIcs20Withdrawal.Concrete.optionalSpend at optional
   rw [selected] at optional
-  exact optional.2.2.1""",
+  exact optional.2.2.2.1""",
     )
     add(
         "DEC-SPEND-RK-DERIVATION",
@@ -16848,13 +17112,13 @@ def render_withdrawal_specification_consequences(
             Protocol.Common.Decaf.equivalent computed
               spend.randomizedVerificationKey""",
         """  rcases relationRequiredSpend rho h with
-    ⟨_, _, _, _, _, _, _, requiredRk⟩
+    ⟨_, _, _, _, _, _, _, _, requiredRk⟩
   refine ⟨requiredRk, ?_⟩
   intro spend selected
   have optional := relationOptionalSpend rho h
   unfold Protocol.ShieldedIcs20Withdrawal.Concrete.optionalSpend at optional
   rw [selected] at optional
-  exact optional.2.2.2.2.2.2.2""",
+  exact optional.2.2.2.2.2.2.2.2""",
     )
     add(
         "NOTE-OUTPUT-ASSET-BINDING",
@@ -16867,7 +17131,7 @@ def render_withdrawal_specification_consequences(
         """Seg19.contract.spec rho ∧
       Seg20.contract.spec rho ∧
       Seg21.contract.spec rho""",
-        """  have facts := (exactFactsOfRelation rho h).exact
+        """  have facts := (exactFactsOfRelation rho h).statementBinding
   exact
     ⟨facts.RoutingPrecisionSelectSeg19,
       facts.RoutingParametersHashSeg20,
@@ -16910,7 +17174,7 @@ def render_withdrawal_specification_consequences(
           Protocol.ShieldedIcs20Withdrawal.Concrete.noteCommitment
             spend.note"""
     spend_commitment_proof = """  rcases relationRequiredSpend rho h with
-    ⟨_, _, _, requiredCommitment, _, _, _, _⟩
+    ⟨_, _, _, requiredCommitment, _, _, _, _, _⟩
   refine ⟨requiredCommitment, ?_⟩
   intro spend selected
   have optional := relationOptionalSpend rho h
@@ -16924,7 +17188,7 @@ def render_withdrawal_specification_consequences(
       Seg24.contract.spec rho ∧
       Seg25.contract.spec rho ∧
       Seg26.contract.spec rho""",
-        """  have facts := (exactFactsOfRelation rho h).exact
+        """  have facts := (exactFactsOfRelation rho h).statementBinding
   exact
     ⟨facts.RoutingRouteWordSeg22,
       facts.RoutingTagPublicRangeSeg23,
@@ -16964,7 +17228,7 @@ def render_withdrawal_specification_consequences(
               (action rho).authorization.nullifierKey
               spend.note.commitment spend.position""",
         """  rcases relationRequiredSpend rho h with
-    ⟨_, _, _, _, _, requiredNullifier, _, _⟩
+    ⟨_, _, _, _, _, requiredNullifier, _, _, _⟩
   refine ⟨requiredNullifier, ?_⟩
   intro spend selected
   have optional := relationOptionalSpend rho h
@@ -16982,7 +17246,7 @@ def render_withdrawal_specification_consequences(
           Protocol.Common.stateMember (action rho).anchor
             spend.note.commitment spend.position spend.path""",
         """  rcases relationRequiredSpend rho h with
-    ⟨_, _, _, _, requiredMember, _, _, _⟩
+    ⟨_, _, _, _, requiredMember, _, _, _, _⟩
   refine ⟨requiredMember, ?_⟩
   intro spend selected
   have optional := relationOptionalSpend rho h
@@ -17072,10 +17336,13 @@ def render_withdrawal_specification_consequences(
         [(action rho).anchor,
          (action rho).change.commitment,
          (action rho).balanceCommitmentEncoding,
+         (action rho).recentPositionFloor,
          (action rho).required.nullifier,
          (action rho).required.randomizedVerificationKeyEncoding,
+         (action rho).required.historyRequired,
          (action rho).optional.nullifier,
          (action rho).optional.rkEncoding,
+         (action rho).optional.historyRequired,
          (action rho).assetAnchor,
          (action rho).complianceAnchor,
          (action rho).targetTimestamp,

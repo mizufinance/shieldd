@@ -27,7 +27,7 @@ open Protocol
 open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 attribute [-instance] ZMod.instField
-local instance choiceFreeTransferTranscriptCommRing : CommRing DeployedF :=
+private local instance choiceFreeTransferTranscriptCommRing : CommRing DeployedF :=
   ZMod.commRing _
 
 private theorem negOne :
@@ -36,10 +36,10 @@ private theorem negOne :
 
 /-- Exact eight-block provider output before the public equality assertion. -/
 def computedStatementHash (rho : Nat → DeployedF) : DeployedF :=
-  Deployed.Templates.Semantics.TStatementHash_f091e489b9a220b0436835ce5343e78627a43408ea621e9d71e60917c2e7c77f.Trace.hash7 (StatementHashValuation rho)
+  Deployed.Templates.Semantics.TStatementHash_0e54d8ea5fc5d0d95e113695b4b0340e4b6bab4d5abb13df4d51436c93755a86.Trace.hash7 (StatementHashValuation rho)
 
 private theorem statementDomain :
-    Deployed.Templates.Semantics.TStatementHash_f091e489b9a220b0436835ce5343e78627a43408ea621e9d71e60917c2e7c77f.Trace.domainLit =
+    Deployed.Templates.Semantics.TStatementHash_0e54d8ea5fc5d0d95e113695b4b0340e4b6bab4d5abb13df4d51436c93755a86.Trace.domainLit =
       Protocol.Transfer.Concrete.statementDomain := by
   decide +kernel
 
@@ -128,38 +128,36 @@ private theorem statementProviderField7 (rho : Nat → DeployedF) :
   ]
 
 private theorem statementProviderField8 (rho : Nat → DeployedF) :
-    (-1 : DeployedF) * StatementHashValuation rho 490 + StatementHashValuation rho 491 = statementField008 rho := by
+    StatementHashValuation rho 490 = statementField008 rho := by
   simp [
     statementField008, statementField008LC,
     StructuredLC.eval, StructuredLC.sumRuns,
     StructuredLC.sumResidual, StrideRun.eval,
     negOne
   ]
-  rw [negOne]
-  ring
 
 private theorem statementProviderField9 (rho : Nat → DeployedF) :
-    StatementHashValuation rho 497 = statementField009 rho := by
+    (-1 : DeployedF) * StatementHashValuation rho 496 + StatementHashValuation rho 497 = statementField009 rho := by
   simp [
     statementField009, statementField009LC,
     StructuredLC.eval, StructuredLC.sumRuns,
     StructuredLC.sumResidual, StrideRun.eval,
     negOne
   ]
+  rw [negOne]
+  ring
 
 private theorem statementProviderField10 (rho : Nat → DeployedF) :
-    (-1 : DeployedF) * StatementHashValuation rho 503 + StatementHashValuation rho 504 = statementField010 rho := by
+    StatementHashValuation rho 503 = statementField010 rho := by
   simp [
     statementField010, statementField010LC,
     StructuredLC.eval, StructuredLC.sumRuns,
     StructuredLC.sumResidual, StrideRun.eval,
     negOne
   ]
-  rw [negOne]
-  ring
 
 private theorem statementProviderField11 (rho : Nat → DeployedF) :
-    StatementHashValuation rho 510 = statementField011 rho := by
+    StatementHashValuation rho 509 = statementField011 rho := by
   simp [
     statementField011, statementField011LC,
     StructuredLC.eval, StructuredLC.sumRuns,
@@ -168,13 +166,15 @@ private theorem statementProviderField11 (rho : Nat → DeployedF) :
   ]
 
 private theorem statementProviderField12 (rho : Nat → DeployedF) :
-    StatementHashValuation rho 516 = statementField012 rho := by
+    (-1 : DeployedF) * StatementHashValuation rho 515 + StatementHashValuation rho 516 = statementField012 rho := by
   simp [
     statementField012, statementField012LC,
     StructuredLC.eval, StructuredLC.sumRuns,
     StructuredLC.sumResidual, StrideRun.eval,
     negOne
   ]
+  rw [negOne]
+  ring
 
 private theorem statementProviderField13 (rho : Nat → DeployedF) :
     StatementHashValuation rho 962 = statementField013 rho := by
@@ -213,18 +213,16 @@ private theorem statementProviderField16 (rho : Nat → DeployedF) :
   ]
 
 private theorem statementProviderField17 (rho : Nat → DeployedF) :
-    (-1 : DeployedF) * StatementHashValuation rho 986 + StatementHashValuation rho 987 = statementField017 rho := by
+    StatementHashValuation rho 986 = statementField017 rho := by
   simp [
     statementField017, statementField017LC,
     StructuredLC.eval, StructuredLC.sumRuns,
     StructuredLC.sumResidual, StrideRun.eval,
     negOne
   ]
-  rw [negOne]
-  ring
 
 private theorem statementProviderField18 (rho : Nat → DeployedF) :
-    StatementHashValuation rho 993 = statementField018 rho := by
+    StatementHashValuation rho 992 = statementField018 rho := by
   simp [
     statementField018, statementField018LC,
     StructuredLC.eval, StructuredLC.sumRuns,
@@ -233,7 +231,7 @@ private theorem statementProviderField18 (rho : Nat → DeployedF) :
   ]
 
 private theorem statementProviderField19 (rho : Nat → DeployedF) :
-    StatementHashValuation rho 1439 = statementField019 rho := by
+    StatementHashValuation rho 1438 = statementField019 rho := by
   simp [
     statementField019, statementField019LC,
     StructuredLC.eval, StructuredLC.sumRuns,
@@ -242,7 +240,7 @@ private theorem statementProviderField19 (rho : Nat → DeployedF) :
   ]
 
 private theorem statementProviderField20 (rho : Nat → DeployedF) :
-    (-1 : DeployedF) * StatementHashValuation rho 1445 + StatementHashValuation rho 1446 = statementField020 rho := by
+    (-1 : DeployedF) * StatementHashValuation rho 1444 + StatementHashValuation rho 1445 = statementField020 rho := by
   simp [
     statementField020, statementField020LC,
     StructuredLC.eval, StructuredLC.sumRuns,
@@ -253,7 +251,7 @@ private theorem statementProviderField20 (rho : Nat → DeployedF) :
   ring
 
 private theorem statementProviderField21 (rho : Nat → DeployedF) :
-    StatementHashValuation rho 1452 = statementField021 rho := by
+    StatementHashValuation rho 1451 = statementField021 rho := by
   simp [
     statementField021, statementField021LC,
     StructuredLC.eval, StructuredLC.sumRuns,
@@ -262,7 +260,7 @@ private theorem statementProviderField21 (rho : Nat → DeployedF) :
   ]
 
 private theorem statementProviderField22 (rho : Nat → DeployedF) :
-    StatementHashValuation rho 1458 = statementField022 rho := by
+    StatementHashValuation rho 1457 = statementField022 rho := by
   simp [
     statementField022, statementField022LC,
     StructuredLC.eval, StructuredLC.sumRuns,
@@ -271,13 +269,15 @@ private theorem statementProviderField22 (rho : Nat → DeployedF) :
   ]
 
 private theorem statementProviderField23 (rho : Nat → DeployedF) :
-    StatementHashValuation rho 1464 = statementField023 rho := by
+    (-1 : DeployedF) * StatementHashValuation rho 1463 + StatementHashValuation rho 1464 = statementField023 rho := by
   simp [
     statementField023, statementField023LC,
     StructuredLC.eval, StructuredLC.sumRuns,
     StructuredLC.sumResidual, StrideRun.eval,
     negOne
   ]
+  rw [negOne]
+  ring
 
 private theorem statementProviderField24 (rho : Nat → DeployedF) :
     StatementHashValuation rho 1470 = statementField024 rho := by
@@ -289,18 +289,16 @@ private theorem statementProviderField24 (rho : Nat → DeployedF) :
   ]
 
 private theorem statementProviderField25 (rho : Nat → DeployedF) :
-    (-1 : DeployedF) * StatementHashValuation rho 1916 + StatementHashValuation rho 1917 = statementField025 rho := by
+    StatementHashValuation rho 1916 = statementField025 rho := by
   simp [
     statementField025, statementField025LC,
     StructuredLC.eval, StructuredLC.sumRuns,
     StructuredLC.sumResidual, StrideRun.eval,
     negOne
   ]
-  rw [negOne]
-  ring
 
 private theorem statementProviderField26 (rho : Nat → DeployedF) :
-    StatementHashValuation rho 1923 = statementField026 rho := by
+    StatementHashValuation rho 1922 = statementField026 rho := by
   simp [
     statementField026, statementField026LC,
     StructuredLC.eval, StructuredLC.sumRuns,
@@ -309,7 +307,7 @@ private theorem statementProviderField26 (rho : Nat → DeployedF) :
   ]
 
 private theorem statementProviderField27 (rho : Nat → DeployedF) :
-    StatementHashValuation rho 1929 = statementField027 rho := by
+    StatementHashValuation rho 1928 = statementField027 rho := by
   simp [
     statementField027, statementField027LC,
     StructuredLC.eval, StructuredLC.sumRuns,
@@ -318,7 +316,7 @@ private theorem statementProviderField27 (rho : Nat → DeployedF) :
   ]
 
 private theorem statementProviderField28 (rho : Nat → DeployedF) :
-    (-1 : DeployedF) * StatementHashValuation rho 1935 + StatementHashValuation rho 1936 = statementField028 rho := by
+    (-1 : DeployedF) * StatementHashValuation rho 1934 + StatementHashValuation rho 1935 = statementField028 rho := by
   simp [
     statementField028, statementField028LC,
     StructuredLC.eval, StructuredLC.sumRuns,
@@ -329,7 +327,7 @@ private theorem statementProviderField28 (rho : Nat → DeployedF) :
   ring
 
 private theorem statementProviderField29 (rho : Nat → DeployedF) :
-    StatementHashValuation rho 1942 = statementField029 rho := by
+    StatementHashValuation rho 1941 = statementField029 rho := by
   simp [
     statementField029, statementField029LC,
     StructuredLC.eval, StructuredLC.sumRuns,
@@ -338,7 +336,7 @@ private theorem statementProviderField29 (rho : Nat → DeployedF) :
   ]
 
 private theorem statementProviderField30 (rho : Nat → DeployedF) :
-    StatementHashValuation rho 1948 = statementField030 rho := by
+    StatementHashValuation rho 1947 = statementField030 rho := by
   simp [
     statementField030, statementField030LC,
     StructuredLC.eval, StructuredLC.sumRuns,
@@ -347,13 +345,15 @@ private theorem statementProviderField30 (rho : Nat → DeployedF) :
   ]
 
 private theorem statementProviderField31 (rho : Nat → DeployedF) :
-    StatementHashValuation rho 2394 = statementField031 rho := by
+    (-1 : DeployedF) * StatementHashValuation rho 2393 + StatementHashValuation rho 2394 = statementField031 rho := by
   simp [
     statementField031, statementField031LC,
     StructuredLC.eval, StructuredLC.sumRuns,
     StructuredLC.sumResidual, StrideRun.eval,
     negOne
   ]
+  rw [negOne]
+  ring
 
 private theorem statementProviderField32 (rho : Nat → DeployedF) :
     StatementHashValuation rho 2400 = statementField032 rho := by
@@ -463,6 +463,33 @@ private theorem statementProviderField43 (rho : Nat → DeployedF) :
     negOne
   ]
 
+private theorem statementProviderField44 (rho : Nat → DeployedF) :
+    StatementHashValuation rho 3352 = statementField044 rho := by
+  simp [
+    statementField044, statementField044LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    negOne
+  ]
+
+private theorem statementProviderField45 (rho : Nat → DeployedF) :
+    StatementHashValuation rho 3358 = statementField045 rho := by
+  simp [
+    statementField045, statementField045LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    negOne
+  ]
+
+private theorem statementProviderField46 (rho : Nat → DeployedF) :
+    StatementHashValuation rho 3364 = statementField046 rho := by
+  simp [
+    statementField046, statementField046LC,
+    StructuredLC.eval, StructuredLC.sumRuns,
+    StructuredLC.sumResidual, StrideRun.eval,
+    negOne
+  ]
+
 private theorem optionalNullifier_of_action (rho : Nat → DeployedF) :
     (C.action rho).optional.nullifier =
       spend1NullifierClaimed rho := by
@@ -486,6 +513,19 @@ private theorem optionalRkEncoding_of_action (rho : Nat → DeployedF) :
   · simp [
       C.action, C.optional, C.optionalDummy, C.optionalReal,
       Protocol.Transfer.OptionalSpend.rkEncoding, h
+    ]
+
+private theorem optionalHistoryRequired_of_action (rho : Nat → DeployedF) :
+    (C.action rho).optional.historyRequired =
+      spend1HistoryRequired rho := by
+  by_cases h : spend1IsDummy rho = 1
+  · simp [
+      C.action, C.optional, C.optionalDummy, C.optionalReal,
+      Protocol.Transfer.OptionalSpend.historyRequired, h
+    ]
+  · simp [
+      C.action, C.optional, C.optionalDummy, C.optionalReal,
+      Protocol.Transfer.OptionalSpend.historyRequired, h
     ]
 
 private theorem statementFields_of_action (rho : Nat → DeployedF) :
@@ -533,9 +573,13 @@ private theorem statementFields_of_action (rho : Nat → DeployedF) :
       statementField040 rho,
       statementField041 rho,
       statementField042 rho,
-      statementField043 rho] := by
+      statementField043 rho,
+      statementField044 rho,
+      statementField045 rho,
+      statementField046 rho] := by
   unfold Protocol.Transfer.Concrete.statementFields
-  rw [optionalNullifier_of_action, optionalRkEncoding_of_action]
+  rw [optionalNullifier_of_action, optionalRkEncoding_of_action,
+    optionalHistoryRequired_of_action]
   change [statementFields0 rho,
       statementFields1 rho,
       statementFields2 rho,
@@ -579,7 +623,10 @@ private theorem statementFields_of_action (rho : Nat → DeployedF) :
       statementFields40 rho,
       statementFields41 rho,
       statementFields42 rho,
-      statementFields43 rho] =
+      statementFields43 rho,
+      statementFields44 rho,
+      statementFields45 rho,
+      statementFields46 rho] =
     [statementField000 rho,
       statementField001 rho,
       statementField002 rho,
@@ -623,7 +670,10 @@ private theorem statementFields_of_action (rho : Nat → DeployedF) :
       statementField040 rho,
       statementField041 rho,
       statementField042 rho,
-      statementField043 rho]
+      statementField043 rho,
+      statementField044 rho,
+      statementField045 rho,
+      statementField046 rho]
   rfl
 
 /-- The compiler's final state LC is the certified eight-block output. -/
@@ -632,24 +682,24 @@ theorem statementHash_of_semantic
     (semantic : TransferSemanticProviders rho) :
     statementHash rho = computedStatementHash rho := by
   have h := semantic.statementHash
-  change Deployed.Templates.Semantics.TStatementHash_f091e489b9a220b0436835ce5343e78627a43408ea621e9d71e60917c2e7c77f.spec (StatementHashValuation rho) at h
-  unfold Deployed.Templates.Semantics.TStatementHash_f091e489b9a220b0436835ce5343e78627a43408ea621e9d71e60917c2e7c77f.spec at h
+  change Deployed.Templates.Semantics.TStatementHash_0e54d8ea5fc5d0d95e113695b4b0340e4b6bab4d5abb13df4d51436c93755a86.spec (StatementHashValuation rho) at h
+  unfold Deployed.Templates.Semantics.TStatementHash_0e54d8ea5fc5d0d95e113695b4b0340e4b6bab4d5abb13df4d51436c93755a86.spec at h
   calc
     statementHash rho =
-        Deployed.Templates.Semantics.TStatementHash_f091e489b9a220b0436835ce5343e78627a43408ea621e9d71e60917c2e7c77f.Trace.flatState7_38Lane1
+        Deployed.Templates.Semantics.TStatementHash_0e54d8ea5fc5d0d95e113695b4b0340e4b6bab4d5abb13df4d51436c93755a86.Trace.flatState7_38Lane1
           (StatementHashValuation rho) := by
       simp [
         statementHash, statementHashLC,
-        Deployed.Templates.Semantics.TStatementHash_f091e489b9a220b0436835ce5343e78627a43408ea621e9d71e60917c2e7c77f.Trace.flatState7_38Lane1,
+        Deployed.Templates.Semantics.TStatementHash_0e54d8ea5fc5d0d95e113695b4b0340e4b6bab4d5abb13df4d51436c93755a86.Trace.flatState7_38Lane1,
         StructuredLC.eval, StructuredLC.sumRuns,
         StructuredLC.sumResidual, StrideRun.eval
       ]
       ring
-    _ = (Deployed.Templates.Semantics.TStatementHash_f091e489b9a220b0436835ce5343e78627a43408ea621e9d71e60917c2e7c77f.Trace.rawState7_38
+    _ = (Deployed.Templates.Semantics.TStatementHash_0e54d8ea5fc5d0d95e113695b4b0340e4b6bab4d5abb13df4d51436c93755a86.Trace.rawState7_38
           (StatementHashValuation rho))[1] :=
-      (Deployed.Templates.Semantics.TStatementHash_f091e489b9a220b0436835ce5343e78627a43408ea621e9d71e60917c2e7c77f.Trace.rawState7_output_eq_flatStateLane1
+      (Deployed.Templates.Semantics.TStatementHash_0e54d8ea5fc5d0d95e113695b4b0340e4b6bab4d5abb13df4d51436c93755a86.Trace.rawState7_output_eq_flatStateLane1
         (StatementHashValuation rho)).symm
-    _ = Deployed.Templates.Semantics.TStatementHash_f091e489b9a220b0436835ce5343e78627a43408ea621e9d71e60917c2e7c77f.Trace.hash7
+    _ = Deployed.Templates.Semantics.TStatementHash_0e54d8ea5fc5d0d95e113695b4b0340e4b6bab4d5abb13df4d51436c93755a86.Trace.hash7
           (StatementHashValuation rho) := h
     _ = computedStatementHash rho := rfl
 
@@ -671,7 +721,7 @@ theorem statementPublicHash_of_semantic
   ring_nf at h ⊢
   exact h
 
-/-- The provider's eight blocks are the independent 44-field protocol sponge. -/
+/-- The provider's eight blocks are the independent 47-field protocol sponge. -/
 theorem computedStatementHash_eq_protocol
     (rho : Nat → DeployedF) :
     computedStatementHash rho =
@@ -682,14 +732,14 @@ theorem computedStatementHash_eq_protocol
         (Protocol.Transfer.Concrete.statementFields (C.action rho)) := by
   rw [statementFields_of_action]
   unfold computedStatementHash
-    Deployed.Templates.Semantics.TStatementHash_f091e489b9a220b0436835ce5343e78627a43408ea621e9d71e60917c2e7c77f.Trace.hash7
-    Deployed.Templates.Semantics.TStatementHash_f091e489b9a220b0436835ce5343e78627a43408ea621e9d71e60917c2e7c77f.Trace.hash6
-    Deployed.Templates.Semantics.TStatementHash_f091e489b9a220b0436835ce5343e78627a43408ea621e9d71e60917c2e7c77f.Trace.hash5
-    Deployed.Templates.Semantics.TStatementHash_f091e489b9a220b0436835ce5343e78627a43408ea621e9d71e60917c2e7c77f.Trace.hash4
-    Deployed.Templates.Semantics.TStatementHash_f091e489b9a220b0436835ce5343e78627a43408ea621e9d71e60917c2e7c77f.Trace.hash3
-    Deployed.Templates.Semantics.TStatementHash_f091e489b9a220b0436835ce5343e78627a43408ea621e9d71e60917c2e7c77f.Trace.hash2
-    Deployed.Templates.Semantics.TStatementHash_f091e489b9a220b0436835ce5343e78627a43408ea621e9d71e60917c2e7c77f.Trace.hash1
-    Deployed.Templates.Semantics.TStatementHash_f091e489b9a220b0436835ce5343e78627a43408ea621e9d71e60917c2e7c77f.Trace.hash0
+    Deployed.Templates.Semantics.TStatementHash_0e54d8ea5fc5d0d95e113695b4b0340e4b6bab4d5abb13df4d51436c93755a86.Trace.hash7
+    Deployed.Templates.Semantics.TStatementHash_0e54d8ea5fc5d0d95e113695b4b0340e4b6bab4d5abb13df4d51436c93755a86.Trace.hash6
+    Deployed.Templates.Semantics.TStatementHash_0e54d8ea5fc5d0d95e113695b4b0340e4b6bab4d5abb13df4d51436c93755a86.Trace.hash5
+    Deployed.Templates.Semantics.TStatementHash_0e54d8ea5fc5d0d95e113695b4b0340e4b6bab4d5abb13df4d51436c93755a86.Trace.hash4
+    Deployed.Templates.Semantics.TStatementHash_0e54d8ea5fc5d0d95e113695b4b0340e4b6bab4d5abb13df4d51436c93755a86.Trace.hash3
+    Deployed.Templates.Semantics.TStatementHash_0e54d8ea5fc5d0d95e113695b4b0340e4b6bab4d5abb13df4d51436c93755a86.Trace.hash2
+    Deployed.Templates.Semantics.TStatementHash_0e54d8ea5fc5d0d95e113695b4b0340e4b6bab4d5abb13df4d51436c93755a86.Trace.hash1
+    Deployed.Templates.Semantics.TStatementHash_0e54d8ea5fc5d0d95e113695b4b0340e4b6bab4d5abb13df4d51436c93755a86.Trace.hash0
   rw [
     statementDomain, statementPad0, statementPad1,
     statementProviderField0 rho,
@@ -735,7 +785,10 @@ theorem computedStatementHash_eq_protocol
     statementProviderField40 rho,
     statementProviderField41 rho,
     statementProviderField42 rho,
-    statementProviderField43 rho
+    statementProviderField43 rho,
+    statementProviderField44 rho,
+    statementProviderField45 rho,
+    statementProviderField46 rho
   ]
   rfl
 

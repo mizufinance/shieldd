@@ -17,7 +17,7 @@ theorem authAkNonIdentity_of_exact
     authAk0 rho ≠ 0 := by
   have h := facts.canonicalSender.AssertDecafNonIdentitySeg3.2
   change Seg3.localRho rho 2 ≠ 0 at h
-  have hseat : Seg3.wireSeating 2 = 14 := by
+  have hseat : Seg3.wireSeating 2 = 15 := by
     decide +kernel
   simpa only [
     authAk0, authAk0LC,
@@ -32,7 +32,7 @@ theorem senderDivGenNonIdentity_of_exact
     senderDivGen0 rho ≠ 0 := by
   have h := facts.canonicalSender.AssertDecafNonIdentitySeg4.2
   change Seg4.localRho rho 2 ≠ 0 at h
-  have hseat : Seg4.wireSeating 2 = 82 := by
+  have hseat : Seg4.wireSeating 2 = 83 := by
     decide +kernel
   simpa only [
     senderDivGen0, senderDivGen0LC,
@@ -47,7 +47,7 @@ theorem senderTransmissionNonIdentity_of_exact
     senderTransmission0 rho ≠ 0 := by
   have h := facts.canonicalSender.AssertDecafNonIdentitySeg17.2
   change Seg17.localRho rho 2 ≠ 0 at h
-  have hseat : Seg17.wireSeating 2 = 84 := by
+  have hseat : Seg17.wireSeating 2 = 85 := by
     decide +kernel
   simpa only [
     senderTransmission0, senderTransmission0LC,
@@ -60,30 +60,30 @@ theorem output0RecipientDivGenNonIdentity_of_exact
     (rho : Nat → SemanticF)
     (facts : TransferCircuitFacts rho) :
     output0RecipientDivGen0 rho ≠ 0 := by
-  have h := facts.receiverOutput.AssertDecafNonIdentitySeg56.2
-  change Seg56.localRho rho 2 ≠ 0 at h
-  have hseat : Seg56.wireSeating 2 = 342 := by
+  have h := facts.receiverOutput.AssertDecafNonIdentitySeg58.2
+  change Seg58.localRho rho 2 ≠ 0 at h
+  have hseat : Seg58.wireSeating 2 = 345 := by
     decide +kernel
   simpa only [
     output0RecipientDivGen0, output0RecipientDivGen0LC,
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
     StrideRun.eval,
-    Seg56.localRho, Deployed.Templates.seated, hseat,
+    Seg58.localRho, Deployed.Templates.seated, hseat,
     zero_add, one_mul, add_zero] using h
 
 theorem output0RecipientTransmissionNonIdentity_of_exact
     (rho : Nat → SemanticF)
     (facts : TransferCircuitFacts rho) :
     output0RecipientTransmission0 rho ≠ 0 := by
-  have h := facts.receiverOutput.AssertDecafNonIdentitySeg57.2
-  change Seg57.localRho rho 2 ≠ 0 at h
-  have hseat : Seg57.wireSeating 2 = 344 := by
+  have h := facts.receiverOutput.AssertDecafNonIdentitySeg59.2
+  change Seg59.localRho rho 2 ≠ 0 at h
+  have hseat : Seg59.wireSeating 2 = 347 := by
     decide +kernel
   simpa only [
     output0RecipientTransmission0, output0RecipientTransmission0LC,
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
     StrideRun.eval,
-    Seg57.localRho, Deployed.Templates.seated, hseat,
+    Seg59.localRho, Deployed.Templates.seated, hseat,
     zero_add, one_mul, add_zero] using h
 
 theorem authIvkReducedNonzero_of_exact
@@ -92,7 +92,7 @@ theorem authIvkReducedNonzero_of_exact
     authIvkReduced rho ≠ 0 := by
   have h := facts.canonicalSender.AssertNeSeg14.2
   change Seg14.localRho rho 2 ≠ 0 at h
-  have hseat : Seg14.wireSeating 2 = 17 := by
+  have hseat : Seg14.wireSeating 2 = 18 := by
     decide +kernel
   simpa only [
     authIvkReduced, authIvkReducedLC,

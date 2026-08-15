@@ -22,13 +22,13 @@ theorem dtkOutX_eq_transmissionCompressInputX
     (rho : Nat → SemanticF) :
     (Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_a03dfc8083159402252a47c3be906c0878137600765dd0717aecbad037a5042c.DtkWindowSupport.output (Seg7.localRho rho)).x =
       Deployed.Templates.Semantics.TDecafCompressToField_cb894e50f7cc665026bb25271f9bec0190867613208193b18d883d11ce856a46.inputX (Seg9.localRho rho) := by
-  have hdtk1 : Seg7.wireSeating 4961 = 5851 := by
+  have hdtk1 : Seg7.wireSeating 4961 = 5853 := by
     decide +kernel
-  have hdtk2 : Seg7.wireSeating 4969 = 5859 := by
+  have hdtk2 : Seg7.wireSeating 4969 = 5861 := by
     decide +kernel
-  have hcompress1 : Seg9.wireSeating 1 = 5851 := by
+  have hcompress1 : Seg9.wireSeating 1 = 5853 := by
     decide +kernel
-  have hcompress2 : Seg9.wireSeating 2 = 5859 := by
+  have hcompress2 : Seg9.wireSeating 2 = 5861 := by
     decide +kernel
   simpa only [
     Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_a03dfc8083159402252a47c3be906c0878137600765dd0717aecbad037a5042c.DtkWindowSupport.output,

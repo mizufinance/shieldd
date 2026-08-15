@@ -215,6 +215,7 @@ impl MockClient {
         Ok(WitnessData {
             anchor: self.sct.root(),
             state_commitment_proofs: commitments.map(witness).collect::<Result<_, Error>>()?,
+            historical_nullifier_proofs: Default::default(),
         })
     }
 
@@ -239,6 +240,14 @@ impl MockClient {
         plan: &mut TransactionPlan,
         state: S,
     ) -> Result<Transaction, Error> {
+        if plan.num_spends() > 0 {
+            plan.nullifier_window = Some(
+                shieldd_sdk_sct::nullifier_tree::generation_state(&state)
+                    .await?
+                    .window(),
+            );
+        }
+
         // Read block timestamp from state before enrichment.
         // Tests use fake chain times (e.g. 2022), but SystemTime::now() returns
         // real time. Pass the block timestamp so DLEQ proofs and on-chain freshness

@@ -85,6 +85,7 @@ def realCommitment := Concrete.realCommitment
 def outputCommitment := Concrete.outputCommitment
 def realNullifier := Concrete.realNullifier
 def dummyNullifier := Concrete.dummyNullifier
+def historyClassification := Concrete.historyClassification
 
 def randomizedKeyReal
     (authorization : AuthorizationContext F)
@@ -137,6 +138,7 @@ def circuitPrimitives : CircuitPrimitives F Path24 :=
     member
     realNullifier
     dummyNullifier
+    historyClassification
     randomizedKeyReal
     conservation
     statementBinding

@@ -68,7 +68,7 @@ func noteReshapeFamilyForCircuit(circuit string) (generated.NoteReshapeFamilySpe
 }
 
 func packProofResult(witnessPayload []byte, proof *groth16bls.Proof, proveMS float64) ([]byte, error) {
-	witness, _, err := abi.DecodeNoteReshapeWitnessV4(witnessPayload)
+	witness, _, err := abi.DecodeNoteReshapeWitnessV5(witnessPayload)
 	if err != nil {
 		return nil, fmt.Errorf("decode noteReshape witness: %w", err)
 	}
@@ -142,7 +142,7 @@ func shieldd_gnark_note_reshape_prove(handle C.uint64_t, witnessPtr unsafe.Point
 }
 
 func proveContext(ctx *proverContext, witnessPayload []byte) ([]byte, float64, error) {
-	assignment, family, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV4(witnessPayload)
+	assignment, family, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV5(witnessPayload)
 	if err != nil {
 		return nil, 0, fmt.Errorf("decode witness: %w", err)
 	}

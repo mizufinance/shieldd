@@ -13,11 +13,12 @@ import (
 )
 
 type ShieldedIcs20WithdrawalRequiredSpendCircuitFields struct {
-	Nullifier      frontend.Variable
-	RK             Point2D
-	Note           ShieldedIcs20WithdrawalNoteCircuitFields
-	StateProof     ShieldedIcs20WithdrawalStatePathCircuitFields
-	AuthRandomizer frontend.Variable
+	Nullifier       frontend.Variable
+	RK              Point2D
+	Note            ShieldedIcs20WithdrawalNoteCircuitFields
+	StateProof      ShieldedIcs20WithdrawalStatePathCircuitFields
+	AuthRandomizer  frontend.Variable
+	HistoryRequired frontend.Variable
 }
 
 type ShieldedIcs20WithdrawalNoteCircuitFields struct {
@@ -74,6 +75,7 @@ type ShieldedIcs20WithdrawalCircuit struct {
 	ClaimedStatementHash  frontend.Variable `gnark:",public"`
 	RoutingTag            frontend.Variable
 	RoutingParameterSetID frontend.Variable
+	RecentPositionFloor   frontend.Variable
 
 	Anchor                    frontend.Variable
 	AssetAnchor               frontend.Variable
@@ -148,8 +150,10 @@ func (c *ShieldedIcs20WithdrawalCircuit) Define(api frontend.API) error {
 	nullifiersAndRKs := []frontend.Variable{
 		requiredNullifier,
 		requiredRK,
+		c.RequiredSpend.HistoryRequired,
 		optionalNullifier,
 		optionalRK,
+		c.OptionalSpend.HistoryRequired,
 	}
 
 	c.traceWiring("output.begin", "output0")
@@ -197,6 +201,7 @@ func (c *ShieldedIcs20WithdrawalCircuit) Define(api frontend.API) error {
 	)
 	fields := make([]frontend.Variable, 0, ShieldedIcs20WithdrawalStatementFieldCount(c.nIn))
 	fields = append(fields, c.Anchor, changeCommitment, balanceCommitmentFq)
+	fields = append(fields, c.RecentPositionFloor)
 	fields = append(fields, nullifiersAndRKs...)
 	fields = append(
 		fields,
@@ -240,6 +245,7 @@ func (c *ShieldedIcs20WithdrawalCircuit) bindShieldedIcs20WithdrawalWitnessSeman
 	c.bindSemantic("routing.unregulated_precision", c.UnregulatedPrecision)
 	c.bindSemantic("routing.as_of_height", c.RoutingAsOfHeight)
 	c.bindSemantic("routing.nonce", c.RoutingNonce)
+	c.bindSemantic("recent_position_floor", c.RecentPositionFloor)
 
 	c.bindSemantic("auth.ak", c.Auth.AK.X, c.Auth.AK.Y)
 	c.bindSemantic("auth.nk", c.Auth.NK)
@@ -291,6 +297,7 @@ func (c *ShieldedIcs20WithdrawalCircuit) bindShieldedIcs20WithdrawalSpendWitness
 		statePathVariables(spend.StateProof.Path)...,
 	)
 	c.bindSemantic(name+".auth_randomizer", spend.AuthRandomizer)
+	c.bindSemantic(name+".history_required", spend.HistoryRequired)
 }
 
 func shieldedIcs20WithdrawalStatementHashConstant(suffix string) *big.Int {
@@ -313,68 +320,46 @@ func (c *ShieldedIcs20WithdrawalCircuit) hashShieldedIcs20WithdrawalStatement(
 			len(fields),
 		)
 	}
-	domain := shieldedIcs20WithdrawalStatementHashConstant("v3")
+	domain := shieldedIcs20WithdrawalStatementHashConstant("v4")
+	pad0 := shieldedIcs20WithdrawalStatementHashConstant("pad0")
 	pad1 := shieldedIcs20WithdrawalStatementHashConstant("pad1")
 
-	c.traceWiring(
-		"statement.hash",
-		"block=0",
-		"inputs=statement.field.000..006",
-		"out=statement.hash.block0",
-	)
-	block0, err := Poseidon377Hash7(
-		api,
-		domain,
-		[7]frontend.Variable{
-			fields[0], fields[1], fields[2], fields[3],
-			fields[4], fields[5], fields[6],
-		},
-	)
+	c.traceWiring("statement.hash", "block=0", "inputs=statement.field.000..006", "out=statement.hash.block0")
+	block0, err := Poseidon377Hash7(api, domain, [7]frontend.Variable{
+		fields[0], fields[1], fields[2], fields[3], fields[4], fields[5], fields[6],
+	})
 	if err != nil {
 		return nil, err
 	}
 	c.bindSemantic("statement.hash.block0", block0)
 
-	c.traceWiring(
-		"statement.hash",
-		"block=1",
-		"inputs=statement.hash.block0,statement.field.007..012",
-		"out=statement.hash.block1",
-	)
-	block1, err := Poseidon377Hash7(
-		api,
-		domain,
-		[7]frontend.Variable{
-			block0,
-			fields[7], fields[8], fields[9],
-			fields[10], fields[11], fields[12],
-		},
-	)
+	c.traceWiring("statement.hash", "block=1", "inputs=statement.hash.block0,statement.field.007..012", "out=statement.hash.block1")
+	block1, err := Poseidon377Hash7(api, domain, [7]frontend.Variable{
+		block0, fields[7], fields[8], fields[9], fields[10], fields[11], fields[12],
+	})
 	if err != nil {
 		return nil, err
 	}
 	c.bindSemantic("statement.hash.block1", block1)
 
-	c.traceWiring(
-		"statement.hash",
-		"block=2",
-		"inputs=statement.hash.block1,statement.field.013..017,pad1",
-		"out=statement.hash.block2",
-	)
-	block2, err := Poseidon377Hash7(
-		api,
-		domain,
-		[7]frontend.Variable{
-			block1,
-			fields[13], fields[14], fields[15],
-			fields[16], fields[17], pad1,
-		},
-	)
+	c.traceWiring("statement.hash", "block=2", "inputs=statement.hash.block1,statement.field.013..018", "out=statement.hash.block2")
+	block2, err := Poseidon377Hash7(api, domain, [7]frontend.Variable{
+		block1, fields[13], fields[14], fields[15], fields[16], fields[17], fields[18],
+	})
 	if err != nil {
 		return nil, err
 	}
 	c.bindSemantic("statement.hash.block2", block2)
-	return block2, nil
+
+	c.traceWiring("statement.hash", "block=3", "inputs=statement.hash.block2,statement.field.019..020,pad0,pad1,pad0,pad1", "out=statement.hash.block3")
+	block3, err := Poseidon377Hash7(api, domain, [7]frontend.Variable{
+		block2, fields[19], fields[20], pad0, pad1, pad0, pad1,
+	})
+	if err != nil {
+		return nil, err
+	}
+	c.bindSemantic("statement.hash.block3", block3)
+	return block3, nil
 }
 
 type shieldedIcs20WithdrawalSharedContext struct {
@@ -750,6 +735,17 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifyRequiredSpend(
 		"rhs="+name+".rk.claimed",
 	)
 	decafgnark.AssertEquivalent(api, verified.computedRK, verified.rkClaimed)
+	c.traceWiring(
+		"history.classify",
+		"position="+name+".state_proof.position",
+		"floor=recent_position_floor",
+		"is_dummy=0",
+		"out="+name+".history_required",
+	)
+	api.AssertIsEqual(
+		spend.HistoryRequired,
+		historyRequired(api, spend.StateProof.Position, c.RecentPositionFloor, 0),
+	)
 	return spend.Note.Amount, spend.Nullifier, verified.rkFq, nil
 }
 
@@ -832,6 +828,22 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifyOptionalSpend(
 		"cond="+name+".is_dummy",
 	)
 	AssertEqualIf(api, spend.Note.Amount, 0, spend.IsDummy)
+	c.traceWiring(
+		"history.classify",
+		"position="+name+".state_proof.position",
+		"floor=recent_position_floor",
+		"is_dummy="+name+".is_dummy",
+		"out="+name+".history_required",
+	)
+	api.AssertIsEqual(
+		spend.HistoryRequired,
+		historyRequired(
+			api,
+			spend.StateProof.Position,
+			c.RecentPositionFloor,
+			spend.IsDummy,
+		),
+	)
 
 	return spend.Note.Amount, spend.Nullifier, verified.rkFq, nil
 }

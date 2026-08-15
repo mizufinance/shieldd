@@ -28,15 +28,17 @@ use shieldd_sdk_proto::{
     core::app::v1::{
         query_service_client::QueryServiceClient as AppQueryServiceClient, AppParametersRequest,
     },
-    DomainType,
+    core::component::sct::v1 as pb_sct,
+    DomainType, Message,
 };
-use shieldd_sdk_sct::{CommitmentSource, Nullifier};
+use shieldd_sdk_sct::{nullifier_generation::NullifierWindow, CommitmentSource, Nullifier};
 use shieldd_sdk_shielded_pool::{discovery, note, Note, Rseed};
 use shieldd_sdk_tct::{self as tct, builder::epoch::Root};
 use shieldd_sdk_transaction::Transaction;
 use tct::StateCommitment;
 
 use crate::{
+    historical_proof_cache::{HistoricalProofCache, HistoricalProofCacheState},
     issued_address::{AddressPurpose, IssuedAddress},
     sync::FilteredBlock,
     SpendableNoteRecord,
@@ -58,6 +60,24 @@ mod issued_address_tests {
     use camino::Utf8Path;
     use shieldd_sdk_app::params::AppParameters;
     use shieldd_sdk_keys::{keys::AddressIndex, test_keys};
+
+    #[tokio::test]
+    async fn fresh_storage_distinguishes_an_uninitialized_nullifier_window() {
+        let storage = Storage::initialize(
+            None::<&Utf8Path>,
+            (*test_keys::FULL_VIEWING_KEY).clone(),
+            AppParameters::default(),
+        )
+        .await
+        .unwrap();
+
+        assert!(storage
+            .nullifier_window_if_initialized()
+            .await
+            .unwrap()
+            .is_none());
+        assert!(storage.nullifier_window().await.is_err());
+    }
 
     #[tokio::test]
     async fn restore_recovers_standard_and_randomized_issued_addresses() {
@@ -133,6 +153,36 @@ mod issued_address_tests {
         };
         assert!(storage.record_issued_address(conflicting).await.is_err());
     }
+
+    #[tokio::test]
+    async fn historical_proof_cache_round_trips_and_deletes() {
+        let storage = Storage::initialize(
+            None::<&Utf8Path>,
+            (*test_keys::FULL_VIEWING_KEY).clone(),
+            AppParameters::default(),
+        )
+        .await
+        .unwrap();
+        let nullifier = Nullifier(Fq::from(77u64));
+        let cache = HistoricalProofCache::pending(nullifier);
+        storage
+            .put_historical_proof_cache(cache.clone())
+            .await
+            .unwrap();
+        assert_eq!(
+            storage.historical_proof_cache(nullifier).await.unwrap(),
+            Some(cache)
+        );
+        storage
+            .delete_historical_proof_cache(nullifier)
+            .await
+            .unwrap();
+        assert!(storage
+            .historical_proof_cache(nullifier)
+            .await
+            .unwrap()
+            .is_none());
+    }
 }
 
 /// The hash of the schema for the database.
@@ -157,6 +207,158 @@ pub struct Storage {
 }
 
 impl Storage {
+    fn put_historical_proof_cache_inner(
+        connection: &rusqlite::Connection,
+        cache: &HistoricalProofCache,
+    ) -> anyhow::Result<()> {
+        cache.validate()?;
+        let proof: pb_sct::HistoricalNullifierProof = cache.proof.clone().into();
+        connection.execute(
+            "INSERT INTO historical_proof_cache
+             (nullifier, protocol_version, covered_generation_count, terminal_history_head, proof_bundle, cache_state, last_error)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+             ON CONFLICT(nullifier) DO UPDATE SET
+               protocol_version = excluded.protocol_version,
+               covered_generation_count = excluded.covered_generation_count,
+               terminal_history_head = excluded.terminal_history_head,
+               proof_bundle = excluded.proof_bundle,
+               cache_state = excluded.cache_state,
+               last_error = excluded.last_error",
+            rusqlite::params![
+                cache.nullifier.to_bytes().to_vec(),
+                cache.protocol_version,
+                cache.covered_generation_count,
+                cache.terminal_history_head.to_vec(),
+                proof.encode_to_vec(),
+                cache.state.storage_id(),
+                cache.last_error.as_deref(),
+            ],
+        )?;
+        Ok(())
+    }
+
+    pub async fn put_historical_proof_cache(
+        &self,
+        cache: HistoricalProofCache,
+    ) -> anyhow::Result<()> {
+        let pool = self.pool.clone();
+        spawn_blocking(move || {
+            let connection = pool.get()?;
+            Self::put_historical_proof_cache_inner(&connection, &cache)
+        })
+        .await?
+    }
+
+    pub async fn historical_proof_cache(
+        &self,
+        nullifier: Nullifier,
+    ) -> anyhow::Result<Option<HistoricalProofCache>> {
+        let pool = self.pool.clone();
+        spawn_blocking(move || {
+            let row = pool
+                .get()?
+                .prepare_cached(
+                    "SELECT protocol_version, covered_generation_count, terminal_history_head,
+                            proof_bundle, cache_state, last_error
+                     FROM historical_proof_cache WHERE nullifier = ?1",
+                )?
+                .query_row([nullifier.to_bytes().to_vec()], |row| {
+                    Ok((
+                        row.get::<_, u32>(0)?,
+                        row.get::<_, u64>(1)?,
+                        row.get::<_, Vec<u8>>(2)?,
+                        row.get::<_, Vec<u8>>(3)?,
+                        row.get::<_, i64>(4)?,
+                        row.get::<_, Option<String>>(5)?,
+                    ))
+                })
+                .optional()?;
+            let Some((
+                protocol_version,
+                covered_generation_count,
+                terminal_history_head,
+                proof_bundle,
+                cache_state,
+                last_error,
+            )) = row
+            else {
+                return Ok(None);
+            };
+            let terminal_history_head: [u8; 32] =
+                terminal_history_head.try_into().map_err(|bytes: Vec<u8>| {
+                    anyhow!("history head must be 32 bytes, got {}", bytes.len())
+                })?;
+            let proof =
+                pb_sct::HistoricalNullifierProof::decode(proof_bundle.as_slice())?.try_into()?;
+            let cache = HistoricalProofCache {
+                protocol_version,
+                nullifier,
+                covered_generation_count,
+                terminal_history_head,
+                proof,
+                state: HistoricalProofCacheState::from_storage_id(cache_state)?,
+                last_error,
+            };
+            cache.validate()?;
+            Ok(Some(cache))
+        })
+        .await?
+    }
+
+    pub async fn historical_proof_caches_for_unspent_notes(
+        &self,
+    ) -> anyhow::Result<Vec<HistoricalProofCache>> {
+        let pool = self.pool.clone();
+        spawn_blocking(move || {
+            let connection = pool.get()?;
+            let mut statement = connection.prepare_cached(
+                "SELECT c.nullifier, c.protocol_version, c.covered_generation_count,
+                        c.terminal_history_head, c.proof_bundle, c.cache_state, c.last_error
+                 FROM historical_proof_cache c
+                 JOIN spendable_notes n ON n.nullifier = c.nullifier
+                 WHERE n.height_spent IS NULL
+                 ORDER BY n.position ASC",
+            )?;
+            let caches = statement
+                .query_and_then([], |row| {
+                    let nullifier_bytes: Vec<u8> = row.get(0)?;
+                    let terminal_history_head: Vec<u8> = row.get(3)?;
+                    let proof_bundle: Vec<u8> = row.get(4)?;
+                    let cache = HistoricalProofCache {
+                        protocol_version: row.get(1)?,
+                        nullifier: Nullifier::try_from(nullifier_bytes)?,
+                        covered_generation_count: row.get(2)?,
+                        terminal_history_head: terminal_history_head.try_into().map_err(
+                            |bytes: Vec<u8>| {
+                                anyhow!("history head must be 32 bytes, got {}", bytes.len())
+                            },
+                        )?,
+                        proof: pb_sct::HistoricalNullifierProof::decode(proof_bundle.as_slice())?
+                            .try_into()?,
+                        state: HistoricalProofCacheState::from_storage_id(row.get(5)?)?,
+                        last_error: row.get(6)?,
+                    };
+                    cache.validate()?;
+                    anyhow::Ok(cache)
+                })?
+                .collect::<anyhow::Result<Vec<_>>>()?;
+            Ok(caches)
+        })
+        .await?
+    }
+
+    pub async fn delete_historical_proof_cache(&self, nullifier: Nullifier) -> anyhow::Result<()> {
+        let pool = self.pool.clone();
+        spawn_blocking(move || {
+            pool.get()?.execute(
+                "DELETE FROM historical_proof_cache WHERE nullifier = ?1",
+                [nullifier.to_bytes().to_vec()],
+            )?;
+            anyhow::Ok(())
+        })
+        .await?
+    }
+
     /// If the database at `storage_path` exists, [`Self::load`] it, otherwise, [`Self::initialize`] it.
     #[tracing::instrument(
         skip_all,
@@ -744,6 +946,29 @@ impl Storage {
                 .ok_or_else(|| anyhow!("missing gas_prices in kv table"))?;
 
             GasPrices::decode(bytes.as_slice())
+        })
+        .await?
+    }
+
+    pub async fn nullifier_window(&self) -> anyhow::Result<NullifierWindow> {
+        self.nullifier_window_if_initialized()
+            .await?
+            .context("missing nullifier_window in kv table")
+    }
+
+    pub(crate) async fn nullifier_window_if_initialized(
+        &self,
+    ) -> anyhow::Result<Option<NullifierWindow>> {
+        let pool = self.pool.clone();
+        spawn_blocking(move || {
+            let bytes = pool
+                .get()?
+                .prepare_cached("SELECT v FROM kv WHERE k IS 'nullifier_window' LIMIT 1")?
+                .query_row([], |row| row.get::<_, Vec<u8>>("v"))
+                .optional()?;
+            bytes
+                .map(|bytes| pb_sct::NullifierWindow::decode(bytes.as_slice())?.try_into())
+                .transpose()
         })
         .await?
     }
@@ -1391,12 +1616,21 @@ impl Storage {
                         &tx_hash,
                     ),
                 )?;
+                Storage::put_historical_proof_cache_inner(
+                    &dbtx,
+                    &HistoricalProofCache::pending(note_record.nullifier),
+                )?;
             }
 
             // Update any rows of the table with matching nullifiers to have height_spent
             for nullifier in &filtered_block.spent_nullifiers {
                 let height_spent = filtered_block.height as i64;
                 let nullifier_bytes = nullifier.to_bytes().to_vec();
+
+                dbtx.execute(
+                    "DELETE FROM historical_proof_cache WHERE nullifier = ?1",
+                    [&nullifier_bytes],
+                )?;
 
                 let spent_commitment: Option<StateCommitment> = dbtx.prepare_cached(
                     "UPDATE spendable_notes SET height_spent = ?1 WHERE nullifier = ?2 RETURNING note_commitment"
@@ -1471,6 +1705,15 @@ impl Storage {
                     "INSERT INTO kv (k, v) VALUES ('gas_prices', ?1)
                     ON CONFLICT(k) DO UPDATE SET v = excluded.v",
                     [&gas_prices_bytes],
+                )?;
+            }
+
+            if let Some(window) = filtered_block.nullifier_window {
+                let bytes = pb_sct::NullifierWindow::from(window).encode_to_vec();
+                dbtx.execute(
+                    "INSERT INTO kv (k, v) VALUES ('nullifier_window', ?1)
+                    ON CONFLICT(k) DO UPDATE SET v = excluded.v",
+                    [&bytes],
                 )?;
             }
 

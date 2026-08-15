@@ -28,28 +28,7 @@ theorem actionClaimedStatementHash
   calc
     (action rho).publicStatementHash =
         NoteReshapeCanonical.statementHash .reshape8x1
-          [anchor rho,
-           output0NoteCommitmentComputed rho,
-           balanceCommitmentFq rho,
-           assetAnchor rho,
-           routingTag rho,
-           routingParameterSetId rho,
-           spend0NullifierSelected rho,
-           spend0RkCompressed rho,
-           spend1NullifierSelected rho,
-           spend1RkCompressed rho,
-           spend2NullifierSelected rho,
-           spend2RkCompressed rho,
-           spend3NullifierSelected rho,
-           spend3RkCompressed rho,
-           spend4NullifierSelected rho,
-           spend4RkCompressed rho,
-           spend5NullifierSelected rho,
-           spend5RkCompressed rho,
-           spend6NullifierSelected rho,
-           spend6RkCompressed rho,
-           spend7NullifierSelected rho,
-           spend7RkCompressed rho] := by
+          (NoteReshape8x1StatementFirst.fields rho) := by
       exact NoteReshape8x1TranscriptSeams.claimedHash rho facts
     _ = NoteReshapeCanonical.statementHash (action rho).policy
         (NoteReshapeCanonical.statementFields
@@ -59,6 +38,7 @@ theorem actionClaimedStatementHash
            spend2RkCompressed rho, spend3RkCompressed rho,
            spend4RkCompressed rho, spend5RkCompressed rho,
            spend6RkCompressed rho, spend7RkCompressed rho]) := by
+      unfold NoteReshape8x1StatementFirst.fields
       rw [
         ← Generated.NoteReshape8x1Commitments.output0NoteCommitmentAsserted
           rho facts,
@@ -74,6 +54,7 @@ theorem actionClaimedStatementHash
       apply congrArg₂ NoteReshapeCanonical.statementHash
       · rfl
       · simp [
+          NoteReshape8x1StatementFirst.fields,
           action, output0,
           NoteReshapeCanonical.statementFields,
           NoteReshapeCanonical.inputStatementFields,
@@ -82,13 +63,21 @@ theorem actionClaimedStatementHash
         ]
         exact ⟨
           (input0Nullifier rho).symm,
+          (input0HistoryRequired rho).symm,
           (input1Nullifier rho).symm,
+          (input1HistoryRequired rho).symm,
           (input2Nullifier rho).symm,
+          (input2HistoryRequired rho).symm,
           (input3Nullifier rho).symm,
+          (input3HistoryRequired rho).symm,
           (input4Nullifier rho).symm,
+          (input4HistoryRequired rho).symm,
           (input5Nullifier rho).symm,
+          (input5HistoryRequired rho).symm,
           (input6Nullifier rho).symm,
-          (input7Nullifier rho).symm
+          (input6HistoryRequired rho).symm,
+          (input7Nullifier rho).symm,
+          (input7HistoryRequired rho).symm
         ⟩
 
 end Shieldd.GnarkFormal.Deployed.NoteReshape8x1Refinement.C

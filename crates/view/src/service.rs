@@ -40,8 +40,8 @@ use shieldd_sdk_proto::{
         view_service_server::{ViewService, ViewServiceServer},
         AppParametersResponse, AssetMetadataByIdRequest, AssetMetadataByIdResponse,
         BroadcastTransactionResponse, DiscoveryParametersResponse, GasPricesResponse,
-        NoteByCommitmentResponse, StatusResponse, TransactionPlannerResponse, WalletIdRequest,
-        WalletIdResponse, WitnessResponse,
+        NoteByCommitmentResponse, NullifierWindowResponse, StatusResponse,
+        TransactionPlannerResponse, WalletIdRequest, WalletIdResponse, WitnessResponse,
     },
     DomainType,
 };
@@ -53,8 +53,10 @@ use shieldd_sdk_transaction::{
 
 use crate::{
     compliance_tree::{ComplianceAssetTree, ComplianceUserTree},
+    historical_proof_worker::HistoricalProofWorker,
     worker::Worker,
-    AddressPurpose, IssuedAddress, NoteManager, Storage, TransferPlanningResult,
+    AddressPurpose, HistoricalProofProvider, IssuedAddress, NoteManager, Storage,
+    TransferPlanningResult,
 };
 
 /// A [`futures::Stream`] of broadcast transaction responses.
@@ -297,6 +299,23 @@ impl ViewServer {
     /// by this method, rather than calling it multiple times.  That way, each clone
     /// will be backed by the same scanning task, rather than each spawning its own.
     pub async fn new(storage: Storage, node: Url) -> anyhow::Result<Self> {
+        Self::new_inner(storage, node, None).await
+    }
+
+    /// Construct a view service with a local historical-proof backend.
+    pub async fn new_with_historical_prover(
+        storage: Storage,
+        node: Url,
+        historical_prover: Arc<dyn HistoricalProofProvider>,
+    ) -> anyhow::Result<Self> {
+        Self::new_inner(storage, node, Some(historical_prover)).await
+    }
+
+    async fn new_inner(
+        storage: Storage,
+        node: Url,
+        historical_prover: Option<Arc<dyn HistoricalProofProvider>>,
+    ) -> anyhow::Result<Self> {
         let span = tracing::error_span!(parent: None, "view");
         let channel = Self::get_pd_channel(node.clone()).await?;
 
@@ -307,7 +326,7 @@ impl ViewServer {
             sync_height_rx,
             compliance_user_tree,
             compliance_asset_tree,
-        ) = Worker::new(storage.clone(), channel)
+        ) = Worker::new(storage.clone(), channel.clone())
             .instrument(span.clone())
             .tap(|_| tracing::trace!("constructing view server worker"))
             .await?
@@ -315,6 +334,15 @@ impl ViewServer {
 
         tokio::spawn(worker.run().instrument(span))
             .tap(|_| tracing::debug!("spawned view server worker"));
+        tokio::spawn(
+            HistoricalProofWorker::new(
+                storage.clone(),
+                channel,
+                historical_prover,
+                sync_height_rx.clone(),
+            )
+            .run(),
+        );
 
         Ok(Self {
             storage,
@@ -1589,15 +1617,16 @@ impl ViewService for ViewServer {
         let anchor = sct.root();
 
         // Obtain an auth path for each requested note commitment
-        let tx_plan: TransactionPlan =
-            request
-                .get_ref()
-                .to_owned()
-                .transaction_plan
-                .map_or(TransactionPlan::default(), |x| {
-                    x.try_into()
-                        .expect("TransactionPlan should exist in request")
-                });
+        let tx_plan: TransactionPlan = request
+            .get_ref()
+            .to_owned()
+            .transaction_plan
+            .map(TryInto::try_into)
+            .transpose()
+            .map_err(|error| {
+                tonic::Status::invalid_argument(format!("invalid transaction plan: {error}"))
+            })?
+            .unwrap_or_default();
 
         let zero_amount = 0u64.into();
         let all_spend_notes = || {
@@ -1607,6 +1636,54 @@ impl ViewService for ViewServer {
                 .flat_map(|action| action.spends())
                 .chain(tx_plan.fee_funding.iter().flat_map(|f| &f.transfer.spends))
         };
+
+        let real_spend_count = all_spend_notes()
+            .filter(|spend| spend.note.amount() != zero_amount)
+            .count();
+        let mut historical_nullifier_proofs = Vec::new();
+        if real_spend_count > 0 {
+            let plan_window = tx_plan.nullifier_window.ok_or_else(|| {
+                tonic::Status::invalid_argument("spend-bearing plan is missing nullifier window")
+            })?;
+            let current_window = self.storage.nullifier_window().await.map_err(|error| {
+                tonic::Status::unavailable(format!("error getting nullifier window: {error}"))
+            })?;
+            if plan_window != current_window {
+                return Err(tonic::Status::failed_precondition(
+                    "transaction plan nullifier window is stale",
+                ));
+            }
+            let fvk = self.storage.full_viewing_key().await.map_err(|error| {
+                tonic::Status::unavailable(format!("error getting full viewing key: {error}"))
+            })?;
+            for spend in all_spend_notes().filter(|spend| {
+                spend.note.amount() != zero_amount
+                    && u64::from(spend.position) < plan_window.recent_position_floor
+            }) {
+                let nullifier = spend.nullifier(&fvk);
+                let cache = self
+                    .storage
+                    .historical_proof_cache(nullifier)
+                    .await
+                    .map_err(|error| {
+                        tonic::Status::unavailable(format!(
+                            "error loading historical proof cache: {error}"
+                        ))
+                    })?
+                    .ok_or_else(|| {
+                        tonic::Status::failed_precondition(format!(
+                            "historical proof cache is missing for {nullifier}"
+                        ))
+                    })?;
+                historical_nullifier_proofs.push(cache.bundle_for(plan_window).map_err(
+                    |error| {
+                        tonic::Status::failed_precondition(format!(
+                            "historical proof cache is not ready for {nullifier}: {error}"
+                        ))
+                    },
+                )?);
+            }
+        }
 
         let requested_note_commitments: Vec<StateCommitment> = all_spend_notes()
             .filter(|spend| spend.note.amount() != zero_amount)
@@ -1633,6 +1710,7 @@ impl ViewService for ViewServer {
                 .into_iter()
                 .map(|proof| (proof.commitment(), proof))
                 .collect(),
+            historical_nullifier_proofs,
         };
 
         tracing::debug!(?witness_data);
@@ -1759,6 +1837,20 @@ impl ViewService for ViewServer {
         };
 
         Ok(tonic::Response::new(response))
+    }
+
+    #[instrument(skip_all, level = "trace")]
+    async fn nullifier_window(
+        &self,
+        _request: tonic::Request<pb::NullifierWindowRequest>,
+    ) -> Result<tonic::Response<pb::NullifierWindowResponse>, tonic::Status> {
+        self.check_worker().await?;
+        let window = self.storage.nullifier_window().await.map_err(|error| {
+            tonic::Status::unavailable(format!("error getting nullifier window: {error}"))
+        })?;
+        Ok(tonic::Response::new(NullifierWindowResponse {
+            window: Some(window.into()),
+        }))
     }
 
     #[instrument(skip_all, level = "trace")]

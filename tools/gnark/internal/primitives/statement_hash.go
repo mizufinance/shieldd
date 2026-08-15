@@ -10,14 +10,14 @@ import (
 
 const SpendStatementFieldCount = 17
 const OutputStatementFieldCount = 29
-const TransferStatementBaseFields = 38
-const TransferStatementFieldsPerInput = 2
+const TransferStatementBaseFields = 39
+const TransferStatementFieldsPerInput = 3
 const TransferStatementFieldsPerOutput = 1
-const NoteReshapeStatementBaseFields = 5
-const NoteReshapeStatementFieldsPerInput = 2
+const NoteReshapeStatementBaseFields = 6
+const NoteReshapeStatementFieldsPerInput = 3
 const NoteReshapeStatementFieldsPerOutput = 1
-const ShieldedIcs20WithdrawalStatementBaseFields = 14
-const ShieldedIcs20WithdrawalStatementFieldsPerInput = 2
+const ShieldedIcs20WithdrawalStatementBaseFields = 15
+const ShieldedIcs20WithdrawalStatementFieldsPerInput = 3
 
 func hashStatementFields(
 	api frontend.API,
@@ -155,7 +155,7 @@ func TransferStatementHashForShape(
 	return transferStatementHashWithVersion(
 		api,
 		transferStatementLabel(),
-		"v5",
+		"v6",
 		fields,
 		transferStatementFieldCount(nIn, nOut),
 	)
@@ -171,7 +171,7 @@ func NoteReshapeStatementHashForShape(
 	return transferStatementHashWithVersion(
 		api,
 		label,
-		"v2",
+		"v3",
 		fields,
 		NoteReshapeStatementFieldCount(nIn, nOut),
 	)
@@ -198,7 +198,7 @@ func shieldedIcs20WithdrawalStatementHash(
 	return transferStatementHashWithVersion(
 		api,
 		shieldedIcs20WithdrawalStatementLabel(nIn),
-		"v3",
+		"v4",
 		fields,
 		ShieldedIcs20WithdrawalStatementFieldCount(nIn),
 	)
@@ -402,7 +402,7 @@ func TransferStatementHashNativeForShape(
 	return transferStatementHashNativeWithVersion(
 		fields,
 		transferStatementLabel(),
-		"v5",
+		"v6",
 		transferStatementFieldCount(nIn, nOut),
 	)
 }
@@ -415,7 +415,7 @@ func NoteReshapeStatementHashNativeForShape(
 	return transferStatementHashNativeWithVersion(
 		fields,
 		label,
-		"v2",
+		"v3",
 		NoteReshapeStatementFieldCount(nIn, nOut),
 	)
 }
@@ -427,7 +427,7 @@ func ShieldedIcs20WithdrawalStatementHashNativeForShape(
 	return transferStatementHashNativeWithVersion(
 		fields,
 		shieldedIcs20WithdrawalStatementLabel(nIn),
-		"v3",
+		"v4",
 		ShieldedIcs20WithdrawalStatementFieldCount(nIn),
 	)
 }

@@ -49,6 +49,7 @@ pub(crate) fn transfer_extract_public(
             Ok(TransferSpendPublic {
                 nullifier: input.nullifier,
                 rk: input.rk,
+                history_required: input.history_required,
             })
         })
         .collect::<Result<Vec<_>>>()?;
@@ -75,6 +76,7 @@ pub(crate) fn transfer_extract_public(
         compliance: transfer_compliance_public_from_parts(&ciphertext, &metadata)?,
         routing: transfer.body.routing,
         routing_parameter_set_id: transfer.body.routing_parameter_set_id,
+        recent_position_floor: context.recent_position_floor,
     };
     public
         .validate_shape()

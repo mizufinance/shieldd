@@ -1113,6 +1113,7 @@ async fn build_inner_transfer_txs(
             align_metadata(&spend, &mut [&mut output, &mut change]);
 
             let mut plan = TransactionPlan {
+                nullifier_window: None,
                 actions: vec![TransferPlan::new(
                     vec![spend.into()],
                     vec![output.into(), change.into()],
@@ -1177,6 +1178,7 @@ async fn rebuild_ibc_relay_txs(
             anyhow::bail!("stored tx {index} is not an IBC relay action");
         };
         let plan = TransactionPlan {
+            nullifier_window: None,
             actions: vec![ActionPlan::IbcAction(relay.clone())],
             memo: None,
             fee_funding: None,

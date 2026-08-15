@@ -32,13 +32,13 @@ theorem shielded_ics20_withdrawal_circuitFacts (rho : Nat → DeployedF) (h : re
     ShieldedIcs20WithdrawalCircuitFacts rho := by
   exact {
     canonicalSender := ⟨specOf3 rho h, specOf4 rho h, specOf5 rho h, specOf6 rho h, specOf7 rho h, specOf8 rho h, specOf9 rho h⟩
-    requiredSpend := ⟨specOf28 rho h, specOf29 rho h, specOf30 rho h, specOf31 rho h, specOf32 rho h, specOf33 rho h, specOf34 rho h, specOf35 rho h⟩
-    optionalSpend := ⟨specOf38 rho h, specOf39 rho h, specOf40 rho h, specOf41 rho h, specOf42 rho h, specOf43 rho h, specOf44 rho h, specOf45 rho h, specOf46 rho h, specOf47 rho h, specOf48 rho h, specOf49 rho h⟩
-    changeOutput := ⟨specOf52 rho h, specOf53 rho h⟩
+    requiredSpend := ⟨specOf28 rho h, specOf29 rho h, specOf30 rho h, specOf31 rho h, specOf32 rho h, specOf33 rho h, specOf34 rho h, specOf35 rho h, specOf36 rho h⟩
+    optionalSpend := ⟨specOf39 rho h, specOf40 rho h, specOf41 rho h, specOf42 rho h, specOf43 rho h, specOf44 rho h, specOf45 rho h, specOf46 rho h, specOf47 rho h, specOf48 rho h, specOf49 rho h, specOf50 rho h, specOf51 rho h⟩
+    changeOutput := ⟨specOf54 rho h, specOf55 rho h⟩
     assetRegistry := ⟨specOf1 rho h, specOf10 rho h, specOf11 rho h, specOf12 rho h, specOf13 rho h, specOf14 rho h, specOf15 rho h⟩
     senderCompliance := ⟨specOf16 rho h, specOf17 rho h, specOf18 rho h⟩
-    conservation := ⟨specOf55 rho h, specOf56 rho h⟩
-    statementBinding := ⟨specOf19 rho h, specOf20 rho h, specOf21 rho h, specOf22 rho h, specOf23 rho h, specOf24 rho h, specOf25 rho h, specOf26 rho h, specOf58 rho h, specOf59 rho h, specOf60 rho h, specOf61 rho h⟩
+    conservation := ⟨specOf57 rho h, specOf58 rho h⟩
+    statementBinding := ⟨specOf19 rho h, specOf20 rho h, specOf21 rho h, specOf22 rho h, specOf23 rho h, specOf24 rho h, specOf25 rho h, specOf26 rho h, specOf60 rho h, specOf61 rho h, specOf62 rho h, specOf63 rho h, specOf64 rho h⟩
   }
 
 end Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal

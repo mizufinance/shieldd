@@ -538,12 +538,14 @@ theorem circuitFacts_refine
         exact ⟨
           member_of_circuitInterpretation action.anchor real hmembership.1,
           realNullifier_of_circuitInterpretation
-            action.authorization real hmembership.2
+            action.authorization real hmembership.2.1,
+          hmembership.2.2
         ⟩
     | dummy dummy =>
         exact ⟨
           hmembership.1,
-          dummyNullifier_of_circuitInterpretation dummy hmembership.2
+          dummyNullifier_of_circuitInterpretation dummy hmembership.2.1,
+          hmembership.2.2
         ⟩
   · intro input hinput
     have hkey := facts.authorizationKeys input hinput

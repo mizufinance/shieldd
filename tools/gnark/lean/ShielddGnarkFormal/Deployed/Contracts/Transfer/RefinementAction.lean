@@ -89,6 +89,7 @@ def required (rho : Nat → DeployedF) :
       ⟨spend0RkClaimed0 rho, spend0RkClaimed1 rho⟩
     randomizedVerificationKeyEncoding := spend0RkCompressed rho
     authRandomizer := spend0AuthRandomizer rho
+    historyRequired := spend0HistoryRequired rho
   }
 
 def optionalRealNote (rho : Nat → DeployedF) : Note DeployedF :=
@@ -111,6 +112,7 @@ def optionalReal (rho : Nat → DeployedF) :
       ⟨spend1RkClaimed0 rho, spend1RkClaimed1 rho⟩
     randomizedVerificationKeyEncoding := spend1RkCompressed rho
     authRandomizer := spend1AuthRandomizer rho
+    historyRequired := spend1HistoryRequired rho
   }
 
 def optionalDummy (rho : Nat → DeployedF) : DummySpend DeployedF :=
@@ -122,6 +124,7 @@ def optionalDummy (rho : Nat → DeployedF) : DummySpend DeployedF :=
       ⟨spend1RkClaimed0 rho, spend1RkClaimed1 rho⟩
     randomizedVerificationKeyEncoding := spend1RkCompressed rho
     authRandomizer := spend1AuthRandomizer rho
+    historyRequired := spend1HistoryRequired rho
   }
 
 def optional (rho : Nat → DeployedF) :
@@ -211,6 +214,9 @@ def saltAt (rho : Nat → DeployedF) (index : Fin 5) : DeployedF :=
   else if index.val = 3 then salt3 rho
   else salt4 rho
 
+def routingRolesSwapped (rho : Nat → DeployedF) : DeployedF :=
+  rho 65376
+
 def metadata (rho : Nat → DeployedF) : ComplianceMetadata DeployedF :=
   {
     senderSubjectDerivation := complianceMetadata0 rho
@@ -266,6 +272,7 @@ def transcript (rho : Nat → DeployedF) : ComplianceTranscript DeployedF :=
     outputRCore := complianceOutputRCore rho
     outputRExt := complianceOutputRExt rho
     isFlagged := isFlagged rho
+    routingRolesSwapped := routingRolesSwapped rho
     salts := saltAt rho
     detectionCiphertext := complianceDetectionCiphertextAt rho
     metadata := metadata rho
@@ -295,6 +302,7 @@ def action (rho : Nat → DeployedF) :
     targetTimestamp := targetTimestamp rho
     balanceCommitmentEncoding := balanceCommitmentFq rho
     balanceBlinding := actionBalanceBlinding rho
+    recentPositionFloor := recentPositionFloor rho
     routingTags := routingTagsAt rho
     routingParameterSetId := routingParameterSetId rho
     regulatedPrecision := routingRegulatedPrecision rho

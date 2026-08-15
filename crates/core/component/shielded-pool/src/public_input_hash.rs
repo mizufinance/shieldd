@@ -14,14 +14,14 @@ use crate::{
     NoteReshapeFamilyId,
 };
 
-pub const NOTE_RESHAPE_STATEMENT_BASE_FIELDS: usize = 5;
-pub const NOTE_RESHAPE_STATEMENT_FIELDS_PER_INPUT: usize = 2;
+pub const NOTE_RESHAPE_STATEMENT_BASE_FIELDS: usize = 6;
+pub const NOTE_RESHAPE_STATEMENT_FIELDS_PER_INPUT: usize = 3;
 pub const NOTE_RESHAPE_STATEMENT_FIELDS_PER_OUTPUT: usize = 1;
-pub const TRANSFER_STATEMENT_BASE_FIELDS: usize = 38;
-pub const TRANSFER_STATEMENT_FIELDS_PER_INPUT: usize = 2;
+pub const TRANSFER_STATEMENT_BASE_FIELDS: usize = 39;
+pub const TRANSFER_STATEMENT_FIELDS_PER_INPUT: usize = 3;
 pub const TRANSFER_STATEMENT_FIELDS_PER_OUTPUT: usize = 1;
-pub const SHIELDED_ICS20_WITHDRAWAL_STATEMENT_BASE_FIELDS: usize = 14;
-pub const SHIELDED_ICS20_WITHDRAWAL_STATEMENT_FIELDS_PER_INPUT: usize = 2;
+pub const SHIELDED_ICS20_WITHDRAWAL_STATEMENT_BASE_FIELDS: usize = 15;
+pub const SHIELDED_ICS20_WITHDRAWAL_STATEMENT_FIELDS_PER_INPUT: usize = 3;
 
 pub const fn note_reshape_statement_field_count(n_in: usize, n_out: usize) -> usize {
     NOTE_RESHAPE_STATEMENT_BASE_FIELDS
@@ -104,6 +104,7 @@ fn note_reshape_rk_element(
 trait NoteReshapeInputPublic {
     fn nullifier(&self) -> shieldd_sdk_sct::Nullifier;
     fn rk(&self) -> decaf377_rdsa::VerificationKey<decaf377_rdsa::SpendAuth>;
+    fn history_required(&self) -> bool;
 }
 
 trait NoteReshapeOutputPublic {
@@ -117,6 +118,10 @@ impl NoteReshapeInputPublic for crate::NoteReshapeInputPublic {
 
     fn rk(&self) -> decaf377_rdsa::VerificationKey<decaf377_rdsa::SpendAuth> {
         self.rk
+    }
+
+    fn history_required(&self) -> bool {
+        self.history_required
     }
 }
 
@@ -136,6 +141,10 @@ impl NoteReshapeInputPublic
     fn rk(&self) -> decaf377_rdsa::VerificationKey<decaf377_rdsa::SpendAuth> {
         self.rk
     }
+
+    fn history_required(&self) -> bool {
+        self.history_required
+    }
 }
 
 impl NoteReshapeOutputPublic
@@ -151,6 +160,7 @@ fn note_reshape_statement_fields_inner<I, O>(
     balance_commitment: shieldd_sdk_asset::balance::Commitment,
     inputs: &[I],
     outputs: &[O],
+    recent_position_floor: u64,
     expected: usize,
     field_encoding_error: fn(&str) -> StatementHashError,
 ) -> Result<Vec<Fq>, StatementHashError>
@@ -179,6 +189,7 @@ where
             .to_field_elements()
             .ok_or_else(|| field_encoding_error("balance_commitment"))?,
     );
+    fields.push(Fq::from(recent_position_floor));
     for (index, input) in inputs.iter().enumerate() {
         fields.extend(
             input
@@ -192,6 +203,7 @@ where
                 .to_field_elements()
                 .ok_or_else(|| field_encoding_error(&format!("rk_{index}")))?,
         );
+        fields.push(Fq::from(input.history_required()));
     }
 
     if fields.len() != expected {
@@ -220,6 +232,7 @@ pub fn note_reshape_statement_fields(
         public.balance_commitment,
         &public.inputs,
         &public.outputs,
+        public.recent_position_floor,
         expected - 3,
         note_reshape_field_encoding_error,
     )?;
@@ -313,6 +326,7 @@ pub fn transfer_statement_fields(
     );
     fields.extend(public.routing.tags.map(|tag| Fq::from(tag.value)));
     fields.push(public.routing_parameter_set_id);
+    fields.push(Fq::from(public.recent_position_floor));
     for (index, spend) in public.inputs.iter().enumerate() {
         fields.extend(
             spend
@@ -326,6 +340,7 @@ pub fn transfer_statement_fields(
                 .to_field_elements()
                 .ok_or_else(|| transfer_field_encoding_error(&format!("rk_{index}")))?,
         );
+        fields.push(Fq::from(spend.history_required));
     }
     fields.extend(
         public
@@ -427,7 +442,8 @@ pub fn shielded_ics20_withdrawal_statement_fields(
         public.balance_commitment,
         &public.inputs,
         std::slice::from_ref(&public.change_output),
-        2 + 1 + 2 * public.inputs.len(),
+        public.recent_position_floor,
+        4 + 3 * public.inputs.len(),
         |field| StatementHashError::FieldEncoding {
             field: field.to_owned(),
         },
@@ -483,7 +499,7 @@ pub fn note_reshape_statement_hash(
     fields: &[Fq],
 ) -> Result<Fq, StatementHashError> {
     hash_statement_fields(
-        &note_reshape_statement_hash_constant(family_id, "v2"),
+        &note_reshape_statement_hash_constant(family_id, "v3"),
         note_reshape_statement_hash_constant(family_id, "pad0"),
         note_reshape_statement_hash_constant(family_id, "pad1"),
         fields,
@@ -493,7 +509,7 @@ pub fn note_reshape_statement_hash(
 }
 
 pub fn transfer_statement_hash(fields: &[Fq]) -> Result<Fq, StatementHashError> {
-    let domain = transfer_statement_hash_constant("v5");
+    let domain = transfer_statement_hash_constant("v6");
     let pad_0 = transfer_statement_hash_constant("pad0");
     let pad_1 = transfer_statement_hash_constant("pad1");
     hash_statement_fields(
@@ -508,7 +524,7 @@ pub fn transfer_statement_hash(fields: &[Fq]) -> Result<Fq, StatementHashError> 
 
 pub fn shielded_ics20_withdrawal_statement_hash(fields: &[Fq]) -> Result<Fq, StatementHashError> {
     hash_statement_fields(
-        &shielded_ics20_withdrawal_statement_hash_constant("v3"),
+        &shielded_ics20_withdrawal_statement_hash_constant("v4"),
         shielded_ics20_withdrawal_statement_hash_constant("pad0"),
         shielded_ics20_withdrawal_statement_hash_constant("pad1"),
         fields,
@@ -545,7 +561,7 @@ pub fn note_reshape_statement_hash_var(
 ) -> Result<FqVar, SynthesisError> {
     hash_statement_fields_var(
         cs,
-        &note_reshape_statement_hash_constant(family_id, "v2"),
+        &note_reshape_statement_hash_constant(family_id, "v3"),
         note_reshape_statement_hash_constant(family_id, "pad0"),
         note_reshape_statement_hash_constant(family_id, "pad1"),
         fields,
@@ -557,7 +573,7 @@ pub fn transfer_statement_hash_var(
     cs: ConstraintSystemRef<Fq>,
     fields: &[FqVar],
 ) -> Result<FqVar, SynthesisError> {
-    let domain = transfer_statement_hash_constant("v5");
+    let domain = transfer_statement_hash_constant("v6");
     let pad_0 = transfer_statement_hash_constant("pad0");
     let pad_1 = transfer_statement_hash_constant("pad1");
     hash_statement_fields_var(
@@ -582,7 +598,7 @@ mod tests {
 
     fn go_fixture_statement_hash(path: &str) -> (NoteReshapeFamilyId, Fq) {
         let bytes = std::fs::read(path).expect("read Go note reshape fixture");
-        let witness = crate::gnark::decode_note_reshape_witness_v4(&bytes)
+        let witness = crate::gnark::decode_note_reshape_witness_v5(&bytes)
             .expect("decode Go note reshape fixture");
         let mut fields = Vec::with_capacity(note_reshape_statement_field_count(
             witness.n_in as usize,
@@ -603,11 +619,13 @@ mod tests {
         fields.push(Fq::from_le_bytes_mod_order(
             &witness.routing_parameter_set_id,
         ));
+        fields.push(Fq::from_le_bytes_mod_order(&witness.recent_position_floor));
         for spend in &witness.spends {
             fields.push(Fq::from_le_bytes_mod_order(&spend.nullifier));
             fields.push(Fq::from_le_bytes_mod_order(
                 &crate::gnark::point_affine_compress_to_field_bytes(&spend.rk_affine),
             ));
+            fields.push(Fq::from(spend.history_required));
         }
         let hash = note_reshape_statement_hash(witness.family_id, &fields)
             .expect("hash Go note reshape statement fields");
@@ -648,15 +666,15 @@ mod tests {
             .join("../../../..")
             .join("tools/gnark/internal/testfixtures/vectors");
         for (label, filename) in [
-            ("note_reshape1x8", "note_reshape1x8_witness_v4.bin"),
-            ("note_reshape8x1", "note_reshape8x1_witness_v4.bin"),
+            ("note_reshape1x8", "note_reshape1x8_witness_v5.bin"),
+            ("note_reshape8x1", "note_reshape8x1_witness_v5.bin"),
         ] {
             let (family_id, hash) = go_fixture_statement_hash(
                 root.join(filename).to_str().expect("fixture path is UTF-8"),
             );
             assert_eq!(family_id.label(), label);
             let bytes = std::fs::read(root.join(filename)).expect("read Go note reshape fixture");
-            let witness = crate::gnark::decode_note_reshape_witness_v4(&bytes)
+            let witness = crate::gnark::decode_note_reshape_witness_v5(&bytes)
                 .expect("decode Go note reshape fixture");
             assert_eq!(
                 hash,
@@ -778,7 +796,7 @@ mod tests {
         let (public, _) = proof_test_helpers::build_transfer_roundtrip_inputs(true);
         let fields = transfer_statement_fields(&public).expect("transfer statement fields");
         assert_eq!(fields.len(), TRANSFER_STATEMENT_FIELD_COUNT);
-        assert_eq!(fields[33], public.target_timestamp);
+        assert_eq!(fields[36], public.target_timestamp);
 
         let metadata = &public.compliance.metadata;
         let expected_metadata = [
@@ -793,9 +811,9 @@ mod tests {
             metadata.output_core_salt().unwrap(),
             metadata.output_ext_salt().unwrap(),
         ];
-        assert_eq!(&fields[34..], expected_metadata.as_slice());
+        assert_eq!(&fields[37..], expected_metadata.as_slice());
 
-        let v5 = transfer_statement_hash(&fields).expect("v5 transfer hash");
+        let v6 = transfer_statement_hash(&fields).expect("v6 transfer hash");
         let v3 = hash_statement_fields(
             &transfer_statement_hash_constant("v3"),
             transfer_statement_hash_constant("pad0"),
@@ -805,7 +823,7 @@ mod tests {
             |expected, got| StatementHashError::InvalidFieldLength { expected, got },
         )
         .expect("legacy domain hash");
-        assert_ne!(v5, v3, "V17 must not verify under the V15 hash domain");
+        assert_ne!(v6, v3, "V18 must not verify under the V15 hash domain");
     }
 
     #[test]

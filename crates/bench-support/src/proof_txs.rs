@@ -233,6 +233,7 @@ pub async fn build_proof_transactions(
                     chain_id: TestNode::<()>::CHAIN_ID.to_string(),
                     ..Default::default()
                 },
+                nullifier_window: None,
             };
 
             let tx = client

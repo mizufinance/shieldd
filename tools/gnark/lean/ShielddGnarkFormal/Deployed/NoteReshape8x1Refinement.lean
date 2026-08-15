@@ -43,25 +43,25 @@ def path0 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
   NoteReshapeMembershipBridge.segmentPath (Seg42.localRho rho)
 
 def path1 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
-  NoteReshapeMembershipBridge.segmentPath (Seg56.localRho rho)
+  NoteReshapeMembershipBridge.segmentPath (Seg57.localRho rho)
 
 def path2 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
-  NoteReshapeMembershipBridge.segmentPath (Seg70.localRho rho)
+  NoteReshapeMembershipBridge.segmentPath (Seg72.localRho rho)
 
 def path3 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
-  NoteReshapeMembershipBridge.segmentPath (Seg84.localRho rho)
+  NoteReshapeMembershipBridge.segmentPath (Seg87.localRho rho)
 
 def path4 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
-  NoteReshapeMembershipBridge.segmentPath (Seg98.localRho rho)
+  NoteReshapeMembershipBridge.segmentPath (Seg102.localRho rho)
 
 def path5 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
-  NoteReshapeMembershipBridge.segmentPath (Seg112.localRho rho)
+  NoteReshapeMembershipBridge.segmentPath (Seg117.localRho rho)
 
 def path6 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
-  NoteReshapeMembershipBridge.segmentPath (Seg126.localRho rho)
+  NoteReshapeMembershipBridge.segmentPath (Seg132.localRho rho)
 
 def path7 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
-  NoteReshapeMembershipBridge.segmentPath (Seg140.localRho rho)
+  NoteReshapeMembershipBridge.segmentPath (Seg147.localRho rho)
 
 def realInput0 (rho : Nat → DeployedF) :
     RealInput DeployedF NoteReshapeCanonical.Path24 :=
@@ -74,6 +74,7 @@ def realInput0 (rho : Nat → DeployedF) :
     membershipProof := path0 rho
     randomizedVerificationKey := ⟨spend0RkClaimed0 rho, spend0RkClaimed1 rho⟩
     randomizer := syntheticSpends0AuthRandomizer rho
+    historyRequired := spend0HistoryRequired rho
   }
 
 def realInput1 (rho : Nat → DeployedF) :
@@ -87,6 +88,7 @@ def realInput1 (rho : Nat → DeployedF) :
     membershipProof := path1 rho
     randomizedVerificationKey := ⟨spend1RkClaimed0 rho, spend1RkClaimed1 rho⟩
     randomizer := syntheticSpends1AuthRandomizer rho
+    historyRequired := spend1HistoryRequired rho
   }
 
 def realInput2 (rho : Nat → DeployedF) :
@@ -100,6 +102,7 @@ def realInput2 (rho : Nat → DeployedF) :
     membershipProof := path2 rho
     randomizedVerificationKey := ⟨spend2RkClaimed0 rho, spend2RkClaimed1 rho⟩
     randomizer := syntheticSpends2AuthRandomizer rho
+    historyRequired := spend2HistoryRequired rho
   }
 
 def realInput3 (rho : Nat → DeployedF) :
@@ -113,6 +116,7 @@ def realInput3 (rho : Nat → DeployedF) :
     membershipProof := path3 rho
     randomizedVerificationKey := ⟨spend3RkClaimed0 rho, spend3RkClaimed1 rho⟩
     randomizer := syntheticSpends3AuthRandomizer rho
+    historyRequired := spend3HistoryRequired rho
   }
 
 def realInput4 (rho : Nat → DeployedF) :
@@ -126,6 +130,7 @@ def realInput4 (rho : Nat → DeployedF) :
     membershipProof := path4 rho
     randomizedVerificationKey := ⟨spend4RkClaimed0 rho, spend4RkClaimed1 rho⟩
     randomizer := syntheticSpends4AuthRandomizer rho
+    historyRequired := spend4HistoryRequired rho
   }
 
 def realInput5 (rho : Nat → DeployedF) :
@@ -139,6 +144,7 @@ def realInput5 (rho : Nat → DeployedF) :
     membershipProof := path5 rho
     randomizedVerificationKey := ⟨spend5RkClaimed0 rho, spend5RkClaimed1 rho⟩
     randomizer := syntheticSpends5AuthRandomizer rho
+    historyRequired := spend5HistoryRequired rho
   }
 
 def realInput6 (rho : Nat → DeployedF) :
@@ -152,6 +158,7 @@ def realInput6 (rho : Nat → DeployedF) :
     membershipProof := path6 rho
     randomizedVerificationKey := ⟨spend6RkClaimed0 rho, spend6RkClaimed1 rho⟩
     randomizer := syntheticSpends6AuthRandomizer rho
+    historyRequired := spend6HistoryRequired rho
   }
 
 def realInput7 (rho : Nat → DeployedF) :
@@ -165,6 +172,7 @@ def realInput7 (rho : Nat → DeployedF) :
     membershipProof := path7 rho
     randomizedVerificationKey := ⟨spend7RkClaimed0 rho, spend7RkClaimed1 rho⟩
     randomizer := syntheticSpends7AuthRandomizer rho
+    historyRequired := spend7HistoryRequired rho
   }
 
 def dummyInput0 (rho : Nat → DeployedF) : DummyInput DeployedF :=
@@ -172,56 +180,64 @@ def dummyInput0 (rho : Nat → DeployedF) : DummyInput DeployedF :=
     nullifier := spend0NullifierClaimed rho,
     nullifierSeed := syntheticSpends0DummyNullifierSeed rho,
     randomizedVerificationKey := ⟨spend0RkClaimed0 rho, spend0RkClaimed1 rho⟩,
-    randomizer := syntheticSpends0AuthRandomizer rho }
+    randomizer := syntheticSpends0AuthRandomizer rho,
+    historyRequired := spend0HistoryRequired rho }
 
 def dummyInput1 (rho : Nat → DeployedF) : DummyInput DeployedF :=
   { slotIndex := 1, amount := spend1NoteCommitmentInputs1 rho,
     nullifier := spend1NullifierClaimed rho,
     nullifierSeed := syntheticSpends1DummyNullifierSeed rho,
     randomizedVerificationKey := ⟨spend1RkClaimed0 rho, spend1RkClaimed1 rho⟩,
-    randomizer := syntheticSpends1AuthRandomizer rho }
+    randomizer := syntheticSpends1AuthRandomizer rho,
+    historyRequired := spend1HistoryRequired rho }
 
 def dummyInput2 (rho : Nat → DeployedF) : DummyInput DeployedF :=
   { slotIndex := 2, amount := spend2NoteCommitmentInputs1 rho,
     nullifier := spend2NullifierClaimed rho,
     nullifierSeed := syntheticSpends2DummyNullifierSeed rho,
     randomizedVerificationKey := ⟨spend2RkClaimed0 rho, spend2RkClaimed1 rho⟩,
-    randomizer := syntheticSpends2AuthRandomizer rho }
+    randomizer := syntheticSpends2AuthRandomizer rho,
+    historyRequired := spend2HistoryRequired rho }
 
 def dummyInput3 (rho : Nat → DeployedF) : DummyInput DeployedF :=
   { slotIndex := 3, amount := spend3NoteCommitmentInputs1 rho,
     nullifier := spend3NullifierClaimed rho,
     nullifierSeed := syntheticSpends3DummyNullifierSeed rho,
     randomizedVerificationKey := ⟨spend3RkClaimed0 rho, spend3RkClaimed1 rho⟩,
-    randomizer := syntheticSpends3AuthRandomizer rho }
+    randomizer := syntheticSpends3AuthRandomizer rho,
+    historyRequired := spend3HistoryRequired rho }
 
 def dummyInput4 (rho : Nat → DeployedF) : DummyInput DeployedF :=
   { slotIndex := 4, amount := spend4NoteCommitmentInputs1 rho,
     nullifier := spend4NullifierClaimed rho,
     nullifierSeed := syntheticSpends4DummyNullifierSeed rho,
     randomizedVerificationKey := ⟨spend4RkClaimed0 rho, spend4RkClaimed1 rho⟩,
-    randomizer := syntheticSpends4AuthRandomizer rho }
+    randomizer := syntheticSpends4AuthRandomizer rho,
+    historyRequired := spend4HistoryRequired rho }
 
 def dummyInput5 (rho : Nat → DeployedF) : DummyInput DeployedF :=
   { slotIndex := 5, amount := spend5NoteCommitmentInputs1 rho,
     nullifier := spend5NullifierClaimed rho,
     nullifierSeed := syntheticSpends5DummyNullifierSeed rho,
     randomizedVerificationKey := ⟨spend5RkClaimed0 rho, spend5RkClaimed1 rho⟩,
-    randomizer := syntheticSpends5AuthRandomizer rho }
+    randomizer := syntheticSpends5AuthRandomizer rho,
+    historyRequired := spend5HistoryRequired rho }
 
 def dummyInput6 (rho : Nat → DeployedF) : DummyInput DeployedF :=
   { slotIndex := 6, amount := spend6NoteCommitmentInputs1 rho,
     nullifier := spend6NullifierClaimed rho,
     nullifierSeed := syntheticSpends6DummyNullifierSeed rho,
     randomizedVerificationKey := ⟨spend6RkClaimed0 rho, spend6RkClaimed1 rho⟩,
-    randomizer := syntheticSpends6AuthRandomizer rho }
+    randomizer := syntheticSpends6AuthRandomizer rho,
+    historyRequired := spend6HistoryRequired rho }
 
 def dummyInput7 (rho : Nat → DeployedF) : DummyInput DeployedF :=
   { slotIndex := 7, amount := spend7NoteCommitmentInputs1 rho,
     nullifier := spend7NullifierClaimed rho,
     nullifierSeed := syntheticSpends7DummyNullifierSeed rho,
     randomizedVerificationKey := ⟨spend7RkClaimed0 rho, spend7RkClaimed1 rho⟩,
-    randomizer := syntheticSpends7AuthRandomizer rho }
+    randomizer := syntheticSpends7AuthRandomizer rho,
+    historyRequired := spend7HistoryRequired rho }
 
 def input0 (rho : Nat → DeployedF) : Input DeployedF NoteReshapeCanonical.Path24 :=
   if syntheticSpends0IsDummy rho = 0 then
@@ -351,6 +367,46 @@ def input7 (rho : Nat → DeployedF) : Input DeployedF NoteReshapeCanonical.Path
   by_cases h : syntheticSpends7IsDummy rho = 0 <;>
     simp [input7, realInput7, dummyInput7, Input.nullifier, h]
 
+@[simp] theorem input0HistoryRequired (rho : Nat → DeployedF) :
+    (input0 rho).historyRequired = spend0HistoryRequired rho := by
+  by_cases h : syntheticSpends0IsDummy rho = 0 <;>
+    simp [input0, realInput0, dummyInput0, Input.historyRequired, h]
+
+@[simp] theorem input1HistoryRequired (rho : Nat → DeployedF) :
+    (input1 rho).historyRequired = spend1HistoryRequired rho := by
+  by_cases h : syntheticSpends1IsDummy rho = 0 <;>
+    simp [input1, realInput1, dummyInput1, Input.historyRequired, h]
+
+@[simp] theorem input2HistoryRequired (rho : Nat → DeployedF) :
+    (input2 rho).historyRequired = spend2HistoryRequired rho := by
+  by_cases h : syntheticSpends2IsDummy rho = 0 <;>
+    simp [input2, realInput2, dummyInput2, Input.historyRequired, h]
+
+@[simp] theorem input3HistoryRequired (rho : Nat → DeployedF) :
+    (input3 rho).historyRequired = spend3HistoryRequired rho := by
+  by_cases h : syntheticSpends3IsDummy rho = 0 <;>
+    simp [input3, realInput3, dummyInput3, Input.historyRequired, h]
+
+@[simp] theorem input4HistoryRequired (rho : Nat → DeployedF) :
+    (input4 rho).historyRequired = spend4HistoryRequired rho := by
+  by_cases h : syntheticSpends4IsDummy rho = 0 <;>
+    simp [input4, realInput4, dummyInput4, Input.historyRequired, h]
+
+@[simp] theorem input5HistoryRequired (rho : Nat → DeployedF) :
+    (input5 rho).historyRequired = spend5HistoryRequired rho := by
+  by_cases h : syntheticSpends5IsDummy rho = 0 <;>
+    simp [input5, realInput5, dummyInput5, Input.historyRequired, h]
+
+@[simp] theorem input6HistoryRequired (rho : Nat → DeployedF) :
+    (input6 rho).historyRequired = spend6HistoryRequired rho := by
+  by_cases h : syntheticSpends6IsDummy rho = 0 <;>
+    simp [input6, realInput6, dummyInput6, Input.historyRequired, h]
+
+@[simp] theorem input7HistoryRequired (rho : Nat → DeployedF) :
+    (input7 rho).historyRequired = spend7HistoryRequired rho := by
+  by_cases h : syntheticSpends7IsDummy rho = 0 <;>
+    simp [input7, realInput7, dummyInput7, Input.historyRequired, h]
+
 @[simp] theorem input0Rk (rho : Nat → DeployedF) :
     Input.rk (input0 rho) = ⟨spend0RkClaimed0 rho, spend0RkClaimed1 rho⟩ := by
   by_cases h : syntheticSpends0IsDummy rho = 0 <;>
@@ -412,6 +468,7 @@ def action (rho : Nat → DeployedF) :
     assetAnchor := assetAnchor rho
     routingTag := routingTag rho
     routingParameterSetId := routingParameterSetId rho
+    recentPositionFloor := recentPositionFloor rho
     balanceCommitment := ⟨claimedBalanceCommitment0 rho, claimedBalanceCommitment1 rho⟩
     balanceBlinding := actionBalanceBlinding rho
     publicStatementHash := claimedStatementHash rho

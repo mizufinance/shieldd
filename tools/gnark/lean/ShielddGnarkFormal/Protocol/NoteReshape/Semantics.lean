@@ -57,6 +57,7 @@ structure RealInput (F : Type u) (Path : Type v) where
   membershipProof : Path
   randomizedVerificationKey : Point F
   randomizer : F
+  historyRequired : F
   deriving DecidableEq, Repr
 
 /--
@@ -71,6 +72,7 @@ structure DummyInput (F : Type u) where
   nullifierSeed : F
   randomizedVerificationKey : Point F
   randomizer : F
+  historyRequired : F
   deriving DecidableEq, Repr
 
 inductive Input (F : Type u) (Path : Type v)
@@ -94,6 +96,7 @@ structure Action (F : Type u) (Path : Type v) where
   assetAnchor : F
   routingTag : F
   routingParameterSetId : F
+  recentPositionFloor : F
   balanceCommitment : Point F
   balanceBlinding : F
   publicStatementHash : F
@@ -114,6 +117,10 @@ def Input.nullifier : Input F Path → F
 def Input.amount : Input F Path → F
   | .real input => input.amount
   | .dummy input => input.amount
+
+def Input.historyRequired : Input F Path → F
+  | .real input => input.historyRequired
+  | .dummy input => input.historyRequired
 
 /-- Consensus state observed immediately before or after this action executes. -/
 structure ConsensusState (F : Type u) where
@@ -195,6 +202,7 @@ structure CircuitPrimitives (F : Type u) (Path : Type v) where
   member : F → RealInput F Path → Prop
   realNullifier : AuthorizationContext F → RealInput F Path → Prop
   dummyNullifier : DummyInput F → Prop
+  historyClassification : F → F → F → Prop
   randomizedKeyReal :
     AuthorizationContext F → RealInput F Path → Prop
   conservation : Action F Path → Prop
@@ -296,9 +304,13 @@ def membershipAndNullifiers [Zero F]
     match input with
     | .real real =>
         primitives.member action.anchor real ∧
-          primitives.realNullifier action.authorization real
+          primitives.realNullifier action.authorization real ∧
+          primitives.historyClassification
+            real.statePosition action.recentPositionFloor real.historyRequired
     | .dummy dummy =>
-        dummy.amount = 0 ∧ primitives.dummyNullifier dummy
+        dummy.amount = 0 ∧
+          primitives.dummyNullifier dummy ∧
+          dummy.historyRequired = 0
 
 def randomizedKeys
     (primitives : CircuitPrimitives F Path) (action : Action F Path) : Prop :=

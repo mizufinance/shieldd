@@ -412,7 +412,7 @@ pub mod proof_test_helpers {
         .expect("build transfer plan");
 
         transfer
-            .transfer_public_private(&base.fvk, &state_commitment_proofs, anchor)
+            .transfer_public_private(&base.fvk, &state_commitment_proofs, anchor, 0)
             .expect("derive transfer public/private inputs")
     }
 
@@ -647,7 +647,7 @@ pub mod proof_test_helpers {
             .expect("build hidden-arity transfer plan");
 
         transfer
-            .transfer_public_private(&base.fvk, &[state_commitment_proof], anchor)
+            .transfer_public_private(&base.fvk, &[state_commitment_proof], anchor, 0)
             .expect("derive hidden-arity transfer public/private inputs")
     }
 
@@ -794,7 +794,7 @@ pub mod proof_test_helpers {
         .expect("build transfer plan");
 
         let (public, _) = transfer_plan
-            .transfer_public_private(&base.fvk, &state_commitment_proofs, anchor)
+            .transfer_public_private(&base.fvk, &state_commitment_proofs, anchor, 0)
             .expect("derive transfer public/private inputs");
         let effect_hash = shieldd_sdk_txhash::EffectHash::default();
         let auth_sigs = transfer_plan
@@ -813,6 +813,7 @@ pub mod proof_test_helpers {
                     state_commitment_proofs,
                     anchor,
                     &memo_key,
+                    0,
                 )
                 .expect("build transfer action")
         } else {
@@ -823,6 +824,7 @@ pub mod proof_test_helpers {
                     anchor,
                     &memo_key,
                     crate::TransferProof::default(),
+                    0,
                 )
                 .expect("build transfer action without proof")
         };
@@ -833,6 +835,7 @@ pub mod proof_test_helpers {
             TransactionContext {
                 anchor,
                 effect_hash,
+                recent_position_floor: 0,
             },
         )
     }
@@ -926,7 +929,7 @@ pub mod proof_test_helpers {
             Fr::rand(rng),
         )
         .expect("build note reshape plan");
-        plan.note_reshape_public_private(&base.fvk, &state_commitment_proofs, anchor)
+        plan.note_reshape_public_private(&base.fvk, &state_commitment_proofs, anchor, 0)
             .expect("derive note reshape public/private inputs")
     }
 
@@ -1037,16 +1040,19 @@ pub mod proof_test_helpers {
         let mut input_publics = vec![ShieldedIcs20WithdrawalInputPublic {
             nullifier: spend_a.nullifier(&base.fvk),
             rk: spend_a.rk(&base.fvk),
+            history_required: false,
         }];
         input_publics.push(if real_spends == 2 {
             ShieldedIcs20WithdrawalInputPublic {
                 nullifier: spend_b.nullifier(&base.fvk),
                 rk: spend_b.rk(&base.fvk),
+                history_required: false,
             }
         } else {
             ShieldedIcs20WithdrawalInputPublic {
                 nullifier: padder.synthetic_dummy_nullifier(1),
                 rk: padder.synthetic_dummy_verification_key(1),
+                history_required: false,
             }
         });
         let required_input = ShieldedIcs20WithdrawalRequiredInputPrivate {
@@ -1108,6 +1114,7 @@ pub mod proof_test_helpers {
                 ],
                 routing_tag,
                 routing_parameter_set_id: routing_parameters.id(),
+                recent_position_floor: 0,
             },
             ShieldedIcs20WithdrawalProofPrivate {
                 family_id,

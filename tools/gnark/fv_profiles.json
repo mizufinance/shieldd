@@ -6,11 +6,11 @@
       "kind": "note_reshape",
       "n_in": 8,
       "n_out": 1,
-      "witness_format_version": 4,
+      "witness_format_version": 5,
       "proof_witnesses": [
         {
           "case": "note_reshape8x1",
-          "path": "internal/testfixtures/vectors/note_reshape8x1_witness_v4.bin"
+          "path": "internal/testfixtures/vectors/note_reshape8x1_witness_v5.bin"
         }
       ],
       "artifact_dir": "artifacts/note_reshape8x1",
@@ -24,11 +24,11 @@
       "kind": "note_reshape",
       "n_in": 1,
       "n_out": 8,
-      "witness_format_version": 4,
+      "witness_format_version": 5,
       "proof_witnesses": [
         {
           "case": "note_reshape1x8",
-          "path": "internal/testfixtures/vectors/note_reshape1x8_witness_v4.bin"
+          "path": "internal/testfixtures/vectors/note_reshape1x8_witness_v5.bin"
         }
       ],
       "artifact_dir": "artifacts/note_reshape1x8",
@@ -42,19 +42,19 @@
       "kind": "transfer",
       "n_in": 2,
       "n_out": 2,
-      "witness_format_version": 17,
+      "witness_format_version": 18,
       "proof_witnesses": [
         {
           "case": "regulated_unflagged",
-          "path": "internal/testfixtures/vectors/transfer_witness_v17.bin"
+          "path": "internal/testfixtures/vectors/transfer_witness_v18.bin"
         },
         {
           "case": "regulated_flagged_hidden",
-          "path": "internal/testfixtures/vectors/transfer_flagged_witness_v17.bin"
+          "path": "internal/testfixtures/vectors/transfer_flagged_witness_v18.bin"
         },
         {
           "case": "unregulated_hidden",
-          "path": "internal/testfixtures/vectors/transfer_unregulated_witness_v17.bin"
+          "path": "internal/testfixtures/vectors/transfer_unregulated_witness_v18.bin"
         }
       ],
       "artifact_dir": "artifacts/transfer",
@@ -68,15 +68,15 @@
       "kind": "shielded_ics20_withdrawal",
       "n_in": 2,
       "n_out": 1,
-      "witness_format_version": 9,
+      "witness_format_version": 10,
       "proof_witnesses": [
         {
           "case": "regulated_optional_real",
-          "path": "internal/testfixtures/vectors/shielded_ics20_withdrawal_witness_v9.bin"
+          "path": "internal/testfixtures/vectors/shielded_ics20_withdrawal_witness_v10.bin"
         },
         {
           "case": "unregulated_optional_dummy",
-          "path": "internal/testfixtures/vectors/shielded_ics20_withdrawal_unregulated_witness_v9.bin"
+          "path": "internal/testfixtures/vectors/shielded_ics20_withdrawal_unregulated_witness_v10.bin"
         }
       ],
       "artifact_dir": "artifacts/shielded_ics20_withdrawal",

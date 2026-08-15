@@ -60,6 +60,7 @@ class NoteReshapeTemplateSemanticsTest(unittest.TestCase):
             ("gen_certified_composite_semantics", "generated_files"),
             ("gen_routing_semantics", "generated_files"),
             ("gen_certified_statement_hash_semantics", "generated_files"),
+            ("gen_history_classify_semantics", "generated_files"),
         }
         actual = {
             (module, function)

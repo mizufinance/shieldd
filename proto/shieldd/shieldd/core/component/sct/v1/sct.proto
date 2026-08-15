@@ -66,6 +66,58 @@ message Nullifier {
   bytes inner = 1;
 }
 
+// Canonical storage identity for a Poseidon indexed nullifier generation tree.
+message NullifierTreeId {
+  uint64 generation = 1;
+}
+
+// Consensus state for the two active nullifier generations and retired history.
+message NullifierGenerationState {
+  uint32 protocol_version = 1;
+  uint64 activation_epoch = 2;
+  uint64 current_generation = 3;
+  NullifierTreeId current_tree = 4;
+  bytes current_root = 5;
+  uint64 current_start_position = 6;
+  NullifierTreeId previous_tree = 7;
+  bytes previous_root = 8;
+  uint64 recent_position_floor = 9;
+  uint64 archived_generation_count = 10;
+  bytes archived_history_head = 11;
+}
+
+// Public transaction projection of nullifier generation state.
+message NullifierWindow {
+  uint32 protocol_version = 1;
+  uint64 current_generation = 2;
+  uint64 recent_position_floor = 3;
+  uint64 archived_generation_count = 4;
+  bytes archived_history_head = 5;
+}
+
+// One BLS12-377 proof of nonmembership in a retired generation.
+message GenerationNonmembershipProof {
+  uint64 generation_index = 1;
+  bytes generation_root = 2;
+  uint64 generation_start_position = 3;
+  uint64 generation_end_position = 4;
+  bytes groth16_proof = 5;
+}
+
+// One BW6-761 proof covering a canonical fixed-width history chunk.
+message HistoricalChunkProof {
+  uint64 chunk_index = 1;
+  bytes end_history_head = 2;
+  bytes groth16_proof = 3;
+}
+
+// Complete retired-prefix proof for one public nullifier.
+message HistoricalNullifierProof {
+  Nullifier nullifier = 1;
+  repeated HistoricalChunkProof completed_chunks = 2;
+  repeated GenerationNonmembershipProof tail = 3;
+}
+
 // Event recording a new commitment added to the SCT.
 message EventCommitment {
   crypto.tct.v1.StateCommitment commitment = 1;
@@ -92,6 +144,26 @@ message EventBlockRoot {
   crypto.tct.v1.MerkleRoot root = 1;
   uint64 height = 2;
   google.protobuf.Timestamp timestamp = 3;
+}
+
+// Event emitted when the current generation becomes the retained previous tree.
+message EventNullifierGenerationFrozen {
+  uint64 generation_index = 1;
+  uint64 application_epoch_start = 2;
+  uint64 application_epoch_end = 3;
+  uint64 generation_start_position = 4;
+  uint64 generation_end_position = 5;
+  bytes generation_root = 6;
+}
+
+// Event emitted when the previous generation enters the committed retired history.
+message EventNullifierGenerationArchived {
+  uint64 generation_index = 1;
+  uint64 generation_start_position = 2;
+  uint64 generation_end_position = 3;
+  bytes generation_root = 4;
+  uint64 archived_generation_count = 5;
+  bytes archived_history_head = 6;
 }
 
 message EpochByHeightRequest {
@@ -141,15 +213,59 @@ message NullifierRequest {
 }
 
 message NullifierResponse {
-  reserved 2;
-  reserved "nullification_info";
   bool spent = 1;
-  // The committed nullifier tree root used for this lookup; always present
-  // when the server has initialized SCT state.
-  bytes nullifier_root = 3;
+  NullifierWindow window = 2;
+  repeated NullifierTreeLookup active_lookups = 3;
+}
+
+// Lookup result against one active nullifier tree.
+message NullifierTreeLookup {
+  NullifierTreeId tree = 1;
+  bytes root = 2;
+  bool spent = 3;
   // Present only when NullifierRequest.with_proof = true.
-  // Borsh-encoded JMT SparseMerkleProof<Sha256>.
-  bytes proof = 4;
+  IndexedNullifierWitness proof = 4;
+}
+
+message NullifierWindowRequest {}
+
+message NullifierWindowResponse {
+  NullifierWindow window = 1;
+}
+
+// Retained archive lookup used to construct a generation proof locally.
+message ArchivedNullifierProofRequest {
+  uint64 generation_index = 1;
+  Nullifier nullifier = 2;
+}
+
+message IndexedNullifierLeaf {
+  bytes value = 1;
+  uint64 next_index = 2;
+  bytes next_value = 3;
+  bool is_lower_sentinel = 4;
+  bool is_terminal = 5;
+}
+
+message IndexedNullifierPathLayer {
+  // The three siblings in left-to-right order with the path child omitted.
+  repeated bytes siblings = 1;
+}
+
+message IndexedNullifierWitness {
+  uint64 leaf_position = 1;
+  IndexedNullifierLeaf leaf = 2;
+  // Exactly 20 bottom-to-root quaternary layers.
+  repeated IndexedNullifierPathLayer auth_path = 3;
+}
+
+message ArchivedNullifierProofResponse {
+  uint32 protocol_version = 1;
+  uint64 generation_index = 2;
+  bytes generation_root = 3;
+  uint64 generation_start_position = 4;
+  uint64 generation_end_position = 5;
+  IndexedNullifierWitness witness = 6;
 }
 
 // Query operations for the SCT component.
@@ -159,4 +275,6 @@ service QueryService {
   rpc TimestampByHeight(TimestampByHeightRequest) returns (TimestampByHeightResponse);
   rpc SctFrontier(SctFrontierRequest) returns (SctFrontierResponse);
   rpc Nullifier(NullifierRequest) returns (NullifierResponse);
+  rpc NullifierWindow(NullifierWindowRequest) returns (NullifierWindowResponse);
+  rpc ArchivedNullifierProof(ArchivedNullifierProofRequest) returns (ArchivedNullifierProofResponse);
 }

@@ -30,16 +30,18 @@ The obligation ledger is
 The certified set is fixed-padded `note_reshape1x8` and `note_reshape8x1`,
 fixed Transfer 2x2, and fixed shielded ICS-20 Withdrawal 2x1. The adapters cover
 commitments, membership/nullifiers,
-real/dummy selection, randomized keys, conservation, canonical encodings, and
-the exact native statement hash. Transfer additionally covers its asset/user
+real/dummy selection, the exact old/recent nullifier-history classification,
+randomized keys, conservation, canonical encodings, and the exact native
+statement hash. Transfer additionally covers its asset/user
 registry proofs, regulation-gated threshold comparison, unconditional compliance
 ciphertexts, salts, shared-secret/ACK derivations, and factored metadata.
-Transfer V17 also proves the v3 six-field compliance leaves, excludes
+Transfer V18 also proves the v3 six-field compliance leaves, excludes
 the asset-tree zero sentinel, constrains both detection slots to 32 bits, and
 keeps the exact asset separate from the flag packed into sender-slot bit 32.
-It has no DLEQ or public shared-point surface. Withdrawal V9 proves the same
+It has no DLEQ or public shared-point surface. Withdrawal V10 proves the same
 leaf/sentinel invariants, its compact canonical asset leaf, outbound value, and
-all four 128-bit effect-hash limbs.
+all four 128-bit effect-hash limbs. The recent-position floor and each
+history-required bit are included in the exact public statement projection.
 
 External proof-key selection, body/public-input projection, signatures, current
 asset policy, recent append-only user roots, registry authorization, nullifier
@@ -210,8 +212,8 @@ branch/disclosure contract, role, trace row, formal fact, transition clause,
 ledger row, required test, or stated assumption silently falls out of the
 implementation/proof chain.
 
-The version-4 NoteReshape witness contains one private shared asset ID,
-diversified generator, transmission key, and routing nonce. Transfer V17 and Withdrawal V9 likewise
+The version-5 NoteReshape witness contains one private shared asset ID,
+diversified generator, transmission key, and routing nonce. Transfer V18 and Withdrawal V10 likewise
 derive their public bodies and shared sender context from canonical plan facts.
 There is no persisted placeholder action body or duplicate balance in any of
 the three proof plans.
@@ -324,6 +326,41 @@ theorem roots, axiom baseline, and toolchain, and the strict manual/nightly lane
 rejects stale evidence. This is a prototype cadence decision, not a claim that
 CI independently reruns Lean or that candidate checks replace local proof
 verification.
+
+## Lean circuit inner loop
+
+The certified circuit workflow has three explicit tiers:
+
+| Tier | Command | Intended use |
+|---|---|---|
+| Fast | `scripts/fv-lean.sh fast <circuit>` | Generator, drift, import, stamp, and vector checks; no Lean or prover |
+| Affected | `scripts/fv-lean.sh affected <circuit>` | Fast tier plus that circuit's final theorem root only |
+| Full | `scripts/fv-lean.sh full all` | Release-gated Lean, theorem audit, proving, and receipt checks |
+
+Normal circuit edits should stay in `fast` until source generation and semantic
+joins stabilize, then run `affected` for the edited family. `full` is a release
+operation, not the edit loop.
+
+Build telemetry is emitted by `scripts/lean-build-safe.sh` when
+`LEAN_BUILD_METRICS_OUT` is set. Budgets live in
+`tools/gnark/lean/build-budgets.json`; they distinguish seating/handwritten,
+same-schedule, added-block, and full-refinement changes.
+
+Lean build cache identities are content-addressed by the target, platform,
+toolchain, Lake manifest, that target's circuit IR/template inventory, proof
+generator, extractor, and handwritten substrate. Git commit and timestamps are
+recorded as metadata but do not invalidate the cache. Local builds reuse Lake's
+normal `.lake/build` artifacts. The full CI artifact replay remains Lake-free;
+the identity command is available to any CI worker that actually compiles Lean.
+
+Statement-hash generation validates one shared Poseidon7 schedule and one
+sponge block planner across every circuit variant. Scalar endpoint, row
+normalization, and lane soundness are emitted as one leaf, eliminating the old
+three-file chain. Transcript consumers import split core, encryption, metadata,
+routing, and statement seams through a thin facade.
+
+No command may run two Lake builds concurrently. All affected/full builds use
+`LEAN_NUM_THREADS=1` and the named-module resource guard.
 
 ## Release commands
 

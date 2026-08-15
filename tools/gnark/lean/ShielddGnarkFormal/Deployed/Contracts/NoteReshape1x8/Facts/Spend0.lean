@@ -7,6 +7,7 @@ import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.Seg34
 import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.Seg35
 import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.Seg36
 import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.Seg37
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.Seg38
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 4000000
@@ -26,5 +27,6 @@ structure Spend0CircuitFacts (rho : Nat → Seg29.F) : Prop where
   DecafRandomizedVerificationKeySeg35 : Seg35.contract.spec rho
   DecafAssertEquivalentSeg36 : Seg36.contract.spec rho
   DecafCompressToFieldSeg37 : Seg37.contract.spec rho
+  HistoryClassifySeg38 : Seg38.contract.spec rho
 
 end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape1x8

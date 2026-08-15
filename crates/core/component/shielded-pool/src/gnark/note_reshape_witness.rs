@@ -15,7 +15,7 @@ use crate::{
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct NoteReshapeSpendWitnessV4 {
+pub struct NoteReshapeSpendWitnessV5 {
     pub(crate) is_dummy: bool,
     pub nullifier: [u8; 32],
     pub(crate) dummy_nullifier_seed: [u8; 32],
@@ -26,23 +26,24 @@ pub struct NoteReshapeSpendWitnessV4 {
     pub state_commitment_auth_path: Vec<[[u8; 32]; 3]>,
     pub spend_auth_randomizer: [u8; 32],
     pub rk_affine: PointAffineBytes,
+    pub history_required: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct NoteReshapeOutputWitnessV4 {
+pub struct NoteReshapeOutputWitnessV5 {
     pub note_commitment: [u8; 32],
     pub created_note_blinding: [u8; 32],
     pub created_note_amount: [u8; 32],
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct NoteReshapeSharedNoteContextWitnessV4 {
+pub struct NoteReshapeSharedNoteContextWitnessV5 {
     pub asset_id: [u8; 32],
     pub diversified_generator_affine: PointAffineBytes,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct NoteReshapeWitnessV4 {
+pub struct NoteReshapeWitnessV5 {
     pub family_id: NoteReshapeFamilyId,
     pub total_length: u32,
     pub n_in: u32,
@@ -52,6 +53,7 @@ pub struct NoteReshapeWitnessV4 {
     pub asset_anchor: [u8; 32],
     pub routing_tag: [u8; 32],
     pub routing_parameter_set_id: [u8; 32],
+    pub recent_position_floor: [u8; 32],
     pub action_balance_blinding: [u8; 32],
     pub nk: [u8; 32],
     pub asset_path: MerklePathBinary,
@@ -64,9 +66,9 @@ pub struct NoteReshapeWitnessV4 {
     pub unregulated_precision: u8,
     pub routing_as_of_height: u64,
     pub routing_nonce: [u8; 32],
-    pub shared: NoteReshapeSharedNoteContextWitnessV4,
-    pub spends: Vec<NoteReshapeSpendWitnessV4>,
-    pub outputs: Vec<NoteReshapeOutputWitnessV4>,
+    pub shared: NoteReshapeSharedNoteContextWitnessV5,
+    pub spends: Vec<NoteReshapeSpendWitnessV5>,
+    pub outputs: Vec<NoteReshapeOutputWitnessV5>,
     pub balance_commitment_affine: PointAffineBytes,
     pub ak_affine: PointAffineBytes,
 }
@@ -84,14 +86,14 @@ fn spend_witness(
     public: &NoteReshapeInputPublic,
     private: &NoteReshapeInputPrivate,
     index: usize,
-) -> Result<NoteReshapeSpendWitnessV4> {
+) -> Result<NoteReshapeSpendWitnessV5> {
     let state_commitment_auth_path = private
         .state_commitment_proof
         .auth_path()
         .iter()
         .map(|siblings| siblings.map(|sibling| Fq::from(sibling).to_bytes()))
         .collect::<Vec<_>>();
-    Ok(NoteReshapeSpendWitnessV4 {
+    Ok(NoteReshapeSpendWitnessV5 {
         is_dummy: private.is_dummy,
         nullifier: public.nullifier.0.to_bytes(),
         dummy_nullifier_seed: private.dummy_nullifier_seed.to_bytes(),
@@ -102,21 +104,22 @@ fn spend_witness(
         state_commitment_auth_path,
         spend_auth_randomizer: private.spend_auth_randomizer.to_bytes(),
         rk_affine: point_affine_bytes(verification_key_point(public.rk, &format!("rk_{index}"))?)?,
+        history_required: public.history_required,
     })
 }
 
 fn output_witness(
     public: &NoteReshapeOutputPublic,
     private: &NoteReshapeOutputPrivate,
-) -> Result<NoteReshapeOutputWitnessV4> {
-    Ok(NoteReshapeOutputWitnessV4 {
+) -> Result<NoteReshapeOutputWitnessV5> {
+    Ok(NoteReshapeOutputWitnessV5 {
         note_commitment: public.note_commitment.0.to_bytes(),
         created_note_blinding: private.created_note.note_blinding().to_bytes(),
         created_note_amount: Fq::from(private.created_note.value().amount).to_bytes(),
     })
 }
 
-impl NoteReshapeWitnessV4 {
+impl NoteReshapeWitnessV5 {
     pub fn from_public_private(
         public: &NoteReshapeProofPublic,
         private: &NoteReshapeProofPrivate,
@@ -155,7 +158,7 @@ impl NoteReshapeWitnessV4 {
             .inputs
             .first()
             .ok_or_else(|| anyhow!("note reshape witness requires a real first input"))?;
-        let shared = NoteReshapeSharedNoteContextWitnessV4 {
+        let shared = NoteReshapeSharedNoteContextWitnessV5 {
             asset_id: first_input.spent_note.asset_id().0.to_bytes(),
             diversified_generator_affine: point_affine_bytes(
                 first_input.spent_note.diversified_generator(),
@@ -172,6 +175,7 @@ impl NoteReshapeWitnessV4 {
             asset_anchor: public.asset_anchor.0.to_bytes(),
             routing_tag: Fq::from(public.routing_tag.value).to_bytes(),
             routing_parameter_set_id: public.routing_parameter_set_id.to_bytes(),
+            recent_position_floor: Fq::from(public.recent_position_floor).to_bytes(),
             action_balance_blinding: private.action_balance_blinding.to_bytes(),
             nk: private.nk.0.to_bytes(),
             asset_path: merkle_path_from_typed(&private.asset_path)?,

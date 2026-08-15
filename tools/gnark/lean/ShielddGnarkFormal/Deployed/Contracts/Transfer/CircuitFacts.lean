@@ -38,16 +38,16 @@ theorem transfer_circuitFacts (rho : Nat → DeployedF) (h : relationAll rho) :
     TransferCircuitFacts rho := by
   exact {
     canonicalSender := ⟨specOf3 rho h, specOf4 rho h, specOf12 rho h, specOf13 rho h, specOf14 rho h, specOf15 rho h, specOf16 rho h, specOf17 rho h⟩
-    requiredSpend := ⟨specOf32 rho h, specOf33 rho h, specOf34 rho h, specOf35 rho h, specOf36 rho h, specOf37 rho h, specOf38 rho h, specOf39 rho h⟩
-    optionalSpend := ⟨specOf42 rho h, specOf43 rho h, specOf44 rho h, specOf45 rho h, specOf46 rho h, specOf47 rho h, specOf48 rho h, specOf49 rho h, specOf50 rho h, specOf51 rho h, specOf52 rho h, specOf53 rho h⟩
-    receiverOutput := ⟨specOf56 rho h, specOf57 rho h, specOf58 rho h, specOf59 rho h, specOf60 rho h, specOf61 rho h, specOf62 rho h, specOf66 rho h⟩
-    changeOutput := ⟨specOf70 rho h, specOf71 rho h⟩
+    requiredSpend := ⟨specOf32 rho h, specOf33 rho h, specOf34 rho h, specOf35 rho h, specOf36 rho h, specOf37 rho h, specOf38 rho h, specOf39 rho h, specOf40 rho h⟩
+    optionalSpend := ⟨specOf43 rho h, specOf44 rho h, specOf45 rho h, specOf46 rho h, specOf47 rho h, specOf48 rho h, specOf49 rho h, specOf50 rho h, specOf51 rho h, specOf52 rho h, specOf53 rho h, specOf54 rho h, specOf55 rho h⟩
+    receiverOutput := ⟨specOf58 rho h, specOf59 rho h, specOf60 rho h, specOf61 rho h, specOf62 rho h, specOf63 rho h, specOf64 rho h, specOf68 rho h⟩
+    changeOutput := ⟨specOf72 rho h, specOf73 rho h⟩
     assetRegistry := ⟨specOf1 rho h, specOf5 rho h, specOf18 rho h, specOf19 rho h, specOf20 rho h, specOf21 rho h, specOf22 rho h, specOf23 rho h, specOf24 rho h, specOf25 rho h, specOf26 rho h⟩
     senderCompliance := ⟨specOf27 rho h, specOf28 rho h, specOf29 rho h, specOf30 rho h⟩
-    receiverCompliance := ⟨specOf63 rho h, specOf64 rho h, specOf65 rho h, specOf67 rho h⟩
-    complianceTranscript := ⟨specOf6 rho h, specOf7 rho h, specOf8 rho h, specOf9 rho h, specOf10 rho h, specOf11 rho h, specOf89 rho h, specOf90 rho h, specOf91 rho h, specOf92 rho h, specOf93 rho h, specOf94 rho h, specOf95 rho h, specOf96 rho h, specOf97 rho h, specOf98 rho h, specOf99 rho h, specOf100 rho h, specOf101 rho h, specOf102 rho h, specOf103 rho h, specOf104 rho h, specOf105 rho h, specOf106 rho h, specOf107 rho h, specOf109 rho h, specOf110 rho h, specOf111 rho h, specOf112 rho h, specOf113 rho h, specOf114 rho h, specOf115 rho h, specOf116 rho h, specOf117 rho h, specOf118 rho h, specOf119 rho h⟩
-    balanceComputedAndCompressed := ⟨specOf121 rho h, specOf122 rho h⟩
-    statementBinding := ⟨specOf72 rho h, specOf73 rho h, specOf74 rho h, specOf75 rho h, specOf76 rho h, specOf77 rho h, specOf78 rho h, specOf79 rho h, specOf80 rho h, specOf81 rho h, specOf82 rho h, specOf83 rho h, specOf84 rho h, specOf85 rho h, specOf86 rho h, specOf124 rho h, specOf125 rho h⟩
+    receiverCompliance := ⟨specOf65 rho h, specOf66 rho h, specOf67 rho h, specOf69 rho h⟩
+    complianceTranscript := ⟨specOf6 rho h, specOf7 rho h, specOf8 rho h, specOf9 rho h, specOf10 rho h, specOf11 rho h, specOf91 rho h, specOf92 rho h, specOf93 rho h, specOf94 rho h, specOf95 rho h, specOf96 rho h, specOf97 rho h, specOf98 rho h, specOf99 rho h, specOf100 rho h, specOf101 rho h, specOf102 rho h, specOf103 rho h, specOf104 rho h, specOf105 rho h, specOf106 rho h, specOf107 rho h, specOf108 rho h, specOf109 rho h, specOf111 rho h, specOf112 rho h, specOf113 rho h, specOf114 rho h, specOf115 rho h, specOf116 rho h, specOf117 rho h, specOf118 rho h, specOf119 rho h, specOf120 rho h, specOf121 rho h⟩
+    balanceComputedAndCompressed := ⟨specOf123 rho h, specOf124 rho h⟩
+    statementBinding := ⟨specOf74 rho h, specOf75 rho h, specOf76 rho h, specOf77 rho h, specOf78 rho h, specOf79 rho h, specOf80 rho h, specOf81 rho h, specOf82 rho h, specOf83 rho h, specOf84 rho h, specOf85 rho h, specOf86 rho h, specOf87 rho h, specOf88 rho h, specOf126 rho h, specOf127 rho h⟩
   }
 
 end Shieldd.GnarkFormal.Deployed.Contracts.Transfer

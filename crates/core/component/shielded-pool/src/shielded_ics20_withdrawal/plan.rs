@@ -230,6 +230,7 @@ impl ShieldedIcs20WithdrawalPlan {
         fvk: &FullViewingKey,
         state_commitment_proofs: &[tct::Proof],
         anchor: tct::Root,
+        recent_position_floor: u64,
     ) -> Result<
         (
             ShieldedIcs20WithdrawalProofPublic,
@@ -254,6 +255,11 @@ impl ShieldedIcs20WithdrawalPlan {
                 Ok(ShieldedIcs20WithdrawalInputPublic {
                     nullifier: spend.nullifier(fvk),
                     rk: spend.rk(fvk),
+                    history_required: shieldd_sdk_sct::nullifier_generation::is_old(
+                        u64::from(spend.position),
+                        recent_position_floor,
+                    )
+                    .map_err(|error| crate::ProofError::InvalidPublicInput(error.to_string()))?,
                 })
             })
             .collect::<Result<Vec<_>, crate::ProofError>>()?;
@@ -262,6 +268,7 @@ impl ShieldedIcs20WithdrawalPlan {
             ShieldedIcs20WithdrawalInputPublic {
                 nullifier: padder.synthetic_dummy_nullifier(slot),
                 rk: padder.synthetic_dummy_verification_key(slot),
+                history_required: false,
             }
         });
 
@@ -335,6 +342,7 @@ impl ShieldedIcs20WithdrawalPlan {
                 withdrawal_effect_hash_limbs,
                 routing_tag,
                 routing_parameter_set_id: self.routing_parameters.id(),
+                recent_position_floor,
             },
             ShieldedIcs20WithdrawalProofPrivate {
                 family_id: ShieldedIcs20WithdrawalFamilyId::Canonical,
@@ -364,14 +372,15 @@ impl ShieldedIcs20WithdrawalPlan {
         fvk: &FullViewingKey,
         memo_key: &PayloadKey,
         anchor: tct::Root,
+        recent_position_floor: u64,
     ) -> anyhow::Result<ShieldedIcs20WithdrawalBody> {
         self.validate()?;
 
         let mut inputs = self
             .spends
             .iter()
-            .map(|spend| spend.action_input_body(fvk))
-            .collect::<Vec<_>>();
+            .map(|spend| spend.action_input_body(fvk, recent_position_floor))
+            .collect::<anyhow::Result<Vec<_>>>()?;
         let padder = self.padder();
         pad_to_len(&mut inputs, PADDED_ICS20_WITHDRAWAL_INPUTS, |slot| {
             let dummy_note = padder.synthetic_dummy_input_note(slot);
@@ -382,6 +391,7 @@ impl ShieldedIcs20WithdrawalPlan {
                 encrypted_backref: crate::Backref::new(dummy_note.commit())
                     .encrypt(&fvk.backref_key(), &nullifier),
                 compliance_ciphertext: Vec::new(),
+                history_required: false,
             }
         });
 
@@ -439,9 +449,10 @@ impl ShieldedIcs20WithdrawalPlan {
         state_commitment_proofs: Vec<tct::Proof>,
         anchor: tct::Root,
         memo_key: &PayloadKey,
+        recent_position_floor: u64,
     ) -> Result<ShieldedIcs20Withdrawal, crate::ProofError> {
         let body = self
-            .action_body(fvk, memo_key, anchor)
+            .action_body(fvk, memo_key, anchor, recent_position_floor)
             .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))?;
         if auth_sigs.len() != self.spends.len() {
             return Err(crate::ProofError::InvalidPublicInput(format!(
@@ -450,8 +461,12 @@ impl ShieldedIcs20WithdrawalPlan {
                 auth_sigs.len()
             )));
         }
-        let (public, private) =
-            self.shielded_ics20_withdrawal_public_private(fvk, &state_commitment_proofs, anchor)?;
+        let (public, private) = self.shielded_ics20_withdrawal_public_private(
+            fvk,
+            &state_commitment_proofs,
+            anchor,
+            recent_position_floor,
+        )?;
         let proof = ShieldedIcs20WithdrawalProof::prove(public, private)?;
         let mut auth_sigs = auth_sigs;
         while auth_sigs.len() < PADDED_ICS20_WITHDRAWAL_INPUTS {
@@ -470,10 +485,15 @@ impl ShieldedIcs20WithdrawalPlan {
         fvk: &FullViewingKey,
         state_commitment_proofs: Vec<tct::Proof>,
         anchor: tct::Root,
+        recent_position_floor: u64,
     ) -> Result<Vec<u8>, crate::ProofError> {
-        let (public, private) =
-            self.shielded_ics20_withdrawal_public_private(fvk, &state_commitment_proofs, anchor)?;
-        crate::gnark::encode_shielded_ics20_withdrawal_witness_v9(&public, &private)
+        let (public, private) = self.shielded_ics20_withdrawal_public_private(
+            fvk,
+            &state_commitment_proofs,
+            anchor,
+            recent_position_floor,
+        )?;
+        crate::gnark::encode_shielded_ics20_withdrawal_witness_v10(&public, &private)
             .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))
     }
 
@@ -484,9 +504,10 @@ impl ShieldedIcs20WithdrawalPlan {
         anchor: tct::Root,
         memo_key: &PayloadKey,
         proof: ShieldedIcs20WithdrawalProof,
+        recent_position_floor: u64,
     ) -> Result<ShieldedIcs20Withdrawal, crate::ProofError> {
         let body = self
-            .action_body(fvk, memo_key, anchor)
+            .action_body(fvk, memo_key, anchor, recent_position_floor)
             .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))?;
         if auth_sigs.len() != self.spends.len() {
             return Err(crate::ProofError::InvalidPublicInput(format!(
@@ -722,6 +743,7 @@ mod tests {
                 &test_keys::FULL_VIEWING_KEY,
                 &[7u8; 32].into(),
                 shieldd_sdk_tct::Tree::default().root(),
+                0,
             )
             .expect("body should build");
         assert_eq!(body.inputs.len(), 2);
@@ -956,7 +978,7 @@ mod tests {
         let anchor = tct::Tree::default().root();
 
         let error = plan
-            .shielded_ics20_withdrawal_public_private(&test_keys::FULL_VIEWING_KEY, &[], anchor)
+            .shielded_ics20_withdrawal_public_private(&test_keys::FULL_VIEWING_KEY, &[], anchor, 0)
             .expect_err("proof materialization must require one proof per real spend");
         assert!(error
             .to_string()
@@ -969,6 +991,7 @@ mod tests {
                 anchor,
                 &PayloadKey::random_key(&mut OsRng),
                 ShieldedIcs20WithdrawalProof::default(),
+                0,
             )
             .expect_err("action materialization must require one signature per real spend");
         assert!(error
@@ -1000,7 +1023,7 @@ mod tests {
         let plan = one_spend_plan();
         let anchor = shieldd_sdk_tct::Tree::default().root();
         let mut stale_body: pb::ShieldedIcs20WithdrawalBody = plan
-            .action_body(&test_keys::FULL_VIEWING_KEY, &[7u8; 32].into(), anchor)
+            .action_body(&test_keys::FULL_VIEWING_KEY, &[7u8; 32].into(), anchor, 0)
             .expect("derive current body")
             .into();
         stale_body.target_timestamp += 1;
@@ -1019,7 +1042,7 @@ mod tests {
         let decoded = ShieldedIcs20WithdrawalPlan::try_from(decoded)
             .expect("canonical plan fields remain valid");
         let derived = decoded
-            .action_body(&test_keys::FULL_VIEWING_KEY, &[7u8; 32].into(), anchor)
+            .action_body(&test_keys::FULL_VIEWING_KEY, &[7u8; 32].into(), anchor, 0)
             .expect("body is always derived from canonical plan fields");
 
         assert_ne!(derived.target_timestamp, stale_body.target_timestamp);
@@ -1064,6 +1087,7 @@ mod tests {
                 &test_keys::FULL_VIEWING_KEY,
                 &[7u8; 32].into(),
                 shieldd_sdk_tct::Tree::default().root(),
+                0,
             )
             .expect("derive action body")
             .into();
@@ -1092,6 +1116,7 @@ mod tests {
                 &test_keys::FULL_VIEWING_KEY,
                 &[7u8; 32].into(),
                 shieldd_sdk_tct::Tree::default().root(),
+                0,
             )
             .expect("derive body from enriched plan");
         assert_eq!(body.asset_anchor, new_asset_anchor);

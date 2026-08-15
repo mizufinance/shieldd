@@ -63,6 +63,7 @@ impl ActionPlan {
         fvk: &FullViewingKey,
         witness_data: &WitnessData,
         memo_key: Option<PayloadKey>,
+        recent_position_floor: u64,
     ) -> Result<Action> {
         use ActionPlan::*;
 
@@ -90,6 +91,7 @@ impl ActionPlan {
                             auth_paths,
                             witness_data.anchor,
                             memo_key.as_ref().unwrap_or(&dummy_payload_key),
+                            recent_position_floor,
                         )
                         .map_err(|e| anyhow::anyhow!("transfer proof generation failed: {}", e))?,
                 )
@@ -117,6 +119,7 @@ impl ActionPlan {
                             auth_paths,
                             witness_data.anchor,
                             memo_key.as_ref().unwrap_or(&dummy_payload_key),
+                            recent_position_floor,
                         )
                         .map_err(|e| {
                             anyhow::anyhow!("note reshape proof generation failed: {}", e)
@@ -148,6 +151,7 @@ impl ActionPlan {
                         auth_paths,
                         witness_data.anchor,
                         memo_key.as_ref().unwrap_or(&dummy_payload_key),
+                        recent_position_floor,
                     )
                     .map_err(|e| {
                         anyhow::anyhow!("shielded ICS-20 withdrawal proof generation failed: {}", e)
@@ -175,6 +179,7 @@ impl ActionPlan {
                         auth_paths,
                         witness_data.anchor,
                         memo_key.as_ref().unwrap_or(&dummy_payload_key),
+                        recent_position_floor,
                     )
                     .map_err(|e| {
                         anyhow::anyhow!("shielded host withdrawal proof generation failed: {}", e)
@@ -241,25 +246,46 @@ impl ActionPlan {
         &self,
         fvk: &FullViewingKey,
         memo_key: &PayloadKey,
+        recent_position_floor: u64,
     ) -> anyhow::Result<EffectHash> {
         use ActionPlan::*;
 
         let effect_hash = match self {
             Transfer(plan) => plan
-                .transfer_body(fvk, memo_key, shieldd_sdk_tct::Tree::default().root())
+                .transfer_body(
+                    fvk,
+                    memo_key,
+                    shieldd_sdk_tct::Tree::default().root(),
+                    recent_position_floor,
+                )
                 .map(|body| body.effect_hash())?,
             NoteReshape(plan) => plan
-                .note_reshape_body(fvk, memo_key, shieldd_sdk_tct::Tree::default().root())
+                .note_reshape_body(
+                    fvk,
+                    memo_key,
+                    shieldd_sdk_tct::Tree::default().root(),
+                    recent_position_floor,
+                )
                 .map(|body| body.effect_hash())?,
             ValidatorDefinition(plan) => plan.effect_hash(),
             IbcAction(plan) => plan.effect_hash(),
             ProposalSubmit(plan) => plan.effect_hash(),
             ValidatorVote(plan) => plan.effect_hash(),
             ShieldedIcs20Withdrawal(plan) => plan
-                .action_body(fvk, memo_key, shieldd_sdk_tct::Tree::default().root())
+                .action_body(
+                    fvk,
+                    memo_key,
+                    shieldd_sdk_tct::Tree::default().root(),
+                    recent_position_floor,
+                )
                 .map(|body| body.effect_hash())?,
             ShieldedHostWithdrawal(plan) => plan
-                .action_body(fvk, memo_key, shieldd_sdk_tct::Tree::default().root())
+                .action_body(
+                    fvk,
+                    memo_key,
+                    shieldd_sdk_tct::Tree::default().root(),
+                    recent_position_floor,
+                )
                 .map(|body| body.effect_hash())?,
             ComplianceRegisterAsset(plan) => plan.effect_hash(),
             ComplianceRegisterUser(plan) => plan.effect_hash(),

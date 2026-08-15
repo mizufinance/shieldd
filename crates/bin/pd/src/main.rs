@@ -127,12 +127,25 @@ async fn main() -> anyhow::Result<()> {
             };
             let rocksdb_home = pd_home.join("rocksdb");
 
-            let storage = Storage::load(rocksdb_home, SUBSTORE_PREFIXES.to_vec())
+            let mut storage = Storage::load(rocksdb_home.clone(), SUBSTORE_PREFIXES.to_vec())
                 .await
                 .context(
                     "Unable to initialize RocksDB storage - is there another `pd` process running?",
                 )?;
             check_and_update_app_version(storage.clone()).await?;
+            let generation_packs = shieldd_sdk_sct::generation_pack::GenerationPackRepository::new(
+                pd_home.join(pd::nullifier_generation_packs::DIRECTORY),
+                1,
+            )?;
+            if pd::nullifier_generation_packs::prepare(&storage, &generation_packs)
+                .await
+                .context("could not prepare retired nullifier generation packs")?
+            {
+                storage.release().await;
+                storage = Storage::load(rocksdb_home, SUBSTORE_PREFIXES.to_vec())
+                    .await
+                    .context("could not reopen storage after generation pack maintenance")?;
+            }
 
             tracing::info!(
                 APP_VERSION,
@@ -159,19 +172,27 @@ async fn main() -> anyhow::Result<()> {
 
             let tm_proxy = shieldd_sdk_tendermint_proxy::TendermintProxy::new(cometbft_addr);
 
-            let grpc_routes =
-                shieldd_sdk_app::rpc::routes(&storage, tm_proxy, enable_expensive_rpc)?
-                    .into_axum_router()
-                    .layer(
-                        ServiceBuilder::new().layer(TraceLayer::new_for_grpc().make_span_with(
-                            |req: &http::Request<_>| match remote_addr(req) {
-                                Some(remote_addr) => {
-                                    tracing::error_span!("grpc", ?remote_addr)
-                                }
-                                None => tracing::error_span!("grpc"),
-                            },
-                        )),
-                    );
+            let _generation_pack_worker = pd::nullifier_generation_packs::spawn_worker(
+                storage.clone(),
+                generation_packs.clone(),
+            );
+            let grpc_routes = shieldd_sdk_app::rpc::routes_with_generation_packs(
+                &storage,
+                tm_proxy,
+                enable_expensive_rpc,
+                generation_packs,
+            )?
+            .into_axum_router()
+            .layer(ServiceBuilder::new().layer(
+                TraceLayer::new_for_grpc().make_span_with(
+                    |req: &http::Request<_>| match remote_addr(req) {
+                        Some(remote_addr) => {
+                            tracing::error_span!("grpc", ?remote_addr)
+                        }
+                        None => tracing::error_span!("grpc"),
+                    },
+                ),
+            ));
 
             // Create Axum routes for the frontend app.
             let frontend = pd::zipserve::router("/app/", pd::MINIFRONT_ARCHIVE_BYTES);
@@ -471,9 +492,16 @@ async fn main() -> anyhow::Result<()> {
                 export_directory.as_path(),
                 &copy_opts,
             )?;
+            let src_pack_dir = home.join("nullifier-generation-packs");
+            if src_pack_dir.is_dir() {
+                fs_extra::copy_items(
+                    &[src_pack_dir.as_path()],
+                    export_directory.as_path(),
+                    &copy_opts,
+                )?;
+            }
             tracing::info!("finished copying node state");
 
-            let dst_rocksdb_dir = export_directory.join("rocksdb");
             // If prune=true, then export-directory is required, because we must munge state prior
             // to compressing. So we'll just mandate the presence of the --export-directory arg
             // always.
@@ -484,15 +512,78 @@ async fn main() -> anyhow::Result<()> {
             // Compress to tarball if requested.
             if let Some(archive_filepath) = export_archive {
                 pd::migrate::archive_directory(
-                    dst_rocksdb_dir.clone(),
+                    export_directory.clone(),
                     archive_filepath.clone(),
-                    Some("rocksdb".to_owned()),
+                    None,
                 )?;
                 tracing::info!("export complete: {}", archive_filepath.display());
             } else {
                 // Provide friendly "OK" message that's still accurate without archiving.
                 tracing::info!("export complete: {}", export_directory.display());
             }
+        }
+        RootCommand::NullifierGenerationPack {
+            home,
+            generation,
+            prune,
+        } => {
+            use cnidarium::StateDelta;
+            use shieldd_sdk_sct::generation_pack::GenerationPackRepository;
+            use shieldd_sdk_sct::nullifier_tree::{
+                build_generation_pack, prune_packed_generation, record_generation_pack_completion,
+            };
+
+            let storage = Storage::load(home.join("rocksdb"), SUBSTORE_PREFIXES.to_vec()).await?;
+            let mut delta = StateDelta::new(storage.latest_snapshot());
+            let pack = build_generation_pack(&delta, generation).await?;
+            let repository =
+                GenerationPackRepository::new(home.join("nullifier-generation-packs"), 1)?;
+            let receipt = repository.write(&pack)?;
+            let archived =
+                shieldd_sdk_sct::nullifier_tree::archived_generation(&delta, generation).await?;
+            anyhow::ensure!(
+                repository.verify(archived)? == receipt,
+                "generation pack changed after its durable write"
+            );
+            record_generation_pack_completion(&mut delta, &receipt).await?;
+            let deleted = if prune {
+                prune_packed_generation(&mut delta, &receipt).await?
+            } else {
+                0
+            };
+            storage.commit_in_place(delta).await?;
+            tracing::info!(
+                generation,
+                pack = %repository.path(generation).display(),
+                sha256 = %hex::encode(receipt.pack_sha256),
+                leaves = receipt.leaf_count,
+                bytes = receipt.byte_length,
+                deleted,
+                "nullifier generation pack complete"
+            );
+        }
+        RootCommand::NullifierGenerationPackVerify { home, generation } => {
+            use shieldd_sdk_sct::generation_pack::GenerationPackRepository;
+
+            let storage = Storage::load(home.join("rocksdb"), SUBSTORE_PREFIXES.to_vec()).await?;
+            let archived = shieldd_sdk_sct::nullifier_tree::archived_generation(
+                &storage.latest_snapshot(),
+                generation,
+            )
+            .await?;
+            let repository = GenerationPackRepository::new(
+                home.join(pd::nullifier_generation_packs::DIRECTORY),
+                1,
+            )?;
+            let receipt = repository.verify(archived)?;
+            tracing::info!(
+                generation,
+                pack = %repository.path(generation).display(),
+                sha256 = %hex::encode(receipt.pack_sha256),
+                leaves = receipt.leaf_count,
+                bytes = receipt.byte_length,
+                "nullifier generation pack verified"
+            );
         }
         RootCommand::Migrate {
             home,

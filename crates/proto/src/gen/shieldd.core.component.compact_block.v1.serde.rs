@@ -57,6 +57,9 @@ impl serde::Serialize for CompactBlock {
         if !self.routing_action_payloads.is_empty() {
             len += 1;
         }
+        if self.nullifier_window.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.compact_block.v1.CompactBlock", len)?;
         if self.height != 0 {
             #[allow(clippy::needless_borrow)]
@@ -117,6 +120,9 @@ impl serde::Serialize for CompactBlock {
         if !self.routing_action_payloads.is_empty() {
             struct_ser.serialize_field("routingActionPayloads", &self.routing_action_payloads)?;
         }
+        if let Some(v) = self.nullifier_window.as_ref() {
+            struct_ser.serialize_field("nullifierWindow", v)?;
+        }
         struct_ser.end()
     }
 }
@@ -159,6 +165,8 @@ impl<'de> serde::Deserialize<'de> for CompactBlock {
             "complianceAssetRegistrations",
             "routing_action_payloads",
             "routingActionPayloads",
+            "nullifier_window",
+            "nullifierWindow",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -180,6 +188,7 @@ impl<'de> serde::Deserialize<'de> for CompactBlock {
             ComplianceUserRegistrations,
             ComplianceAssetRegistrations,
             RoutingActionPayloads,
+            NullifierWindow,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -219,6 +228,7 @@ impl<'de> serde::Deserialize<'de> for CompactBlock {
                             "complianceUserRegistrations" | "compliance_user_registrations" => Ok(GeneratedField::ComplianceUserRegistrations),
                             "complianceAssetRegistrations" | "compliance_asset_registrations" => Ok(GeneratedField::ComplianceAssetRegistrations),
                             "routingActionPayloads" | "routing_action_payloads" => Ok(GeneratedField::RoutingActionPayloads),
+                            "nullifierWindow" | "nullifier_window" => Ok(GeneratedField::NullifierWindow),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -255,6 +265,7 @@ impl<'de> serde::Deserialize<'de> for CompactBlock {
                 let mut compliance_user_registrations__ = None;
                 let mut compliance_asset_registrations__ = None;
                 let mut routing_action_payloads__ = None;
+                let mut nullifier_window__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Height => {
@@ -367,6 +378,12 @@ impl<'de> serde::Deserialize<'de> for CompactBlock {
                             }
                             routing_action_payloads__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::NullifierWindow => {
+                            if nullifier_window__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("nullifierWindow"));
+                            }
+                            nullifier_window__ = map_.next_value()?;
+                        }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
                         }
@@ -390,6 +407,7 @@ impl<'de> serde::Deserialize<'de> for CompactBlock {
                     compliance_user_registrations: compliance_user_registrations__.unwrap_or_default(),
                     compliance_asset_registrations: compliance_asset_registrations__.unwrap_or_default(),
                     routing_action_payloads: routing_action_payloads__.unwrap_or_default(),
+                    nullifier_window: nullifier_window__,
                 })
             }
         }

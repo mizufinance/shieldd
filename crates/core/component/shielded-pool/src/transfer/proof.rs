@@ -21,6 +21,7 @@ use crate::{
 pub struct TransferSpendPublic {
     pub nullifier: Nullifier,
     pub rk: VerificationKey<SpendAuth>,
+    pub history_required: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -57,6 +58,7 @@ pub struct TransferProofPublic {
     pub compliance: TransferCompliancePublic,
     pub routing: TransferRouting,
     pub routing_parameter_set_id: Fq,
+    pub recent_position_floor: u64,
 }
 
 impl TransferProofPublic {
@@ -486,6 +488,7 @@ mod tests {
                 &test_keys::FULL_VIEWING_KEY,
                 &[state_commitment_proof],
                 anchor,
+                0,
             )
             .expect("derive test-key transfer public/private inputs");
 
@@ -571,6 +574,7 @@ mod tests {
                 &test_keys::FULL_VIEWING_KEY,
                 &[state_commitment_proof],
                 anchor,
+                0,
             )
             .expect("derive registered base-asset transfer public/private inputs");
 
@@ -669,6 +673,7 @@ mod tests {
                 &test_keys::FULL_VIEWING_KEY,
                 &[state_commitment_proof],
                 anchor,
+                0,
             )
             .expect("derive registered base-asset transfer public/private inputs");
 
@@ -754,6 +759,7 @@ mod tests {
                 &test_keys::FULL_VIEWING_KEY,
                 &[state_commitment_proof],
                 anchor,
+                0,
             )
             .expect("derive registered base-asset transfer public/private inputs");
 
@@ -869,6 +875,7 @@ mod tests {
                 &test_keys::FULL_VIEWING_KEY,
                 &[state_commitment_proof],
                 anchor,
+                0,
             )
             .expect("derive registered base-asset transfer-with-change public/private inputs");
 

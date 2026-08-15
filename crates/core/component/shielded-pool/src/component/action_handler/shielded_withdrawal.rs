@@ -59,9 +59,11 @@ pub(crate) fn extract_public(
         target_timestamp: decaf377::Fq::from(data.target_timestamp),
         inputs: inputs
             .into_iter()
-            .map(|input| ShieldedIcs20WithdrawalInputPublic {
+            .zip(data.inputs.iter())
+            .map(|(input, body_input)| ShieldedIcs20WithdrawalInputPublic {
                 nullifier: input.nullifier,
                 rk: input.rk,
+                history_required: body_input.history_required,
             })
             .collect(),
         change_output: ShieldedIcs20WithdrawalChangePublic {
@@ -75,6 +77,7 @@ pub(crate) fn extract_public(
             ),
         routing_tag: data.routing_tag,
         routing_parameter_set_id: data.routing_parameter_set_id,
+        recent_position_floor: context.recent_position_floor,
     };
     public.validate_shape()?;
     Ok(public)

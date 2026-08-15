@@ -28,16 +28,20 @@ impl TransactionPlan {
             .map(|memo_data| memo_data.memo())
             .transpose()?;
 
-        Ok(Transaction {
+        let transaction = Transaction {
             transaction_body: TransactionBody {
                 actions,
                 transaction_parameters: self.transaction_parameters,
                 fee_funding,
                 memo,
+                nullifier_window: self.nullifier_window,
+                historical_nullifier_proofs: witness_data.historical_nullifier_proofs.clone(),
             },
             anchor: witness_data.anchor,
             binding_sig: [0; 64].into(),
-        })
+        };
+        transaction.transaction_body.validate_nullifier_history()?;
+        Ok(transaction)
     }
 
     pub fn apply_auth_data(
@@ -368,6 +372,7 @@ impl TransactionPlan {
         witness_data: &WitnessData,
         auth_data: &AuthorizationData,
     ) -> Result<Transaction> {
+        let recent_position_floor = self.recent_position_floor()?;
         let actions = self
             .actions
             .iter()
@@ -377,6 +382,7 @@ impl TransactionPlan {
                     full_viewing_key,
                     witness_data,
                     self.memo_key(),
+                    recent_position_floor,
                 )
             })
             .collect::<Result<Vec<_>>>()?;
@@ -384,7 +390,14 @@ impl TransactionPlan {
         let fee_funding = self
             .fee_funding
             .as_ref()
-            .map(|fee_funding| fee_funding.build_unauth(full_viewing_key, witness_data, &memo_key))
+            .map(|fee_funding| {
+                fee_funding.build_unauth(
+                    full_viewing_key,
+                    witness_data,
+                    &memo_key,
+                    recent_position_floor,
+                )
+            })
             .transpose()?;
 
         let tx = self
@@ -400,10 +413,15 @@ impl TransactionPlan {
         witness_data: &WitnessData,
         auth_data: &AuthorizationData,
     ) -> Result<Transaction> {
+        let recent_position_floor = self.recent_position_floor()?;
         let witness_data = std::sync::Arc::new(witness_data.clone());
 
-        let scheduler =
-            ActionBuildScheduler::new(self.memo_key(), full_viewing_key, witness_data.clone());
+        let scheduler = ActionBuildScheduler::new(
+            self.memo_key(),
+            full_viewing_key,
+            witness_data.clone(),
+            recent_position_floor,
+        );
         let action_tasks = self
             .actions
             .iter()
@@ -415,7 +433,14 @@ impl TransactionPlan {
         let fee_funding = self
             .fee_funding
             .as_ref()
-            .map(|fee_funding| fee_funding.build_unauth(full_viewing_key, &witness_data, &memo_key))
+            .map(|fee_funding| {
+                fee_funding.build_unauth(
+                    full_viewing_key,
+                    &witness_data,
+                    &memo_key,
+                    recent_position_floor,
+                )
+            })
             .transpose()?;
 
         let tx = self
@@ -451,6 +476,7 @@ impl TransactionPlan {
         Ok(WitnessData {
             anchor,
             state_commitment_proofs,
+            historical_nullifier_proofs: Vec::new(),
         })
     }
 }
@@ -460,6 +486,7 @@ struct ActionBuildScheduler {
     memo_key: Option<PayloadKey>,
     full_viewing_key: FullViewingKey,
     witness_data: std::sync::Arc<WitnessData>,
+    recent_position_floor: u64,
 }
 
 #[cfg(all(feature = "parallel", any(unix, windows)))]
@@ -468,11 +495,13 @@ impl ActionBuildScheduler {
         memo_key: Option<PayloadKey>,
         full_viewing_key: &FullViewingKey,
         witness_data: std::sync::Arc<WitnessData>,
+        recent_position_floor: u64,
     ) -> Self {
         Self {
             memo_key,
             full_viewing_key: full_viewing_key.clone(),
             witness_data,
+            recent_position_floor,
         }
     }
 
@@ -480,6 +509,7 @@ impl ActionBuildScheduler {
         let fvk = self.full_viewing_key.clone();
         let witness_data = self.witness_data.clone();
         let memo_key = self.memo_key;
+        let recent_position_floor = self.recent_position_floor;
 
         match action_plan {
             transfer @ ActionPlan::Transfer(_) => {
@@ -492,13 +522,22 @@ impl ActionBuildScheduler {
                             &fvk,
                             &witness_data,
                             memo_key,
+                            recent_position_floor,
                         ));
                     })
                     .map_err(|e| anyhow::anyhow!("spawn transfer action build thread: {e}"))?;
                 Ok(PendingActionTask::Thread(rx))
             }
             other => Ok(PendingActionTask::Tokio(tokio::task::spawn_blocking(
-                move || ActionPlan::build_unauth(other, &fvk, &witness_data, memo_key),
+                move || {
+                    ActionPlan::build_unauth(
+                        other,
+                        &fvk,
+                        &witness_data,
+                        memo_key,
+                        recent_position_floor,
+                    )
+                },
             ))),
         }
     }

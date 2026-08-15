@@ -137,6 +137,17 @@ trait Inner: StateWrite {
         let compliance_user_registrations = self.pending_user_registrations();
         let compliance_asset_registrations = self.pending_asset_registrations();
 
+        let nullifier_window = if height == 0 || end_epoch {
+            Some(
+                shieldd_sdk_sct::nullifier_tree::generation_state(self)
+                    .await
+                    .context("could not read nullifier generation state")?
+                    .window(),
+            )
+        } else {
+            None
+        };
+
         let pending_routing_actions = self.pending_routing_actions();
         let mut routing_records = Vec::new();
         let mut routing_action_payloads = Vec::with_capacity(pending_routing_actions.len());
@@ -178,6 +189,7 @@ trait Inner: StateWrite {
             compliance_asset_anchor,
             compliance_user_registrations,
             compliance_asset_registrations,
+            nullifier_window,
         };
 
         self.nonverifiable_put_raw(

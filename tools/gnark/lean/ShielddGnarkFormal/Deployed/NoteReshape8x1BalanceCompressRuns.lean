@@ -9,24 +9,24 @@ namespace Shieldd.GnarkFormal.Deployed.NoteReshape8x1BalanceCompressRuns
 open Shieldd.GnarkFormal
 open Contracts.NoteReshape8x1
 
-theorem x0 (rho : Nat → Seg156.F) :
-    StrideRun.sumAux (Seg156.localRho rho) 2 1 149 =
-      StrideRun.sumAux rho 122106 5 149 :=
+theorem x0 (rho : Nat → Seg164.F) :
+    StrideRun.sumAux (Seg164.localRho rho) 2 1 149 =
+      StrideRun.sumAux rho 123291 5 149 :=
   NoteReshape8x1BalanceCompressRunX0.seated rho
 
-theorem x1 (rho : Nat → Seg156.F) :
-    StrideRun.sumAux (Seg156.localRho rho) 151 1 101 =
-      StrideRun.sumAux rho 122854 8 101 :=
+theorem x1 (rho : Nat → Seg164.F) :
+    StrideRun.sumAux (Seg164.localRho rho) 151 1 101 =
+      StrideRun.sumAux rho 124039 8 101 :=
   NoteReshape8x1BalanceCompressRunX1.seated rho
 
-theorem y0 (rho : Nat → Seg156.F) :
-    StrideRun.sumAux (Seg156.localRho rho) 253 1 149 =
-      StrideRun.sumAux rho 122107 5 149 :=
+theorem y0 (rho : Nat → Seg164.F) :
+    StrideRun.sumAux (Seg164.localRho rho) 253 1 149 =
+      StrideRun.sumAux rho 123292 5 149 :=
   NoteReshape8x1BalanceCompressRunY0.seated rho
 
-theorem y1 (rho : Nat → Seg156.F) :
-    StrideRun.sumAux (Seg156.localRho rho) 402 1 101 =
-      StrideRun.sumAux rho 122855 8 101 :=
+theorem y1 (rho : Nat → Seg164.F) :
+    StrideRun.sumAux (Seg164.localRho rho) 402 1 101 =
+      StrideRun.sumAux rho 124040 8 101 :=
   NoteReshape8x1BalanceCompressRunY1.seated rho
 
 end Shieldd.GnarkFormal.Deployed.NoteReshape8x1BalanceCompressRuns

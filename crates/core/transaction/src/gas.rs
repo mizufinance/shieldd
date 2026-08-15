@@ -15,10 +15,33 @@ use crate::{
 };
 
 use shieldd_sdk_proto::DomainType;
+use shieldd_sdk_sct::nullifier_generation::{
+    BLS12_377_PROOF_BYTES, BW6_761_PROOF_BYTES, CHUNK_WIDTH,
+};
 
 const NULLIFIER_SIZE: u64 = 2 + 32;
 const NOTEPAYLOAD_SIZE: u64 = 32 + 32 + 176;
 const ZKPROOF_SIZE: u64 = 192;
+const HISTORICAL_BLS_VERIFY_GAS: u64 = 1_000;
+const HISTORICAL_BW6_VERIFY_GAS: u64 = 3_000;
+
+fn historical_gas(old_input_count: usize, archived_generation_count: u64) -> Gas {
+    let chunks = archived_generation_count / CHUNK_WIDTH;
+    let tail = archived_generation_count % CHUNK_WIDTH;
+    let per_input_bytes = chunks
+        .saturating_mul(BW6_761_PROOF_BYTES as u64 + 48)
+        .saturating_add(tail.saturating_mul(BLS12_377_PROOF_BYTES as u64 + 56));
+    let per_input_verification = chunks
+        .saturating_mul(HISTORICAL_BW6_VERIFY_GAS)
+        .saturating_add(tail.saturating_mul(HISTORICAL_BLS_VERIFY_GAS));
+    let count = old_input_count as u64;
+    Gas {
+        block_space: count.saturating_mul(per_input_bytes),
+        compact_block_space: 0,
+        verification: count.saturating_mul(per_input_verification),
+        execution: 0,
+    }
+}
 
 /// Allows [`Action`]s and [`Transaction`]s to statically indicate their relative resource consumption.
 pub trait GasCost {
@@ -76,13 +99,52 @@ fn host_withdrawal_gas_cost(withdrawal: &HostWithdrawal) -> Gas {
 
 impl GasCost for Transaction {
     fn gas_cost(&self) -> Gas {
-        self.actions().map(GasCost::gas_cost).sum()
+        let mut gas: Gas = self.actions().map(GasCost::gas_cost).sum();
+        if let Some(fee_funding) = &self.transaction_body.fee_funding {
+            gas += fee_funding.transfer.gas_cost();
+        }
+        if let Some(window) = self.transaction_body.nullifier_window {
+            gas += historical_gas(
+                self.transaction_body.historical_nullifiers().len(),
+                window.archived_generation_count,
+            );
+        }
+        gas
     }
 }
 
 impl GasCost for TransactionPlan {
     fn gas_cost(&self) -> Gas {
-        self.actions.iter().map(GasCost::gas_cost).sum()
+        let mut gas: Gas = self.actions.iter().map(GasCost::gas_cost).sum();
+        if let Some(fee_funding) = &self.fee_funding {
+            gas += fee_funding.transfer.gas_cost();
+        }
+        if let Some(window) = self.nullifier_window {
+            let floor = window.recent_position_floor;
+            let zero_amount = 0u64.into();
+            let action_old = self
+                .actions
+                .iter()
+                .flat_map(ActionPlan::spends)
+                .filter(|spend| {
+                    spend.note.amount() != zero_amount && u64::from(spend.position) < floor
+                })
+                .count();
+            let fee_old = self
+                .fee_funding
+                .as_ref()
+                .into_iter()
+                .flat_map(|fee| &fee.transfer.spends)
+                .filter(|spend| {
+                    spend.note.amount() != zero_amount && u64::from(spend.position) < floor
+                })
+                .count();
+            gas += historical_gas(
+                action_old.saturating_add(fee_old),
+                window.archived_generation_count,
+            );
+        }
+        gas
     }
 }
 
@@ -141,6 +203,12 @@ impl GasCost for Action {
 }
 
 impl GasCost for shieldd_sdk_shielded_pool::Transfer {
+    fn gas_cost(&self) -> Gas {
+        transfer_gas_cost()
+    }
+}
+
+impl GasCost for shieldd_sdk_shielded_pool::TransferPlan {
     fn gas_cost(&self) -> Gas {
         transfer_gas_cost()
     }

@@ -205,6 +205,7 @@ impl NoteReshapePlan {
         fvk: &FullViewingKey,
         state_commitment_proofs: &[tct::Proof],
         anchor: tct::Root,
+        recent_position_floor: u64,
     ) -> Result<(NoteReshapeProofPublic, NoteReshapeProofPrivate), crate::ProofError> {
         self.validate()
             .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))?;
@@ -224,6 +225,11 @@ impl NoteReshapePlan {
                 Ok(NoteReshapeInputPublic {
                     nullifier: spend.nullifier(fvk),
                     rk: spend.rk(fvk),
+                    history_required: shieldd_sdk_sct::nullifier_generation::is_old(
+                        u64::from(spend.position),
+                        recent_position_floor,
+                    )
+                    .map_err(|error| crate::ProofError::InvalidPublicInput(error.to_string()))?,
                 })
             })
             .collect::<Result<Vec<_>, crate::ProofError>>()?;
@@ -231,6 +237,7 @@ impl NoteReshapePlan {
             NoteReshapeInputPublic {
                 nullifier: padder.synthetic_dummy_nullifier(slot),
                 rk: padder.synthetic_dummy_verification_key(slot),
+                history_required: false,
             }
         });
 
@@ -313,6 +320,7 @@ impl NoteReshapePlan {
                 asset_anchor: first_spend.asset_anchor,
                 routing_tag,
                 routing_parameter_set_id: self.routing_parameters.id(),
+                recent_position_floor,
                 inputs: input_publics,
                 outputs: output_publics,
             },
@@ -338,6 +346,7 @@ impl NoteReshapePlan {
         fvk: &FullViewingKey,
         memo_key: &PayloadKey,
         anchor: tct::Root,
+        recent_position_floor: u64,
     ) -> anyhow::Result<NoteReshapeBody> {
         self.validate()?;
         let padder = self.padder();
@@ -346,14 +355,15 @@ impl NoteReshapePlan {
             .spends
             .iter()
             .map(|spend| {
-                let spend_body = spend.action_input_body(fvk);
-                NoteReshapeInputBody {
+                let spend_body = spend.action_input_body(fvk, recent_position_floor)?;
+                Ok(NoteReshapeInputBody {
                     nullifier: spend_body.nullifier,
                     rk: spend_body.rk,
                     encrypted_backref: spend_body.encrypted_backref,
-                }
+                    history_required: spend_body.history_required,
+                })
             })
-            .collect::<Vec<_>>();
+            .collect::<anyhow::Result<Vec<_>>>()?;
         pad_to_len(&mut inputs, self.family_id().input_count(), |slot| {
             let nullifier = padder.synthetic_dummy_nullifier(slot);
             let backref = crate::Backref::new(padder.synthetic_dummy_input_note(slot).commit());
@@ -361,6 +371,7 @@ impl NoteReshapePlan {
                 nullifier,
                 rk: padder.synthetic_dummy_verification_key(slot),
                 encrypted_backref: backref.encrypt(&fvk.backref_key(), &nullifier),
+                history_required: false,
             }
         });
         let mut outputs = self
@@ -413,9 +424,10 @@ impl NoteReshapePlan {
         state_commitment_proofs: Vec<tct::Proof>,
         anchor: tct::Root,
         memo_key: &PayloadKey,
+        recent_position_floor: u64,
     ) -> Result<NoteReshape, crate::ProofError> {
         let body = self
-            .note_reshape_body(fvk, memo_key, anchor)
+            .note_reshape_body(fvk, memo_key, anchor, recent_position_floor)
             .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))?;
         if auth_sigs.len() != self.spends.len() {
             return Err(crate::ProofError::InvalidPublicInput(format!(
@@ -428,8 +440,12 @@ impl NoteReshapePlan {
         pad_to_len(&mut auth_sigs, self.family_id().auth_sig_count(), |slot| {
             self.synthetic_dummy_auth_sig(slot, body.effect_hash().as_ref())
         });
-        let (public, private) =
-            self.note_reshape_public_private(fvk, &state_commitment_proofs, anchor)?;
+        let (public, private) = self.note_reshape_public_private(
+            fvk,
+            &state_commitment_proofs,
+            anchor,
+            recent_position_floor,
+        )?;
         let proof = NoteReshapeProof::prove(public, private)?;
 
         Ok(NoteReshape {
@@ -703,7 +719,7 @@ mod tests {
         let anchor = tct::Tree::default().root();
 
         let error = plan
-            .note_reshape_public_private(&test_keys::FULL_VIEWING_KEY, &[], anchor)
+            .note_reshape_public_private(&test_keys::FULL_VIEWING_KEY, &[], anchor, 0)
             .expect_err("proof materialization must require one proof per real spend");
         assert!(error
             .to_string()
@@ -716,6 +732,7 @@ mod tests {
                 Vec::new(),
                 anchor,
                 &PayloadKey::random_key(&mut OsRng),
+                0,
             )
             .expect_err("action materialization must require one signature per real spend");
         assert!(error
@@ -734,6 +751,7 @@ mod tests {
                     &test_keys::FULL_VIEWING_KEY,
                     &memo_key,
                     tct::Tree::default().root(),
+                    0,
                 )
                 .expect("family body must build");
             assert_eq!(body.outputs.len(), family_id.output_count());

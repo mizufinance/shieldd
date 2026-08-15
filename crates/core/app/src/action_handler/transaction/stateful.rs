@@ -35,6 +35,24 @@ pub fn tx_parameters_historical_check_with_context(
     Ok(())
 }
 
+pub fn nullifier_window_valid_with_context(
+    transaction: &Transaction,
+    context: &HistoricalCheckContext,
+) -> Result<()> {
+    if transaction.spent_nullifier_count() == 0 {
+        ensure!(
+            transaction.transaction_body.nullifier_window.is_none(),
+            "spend-free transaction must not carry a nullifier window"
+        );
+        return Ok(());
+    }
+    ensure!(
+        transaction.transaction_body.nullifier_window == Some(context.nullifier_window),
+        "transaction nullifier window does not match the current consensus window"
+    );
+    Ok(())
+}
+
 pub fn discovery_parameters_valid_with_context(
     transaction: &Transaction,
     context: &HistoricalCheckContext,

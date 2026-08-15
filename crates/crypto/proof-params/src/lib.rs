@@ -19,6 +19,7 @@ pub const GROTH16_PROOF_LENGTH_BYTES: usize = 192;
 pub mod batch;
 #[allow(dead_code)]
 mod gnark_artifact_validation;
+pub mod historical;
 pub mod statement_hash;
 mod traits;
 
@@ -118,7 +119,7 @@ fn parse_g2(point: &G2PointJson) -> Result<ProofG2> {
 fn parse_canonical_field<F: PrimeField>(value: &str, label: &str) -> Result<F> {
     let parsed = F::from_str(value).map_err(|_| anyhow::anyhow!("invalid {label}"))?;
     if parsed.to_string() != value {
-        bail!("{label} is not a canonical field decimal");
+        bail!("{label} is not a canonical field decimal: encoded {value}, decoded {parsed}");
     }
     Ok(parsed)
 }

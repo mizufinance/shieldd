@@ -489,6 +489,8 @@ impl TestNodeWithIBC {
             },
             fee_funding: None,
             memo: None,
+            nullifier_window: None,
+            historical_nullifier_proofs: vec![],
         };
 
         let tx = Transaction {
@@ -576,6 +578,8 @@ impl TestNodeWithIBC {
             },
             fee_funding: None,
             memo: None,
+            nullifier_window: None,
+            historical_nullifier_proofs: vec![],
         };
 
         let tx = Transaction {

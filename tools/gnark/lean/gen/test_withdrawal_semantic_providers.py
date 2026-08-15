@@ -16,10 +16,10 @@ class WithdrawalSemanticProvidersTests(unittest.TestCase):
         }
 
     def test_exact_withdrawal_provider_roster_is_pinned(self) -> None:
-        self.assertEqual(len(withdrawal.TARGET_KEYS), 8)
+        self.assertEqual(len(withdrawal.TARGET_KEYS), 9)
         self.assertEqual(len(withdrawal.DIRECT_KEYS), 2)
         self.assertEqual(len(withdrawal.CONDITIONAL_KEYS), 1)
-        self.assertEqual(len(withdrawal.STATEMENT_KEYS), 3)
+        self.assertEqual(len(withdrawal.STATEMENT_KEYS), 4)
         self.assertEqual(
             withdrawal.TARGET_KEYS,
             withdrawal.DIRECT_KEYS

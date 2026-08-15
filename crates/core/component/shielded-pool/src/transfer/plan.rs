@@ -326,6 +326,7 @@ impl TransferPlan {
         fvk: &FullViewingKey,
         memo_key: &PayloadKey,
         anchor: tct::Root,
+        recent_position_floor: u64,
     ) -> anyhow::Result<TransferBody> {
         self.validate()?;
         let sender_leaf = sender_leaf(
@@ -348,8 +349,8 @@ impl TransferPlan {
         let inputs = self
             .spends
             .iter()
-            .map(|spend| spend.action_input_body(fvk))
-            .collect::<Vec<_>>();
+            .map(|spend| spend.action_input_body(fvk, recent_position_floor))
+            .collect::<anyhow::Result<Vec<_>>>()?;
         let mut inputs = inputs;
         pad_to_len(&mut inputs, PADDED_TRANSFER_INPUTS, |slot| {
             let nullifier = self.synthetic_dummy_nullifier(slot);
@@ -360,6 +361,7 @@ impl TransferPlan {
                 encrypted_backref: crate::Backref::new(dummy_note.commit())
                     .encrypt(&fvk.backref_key(), &nullifier),
                 compliance_ciphertext: Vec::new(),
+                history_required: false,
             }
         });
 
@@ -430,6 +432,7 @@ impl TransferPlan {
         fvk: &FullViewingKey,
         state_commitment_proofs: &[tct::Proof],
         anchor: tct::Root,
+        recent_position_floor: u64,
     ) -> Result<(TransferProofPublic, TransferProofPrivate), crate::ProofError> {
         self.validate()
             .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))?;
@@ -463,6 +466,11 @@ impl TransferPlan {
                 Ok(TransferSpendPublic {
                     nullifier: spend.nullifier(fvk),
                     rk: spend.rk(fvk),
+                    history_required: shieldd_sdk_sct::nullifier_generation::is_old(
+                        u64::from(spend.position),
+                        recent_position_floor,
+                    )
+                    .map_err(|error| crate::ProofError::InvalidPublicInput(error.to_string()))?,
                 })
             })
             .collect::<Result<Vec<_>, crate::ProofError>>()?;
@@ -471,6 +479,7 @@ impl TransferPlan {
             TransferSpendPublic {
                 nullifier: self.synthetic_dummy_nullifier(slot),
                 rk: self.synthetic_dummy_verification_key(slot),
+                history_required: false,
             }
         });
 
@@ -552,6 +561,7 @@ impl TransferPlan {
                 compliance: compliance.public,
                 routing,
                 routing_parameter_set_id: self.routing_parameters.id(),
+                recent_position_floor,
             },
             TransferProofPrivate {
                 action_balance_blinding: self.value_blinding,
@@ -582,9 +592,10 @@ impl TransferPlan {
         state_commitment_proofs: Vec<tct::Proof>,
         anchor: tct::Root,
         memo_key: &PayloadKey,
+        recent_position_floor: u64,
     ) -> Result<Transfer, crate::ProofError> {
         let body = self
-            .transfer_body(fvk, memo_key, anchor)
+            .transfer_body(fvk, memo_key, anchor, recent_position_floor)
             .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))?;
         if auth_sigs.len() != self.spends.len() {
             return Err(crate::ProofError::InvalidPublicInput(format!(
@@ -593,8 +604,12 @@ impl TransferPlan {
                 auth_sigs.len()
             )));
         }
-        let (public, private) =
-            self.transfer_public_private(fvk, &state_commitment_proofs, anchor)?;
+        let (public, private) = self.transfer_public_private(
+            fvk,
+            &state_commitment_proofs,
+            anchor,
+            recent_position_floor,
+        )?;
         let proof = TransferProof::prove(public, private)?;
         let mut auth_sigs = auth_sigs;
         while auth_sigs.len() < PADDED_TRANSFER_INPUTS {
@@ -613,10 +628,15 @@ impl TransferPlan {
         fvk: &FullViewingKey,
         state_commitment_proofs: Vec<tct::Proof>,
         anchor: tct::Root,
+        recent_position_floor: u64,
     ) -> Result<Vec<u8>, crate::ProofError> {
-        let (public, private) =
-            self.transfer_public_private(fvk, &state_commitment_proofs, anchor)?;
-        crate::gnark::encode_transfer_witness_v17(&public, &private)
+        let (public, private) = self.transfer_public_private(
+            fvk,
+            &state_commitment_proofs,
+            anchor,
+            recent_position_floor,
+        )?;
+        crate::gnark::encode_transfer_witness_v18(&public, &private)
             .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))
     }
 
@@ -627,9 +647,10 @@ impl TransferPlan {
         anchor: tct::Root,
         memo_key: &PayloadKey,
         proof: TransferProof,
+        recent_position_floor: u64,
     ) -> Result<Transfer, crate::ProofError> {
         let body = self
-            .transfer_body(fvk, memo_key, anchor)
+            .transfer_body(fvk, memo_key, anchor, recent_position_floor)
             .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))?;
         if auth_sigs.len() != self.spends.len() {
             return Err(crate::ProofError::InvalidPublicInput(format!(
@@ -965,7 +986,7 @@ mod tests {
             .expect("transfer plan should be valid");
 
         let error = plan
-            .transfer_public_private(&test_keys::FULL_VIEWING_KEY, &[], anchor)
+            .transfer_public_private(&test_keys::FULL_VIEWING_KEY, &[], anchor, 0)
             .expect_err("proof materialization must require one proof per real spend");
         assert!(error
             .to_string()
@@ -978,6 +999,7 @@ mod tests {
                 anchor,
                 &PayloadKey::random_key(&mut OsRng),
                 TransferProof::default(),
+                0,
             )
             .expect_err("action materialization must require one signature per real spend");
         assert!(error
@@ -991,6 +1013,7 @@ mod tests {
                 &test_keys::FULL_VIEWING_KEY,
                 &PayloadKey::random_key(&mut OsRng),
                 anchor,
+                0,
             )
             .expect_err("receiver compliance leaf must be authoritative");
         assert!(error
@@ -1011,6 +1034,7 @@ mod tests {
                 &test_keys::FULL_VIEWING_KEY,
                 &PayloadKey::random_key(&mut OsRng),
                 anchor,
+                0,
             )
             .expect_err("regulated transfer must carry its authoritative policy");
         assert!(error
@@ -1236,6 +1260,7 @@ mod tests {
                 &test_keys::FULL_VIEWING_KEY,
                 &PayloadKey::random_key(&mut OsRng),
                 tct::Tree::default().root(),
+                0,
             )
             .expect("enriched plan should materialize");
         assert_eq!(body.asset_anchor, new_asset_anchor);
@@ -1257,6 +1282,7 @@ mod tests {
                 &test_keys::FULL_VIEWING_KEY,
                 &PayloadKey::random_key(&mut OsRng),
                 anchor,
+                0,
             )
             .expect("transfer body should build");
         let effect_hash = body.effect_hash();
@@ -1298,7 +1324,7 @@ mod tests {
         let expected_change = plan.outputs[1].output_note().commit();
 
         let (_public, private) = plan
-            .transfer_public_private(&test_keys::FULL_VIEWING_KEY, &[proof], anchor)
+            .transfer_public_private(&test_keys::FULL_VIEWING_KEY, &[proof], anchor, 0)
             .expect("transfer public/private inputs should build");
 
         assert_eq!(
@@ -1316,7 +1342,7 @@ mod tests {
         let mut rng = OsRng;
         let memo_key = PayloadKey::random_key(&mut rng);
         let body = plan
-            .transfer_body(&test_keys::FULL_VIEWING_KEY, &memo_key, anchor)
+            .transfer_body(&test_keys::FULL_VIEWING_KEY, &memo_key, anchor, 0)
             .expect("transfer body should build");
 
         assert!(body

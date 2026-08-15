@@ -31,6 +31,7 @@ parallel = [
 [dependencies]
 anyhow = {workspace = true}
 ark-ec = {workspace = true}
+ark-bw6-761 = {workspace = true}
 ark-ff = {workspace = true, default-features = false}
 ark-groth16 = {workspace = true, default-features = false}
 ark-r1cs-std = {workspace = true, default-features = false}

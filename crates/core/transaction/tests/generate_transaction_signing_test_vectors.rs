@@ -25,6 +25,9 @@ use shieldd_sdk_keys::test_keys::SEED_PHRASE;
 use shieldd_sdk_keys::{Address, FullViewingKey};
 use shieldd_sdk_num::Amount;
 use shieldd_sdk_proto::DomainType;
+use shieldd_sdk_sct::nullifier_generation::{
+    empty_history_head, NullifierWindow, PROTOCOL_VERSION,
+};
 use shieldd_sdk_shielded_pool::{
     Ics20Withdrawal, Note, NoteReshapeFamilyId, NoteReshapePlan, ShieldedIcs20WithdrawalPlan,
     ShieldedInputPlan, ShieldedOutputPlan, TransferPlan,
@@ -459,12 +462,23 @@ fn transaction_parameters_strategy() -> impl Strategy<Value = TransactionParamet
 
 fn transaction_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = TransactionPlan> {
     (actions_vec_strategy(fvk), transaction_parameters_strategy()).prop_map(|(actions, params)| {
-        TransactionPlan {
+        let mut plan = TransactionPlan {
             actions,
             transaction_parameters: params,
             fee_funding: None,
             memo: None,
+            nullifier_window: None,
+        };
+        if plan.num_spends() > 0 {
+            plan.nullifier_window = Some(NullifierWindow {
+                protocol_version: PROTOCOL_VERSION,
+                current_generation: 0,
+                recent_position_floor: 0,
+                archived_generation_count: 0,
+                archived_history_head: empty_history_head(),
+            });
         }
+        plan
     })
 }
 

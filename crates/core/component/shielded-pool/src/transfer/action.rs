@@ -22,6 +22,7 @@ pub struct TransferInputBody {
     pub rk: VerificationKey<SpendAuth>,
     pub encrypted_backref: EncryptedBackref,
     pub compliance_ciphertext: Vec<u8>,
+    pub history_required: bool,
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
@@ -156,6 +157,7 @@ impl From<TransferInputBody> for pb::TransferInputBody {
             rk: Some(msg.rk.into()),
             encrypted_backref: msg.encrypted_backref.into(),
             compliance_ciphertext: msg.compliance_ciphertext,
+            history_required: msg.history_required,
         }
     }
 }
@@ -184,6 +186,7 @@ impl TryFrom<pb::TransferInputBody> for TransferInputBody {
                 .context("malformed rk")?,
             encrypted_backref,
             compliance_ciphertext: proto.compliance_ciphertext,
+            history_required: proto.history_required,
         })
     }
 }

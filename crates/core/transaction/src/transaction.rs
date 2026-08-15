@@ -16,6 +16,7 @@ use shieldd_sdk_proto::{
     core::transaction::v1::{self as pbt},
     DomainType, Message,
 };
+use shieldd_sdk_sct::nullifier_generation::{HistoricalNullifierProof, NullifierWindow};
 use shieldd_sdk_sct::Nullifier;
 use shieldd_sdk_shielded_pool::{
     Note, NoteReshape, ShieldedHostWithdrawal, ShieldedHostWithdrawalView,
@@ -44,6 +45,126 @@ pub struct TransactionBody {
     pub transaction_parameters: TransactionParameters,
     pub fee_funding: Option<FeeFunding>,
     pub memo: Option<MemoCiphertext>,
+    pub nullifier_window: Option<NullifierWindow>,
+    pub historical_nullifier_proofs: Vec<HistoricalNullifierProof>,
+}
+
+pub(crate) fn update_nullifier_window_effect_hash(
+    state: &mut blake2b_simd::State,
+    window: Option<&NullifierWindow>,
+) {
+    match window {
+        None => {
+            state.update(&[0]);
+        }
+        Some(window) => {
+            state.update(&[1]);
+            state.update(&window.protocol_version.to_le_bytes());
+            state.update(&window.current_generation.to_le_bytes());
+            state.update(&window.recent_position_floor.to_le_bytes());
+            state.update(&window.archived_generation_count.to_le_bytes());
+            state.update(&window.archived_history_head);
+        }
+    }
+}
+
+impl TransactionBody {
+    fn proof_bound_inputs(&self) -> Vec<(Nullifier, bool)> {
+        let mut inputs = Vec::new();
+        for action in &self.actions {
+            match action {
+                Action::Transfer(action) => inputs.extend(
+                    action
+                        .body
+                        .inputs
+                        .iter()
+                        .map(|input| (input.nullifier, input.history_required)),
+                ),
+                Action::NoteReshape(action) => inputs.extend(
+                    action
+                        .body
+                        .inputs
+                        .iter()
+                        .map(|input| (input.nullifier, input.history_required)),
+                ),
+                Action::ShieldedIcs20Withdrawal(action) => inputs.extend(
+                    action
+                        .body
+                        .inputs
+                        .iter()
+                        .map(|input| (input.nullifier, input.history_required)),
+                ),
+                Action::ShieldedHostWithdrawal(action) => inputs.extend(
+                    action
+                        .body
+                        .inputs
+                        .iter()
+                        .map(|input| (input.nullifier, input.history_required)),
+                ),
+                _ => {}
+            }
+        }
+        if let Some(fee_funding) = &self.fee_funding {
+            inputs.extend(
+                fee_funding
+                    .transfer
+                    .body
+                    .inputs
+                    .iter()
+                    .map(|input| (input.nullifier, input.history_required)),
+            );
+        }
+
+        inputs
+    }
+
+    /// Public nullifiers whose action proofs require complete retired-history proofs.
+    pub fn historical_nullifiers(&self) -> Vec<Nullifier> {
+        self.proof_bound_inputs()
+            .into_iter()
+            .filter_map(|(nullifier, required)| required.then_some(nullifier))
+            .collect()
+    }
+
+    pub fn validate_nullifier_history(&self) -> anyhow::Result<()> {
+        let inputs = self.proof_bound_inputs();
+
+        if inputs.is_empty() {
+            anyhow::ensure!(
+                self.nullifier_window.is_none(),
+                "spend-free transaction has a nullifier window"
+            );
+            anyhow::ensure!(
+                self.historical_nullifier_proofs.is_empty(),
+                "spend-free transaction has historical nullifier proofs"
+            );
+            return Ok(());
+        }
+
+        let window = self
+            .nullifier_window
+            .context("proof-bearing transaction is missing its nullifier window")?;
+        window.validate()?;
+        let old_nullifiers = self.historical_nullifiers();
+        anyhow::ensure!(
+            old_nullifiers.len() == self.historical_nullifier_proofs.len(),
+            "historical proof count does not match old input count"
+        );
+        for (index, (nullifier, proof)) in old_nullifiers
+            .into_iter()
+            .zip(&self.historical_nullifier_proofs)
+            .enumerate()
+        {
+            anyhow::ensure!(
+                proof.nullifier == nullifier,
+                "historical proof {index} does not match its old input nullifier"
+            );
+            proof
+                .validate_structure(window)
+                .with_context(|| format!("historical proof {index} has invalid structure"))?;
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -79,6 +200,7 @@ impl EffectingData for TransactionBody {
         state.update(parameters_hash.as_bytes());
         state.update(memo_hash.as_bytes());
         state.update(fee_funding_hash.as_bytes());
+        update_nullifier_window_effect_hash(&mut state, self.nullifier_window.as_ref());
 
         let num_actions = self.actions.len() as u32;
         state.update(&num_actions.to_le_bytes());
@@ -160,6 +282,10 @@ impl Transaction {
         TransactionContext {
             anchor: self.anchor,
             effect_hash: self.effect_hash(),
+            recent_position_floor: self
+                .transaction_body
+                .nullifier_window
+                .map_or(0, |window| window.recent_position_floor),
         }
     }
 
@@ -445,6 +571,11 @@ impl Transaction {
                 transaction_parameters: self.transaction_parameters(),
                 fee_funding,
                 memo_view,
+                nullifier_window: self.transaction_body.nullifier_window,
+                historical_nullifier_proofs: self
+                    .transaction_body
+                    .historical_nullifier_proofs
+                    .clone(),
             },
             binding_sig: self.binding_sig,
             anchor: self.anchor,
@@ -829,6 +960,7 @@ mod tests {
                         )
                         .expect("valid encrypted backref"),
                         compliance_ciphertext: vec![1, 2, 3],
+                        history_required: false,
                     },
                     shieldd_sdk_shielded_pool::TransferInputBody {
                         nullifier: Nullifier(decaf377::Fq::from(30u64)),
@@ -840,6 +972,7 @@ mod tests {
                         )
                         .expect("fixed-size encrypted backref"),
                         compliance_ciphertext: vec![],
+                        history_required: false,
                     },
                 ],
                 outputs: vec![
@@ -898,6 +1031,35 @@ mod tests {
         );
         assert_eq!(tx.state_commitments().collect::<Vec<_>>().len(), 2);
 
+        assert!(
+            tx.transaction_body.validate_nullifier_history().is_err(),
+            "every proof-bearing transaction must bind a nullifier window"
+        );
+        let mut history_tx = tx.clone();
+        history_tx.transaction_body.nullifier_window =
+            Some(shieldd_sdk_sct::nullifier_generation::NullifierWindow {
+                protocol_version: shieldd_sdk_sct::nullifier_generation::PROTOCOL_VERSION,
+                current_generation: 0,
+                recent_position_floor: 0,
+                archived_generation_count: 0,
+                archived_history_head: shieldd_sdk_sct::nullifier_generation::empty_history_head(),
+            });
+        history_tx
+            .transaction_body
+            .validate_nullifier_history()
+            .expect("recent inputs require the window but no historical bundles");
+        let Action::Transfer(history_transfer) = &mut history_tx.transaction_body.actions[0] else {
+            panic!("fixture action must remain a Transfer")
+        };
+        history_transfer.body.inputs[0].history_required = true;
+        assert!(
+            history_tx
+                .transaction_body
+                .validate_nullifier_history()
+                .is_err(),
+            "an old input must have exactly one matching historical bundle"
+        );
+
         let fee_funded_tx = Transaction {
             transaction_body: TransactionBody {
                 actions: vec![Action::Transfer(transfer.clone())],
@@ -933,6 +1095,7 @@ mod tests {
                     [u8::try_from(index + 1).expect("small test index"); 48],
                 )
                 .expect("fixed-size encrypted backref"),
+                history_required: false,
             })
             .collect::<Vec<_>>();
         assert!(inputs
@@ -1003,6 +1166,7 @@ mod tests {
                                     )),
                                     encrypted_backref:
                                         shieldd_sdk_shielded_pool::EncryptedBackref::dummy(),
+                                    history_required: false,
                                 },
                                 shieldd_sdk_shielded_pool::NoteReshapeInputBody {
                                     nullifier: Nullifier(decaf377::Fq::from(4u64)),
@@ -1011,6 +1175,7 @@ mod tests {
                                     )),
                                     encrypted_backref:
                                         shieldd_sdk_shielded_pool::EncryptedBackref::dummy(),
+                                    history_required: false,
                                 },
                             ],
                             outputs: vec![shieldd_sdk_shielded_pool::NoteReshapeOutputBody {
@@ -1044,6 +1209,7 @@ mod tests {
                                 )),
                                 encrypted_backref:
                                     shieldd_sdk_shielded_pool::EncryptedBackref::dummy(),
+                                history_required: false,
                             }],
                             outputs: vec![
                                 shieldd_sdk_shielded_pool::NoteReshapeOutputBody {
@@ -1087,6 +1253,7 @@ mod tests {
                                             )
                                             .expect("fixed-size encrypted backref"),
                                         compliance_ciphertext: vec![],
+                                        history_required: false,
                                     },
                                     shieldd_sdk_shielded_pool::TransferInputBody {
                                         nullifier: Nullifier(decaf377::Fq::from(25u64)),
@@ -1099,6 +1266,7 @@ mod tests {
                                             )
                                             .expect("fixed-size encrypted backref"),
                                         compliance_ciphertext: vec![],
+                                        history_required: false,
                                     },
                                 ],
                                 withdrawal: shieldd_sdk_shielded_pool::Ics20Withdrawal {
@@ -1222,6 +1390,12 @@ impl From<TransactionBody> for pbt::TransactionBody {
             transaction_parameters: Some(msg.transaction_parameters.into()),
             fee_funding: msg.fee_funding.map(Into::into),
             memo: msg.memo.map(Into::into),
+            nullifier_window: msg.nullifier_window.map(Into::into),
+            historical_nullifier_proofs: msg
+                .historical_nullifier_proofs
+                .into_iter()
+                .map(Into::into)
+                .collect(),
         }
     }
 }
@@ -1258,12 +1432,24 @@ impl TryFrom<pbt::TransactionBody> for TransactionBody {
             .try_into()
             .context("transaction parameters malformed")?;
 
-        Ok(TransactionBody {
+        let body = TransactionBody {
             actions,
             transaction_parameters,
             fee_funding,
             memo,
-        })
+            nullifier_window: proto
+                .nullifier_window
+                .map(TryInto::try_into)
+                .transpose()
+                .context("nullifier window malformed")?,
+            historical_nullifier_proofs: proto
+                .historical_nullifier_proofs
+                .into_iter()
+                .map(TryInto::try_into)
+                .collect::<Result<_, _>>()?,
+        };
+        body.validate_nullifier_history()?;
+        Ok(body)
     }
 }
 

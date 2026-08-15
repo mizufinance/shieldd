@@ -74,6 +74,7 @@ fn shielded_ics20_withdrawal_extract_public(
             .map(|input| ShieldedIcs20WithdrawalInputPublic {
                 nullifier: input.nullifier,
                 rk: input.rk,
+                history_required: input.history_required,
             })
             .collect(),
         change_output: ShieldedIcs20WithdrawalChangePublic {
@@ -85,6 +86,7 @@ fn shielded_ics20_withdrawal_extract_public(
             crate::shielded_ics20_withdrawal::withdrawal_effect_hash_limbs(effect_hash_bytes),
         routing_tag: action.body.routing_tag,
         routing_parameter_set_id: action.body.routing_parameter_set_id,
+        recent_position_floor: context.recent_position_floor,
     };
     public
         .validate_shape()
@@ -219,7 +221,7 @@ mod tests {
         let anchor = shieldd_sdk_tct::Tree::default().root();
         ShieldedIcs20Withdrawal {
             body: plan
-                .action_body(&test_keys::FULL_VIEWING_KEY, &[7u8; 32].into(), anchor)
+                .action_body(&test_keys::FULL_VIEWING_KEY, &[7u8; 32].into(), anchor, 0)
                 .expect("derive action body"),
             auth_sigs: vec![
                 dummy_spend_auth_sig();
@@ -252,7 +254,7 @@ mod tests {
             .expect("withdrawal plan should be valid");
         let anchor = shieldd_sdk_tct::Tree::default().root();
         let mut body = plan
-            .action_body(&test_keys::FULL_VIEWING_KEY, &[7u8; 32].into(), anchor)
+            .action_body(&test_keys::FULL_VIEWING_KEY, &[7u8; 32].into(), anchor, 0)
             .expect("withdrawal body should build");
         body.inputs[0].compliance_ciphertext.push(1);
         let auth_sigs = vec![dummy_spend_auth_sig(); body.inputs.len()];
@@ -264,6 +266,7 @@ mod tests {
         let context = TransactionContext {
             anchor,
             effect_hash: Default::default(),
+            recent_position_floor: 0,
         };
 
         let err = shielded_ics20_withdrawal_check_stateless_and_extract(&action, &context)
@@ -297,11 +300,12 @@ mod tests {
             .expect("one-spend withdrawal plan should be valid");
         let anchor = shieldd_sdk_tct::Tree::default().root();
         let body = plan
-            .action_body(&test_keys::FULL_VIEWING_KEY, &[7u8; 32].into(), anchor)
+            .action_body(&test_keys::FULL_VIEWING_KEY, &[7u8; 32].into(), anchor, 0)
             .expect("withdrawal body should build");
         let context = TransactionContext {
             anchor,
             effect_hash: Default::default(),
+            recent_position_floor: 0,
         };
         let real_rsk = test_keys::SPEND_KEY
             .spend_auth_key()
@@ -332,6 +336,7 @@ mod tests {
         let context = TransactionContext {
             anchor: action.body.anchor,
             effect_hash: Default::default(),
+            recent_position_floor: 0,
         };
         let identity_sk = SigningKey::<SpendAuth>::from(Fr::from(0u64));
         action.body.inputs[0].rk = VerificationKey::from(identity_sk.clone());
@@ -378,11 +383,16 @@ mod tests {
         let anchor = shieldd_sdk_tct::Tree::default().root();
         let proofs = vec![dummy_state_commitment_proof(note_commitment)];
         let (proving_public, _) = plan
-            .shielded_ics20_withdrawal_public_private(&test_keys::FULL_VIEWING_KEY, &proofs, anchor)
+            .shielded_ics20_withdrawal_public_private(
+                &test_keys::FULL_VIEWING_KEY,
+                &proofs,
+                anchor,
+                0,
+            )
             .expect("derive proving public");
         let action = ShieldedIcs20Withdrawal {
             body: plan
-                .action_body(&test_keys::FULL_VIEWING_KEY, &[7u8; 32].into(), anchor)
+                .action_body(&test_keys::FULL_VIEWING_KEY, &[7u8; 32].into(), anchor, 0)
                 .expect("derive action body"),
             auth_sigs: vec![
                 dummy_spend_auth_sig();
@@ -393,6 +403,7 @@ mod tests {
         let context = TransactionContext {
             anchor,
             effect_hash: Default::default(),
+            recent_position_floor: 0,
         };
         let extracted = shielded_ics20_withdrawal_extract_public(&action, &context)
             .expect("extract verifier public");

@@ -792,6 +792,35 @@ impl ::prost::Name for AppParametersResponse {
         "/shieldd.view.v1.AppParametersResponse".into()
     }
 }
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct NullifierWindowRequest {}
+impl ::prost::Name for NullifierWindowRequest {
+    const NAME: &'static str = "NullifierWindowRequest";
+    const PACKAGE: &'static str = "shieldd.view.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.view.v1.NullifierWindowRequest".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.view.v1.NullifierWindowRequest".into()
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct NullifierWindowResponse {
+    #[prost(message, optional, tag = "1")]
+    pub window: ::core::option::Option<
+        super::super::core::component::sct::v1::NullifierWindow,
+    >,
+}
+impl ::prost::Name for NullifierWindowResponse {
+    const NAME: &'static str = "NullifierWindowResponse";
+    const PACKAGE: &'static str = "shieldd.view.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.view.v1.NullifierWindowResponse".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.view.v1.NullifierWindowResponse".into()
+    }
+}
 /// Requests the current gas prices from the view service.
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct GasPricesRequest {}
@@ -1648,6 +1677,33 @@ pub mod view_service_client {
                 .insert(GrpcMethod::new("shieldd.view.v1.ViewService", "AppParameters"));
             self.inner.unary(req, path, codec).await
         }
+        /// Query for the exact nullifier-generation planning window.
+        pub async fn nullifier_window(
+            &mut self,
+            request: impl tonic::IntoRequest<super::NullifierWindowRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::NullifierWindowResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/shieldd.view.v1.ViewService/NullifierWindow",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("shieldd.view.v1.ViewService", "NullifierWindow"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
         /// Query for the current gas prices.
         pub async fn gas_prices(
             &mut self,
@@ -2361,6 +2417,14 @@ pub mod view_service_server {
             tonic::Response<super::AppParametersResponse>,
             tonic::Status,
         >;
+        /// Query for the exact nullifier-generation planning window.
+        async fn nullifier_window(
+            &self,
+            request: tonic::Request<super::NullifierWindowRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::NullifierWindowResponse>,
+            tonic::Status,
+        >;
         /// Query for the current gas prices.
         async fn gas_prices(
             &self,
@@ -2937,6 +3001,51 @@ pub mod view_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = AppParametersSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/shieldd.view.v1.ViewService/NullifierWindow" => {
+                    #[allow(non_camel_case_types)]
+                    struct NullifierWindowSvc<T: ViewService>(pub Arc<T>);
+                    impl<
+                        T: ViewService,
+                    > tonic::server::UnaryService<super::NullifierWindowRequest>
+                    for NullifierWindowSvc<T> {
+                        type Response = super::NullifierWindowResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::NullifierWindowRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as ViewService>::nullifier_window(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = NullifierWindowSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

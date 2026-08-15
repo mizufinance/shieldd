@@ -27,7 +27,7 @@ open Protocol
 open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 attribute [-instance] ZMod.instField
-local instance choiceFreeTransferTranscriptCommRing : CommRing DeployedF :=
+private local instance choiceFreeTransferTranscriptCommRing : CommRing DeployedF :=
   ZMod.commRing _
 
 private theorem negOne :
@@ -619,22 +619,22 @@ theorem senderCoreSharedAck_eq_action
   · simp only [
       senderCoreSharedAck, Deployed.Templates.Semantics.TDecafSharedSecret_0a9405fe9fa7b69f5919b41caaa6165a64f58cf75a38a13283885fbfe7b30f0b.ack,
       Deployed.Templates.Semantics.TDecafSharedSecret_0a9405fe9fa7b69f5919b41caaa6165a64f58cf75a38a13283885fbfe7b30f0b.UserWindowSupport.base, senderAckPoint, Deployed.Templates.Semantics.TDecafAck_e3974880eca25a8b5cfa17d94f28498f1dc082a93526c584816508afe0778ca1.AckSupport.output,
-      SenderCoreSharedSecretValuation, Seg99.localRho,
+      SenderCoreSharedSecretValuation, Seg101.localRho,
       SenderAckValuation, ReceiverAckValuation,
       Seg30.localRho, Deployed.Templates.seated]
-    rw [show Seg99.wireSeating 1811 =
+    rw [show Seg101.wireSeating 1811 =
       Seg30.wireSeating 3003 by decide +kernel]
-    rw [show Seg99.wireSeating 1812 =
+    rw [show Seg101.wireSeating 1812 =
       Seg30.wireSeating 3011 by decide +kernel]
   · simp only [
       senderCoreSharedAck, Deployed.Templates.Semantics.TDecafSharedSecret_0a9405fe9fa7b69f5919b41caaa6165a64f58cf75a38a13283885fbfe7b30f0b.ack,
       Deployed.Templates.Semantics.TDecafSharedSecret_0a9405fe9fa7b69f5919b41caaa6165a64f58cf75a38a13283885fbfe7b30f0b.UserWindowSupport.base, senderAckPoint, Deployed.Templates.Semantics.TDecafAck_e3974880eca25a8b5cfa17d94f28498f1dc082a93526c584816508afe0778ca1.AckSupport.output,
-      SenderCoreSharedSecretValuation, Seg99.localRho,
+      SenderCoreSharedSecretValuation, Seg101.localRho,
       SenderAckValuation, ReceiverAckValuation,
       Seg30.localRho, Deployed.Templates.seated]
-    rw [show Seg99.wireSeating 1813 =
+    rw [show Seg101.wireSeating 1813 =
       Seg30.wireSeating 3004 by decide +kernel]
-    rw [show Seg99.wireSeating 1814 =
+    rw [show Seg101.wireSeating 1814 =
       Seg30.wireSeating 3012 by decide +kernel]
 
 /-- The `senderCore` shared ladder consumes the selected action detection key. -/
@@ -715,22 +715,22 @@ theorem senderExtSharedAck_eq_action
   · simp only [
       senderExtSharedAck, Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.ack,
       Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.UserWindowSupport.base, senderAckPoint, Deployed.Templates.Semantics.TDecafAck_e3974880eca25a8b5cfa17d94f28498f1dc082a93526c584816508afe0778ca1.AckSupport.output,
-      SenderExtSharedSecretValuation, Seg100.localRho,
+      SenderExtSharedSecretValuation, Seg102.localRho,
       SenderAckValuation, ReceiverAckValuation,
       Seg30.localRho, Deployed.Templates.seated]
-    rw [show Seg100.wireSeating 1810 =
+    rw [show Seg102.wireSeating 1810 =
       Seg30.wireSeating 3003 by decide +kernel]
-    rw [show Seg100.wireSeating 1811 =
+    rw [show Seg102.wireSeating 1811 =
       Seg30.wireSeating 3011 by decide +kernel]
   · simp only [
       senderExtSharedAck, Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.ack,
       Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.UserWindowSupport.base, senderAckPoint, Deployed.Templates.Semantics.TDecafAck_e3974880eca25a8b5cfa17d94f28498f1dc082a93526c584816508afe0778ca1.AckSupport.output,
-      SenderExtSharedSecretValuation, Seg100.localRho,
+      SenderExtSharedSecretValuation, Seg102.localRho,
       SenderAckValuation, ReceiverAckValuation,
       Seg30.localRho, Deployed.Templates.seated]
-    rw [show Seg100.wireSeating 1812 =
+    rw [show Seg102.wireSeating 1812 =
       Seg30.wireSeating 3004 by decide +kernel]
-    rw [show Seg100.wireSeating 1813 =
+    rw [show Seg102.wireSeating 1813 =
       Seg30.wireSeating 3012 by decide +kernel]
 
 /-- The `senderExt` shared ladder consumes the selected action detection key. -/
@@ -811,23 +811,23 @@ theorem outputCoreSharedAck_eq_action
   · simp only [
       outputCoreSharedAck, Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.ack,
       Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.UserWindowSupport.base, receiverAckPoint, Deployed.Templates.Semantics.TDecafAck_e3974880eca25a8b5cfa17d94f28498f1dc082a93526c584816508afe0778ca1.AckSupport.output,
-      OutputCoreSharedSecretValuation, Seg101.localRho,
+      OutputCoreSharedSecretValuation, Seg103.localRho,
       SenderAckValuation, ReceiverAckValuation,
-      Seg67.localRho, Deployed.Templates.seated]
-    rw [show Seg101.wireSeating 1810 =
-      Seg67.wireSeating 3003 by decide +kernel]
-    rw [show Seg101.wireSeating 1811 =
-      Seg67.wireSeating 3011 by decide +kernel]
+      Seg69.localRho, Deployed.Templates.seated]
+    rw [show Seg103.wireSeating 1810 =
+      Seg69.wireSeating 3003 by decide +kernel]
+    rw [show Seg103.wireSeating 1811 =
+      Seg69.wireSeating 3011 by decide +kernel]
   · simp only [
       outputCoreSharedAck, Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.ack,
       Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.UserWindowSupport.base, receiverAckPoint, Deployed.Templates.Semantics.TDecafAck_e3974880eca25a8b5cfa17d94f28498f1dc082a93526c584816508afe0778ca1.AckSupport.output,
-      OutputCoreSharedSecretValuation, Seg101.localRho,
+      OutputCoreSharedSecretValuation, Seg103.localRho,
       SenderAckValuation, ReceiverAckValuation,
-      Seg67.localRho, Deployed.Templates.seated]
-    rw [show Seg101.wireSeating 1812 =
-      Seg67.wireSeating 3004 by decide +kernel]
-    rw [show Seg101.wireSeating 1813 =
-      Seg67.wireSeating 3012 by decide +kernel]
+      Seg69.localRho, Deployed.Templates.seated]
+    rw [show Seg103.wireSeating 1812 =
+      Seg69.wireSeating 3004 by decide +kernel]
+    rw [show Seg103.wireSeating 1813 =
+      Seg69.wireSeating 3012 by decide +kernel]
 
 /-- The `outputCore` shared ladder consumes the selected action detection key. -/
 theorem outputCoreSharedDkPub_eq_action
@@ -907,23 +907,23 @@ theorem outputExtSharedAck_eq_action
   · simp only [
       outputExtSharedAck, Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.ack,
       Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.UserWindowSupport.base, receiverAckPoint, Deployed.Templates.Semantics.TDecafAck_e3974880eca25a8b5cfa17d94f28498f1dc082a93526c584816508afe0778ca1.AckSupport.output,
-      OutputExtSharedSecretValuation, Seg102.localRho,
+      OutputExtSharedSecretValuation, Seg104.localRho,
       SenderAckValuation, ReceiverAckValuation,
-      Seg67.localRho, Deployed.Templates.seated]
-    rw [show Seg102.wireSeating 1810 =
-      Seg67.wireSeating 3003 by decide +kernel]
-    rw [show Seg102.wireSeating 1811 =
-      Seg67.wireSeating 3011 by decide +kernel]
+      Seg69.localRho, Deployed.Templates.seated]
+    rw [show Seg104.wireSeating 1810 =
+      Seg69.wireSeating 3003 by decide +kernel]
+    rw [show Seg104.wireSeating 1811 =
+      Seg69.wireSeating 3011 by decide +kernel]
   · simp only [
       outputExtSharedAck, Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.ack,
       Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.UserWindowSupport.base, receiverAckPoint, Deployed.Templates.Semantics.TDecafAck_e3974880eca25a8b5cfa17d94f28498f1dc082a93526c584816508afe0778ca1.AckSupport.output,
-      OutputExtSharedSecretValuation, Seg102.localRho,
+      OutputExtSharedSecretValuation, Seg104.localRho,
       SenderAckValuation, ReceiverAckValuation,
-      Seg67.localRho, Deployed.Templates.seated]
-    rw [show Seg102.wireSeating 1812 =
-      Seg67.wireSeating 3004 by decide +kernel]
-    rw [show Seg102.wireSeating 1813 =
-      Seg67.wireSeating 3012 by decide +kernel]
+      Seg69.localRho, Deployed.Templates.seated]
+    rw [show Seg104.wireSeating 1812 =
+      Seg69.wireSeating 3004 by decide +kernel]
+    rw [show Seg104.wireSeating 1813 =
+      Seg69.wireSeating 3012 by decide +kernel]
 
 /-- The `outputExt` shared ladder consumes the selected action detection key. -/
 theorem outputExtSharedDkPub_eq_action

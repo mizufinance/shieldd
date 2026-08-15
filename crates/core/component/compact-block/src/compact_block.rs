@@ -8,7 +8,7 @@ use shieldd_sdk_proto::{
     core::component::compact_block::v1::CompactBlockRangeResponse,
     shieldd::core::component::compact_block::v1 as pb, DomainType,
 };
-use shieldd_sdk_sct::Nullifier;
+use shieldd_sdk_sct::{nullifier_generation::NullifierWindow, Nullifier};
 use shieldd_sdk_shielded_pool::discovery;
 use shieldd_sdk_tct::{
     builder::{block, epoch},
@@ -55,6 +55,8 @@ pub struct CompactBlock {
     pub compliance_user_registrations: Vec<EventUserRegistered>,
     /// Asset registrations in this block (for compliance tree sync).
     pub compliance_asset_registrations: Vec<EventAssetRegistered>,
+    /// Exact nullifier window, present at genesis and app-epoch boundaries.
+    pub nullifier_window: Option<NullifierWindow>,
     // **IMPORTANT NOTE FOR FUTURE HUMANS**: if you want to add new fields to the `CompactBlock`,
     // you must update `CompactBlock::requires_scanning` to check for the emptiness of those fields,
     // because the client will skip processing any compact block that is marked as not requiring
@@ -81,6 +83,7 @@ impl Default for CompactBlock {
             compliance_asset_anchor: None,
             compliance_user_registrations: Vec::new(),
             compliance_asset_registrations: Vec::new(),
+            nullifier_window: None,
         }
     }
 }
@@ -98,6 +101,7 @@ impl CompactBlock {
             || !self.alt_gas_prices.is_empty() // need to save latest alt gas prices
             || !self.compliance_user_registrations.is_empty() // need to sync user tree
             || !self.compliance_asset_registrations.is_empty() // need to sync asset tree
+            || self.nullifier_window.is_some() // need to persist the planning window
     }
 }
 
@@ -148,6 +152,7 @@ impl From<CompactBlock> for pb::CompactBlock {
                 .into_iter()
                 .map(Into::into)
                 .collect(),
+            nullifier_window: cb.nullifier_window.map(Into::into),
         }
     }
 }
@@ -229,6 +234,7 @@ impl TryFrom<pb::CompactBlock> for CompactBlock {
                 .into_iter()
                 .map(TryInto::try_into)
                 .collect::<Result<Vec<_>>>()?,
+            nullifier_window: value.nullifier_window.map(TryInto::try_into).transpose()?,
         })
     }
 }

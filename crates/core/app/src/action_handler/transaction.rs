@@ -15,6 +15,7 @@ use shieldd_sdk_fee::component::FeePay as _;
 use shieldd_sdk_sct::component::clock::EpochRead;
 use shieldd_sdk_sct::component::source::SourceContext;
 use shieldd_sdk_sct::component::tree::VerificationExt as _;
+use shieldd_sdk_sct::nullifier_generation::{empty_history_head, PROTOCOL_VERSION};
 use shieldd_sdk_sct::Nullifier;
 use shieldd_sdk_shielded_pool::component::{
     note_reshape_execute_verified, shielded_host_withdrawal_execute_verified,
@@ -24,7 +25,7 @@ use shieldd_sdk_shielded_pool::component::{
 use shieldd_sdk_shielded_pool::discovery;
 use shieldd_sdk_tct::StateCommitment;
 use shieldd_sdk_transaction::{gas::GasCost as _, Action, Transaction};
-use shieldd_sdk_txhash::TransactionId;
+use shieldd_sdk_txhash::{AuthorizingData, TransactionId};
 use tokio::sync::OnceCell;
 use tokio::task::JoinSet;
 use tracing::{instrument, Instrument};
@@ -43,6 +44,7 @@ use self::stateful::{
     claimed_anchor_is_valid, discovery_parameters_valid_with_context,
     tx_parameters_historical_check_with_context,
 };
+use crate::stateless_cache::VerifiedHistoricalInput;
 use stateless::{
     check_memo_exists_if_outputs_absent_if_not, check_non_empty_transaction,
     valid_binding_signature,
@@ -276,6 +278,7 @@ pub(crate) struct HistoricalCheckContext {
     pub current_discovery_parameters: discovery::Parameters,
     pub anchor_cache: Arc<AnchorValidationCache>,
     pub claimed_anchor_cache: Arc<ClaimedAnchorValidationCache>,
+    pub nullifier_window: shieldd_sdk_sct::nullifier_generation::NullifierWindow,
 }
 
 impl HistoricalCheckContext {
@@ -292,6 +295,9 @@ impl HistoricalCheckContext {
             .get_shielded_pool_params()
             .await
             .expect("chain params request must succeed");
+        let nullifier_window = shieldd_sdk_sct::nullifier_tree::generation_state(state)
+            .await?
+            .window();
 
         Ok(Self {
             chain_id: state.get_chain_id().await?,
@@ -308,6 +314,7 @@ impl HistoricalCheckContext {
                 .expect("chain params request must succeed"),
             anchor_cache: Arc::new(AnchorValidationCache::default()),
             claimed_anchor_cache: Arc::new(ClaimedAnchorValidationCache::default()),
+            nullifier_window,
         })
     }
 }
@@ -370,9 +377,79 @@ pub(crate) fn ensure_transaction_resource_bounds(tx: &Transaction) -> Result<()>
 
 pub(crate) fn validate_transaction_envelope(tx: &Transaction) -> Result<()> {
     ensure_transaction_resource_bounds(tx)?;
+    tx.transaction_body.validate_nullifier_history()?;
     valid_binding_signature(tx)?;
     check_memo_exists_if_outputs_absent_if_not(tx)?;
     check_non_empty_transaction(tx)
+}
+
+pub(crate) fn verify_historical_proofs(tx: &Transaction) -> Result<Vec<VerifiedHistoricalInput>> {
+    tx.transaction_body.validate_nullifier_history()?;
+    let old_nullifiers = tx.transaction_body.historical_nullifiers();
+    if old_nullifiers.is_empty() {
+        return Ok(Vec::new());
+    }
+    let window = tx
+        .transaction_body
+        .nullifier_window
+        .context("old inputs require a nullifier window")?;
+    let auth_hash = tx.auth_hash();
+    old_nullifiers
+        .into_iter()
+        .zip(&tx.transaction_body.historical_nullifier_proofs)
+        .map(|(nullifier, bundle)| {
+            let nullifier_bytes: [u8; 32] = nullifier.into();
+            let mut expected_head = empty_history_head();
+            for chunk in &bundle.completed_chunks {
+                shieldd_sdk_proof_params::historical::verify_chunk(
+                    shieldd_sdk_proof_params::historical::chunk_verification_key(),
+                    shieldd_sdk_proof_params::historical::ChunkClaim {
+                        protocol_version: PROTOCOL_VERSION,
+                        nullifier: nullifier_bytes,
+                        chunk_index: chunk.chunk_index,
+                        start_history_head: expected_head,
+                        end_history_head: chunk.end_history_head,
+                    },
+                    &chunk.groth16_proof,
+                )?;
+                expected_head = chunk.end_history_head;
+            }
+            for generation in &bundle.tail {
+                shieldd_sdk_proof_params::historical::verify_generation(
+                    shieldd_sdk_proof_params::historical::generation_verification_key(),
+                    shieldd_sdk_proof_params::historical::GenerationClaim {
+                        protocol_version: PROTOCOL_VERSION,
+                        nullifier: nullifier_bytes,
+                        generation_index: generation.generation_index,
+                        generation_root: generation.generation_root,
+                        generation_start_position: generation.generation_start_position,
+                        generation_end_position: generation.generation_end_position,
+                        start_history_head: expected_head,
+                        end_history_head: shieldd_sdk_sct::nullifier_generation::append_history(
+                            expected_head,
+                            generation.generation_index,
+                            generation.generation_root,
+                            generation.generation_start_position,
+                            generation.generation_end_position,
+                        )?,
+                    },
+                    &generation.groth16_proof,
+                )?;
+                expected_head = shieldd_sdk_sct::nullifier_generation::append_history(
+                    expected_head,
+                    generation.generation_index,
+                    generation.generation_root,
+                    generation.generation_start_position,
+                    generation.generation_end_position,
+                )?;
+            }
+            anyhow::ensure!(
+                expected_head == window.archived_history_head,
+                "verified historical proof has the wrong terminal history head"
+            );
+            Ok(VerifiedHistoricalInput::new(nullifier, window, auth_hash))
+        })
+        .collect()
 }
 
 async fn check_nullifier_read_only<S>(
@@ -622,6 +699,7 @@ pub(crate) async fn check_historical_with_context_profiled<S: StateRead + 'stati
 
     ensure_transaction_resource_bounds(tx)?;
     tx_parameters_historical_check_with_context(tx, context)?;
+    stateful::nullifier_window_valid_with_context(tx, context)?;
     discovery_parameters_valid_with_context(tx, context)?;
 
     let claimed_anchor_tx = Arc::new(tx.clone());
@@ -680,6 +758,7 @@ pub(crate) fn check_historical_with_context_sync_profiled(
 
     ensure_transaction_resource_bounds(tx)?;
     tx_parameters_historical_check_with_context(tx, context)?;
+    stateful::nullifier_window_valid_with_context(tx, context)?;
     discovery_parameters_valid_with_context(tx, context)?;
 
     let await_ms = validate_claimed_anchor_read_only_sync(
@@ -703,6 +782,7 @@ where
     S: StateWrite,
 {
     let tx = artifact.tx().as_ref();
+    artifact.ensure_historical_coverage()?;
     let mut profile = TransactionExecutionProfile::default();
     ensure_transaction_resource_bounds(tx)?;
     let tx_context = tx.context();
@@ -1219,6 +1299,7 @@ impl AppActionHandler for Transaction {
     #[instrument(skip(self, _context))]
     async fn check_stateless(&self, _context: ()) -> Result<()> {
         validate_transaction_envelope(self)?;
+        verify_historical_proofs(self)?;
 
         let context = self.context();
 
@@ -1280,6 +1361,9 @@ mod tests {
     use shieldd_sdk_compliance::{ComplianceLeaf, IndexedMerkleTree, MerklePath, QuadTree};
     use shieldd_sdk_fee::Fee;
     use shieldd_sdk_keys::{test_keys, Address};
+    use shieldd_sdk_sct::nullifier_generation::{
+        empty_history_head, NullifierWindow, PROTOCOL_VERSION,
+    };
     use shieldd_sdk_shielded_pool::{Note, ShieldedInputPlan, ShieldedOutputPlan, TransferPlan};
     use shieldd_sdk_tct as tct;
     use shieldd_sdk_transaction::{plan::TransactionPlan, TransactionParameters, WitnessData};
@@ -1290,6 +1374,16 @@ mod tests {
         drain_joinset_results, transaction_action_count_allowed,
         transaction_nullifier_count_allowed, AnchorValidationCache, ClaimedAnchorValidationCache,
     };
+
+    fn test_nullifier_window() -> NullifierWindow {
+        NullifierWindow {
+            protocol_version: PROTOCOL_VERSION,
+            current_generation: 0,
+            recent_position_floor: 0,
+            archived_generation_count: 0,
+            archived_history_head: empty_history_head(),
+        }
+    }
 
     #[test]
     fn transaction_action_count_policy_is_fixed_at_boundary() {
@@ -1590,6 +1684,7 @@ mod tests {
             actions: vec![transfer.into()],
             fee_funding: None,
             memo: None,
+            nullifier_window: Some(test_nullifier_window()),
         };
 
         // Build the transaction.
@@ -1608,6 +1703,7 @@ mod tests {
                     )
                 })
                 .collect(),
+            historical_nullifier_proofs: Vec::new(),
         };
         let tx = plan
             .build_concurrent(fvk, &witness_data, &auth_data)
@@ -1667,6 +1763,7 @@ mod tests {
             actions: vec![transfer.into()],
             fee_funding: None,
             memo: None,
+            nullifier_window: Some(test_nullifier_window()),
         };
 
         // Build the transaction.
@@ -1685,6 +1782,7 @@ mod tests {
                     )
                 })
                 .collect(),
+            historical_nullifier_proofs: Vec::new(),
         };
         let mut tx = plan
             .build_concurrent(fvk, &witness_data, &auth_data)

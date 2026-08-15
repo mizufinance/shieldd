@@ -237,6 +237,7 @@ async fn build_family_fixture_set() -> Result<FamilyFixtureSet> {
                 chain_id: TestNode::<()>::CHAIN_ID.to_string(),
                 ..Default::default()
             },
+            nullifier_window: Some(test_nullifier_window()),
         };
         let tx = client
             .witness_auth_build_with_compliance(&mut plan, storage.latest_snapshot())
@@ -255,6 +256,7 @@ async fn build_family_fixture_set() -> Result<FamilyFixtureSet> {
             chain_id: TestNode::<()>::CHAIN_ID.to_string(),
             ..Default::default()
         },
+        nullifier_window: Some(test_nullifier_window()),
     };
     let fee_funding_tx = client
         .witness_auth_build_with_compliance(&mut fee_funding_plan, storage.latest_snapshot())
@@ -270,6 +272,7 @@ async fn build_family_fixture_set() -> Result<FamilyFixtureSet> {
             chain_id: TestNode::<()>::CHAIN_ID.to_string(),
             ..Default::default()
         },
+        nullifier_window: Some(test_nullifier_window()),
     };
     let withdrawal_rollback_tx = client
         .witness_auth_build_with_compliance(

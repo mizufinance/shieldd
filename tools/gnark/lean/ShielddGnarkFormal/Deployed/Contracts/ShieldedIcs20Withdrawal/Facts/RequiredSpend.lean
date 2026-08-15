@@ -6,6 +6,7 @@ import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg32
 import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg33
 import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg34
 import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg35
+import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg36
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 4000000
@@ -24,5 +25,6 @@ structure RequiredSpendCircuitFacts (rho : Nat → Seg28.F) : Prop where
   AssertEqSeg33 : Seg33.contract.spec rho
   AssertEqSeg34 : Seg34.contract.spec rho
   DecafAssertEquivalentSeg35 : Seg35.contract.spec rho
+  HistoryClassifySeg36 : Seg36.contract.spec rho
 
 end Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal

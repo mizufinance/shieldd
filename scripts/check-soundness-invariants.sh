@@ -89,7 +89,7 @@ status_allowed_for_kind() {
   case "$kind" in
     property)
       case "$status" in
-        open|composed|composed-computational|refined|assumed|proved|proved-symbolic|proved-computational) return 0 ;;
+        open|candidate|composed|composed-computational|refined|assumed|proved|proved-symbolic|proved-computational) return 0 ;;
       esac ;;
     finding)
       case "$status" in

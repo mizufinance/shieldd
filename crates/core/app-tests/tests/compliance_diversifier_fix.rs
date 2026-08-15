@@ -113,6 +113,11 @@ async fn compliance_enrichment_preserves_sender_diversifier_on_supported_transfe
     let transfer = TransferPlan::new(vec![spend], vec![output], Fr::from(1u64))?;
 
     let mut plan = TransactionPlan {
+        nullifier_window: Some(
+            shieldd_sdk_sct::nullifier_tree::generation_state(&build_state)
+                .await?
+                .window(),
+        ),
         actions: vec![transfer.into()],
         memo: Some(MemoPlan::new(
             &mut OsRng,
@@ -133,7 +138,12 @@ async fn compliance_enrichment_preserves_sender_diversifier_on_supported_transfe
     let Some(ActionPlan::Transfer(transfer_plan)) = plan.actions.first() else {
         panic!("expected a single transfer plan");
     };
-    let body = transfer_plan.transfer_body(&client.fvk, &dummy_payload_key, witness_data.anchor)?;
+    let body = transfer_plan.transfer_body(
+        &client.fvk,
+        &dummy_payload_key,
+        witness_data.anchor,
+        plan.recent_position_floor()?,
+    )?;
     let receiver_output = body
         .outputs
         .first()

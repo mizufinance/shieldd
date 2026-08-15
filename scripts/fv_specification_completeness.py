@@ -563,7 +563,7 @@ REQUIRED_TEST_KINDS: dict[str, frozenset[str]] = {
     ),
 }
 PREDICATE_SEMANTICS_SHA256 = (
-    "b18b12393ba6fff7b51dd32a1209ad46b2aefcb73605f446d37deeb1d2aabb27"
+    "ec5666f61b3216a1673c8a51a0a9aa8ee4c8c5336df877c95aae5010f9cb173b"
 )
 PROPERTY_CONTRACT_SHA256 = (
     "c64105b482af65fbd8fe88054dc14ad453cf7820ecb09b8f61645f7d37cd501e"
@@ -582,7 +582,7 @@ RUNTIME_POLICY_CONTRACT_SHA256 = (
 # Update these only after independently reviewing every owner, source file,
 # runnable selector, kind, and execution command in the corresponding ledger.
 PROPERTY_TEST_CONTRACT_SHA256 = (
-    "eec93c8ed18fc568da591781fd9ebc519fbde5b026b0f0476cb65e596f52a9f4"
+    "41b1c01923df0ed894d36653ed0456a632e6b323adb2d6eb55df185ab35d9a7e"
 )
 ARTIFACT_TEST_CONTRACT_SHA256 = (
     "2ce903b58f534957e0c42af73c8da750ee15d74235f616d95bfdb3c6e7389cd2"
@@ -653,6 +653,8 @@ REVIEWED_TEST_SOURCE_CENSUS = (
     "crates/core/component/compliance/src/structs.rs",
     "crates/core/component/compliance/src/transfer.rs",
     "crates/core/component/sct/src/component/tree.rs",
+    "crates/core/component/sct/src/nullifier.rs",
+    "crates/core/component/sct/src/nullifier_generation.rs",
     "crates/core/component/sct/src/nullifier_tree.rs",
     (
         "crates/core/component/shielded-pool/src/component/action_handler/"
@@ -703,6 +705,7 @@ REVIEWED_TEST_SOURCE_CENSUS = (
         "shielded_ics20_withdrawal/proof.rs"
     ),
     "crates/core/component/shielded-pool/src/shielded_note_plan.rs",
+    "crates/core/component/shielded-pool/src/shielded_host_withdrawal/plan.rs",
     "crates/core/component/shielded-pool/src/transfer/action.rs",
     "crates/core/component/shielded-pool/src/transfer/generated.rs",
     "crates/core/component/shielded-pool/src/transfer/plan.rs",
@@ -710,14 +713,18 @@ REVIEWED_TEST_SOURCE_CENSUS = (
     "crates/core/component/stake/src/governance_key.rs",
     "crates/core/component/stake/src/identity_key.rs",
     "crates/core/transaction/src/plan.rs",
+    "crates/core/transaction/src/gas.rs",
     "crates/core/transaction/src/transaction.rs",
     "crates/crypto/proof-params/src/batch.rs",
+    "crates/crypto/proof-params/src/historical.rs",
     "crates/crypto/proof-params/src/lib.rs",
     "crates/util/orbis-client/src/client.rs",
     "crates/view/src/client_compliance.rs",
+    "crates/view/src/historical_proof_cache.rs",
     "tools/gnark/cmd/extractlean/main_test.go",
     "tools/gnark/cmd/gnarkctl/main_test.go",
     "tools/gnark/cmd/gnarkctl/poseidon_lean_test.go",
+    "tools/gnark/cmd/historicalproofspike/main_test.go",
     "tools/gnark/cmd/proverdaemon/main_test.go",
     "tools/gnark/internal/abi/binary_shared_test.go",
     "tools/gnark/internal/abi/statement_fields_test.go",
@@ -736,6 +743,7 @@ REVIEWED_TEST_SOURCE_CENSUS = (
     "tools/gnark/internal/circuits/note_reshape_identity_test.go",
     "tools/gnark/internal/circuits/note_reshape_regression_test.go",
     "tools/gnark/internal/circuits/note_reshape_witness_roles_test.go",
+    "tools/gnark/internal/circuits/nullifier_history_test.go",
     "tools/gnark/internal/circuits/profile_test.go",
     (
         "tools/gnark/internal/circuits/"
@@ -819,7 +827,7 @@ REVIEWED_TEST_SOURCE_CENSUS = (
 # This pins every path/symbol/reason triple rendered in reviewed_test_census.
 # Update only after deciding whether each changed test is normative evidence.
 REVIEWED_TEST_EXCLUSIONS_SHA256 = (
-    "cef1029b7020f594c98e5f301d86237befc8673440b0134d6c54cc07f5f88e53"
+    "6cc1c107f3c095b00f600e2066e87469d8e4c28a1701cc874580a05db12b8443"
 )
 PROPERTY_TEST_SOURCE_CENSUS = (
     "crates/core/component/compliance/src/structs.rs",
@@ -947,10 +955,10 @@ PROPERTY_TEST_CONTRACT_BASELINE = {
         PROPERTY-ENCODE-MERKLE-PATH-REQUIRES-EXACT-DEPTH
         PROPERTY-ENCODE-TRIPLE-PATH-32-REJECTS-NON-EXACT-LENGTH
         PROPERTY-ENCODE-VEC-32-REJECTS-OVERSIZED-LENGTH
-        PROPERTY-NOTE-RESHAPE-WITNESS-V4-REJECTS-BAD-LENGTH
-        PROPERTY-NOTE-RESHAPE-WITNESS-V4-REJECTS-BAD-MAGIC
-        PROPERTY-NOTE-RESHAPE-WITNESS-V4-REJECTS-BAD-VERSION
-        PROPERTY-NOTE-RESHAPE-WITNESS-V4-ROUNDTRIP
+        PROPERTY-NOTE-RESHAPE-WITNESS-V5-REJECTS-BAD-LENGTH
+        PROPERTY-NOTE-RESHAPE-WITNESS-V5-REJECTS-BAD-MAGIC
+        PROPERTY-NOTE-RESHAPE-WITNESS-V5-REJECTS-BAD-VERSION
+        PROPERTY-NOTE-RESHAPE-WITNESS-V5-ROUNDTRIP
         PROPERTY-PROOF-COORDINATE-PARSER-REJECTS-BASE-FIELD-MODULUS
         PROPERTY-READ-BOOL-ACCEPTS-ONLY-CANONICAL-BYTES
         PROPERTY-READ-FIXED-32-REJECTS-FQ-MODULUS-ALIASES
@@ -960,14 +968,14 @@ PROPERTY_TEST_CONTRACT_BASELINE = {
         PROPERTY-READ-TRIPLE-PATH-32-REJECTS-NON-EXACT-LENGTH-BEFORE-ALLOCATION
         PROPERTY-READ-U128-FIELD-REJECTS-HIGH-BITS
         PROPERTY-READ-VEC-32-REJECTS-OVERSIZED-LENGTH-BEFORE-ALLOCATION
-        PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V9-REJECTS-LEGACY-VERSION
-        PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V9-REJECTS-NON-BLINDING-BALANCE-COMMITMENT
-        PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V9-REJECTS-NON-CANONICAL-BOOLEAN-FLAGS
-        PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V9-REJECTS-UNBALANCED-AMOUNTS
-        PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V9-ROUNDTRIP
+        PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V10-REJECTS-LEGACY-VERSION
+        PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V10-REJECTS-NON-BLINDING-BALANCE-COMMITMENT
+        PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V10-REJECTS-NON-CANONICAL-BOOLEAN-FLAGS
+        PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V10-REJECTS-UNBALANCED-AMOUNTS
+        PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V10-ROUNDTRIP
         PROPERTY-TEST-ASSIGNMENT-PATH-CONVERSION-REQUIRES-EXACT-DEPTH
-        PROPERTY-TEST-NOTE-RESHAPE-V4-REJECTS-LEGACY-VERSION
-        PROPERTY-TEST-NOTE-RESHAPE-V4-REJECTS-SPLIT-ADDRESS-REPRESENTATION-PAYLOAD
+        PROPERTY-TEST-NOTE-RESHAPE-V5-REJECTS-LEGACY-VERSION
+        PROPERTY-TEST-NOTE-RESHAPE-V5-REJECTS-SPLIT-ADDRESS-REPRESENTATION-PAYLOAD
         PROPERTY-TEST-NOTE-RESHAPE-WITNESS-PADDING-ABI
         PROPERTY-TEST-READ-BOOL-ACCEPTS-ONLY-CANONICAL-BYTES
         PROPERTY-TEST-READ-FR32-REJECTS-SCALAR-MODULUS-ALIASES
@@ -975,22 +983,22 @@ PROPERTY_TEST_CONTRACT_BASELINE = {
         PROPERTY-TEST-READ-TRIPLE-PATH-REQUIRES-EXACT-DEPTH
         PROPERTY-TEST-READ-U128-FIELD-REJECTS-HIGH-BITS
         PROPERTY-TEST-READ32-REJECTS-FQ-MODULUS-ALIASES
-        PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V9-ASSIGNMENT-REJECTS-CLAIMED-HASH-MISMATCH
-        PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V9-FIXTURE-BRANCH-MATRIX
-        PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V9-REJECTS-LEGACY-VERSION
-        PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V9-REJECTS-NON-CANONICAL-BALANCE-BLINDING
-        PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V9-REJECTS-NON-CANONICAL-BOOLEAN-FLAGS
-        PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V9-REJECTS-OVERSIZED-EFFECT-HASH-LIMB
+        PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V10-ASSIGNMENT-REJECTS-CLAIMED-HASH-MISMATCH
+        PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V10-FIXTURE-BRANCH-MATRIX
+        PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V10-REJECTS-LEGACY-VERSION
+        PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V10-REJECTS-NON-CANONICAL-BALANCE-BLINDING
+        PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V10-REJECTS-NON-CANONICAL-BOOLEAN-FLAGS
+        PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V10-REJECTS-OVERSIZED-EFFECT-HASH-LIMB
         PROPERTY-TEST-TRANSFER-COMPLIANCE-METADATA-REJECTS-FQ-MODULUS-SALT
-        PROPERTY-TEST-TRANSFER-V17-ASSIGNMENT-REJECTS-CLAIMED-HASH-MISMATCH
-        PROPERTY-TEST-TRANSFER-V17-ASSIGNMENT-REJECTS-SERIALIZED-SEMANTIC-MUTATION
-        PROPERTY-TEST-TRANSFER-V17-REJECTS-LEGACY-VERSION
+        PROPERTY-TEST-TRANSFER-V18-ASSIGNMENT-REJECTS-CLAIMED-HASH-MISMATCH
+        PROPERTY-TEST-TRANSFER-V18-ASSIGNMENT-REJECTS-SERIALIZED-SEMANTIC-MUTATION
+        PROPERTY-TEST-TRANSFER-V18-REJECTS-LEGACY-VERSION
         PROPERTY-TEST-WITNESS-FAMILIES-DECODE
         PROPERTY-TEST-WITNESS-FAMILIES-REJECT-BAD-HEADER
         PROPERTY-TEST-WITNESS-FAMILIES-REJECT-TRUNCATED-PAYLOAD
-        PROPERTY-TRANSFER-HIDDEN-ARITY-WITNESS-V17-ROUNDTRIP
-        PROPERTY-TRANSFER-WITNESS-V17-REJECTS-LEGACY-V15-LAYOUT
-        PROPERTY-TRANSFER-WITNESS-V17-ROUNDTRIP
+        PROPERTY-TRANSFER-HIDDEN-ARITY-WITNESS-V18-ROUNDTRIP
+        PROPERTY-TRANSFER-WITNESS-V18-REJECTS-LEGACY-V15-LAYOUT
+        PROPERTY-TRANSFER-WITNESS-V18-ROUNDTRIP
         """.split()
     ),
 }
@@ -1423,6 +1431,7 @@ EXPECTED_HOST_EXECUTION_PUBLIC_METHODS = frozenset(
 )
 EXPECTED_EXECUTION_SERVICE_PUBLIC_METHODS = frozenset(
     {
+        "archived_nullifier_proof",
         "begin_block",
         "check_tx",
         "close",
@@ -1435,11 +1444,13 @@ EXPECTED_EXECUTION_SERVICE_PUBLIC_METHODS = frozenset(
         "init_genesis",
         "new",
         "open",
+        "open_with_generation_packs",
         "rollback",
     }
 )
 EXPECTED_GRPC_EXECUTION_METHODS = Counter(
     {
+        "archived_nullifier_proof": 1,
         "begin_block": 1,
         "check_tx": 1,
         "commit": 1,
@@ -1453,6 +1464,7 @@ EXPECTED_GRPC_EXECUTION_METHODS = Counter(
     }
 )
 EXPECTED_GRPC_PROTO_METHODS = (
+    "ArchivedNullifierProof",
     "BeginBlock",
     "CheckTx",
     "Commit",
@@ -2930,17 +2942,16 @@ ACTION_AUTHORIZATION_MODEL = {
         "IbcAction": "IbcRelay",
         "NoteReshape": "NoteReshape",
         "ProposalSubmit": "ProposalSubmit",
+        "ShieldedHostWithdrawal": "ShieldedHostWithdrawal",
         "ShieldedIcs20Withdrawal": "ShieldedIcs20Withdrawal",
         "Transfer": "Transfer",
         "ValidatorDefinition": "ValidatorDefinition",
         "ValidatorVote": "ValidatorVote",
     },
-    "non_plan_actions": (
-        "AggregateBundle",
-        "ShieldedHostWithdrawal",
-    ),
+    "non_plan_actions": ("AggregateBundle",),
     "spend_bearing_action_plans": (
         "NoteReshape",
+        "ShieldedHostWithdrawal",
         "ShieldedIcs20Withdrawal",
         "Transfer",
     ),
@@ -2990,14 +3001,14 @@ ACTION_AUTHORIZATION_MODEL = {
             "strict_catchall": False,
         },
         {
-            "label": "Withdrawal compliance action census",
+            "label": "Shielded withdrawal compliance action census",
             "path": "crates/view/src/client_compliance.rs",
             "declaration": (
                 r"^[ \t]*async[ \t]+fn[ \t]+"
-                r"enrich_shielded_ics20_withdrawals_with_compliance\b"
+                r"enrich_shielded_withdrawals_with_compliance\b"
             ),
             "function": (
-                "enrich_shielded_ics20_withdrawals_with_compliance"
+                "enrich_shielded_withdrawals_with_compliance"
             ),
             "strict_catchall": False,
         },
@@ -8412,6 +8423,43 @@ def _validate_grpc_execution_frontdoors(root: Path) -> None:
             f"extra={list((method_roster-EXPECTED_GRPC_EXECUTION_METHODS).elements())}"
         )
 
+    archived_proof = _one_rust_function(
+        functions,
+        "archived_nullifier_proof",
+        "gRPC archived_nullifier_proof proof frontdoor",
+    )
+    if "Request<ArchivedNullifierProofRequest>" not in archived_proof["header"]:
+        reject("gRPC archived_nullifier_proof request type drifted")
+    _require_ordered_symbols(
+        archived_proof,
+        (
+            "let request = request",
+            ".into_inner()",
+            ".request",
+            ".ok_or_else(|| Status::invalid_argument(",
+            "self.service",
+            ".read()",
+            ".await",
+            ".archived_nullifier_proof(request)",
+            ".await",
+            "ArchivedNullifierProofResponse",
+            "response: Some(response)",
+            ".map_err(status)",
+        ),
+        "gRPC archived_nullifier_proof ExecutionService delegation",
+    )
+    for symbol in (
+        ".into_inner()",
+        ".archived_nullifier_proof(request)",
+        "response: Some(response)",
+    ):
+        _require_occurrence_count(
+            archived_proof["body"],
+            symbol,
+            1,
+            "gRPC archived_nullifier_proof ExecutionService delegation",
+        )
+
     for name, request_type, lock_method in (
         ("check_tx", "CheckTxRequest", "read"),
         ("deliver_tx", "DeliverTxRequest", "write"),
@@ -8560,12 +8608,22 @@ def _validate_grpc_execution_frontdoors(root: Path) -> None:
     )
     _require_ordered_symbols(
         service_open,
+        ("Self::open_inner(db.as_ref(), None).await",),
+        "ExecutionService default storage opening",
+    )
+    service_open_inner = _one_rust_function(
+        execution_functions,
+        "open_inner",
+        "ExecutionService storage readiness",
+    )
+    _require_ordered_symbols(
+        service_open_inner,
         (
             "Storage::load(",
             "App::is_ready(storage.latest_snapshot()).await",
             "storage.release().await",
             "return Err(ServiceError::failed_precondition(",
-            "Ok(Self::new(storage))",
+            "Ok(Self::new_with_generation_packs(storage, generation_packs))",
         ),
         "ExecutionService storage readiness",
     )
@@ -8587,6 +8645,7 @@ def _validate_grpc_execution_frontdoors(root: Path) -> None:
         "METHOD_ROLLBACK": 8,
         "METHOD_EXPORT_GENESIS": 9,
         "METHOD_GET_COMMITTED_STATE": 10,
+        "METHOD_ARCHIVED_NULLIFIER_PROOF": 11,
     }
     ffi_methods = {
         name: int(value)
@@ -8617,6 +8676,7 @@ def _validate_grpc_execution_frontdoors(root: Path) -> None:
         ("METHOD_GET_COMMITTED_STATE", "get_committed_state"),
         ("METHOD_ROLLBACK", "rollback"),
         ("METHOD_EXPORT_GENESIS", "export_genesis"),
+        ("METHOD_ARCHIVED_NULLIFIER_PROOF", "archived_nullifier_proof"),
     ):
         _require_ordered_symbols(
             ffi_dispatch,
@@ -10776,11 +10836,12 @@ def validate_proof_acceptance_repository_surface(root: Path) -> None:
             "extracted": 1,
             "get": 1,
             "has_matching_historical_validation": 2,
+            "ensure_historical_coverage": 1,
             "insert": 1,
             "insert_extracted": 1,
             "insert_fully_verified": 1,
             "insert_invalid": 1,
-            "new": 2,
+            "new": 3,
             "proof_family_and_key_for_action": 1,
             "proof_for_slot": 1,
             "proof_item_at": 1,
@@ -10804,6 +10865,7 @@ def validate_proof_acceptance_repository_surface(root: Path) -> None:
         "pub family_index: usize",
         "pub key: DeployedProofKey",
         "verified_proofs: BTreeMap<ProofSlot, VerifiedBatchItem>",
+        "verified_historical_inputs: Vec<VerifiedHistoricalInput>",
     ):
         if symbol not in cache_scrubbed:
             reject(f"stateless artifact lacks exact proof identity: {symbol}")
@@ -10894,9 +10956,28 @@ def validate_proof_acceptance_repository_surface(root: Path) -> None:
         (
             "validate_proof_capability_rows(",
             "capability.ensure_binds(key, item)",
+            "transaction::verify_historical_proofs(&extracted.tx)",
             "verified_proofs",
+            "artifact.ensure_historical_coverage()?",
         ),
         "verified artifact constructor",
+    )
+    require_compact_order(
+        _one_rust_function(
+            cache_functions,
+            "ensure_historical_coverage",
+            "verified historical capability coverage and binding",
+        ),
+        (
+            "historical_nullifiers()",
+            "expected.len() == self.verified_historical_inputs.len()",
+            "self.extracted.tx.transaction_body.nullifier_window",
+            "self.extracted.tx.auth_hash()",
+            "capability.nullifier == nullifier",
+            "Some(capability.window) == window",
+            "capability.transaction_auth_hash == auth_hash",
+        ),
+        "verified historical capability coverage and binding",
     )
     require_compact_order(
         _one_rust_function(
@@ -10989,7 +11070,7 @@ def validate_proof_acceptance_repository_surface(root: Path) -> None:
             "let mut proof_items = Self::empty_proof_items()",
             "for tx in txs",
             "Self::ensure_user_tx_has_no_internal_actions(tx)?",
-            "valid_binding_signature(tx)?",
+            "validate_transaction_envelope(tx)?",
             "for action in tx.actions()",
             "transfer_check_stateless_and_extract",
             "shielded_ics20_withdrawal_check_stateless_and_extract",

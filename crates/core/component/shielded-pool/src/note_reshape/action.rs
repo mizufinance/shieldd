@@ -22,6 +22,7 @@ pub struct NoteReshapeInputBody {
     pub nullifier: Nullifier,
     pub rk: VerificationKey<SpendAuth>,
     pub encrypted_backref: EncryptedBackref,
+    pub history_required: bool,
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
@@ -155,6 +156,7 @@ impl From<NoteReshapeInputBody> for pb::NoteReshapeInputBody {
             nullifier: Some(msg.nullifier.into()),
             rk: Some(msg.rk.into()),
             encrypted_backref: msg.encrypted_backref.into(),
+            history_required: msg.history_required,
         }
     }
 }
@@ -182,6 +184,7 @@ impl TryFrom<pb::NoteReshapeInputBody> for NoteReshapeInputBody {
                 .try_into()
                 .context("malformed rk")?,
             encrypted_backref,
+            history_required: proto.history_required,
         })
     }
 }
@@ -351,7 +354,7 @@ mod tests {
             ),
             (
                 include_str!("../gnark/note_reshape_witness.rs"),
-                vec!["NoteReshapeOutputWitnessV4"],
+                vec!["NoteReshapeOutputWitnessV5"],
             ),
         ] {
             for name in names {

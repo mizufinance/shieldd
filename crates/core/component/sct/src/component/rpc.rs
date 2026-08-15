@@ -2,9 +2,10 @@ use cnidarium::Storage;
 use pbjson_types::Timestamp;
 use shieldd_sdk_proto::core::component::sct::v1::query_service_server::QueryService;
 use shieldd_sdk_proto::core::component::sct::v1::{
-    AnchorByHeightRequest, AnchorByHeightResponse, EpochByHeightRequest, EpochByHeightResponse,
-    NullifierRequest, NullifierResponse, SctFrontierRequest, SctFrontierResponse,
-    TimestampByHeightRequest, TimestampByHeightResponse,
+    AnchorByHeightRequest, AnchorByHeightResponse, ArchivedNullifierProofRequest,
+    ArchivedNullifierProofResponse, EpochByHeightRequest, EpochByHeightResponse, NullifierRequest,
+    NullifierResponse, NullifierTreeLookup, NullifierWindowRequest, NullifierWindowResponse,
+    SctFrontierRequest, SctFrontierResponse, TimestampByHeightRequest, TimestampByHeightResponse,
 };
 use shieldd_sdk_proto::crypto::tct::v1 as pb_tct;
 use std::sync::Arc;
@@ -12,7 +13,7 @@ use tokio::sync::Semaphore;
 use tonic::Status;
 use tracing::instrument;
 
-use crate::{nullifier_tree, state_key, Nullifier};
+use crate::{generation_pack::GenerationPackRepository, nullifier_tree, state_key, Nullifier};
 
 use super::clock::EpochRead;
 use super::tree::SctRead;
@@ -21,6 +22,7 @@ use super::tree::SctRead;
 pub struct Server {
     storage: Storage,
     nullifier_proofs: Arc<Semaphore>,
+    generation_packs: Option<GenerationPackRepository>,
 }
 
 impl Server {
@@ -30,6 +32,18 @@ impl Server {
         Self {
             storage,
             nullifier_proofs: Arc::new(Semaphore::new(Self::MAX_CONCURRENT_NULLIFIER_PROOFS)),
+            generation_packs: None,
+        }
+    }
+
+    pub fn with_generation_packs(
+        storage: Storage,
+        generation_packs: GenerationPackRepository,
+    ) -> Self {
+        Self {
+            storage,
+            nullifier_proofs: Arc::new(Semaphore::new(Self::MAX_CONCURRENT_NULLIFIER_PROOFS)),
+            generation_packs: Some(generation_packs),
         }
     }
 }
@@ -164,7 +178,10 @@ impl QueryService for Server {
             .ok_or_else(|| tonic::Status::invalid_argument("missing nullifier"))?;
         let nullifier = Nullifier::try_from(nullifier)
             .map_err(|e| tonic::Status::invalid_argument(format!("invalid nullifier: {e}")))?;
-        let (root, spent, proof) = if request.with_proof {
+        let generation_state = nullifier_tree::generation_state(&state)
+            .await
+            .map_err(|e| tonic::Status::unknown(format!("could not read nullifier window: {e}")))?;
+        let active_lookups = if request.with_proof {
             let _permit = self
                 .nullifier_proofs
                 .clone()
@@ -174,27 +191,172 @@ impl QueryService for Server {
                         "nullifier proof service is at capacity; retry the request",
                     )
                 })?;
-            let lookup = nullifier_tree::lookup_with_proof(&state, nullifier)
+            let lookups = nullifier_tree::active_lookups(&state, nullifier)
                 .await
                 .map_err(|e| tonic::Status::unknown(format!("could not query nullifier: {e}")))?;
-            let proof = borsh::to_vec(&lookup.proof)
-                .map_err(|e| tonic::Status::internal(format!("could not encode proof: {e}")))?;
-            (lookup.root, lookup.spent, proof)
+            lookups
+                .into_iter()
+                .map(|lookup| {
+                    Ok(NullifierTreeLookup {
+                        tree: Some(lookup.tree.into()),
+                        root: lookup.root.to_vec(),
+                        spent: lookup.spent,
+                        proof: Some(lookup.proof.into()),
+                    })
+                })
+                .collect::<Result<Vec<_>, Status>>()?
         } else {
-            let root = nullifier_tree::committed_root(&state)
-                .await
-                .map_err(|e| tonic::Status::unknown(format!("could not read nullifier root: {e}")))?
-                .ok_or_else(|| tonic::Status::unavailable("nullifier tree is not initialized"))?;
-            let spent = nullifier_tree::is_spent(&state, nullifier)
-                .await
-                .map_err(|e| tonic::Status::unknown(format!("could not query nullifier: {e}")))?;
-            (root, spent, Vec::new())
+            let mut trees = vec![(generation_state.current_tree, generation_state.current_root)];
+            if let (Some(tree), Some(root)) = (
+                generation_state.previous_tree,
+                generation_state.previous_root,
+            ) {
+                trees.push((tree, root));
+            }
+            let mut lookups = Vec::with_capacity(trees.len());
+            for (tree, root) in trees {
+                lookups.push(NullifierTreeLookup {
+                    tree: Some(tree.into()),
+                    root: root.to_vec(),
+                    spent: nullifier_tree::is_spent_in_tree(&state, tree, nullifier)
+                        .await
+                        .map_err(|e| {
+                            tonic::Status::unknown(format!("could not query nullifier: {e}"))
+                        })?,
+                    proof: None,
+                });
+            }
+            lookups
         };
+        let spent = active_lookups.iter().any(|lookup| lookup.spent);
 
         Ok(tonic::Response::new(NullifierResponse {
             spent,
-            nullifier_root: root.0.to_vec(),
-            proof,
+            window: Some(generation_state.window().into()),
+            active_lookups,
         }))
+    }
+
+    #[instrument(skip(self, _request))]
+    async fn nullifier_window(
+        &self,
+        _request: tonic::Request<NullifierWindowRequest>,
+    ) -> Result<tonic::Response<NullifierWindowResponse>, Status> {
+        let state = self.storage.latest_snapshot();
+        let generation_state = nullifier_tree::generation_state(&state)
+            .await
+            .map_err(|e| tonic::Status::unknown(format!("could not read nullifier window: {e}")))?;
+        Ok(tonic::Response::new(NullifierWindowResponse {
+            window: Some(generation_state.window().into()),
+        }))
+    }
+
+    #[instrument(skip(self, request))]
+    async fn archived_nullifier_proof(
+        &self,
+        request: tonic::Request<ArchivedNullifierProofRequest>,
+    ) -> Result<tonic::Response<ArchivedNullifierProofResponse>, Status> {
+        let _permit = self
+            .nullifier_proofs
+            .clone()
+            .try_acquire_owned()
+            .map_err(|_| {
+                tonic::Status::resource_exhausted(
+                    "nullifier proof service is at capacity; retry the request",
+                )
+            })?;
+        let request = request.into_inner();
+        let nullifier = request
+            .nullifier
+            .ok_or_else(|| tonic::Status::invalid_argument("missing nullifier"))?
+            .try_into()
+            .map_err(|e| tonic::Status::invalid_argument(format!("invalid nullifier: {e}")))?;
+        let state = self.storage.latest_snapshot();
+        let proof = if let Some(repository) = self
+            .generation_packs
+            .clone()
+            .filter(|repository| repository.contains(request.generation_index))
+        {
+            let archived = nullifier_tree::archived_generation(&state, request.generation_index)
+                .await
+                .map_err(|e| {
+                    tonic::Status::not_found(format!("historical proof unavailable: {e}"))
+                })?;
+            let packed = tokio::task::spawn_blocking(move || {
+                repository
+                    .nonmembership_proof(archived, nullifier)
+                    .map(|proof| *proof)
+            })
+            .await
+            .map_err(|e| tonic::Status::internal(format!("historical proof task failed: {e}")))?;
+            match packed {
+                Ok(proof) => proof,
+                Err(pack_error) => nullifier_tree::archived_nonmembership_proof(
+                    &state,
+                    request.generation_index,
+                    nullifier,
+                )
+                .await
+                .map_err(|expanded_error| {
+                    tonic::Status::not_found(format!(
+                        "historical proof unavailable from pack ({pack_error}) or expanded tree ({expanded_error})"
+                    ))
+                })?,
+            }
+        } else {
+            nullifier_tree::archived_nonmembership_proof(
+                &state,
+                request.generation_index,
+                nullifier,
+            )
+            .await
+            .map_err(|e| tonic::Status::not_found(format!("historical proof unavailable: {e}")))?
+        };
+        Ok(tonic::Response::new(proof.into()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use cnidarium::{StateDelta, TempStorage};
+    use decaf377::Fq;
+    use tempfile::tempdir;
+
+    fn nullifier(value: u64) -> Nullifier {
+        Nullifier(Fq::from(value))
+    }
+
+    #[tokio::test]
+    async fn archived_rpc_uses_pack_after_expanded_tree_is_pruned() -> anyhow::Result<()> {
+        let storage = TempStorage::new().await?;
+        let mut state = StateDelta::new(storage.latest_snapshot());
+        nullifier_tree::initialize(&mut state).await?;
+        nullifier_tree::insert_batch(&mut state, [nullifier(7), nullifier(1)]).await?;
+        nullifier_tree::rollover(&mut state, 30, 1 << 32).await?;
+        nullifier_tree::rollover(&mut state, 60, 2 << 32).await?;
+        let archived = nullifier_tree::archived_generation(&state, 0).await?;
+        let pack = nullifier_tree::build_generation_pack(&state, 0).await?;
+        let directory = tempdir()?;
+        let repository = GenerationPackRepository::new(directory.path().to_path_buf(), 1)?;
+        let receipt = repository.write(&pack)?;
+        nullifier_tree::record_generation_pack_completion(&mut state, &receipt).await?;
+        nullifier_tree::prune_packed_generation(&mut state, &receipt).await?;
+        storage.commit(state).await?;
+
+        let server = Server::with_generation_packs(storage.as_ref().clone(), repository);
+        let response = QueryService::archived_nullifier_proof(
+            &server,
+            tonic::Request::new(ArchivedNullifierProofRequest {
+                generation_index: 0,
+                nullifier: Some(nullifier(8).into()),
+            }),
+        )
+        .await?
+        .into_inner();
+        let proof: crate::nullifier_generation::ArchivedNullifierProof = response.try_into()?;
+        proof.verify_for(nullifier(8))?;
+        assert_eq!(proof.generation_root, archived.generation_root);
+        Ok(())
     }
 }

@@ -42,6 +42,7 @@ structure RealSpend (F : Type u) (Path24 : Type v) where
   randomizedVerificationKey : Point F
   randomizedVerificationKeyEncoding : F
   authRandomizer : F
+  historyRequired : F
   deriving DecidableEq, Repr
 
 structure DummySpend (F : Type u) where
@@ -51,6 +52,7 @@ structure DummySpend (F : Type u) where
   randomizedVerificationKey : Point F
   randomizedVerificationKeyEncoding : F
   authRandomizer : F
+  historyRequired : F
   deriving DecidableEq, Repr
 
 inductive OptionalSpend (F : Type u) (Path24 : Type v)
@@ -73,6 +75,10 @@ def OptionalSpend.rk : OptionalSpend F Path24 → Point F
 def OptionalSpend.rkEncoding : OptionalSpend F Path24 → F
   | .real spend => spend.randomizedVerificationKeyEncoding
   | .dummy spend => spend.randomizedVerificationKeyEncoding
+
+def OptionalSpend.historyRequired : OptionalSpend F Path24 → F
+  | .real spend => spend.historyRequired
+  | .dummy spend => spend.historyRequired
 
 inductive SpendSlot
   | required
@@ -126,6 +132,7 @@ structure Action
   balanceBlinding : F
   routingTag : F
   routingParameterSetId : F
+  recentPositionFloor : F
   regulatedPrecision : F
   unregulatedPrecision : F
   routingAsOfHeight : F

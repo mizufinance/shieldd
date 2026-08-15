@@ -28,19 +28,19 @@ theorem spend0NoteCommitmentHash
   change
     Deployed.Templates.Semantics.TGadgetNoteCommitment_252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c.spec
       (Seg39.localRho rho) at h
-  have hw1 : Seg39.wireSeating 1 = 88 := by decide +kernel
-  have hw7 : Seg39.wireSeating 7 = 89 := by decide +kernel
-  have hw13 : Seg39.wireSeating 13 = 14 := by decide +kernel
-  have hw19 : Seg39.wireSeating 19 = 1124 := by decide +kernel
-  have hw20 : Seg39.wireSeating 20 = 1464 := by decide +kernel
-  have hw26 : Seg39.wireSeating 26 = 6792 := by decide +kernel
-  have hw27 : Seg39.wireSeating 27 = 7132 := by decide +kernel
-  have hw372 : Seg39.wireSeating 372 = 21106 := by decide +kernel
-  have hw377 : Seg39.wireSeating 377 = 21111 := by decide +kernel
-  have hw382 : Seg39.wireSeating 382 = 21116 := by decide +kernel
-  have hw387 : Seg39.wireSeating 387 = 21121 := by decide +kernel
-  have hw392 : Seg39.wireSeating 392 = 21126 := by decide +kernel
-  have hw397 : Seg39.wireSeating 397 = 21131 := by decide +kernel
+  have hw1 : Seg39.wireSeating 1 = 89 := by decide +kernel
+  have hw7 : Seg39.wireSeating 7 = 90 := by decide +kernel
+  have hw13 : Seg39.wireSeating 13 = 15 := by decide +kernel
+  have hw19 : Seg39.wireSeating 19 = 1133 := by decide +kernel
+  have hw20 : Seg39.wireSeating 20 = 1473 := by decide +kernel
+  have hw26 : Seg39.wireSeating 26 = 6801 := by decide +kernel
+  have hw27 : Seg39.wireSeating 27 = 7141 := by decide +kernel
+  have hw372 : Seg39.wireSeating 372 = 21115 := by decide +kernel
+  have hw377 : Seg39.wireSeating 377 = 21120 := by decide +kernel
+  have hw382 : Seg39.wireSeating 382 = 21125 := by decide +kernel
+  have hw387 : Seg39.wireSeating 387 = 21130 := by decide +kernel
+  have hw392 : Seg39.wireSeating 392 = 21135 := by decide +kernel
+  have hw397 : Seg39.wireSeating 397 = 21140 := by decide +kernel
   have hneg :
       (8444461749428370424248824938781546531375899335154063827935233455917409239040 :
         DeployedF) = -1 := by decide +kernel
@@ -80,20 +80,20 @@ theorem spend0NoteCommitmentAsserted
     (real : syntheticSpends0IsDummy rho = 0) :
     spend0StateProofCommitment rho =
       spend0NoteCommitmentComputed rho := by
-  have realWire : rho 165 = 0 := by
+  have realWire : rho 167 = 0 := by
     simpa [syntheticSpends0IsDummy] using real
   have h := facts.control.AssertEqIfSeg40
   change Deployed.Templates.Semantics.TAssertEqIf_0c09e0bc61a185f0693b2140c57a5eb8ceb0b7d68fbce9495598afef74a6ecd3.spec
     (Seg40.localRho rho) at h
-  have hw1 : Seg40.wireSeating 1 = 165 := by decide +kernel
-  have hw2 : Seg40.wireSeating 2 = 90 := by decide +kernel
-  have hw3 : Seg40.wireSeating 3 = 21106 := by decide +kernel
-  have hw4 : Seg40.wireSeating 4 = 21111 := by decide +kernel
-  have hw5 : Seg40.wireSeating 5 = 21116 := by decide +kernel
-  have hw6 : Seg40.wireSeating 6 = 21121 := by decide +kernel
-  have hw7 : Seg40.wireSeating 7 = 21126 := by decide +kernel
-  have hw8 : Seg40.wireSeating 8 = 21131 := by decide +kernel
-  have hw9 : Seg40.wireSeating 9 = 21132 := by decide +kernel
+  have hw1 : Seg40.wireSeating 1 = 167 := by decide +kernel
+  have hw2 : Seg40.wireSeating 2 = 91 := by decide +kernel
+  have hw3 : Seg40.wireSeating 3 = 21115 := by decide +kernel
+  have hw4 : Seg40.wireSeating 4 = 21120 := by decide +kernel
+  have hw5 : Seg40.wireSeating 5 = 21125 := by decide +kernel
+  have hw6 : Seg40.wireSeating 6 = 21130 := by decide +kernel
+  have hw7 : Seg40.wireSeating 7 = 21135 := by decide +kernel
+  have hw8 : Seg40.wireSeating 8 = 21140 := by decide +kernel
+  have hw9 : Seg40.wireSeating 9 = 21141 := by decide +kernel
   simp only [
     Deployed.Templates.Semantics.TAssertEqIf_0c09e0bc61a185f0693b2140c57a5eb8ceb0b7d68fbce9495598afef74a6ecd3.spec,
     Deployed.Templates.Semantics.TAssertEqIf_0c09e0bc61a185f0693b2140c57a5eb8ceb0b7d68fbce9495598afef74a6ecd3.guard,
@@ -166,54 +166,54 @@ theorem spend1NoteCommitmentHash
         (spend1NoteCommitmentInputs2 rho)
         (spend1NoteCommitmentInputs3 rho)
         (spend1NoteCommitmentInputs4 rho) := by
-  have h := facts.spend1.GadgetNoteCommitmentSeg53
+  have h := facts.spend1.GadgetNoteCommitmentSeg54
   change
     Deployed.Templates.Semantics.TGadgetNoteCommitment_252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c.spec
-      (Seg53.localRho rho) at h
-  have hw1 : Seg53.wireSeating 1 = 170 := by decide +kernel
-  have hw7 : Seg53.wireSeating 7 = 171 := by decide +kernel
-  have hw13 : Seg53.wireSeating 13 = 14 := by decide +kernel
-  have hw19 : Seg53.wireSeating 19 = 1124 := by decide +kernel
-  have hw20 : Seg53.wireSeating 20 = 1464 := by decide +kernel
-  have hw26 : Seg53.wireSeating 26 = 6792 := by decide +kernel
-  have hw27 : Seg53.wireSeating 27 = 7132 := by decide +kernel
-  have hw372 : Seg53.wireSeating 372 = 33552 := by decide +kernel
-  have hw377 : Seg53.wireSeating 377 = 33557 := by decide +kernel
-  have hw382 : Seg53.wireSeating 382 = 33562 := by decide +kernel
-  have hw387 : Seg53.wireSeating 387 = 33567 := by decide +kernel
-  have hw392 : Seg53.wireSeating 392 = 33572 := by decide +kernel
-  have hw397 : Seg53.wireSeating 397 = 33577 := by decide +kernel
+      (Seg54.localRho rho) at h
+  have hw1 : Seg54.wireSeating 1 = 172 := by decide +kernel
+  have hw7 : Seg54.wireSeating 7 = 173 := by decide +kernel
+  have hw13 : Seg54.wireSeating 13 = 15 := by decide +kernel
+  have hw19 : Seg54.wireSeating 19 = 1133 := by decide +kernel
+  have hw20 : Seg54.wireSeating 20 = 1473 := by decide +kernel
+  have hw26 : Seg54.wireSeating 26 = 6801 := by decide +kernel
+  have hw27 : Seg54.wireSeating 27 = 7141 := by decide +kernel
+  have hw372 : Seg54.wireSeating 372 = 33708 := by decide +kernel
+  have hw377 : Seg54.wireSeating 377 = 33713 := by decide +kernel
+  have hw382 : Seg54.wireSeating 382 = 33718 := by decide +kernel
+  have hw387 : Seg54.wireSeating 387 = 33723 := by decide +kernel
+  have hw392 : Seg54.wireSeating 392 = 33728 := by decide +kernel
+  have hw397 : Seg54.wireSeating 397 = 33733 := by decide +kernel
   have hneg :
       (8444461749428370424248824938781546531375899335154063827935233455917409239040 :
         DeployedF) = -1 := by decide +kernel
   apply NoteReshapeCommitmentBridge.noteCommitmentHash_of_spec
-    (Seg53.localRho rho) h
+    (Seg54.localRho rho) h
   · simp only [
       spend1NoteCommitmentComputed, spend1NoteCommitmentComputedLC,
       Deployed.Templates.Semantics.TGadgetNoteCommitment_252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c.output,
       Deployed.CertifiedGadgetNoteCommitment_252c34d237e9Poseidon.s38_1,
       Deployed.Poseidon5Link.row6,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg53.localRho, Deployed.Templates.seated,
+      Seg54.localRho, Deployed.Templates.seated,
       hw372, hw377, hw382, hw387, hw392, hw397,
       zero_add, add_zero, one_mul]
     ring
   · simp [spend1NoteCommitmentInputs0, spend1NoteCommitmentInputs0LC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg53.localRho, Deployed.Templates.seated, hw1]
+      Seg54.localRho, Deployed.Templates.seated, hw1]
   · simp [spend1NoteCommitmentInputs1, spend1NoteCommitmentInputs1LC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg53.localRho, Deployed.Templates.seated, hw7]
+      Seg54.localRho, Deployed.Templates.seated, hw7]
   · simp [spend1NoteCommitmentInputs2, spend1NoteCommitmentInputs2LC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg53.localRho, Deployed.Templates.seated, hw13]
+      Seg54.localRho, Deployed.Templates.seated, hw13]
   · simp [spend1NoteCommitmentInputs3, spend1NoteCommitmentInputs3LC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg53.localRho, Deployed.Templates.seated, hw19, hw20, hneg]
+      Seg54.localRho, Deployed.Templates.seated, hw19, hw20, hneg]
     ring
   · simp [spend1NoteCommitmentInputs4, spend1NoteCommitmentInputs4LC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg53.localRho, Deployed.Templates.seated, hw26, hw27, hneg]
+      Seg54.localRho, Deployed.Templates.seated, hw26, hw27, hneg]
     ring
 
 theorem spend1NoteCommitmentAsserted
@@ -222,25 +222,25 @@ theorem spend1NoteCommitmentAsserted
     (real : syntheticSpends1IsDummy rho = 0) :
     spend1StateProofCommitment rho =
       spend1NoteCommitmentComputed rho := by
-  have realWire : rho 247 = 0 := by
+  have realWire : rho 250 = 0 := by
     simpa [syntheticSpends1IsDummy] using real
-  have h := facts.control.AssertEqIfSeg54
+  have h := facts.control.AssertEqIfSeg55
   change Deployed.Templates.Semantics.TAssertEqIf_0c09e0bc61a185f0693b2140c57a5eb8ceb0b7d68fbce9495598afef74a6ecd3.spec
-    (Seg54.localRho rho) at h
-  have hw1 : Seg54.wireSeating 1 = 247 := by decide +kernel
-  have hw2 : Seg54.wireSeating 2 = 172 := by decide +kernel
-  have hw3 : Seg54.wireSeating 3 = 33552 := by decide +kernel
-  have hw4 : Seg54.wireSeating 4 = 33557 := by decide +kernel
-  have hw5 : Seg54.wireSeating 5 = 33562 := by decide +kernel
-  have hw6 : Seg54.wireSeating 6 = 33567 := by decide +kernel
-  have hw7 : Seg54.wireSeating 7 = 33572 := by decide +kernel
-  have hw8 : Seg54.wireSeating 8 = 33577 := by decide +kernel
-  have hw9 : Seg54.wireSeating 9 = 33578 := by decide +kernel
+    (Seg55.localRho rho) at h
+  have hw1 : Seg55.wireSeating 1 = 250 := by decide +kernel
+  have hw2 : Seg55.wireSeating 2 = 174 := by decide +kernel
+  have hw3 : Seg55.wireSeating 3 = 33708 := by decide +kernel
+  have hw4 : Seg55.wireSeating 4 = 33713 := by decide +kernel
+  have hw5 : Seg55.wireSeating 5 = 33718 := by decide +kernel
+  have hw6 : Seg55.wireSeating 6 = 33723 := by decide +kernel
+  have hw7 : Seg55.wireSeating 7 = 33728 := by decide +kernel
+  have hw8 : Seg55.wireSeating 8 = 33733 := by decide +kernel
+  have hw9 : Seg55.wireSeating 9 = 33734 := by decide +kernel
   simp only [
     Deployed.Templates.Semantics.TAssertEqIf_0c09e0bc61a185f0693b2140c57a5eb8ceb0b7d68fbce9495598afef74a6ecd3.spec,
     Deployed.Templates.Semantics.TAssertEqIf_0c09e0bc61a185f0693b2140c57a5eb8ceb0b7d68fbce9495598afef74a6ecd3.guard,
     Deployed.Templates.Semantics.TAssertEqIf_0c09e0bc61a185f0693b2140c57a5eb8ceb0b7d68fbce9495598afef74a6ecd3.residual,
-    Seg54.localRho, Deployed.Templates.seated,
+    Seg55.localRho, Deployed.Templates.seated,
     hw1, hw2, hw3, hw4, hw5, hw6, hw7, hw8, hw9
   ] at h
   rcases h with disabled | equal
@@ -308,54 +308,54 @@ theorem spend2NoteCommitmentHash
         (spend2NoteCommitmentInputs2 rho)
         (spend2NoteCommitmentInputs3 rho)
         (spend2NoteCommitmentInputs4 rho) := by
-  have h := facts.spend2.GadgetNoteCommitmentSeg67
+  have h := facts.spend2.GadgetNoteCommitmentSeg69
   change
     Deployed.Templates.Semantics.TGadgetNoteCommitment_252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c.spec
-      (Seg67.localRho rho) at h
-  have hw1 : Seg67.wireSeating 1 = 252 := by decide +kernel
-  have hw7 : Seg67.wireSeating 7 = 253 := by decide +kernel
-  have hw13 : Seg67.wireSeating 13 = 14 := by decide +kernel
-  have hw19 : Seg67.wireSeating 19 = 1124 := by decide +kernel
-  have hw20 : Seg67.wireSeating 20 = 1464 := by decide +kernel
-  have hw26 : Seg67.wireSeating 26 = 6792 := by decide +kernel
-  have hw27 : Seg67.wireSeating 27 = 7132 := by decide +kernel
-  have hw372 : Seg67.wireSeating 372 = 45998 := by decide +kernel
-  have hw377 : Seg67.wireSeating 377 = 46003 := by decide +kernel
-  have hw382 : Seg67.wireSeating 382 = 46008 := by decide +kernel
-  have hw387 : Seg67.wireSeating 387 = 46013 := by decide +kernel
-  have hw392 : Seg67.wireSeating 392 = 46018 := by decide +kernel
-  have hw397 : Seg67.wireSeating 397 = 46023 := by decide +kernel
+      (Seg69.localRho rho) at h
+  have hw1 : Seg69.wireSeating 1 = 255 := by decide +kernel
+  have hw7 : Seg69.wireSeating 7 = 256 := by decide +kernel
+  have hw13 : Seg69.wireSeating 13 = 15 := by decide +kernel
+  have hw19 : Seg69.wireSeating 19 = 1133 := by decide +kernel
+  have hw20 : Seg69.wireSeating 20 = 1473 := by decide +kernel
+  have hw26 : Seg69.wireSeating 26 = 6801 := by decide +kernel
+  have hw27 : Seg69.wireSeating 27 = 7141 := by decide +kernel
+  have hw372 : Seg69.wireSeating 372 = 46301 := by decide +kernel
+  have hw377 : Seg69.wireSeating 377 = 46306 := by decide +kernel
+  have hw382 : Seg69.wireSeating 382 = 46311 := by decide +kernel
+  have hw387 : Seg69.wireSeating 387 = 46316 := by decide +kernel
+  have hw392 : Seg69.wireSeating 392 = 46321 := by decide +kernel
+  have hw397 : Seg69.wireSeating 397 = 46326 := by decide +kernel
   have hneg :
       (8444461749428370424248824938781546531375899335154063827935233455917409239040 :
         DeployedF) = -1 := by decide +kernel
   apply NoteReshapeCommitmentBridge.noteCommitmentHash_of_spec
-    (Seg67.localRho rho) h
+    (Seg69.localRho rho) h
   · simp only [
       spend2NoteCommitmentComputed, spend2NoteCommitmentComputedLC,
       Deployed.Templates.Semantics.TGadgetNoteCommitment_252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c.output,
       Deployed.CertifiedGadgetNoteCommitment_252c34d237e9Poseidon.s38_1,
       Deployed.Poseidon5Link.row6,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg67.localRho, Deployed.Templates.seated,
+      Seg69.localRho, Deployed.Templates.seated,
       hw372, hw377, hw382, hw387, hw392, hw397,
       zero_add, add_zero, one_mul]
     ring
   · simp [spend2NoteCommitmentInputs0, spend2NoteCommitmentInputs0LC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg67.localRho, Deployed.Templates.seated, hw1]
+      Seg69.localRho, Deployed.Templates.seated, hw1]
   · simp [spend2NoteCommitmentInputs1, spend2NoteCommitmentInputs1LC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg67.localRho, Deployed.Templates.seated, hw7]
+      Seg69.localRho, Deployed.Templates.seated, hw7]
   · simp [spend2NoteCommitmentInputs2, spend2NoteCommitmentInputs2LC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg67.localRho, Deployed.Templates.seated, hw13]
+      Seg69.localRho, Deployed.Templates.seated, hw13]
   · simp [spend2NoteCommitmentInputs3, spend2NoteCommitmentInputs3LC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg67.localRho, Deployed.Templates.seated, hw19, hw20, hneg]
+      Seg69.localRho, Deployed.Templates.seated, hw19, hw20, hneg]
     ring
   · simp [spend2NoteCommitmentInputs4, spend2NoteCommitmentInputs4LC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg67.localRho, Deployed.Templates.seated, hw26, hw27, hneg]
+      Seg69.localRho, Deployed.Templates.seated, hw26, hw27, hneg]
     ring
 
 theorem spend2NoteCommitmentAsserted
@@ -364,25 +364,25 @@ theorem spend2NoteCommitmentAsserted
     (real : syntheticSpends2IsDummy rho = 0) :
     spend2StateProofCommitment rho =
       spend2NoteCommitmentComputed rho := by
-  have realWire : rho 329 = 0 := by
+  have realWire : rho 333 = 0 := by
     simpa [syntheticSpends2IsDummy] using real
-  have h := facts.control.AssertEqIfSeg68
+  have h := facts.control.AssertEqIfSeg70
   change Deployed.Templates.Semantics.TAssertEqIf_0c09e0bc61a185f0693b2140c57a5eb8ceb0b7d68fbce9495598afef74a6ecd3.spec
-    (Seg68.localRho rho) at h
-  have hw1 : Seg68.wireSeating 1 = 329 := by decide +kernel
-  have hw2 : Seg68.wireSeating 2 = 254 := by decide +kernel
-  have hw3 : Seg68.wireSeating 3 = 45998 := by decide +kernel
-  have hw4 : Seg68.wireSeating 4 = 46003 := by decide +kernel
-  have hw5 : Seg68.wireSeating 5 = 46008 := by decide +kernel
-  have hw6 : Seg68.wireSeating 6 = 46013 := by decide +kernel
-  have hw7 : Seg68.wireSeating 7 = 46018 := by decide +kernel
-  have hw8 : Seg68.wireSeating 8 = 46023 := by decide +kernel
-  have hw9 : Seg68.wireSeating 9 = 46024 := by decide +kernel
+    (Seg70.localRho rho) at h
+  have hw1 : Seg70.wireSeating 1 = 333 := by decide +kernel
+  have hw2 : Seg70.wireSeating 2 = 257 := by decide +kernel
+  have hw3 : Seg70.wireSeating 3 = 46301 := by decide +kernel
+  have hw4 : Seg70.wireSeating 4 = 46306 := by decide +kernel
+  have hw5 : Seg70.wireSeating 5 = 46311 := by decide +kernel
+  have hw6 : Seg70.wireSeating 6 = 46316 := by decide +kernel
+  have hw7 : Seg70.wireSeating 7 = 46321 := by decide +kernel
+  have hw8 : Seg70.wireSeating 8 = 46326 := by decide +kernel
+  have hw9 : Seg70.wireSeating 9 = 46327 := by decide +kernel
   simp only [
     Deployed.Templates.Semantics.TAssertEqIf_0c09e0bc61a185f0693b2140c57a5eb8ceb0b7d68fbce9495598afef74a6ecd3.spec,
     Deployed.Templates.Semantics.TAssertEqIf_0c09e0bc61a185f0693b2140c57a5eb8ceb0b7d68fbce9495598afef74a6ecd3.guard,
     Deployed.Templates.Semantics.TAssertEqIf_0c09e0bc61a185f0693b2140c57a5eb8ceb0b7d68fbce9495598afef74a6ecd3.residual,
-    Seg68.localRho, Deployed.Templates.seated,
+    Seg70.localRho, Deployed.Templates.seated,
     hw1, hw2, hw3, hw4, hw5, hw6, hw7, hw8, hw9
   ] at h
   rcases h with disabled | equal
@@ -450,54 +450,54 @@ theorem spend3NoteCommitmentHash
         (spend3NoteCommitmentInputs2 rho)
         (spend3NoteCommitmentInputs3 rho)
         (spend3NoteCommitmentInputs4 rho) := by
-  have h := facts.spend3.GadgetNoteCommitmentSeg81
+  have h := facts.spend3.GadgetNoteCommitmentSeg84
   change
     Deployed.Templates.Semantics.TGadgetNoteCommitment_252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c.spec
-      (Seg81.localRho rho) at h
-  have hw1 : Seg81.wireSeating 1 = 334 := by decide +kernel
-  have hw7 : Seg81.wireSeating 7 = 335 := by decide +kernel
-  have hw13 : Seg81.wireSeating 13 = 14 := by decide +kernel
-  have hw19 : Seg81.wireSeating 19 = 1124 := by decide +kernel
-  have hw20 : Seg81.wireSeating 20 = 1464 := by decide +kernel
-  have hw26 : Seg81.wireSeating 26 = 6792 := by decide +kernel
-  have hw27 : Seg81.wireSeating 27 = 7132 := by decide +kernel
-  have hw372 : Seg81.wireSeating 372 = 58444 := by decide +kernel
-  have hw377 : Seg81.wireSeating 377 = 58449 := by decide +kernel
-  have hw382 : Seg81.wireSeating 382 = 58454 := by decide +kernel
-  have hw387 : Seg81.wireSeating 387 = 58459 := by decide +kernel
-  have hw392 : Seg81.wireSeating 392 = 58464 := by decide +kernel
-  have hw397 : Seg81.wireSeating 397 = 58469 := by decide +kernel
+      (Seg84.localRho rho) at h
+  have hw1 : Seg84.wireSeating 1 = 338 := by decide +kernel
+  have hw7 : Seg84.wireSeating 7 = 339 := by decide +kernel
+  have hw13 : Seg84.wireSeating 13 = 15 := by decide +kernel
+  have hw19 : Seg84.wireSeating 19 = 1133 := by decide +kernel
+  have hw20 : Seg84.wireSeating 20 = 1473 := by decide +kernel
+  have hw26 : Seg84.wireSeating 26 = 6801 := by decide +kernel
+  have hw27 : Seg84.wireSeating 27 = 7141 := by decide +kernel
+  have hw372 : Seg84.wireSeating 372 = 58894 := by decide +kernel
+  have hw377 : Seg84.wireSeating 377 = 58899 := by decide +kernel
+  have hw382 : Seg84.wireSeating 382 = 58904 := by decide +kernel
+  have hw387 : Seg84.wireSeating 387 = 58909 := by decide +kernel
+  have hw392 : Seg84.wireSeating 392 = 58914 := by decide +kernel
+  have hw397 : Seg84.wireSeating 397 = 58919 := by decide +kernel
   have hneg :
       (8444461749428370424248824938781546531375899335154063827935233455917409239040 :
         DeployedF) = -1 := by decide +kernel
   apply NoteReshapeCommitmentBridge.noteCommitmentHash_of_spec
-    (Seg81.localRho rho) h
+    (Seg84.localRho rho) h
   · simp only [
       spend3NoteCommitmentComputed, spend3NoteCommitmentComputedLC,
       Deployed.Templates.Semantics.TGadgetNoteCommitment_252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c.output,
       Deployed.CertifiedGadgetNoteCommitment_252c34d237e9Poseidon.s38_1,
       Deployed.Poseidon5Link.row6,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg81.localRho, Deployed.Templates.seated,
+      Seg84.localRho, Deployed.Templates.seated,
       hw372, hw377, hw382, hw387, hw392, hw397,
       zero_add, add_zero, one_mul]
     ring
   · simp [spend3NoteCommitmentInputs0, spend3NoteCommitmentInputs0LC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg81.localRho, Deployed.Templates.seated, hw1]
+      Seg84.localRho, Deployed.Templates.seated, hw1]
   · simp [spend3NoteCommitmentInputs1, spend3NoteCommitmentInputs1LC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg81.localRho, Deployed.Templates.seated, hw7]
+      Seg84.localRho, Deployed.Templates.seated, hw7]
   · simp [spend3NoteCommitmentInputs2, spend3NoteCommitmentInputs2LC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg81.localRho, Deployed.Templates.seated, hw13]
+      Seg84.localRho, Deployed.Templates.seated, hw13]
   · simp [spend3NoteCommitmentInputs3, spend3NoteCommitmentInputs3LC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg81.localRho, Deployed.Templates.seated, hw19, hw20, hneg]
+      Seg84.localRho, Deployed.Templates.seated, hw19, hw20, hneg]
     ring
   · simp [spend3NoteCommitmentInputs4, spend3NoteCommitmentInputs4LC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg81.localRho, Deployed.Templates.seated, hw26, hw27, hneg]
+      Seg84.localRho, Deployed.Templates.seated, hw26, hw27, hneg]
     ring
 
 theorem spend3NoteCommitmentAsserted
@@ -506,25 +506,25 @@ theorem spend3NoteCommitmentAsserted
     (real : syntheticSpends3IsDummy rho = 0) :
     spend3StateProofCommitment rho =
       spend3NoteCommitmentComputed rho := by
-  have realWire : rho 411 = 0 := by
+  have realWire : rho 416 = 0 := by
     simpa [syntheticSpends3IsDummy] using real
-  have h := facts.control.AssertEqIfSeg82
+  have h := facts.control.AssertEqIfSeg85
   change Deployed.Templates.Semantics.TAssertEqIf_0c09e0bc61a185f0693b2140c57a5eb8ceb0b7d68fbce9495598afef74a6ecd3.spec
-    (Seg82.localRho rho) at h
-  have hw1 : Seg82.wireSeating 1 = 411 := by decide +kernel
-  have hw2 : Seg82.wireSeating 2 = 336 := by decide +kernel
-  have hw3 : Seg82.wireSeating 3 = 58444 := by decide +kernel
-  have hw4 : Seg82.wireSeating 4 = 58449 := by decide +kernel
-  have hw5 : Seg82.wireSeating 5 = 58454 := by decide +kernel
-  have hw6 : Seg82.wireSeating 6 = 58459 := by decide +kernel
-  have hw7 : Seg82.wireSeating 7 = 58464 := by decide +kernel
-  have hw8 : Seg82.wireSeating 8 = 58469 := by decide +kernel
-  have hw9 : Seg82.wireSeating 9 = 58470 := by decide +kernel
+    (Seg85.localRho rho) at h
+  have hw1 : Seg85.wireSeating 1 = 416 := by decide +kernel
+  have hw2 : Seg85.wireSeating 2 = 340 := by decide +kernel
+  have hw3 : Seg85.wireSeating 3 = 58894 := by decide +kernel
+  have hw4 : Seg85.wireSeating 4 = 58899 := by decide +kernel
+  have hw5 : Seg85.wireSeating 5 = 58904 := by decide +kernel
+  have hw6 : Seg85.wireSeating 6 = 58909 := by decide +kernel
+  have hw7 : Seg85.wireSeating 7 = 58914 := by decide +kernel
+  have hw8 : Seg85.wireSeating 8 = 58919 := by decide +kernel
+  have hw9 : Seg85.wireSeating 9 = 58920 := by decide +kernel
   simp only [
     Deployed.Templates.Semantics.TAssertEqIf_0c09e0bc61a185f0693b2140c57a5eb8ceb0b7d68fbce9495598afef74a6ecd3.spec,
     Deployed.Templates.Semantics.TAssertEqIf_0c09e0bc61a185f0693b2140c57a5eb8ceb0b7d68fbce9495598afef74a6ecd3.guard,
     Deployed.Templates.Semantics.TAssertEqIf_0c09e0bc61a185f0693b2140c57a5eb8ceb0b7d68fbce9495598afef74a6ecd3.residual,
-    Seg82.localRho, Deployed.Templates.seated,
+    Seg85.localRho, Deployed.Templates.seated,
     hw1, hw2, hw3, hw4, hw5, hw6, hw7, hw8, hw9
   ] at h
   rcases h with disabled | equal
@@ -592,54 +592,54 @@ theorem spend4NoteCommitmentHash
         (spend4NoteCommitmentInputs2 rho)
         (spend4NoteCommitmentInputs3 rho)
         (spend4NoteCommitmentInputs4 rho) := by
-  have h := facts.spend4.GadgetNoteCommitmentSeg95
+  have h := facts.spend4.GadgetNoteCommitmentSeg99
   change
     Deployed.Templates.Semantics.TGadgetNoteCommitment_252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c.spec
-      (Seg95.localRho rho) at h
-  have hw1 : Seg95.wireSeating 1 = 416 := by decide +kernel
-  have hw7 : Seg95.wireSeating 7 = 417 := by decide +kernel
-  have hw13 : Seg95.wireSeating 13 = 14 := by decide +kernel
-  have hw19 : Seg95.wireSeating 19 = 1124 := by decide +kernel
-  have hw20 : Seg95.wireSeating 20 = 1464 := by decide +kernel
-  have hw26 : Seg95.wireSeating 26 = 6792 := by decide +kernel
-  have hw27 : Seg95.wireSeating 27 = 7132 := by decide +kernel
-  have hw372 : Seg95.wireSeating 372 = 70890 := by decide +kernel
-  have hw377 : Seg95.wireSeating 377 = 70895 := by decide +kernel
-  have hw382 : Seg95.wireSeating 382 = 70900 := by decide +kernel
-  have hw387 : Seg95.wireSeating 387 = 70905 := by decide +kernel
-  have hw392 : Seg95.wireSeating 392 = 70910 := by decide +kernel
-  have hw397 : Seg95.wireSeating 397 = 70915 := by decide +kernel
+      (Seg99.localRho rho) at h
+  have hw1 : Seg99.wireSeating 1 = 421 := by decide +kernel
+  have hw7 : Seg99.wireSeating 7 = 422 := by decide +kernel
+  have hw13 : Seg99.wireSeating 13 = 15 := by decide +kernel
+  have hw19 : Seg99.wireSeating 19 = 1133 := by decide +kernel
+  have hw20 : Seg99.wireSeating 20 = 1473 := by decide +kernel
+  have hw26 : Seg99.wireSeating 26 = 6801 := by decide +kernel
+  have hw27 : Seg99.wireSeating 27 = 7141 := by decide +kernel
+  have hw372 : Seg99.wireSeating 372 = 71487 := by decide +kernel
+  have hw377 : Seg99.wireSeating 377 = 71492 := by decide +kernel
+  have hw382 : Seg99.wireSeating 382 = 71497 := by decide +kernel
+  have hw387 : Seg99.wireSeating 387 = 71502 := by decide +kernel
+  have hw392 : Seg99.wireSeating 392 = 71507 := by decide +kernel
+  have hw397 : Seg99.wireSeating 397 = 71512 := by decide +kernel
   have hneg :
       (8444461749428370424248824938781546531375899335154063827935233455917409239040 :
         DeployedF) = -1 := by decide +kernel
   apply NoteReshapeCommitmentBridge.noteCommitmentHash_of_spec
-    (Seg95.localRho rho) h
+    (Seg99.localRho rho) h
   · simp only [
       spend4NoteCommitmentComputed, spend4NoteCommitmentComputedLC,
       Deployed.Templates.Semantics.TGadgetNoteCommitment_252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c.output,
       Deployed.CertifiedGadgetNoteCommitment_252c34d237e9Poseidon.s38_1,
       Deployed.Poseidon5Link.row6,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg95.localRho, Deployed.Templates.seated,
+      Seg99.localRho, Deployed.Templates.seated,
       hw372, hw377, hw382, hw387, hw392, hw397,
       zero_add, add_zero, one_mul]
     ring
   · simp [spend4NoteCommitmentInputs0, spend4NoteCommitmentInputs0LC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg95.localRho, Deployed.Templates.seated, hw1]
+      Seg99.localRho, Deployed.Templates.seated, hw1]
   · simp [spend4NoteCommitmentInputs1, spend4NoteCommitmentInputs1LC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg95.localRho, Deployed.Templates.seated, hw7]
+      Seg99.localRho, Deployed.Templates.seated, hw7]
   · simp [spend4NoteCommitmentInputs2, spend4NoteCommitmentInputs2LC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg95.localRho, Deployed.Templates.seated, hw13]
+      Seg99.localRho, Deployed.Templates.seated, hw13]
   · simp [spend4NoteCommitmentInputs3, spend4NoteCommitmentInputs3LC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg95.localRho, Deployed.Templates.seated, hw19, hw20, hneg]
+      Seg99.localRho, Deployed.Templates.seated, hw19, hw20, hneg]
     ring
   · simp [spend4NoteCommitmentInputs4, spend4NoteCommitmentInputs4LC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg95.localRho, Deployed.Templates.seated, hw26, hw27, hneg]
+      Seg99.localRho, Deployed.Templates.seated, hw26, hw27, hneg]
     ring
 
 theorem spend4NoteCommitmentAsserted
@@ -648,25 +648,25 @@ theorem spend4NoteCommitmentAsserted
     (real : syntheticSpends4IsDummy rho = 0) :
     spend4StateProofCommitment rho =
       spend4NoteCommitmentComputed rho := by
-  have realWire : rho 493 = 0 := by
+  have realWire : rho 499 = 0 := by
     simpa [syntheticSpends4IsDummy] using real
-  have h := facts.control.AssertEqIfSeg96
+  have h := facts.control.AssertEqIfSeg100
   change Deployed.Templates.Semantics.TAssertEqIf_0c09e0bc61a185f0693b2140c57a5eb8ceb0b7d68fbce9495598afef74a6ecd3.spec
-    (Seg96.localRho rho) at h
-  have hw1 : Seg96.wireSeating 1 = 493 := by decide +kernel
-  have hw2 : Seg96.wireSeating 2 = 418 := by decide +kernel
-  have hw3 : Seg96.wireSeating 3 = 70890 := by decide +kernel
-  have hw4 : Seg96.wireSeating 4 = 70895 := by decide +kernel
-  have hw5 : Seg96.wireSeating 5 = 70900 := by decide +kernel
-  have hw6 : Seg96.wireSeating 6 = 70905 := by decide +kernel
-  have hw7 : Seg96.wireSeating 7 = 70910 := by decide +kernel
-  have hw8 : Seg96.wireSeating 8 = 70915 := by decide +kernel
-  have hw9 : Seg96.wireSeating 9 = 70916 := by decide +kernel
+    (Seg100.localRho rho) at h
+  have hw1 : Seg100.wireSeating 1 = 499 := by decide +kernel
+  have hw2 : Seg100.wireSeating 2 = 423 := by decide +kernel
+  have hw3 : Seg100.wireSeating 3 = 71487 := by decide +kernel
+  have hw4 : Seg100.wireSeating 4 = 71492 := by decide +kernel
+  have hw5 : Seg100.wireSeating 5 = 71497 := by decide +kernel
+  have hw6 : Seg100.wireSeating 6 = 71502 := by decide +kernel
+  have hw7 : Seg100.wireSeating 7 = 71507 := by decide +kernel
+  have hw8 : Seg100.wireSeating 8 = 71512 := by decide +kernel
+  have hw9 : Seg100.wireSeating 9 = 71513 := by decide +kernel
   simp only [
     Deployed.Templates.Semantics.TAssertEqIf_0c09e0bc61a185f0693b2140c57a5eb8ceb0b7d68fbce9495598afef74a6ecd3.spec,
     Deployed.Templates.Semantics.TAssertEqIf_0c09e0bc61a185f0693b2140c57a5eb8ceb0b7d68fbce9495598afef74a6ecd3.guard,
     Deployed.Templates.Semantics.TAssertEqIf_0c09e0bc61a185f0693b2140c57a5eb8ceb0b7d68fbce9495598afef74a6ecd3.residual,
-    Seg96.localRho, Deployed.Templates.seated,
+    Seg100.localRho, Deployed.Templates.seated,
     hw1, hw2, hw3, hw4, hw5, hw6, hw7, hw8, hw9
   ] at h
   rcases h with disabled | equal
@@ -734,54 +734,54 @@ theorem spend5NoteCommitmentHash
         (spend5NoteCommitmentInputs2 rho)
         (spend5NoteCommitmentInputs3 rho)
         (spend5NoteCommitmentInputs4 rho) := by
-  have h := facts.spend5.GadgetNoteCommitmentSeg109
+  have h := facts.spend5.GadgetNoteCommitmentSeg114
   change
     Deployed.Templates.Semantics.TGadgetNoteCommitment_252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c.spec
-      (Seg109.localRho rho) at h
-  have hw1 : Seg109.wireSeating 1 = 498 := by decide +kernel
-  have hw7 : Seg109.wireSeating 7 = 499 := by decide +kernel
-  have hw13 : Seg109.wireSeating 13 = 14 := by decide +kernel
-  have hw19 : Seg109.wireSeating 19 = 1124 := by decide +kernel
-  have hw20 : Seg109.wireSeating 20 = 1464 := by decide +kernel
-  have hw26 : Seg109.wireSeating 26 = 6792 := by decide +kernel
-  have hw27 : Seg109.wireSeating 27 = 7132 := by decide +kernel
-  have hw372 : Seg109.wireSeating 372 = 83336 := by decide +kernel
-  have hw377 : Seg109.wireSeating 377 = 83341 := by decide +kernel
-  have hw382 : Seg109.wireSeating 382 = 83346 := by decide +kernel
-  have hw387 : Seg109.wireSeating 387 = 83351 := by decide +kernel
-  have hw392 : Seg109.wireSeating 392 = 83356 := by decide +kernel
-  have hw397 : Seg109.wireSeating 397 = 83361 := by decide +kernel
+      (Seg114.localRho rho) at h
+  have hw1 : Seg114.wireSeating 1 = 504 := by decide +kernel
+  have hw7 : Seg114.wireSeating 7 = 505 := by decide +kernel
+  have hw13 : Seg114.wireSeating 13 = 15 := by decide +kernel
+  have hw19 : Seg114.wireSeating 19 = 1133 := by decide +kernel
+  have hw20 : Seg114.wireSeating 20 = 1473 := by decide +kernel
+  have hw26 : Seg114.wireSeating 26 = 6801 := by decide +kernel
+  have hw27 : Seg114.wireSeating 27 = 7141 := by decide +kernel
+  have hw372 : Seg114.wireSeating 372 = 84080 := by decide +kernel
+  have hw377 : Seg114.wireSeating 377 = 84085 := by decide +kernel
+  have hw382 : Seg114.wireSeating 382 = 84090 := by decide +kernel
+  have hw387 : Seg114.wireSeating 387 = 84095 := by decide +kernel
+  have hw392 : Seg114.wireSeating 392 = 84100 := by decide +kernel
+  have hw397 : Seg114.wireSeating 397 = 84105 := by decide +kernel
   have hneg :
       (8444461749428370424248824938781546531375899335154063827935233455917409239040 :
         DeployedF) = -1 := by decide +kernel
   apply NoteReshapeCommitmentBridge.noteCommitmentHash_of_spec
-    (Seg109.localRho rho) h
+    (Seg114.localRho rho) h
   · simp only [
       spend5NoteCommitmentComputed, spend5NoteCommitmentComputedLC,
       Deployed.Templates.Semantics.TGadgetNoteCommitment_252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c.output,
       Deployed.CertifiedGadgetNoteCommitment_252c34d237e9Poseidon.s38_1,
       Deployed.Poseidon5Link.row6,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg109.localRho, Deployed.Templates.seated,
+      Seg114.localRho, Deployed.Templates.seated,
       hw372, hw377, hw382, hw387, hw392, hw397,
       zero_add, add_zero, one_mul]
     ring
   · simp [spend5NoteCommitmentInputs0, spend5NoteCommitmentInputs0LC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg109.localRho, Deployed.Templates.seated, hw1]
+      Seg114.localRho, Deployed.Templates.seated, hw1]
   · simp [spend5NoteCommitmentInputs1, spend5NoteCommitmentInputs1LC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg109.localRho, Deployed.Templates.seated, hw7]
+      Seg114.localRho, Deployed.Templates.seated, hw7]
   · simp [spend5NoteCommitmentInputs2, spend5NoteCommitmentInputs2LC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg109.localRho, Deployed.Templates.seated, hw13]
+      Seg114.localRho, Deployed.Templates.seated, hw13]
   · simp [spend5NoteCommitmentInputs3, spend5NoteCommitmentInputs3LC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg109.localRho, Deployed.Templates.seated, hw19, hw20, hneg]
+      Seg114.localRho, Deployed.Templates.seated, hw19, hw20, hneg]
     ring
   · simp [spend5NoteCommitmentInputs4, spend5NoteCommitmentInputs4LC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg109.localRho, Deployed.Templates.seated, hw26, hw27, hneg]
+      Seg114.localRho, Deployed.Templates.seated, hw26, hw27, hneg]
     ring
 
 theorem spend5NoteCommitmentAsserted
@@ -790,25 +790,25 @@ theorem spend5NoteCommitmentAsserted
     (real : syntheticSpends5IsDummy rho = 0) :
     spend5StateProofCommitment rho =
       spend5NoteCommitmentComputed rho := by
-  have realWire : rho 575 = 0 := by
+  have realWire : rho 582 = 0 := by
     simpa [syntheticSpends5IsDummy] using real
-  have h := facts.control.AssertEqIfSeg110
+  have h := facts.control.AssertEqIfSeg115
   change Deployed.Templates.Semantics.TAssertEqIf_0c09e0bc61a185f0693b2140c57a5eb8ceb0b7d68fbce9495598afef74a6ecd3.spec
-    (Seg110.localRho rho) at h
-  have hw1 : Seg110.wireSeating 1 = 575 := by decide +kernel
-  have hw2 : Seg110.wireSeating 2 = 500 := by decide +kernel
-  have hw3 : Seg110.wireSeating 3 = 83336 := by decide +kernel
-  have hw4 : Seg110.wireSeating 4 = 83341 := by decide +kernel
-  have hw5 : Seg110.wireSeating 5 = 83346 := by decide +kernel
-  have hw6 : Seg110.wireSeating 6 = 83351 := by decide +kernel
-  have hw7 : Seg110.wireSeating 7 = 83356 := by decide +kernel
-  have hw8 : Seg110.wireSeating 8 = 83361 := by decide +kernel
-  have hw9 : Seg110.wireSeating 9 = 83362 := by decide +kernel
+    (Seg115.localRho rho) at h
+  have hw1 : Seg115.wireSeating 1 = 582 := by decide +kernel
+  have hw2 : Seg115.wireSeating 2 = 506 := by decide +kernel
+  have hw3 : Seg115.wireSeating 3 = 84080 := by decide +kernel
+  have hw4 : Seg115.wireSeating 4 = 84085 := by decide +kernel
+  have hw5 : Seg115.wireSeating 5 = 84090 := by decide +kernel
+  have hw6 : Seg115.wireSeating 6 = 84095 := by decide +kernel
+  have hw7 : Seg115.wireSeating 7 = 84100 := by decide +kernel
+  have hw8 : Seg115.wireSeating 8 = 84105 := by decide +kernel
+  have hw9 : Seg115.wireSeating 9 = 84106 := by decide +kernel
   simp only [
     Deployed.Templates.Semantics.TAssertEqIf_0c09e0bc61a185f0693b2140c57a5eb8ceb0b7d68fbce9495598afef74a6ecd3.spec,
     Deployed.Templates.Semantics.TAssertEqIf_0c09e0bc61a185f0693b2140c57a5eb8ceb0b7d68fbce9495598afef74a6ecd3.guard,
     Deployed.Templates.Semantics.TAssertEqIf_0c09e0bc61a185f0693b2140c57a5eb8ceb0b7d68fbce9495598afef74a6ecd3.residual,
-    Seg110.localRho, Deployed.Templates.seated,
+    Seg115.localRho, Deployed.Templates.seated,
     hw1, hw2, hw3, hw4, hw5, hw6, hw7, hw8, hw9
   ] at h
   rcases h with disabled | equal
@@ -876,54 +876,54 @@ theorem spend6NoteCommitmentHash
         (spend6NoteCommitmentInputs2 rho)
         (spend6NoteCommitmentInputs3 rho)
         (spend6NoteCommitmentInputs4 rho) := by
-  have h := facts.spend6.GadgetNoteCommitmentSeg123
+  have h := facts.spend6.GadgetNoteCommitmentSeg129
   change
     Deployed.Templates.Semantics.TGadgetNoteCommitment_252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c.spec
-      (Seg123.localRho rho) at h
-  have hw1 : Seg123.wireSeating 1 = 580 := by decide +kernel
-  have hw7 : Seg123.wireSeating 7 = 581 := by decide +kernel
-  have hw13 : Seg123.wireSeating 13 = 14 := by decide +kernel
-  have hw19 : Seg123.wireSeating 19 = 1124 := by decide +kernel
-  have hw20 : Seg123.wireSeating 20 = 1464 := by decide +kernel
-  have hw26 : Seg123.wireSeating 26 = 6792 := by decide +kernel
-  have hw27 : Seg123.wireSeating 27 = 7132 := by decide +kernel
-  have hw372 : Seg123.wireSeating 372 = 95782 := by decide +kernel
-  have hw377 : Seg123.wireSeating 377 = 95787 := by decide +kernel
-  have hw382 : Seg123.wireSeating 382 = 95792 := by decide +kernel
-  have hw387 : Seg123.wireSeating 387 = 95797 := by decide +kernel
-  have hw392 : Seg123.wireSeating 392 = 95802 := by decide +kernel
-  have hw397 : Seg123.wireSeating 397 = 95807 := by decide +kernel
+      (Seg129.localRho rho) at h
+  have hw1 : Seg129.wireSeating 1 = 587 := by decide +kernel
+  have hw7 : Seg129.wireSeating 7 = 588 := by decide +kernel
+  have hw13 : Seg129.wireSeating 13 = 15 := by decide +kernel
+  have hw19 : Seg129.wireSeating 19 = 1133 := by decide +kernel
+  have hw20 : Seg129.wireSeating 20 = 1473 := by decide +kernel
+  have hw26 : Seg129.wireSeating 26 = 6801 := by decide +kernel
+  have hw27 : Seg129.wireSeating 27 = 7141 := by decide +kernel
+  have hw372 : Seg129.wireSeating 372 = 96673 := by decide +kernel
+  have hw377 : Seg129.wireSeating 377 = 96678 := by decide +kernel
+  have hw382 : Seg129.wireSeating 382 = 96683 := by decide +kernel
+  have hw387 : Seg129.wireSeating 387 = 96688 := by decide +kernel
+  have hw392 : Seg129.wireSeating 392 = 96693 := by decide +kernel
+  have hw397 : Seg129.wireSeating 397 = 96698 := by decide +kernel
   have hneg :
       (8444461749428370424248824938781546531375899335154063827935233455917409239040 :
         DeployedF) = -1 := by decide +kernel
   apply NoteReshapeCommitmentBridge.noteCommitmentHash_of_spec
-    (Seg123.localRho rho) h
+    (Seg129.localRho rho) h
   · simp only [
       spend6NoteCommitmentComputed, spend6NoteCommitmentComputedLC,
       Deployed.Templates.Semantics.TGadgetNoteCommitment_252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c.output,
       Deployed.CertifiedGadgetNoteCommitment_252c34d237e9Poseidon.s38_1,
       Deployed.Poseidon5Link.row6,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg123.localRho, Deployed.Templates.seated,
+      Seg129.localRho, Deployed.Templates.seated,
       hw372, hw377, hw382, hw387, hw392, hw397,
       zero_add, add_zero, one_mul]
     ring
   · simp [spend6NoteCommitmentInputs0, spend6NoteCommitmentInputs0LC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg123.localRho, Deployed.Templates.seated, hw1]
+      Seg129.localRho, Deployed.Templates.seated, hw1]
   · simp [spend6NoteCommitmentInputs1, spend6NoteCommitmentInputs1LC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg123.localRho, Deployed.Templates.seated, hw7]
+      Seg129.localRho, Deployed.Templates.seated, hw7]
   · simp [spend6NoteCommitmentInputs2, spend6NoteCommitmentInputs2LC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg123.localRho, Deployed.Templates.seated, hw13]
+      Seg129.localRho, Deployed.Templates.seated, hw13]
   · simp [spend6NoteCommitmentInputs3, spend6NoteCommitmentInputs3LC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg123.localRho, Deployed.Templates.seated, hw19, hw20, hneg]
+      Seg129.localRho, Deployed.Templates.seated, hw19, hw20, hneg]
     ring
   · simp [spend6NoteCommitmentInputs4, spend6NoteCommitmentInputs4LC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg123.localRho, Deployed.Templates.seated, hw26, hw27, hneg]
+      Seg129.localRho, Deployed.Templates.seated, hw26, hw27, hneg]
     ring
 
 theorem spend6NoteCommitmentAsserted
@@ -932,25 +932,25 @@ theorem spend6NoteCommitmentAsserted
     (real : syntheticSpends6IsDummy rho = 0) :
     spend6StateProofCommitment rho =
       spend6NoteCommitmentComputed rho := by
-  have realWire : rho 657 = 0 := by
+  have realWire : rho 665 = 0 := by
     simpa [syntheticSpends6IsDummy] using real
-  have h := facts.control.AssertEqIfSeg124
+  have h := facts.control.AssertEqIfSeg130
   change Deployed.Templates.Semantics.TAssertEqIf_0c09e0bc61a185f0693b2140c57a5eb8ceb0b7d68fbce9495598afef74a6ecd3.spec
-    (Seg124.localRho rho) at h
-  have hw1 : Seg124.wireSeating 1 = 657 := by decide +kernel
-  have hw2 : Seg124.wireSeating 2 = 582 := by decide +kernel
-  have hw3 : Seg124.wireSeating 3 = 95782 := by decide +kernel
-  have hw4 : Seg124.wireSeating 4 = 95787 := by decide +kernel
-  have hw5 : Seg124.wireSeating 5 = 95792 := by decide +kernel
-  have hw6 : Seg124.wireSeating 6 = 95797 := by decide +kernel
-  have hw7 : Seg124.wireSeating 7 = 95802 := by decide +kernel
-  have hw8 : Seg124.wireSeating 8 = 95807 := by decide +kernel
-  have hw9 : Seg124.wireSeating 9 = 95808 := by decide +kernel
+    (Seg130.localRho rho) at h
+  have hw1 : Seg130.wireSeating 1 = 665 := by decide +kernel
+  have hw2 : Seg130.wireSeating 2 = 589 := by decide +kernel
+  have hw3 : Seg130.wireSeating 3 = 96673 := by decide +kernel
+  have hw4 : Seg130.wireSeating 4 = 96678 := by decide +kernel
+  have hw5 : Seg130.wireSeating 5 = 96683 := by decide +kernel
+  have hw6 : Seg130.wireSeating 6 = 96688 := by decide +kernel
+  have hw7 : Seg130.wireSeating 7 = 96693 := by decide +kernel
+  have hw8 : Seg130.wireSeating 8 = 96698 := by decide +kernel
+  have hw9 : Seg130.wireSeating 9 = 96699 := by decide +kernel
   simp only [
     Deployed.Templates.Semantics.TAssertEqIf_0c09e0bc61a185f0693b2140c57a5eb8ceb0b7d68fbce9495598afef74a6ecd3.spec,
     Deployed.Templates.Semantics.TAssertEqIf_0c09e0bc61a185f0693b2140c57a5eb8ceb0b7d68fbce9495598afef74a6ecd3.guard,
     Deployed.Templates.Semantics.TAssertEqIf_0c09e0bc61a185f0693b2140c57a5eb8ceb0b7d68fbce9495598afef74a6ecd3.residual,
-    Seg124.localRho, Deployed.Templates.seated,
+    Seg130.localRho, Deployed.Templates.seated,
     hw1, hw2, hw3, hw4, hw5, hw6, hw7, hw8, hw9
   ] at h
   rcases h with disabled | equal
@@ -1018,54 +1018,54 @@ theorem spend7NoteCommitmentHash
         (spend7NoteCommitmentInputs2 rho)
         (spend7NoteCommitmentInputs3 rho)
         (spend7NoteCommitmentInputs4 rho) := by
-  have h := facts.spend7.GadgetNoteCommitmentSeg137
+  have h := facts.spend7.GadgetNoteCommitmentSeg144
   change
     Deployed.Templates.Semantics.TGadgetNoteCommitment_252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c.spec
-      (Seg137.localRho rho) at h
-  have hw1 : Seg137.wireSeating 1 = 662 := by decide +kernel
-  have hw7 : Seg137.wireSeating 7 = 663 := by decide +kernel
-  have hw13 : Seg137.wireSeating 13 = 14 := by decide +kernel
-  have hw19 : Seg137.wireSeating 19 = 1124 := by decide +kernel
-  have hw20 : Seg137.wireSeating 20 = 1464 := by decide +kernel
-  have hw26 : Seg137.wireSeating 26 = 6792 := by decide +kernel
-  have hw27 : Seg137.wireSeating 27 = 7132 := by decide +kernel
-  have hw372 : Seg137.wireSeating 372 = 108228 := by decide +kernel
-  have hw377 : Seg137.wireSeating 377 = 108233 := by decide +kernel
-  have hw382 : Seg137.wireSeating 382 = 108238 := by decide +kernel
-  have hw387 : Seg137.wireSeating 387 = 108243 := by decide +kernel
-  have hw392 : Seg137.wireSeating 392 = 108248 := by decide +kernel
-  have hw397 : Seg137.wireSeating 397 = 108253 := by decide +kernel
+      (Seg144.localRho rho) at h
+  have hw1 : Seg144.wireSeating 1 = 670 := by decide +kernel
+  have hw7 : Seg144.wireSeating 7 = 671 := by decide +kernel
+  have hw13 : Seg144.wireSeating 13 = 15 := by decide +kernel
+  have hw19 : Seg144.wireSeating 19 = 1133 := by decide +kernel
+  have hw20 : Seg144.wireSeating 20 = 1473 := by decide +kernel
+  have hw26 : Seg144.wireSeating 26 = 6801 := by decide +kernel
+  have hw27 : Seg144.wireSeating 27 = 7141 := by decide +kernel
+  have hw372 : Seg144.wireSeating 372 = 109266 := by decide +kernel
+  have hw377 : Seg144.wireSeating 377 = 109271 := by decide +kernel
+  have hw382 : Seg144.wireSeating 382 = 109276 := by decide +kernel
+  have hw387 : Seg144.wireSeating 387 = 109281 := by decide +kernel
+  have hw392 : Seg144.wireSeating 392 = 109286 := by decide +kernel
+  have hw397 : Seg144.wireSeating 397 = 109291 := by decide +kernel
   have hneg :
       (8444461749428370424248824938781546531375899335154063827935233455917409239040 :
         DeployedF) = -1 := by decide +kernel
   apply NoteReshapeCommitmentBridge.noteCommitmentHash_of_spec
-    (Seg137.localRho rho) h
+    (Seg144.localRho rho) h
   · simp only [
       spend7NoteCommitmentComputed, spend7NoteCommitmentComputedLC,
       Deployed.Templates.Semantics.TGadgetNoteCommitment_252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c.output,
       Deployed.CertifiedGadgetNoteCommitment_252c34d237e9Poseidon.s38_1,
       Deployed.Poseidon5Link.row6,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg137.localRho, Deployed.Templates.seated,
+      Seg144.localRho, Deployed.Templates.seated,
       hw372, hw377, hw382, hw387, hw392, hw397,
       zero_add, add_zero, one_mul]
     ring
   · simp [spend7NoteCommitmentInputs0, spend7NoteCommitmentInputs0LC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg137.localRho, Deployed.Templates.seated, hw1]
+      Seg144.localRho, Deployed.Templates.seated, hw1]
   · simp [spend7NoteCommitmentInputs1, spend7NoteCommitmentInputs1LC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg137.localRho, Deployed.Templates.seated, hw7]
+      Seg144.localRho, Deployed.Templates.seated, hw7]
   · simp [spend7NoteCommitmentInputs2, spend7NoteCommitmentInputs2LC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg137.localRho, Deployed.Templates.seated, hw13]
+      Seg144.localRho, Deployed.Templates.seated, hw13]
   · simp [spend7NoteCommitmentInputs3, spend7NoteCommitmentInputs3LC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg137.localRho, Deployed.Templates.seated, hw19, hw20, hneg]
+      Seg144.localRho, Deployed.Templates.seated, hw19, hw20, hneg]
     ring
   · simp [spend7NoteCommitmentInputs4, spend7NoteCommitmentInputs4LC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg137.localRho, Deployed.Templates.seated, hw26, hw27, hneg]
+      Seg144.localRho, Deployed.Templates.seated, hw26, hw27, hneg]
     ring
 
 theorem spend7NoteCommitmentAsserted
@@ -1074,25 +1074,25 @@ theorem spend7NoteCommitmentAsserted
     (real : syntheticSpends7IsDummy rho = 0) :
     spend7StateProofCommitment rho =
       spend7NoteCommitmentComputed rho := by
-  have realWire : rho 739 = 0 := by
+  have realWire : rho 748 = 0 := by
     simpa [syntheticSpends7IsDummy] using real
-  have h := facts.control.AssertEqIfSeg138
+  have h := facts.control.AssertEqIfSeg145
   change Deployed.Templates.Semantics.TAssertEqIf_0c09e0bc61a185f0693b2140c57a5eb8ceb0b7d68fbce9495598afef74a6ecd3.spec
-    (Seg138.localRho rho) at h
-  have hw1 : Seg138.wireSeating 1 = 739 := by decide +kernel
-  have hw2 : Seg138.wireSeating 2 = 664 := by decide +kernel
-  have hw3 : Seg138.wireSeating 3 = 108228 := by decide +kernel
-  have hw4 : Seg138.wireSeating 4 = 108233 := by decide +kernel
-  have hw5 : Seg138.wireSeating 5 = 108238 := by decide +kernel
-  have hw6 : Seg138.wireSeating 6 = 108243 := by decide +kernel
-  have hw7 : Seg138.wireSeating 7 = 108248 := by decide +kernel
-  have hw8 : Seg138.wireSeating 8 = 108253 := by decide +kernel
-  have hw9 : Seg138.wireSeating 9 = 108254 := by decide +kernel
+    (Seg145.localRho rho) at h
+  have hw1 : Seg145.wireSeating 1 = 748 := by decide +kernel
+  have hw2 : Seg145.wireSeating 2 = 672 := by decide +kernel
+  have hw3 : Seg145.wireSeating 3 = 109266 := by decide +kernel
+  have hw4 : Seg145.wireSeating 4 = 109271 := by decide +kernel
+  have hw5 : Seg145.wireSeating 5 = 109276 := by decide +kernel
+  have hw6 : Seg145.wireSeating 6 = 109281 := by decide +kernel
+  have hw7 : Seg145.wireSeating 7 = 109286 := by decide +kernel
+  have hw8 : Seg145.wireSeating 8 = 109291 := by decide +kernel
+  have hw9 : Seg145.wireSeating 9 = 109292 := by decide +kernel
   simp only [
     Deployed.Templates.Semantics.TAssertEqIf_0c09e0bc61a185f0693b2140c57a5eb8ceb0b7d68fbce9495598afef74a6ecd3.spec,
     Deployed.Templates.Semantics.TAssertEqIf_0c09e0bc61a185f0693b2140c57a5eb8ceb0b7d68fbce9495598afef74a6ecd3.guard,
     Deployed.Templates.Semantics.TAssertEqIf_0c09e0bc61a185f0693b2140c57a5eb8ceb0b7d68fbce9495598afef74a6ecd3.residual,
-    Seg138.localRho, Deployed.Templates.seated,
+    Seg145.localRho, Deployed.Templates.seated,
     hw1, hw2, hw3, hw4, hw5, hw6, hw7, hw8, hw9
   ] at h
   rcases h with disabled | equal
@@ -1160,54 +1160,54 @@ theorem output0NoteCommitmentHash
         (output0NoteCommitmentInputs2 rho)
         (output0NoteCommitmentInputs3 rho)
         (output0NoteCommitmentInputs4 rho) := by
-  have h := facts.output0.GadgetNoteCommitmentSeg151
+  have h := facts.output0.GadgetNoteCommitmentSeg159
   change
     Deployed.Templates.Semantics.TGadgetNoteCommitment_252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c.spec
-      (Seg151.localRho rho) at h
-  have hw1 : Seg151.wireSeating 1 = 742 := by decide +kernel
-  have hw7 : Seg151.wireSeating 7 = 743 := by decide +kernel
-  have hw13 : Seg151.wireSeating 13 = 14 := by decide +kernel
-  have hw19 : Seg151.wireSeating 19 = 1124 := by decide +kernel
-  have hw20 : Seg151.wireSeating 20 = 1464 := by decide +kernel
-  have hw26 : Seg151.wireSeating 26 = 6792 := by decide +kernel
-  have hw27 : Seg151.wireSeating 27 = 7132 := by decide +kernel
-  have hw372 : Seg151.wireSeating 372 = 120674 := by decide +kernel
-  have hw377 : Seg151.wireSeating 377 = 120679 := by decide +kernel
-  have hw382 : Seg151.wireSeating 382 = 120684 := by decide +kernel
-  have hw387 : Seg151.wireSeating 387 = 120689 := by decide +kernel
-  have hw392 : Seg151.wireSeating 392 = 120694 := by decide +kernel
-  have hw397 : Seg151.wireSeating 397 = 120699 := by decide +kernel
+      (Seg159.localRho rho) at h
+  have hw1 : Seg159.wireSeating 1 = 751 := by decide +kernel
+  have hw7 : Seg159.wireSeating 7 = 752 := by decide +kernel
+  have hw13 : Seg159.wireSeating 13 = 15 := by decide +kernel
+  have hw19 : Seg159.wireSeating 19 = 1133 := by decide +kernel
+  have hw20 : Seg159.wireSeating 20 = 1473 := by decide +kernel
+  have hw26 : Seg159.wireSeating 26 = 6801 := by decide +kernel
+  have hw27 : Seg159.wireSeating 27 = 7141 := by decide +kernel
+  have hw372 : Seg159.wireSeating 372 = 121859 := by decide +kernel
+  have hw377 : Seg159.wireSeating 377 = 121864 := by decide +kernel
+  have hw382 : Seg159.wireSeating 382 = 121869 := by decide +kernel
+  have hw387 : Seg159.wireSeating 387 = 121874 := by decide +kernel
+  have hw392 : Seg159.wireSeating 392 = 121879 := by decide +kernel
+  have hw397 : Seg159.wireSeating 397 = 121884 := by decide +kernel
   have hneg :
       (8444461749428370424248824938781546531375899335154063827935233455917409239040 :
         DeployedF) = -1 := by decide +kernel
   apply NoteReshapeCommitmentBridge.noteCommitmentHash_of_spec
-    (Seg151.localRho rho) h
+    (Seg159.localRho rho) h
   · simp only [
       output0NoteCommitmentComputed, output0NoteCommitmentComputedLC,
       Deployed.Templates.Semantics.TGadgetNoteCommitment_252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c.output,
       Deployed.CertifiedGadgetNoteCommitment_252c34d237e9Poseidon.s38_1,
       Deployed.Poseidon5Link.row6,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg151.localRho, Deployed.Templates.seated,
+      Seg159.localRho, Deployed.Templates.seated,
       hw372, hw377, hw382, hw387, hw392, hw397,
       zero_add, add_zero, one_mul]
     ring
   · simp [output0NoteCommitmentInputs0, output0NoteCommitmentInputs0LC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg151.localRho, Deployed.Templates.seated, hw1]
+      Seg159.localRho, Deployed.Templates.seated, hw1]
   · simp [output0NoteCommitmentInputs1, output0NoteCommitmentInputs1LC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg151.localRho, Deployed.Templates.seated, hw7]
+      Seg159.localRho, Deployed.Templates.seated, hw7]
   · simp [output0NoteCommitmentInputs2, output0NoteCommitmentInputs2LC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg151.localRho, Deployed.Templates.seated, hw13]
+      Seg159.localRho, Deployed.Templates.seated, hw13]
   · simp [output0NoteCommitmentInputs3, output0NoteCommitmentInputs3LC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg151.localRho, Deployed.Templates.seated, hw19, hw20, hneg]
+      Seg159.localRho, Deployed.Templates.seated, hw19, hw20, hneg]
     ring
   · simp [output0NoteCommitmentInputs4, output0NoteCommitmentInputs4LC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-      Seg151.localRho, Deployed.Templates.seated, hw26, hw27, hneg]
+      Seg159.localRho, Deployed.Templates.seated, hw26, hw27, hneg]
     ring
 
 theorem output0NoteCommitmentAsserted
@@ -1215,19 +1215,19 @@ theorem output0NoteCommitmentAsserted
     (facts : NoteReshape8x1CircuitFacts rho) :
     output0NoteCommitmentClaimed rho =
       output0NoteCommitmentComputed rho := by
-  have h := facts.output0.AssertEqSeg152
+  have h := facts.output0.AssertEqSeg160
   change Deployed.Templates.Semantics.TAssertEq_c4acc0cb39ee1820ee3eb4fda139846ccb6ea995c7d6605854f111a0b177b240.spec
-    (Seg152.localRho rho) at h
-  have hw1 : Seg152.wireSeating 1 = 120674 := by decide +kernel
-  have hw2 : Seg152.wireSeating 2 = 120679 := by decide +kernel
-  have hw3 : Seg152.wireSeating 3 = 120684 := by decide +kernel
-  have hw4 : Seg152.wireSeating 4 = 120689 := by decide +kernel
-  have hw5 : Seg152.wireSeating 5 = 120694 := by decide +kernel
-  have hw6 : Seg152.wireSeating 6 = 120699 := by decide +kernel
-  have hw7 : Seg152.wireSeating 7 = 741 := by decide +kernel
+    (Seg160.localRho rho) at h
+  have hw1 : Seg160.wireSeating 1 = 121859 := by decide +kernel
+  have hw2 : Seg160.wireSeating 2 = 121864 := by decide +kernel
+  have hw3 : Seg160.wireSeating 3 = 121869 := by decide +kernel
+  have hw4 : Seg160.wireSeating 4 = 121874 := by decide +kernel
+  have hw5 : Seg160.wireSeating 5 = 121879 := by decide +kernel
+  have hw6 : Seg160.wireSeating 6 = 121884 := by decide +kernel
+  have hw7 : Seg160.wireSeating 7 = 750 := by decide +kernel
   simp only [
     Deployed.Templates.Semantics.TAssertEq_c4acc0cb39ee1820ee3eb4fda139846ccb6ea995c7d6605854f111a0b177b240.spec,
-    Seg152.localRho, Deployed.Templates.seated, hw1, hw2, hw3, hw4, hw5, hw6, hw7, one_mul
+    Seg160.localRho, Deployed.Templates.seated, hw1, hw2, hw3, hw4, hw5, hw6, hw7, one_mul
   ] at h
   simp only [
     output0NoteCommitmentClaimed, output0NoteCommitmentClaimedLC,

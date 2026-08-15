@@ -92,7 +92,7 @@ private theorem withdrawalSeamCoeff8 :
 
 theorem assetPathAt_eq_deployedWire
     (rho : Nat → SemanticF) (index : Fin 48) :
-    assetPathAt rho index = rho (30 + index.val) := by
+    assetPathAt rho index = rho (31 + index.val) := by
   rcases index with ⟨index, index_lt⟩
   interval_cases index <;>
     simp [
@@ -102,7 +102,7 @@ theorem assetPathAt_eq_deployedWire
 
 theorem senderPathAt_eq_deployedWire
     (rho : Nat → SemanticF) (index : Fin 48) :
-    senderPathAt rho index = rho (84 + index.val) := by
+    senderPathAt rho index = rho (85 + index.val) := by
   rcases index with ⟨index, index_lt⟩
   interval_cases index <;>
     simp [
@@ -114,7 +114,7 @@ theorem assetPosition_eq_pathPosition
     (rho : Nat → SemanticF) :
     assetPosition rho = Seg11.localRho rho 33 := by
   have hseat :
-      Seg11.wireSeating 33 = 78 := by
+      Seg11.wireSeating 33 = 79 := by
     decide +kernel
   simp only [
     assetPosition, assetPositionLC,
@@ -129,7 +129,7 @@ theorem senderPosition_eq_pathPosition
       Seg17.localRho rho 33 := by
   have hseat :
       Seg17.wireSeating 33 =
-        132 := by
+        133 := by
     decide +kernel
   simp only [
     senderPosition, senderPositionLC,
@@ -144,17 +144,17 @@ theorem assetLeafCommitment_eq_pathLeaf
     assetLeafCommitment rho =
       Deployed.Templates.Semantics.TGadgetAssetRegistryPath_15ce53a7aa20f1e3be74b254ad3c8969ad9eebbd2a6c1efaabc49db1f4e46c67.leaf
         (Seg11.localRho rho) := by
-  have hl39 : Seg11.wireSeating 39 = 7033 := by
+  have hl39 : Seg11.wireSeating 39 = 7036 := by
     decide +kernel
-  have hl40 : Seg11.wireSeating 40 = 7038 := by
+  have hl40 : Seg11.wireSeating 40 = 7041 := by
     decide +kernel
-  have hl41 : Seg11.wireSeating 41 = 7043 := by
+  have hl41 : Seg11.wireSeating 41 = 7046 := by
     decide +kernel
-  have hl42 : Seg11.wireSeating 42 = 7048 := by
+  have hl42 : Seg11.wireSeating 42 = 7051 := by
     decide +kernel
-  have hl43 : Seg11.wireSeating 43 = 7053 := by
+  have hl43 : Seg11.wireSeating 43 = 7056 := by
     decide +kernel
-  have hl44 : Seg11.wireSeating 44 = 7058 := by
+  have hl44 : Seg11.wireSeating 44 = 7061 := by
     decide +kernel
   simp only [
     assetLeafCommitment, assetLeafCommitmentLC,
@@ -172,19 +172,19 @@ theorem senderLeafCommitment_eq_pathLeaf
     senderLeafCommitment rho =
       Deployed.Templates.Semantics.TGadgetCompliancePath_d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686.leaf
         (Seg17.localRho rho) := by
-  have hl39 : Seg17.wireSeating 39 = 16292 := by
+  have hl39 : Seg17.wireSeating 39 = 16295 := by
     decide +kernel
-  have hl40 : Seg17.wireSeating 40 = 16297 := by
+  have hl40 : Seg17.wireSeating 40 = 16300 := by
     decide +kernel
-  have hl41 : Seg17.wireSeating 41 = 16302 := by
+  have hl41 : Seg17.wireSeating 41 = 16305 := by
     decide +kernel
-  have hl42 : Seg17.wireSeating 42 = 16307 := by
+  have hl42 : Seg17.wireSeating 42 = 16310 := by
     decide +kernel
-  have hl43 : Seg17.wireSeating 43 = 16312 := by
+  have hl43 : Seg17.wireSeating 43 = 16315 := by
     decide +kernel
-  have hl44 : Seg17.wireSeating 44 = 16317 := by
+  have hl44 : Seg17.wireSeating 44 = 16320 := by
     decide +kernel
-  have hl45 : Seg17.wireSeating 45 = 16322 := by
+  have hl45 : Seg17.wireSeating 45 = 16325 := by
     decide +kernel
   simp only [
     senderLeafCommitment, senderLeafCommitmentLC,
@@ -203,101 +203,101 @@ theorem assetProviderPath_eq_protocolPath
     Deployed.Templates.Semantics.TGadgetAssetRegistryPath_15ce53a7aa20f1e3be74b254ad3c8969ad9eebbd2a6c1efaabc49db1f4e46c67.path (Seg11.localRho rho) =
       Shieldd.GnarkFormal.QuadPathProtocolBridge.vectorPath
         (assetProtocolPath rho) := by
-  have ha38 : Seg11.wireSeating 38 = 30 := by
+  have ha38 : Seg11.wireSeating 38 = 31 := by
     decide +kernel
-  have ha46 : Seg11.wireSeating 46 = 31 := by
+  have ha46 : Seg11.wireSeating 46 = 32 := by
     decide +kernel
-  have ha49 : Seg11.wireSeating 49 = 32 := by
+  have ha49 : Seg11.wireSeating 49 = 33 := by
     decide +kernel
-  have ha407 : Seg11.wireSeating 407 = 33 := by
+  have ha407 : Seg11.wireSeating 407 = 34 := by
     decide +kernel
-  have ha409 : Seg11.wireSeating 409 = 34 := by
+  have ha409 : Seg11.wireSeating 409 = 35 := by
     decide +kernel
-  have ha412 : Seg11.wireSeating 412 = 35 := by
+  have ha412 : Seg11.wireSeating 412 = 36 := by
     decide +kernel
-  have ha770 : Seg11.wireSeating 770 = 36 := by
+  have ha770 : Seg11.wireSeating 770 = 37 := by
     decide +kernel
-  have ha772 : Seg11.wireSeating 772 = 37 := by
+  have ha772 : Seg11.wireSeating 772 = 38 := by
     decide +kernel
-  have ha775 : Seg11.wireSeating 775 = 38 := by
+  have ha775 : Seg11.wireSeating 775 = 39 := by
     decide +kernel
-  have ha1133 : Seg11.wireSeating 1133 = 39 := by
+  have ha1133 : Seg11.wireSeating 1133 = 40 := by
     decide +kernel
-  have ha1135 : Seg11.wireSeating 1135 = 40 := by
+  have ha1135 : Seg11.wireSeating 1135 = 41 := by
     decide +kernel
-  have ha1138 : Seg11.wireSeating 1138 = 41 := by
+  have ha1138 : Seg11.wireSeating 1138 = 42 := by
     decide +kernel
-  have ha1496 : Seg11.wireSeating 1496 = 42 := by
+  have ha1496 : Seg11.wireSeating 1496 = 43 := by
     decide +kernel
-  have ha1498 : Seg11.wireSeating 1498 = 43 := by
+  have ha1498 : Seg11.wireSeating 1498 = 44 := by
     decide +kernel
-  have ha1501 : Seg11.wireSeating 1501 = 44 := by
+  have ha1501 : Seg11.wireSeating 1501 = 45 := by
     decide +kernel
-  have ha1859 : Seg11.wireSeating 1859 = 45 := by
+  have ha1859 : Seg11.wireSeating 1859 = 46 := by
     decide +kernel
-  have ha1861 : Seg11.wireSeating 1861 = 46 := by
+  have ha1861 : Seg11.wireSeating 1861 = 47 := by
     decide +kernel
-  have ha1864 : Seg11.wireSeating 1864 = 47 := by
+  have ha1864 : Seg11.wireSeating 1864 = 48 := by
     decide +kernel
-  have ha2222 : Seg11.wireSeating 2222 = 48 := by
+  have ha2222 : Seg11.wireSeating 2222 = 49 := by
     decide +kernel
-  have ha2224 : Seg11.wireSeating 2224 = 49 := by
+  have ha2224 : Seg11.wireSeating 2224 = 50 := by
     decide +kernel
-  have ha2227 : Seg11.wireSeating 2227 = 50 := by
+  have ha2227 : Seg11.wireSeating 2227 = 51 := by
     decide +kernel
-  have ha2585 : Seg11.wireSeating 2585 = 51 := by
+  have ha2585 : Seg11.wireSeating 2585 = 52 := by
     decide +kernel
-  have ha2587 : Seg11.wireSeating 2587 = 52 := by
+  have ha2587 : Seg11.wireSeating 2587 = 53 := by
     decide +kernel
-  have ha2590 : Seg11.wireSeating 2590 = 53 := by
+  have ha2590 : Seg11.wireSeating 2590 = 54 := by
     decide +kernel
-  have ha2948 : Seg11.wireSeating 2948 = 54 := by
+  have ha2948 : Seg11.wireSeating 2948 = 55 := by
     decide +kernel
-  have ha2950 : Seg11.wireSeating 2950 = 55 := by
+  have ha2950 : Seg11.wireSeating 2950 = 56 := by
     decide +kernel
-  have ha2953 : Seg11.wireSeating 2953 = 56 := by
+  have ha2953 : Seg11.wireSeating 2953 = 57 := by
     decide +kernel
-  have ha3311 : Seg11.wireSeating 3311 = 57 := by
+  have ha3311 : Seg11.wireSeating 3311 = 58 := by
     decide +kernel
-  have ha3313 : Seg11.wireSeating 3313 = 58 := by
+  have ha3313 : Seg11.wireSeating 3313 = 59 := by
     decide +kernel
-  have ha3316 : Seg11.wireSeating 3316 = 59 := by
+  have ha3316 : Seg11.wireSeating 3316 = 60 := by
     decide +kernel
-  have ha3674 : Seg11.wireSeating 3674 = 60 := by
+  have ha3674 : Seg11.wireSeating 3674 = 61 := by
     decide +kernel
-  have ha3676 : Seg11.wireSeating 3676 = 61 := by
+  have ha3676 : Seg11.wireSeating 3676 = 62 := by
     decide +kernel
-  have ha3679 : Seg11.wireSeating 3679 = 62 := by
+  have ha3679 : Seg11.wireSeating 3679 = 63 := by
     decide +kernel
-  have ha4037 : Seg11.wireSeating 4037 = 63 := by
+  have ha4037 : Seg11.wireSeating 4037 = 64 := by
     decide +kernel
-  have ha4039 : Seg11.wireSeating 4039 = 64 := by
+  have ha4039 : Seg11.wireSeating 4039 = 65 := by
     decide +kernel
-  have ha4042 : Seg11.wireSeating 4042 = 65 := by
+  have ha4042 : Seg11.wireSeating 4042 = 66 := by
     decide +kernel
-  have ha4400 : Seg11.wireSeating 4400 = 66 := by
+  have ha4400 : Seg11.wireSeating 4400 = 67 := by
     decide +kernel
-  have ha4402 : Seg11.wireSeating 4402 = 67 := by
+  have ha4402 : Seg11.wireSeating 4402 = 68 := by
     decide +kernel
-  have ha4405 : Seg11.wireSeating 4405 = 68 := by
+  have ha4405 : Seg11.wireSeating 4405 = 69 := by
     decide +kernel
-  have ha4763 : Seg11.wireSeating 4763 = 69 := by
+  have ha4763 : Seg11.wireSeating 4763 = 70 := by
     decide +kernel
-  have ha4765 : Seg11.wireSeating 4765 = 70 := by
+  have ha4765 : Seg11.wireSeating 4765 = 71 := by
     decide +kernel
-  have ha4768 : Seg11.wireSeating 4768 = 71 := by
+  have ha4768 : Seg11.wireSeating 4768 = 72 := by
     decide +kernel
-  have ha5126 : Seg11.wireSeating 5126 = 72 := by
+  have ha5126 : Seg11.wireSeating 5126 = 73 := by
     decide +kernel
-  have ha5128 : Seg11.wireSeating 5128 = 73 := by
+  have ha5128 : Seg11.wireSeating 5128 = 74 := by
     decide +kernel
-  have ha5131 : Seg11.wireSeating 5131 = 74 := by
+  have ha5131 : Seg11.wireSeating 5131 = 75 := by
     decide +kernel
-  have ha5489 : Seg11.wireSeating 5489 = 75 := by
+  have ha5489 : Seg11.wireSeating 5489 = 76 := by
     decide +kernel
-  have ha5491 : Seg11.wireSeating 5491 = 76 := by
+  have ha5491 : Seg11.wireSeating 5491 = 77 := by
     decide +kernel
-  have ha5494 : Seg11.wireSeating 5494 = 77 := by
+  have ha5494 : Seg11.wireSeating 5494 = 78 := by
     decide +kernel
   apply List.Vector.ext
   intro level
@@ -319,101 +319,101 @@ theorem complianceProviderPath_eq_protocolPath
       (Seg17.localRho rho) =
       Shieldd.GnarkFormal.QuadPathProtocolBridge.vectorPath
         (senderProtocolPath rho) := by
-  have hc38 : Seg17.wireSeating 38 = 84 := by
+  have hc38 : Seg17.wireSeating 38 = 85 := by
     decide +kernel
-  have hc47 : Seg17.wireSeating 47 = 85 := by
+  have hc47 : Seg17.wireSeating 47 = 86 := by
     decide +kernel
-  have hc50 : Seg17.wireSeating 50 = 86 := by
+  have hc50 : Seg17.wireSeating 50 = 87 := by
     decide +kernel
-  have hc408 : Seg17.wireSeating 408 = 87 := by
+  have hc408 : Seg17.wireSeating 408 = 88 := by
     decide +kernel
-  have hc410 : Seg17.wireSeating 410 = 88 := by
+  have hc410 : Seg17.wireSeating 410 = 89 := by
     decide +kernel
-  have hc413 : Seg17.wireSeating 413 = 89 := by
+  have hc413 : Seg17.wireSeating 413 = 90 := by
     decide +kernel
-  have hc771 : Seg17.wireSeating 771 = 90 := by
+  have hc771 : Seg17.wireSeating 771 = 91 := by
     decide +kernel
-  have hc773 : Seg17.wireSeating 773 = 91 := by
+  have hc773 : Seg17.wireSeating 773 = 92 := by
     decide +kernel
-  have hc776 : Seg17.wireSeating 776 = 92 := by
+  have hc776 : Seg17.wireSeating 776 = 93 := by
     decide +kernel
-  have hc1134 : Seg17.wireSeating 1134 = 93 := by
+  have hc1134 : Seg17.wireSeating 1134 = 94 := by
     decide +kernel
-  have hc1136 : Seg17.wireSeating 1136 = 94 := by
+  have hc1136 : Seg17.wireSeating 1136 = 95 := by
     decide +kernel
-  have hc1139 : Seg17.wireSeating 1139 = 95 := by
+  have hc1139 : Seg17.wireSeating 1139 = 96 := by
     decide +kernel
-  have hc1497 : Seg17.wireSeating 1497 = 96 := by
+  have hc1497 : Seg17.wireSeating 1497 = 97 := by
     decide +kernel
-  have hc1499 : Seg17.wireSeating 1499 = 97 := by
+  have hc1499 : Seg17.wireSeating 1499 = 98 := by
     decide +kernel
-  have hc1502 : Seg17.wireSeating 1502 = 98 := by
+  have hc1502 : Seg17.wireSeating 1502 = 99 := by
     decide +kernel
-  have hc1860 : Seg17.wireSeating 1860 = 99 := by
+  have hc1860 : Seg17.wireSeating 1860 = 100 := by
     decide +kernel
-  have hc1862 : Seg17.wireSeating 1862 = 100 := by
+  have hc1862 : Seg17.wireSeating 1862 = 101 := by
     decide +kernel
-  have hc1865 : Seg17.wireSeating 1865 = 101 := by
+  have hc1865 : Seg17.wireSeating 1865 = 102 := by
     decide +kernel
-  have hc2223 : Seg17.wireSeating 2223 = 102 := by
+  have hc2223 : Seg17.wireSeating 2223 = 103 := by
     decide +kernel
-  have hc2225 : Seg17.wireSeating 2225 = 103 := by
+  have hc2225 : Seg17.wireSeating 2225 = 104 := by
     decide +kernel
-  have hc2228 : Seg17.wireSeating 2228 = 104 := by
+  have hc2228 : Seg17.wireSeating 2228 = 105 := by
     decide +kernel
-  have hc2586 : Seg17.wireSeating 2586 = 105 := by
+  have hc2586 : Seg17.wireSeating 2586 = 106 := by
     decide +kernel
-  have hc2588 : Seg17.wireSeating 2588 = 106 := by
+  have hc2588 : Seg17.wireSeating 2588 = 107 := by
     decide +kernel
-  have hc2591 : Seg17.wireSeating 2591 = 107 := by
+  have hc2591 : Seg17.wireSeating 2591 = 108 := by
     decide +kernel
-  have hc2949 : Seg17.wireSeating 2949 = 108 := by
+  have hc2949 : Seg17.wireSeating 2949 = 109 := by
     decide +kernel
-  have hc2951 : Seg17.wireSeating 2951 = 109 := by
+  have hc2951 : Seg17.wireSeating 2951 = 110 := by
     decide +kernel
-  have hc2954 : Seg17.wireSeating 2954 = 110 := by
+  have hc2954 : Seg17.wireSeating 2954 = 111 := by
     decide +kernel
-  have hc3312 : Seg17.wireSeating 3312 = 111 := by
+  have hc3312 : Seg17.wireSeating 3312 = 112 := by
     decide +kernel
-  have hc3314 : Seg17.wireSeating 3314 = 112 := by
+  have hc3314 : Seg17.wireSeating 3314 = 113 := by
     decide +kernel
-  have hc3317 : Seg17.wireSeating 3317 = 113 := by
+  have hc3317 : Seg17.wireSeating 3317 = 114 := by
     decide +kernel
-  have hc3675 : Seg17.wireSeating 3675 = 114 := by
+  have hc3675 : Seg17.wireSeating 3675 = 115 := by
     decide +kernel
-  have hc3677 : Seg17.wireSeating 3677 = 115 := by
+  have hc3677 : Seg17.wireSeating 3677 = 116 := by
     decide +kernel
-  have hc3680 : Seg17.wireSeating 3680 = 116 := by
+  have hc3680 : Seg17.wireSeating 3680 = 117 := by
     decide +kernel
-  have hc4038 : Seg17.wireSeating 4038 = 117 := by
+  have hc4038 : Seg17.wireSeating 4038 = 118 := by
     decide +kernel
-  have hc4040 : Seg17.wireSeating 4040 = 118 := by
+  have hc4040 : Seg17.wireSeating 4040 = 119 := by
     decide +kernel
-  have hc4043 : Seg17.wireSeating 4043 = 119 := by
+  have hc4043 : Seg17.wireSeating 4043 = 120 := by
     decide +kernel
-  have hc4401 : Seg17.wireSeating 4401 = 120 := by
+  have hc4401 : Seg17.wireSeating 4401 = 121 := by
     decide +kernel
-  have hc4403 : Seg17.wireSeating 4403 = 121 := by
+  have hc4403 : Seg17.wireSeating 4403 = 122 := by
     decide +kernel
-  have hc4406 : Seg17.wireSeating 4406 = 122 := by
+  have hc4406 : Seg17.wireSeating 4406 = 123 := by
     decide +kernel
-  have hc4764 : Seg17.wireSeating 4764 = 123 := by
+  have hc4764 : Seg17.wireSeating 4764 = 124 := by
     decide +kernel
-  have hc4766 : Seg17.wireSeating 4766 = 124 := by
+  have hc4766 : Seg17.wireSeating 4766 = 125 := by
     decide +kernel
-  have hc4769 : Seg17.wireSeating 4769 = 125 := by
+  have hc4769 : Seg17.wireSeating 4769 = 126 := by
     decide +kernel
-  have hc5127 : Seg17.wireSeating 5127 = 126 := by
+  have hc5127 : Seg17.wireSeating 5127 = 127 := by
     decide +kernel
-  have hc5129 : Seg17.wireSeating 5129 = 127 := by
+  have hc5129 : Seg17.wireSeating 5129 = 128 := by
     decide +kernel
-  have hc5132 : Seg17.wireSeating 5132 = 128 := by
+  have hc5132 : Seg17.wireSeating 5132 = 129 := by
     decide +kernel
-  have hc5490 : Seg17.wireSeating 5490 = 129 := by
+  have hc5490 : Seg17.wireSeating 5490 = 130 := by
     decide +kernel
-  have hc5492 : Seg17.wireSeating 5492 = 130 := by
+  have hc5492 : Seg17.wireSeating 5492 = 131 := by
     decide +kernel
-  have hc5495 : Seg17.wireSeating 5495 = 131 := by
+  have hc5495 : Seg17.wireSeating 5495 = 132 := by
     decide +kernel
   apply List.Vector.ext
   intro level
@@ -435,15 +435,15 @@ theorem assetRootComputed_eq_pathOutput
     assetRootComputed rho =
       Deployed.Templates.Semantics.TGadgetAssetRegistryPath_15ce53a7aa20f1e3be74b254ad3c8969ad9eebbd2a6c1efaabc49db1f4e46c67.output
         (Seg11.localRho rho) := by
-  have ho5827 : Seg11.wireSeating 5827 = 12830 := by
+  have ho5827 : Seg11.wireSeating 5827 = 12833 := by
     decide +kernel
-  have ho5832 : Seg11.wireSeating 5832 = 12835 := by
+  have ho5832 : Seg11.wireSeating 5832 = 12838 := by
     decide +kernel
-  have ho5837 : Seg11.wireSeating 5837 = 12840 := by
+  have ho5837 : Seg11.wireSeating 5837 = 12843 := by
     decide +kernel
-  have ho5842 : Seg11.wireSeating 5842 = 12845 := by
+  have ho5842 : Seg11.wireSeating 5842 = 12848 := by
     decide +kernel
-  have ho5847 : Seg11.wireSeating 5847 = 12850 := by
+  have ho5847 : Seg11.wireSeating 5847 = 12853 := by
     decide +kernel
   simp only [
     assetRootComputed, assetRootComputedLC,
@@ -461,15 +461,15 @@ theorem senderComplianceRoot_eq_pathOutput
     senderComplianceRoot rho =
       Deployed.Templates.Semantics.TGadgetCompliancePath_d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686.output
         (Seg17.localRho rho) := by
-  have ho5828 : Seg17.wireSeating 5828 = 22094 := by
+  have ho5828 : Seg17.wireSeating 5828 = 22097 := by
     decide +kernel
-  have ho5833 : Seg17.wireSeating 5833 = 22099 := by
+  have ho5833 : Seg17.wireSeating 5833 = 22102 := by
     decide +kernel
-  have ho5838 : Seg17.wireSeating 5838 = 22104 := by
+  have ho5838 : Seg17.wireSeating 5838 = 22107 := by
     decide +kernel
-  have ho5843 : Seg17.wireSeating 5843 = 22109 := by
+  have ho5843 : Seg17.wireSeating 5843 = 22112 := by
     decide +kernel
-  have ho5848 : Seg17.wireSeating 5848 = 22114 := by
+  have ho5848 : Seg17.wireSeating 5848 = 22117 := by
     decide +kernel
   simp only [
     senderComplianceRoot, senderComplianceRootLC,
@@ -492,17 +492,17 @@ theorem assetAnchor_eq_computedRoot_of_exact
   change Deployed.Templates.Semantics.TAssertEq_5e5758a2d4a6d172e743a9ad78863e351485ec2c3a01a4ef7fdc4d01f6c826ef.spec
     (Seg12.localRho rho) at h
   unfold Deployed.Templates.Semantics.TAssertEq_5e5758a2d4a6d172e743a9ad78863e351485ec2c3a01a4ef7fdc4d01f6c826ef.spec at h
-  have hr1 : Seg12.wireSeating 1 = 12830 := by
+  have hr1 : Seg12.wireSeating 1 = 12833 := by
     decide +kernel
-  have hr2 : Seg12.wireSeating 2 = 12835 := by
+  have hr2 : Seg12.wireSeating 2 = 12838 := by
     decide +kernel
-  have hr3 : Seg12.wireSeating 3 = 12840 := by
+  have hr3 : Seg12.wireSeating 3 = 12843 := by
     decide +kernel
-  have hr4 : Seg12.wireSeating 4 = 12845 := by
+  have hr4 : Seg12.wireSeating 4 = 12848 := by
     decide +kernel
-  have hr5 : Seg12.wireSeating 5 = 12850 := by
+  have hr5 : Seg12.wireSeating 5 = 12853 := by
     decide +kernel
-  have hr6 : Seg12.wireSeating 6 = 5 := by
+  have hr6 : Seg12.wireSeating 6 = 6 := by
     decide +kernel
   simpa only [
     assetAnchor, assetAnchorLC,

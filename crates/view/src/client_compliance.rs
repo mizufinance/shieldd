@@ -1367,6 +1367,7 @@ mod tests {
                 transfer: fee_funding,
             }),
             memo: None,
+            nullifier_window: None,
         };
         let mut enrichment_rng = StdRng::seed_from_u64(11);
 

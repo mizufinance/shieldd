@@ -62,6 +62,9 @@ pub struct CompactBlock {
     /// Encrypted note payloads grouped by their producing action for candidate retrieval.
     #[prost(message, repeated, tag = "16")]
     pub routing_action_payloads: ::prost::alloc::vec::Vec<RoutingActionPayloads>,
+    /// Exact nullifier-generation window, emitted at genesis and app-epoch boundaries.
+    #[prost(message, optional, tag = "17")]
+    pub nullifier_window: ::core::option::Option<super::super::sct::v1::NullifierWindow>,
 }
 impl ::prost::Name for CompactBlock {
     const NAME: &'static str = "CompactBlock";
