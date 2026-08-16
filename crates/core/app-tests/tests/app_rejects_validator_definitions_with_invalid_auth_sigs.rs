@@ -59,7 +59,8 @@ async fn app_rejects_validator_definitions_with_invalid_auth_sigs() -> anyhow::R
     // To define a validator, we need to define two keypairs: an identity key
     // for the Shieldd application and a consensus key for cometbft.
     let new_validator_id_sk = SigningKey::<SpendAuth>::new(OsRng);
-    let new_validator_id = IdentityKey(VerificationKey::from(&new_validator_id_sk).into());
+    let new_validator_id = IdentityKey::try_from(VerificationKey::from(&new_validator_id_sk))
+        .expect("test validator identity key is nonidentity");
     let new_validator_consensus_sk = ed25519_consensus::SigningKey::new(OsRng);
     let new_validator_consensus = new_validator_consensus_sk.verification_key();
 
@@ -80,7 +81,8 @@ async fn app_rejects_validator_definitions_with_invalid_auth_sigs() -> anyhow::R
         // latest version. check for new releases at https://crates.io/crates/tendermint/versions.
         consensus_key: tendermint::PublicKey::from_raw_ed25519(&new_validator_consensus.to_bytes())
             .expect("consensus key is valid"),
-        governance_key: GovernanceKey(new_validator_id_sk.into()),
+        governance_key: GovernanceKey::try_from(VerificationKey::from(&new_validator_id_sk))
+            .expect("test validator governance key is nonidentity"),
         enabled: true,
         sequence_number: 0,
         name: "test validator".to_string(),
@@ -112,6 +114,7 @@ async fn app_rejects_validator_definitions_with_invalid_auth_sigs() -> anyhow::R
                 chain_id: TestNode::<()>::CHAIN_ID.to_string(),
                 ..Default::default()
             },
+            nullifier_window: None,
         }
     };
     let tx = client.witness_auth_build(&plan).await?;

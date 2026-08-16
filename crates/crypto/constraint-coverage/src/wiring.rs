@@ -221,20 +221,27 @@ fn build_inner(ir: &CircuitIr, sr1cs: &Sr1cs) -> Result<WiringCertificate, Cover
         }
     }
     if topo.len() != node_set.len() {
-        let remaining: Vec<usize> = node_indices
+        let remaining_set: BTreeSet<usize> = node_indices
             .iter()
             .copied()
             .filter(|i| !topo.contains(i))
+            .collect();
+        let remaining: Vec<usize> = remaining_set.iter().copied().take(12).collect();
+        let cycle_edges: Vec<(usize, usize)> = edge_wires
+            .keys()
+            .copied()
+            .filter(|(from, to)| remaining_set.contains(from) && remaining_set.contains(to))
             .take(12)
             .collect();
         return Err(CoverageError::Sr1csLine {
             line: 0,
             message: format!(
                 "gadget-wiring graph is cyclic: {} of {} instances remain in a cycle \
-                 (e.g. segments {:?}); determinism does not compose over a cyclic wiring",
+                 (e.g. segments {:?}, edges {:?}); determinism does not compose over a cyclic wiring",
                 node_set.len() - topo.len(),
                 node_set.len(),
-                remaining
+                remaining,
+                cycle_edges,
             ),
         });
     }

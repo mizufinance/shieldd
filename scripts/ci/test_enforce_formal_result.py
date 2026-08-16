@@ -44,11 +44,12 @@ def full_environment() -> dict[str, str]:
             "PARITY": "success",
             "RUNTIME": "success",
             "PUBLICATION": "success",
+            "POLICY": "skipped",
+            "ARTIFACTS": "success",
             "GATE": "success",
             "SEAM": "success",
-            "VK": "success",
             "ALLOY": "success",
-            "LEAN": "success",
+            "REPLAY": "success",
         }
     )
     return env
@@ -94,6 +95,8 @@ def select_snarkpack_skip(env: dict[str, str]) -> None:
         "PUBLICATION",
     ):
         env[name] = "skipped"
+    for name in ("POLICY", "ARTIFACTS", "GATE", "SEAM", "ALLOY", "REPLAY"):
+        env[name] = "skipped"
 
 
 class EnforceFormalResultTests(unittest.TestCase):
@@ -101,6 +104,32 @@ class EnforceFormalResultTests(unittest.TestCase):
         result = run_summary(full_environment())
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("formal passed", result.stdout)
+
+    def test_pr_soundness_skips_deferred_replay(self) -> None:
+        env = full_environment()
+        env["SOUNDNESS_TIER"] = "pr"
+        env["REPLAY"] = "skipped"
+        result = run_summary(env)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+        env["REPLAY"] = "success"
+        result = run_summary(env)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("PR soundness unexpectedly ran", result.stderr)
+
+    def test_soundness_policy_runs_no_heavy_lane(self) -> None:
+        env = full_environment()
+        env["SOUNDNESS_TIER"] = "policy"
+        env["POLICY"] = "success"
+        for name in ("ARTIFACTS", "GATE", "SEAM", "ALLOY", "REPLAY"):
+            env[name] = "skipped"
+        result = run_summary(env)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+        env["GATE"] = "success"
+        result = run_summary(env)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("soundness policy unexpectedly ran", result.stderr)
 
     def test_explained_skip_requires_no_snarkpack_lane(self) -> None:
         env = full_environment()

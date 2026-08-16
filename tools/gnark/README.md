@@ -7,6 +7,20 @@ shielded proof families:
 - `NoteReshape` (`2→1`, `1→8`, `8→1`, and `4→1`)
 - `ShieldedIcs20Withdrawal`
 
+The nullifier-generation work also includes a separate historical-proof
+artifact generator. It is not yet a supported production prover family:
+
+```bash
+go run ./cmd/historicalproofspike \
+  -batch 10 \
+  -out-dir ./artifacts/historical_generation_indexed_v2
+```
+
+It compiles one depth-20 quaternary Poseidon indexed-tree nonmembership circuit
+on BLS12-377 and one BW6-761 circuit that verifies ten base proofs. The checked-in
+keys and samples are explicitly unsafe interoperability fixtures, not activation
+artifacts.
+
 Legacy standalone single-leg proving flows are not part of the active surface.
 
 ## Current Scope
@@ -49,11 +63,9 @@ directory is configured and one transport is selected for that circuit:
 - `SHIELDD_GNARK_SHIELDED_ICS20_WITHDRAWAL_ARTIFACT_DIR`
 - `SHIELDD_GNARK_SHIELDED_ICS20_WITHDRAWAL_LIB` or `SHIELDD_GNARK_SHIELDED_ICS20_WITHDRAWAL_DAEMON`
 
-Verifier-key overrides for Rust verification and aggregation use:
-
-- `SHIELDD_GNARK_TRANSFER_ARTIFACT_DIR`
-- `SHIELDD_GNARK_NOTE_RESHAPE_ARTIFACT_DIR`
-- `SHIELDD_GNARK_SHIELDED_ICS20_WITHDRAWAL_ARTIFACT_DIR`
+These artifact-directory variables configure prover transports only. Consensus
+verification and aggregation always use the verifying keys bundled at build
+time; runtime configuration cannot replace them.
 
 The supported families share runtime plumbing, with NoteReshape selected by its
 manifest family ID and directional artifact label.
@@ -134,12 +146,12 @@ Files:
 - `crypto_primitives_test.go`: exact-match tests for `poseidon377::hash_7` and `decaf377::compress_to_field`
 - `internal/primitives/poseidon377.go`: gnark implementation of exact Shieldd `poseidon377` `hash_7`
 - `internal/primitives/decaf377.go`: gnark implementation of the minimal `decaf377` quotient gadget used in this spike
-- `internal/compliance/dleq.go`: gnark implementation of the minimal transfer-relevant DLEQ verifier fragment
-- `dleq_test.go`: Rust-fixture-backed tests for the gnark DLEQ verifier fragment
+- `internal/compliance/dleq.go`: standalone research implementation of the retired DLEQ verifier fragment; it is not part of Transfer V18
+- `dleq_test.go`: research-fixture tests for that non-deployed DLEQ fragment
 - `internal/primitives/statement_hash.go`: exact gnark statement-hash gadgets
   for the supported families
 - `internal/primitives/statement_hash_test.go`: statement-hash parity and Groth16 round-trip tests
-- `internal/abi/transfer_witness_binary.go`: strict decoder for the canonical `TransferWitnessV1` payload
+- `internal/abi/transfer_witness_binary.go`: strict decoder for the current canonical transfer witness payload
 - `internal/circuits/transfer_circuit.go`: gnark implementation of the shielded-pool transfer circuit
 - `internal/compliance/transfer_encryption.go`: gnark helpers for transfer compliance encryption
 - `internal/abi/shielded_ics20_withdrawal_witness_binary.go`: strict decoder for the canonical shielded ICS-20 withdrawal witness payload
@@ -149,9 +161,11 @@ Files:
 - `cmd/transferlib/main.go`: C-shared gnark prover for `transfer`
 - `cmd/note_reshapelib/main.go`: C-shared gnark prover for NoteReshape
 - `cmd/proverdaemon/main.go`: long-lived stdin/stdout gnark prover daemon for supported shielded actions
+- `cmd/historicalproofspike/main.go`: unsafe setup, interoperability artifacts,
+  and benchmark for indexed nullifier-generation and ten-proof recursion
 - `compatibility.md`: explicit Phase 0 / 0.5 verdict
 - `artifact-mapping.md`: current Shieldd transfer artifact boundary
 - `run-verify-bench.sh`: local orchestrator for the gnark-vs-Arkworks verifier comparison
 - `internal/primitives/vectors/phase05_vectors.json`: reference vectors generated from Shieldd Rust code
-- `internal/primitives/vectors/transfer_witness_v1.bin`: deterministic regulated `TransferWitnessV1` payload generated from Rust
+- `internal/testfixtures/vectors/transfer_witness_v18.bin`: deterministic current transfer witness payload generated from Rust
 - `rust-vectors/`: standalone Rust utility that generates the reference vectors

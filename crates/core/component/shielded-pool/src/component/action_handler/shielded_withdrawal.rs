@@ -23,6 +23,8 @@ pub(crate) struct ProofPublicData<'a> {
     pub change_output: &'a ShieldedIcs20WithdrawalChangeBody,
     pub outbound_value: Value,
     pub withdrawal_effect_hash: EffectHash,
+    pub routing_tag: crate::discovery::RoutingTag,
+    pub routing_parameter_set_id: decaf377::Fq,
 }
 
 pub(crate) fn verify_auth_sigs(
@@ -48,8 +50,6 @@ pub(crate) fn extract_public(
         .into_iter()
         .next()
         .expect("one change output was supplied");
-    let effect_hash_bytes = data.withdrawal_effect_hash.as_bytes();
-
     let public = ShieldedIcs20WithdrawalProofPublic {
         family_id: data.family_id,
         anchor: context.anchor,
@@ -59,9 +59,11 @@ pub(crate) fn extract_public(
         target_timestamp: decaf377::Fq::from(data.target_timestamp),
         inputs: inputs
             .into_iter()
-            .map(|input| ShieldedIcs20WithdrawalInputPublic {
+            .zip(data.inputs.iter())
+            .map(|(input, body_input)| ShieldedIcs20WithdrawalInputPublic {
                 nullifier: input.nullifier,
                 rk: input.rk,
+                history_required: body_input.history_required,
             })
             .collect(),
         change_output: ShieldedIcs20WithdrawalChangePublic {
@@ -69,8 +71,13 @@ pub(crate) fn extract_public(
         },
         outbound_asset_id: data.outbound_value.asset_id.0,
         outbound_amount: decaf377::Fq::from(data.outbound_value.amount),
-        withdrawal_effect_hash_lo: decaf377::Fq::from_le_bytes_mod_order(&effect_hash_bytes[..32]),
-        withdrawal_effect_hash_hi: decaf377::Fq::from_le_bytes_mod_order(&effect_hash_bytes[32..]),
+        withdrawal_effect_hash_limbs:
+            crate::shielded_ics20_withdrawal::withdrawal_effect_hash_limbs(
+                data.withdrawal_effect_hash.as_bytes(),
+            ),
+        routing_tag: data.routing_tag,
+        routing_parameter_set_id: data.routing_parameter_set_id,
+        recent_position_floor: context.recent_position_floor,
     };
     public.validate_shape()?;
     Ok(public)
@@ -90,10 +97,7 @@ pub(crate) async fn validate_compliance<S: StateRead>(
     let block_time = state.get_current_block_timestamp().await?;
     let block_unix = block_time.unix_timestamp();
     anyhow::ensure!(block_unix >= 0, "block timestamp is negative");
-    shieldd_sdk_compliance::registry::check_timestamp_freshness(
-        target_timestamp,
-        block_unix as u64,
-    )?;
+    shieldd_sdk_compliance::registry::check_timestamp_freshness(target_timestamp, block_unix)?;
 
     Ok(block_time)
 }

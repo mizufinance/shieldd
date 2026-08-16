@@ -37,6 +37,10 @@ message TransactionBody {
   //
   // This field will be present if and only if the transaction has outputs.
   MemoCiphertext memo = 5;
+  // Exact consensus nullifier window used by every proof-bound input.
+  component.sct.v1.NullifierWindow nullifier_window = 6;
+  // Complete retired-prefix proofs, one for each old real nullifier.
+  repeated component.sct.v1.HistoricalNullifierProof historical_nullifier_proofs = 7;
 }
 
 // The parameters determining if a transaction should be accepted by the chain.
@@ -190,6 +194,10 @@ message TransactionBodyView {
   // An optional view of a transaction memo. It will only be populated if there are
   // outputs in the actions of this transaction.
   MemoView memo_view = 5;
+  // Exact consensus nullifier window used by the transaction proofs.
+  component.sct.v1.NullifierWindow nullifier_window = 6;
+  // Authorization-bound retired-prefix proof attachments.
+  repeated component.sct.v1.HistoricalNullifierProof historical_nullifier_proofs = 7;
 }
 
 // A view of a specific state change action performed by a transaction.
@@ -233,6 +241,8 @@ message WitnessData {
   // The auth paths for the notes the transaction spends, in the
   // same order as the spends in the transaction plan.
   repeated crypto.tct.v1.StateCommitmentProof state_commitment_proofs = 2;
+  // Complete retired-prefix proofs for the old real nullifiers in the plan.
+  repeated component.sct.v1.HistoricalNullifierProof historical_nullifier_proofs = 3;
 }
 
 // Describes a planned transaction. Permits clients to prepare a transaction
@@ -249,6 +259,8 @@ message TransactionPlan {
   FeeFundingPlan fee_funding = 3;
   // The memo plan for this transaction.
   MemoPlan memo = 5;
+  // Exact consensus nullifier window used to classify the planned inputs.
+  component.sct.v1.NullifierWindow nullifier_window = 6;
 }
 
 // Tx-level fee funding backed by the transfer proof machinery.
@@ -280,6 +292,7 @@ message ActionPlan {
     component.governance.v1.ValidatorVote validator_vote = 20;
 
     component.shielded_pool.v1.ShieldedIcs20WithdrawalPlan shielded_ics20_withdrawal = 200;
+    component.shielded_pool.v1.ShieldedHostWithdrawalPlan shielded_host_withdrawal = 201;
 
     // Compliance
     component.compliance.v1.MsgRegisterAsset compliance_register_asset = 80;

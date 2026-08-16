@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_proto::{core::transaction::v1 as pb, DomainType};
+use shieldd_sdk_sct::nullifier_generation::HistoricalNullifierProof;
 use shieldd_sdk_shielded_pool::note;
 use shieldd_sdk_tct as tct;
 
@@ -10,6 +11,7 @@ use shieldd_sdk_tct as tct;
 pub struct WitnessData {
     pub anchor: tct::Root,
     pub state_commitment_proofs: BTreeMap<note::StateCommitment, tct::Proof>,
+    pub historical_nullifier_proofs: Vec<HistoricalNullifierProof>,
 }
 
 impl WitnessData {
@@ -32,6 +34,11 @@ impl From<WitnessData> for pb::WitnessData {
                 .into_values()
                 .map(|v| v.into())
                 .collect(),
+            historical_nullifier_proofs: msg
+                .historical_nullifier_proofs
+                .into_iter()
+                .map(Into::into)
+                .collect(),
         }
     }
 }
@@ -51,6 +58,11 @@ impl TryFrom<pb::WitnessData> for WitnessData {
                 .ok_or_else(|| anyhow::anyhow!("missing anchor"))?
                 .try_into()?,
             state_commitment_proofs,
+            historical_nullifier_proofs: msg
+                .historical_nullifier_proofs
+                .into_iter()
+                .map(TryInto::try_into)
+                .collect::<Result<_, _>>()?,
         })
     }
 }

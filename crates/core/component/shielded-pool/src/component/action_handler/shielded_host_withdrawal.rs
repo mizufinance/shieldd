@@ -4,7 +4,7 @@ use anyhow::{Context, Result};
 use async_trait::async_trait;
 use cnidarium::{StateRead, StateWrite};
 use cnidarium_component::ActionHandler;
-use shieldd_sdk_proof_params::batch::{self, BatchItem};
+use shieldd_sdk_proof_params::batch::{self, BatchItem, VerifiedBatchItem};
 use shieldd_sdk_txhash::{EffectingData, TransactionContext};
 
 use crate::{
@@ -12,8 +12,7 @@ use crate::{
         action_handler::{note_reshape, shielded_withdrawal},
         AssetRegistryRead as _, StateReadExt as _,
     },
-    ShieldedHostWithdrawal, ShieldedIcs20WithdrawalChangeBody, ShieldedIcs20WithdrawalProofPublic,
-    TransferInputBody,
+    ShieldedHostWithdrawal, ShieldedIcs20WithdrawalProofPublic,
 };
 
 pub fn shielded_host_withdrawal_verify_auth_sigs(
@@ -43,6 +42,8 @@ pub fn shielded_host_withdrawal_extract_public(
             change_output: &action.body.change_output,
             outbound_value: action.body.withdrawal.value,
             withdrawal_effect_hash: action.body.withdrawal.effect_hash(),
+            routing_tag: action.body.routing_tag,
+            routing_parameter_set_id: action.body.routing_parameter_set_id,
         },
         context,
     )
@@ -67,13 +68,54 @@ pub fn shielded_host_withdrawal_check_stateless_and_extract(
     shielded_host_withdrawal_to_batch_item(action, public)
 }
 
+/// Execute a host withdrawal whose exact proof item has already verified.
+pub async fn shielded_host_withdrawal_execute_verified<S: StateWrite>(
+    action: &ShieldedHostWithdrawal,
+    context: &TransactionContext,
+    verified_proof: &VerifiedBatchItem,
+    mut state: S,
+) -> Result<()> {
+    let item = shielded_host_withdrawal_check_stateless_and_extract(action, context)?;
+    verified_proof
+        .ensure_binds(action.body.family_id.deployed_proof_key(), &item)
+        .context("shielded host withdrawal verified proof capability mismatch")?;
+
+    anyhow::ensure!(
+        state.host_withdrawals_enabled().await?,
+        "shielded host withdrawals are not enabled"
+    );
+    anyhow::ensure!(
+        state
+            .denom_metadata_by_asset(&action.body.withdrawal.value.asset_id)
+            .await
+            .is_some(),
+        "host withdrawal asset is not registered"
+    );
+    shielded_withdrawal::validate_compliance(
+        &state,
+        &action.body.compliance_anchor,
+        &action.body.asset_anchor,
+        action.body.target_timestamp,
+    )
+    .await?;
+
+    note_reshape::execute_proof_bound_effects(
+        &mut state,
+        &action.body.inputs,
+        std::slice::from_ref(&action.body.change_output),
+        |input| input.nullifier,
+        |output| &output.note_payload,
+    )
+    .await
+}
+
 #[async_trait]
 impl ActionHandler for ShieldedHostWithdrawal {
     type CheckStatelessContext = TransactionContext;
 
     async fn check_stateless(&self, context: TransactionContext) -> Result<()> {
         let item = shielded_host_withdrawal_check_stateless_and_extract(self, &context)?;
-        batch::batch_verify(
+        batch::verify_each(
             self.body.family_id.proof_verification_key(),
             std::slice::from_ref(&item),
         )
@@ -96,24 +138,9 @@ impl ActionHandler for ShieldedHostWithdrawal {
         Ok(())
     }
 
-    async fn check_and_execute<S: StateWrite>(&self, mut state: S) -> Result<()> {
-        shielded_withdrawal::validate_compliance(
-            &state,
-            &self.body.compliance_anchor,
-            &self.body.asset_anchor,
-            self.body.target_timestamp,
+    async fn check_and_execute<S: StateWrite>(&self, _state: S) -> Result<()> {
+        anyhow::bail!(
+            "shielded host withdrawal execution requires an exact verified proof capability"
         )
-        .await?;
-
-        note_reshape::execute(
-            &mut state,
-            &self.body.inputs,
-            std::slice::from_ref(&self.body.change_output),
-            |input| input.nullifier,
-            TransferInputBody::is_dummy,
-            |output| &output.note_payload,
-            ShieldedIcs20WithdrawalChangeBody::is_dummy,
-        )
-        .await
     }
 }

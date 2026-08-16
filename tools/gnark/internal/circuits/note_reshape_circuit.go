@@ -14,22 +14,32 @@ import (
 
 type NoteReshapeOutputCircuitFields struct {
 	NoteCommitment frontend.Variable
-	Note           NoteFields
+	Note           NoteReshapeNoteCircuitFields
+}
+
+type NoteReshapeNoteCircuitFields struct {
+	Blinding frontend.Variable
+	Amount   frontend.Variable
+}
+
+type NoteReshapeSharedNoteContextCircuitFields struct {
+	AssetID frontend.Variable
+	DivGen  Point2D
 }
 
 type NoteReshapeSpendCircuitFields struct {
-	Nullifier      frontend.Variable
-	RK             Point2D
-	Note           NoteFields
-	StateProof     StateCommitmentFields
-	AuthRandomizer frontend.Variable
+	Nullifier       frontend.Variable
+	RK              Point2D
+	Note            NoteReshapeNoteCircuitFields
+	StateProof      StateCommitmentFields
+	AuthRandomizer  frontend.Variable
+	HistoryRequired frontend.Variable
 }
 
 type NoteReshapeSyntheticSpendCircuitFields struct {
 	NoteReshapeSpendCircuitFields
 	IsDummy            frontend.Variable
 	DummyNullifierSeed frontend.Variable
-	DummySpendAuthKey  frontend.Variable
 }
 
 type NoteReshapeCircuit struct {
@@ -38,13 +48,24 @@ type NoteReshapeCircuit struct {
 	nOut        int
 	wiringTrace *WiringTranscript
 
-	ClaimedStatementHash frontend.Variable `gnark:",public"`
+	ClaimedStatementHash  frontend.Variable `gnark:",public"`
+	AssetAnchor           frontend.Variable
+	RoutingTag            frontend.Variable
+	RoutingParameterSetID frontend.Variable
+	RecentPositionFloor   frontend.Variable
 
 	Anchor                frontend.Variable
 	BalanceCommitment     Point2D
 	ActionBalanceBlinding frontend.Variable
+	IsRegulated           frontend.Variable
+	RegulatedPrecision    frontend.Variable
+	UnregulatedPrecision  frontend.Variable
+	RoutingAsOfHeight     frontend.Variable
+	RoutingNonce          frontend.Variable
 
+	Shared          NoteReshapeSharedNoteContextCircuitFields
 	Auth            TransferAuthSharedFields
+	Asset           AssetTreeFields
 	Spends          []NoteReshapeSpendCircuitFields
 	SyntheticSpends []NoteReshapeSyntheticSpendCircuitFields
 	Outputs         []NoteReshapeOutputCircuitFields
@@ -68,6 +89,13 @@ func NewNoteReshapeCircuit(label string, nIn, nOut int) *NoteReshapeCircuit {
 
 func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 	c.bindWiringTrace(api)
+	c.bindSemantic("asset_anchor", c.AssetAnchor)
+	c.bindSemantic("routing.tag", c.RoutingTag)
+	c.bindSemantic("routing.parameter_set_id", c.RoutingParameterSetID)
+	c.bindSemantic("routing.regulated_precision", c.RegulatedPrecision)
+	c.bindSemantic("routing.unregulated_precision", c.UnregulatedPrecision)
+	c.bindSemantic("routing.as_of_height", c.RoutingAsOfHeight)
+	c.bindSemantic("routing.nonce", c.RoutingNonce)
 	family, ok := generated.NoteReshapeFamilyByLabel(c.label)
 	if !ok {
 		return fmt.Errorf("unsupported note reshape family %q", c.label)
@@ -96,50 +124,54 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 
 	sharedAK := gnarkte.Point{X: c.Auth.AK.X, Y: c.Auth.AK.Y}
 	claimedBalanceCommitment := gnarkte.Point{X: c.BalanceCommitment.X, Y: c.BalanceCommitment.Y}
-	var firstSpend NoteReshapeSpendCircuitFields
-	if family.InputPadding == generated.InputPaddingSyntheticPrivate {
-		firstSpend = c.SyntheticSpends[0].NoteReshapeSpendCircuitFields
-	} else {
-		firstSpend = c.Spends[0]
-	}
-	sharedDivGen := gnarkte.Point{X: firstSpend.Note.DivGen.X, Y: firstSpend.Note.DivGen.Y}
-	sharedTransmission := gnarkte.Point{X: firstSpend.Note.Transmission.X, Y: firstSpend.Note.Transmission.Y}
-	sharedAssetID := firstSpend.Note.AssetID
+	sharedDivGen := gnarkte.Point{X: c.Shared.DivGen.X, Y: c.Shared.DivGen.Y}
+	c.bindSemantic("claimed.statement_hash", c.ClaimedStatementHash)
+	c.bindSemantic("recent_position_floor", c.RecentPositionFloor)
+	c.bindSemantic("anchor", c.Anchor)
+	c.bindSemantic(
+		"claimed.balance_commitment",
+		claimedBalanceCommitment.X,
+		claimedBalanceCommitment.Y,
+	)
+	c.bindSemantic("action.balance_blinding", c.ActionBalanceBlinding)
+	c.bindSemantic("shared.asset_id", c.Shared.AssetID)
+	c.bindSemantic("shared.div_gen", sharedDivGen.X, sharedDivGen.Y)
+	c.bindSemantic("auth.ak", sharedAK.X, sharedAK.Y)
+	c.bindSemantic("auth.nk", c.Auth.NK)
+	c.bindSemantic("auth.ivk_reduced", c.Auth.IVKReduced)
+	c.bindSemantic("auth.ivk_quotient_a", c.Auth.IVKQuotientA)
 	c.traceWiring(
 		"shared.bind",
 		"shared.ak=auth.ak",
 		"claimed.balance_commitment=balance_commitment",
-		"shared.div_gen=spend0.note.div_gen",
-		"shared.transmission=spend0.note.transmission",
-		"shared.asset_id=spend0.note.asset_id",
+		"shared.div_gen=witness.shared.div_gen",
+		"shared.asset_id=witness.shared.asset_id",
 	)
+	c.traceWiring(
+		"assert.decaf_non_identity",
+		"point=auth.ak",
+		"coordinate=x",
+	)
+	AssertDecafNonIdentity(api, sharedAK)
+	c.traceWiring(
+		"assert.decaf_non_identity",
+		"point=shared.div_gen",
+		"coordinate=x",
+	)
+	AssertDecafNonIdentity(api, sharedDivGen)
 	c.traceWiring("decaf.assert_on_curve", "point=claimed.balance_commitment")
 	assertDecafPointOnCurve(api, claimedBalanceCommitment)
-	c.traceWiring("decaf.assert_on_curve", "point=shared.div_gen")
-	assertDecafPointOnCurve(api, sharedDivGen)
-	c.traceWiring("decaf.assert_on_curve", "point=shared.transmission")
-	assertDecafPointOnCurve(api, sharedTransmission)
-
-	// T1-f: decaf compress is coset-invariant, so every note's div_gen (which
-	// is only ever bound by AssertEquivalent to shared.div_gen, never
-	// consumed directly by the note commitment) can use the shared point's
-	// compressed field element instead of re-compressing its own. Nothing
-	// downstream depends on the per-note div_gen beyond the equivalence
-	// assert, so this is sound; membership still flows through
-	// shared.div_gen's on-curve assert (:79) + this single compress.
 	c.traceWiring("decaf.compress_to_field", "in=shared.div_gen", "out=shared.div_gen_fq")
 	sharedDivGenFq, err := decafgnark.CompressToField(api, sharedDivGen)
 	if err != nil {
 		return err
 	}
+	c.bindSemantic("shared.div_gen_fq", sharedDivGenFq)
 
-	// T1-d: DTK depends only on circuit-global nk/ak/ivk and shared.div_gen
-	// (every note's div_gen is asserted decaf-equivalent to shared.div_gen,
-	// and scalar-mul commutes with the decaf coset), so compute it once here
-	// instead of once per spend/output. The per-note transmission≡shared
-	// asserts below carry the binding through to each note.
+	c.traceWiring("assert.ne", "lhs=auth.ivk_reduced", "rhs=0")
+	AssertIncomingViewingKeyNonzero(api, c.Auth.IVKReduced)
 	c.traceWiring("decaf.diversified_transmission_key", "nk=auth.nk", "ak=shared.ak", "div_gen=shared.div_gen", "ivk_reduced=auth.ivk_reduced", "ivk_quotient_a=auth.ivk_quotient_a", "out=shared.transmission.computed")
-	computedSharedTransmission, err := DiversifiedTransmissionKey(
+	computedSharedTransmission, err := diversifiedTransmissionKeyAfterIvkNonzero(
 		api,
 		c.Auth.NK,
 		sharedAK,
@@ -150,49 +182,89 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 	if err != nil {
 		return err
 	}
-	c.traceWiring("decaf.assert_equivalent", "lhs=shared.transmission.computed", "rhs=shared.transmission")
-	decafgnark.AssertEquivalent(api, computedSharedTransmission, sharedTransmission)
+	c.bindSemantic(
+		"shared.transmission.computed",
+		computedSharedTransmission.X,
+		computedSharedTransmission.Y,
+	)
+	c.traceWiring(
+		"assert.decaf_non_identity",
+		"point=shared.transmission.computed",
+		"coordinate=x",
+	)
+	AssertDecafNonIdentity(api, computedSharedTransmission)
+	c.traceWiring("decaf.compress_to_field", "in=shared.transmission.computed", "out=shared.transmission.fq")
+	sharedTransmissionFq, err := decafgnark.CompressToField(api, computedSharedTransmission)
+	if err != nil {
+		return err
+	}
+	c.bindSemantic("shared.transmission.fq", sharedTransmissionFq)
+	c.traceWiring("assert.boolean", "var=is_regulated")
+	api.AssertIsBoolean(c.IsRegulated)
+	if err := verifyRoutingAssetRegistry(
+		api,
+		c.traceWiring,
+		c.bindSemantic,
+		c.Asset,
+		c.AssetAnchor,
+		c.Shared.AssetID,
+		c.IsRegulated,
+	); err != nil {
+		return err
+	}
+	if err := verifySingleRoutingTag(
+		api,
+		c.traceWiring,
+		c.RoutingTag,
+		c.RoutingParameterSetID,
+		c.IsRegulated,
+		c.RegulatedPrecision,
+		c.UnregulatedPrecision,
+		c.RoutingAsOfHeight,
+		c.RoutingNonce,
+		sharedTransmissionFq,
+	); err != nil {
+		return err
+	}
 
 	inputAmounts := make([]frontend.Variable, 0, c.nIn)
 	outputAmounts := make([]frontend.Variable, 0, c.nOut)
 	statementFields := make([]frontend.Variable, 0, NoteReshapeStatementFieldCount(c.nIn, c.nOut))
 	outputCommitments := make([]frontend.Variable, 0, c.nOut)
-	nullifiersAndRKs := make([]frontend.Variable, 0, 2*c.nIn)
+	nullifiersAndRKs := make([]frontend.Variable, 0, 3*c.nIn)
 
 	for i := 0; i < c.nIn; i++ {
 		spendName := fmt.Sprintf("spend%d", i)
 		c.traceWiring("spend.begin", spendName)
-		var amount, nullifier, rkCompressed frontend.Variable
+		var amount, nullifier, rkCompressed, claimedHistoryRequired frontend.Variable
 		if family.InputPadding == generated.InputPaddingSyntheticPrivate {
 			amount, nullifier, rkCompressed, err = c.verifyPaddedNoteReshapeSpend(
 				api,
 				spendName,
 				sharedAK,
-				sharedDivGen,
 				sharedDivGenFq,
-				sharedTransmission,
-				sharedAssetID,
+				sharedTransmissionFq,
 				&c.SyntheticSpends[i],
 				i,
 			)
+			claimedHistoryRequired = c.SyntheticSpends[i].HistoryRequired
 		} else {
 			amount, nullifier, rkCompressed, err = c.verifyFixedNoteReshapeSpend(
 				api,
 				spendName,
 				sharedAK,
-				sharedDivGen,
 				sharedDivGenFq,
-				sharedTransmission,
-				sharedAssetID,
+				sharedTransmissionFq,
 				&c.Spends[i],
 			)
+			claimedHistoryRequired = c.Spends[i].HistoryRequired
 		}
 		if err != nil {
 			return err
 		}
 		c.traceWiring("spend.collect", spendName, "amount->input_amounts", "nullifier->statement.nullifiers_and_rks", "rk_compressed->statement.nullifiers_and_rks")
 		inputAmounts = append(inputAmounts, amount)
-		nullifiersAndRKs = append(nullifiersAndRKs, nullifier, rkCompressed)
+		nullifiersAndRKs = append(nullifiersAndRKs, nullifier, rkCompressed, claimedHistoryRequired)
 	}
 
 	for i := range c.Outputs {
@@ -201,11 +273,8 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 		amount, commitment, err := c.verifyFixedNoteReshapeOutput(
 			api,
 			outputName,
-			sharedAK,
-			sharedDivGen,
 			sharedDivGenFq,
-			sharedTransmission,
-			sharedAssetID,
+			sharedTransmissionFq,
 			&c.Outputs[i],
 		)
 		if err != nil {
@@ -230,6 +299,11 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 	if err != nil {
 		return err
 	}
+	c.bindSemantic(
+		"balance_commitment.computed",
+		balanceCommitmentPoint.X,
+		balanceCommitmentPoint.Y,
+	)
 	c.traceWiring("decaf.assert_equivalent", "lhs=balance_commitment.computed", "rhs=claimed.balance_commitment")
 	decafgnark.AssertEquivalent(api, balanceCommitmentPoint, claimedBalanceCommitment)
 	c.traceWiring("decaf.compress_to_field", "in=balance_commitment.computed", "out=balance_commitment.fq")
@@ -237,6 +311,7 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 	if err != nil {
 		return err
 	}
+	c.bindSemantic("balance_commitment.fq", balanceCommitmentFq)
 
 	c.traceWiring("statement.append", "field=anchor")
 	statementFields = append(statementFields, c.Anchor)
@@ -244,13 +319,22 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 	statementFields = append(statementFields, outputCommitments...)
 	c.traceWiring("statement.append", "field=balance_commitment.fq")
 	statementFields = append(statementFields, balanceCommitmentFq)
+	statementFields = append(
+		statementFields,
+		c.AssetAnchor,
+		c.RoutingTag,
+		c.RoutingParameterSetID,
+	)
+	statementFields = append(statementFields, c.RecentPositionFloor)
 	c.traceWiring("statement.append_all", "fields=nullifiers_and_rks")
 	statementFields = append(statementFields, nullifiersAndRKs...)
 	c.traceWiring("statement.hash", "family="+c.label, "fields=statement_fields", "out=statement_hash")
+	c.bindSemantic("statement.fields", statementFields...)
 	statementHash, err := noteReshapeStatementHash(api, c.label, c.nIn, c.nOut, statementFields)
 	if err != nil {
 		return err
 	}
+	c.bindSemantic("statement.hash", statementHash)
 	c.traceWiring("assert.eq", "lhs=statement_hash", "rhs=claimed_statement_hash")
 	api.AssertIsEqual(statementHash, c.ClaimedStatementHash)
 	return nil
@@ -314,15 +398,11 @@ func (c *NoteReshapeCircuit) verifyPaddedNoteReshapeSpend(
 	api frontend.API,
 	name string,
 	sharedAK gnarkte.Point,
-	sharedDivGen gnarkte.Point,
 	sharedDivGenFq frontend.Variable,
-	sharedTransmission gnarkte.Point,
-	sharedAssetID frontend.Variable,
+	sharedTransmissionFq frontend.Variable,
 	spend *NoteReshapeSyntheticSpendCircuitFields,
 	index int,
 ) (frontend.Variable, frontend.Variable, frontend.Variable, error) {
-	spentDivGen := gnarkte.Point{X: spend.Note.DivGen.X, Y: spend.Note.DivGen.Y}
-	spentTransmission := gnarkte.Point{X: spend.Note.Transmission.X, Y: spend.Note.Transmission.Y}
 	rkClaimed := gnarkte.Point{X: spend.RK.X, Y: spend.RK.Y}
 	isNotDummy := api.Sub(1, spend.IsDummy)
 
@@ -330,24 +410,32 @@ func (c *NoteReshapeCircuit) verifyPaddedNoteReshapeSpend(
 		"gadget.note_commitment",
 		"blinding="+name+".note.blinding",
 		"amount="+name+".note.amount",
-		"asset_id="+name+".note.asset_id",
-		"div_gen_fq="+name+".note.div_gen_fq",
-		"transmission_key_s="+name+".note.transmission_key_s",
-		"clue_key="+name+".note.clue_key",
+		"asset_id=shared.asset_id",
+		"div_gen_fq=shared.div_gen_fq",
+		"transmission_key_s=shared.transmission.fq",
 		"out="+name+".note.commitment.computed",
 	)
 	spentCommitment, err := NoteCommitmentWithCompressedDivGen(
 		api,
 		spend.Note.Blinding,
 		spend.Note.Amount,
-		spend.Note.AssetID,
+		c.Shared.AssetID,
 		sharedDivGenFq,
-		spend.Note.TransmissionKeyS,
-		spend.Note.ClueKey,
+		sharedTransmissionFq,
 	)
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	c.bindSemantic(
+		name+".note_commitment.inputs",
+		spend.Note.Blinding,
+		spend.Note.Amount,
+		c.Shared.AssetID,
+		sharedDivGenFq,
+		sharedTransmissionFq,
+	)
+	c.bindSemantic(name+".note.commitment.computed", spentCommitment)
+	c.bindSemantic(name+".state_proof.commitment", spend.StateProof.Commitment)
 	c.traceWiring("assert.eq_if", "lhs="+name+".note.commitment.computed", "rhs="+name+".state_proof.commitment", "enabled="+name+".is_real")
 	AssertEqualIf(api, spentCommitment, spend.StateProof.Commitment, isNotDummy)
 
@@ -356,6 +444,7 @@ func (c *NoteReshapeCircuit) verifyPaddedNoteReshapeSpend(
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	c.bindSemantic(name+".nullifier.real", realNullifier)
 	statePath := make([][3]frontend.Variable, len(spend.StateProof.Path))
 	copy(statePath, spend.StateProof.Path[:])
 	c.traceWiring("gadget.state_commitment_path", "commitment="+name+".state_proof.commitment", "position="+name+".state_proof.position", "path="+name+".state_proof.path", "out="+name+".anchor.computed")
@@ -363,6 +452,7 @@ func (c *NoteReshapeCircuit) verifyPaddedNoteReshapeSpend(
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	c.bindSemantic(name+".anchor.computed", anchor)
 	c.traceWiring("assert.eq_if", "lhs="+name+".anchor.computed", "rhs=anchor", "enabled="+name+".is_real")
 	AssertEqualIf(api, anchor, c.Anchor, isNotDummy)
 
@@ -376,11 +466,14 @@ func (c *NoteReshapeCircuit) verifyPaddedNoteReshapeSpend(
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	c.bindSemantic(name+".nullifier.dummy", syntheticNullifier)
 	c.traceWiring("dummy.mux", "flag="+name+".is_dummy", "real="+name+".nullifier.real", "dummy="+name+".nullifier.dummy", "out="+name+".nullifier.selected")
 	nullifier := api.Add(
 		api.Mul(isNotDummy, realNullifier),
 		api.Mul(spend.IsDummy, syntheticNullifier),
 	)
+	c.bindSemantic(name+".nullifier.selected", nullifier)
+	c.bindSemantic(name+".nullifier.claimed", spend.Nullifier)
 	c.traceWiring("assert.eq", "lhs="+name+".nullifier", "rhs="+name+".nullifier.selected")
 	api.AssertIsEqual(spend.Nullifier, nullifier)
 
@@ -389,47 +482,31 @@ func (c *NoteReshapeCircuit) verifyPaddedNoteReshapeSpend(
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	c.traceWiring("decaf.randomized_verification_key.dummy", "ak="+name+".dummy_spend_auth_key", "randomizer="+name+".auth_randomizer", "out="+name+".rk.dummy")
-	dummyRK, err := syntheticDummyVerificationKey(api, spend.DummySpendAuthKey, spend.AuthRandomizer)
-	if err != nil {
-		return nil, nil, nil, err
-	}
+	c.bindSemantic(name+".rk.real", computedRK.X, computedRK.Y)
+	c.bindSemantic(name+".rk.claimed", rkClaimed.X, rkClaimed.Y)
 	c.traceWiring("decaf.assert_equivalent_if", "lhs="+name+".rk.real", "rhs="+name+".rk.claimed", "enabled="+name+".is_real")
 	decafgnark.AssertEquivalentIf(api, computedRK, rkClaimed, isNotDummy)
-	c.traceWiring("decaf.assert_equivalent_if", "lhs="+name+".rk.dummy", "rhs="+name+".rk.claimed", "enabled="+name+".is_dummy")
-	decafgnark.AssertEquivalentIf(api, dummyRK, rkClaimed, spend.IsDummy)
-
-	c.traceWiring("decaf.diversified_transmission_key", "nk=auth.nk", "ak=shared.ak", "div_gen="+name+".note.div_gen", "ivk_reduced=auth.ivk_reduced", "ivk_quotient_a=auth.ivk_quotient_a", "out="+name+".transmission.computed")
-	computedSpentTransmission, err := DiversifiedTransmissionKey(
-		api,
-		c.Auth.NK,
-		sharedAK,
-		spentDivGen,
-		c.Auth.IVKReduced,
-		c.Auth.IVKQuotientA,
-	)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	c.traceWiring("decaf.assert_equivalent_if", "lhs="+name+".transmission.computed", "rhs="+name+".note.transmission", "enabled="+name+".is_real")
-	decafgnark.AssertEquivalentIf(api, computedSpentTransmission, spentTransmission, isNotDummy)
 	c.traceWiring("assert.eq_if", "lhs="+name+".note.amount", "rhs=0", "enabled="+name+".is_dummy")
 	AssertEqualIf(api, spend.Note.Amount, 0, spend.IsDummy)
-
-	c.traceWiring("decaf.assert_on_curve", "point="+name+".note.transmission")
-	assertDecafPointOnCurve(api, spentTransmission)
-	c.traceWiring("decaf.assert_equivalent", "lhs="+name+".note.div_gen", "rhs=shared.div_gen")
-	decafgnark.AssertEquivalent(api, spentDivGen, sharedDivGen)
-	c.traceWiring("decaf.assert_equivalent", "lhs="+name+".note.transmission", "rhs=shared.transmission")
-	decafgnark.AssertEquivalent(api, spentTransmission, sharedTransmission)
-	c.traceWiring("assert.eq", "lhs="+name+".note.asset_id", "rhs=shared.asset_id")
-	api.AssertIsEqual(spend.Note.AssetID, sharedAssetID)
 
 	c.traceWiring("decaf.compress_to_field", "in="+name+".rk.claimed", "out="+name+".rk.compressed")
 	rkCompressed, err := decafgnark.CompressToField(api, rkClaimed)
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	c.bindSemantic(name+".rk.compressed", rkCompressed)
+	c.traceWiring(
+		"history.classify",
+		"position="+name+".state_proof.position",
+		"floor=recent_position_floor",
+		"is_dummy="+name+".is_dummy",
+		"out="+name+".history_required",
+	)
+	c.bindSemantic(name+".history_required", spend.HistoryRequired)
+	api.AssertIsEqual(
+		spend.HistoryRequired,
+		historyRequired(api, spend.StateProof.Position, c.RecentPositionFloor, spend.IsDummy),
+	)
 	return spend.Note.Amount, nullifier, rkCompressed, nil
 }
 
@@ -437,40 +514,42 @@ func (c *NoteReshapeCircuit) verifyFixedNoteReshapeSpend(
 	api frontend.API,
 	name string,
 	sharedAK gnarkte.Point,
-	sharedDivGen gnarkte.Point,
 	sharedDivGenFq frontend.Variable,
-	sharedTransmission gnarkte.Point,
-	sharedAssetID frontend.Variable,
+	sharedTransmissionFq frontend.Variable,
 	spend *NoteReshapeSpendCircuitFields,
 ) (frontend.Variable, frontend.Variable, frontend.Variable, error) {
-	spentDivGen := gnarkte.Point{X: spend.Note.DivGen.X, Y: spend.Note.DivGen.Y}
-	spentTransmission := gnarkte.Point{X: spend.Note.Transmission.X, Y: spend.Note.Transmission.Y}
 	rkClaimed := gnarkte.Point{X: spend.RK.X, Y: spend.RK.Y}
 
-	// T1-f: use shared.div_gen's compressed form (computed once in Define);
-	// the per-note div_gen is bound only by the AssertEquivalent below.
 	c.traceWiring(
 		"gadget.note_commitment",
 		"blinding="+name+".note.blinding",
 		"amount="+name+".note.amount",
-		"asset_id="+name+".note.asset_id",
-		"div_gen_fq="+name+".note.div_gen_fq",
-		"transmission_key_s="+name+".note.transmission_key_s",
-		"clue_key="+name+".note.clue_key",
+		"asset_id=shared.asset_id",
+		"div_gen_fq=shared.div_gen_fq",
+		"transmission_key_s=shared.transmission.fq",
 		"out="+name+".note.commitment.computed",
 	)
 	spentCommitment, err := NoteCommitmentWithCompressedDivGen(
 		api,
 		spend.Note.Blinding,
 		spend.Note.Amount,
-		spend.Note.AssetID,
+		c.Shared.AssetID,
 		sharedDivGenFq,
-		spend.Note.TransmissionKeyS,
-		spend.Note.ClueKey,
+		sharedTransmissionFq,
 	)
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	c.bindSemantic(
+		name+".note_commitment.inputs",
+		spend.Note.Blinding,
+		spend.Note.Amount,
+		c.Shared.AssetID,
+		sharedDivGenFq,
+		sharedTransmissionFq,
+	)
+	c.bindSemantic(name+".note.commitment.computed", spentCommitment)
+	c.bindSemantic(name+".state_proof.commitment", spend.StateProof.Commitment)
 	c.traceWiring("assert.eq", "lhs="+name+".note.commitment.computed", "rhs="+name+".state_proof.commitment")
 	api.AssertIsEqual(spentCommitment, spend.StateProof.Commitment)
 
@@ -479,6 +558,8 @@ func (c *NoteReshapeCircuit) verifyFixedNoteReshapeSpend(
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	c.bindSemantic(name+".nullifier.computed", nullifier)
+	c.bindSemantic(name+".nullifier.claimed", spend.Nullifier)
 	c.traceWiring("assert.eq", "lhs="+name+".nullifier.computed", "rhs="+name+".nullifier")
 	api.AssertIsEqual(nullifier, spend.Nullifier)
 
@@ -489,6 +570,7 @@ func (c *NoteReshapeCircuit) verifyFixedNoteReshapeSpend(
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	c.bindSemantic(name+".anchor.computed", anchor)
 	c.traceWiring("assert.eq", "lhs="+name+".anchor.computed", "rhs=anchor")
 	api.AssertIsEqual(anchor, c.Anchor)
 
@@ -497,6 +579,8 @@ func (c *NoteReshapeCircuit) verifyFixedNoteReshapeSpend(
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	c.bindSemantic(name+".rk.computed", computedRK.X, computedRK.Y)
+	c.bindSemantic(name+".rk.claimed", rkClaimed.X, rkClaimed.Y)
 	c.traceWiring("decaf.assert_equivalent", "lhs="+name+".rk.computed", "rhs="+name+".rk.claimed")
 	decafgnark.AssertEquivalent(api, computedRK, rkClaimed)
 	c.traceWiring("decaf.compress_to_field", "in="+name+".rk.claimed", "out="+name+".rk.compressed")
@@ -504,15 +588,19 @@ func (c *NoteReshapeCircuit) verifyFixedNoteReshapeSpend(
 	if err != nil {
 		return nil, nil, nil, err
 	}
-
-	c.traceWiring("decaf.assert_on_curve", "point="+name+".note.transmission")
-	assertDecafPointOnCurve(api, spentTransmission)
-	c.traceWiring("decaf.assert_equivalent", "lhs="+name+".note.div_gen", "rhs=shared.div_gen")
-	decafgnark.AssertEquivalent(api, spentDivGen, sharedDivGen)
-	c.traceWiring("decaf.assert_equivalent", "lhs="+name+".note.transmission", "rhs=shared.transmission")
-	decafgnark.AssertEquivalent(api, spentTransmission, sharedTransmission)
-	c.traceWiring("assert.eq", "lhs="+name+".note.asset_id", "rhs=shared.asset_id")
-	api.AssertIsEqual(spend.Note.AssetID, sharedAssetID)
+	c.bindSemantic(name+".rk.compressed", rkCompressed)
+	c.traceWiring(
+		"history.classify",
+		"position="+name+".state_proof.position",
+		"floor=recent_position_floor",
+		"is_dummy=0",
+		"out="+name+".history_required",
+	)
+	c.bindSemantic(name+".history_required", spend.HistoryRequired)
+	api.AssertIsEqual(
+		spend.HistoryRequired,
+		historyRequired(api, spend.StateProof.Position, c.RecentPositionFloor, 0),
+	)
 
 	return spend.Note.Amount, nullifier, rkCompressed, nil
 }
@@ -520,51 +608,42 @@ func (c *NoteReshapeCircuit) verifyFixedNoteReshapeSpend(
 func (c *NoteReshapeCircuit) verifyFixedNoteReshapeOutput(
 	api frontend.API,
 	name string,
-	sharedAK gnarkte.Point,
-	sharedDivGen gnarkte.Point,
 	sharedDivGenFq frontend.Variable,
-	sharedTransmission gnarkte.Point,
-	sharedAssetID frontend.Variable,
+	sharedTransmissionFq frontend.Variable,
 	output *NoteReshapeOutputCircuitFields,
 ) (frontend.Variable, frontend.Variable, error) {
-	createdDivGen := gnarkte.Point{X: output.Note.DivGen.X, Y: output.Note.DivGen.Y}
-	createdTransmission := gnarkte.Point{X: output.Note.Transmission.X, Y: output.Note.Transmission.Y}
-
-	// T1-f: use shared.div_gen's compressed form (computed once in Define);
-	// the per-note div_gen is bound only by the AssertEquivalent below.
 	c.traceWiring(
 		"gadget.note_commitment",
 		"blinding="+name+".note.blinding",
 		"amount="+name+".note.amount",
-		"asset_id="+name+".note.asset_id",
-		"div_gen_fq="+name+".note.div_gen_fq",
-		"transmission_key_s="+name+".note.transmission_key_s",
-		"clue_key="+name+".note.clue_key",
+		"asset_id=shared.asset_id",
+		"div_gen_fq=shared.div_gen_fq",
+		"transmission_key_s=shared.transmission.fq",
 		"out="+name+".note.commitment.computed",
 	)
 	noteCommitment, err := NoteCommitmentWithCompressedDivGen(
 		api,
 		output.Note.Blinding,
 		output.Note.Amount,
-		output.Note.AssetID,
+		c.Shared.AssetID,
 		sharedDivGenFq,
-		output.Note.TransmissionKeyS,
-		output.Note.ClueKey,
+		sharedTransmissionFq,
 	)
 	if err != nil {
 		return nil, nil, err
 	}
+	c.bindSemantic(
+		name+".note_commitment.inputs",
+		output.Note.Blinding,
+		output.Note.Amount,
+		c.Shared.AssetID,
+		sharedDivGenFq,
+		sharedTransmissionFq,
+	)
+	c.bindSemantic(name+".note.commitment.computed", noteCommitment)
+	c.bindSemantic(name+".note.commitment.claimed", output.NoteCommitment)
 	c.traceWiring("assert.eq", "lhs="+name+".note.commitment.computed", "rhs="+name+".note_commitment")
 	api.AssertIsEqual(noteCommitment, output.NoteCommitment)
-
-	c.traceWiring("decaf.assert_on_curve", "point="+name+".note.transmission")
-	assertDecafPointOnCurve(api, createdTransmission)
-	c.traceWiring("decaf.assert_equivalent", "lhs="+name+".note.div_gen", "rhs=shared.div_gen")
-	decafgnark.AssertEquivalent(api, createdDivGen, sharedDivGen)
-	c.traceWiring("decaf.assert_equivalent", "lhs="+name+".note.transmission", "rhs=shared.transmission")
-	decafgnark.AssertEquivalent(api, createdTransmission, sharedTransmission)
-	c.traceWiring("assert.eq", "lhs="+name+".note.asset_id", "rhs=shared.asset_id")
-	api.AssertIsEqual(output.Note.AssetID, sharedAssetID)
 
 	return output.Note.Amount, noteCommitment, nil
 }

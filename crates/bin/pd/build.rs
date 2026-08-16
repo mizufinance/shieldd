@@ -10,11 +10,7 @@ fn main() -> anyhow::Result<()> {
 }
 
 // Check that the zip files for bundled frontend code are functional.
-// If git-lfs is not configured on the build host, the zip files will
-// be plaintext lfs pointer files.
 fn check_frontend_asset_zipfiles() -> anyhow::Result<()> {
-    // Declare a minimum filesize, below which we'll assume the zip file is
-    // actually a git-lfs pointer.
     const MINIMUM_FILESIZE_BYTES: usize = 500;
     // Build paths to the zip files in the local build env.
     let zipfiles = vec![
@@ -35,7 +31,7 @@ fn check_frontend_asset_zipfiles() -> anyhow::Result<()> {
         if bytes.len() < MINIMUM_FILESIZE_BYTES {
             anyhow::bail!(
                 format!(
-                    "asset zip file {} is smaller than {} bytes; install git-lfs, run 'git lfs pull', and retry the build",
+                    "asset zip file {} is smaller than {} bytes; restore the repository asset and retry the build",
                     zipfile.display(),
                     MINIMUM_FILESIZE_BYTES
                 )

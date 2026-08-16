@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import unittest
 
 import gen_note_reshape_poseidon_representatives as poseidon
@@ -12,16 +13,25 @@ class NoteReshapePoseidonRepresentativesTest(unittest.TestCase):
         cls.outputs = poseidon.generated_files()
 
     def test_provider_and_benchmark_set(self) -> None:
-        self.assertEqual(len(self.outputs), 91)
-        self.assertEqual(sum(path.parent == poseidon.OUT for path in self.outputs), 89)
-        self.assertEqual(sum(path.parent == poseidon.BENCH for path in self.outputs), 2)
-        note = poseidon.NAMES[poseidon.NOTE_KEY]
-        self.assertIn(poseidon.OUT / f"{note}Base.lean", self.outputs)
+        self.assertEqual(len(self.outputs), 4)
         self.assertEqual(
-            sum(path.name.startswith(f"{note}Part") for path in self.outputs),
-            86,
+            sum(path.parent == poseidon.OUT for path in self.outputs), 2
         )
-        self.assertIn(f"{note}Part85", self.outputs[poseidon.OUT / f"{note}.lean"])
+        self.assertEqual(
+            sum(path.parent == poseidon.BENCH for path in self.outputs), 2
+        )
+
+    def test_representative_is_an_active_deployed_profile(self) -> None:
+        self.assertEqual(
+            poseidon.IR.name,
+            "note_reshape1x8-deployed-slice-ir.json",
+        )
+        self.assertEqual(
+            poseidon._segment(poseidon.NULLIFIER_KEY, 310)[
+                "proof_template_id"
+            ],
+            poseidon.NULLIFIER_KEY,
+        )
 
     def test_providers_use_exact_normalized_relations(self) -> None:
         combined = "\n".join(self.outputs.values())
@@ -34,12 +44,56 @@ class NoteReshapePoseidonRepresentativesTest(unittest.TestCase):
             self.assertIn(f"Templates.Relations.{name}.relation rho", source, key)
             self.assertIn("theorem sound", source, key)
 
-    def test_note_commitment_and_nullifier_specs_are_not_identity_semantics(self) -> None:
-        note = self.outputs[poseidon.OUT / f"{poseidon.NAMES[poseidon.NOTE_KEY]}.lean"]
+    def test_nullifier_specs_are_not_identity_semantics(self) -> None:
         nullifier = self.outputs[poseidon.OUT / f"{poseidon.NAMES[poseidon.NULLIFIER_KEY]}.lean"]
-        self.assertIn("NoteCommitment.spec38", note)
+        transfer_nullifier = self.outputs[
+            poseidon.OUT / f"{poseidon.NAMES[poseidon.TRANSFER_NULLIFIER_KEY]}.lean"
+        ]
         self.assertIn("permSpec3", nullifier)
-        self.assertNotIn("def spec (rho : Nat -> F) : Prop :=\n  relation rho", note + nullifier)
+        self.assertIn("permSpec3", transfer_nullifier)
+        self.assertNotIn(
+            "def spec (rho : Nat -> F) : Prop :=\n  relation rho",
+            nullifier + transfer_nullifier,
+        )
+
+    def test_transfer_nullifier_recovers_the_inlined_commitment_boundary(self) -> None:
+        extracted, mapping, commitment = poseidon._transfer_nullifier_context()
+        self.assertEqual(len(extracted), 62)
+        self.assertEqual(
+            set(map(int, re.findall(r"\brho (\d+)\b", commitment))),
+            set(range(7, 13)),
+        )
+        self.assertEqual(
+            {wire: mapping[wire] for wire in (8, 23, 24, 1637, 1642, 1647, 1652)},
+            {
+                8: 1,
+                23: "stateCommitment rho",
+                24: 18,
+                1637: 303,
+                1642: 308,
+                1647: 313,
+                1652: 318,
+            },
+        )
+        name = poseidon.NAMES[poseidon.TRANSFER_NULLIFIER_KEY]
+        source = self.outputs[poseidon.OUT / f"{name}.lean"]
+        self.assertIn("def stateCommitment (rho : Nat → F) : F :=", source)
+        self.assertIn("(rho 1) (stateCommitment rho) (rho 18)", source)
+        self.assertIn("nullifierDomainLit", source)
+        self.assertEqual(
+            source.count(
+                "@one_mul F baseMulOneClass a"
+            ),
+            4,
+        )
+        self.assertEqual(
+            source.count(
+                "simpa only [stateCommitment, choiceFreeOneMul, "
+                "choiceFreeAddAssoc] using h"
+            ),
+            4,
+        )
+        self.assertNotIn("stateCommitment, one_mul", source)
 
     def test_tactic_dependencies_are_explicit(self) -> None:
         for path, source in self.outputs.items():
@@ -48,37 +102,11 @@ class NoteReshapePoseidonRepresentativesTest(unittest.TestCase):
             if path.parent == poseidon.OUT and "ring_nf" in source:
                 self.assertIn("import Mathlib.Tactic.Ring\n", source, path.name)
 
-    def test_note_commitment_bridge_uses_associativity_only(self) -> None:
-        note = poseidon.NAMES[poseidon.NOTE_KEY]
-        combined = "\n".join(
-            source
-            for path, source in self.outputs.items()
-            if path.name.startswith(f"{note}Part")
-        )
-        self.assertIn("@add_assoc F part60AddSemigroup", combined)
-        self.assertIn("choiceFreeAddAssoc] using h0", combined)
-        self.assertNotIn("linear_combination", combined)
-        self.assertNotIn("ring_nf", combined)
-        part60 = self.outputs[poseidon.OUT / f"{note}Part60.lean"]
-        self.assertIn("part60AddSemigroup : AddSemigroup F :=", part60)
-        part0 = self.outputs[poseidon.OUT / f"{note}Part0.lean"]
-        self.assertNotIn("part0AddSemigroup : AddSemigroup F :=", part0)
-
     def test_generated_providers_seat_choice_free_zmod_operations(self) -> None:
-        note = poseidon.NAMES[poseidon.NOTE_KEY]
-        nullifier = poseidon.NAMES[poseidon.NULLIFIER_KEY]
-        expected_owner = {
-            poseidon.OUT / f"{note}Base.lean": "base",
-            poseidon.OUT / f"{note}Part60.lean": "part60",
-            poseidon.OUT / f"{note}.lean": "provider",
-        }
-        for path, owner in expected_owner.items():
-            source = self.outputs[path]
-            self.assertIn(f"{owner}CommRing : CommRing F :=", source, path.name)
-            self.assertIn(f"{owner}Ring : Ring F :=", source, path.name)
-
-        nullifier_source = self.outputs[poseidon.OUT / f"{nullifier}.lean"]
-        self.assertIn("baseCommRing : CommRing F :=", nullifier_source)
+        for name in poseidon.NAMES.values():
+            source = self.outputs[poseidon.OUT / f"{name}.lean"]
+            self.assertIn("baseCommRing : CommRing F :=", source)
+            self.assertIn("baseRing : Ring F :=", source)
 
     def test_shared_nullifier_poseidon_provider_is_choice_free(self) -> None:
         self.assertTrue(
@@ -118,16 +146,6 @@ class NoteReshapePoseidonRepresentativesTest(unittest.TestCase):
                     "open scoped Shieldd.GnarkFormal.ChoiceFreeZMod",
                     source,
                 )
-
-    def test_note_commitment_shards_have_disjoint_instance_names(self) -> None:
-        note = poseidon.NAMES[poseidon.NOTE_KEY]
-        part0 = self.outputs[poseidon.OUT / f"{note}Part0.lean"]
-        part1 = self.outputs[poseidon.OUT / f"{note}Part1.lean"]
-        self.assertIn("part0Add : Add F :=", part0)
-        self.assertNotIn("part1Add : Add F :=", part0)
-        self.assertIn("part1Add : Add F :=", part1)
-        self.assertNotIn("part0Add : Add F :=", part1)
-
 
 if __name__ == "__main__":
     unittest.main()

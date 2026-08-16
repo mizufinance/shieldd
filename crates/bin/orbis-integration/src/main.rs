@@ -41,6 +41,14 @@ mod demo_auth;
 mod demo_config;
 mod demo_state;
 
+fn ensure_transfer_pre_available() -> Result<()> {
+    bail!(
+        "Orbis v0 transfer PRE is disabled because its public store-secret payload \
+         exposes the DH point used to open every tier seed; use only metadata/scanner \
+         flows until a non-disclosing PRE protocol is available"
+    )
+}
+
 fn compliance_slot_derivation_hex(label: &str) -> String {
     let mut hash = 0xcbf29ce484222325u64;
     for byte in label.as_bytes() {
@@ -221,6 +229,7 @@ async fn setup_ring(output_json: &Path, endpoints: &OrbisEndpoints) -> Result<()
 }
 
 async fn run_full_flow(repo: &RepoPaths, keep_on_fail: bool) -> Result<()> {
+    ensure_transfer_pre_available()?;
     let mut started_shieldd = false;
     let mut started_orbis = false;
     let result = async {
@@ -255,6 +264,7 @@ async fn run_full_flow(repo: &RepoPaths, keep_on_fail: bool) -> Result<()> {
 }
 
 async fn seed(repo: &RepoPaths, endpoints: &OrbisEndpoints) -> Result<()> {
+    ensure_transfer_pre_available()?;
     let env = load_required_env(
         &repo.env_file,
         "run `just orbis-integration-up` before `just orbis-integration-seed`",
@@ -704,7 +714,7 @@ async fn seed(repo: &RepoPaths, endpoints: &OrbisEndpoints) -> Result<()> {
             "many-to-one",
             "regulated_usd",
             "--family",
-            "2x1",
+            "8x1",
         ],
     )?;
     sync_wallets(repo, &env, &["ALICE_HOME", "BOB_HOME", "CHARLIE_HOME"])?;
@@ -734,6 +744,7 @@ async fn seed(repo: &RepoPaths, endpoints: &OrbisEndpoints) -> Result<()> {
 }
 
 async fn verify(repo: &RepoPaths, endpoints: &OrbisEndpoints) -> Result<()> {
+    ensure_transfer_pre_available()?;
     let env = load_required_env(
         &repo.env_file,
         "run `just orbis-integration-up` before `just orbis-integration-verify`",
@@ -1446,6 +1457,7 @@ impl AuditDemo {
     }
 
     fn audit_user(&self, input_name: &str) -> Result<()> {
+        ensure_transfer_pre_available()?;
         self.init_state_file()?;
         let subject = self
             .subject(input_name)?
@@ -2166,6 +2178,14 @@ impl DemoEnv {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn transfer_pre_integration_fails_closed() {
+        let error =
+            ensure_transfer_pre_available().expect_err("Orbis v0 transfer PRE must stay disabled");
+        assert!(error.to_string().contains("public store-secret payload"));
+        assert!(error.to_string().contains("non-disclosing PRE protocol"));
+    }
 
     #[test]
     fn docker_peer_id_rewrites_host_only() {

@@ -40,6 +40,9 @@ pub struct TransactionBodyView {
     pub transaction_parameters: TransactionParameters,
     pub fee_funding: Option<TransferView>,
     pub memo_view: Option<MemoView>,
+    pub nullifier_window: Option<shieldd_sdk_sct::nullifier_generation::NullifierWindow>,
+    pub historical_nullifier_proofs:
+        Vec<shieldd_sdk_sct::nullifier_generation::HistoricalNullifierProof>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -89,6 +92,8 @@ impl TransactionView {
                     },
                 }),
                 memo: memo_ciphertext.cloned(),
+                nullifier_window: self.body_view.nullifier_window,
+                historical_nullifier_proofs: self.body_view.historical_nullifier_proofs.clone(),
             },
             binding_sig: self.binding_sig,
             anchor: self.anchor,
@@ -203,7 +208,7 @@ impl NoteFlowView for ShieldedIcs20WithdrawalView {
     fn created_notes(&self) -> Option<&[shieldd_sdk_shielded_pool::NoteView]> {
         match self {
             ShieldedIcs20WithdrawalView::Visible { change_note, .. } => {
-                Some(std::slice::from_ref(change_note))
+                Some(change_note.as_ref().map_or(&[], std::slice::from_ref))
             }
             ShieldedIcs20WithdrawalView::Opaque { .. } => None,
         }
@@ -323,8 +328,10 @@ mod tests {
                                     rk: decaf377_rdsa::VerificationKey::from(
                                         SigningKey::<SpendAuth>::from(Fr::from(2u64)),
                                     ),
-                                    encrypted_backref: EncryptedBackref::dummy(),
+                                    encrypted_backref: EncryptedBackref::try_from([1u8; 48])
+                                        .expect("fixed-size encrypted backref"),
                                     compliance_ciphertext: Vec::new(),
+                                    history_required: false,
                                 }],
                                 withdrawal: Ics20Withdrawal {
                                     destination_chain_address: "cosmos1destination".to_string(),
@@ -334,7 +341,6 @@ mod tests {
                                     timeout_time: 10,
                                     return_address: shieldd_sdk_keys::test_keys::ADDRESS_0.clone(),
                                     source_channel: "channel-0".parse::<ChannelId>().expect("valid channel"),
-                                    use_compat_address: false,
                                     ics20_memo: String::new(),
                                     use_transparent_address: false,
                                 },
@@ -343,7 +349,6 @@ mod tests {
                                         note_commitment: StateCommitment(Fq::from(3u64)),
                                         ephemeral_key: change_note.ephemeral_public_key(),
                                         encrypted_note: change_note.encrypt(),
-                                        discovery_tag: Default::default(),
                                     },
                                     wrapped_memo_key: WrappedMemoKey([0u8; 48]),
                                     ovk_wrapped_key: OvkWrappedKey([0u8; 48]),
@@ -351,18 +356,22 @@ mod tests {
                                 target_timestamp: 0,
                                 compliance_anchor: StateCommitment(Fq::from(4u64)),
                                 asset_anchor: StateCommitment(Fq::from(5u64)),
+                                routing_tag: Default::default(),
+                                routing_parameter_set_id: Fq::from(0u64),
                             },
                             auth_sigs: vec![[0u8; 64].into()],
                             proof: ShieldedIcs20WithdrawalProof::default(),
                         },
                         spent_notes: vec![note_view(&spent_note)],
-                        change_note: note_view(&change_note),
+                        change_note: Some(note_view(&change_note)),
                         payload_key: PayloadKey::from([0u8; 32]),
                     },
                 )],
                 transaction_parameters: Default::default(),
                 fee_funding: None,
                 memo_view: None,
+                nullifier_window: None,
+                historical_nullifier_proofs: Vec::new(),
             },
             binding_sig: [0u8; 64].into(),
             anchor: Tree::default().root(),
@@ -457,12 +466,23 @@ impl TryFrom<pbt::TransactionBodyView> for TransactionBodyView {
             .ok_or_else(|| anyhow::anyhow!("transaction view missing transaction parameters view"))?
             .try_into()?;
         let fee_funding = body_view.fee_funding.map(TryInto::try_into).transpose()?;
+        let nullifier_window = body_view
+            .nullifier_window
+            .map(TryInto::try_into)
+            .transpose()?;
+        let historical_nullifier_proofs = body_view
+            .historical_nullifier_proofs
+            .into_iter()
+            .map(TryInto::try_into)
+            .collect::<Result<_, _>>()?;
 
         Ok(TransactionBodyView {
             action_views,
             transaction_parameters,
             fee_funding,
             memo_view,
+            nullifier_window,
+            historical_nullifier_proofs,
         })
     }
 }
@@ -484,6 +504,12 @@ impl From<TransactionBodyView> for pbt::TransactionBodyView {
             transaction_parameters: Some(v.transaction_parameters.into()),
             fee_funding: v.fee_funding.map(Into::into),
             memo_view: v.memo_view.map(Into::into),
+            nullifier_window: v.nullifier_window.map(Into::into),
+            historical_nullifier_proofs: v
+                .historical_nullifier_proofs
+                .into_iter()
+                .map(Into::into)
+                .collect(),
         }
     }
 }

@@ -8,61 +8,68 @@ import (
 )
 
 const (
-	noteReshapeWitnessV1Magic = "PNWG"
-	noteReshapeWitnessVersion = 1
+	noteReshapeWitnessMagic   = "PNWG"
+	noteReshapeWitnessVersion = 5
 	maxNoteReshapeItems       = 8
 )
 
-type NoteReshapeSpendWitnessV1Binary struct {
+type NoteReshapeSpendWitnessV5Binary struct {
 	IsDummy                   bool
 	Nullifier                 [32]byte
 	DummyNullifierSeed        [32]byte
-	DummySpendAuthKey         [32]byte
 	SpentNoteBlinding         [32]byte
 	SpentNoteAmount           [32]byte
-	SpentNoteAssetID          [32]byte
-	SpentTransmissionKey      [32]byte
-	SpentClueKey              [32]byte
 	StateCommitmentCommitment [32]byte
 	StateCommitmentPosition   uint64
 	StateCommitmentAuthPath   [][3][32]byte
 	SpendAuthRandomizer       [32]byte
 	RKAffine                  PointAffineBinary
-	SpentDivGenAffine         PointAffineBinary
-	SpentTransmissionAffine   PointAffineBinary
+	HistoryRequired           bool
 }
 
-type NoteReshapeOutputWitnessV1Binary struct {
-	NoteCommitment            [32]byte
-	CreatedNoteBlinding       [32]byte
-	CreatedNoteAmount         [32]byte
-	CreatedNoteAssetID        [32]byte
-	CreatedTransmissionKey    [32]byte
-	CreatedClueKey            [32]byte
-	CreatedDivGenAffine       PointAffineBinary
-	CreatedTransmissionAffine PointAffineBinary
+type NoteReshapeOutputWitnessV5Binary struct {
+	NoteCommitment      [32]byte
+	CreatedNoteBlinding [32]byte
+	CreatedNoteAmount   [32]byte
 }
 
-type NoteReshapeWitnessV1Binary struct {
+type NoteReshapeSharedNoteContextWitnessV5Binary struct {
+	AssetID [32]byte
+	DivGen  PointAffineBinary
+}
+
+type NoteReshapeWitnessV5Binary struct {
 	TotalLength             uint32
 	FamilyID                uint32
 	NIn                     uint32
 	NOut                    uint32
 	Anchor                  [32]byte
-	BalanceCommitment       [32]byte
 	ClaimedStatementHash    [32]byte
-	StatementFields         [][32]byte
+	AssetAnchor             [32]byte
+	RoutingTag              [32]byte
+	RoutingParameterSetID   [32]byte
+	RecentPositionFloor     [32]byte
 	ActionBalanceBlinding   [32]byte
-	AK                      [32]byte
 	NK                      [32]byte
-	Spends                  []NoteReshapeSpendWitnessV1Binary
-	Outputs                 []NoteReshapeOutputWitnessV1Binary
+	AssetPath               MerklePathBinary
+	AssetPosition           uint64
+	AssetIndexedLeaf        IndexedLeafBinary
+	AssetIndexedLeafDKPub   PointAffineBinary
+	AssetIndexedLeafRingPK  PointAffineBinary
+	IsRegulated             bool
+	RegulatedPrecision      uint8
+	UnregulatedPrecision    uint8
+	RoutingAsOfHeight       uint64
+	RoutingNonce            [32]byte
+	Shared                  NoteReshapeSharedNoteContextWitnessV5Binary
+	Spends                  []NoteReshapeSpendWitnessV5Binary
+	Outputs                 []NoteReshapeOutputWitnessV5Binary
 	BalanceCommitmentAffine PointAffineBinary
 	AKAffine                PointAffineBinary
 }
 
-func DecodeNoteReshapeWitnessV1(payload []byte) (*NoteReshapeWitnessV1Binary, generated.NoteReshapeFamilySpec, error) {
-	witness, err := decodeNoteReshapeWitnessV1(payload)
+func DecodeNoteReshapeWitnessV5(payload []byte) (*NoteReshapeWitnessV5Binary, generated.NoteReshapeFamilySpec, error) {
+	witness, err := decodeNoteReshapeWitnessV5(payload)
 	if err != nil {
 		return nil, generated.NoteReshapeFamilySpec{}, err
 	}
@@ -76,13 +83,13 @@ func DecodeNoteReshapeWitnessV1(payload []byte) (*NoteReshapeWitnessV1Binary, ge
 	return witness, family, nil
 }
 
-func decodeNoteReshapeWitnessV1(payload []byte) (*NoteReshapeWitnessV1Binary, error) {
+func decodeNoteReshapeWitnessV5(payload []byte) (*NoteReshapeWitnessV5Binary, error) {
 	reader := bytes.NewReader(payload)
 	magic, err := readExact(reader, 4)
 	if err != nil {
 		return nil, err
 	}
-	if string(magic) != noteReshapeWitnessV1Magic {
+	if string(magic) != noteReshapeWitnessMagic {
 		return nil, fmt.Errorf("invalid note reshape witness magic %q", string(magic))
 	}
 	version, err := readU32(reader)
@@ -99,7 +106,7 @@ func decodeNoteReshapeWitnessV1(payload []byte) (*NoteReshapeWitnessV1Binary, er
 	if totalLength != uint32(len(payload)) {
 		return nil, fmt.Errorf("payload length mismatch: header=%d actual=%d", totalLength, len(payload))
 	}
-	witness := &NoteReshapeWitnessV1Binary{TotalLength: totalLength}
+	witness := &NoteReshapeWitnessV5Binary{TotalLength: totalLength}
 	if witness.FamilyID, err = readU32(reader); err != nil {
 		return nil, err
 	}
@@ -116,34 +123,73 @@ func decodeNoteReshapeWitnessV1(payload []byte) (*NoteReshapeWitnessV1Binary, er
 	if witness.Anchor, err = read32(reader); err != nil {
 		return nil, err
 	}
-	if witness.BalanceCommitment, err = read32(reader); err != nil {
-		return nil, err
-	}
 	if witness.ClaimedStatementHash, err = read32(reader); err != nil {
 		return nil, err
 	}
-	if witness.StatementFields, err = readVec32(reader); err != nil {
+	if witness.AssetAnchor, err = read32(reader); err != nil {
 		return nil, err
 	}
-	if witness.ActionBalanceBlinding, err = read32(reader); err != nil {
+	if witness.RoutingTag, err = read32(reader); err != nil {
 		return nil, err
 	}
-	if witness.AK, err = read32(reader); err != nil {
+	if witness.RoutingParameterSetID, err = read32(reader); err != nil {
+		return nil, err
+	}
+	if witness.RecentPositionFloor, err = read32(reader); err != nil {
+		return nil, err
+	}
+	if witness.ActionBalanceBlinding, err = readFr32(reader); err != nil {
 		return nil, err
 	}
 	if witness.NK, err = read32(reader); err != nil {
 		return nil, err
 	}
+	if witness.AssetPath, err = readMerklePath(reader); err != nil {
+		return nil, err
+	}
+	if witness.AssetPosition, err = readU64(reader); err != nil {
+		return nil, err
+	}
+	if witness.AssetIndexedLeaf, err = readIndexedLeaf(reader); err != nil {
+		return nil, err
+	}
+	if witness.AssetIndexedLeafDKPub, err = readPointAffine(reader); err != nil {
+		return nil, err
+	}
+	if witness.AssetIndexedLeafRingPK, err = readPointAffine(reader); err != nil {
+		return nil, err
+	}
+	if witness.IsRegulated, err = readBool(reader); err != nil {
+		return nil, err
+	}
+	if witness.RegulatedPrecision, err = readU8(reader); err != nil {
+		return nil, err
+	}
+	if witness.UnregulatedPrecision, err = readU8(reader); err != nil {
+		return nil, err
+	}
+	if witness.RoutingAsOfHeight, err = readU64(reader); err != nil {
+		return nil, err
+	}
+	if witness.RoutingNonce, err = read32(reader); err != nil {
+		return nil, err
+	}
+	if witness.Shared.AssetID, err = read32(reader); err != nil {
+		return nil, err
+	}
+	if witness.Shared.DivGen, err = readPointAffine(reader); err != nil {
+		return nil, err
+	}
 	if witness.NIn > maxNoteReshapeItems || witness.NOut > maxNoteReshapeItems {
 		return nil, fmt.Errorf("note reshape witness exceeds maximum item count")
 	}
-	witness.Spends = make([]NoteReshapeSpendWitnessV1Binary, witness.NIn)
+	witness.Spends = make([]NoteReshapeSpendWitnessV5Binary, witness.NIn)
 	for i := range witness.Spends {
 		if witness.Spends[i], err = readNoteReshapeSpend(reader, family.InputPadding == generated.InputPaddingSyntheticPrivate); err != nil {
 			return nil, err
 		}
 	}
-	witness.Outputs = make([]NoteReshapeOutputWitnessV1Binary, witness.NOut)
+	witness.Outputs = make([]NoteReshapeOutputWitnessV5Binary, witness.NOut)
 	for i := range witness.Outputs {
 		if witness.Outputs[i], err = readNoteReshapeOutput(reader); err != nil {
 			return nil, err
@@ -161,8 +207,8 @@ func decodeNoteReshapeWitnessV1(payload []byte) (*NoteReshapeWitnessV1Binary, er
 	return witness, nil
 }
 
-func readNoteReshapeSpend(reader *bytes.Reader, syntheticPrivatePadding bool) (NoteReshapeSpendWitnessV1Binary, error) {
-	var out NoteReshapeSpendWitnessV1Binary
+func readNoteReshapeSpend(reader *bytes.Reader, syntheticPrivatePadding bool) (NoteReshapeSpendWitnessV5Binary, error) {
+	var out NoteReshapeSpendWitnessV5Binary
 	var err error
 	if syntheticPrivatePadding {
 		flag, readErr := readU32(reader)
@@ -176,9 +222,6 @@ func readNoteReshapeSpend(reader *bytes.Reader, syntheticPrivatePadding bool) (N
 		if out.DummyNullifierSeed, err = read32(reader); err != nil {
 			return out, err
 		}
-		if out.DummySpendAuthKey, err = read32(reader); err != nil {
-			return out, err
-		}
 	}
 	if out.Nullifier, err = read32(reader); err != nil {
 		return out, err
@@ -187,15 +230,6 @@ func readNoteReshapeSpend(reader *bytes.Reader, syntheticPrivatePadding bool) (N
 		return out, err
 	}
 	if out.SpentNoteAmount, err = read32(reader); err != nil {
-		return out, err
-	}
-	if out.SpentNoteAssetID, err = read32(reader); err != nil {
-		return out, err
-	}
-	if out.SpentTransmissionKey, err = read32(reader); err != nil {
-		return out, err
-	}
-	if out.SpentClueKey, err = read32(reader); err != nil {
 		return out, err
 	}
 	if out.StateCommitmentCommitment, err = read32(reader); err != nil {
@@ -207,23 +241,20 @@ func readNoteReshapeSpend(reader *bytes.Reader, syntheticPrivatePadding bool) (N
 	if out.StateCommitmentAuthPath, err = readTriplePath(reader); err != nil {
 		return out, err
 	}
-	if out.SpendAuthRandomizer, err = read32(reader); err != nil {
+	if out.SpendAuthRandomizer, err = readFr32(reader); err != nil {
 		return out, err
 	}
 	if out.RKAffine, err = readPointAffine(reader); err != nil {
 		return out, err
 	}
-	if out.SpentDivGenAffine, err = readPointAffine(reader); err != nil {
-		return out, err
-	}
-	if out.SpentTransmissionAffine, err = readPointAffine(reader); err != nil {
+	if out.HistoryRequired, err = readBool(reader); err != nil {
 		return out, err
 	}
 	return out, nil
 }
 
-func readNoteReshapeOutput(reader *bytes.Reader) (NoteReshapeOutputWitnessV1Binary, error) {
-	var out NoteReshapeOutputWitnessV1Binary
+func readNoteReshapeOutput(reader *bytes.Reader) (NoteReshapeOutputWitnessV5Binary, error) {
+	var out NoteReshapeOutputWitnessV5Binary
 	var err error
 	if out.NoteCommitment, err = read32(reader); err != nil {
 		return out, err
@@ -232,21 +263,6 @@ func readNoteReshapeOutput(reader *bytes.Reader) (NoteReshapeOutputWitnessV1Bina
 		return out, err
 	}
 	if out.CreatedNoteAmount, err = read32(reader); err != nil {
-		return out, err
-	}
-	if out.CreatedNoteAssetID, err = read32(reader); err != nil {
-		return out, err
-	}
-	if out.CreatedTransmissionKey, err = read32(reader); err != nil {
-		return out, err
-	}
-	if out.CreatedClueKey, err = read32(reader); err != nil {
-		return out, err
-	}
-	if out.CreatedDivGenAffine, err = readPointAffine(reader); err != nil {
-		return out, err
-	}
-	if out.CreatedTransmissionAffine, err = readPointAffine(reader); err != nil {
 		return out, err
 	}
 	return out, nil

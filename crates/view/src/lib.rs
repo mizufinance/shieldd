@@ -16,6 +16,9 @@
 mod client;
 mod client_compliance;
 mod compliance_tree;
+mod historical_proof_cache;
+mod historical_proof_worker;
+mod issued_address;
 mod metrics;
 mod note_manager;
 mod note_record;
@@ -31,6 +34,11 @@ pub use crate::client_compliance::{
     enrich_plan_with_compliance, ViewClientComplianceExt, ViewClientComplianceProvider,
 };
 pub use crate::compliance_tree::{ComplianceAssetTree, ComplianceUserTree};
+pub use crate::historical_proof_cache::{
+    advance_historical_proof_cache, HistoricalProofCache, HistoricalProofCacheState,
+    HistoricalProofProvider, HistoricalProofUpdateError, HistoricalWitnessSource,
+};
+pub use crate::issued_address::{AddressPurpose, IssuedAddress};
 pub use crate::metrics::register_metrics;
 pub use crate::note_manager::{
     NoteManager, NoteManagerPlanningResult, NoteManagerResumeToken, TransferPlanningResult,

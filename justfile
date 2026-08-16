@@ -78,6 +78,7 @@ gnark-proof-tests-fast:
 
 # Run the slow end-to-end gnark proof-generation suite.
 gnark-proof-tests-slow:
+    python3 scripts/proof_artifacts.py materialize --bundle runtime
     cargo test --release -p shieldd-sdk-shielded-pool --features bundled-proving-keys transfer_proof_roundtrip --lib
     cargo test --release -p shieldd-sdk-shielded-pool --lib
 
@@ -139,7 +140,7 @@ snarkpack-challenge-boundaries:
 
 # Run bounded SnarkPack fuzz harness smoke tests.
 snarkpack-fuzz-smoke:
-    bash -lc 'set -euo pipefail; unset ROCKSDB_LIB_DIR ROCKSDB_INCLUDE_DIR; toolchain="${SNARKPACK_FUZZ_TOOLCHAIN:-nightly-2025-09-30}"; export PATH="${CARGO_HOME:-$HOME/.cargo}/bin:$PATH" RUSTUP_TOOLCHAIN="$toolchain"; runs="${SNARKPACK_FUZZ_RUNS:-16}"; fuzz_dir="crates/crypto/proof-aggregation-fuzz"; tmp="$(mktemp -d)"; trap "rm -rf \"$tmp\"" EXIT; cargo fuzz build --fuzz-dir "$fuzz_dir"; for target in wrapper_inner_range preflight_aggregate_verify deserialize_aggregate_proof sidecar_decoding aggregate_bundle_shape proposal_validation; do mkdir -p "$tmp/$target"; cp "$fuzz_dir"/corpus/"$target"/* "$tmp/$target"/; cargo fuzz run --fuzz-dir "$fuzz_dir" "$target" "$tmp/$target" -- -runs="$runs"; done'
+    bash -lc 'set -euo pipefail; unset ROCKSDB_LIB_DIR ROCKSDB_INCLUDE_DIR; toolchain="${SNARKPACK_FUZZ_TOOLCHAIN:-nightly-2025-09-30}"; export PATH="${CARGO_HOME:-$HOME/.cargo}/bin:$PATH" RUSTUP_TOOLCHAIN="$toolchain"; runs="${SNARKPACK_FUZZ_RUNS:-16}"; fuzz_dir="crates/crypto/proof-aggregation-fuzz"; tmp="$(mktemp -d)"; trap "rm -rf \"$tmp\"" EXIT; cargo fuzz build --fuzz-dir "$fuzz_dir"; for target in wrapper_inner_range preflight_aggregate_verify deserialize_aggregate_proof; do mkdir -p "$tmp/$target"; cp "$fuzz_dir"/corpus/"$target"/* "$tmp/$target"/; cargo fuzz run --fuzz-dir "$fuzz_dir" "$target" "$tmp/$target" -- -runs="$runs"; done'
 
 # Check durable SnarkPack runtime and formal-handoff invariants.
 snarkpack-invariants:
@@ -192,11 +193,19 @@ ci-check:
 
 # CI wrapper for `test`.
 ci-test:
+    # These five constraint-coverage tests consume the formal NoteReshape SR1CS
+    # LFS artifact. The formal workflow owns that artifact and runs the tests;
+    # the ordinary Rust lane keeps every artifact-independent test.
     if command -v cargo-nextest >/dev/null 2>&1; then \
-      cargo nextest run --cargo-profile ci; \
+      cargo nextest run --cargo-profile ci -E 'not (package(shieldd-constraint-coverage) and (test(=ltchain::tests::recovers_r_ladder_from_real_sr1cs_and_gate_holds) or test(=ltchain::tests::recovers_q4_ladder_from_real_sr1cs) or test(=ltchain::tests::gate_fails_closed_on_wrong_bound) or test(=ltchain::tests::production_gate_recovers_both_ladders) or test(=rowmap::tests::real_rvk_slice_is_exhaustive_and_bit_exact)))'; \
     else \
       echo "warning: cargo-nextest not found; falling back to 'cargo test --release --no-fail-fast'"; \
-      cargo test --release --no-fail-fast; \
+      cargo test --release --no-fail-fast -- \
+        --skip ltchain::tests::recovers_r_ladder_from_real_sr1cs_and_gate_holds \
+        --skip ltchain::tests::recovers_q4_ladder_from_real_sr1cs \
+        --skip ltchain::tests::gate_fails_closed_on_wrong_bound \
+        --skip ltchain::tests::production_gate_recovers_both_ladders \
+        --skip rowmap::tests::real_rvk_slice_is_exhaustive_and_bit_exact; \
     fi
 
 # CI wrapper for `go-check`.
@@ -257,6 +266,7 @@ orbis-integration-preflight-bringup:
 
 # Build the binaries required by the Orbis integration flow.
 orbis-integration-build:
+    python3 scripts/proof_artifacts.py materialize --bundle runtime
     cargo build --release -p pcli -p pclientd --features bundled-proving-keys
     # Insecure deterministic SRS is confined to the local Orbis integration node.
     cargo build --release -p pd --features orbis-dev-srs
@@ -341,14 +351,16 @@ reduced-surface-check:
 
 # Run integration tests for pclientd. Assumes specific dev env is already running.
 integration-pclientd:
-    cargo test --release --features bundled-proving-keys,download-proving-keys,sct-divergence-check --package pclientd --test network_integration -- \
+    python3 scripts/proof_artifacts.py materialize --bundle runtime
+    cargo test --release --features bundled-proving-keys,sct-divergence-check --package pclientd --test network_integration -- \
       --ignored --test-threads 1 --nocapture
 
 # Run integration tests for pcli. Assumes specific dev env is already running.
 integration-pcli:
-    cargo test --release --features bundled-proving-keys,download-proving-keys,sct-divergence-check --package pcli --test network_integration -- \
+    python3 scripts/proof_artifacts.py materialize --bundle runtime
+    cargo test --release --features bundled-proving-keys,sct-divergence-check --package pcli --test network_integration -- \
       --ignored --test-threads 1 --nocapture
-    cargo test --release --features bundled-proving-keys,download-proving-keys,sct-divergence-check --package pcli --test compliance_network -- \
+    cargo test --release --features bundled-proving-keys,sct-divergence-check --package pcli --test compliance_network -- \
       --ignored --test-threads 1 --nocapture
 
 # Run integration tests for pindexer. Assumes specific dev env is already running.

@@ -14,14 +14,14 @@ use crate::{
     NoteReshapeFamilyId,
 };
 
-pub const NOTE_RESHAPE_STATEMENT_BASE_FIELDS: usize = 2;
-pub const NOTE_RESHAPE_STATEMENT_FIELDS_PER_INPUT: usize = 2;
+pub const NOTE_RESHAPE_STATEMENT_BASE_FIELDS: usize = 6;
+pub const NOTE_RESHAPE_STATEMENT_FIELDS_PER_INPUT: usize = 3;
 pub const NOTE_RESHAPE_STATEMENT_FIELDS_PER_OUTPUT: usize = 1;
-pub const TRANSFER_STATEMENT_BASE_FIELDS: usize = 77;
-pub const TRANSFER_STATEMENT_FIELDS_PER_INPUT: usize = 2;
+pub const TRANSFER_STATEMENT_BASE_FIELDS: usize = 39;
+pub const TRANSFER_STATEMENT_FIELDS_PER_INPUT: usize = 3;
 pub const TRANSFER_STATEMENT_FIELDS_PER_OUTPUT: usize = 1;
-pub const SHIELDED_ICS20_WITHDRAWAL_STATEMENT_BASE_FIELDS: usize = 10;
-pub const SHIELDED_ICS20_WITHDRAWAL_STATEMENT_FIELDS_PER_INPUT: usize = 2;
+pub const SHIELDED_ICS20_WITHDRAWAL_STATEMENT_BASE_FIELDS: usize = 15;
+pub const SHIELDED_ICS20_WITHDRAWAL_STATEMENT_FIELDS_PER_INPUT: usize = 3;
 
 pub const fn note_reshape_statement_field_count(n_in: usize, n_out: usize) -> usize {
     NOTE_RESHAPE_STATEMENT_BASE_FIELDS
@@ -104,6 +104,7 @@ fn note_reshape_rk_element(
 trait NoteReshapeInputPublic {
     fn nullifier(&self) -> shieldd_sdk_sct::Nullifier;
     fn rk(&self) -> decaf377_rdsa::VerificationKey<decaf377_rdsa::SpendAuth>;
+    fn history_required(&self) -> bool;
 }
 
 trait NoteReshapeOutputPublic {
@@ -117,6 +118,10 @@ impl NoteReshapeInputPublic for crate::NoteReshapeInputPublic {
 
     fn rk(&self) -> decaf377_rdsa::VerificationKey<decaf377_rdsa::SpendAuth> {
         self.rk
+    }
+
+    fn history_required(&self) -> bool {
+        self.history_required
     }
 }
 
@@ -136,6 +141,10 @@ impl NoteReshapeInputPublic
     fn rk(&self) -> decaf377_rdsa::VerificationKey<decaf377_rdsa::SpendAuth> {
         self.rk
     }
+
+    fn history_required(&self) -> bool {
+        self.history_required
+    }
 }
 
 impl NoteReshapeOutputPublic
@@ -151,6 +160,7 @@ fn note_reshape_statement_fields_inner<I, O>(
     balance_commitment: shieldd_sdk_asset::balance::Commitment,
     inputs: &[I],
     outputs: &[O],
+    recent_position_floor: u64,
     expected: usize,
     field_encoding_error: fn(&str) -> StatementHashError,
 ) -> Result<Vec<Fq>, StatementHashError>
@@ -179,6 +189,7 @@ where
             .to_field_elements()
             .ok_or_else(|| field_encoding_error("balance_commitment"))?,
     );
+    fields.push(Fq::from(recent_position_floor));
     for (index, input) in inputs.iter().enumerate() {
         fields.extend(
             input
@@ -192,6 +203,7 @@ where
                 .to_field_elements()
                 .ok_or_else(|| field_encoding_error(&format!("rk_{index}")))?,
         );
+        fields.push(Fq::from(input.history_required()));
     }
 
     if fields.len() != expected {
@@ -215,14 +227,24 @@ pub fn note_reshape_statement_fields(
         public.family_id.input_count(),
         public.family_id.output_count(),
     );
-    let fields = note_reshape_statement_fields_inner(
+    let mut fields = note_reshape_statement_fields_inner(
         public.anchor,
         public.balance_commitment,
         &public.inputs,
         &public.outputs,
-        expected,
+        public.recent_position_floor,
+        expected - 3,
         note_reshape_field_encoding_error,
     )?;
+    let routing_offset = 2 + public.outputs.len();
+    fields.splice(
+        routing_offset..routing_offset,
+        [
+            public.asset_anchor.0,
+            Fq::from(public.routing_tag.value),
+            public.routing_parameter_set_id,
+        ],
+    );
     if fields.len() != expected {
         return Err(StatementHashError::InvalidFieldLength {
             expected,
@@ -302,6 +324,9 @@ pub fn transfer_statement_fields(
             .to_field_elements()
             .ok_or_else(|| transfer_field_encoding_error("balance_commitment"))?,
     );
+    fields.extend(public.routing.tags.map(|tag| Fq::from(tag.value)));
+    fields.push(public.routing_parameter_set_id);
+    fields.push(Fq::from(public.recent_position_floor));
     for (index, spend) in public.inputs.iter().enumerate() {
         fields.extend(
             spend
@@ -315,6 +340,7 @@ pub fn transfer_statement_fields(
                 .to_field_elements()
                 .ok_or_else(|| transfer_field_encoding_error(&format!("rk_{index}")))?,
         );
+        fields.push(Fq::from(spend.history_required));
     }
     fields.extend(
         public
@@ -355,98 +381,38 @@ pub fn transfer_statement_fields(
             .to_field_elements()
             .ok_or_else(|| transfer_field_encoding_error("target_timestamp"))?,
     );
-    for (label, proof) in [
-        ("transfer_sender_core_proof", &compliance.sender_core.proof),
-        ("transfer_sender_ext_proof", &compliance.sender_ext.proof),
-        ("transfer_output_core_proof", &compliance.output_core.proof),
-        ("transfer_output_ext_proof", &compliance.output_ext.proof),
+    let metadata = &compliance.metadata;
+    metadata
+        .validate()
+        .map_err(|e| transfer_field_encoding_error(&format!("transfer_metadata: {e}")))?;
+    if public.target_timestamp != Fq::from(metadata.target_timestamp) {
+        return Err(transfer_field_encoding_error(
+            "transfer_metadata_target_timestamp",
+        ));
+    }
+    for (label, value) in [
+        (
+            "transfer_sender_subject_derivation",
+            metadata.sender_subject_derivation(),
+        ),
+        (
+            "transfer_output_subject_derivation",
+            metadata.output_subject_derivation(),
+        ),
+        ("transfer_ring_id_hash", metadata.ring_id_hash()),
+        ("transfer_policy_id_hash", metadata.policy_id_hash()),
+        ("transfer_resource_hash", metadata.resource_hash()),
+        ("transfer_permission_hash", metadata.permission_hash()),
+        ("transfer_sender_core_salt", metadata.sender_core_salt()),
+        ("transfer_sender_ext_salt", metadata.sender_ext_salt()),
+        ("transfer_output_core_salt", metadata.output_core_salt()),
+        ("transfer_output_ext_salt", metadata.output_ext_salt()),
     ] {
-        let statement = &proof.statement;
-        let subject_derivation = statement.subject_derivation().map_err(|e| {
-            transfer_field_encoding_error(&format!("{label}_subject_derivation: {e}"))
-        })?;
-        let ring_id_hash = statement
-            .ring_id_hash()
-            .map_err(|e| transfer_field_encoding_error(&format!("{label}_ring_id_hash: {e}")))?;
-        let policy_id_hash = statement
-            .policy_id_hash()
-            .map_err(|e| transfer_field_encoding_error(&format!("{label}_policy_id_hash: {e}")))?;
-        let resource_hash = statement
-            .resource_hash()
-            .map_err(|e| transfer_field_encoding_error(&format!("{label}_resource_hash: {e}")))?;
-        let permission_hash = statement
-            .permission_hash()
-            .map_err(|e| transfer_field_encoding_error(&format!("{label}_permission_hash: {e}")))?;
-        let salt = statement
-            .salt()
-            .map_err(|e| transfer_field_encoding_error(&format!("{label}_salt: {e}")))?;
-        fields.extend(subject_derivation.to_field_elements().ok_or_else(|| {
-            transfer_field_encoding_error(&format!("{label}_subject_derivation"))
-        })?);
+        let value = value.map_err(|e| transfer_field_encoding_error(&format!("{label}: {e}")))?;
         fields.extend(
-            ring_id_hash
+            value
                 .to_field_elements()
-                .ok_or_else(|| transfer_field_encoding_error(&format!("{label}_ring_id_hash")))?,
-        );
-        fields.extend(
-            policy_id_hash
-                .to_field_elements()
-                .ok_or_else(|| transfer_field_encoding_error(&format!("{label}_policy_id_hash")))?,
-        );
-        fields.extend(
-            resource_hash
-                .to_field_elements()
-                .ok_or_else(|| transfer_field_encoding_error(&format!("{label}_resource_hash")))?,
-        );
-        fields.extend(
-            permission_hash.to_field_elements().ok_or_else(|| {
-                transfer_field_encoding_error(&format!("{label}_permission_hash"))
-            })?,
-        );
-        fields.extend(
-            Fq::from(statement.tier.as_u64())
-                .to_field_elements()
-                .ok_or_else(|| transfer_field_encoding_error(&format!("{label}_tier")))?,
-        );
-        fields.extend(
-            Fq::from(statement.target_timestamp)
-                .to_field_elements()
-                .ok_or_else(|| {
-                    transfer_field_encoding_error(&format!("{label}_target_timestamp"))
-                })?,
-        );
-        fields.extend(
-            salt.to_field_elements()
-                .ok_or_else(|| transfer_field_encoding_error(&format!("{label}_salt")))?,
-        );
-        fields.extend(
-            proof
-                .derived_pk
-                .to_field_elements()
-                .ok_or_else(|| transfer_field_encoding_error(&format!("{label}_derived_pk")))?,
-        );
-        fields.extend(
-            proof
-                .enc_cmt
-                .to_field_elements()
-                .ok_or_else(|| transfer_field_encoding_error(&format!("{label}_enc_cmt")))?,
-        );
-        fields.extend(
-            proof
-                .shared_point
-                .to_field_elements()
-                .ok_or_else(|| transfer_field_encoding_error(&format!("{label}_shared_point")))?,
-        );
-        fields.extend(
-            proof
-                .challenge
-                .to_field_elements()
-                .ok_or_else(|| transfer_field_encoding_error(&format!("{label}_challenge")))?,
-        );
-        fields.extend(
-            Fq::from_le_bytes_mod_order(&proof.response.to_bytes())
-                .to_field_elements()
-                .ok_or_else(|| transfer_field_encoding_error(&format!("{label}_response")))?,
+                .ok_or_else(|| transfer_field_encoding_error(label))?,
         );
     }
 
@@ -476,7 +442,8 @@ pub fn shielded_ics20_withdrawal_statement_fields(
         public.balance_commitment,
         &public.inputs,
         std::slice::from_ref(&public.change_output),
-        2 + 1 + 2 * public.inputs.len(),
+        public.recent_position_floor,
+        4 + 3 * public.inputs.len(),
         |field| StatementHashError::FieldEncoding {
             field: field.to_owned(),
         },
@@ -513,10 +480,9 @@ pub fn shielded_ics20_withdrawal_statement_fields(
             field: "outbound_amount".to_owned(),
         }
     })?);
-    fields.extend([
-        public.withdrawal_effect_hash_lo,
-        public.withdrawal_effect_hash_hi,
-    ]);
+    fields.extend(public.withdrawal_effect_hash_limbs);
+    fields.push(Fq::from(public.routing_tag.value));
+    fields.push(public.routing_parameter_set_id);
 
     if fields.len() != expected {
         return Err(StatementHashError::InvalidFieldLength {
@@ -533,7 +499,7 @@ pub fn note_reshape_statement_hash(
     fields: &[Fq],
 ) -> Result<Fq, StatementHashError> {
     hash_statement_fields(
-        &note_reshape_statement_hash_constant(family_id, "v1"),
+        &note_reshape_statement_hash_constant(family_id, "v3"),
         note_reshape_statement_hash_constant(family_id, "pad0"),
         note_reshape_statement_hash_constant(family_id, "pad1"),
         fields,
@@ -543,7 +509,7 @@ pub fn note_reshape_statement_hash(
 }
 
 pub fn transfer_statement_hash(fields: &[Fq]) -> Result<Fq, StatementHashError> {
-    let domain = transfer_statement_hash_constant("v1");
+    let domain = transfer_statement_hash_constant("v6");
     let pad_0 = transfer_statement_hash_constant("pad0");
     let pad_1 = transfer_statement_hash_constant("pad1");
     hash_statement_fields(
@@ -558,7 +524,7 @@ pub fn transfer_statement_hash(fields: &[Fq]) -> Result<Fq, StatementHashError> 
 
 pub fn shielded_ics20_withdrawal_statement_hash(fields: &[Fq]) -> Result<Fq, StatementHashError> {
     hash_statement_fields(
-        &shielded_ics20_withdrawal_statement_hash_constant("v1"),
+        &shielded_ics20_withdrawal_statement_hash_constant("v4"),
         shielded_ics20_withdrawal_statement_hash_constant("pad0"),
         shielded_ics20_withdrawal_statement_hash_constant("pad1"),
         fields,
@@ -595,7 +561,7 @@ pub fn note_reshape_statement_hash_var(
 ) -> Result<FqVar, SynthesisError> {
     hash_statement_fields_var(
         cs,
-        &note_reshape_statement_hash_constant(family_id, "v1"),
+        &note_reshape_statement_hash_constant(family_id, "v3"),
         note_reshape_statement_hash_constant(family_id, "pad0"),
         note_reshape_statement_hash_constant(family_id, "pad1"),
         fields,
@@ -607,7 +573,7 @@ pub fn transfer_statement_hash_var(
     cs: ConstraintSystemRef<Fq>,
     fields: &[FqVar],
 ) -> Result<FqVar, SynthesisError> {
-    let domain = transfer_statement_hash_constant("v1");
+    let domain = transfer_statement_hash_constant("v6");
     let pad_0 = transfer_statement_hash_constant("pad0");
     let pad_1 = transfer_statement_hash_constant("pad1");
     hash_statement_fields_var(
@@ -632,13 +598,35 @@ mod tests {
 
     fn go_fixture_statement_hash(path: &str) -> (NoteReshapeFamilyId, Fq) {
         let bytes = std::fs::read(path).expect("read Go note reshape fixture");
-        let witness = crate::gnark::decode_note_reshape_witness_v1(&bytes)
+        let witness = crate::gnark::decode_note_reshape_witness_v5(&bytes)
             .expect("decode Go note reshape fixture");
-        let fields = witness
-            .statement_fields
-            .iter()
-            .map(|field| Fq::from_le_bytes_mod_order(field))
-            .collect::<Vec<_>>();
+        let mut fields = Vec::with_capacity(note_reshape_statement_field_count(
+            witness.n_in as usize,
+            witness.n_out as usize,
+        ));
+        fields.push(Fq::from_le_bytes_mod_order(&witness.anchor));
+        fields.extend(
+            witness
+                .outputs
+                .iter()
+                .map(|output| Fq::from_le_bytes_mod_order(&output.note_commitment)),
+        );
+        fields.push(Fq::from_le_bytes_mod_order(
+            &crate::gnark::point_affine_compress_to_field_bytes(&witness.balance_commitment_affine),
+        ));
+        fields.push(Fq::from_le_bytes_mod_order(&witness.asset_anchor));
+        fields.push(Fq::from_le_bytes_mod_order(&witness.routing_tag));
+        fields.push(Fq::from_le_bytes_mod_order(
+            &witness.routing_parameter_set_id,
+        ));
+        fields.push(Fq::from_le_bytes_mod_order(&witness.recent_position_floor));
+        for spend in &witness.spends {
+            fields.push(Fq::from_le_bytes_mod_order(&spend.nullifier));
+            fields.push(Fq::from_le_bytes_mod_order(
+                &crate::gnark::point_affine_compress_to_field_bytes(&spend.rk_affine),
+            ));
+            fields.push(Fq::from(spend.history_required));
+        }
         let hash = note_reshape_statement_hash(witness.family_id, &fields)
             .expect("hash Go note reshape statement fields");
         (witness.family_id, hash)
@@ -678,17 +666,15 @@ mod tests {
             .join("../../../..")
             .join("tools/gnark/internal/testfixtures/vectors");
         for (label, filename) in [
-            ("note_reshape2x1", "note_reshape2x1_witness_v1.bin"),
-            ("note_reshape1x8", "note_reshape1x8_witness_v1.bin"),
-            ("note_reshape4x1", "note_reshape4x1_witness_v1.bin"),
-            ("note_reshape8x1", "note_reshape8x1_witness_v1.bin"),
+            ("note_reshape1x8", "note_reshape1x8_witness_v5.bin"),
+            ("note_reshape8x1", "note_reshape8x1_witness_v5.bin"),
         ] {
             let (family_id, hash) = go_fixture_statement_hash(
                 root.join(filename).to_str().expect("fixture path is UTF-8"),
             );
             assert_eq!(family_id.label(), label);
             let bytes = std::fs::read(root.join(filename)).expect("read Go note reshape fixture");
-            let witness = crate::gnark::decode_note_reshape_witness_v1(&bytes)
+            let witness = crate::gnark::decode_note_reshape_witness_v5(&bytes)
                 .expect("decode Go note reshape fixture");
             assert_eq!(
                 hash,
@@ -700,7 +686,7 @@ mod tests {
 
     #[test]
     fn note_reshape_wrong_family_domain_changes_the_statement_hash() {
-        let family_id = NoteReshapeFamilyId::TwoByOne;
+        let family_id = NoteReshapeFamilyId::EightByOne;
         let fields = (0..note_reshape_statement_field_count(
             family_id.input_count(),
             family_id.output_count(),
@@ -710,7 +696,7 @@ mod tests {
         let correct =
             note_reshape_statement_hash(family_id, &fields).expect("correct family statement hash");
         let wrong = hash_statement_fields(
-            &note_reshape_statement_hash_constant(NoteReshapeFamilyId::OneByEight, "v1"),
+            &note_reshape_statement_hash_constant(NoteReshapeFamilyId::OneByEight, "v2"),
             note_reshape_statement_hash_constant(NoteReshapeFamilyId::OneByEight, "pad0"),
             note_reshape_statement_hash_constant(NoteReshapeFamilyId::OneByEight, "pad1"),
             &fields,
@@ -803,5 +789,81 @@ mod tests {
             .enforce_equal(&constrained_native)
             .expect("hashes must be equal");
         assert!(cs.is_satisfied().expect("cs should evaluate"));
+    }
+
+    #[test]
+    fn transfer_statement_binds_one_factored_metadata_record() {
+        let (public, _) = proof_test_helpers::build_transfer_roundtrip_inputs(true);
+        let fields = transfer_statement_fields(&public).expect("transfer statement fields");
+        assert_eq!(fields.len(), TRANSFER_STATEMENT_FIELD_COUNT);
+        assert_eq!(fields[36], public.target_timestamp);
+
+        let metadata = &public.compliance.metadata;
+        let expected_metadata = [
+            metadata.sender_subject_derivation().unwrap(),
+            metadata.output_subject_derivation().unwrap(),
+            metadata.ring_id_hash().unwrap(),
+            metadata.policy_id_hash().unwrap(),
+            metadata.resource_hash().unwrap(),
+            metadata.permission_hash().unwrap(),
+            metadata.sender_core_salt().unwrap(),
+            metadata.sender_ext_salt().unwrap(),
+            metadata.output_core_salt().unwrap(),
+            metadata.output_ext_salt().unwrap(),
+        ];
+        assert_eq!(&fields[37..], expected_metadata.as_slice());
+
+        let v6 = transfer_statement_hash(&fields).expect("v6 transfer hash");
+        let v3 = hash_statement_fields(
+            &transfer_statement_hash_constant("v3"),
+            transfer_statement_hash_constant("pad0"),
+            transfer_statement_hash_constant("pad1"),
+            &fields,
+            TRANSFER_STATEMENT_FIELD_COUNT,
+            |expected, got| StatementHashError::InvalidFieldLength { expected, got },
+        )
+        .expect("legacy domain hash");
+        assert_ne!(v6, v3, "V18 must not verify under the V15 hash domain");
+    }
+
+    #[test]
+    fn transfer_statement_rejects_metadata_timestamp_drift() {
+        let (mut public, _) = proof_test_helpers::build_transfer_roundtrip_inputs(true);
+        public.compliance.metadata.target_timestamp += 1;
+        assert!(
+            transfer_statement_fields(&public).is_err(),
+            "metadata timestamp must equal the action timestamp"
+        );
+    }
+
+    #[test]
+    fn transfer_statement_hash_commits_to_every_factored_metadata_field() {
+        let (public, _) = proof_test_helpers::build_transfer_roundtrip_inputs(true);
+        let original = public.statement_hash().expect("baseline transfer hash");
+
+        fn increment(bytes: &mut [u8; 32]) {
+            let value = Fq::from_bytes_checked(bytes).expect("fixture field is canonical");
+            *bytes = (value + Fq::from(1u64)).to_bytes();
+        }
+        let mutations: [fn(&mut shieldd_sdk_compliance::TransferComplianceMetadata); 10] = [
+            |m| increment(&mut m.sender_subject_derivation_bytes),
+            |m| increment(&mut m.output_subject_derivation_bytes),
+            |m| increment(&mut m.ring_id_hash_bytes),
+            |m| increment(&mut m.policy_id_hash_bytes),
+            |m| increment(&mut m.resource_hash_bytes),
+            |m| increment(&mut m.permission_hash_bytes),
+            |m| increment(&mut m.sender_core_salt_bytes),
+            |m| increment(&mut m.sender_ext_salt_bytes),
+            |m| increment(&mut m.output_core_salt_bytes),
+            |m| increment(&mut m.output_ext_salt_bytes),
+        ];
+        for mutate in mutations {
+            let mut changed = public.clone();
+            mutate(&mut changed.compliance.metadata);
+            assert_ne!(
+                changed.statement_hash().expect("mutated transfer hash"),
+                original
+            );
+        }
     }
 }

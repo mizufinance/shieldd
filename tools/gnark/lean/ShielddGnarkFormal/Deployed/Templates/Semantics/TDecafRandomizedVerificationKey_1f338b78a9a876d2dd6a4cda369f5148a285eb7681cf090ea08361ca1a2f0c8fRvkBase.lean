@@ -17,9 +17,10 @@ local instance : Fact (Nat.Prime Order) :=
   ⟨Shieldd.GnarkFormal.Deployed.decaf377ScalarFieldPrime⟩
 
 def spec (rho : Nat → F) : Prop :=
-  EdwardsBridge.onCurve ⟨rho 1807, rho 1808⟩ →
-    Shieldd.GnarkFormal.Decaf377Assumptions.RandomizedVerificationKeySpec
-      ⟨rho 1807, rho 1808⟩ (rho 252) ⟨rho 1813, rho 1814⟩ ∧
-    EdwardsBridge.onCurve ⟨rho 1813, rho 1814⟩
+  (rho 252).val < 2 ^ 251 ∧
+    (EdwardsBridge.onCurve ⟨rho 1807, rho 1808⟩ →
+      Shieldd.GnarkFormal.Decaf377Assumptions.RandomizedVerificationKeySpec
+        ⟨rho 1807, rho 1808⟩ (rho 252) ⟨rho 1813, rho 1814⟩ ∧
+      EdwardsBridge.onCurve ⟨rho 1813, rho 1814⟩)
 
 end Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f

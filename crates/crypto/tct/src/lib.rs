@@ -124,8 +124,13 @@ mod prelude {
         Position, Proof, Root, StateCommitment, Tree,
     };
 
-    // We use the hash map from `im`, but with the fast "hash prehashed data" hasher from `hash_hasher`
-    pub(crate) type HashedMap<K, V> = im::HashMap<K, V, hash_hasher::HashBuildHasher>;
+    // We use the hash map from `imbl`, but with the fast "hash prehashed data" hasher from `hash_hasher`
+    pub(crate) type HashedMap<K, V> = imbl::GenericHashMap<
+        K,
+        V,
+        hash_hasher::HashBuildHasher,
+        imbl::shared_ptr::DefaultSharedPtr,
+    >;
 }
 
 #[cfg(feature = "arbitrary")]
@@ -133,19 +138,4 @@ mod prelude {
 pub mod proptest {
     #[doc(inline)]
     pub use super::commitment::FqStrategy;
-}
-
-#[cfg(test)]
-mod test {
-    #[test]
-    fn check_eternity_size() {
-        // Disabled due to spurious test failure.
-        // static_assertions::assert_eq_size!(Tree, [u8; 32]);
-    }
-
-    #[test]
-    fn check_eternity_proof_size() {
-        // Disabled due to spurious test failure.
-        // static_assertions::assert_eq_size!(Proof, [u8; 2344]);
-    }
 }

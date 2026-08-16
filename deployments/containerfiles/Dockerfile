@@ -5,7 +5,7 @@ ARG TARGETARCH
 
 # Install build dependencies. These packages should match what's recommended on
 # the pcli install guide.
-# We don't install git-lfs, because the git artifacts are copied in from the build host.
+# Repository assets are copied in from the build host.
 # In order to build pcli with ledger support, add `libdbus-1-dev` & `libusb-1.0-0-dev`.
 RUN apt-get update && apt-get install -y \
         build-essential \
@@ -84,9 +84,12 @@ COPY --from=build-env \
             /usr/src/shieldd/target/release/build \
             /usr/src/shieldd/target/release/build
 
-COPY --from=build-env \
-            /usr/src/shieldd/tools/gnark/artifacts \
-            /usr/share/shieldd/gnark/artifacts
+# Runtime deployments keep only proving material. Constraint systems and setup
+# evidence are build/formal inputs and would otherwise add about 510 MB here.
+COPY --from=build-env /usr/src/shieldd/tools/gnark/artifacts/note_reshape1x8/proving_key.bin /usr/share/shieldd/gnark/artifacts/note_reshape1x8/proving_key.bin
+COPY --from=build-env /usr/src/shieldd/tools/gnark/artifacts/note_reshape8x1/proving_key.bin /usr/share/shieldd/gnark/artifacts/note_reshape8x1/proving_key.bin
+COPY --from=build-env /usr/src/shieldd/tools/gnark/artifacts/shielded_ics20_withdrawal/proving_key.bin /usr/share/shieldd/gnark/artifacts/shielded_ics20_withdrawal/proving_key.bin
+COPY --from=build-env /usr/src/shieldd/tools/gnark/artifacts/transfer/proving_key.bin /usr/share/shieldd/gnark/artifacts/transfer/proving_key.bin
 
 WORKDIR /home/${USERNAME}
 USER ${USERNAME}

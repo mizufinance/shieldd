@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import io
 import json
@@ -70,7 +71,7 @@ class GateApplicabilityTests(unittest.TestCase):
             label="fixture manifest",
         )
 
-    def test_orbis_closure_contains_at_least_39_local_packages(self) -> None:
+    def test_orbis_closure_tracks_the_production_package_graph(self) -> None:
         source = next(
             item
             for item in self.orbis.derived_inputs
@@ -79,8 +80,11 @@ class GateApplicabilityTests(unittest.TestCase):
         relevant, outside = GATE.cargo_closure_rules(
             self.root, source, "pull_request"
         )
+        # The application now verifies aggregate proofs in its production
+        # transaction path, so Orbis must follow that dependency transitively.
         self.assertGreaterEqual(len(relevant.patterns) // 2, 39)
         self.assertIn("crates/core/app/**", relevant.patterns)
+        self.assertIn("crates/crypto/proof-aggregation/**", relevant.patterns)
         self.assertEqual(relevant.tier, "full")
         self.assertEqual(outside.tier, "skip")
         self.assertIn("outside the declared closure", outside.reason)
@@ -376,7 +380,8 @@ class GateApplicabilityTests(unittest.TestCase):
                     decision.tier,
                     (
                         "static"
-                        if path in {"flake.nix", "flake.lock"}
+                        if path
+                        in {"Cargo.toml", "Cargo.lock", "flake.nix", "flake.lock"}
                         else "extract-all"
                     ),
                 )
@@ -384,7 +389,186 @@ class GateApplicabilityTests(unittest.TestCase):
                 decision = GATE.classify(
                     self.soundness, "pull_request", [path], []
                 )
-                self.assertEqual(decision.tier, "stamps")
+                self.assertEqual(
+                    decision.tier,
+                    "policy" if path == "Cargo.lock" else "pr",
+                )
+
+    def test_circuit_refinement_inputs_select_pr_gate(self) -> None:
+        paths = (
+            "tools/gnark/fv_certification_backends.json",
+            "tools/gnark/fv_profiles.json",
+            "tools/gnark/lean/ShielddGnarkFormal/Protocol/Common.lean",
+            "tools/gnark/lean/ShielddGnarkFormal/Protocol/NoteReshape/Semantics.lean",
+            "tools/gnark/lean/ShielddGnarkFormal/Protocol/Transfer/Semantics.lean",
+            "tools/gnark/lean/ShielddGnarkFormal/Protocol/ShieldedIcs20Withdrawal/Semantics.lean",
+            "tools/gnark/lean/ShielddGnarkFormal/Poseidon6Spec.lean",
+            "tools/gnark/lean/ShielddGnarkFormal/Poseidon377/Fixed6.lean",
+            "tools/gnark/lean/ShielddGnarkFormal/Poseidon377/Vectors.lean",
+            "tools/gnark/lean/ShielddGnarkFormal/DleqBridge.lean",
+            "tools/gnark/lean/ShielddGnarkFormal/Poseidon5Bridge.lean",
+            "tools/gnark/lean/ShielddGnarkFormal/Deployed/NoteReshape8x1Refinement.lean",
+            "tools/gnark/lean/ShielddGnarkFormal/Deployed/Generated/NoteReshape8x1Spend1.lean",
+            "tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/NoteReshape8x1/CircuitFacts.lean",
+            "tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/Transfer/CircuitFacts.lean",
+            "tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/ShieldedIcs20Withdrawal/CircuitFacts.lean",
+            "tools/gnark/lean/gen/gen_note_reshape_padded_spends.py",
+            "tools/gnark/lean/gen/gen_deployed_family.py",
+            "crates/crypto/constraint-coverage/src/main.rs",
+            "tools/gnark/cmd/gnarkctl/export_fv.go",
+            "tools/gnark/internal/abi/statement.go",
+            "tools/gnark/internal/circuits/transfer.go",
+            "tools/gnark/internal/primitives/poseidon.go",
+            "tools/gnark/third_party/gnark-lean-extractor/main.go",
+            "scripts/check-constraint-coverage.sh",
+            "scripts/check-lean-circuit-fv.sh",
+            "scripts/gen-certified-circuit-artifacts.py",
+            "crates/core/component/shielded-pool/formal/certified-circuit-obligation-ledger.md",
+        )
+        for path in paths:
+            with self.subTest(path=path):
+                decision = GATE.classify(
+                    self.soundness, "pull_request", [path], []
+                )
+                self.assertEqual((decision.status, decision.tier), ("run", "pr"))
+
+    def test_transaction_view_and_consensus_seams_select_soundness_gate(self) -> None:
+        source = next(
+            item
+            for item in self.soundness.derived_inputs
+            if item["type"] == "cargo_local_closure"
+        )
+        rules = GATE.cargo_closure_rules(self.root, source, "pull_request")
+        for path in (
+            "crates/bin/pd/src/main.rs",
+            "crates/bin/shieldd/src/execution_client.rs",
+            "crates/bin/shieldd/src/main.rs",
+            "crates/core/transaction/src/plan/build.rs",
+            "crates/core/app/src/action_handler/actions.rs",
+            "crates/core/app/src/action_handler/transaction.rs",
+            "crates/core/app/src/app/mod.rs",
+            "crates/view/src/client_compliance.rs",
+            "crates/view/src/note_manager.rs",
+            "crates/view/src/service.rs",
+        ):
+            with self.subTest(path=path):
+                decision = GATE.classify(
+                    self.soundness,
+                    "pull_request",
+                    [path],
+                    rules,
+                )
+                self.assertEqual(
+                    (decision.status, decision.tier), ("run", "pr")
+                )
+
+    def test_formal_workflow_handles_every_declared_soundness_tier(self) -> None:
+        workflow = (self.root / ".github/workflows/formal.yml").read_text(
+            encoding="utf-8"
+        )
+        replay_job = workflow[
+            workflow.index("  soundness-artifact-replay:") : workflow.index(
+                "  # ------------------------------------------------------------------ summary"
+            )
+        ]
+        self.assertIn(
+            "needs.applicability.outputs.soundness_tier == 'full'",
+            replay_job,
+        )
+        self.assertIn("check-lean-circuit-fv.sh drift all", replay_job)
+        self.assertIn("check-circuit-fv.sh receipt all", replay_job)
+        self.assertNotIn("lake", replay_job.lower())
+        self.assertNotIn("LEAN_NUM_THREADS", replay_job)
+        self.assertNotIn("  soundness-source-drift:", workflow)
+        self.assertNotIn("  soundness-lean-circuit-fv:", workflow)
+
+        soundness_host = workflow[
+            workflow.index("  soundness-host:") : workflow.index(
+                "  soundness-artifact-replay:"
+            )
+        ]
+        self.assertIn("soundness_tier == 'policy'", soundness_host)
+        self.assertIn("test_gate_applicability.py", soundness_host)
+        self.assertIn(
+            "needs.applicability.outputs.soundness_run == 'true'",
+            soundness_host,
+        )
+        self.assertIn(
+            "bash scripts/check-soundness-invariants.sh candidate",
+            soundness_host,
+        )
+        self.assertIn("sudo apt-get install -y ripgrep", soundness_host)
+        self.assertIn(
+            "bash scripts/compliance-lean-dleq.sh stamps", soundness_host
+        )
+        self.assertIn("id: results", soundness_host)
+        self.assertIn("policy: ${{ steps.results.outputs.policy }}", soundness_host)
+        self.assertIn("gate: ${{ steps.results.outputs.gate }}", soundness_host)
+
+        summary = workflow[workflow.index("  summary:") :]
+        self.assertIn("- soundness-artifact-replay", summary)
+        self.assertIn(
+            "run: python3 scripts/ci/enforce_formal_result.py",
+            summary,
+        )
+
+    def test_soundness_host_reuses_one_prepared_full_bundle(self) -> None:
+        workflow = (self.root / ".github/workflows/formal.yml").read_text(
+            encoding="utf-8"
+        )
+        soundness_host = workflow[
+            workflow.index("  soundness-host:") : workflow.index(
+                "  soundness-artifact-replay:"
+            )
+        ]
+        self.assertIn(".github/actions/prepare-proof-artifacts", soundness_host)
+        self.assertIn("bundle: full", soundness_host)
+        self.assertNotIn(".github/actions/restore-proof-artifacts", soundness_host)
+        self.assertEqual(
+            workflow.count(".github/actions/prepare-proof-artifacts"), 1
+        )
+        self.assertEqual(
+            workflow.count(".github/actions/restore-proof-artifacts"), 1
+        )
+        self.assertNotIn("lfs: true", workflow)
+
+    def test_candidate_soundness_defers_only_the_reviewed_semantic_pin(self) -> None:
+        runner = (self.root / "scripts/check-soundness-invariants.sh").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("candidate|strict", runner)
+        self.assertIn("--skip-semantic-digest", runner)
+        self.assertIn(
+            'check-certified-circuit-spec-independence.sh "$MODE"',
+            runner,
+        )
+        independence = (
+            self.root / "scripts/check-certified-circuit-spec-independence.sh"
+        ).read_text(encoding="utf-8")
+        self.assertIn("candidate|strict", independence)
+        self.assertIn("--skip-semantic-digest", independence)
+        self.assertIn(
+            '"$ROOT/scripts/check-soundness-invariants.sh" strict',
+            (self.root / "scripts/check-lean-circuit-fv.sh").read_text(
+                encoding="utf-8"
+            ),
+        )
+
+    def test_strict_replay_is_bounded_and_lake_free(self) -> None:
+        workflow = (self.root / ".github/workflows/formal.yml").read_text(
+            encoding="utf-8"
+        )
+        replay = workflow[
+            workflow.index("  soundness-artifact-replay:") : workflow.index(
+                "  # ------------------------------------------------------------------ summary"
+            )
+        ]
+        self.assertIn("timeout-minutes: 180", replay)
+        self.assertIn("check-lean-circuit-fv.sh drift all", replay)
+        self.assertIn("check-circuit-fv.sh receipt all", replay)
+        self.assertNotIn("check-lean-circuit-fv.sh release all", replay)
+        self.assertNotIn("Cache Lean dependencies", replay)
+        self.assertNotIn("tools/gnark/lean/.lake/packages", replay)
 
     def test_handwritten_snarkpack_lean_inputs_select_full_tier(self) -> None:
         paths = (
@@ -829,6 +1013,43 @@ class GateApplicabilityTests(unittest.TestCase):
             with self.assertRaises(GATE.ClassificationError):
                 GATE.load_declaration(path)
 
+    def test_duplicate_declaration_key_blocks(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "duplicate.json"
+            path.write_text(
+                '{"schema_version": 1, "schema_version": 1}',
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(
+                GATE.ClassificationError, "duplicate JSON key 'schema_version'"
+            ):
+                GATE.load_declaration(path)
+
+    def test_explicit_input_cannot_suppress_conservative_gate(self) -> None:
+        raw = json.loads(
+            (self.root / "ci/gates/soundness-formal.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        raw["explicit_inputs"][0]["tiers"]["pull_request"] = "skip"
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "skip.json"
+            path.write_text(json.dumps(raw), encoding="utf-8")
+            with self.assertRaisesRegex(
+                GATE.ClassificationError, "only non-skip tiers"
+            ):
+                GATE.load_declaration(path)
+
+    def test_certified_artifact_generator_selects_pr_gate(self) -> None:
+        decision = GATE.classify(
+            self.soundness,
+            "pull_request",
+            ["scripts/gen-certified-circuit-artifacts.py"],
+            [],
+        )
+        self.assertEqual((decision.status, decision.tier), ("run", "pr"))
+        self.assertFalse(decision.unknown_files)
+
     def test_unknown_path_promotes_pr_and_merge_group(self) -> None:
         pr = GATE.classify(
             self.snarkpack, "pull_request", ["new-area/input.bin"], []
@@ -882,11 +1103,100 @@ class GateApplicabilityTests(unittest.TestCase):
         self.assertFalse(classified.unknown_files)
         self.assertIn("base declaration", classified.matched[0]["reason"])
 
+    def test_current_audit_can_reclassify_a_former_input_as_irrelevant(self) -> None:
+        path = "storage/proof-key.packaging"
+        previous = GATE.Declaration(
+            gate=self.soundness.gate,
+            tiers=self.soundness.tiers,
+            events=self.soundness.events,
+            derived_inputs=(),
+            explicit_inputs=(
+                {
+                    "patterns": (path,),
+                    "tiers": {
+                        "pull_request": "pr",
+                        "merge_group": "pr",
+                        "default": "full",
+                    },
+                    "reason": "former broad formal input",
+                },
+            ),
+            irrelevant_inputs=(),
+        )
+        current = GATE.Declaration(
+            gate=self.soundness.gate,
+            tiers=self.soundness.tiers,
+            events=self.soundness.events,
+            derived_inputs=(),
+            explicit_inputs=(),
+            irrelevant_inputs=(
+                {
+                    "patterns": (path,),
+                    "reason": "audited storage-only input",
+                },
+            ),
+        )
+
+        decision = GATE.classify(
+            current,
+            "pull_request",
+            [path],
+            [],
+            previous_declaration=previous,
+        )
+
+        self.assertEqual((decision.status, decision.tier), ("skip", "skip"))
+        self.assertFalse(decision.unknown_files)
+        self.assertEqual(
+            decision.matched[0]["reason"], "audited storage-only input"
+        )
+
+    def test_removed_base_tier_uses_current_conservative_tier(self) -> None:
+        retired_path = "retired-formal-control/proof-input.lean"
+        previous = GATE.Declaration(
+            gate=self.soundness.gate,
+            tiers=("skip", "stamps", "typed", "full"),
+            events={
+                "pull_request": {"conservative_tier": "stamps"},
+                "merge_group": {"conservative_tier": "stamps"},
+                "schedule": {"tier": "full"},
+                "workflow_call": {"tier": "full"},
+                "workflow_dispatch": {"tier": "full"},
+            },
+            derived_inputs=(),
+            explicit_inputs=(
+                {
+                    "patterns": (retired_path,),
+                    "tiers": {
+                        "pull_request": "typed",
+                        "merge_group": "typed",
+                        "default": "full",
+                    },
+                    "reason": "retired proof input",
+                },
+            ),
+            irrelevant_inputs=(),
+        )
+
+        classified = GATE.classify(
+            self.soundness,
+            "pull_request",
+            [retired_path],
+            [],
+            previous_declaration=previous,
+        )
+
+        self.assertEqual((classified.status, classified.tier), ("run", "pr"))
+        self.assertFalse(classified.unknown_files)
+        self.assertIn("former tier 'typed'", classified.matched[0]["reason"])
+
     def test_audited_unrelated_changes_skip_both_formal_families(self) -> None:
         for path in (
             "README.md",
             ".envrc.example",
             "deployments/compose/README.md",
+            "deployments/scripts/rust_doc_packages.py",
+            "deployments/scripts/tests/test_rust_doc_packages.py",
             "docs/architecture/unrelated.md",
             "proto/shieldd/shieldd/core/component/sct/v1/sct.proto",
         ):
@@ -907,7 +1217,7 @@ class GateApplicabilityTests(unittest.TestCase):
     def test_proto_compiler_selects_formal_validation(self) -> None:
         for declaration, tier in (
             (self.snarkpack, "static"),
-            (self.soundness, "stamps"),
+            (self.soundness, "pr"),
         ):
             with self.subTest(gate=declaration.gate):
                 decision = GATE.classify(
@@ -923,6 +1233,13 @@ class GateApplicabilityTests(unittest.TestCase):
         for path in (
             "tools/gnark/lean/ShielddGnarkFormal/StructuredLC.lean",
             "scripts/gen-note-reshape-family-artifacts.py",
+            "scripts/check-circuit-fv.sh",
+            "scripts/fv_specification_completeness.py",
+            "scripts/check_lfs_policy.py",
+            "scripts/proof_artifacts.py",
+            "scripts/tests/test_proof_artifacts.py",
+            "scripts/lib/soundness-symbol-cell.sh",
+            "scripts/tests/test_wiring_certificates.py",
             "scripts/fixtures/fv-census/signed-coefficients.sr1cs",
         ):
             with self.subTest(path=path):
@@ -933,6 +1250,91 @@ class GateApplicabilityTests(unittest.TestCase):
                     [],
                 )
                 self.assertEqual((decision.status, decision.tier), ("skip", "skip"))
+                self.assertFalse(decision.unknown_files)
+
+    def test_proof_artifact_controls_select_soundness_validation(self) -> None:
+        for path in (
+            ".gitattributes",
+            "justfile",
+            "scripts/check_lfs_policy.py",
+            "scripts/proof_artifacts.py",
+            "scripts/tests/test_proof_artifacts.py",
+        ):
+            with self.subTest(path=path):
+                decision = GATE.classify(
+                    self.soundness,
+                    "pull_request",
+                    [path],
+                    [],
+                )
+                self.assertEqual(
+                    (decision.status, decision.tier), ("run", "policy")
+                )
+                self.assertFalse(decision.unknown_files)
+
+    def test_packaging_policy_overrides_broad_runtime_closure(self) -> None:
+        source = next(
+            item
+            for item in self.soundness.derived_inputs
+            if item["type"] == "cargo_local_closure"
+        )
+        rules = GATE.cargo_closure_rules(self.root, source, "pull_request")
+        decision = GATE.classify(
+            self.soundness,
+            "pull_request",
+            ["crates/core/component/shielded-pool/Cargo.toml"],
+            rules,
+        )
+        self.assertEqual((decision.status, decision.tier), ("run", "policy"))
+
+    def test_snarkpack_evidence_uses_policy_not_circuit_soundness(self) -> None:
+        for path in (
+            "crates/crypto/proof-aggregation/formal/snarkpack/fstar-checker-evidence.json",
+            "crates/crypto/proof-aggregation/formal/snarkpack/verification-manifest.json",
+            "scripts/ci/enforce_formal_result.py",
+            "scripts/ci/snarkpack_fv_impact.py",
+            "scripts/ci/test_enforce_formal_result.py",
+            "scripts/ci/test_snarkpack_fv_impact.py",
+        ):
+            with self.subTest(path=path):
+                decision = GATE.classify(
+                    self.soundness, "pull_request", [path], []
+                )
+                self.assertEqual(
+                    (decision.status, decision.tier), ("run", "policy")
+                )
+
+    def test_proof_artifact_content_still_selects_soundness_gate(self) -> None:
+        for path in (
+            "tools/gnark/artifacts/transfer/transfer.sr1cs",
+            "tools/gnark/artifacts/transfer/circuit_metadata.json",
+            "tools/gnark/artifacts/transfer/proving_key.bin",
+            "tools/gnark/artifacts/transfer/verifying_key.bin",
+        ):
+            with self.subTest(path=path):
+                decision = GATE.classify(
+                    self.soundness, "pull_request", [path], []
+                )
+                self.assertEqual(
+                    (decision.status, decision.tier), ("run", "pr")
+                )
+
+    def test_shared_strict_json_helper_selects_snarkpack_static_gate(self) -> None:
+        for path in (
+            "scripts/fv_strict_json.py",
+            "scripts/tests/test_fv_strict_json.py",
+        ):
+            with self.subTest(path=path):
+                decision = GATE.classify(
+                    self.snarkpack,
+                    "pull_request",
+                    [path],
+                    [],
+                )
+                self.assertEqual(
+                    (decision.status, decision.tier),
+                    ("run", "static"),
+                )
                 self.assertFalse(decision.unknown_files)
 
     def test_retired_snarkpack_controls_remain_classified(self) -> None:
@@ -1024,27 +1426,24 @@ class GateApplicabilityTests(unittest.TestCase):
         self.assertEqual(
             {lane for lane, _ in lanes},
             {
-                "snarkpack-static",
+                "snarkpack-host",
                 "snarkpack-extract",
-                "snarkpack-fstar",
-                "snarkpack-parity",
-                "snarkpack-runtime",
-                "snarkpack-publication",
+                "snarkpack-closure",
             },
         )
         for lane, body in lanes:
-            if lane == "snarkpack-publication":
-                continue
             with self.subTest(lane=lane):
                 self.assertRegex(
                     body,
                     r"needs: (?:applicability|\[applicability,[^\]]+\])",
                 )
-                self.assertRegex(
-                    body,
-                    r"needs\.applicability\.outputs\."
-                    r"snarkpack_[a-z_]+_run == 'true'",
-                )
+                self.assertIn("needs.applicability.result == 'success'", body)
+        host = dict(lanes)["snarkpack-host"]
+        for selection in ("static", "fstar", "rust_reference", "fuzz", "dos"):
+            self.assertIn(
+                f"snarkpack_{selection}_run == 'true'", host
+            )
+        self.assertIn("id: results", host)
 
     def test_snarkpack_publication_closes_selected_lane_results(self) -> None:
         workflow = (self.root / ".github/workflows/formal.yml").read_text(
@@ -1057,47 +1456,26 @@ class GateApplicabilityTests(unittest.TestCase):
                 workflow,
             )
         )
-        publication = lanes["snarkpack-publication"]
+        publication = lanes["snarkpack-closure"]
         self.assertIn(
             "needs.applicability.outputs.snarkpack_status == 'run'",
             publication,
         )
         self.assertIn(
-            "needs.snarkpack-static.result == 'success'",
-            publication,
-        )
-        selected_results = {
-            "extract": "snarkpack-extract",
-            "fstar": "snarkpack-fstar",
-            "parity": "snarkpack-parity",
-        }
-        for selection, lane in selected_results.items():
-            with self.subTest(publication_lane=lane):
-                self.assertIn(
-                    "needs.applicability.outputs."
-                    f"snarkpack_{selection}_run != 'true'",
-                    publication,
-                )
-                self.assertIn(
-                    f"needs.{lane}.result == 'success'",
-                    publication,
-                )
-        for cached_lane in ("extract", "fstar", "parity", "runtime"):
-            self.assertIn(
-                "needs.applicability.outputs."
-                f"snarkpack_{cached_lane}_cache_hit == 'true'",
-                publication,
-            )
-        self.assertIn(
-            "needs.applicability.outputs.snarkpack_rust_reference_run "
-            "!= 'true'",
+            "needs.snarkpack-host.result == 'success'",
             publication,
         )
         self.assertIn(
-            "needs.snarkpack-runtime.result == 'success'",
+            "needs.applicability.outputs.snarkpack_extract_run != 'true'",
             publication,
         )
+        self.assertIn(
+            "needs.snarkpack-extract.result == 'success'",
+            publication,
+        )
+        self.assertIn("snarkpack_parity_cache_hit != 'true'", publication)
         self.assertIn("SNARKPACK_FV_MODE: publication", publication)
+        self.assertIn("publication: ${{ steps.results.outputs.publication }}", publication)
 
         summary = re.search(
             r"(?ms)^  summary:\n(.*)\Z",
@@ -1106,9 +1484,9 @@ class GateApplicabilityTests(unittest.TestCase):
         self.assertIsNotNone(summary)
         assert summary is not None
         summary_job = summary.group(1)
-        self.assertIn("- snarkpack-publication", summary_job)
+        self.assertIn("- snarkpack-closure", summary_job)
         self.assertIn(
-            "PUBLICATION: ${{ needs.snarkpack-publication.result }}",
+            "PUBLICATION: ${{ needs.snarkpack-closure.outputs.publication || 'skipped' }}",
             summary_job,
         )
         self.assertIn(
@@ -1164,18 +1542,14 @@ class GateApplicabilityTests(unittest.TestCase):
         self.assertNotIn("SNARKPACK_ALLOW_PENDING_LEAN_", workflow)
         self.assertNotIn("matrix.graph", workflow)
         self.assertNotIn("snarkpack-extraction-recovery:", workflow)
-        self.assertIn(
-            "SNARKPACK_ALLOW_STALE_EXTRACTION_GRAPHS_JSON: "
-            "${{ needs.applicability.outputs.snarkpack_extract_run == "
-            "'true' && needs.applicability.outputs."
-            "snarkpack_extract_graphs || '[]' }}",
-            workflow,
+        self.assertNotIn(
+            "SNARKPACK_ALLOW_STALE_EXTRACTION_GRAPHS_JSON", workflow
         )
         self.assertIn("snarkpack-extract-v5-", workflow)
         self.assertIn(
             '--title "SnarkPack affected extraction graphs"', workflow
         )
-        self.assertIn("snarkpack-runtime:", workflow)
+        self.assertIn("snarkpack-host:", workflow)
         self.assertIn("--lane runtime", workflow)
         self.assertIn("snarkpack-runtime-pass-v2-", workflow)
         self.assertIn("id: parity_pass_cache", workflow)
@@ -1190,13 +1564,7 @@ class GateApplicabilityTests(unittest.TestCase):
             "  # ---------------------------------------------------------------- soundness",
             maxsplit=1,
         )[0]
-        self.assertEqual(snarkpack_section.count("runs-on: blacksmith-"), 1)
-        self.assertEqual(
-            snarkpack_section.count(
-                "runs-on: blacksmith-16vcpu-ubuntu-2404"
-            ),
-            1,
-        )
+        self.assertNotIn("runs-on: blacksmith-", snarkpack_section)
         for forbidden in (
             "lake build",
             "lake env lean",
@@ -1248,39 +1616,36 @@ class GateApplicabilityTests(unittest.TestCase):
                 workflow,
             )
         )
-        fstar = lanes["snarkpack-fstar"]
-        parity = lanes["snarkpack-parity"]
-        runtime = lanes["snarkpack-runtime"]
-        applicability = workflow.split("  snarkpack-static:", maxsplit=1)[0]
-        self.assertNotIn("actions/cache/restore@", fstar)
-        self.assertIn("snarkpack-parity-pass-v2-", parity)
-        self.assertIn("snarkpack-runtime-pass-v2-", runtime)
-        self.assertNotIn("actions/cache/restore@", parity)
-        self.assertNotIn("actions/cache/restore@", runtime)
+        host = lanes["snarkpack-host"]
+        closure = lanes["snarkpack-closure"]
+        applicability = workflow.split("  snarkpack-host:", maxsplit=1)[0]
+        self.assertNotIn("actions/cache/restore@", host)
+        self.assertIn("snarkpack-fstar-pass-v2-", host)
+        self.assertIn("snarkpack-runtime-pass-v2-", host)
+        self.assertIn("snarkpack-parity-pass-v2-", closure)
+        self.assertNotIn("actions/cache/restore@", closure)
         self.assertIn("id: parity_pass_cache", applicability)
         self.assertIn("id: extract_pass_cache", applicability)
         self.assertIn("id: runtime_cache", applicability)
         self.assertIn("id: fstar_pass_cache", applicability)
         self.assertIn("--lane runtime", applicability)
         self.assertIn(
-            "snarkpack_fstar_cache_hit != 'true'", fstar
+            "snarkpack_fstar_cache_hit != 'true'", host
+        )
+        self.assertIn("Upload exact F* evidence refresh", host)
+        self.assertIn("actions/upload-artifact@", host)
+        self.assertIn("fstar-checker-evidence.json", host)
+        self.assertIn(
+            "snarkpack_parity_cache_hit != 'true'", closure
         )
         self.assertIn(
-            "snarkpack_parity_cache_hit != 'true'", parity
+            "snarkpack_runtime_cache_hit != 'true'", host
         )
-        self.assertIn(
-            "snarkpack_runtime_cache_hit != 'true'", runtime
-        )
-        for lane in (fstar, parity):
+        for lane in (host, closure):
             with self.subTest(github_hosted_lane=lane):
                 self.assertEqual(lane.count("runs-on: ubuntu-24.04"), 1)
                 self.assertNotIn("runs-on: blacksmith-", lane)
-        self.assertIn(
-            "runs-on: blacksmith-16vcpu-ubuntu-2404",
-            runtime,
-        )
-        self.assertNotIn("runs-on: ubuntu-24.04", runtime)
-        self.assertNotIn("restore-keys:", runtime)
+        self.assertNotIn("restore-keys:", host)
         self.assertNotIn("runner.temp }}/snarkpack", workflow)
 
     def test_every_soundness_lane_is_applicability_gated(self) -> None:
@@ -1295,16 +1660,16 @@ class GateApplicabilityTests(unittest.TestCase):
         self.assertEqual(
             {lane for lane, _ in lanes},
             {
-                "soundness-gate",
-                "soundness-seam-and-pin",
-                "soundness-vk-derivation",
-                "soundness-alloy",
-                "soundness-lean-circuit-fv",
+                "soundness-host",
+                "soundness-artifact-replay",
             },
         )
         for lane, body in lanes:
             with self.subTest(lane=lane):
-                self.assertIn("needs: applicability", body)
+                self.assertRegex(
+                    body,
+                    r"needs: (?:applicability|\[[^]]*\bapplicability\b[^]]*\])",
+                )
                 self.assertIn(
                     "needs.applicability.outputs.soundness_run == 'true'",
                     body,
@@ -1334,11 +1699,11 @@ class GateApplicabilityTests(unittest.TestCase):
         self.assertIn("candidate_sha: ${{ steps.candidate.outputs.sha }}", applicability)
         self.assertEqual(applicability.count("ref: ${{ env.CANDIDATE_REF }}"), 1)
         self.assertNotIn("ref: ${{ env.CANDIDATE_REF }}", downstream)
-        self.assertGreaterEqual(
+        self.assertEqual(
             downstream.count(
                 "ref: ${{ needs.applicability.outputs.candidate_sha }}"
             ),
-            12,
+            6,
         )
 
     def test_reusable_scheduled_run_honors_its_target_ref(self) -> None:
@@ -1354,6 +1719,42 @@ class GateApplicabilityTests(unittest.TestCase):
             workflow,
         )
 
+    def test_manual_formal_runs_accept_and_freeze_exact_commit_refs(self) -> None:
+        for relative in (
+            ".github/workflows/formal.yml",
+            ".github/workflows/soundness-provers.yml",
+        ):
+            with self.subTest(workflow=relative):
+                workflow = (self.root / relative).read_text(encoding="utf-8")
+                dispatch_end = (
+                    "\n  pull_request:"
+                    if relative.endswith("/formal.yml")
+                    else "\nconcurrency:"
+                )
+                dispatch = workflow.split(
+                    "  workflow_dispatch:", maxsplit=1
+                )[1].split(dispatch_end, maxsplit=1)[0]
+                self.assertIn("type: string", dispatch)
+                self.assertNotIn("type: choice", dispatch)
+                self.assertIn(
+                    "candidate_sha: ${{ steps.candidate.outputs.sha }}",
+                    workflow,
+                )
+
+        provers = (
+            self.root / ".github/workflows/soundness-provers.yml"
+        ).read_text(encoding="utf-8")
+        applicability, downstream = provers.split(
+            "\n  tamarin-alloy:\n", maxsplit=1
+        )
+        self.assertEqual(applicability.count("ref: ${{ env.CANDIDATE_REF }}"), 1)
+        self.assertNotIn("ref: ${{ env.CANDIDATE_REF }}", downstream)
+        self.assertGreaterEqual(
+            downstream.count(
+                "ref: ${{ needs.applicability.outputs.candidate_sha }}"
+            ),
+            6,
+        )
     def test_nix_cache_key_includes_flake_lock(self) -> None:
         action = (
             self.root / ".github/actions/setup-nix-rust/action.yml"
@@ -1362,6 +1763,16 @@ class GateApplicabilityTests(unittest.TestCase):
             "hashFiles(inputs.nix-cache-glob, 'flake.lock')",
             action,
         )
+
+    def test_nix_shell_exposes_sqlite_to_rust_test_binaries(self) -> None:
+        flake = (self.root / "flake.nix").read_text(encoding="utf-8")
+        library_path = flake[
+            flake.index("export LD_LIBRARY_PATH=") : flake.index(
+                "export RUST_LOG=",
+                flake.index("export LD_LIBRARY_PATH="),
+            )
+        ]
+        self.assertIn("pkgs.sqlite", library_path)
 
     def test_local_fv_quarantine_recovery_uses_real_safety_state(self) -> None:
         runner = (
@@ -1397,6 +1808,17 @@ class GateApplicabilityTests(unittest.TestCase):
         self.assertIn("dict.fromkeys", publisher)
         self.assertIn('run_lean "${pending_modules[@]}"', publisher)
         self.assertIn("--exact-cache", publisher)
+
+    def test_static_snarkpack_gate_defers_extraction_freshness(self) -> None:
+        runner = (self.root / "scripts/snarkpack-fv.sh").read_text(
+            encoding="utf-8"
+        )
+        static = runner.split("run_static() {", maxsplit=1)[1].split(
+            "\n}\n\nselected_graphs=", maxsplit=1
+        )[0]
+
+        self.assertIn('python3 "$EXTRACTIONS" validate', static)
+        self.assertNotIn('python3 "$EXTRACTIONS" check', static)
 
     def test_schedule_and_workflow_call_do_not_resolve_derived_inputs(self) -> None:
         for event in ("schedule", "workflow_call"):
@@ -1443,6 +1865,52 @@ class GateApplicabilityTests(unittest.TestCase):
             ).strip()
             self.assertEqual(
                 GATE.changed_files(root, base, head), ("new.txt", "old.txt")
+            )
+
+    def test_lfs_pointer_to_identical_blob_is_not_a_semantic_change(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+            subprocess.run(
+                ["git", "config", "user.email", "test@example.invalid"],
+                cwd=root,
+                check=True,
+            )
+            subprocess.run(
+                ["git", "config", "user.name", "Test"], cwd=root, check=True
+            )
+            payload = b"current proving material\n"
+            digest = hashlib.sha256(payload).hexdigest()
+            artifact = root / "artifact.bin"
+            artifact.write_bytes(
+                (
+                    "version https://git-lfs.github.com/spec/v1\n"
+                    f"oid sha256:{digest}\n"
+                    f"size {len(payload)}\n"
+                ).encode("ascii")
+            )
+            subprocess.run(["git", "add", "artifact.bin"], cwd=root, check=True)
+            subprocess.run(["git", "commit", "-qm", "pointer"], cwd=root, check=True)
+            base = subprocess.check_output(
+                ["git", "rev-parse", "HEAD"], cwd=root, text=True
+            ).strip()
+
+            artifact.write_bytes(payload)
+            subprocess.run(["git", "add", "artifact.bin"], cwd=root, check=True)
+            subprocess.run(["git", "commit", "-qm", "materialize"], cwd=root, check=True)
+            head = subprocess.check_output(
+                ["git", "rev-parse", "HEAD"], cwd=root, text=True
+            ).strip()
+            self.assertEqual(GATE.changed_files(root, base, head), ())
+
+            artifact.write_bytes(b"different proving material\n")
+            subprocess.run(["git", "add", "artifact.bin"], cwd=root, check=True)
+            subprocess.run(["git", "commit", "-qm", "change"], cwd=root, check=True)
+            changed = subprocess.check_output(
+                ["git", "rev-parse", "HEAD"], cwd=root, text=True
+            ).strip()
+            self.assertEqual(
+                GATE.changed_files(root, base, changed), ("artifact.bin",)
             )
 
 

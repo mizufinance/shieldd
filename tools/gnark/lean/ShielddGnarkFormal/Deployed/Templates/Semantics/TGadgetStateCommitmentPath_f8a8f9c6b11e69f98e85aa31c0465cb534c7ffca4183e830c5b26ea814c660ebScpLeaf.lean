@@ -13,7 +13,7 @@ namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TGadgetStateCommitmen
 open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 theorem template_scp_leaf_eq (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relation rho) :
-    seg13ScpLeafOut rho = Shieldd.GnarkFormal.Poseidon1Bridge.permSpec1 (545001158149490383238005163525397553024965043366546261617421270984613353336 : F) (rho 1) := by
+    seg33ScpLeafOut rho = Shieldd.GnarkFormal.Poseidon1Bridge.permSpec1 (545001158149490383238005163525397553024965043366546261617421270984613353336 : F) (rho 1) := by
   unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relation at h
   rcases h with ⟨
     p0, p1, p2, _, _, _, _, _, _, _,
@@ -179,9 +179,8 @@ theorem template_scp_leaf_eq (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deployed.
     exact ⟨rfl, rfl⟩
   have hs := Shieldd.GnarkFormal.Deployed.StateCommitmentPathLeaf.relation_sound_permSpec (rho 1) _ hrel
   rcases hs with ⟨x, y, ⟨rfl, rfl⟩, hs⟩
-  simpa [seg13ScpLeafOut, Shieldd.GnarkFormal.Deployed.StateCommitmentPathLeaf.s38_1,
+  simpa [seg33ScpLeafOut, Shieldd.GnarkFormal.Deployed.StateCommitmentPathLeaf.s38_1,
     Shieldd.GnarkFormal.Deployed.Poseidon1Link.row2,
     Shieldd.GnarkFormal.Deployed.StateCommitmentPathLeaf.tctLeafDomainLit, Shieldd.GnarkFormal.Deployed.StateCommitmentPathChoiceFree.tctLeafDomainLit] using hs
 
 end Shieldd.GnarkFormal.Deployed.Templates.Semantics.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb
-

@@ -4,19 +4,11 @@ use sha2::{Digest, Sha256};
 use shieldd_sdk_asset::asset;
 
 use crate::{
-    decode_object::{
-        PublicTransferTierDecodeObject, TransferTierKind, TransferTierMetadataStatement,
-    },
-    structs::DleqProof,
-    transfer::{
-        TransferComplianceCiphertext, TransferComplianceDleqProofs, TRANSFER_DLEQ_BYTES,
-        TRANSFER_WIRE_BYTES,
-    },
-    ActionRef, BlockRef, OutputRef, TransferOrbisUploadBundle, TxRef,
+    ActionRef, BlockRef, OutputRef, TransferComplianceCiphertext, TransferComplianceMetadata,
+    TxRef, TRANSFER_COMPLIANCE_METADATA_BYTES, TRANSFER_WIRE_BYTES,
 };
 
-pub const COMPLIANCE_EVIDENCE_VERSION: u32 = 1;
-const MAX_EVIDENCE_TIER_COUNT: usize = 4;
+pub const COMPLIANCE_EVIDENCE_VERSION: u32 = 3;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum EvidenceObjectType {
@@ -32,6 +24,11 @@ impl EvidenceObjectType {
     }
 }
 
+/// Canonical scanner evidence for one accepted transfer output.
+///
+/// The object deliberately excludes PRE envelopes, DH shared points, and
+/// standalone DLEQ proofs. Its metadata is the same minimal public statement
+/// committed by the transfer proof.
 #[derive(Clone, Debug)]
 pub struct ComplianceEvidenceObject {
     pub version: u32,
@@ -41,9 +38,7 @@ pub struct ComplianceEvidenceObject {
     pub is_flagged: bool,
     pub detection_salt: Fq,
     pub transfer_ciphertext: TransferComplianceCiphertext,
-    pub transfer_dleq_bundle: TransferComplianceDleqProofs,
-    pub tier_objects: Vec<PublicTransferTierDecodeObject>,
-    pub orbis_upload_bundle_hash: Option<[u8; 32]>,
+    pub metadata: TransferComplianceMetadata,
     pub payload_hash: [u8; 32],
 }
 
@@ -54,13 +49,9 @@ impl ComplianceEvidenceObject {
         is_flagged: bool,
         detection_salt: Fq,
         transfer_ciphertext: TransferComplianceCiphertext,
-        transfer_dleq_bundle: TransferComplianceDleqProofs,
-        tier_objects: Vec<PublicTransferTierDecodeObject>,
-        upload_bundle: Option<&TransferOrbisUploadBundle>,
+        metadata: TransferComplianceMetadata,
     ) -> Result<Self> {
-        let orbis_upload_bundle_hash = upload_bundle
-            .map(|bundle| bundle.to_bytes().map(|bytes| Sha256::digest(bytes).into()))
-            .transpose()?;
+        metadata.validate()?;
         let mut evidence = Self {
             version: COMPLIANCE_EVIDENCE_VERSION,
             object_type: EvidenceObjectType::Transfer,
@@ -69,70 +60,11 @@ impl ComplianceEvidenceObject {
             is_flagged,
             detection_salt,
             transfer_ciphertext,
-            transfer_dleq_bundle,
-            tier_objects,
-            orbis_upload_bundle_hash,
+            metadata,
             payload_hash: [0u8; 32],
         };
         evidence.payload_hash = evidence.compute_payload_hash();
         Ok(evidence)
-    }
-
-    pub fn from_upload_bundle(
-        output_ref: OutputRef,
-        asset_id: asset::Id,
-        is_flagged: bool,
-        detection_salt: Fq,
-        transfer_ciphertext: TransferComplianceCiphertext,
-        upload_bundle: &TransferOrbisUploadBundle,
-    ) -> Result<Self> {
-        let proofs = TransferComplianceDleqProofs {
-            sender_core: dleq_from_upload_package(&upload_bundle.sender_core)?,
-            sender_ext: dleq_from_upload_package(&upload_bundle.sender_ext)?,
-            output_core: dleq_from_upload_package(&upload_bundle.output_core)?,
-            output_ext: dleq_from_upload_package(&upload_bundle.output_ext)?,
-        };
-        let tier_objects = vec![
-            PublicTransferTierDecodeObject::new(
-                upload_bundle.sender_core.statement.clone(),
-                &transfer_ciphertext.sender_core_epk,
-                transfer_ciphertext.sender_core_c2,
-                &upload_bundle.sender_core.shared_point()?,
-                &proofs.sender_core,
-            ),
-            PublicTransferTierDecodeObject::new(
-                upload_bundle.sender_ext.statement.clone(),
-                &transfer_ciphertext.sender_ext_epk,
-                transfer_ciphertext.sender_ext_c2,
-                &upload_bundle.sender_ext.shared_point()?,
-                &proofs.sender_ext,
-            ),
-            PublicTransferTierDecodeObject::new(
-                upload_bundle.output_core.statement.clone(),
-                &transfer_ciphertext.output_core_epk,
-                transfer_ciphertext.output_core_c2,
-                &upload_bundle.output_core.shared_point()?,
-                &proofs.output_core,
-            ),
-            PublicTransferTierDecodeObject::new(
-                upload_bundle.output_ext.statement.clone(),
-                &transfer_ciphertext.output_ext_epk,
-                transfer_ciphertext.output_ext_c2,
-                &upload_bundle.output_ext.shared_point()?,
-                &proofs.output_ext,
-            ),
-        ];
-
-        Self::new_transfer(
-            output_ref,
-            asset_id,
-            is_flagged,
-            detection_salt,
-            transfer_ciphertext,
-            proofs,
-            tier_objects,
-            Some(upload_bundle),
-        )
     }
 
     pub fn object_hash(&self) -> [u8; 32] {
@@ -145,6 +77,11 @@ impl ComplianceEvidenceObject {
             "unsupported evidence version {}",
             self.version
         );
+        ensure!(
+            self.object_type == EvidenceObjectType::Transfer,
+            "unsupported evidence object type"
+        );
+        self.metadata.validate()?;
         ensure!(
             self.payload_hash == self.compute_payload_hash(),
             "evidence payload_hash mismatch"
@@ -165,10 +102,10 @@ impl ComplianceEvidenceObject {
         let height = reader.read_u64()?;
         let block_hash = reader.read_array::<32>()?;
         let parent_hash = reader.read_array::<32>()?;
-        let block_time_unix = if reader.read_u8()? == 1 {
-            Some(reader.read_i64()?)
-        } else {
-            None
+        let block_time_unix = match reader.read_u8()? {
+            0 => None,
+            1 => Some(reader.read_i64()?),
+            other => bail!("invalid block_time_unix option discriminant {other}"),
         };
         let tx_index = reader.read_u32()?;
         let tx_hash = shieldd_sdk_txhash::TransactionId(reader.read_array::<32>()?);
@@ -178,31 +115,18 @@ impl ComplianceEvidenceObject {
             Fq::from_bytes_checked(&reader.read_array::<32>()?)
                 .map_err(|_| anyhow!("invalid evidence asset_id"))?,
         );
-        let is_flagged = reader.read_u8()? != 0;
+        let is_flagged = reader.read_bool("is_flagged")?;
         let detection_salt = Fq::from_bytes_checked(&reader.read_array::<32>()?)
             .map_err(|_| anyhow!("invalid evidence detection_salt"))?;
         let transfer_ciphertext =
             TransferComplianceCiphertext::from_bytes(reader.read_slice(TRANSFER_WIRE_BYTES)?)?;
-        let transfer_dleq_bundle =
-            TransferComplianceDleqProofs::from_bytes(reader.read_slice(TRANSFER_DLEQ_BYTES)?)?;
-        let tier_count = reader.read_u32()? as usize;
-        ensure!(
-            tier_count <= MAX_EVIDENCE_TIER_COUNT,
-            "evidence tier count {tier_count} exceeds maximum {MAX_EVIDENCE_TIER_COUNT}"
-        );
-        let mut tier_objects = Vec::with_capacity(tier_count);
-        for _ in 0..tier_count {
-            tier_objects.push(read_tier_object(&mut reader)?);
-        }
-        let orbis_upload_bundle_hash = if reader.read_u8()? == 1 {
-            Some(reader.read_array::<32>()?)
-        } else {
-            None
-        };
+        let metadata = TransferComplianceMetadata::from_bytes(
+            reader.read_slice(TRANSFER_COMPLIANCE_METADATA_BYTES)?,
+        )?;
         let payload_hash = reader.read_array::<32>()?;
         reader.finish()?;
 
-        Ok(Self {
+        let evidence = Self {
             version,
             object_type,
             output_ref: OutputRef {
@@ -225,11 +149,11 @@ impl ComplianceEvidenceObject {
             is_flagged,
             detection_salt,
             transfer_ciphertext,
-            transfer_dleq_bundle,
-            tier_objects,
-            orbis_upload_bundle_hash,
+            metadata,
             payload_hash,
-        })
+        };
+        evidence.validate_payload_hash()?;
+        Ok(evidence)
     }
 
     fn compute_payload_hash(&self) -> [u8; 32] {
@@ -259,74 +183,13 @@ impl ComplianceEvidenceObject {
         out.push(u8::from(self.is_flagged));
         out.extend_from_slice(&self.detection_salt.to_bytes());
         out.extend_from_slice(&self.transfer_ciphertext.to_bytes());
-        out.extend_from_slice(&self.transfer_dleq_bundle.to_bytes());
-        out.extend_from_slice(&(self.tier_objects.len() as u32).to_le_bytes());
-        for tier in &self.tier_objects {
-            write_tier_object(&mut out, tier);
-        }
-        match self.orbis_upload_bundle_hash {
-            Some(hash) => {
-                out.push(1);
-                out.extend_from_slice(&hash);
-            }
-            None => out.push(0),
-        }
+        out.extend_from_slice(
+            &self
+                .metadata
+                .to_bytes()
+                .expect("validated evidence metadata must encode"),
+        );
         out
-    }
-}
-
-fn dleq_from_upload_package(package: &crate::OrbisEncryptedSeedUploadPackage) -> Result<DleqProof> {
-    Ok(DleqProof {
-        c: package.challenge_scalar(),
-        s: package.response_scalar()?,
-    })
-}
-
-fn write_tier_object(out: &mut Vec<u8>, tier: &PublicTransferTierDecodeObject) {
-    let statement = &tier.statement;
-    out.extend_from_slice(&statement.subject_derivation_bytes);
-    out.extend_from_slice(&statement.ring_id_hash_bytes);
-    out.extend_from_slice(&statement.policy_id_hash_bytes);
-    out.extend_from_slice(&statement.resource_hash_bytes);
-    out.extend_from_slice(&statement.permission_hash_bytes);
-    out.push(statement.tier as u8);
-    out.extend_from_slice(&statement.target_timestamp.to_le_bytes());
-    out.extend_from_slice(&statement.salt_bytes);
-    out.extend_from_slice(&tier.epk_bytes);
-    out.extend_from_slice(&tier.c2_bytes);
-    out.extend_from_slice(&tier.shared_point_bytes);
-    out.extend_from_slice(&tier.dleq_challenge_bytes);
-    out.extend_from_slice(&tier.dleq_response_bytes);
-}
-
-fn read_tier_object(reader: &mut EvidenceReader<'_>) -> Result<PublicTransferTierDecodeObject> {
-    let statement = TransferTierMetadataStatement {
-        subject_derivation_bytes: reader.read_array::<32>()?,
-        ring_id_hash_bytes: reader.read_array::<32>()?,
-        policy_id_hash_bytes: reader.read_array::<32>()?,
-        resource_hash_bytes: reader.read_array::<32>()?,
-        permission_hash_bytes: reader.read_array::<32>()?,
-        tier: tier_kind_from_byte(reader.read_u8()?)?,
-        target_timestamp: reader.read_u64()?,
-        salt_bytes: reader.read_array::<32>()?,
-    };
-    Ok(PublicTransferTierDecodeObject {
-        statement,
-        epk_bytes: reader.read_array::<32>()?,
-        c2_bytes: reader.read_array::<32>()?,
-        shared_point_bytes: reader.read_array::<32>()?,
-        dleq_challenge_bytes: reader.read_array::<32>()?,
-        dleq_response_bytes: reader.read_array::<32>()?,
-    })
-}
-
-fn tier_kind_from_byte(byte: u8) -> Result<TransferTierKind> {
-    match byte {
-        1 => Ok(TransferTierKind::SenderCore),
-        2 => Ok(TransferTierKind::SenderExt),
-        3 => Ok(TransferTierKind::OutputCore),
-        4 => Ok(TransferTierKind::OutputExt),
-        other => bail!("invalid transfer tier kind {other}"),
     }
 }
 
@@ -363,6 +226,14 @@ impl<'a> EvidenceReader<'a> {
         Ok(self.read_slice(1)?[0])
     }
 
+    fn read_bool(&mut self, label: &str) -> Result<bool> {
+        match self.read_u8()? {
+            0 => Ok(false),
+            1 => Ok(true),
+            other => bail!("invalid {label} boolean encoding {other}"),
+        }
+    }
+
     fn read_u32(&mut self) -> Result<u32> {
         Ok(u32::from_le_bytes(self.read_array::<4>()?))
     }
@@ -392,38 +263,26 @@ pub(crate) mod tests {
     use shieldd_sdk_asset::Value;
     use shieldd_sdk_num::Amount;
 
-    use crate::{
-        crypto::derive_compliance_scalar,
-        decode_object::TransferTierMetadataStatement,
-        indexed_tree::string_to_fq,
-        test_helpers::make_address,
-        transfer::{compute_transfer_dleqs, encrypt_transfer},
-        upload_package::build_orbis_encrypted_seed_upload_package_with_randomness,
-    };
+    use crate::{crypto::derive_compliance_scalar, test_helpers::make_address};
 
     fn derive_ack(ring_pk: &Element, address: &shieldd_sdk_keys::Address) -> Element {
         let b_d_fq = address.diversified_generator().vartime_compress_to_field();
         let d = derive_compliance_scalar(b_d_fq);
-        let d_fr = Fr::from_le_bytes_mod_order(&d.to_bytes());
-        *ring_pk * d_fr
+        *ring_pk * Fr::from_le_bytes_mod_order(&d.to_bytes())
     }
 
-    pub(crate) fn valid_evidence_fixture(
-    ) -> (ComplianceEvidenceObject, TransferOrbisUploadBundle, Element) {
-        let dk = crate::DetectionKey::demo();
-        let dk_pub = dk.public_key();
-        let ring_sk = Fr::rand(&mut OsRng);
-        let ring_pk = Element::GENERATOR * ring_sk;
+    pub(crate) fn valid_evidence_fixture() -> (ComplianceEvidenceObject, TransferComplianceMetadata)
+    {
+        let dk_pub = crate::DetectionKey::demo().public_key();
+        let ring_pk = Element::GENERATOR * Fr::rand(&mut OsRng);
         let sender = make_address(9);
         let receiver = make_address(10);
-        let ack_sender = derive_ack(&ring_pk, &sender);
-        let ack_receiver = derive_ack(&ring_pk, &receiver);
         let asset_id = asset::Id(Fq::from(444u64));
-        let salt = Fq::from(77u64);
-        let encrypted = encrypt_transfer(
+        let detection_salt = Fq::from(77u64);
+        let encrypted = crate::encrypt_transfer(
             &mut OsRng,
-            &ack_sender,
-            &ack_receiver,
+            &derive_ack(&ring_pk, &sender),
+            &derive_ack(&ring_pk, &receiver),
             &dk_pub,
             &receiver,
             &sender,
@@ -434,180 +293,26 @@ pub(crate) mod tests {
             false,
             0,
             0,
-            salt,
+            false,
+            detection_salt,
         )
-        .unwrap();
+        .expect("fixture transfer should encrypt");
 
-        let target_timestamp = 1_700_000_000;
-        let ring_id = "ring-id";
-        let policy_id = "policy-id";
-        let resource = "document";
-        let permission = "read";
-        let tier_salts = [
+        let sender_subject = sender.diversified_generator().vartime_compress_to_field();
+        let receiver_subject = receiver.diversified_generator().vartime_compress_to_field();
+        let metadata = TransferComplianceMetadata::from_identifiers(
+            sender_subject,
+            receiver_subject,
+            "ring-id",
+            "policy-id",
+            "document",
+            "read",
+            1_700_000_000,
             Fq::from(11u64),
             Fq::from(12u64),
             Fq::from(13u64),
             Fq::from(14u64),
-        ];
-        let proofs = compute_transfer_dleqs(
-            &encrypted.sender,
-            &encrypted.output,
-            Fr::rand(&mut OsRng),
-            Fr::rand(&mut OsRng),
-            Fr::rand(&mut OsRng),
-            Fr::rand(&mut OsRng),
-            &ack_sender,
-            &ack_receiver,
-            string_to_fq(policy_id),
-            string_to_fq(resource),
-            string_to_fq(permission),
-            tier_salts[0],
-            tier_salts[1],
-            tier_salts[2],
-            tier_salts[3],
-            target_timestamp,
         );
-
-        let sender_bd = sender.diversified_generator().vartime_compress_to_field();
-        let receiver_bd = receiver.diversified_generator().vartime_compress_to_field();
-        let statements = [
-            TransferTierMetadataStatement::from_identifiers(
-                sender_bd,
-                ring_id,
-                policy_id,
-                resource,
-                permission,
-                TransferTierKind::SenderCore,
-                target_timestamp,
-                tier_salts[0],
-            ),
-            TransferTierMetadataStatement::from_identifiers(
-                sender_bd,
-                ring_id,
-                policy_id,
-                resource,
-                permission,
-                TransferTierKind::SenderExt,
-                target_timestamp,
-                tier_salts[1],
-            ),
-            TransferTierMetadataStatement::from_identifiers(
-                receiver_bd,
-                ring_id,
-                policy_id,
-                resource,
-                permission,
-                TransferTierKind::OutputCore,
-                target_timestamp,
-                tier_salts[2],
-            ),
-            TransferTierMetadataStatement::from_identifiers(
-                receiver_bd,
-                ring_id,
-                policy_id,
-                resource,
-                permission,
-                TransferTierKind::OutputExt,
-                target_timestamp,
-                tier_salts[3],
-            ),
-        ];
-
-        let ciphertext = &encrypted.ciphertext;
-        let tier_objects = vec![
-            PublicTransferTierDecodeObject::new(
-                statements[0].clone(),
-                &ciphertext.sender_core_epk,
-                ciphertext.sender_core_c2,
-                &(ack_sender * encrypted.sender.core.r),
-                &proofs.sender_core,
-            ),
-            PublicTransferTierDecodeObject::new(
-                statements[1].clone(),
-                &ciphertext.sender_ext_epk,
-                ciphertext.sender_ext_c2,
-                &(ack_sender * encrypted.sender.ext.r),
-                &proofs.sender_ext,
-            ),
-            PublicTransferTierDecodeObject::new(
-                statements[2].clone(),
-                &ciphertext.output_core_epk,
-                ciphertext.output_core_c2,
-                &(ack_receiver * encrypted.output.core.r),
-                &proofs.output_core,
-            ),
-            PublicTransferTierDecodeObject::new(
-                statements[3].clone(),
-                &ciphertext.output_ext_epk,
-                ciphertext.output_ext_c2,
-                &(ack_receiver * encrypted.output.ext.r),
-                &proofs.output_ext,
-            ),
-        ];
-
-        let upload_bundle = TransferOrbisUploadBundle {
-            sender_core: build_orbis_encrypted_seed_upload_package_with_randomness(
-                &mut OsRng,
-                &ring_pk,
-                encrypted.sender.core.seed,
-                encrypted.sender.core.r,
-                statements[0].clone(),
-                ring_id,
-                policy_id,
-                resource,
-                permission,
-                TransferTierKind::SenderCore,
-                target_timestamp,
-                tier_salts[0],
-            )
-            .unwrap(),
-            sender_ext: build_orbis_encrypted_seed_upload_package_with_randomness(
-                &mut OsRng,
-                &ring_pk,
-                encrypted.sender.ext.seed,
-                encrypted.sender.ext.r,
-                statements[1].clone(),
-                ring_id,
-                policy_id,
-                resource,
-                permission,
-                TransferTierKind::SenderExt,
-                target_timestamp,
-                tier_salts[1],
-            )
-            .unwrap(),
-            output_core: build_orbis_encrypted_seed_upload_package_with_randomness(
-                &mut OsRng,
-                &ring_pk,
-                encrypted.output.core.seed,
-                encrypted.output.core.r,
-                statements[2].clone(),
-                ring_id,
-                policy_id,
-                resource,
-                permission,
-                TransferTierKind::OutputCore,
-                target_timestamp,
-                tier_salts[2],
-            )
-            .unwrap(),
-            output_ext: build_orbis_encrypted_seed_upload_package_with_randomness(
-                &mut OsRng,
-                &ring_pk,
-                encrypted.output.ext.seed,
-                encrypted.output.ext.r,
-                statements[3].clone(),
-                ring_id,
-                policy_id,
-                resource,
-                permission,
-                TransferTierKind::OutputExt,
-                target_timestamp,
-                tier_salts[3],
-            )
-            .unwrap(),
-        };
-
         let output_ref = OutputRef {
             action: ActionRef {
                 tx: TxRef {
@@ -628,60 +333,67 @@ pub(crate) mod tests {
             output_ref,
             asset_id,
             false,
-            salt,
+            detection_salt,
             encrypted.ciphertext,
-            proofs,
-            tier_objects,
-            Some(&upload_bundle),
+            metadata.clone(),
         )
-        .unwrap();
-
-        (evidence, upload_bundle, ring_pk)
+        .expect("fixture evidence should build");
+        (evidence, metadata)
     }
 
     #[test]
-    fn evidence_round_trip_preserves_payload_hash() {
-        let (evidence, _bundle, _ring_pk) = valid_evidence_fixture();
+    fn evidence_round_trip_preserves_payload_hash_and_metadata() {
+        let (evidence, metadata) = valid_evidence_fixture();
         let encoded = evidence.to_bytes();
-        let decoded = ComplianceEvidenceObject::from_bytes(&encoded).unwrap();
-        decoded.validate_payload_hash().unwrap();
+        let decoded =
+            ComplianceEvidenceObject::from_bytes(&encoded).expect("evidence should decode");
         assert_eq!(decoded.object_hash(), evidence.object_hash());
         assert_eq!(decoded.output_ref, evidence.output_ref);
-        assert_eq!(decoded.tier_objects.len(), 4);
+        assert_eq!(decoded.metadata, metadata);
     }
 
     #[test]
-    fn evidence_builds_from_real_upload_bundle() {
-        let (evidence, bundle, ring_pk) = valid_evidence_fixture();
-        let rebuilt = ComplianceEvidenceObject::from_upload_bundle(
-            evidence.output_ref.clone(),
-            evidence.asset_id,
-            evidence.is_flagged,
-            evidence.detection_salt,
-            evidence.transfer_ciphertext.clone(),
-            &bundle,
-        )
-        .unwrap();
+    fn evidence_rejects_trailing_bytes_and_noncanonical_boolean() {
+        let (evidence, _) = valid_evidence_fixture();
+        let mut trailing = evidence.to_bytes();
+        trailing.push(0);
+        assert!(ComplianceEvidenceObject::from_bytes(&trailing).is_err());
 
-        assert_eq!(rebuilt.output_ref, evidence.output_ref);
-        assert_eq!(rebuilt.asset_id, evidence.asset_id);
-        assert_eq!(rebuilt.detection_salt, evidence.detection_salt);
-        assert_eq!(rebuilt.tier_objects.len(), 4);
-        assert_eq!(
-            crate::validate_audit_evidence(crate::AuditValidationInput {
-                evidence: rebuilt,
-                upload_bundle: Some(bundle),
-                ring_pk,
-            }),
-            crate::AuditValidationStatus::Valid
-        );
+        let mut flagged = evidence.to_bytes();
+        const BLOCK_TIME_TAG_OFFSET: usize = 4 + 1 + 8 + 32 + 32;
+        const FLAGGED_OFFSET_WITH_BLOCK_TIME: usize =
+            BLOCK_TIME_TAG_OFFSET + 1 + 8 + 4 + 32 + 4 + 4 + 32;
+        flagged[FLAGGED_OFFSET_WITH_BLOCK_TIME] = 2;
+        assert!(ComplianceEvidenceObject::from_bytes(&flagged).is_err());
     }
 
     #[test]
-    fn evidence_rejects_trailing_bytes() {
-        let (evidence, _bundle, _ring_pk) = valid_evidence_fixture();
-        let mut encoded = evidence.to_bytes();
-        encoded.push(0);
-        assert!(ComplianceEvidenceObject::from_bytes(&encoded).is_err());
+    fn evidence_hash_commits_to_every_metadata_field() {
+        let (evidence, _) = valid_evidence_fixture();
+        let original = evidence.object_hash();
+
+        fn increment(bytes: &mut [u8; 32]) {
+            let value = Fq::from_bytes_checked(bytes).expect("fixture field is canonical");
+            *bytes = (value + Fq::from(1u64)).to_bytes();
+        }
+        let mutations: [fn(&mut TransferComplianceMetadata); 11] = [
+            |m| increment(&mut m.sender_subject_derivation_bytes),
+            |m| increment(&mut m.output_subject_derivation_bytes),
+            |m| increment(&mut m.ring_id_hash_bytes),
+            |m| increment(&mut m.policy_id_hash_bytes),
+            |m| increment(&mut m.resource_hash_bytes),
+            |m| increment(&mut m.permission_hash_bytes),
+            |m| m.target_timestamp += 1,
+            |m| increment(&mut m.sender_core_salt_bytes),
+            |m| increment(&mut m.sender_ext_salt_bytes),
+            |m| increment(&mut m.output_core_salt_bytes),
+            |m| increment(&mut m.output_ext_salt_bytes),
+        ];
+        for mutate in mutations {
+            let mut changed = evidence.clone();
+            mutate(&mut changed.metadata);
+            changed.payload_hash = changed.compute_payload_hash();
+            assert_ne!(changed.object_hash(), original);
+        }
     }
 }

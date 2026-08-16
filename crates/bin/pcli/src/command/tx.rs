@@ -72,10 +72,6 @@ pub struct TxCmdWithOptions {
 pub enum NoteReshapeFamilyArg {
     #[clap(name = "1x8")]
     OneByEight,
-    #[clap(name = "2x1")]
-    TwoByOne,
-    #[clap(name = "4x1")]
-    FourByOne,
     #[clap(name = "8x1")]
     EightByOne,
 }
@@ -84,8 +80,6 @@ impl From<NoteReshapeFamilyArg> for NoteReshapeFamilyId {
     fn from(value: NoteReshapeFamilyArg) -> Self {
         match value {
             NoteReshapeFamilyArg::OneByEight => NoteReshapeFamilyId::OneByEight,
-            NoteReshapeFamilyArg::TwoByOne => NoteReshapeFamilyId::TwoByOne,
-            NoteReshapeFamilyArg::FourByOne => NoteReshapeFamilyId::FourByOne,
             NoteReshapeFamilyArg::EightByOne => NoteReshapeFamilyId::EightByOne,
         }
     }
@@ -494,7 +488,8 @@ impl TxCmd {
                     .context("can't parse proposal file")?;
 
                 let fvk = app.config.full_viewing_key.clone();
-                let proposer = IdentityKey(fvk.spend_verification_key().clone().into());
+                let proposer = IdentityKey::try_from(fvk.spend_verification_key().clone())
+                    .expect("full viewing keys have nonidentity spend verification keys");
                 let governance_key: GovernanceKey = app.config.governance_key();
                 let body = ProposalSubmitBody {
                     proposal,
@@ -585,7 +580,6 @@ impl TxCmd {
                     app.config
                         .full_viewing_key
                         .ephemeral_address(OsRng, AddressIndex::from(*source))
-                        .0
                 };
 
                 let timeout_height = match timeout_height {
@@ -693,7 +687,6 @@ impl TxCmd {
                     return_address: ephemeral_return_address,
                     // TODO: impl From<u64> for ChannelId
                     source_channel: ChannelId::from_str(format!("channel-{}", channel).as_ref())?,
-                    use_compat_address: false,
                     ics20_memo: memo.clone().unwrap_or_default(),
                     use_transparent_address: *use_transparent_address,
                 };
@@ -747,11 +740,10 @@ impl TxCmd {
 
                 let address = if let Ok(index) = index {
                     // address index provided
-                    let (address, _dtk) = match ephemeral {
+                    let address = match ephemeral {
                         false => fvk.incoming().payment_address(index.into()),
                         true => fvk.incoming().ephemeral_address(OsRng, index.into()),
                     };
-
                     address
                 } else {
                     // address or nothing provided

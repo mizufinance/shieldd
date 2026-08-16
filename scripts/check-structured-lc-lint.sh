@@ -33,14 +33,14 @@ python3 "$LINT" "$FIX/good.lean" \
 echo "self-test: good fixture correctly accepted"
 
 # --- 2. live check on freshly generated contracts -----------------------------
-ARTIFACT_DIR="$ROOT/tools/gnark/artifacts/note_reshape2x1"
+ARTIFACT_DIR="$ROOT/tools/gnark/artifacts/note_reshape8x1"
 mkdir -p "$ROOT/tools/gnark/lean/.lake"
 TMP="$(mktemp -d "$ROOT/tools/gnark/lean/.lake/structured-lc-lint.XXXXXX")"
 trap 'rm -rf "$TMP"' EXIT
 
 if ! cargo run --release -q -p shieldd-constraint-coverage -- \
-    --manifest "$ARTIFACT_DIR/note_reshape2x1-manifest.json" \
-    --sr1cs "$ARTIFACT_DIR/note_reshape2x1.sr1cs" \
+    --manifest "$ARTIFACT_DIR/note_reshape8x1-manifest.json" \
+    --sr1cs "$ARTIFACT_DIR/note_reshape8x1.sr1cs" \
     --template-registry "$ROOT/tools/gnark/artifacts/proof-template-registry.json" \
     --lean-contract-out "$TMP/generated" >"$TMP/generate.log" 2>&1; then
   cat "$TMP/generate.log" >&2

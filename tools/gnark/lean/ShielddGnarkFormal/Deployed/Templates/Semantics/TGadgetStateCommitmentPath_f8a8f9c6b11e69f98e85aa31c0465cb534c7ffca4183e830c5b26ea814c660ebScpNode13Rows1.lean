@@ -43,7 +43,7 @@ theorem template_scp_node13_seg12 (rho : Nat -> F)
     Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode13350_5df12c.seg12 (rho 5037) (rho 5042) (rho 5047) (rho 5052) (rho 5057) (rho 5062) (rho 5067) (rho 5072) next := by
   exact ⟨rho 5073, rho 5074, rho 5075, rho 5076, rho 5077, r5085, r5086, r5087, r5088, r5089, tail⟩
 
-theorem template_scp_node13_template (rho : Nat -> F)
+theorem template_scp_node13_seg13 (rho : Nat -> F)
     (next : F → F → F → F → F → Prop)
     (r5090 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow5090 rho)
     (r5091 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow5091 rho)
@@ -122,4 +122,3 @@ theorem template_scp_node13_seg19 (rho : Nat -> F)
 
 
 end Shieldd.GnarkFormal.Deployed.Templates.Semantics.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb
-

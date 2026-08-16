@@ -6,31 +6,19 @@ description = "Shieldd proof parameters"
 version = {workspace = true}
 license = {workspace = true}
 edition = {workspace = true}
-# We permit inclusion of the `*.bin` files, but including the full binary
-# data would be too large for crates.io, so a custom script converts them
-# to git-lfs pointers, which can be resolved by enabling the `download-proving-keys` feature.
-# exclude = ["src/gen/*.bin"]
+# Large proving artifacts are external to this crate. Repository builds that
+# enable `bundled-proving-keys` must materialize the runtime proving-key bundle.
 
 [build-dependencies]
-regex = { version = "1", optional = true }
-reqwest = { version = "0.12.9", optional = true, features = [
-    "blocking",
-    "json",
-] }
-serde_json = { version = "1", optional = true }
-sha2 = { version = "0.10.6" }
-hex = { version = "0.4.3" }
-anyhow = "1"
+serde = {workspace = true, features = ["derive"]}
+serde_json = {workspace = true}
+sha2 = {workspace = true}
+hex = {workspace = true}
+anyhow = {workspace = true}
 
 [features]
 default = []
 bundled-proving-keys = []
-download-proving-keys = [
-    "regex",
-    "reqwest",
-    "serde_json",
-    "bundled-proving-keys",
-]
 parallel = [
     "dep:rayon",
     "ark-ff/parallel",
@@ -43,6 +31,7 @@ parallel = [
 [dependencies]
 anyhow = {workspace = true}
 ark-ec = {workspace = true}
+ark-bw6-761 = {workspace = true}
 ark-ff = {workspace = true, default-features = false}
 ark-groth16 = {workspace = true, default-features = false}
 ark-r1cs-std = {workspace = true, default-features = false}
@@ -52,6 +41,7 @@ ark-snark = {workspace = true}
 ark-std = {workspace = true, default-features = false}
 bech32 = {workspace = true}
 decaf377 = {workspace = true, features = ["r1cs"], default-features = true}
+hex = {workspace = true}
 num-bigint = {workspace = true}
 once_cell = {workspace = true}
 poseidon377 = {workspace = true, features = ["r1cs"]}

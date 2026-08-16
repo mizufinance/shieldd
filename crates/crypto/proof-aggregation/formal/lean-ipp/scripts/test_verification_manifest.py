@@ -34,7 +34,9 @@ class VerificationManifestTests(unittest.TestCase):
                 path = VERIFICATION.REPO_ROOT.joinpath(
                     *Path(source["path"]).parts
                 )
-                source["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+                source["sha256"] = VERIFICATION.fstar_source_sha256(
+                    source["path"], path.read_bytes()
+                )
         return manifest
 
     def manifest_with_stale_contract_row(self, kind):
@@ -46,6 +48,103 @@ class VerificationManifestTests(unittest.TestCase):
         )
         row["checker"]["last_result"] = "stale"
         return manifest, row
+
+    def test_transaction_proto_fingerprint_ignores_unrelated_action_plan_fields(self):
+        relative = (
+            "proto/shieldd/shieldd/core/transaction/v1/transaction.proto"
+        )
+        source = (VERIFICATION.REPO_ROOT / relative).read_text(encoding="utf-8")
+        unrelated = source.replace(
+            "    component.shielded_pool.v1.ShieldedIcs20WithdrawalPlan "
+            "shielded_ics20_withdrawal = 200;",
+            "    component.shielded_pool.v1.ShieldedIcs20WithdrawalPlan "
+            "shielded_ics20_withdrawal = 200;\n"
+            "    component.shielded_pool.v1.ShieldedHostWithdrawalPlan "
+            "shielded_host_withdrawal = 201;",
+        )
+        self.assertNotEqual(source, unrelated)
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / relative
+            path.parent.mkdir(parents=True)
+            path.write_text(source, encoding="utf-8")
+            original = VERIFICATION._fstar_source_record(root, relative)
+            path.write_text(unrelated, encoding="utf-8")
+            changed = VERIFICATION._fstar_source_record(root, relative)
+
+        self.assertEqual(original["sha256"], changed["sha256"])
+
+    def test_transaction_proto_fingerprint_tracks_aggregate_wire_semantics(self):
+        relative = (
+            "proto/shieldd/shieldd/core/transaction/v1/transaction.proto"
+        )
+        source = (VERIFICATION.REPO_ROOT / relative).read_text(encoding="utf-8")
+        changed_tag = source.replace(
+            "    AggregateBundle aggregate_bundle = 82;",
+            "    AggregateBundle aggregate_bundle = 83;",
+            1,
+        )
+        changed_family = source.replace(
+            "  uint32 real_count = 3;",
+            "  uint32 real_count = 9;",
+            1,
+        )
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / relative
+            path.parent.mkdir(parents=True)
+            path.write_text(source, encoding="utf-8")
+            original = VERIFICATION._fstar_source_record(root, relative)
+            path.write_text(changed_tag, encoding="utf-8")
+            tag = VERIFICATION._fstar_source_record(root, relative)
+            path.write_text(changed_family, encoding="utf-8")
+            family = VERIFICATION._fstar_source_record(root, relative)
+
+        self.assertNotEqual(original["sha256"], tag["sha256"])
+        self.assertNotEqual(original["sha256"], family["sha256"])
+
+    def test_cargo_lock_fingerprint_tracks_only_proof_aggregation_closure(self):
+        relative = "Cargo.lock"
+        original = """\
+version = 4
+
+[[package]]
+name = "shieldd-sdk-proof-aggregation"
+version = "2.1.0"
+dependencies = ["relevant"]
+
+[[package]]
+name = "relevant"
+version = "1.0.0"
+source = "registry+https://example.invalid/index"
+checksum = "1111"
+
+[[package]]
+name = "unrelated"
+version = "1.0.0"
+source = "registry+https://example.invalid/index"
+checksum = "2222"
+"""
+        unrelated_change = original.replace(
+            'name = "unrelated"\nversion = "1.0.0"',
+            'name = "unrelated"\nversion = "2.0.0"',
+        )
+        relevant_change = original.replace('checksum = "1111"', 'checksum = "3333"')
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / relative
+            path.write_text(original, encoding="utf-8")
+            baseline = VERIFICATION._fstar_source_record(root, relative)
+            path.write_text(unrelated_change, encoding="utf-8")
+            unrelated = VERIFICATION._fstar_source_record(root, relative)
+            path.write_text(relevant_change, encoding="utf-8")
+            relevant = VERIFICATION._fstar_source_record(root, relative)
+
+        self.assertEqual(baseline["sha256"], unrelated["sha256"])
+        self.assertNotEqual(baseline["sha256"], relevant["sha256"])
 
     def test_real_manifest_is_nonempty_and_complete(self):
         # The checker artifact pins this validator's own source and is therefore
@@ -1472,11 +1571,16 @@ class VerificationManifestTests(unittest.TestCase):
             VERIFICATION.REPO_ROOT / ".github/workflows/formal.yml"
         ).read_text(encoding="utf-8")
         summary = workflow.split("\n  summary:\n", maxsplit=1)[1]
-        self.assertIn("- snarkpack-runtime", summary)
+        self.assertIn("- snarkpack-host", summary)
         self.assertIn(
-            "RUNTIME: ${{ needs.snarkpack-runtime.result }}",
+            "RUNTIME: ${{ needs.snarkpack-host.outputs.runtime || 'skipped' }}",
             summary,
         )
+        host = workflow.split("\n  snarkpack-host:\n", maxsplit=1)[1].split(
+            "\n  snarkpack-extract:\n", maxsplit=1
+        )[0]
+        self.assertIn("runtime: ${{ steps.results.outputs.runtime }}", host)
+        self.assertIn("snarkpack_runtime_cache_hit != 'true'", host)
         enforcer = (
             VERIFICATION.REPO_ROOT / "scripts/ci/enforce_formal_result.py"
         ).read_text(encoding="utf-8")
@@ -1618,11 +1722,25 @@ class VerificationManifestTests(unittest.TestCase):
             byte_contents, trace_contents
         )
 
+        self.assertEqual(
+            VERIFICATION.V1_BASELINE_FAMILIES,
+            (
+                ("Transfer", 9_000),
+                ("NoteReshape(NoteReshapeFamilyId(2))", 9_200),
+                ("NoteReshape(NoteReshapeFamilyId(3))", 9_300),
+                (
+                    "ShieldedIcs20Withdrawal("
+                    "ShieldedIcs20WithdrawalFamilyId(1))",
+                    9_500,
+                ),
+            ),
+        )
+
         removed_vector = "\n".join(
             line
             for line in trace_contents.splitlines()
-            if not line.startswith("vector 23 ")
-            and not line.startswith("23.")
+            if not line.startswith("vector 15 ")
+            and not line.startswith("15.")
         ) + "\n"
         with self.assertRaises(VERIFICATION.VerificationError) as raised:
             VERIFICATION.validate_v1_baseline_fixtures(

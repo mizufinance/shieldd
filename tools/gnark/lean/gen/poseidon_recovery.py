@@ -38,7 +38,7 @@ def parse_segments(stem):
     return out
 
 
-def derive_mapping(stem, seg_mod_path):
+def derive_mapping(stem, seg_mod_path, relation_transform=None):
     """Positionally align extracted wire ids with the deployed segment's rho ids.
 
     The extracted CPS rows and the deployed `relationRow{j}` defs are the same
@@ -54,6 +54,8 @@ def derive_mapping(stem, seg_mod_path):
         else list(seg_mod_path)
     )
     sg_text = "\n".join(path.read_text() for path in relation_files)
+    if relation_transform is not None:
+        sg_text = relation_transform(sg_text)
 
     def row_tokens(body, wire_re):
         coeffs = re.findall(r"\((\d+) : F\)", body)
@@ -128,6 +130,8 @@ def rho(wire, mapping):
         mapped = mapping.get(n, n)
     else:
         mapped = mapping[wire]
+    if isinstance(mapped, str):
+        return f"({mapped})"
     return f"(rho {mapped})"
 
 

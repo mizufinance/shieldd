@@ -35,7 +35,6 @@ func NoteCommitment(
 	noteAssetID frontend.Variable,
 	diversifiedGenerator gnarkte.Point,
 	transmissionKeyS frontend.Variable,
-	clueKey frontend.Variable,
 ) (frontend.Variable, error) {
 	diversifiedGeneratorFq, err := decafgnark.CompressToField(api, diversifiedGenerator)
 	if err != nil {
@@ -49,7 +48,6 @@ func NoteCommitment(
 		noteAssetID,
 		diversifiedGeneratorFq,
 		transmissionKeyS,
-		clueKey,
 	)
 }
 
@@ -60,23 +58,21 @@ func NoteCommitmentWithCompressedDivGen(
 	noteAssetID frontend.Variable,
 	diversifiedGeneratorFq frontend.Variable,
 	transmissionKeyS frontend.Variable,
-	clueKey frontend.Variable,
 ) (frontend.Variable, error) {
 	vectors, err := LoadPrototypeVectors()
 	if err != nil {
 		return nil, err
 	}
 
-	return Poseidon377Hash6(
+	return Poseidon377Hash5(
 		api,
 		MustBigInt(vectors.Poseidon377.NoteCommitDomain),
-		[6]frontend.Variable{
+		[5]frontend.Variable{
 			noteBlinding,
 			noteAmount,
 			noteAssetID,
 			diversifiedGeneratorFq,
 			transmissionKeyS,
-			clueKey,
 		},
 	)
 }

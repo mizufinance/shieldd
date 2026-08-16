@@ -8,10 +8,7 @@ use {
     serde::{Deserialize, Serialize},
     sha2::Digest as _,
     shieldd_sdk_app::{
-        app::{
-            candidate_digest_from_hashes, App, CandidateEnvelope, ExecutionBlockProfile,
-            PrepareProposalProfile, ProcessProposalProfile, ProposalArtifactSidecar,
-        },
+        app::{App, ExecutionBlockProfile, PrepareProposalProfile, ProcessProposalProfile},
         block_tx_indexing::BlockTxIndexingMode,
         stateless_cache::StatelessCache,
     },
@@ -380,10 +377,6 @@ struct DetailedRunReport {
     transfer_action_count: usize,
     transfer_input_slots: usize,
     transfer_output_slots: usize,
-    transfer_real_inputs: usize,
-    transfer_dummy_inputs: usize,
-    transfer_real_outputs: usize,
-    transfer_dummy_outputs: usize,
     ibc_relay_action_count: usize,
     delay_block_count: usize,
     delay_block_wall_ms: f64,
@@ -395,12 +388,10 @@ struct DetailedRunReport {
     checktx_cold_wall_ms: f64,
     checktx_warm_wall_ms: f64,
     prepare_proposal_wall_ms: f64,
-    prepare_zk_batch_verify_ms: f64,
+    prepare_zk_proof_verify_ms: f64,
     prepare_stateful_filter_ms: f64,
-    prepare_aggregate_build_ms: f64,
     process_proposal_wall_ms: f64,
-    process_aggregate_verify_ms: f64,
-    process_cold_reconstruction_zk_ms: f64,
+    process_independent_zk_verify_ms: f64,
     process_stateful_replay_ms: f64,
     execute_block_tx_count: usize,
     execute_begin_block_ms: f64,
@@ -420,27 +411,11 @@ struct DetailedRunReport {
     execute_set_source_ms: f64,
     execute_pay_fee_ms: f64,
     execute_historical_state_ms: f64,
-    execute_read_local_precheck_ms: f64,
-    execute_read_lookup_wait_or_join_ms: f64,
-    execute_read_historical_check_ms: f64,
-    execute_read_nullifier_wait_ms: f64,
-    execute_read_anchor_cache_wait_ms: f64,
     execute_action_ms: f64,
     execute_commit_ms: f64,
     execute_end_block_ms: f64,
-    execute_spend_action_ms: f64,
-    execute_spend_nullifier_tx_local_scan_ms: f64,
-    execute_spend_nullifier_block_log_lookup_ms: f64,
-    execute_spend_nullifier_committed_check_ms: f64,
-    execute_spend_nullifier_enqueue_ms: f64,
-    execute_spend_nullifier_stage_ms: f64,
-    execute_spend_nullifier_merge_ms: f64,
-    execute_nullifier_lookup_count: usize,
-    execute_output_action_ms: f64,
-    execute_output_write_ms: f64,
     execute_other_action_ms: f64,
     execute_apply_ms: f64,
-    execute_nullifier_check_ms: f64,
     inbound_receive: InboundReceiveBreakdownReport,
 }
 
@@ -1037,8 +1012,8 @@ async fn register_regulated_assets(relayer: &mut MockRelayer) -> Result<()> {
 
     let chain_a_client = relayer.chain_a_ibc.client().await?;
     let chain_b_client = relayer.chain_b_ibc.client().await?;
-    let address_a = chain_a_client.fvk.payment_address(AddressIndex::new(0)).0;
-    let address_b = chain_b_client.fvk.payment_address(AddressIndex::new(0)).0;
+    let address_a = chain_a_client.fvk.payment_address(AddressIndex::new(0));
+    let address_b = chain_b_client.fvk.payment_address(AddressIndex::new(0));
     relayer
         .chain_a_ibc
         .execute_regulated_compliance_setup(
@@ -1138,6 +1113,7 @@ async fn build_inner_transfer_txs(
             align_metadata(&spend, &mut [&mut output, &mut change]);
 
             let mut plan = TransactionPlan {
+                nullifier_window: None,
                 actions: vec![TransferPlan::new(
                     vec![spend.into()],
                     vec![output.into(), change.into()],
@@ -1202,6 +1178,7 @@ async fn rebuild_ibc_relay_txs(
             anyhow::bail!("stored tx {index} is not an IBC relay action");
         };
         let plan = TransactionPlan {
+            nullifier_window: None,
             actions: vec![ActionPlan::IbcAction(relay.clone())],
             memo: None,
             fee_funding: None,
@@ -1461,12 +1438,18 @@ async fn profile_block(chain: &mut TestNodeWithIBC, txs: Vec<Vec<u8>>) -> Result
     detailed.prepare_proposal_wall_ms = elapsed_ms(prepare_start);
     apply_prepare_profile(&mut detailed, &prepare_profile);
     ensure_prepare_preserved_user_txs(&txs, &prepared)?;
+    let sidecar = sidecar.context("profiled proposal must retain its artifact sidecar")?;
+    let envelope = App::candidate_envelope_from_prepared_proposal_public(
+        &prepared,
+        &sidecar,
+        "ibc_vs_transfer_benchmark",
+    )?;
 
     let process_request = process_request_from_prepare_response(&prepared);
     let mut validator = App::new(chain.storage.latest_snapshot());
     let process_start = Instant::now();
     let (process_verdict, process_profile) = validator
-        .process_proposal_v2_profiled(process_request, None, sidecar.as_ref(), true)
+        .process_proposal_v2_profiled(process_request, None, Some(&sidecar), true)
         .await;
     detailed.process_proposal_wall_ms = elapsed_ms(process_start);
     anyhow::ensure!(
@@ -1475,7 +1458,6 @@ async fn profile_block(chain: &mut TestNodeWithIBC, txs: Vec<Vec<u8>>) -> Result
     );
     apply_process_profile(&mut detailed, &process_profile);
 
-    let envelope = candidate_envelope_from_txs(&txs)?;
     let mut executor = App::new(chain.storage.latest_snapshot());
     executor.set_block_tx_indexing_mode(BlockTxIndexingMode::DeferredBatch);
     benchmarking::reset_inbound_receive_breakdown();
@@ -1504,22 +1486,6 @@ fn apply_shape_counts(report: &mut DetailedRunReport, txs: &[Arc<Transaction>]) 
                     report.transfer_action_count += 1;
                     report.transfer_input_slots += transfer.body.inputs.len();
                     report.transfer_output_slots += transfer.body.outputs.len();
-                    let real_inputs = transfer
-                        .body
-                        .inputs
-                        .iter()
-                        .filter(|input| !input.is_dummy())
-                        .count();
-                    let real_outputs = transfer
-                        .body
-                        .outputs
-                        .iter()
-                        .filter(|output| !output.is_dummy())
-                        .count();
-                    report.transfer_real_inputs += real_inputs;
-                    report.transfer_dummy_inputs += transfer.body.inputs.len() - real_inputs;
-                    report.transfer_real_outputs += real_outputs;
-                    report.transfer_dummy_outputs += transfer.body.outputs.len() - real_outputs;
                 }
                 Action::IbcRelay(_) => {
                     report.ibc_relay_action_count += 1;
@@ -1548,8 +1514,7 @@ async fn run_checktx_warm(
 ) -> Result<f64> {
     let cache = StatelessCache::new();
     for (tx, artifact) in txs.iter().zip(artifacts.iter()) {
-        let hash: [u8; 32] = sha2::Sha256::digest(tx).into();
-        cache.insert_extracted(hash, artifact.clone());
+        cache.insert_extracted(tx, artifact.clone())?;
     }
 
     let start = Instant::now();
@@ -1567,10 +1532,6 @@ impl DetailedRunReport {
         self.transfer_action_count += block.transfer_action_count;
         self.transfer_input_slots += block.transfer_input_slots;
         self.transfer_output_slots += block.transfer_output_slots;
-        self.transfer_real_inputs += block.transfer_real_inputs;
-        self.transfer_dummy_inputs += block.transfer_dummy_inputs;
-        self.transfer_real_outputs += block.transfer_real_outputs;
-        self.transfer_dummy_outputs += block.transfer_dummy_outputs;
         self.ibc_relay_action_count += block.ibc_relay_action_count;
         self.delay_block_count += block.delay_block_count;
         self.delay_block_wall_ms += block.delay_block_wall_ms;
@@ -1582,12 +1543,10 @@ impl DetailedRunReport {
         self.checktx_cold_wall_ms += block.checktx_cold_wall_ms;
         self.checktx_warm_wall_ms += block.checktx_warm_wall_ms;
         self.prepare_proposal_wall_ms += block.prepare_proposal_wall_ms;
-        self.prepare_zk_batch_verify_ms += block.prepare_zk_batch_verify_ms;
+        self.prepare_zk_proof_verify_ms += block.prepare_zk_proof_verify_ms;
         self.prepare_stateful_filter_ms += block.prepare_stateful_filter_ms;
-        self.prepare_aggregate_build_ms += block.prepare_aggregate_build_ms;
         self.process_proposal_wall_ms += block.process_proposal_wall_ms;
-        self.process_aggregate_verify_ms += block.process_aggregate_verify_ms;
-        self.process_cold_reconstruction_zk_ms += block.process_cold_reconstruction_zk_ms;
+        self.process_independent_zk_verify_ms += block.process_independent_zk_verify_ms;
         self.process_stateful_replay_ms += block.process_stateful_replay_ms;
         self.execute_block_tx_count += block.execute_block_tx_count;
         self.execute_begin_block_ms += block.execute_begin_block_ms;
@@ -1607,30 +1566,11 @@ impl DetailedRunReport {
         self.execute_set_source_ms += block.execute_set_source_ms;
         self.execute_pay_fee_ms += block.execute_pay_fee_ms;
         self.execute_historical_state_ms += block.execute_historical_state_ms;
-        self.execute_read_local_precheck_ms += block.execute_read_local_precheck_ms;
-        self.execute_read_lookup_wait_or_join_ms += block.execute_read_lookup_wait_or_join_ms;
-        self.execute_read_historical_check_ms += block.execute_read_historical_check_ms;
-        self.execute_read_nullifier_wait_ms += block.execute_read_nullifier_wait_ms;
-        self.execute_read_anchor_cache_wait_ms += block.execute_read_anchor_cache_wait_ms;
         self.execute_action_ms += block.execute_action_ms;
         self.execute_commit_ms += block.execute_commit_ms;
         self.execute_end_block_ms += block.execute_end_block_ms;
-        self.execute_spend_action_ms += block.execute_spend_action_ms;
-        self.execute_spend_nullifier_tx_local_scan_ms +=
-            block.execute_spend_nullifier_tx_local_scan_ms;
-        self.execute_spend_nullifier_block_log_lookup_ms +=
-            block.execute_spend_nullifier_block_log_lookup_ms;
-        self.execute_spend_nullifier_committed_check_ms +=
-            block.execute_spend_nullifier_committed_check_ms;
-        self.execute_spend_nullifier_enqueue_ms += block.execute_spend_nullifier_enqueue_ms;
-        self.execute_spend_nullifier_stage_ms += block.execute_spend_nullifier_stage_ms;
-        self.execute_spend_nullifier_merge_ms += block.execute_spend_nullifier_merge_ms;
-        self.execute_nullifier_lookup_count += block.execute_nullifier_lookup_count;
-        self.execute_output_action_ms += block.execute_output_action_ms;
-        self.execute_output_write_ms += block.execute_output_write_ms;
         self.execute_other_action_ms += block.execute_other_action_ms;
         self.execute_apply_ms += block.execute_apply_ms;
-        self.execute_nullifier_check_ms += block.execute_nullifier_check_ms;
         self.inbound_receive.add(block.inbound_receive);
     }
 }
@@ -1743,14 +1683,12 @@ impl StageTimingReport {
 }
 
 fn apply_prepare_profile(report: &mut DetailedRunReport, profile: &PrepareProposalProfile) {
-    report.prepare_zk_batch_verify_ms += profile.artifact_fill_batch_verify_ms;
+    report.prepare_zk_proof_verify_ms += profile.artifact_fill_batch_verify_ms;
     report.prepare_stateful_filter_ms += profile.stateful_filter_execute_ms;
-    report.prepare_aggregate_build_ms += profile.total_aggregate_ms;
 }
 
 fn apply_process_profile(report: &mut DetailedRunReport, profile: &ProcessProposalProfile) {
-    report.process_aggregate_verify_ms += profile.aggregate_verify_ms;
-    report.process_cold_reconstruction_zk_ms += profile.cold_reconstruction_batch_verify_ms;
+    report.process_independent_zk_verify_ms += profile.aggregate_verify_ms;
     report.process_stateful_replay_ms += profile.stateful_replay_execute_ms;
 }
 
@@ -1771,33 +1709,12 @@ fn apply_execution_profile(report: &mut DetailedRunReport, profile: &ExecutionBl
     report.execute_check_and_execute_ms += profile.check_and_execute_ms;
     report.execute_set_source_ms += profile.set_source_ms;
     report.execute_pay_fee_ms += profile.pay_fee_ms;
-    report.execute_historical_state_ms += profile.read_local_precheck_ms
-        + profile.read_lookup_wait_or_join_ms
-        + profile.read_historical_check_ms
-        + profile.read_nullifier_wait_ms
-        + profile.read_anchor_cache_wait_ms;
-    report.execute_read_local_precheck_ms += profile.read_local_precheck_ms;
-    report.execute_read_lookup_wait_or_join_ms += profile.read_lookup_wait_or_join_ms;
-    report.execute_read_historical_check_ms += profile.read_historical_check_ms;
-    report.execute_read_nullifier_wait_ms += profile.read_nullifier_wait_ms;
-    report.execute_read_anchor_cache_wait_ms += profile.read_anchor_cache_wait_ms;
+    report.execute_historical_state_ms += profile.read_historical_check_ms;
     report.execute_action_ms += profile.action_execute_ms;
     report.execute_commit_ms += profile.commit_ms;
     report.execute_end_block_ms += profile.end_block_ms;
-    report.execute_spend_action_ms += profile.spend_action_execute_ms;
-    report.execute_spend_nullifier_tx_local_scan_ms += profile.spend_nullifier_tx_local_scan_ms;
-    report.execute_spend_nullifier_block_log_lookup_ms +=
-        profile.spend_nullifier_block_log_lookup_ms;
-    report.execute_spend_nullifier_committed_check_ms += profile.spend_nullifier_committed_check_ms;
-    report.execute_spend_nullifier_enqueue_ms += profile.spend_nullifier_enqueue_ms;
-    report.execute_spend_nullifier_stage_ms += profile.spend_nullifier_stage_ms;
-    report.execute_spend_nullifier_merge_ms += profile.spend_nullifier_merge_ms;
-    report.execute_nullifier_lookup_count += profile.nullifier_lookup_count;
-    report.execute_output_action_ms += profile.output_action_execute_ms;
-    report.execute_output_write_ms += profile.output_add_note_payload_ms;
     report.execute_other_action_ms += profile.other_action_execute_ms;
     report.execute_apply_ms += profile.apply_ms;
-    report.execute_nullifier_check_ms += profile.spend_nullifier_check_ms;
 }
 
 fn prepare_request(txs: &[Vec<u8>]) -> request::PrepareProposal {
@@ -1833,8 +1750,9 @@ fn ensure_prepare_preserved_user_txs(
     prepared: &response::PrepareProposal,
 ) -> Result<()> {
     anyhow::ensure!(
-        prepared.txs.len() >= input_txs.len(),
-        "prepared proposal dropped txs: input={}, prepared={}",
+        prepared.txs.len() == input_txs.len()
+            || prepared.txs.len() == input_txs.len().saturating_add(1),
+        "prepared proposal must contain every input and at most one aggregate bundle: input={}, prepared={}",
         input_txs.len(),
         prepared.txs.len()
     );
@@ -1845,24 +1763,6 @@ fn ensure_prepare_preserved_user_txs(
         );
     }
     Ok(())
-}
-
-fn candidate_envelope_from_txs(txs: &[Vec<u8>]) -> Result<CandidateEnvelope> {
-    let tx_hashes = txs
-        .iter()
-        .map(|tx_bytes| sha2::Sha256::digest(tx_bytes).into())
-        .collect::<Vec<[u8; 32]>>();
-    Ok(CandidateEnvelope {
-        txs: txs.to_vec(),
-        tx_hashes: tx_hashes.clone(),
-        aggregate_bundle_tx_bytes: None,
-        sidecar: ProposalArtifactSidecar::build(&[], 0, vec![])?.to_record(),
-        segment_tx_counts: Vec::new(),
-        block_tx_count: txs.len(),
-        total_payload_bytes: txs.iter().map(Vec::len).sum(),
-        candidate_digest: candidate_digest_from_hashes(&tx_hashes),
-        source_builder_label: "ibc_vs_transfer_profiled_execute".to_string(),
-    })
 }
 
 async fn execute_txs(chain: &mut TestNodeWithIBC, txs: Vec<Vec<u8>>) -> Result<BlockMeasurement> {
@@ -2097,21 +1997,17 @@ fn render_markdown(report: &BenchmarkReport) -> String {
     }
     out.push_str(
         "\n## Transaction Shape Counts\n\n\
-         | Scenario | tx/run | transfer actions/run | transfer input slots/run | real transfer inputs/run | dummy transfer inputs/run | transfer output slots/run | real transfer outputs/run | dummy transfer outputs/run | IBC relay actions/run |\n\
-         |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|\n",
+         | Scenario | tx/run | transfer actions/run | transfer input slots/run | transfer output slots/run | IBC relay actions/run |\n\
+         |---|---:|---:|---:|---:|---:|\n",
     );
     for scenario in &report.scenarios {
         out.push_str(&format!(
-            "| {} | {:.1} | {:.1} | {:.1} | {:.1} | {:.1} | {:.1} | {:.1} | {:.1} | {:.1} |\n",
+            "| {} | {:.1} | {:.1} | {:.1} | {:.1} | {:.1} |\n",
             scenario.name,
             mean_detail(scenario, |d| d.profiled_tx_count as f64),
             mean_detail(scenario, |d| d.transfer_action_count as f64),
             mean_detail(scenario, |d| d.transfer_input_slots as f64),
-            mean_detail(scenario, |d| d.transfer_real_inputs as f64),
-            mean_detail(scenario, |d| d.transfer_dummy_inputs as f64),
             mean_detail(scenario, |d| d.transfer_output_slots as f64),
-            mean_detail(scenario, |d| d.transfer_real_outputs as f64),
-            mean_detail(scenario, |d| d.transfer_dummy_outputs as f64),
             mean_detail(scenario, |d| d.ibc_relay_action_count as f64),
         ));
     }
@@ -2146,13 +2042,10 @@ fn render_markdown(report: &BenchmarkReport) -> String {
             d.prepare_proposal_wall_ms
         });
         append_detail_ms_row(&mut out, scenario, "PrepareProposal ZK verify", |d| {
-            d.prepare_zk_batch_verify_ms
+            d.prepare_zk_proof_verify_ms
         });
         append_detail_ms_row(&mut out, scenario, "PrepareProposal stateful filter", |d| {
             d.prepare_stateful_filter_ms
-        });
-        append_detail_ms_row(&mut out, scenario, "PrepareProposal aggregate build", |d| {
-            d.prepare_aggregate_build_ms
         });
         append_detail_ms_row(&mut out, scenario, "ProcessProposal wall", |d| {
             d.process_proposal_wall_ms
@@ -2160,14 +2053,8 @@ fn render_markdown(report: &BenchmarkReport) -> String {
         append_detail_ms_row(
             &mut out,
             scenario,
-            "ProcessProposal aggregate verify",
-            |d| d.process_aggregate_verify_ms,
-        );
-        append_detail_ms_row(
-            &mut out,
-            scenario,
-            "ProcessProposal cold ZK reconstruction",
-            |d| d.process_cold_reconstruction_zk_ms,
+            "ProcessProposal independent ZK verify",
+            |d| d.process_independent_zk_verify_ms,
         );
         append_detail_ms_row(&mut out, scenario, "ProcessProposal stateful replay", |d| {
             d.process_stateful_replay_ms
@@ -2201,41 +2088,8 @@ fn render_markdown(report: &BenchmarkReport) -> String {
         append_detail_ms_row(&mut out, scenario, "historical/read total", |d| {
             d.execute_historical_state_ms
         });
-        append_detail_ms_row(&mut out, scenario, "read local precheck", |d| {
-            d.execute_read_local_precheck_ms
-        });
-        append_detail_ms_row(&mut out, scenario, "read lookup wait/join", |d| {
-            d.execute_read_lookup_wait_or_join_ms
-        });
-        append_detail_ms_row(&mut out, scenario, "read historical check", |d| {
-            d.execute_read_historical_check_ms
-        });
-        append_detail_ms_row(&mut out, scenario, "read nullifier wait", |d| {
-            d.execute_read_nullifier_wait_ms
-        });
-        append_detail_ms_row(&mut out, scenario, "read anchor cache wait", |d| {
-            d.execute_read_anchor_cache_wait_ms
-        });
         append_detail_ms_row(&mut out, scenario, "action execute", |d| {
             d.execute_action_ms
-        });
-        append_detail_ms_row(&mut out, scenario, "spend action", |d| {
-            d.execute_spend_action_ms
-        });
-        append_detail_ms_row(&mut out, scenario, "nullifier check", |d| {
-            d.execute_nullifier_check_ms
-        });
-        append_detail_ms_row(&mut out, scenario, "nullifier committed check", |d| {
-            d.execute_spend_nullifier_committed_check_ms
-        });
-        append_detail_ms_row(&mut out, scenario, "nullifier event/enqueue", |d| {
-            d.execute_spend_nullifier_enqueue_ms
-        });
-        append_detail_ms_row(&mut out, scenario, "output action", |d| {
-            d.execute_output_action_ms
-        });
-        append_detail_ms_row(&mut out, scenario, "output payload staging", |d| {
-            d.execute_output_write_ms
         });
         append_detail_ms_row(&mut out, scenario, "other action", |d| {
             d.execute_other_action_ms

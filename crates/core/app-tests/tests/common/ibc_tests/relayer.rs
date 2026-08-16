@@ -55,8 +55,7 @@ use {
     shieldd_sdk_num::Amount,
     shieldd_sdk_proto::{util::tendermint_proxy::v1::GetBlockByHeightRequest, DomainType},
     shieldd_sdk_shielded_pool::{
-        Ics20Withdrawal, ShieldedIcs20WithdrawalFamilyId, ShieldedIcs20WithdrawalPlan,
-        ShieldedInputPlan, ShieldedOutputPlan,
+        Ics20Withdrawal, ShieldedIcs20WithdrawalPlan, ShieldedInputPlan, ShieldedOutputPlan,
     },
     shieldd_sdk_transaction::{TransactionParameters, TransactionPlan},
     std::{
@@ -184,7 +183,7 @@ impl MockRelayer {
             .get(&shieldd_sdk_asset::BASE_ASSET_ID)
             .expect("base asset ID should exist in asset cache")
             .clone();
-        let destination_chain_address = chain_b_client.fvk.payment_address(AddressIndex::new(0)).0;
+        let destination_chain_address = chain_b_client.fvk.payment_address(AddressIndex::new(0));
         let snapshot = self.chain_a_ibc.storage.latest_snapshot();
         let permits = Arc::new(Semaphore::new(proof_tx_build_concurrency()));
         let source_channel = self.chain_a_ibc.channel_id.clone();
@@ -211,7 +210,7 @@ impl MockRelayer {
                     revision_number: 0,
                 };
                 let timeout_time = 4_102_444_800_000_000_000u64;
-                let return_address = client.fvk.payment_address(AddressIndex::new(0)).0;
+                let return_address = client.fvk.payment_address(AddressIndex::new(0));
                 let withdrawal = Ics20Withdrawal {
                     destination_chain_address: destination_chain_address.to_string(),
                     denom,
@@ -220,7 +219,6 @@ impl MockRelayer {
                     timeout_time,
                     return_address,
                     source_channel,
-                    use_compat_address: false,
                     use_transparent_address: false,
                     ics20_memo: "".to_string(),
                 };
@@ -237,11 +235,10 @@ impl MockRelayer {
                         amount: note.amount() - amount,
                         asset_id: note.asset_id(),
                     },
-                    client.fvk.payment_address(AddressIndex::new(0)).0,
+                    client.fvk.payment_address(AddressIndex::new(0)),
                 );
                 let mut plan = {
                     let ics20_msg = ShieldedIcs20WithdrawalPlan::new(
-                        ShieldedIcs20WithdrawalFamilyId::Canonical,
                         vec![spend_plan],
                         Some(change_output),
                         withdrawal,
@@ -249,6 +246,7 @@ impl MockRelayer {
                     )
                     .expect("valid shielded ICS-20 withdrawal plan");
                     TransactionPlan {
+                        nullifier_window: None,
                         actions: vec![ics20_msg.into()],
                         memo: None,
                         fee_funding: None,
@@ -348,6 +346,7 @@ impl MockRelayer {
                 )
                 .into();
                 TransactionPlan {
+                    nullifier_window: None,
                     actions: vec![ics20_msg],
                     memo: None,
                     fee_funding: None,
@@ -655,6 +654,7 @@ impl MockRelayer {
                 })
                 .into();
                 TransactionPlan {
+                    nullifier_window: None,
                     actions: vec![ibc_msg],
                     // Now fill out the remaining parts of the transaction needed for verification:
                     memo: None,
@@ -704,6 +704,7 @@ impl MockRelayer {
             })
             .into();
             TransactionPlan {
+                nullifier_window: None,
                 actions: vec![ibc_msg],
                 // Now fill out the remaining parts of the transaction needed for verification:
                 memo: None,
@@ -824,6 +825,7 @@ impl MockRelayer {
             })
             .into();
             TransactionPlan {
+                nullifier_window: None,
                 actions: vec![ibc_msg],
                 // Now fill out the remaining parts of the transaction needed for verification:
                 memo: None,
@@ -915,6 +917,7 @@ impl MockRelayer {
             })
             .into();
             TransactionPlan {
+                nullifier_window: None,
                 actions: vec![ibc_msg],
                 // Now fill out the remaining parts of the transaction needed for verification:
                 memo: None,
@@ -1095,6 +1098,7 @@ impl MockRelayer {
             .into();
             // let ibc_msg = IbcRelay::ChannelOpenAck(MsgChannelOpenAck::try_from(proto_ack)?).into();
             TransactionPlan {
+                nullifier_window: None,
                 actions: vec![ibc_msg],
                 // Now fill out the remaining parts of the transaction needed for verification:
                 memo: None,
@@ -1252,6 +1256,7 @@ impl MockRelayer {
             let ibc_msg =
                 IbcRelay::ConnectionOpenAck(MsgConnectionOpenAck::try_from(proto_ack)?).into();
             TransactionPlan {
+                nullifier_window: None,
                 actions: vec![ibc_msg],
                 // Now fill out the remaining parts of the transaction needed for verification:
                 memo: None,
@@ -1434,6 +1439,7 @@ impl MockRelayer {
             })
             .into();
             TransactionPlan {
+                nullifier_window: None,
                 actions: vec![ibc_msg],
                 // Now fill out the remaining parts of the transaction needed for verification:
                 memo: None,
@@ -1545,6 +1551,7 @@ impl MockRelayer {
             })
             .into();
             TransactionPlan {
+                nullifier_window: None,
                 actions: vec![ibc_msg],
                 // Now fill out the remaining parts of the transaction needed for verification:
                 memo: None,
@@ -1645,6 +1652,7 @@ impl MockRelayer {
             })
             .into();
             TransactionPlan {
+                nullifier_window: None,
                 actions: vec![ibc_msg],
                 // Now fill out the remaining parts of the transaction needed for verification:
                 memo: None,
@@ -1754,7 +1762,7 @@ impl MockRelayer {
         };
 
         // Prepare and perform the transfer from chain A to chain B
-        let destination_chain_address = chain_b_client.fvk.payment_address(AddressIndex::new(0)).0;
+        let destination_chain_address = chain_b_client.fvk.payment_address(AddressIndex::new(0));
         let denom = asset_cache
             .get(&transfer_value.asset_id)
             .expect("asset ID should exist in asset cache")
@@ -1778,13 +1786,10 @@ impl MockRelayer {
         // round to the nearest 10 minutes
         timeout_time += 600_000_000_000 - (timeout_time % 600_000_000_000);
 
-        let return_address = chain_a_client
-            .fvk
-            .ephemeral_address(
-                rand_chacha::ChaChaRng::seed_from_u64(1312),
-                AddressIndex::new(0),
-            )
-            .0;
+        let return_address = chain_a_client.fvk.ephemeral_address(
+            rand_chacha::ChaChaRng::seed_from_u64(1312),
+            AddressIndex::new(0),
+        );
         let withdrawal = Ics20Withdrawal {
             destination_chain_address: destination_chain_address.to_string(),
             denom,
@@ -1796,7 +1801,6 @@ impl MockRelayer {
             // to the mock relayer and be based on the handshake
             source_channel: ChannelId::from_str("channel-0")?,
             // Shieldd <-> Shieldd so false
-            use_compat_address: false,
             use_transparent_address: false,
             ics20_memo: "".to_string(),
         };
@@ -1813,12 +1817,11 @@ impl MockRelayer {
             // half the note is being withdrawn, so we can use `transfer_value` both for the withdrawal action
             // and the change output
             transfer_value.clone(),
-            chain_a_client.fvk.payment_address(AddressIndex::new(0)).0,
+            chain_a_client.fvk.payment_address(AddressIndex::new(0)),
         );
 
         let mut plan = {
             let ics20_msg = ShieldedIcs20WithdrawalPlan::new(
-                ShieldedIcs20WithdrawalFamilyId::Canonical,
                 vec![spend_plan],
                 Some(change_output),
                 withdrawal,
@@ -1826,6 +1829,7 @@ impl MockRelayer {
             )
             .expect("valid shielded ICS-20 withdrawal plan");
             TransactionPlan {
+                nullifier_window: None,
                 actions: vec![ics20_msg.into()],
                 // Now fill out the remaining parts of the transaction needed for verification:
                 memo: None,
@@ -1942,6 +1946,7 @@ impl MockRelayer {
                     )
                     .into();
                     TransactionPlan {
+                        nullifier_window: None,
                         actions: vec![ics20_msg],
                         // Now fill out the remaining parts of the transaction needed for verification:
                         memo: None,
@@ -2062,6 +2067,7 @@ impl MockRelayer {
                     )
                     .into();
                     TransactionPlan {
+                        nullifier_window: None,
                         actions: vec![ics20_msg],
                         // Now fill out the remaining parts of the transaction needed for verification:
                         memo: None,
@@ -2164,6 +2170,7 @@ async fn _build_update_client_tx(
         })
         .into();
         TransactionPlan {
+            nullifier_window: None,
             actions: vec![ibc_msg],
             // Now fill out the remaining parts of the transaction needed for verification:
             memo: None,

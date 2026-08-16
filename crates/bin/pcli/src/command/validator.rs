@@ -172,11 +172,12 @@ impl ValidatorCmd {
 
         match self {
             ValidatorCmd::Identity { base64 } => {
-                let ik = IdentityKey(fvk.spend_verification_key().clone().into());
+                let ik = IdentityKey::try_from(fvk.spend_verification_key().clone())
+                    .expect("full viewing keys have nonidentity spend verification keys");
 
                 if *base64 {
                     use base64::{display::Base64Display, engine::general_purpose::STANDARD};
-                    println!("{}", Base64Display::new(ik.0.as_ref(), &STANDARD));
+                    println!("{}", Base64Display::new(&ik.to_bytes(), &STANDARD));
                 } else {
                     println!("{ik}");
                 }
@@ -186,7 +187,7 @@ impl ValidatorCmd {
 
                 if *base64 {
                     use base64::{display::Base64Display, engine::general_purpose::STANDARD};
-                    println!("{}", Base64Display::new(&gk.0.to_bytes(), &STANDARD));
+                    println!("{}", Base64Display::new(&gk.to_bytes(), &STANDARD));
                 } else {
                     println!("{gk}");
                 }
@@ -324,8 +325,10 @@ impl ValidatorCmd {
                 signature_file,
                 validator,
             }) => {
-                let identity_key = validator
-                    .unwrap_or_else(|| IdentityKey(fvk.spend_verification_key().clone().into()));
+                let identity_key = validator.unwrap_or_else(|| {
+                    IdentityKey::try_from(fvk.spend_verification_key().clone())
+                        .expect("full viewing keys have nonidentity spend verification keys")
+                });
                 let governance_key = app.config.governance_key();
 
                 let (proposal, vote): (u64, Vote) = (*vote).into();
@@ -384,8 +387,10 @@ impl ValidatorCmd {
                     .expect("gas prices must be available")
                     .try_into()?;
 
-                let identity_key = validator
-                    .unwrap_or_else(|| IdentityKey(fvk.spend_verification_key().clone().into()));
+                let identity_key = validator.unwrap_or_else(|| {
+                    IdentityKey::try_from(fvk.spend_verification_key().clone())
+                        .expect("full viewing keys have nonidentity spend verification keys")
+                });
                 let governance_key = app.config.governance_key();
 
                 let (proposal, vote): (u64, Vote) = (*vote).into();
@@ -466,8 +471,9 @@ impl ValidatorCmd {
                 file,
                 tendermint_validator_keyfile,
             }) => {
-                let (_address, _dtk) = fvk.incoming().payment_address(0u32.into());
-                let identity_key = IdentityKey(fvk.spend_verification_key().clone().into());
+                let _address = fvk.incoming().payment_address(0u32.into());
+                let identity_key = IdentityKey::try_from(fvk.spend_verification_key().clone())
+                    .expect("full viewing keys have nonidentity spend verification keys");
                 // By default, the template sets the governance key to the same verification key as
                 // the identity key, but a validator can change this if they want to use different
                 // key material.
@@ -547,7 +553,8 @@ impl ValidatorCmd {
                 }
             }
             ValidatorCmd::Definition(DefinitionCmd::Fetch { file }) => {
-                let identity_key = IdentityKey(fvk.spend_verification_key().clone().into());
+                let identity_key = IdentityKey::try_from(fvk.spend_verification_key().clone())
+                    .expect("full viewing keys have nonidentity spend verification keys");
                 super::query::ValidatorCmd::Definition {
                     file: file.clone(),
                     identity_key: identity_key.to_string(),

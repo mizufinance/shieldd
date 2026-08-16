@@ -16,7 +16,7 @@ dist = true
 default = []
 std = ["ibc-types/std"]
 benchmark-system-allocator = []
-# Insecure Orbis integration only; never enable in production.
+# Insecure isolated integration only; never enable in production.
 orbis-dev-srs = ["shieldd-sdk-app/orbis-dev-srs"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -122,7 +122,6 @@ zip = "0.6"
 [dev-dependencies]
 shieldd-sdk-proof-params = { workspace = true, features = [
     "bundled-proving-keys",
-    "download-proving-keys",
 ], default-features = true }
 assert_cmd = { workspace = true }
 predicates = "2.1"

@@ -8,19 +8,7 @@ license = {workspace = true}
 edition = {workspace = true}
 publish = false
 
-[build-dependencies]
-regex = { version = "1", optional = true }
-reqwest = { version = "0.12.9", optional = true, features = [
-    "blocking",
-    "json",
-] }
-serde_json = { version = "1", optional = true }
-sha2 = { version = "0.10.6", optional = true }
-hex = { version = "0.4.3", optional = true }
-anyhow = "1"
-
 [features]
-download-proving-keys = ["regex", "reqwest", "serde_json", "sha2", "hex"]
 parallel = [
     "ark-ff/parallel",
     "decaf377/parallel",
@@ -102,7 +90,7 @@ shieldd-sdk-keys = {workspace = true, default-features = true}
 shieldd-sdk-mock-client = {workspace = true}
 shieldd-sdk-mock-consensus = {workspace = true}
 shieldd-sdk-proto = {workspace = true, default-features = true, features = ["rpc"]}
-shieldd-sdk-proof-params = { workspace = true, default-features = true, features = ["bundled-proving-keys", "download-proving-keys"] }
+shieldd-sdk-proof-params = { workspace = true, default-features = true, features = ["bundled-proving-keys"] }
 shieldd-sdk-proof-aggregation = {workspace = true}
 shieldd-sdk-shielded-pool = {workspace = true, default-features = true, features = ["benchmark-helpers"]}
 shieldd-sdk-sct = {workspace = true, default-features = true}

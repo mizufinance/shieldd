@@ -23,10 +23,6 @@ component = [
 default = ["std", "component"]
 std = ["ark-ff/std"]
 bundled-proving-keys = ["shieldd-sdk-proof-params/bundled-proving-keys"]
-download-proving-keys = [
-    "bundled-proving-keys",
-    "shieldd-sdk-proof-params/download-proving-keys",
-]
 parallel = [
     "shieldd-sdk-tct/parallel",
     "ark-ff/parallel",
@@ -64,7 +60,7 @@ futures = {workspace = true}
 hex = {workspace = true}
 ibc-proto = {workspace = true, default-features = false}
 ibc-types = {workspace = true, features = ["with_serde"], default-features = false}
-im = {workspace = true}
+imbl = {workspace = true}
 jmt = {workspace = true}
 libloading = {workspace = true}
 metrics = {workspace = true}
@@ -94,7 +90,12 @@ tonic = {workspace = true, optional = true}
 tracing = {workspace = true}
 
 [dev-dependencies]
+criterion = {workspace = true}
 shieldd-sdk-compliance = {workspace = true, default-features = false, features = ["test-helpers"]}
 shieldd-sdk-proof-params = {workspace = true, default-features = false}
 proptest = {workspace = true}
 tokio = {workspace = true, features = ["rt-multi-thread", "macros"]}
+
+[[bench]]
+name = "routing"
+harness = false

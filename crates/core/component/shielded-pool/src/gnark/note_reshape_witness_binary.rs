@@ -1,17 +1,18 @@
 use anyhow::{bail, Context, Result};
 
 use crate::gnark::{
-    binary::{encode_triple_path_32, encode_vec_32, put_bytes, put_u32, put_u64, BinaryCursor},
+    binary::{encode_triple_path_32, put_bytes, put_u32, put_u64, put_u8, BinaryCursor},
     note_reshape_witness::{
-        NoteReshapeOutputWitnessV1, NoteReshapeSpendWitnessV1, NoteReshapeWitnessV1,
+        NoteReshapeOutputWitnessV5, NoteReshapeSharedNoteContextWitnessV5,
+        NoteReshapeSpendWitnessV5, NoteReshapeWitnessV5,
     },
-    typed::encode_point_affine,
+    typed::{decode_indexed_leaf, encode_indexed_leaf, encode_merkle_path, encode_point_affine},
 };
 
 const NOTE_RESHAPE_WITNESS_MAGIC: &[u8; 4] = b"PNWG";
-const NOTE_RESHAPE_WITNESS_VERSION: u32 = 1;
+const NOTE_RESHAPE_WITNESS_VERSION: u32 = 5;
 
-impl NoteReshapeWitnessV1 {
+impl NoteReshapeWitnessV5 {
     pub fn encode(&self) -> Result<Vec<u8>> {
         let mut buf = Vec::new();
         put_bytes(&mut buf, NOTE_RESHAPE_WITNESS_MAGIC);
@@ -21,12 +22,25 @@ impl NoteReshapeWitnessV1 {
         put_u32(&mut buf, self.n_in);
         put_u32(&mut buf, self.n_out);
         put_bytes(&mut buf, &self.anchor);
-        put_bytes(&mut buf, &self.balance_commitment);
         put_bytes(&mut buf, &self.claimed_statement_hash);
-        encode_vec_32(&mut buf, &self.statement_fields)?;
+        put_bytes(&mut buf, &self.asset_anchor);
+        put_bytes(&mut buf, &self.routing_tag);
+        put_bytes(&mut buf, &self.routing_parameter_set_id);
+        put_bytes(&mut buf, &self.recent_position_floor);
         put_bytes(&mut buf, &self.action_balance_blinding);
-        put_bytes(&mut buf, &self.ak);
         put_bytes(&mut buf, &self.nk);
+        encode_merkle_path(&mut buf, &self.asset_path)?;
+        put_u64(&mut buf, self.asset_position);
+        encode_indexed_leaf(&mut buf, &self.asset_indexed_leaf);
+        encode_point_affine(&mut buf, &self.asset_indexed_leaf_dk_pub_affine);
+        encode_point_affine(&mut buf, &self.asset_indexed_leaf_ring_pk_affine);
+        put_u8(&mut buf, u8::from(self.is_regulated));
+        put_u8(&mut buf, self.regulated_precision);
+        put_u8(&mut buf, self.unregulated_precision);
+        put_u64(&mut buf, self.routing_as_of_height);
+        put_bytes(&mut buf, &self.routing_nonce);
+        put_bytes(&mut buf, &self.shared.asset_id);
+        encode_point_affine(&mut buf, &self.shared.diversified_generator_affine);
         for spend in &self.spends {
             encode_spend(
                 &mut buf,
@@ -68,12 +82,27 @@ impl NoteReshapeWitnessV1 {
         let n_in = cursor.read_u32()?;
         let n_out = cursor.read_u32()?;
         let anchor = cursor.read_fixed::<32>()?;
-        let balance_commitment = cursor.read_fixed::<32>()?;
         let claimed_statement_hash = cursor.read_fixed::<32>()?;
-        let statement_fields = cursor.read_vec_32()?;
-        let action_balance_blinding = cursor.read_fixed::<32>()?;
-        let ak = cursor.read_fixed::<32>()?;
+        let asset_anchor = cursor.read_fixed::<32>()?;
+        let routing_tag = cursor.read_fixed::<32>()?;
+        let routing_parameter_set_id = cursor.read_fixed::<32>()?;
+        let recent_position_floor = cursor.read_fixed::<32>()?;
+        let action_balance_blinding = cursor.read_fr()?;
         let nk = cursor.read_fixed::<32>()?;
+        let asset_path = cursor.read_merkle_path()?;
+        let asset_position = cursor.read_u64()?;
+        let asset_indexed_leaf = decode_indexed_leaf(&mut cursor)?;
+        let asset_indexed_leaf_dk_pub_affine = cursor.read_point_affine()?;
+        let asset_indexed_leaf_ring_pk_affine = cursor.read_point_affine()?;
+        let is_regulated = cursor.read_bool()?;
+        let regulated_precision = cursor.read_u8()?;
+        let unregulated_precision = cursor.read_u8()?;
+        let routing_as_of_height = cursor.read_u64()?;
+        let routing_nonce = cursor.read_fixed::<32>()?;
+        let shared = NoteReshapeSharedNoteContextWitnessV5 {
+            asset_id: cursor.read_fixed::<32>()?,
+            diversified_generator_affine: cursor.read_point_affine()?,
+        };
         if n_in as usize != family_id.input_count() || n_out as usize != family_id.output_count() {
             bail!(
                 "{} witness shape mismatch: got {}x{}, expected {}x{}",
@@ -106,12 +135,24 @@ impl NoteReshapeWitnessV1 {
             n_in,
             n_out,
             anchor,
-            balance_commitment,
             claimed_statement_hash,
-            statement_fields,
+            asset_anchor,
+            routing_tag,
+            routing_parameter_set_id,
+            recent_position_floor,
             action_balance_blinding,
-            ak,
             nk,
+            asset_path,
+            asset_position,
+            asset_indexed_leaf,
+            asset_indexed_leaf_dk_pub_affine,
+            asset_indexed_leaf_ring_pk_affine,
+            is_regulated,
+            regulated_precision,
+            unregulated_precision,
+            routing_as_of_height,
+            routing_nonce,
+            shared,
             spends,
             outputs,
             balance_commitment_affine,
@@ -122,88 +163,64 @@ impl NoteReshapeWitnessV1 {
 
 fn encode_spend(
     buf: &mut Vec<u8>,
-    spend: &NoteReshapeSpendWitnessV1,
+    spend: &NoteReshapeSpendWitnessV5,
     synthetic_private_padding: bool,
 ) -> Result<()> {
     if synthetic_private_padding {
         put_u32(buf, if spend.is_dummy { 1 } else { 0 });
         put_bytes(buf, &spend.dummy_nullifier_seed);
-        put_bytes(buf, &spend.dummy_spend_auth_key);
     }
     put_bytes(buf, &spend.nullifier);
     put_bytes(buf, &spend.spent_note_blinding);
     put_bytes(buf, &spend.spent_note_amount);
-    put_bytes(buf, &spend.spent_note_asset_id);
-    put_bytes(buf, &spend.spent_transmission_key);
-    put_bytes(buf, &spend.spent_clue_key);
     put_bytes(buf, &spend.state_commitment_commitment);
     put_u64(buf, spend.state_commitment_position);
     encode_triple_path_32(buf, &spend.state_commitment_auth_path)?;
     put_bytes(buf, &spend.spend_auth_randomizer);
     encode_point_affine(buf, &spend.rk_affine);
-    encode_point_affine(buf, &spend.spent_diversified_generator_affine);
-    encode_point_affine(buf, &spend.spent_transmission_key_affine);
+    put_u8(buf, u8::from(spend.history_required));
     Ok(())
 }
 
 fn decode_spend(
     cursor: &mut BinaryCursor<'_>,
     synthetic_private_padding: bool,
-) -> Result<NoteReshapeSpendWitnessV1> {
-    let (is_dummy, dummy_nullifier_seed, dummy_spend_auth_key) = if synthetic_private_padding {
+) -> Result<NoteReshapeSpendWitnessV5> {
+    let (is_dummy, dummy_nullifier_seed) = if synthetic_private_padding {
         let is_dummy = match cursor.read_u32()? {
             0 => false,
             1 => true,
             value => bail!("invalid note reshape input dummy flag {value}"),
         };
-        (
-            is_dummy,
-            cursor.read_fixed::<32>()?,
-            cursor.read_fixed::<32>()?,
-        )
+        (is_dummy, cursor.read_fixed::<32>()?)
     } else {
-        (false, [0u8; 32], [0u8; 32])
+        (false, [0u8; 32])
     };
-    Ok(NoteReshapeSpendWitnessV1 {
+    Ok(NoteReshapeSpendWitnessV5 {
         is_dummy,
         nullifier: cursor.read_fixed::<32>()?,
         dummy_nullifier_seed,
-        dummy_spend_auth_key,
         spent_note_blinding: cursor.read_fixed::<32>()?,
         spent_note_amount: cursor.read_fixed::<32>()?,
-        spent_note_asset_id: cursor.read_fixed::<32>()?,
-        spent_transmission_key: cursor.read_fixed::<32>()?,
-        spent_clue_key: cursor.read_fixed::<32>()?,
         state_commitment_commitment: cursor.read_fixed::<32>()?,
         state_commitment_position: cursor.read_u64()?,
         state_commitment_auth_path: cursor.read_triple_path_32()?,
-        spend_auth_randomizer: cursor.read_fixed::<32>()?,
+        spend_auth_randomizer: cursor.read_fr()?,
         rk_affine: cursor.read_point_affine()?,
-        spent_diversified_generator_affine: cursor.read_point_affine()?,
-        spent_transmission_key_affine: cursor.read_point_affine()?,
+        history_required: cursor.read_bool()?,
     })
 }
 
-fn encode_output(buf: &mut Vec<u8>, output: &NoteReshapeOutputWitnessV1) {
+fn encode_output(buf: &mut Vec<u8>, output: &NoteReshapeOutputWitnessV5) {
     put_bytes(buf, &output.note_commitment);
     put_bytes(buf, &output.created_note_blinding);
     put_bytes(buf, &output.created_note_amount);
-    put_bytes(buf, &output.created_note_asset_id);
-    put_bytes(buf, &output.created_transmission_key);
-    put_bytes(buf, &output.created_clue_key);
-    encode_point_affine(buf, &output.created_diversified_generator_affine);
-    encode_point_affine(buf, &output.created_transmission_key_affine);
 }
 
-fn decode_output(cursor: &mut BinaryCursor<'_>) -> Result<NoteReshapeOutputWitnessV1> {
-    Ok(NoteReshapeOutputWitnessV1 {
+fn decode_output(cursor: &mut BinaryCursor<'_>) -> Result<NoteReshapeOutputWitnessV5> {
+    Ok(NoteReshapeOutputWitnessV5 {
         note_commitment: cursor.read_fixed::<32>()?,
         created_note_blinding: cursor.read_fixed::<32>()?,
         created_note_amount: cursor.read_fixed::<32>()?,
-        created_note_asset_id: cursor.read_fixed::<32>()?,
-        created_transmission_key: cursor.read_fixed::<32>()?,
-        created_clue_key: cursor.read_fixed::<32>()?,
-        created_diversified_generator_affine: cursor.read_point_affine()?,
-        created_transmission_key_affine: cursor.read_point_affine()?,
     })
 }

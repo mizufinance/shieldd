@@ -10,7 +10,7 @@ use tracing::instrument;
 
 use crate::{epoch::Epoch, genesis, nullifier_tree, params::SctParameters, state_key};
 
-use super::clock::EpochManager;
+use super::clock::{EpochManager, EpochRead};
 
 pub struct Sct {}
 
@@ -66,8 +66,34 @@ impl Component for Sct {
     ) {
     }
 
-    #[instrument(name = "sct_component", skip(_state))]
-    async fn end_epoch<S: StateWrite + 'static>(_state: &mut Arc<S>) -> anyhow::Result<()> {
+    #[instrument(name = "sct_component", skip(state))]
+    async fn end_epoch<S: StateWrite + 'static>(state: &mut Arc<S>) -> anyhow::Result<()> {
+        let state = Arc::get_mut(state).expect("there's only one reference to the state");
+        let next_epoch = state
+            .get_current_epoch()
+            .await?
+            .index
+            .checked_add(1)
+            .ok_or_else(|| anyhow!("application epoch overflow"))?;
+        let tree_epoch = u16::try_from(next_epoch)
+            .map_err(|_| anyhow!("application epoch exceeds the SCT position range"))?;
+        let next_position = u64::from(shieldd_sdk_tct::Position::from((tree_epoch, 0, 0)));
+
+        if let Some(transition) = nullifier_tree::rollover(state, next_epoch, next_position).await?
+        {
+            state.record_proto(
+                shieldd_sdk_proto::shieldd::core::component::sct::v1::EventNullifierGenerationFrozen::from(
+                    transition.frozen,
+                ),
+            );
+            if let Some(archived) = transition.archived {
+                state.record_proto(
+                    shieldd_sdk_proto::shieldd::core::component::sct::v1::EventNullifierGenerationArchived::from(
+                        archived,
+                    ),
+                );
+            }
+        }
         Ok(())
     }
 }

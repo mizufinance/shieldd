@@ -37,15 +37,11 @@ func LoadArtifactJSON(path string) (*ArtifactJSON, error) {
 }
 
 func WriteJSON(path string, value any) error {
-	file, err := os.Create(path)
+	data, err := EncodeCanonicalJSON(value)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
-
-	encoder := json.NewEncoder(file)
-	encoder.SetIndent("", "  ")
-	return encoder.Encode(value)
+	return os.WriteFile(path, data, 0o666)
 }
 
 func ComputeDurationStats(samples []float64) (mean, median, min, max float64) {

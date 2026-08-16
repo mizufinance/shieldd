@@ -27,6 +27,7 @@ const METHOD_COMMIT: u32 = 7;
 const METHOD_ROLLBACK: u32 = 8;
 const METHOD_EXPORT_GENESIS: u32 = 9;
 const METHOD_GET_COMMITTED_STATE: u32 = 10;
+const METHOD_ARCHIVED_NULLIFIER_PROOF: u32 = 11;
 
 #[repr(C)]
 pub struct ShielddHandle {
@@ -137,40 +138,77 @@ pub extern "C" fn shieldd_open(
     out_handle: *mut *mut ShielddHandle,
 ) -> ShielddResult {
     boundary(|| {
-        if out_handle.is_null() {
-            return Err(FfiError::invalid_argument("out_handle must not be null"));
-        }
-        unsafe {
-            out_handle.write(ptr::null_mut());
-        }
-
         let db_path = unsafe { input_bytes(db_path, db_path_len)? };
-        let db_path = str::from_utf8(db_path).map_err(|error| {
-            FfiError::invalid_argument(format!("db_path must be UTF-8: {error}"))
-        })?;
-        if db_path.is_empty() {
-            return Err(FfiError::invalid_argument("db_path must not be empty"));
-        }
-
-        let runtime = Builder::new_multi_thread()
-            .enable_all()
-            .build()
-            .map_err(|error| {
-                FfiError::internal(format!("failed to create Shieldd runtime: {error}"))
-            })?;
-        let service = runtime
-            .block_on(ExecutionService::open(PathBuf::from(db_path)))
-            .map_err(FfiError::service)?;
-        let handle = Box::into_raw(Box::new(Handle {
-            runtime,
-            service: tokio::sync::Mutex::new(service),
-        })) as *mut ShielddHandle;
-        unsafe {
-            out_handle.write(handle);
-        }
-
-        Ok(Vec::new())
+        open_handle(db_path, None, out_handle)
     })
+}
+
+#[no_mangle]
+pub extern "C" fn shieldd_open_with_generation_packs(
+    db_path: *const u8,
+    db_path_len: usize,
+    generation_pack_path: *const u8,
+    generation_pack_path_len: usize,
+    out_handle: *mut *mut ShielddHandle,
+) -> ShielddResult {
+    boundary(|| {
+        let db_path = unsafe { input_bytes(db_path, db_path_len)? };
+        let generation_pack_path =
+            unsafe { input_bytes(generation_pack_path, generation_pack_path_len)? };
+        open_handle(db_path, Some(generation_pack_path), out_handle)
+    })
+}
+
+fn open_handle(
+    db_path: &[u8],
+    generation_pack_path: Option<&[u8]>,
+    out_handle: *mut *mut ShielddHandle,
+) -> std::result::Result<Vec<u8>, FfiError> {
+    if out_handle.is_null() {
+        return Err(FfiError::invalid_argument("out_handle must not be null"));
+    }
+    unsafe {
+        out_handle.write(ptr::null_mut());
+    }
+
+    let path = |value: &[u8], name: &str| {
+        let value = str::from_utf8(value).map_err(|error| {
+            FfiError::invalid_argument(format!("{name} must be UTF-8: {error}"))
+        })?;
+        if value.is_empty() {
+            return Err(FfiError::invalid_argument(format!(
+                "{name} must not be empty"
+            )));
+        }
+        Ok(PathBuf::from(value))
+    };
+    let db_path = path(db_path, "db_path")?;
+    let generation_pack_path = generation_pack_path
+        .map(|value| path(value, "generation_pack_path"))
+        .transpose()?;
+
+    let runtime = Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .map_err(|error| {
+            FfiError::internal(format!("failed to create Shieldd runtime: {error}"))
+        })?;
+    let service = match generation_pack_path {
+        Some(directory) => runtime.block_on(ExecutionService::open_with_generation_packs(
+            db_path, directory,
+        )),
+        None => runtime.block_on(ExecutionService::open(db_path)),
+    }
+    .map_err(FfiError::service)?;
+    let handle = Box::into_raw(Box::new(Handle {
+        runtime,
+        service: tokio::sync::Mutex::new(service),
+    })) as *mut ShielddHandle;
+    unsafe {
+        out_handle.write(handle);
+    }
+
+    Ok(Vec::new())
 }
 
 #[no_mangle]
@@ -308,6 +346,11 @@ async fn dispatch(
             .await
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
+        METHOD_ARCHIVED_NULLIFIER_PROOF => service
+            .archived_nullifier_proof(decode(request)?)
+            .await
+            .map(|response| response.encode_to_vec())
+            .map_err(FfiError::service),
         _ => Err(FfiError::invalid_argument(format!(
             "unknown Shieldd method {method}"
         ))),
@@ -336,9 +379,11 @@ fn panic_message(payload: Box<dyn Any + Send>) -> String {
 mod tests {
     use super::*;
     use shieldd_sdk_app::genesis::{AppState, Content};
+    use shieldd_sdk_proto::core::component::sct::v1::ArchivedNullifierProofRequest;
     use shieldd_sdk_proto::execution_client::v1::{
-        CommitRequest, CommitResponse, GetCommittedStateRequest, GetCommittedStateResponse,
-        InitGenesisRequest, InitGenesisResponse,
+        BeginBlockRequest, BeginBlockResponse, CheckTxRequest, CheckTxResponse, CommitRequest,
+        CommitResponse, DeliverTxRequest, DeliverTxResponse, GetCommittedStateRequest,
+        GetCommittedStateResponse, InitGenesisRequest, InitGenesisResponse,
     };
 
     fn open(directory: &std::path::Path) -> *mut ShielddHandle {
@@ -395,6 +440,20 @@ mod tests {
         response
     }
 
+    fn initialize(handle: *mut ShielddHandle) {
+        let _: InitGenesisResponse = call(
+            handle,
+            METHOD_INIT_GENESIS,
+            InitGenesisRequest {
+                genesis: Some(
+                    AppState::Content(Content::default().with_chain_id("bankd-local".to_owned()))
+                        .into(),
+                ),
+            },
+        );
+        let _: CommitResponse = call(handle, METHOD_COMMIT, CommitRequest {});
+    }
+
     #[test]
     fn open_once_call_repeatedly_and_close_releases_database() {
         let directory = tempfile::tempdir().expect("temporary database directory");
@@ -437,6 +496,29 @@ mod tests {
         assert_eq!(unknown.status, STATUS_INVALID_ARGUMENT);
         assert!(error_text(&unknown).contains("unknown Shieldd method"));
         free_result(unknown);
+        close(handle);
+    }
+
+    #[test]
+    fn historical_witness_call_requires_opt_in_storage() {
+        let directory = tempfile::tempdir().expect("temporary database directory");
+        let handle = open(directory.path());
+        initialize(handle);
+
+        let request = ArchivedNullifierProofRequest {
+            generation_index: 0,
+            nullifier: None,
+        }
+        .encode_to_vec();
+        let result = shieldd_call(
+            handle,
+            METHOD_ARCHIVED_NULLIFIER_PROOF,
+            request.as_ptr(),
+            request.len(),
+        );
+        assert_eq!(result.status, STATUS_INVALID_ARGUMENT);
+        assert!(error_text(&result).contains("missing nullifier"));
+        free_result(result);
         close(handle);
     }
 
@@ -489,6 +571,54 @@ mod tests {
 
         assert_eq!(committed.height, 0);
         assert_eq!(committed.root_hash, commit.root_hash);
+        close(handle);
+    }
+
+    #[test]
+    fn ffi_execution_check_tx_rejects_invalid_transaction() {
+        let directory = tempfile::tempdir().expect("temporary database directory");
+        let handle = open(directory.path());
+        initialize(handle);
+
+        let response: CheckTxResponse = call(
+            handle,
+            METHOD_CHECK_TX,
+            CheckTxRequest {
+                tx: b"not a shieldd transaction".to_vec(),
+            },
+        );
+
+        assert_eq!(response.code, 1);
+        assert!(response.log.contains("decoding transaction"));
+        close(handle);
+    }
+
+    #[test]
+    fn ffi_execution_deliver_tx_rejects_invalid_transaction() {
+        let directory = tempfile::tempdir().expect("temporary database directory");
+        let handle = open(directory.path());
+        initialize(handle);
+        let mut begin_block = BeginBlockRequest {
+            height: 1,
+            time: Some(Default::default()),
+        };
+        begin_block
+            .time
+            .as_mut()
+            .expect("test begin-block time")
+            .seconds = 1_700_000_000;
+        let _: BeginBlockResponse = call(handle, METHOD_BEGIN_BLOCK, begin_block);
+
+        let response: DeliverTxResponse = call(
+            handle,
+            METHOD_DELIVER_TX,
+            DeliverTxRequest {
+                tx: b"not a shieldd transaction".to_vec(),
+            },
+        );
+
+        assert_eq!(response.code, 1);
+        assert!(response.log.contains("decoding transaction"));
         close(handle);
     }
 

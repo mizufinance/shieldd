@@ -1,21 +1,17 @@
 use anyhow::{anyhow, ensure, Result};
 use ark_groth16::{r1cs_to_qap::LibsnarkReduction, Groth16, PreparedVerifyingKey, Proof};
-use ark_serialize::CanonicalDeserialize;
 use ark_snark::SNARK;
 use decaf377::{Bls12_377, Fq, Fr};
 use decaf377_rdsa::{SpendAuth, VerificationKey};
 use shieldd_sdk_asset::balance;
-use shieldd_sdk_compliance::{
-    ComplianceLeaf, IndexedLeaf, MerklePath, OrbisEncryptedSeedUploadPackage,
-    TransferTierMetadataStatement,
-};
+use shieldd_sdk_compliance::{ComplianceLeaf, IndexedLeaf, MerklePath, TransferComplianceMetadata};
 use shieldd_sdk_keys::keys::NullifierKey;
-use shieldd_sdk_proof_params::GROTH16_PROOF_LENGTH_BYTES;
 use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
 use shieldd_sdk_sct::Nullifier;
 use shieldd_sdk_tct as tct;
 
 use crate::{
+    discovery::{Parameters as RoutingParameters, TransferRouting},
     public_input_hash::{transfer_statement_hash_from_public, StatementHashError},
     transfer::{transfer_input_count, transfer_output_count, TRANSFER_PROOF_LABEL},
     Note,
@@ -25,6 +21,7 @@ use crate::{
 pub struct TransferSpendPublic {
     pub nullifier: Nullifier,
     pub rk: VerificationKey<SpendAuth>,
+    pub history_required: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -37,35 +34,12 @@ pub struct TransferComplianceCiphertextPublic {
     pub epk: decaf377::Element,
     pub c2: Fq,
     pub ciphertext: Vec<Fq>,
-    pub proof: TransferComplianceProofPublic,
-}
-
-#[derive(Clone, Debug)]
-pub struct TransferComplianceProofPublic {
-    pub statement: TransferTierMetadataStatement,
-    pub derived_pk: decaf377::Element,
-    pub enc_cmt: decaf377::Element,
-    pub shared_point: decaf377::Element,
-    pub challenge: Fq,
-    pub response: Fr,
-}
-
-impl TransferComplianceProofPublic {
-    pub fn try_from_package(package: &OrbisEncryptedSeedUploadPackage) -> Result<Self> {
-        Ok(Self {
-            statement: package.statement.clone(),
-            derived_pk: package.derived_pk()?,
-            enc_cmt: package.enc_cmt()?,
-            shared_point: package.shared_point()?,
-            challenge: package.challenge_scalar(),
-            response: package.response_scalar()?,
-        })
-    }
 }
 
 #[derive(Clone, Debug)]
 pub struct TransferCompliancePublic {
     pub detection_ciphertext: Vec<Fq>,
+    pub metadata: TransferComplianceMetadata,
     pub sender_core: TransferComplianceCiphertextPublic,
     pub sender_ext: TransferComplianceCiphertextPublic,
     pub output_core: TransferComplianceCiphertextPublic,
@@ -82,6 +56,9 @@ pub struct TransferProofPublic {
     pub inputs: Vec<TransferSpendPublic>,
     pub outputs: Vec<TransferOutputPublic>,
     pub compliance: TransferCompliancePublic,
+    pub routing: TransferRouting,
+    pub routing_parameter_set_id: Fq,
+    pub recent_position_floor: u64,
 }
 
 impl TransferProofPublic {
@@ -113,19 +90,26 @@ pub struct TransferSpendPrivate {
     pub state_commitment_proof: tct::Proof,
     pub spent_note: Note,
     pub spend_auth_randomizer: Fr,
-    pub is_dummy: bool,
-    pub dummy_nullifier_seed: Fq,
-    pub dummy_spend_auth_key: Fr,
 }
 
 #[derive(Clone, Debug)]
-pub struct TransferOutputPrivate {
+pub struct TransferOptionalSpendPrivate {
+    pub spend: TransferSpendPrivate,
+    pub is_dummy: bool,
+    pub dummy_nullifier_seed: Fq,
+}
+
+#[derive(Clone, Debug)]
+pub struct TransferReceiverOutputPrivate {
     pub created_note: Note,
     pub recipient_compliance_path: MerklePath,
     pub recipient_compliance_position: u64,
     pub recipient_leaf: ComplianceLeaf,
-    /// Output 0 is always the external receiver leg. Output 1, when present, is sender-owned change.
-    pub is_receiver: bool,
+}
+
+#[derive(Clone, Debug)]
+pub struct TransferChangeOutputPrivate {
+    pub created_note: Note,
 }
 
 #[derive(Clone, Debug)]
@@ -139,7 +123,6 @@ pub struct TransferCompliancePrivate {
     pub transfer_nonce_root: Fr,
     pub sender: TransferTierRandomizers,
     pub output: TransferTierRandomizers,
-    pub is_flagged: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -151,32 +134,15 @@ pub struct TransferProofPrivate {
     pub asset_position: u64,
     pub asset_indexed_leaf: IndexedLeaf,
     pub is_regulated: bool,
+    pub routing_parameters: RoutingParameters,
     pub sender_compliance_path: MerklePath,
     pub sender_compliance_position: u64,
     pub sender_leaf: ComplianceLeaf,
     pub compliance: TransferCompliancePrivate,
-    pub inputs: Vec<TransferSpendPrivate>,
-    pub outputs: Vec<TransferOutputPrivate>,
-}
-
-impl TransferProofPrivate {
-    pub fn validate_shape(&self) -> Result<()> {
-        ensure!(
-            self.inputs.len() == transfer_input_count(),
-            "{} expects {} private inputs, got {}",
-            TRANSFER_PROOF_LABEL,
-            transfer_input_count(),
-            self.inputs.len()
-        );
-        ensure!(
-            self.outputs.len() == transfer_output_count(),
-            "{} expects {} private outputs, got {}",
-            TRANSFER_PROOF_LABEL,
-            transfer_output_count(),
-            self.outputs.len()
-        );
-        Ok(())
-    }
+    pub required_input: TransferSpendPrivate,
+    pub optional_input: TransferOptionalSpendPrivate,
+    pub receiver_output: TransferReceiverOutputPrivate,
+    pub change_output: TransferChangeOutputPrivate,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -186,10 +152,10 @@ pub struct TransferProof {
 
 impl TransferProof {
     fn decoded_proof(&self) -> anyhow::Result<Proof<Bls12_377>> {
-        Proof::deserialize_compressed(&self.inner[..]).map_err(|e| anyhow!(e))
+        crate::groth16_proof::decode(&self.inner)
     }
 
-    pub fn to_batch_item(
+    pub(crate) fn to_batch_item(
         &self,
         public: &TransferProofPublic,
     ) -> anyhow::Result<shieldd_sdk_proof_params::batch::BatchItem> {
@@ -228,11 +194,7 @@ impl TransferProof {
     }
 
     pub fn validate_encoding(&self) -> anyhow::Result<()> {
-        let _: [u8; GROTH16_PROOF_LENGTH_BYTES] = self
-            .inner
-            .clone()
-            .try_into()
-            .map_err(|_| anyhow!("malformed transfer proof length"))?;
+        self.decoded_proof()?;
         Ok(())
     }
 
@@ -244,10 +206,6 @@ impl TransferProof {
         public
             .validate_shape()
             .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))?;
-        private
-            .validate_shape()
-            .map_err(|e| crate::ProofError::InvalidPrivateInput(e.to_string()))?;
-
         let prove_result = super::prover_runtime::prove_with_runtime(public, private);
 
         prove_result.map_err(|e| {
@@ -272,7 +230,9 @@ impl TryFrom<pb::ZkTransferProof> for TransferProof {
     type Error = anyhow::Error;
 
     fn try_from(proto: pb::ZkTransferProof) -> Result<Self, Self::Error> {
-        Ok(Self { inner: proto.inner })
+        let proof = Self { inner: proto.inner };
+        proof.validate_encoding()?;
+        Ok(proof)
     }
 }
 
@@ -528,6 +488,7 @@ mod tests {
                 &test_keys::FULL_VIEWING_KEY,
                 &[state_commitment_proof],
                 anchor,
+                0,
             )
             .expect("derive test-key transfer public/private inputs");
 
@@ -568,7 +529,7 @@ mod tests {
         let (asset_anchor, asset_indexed_leaf, asset_path, asset_position) =
             shieldd_sdk_compliance::create_default_imt_proof(input_note.asset_id().0);
         let (
-            sender_leaf,
+            _,
             recipient_leaf,
             compliance_anchor,
             sender_compliance_path,
@@ -589,7 +550,7 @@ mod tests {
         spend.compliance_path = sender_compliance_path;
         spend.compliance_position = 0;
         spend
-            .set_compliance_details(&mut rng)
+            .set_compliance_details()
             .expect("set registered base-asset spend compliance details");
 
         let mut output =
@@ -603,12 +564,7 @@ mod tests {
         output.compliance_path = recipient_compliance_path;
         output.compliance_position = 1;
         output
-            .set_compliance_details(
-                &mut rng,
-                &recipient_leaf,
-                sender_leaf,
-                spend.tx_blinding_nonce,
-            )
+            .set_compliance_details(&recipient_leaf, spend.tx_blinding_nonce)
             .expect("set registered base-asset output compliance details");
 
         let transfer = TransferPlan::new(vec![spend], vec![output], Fr::rand(&mut rng))
@@ -618,6 +574,7 @@ mod tests {
                 &test_keys::FULL_VIEWING_KEY,
                 &[state_commitment_proof],
                 anchor,
+                0,
             )
             .expect("derive registered base-asset transfer public/private inputs");
 
@@ -671,7 +628,7 @@ mod tests {
         let (asset_anchor, asset_indexed_leaf, asset_path, asset_position) =
             shieldd_sdk_compliance::create_default_imt_proof(input_note.asset_id().0);
         let (
-            sender_leaf,
+            _,
             recipient_leaf,
             compliance_anchor,
             sender_compliance_path,
@@ -692,7 +649,7 @@ mod tests {
         spend.compliance_path = sender_compliance_path;
         spend.compliance_position = 0;
         spend
-            .set_compliance_details(&mut rng)
+            .set_compliance_details()
             .expect("set registered base-asset spend compliance details");
 
         let mut output =
@@ -706,12 +663,7 @@ mod tests {
         output.compliance_path = recipient_compliance_path;
         output.compliance_position = 1;
         output
-            .set_compliance_details(
-                &mut rng,
-                &recipient_leaf,
-                sender_leaf,
-                spend.tx_blinding_nonce,
-            )
+            .set_compliance_details(&recipient_leaf, spend.tx_blinding_nonce)
             .expect("set registered base-asset output compliance details");
 
         let transfer = TransferPlan::new(vec![spend], vec![output], Fr::rand(&mut rng))
@@ -721,6 +673,7 @@ mod tests {
                 &test_keys::FULL_VIEWING_KEY,
                 &[state_commitment_proof],
                 anchor,
+                0,
             )
             .expect("derive registered base-asset transfer public/private inputs");
 
@@ -761,7 +714,7 @@ mod tests {
         let (asset_anchor, asset_indexed_leaf, asset_path, asset_position) =
             shieldd_sdk_compliance::create_default_imt_proof(input_note.asset_id().0);
         let (
-            sender_leaf,
+            _,
             recipient_leaf,
             compliance_anchor,
             sender_compliance_path,
@@ -782,7 +735,7 @@ mod tests {
         spend.compliance_path = sender_compliance_path;
         spend.compliance_position = 0;
         spend
-            .set_compliance_details(&mut rng)
+            .set_compliance_details()
             .expect("set registered base-asset spend compliance details");
 
         let mut output =
@@ -796,12 +749,7 @@ mod tests {
         output.compliance_path = recipient_compliance_path;
         output.compliance_position = 1;
         output
-            .set_compliance_details(
-                &mut rng,
-                &recipient_leaf,
-                sender_leaf,
-                spend.tx_blinding_nonce,
-            )
+            .set_compliance_details(&recipient_leaf, spend.tx_blinding_nonce)
             .expect("set registered base-asset output compliance details");
 
         let transfer = TransferPlan::new(vec![spend], vec![output], Fr::rand(&mut rng))
@@ -811,6 +759,7 @@ mod tests {
                 &test_keys::FULL_VIEWING_KEY,
                 &[state_commitment_proof],
                 anchor,
+                0,
             )
             .expect("derive registered base-asset transfer public/private inputs");
 
@@ -872,7 +821,7 @@ mod tests {
         spend.compliance_path = sender_compliance_path.clone();
         spend.compliance_position = 0;
         spend
-            .set_compliance_details(&mut rng)
+            .set_compliance_details()
             .expect("set registered base-asset spend compliance details");
 
         let mut receiver_output = ShieldedOutputPlan::new(
@@ -892,12 +841,7 @@ mod tests {
         receiver_output.compliance_path = recipient_compliance_path;
         receiver_output.compliance_position = 1;
         receiver_output
-            .set_compliance_details(
-                &mut rng,
-                &recipient_leaf,
-                sender_leaf.clone(),
-                spend.tx_blinding_nonce,
-            )
+            .set_compliance_details(&recipient_leaf, spend.tx_blinding_nonce)
             .expect("set receiver output compliance details");
 
         let mut change_output = ShieldedOutputPlan::new(
@@ -917,12 +861,7 @@ mod tests {
         change_output.compliance_path = sender_compliance_path;
         change_output.compliance_position = 0;
         change_output
-            .set_compliance_details(
-                &mut rng,
-                &sender_leaf,
-                sender_leaf.clone(),
-                spend.tx_blinding_nonce,
-            )
+            .set_compliance_details(&sender_leaf, spend.tx_blinding_nonce)
             .expect("set change output compliance details");
 
         let transfer = TransferPlan::new(
@@ -936,6 +875,7 @@ mod tests {
                 &test_keys::FULL_VIEWING_KEY,
                 &[state_commitment_proof],
                 anchor,
+                0,
             )
             .expect("derive registered base-asset transfer-with-change public/private inputs");
 
@@ -1046,52 +986,8 @@ mod tests {
             extracted_public.compliance.output_ext.ciphertext
         );
         assert_eq!(
-            proving_public.compliance.sender_core.proof.statement,
-            extracted_public.compliance.sender_core.proof.statement
-        );
-        assert_eq!(
-            proving_public.compliance.sender_core.proof.challenge,
-            extracted_public.compliance.sender_core.proof.challenge
-        );
-        assert_eq!(
-            proving_public.compliance.sender_core.proof.response,
-            extracted_public.compliance.sender_core.proof.response
-        );
-        assert_eq!(
-            proving_public.compliance.sender_ext.proof.statement,
-            extracted_public.compliance.sender_ext.proof.statement
-        );
-        assert_eq!(
-            proving_public.compliance.sender_ext.proof.challenge,
-            extracted_public.compliance.sender_ext.proof.challenge
-        );
-        assert_eq!(
-            proving_public.compliance.sender_ext.proof.response,
-            extracted_public.compliance.sender_ext.proof.response
-        );
-        assert_eq!(
-            proving_public.compliance.output_core.proof.statement,
-            extracted_public.compliance.output_core.proof.statement
-        );
-        assert_eq!(
-            proving_public.compliance.output_core.proof.challenge,
-            extracted_public.compliance.output_core.proof.challenge
-        );
-        assert_eq!(
-            proving_public.compliance.output_core.proof.response,
-            extracted_public.compliance.output_core.proof.response
-        );
-        assert_eq!(
-            proving_public.compliance.output_ext.proof.statement,
-            extracted_public.compliance.output_ext.proof.statement
-        );
-        assert_eq!(
-            proving_public.compliance.output_ext.proof.challenge,
-            extracted_public.compliance.output_ext.proof.challenge
-        );
-        assert_eq!(
-            proving_public.compliance.output_ext.proof.response,
-            extracted_public.compliance.output_ext.proof.response
+            proving_public.compliance.metadata,
+            extracted_public.compliance.metadata
         );
 
         assert_eq!(

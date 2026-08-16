@@ -591,7 +591,7 @@ func (c *netBalanceParityCircuit) Define(api frontend.API) error {
 	production, err := computeTransferNetBalanceCommitment(
 		api,
 		[]frontend.Variable{c.Input0Amount, c.Input1Amount},
-		[]frontend.Variable{c.OutputAmount},
+		[]frontend.Variable{c.OutputAmount, 0},
 		c.AssetID,
 		c.BalanceBlinding,
 	)
@@ -847,5 +847,122 @@ func TestConservationNetBalanceCommitmentGadgetParity(t *testing.T) {
 		); err == nil {
 			t.Fatal("conservation net-balance gadget accepted a wrong output")
 		}
+	}
+}
+
+type conservationNetBalance2GadgetParityCircuit struct {
+	Input0Amount    frontend.Variable `gnark:",public"`
+	Input1Amount    frontend.Variable `gnark:",public"`
+	Output0Amount   frontend.Variable `gnark:",public"`
+	Output1Amount   frontend.Variable `gnark:",public"`
+	BalanceBlinding frontend.Variable `gnark:",public"`
+}
+
+func (c *conservationNetBalance2GadgetParityCircuit) Define(api frontend.API) error {
+	production, err := computeConservationNetBalanceCommitment(
+		api,
+		[]frontend.Variable{c.Input0Amount, c.Input1Amount},
+		[]frontend.Variable{c.Output0Amount, c.Output1Amount},
+		c.BalanceBlinding,
+	)
+	if err != nil {
+		return err
+	}
+	mirror, err := conservationNetBalanceCommitment2Mirror(
+		api,
+		c.Input0Amount,
+		c.Input1Amount,
+		c.Output0Amount,
+		c.Output1Amount,
+		c.BalanceBlinding,
+	)
+	if err != nil {
+		return err
+	}
+	api.AssertIsEqual(production.X, mirror.X)
+	api.AssertIsEqual(production.Y, mirror.Y)
+	return nil
+}
+
+func TestConservationNetBalanceCommitment2GadgetParity(t *testing.T) {
+	vectors, err := primitives.LoadPrototypeVectors()
+	if err != nil {
+		t.Fatal(err)
+	}
+	blindingGen := gnarkte.Point{
+		X: primitives.MustBigInt(vectors.Decaf377CompanionCurve.ValueBlindingGeneratorX),
+		Y: primitives.MustBigInt(vectors.Decaf377CompanionCurve.ValueBlindingGeneratorY),
+	}
+	input0 := big.NewInt(700)
+	input1 := big.NewInt(300)
+	output0 := big.NewInt(400)
+	output1 := big.NewInt(600)
+	blinding, err := rand.Int(rand.Reader, decaf377.ScalarOrder())
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected, err := decafgnark.ScalarMulNative(blindingGen, blinding, 251)
+	if err != nil {
+		t.Fatal(err)
+	}
+	parity := &conservationNetBalance2GadgetParityCircuit{
+		Input0Amount: input0, Input1Amount: input1,
+		Output0Amount: output0, Output1Amount: output1,
+		BalanceBlinding: blinding,
+	}
+	if err := test.IsSolved(
+		&conservationNetBalance2GadgetParityCircuit{},
+		parity,
+		ecc.BLS12_377.ScalarField(),
+	); err != nil {
+		t.Fatalf("2-in/2-out conservation mirror disagrees with production helper: %v", err)
+	}
+
+	assignment := &ConservationNetBalanceCommitment2Gadget{
+		Input0Amount: input0, Input1Amount: input1,
+		Output0Amount: output0, Output1Amount: output1,
+		BalanceBlinding: blinding,
+		OutX:            expected.X, OutY: expected.Y,
+	}
+	if err := test.IsSolved(
+		&ConservationNetBalanceCommitment2Gadget{},
+		assignment,
+		ecc.BLS12_377.ScalarField(),
+	); err != nil {
+		t.Fatalf("2-in/2-out conservation gadget rejected native output: %v", err)
+	}
+
+	unbalanced := *assignment
+	unbalanced.Output1Amount = big.NewInt(599)
+	if err := test.IsSolved(
+		&ConservationNetBalanceCommitment2Gadget{},
+		&unbalanced,
+		ecc.BLS12_377.ScalarField(),
+	); err == nil {
+		t.Fatal("2-in/2-out conservation gadget accepted unequal input/output sums")
+	}
+
+	wrongOutput := *assignment
+	wrongX := new(big.Int).Add(expected.X.(*big.Int), big.NewInt(1))
+	wrongX.Mod(wrongX, decaf377.FieldModulus())
+	wrongOutput.OutX = wrongX
+	if err := test.IsSolved(
+		&ConservationNetBalanceCommitment2Gadget{},
+		&wrongOutput,
+		ecc.BLS12_377.ScalarField(),
+	); err == nil {
+		t.Fatal("2-in/2-out conservation gadget accepted a wrong commitment output")
+	}
+
+	oversized := *assignment
+	twoTo128 := new(big.Int).Lsh(big.NewInt(1), 128)
+	oversized.Input0Amount = twoTo128
+	oversized.Output0Amount = twoTo128
+	if err := test.IsSolved(
+		&ConservationNetBalanceCommitment2Gadget{},
+		&oversized,
+		ecc.BLS12_377.ScalarField(),
+	); err == nil {
+		t.Fatal("2-in/2-out conservation gadget accepted an amount outside 128 bits")
 	}
 }

@@ -522,7 +522,6 @@ pub struct NetworkValidator {
     /// on this address.
     pub external_address: Option<TendermintAddress>,
     pub peer_address_template: Option<String>,
-    #[serde(default)]
     pub keys: ValidatorKeys,
 }
 
@@ -563,8 +562,8 @@ impl NetworkValidator {
                         let spend_key = SpendKey::from_seed_phrase_bip44(
                             seed_phrase,
                             &Bip44Path::new(raw.sequence_number),
-                        );
-                        ValidatorKeys::from_seed(spend_key.to_bytes().0)
+                        )?;
+                        ValidatorKeys::from_seed(spend_key.to_bytes().0)?
                     }
                 };
 
@@ -628,17 +627,17 @@ impl NetworkValidator {
     }
 }
 
-impl Default for NetworkValidator {
-    fn default() -> Self {
-        Self {
+impl NetworkValidator {
+    pub fn generate() -> Result<Self> {
+        Ok(Self {
             name: "".to_string(),
             website: "".to_string(),
             description: "".to_string(),
             sequence_number: 0,
             external_address: None,
             peer_address_template: None,
-            keys: ValidatorKeys::generate(),
-        }
+            keys: ValidatorKeys::generate()?,
+        })
     }
 }
 
@@ -667,8 +666,10 @@ impl TryFrom<&NetworkValidator> for Validator {
             // Currently there's no way to set validator keys beyond
             // manually editing the genesis.json. Otherwise they
             // will be randomly generated keys.
-            identity_key: IdentityKey(tv.keys.validator_id_vk.into()),
-            governance_key: GovernanceKey(tv.keys.validator_id_vk),
+            identity_key: IdentityKey::try_from(tv.keys.validator_id_vk)
+                .context("invalid validator identity key")?,
+            governance_key: GovernanceKey::try_from(tv.keys.validator_id_vk)
+                .context("invalid validator governance key")?,
             consensus_key: tv.keys.validator_cons_pk,
             name: tv.name.clone(),
             website: tv.website.clone(),
@@ -737,27 +738,55 @@ where
 
 #[cfg(test)]
 mod tests {
+    use decaf377::Fr;
+    use decaf377_rdsa::SigningKey;
+
     use super::*;
+
+    #[test]
+    fn validator_conversion_rejects_identity_authorization_key_without_panicking(
+    ) -> anyhow::Result<()> {
+        let mut keys = ValidatorKeys::from_seed([1u8; 32])?;
+        keys.validator_id_vk =
+            VerificationKey::from(&SigningKey::<SpendAuth>::from(Fr::from(0u64)));
+        let network_validator = NetworkValidator {
+            name: "identity-key-validator".to_owned(),
+            website: String::new(),
+            description: String::new(),
+            sequence_number: 0,
+            external_address: None,
+            peer_address_template: None,
+            keys,
+        };
+
+        let error = Validator::try_from(&network_validator)
+            .expect_err("network config must reject identity authorization keys");
+        assert!(
+            format!("{error:#}").contains("invalid validator identity key"),
+            "unexpected error: {error:#}"
+        );
+        Ok(())
+    }
 
     #[test]
     fn parse_allocations_from_good_csv() -> anyhow::Result<()> {
         let csv_content = r#"
 "amount","denom","address"
-"100000","ushieldd","shieldd1rqcd3hfvkvc04c4c9vc0ac87lh4y0z8l28k4xp6d0cnd5jc6f6k0neuzp6zdwtpwyfpswtdzv9jzqtpjn5t6wh96pfx3flq2dhqgc42u7c06kj57dl39w2xm6tg0wh4z9uu0qt"
-"100000","ushieldd","shieldd1xq2e9x7uhfzezwunvazdamlxepf4jr5htsuqnzlsahuayyqxjjwg9lk0aytwm6wfj3jy29rv2kdpen57903s8wxv3jmqwj6m6v5jgn6y2cypfd03rke652k8wmavxra7y7yt34"
-"100000","ushieldd","shieldd100zd92fg6x27wc0mlu48cd6phq420u7ep59kzdalg2cq66mjkyl0xr54z0c64gectnj44mv5k2vyjjsz5gyd5gq33a6wnqzvgu2fz7namz7usazsl6p8wza83gcpwt8qrpf98e"
-"100000","ushieldd","shieldd1xap8sgefy9rl2nfvsse0h4y6c25hy2n20ymr5w7hs28m9xemt3tmz88atyulswumc32sv7h937wnfhyct282de66zm75nk6ywq3d4r32p5ju0cnscj2rraesnrxr9lvk8vjqsu"
+"100000","ushieldd","shieldd1u29dhz4vxgnek6a3vzxlejg0l83wegpu7hgs3yphdvljcnnnh89dvs6lc9hxxw94w464t7lh5x36cxnxyx0"
+"100000","ushieldd","shieldd1nrvgexa9tq9y242r6s7mqa6qlkfqmu45k9cwyrh66faaj8eupldkw837cjgv8qkfwedsdzmlypseupefutj"
+"100000","ushieldd","shieldd1u29dhz4vxgnek6a3vzxlejg0l83wegpu7hgs3yphdvljcnnnh89dvs6lc9hxxw94w464t7lh5x36cxnxyx0"
+"100000","ushieldd","shieldd1nrvgexa9tq9y242r6s7mqa6qlkfqmu45k9cwyrh66faaj8eupldkw837cjgv8qkfwedsdzmlypseupefutj"
 "#;
         let allos = NetworkAllocation::from_reader(csv_content.as_bytes())?;
 
         let a1 = &allos[0];
         assert!(a1.raw_denom == "ushieldd");
-        assert!(a1.address == Address::from_str("shieldd1rqcd3hfvkvc04c4c9vc0ac87lh4y0z8l28k4xp6d0cnd5jc6f6k0neuzp6zdwtpwyfpswtdzv9jzqtpjn5t6wh96pfx3flq2dhqgc42u7c06kj57dl39w2xm6tg0wh4z9uu0qt")?);
+        assert!(a1.address == Address::from_str("shieldd1u29dhz4vxgnek6a3vzxlejg0l83wegpu7hgs3yphdvljcnnnh89dvs6lc9hxxw94w464t7lh5x36cxnxyx0")?);
         assert!(a1.raw_amount.value() == 100000);
 
         let a2 = &allos[1];
         assert!(a2.raw_denom == "ushieldd");
-        assert!(a2.address == Address::from_str("shieldd1xq2e9x7uhfzezwunvazdamlxepf4jr5htsuqnzlsahuayyqxjjwg9lk0aytwm6wfj3jy29rv2kdpen57903s8wxv3jmqwj6m6v5jgn6y2cypfd03rke652k8wmavxra7y7yt34")?);
+        assert!(a2.address == Address::from_str("shieldd1nrvgexa9tq9y242r6s7mqa6qlkfqmu45k9cwyrh66faaj8eupldkw837cjgv8qkfwedsdzmlypseupefutj")?);
         assert!(a2.raw_amount.value() == 100000);
 
         Ok(())

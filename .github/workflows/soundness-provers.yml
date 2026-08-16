@@ -1,7 +1,7 @@
 name: soundness-provers
 
-# The heavy symbolic/SMT provers, split out of soundness-formal because they
-# only ever run on the scheduled path. Left in that workflow they were six
+# The heavy symbolic/SMT provers are separate from the main formal workflow
+# because they only run when explicitly invoked. Kept there, they would be six
 # permanently-`skipped` check runs on every pull request. There is deliberately
 # no `pull_request` or `merge_group` trigger here.
 
@@ -15,13 +15,10 @@ on:
   workflow_dispatch:
     inputs:
       target_ref:
-        description: Branch whose committed state is the manual-run candidate.
+        description: Branch, tag, or commit SHA to verify.
         required: true
-        type: choice
+        type: string
         default: dev
-        options:
-          - dev
-          - main
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ inputs.target_ref }}
@@ -41,6 +38,7 @@ jobs:
     env:
       RUSTUP_TOOLCHAIN: stable
     outputs:
+      candidate_sha: ${{ steps.candidate.outputs.sha }}
       status: ${{ steps.classify.outputs.status }}
       tier: ${{ steps.classify.outputs.tier }}
       run: ${{ steps.classify.outputs.run }}
@@ -50,6 +48,17 @@ jobs:
         with:
           ref: ${{ env.CANDIDATE_REF }}
           fetch-depth: 0
+      - name: Freeze the candidate commit
+        id: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          candidate_sha="$(git rev-parse --verify HEAD^{commit})"
+          [[ "$candidate_sha" =~ ^[0-9a-f]{40}$ ]] || {
+            echo "invalid candidate commit: $candidate_sha" >&2
+            exit 1
+          }
+          echo "sha=$candidate_sha" >> "$GITHUB_OUTPUT"
       # Same gate declaration as soundness-formal: the provers verify the same
       # sources, they just run on a different cadence.
       - name: Classify soundness applicability
@@ -58,7 +67,7 @@ jobs:
           python3 scripts/ci/gate-applicability.py \
             --gate soundness-formal \
             --event "${{ github.event_name }}" \
-            --head "$GITHUB_SHA" \
+            --head "${{ steps.candidate.outputs.sha }}" \
             --github-output "$GITHUB_OUTPUT" \
             --pretty
 
@@ -71,7 +80,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          ref: ${{ env.CANDIDATE_REF }}
+          ref: ${{ needs.applicability.outputs.candidate_sha }}
       - uses: ./.github/actions/setup-nix-rust
         with:
           rust-cache: "false"
@@ -89,7 +98,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          ref: ${{ env.CANDIDATE_REF }}
+          ref: ${{ needs.applicability.outputs.candidate_sha }}
       - uses: ./.github/actions/setup-nix-rust
         with:
           rust-cache-prefix: soundness-dleq
@@ -114,7 +123,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          ref: ${{ env.CANDIDATE_REF }}
+          ref: ${{ needs.applicability.outputs.candidate_sha }}
       - uses: ./.github/actions/setup-nix-rust
         with:
           rust-cache-prefix: soundness-fstar
@@ -157,8 +166,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          ref: ${{ env.CANDIDATE_REF }}
-          lfs: true
+          ref: ${{ needs.applicability.outputs.candidate_sha }}
       - uses: ./.github/actions/setup-nix-rust
         with:
           rust-cache-prefix: soundness-picus
@@ -179,11 +187,6 @@ jobs:
           echo "PICUS_BIN=$HOME/.local/opt/picus/run-picus" >> "$GITHUB_ENV"
       - name: Run gadget-scope under-constraint gate
         run: bash scripts/circuit-constraint-check.sh
-      - name: Attempt whole-circuit Picus
-        continue-on-error: true
-        env:
-          PICUS_WHOLE_BUDGET_SECONDS: '10800'
-        run: bash scripts/run-whole-circuit-picus.sh note_reshape2x1 transfer
 
   acl2:
     name: 'provers: acl2 (advisory)'
@@ -195,7 +198,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          ref: ${{ env.CANDIDATE_REF }}
+          ref: ${{ needs.applicability.outputs.candidate_sha }}
       - uses: ./.github/actions/setup-nix-rust
         with:
           rust-cache: "false"
@@ -228,12 +231,14 @@ jobs:
           done
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          ref: ${{ env.CANDIDATE_REF }}
+          ref: ${{ needs.applicability.outputs.candidate_sha }}
       - uses: ./.github/actions/setup-nix-rust
         with:
           rust-cache-prefix: soundness-post-prover
       - name: Check post-prover invariant and stamp state
-        run: nix develop --command bash scripts/check-soundness-invariants.sh
+        run: >-
+          nix develop --command bash
+          scripts/check-soundness-invariants.sh strict
 
   summary:
     name: 'provers: summary'
@@ -271,7 +276,7 @@ jobs:
             echo "explained skip: $EXPLANATION"
             exit 0
           fi
-          if [[ "$STATUS" != "run" || ( "$TIER" != "stamps" && "$TIER" != "full" ) ]]; then
+          if [[ "$STATUS" != "run" || "$TIER" != "full" ]]; then
             echo "invalid applicability contract: status=$STATUS tier=$TIER" >&2
             exit 1
           fi

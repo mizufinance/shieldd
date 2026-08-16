@@ -30,12 +30,13 @@ func DeriveSharedSecretsSpend(
 		return gnarkte.Point{}, gnarkte.Point{}, gnarkte.Point{}, err
 	}
 	nBits := primitives.MustBigInt(vectors.Decaf377CompanionCurve.Order).BitLen()
+	eskBits := api.ToBinary(esk, nBits)
 
-	computedEPK := ScalarMulLE(api, curve, generator, esk, nBits)
+	computedEPK := ScalarMulLEBits(api, curve, generator, eskBits)
 	decafgnark.AssertEquivalent(api, computedEPK, publishedEPK)
 
-	ssCoreUser := ScalarMulLE(api, curve, ackCore, esk, nBits)
-	ssIssuer := ScalarMulLE(api, curve, dkPub, esk, nBits)
+	ssCoreUser := ScalarMulWindow2LEBits(api, curve, ackCore, eskBits)
+	ssIssuer := ScalarMulWindow2LEBits(api, curve, dkPub, eskBits)
 	ssCore := gnarkte.Point{
 		X: api.Select(isFlagged, ssIssuer.X, ssCoreUser.X),
 		Y: api.Select(isFlagged, ssIssuer.Y, ssCoreUser.Y),

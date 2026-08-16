@@ -52,6 +52,7 @@ fn pretty_print_transaction_plan(
             ActionPlan::ProposalSubmit(_) => None,
             ActionPlan::ValidatorVote(_) => None,
             ActionPlan::ShieldedIcs20Withdrawal(_) => None,
+            ActionPlan::ShieldedHostWithdrawal(_) => None,
             ActionPlan::IbcAction(_) => None,
             ActionPlan::ComplianceRegisterAsset(_) => None,
             ActionPlan::ComplianceRegisterUser(_) => None,
@@ -83,6 +84,8 @@ fn pretty_print_transaction_plan(
             transaction_parameters: plan.transaction_parameters.clone(),
             fee_funding: None,
             memo_view: None,
+            nullifier_window: None,
+            historical_nullifier_proofs: vec![],
         },
     };
 

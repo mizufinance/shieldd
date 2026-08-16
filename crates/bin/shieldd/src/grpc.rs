@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
 use shieldd_sdk_proto::execution_client::v1::{
-    execution_client_service_server::ExecutionClientService, BeginBlockRequest, BeginBlockResponse,
-    CheckTxRequest, CheckTxResponse, CommitRequest, CommitResponse, DeliverTxRequest,
-    DeliverTxResponse, DepositRequest, DepositResponse, EndBlockRequest, EndBlockResponse,
-    ExportGenesisRequest, ExportGenesisResponse, GetCommittedStateRequest,
-    GetCommittedStateResponse, InitGenesisRequest, InitGenesisResponse, RollbackRequest,
-    RollbackResponse,
+    execution_client_service_server::ExecutionClientService, ArchivedNullifierProofRequest,
+    ArchivedNullifierProofResponse, BeginBlockRequest, BeginBlockResponse, CheckTxRequest,
+    CheckTxResponse, CommitRequest, CommitResponse, DeliverTxRequest, DeliverTxResponse,
+    DepositRequest, DepositResponse, EndBlockRequest, EndBlockResponse, ExportGenesisRequest,
+    ExportGenesisResponse, GetCommittedStateRequest, GetCommittedStateResponse, InitGenesisRequest,
+    InitGenesisResponse, RollbackRequest, RollbackResponse,
 };
 use tokio::sync::RwLock;
 use tonic::{Request, Response, Status};
@@ -161,6 +161,27 @@ impl ExecutionClientService for GrpcExecutionClient {
             .map(Response::new)
             .map_err(status)
     }
+
+    async fn archived_nullifier_proof(
+        &self,
+        request: Request<ArchivedNullifierProofRequest>,
+    ) -> std::result::Result<Response<ArchivedNullifierProofResponse>, Status> {
+        let request = request
+            .into_inner()
+            .request
+            .ok_or_else(|| Status::invalid_argument("missing archived nullifier proof request"))?;
+        self.service
+            .read()
+            .await
+            .archived_nullifier_proof(request)
+            .await
+            .map(|response| {
+                Response::new(ArchivedNullifierProofResponse {
+                    response: Some(response),
+                })
+            })
+            .map_err(status)
+    }
 }
 
 fn status(error: ServiceError) -> Status {
@@ -168,5 +189,82 @@ fn status(error: ServiceError) -> Status {
         ErrorKind::InvalidArgument => Status::invalid_argument(error.to_string()),
         ErrorKind::FailedPrecondition => Status::failed_precondition(error.to_string()),
         ErrorKind::Internal => Status::internal(error.to_string()),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use anyhow::Result;
+    use cnidarium::TempStorage;
+    use shieldd_sdk_app::{
+        genesis::{AppState, Content},
+        SUBSTORE_PREFIXES,
+    };
+    use std::ops::Deref as _;
+
+    async fn initialized_client() -> Result<(TempStorage, GrpcExecutionClient)> {
+        let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
+        let client = GrpcExecutionClient::new(ExecutionService::new(storage.deref().clone()));
+        ExecutionClientService::init_genesis(
+            &client,
+            Request::new(InitGenesisRequest {
+                genesis: Some(
+                    AppState::Content(
+                        Content::default().with_chain_id("shieldd-grpc-test".to_owned()),
+                    )
+                    .into(),
+                ),
+            }),
+        )
+        .await?;
+        ExecutionClientService::commit(&client, Request::new(CommitRequest {})).await?;
+        Ok((storage, client))
+    }
+
+    #[tokio::test]
+    async fn grpc_execution_check_tx_rejects_invalid_transaction() -> Result<()> {
+        let (_storage, client) = initialized_client().await?;
+
+        let response = ExecutionClientService::check_tx(
+            &client,
+            Request::new(CheckTxRequest {
+                tx: b"not a shieldd transaction".to_vec(),
+            }),
+        )
+        .await?
+        .into_inner();
+
+        assert_eq!(response.code, 1);
+        assert!(response.log.contains("decoding transaction"));
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn grpc_execution_deliver_tx_rejects_invalid_transaction() -> Result<()> {
+        let (_storage, client) = initialized_client().await?;
+        let mut begin_block = BeginBlockRequest {
+            height: 1,
+            time: Some(Default::default()),
+        };
+        begin_block
+            .time
+            .as_mut()
+            .expect("test begin-block time")
+            .seconds = 1_700_000_000;
+        ExecutionClientService::begin_block(&client, Request::new(begin_block)).await?;
+
+        let response = ExecutionClientService::deliver_tx(
+            &client,
+            Request::new(DeliverTxRequest {
+                tx: b"not a shieldd transaction".to_vec(),
+            }),
+        )
+        .await?
+        .into_inner();
+
+        assert_eq!(response.code, 1);
+        assert!(response.log.contains("decoding transaction"));
+        Ok(())
     }
 }

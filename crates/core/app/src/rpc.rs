@@ -49,7 +49,9 @@ use {
             },
         },
     },
-    shieldd_sdk_sct::component::rpc::Server as SctServer,
+    shieldd_sdk_sct::{
+        component::rpc::Server as SctServer, generation_pack::GenerationPackRepository,
+    },
     shieldd_sdk_shielded_pool::component::rpc::Server as ShieldedPoolServer,
     shieldd_sdk_validator::component::rpc::Server as StakeServer,
     tonic::service::{Routes, RoutesBuilder},
@@ -59,6 +61,7 @@ use {
 fn add_common_routes(
     builder: &mut RoutesBuilder,
     storage: &cnidarium::Storage,
+    generation_packs: Option<GenerationPackRepository>,
 ) -> anyhow::Result<()> {
     let ibc = shieldd_sdk_ibc::component::rpc::IbcQuery::<ShielddHost>::new(storage.clone());
 
@@ -89,9 +92,10 @@ fn add_common_routes(
         .add_service(we(GovernanceQueryServiceServer::new(
             GovernanceServer::new(storage.clone()),
         )))
-        .add_service(we(SctQueryServiceServer::new(SctServer::new(
-            storage.clone(),
-        ))))
+        .add_service(we(SctQueryServiceServer::new(match generation_packs {
+            Some(repository) => SctServer::with_generation_packs(storage.clone(), repository),
+            None => SctServer::new(storage.clone()),
+        })))
         .add_service(we(ShieldedPoolQueryServiceServer::new(
             ShieldedPoolServer::new(storage.clone()),
         )))
@@ -120,7 +124,19 @@ pub fn routes(
     _enable_expensive_rpc: bool,
 ) -> anyhow::Result<tonic::service::Routes> {
     let mut builder = Routes::builder();
-    add_common_routes(&mut builder, storage)?;
+    add_common_routes(&mut builder, storage, None)?;
+    builder.add_service(we(TendermintProxyServiceServer::new(tm_proxy)));
+    Ok(builder.routes().prepare())
+}
+
+pub fn routes_with_generation_packs(
+    storage: &cnidarium::Storage,
+    tm_proxy: impl TendermintProxyService,
+    _enable_expensive_rpc: bool,
+    generation_packs: GenerationPackRepository,
+) -> anyhow::Result<tonic::service::Routes> {
+    let mut builder = Routes::builder();
+    add_common_routes(&mut builder, storage, Some(generation_packs))?;
     builder.add_service(we(TendermintProxyServiceServer::new(tm_proxy)));
     Ok(builder.routes().prepare())
 }
@@ -131,7 +147,7 @@ pub fn gordian_routes(
     _enable_expensive_rpc: bool,
 ) -> anyhow::Result<tonic::service::Routes> {
     let mut builder = Routes::builder();
-    add_common_routes(&mut builder, storage)?;
+    add_common_routes(&mut builder, storage, None)?;
     builder.add_service(we(NodeServiceServer::new(node_service)));
     Ok(builder.routes().prepare())
 }

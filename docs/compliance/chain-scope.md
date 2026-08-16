@@ -13,12 +13,12 @@ visibility for regulated assets.
 | `NoteReshape` | Reshape sender-owned notes using a supported 1→8, 2→1, 4→1, or 8→1 family |
 | `IbcRelay` | IBC light client and channel lifecycle (inbound and outbound) |
 | `ShieldedIcs20Withdrawal` | Transfer tokens out via IBC |
+| `ShieldedHostWithdrawal` | Transfer or execute shielded value on BankD |
 | `ValidatorDefinition` | Validator registration (permissionless, no rewards) |
 | `ProposalSubmit` | Submit a governance proposal (parameter change, upgrade, IBC freeze) |
 | `ValidatorVote` | Validator votes on governance proposals |
 | `ComplianceRegisterAsset` | Register a regulated asset with its issuer policy |
 | `ComplianceRegisterUser` | Register a user address for a regulated asset |
-| `AggregateBundle` | Validator-submitted proof aggregation (internal, not user-facing) |
 
 ## Removed Actions
 
@@ -36,10 +36,12 @@ BankD is the primary application chain. It handles:
 - Community pool
 - Governance features not present on this chain
 
-This chain connects to BankD via IBC. Tokens flow in via `IbcRelay` / ICS-20
-and are shielded here for private transfers. Tokens flow back to BankD via
-`ShieldedIcs20Withdrawal`. Compliance enforcement applies only while tokens are on
-this chain.
+This chain connects to BankD through IBC and the host execution client. Tokens
+flow in via `IbcRelay` / ICS-20 and are shielded here for private transfers.
+Tokens flow back to BankD via `ShieldedIcs20Withdrawal` or
+`ShieldedHostWithdrawal`. Compliance enforcement applies only while tokens are
+on this chain. Host withdrawals use the same spend-side compliance proof data
+as other shielded withdrawals.
 
 ## Validator Set
 

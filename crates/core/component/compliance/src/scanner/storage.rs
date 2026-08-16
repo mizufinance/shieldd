@@ -1,6 +1,5 @@
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
-use decaf377::Element;
 use rusqlite::{params, Connection, OpenFlags, OptionalExtension, Transaction};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
@@ -12,10 +11,10 @@ use super::types::{
     OutputRef, DECRYPTED_VIA_PUBLIC, FLOW_TYPE_PRIVATE_TRANSFER,
 };
 use crate::audit_status::{AuditStatus, DetectionStatus, ScreenStatus};
-use crate::{ComplianceEvidenceObject, TransferOrbisUploadBundle};
+use crate::ComplianceEvidenceObject;
 
 pub const MAX_INVALID_CIPHERTEXTS_PER_BLOCK: usize = 256;
-const SCANNER_DB_SCHEMA_VERSION: i64 = 1;
+const SCANNER_DB_SCHEMA_VERSION: i64 = 4;
 pub const HEARTBEAT_STALE_SECS: i64 = 30;
 const READ_POOL_SIZE: usize = 4;
 const SQLITE_BUSY_TIMEOUT: Duration = Duration::from_secs(5);
@@ -34,8 +33,6 @@ pub trait ScannerStore: Send + Sync {
     async fn validate_and_save_evidence(
         &self,
         evidence: &ComplianceEvidenceObject,
-        upload_bundle: &TransferOrbisUploadBundle,
-        ring_pk: &Element,
     ) -> Result<[u8; 32]>;
     async fn record_evidence_failure(
         &self,
@@ -179,6 +176,9 @@ impl SqliteScannerStore {
                 salt BLOB NOT NULL,
                 sender_slot_id INTEGER NOT NULL,
                 receiver_slot_id INTEGER NOT NULL,
+                routing_roles_swapped INTEGER NOT NULL,
+                routing_tag_0 INTEGER NOT NULL,
+                routing_tag_1 INTEGER NOT NULL,
                 ciphertext_bytes BLOB NOT NULL,
                 detection_status TEXT NOT NULL DEFAULT 'detected'
                     CHECK (detection_status IN ('detected')),
@@ -202,7 +202,7 @@ impl SqliteScannerStore {
                 action_index INTEGER NOT NULL,
                 output_index INTEGER NOT NULL,
                 raw_bytes BLOB NOT NULL,
-                orbis_upload_bundle_bytes BLOB,
+                compliance_metadata_bytes BLOB,
                 screen_status TEXT NOT NULL
                     CHECK (screen_status IN ('pending', 'irrelevant', 'detected', 'invalid')),
                 screen_reason TEXT,
@@ -346,9 +346,11 @@ impl SqliteScannerStore {
 
             INSERT OR IGNORE INTO scanner_runtime (id) VALUES (1);
 
-            INSERT OR IGNORE INTO scanner_schema_version (id, version)
-            VALUES (1, 1);
             "#,
+        )?;
+        conn.execute(
+            "INSERT OR IGNORE INTO scanner_schema_version (id, version) VALUES (1, ?1)",
+            [SCANNER_DB_SCHEMA_VERSION],
         )?;
         let version = Self::schema_version(conn)?.context("scanner DB schema version missing")?;
         anyhow::ensure!(
@@ -635,10 +637,8 @@ impl ScannerStore for SqliteScannerStore {
     async fn validate_and_save_evidence(
         &self,
         evidence: &ComplianceEvidenceObject,
-        upload_bundle: &TransferOrbisUploadBundle,
-        ring_pk: &Element,
     ) -> Result<[u8; 32]> {
-        crate::audit::validate_and_save_evidence_object(self, evidence, upload_bundle, ring_pk)
+        crate::audit::validate_and_save_evidence_object(self, evidence)
     }
 
     async fn record_evidence_failure(
@@ -675,7 +675,7 @@ impl ScannerStore for SqliteScannerStore {
             tx.execute(
                 "INSERT OR IGNORE INTO scanner_ciphertexts
                  (height, block_hash, tx_index, tx_hash, action_index, output_index,
-                  raw_bytes, orbis_upload_bundle_bytes, screen_status, screen_reason)
+                  raw_bytes, compliance_metadata_bytes, screen_status, screen_reason)
                  VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, NULL)",
                 params![
                     tx_ref.block.height as i64,
@@ -685,7 +685,7 @@ impl ScannerStore for SqliteScannerStore {
                     output_ref.action.action_index as i64,
                     output_ref.output_index as i64,
                     ciphertext.raw_bytes.as_slice(),
-                    ciphertext.upload_bundle_bytes.as_deref(),
+                    ciphertext.metadata_bytes.as_deref(),
                     ScreenStatus::Pending.as_str(),
                 ],
             )?;
@@ -701,7 +701,7 @@ impl ScannerStore for SqliteScannerStore {
             tx.execute(
                 "INSERT OR IGNORE INTO scanner_ciphertexts
                  (height, block_hash, tx_index, tx_hash, action_index, output_index,
-                  raw_bytes, orbis_upload_bundle_bytes, screen_status, screen_reason)
+                  raw_bytes, compliance_metadata_bytes, screen_status, screen_reason)
                  VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, NULL, ?8, NULL)",
                 params![
                     tx_ref.block.height as i64,
@@ -718,9 +718,9 @@ impl ScannerStore for SqliteScannerStore {
             tx.execute(
                 "INSERT OR IGNORE INTO scanner_detections
                  (height, block_hash, tx_index, tx_hash, action_index, output_index,
-                  asset_id, is_flagged, salt, sender_slot_id, receiver_slot_id,
-                  ciphertext_bytes, detection_status, audit_status)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
+                  asset_id, is_flagged, salt, sender_slot_id, receiver_slot_id, routing_roles_swapped,
+                  routing_tag_0, routing_tag_1, ciphertext_bytes, detection_status, audit_status)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)",
                 params![
                     tx_ref.block.height as i64,
                     tx_ref.block.block_hash.as_slice(),
@@ -733,6 +733,9 @@ impl ScannerStore for SqliteScannerStore {
                     event.salt.to_bytes().as_slice(),
                     event.sender_slot_id as i64,
                     event.receiver_slot_id as i64,
+                    if event.routing_roles_swapped { 1i64 } else { 0i64 },
+                    i64::from(event.routing_tags[0]),
+                    i64::from(event.routing_tags[1]),
                     event.raw_bytes.as_slice(),
                     DetectionStatus::Detected.as_str(),
                     AuditStatus::Pending.as_str(),
@@ -1087,8 +1090,9 @@ mod tests {
     fn ciphertext(height: u64, output_index: u32) -> ExtractedComplianceCiphertext {
         ExtractedComplianceCiphertext {
             output_ref: output_ref(height, 1, 2, output_index),
+            routing_tags: [11, 22],
             raw_bytes: vec![output_index as u8, 9],
-            upload_bundle_bytes: Some(vec![8, output_index as u8]),
+            metadata_bytes: Some(vec![8, output_index as u8]),
         }
     }
 
@@ -1100,6 +1104,8 @@ mod tests {
             salt: decaf377::Fq::from(9u64),
             sender_slot_id: 1,
             receiver_slot_id: 2,
+            routing_roles_swapped: false,
+            routing_tags: [11, 22],
             ciphertext: crate::transfer::TransferComplianceCiphertext {
                 sender_core_epk: decaf377::Element::GENERATOR,
                 sender_ext_epk: decaf377::Element::GENERATOR,
@@ -1178,7 +1184,7 @@ mod tests {
         let conn = store.lock_conn().unwrap();
         let (status, bundle): (String, Vec<u8>) = conn
             .query_row(
-                "SELECT screen_status, orbis_upload_bundle_bytes FROM scanner_ciphertexts WHERE height = 25",
+                "SELECT screen_status, compliance_metadata_bytes FROM scanner_ciphertexts WHERE height = 25",
                 [],
                 |row| Ok((row.get(0)?, row.get(1)?)),
             )
@@ -1242,6 +1248,45 @@ mod tests {
     }
 
     #[test]
+    fn sqlite_store_initializes_current_schema_and_rejects_stale_versions() {
+        let current_file = NamedTempFile::new().unwrap();
+        let current = SqliteScannerStore::new(current_file.path()).unwrap();
+        let version: i64 = current
+            .lock_conn()
+            .unwrap()
+            .query_row(
+                "SELECT version FROM scanner_schema_version WHERE id = 1",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(version, SCANNER_DB_SCHEMA_VERSION);
+
+        let stale_file = NamedTempFile::new().unwrap();
+        {
+            let conn = Connection::open(stale_file.path()).unwrap();
+            conn.execute_batch(
+                "CREATE TABLE scanner_schema_version (
+                    id INTEGER PRIMARY KEY CHECK (id = 1),
+                    version INTEGER NOT NULL
+                 );
+                 INSERT INTO scanner_schema_version (id, version) VALUES (1, 2);",
+            )
+            .unwrap();
+        }
+        let error = match SqliteScannerStore::new(stale_file.path()) {
+            Ok(_) => panic!("stale scanner schema should fail to open"),
+            Err(error) => error,
+        };
+        assert!(
+            error
+                .to_string()
+                .contains("unsupported scanner DB schema version 2"),
+            "unexpected error: {error:#}"
+        );
+    }
+
+    #[test]
     fn sqlite_store_status_constraints_reject_invalid_values() {
         let temp_file = NamedTempFile::new().unwrap();
         let store = SqliteScannerStore::new(temp_file.path()).unwrap();
@@ -1267,9 +1312,9 @@ mod tests {
             .execute(
                 "INSERT INTO scanner_detections
                  (height, block_hash, tx_index, tx_hash, action_index, output_index,
-                  asset_id, is_flagged, salt, sender_slot_id, receiver_slot_id,
-                  ciphertext_bytes, detection_status, audit_status)
-                 VALUES (1, ?1, 0, ?2, 0, 0, 'asset', 0, ?3, 0, 0, x'00', 'detected', 'unknown')",
+                  asset_id, is_flagged, salt, sender_slot_id, receiver_slot_id, routing_roles_swapped,
+                  routing_tag_0, routing_tag_1, ciphertext_bytes, detection_status, audit_status)
+                 VALUES (1, ?1, 0, ?2, 0, 0, 'asset', 0, ?3, 0, 0, 0, 11, 22, x'00', 'detected', 'unknown')",
                 params![block_hash.as_slice(), tx_hash.as_slice(), salt.as_slice()],
             )
             .expect_err("invalid audit status should fail");

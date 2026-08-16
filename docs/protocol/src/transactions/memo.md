@@ -20,4 +20,4 @@ Each memo is encrypted using the *Memo Key*, a symmetric ChaCha20-Poly1305 key
 generated randomly as described [here](../addresses_keys/transaction_crypto.md#random-memo-key).
 The Memo Key is then encrypted using per-output payload data from the
 output-bearing supported actions: `Transfer`, `NoteReshape`, and the
-change output of `ShieldedIcs20Withdrawal`.
+change output of `ShieldedIcs20Withdrawal` or `ShieldedHostWithdrawal`.

@@ -1,7 +1,4 @@
-use std::{
-    fmt,
-    path::{Path, PathBuf},
-};
+use std::{fmt, path::Path};
 
 use anyhow::{Context as _, Result};
 use cnidarium::Storage;
@@ -10,18 +7,24 @@ use shieldd_sdk_app::{
     genesis::AppState,
     SUBSTORE_PREFIXES,
 };
+use shieldd_sdk_proto::core::component::sct::v1::{
+    ArchivedNullifierProofRequest, ArchivedNullifierProofResponse,
+};
 use shieldd_sdk_proto::{
     core::app::v1 as proto_app,
     cosmos::base::v1beta1::Coin,
     execution_client::v1::{
-        BeginBlockRequest, BeginBlockResponse, CheckTxRequest, CheckTxResponse, CommitRequest,
-        CommitResponse, DeliverTxRequest, DeliverTxResponse, DepositRequest, DepositResponse,
-        EndBlockRequest, EndBlockResponse, Event as ProtoEvent,
-        EventAttribute as ProtoEventAttribute, ExportGenesisRequest, ExportGenesisResponse,
-        GetCommittedStateRequest, GetCommittedStateResponse, InitGenesisRequest,
-        InitGenesisResponse, RollbackRequest, RollbackResponse, Withdrawal as ProtoWithdrawal,
+        host_withdrawal::Destination as ProtoDestination, BeginBlockRequest, BeginBlockResponse,
+        CheckTxRequest, CheckTxResponse, CommitRequest, CommitResponse, DeliverTxRequest,
+        DeliverTxResponse, DepositRequest, DepositResponse, EndBlockRequest, EndBlockResponse,
+        Event as ProtoEvent, EventAttribute as ProtoEventAttribute, ExportGenesisRequest,
+        ExportGenesisResponse, GetCommittedStateRequest, GetCommittedStateResponse,
+        HostWithdrawal as ProtoHostWithdrawal, InitGenesisRequest, InitGenesisResponse,
+        RollbackRequest, RollbackResponse,
     },
 };
+use shieldd_sdk_sct::{generation_pack::GenerationPackRepository, nullifier_tree, Nullifier};
+use shieldd_sdk_shielded_pool::HostWithdrawalDestination;
 use tendermint::{abci, Time};
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ErrorKind {
@@ -81,12 +84,32 @@ impl std::error::Error for ServiceError {
 
 pub struct ExecutionService {
     execution: Option<HostExecution>,
+    storage: Option<Storage>,
+    generation_packs: Option<GenerationPackRepository>,
+    generation_pack_worker: Option<tokio::task::JoinHandle<()>>,
 }
 
 impl ExecutionService {
     pub async fn open(db: impl AsRef<Path>) -> std::result::Result<Self, ServiceError> {
-        let db = PathBuf::from(db.as_ref());
-        let storage = Storage::load(db.clone(), SUBSTORE_PREFIXES.to_vec())
+        Self::open_inner(db.as_ref(), None).await
+    }
+
+    pub async fn open_with_generation_packs(
+        db: impl AsRef<Path>,
+        generation_pack_directory: impl AsRef<Path>,
+    ) -> std::result::Result<Self, ServiceError> {
+        let repository =
+            GenerationPackRepository::new(generation_pack_directory.as_ref().to_path_buf(), 1)
+                .map_err(ServiceError::internal)?;
+        Self::open_inner(db.as_ref(), Some(repository)).await
+    }
+
+    async fn open_inner(
+        db: &Path,
+        generation_packs: Option<GenerationPackRepository>,
+    ) -> std::result::Result<Self, ServiceError> {
+        let db = db.to_path_buf();
+        let mut storage = Storage::load(db.clone(), SUBSTORE_PREFIXES.to_vec())
             .await
             .with_context(|| format!("failed to open Shieldd RocksDB at {}", db.display()))
             .map_err(ServiceError::internal)?;
@@ -102,12 +125,48 @@ impl ExecutionService {
             )));
         }
 
-        Ok(Self::new(storage))
+        if let Some(repository) = generation_packs.as_ref() {
+            let changed =
+                shieldd_sdk_app::nullifier_generation_packs::prepare(&storage, repository)
+                    .await
+                    .context("prepare retired nullifier generation packs")
+                    .map_err(ServiceError::internal)?;
+            if changed {
+                storage.release().await;
+                storage = Storage::load(db.clone(), SUBSTORE_PREFIXES.to_vec())
+                    .await
+                    .with_context(|| {
+                        format!(
+                            "failed to reopen Shieldd RocksDB after pack maintenance at {}",
+                            db.display()
+                        )
+                    })
+                    .map_err(ServiceError::internal)?;
+            }
+        }
+
+        Ok(Self::new_with_generation_packs(storage, generation_packs))
     }
 
     pub fn new(storage: Storage) -> Self {
+        Self::new_with_generation_packs(storage, None)
+    }
+
+    fn new_with_generation_packs(
+        storage: Storage,
+        generation_packs: Option<GenerationPackRepository>,
+    ) -> Self {
+        let generation_pack_worker = generation_packs.as_ref().map(|repository| {
+            shieldd_sdk_app::nullifier_generation_packs::spawn_worker(
+                storage.clone(),
+                repository.clone(),
+            )
+        });
         Self {
-            execution: Some(HostExecution::new(storage)),
+            execution: Some(HostExecution::new(storage.clone())),
+            storage: Some(storage),
+            generation_packs,
+            generation_pack_worker,
         }
     }
 
@@ -252,10 +311,72 @@ impl ExecutionService {
         })
     }
 
+    pub async fn archived_nullifier_proof(
+        &self,
+        request: ArchivedNullifierProofRequest,
+    ) -> std::result::Result<ArchivedNullifierProofResponse, ServiceError> {
+        let nullifier = request
+            .nullifier
+            .context("missing nullifier")
+            .and_then(Nullifier::try_from)
+            .map_err(ServiceError::invalid_argument)?;
+        let repository = self.generation_packs.clone().ok_or_else(|| {
+            ServiceError::failed_precondition(anyhow::anyhow!(
+                "historical witness storage is not configured"
+            ))
+        })?;
+        self.execution.as_ref().ok_or_else(ServiceError::closed)?;
+        let state = self
+            .storage
+            .as_ref()
+            .ok_or_else(ServiceError::closed)?
+            .latest_snapshot();
+        let archived = nullifier_tree::archived_generation(&state, request.generation_index)
+            .await
+            .map_err(ServiceError::failed_precondition)?;
+        let packed = if repository.contains(request.generation_index) {
+            Some(
+                tokio::task::spawn_blocking(move || {
+                    repository
+                        .nonmembership_proof(archived, nullifier)
+                        .map(|proof| *proof)
+                })
+                .await
+                .context("historical witness task failed")
+                .map_err(ServiceError::internal)?,
+            )
+        } else {
+            None
+        };
+        let proof = match packed {
+            Some(Ok(proof)) => proof,
+            Some(Err(pack_error)) => nullifier_tree::archived_nonmembership_proof(
+                &state,
+                request.generation_index,
+                nullifier,
+            )
+            .await
+            .with_context(|| format!("generation pack is also unavailable: {pack_error}"))
+            .map_err(ServiceError::failed_precondition)?,
+            None => nullifier_tree::archived_nonmembership_proof(
+                &state,
+                request.generation_index,
+                nullifier,
+            )
+            .await
+            .map_err(ServiceError::failed_precondition)?,
+        };
+        Ok(proof.into())
+    }
+
     pub async fn close(&mut self) -> std::result::Result<(), ServiceError> {
-        let execution = self.execution.take();
-        if let Some(execution) = execution {
-            execution.release().await;
+        if let Some(worker) = self.generation_pack_worker.take() {
+            worker.abort();
+            let _ = worker.await;
+        }
+        drop(self.execution.take());
+        if let Some(storage) = self.storage.take() {
+            storage.release().await;
         }
         Ok(())
     }
@@ -300,14 +421,21 @@ fn deliver_tx_response(response: HostTxResponse) -> Result<DeliverTxResponse> {
     })
 }
 
-fn encode_withdrawals(withdrawals: Vec<HostWithdrawal>) -> Vec<ProtoWithdrawal> {
+fn encode_withdrawals(withdrawals: Vec<HostWithdrawal>) -> Vec<ProtoHostWithdrawal> {
     withdrawals
         .into_iter()
-        .map(|withdrawal| ProtoWithdrawal {
-            recipient: withdrawal.recipient,
+        .map(|withdrawal| ProtoHostWithdrawal {
             coin: Some(Coin {
                 denom: withdrawal.denom,
                 amount: withdrawal.amount.to_string(),
+            }),
+            destination: Some(match withdrawal.destination {
+                HostWithdrawalDestination::Transfer(transfer) => {
+                    ProtoDestination::Transfer(transfer.into())
+                }
+                HostWithdrawalDestination::Execution(execution) => {
+                    ProtoDestination::Execution(execution.into())
+                }
             }),
         })
         .collect()
@@ -340,7 +468,14 @@ fn encode_events(events: Vec<abci::Event>) -> Result<Vec<ProtoEvent>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use cnidarium::StateDelta;
+    use decaf377::Fq;
     use shieldd_sdk_app::genesis::{AppState, Content};
+    use shieldd_sdk_keys::test_keys;
+    use shieldd_sdk_proto::core::component::sct::v1::ArchivedNullifierProofRequest;
+    use shieldd_sdk_sct::{nullifier_tree, Nullifier};
+    use shieldd_sdk_shielded_pool::{EvmCall, HostExecution};
+    use std::ops::Deref;
 
     fn init_genesis_request() -> InitGenesisRequest {
         InitGenesisRequest {
@@ -349,6 +484,47 @@ mod tests {
                     .into(),
             ),
         }
+    }
+
+    fn nullifier(value: u64) -> Nullifier {
+        Nullifier(Fq::from(value))
+    }
+
+    #[tokio::test]
+    async fn embedded_service_serves_a_pack_after_expanded_state_is_pruned() -> Result<()> {
+        let storage_directory = tempfile::tempdir()?;
+        let storage = Storage::load(
+            storage_directory.path().join("rocksdb"),
+            SUBSTORE_PREFIXES.to_vec(),
+        )
+        .await?;
+        let mut state = StateDelta::new(storage.latest_snapshot());
+        nullifier_tree::initialize(&mut state).await?;
+        nullifier_tree::insert_batch(&mut state, [nullifier(7), nullifier(1)]).await?;
+        nullifier_tree::rollover(&mut state, 30, 1 << 32).await?;
+        nullifier_tree::rollover(&mut state, 60, 2 << 32).await?;
+        let archived = nullifier_tree::archived_generation(&state, 0).await?;
+        let pack = nullifier_tree::build_generation_pack(&state, 0).await?;
+        let directory = tempfile::tempdir()?;
+        let repository = GenerationPackRepository::new(directory.path().to_path_buf(), 1)?;
+        let receipt = repository.write(&pack)?;
+        nullifier_tree::record_generation_pack_completion(&mut state, &receipt).await?;
+        nullifier_tree::prune_packed_generation(&mut state, &receipt).await?;
+        storage.commit(state).await?;
+
+        let mut service = ExecutionService::new_with_generation_packs(storage, Some(repository));
+        let response = service
+            .archived_nullifier_proof(ArchivedNullifierProofRequest {
+                generation_index: 0,
+                nullifier: Some(nullifier(8).into()),
+            })
+            .await?;
+        let proof: shieldd_sdk_sct::nullifier_generation::ArchivedNullifierProof =
+            response.try_into()?;
+        proof.verify_for(nullifier(8))?;
+        assert_eq!(proof.generation_root, archived.generation_root);
+        service.close().await?;
+        Ok(())
     }
 
     #[test]
@@ -387,18 +563,58 @@ mod tests {
     }
 
     #[test]
-    fn encode_withdrawals_maps_recipient_and_coin() {
+    fn encode_withdrawals_maps_transfer_and_coin() {
         let encoded = encode_withdrawals(vec![HostWithdrawal {
-            recipient: "bank1recipient".to_owned(),
             denom: "ushieldd".to_owned(),
             amount: 42u64.into(),
+            destination: HostWithdrawalDestination::Transfer(
+                shieldd_sdk_shielded_pool::HostTransfer {
+                    recipient: "bank1recipient".to_owned(),
+                },
+            ),
         }]);
 
         assert_eq!(encoded.len(), 1);
-        assert_eq!(encoded[0].recipient, "bank1recipient");
         let coin = encoded[0].coin.as_ref().expect("withdrawal coin");
         assert_eq!(coin.denom, "ushieldd");
         assert_eq!(coin.amount, "42");
+        assert!(matches!(
+            encoded[0].destination.as_ref(),
+            Some(ProtoDestination::Transfer(transfer))
+                if transfer.recipient == "bank1recipient"
+        ));
+    }
+
+    #[test]
+    fn encode_withdrawals_preserves_execution_call_order_and_refund_address() {
+        let encoded = encode_withdrawals(vec![HostWithdrawal {
+            denom: "ushieldd".to_owned(),
+            amount: 42u64.into(),
+            destination: HostWithdrawalDestination::Execution(HostExecution {
+                refund_address: test_keys::ADDRESS_0.deref().clone(),
+                gas_limit: 200_000,
+                calls: vec![
+                    EvmCall {
+                        contract: [1u8; 20],
+                        calldata: vec![0xaa],
+                    },
+                    EvmCall {
+                        contract: [2u8; 20],
+                        calldata: vec![0xbb],
+                    },
+                ],
+            }),
+        }]);
+
+        let Some(ProtoDestination::Execution(execution)) = encoded[0].destination.as_ref() else {
+            panic!("expected host execution");
+        };
+        assert_eq!(execution.refund_address, test_keys::ADDRESS_0.to_string());
+        assert_eq!(execution.gas_limit, 200_000);
+        assert_eq!(execution.calls[0].contract, [1u8; 20]);
+        assert_eq!(execution.calls[0].calldata, vec![0xaa]);
+        assert_eq!(execution.calls[1].contract, [2u8; 20]);
+        assert_eq!(execution.calls[1].calldata, vec![0xbb]);
     }
 
     #[tokio::test]

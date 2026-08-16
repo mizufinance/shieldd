@@ -12,11 +12,22 @@ use super::{AddressIndex, Diversifier, DiversifierKey};
 use crate::{
     ka,
     keys::{AuthorizationKeyVar, NullifierKeyVar, IVK_DOMAIN_SEP},
-    prf, Address, DiscoveryKey,
+    Address,
 };
 
 pub const IVK_LEN_BYTES: usize = 64;
 const MOD_R_QUOTIENT: usize = 4;
+
+fn enforce_incoming_viewing_key_nonzero(
+    cs: ark_relations::r1cs::ConstraintSystemRef<Fq>,
+    ivk: &FqVar,
+) -> Result<(), SynthesisError> {
+    let inverse = FqVar::new_witness(cs.clone(), || {
+        Ok(ivk.value()?.inverse().unwrap_or_default())
+    })?;
+    let one = FqVar::new_constant(cs, Fq::from(1u64))?;
+    (ivk * inverse).enforce_equal(&one)
+}
 
 /// Allows viewing incoming notes, i.e., notes sent to the spending key this
 /// key is derived from.
@@ -28,19 +39,12 @@ pub struct IncomingViewingKey {
 
 impl IncomingViewingKey {
     /// Derive a shielded payment address with the given [`AddressIndex`].
-    pub fn payment_address(&self, index: AddressIndex) -> (Address, DiscoveryKey) {
+    pub fn payment_address(&self, index: AddressIndex) -> Address {
         let d = self.dk.diversifier_for_index(&index);
         let g_d = d.diversified_generator();
         let pk_d = self.ivk.diversified_public(&g_d);
 
-        let discovery_key = DiscoveryKey::derive(
-            prf::expand(b"ShielddDiscovery", &self.ivk.to_bytes(), d.as_ref()).as_bytes(),
-        );
-
-        (
-            Address::from_components(d, pk_d, discovery_key).expect("pk_d is valid"),
-            discovery_key,
-        )
+        Address::from_components(d, pk_d).expect("pk_d is valid")
     }
 
     /// Derive the (encoding of the) transparent address for the given IVK.
@@ -52,10 +56,7 @@ impl IncomingViewingKey {
         let dzero = Diversifier([0u8; 16]);
         let g_dzero = dzero.diversified_generator();
         let pk_dzero = self.ivk.diversified_public(&g_dzero);
-        let discovery_key = DiscoveryKey([0u8; 32]);
-
-        let address =
-            Address::from_components(dzero, pk_dzero, discovery_key).expect("valid address");
+        let address = Address::from_components(dzero, pk_dzero).expect("valid address");
 
         // This should never fail as we just constructed a valid transparent address
         address
@@ -68,7 +69,7 @@ impl IncomingViewingKey {
         &self,
         mut rng: R,
         mut address_index: AddressIndex,
-    ) -> (Address, DiscoveryKey) {
+    ) -> Address {
         let mut random_index = [0u8; 12];
 
         rng.fill_bytes(&mut random_index);
@@ -187,6 +188,7 @@ impl IncomingViewingKeyVar {
 
         // Constrain: ivk_mod_r < r
         Self::is_less_than_constant(&ivk_mod_r, r_modulus)?.enforce_equal(&Boolean::TRUE)?;
+        enforce_incoming_viewing_key_nonzero(cs.clone(), &ivk_mod_r)?;
 
         // Constraint: a = 4 => ivk_mod_r < q - 4 * mod_r
         let is_less_than_q_minus_4_mod_r = Self::is_less_than_constant(
@@ -221,16 +223,39 @@ mod test {
         keys::{Bip44Path, SeedPhrase, SpendKey},
         test_keys,
     };
+    use ark_relations::r1cs::ConstraintSystem;
     use proptest::prelude::*;
     use std::str::FromStr;
 
     use super::*;
 
     #[test]
+    fn incoming_viewing_key_var_enforces_nonzero_reduction() {
+        let nonzero_cs = ConstraintSystem::<Fq>::new_ref();
+        let nonzero = FqVar::new_witness(nonzero_cs.clone(), || Ok(Fq::from(1u64)))
+            .expect("a nonzero incoming-viewing-key witness must allocate");
+        enforce_incoming_viewing_key_nonzero(nonzero_cs.clone(), &nonzero)
+            .expect("the nonzero predicate must synthesize for a nonzero witness");
+        assert!(nonzero_cs
+            .is_satisfied()
+            .expect("nonzero incoming-viewing-key satisfaction is defined"));
+
+        let zero_cs = ConstraintSystem::<Fq>::new_ref();
+        let zero = FqVar::new_witness(zero_cs.clone(), || Ok(Fq::zero()))
+            .expect("a zero incoming-viewing-key witness must allocate");
+        enforce_incoming_viewing_key_nonzero(zero_cs.clone(), &zero)
+            .expect("the nonzero predicate must synthesize for a zero witness");
+        assert!(!zero_cs
+            .is_satisfied()
+            .expect("zero incoming-viewing-key satisfaction is defined"));
+    }
+
+    #[test]
     fn transparent_address_generation_and_parsing() {
         // Use test seed phrase for test vector
         let seed_phrase = SeedPhrase::from_str(test_keys::SEED_PHRASE).expect("valid seed phrase");
-        let spend_key = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0));
+        let spend_key = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0))
+            .expect("test spend key satisfies key refinements");
         let ivk = spend_key.full_viewing_key().incoming();
 
         let transparent_address_str = ivk.transparent_address();
@@ -243,7 +268,7 @@ mod test {
 
         let address_index = ivk.address_index(&reconstructed).expect("views address");
 
-        let actual_address = ivk.payment_address(address_index).0;
+        let actual_address = ivk.payment_address(address_index);
 
         // The diversifiers will not match, as the encryption of the 0 account `AddressIndex`
         // is not the null ciphertext, so when deriving `actual_address` from the 0 account
@@ -255,12 +280,6 @@ mod test {
             reconstructed.transmission_key(),
             actual_address.transmission_key()
         );
-        // The discovery keys should not match because transparent addresses use the zero sentinel.
-        assert_ne!(
-            reconstructed.discovery_key(),
-            actual_address.discovery_key()
-        );
-
         println!("Transparent address: {}", transparent_address_str);
         println!("Reconstructed address: {}", reconstructed);
         println!("Address index: {:?}", address_index);
@@ -271,9 +290,10 @@ mod test {
     fn views_address_succeeds_on_own_address() {
         let rng = rand::rngs::OsRng;
         let spend_key =
-            SpendKey::from_seed_phrase_bip44(SeedPhrase::generate(rng), &Bip44Path::new(0));
+            SpendKey::from_seed_phrase_bip44(SeedPhrase::generate(rng), &Bip44Path::new(0))
+                .expect("generated spend key satisfies key refinements");
         let ivk = spend_key.full_viewing_key().incoming();
-        let own_address = ivk.payment_address(AddressIndex::from(0u32)).0;
+        let own_address = ivk.payment_address(AddressIndex::from(0u32));
         assert!(ivk.views_address(&own_address));
     }
 
@@ -281,9 +301,10 @@ mod test {
         #[test]
         fn views_address_succeeds_on_own_ephemeral_address(address_index in any::<u32>()) {
             let rng = rand::rngs::OsRng;
-            let spend_key = SpendKey::from_seed_phrase_bip44(SeedPhrase::generate(rng), &Bip44Path::new(0));
+            let spend_key = SpendKey::from_seed_phrase_bip44(SeedPhrase::generate(rng), &Bip44Path::new(0))
+                .expect("generated spend key satisfies key refinements");
             let fvk = spend_key.full_viewing_key();
-            let (own_address, _) = fvk.ephemeral_address(rng, AddressIndex::from(address_index));
+            let own_address = fvk.ephemeral_address(rng, AddressIndex::from(address_index));
             let ivk = fvk.incoming();
             assert!(ivk.views_address(&own_address));
 
@@ -296,15 +317,16 @@ mod test {
     fn views_address_fails_on_other_address() {
         let rng = rand::rngs::OsRng;
         let spend_key =
-            SpendKey::from_seed_phrase_bip44(SeedPhrase::generate(rng), &Bip44Path::new(0));
+            SpendKey::from_seed_phrase_bip44(SeedPhrase::generate(rng), &Bip44Path::new(0))
+                .expect("generated spend key satisfies key refinements");
         let ivk = spend_key.full_viewing_key().incoming();
 
         let other_address =
             SpendKey::from_seed_phrase_bip44(SeedPhrase::generate(rng), &Bip44Path::new(0))
+                .expect("generated spend key satisfies key refinements")
                 .full_viewing_key()
                 .incoming()
-                .payment_address(AddressIndex::from(0u32))
-                .0;
+                .payment_address(AddressIndex::from(0u32));
 
         assert!(!ivk.views_address(&other_address));
     }

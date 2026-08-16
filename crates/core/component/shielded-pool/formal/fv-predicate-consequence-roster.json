@@ -1,0 +1,653 @@
+{
+  "schema": "shieldd.gnark.predicate_consequence_roster.v1",
+  "profiles": [
+    {
+      "profile": "note_reshape1x8",
+      "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/NoteReshape1x8/SpecificationConsequences.lean",
+      "consequences": [
+        [
+          "ASSET-LEAF-HASH",
+          "theorem specification_asset_leaf_hash"
+        ],
+        [
+          "ASSET-PARAMETERS-HASH",
+          "theorem specification_asset_parameters_hash"
+        ],
+        [
+          "ASSET-POLICY-KEY-ENCODING",
+          "theorem specification_asset_policy_key_encoding"
+        ],
+        [
+          "ASSET-REGISTRY-GAP-ORDERING",
+          "theorem specification_asset_registry_gap_ordering"
+        ],
+        [
+          "ASSET-REGISTRY-MEMBERSHIP",
+          "theorem specification_asset_registry_membership"
+        ],
+        [
+          "ASSET-REGULATED-BOOLEAN",
+          "theorem specification_asset_regulated_boolean"
+        ],
+        [
+          "ASSET-RING-HASH",
+          "theorem specification_asset_ring_hash"
+        ],
+        [
+          "CIR-SHAPE-FIXED",
+          "theorem specification_cir_shape_fixed"
+        ],
+        [
+          "DEC-BALANCE-COMMITMENT-DERIVATION",
+          "theorem specification_dec_balance_commitment_derivation"
+        ],
+        [
+          "DEC-BALANCE-COMMITMENT-ENCODING",
+          "theorem specification_dec_balance_commitment_encoding"
+        ],
+        [
+          "DEC-DIVERSIFIED-GENERATOR-ENCODING",
+          "theorem specification_dec_diversified_generator_encoding"
+        ],
+        [
+          "DEC-INCOMING-VIEWING-KEY-NONZERO",
+          "theorem specification_dec_incoming_viewing_key_nonzero"
+        ],
+        [
+          "DEC-SPEND-RK-DERIVATION",
+          "theorem specification_dec_spend_rk_derivation"
+        ],
+        [
+          "DEC-SPEND-RK-ENCODING",
+          "theorem specification_dec_spend_rk_encoding"
+        ],
+        [
+          "DEC-TRANSMISSION-KEY-DERIVATION",
+          "theorem specification_dec_transmission_key_derivation"
+        ],
+        [
+          "DEC-TRANSMISSION-KEY-ENCODING",
+          "theorem specification_dec_transmission_key_encoding"
+        ],
+        [
+          "DEC-TRANSMISSION-KEY-NONIDENTITY",
+          "theorem specification_dec_transmission_key_nonidentity"
+        ],
+        [
+          "NOTE-OUTPUT-ASSET-BINDING",
+          "theorem specification_note_output_asset_binding"
+        ],
+        [
+          "NOTE-OUTPUT-COMMITMENT",
+          "theorem specification_note_output_commitment"
+        ],
+        [
+          "NOTE-OUTPUT-OWNER-BINDING",
+          "theorem specification_note_output_owner_binding"
+        ],
+        [
+          "NOTE-SPEND-ASSET-BINDING",
+          "theorem specification_note_spend_asset_binding"
+        ],
+        [
+          "NOTE-SPEND-COMMITMENT",
+          "theorem specification_note_spend_commitment"
+        ],
+        [
+          "NOTE-SPEND-NULLIFIER-DERIVATION",
+          "theorem specification_note_spend_nullifier_derivation"
+        ],
+        [
+          "NOTE-SPEND-OWNER-BINDING",
+          "theorem specification_note_spend_owner_binding"
+        ],
+        [
+          "ROUTING-PARAMETERS",
+          "theorem specification_routing_parameters"
+        ],
+        [
+          "ROUTING-TAG-DERIVATION",
+          "theorem specification_routing_tag_derivation"
+        ],
+        [
+          "SCT-SPEND-MEMBERSHIP",
+          "theorem specification_sct_spend_membership"
+        ],
+        [
+          "VALUE-AMOUNT-128-RANGE",
+          "theorem specification_value_amount_128_range"
+        ],
+        [
+          "VALUE-CONSERVATION",
+          "theorem specification_value_conservation"
+        ]
+      ]
+    },
+    {
+      "profile": "note_reshape8x1",
+      "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/NoteReshape8x1/SpecificationConsequences.lean",
+      "consequences": [
+        [
+          "ASSET-LEAF-HASH",
+          "theorem specification_asset_leaf_hash"
+        ],
+        [
+          "ASSET-PARAMETERS-HASH",
+          "theorem specification_asset_parameters_hash"
+        ],
+        [
+          "ASSET-POLICY-KEY-ENCODING",
+          "theorem specification_asset_policy_key_encoding"
+        ],
+        [
+          "ASSET-REGISTRY-GAP-ORDERING",
+          "theorem specification_asset_registry_gap_ordering"
+        ],
+        [
+          "ASSET-REGISTRY-MEMBERSHIP",
+          "theorem specification_asset_registry_membership"
+        ],
+        [
+          "ASSET-REGULATED-BOOLEAN",
+          "theorem specification_asset_regulated_boolean"
+        ],
+        [
+          "ASSET-RING-HASH",
+          "theorem specification_asset_ring_hash"
+        ],
+        [
+          "CIR-DUMMY-ORDER-COUNT",
+          "theorem specification_cir_dummy_order_count"
+        ],
+        [
+          "CIR-SELECTOR-BOOLEAN",
+          "theorem specification_cir_selector_boolean"
+        ],
+        [
+          "CIR-SHAPE-FIXED",
+          "theorem specification_cir_shape_fixed"
+        ],
+        [
+          "DEC-BALANCE-COMMITMENT-DERIVATION",
+          "theorem specification_dec_balance_commitment_derivation"
+        ],
+        [
+          "DEC-BALANCE-COMMITMENT-ENCODING",
+          "theorem specification_dec_balance_commitment_encoding"
+        ],
+        [
+          "DEC-DIVERSIFIED-GENERATOR-ENCODING",
+          "theorem specification_dec_diversified_generator_encoding"
+        ],
+        [
+          "DEC-INCOMING-VIEWING-KEY-NONZERO",
+          "theorem specification_dec_incoming_viewing_key_nonzero"
+        ],
+        [
+          "DEC-SPEND-RK-DERIVATION",
+          "theorem specification_dec_spend_rk_derivation"
+        ],
+        [
+          "DEC-SPEND-RK-ENCODING",
+          "theorem specification_dec_spend_rk_encoding"
+        ],
+        [
+          "DEC-TRANSMISSION-KEY-DERIVATION",
+          "theorem specification_dec_transmission_key_derivation"
+        ],
+        [
+          "DEC-TRANSMISSION-KEY-ENCODING",
+          "theorem specification_dec_transmission_key_encoding"
+        ],
+        [
+          "DEC-TRANSMISSION-KEY-NONIDENTITY",
+          "theorem specification_dec_transmission_key_nonidentity"
+        ],
+        [
+          "DUMMY-AMOUNT-ZERO",
+          "theorem specification_dummy_amount_zero"
+        ],
+        [
+          "DUMMY-NULLIFIER-DOMAIN-BINDING",
+          "theorem specification_dummy_nullifier_domain_binding"
+        ],
+        [
+          "NOTE-OUTPUT-ASSET-BINDING",
+          "theorem specification_note_output_asset_binding"
+        ],
+        [
+          "NOTE-OUTPUT-COMMITMENT",
+          "theorem specification_note_output_commitment"
+        ],
+        [
+          "NOTE-OUTPUT-OWNER-BINDING",
+          "theorem specification_note_output_owner_binding"
+        ],
+        [
+          "NOTE-SPEND-ASSET-BINDING",
+          "theorem specification_note_spend_asset_binding"
+        ],
+        [
+          "NOTE-SPEND-COMMITMENT",
+          "theorem specification_note_spend_commitment"
+        ],
+        [
+          "NOTE-SPEND-NULLIFIER-DERIVATION",
+          "theorem specification_note_spend_nullifier_derivation"
+        ],
+        [
+          "NOTE-SPEND-OWNER-BINDING",
+          "theorem specification_note_spend_owner_binding"
+        ],
+        [
+          "ROUTING-PARAMETERS",
+          "theorem specification_routing_parameters"
+        ],
+        [
+          "ROUTING-TAG-DERIVATION",
+          "theorem specification_routing_tag_derivation"
+        ],
+        [
+          "SCT-SPEND-MEMBERSHIP",
+          "theorem specification_sct_spend_membership"
+        ],
+        [
+          "VALUE-AMOUNT-128-RANGE",
+          "theorem specification_value_amount_128_range"
+        ],
+        [
+          "VALUE-CONSERVATION",
+          "theorem specification_value_conservation"
+        ]
+      ]
+    },
+    {
+      "profile": "shielded_ics20_withdrawal",
+      "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/ShieldedIcs20Withdrawal/SpecificationConsequences.lean",
+      "consequences": [
+        [
+          "ASSET-ID-NONZERO",
+          "theorem specification_asset_id_nonzero"
+        ],
+        [
+          "ASSET-LEAF-HASH",
+          "theorem specification_asset_leaf_hash"
+        ],
+        [
+          "ASSET-REGISTRY-GAP-ORDERING",
+          "theorem specification_asset_registry_gap_ordering"
+        ],
+        [
+          "ASSET-REGISTRY-MEMBERSHIP",
+          "theorem specification_asset_registry_membership"
+        ],
+        [
+          "ASSET-REGULATED-BOOLEAN",
+          "theorem specification_asset_regulated_boolean"
+        ],
+        [
+          "CIR-SELECTOR-BOOLEAN",
+          "theorem specification_cir_selector_boolean"
+        ],
+        [
+          "CIR-SHAPE-FIXED",
+          "theorem specification_cir_shape_fixed"
+        ],
+        [
+          "DEC-BALANCE-COMMITMENT-DERIVATION",
+          "theorem specification_dec_balance_commitment_derivation"
+        ],
+        [
+          "DEC-BALANCE-COMMITMENT-ENCODING",
+          "theorem specification_dec_balance_commitment_encoding"
+        ],
+        [
+          "DEC-DIVERSIFIED-GENERATOR-ENCODING",
+          "theorem specification_dec_diversified_generator_encoding"
+        ],
+        [
+          "DEC-INCOMING-VIEWING-KEY-NONZERO",
+          "theorem specification_dec_incoming_viewing_key_nonzero"
+        ],
+        [
+          "DEC-SPEND-RK-DERIVATION",
+          "theorem specification_dec_spend_rk_derivation"
+        ],
+        [
+          "DEC-SPEND-RK-ENCODING",
+          "theorem specification_dec_spend_rk_encoding"
+        ],
+        [
+          "DEC-TRANSMISSION-KEY-DERIVATION",
+          "theorem specification_dec_transmission_key_derivation"
+        ],
+        [
+          "DEC-TRANSMISSION-KEY-ENCODING",
+          "theorem specification_dec_transmission_key_encoding"
+        ],
+        [
+          "DEC-TRANSMISSION-KEY-NONIDENTITY",
+          "theorem specification_dec_transmission_key_nonidentity"
+        ],
+        [
+          "DUMMY-AMOUNT-ZERO",
+          "theorem specification_dummy_amount_zero"
+        ],
+        [
+          "DUMMY-NULLIFIER-DOMAIN-BINDING",
+          "theorem specification_dummy_nullifier_domain_binding"
+        ],
+        [
+          "DUMMY-SLOT-POSITION-BINDING",
+          "theorem specification_dummy_slot_position_binding"
+        ],
+        [
+          "FIELD-AUTH-RANDOMIZER-RANGE",
+          "theorem specification_field_auth_randomizer_range"
+        ],
+        [
+          "FIELD-BALANCE-BLINDING-RANGE",
+          "theorem specification_field_balance_blinding_range"
+        ],
+        [
+          "FIELD-USER-POSITION-RANGE",
+          "theorem specification_field_user_position_range"
+        ],
+        [
+          "NOTE-OUTPUT-ASSET-BINDING",
+          "theorem specification_note_output_asset_binding"
+        ],
+        [
+          "NOTE-OUTPUT-COMMITMENT",
+          "theorem specification_note_output_commitment"
+        ],
+        [
+          "NOTE-OUTPUT-OWNER-BINDING",
+          "theorem specification_note_output_owner_binding"
+        ],
+        [
+          "NOTE-SPEND-ASSET-BINDING",
+          "theorem specification_note_spend_asset_binding"
+        ],
+        [
+          "NOTE-SPEND-COMMITMENT",
+          "theorem specification_note_spend_commitment"
+        ],
+        [
+          "NOTE-SPEND-NULLIFIER-DERIVATION",
+          "theorem specification_note_spend_nullifier_derivation"
+        ],
+        [
+          "NOTE-SPEND-OWNER-BINDING",
+          "theorem specification_note_spend_owner_binding"
+        ],
+        [
+          "ROUTING-PARAMETERS",
+          "theorem specification_routing_parameters"
+        ],
+        [
+          "ROUTING-TAG-DERIVATION",
+          "theorem specification_routing_tag_derivation"
+        ],
+        [
+          "SCT-SPEND-MEMBERSHIP",
+          "theorem specification_sct_spend_membership"
+        ],
+        [
+          "USER-COMPLIANCE-LEAF-HASH",
+          "theorem specification_user_compliance_leaf_hash"
+        ],
+        [
+          "USER-COMPLIANCE-MEMBERSHIP-GATE",
+          "theorem specification_user_compliance_membership_gate"
+        ],
+        [
+          "USER-LEAF-ADDRESS-BINDING",
+          "theorem specification_user_leaf_address_binding"
+        ],
+        [
+          "USER-LEAF-ASSET-BINDING",
+          "theorem specification_user_leaf_asset_binding"
+        ],
+        [
+          "USER-LEAF-POLICY-SLOT-BINDING",
+          "theorem specification_user_leaf_policy_slot_binding"
+        ],
+        [
+          "VALUE-AMOUNT-128-RANGE",
+          "theorem specification_value_amount_128_range"
+        ],
+        [
+          "WITHDRAWAL-INTENT-FIELD-BINDING",
+          "theorem specification_withdrawal_intent_field_binding"
+        ]
+      ]
+    },
+    {
+      "profile": "transfer",
+      "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/Transfer/SpecificationConsequences.lean",
+      "consequences": [
+        [
+          "ASSET-ID-NONZERO",
+          "theorem specification_asset_id_nonzero"
+        ],
+        [
+          "ASSET-LEAF-HASH",
+          "theorem specification_asset_leaf_hash"
+        ],
+        [
+          "ASSET-PARAMETERS-HASH",
+          "theorem specification_asset_parameters_hash"
+        ],
+        [
+          "ASSET-POLICY-KEY-ENCODING",
+          "theorem specification_asset_policy_key_encoding"
+        ],
+        [
+          "ASSET-REGISTRY-GAP-ORDERING",
+          "theorem specification_asset_registry_gap_ordering"
+        ],
+        [
+          "ASSET-REGISTRY-MEMBERSHIP",
+          "theorem specification_asset_registry_membership"
+        ],
+        [
+          "ASSET-REGULATED-BOOLEAN",
+          "theorem specification_asset_regulated_boolean"
+        ],
+        [
+          "ASSET-RING-HASH",
+          "theorem specification_asset_ring_hash"
+        ],
+        [
+          "CIR-SELECTOR-BOOLEAN",
+          "theorem specification_cir_selector_boolean"
+        ],
+        [
+          "CIR-SHAPE-FIXED",
+          "theorem specification_cir_shape_fixed"
+        ],
+        [
+          "COMPLIANCE-ADDRESS-ENCRYPTION",
+          "theorem specification_compliance_address_encryption"
+        ],
+        [
+          "COMPLIANCE-AMOUNT-ENCRYPTION",
+          "theorem specification_compliance_amount_encryption"
+        ],
+        [
+          "COMPLIANCE-DETECTION-ENCRYPTION",
+          "theorem specification_compliance_detection_encryption"
+        ],
+        [
+          "COMPLIANCE-FLAG-BOOLEAN",
+          "theorem specification_compliance_flag_boolean"
+        ],
+        [
+          "COMPLIANCE-METADATA-BINDING",
+          "theorem specification_compliance_metadata_binding"
+        ],
+        [
+          "COMPLIANCE-POLICY-SELECTION",
+          "theorem specification_compliance_policy_selection"
+        ],
+        [
+          "COMPLIANCE-SALT-DERIVATION",
+          "theorem specification_compliance_salt_derivation"
+        ],
+        [
+          "COMPLIANCE-SHARED-SECRET-SELECTION",
+          "theorem specification_compliance_shared_secret_selection"
+        ],
+        [
+          "COMPLIANCE-THRESHOLD-FLAG",
+          "theorem specification_compliance_threshold_flag"
+        ],
+        [
+          "DEC-ACK-DERIVATION",
+          "theorem specification_dec_ack_derivation"
+        ],
+        [
+          "DEC-BALANCE-COMMITMENT-DERIVATION",
+          "theorem specification_dec_balance_commitment_derivation"
+        ],
+        [
+          "DEC-BALANCE-COMMITMENT-ENCODING",
+          "theorem specification_dec_balance_commitment_encoding"
+        ],
+        [
+          "DEC-DIVERSIFIED-GENERATOR-ENCODING",
+          "theorem specification_dec_diversified_generator_encoding"
+        ],
+        [
+          "DEC-EPHEMERAL-PUBLIC-KEY-DERIVATION",
+          "theorem specification_dec_ephemeral_public_key_derivation"
+        ],
+        [
+          "DEC-EPHEMERAL-PUBLIC-KEY-ENCODING",
+          "theorem specification_dec_ephemeral_public_key_encoding"
+        ],
+        [
+          "DEC-INCOMING-VIEWING-KEY-NONZERO",
+          "theorem specification_dec_incoming_viewing_key_nonzero"
+        ],
+        [
+          "DEC-SHARED-SECRET-DERIVATION",
+          "theorem specification_dec_shared_secret_derivation"
+        ],
+        [
+          "DEC-TRANSMISSION-KEY-DERIVATION",
+          "theorem specification_dec_transmission_key_derivation"
+        ],
+        [
+          "DEC-TRANSMISSION-KEY-ENCODING",
+          "theorem specification_dec_transmission_key_encoding"
+        ],
+        [
+          "DEC-TRANSMISSION-KEY-NONIDENTITY",
+          "theorem specification_dec_transmission_key_nonidentity"
+        ],
+        [
+          "DUMMY-AMOUNT-ZERO",
+          "theorem specification_dummy_amount_zero"
+        ],
+        [
+          "DUMMY-NULLIFIER-DOMAIN-BINDING",
+          "theorem specification_dummy_nullifier_domain_binding"
+        ],
+        [
+          "DUMMY-SLOT-POSITION-BINDING",
+          "theorem specification_dummy_slot_position_binding"
+        ],
+        [
+          "FIELD-AUTH-RANDOMIZER-RANGE",
+          "theorem specification_field_auth_randomizer_range"
+        ],
+        [
+          "FIELD-BALANCE-BLINDING-RANGE",
+          "theorem specification_field_balance_blinding_range"
+        ],
+        [
+          "FIELD-DETECTION-SLOT-RANGE",
+          "theorem specification_field_detection_slot_range"
+        ],
+        [
+          "FIELD-EPHEMERAL-SCALAR-RANGE",
+          "theorem specification_field_ephemeral_scalar_range"
+        ],
+        [
+          "FIELD-USER-DERIVATION-RANGE",
+          "theorem specification_field_user_derivation_range"
+        ],
+        [
+          "FIELD-USER-POSITION-RANGE",
+          "theorem specification_field_user_position_range"
+        ],
+        [
+          "NOTE-OUTPUT-ASSET-BINDING",
+          "theorem specification_note_output_asset_binding"
+        ],
+        [
+          "NOTE-OUTPUT-OWNER-BINDING",
+          "theorem specification_note_output_owner_binding"
+        ],
+        [
+          "NOTE-RECEIVER-AMOUNT-NONZERO",
+          "theorem specification_note_receiver_amount_nonzero"
+        ],
+        [
+          "NOTE-SPEND-ASSET-BINDING",
+          "theorem specification_note_spend_asset_binding"
+        ],
+        [
+          "NOTE-SPEND-COMMITMENT",
+          "theorem specification_note_spend_commitment"
+        ],
+        [
+          "NOTE-SPEND-OWNER-BINDING",
+          "theorem specification_note_spend_owner_binding"
+        ],
+        [
+          "ROUTING-PARAMETERS",
+          "theorem specification_routing_parameters"
+        ],
+        [
+          "ROUTING-TAG-DERIVATION",
+          "theorem specification_routing_tag_derivation"
+        ],
+        [
+          "USER-COMPLIANCE-LEAF-HASH",
+          "theorem specification_user_compliance_leaf_hash"
+        ],
+        [
+          "USER-COMPLIANCE-MEMBERSHIP-GATE",
+          "theorem specification_user_compliance_membership_gate"
+        ],
+        [
+          "USER-LEAF-ADDRESS-BINDING",
+          "theorem specification_user_leaf_address_binding"
+        ],
+        [
+          "USER-LEAF-ASSET-BINDING",
+          "theorem specification_user_leaf_asset_binding"
+        ],
+        [
+          "USER-LEAF-POLICY-SLOT-BINDING",
+          "theorem specification_user_leaf_policy_slot_binding"
+        ],
+        [
+          "VALUE-AMOUNT-128-RANGE",
+          "theorem specification_value_amount_128_range"
+        ],
+        [
+          "VALUE-CONSERVATION",
+          "theorem specification_value_conservation"
+        ],
+        [
+          "VALUE-THRESHOLD-128-RANGE",
+          "theorem specification_value_threshold_128_range"
+        ]
+      ]
+    }
+  ]
+}

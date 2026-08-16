@@ -46,12 +46,11 @@
       "source_inventory": "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/extractions.py",
       "global_inputs": [
         ".cargo/config.toml",
-        "Cargo.lock",
-        "Cargo.toml",
         "crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/Extracted/AeneasRuntime.lean",
         "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/extractions.py",
         "crates/crypto/proof-aggregation/formal/snarkpack/aeneas-toolchain.toml",
-        "rust-toolchain.toml"
+        "rust-toolchain.toml",
+        "scripts/ci/snarkpack_lane_fingerprint.py"
       ],
       "graph_tiers": {
         "pull_request": "extract-changed",
@@ -70,10 +69,6 @@
     {
       "patterns": [
         ".cargo/config.toml",
-        ".gitattributes",
-        "Cargo.lock",
-        "Cargo.toml",
-        "deployments/containerfiles/Dockerfile.snarkpack-fv-toolchain",
         "rust-toolchain.toml"
       ],
       "tiers": {
@@ -81,13 +76,17 @@
         "merge_group": "full",
         "default": "full"
       },
-      "reason": "workspace dependency or Rust toolchain input affects every extraction and parity graph"
+      "reason": "formal Rust configuration or toolchain input affects every extraction and parity graph"
     },
     {
       "patterns": [
         ".github/actions/**",
         ".github/workflows/**",
+        ".gitattributes",
+        "Cargo.lock",
+        "Cargo.toml",
         "ci/gates/snarkpack-formal.json",
+        "deployments/containerfiles/Dockerfile.snarkpack-fv-toolchain",
         "flake.lock",
         "flake.nix",
         "justfile",
@@ -106,6 +105,8 @@
         "scripts/ci/test_snarkpack_lean_attestation.py",
         "scripts/ci/run_with_annotation.py",
         "scripts/ci/test_run_with_annotation.py",
+        "scripts/fv_strict_json.py",
+        "scripts/tests/test_fv_strict_json.py",
         "scripts/prepare_snarkpack_fstar_support.py",
         "scripts/snarkpack-lean-single-threaded.ps1",
         "scripts/run-snarkpack-fv-safe.ps1",
@@ -179,12 +180,22 @@
   "irrelevant_inputs": [
     {
       "patterns": [
+        "scripts/check-certified-circuit-impact.py",
+        "scripts/check-certified-circuit-spec-independence.sh",
+        "scripts/check-circuit-fv.sh",
         "scripts/check-constraint-coverage.sh",
         "scripts/check-extracted-lean-heartbeats.sh",
+        "scripts/check-formal-gate-self-tests.sh",
         "scripts/check-fv-census.sh",
+        "scripts/check-fv-profiles.py",
+        "scripts/check-fv-specification-completeness.py",
+        "scripts/check-fv-specification-evidence.sh",
+        "scripts/check-gadget-model-fidelity.sh",
+        "scripts/check-key-coherence.sh",
         "scripts/check-lean-circuit-fv.sh",
         "scripts/check-manifest-pin.sh",
         "scripts/check-note-reshape-impact.py",
+        "scripts/check_lfs_policy.py",
         "scripts/check-soundness-invariants.sh",
         "scripts/check-structured-lc-dtk-probes.sh",
         "scripts/check-structured-lc-generation.sh",
@@ -199,18 +210,43 @@
         "scripts/compliance-symbolic.sh",
         "scripts/fixtures/**",
         "scripts/fv-census.py",
+        "scripts/fv-json-field.py",
         "scripts/fv-opt-loop-diff.py",
         "scripts/fv-opt-loop.sh",
+        "scripts/fv_certification.py",
+        "scripts/fv_rust_evidence_classification.py",
+        "scripts/fv_specification_completeness.py",
+        "scripts/gen-certified-circuit-artifacts.py",
         "scripts/gen-edwards-precondition.py",
         "scripts/gen-note-reshape-family-artifacts.py",
+        "scripts/gen_fv_specification_matrix.py",
         "scripts/lean-build-safe.sh",
         "scripts/lean-leaf-bench.sh",
+        "scripts/lib/fail-closed-rg.sh",
+        "scripts/lib/soundness-symbol-cell.sh",
         "scripts/lint-emitted-lean.py",
+        "scripts/macos-process-group-rss.c",
         "scripts/picus-diagnose.sh",
+        "scripts/proof_artifacts.py",
         "scripts/refresh-lean-artifact-stamps.py",
+        "scripts/run-fv-specification-tests.py",
         "scripts/run-picus-bounded.sh",
         "scripts/run-whole-circuit-picus.sh",
         "scripts/shielded-pool-formal.sh",
+        "scripts/sync-fv-certification-backends.py",
+        "scripts/tests/test_check_certified_circuit_impact.py",
+        "scripts/tests/test_check_constraint_coverage.py",
+        "scripts/tests/test_check_fv_profiles.py",
+        "scripts/tests/test_fv_rust_evidence_classification.py",
+        "scripts/tests/test_fv_specification_completeness.py",
+        "scripts/tests/test_gen_certified_circuit_artifacts.py",
+        "scripts/tests/test_lean_build_safe.py",
+        "scripts/tests/test_proof_artifacts.py",
+        "scripts/tests/test_release_gate_strict_json.py",
+        "scripts/tests/test_run_fv_specification_tests.py",
+        "scripts/tests/test_soundness_symbol_cell.py",
+        "scripts/tests/test_structured_lc_generation.py",
+        "scripts/tests/test_wiring_certificates.py",
         "tools/gnark/**"
       ],
       "reason": "circuit soundness proof controls covered by the separate soundness family"

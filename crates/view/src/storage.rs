@@ -6,7 +6,7 @@ use decaf377::Fq;
 use once_cell::sync::Lazy;
 use parking_lot::Mutex;
 use r2d2_sqlite::{
-    rusqlite::{OpenFlags, OptionalExtension},
+    rusqlite::{self, OpenFlags, OptionalExtension},
     SqliteConnectionManager,
 };
 use sha2::{Digest, Sha256};
@@ -28,15 +28,21 @@ use shieldd_sdk_proto::{
     core::app::v1::{
         query_service_client::QueryServiceClient as AppQueryServiceClient, AppParametersRequest,
     },
-    DomainType,
+    core::component::sct::v1 as pb_sct,
+    DomainType, Message,
 };
-use shieldd_sdk_sct::{CommitmentSource, Nullifier};
+use shieldd_sdk_sct::{nullifier_generation::NullifierWindow, CommitmentSource, Nullifier};
 use shieldd_sdk_shielded_pool::{discovery, note, Note, Rseed};
 use shieldd_sdk_tct::{self as tct, builder::epoch::Root};
 use shieldd_sdk_transaction::Transaction;
 use tct::StateCommitment;
 
-use crate::{sync::FilteredBlock, SpendableNoteRecord};
+use crate::{
+    historical_proof_cache::{HistoricalProofCache, HistoricalProofCacheState},
+    issued_address::{AddressPurpose, IssuedAddress},
+    sync::FilteredBlock,
+    SpendableNoteRecord,
+};
 
 pub(crate) mod compliance;
 mod sct;
@@ -46,6 +52,137 @@ pub struct BalanceEntry {
     pub id: Id,
     pub amount: u128,
     pub address_index: AddressIndex,
+}
+
+#[cfg(test)]
+mod issued_address_tests {
+    use super::*;
+    use camino::Utf8Path;
+    use shieldd_sdk_app::params::AppParameters;
+    use shieldd_sdk_keys::{keys::AddressIndex, test_keys};
+
+    #[tokio::test]
+    async fn fresh_storage_distinguishes_an_uninitialized_nullifier_window() {
+        let storage = Storage::initialize(
+            None::<&Utf8Path>,
+            (*test_keys::FULL_VIEWING_KEY).clone(),
+            AppParameters::default(),
+        )
+        .await
+        .unwrap();
+
+        assert!(storage
+            .nullifier_window_if_initialized()
+            .await
+            .unwrap()
+            .is_none());
+        assert!(storage.nullifier_window().await.is_err());
+    }
+
+    #[tokio::test]
+    async fn restore_recovers_standard_and_randomized_issued_addresses() {
+        let directory = tempfile::tempdir().unwrap();
+        let raw_path = directory.path().join("view.sqlite");
+        let path = Utf8Path::from_path(&raw_path).unwrap().to_owned();
+        let fvk = (*test_keys::FULL_VIEWING_KEY).clone();
+        let storage = Storage::initialize(Some(&path), fvk.clone(), AppParameters::default())
+            .await
+            .unwrap();
+        let general_index = AddressIndex::new(7);
+        let regulated_index = AddressIndex {
+            account: 9,
+            randomizer: [0x5a; 12],
+        };
+        let regulated_asset = asset::Id(decaf377::Fq::from(42u64));
+        let issued = [
+            IssuedAddress {
+                address_index: general_index,
+                address: fvk.payment_address(general_index),
+                purpose: AddressPurpose::General,
+                birth_height: 11,
+                retired_height: None,
+            },
+            IssuedAddress {
+                address_index: regulated_index,
+                address: fvk.payment_address(regulated_index),
+                purpose: AddressPurpose::Regulated {
+                    asset_id: regulated_asset,
+                },
+                birth_height: 12,
+                retired_height: None,
+            },
+        ];
+        for address in issued.clone() {
+            storage.record_issued_address(address).await.unwrap();
+        }
+        drop(storage);
+
+        let restored = Storage::load(&path).await.unwrap();
+        assert_eq!(restored.issued_addresses().await.unwrap(), issued);
+    }
+
+    #[tokio::test]
+    async fn issued_address_birth_height_is_write_once_and_purpose_cannot_change() {
+        let fvk = (*test_keys::FULL_VIEWING_KEY).clone();
+        let storage = Storage::initialize(None::<&Utf8Path>, fvk.clone(), AppParameters::default())
+            .await
+            .unwrap();
+        let index = AddressIndex::new(3);
+        let issued = IssuedAddress {
+            address_index: index,
+            address: fvk.payment_address(index),
+            purpose: AddressPurpose::General,
+            birth_height: 8,
+            retired_height: None,
+        };
+        storage.record_issued_address(issued.clone()).await.unwrap();
+        storage.record_issued_address(issued.clone()).await.unwrap();
+
+        let mut reissued_later = issued.clone();
+        reissued_later.birth_height = 42;
+        storage.record_issued_address(reissued_later).await.unwrap();
+        assert_eq!(
+            storage.issued_addresses().await.unwrap(),
+            vec![issued.clone()],
+            "reissuing an address preserves its original birth height"
+        );
+
+        let mut conflicting = issued;
+        conflicting.purpose = AddressPurpose::Regulated {
+            asset_id: asset::Id(decaf377::Fq::from(9u64)),
+        };
+        assert!(storage.record_issued_address(conflicting).await.is_err());
+    }
+
+    #[tokio::test]
+    async fn historical_proof_cache_round_trips_and_deletes() {
+        let storage = Storage::initialize(
+            None::<&Utf8Path>,
+            (*test_keys::FULL_VIEWING_KEY).clone(),
+            AppParameters::default(),
+        )
+        .await
+        .unwrap();
+        let nullifier = Nullifier(Fq::from(77u64));
+        let cache = HistoricalProofCache::pending(nullifier);
+        storage
+            .put_historical_proof_cache(cache.clone())
+            .await
+            .unwrap();
+        assert_eq!(
+            storage.historical_proof_cache(nullifier).await.unwrap(),
+            Some(cache)
+        );
+        storage
+            .delete_historical_proof_cache(nullifier)
+            .await
+            .unwrap();
+        assert!(storage
+            .historical_proof_cache(nullifier)
+            .await
+            .unwrap()
+            .is_none());
+    }
 }
 
 /// The hash of the schema for the database.
@@ -70,6 +207,158 @@ pub struct Storage {
 }
 
 impl Storage {
+    fn put_historical_proof_cache_inner(
+        connection: &rusqlite::Connection,
+        cache: &HistoricalProofCache,
+    ) -> anyhow::Result<()> {
+        cache.validate()?;
+        let proof: pb_sct::HistoricalNullifierProof = cache.proof.clone().into();
+        connection.execute(
+            "INSERT INTO historical_proof_cache
+             (nullifier, protocol_version, covered_generation_count, terminal_history_head, proof_bundle, cache_state, last_error)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+             ON CONFLICT(nullifier) DO UPDATE SET
+               protocol_version = excluded.protocol_version,
+               covered_generation_count = excluded.covered_generation_count,
+               terminal_history_head = excluded.terminal_history_head,
+               proof_bundle = excluded.proof_bundle,
+               cache_state = excluded.cache_state,
+               last_error = excluded.last_error",
+            rusqlite::params![
+                cache.nullifier.to_bytes().to_vec(),
+                cache.protocol_version,
+                cache.covered_generation_count,
+                cache.terminal_history_head.to_vec(),
+                proof.encode_to_vec(),
+                cache.state.storage_id(),
+                cache.last_error.as_deref(),
+            ],
+        )?;
+        Ok(())
+    }
+
+    pub async fn put_historical_proof_cache(
+        &self,
+        cache: HistoricalProofCache,
+    ) -> anyhow::Result<()> {
+        let pool = self.pool.clone();
+        spawn_blocking(move || {
+            let connection = pool.get()?;
+            Self::put_historical_proof_cache_inner(&connection, &cache)
+        })
+        .await?
+    }
+
+    pub async fn historical_proof_cache(
+        &self,
+        nullifier: Nullifier,
+    ) -> anyhow::Result<Option<HistoricalProofCache>> {
+        let pool = self.pool.clone();
+        spawn_blocking(move || {
+            let row = pool
+                .get()?
+                .prepare_cached(
+                    "SELECT protocol_version, covered_generation_count, terminal_history_head,
+                            proof_bundle, cache_state, last_error
+                     FROM historical_proof_cache WHERE nullifier = ?1",
+                )?
+                .query_row([nullifier.to_bytes().to_vec()], |row| {
+                    Ok((
+                        row.get::<_, u32>(0)?,
+                        row.get::<_, u64>(1)?,
+                        row.get::<_, Vec<u8>>(2)?,
+                        row.get::<_, Vec<u8>>(3)?,
+                        row.get::<_, i64>(4)?,
+                        row.get::<_, Option<String>>(5)?,
+                    ))
+                })
+                .optional()?;
+            let Some((
+                protocol_version,
+                covered_generation_count,
+                terminal_history_head,
+                proof_bundle,
+                cache_state,
+                last_error,
+            )) = row
+            else {
+                return Ok(None);
+            };
+            let terminal_history_head: [u8; 32] =
+                terminal_history_head.try_into().map_err(|bytes: Vec<u8>| {
+                    anyhow!("history head must be 32 bytes, got {}", bytes.len())
+                })?;
+            let proof =
+                pb_sct::HistoricalNullifierProof::decode(proof_bundle.as_slice())?.try_into()?;
+            let cache = HistoricalProofCache {
+                protocol_version,
+                nullifier,
+                covered_generation_count,
+                terminal_history_head,
+                proof,
+                state: HistoricalProofCacheState::from_storage_id(cache_state)?,
+                last_error,
+            };
+            cache.validate()?;
+            Ok(Some(cache))
+        })
+        .await?
+    }
+
+    pub async fn historical_proof_caches_for_unspent_notes(
+        &self,
+    ) -> anyhow::Result<Vec<HistoricalProofCache>> {
+        let pool = self.pool.clone();
+        spawn_blocking(move || {
+            let connection = pool.get()?;
+            let mut statement = connection.prepare_cached(
+                "SELECT c.nullifier, c.protocol_version, c.covered_generation_count,
+                        c.terminal_history_head, c.proof_bundle, c.cache_state, c.last_error
+                 FROM historical_proof_cache c
+                 JOIN spendable_notes n ON n.nullifier = c.nullifier
+                 WHERE n.height_spent IS NULL
+                 ORDER BY n.position ASC",
+            )?;
+            let caches = statement
+                .query_and_then([], |row| {
+                    let nullifier_bytes: Vec<u8> = row.get(0)?;
+                    let terminal_history_head: Vec<u8> = row.get(3)?;
+                    let proof_bundle: Vec<u8> = row.get(4)?;
+                    let cache = HistoricalProofCache {
+                        protocol_version: row.get(1)?,
+                        nullifier: Nullifier::try_from(nullifier_bytes)?,
+                        covered_generation_count: row.get(2)?,
+                        terminal_history_head: terminal_history_head.try_into().map_err(
+                            |bytes: Vec<u8>| {
+                                anyhow!("history head must be 32 bytes, got {}", bytes.len())
+                            },
+                        )?,
+                        proof: pb_sct::HistoricalNullifierProof::decode(proof_bundle.as_slice())?
+                            .try_into()?,
+                        state: HistoricalProofCacheState::from_storage_id(row.get(5)?)?,
+                        last_error: row.get(6)?,
+                    };
+                    cache.validate()?;
+                    anyhow::Ok(cache)
+                })?
+                .collect::<anyhow::Result<Vec<_>>>()?;
+            Ok(caches)
+        })
+        .await?
+    }
+
+    pub async fn delete_historical_proof_cache(&self, nullifier: Nullifier) -> anyhow::Result<()> {
+        let pool = self.pool.clone();
+        spawn_blocking(move || {
+            pool.get()?.execute(
+                "DELETE FROM historical_proof_cache WHERE nullifier = ?1",
+                [nullifier.to_bytes().to_vec()],
+            )?;
+            anyhow::Ok(())
+        })
+        .await?
+    }
+
     /// If the database at `storage_path` exists, [`Self::load`] it, otherwise, [`Self::initialize`] it.
     #[tracing::instrument(
         skip_all,
@@ -504,6 +793,133 @@ impl Storage {
         .await?
     }
 
+    /// Persist an issued address before it is returned to a caller.
+    pub async fn record_issued_address(&self, issued: IssuedAddress) -> anyhow::Result<()> {
+        let pool = self.pool.clone();
+        spawn_blocking(move || {
+            let address_index = issued.address_index.to_bytes();
+            let address = issued.address.to_vec();
+            let birth_height = i64::try_from(issued.birth_height)
+                .context("issued-address birth height exceeds SQLite i64")?;
+            let retired_height = issued
+                .retired_height
+                .map(i64::try_from)
+                .transpose()
+                .context("issued-address retirement height exceeds SQLite i64")?;
+            let (purpose_kind, regulated_asset_id): (i64, Option<Vec<u8>>) = match issued.purpose {
+                AddressPurpose::General => (0, None),
+                AddressPurpose::Regulated { asset_id } => (1, Some(asset_id.to_bytes().to_vec())),
+            };
+
+            let conn = pool.get()?;
+            conn.execute(
+                "INSERT INTO issued_addresses
+                 (address_index, address, purpose_kind, regulated_asset_id, birth_height, retired_height)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+                 ON CONFLICT(address) DO NOTHING",
+                rusqlite::params![
+                    &address_index[..],
+                    address,
+                    purpose_kind,
+                    regulated_asset_id,
+                    birth_height,
+                    retired_height,
+                ],
+            )?;
+
+            let existing: (Vec<u8>, Vec<u8>, i64, Option<Vec<u8>>, Option<i64>) = conn.query_row(
+                "SELECT address_index, address, purpose_kind, regulated_asset_id, retired_height
+                 FROM issued_addresses WHERE address = ?1",
+                [&address[..]],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?)),
+            )?;
+            anyhow::ensure!(
+                existing
+                    == (
+                        address_index.to_vec(),
+                        address,
+                        purpose_kind,
+                        regulated_asset_id,
+                        retired_height,
+                    ),
+                "address was already issued with different identity, purpose, or retirement metadata"
+            );
+            Ok(())
+        })
+        .await?
+    }
+
+    /// Load every issued address, including randomized indices needed by backups.
+    pub async fn issued_addresses(&self) -> anyhow::Result<Vec<IssuedAddress>> {
+        let pool = self.pool.clone();
+        spawn_blocking(move || {
+            let conn = pool.get()?;
+            let mut statement = conn.prepare_cached(
+                "SELECT address_index, address, purpose_kind, regulated_asset_id,
+                        birth_height, retired_height
+                 FROM issued_addresses ORDER BY birth_height, address_index",
+            )?;
+            let rows = statement
+                .query_map([], |row| {
+                    Ok((
+                        row.get::<_, Vec<u8>>(0)?,
+                        row.get::<_, Vec<u8>>(1)?,
+                        row.get::<_, i64>(2)?,
+                        row.get::<_, Option<Vec<u8>>>(3)?,
+                        row.get::<_, i64>(4)?,
+                        row.get::<_, Option<i64>>(5)?,
+                    ))
+                })?
+                .collect::<Result<Vec<_>, _>>()?;
+
+            rows.into_iter()
+                .map(|(index, address, kind, asset_id, birth, retired)| {
+                    let purpose = match (kind, asset_id) {
+                        (0, None) => AddressPurpose::General,
+                        (1, Some(asset_id)) => AddressPurpose::Regulated {
+                            asset_id: asset::Id::try_from(asset_id.as_slice())?,
+                        },
+                        _ => anyhow::bail!("invalid issued-address purpose encoding"),
+                    };
+                    Ok(IssuedAddress {
+                        address_index: AddressIndex::try_from(index.as_slice())?,
+                        address: Address::try_from(address.as_slice())?,
+                        purpose,
+                        birth_height: u64::try_from(birth)
+                            .context("negative issued-address birth height")?,
+                        retired_height: retired
+                            .map(u64::try_from)
+                            .transpose()
+                            .context("negative issued-address retirement height")?,
+                    })
+                })
+                .collect()
+        })
+        .await?
+    }
+
+    pub async fn retire_issued_address(
+        &self,
+        address_index: AddressIndex,
+        retired_height: u64,
+    ) -> anyhow::Result<()> {
+        let pool = self.pool.clone();
+        spawn_blocking(move || {
+            let changed = pool.get()?.execute(
+                "UPDATE issued_addresses SET retired_height = ?2
+                 WHERE address_index = ?1 AND retired_height IS NULL",
+                rusqlite::params![
+                    &address_index.to_bytes()[..],
+                    i64::try_from(retired_height)
+                        .context("retirement height exceeds SQLite i64")?,
+                ],
+            )?;
+            anyhow::ensure!(changed == 1, "issued address is unknown or already retired");
+            Ok(())
+        })
+        .await?
+    }
+
     pub async fn app_params(&self) -> anyhow::Result<AppParameters> {
         let pool = self.pool.clone();
 
@@ -530,6 +946,29 @@ impl Storage {
                 .ok_or_else(|| anyhow!("missing gas_prices in kv table"))?;
 
             GasPrices::decode(bytes.as_slice())
+        })
+        .await?
+    }
+
+    pub async fn nullifier_window(&self) -> anyhow::Result<NullifierWindow> {
+        self.nullifier_window_if_initialized()
+            .await?
+            .context("missing nullifier_window in kv table")
+    }
+
+    pub(crate) async fn nullifier_window_if_initialized(
+        &self,
+    ) -> anyhow::Result<Option<NullifierWindow>> {
+        let pool = self.pool.clone();
+        spawn_blocking(move || {
+            let bytes = pool
+                .get()?
+                .prepare_cached("SELECT v FROM kv WHERE k IS 'nullifier_window' LIMIT 1")?
+                .query_row([], |row| row.get::<_, Vec<u8>>("v"))
+                .optional()?;
+            bytes
+                .map(|bytes| pb_sct::NullifierWindow::decode(bytes.as_slice())?.try_into())
+                .transpose()
         })
         .await?
     }
@@ -1177,12 +1616,21 @@ impl Storage {
                         &tx_hash,
                     ),
                 )?;
+                Storage::put_historical_proof_cache_inner(
+                    &dbtx,
+                    &HistoricalProofCache::pending(note_record.nullifier),
+                )?;
             }
 
             // Update any rows of the table with matching nullifiers to have height_spent
             for nullifier in &filtered_block.spent_nullifiers {
                 let height_spent = filtered_block.height as i64;
                 let nullifier_bytes = nullifier.to_bytes().to_vec();
+
+                dbtx.execute(
+                    "DELETE FROM historical_proof_cache WHERE nullifier = ?1",
+                    [&nullifier_bytes],
+                )?;
 
                 let spent_commitment: Option<StateCommitment> = dbtx.prepare_cached(
                     "UPDATE spendable_notes SET height_spent = ?1 WHERE nullifier = ?2 RETURNING note_commitment"
@@ -1257,6 +1705,15 @@ impl Storage {
                     "INSERT INTO kv (k, v) VALUES ('gas_prices', ?1)
                     ON CONFLICT(k) DO UPDATE SET v = excluded.v",
                     [&gas_prices_bytes],
+                )?;
+            }
+
+            if let Some(window) = filtered_block.nullifier_window {
+                let bytes = pb_sct::NullifierWindow::from(window).encode_to_vec();
+                dbtx.execute(
+                    "INSERT INTO kv (k, v) VALUES ('nullifier_window', ?1)
+                    ON CONFLICT(k) DO UPDATE SET v = excluded.v",
+                    [&bytes],
                 )?;
             }
 

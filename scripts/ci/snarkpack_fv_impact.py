@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib.util
 import json
 import re
@@ -95,6 +96,15 @@ FSTAR_GLOBAL_INPUTS = {
 FSTAR_NONPROOF_CONTROL_INPUTS = {
     "scripts/ci/snarkpack_fv_impact.py",
 }
+FSTAR_SHIELDED_POOL_MANIFEST_INPUT = (
+    "crates/core/component/shielded-pool/Cargo.toml"
+)
+FSTAR_NON_SEMANTIC_MANIFEST_FEATURES = {
+    FSTAR_SHIELDED_POOL_MANIFEST_INPUT: frozenset({"download-proving-keys"}),
+}
+FSTAR_NON_SEMANTIC_LOCK_DEPENDENCIES = {
+    "shieldd-sdk-proof-params": frozenset({"regex", "reqwest 0.12.9"}),
+}
 LEAN_MODULE_TOKEN = r"[A-Za-z_][A-Za-z0-9_']*(?:\.[A-Za-z_][A-Za-z0-9_']*)*"
 IMPORT_RE = re.compile(
     rf"^[ \t]*import[ \t]+"
@@ -104,6 +114,7 @@ IMPORT_RE = re.compile(
 IMPORT_PREFIX_RE = re.compile(r"^[ \t]*(?:public[ \t]+)?import(?:[ \t]|$)")
 GRAPH_ID_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_]*$")
 AUDIT_MODULE_RE = re.compile(r"^Ipp\.ProofAudit[A-Za-z0-9_]*$")
+_FSTAR_VERIFIER_CACHE: dict[Path, object] = {}
 
 
 class ImpactError(RuntimeError):
@@ -512,32 +523,273 @@ def current_fstar_proofs(
     force_all: bool = False,
 ) -> tuple[str, ...]:
     """Return only proof modules lacking current per-module pass evidence."""
-    verifier_path = root / FSTAR_VERIFIER
-    spec = importlib.util.spec_from_file_location(
-        "_snarkpack_fstar_evidence", verifier_path
-    )
-    if spec is None or spec.loader is None:
-        raise ImpactError(f"cannot load F* evidence verifier: {verifier_path}")
-    verifier = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = verifier
+    _fstar_proof_names(root)
+    verifier = _load_fstar_verifier(root)
     try:
-        spec.loader.exec_module(verifier)
         manifest = verifier.load_manifest(root / FSTAR_MANIFEST)
         proof_prefix = f"{FSTAR_ROOT.as_posix()}/"
-        requested = tuple(
-            Path(path).name
-            for path in changed_hints
-            if path.startswith(proof_prefix) and path.endswith(".fst")
-        )
+        requested: list[str] = []
+        for path in changed_hints:
+            if not path.startswith(proof_prefix) or not path.endswith(".fst"):
+                continue
+            relative = path.removeprefix(proof_prefix)
+            if "/" in relative:
+                raise ImpactError(
+                    f"F* proof modules must be direct children of {FSTAR_ROOT}: "
+                    f"{path}"
+                )
+            requested.append(relative)
         modules = verifier.affected_fstar_modules(
             manifest,
             root,
-            requested=requested,
+            requested=tuple(requested),
             force_all=force_all,
         )
     except (OSError, UnicodeError, verifier.VerificationError) as error:
         raise ImpactError(f"cannot plan current F* evidence: {error}") from error
     return tuple(f"{module}.fst" for module in modules)
+
+
+def pending_fstar_proofs(root: Path) -> tuple[str, ...]:
+    """Return proof modules not covered by current repository evidence."""
+    _fstar_proof_names(root)
+    verifier = _load_fstar_verifier(root)
+    try:
+        manifest = verifier.load_manifest(root / FSTAR_MANIFEST)
+        evidence = json.loads((root / FSTAR_EVIDENCE).read_text(encoding="utf-8"))
+        modules = verifier.plan_fstar_modules(
+            manifest,
+            root,
+            base=evidence,
+            requested=(),
+        )
+    except (
+        OSError,
+        UnicodeError,
+        json.JSONDecodeError,
+        verifier.VerificationError,
+    ) as error:
+        raise ImpactError(f"cannot plan pending F* evidence: {error}") from error
+    return tuple(f"{module}.fst" for module in modules)
+
+
+def unchanged_fstar_semantic_inputs(
+    root: Path,
+    base: str,
+    changed: Iterable[str],
+) -> tuple[str, ...]:
+    """Return changed whole files whose proof-relevant projection is stable."""
+    verifier = _load_fstar_verifier(root)
+    try:
+        projected = {
+            verifier.FSTAR_TRANSACTION_PROTO_INPUT,
+            verifier.FSTAR_CARGO_LOCK_INPUT,
+            *FSTAR_NON_SEMANTIC_MANIFEST_FEATURES,
+        }
+        unchanged: list[str] = []
+        for relative in sorted(set(changed) & projected):
+            current_path = root / relative
+            if not current_path.is_file():
+                continue
+            previous = _run_git(
+                root,
+                ["show", f"{base}:{relative}"],
+                text=False,
+            )
+            if previous.returncode:
+                continue
+            before = fstar_semantic_source_sha256(
+                verifier, relative, bytes(previous.stdout)
+            )
+            after = fstar_semantic_source_sha256(
+                verifier, relative, current_path.read_bytes()
+            )
+            if before == after:
+                unchanged.append(relative)
+    except (OSError, UnicodeError, verifier.VerificationError) as error:
+        raise ImpactError(
+            f"cannot compare F* semantic inputs: {error}"
+        ) from error
+    return tuple(unchanged)
+
+
+def fstar_semantic_source_sha256(
+    verifier: object, relative: str, content: bytes
+) -> str:
+    """Hash the proof-relevant projection used only for impact planning."""
+
+    if relative == verifier.FSTAR_CARGO_LOCK_INPUT:
+        projected_lock = fstar_cargo_lock_impact_payload(verifier, content)
+        canonical = json.dumps(
+            projected_lock,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode("utf-8")
+        return hashlib.sha256(canonical).hexdigest()
+    ignored_features = FSTAR_NON_SEMANTIC_MANIFEST_FEATURES.get(relative)
+    if ignored_features is None:
+        return verifier.fstar_source_sha256(relative, content)
+    try:
+        manifest = tomllib.loads(content.decode("utf-8"))
+    except (UnicodeDecodeError, tomllib.TOMLDecodeError) as error:
+        raise ImpactError(f"cannot parse F* Cargo input {relative}: {error}") from error
+    features = manifest.get("features")
+    if not isinstance(features, dict):
+        raise ImpactError(f"F* Cargo input {relative} has no feature table")
+    projected = dict(manifest)
+    projected["features"] = {
+        name: value
+        for name, value in features.items()
+        if name not in ignored_features
+    }
+    canonical = json.dumps(
+        projected,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    return hashlib.sha256(canonical).hexdigest()
+
+
+def fstar_cargo_lock_impact_payload(
+    verifier: object, content: bytes
+) -> dict[str, object]:
+    """Resolve the F* Cargo closure without disabled artifact download deps."""
+
+    try:
+        lock = tomllib.loads(content.decode("utf-8"))
+    except (UnicodeDecodeError, tomllib.TOMLDecodeError) as error:
+        raise ImpactError(f"cannot parse F* Cargo.lock input: {error}") from error
+    packages = lock.get("package")
+    if not isinstance(packages, list):
+        raise ImpactError("F* Cargo.lock input has no package inventory")
+    by_name: dict[str, list[dict[str, object]]] = defaultdict(list)
+    for index, package in enumerate(packages):
+        if not isinstance(package, dict):
+            raise ImpactError(f"F* Cargo.lock package[{index}] is not a table")
+        name = package.get("name")
+        version = package.get("version")
+        if not isinstance(name, str) or not isinstance(version, str):
+            raise ImpactError(f"F* Cargo.lock package[{index}] identity is invalid")
+        by_name[name].append(package)
+
+    def identity(package: dict[str, object]) -> tuple[str, str, str]:
+        source = package.get("source", "")
+        if not isinstance(source, str):
+            raise ImpactError("F* Cargo.lock package source is invalid")
+        return str(package["name"]), str(package["version"]), source
+
+    def resolve(reference: str) -> dict[str, object]:
+        match = re.fullmatch(
+            r"(?P<name>[^ ]+)(?: (?P<version>[^ ]+))?"
+            r"(?: \((?P<source>.+)\))?",
+            reference,
+        )
+        if match is None:
+            raise ImpactError(
+                f"F* Cargo.lock dependency is malformed: {reference!r}"
+            )
+        candidates = list(by_name.get(match.group("name"), ()))
+        version = match.group("version")
+        source = match.group("source")
+        if version is not None:
+            candidates = [
+                package
+                for package in candidates
+                if package.get("version") == version
+            ]
+        if source is not None:
+            candidates = [
+                package
+                for package in candidates
+                if package.get("source") == source
+            ]
+        if len(candidates) != 1:
+            raise ImpactError(
+                "F* Cargo.lock dependency does not resolve uniquely: "
+                f"{reference!r} ({len(candidates)} candidates)"
+            )
+        return candidates[0]
+
+    pending: list[dict[str, object]] = []
+    for root_name in verifier.FSTAR_CARGO_LOCK_ROOTS:
+        roots = by_name.get(root_name, [])
+        if len(roots) != 1:
+            raise ImpactError(
+                f"F* Cargo.lock must contain exactly one {root_name} package"
+            )
+        pending.append(roots[0])
+    selected: dict[tuple[str, str, str], dict[str, object]] = {}
+    while pending:
+        package = pending.pop()
+        package_id = identity(package)
+        if package_id in selected:
+            continue
+        dependencies = package.get("dependencies", [])
+        if not isinstance(dependencies, list) or any(
+            not isinstance(dependency, str) for dependency in dependencies
+        ):
+            raise ImpactError(
+                f"F* Cargo.lock dependencies are invalid for {package_id[0]}"
+            )
+        ignored = FSTAR_NON_SEMANTIC_LOCK_DEPENDENCIES.get(
+            package_id[0], frozenset()
+        )
+        retained = sorted(
+            dependency for dependency in dependencies if dependency not in ignored
+        )
+        normalized = dict(package)
+        normalized["dependencies"] = retained
+        selected[package_id] = normalized
+        pending.extend(resolve(dependency) for dependency in retained)
+
+    return {
+        "schema_version": 1,
+        "lock_version": lock.get("version"),
+        "roots": list(verifier.FSTAR_CARGO_LOCK_ROOTS),
+        "packages": [selected[key] for key in sorted(selected)],
+    }
+
+
+def _load_fstar_verifier(root: Path) -> object:
+    verifier_path = (root / FSTAR_VERIFIER).resolve()
+    cached = _FSTAR_VERIFIER_CACHE.get(verifier_path)
+    if cached is not None:
+        return cached
+    module_suffix = hashlib.sha256(
+        str(verifier_path).encode("utf-8")
+    ).hexdigest()[:16]
+    module_name = f"_snarkpack_fstar_evidence_{module_suffix}"
+    spec = importlib.util.spec_from_file_location(module_name, verifier_path)
+    if spec is None or spec.loader is None:
+        raise ImpactError(f"cannot load F* evidence verifier: {verifier_path}")
+    verifier = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = verifier
+    try:
+        spec.loader.exec_module(verifier)
+    except Exception as error:
+        sys.modules.pop(module_name, None)
+        raise ImpactError(
+            f"cannot load F* evidence verifier: {verifier_path}: {error}"
+        ) from error
+    _FSTAR_VERIFIER_CACHE[verifier_path] = verifier
+    return verifier
+
+
+def _fstar_proof_names(root: Path) -> tuple[str, ...]:
+    proof_root = root / FSTAR_ROOT
+    nested = sorted(
+        path.relative_to(root).as_posix()
+        for path in proof_root.rglob("*.fst")
+        if path.parent != proof_root
+    )
+    if nested:
+        raise ImpactError(
+            "F* proof modules must use the flat proof directory layout: "
+            + ", ".join(nested)
+        )
+    return tuple(sorted(path.name for path in proof_root.glob("*.fst")))
 
 
 def _starts_with_any(path: str, prefixes: Iterable[str]) -> bool:
@@ -572,6 +824,8 @@ def plan(
     retired_graphs: Iterable[str] = (),
     fstar_manifest_control_change: bool = False,
     lean_environment_control_change: bool = False,
+    fstar_semantic_unchanged: Iterable[str] = (),
+    pending_fstar: Iterable[str] = (),
 ) -> ImpactPlan:
     if event not in SUPPORTED_EVENTS:
         raise ImpactError(f"unsupported event {event!r}")
@@ -609,7 +863,6 @@ def plan(
             + ", ".join(unknown_graphs)
         )
     graph_set.intersection_update(all_graphs)
-    parity_graph_set = set(graph_set)
 
     # CI and audit-parser controls are checked by the static lane. They never
     # schedule a kernel build when no Lean source or Lean environment changed.
@@ -633,6 +886,13 @@ def plan(
         normalized = _normalized_path(item["path"])
         if normalized not in FSTAR_NONPROOF_CONTROL_INPUTS:
             fstar_inputs.add(normalized)
+    semantic_unchanged = {
+        _normalized_path(path) for path in fstar_semantic_unchanged
+    }
+    if not semantic_unchanged <= set(paths):
+        raise ImpactError(
+            "unchanged F* semantic inputs must be changed candidate paths"
+        )
     proof_prefix = f"{FSTAR_ROOT.as_posix()}/"
     proof_root_changes = tuple(
         path
@@ -642,7 +902,7 @@ def plan(
     fstar_global_change = any(
         path in FSTAR_GLOBAL_INPUTS
         or _starts_with_any(path, RUST_ENVIRONMENT_PREFIXES)
-        or path in fstar_inputs
+        or (path in fstar_inputs and path not in semantic_unchanged)
         for path in paths
     ) or (
         FSTAR_MANIFEST.as_posix() in paths
@@ -658,6 +918,15 @@ def plan(
         if fstar_relevant
         else ()
     )
+    known_fstar_proofs = set(_fstar_proof_names(root))
+    pending_fstar_set = set(pending_fstar)
+    unknown_pending = sorted(pending_fstar_set - known_fstar_proofs)
+    if unknown_pending:
+        raise ImpactError(
+            "pending F* evidence selected unknown proof(s): "
+            + ", ".join(unknown_pending)
+        )
+    fstar_proofs = tuple(sorted(set(fstar_proofs) | pending_fstar_set))
 
     proof_rust = any(
         path.startswith(PROOF_AGGREGATION_PREFIX) and path.endswith(".rs")
@@ -682,21 +951,35 @@ def plan(
         proof_package or reference_change or app_rust or rust_global
     )
 
+    # Pull requests prove that locally generated evidence is complete and run
+    # only the affected proof-language checks. Extraction, parity, fuzzing, and
+    # runtime replay are exhaustive reproducibility work owned by the
+    # manual/nightly full fingerprint.
+    deferred = []
+    if graph_set:
+        deferred.append("extraction/parity")
+    if rust_reference or fuzz_change or proof_package or app_rust or rust_global:
+        deferred.append("runtime")
+
     return ImpactPlan(
         static=True,
-        extraction_graphs=tuple(sorted(graph_set)),
+        extraction_graphs=(),
         lean_modules=lean_modules,
         fstar_proofs=fstar_proofs,
         fstar_force_all=False,
-        parity=bool(parity_graph_set),
-        rust_reference=rust_reference,
-        fuzz=proof_package or fuzz_change or rust_global,
-        dos=proof_package or app_rust or rust_global,
+        parity=False,
+        rust_reference=False,
+        fuzz=False,
+        dos=False,
         explanation=(
             f"{len(paths)} changed path(s); "
-            f"{len(graph_set)} extraction graph(s), "
             f"{len(lean_modules)} Lean module(s), "
-            f"{len(fstar_proofs)} F* proof file(s)"
+            f"{len(fstar_proofs)} F* proof file(s); "
+            + (
+                "deferred " + ", ".join(deferred) + " to full replay"
+                if deferred
+                else "no exhaustive replay needed"
+            )
         ),
     )
 
@@ -791,6 +1074,8 @@ def main(argv: list[str] | None = None) -> int:
         retired: tuple[str, ...] = ()
         fstar_control_change = False
         lean_environment_change = False
+        fstar_semantic_unchanged: tuple[str, ...] = ()
+        pending_fstar: tuple[str, ...] = ()
         if args.event in CANDIDATE_EVENTS and args.base:
             retired = tuple(
                 sorted(
@@ -806,6 +1091,10 @@ def main(argv: list[str] | None = None) -> int:
                 lean_environment_change = lean_environment_control_changed(
                     ROOT, args.base
                 )
+            fstar_semantic_unchanged = unchanged_fstar_semantic_inputs(
+                ROOT, args.base, paths
+            )
+            pending_fstar = pending_fstar_proofs(ROOT)
         result = plan(
             ROOT,
             event=args.event,
@@ -816,6 +1105,8 @@ def main(argv: list[str] | None = None) -> int:
             retired_graphs=retired,
             fstar_manifest_control_change=fstar_control_change,
             lean_environment_control_change=lean_environment_change,
+            fstar_semantic_unchanged=fstar_semantic_unchanged,
+            pending_fstar=pending_fstar,
         )
         if args.github_output:
             write_github_output(args.github_output, result)

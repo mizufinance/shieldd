@@ -2,74 +2,153 @@
 
 ## Decision rule
 
-At the current `note_reshape2x1` baseline, a standalone change must remove at
-least 1% of constraints to be worth landing. A smaller change is considered
-only when it is a necessary step toward a measured larger reduction. Count
-reduction is a filter, not proof of a speedup: release evidence also records
-compile, witness, prove, verify, and key-size effects.
+An optimization lands only when an affected compiled deployed family loses at
+least 1% of its constraints. Security fixes are exempt. Counts are a filter;
+release evidence must still include witness, prove, verify, memory, and key
+effects. Hints are rejected unless their result is fully constrained.
 
-Every accepted optimization preserves or strengthens the protocol statement,
-regenerates the deployed proof path, and passes the same drift/key gates as any
-other circuit change. A new relation shape needs its proof design before it is
-used in production.
+## Retained NoteReshape result
 
-## Baseline and landed results
+Only the two fixed-padded directions remain deployed: `note_reshape1x8` and
+`note_reshape8x1`. The canonical version-3 witness removes per-note address
+representations, derives the DTK once, and removes dummy-RK derivations after
+extending the accepted language to require an external signature for every
+public RK.
 
-The checked-in baseline is 36,553 constraints. The detailed history is in git;
-the durable measured summary is:
+| Family | Previous | Canonical v3 | Delta |
+| --- | ---: | ---: | ---: |
+| `note_reshape1x8` | 28,256 | 29,196 | +940 (+3.33%) |
+| `note_reshape8x1` | 194,226 | 117,526 | −76,700 (−39.49%) |
 
-| Change | Constraints | Delta | Result |
-| --- | ---: | ---: | --- |
-| Starting measured baseline | 57,969 | — | baseline |
-| Remove constant zero seed ladder | 57,329 | −640 (−1.1%) | landed |
-| Hoist the shared DTK | 44,665 | −12,664 (−22.1%) | landed |
-| Shared `div_gen` compression, reused IVK bits, conservation NB | 36,553 | −8,112 (−18.2%) | landed |
+The fixed families grow because the old witness supplied the field encoding of
+the transmission key independently from the affine DTK output. Closing that
+join adds one 1,046-row `CompressToField(computed DTK)`. Removing each old
+per-note affine transmission/generator/asset representation saves 11 rows
+(4 on-curve + 3 transmission equivalence + 3 generator equivalence + 1 asset
+equality), and removing the old shared affine transmission witness saves 7
+more (4 on-curve + 3 equivalence). For 1x8 this is
+`+1,046 - 9×11 - 7 = +940`, the exact cost of replacing an under-specified
+representation join with one canonical encoding.
 
-Total measured reduction is 21,416 constraints (36.9%). The latest batch
-includes: one shared `div_gen` compression (−2,092), IVK bit reuse (−252), and
-the conservation net-balance relation (−5,768). These are constraint counts;
-the current baseline still needs a fresh end-to-end prover benchmark before a
-runtime claim is made.
+The padded families also remove one full DTK and dummy-RK derivation per
+redundant slot, so the family-wide batch is substantially smaller while
+removing the same ambiguous witness representation.
 
-## Current census
+The reviewed operation-level attribution is:
 
-| Area | Rows | Share | Assessment |
-| --- | ---: | ---: | --- |
-| Two state-commitment paths | 18,030 | 49.3% | Near the current hash/path floor; meaningful reduction requires a protocol/tree change or multiproof. |
-| DTK | 6,077 | 16.6% | Main local scalar-multiplication candidate. |
-| Two RVKs | 3,624 | 9.9% | Same scalar family; fixed-base methods may help. |
-| Conservation net balance | 2,193 | 6.0% | Mostly a 251-bit blinding ladder plus explicit amount ranges. |
-| Four Decaf compressions | 4,184 | 11.4% | Dominated by canonical bit decompositions; sharing is valid only with an exact bit-use proof. |
+| Change | `1x8` | `8x1` |
+| --- | ---: | ---: |
+| Hoist padded-spend DTKs into one shared DTK | — | −48,616 |
+| Delete in-circuit dummy-RK derivations | — | −28,944 |
+| Canonical-context binding and other row movement | +940 | +860 |
+| **Compiled family delta** | **+940** | **−76,700** |
 
-The signed-coefficient census reports only 15 exact duplicate rows, 19
-same-product CSE misses, and 10 write-only wires. That cleanup is far below the
-366-row 1% threshold and is rejected as a standalone project.
+The component rows reconcile exactly to each compiled family delta. The
+positive row is security hardening, not optimization overhead hidden from the
+threshold calculation.
 
-## Candidate policy
+## Transfer follow-up
 
-- The current qualifying prototype is a hint-free two-bit window for the one
-  variable-base 251-bit DTK ladder: 3,612 → 3,012 ladder rows, projecting the
-  whole circuit to 35,953 constraints (−600, −1.64%). It preserves the existing
-  little-endian bits and range checks. It is not landed: proving its MSB radix-4
-  recurrence equal to the current LSB ladder requires an on-curve Edwards
-  associativity certificate that the present proof substrate does not contain.
-  Production stays on the proved ladder until that bridge and the regenerated
-  deployed adapters are green.
-- The pinned gnark fake-GLV scalar multiplication is rejected even though its
-  isolated count is lower: an adversarial hint test accepts a false `[2]G = G`
-  assignment. It must not enter a proof-bearing circuit.
-- Measure scalar-multiplication alternatives in isolated gadgets first. The
-  pinned gnark implementation offers lookup/window and fake-GLV shapes, but
-  they introduce hints and a new proof relation; upstream code is not a proof
-  substitute.
-- Do not land a ladder replacement until witness parity, scalar range and
-  canonicity, exceptional-point behavior, exact constraint count, hint trust,
-  and a compact Lean recurrence have been reviewed.
-- Do not micro-optimize the Merkle path. A tree arity or multiproof change is a
-  protocol/state migration, not a circuit-local cleanup.
-- Do not merge a sub-1% compression/CSE tweak merely because it is easy.
-- Reject forecasts that do not include a compiled before/after count.
+Transfer now derives one shared-sender DTK, binds each spend to its canonical
+transmission encoding, and uses canonical created-note transmission encodings.
+That canonical-context pass reduced the then-current circuit from 251,469 to
+245,389 constraints: −6,080 (−2.42%). Later soundness hardening and ABI cleanup
+changed the relation again. Transfer V13 deletes a redundant prover-chosen
+affine balance point: the statement already compressed the independently
+computed net-balance point, so the duplicate could not affect the accepted
+body. Removing its four on-curve rows and three cross-ratio rows reduces the
+historical V13 circuit from 227,192 to 227,185 constraints and removes 64
+witness bytes. V18 changes the relation again; its committed manifest and
+circuit metadata are authoritative. The intervening mixed-purpose changes are
+not presented as one optimization delta.
+
+Transfer V17 deletes the upload bundle, public shared
+points, and all four DLEQ packages. Detection, amount, and address encryption
+remain unconditional in the circuit, while the regulation bit gates only the
+threshold result and shared-secret selection. This is a security simplification
+of the accepted language, not an optimization claim over the historical V13
+count. Transfer V17 further separates the exact asset from the flag, constrains
+both detection slots to 32 bits, adopts v3 six-field compliance leaves,
+rejects the asset-tree sentinel, and rejection-samples nonzero tier scalars.
+Those are mixed security changes, so no optimization percentage is claimed
+for them in isolation. Transfer V18 additionally binds the consensus recent
+position floor and each spend's exact old-note classification.
+
+## Withdrawal follow-up
+
+Withdrawal V7 derived the fixed-family public body from canonical plan facts and used the
+conservation-specific balance construction. Withdrawal V9 replaces repeated
+full policy openings with the canonical compact asset leaf
+`(value, nextIndex, nextValue, paramsHash, ringHash)`, adopts the shared
+v3 six-field compliance leaf, rejects the zero sentinel, and removes
+cross-spend transaction-nonce coupling. The fixed 2x1 relation moves from
+59,579 to 56,788 constraints: −2,791 (−4.68%). Because this combines
+simplification with security hardening, the number is a deployed relation
+delta, not a pure optimization attribution. Withdrawal V10 additionally binds
+the consensus recent-position floor and each spend's exact old-note
+classification.
+
+## Current compiled result
+
+Against the previously committed setup metadata, the four-circuit design now
+compiles to:
+
+| Family | Committed baseline | Current | Delta |
+| --- | ---: | ---: | ---: |
+| `transfer` | 227,176 | 130,015 | −97,161 (−42.77%) |
+| `shielded_ics20_withdrawal` | 67,014 | 57,689 | −9,325 (−13.92%) |
+
+These are whole-relation deltas. Transfer combines deletion of the old DLEQ
+and public shared-point surface, exact amount-pair aggregation, and radix-4
+variable-base multiplication. Withdrawal combines its conservation-specific
+balance relation and radix-4 DTK path with the V9 security changes above.
+Neither row is presented as a scalar-multiplication-only attribution. Both
+rows also include the later old-note classifier; Transfer retains its optional
+second spend unchanged.
+
+## Scalar multiplication audit
+
+The hint-free two-bit variable-base window measured:
+
+| Scalar width | Variable base | Fixed base |
+| --- | ---: | ---: |
+| 128 bits | −255 | +501 |
+| 251 bits | −600 | +691 |
+
+The 251-bit variable-base path is now deployed. On the two retained
+NoteReshape relations its compiled effect is:
+
+| Family | Before | Current | Delta |
+| --- | ---: | ---: | ---: |
+| `note_reshape1x8` | 29,196 | 28,596 | −600 (−2.05%) |
+| `note_reshape8x1` | 117,526 | 116,929 | −597 (−0.51%) |
+
+The reusable radix-4/Edwards correctness theorem and regenerated exact-row
+contracts remain release requirements; constraint counts alone are not
+certification.
+
+The fixed-base width-2 candidate is worse, so wider fixed-base tables were not
+promoted without evidence they could recover a full-family 1%. Fake GLV and
+unconstrained scalar-product hints are rejected; an adversarial probe accepts a
+false product for the pinned fake-GLV shape.
+
+## Audited candidates
+
+- Transfer and Withdrawal plans still carry per-spend copies of the shared
+  sender-compliance and asset-registry witnesses. Admission now requires the
+  copies to be identical; a later plan-model refactor can store each shared
+  witness once, but must update the generic Transfer construction boundary.
+- Merkle multiproofs may qualify for the padded input families, but change the
+  state proof format and require a protocol/state design.
+- Quotient-invariant statement encodings may reduce canonical decomposition
+  work, but need an isolated proof that the public accepted language is
+  unchanged.
+- Poseidon2 changes, tree arity changes, shared-address prehashes, and
+  exact-arity families are deferred because they require protocol, state, or
+  privacy decisions.
+- Micro-CSE, conditional branch skipping, current-backend lookup ranges, and
+  compression cleanups measured below 1% are rejected as standalone changes.
 
 Use `scripts/fv-census.py` for row-level triage and `scripts/fv-opt-loop.sh` for
-the guarded circuit loop. Final performance numbers must come from the deployed
-key/witness path described in [release.md](release.md).
+the guarded compile loop. Final evidence comes from the deployed key/witness
+path in [release.md](release.md).

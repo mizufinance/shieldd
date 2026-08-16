@@ -51,7 +51,8 @@ async fn app_activates_post_genesis_validator_definitions_with_equal_weight() ->
         .await?;
 
     let validator_id_sk = SigningKey::<SpendAuth>::new(OsRng);
-    let validator_id = IdentityKey(VerificationKey::from(&validator_id_sk).into());
+    let validator_id = IdentityKey::try_from(VerificationKey::from(&validator_id_sk))
+        .expect("test validator identity key is nonidentity");
     let validator_consensus_sk = ed25519_consensus::SigningKey::new(OsRng);
     let validator_consensus = validator_consensus_sk.verification_key();
 
@@ -59,7 +60,8 @@ async fn app_activates_post_genesis_validator_definitions_with_equal_weight() ->
         identity_key: validator_id,
         consensus_key: tendermint::PublicKey::from_raw_ed25519(&validator_consensus.to_bytes())
             .expect("consensus key is valid"),
-        governance_key: GovernanceKey(VerificationKey::from(&validator_id_sk)),
+        governance_key: GovernanceKey::try_from(VerificationKey::from(&validator_id_sk))
+            .expect("test validator governance key is nonidentity"),
         enabled: true,
         sequence_number: 0,
         name: "bootstrap validator".to_string(),
@@ -85,6 +87,7 @@ async fn app_activates_post_genesis_validator_definitions_with_equal_weight() ->
                 chain_id: TestNode::<()>::CHAIN_ID.to_string(),
                 ..Default::default()
             },
+            nullifier_window: None,
         }
     };
 

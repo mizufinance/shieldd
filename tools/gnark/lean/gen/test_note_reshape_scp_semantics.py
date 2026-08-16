@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 
+import copy
 import sys
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 HERE = Path(__file__).resolve().parent
@@ -19,9 +21,18 @@ class NormalizedScpSemanticsTests(unittest.TestCase):
         cls.outputs = scp.generated_files()
 
     def test_emits_exact_sharded_provider_and_benchmarks(self):
-        self.assertEqual(len(self.outputs), 233)
-        self.assertEqual(sum(path.parent == scp.OUT for path in self.outputs), 221)
+        self.assertEqual(len(self.outputs), 454)
+        self.assertEqual(sum(path.parent == scp.OUT for path in self.outputs), 442)
         self.assertEqual(sum(path.parent == scp.BENCH for path in self.outputs), 12)
+
+    def test_generated_sources_have_canonical_whitespace(self):
+        for path, source in self.outputs.items():
+            self.assertTrue(source.endswith("\n"), path.name)
+            self.assertFalse(source.endswith("\n\n"), path.name)
+            self.assertTrue(
+                all(line == line.rstrip() for line in source.splitlines()),
+                path.name,
+            )
 
     def test_provider_has_no_deployed_relation_transport(self):
         text = "\n".join(self.outputs.values())
@@ -31,10 +42,15 @@ class NormalizedScpSemanticsTests(unittest.TestCase):
         self.assertNotIn("relation_transport", text)
 
     def test_exact_normalized_relation_is_the_soundness_input(self):
-        main = self.outputs[scp.OUT / f"{scp.NAME}.lean"]
-        self.assertIn(f"(h : {scp.EXACT}.relation rho)", main)
-        self.assertIn("theorem sound", main)
-        self.assertIn("def spec", main)
+        for name in (scp.NAME, scp.WITHDRAWAL_NAME):
+            main = self.outputs[scp.OUT / f"{name}.lean"]
+            exact = (
+                "Shieldd.GnarkFormal.Deployed.Templates.Relations."
+                f"{name}"
+            )
+            self.assertIn(f"(h : {exact}.relation rho)", main)
+            self.assertIn("theorem sound", main)
+            self.assertIn("def spec", main)
 
     def test_choice_free_projection_owns_the_normalized_recovery_boundary(self):
         combined = "\n".join(
@@ -93,6 +109,109 @@ class NormalizedScpSemanticsTests(unittest.TestCase):
         self.assertIn("rho 226", base)
         self.assertIn("rho 8972", base)
         self.assertNotIn("rho 12783", base)
+        withdrawal = self.outputs[
+            scp.OUT / f"{scp.WITHDRAWAL_NAME}ScpBase.lean"
+        ]
+        self.assertIn("rho 231", withdrawal)
+        self.assertIn("rho 8997", withdrawal)
+
+    def test_import_has_no_retired_note_reshape_dependency(self):
+        self.assertEqual(scp.REFERENCE_CIRCUIT, "note_reshape1x8")
+        self.assertNotIn("note_reshape2x1", str(scp.REFERENCE_IR))
+        self.assertNotIn("NoteReshape2x1", scp.scp.CTX)
+        self.assertFalse(hasattr(scp.scp, "DEPLOYED_WIRE_SEATINGS"))
+        self.assertFalse(hasattr(scp.scp, "INSTANCES"))
+
+    def test_active_nine_instance_inventory_roster_is_exact(self):
+        self.assertEqual(
+            scp.DIRECT_INSTANCES,
+            (
+                ("note_reshape1x8", 33),
+                ("note_reshape8x1", 42),
+                ("note_reshape8x1", 56),
+                ("note_reshape8x1", 70),
+                ("note_reshape8x1", 84),
+                ("note_reshape8x1", 98),
+                ("note_reshape8x1", 112),
+                ("note_reshape8x1", 126),
+                ("note_reshape8x1", 140),
+            ),
+        )
+        scp._validate_inventory_target(
+            scp.KEY,
+            local_wire_count=8993,
+            instances=scp.DIRECT_INSTANCES,
+            constant_vector=scp.DIRECT_CONSTANT_VECTOR,
+            class_key=scp.DIRECT_CLASS_KEY,
+        )
+
+        inventory = scp.read_json_object(
+            scp.INVENTORY, canonical="pretty"
+        )
+        mutated = copy.deepcopy(inventory)
+        entry = next(
+            item
+            for item in mutated["templates"]
+            if item["template_key"] == scp.KEY
+        )
+        entry["instances"][8]["segment_index"] += 1
+        with mock.patch.object(
+            scp, "read_json_object", return_value=mutated
+        ):
+            with self.assertRaisesRegex(
+                SystemExit, "deployed instance 8 drifted"
+            ):
+                scp._validate_inventory_target(
+                    scp.KEY,
+                    local_wire_count=8993,
+                    instances=scp.DIRECT_INSTANCES,
+                    constant_vector=scp.DIRECT_CONSTANT_VECTOR,
+                    class_key=scp.DIRECT_CLASS_KEY,
+                )
+
+    def test_active_reference_uses_exact_ir_wire_seating(self):
+        segment = scp._reference_segment()
+        self.assertEqual(segment["index"], 33)
+        seating = scp.SegmentTemplate.parse(
+            segment
+        ).canonical_wire_seating
+        self.assertEqual(len(seating), scp.REFERENCE_LOCAL_WIRE_COUNT)
+        self.assertEqual(seating[0], 0)
+        self.assertEqual(len(seating), len(set(seating)))
+
+        ir = scp.read_json_object(scp.REFERENCE_IR, canonical="pretty")
+        mutated = copy.deepcopy(ir)
+        target = next(
+            item
+            for item in mutated["segments"]
+            if item.get("proof_template_id") == scp.KEY
+        )
+        target["index"] += 1
+        with mock.patch.object(
+            scp, "read_json_object", return_value=mutated
+        ):
+            with self.assertRaisesRegex(
+                SystemExit, "reference segment shape drifted"
+            ):
+                scp._reference_segment()
+
+    def test_withdrawal_inline_commitment_transport_is_fail_closed(self):
+        mutated = (
+            (scp.WITHDRAWAL_COMMITMENT_LC[0][0] + 1, 1),
+            *scp.WITHDRAWAL_COMMITMENT_LC[1:],
+        )
+        with mock.patch.object(scp, "WITHDRAWAL_COMMITMENT_LC", mutated):
+            with self.assertRaisesRegex(
+                SystemExit, "exact specialization failed at row 0"
+            ):
+                scp._validate_withdrawal_relation_transport()
+
+    def test_withdrawal_spec_uses_all_inline_commitment_fields(self):
+        main = self.outputs[
+            scp.OUT / f"{scp.WITHDRAWAL_NAME}.lean"
+        ]
+        for coefficient, wire in scp.WITHDRAWAL_COMMITMENT_LC:
+            self.assertIn(f"({coefficient} : F) * rho {wire}", main)
 
     def test_repeated_generation_is_byte_identical(self):
         self.assertEqual(self.outputs, scp.generated_files())
@@ -115,9 +234,10 @@ class DirectEqSemanticsTests(unittest.TestCase):
     def test_simple_prototype_uses_exact_relation(self):
         outputs = direct.generated_files()
         key = next(key for key, _, _ in direct.templates() if key.startswith("assert.eq@"))
-        path = direct.OUT / f"{direct.default_template_name(key)}.lean"
+        name = direct.default_template_name(key)
+        path = direct.OUT / f"{name}.lean"
         text = outputs[path]
-        self.assertIn("Templates.Relations.TAssertEq_2f18", text)
+        self.assertIn(f"Templates.Relations.{name}", text)
         self.assertNotIn("representativeRho", text)
         self.assertNotIn("NoteReshape2x1", text)
         self.assertIn("exact h.1.symm", text)

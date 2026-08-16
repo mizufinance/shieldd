@@ -1,21 +1,15 @@
-use decaf377::{Fq, Fr};
-use decaf377_ka as ka;
+use decaf377::Fr;
 use decaf377_rdsa::{SpendAuth, VerificationKey};
 use rand_core::{CryptoRng, RngCore};
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::{Balance, Value};
 use shieldd_sdk_compliance::{AssetPolicy, MerklePath};
-use shieldd_sdk_keys::{
-    keys::{IncomingViewingKey, OutgoingViewingKey},
-    symmetric::{OvkWrappedKey, WrappedMemoKey},
-    Address, FullViewingKey, PayloadKey,
-};
+use shieldd_sdk_keys::{keys::IncomingViewingKey, Address, FullViewingKey};
 use shieldd_sdk_proto::core::component::shielded_pool::v1 as pb;
 use shieldd_sdk_sct::Nullifier;
 use shieldd_sdk_tct as tct;
 use std::convert::{TryFrom, TryInto};
 
-use crate::discovery::Precision;
 use crate::{Backref, Note, Rseed, TransferInputBody};
 
 // Bare shielded plan constructors are used heavily by tests, vector generation,
@@ -31,15 +25,9 @@ pub struct ShieldedInputPlan {
     pub position: tct::Position,
     pub randomizer: Fr,
     pub value_blinding: Fr,
-    pub proof_blinding_r: Fq,
-    pub proof_blinding_s: Fq,
     pub compliance_path: MerklePath,
     #[serde(skip)]
-    pub compliance_ciphertext: Vec<u8>,
-    #[serde(skip)]
     pub compliance_leaf: Option<shieldd_sdk_compliance::ComplianceLeaf>,
-    #[serde(skip)]
-    pub compliance_ephemeral_secret: Option<Fr>,
     #[serde(skip)]
     pub is_regulated: bool,
     #[serde(skip)]
@@ -57,50 +45,14 @@ pub struct ShieldedInputPlan {
     #[serde(skip)]
     pub compliance_position: u64,
     #[serde(skip)]
-    pub dk_pub: decaf377::Element,
-    #[serde(skip)]
-    pub threshold: u128,
-    #[serde(skip)]
-    pub ring_pk: decaf377::Element,
-    #[serde(skip)]
-    pub is_flagged: bool,
-    #[serde(skip)]
-    pub salt: Fq,
-    #[serde(skip)]
-    pub dleq_k: Fr,
-    #[serde(skip)]
-    pub dleq_c: Fq,
-    #[serde(skip)]
-    pub dleq_s: Fq,
-    #[serde(skip)]
     pub target_timestamp: u64,
     #[serde(skip)]
     pub asset_policy: Option<AssetPolicy>,
 }
 
 impl ShieldedInputPlan {
-    /// Set compliance metadata fields needed by `build_transfer_compliance`.
-    /// Per-action ciphertext/DLEQ are not computed here — transfer_body() builds
-    /// transfer-level compliance and clears per-action fields.
-    pub fn set_compliance_details(
-        &mut self,
-        _rng: &mut (impl rand_core::RngCore + rand_core::CryptoRng),
-    ) -> anyhow::Result<()> {
-        let (ring_pk, dk_pub) = if self.is_regulated {
-            (
-                self.asset_indexed_leaf.ring.ring_pk,
-                self.asset_indexed_leaf.params.dk_pub,
-            )
-        } else {
-            (
-                *shieldd_sdk_compliance::UNREGULATED_SINK_RING_PK,
-                *shieldd_sdk_compliance::UNREGULATED_SINK_DK_PUB,
-            )
-        };
-        let threshold = self.asset_indexed_leaf.params.threshold;
-        let amount_u128: u128 = self.note.amount().into();
-        let is_flagged = amount_u128 >= threshold;
-
+    /// Normalize the sender leaf used by the transfer-level compliance proof.
+    pub fn set_compliance_details(&mut self) -> anyhow::Result<()> {
         let compliance_leaf = if self.is_regulated {
             self.compliance_leaf.clone().ok_or_else(|| {
                 anyhow::anyhow!("regulated shielded input missing registered compliance leaf")
@@ -113,10 +65,6 @@ impl ShieldedInputPlan {
         };
 
         self.compliance_leaf = Some(compliance_leaf);
-        self.ring_pk = ring_pk;
-        self.dk_pub = dk_pub;
-        self.threshold = threshold;
-        self.is_flagged = is_flagged;
 
         Ok(())
     }
@@ -126,9 +74,6 @@ impl ShieldedInputPlan {
         note: Note,
         position: tct::Position,
     ) -> ShieldedInputPlan {
-        let ring_pk = *shieldd_sdk_compliance::UNREGULATED_SINK_RING_PK;
-        let dk_pub = *shieldd_sdk_compliance::UNREGULATED_SINK_DK_PUB;
-
         let compliance_leaf = shieldd_sdk_compliance::ComplianceLeaf::synthetic_unregulated(
             note.address().clone(),
             note.asset_id(),
@@ -144,12 +89,8 @@ impl ShieldedInputPlan {
             position,
             randomizer: Fr::rand(rng),
             value_blinding: Fr::rand(rng),
-            proof_blinding_r: Fq::rand(rng),
-            proof_blinding_s: Fq::rand(rng),
             compliance_path,
-            compliance_ciphertext: Vec::new(),
             compliance_leaf: Some(compliance_leaf),
-            compliance_ephemeral_secret: None,
             is_regulated: false,
             tx_blinding_nonce: Fr::rand(rng),
             compliance_anchor,
@@ -158,29 +99,29 @@ impl ShieldedInputPlan {
             asset_position,
             asset_indexed_leaf,
             compliance_position,
-            ring_pk,
-            dk_pub,
-            threshold: u128::MAX,
-            is_flagged: false,
-            salt: Fq::from(0u64),
-            dleq_k: Fr::from(0u64),
-            dleq_c: Fq::from(0u64),
-            dleq_s: Fq::from(0u64),
             target_timestamp: DEFAULT_PLACEHOLDER_TARGET_TIMESTAMP,
             asset_policy: None,
         }
     }
 
-    pub fn action_input_body(&self, fvk: &FullViewingKey) -> TransferInputBody {
+    pub fn action_input_body(
+        &self,
+        fvk: &FullViewingKey,
+        recent_position_floor: u64,
+    ) -> anyhow::Result<TransferInputBody> {
         let backref = Backref::new(self.note.commit());
         let encrypted_backref = backref.encrypt(&fvk.backref_key(), &self.nullifier(fvk));
 
-        TransferInputBody {
+        Ok(TransferInputBody {
             nullifier: self.nullifier(fvk),
             rk: self.rk(fvk),
             encrypted_backref,
-            compliance_ciphertext: self.compliance_ciphertext.clone(),
-        }
+            compliance_ciphertext: Vec::new(),
+            history_required: shieldd_sdk_sct::nullifier_generation::is_old(
+                u64::from(self.position),
+                recent_position_floor,
+            )?,
+        })
     }
 
     pub fn rk(&self, fvk: &FullViewingKey) -> VerificationKey<SpendAuth> {
@@ -208,25 +149,11 @@ pub struct ShieldedOutputPlan {
     pub dest_address: Address,
     pub rseed: Rseed,
     pub value_blinding: Fr,
-    pub proof_blinding_r: Fq,
-    pub proof_blinding_s: Fq,
     pub compliance_path: MerklePath,
-    #[serde(skip)]
-    pub compliance_ciphertext: Vec<u8>,
     #[serde(skip)]
     pub compliance_leaf: Option<shieldd_sdk_compliance::ComplianceLeaf>,
     #[serde(skip)]
-    pub compliance_ephemeral_secret: Option<Fr>,
-    #[serde(skip)]
-    pub r_2: Option<Fr>,
-    #[serde(skip)]
-    pub r_3: Option<Fr>,
-    #[serde(skip)]
     pub is_regulated: bool,
-    #[serde(skip)]
-    pub counterparty_address: Option<Address>,
-    #[serde(skip)]
-    pub counterparty_leaf: Option<shieldd_sdk_compliance::ComplianceLeaf>,
     #[serde(skip)]
     pub tx_blinding_nonce: Fr,
     #[serde(skip)]
@@ -242,65 +169,19 @@ pub struct ShieldedOutputPlan {
     #[serde(skip)]
     pub compliance_position: u64,
     #[serde(skip)]
-    pub ring_pk: decaf377::Element,
-    #[serde(skip)]
-    pub dk_pub: decaf377::Element,
-    #[serde(skip)]
-    pub threshold: u128,
-    #[serde(skip)]
-    pub is_flagged: bool,
-    #[serde(skip)]
-    pub salt: Fq,
-    #[serde(skip)]
-    pub dleq_k_1: Fr,
-    #[serde(skip)]
-    pub dleq_k_2: Option<Fr>,
-    #[serde(skip)]
-    pub dleq_k_3: Option<Fr>,
-    #[serde(skip)]
-    pub dleq_c_1: Fq,
-    #[serde(skip)]
-    pub dleq_s_1: Fq,
-    #[serde(skip)]
-    pub dleq_c_2: Fq,
-    #[serde(skip)]
-    pub dleq_s_2: Fq,
-    #[serde(skip)]
-    pub dleq_c_3: Fq,
-    #[serde(skip)]
-    pub dleq_s_3: Fq,
-    #[serde(skip)]
     pub target_timestamp: u64,
     #[serde(skip)]
     pub asset_policy: Option<AssetPolicy>,
 }
 
 impl ShieldedOutputPlan {
-    /// Set compliance metadata fields needed by `build_transfer_compliance`.
-    /// Per-action ciphertext/DLEQ are not computed here — transfer_body() builds
-    /// transfer-level compliance and clears per-action fields.
+    /// Set the recipient leaf and transaction nonce used by the transfer proof.
     pub fn set_compliance_details(
         &mut self,
-        _rng: &mut (impl rand_core::RngCore + rand_core::CryptoRng),
         recipient_leaf: &shieldd_sdk_compliance::ComplianceLeaf,
-        sender_leaf: shieldd_sdk_compliance::ComplianceLeaf,
         tx_blinding_nonce: Fr,
     ) -> anyhow::Result<()> {
-        let (ring_pk, dk_pub) = if self.is_regulated {
-            (
-                self.asset_indexed_leaf.ring.ring_pk,
-                self.asset_indexed_leaf.params.dk_pub,
-            )
-        } else {
-            (
-                *shieldd_sdk_compliance::UNREGULATED_SINK_RING_PK,
-                *shieldd_sdk_compliance::UNREGULATED_SINK_DK_PUB,
-            )
-        };
-        let threshold = self.asset_indexed_leaf.params.threshold;
         let note = self.output_note();
-        let amount_u128: u128 = note.amount().into();
-        let is_flagged = amount_u128 >= threshold;
 
         let compliance_leaf = if self.is_regulated {
             recipient_leaf.clone()
@@ -312,13 +193,7 @@ impl ShieldedOutputPlan {
         };
 
         self.compliance_leaf = Some(compliance_leaf);
-        self.counterparty_address = Some(sender_leaf.address.clone());
         self.tx_blinding_nonce = tx_blinding_nonce;
-        self.ring_pk = ring_pk;
-        self.dk_pub = dk_pub;
-        self.threshold = threshold;
-        self.is_flagged = is_flagged;
-        self.counterparty_leaf = Some(sender_leaf);
 
         Ok(())
     }
@@ -330,9 +205,6 @@ impl ShieldedOutputPlan {
     ) -> ShieldedOutputPlan {
         let rseed = Rseed::generate(rng);
         let value_blinding = Fr::rand(rng);
-        let ring_pk = *shieldd_sdk_compliance::UNREGULATED_SINK_RING_PK;
-        let dk_pub = *shieldd_sdk_compliance::UNREGULATED_SINK_DK_PUB;
-
         let compliance_leaf = shieldd_sdk_compliance::ComplianceLeaf::synthetic_unregulated(
             dest_address.clone(),
             value.asset_id,
@@ -349,17 +221,9 @@ impl ShieldedOutputPlan {
             dest_address,
             rseed,
             value_blinding,
-            proof_blinding_r: Fq::rand(rng),
-            proof_blinding_s: Fq::rand(rng),
             compliance_path,
-            compliance_ciphertext: Vec::new(),
             compliance_leaf: Some(compliance_leaf.clone()),
-            compliance_ephemeral_secret: None,
-            r_2: None,
-            r_3: None,
             is_regulated: false,
-            counterparty_address: None,
-            counterparty_leaf: Some(compliance_leaf),
             tx_blinding_nonce,
             compliance_anchor,
             asset_anchor,
@@ -367,20 +231,6 @@ impl ShieldedOutputPlan {
             asset_position,
             asset_indexed_leaf,
             compliance_position,
-            ring_pk,
-            dk_pub,
-            threshold: u128::MAX,
-            is_flagged: false,
-            salt: Fq::from(0u64),
-            dleq_k_1: Fr::from(0u64),
-            dleq_k_2: None,
-            dleq_k_3: None,
-            dleq_c_1: Fq::from(0u64),
-            dleq_s_1: Fq::from(0u64),
-            dleq_c_2: Fq::from(0u64),
-            dleq_s_2: Fq::from(0u64),
-            dleq_c_3: Fq::from(0u64),
-            dleq_s_3: Fq::from(0u64),
             target_timestamp: DEFAULT_PLACEHOLDER_TARGET_TIMESTAMP,
             asset_policy: None,
         }
@@ -389,28 +239,6 @@ impl ShieldedOutputPlan {
     pub fn output_note(&self) -> Note {
         Note::from_parts(self.dest_address.clone(), self.value, self.rseed)
             .expect("transmission key in address is always valid")
-    }
-
-    pub fn action_output_parts(
-        &self,
-        ovk: &OutgoingViewingKey,
-        memo_key: &PayloadKey,
-        discovery_precision: Precision,
-    ) -> (crate::NotePayload, WrappedMemoKey, OvkWrappedKey) {
-        let note = self.output_note();
-        let esk: ka::Secret = note.ephemeral_secret_key();
-        let ovk_wrapped_key = note.encrypt_key(ovk, self.balance().commit(self.value_blinding));
-        let wrapped_memo_key = WrappedMemoKey::encrypt(
-            memo_key,
-            esk,
-            note.transmission_key(),
-            &note.diversified_generator(),
-        );
-        (
-            note.payload(discovery_precision),
-            wrapped_memo_key,
-            ovk_wrapped_key,
-        )
     }
 
     pub fn is_viewed_by(&self, ivk: &IncomingViewingKey) -> bool {
@@ -431,18 +259,11 @@ impl From<ShieldedInputPlan> for pb::ShieldedInputPlan {
             position: u64::from(msg.position),
             randomizer: msg.randomizer.to_bytes().to_vec(),
             value_blinding: msg.value_blinding.to_bytes().to_vec(),
-            proof_blinding_r: msg.proof_blinding_r.to_bytes().to_vec(),
-            proof_blinding_s: msg.proof_blinding_s.to_bytes().to_vec(),
             target_timestamp: msg.target_timestamp,
-            compliance_ciphertext: msg.compliance_ciphertext,
             is_regulated: msg.is_regulated,
             compliance_leaf: msg
                 .compliance_leaf
                 .map(|leaf| compliance_leaf_to_proto(&leaf)),
-            compliance_ephemeral_secret: msg
-                .compliance_ephemeral_secret
-                .map(|s| s.to_bytes().to_vec())
-                .unwrap_or_default(),
             tx_blinding_nonce: msg.tx_blinding_nonce.to_bytes().to_vec(),
             compliance_anchor: Some(msg.compliance_anchor.into()),
             asset_anchor: Some(msg.asset_anchor.into()),
@@ -451,14 +272,6 @@ impl From<ShieldedInputPlan> for pb::ShieldedInputPlan {
             asset_path: Some(msg.asset_path.into()),
             asset_position: msg.asset_position,
             asset_indexed_leaf: Some(indexed_leaf_to_proto(&msg.asset_indexed_leaf)),
-            is_flagged: msg.is_flagged,
-            salt: msg.salt.to_bytes().to_vec(),
-            dleq_k: msg.dleq_k.to_bytes().to_vec(),
-            dleq_c: msg.dleq_c.to_bytes().to_vec(),
-            dleq_s: msg.dleq_s.to_bytes().to_vec(),
-            ring_pk: msg.ring_pk.vartime_compress().0.to_vec(),
-            dk_pub: msg.dk_pub.vartime_compress().0.to_vec(),
-            threshold: msg.threshold.to_le_bytes().to_vec(),
             asset_policy: msg.asset_policy.map(Into::into),
         }
     }
@@ -469,26 +282,25 @@ impl TryFrom<pb::ShieldedInputPlan> for ShieldedInputPlan {
 
     fn try_from(msg: pb::ShieldedInputPlan) -> Result<Self, Self::Error> {
         use crate::compliance_helpers::{
-            compliance_leaf_from_proto, default_indexed_leaf, default_state_commitment,
-            parse_ephemeral_secret, parse_indexed_leaf, parse_merkle_path, parse_state_commitment,
-            parse_tx_blinding_nonce,
+            compliance_leaf_from_proto, parse_indexed_leaf, parse_merkle_path,
+            parse_state_commitment, parse_tx_blinding_nonce,
         };
 
         let compliance_leaf = msg
             .compliance_leaf
             .map(|leaf| compliance_leaf_from_proto(leaf, "compliance leaf"))
             .transpose()?;
-        let compliance_ephemeral_secret = parse_ephemeral_secret(&msg.compliance_ephemeral_secret)?;
-        let tx_blinding_nonce =
-            parse_tx_blinding_nonce(&msg.tx_blinding_nonce)?.unwrap_or_else(|| Fr::from(0u64));
-        let compliance_anchor =
-            parse_state_commitment(msg.compliance_anchor)?.unwrap_or_else(default_state_commitment);
-        let asset_anchor =
-            parse_state_commitment(msg.asset_anchor)?.unwrap_or_else(default_state_commitment);
-        let compliance_path = parse_merkle_path(msg.compliance_path)?.unwrap_or_default();
-        let asset_path = parse_merkle_path(msg.asset_path)?.unwrap_or_default();
-        let asset_indexed_leaf =
-            parse_indexed_leaf(msg.asset_indexed_leaf)?.unwrap_or_else(default_indexed_leaf);
+        let tx_blinding_nonce = parse_tx_blinding_nonce(&msg.tx_blinding_nonce)?;
+        let compliance_anchor = parse_state_commitment(msg.compliance_anchor)?
+            .ok_or_else(|| anyhow::anyhow!("missing compliance_anchor"))?;
+        let asset_anchor = parse_state_commitment(msg.asset_anchor)?
+            .ok_or_else(|| anyhow::anyhow!("missing asset_anchor"))?;
+        let compliance_path = parse_merkle_path(msg.compliance_path)?
+            .ok_or_else(|| anyhow::anyhow!("missing compliance_path"))?;
+        let asset_path = parse_merkle_path(msg.asset_path)?
+            .ok_or_else(|| anyhow::anyhow!("missing asset_path"))?;
+        let asset_indexed_leaf = parse_indexed_leaf(msg.asset_indexed_leaf)?
+            .ok_or_else(|| anyhow::anyhow!("missing asset_indexed_leaf"))?;
 
         Ok(Self {
             note: msg
@@ -497,17 +309,11 @@ impl TryFrom<pb::ShieldedInputPlan> for ShieldedInputPlan {
                 .try_into()?,
             position: msg.position.into(),
             randomizer: Fr::from_bytes_checked(msg.randomizer.as_slice().try_into()?)
-                .expect("randomizer malformed"),
+                .map_err(|_| anyhow::anyhow!("randomizer malformed"))?,
             value_blinding: Fr::from_bytes_checked(msg.value_blinding.as_slice().try_into()?)
-                .expect("value_blinding malformed"),
-            proof_blinding_r: Fq::from_bytes_checked(msg.proof_blinding_r.as_slice().try_into()?)
-                .expect("proof_blinding_r malformed"),
-            proof_blinding_s: Fq::from_bytes_checked(msg.proof_blinding_s.as_slice().try_into()?)
-                .expect("proof_blinding_s malformed"),
+                .map_err(|_| anyhow::anyhow!("value_blinding malformed"))?,
             compliance_path,
-            compliance_ciphertext: msg.compliance_ciphertext,
             compliance_leaf,
-            compliance_ephemeral_secret,
             is_regulated: msg.is_regulated,
             tx_blinding_nonce,
             compliance_anchor,
@@ -516,26 +322,6 @@ impl TryFrom<pb::ShieldedInputPlan> for ShieldedInputPlan {
             asset_position: msg.asset_position,
             asset_indexed_leaf,
             compliance_position: msg.compliance_position,
-            ring_pk: if msg.ring_pk.len() == 32 {
-                decaf377::Encoding(msg.ring_pk.as_slice().try_into()?)
-                    .vartime_decompress()
-                    .unwrap_or(*shieldd_sdk_compliance::UNREGULATED_SINK_RING_PK)
-            } else {
-                *shieldd_sdk_compliance::UNREGULATED_SINK_RING_PK
-            },
-            dk_pub: if msg.dk_pub.len() == 32 {
-                decaf377::Encoding(msg.dk_pub.as_slice().try_into()?)
-                    .vartime_decompress()
-                    .unwrap_or(*shieldd_sdk_compliance::UNREGULATED_SINK_DK_PUB)
-            } else {
-                *shieldd_sdk_compliance::UNREGULATED_SINK_DK_PUB
-            },
-            threshold: parse_threshold(&msg.threshold)?,
-            is_flagged: msg.is_flagged,
-            salt: parse_fq_or_zero("salt", &msg.salt)?,
-            dleq_k: parse_fr_or_zero("dleq_k", &msg.dleq_k)?,
-            dleq_c: parse_fq_or_zero("dleq_c", &msg.dleq_c)?,
-            dleq_s: parse_fq_or_zero("dleq_s", &msg.dleq_s)?,
             target_timestamp: msg.target_timestamp,
             asset_policy: msg.asset_policy.map(TryInto::try_into).transpose()?,
         })
@@ -551,22 +337,11 @@ impl From<ShieldedOutputPlan> for pb::ShieldedOutputPlan {
             dest_address: Some(msg.dest_address.into()),
             rseed: msg.rseed.0.to_vec(),
             value_blinding: msg.value_blinding.to_bytes().to_vec(),
-            proof_blinding_r: msg.proof_blinding_r.to_bytes().to_vec(),
-            proof_blinding_s: msg.proof_blinding_s.to_bytes().to_vec(),
             target_timestamp: msg.target_timestamp,
-            compliance_ciphertext: msg.compliance_ciphertext,
             is_regulated: msg.is_regulated,
             compliance_leaf: msg
                 .compliance_leaf
                 .map(|leaf| compliance_leaf_to_proto(&leaf)),
-            counterparty_leaf: msg
-                .counterparty_leaf
-                .map(|leaf| compliance_leaf_to_proto(&leaf)),
-            compliance_ephemeral_secret: msg
-                .compliance_ephemeral_secret
-                .map(|s| s.to_bytes().to_vec())
-                .unwrap_or_default(),
-            counterparty_address: msg.counterparty_address.map(Into::into),
             tx_blinding_nonce: msg.tx_blinding_nonce.to_bytes().to_vec(),
             compliance_anchor: Some(msg.compliance_anchor.into()),
             asset_anchor: Some(msg.asset_anchor.into()),
@@ -575,29 +350,6 @@ impl From<ShieldedOutputPlan> for pb::ShieldedOutputPlan {
             asset_path: Some(msg.asset_path.into()),
             asset_position: msg.asset_position,
             asset_indexed_leaf: Some(indexed_leaf_to_proto(&msg.asset_indexed_leaf)),
-            sender_ciphertext: Vec::new(),
-            salt: msg.salt.to_bytes().to_vec(),
-            dleq_k_1: msg.dleq_k_1.to_bytes().to_vec(),
-            dleq_k_2: msg
-                .dleq_k_2
-                .map(|x| x.to_bytes().to_vec())
-                .unwrap_or_default(),
-            dleq_k_3: msg
-                .dleq_k_3
-                .map(|x| x.to_bytes().to_vec())
-                .unwrap_or_default(),
-            dleq_c_1: msg.dleq_c_1.to_bytes().to_vec(),
-            dleq_s_1: msg.dleq_s_1.to_bytes().to_vec(),
-            dleq_c_2: msg.dleq_c_2.to_bytes().to_vec(),
-            dleq_s_2: msg.dleq_s_2.to_bytes().to_vec(),
-            dleq_c_3: msg.dleq_c_3.to_bytes().to_vec(),
-            dleq_s_3: msg.dleq_s_3.to_bytes().to_vec(),
-            ring_pk: msg.ring_pk.vartime_compress().0.to_vec(),
-            dk_pub: msg.dk_pub.vartime_compress().0.to_vec(),
-            threshold_bytes: msg.threshold.to_le_bytes().to_vec(),
-            is_flagged: msg.is_flagged,
-            r_2: msg.r_2.map(|x| x.to_bytes().to_vec()).unwrap_or_default(),
-            r_3: msg.r_3.map(|x| x.to_bytes().to_vec()).unwrap_or_default(),
             asset_policy: msg.asset_policy.map(Into::into),
         }
     }
@@ -608,30 +360,25 @@ impl TryFrom<pb::ShieldedOutputPlan> for ShieldedOutputPlan {
 
     fn try_from(msg: pb::ShieldedOutputPlan) -> Result<Self, Self::Error> {
         use crate::compliance_helpers::{
-            compliance_leaf_from_proto, default_indexed_leaf, default_state_commitment,
-            parse_ephemeral_secret, parse_indexed_leaf, parse_merkle_path, parse_state_commitment,
-            parse_tx_blinding_nonce,
+            compliance_leaf_from_proto, parse_indexed_leaf, parse_merkle_path,
+            parse_state_commitment, parse_tx_blinding_nonce,
         };
 
         let compliance_leaf = msg
             .compliance_leaf
             .map(|leaf| compliance_leaf_from_proto(leaf, "compliance leaf"))
             .transpose()?;
-        let counterparty_leaf = msg
-            .counterparty_leaf
-            .map(|leaf| compliance_leaf_from_proto(leaf, "counterparty leaf"))
-            .transpose()?;
-        let compliance_ephemeral_secret = parse_ephemeral_secret(&msg.compliance_ephemeral_secret)?;
-        let tx_blinding_nonce =
-            parse_tx_blinding_nonce(&msg.tx_blinding_nonce)?.unwrap_or_else(|| Fr::from(0u64));
-        let compliance_anchor =
-            parse_state_commitment(msg.compliance_anchor)?.unwrap_or_else(default_state_commitment);
-        let asset_anchor =
-            parse_state_commitment(msg.asset_anchor)?.unwrap_or_else(default_state_commitment);
-        let compliance_path = parse_merkle_path(msg.compliance_path)?.unwrap_or_default();
-        let asset_path = parse_merkle_path(msg.asset_path)?.unwrap_or_default();
-        let asset_indexed_leaf =
-            parse_indexed_leaf(msg.asset_indexed_leaf)?.unwrap_or_else(default_indexed_leaf);
+        let tx_blinding_nonce = parse_tx_blinding_nonce(&msg.tx_blinding_nonce)?;
+        let compliance_anchor = parse_state_commitment(msg.compliance_anchor)?
+            .ok_or_else(|| anyhow::anyhow!("missing compliance_anchor"))?;
+        let asset_anchor = parse_state_commitment(msg.asset_anchor)?
+            .ok_or_else(|| anyhow::anyhow!("missing asset_anchor"))?;
+        let compliance_path = parse_merkle_path(msg.compliance_path)?
+            .ok_or_else(|| anyhow::anyhow!("missing compliance_path"))?;
+        let asset_path = parse_merkle_path(msg.asset_path)?
+            .ok_or_else(|| anyhow::anyhow!("missing asset_path"))?;
+        let asset_indexed_leaf = parse_indexed_leaf(msg.asset_indexed_leaf)?
+            .ok_or_else(|| anyhow::anyhow!("missing asset_indexed_leaf"))?;
 
         Ok(Self {
             value: msg
@@ -649,23 +396,10 @@ impl TryFrom<pb::ShieldedOutputPlan> for ShieldedOutputPlan {
                     .map_err(|_| anyhow::anyhow!("rseed malformed"))?,
             ),
             value_blinding: Fr::from_bytes_checked(msg.value_blinding.as_slice().try_into()?)
-                .expect("value_blinding malformed"),
-            proof_blinding_r: Fq::from_bytes_checked(msg.proof_blinding_r.as_slice().try_into()?)
-                .expect("proof_blinding_r malformed"),
-            proof_blinding_s: Fq::from_bytes_checked(msg.proof_blinding_s.as_slice().try_into()?)
-                .expect("proof_blinding_s malformed"),
+                .map_err(|_| anyhow::anyhow!("value_blinding malformed"))?,
             compliance_path,
-            compliance_ciphertext: msg.compliance_ciphertext,
             compliance_leaf,
-            compliance_ephemeral_secret,
-            r_2: parse_optional_fr(&msg.r_2)?,
-            r_3: parse_optional_fr(&msg.r_3)?,
             is_regulated: msg.is_regulated,
-            counterparty_address: msg
-                .counterparty_address
-                .map(TryInto::try_into)
-                .transpose()?,
-            counterparty_leaf,
             tx_blinding_nonce,
             compliance_anchor,
             asset_anchor,
@@ -673,68 +407,129 @@ impl TryFrom<pb::ShieldedOutputPlan> for ShieldedOutputPlan {
             asset_position: msg.asset_position,
             asset_indexed_leaf,
             compliance_position: msg.compliance_position,
-            ring_pk: if msg.ring_pk.len() == 32 {
-                decaf377::Encoding(msg.ring_pk.as_slice().try_into()?)
-                    .vartime_decompress()
-                    .unwrap_or(*shieldd_sdk_compliance::UNREGULATED_SINK_RING_PK)
-            } else {
-                *shieldd_sdk_compliance::UNREGULATED_SINK_RING_PK
-            },
-            dk_pub: if msg.dk_pub.len() == 32 {
-                decaf377::Encoding(msg.dk_pub.as_slice().try_into()?)
-                    .vartime_decompress()
-                    .unwrap_or(*shieldd_sdk_compliance::UNREGULATED_SINK_DK_PUB)
-            } else {
-                *shieldd_sdk_compliance::UNREGULATED_SINK_DK_PUB
-            },
-            threshold: parse_threshold(&msg.threshold_bytes)?,
-            is_flagged: msg.is_flagged,
-            salt: parse_fq_or_zero("salt", &msg.salt)?,
-            dleq_k_1: parse_fr_or_zero("dleq_k_1", &msg.dleq_k_1)?,
-            dleq_k_2: parse_optional_fr(&msg.dleq_k_2)?,
-            dleq_k_3: parse_optional_fr(&msg.dleq_k_3)?,
-            dleq_c_1: parse_fq_or_zero("dleq_c_1", &msg.dleq_c_1)?,
-            dleq_s_1: parse_fq_or_zero("dleq_s_1", &msg.dleq_s_1)?,
-            dleq_c_2: parse_fq_or_zero("dleq_c_2", &msg.dleq_c_2)?,
-            dleq_s_2: parse_fq_or_zero("dleq_s_2", &msg.dleq_s_2)?,
-            dleq_c_3: parse_fq_or_zero("dleq_c_3", &msg.dleq_c_3)?,
-            dleq_s_3: parse_fq_or_zero("dleq_s_3", &msg.dleq_s_3)?,
             target_timestamp: msg.target_timestamp,
             asset_policy: msg.asset_policy.map(TryInto::try_into).transpose()?,
         })
     }
 }
 
-fn parse_threshold(bytes: &[u8]) -> anyhow::Result<u128> {
-    if bytes.is_empty() {
-        return Ok(u128::MAX);
-    }
-    let slice: [u8; 16] = bytes
-        .try_into()
-        .map_err(|_| anyhow::anyhow!("threshold malformed"))?;
-    Ok(u128::from_le_bytes(slice))
-}
+#[cfg(test)]
+mod tests {
+    use std::ops::Deref;
 
-fn parse_optional_fr(bytes: &[u8]) -> anyhow::Result<Option<Fr>> {
-    if bytes.is_empty() {
-        Ok(None)
-    } else {
-        Ok(Some(
-            Fr::from_bytes_checked(bytes.try_into()?).expect("Fr bytes malformed"),
-        ))
-    }
-}
+    use rand::{rngs::StdRng, SeedableRng};
+    use rand_core::OsRng;
+    use shieldd_sdk_asset::{Value, BASE_ASSET_DENOM};
+    use shieldd_sdk_keys::test_keys;
 
-fn parse_fr_or_zero(label: &str, bytes: &[u8]) -> anyhow::Result<Fr> {
-    if bytes.is_empty() {
-        return Ok(Fr::from(0u64));
-    }
-    Fr::from_bytes_checked(bytes.try_into()?).map_err(|_| anyhow::anyhow!("{label} malformed"))
-}
+    use super::*;
 
-fn parse_fq_or_zero(label: &str, bytes: &[u8]) -> anyhow::Result<Fq> {
-    if bytes.is_empty() {
-        return Ok(Fq::from(0u64));
+    fn fr_modulus_bytes() -> [u8; 32] {
+        let mut modulus = (-Fr::from(1u64)).to_bytes();
+        for byte in &mut modulus {
+            let (next, carry) = byte.overflowing_add(1);
+            *byte = next;
+            if !carry {
+                break;
+            }
+        }
+        modulus
     }
-    Fq::from_bytes_checked(bytes.try_into()?).map_err(|_| anyhow::anyhow!("{label} malformed"))
+
+    #[test]
+    fn plan_proto_rejects_missing_nonce_and_noncanonical_scalars() {
+        let value = Value {
+            amount: 7u64.into(),
+            asset_id: BASE_ASSET_DENOM.id(),
+        };
+        let note = Note::generate(&mut OsRng, test_keys::ADDRESS_0.deref(), value);
+        let input = ShieldedInputPlan::new(&mut OsRng, note, 0u64.into());
+
+        let mut missing_nonce: pb::ShieldedInputPlan = input.clone().into();
+        missing_nonce.tx_blinding_nonce.clear();
+        ShieldedInputPlan::try_from(missing_nonce)
+            .expect_err("an omitted transaction blinding nonce must fail");
+
+        let mut invalid_randomizer: pb::ShieldedInputPlan = input.into();
+        invalid_randomizer.randomizer = fr_modulus_bytes().to_vec();
+        ShieldedInputPlan::try_from(invalid_randomizer)
+            .expect_err("a non-canonical input randomizer must return an error");
+
+        let output =
+            ShieldedOutputPlan::new(&mut OsRng, value, test_keys::ADDRESS_0.deref().clone());
+        let mut invalid_value_blinding: pb::ShieldedOutputPlan = output.into();
+        invalid_value_blinding.value_blinding = fr_modulus_bytes().to_vec();
+        ShieldedOutputPlan::try_from(invalid_value_blinding)
+            .expect_err("a non-canonical output value blinding must return an error");
+    }
+
+    #[test]
+    fn plan_proto_requires_authoritative_membership_facts() {
+        let value = Value {
+            amount: 7u64.into(),
+            asset_id: BASE_ASSET_DENOM.id(),
+        };
+        let note = Note::generate(&mut OsRng, test_keys::ADDRESS_0.deref(), value);
+        let input: pb::ShieldedInputPlan =
+            ShieldedInputPlan::new(&mut OsRng, note, 0u64.into()).into();
+        let input_mutations: [(&str, fn(&mut pb::ShieldedInputPlan)); 5] = [
+            ("compliance_anchor", |p| p.compliance_anchor = None),
+            ("asset_anchor", |p| p.asset_anchor = None),
+            ("compliance_path", |p| p.compliance_path = None),
+            ("asset_path", |p| p.asset_path = None),
+            ("asset_indexed_leaf", |p| p.asset_indexed_leaf = None),
+        ];
+        for (label, mutate) in input_mutations {
+            let mut candidate = input.clone();
+            mutate(&mut candidate);
+            assert!(
+                ShieldedInputPlan::try_from(candidate).is_err(),
+                "missing input {label} must fail"
+            );
+        }
+
+        let output: pb::ShieldedOutputPlan =
+            ShieldedOutputPlan::new(&mut OsRng, value, test_keys::ADDRESS_0.deref().clone()).into();
+        let output_mutations: [(&str, fn(&mut pb::ShieldedOutputPlan)); 5] = [
+            ("compliance_anchor", |p| p.compliance_anchor = None),
+            ("asset_anchor", |p| p.asset_anchor = None),
+            ("compliance_path", |p| p.compliance_path = None),
+            ("asset_path", |p| p.asset_path = None),
+            ("asset_indexed_leaf", |p| p.asset_indexed_leaf = None),
+        ];
+        for (label, mutate) in output_mutations {
+            let mut candidate = output.clone();
+            mutate(&mut candidate);
+            assert!(
+                ShieldedOutputPlan::try_from(candidate).is_err(),
+                "missing output {label} must fail"
+            );
+        }
+    }
+
+    #[test]
+    fn honest_transfer_actions_use_independent_nonzero_nonce_roots() {
+        let mut rng = StdRng::seed_from_u64(0x4e4f_4e43_455f_524f);
+        let value = Value {
+            amount: 7u64.into(),
+            asset_id: BASE_ASSET_DENOM.id(),
+        };
+        let nonce_roots = (0..3)
+            .map(|position| {
+                let note = Note::generate(&mut rng, test_keys::ADDRESS_0.deref(), value);
+                ShieldedInputPlan::new(&mut rng, note, (position as u64).into()).tx_blinding_nonce
+            })
+            .collect::<Vec<_>>();
+
+        assert!(
+            nonce_roots.iter().all(|nonce| *nonce != Fr::from(0u64)),
+            "honest ordinary and fee-funding construction must not reuse the neutral nonce root"
+        );
+        let distinct = nonce_roots.iter().collect::<std::collections::HashSet<_>>();
+        assert_eq!(
+            distinct.len(),
+            nonce_roots.len(),
+            "independent honest actions must draw independent nonce roots"
+        );
+    }
 }

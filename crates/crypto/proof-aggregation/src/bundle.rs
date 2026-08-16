@@ -8,8 +8,6 @@ const PROOF_FAMILY_NOTE_RESHAPE: u32 = pb::ProofFamilyId::NoteReshape as u32;
 const PROOF_FAMILY_SHIELDED_ICS20_WITHDRAWAL: u32 =
     pb::ProofFamilyId::ShieldedIcs20Withdrawal as u32;
 
-const SHIELDED_ICS20_WITHDRAWAL_CANONICAL: u32 = 1;
-
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub enum ProofFamilyId {
     Transfer,
@@ -119,7 +117,9 @@ pub fn family_route_from_proto_fields(
                 Err(FamilyRouteError::MissingSubfamily)
             } else if note_reshape_family_id != 0 {
                 Err(FamilyRouteError::UnexpectedSubfamily)
-            } else if shielded_ics20_withdrawal_family_id == SHIELDED_ICS20_WITHDRAWAL_CANONICAL {
+            } else if ShieldedIcs20WithdrawalFamilyId::try_from(shielded_ics20_withdrawal_family_id)
+                .is_ok()
+            {
                 Ok(FamilyRoute {
                     kind: FamilyRouteKind::ShieldedIcs20Withdrawal,
                     subfamily_id: shielded_ics20_withdrawal_family_id,
@@ -181,14 +181,6 @@ fn family_route_error_message(err: FamilyRouteError, family_id: i32) -> anyhow::
         FamilyRouteError::UnknownSubfamily => {
             anyhow!("aggregate family {family_id} has an unknown subfamily id")
         }
-    }
-}
-
-impl TryFrom<i32> for ProofFamilyId {
-    type Error = anyhow::Error;
-
-    fn try_from(value: i32) -> Result<Self> {
-        Self::try_from_proto_fields(value, 0, 0)
     }
 }
 
@@ -364,7 +356,7 @@ mod tests {
             srs_id: vec![1, 2, 3, 4],
             families: vec![
                 FamilyAggregate {
-                    family_id: ProofFamilyId::NoteReshape(NoteReshapeFamilyId::TwoByOne),
+                    family_id: ProofFamilyId::NoteReshape(NoteReshapeFamilyId::EightByOne),
                     real_count: 1,
                     padded_count: 1,
                     aggregate_proof: vec![1, 2, 3],

@@ -25,6 +25,17 @@ from normalize_aeneas_lean import NORMALIZER_REVISION, normalize_files
 SCRIPT_PATH = Path(__file__).resolve()
 LEAN_ROOT = SCRIPT_PATH.parents[1]
 REPO_ROOT = SCRIPT_PATH.parents[6]
+CI_SCRIPT_DIR = REPO_ROOT / "scripts/ci"
+if str(CI_SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(CI_SCRIPT_DIR))
+
+from snarkpack_lane_fingerprint import (  # noqa: E402
+    CargoSelection,
+    FingerprintError,
+    cargo_selection,
+)
+
+
 MANIFEST_PATH = (
     REPO_ROOT
     / "crates/crypto/proof-aggregation/formal/snarkpack/lean-extraction-manifest.json"
@@ -57,8 +68,6 @@ RESOURCE_POLL_SECONDS = 5.0
 OUTPUT_SPOOL_LIMIT_BYTES = 1024 * 1024
 WORKSPACE_SOURCE_PATHS = (
     ".cargo/config.toml",
-    "Cargo.lock",
-    "Cargo.toml",
     "deployments/containerfiles/Dockerfile.snarkpack-fv-toolchain",
     "rust-toolchain.toml",
     "crates/crypto/proof-aggregation/formal/lean-ipp/lake-manifest.json",
@@ -66,6 +75,8 @@ WORKSPACE_SOURCE_PATHS = (
     "crates/crypto/proof-aggregation/formal/lean-ipp/lean-toolchain",
     "crates/crypto/proof-aggregation/formal/snarkpack/aeneas-toolchain.toml",
 )
+WORKSPACE_CARGO_PATHS = ("Cargo.lock", "Cargo.toml")
+CARGO_SELECTION_REPO_PATH = "scripts/ci/snarkpack_lane_fingerprint.py"
 CI_ATTESTATION_PATHS = (
     ".github/workflows/formal.yml",
     "justfile",
@@ -73,15 +84,12 @@ CI_ATTESTATION_PATHS = (
     "scripts/snarkpack-fv.sh",
 )
 CRATE_CONFIG_NAMES = (
-    "Cargo.lock",
-    "Cargo.toml",
     "rust-toolchain",
     "rust-toolchain.toml",
     ".cargo/config",
     ".cargo/config.toml",
 )
 IGNORED_CRATE_SOURCE_DIRS = {".git", "proofs", "target"}
-LOCAL_PATH_DEPENDENCY = re.compile(r"""\bpath\s*=\s*["']([^"']+)["']""")
 
 TOP_FIELDS = {"schema_version", "toolchains", "graphs"}
 GRAPH_INVENTORY_FIELDS = {"schema_version", "graph_ids"}
@@ -155,6 +163,7 @@ class SourceSnapshotCache:
         self._head: str | None = None
         self._file_hashes: dict[Path, str] = {}
         self._crate_configs: dict[Path, tuple[Path, ...]] = {}
+        self._cargo_selections: dict[tuple[str, ...], CargoSelection] = {}
         self._undeclared_rust_inventories: dict[
             tuple[tuple[str, ...], tuple[str, ...]], str
         ] = {}
@@ -1270,7 +1279,9 @@ def affected_graph_ids(manifest: dict[str, Any], base: str) -> list[str]:
         NORMALIZER_REPO_PATH,
         RUNTIME_REPO_PATH,
         EXTRACTIONS_REPO_PATH,
+        CARGO_SELECTION_REPO_PATH,
         *WORKSPACE_SOURCE_PATHS,
+        *WORKSPACE_CARGO_PATHS,
     }
     # Inventory membership is validated above the graph-selection layer.
     # It is not extraction semantics; manifest recipe diffs select its changes.
@@ -1410,6 +1421,14 @@ def command_check(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_validate(args: argparse.Namespace) -> int:
+    """Validate committed manifest evidence without replay freshness."""
+    manifest = load_manifest(args.manifest)
+    validate_manifest(manifest, manifest_path=args.manifest)
+    print(f"extractions: manifest ok ({len(manifest['graphs'])} graphs)")
+    return 0
+
+
 def command_affected(args: argparse.Namespace) -> int:
     manifest = load_manifest(args.manifest)
     validate_recovery_manifest(manifest, manifest_path=args.manifest)
@@ -1483,12 +1502,12 @@ def command_stale(args: argparse.Namespace) -> int:
 def extraction_source_directories(manifest: dict[str, Any]) -> list[str]:
     """Return every crate directory covered by an extraction fingerprint."""
     directories: set[str] = set()
+    cache = SourceSnapshotCache()
     for graph in manifest["graphs"]:
-        crate_manifest = REPO_ROOT.joinpath(
-            *PurePosixPath(graph["crate_manifest"]).parts
-        ).resolve()
-        for directory in _local_crate_directories(crate_manifest):
-            directories.add(directory.relative_to(REPO_ROOT).as_posix())
+        directories.update(
+            path.as_posix()
+            for path in graph_cargo_selection(graph, cache=cache).directories
+        )
     return sorted(directories)
 
 
@@ -1607,6 +1626,7 @@ def graph_source_paths(
     # GRAPH_INVENTORY_REPO_PATH is a validation control, not a graph input.
     repo_paths = {
         EXTRACTIONS_REPO_PATH,
+        CARGO_SELECTION_REPO_PATH,
         NORMALIZER_REPO_PATH,
         RUNTIME_REPO_PATH,
         graph["crate_manifest"],
@@ -1639,36 +1659,24 @@ def _is_within_repo(path: Path) -> bool:
     return True
 
 
-def _local_crate_directories(crate_manifest: Path) -> list[Path]:
-    """Return the crate and all repository-local path dependency crates."""
-    pending = [crate_manifest.parent.resolve()]
-    visited: set[Path] = set()
-    while pending:
-        crate_dir = pending.pop()
-        if crate_dir in visited:
-            continue
-        if not _is_within_repo(crate_dir):
-            raise ManifestError(
-                f"crate source escapes repository: {crate_dir}"
-            )
-        manifest_path = crate_dir / "Cargo.toml"
-        if not manifest_path.is_file():
-            raise ManifestError(f"missing crate manifest: {manifest_path}")
-        visited.add(crate_dir)
-        try:
-            manifest_text = manifest_path.read_text(encoding="utf-8")
-        except (OSError, UnicodeError) as exc:
-            raise ManifestError(f"{manifest_path}: {exc}") from exc
-        for relative in LOCAL_PATH_DEPENDENCY.findall(manifest_text):
-            dependency_dir = (crate_dir / relative).resolve()
-            dependency_manifest = dependency_dir / "Cargo.toml"
-            if not dependency_manifest.is_file():
-                raise ManifestError(
-                    f"{manifest_path}: missing local path dependency "
-                    f"{dependency_manifest}"
-                )
-            pending.append(dependency_dir)
-    return sorted(visited)
+def graph_cargo_selection(
+    graph: dict[str, Any],
+    *,
+    cache: SourceSnapshotCache | None = None,
+) -> CargoSelection:
+    """Resolve the exact local and locked Cargo closure for one graph."""
+    packages = (graph["package"],)
+    if cache is not None and packages in cache._cargo_selections:
+        return cache._cargo_selections[packages]
+    try:
+        selection = cargo_selection(REPO_ROOT, packages)
+    except FingerprintError as exc:
+        raise ManifestError(
+            f"cannot resolve Cargo scope for {graph['id']}: {exc}"
+        ) from exc
+    if cache is not None:
+        cache._cargo_selections[packages] = selection
+    return selection
 
 
 def crate_configuration_paths(
@@ -1676,14 +1684,20 @@ def crate_configuration_paths(
     *,
     cache: SourceSnapshotCache | None = None,
 ) -> list[Path]:
-    """Collect shared Cargo/toolchain configuration for the extracted crate."""
+    """Collect selected manifests and inherited toolchain configuration."""
     crate_manifest = REPO_ROOT.joinpath(
         *PurePosixPath(graph["crate_manifest"]).parts
     ).resolve()
     if cache is not None and crate_manifest in cache._crate_configs:
         return list(cache._crate_configs[crate_manifest])
     result: set[Path] = set()
-    for crate_dir in _local_crate_directories(crate_manifest):
+    selection = graph_cargo_selection(graph, cache=cache)
+    for relative_dir in selection.directories:
+        crate_dir = (REPO_ROOT / relative_dir).resolve()
+        manifest_path = crate_dir / "Cargo.toml"
+        if not manifest_path.is_file():
+            raise ManifestError(f"missing crate manifest: {manifest_path}")
+        result.add(manifest_path)
         ancestor = crate_dir
         while _is_within_repo(ancestor):
             for relative in CRATE_CONFIG_NAMES:
@@ -1729,6 +1743,13 @@ def current_graph_source_snapshot(
             manifest, cache=cache
         ),
     }
+    selection = graph_cargo_selection(graph, cache=cache)
+    snapshot["cargo:local-metadata-v1"] = hashlib.sha256(
+        selection.metadata_projection
+    ).hexdigest()
+    snapshot["cargo:lock-closure-v1"] = hashlib.sha256(
+        selection.lock_projection
+    ).hexdigest()
     for path in graph_source_paths(graph, cache=cache):
         try:
             label = path.relative_to(REPO_ROOT).as_posix()
@@ -2494,6 +2515,9 @@ def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser()
     result.add_argument("--manifest", type=Path, default=MANIFEST_PATH, help=argparse.SUPPRESS)
     commands = result.add_subparsers(dest="command", required=True)
+
+    validate = commands.add_parser("validate")
+    validate.set_defaults(handler=command_validate)
 
     check = commands.add_parser("check")
     check.add_argument("--allow-stale-graph", action="append", default=[])

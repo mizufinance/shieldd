@@ -25,6 +25,7 @@ cfg_if::cfg_if! {
         pub mod app;
         pub mod block_tx_indexing;
         pub mod metrics;
+        pub mod nullifier_generation_packs;
         pub mod rpc;
         pub mod server;
         pub mod stateless_cache;
@@ -33,11 +34,8 @@ cfg_if::cfg_if! {
         mod shieldd_host_chain;
 
         pub use crate::{
-            action_handler::AppActionHandler, app::StateWriteExt,
-            metrics::register_metrics, shieldd_host_chain::ShielddHost,
+            app::StateWriteExt, metrics::register_metrics,
+            shieldd_host_chain::ShielddHost,
         };
-
-        /// Temporary compat wrapper for duplicate trait impls
-        pub struct Compat<'a, T>(&'a T);
     }
 }

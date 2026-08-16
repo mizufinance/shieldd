@@ -1,0 +1,20 @@
+{
+  "schema": "shieldd.gnark.setup_provenance.v2",
+  "curve": "bls12-377",
+  "circuit": "note_reshape8x1",
+  "mode": "fresh_setup",
+  "sr1cs_sha256_hex": "f20d153fd33f86a07d15ff6d36dab0a1d72db7235bd0418618ddd46742de632f",
+  "proving_key_sha256_hex": "9e808a35ed67a3b3dece3ceffef9a117680e17074bfa322171a4b8409dcf8965",
+  "verifying_key_binary_sha256_hex": "b30269e412a085ed05419ff777403fde593224a30e9f0a45a15c7364aca722ec",
+  "verifying_key_json_sha256_hex": "9d2d424d2f52f7b6b1972d0e981b645d2d6b791aee1cef52ea0fdd217ea971af",
+  "generation_self_tests": [
+    {
+      "proof_case": "note_reshape8x1",
+      "witness_format_version": 5,
+      "witness_sha256_hex": "d354c6c5861bf9d47d2a2d1def8b10d85c8bd7b1cb93d8089f5ac5560a07e39e",
+      "proved_and_verified_in_process": true
+    }
+  ],
+  "setup_transcript": "not_recorded",
+  "toxic_waste_erasure": "not_mechanically_verified"
+}

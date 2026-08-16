@@ -1,3 +1,4 @@
+// Code generated from transfer_families.json. DO NOT EDIT.
 package generated
 
 type TransferFamilySpec struct {

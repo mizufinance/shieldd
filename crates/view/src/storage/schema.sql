@@ -12,6 +12,21 @@ CREATE TABLE kv (
 
 CREATE TABLE sync_height (height BIGINT NOT NULL);
 
+-- Addresses returned by the view service, including randomized address indices.
+CREATE TABLE issued_addresses (
+    address_index           BLOB NOT NULL,
+    address                 BLOB PRIMARY KEY NOT NULL,
+    purpose_kind            TINYINT NOT NULL,
+    regulated_asset_id      BLOB,
+    birth_height            BIGINT NOT NULL,
+    retired_height          BIGINT,
+    CHECK (
+        (purpose_kind = 0 AND regulated_asset_id IS NULL) OR
+        (purpose_kind = 1 AND regulated_asset_id IS NOT NULL)
+    )
+);
+CREATE INDEX issued_addresses_by_index ON issued_addresses(address_index);
+
 -- used for storing a cache of known assets
 CREATE TABLE assets (
     asset_id                BLOB PRIMARY KEY NOT NULL,
@@ -102,6 +117,18 @@ CREATE INDEX spendable_notes_by_nullifier_idx ON spendable_notes (
 
 CREATE INDEX spendable_notes_by_source_idx ON spendable_notes (
     source
+);
+
+-- Reconstructible per-note retired-nullifier proof cache. This is deliberately
+-- separate from note and spend state and may be deleted and rebuilt.
+CREATE TABLE historical_proof_cache (
+    nullifier                   BLOB PRIMARY KEY NOT NULL,
+    protocol_version            BIGINT NOT NULL,
+    covered_generation_count    BIGINT NOT NULL,
+    terminal_history_head       BLOB NOT NULL,
+    proof_bundle                BLOB NOT NULL,
+    cache_state                 TINYINT NOT NULL,
+    last_error                  TEXT
 );
 
 -- general purpose note queries
@@ -198,7 +225,8 @@ CREATE TABLE compliance_asset_tree_position (
     id INTEGER PRIMARY KEY CHECK (id = 0),
     leaf_count BIGINT NOT NULL
 );
-INSERT INTO compliance_asset_tree_position VALUES (0, 1); -- Starts with sentinel
+-- No durable leaves exist until ComplianceAssetTree persists its sentinel.
+INSERT INTO compliance_asset_tree_position VALUES (0, 0);
 
 -- Full asset policies used by compliance planning and Orbis upload packaging.
 CREATE TABLE compliance_asset_policies (

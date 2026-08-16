@@ -12,7 +12,10 @@ use tracing::instrument;
 use crate::{
     event, genesis,
     params::StateWriteExt as _,
-    registry::{ComplianceRegistryRead, ComplianceRegistryWrite},
+    registry::{
+        AssetGrantAdmission, ComplianceRegistryComponentWrite, ComplianceRegistryRead,
+        ComplianceRegistryWrite, GenesisAssetAdmission, UserGrantAdmission,
+    },
     state_key,
     structs::{MsgRegisterAsset, MsgRegisterUser},
 };
@@ -33,6 +36,11 @@ impl Component for Compliance {
 
     #[instrument(name = "compliance", skip(state, app_state))]
     async fn init_chain<S: StateWrite>(mut state: S, app_state: Option<&Self::AppState>) {
+        if let Some(genesis) = app_state {
+            genesis
+                .validate_authorization_keys()
+                .expect("compliance genesis authorization keys must be valid");
+        }
         let compliance_params = app_state
             .map(|genesis| genesis.compliance_params.clone())
             .unwrap_or_default();
@@ -47,7 +55,7 @@ impl Component for Compliance {
         match state.get_user_tree().await {
             Ok(tree) => {
                 state.put(crate::state_key::user_tree_root().to_string(), tree.root());
-                state.write_user_tree_cache(tree);
+                state.initialize_user_tree_cache(tree);
                 // Initialize count if not set
                 if state
                     .get_proto::<u64>(state_key::user_count())
@@ -70,7 +78,7 @@ impl Component for Compliance {
         match state.get_asset_imt().await {
             Ok(tree) => {
                 state.put(crate::state_key::asset_imt_root().to_string(), tree.root());
-                state.write_asset_imt_cache(tree);
+                state.initialize_asset_imt_cache(tree);
             }
             Err(e) => {
                 tracing::error!(?e, "failed to load compliance asset IMT during init_chain");
@@ -79,12 +87,14 @@ impl Component for Compliance {
         }
 
         // Genesis starts clean; modifications during init/register calls will set this.
-        state.clear_compliance_trees_modified();
+        state.reset_compliance_tree_dirty_flag();
 
         // Register native assets from genesis configuration.
         if let Some(genesis) = app_state {
             for registrar_vk in &genesis.compliance_registrar_vk {
-                state.put_compliance_registrar(*registrar_vk);
+                state
+                    .admit_genesis_compliance_registrar(*registrar_vk)
+                    .expect("compliance genesis registrar key must be valid");
             }
 
             for registration in &genesis.native_assets {
@@ -126,7 +136,14 @@ impl Component for Compliance {
 
                 let event_policy = policy.clone();
                 if let Some(result) = state
-                    .register_asset_in_imt(registration.asset_id, policy, is_regulated)
+                    .register_genesis_asset(
+                        GenesisAssetAdmission::validate(
+                            registration.asset_id,
+                            policy,
+                            is_regulated,
+                        )
+                        .expect("native genesis asset admission must be valid"),
+                    )
                     .await
                     .expect("must be able to register native asset at genesis")
                 {
@@ -140,7 +157,7 @@ impl Component for Compliance {
                         asset_policy: event_policy,
                     };
 
-                    state.emit_asset_registered(event);
+                    state.publish_asset_registration(event);
                     tracing::info!(
                         ?registration.asset_id,
                         is_regulated,
@@ -152,7 +169,7 @@ impl Component for Compliance {
 
         // Record initial anchors at genesis (height 0)
         state
-            .record_compliance_anchors(0)
+            .finish_block_compliance_anchors(0)
             .await
             .expect("must be able to record initial compliance anchors");
         tracing::info!("recorded initial compliance anchors at genesis");
@@ -176,7 +193,7 @@ impl Component for Compliance {
         let height = end_block.height as u64;
         let state = Arc::get_mut(state).expect("state should be unique");
         state
-            .record_compliance_anchors(height)
+            .finish_block_compliance_anchors(height)
             .await
             .expect("must be able to record compliance anchors");
     }
@@ -217,39 +234,31 @@ impl ActionHandler for MsgRegisterUser {
             .get_asset_policy(self.leaf.asset_id)
             .await?
             .ok_or_else(|| anyhow::anyhow!("missing regulated asset policy"))?;
-        let authority_vk = policy.registration_authority_vk.as_ref().ok_or_else(|| {
-            anyhow::anyhow!("regulated asset policy missing registration authority")
-        })?;
-        let grant = self
-            .grant
-            .as_ref()
-            .ok_or_else(|| anyhow::anyhow!("missing user registration grant"))?;
-        anyhow::ensure!(
-            grant.body.policy_id == policy.ring.policy_id,
-            "user registration grant policy_id does not match asset policy"
-        );
-        anyhow::ensure!(
-            self.leaf.slot_id < policy.params.slot_count,
-            "compliance slot {} is outside asset slot count {}",
-            self.leaf.slot_id,
-            policy.params.slot_count
-        );
         let current_unix = state.get_current_block_timestamp().await?.unix_timestamp();
         anyhow::ensure!(
             current_unix >= 0,
             "current block timestamp is before Unix epoch"
         );
-        anyhow::ensure!(
-            (current_unix as u64) <= grant.body.valid_until_unix,
-            "user registration grant expired"
-        );
-        grant.verify(authority_vk)?;
+        let admission = UserGrantAdmission::verify(self, &policy, current_unix as u64)?;
 
         // Check if user is already registered for this asset (idempotent)
         if let Some(existing_position) = state
             .get_user_leaf_position(&self.leaf.address, self.leaf.asset_id)
             .await?
         {
+            let existing_leaf = state
+                .get_user_leaf(&self.leaf.address, self.leaf.asset_id)
+                .await?
+                .ok_or_else(|| {
+                    anyhow::anyhow!(
+                        "compliance leaf position exists without leaf data at position {}",
+                        existing_position
+                    )
+                })?;
+            anyhow::ensure!(
+                existing_leaf == self.leaf,
+                "conflicting compliance leaf is already registered for address and asset"
+            );
             tracing::debug!(
                 position = existing_position,
                 address = ?self.leaf.address,
@@ -261,7 +270,7 @@ impl ActionHandler for MsgRegisterUser {
         }
 
         // User not registered, proceed with registration
-        let position = state.add_compliance_leaf(self.leaf.clone()).await?;
+        let position = state.register_user_with_grant(admission).await?;
         let commitment = self.leaf.commit();
 
         // Create the event
@@ -272,7 +281,7 @@ impl ActionHandler for MsgRegisterUser {
         };
 
         // Buffer the event for CompactBlock inclusion
-        state.record_pending_user_registration(event.clone());
+        state.queue_user_registration_event(event.clone());
 
         // Also emit as ABCI event (for existing event listeners)
         state.record_proto(event::user_registered(
@@ -293,6 +302,7 @@ impl ActionHandler for MsgRegisterAsset {
     type CheckStatelessContext = ();
 
     async fn check_stateless(&self, _context: ()) -> Result<()> {
+        self.validate_authorization_keys()?;
         let grant = self
             .asset_registration_grant
             .as_ref()
@@ -334,58 +344,19 @@ impl ActionHandler for MsgRegisterAsset {
             .asset_registration_grant
             .as_ref()
             .ok_or_else(|| anyhow::anyhow!("missing asset registration grant"))?;
-        anyhow::ensure!(
-            state.is_compliance_registrar(&grant.registrar_vk).await?,
-            "asset registration grant signed by unauthorized registrar"
-        );
+        let registrar_authorized = state.is_compliance_registrar(&grant.registrar_vk).await?;
         let current_unix = state.get_current_block_timestamp().await?.unix_timestamp();
         anyhow::ensure!(
             current_unix >= 0,
             "current block timestamp is before Unix epoch"
         );
-        anyhow::ensure!(
-            (current_unix as u64) <= grant.body.valid_until_unix,
-            "asset registration grant expired"
-        );
-
-        let (policy, is_regulated) = if self.is_regulated {
-            let dk_pub = self.dk_pub.ok_or_else(|| {
-                anyhow::anyhow!("regulated assets require a detection key (dk_pub)")
-            })?;
-            let registration_authority_vk = self.registration_authority_vk.ok_or_else(|| {
-                anyhow::anyhow!("regulated assets require registration_authority_vk")
-            })?;
-
-            let threshold = self.threshold.unwrap_or(u128::MAX);
-            let ring_pk = self.ring_pk.unwrap_or(decaf377::Element::GENERATOR);
-            (
-                crate::structs::AssetPolicy::new(
-                    dk_pub,
-                    threshold,
-                    self.slot_count,
-                    self.allowed_ibc_routes.clone(),
-                    self.ibc_origin.clone(),
-                    self.ring_id.clone(),
-                    ring_pk,
-                    self.policy_id.clone(),
-                    self.permission.clone(),
-                    self.resource.clone(),
-                )
-                .with_registration_authority(registration_authority_vk),
-                true,
-            )
-        } else {
-            (crate::structs::AssetPolicy::default_unregulated(), false)
-        };
-
-        let event_policy = policy.clone();
-        if let Some(result) = state
-            .register_asset_in_imt(self.asset_id, policy, is_regulated)
-            .await?
-        {
+        let admission =
+            AssetGrantAdmission::verify(self, registrar_authorized, current_unix as u64)?;
+        let event_policy = admission.policy().clone();
+        if let Some(result) = state.register_asset_with_grant(admission).await? {
             let event = crate::event::EventAssetRegistered {
                 asset_id: self.asset_id,
-                is_regulated,
+                is_regulated: self.is_regulated,
                 position: result.position,
                 indexed_leaf: result.indexed_leaf,
                 low_leaf_position: result.low_leaf_position,
@@ -393,7 +364,7 @@ impl ActionHandler for MsgRegisterAsset {
                 asset_policy: event_policy,
             };
 
-            state.emit_asset_registered(event);
+            state.publish_asset_registration(event);
         }
         // If None, asset was already registered — policy is immutable, skip.
 
@@ -607,6 +578,26 @@ mod tests {
 
         // Duplicate registration stays idempotent for regulated assets.
         msg.check_and_execute(&mut state).await.unwrap();
+
+        let conflicting_leaf =
+            ComplianceLeaf::new(msg.leaf.address.clone(), asset_id, Fq::from(1u64));
+        let conflicting_msg = MsgRegisterUser {
+            leaf: conflicting_leaf.clone(),
+            grant: Some(user_registration_grant(
+                conflicting_leaf,
+                "test-policy".to_string(),
+                &authority_sk,
+                TEST_VALID_UNTIL_UNIX,
+            )),
+        };
+        let error = conflicting_msg
+            .check_and_execute(&mut state)
+            .await
+            .expect_err("a conflicting duplicate leaf must not be accepted as idempotent");
+        assert!(
+            error.to_string().contains("conflicting compliance leaf"),
+            "unexpected error: {error:#}"
+        );
 
         // Verify user was registered once.
         let user_count = state.get_user_count().await.unwrap();

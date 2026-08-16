@@ -17,12 +17,14 @@ jobs:
     # and refactors to rust deps can break that generation. Let's ensure this script exits 0
     # on PRs, but we'll still only deploy after merge into main.
     runs-on: ubuntu-24.04
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          lfs: true
 
       - uses: ./.github/actions/setup-nix-rust
+
+      - name: Test rustdoc package selection
+        run: python3 deployments/scripts/tests/test_rust_doc_packages.py
 
       # Building with warm cache takes ~40s, depending on changes.
       - name: Build rustdocs

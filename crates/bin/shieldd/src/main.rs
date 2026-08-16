@@ -33,6 +33,10 @@ enum Command {
         #[clap(long, env = "SHIELDD_DB")]
         db: PathBuf,
 
+        /// Directory containing immutable retired-generation witness packs.
+        #[clap(long, env = "SHIELDD_GENERATION_PACKS")]
+        generation_packs: Option<PathBuf>,
+
         /// Execution-client TCP host.
         #[clap(long, default_value = "127.0.0.1", env = "SHIELDD_HOST")]
         host: IpAddr,
@@ -50,12 +54,25 @@ async fn main() -> anyhow::Result<()> {
     let Opt { command } = Opt::parse();
 
     match command {
-        Command::Start { db, host, port } => start(db, SocketAddr::new(host, port)).await,
+        Command::Start {
+            db,
+            generation_packs,
+            host,
+            port,
+        } => start(db, generation_packs, SocketAddr::new(host, port)).await,
     }
 }
 
-async fn start(db: PathBuf, bind: SocketAddr) -> anyhow::Result<()> {
-    let service = ExecutionService::open(&db).await.with_context(|| {
+async fn start(
+    db: PathBuf,
+    generation_packs: Option<PathBuf>,
+    bind: SocketAddr,
+) -> anyhow::Result<()> {
+    let service = match generation_packs.as_ref() {
+        Some(directory) => ExecutionService::open_with_generation_packs(&db, directory).await,
+        None => ExecutionService::open(&db).await,
+    }
+    .with_context(|| {
         format!(
             "failed to open Shieldd execution service for {}",
             db.display()

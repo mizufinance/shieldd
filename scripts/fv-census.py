@@ -19,10 +19,15 @@ Read-only: no gate semantics, no verdicts. Usage:
   fv-census.py <circuit.sr1cs> <circuit-manifest.json> [--min-dups 2]
 """
 
-import json
 import re
 import sys
+from pathlib import Path
 from collections import Counter, defaultdict
+
+try:
+    from .fv_strict_json import load as load_strict_json
+except ImportError:
+    from fv_strict_json import load as load_strict_json
 
 ROW_RE = re.compile(r"^\(constraint \[(.*?)\] \[(.*?)\] \[(.*?)\]\)$")
 # Coefficients are signed in gnark's SR1CS text form.  Dropping the sign (and
@@ -57,7 +62,7 @@ def is_linear(part):
 def main():
     sr1cs, manifest_path = sys.argv[1], sys.argv[2]
     inputs, outputs, rows, prime = parse(sr1cs)
-    manifest = json.load(open(manifest_path))
+    manifest = load_strict_json(Path(manifest_path), "constraint manifest")
     segs = manifest.get("segments", manifest)
 
     def seg_of(i):

@@ -64,9 +64,11 @@ impl ::prost::Name for GenesisContent {
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct DiscoveryParameters {
     #[prost(uint32, tag = "1")]
-    pub precision_bits: u32,
-    #[prost(uint64, tag = "2")]
-    pub as_of_block_height: u64,
+    pub regulated_precision_bits: u32,
+    #[prost(uint32, tag = "2")]
+    pub unregulated_precision_bits: u32,
+    #[prost(uint64, tag = "3")]
+    pub as_of_height: u64,
 }
 impl ::prost::Name for DiscoveryParameters {
     const NAME: &'static str = "DiscoveryParameters";
@@ -78,22 +80,54 @@ impl ::prost::Name for DiscoveryParameters {
         "/shieldd.core.component.shielded_pool.v1.DiscoveryParameters".into()
     }
 }
-/// Public best-effort routing tag for an encrypted note.
+/// Fixed-width public routing value. Precision is deliberately not encoded.
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
-pub struct DiscoveryTag {
+pub struct RoutingTag {
+    #[prost(fixed32, tag = "1")]
+    pub value: u32,
+}
+impl ::prost::Name for RoutingTag {
+    const NAME: &'static str = "RoutingTag";
+    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.shielded_pool.v1.RoutingTag".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.shielded_pool.v1.RoutingTag".into()
+    }
+}
+/// Local or query-side matcher for routing tags.
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct RoutingSelector {
     #[prost(uint32, tag = "1")]
     pub precision_bits: u32,
     #[prost(fixed32, tag = "2")]
-    pub value: u32,
+    pub prefix: u32,
 }
-impl ::prost::Name for DiscoveryTag {
-    const NAME: &'static str = "DiscoveryTag";
+impl ::prost::Name for RoutingSelector {
+    const NAME: &'static str = "RoutingSelector";
     const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
     fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.shielded_pool.v1.DiscoveryTag".into()
+        "shieldd.core.component.shielded_pool.v1.RoutingSelector".into()
     }
     fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.shielded_pool.v1.DiscoveryTag".into()
+        "/shieldd.core.component.shielded_pool.v1.RoutingSelector".into()
+    }
+}
+/// Fixed public routing shape for a transfer action.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TransferRouting {
+    #[prost(message, repeated, tag = "1")]
+    pub tags: ::prost::alloc::vec::Vec<RoutingTag>,
+}
+impl ::prost::Name for TransferRouting {
+    const NAME: &'static str = "TransferRouting";
+    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.shielded_pool.v1.TransferRouting".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.shielded_pool.v1.TransferRouting".into()
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -135,7 +169,7 @@ impl ::prost::Name for NoteView {
     }
 }
 /// An encrypted note.
-/// 176 = 80(address) + 16(amount) + 32(asset ID) + 32(rseed) + 16(MAC) bytes.
+/// 144 = 48(address) + 16(amount) + 32(asset ID) + 32(rseed) + 16(MAC) bytes.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct NoteCiphertext {
     #[prost(bytes = "vec", tag = "1")]
@@ -164,12 +198,9 @@ pub struct NotePayload {
     #[prost(bytes = "vec", tag = "2")]
     pub ephemeral_key: ::prost::alloc::vec::Vec<u8>,
     /// An encryption of the newly created note.
-    /// 176 = 80(address) + 16(amount) + 32(asset ID) + 32(rseed) + 16(MAC) bytes.
+    /// 144 = 48(address) + 16(amount) + 32(asset ID) + 32(rseed) + 16(MAC) bytes.
     #[prost(message, optional, tag = "3")]
     pub encrypted_note: ::core::option::Option<NoteCiphertext>,
-    /// Public best-effort routing metadata. It does not grant decryption capability.
-    #[prost(message, optional, tag = "4")]
-    pub discovery_tag: ::core::option::Option<DiscoveryTag>,
 }
 impl ::prost::Name for NotePayload {
     const NAME: &'static str = "NotePayload";
@@ -245,6 +276,9 @@ pub struct TransferInputBody {
     /// Compliance ciphertext encrypting spent note details for the asset issuer.
     #[prost(bytes = "vec", tag = "4")]
     pub compliance_ciphertext: ::prost::alloc::vec::Vec<u8>,
+    /// Whether this real input must carry a complete retired-history proof.
+    #[prost(bool, tag = "5")]
+    pub history_required: bool,
 }
 impl ::prost::Name for TransferInputBody {
     const NAME: &'static str = "TransferInputBody";
@@ -270,9 +304,10 @@ pub struct TransferOutputBody {
     /// Compliance ciphertext encrypting created note details for the asset issuer.
     #[prost(bytes = "vec", tag = "4")]
     pub compliance_ciphertext: ::prost::alloc::vec::Vec<u8>,
-    /// Orbis-compatible encrypted-seed upload bundle for the receiver output only.
+    /// Canonical 328-byte factored circuit metadata for the receiver output only.
+    /// This field must never contain DH shared points or seed-opening material.
     #[prost(bytes = "vec", tag = "5")]
-    pub orbis_upload_bundle: ::prost::alloc::vec::Vec<u8>,
+    pub compliance_metadata: ::prost::alloc::vec::Vec<u8>,
 }
 impl ::prost::Name for TransferOutputBody {
     const NAME: &'static str = "TransferOutputBody";
@@ -341,6 +376,12 @@ pub struct TransferBody {
     pub asset_anchor: ::core::option::Option<
         super::super::super::super::crypto::tct::v1::StateCommitment,
     >,
+    /// Fixed two-slot routing bundle; slot roles are private.
+    #[prost(message, optional, tag = "7")]
+    pub routing: ::core::option::Option<TransferRouting>,
+    /// Poseidon identifier of the privately selected protocol parameter set.
+    #[prost(bytes = "vec", tag = "8")]
+    pub routing_parameter_set_id: ::prost::alloc::vec::Vec<u8>,
 }
 impl ::prost::Name for TransferBody {
     const NAME: &'static str = "TransferBody";
@@ -417,24 +458,18 @@ impl ::prost::Name for TransferView {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TransferPlan {
-    /// The public body this plan will produce.
-    #[prost(message, optional, tag = "1")]
-    pub body: ::core::option::Option<TransferBody>,
     /// The blinding factor to use for the net balance commitment.
     #[prost(bytes = "vec", tag = "2")]
     pub value_blinding: ::prost::alloc::vec::Vec<u8>,
-    /// The net action balance committed by the action body.
-    #[prost(message, optional, tag = "3")]
-    pub balance: ::core::option::Option<super::super::super::asset::v1::Balance>,
     /// The shielded input plans fused into this transfer.
     #[prost(message, repeated, tag = "4")]
     pub spends: ::prost::alloc::vec::Vec<ShieldedInputPlan>,
     /// The shielded output plans fused into this transfer.
     #[prost(message, repeated, tag = "5")]
     pub outputs: ::prost::alloc::vec::Vec<ShieldedOutputPlan>,
-    /// Protocol precision used by all real and padded output discovery tags.
-    #[prost(uint32, tag = "6")]
-    pub discovery_precision_bits: u32,
+    /// Protocol routing parameter set used to construct and prove the action.
+    #[prost(message, optional, tag = "6")]
+    pub routing_parameters: ::core::option::Option<DiscoveryParameters>,
 }
 impl ::prost::Name for TransferPlan {
     const NAME: &'static str = "TransferPlan";
@@ -446,15 +481,24 @@ impl ::prost::Name for TransferPlan {
         "/shieldd.core.component.shielded_pool.v1.TransferPlan".into()
     }
 }
-/// Releases shielded value to a recipient on the host chain.
+/// Releases shielded value for transfer or execution on the host chain.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct HostWithdrawal {
-    /// The host-chain recipient.
-    #[prost(string, tag = "1")]
-    pub recipient: ::prost::alloc::string::String,
     /// The canonical Shieldd value to release.
-    #[prost(message, optional, tag = "2")]
+    #[prost(message, optional, tag = "1")]
     pub value: ::core::option::Option<super::super::super::asset::v1::Value>,
+    #[prost(oneof = "host_withdrawal::Destination", tags = "2, 3")]
+    pub destination: ::core::option::Option<host_withdrawal::Destination>,
+}
+/// Nested message and enum types in `HostWithdrawal`.
+pub mod host_withdrawal {
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Destination {
+        #[prost(message, tag = "2")]
+        Transfer(super::HostTransfer),
+        #[prost(message, tag = "3")]
+        Execution(super::HostExecution),
+    }
 }
 impl ::prost::Name for HostWithdrawal {
     const NAME: &'static str = "HostWithdrawal";
@@ -464,6 +508,64 @@ impl ::prost::Name for HostWithdrawal {
     }
     fn type_url() -> ::prost::alloc::string::String {
         "/shieldd.core.component.shielded_pool.v1.HostWithdrawal".into()
+    }
+}
+/// Transfers withdrawn value directly to a host-chain recipient.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct HostTransfer {
+    #[prost(string, tag = "1")]
+    pub recipient: ::prost::alloc::string::String,
+}
+impl ::prost::Name for HostTransfer {
+    const NAME: &'static str = "HostTransfer";
+    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.shielded_pool.v1.HostTransfer".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.shielded_pool.v1.HostTransfer".into()
+    }
+}
+/// Executes an ordered, atomic host-chain call batch.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct HostExecution {
+    /// Shieldd address credited if host execution fails.
+    #[prost(string, tag = "1")]
+    pub refund_address: ::prost::alloc::string::String,
+    /// Maximum host-chain gas available to the call batch.
+    #[prost(uint64, tag = "2")]
+    pub gas_limit: u64,
+    /// Calls executed in order from the withdrawal's derived executor.
+    #[prost(message, repeated, tag = "3")]
+    pub calls: ::prost::alloc::vec::Vec<EvmCall>,
+}
+impl ::prost::Name for HostExecution {
+    const NAME: &'static str = "HostExecution";
+    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.shielded_pool.v1.HostExecution".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.shielded_pool.v1.HostExecution".into()
+    }
+}
+/// A host-chain EVM call.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct EvmCall {
+    /// The 20-byte EVM contract address.
+    #[prost(bytes = "vec", tag = "1")]
+    pub contract: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "2")]
+    pub calldata: ::prost::alloc::vec::Vec<u8>,
+}
+impl ::prost::Name for EvmCall {
+    const NAME: &'static str = "EvmCall";
+    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.shielded_pool.v1.EvmCall".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.shielded_pool.v1.EvmCall".into()
     }
 }
 /// Withdraws shielded funds to the host chain while keeping shielded change in the same action.
@@ -528,6 +630,12 @@ pub struct ShieldedHostWithdrawalBody {
     pub asset_anchor: ::core::option::Option<
         super::super::super::super::crypto::tct::v1::StateCommitment,
     >,
+    /// Sender routing tag, present even when the change output is dummy.
+    #[prost(message, optional, tag = "10")]
+    pub routing_tag: ::core::option::Option<RoutingTag>,
+    /// Poseidon identifier of the privately selected protocol parameter set.
+    #[prost(bytes = "vec", tag = "11")]
+    pub routing_parameter_set_id: ::prost::alloc::vec::Vec<u8>,
 }
 impl ::prost::Name for ShieldedHostWithdrawalBody {
     const NAME: &'static str = "ShieldedHostWithdrawalBody";
@@ -613,15 +721,9 @@ impl ::prost::Name for ShieldedHostWithdrawalView {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ShieldedHostWithdrawalPlan {
-    /// The public body this plan will produce.
-    #[prost(message, optional, tag = "1")]
-    pub body: ::core::option::Option<ShieldedHostWithdrawalBody>,
     /// The blinding factor to use for the net balance commitment.
     #[prost(bytes = "vec", tag = "2")]
     pub value_blinding: ::prost::alloc::vec::Vec<u8>,
-    /// The net action balance committed by the action body.
-    #[prost(message, optional, tag = "3")]
-    pub balance: ::core::option::Option<super::super::super::asset::v1::Balance>,
     /// The shielded input plans fused into this withdrawal.
     #[prost(message, repeated, tag = "4")]
     pub spends: ::prost::alloc::vec::Vec<ShieldedInputPlan>,
@@ -631,6 +733,9 @@ pub struct ShieldedHostWithdrawalPlan {
     /// The embedded host-chain withdrawal payload.
     #[prost(message, optional, tag = "6")]
     pub withdrawal: ::core::option::Option<HostWithdrawal>,
+    /// Protocol-wide routing parameters bound by the reused withdrawal proof.
+    #[prost(message, optional, tag = "7")]
+    pub routing_parameters: ::core::option::Option<DiscoveryParameters>,
 }
 impl ::prost::Name for ShieldedHostWithdrawalPlan {
     const NAME: &'static str = "ShieldedHostWithdrawalPlan";
@@ -728,6 +833,12 @@ pub struct ShieldedIcs20WithdrawalBody {
     pub asset_anchor: ::core::option::Option<
         super::super::super::super::crypto::tct::v1::StateCommitment,
     >,
+    /// Sender routing tag, present even when the change output is dummy.
+    #[prost(message, optional, tag = "10")]
+    pub routing_tag: ::core::option::Option<RoutingTag>,
+    /// Poseidon identifier of the privately selected protocol parameter set.
+    #[prost(bytes = "vec", tag = "11")]
+    pub routing_parameter_set_id: ::prost::alloc::vec::Vec<u8>,
 }
 impl ::prost::Name for ShieldedIcs20WithdrawalBody {
     const NAME: &'static str = "ShieldedIcs20WithdrawalBody";
@@ -813,15 +924,9 @@ impl ::prost::Name for ShieldedIcs20WithdrawalView {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ShieldedIcs20WithdrawalPlan {
-    /// The public body this plan will produce.
-    #[prost(message, optional, tag = "1")]
-    pub body: ::core::option::Option<ShieldedIcs20WithdrawalBody>,
     /// The blinding factor to use for the net balance commitment.
     #[prost(bytes = "vec", tag = "2")]
     pub value_blinding: ::prost::alloc::vec::Vec<u8>,
-    /// The net action balance committed by the action body.
-    #[prost(message, optional, tag = "3")]
-    pub balance: ::core::option::Option<super::super::super::asset::v1::Balance>,
     /// The shielded input plans fused into this withdrawal.
     #[prost(message, repeated, tag = "4")]
     pub spends: ::prost::alloc::vec::Vec<ShieldedInputPlan>,
@@ -831,9 +936,9 @@ pub struct ShieldedIcs20WithdrawalPlan {
     /// The embedded outbound ICS-20 withdrawal payload.
     #[prost(message, optional, tag = "6")]
     pub withdrawal: ::core::option::Option<super::super::ibc::v1::Ics20Withdrawal>,
-    /// Protocol precision used by the change or padded output discovery tag.
-    #[prost(uint32, tag = "7")]
-    pub discovery_precision_bits: u32,
+    /// Protocol routing parameter set used to construct and prove the action.
+    #[prost(message, optional, tag = "7")]
+    pub routing_parameters: ::core::option::Option<DiscoveryParameters>,
 }
 impl ::prost::Name for ShieldedIcs20WithdrawalPlan {
     const NAME: &'static str = "ShieldedIcs20WithdrawalPlan";
@@ -858,6 +963,9 @@ pub struct NoteReshapeInputBody {
     /// An encryption of the commitment of the input note to the sender's OVK.
     #[prost(bytes = "vec", tag = "3")]
     pub encrypted_backref: ::prost::alloc::vec::Vec<u8>,
+    /// Whether this real input must carry a complete retired-history proof.
+    #[prost(bool, tag = "4")]
+    pub history_required: bool,
 }
 impl ::prost::Name for NoteReshapeInputBody {
     const NAME: &'static str = "NoteReshapeInputBody";
@@ -937,6 +1045,17 @@ pub struct NoteReshapeBody {
     /// The created notes.
     #[prost(message, repeated, tag = "5")]
     pub outputs: ::prost::alloc::vec::Vec<NoteReshapeOutputBody>,
+    /// Owner routing tag for this action.
+    #[prost(message, optional, tag = "6")]
+    pub routing_tag: ::core::option::Option<RoutingTag>,
+    /// Poseidon identifier of the privately selected protocol parameter set.
+    #[prost(bytes = "vec", tag = "7")]
+    pub routing_parameter_set_id: ::prost::alloc::vec::Vec<u8>,
+    /// Asset-registry root binding the private class-dependent routing precision.
+    #[prost(message, optional, tag = "8")]
+    pub asset_anchor: ::core::option::Option<
+        super::super::super::super::crypto::tct::v1::StateCommitment,
+    >,
 }
 impl ::prost::Name for NoteReshapeBody {
     const NAME: &'static str = "NoteReshapeBody";
@@ -1013,24 +1132,21 @@ impl ::prost::Name for NoteReshapeView {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct NoteReshapePlan {
-    /// The public body this plan will produce.
-    #[prost(message, optional, tag = "1")]
-    pub body: ::core::option::Option<NoteReshapeBody>,
     /// The blinding factor to use for the net balance commitment.
     #[prost(bytes = "vec", tag = "2")]
     pub value_blinding: ::prost::alloc::vec::Vec<u8>,
-    /// The net action balance committed by the action body.
-    #[prost(message, optional, tag = "3")]
-    pub balance: ::core::option::Option<super::super::super::asset::v1::Balance>,
     /// The shielded input plans fused into this reshape.
     #[prost(message, repeated, tag = "4")]
     pub spends: ::prost::alloc::vec::Vec<ShieldedInputPlan>,
     /// The shielded output plans fused into this reshape.
     #[prost(message, repeated, tag = "5")]
     pub outputs: ::prost::alloc::vec::Vec<ShieldedOutputPlan>,
-    /// Protocol precision used by all real and padded output discovery tags.
+    /// The deployed proving family selected for this reshape.
     #[prost(uint32, tag = "6")]
-    pub discovery_precision_bits: u32,
+    pub family_id: u32,
+    /// Protocol routing parameter set used to construct and prove the action.
+    #[prost(message, optional, tag = "7")]
+    pub routing_parameters: ::core::option::Option<DiscoveryParameters>,
 }
 impl ::prost::Name for NoteReshapePlan {
     const NAME: &'static str = "NoteReshapePlan";
@@ -1090,19 +1206,9 @@ pub struct ShieldedInputPlan {
     /// The blinding factor to use for the value commitment.
     #[prost(bytes = "vec", tag = "4")]
     pub value_blinding: ::prost::alloc::vec::Vec<u8>,
-    /// The first blinding factor to use for the ZK spend proof.
-    #[prost(bytes = "vec", tag = "5")]
-    pub proof_blinding_r: ::prost::alloc::vec::Vec<u8>,
-    /// The second blinding factor to use for the ZK spend proof.
-    #[prost(bytes = "vec", tag = "6")]
-    pub proof_blinding_s: ::prost::alloc::vec::Vec<u8>,
     /// Target timestamp for compliance verification (Unix UTC seconds).
     #[prost(uint64, tag = "7")]
     pub target_timestamp: u64,
-    /// Precomputed compliance ciphertext (352 bytes: 32 EPK + 32 EPK_G + 32 C2_core + 32 C2_ext + 224 payload).
-    /// Empty when not yet generated. C2 fields are encrypted seeds for Orbis PRE.
-    #[prost(bytes = "vec", tag = "8")]
-    pub compliance_ciphertext: ::prost::alloc::vec::Vec<u8>,
     /// Whether the asset is regulated (requires compliance).
     #[prost(bool, tag = "9")]
     pub is_regulated: bool,
@@ -1111,9 +1217,6 @@ pub struct ShieldedInputPlan {
     pub compliance_leaf: ::core::option::Option<
         super::super::compliance::v1::ComplianceLeaf,
     >,
-    /// Ephemeral secret used in compliance ciphertext encryption (needed by circuit).
-    #[prost(bytes = "vec", tag = "12")]
-    pub compliance_ephemeral_secret: ::prost::alloc::vec::Vec<u8>,
     /// Shared transaction blinding nonce (same for spend and output in one transaction).
     #[prost(bytes = "vec", tag = "14")]
     pub tx_blinding_nonce: ::prost::alloc::vec::Vec<u8>,
@@ -1146,31 +1249,6 @@ pub struct ShieldedInputPlan {
     pub asset_indexed_leaf: ::core::option::Option<
         super::super::compliance::v1::IndexedLeafData,
     >,
-    /// Whether this spend is flagged (amount >= threshold).
-    /// Computed from threshold comparison and passed to circuit as witness.
-    #[prost(bool, tag = "22")]
-    pub is_flagged: bool,
-    /// DLEQ proof salt (random Fq used in metadata hash).
-    #[prost(bytes = "vec", tag = "23")]
-    pub salt: ::prost::alloc::vec::Vec<u8>,
-    /// DLEQ proof blinding factor (random Fr).
-    #[prost(bytes = "vec", tag = "24")]
-    pub dleq_k: ::prost::alloc::vec::Vec<u8>,
-    /// DLEQ proof challenge (Fq).
-    #[prost(bytes = "vec", tag = "25")]
-    pub dleq_c: ::prost::alloc::vec::Vec<u8>,
-    /// DLEQ proof response (Fq).
-    #[prost(bytes = "vec", tag = "26")]
-    pub dleq_s: ::prost::alloc::vec::Vec<u8>,
-    /// Ring public key used for compliance encryption.
-    #[prost(bytes = "vec", tag = "27")]
-    pub ring_pk: ::prost::alloc::vec::Vec<u8>,
-    /// Issuer detection key public component.
-    #[prost(bytes = "vec", tag = "28")]
-    pub dk_pub: ::prost::alloc::vec::Vec<u8>,
-    /// Threshold for flagging (in base units).
-    #[prost(bytes = "vec", tag = "29")]
-    pub threshold: ::prost::alloc::vec::Vec<u8>,
     /// Full compliance asset policy for regulated assets.
     #[prost(message, optional, tag = "30")]
     pub asset_policy: ::core::option::Option<super::super::compliance::v1::AssetPolicy>,
@@ -1199,19 +1277,9 @@ pub struct ShieldedOutputPlan {
     /// The blinding factor to use for the value commitment.
     #[prost(bytes = "vec", tag = "4")]
     pub value_blinding: ::prost::alloc::vec::Vec<u8>,
-    /// The first blinding factor to use for the ZK output proof.
-    #[prost(bytes = "vec", tag = "5")]
-    pub proof_blinding_r: ::prost::alloc::vec::Vec<u8>,
-    /// The second blinding factor to use for the ZK output proof.
-    #[prost(bytes = "vec", tag = "6")]
-    pub proof_blinding_s: ::prost::alloc::vec::Vec<u8>,
     /// Target timestamp for compliance verification (Unix UTC seconds).
     #[prost(uint64, tag = "7")]
     pub target_timestamp: u64,
-    /// Precomputed compliance ciphertext (352 bytes: 32 EPK + 32 EPK_G + 32 C2_core + 32 C2_ext + 224 payload).
-    /// Empty when not yet generated. C2 fields are encrypted seeds for Orbis PRE.
-    #[prost(bytes = "vec", tag = "8")]
-    pub compliance_ciphertext: ::prost::alloc::vec::Vec<u8>,
     /// Whether the asset is regulated (requires compliance).
     #[prost(bool, tag = "9")]
     pub is_regulated: bool,
@@ -1219,19 +1287,6 @@ pub struct ShieldedOutputPlan {
     #[prost(message, optional, tag = "10")]
     pub compliance_leaf: ::core::option::Option<
         super::super::compliance::v1::ComplianceLeaf,
-    >,
-    /// Counterparty compliance leaf (sender's registry entry).
-    #[prost(message, optional, tag = "11")]
-    pub counterparty_leaf: ::core::option::Option<
-        super::super::compliance::v1::ComplianceLeaf,
-    >,
-    /// Ephemeral secret used in compliance ciphertext encryption (needed by circuit).
-    #[prost(bytes = "vec", tag = "12")]
-    pub compliance_ephemeral_secret: ::prost::alloc::vec::Vec<u8>,
-    /// Counterparty address (the sender of this output).
-    #[prost(message, optional, tag = "13")]
-    pub counterparty_address: ::core::option::Option<
-        super::super::super::keys::v1::Address,
     >,
     /// Shared transaction blinding nonce (same for spend and output in one transaction).
     #[prost(bytes = "vec", tag = "14")]
@@ -1265,51 +1320,6 @@ pub struct ShieldedOutputPlan {
     pub asset_indexed_leaf: ::core::option::Option<
         super::super::compliance::v1::IndexedLeafData,
     >,
-    /// Sender-encrypted ciphertext (96 bytes = 3 × 32, 3 Fq elements).
-    /// Encrypts (recipient_gd, recipient_pk, amount) to sender's compliance ACK.
-    #[prost(bytes = "vec", tag = "22")]
-    pub sender_ciphertext: ::prost::alloc::vec::Vec<u8>,
-    /// DLEQ proof salt (random Fq used in metadata hash).
-    #[prost(bytes = "vec", tag = "23")]
-    pub salt: ::prost::alloc::vec::Vec<u8>,
-    /// DLEQ proof blinding factors (random Fr, one per EPK tier).
-    #[prost(bytes = "vec", tag = "24")]
-    pub dleq_k_1: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes = "vec", tag = "25")]
-    pub dleq_k_2: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes = "vec", tag = "26")]
-    pub dleq_k_3: ::prost::alloc::vec::Vec<u8>,
-    /// DLEQ proof challenges and responses (Fq pairs, one per tier).
-    #[prost(bytes = "vec", tag = "27")]
-    pub dleq_c_1: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes = "vec", tag = "28")]
-    pub dleq_s_1: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes = "vec", tag = "29")]
-    pub dleq_c_2: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes = "vec", tag = "30")]
-    pub dleq_s_2: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes = "vec", tag = "31")]
-    pub dleq_c_3: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes = "vec", tag = "32")]
-    pub dleq_s_3: ::prost::alloc::vec::Vec<u8>,
-    /// Ring public key used for compliance encryption.
-    #[prost(bytes = "vec", tag = "33")]
-    pub ring_pk: ::prost::alloc::vec::Vec<u8>,
-    /// Issuer detection key public component.
-    #[prost(bytes = "vec", tag = "34")]
-    pub dk_pub: ::prost::alloc::vec::Vec<u8>,
-    /// Threshold for flagging (in base units).
-    #[prost(bytes = "vec", tag = "35")]
-    pub threshold_bytes: ::prost::alloc::vec::Vec<u8>,
-    /// Whether this output is flagged (amount >= threshold).
-    #[prost(bool, tag = "36")]
-    pub is_flagged: bool,
-    /// Ephemeral secret for extension tier (r_2, needed by circuit).
-    #[prost(bytes = "vec", tag = "37")]
-    pub r_2: ::prost::alloc::vec::Vec<u8>,
-    /// Ephemeral secret for spend extension tier (r_3, needed by circuit).
-    #[prost(bytes = "vec", tag = "38")]
-    pub r_3: ::prost::alloc::vec::Vec<u8>,
     /// Full compliance asset policy for regulated assets.
     #[prost(message, optional, tag = "39")]
     pub asset_policy: ::core::option::Option<super::super::compliance::v1::AssetPolicy>,

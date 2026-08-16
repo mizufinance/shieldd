@@ -45,7 +45,6 @@ variable [Fact (Nat.Prime Order)]
 instance : Fact (Nat.Prime Extracted.NetBalanceCommitment.Order) := ‹_›
 instance : Fact (Nat.Prime Extracted.DecafEncodeToCurve.Order) := ‹_›
 instance : Fact (Nat.Prime Extracted.PoseidonHash1.Order) := ‹_›
-instance : Fact (Nat.Prime Extracted.DecafAssertEquivalent.Order) := ‹_›
 instance : Fact (Nat.Prime Extracted.DecafCompressToField.Order) := ‹_›
 instance : Fact (Nat.Prime Extracted.DecafRvk.Order) := ‹_›
 instance : Fact (Nat.Prime Extracted.DecafDtk.Order) := ‹_›

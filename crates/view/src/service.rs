@@ -40,8 +40,8 @@ use shieldd_sdk_proto::{
         view_service_server::{ViewService, ViewServiceServer},
         AppParametersResponse, AssetMetadataByIdRequest, AssetMetadataByIdResponse,
         BroadcastTransactionResponse, DiscoveryParametersResponse, GasPricesResponse,
-        NoteByCommitmentResponse, StatusResponse, TransactionPlannerResponse, WalletIdRequest,
-        WalletIdResponse, WitnessResponse,
+        NoteByCommitmentResponse, NullifierWindowResponse, StatusResponse,
+        TransactionPlannerResponse, WalletIdRequest, WalletIdResponse, WitnessResponse,
     },
     DomainType,
 };
@@ -53,8 +53,10 @@ use shieldd_sdk_transaction::{
 
 use crate::{
     compliance_tree::{ComplianceAssetTree, ComplianceUserTree},
+    historical_proof_worker::HistoricalProofWorker,
     worker::Worker,
-    NoteManager, Storage, TransferPlanningResult,
+    AddressPurpose, HistoricalProofProvider, IssuedAddress, NoteManager, Storage,
+    TransferPlanningResult,
 };
 
 /// A [`futures::Stream`] of broadcast transaction responses.
@@ -229,6 +231,44 @@ pub struct ViewServer {
 }
 
 impl ViewServer {
+    fn address_purpose(purpose: Option<pb::AddressPurpose>) -> Result<AddressPurpose, Status> {
+        match purpose.and_then(|purpose| purpose.regulated_asset_id) {
+            Some(asset_id) => Ok(AddressPurpose::Regulated {
+                asset_id: asset_id.try_into().map_err(|error| {
+                    Status::invalid_argument(format!("invalid regulated asset ID: {error:#}"))
+                })?,
+            }),
+            None => Ok(AddressPurpose::General),
+        }
+    }
+
+    async fn persist_issued_address(
+        &self,
+        address_index: AddressIndex,
+        address: Address,
+        purpose: AddressPurpose,
+    ) -> Result<Address, Status> {
+        let birth_height = self
+            .storage
+            .last_sync_height()
+            .await
+            .map_err(|error| Status::internal(format!("could not read sync height: {error:#}")))?
+            .unwrap_or(0);
+        self.storage
+            .record_issued_address(IssuedAddress {
+                address_index,
+                address: address.clone(),
+                purpose,
+                birth_height,
+                retired_height: None,
+            })
+            .await
+            .map_err(|error| {
+                Status::internal(format!("could not persist issued address: {error:#}"))
+            })?;
+        Ok(address)
+    }
+
     /// Convenience method that calls [`Storage::load_or_initialize`] and then [`Self::new`].
     pub async fn load_or_initialize(
         storage_path: Option<impl AsRef<Utf8Path>>,
@@ -259,6 +299,23 @@ impl ViewServer {
     /// by this method, rather than calling it multiple times.  That way, each clone
     /// will be backed by the same scanning task, rather than each spawning its own.
     pub async fn new(storage: Storage, node: Url) -> anyhow::Result<Self> {
+        Self::new_inner(storage, node, None).await
+    }
+
+    /// Construct a view service with a local historical-proof backend.
+    pub async fn new_with_historical_prover(
+        storage: Storage,
+        node: Url,
+        historical_prover: Arc<dyn HistoricalProofProvider>,
+    ) -> anyhow::Result<Self> {
+        Self::new_inner(storage, node, Some(historical_prover)).await
+    }
+
+    async fn new_inner(
+        storage: Storage,
+        node: Url,
+        historical_prover: Option<Arc<dyn HistoricalProofProvider>>,
+    ) -> anyhow::Result<Self> {
         let span = tracing::error_span!(parent: None, "view");
         let channel = Self::get_pd_channel(node.clone()).await?;
 
@@ -269,7 +326,7 @@ impl ViewServer {
             sync_height_rx,
             compliance_user_tree,
             compliance_asset_tree,
-        ) = Worker::new(storage.clone(), channel)
+        ) = Worker::new(storage.clone(), channel.clone())
             .instrument(span.clone())
             .tap(|_| tracing::trace!("constructing view server worker"))
             .await?
@@ -277,6 +334,15 @@ impl ViewServer {
 
         tokio::spawn(worker.run().instrument(span))
             .tap(|_| tracing::debug!("spawned view server worker"));
+        tokio::spawn(
+            HistoricalProofWorker::new(
+                storage.clone(),
+                channel,
+                historical_prover,
+                sync_height_rx.clone(),
+            )
+            .run(),
+        );
 
         Ok(Self {
             storage,
@@ -862,8 +928,9 @@ impl ViewService for ViewServer {
                 tonic::Status::failed_precondition("Error retrieving full viewing key")
             })?;
 
+        let request = request.into_inner();
+        let purpose = Self::address_purpose(request.purpose)?;
         let address_index = request
-            .into_inner()
             .address_index
             .ok_or_else(|| tonic::Status::invalid_argument("Missing address index"))?
             .try_into()
@@ -871,8 +938,11 @@ impl ViewService for ViewServer {
                 tonic::Status::invalid_argument(format!("Could not parse address index: {e:#}"))
             })?;
 
+        let address = self
+            .persist_issued_address(address_index, fvk.payment_address(address_index), purpose)
+            .await?;
         Ok(tonic::Response::new(pb::AddressByIndexResponse {
-            address: Some(fvk.payment_address(address_index).0.into()),
+            address: Some(address.into()),
         }))
     }
 
@@ -912,6 +982,12 @@ impl ViewService for ViewServer {
         let address: Address = encoding
             .parse()
             .map_err(|_| tonic::Status::internal("could not parse newly generated address"))?;
+        let address_index = fvk.address_index(&address).ok_or_else(|| {
+            tonic::Status::internal("could not recover transparent address index")
+        })?;
+        let address = self
+            .persist_issued_address(address_index, address, AddressPurpose::General)
+            .await?;
 
         Ok(tonic::Response::new(pb::TransparentAddressResponse {
             address: Some(address.into()),
@@ -929,8 +1005,9 @@ impl ViewService for ViewServer {
                 tonic::Status::failed_precondition("Error retrieving full viewing key")
             })?;
 
-        let address_index = request
-            .into_inner()
+        let request = request.into_inner();
+        let purpose = Self::address_purpose(request.purpose)?;
+        let account_index: AddressIndex = request
             .address_index
             .ok_or_else(|| tonic::Status::invalid_argument("Missing address index"))?
             .try_into()
@@ -938,8 +1015,12 @@ impl ViewService for ViewServer {
                 tonic::Status::invalid_argument(format!("Could not parse address index: {e:#}"))
             })?;
 
+        let address_index = AddressIndex::new_ephemeral(account_index.account, OsRng);
+        let address = self
+            .persist_issued_address(address_index, fvk.payment_address(address_index), purpose)
+            .await?;
         Ok(tonic::Response::new(pb::EphemeralAddressResponse {
-            address: Some(fvk.ephemeral_address(OsRng, address_index).0.into()),
+            address: Some(address.into()),
         }))
     }
 
@@ -1009,14 +1090,7 @@ impl ViewService for ViewServer {
                     }
                 }
                 Action::NoteReshape(note_reshape) => {
-                    let synthetic_input_padding = note_reshape.body.family_id.spec().input_padding
-                        == shieldd_sdk_shielded_pool::note_reshape::InputPaddingPolicy::SyntheticPrivate;
-                    for input in note_reshape
-                        .body
-                        .inputs
-                        .iter()
-                        .filter(|input| !synthetic_input_padding || !input.is_dummy())
-                    {
+                    for input in &note_reshape.body.inputs {
                         let nullifier = input.nullifier;
                         if let Ok(spendable_note_record) =
                             self.storage.note_by_nullifier(nullifier, false).await
@@ -1027,6 +1101,17 @@ impl ViewService for ViewServer {
                     }
                 }
                 Action::ShieldedIcs20Withdrawal(withdrawal) => {
+                    for input in &withdrawal.body.inputs {
+                        let nullifier = input.nullifier;
+                        if let Ok(spendable_note_record) =
+                            self.storage.note_by_nullifier(nullifier, false).await
+                        {
+                            txp.spend_nullifiers
+                                .insert(nullifier, spendable_note_record.note);
+                        }
+                    }
+                }
+                Action::ShieldedHostWithdrawal(withdrawal) => {
                     for input in &withdrawal.body.inputs {
                         let nullifier = input.nullifier;
                         if let Ok(spendable_note_record) =
@@ -1077,6 +1162,24 @@ impl ViewService for ViewServer {
                 }
                 ActionView::ShieldedIcs20Withdrawal(
                     shieldd_sdk_shielded_pool::ShieldedIcs20WithdrawalView::Visible {
+                        spent_notes,
+                        change_note,
+                        ..
+                    },
+                ) => {
+                    for note in spent_notes.iter().chain(change_note.iter()) {
+                        let address = note.address();
+                        address_views.insert(address.clone(), fvk.view_address(address));
+                        asset_ids.insert(note.asset_id());
+                    }
+                    if let Ok(memo) = tx.decrypt_memo(&fvk) {
+                        let return_address = memo.return_address();
+                        address_views
+                            .insert(return_address.clone(), fvk.view_address(return_address));
+                    }
+                }
+                ActionView::ShieldedHostWithdrawal(
+                    shieldd_sdk_shielded_pool::ShieldedHostWithdrawalView::Visible {
                         spent_notes,
                         change_note,
                         ..
@@ -1188,6 +1291,7 @@ impl ViewService for ViewServer {
                 let address: Address = self2
                   .address_by_index(Request::new(pb::AddressByIndexRequest {
                        address_index: account_filter.map(Into::into),
+                       purpose: None,
                    }))
                    .await?
                     .into_inner()
@@ -1513,36 +1617,73 @@ impl ViewService for ViewServer {
         let anchor = sct.root();
 
         // Obtain an auth path for each requested note commitment
-        let tx_plan: TransactionPlan =
-            request
-                .get_ref()
-                .to_owned()
-                .transaction_plan
-                .map_or(TransactionPlan::default(), |x| {
-                    x.try_into()
-                        .expect("TransactionPlan should exist in request")
-                });
-
-        fn action_spend_notes(
-            action: &shieldd_sdk_transaction::ActionPlan,
-        ) -> &[shieldd_sdk_shielded_pool::ShieldedInputPlan] {
-            use shieldd_sdk_transaction::ActionPlan;
-            match action {
-                ActionPlan::Transfer(p) => &p.spends,
-                ActionPlan::NoteReshape(p) => &p.spends,
-                ActionPlan::ShieldedIcs20Withdrawal(p) => &p.spends,
-                _ => &[],
-            }
-        }
+        let tx_plan: TransactionPlan = request
+            .get_ref()
+            .to_owned()
+            .transaction_plan
+            .map(TryInto::try_into)
+            .transpose()
+            .map_err(|error| {
+                tonic::Status::invalid_argument(format!("invalid transaction plan: {error}"))
+            })?
+            .unwrap_or_default();
 
         let zero_amount = 0u64.into();
         let all_spend_notes = || {
             tx_plan
                 .actions
                 .iter()
-                .flat_map(action_spend_notes)
+                .flat_map(|action| action.spends())
                 .chain(tx_plan.fee_funding.iter().flat_map(|f| &f.transfer.spends))
         };
+
+        let real_spend_count = all_spend_notes()
+            .filter(|spend| spend.note.amount() != zero_amount)
+            .count();
+        let mut historical_nullifier_proofs = Vec::new();
+        if real_spend_count > 0 {
+            let plan_window = tx_plan.nullifier_window.ok_or_else(|| {
+                tonic::Status::invalid_argument("spend-bearing plan is missing nullifier window")
+            })?;
+            let current_window = self.storage.nullifier_window().await.map_err(|error| {
+                tonic::Status::unavailable(format!("error getting nullifier window: {error}"))
+            })?;
+            if plan_window != current_window {
+                return Err(tonic::Status::failed_precondition(
+                    "transaction plan nullifier window is stale",
+                ));
+            }
+            let fvk = self.storage.full_viewing_key().await.map_err(|error| {
+                tonic::Status::unavailable(format!("error getting full viewing key: {error}"))
+            })?;
+            for spend in all_spend_notes().filter(|spend| {
+                spend.note.amount() != zero_amount
+                    && u64::from(spend.position) < plan_window.recent_position_floor
+            }) {
+                let nullifier = spend.nullifier(&fvk);
+                let cache = self
+                    .storage
+                    .historical_proof_cache(nullifier)
+                    .await
+                    .map_err(|error| {
+                        tonic::Status::unavailable(format!(
+                            "error loading historical proof cache: {error}"
+                        ))
+                    })?
+                    .ok_or_else(|| {
+                        tonic::Status::failed_precondition(format!(
+                            "historical proof cache is missing for {nullifier}"
+                        ))
+                    })?;
+                historical_nullifier_proofs.push(cache.bundle_for(plan_window).map_err(
+                    |error| {
+                        tonic::Status::failed_precondition(format!(
+                            "historical proof cache is not ready for {nullifier}: {error}"
+                        ))
+                    },
+                )?);
+            }
+        }
 
         let requested_note_commitments: Vec<StateCommitment> = all_spend_notes()
             .filter(|spend| spend.note.amount() != zero_amount)
@@ -1569,6 +1710,7 @@ impl ViewService for ViewServer {
                 .into_iter()
                 .map(|proof| (proof.commitment(), proof))
                 .collect(),
+            historical_nullifier_proofs,
         };
 
         tracing::debug!(?witness_data);
@@ -1695,6 +1837,20 @@ impl ViewService for ViewServer {
         };
 
         Ok(tonic::Response::new(response))
+    }
+
+    #[instrument(skip_all, level = "trace")]
+    async fn nullifier_window(
+        &self,
+        _request: tonic::Request<pb::NullifierWindowRequest>,
+    ) -> Result<tonic::Response<pb::NullifierWindowResponse>, tonic::Status> {
+        self.check_worker().await?;
+        let window = self.storage.nullifier_window().await.map_err(|error| {
+            tonic::Status::unavailable(format!("error getting nullifier window: {error}"))
+        })?;
+        Ok(tonic::Response::new(NullifierWindowResponse {
+            window: Some(window.into()),
+        }))
     }
 
     #[instrument(skip_all, level = "trace")]
@@ -2026,15 +2182,13 @@ impl ViewService for ViewServer {
 
                         let path = proof_response
                             .compliance_path
-                            .map(|p| shieldd_sdk_compliance::structs::MerklePath {
-                                layers: p
-                                    .layers
-                                    .into_iter()
-                                    .map(|layer| shieldd_sdk_compliance::structs::MerklePathLayer {
-                                        siblings: layer.siblings,
-                                    })
-                                    .collect(),
-                            })
+                            .map(shieldd_sdk_compliance::structs::MerklePath::try_from)
+                            .transpose()
+                            .map_err(|error| {
+                                tonic::Status::internal(format!(
+                                    "invalid compliance_path in pd response: {error}"
+                                ))
+                            })?
                             .ok_or_else(|| {
                                 tonic::Status::internal("compliance_path missing from pd response")
                             })?;
@@ -2336,17 +2490,13 @@ impl ViewService for ViewServer {
 
                             let path = proof_response
                                 .compliance_path
-                                .map(|p| shieldd_sdk_compliance::structs::MerklePath {
-                                    layers: p
-                                        .layers
-                                        .into_iter()
-                                        .map(|layer| {
-                                            shieldd_sdk_compliance::structs::MerklePathLayer {
-                                                siblings: layer.siblings,
-                                            }
-                                        })
-                                        .collect(),
-                                })
+                                .map(shieldd_sdk_compliance::structs::MerklePath::try_from)
+                                .transpose()
+                                .map_err(|error| {
+                                    tonic::Status::internal(format!(
+                                        "invalid compliance_path in pd response: {error}"
+                                    ))
+                                })?
                                 .ok_or_else(|| {
                                     tonic::Status::internal(
                                         "compliance_path missing from pd response",

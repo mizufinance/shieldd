@@ -114,6 +114,15 @@ func IVKModRDecomposition(
 	return bits, nil
 }
 
+// AssertIncomingViewingKeyNonzero rejects the zero reduced IVK before it can
+// collapse every diversified transmission key to the Decaf identity.
+func AssertIncomingViewingKeyNonzero(
+	api frontend.API,
+	ivkReduced frontend.Variable,
+) {
+	api.AssertIsDifferent(ivkReduced, 0)
+}
+
 // These wrappers inline under gnark but give the Lean extractor stable named
 // ownership for the two fixed-bound comparison ladders.
 type ivkLessThanRGadget struct {
@@ -163,6 +172,27 @@ func DiversifiedTransmissionKey(
 	ivkReduced frontend.Variable,
 	quotientA frontend.Variable,
 ) (gnarkte.Point, error) {
+	AssertIncomingViewingKeyNonzero(api, ivkReduced)
+	return diversifiedTransmissionKeyAfterIvkNonzero(
+		api,
+		nk,
+		ak,
+		diversifiedGenerator,
+		ivkReduced,
+		quotientA,
+	)
+}
+
+// diversifiedTransmissionKeyAfterIvkNonzero is the exact DTK gadget body used
+// after callers expose the shared nonzero-IVK assertion as its own trace row.
+func diversifiedTransmissionKeyAfterIvkNonzero(
+	api frontend.API,
+	nk frontend.Variable,
+	ak gnarkte.Point,
+	diversifiedGenerator gnarkte.Point,
+	ivkReduced frontend.Variable,
+	quotientA frontend.Variable,
+) (gnarkte.Point, error) {
 	vectors, err := LoadPrototypeVectors()
 	if err != nil {
 		return gnarkte.Point{}, err
@@ -176,7 +206,7 @@ func DiversifiedTransmissionKey(
 		return gnarkte.Point{}, err
 	}
 	order := MustBigInt(vectors.Decaf377CompanionCurve.Order)
-	return ScalarMulLEBits(
+	return ScalarMulWindow2LEBits(
 		api,
 		curve,
 		diversifiedGenerator,

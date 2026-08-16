@@ -1,6 +1,7 @@
 use anyhow::Context;
+use ark_ff::Zero;
 use ark_serialize::CanonicalDeserialize;
-use decaf377::{Fq, Fr};
+use decaf377::{Element, Fq, Fr};
 use once_cell::sync::Lazy;
 use poseidon377::hash_2;
 use rand_core::{CryptoRng, RngCore};
@@ -13,7 +14,7 @@ use crate::PositionMetadataKey;
 use crate::{
     ka, prf,
     rdsa::{SpendAuth, VerificationKey},
-    Address, AddressView, BackreferenceKey, DiscoveryKey,
+    Address, AddressView, BackreferenceKey,
 };
 
 use super::{AddressIndex, DiversifierKey, IncomingViewingKey, NullifierKey, OutgoingViewingKey};
@@ -36,9 +37,19 @@ pub struct FullViewingKey {
     ivk: IncomingViewingKey,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, thiserror::Error)]
+pub enum FullViewingKeyError {
+    #[error("spend authorization key has an invalid Decaf377 encoding")]
+    InvalidAuthorizationKeyEncoding,
+    #[error("spend authorization key is the Decaf377 identity")]
+    IdentityAuthorizationKey,
+    #[error("derived incoming viewing key reduces to zero")]
+    ZeroIncomingViewingKey,
+}
+
 impl FullViewingKey {
     /// Derive a shielded payment address with the given [`AddressIndex`].
-    pub fn payment_address(&self, index: AddressIndex) -> (Address, DiscoveryKey) {
+    pub fn payment_address(&self, index: AddressIndex) -> Address {
         self.incoming().payment_address(index)
     }
 
@@ -47,7 +58,7 @@ impl FullViewingKey {
         &self,
         rng: R,
         address_index: AddressIndex,
-    ) -> (Address, DiscoveryKey) {
+    ) -> Address {
         self.incoming().ephemeral_address(rng, address_index)
     }
 
@@ -73,7 +84,25 @@ impl FullViewingKey {
     }
 
     /// Construct a full viewing key from its components.
-    pub fn from_components(ak: VerificationKey<SpendAuth>, nk: NullifierKey) -> Self {
+    pub fn from_components(
+        ak: VerificationKey<SpendAuth>,
+        nk: NullifierKey,
+    ) -> Result<Self, FullViewingKeyError> {
+        let ak_s = Fq::from_bytes_checked(ak.as_ref())
+            .map_err(|_| FullViewingKeyError::InvalidAuthorizationKeyEncoding)?;
+        let ivk_mod_q = poseidon377::hash_2(&IVK_DOMAIN_SEP, (nk.0, ak_s));
+        Self::from_components_with_ivk_hash(ak, nk, ivk_mod_q)
+    }
+
+    fn from_components_with_ivk_hash(
+        ak: VerificationKey<SpendAuth>,
+        nk: NullifierKey,
+        ivk_mod_q: Fq,
+    ) -> Result<Self, FullViewingKeyError> {
+        if ak.as_ref() == &Element::default().vartime_compress().0 {
+            return Err(FullViewingKeyError::IdentityAuthorizationKey);
+        }
+
         let ovk = {
             let hash_result = prf::expand(b"ShielddDeriveOVK", &nk.0.to_bytes(), ak.as_ref());
             let mut ovk = [0; 32];
@@ -88,18 +117,17 @@ impl FullViewingKey {
             dk
         };
 
-        let ivk = {
-            let ak_s = Fq::from_bytes_checked(ak.as_ref())
-                .expect("verification key is valid, so its byte encoding is a decaf377 s value");
-            let ivk_mod_q = poseidon377::hash_2(&IVK_DOMAIN_SEP, (nk.0, ak_s));
-            ka::Secret::new_from_field(Fr::from_le_bytes_mod_order(&ivk_mod_q.to_bytes()))
-        };
+        let ivk_mod_r = Fr::from_le_bytes_mod_order(&ivk_mod_q.to_bytes());
+        if ivk_mod_r.is_zero() {
+            return Err(FullViewingKeyError::ZeroIncomingViewingKey);
+        }
+        let ivk = ka::Secret::new_from_field(ivk_mod_r);
 
         let dk = DiversifierKey(dk);
         let ovk = OutgoingViewingKey(ovk);
         let ivk = IncomingViewingKey { ivk, dk };
 
-        Self { ak, nk, ovk, ivk }
+        Ok(Self { ak, nk, ovk, ivk })
     }
 
     /// Returns the incoming viewing key for this full viewing key.
@@ -164,7 +192,7 @@ impl TryFrom<&[u8]> for FullViewingKey {
                 .context("could not deserialize nullifier key")?,
         );
 
-        Ok(FullViewingKey::from_components(ak, nk))
+        Ok(FullViewingKey::from_components(ak, nk)?)
     }
 }
 
@@ -218,5 +246,49 @@ impl std::str::FromStr for FullViewingKey {
             )?,
         }
         .try_into()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use decaf377_rdsa::VerificationKeyBytes;
+
+    use super::*;
+
+    #[test]
+    fn full_viewing_key_rejects_identity_authorization_key() {
+        let identity = VerificationKey::<SpendAuth>::try_from(
+            VerificationKeyBytes::<SpendAuth>::from(Element::default().vartime_compress().0),
+        )
+        .expect("the underlying verification-key type admits the identity");
+
+        assert_eq!(
+            FullViewingKey::from_components(identity, NullifierKey(Fq::from(1u64))),
+            Err(FullViewingKeyError::IdentityAuthorizationKey)
+        );
+    }
+
+    #[test]
+    fn full_viewing_key_rejects_zero_reduced_incoming_viewing_key() {
+        let ak = *crate::test_keys::FULL_VIEWING_KEY.spend_verification_key();
+        assert_eq!(
+            FullViewingKey::from_components_with_ivk_hash(
+                ak,
+                NullifierKey(Fq::from(1u64)),
+                Fq::zero(),
+            ),
+            Err(FullViewingKeyError::ZeroIncomingViewingKey)
+        );
+    }
+
+    #[test]
+    fn full_viewing_key_accepts_valid_components() {
+        let known = crate::test_keys::FULL_VIEWING_KEY.clone();
+        let rebuilt = FullViewingKey::from_components(
+            *known.spend_verification_key(),
+            *known.nullifier_key(),
+        )
+        .expect("known components satisfy all full viewing key invariants");
+        assert_eq!(rebuilt, known);
     }
 }

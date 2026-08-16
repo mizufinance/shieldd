@@ -68,7 +68,7 @@ pub async fn network_join(
         Some(tm_p2p_bind),
     )?;
 
-    let tv = NetworkValidator::default();
+    let tv = NetworkValidator::generate()?;
     tm_config.write_config(node_dir, &tv, &genesis)?;
     Ok(())
 }
@@ -238,9 +238,9 @@ pub async fn fetch_peers(tm_url: &Url) -> anyhow::Result<Vec<TendermintAddress>>
 /// config for the fullnode. Allows bootstrapping from archived state, which is useful
 /// for nodes joining after a chain upgrade has been performed.
 ///
-/// Supports archive files generated via `pd export`, which contain only the rocksdb dir,
-/// and via `pd migrate`, which contain the rocksdb dir, new genesis content, and a private
-/// validator state file.
+/// Supports archive files generated via `pd export`, which contain RocksDB and retired
+/// nullifier generation packs, and via `pd migrate`, which may also contain new genesis
+/// content and a private validator state file.
 ///
 /// The `output_dir` should be the same argument as passed to `pd network --network-dir <dir> join`;
 /// relative paths for pd and cometbft will be created from this base path.
@@ -304,7 +304,7 @@ pub async fn unpack_state_archive(
     // If the archive we consumed was generated via `pd migrate`, then it will contain
     // a new genesis file and priv_validator_state.json, both of which should be applied
     // over the generated cometbft config files. If the archive was generated via `pd export`,
-    // then those extra files will be missing, and only rocksdb data will be present.
+    // then those extra files will be missing, and only node state will be present.
     let new_genesis = pd_home.join("genesis.json");
     let new_val_state = pd_home.join("priv_validator_state.json");
     let cometbft_dir = output_dir.join("node0").join("cometbft");

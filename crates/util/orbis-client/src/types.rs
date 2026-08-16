@@ -1,5 +1,4 @@
 use decaf377::Element;
-use shieldd_sdk_compliance::OrbisSecretEnvelope;
 
 #[derive(Debug, Clone)]
 pub struct DkgResult {
@@ -22,22 +21,4 @@ pub struct RingInfo {
     pub ring_id: String,
     pub ring_pk: Element,
     pub ring_pk_hex: String,
-}
-
-/// Result of storing an encrypted-seed object in Orbis.
-#[derive(Debug, Clone)]
-pub struct StoreSecretResult {
-    pub status: String,
-    pub message: String,
-    pub created_at: i64,
-    pub object_id: String,
-    pub ring_id: String,
-    pub signature: String,
-}
-
-/// Result of asking Orbis to PRE an encrypted-seed object.
-#[derive(Debug, Clone)]
-pub struct PreResult {
-    pub xnc_cmt_hex: String,
-    pub secret: OrbisSecretEnvelope,
 }

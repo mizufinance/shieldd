@@ -13,8 +13,9 @@ pub use crate::{ActionRef, BlockRef, OutputRef, TxRef};
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExtractedComplianceCiphertext {
     pub output_ref: OutputRef,
+    pub routing_tags: [u32; 2],
     pub raw_bytes: Vec<u8>,
-    pub upload_bundle_bytes: Option<Vec<u8>>,
+    pub metadata_bytes: Option<Vec<u8>>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -51,6 +52,8 @@ pub struct DetectionEvent {
     pub salt: decaf377::Fq,
     pub sender_slot_id: u32,
     pub receiver_slot_id: u32,
+    pub routing_roles_swapped: bool,
+    pub routing_tags: [u32; 2],
     pub ciphertext: TransferComplianceCiphertext,
     pub raw_bytes: Vec<u8>,
 }

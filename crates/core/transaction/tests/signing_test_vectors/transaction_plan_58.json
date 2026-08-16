@@ -1,44 +1,52 @@
 {
   "actions": [
     {
-      "validatorDefinition": {
-        "validator": {
-          "identityKey": {
-            "ik": "LplkEpdBZfNG4uSyIr1/hYsQ/b6Qis4T4/KYXcPR/Ac="
-          },
-          "consensusKey": "L6fXoNFW6iBFKvC7sKynVdrG8XSHMnZKYcN+Veo8JtM=",
-          "name": "test validator",
-          "enabled": true,
-          "governanceKey": {
-            "gk": "LplkEpdBZfNG4uSyIr1/hYsQ/b6Qis4T4/KYXcPR/Ac="
-          }
+      "proposalSubmit": {
+        "proposal": {
+          "title": "ddoivyqxq-426371623621889",
+          "description": "bkdxkmzbkfqfgojepthwuuk-5",
+          "signaling": {}
         },
-        "authSig": "TOdkP/vBQtpAIU+EwC6hbLzeiHCieniR9KG1qxAowQsoAEWQSGUGTRVNSMGolHF6fwKGrMZK21eio2czUgYBAg=="
+        "proposer": {
+          "ik": "cM3oMi+Qzg0Fzu6qj+n48naiAPwf7hgajSav5uNFORA="
+        },
+        "governanceKey": {
+          "gk": "0hQQTbePT7ejZqEu60RIZ0WQjlFiSkzwPcVLYgbKNgw="
+        },
+        "authSig": {
+          "inner": "4nbx1HPYOdtxHfEN15+znfkE4+GXRPzKpLTtMk+rcQTXiJRfmLvGLtOvtlUby+U3hMXK86cp/lll6AxqCMv8AA=="
+        }
       }
     },
     {
-      "validatorDefinition": {
-        "validator": {
-          "identityKey": {
-            "ik": "7pk3iw/gnAWn9qSvP3K7SxiBnWlGoI9Gc3Ylt6fWug8="
+      "validatorVote": {
+        "body": {
+          "proposal": "930841810",
+          "vote": {
+            "vote": "VOTE_YES"
           },
-          "consensusKey": "R2BFriBsk+Wqca9dK+m57321UFEWl6iW4cXVVNzxg14=",
-          "name": "test validator",
-          "enabled": true,
+          "identityKey": {
+            "ik": "vtBMZKI3ghIbY9Cxd8CTgfagCRB2PrGKXn0PVKC1dQo="
+          },
           "governanceKey": {
-            "gk": "7pk3iw/gnAWn9qSvP3K7SxiBnWlGoI9Gc3Ylt6fWug8="
+            "gk": "ZCcV51IWxfEKZs/ELJsVnwCdrByLvUDE3qjpe1FVoQI="
+          },
+          "reason": {
+            "reason": "uaFp19Q3281"
           }
         },
-        "authSig": "Fs9D2W0/9hldDeRqwUPeN76WUwz9CwrDM2IFqFWNGQb5xYyOMMwqrZkdG+X14OLdtQ8+pRJYUVTXpz4CTwwEAw=="
+        "authSig": {
+          "inner": "+CUuToTFC5jduZTETruN3NHczOWpaWAU3ktMZtW5bgk+VuFpGa9yI+28yEJ4JA5/JAzd/+HwHYn2TTuw+Y56AQ=="
+        }
       }
     }
   ],
   "transactionParameters": {
-    "expiryHeight": "5565533188",
-    "chainId": "axpoiglqrb-127968806033212290982224966395",
+    "expiryHeight": "8787536666",
+    "chainId": "kyw-9759330058",
     "fee": {
       "amount": {
-        "lo": "935381644229997756"
+        "lo": "957728296310355819"
       }
     }
   }

@@ -103,13 +103,8 @@ func indexedLeafFieldsFromIndexedLeafBinary(
 
 func statePathFromBinary(path [][3][32]byte) ([circuits.StateCommitmentDepth][3]frontend.Variable, error) {
 	var out [circuits.StateCommitmentDepth][3]frontend.Variable
-	for i := 0; i < circuits.StateCommitmentDepth; i++ {
-		for j := 0; j < 3; j++ {
-			out[i][j] = 0
-		}
-	}
-	if len(path) > circuits.StateCommitmentDepth {
-		return out, fmt.Errorf("state path has %d layers, max %d", len(path), circuits.StateCommitmentDepth)
+	if len(path) != circuits.StateCommitmentDepth {
+		return out, fmt.Errorf("state path has %d layers, expected %d", len(path), circuits.StateCommitmentDepth)
 	}
 	for i, siblings := range path {
 		for j := 0; j < 3; j++ {
@@ -121,15 +116,10 @@ func statePathFromBinary(path [][3][32]byte) ([circuits.StateCommitmentDepth][3]
 
 func quadPathFromBinary(path MerklePathBinary) ([compliance.ComplianceQuadTreeDepth][3]frontend.Variable, error) {
 	var out [compliance.ComplianceQuadTreeDepth][3]frontend.Variable
-	for i := 0; i < compliance.ComplianceQuadTreeDepth; i++ {
-		for j := 0; j < 3; j++ {
-			out[i][j] = 0
-		}
+	if len(path.Layers) != compliance.ComplianceQuadTreeDepth {
+		return out, fmt.Errorf("path has %d layers, expected %d", len(path.Layers), compliance.ComplianceQuadTreeDepth)
 	}
 	for i, layer := range path.Layers {
-		if i >= compliance.ComplianceQuadTreeDepth {
-			return out, fmt.Errorf("path has %d layers, max %d", len(path.Layers), compliance.ComplianceQuadTreeDepth)
-		}
 		if len(layer) != 3 {
 			return out, fmt.Errorf("layer %d has %d siblings, expected 3", i, len(layer))
 		}
@@ -155,7 +145,6 @@ func noteFields(
 	divGenX, divGenY frontend.Variable,
 	transmissionKeyS frontend.Variable,
 	transX, transY frontend.Variable,
-	clueKey frontend.Variable,
 ) circuits.NoteFields {
 	return circuits.NoteFields{
 		Blinding:         blinding,
@@ -164,7 +153,6 @@ func noteFields(
 		DivGen:           circuits.Point2D{X: divGenX, Y: divGenY},
 		TransmissionKeyS: transmissionKeyS,
 		Transmission:     circuits.Point2D{X: transX, Y: transY},
-		ClueKey:          clueKey,
 	}
 }
 
@@ -188,24 +176,5 @@ func indexedLeafFields(
 		PolicyIDHash:   policyIDHash,
 		PermissionHash: permissionHash,
 		ResourceHash:   resourceHash,
-	}
-}
-
-func userComplianceFields(
-	divGenX, divGenY frontend.Variable,
-	transX, transY frontend.Variable,
-	assetID, slotID, slotDerivation, d frontend.Variable,
-	path [compliance.ComplianceQuadTreeDepth][3]frontend.Variable,
-	position frontend.Variable,
-) circuits.UserComplianceFields {
-	return circuits.UserComplianceFields{
-		DivGen:         circuits.Point2D{X: divGenX, Y: divGenY},
-		Transmission:   circuits.Point2D{X: transX, Y: transY},
-		AssetID:        assetID,
-		SlotID:         slotID,
-		SlotDerivation: slotDerivation,
-		D:              d,
-		Path:           path,
-		Position:       position,
 	}
 }

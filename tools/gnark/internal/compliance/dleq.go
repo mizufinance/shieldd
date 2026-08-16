@@ -71,14 +71,54 @@ func ScalarMulLEBits(api frontend.API, curve gnarkte.Curve, base gnarkte.Point, 
 	return result
 }
 
+// ScalarMulWindow2LEBits evaluates a little-endian scalar with a hint-free
+// two-bit radix-4 ladder. Callers retain responsibility for bit canonicity.
+func ScalarMulWindow2LEBits(api frontend.API, curve gnarkte.Curve, base gnarkte.Point, bits []frontend.Variable) gnarkte.Point {
+	if len(bits) == 0 {
+		return gnarkte.Point{X: 0, Y: 1}
+	}
+	if len(bits) == 1 {
+		return gnarkte.Point{
+			X: api.Select(bits[0], base.X, 0),
+			Y: api.Select(bits[0], base.Y, 1),
+		}
+	}
+
+	identity := gnarkte.Point{X: 0, Y: 1}
+	double := curve.Double(base)
+	triple := curve.Add(double, base)
+	high := len(bits) - 1
+	result := gnarkte.Point{
+		X: api.Lookup2(bits[high], bits[high-1], identity.X, double.X, base.X, triple.X),
+		Y: api.Lookup2(bits[high], bits[high-1], identity.Y, double.Y, base.Y, triple.Y),
+	}
+	for i := high - 2; i >= 1; i -= 2 {
+		result = curve.Double(curve.Double(result))
+		window := gnarkte.Point{
+			X: api.Lookup2(bits[i], bits[i-1], identity.X, double.X, base.X, triple.X),
+			Y: api.Lookup2(bits[i], bits[i-1], identity.Y, double.Y, base.Y, triple.Y),
+		}
+		result = curve.Add(result, window)
+	}
+	if high%2 == 0 {
+		result = curve.Double(result)
+		withLowBit := curve.Add(result, base)
+		result = gnarkte.Point{
+			X: api.Select(bits[0], withLowBit.X, result.X),
+			Y: api.Select(bits[0], withLowBit.Y, result.Y),
+		}
+	}
+	return result
+}
+
 func AssertEqualIf(api frontend.API, left, right, cond frontend.Variable) {
 	api.AssertIsEqual(api.Mul(api.Sub(left, right), cond), 0)
 }
 
-// VerifyDLEQ mirrors Shieldd's verify_dleq_r1cs gadget for a single tier.
+// VerifyDLEQ retains the standalone legacy DLEQ relation for research tests.
+// Transfer V18 neither calls this relation nor carries its witness/public fields.
 func VerifyDLEQ(
 	api frontend.API,
-	r frontend.Variable,
 	ack gnarkte.Point,
 	sPoint gnarkte.Point,
 	epk gnarkte.Point,
@@ -106,9 +146,6 @@ func VerifyDLEQ(
 	if err != nil {
 		return err
 	}
-	orderBitLen := primitives.MustBigInt(vectors.Decaf377CompanionCurve.Order).BitLen()
-	_ = orderBitLen
-
 	rRec := curve.DoubleBaseScalarMul(generator, curve.Neg(epk), publishedS, publishedC)
 
 	rpRec := curve.DoubleBaseScalarMul(ack, curve.Neg(sPoint), publishedS, publishedC)

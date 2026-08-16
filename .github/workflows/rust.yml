@@ -1,12 +1,10 @@
 name: rust
 on:
   pull_request:
-    # Don't run Rust tests if only docs changed.
     paths-ignore:
       - 'docs/**'
   merge_group:
     types: [checks_requested]
-  # Also support ad-hoc calls for workflow.
   workflow_call:
   workflow_dispatch:
 
@@ -15,83 +13,74 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lint:
-    runs-on: ubuntu-24.04
+  checks:
+    name: Rust checks
+    runs-on: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 'blacksmith-8vcpu-ubuntu-2404' || 'ubuntu-24.04' }}
+    timeout-minutes: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 150 || 180 }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          lfs: true
+          fetch-depth: 0
 
-      - uses: ./.github/actions/setup-nix-rust
-
-      # The `rust-toolchain.toml` file dictates which version of rust to setup.
-      - name: check rust version
-        run: nix develop --command rustc --version
-
-      # Run `cargo check`, with a custom target dir for caching.
-      - name: run cargo check
-        run: >-
-          nix develop --command python3 scripts/ci/run_with_annotation.py
-          --title "Rust cargo check"
-          -- just ci-check
-
-      # If a dependency was modified, Cargo.lock may flap if not committed.
-      - name: Check for diffs
-        shell: bash
-        run: |
-          s="$(git status --porcelain)"
-          if [[ -n "$s" ]]; then
-              echo "ERROR: found modified files that should be committed:"
-              echo "$s"
-              git diff | head -n 128
-              exit 1
-          else
-              echo "OK: no uncommitted changes detected"
-          fi
-
-  deny:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          lfs: true
-      - uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2
-        with:
-          command: check
-
-  # As of 2025Q1, the "features" job is the slowest in the CI suite.
-  # Consider moving to a scheduled job on main, rather than running on PRs.
-  features:
-    runs-on: blacksmith-8vcpu-ubuntu-2404
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          lfs: true
+      - name: Enforce narrow LFS and proof scheduling policy
+        run: python3 scripts/check_lfs_policy.py
 
       - uses: ./.github/actions/setup-nix-rust
         with:
           free-disk: "true"
 
-      # Build each crate separately, to validate that the feature-gating is working.
-      # This is a lighter-weight version of `cargo check-all-features --workspace --release`.
-      - name: check crate features
+      - name: Check Rust version
+        run: nix develop --command rustc --version
+
+      - name: Run cargo check
+        run: >-
+          nix develop --command python3 scripts/ci/run_with_annotation.py
+          --title "Rust cargo check"
+          -- just ci-check
+
+      - name: Check for diffs
+        shell: bash
+        run: |
+          s="$(git status --porcelain)"
+          if [[ -n "$s" ]]; then
+            echo "ERROR: found modified files that should be committed:"
+            echo "$s"
+            git diff | head -n 128
+            exit 1
+          fi
+          echo "OK: no uncommitted changes detected"
+
+      - name: Install current cargo-deny
+        shell: bash
+        run: |
+          archive="$RUNNER_TEMP/cargo-deny.tar.gz"
+          url="https://github.com/EmbarkStudios/cargo-deny/releases/download/0.20.2/cargo-deny-0.20.2-x86_64-unknown-linux-musl.tar.gz"
+          curl --proto '=https' --tlsv1.2 --fail --location --retry 3 "$url" --output "$archive"
+          echo "9f12ed4c49936e09b48bf862b595cde2fe64fcbd9d74dfacac6131ca824c8d5f  $archive" | sha256sum --check
+          tar --extract --gzip --file "$archive" --directory "$RUNNER_TEMP"
+          install "$RUNNER_TEMP/cargo-deny-0.20.2-x86_64-unknown-linux-musl/cargo-deny" "$HOME/.cargo/bin/cargo-deny"
+
+      - name: Check dependency policy
+        run: cargo deny check --allow unmaintained
+
+      - name: Check crate features
         run: >-
           nix develop --command python3 scripts/ci/run_with_annotation.py
           --title "Rust crate feature checks"
           -- ./deployments/scripts/check-crate-feature-sets
 
-      - name: check wasm compatibility
+      - name: Check wasm compatibility
         run: >-
           nix develop --command python3 scripts/ci/run_with_annotation.py
           --title "Rust wasm compatibility"
           -- ./deployments/scripts/check-wasm-compat.sh
 
-  test:
-    runs-on: blacksmith-8vcpu-ubuntu-2404
+  tests:
+    name: Rust and gnark tests
+    runs-on: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 'blacksmith-8vcpu-ubuntu-2404' || 'ubuntu-24.04' }}
+    timeout-minutes: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 150 || 300 }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          lfs: true
 
       - uses: ./.github/actions/setup-nix-rust
         with:
@@ -105,14 +94,7 @@ jobs:
         env:
           CARGO_TERM_COLOR: always
 
-  go-gnark:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          lfs: true
-
-      - name: Setup Go
+      - name: Set up Go
         uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5
         with:
           go-version-file: tools/gnark/go.mod
@@ -141,51 +123,46 @@ jobs:
         working-directory: tools/gnark
         run: go vet ./...
 
-  gnark-rust:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Prepare full proof artifacts for manual replay
+        if: github.event_name != 'pull_request' && github.event_name != 'merge_group'
+        uses: ./.github/actions/prepare-proof-artifacts
         with:
-          lfs: true
-
-      - uses: ./.github/actions/setup-nix-rust
-        with:
-          free-disk: "true"
+          bundle: full
 
       - name: Run gnark-backed Rust proof tests
+        if: github.event_name != 'pull_request' && github.event_name != 'merge_group'
         run: nix develop --command just ci-gnark-proof-tests
 
+      - name: Execute exact FV specification evidence
+        if: github.event_name != 'pull_request' && github.event_name != 'merge_group'
+        env:
+          CFLAGS: -O1
+        run: nix develop --command bash scripts/check-fv-specification-evidence.sh
+
   summary:
-    needs: [lint, deny, features, test, go-gnark, gnark-rust]
+    needs: [checks, tests]
     if: always()
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     steps:
       - name: Check Rust workflow result
         env:
-          LINT_RESULT: ${{ needs.lint.result }}
-          DENY_RESULT: ${{ needs.deny.result }}
-          FEATURES_RESULT: ${{ needs.features.result }}
-          TEST_RESULT: ${{ needs.test.result }}
-          GO_GNARK_RESULT: ${{ needs['go-gnark'].result }}
-          GNARK_RUST_RESULT: ${{ needs['gnark-rust'].result }}
+          CHECKS_RESULT: ${{ needs.checks.result }}
+          TESTS_RESULT: ${{ needs.tests.result }}
         run: |
+          set -euo pipefail
           failed=0
           for job in \
-            "lint:$LINT_RESULT" \
-            "deny:$DENY_RESULT" \
-            "features:$FEATURES_RESULT" \
-            "test:$TEST_RESULT" \
-            "go-gnark:$GO_GNARK_RESULT" \
-            "gnark-rust:$GNARK_RUST_RESULT"
+            "checks:$CHECKS_RESULT" \
+            "tests:$TESTS_RESULT"
           do
             name="${job%%:*}"
             result="${job#*:}"
-            if [ "$result" != "success" ]; then
+            if [[ "$result" != "success" ]]; then
               echo "$name did not pass: $result"
               failed=1
             else
               echo "$name passed"
             fi
           done
-
           exit "$failed"

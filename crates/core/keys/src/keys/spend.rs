@@ -9,7 +9,7 @@ use shieldd_sdk_proto::{shieldd::core::keys::v1 as pb, DomainType};
 use super::{
     bip44::Bip44Path,
     seed_phrase::{SeedPhrase, NUM_PBKDF2_ROUNDS},
-    FullViewingKey, IncomingViewingKey, NullifierKey, OutgoingViewingKey,
+    FullViewingKey, FullViewingKeyError, IncomingViewingKey, NullifierKey, OutgoingViewingKey,
 };
 use crate::{
     prf,
@@ -36,6 +36,16 @@ pub struct SpendKey {
     fvk: FullViewingKey,
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum SpendKeyError {
+    #[error("derived full viewing key is invalid: {0}")]
+    InvalidFullViewingKey(#[from] FullViewingKeyError),
+    #[error("PBKDF2 rejected the fixed spend-key output length")]
+    Kdf,
+    #[error("BIP32 derivation failed: {0}")]
+    Bip32(#[from] bip32::Error),
+}
+
 impl PartialEq for SpendKey {
     fn eq(&self, other: &Self) -> bool {
         self.seed == other.seed
@@ -52,7 +62,9 @@ impl TryFrom<pb::SpendKey> for SpendKey {
     type Error = anyhow::Error;
 
     fn try_from(msg: pb::SpendKey) -> Result<Self, Self::Error> {
-        Ok(SpendKeyBytes::try_from(msg.inner.as_slice())?.into())
+        Ok(SpendKey::try_from(SpendKeyBytes::try_from(
+            msg.inner.as_slice(),
+        )?)?)
     }
 }
 
@@ -64,13 +76,15 @@ impl From<SpendKey> for pb::SpendKey {
     }
 }
 
-impl From<SpendKeyBytes> for SpendKey {
-    fn from(seed: SpendKeyBytes) -> Self {
+impl TryFrom<SpendKeyBytes> for SpendKey {
+    type Error = SpendKeyError;
+
+    fn try_from(seed: SpendKeyBytes) -> Result<Self, Self::Error> {
         let ask = SigningKey::new_from_field(prf::expand_ff(b"Shieldd_ExpandSd", &seed.0, &[0; 1]));
         let nk = NullifierKey(prf::expand_ff(b"Shieldd_ExpandSd", &seed.0, &[1; 1]));
-        let fvk = FullViewingKey::from_components(ask.into(), nk);
+        let fvk = FullViewingKey::from_components(ask.into(), nk)?;
 
-        Self { seed, ask, fvk }
+        Ok(Self { seed, ask, fvk })
     }
 }
 
@@ -90,7 +104,10 @@ impl SpendKey {
     /// authorities from a single seed phrase.
     ///
     /// [`BIP39`]: https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki
-    pub fn from_seed_phrase_bip39(seed_phrase: SeedPhrase, index: u64) -> Self {
+    pub fn from_seed_phrase_bip39(
+        seed_phrase: SeedPhrase,
+        index: u64,
+    ) -> Result<Self, SpendKeyError> {
         let password = format!("{seed_phrase}");
         let salt = format!("mnemonic{index}");
         let mut spend_seed_bytes = [0u8; 32];
@@ -100,11 +117,14 @@ impl SpendKey {
             NUM_PBKDF2_ROUNDS,
             &mut spend_seed_bytes,
         )
-        .expect("seed phrase hash always succeeds");
-        SpendKeyBytes(spend_seed_bytes).into()
+        .map_err(|_| SpendKeyError::Kdf)?;
+        SpendKeyBytes(spend_seed_bytes).try_into()
     }
 
-    pub fn from_seed_phrase_bip44(seed_phrase: SeedPhrase, path: &Bip44Path) -> Self {
+    pub fn from_seed_phrase_bip44(
+        seed_phrase: SeedPhrase,
+        path: &Bip44Path,
+    ) -> Result<Self, SpendKeyError> {
         let password = format!("{seed_phrase}");
         let salt = "mnemonic";
         let mut seed_bytes = [0u8; 64];
@@ -114,18 +134,15 @@ impl SpendKey {
             NUM_PBKDF2_ROUNDS,
             &mut seed_bytes,
         )
-        .expect("seed phrase hash always succeeds");
+        .map_err(|_| SpendKeyError::Kdf)?;
 
         // Now we derive the child keys from the BIP44 path. There are up five levels
         // in the BIP44 path: purpose, coin type, account, change, and address index.
-        let child_key = XPrv::derive_from_path(
-            &seed_bytes[..],
-            &path.path().parse().expect("valid BIP44 path"),
-        )
-        .expect("can derive child key");
+        let derivation_path = path.path().parse()?;
+        let child_key = XPrv::derive_from_path(&seed_bytes[..], &derivation_path)?;
         let child_key_bytes = child_key.to_bytes();
 
-        SpendKeyBytes(child_key_bytes).into()
+        SpendKeyBytes(child_key_bytes).try_into()
     }
 
     // XXX how many of these do we need? leave them for now
@@ -212,7 +229,8 @@ mod tests {
         let expected_spendkey = SpendKeyBytes(expected_bytes.try_into().expect("fits in 32 bytes"));
 
         let derivation_path = Bip44Path::new(0);
-        let software_spendkey = SpendKey::from_seed_phrase_bip44(seed, &derivation_path);
+        let software_spendkey = SpendKey::from_seed_phrase_bip44(seed, &derivation_path)
+            .expect("test vector spend key satisfies key refinements");
 
         assert_eq!(software_spendkey.to_bytes(), expected_spendkey);
     }

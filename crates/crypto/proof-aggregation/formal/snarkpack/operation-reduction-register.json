@@ -184,7 +184,7 @@
         ],
         "rust_source_sha256": {
           "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs": "fadbf293a2f89b06e373978c23d77a4a86bca0c0d24ac48bf09704ef13293f8c",
-          "crates/crypto/proof-aggregation/src/backend.rs": "616f75f1985927bca1b5b92c155895e6a1dab97b0a81a1030f96428df3f76e07"
+          "crates/crypto/proof-aggregation/src/backend.rs": "dff8200aaa7a401c70d018673d67152617bb1b089347cf0c33238247454aadc4"
         },
         "tests": [
           "shared_gt_fold_matches_sequential_bls12_381",
@@ -412,7 +412,7 @@
           "crates/crypto/proof-aggregation/src/strict_deserialize.rs"
         ],
         "rust_source_sha256": {
-          "crates/crypto/proof-aggregation/src/backend.rs": "616f75f1985927bca1b5b92c155895e6a1dab97b0a81a1030f96428df3f76e07",
+          "crates/crypto/proof-aggregation/src/backend.rs": "dff8200aaa7a401c70d018673d67152617bb1b089347cf0c33238247454aadc4",
           "crates/crypto/proof-aggregation/src/strict_deserialize.rs": "14e549fa83de3ec8b5899b0058f1dfc32c9e6862686b1c2ff32062cd968b8549"
         },
         "tests": [
@@ -538,7 +538,7 @@
           "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs"
         ],
         "rust_source_sha256": {
-          "crates/crypto/proof-aggregation/src/backend.rs": "616f75f1985927bca1b5b92c155895e6a1dab97b0a81a1030f96428df3f76e07",
+          "crates/crypto/proof-aggregation/src/backend.rs": "dff8200aaa7a401c70d018673d67152617bb1b089347cf0c33238247454aadc4",
           "crates/crypto/proof-aggregation/src/strict_deserialize.rs": "14e549fa83de3ec8b5899b0058f1dfc32c9e6862686b1c2ff32062cd968b8549",
           "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs": "fadbf293a2f89b06e373978c23d77a4a86bca0c0d24ac48bf09704ef13293f8c"
         },
@@ -683,7 +683,7 @@
         "rust_source_sha256": {
           "crates/crypto/proof-aggregation/src/torus_v2.rs": "ceb631f4e58eb31906292e97b2bafe2846b3236979b9a57a32756ccfefda55da",
           "crates/crypto/proof-aggregation/src/aggregate_proof_wrapper.rs": "3e461eacad024d8add266f4fcaa94aa1d05631d970b57ee7b9a5381f60d92233",
-          "crates/crypto/proof-aggregation/src/backend.rs": "616f75f1985927bca1b5b92c155895e6a1dab97b0a81a1030f96428df3f76e07",
+          "crates/crypto/proof-aggregation/src/backend.rs": "dff8200aaa7a401c70d018673d67152617bb1b089347cf0c33238247454aadc4",
           "crates/crypto/proof-aggregation/src/preflight.rs": "aabb54ebf95299b3b8ef78ca9df22f03d351d97a25c0ecc15725f4f2f19f9a8d"
         },
         "tests": [

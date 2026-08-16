@@ -11,7 +11,7 @@ pub enum ShieldedIcs20WithdrawalView {
     Visible {
         withdrawal: ShieldedIcs20Withdrawal,
         spent_notes: Vec<NoteView>,
-        change_note: NoteView,
+        change_note: Option<NoteView>,
         payload_key: PayloadKey,
     },
     Opaque {
@@ -38,7 +38,7 @@ impl From<ShieldedIcs20WithdrawalView> for pb::ShieldedIcs20WithdrawalView {
                     pb::shielded_ics20_withdrawal_view::Visible {
                         withdrawal: Some(withdrawal.into()),
                         spent_notes: spent_notes.into_iter().map(Into::into).collect(),
-                        change_note: Some(change_note.into()),
+                        change_note: change_note.map(Into::into),
                         payload_key: Some(payload_key.into()),
                     },
                 )),
@@ -74,12 +74,7 @@ impl TryFrom<pb::ShieldedIcs20WithdrawalView> for ShieldedIcs20WithdrawalView {
                     .into_iter()
                     .map(TryInto::try_into)
                     .collect::<Result<Vec<_>, _>>()?,
-                change_note: visible
-                    .change_note
-                    .ok_or_else(|| {
-                        anyhow!("missing visible shielded ICS-20 withdrawal change note")
-                    })?
-                    .try_into()?,
+                change_note: visible.change_note.map(TryInto::try_into).transpose()?,
                 payload_key: visible
                     .payload_key
                     .ok_or_else(|| {

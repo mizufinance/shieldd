@@ -11,7 +11,8 @@ use shieldd_sdk_txhash::{EffectHash, EffectingData};
 
 use super::generated::{transfer_auth_sig_count, transfer_input_count, transfer_output_count};
 use crate::{
-    backref::ENCRYPTED_BACKREF_LEN, transfer::TransferProof, EncryptedBackref, NotePayload,
+    backref::ENCRYPTED_BACKREF_LEN, discovery::TransferRouting, transfer::TransferProof,
+    EncryptedBackref, NotePayload,
 };
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
@@ -21,12 +22,7 @@ pub struct TransferInputBody {
     pub rk: VerificationKey<SpendAuth>,
     pub encrypted_backref: EncryptedBackref,
     pub compliance_ciphertext: Vec<u8>,
-}
-
-impl TransferInputBody {
-    pub fn is_dummy(&self) -> bool {
-        self.encrypted_backref.is_empty() || self.nullifier.0 == Fq::from(0u64)
-    }
+    pub history_required: bool,
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
@@ -36,13 +32,7 @@ pub struct TransferOutputBody {
     pub wrapped_memo_key: WrappedMemoKey,
     pub ovk_wrapped_key: OvkWrappedKey,
     pub compliance_ciphertext: Vec<u8>,
-    pub orbis_upload_bundle: Vec<u8>,
-}
-
-impl TransferOutputBody {
-    pub fn is_dummy(&self) -> bool {
-        self.wrapped_memo_key.0 == [0u8; 48] && self.ovk_wrapped_key.0 == [0u8; 48]
-    }
+    pub compliance_metadata: Vec<u8>,
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
@@ -55,6 +45,8 @@ pub struct TransferBody {
     pub target_timestamp: u64,
     pub compliance_anchor: shieldd_sdk_tct::StateCommitment,
     pub asset_anchor: shieldd_sdk_tct::StateCommitment,
+    pub routing: TransferRouting,
+    pub routing_parameter_set_id: Fq,
 }
 
 #[derive(Clone, Debug)]
@@ -91,17 +83,9 @@ impl EffectingData for TransferBody {
         // transaction action hash the same effecting data even when the real anchor
         // is filled in later during build/proving.
         effecting.anchor = shieldd_sdk_tct::Tree::default().root();
-        // Transfer compliance bytes are constructed during body assembly and are not
-        // part of the user-selected economic effect of the transfer action. Clearing
-        // them keeps the effect hash stable across repeated body construction while
-        // the full transaction auth hash still commits to the serialized body.
-        for input in &mut effecting.inputs {
-            input.compliance_ciphertext.clear();
-        }
-        for output in &mut effecting.outputs {
-            output.compliance_ciphertext.clear();
-            output.orbis_upload_bundle.clear();
-        }
+        // Compliance records are proof-bound effects. Committing to their exact
+        // deterministic bytes prevents an untrusted builder from replacing the
+        // encryption randomness or metadata after obtaining spend authorization.
         EffectHash::from_proto_effecting_data(&effecting.to_proto())
     }
 }
@@ -173,6 +157,7 @@ impl From<TransferInputBody> for pb::TransferInputBody {
             rk: Some(msg.rk.into()),
             encrypted_backref: msg.encrypted_backref.into(),
             compliance_ciphertext: msg.compliance_ciphertext,
+            history_required: msg.history_required,
         }
     }
 }
@@ -181,18 +166,12 @@ impl TryFrom<pb::TransferInputBody> for TransferInputBody {
     type Error = Error;
 
     fn try_from(proto: pb::TransferInputBody) -> Result<Self, Self::Error> {
-        let encrypted_backref = if proto.encrypted_backref.len() == ENCRYPTED_BACKREF_LEN {
-            let bytes: [u8; ENCRYPTED_BACKREF_LEN] = proto
-                .encrypted_backref
-                .try_into()
-                .map_err(|_| anyhow::anyhow!("invalid encrypted backref"))?;
-            EncryptedBackref::try_from(bytes)
-                .map_err(|_| anyhow::anyhow!("invalid encrypted backref"))?
-        } else if proto.encrypted_backref.is_empty() {
-            EncryptedBackref::dummy()
-        } else {
-            anyhow::bail!("invalid encrypted backref length")
-        };
+        let bytes: [u8; ENCRYPTED_BACKREF_LEN] = proto
+            .encrypted_backref
+            .try_into()
+            .map_err(|_| anyhow::anyhow!("encrypted backref must be exactly 48 bytes"))?;
+        let encrypted_backref = EncryptedBackref::try_from(bytes)
+            .map_err(|_| anyhow::anyhow!("invalid encrypted backref"))?;
 
         Ok(Self {
             nullifier: proto
@@ -207,6 +186,7 @@ impl TryFrom<pb::TransferInputBody> for TransferInputBody {
                 .context("malformed rk")?,
             encrypted_backref,
             compliance_ciphertext: proto.compliance_ciphertext,
+            history_required: proto.history_required,
         })
     }
 }
@@ -222,7 +202,7 @@ impl From<TransferOutputBody> for pb::TransferOutputBody {
             wrapped_memo_key: msg.wrapped_memo_key.0.to_vec(),
             ovk_wrapped_key: msg.ovk_wrapped_key.0.to_vec(),
             compliance_ciphertext: msg.compliance_ciphertext,
-            orbis_upload_bundle: msg.orbis_upload_bundle,
+            compliance_metadata: msg.compliance_metadata,
         }
     }
 }
@@ -244,7 +224,7 @@ impl TryFrom<pb::TransferOutputBody> for TransferOutputBody {
                 .try_into()
                 .context("malformed ovk wrapped key")?,
             compliance_ciphertext: proto.compliance_ciphertext,
-            orbis_upload_bundle: proto.orbis_upload_bundle,
+            compliance_metadata: proto.compliance_metadata,
         })
     }
 }
@@ -263,6 +243,8 @@ impl From<TransferBody> for pb::TransferBody {
             target_timestamp: msg.target_timestamp,
             compliance_anchor: Some(msg.compliance_anchor.into()),
             asset_anchor: Some(msg.asset_anchor.into()),
+            routing: Some(msg.routing.into()),
+            routing_parameter_set_id: msg.routing_parameter_set_id.to_bytes().to_vec(),
         }
     }
 }
@@ -303,8 +285,45 @@ impl TryFrom<pb::TransferBody> for TransferBody {
                 .ok_or_else(|| anyhow::anyhow!("missing asset anchor"))?
                 .try_into()
                 .context("malformed asset anchor")?,
+            routing: proto
+                .routing
+                .ok_or_else(|| anyhow::anyhow!("missing transfer routing"))?
+                .try_into()
+                .context("malformed transfer routing")?,
+            routing_parameter_set_id: Fq::from_bytes_checked(
+                &proto
+                    .routing_parameter_set_id
+                    .try_into()
+                    .map_err(|_| anyhow::anyhow!("routing parameter set id must be 32 bytes"))?,
+            )
+            .map_err(|_| anyhow::anyhow!("routing parameter set id must be canonical"))?,
         };
         body.validate_shape()?;
         Ok(body)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use prost::Message;
+
+    use super::pb;
+    use shieldd_sdk_compliance::TRANSFER_COMPLIANCE_METADATA_BYTES;
+
+    #[test]
+    fn transfer_output_public_metadata_is_one_bounded_protobuf_field() {
+        let metadata = vec![0xa5; TRANSFER_COMPLIANCE_METADATA_BYTES];
+        let output = pb::TransferOutputBody {
+            note_payload: None,
+            wrapped_memo_key: Vec::new(),
+            ovk_wrapped_key: Vec::new(),
+            compliance_ciphertext: Vec::new(),
+            compliance_metadata: metadata.clone(),
+        };
+
+        let encoded = output.encode_to_vec();
+        // Field 5, length-delimited, followed by the canonical 328-byte record.
+        assert_eq!(&encoded[..3], &[0x2a, 0xc8, 0x02]);
+        assert_eq!(&encoded[3..], metadata.as_slice());
     }
 }

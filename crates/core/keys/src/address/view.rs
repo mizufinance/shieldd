@@ -181,16 +181,18 @@ mod tests {
 
     #[test]
     fn address_view_basic() {
-        let sk1 = SpendKey::from_seed_phrase_bip44(SeedPhrase::generate(OsRng), &Bip44Path::new(0));
-        let sk2 = SpendKey::from_seed_phrase_bip44(SeedPhrase::generate(OsRng), &Bip44Path::new(0));
+        let sk1 = SpendKey::from_seed_phrase_bip44(SeedPhrase::generate(OsRng), &Bip44Path::new(0))
+            .expect("generated spend key satisfies key refinements");
+        let sk2 = SpendKey::from_seed_phrase_bip44(SeedPhrase::generate(OsRng), &Bip44Path::new(0))
+            .expect("generated spend key satisfies key refinements");
 
         let fvk1 = sk1.full_viewing_key();
         let fvk2 = sk2.full_viewing_key();
 
-        let addr1_0 = fvk1.payment_address(0.into()).0;
-        let addr1_1 = fvk1.payment_address(1.into()).0;
-        let addr2_0 = fvk2.payment_address(0.into()).0;
-        let addr2_1 = fvk2.payment_address(1.into()).0;
+        let addr1_0 = fvk1.payment_address(0.into());
+        let addr1_1 = fvk1.payment_address(1.into());
+        let addr2_0 = fvk2.payment_address(0.into());
+        let addr2_1 = fvk2.payment_address(1.into());
 
         assert_eq!(
             fvk1.view_address(addr1_0.clone()),

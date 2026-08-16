@@ -74,12 +74,41 @@ else
   FILE="$LEAN_DIR/${TARGET//.//}.lean"
 fi
 [[ -f "$FILE" ]] || fail "module source not found: $FILE"
+LEAN_ROOT_ARGS=()
+case "$FILE" in
+  "$LEAN_DIR"/*) ;;
+  *)
+    # Generated audit files live in fail-closed temporary directories outside
+    # the package root. Imports still resolve through Lake's LEAN_PATH, while
+    # this root lets Lean derive a legal module name for the external input.
+    LEAN_ROOT_ARGS=(--root="$(dirname "$FILE")")
+    ;;
+esac
 
 TMP="$(mktemp -d "${TMPDIR:-/tmp}/lean-leaf-bench.XXXXXX")"
 trap 'rm -rf "$TMP"' EXIT
 OUT_OLEAN="$TMP/out.olean"; OUT_ILEAN="$TMP/out.ilean"
 PRESERVE_OLEAN="${BENCH_OLEAN_OUT:-}"
 LEAN_PATH_PREPEND="${BENCH_LEAN_PATH_PREPEND:-}"
+OUTPUT_BYTES="${BENCH_OUTPUT_BYTES:-32768}"
+[[ "$OUTPUT_BYTES" =~ ^[1-9][0-9]*$ ]] \
+  || fail "BENCH_OUTPUT_BYTES must be positive"
+(( OUTPUT_BYTES <= 131072 )) \
+  || fail "BENCH_OUTPUT_BYTES must not exceed 131072"
+
+RSS_SAMPLER="ps"
+if ! ps -e -o rss= -o pgid= >/dev/null 2>&1; then
+  if [[ "$(uname -s)" == "Darwin" ]] && command -v cc >/dev/null 2>&1; then
+    RSS_HELPER="$TMP/process-group-rss"
+    if cc -O2 "$ROOT/scripts/macos-process-group-rss.c" -o "$RSS_HELPER"; then
+      RSS_SAMPLER="macos-helper"
+    else
+      fail "could not compile the macOS RSS sampler"
+    fi
+  else
+    fail "process-group RSS sampling is unavailable; refusing an unguarded benchmark"
+  fi
+fi
 
 PROFILE_OUT="${BENCH_PROFILE_OUT:-$PWD/leaf-profile-$(basename "${TARGET%.lean}").json}"
 PROFILE_ARGS=()
@@ -118,14 +147,22 @@ TSTACK_ARGS=()
 [[ -n "$TSTACK_KB" ]] && TSTACK_ARGS=(--tstack="$TSTACK_KB")
 
 # Launch the compile as the leader of its own process group.
-LEAN_NUM_THREADS=1 "${LEAN_CMD[@]}" "$FILE" \
+LEAN_NUM_THREADS=1 "${LEAN_CMD[@]}" \
+  ${LEAN_ROOT_ARGS[@]+"${LEAN_ROOT_ARGS[@]}"} "$FILE" \
   -o "$OUT_OLEAN" -i "$OUT_ILEAN" --json \
   ${TSTACK_ARGS[@]+"${TSTACK_ARGS[@]}"} ${PROFILE_ARGS[@]+"${PROFILE_ARGS[@]}"} \
   >"$TMP/lean.out" 2>"$TMP/lean.err" &
 LEAN_PID=$!
 PGID=$LEAN_PID   # under `set -m`, the job's pgid == its leader pid
 
-group_rss_kb() { ps -A -o pgid=,rss= 2>/dev/null | awk -v g="$PGID" '$1==g {s+=$2} END {print s+0}'; }
+group_rss_kb() {
+  if [[ "$RSS_SAMPLER" == "macos-helper" ]]; then
+    "$RSS_HELPER" "$PGID"
+  else
+    ps -e -o rss= -o pgid= 2>/dev/null \
+      | awk -v group="$PGID" '$2 == group { total += $1 } END { print total + 0 }'
+  fi
+}
 kill_group()   { kill -9 -- "-$PGID" 2>/dev/null || true; }
 
 # Marginal RSS = peak minus the import floor (if provided).  Kill headroom adds
@@ -148,8 +185,26 @@ else
 fi
 
 peak_rss_kb=0; killed=""; start=$(date +%s)
+if kill -0 "$LEAN_PID" 2>/dev/null; then
+  if ! initial_rss_kb=$(group_rss_kb); then
+    kill_group
+    wait "$LEAN_PID" 2>/dev/null || true
+    fail "RSS sampler failed before benchmark monitoring"
+  fi
+  # A tiny audit can finish between kill -0 and the sample. Zero RSS is only a
+  # sampler failure while the process is still live.
+  if (( initial_rss_kb == 0 )) && kill -0 "$LEAN_PID" 2>/dev/null; then
+    kill_group
+    wait "$LEAN_PID" 2>/dev/null || true
+    fail "RSS sampler returned zero for the live benchmark process group"
+  fi
+fi
 while kill -0 "$LEAN_PID" 2>/dev/null; do
-  rss=$(group_rss_kb); (( rss > peak_rss_kb )) && peak_rss_kb=$rss
+  if ! rss=$(group_rss_kb); then
+    echo "RSS sampler failed — killing group" >&2
+    kill_group; killed="sampler"; break
+  fi
+  (( rss > peak_rss_kb )) && peak_rss_kb=$rss
   elapsed=$(( $(date +%s) - start ))
   if (( elapsed > MAX_SECS )); then
     echo "OVER BUDGET: time ${elapsed}s > ${MAX_SECS}s — killing group" >&2
@@ -164,8 +219,16 @@ done
 wait "$LEAN_PID" && lean_rc=0 || lean_rc=$?
 elapsed=$(( $(date +%s) - start ))
 
-cat "$TMP/lean.out"
-[[ -s "$TMP/lean.err" ]] && cat "$TMP/lean.err" >&2
+if (( $(wc -c <"$TMP/lean.out") > OUTPUT_BYTES )); then
+  echo "bench: stdout truncated to last $OUTPUT_BYTES bytes"
+fi
+tail -c "$OUTPUT_BYTES" "$TMP/lean.out"
+if [[ -s "$TMP/lean.err" ]]; then
+  if (( $(wc -c <"$TMP/lean.err") > OUTPUT_BYTES )); then
+    echo "bench: stderr truncated to last $OUTPUT_BYTES bytes" >&2
+  fi
+  tail -c "$OUTPUT_BYTES" "$TMP/lean.err" >&2
+fi
 [[ "${BENCH_PROFILE:-0}" == "1" && -f "$PROFILE_OUT" ]] && echo "profiler: $PROFILE_OUT"
 
 if [[ -n "$killed" ]]; then

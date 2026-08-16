@@ -127,7 +127,7 @@ theorem order_odd : Order % 2 = 1 := by decide +kernel
 section ChoiceFreeCanonicalParity
 
 attribute [-instance] ZMod.instField
-local instance : CommRing F := ZMod.commRing _
+local instance choiceFreeCanonicalParityCommRing : CommRing F := ZMod.commRing _
 open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 /-- Low bit of the little-endian decomposition is the parity of the value. -/
@@ -150,7 +150,11 @@ theorem absF_neg (v : F) : absF (-v) = absF v := by
   · simp [hv, absF]
   · have hval : v.val ≠ 0 := (ZMod.val_ne_zero v).mpr hv
     haveI : NeZero v := ⟨hv⟩
-    have hneg : (-v).val = Order - v.val := ZMod.val_neg_of_ne_zero v
+    have hneg : (-v).val = Order - v.val := by
+      rw [ZMod.neg_val']
+      exact Nat.mod_eq_of_lt
+        (Nat.sub_lt (Fact.out (p := Nat.Prime Order)).pos
+          (Nat.pos_of_ne_zero hval))
     have hlt : v.val < Order := v.val_lt
     have h2 : (Order - v.val) % 2 = (1 - v.val % 2) % 2 := by
       have := order_odd
@@ -266,6 +270,12 @@ in `outOf` the lone surviving `·x` sign flip is absorbed by `absF` (`absF_neg`)
 This upgrades the cross-ratio quotient equality to genuine statement-field equality
 (`ZK-ASSUME-DECAF377-TWO-TORSION-INVARIANCE`). -/
 
+section ChoiceFreeInvariance
+
+attribute [-instance] ZMod.instField
+local instance choiceFreeInvarianceCommRing : CommRing F := ZMod.commRing _
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
+
 theorem u1_neg (X Y : F) : u1 (-X) (-Y) = u1 X Y := by simp only [u1]; ring
 
 theorem den_neg (X Y : F) : den (-X) (-Y) = den X Y := by simp only [den, u1]; ring
@@ -285,6 +295,8 @@ theorem outOf_neg (X Y s : F) : outOf (-X) (-Y) s = outOf X Y s := by
 theorem Relation_neg_invariant (X Y Out : F) :
     Relation (-X) (-Y) Out ↔ Relation X Y Out := by
   simp only [Relation, onCurve_neg, sqrtCase_neg, outOf_neg]
+
+end ChoiceFreeInvariance
 
 /-! ### Circuit soundness -/
 

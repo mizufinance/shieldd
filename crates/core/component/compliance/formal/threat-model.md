@@ -1,37 +1,100 @@
 # Compliance Ciphertext Threat Model
 
-This fixture models the adversary-facing obligations for Shieldd compliance
-ciphertexts. It is intentionally above the constraint level: R1CS satisfaction
-and symbolic-prover execution are follow-up work.
+This model describes the deployed V16 transfer compliance boundary. Circuit
+refinement establishes exact algebraic relations; computational confidentiality
+still depends on the Decaf377, Poseidon-stream, and hash assumptions recorded in
+`assumption-ledger.md`.
 
 ## Adversaries
 
 | ID | Capability | Soundness question |
 | --- | --- | --- |
-| `ADV-NETWORK` | Dolev-Yao observer can replay, reorder, copy, and modify transaction bytes before consensus acceptance. | Can a copied or modified ciphertext remain accepted under a different statement, tier, key, or timestamp? |
-| `ADV-PROVER` | Malicious prover controls private witnesses and can choose encryption randomness, salts, paths, and `is_regulated`. | Can the prover satisfy the accepted language with false decryptability, false regulatory status, or mismatched metadata? |
-| `ADV-ISSUER` | Curious issuer has detection keys and may receive decode objects for selected tiers. | Can the issuer learn unflagged ACK-tier plaintext or confuse ACK and DK tiers? |
-| `ADV-OBSERVER` | Non-authority observer sees public transaction data and proofs. | Can the observer recover plaintext, link tiers, or use public DLEQ data as a decryption oracle? |
+| `ADV-NETWORK` | Reads, copies, reorders, and modifies all public transaction bytes before consensus acceptance. | Can modified ciphertext or metadata verify under a different transfer, policy, tier position, or timestamp? |
+| `ADV-PROVER` | Chooses private notes, paths, authorization/viewing material, the compliance nonce root and its derived encryption seeds/randomizers and salts, and the proposed regulation flag. It can intentionally disclose plaintext it already knows; the circuit cannot prove entropy, action-level nonce uniqueness, or non-collusion. | Can an identity key/address alias note ownership, or can a false policy branch, threshold flag, recipient key, plaintext, or metadata record satisfy the circuit? |
+| `ADV-ISSUER` | Holds the registered detection secret and observes accepted outputs. | Can it learn an unflagged ACK tier without the corresponding authorized capability? |
+| `ADV-OBSERVER` | Sees the proof, 640-byte ciphertext, and 328-byte metadata record. | Does any serialized field reveal a tier seed, DH shared point, or plaintext? |
+| `ADV-AUDIT-BRIDGE` | Controls inputs to the disabled Orbis v0 export/import API. | Can it bypass the fail-closed boundary and complete an unflagged PRE audit? |
 
 ## Trust Roots
 
-The trust roots are consensus-committed asset and compliance Indexed Merkle Tree
-anchors, accepted only inside the validation window checked by
-`validate_compliance_anchors`. Circuit arguments may prove membership or
-non-membership relative to an anchor, but the anchor is meaningful only after
-the action handler accepts it as live state.
+The asset-policy proof is accepted only against the current mutable asset root.
+The user-compliance proof may use a recent recorded root of the append-only
+user tree. `validate_compliance_anchors` enforces these distinct liveness
+policies before proof verification; the circuit establishes membership or
+non-membership only relative to the statement roots it receives.
+
+Asset-policy admission is also a live prerequisite: both the detection key and
+ring key must be non-identity, and validation occurs at protobuf, storage, and
+registry boundaries before any policy-map or IMT mutation. The circuit proves
+use of the committed keys; it does not make an identity key cryptographically
+useful.
+
+Transaction acceptance also trusts proof verification, timestamp freshness,
+spend signatures, transaction-wide nullifier uniqueness, and the binding
+signature. These checks are outside the Transfer R1CS and are composed with its
+refinement. The Transfer effect hash includes the exact proof-bound compliance
+ciphertext and metadata, so replacing encryption randomness or payload bytes
+after spend authorization invalidates every spend signature.
+
+The Transfer relation itself rejects identity authorization keys and identity
+sender/receiver diversified generators with three exact Decaf `x != 0`
+predicates, matching the native full-viewing-key and address gadgets. This is
+not delegated to honest construction: without the sender predicate, identity
+DTK derivation lets one note commitment and state path open under distinct
+nullifier keys; without the receiver predicate, a malicious proof can create
+such an ownership-ambiguous output.
+
+Computational privacy additionally assumes honest construction samples a fresh,
+unpredictable Transfer nonce root for each action, including a nonce distinct
+from fee funding and every other Transfer in the same transaction. Each
+action's tier seeds, salts, and ephemeral scalars are deterministically
+domain-separated from that root. Cross-action root reuse therefore repeats
+EPKs and stream material and is forbidden by the native builder. This is a
+construction-side CSPRNG premise, not an R1CS or consensus-enforceable fact:
+the nonce root is private, and a malicious action creator can always choose or
+disclose its own randomness.
+
+Honest construction also rejection-samples each tier scalar until nonzero.
+Registry admission rejects a zero derived `d` and requires a canonical 48-byte
+address in the v3 compliance leaf. These checks prevent identity audit capabilities
+and address substitution for state admitted through the supported builders; a
+malicious creator can still disclose plaintext it already knows.
 
 ## Public And Secret Inventory
 
-| Class | Items | Notes |
+| Class | Items | Security boundary |
 | --- | --- | --- |
-| Public statement | anchors, nullifiers, commitments, compliance ciphertext Fq elements, EPKs, `c2`, DLEQ challenges/responses, target timestamp | These are included in transaction bodies or in the statement hash. |
-| Prover witness | plaintext tier fields, seeds, ephemeral randomizers, IMT paths, compliance leaf data, spend notes | The prover can choose malformed witnesses unless constrained. |
-| Issuer secret | detection key material for regulated assets | Detection correctness is a designated-decryptability claim, not public decryptability. |
-| User secret | ACK/DK-derived scalars, note plaintext, spend authorization key material | Secrecy excludes holders of the intended ACK/DK secrets. |
+| Public statement/transport | anchors, nullifiers, randomized spend keys, note and balance commitments, detection/audit ciphertexts, EPKs, c2 values, target timestamp, subject derivations, policy hashes, and tier salts | The V16 wire has no PRE envelope, shared point, DLEQ proof, or seed-opening material. Detection stores exact asset and salt, then a bounded sender slot plus flag and a bounded receiver slot. |
+| Prover witness | notes, ownership keys, paths, tier plaintexts, a per-action nonce root, derived seeds, ephemeral randomizers, and asset/compliance leaf data | Every integrity fact used by an accepted transfer is constrained or intentionally external. Fresh unpredictable nonce roots are an honest-construction privacy premise. |
+| Issuer secret | registered detection secret | It decrypts detection for regulated transfers and all audit tiers only when the threshold flag is true. |
+| User/audit secret | ACK/DK scalars or equivalent authorized capability, tier seeds, note plaintext, spend authorization material | Computational secrecy requires these values to remain unavailable to observers. |
 
-## Follow-Up Boundary
+Confidentiality is claimed only for fresh per-action CSPRNG nonce roots and the
+honestly derived, undisclosed ephemeral randomizers and seeds. Reusing one root
+across actions is outside that claim even if every resulting proof is
+algebraically valid. A malicious action creator can choose recognizable
+randomness or publish the plaintext directly; preventing intentional
+self-disclosure is outside both the circuit and protocol threat model.
 
-The symbolic model will idealize DLEQ, Poseidon, compressed Decaf377 points,
-and IMT state. This fixture records which implementation facts those
-abstractions must preserve; it does not claim mechanized secrecy or binding.
+For unregulated assets, the fixed sink ring/DK policy preserves the circuit
+shape. It does not promise issuer decryptability. For regulated unflagged
+transfers, ACK-tier ciphertext remains public but Orbis v0 PRE is disabled, so
+authorized recovery is currently unavailable.
+
+## Formal Boundary
+
+The extracted Lean relation and handwritten Transfer refinement cover exact
+constraint semantics: policy selection, threshold, key selection, EPK/shared
+secret/c2 equations, payload encryption, metadata binding, and the 41-field
+statement. They do not prove computational secrecy of Decaf377 or the
+Poseidon-based stream.
+
+Only the gnark circuits under `tools/gnark/` define the deployed arithmetic
+language. The obsolete Arkworks alternatives formerly exported from
+`compliance/src/r1cs.rs` and `shielded-pool/src/r1cs.rs` were deleted. No
+zero-anchor skip or second circuit architecture is part of the accepted
+Transfer or Withdrawal language.
+
+The existing generic DLEQ Lean/Tamarin material is standalone research. DLEQ is
+absent from the V16 witness, statement, transport, evidence object, and deployed
+certification chain.

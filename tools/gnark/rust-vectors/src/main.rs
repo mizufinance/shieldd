@@ -55,7 +55,7 @@ struct PoseidonVectors {
     hash7_inputs: Vec<String>,
     hash7_output: String,
     // Composite-derivation goldens: the nullifier (Poseidon hash_3 over the
-    // nullifier domain) and the note commitment (hash_6 over the note-commit
+    // nullifier domain) and the note commitment (hash_5 over the note-commit
     // domain), pinning RATE_3 / RATE_6 output correctness across Rust and gnark.
     nullifier_inputs: Vec<String>,
     nullifier_output: String,
@@ -102,16 +102,11 @@ struct DleqFixture {
     dleq_s: String,
 }
 
-/// NoteReshape2x1 statement-hash seam fixture (H3 / Phase C).
+/// NoteReshape statement-hash seam fixture (H3 / Phase C).
 ///
-/// A seeded note_reshape2x1 public statement: the 7 field elements in the exact
-/// production role order the circuit assembles them (anchor, output note
-/// commitment, balance commitment Fq, then per-input nullifier+rk), plus the
-/// reference statement hash computed with the real `poseidon377::hash_7` over
-/// the `note_reshape2x1` public-input-hash domain. The Go seam test assembles
-/// these fields in the same order, runs the production statement-hash gadget,
-/// and asserts the in-circuit wire equals `statement_hash`. Any wire-order,
-/// endianness, or domain drift fails.
+/// Seeded retained-family public statements in the exact production role order,
+/// plus reference statement hashes over their family-specific domains. The Go
+/// seam test assembles the same fields and checks the production gadget.
 #[derive(Serialize)]
 struct NoteReshapeStatementFixture {
     label: String,
@@ -199,7 +194,7 @@ fn note_reshape_statement_fixture(
     n_in: usize,
     n_out: usize,
 ) -> NoteReshapeStatementFixture {
-    let domain_label = format!("shieldd.shielded_pool.{label}.public_input_hash.v1");
+    let domain_label = format!("shieldd.shielded_pool.{label}.public_input_hash.v3");
     let pad_0_label = format!("shieldd.shielded_pool.{label}.public_input_hash.pad0");
     let pad_1_label = format!("shieldd.shielded_pool.{label}.public_input_hash.pad1");
     let domain = blake2b_fq(domain_label.as_bytes());
@@ -209,9 +204,14 @@ fn note_reshape_statement_fixture(
     let mut field_roles = vec!["anchor".to_string()];
     field_roles.extend((0..n_out).map(|index| format!("output_note_commitment_{index}")));
     field_roles.push("balance_commitment_fq".to_string());
+    field_roles.push("asset_anchor".to_string());
+    field_roles.push("routing_tag".to_string());
+    field_roles.push("routing_parameter_set_id".to_string());
+    field_roles.push("recent_position_floor".to_string());
     for index in 0..n_in {
         field_roles.push(format!("nullifier_{index}"));
         field_roles.push(format!("rk_{index}"));
+        field_roles.push(format!("history_required_{index}"));
     }
 
     let fields = (0..field_roles.len())
@@ -328,11 +328,11 @@ fn main() {
         &nullifier_domain,
         (nullifier_inputs[0], nullifier_inputs[1], nullifier_inputs[2]),
     );
-    // Note commitment = Poseidon hash_6(note_commit_domain,
-    //   [blinding, amount, assetId, divGenFq, transmissionKeyS, clueKey]).
-    let note_commit_domain = blake2b_fq(b"shieldd.notecommit");
-    let note_commit_inputs = [101u64, 202, 303, 404, 505, 606].map(Fq::from);
-    let note_commit_output = poseidon377::hash_6(
+    // Note commitment = Poseidon hash_5(note_commit_domain,
+    //   [blinding, amount, assetId, divGenFq, transmissionKeyS]).
+    let note_commit_domain = blake2b_fq(b"shieldd.notecommit.v2");
+    let note_commit_inputs = [101u64, 202, 303, 404, 505].map(Fq::from);
+    let note_commit_output = poseidon377::hash_5(
         &note_commit_domain,
         (
             note_commit_inputs[0],
@@ -340,12 +340,9 @@ fn main() {
             note_commit_inputs[2],
             note_commit_inputs[3],
             note_commit_inputs[4],
-            note_commit_inputs[5],
         ),
     );
     let note_reshape_statements = [
-        ("note_reshape2x1", 2, 1),
-        ("note_reshape4x1", 4, 1),
         ("note_reshape8x1", 8, 1),
         ("note_reshape1x8", 1, 8),
     ]
@@ -463,7 +460,7 @@ fn main() {
             spend_domain: spend_domain.to_string(),
             spend_pad_0: spend_pad_0.to_string(),
             spend_pad_1: spend_pad_1.to_string(),
-            note_commit_domain: blake2b_fq(b"shieldd.notecommit").to_string(),
+            note_commit_domain: blake2b_fq(b"shieldd.notecommit.v2").to_string(),
             nullifier_domain: blake2b_fq(b"shieldd.nullifier").to_string(),
             value_generator_domain: blake2b_fq(b"shieldd.value.generator").to_string(),
             ivk_domain: Fq::from_le_bytes_mod_order(b"shieldd.derive.ivk").to_string(),
@@ -472,7 +469,7 @@ fn main() {
                 blake2b_simd::blake2b(b"shieldd.leaf_binding.sender").as_bytes(),
             )
             .to_string(),
-            compliance_leaf_domain: blake2b_fq(b"shieldd.compliance.leaf").to_string(),
+            compliance_leaf_domain: blake2b_fq(b"shieldd.compliance.leaf.v3").to_string(),
             issuer_detection_domain: blake2b_fq(b"shieldd.compliance.issuer_detection")
                 .to_string(),
             dleq_metadata_domain: blake2b_fq(b"shieldd.compliance.dleq_metadata").to_string(),

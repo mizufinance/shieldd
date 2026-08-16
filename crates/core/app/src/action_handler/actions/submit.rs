@@ -76,7 +76,6 @@ impl AppActionHandler for ProposalSubmit {
         }
 
         governance_key
-            .0
             .verify(&self.body.to_proto().encode_to_vec(), &self.auth_sig)
             .context("proposal submission signature failed to verify")?;
 
@@ -220,8 +219,9 @@ mod test {
                 description: "parameter change remains supported".to_owned(),
                 payload,
             },
-            proposer: IdentityKey(vk.into()),
-            governance_key: GovernanceKey(sk.into()),
+            proposer: IdentityKey::try_from(vk).expect("test proposal identity key is nonidentity"),
+            governance_key: GovernanceKey::try_from(VerificationKey::from(&sk))
+                .expect("test proposal governance key is nonidentity"),
         };
         let auth_sig = sk.sign(OsRng, &body.to_proto().encode_to_vec());
         ProposalSubmit { body, auth_sig }

@@ -39,15 +39,15 @@ const (
 )
 
 type daemonReady struct {
-	Magic              string `json:"magic"`
-	Version            int    `json:"version"`
-	Status             string `json:"status"`
-	Circuit            string `json:"circuit"`
-	Curve              string `json:"curve"`
-	MetadataSHA256Hex  string `json:"metadata_sha256_hex"`
-	VerifyingKeySHA256 string `json:"verifying_key_sha256_hex"`
-	ProvingKeySHA256   string `json:"proving_key_sha256_hex"`
-	VerifyingKeyID     string `json:"verifying_key_id,omitempty"`
+	Magic                    string `json:"magic"`
+	Version                  int    `json:"version"`
+	Status                   string `json:"status"`
+	Circuit                  string `json:"circuit"`
+	Curve                    string `json:"curve"`
+	MetadataSHA256Hex        string `json:"metadata_sha256_hex"`
+	VerifyingKeyBinarySHA256 string `json:"verifying_key_binary_sha256_hex"`
+	VerifyingKeyJSONSHA256   string `json:"verifying_key_json_sha256_hex"`
+	ProvingKeySHA256         string `json:"proving_key_sha256_hex"`
 }
 
 type proveFunc func([]byte) ([]byte, error)
@@ -70,7 +70,7 @@ func init() {
 				return circuits.NewTransferCircuit()
 			},
 			newAssignment: func(payload []byte) (frontend.Circuit, error) {
-				assignment, witnessFamily, err := abi.NewTransferCircuitAssignmentFromWitnessV1(payload)
+				assignment, witnessFamily, err := abi.NewTransferCircuitAssignmentFromWitnessV18(payload)
 				if err != nil {
 					return nil, err
 				}
@@ -94,7 +94,7 @@ func init() {
 				return circuits.NewNoteReshapeCircuit(family.Label, family.NIn, family.NOut)
 			},
 			newAssignment: func(payload []byte) (frontend.Circuit, error) {
-				assignment, witnessFamily, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV1(payload)
+				assignment, witnessFamily, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV5(payload)
 				if err != nil {
 					return nil, err
 				}
@@ -120,7 +120,7 @@ func init() {
 				return circuits.NewShieldedIcs20WithdrawalCircuit(family.NIn)
 			},
 			newAssignment: func(payload []byte) (frontend.Circuit, error) {
-				assignment, witnessFamily, err := abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV1(payload)
+				assignment, witnessFamily, err := abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV10(payload)
 				if err != nil {
 					return nil, err
 				}
@@ -249,14 +249,16 @@ func loadContext(artifactDir, circuit string, ccs constraint.ConstraintSystem) (
 		return nil, nil, err
 	}
 
-	pkFile, err := os.Open(filepath.Join(artifactDir, "proving_key.bin"))
+	pkBytes, err := os.ReadFile(filepath.Join(artifactDir, "proving_key.bin"))
 	if err != nil {
-		return nil, nil, fmt.Errorf("open proving key: %w", err)
-	}
-	defer pkFile.Close()
-	pk := new(groth16bls.ProvingKey)
-	if _, err := pk.ReadFrom(pkFile); err != nil {
 		return nil, nil, fmt.Errorf("read proving key: %w", err)
+	}
+	if err := artifacts.ValidateProvingKeyBytes(metadata, pkBytes); err != nil {
+		return nil, nil, err
+	}
+	pk, err := artifacts.ReadProvingKeyStrict(bytes.NewReader(pkBytes))
+	if err != nil {
+		return nil, nil, err
 	}
 	return metadata, pk, nil
 }
@@ -267,15 +269,15 @@ func buildReady(circuit, artifactDir string, metadata *artifacts.CircuitMetadata
 		return nil, fmt.Errorf("hash metadata: %w", err)
 	}
 	return &daemonReady{
-		Magic:              daemonReadyMagic,
-		Version:            daemonReadyVersion,
-		Status:             "ready",
-		Circuit:            circuit,
-		Curve:              metadata.Curve,
-		MetadataSHA256Hex:  metadataHash,
-		VerifyingKeySHA256: metadata.VerifyingKeySHA256Hex,
-		ProvingKeySHA256:   metadata.ProvingKeySHA256Hex,
-		VerifyingKeyID:     metadata.VerifyingKeyID,
+		Magic:                    daemonReadyMagic,
+		Version:                  daemonReadyVersion,
+		Status:                   "ready",
+		Circuit:                  circuit,
+		Curve:                    metadata.Curve,
+		MetadataSHA256Hex:        metadataHash,
+		VerifyingKeyBinarySHA256: metadata.VerifyingKeyBinarySHA256Hex,
+		VerifyingKeyJSONSHA256:   metadata.VerifyingKeyJSONSHA256Hex,
+		ProvingKeySHA256:         metadata.ProvingKeySHA256Hex,
 	}, nil
 }
 
@@ -324,7 +326,7 @@ func writeResponse(writer *bufio.Writer, status uint32, payload []byte) error {
 }
 
 func packShieldedIcs20WithdrawalProofResult(witnessPayload []byte, proof *groth16bls.Proof, proveMS float64) ([]byte, error) {
-	witness, _, err := abi.DecodeShieldedIcs20WithdrawalWitnessV1(witnessPayload)
+	witness, _, err := abi.DecodeShieldedIcs20WithdrawalWitnessV10(witnessPayload)
 	if err != nil {
 		return nil, fmt.Errorf("decode shielded ICS-20 withdrawal witness: %w", err)
 	}
@@ -332,7 +334,7 @@ func packShieldedIcs20WithdrawalProofResult(witnessPayload []byte, proof *groth1
 }
 
 func packTransferProofResult(witnessPayload []byte, proof *groth16bls.Proof, proveMS float64) ([]byte, error) {
-	witness, _, err := abi.DecodeTransferWitnessV1(witnessPayload)
+	witness, _, err := abi.DecodeTransferWitnessV18(witnessPayload)
 	if err != nil {
 		return nil, fmt.Errorf("decode transfer witness: %w", err)
 	}
@@ -340,7 +342,7 @@ func packTransferProofResult(witnessPayload []byte, proof *groth16bls.Proof, pro
 }
 
 func packNoteReshapeProofResult(witnessPayload []byte, proof *groth16bls.Proof, proveMS float64) ([]byte, error) {
-	witness, _, err := abi.DecodeNoteReshapeWitnessV1(witnessPayload)
+	witness, _, err := abi.DecodeNoteReshapeWitnessV5(witnessPayload)
 	if err != nil {
 		return nil, fmt.Errorf("decode note reshape witness: %w", err)
 	}

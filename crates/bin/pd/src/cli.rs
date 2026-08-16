@@ -117,6 +117,29 @@ pub enum RootCommand {
         prune: bool,
     },
 
+    /// Build, verify, and optionally prune one retired nullifier generation pack.
+    NullifierGenerationPack {
+        /// The home directory of the stopped full node.
+        #[clap(long, env = "SHIELDD_PD_HOME", display_order = 100)]
+        home: PathBuf,
+        /// Retired generation index to pack.
+        #[clap(long)]
+        generation: u64,
+        /// Delete expanded tree records after the pack is durably written and verified.
+        #[clap(long)]
+        prune: bool,
+    },
+
+    /// Verify one retired nullifier generation pack without changing node state.
+    NullifierGenerationPackVerify {
+        /// The home directory of the stopped full node.
+        #[clap(long, env = "SHIELDD_PD_HOME", display_order = 100)]
+        home: PathBuf,
+        /// Retired generation index to verify.
+        #[clap(long)]
+        generation: u64,
+    },
+
     /// Run a migration before resuming post-upgrade.
     Migrate {
         /// The home directory of the full node.

@@ -3,12 +3,10 @@
 ///
 /// In practice this is simply a hash of the `TransactionBody`.
 ///
-/// The transaction's binding signature is formed over the transaction's
-/// `AuthHash`.  Because the binding signature is formed using the randomness
-/// for the balance commitments for each action, this prevents replaying proofs
-/// from one transaction to another without knowledge of the openings of the
-/// balance commitments, binding the proofs to the transaction they were
-/// originally computed for.
+/// A nonidentity aggregate binding key signs the transaction's `AuthHash`
+/// using the action balance-commitment randomness. Identity is an explicit
+/// no-binding mode only for transactions without shielded proofs; those
+/// transactions rely on their action-specific authorization.
 #[derive(Clone, Copy, Eq, PartialEq)]
 pub struct AuthHash(pub [u8; 32]);
 

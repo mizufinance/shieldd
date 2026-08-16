@@ -1,7 +1,7 @@
 # SnarkPack Formal Optimization Research
 
-Date: 2026-08-13  
-Branch: `codex/snarkpack-formal-optimization`  
+Date: 2026-08-13
+Branch: `codex/snarkpack-formal-optimization`
 Base: `dev` at `436c346ba2d3d8560d4e35967d90585ccc684f7a`
 
 Update 2026-08-15: the later v2-descendant review deliberately supersedes the

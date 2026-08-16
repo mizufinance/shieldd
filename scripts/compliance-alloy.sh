@@ -4,8 +4,8 @@ set -euo pipefail
 # Bounded model-checking gate for the compliance system-state Alloy models.
 # Mirrors scripts/compliance-symbolic.sh: pins the tool via toolchain.toml,
 # runs every `check` headless, asserts no counterexample, confirms the model is
-# non-vacuous, and writes a stamped artifact per model that
-# scripts/check-soundness-invariants.sh integrity-checks.
+# non-vacuous, and compares fresh evidence with each committed stamp. Use
+# explicit `update` mode after reviewing a model change.
 #
 # Alloy 6.2's `exec` CLI subcommand is required (Alloy 5 has no CLI). In CI this
 # runs as `nix shell nixpkgs#alloy6 --command bash scripts/compliance-alloy.sh`;
@@ -22,6 +22,14 @@ cd "$ROOT"
 
 FORMAL_DIR="crates/core/component/compliance/formal"
 TOOLCHAIN="$FORMAL_DIR/toolchain.toml"
+MODE="${1:-check}"
+case "$MODE" in
+  check|update) ;;
+  *)
+    echo "usage: $(basename "$0") [check|update]" >&2
+    exit 2
+    ;;
+esac
 
 fail() {
   echo "compliance alloy failed: $*" >&2
@@ -65,9 +73,11 @@ run_model() {
 
   # `alloy6 exec` writes a solution dir + receipt.json next to its CWD; run it
   # in a throwaway dir so the repo tree stays clean.
-  local workdir tmp
+  local workdir tmp generated_artifact generated_sha
   workdir="$(mktemp -d)"
   tmp="$(mktemp)"
+  generated_artifact="$workdir/artifact.txt"
+  generated_sha="$workdir/artifact.txt.sha256"
   ( cd "$workdir" && "$ALLOY" exec "$ROOT/$model" ) >"$tmp" 2>&1 || {
     cat "$tmp" >&2
     rm -rf "$workdir" "$tmp"
@@ -97,8 +107,26 @@ run_model() {
     for check in "${checks[@]}"; do
       echo "CHECK $check no-counterexample"
     done
-  } >"$artifact"
-  shasum -a 256 "$artifact" | awk '{print $1}' >"$artifact.sha256"
+  } >"$generated_artifact"
+  shasum -a 256 "$generated_artifact" | awk '{print $1}' >"$generated_sha"
+
+  if [[ "$MODE" == "check" ]]; then
+    [[ -f "$artifact" && -f "$artifact.sha256" ]] \
+      || { rm -rf "$workdir" "$tmp"; fail "$name: committed artifact or sidecar is missing"; }
+    if ! cmp -s "$generated_artifact" "$artifact"; then
+      diff -u "$artifact" "$generated_artifact" >&2 || true
+      rm -rf "$workdir" "$tmp"
+      fail "$name: committed artifact is stale; run scripts/compliance-alloy.sh update"
+    fi
+    if ! cmp -s "$generated_sha" "$artifact.sha256"; then
+      diff -u "$artifact.sha256" "$generated_sha" >&2 || true
+      rm -rf "$workdir" "$tmp"
+      fail "$name: committed artifact sidecar is stale; run scripts/compliance-alloy.sh update"
+    fi
+  else
+    cp "$generated_artifact" "$artifact"
+    cp "$generated_sha" "$artifact.sha256"
+  fi
 
   rm -rf "$workdir" "$tmp"
   echo "compliance alloy ok ($name): sha256:$(cat "$artifact.sha256")"
@@ -109,5 +137,5 @@ run_model value-conservation  BindingImpliesConservation
 run_model compliance-tiers    CompleteIsTerminal CompleteReachableFromAll NoPendingShortcut FourCanonicalTiers
 run_model orbis-authorization CorrectIssuerRecovers OnlyDesignatedRecovers SingleBinding
 run_model ics20-supply-conservation SupplyBackedByEscrow
-run_model note_reshape2x1-statement-sufficiency NoDoubleSpend NoInflation SpendAuthBound
+run_model note_reshape-statement-sufficiency NoDoubleSpend NoInflation SpendAuthBound
 run_model transfer-statement-sufficiency NoDoubleSpend NoInflation SpendAuthBound RegulatedEnforced DummyNonSpending

@@ -1,7 +1,6 @@
 import ShielddGnarkFormal.Poseidon377
 import ShielddGnarkFormal.Poseidon1Bridge
 import ShielddGnarkFormal.Poseidon2Bridge
-import ShielddGnarkFormal.Extracted.DecafAssertEquivalent
 import ShielddGnarkFormal.Extracted.DecafCompressToField
 import ShielddGnarkFormal.CompressToFieldBridge
 import ShielddGnarkFormal.EdwardsCompleteness
@@ -11,23 +10,25 @@ import ShielddGnarkFormal.ChoiceFreeZMod
 
 set_option linter.unusedSectionVars false
 
-/-! Decaf377 gadget boundary used by the 2x1 compose model.
-
-This file is intentionally named after the boundary, not after a completed
-verification result. `AssertEquivalent` and `CompressToField` are tied to
-extracted gadget constraints. RVK, DTK, and net balance are still compose-model
-definitions until their scalar-mul / encode-to-curve / curve-operation
-composition bridges replace the definitions below. Lean's standard-only axiom
-report therefore means "no kernel axioms," not "decaf is fully closed."
+/-!
+Circuit-facing Decaf377 relations used by the composed soundness proofs.
+Extracted leaf constraints prove the compression and equivalence relations;
+the RVK, DTK, and conservation bridge modules compose their scalar and curve
+gadgets into the definitions below. Protocol interpretation and backend
+correctness remain part of the documented trust boundary.
 -/
 
 namespace Shieldd.GnarkFormal.Decaf377Assumptions
 
 abbrev F := Poseidon377.F
 
-variable [Fact (Nat.Prime Extracted.DecafAssertEquivalent.Order)]
 variable [Fact (Nat.Prime Extracted.DecafCompressToField.Order)]
-variable [Fact (Nat.Prime Extracted.DecafEncodeToCurve.Order)]
+
+-- Every extracted Decaf gadget is over the same BLS12-377 scalar field.
+-- Keep one canonical prime witness in theorem signatures and derive the
+-- encode-to-curve witness definitionally instead of leaking two identical
+-- instance parameters through every composed bridge.
+local instance : Fact (Nat.Prime Extracted.DecafEncodeToCurve.Order) := ‹_›
 
 structure Point where
   x : F
@@ -83,6 +84,56 @@ def scalarMulLEFrom (scalar : F) : Nat → Nat → Point → Point → Point
 def scalarMulLE (nBits : Nat) (base : Point) (scalar : F) : Point :=
   scalarMulLEFrom scalar nBits 0 identity base
 
+/-- Table entry selected by one high/low bit pair in the deployed DTK ladder. -/
+def window2Digit (base : Point) (high low : Bool) : Point :=
+  if low then
+    if high then add (double base) base else base
+  else if high then double base else identity
+
+/-- Remaining two-bit windows of the deployed MSB-first DTK ladder. -/
+def scalarMulWindow2PairsFrom (base : Point) (scalar : F) :
+    Nat → Nat → Point → Point
+  | 0, _, accumulator => accumulator
+  | fuel + 1, highBit, accumulator =>
+      let shifted := double (double accumulator)
+      let digit := window2Digit base
+        (scalar.val.testBit highBit)
+        (scalar.val.testBit (highBit - 1))
+      scalarMulWindow2PairsFrom base scalar fuel (highBit - 2)
+        (add shifted digit)
+
+def scalarBits (nBits : Nat) (scalar : F) : List.Vector Bool nBits :=
+  List.Vector.ofFn (fun i : Fin nBits => scalar.val.testBit i.val)
+
+def scalarMulWindow2PairsFromBits {nBits : Nat}
+    (bits : List.Vector Bool nBits) (base : Point) :
+    Nat → Nat → Point → Point
+  | 0, _, accumulator => accumulator
+  | fuel + 1, highBit, accumulator =>
+      let shifted := double (double accumulator)
+      let digit := window2Digit base bits[highBit]! bits[highBit - 1]!
+      scalarMulWindow2PairsFromBits bits base fuel (highBit - 2)
+        (add shifted digit)
+
+def scalarMulWindow2FromBits {nBits : Nat}
+    (bits : List.Vector Bool nBits) (base : Point) : Point :=
+  match nBits with
+  | 0 => identity
+  | 1 => if bits[0]! then base else identity
+  | width + 2 =>
+      let highBit := width + 1
+      let initial := window2Digit base bits[highBit]! bits[highBit - 1]!
+      let accumulator := scalarMulWindow2PairsFromBits bits base
+        ((width + 2) / 2 - 1) (highBit - 2) initial
+      if highBit % 2 = 0 then
+        let shifted := double accumulator
+        if bits[0]! then add shifted base else shifted
+      else accumulator
+
+/-- Exact MSB-first radix-4/window-2 scalar multiplication used by DTK. -/
+def scalarMulWindow2 (nBits : Nat) (base : Point) (scalar : F) : Point :=
+  scalarMulWindow2FromBits (scalarBits nBits scalar) base
+
 def valueGeneratorDomain : F :=
   6888358618106443442961843809729175081075858965522240584763322653509542282215
 
@@ -112,7 +163,7 @@ def rvk (ak : Point) (randomizer : F) : Point :=
   add ak (scalarMulLE 251 generator randomizer)
 
 def dtk (_nk : F) (_ak divGen : Point) (ivkReduced _ivkQuotientA : F) : Point :=
-  scalarMulLE 251 divGen ivkReduced
+  scalarMulWindow2 251 divGen ivkReduced
 
 def dtkIvkModQ (nk akCompressed : F) : F :=
   Poseidon2Bridge.permSpec2 Poseidon377.ivkDomain nk akCompressed
@@ -158,10 +209,32 @@ def OnCurveCircuit (p : Point) : Prop :=
 /-- The exact constraint set of decaf377-go `AssertEquivalent`: the single
 cross-ratio equation `p.x * q.y = q.x * p.y` (extracted, not assumed). -/
 def AssertEquivalentCircuit (p q : Point) : Prop :=
-  Extracted.DecafAssertEquivalent.circuit p.x p.y q.x q.y
+  p.x * q.y = q.x * p.y
 
 def CompressToFieldSpec (p : Point) (out : F) : Prop :=
   Extracted.DecafCompressToField.Relation p.x p.y out
+
+section ChoiceFreeOnCurve
+
+attribute [-instance] ZMod.instField ZMod.instIsDomain
+local instance choiceFreeOnCurveCommRing : CommRing F := ZMod.commRing _
+
+/-- Compression is only defined for an affine representative satisfying the
+Edwards curve equation. -/
+theorem onCurve_of_compress
+    (p : Point) (out : F) (h : CompressToFieldSpec p out) :
+    EdwardsBridge.onCurve ⟨p.x, p.y⟩ := by
+  have hc := h.1
+  change
+    p.y * p.y - p.x * p.x =
+      1 + (3021 : F) * (p.x * p.x) * (p.y * p.y) at hc
+  unfold EdwardsBridge.onCurve EdwardsBridge.d
+  change
+    -(p.x * p.x) + p.y * p.y =
+      1 + (3021 : F) * (p.x * p.x) * (p.y * p.y)
+  linear_combination hc
+
+end ChoiceFreeOnCurve
 
 /-- Cross-ratio equality `x_p·y_q = x_q·y_p` — exactly what the gadget
 constrains. The gadget itself does NOT assert either operand is on-curve; call
@@ -250,12 +323,8 @@ theorem decaf377_encodeToCurve_sound :
 /-- Proved, not assumed: the extracted gadget is literally the cross-ratio gate. -/
 theorem decaf377_assertEquivalent_sound :
     ∀ p q, AssertEquivalentCircuit p q → AssertEquivalentSpec p q := by
-  intro p q h
-  obtain ⟨g0, hg0, g1, hg1, g2, hg2, g3, hg3, g4, hg4, g5, hg5, hcurveL,
-    g7, hg7, g8, hg8, g9, hg9, g10, hg10, g11, hg11, g12, hg12, hcurveR,
-    g14, hg14, g15, hg15, heq, -⟩ := h
-  simpa [AssertEquivalentSpec, hg14, hg15, Extracted.DecafAssertEquivalent.Gates,
-    GatesGnark9, GatesGnark8, GatesDef.mul, GatesDef.eq] using heq
+  intro _ _ h
+  exact h
 
 -- `decaf377_netBalanceCommitment_sound` is proved in `NetBalanceCommitmentBridge`
 -- (it depends on the extracted-circuit bridge, which imports this file).

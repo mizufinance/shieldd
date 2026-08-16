@@ -8,14 +8,14 @@ use shieldd_sdk_proto::{
     core::component::compact_block::v1::CompactBlockRangeResponse,
     shieldd::core::component::compact_block::v1 as pb, DomainType,
 };
-use shieldd_sdk_sct::Nullifier;
+use shieldd_sdk_sct::{nullifier_generation::NullifierWindow, Nullifier};
 use shieldd_sdk_shielded_pool::discovery;
 use shieldd_sdk_tct::{
     builder::{block, epoch},
     StateCommitment,
 };
 
-use super::StatePayload;
+use super::{RoutingActionPayloads, RoutingRecord, StatePayload};
 
 /// A compressed delta update with the minimal data from a block required to
 /// synchronize private client state.
@@ -33,6 +33,10 @@ pub struct CompactBlock {
     pub epoch_root: Option<epoch::Root>,
     /// Latest discovery parameters. `None` if unchanged.
     pub discovery_parameters: Option<discovery::Parameters>,
+    /// Fixed-shape action-level routing records.
+    pub routing_records: Vec<RoutingRecord>,
+    /// Encrypted note payloads grouped by their producing action.
+    pub routing_action_payloads: Vec<RoutingActionPayloads>,
     /// If the block indicated a proposal was being started.
     pub proposal_started: bool,
     /// Set if the app parameters have been updated. Notifies the client that it should re-sync from the fullnode RPC.
@@ -51,6 +55,8 @@ pub struct CompactBlock {
     pub compliance_user_registrations: Vec<EventUserRegistered>,
     /// Asset registrations in this block (for compliance tree sync).
     pub compliance_asset_registrations: Vec<EventAssetRegistered>,
+    /// Exact nullifier window, present at genesis and app-epoch boundaries.
+    pub nullifier_window: Option<NullifierWindow>,
     // **IMPORTANT NOTE FOR FUTURE HUMANS**: if you want to add new fields to the `CompactBlock`,
     // you must update `CompactBlock::requires_scanning` to check for the emptiness of those fields,
     // because the client will skip processing any compact block that is marked as not requiring
@@ -66,6 +72,8 @@ impl Default for CompactBlock {
             block_root: block::Finalized::default().root(),
             epoch_root: None,
             discovery_parameters: None,
+            routing_records: Vec::new(),
+            routing_action_payloads: Vec::new(),
             proposal_started: false,
             app_parameters_updated: false,
             gas_prices: None,
@@ -75,6 +83,7 @@ impl Default for CompactBlock {
             compliance_asset_anchor: None,
             compliance_user_registrations: Vec::new(),
             compliance_asset_registrations: Vec::new(),
+            nullifier_window: None,
         }
     }
 }
@@ -85,12 +94,14 @@ impl CompactBlock {
         !self.state_payloads.is_empty() // need to scan notes
             || !self.nullifiers.is_empty() // need to collect nullifiers
             || self.discovery_parameters.is_some() // need to save latest discovery parameters
+            || !self.routing_records.is_empty() // need to scan routing records
             || self.proposal_started // need to process proposal start
             || self.app_parameters_updated // need to save latest app parameters
             || self.gas_prices.is_some() // need to save latest gas prices
             || !self.alt_gas_prices.is_empty() // need to save latest alt gas prices
             || !self.compliance_user_registrations.is_empty() // need to sync user tree
             || !self.compliance_asset_registrations.is_empty() // need to sync asset tree
+            || self.nullifier_window.is_some() // need to persist the planning window
     }
 }
 
@@ -112,6 +123,7 @@ impl From<CompactBlock> for pb::CompactBlock {
             },
             epoch_root: cb.epoch_root.map(Into::into),
             discovery_parameters: cb.discovery_parameters.map(Into::into),
+            routing_records: cb.routing_records.into_iter().map(Into::into).collect(),
             proposal_started: cb.proposal_started,
             app_parameters_updated: cb.app_parameters_updated,
             gas_prices: cb.gas_prices.map(Into::into),
@@ -135,6 +147,12 @@ impl From<CompactBlock> for pb::CompactBlock {
                 .into_iter()
                 .map(Into::into)
                 .collect(),
+            routing_action_payloads: cb
+                .routing_action_payloads
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+            nullifier_window: cb.nullifier_window.map(Into::into),
         }
     }
 }
@@ -185,6 +203,11 @@ impl TryFrom<pb::CompactBlock> for CompactBlock {
                 .discovery_parameters
                 .map(TryInto::try_into)
                 .transpose()?,
+            routing_records: value
+                .routing_records
+                .into_iter()
+                .map(TryInto::try_into)
+                .collect::<Result<Vec<_>>>()?,
             proposal_started: value.proposal_started,
             app_parameters_updated: value.app_parameters_updated,
             gas_prices: value.gas_prices.map(TryInto::try_into).transpose()?,
@@ -206,6 +229,12 @@ impl TryFrom<pb::CompactBlock> for CompactBlock {
                 .into_iter()
                 .map(TryInto::try_into)
                 .collect::<Result<Vec<EventAssetRegistered>>>()?,
+            routing_action_payloads: value
+                .routing_action_payloads
+                .into_iter()
+                .map(TryInto::try_into)
+                .collect::<Result<Vec<_>>>()?,
+            nullifier_window: value.nullifier_window.map(TryInto::try_into).transpose()?,
         })
     }
 }

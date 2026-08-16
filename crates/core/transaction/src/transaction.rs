@@ -16,6 +16,7 @@ use shieldd_sdk_proto::{
     core::transaction::v1::{self as pbt},
     DomainType, Message,
 };
+use shieldd_sdk_sct::nullifier_generation::{HistoricalNullifierProof, NullifierWindow};
 use shieldd_sdk_sct::Nullifier;
 use shieldd_sdk_shielded_pool::{
     Note, NoteReshape, ShieldedHostWithdrawal, ShieldedHostWithdrawalView,
@@ -44,6 +45,126 @@ pub struct TransactionBody {
     pub transaction_parameters: TransactionParameters,
     pub fee_funding: Option<FeeFunding>,
     pub memo: Option<MemoCiphertext>,
+    pub nullifier_window: Option<NullifierWindow>,
+    pub historical_nullifier_proofs: Vec<HistoricalNullifierProof>,
+}
+
+pub(crate) fn update_nullifier_window_effect_hash(
+    state: &mut blake2b_simd::State,
+    window: Option<&NullifierWindow>,
+) {
+    match window {
+        None => {
+            state.update(&[0]);
+        }
+        Some(window) => {
+            state.update(&[1]);
+            state.update(&window.protocol_version.to_le_bytes());
+            state.update(&window.current_generation.to_le_bytes());
+            state.update(&window.recent_position_floor.to_le_bytes());
+            state.update(&window.archived_generation_count.to_le_bytes());
+            state.update(&window.archived_history_head);
+        }
+    }
+}
+
+impl TransactionBody {
+    fn proof_bound_inputs(&self) -> Vec<(Nullifier, bool)> {
+        let mut inputs = Vec::new();
+        for action in &self.actions {
+            match action {
+                Action::Transfer(action) => inputs.extend(
+                    action
+                        .body
+                        .inputs
+                        .iter()
+                        .map(|input| (input.nullifier, input.history_required)),
+                ),
+                Action::NoteReshape(action) => inputs.extend(
+                    action
+                        .body
+                        .inputs
+                        .iter()
+                        .map(|input| (input.nullifier, input.history_required)),
+                ),
+                Action::ShieldedIcs20Withdrawal(action) => inputs.extend(
+                    action
+                        .body
+                        .inputs
+                        .iter()
+                        .map(|input| (input.nullifier, input.history_required)),
+                ),
+                Action::ShieldedHostWithdrawal(action) => inputs.extend(
+                    action
+                        .body
+                        .inputs
+                        .iter()
+                        .map(|input| (input.nullifier, input.history_required)),
+                ),
+                _ => {}
+            }
+        }
+        if let Some(fee_funding) = &self.fee_funding {
+            inputs.extend(
+                fee_funding
+                    .transfer
+                    .body
+                    .inputs
+                    .iter()
+                    .map(|input| (input.nullifier, input.history_required)),
+            );
+        }
+
+        inputs
+    }
+
+    /// Public nullifiers whose action proofs require complete retired-history proofs.
+    pub fn historical_nullifiers(&self) -> Vec<Nullifier> {
+        self.proof_bound_inputs()
+            .into_iter()
+            .filter_map(|(nullifier, required)| required.then_some(nullifier))
+            .collect()
+    }
+
+    pub fn validate_nullifier_history(&self) -> anyhow::Result<()> {
+        let inputs = self.proof_bound_inputs();
+
+        if inputs.is_empty() {
+            anyhow::ensure!(
+                self.nullifier_window.is_none(),
+                "spend-free transaction has a nullifier window"
+            );
+            anyhow::ensure!(
+                self.historical_nullifier_proofs.is_empty(),
+                "spend-free transaction has historical nullifier proofs"
+            );
+            return Ok(());
+        }
+
+        let window = self
+            .nullifier_window
+            .context("proof-bearing transaction is missing its nullifier window")?;
+        window.validate()?;
+        let old_nullifiers = self.historical_nullifiers();
+        anyhow::ensure!(
+            old_nullifiers.len() == self.historical_nullifier_proofs.len(),
+            "historical proof count does not match old input count"
+        );
+        for (index, (nullifier, proof)) in old_nullifiers
+            .into_iter()
+            .zip(&self.historical_nullifier_proofs)
+            .enumerate()
+        {
+            anyhow::ensure!(
+                proof.nullifier == nullifier,
+                "historical proof {index} does not match its old input nullifier"
+            );
+            proof
+                .validate_structure(window)
+                .with_context(|| format!("historical proof {index} has invalid structure"))?;
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -79,6 +200,7 @@ impl EffectingData for TransactionBody {
         state.update(parameters_hash.as_bytes());
         state.update(memo_hash.as_bytes());
         state.update(fee_funding_hash.as_bytes());
+        update_nullifier_window_effect_hash(&mut state, self.nullifier_window.as_ref());
 
         let num_actions = self.actions.len() as u32;
         state.update(&num_actions.to_le_bytes());
@@ -122,21 +244,48 @@ pub struct Transaction {
     pub anchor: tct::Root,
 }
 
+/// Canonical placeholder for no-proof transactions whose binding key is identity.
+pub fn no_binding_signature() -> Signature<Binding> {
+    [0u8; 64].into()
+}
+
+/// Returns whether a binding signature is the canonical no-proof placeholder.
+pub fn is_no_binding_signature(signature: &Signature<Binding>) -> bool {
+    signature.to_bytes() == [0u8; 64]
+}
+
 impl Default for Transaction {
     fn default() -> Self {
         Transaction {
             transaction_body: Default::default(),
-            binding_sig: [0u8; 64].into(),
+            binding_sig: no_binding_signature(),
             anchor: tct::Tree::new().root(),
         }
     }
 }
 
 impl Transaction {
+    /// Decodes only the unique protobuf encoding emitted by this domain type.
+    pub fn decode_canonical(bytes: &[u8]) -> anyhow::Result<Self> {
+        let tx: Self = pbt::Transaction::decode(bytes)
+            .context("decoding transaction protobuf")?
+            .try_into()?;
+        let canonical: Vec<u8> = (&tx).into();
+        anyhow::ensure!(
+            canonical == bytes,
+            "transaction bytes are not the canonical protobuf encoding"
+        );
+        Ok(tx)
+    }
+
     pub fn context(&self) -> TransactionContext {
         TransactionContext {
             anchor: self.anchor,
             effect_hash: self.effect_hash(),
+            recent_position_floor: self
+                .transaction_body
+                .nullifier_window
+                .map_or(0, |window| window.recent_position_floor),
         }
     }
 
@@ -149,7 +298,13 @@ impl Transaction {
                 | Action::NoteReshape(_)
                 | Action::ShieldedIcs20Withdrawal(_)
                 | Action::ShieldedHostWithdrawal(_) => 1,
-                _ => 0,
+                Action::ValidatorDefinition(_)
+                | Action::ValidatorVote(_)
+                | Action::ProposalSubmit(_)
+                | Action::IbcRelay(_)
+                | Action::ComplianceRegisterAsset(_)
+                | Action::ComplianceRegisterUser(_)
+                | Action::AggregateBundle(_) => 0,
             })
             .sum::<usize>()
             + usize::from(self.transaction_body.fee_funding.is_some())
@@ -416,6 +571,11 @@ impl Transaction {
                 transaction_parameters: self.transaction_parameters(),
                 fee_funding,
                 memo_view,
+                nullifier_window: self.transaction_body.nullifier_window,
+                historical_nullifier_proofs: self
+                    .transaction_body
+                    .historical_nullifier_proofs
+                    .clone(),
             },
             binding_sig: self.binding_sig,
             anchor: self.anchor,
@@ -506,7 +666,6 @@ impl Transaction {
                     .body
                     .inputs
                     .iter()
-                    .filter(|input| !input.is_dummy())
                     .map(|input| input.nullifier)
                     .collect(),
                 Action::NoteReshape(note_reshape) => note_reshape
@@ -538,12 +697,38 @@ impl Transaction {
                     .body
                     .inputs
                     .iter()
-                    .filter(|input| !input.is_dummy())
                     .map(|input| input.nullifier),
             );
         }
 
         nullifiers.into_iter()
+    }
+
+    /// Counts every proof-bound spend without allocating the iterator's buffer.
+    pub fn spent_nullifier_count(&self) -> usize {
+        let body_count = self.actions().fold(0usize, |count, action| {
+            let action_count = match action {
+                Action::Transfer(transfer) => transfer.body.inputs.len(),
+                Action::NoteReshape(note_reshape) => note_reshape.body.inputs.len(),
+                Action::ShieldedIcs20Withdrawal(withdrawal) => withdrawal.body.inputs.len(),
+                Action::ShieldedHostWithdrawal(withdrawal) => withdrawal.body.inputs.len(),
+                Action::ValidatorDefinition(_)
+                | Action::ValidatorVote(_)
+                | Action::ProposalSubmit(_)
+                | Action::IbcRelay(_)
+                | Action::ComplianceRegisterAsset(_)
+                | Action::ComplianceRegisterUser(_)
+                | Action::AggregateBundle(_) => 0,
+            };
+            count.saturating_add(action_count)
+        });
+        let fee_count = self
+            .transaction_body
+            .fee_funding
+            .as_ref()
+            .map(|fee_funding| fee_funding.transfer.body.inputs.len())
+            .unwrap_or_default();
+        body_count.saturating_add(fee_count)
     }
 
     pub fn state_commitments(&self) -> impl Iterator<Item = StateCommitment> + '_ {
@@ -554,7 +739,6 @@ impl Transaction {
                     .body
                     .outputs
                     .iter()
-                    .filter(|output| !output.is_dummy())
                     .map(|output| Some(output.note_payload.note_commitment))
                     .collect::<Vec<_>>(),
                 Action::NoteReshape(note_reshape) => note_reshape
@@ -581,7 +765,6 @@ impl Transaction {
                     .body
                     .outputs
                     .iter()
-                    .filter(|output| !output.is_dummy())
                     .map(|output| output.note_payload.note_commitment),
             );
         }
@@ -725,10 +908,36 @@ mod tests {
     use shieldd_sdk_asset::{asset, Balance, Value, BASE_ASSET_DENOM};
     use shieldd_sdk_keys::symmetric::{OvkWrappedKey, WrappedMemoKey};
     use shieldd_sdk_keys::Address;
+    use shieldd_sdk_proto::DomainType as _;
     use shieldd_sdk_sct::Nullifier;
     use shieldd_sdk_shielded_pool::backref::ENCRYPTED_BACKREF_LEN;
 
     use super::{Action, Transaction, TransactionBody};
+
+    #[test]
+    fn canonical_decode_accepts_exact_encoding_and_rejects_unknown_fields() {
+        let tx = Transaction::default();
+        let canonical: Vec<u8> = (&tx).into();
+        assert_eq!(
+            Transaction::decode_canonical(&canonical)
+                .expect("canonical transaction must decode")
+                .encode_to_vec(),
+            canonical
+        );
+
+        // Unknown field 127, varint value 0. Prost accepts and drops it, so
+        // decode followed by canonical re-encoding must reject this wire form.
+        let mut noncanonical = canonical;
+        noncanonical.extend_from_slice(&[0xf8, 0x07, 0x00]);
+        let error = Transaction::decode_canonical(&noncanonical)
+            .expect_err("unknown protobuf fields must not cross transaction ingress");
+        assert!(
+            error
+                .to_string()
+                .contains("not the canonical protobuf encoding"),
+            "unexpected error: {error:#}"
+        );
+    }
 
     #[test]
     fn transfer_counts_as_nullifier_and_state_commitment_source() {
@@ -751,6 +960,7 @@ mod tests {
                         )
                         .expect("valid encrypted backref"),
                         compliance_ciphertext: vec![1, 2, 3],
+                        history_required: false,
                     },
                     shieldd_sdk_shielded_pool::TransferInputBody {
                         nullifier: Nullifier(decaf377::Fq::from(30u64)),
@@ -758,10 +968,11 @@ mod tests {
                             decaf377::Fr::from(40u64),
                         )),
                         encrypted_backref: shieldd_sdk_shielded_pool::EncryptedBackref::try_from(
-                            [2u8; ENCRYPTED_BACKREF_LEN],
+                            [2u8; 48],
                         )
-                        .expect("valid encrypted backref"),
+                        .expect("fixed-size encrypted backref"),
                         compliance_ciphertext: vec![],
+                        history_required: false,
                     },
                 ],
                 outputs: vec![
@@ -771,13 +982,12 @@ mod tests {
                                 5u64,
                             )),
                             ephemeral_key: decaf377_ka::Public([6u8; 32]),
-                            encrypted_note: shieldd_sdk_shielded_pool::NoteCiphertext([7u8; 176]),
-                            discovery_tag: Default::default(),
+                            encrypted_note: shieldd_sdk_shielded_pool::NoteCiphertext([7u8; 144]),
                         },
                         wrapped_memo_key: WrappedMemoKey([8u8; 48]),
                         ovk_wrapped_key: OvkWrappedKey([9u8; 48]),
                         compliance_ciphertext: vec![4, 5, 6],
-                        orbis_upload_bundle: vec![15, 16],
+                        compliance_metadata: vec![15, 16],
                     },
                     shieldd_sdk_shielded_pool::TransferOutputBody {
                         note_payload: shieldd_sdk_shielded_pool::NotePayload {
@@ -785,51 +995,116 @@ mod tests {
                                 50u64,
                             )),
                             ephemeral_key: decaf377_ka::Public([60u8; 32]),
-                            encrypted_note: shieldd_sdk_shielded_pool::NoteCiphertext([70u8; 176]),
-                            discovery_tag: Default::default(),
+                            encrypted_note: shieldd_sdk_shielded_pool::NoteCiphertext([70u8; 144]),
                         },
                         wrapped_memo_key: WrappedMemoKey([80u8; 48]),
                         ovk_wrapped_key: OvkWrappedKey([90u8; 48]),
                         compliance_ciphertext: vec![],
-                        orbis_upload_bundle: vec![],
+                        compliance_metadata: vec![],
                     },
                 ],
                 target_timestamp: 10,
                 compliance_anchor: shieldd_sdk_tct::StateCommitment(decaf377::Fq::from(11u64)),
                 asset_anchor: shieldd_sdk_tct::StateCommitment(decaf377::Fq::from(12u64)),
+                routing: Default::default(),
+                routing_parameter_set_id: decaf377::Fq::from(0u64),
             },
             auth_sigs: vec![[17u8; 64].into(), [0u8; 64].into()],
             proof: shieldd_sdk_shielded_pool::TransferProof::default(),
         };
+        assert_eq!(transfer.body.inputs.len(), 2);
+        assert_eq!(transfer.body.outputs.len(), 2);
 
         let tx = Transaction {
             transaction_body: TransactionBody {
-                actions: vec![Action::Transfer(transfer)],
+                actions: vec![Action::Transfer(transfer.clone())],
                 ..Default::default()
             },
             ..Default::default()
         };
 
         assert_eq!(tx.spent_nullifiers().collect::<Vec<_>>().len(), 2);
+        assert_eq!(
+            tx.spent_nullifier_count(),
+            tx.spent_nullifiers().count(),
+            "zero-allocation count must match the canonical iterator"
+        );
         assert_eq!(tx.state_commitments().collect::<Vec<_>>().len(), 2);
+
+        assert!(
+            tx.transaction_body.validate_nullifier_history().is_err(),
+            "every proof-bearing transaction must bind a nullifier window"
+        );
+        let mut history_tx = tx.clone();
+        history_tx.transaction_body.nullifier_window =
+            Some(shieldd_sdk_sct::nullifier_generation::NullifierWindow {
+                protocol_version: shieldd_sdk_sct::nullifier_generation::PROTOCOL_VERSION,
+                current_generation: 0,
+                recent_position_floor: 0,
+                archived_generation_count: 0,
+                archived_history_head: shieldd_sdk_sct::nullifier_generation::empty_history_head(),
+            });
+        history_tx
+            .transaction_body
+            .validate_nullifier_history()
+            .expect("recent inputs require the window but no historical bundles");
+        let Action::Transfer(history_transfer) = &mut history_tx.transaction_body.actions[0] else {
+            panic!("fixture action must remain a Transfer")
+        };
+        history_transfer.body.inputs[0].history_required = true;
+        assert!(
+            history_tx
+                .transaction_body
+                .validate_nullifier_history()
+                .is_err(),
+            "an old input must have exactly one matching historical bundle"
+        );
+
+        let fee_funded_tx = Transaction {
+            transaction_body: TransactionBody {
+                actions: vec![Action::Transfer(transfer.clone())],
+                fee_funding: Some(crate::FeeFunding { transfer }),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        assert_eq!(
+            fee_funded_tx.spent_nullifiers().collect::<Vec<_>>().len(),
+            4
+        );
+        assert_eq!(
+            fee_funded_tx.spent_nullifier_count(),
+            fee_funded_tx.spent_nullifiers().count(),
+            "body and fee-funding nullifiers must share one canonical count"
+        );
+        assert_eq!(
+            fee_funded_tx.state_commitments().collect::<Vec<_>>().len(),
+            4
+        );
     }
 
     #[test]
-    fn note_reshape_body_sentinel_does_not_filter_spent_nullifiers() {
-        let inputs = (0..4)
+    fn note_reshape_fixed_slots_do_not_filter_spent_nullifiers() {
+        let inputs = (0..8)
             .map(|index| shieldd_sdk_shielded_pool::NoteReshapeInputBody {
                 nullifier: Nullifier(decaf377::Fq::from(100u64 + index)),
                 rk: VerificationKey::from(SigningKey::<SpendAuth>::from(decaf377::Fr::from(
                     200u64 + index,
                 ))),
-                encrypted_backref: shieldd_sdk_shielded_pool::EncryptedBackref::dummy(),
+                encrypted_backref: shieldd_sdk_shielded_pool::EncryptedBackref::try_from(
+                    [u8::try_from(index + 1).expect("small test index"); 48],
+                )
+                .expect("fixed-size encrypted backref"),
+                history_required: false,
             })
             .collect::<Vec<_>>();
-        assert!(inputs.iter().all(|input| input.is_dummy()));
+        assert!(inputs
+            .iter()
+            .all(|input| input.encrypted_backref.len() == 48));
 
         let note_reshape = shieldd_sdk_shielded_pool::NoteReshape {
             body: shieldd_sdk_shielded_pool::NoteReshapeBody {
-                family_id: shieldd_sdk_shielded_pool::NoteReshapeFamilyId::FourByOne,
+                family_id: shieldd_sdk_shielded_pool::NoteReshapeFamilyId::EightByOne,
                 anchor: shieldd_sdk_tct::Tree::default().root(),
                 balance_commitment: Balance::default().commit(decaf377::Fr::from(1u64)),
                 inputs,
@@ -839,14 +1114,16 @@ mod tests {
                             300u64,
                         )),
                         ephemeral_key: decaf377_ka::Public([3u8; 32]),
-                        encrypted_note: shieldd_sdk_shielded_pool::NoteCiphertext([4u8; 176]),
-                        discovery_tag: Default::default(),
+                        encrypted_note: shieldd_sdk_shielded_pool::NoteCiphertext([4u8; 144]),
                     },
                     wrapped_memo_key: WrappedMemoKey([5u8; 48]),
                     ovk_wrapped_key: OvkWrappedKey([6u8; 48]),
                 }],
+                routing_tag: Default::default(),
+                routing_parameter_set_id: decaf377::Fq::from(0u64),
+                asset_anchor: shieldd_sdk_tct::StateCommitment(decaf377::Fq::from(0u64)),
             },
-            auth_sigs: vec![[0u8; 64].into(); 4],
+            auth_sigs: vec![[0u8; 64].into(); 8],
             proof: shieldd_sdk_shielded_pool::NoteReshapeProof::default(),
         };
         let tx = Transaction {
@@ -857,7 +1134,8 @@ mod tests {
             ..Default::default()
         };
 
-        assert_eq!(tx.spent_nullifiers().collect::<Vec<_>>().len(), 4);
+        assert_eq!(tx.spent_nullifiers().collect::<Vec<_>>().len(), 8);
+        assert_eq!(tx.spent_nullifier_count(), tx.spent_nullifiers().count());
     }
 
     #[test]
@@ -871,13 +1149,13 @@ mod tests {
     }
 
     #[test]
-    fn num_proofs_counts_new_shielded_action_families() {
+    fn proof_and_nullifier_counts_cover_mixed_shielded_families() {
         let tx = Transaction {
             transaction_body: TransactionBody {
                 actions: vec![
                     Action::NoteReshape(shieldd_sdk_shielded_pool::NoteReshape {
                         body: shieldd_sdk_shielded_pool::NoteReshapeBody {
-                            family_id: shieldd_sdk_shielded_pool::NoteReshapeFamilyId::TwoByOne,
+                            family_id: shieldd_sdk_shielded_pool::NoteReshapeFamilyId::EightByOne,
                             anchor: shieldd_sdk_tct::Tree::default().root(),
                             balance_commitment: Balance::default().commit(decaf377::Fr::from(1u64)),
                             inputs: vec![
@@ -888,6 +1166,7 @@ mod tests {
                                     )),
                                     encrypted_backref:
                                         shieldd_sdk_shielded_pool::EncryptedBackref::dummy(),
+                                    history_required: false,
                                 },
                                 shieldd_sdk_shielded_pool::NoteReshapeInputBody {
                                     nullifier: Nullifier(decaf377::Fq::from(4u64)),
@@ -896,6 +1175,7 @@ mod tests {
                                     )),
                                     encrypted_backref:
                                         shieldd_sdk_shielded_pool::EncryptedBackref::dummy(),
+                                    history_required: false,
                                 },
                             ],
                             outputs: vec![shieldd_sdk_shielded_pool::NoteReshapeOutputBody {
@@ -905,12 +1185,14 @@ mod tests {
                                     ),
                                     ephemeral_key: decaf377_ka::Public([7u8; 32]),
                                     encrypted_note:
-                                        shieldd_sdk_shielded_pool::NoteCiphertext([8u8; 176]),
-                                    discovery_tag: Default::default(),
+                                        shieldd_sdk_shielded_pool::NoteCiphertext([8u8; 144]),
                                 },
                                 wrapped_memo_key: WrappedMemoKey([9u8; 48]),
                                 ovk_wrapped_key: OvkWrappedKey([10u8; 48]),
                             }],
+                            routing_tag: Default::default(),
+                            routing_parameter_set_id: decaf377::Fq::from(0u64),
+                            asset_anchor: shieldd_sdk_tct::StateCommitment(decaf377::Fq::from(0u64)),
                         },
                         auth_sigs: vec![[11u8; 64].into(), [12u8; 64].into()],
                         proof: shieldd_sdk_shielded_pool::NoteReshapeProof::default(),
@@ -927,6 +1209,7 @@ mod tests {
                                 )),
                                 encrypted_backref:
                                     shieldd_sdk_shielded_pool::EncryptedBackref::dummy(),
+                                history_required: false,
                             }],
                             outputs: vec![
                                 shieldd_sdk_shielded_pool::NoteReshapeOutputBody {
@@ -936,15 +1219,17 @@ mod tests {
                                         ),
                                         ephemeral_key: decaf377_ka::Public([17u8; 32]),
                                         encrypted_note: shieldd_sdk_shielded_pool::NoteCiphertext(
-                                            [18u8; 176],
+                                            [18u8; 144],
                                         ),
-                                        discovery_tag: Default::default(),
                                     },
                                     wrapped_memo_key: WrappedMemoKey([19u8; 48]),
                                     ovk_wrapped_key: OvkWrappedKey([20u8; 48]),
                                 };
                                 4
                             ],
+                            routing_tag: Default::default(),
+                            routing_parameter_set_id: decaf377::Fq::from(0u64),
+                            asset_anchor: shieldd_sdk_tct::StateCommitment(decaf377::Fq::from(0u64)),
                         },
                         auth_sigs: vec![[21u8; 64].into()],
                         proof: shieldd_sdk_shielded_pool::NoteReshapeProof::default(),
@@ -963,8 +1248,12 @@ mod tests {
                                             decaf377::Fr::from(24u64),
                                         )),
                                         encrypted_backref:
-                                            shieldd_sdk_shielded_pool::EncryptedBackref::dummy(),
+                                            shieldd_sdk_shielded_pool::EncryptedBackref::try_from(
+                                                [23u8; 48],
+                                            )
+                                            .expect("fixed-size encrypted backref"),
                                         compliance_ciphertext: vec![],
+                                        history_required: false,
                                     },
                                     shieldd_sdk_shielded_pool::TransferInputBody {
                                         nullifier: Nullifier(decaf377::Fq::from(25u64)),
@@ -972,8 +1261,12 @@ mod tests {
                                             decaf377::Fr::from(26u64),
                                         )),
                                         encrypted_backref:
-                                            shieldd_sdk_shielded_pool::EncryptedBackref::dummy(),
+                                            shieldd_sdk_shielded_pool::EncryptedBackref::try_from(
+                                                [25u8; 48],
+                                            )
+                                            .expect("fixed-size encrypted backref"),
                                         compliance_ciphertext: vec![],
+                                        history_required: false,
                                     },
                                 ],
                                 withdrawal: shieldd_sdk_shielded_pool::Ics20Withdrawal {
@@ -985,7 +1278,6 @@ mod tests {
                                         .expect("valid timeout height"),
                                     timeout_time: 1,
                                     source_channel: ibc_types::core::channel::ChannelId::new(7),
-                                    use_compat_address: false,
                                     ics20_memo: String::new(),
                                     use_transparent_address: false,
                                 },
@@ -998,9 +1290,8 @@ mod tests {
                                             ephemeral_key: decaf377_ka::Public([28u8; 32]),
                                             encrypted_note:
                                                 shieldd_sdk_shielded_pool::NoteCiphertext(
-                                                    [29u8; 176],
+                                                    [29u8; 144],
                                                 ),
-                                            discovery_tag: Default::default(),
                                         },
                                         wrapped_memo_key: WrappedMemoKey([30u8; 48]),
                                         ovk_wrapped_key: OvkWrappedKey([31u8; 48]),
@@ -1010,6 +1301,8 @@ mod tests {
                                     decaf377::Fq::from(32u64),
                                 ),
                                 asset_anchor: shieldd_sdk_tct::StateCommitment(decaf377::Fq::from(33u64)),
+                                routing_tag: Default::default(),
+                                routing_parameter_set_id: decaf377::Fq::from(0u64),
                             },
                             auth_sigs: vec![[34u8; 64].into(), [35u8; 64].into()],
                             proof: shieldd_sdk_shielded_pool::ShieldedIcs20WithdrawalProof::default(),
@@ -1022,6 +1315,23 @@ mod tests {
         };
 
         assert_eq!(tx.num_proofs(), 3);
+        assert_eq!(
+            tx.spent_nullifiers().collect::<Vec<_>>(),
+            [
+                Nullifier(decaf377::Fq::from(2u64)),
+                Nullifier(decaf377::Fq::from(4u64)),
+                Nullifier(decaf377::Fq::from(14u64)),
+                Nullifier(decaf377::Fq::from(23u64)),
+                Nullifier(decaf377::Fq::from(25u64)),
+            ],
+            "transaction-wide duplicate detection must see every fixed-slot \
+             NoteReshape and shielded-withdrawal nullifier"
+        );
+        assert_eq!(
+            tx.spent_nullifier_count(),
+            tx.spent_nullifiers().count(),
+            "mixed-family count must match the canonical iterator"
+        );
     }
 }
 
@@ -1080,6 +1390,12 @@ impl From<TransactionBody> for pbt::TransactionBody {
             transaction_parameters: Some(msg.transaction_parameters.into()),
             fee_funding: msg.fee_funding.map(Into::into),
             memo: msg.memo.map(Into::into),
+            nullifier_window: msg.nullifier_window.map(Into::into),
+            historical_nullifier_proofs: msg
+                .historical_nullifier_proofs
+                .into_iter()
+                .map(Into::into)
+                .collect(),
         }
     }
 }
@@ -1116,12 +1432,24 @@ impl TryFrom<pbt::TransactionBody> for TransactionBody {
             .try_into()
             .context("transaction parameters malformed")?;
 
-        Ok(TransactionBody {
+        let body = TransactionBody {
             actions,
             transaction_parameters,
             fee_funding,
             memo,
-        })
+            nullifier_window: proto
+                .nullifier_window
+                .map(TryInto::try_into)
+                .transpose()
+                .context("nullifier window malformed")?,
+            historical_nullifier_proofs: proto
+                .historical_nullifier_proofs
+                .into_iter()
+                .map(TryInto::try_into)
+                .collect::<Result<_, _>>()?,
+        };
+        body.validate_nullifier_history()?;
+        Ok(body)
     }
 }
 
@@ -1184,7 +1512,7 @@ impl TryFrom<&[u8]> for Transaction {
     type Error = Error;
 
     fn try_from(bytes: &[u8]) -> Result<Transaction, Self::Error> {
-        pbt::Transaction::decode(bytes)?.try_into()
+        Self::decode_canonical(bytes)
     }
 }
 

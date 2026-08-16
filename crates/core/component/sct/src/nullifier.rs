@@ -89,7 +89,8 @@ impl TryFrom<&[u8]> for Nullifier {
 
     fn try_from(slice: &[u8]) -> Result<Nullifier, Self::Error> {
         let bytes: [u8; 32] = slice[..].try_into()?;
-        let inner = Fq::from_bytes_checked(&bytes).expect("convert from bytes");
+        let inner = Fq::from_bytes_checked(&bytes)
+            .map_err(|_| anyhow::anyhow!("invalid nullifier field encoding"))?;
         Ok(Nullifier(inner))
     }
 }
@@ -162,5 +163,16 @@ impl NullifierVar {
         )?;
 
         Ok(NullifierVar { inner: nullifier })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn malformed_field_encoding_is_rejected_without_panicking() {
+        let invalid = [u8::MAX; 32];
+        assert!(Nullifier::try_from(invalid.as_slice()).is_err());
     }
 }

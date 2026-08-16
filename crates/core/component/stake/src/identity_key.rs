@@ -6,7 +6,8 @@ use shieldd_sdk_proto::{
     DomainType,
 };
 
-use decaf377_rdsa::{SpendAuth, VerificationKeyBytes};
+use decaf377_rdsa::{Signature, SpendAuth, VerificationKey, VerificationKeyBytes};
+use shieldd_sdk_keys::ensure_nonidentity_spend_auth_key;
 
 /// The length of an identity key in bytes.
 /// TODO(erwan): move this to the keys crate, one day.
@@ -23,11 +24,41 @@ pub const IDENTITY_KEY_LEN_BYTES: usize = 32;
 /// designed for custodying funds to protect their identity.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(try_from = "pb::IdentityKey", into = "pb::IdentityKey")]
-pub struct IdentityKey(pub VerificationKeyBytes<SpendAuth>);
+pub struct IdentityKey(VerificationKeyBytes<SpendAuth>);
 
 impl IdentityKey {
     pub fn to_bytes(&self) -> [u8; IDENTITY_KEY_LEN_BYTES] {
         self.0.into()
+    }
+
+    pub fn verification_key(&self) -> VerificationKey<SpendAuth> {
+        self.0
+            .try_into()
+            .expect("IdentityKey construction validates its encoding")
+    }
+
+    pub fn verify(&self, message: &[u8], signature: &Signature<SpendAuth>) -> anyhow::Result<()> {
+        let verification_key = self.verification_key();
+        ensure_nonidentity_spend_auth_key(&verification_key, "validator identity key")?;
+        Ok(verification_key.verify(message, signature)?)
+    }
+}
+
+impl TryFrom<VerificationKey<SpendAuth>> for IdentityKey {
+    type Error = anyhow::Error;
+
+    fn try_from(key: VerificationKey<SpendAuth>) -> Result<Self, Self::Error> {
+        ensure_nonidentity_spend_auth_key(&key, "validator identity key")?;
+        Ok(Self(key.into()))
+    }
+}
+
+impl TryFrom<VerificationKeyBytes<SpendAuth>> for IdentityKey {
+    type Error = anyhow::Error;
+
+    fn try_from(key: VerificationKeyBytes<SpendAuth>) -> Result<Self, Self::Error> {
+        let verification_key: VerificationKey<SpendAuth> = key.try_into()?;
+        verification_key.try_into()
     }
 }
 
@@ -74,6 +105,50 @@ impl From<IdentityKey> for pb::IdentityKey {
 impl TryFrom<pb::IdentityKey> for IdentityKey {
     type Error = anyhow::Error;
     fn try_from(ik: pb::IdentityKey) -> Result<Self, Self::Error> {
-        Ok(Self(ik.ik.as_slice().try_into()?))
+        let key: VerificationKeyBytes<SpendAuth> = ik.ik.as_slice().try_into()?;
+        key.try_into()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use decaf377::Fr;
+    use decaf377_rdsa::{SigningKey, SpendAuth, VerificationKey};
+
+    use super::*;
+
+    #[test]
+    fn validator_identity_key_rejects_identity() {
+        let signing_key = SigningKey::<SpendAuth>::from(Fr::from(0u64));
+        let verification_key = VerificationKey::from(&signing_key);
+        let signature = signing_key.sign_deterministic(b"validator definition");
+
+        let error = IdentityKey::try_from(verification_key)
+            .expect_err("validator identity keys must be nonidentity");
+        assert!(
+            error
+                .to_string()
+                .contains("validator identity key must not be identity"),
+            "unexpected rejection reason: {error:#}"
+        );
+
+        let proto = pb::IdentityKey {
+            ik: verification_key.to_bytes().to_vec(),
+        };
+        assert!(
+            IdentityKey::try_from(proto).is_err(),
+            "typed validator identity-key decode must reject identity"
+        );
+
+        let unchecked = IdentityKey(verification_key.into());
+        let verification_error = unchecked
+            .verify(b"validator definition", &signature)
+            .expect_err("validator-definition verification must reject identity defensively");
+        assert!(
+            verification_error
+                .to_string()
+                .contains("validator identity key must not be identity"),
+            "unexpected verification rejection: {verification_error:#}"
+        );
     }
 }

@@ -90,6 +90,7 @@ async fn app_can_transfer_notes_and_detect_new_notes() -> anyhow::Result<()> {
     let transfer = TransferPlan::new(vec![spend], vec![output, change], Fr::from(1u64))?;
 
     let mut plan = TransactionPlan {
+        nullifier_window: None,
         actions: vec![transfer.into()],
         memo: Some(MemoPlan::new(
             &mut OsRng,

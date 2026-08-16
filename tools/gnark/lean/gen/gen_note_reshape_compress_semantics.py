@@ -9,13 +9,14 @@ the exact row-0/row-1 operands; no flat/structured comparison theorem exists.
 
 from __future__ import annotations
 
-import json
 import re
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 
+import composite_recovery as canonical
 import compress_recovery as reviewed
+from formal_json import read_json_object
 from lean_zmod_instances import named_instance_block
 from write_if_changed import write_if_changed
 from template_ir import SegmentTemplate
@@ -23,10 +24,12 @@ from template_ir import SegmentTemplate
 
 ROOT = Path(__file__).resolve().parents[4]
 LEAN = ROOT / "tools/gnark/lean"
-IR = ROOT / "crates/core/component/shielded-pool/formal/note_reshape2x1-deployed-slice-ir.json"
+IR_DIR = ROOT / "crates/core/component/shielded-pool/formal"
 RELATIONS = LEAN / "ShielddGnarkFormal/Deployed/Templates/Relations"
 OUT = LEAN / "ShielddGnarkFormal/Deployed/Templates/Semantics"
 BENCH = LEAN / "bench"
+REGISTRY = ROOT / "tools/gnark/artifacts/proof-template-registry.json"
+INVENTORY = ROOT / "tools/gnark/artifacts/certified-template-inventory.json"
 ORDER = 8444461749428370424248824938781546531375899335154063827935233455917409239041
 ROW_COUNT = 1046
 BRIDGE_CHUNK_SIZE = reviewed.BRIDGE_CHUNK_SIZE
@@ -43,22 +46,51 @@ class Family:
     local_wire_count: int
     affine_delta: int
     head_mapping: tuple[int, ...]
+    instances: tuple[tuple[str, int], ...] = ()
+    constant_vector_sha256_hex: str | None = None
+    class_key: str | None = None
+    semantic_name: str | None = None
+    relation_name: str | None = None
+    row_offset: int = 0
+
+    @property
+    def semantic_stem(self) -> str:
+        return self.semantic_name or self.name
+
+    @property
+    def relation_stem(self) -> str:
+        return self.relation_name or self.name
 
     @property
     def namespace(self) -> str:
-        return f"Shieldd.GnarkFormal.Deployed.Templates.Semantics.{self.name}"
+        return (
+            "Shieldd.GnarkFormal.Deployed.Templates.Semantics."
+            f"{self.semantic_stem}"
+        )
 
     @property
     def module(self) -> str:
-        return f"ShielddGnarkFormal.Deployed.Templates.Semantics.{self.name}"
+        return (
+            "ShielddGnarkFormal.Deployed.Templates.Semantics."
+            f"{self.semantic_stem}"
+        )
 
     @property
     def relation_namespace(self) -> str:
-        return f"Shieldd.GnarkFormal.Deployed.Templates.Relations.{self.name}"
+        return (
+            "Shieldd.GnarkFormal.Deployed.Templates.Relations."
+            f"{self.relation_stem}"
+        )
 
     @property
     def relation_module(self) -> str:
-        return f"ShielddGnarkFormal.Deployed.Templates.Relations.{self.name}"
+        return (
+            "ShielddGnarkFormal.Deployed.Templates.Relations."
+            f"{self.relation_stem}"
+        )
+
+    def relation_row(self, local_row: int) -> int:
+        return self.row_offset + local_row
 
 
 FAMILIES = (
@@ -68,6 +100,61 @@ FAMILIES = (
         706,
         -207,
         (2, 4, 5, 6, 7, 8, 9, 10, 15, 12, 11, 13, 14, 16, 17, 18, 19, 20, 21, 22, 23),
+        instances=(
+            ("note_reshape1x8", 5),
+            ("note_reshape1x8", 11),
+            ("note_reshape1x8", 13),
+            ("note_reshape1x8", 37),
+            ("note_reshape8x1", 15),
+            ("note_reshape8x1", 21),
+            ("note_reshape8x1", 23),
+            ("note_reshape8x1", 50),
+            ("note_reshape8x1", 65),
+            ("note_reshape8x1", 80),
+            ("note_reshape8x1", 95),
+            ("note_reshape8x1", 110),
+            ("note_reshape8x1", 125),
+            ("note_reshape8x1", 140),
+            ("note_reshape8x1", 155),
+            ("shielded_ics20_withdrawal", 5),
+            ("shielded_ics20_withdrawal", 32),
+            ("shielded_ics20_withdrawal", 43),
+            ("transfer", 12),
+            ("transfer", 13),
+            ("transfer", 18),
+            ("transfer", 20),
+            ("transfer", 40),
+            ("transfer", 55),
+            ("transfer", 61),
+            ("transfer", 62),
+            ("transfer", 92),
+            ("transfer", 93),
+            ("transfer", 94),
+            ("transfer", 95),
+            ("transfer", 124),
+        ),
+        constant_vector_sha256_hex=(
+            "11ddec3e6e8ca12b88b3a377dc3c7db9"
+            "e845f13fdabafade282b22632f5834e9"
+        ),
+        class_key="decaf.compress_to_field@c7b7aeec064cedd7",
+    ),
+    Family(
+        "decaf.compress_to_field@cb894e50f7cc665026bb25271f9bec0190867613208193b18d883d11ce856a46",
+        "TDecafCompressToField_cb894e50f7cc665026bb25271f9bec0190867613208193b18d883d11ce856a46",
+        708,
+        -205,
+        (3, 6, 7, 8, 9, 10, 11, 12, 17, 14, 13, 15, 16, 18, 19, 20, 21, 22, 23, 24, 25),
+        instances=(
+            ("note_reshape1x8", 9),
+            ("note_reshape8x1", 19),
+            ("shielded_ics20_withdrawal", 8),
+        ),
+        constant_vector_sha256_hex=(
+            "0ccbd51aa951ae46343bd2029997e607b"
+            "db411f8fd1ebcd41149d224d0244467"
+        ),
+        class_key="decaf.compress_to_field@8061730e89042f34",
     ),
     Family(
         "decaf.compress_to_field@f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e",
@@ -75,6 +162,16 @@ FAMILIES = (
         1205,
         292,
         (252, 503, 504, 505, 506, 507, 508, 509, 514, 511, 510, 512, 513, 515, 516, 517, 518, 519, 520, 521, 522),
+        instances=(
+            ("note_reshape1x8", 74),
+            ("note_reshape8x1", 164),
+            ("shielded_ics20_withdrawal", 58),
+        ),
+        constant_vector_sha256_hex=(
+            "61f670d190050635888383bb8cd74d65"
+            "1f5811d04ef2e0fa84317ba9fe733b9f"
+        ),
+        class_key="decaf.compress_to_field@aaf77ee7e9fa9bd1",
     ),
 )
 
@@ -84,45 +181,210 @@ COMMON_NAMESPACE = "Shieldd.GnarkFormal.Deployed.Templates.Semantics.CompressToF
 COMMON_MODULE = "ShielddGnarkFormal.Deployed.Templates.Semantics.CompressToFieldCommon"
 
 
-def _segment(family: Family) -> dict:
-    ir = json.loads(IR.read_text())
-    matches = [
-        segment
-        for segment in ir["segments"]
-        if segment.get("proof_template_id") == family.key
-        and segment.get("op") == "decaf.compress_to_field"
+def _operation_entries(payload: dict, key_field: str) -> list[dict]:
+    entries = payload.get("templates")
+    if not isinstance(entries, list):
+        raise ValueError("compress template roster is not an array")
+    return [
+        entry
+        for entry in entries
+        if isinstance(entry, dict)
+        and (
+            entry.get("op") == "decaf.compress_to_field"
+            or str(entry.get(key_field, "")).startswith(
+                "decaf.compress_to_field@"
+            )
+        )
     ]
-    if not matches:
-        raise ValueError(f"missing deployed representative for {family.key}")
-    pins = {
-        "constraint_count": ROW_COUNT,
-    }
-    for segment in matches:
-        for field, expected in pins.items():
-            if segment.get(field) != expected:
-                raise ValueError(f"{family.key}: {field} drifted from {expected}")
-        seating = SegmentTemplate.parse(segment).canonical_wire_seating
-        if len(seating) != family.local_wire_count or len(set(seating)) != len(seating):
-            raise ValueError(f"{family.key}: non-injective normalized seating")
-    return min(matches, key=lambda item: item["template_equivalence_witness"]["witness_sha256_hex"])
+
+
+def _validate_registry_payload(payload: dict) -> None:
+    entries = _operation_entries(payload, "proof_template_id")
+    expected_keys = {family.key for family in FAMILIES}
+    keys = [entry.get("proof_template_id") for entry in entries]
+    if len(keys) != len(set(keys)) or set(keys) != expected_keys:
+        raise ValueError(
+            "compress registry key roster drifted: "
+            f"{sorted(keys)!r} != {sorted(expected_keys)!r}"
+        )
+    by_key = {entry["proof_template_id"]: entry for entry in entries}
+    for family in FAMILIES:
+        digest = family.key.split("@", 1)[1]
+        expected = {
+            "op": "decaf.compress_to_field",
+            "canonical_relation_sha256_hex": digest,
+            "canonical_relation_file": (
+                f"proof-template-relations/{digest}.sr1cs.gz"
+            ),
+            "row_count": ROW_COUNT,
+            "local_wire_count": family.local_wire_count,
+        }
+        for field, value in expected.items():
+            if by_key[family.key].get(field) != value:
+                raise ValueError(
+                    f"{family.key}: registry {field} drifted"
+                )
+
+
+def _validate_inventory_payload(payload: dict) -> None:
+    entries = _operation_entries(payload, "template_key")
+    expected_keys = {family.key for family in FAMILIES}
+    keys = [entry.get("template_key") for entry in entries]
+    if len(keys) != len(set(keys)) or set(keys) != expected_keys:
+        raise ValueError(
+            "compress inventory key roster drifted: "
+            f"{sorted(keys)!r} != {sorted(expected_keys)!r}"
+        )
+    by_key = {entry["template_key"]: entry for entry in entries}
+    for family in FAMILIES:
+        if (
+            family.constant_vector_sha256_hex is None
+            or family.class_key is None
+            or not family.instances
+        ):
+            raise ValueError(f"{family.key}: active deployment manifest absent")
+        circuits = list(
+            dict.fromkeys(circuit for circuit, _ in family.instances)
+        )
+        expected = {
+            "template_key": family.key,
+            "op": "decaf.compress_to_field",
+            "normalized_relation_sha256_hex": family.key.split("@", 1)[1],
+            "constraint_count": ROW_COUNT,
+            "local_wire_count": family.local_wire_count,
+            "circuits": circuits,
+            "distinct_constant_vectors": 1,
+            "representative": {
+                "circuit": family.instances[0][0],
+                "segment_index": family.instances[0][1],
+            },
+        }
+        entry = by_key[family.key]
+        for field, value in expected.items():
+            if entry.get(field) != value:
+                raise ValueError(
+                    f"{family.key}: inventory {field} drifted"
+                )
+        expected_instances = [
+            {
+                "circuit": circuit,
+                "segment_index": segment,
+                "constraint_count": ROW_COUNT,
+                "constant_vector_sha256_hex": (
+                    family.constant_vector_sha256_hex
+                ),
+                "class_key": family.class_key,
+            }
+            for circuit, segment in family.instances
+        ]
+        if entry.get("instances") != expected_instances:
+            raise ValueError(f"{family.key}: inventory instances drifted")
+
+
+def _validate_active_roster() -> None:
+    _validate_registry_payload(read_json_object(REGISTRY, canonical="pretty"))
+    _validate_inventory_payload(
+        read_json_object(INVENTORY, canonical="pretty")
+    )
+
+
+@lru_cache(maxsize=None)
+def _circuit_ir(circuit: str) -> dict:
+    return read_json_object(
+        IR_DIR / f"{circuit}-deployed-slice-ir.json",
+        canonical="pretty",
+    )
+
+
+def _segment(family: Family) -> dict:
+    """Validate every certified active instance and return its representative."""
+
+    expected_by_circuit: dict[str, list[int]] = {}
+    for circuit, segment in family.instances:
+        expected_by_circuit.setdefault(circuit, []).append(segment)
+    found: dict[tuple[str, int], dict] = {}
+    digest = family.key.split("@", 1)[1]
+    for circuit, expected_indices in expected_by_circuit.items():
+        matches = [
+            segment
+            for segment in _circuit_ir(circuit)["segments"]
+            if segment.get("proof_template_id") == family.key
+        ]
+        actual_indices = [segment.get("index") for segment in matches]
+        if actual_indices != expected_indices:
+            raise ValueError(
+                f"{family.key}/{circuit}: active segment roster drifted: "
+                f"{actual_indices!r} != {expected_indices!r}"
+            )
+        for segment in matches:
+            if (
+                segment.get("op") != "decaf.compress_to_field"
+                or segment.get("constraint_count") != ROW_COUNT
+                or segment.get("deployed_normalized_relation_sha256_hex")
+                != digest
+            ):
+                raise ValueError(
+                    f"{family.key}/{circuit}: active segment shape drifted"
+                )
+            template = SegmentTemplate.parse(segment)
+            seating = template.canonical_wire_seating
+            if (
+                template.proof_template_id != family.key
+                or len(seating) != family.local_wire_count
+                or seating[0] != 0
+                or len(set(seating)) != len(seating)
+            ):
+                raise ValueError(
+                    f"{family.key}/{circuit}: normalized seating drifted"
+                )
+            found[(circuit, segment["index"])] = segment
+    try:
+        return found[family.instances[0]]
+    except KeyError as error:
+        raise ValueError(
+            f"{family.key}: active representative is absent"
+        ) from error
 
 
 def _relation_source(family: Family) -> str:
-    paths = sorted(RELATIONS.glob(f"{family.name}*.lean"))
+    paths = sorted(RELATIONS.glob(f"{family.relation_stem}*.lean"))
     if not paths:
         raise ValueError(f"missing normalized relation modules for {family.key}")
     return "\n".join(path.read_text() for path in paths)
 
 
-def _rows(source: str) -> dict[int, str]:
-    rows = {
+def relation_rows(
+    source: str,
+    row_start: int = 0,
+    row_count: int = ROW_COUNT,
+) -> dict[int, str]:
+    """Parse one contiguous row window from a normalized relation.
+
+    Whole-operation providers use the default 1,046-row relation. Composite
+    providers use this same reviewed proof backend against an embedded
+    compress prefix while retaining the parent relation's row identifiers.
+    """
+    all_rows = {
         int(match.group(1)): match.group(2).strip()
         for match in re.finditer(
-            r"def relationRow(\d+) \(rho : Nat -> F\) : Prop :=\n(.*?)(?=\n\ndef |\n\nend )",
+            r"def relationRow(\d+) \(rho : Nat -> F\) : Prop :=\n"
+            r"(.*?)(?=\n\ndef |\n\nend )",
             source,
             re.S,
         )
     }
+    expected = set(range(row_start, row_start + row_count))
+    if not expected <= all_rows.keys():
+        missing = sorted(expected - all_rows.keys())
+        raise ValueError(
+            "normalized relation row window is incomplete: "
+            f"start={row_start} count={row_count} missing={missing[:8]}"
+        )
+    return {row: all_rows[row] for row in sorted(expected)}
+
+
+def _rows(source: str) -> dict[int, str]:
+    rows = relation_rows(source)
     if set(rows) != set(range(ROW_COUNT)):
         raise ValueError(f"normalized compress relation has {len(rows)} non-contiguous rows")
     return rows
@@ -131,7 +393,7 @@ def _rows(source: str) -> dict[int, str]:
 @lru_cache(maxsize=None)
 def _relation_lc_graph(family: Family) -> tuple[dict[int, str], dict[str, str]]:
     source = _relation_source(family)
-    rows = _rows(source)
+    rows = relation_rows(source, family.row_offset)
     definitions = {
         match.group(1): match.group(2)
         for match in re.finditer(
@@ -224,6 +486,28 @@ def _parts(source: str) -> list[list[int]]:
     flattened = [row for part in parts for row in part]
     if flattened != list(range(ROW_COUNT)):
         raise ValueError("normalized compress relation parts do not cover rows exactly once")
+    return parts
+
+
+def relation_parts(source: str) -> list[list[int]]:
+    """Parse every normalized relation part without assuming a row count."""
+    found: dict[int, list[int]] = {}
+    for match in re.finditer(
+        r"def relationPart(\d+) \(rho : Nat -> F\) : Prop :=\n"
+        r"(.*?)(?=\n\ndef |\n\nend )",
+        source,
+        re.S,
+    ):
+        found[int(match.group(1))] = [
+            int(row)
+            for row in re.findall(r"relationRow(\d+) rho", match.group(2))
+        ]
+    if not found or set(found) != set(range(len(found))):
+        raise ValueError("normalized relation parts are absent or non-contiguous")
+    parts = [found[index] for index in range(len(found))]
+    flattened = [row for part in parts for row in part]
+    if flattened != list(range(len(flattened))):
+        raise ValueError("normalized relation parts do not cover rows exactly once")
     return parts
 
 
@@ -354,6 +638,91 @@ def _wire_mapping(family: Family) -> dict[int, int]:
     return mapping
 
 
+def _substitute_lc(
+    value: canonical.Lc,
+    substitutions: dict[int, canonical.Lc],
+) -> canonical.Lc:
+    result: canonical.Lc = {}
+    for wire, coefficient in value.items():
+        try:
+            replacement = substitutions[wire]
+        except KeyError as error:
+            raise ValueError(
+                f"compress reference wire {wire} has no normalized mapping"
+            ) from error
+        for target, target_coefficient in replacement.items():
+            combined = (
+                result.get(target, 0)
+                + coefficient * target_coefficient
+            ) % ORDER
+            if combined:
+                result[target] = combined
+            else:
+                result.pop(target, None)
+    return result
+
+
+def _validate_normalized_layouts() -> None:
+    """Prove every active row is the reviewed layout under exact operands."""
+
+    reference = FAMILIES[0]
+    reference_digest = reference.key.split("@", 1)[1]
+    reference_rows = canonical.rows(reference_digest)
+    reference_mapping = _wire_mapping(reference)
+    reference_inverse = {
+        local: reviewed_wire
+        for reviewed_wire, local in reference_mapping.items()
+    }
+    if len(reference_rows) != ROW_COUNT:
+        raise ValueError("compress reference row count drifted")
+
+    for family in FAMILIES:
+        digest = family.key.split("@", 1)[1]
+        target_rows = canonical.rows(digest)
+        if len(target_rows) != ROW_COUNT:
+            raise ValueError(f"{family.key}: canonical row count drifted")
+        if canonical.used_wires(target_rows) != set(
+            range(family.local_wire_count)
+        ):
+            raise ValueError(
+                f"{family.key}: canonical local-wire domain drifted"
+            )
+        mapping = _wire_mapping(family)
+        input_x = target_rows[0][0]
+        input_y = target_rows[1][0]
+        if target_rows[0][1] != input_x or target_rows[1][1] != input_y:
+            raise ValueError(
+                f"{family.key}: coordinate square operands drifted"
+            )
+        substitutions: dict[int, canonical.Lc] = {
+            0: {0: 1},
+            1: input_x,
+            3: input_y,
+        }
+        for wire in canonical.used_wires(reference_rows):
+            if wire in substitutions:
+                continue
+            try:
+                reviewed_wire = reference_inverse[wire]
+            except KeyError as error:
+                raise ValueError(
+                    f"compress reference local wire {wire} is not reviewed"
+                ) from error
+            substitutions[wire] = {mapping[reviewed_wire]: 1}
+        for row, (source_row, target_row) in enumerate(
+            zip(reference_rows, target_rows, strict=True)
+        ):
+            specialized = tuple(
+                _substitute_lc(side, substitutions)
+                for side in source_row
+            )
+            if specialized != target_row:
+                raise ValueError(
+                    f"{family.key}: reviewed 1,046-row layout drifted "
+                    f"at row {row}"
+                )
+
+
 def _rho_definition(family: Family, mapping: dict[int, int], x: str, y: str) -> list[str]:
     delta = next(iter({mapping[wire] - wire for wire in range(231, 913)}))
     lines = [
@@ -412,7 +781,10 @@ def _recomp_lemma(
 
 
 def _chunks(family: Family, rows: dict[int, str], mapping: dict[int, int]) -> str:
-    x, y = _coordinate_operand(family, rows[0]), _coordinate_operand(family, rows[1])
+    x, y = (
+        _coordinate_operand(family, rows[family.relation_row(0)]),
+        _coordinate_operand(family, rows[family.relation_row(1)]),
+    )
     lines = [
         GENERATED.rstrip(),
         f"import {BINARY_MODULE}",
@@ -442,7 +814,11 @@ def _chunks(family: Family, rows: dict[int, str], mapping: dict[int, int]) -> st
         "",
     ]
     lines.extend(_rho_definition(family, mapping, x, y))
-    for which, row, base, inp in ((1, 281, 231, 230), (2, 791, 573, 572)):
+    for which, local_row, base, inp in (
+        (1, 281, 231, 230),
+        (2, 791, 573, 572),
+    ):
+        row = family.relation_row(local_row)
         chunks = _relation_lc_chunks(family, row)
         root = _relation_lc_root(family, row)
         for index, (name, width, offset) in enumerate(chunks):
@@ -524,8 +900,12 @@ def _base(family: Family, rows: dict[int, str], parts: list[list[int]], mapping:
             "",
         ]
     )
-    _recomp_lemma(lines, family, parts, 1, 281, 231, 230)
-    _recomp_lemma(lines, family, parts, 2, 791, 573, 572)
+    _recomp_lemma(
+        lines, family, parts, 1, family.relation_row(281), 231, 230
+    )
+    _recomp_lemma(
+        lines, family, parts, 2, family.relation_row(791), 573, 572
+    )
     lines.append(f"end {family.namespace}")
     return "\n".join(lines) + "\n"
 
@@ -537,7 +917,10 @@ def _row_chunk(
     parts: list[list[int]],
 ) -> str:
     exact = family.relation_namespace
-    rows = [reviewed.bridge_row_for_hyp(hyp) for hyp, _ in chunk]
+    rows = [
+        family.relation_row(reviewed.bridge_row_for_hyp(hyp))
+        for hyp, _ in chunk
+    ]
     indices = _part_indices(parts, rows)
     lines = [
         GENERATED.rstrip(),
@@ -565,7 +948,7 @@ def _row_chunk(
     _unpack_parts(lines, family, parts, indices)
     lines.append("  refine ⟨" + ", ".join("?_" for _ in chunk) + "⟩")
     for hyp, _ in chunk:
-        row = reviewed.bridge_row_for_hyp(hyp)
+        row = family.relation_row(reviewed.bridge_row_for_hyp(hyp))
         lc_names = _relation_lc_names(family, row)
         lc_simp = _relation_lc_simp(family, row)
         # `-mul_eq_zero` drops the global `@[simp]` lemma from the default set:
@@ -645,13 +1028,16 @@ def _head(family: Family, hyps: list[tuple[int, str]], parts: list[list[int]]) -
         ]
     )
     for index, hyp_chunk in enumerate(chunks):
-        rows = [reviewed.bridge_row_for_hyp(hyp) for hyp, _ in hyp_chunk]
+        rows = [
+            family.relation_row(reviewed.bridge_row_for_hyp(hyp))
+            for hyp, _ in hyp_chunk
+        ]
         args = " ".join(f"p{part}" for part in _part_indices(parts, rows))
         lines.append(f"    (rows{index} rho {args})")
     lines.extend(
         [
-            f"    (hrec1 rho p{_part_indices(parts, [281])[0]})",
-            f"    (hrec2 rho p{_part_indices(parts, [791])[0]})",
+            f"    (hrec1 rho p{_part_indices(parts, [family.relation_row(281)])[0]})",
+            f"    (hrec2 rho p{_part_indices(parts, [family.relation_row(791)])[0]})",
             "    rfl",
             "",
             f"end {family.namespace}",
@@ -670,6 +1056,8 @@ def benchmark_candidates() -> tuple[Path, ...]:
 
 
 def generated_files() -> dict[Path, str]:
+    _validate_active_roster()
+    _validate_normalized_layouts()
     hyps = reviewed.parse_bridge_hyps()
     reviewed.validate_bridge_hyps(hyps)
     hyp_chunks = reviewed.chunks(hyps, BRIDGE_CHUNK_SIZE)

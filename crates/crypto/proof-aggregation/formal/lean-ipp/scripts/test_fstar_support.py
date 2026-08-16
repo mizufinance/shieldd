@@ -89,6 +89,20 @@ class FstarSupportInstallerTests(unittest.TestCase):
                     proof.read_text(encoding="utf-8"),
                 )
 
+    def test_family_boundaries_install_checked_try_from_instances(self):
+        driver = (repository_root() / "scripts/snarkpack-formal.sh").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("impl_NoteReshapeFamilyId__try_from", driver)
+        self.assertIn(
+            "impl_ShieldedIcs20WithdrawalFamilyId__try_from", driver
+        )
+        withdrawal_instance = driver.split(
+            "let impl_ShieldedIcs20WithdrawalFamilyId__try_from:", maxsplit=1
+        )[1].split("\nFSTAR", maxsplit=1)[0]
+        self.assertIn("if x =. mk_u32 1", withdrawal_instance)
+        self.assertNotIn("assume val", withdrawal_instance)
+
 
 if __name__ == "__main__":
     unittest.main()

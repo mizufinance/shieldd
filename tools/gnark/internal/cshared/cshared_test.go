@@ -1,6 +1,8 @@
 package cshared
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"unsafe"
@@ -70,5 +72,19 @@ func TestRegistryAddGetDelete(t *testing.T) {
 	registry.Delete(handle)
 	if _, ok := registry.Get(handle); ok {
 		t.Fatal("expected deleted handle to be absent")
+	}
+}
+
+func TestLoadProvingKeyFromBytesRejectsTrailingBytes(t *testing.T) {
+	path := filepath.Join("..", "..", "artifacts", "note_reshape1x8", "proving_key.bin")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read committed proving key: %v", err)
+	}
+	if _, err := loadProvingKeyFromBytes(data); err != nil {
+		t.Fatalf("load canonical proving key: %v", err)
+	}
+	if _, err := loadProvingKeyFromBytes(append(data, 0x42)); err == nil {
+		t.Fatal("proving key with trailing byte must fail")
 	}
 }

@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-const noteReshapeManifestSHA256 = "b3dcc5116d494826d1a233fd5454163644b5019a48ddf3bef648e3d2cd4dc0bc"
+const noteReshapeManifestSHA256 = "a521a23aecf101dbdcba0c5117abdd63a9f3ad596812a31626850fcb199bcf22"
 
 type noteReshapeManifest struct {
 	Schema   string                      `json:"schema"`

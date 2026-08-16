@@ -250,7 +250,7 @@ impl<T: Terminal> Threshold<T> {
     ///
     /// This is just to match the API of the custody trait.
     fn confirm_address(&self, index: AddressIndex) -> Address {
-        self.config.fvk().payment_address(index).0
+        self.config.fvk().payment_address(index)
     }
 }
 
@@ -573,13 +573,11 @@ mod test {
         let sender = coordinator_config
             .fvk()
             .incoming()
-            .payment_address(0u32.into())
-            .0;
+            .payment_address(0u32.into());
         let recipient = coordinator_config
             .fvk()
             .incoming()
-            .payment_address(1u32.into())
-            .0;
+            .payment_address(1u32.into());
         let value = shieldd_sdk_asset::Value {
             amount: 1_000u64.into(),
             asset_id: *shieldd_sdk_asset::BASE_ASSET_ID,
@@ -615,6 +613,13 @@ mod test {
             memo: None,
             fee_funding: None,
             transaction_parameters: shieldd_sdk_transaction::TransactionParameters::default(),
+            nullifier_window: Some(shieldd_sdk_sct::nullifier_generation::NullifierWindow {
+                protocol_version: shieldd_sdk_sct::nullifier_generation::PROTOCOL_VERSION,
+                current_generation: 0,
+                recent_position_floor: 0,
+                archived_generation_count: 0,
+                archived_history_head: shieldd_sdk_sct::nullifier_generation::empty_history_head(),
+            }),
         };
         let fvk = coordinator_config.fvk().clone();
         let authorization_data = Threshold::new(coordinator_config, coordinator_terminal)
@@ -630,24 +635,11 @@ mod test {
                 .effect_hash
                 .expect("effect hash not present")
         );
-        let spend_randomizers = plan.actions.iter().flat_map(|action| match action {
-            shieldd_sdk_transaction::ActionPlan::Transfer(plan) => plan
-                .spends
-                .iter()
-                .map(|spend| spend.randomizer)
-                .collect::<Vec<_>>(),
-            shieldd_sdk_transaction::ActionPlan::NoteReshape(plan) => plan
-                .spends
-                .iter()
-                .map(|spend| spend.randomizer)
-                .collect::<Vec<_>>(),
-            shieldd_sdk_transaction::ActionPlan::ShieldedIcs20Withdrawal(plan) => plan
-                .spends
-                .iter()
-                .map(|spend| spend.randomizer)
-                .collect::<Vec<_>>(),
-            _ => Vec::new(),
-        });
+        let spend_randomizers = plan
+            .actions
+            .iter()
+            .flat_map(|action| action.spends())
+            .map(|spend| spend.randomizer);
         for (randomizer, sig) in spend_randomizers.zip(tx_authorization_data.spend_auths) {
             fvk.spend_verification_key().randomize(&randomizer).verify(
                 tx_authorization_data

@@ -3,19 +3,19 @@
 
 from __future__ import annotations
 
-import json
 import re
 from dataclasses import dataclass
 from functools import cache
 from pathlib import Path
 
 import rvk_recovery as rvk
+from formal_json import read_json_object
 from template_ir import SegmentTemplate
 
 
 ROOT = Path(__file__).resolve().parents[4]
 LEAN = ROOT / "tools/gnark/lean"
-IR = ROOT / "crates/core/component/shielded-pool/formal/note_reshape2x1-deployed-slice-ir.json"
+IR = ROOT / "crates/core/component/shielded-pool/formal/note_reshape1x8-deployed-slice-ir.json"
 FORMAL_ROOT = LEAN / "ShielddGnarkFormal"
 RELATIONS = LEAN / "ShielddGnarkFormal/Deployed/Templates/Relations"
 OUT = LEAN / "ShielddGnarkFormal/Deployed/Templates/Semantics"
@@ -103,7 +103,7 @@ def _flat_shadow(source: str) -> str:
 
 
 def _segment() -> dict:
-    ir = json.loads(IR.read_text())
+    ir = read_json_object(IR, canonical="pretty")
     matches = [
         segment for segment in ir["segments"]
         if segment.get("proof_template_id") == KEY
@@ -186,10 +186,11 @@ local instance : Fact (Nat.Prime Order) :=
   ⟨Shieldd.GnarkFormal.Deployed.decaf377ScalarFieldPrime⟩
 
 def spec (rho : Nat → F) : Prop :=
-  EdwardsBridge.onCurve ⟨rho 1807, rho 1808⟩ →
-    Shieldd.GnarkFormal.Decaf377Assumptions.RandomizedVerificationKeySpec
-      ⟨rho 1807, rho 1808⟩ (rho 252) ⟨rho 1813, rho 1814⟩ ∧
-    EdwardsBridge.onCurve ⟨rho 1813, rho 1814⟩
+  (rho 252).val < 2 ^ 251 ∧
+    (EdwardsBridge.onCurve ⟨rho 1807, rho 1808⟩ →
+      Shieldd.GnarkFormal.Decaf377Assumptions.RandomizedVerificationKeySpec
+        ⟨rho 1807, rho 1808⟩ (rho 252) ⟨rho 1813, rho 1814⟩ ∧
+      EdwardsBridge.onCurve ⟨rho 1813, rho 1814⟩)
 
 end {NAMESPACE}
 """
@@ -616,6 +617,7 @@ def _rewrite(source: str) -> str:
     source = source.replace("Seg15.F", "F")
     source = source.replace("Seg15.", RELATION + ".")
     source = source.replace("seg15", "rvk")
+    is_provider = "theorem rvk_sound " in source
     source = source.replace("theorem rvk_sound ", "theorem sound ")
     source = source.replace(
         f"(h : {RELATION}.relation rho) : {RELATION}.spec rho := by",
@@ -624,6 +626,22 @@ def _rewrite(source: str) -> str:
     source = source.replace(
         f"  unfold {RELATION}.spec Specs.deployedSpec15", "  unfold spec"
     )
+    old_sound_prefix = """  unfold spec
+  intro hak
+  have hbin := rvkRvkBits_toBinary rho h
+"""
+    new_sound_prefix = """  unfold spec
+  have hbin := rvkRvkBits_toBinary rho h
+  have hscalarRange :=
+    Shieldd.GnarkFormal.ChoiceFreeBinary.range_of_to_binary
+      Shieldd.GnarkFormal.ScalarMulBridge.pow251_lt_order hbin
+  refine ⟨hscalarRange, ?_⟩
+  intro hak
+"""
+    if is_provider:
+        if source.count(old_sound_prefix) != 1:
+            raise ValueError("normalized RVK soundness prefix drifted")
+        source = source.replace(old_sound_prefix, new_sound_prefix, 1)
     classical_bit_model = f"""  rw [Gates.to_binary_iff_eq_fin_to_bits_le_of_pow_length_lt
     (N := Shieldd.GnarkFormal.Extracted.DecafEdwardsAdd.Order)
     Shieldd.GnarkFormal.ScalarMulBridge.pow251_lt_order] at hbin

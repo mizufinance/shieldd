@@ -16,14 +16,14 @@ begin
      result DLEQ-FS-KNOWLEDGE-SOUNDNESS (lean-dleq); Tamarin does not redo
      Schnorr algebra. Its residuals are CC-ASSUME-POSEIDON-RO and
      CC-ASSUME-DECAF377-PRIME-ORDER-GROUP.
-  2. CONFIDENTIALITY IS OUT OF SCOPE here and is NOT proved by any lemma. The
-     seed/plaintext is masked by a DH shared secret (ss = ack*epk,
-     crypto.rs:258/347) and a Poseidon tier keystream (CC-ASSUME-POSEIDON-STREAM).
-     Because s_point = r*ACK is PUBLISHED (crypto.rs:195), s_point secrecy is
-     false by construction; a naive SECRECY lemma would be unsound, so none is
-     asserted. Confidentiality stays a computational obligation carried by the
-     assumption ledger + CC-ASSUME-POSEIDON-STREAM. This model proves
-     INTEGRITY / BINDING only.
+  2. CONFIDENTIALITY IS OUT OF SCOPE here and is NOT proved by any lemma.
+     Moreover, the current concrete transport is not confidential:
+     s_point = r*ACK is published inside the upload bundle, and that point is
+     the AES-KDF input for an envelope containing the tier seed. On unflagged
+     tiers it is also the public c2 mask. Thus the serialized system has a
+     concrete seed-recovery attack (`CC-FIND-PUBLIC-SHARED-POINT`), not merely a
+     residual computational assumption. This model proves INTEGRITY / BINDING
+     only.
   3. The cryptographic transcript terms (mkproof/3, metadata/4) are free
      function symbols with no equational theory beyond pairing — i.e. proofs and
      metadata are opaque, collision-free constructors. The attacker can copy,
@@ -58,14 +58,13 @@ begin
   ----------------------------------------------------------------------------
   Explicitly OUT OF SCOPE for this model (do not add without a faithful submodel)
   ----------------------------------------------------------------------------
-  Seed/plaintext CONFIDENTIALITY is NOT modeled here. The seed is masked by a DH
-  shared secret (ss = ack*epk, crypto.rs:258/347) and the tier bytes by a
-  Poseidon keystream (CC-ASSUME-POSEIDON-STREAM). Because s_point = r*ACK is
-  published, a faithful secrecy model must rest confidentiality on the tier
-  keystream / masking submodel, not on s_point secrecy. That submodel is not
-  captured yet, so no SECRECY lemma is asserted here -- adding a naive one would
-  be unsound. Confidentiality stays a computational obligation (ledger +
-  Poseidon-stream assumption). This model covers integrity/binding only.
+  Seed/plaintext CONFIDENTIALITY is NOT modeled here. Publishing s_point =
+  r*ACK already publishes the AES-KDF input for the encrypted seed envelope;
+  for unflagged tiers it also publishes the c2 mask. The Poseidon tier
+  keystream cannot restore confidentiality once its seed is recovered. No
+  SECRECY lemma is asserted here; a faithful replacement must model a
+  redesigned transport in which the DH point or any equivalent seed opener is
+  unavailable to the attacker. This model covers integrity/binding only.
 */
 
 functions:

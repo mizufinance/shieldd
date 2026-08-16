@@ -9,7 +9,7 @@ This note describes the current shielded-action artifact boundary between Rust a
 | --- | --- | --- |
 | Public inputs | Rust `TransferProofPublic` | Rust structs, flattened to one statement-hash field |
 | Private witness | Rust `TransferProofPrivate` | Rust structs |
-| Witness payload | Rust witness encoder | `TransferWitnessV1` binary payload |
+| Witness payload | Rust witness encoder | `TransferWitnessV18` binary payload |
 | Constraint system | Go / gnark | gnark `R1CS` |
 | Proving key | Go / gnark artifact bundle | gnark Groth16 proving key |
 | Verifying key | Rust canonical verification path | gnark VK represented as Rust `PreparedVerifyingKey<Bls12_377>` |
@@ -45,3 +45,17 @@ surfaces. Those are no longer the live model:
 - the checked-in gnark artifact bundle is canonical for the active transfer surface
 - Arkworks references remain only for explicit comparison tests and legacy
   non-migrated proof families
+
+## Historical nullifier proof fixtures
+
+`historical_generation_indexed_v2` is a separate unsafe development bundle:
+
+| Artifact | Curve / format | Purpose |
+| --- | --- | --- |
+| Generation VK and sample proof | BLS12-377, standard Groth16, 192 bytes | One fixed depth-20 Poseidon indexed-tree nonmembership proof |
+| Chunk VK and sample proof | BW6-761, gnark Groth16 + BSB22 commitment data, 480 bytes | Verify ten ordered generation proofs while hiding their roots and SCT ranges |
+
+Rust decodes the JSON points into Arkworks types and verifies the exact
+gnark-produced samples. These artifacts have `unsafe_test_setup: true`; they are
+not part of the canonical shielded-action runtime and must be replaced by
+ceremony-backed release bundles before protocol activation.

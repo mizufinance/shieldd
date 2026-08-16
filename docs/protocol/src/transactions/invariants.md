@@ -29,3 +29,6 @@
   binding.
 - `ShieldedIcs20Withdrawal` additionally binds its outbound IBC withdrawal
   effect while preserving shielded accounting for any sender-owned change.
+- `ShieldedHostWithdrawal` binds the withdrawn value and its complete host
+  destination. For execution withdrawals, this includes the refund address,
+  gas limit, and ordered call batch.

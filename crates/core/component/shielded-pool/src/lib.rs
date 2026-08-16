@@ -7,12 +7,15 @@ pub mod ics20_withdrawal;
 pub use ics20_withdrawal::Ics20Withdrawal;
 
 mod host_withdrawal;
-pub use host_withdrawal::HostWithdrawal;
+pub use host_withdrawal::{
+    EvmCall, HostExecution, HostTransfer, HostWithdrawal, HostWithdrawalDestination,
+};
 
 pub mod discovery;
 pub mod event;
 pub mod genesis;
 pub mod gnark;
+mod groth16_proof;
 pub mod params;
 pub mod state_key;
 
@@ -30,7 +33,6 @@ pub use shielded_note_plan::{ShieldedInputPlan, ShieldedOutputPlan};
 
 pub mod note_reshape;
 pub mod public_input_hash;
-pub mod r1cs;
 pub mod shielded_host_withdrawal;
 pub mod shielded_ics20_withdrawal;
 pub mod transfer;
@@ -50,23 +52,25 @@ pub use note_reshape::{
     NoteReshapeProofPrivate, NoteReshapeProofPublic, NoteReshapeView, NOTE_RESHAPE_FAMILY_SPECS,
 };
 pub use shielded_host_withdrawal::{
-    ShieldedHostWithdrawal, ShieldedHostWithdrawalBody, ShieldedHostWithdrawalView,
+    ShieldedHostWithdrawal, ShieldedHostWithdrawalBody, ShieldedHostWithdrawalPlan,
+    ShieldedHostWithdrawalView,
 };
 pub use shielded_ics20_withdrawal::{
     ShieldedIcs20Withdrawal, ShieldedIcs20WithdrawalBody, ShieldedIcs20WithdrawalChangeBody,
     ShieldedIcs20WithdrawalChangePrivate, ShieldedIcs20WithdrawalChangePublic,
     ShieldedIcs20WithdrawalFamilyId, ShieldedIcs20WithdrawalFamilySpec,
-    ShieldedIcs20WithdrawalInputPrivate, ShieldedIcs20WithdrawalInputPublic,
+    ShieldedIcs20WithdrawalInputPublic, ShieldedIcs20WithdrawalOptionalInputPrivate,
     ShieldedIcs20WithdrawalPlan, ShieldedIcs20WithdrawalProof, ShieldedIcs20WithdrawalProofPrivate,
-    ShieldedIcs20WithdrawalProofPublic, ShieldedIcs20WithdrawalView,
-    SHIELDED_ICS20_WITHDRAWAL_FAMILY_SPECS,
+    ShieldedIcs20WithdrawalProofPublic, ShieldedIcs20WithdrawalRequiredInputPrivate,
+    ShieldedIcs20WithdrawalView, SHIELDED_ICS20_WITHDRAWAL_FAMILY_SPECS,
 };
 pub use transfer::{
     transfer_auth_sig_count, transfer_input_count, transfer_output_count, Transfer, TransferBody,
-    TransferInputBody, TransferOutputBody, TransferOutputPrivate, TransferOutputPublic,
-    TransferPlan, TransferProof, TransferProofPrivate, TransferProofPublic, TransferSpendPrivate,
-    TransferSpendPublic, TransferView, PADDED_TRANSFER_INPUTS, PADDED_TRANSFER_OUTPUTS,
-    TRANSFER_ARTIFACT_NAME, TRANSFER_PROOF_LABEL, TRANSFER_STATEMENT_FIELD_COUNT,
+    TransferChangeOutputPrivate, TransferInputBody, TransferOptionalSpendPrivate,
+    TransferOutputBody, TransferOutputPublic, TransferPlan, TransferProof, TransferProofPrivate,
+    TransferProofPublic, TransferReceiverOutputPrivate, TransferSpendPrivate, TransferSpendPublic,
+    TransferView, PADDED_TRANSFER_INPUTS, PADDED_TRANSFER_OUTPUTS, TRANSFER_ARTIFACT_NAME,
+    TRANSFER_PROOF_LABEL, TRANSFER_STATEMENT_FIELD_COUNT,
 };
 
 #[cfg(feature = "benchmark-helpers")]

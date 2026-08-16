@@ -256,7 +256,7 @@ impl Opt {
                     let sk = SpendKey::from_seed_phrase_bip44(
                         SeedPhrase::from_str(key_material.as_str())?,
                         &Bip44Path::new(0),
-                    );
+                    )?;
                     full_viewing_key = sk.full_viewing_key().clone();
                     spend_key = Some(sk);
                 }
@@ -275,12 +275,9 @@ impl Opt {
 
                     let auth_policy = vec![
                         AuthPolicy::DestinationAllowList {
-                            allowed_destination_addresses: vec![
-                                spend_key
-                                    .incoming_viewing_key()
-                                    .payment_address(Default::default())
-                                    .0,
-                            ],
+                            allowed_destination_addresses: vec![spend_key
+                                .incoming_viewing_key()
+                                .payment_address(Default::default())],
                         },
                         AuthPolicy::OnlyIbcRelay,
                         AuthPolicy::PreAuthorization(PreAuthorizationPolicy::Ed25519 {

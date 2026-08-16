@@ -14,6 +14,7 @@ The supported shielded actions are:
 - `Transfer`
 - `NoteReshape`
 - `ShieldedIcs20Withdrawal`
+- `ShieldedHostWithdrawal`
 
 To prevent double-spending, each spent note yields a unique _nullifier_. The
 chain rejects any transaction that attempts to reuse a nullifier. New note

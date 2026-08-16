@@ -47,7 +47,8 @@ mod tests {
     #[test]
     fn toml_config_round_trip() {
         let seed_phrase = SeedPhrase::generate(rand_core::OsRng);
-        let spend_key = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0));
+        let spend_key = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0))
+            .expect("test spend key should satisfy key refinements");
 
         let pak = ed25519_consensus::SigningKey::new(rand_core::OsRng);
         let pvk = pak.verification_key();
@@ -55,12 +56,9 @@ mod tests {
         let auth_policy = vec![
             AuthPolicy::OnlyIbcRelay,
             AuthPolicy::DestinationAllowList {
-                allowed_destination_addresses: vec![
-                    spend_key
-                        .incoming_viewing_key()
-                        .payment_address(Default::default())
-                        .0,
-                ],
+                allowed_destination_addresses: vec![spend_key
+                    .incoming_viewing_key()
+                    .payment_address(Default::default())],
             },
             AuthPolicy::PreAuthorization(PreAuthorizationPolicy::Ed25519 {
                 required_signatures: 1,

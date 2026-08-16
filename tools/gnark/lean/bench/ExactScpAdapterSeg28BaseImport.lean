@@ -1,2 +1,0 @@
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.Seg28
-import ShielddGnarkFormal.Deployed.PrimeOrder

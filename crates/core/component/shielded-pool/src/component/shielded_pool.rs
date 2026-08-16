@@ -100,11 +100,15 @@ impl Component for ShieldedPool {
             .get_current_discovery_parameters()
             .await
             .expect("should be able to read state");
-        if configured.discovery_params.precision != current.precision {
-            let new = discovery::Parameters {
-                precision: configured.discovery_params.precision,
-                as_of_block_height: height,
-            };
+        if configured.discovery_params.regulated_precision != current.regulated_precision
+            || configured.discovery_params.unregulated_precision != current.unregulated_precision
+        {
+            let new = discovery::Parameters::new(
+                configured.discovery_params.regulated_precision,
+                configured.discovery_params.unregulated_precision,
+                height,
+            )
+            .expect("validated discovery parameters remain ordered");
             state.put_previous_discovery_parameters(current);
             state.put_current_discovery_parameters(new);
         }

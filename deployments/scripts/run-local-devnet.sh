@@ -9,21 +9,39 @@ shieldd_devnet_home="${SHIELDD_DEVNET_HOME:-$HOME/.shieldd}"
 export SHIELDD_DEVNET_HOME="$shieldd_devnet_home"
 network_data_dir="${shieldd_devnet_home}/network_data"
 compliance_dev_registrar_vk_hex="${COMPLIANCE_DEV_REGISTRAR_VK_HEX:-0800000000000000000000000000000000000000000000000000000000000000}"
+pd_cargo_args=()
+case "${SHIELDD_PD_INTEGRATION_DEV_SRS:-0}" in
+    0)
+        export SHIELDD_PD_CARGO_ARGS=""
+        ;;
+    1)
+        if [[ "${SHIELDD_PRODUCTION:-0}" = "1" ]]; then
+            >&2 echo "ERROR: integration dev SRS cannot be enabled in production"
+            exit 1
+        fi
+        pd_cargo_args=(--features orbis-dev-srs)
+        export SHIELDD_PD_CARGO_ARGS="--features orbis-dev-srs"
+        ;;
+    *)
+        >&2 echo "ERROR: SHIELDD_PD_INTEGRATION_DEV_SRS must be 0 or 1"
+        exit 1
+        ;;
+esac
 # The process-compose file already respects local state and will reuse it.
 # "${repo_root}/deployments/scripts/warn-about-pd-state"
 
 >&2 echo "Building binaries from latest code..."
-cargo build --release --bin pd
+cargo build --release --bin pd "${pd_cargo_args[@]}"
 # Also make sure to invoke via `cargo run` so that the process-compose
 # spin-up doesn't block on more building/linking.
-cargo --quiet run --release --bin pd -- --help > /dev/null
+cargo --quiet run --release --bin pd "${pd_cargo_args[@]}" -- --help > /dev/null
 
 # Generate network from latest code, only if network does not already exist.
 if [[ -d "$network_data_dir" ]] ; then
     >&2 echo "network data exists locally, reusing it"
 else
     # XXX: Manually Add allocation address.
-    cargo run --release --bin pd -- network \
+    cargo run --release --bin pd "${pd_cargo_args[@]}" -- network \
         --network-dir "$network_data_dir" \
         generate \
         --chain-id shieldd-local-devnet \
@@ -36,7 +54,7 @@ else
         --tendermint-p2p-bind "0.0.0.0:${SHIELDD_COMETBFT_P2P_PORT}" \
         --allocations-input-file deployments/compose/devnet-allocations.csv \
         --validators-input-file testnets/validators-single.json \
-        --allocation-address "shieldd1cvp32r5wp4lfnnww3g3fytxccqnu2xcj0r2qm0sa8ekjdezlm3gzk34qtg2xscqx9r6yrhz24k3l6j88q98rexyp7dnupq66cxllvpp9v0lw0xuqf0yfhv5ksfxzv0m98upx5w"
+        --allocation-address "shieldd1u29dhz4vxgnek6a3vzxlejg0l83wegpu7hgs3yphdvljcnnnh89dvs6lc9hxxw94w464t7lh5x36cxnxyx0"
 
     # opt in to cometbft abci indexing to postgres
     postgresql_db_url="postgresql://shieldd:shieldd@127.0.0.1:${SHIELDD_POSTGRES_PORT}/shieldd_cometbft?sslmode=disable"

@@ -11,7 +11,7 @@ use shieldd_sdk_tct as tct;
 use shieldd_sdk_txhash::{EffectHash, EffectingData};
 
 use super::{NoteReshapeFamilyId, NoteReshapeProof};
-use crate::{backref::ENCRYPTED_BACKREF_LEN, EncryptedBackref, NotePayload};
+use crate::{backref::ENCRYPTED_BACKREF_LEN, discovery::RoutingTag, EncryptedBackref, NotePayload};
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(
@@ -22,12 +22,7 @@ pub struct NoteReshapeInputBody {
     pub nullifier: Nullifier,
     pub rk: VerificationKey<SpendAuth>,
     pub encrypted_backref: EncryptedBackref,
-}
-
-impl NoteReshapeInputBody {
-    pub fn is_dummy(&self) -> bool {
-        self.encrypted_backref.is_empty() || self.nullifier.0 == Fq::from(0u64)
-    }
+    pub history_required: bool,
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
@@ -41,12 +36,6 @@ pub struct NoteReshapeOutputBody {
     pub ovk_wrapped_key: OvkWrappedKey,
 }
 
-impl NoteReshapeOutputBody {
-    pub fn is_dummy(&self) -> bool {
-        self.wrapped_memo_key.0 == [0u8; 48] && self.ovk_wrapped_key.0 == [0u8; 48]
-    }
-}
-
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(try_from = "pb::NoteReshapeBody", into = "pb::NoteReshapeBody")]
 pub struct NoteReshapeBody {
@@ -55,6 +44,9 @@ pub struct NoteReshapeBody {
     pub balance_commitment: balance::Commitment,
     pub inputs: Vec<NoteReshapeInputBody>,
     pub outputs: Vec<NoteReshapeOutputBody>,
+    pub routing_tag: RoutingTag,
+    pub routing_parameter_set_id: Fq,
+    pub asset_anchor: tct::StateCommitment,
 }
 
 #[derive(Clone, Debug)]
@@ -80,6 +72,12 @@ impl NoteReshapeBody {
             self.family_id.output_count(),
             self.outputs.len()
         );
+        for (index, input) in self.inputs.iter().enumerate() {
+            anyhow::ensure!(
+                input.encrypted_backref.len() == ENCRYPTED_BACKREF_LEN,
+                "note_reshape input {index} encrypted backref must be {ENCRYPTED_BACKREF_LEN} bytes"
+            );
+        }
         Ok(())
     }
 }
@@ -158,6 +156,7 @@ impl From<NoteReshapeInputBody> for pb::NoteReshapeInputBody {
             nullifier: Some(msg.nullifier.into()),
             rk: Some(msg.rk.into()),
             encrypted_backref: msg.encrypted_backref.into(),
+            history_required: msg.history_required,
         }
     }
 }
@@ -166,18 +165,12 @@ impl TryFrom<pb::NoteReshapeInputBody> for NoteReshapeInputBody {
     type Error = Error;
 
     fn try_from(proto: pb::NoteReshapeInputBody) -> Result<Self, Self::Error> {
-        let encrypted_backref = if proto.encrypted_backref.len() == ENCRYPTED_BACKREF_LEN {
-            let bytes: [u8; ENCRYPTED_BACKREF_LEN] = proto
-                .encrypted_backref
-                .try_into()
-                .map_err(|_| anyhow::anyhow!("invalid encrypted backref"))?;
-            EncryptedBackref::try_from(bytes)
-                .map_err(|_| anyhow::anyhow!("invalid encrypted backref"))?
-        } else if proto.encrypted_backref.is_empty() {
-            EncryptedBackref::dummy()
-        } else {
-            anyhow::bail!("invalid encrypted backref length")
-        };
+        let bytes: [u8; ENCRYPTED_BACKREF_LEN] =
+            proto.encrypted_backref.try_into().map_err(|_| {
+                anyhow::anyhow!("encrypted backref must be exactly {ENCRYPTED_BACKREF_LEN} bytes")
+            })?;
+        let encrypted_backref = EncryptedBackref::try_from(bytes)
+            .map_err(|_| anyhow::anyhow!("invalid encrypted backref"))?;
 
         Ok(Self {
             nullifier: proto
@@ -191,6 +184,7 @@ impl TryFrom<pb::NoteReshapeInputBody> for NoteReshapeInputBody {
                 .try_into()
                 .context("malformed rk")?,
             encrypted_backref,
+            history_required: proto.history_required,
         })
     }
 }
@@ -245,6 +239,9 @@ impl From<NoteReshapeBody> for pb::NoteReshapeBody {
             balance_commitment: Some(msg.balance_commitment.into()),
             inputs: msg.inputs.into_iter().map(Into::into).collect(),
             outputs: msg.outputs.into_iter().map(Into::into).collect(),
+            routing_tag: Some(msg.routing_tag.into()),
+            routing_parameter_set_id: msg.routing_parameter_set_id.to_bytes().to_vec(),
+            asset_anchor: Some(msg.asset_anchor.into()),
         }
     }
 }
@@ -275,6 +272,22 @@ impl TryFrom<pb::NoteReshapeBody> for NoteReshapeBody {
                 .into_iter()
                 .map(TryInto::try_into)
                 .collect::<Result<_, _>>()?,
+            routing_tag: proto
+                .routing_tag
+                .ok_or_else(|| anyhow::anyhow!("missing note reshape routing tag"))?
+                .try_into()?,
+            routing_parameter_set_id: Fq::from_bytes_checked(
+                &proto
+                    .routing_parameter_set_id
+                    .try_into()
+                    .map_err(|_| anyhow::anyhow!("routing parameter set id must be 32 bytes"))?,
+            )
+            .map_err(|_| anyhow::anyhow!("routing parameter set id must be canonical"))?,
+            asset_anchor: proto
+                .asset_anchor
+                .ok_or_else(|| anyhow::anyhow!("missing asset anchor"))?
+                .try_into()
+                .context("malformed asset anchor")?,
         };
         body.validate_shape()?;
         Ok(body)
@@ -283,7 +296,7 @@ impl TryFrom<pb::NoteReshapeBody> for NoteReshapeBody {
 
 #[cfg(test)]
 mod tests {
-    use super::{pb, NoteReshapeBody};
+    use super::{pb, NoteReshapeBody, NoteReshapeInputBody};
 
     fn struct_body<'a>(source: &'a str, name: &str) -> &'a str {
         let start = source
@@ -311,6 +324,16 @@ mod tests {
     }
 
     #[test]
+    fn empty_input_backref_is_rejected_at_wire_boundary() {
+        let err = NoteReshapeInputBody::try_from(pb::NoteReshapeInputBody::default())
+            .expect_err("note_reshape inputs require fixed-size encrypted backrefs");
+        assert!(
+            err.to_string().contains("exactly 48 bytes"),
+            "unexpected error: {err:#}"
+        );
+    }
+
+    #[test]
     fn note_reshape_public_encodings_have_no_dummy_flags_after_redesign() {
         for (source, names) in [
             (
@@ -331,7 +354,7 @@ mod tests {
             ),
             (
                 include_str!("../gnark/note_reshape_witness.rs"),
-                vec!["NoteReshapeOutputWitnessV1"],
+                vec!["NoteReshapeOutputWitnessV5"],
             ),
         ] {
             for name in names {

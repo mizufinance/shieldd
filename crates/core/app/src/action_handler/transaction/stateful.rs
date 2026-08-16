@@ -1,7 +1,7 @@
 use anyhow::{ensure, Result};
 use cnidarium::StateRead;
 use shieldd_sdk_sct::component::tree::VerificationExt;
-use shieldd_sdk_shielded_pool::{discovery, NotePayload};
+use shieldd_sdk_shielded_pool::discovery;
 use shieldd_sdk_transaction::{Action, Transaction, TransactionParameters};
 
 use super::HistoricalCheckContext;
@@ -35,11 +35,29 @@ pub fn tx_parameters_historical_check_with_context(
     Ok(())
 }
 
+pub fn nullifier_window_valid_with_context(
+    transaction: &Transaction,
+    context: &HistoricalCheckContext,
+) -> Result<()> {
+    if transaction.spent_nullifier_count() == 0 {
+        ensure!(
+            transaction.transaction_body.nullifier_window.is_none(),
+            "spend-free transaction must not carry a nullifier window"
+        );
+        return Ok(());
+    }
+    ensure!(
+        transaction.transaction_body.nullifier_window == Some(context.nullifier_window),
+        "transaction nullifier window does not match the current consensus window"
+    );
+    Ok(())
+}
+
 pub fn discovery_parameters_valid_with_context(
     transaction: &Transaction,
     context: &HistoricalCheckContext,
 ) -> Result<()> {
-    discovery_precision_within_grace_period(
+    routing_parameters_within_grace_period(
         transaction,
         context.discovery_grace_period_blocks,
         context.previous_discovery_parameters.clone(),
@@ -51,88 +69,67 @@ pub fn discovery_parameters_valid_with_context(
 #[tracing::instrument(
     skip_all,
     fields(
-        current_discovery.precision_bits = current_discovery_parameters.precision.bits(),
-        previous_discovery.precision_bits = previous_discovery_parameters.precision.bits(),
-        current_discovery.as_of_block_height = current_discovery_parameters.as_of_block_height,
+        current_discovery.regulated_precision_bits = current_discovery_parameters.regulated_precision.bits(),
+        current_discovery.unregulated_precision_bits = current_discovery_parameters.unregulated_precision.bits(),
+        previous_discovery.regulated_precision_bits = previous_discovery_parameters.regulated_precision.bits(),
+        previous_discovery.unregulated_precision_bits = previous_discovery_parameters.unregulated_precision.bits(),
+        current_discovery.as_of_height = current_discovery_parameters.as_of_height,
         block_height,
     )
 )]
-pub fn discovery_precision_within_grace_period(
+pub fn routing_parameters_within_grace_period(
     tx: &Transaction,
     grace_period_blocks: u64,
     previous_discovery_parameters: discovery::Parameters,
     current_discovery_parameters: discovery::Parameters,
     block_height: u64,
 ) -> anyhow::Result<()> {
-    let mut payloads: Vec<&NotePayload> = Vec::new();
+    let mut parameter_set_ids = Vec::new();
     for action in tx.actions() {
         match action {
             Action::Transfer(transfer) => {
-                payloads.extend(
-                    transfer
-                        .body
-                        .outputs
-                        .iter()
-                        .map(|output| &output.note_payload),
-                );
+                parameter_set_ids.push(transfer.body.routing_parameter_set_id);
             }
             Action::NoteReshape(reshape) => {
-                payloads.extend(
-                    reshape
-                        .body
-                        .outputs
-                        .iter()
-                        .map(|output| &output.note_payload),
-                );
+                parameter_set_ids.push(reshape.body.routing_parameter_set_id);
             }
             Action::ShieldedIcs20Withdrawal(withdrawal) => {
-                payloads.push(&withdrawal.body.change_output.note_payload);
+                parameter_set_ids.push(withdrawal.body.routing_parameter_set_id);
             }
             Action::ShieldedHostWithdrawal(withdrawal) => {
-                payloads.push(&withdrawal.body.change_output.note_payload);
+                parameter_set_ids.push(withdrawal.body.routing_parameter_set_id);
             }
             _ => {}
         }
     }
     let transaction_body = tx.transaction_body();
     if let Some(fee_funding) = &transaction_body.fee_funding {
-        payloads.extend(
-            fee_funding
-                .transfer
-                .body
-                .outputs
-                .iter()
-                .map(|output| &output.note_payload),
-        );
+        parameter_set_ids.push(fee_funding.transfer.body.routing_parameter_set_id);
     }
 
-    for payload in payloads {
-        if payload.is_dummy() {
-            continue;
-        }
-        let tag_precision = payload.discovery_tag.precision;
-        if current_discovery_parameters.accepts_precision(
+    for parameter_set_id in parameter_set_ids {
+        if current_discovery_parameters.accepted_at(
             &previous_discovery_parameters,
             grace_period_blocks,
             block_height,
-            tag_precision,
+            parameter_set_id,
         ) {
             continue;
         } else {
-            let using_current_precision = tag_precision == current_discovery_parameters.precision;
-            let using_previous_precision = tag_precision == previous_discovery_parameters.precision;
+            let using_current_parameters = parameter_set_id == current_discovery_parameters.id();
+            let using_previous_parameters = parameter_set_id == previous_discovery_parameters.id();
             let within_grace_period = block_height
                 < current_discovery_parameters
-                    .as_of_block_height
+                    .as_of_height
                     .saturating_add(grace_period_blocks);
             tracing::error!(
-                precision_bits = tag_precision.bits(),
-                %using_current_precision,
-                %using_previous_precision,
+                parameter_set_id = %hex::encode(parameter_set_id.to_bytes()),
+                %using_current_parameters,
+                %using_previous_parameters,
                 %within_grace_period,
-                "invalid discovery-tag precision"
+                "invalid routing parameter set"
             );
-            anyhow::bail!("consensus rule violated: invalid discovery-tag precision");
+            anyhow::bail!("consensus rule violated: invalid routing parameter set");
         }
     }
     Ok(())

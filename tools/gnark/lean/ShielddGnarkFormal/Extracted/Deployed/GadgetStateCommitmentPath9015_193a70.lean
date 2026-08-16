@@ -4,7 +4,7 @@ import Mathlib.Tactic.LinearCombination
 
 set_option linter.unusedVariables false
 set_option maxRecDepth 100000
-set_option maxHeartbeats 0
+set_option maxHeartbeats 50000000
 
 /-! Auto-generated per-rung deployed-slice certificates for `gadget.state_commitment_path` (size 9015, 9014 rows).
 Each `step{k}` proves the rematerialized rung follows from the exact deployed row by instantiating every shared accumulator `s{w}` with its full original expansion. Generated from the checked deployed-slice IR. -/

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 
+	decaf377 "github.com/mizufinance/decaf377-go"
 	"github.com/mizufinance/shieldd/tools/gnark/internal/circuits"
 	"github.com/mizufinance/shieldd/tools/gnark/internal/compliance"
 	"github.com/mizufinance/shieldd/tools/gnark/internal/primitives"
@@ -25,11 +26,9 @@ type IndexedLeafBinary struct {
 	Value          [32]byte
 	NextIndex      uint64
 	NextValue      [32]byte
-	DKPub          [32]byte
 	Threshold      [16]byte
 	SlotCount      [32]byte
 	ChannelsHash   [32]byte
-	RingPK         [32]byte
 	RingIDHash     [32]byte
 	PolicyIDHash   [32]byte
 	PermissionHash [32]byte
@@ -49,10 +48,48 @@ func readExact(r io.Reader, n int) ([]byte, error) {
 	return buf, nil
 }
 
-func read32(r io.Reader) ([32]byte, error) {
+func readRaw32(r io.Reader) ([32]byte, error) {
 	var out [32]byte
 	_, err := io.ReadFull(r, out[:])
 	return out, err
+}
+
+// read32 reads a canonical BLS12-377 scalar-field (Decaf377 Fq) value.
+// Every 32-byte value in the witness ABI is a circuit field; narrower
+// Decaf377 scalar values must use readFr32.
+func read32(r io.Reader) ([32]byte, error) {
+	out, err := readRaw32(r)
+	if err != nil {
+		return out, err
+	}
+	if primitives.LittleEndianBytesToBigInt(out[:]).Cmp(primitives.ScalarField()) >= 0 {
+		return [32]byte{}, fmt.Errorf("non-canonical Fq encoding")
+	}
+	return out, nil
+}
+
+func readFr32(r io.Reader) ([32]byte, error) {
+	out, err := readRaw32(r)
+	if err != nil {
+		return out, err
+	}
+	if primitives.LittleEndianBytesToBigInt(out[:]).Cmp(decaf377.ScalarOrder()) >= 0 {
+		return [32]byte{}, fmt.Errorf("non-canonical Fr encoding")
+	}
+	return out, nil
+}
+
+func readU128Field(r io.Reader) ([32]byte, error) {
+	out, err := read32(r)
+	if err != nil {
+		return out, err
+	}
+	for _, value := range out[16:] {
+		if value != 0 {
+			return [32]byte{}, fmt.Errorf("field encoding exceeds 128 bits")
+		}
+	}
+	return out, nil
 }
 
 func read80(r io.Reader) ([80]byte, error) {
@@ -96,7 +133,22 @@ func readBool(r io.Reader) (bool, error) {
 	if _, err := io.ReadFull(r, out[:]); err != nil {
 		return false, err
 	}
-	return out[0] != 0, nil
+	switch out[0] {
+	case 0:
+		return false, nil
+	case 1:
+		return true, nil
+	default:
+		return false, fmt.Errorf("non-canonical boolean byte %d", out[0])
+	}
+}
+
+func readU8(r io.Reader) (uint8, error) {
+	value, err := readExact(r, 1)
+	if err != nil {
+		return 0, err
+	}
+	return value[0], nil
 }
 
 func readVec32(r io.Reader) ([][32]byte, error) {
@@ -121,8 +173,8 @@ func readTriplePath(r io.Reader) ([][3][32]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if length > maxTriplePathLength {
-		return nil, fmt.Errorf("triple path length %d exceeds max %d", length, maxTriplePathLength)
+	if length != maxTriplePathLength {
+		return nil, fmt.Errorf("triple path length %d must equal %d", length, maxTriplePathLength)
 	}
 	out := make([][3][32]byte, length)
 	for i := range out {
@@ -140,8 +192,8 @@ func readMerklePath(r io.Reader) (MerklePathBinary, error) {
 	if err != nil {
 		return MerklePathBinary{}, err
 	}
-	if layerCount > maxMerklePathLayers {
-		return MerklePathBinary{}, fmt.Errorf("merkle path layer count %d exceeds max %d", layerCount, maxMerklePathLayers)
+	if layerCount != maxMerklePathLayers {
+		return MerklePathBinary{}, fmt.Errorf("merkle path layer count %d must equal %d", layerCount, maxMerklePathLayers)
 	}
 	path := MerklePathBinary{Layers: make([][][32]byte, layerCount)}
 	for i := range path.Layers {
@@ -149,8 +201,8 @@ func readMerklePath(r io.Reader) (MerklePathBinary, error) {
 		if err != nil {
 			return MerklePathBinary{}, err
 		}
-		if siblingCount > maxMerklePathSiblings {
-			return MerklePathBinary{}, fmt.Errorf("merkle path sibling count %d exceeds max %d", siblingCount, maxMerklePathSiblings)
+		if siblingCount != maxMerklePathSiblings {
+			return MerklePathBinary{}, fmt.Errorf("merkle path sibling count %d must equal %d", siblingCount, maxMerklePathSiblings)
 		}
 		path.Layers[i] = make([][32]byte, siblingCount)
 		for j := range path.Layers[i] {
@@ -174,9 +226,6 @@ func readIndexedLeaf(r io.Reader) (IndexedLeafBinary, error) {
 	if out.NextValue, err = read32(r); err != nil {
 		return out, err
 	}
-	if out.DKPub, err = read32(r); err != nil {
-		return out, err
-	}
 	if _, err := io.ReadFull(r, out.Threshold[:]); err != nil {
 		return out, err
 	}
@@ -184,9 +233,6 @@ func readIndexedLeaf(r io.Reader) (IndexedLeafBinary, error) {
 		return out, err
 	}
 	if out.ChannelsHash, err = read32(r); err != nil {
-		return out, err
-	}
-	if out.RingPK, err = read32(r); err != nil {
 		return out, err
 	}
 	if out.RingIDHash, err = read32(r); err != nil {

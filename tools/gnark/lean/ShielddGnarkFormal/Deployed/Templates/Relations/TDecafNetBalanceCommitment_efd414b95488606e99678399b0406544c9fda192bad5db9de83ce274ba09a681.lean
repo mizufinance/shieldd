@@ -1,0 +1,90 @@
+import ShielddGnarkFormal.Deployed.Templates.Relations.TDecafNetBalanceCommitment_efd414b95488606e99678399b0406544c9fda192bad5db9de83ce274ba09a681Defs129
+
+set_option maxRecDepth 1000000
+set_option maxHeartbeats 50000000
+
+namespace Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafNetBalanceCommitment_efd414b95488606e99678399b0406544c9fda192bad5db9de83ce274ba09a681
+
+variable {F : Type} [CommRing F]
+
+def relation (rho : Nat -> F) : Prop :=
+    relationPart0 rho ∧
+    relationPart1 rho ∧
+    relationPart2 rho ∧
+    relationPart3 rho ∧
+    relationPart4 rho ∧
+    relationPart5 rho ∧
+    relationPart6 rho ∧
+    relationPart7 rho ∧
+    relationPart8 rho ∧
+    relationPart9 rho ∧
+    relationPart10 rho ∧
+    relationPart11 rho ∧
+    relationPart12 rho ∧
+    relationPart13 rho ∧
+    relationPart14 rho ∧
+    relationPart15 rho ∧
+    relationPart16 rho ∧
+    relationPart17 rho ∧
+    relationPart18 rho ∧
+    relationPart19 rho ∧
+    relationPart20 rho ∧
+    relationPart21 rho ∧
+    relationPart22 rho ∧
+    relationPart23 rho ∧
+    relationPart24 rho ∧
+    relationPart25 rho ∧
+    relationPart26 rho ∧
+    relationPart27 rho ∧
+    relationPart28 rho ∧
+    relationPart29 rho ∧
+    relationPart30 rho ∧
+    relationPart31 rho ∧
+    relationPart32 rho ∧
+    relationPart33 rho ∧
+    relationPart34 rho ∧
+    relationPart35 rho ∧
+    relationPart36 rho ∧
+    relationPart37 rho ∧
+    relationPart38 rho ∧
+    relationPart39 rho ∧
+    relationPart40 rho ∧
+    relationPart41 rho ∧
+    relationPart42 rho ∧
+    relationPart43 rho ∧
+    relationPart44 rho ∧
+    relationPart45 rho ∧
+    relationPart46 rho ∧
+    relationPart47 rho ∧
+    relationPart48 rho ∧
+    relationPart49 rho ∧
+    relationPart50 rho ∧
+    relationPart51 rho ∧
+    relationPart52 rho ∧
+    relationPart53 rho ∧
+    relationPart54 rho ∧
+    relationPart55 rho ∧
+    relationPart56 rho ∧
+    relationPart57 rho ∧
+    relationPart58 rho ∧
+    relationPart59 rho ∧
+    relationPart60 rho ∧
+    relationPart61 rho ∧
+    relationPart62 rho ∧
+    relationPart63 rho ∧
+    relationPart64 rho ∧
+    relationPart65 rho ∧
+    relationPart66 rho ∧
+    relationPart67 rho ∧
+    relationPart68 rho ∧
+    relationPart69 rho ∧
+    relationPart70 rho ∧
+    relationPart71 rho ∧
+    relationPart72 rho ∧
+    relationPart73 rho ∧
+    relationPart74 rho ∧
+    relationPart75 rho ∧
+    relationPart76 rho ∧
+    relationPart77 rho
+
+end Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafNetBalanceCommitment_efd414b95488606e99678399b0406544c9fda192bad5db9de83ce274ba09a681

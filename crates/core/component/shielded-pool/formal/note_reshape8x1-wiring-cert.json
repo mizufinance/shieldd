@@ -1,0 +1,1646 @@
+{
+  "schema": "shieldd.gnark.gadget_wiring_certificate.v1",
+  "circuit": "note_reshape8x1",
+  "sr1cs_sha256_hex": "ea89071db2cd3d2d429113503eea05cec175f0daa06abb2395e6af4d67aa2d1d",
+  "n_nodes": 121,
+  "n_edges": 82,
+  "n_primary_input_roots": 672,
+  "n_internal_witness": 15414,
+  "n_shared_witness": 18,
+  "shared_witness_wires": [
+    {
+      "wire": 6349,
+      "consuming_segments": [
+        17,
+        18,
+        19
+      ]
+    },
+    {
+      "wire": 6350,
+      "consuming_segments": [
+        17,
+        19
+      ]
+    },
+    {
+      "wire": 18839,
+      "consuming_segments": [
+        29,
+        30
+      ]
+    },
+    {
+      "wire": 18840,
+      "consuming_segments": [
+        29,
+        30
+      ]
+    },
+    {
+      "wire": 31325,
+      "consuming_segments": [
+        43,
+        44
+      ]
+    },
+    {
+      "wire": 31326,
+      "consuming_segments": [
+        43,
+        44
+      ]
+    },
+    {
+      "wire": 43811,
+      "consuming_segments": [
+        57,
+        58
+      ]
+    },
+    {
+      "wire": 43812,
+      "consuming_segments": [
+        57,
+        58
+      ]
+    },
+    {
+      "wire": 56297,
+      "consuming_segments": [
+        71,
+        72
+      ]
+    },
+    {
+      "wire": 56298,
+      "consuming_segments": [
+        71,
+        72
+      ]
+    },
+    {
+      "wire": 68783,
+      "consuming_segments": [
+        85,
+        86
+      ]
+    },
+    {
+      "wire": 68784,
+      "consuming_segments": [
+        85,
+        86
+      ]
+    },
+    {
+      "wire": 81269,
+      "consuming_segments": [
+        99,
+        100
+      ]
+    },
+    {
+      "wire": 81270,
+      "consuming_segments": [
+        99,
+        100
+      ]
+    },
+    {
+      "wire": 93755,
+      "consuming_segments": [
+        113,
+        114
+      ]
+    },
+    {
+      "wire": 93756,
+      "consuming_segments": [
+        113,
+        114
+      ]
+    },
+    {
+      "wire": 106241,
+      "consuming_segments": [
+        127,
+        128
+      ]
+    },
+    {
+      "wire": 106242,
+      "consuming_segments": [
+        127,
+        128
+      ]
+    }
+  ],
+  "n_cross_seam_constrained": 16,
+  "nodes": [
+    {
+      "segment_index": 1,
+      "op": "assert.boolean",
+      "kind": "glue",
+      "start": 0,
+      "end": 1,
+      "constraint_count": 1
+    },
+    {
+      "segment_index": 2,
+      "op": "assert.boolean",
+      "kind": "glue",
+      "start": 1,
+      "end": 2,
+      "constraint_count": 1
+    },
+    {
+      "segment_index": 3,
+      "op": "assert.boolean",
+      "kind": "glue",
+      "start": 2,
+      "end": 3,
+      "constraint_count": 1
+    },
+    {
+      "segment_index": 4,
+      "op": "assert.boolean",
+      "kind": "glue",
+      "start": 3,
+      "end": 4,
+      "constraint_count": 1
+    },
+    {
+      "segment_index": 5,
+      "op": "assert.boolean",
+      "kind": "glue",
+      "start": 4,
+      "end": 5,
+      "constraint_count": 1
+    },
+    {
+      "segment_index": 6,
+      "op": "assert.boolean",
+      "kind": "glue",
+      "start": 5,
+      "end": 6,
+      "constraint_count": 1
+    },
+    {
+      "segment_index": 7,
+      "op": "assert.boolean",
+      "kind": "glue",
+      "start": 6,
+      "end": 7,
+      "constraint_count": 1
+    },
+    {
+      "segment_index": 8,
+      "op": "assert.boolean",
+      "kind": "glue",
+      "start": 7,
+      "end": 8,
+      "constraint_count": 1
+    },
+    {
+      "segment_index": 9,
+      "op": "assert.dummy_suffix",
+      "kind": "glue",
+      "start": 8,
+      "end": 23,
+      "constraint_count": 15
+    },
+    {
+      "segment_index": 10,
+      "op": "assert.active_range",
+      "kind": "glue",
+      "start": 23,
+      "end": 30,
+      "constraint_count": 7
+    },
+    {
+      "segment_index": 12,
+      "op": "assert.decaf_non_identity",
+      "kind": "glue",
+      "start": 30,
+      "end": 31,
+      "constraint_count": 1
+    },
+    {
+      "segment_index": 13,
+      "op": "assert.decaf_non_identity",
+      "kind": "glue",
+      "start": 31,
+      "end": 32,
+      "constraint_count": 1
+    },
+    {
+      "segment_index": 14,
+      "op": "decaf.assert_on_curve",
+      "kind": "gadget",
+      "start": 32,
+      "end": 36,
+      "constraint_count": 4
+    },
+    {
+      "segment_index": 15,
+      "op": "decaf.compress_to_field",
+      "kind": "gadget",
+      "start": 36,
+      "end": 1082,
+      "constraint_count": 1046
+    },
+    {
+      "segment_index": 16,
+      "op": "assert.ne",
+      "kind": "glue",
+      "start": 1082,
+      "end": 1083,
+      "constraint_count": 1
+    },
+    {
+      "segment_index": 17,
+      "op": "decaf.diversified_transmission_key",
+      "kind": "gadget",
+      "start": 1083,
+      "end": 6560,
+      "constraint_count": 5477
+    },
+    {
+      "segment_index": 18,
+      "op": "assert.decaf_non_identity",
+      "kind": "glue",
+      "start": 6560,
+      "end": 6561,
+      "constraint_count": 1
+    },
+    {
+      "segment_index": 19,
+      "op": "decaf.compress_to_field",
+      "kind": "gadget",
+      "start": 6561,
+      "end": 7607,
+      "constraint_count": 1046
+    },
+    {
+      "segment_index": 21,
+      "op": "gadget.note_commitment",
+      "kind": "gadget",
+      "start": 7607,
+      "end": 8037,
+      "constraint_count": 430
+    },
+    {
+      "segment_index": 22,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 8037,
+      "end": 8039,
+      "constraint_count": 2
+    },
+    {
+      "segment_index": 23,
+      "op": "gadget.nullifier",
+      "kind": "gadget",
+      "start": 8039,
+      "end": 8349,
+      "constraint_count": 310
+    },
+    {
+      "segment_index": 24,
+      "op": "gadget.state_commitment_path",
+      "kind": "gadget",
+      "start": 8349,
+      "end": 17364,
+      "constraint_count": 9015
+    },
+    {
+      "segment_index": 25,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 17364,
+      "end": 17366,
+      "constraint_count": 2
+    },
+    {
+      "segment_index": 26,
+      "op": "gadget.synthetic_dummy_nullifier",
+      "kind": "gadget",
+      "start": 17366,
+      "end": 17671,
+      "constraint_count": 305
+    },
+    {
+      "segment_index": 27,
+      "op": "dummy.mux",
+      "kind": "glue",
+      "start": 17671,
+      "end": 17673,
+      "constraint_count": 2
+    },
+    {
+      "segment_index": 28,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 17673,
+      "end": 17674,
+      "constraint_count": 1
+    },
+    {
+      "segment_index": 29,
+      "op": "decaf.randomized_verification_key",
+      "kind": "gadget",
+      "start": 17674,
+      "end": 19486,
+      "constraint_count": 1812
+    },
+    {
+      "segment_index": 30,
+      "op": "decaf.assert_equivalent_if",
+      "kind": "gadget",
+      "start": 19486,
+      "end": 19492,
+      "constraint_count": 6
+    },
+    {
+      "segment_index": 31,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 19492,
+      "end": 19494,
+      "constraint_count": 2
+    },
+    {
+      "segment_index": 32,
+      "op": "decaf.compress_to_field",
+      "kind": "gadget",
+      "start": 19494,
+      "end": 20540,
+      "constraint_count": 1046
+    },
+    {
+      "segment_index": 35,
+      "op": "gadget.note_commitment",
+      "kind": "gadget",
+      "start": 20540,
+      "end": 20970,
+      "constraint_count": 430
+    },
+    {
+      "segment_index": 36,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 20970,
+      "end": 20972,
+      "constraint_count": 2
+    },
+    {
+      "segment_index": 37,
+      "op": "gadget.nullifier",
+      "kind": "gadget",
+      "start": 20972,
+      "end": 21282,
+      "constraint_count": 310
+    },
+    {
+      "segment_index": 38,
+      "op": "gadget.state_commitment_path",
+      "kind": "gadget",
+      "start": 21282,
+      "end": 30297,
+      "constraint_count": 9015
+    },
+    {
+      "segment_index": 39,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 30297,
+      "end": 30299,
+      "constraint_count": 2
+    },
+    {
+      "segment_index": 40,
+      "op": "gadget.synthetic_dummy_nullifier",
+      "kind": "gadget",
+      "start": 30299,
+      "end": 30604,
+      "constraint_count": 305
+    },
+    {
+      "segment_index": 41,
+      "op": "dummy.mux",
+      "kind": "glue",
+      "start": 30604,
+      "end": 30606,
+      "constraint_count": 2
+    },
+    {
+      "segment_index": 42,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 30606,
+      "end": 30607,
+      "constraint_count": 1
+    },
+    {
+      "segment_index": 43,
+      "op": "decaf.randomized_verification_key",
+      "kind": "gadget",
+      "start": 30607,
+      "end": 32419,
+      "constraint_count": 1812
+    },
+    {
+      "segment_index": 44,
+      "op": "decaf.assert_equivalent_if",
+      "kind": "gadget",
+      "start": 32419,
+      "end": 32425,
+      "constraint_count": 6
+    },
+    {
+      "segment_index": 45,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 32425,
+      "end": 32427,
+      "constraint_count": 2
+    },
+    {
+      "segment_index": 46,
+      "op": "decaf.compress_to_field",
+      "kind": "gadget",
+      "start": 32427,
+      "end": 33473,
+      "constraint_count": 1046
+    },
+    {
+      "segment_index": 49,
+      "op": "gadget.note_commitment",
+      "kind": "gadget",
+      "start": 33473,
+      "end": 33903,
+      "constraint_count": 430
+    },
+    {
+      "segment_index": 50,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 33903,
+      "end": 33905,
+      "constraint_count": 2
+    },
+    {
+      "segment_index": 51,
+      "op": "gadget.nullifier",
+      "kind": "gadget",
+      "start": 33905,
+      "end": 34215,
+      "constraint_count": 310
+    },
+    {
+      "segment_index": 52,
+      "op": "gadget.state_commitment_path",
+      "kind": "gadget",
+      "start": 34215,
+      "end": 43230,
+      "constraint_count": 9015
+    },
+    {
+      "segment_index": 53,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 43230,
+      "end": 43232,
+      "constraint_count": 2
+    },
+    {
+      "segment_index": 54,
+      "op": "gadget.synthetic_dummy_nullifier",
+      "kind": "gadget",
+      "start": 43232,
+      "end": 43537,
+      "constraint_count": 305
+    },
+    {
+      "segment_index": 55,
+      "op": "dummy.mux",
+      "kind": "glue",
+      "start": 43537,
+      "end": 43539,
+      "constraint_count": 2
+    },
+    {
+      "segment_index": 56,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 43539,
+      "end": 43540,
+      "constraint_count": 1
+    },
+    {
+      "segment_index": 57,
+      "op": "decaf.randomized_verification_key",
+      "kind": "gadget",
+      "start": 43540,
+      "end": 45352,
+      "constraint_count": 1812
+    },
+    {
+      "segment_index": 58,
+      "op": "decaf.assert_equivalent_if",
+      "kind": "gadget",
+      "start": 45352,
+      "end": 45358,
+      "constraint_count": 6
+    },
+    {
+      "segment_index": 59,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 45358,
+      "end": 45360,
+      "constraint_count": 2
+    },
+    {
+      "segment_index": 60,
+      "op": "decaf.compress_to_field",
+      "kind": "gadget",
+      "start": 45360,
+      "end": 46406,
+      "constraint_count": 1046
+    },
+    {
+      "segment_index": 63,
+      "op": "gadget.note_commitment",
+      "kind": "gadget",
+      "start": 46406,
+      "end": 46836,
+      "constraint_count": 430
+    },
+    {
+      "segment_index": 64,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 46836,
+      "end": 46838,
+      "constraint_count": 2
+    },
+    {
+      "segment_index": 65,
+      "op": "gadget.nullifier",
+      "kind": "gadget",
+      "start": 46838,
+      "end": 47148,
+      "constraint_count": 310
+    },
+    {
+      "segment_index": 66,
+      "op": "gadget.state_commitment_path",
+      "kind": "gadget",
+      "start": 47148,
+      "end": 56163,
+      "constraint_count": 9015
+    },
+    {
+      "segment_index": 67,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 56163,
+      "end": 56165,
+      "constraint_count": 2
+    },
+    {
+      "segment_index": 68,
+      "op": "gadget.synthetic_dummy_nullifier",
+      "kind": "gadget",
+      "start": 56165,
+      "end": 56470,
+      "constraint_count": 305
+    },
+    {
+      "segment_index": 69,
+      "op": "dummy.mux",
+      "kind": "glue",
+      "start": 56470,
+      "end": 56472,
+      "constraint_count": 2
+    },
+    {
+      "segment_index": 70,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 56472,
+      "end": 56473,
+      "constraint_count": 1
+    },
+    {
+      "segment_index": 71,
+      "op": "decaf.randomized_verification_key",
+      "kind": "gadget",
+      "start": 56473,
+      "end": 58285,
+      "constraint_count": 1812
+    },
+    {
+      "segment_index": 72,
+      "op": "decaf.assert_equivalent_if",
+      "kind": "gadget",
+      "start": 58285,
+      "end": 58291,
+      "constraint_count": 6
+    },
+    {
+      "segment_index": 73,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 58291,
+      "end": 58293,
+      "constraint_count": 2
+    },
+    {
+      "segment_index": 74,
+      "op": "decaf.compress_to_field",
+      "kind": "gadget",
+      "start": 58293,
+      "end": 59339,
+      "constraint_count": 1046
+    },
+    {
+      "segment_index": 77,
+      "op": "gadget.note_commitment",
+      "kind": "gadget",
+      "start": 59339,
+      "end": 59769,
+      "constraint_count": 430
+    },
+    {
+      "segment_index": 78,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 59769,
+      "end": 59771,
+      "constraint_count": 2
+    },
+    {
+      "segment_index": 79,
+      "op": "gadget.nullifier",
+      "kind": "gadget",
+      "start": 59771,
+      "end": 60081,
+      "constraint_count": 310
+    },
+    {
+      "segment_index": 80,
+      "op": "gadget.state_commitment_path",
+      "kind": "gadget",
+      "start": 60081,
+      "end": 69096,
+      "constraint_count": 9015
+    },
+    {
+      "segment_index": 81,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 69096,
+      "end": 69098,
+      "constraint_count": 2
+    },
+    {
+      "segment_index": 82,
+      "op": "gadget.synthetic_dummy_nullifier",
+      "kind": "gadget",
+      "start": 69098,
+      "end": 69403,
+      "constraint_count": 305
+    },
+    {
+      "segment_index": 83,
+      "op": "dummy.mux",
+      "kind": "glue",
+      "start": 69403,
+      "end": 69405,
+      "constraint_count": 2
+    },
+    {
+      "segment_index": 84,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 69405,
+      "end": 69406,
+      "constraint_count": 1
+    },
+    {
+      "segment_index": 85,
+      "op": "decaf.randomized_verification_key",
+      "kind": "gadget",
+      "start": 69406,
+      "end": 71218,
+      "constraint_count": 1812
+    },
+    {
+      "segment_index": 86,
+      "op": "decaf.assert_equivalent_if",
+      "kind": "gadget",
+      "start": 71218,
+      "end": 71224,
+      "constraint_count": 6
+    },
+    {
+      "segment_index": 87,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 71224,
+      "end": 71226,
+      "constraint_count": 2
+    },
+    {
+      "segment_index": 88,
+      "op": "decaf.compress_to_field",
+      "kind": "gadget",
+      "start": 71226,
+      "end": 72272,
+      "constraint_count": 1046
+    },
+    {
+      "segment_index": 91,
+      "op": "gadget.note_commitment",
+      "kind": "gadget",
+      "start": 72272,
+      "end": 72702,
+      "constraint_count": 430
+    },
+    {
+      "segment_index": 92,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 72702,
+      "end": 72704,
+      "constraint_count": 2
+    },
+    {
+      "segment_index": 93,
+      "op": "gadget.nullifier",
+      "kind": "gadget",
+      "start": 72704,
+      "end": 73014,
+      "constraint_count": 310
+    },
+    {
+      "segment_index": 94,
+      "op": "gadget.state_commitment_path",
+      "kind": "gadget",
+      "start": 73014,
+      "end": 82029,
+      "constraint_count": 9015
+    },
+    {
+      "segment_index": 95,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 82029,
+      "end": 82031,
+      "constraint_count": 2
+    },
+    {
+      "segment_index": 96,
+      "op": "gadget.synthetic_dummy_nullifier",
+      "kind": "gadget",
+      "start": 82031,
+      "end": 82336,
+      "constraint_count": 305
+    },
+    {
+      "segment_index": 97,
+      "op": "dummy.mux",
+      "kind": "glue",
+      "start": 82336,
+      "end": 82338,
+      "constraint_count": 2
+    },
+    {
+      "segment_index": 98,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 82338,
+      "end": 82339,
+      "constraint_count": 1
+    },
+    {
+      "segment_index": 99,
+      "op": "decaf.randomized_verification_key",
+      "kind": "gadget",
+      "start": 82339,
+      "end": 84151,
+      "constraint_count": 1812
+    },
+    {
+      "segment_index": 100,
+      "op": "decaf.assert_equivalent_if",
+      "kind": "gadget",
+      "start": 84151,
+      "end": 84157,
+      "constraint_count": 6
+    },
+    {
+      "segment_index": 101,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 84157,
+      "end": 84159,
+      "constraint_count": 2
+    },
+    {
+      "segment_index": 102,
+      "op": "decaf.compress_to_field",
+      "kind": "gadget",
+      "start": 84159,
+      "end": 85205,
+      "constraint_count": 1046
+    },
+    {
+      "segment_index": 105,
+      "op": "gadget.note_commitment",
+      "kind": "gadget",
+      "start": 85205,
+      "end": 85635,
+      "constraint_count": 430
+    },
+    {
+      "segment_index": 106,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 85635,
+      "end": 85637,
+      "constraint_count": 2
+    },
+    {
+      "segment_index": 107,
+      "op": "gadget.nullifier",
+      "kind": "gadget",
+      "start": 85637,
+      "end": 85947,
+      "constraint_count": 310
+    },
+    {
+      "segment_index": 108,
+      "op": "gadget.state_commitment_path",
+      "kind": "gadget",
+      "start": 85947,
+      "end": 94962,
+      "constraint_count": 9015
+    },
+    {
+      "segment_index": 109,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 94962,
+      "end": 94964,
+      "constraint_count": 2
+    },
+    {
+      "segment_index": 110,
+      "op": "gadget.synthetic_dummy_nullifier",
+      "kind": "gadget",
+      "start": 94964,
+      "end": 95269,
+      "constraint_count": 305
+    },
+    {
+      "segment_index": 111,
+      "op": "dummy.mux",
+      "kind": "glue",
+      "start": 95269,
+      "end": 95271,
+      "constraint_count": 2
+    },
+    {
+      "segment_index": 112,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 95271,
+      "end": 95272,
+      "constraint_count": 1
+    },
+    {
+      "segment_index": 113,
+      "op": "decaf.randomized_verification_key",
+      "kind": "gadget",
+      "start": 95272,
+      "end": 97084,
+      "constraint_count": 1812
+    },
+    {
+      "segment_index": 114,
+      "op": "decaf.assert_equivalent_if",
+      "kind": "gadget",
+      "start": 97084,
+      "end": 97090,
+      "constraint_count": 6
+    },
+    {
+      "segment_index": 115,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 97090,
+      "end": 97092,
+      "constraint_count": 2
+    },
+    {
+      "segment_index": 116,
+      "op": "decaf.compress_to_field",
+      "kind": "gadget",
+      "start": 97092,
+      "end": 98138,
+      "constraint_count": 1046
+    },
+    {
+      "segment_index": 119,
+      "op": "gadget.note_commitment",
+      "kind": "gadget",
+      "start": 98138,
+      "end": 98568,
+      "constraint_count": 430
+    },
+    {
+      "segment_index": 120,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 98568,
+      "end": 98570,
+      "constraint_count": 2
+    },
+    {
+      "segment_index": 121,
+      "op": "gadget.nullifier",
+      "kind": "gadget",
+      "start": 98570,
+      "end": 98880,
+      "constraint_count": 310
+    },
+    {
+      "segment_index": 122,
+      "op": "gadget.state_commitment_path",
+      "kind": "gadget",
+      "start": 98880,
+      "end": 107895,
+      "constraint_count": 9015
+    },
+    {
+      "segment_index": 123,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 107895,
+      "end": 107897,
+      "constraint_count": 2
+    },
+    {
+      "segment_index": 124,
+      "op": "gadget.synthetic_dummy_nullifier",
+      "kind": "gadget",
+      "start": 107897,
+      "end": 108202,
+      "constraint_count": 305
+    },
+    {
+      "segment_index": 125,
+      "op": "dummy.mux",
+      "kind": "glue",
+      "start": 108202,
+      "end": 108204,
+      "constraint_count": 2
+    },
+    {
+      "segment_index": 126,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 108204,
+      "end": 108205,
+      "constraint_count": 1
+    },
+    {
+      "segment_index": 127,
+      "op": "decaf.randomized_verification_key",
+      "kind": "gadget",
+      "start": 108205,
+      "end": 110017,
+      "constraint_count": 1812
+    },
+    {
+      "segment_index": 128,
+      "op": "decaf.assert_equivalent_if",
+      "kind": "gadget",
+      "start": 110017,
+      "end": 110023,
+      "constraint_count": 6
+    },
+    {
+      "segment_index": 129,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 110023,
+      "end": 110025,
+      "constraint_count": 2
+    },
+    {
+      "segment_index": 130,
+      "op": "decaf.compress_to_field",
+      "kind": "gadget",
+      "start": 110025,
+      "end": 111071,
+      "constraint_count": 1046
+    },
+    {
+      "segment_index": 133,
+      "op": "gadget.note_commitment",
+      "kind": "gadget",
+      "start": 111071,
+      "end": 111501,
+      "constraint_count": 430
+    },
+    {
+      "segment_index": 134,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 111501,
+      "end": 111502,
+      "constraint_count": 1
+    },
+    {
+      "segment_index": 136,
+      "op": "decaf.conservation_net_balance_commitment",
+      "kind": "gadget",
+      "start": 111502,
+      "end": 114469,
+      "constraint_count": 2967
+    },
+    {
+      "segment_index": 137,
+      "op": "decaf.assert_equivalent",
+      "kind": "gadget",
+      "start": 114469,
+      "end": 114472,
+      "constraint_count": 3
+    },
+    {
+      "segment_index": 138,
+      "op": "decaf.compress_to_field",
+      "kind": "gadget",
+      "start": 114472,
+      "end": 115518,
+      "constraint_count": 1046
+    },
+    {
+      "segment_index": 143,
+      "op": "statement.hash",
+      "kind": "gadget",
+      "start": 115518,
+      "end": 116928,
+      "constraint_count": 1410
+    },
+    {
+      "segment_index": 144,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 116928,
+      "end": 116929,
+      "constraint_count": 1
+    }
+  ],
+  "edges": [
+    {
+      "from": 15,
+      "to": 21,
+      "shared_wires": 2
+    },
+    {
+      "from": 15,
+      "to": 35,
+      "shared_wires": 2
+    },
+    {
+      "from": 15,
+      "to": 49,
+      "shared_wires": 2
+    },
+    {
+      "from": 15,
+      "to": 63,
+      "shared_wires": 2
+    },
+    {
+      "from": 15,
+      "to": 77,
+      "shared_wires": 2
+    },
+    {
+      "from": 15,
+      "to": 91,
+      "shared_wires": 2
+    },
+    {
+      "from": 15,
+      "to": 105,
+      "shared_wires": 2
+    },
+    {
+      "from": 15,
+      "to": 119,
+      "shared_wires": 2
+    },
+    {
+      "from": 15,
+      "to": 133,
+      "shared_wires": 2
+    },
+    {
+      "from": 17,
+      "to": 18,
+      "shared_wires": 1
+    },
+    {
+      "from": 17,
+      "to": 19,
+      "shared_wires": 2
+    },
+    {
+      "from": 19,
+      "to": 21,
+      "shared_wires": 2
+    },
+    {
+      "from": 19,
+      "to": 35,
+      "shared_wires": 2
+    },
+    {
+      "from": 19,
+      "to": 49,
+      "shared_wires": 2
+    },
+    {
+      "from": 19,
+      "to": 63,
+      "shared_wires": 2
+    },
+    {
+      "from": 19,
+      "to": 77,
+      "shared_wires": 2
+    },
+    {
+      "from": 19,
+      "to": 91,
+      "shared_wires": 2
+    },
+    {
+      "from": 19,
+      "to": 105,
+      "shared_wires": 2
+    },
+    {
+      "from": 19,
+      "to": 119,
+      "shared_wires": 2
+    },
+    {
+      "from": 19,
+      "to": 133,
+      "shared_wires": 2
+    },
+    {
+      "from": 21,
+      "to": 22,
+      "shared_wires": 7
+    },
+    {
+      "from": 23,
+      "to": 27,
+      "shared_wires": 4
+    },
+    {
+      "from": 24,
+      "to": 25,
+      "shared_wires": 5
+    },
+    {
+      "from": 26,
+      "to": 27,
+      "shared_wires": 4
+    },
+    {
+      "from": 27,
+      "to": 28,
+      "shared_wires": 2
+    },
+    {
+      "from": 27,
+      "to": 143,
+      "shared_wires": 2
+    },
+    {
+      "from": 32,
+      "to": 143,
+      "shared_wires": 2
+    },
+    {
+      "from": 35,
+      "to": 36,
+      "shared_wires": 7
+    },
+    {
+      "from": 37,
+      "to": 41,
+      "shared_wires": 4
+    },
+    {
+      "from": 38,
+      "to": 39,
+      "shared_wires": 5
+    },
+    {
+      "from": 40,
+      "to": 41,
+      "shared_wires": 4
+    },
+    {
+      "from": 41,
+      "to": 42,
+      "shared_wires": 2
+    },
+    {
+      "from": 41,
+      "to": 143,
+      "shared_wires": 2
+    },
+    {
+      "from": 46,
+      "to": 143,
+      "shared_wires": 2
+    },
+    {
+      "from": 49,
+      "to": 50,
+      "shared_wires": 7
+    },
+    {
+      "from": 51,
+      "to": 55,
+      "shared_wires": 4
+    },
+    {
+      "from": 52,
+      "to": 53,
+      "shared_wires": 5
+    },
+    {
+      "from": 54,
+      "to": 55,
+      "shared_wires": 4
+    },
+    {
+      "from": 55,
+      "to": 56,
+      "shared_wires": 2
+    },
+    {
+      "from": 55,
+      "to": 143,
+      "shared_wires": 2
+    },
+    {
+      "from": 60,
+      "to": 143,
+      "shared_wires": 2
+    },
+    {
+      "from": 63,
+      "to": 64,
+      "shared_wires": 7
+    },
+    {
+      "from": 65,
+      "to": 69,
+      "shared_wires": 4
+    },
+    {
+      "from": 66,
+      "to": 67,
+      "shared_wires": 5
+    },
+    {
+      "from": 68,
+      "to": 69,
+      "shared_wires": 4
+    },
+    {
+      "from": 69,
+      "to": 70,
+      "shared_wires": 2
+    },
+    {
+      "from": 69,
+      "to": 143,
+      "shared_wires": 2
+    },
+    {
+      "from": 74,
+      "to": 143,
+      "shared_wires": 2
+    },
+    {
+      "from": 77,
+      "to": 78,
+      "shared_wires": 7
+    },
+    {
+      "from": 79,
+      "to": 83,
+      "shared_wires": 4
+    },
+    {
+      "from": 80,
+      "to": 81,
+      "shared_wires": 5
+    },
+    {
+      "from": 82,
+      "to": 83,
+      "shared_wires": 4
+    },
+    {
+      "from": 83,
+      "to": 84,
+      "shared_wires": 2
+    },
+    {
+      "from": 83,
+      "to": 143,
+      "shared_wires": 2
+    },
+    {
+      "from": 88,
+      "to": 143,
+      "shared_wires": 2
+    },
+    {
+      "from": 91,
+      "to": 92,
+      "shared_wires": 7
+    },
+    {
+      "from": 93,
+      "to": 97,
+      "shared_wires": 4
+    },
+    {
+      "from": 94,
+      "to": 95,
+      "shared_wires": 5
+    },
+    {
+      "from": 96,
+      "to": 97,
+      "shared_wires": 4
+    },
+    {
+      "from": 97,
+      "to": 98,
+      "shared_wires": 2
+    },
+    {
+      "from": 97,
+      "to": 143,
+      "shared_wires": 2
+    },
+    {
+      "from": 102,
+      "to": 143,
+      "shared_wires": 2
+    },
+    {
+      "from": 105,
+      "to": 106,
+      "shared_wires": 7
+    },
+    {
+      "from": 107,
+      "to": 111,
+      "shared_wires": 4
+    },
+    {
+      "from": 108,
+      "to": 109,
+      "shared_wires": 5
+    },
+    {
+      "from": 110,
+      "to": 111,
+      "shared_wires": 4
+    },
+    {
+      "from": 111,
+      "to": 112,
+      "shared_wires": 2
+    },
+    {
+      "from": 111,
+      "to": 143,
+      "shared_wires": 2
+    },
+    {
+      "from": 116,
+      "to": 143,
+      "shared_wires": 2
+    },
+    {
+      "from": 119,
+      "to": 120,
+      "shared_wires": 7
+    },
+    {
+      "from": 121,
+      "to": 125,
+      "shared_wires": 4
+    },
+    {
+      "from": 122,
+      "to": 123,
+      "shared_wires": 5
+    },
+    {
+      "from": 124,
+      "to": 125,
+      "shared_wires": 4
+    },
+    {
+      "from": 125,
+      "to": 126,
+      "shared_wires": 2
+    },
+    {
+      "from": 125,
+      "to": 143,
+      "shared_wires": 2
+    },
+    {
+      "from": 130,
+      "to": 143,
+      "shared_wires": 2
+    },
+    {
+      "from": 133,
+      "to": 134,
+      "shared_wires": 7
+    },
+    {
+      "from": 133,
+      "to": 143,
+      "shared_wires": 7
+    },
+    {
+      "from": 136,
+      "to": 137,
+      "shared_wires": 501
+    },
+    {
+      "from": 136,
+      "to": 138,
+      "shared_wires": 501
+    },
+    {
+      "from": 138,
+      "to": 143,
+      "shared_wires": 2
+    },
+    {
+      "from": 143,
+      "to": 144,
+      "shared_wires": 8
+    }
+  ],
+  "topological_order": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    49,
+    50,
+    51,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58,
+    59,
+    60,
+    63,
+    64,
+    65,
+    66,
+    67,
+    68,
+    69,
+    70,
+    71,
+    72,
+    73,
+    74,
+    77,
+    78,
+    79,
+    80,
+    81,
+    82,
+    83,
+    84,
+    85,
+    86,
+    87,
+    88,
+    91,
+    92,
+    93,
+    94,
+    95,
+    96,
+    97,
+    98,
+    99,
+    100,
+    101,
+    102,
+    105,
+    106,
+    107,
+    108,
+    109,
+    110,
+    111,
+    112,
+    113,
+    114,
+    115,
+    116,
+    119,
+    120,
+    121,
+    122,
+    123,
+    124,
+    125,
+    126,
+    127,
+    128,
+    129,
+    130,
+    133,
+    134,
+    136,
+    137,
+    138,
+    143,
+    144
+  ],
+  "acyclic": true
+}

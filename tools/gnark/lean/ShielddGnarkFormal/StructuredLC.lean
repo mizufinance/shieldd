@@ -77,7 +77,146 @@ theorem sumAux_add (rho : Nat → F) (start stride m n : Nat) :
       simp only [Nat.add_mul, Nat.add_assoc]
       ring
 
+/--
+Evaluate a run after a local-to-global wire seating as a sum over the exact
+global wire list. This is the bridge used to prove circuit-segment seams even
+when two independently extracted structured LCs group the same wires
+differently.
+-/
+theorem sumAux_seated
+    (rho : Nat → F) (seating : Nat → Nat) (start stride count : Nat) :
+    sumAux (fun localWire => rho (seating localWire)) start stride count =
+      (((List.range count).map
+        (fun offset => rho (seating (start + offset * stride)))).sum) := by
+  induction count with
+  | zero => rfl
+  | succ count ih =>
+      rw [sumAux_succ, List.range_succ, List.map_append, List.sum_append, ih]
+      simp only [List.map_singleton, List.sum_singleton]
+
 end StrideRun
+
+/--
+Permutation-invariance of an exact wire sum. Concrete seam certificates reduce
+to a decidable permutation of wire IDs rather than a large symbolic ring
+normalization.
+-/
+theorem wireSum_eq_of_perm
+    (rho : Nat → F) {left right : List Nat} (h : left.Perm right) :
+    (left.map rho).sum = (right.map rho).sum :=
+  (h.map rho).sum_eq
+
+theorem sumAux_pair_eq_of_perm
+    (rho : Nat → F)
+    (leftSeating rightSeating : Nat → Nat)
+    (leftStart₁ leftStride₁ leftCount₁ : Nat)
+    (leftStart₂ leftStride₂ leftCount₂ : Nat)
+    (rightStart rightStride rightCount : Nat)
+    (h :
+      ((List.range leftCount₁).map
+          (fun offset => leftSeating (leftStart₁ + offset * leftStride₁)) ++
+        (List.range leftCount₂).map
+          (fun offset => leftSeating (leftStart₂ + offset * leftStride₂))).Perm
+        ((List.range rightCount).map
+          (fun offset => rightSeating (rightStart + offset * rightStride)))) :
+    StrideRun.sumAux (fun wire => rho (leftSeating wire))
+          leftStart₁ leftStride₁ leftCount₁ +
+        StrideRun.sumAux (fun wire => rho (leftSeating wire))
+          leftStart₂ leftStride₂ leftCount₂ =
+      StrideRun.sumAux (fun wire => rho (rightSeating wire))
+        rightStart rightStride rightCount := by
+  rw [StrideRun.sumAux_seated, StrideRun.sumAux_seated,
+    StrideRun.sumAux_seated]
+  simpa only [List.map_append, List.sum_append, List.map_map,
+    Function.comp_apply] using wireSum_eq_of_perm rho h
+
+theorem sumAux_pair_residual_eq_of_perm
+    (rho : Nat → F)
+    (leftSeating rightSeating : Nat → Nat)
+    (leftStart₁ leftStride₁ leftCount₁ : Nat)
+    (leftStart₂ leftStride₂ leftCount₂ residual : Nat)
+    (rightStart rightStride rightCount : Nat)
+    (h :
+      ((List.range leftCount₁).map
+          (fun offset => leftSeating (leftStart₁ + offset * leftStride₁)) ++
+        (List.range leftCount₂).map
+          (fun offset => leftSeating (leftStart₂ + offset * leftStride₂)) ++
+        [leftSeating residual]).Perm
+        ((List.range rightCount).map
+          (fun offset => rightSeating (rightStart + offset * rightStride)))) :
+    StrideRun.sumAux (fun wire => rho (leftSeating wire))
+          leftStart₁ leftStride₁ leftCount₁ +
+        StrideRun.sumAux (fun wire => rho (leftSeating wire))
+          leftStart₂ leftStride₂ leftCount₂ +
+        rho (leftSeating residual) =
+      StrideRun.sumAux (fun wire => rho (rightSeating wire))
+        rightStart rightStride rightCount := by
+  rw [StrideRun.sumAux_seated, StrideRun.sumAux_seated,
+    StrideRun.sumAux_seated]
+  simpa only [List.map_append, List.sum_append, List.map_map,
+    Function.comp_apply, List.map_singleton, List.sum_singleton] using
+      wireSum_eq_of_perm rho h
+
+theorem sumAux_pair_eq_pair_of_perm
+    (rho : Nat → F)
+    (leftSeating rightSeating : Nat → Nat)
+    (leftStart₁ leftStride₁ leftCount₁ : Nat)
+    (leftStart₂ leftStride₂ leftCount₂ : Nat)
+    (rightStart₁ rightStride₁ rightCount₁ : Nat)
+    (rightStart₂ rightStride₂ rightCount₂ : Nat)
+    (h :
+      ((List.range leftCount₁).map
+          (fun offset => leftSeating (leftStart₁ + offset * leftStride₁)) ++
+        (List.range leftCount₂).map
+          (fun offset => leftSeating (leftStart₂ + offset * leftStride₂))).Perm
+        ((List.range rightCount₁).map
+            (fun offset => rightSeating (rightStart₁ + offset * rightStride₁)) ++
+          (List.range rightCount₂).map
+            (fun offset => rightSeating (rightStart₂ + offset * rightStride₂)))) :
+    StrideRun.sumAux (fun wire => rho (leftSeating wire))
+          leftStart₁ leftStride₁ leftCount₁ +
+        StrideRun.sumAux (fun wire => rho (leftSeating wire))
+          leftStart₂ leftStride₂ leftCount₂ =
+      StrideRun.sumAux (fun wire => rho (rightSeating wire))
+          rightStart₁ rightStride₁ rightCount₁ +
+        StrideRun.sumAux (fun wire => rho (rightSeating wire))
+          rightStart₂ rightStride₂ rightCount₂ := by
+  rw [StrideRun.sumAux_seated, StrideRun.sumAux_seated,
+    StrideRun.sumAux_seated, StrideRun.sumAux_seated]
+  simpa only [List.map_append, List.sum_append, List.map_map,
+    Function.comp_apply] using wireSum_eq_of_perm rho h
+
+theorem sumAux_pair_residual_eq_pair_of_perm
+    (rho : Nat → F)
+    (leftSeating rightSeating : Nat → Nat)
+    (leftStart₁ leftStride₁ leftCount₁ : Nat)
+    (leftStart₂ leftStride₂ leftCount₂ residual : Nat)
+    (rightStart₁ rightStride₁ rightCount₁ : Nat)
+    (rightStart₂ rightStride₂ rightCount₂ : Nat)
+    (h :
+      ((List.range leftCount₁).map
+          (fun offset => leftSeating (leftStart₁ + offset * leftStride₁)) ++
+        (List.range leftCount₂).map
+          (fun offset => leftSeating (leftStart₂ + offset * leftStride₂)) ++
+        [leftSeating residual]).Perm
+        ((List.range rightCount₁).map
+            (fun offset => rightSeating (rightStart₁ + offset * rightStride₁)) ++
+          (List.range rightCount₂).map
+            (fun offset => rightSeating (rightStart₂ + offset * rightStride₂)))) :
+    StrideRun.sumAux (fun wire => rho (leftSeating wire))
+          leftStart₁ leftStride₁ leftCount₁ +
+        StrideRun.sumAux (fun wire => rho (leftSeating wire))
+          leftStart₂ leftStride₂ leftCount₂ +
+        rho (leftSeating residual) =
+      StrideRun.sumAux (fun wire => rho (rightSeating wire))
+          rightStart₁ rightStride₁ rightCount₁ +
+        StrideRun.sumAux (fun wire => rho (rightSeating wire))
+          rightStart₂ rightStride₂ rightCount₂ := by
+  rw [StrideRun.sumAux_seated, StrideRun.sumAux_seated,
+    StrideRun.sumAux_seated, StrideRun.sumAux_seated]
+  simpa only [List.map_append, List.sum_append, List.map_map,
+    Function.comp_apply, List.map_singleton, List.sum_singleton] using
+      wireSum_eq_of_perm rho h
 
 /-- A whole extracted row in compact form:
 `const + Σ (runs) + Σ (residual coeff·wire terms)`. -/

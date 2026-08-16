@@ -1,4 +1,4 @@
-use std::{collections::BTreeSet, pin::Pin};
+use std::pin::Pin;
 
 use anyhow::bail;
 use cnidarium::Storage;
@@ -6,8 +6,8 @@ use futures::{StreamExt, TryFutureExt, TryStreamExt};
 use shieldd_sdk_proto::core::component::compact_block::v1::{
     query_service_server::QueryService, CompactBlock as ProtoCompactBlock,
     CompactBlockRangeRequest, CompactBlockRangeResponse, CompactBlockRequest, CompactBlockResponse,
-    DiscoveryBlockRangeRequest, DiscoveryBlockRangeResponse, NoteCandidatesRequest,
-    NoteCandidatesResponse,
+    RoutingBlockRangeRequest, RoutingBlockRangeResponse, RoutingCandidatesRequest,
+    RoutingCandidatesResponse,
 };
 use shieldd_sdk_sct::component::clock::EpochRead;
 use shieldd_sdk_shielded_pool::discovery;
@@ -16,10 +16,10 @@ use tonic::Status;
 use tracing::{instrument, Instrument};
 
 use super::{metrics, StateReadExt};
-use crate::{DiscoveryBlock, NoteCandidate, StatePayload};
+use crate::RoutingBlock;
 
 const MAX_DISCOVERY_BLOCKS_PER_REQUEST: u64 = 10_000;
-const MAX_DISCOVERY_TAGS_PER_REQUEST: usize = 256;
+const MAX_ROUTING_SELECTORS_PER_REQUEST: usize = 256;
 
 // TODO: Hide this and only expose a Router?
 pub struct Server {
@@ -37,11 +37,12 @@ impl QueryService for Server {
     type CompactBlockRangeStream = Pin<
         Box<dyn futures::Stream<Item = Result<CompactBlockRangeResponse, tonic::Status>> + Send>,
     >;
-    type DiscoveryBlockRangeStream = Pin<
-        Box<dyn futures::Stream<Item = Result<DiscoveryBlockRangeResponse, tonic::Status>> + Send>,
+    type RoutingBlockRangeStream = Pin<
+        Box<dyn futures::Stream<Item = Result<RoutingBlockRangeResponse, tonic::Status>> + Send>,
     >;
-    type NoteCandidatesStream =
-        Pin<Box<dyn futures::Stream<Item = Result<NoteCandidatesResponse, tonic::Status>> + Send>>;
+    type RoutingCandidatesStream = Pin<
+        Box<dyn futures::Stream<Item = Result<RoutingCandidatesResponse, tonic::Status>> + Send>,
+    >;
 
     async fn compact_block(
         &self,
@@ -250,11 +251,11 @@ impl QueryService for Server {
             end_height = request.get_ref().end_height,
         ),
     )]
-    async fn discovery_block_range(
+    async fn routing_block_range(
         &self,
-        request: tonic::Request<DiscoveryBlockRangeRequest>,
-    ) -> Result<tonic::Response<Self::DiscoveryBlockRangeStream>, Status> {
-        let DiscoveryBlockRangeRequest {
+        request: tonic::Request<RoutingBlockRangeRequest>,
+    ) -> Result<tonic::Response<Self::RoutingBlockRangeStream>, Status> {
+        let RoutingBlockRangeRequest {
             start_height,
             end_height,
         } = request.into_inner();
@@ -289,8 +290,8 @@ impl QueryService for Server {
                         return;
                     }
                 };
-                let response = DiscoveryBlockRangeResponse {
-                    discovery_block: Some(DiscoveryBlock::from(block).into()),
+                let response = RoutingBlockRangeResponse {
+                    routing_block: Some(RoutingBlock::from(block).into()),
                 };
                 if tx.send(Ok(response)).await.is_err() {
                     return;
@@ -308,33 +309,35 @@ impl QueryService for Server {
         fields(
             start_height = request.get_ref().start_height,
             end_height = request.get_ref().end_height,
-            tag_count = request.get_ref().tags.len(),
+            selector_count = request.get_ref().selectors.len(),
         ),
     )]
-    async fn note_candidates(
+    async fn routing_candidates(
         &self,
-        request: tonic::Request<NoteCandidatesRequest>,
-    ) -> Result<tonic::Response<Self::NoteCandidatesStream>, Status> {
-        let NoteCandidatesRequest {
+        request: tonic::Request<RoutingCandidatesRequest>,
+    ) -> Result<tonic::Response<Self::RoutingCandidatesStream>, Status> {
+        let RoutingCandidatesRequest {
             start_height,
             end_height,
-            tags,
+            selectors,
         } = request.into_inner();
-        if tags.is_empty() {
+        if selectors.is_empty() {
             return Err(Status::invalid_argument(
-                "at least one discovery tag is required",
+                "at least one routing selector is required",
             ));
         }
-        if tags.len() > MAX_DISCOVERY_TAGS_PER_REQUEST {
+        if selectors.len() > MAX_ROUTING_SELECTORS_PER_REQUEST {
             return Err(Status::invalid_argument(format!(
-                "at most {MAX_DISCOVERY_TAGS_PER_REQUEST} discovery tags are allowed"
+                "at most {MAX_ROUTING_SELECTORS_PER_REQUEST} routing selectors are allowed"
             )));
         }
-        let tags = tags
+        let selectors = selectors
             .into_iter()
-            .map(discovery::Tag::try_from)
-            .collect::<std::result::Result<BTreeSet<_>, _>>()
-            .map_err(|error| Status::invalid_argument(format!("invalid discovery tag: {error}")))?;
+            .map(discovery::RoutingSelector::try_from)
+            .collect::<std::result::Result<Vec<_>, _>>()
+            .map_err(|error| {
+                Status::invalid_argument(format!("invalid routing selector: {error}"))
+            })?;
         let end_height = bounded_discovery_end(&self.storage, start_height, end_height).await?;
         let storage = self.storage.clone();
         let (tx, rx) = mpsc::channel(10);
@@ -366,30 +369,26 @@ impl QueryService for Server {
                         return;
                     }
                 };
-                for (index, payload) in block.state_payloads.into_iter().enumerate() {
-                    let StatePayload::Note { note, .. } = payload else {
-                        continue;
-                    };
-                    if note.is_dummy() || !tags.contains(&note.discovery_tag) {
+                for record in block.routing_records {
+                    if !selectors
+                        .iter()
+                        .any(|selector| selector.matches(record.tag))
+                    {
                         continue;
                     }
-                    let state_payload_index = match u32::try_from(index) {
-                        Ok(index) => index,
-                        Err(_) => {
-                            let _ = tx
-                                .send(Err(Status::internal(
-                                    "compact block has more than u32::MAX state payloads",
-                                )))
-                                .await;
-                            return;
-                        }
+                    let note_payloads = block
+                        .routing_action_payloads
+                        .iter()
+                        .find(|action| {
+                            action.transaction_id == record.transaction_id
+                                && action.action_index == record.action_index
+                        })
+                        .map(|action| action.note_payloads.clone())
+                        .unwrap_or_default();
+                    let response = RoutingCandidatesResponse {
+                        record: Some(record.into()),
+                        note_payloads: note_payloads.into_iter().map(Into::into).collect(),
                     };
-                    let response: NoteCandidatesResponse = NoteCandidate {
-                        height: block.height,
-                        state_payload_index,
-                        note_payload: *note,
-                    }
-                    .into();
                     if tx.send(Ok(response)).await.is_err() {
                         return;
                     }

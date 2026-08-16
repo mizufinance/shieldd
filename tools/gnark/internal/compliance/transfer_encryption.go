@@ -14,15 +14,18 @@ const (
 	TransferDetectionFQCount      = 4
 	TransferCoreCiphertextFQCount = 1
 	TransferExtCiphertextFQCount  = 3
+	TransferSlotIDBits            = 32
 )
 
 var (
-	TransferSaltDomain          = transferSaltConstant("shieldd.transfer.compliance.salt")
-	TransferDetectionSaltLabel  = transferSaltConstant("detection")
-	TransferSenderCoreSaltLabel = transferSaltConstant("sender_core")
-	TransferSenderExtSaltLabel  = transferSaltConstant("sender_ext")
-	TransferOutputCoreSaltLabel = transferSaltConstant("output_core")
-	TransferOutputExtSaltLabel  = transferSaltConstant("output_ext")
+	TransferSaltDomain              = transferSaltConstant("shieldd.transfer.compliance.salt")
+	TransferDetectionSaltLabel      = transferSaltConstant("detection")
+	TransferSenderCoreSaltLabel     = transferSaltConstant("sender_core")
+	TransferSenderExtSaltLabel      = transferSaltConstant("sender_ext")
+	TransferOutputCoreSaltLabel     = transferSaltConstant("output_core")
+	TransferOutputExtSaltLabel      = transferSaltConstant("output_ext")
+	transferDetectionFlagBit        = new(big.Int).Lsh(big.NewInt(1), TransferSlotIDBits)
+	transferDetectionRoutingSwapBit = new(big.Int).Lsh(big.NewInt(1), TransferSlotIDBits+1)
 )
 
 func transferSaltConstant(label string) *big.Int {
@@ -55,13 +58,18 @@ func DeriveTransferSalt(
 	)
 }
 
-func ThresholdFlag(api frontend.API, amount, threshold frontend.Variable) frontend.Variable {
-	return api.Sub(1, fieldLessThan(api, amount, threshold))
+func ThresholdFlag(
+	api frontend.API,
+	isRegulated frontend.Variable,
+	amount frontend.Variable,
+	threshold frontend.Variable,
+) frontend.Variable {
+	thresholdReached := api.Sub(1, fieldLessThan(api, amount, threshold))
+	return api.Mul(isRegulated, thresholdReached)
 }
 
 func VerifyPoseidonEncryptionTransferDetection(
 	api frontend.API,
-	isRegulated frontend.Variable,
 	isFlagged frontend.Variable,
 	ssDetection gnarkte.Point,
 	senderCoreEPKFq frontend.Variable,
@@ -69,10 +77,13 @@ func VerifyPoseidonEncryptionTransferDetection(
 	assetID frontend.Variable,
 	senderSlotID frontend.Variable,
 	receiverSlotID frontend.Variable,
+	routingRolesSwapped frontend.Variable,
 	ciphertext [TransferDetectionFQCount]frontend.Variable,
 ) error {
-	api.AssertIsBoolean(isRegulated)
 	api.AssertIsBoolean(isFlagged)
+	api.AssertIsBoolean(routingRolesSwapped)
+	api.ToBinary(senderSlotID, TransferSlotIDBits)
+	api.ToBinary(receiverSlotID, TransferSlotIDBits)
 
 	vectors, err := primitives.LoadPrototypeVectors()
 	if err != nil {
@@ -91,7 +102,11 @@ func VerifyPoseidonEncryptionTransferDetection(
 		return err
 	}
 
-	detectionPlaintext := api.Add(assetID, api.Mul(isFlagged, flagBitFq()))
+	senderDetectionPlaintext := api.Add(
+		senderSlotID,
+		api.Mul(isFlagged, transferDetectionFlagBit),
+		api.Mul(routingRolesSwapped, transferDetectionRoutingSwapBit),
+	)
 	keystream0, err := complianceStreamBlock(api, seedDetection, 0)
 	if err != nil {
 		return err
@@ -109,23 +124,20 @@ func VerifyPoseidonEncryptionTransferDetection(
 		return err
 	}
 
-	AssertEqualIf(api, api.Add(detectionPlaintext, keystream0), ciphertext[0], isRegulated)
-	AssertEqualIf(api, api.Add(detectionSalt, keystream1), ciphertext[1], isRegulated)
-	AssertEqualIf(api, api.Add(senderSlotID, keystream2), ciphertext[2], isRegulated)
-	AssertEqualIf(api, api.Add(receiverSlotID, keystream3), ciphertext[3], isRegulated)
+	api.AssertIsEqual(api.Add(assetID, keystream0), ciphertext[0])
+	api.AssertIsEqual(api.Add(detectionSalt, keystream1), ciphertext[1])
+	api.AssertIsEqual(api.Add(senderDetectionPlaintext, keystream2), ciphertext[2])
+	api.AssertIsEqual(api.Add(receiverSlotID, keystream3), ciphertext[3])
 	return nil
 }
 
 func VerifyPoseidonEncryptionTransferAmount(
 	api frontend.API,
-	isRegulated frontend.Variable,
 	sharedSecret gnarkte.Point,
 	c2 frontend.Variable,
 	amount frontend.Variable,
 	ciphertext [TransferCoreCiphertextFQCount]frontend.Variable,
 ) error {
-	api.AssertIsBoolean(isRegulated)
-
 	sharedSecretFq, err := decafgnark.CompressToField(api, sharedSecret)
 	if err != nil {
 		return err
@@ -135,21 +147,18 @@ func VerifyPoseidonEncryptionTransferAmount(
 	if err != nil {
 		return err
 	}
-	AssertEqualIf(api, api.Add(amount, keystream), ciphertext[0], isRegulated)
+	api.AssertIsEqual(api.Add(amount, keystream), ciphertext[0])
 	return nil
 }
 
 func VerifyPoseidonEncryptionTransferAddress(
 	api frontend.API,
-	isRegulated frontend.Variable,
 	sharedSecret gnarkte.Point,
 	c2 frontend.Variable,
 	diversifiedGeneratorFq frontend.Variable,
 	transmissionKeyFq frontend.Variable,
 	ciphertext [TransferExtCiphertextFQCount]frontend.Variable,
 ) error {
-	api.AssertIsBoolean(isRegulated)
-
 	sharedSecretFq, err := decafgnark.CompressToField(api, sharedSecret)
 	if err != nil {
 		return err
@@ -161,7 +170,7 @@ func VerifyPoseidonEncryptionTransferAddress(
 		if err != nil {
 			return err
 		}
-		AssertEqualIf(api, api.Add(plain, keystream), ciphertext[i], isRegulated)
+		api.AssertIsEqual(api.Add(plain, keystream), ciphertext[i])
 	}
 	return nil
 }

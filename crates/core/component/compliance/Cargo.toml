@@ -24,20 +24,15 @@ sqlite-bundled = ["rusqlite/bundled"]
 test-helpers = ["decaf377-ka"]
 
 [dependencies]
-aes-gcm = "0.10"
 anyhow = {workspace = true}
 ark-ff = {workspace = true}
 base64 = {workspace = true}
-ark-groth16 = {workspace = true}
-ark-r1cs-std = {workspace = true}
-ark-relations = {workspace = true}
 ark-serialize = {workspace = true}
-ark-snark = {workspace = true}
 async-trait = {workspace = true}
 bincode = {workspace = true}
 cnidarium = {workspace = true, optional = true, default-features = true}
 cnidarium-component = {workspace = true, optional = true, default-features = true}
-decaf377 = {workspace = true, default-features = true, features = ["r1cs"]}
+decaf377 = {workspace = true, default-features = true}
 decaf377-rdsa = {workspace = true}
 decaf377-ka = {workspace = true, optional = true}
 once_cell = {workspace = true}
@@ -48,14 +43,12 @@ shieldd-sdk-proto = {workspace = true, default-features = false}
 shieldd-sdk-sct = {workspace = true, default-features = false}
 shieldd-sdk-tct = {workspace = true, default-features = false}
 shieldd-sdk-txhash = {workspace = true, default-features = false}
-poseidon377 = {workspace = true, features = ["r1cs"]}
+poseidon377 = {workspace = true}
 serde = {workspace = true, features = ["derive"]}
 serde_json = {workspace = true}
 sha2 = {workspace = true}
 blake2b_simd = {workspace = true}
-chacha20poly1305 = {workspace = true}
 hex = {workspace = true}
-hkdf = "0.12"
 ibc-proto = {workspace = true, optional = true, default-features = false}
 futures = {workspace = true}
 rand_core = {workspace = true}

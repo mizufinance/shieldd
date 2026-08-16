@@ -5,6 +5,8 @@ package shieldd.execution_client.v1;
 import "cosmos/base/v1beta1/coin.proto";
 import "google/protobuf/timestamp.proto";
 import "shieldd/core/app/v1/app.proto";
+import "shieldd/core/component/sct/v1/sct.proto";
+import "shieldd/core/component/shielded_pool/v1/shielded_pool.proto";
 
 // ExecutionClientService is the gRPC boundary used by a host chain to drive Shieldd
 // execution without embedding the Shieldd app in-process.
@@ -32,6 +34,19 @@ service ExecutionClientService {
   rpc Rollback(RollbackRequest) returns (RollbackResponse) {}
   // ExportGenesis exports the currently committed Shieldd state as genesis.
   rpc ExportGenesis(ExportGenesisRequest) returns (ExportGenesisResponse) {}
+  // ArchivedNullifierProof returns a retired-generation witness for an old note.
+  rpc ArchivedNullifierProof(ArchivedNullifierProofRequest)
+      returns (ArchivedNullifierProofResponse) {}
+}
+
+// ArchivedNullifierProofRequest carries the component query across the host-chain boundary.
+message ArchivedNullifierProofRequest {
+  shieldd.core.component.sct.v1.ArchivedNullifierProofRequest request = 1;
+}
+
+// ArchivedNullifierProofResponse carries the component result across the host-chain boundary.
+message ArchivedNullifierProofResponse {
+  shieldd.core.component.sct.v1.ArchivedNullifierProofResponse response = 1;
 }
 
 // InitGenesisRequest carries the Shieldd genesis payload controlled by the host
@@ -139,16 +154,18 @@ message DeliverTxResponse {
   repeated Event events = 7;
   // Module or subsystem that produced a non-zero code.
   string codespace = 8;
-  // Host-chain withdrawals requested by the executed transaction.
-  repeated Withdrawal withdrawals = 9;
+  // Host-chain withdrawals in their order within the executed transaction.
+  repeated HostWithdrawal withdrawals = 9;
 }
 
-// Withdrawal describes a coin the host chain should send to a recipient.
-message Withdrawal {
-  // Host-chain recipient address.
-  string recipient = 1;
+// HostWithdrawal describes committed value the host chain must transfer or execute.
+message HostWithdrawal {
   // Coin withdrawn from Shieldd.
-  cosmos.base.v1beta1.Coin coin = 2;
+  cosmos.base.v1beta1.Coin coin = 1;
+  oneof destination {
+    shieldd.core.component.shielded_pool.v1.HostTransfer transfer = 2;
+    shieldd.core.component.shielded_pool.v1.HostExecution execution = 3;
+  }
 }
 
 // EndBlockRequest identifies the host-chain block being finalized.

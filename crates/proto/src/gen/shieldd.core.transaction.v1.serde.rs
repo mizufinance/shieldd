@@ -273,6 +273,9 @@ impl serde::Serialize for ActionPlan {
                 action_plan::Action::ShieldedIcs20Withdrawal(v) => {
                     struct_ser.serialize_field("shieldedIcs20Withdrawal", v)?;
                 }
+                action_plan::Action::ShieldedHostWithdrawal(v) => {
+                    struct_ser.serialize_field("shieldedHostWithdrawal", v)?;
+                }
                 action_plan::Action::ComplianceRegisterAsset(v) => {
                     struct_ser.serialize_field("complianceRegisterAsset", v)?;
                 }
@@ -304,6 +307,8 @@ impl<'de> serde::Deserialize<'de> for ActionPlan {
             "validatorVote",
             "shielded_ics20_withdrawal",
             "shieldedIcs20Withdrawal",
+            "shielded_host_withdrawal",
+            "shieldedHostWithdrawal",
             "compliance_register_asset",
             "complianceRegisterAsset",
             "compliance_register_user",
@@ -319,6 +324,7 @@ impl<'de> serde::Deserialize<'de> for ActionPlan {
             ProposalSubmit,
             ValidatorVote,
             ShieldedIcs20Withdrawal,
+            ShieldedHostWithdrawal,
             ComplianceRegisterAsset,
             ComplianceRegisterUser,
             __SkipField__,
@@ -350,6 +356,7 @@ impl<'de> serde::Deserialize<'de> for ActionPlan {
                             "proposalSubmit" | "proposal_submit" => Ok(GeneratedField::ProposalSubmit),
                             "validatorVote" | "validator_vote" => Ok(GeneratedField::ValidatorVote),
                             "shieldedIcs20Withdrawal" | "shielded_ics20_withdrawal" => Ok(GeneratedField::ShieldedIcs20Withdrawal),
+                            "shieldedHostWithdrawal" | "shielded_host_withdrawal" => Ok(GeneratedField::ShieldedHostWithdrawal),
                             "complianceRegisterAsset" | "compliance_register_asset" => Ok(GeneratedField::ComplianceRegisterAsset),
                             "complianceRegisterUser" | "compliance_register_user" => Ok(GeneratedField::ComplianceRegisterUser),
                             _ => Ok(GeneratedField::__SkipField__),
@@ -421,6 +428,13 @@ impl<'de> serde::Deserialize<'de> for ActionPlan {
                                 return Err(serde::de::Error::duplicate_field("shieldedIcs20Withdrawal"));
                             }
                             action__ = map_.next_value::<::std::option::Option<_>>()?.map(action_plan::Action::ShieldedIcs20Withdrawal)
+;
+                        }
+                        GeneratedField::ShieldedHostWithdrawal => {
+                            if action__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("shieldedHostWithdrawal"));
+                            }
+                            action__ = map_.next_value::<::std::option::Option<_>>()?.map(action_plan::Action::ShieldedHostWithdrawal)
 ;
                         }
                         GeneratedField::ComplianceRegisterAsset => {
@@ -2543,6 +2557,12 @@ impl serde::Serialize for TransactionBody {
         if self.memo.is_some() {
             len += 1;
         }
+        if self.nullifier_window.is_some() {
+            len += 1;
+        }
+        if !self.historical_nullifier_proofs.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.transaction.v1.TransactionBody", len)?;
         if !self.actions.is_empty() {
             struct_ser.serialize_field("actions", &self.actions)?;
@@ -2555,6 +2575,12 @@ impl serde::Serialize for TransactionBody {
         }
         if let Some(v) = self.memo.as_ref() {
             struct_ser.serialize_field("memo", v)?;
+        }
+        if let Some(v) = self.nullifier_window.as_ref() {
+            struct_ser.serialize_field("nullifierWindow", v)?;
+        }
+        if !self.historical_nullifier_proofs.is_empty() {
+            struct_ser.serialize_field("historicalNullifierProofs", &self.historical_nullifier_proofs)?;
         }
         struct_ser.end()
     }
@@ -2572,6 +2598,10 @@ impl<'de> serde::Deserialize<'de> for TransactionBody {
             "fee_funding",
             "feeFunding",
             "memo",
+            "nullifier_window",
+            "nullifierWindow",
+            "historical_nullifier_proofs",
+            "historicalNullifierProofs",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -2580,6 +2610,8 @@ impl<'de> serde::Deserialize<'de> for TransactionBody {
             TransactionParameters,
             FeeFunding,
             Memo,
+            NullifierWindow,
+            HistoricalNullifierProofs,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -2606,6 +2638,8 @@ impl<'de> serde::Deserialize<'de> for TransactionBody {
                             "transactionParameters" | "transaction_parameters" => Ok(GeneratedField::TransactionParameters),
                             "feeFunding" | "fee_funding" => Ok(GeneratedField::FeeFunding),
                             "memo" => Ok(GeneratedField::Memo),
+                            "nullifierWindow" | "nullifier_window" => Ok(GeneratedField::NullifierWindow),
+                            "historicalNullifierProofs" | "historical_nullifier_proofs" => Ok(GeneratedField::HistoricalNullifierProofs),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -2629,6 +2663,8 @@ impl<'de> serde::Deserialize<'de> for TransactionBody {
                 let mut transaction_parameters__ = None;
                 let mut fee_funding__ = None;
                 let mut memo__ = None;
+                let mut nullifier_window__ = None;
+                let mut historical_nullifier_proofs__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Actions => {
@@ -2655,6 +2691,18 @@ impl<'de> serde::Deserialize<'de> for TransactionBody {
                             }
                             memo__ = map_.next_value()?;
                         }
+                        GeneratedField::NullifierWindow => {
+                            if nullifier_window__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("nullifierWindow"));
+                            }
+                            nullifier_window__ = map_.next_value()?;
+                        }
+                        GeneratedField::HistoricalNullifierProofs => {
+                            if historical_nullifier_proofs__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("historicalNullifierProofs"));
+                            }
+                            historical_nullifier_proofs__ = Some(map_.next_value()?);
+                        }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
                         }
@@ -2665,6 +2713,8 @@ impl<'de> serde::Deserialize<'de> for TransactionBody {
                     transaction_parameters: transaction_parameters__,
                     fee_funding: fee_funding__,
                     memo: memo__,
+                    nullifier_window: nullifier_window__,
+                    historical_nullifier_proofs: historical_nullifier_proofs__.unwrap_or_default(),
                 })
             }
         }
@@ -2691,6 +2741,12 @@ impl serde::Serialize for TransactionBodyView {
         if self.memo_view.is_some() {
             len += 1;
         }
+        if self.nullifier_window.is_some() {
+            len += 1;
+        }
+        if !self.historical_nullifier_proofs.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.transaction.v1.TransactionBodyView", len)?;
         if !self.action_views.is_empty() {
             struct_ser.serialize_field("actionViews", &self.action_views)?;
@@ -2703,6 +2759,12 @@ impl serde::Serialize for TransactionBodyView {
         }
         if let Some(v) = self.memo_view.as_ref() {
             struct_ser.serialize_field("memoView", v)?;
+        }
+        if let Some(v) = self.nullifier_window.as_ref() {
+            struct_ser.serialize_field("nullifierWindow", v)?;
+        }
+        if !self.historical_nullifier_proofs.is_empty() {
+            struct_ser.serialize_field("historicalNullifierProofs", &self.historical_nullifier_proofs)?;
         }
         struct_ser.end()
     }
@@ -2722,6 +2784,10 @@ impl<'de> serde::Deserialize<'de> for TransactionBodyView {
             "feeFunding",
             "memo_view",
             "memoView",
+            "nullifier_window",
+            "nullifierWindow",
+            "historical_nullifier_proofs",
+            "historicalNullifierProofs",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -2730,6 +2796,8 @@ impl<'de> serde::Deserialize<'de> for TransactionBodyView {
             TransactionParameters,
             FeeFunding,
             MemoView,
+            NullifierWindow,
+            HistoricalNullifierProofs,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -2756,6 +2824,8 @@ impl<'de> serde::Deserialize<'de> for TransactionBodyView {
                             "transactionParameters" | "transaction_parameters" => Ok(GeneratedField::TransactionParameters),
                             "feeFunding" | "fee_funding" => Ok(GeneratedField::FeeFunding),
                             "memoView" | "memo_view" => Ok(GeneratedField::MemoView),
+                            "nullifierWindow" | "nullifier_window" => Ok(GeneratedField::NullifierWindow),
+                            "historicalNullifierProofs" | "historical_nullifier_proofs" => Ok(GeneratedField::HistoricalNullifierProofs),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -2779,6 +2849,8 @@ impl<'de> serde::Deserialize<'de> for TransactionBodyView {
                 let mut transaction_parameters__ = None;
                 let mut fee_funding__ = None;
                 let mut memo_view__ = None;
+                let mut nullifier_window__ = None;
+                let mut historical_nullifier_proofs__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::ActionViews => {
@@ -2805,6 +2877,18 @@ impl<'de> serde::Deserialize<'de> for TransactionBodyView {
                             }
                             memo_view__ = map_.next_value()?;
                         }
+                        GeneratedField::NullifierWindow => {
+                            if nullifier_window__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("nullifierWindow"));
+                            }
+                            nullifier_window__ = map_.next_value()?;
+                        }
+                        GeneratedField::HistoricalNullifierProofs => {
+                            if historical_nullifier_proofs__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("historicalNullifierProofs"));
+                            }
+                            historical_nullifier_proofs__ = Some(map_.next_value()?);
+                        }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
                         }
@@ -2815,6 +2899,8 @@ impl<'de> serde::Deserialize<'de> for TransactionBodyView {
                     transaction_parameters: transaction_parameters__,
                     fee_funding: fee_funding__,
                     memo_view: memo_view__,
+                    nullifier_window: nullifier_window__,
+                    historical_nullifier_proofs: historical_nullifier_proofs__.unwrap_or_default(),
                 })
             }
         }
@@ -3590,6 +3676,9 @@ impl serde::Serialize for TransactionPlan {
         if self.memo.is_some() {
             len += 1;
         }
+        if self.nullifier_window.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.transaction.v1.TransactionPlan", len)?;
         if !self.actions.is_empty() {
             struct_ser.serialize_field("actions", &self.actions)?;
@@ -3602,6 +3691,9 @@ impl serde::Serialize for TransactionPlan {
         }
         if let Some(v) = self.memo.as_ref() {
             struct_ser.serialize_field("memo", v)?;
+        }
+        if let Some(v) = self.nullifier_window.as_ref() {
+            struct_ser.serialize_field("nullifierWindow", v)?;
         }
         struct_ser.end()
     }
@@ -3619,6 +3711,8 @@ impl<'de> serde::Deserialize<'de> for TransactionPlan {
             "fee_funding",
             "feeFunding",
             "memo",
+            "nullifier_window",
+            "nullifierWindow",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -3627,6 +3721,7 @@ impl<'de> serde::Deserialize<'de> for TransactionPlan {
             TransactionParameters,
             FeeFunding,
             Memo,
+            NullifierWindow,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -3653,6 +3748,7 @@ impl<'de> serde::Deserialize<'de> for TransactionPlan {
                             "transactionParameters" | "transaction_parameters" => Ok(GeneratedField::TransactionParameters),
                             "feeFunding" | "fee_funding" => Ok(GeneratedField::FeeFunding),
                             "memo" => Ok(GeneratedField::Memo),
+                            "nullifierWindow" | "nullifier_window" => Ok(GeneratedField::NullifierWindow),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -3676,6 +3772,7 @@ impl<'de> serde::Deserialize<'de> for TransactionPlan {
                 let mut transaction_parameters__ = None;
                 let mut fee_funding__ = None;
                 let mut memo__ = None;
+                let mut nullifier_window__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Actions => {
@@ -3702,6 +3799,12 @@ impl<'de> serde::Deserialize<'de> for TransactionPlan {
                             }
                             memo__ = map_.next_value()?;
                         }
+                        GeneratedField::NullifierWindow => {
+                            if nullifier_window__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("nullifierWindow"));
+                            }
+                            nullifier_window__ = map_.next_value()?;
+                        }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
                         }
@@ -3712,6 +3815,7 @@ impl<'de> serde::Deserialize<'de> for TransactionPlan {
                     transaction_parameters: transaction_parameters__,
                     fee_funding: fee_funding__,
                     memo: memo__,
+                    nullifier_window: nullifier_window__,
                 })
             }
         }
@@ -4070,12 +4174,18 @@ impl serde::Serialize for WitnessData {
         if !self.state_commitment_proofs.is_empty() {
             len += 1;
         }
+        if !self.historical_nullifier_proofs.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.transaction.v1.WitnessData", len)?;
         if let Some(v) = self.anchor.as_ref() {
             struct_ser.serialize_field("anchor", v)?;
         }
         if !self.state_commitment_proofs.is_empty() {
             struct_ser.serialize_field("stateCommitmentProofs", &self.state_commitment_proofs)?;
+        }
+        if !self.historical_nullifier_proofs.is_empty() {
+            struct_ser.serialize_field("historicalNullifierProofs", &self.historical_nullifier_proofs)?;
         }
         struct_ser.end()
     }
@@ -4090,12 +4200,15 @@ impl<'de> serde::Deserialize<'de> for WitnessData {
             "anchor",
             "state_commitment_proofs",
             "stateCommitmentProofs",
+            "historical_nullifier_proofs",
+            "historicalNullifierProofs",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             Anchor,
             StateCommitmentProofs,
+            HistoricalNullifierProofs,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -4120,6 +4233,7 @@ impl<'de> serde::Deserialize<'de> for WitnessData {
                         match value {
                             "anchor" => Ok(GeneratedField::Anchor),
                             "stateCommitmentProofs" | "state_commitment_proofs" => Ok(GeneratedField::StateCommitmentProofs),
+                            "historicalNullifierProofs" | "historical_nullifier_proofs" => Ok(GeneratedField::HistoricalNullifierProofs),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -4141,6 +4255,7 @@ impl<'de> serde::Deserialize<'de> for WitnessData {
             {
                 let mut anchor__ = None;
                 let mut state_commitment_proofs__ = None;
+                let mut historical_nullifier_proofs__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Anchor => {
@@ -4155,6 +4270,12 @@ impl<'de> serde::Deserialize<'de> for WitnessData {
                             }
                             state_commitment_proofs__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::HistoricalNullifierProofs => {
+                            if historical_nullifier_proofs__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("historicalNullifierProofs"));
+                            }
+                            historical_nullifier_proofs__ = Some(map_.next_value()?);
+                        }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
                         }
@@ -4163,6 +4284,7 @@ impl<'de> serde::Deserialize<'de> for WitnessData {
                 Ok(WitnessData {
                     anchor: anchor__,
                     state_commitment_proofs: state_commitment_proofs__.unwrap_or_default(),
+                    historical_nullifier_proofs: historical_nullifier_proofs__.unwrap_or_default(),
                 })
             }
         }

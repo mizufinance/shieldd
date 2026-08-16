@@ -11,9 +11,8 @@ use shieldd_sdk_sct::{
 use shieldd_sdk_shielded_pool::{note, Note};
 use shieldd_sdk_tct as tct;
 use shieldd_sdk_transaction::{
-    memo::MemoPlaintext,
-    plan::{ActionPlan, MemoPlan},
-    AuthorizationData, Transaction, TransactionPlan, WitnessData,
+    memo::MemoPlaintext, plan::MemoPlan, AuthorizationData, Transaction, TransactionPlan,
+    WitnessData,
 };
 use shieldd_sdk_view::enrich_plan_with_compliance;
 use std::collections::BTreeMap;
@@ -197,24 +196,14 @@ impl MockClient {
     }
 
     pub fn witness_plan(&self, plan: &TransactionPlan) -> Result<WitnessData, Error> {
-        let commitments = plan.actions.iter().flat_map(|action| match action {
-            ActionPlan::Transfer(plan) => plan
-                .spends
-                .iter()
-                .map(|spend| spend.note.commit())
-                .collect::<Vec<_>>(),
-            ActionPlan::NoteReshape(plan) => plan
-                .spends
-                .iter()
-                .map(|spend| spend.note.commit())
-                .collect::<Vec<_>>(),
-            ActionPlan::ShieldedIcs20Withdrawal(plan) => plan
-                .spends
-                .iter()
-                .map(|spend| spend.note.commit())
-                .collect::<Vec<_>>(),
-            _ => Vec::new(),
-        });
+        let action_spends = plan.actions.iter().flat_map(|action| action.spends());
+        let fee_funding_spends = plan
+            .fee_funding
+            .iter()
+            .flat_map(|fee_funding| fee_funding.transfer.spends.iter());
+        let commitments = action_spends
+            .chain(fee_funding_spends)
+            .map(|spend| spend.note.commit());
 
         let witness = |commitment| {
             self.sct
@@ -226,6 +215,7 @@ impl MockClient {
         Ok(WitnessData {
             anchor: self.sct.root(),
             state_commitment_proofs: commitments.map(witness).collect::<Result<_, Error>>()?,
+            historical_nullifier_proofs: Default::default(),
         })
     }
 
@@ -250,6 +240,14 @@ impl MockClient {
         plan: &mut TransactionPlan,
         state: S,
     ) -> Result<Transaction, Error> {
+        if plan.num_spends() > 0 {
+            plan.nullifier_window = Some(
+                shieldd_sdk_sct::nullifier_tree::generation_state(&state)
+                    .await?
+                    .window(),
+            );
+        }
+
         // Read block timestamp from state before enrichment.
         // Tests use fake chain times (e.g. 2022), but SystemTime::now() returns
         // real time. Pass the block timestamp so DLEQ proofs and on-chain freshness
@@ -265,7 +263,7 @@ impl MockClient {
             .await?;
         // Populate memo if outputs exist but no memo set.
         if plan.memo.is_none() && plan.num_outputs() > 0 {
-            let (return_address, _) = self.fvk.incoming().payment_address(0u32.into());
+            let return_address = self.fvk.incoming().payment_address(0u32.into());
             plan.memo = Some(MemoPlan::new(
                 &mut OsRng,
                 MemoPlaintext::new(return_address, String::new())?,
@@ -574,15 +572,16 @@ mod tests {
         Note, Rseed, ShieldedInputPlan, ShieldedOutputPlan, TransferPlan,
     };
     use shieldd_sdk_tct::Witness;
-    use shieldd_sdk_transaction::{ActionPlan, TransactionPlan};
+    use shieldd_sdk_transaction::{ActionPlan, FeeFundingPlan, TransactionPlan};
 
     #[test]
     fn witness_plan_includes_hidden_arity_transfer_spend_proof() {
         let sk =
-            SpendKey::from_seed_phrase_bip44(SeedPhrase::generate(&mut OsRng), &Bip44Path::new(0));
+            SpendKey::from_seed_phrase_bip44(SeedPhrase::generate(&mut OsRng), &Bip44Path::new(0))
+                .expect("test spend key should satisfy key refinements");
         let mut client = MockClient::new(sk);
         let fvk = client.fvk.clone();
-        let (address, _) = fvk.incoming().payment_address(0u32.into());
+        let address = fvk.incoming().payment_address(0u32.into());
 
         let note = Note::from_parts(
             address.clone(),
@@ -632,6 +631,66 @@ mod tests {
                 .state_commitment_proofs
                 .contains_key(&commitment),
             "hidden-arity transfer spent note commitment should be witnessed",
+        );
+    }
+
+    #[test]
+    fn witness_plan_includes_fee_funding_transfer_spend_proof() {
+        let sk =
+            SpendKey::from_seed_phrase_bip44(SeedPhrase::generate(&mut OsRng), &Bip44Path::new(0))
+                .expect("test spend key should satisfy key refinements");
+        let mut client = MockClient::new(sk);
+        let fvk = client.fvk.clone();
+        let address = fvk.incoming().payment_address(0u32.into());
+
+        let note = Note::from_parts(
+            address.clone(),
+            Value {
+                amount: 100u64.into(),
+                asset_id: asset::Id(Fq::from(1u64)),
+            },
+            Rseed::generate(&mut OsRng),
+        )
+        .expect("build note");
+        let commitment = note.commit();
+        client
+            .sct
+            .insert(Witness::Keep, commitment)
+            .expect("insert note commitment");
+
+        let spend = ShieldedInputPlan::new(&mut OsRng, note.clone(), 0u64.into());
+        let mut output = ShieldedOutputPlan::new(
+            &mut OsRng,
+            Value {
+                amount: 100u64.into(),
+                asset_id: asset::Id(note.asset_id().0),
+            },
+            address,
+        );
+        output.asset_anchor = spend.asset_anchor;
+        output.compliance_anchor = spend.compliance_anchor;
+        output.target_timestamp = spend.target_timestamp;
+        output.is_regulated = spend.is_regulated;
+        output.tx_blinding_nonce = spend.tx_blinding_nonce;
+        output.asset_indexed_leaf = spend.asset_indexed_leaf.clone();
+        output.asset_path = spend.asset_path.clone();
+        output.asset_position = spend.asset_position;
+        output.asset_policy = spend.asset_policy.clone();
+        let transfer = TransferPlan::from_spend_output(spend.into(), output.into(), Fr::from(9u64))
+            .expect("build fee-funding transfer");
+        let plan = TransactionPlan {
+            fee_funding: Some(FeeFundingPlan { transfer }),
+            ..Default::default()
+        };
+
+        let witness_data = client
+            .witness_plan(&plan)
+            .expect("witness fee-funding transfer plan");
+        assert!(
+            witness_data
+                .state_commitment_proofs
+                .contains_key(&commitment),
+            "fee-funding spent note commitment should be witnessed",
         );
     }
 }

@@ -1,139 +1,154 @@
 # Compliance Constraint Checklist
 
-This checklist covers compliance-owned constraints only. Transfer-circuit
-soundness constraints such as nullifiers, randomized spend authorization keys,
-note commitments, anchors, value conservation, and balance commitments are
-external invariants tracked in `docs/transfer-circuit/constraint-checklist.md`.
-
-Each entry lists where the rule is enforced, where runtime validation observes
-or re-checks it, and where regressions should be caught.
+This checklist covers the V18 compliance surface. General spend, note,
+nullifier, and value constraints are tracked in
+`docs/transfer-circuit/constraint-checklist.md`.
 
 ## Circuit Constraints
 
-### Asset Policy Binding
+### Asset Status And Effective Policy
 
-- Enforced in: `crates/core/component/compliance/src/r1cs.rs`
-  (`verify_asset_registry_imt`, `verify_compliance_integrity`).
-- Verified at: transaction proof verification and registry anchor checks in
-  `crates/core/component/compliance/src/registry.rs`.
-- Tested by: `r1cs::tests::test_verify_asset_registry_imt_membership`,
-  `r1cs::tests::test_verify_asset_registry_imt_non_membership`, and
-  `tools/gnark/internal/circuits/transfer_metamorphic_test.go`.
-- Violation: transfer proof rejects or registry/domain check returns an error.
+- Enforced by exact asset-tree membership or canonical non-membership-gap
+  verification in `transfer_circuit.go`.
+- Regulated values come from the committed asset leaf.
+- Asset id zero is rejected because it is the indexed-tree sentinel, not an
+  asset policy.
+- Policy admission rejects identity detection and ring keys before the asset
+  leaf can enter durable registry state.
+- Unregulated values select fixed sink ring/DK points and empty-string policy
+  hashes. Their authenticated predecessor-leaf threshold remains a comparator
+  input but cannot affect the regulation-gated flag.
+- `is_regulated` is boolean and cannot be chosen independently of the tree.
+- Mutation coverage: regulated/unregulated fixtures, bad gap bounds, wrong
+  asset leaf, and selected-policy field changes.
 
-### Regulated Policy Usage
+### Sender And Receiver Compliance Leaves
 
-- Enforced in: transfer planning/proof wiring under
-  `crates/core/component/shielded-pool/src/transfer/` and compliance checks in
-  `crates/core/component/compliance/src/r1cs.rs`.
-- Verified at: planner asset-policy lookup and validator proof verification.
-- Tested by: compliance registry tests and transfer gnark metamorphic tests.
-- Violation: transaction planning fails or the transfer proof rejects.
-
-### Compliance Slot Binding
-
-- Enforced in: `ComplianceLeaf::commit`, registration validation, and transfer
-  compliance circuits.
-- Verified at: `MsgRegisterUser` checks `slot_id < slot_count` and
-  `d == derive_compliance_scalar(slot_derivation)`.
-- Privacy note: `slot_id` secrecy is not a constraint when `slot_derivation` is
-  visible; same-slot linkability comes from shared `slot_derivation`, `d`, and
-  ACK.
-- Tested by: compliance leaf/proto tests, registry registration tests, and
-  gnark transfer witness parity tests.
-- Violation: registration fails, transfer planning cannot use a synthetic
-  regulated leaf, or the transfer proof rejects.
-
-### Threshold Flag
-
-- Enforced in: `verify_threshold_flag_simple` and transfer compliance public
+- Transfer rejects identity authorization keys and identity sender/receiver
+  diversified generators with three exact one-row Decaf predicates. This
+  matches native key/address allocation and prevents identity-DTK ownership
+  aliasing; it is not merely an honest-construction precondition.
+- Regulated transfers bind the diversified generator, transmission key, asset
+  id, slot id, `slot_derivation`, and `d` into version-3 compliance-leaf
+  commitments under the accepted compliance anchor.
+- Native registration rejects a derived `d = 0`, preventing an identity ACK.
+- ACK derivation uses the selected ring point and the bound `d`.
+- Unregulated transfers keep the same witness shape but gate membership against
+  the exact asset-status branch.
+- Mutation coverage: leaf fields, paths, positions, anchor, derivation, and ACK
   inputs.
-- Verified at: detection-tier DK screening and audit evidence matching.
-- Tested by: `tools/gnark/internal/compliance/threshold_test.go` and
-  `scanner::screener::tests::screener_detects_matching_asset`.
-- Violation: proof rejects, or scanner/evidence validation records a failure.
 
-### Detection Tier
+### Threshold And Detection
 
-- Enforced in: transfer compliance ciphertext construction and circuit public
-  inputs. The detection plaintext contains asset id plus flag, salt, sender
-  slot id, and receiver slot id.
-- Verified at: `ComplianceScreener::screen` and
-  `DetectionKey::try_decrypt_detection`.
-- Tested by: `scanner::screener::*` tests and
-  `issuer_keys::tests::test_detection_tier_roundtrip`.
-- Violation: ciphertext is marked irrelevant or invalid; malformed rows are
-  capped and persisted.
+- The flag is exactly
+  `is_regulated * (amount >= authenticated_leaf_threshold)`.
+- An unregulated transfer is therefore never flagged, including when its
+  receiver amount is `u128::MAX`.
+- Detection encryption is unconditional and uses the selected DK shared secret,
+  sender-core EPK, asset id/flag, detection salt, and both slot ids.
+- The exact plaintext order is asset, salt,
+  `sender_slot_id + is_flagged * 2^32`, receiver slot. Both slots are
+  constrained to 32 bits; the asset is not combined with the flag.
+- The detection ciphertext is part of the public statement.
+- Mutation coverage: threshold boundary, flag, slot ids, salt, EPK, and each
+  detection ciphertext word.
 
-### Tier Encryption And DLEQ Binding
+### Audit-Tier Encryption
 
-- Purpose: DLEQ binds tier ciphertext material to the metadata that Orbis ACP
-  authorizes for PRE. It is not a Shieldd balance/nullifier soundness condition,
-  but it is part of transaction validity because the transaction sender chooses
-  the ciphertext and proof.
-- Enforced in: transfer compliance circuit fields and DLEQ checks in
-  `crates/core/component/compliance/src/r1cs.rs`.
-- Verified at: `validate_audit_evidence`,
-  `PublicTransferTierDecodeObject::validate`, and
-  `TransferOrbisUploadBundle::validate`.
-- Tested by: `audit_validation::*`, `decode_object::*`,
-  `upload_package::*`, and
-  `tools/gnark/internal/circuits/transfer_metamorphic_test.go`.
-- Violation: local preflight/evidence validation rejects, or Orbis PRE refuses
-  to decrypt after ACP authorization.
+- Four fixed tiers exist in structural order: sender core, sender extension,
+  output core, output extension.
+- Every tier constrains `EPK = r*G`, the selected ACK/DK shared secret,
+  `c2 = seed + compress(shared_secret)`, and every Poseidon stream word.
+- These equations are unconditional in both regulated and unregulated branches.
+- Each tier uses an independent witness randomizer and EPK.
+- Honest construction rejection-samples each tier scalar until nonzero.
+- Address tiers encrypt the canonical two-field, 64-byte address encoding split
+  into 31-byte words. The circuit's native binary decomposition enforces
+  reduced field encodings before packing.
+- Honest native construction samples one CSPRNG nonce root per Transfer action
+  and never reuses it across sibling Transfers or fee funding. The root
+  deterministically expands into every salt, seed, and tier randomizer, so this
+  is a privacy precondition rather than an R1CS-enforceable invariant.
+- Mutation coverage: randomizer, EPK coordinates, c2, seed, plaintext, and every
+  ciphertext word for each tier.
 
-### Tier Metadata
+### Factored Metadata
 
-- Enforced in: transfer DLEQ metadata hash construction for
-  policy/resource/permission hash, tier label, target timestamp, and salt.
-- Verified at: `TransferTierMetadataStatement::validate_shape`,
-  `validate_audit_evidence`, and upload bundle validation.
-- Tested by: `audit_validation::tests::tampered_tier_label_is_invalid_evidence`,
-  `audit_validation::tests::tampered_orbis_package_metadata_is_invalid_package`,
-  and gnark tier mutation tests.
-- Violation: proof rejects or evidence/import validation records a failure.
+- One metadata record binds exactly 11 facts:
+  sender/output subject derivations, four selected policy hashes,
+  `target_timestamp`, and four tier salts.
+- The four salts are structural tier domains in the fixed tier order.
+- The serialized record is exactly 328 bytes: ten canonical Fq encodings plus
+  one little-endian u64.
+- Metadata timestamp equals the existing transfer target timestamp; it is not a
+  second statement field.
+- Mutation coverage: every metadata field, noncanonical Fq bytes, zero
+  timestamp, truncation, and trailing bytes.
 
-## Scanner And Evidence Constraints
+### Public Statement
+
+- Rust and Go reconstruct the same 47-field preimage.
+- The statement hash domain is transfer `v6`.
+- The preimage binds the consensus recent-position floor and one
+  `history_required` bit per spend.
+- The public tail commits all ten non-duplicate metadata Fq values.
+- ABI tests reject legacy V15 witnesses and wrong vector lengths.
+- Differential tests compare native Rust/Go reconstruction, circuit public
+  assignment, and statement hash.
+
+## Consensus And Runtime Checks
+
+### Live Context
+
+- `validate_compliance_anchors` requires the current mutable asset root and a
+  recent append-only user-compliance root.
+- `check_timestamp_freshness` bounds target timestamp drift.
+- Proof verification precedes handler completion.
+- Spend signatures cover a Transfer effect hash containing the exact receiver
+  ciphertext and metadata; delegated construction cannot replace those bytes
+  after authorization.
+- Transaction-wide nullifier insertion and the binding signature remain
+  external acceptance requirements.
+
+### Wire Shape
+
+- Only the receiver output may carry the 640-byte ciphertext and 328-byte
+  metadata.
+- Inputs and the change output carry neither.
+- Point and Fq decoders reject noncanonical values and wrong lengths.
+- The wire contains no upload bundle, PRE envelope, shared point, or DLEQ proof.
+
+## Scanner And Evidence Checks
 
 ### Output Identity
 
-- Enforced in: typed refs `BlockRef`, `TxRef`, `ActionRef`, `OutputRef` and
-  scanner primary keys.
-- Verified at: `SqliteScannerStore::commit_block` and
-  `validate_and_save_evidence_object`.
-- Tested by: scanner storage tests and transaction-id parity test.
-- Violation: duplicate rows are idempotent; mismatched evidence cannot validate.
+- `BlockRef`, `TxRef`, `ActionRef`, and `OutputRef` are the canonical keys.
+- `tx_hash` is the transaction crate's `TransactionId`.
+- Reorg rollback uses stored block and parent hashes.
 
-### Persisted Ciphertext Match
+### Persisted Bytes
 
-- Enforced in: `validate_and_save_evidence_object`.
-- Verified at: scanner DB lookup of `scanner_ciphertexts.raw_bytes`.
-- Tested by: `audit::tests::evidence_object_rejects_mismatched_persisted_ciphertext`.
-- Violation: evidence failure is recorded with stage `validate_evidence`.
+- `scanner_ciphertexts` stores the exact accepted ciphertext and optional
+  metadata bytes.
+- `validate_and_save_evidence_object` requires both to match evidence exactly.
+- Detection asset, flag, salt, and slot facts must match the persisted
+  detection row.
+- Failures are persisted with bounded attacker-controlled reason text.
 
-### DK Plaintext Match
+### Audit Completion
 
-- Enforced in: `validate_and_save_evidence_object`.
-- Verified at: comparison against `scanner_detections` asset, flag, salt, and
-  slot ids.
-- Tested by: audit validation tamper tests and screener tests.
-- Violation: evidence failure is recorded and the row cannot complete audit.
+- Audit completion requires `evidence_valid`.
+- Flagged rows may complete through issuer-DK tier decryption.
+- `export_orbis_pending_scan` and `import_orbis_audit_entries` always fail
+  closed for Orbis v0, even when evidence is valid.
+- Unflagged ACK-tier audit therefore cannot complete until a confidentiality-
+  safe PRE v1 is specified, circuit-bound, and reviewed.
 
-### Upload Bundle Match
+## Retired Surfaces
 
-- Enforced in: `validate_and_save_evidence_object` and
-  `TransferOrbisUploadBundle::validate`.
-- Verified at: persisted upload-bundle bytes and tier statement comparison.
-- Tested by: `audit_validation::*`, `evidence::*`, and `upload_package::*`.
-- Violation: evidence failure is recorded with stage `validate_upload_bundle`.
-
-### Audit Completion Gate
-
-- Enforced in: `decrypt_flagged_rows`, `export_orbis_pending_scan`, and
-  `import_orbis_audit_entries`.
-- Verified at: `scanner_detections.audit_status`; only `evidence_valid` rows
-  can complete via issuer DK or Orbis PRE.
-- Tested by: `audit::tests::flagged_decrypt_requires_valid_evidence`,
-  `audit::tests::orbis_export_requires_valid_evidence`, and
-  `audit::tests::orbis_import_requires_valid_evidence`.
-- Violation: completion is refused and a failure row is persisted where useful.
+- Public DH shared points and upload packages were deleted.
+- The duplicate AES seed envelope and its unbound-seed failure mode were
+  deleted.
+- Per-tier DLEQ statement fields and validation are absent from Transfer V18.
+- Generic DLEQ Lean/Tamarin work is research-only and does not count toward
+  deployed Transfer certification.
