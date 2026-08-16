@@ -6,37 +6,46 @@ This file is generated from `verification-manifest.json`. Edges point from a pre
 flowchart LR
   n0["GOAL-ORDER<br/>proved"]
   n1["V1-ABSTRACT-ACCEPTS<br/>proved"]
-  n2["V1-ORDERED-PROJECTION<br/>proved"]
-  n3["V1-GOAL-PPE<br/>proved"]
-  n4["REAL-PREFIX-GOAL<br/>proved"]
-  n5["S1-QUANTITATIVE-SOUNDNESS<br/>proved"]
-  n6["DEPLOYED-SRS-SOUNDNESS<br/>open"]
-  n7["PUBLIC-TRAPDOOR-KZG-COUNTEREXAMPLE<br/>proved"]
-  n8["KZG-LEAF-REDUCTION<br/>proved"]
-  n9["GIPA-FORK-KNOWLEDGE-REDUCTION<br/>proved"]
-  n10["APP-STATE-MACHINE<br/>proved"]
-  n11["APP-SHIPPING-BINDING<br/>proved"]
-  n12["SCALAR-MOD-REDUCTION<br/>proved"]
-  n13["SCALAR-CACHE-AWARE-REPLACEMENT<br/>proved"]
-  n14["SHIPPING-HASH-MOD-REDUCTION<br/>proved"]
-  n15["SHIPPING-FIXED-INPUT-COMPUTATIONAL-BOUND<br/>proved"]
-  n16["SHIPPING-TO-V1<br/>proved"]
-  n17["SHIPPING-TO-GOAL<br/>proved"]
-  n18["STATEMENT-PROJECTION-CONSTRUCTION<br/>proved"]
-  n19["CANONICAL-STATEMENT-BINDING<br/>proved"]
-  n20["V1-COMPLETENESS<br/>proved"]
-  n21["SHIPPING-PROVER-REFINEMENT<br/>proved"]
-  n22["RUST-CALL-CONSTRUCTION<br/>proved"]
-  n23["DEPLOYED-HASH-TRACE-CONSTRUCTION<br/>proved"]
-  n24["ADAPTIVE-SHARED-ORACLE-SKELETON<br/>proved"]
-  n25["ADAPTIVE-SHA256-COUPLING<br/>proved"]
-  n26["ADAPTIVE-ADVERSARY-COUPLING<br/>proved"]
-  n27["EXTRACTED-BUNDLE-COMPOSITION<br/>proved"]
-  n28["BUNDLE-LEVEL-COMPOSITION<br/>proved"]
-  n29["FULL-ADAPTIVE-END-TO-END-FV<br/>proved"]
-  n30["DECODER-LAYOUT-CONFORMANCE<br/>proved"]
-  n31["BOUNDED-CHALLENGE-SAMPLER<br/>tested"]
-  n32["V1-BYTE-LOCK<br/>tested"]
+  n2["OPTIMIZED-GT-FOLD-REFINEMENT<br/>proved"]
+  n3["TORUS-V2-CODEC-REFINEMENT<br/>proved"]
+  n4["TORUS-V2-STRICT-COORDINATE-WIRE<br/>proved"]
+  n5["OPT-PADDING-PAIRING-COALESCING<br/>proved"]
+  n6["OPT-KZG-MSM-PREFIX<br/>proved"]
+  n7["OPT-SHARED-PAIRING-PREPARATION<br/>proved"]
+  n8["OPT-FAST-GT-VALIDATION<br/>proved"]
+  n9["OPT-STREAM-PUBLIC-INPUT-FOLD<br/>proved"]
+  n10["OPT-FAST-G1-G2-VALIDATION<br/>proved"]
+  n11["V1-ORDERED-PROJECTION<br/>proved"]
+  n12["V1-GOAL-PPE<br/>proved"]
+  n13["REAL-PREFIX-GOAL<br/>proved"]
+  n14["S1-QUANTITATIVE-SOUNDNESS<br/>proved"]
+  n15["DEPLOYED-SRS-SOUNDNESS<br/>open"]
+  n16["PUBLIC-TRAPDOOR-KZG-COUNTEREXAMPLE<br/>proved"]
+  n17["KZG-LEAF-REDUCTION<br/>proved"]
+  n18["GIPA-FORK-KNOWLEDGE-REDUCTION<br/>proved"]
+  n19["APP-STATE-MACHINE<br/>proved"]
+  n20["APP-SHIPPING-BINDING<br/>proved"]
+  n21["SCALAR-MOD-REDUCTION<br/>proved"]
+  n22["SCALAR-CACHE-AWARE-REPLACEMENT<br/>proved"]
+  n23["SHIPPING-HASH-MOD-REDUCTION<br/>proved"]
+  n24["SHIPPING-FIXED-INPUT-COMPUTATIONAL-BOUND<br/>proved"]
+  n25["SHIPPING-TO-V1<br/>proved"]
+  n26["SHIPPING-TO-GOAL<br/>proved"]
+  n27["STATEMENT-PROJECTION-CONSTRUCTION<br/>proved"]
+  n28["CANONICAL-STATEMENT-BINDING<br/>proved"]
+  n29["V1-COMPLETENESS<br/>proved"]
+  n30["SHIPPING-PROVER-REFINEMENT<br/>proved"]
+  n31["RUST-CALL-CONSTRUCTION<br/>proved"]
+  n32["DEPLOYED-HASH-TRACE-CONSTRUCTION<br/>proved"]
+  n33["ADAPTIVE-SHARED-ORACLE-SKELETON<br/>proved"]
+  n34["ADAPTIVE-SHA256-COUPLING<br/>proved"]
+  n35["ADAPTIVE-ADVERSARY-COUPLING<br/>proved"]
+  n36["EXTRACTED-BUNDLE-COMPOSITION<br/>proved"]
+  n37["BUNDLE-LEVEL-COMPOSITION<br/>proved"]
+  n38["FULL-ADAPTIVE-END-TO-END-FV<br/>proved"]
+  n39["DECODER-LAYOUT-CONFORMANCE<br/>proved"]
+  n40["BOUNDED-CHALLENGE-SAMPLER<br/>tested"]
+  n41["V1-BYTE-LOCK<br/>tested"]
   a0["SHA256-SECURITY<br/>assumed"]
   a1["ADVERSARY-QUERY-BOUND<br/>assumed"]
   a2["ADAPTIVE-SHA-QUERY-BOUND<br/>assumed"]
@@ -76,185 +85,186 @@ flowchart LR
   e9["contract:validCounts<br/>pass"]
   e10["contract:realPrefixExact<br/>pass"]
   e11["contract:repeatFinalPadding<br/>pass"]
-  n0 --> n2
-  n2 --> n3
-  n3 --> n4
-  n3 --> n5
-  n4 --> n5
-  a1 -.-> n5
-  a3 -.-> n5
-  a4 -.-> n5
-  n5 --> n8
-  n6 --> n8
-  a22 -.-> n8
-  a17 -.-> n8
-  n5 --> n9
-  a4 -.-> n9
-  a5 -.-> n10
-  n10 --> n11
-  n19 --> n11
-  a5 -.-> n11
-  a23 -.-> n12
+  n0 --> n11
+  n11 --> n12
   n12 --> n13
-  n1 --> n14
+  n12 --> n14
   n13 --> n14
-  n5 --> n15
-  n14 --> n15
-  a1 -.-> n15
-  a3 -.-> n15
-  a4 -.-> n15
-  a0 -.-> n15
-  a16 -.-> n15
-  n1 --> n16
-  n11 --> n16
-  n19 --> n16
-  a5 -.-> n16
-  a17 -.-> n16
-  a18 -.-> n16
-  a21 -.-> n16
-  a22 -.-> n16
-  a14 -.-> n16
-  a15 -.-> n16
-  n16 --> n17
-  n19 --> n17
-  n18 --> n17
-  n22 --> n17
-  n23 --> n17
-  n5 --> n17
-  n15 --> n17
+  a1 -.-> n14
+  a3 -.-> n14
+  a4 -.-> n14
   n14 --> n17
-  n4 --> n17
-  n8 --> n17
-  n9 --> n17
-  a1 -.-> n17
-  a3 -.-> n17
-  a4 -.-> n17
-  a0 -.-> n17
-  a16 -.-> n17
-  n2 --> n18
-  a5 -.-> n18
-  a10 -.-> n18
-  a11 -.-> n18
-  a12 -.-> n18
-  a13 -.-> n18
-  a19 -.-> n18
-  a20 -.-> n18
-  a21 -.-> n18
-  a9 -.-> n18
-  n2 --> n19
-  n18 --> n19
-  a0 -.-> n19
-  a10 -.-> n19
-  a11 -.-> n19
-  a12 -.-> n19
-  a13 -.-> n19
-  a14 -.-> n19
-  a19 -.-> n19
-  a20 -.-> n19
-  n3 --> n20
-  n20 --> n21
-  a5 -.-> n21
-  a25 -.-> n21
-  a15 -.-> n21
-  a22 -.-> n21
-  a26 -.-> n21
-  n10 --> n22
-  n11 --> n22
-  n19 --> n22
-  n30 --> n22
-  a5 -.-> n22
-  a10 -.-> n22
-  a11 -.-> n22
-  a12 -.-> n22
-  a13 -.-> n22
-  a14 -.-> n22
-  a19 -.-> n22
-  a20 -.-> n22
-  a21 -.-> n22
-  a8 -.-> n22
-  a9 -.-> n22
-  a7 -.-> n22
-  n31 --> n23
-  n14 --> n23
-  a5 -.-> n23
-  a14 -.-> n23
-  a15 -.-> n23
-  a23 -.-> n23
-  a24 -.-> n23
-  a8 -.-> n23
-  a7 -.-> n23
-  n19 --> n25
-  n18 --> n25
-  a0 -.-> n25
-  a2 -.-> n25
-  n24 --> n26
+  n15 --> n17
+  a22 -.-> n17
+  a17 -.-> n17
+  n14 --> n18
+  a4 -.-> n18
+  a5 -.-> n19
+  n19 --> n20
+  n28 --> n20
+  a5 -.-> n20
+  a23 -.-> n21
+  n21 --> n22
+  n1 --> n23
+  n22 --> n23
+  n14 --> n24
+  n23 --> n24
+  a1 -.-> n24
+  a3 -.-> n24
+  a4 -.-> n24
+  a0 -.-> n24
+  a16 -.-> n24
+  n1 --> n25
+  n20 --> n25
+  n28 --> n25
+  n2 --> n25
+  a5 -.-> n25
+  a17 -.-> n25
+  a18 -.-> n25
+  a21 -.-> n25
+  a22 -.-> n25
+  a14 -.-> n25
+  a15 -.-> n25
   n25 --> n26
-  n13 --> n26
-  n8 --> n26
-  n9 --> n26
-  n17 --> n26
-  n22 --> n26
+  n28 --> n26
+  n27 --> n26
+  n31 --> n26
+  n32 --> n26
+  n14 --> n26
+  n24 --> n26
   n23 --> n26
-  a5 -.-> n26
-  a6 -.-> n26
-  a7 -.-> n26
+  n13 --> n26
+  n17 --> n26
+  n18 --> n26
   a1 -.-> n26
-  a2 -.-> n26
-  a0 -.-> n26
-  a16 -.-> n26
   a3 -.-> n26
   a4 -.-> n26
-  n10 --> n27
-  n16 --> n27
+  a0 -.-> n26
+  a16 -.-> n26
+  n11 --> n27
   a5 -.-> n27
+  a10 -.-> n27
+  a11 -.-> n27
+  a12 -.-> n27
+  a13 -.-> n27
+  a19 -.-> n27
+  a20 -.-> n27
+  a21 -.-> n27
+  a9 -.-> n27
+  n11 --> n28
   n27 --> n28
-  n22 --> n28
-  n17 --> n28
-  n23 --> n28
-  a5 -.-> n28
-  a6 -.-> n28
-  a7 -.-> n28
-  n21 --> n29
-  n26 --> n29
-  n28 --> n29
-  n8 --> n29
-  n9 --> n29
-  n25 --> n29
-  a5 -.-> n29
-  a1 -.-> n29
-  a2 -.-> n29
-  a3 -.-> n29
-  a4 -.-> n29
-  a0 -.-> n29
-  a16 -.-> n29
-  a6 -.-> n29
-  a7 -.-> n29
-  a14 -.-> n30
-  n1 --> n31
-  n19 --> n32
-  e0 --> n19
-  e1 --> n19
-  e2 --> n19
-  e3 --> n19
-  e4 --> n19
-  e5 --> n19
-  e6 --> n19
-  e7 --> n19
-  e8 --> n19
-  e9 --> n19
-  e10 --> n19
-  e11 --> n19
+  a0 -.-> n28
+  a10 -.-> n28
+  a11 -.-> n28
+  a12 -.-> n28
+  a13 -.-> n28
+  a14 -.-> n28
+  a19 -.-> n28
+  a20 -.-> n28
+  n12 --> n29
+  n29 --> n30
+  a5 -.-> n30
+  a25 -.-> n30
+  a15 -.-> n30
+  a22 -.-> n30
+  a26 -.-> n30
+  n19 --> n31
+  n20 --> n31
+  n28 --> n31
+  n39 --> n31
+  a5 -.-> n31
+  a10 -.-> n31
+  a11 -.-> n31
+  a12 -.-> n31
+  a13 -.-> n31
+  a14 -.-> n31
+  a19 -.-> n31
+  a20 -.-> n31
+  a21 -.-> n31
+  a8 -.-> n31
+  a9 -.-> n31
+  a7 -.-> n31
+  n40 --> n32
+  n23 --> n32
+  a5 -.-> n32
+  a14 -.-> n32
+  a15 -.-> n32
+  a23 -.-> n32
+  a24 -.-> n32
+  a8 -.-> n32
+  a7 -.-> n32
+  n28 --> n34
+  n27 --> n34
+  a0 -.-> n34
+  a2 -.-> n34
+  n33 --> n35
+  n34 --> n35
+  n22 --> n35
+  n17 --> n35
+  n18 --> n35
+  n26 --> n35
+  n31 --> n35
+  n32 --> n35
+  a5 -.-> n35
+  a6 -.-> n35
+  a7 -.-> n35
+  a1 -.-> n35
+  a2 -.-> n35
+  a0 -.-> n35
+  a16 -.-> n35
+  a3 -.-> n35
+  a4 -.-> n35
+  n19 --> n36
+  n25 --> n36
+  a5 -.-> n36
+  n36 --> n37
+  n31 --> n37
+  n26 --> n37
+  n32 --> n37
+  a5 -.-> n37
+  a6 -.-> n37
+  a7 -.-> n37
+  n30 --> n38
+  n35 --> n38
+  n37 --> n38
+  n17 --> n38
+  n18 --> n38
+  n34 --> n38
+  a5 -.-> n38
+  a1 -.-> n38
+  a2 -.-> n38
+  a3 -.-> n38
+  a4 -.-> n38
+  a0 -.-> n38
+  a16 -.-> n38
+  a6 -.-> n38
+  a7 -.-> n38
+  a14 -.-> n39
+  n1 --> n40
+  n28 --> n41
+  e0 --> n28
+  e1 --> n28
+  e2 --> n28
+  e3 --> n28
+  e4 --> n28
+  e5 --> n28
+  e6 --> n28
+  e7 --> n28
+  e8 --> n28
+  e9 --> n28
+  e10 --> n28
+  e11 --> n28
   classDef proved fill:#d8f3dc,stroke:#2d6a4f,color:#081c15
   classDef tested fill:#dbeafe,stroke:#1d4ed8,color:#172554
   classDef open fill:#fee2e2,stroke:#b91c1c,color:#450a0a
   classDef assumed fill:#fef3c7,stroke:#b45309,color:#451a03
   classDef evidencePass fill:#e0f2fe,stroke:#0369a1,color:#082f49
   classDef evidenceStale fill:#fee2e2,stroke:#b91c1c,color:#450a0a
-  class n0,n1,n2,n3,n4,n5,n7,n8,n9,n10,n11,n12,n13,n14,n15,n16,n17,n18,n19,n20,n21,n22,n23,n24,n25,n26,n27,n28,n29,n30 proved
-  class n31,n32 tested
-  class n6 open
+  class n0,n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13,n14,n16,n17,n18,n19,n20,n21,n22,n23,n24,n25,n26,n27,n28,n29,n30,n31,n32,n33,n34,n35,n36,n37,n38,n39 proved
+  class n40,n41 tested
+  class n15 open
   class a0,a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17,a18,a19,a20,a21,a22,a23,a24,a25,a26 assumed
   class e0,e1,e2,e3,e4,e5,e6,e7,e8,e9,e10,e11 evidencePass
 ```
 
-Open graph claims: `DEPLOYED-SRS-SOUNDNESS`. The manifest dependencies keep the explicit modular-reduction budget and the distinct SHA-256 and Blake2b security advantages separate. `SHIPPING-TO-GOAL` is `proved` and `FULL-ADAPTIVE-END-TO-END-FV` is `proved`. Every F* statement-contract row must carry a source-digest-pinned `pass` result.
+Open graph claims: `DEPLOYED-SRS-SOUNDNESS`. The manifest dependencies keep the explicit modular-reduction budget and the distinct SHA-256 and Blake2b security advantages separate. `SHIPPING-TO-GOAL` is `proved` and `FULL-ADAPTIVE-END-TO-END-FV` is `proved` only as the conditional accepted-execution/fork-transform theorem stated in its claim row. Every F* statement-contract row must carry a source-digest-pinned `pass` result.

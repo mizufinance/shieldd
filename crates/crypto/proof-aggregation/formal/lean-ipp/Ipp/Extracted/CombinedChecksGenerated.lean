@@ -111,334 +111,123 @@ def applications.groth16_aggregation.fold_public_inputs_core_loop0
       applications.groth16_aggregation.fold_public_inputs_core_loop0.body
       public_inputs input_arity iter1)
     iter
+def applications.groth16_aggregation.fold_public_inputs_core_loop1_loop0.body
+  {F : Type} (corecloneCloneInst : core.clone.Clone F) (coreopsarithAddInst :
+  core.ops.arith.Add F F F) (coreopsarithMulInst : core.ops.arith.Mul F F F)
+  (r_power : F) (row : alloc.vec.Vec F) (iter : core.ops.range.Range Std.Usize)
+  (folded_public_inputs : alloc.vec.Vec F) :
+  Result (ControlFlow ((core.ops.range.Range Std.Usize) × (alloc.vec.Vec F))
+    (alloc.vec.Vec F))
+  := do
+  let (o, iter1) ←
+    core.iter.range.IteratorRange.next core.iter.range.StepUsize iter
+  match o with
+  | none => ok (done folded_public_inputs)
+  | some input_index =>
+    let t ←
+      alloc.vec.Vec.index (core.slice.index.SliceIndexUsizeSlice F) row
+        input_index
+    let t1 ← corecloneCloneInst.clone t
+    let t2 ← corecloneCloneInst.clone r_power
+    let term ← coreopsarithMulInst.mul t1 t2
+    let t3 ←
+      alloc.vec.Vec.index (core.slice.index.SliceIndexUsizeSlice F)
+        folded_public_inputs input_index
+    let t4 ← corecloneCloneInst.clone t3
+    let t5 ← coreopsarithAddInst.add t4 term
+    let (_, index_mut_back) ←
+      alloc.vec.Vec.index_mut (core.slice.index.SliceIndexUsizeSlice F)
+        folded_public_inputs input_index
+    let folded_public_inputs1 := index_mut_back t5
+    ok (cont (iter1, folded_public_inputs1))
+def applications.groth16_aggregation.fold_public_inputs_core_loop1_loop0
+  {F : Type} (corecloneCloneInst : core.clone.Clone F) (coreopsarithAddInst :
+  core.ops.arith.Add F F F) (coreopsarithMulInst : core.ops.arith.Mul F F F)
+  (iter : core.ops.range.Range Std.Usize)
+  (folded_public_inputs : alloc.vec.Vec F) (r_power : F)
+  (row : alloc.vec.Vec F) :
+  Result (alloc.vec.Vec F)
+  := do
+  loop
+    (fun (iter1, folded_public_inputs1) =>
+      applications.groth16_aggregation.fold_public_inputs_core_loop1_loop0.body
+      corecloneCloneInst coreopsarithAddInst coreopsarithMulInst r_power row
+      iter1 folded_public_inputs1)
+    (iter, folded_public_inputs)
 def applications.groth16_aggregation.fold_public_inputs_core_loop1.body
-  {F : Type} (corecloneCloneInst : core.clone.Clone F) (coreopsarithMulInst :
-  core.ops.arith.Mul F F F) (r : F) (iter : core.ops.range.Range Std.Usize)
-  (r_vec : alloc.vec.Vec F) :
-  Result (ControlFlow ((core.ops.range.Range Std.Usize) × (alloc.vec.Vec F))
-    (alloc.vec.Vec F))
+  {F : Type} (corecloneCloneInst : core.clone.Clone F) (coreopsarithAddInst :
+  core.ops.arith.Add F F F) (coreopsarithMulInst : core.ops.arith.Mul F F F)
+  (public_inputs : Slice (alloc.vec.Vec F)) (r : F) (input_arity : Std.Usize)
+  (iter : core.ops.range.Range Std.Usize)
+  (folded_public_inputs : alloc.vec.Vec F) (r_is_one : Bool) (r_power : F) :
+  Result (ControlFlow ((core.ops.range.Range Std.Usize) × (alloc.vec.Vec F) ×
+    Bool × F) ((alloc.vec.Vec F) × Bool × F))
   := do
   let (o, iter1) ←
     core.iter.range.IteratorRange.next core.iter.range.StepUsize iter
   match o with
-  | none => ok (done r_vec)
-  | some index =>
-    let i ← index - 1#usize
-    let t ←
-      alloc.vec.Vec.index (core.slice.index.SliceIndexUsizeSlice F) r_vec i
-    let t1 ← corecloneCloneInst.clone t
-    let t2 ← corecloneCloneInst.clone r
-    let t3 ← coreopsarithMulInst.mul t1 t2
-    let (_, index_mut_back) ←
-      alloc.vec.Vec.index_mut (core.slice.index.SliceIndexUsizeSlice F) r_vec
-        index
-    let r_vec1 := index_mut_back t3
-    ok (cont (iter1, r_vec1))
+  | none => ok (done (folded_public_inputs, r_is_one, r_power))
+  | some row_index =>
+    let row ← Slice.index_usize public_inputs row_index
+    let folded_public_inputs1 ←
+      applications.groth16_aggregation.fold_public_inputs_core_loop1_loop0
+        corecloneCloneInst coreopsarithAddInst coreopsarithMulInst
+        { start := 0#usize, «end» := input_arity } folded_public_inputs
+        r_power row
+    if r_is_one
+    then ok (cont (iter1, folded_public_inputs1, true, r_power))
+    else
+      let t ← corecloneCloneInst.clone r
+      let r_power1 ← coreopsarithMulInst.mul r_power t
+      ok (cont (iter1, folded_public_inputs1, false, r_power1))
 def applications.groth16_aggregation.fold_public_inputs_core_loop1
-  {F : Type} (corecloneCloneInst : core.clone.Clone F) (coreopsarithMulInst :
-  core.ops.arith.Mul F F F) (iter : core.ops.range.Range Std.Usize) (r : F)
-  (r_vec : alloc.vec.Vec F) :
-  Result (alloc.vec.Vec F)
+  {F : Type} (corecloneCloneInst : core.clone.Clone F) (coreopsarithAddInst :
+  core.ops.arith.Add F F F) (coreopsarithMulInst : core.ops.arith.Mul F F F)
+  (iter : core.ops.range.Range Std.Usize)
+  (public_inputs : Slice (alloc.vec.Vec F)) (r : F) (input_arity : Std.Usize)
+  (folded_public_inputs : alloc.vec.Vec F) (r_is_one : Bool) (r_power : F) :
+  Result ((alloc.vec.Vec F) × Bool × F)
   := do
   loop
-    (fun (iter1, r_vec1) =>
+    (fun (iter1, folded_public_inputs1, r_is_one1, r_power1) =>
       applications.groth16_aggregation.fold_public_inputs_core_loop1.body
-      corecloneCloneInst coreopsarithMulInst r iter1 r_vec1)
-    (iter, r_vec)
-def applications.groth16_aggregation.fold_public_inputs_core_loop2_loop0.body
-  {F : Type} (corecloneCloneInst : core.clone.Clone F) (coreopsarithAddInst :
-  core.ops.arith.Add F F F) (coreopsarithMulInst : core.ops.arith.Mul F F F)
-  (public_inputs : Slice (alloc.vec.Vec F)) (r_vec : alloc.vec.Vec F)
-  (row_index : Std.Usize) (iter : core.ops.range.Range Std.Usize)
-  (folded_public_inputs : alloc.vec.Vec F) :
-  Result (ControlFlow ((core.ops.range.Range Std.Usize) × (alloc.vec.Vec F))
-    (alloc.vec.Vec F))
-  := do
-  let (o, iter1) ←
-    core.iter.range.IteratorRange.next core.iter.range.StepUsize iter
-  match o with
-  | none => ok (done folded_public_inputs)
-  | some input_index =>
-    let v ← Slice.index_usize public_inputs row_index
-    let t ←
-      alloc.vec.Vec.index (core.slice.index.SliceIndexUsizeSlice F) v
-        input_index
-    let t1 ← corecloneCloneInst.clone t
-    let t2 ←
-      alloc.vec.Vec.index (core.slice.index.SliceIndexUsizeSlice F) r_vec
-        row_index
-    let t3 ← corecloneCloneInst.clone t2
-    let term ← coreopsarithMulInst.mul t1 t3
-    let t4 ←
-      alloc.vec.Vec.index (core.slice.index.SliceIndexUsizeSlice F)
-        folded_public_inputs input_index
-    let t5 ← corecloneCloneInst.clone t4
-    let t6 ← coreopsarithAddInst.add t5 term
-    let (_, index_mut_back) ←
-      alloc.vec.Vec.index_mut (core.slice.index.SliceIndexUsizeSlice F)
-        folded_public_inputs input_index
-    let folded_public_inputs1 := index_mut_back t6
-    ok (cont (iter1, folded_public_inputs1))
-def applications.groth16_aggregation.fold_public_inputs_core_loop2_loop0
-  {F : Type} (corecloneCloneInst : core.clone.Clone F) (coreopsarithAddInst :
-  core.ops.arith.Add F F F) (coreopsarithMulInst : core.ops.arith.Mul F F F)
-  (iter : core.ops.range.Range Std.Usize)
-  (public_inputs : Slice (alloc.vec.Vec F)) (r_vec : alloc.vec.Vec F)
-  (folded_public_inputs : alloc.vec.Vec F) (row_index : Std.Usize) :
-  Result (alloc.vec.Vec F)
-  := do
-  loop
-    (fun (iter1, folded_public_inputs1) =>
-      applications.groth16_aggregation.fold_public_inputs_core_loop2_loop0.body
       corecloneCloneInst coreopsarithAddInst coreopsarithMulInst public_inputs
-      r_vec row_index iter1 folded_public_inputs1)
-    (iter, folded_public_inputs)
+      r input_arity iter1 folded_public_inputs1 r_is_one1 r_power1)
+    (iter, folded_public_inputs, r_is_one, r_power)
 def applications.groth16_aggregation.fold_public_inputs_core_loop2.body
-  {F : Type} (corecloneCloneInst : core.clone.Clone F) (coreopsarithAddInst :
-  core.ops.arith.Add F F F) (coreopsarithMulInst : core.ops.arith.Mul F F F)
-  (public_inputs : Slice (alloc.vec.Vec F)) (input_arity : Std.Usize)
-  (r_vec : alloc.vec.Vec F) (iter : core.ops.range.Range Std.Usize)
-  (folded_public_inputs : alloc.vec.Vec F) :
-  Result (ControlFlow ((core.ops.range.Range Std.Usize) × (alloc.vec.Vec F))
-    (alloc.vec.Vec F))
+  {F : Type} {G1 : Type} (corecloneCloneInst : core.clone.Clone F)
+  (corecloneCloneInst1 : core.clone.Clone G1) (coreopsarithAddInst :
+  core.ops.arith.Add G1 G1 G1) (coreopsarithMulInst : core.ops.arith.Mul G1 F
+  G1) (gamma_abc_g1 : Slice G1) (folded_public_inputs : alloc.vec.Vec F)
+  (iter : core.ops.range.Range Std.Usize) (g_ic : G1) :
+  Result (ControlFlow ((core.ops.range.Range Std.Usize) × G1) G1)
   := do
   let (o, iter1) ←
     core.iter.range.IteratorRange.next core.iter.range.StepUsize iter
   match o with
-  | none => ok (done folded_public_inputs)
-  | some row_index =>
-    let folded_public_inputs1 ←
-      applications.groth16_aggregation.fold_public_inputs_core_loop2_loop0
-        corecloneCloneInst coreopsarithAddInst coreopsarithMulInst
-        { start := 0#usize, «end» := input_arity } public_inputs r_vec
-        folded_public_inputs row_index
-    ok (cont (iter1, folded_public_inputs1))
+  | none => ok (done g_ic)
+  | some input_index =>
+    let i ← input_index + 1#usize
+    let t ← Slice.index_usize gamma_abc_g1 i
+    let t1 ← corecloneCloneInst1.clone t
+    let t2 ←
+      alloc.vec.Vec.index (core.slice.index.SliceIndexUsizeSlice F)
+        folded_public_inputs input_index
+    let t3 ← corecloneCloneInst.clone t2
+    let term ← coreopsarithMulInst.mul t1 t3
+    let g_ic1 ← coreopsarithAddInst.add g_ic term
+    ok (cont (iter1, g_ic1))
 def applications.groth16_aggregation.fold_public_inputs_core_loop2
-  {F : Type} (corecloneCloneInst : core.clone.Clone F) (coreopsarithAddInst :
-  core.ops.arith.Add F F F) (coreopsarithMulInst : core.ops.arith.Mul F F F)
-  (iter : core.ops.range.Range Std.Usize)
-  (public_inputs : Slice (alloc.vec.Vec F)) (input_arity : Std.Usize)
-  (r_vec : alloc.vec.Vec F) (folded_public_inputs : alloc.vec.Vec F) :
-  Result (alloc.vec.Vec F)
+  {F : Type} {G1 : Type} (corecloneCloneInst : core.clone.Clone F)
+  (corecloneCloneInst1 : core.clone.Clone G1) (coreopsarithAddInst :
+  core.ops.arith.Add G1 G1 G1) (coreopsarithMulInst : core.ops.arith.Mul G1 F
+  G1) (iter : core.ops.range.Range Std.Usize) (gamma_abc_g1 : Slice G1)
+  (folded_public_inputs : alloc.vec.Vec F) (g_ic : G1) :
+  Result G1
   := do
   loop
-    (fun (iter1, folded_public_inputs1) =>
+    (fun (iter1, g_ic1) =>
       applications.groth16_aggregation.fold_public_inputs_core_loop2.body
-      corecloneCloneInst coreopsarithAddInst coreopsarithMulInst public_inputs
-      input_arity r_vec iter1 folded_public_inputs1)
-    (iter, folded_public_inputs)
-def applications.groth16_aggregation.fold_public_inputs_core_loop3.body
-  {F : Type} {G1 : Type} (corecloneCloneInst : core.clone.Clone F)
-  (corecloneCloneInst1 : core.clone.Clone G1) (coreopsarithAddInst :
-  core.ops.arith.Add G1 G1 G1) (coreopsarithMulInst : core.ops.arith.Mul G1 F
-  G1) (gamma_abc_g1 : Slice G1) (folded_public_inputs : alloc.vec.Vec F)
-  (iter : core.ops.range.Range Std.Usize) (g_ic : G1) :
-  Result (ControlFlow ((core.ops.range.Range Std.Usize) × G1) G1)
-  := do
-  let (o, iter1) ←
-    core.iter.range.IteratorRange.next core.iter.range.StepUsize iter
-  match o with
-  | none => ok (done g_ic)
-  | some input_index =>
-    let i ← input_index + 1#usize
-    let t ← Slice.index_usize gamma_abc_g1 i
-    let t1 ← corecloneCloneInst1.clone t
-    let t2 ←
-      alloc.vec.Vec.index (core.slice.index.SliceIndexUsizeSlice F)
-        folded_public_inputs input_index
-    let t3 ← corecloneCloneInst.clone t2
-    let term ← coreopsarithMulInst.mul t1 t3
-    let g_ic1 ← coreopsarithAddInst.add g_ic term
-    ok (cont (iter1, g_ic1))
-def applications.groth16_aggregation.fold_public_inputs_core_loop3
-  {F : Type} {G1 : Type} (corecloneCloneInst : core.clone.Clone F)
-  (corecloneCloneInst1 : core.clone.Clone G1) (coreopsarithAddInst :
-  core.ops.arith.Add G1 G1 G1) (coreopsarithMulInst : core.ops.arith.Mul G1 F
-  G1) (iter : core.ops.range.Range Std.Usize) (gamma_abc_g1 : Slice G1)
-  (folded_public_inputs : alloc.vec.Vec F) (g_ic : G1) :
-  Result G1
-  := do
-  loop
-    (fun (iter1, g_ic1) =>
-      applications.groth16_aggregation.fold_public_inputs_core_loop3.body
-      corecloneCloneInst corecloneCloneInst1 coreopsarithAddInst
-      coreopsarithMulInst gamma_abc_g1 folded_public_inputs iter1 g_ic1)
-    (iter, g_ic)
-def applications.groth16_aggregation.fold_public_inputs_core_loop4.body
-  {F : Type} (corecloneCloneInst : core.clone.Clone F) (coreopsarithMulInst :
-  core.ops.arith.Mul F F F) (r : F) (iter : core.ops.range.Range Std.Usize)
-  (r_power : F) :
-  Result (ControlFlow ((core.ops.range.Range Std.Usize) × F) F)
-  := do
-  let (o, iter1) ←
-    core.iter.range.IteratorRange.next core.iter.range.StepUsize iter
-  match o with
-  | none => ok (done r_power)
-  | some _ =>
-    let t ← corecloneCloneInst.clone r
-    let r_power1 ← coreopsarithMulInst.mul r_power t
-    ok (cont (iter1, r_power1))
-def applications.groth16_aggregation.fold_public_inputs_core_loop4
-  {F : Type} (corecloneCloneInst : core.clone.Clone F) (coreopsarithMulInst :
-  core.ops.arith.Mul F F F) (iter : core.ops.range.Range Std.Usize) (r : F)
-  (r_power : F) :
-  Result F
-  := do
-  loop
-    (fun (iter1, r_power1) =>
-      applications.groth16_aggregation.fold_public_inputs_core_loop4.body
-      corecloneCloneInst coreopsarithMulInst r iter1 r_power1)
-    (iter, r_power)
-def applications.groth16_aggregation.fold_public_inputs_core_loop5.body
-  {F : Type} (corecloneCloneInst : core.clone.Clone F) (coreopsarithMulInst :
-  core.ops.arith.Mul F F F) (r : F) (iter : core.ops.range.Range Std.Usize)
-  (r_vec : alloc.vec.Vec F) :
-  Result (ControlFlow ((core.ops.range.Range Std.Usize) × (alloc.vec.Vec F))
-    (alloc.vec.Vec F))
-  := do
-  let (o, iter1) ←
-    core.iter.range.IteratorRange.next core.iter.range.StepUsize iter
-  match o with
-  | none => ok (done r_vec)
-  | some index =>
-    let i ← index - 1#usize
-    let t ←
-      alloc.vec.Vec.index (core.slice.index.SliceIndexUsizeSlice F) r_vec i
-    let t1 ← corecloneCloneInst.clone t
-    let t2 ← corecloneCloneInst.clone r
-    let t3 ← coreopsarithMulInst.mul t1 t2
-    let (_, index_mut_back) ←
-      alloc.vec.Vec.index_mut (core.slice.index.SliceIndexUsizeSlice F) r_vec
-        index
-    let r_vec1 := index_mut_back t3
-    ok (cont (iter1, r_vec1))
-def applications.groth16_aggregation.fold_public_inputs_core_loop5
-  {F : Type} (corecloneCloneInst : core.clone.Clone F) (coreopsarithMulInst :
-  core.ops.arith.Mul F F F) (iter : core.ops.range.Range Std.Usize) (r : F)
-  (r_vec : alloc.vec.Vec F) :
-  Result (alloc.vec.Vec F)
-  := do
-  loop
-    (fun (iter1, r_vec1) =>
-      applications.groth16_aggregation.fold_public_inputs_core_loop5.body
-      corecloneCloneInst coreopsarithMulInst r iter1 r_vec1)
-    (iter, r_vec)
-def applications.groth16_aggregation.fold_public_inputs_core_loop6_loop0.body
-  {F : Type} (corecloneCloneInst : core.clone.Clone F) (coreopsarithAddInst :
-  core.ops.arith.Add F F F) (coreopsarithMulInst : core.ops.arith.Mul F F F)
-  (public_inputs : Slice (alloc.vec.Vec F)) (r_vec : alloc.vec.Vec F)
-  (row_index : Std.Usize) (iter : core.ops.range.Range Std.Usize)
-  (folded_public_inputs : alloc.vec.Vec F) :
-  Result (ControlFlow ((core.ops.range.Range Std.Usize) × (alloc.vec.Vec F))
-    (alloc.vec.Vec F))
-  := do
-  let (o, iter1) ←
-    core.iter.range.IteratorRange.next core.iter.range.StepUsize iter
-  match o with
-  | none => ok (done folded_public_inputs)
-  | some input_index =>
-    let v ← Slice.index_usize public_inputs row_index
-    let t ←
-      alloc.vec.Vec.index (core.slice.index.SliceIndexUsizeSlice F) v
-        input_index
-    let t1 ← corecloneCloneInst.clone t
-    let t2 ←
-      alloc.vec.Vec.index (core.slice.index.SliceIndexUsizeSlice F) r_vec
-        row_index
-    let t3 ← corecloneCloneInst.clone t2
-    let term ← coreopsarithMulInst.mul t1 t3
-    let t4 ←
-      alloc.vec.Vec.index (core.slice.index.SliceIndexUsizeSlice F)
-        folded_public_inputs input_index
-    let t5 ← corecloneCloneInst.clone t4
-    let t6 ← coreopsarithAddInst.add t5 term
-    let (_, index_mut_back) ←
-      alloc.vec.Vec.index_mut (core.slice.index.SliceIndexUsizeSlice F)
-        folded_public_inputs input_index
-    let folded_public_inputs1 := index_mut_back t6
-    ok (cont (iter1, folded_public_inputs1))
-def applications.groth16_aggregation.fold_public_inputs_core_loop6_loop0
-  {F : Type} (corecloneCloneInst : core.clone.Clone F) (coreopsarithAddInst :
-  core.ops.arith.Add F F F) (coreopsarithMulInst : core.ops.arith.Mul F F F)
-  (iter : core.ops.range.Range Std.Usize)
-  (public_inputs : Slice (alloc.vec.Vec F)) (r_vec : alloc.vec.Vec F)
-  (folded_public_inputs : alloc.vec.Vec F) (row_index : Std.Usize) :
-  Result (alloc.vec.Vec F)
-  := do
-  loop
-    (fun (iter1, folded_public_inputs1) =>
-      applications.groth16_aggregation.fold_public_inputs_core_loop6_loop0.body
-      corecloneCloneInst coreopsarithAddInst coreopsarithMulInst public_inputs
-      r_vec row_index iter1 folded_public_inputs1)
-    (iter, folded_public_inputs)
-def applications.groth16_aggregation.fold_public_inputs_core_loop6.body
-  {F : Type} (corecloneCloneInst : core.clone.Clone F) (coreopsarithAddInst :
-  core.ops.arith.Add F F F) (coreopsarithMulInst : core.ops.arith.Mul F F F)
-  (public_inputs : Slice (alloc.vec.Vec F)) (input_arity : Std.Usize)
-  (r_vec : alloc.vec.Vec F) (iter : core.ops.range.Range Std.Usize)
-  (folded_public_inputs : alloc.vec.Vec F) :
-  Result (ControlFlow ((core.ops.range.Range Std.Usize) × (alloc.vec.Vec F))
-    (alloc.vec.Vec F))
-  := do
-  let (o, iter1) ←
-    core.iter.range.IteratorRange.next core.iter.range.StepUsize iter
-  match o with
-  | none => ok (done folded_public_inputs)
-  | some row_index =>
-    let folded_public_inputs1 ←
-      applications.groth16_aggregation.fold_public_inputs_core_loop6_loop0
-        corecloneCloneInst coreopsarithAddInst coreopsarithMulInst
-        { start := 0#usize, «end» := input_arity } public_inputs r_vec
-        folded_public_inputs row_index
-    ok (cont (iter1, folded_public_inputs1))
-def applications.groth16_aggregation.fold_public_inputs_core_loop6
-  {F : Type} (corecloneCloneInst : core.clone.Clone F) (coreopsarithAddInst :
-  core.ops.arith.Add F F F) (coreopsarithMulInst : core.ops.arith.Mul F F F)
-  (iter : core.ops.range.Range Std.Usize)
-  (public_inputs : Slice (alloc.vec.Vec F)) (input_arity : Std.Usize)
-  (r_vec : alloc.vec.Vec F) (folded_public_inputs : alloc.vec.Vec F) :
-  Result (alloc.vec.Vec F)
-  := do
-  loop
-    (fun (iter1, folded_public_inputs1) =>
-      applications.groth16_aggregation.fold_public_inputs_core_loop6.body
-      corecloneCloneInst coreopsarithAddInst coreopsarithMulInst public_inputs
-      input_arity r_vec iter1 folded_public_inputs1)
-    (iter, folded_public_inputs)
-def applications.groth16_aggregation.fold_public_inputs_core_loop7.body
-  {F : Type} {G1 : Type} (corecloneCloneInst : core.clone.Clone F)
-  (corecloneCloneInst1 : core.clone.Clone G1) (coreopsarithAddInst :
-  core.ops.arith.Add G1 G1 G1) (coreopsarithMulInst : core.ops.arith.Mul G1 F
-  G1) (gamma_abc_g1 : Slice G1) (folded_public_inputs : alloc.vec.Vec F)
-  (iter : core.ops.range.Range Std.Usize) (g_ic : G1) :
-  Result (ControlFlow ((core.ops.range.Range Std.Usize) × G1) G1)
-  := do
-  let (o, iter1) ←
-    core.iter.range.IteratorRange.next core.iter.range.StepUsize iter
-  match o with
-  | none => ok (done g_ic)
-  | some input_index =>
-    let i ← input_index + 1#usize
-    let t ← Slice.index_usize gamma_abc_g1 i
-    let t1 ← corecloneCloneInst1.clone t
-    let t2 ←
-      alloc.vec.Vec.index (core.slice.index.SliceIndexUsizeSlice F)
-        folded_public_inputs input_index
-    let t3 ← corecloneCloneInst.clone t2
-    let term ← coreopsarithMulInst.mul t1 t3
-    let g_ic1 ← coreopsarithAddInst.add g_ic term
-    ok (cont (iter1, g_ic1))
-def applications.groth16_aggregation.fold_public_inputs_core_loop7
-  {F : Type} {G1 : Type} (corecloneCloneInst : core.clone.Clone F)
-  (corecloneCloneInst1 : core.clone.Clone G1) (coreopsarithAddInst :
-  core.ops.arith.Add G1 G1 G1) (coreopsarithMulInst : core.ops.arith.Mul G1 F
-  G1) (iter : core.ops.range.Range Std.Usize) (gamma_abc_g1 : Slice G1)
-  (folded_public_inputs : alloc.vec.Vec F) (g_ic : G1) :
-  Result G1
-  := do
-  loop
-    (fun (iter1, g_ic1) =>
-      applications.groth16_aggregation.fold_public_inputs_core_loop7.body
       corecloneCloneInst corecloneCloneInst1 coreopsarithAddInst
       coreopsarithMulInst gamma_abc_g1 folded_public_inputs iter1 g_ic1)
     (iter, g_ic)
@@ -466,76 +255,41 @@ def applications.groth16_aggregation.fold_public_inputs_core
   let i := Slice.len public_inputs
   applications.groth16_aggregation.fold_public_inputs_core_loop0
     { start := 0#usize, «end» := i } public_inputs input_arity
-  let t ← corecloneCloneInst.clone r
-  let t1 ← num_traitsidentitiesOneInst.one
-  let b1 ← corecmpPartialEqInst.eq t t1
-  if b1
-  then
-    let i1 := Slice.len public_inputs
-    let i2 ← lift (MacCampaign.castU64 i1)
-    let r_sum ← coreconvertFromFU64Inst.«from» i2
-    let i3 := Slice.len public_inputs
-    let r_vec ← alloc.vec.from_elem corecloneCloneInst t1 i3
-    let i4 := Slice.len public_inputs
-    let r_vec1 ←
-      applications.groth16_aggregation.fold_public_inputs_core_loop1
-        corecloneCloneInst coreopsarithMulInst
-        { start := 1#usize, «end» := i4 } r r_vec
-    let t2 ← num_traitsidentitiesZeroInst.zero
-    let folded_public_inputs ←
-      alloc.vec.from_elem corecloneCloneInst t2 input_arity
-    let i5 := Slice.len public_inputs
-    let folded_public_inputs1 ←
-      applications.groth16_aggregation.fold_public_inputs_core_loop2
-        corecloneCloneInst coreopsarithAddInst coreopsarithMulInst
-        { start := 0#usize, «end» := i5 } public_inputs input_arity r_vec1
-        folded_public_inputs
-    let t3 ← Slice.index_usize gamma_abc_g1 0#usize
-    let t4 ← corecloneCloneInst1.clone t3
-    let t5 ← corecloneCloneInst.clone r_sum
-    let g_ic ← coreopsarithMulInst1.mul t4 t5
-    let g_ic1 ←
-      applications.groth16_aggregation.fold_public_inputs_core_loop3
-        corecloneCloneInst corecloneCloneInst1 coreopsarithAddInst1
-        coreopsarithMulInst1 { start := 0#usize, «end» := input_arity }
-        gamma_abc_g1 folded_public_inputs1 g_ic
-    ok (r_sum, g_ic1)
-  else
-    let i1 := Slice.len public_inputs
-    let r_power ←
-      applications.groth16_aggregation.fold_public_inputs_core_loop4
-        corecloneCloneInst coreopsarithMulInst
-        { start := 0#usize, «end» := i1 } r t1
-    let t2 ← coreopsarithSubInst.sub r_power t1
-    let t3 ← corecloneCloneInst.clone r
-    let t4 ← coreopsarithSubInst.sub t3 t1
-    let r_sum ← coreopsarithDivInst.div t2 t4
-    let i2 := Slice.len public_inputs
-    let r_vec ← alloc.vec.from_elem corecloneCloneInst t1 i2
-    let i3 := Slice.len public_inputs
-    let r_vec1 ←
-      applications.groth16_aggregation.fold_public_inputs_core_loop5
-        corecloneCloneInst coreopsarithMulInst
-        { start := 1#usize, «end» := i3 } r r_vec
-    let t5 ← num_traitsidentitiesZeroInst.zero
-    let folded_public_inputs ←
-      alloc.vec.from_elem corecloneCloneInst t5 input_arity
-    let i4 := Slice.len public_inputs
-    let folded_public_inputs1 ←
-      applications.groth16_aggregation.fold_public_inputs_core_loop6
-        corecloneCloneInst coreopsarithAddInst coreopsarithMulInst
-        { start := 0#usize, «end» := i4 } public_inputs input_arity r_vec1
-        folded_public_inputs
-    let t6 ← Slice.index_usize gamma_abc_g1 0#usize
-    let t7 ← corecloneCloneInst1.clone t6
-    let t8 ← corecloneCloneInst.clone r_sum
-    let g_ic ← coreopsarithMulInst1.mul t7 t8
-    let g_ic1 ←
-      applications.groth16_aggregation.fold_public_inputs_core_loop7
-        corecloneCloneInst corecloneCloneInst1 coreopsarithAddInst1
-        coreopsarithMulInst1 { start := 0#usize, «end» := input_arity }
-        gamma_abc_g1 folded_public_inputs1 g_ic
-    ok (r_sum, g_ic1)
+  let t ← num_traitsidentitiesZeroInst.zero
+  let folded_public_inputs ←
+    alloc.vec.from_elem corecloneCloneInst t input_arity
+  let t1 ← corecloneCloneInst.clone r
+  let t2 ← num_traitsidentitiesOneInst.one
+  let r_is_one ← corecmpPartialEqInst.eq t1 t2
+  let i1 := Slice.len public_inputs
+  let (folded_public_inputs1, r_is_one1, r_power) ←
+    applications.groth16_aggregation.fold_public_inputs_core_loop1
+      corecloneCloneInst coreopsarithAddInst coreopsarithMulInst
+      { start := 0#usize, «end» := i1 } public_inputs r input_arity
+      folded_public_inputs r_is_one t2
+  let r_sum ←
+    if r_is_one1
+    then
+      do
+      let i2 := Slice.len public_inputs
+      let i3 ← lift (MacCampaign.castU64 i2)
+      coreconvertFromFU64Inst.«from» i3
+    else
+      do
+      let t3 ← coreopsarithSubInst.sub r_power t2
+      let t4 ← corecloneCloneInst.clone r
+      let t5 ← coreopsarithSubInst.sub t4 t2
+      coreopsarithDivInst.div t3 t5
+  let t3 ← Slice.index_usize gamma_abc_g1 0#usize
+  let t4 ← corecloneCloneInst1.clone t3
+  let t5 ← corecloneCloneInst.clone r_sum
+  let g_ic ← coreopsarithMulInst1.mul t4 t5
+  let g_ic1 ←
+    applications.groth16_aggregation.fold_public_inputs_core_loop2
+      corecloneCloneInst corecloneCloneInst1 coreopsarithAddInst1
+      coreopsarithMulInst1 { start := 0#usize, «end» := input_arity }
+      gamma_abc_g1 folded_public_inputs1 g_ic
+  ok (r_sum, g_ic1)
 def applications.groth16_aggregation.verify_combined_ppe_core
   {F : Type} {G1 : Type} {G2Prepared : Type} {GT : Type} {E : Type}
   (corecloneCloneInst : core.clone.Clone F) (corecmpPartialEqInst :

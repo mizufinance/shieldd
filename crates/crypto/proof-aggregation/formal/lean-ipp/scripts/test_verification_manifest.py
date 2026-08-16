@@ -173,20 +173,81 @@ checksum = "2222"
 
         unproved_frontier = copy.deepcopy(register)
         unproved_frontier["formal_pareto_frontier"] = [
-            unproved_frontier["research_order"][0]
+            next(
+                candidate["id"]
+                for candidate in unproved_frontier["candidates"]
+                if candidate["status"] == "rejected"
+            )
         ]
         with self.assertRaises(VERIFICATION.VerificationError) as raised:
             VERIFICATION.validate_operation_register(unproved_frontier)
         self.assertIn("without a proved model", str(raised.exception))
 
         promoted = copy.deepcopy(register)
-        promoted["candidates"][0]["status"] = "proved-model"
+        verified = next(
+            candidate
+            for candidate in promoted["candidates"]
+            if candidate["status"] == "verified"
+        )
+        del verified["evidence"]
         with self.assertRaises(VERIFICATION.VerificationError) as raised:
             VERIFICATION.validate_operation_register(promoted)
         self.assertIn(
             "structured audited equivalence/refinement",
             str(raised.exception),
         )
+
+        unaudited = copy.deepcopy(register)
+        roots = {
+            root
+            for candidate in unaudited["candidates"]
+            for root in candidate.get("evidence", {}).get("lean_roots", [])
+        }
+        first_verified = next(
+            candidate
+            for candidate in unaudited["candidates"]
+            if candidate["status"] == "verified"
+        )
+        first_verified["evidence"]["lean_roots"].append("Ipp.Missing.root")
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.validate_operation_register(
+                unaudited, audited_roots=roots
+            )
+        self.assertIn("unaudited Lean roots", str(raised.exception))
+
+        bad_source_hash = copy.deepcopy(register)
+        first_verified = next(
+            candidate
+            for candidate in bad_source_hash["candidates"]
+            if candidate["status"] == "verified"
+        )
+        first_source = first_verified["evidence"]["rust_sources"][0]
+        first_verified["evidence"]["rust_source_sha256"][first_source] = "0" * 64
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.validate_operation_register(bad_source_hash)
+        self.assertIn("Rust source sha256 differs", str(raised.exception))
+
+        missing_test = copy.deepcopy(register)
+        first_verified = next(
+            candidate
+            for candidate in missing_test["candidates"]
+            if candidate["status"] == "verified"
+        )
+        first_verified["evidence"]["tests"][0] = "missing_optimization_test"
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.validate_operation_register(missing_test)
+        self.assertIn("exactly one pinned Rust owner", str(raised.exception))
+
+        open_claim = copy.deepcopy(register)
+        first_verified = next(
+            candidate
+            for candidate in open_claim["candidates"]
+            if candidate["status"] == "verified"
+        )
+        first_verified["evidence"]["claims"][0] = "DEPLOYED-SRS-SOUNDNESS"
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.validate_operation_register(open_claim)
+        self.assertIn("missing or open claims", str(raised.exception))
 
     def test_missing_audit_module_fails_closed(self):
         manifest = copy.deepcopy(self.manifest)

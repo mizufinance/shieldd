@@ -263,6 +263,14 @@ jobs:
           crates/crypto/proof-aggregation/formal/lean-ipp/scripts/verification_manifest.py
           validate-fstar-artifact
           --artifact ".ci-cache/snarkpack-fstar-pass/fstar-checker-evidence.json"
+      - name: Upload cached exact F* evidence refresh
+        if: steps.fstar_pass_cache.outputs.cache-hit == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: snarkpack-fstar-refresh-${{ steps.candidate.outputs.sha }}-${{ github.run_attempt }}
+          path: .ci-cache/snarkpack-fstar-pass/fstar-checker-evidence.json
+          if-no-files-found: error
+          retention-days: 7
       - name: Upload applicability decisions
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

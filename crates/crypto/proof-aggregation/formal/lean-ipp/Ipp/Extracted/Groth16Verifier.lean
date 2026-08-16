@@ -251,97 +251,6 @@ private theorem usizeSub (left right : Usize) (h : right.val ≤ left.val) :
 private theorem usizeAdd (left right : Usize) :
     left + right = Result.ok ⟨left.val + right.val⟩ := rfl
 
-private def powerVec {F : Type} [One F] [Pow F ℕ]
-    (r : F) (m completed : ℕ) : alloc.vec.Vec F :=
-  ⟨List.ofFn (fun i : Fin m => if (i : ℕ) < completed then r ^ (i : ℕ) else 1)⟩
-
-private def powerBody {F : Type} [Mul F] (r : F) :
-    (core.ops.range.Range × alloc.vec.Vec F) →
-      Result (ControlFlow (core.ops.range.Range × alloc.vec.Vec F)
-        (alloc.vec.Vec F)) :=
-  fun (iter, powers) =>
-    ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop1.body
-      (cloneModel F) (mulModel F) r iter powers
-
-private theorem powerFuel {F : Type} [Field F] (r : F) (m start count : ℕ)
-    (hstart : 1 ≤ start) (hbound : start + count ≤ m) :
-    loopFuel (powerBody r) (count + 1)
-      ({ start := ⟨start⟩, «end» := ⟨start + count⟩ }, powerVec r m start) =
-      .ok (powerVec r m (start + count)) := by
-  induction count generalizing start with
-  | zero =>
-      rw [loopFuel]
-      simp [powerBody, powerVec,
-        ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop1.body,
-        core.iter.range.IteratorRange.next]
-  | succ count ih =>
-      have hlt : start < start + (count + 1) := by omega
-      have hindex : start < m := by omega
-      have hprev : start - 1 < m := by omega
-      have hprevDone : start - 1 < start := by omega
-      rw [loopFuel]
-      simp only [powerBody,
-        ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop1.body,
-        core.iter.range.IteratorRange.next, hlt, ↓reduceIte, Result.bind_ok,
-        Usize.ofNat]
-      rw [usizeSub ⟨start⟩ ⟨1⟩ (by simp; omega)]
-      simp only [Result.bind_ok,
-        ark_ip_proofs.alloc.vec.Vec.index, powerVec, List.getElem?_ofFn,
-        hprev, ↓reduceDIte, hprevDone, cloneModel, mulModel,
-        ark_ip_proofs.alloc.vec.Vec.index_mut, hindex]
-      rw [updateAt_eq_set]
-      simp only [if_true]
-      have hset :
-          (List.ofFn (fun i : Fin m =>
-              if (i : ℕ) < start then r ^ (i : ℕ) else 1)).set start
-              (r ^ (start - 1) * r) =
-            (powerVec r m (start + 1)).val := by
-        apply List.ext_getElem?
-        intro i
-        by_cases hi : i = start
-        · subst i
-          rw [List.getElem?_set_self (by simp; exact hindex)]
-          simp [powerVec, hindex]
-          calc
-            r ^ (start - 1) * r = r ^ ((start - 1) + 1) :=
-              (pow_succ r (start - 1)).symm
-            _ = r ^ start := by congr 1; omega
-        · by_cases him : i < m
-          · rw [List.getElem?_set_ne (by omega)]
-            simp [powerVec, him]
-            by_cases his : i < start
-            · simp [his, show i ≤ start by omega]
-            · have hsi : start < i := by omega
-              simp [his, show ¬i ≤ start by omega]
-          · rw [List.getElem?_set_ne (by omega)]
-            simp [powerVec, him]
-      rw [hset]
-      have hend : start + (count + 1) = (start + 1) + count := by omega
-      rw [hend]
-      exact ih (start + 1) (by omega) (by omega)
-
-private theorem powerLoop1 {F : Type} [Field F] (r : F) (m : ℕ) (hm : 0 < m) :
-    ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop1
-      (cloneModel F) (mulModel F) { start := ⟨1⟩, «end» := ⟨m⟩ } r
-      ⟨List.replicate m 1⟩ = .ok (powerVec r m m) := by
-  have hinitial : (⟨List.replicate m 1⟩ : alloc.vec.Vec F) = powerVec r m 1 := by
-    congr 1
-    calc
-      List.replicate m (1 : F) = List.ofFn (fun _ : Fin m => 1) := by
-        apply List.ext_getElem <;> simp
-      _ = (powerVec r m 1).val := by
-        unfold powerVec
-        congr 1
-        funext i
-        by_cases hi : (i : ℕ) = 0
-        · simp [hi]
-        · simp [show ¬(i : ℕ) < 1 by omega]
-  rw [hinitial]
-  unfold ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop1
-  apply loop_eq_of_fuel (fuel := (m - 1) + 1) (by simp)
-  simpa [powerBody, Nat.add_sub_of_le (show 1 ≤ m by omega)] using
-    powerFuel r m 1 (m - 1) (by simp) (by omega)
-
 private def weightedInput {F : Type} [Field F] {m n : ℕ}
     (inputs : Fin m → Fin n → F) (r : F) (rows : ℕ) (j : Fin n) : F :=
   ∑ i ∈ Finset.range rows,
@@ -358,6 +267,10 @@ private def foldingRowVec {F : Type} [Field F] {m n : ℕ}
     if (j : ℕ) < completed then weightedInput inputs r (row + 1) j
     else weightedInput inputs r row j)⟩
 
+private def rowVec {F : Type} {m n : ℕ}
+    (inputs : Fin m → Fin n → F) (row : Fin m) : alloc.vec.Vec F :=
+  ⟨List.ofFn (inputs row)⟩
+
 private theorem weightedInput_succ {F : Type} [Field F] {m n : ℕ}
     (inputs : Fin m → Fin n → F) (r : F) (row : ℕ) (j : Fin n)
     (hrow : row < m) :
@@ -369,19 +282,19 @@ private theorem weightedInput_succ {F : Type} [Field F] {m n : ℕ}
   exact mul_comm _ _
 
 private def innerFoldBody {F : Type} [Field F] {m n : ℕ}
-    (inputs : Fin m → Fin n → F) (r : F) (row : ℕ) :
+    (inputs : Fin m → Fin n → F) (r : F) (row : ℕ) (hrow : row < m) :
     (core.ops.range.Range × alloc.vec.Vec F) →
       Result (ControlFlow (core.ops.range.Range × alloc.vec.Vec F)
         (alloc.vec.Vec F)) :=
   fun (iter, folded) =>
-    ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop2_loop0.body
-      (cloneModel F) (addModel F) (mulModel F) (inputSlice inputs)
-      (powerVec r m m) ⟨row⟩ iter folded
+    ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop1_loop0.body
+      (cloneModel F) (addModel F) (mulModel F) (r ^ row)
+      (rowVec inputs ⟨row, hrow⟩) iter folded
 
 private theorem innerFoldFuel {F : Type} [Field F] {m n : ℕ}
     (inputs : Fin m → Fin n → F) (r : F) (row start count : ℕ)
     (hrow : row < m) (hbound : start + count ≤ n) :
-    loopFuel (innerFoldBody inputs r row) (count + 1)
+    loopFuel (innerFoldBody inputs r row hrow) (count + 1)
       ({ start := ⟨start⟩, «end» := ⟨start + count⟩ },
         foldingRowVec inputs r row start) =
       .ok (foldingRowVec inputs r row (start + count)) := by
@@ -389,19 +302,18 @@ private theorem innerFoldFuel {F : Type} [Field F] {m n : ℕ}
   | zero =>
       rw [loopFuel]
       simp [innerFoldBody, foldingRowVec,
-        ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop2_loop0.body,
+        ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop1_loop0.body,
         core.iter.range.IteratorRange.next]
   | succ count ih =>
       have hlt : start < start + (count + 1) := by omega
       have hinput : start < n := by omega
       rw [loopFuel]
       simp only [innerFoldBody,
-        ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop2_loop0.body,
+        ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop1_loop0.body,
         core.iter.range.IteratorRange.next, hlt, ↓reduceIte, Result.bind_ok,
-        inputSlice, Slice.index_usize, List.getElem?_ofFn, hrow, hinput,
-        ↓reduceDIte, ark_ip_proofs.alloc.vec.Vec.index, powerVec,
-        foldingRowVec, cloneModel,
-        mulModel, addModel, ark_ip_proofs.alloc.vec.Vec.index_mut]
+        rowVec, ark_ip_proofs.alloc.vec.Vec.index, List.getElem?_ofFn,
+        hinput, ↓reduceDIte, foldingRowVec, cloneModel, mulModel, addModel,
+        ark_ip_proofs.alloc.vec.Vec.index_mut]
       rw [updateAt_eq_set]
       have hset :
           (List.ofFn (fun j : Fin n =>
@@ -434,10 +346,11 @@ private theorem innerFoldFuel {F : Type} [Field F] {m n : ℕ}
 
 private theorem innerFoldLoop {F : Type} [Field F] {m n : ℕ}
     (inputs : Fin m → Fin n → F) (r : F) (row : ℕ) (hrow : row < m) :
-    ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop2_loop0
+    ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop1_loop0
       (cloneModel F) (addModel F) (mulModel F)
-      { start := ⟨0⟩, «end» := ⟨n⟩ } (inputSlice inputs) (powerVec r m m)
-      (foldedVec inputs r row) ⟨row⟩ = .ok (foldedVec inputs r (row + 1)) := by
+      { start := ⟨0⟩, «end» := ⟨n⟩ } (foldedVec inputs r row) (r ^ row)
+      (rowVec inputs ⟨row, hrow⟩) =
+      .ok (foldedVec inputs r (row + 1)) := by
   have hzero : foldedVec inputs r row = foldingRowVec inputs r row 0 := by
     apply congrArg alloc.vec.Vec.mk
     apply List.ext_getElem?
@@ -449,161 +362,104 @@ private theorem innerFoldLoop {F : Type} [Field F] {m n : ℕ}
     intro j
     simp
   rw [hzero]
-  unfold ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop2_loop0
+  unfold ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop1_loop0
   apply loop_eq_of_fuel (fuel := n + 1) (by simp)
-  simpa [innerFoldBody, hfull] using innerFoldFuel inputs r row 0 n hrow (by simp)
+  simpa [innerFoldBody, hfull] using
+    innerFoldFuel inputs r row 0 n hrow (by simp)
 
 private def outerFoldBody {F : Type} [Field F] {m n : ℕ}
     (inputs : Fin m → Fin n → F) (r : F) :
-    (core.ops.range.Range × alloc.vec.Vec F) →
-      Result (ControlFlow (core.ops.range.Range × alloc.vec.Vec F)
-        (alloc.vec.Vec F)) :=
-  fun (iter, folded) =>
-    ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop2.body
-      (cloneModel F) (addModel F) (mulModel F) (inputSlice inputs) ⟨n⟩
-      (powerVec r m m) iter folded
+    (core.ops.range.Range × alloc.vec.Vec F × Bool × F) →
+      Result (ControlFlow
+        (core.ops.range.Range × alloc.vec.Vec F × Bool × F)
+        (alloc.vec.Vec F × Bool × F)) :=
+  fun (iter, folded, rIsOne, power) =>
+    ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop1.body
+      (cloneModel F) (addModel F) (mulModel F) (inputSlice inputs) r ⟨n⟩
+      iter folded rIsOne power
 
-private theorem outerFoldFuel {F : Type} [Field F] {m n : ℕ}
-    (inputs : Fin m → Fin n → F) (r : F) (start count : ℕ)
+private theorem outerFoldFuelOne {F : Type} [Field F] {m n : ℕ}
+    (inputs : Fin m → Fin n → F) (start count : ℕ)
     (hbound : start + count ≤ m) :
-    loopFuel (outerFoldBody inputs r) (count + 1)
-      ({ start := ⟨start⟩, «end» := ⟨start + count⟩ }, foldedVec inputs r start) =
-      .ok (foldedVec inputs r (start + count)) := by
+    loopFuel (outerFoldBody inputs (1 : F)) (count + 1)
+      ({ start := ⟨start⟩, «end» := ⟨start + count⟩ },
+        foldedVec inputs 1 start, true, 1) =
+      .ok (foldedVec inputs 1 (start + count), true, 1) := by
   induction count generalizing start with
   | zero =>
       rw [loopFuel]
       simp [outerFoldBody,
-        ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop2.body,
+        ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop1.body,
         core.iter.range.IteratorRange.next]
   | succ count ih =>
       have hlt : start < start + (count + 1) := by omega
       have hrow : start < m := by omega
       rw [loopFuel]
       simp only [outerFoldBody,
-        ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop2.body,
-        core.iter.range.IteratorRange.next, hlt, ↓reduceIte, Result.bind_ok]
-      simp only [Usize.ofNat]
-      rw [innerFoldLoop inputs r start hrow]
+        ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop1.body,
+        core.iter.range.IteratorRange.next, hlt, ↓reduceIte, Result.bind_ok,
+        inputSlice, Slice.index_usize, List.getElem?_ofFn, hrow, ↓reduceDIte,
+        Usize.ofNat]
+      have hinner := innerFoldLoop inputs (1 : F) start hrow
+      simp only [one_pow, rowVec] at hinner
+      rw [hinner]
       simp only [Result.bind_ok]
       have hend : start + (count + 1) = (start + 1) + count := by omega
       rw [hend]
       exact ih (start + 1) (by omega)
 
-private theorem outerFoldLoop {F : Type} [Field F] {m n : ℕ}
-    (inputs : Fin m → Fin n → F) (r : F) :
-    ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop2
+private theorem outerFoldLoopOne {F : Type} [Field F] {m n : ℕ}
+    (inputs : Fin m → Fin n → F) :
+    ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop1
       (cloneModel F) (addModel F) (mulModel F)
-      { start := ⟨0⟩, «end» := ⟨m⟩ } (inputSlice inputs) ⟨n⟩
-      (powerVec r m m) (foldedVec inputs r 0) = .ok (foldedVec inputs r m) := by
-  unfold ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop2
+      { start := ⟨0⟩, «end» := ⟨m⟩ } (inputSlice inputs) 1 ⟨n⟩
+      (foldedVec inputs 1 0) true 1 =
+      .ok (foldedVec inputs 1 m, true, 1) := by
+  unfold ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop1
   apply loop_eq_of_fuel (fuel := m + 1) (by simp)
-  simpa [outerFoldBody] using outerFoldFuel inputs r 0 m (by simp)
+  simpa [outerFoldBody] using outerFoldFuelOne inputs 0 m (by simp)
 
-private theorem powerLoop5 {F : Type} [Field F] (r : F) (m : ℕ) (hm : 0 < m) :
-    ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop5
-      (cloneModel F) (mulModel F) { start := ⟨1⟩, «end» := ⟨m⟩ } r
-      ⟨List.replicate m 1⟩ = .ok (powerVec r m m) := by
-  simpa [
-    ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop1,
-    ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop5,
-    ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop1.body,
-    ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop5.body]
-    using powerLoop1 r m hm
-
-private theorem innerFoldLoop6 {F : Type} [Field F] {m n : ℕ}
-    (inputs : Fin m → Fin n → F) (r : F) (row : ℕ) (hrow : row < m) :
-    ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop6_loop0
-      (cloneModel F) (addModel F) (mulModel F)
-      { start := ⟨0⟩, «end» := ⟨n⟩ } (inputSlice inputs) (powerVec r m m)
-      (foldedVec inputs r row) ⟨row⟩ = .ok (foldedVec inputs r (row + 1)) := by
-  simpa [
-    ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop2_loop0,
-    ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop6_loop0,
-    ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop2_loop0.body,
-    ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop6_loop0.body]
-    using innerFoldLoop inputs r row hrow
-
-private def outerFoldBody6 {F : Type} [Field F] {m n : ℕ}
-    (inputs : Fin m → Fin n → F) (r : F) :
-    (core.ops.range.Range × alloc.vec.Vec F) →
-      Result (ControlFlow (core.ops.range.Range × alloc.vec.Vec F)
-        (alloc.vec.Vec F)) :=
-  fun (iter, folded) =>
-    ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop6.body
-      (cloneModel F) (addModel F) (mulModel F) (inputSlice inputs) ⟨n⟩
-      (powerVec r m m) iter folded
-
-private theorem outerFoldFuel6 {F : Type} [Field F] {m n : ℕ}
+private theorem outerFoldFuelNotOne {F : Type} [Field F] {m n : ℕ}
     (inputs : Fin m → Fin n → F) (r : F) (start count : ℕ)
     (hbound : start + count ≤ m) :
-    loopFuel (outerFoldBody6 inputs r) (count + 1)
-      ({ start := ⟨start⟩, «end» := ⟨start + count⟩ }, foldedVec inputs r start) =
-      .ok (foldedVec inputs r (start + count)) := by
+    loopFuel (outerFoldBody inputs r) (count + 1)
+      ({ start := ⟨start⟩, «end» := ⟨start + count⟩ },
+        foldedVec inputs r start, false, r ^ start) =
+      .ok (foldedVec inputs r (start + count), false, r ^ (start + count)) := by
   induction count generalizing start with
   | zero =>
       rw [loopFuel]
-      simp [outerFoldBody6,
-        ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop6.body,
+      simp [outerFoldBody,
+        ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop1.body,
         core.iter.range.IteratorRange.next]
   | succ count ih =>
       have hlt : start < start + (count + 1) := by omega
       have hrow : start < m := by omega
       rw [loopFuel]
-      simp only [outerFoldBody6,
-        ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop6.body,
+      simp only [outerFoldBody,
+        ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop1.body,
         core.iter.range.IteratorRange.next, hlt, ↓reduceIte, Result.bind_ok,
+        inputSlice, Slice.index_usize, List.getElem?_ofFn, hrow, ↓reduceDIte,
         Usize.ofNat]
-      rw [innerFoldLoop6 inputs r start hrow]
-      simp only [Result.bind_ok]
+      have hinner := innerFoldLoop inputs r start hrow
+      simp only [rowVec] at hinner
+      rw [hinner]
+      simp only [Result.bind_ok, cloneModel, mulModel]
+      rw [← pow_succ]
       have hend : start + (count + 1) = (start + 1) + count := by omega
       rw [hend]
       exact ih (start + 1) (by omega)
 
-private theorem outerFoldLoop6 {F : Type} [Field F] {m n : ℕ}
+private theorem outerFoldLoopNotOne {F : Type} [Field F] {m n : ℕ}
     (inputs : Fin m → Fin n → F) (r : F) :
-    ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop6
+    ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop1
       (cloneModel F) (addModel F) (mulModel F)
-      { start := ⟨0⟩, «end» := ⟨m⟩ } (inputSlice inputs) ⟨n⟩
-      (powerVec r m m) (foldedVec inputs r 0) = .ok (foldedVec inputs r m) := by
-  unfold ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop6
+      { start := ⟨0⟩, «end» := ⟨m⟩ } (inputSlice inputs) r ⟨n⟩
+      (foldedVec inputs r 0) false 1 =
+      .ok (foldedVec inputs r m, false, r ^ m) := by
+  unfold ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop1
   apply loop_eq_of_fuel (fuel := m + 1) (by simp)
-  simpa [outerFoldBody6] using outerFoldFuel6 inputs r 0 m (by simp)
-
-private def powerSumBody {F : Type} [Field F] (r : F) :
-    (core.ops.range.Range × F) → Result (ControlFlow (core.ops.range.Range × F) F) :=
-  fun (iter, power) =>
-    ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop4.body
-      (cloneModel F) (mulModel F) r iter power
-
-private theorem powerSumFuel {F : Type} [Field F] (r : F) (start count : ℕ) :
-    loopFuel (powerSumBody r) (count + 1)
-      ({ start := ⟨start⟩, «end» := ⟨start + count⟩ }, r ^ start) =
-      .ok (r ^ (start + count)) := by
-  induction count generalizing start with
-  | zero =>
-      rw [loopFuel]
-      simp [powerSumBody,
-        ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop4.body,
-        core.iter.range.IteratorRange.next]
-  | succ count ih =>
-      have hlt : start < start + (count + 1) := by omega
-      rw [loopFuel]
-      simp only [powerSumBody,
-        ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop4.body,
-        core.iter.range.IteratorRange.next, hlt, ↓reduceIte, cloneModel,
-        mulModel, Result.bind_ok]
-      rw [← pow_succ]
-      have hend : start + (count + 1) = (start + 1) + count := by omega
-      rw [hend]
-      exact ih (start + 1)
-
-private theorem powerSumLoop {F : Type} [Field F] (r : F) (m : ℕ) :
-    ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop4
-      (cloneModel F) (mulModel F) { start := ⟨0⟩, «end» := ⟨m⟩ } r 1 =
-      .ok (r ^ m) := by
-  unfold ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop4
-  apply loop_eq_of_fuel (fuel := m + 1) (by simp)
-  simpa [powerSumBody] using powerSumFuel r 0 m
+  simpa [outerFoldBody] using outerFoldFuelNotOne inputs r 0 m (by simp)
 
 private def gicPrefix {F G : Type} [Field F] [AddCommGroup G] [Module F G]
     {m n : ℕ} (gamma : Fin (n + 1) → G) (inputs : Fin m → Fin n → F)
@@ -618,7 +474,7 @@ private def gicBody {F G : Type} [Field F] [AddCommGroup G] [Module F G]
     (r : F) : (core.ops.range.Range × G) →
       Result (ControlFlow (core.ops.range.Range × G) G) :=
   fun (iter, gic) =>
-    ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop3.body
+    ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop2.body
       (cloneModel F) (cloneModel G) (addModel G) (smulModel F G)
       (finSlice gamma) (foldedVec inputs r m) iter gic
 
@@ -644,14 +500,14 @@ private theorem gicFuel {F G : Type} [Field F]
   | zero =>
       rw [loopFuel]
       simp [gicBody,
-        ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop3.body,
+        ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop2.body,
         core.iter.range.IteratorRange.next]
   | succ count ih =>
       have hlt : start < start + (count + 1) := by omega
       have hinput : start < n := by omega
       rw [loopFuel]
       simp only [gicBody,
-        ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop3.body,
+        ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop2.body,
         core.iter.range.IteratorRange.next, hlt, ↓reduceIte, Result.bind_ok,
         usizeAdd, Usize.ofNat, finSlice, Slice.index_usize,
         List.getElem?_ofFn, show start + 1 < n + 1 by omega, ↓reduceDIte,
@@ -669,35 +525,20 @@ private theorem gicFuel {F G : Type} [Field F]
       rw [hend]
       exact ih (start + 1) (by omega)
 
-private theorem gicLoop3 {F G : Type} [Field F]
+private theorem gicLoop {F G : Type} [Field F]
     [AddCommGroup G] [Module F G] {m n : ℕ}
     (gamma : Fin (n + 1) → G) (inputs : Fin m → Fin n → F)
     (r rSum : F) :
-    ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop3
+    ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop2
       (cloneModel F) (cloneModel G) (addModel G) (smulModel F G)
       { start := ⟨0⟩, «end» := ⟨n⟩ } (finSlice gamma) (foldedVec inputs r m)
       (rSum • gamma 0) = .ok (gicPrefix gamma inputs r rSum n) := by
   have hzero : rSum • gamma 0 = gicPrefix gamma inputs r rSum 0 := by
     simp [gicPrefix]
   rw [hzero]
-  unfold ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop3
+  unfold ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop2
   apply loop_eq_of_fuel (fuel := n + 1) (by simp)
   simpa [gicBody] using gicFuel gamma inputs r rSum 0 n (by simp)
-
-private theorem gicLoop7 {F G : Type} [Field F]
-    [AddCommGroup G] [Module F G] {m n : ℕ}
-    (gamma : Fin (n + 1) → G) (inputs : Fin m → Fin n → F)
-    (r rSum : F) :
-    ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop7
-      (cloneModel F) (cloneModel G) (addModel G) (smulModel F G)
-      { start := ⟨0⟩, «end» := ⟨n⟩ } (finSlice gamma) (foldedVec inputs r m)
-      (rSum • gamma 0) = .ok (gicPrefix gamma inputs r rSum n) := by
-  simpa [
-    ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop3,
-    ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop7,
-    ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop3.body,
-    ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core_loop7.body]
-    using gicLoop3 gamma inputs r rSum
 
 private theorem fromElem_eq_replicate {T : Type} (value : T) (count : ℕ) :
     ark_ip_proofs.alloc.vec.from_elem (cloneModel T) value ⟨count⟩ =
@@ -760,56 +601,41 @@ theorem fold_public_inputs_refinement_statement
   unfold ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core
   simp only [inputSlice, ark_ip_proofs.core.slice.Slice.is_empty,
     List.isEmpty_iff, List.ofFn_eq_nil_iff, show ¬m = 0 by omega,
-    Bool.false_eq_true, not_false_eq_true, ark_ip_proofs.massert,
+    not_false_eq_true, ark_ip_proofs.massert,
     ↓reduceIte, Result.bind_ok, Slice.index_usize, List.getElem?_ofFn,
     show 0 < m by exact hm, ↓reduceDIte, ark_ip_proofs.alloc.vec.Vec.len,
     List.length_ofFn, finSlice, Slice.len, usizeAdd, Usize.ofNat]
   have hvalidate := validateLoop inputs
   unfold inputSlice at hvalidate
   rw [hvalidate]
+  simp only [Result.bind_ok, zeroModel]
+  rw [fromElem_eq_replicate]
   simp only [Result.bind_ok, cloneModel_clone, oneModel, partialEqModel]
+  rw [zeroFoldedVec inputs r]
   have hcast : (MacCampaign.castU64 ({ val := m } : Usize)).val = m := by
     change m % MacCampaign.u64Base = m
     exact Nat.mod_eq_of_lt hm64
   by_cases hr : r = 1
   · subst r
-    simp only [decide_true, if_true, lift, fromU64Model, hcast,
-      Result.bind_ok]
-    rw [fromElem_eq_replicate]
-    simp only [Result.bind_ok]
-    rw [powerLoop1 (F := F) 1 m hm]
-    simp only [Result.bind_ok, zeroModel]
-    rw [fromElem_eq_replicate]
-    simp only [Result.bind_ok]
-    rw [zeroFoldedVec inputs 1]
-    have houter := outerFoldLoop inputs (1 : F)
+    simp only [decide_true]
+    have houter := outerFoldLoopOne inputs
     unfold inputSlice at houter
     rw [houter]
-    simp only [Result.bind_ok, Slice.index_usize, finSlice, List.getElem?_ofFn,
-      show 0 < n + 1 by omega, ↓reduceDIte, cloneModel_clone, smulModel_mul]
-    have hgic := gicLoop3 gamma inputs (1 : F) (m : F)
+    simp only [Result.bind_ok, if_true, lift, fromU64Model, hcast,
+      show 0 < n + 1 by omega, ↓reduceDIte, smulModel_mul]
+    have hgic := gicLoop gamma inputs (1 : F) (m : F)
     unfold finSlice at hgic
     simp only [Fin.zero_eta]
     rw [hgic]
     rw [gicPrefix_full]
     simp
-  · simp only [show decide (r = 1) = false by simp [hr],
-      Bool.false_eq_true, if_false]
-    rw [powerSumLoop r m]
-    simp only [Result.bind_ok, subModel, cloneModel_clone, divModel]
-    rw [fromElem_eq_replicate]
-    simp only [Result.bind_ok]
-    rw [powerLoop5 r m hm]
-    simp only [Result.bind_ok, zeroModel]
-    rw [fromElem_eq_replicate]
-    simp only [Result.bind_ok]
-    rw [zeroFoldedVec inputs r]
-    have houter := outerFoldLoop6 inputs r
+  · simp only [show decide (r = 1) = false by simp [hr]]
+    have houter := outerFoldLoopNotOne inputs r
     unfold inputSlice at houter
     rw [houter]
-    simp only [Result.bind_ok, Slice.index_usize, finSlice, List.getElem?_ofFn,
-      show 0 < n + 1 by omega, ↓reduceDIte, cloneModel_clone, smulModel_mul]
-    have hgic := gicLoop7 gamma inputs r ((r ^ m - 1) / (r - 1))
+    simp only [Result.bind_ok, Bool.false_eq_true, if_false, subModel, divModel,
+      show 0 < n + 1 by omega, ↓reduceDIte, smulModel_mul]
+    have hgic := gicLoop gamma inputs r ((r ^ m - 1) / (r - 1))
     unfold finSlice at hgic
     simp only [Fin.zero_eta]
     rw [hgic]

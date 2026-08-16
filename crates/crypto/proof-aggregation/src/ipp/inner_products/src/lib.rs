@@ -8,6 +8,7 @@ use std::{
     error::Error as ErrorTrait,
     fmt::{Display, Formatter, Result as FmtResult},
     marker::PhantomData,
+    ops::Add,
     sync::{Mutex, OnceLock},
     time::Instant,
 };
@@ -17,12 +18,41 @@ use rayon::prelude::*;
 
 pub type Error = Box<dyn ErrorTrait>;
 
+/// Exact normalization and preparation work submitted to pairing kernels.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct PairingPreparationCount {
+    pub g1_normalization_batches: usize,
+    pub g2_normalization_batches: usize,
+    pub g1_normalized_elements: usize,
+    pub g2_normalized_elements: usize,
+    pub g1_prepared_elements: usize,
+    pub g2_prepared_elements: usize,
+}
+
+impl Add for PairingPreparationCount {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self {
+        Self {
+            g1_normalization_batches: self.g1_normalization_batches
+                + other.g1_normalization_batches,
+            g2_normalization_batches: self.g2_normalization_batches
+                + other.g2_normalization_batches,
+            g1_normalized_elements: self.g1_normalized_elements + other.g1_normalized_elements,
+            g2_normalized_elements: self.g2_normalized_elements + other.g2_normalized_elements,
+            g1_prepared_elements: self.g1_prepared_elements + other.g1_prepared_elements,
+            g2_prepared_elements: self.g2_prepared_elements + other.g2_prepared_elements,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct PairingComputationProfile {
     pub normalize_batch_ms: f64,
     pub prepare_ms: f64,
     pub miller_loop_ms: f64,
     pub final_exponentiation_ms: f64,
+    pub preparation: PairingPreparationCount,
 }
 
 impl PairingComputationProfile {
@@ -31,6 +61,7 @@ impl PairingComputationProfile {
         self.prepare_ms += other.prepare_ms;
         self.miller_loop_ms += other.miller_loop_ms;
         self.final_exponentiation_ms += other.final_exponentiation_ms;
+        self.preparation = self.preparation + other.preparation;
     }
 }
 
@@ -64,6 +95,17 @@ pub enum InnerProductError {
     EmptyInput,
     MessageLengthInvalid(usize, usize),
     PairingUnavailable,
+}
+
+/// Validate the shape required by one non-empty pairing product.
+pub fn validate_pairing_shape(left_len: usize, right_len: usize) -> Result<(), InnerProductError> {
+    if left_len != right_len {
+        return Err(InnerProductError::MessageLengthInvalid(left_len, right_len));
+    }
+    if left_len == 0 {
+        return Err(InnerProductError::EmptyInput);
+    }
+    Ok(())
 }
 
 impl ErrorTrait for InnerProductError {
@@ -116,15 +158,8 @@ impl<P: Pairing> InnerProduct for PairingInnerProduct<P> {
         left: &[Self::LeftMessage],
         right: &[Self::RightMessage],
     ) -> Result<Self::Output, Error> {
-        if left.len() != right.len() {
-            return Err(Box::new(InnerProductError::MessageLengthInvalid(
-                left.len(),
-                right.len(),
-            )));
-        };
-        if left.is_empty() {
-            return Err(Box::new(InnerProductError::EmptyInput));
-        }
+        validate_pairing_shape(left.len(), right.len())
+            .map_err(|error| Box::new(error) as Error)?;
 
         cfg_multi_pairing(left, right)
             .ok_or_else(|| Box::new(InnerProductError::PairingUnavailable) as Error)
@@ -178,8 +213,138 @@ fn cpu_multi_pairing_projective<P: Pairing>(
             .collect::<Vec<_>>()
     };
     profile.prepare_ms = prepare_started.elapsed().as_secs_f64() * 1000.0;
+    profile.preparation = PairingPreparationCount {
+        g1_normalization_batches: 1,
+        g2_normalization_batches: 1,
+        g1_normalized_elements: left.len(),
+        g2_normalized_elements: right.len(),
+        g1_prepared_elements: left.len(),
+        g2_prepared_elements: right.len(),
+    };
 
     cfg_multi_pairing_prepared_with_profile::<P>(&left, &right, use_parallel, profile)
+}
+
+/// Prepared G1 operands that can be reused across independent pairing products.
+pub struct PreparedG1<P: Pairing> {
+    values: Vec<P::G1Prepared>,
+    preparation: PairingPreparationCount,
+}
+
+impl<P: Pairing> PreparedG1<P> {
+    pub fn preparation(&self) -> PairingPreparationCount {
+        self.preparation
+    }
+}
+
+/// Prepared G2 operands that can be reused across independent pairing products.
+pub struct PreparedG2<P: Pairing> {
+    values: Vec<P::G2Prepared>,
+    preparation: PairingPreparationCount,
+}
+
+impl<P: Pairing> PreparedG2<P> {
+    pub fn preparation(&self) -> PairingPreparationCount {
+        self.preparation
+    }
+}
+
+/// Normalize and prepare one reusable G1 operand vector.
+pub fn prepare_g1<P: Pairing>(values: &[P::G1]) -> PreparedG1<P> {
+    let mut profile = PairingComputationProfile::default();
+    let normalize_started = Instant::now();
+    let affine = P::G1::normalize_batch(values);
+    profile.normalize_batch_ms = normalize_started.elapsed().as_secs_f64() * 1000.0;
+
+    #[cfg(feature = "parallel")]
+    let use_parallel = values.len() >= PAIRING_PARALLEL_THRESHOLD;
+    #[cfg(not(feature = "parallel"))]
+    let use_parallel = false;
+
+    let prepare_started = Instant::now();
+    let prepared = if use_parallel {
+        cfg_iter!(affine)
+            .map(P::G1Prepared::from)
+            .collect::<Vec<_>>()
+    } else {
+        affine
+            .iter()
+            .cloned()
+            .map(P::G1Prepared::from)
+            .collect::<Vec<_>>()
+    };
+    profile.prepare_ms = prepare_started.elapsed().as_secs_f64() * 1000.0;
+    profile.preparation = PairingPreparationCount {
+        g1_normalization_batches: 1,
+        g1_normalized_elements: values.len(),
+        g1_prepared_elements: values.len(),
+        ..PairingPreparationCount::default()
+    };
+    record_pairing_profile_delta(&profile);
+    PreparedG1 {
+        values: prepared,
+        preparation: profile.preparation,
+    }
+}
+
+/// Normalize and prepare one reusable G2 operand vector.
+pub fn prepare_g2<P: Pairing>(values: &[P::G2]) -> PreparedG2<P> {
+    let mut profile = PairingComputationProfile::default();
+    let normalize_started = Instant::now();
+    let affine = P::G2::normalize_batch(values);
+    profile.normalize_batch_ms = normalize_started.elapsed().as_secs_f64() * 1000.0;
+
+    #[cfg(feature = "parallel")]
+    let use_parallel = values.len() >= PAIRING_PARALLEL_THRESHOLD;
+    #[cfg(not(feature = "parallel"))]
+    let use_parallel = false;
+
+    let prepare_started = Instant::now();
+    let prepared = if use_parallel {
+        cfg_iter!(affine)
+            .map(P::G2Prepared::from)
+            .collect::<Vec<_>>()
+    } else {
+        affine
+            .iter()
+            .cloned()
+            .map(P::G2Prepared::from)
+            .collect::<Vec<_>>()
+    };
+    profile.prepare_ms = prepare_started.elapsed().as_secs_f64() * 1000.0;
+    profile.preparation = PairingPreparationCount {
+        g2_normalization_batches: 1,
+        g2_normalized_elements: values.len(),
+        g2_prepared_elements: values.len(),
+        ..PairingPreparationCount::default()
+    };
+    record_pairing_profile_delta(&profile);
+    PreparedG2 {
+        values: prepared,
+        preparation: profile.preparation,
+    }
+}
+
+/// Evaluate one pairing product from reusable prepared operands.
+pub fn pair_prepared<P: Pairing>(
+    left: &PreparedG1<P>,
+    right: &PreparedG2<P>,
+) -> Result<PairingOutput<P>, Error> {
+    validate_pairing_shape(left.values.len(), right.values.len())
+        .map_err(|error| Box::new(error) as Error)?;
+
+    #[cfg(feature = "parallel")]
+    let use_parallel = left.values.len() >= PAIRING_PARALLEL_THRESHOLD;
+    #[cfg(not(feature = "parallel"))]
+    let use_parallel = false;
+
+    cfg_multi_pairing_prepared_with_profile::<P>(
+        &left.values,
+        &right.values,
+        use_parallel,
+        PairingComputationProfile::default(),
+    )
+    .ok_or_else(|| Box::new(InnerProductError::PairingUnavailable) as Error)
 }
 
 pub fn cfg_multi_pairing_g1_affine_g2_prepared<P: Pairing>(
@@ -203,6 +368,10 @@ pub fn cfg_multi_pairing_g1_affine_g2_prepared<P: Pairing>(
             .collect::<Vec<_>>()
     };
     profile.prepare_ms = prepare_started.elapsed().as_secs_f64() * 1000.0;
+    profile.preparation = PairingPreparationCount {
+        g1_prepared_elements: left.len(),
+        ..PairingPreparationCount::default()
+    };
 
     cfg_multi_pairing_prepared_with_profile::<P>(&left, right, use_parallel, profile)
 }
@@ -401,6 +570,7 @@ mod tests {
                 prepare_ms: 2.0,
                 miller_loop_ms: 3.0,
                 final_exponentiation_ms: 4.0,
+                preparation: PairingPreparationCount::default(),
             });
         })
         .join()

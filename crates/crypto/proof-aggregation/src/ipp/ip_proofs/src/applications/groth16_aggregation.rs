@@ -1,11 +1,15 @@
 use ark_ec::pairing::{Pairing, PairingOutput};
 #[cfg(not(feature = "bench-baseline"))]
-use ark_ec::{CurveGroup, VariableBaseMSM};
+use ark_ec::CurveGroup;
+#[cfg(all(test, not(feature = "bench-baseline")))]
+use ark_ec::VariableBaseMSM;
+#[cfg(not(feature = "bench-baseline"))]
+use ark_ff::{AdditiveGroup, BigInteger, PrimeField};
 use ark_ff::{Field, One, Zero};
 #[cfg(any(test, feature = "bench-baseline"))]
 use ark_groth16::VerifyingKey;
 use ark_groth16::{PreparedVerifyingKey, Proof};
-use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError, Valid};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 
 use ark_std::rand::Rng;
 use digest::Digest;
@@ -55,6 +59,10 @@ use ark_dh_commitments::{
 use ark_inner_products::cfg_multi_pairing;
 #[cfg(not(feature = "bench-baseline"))]
 use ark_inner_products::cfg_multi_pairing_g1_affine_g2_prepared;
+#[cfg(not(feature = "bench-baseline"))]
+use ark_inner_products::{
+    pair_prepared, prepare_g1, prepare_g2, validate_pairing_shape, PairingPreparationCount,
+};
 use ark_inner_products::{
     pairing_profile_snapshot, reset_pairing_profile_accumulator, InnerProduct,
     MultiexponentiationInnerProduct, PairingComputationProfile, PairingInnerProduct,
@@ -2435,8 +2443,41 @@ struct ProverGipaRoundOutput<F, G1, G2, GT, ABT, CT> {
 /// The adapter core owns all five operand pairs and their error order. The
 /// concrete implementation below delegates only those algebraic operations
 /// to Arkworks.
+struct ProverRoundPairingOperands<'a, G1, G2> {
+    a: &'a [G1],
+    b: &'a [G2],
+    c: &'a [G1],
+    ck_v: &'a [G2],
+    ck_w: &'a [G1],
+}
+
+#[derive(Debug, PartialEq)]
+struct ProverRoundPairingOutput<GT> {
+    com_a: GT,
+    com_b: GT,
+    ip_ab: GT,
+    com_c: GT,
+}
+
 trait ProverRoundCommitmentPrimitive<F, G1, G2, GT, E> {
     fn pairing_inner_product(&mut self, left: &[G1], right: &[G2]) -> Result<GT, E>;
+
+    fn pairing_products(
+        &mut self,
+        operands: ProverRoundPairingOperands<'_, G1, G2>,
+    ) -> Result<ProverRoundPairingOutput<GT>, E> {
+        let com_a = self.pairing_inner_product(operands.a, operands.ck_v)?;
+        let com_b = self.pairing_inner_product(operands.ck_w, operands.b)?;
+        let ip_ab = self.pairing_inner_product(operands.a, operands.b)?;
+        let com_c = self.pairing_inner_product(operands.c, operands.ck_v)?;
+        Ok(ProverRoundPairingOutput {
+            com_a,
+            com_b,
+            ip_ab,
+            com_c,
+        })
+    }
+
     fn msm_inner_product(&mut self, messages: &[G1], scalars: &[F]) -> Result<G1, E>;
 }
 
@@ -2461,16 +2502,19 @@ fn prover_round_commitment_adapter_core<F, G1, G2, GT, E, FX>(
 where
     FX: ProverRoundCommitmentPrimitive<F, G1, G2, GT, E>,
 {
-    let com_a = effect.pairing_inner_product(a, ck_v)?;
-    let com_b = effect.pairing_inner_product(ck_w, b)?;
-    let ip_ab = effect.pairing_inner_product(a, b)?;
-    let com_c = effect.pairing_inner_product(c, ck_v)?;
+    let pairings = effect.pairing_products(ProverRoundPairingOperands {
+        a,
+        b,
+        c,
+        ck_v,
+        ck_w,
+    })?;
     let ip_c = effect.msm_inner_product(c, public_values)?;
     Ok(ProverRoundCommitmentOutput {
-        com_a,
-        com_b,
-        ip_ab,
-        com_c,
+        com_a: pairings.com_a,
+        com_b: pairings.com_b,
+        ip_ab: pairings.ip_ab,
+        com_c: pairings.com_c,
         ip_c,
     })
 }
@@ -2500,6 +2544,56 @@ impl<P: Pairing> Default for ArkworksProverRoundCommitment<P> {
     }
 }
 
+#[cfg(not(feature = "bench-baseline"))]
+struct SharedProverRoundPairingOutput<GT> {
+    products: ProverRoundPairingOutput<GT>,
+    preparation: PairingPreparationCount,
+}
+
+#[cfg(not(feature = "bench-baseline"))]
+fn shared_prover_round_pairing_products<P: Pairing>(
+    a: &[P::G1],
+    b: &[P::G2],
+    c: &[P::G1],
+    ck_v: &[P::G2],
+    ck_w: &[P::G1],
+) -> Result<SharedProverRoundPairingOutput<PairingOutput<P>>, String> {
+    for (left_len, right_len) in [
+        (a.len(), ck_v.len()),
+        (ck_w.len(), b.len()),
+        (a.len(), b.len()),
+        (c.len(), ck_v.len()),
+    ] {
+        validate_pairing_shape(left_len, right_len).map_err(|error| error.to_string())?;
+    }
+
+    let a = prepare_g1::<P>(a);
+    let b = prepare_g2::<P>(b);
+    let c = prepare_g1::<P>(c);
+    let ck_v = prepare_g2::<P>(ck_v);
+    let ck_w = prepare_g1::<P>(ck_w);
+    let preparation = a.preparation()
+        + b.preparation()
+        + c.preparation()
+        + ck_v.preparation()
+        + ck_w.preparation();
+
+    let com_a = pair_prepared::<P>(&a, &ck_v).map_err(|error| error.to_string())?;
+    let com_b = pair_prepared::<P>(&ck_w, &b).map_err(|error| error.to_string())?;
+    let ip_ab = pair_prepared::<P>(&a, &b).map_err(|error| error.to_string())?;
+    let com_c = pair_prepared::<P>(&c, &ck_v).map_err(|error| error.to_string())?;
+
+    Ok(SharedProverRoundPairingOutput {
+        products: ProverRoundPairingOutput {
+            com_a,
+            com_b,
+            ip_ab,
+            com_c,
+        },
+        preparation,
+    })
+}
+
 impl<P: Pairing>
     ProverRoundCommitmentPrimitive<P::ScalarField, P::G1, P::G2, PairingOutput<P>, String>
     for ArkworksProverRoundCommitment<P>
@@ -2510,6 +2604,32 @@ impl<P: Pairing>
         right: &[P::G2],
     ) -> Result<PairingOutput<P>, String> {
         PairingInnerProduct::<P>::inner_product(left, right).map_err(|error| error.to_string())
+    }
+
+    #[cfg(not(feature = "bench-baseline"))]
+    fn pairing_products(
+        &mut self,
+        operands: ProverRoundPairingOperands<'_, P::G1, P::G2>,
+    ) -> Result<ProverRoundPairingOutput<PairingOutput<P>>, String> {
+        let output = shared_prover_round_pairing_products::<P>(
+            operands.a,
+            operands.b,
+            operands.c,
+            operands.ck_v,
+            operands.ck_w,
+        )?;
+        debug_assert_eq!(
+            output.preparation,
+            PairingPreparationCount {
+                g1_normalization_batches: 3,
+                g2_normalization_batches: 2,
+                g1_normalized_elements: operands.a.len() + operands.c.len() + operands.ck_w.len(),
+                g2_normalized_elements: operands.b.len() + operands.ck_v.len(),
+                g1_prepared_elements: operands.a.len() + operands.c.len() + operands.ck_w.len(),
+                g2_prepared_elements: operands.b.len() + operands.ck_v.len(),
+            }
+        );
+        Ok(output.products)
     }
 
     fn msm_inner_product(
@@ -4123,7 +4243,7 @@ where
     (com_a, com_b, com_t, com_c)
 }
 
-#[cfg(any(test, feature = "bench-baseline"))]
+#[cfg(feature = "bench-baseline")]
 fn fold_arkworks_gt_commitments_sequential<P: Pairing>(
     roots: (
         &PairingOutput<P>,
@@ -4148,8 +4268,8 @@ fn fold_arkworks_gt_commitments_sequential<P: Pairing>(
     )
 }
 
-#[cfg(not(feature = "bench-baseline"))]
-fn fold_arkworks_gt_commitments_msm<P: Pairing>(
+#[cfg(all(test, not(feature = "bench-baseline")))]
+fn fold_arkworks_gt_commitments_independent_msm<P: Pairing>(
     roots: (
         &PairingOutput<P>,
         &PairingOutput<P>,
@@ -4199,6 +4319,141 @@ fn fold_arkworks_gt_commitments_msm<P: Pairing>(
     )
 }
 
+#[cfg(not(feature = "bench-baseline"))]
+fn signed_window_digits<B: BigInteger>(scalar: &B, width: usize, num_bits: usize) -> Vec<i64> {
+    let limbs = scalar.as_ref();
+    let radix = 1u64 << width;
+    let window_mask = radix - 1;
+    let digits_count = num_bits.div_ceil(width);
+    let mut carry = 0u64;
+    let mut digits = Vec::with_capacity(digits_count);
+
+    for index in 0..digits_count {
+        let bit_offset = index * width;
+        let limb_index = bit_offset / 64;
+        let bit_index = bit_offset % 64;
+        let bit_buffer = if bit_index < 64 - width || limb_index == limbs.len() - 1 {
+            limbs[limb_index] >> bit_index
+        } else {
+            (limbs[limb_index] >> bit_index) | (limbs[limb_index + 1] << (64 - bit_index))
+        };
+        let coefficient = carry + (bit_buffer & window_mask);
+        carry = (coefficient + radix / 2) >> width;
+        let mut digit = coefficient as i64 - (carry << width) as i64;
+        if index == digits_count - 1 {
+            digit += (carry << width) as i64;
+        }
+        digits.push(digit);
+    }
+    digits
+}
+
+#[cfg(not(feature = "bench-baseline"))]
+fn msm_from_signed_digit_schedule<T: AdditiveGroup>(
+    bases: &[T],
+    scalar_digits: &[i64],
+    digits_count: usize,
+    width: usize,
+) -> T {
+    assert_eq!(scalar_digits.len(), bases.len() * digits_count);
+    let window_sums = ark_std::cfg_into_iter!(0..digits_count)
+        .map(|window| {
+            let mut buckets = vec![T::zero(); 1 << width];
+            for (digits, base) in scalar_digits.chunks(digits_count).zip(bases) {
+                let digit = digits[window];
+                if digit > 0 {
+                    buckets[(digit - 1) as usize] += base;
+                } else if digit < 0 {
+                    buckets[(-digit - 1) as usize] -= base;
+                }
+            }
+
+            let mut running_sum = T::zero();
+            let mut result = T::zero();
+            for bucket in buckets.into_iter().rev() {
+                running_sum += bucket;
+                result += running_sum;
+            }
+            result
+        })
+        .collect::<Vec<_>>();
+
+    let lowest = window_sums[0];
+    lowest
+        + window_sums[1..]
+            .iter()
+            .rev()
+            .fold(T::zero(), |mut total, window_sum| {
+                total += window_sum;
+                for _ in 0..width {
+                    total.double_in_place();
+                }
+                total
+            })
+}
+
+#[cfg(not(feature = "bench-baseline"))]
+fn fold_arkworks_gt_commitments_shared_schedule<P: Pairing>(
+    roots: (
+        &PairingOutput<P>,
+        &PairingOutput<P>,
+        &PairingOutput<P>,
+        &PairingOutput<P>,
+    ),
+    rounds_wire: &[ArkworksTippMippRound<P>],
+    inverse_challenges_chrono: &[P::ScalarField],
+    raw_challenges_chrono: &[P::ScalarField],
+) -> (
+    PairingOutput<P>,
+    PairingOutput<P>,
+    PairingOutput<P>,
+    PairingOutput<P>,
+) {
+    assert_eq!(rounds_wire.len(), inverse_challenges_chrono.len());
+    assert_eq!(rounds_wire.len(), raw_challenges_chrono.len());
+
+    let term_count = 1 + 2 * rounds_wire.len();
+    let width: usize = if term_count < 32 {
+        3
+    } else {
+        (ark_std::log2(term_count) * 69 / 100 + 2) as usize
+    };
+    let num_bits = P::ScalarField::MODULUS_BIT_SIZE as usize;
+    let digits_count = num_bits.div_ceil(width);
+    let mut scalars = Vec::with_capacity(term_count);
+    let mut a_bases = Vec::with_capacity(term_count);
+    let mut b_bases = Vec::with_capacity(term_count);
+    let mut t_bases = Vec::with_capacity(term_count);
+    let mut c_bases = Vec::with_capacity(term_count);
+    scalars.push(P::ScalarField::one());
+    a_bases.push(roots.0.clone());
+    b_bases.push(roots.1.clone());
+    t_bases.push(roots.2.clone());
+    c_bases.push(roots.3.clone());
+
+    for round_offset in 0..rounds_wire.len() {
+        let round_index = rounds_wire.len() - round_offset - 1;
+        let (left, right) = &rounds_wire[round_index];
+        scalars.push(inverse_challenges_chrono[round_offset].clone());
+        scalars.push(raw_challenges_chrono[round_offset].clone());
+        a_bases.extend([left.ab.0.clone(), right.ab.0.clone()]);
+        b_bases.extend([left.ab.1.clone(), right.ab.1.clone()]);
+        t_bases.extend([left.ab.2.clone(), right.ab.2.clone()]);
+        c_bases.extend([left.c.0.clone(), right.c.0.clone()]);
+    }
+
+    let scalar_digits = scalars
+        .iter()
+        .flat_map(|scalar| signed_window_digits(&scalar.into_bigint(), width, num_bits))
+        .collect::<Vec<_>>();
+    (
+        msm_from_signed_digit_schedule(&a_bases, &scalar_digits, digits_count, width),
+        msm_from_signed_digit_schedule(&b_bases, &scalar_digits, digits_count, width),
+        msm_from_signed_digit_schedule(&t_bases, &scalar_digits, digits_count, width),
+        msm_from_signed_digit_schedule(&c_bases, &scalar_digits, digits_count, width),
+    )
+}
+
 fn fold_arkworks_gt_commitments<P: Pairing>(
     roots: (
         &PairingOutput<P>,
@@ -4227,7 +4482,7 @@ fn fold_arkworks_gt_commitments<P: Pairing>(
 
     #[cfg(not(feature = "bench-baseline"))]
     {
-        fold_arkworks_gt_commitments_msm(
+        fold_arkworks_gt_commitments_shared_schedule(
             roots,
             rounds_wire,
             inverse_challenges_chrono,
@@ -4696,22 +4951,121 @@ pub struct AggregateProofData<
     tipp_mipp_proof: TippMippProofData<G1, G2, GT, ABT, CT, D>,
 }
 
-pub type AggregateProof<P, D> = AggregateProofData<
+/// Aggregate-proof wire tree with a caller-selected target-group encoding.
+///
+/// This is the v1 tree shape; selecting another `GT` changes only the target
+/// values stored at its leaves. Protocol-specific codecs must still validate
+/// the reconstructed target-group values before verification.
+#[doc(hidden)]
+pub type AggregateProofWithTarget<P, GT, D> = AggregateProofData<
     <P as Pairing>::G1,
     <P as Pairing>::G2,
-    PairingOutput<P>,
-    IdentityOutput<PairingOutput<P>>,
+    GT,
+    IdentityOutput<GT>,
     IdentityOutput<<P as Pairing>::G1>,
     D,
 >;
 
+pub type AggregateProof<P, D> = AggregateProofWithTarget<P, PairingOutput<P>, D>;
+
+/// Return target leaves in the same order used by
+/// `try_map_aggregate_proof_target`.
+#[doc(hidden)]
+pub fn aggregate_proof_target_values<P, GT, D>(
+    proof: &AggregateProofWithTarget<P, GT, D>,
+) -> Vec<&GT>
+where
+    P: Pairing,
+    GT: CanonicalSerialize + CanonicalDeserialize + Clone + Default + Eq,
+    D: Send + Sync,
+{
+    let rounds = &proof.tipp_mipp_proof.gipa_proof.r_commitment_steps;
+    let nested_count = rounds
+        .iter()
+        .map(|(left, right)| left.ab.2 .0.len() + right.ab.2 .0.len())
+        .sum::<usize>();
+    let mut values = Vec::with_capacity(4 + rounds.len() * 8 + nested_count);
+    values.extend([&proof.com_a, &proof.com_b, &proof.com_c, &proof.ip_ab]);
+    for (left, right) in rounds {
+        for commitment in [left, right] {
+            values.extend([&commitment.ab.0, &commitment.ab.1]);
+            values.extend(commitment.ab.2 .0.iter());
+            values.push(&commitment.c.0);
+        }
+    }
+    values
+}
+
+/// Map every target leaf while preserving the aggregate-proof tree exactly.
+///
+/// The closure is called in `aggregate_proof_target_values` order so codecs
+/// can prepare one batch inversion and consume it during the mapping pass.
+#[doc(hidden)]
+pub fn try_map_aggregate_proof_target<P, FromGT, ToGT, D, E>(
+    proof: &AggregateProofWithTarget<P, FromGT, D>,
+    mut map: impl FnMut(&FromGT) -> Result<ToGT, E>,
+) -> Result<AggregateProofWithTarget<P, ToGT, D>, E>
+where
+    P: Pairing,
+    FromGT: CanonicalSerialize + CanonicalDeserialize + Clone + Default + Eq,
+    ToGT: CanonicalSerialize + CanonicalDeserialize + Clone + Default + Eq,
+    P::G1: Clone,
+    P::G2: Clone,
+    D: Send + Sync,
+{
+    let com_a = map(&proof.com_a)?;
+    let com_b = map(&proof.com_b)?;
+    let com_c = map(&proof.com_c)?;
+    let ip_ab = map(&proof.ip_ab)?;
+    let mut rounds = Vec::with_capacity(proof.tipp_mipp_proof.gipa_proof.r_commitment_steps.len());
+    for (left, right) in &proof.tipp_mipp_proof.gipa_proof.r_commitment_steps {
+        let mut map_commitment = |commitment: &TippMippCommitmentData<
+            FromGT,
+            IdentityOutput<FromGT>,
+            IdentityOutput<P::G1>,
+        >| {
+            let ab_0 = map(&commitment.ab.0)?;
+            let ab_1 = map(&commitment.ab.1)?;
+            let mut ab_output = Vec::with_capacity(commitment.ab.2 .0.len());
+            for value in &commitment.ab.2 .0 {
+                ab_output.push(map(value)?);
+            }
+            let c_0 = map(&commitment.c.0)?;
+            Ok(TippMippCommitmentData {
+                ab: (ab_0, ab_1, IdentityOutput(ab_output)),
+                c: (c_0, commitment.c.1.clone()),
+            })
+        };
+        rounds.push((map_commitment(left)?, map_commitment(right)?));
+    }
+
+    Ok(AggregateProofData {
+        com_a,
+        com_b,
+        com_c,
+        ip_ab,
+        agg_c: proof.agg_c.clone(),
+        tipp_mipp_proof: TippMippProofData {
+            gipa_proof: TippMippGipaProofData {
+                r_commitment_steps: rounds,
+                _digest: PhantomData,
+            },
+            final_ck: proof.tipp_mipp_proof.final_ck.clone(),
+            final_ck_proofs: proof.tipp_mipp_proof.final_ck_proofs.clone(),
+            final_messages: proof.tipp_mipp_proof.final_messages.clone(),
+            _digest: PhantomData,
+        },
+    })
+}
+
 /// Validate every group element after an aggregate proof was canonically
 /// decoded with `Validate::No`. The caller supplies the GT predicate so the
-/// shipping BLS12-377 backend can use its proved fast membership kernel while
-/// retaining Arkworks validation for G1 and G2.
+/// shipping BLS12-377 backend can use its proved fast membership kernels.
 #[doc(hidden)]
 pub fn validate_decoded_aggregate_proof<P, D>(
     proof: &AggregateProof<P, D>,
+    mut validate_g1: impl FnMut(&P::G1) -> Result<(), SerializationError>,
+    mut validate_g2: impl FnMut(&P::G2) -> Result<(), SerializationError>,
     mut validate_gt: impl FnMut(&PairingOutput<P>) -> Result<(), SerializationError>,
 ) -> Result<(), SerializationError>
 where
@@ -4722,7 +5076,7 @@ where
     validate_gt(&proof.com_b)?;
     validate_gt(&proof.com_c)?;
     validate_gt(&proof.ip_ab)?;
-    proof.agg_c.check()?;
+    validate_g1(&proof.agg_c)?;
 
     for (left, right) in &proof.tipp_mipp_proof.gipa_proof.r_commitment_steps {
         for commitment in [left, right] {
@@ -4733,18 +5087,18 @@ where
             }
             validate_gt(&commitment.c.0)?;
             for value in &(commitment.c.1).0 {
-                value.check()?;
+                validate_g1(value)?;
             }
         }
     }
 
-    proof.tipp_mipp_proof.final_ck.0.check()?;
-    proof.tipp_mipp_proof.final_ck.1.check()?;
-    proof.tipp_mipp_proof.final_ck_proofs.0.check()?;
-    proof.tipp_mipp_proof.final_ck_proofs.1.check()?;
-    proof.tipp_mipp_proof.final_messages.0.check()?;
-    proof.tipp_mipp_proof.final_messages.1.check()?;
-    proof.tipp_mipp_proof.final_messages.2.check()?;
+    validate_g2(&proof.tipp_mipp_proof.final_ck.0)?;
+    validate_g1(&proof.tipp_mipp_proof.final_ck.1)?;
+    validate_g2(&proof.tipp_mipp_proof.final_ck_proofs.0)?;
+    validate_g1(&proof.tipp_mipp_proof.final_ck_proofs.1)?;
+    validate_g1(&proof.tipp_mipp_proof.final_messages.0)?;
+    validate_g2(&proof.tipp_mipp_proof.final_messages.1)?;
+    validate_g1(&proof.tipp_mipp_proof.final_messages.2)?;
     Ok(())
 }
 
@@ -6686,9 +7040,68 @@ fn fold_public_inputs<P: Pairing>(
         .iter()
         .map(|base| P::G1::from(*base))
         .collect::<Vec<_>>();
-    fold_public_inputs_core(&gamma_abc_g1, public_inputs, r)
+    fold_public_inputs_baseline_core(&gamma_abc_g1, public_inputs, r)
 }
 
+#[cfg(any(test, feature = "bench-baseline"))]
+fn fold_public_inputs_baseline_core<F, G1>(
+    gamma_abc_g1: &[G1],
+    public_inputs: &[Vec<F>],
+    r: &F,
+) -> (F, G1)
+where
+    F: Clone
+        + PartialEq
+        + From<u64>
+        + One
+        + Zero
+        + std::ops::Add<Output = F>
+        + std::ops::Div<Output = F>
+        + std::ops::Mul<Output = F>
+        + std::ops::Sub<Output = F>,
+    G1: Clone + std::ops::Add<Output = G1> + std::ops::Mul<F, Output = G1>,
+{
+    assert!(!public_inputs.is_empty(), "public inputs must be non-empty");
+    let input_arity = public_inputs[0].len();
+    assert_eq!(gamma_abc_g1.len(), input_arity + 1);
+    for row in public_inputs {
+        assert_eq!(row.len(), input_arity);
+    }
+
+    let r_sum = if r.clone() == F::one() {
+        F::from(public_inputs.len() as u64)
+    } else {
+        let mut r_power = F::one();
+        for _ in 0..public_inputs.len() {
+            r_power = r_power * r.clone();
+        }
+        (r_power - F::one()) / (r.clone() - F::one())
+    };
+
+    let mut r_vec = vec![F::one(); public_inputs.len()];
+    for index in 1..public_inputs.len() {
+        r_vec[index] = r_vec[index - 1].clone() * r.clone();
+    }
+
+    let mut folded_public_inputs = vec![F::zero(); input_arity];
+    for (row, coefficient) in public_inputs.iter().zip(&r_vec) {
+        for input_index in 0..input_arity {
+            let term = row[input_index].clone() * coefficient.clone();
+            folded_public_inputs[input_index] = folded_public_inputs[input_index].clone() + term;
+        }
+    }
+
+    let mut g_ic = gamma_abc_g1[0].clone() * r_sum.clone();
+    for input_index in 0..input_arity {
+        let term =
+            gamma_abc_g1[input_index + 1].clone() * folded_public_inputs[input_index].clone();
+        g_ic = g_ic + term;
+    }
+
+    (r_sum, g_ic)
+}
+
+#[cfg(any(test, not(feature = "bench-baseline")))]
 pub(crate) fn fold_public_inputs_core<F, G1>(
     gamma_abc_g1: &[G1],
     public_inputs: &[Vec<F>],
@@ -6713,28 +7126,25 @@ where
         assert_eq!(public_inputs[row_index].len(), input_arity);
     }
 
-    let r_sum = if r.clone() == F::one() {
-        F::from(public_inputs.len() as u64)
-    } else {
-        let mut r_power = F::one();
-        for _ in 0..public_inputs.len() {
-            r_power = r_power * r.clone();
-        }
-        (r_power - F::one()) / (r.clone() - F::one())
-    };
-
-    let mut r_vec = vec![F::one(); public_inputs.len()];
-    for index in 1..public_inputs.len() {
-        r_vec[index] = r_vec[index - 1].clone() * r.clone();
-    }
-
     let mut folded_public_inputs = vec![F::zero(); input_arity];
+    let r_is_one = r.clone() == F::one();
+    let mut r_power = F::one();
     for row_index in 0..public_inputs.len() {
+        let row = &public_inputs[row_index];
         for input_index in 0..input_arity {
-            let term = public_inputs[row_index][input_index].clone() * r_vec[row_index].clone();
+            let term = row[input_index].clone() * r_power.clone();
             folded_public_inputs[input_index] = folded_public_inputs[input_index].clone() + term;
         }
+        if !r_is_one {
+            r_power = r_power * r.clone();
+        }
     }
+
+    let r_sum = if r_is_one {
+        F::from(public_inputs.len() as u64)
+    } else {
+        (r_power - F::one()) / (r.clone() - F::one())
+    };
 
     let mut g_ic = gamma_abc_g1[0].clone() * r_sum.clone();
     for input_index in 0..input_arity {
@@ -6956,23 +7366,28 @@ mod tests {
             )
         };
         let roots = (gt(2), gt(3), gt(5), gt(7));
-        let rounds_wire = vec![round(11), round(29), round(47)];
-        let inverses = vec![
-            P::ScalarField::from(13u64),
-            P::ScalarField::from(17u64),
-            P::ScalarField::from(19u64),
+        let all_rounds = vec![
+            round(11),
+            round(29),
+            round(47),
+            round(61),
+            round(79),
+            round(97),
         ];
-        let raw = vec![
-            P::ScalarField::from(23u64),
-            P::ScalarField::from(31u64),
-            P::ScalarField::from(37u64),
-        ];
+        let all_inverses = [0, 13, 17, 19, 23, 29].map(P::ScalarField::from).to_vec();
+        let all_raw = [31, 37, 0, 41, 43, 47].map(P::ScalarField::from).to_vec();
         let root_refs = (&roots.0, &roots.1, &roots.2, &roots.3);
 
-        assert_eq!(
-            fold_arkworks_gt_commitments_msm(root_refs, &rounds_wire, &inverses, &raw),
-            fold_arkworks_gt_commitments_sequential(root_refs, &rounds_wire, &inverses, &raw,)
-        );
+        for round_count in 0..=all_rounds.len() {
+            let rounds_wire = &all_rounds[..round_count];
+            let inverses = &all_inverses[..round_count];
+            let raw = &all_raw[..round_count];
+            assert_eq!(
+                fold_arkworks_gt_commitments_shared_schedule(root_refs, rounds_wire, inverses, raw,),
+                fold_arkworks_gt_commitments_independent_msm(root_refs, rounds_wire, inverses, raw,),
+                "round_count={round_count}",
+            );
+        }
     }
 
     #[cfg(not(feature = "bench-baseline"))]
@@ -7590,6 +8005,88 @@ mod tests {
             Err(ref error) if error == "pairing-3"
         ));
         assert_eq!(failing.calls.len(), 3);
+    }
+
+    #[cfg(not(feature = "bench-baseline"))]
+    #[test]
+    fn shared_prover_round_pairing_preparation_preserves_outputs_and_counts_unique_operands() {
+        let mut rng = StdRng::seed_from_u64(47);
+        let size = 4usize;
+        let a = (0..size)
+            .map(|_| <Bls12_377 as Pairing>::G1::rand(&mut rng))
+            .collect::<Vec<_>>();
+        let b = (0..size)
+            .map(|_| <Bls12_377 as Pairing>::G2::rand(&mut rng))
+            .collect::<Vec<_>>();
+        let c = (0..size)
+            .map(|_| <Bls12_377 as Pairing>::G1::rand(&mut rng))
+            .collect::<Vec<_>>();
+        let ck_v = (0..size)
+            .map(|_| <Bls12_377 as Pairing>::G2::rand(&mut rng))
+            .collect::<Vec<_>>();
+        let ck_w = (0..size)
+            .map(|_| <Bls12_377 as Pairing>::G1::rand(&mut rng))
+            .collect::<Vec<_>>();
+
+        let expected = ProverRoundPairingOutput {
+            com_a: PairingInnerProduct::<Bls12_377>::inner_product(&a, &ck_v)
+                .expect("com_a must construct"),
+            com_b: PairingInnerProduct::<Bls12_377>::inner_product(&ck_w, &b)
+                .expect("com_b must construct"),
+            ip_ab: PairingInnerProduct::<Bls12_377>::inner_product(&a, &b)
+                .expect("ip_ab must construct"),
+            com_c: PairingInnerProduct::<Bls12_377>::inner_product(&c, &ck_v)
+                .expect("com_c must construct"),
+        };
+        let actual = shared_prover_round_pairing_products::<Bls12_377>(&a, &b, &c, &ck_v, &ck_w)
+            .expect("shared preparation must construct all products");
+
+        assert_eq!(actual.products, expected);
+        assert_eq!(actual.preparation.g1_normalization_batches, 3);
+        assert_eq!(actual.preparation.g2_normalization_batches, 2);
+        assert_eq!(actual.preparation.g1_normalized_elements, 3 * size);
+        assert_eq!(actual.preparation.g2_normalized_elements, 2 * size);
+        assert_eq!(actual.preparation.g1_prepared_elements, 3 * size);
+        assert_eq!(actual.preparation.g2_prepared_elements, 2 * size);
+    }
+
+    #[cfg(not(feature = "bench-baseline"))]
+    #[test]
+    fn shared_prover_round_pairing_preparation_preserves_shape_failure_order() {
+        type P = Bls12_377;
+
+        for (a_len, b_len, c_len, ck_v_len, ck_w_len) in [
+            (0, 0, 0, 0, 0),
+            (2, 1, 1, 1, 1),
+            (1, 1, 1, 1, 2),
+            (2, 1, 1, 2, 1),
+            (1, 1, 2, 1, 1),
+        ] {
+            let a = vec![<P as Pairing>::G1::default(); a_len];
+            let b = vec![<P as Pairing>::G2::default(); b_len];
+            let c = vec![<P as Pairing>::G1::default(); c_len];
+            let ck_v = vec![<P as Pairing>::G2::default(); ck_v_len];
+            let ck_w = vec![<P as Pairing>::G1::default(); ck_w_len];
+
+            let historical = (|| -> Result<(), String> {
+                let _ = PairingInnerProduct::<P>::inner_product(&a, &ck_v)
+                    .map_err(|error| error.to_string())?;
+                let _ = PairingInnerProduct::<P>::inner_product(&ck_w, &b)
+                    .map_err(|error| error.to_string())?;
+                let _ = PairingInnerProduct::<P>::inner_product(&a, &b)
+                    .map_err(|error| error.to_string())?;
+                let _ = PairingInnerProduct::<P>::inner_product(&c, &ck_v)
+                    .map_err(|error| error.to_string())?;
+                Ok(())
+            })()
+            .expect_err("the historical shape must fail");
+            let shared = match shared_prover_round_pairing_products::<P>(&a, &b, &c, &ck_v, &ck_w) {
+                Ok(_) => panic!("the shared shape must fail"),
+                Err(error) => error,
+            };
+
+            assert_eq!(shared, historical);
+        }
     }
 
     #[test]
@@ -8344,6 +8841,17 @@ mod tests {
         );
         assert_eq!(prefix.challenges.final_bridge, sampled[3]);
         assert_eq!(prefix.challenges.kzg, sampled[4]);
+        assert_eq!(
+            prefix.inverse_challenges_reversed,
+            vec![
+                sampled[2].inverse().expect("sampled challenge is nonzero"),
+                sampled[1].inverse().expect("sampled challenge is nonzero"),
+            ]
+        );
+        assert_eq!(
+            prefix.randomizer_inverse,
+            randomizer.inverse().expect("fixture randomizer is nonzero")
+        );
 
         let mut accepted_calls = vec![(
             TippMippChallengeStage::X0,
@@ -9326,6 +9834,60 @@ mod tests {
             3,
             <Bls12_381 as Pairing>::ScalarField::from(2u64),
         );
+    }
+
+    #[test]
+    fn fold_public_inputs_core_matches_baseline_across_shapes() {
+        type P = Bls12_381;
+        type F = <P as Pairing>::ScalarField;
+        let generator = <P as Pairing>::G1::generator();
+
+        for rows in [1usize, 2, 3, 8, 48] {
+            for arity in [0usize, 1, 4] {
+                let gamma_abc_g1 = (0..=arity)
+                    .map(|index| generator * F::from(index as u64 + 1))
+                    .collect::<Vec<_>>();
+                let public_inputs = (0..rows)
+                    .map(|row| {
+                        (0..arity)
+                            .map(|input| F::from((row * (arity + 1) + input + 1) as u64))
+                            .collect::<Vec<_>>()
+                    })
+                    .collect::<Vec<_>>();
+
+                for r in [F::one(), F::from(2u64), F::from(7u64)] {
+                    assert_eq!(
+                        fold_public_inputs_core(&gamma_abc_g1, &public_inputs, &r),
+                        fold_public_inputs_baseline_core(&gamma_abc_g1, &public_inputs, &r),
+                        "rows={rows}, arity={arity}, r={r}",
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn fold_public_inputs_core_preserves_shape_rejections() {
+        type P = Bls12_381;
+        type F = <P as Pairing>::ScalarField;
+        let generator = <P as Pairing>::G1::generator();
+        let r = F::from(2u64);
+
+        let malformed = [
+            (vec![generator], Vec::<Vec<F>>::new()),
+            (vec![generator], vec![vec![F::one()]]),
+            (vec![generator, generator], vec![vec![F::one()], Vec::new()]),
+        ];
+        for (gamma_abc_g1, public_inputs) in malformed {
+            let baseline = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                fold_public_inputs_baseline_core(&gamma_abc_g1, &public_inputs, &r)
+            }));
+            let streamed = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                fold_public_inputs_core(&gamma_abc_g1, &public_inputs, &r)
+            }));
+            assert!(baseline.is_err());
+            assert!(streamed.is_err());
+        }
     }
 
     #[cfg(not(feature = "bench-baseline"))]

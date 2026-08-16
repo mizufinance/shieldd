@@ -35,8 +35,8 @@ separate optimization session.
 
 ## Implemented exact reductions
 
-The branch currently makes four value-preserving changes before relying on
-timing measurements:
+The branch currently ships seven formally registered value-preserving
+reductions before relying on timing measurements:
 
 - Repeat-final padding is coalesced in the three initial Groth16 commitments.
   For padded length `n` and authenticated real length `m`, this removes exactly
@@ -49,17 +49,29 @@ timing measurements:
 - The four verifier GT commitment folds share one flattened scalar schedule,
   replacing four independent variable-base exponentiation traversals without
   changing challenge order.
+- Every GIPA prover round shares normalization and preparation of repeated G1
+  and G2 pairing operands while retaining four independent pairing results and
+  the same failure order.
 - BLS12-377 GT decoding uses the equivalent Frobenius/cyclotomic membership
-  relation instead of generic exponentiation by the scalar-field order. G1/G2
-  checks, canonical reserialization, full consumption, and errors remain strict.
+  relation instead of generic exponentiation by the scalar-field order.
+- The public-input projection streams one power recurrence through row folding
+  and the terminal `r^k` value, eliminating exactly `k - 1` field
+  multiplications on both the `r = 1` and `r != 1` paths.
+  - BLS12-377 G1/G2 decoding uses the curve-specific endomorphism/Frobenius
+    subgroup relations as sound fast filters, with generic scalar-order
+    multiplication as the exact fallback. Canonical reserialization, full
+    consumption, acceptance, and first-failure order remain strict.
 - Shipping NoteReshape aggregation dispatches directly to the ordinary backend
   instead of collecting the full profiling timeline. The explicit profiled API
   remains available and a byte-parity test binds both paths.
 
-The algebraic equalities and operation counts are proved in
-`Ipp.Optimization`, `Ipp.Cost`, and `Ipp.Bls12377GtMembership`. The generated
-operation register remains the authoritative status of the Rust-refinement and
-cost-evidence frontier.
+The algebraic equalities and operation counts are proved in `Ipp.Optimization`,
+`Ipp.Cost`, `Ipp.Bls12377GtMembership`, and
+`Ipp.FastSubgroupValidation`. The generated operation register remains the
+authoritative status of the Rust-refinement and cost-evidence frontier. E8's
+standalone batch-inversion theorem remains a research result, but its production
+integration was reverted because it did not preserve the extracted TIPP/MIPP
+effect refinement.
 
 ## Count-48 milestone
 
@@ -140,13 +152,23 @@ open, so such a proof establishes a durable reduction but not a wall-clock
 speedup. Use end-to-end A/B measurements at milestones instead of benchmarking
 after every algebraic edit.
 
-Good exact-computation investigations include:
+The completed exact-computation pass includes:
 
 - shared GIPA GT multi-exponentiation (`E1`);
 - exact pairing-term regrouping (`E2`);
 - exact MSM coefficient regrouping (`E3`);
 - streaming KZG coefficient construction (`E4`); and
-- elimination of a demonstrated duplicate arithmetic site (`E5`).
+- shared preparation of repeated GIPA pairing operands (`E5`);
+- deterministic GT subgroup validation (`E7`);
+- challenge batch inversion (`E8`);
+- streamed public-input projection (`E9`);
+- deterministic G1/G2 subgroup validation (`E10`); and
+- the cross-group fold-schedule experiment (`E11`).
+
+E1, E2, E3, E5, E7, E9, and E10 ship. E4, E6, E8, and E11 were researched
+and rejected for the concrete performance or proof-integration reasons recorded
+in the register; their useful standalone theorems remain negative-result
+evidence without a second production path.
 
 Randomized validation or equation batching (`P1`, `P2`) is security work. Keep
 it out of the ordinary optimization loop until its error budget and theorem are

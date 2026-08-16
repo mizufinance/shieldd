@@ -924,6 +924,17 @@ ARTIFACT_OWNER_SPECS: dict[str, tuple[TestSpec, ...]] = {
             """,
         ),
         *_specs(
+            "boundary_negative",
+            (
+                "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/"
+                "applications/groth16_aggregation.rs"
+            ),
+            """
+            fold_public_inputs_core_preserves_shape_rejections
+            shared_prover_round_pairing_preparation_preserves_shape_failure_order
+            """,
+        ),
+        *_specs(
             "invariant",
             (
                 "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/"
@@ -955,6 +966,17 @@ ARTIFACT_OWNER_SPECS: dict[str, tuple[TestSpec, ...]] = {
             shipping_verifier_observed_backend_result_core_correlates_before_arc
             shipping_verifier_semantic_execution_with_traces_core_preserves_exact_states
             tipp_mipp_challenge_prefix_exposes_exact_shipping_values
+            """,
+        ),
+        *_specs(
+            "parity",
+            (
+                "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/"
+                "applications/groth16_aggregation.rs"
+            ),
+            """
+            fold_public_inputs_core_matches_baseline_across_shapes
+            shared_prover_round_pairing_preparation_preserves_outputs_and_counts_unique_operands
             """,
         ),
         *_specs(
@@ -1080,6 +1102,14 @@ ARTIFACT_OWNER_SPECS: dict[str, tuple[TestSpec, ...]] = {
             """,
         ),
         *_specs(
+            "parity",
+            "crates/crypto/proof-aggregation/src/backend.rs",
+            """
+            fast_bls12_377_g1_g2_validation_matches_arkworks
+            torus_v2_round_trips_real_aggregate_and_halves_target_wire
+            """,
+        ),
+        *_specs(
             "invariant",
             "crates/crypto/proof-aggregation/src/backend.rs",
             "shipping_backend_result_materializes_the_exact_authenticated_input",
@@ -1103,6 +1133,11 @@ ARTIFACT_OWNER_SPECS: dict[str, tuple[TestSpec, ...]] = {
             statement_rejects_mutated_srs_id
             strict_boundary_rejects_nested_component_aliases_and_malformed_bytes
             """,
+        ),
+        *_specs(
+            "boundary_negative",
+            "crates/crypto/proof-aggregation/src/backend.rs",
+            "torus_v2_preflight_translation_is_bounded_and_disjoint",
         ),
         *_specs(
             "integration",
@@ -1214,6 +1249,22 @@ ARTIFACT_OWNER_SPECS: dict[str, tuple[TestSpec, ...]] = {
             """
             every_registered_digest_hashes_family_domain_then_challenge_frame
             transcript_family_domains_are_exact_and_unique
+            """,
+        ),
+        *_specs(
+            "boundary_negative",
+            "crates/crypto/proof-aggregation/src/torus_v2.rs",
+            """
+            identity_uses_zero_and_minus_one_is_rejected
+            wrapper_versions_are_disjoint
+            """,
+        ),
+        *_specs(
+            "parity",
+            "crates/crypto/proof-aggregation/src/torus_v2.rs",
+            """
+            every_torus_coordinate_round_trips
+            target_torus_round_trip_including_identity
             """,
         ),
     ),

@@ -1,0 +1,6 @@
+import Ipp.TorusCoordinateSerialization
+
+#print axioms Ipp.TorusCoordinateSerialization.decode_exact_consumption
+#print axioms Ipp.TorusCoordinateSerialization.decode_injective
+#print axioms Ipp.TorusCoordinateSerialization.decode_rejects_wrong_length
+#print axioms Ipp.TorusCoordinateSerialization.decode_rejects_noncanonical_field

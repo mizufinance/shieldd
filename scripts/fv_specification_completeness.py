@@ -225,7 +225,7 @@ SEMANTIC_IMPLEMENTATION_ROOTS = (
     ("tools/gnark", (".go", ".py", ".sh")),
 )
 SEMANTIC_EXCLUDED_DIRECTORY_NAMES = frozenset(
-    {".git", ".lake", "__pycache__", "node_modules", "target"}
+    {".generated", ".git", ".lake", "__pycache__", "node_modules", "target"}
 )
 SEMANTIC_EXCLUDED_IMPLEMENTATION_PATHS = frozenset(
     {
@@ -574,7 +574,7 @@ PROPERTY_TEST_CONTRACT_SHA256 = (
     "7bebb28101f7352e5e422e4b44f1e464d1ac86cc9a5f893e287243a7fdc41605"
 )
 ARTIFACT_TEST_CONTRACT_SHA256 = (
-    "2ce903b58f534957e0c42af73c8da750ee15d74235f616d95bfdb3c6e7389cd2"
+    "ea16a0caa1490200fbf691f3d679bad1d160150b6b50da765be9df3623efc039"
 )
 REVIEWED_TEST_EXCLUSION_REASONS = frozenset(
     {

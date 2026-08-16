@@ -1,0 +1,7 @@
+import Ipp.TorusAggregateSerialization
+
+#print axioms Ipp.TorusAggregateSerialization.serializedLength_exact
+#print axioms Ipp.TorusAggregateSerialization.exact_saving
+#print axioms Ipp.TorusAggregateSerialization.wrappedLength_exact
+#print axioms Ipp.TorusAggregateSerialization.wrappedLength_count48
+#print axioms Ipp.TorusAggregateSerialization.strictly_smaller
