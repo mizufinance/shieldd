@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import copy
+import functools
 import hashlib
 import json
 import os
@@ -35,7 +36,7 @@ OPERATION_REGISTER_PATH = (
     "operation-reduction-register.json"
 )
 OPERATION_REGISTER_SHA256 = (
-    "b79662b0ed9d2e531dadda4f72013c18bf5a1ca27e8fdd5ceaa3967265cf393a"
+    "3a51c0ab1455f20aa99011acbc28728312c4371caf66c6ec4fce76d1e9b19a16"
 )
 FSTAR_CHECKER_EVIDENCE_PATH = (
     REPO_ROOT
@@ -96,10 +97,10 @@ CLOSED_TESTED_CLAIM_IDS = {
 # editing only the evidence ledger. Intentional ledger changes require an
 # explicit update to this fail-closed owner.
 CLAIM_LEDGER_SHA256 = (
-    "cd63e58f6157c853d6c900ec476451a31aa30f61c0b7c43a55422c685ffdb443"
+    "cb025de35efadef7429b6620ac52b188568f92b76ef28120f4859718afc42745"
 )
 ASSUMPTION_LEDGER_SHA256 = (
-    "57f0f3cbd03b3e4e3f601ba5b340ac3c6497f74c678bbf63035143f418265070"
+    "d94185ea01103295b009550b12b29200d31ea0ac37547021198b9b8b05af310a"
 )
 V1_PROTOCOL_VERSION = 2
 V1_BYTE_BASELINE_SHA256 = (
@@ -140,7 +141,7 @@ VERIFICATION_CONTRACT_FIELDS = (
     "deployed_srs_evidence",
 )
 VERIFICATION_CONTRACT_SHA256 = (
-    "7a473fb930b6b63946e5363eb1c74c82a582c49211daa2bc77f09ea6384c3902"
+    "5531b420ee8d60ebac632f054751bff2ced5c83a747c0be3205e9d7345600cf0"
 )
 BOUNDED_SAMPLER_ROOT = "bounded_challenge_sampler_boundary_suite"
 BOUNDED_SAMPLER_TESTS = (
@@ -994,6 +995,7 @@ def fstar_code_without_comments_and_strings(text: str) -> str:
     return "".join(result)
 
 
+@functools.lru_cache(maxsize=16)
 def rust_code_without_comments_and_strings(text: str) -> str:
     """Preserve Rust layout while blanking nested comments and string bodies."""
     result: list[str] = []
@@ -1080,6 +1082,7 @@ def require_unignored_rust_test(
     name: str,
     *,
     expected_attributes: tuple[str, ...] = ("test",),
+    allow_additional_attributes: bool = False,
 ) -> None:
     code = rust_code_without_comments_and_strings(text)
     declaration = re.compile(
@@ -1111,7 +1114,12 @@ def require_unignored_rust_test(
         re.sub(r"\s+", "", attribute)
         for attribute in expected_attributes
     )
-    if observed_attributes != normalized_expected:
+    attributes_match = (
+        all(attribute in observed_attributes for attribute in normalized_expected)
+        if allow_additional_attributes
+        else observed_attributes == normalized_expected
+    )
+    if not attributes_match:
         raise VerificationError(
             f"Rust test attributes differ for {name}: "
             f"{observed_attributes!r}"
@@ -3512,9 +3520,22 @@ def validate_contract_evidence(
         validate_fstar_checker_evidence(manifest, repo_root)
 
 
-def validate_operation_register(register: dict[str, Any]) -> None:
-    if register.get("schema_version") != 1:
-        raise VerificationError("operation register schema_version must be 1")
+def validate_operation_register(
+    register: dict[str, Any], *, audited_roots: set[str] | None = None,
+    repo_root: Path = REPO_ROOT,
+    claims: list[dict[str, Any]] | None = None,
+) -> None:
+    if register.get("schema_version") != 3:
+        raise VerificationError("operation register schema_version must be 3")
+    if claims is None:
+        claims = _require_nonempty_list(load_manifest(), "claims")
+    closed_claim_ids = {
+        claim["id"]
+        for claim in claims
+        if isinstance(claim, dict)
+        and isinstance(claim.get("id"), str)
+        and claim.get("status") in {"proved", "tested"}
+    }
     baseline = register.get("baseline")
     if not isinstance(baseline, dict):
         raise VerificationError("operation register baseline must be an object")
@@ -3546,14 +3567,15 @@ def validate_operation_register(register: dict[str, Any]) -> None:
         "status",
         "rejection_reason",
     }
+    optional = {"evidence"}
     ids: list[str] = []
     statuses: dict[str, str] = {}
     for index, candidate in enumerate(candidates):
         if not isinstance(candidate, dict):
             raise VerificationError(f"candidates[{index}] must be an object")
-        if set(candidate) != required:
+        if not required.issubset(candidate) or set(candidate) - required - optional:
             missing = sorted(required - set(candidate))
-            unexpected = sorted(set(candidate) - required)
+            unexpected = sorted(set(candidate) - required - optional)
             raise VerificationError(
                 f"candidates[{index}] fields differ; "
                 f"missing={missing}, unexpected={unexpected}"
@@ -3579,11 +3601,111 @@ def validate_operation_register(register: dict[str, Any]) -> None:
             raise VerificationError(f"candidates[{index}].category is invalid")
         if candidate["status"] not in OPERATION_STATUSES:
             raise VerificationError(f"candidates[{index}].status is invalid")
-        if candidate["status"] in {"proved-model", "implemented", "verified"}:
+        advanced = candidate["status"] in {
+            "proved-model",
+            "implemented",
+            "verified",
+        }
+        evidence = candidate.get("evidence")
+        if advanced:
+            if not isinstance(evidence, dict) or set(evidence) != {
+                "lean_roots",
+                "claims",
+                "rust_sources",
+                "rust_source_sha256",
+                "tests",
+                "measurement",
+            }:
+                raise VerificationError(
+                    f"candidates[{index}] {candidate['status']} status requires "
+                    "structured audited equivalence/refinement and cost evidence"
+                )
+            for field in ("lean_roots", "claims", "rust_sources", "tests"):
+                values = evidence[field]
+                if not isinstance(values, list) or not values or not all(
+                    isinstance(value, str) and value for value in values
+                ):
+                    raise VerificationError(
+                        f"candidates[{index}].evidence.{field} must be nonempty strings"
+                    )
+                if len(values) != len(set(values)):
+                    raise VerificationError(
+                        f"candidates[{index}].evidence.{field} contains duplicates"
+                    )
+            unknown_claims = sorted(
+                set(evidence["claims"]) - closed_claim_ids
+            )
+            if unknown_claims:
+                raise VerificationError(
+                    f"candidates[{index}] references missing or open claims: "
+                    + ", ".join(unknown_claims)
+                )
+            source_hashes = evidence["rust_source_sha256"]
+            if not isinstance(source_hashes, dict) or set(source_hashes) != set(
+                evidence["rust_sources"]
+            ):
+                raise VerificationError(
+                    f"candidates[{index}].evidence.rust_source_sha256 must "
+                    "cover rust_sources exactly"
+                )
+            source_texts: dict[str, str] = {}
+            for relative in evidence["rust_sources"]:
+                safe = _safe_relative_path(
+                    relative,
+                    field=(
+                        f"candidates[{index}].evidence.rust_sources"
+                    ),
+                )
+                path = repo_root.joinpath(*safe.parts)
+                if not path.is_file():
+                    raise VerificationError(
+                        f"candidates[{index}] missing Rust source: {relative}"
+                    )
+                expected_hash = source_hashes[relative]
+                if not isinstance(expected_hash, str) or re.fullmatch(
+                    r"[0-9a-f]{64}", expected_hash
+                ) is None:
+                    raise VerificationError(
+                        f"candidates[{index}] invalid Rust source sha256: "
+                        f"{relative}"
+                    )
+                actual_hash = hashlib.sha256(path.read_bytes()).hexdigest()
+                if actual_hash != expected_hash:
+                    raise VerificationError(
+                        f"candidates[{index}] Rust source sha256 differs: "
+                        f"{relative}"
+                    )
+                source_texts[relative] = path.read_text(encoding="utf-8")
+            for test in evidence["tests"]:
+                owners = [
+                    relative
+                    for relative, source in source_texts.items()
+                    if rust_declares_function(source, test)
+                ]
+                if len(owners) != 1:
+                    raise VerificationError(
+                        f"candidates[{index}] test must have exactly one "
+                        f"pinned Rust owner: {test}"
+                    )
+                require_unignored_rust_test(
+                    source_texts[owners[0]], test,
+                    allow_additional_attributes=True,
+                )
+            if not isinstance(evidence["measurement"], str) or not evidence["measurement"]:
+                raise VerificationError(
+                    f"candidates[{index}].evidence.measurement must be nonempty"
+                )
+            if audited_roots is not None:
+                missing_roots = sorted(set(evidence["lean_roots"]) - audited_roots)
+                if missing_roots:
+                    raise VerificationError(
+                        f"candidates[{index}] references unaudited Lean roots: "
+                        + ", ".join(missing_roots)
+                    )
+        elif evidence is not None:
             raise VerificationError(
-                f"candidates[{index}] cannot claim {candidate['status']} until "
-                "structured audited equivalence/refinement and strict-cost "
-                "theorem roots are registered in the gate"
+                f"candidates[{index}] cannot carry proof evidence with "
+                f"status {candidate['status']}"
             )
         deltas = candidate["deltas"]
         if not isinstance(deltas, dict) or set(deltas) != {
@@ -3874,7 +3996,11 @@ def validate_repository(
         ),
         allow_stale_source_drift_kinds=pending_contract_kinds,
     )
-    validate_operation_register(load_operation_register())
+    validate_operation_register(
+        load_operation_register(), audited_roots=set(all_audit_roots),
+        repo_root=repo_root,
+        claims=_require_nonempty_list(manifest, "claims"),
+    )
 
     outputs = extraction_outputs(
         repo_root
@@ -4096,13 +4222,14 @@ def render_markdown(manifest: dict[str, Any]) -> str:
         "",
         f"`SHIPPING-TO-GOAL` is `{shipping_to_goal['status']}` at "
         f"`{shipping_to_goal['root']}`. "
-        f"`FULL-ADAPTIVE-END-TO-END-FV` is `{full_adaptive['status']}` at "
-        f"`{full_adaptive['root']}`. The capstone is conditional on the named "
-        "cryptographic, implementation, translator, and query-bound "
-        "assumptions below. `DEPLOYED-SRS-SOUNDNESS` remains explicitly open "
-        "because no production ceremony is registered; it blocks any "
-        "instantiated deployment security level, but it is not silently "
-        "promoted by the conditional theorem.",
+        f"`FULL-ADAPTIVE-END-TO-END-FV` is a kernel-proved conditional theorem "
+        f"at `{full_adaptive['root']}`. Its prover result is accepted-execution "
+        "partial correctness, and its security result bounds an iterated fork "
+        "transform rather than invalid-acceptance probability directly. It is "
+        "conditional on the named cryptographic, implementation, translator, "
+        "and query-bound assumptions below. `DEPLOYED-SRS-SOUNDNESS` remains "
+        "explicitly open because no production ceremony is registered; it "
+        "blocks any instantiated deployment security level.",
         "",
         "## Claims",
         "",
@@ -4216,19 +4343,30 @@ def render_operation_markdown(register: dict[str, Any]) -> str:
             "## Active Candidates",
             "",
             "| ID | Class | Proposed vector | Prover delta | Verifier delta | "
-            "Setup delta | Required theorem | Wire impact | Error | Boundary | Status |",
-            "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+            "Setup delta | Required theorem | Wire impact | Error | Boundary | Evidence | Status |",
+            "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
         ]
     )
     for candidate in register["candidates"]:
         if candidate["status"] == "rejected":
             continue
+        evidence = candidate.get("evidence")
+        evidence_text = (
+            "claims "
+            + ", ".join(f"`{claim}`" for claim in evidence["claims"])
+            + "; Lean roots "
+            + ", ".join(f"`{root}`" for root in evidence["lean_roots"])
+            + "; source digests pinned"
+            if evidence
+            else "none"
+        )
         lines.append(
             f"| `{candidate['id']}` | {candidate['category']} | "
             f"{candidate['proposed_vector']} | {candidate['deltas']['prover']} | "
             f"{candidate['deltas']['verifier']} | {candidate['deltas']['setup']} | "
             f"{candidate['theorem']} | {candidate['transcript_wire_impact']} | "
             f"{candidate['error_term']} | {candidate['boundary']} | "
+            f"{evidence_text} | "
             f"`{candidate['status']}` |"
         )
     lines.extend(
@@ -4391,7 +4529,9 @@ def render_dependency_graph(manifest: dict[str, Any]) -> str:
             "modular-reduction budget and the distinct SHA-256 and Blake2b "
             "security advantages separate. "
             f"`SHIPPING-TO-GOAL` is `{shipping['status']}` and "
-            f"`FULL-ADAPTIVE-END-TO-END-FV` is `{full['status']}`. "
+            f"`FULL-ADAPTIVE-END-TO-END-FV` is `{full['status']}` only as the "
+            "conditional accepted-execution/fork-transform theorem stated in "
+            "its claim row. "
             "Every F* statement-contract row must carry a source-digest-pinned "
             "`pass` result.",
             "",

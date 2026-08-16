@@ -2,7 +2,7 @@
   "schema_version": 1,
   "fstar_checker_evidence": {
     "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar-checker-evidence.json",
-    "sha256": "b9192526c1626b5f03e04c2b204e53158038dd38d100554fd2d8a8b08bd2e297"
+    "sha256": "315915509f131dd9e4f67d8a7a529ad1a9a706d22c296a654ee36741e47fe6ff"
   },
   "deployed_srs_evidence": {
     "schema_version": 1,
@@ -372,7 +372,7 @@
         },
         {
           "path": "crates/crypto/proof-aggregation/src/aggregate_proof_wrapper.rs",
-          "sha256": "3e461eacad024d8add266f4fcaa94aa1d05631d970b57ee7b9a5381f60d92233"
+          "sha256": "92ce9f58aadad956e359a6dcb5a659e22709f594799b0f8ec69ce8792e536898"
         },
         {
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/statement_binding.rs",
@@ -395,7 +395,7 @@
       "sources": [
         {
           "path": "crates/crypto/proof-aggregation/src/backend.rs",
-          "sha256": "d2b4c2ec4eb26dbc856d1c5ca83c3be76fb4b4b8811f598051b6371413d333cb"
+          "sha256": "9af59c7eca565a3912fc34cd6ad2a59a5ac3b77092d8f3b1c51ebbdea18e88f6"
         },
         {
           "path": "crates/crypto/proof-aggregation/src/strict_deserialize.rs",
@@ -403,7 +403,7 @@
         },
         {
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "cd25749a8214ec26a239210c316d37c1f92c954dc61cf9cade35e4f26830666a"
+          "sha256": "fadbf293a2f89b06e373978c23d77a4a86bca0c0d24ac48bf09704ef13293f8c"
         },
         {
           "path": "crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/Bls12377GtMembership.lean",
@@ -913,20 +913,133 @@
     },
     {
       "path": "Ipp/ProofAuditOptimization.lean",
-      "expected_capstones": 11,
-      "capstone_roots_sha256": "66bcb92cb86d13a6f3a174d9587252b7eb76bc8ecb09df515b5912401b3ab426",
+      "expected_capstones": 37,
+      "capstone_roots_sha256": "e0113a3f1f9b4428df4f493728714f48a8fe7ea316c98ca3ac9a33f11da3e2d2",
       "required_roots": [
         "Ipp.Optimization.repeated_left_pairing_exact",
         "Ipp.Optimization.repeated_right_pairing_exact",
         "Ipp.Optimization.omit_trailing_zero_msm_exact",
         "Ipp.Optimization.shared_gt_fold_exact",
+        "Ipp.Optimization.shared_four_lane_fold_exact",
+        "Ipp.Optimization.shared_pairing_preparation_exact",
+        "Ipp.Optimization.batch_inverse_at_exact",
+        "Ipp.Optimization.streamed_weighted_sum_exact",
+        "Ipp.Optimization.streamed_terminal_power_exact",
+        "Ipp.Optimization.even_opening_quotient_exact",
         "Ipp.Cost.prover_exact_optimized_miller_terms",
         "Ipp.Cost.prover_padding_pairing_exact_saving",
         "Ipp.Cost.prover_padding_pairing_strictly_fewer",
         "Ipp.Cost.prover_exact_optimized_g1_kzg_msm_terms",
         "Ipp.Cost.prover_exact_optimized_g2_kzg_msm_terms",
         "Ipp.Cost.prover_unpadded_kzg_exact_saving",
+        "Ipp.Cost.proverRoundPairingPreparationShared_savings",
+        "Ipp.Cost.proverRoundPairingPreparationShared_strictlyImproves",
+        "Ipp.Cost.verifierChallengeInversionBatch_exact",
+        "Ipp.Cost.verifierChallengeInversionBatch_one_inversion",
+        "Ipp.Cost.publicInputCoefficientStreamed_exact_saving",
+        "Ipp.Cost.verifierSharedGtScheduled_exact_saving",
+        "Ipp.Cost.verifierSharedGtScheduled_strictlyImproves",
+        "Ipp.FastSubgroupValidation.blsSeed_squared_exact",
+        "Ipp.Bls12377G1Endomorphism.g1_fast_sound",
+        "Ipp.Bls12377G2SubgroupSoundness.g2_fast_sound",
+        "Ipp.FastSubgroupValidation.g1VerifiedMembership_iff_arkworks",
+        "Ipp.FastSubgroupValidation.g2VerifiedMembership_iff_arkworks",
+        "Ipp.FastSubgroupValidation.fastCheck_eq_arkworksCheck",
+        "Ipp.FastSubgroupValidation.strictDecoder_failure_order_preserved",
+        "Ipp.FastSubgroupValidation.strictDecoder_acceptance_preserved",
+        "Ipp.Cost.verifierSubgroupValidationFast_exact_curve_savings",
+        "Ipp.Cost.verifierSubgroupValidationFast_exact_added_maps",
+        "Ipp.Cost.verifierSubgroupValidationFallbackWorstCase_exact",
+        "Ipp.Cost.kzgEvenOptimized_exact_savings",
+        "Ipp.Cost.kzgEvenOptimized_strictlyImproves",
         "Ipp.Bls12377.fastGtUnitMembership_iff"
+      ]
+    },
+    {
+      "path": "Ipp/ProofAuditOptimizedGtFoldRefinement.lean",
+      "expected_capstones": 2,
+      "capstone_roots_sha256": "826058b3459663197134522dcba463f0d89f485477c11b85384e4c7eeae5cead",
+      "required_roots": [
+        "Ipp.OptimizedGtFoldRefinement.optimizedLanes_eq_terminalFold",
+        "Ipp.OptimizedGtFoldRefinement.optimizedTuple_eq_terminalFold"
+      ]
+    },
+    {
+      "path": "Ipp/ProofAuditOptimizedGtFoldPrimitiveBridge.lean",
+      "expected_capstones": 1,
+      "capstone_roots_sha256": "a3ffc52bfddd5f08c3c44f1feef557e6193c177df4c2e88562c007f02bdef41b",
+      "required_roots": [
+        "Ipp.Extracted.AggregateVerifier.ArkworksTippPrimitiveExecutionContract.toKernel"
+      ]
+    },
+    {
+      "path": "Ipp/ProofAuditTorusCompression.lean",
+      "expected_capstones": 15,
+      "capstone_roots_sha256": "b76711ab17a40d0c8c54a7857a3dc66137d89751b1e70b7444c64c266c6fa542",
+      "required_roots": [
+        "Ipp.TorusCompression.nonsquare_ne_zero",
+        "Ipp.TorusCompression.decompress_denominator_ne_zero",
+        "Ipp.TorusCompression.decompress_zero",
+        "Ipp.TorusCompression.decompress_isNormOne",
+        "Ipp.TorusCompression.compress_decompress",
+        "Ipp.TorusCompression.decompress_compress",
+        "Ipp.TorusCompression.zero_second_coordinate_cases",
+        "Ipp.TorusCompression.neg_one_not_odd_torsion",
+        "Ipp.TorusCompression.compress_ne_zero_of_odd_torsion",
+        "Ipp.TorusCompression.zero_sentinel_sound",
+        "Ipp.TorusCompression.decompress_injective_on_nonzero",
+        "Ipp.TorusCompression.bls12377_fq6V_nonsquare",
+        "Ipp.TorusCompression.bls12377_fq6_two_ne_zero",
+        "Ipp.TorusCompression.bls12377_scalarModulus_odd",
+        "Ipp.TorusCompression.bls12377_zero_sentinel_sound"
+      ]
+    },
+    {
+      "path": "Ipp/ProofAuditTorusV2Optimization.lean",
+      "expected_capstones": 6,
+      "capstone_roots_sha256": "d55d28815aa21ab17df8f4774f5c737b51ace0d586d9bbfd809b2dc9610be6a9",
+      "required_roots": [
+        "Ipp.TorusV2Optimization.decompressCached_eq_decompress",
+        "Ipp.TorusV2Optimization.decodeCoordinateCached_eq_decodeCoordinate",
+        "Ipp.TorusV2Optimization.decodeCoordinate_encodeCoordinate",
+        "Ipp.TorusV2Optimization.encode_decodeCoordinate",
+        "Ipp.TorusV2Optimization.decodeCoordinates_encodeCoordinates",
+        "Ipp.TorusV2Optimization.encodeCoordinates_length"
+      ]
+    },
+    {
+      "path": "Ipp/ProofAuditTorusCoordinateSerialization.lean",
+      "expected_capstones": 4,
+      "capstone_roots_sha256": "d9d6b12ed186df0ec0290e3e0e8b479581773b527529b52b34505fde0ff846db",
+      "required_roots": [
+        "Ipp.TorusCoordinateSerialization.decode_exact_consumption",
+        "Ipp.TorusCoordinateSerialization.decode_injective",
+        "Ipp.TorusCoordinateSerialization.decode_rejects_wrong_length",
+        "Ipp.TorusCoordinateSerialization.decode_rejects_noncanonical_field"
+      ]
+    },
+    {
+      "path": "Ipp/ProofAuditTorusAggregateSerialization.lean",
+      "expected_capstones": 5,
+      "capstone_roots_sha256": "d4c67d0f16cb638ca4c7ee0d25dc88f24aa9e251db4cb6d80bbab113c7fb6d4d",
+      "required_roots": [
+        "Ipp.TorusAggregateSerialization.serializedLength_exact",
+        "Ipp.TorusAggregateSerialization.exact_saving",
+        "Ipp.TorusAggregateSerialization.wrappedLength_exact",
+        "Ipp.TorusAggregateSerialization.wrappedLength_count48",
+        "Ipp.TorusAggregateSerialization.strictly_smaller"
+      ]
+    },
+    {
+      "path": "Ipp/ProofAuditSnarkpackV2CandidateBounds.lean",
+      "expected_capstones": 5,
+      "capstone_roots_sha256": "ab269186232f6ffb364b893b9414ee67db74bc9636d2aa73def2c499492a37ca",
+      "required_roots": [
+        "Ipp.SnarkpackV2CandidateBounds.combined_equation_allows_cancellation",
+        "Ipp.SnarkpackV2CandidateBounds.key_independent_acceptance_not_binding",
+        "Ipp.SnarkpackV2CandidateBounds.zero_padding_does_not_remove_fixed_term",
+        "Ipp.SnarkpackV2CandidateBounds.hpa_gt_bytes_per_round_overhead",
+        "Ipp.SnarkpackV2CandidateBounds.hpa_gt_bytes_per_round_strictly_larger"
       ]
     },
     {
@@ -1325,6 +1438,87 @@
       "status": "proved"
     },
     {
+      "id": "OPTIMIZED-GT-FOLD-REFINEMENT",
+      "statement": "The concrete four-lane shared-GT primitive equation on the exact roots, reversed wire rounds, and chronological inverse/raw challenges entails the complete terminal TIPP fold contract used by the extracted verifier.",
+      "root": "Ipp.Extracted.AggregateVerifier.ArkworksTippPrimitiveExecutionContract.toKernel",
+      "dependencies": [],
+      "assumptions": [],
+      "evidence": "Kernel-audited refinement. OptimizedGtFoldRefinement identifies each signed-window lane with its chronological sequential fold and proves the exact four-tuple equals terminalFold. ArkworksTippPrimitiveExecutionContract.toKernel uses that theorem to construct all four ArkworksTippKernelContract fields. This proves the adapter algebra, but deliberately does not assert that the concrete Rust primitive satisfies its execution equation; that remaining source-to-model boundary is ARKWORKS-TIPP-PRIMITIVE-SEMANTICS.",
+      "status": "proved"
+    },
+    {
+      "id": "TORUS-V2-CODEC-REFINEMENT",
+      "statement": "For every ordered list of certified norm-one points in an odd-order subgroup, torus-v2 encoding followed by total zero-sentinel/cached-chart decoding preserves the exact order, multiplicity, and point values; every raw coordinate re-encodes exactly.",
+      "root": "Ipp.TorusV2Optimization.decodeCoordinates_encodeCoordinates",
+      "dependencies": [],
+      "assumptions": [],
+      "evidence": "Kernel-audited algebra covers both chart directions, the zero identity sentinel, exclusion of the exceptional -1 point by odd-order torsion, cached decoder equality, all-target traversal and length preservation. TorusCoordinateSerialization separately audits exact 288-byte consumption, byte injectivity, wrong-length rejection, and noncanonical rejection for all six Fq limbs. TorusAggregateSerialization audits the complete 4+8μ target inventory and exact wrapper size. The Rust encoder now validates the untyped AggregateProof before entering the chart; no trusted-check-erasure premise remains.",
+      "status": "proved"
+    },
+    {
+      "id": "TORUS-V2-STRICT-COORDINATE-WIRE",
+      "statement": "A successfully decoded torus-v2 coordinate consumes exactly 288 bytes, is byte-injective at a fixed Fq6 value, and rejects wrong lengths or a noncanonical value in any of its six base-field limbs.",
+      "root": "Ipp.TorusCoordinateSerialization.decode_injective",
+      "dependencies": [],
+      "assumptions": [],
+      "evidence": "Kernel-audited strict Fq6 decoder reuses the established canonical 48-byte BLS12-377 field decoder componentwise. The companion audited roots establish exact consumption, wrong-length rejection, and all-limb noncanonical rejection.",
+      "status": "proved"
+    },
+    {
+      "id": "OPT-PADDING-PAIRING-COALESCING",
+      "statement": "Coalescing equal left or right pairing operands is value-exact, and authenticated padding removes exactly 3·(n-m) logical prover Miller terms.",
+      "root": "Ipp.Optimization.repeated_left_pairing_exact",
+      "dependencies": [],
+      "assumptions": [],
+      "evidence": "Kernel-audited algebraic equality; the companion audited repeated_right_pairing_exact and prover_padding_pairing exact-saving/strictly-fewer roots cover both operand orientations and the registered count delta.",
+      "status": "proved"
+    },
+    {
+      "id": "OPT-KZG-MSM-PREFIX",
+      "statement": "Omitting the known trailing zero coefficient preserves the KZG MSM value and removes exactly one submitted term in each G1 and G2 lane.",
+      "root": "Ipp.Optimization.omit_trailing_zero_msm_exact",
+      "dependencies": [],
+      "assumptions": [],
+      "evidence": "Kernel-audited equality plus exact G1/G2 optimized-term and saving roots in ProofAuditOptimization.",
+      "status": "proved"
+    },
+    {
+      "id": "OPT-SHARED-PAIRING-PREPARATION",
+      "statement": "Sharing normalization and preparation of repeated GIPA round operands preserves all four ordered pairing outputs and strictly reduces the registered preparation vector.",
+      "root": "Ipp.Optimization.shared_pairing_preparation_exact",
+      "dependencies": [],
+      "assumptions": [],
+      "evidence": "Kernel-audited ordered output equality under the explicit prepared-kernel premise, with companion exact savings and strict-improvement roots.",
+      "status": "proved"
+    },
+    {
+      "id": "OPT-FAST-GT-VALIDATION",
+      "statement": "The BLS12-377 fast GT unit-membership predicate is equivalent to the established target-group membership condition.",
+      "root": "Ipp.Bls12377.fastGtUnitMembership_iff",
+      "dependencies": [],
+      "assumptions": [],
+      "evidence": "Kernel-audited concrete Fq12 unit/cyclotomic membership equivalence; strict Rust boundary parity and failure order remain source-pinned executable evidence.",
+      "status": "proved"
+    },
+    {
+      "id": "OPT-STREAM-PUBLIC-INPUT-FOLD",
+      "statement": "Streaming the weighted public-input sum and terminal power preserves the exact verifier fold values while removing the materialized coefficient vector.",
+      "root": "Ipp.Optimization.streamed_weighted_sum_exact",
+      "dependencies": [],
+      "assumptions": [],
+      "evidence": "Kernel-audited weighted-sum equality with companion terminal-power equality and an exact field-multiplication saving root.",
+      "status": "proved"
+    },
+    {
+      "id": "OPT-FAST-G1-G2-VALIDATION",
+      "statement": "The concrete fast BLS12-377 G1 and G2 subgroup predicates agree with Arkworks membership and preserve strict-decoder acceptance and failure order.",
+      "root": "Ipp.FastSubgroupValidation.fastCheck_eq_arkworksCheck",
+      "dependencies": [],
+      "assumptions": [],
+      "evidence": "Kernel-audited concrete endomorphism soundness and verified-membership equivalences, together with strict-decoder acceptance/failure-order roots and exact cost-vector accounting.",
+      "status": "proved"
+    },
+    {
       "id": "V1-ORDERED-PROJECTION",
       "statement": "A v1 proof represents an ordered hidden witness exactly when its proof-owned root commitments open to that witness; the public claim is definitionally the statement's ordered rows.",
       "root": "Ipp.SnarkPackV1.Refinement.represents_iff_rootOpens",
@@ -1503,7 +1697,8 @@
       "dependencies": [
         "V1-ABSTRACT-ACCEPTS",
         "APP-SHIPPING-BINDING",
-        "CANONICAL-STATEMENT-BINDING"
+        "CANONICAL-STATEMENT-BINDING",
+        "OPTIMIZED-GT-FOLD-REFINEMENT"
       ],
       "assumptions": [
         "AENEAS-TRANSLATOR",
@@ -1747,7 +1942,7 @@
     },
     {
       "id": "FULL-ADAPTIVE-END-TO-END-FV",
-      "statement": "The shipping SnarkPack prover and bundle verifier are complete for valid ordered inputs and quantitatively sound for every adaptive invalid-input adversary, from production Rust bytes and effects through the independent Ipp.Goal specification.",
+      "statement": "Given an already successful retained production prover execution, its exact external postconditions, and a valid ordered witness, the returned wire proof refines the honest SnarkPack construction; every accepted output-derived bundle row refines Ipp.Goal; and the adjusted iterated-fork expression for adaptive invalid acceptance is bounded by the explicit security terms.",
       "root": "Ipp.ShippingFullAdaptiveEndToEnd.shipping_full_adaptive_end_to_end_fv",
       "dependencies": [
         "SHIPPING-PROVER-REFINEMENT",
@@ -1768,7 +1963,7 @@
         "RUST-TOKIO-JOIN-SEMANTICS",
         "RUST-IMMUTABLE-OBSERVED-RESULT-TRANSPORT"
       ],
-      "evidence": "Kernel-audited conditional publication capstone. shipping_full_adaptive_end_to_end_fv constructs, rather than assumes, three conclusions: exact returned-wire-proof and honest-prover completeness from AcceptedShippingProverExecution; every ordered accepted bundle row's independent Ipp.Goal refinement from the extracted planner/reducer and OutputDerivedBundleVerificationBridge; and the production adaptive invalid-acceptance bound from ProductionAdaptiveBundleBridge and the concrete security interfaces. The final inequality keeps SHA-256, event-specific Blake2b-ROM, modular-reduction, adaptive-randomizer, replay-query, KZG-V, KZG-W, GIPA-root, GIPA-product, and iterated multi-statement fork losses separate. It publishes no numerical security level. AENEAS and the narrow Rust async/immutable transport boundaries remain explicit assumptions; exact Arkworks, encoding, and hash boundaries are inherited through audited dependencies. Deployed ceremony soundness remains the single open DEPLOYED-SRS-SOUNDNESS dependency of KZG-LEAF-REDUCTION and must be verified before claiming an instantiated production security level.",
+      "evidence": "Kernel-audited conditional composition capstone. shipping_full_adaptive_end_to_end_fv constructs three conclusions: exact returned-wire-proof and honest-construction refinement from AcceptedShippingProverExecution; every ordered accepted bundle row's independent Ipp.Goal refinement from the extracted planner/reducer and OutputDerivedBundleVerificationBridge; and the adjusted production adaptive invalid-acceptance fork bound from ProductionAdaptiveBundleBridge and the concrete security interfaces. The first conclusion is accepted-execution partial correctness: it does not prove that every valid input makes the production prover terminate successfully. The final inequality bounds the iterated forkTreeStep expression, not invalid-acceptance probability directly, and keeps SHA-256, event-specific Blake2b-ROM, modular-reduction, adaptive-randomizer, replay-query, KZG-V, KZG-W, GIPA-root, and GIPA-product losses separate. It publishes neither an inverted acceptance bound nor a numerical security level. AENEAS and the narrow Rust async/immutable transport boundaries remain explicit assumptions; exact Arkworks, encoding, and hash boundaries are inherited through audited dependencies. Deployed ceremony soundness remains the open DEPLOYED-SRS-SOUNDNESS dependency of KZG-LEAF-REDUCTION and must be verified before claiming instantiated production security.",
       "status": "proved"
     },
     {
@@ -2016,9 +2211,9 @@
     {
       "id": "ARKWORKS-TIPP-PRIMITIVE-SEMANTICS",
       "owner": "Curve and pairing implementation",
-      "postcondition": "The production primitive constructs ArkworksTippKernelContract: nonzero scalar inversion returns the mathematical inverse, singleton pairing_inner_product equals executablePairingLinear, and singleton msm_inner_product equals scalar multiplication.",
-      "evidence": "arkworks_tipp_primitive_refinement_statement consumes exactly these three fields; adapter sequencing and error propagation are proved from extracted cores.",
-      "closure": "Extract the remaining inverse, singleton pairing, and singleton MSM calls or connect them to the audited S3 kernels.",
+      "postcondition": "The production primitive constructs ArkworksTippPrimitiveExecutionContract: nonzero scalar inversion returns the mathematical inverse; fold_gt_commitments returns Ipp.OptimizedGtFoldRefinement.optimizedLanes for the exact four roots, reversed wire rounds, and chronological inverse/raw challenge vectors; singleton pairing_inner_product equals executablePairingLinear; and singleton msm_inner_product equals scalar multiplication.",
+      "evidence": "ArkworksTippPrimitiveExecutionContract.toKernel proves the full ArkworksTippKernelContract. In particular, optimizedLanes_eq_terminalFold kernel-proves that the exact shared four-lane flat MSM operands equal Ipp.terminalFold, so terminal-fold algebra is no longer assumed. The remaining boundary is execution correspondence of the concrete signed-window Arkworks primitive plus inverse/singleton calls to the exact formal operations.",
+      "closure": "Extract the shared signed-window schedule, inverse, singleton pairing, and singleton MSM implementations or connect their exact execution equations to audited concrete kernels. No terminal-fold algebra premise remains to be supplied.",
       "status": "assumed"
     },
     {

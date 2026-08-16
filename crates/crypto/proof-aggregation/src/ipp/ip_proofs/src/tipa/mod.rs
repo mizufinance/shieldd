@@ -1261,6 +1261,7 @@ impl<G: CurveGroup> KzgOpeningPrimitive<G::ScalarField, G::Affine, G, String>
         challenge: &G::ScalarField,
     ) -> (G::ScalarField, Vec<G::ScalarField>) {
         let started = std::time::Instant::now();
+
         let eval = start_timer!(|| "polynomial eval");
         let evaluation =
             polynomial_evaluation_product_form_from_transcript(transcript, challenge, r_shift);

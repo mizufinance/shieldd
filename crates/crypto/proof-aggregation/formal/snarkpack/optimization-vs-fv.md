@@ -32,21 +32,29 @@ their implementation refinement is re-established. Randomized batch checks,
 subgroup-validation batching, or any other acceptance-strength change need an
 additional error term and proof.
 
-## Exact reductions in `optimize/snarkpack`
+## Exact reductions in `codex/snarkpack-formal-optimization`
 
-The current branch adds four reusable equivalence results:
+The current production set contains seven registered exact-v1 reductions:
 
 | Shipping reduction | Lean root |
 | --- | --- |
-| Coalesce a repeat-final G1 or G2 suffix before pairing | `Ipp.repeated_left_pairing_exact`, `Ipp.repeated_right_pairing_exact` |
-| Omit the KZG quotient's known trailing-zero MSM term | `Ipp.omit_trailing_zero_msm_exact` |
-| Flatten four chronological GT folds onto one scalar schedule | `Ipp.shared_gt_fold_exact` |
-| Replace BLS12-377 `x^r = 1` decoding with the curve-specific Frobenius/seed relation | `Ipp.fastGtUnitMembership_iff` |
+| Coalesce a repeat-final G1 or G2 suffix before pairing | `Ipp.Optimization.repeated_left_pairing_exact`, `Ipp.Optimization.repeated_right_pairing_exact` |
+| Omit the KZG quotient's known trailing-zero MSM term | `Ipp.Optimization.omit_trailing_zero_msm_exact` |
+| Flatten four chronological GT folds onto one scalar schedule | `Ipp.Optimization.shared_gt_fold_exact`, `Ipp.Optimization.shared_four_lane_fold_exact` |
+| Share normalization and preparation of repeated GIPA pairing operands | `Ipp.Optimization.shared_pairing_preparation_exact` |
+| Replace BLS12-377 `x^r = 1` decoding with the curve-specific Frobenius/seed relation | `Ipp.Bls12377.fastGtUnitMembership_iff` |
+| Stream public-input row powers and the terminal `r^k` recurrence | `Ipp.Optimization.streamed_weighted_sum_exact`, `Ipp.Optimization.streamed_terminal_power_exact` |
+| Filter BLS12-377 G1/G2 membership with proved-sound endomorphism relations and retain scalar fallback | `Ipp.Bls12377G1Endomorphism.g1_fast_sound`, `Ipp.Bls12377G2SubgroupSoundness.g2_fast_sound`, `Ipp.FastSubgroupValidation.g1VerifiedMembership_iff_arkworks`, `Ipp.FastSubgroupValidation.g2VerifiedMembership_iff_arkworks` |
 
-`Ipp.Cost` separately proves the exact padding and KZG operation deltas. The
-Rust paths retain the previous implementation behind the compile-time
-`bench-baseline` feature only as an A/B and equivalence oracle; it is not a
+`Ipp.Cost` separately proves the registered operation deltas. The Rust paths
+retain selected previous implementations behind the compile-time
+`bench-baseline` feature only as A/B and equivalence oracles; it is not a
 runtime protocol branch.
+
+The E8 Montgomery batch-inversion kernel also has a standalone exactness and
+cost proof, but the production experiment is rejected: reordering the inversion
+effects did not preserve the extracted TIPP/MIPP effect refinement. Shipping
+continues to invert each challenge at its historical stage.
 
 Committed proof bytes, challenge traces, statement encoding, caller-order real
 prefixes, repeat-final padding, and verifier acceptance remain the v1 semantic

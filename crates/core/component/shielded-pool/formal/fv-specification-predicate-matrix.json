@@ -7570,9 +7570,14 @@
           "ARTIFACT-DEVELOPMENT-SRS-IS-NEVER-REGISTERED",
           "ARTIFACT-EMPTY-INPUT-STAYS-EMPTY",
           "ARTIFACT-EVERY-REGISTERED-DIGEST-HASHES-FAMILY-DOMAIN-THEN-CHALLENGE-FRAME",
+          "ARTIFACT-EVERY-TORUS-COORDINATE-ROUND-TRIPS",
           "ARTIFACT-FAMILY-ROUTER-REJECTS-UNKNOWN-MISSING-AND-CROSS-FAMILY-FIELDS",
+          "ARTIFACT-FAST-BLS12-377-G1-G2-VALIDATION-MATCHES-ARKWORKS",
           "ARTIFACT-FAST-BLS12-377-GT-VALIDATION-MATCHES-ARKWORKS-ON-STRUCTURED-INPUTS",
           "ARTIFACT-FOLD-OUTPUT-MATCHES-DIRECT-EXPRESSION",
+          "ARTIFACT-FOLD-PUBLIC-INPUTS-CORE-MATCHES-BASELINE-ACROSS-SHAPES",
+          "ARTIFACT-FOLD-PUBLIC-INPUTS-CORE-PRESERVES-SHAPE-REJECTIONS",
+          "ARTIFACT-IDENTITY-USES-ZERO-AND-MINUS-ONE-IS-REJECTED",
           "ARTIFACT-IDS-ARE-EXACT-AND-REDUCTION-IS-PERMUTATION-INVARIANT",
           "ARTIFACT-KZG-OPENING-CORE-OWNS-CONSTRUCTION-ORDER-AND-PROJECTION",
           "ARTIFACT-KZG-OPENING-MSM-CORE-FORWARDS-EXACT-VECTORS-AND-ERROR",
@@ -7613,6 +7618,8 @@
           "ARTIFACT-SCALAR-IDENTITY-SERIALIZATION-MATCHES-ARKWORKS-SINGLETON-VECTOR",
           "ARTIFACT-SHARED-GT-FOLD-MATCHES-SEQUENTIAL-BLS12-377",
           "ARTIFACT-SHARED-GT-FOLD-MATCHES-SEQUENTIAL-BLS12-381",
+          "ARTIFACT-SHARED-PROVER-ROUND-PAIRING-PREPARATION-PRESERVES-OUTPUTS-AND-COUNTS-UNIQUE-OPERANDS",
+          "ARTIFACT-SHARED-PROVER-ROUND-PAIRING-PREPARATION-PRESERVES-SHAPE-FAILURE-ORDER",
           "ARTIFACT-SHIPPING-AGGREGATE-PROVER-PROJECTION-RETAINS-PRELUDE-AND-WIRE-EXECUTION",
           "ARTIFACT-SHIPPING-AND-ORDINARY-PROFILED-ROUTES-MATCH-ALL-REGISTERED-FAMILIES",
           "ARTIFACT-SHIPPING-BACKEND-RESULT-MATERIALIZES-THE-EXACT-AUTHENTICATED-INPUT",
@@ -7662,7 +7669,10 @@
           "ARTIFACT-STATEMENT-VALIDATION-HELPERS-COVER-COUNT-CASES",
           "ARTIFACT-STRICT-BOUNDARY-REJECTS-NESTED-COMPONENT-ALIASES-AND-MALFORMED-BYTES",
           "ARTIFACT-SYNTHETIC-DIVISION-CONSTRUCTS-EXACT-MONIC-LINEAR-QUOTIENT",
+          "ARTIFACT-TARGET-TORUS-ROUND-TRIP-INCLUDING-IDENTITY",
           "ARTIFACT-TIPP-MIPP-CHALLENGE-PREFIX-EXPOSES-EXACT-SHIPPING-VALUES",
+          "ARTIFACT-TORUS-V2-PREFLIGHT-TRANSLATION-IS-BOUNDED-AND-DISJOINT",
+          "ARTIFACT-TORUS-V2-ROUND-TRIPS-REAL-AGGREGATE-AND-HALVES-TARGET-WIRE",
           "ARTIFACT-TRAILING-AND-MALFORMED-BYTES-REJECT",
           "ARTIFACT-TRANSCRIPT-FAMILY-DOMAINS-ARE-EXACT-AND-UNIQUE",
           "ARTIFACT-V1-BYTES-AND-TRANSCRIPT-MATCH-COMMITTED-BASELINES",
@@ -7674,7 +7684,8 @@
           "ARTIFACT-WRAPPER-REJECTS-MALFORMED-LENGTH",
           "ARTIFACT-WRAPPER-REJECTS-OVERSIZE-BEFORE-PARSING",
           "ARTIFACT-WRAPPER-REJECTS-STATEMENT-MISMATCH",
-          "ARTIFACT-WRAPPER-ROUND-TRIPS-INNER-PROOF"
+          "ARTIFACT-WRAPPER-ROUND-TRIPS-INNER-PROOF",
+          "ARTIFACT-WRAPPER-VERSIONS-ARE-DISJOINT"
         ]
       }
     ],
@@ -7707,6 +7718,7 @@
       "crates/crypto/proof-aggregation/src/srs.rs",
       "crates/crypto/proof-aggregation/src/statement.rs",
       "crates/crypto/proof-aggregation/src/strict_deserialize.rs",
+      "crates/crypto/proof-aggregation/src/torus_v2.rs",
       "crates/crypto/proof-aggregation/src/transcript.rs",
       "crates/crypto/proof-params/src/gnark_artifact_validation.rs",
       "crates/crypto/proof-params/src/lib.rs",
@@ -8756,6 +8768,22 @@
         }
       },
       {
+        "id": "ARTIFACT-EVERY-TORUS-COORDINATE-ROUND-TRIPS",
+        "kind": "parity",
+        "path": "crates/crypto/proof-aggregation/src/torus_v2.rs",
+        "symbol": "every_torus_coordinate_round_trips",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-proof-aggregation",
+          "cargo_target": "lib",
+          "selector": "every_torus_coordinate_round_trips",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
         "id": "ARTIFACT-EXACT-DIGEST-AUTHENTICATES-REGISTRY-PAYLOAD",
         "kind": "invariant",
         "path": "crates/crypto/constraint-coverage/src/template_registry.rs",
@@ -8868,6 +8896,22 @@
         }
       },
       {
+        "id": "ARTIFACT-FAST-BLS12-377-G1-G2-VALIDATION-MATCHES-ARKWORKS",
+        "kind": "parity",
+        "path": "crates/crypto/proof-aggregation/src/backend.rs",
+        "symbol": "fast_bls12_377_g1_g2_validation_matches_arkworks",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-proof-aggregation",
+          "cargo_target": "lib",
+          "selector": "fast_bls12_377_g1_g2_validation_matches_arkworks",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
         "id": "ARTIFACT-FAST-BLS12-377-GT-VALIDATION-MATCHES-ARKWORKS-ON-STRUCTURED-INPUTS",
         "kind": "parity",
         "path": "crates/crypto/proof-aggregation/src/backend.rs",
@@ -8894,6 +8938,38 @@
           "package": "ark-ip-proofs",
           "cargo_target": "lib",
           "selector": "fold_output_matches_direct_expression",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-FOLD-PUBLIC-INPUTS-CORE-MATCHES-BASELINE-ACROSS-SHAPES",
+        "kind": "parity",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "fold_public_inputs_core_matches_baseline_across_shapes",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "fold_public_inputs_core_matches_baseline_across_shapes",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-FOLD-PUBLIC-INPUTS-CORE-PRESERVES-SHAPE-REJECTIONS",
+        "kind": "boundary_negative",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "fold_public_inputs_core_preserves_shape_rejections",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "fold_public_inputs_core_preserves_shape_rejections",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -9022,6 +9098,22 @@
           "package": "shieldd-constraint-coverage",
           "cargo_target": "lib",
           "selector": "generates_relation_with_binders",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-IDENTITY-USES-ZERO-AND-MINUS-ONE-IS-REJECTED",
+        "kind": "boundary_negative",
+        "path": "crates/crypto/proof-aggregation/src/torus_v2.rs",
+        "symbol": "identity_uses_zero_and_minus_one_is_rejected",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-proof-aggregation",
+          "cargo_target": "lib",
+          "selector": "identity_uses_zero_and_minus_one_is_rejected",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -10372,6 +10464,38 @@
         }
       },
       {
+        "id": "ARTIFACT-SHARED-PROVER-ROUND-PAIRING-PREPARATION-PRESERVES-OUTPUTS-AND-COUNTS-UNIQUE-OPERANDS",
+        "kind": "parity",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "shared_prover_round_pairing_preparation_preserves_outputs_and_counts_unique_operands",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "shared_prover_round_pairing_preparation_preserves_outputs_and_counts_unique_operands",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-SHARED-PROVER-ROUND-PAIRING-PREPARATION-PRESERVES-SHAPE-FAILURE-ORDER",
+        "kind": "boundary_negative",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "shared_prover_round_pairing_preparation_preserves_shape_failure_order",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "shared_prover_round_pairing_preparation_preserves_shape_failure_order",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
         "id": "ARTIFACT-SHIPPING-AGGREGATE-PROVER-PROJECTION-RETAINS-PRELUDE-AND-WIRE-EXECUTION",
         "kind": "invariant",
         "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
@@ -11300,6 +11424,22 @@
         }
       },
       {
+        "id": "ARTIFACT-TARGET-TORUS-ROUND-TRIP-INCLUDING-IDENTITY",
+        "kind": "parity",
+        "path": "crates/crypto/proof-aggregation/src/torus_v2.rs",
+        "symbol": "target_torus_round_trip_including_identity",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-proof-aggregation",
+          "cargo_target": "lib",
+          "selector": "target_torus_round_trip_including_identity",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
         "id": "ARTIFACT-TEST-ANOTHER-CIRCUIT",
         "kind": "parity",
         "path": "tools/gnark/third_party/gnark-lean-extractor/extractor/test/another_circuit_test.go",
@@ -12148,6 +12288,38 @@
         }
       },
       {
+        "id": "ARTIFACT-TORUS-V2-PREFLIGHT-TRANSLATION-IS-BOUNDED-AND-DISJOINT",
+        "kind": "boundary_negative",
+        "path": "crates/crypto/proof-aggregation/src/backend.rs",
+        "symbol": "torus_v2_preflight_translation_is_bounded_and_disjoint",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-proof-aggregation",
+          "cargo_target": "lib",
+          "selector": "torus_v2_preflight_translation_is_bounded_and_disjoint",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-TORUS-V2-ROUND-TRIPS-REAL-AGGREGATE-AND-HALVES-TARGET-WIRE",
+        "kind": "parity",
+        "path": "crates/crypto/proof-aggregation/src/backend.rs",
+        "symbol": "torus_v2_round_trips_real_aggregate_and_halves_target_wire",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-proof-aggregation",
+          "cargo_target": "lib",
+          "selector": "torus_v2_round_trips_real_aggregate_and_halves_target_wire",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
         "id": "ARTIFACT-TRAILING-AND-MALFORMED-BYTES-REJECT",
         "kind": "negative",
         "path": "crates/crypto/proof-aggregation/src/strict_deserialize.rs",
@@ -12372,6 +12544,22 @@
         }
       },
       {
+        "id": "ARTIFACT-WRAPPER-VERSIONS-ARE-DISJOINT",
+        "kind": "boundary_negative",
+        "path": "crates/crypto/proof-aggregation/src/torus_v2.rs",
+        "symbol": "wrapper_versions_are_disjoint",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-proof-aggregation",
+          "cargo_target": "lib",
+          "selector": "wrapper_versions_are_disjoint",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
         "id": "ARTIFACT-WRITE-FRAME-REJECTS-OVERSIZED-REQUEST",
         "kind": "boundary_negative",
         "path": "crates/core/component/shielded-pool/src/gnark/runtime.rs",
@@ -12578,6 +12766,7 @@
       "crates/crypto/proof-aggregation/src/srs.rs",
       "crates/crypto/proof-aggregation/src/statement.rs",
       "crates/crypto/proof-aggregation/src/strict_deserialize.rs",
+      "crates/crypto/proof-aggregation/src/torus_v2.rs",
       "crates/crypto/proof-aggregation/src/transcript.rs",
       "crates/crypto/proof-params/src/batch.rs",
       "crates/crypto/proof-params/src/gnark_artifact_validation.rs",
@@ -14712,6 +14901,10 @@
       },
       {
         "path": "crates/crypto/proof-aggregation/src/backend.rs",
+        "symbol": "fast_bls12_377_g1_g2_validation_matches_arkworks"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/backend.rs",
         "symbol": "fast_bls12_377_gt_validation_matches_arkworks_on_structured_inputs"
       },
       {
@@ -14797,6 +14990,14 @@
       {
         "path": "crates/crypto/proof-aggregation/src/backend.rs",
         "symbol": "strict_boundary_rejects_nested_component_aliases_and_malformed_bytes"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/backend.rs",
+        "symbol": "torus_v2_preflight_translation_is_bounded_and_disjoint"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/backend.rs",
+        "symbol": "torus_v2_round_trips_real_aggregate_and_halves_target_wire"
       },
       {
         "path": "crates/crypto/proof-aggregation/src/backend.rs",
@@ -14932,6 +15133,14 @@
       },
       {
         "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "fold_public_inputs_core_matches_baseline_across_shapes"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "fold_public_inputs_core_preserves_shape_rejections"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
         "symbol": "malformed_identity_outputs_reject_before_transcript_or_folding"
       },
       {
@@ -14981,6 +15190,14 @@
       {
         "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
         "symbol": "shared_gt_fold_matches_sequential_bls12_381"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "shared_prover_round_pairing_preparation_preserves_outputs_and_counts_unique_operands"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "shared_prover_round_pairing_preparation_preserves_shape_failure_order"
       },
       {
         "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
@@ -15229,6 +15446,22 @@
       {
         "path": "crates/crypto/proof-aggregation/src/strict_deserialize.rs",
         "symbol": "trailing_and_malformed_bytes_reject"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/torus_v2.rs",
+        "symbol": "every_torus_coordinate_round_trips"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/torus_v2.rs",
+        "symbol": "identity_uses_zero_and_minus_one_is_rejected"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/torus_v2.rs",
+        "symbol": "target_torus_round_trip_including_identity"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/torus_v2.rs",
+        "symbol": "wrapper_versions_are_disjoint"
       },
       {
         "path": "crates/crypto/proof-aggregation/src/transcript.rs",

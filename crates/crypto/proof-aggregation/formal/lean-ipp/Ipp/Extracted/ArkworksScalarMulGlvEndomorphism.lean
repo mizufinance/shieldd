@@ -48,7 +48,8 @@ theorem g1_endomorphism_coeff_canonical :
 noncomputable def glvBeta : Ipp.Bls12377.Fq :=
   decode ark_ip_proofs.s3_07_arkworks_fq_spike.G1_ENDOMORPHISM_COEFF
 
-private def glvBetaNeg : Nat :=
+/-- Canonical base-field representative of `-glvBeta`. -/
+def glvBetaNeg : Nat :=
   80949648264912719408558363140637477264845294720710499478137287262712535938301461879813459410946
 
 private def glvRadixRem : Nat :=
@@ -66,7 +67,8 @@ private theorem glvRadix_cast :
   rw [glvRadix_eq]
   norm_num [Nat.ModEq, Ipp.Bls12377.baseModulus, glvRadixRem]
 
-private theorem glvBeta_eq_neg :
+/-- The decoded Montgomery coefficient is the negation of its canonical representative. -/
+theorem glvBeta_eq_neg :
     glvBeta = -(glvBetaNeg : Ipp.Bls12377.Fq) := by
   rw [glvBeta, decode_eq_cast_mul_inv]
   have hmont :
@@ -151,6 +153,28 @@ theorem glvBeta_cube : glvBeta ^ 3 = 1 := by
           (glvBetaNeg : Ipp.Bls12377.Fq) := by rw [hsquare]
     _ = 1 := by ring
 
+/-- The configured cube root is nontrivial. -/
+theorem glvBeta_ne_one : glvBeta ≠ 1 := by
+  rw [glvBeta_eq_neg]
+  intro h
+  have ha : (glvBetaNeg : Ipp.Bls12377.Fq) = -1 := by
+    simpa using congrArg Neg.neg h
+  have hz : ((glvBetaNeg + 1 : Nat) : Ipp.Bls12377.Fq) = 0 := by
+    rw [Nat.cast_add, Nat.cast_one, ha]
+    ring
+  rw [Ipp.Bls12377.fq_natCast_eq_zero_iff] at hz
+  norm_num [glvBetaNeg, Ipp.Bls12377.baseModulus] at hz
+
+/-- The configured nontrivial cube root satisfies its quadratic factor. -/
+theorem glvBeta_quadratic : glvBeta ^ 2 + glvBeta + 1 = 0 := by
+  have hfactor :
+      (glvBeta - 1) * (glvBeta ^ 2 + glvBeta + 1) = 0 := by
+    calc
+      (glvBeta - 1) * (glvBeta ^ 2 + glvBeta + 1) =
+          glvBeta ^ 3 - 1 := by ring
+      _ = 0 := by rw [glvBeta_cube]; ring
+  exact (mul_eq_zero.mp hfactor).resolve_left (sub_ne_zero.mpr glvBeta_ne_one)
+
 /-- Scaling affine X by the concrete GLV coefficient preserves the G1 curve. -/
 theorem glv_affine_on_curve (p : Ipp.Bls12377.Fq × Ipp.Bls12377.Fq)
     (hp : DecodedG1OnCurve (some p)) :
@@ -228,6 +252,8 @@ theorem valid_g1_glv_endomorphism
 
 #print axioms g1_endomorphism_coeff_canonical
 #print axioms glvBeta_cube
+#print axioms glvBeta_ne_one
+#print axioms glvBeta_quadratic
 #print axioms glv_affine_on_curve
 #print axioms decode_g1_glv_endomorphism
 #print axioms valid_g1_glv_endomorphism

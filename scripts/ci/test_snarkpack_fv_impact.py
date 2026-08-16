@@ -412,7 +412,7 @@ checksum = "first"
             (
                 "Ipp/Extracted/ShippingProver.lean",
                 "Ipp.ProofAuditProver",
-                False,
+                True,
             ),
             (
                 "Ipp/ShippingAdaptiveReindex.lean",

@@ -1,0 +1,1 @@
+{"caption":"","data":"'Ipp.Extracted.AggregateVerifier.ArkworksTippPrimitiveExecutionContract.toKernel' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]","endPos":{"column":6,"line":3},"fileName":"Ipp/ProofAuditOptimizedGtFoldPrimitiveBridge.lean","isSilent":false,"keepFullRange":false,"kind":"[anonymous]","pos":{"column":0,"line":3},"severity":"information"}

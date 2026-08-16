@@ -1,6 +1,7 @@
 import Ipp.Extracted.AggregateAdapterProjection
 import Ipp.Extracted.AggregateVerifier
 import Ipp.Extracted.TippMippAdapter
+import Ipp.OptimizedGtFoldRefinement
 
 /-!
 S3-41 specialization of S2's aggregate capstone to the concrete BLS12-377
@@ -43,6 +44,53 @@ structure ArkworksTippKernelContract
   msm_singleton : ∀ effect message scalar,
     primitive.msm_inner_product effect ⟨[message]⟩ ⟨[scalar]⟩ =
       .ok (.Ok (scalar • message))
+
+/-- Concrete primitive execution facts. The fold field names the exact
+optimized four-lane model; its equality to `terminalFold` is proved rather
+than supplied by this boundary. -/
+structure ArkworksTippPrimitiveExecutionContract
+    {FX : Type}
+    (hbilinear : PublishedPairingBilinear)
+    (primitive : Ipp.Extracted.TippMippAdapter.Primitive
+      FX Fr g1PrimeSubgroup g2PrimeSubgroup ArkPairingOutput) where
+  inverse_nonzero : ∀ effect value, value ≠ 0 →
+    primitive.inverse effect value = .ok (some value⁻¹)
+  fold_gt_optimized : ∀ {n : Nat} effect
+      (proof : Ipp.Proof n Fr g1PrimeSubgroup g2PrimeSubgroup ArkPairingOutput)
+      (raw : Fin n → Fr),
+    primitive.fold_gt_commitments effect
+        (proof.ComA.1, proof.ComB, proof.ipAb, proof.ComA.2)
+        ⟨List.ofFn (Ipp.Extracted.VerifyTippMipp.extractedRounds proof.rounds)⟩
+        ⟨List.ofFn fun i => (raw i)⁻¹⟩ ⟨List.ofFn raw⟩ =
+      let lanes := Ipp.OptimizedGtFoldRefinement.optimizedLanes
+        proof.ComA proof.ComB proof raw
+      .ok (lanes 0, lanes 1, lanes 2, lanes 3)
+  pairing_singleton : ∀ effect left right,
+    primitive.pairing_inner_product effect ⟨[left]⟩ ⟨[right]⟩ =
+      .ok (.Ok ((executablePairingLinear hbilinear) left right))
+  msm_singleton : ∀ effect message scalar,
+    primitive.msm_inner_product effect ⟨[message]⟩ ⟨[scalar]⟩ =
+      .ok (.Ok (scalar • message))
+
+/-- The protocol-level fold obligation follows from the exact optimized
+primitive model. -/
+def ArkworksTippPrimitiveExecutionContract.toKernel
+    {FX : Type}
+    {hbilinear : PublishedPairingBilinear}
+    {primitive : Ipp.Extracted.TippMippAdapter.Primitive
+      FX Fr g1PrimeSubgroup g2PrimeSubgroup ArkPairingOutput}
+    (execution : ArkworksTippPrimitiveExecutionContract hbilinear primitive) :
+    ArkworksTippKernelContract hbilinear primitive where
+  inverse_nonzero := execution.inverse_nonzero
+  fold_gt_commitments := by
+    intro n effect proof raw
+    rw [execution.fold_gt_optimized]
+    dsimp only
+    exact congrArg Result.ok
+      (Ipp.OptimizedGtFoldRefinement.optimizedTuple_eq_terminalFold
+        proof.ComA proof.ComB proof raw)
+  pairing_singleton := execution.pairing_singleton
+  msm_singleton := execution.msm_singleton
 
 /-- Exact challenge calls made during one concrete accepted-path transcript.
     Message bytes are the serializer contract's canonical concatenations; the

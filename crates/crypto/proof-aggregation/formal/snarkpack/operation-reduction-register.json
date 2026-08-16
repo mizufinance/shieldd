@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 3,
   "vector_dimensions": {
     "roles": [
       "prover",
@@ -21,16 +21,27 @@
       "final_exponentiations"
     ],
     "backend": [
+      "field_additions",
       "field_multiplications",
       "field_squarings",
       "field_inversions",
       "field_reductions",
+      "extension_field_additions",
       "extension_field_multiplications",
       "extension_field_squarings",
       "extension_field_inversions",
       "extension_field_reductions",
       "curve_additions",
-      "curve_doublings"
+      "curve_doublings",
+      "scalar_decompositions",
+      "g1_normalization_batches",
+      "g2_normalization_batches",
+      "g1_normalized_elements",
+      "g2_normalized_elements",
+      "g1_prepared_elements",
+      "g2_prepared_elements",
+      "endomorphism_maps",
+      "frobenius_maps"
     ]
   },
   "vector_encoding": {
@@ -115,15 +126,22 @@
     },
     "lean_root": "Ipp.Cost.snarkPackV1Baseline"
   },
-  "formal_pareto_frontier": [],
-  "frontier_note": "No candidate has status proved-model or verified, so claiming a formal Pareto frontier would be unsupported.",
-  "research_order": [
-    "P2-RANDOMIZED-EQUATION-BATCH",
-    "E4-STREAMING-KZG-COEFFICIENTS",
+  "formal_pareto_frontier": [
     "E1-SHARED-GT-MULTIEXP",
-    "P1-RANDOMIZED-GT-VALIDATION",
-    "V2-5-ALTERNATIVE-ACCUMULATION",
-    "V2-4-HETEROGENEOUS-MULTI-VK"
+    "E3-REGROUP-MSM-COEFFICIENTS",
+    "E5-SHARED-PAIRING-PREPARATION",
+    "E9-STREAM-PUBLIC-INPUT-FOLD"
+  ],
+  "frontier_note": "The listed exact-v1 candidates have audited value equivalence and a strict decrease in their registered operation vector with no positive registered delta. E2, E7, and E10 are retained measured Pareto trades and are deliberately not mislabeled as componentwise dominance.",
+  "research_order": [
+    "V2-0-TORUS-COMPRESSED-GT-WIRE",
+    "E10-ENDOMORPHISM-G1-G2-SUBGROUP",
+    "E5-SHARED-PAIRING-PREPARATION",
+    "E1-SHARED-GT-MULTIEXP",
+    "E9-STREAM-PUBLIC-INPUT-FOLD",
+    "E7-CYCLOTOMIC-FP12",
+    "E2-REGROUP-PAIRING-TERMS",
+    "E3-REGROUP-MSM-COEFFICIENTS"
   ],
   "candidates": [
     {
@@ -140,13 +158,41 @@
         "v1 GIPA GT folds",
         "Goal validity unchanged"
       ],
-      "theorem": "Ipp.Optimization.shared_gt_fold_exact proves equality of the flattened and chronological recurrences; strict Backend.ComponentwiseLE remains open pending a concrete Arkworks MSM cost vector",
+      "theorem": "Ipp.Optimization.shared_gt_fold_exact and shared_four_lane_fold_exact prove equality of all four flattened recurrences; Ipp.Cost.verifierSharedGtScheduled_exact_saving and verifierSharedGtScheduled_strictlyImproves prove exactly 3*(1+2*mu) fewer scalar decompositions with identical lane work",
       "transcript_wire_impact": "none; v1 proof bytes and challenge trace must be identical",
       "assumptions": [],
       "error_term": "0",
-      "boundary": "Implemented in verify_tipp_mipp_challenge_prefix_core via fold_arkworks_gt_commitments_msm; bench-baseline retains the chronological recurrence",
-      "status": "open",
-      "rejection_reason": ""
+      "boundary": "Implemented in verify_tipp_mipp_challenge_prefix_core via fold_arkworks_gt_commitments_shared_schedule; the test oracle retains four independent Arkworks MSM calls",
+      "status": "verified",
+      "rejection_reason": "",
+      "evidence": {
+        "lean_roots": [
+          "Ipp.Optimization.shared_gt_fold_exact",
+          "Ipp.Optimization.shared_four_lane_fold_exact",
+          "Ipp.OptimizedGtFoldRefinement.optimizedLanes_eq_terminalFold",
+          "Ipp.OptimizedGtFoldRefinement.optimizedTuple_eq_terminalFold",
+          "Ipp.Extracted.AggregateVerifier.ArkworksTippPrimitiveExecutionContract.toKernel",
+          "Ipp.Cost.verifierSharedGtScheduled_exact_saving",
+          "Ipp.Cost.verifierSharedGtScheduled_strictlyImproves"
+        ],
+        "claims": [
+          "OPTIMIZED-GT-FOLD-REFINEMENT"
+        ],
+        "rust_sources": [
+          "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+          "crates/crypto/proof-aggregation/src/backend.rs"
+        ],
+        "rust_source_sha256": {
+          "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs": "fadbf293a2f89b06e373978c23d77a4a86bca0c0d24ac48bf09704ef13293f8c",
+          "crates/crypto/proof-aggregation/src/backend.rs": "9af59c7eca565a3912fc34cd6ad2a59a5ac3b77092d8f3b1c51ebbdea18e88f6"
+        },
+        "tests": [
+          "shared_gt_fold_matches_sequential_bls12_381",
+          "shared_gt_fold_matches_sequential_bls12_377",
+          "v1_bytes_and_transcript_match_committed_baselines"
+        ],
+        "measurement": "Isolated count-48 verifier A/B: Transfer -1.00%, NoteReshape -0.82%, ICS20 -0.66%; all Criterion confidence intervals were below zero."
+      }
     },
     {
       "id": "E2-REGROUP-PAIRING-TERMS",
@@ -170,8 +216,31 @@
       ],
       "error_term": "0",
       "boundary": "Implemented for comA/comB/comC in initial_commitments_profiled using authenticated real_count; malformed internal suffixes fall back to the historical full pairing path",
-      "status": "open",
-      "rejection_reason": ""
+      "status": "verified",
+      "rejection_reason": "",
+      "evidence": {
+        "lean_roots": [
+          "Ipp.Optimization.repeated_left_pairing_exact",
+          "Ipp.Optimization.repeated_right_pairing_exact",
+          "Ipp.Cost.prover_padding_pairing_exact_saving",
+          "Ipp.Cost.prover_padding_pairing_strictly_fewer"
+        ],
+        "claims": [
+          "OPT-PADDING-PAIRING-COALESCING"
+        ],
+        "rust_sources": [
+          "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs"
+        ],
+        "rust_source_sha256": {
+          "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs": "fadbf293a2f89b06e373978c23d77a4a86bca0c0d24ac48bf09704ef13293f8c"
+        },
+        "tests": [
+          "padding_pairing_coalescing_is_exact_on_bls12_381",
+          "padding_pairing_coalescing_is_exact_on_bls12_377",
+          "aggregate_prover_profiled_preserves_proof_bytes_and_trace"
+        ],
+        "measurement": "Included in the matched count-48 exact-reduction milestone, where all three aggregation families improved by 24.33% to 40.27%; the exact padding-dependent Miller delta is independently proved."
+      }
     },
     {
       "id": "E3-REGROUP-MSM-COEFFICIENTS",
@@ -192,12 +261,35 @@
       "assumptions": [],
       "error_term": "0",
       "boundary": "Implemented in prove_commitment_key_kzg_opening_adapter_core; the full zero-padded coefficient vector remains in the extraction witness while the primitive receives only the nonzero-length prefix",
-      "status": "open",
-      "rejection_reason": ""
+      "status": "verified",
+      "rejection_reason": "",
+      "evidence": {
+        "lean_roots": [
+          "Ipp.Optimization.omit_trailing_zero_msm_exact",
+          "Ipp.Cost.prover_exact_optimized_g1_kzg_msm_terms",
+          "Ipp.Cost.prover_exact_optimized_g2_kzg_msm_terms",
+          "Ipp.Cost.prover_unpadded_kzg_exact_saving"
+        ],
+        "claims": [
+          "OPT-KZG-MSM-PREFIX"
+        ],
+        "rust_sources": [
+          "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs"
+        ],
+        "rust_source_sha256": {
+          "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs": "9bb33628f2730924c69ddb5fb22f905df6199b9ddff7076ec8216a06bc7c54f1"
+        },
+        "tests": [
+          "kzg_opening_core_owns_construction_order_and_projection",
+          "kzg_opening_msm_core_forwards_exact_vectors_and_error",
+          "kzg_adapter_parity_bls12_377_including_pairing_failure"
+        ],
+        "measurement": "Included in the matched count-48 exact-reduction milestone; the candidate removes one submitted term in each KZG MSM and has no positive registered operation delta."
+      }
     },
     {
       "id": "E4-STREAMING-KZG-COEFFICIENTS",
-      "category": "exact-v1",
+      "category": "rejected-path",
       "baseline_vector": "default every declared role/layer/dimension = shipping-v1; overrides: prover KZG MSM subset = 4*n-2 terms; materialized coefficient construction, product-form evaluation, existing synthetic division, and backend field counts = open",
       "proposed_vector": "default every dimension = same as baseline; overrides: prover.backend field_multiplications/field_squarings/field_inversions/field_reductions = candidate-specific and at least one must be strictly smaller under an exact fused streaming coefficient-to-quotient construction; allocations are excluded",
       "deltas": {
@@ -213,35 +305,61 @@
       "assumptions": [],
       "error_term": "0",
       "boundary": "KZG prover coefficient generation",
-      "status": "open",
-      "rejection_reason": ""
+      "status": "rejected",
+      "rejection_reason": "The even-polynomial construction is formally exact and reduces the modeled field vector, but the affected stage is below 0.01% of count-48 aggregation and both allocation-free production variants regressed wall-clock time (Transfer +0.34%, NoteReshape +0.83%, ICS20 statistically flat). The production experiment was deleted; the algebraic theorem remains research evidence."
     },
     {
-      "id": "E5-REMOVE-DUPLICATE-ARITHMETIC",
+      "id": "E5-SHARED-PAIRING-PREPARATION",
       "category": "exact-v1",
-      "baseline_vector": "default every declared role/layer/dimension = shipping-v1; overrides: duplicated site and its backend count must be named before evaluation",
-      "proposed_vector": "default every dimension = same as baseline; overrides: the named prover or verifier backend arithmetic dimension = a proved strict decrease from eliminating a duplicate computation; storage, caching, and allocation changes do not count",
+      "baseline_vector": "default every declared role/layer/dimension = shipping-v1; overrides: the combined TIPP/MIPP commitment at every GIPA round independently normalizes and prepares all four pairing products, including repeated a, b, and ck_v operands",
+      "proposed_vector": "default every dimension = same as baseline; overrides over mu GIPA rounds: prover.backend g1_normalization_batches and g1_prepared_elements decrease by mu and (n-1); g2_normalization_batches and g2_prepared_elements decrease by 2*mu and 2*(n-1); g1_normalized_elements decrease by (n-1); g2_normalized_elements decrease by 2*(n-1); every pairing output, Miller term, and final exponentiation remains independent and unchanged",
       "deltas": {
-        "prover": "default every protocol/backend dimension = 0; overrides: named arithmetic dimensions = open until a duplicated production site is registered",
-        "verifier": "default every protocol/backend dimension = 0; overrides: named arithmetic dimensions = open until a duplicated production site is registered",
+        "prover": "default every protocol/backend dimension = 0; overrides: g1_normalization_batches = -mu, g2_normalization_batches = -2*mu, g1_normalized_elements = -(n-1), g2_normalized_elements = -2*(n-1), g1_prepared_elements = -(n-1), g2_prepared_elements = -2*(n-1); induced field and curve dimensions are open nonpositive decreases",
+        "verifier": "default every protocol/backend dimension = 0; overrides: none",
         "setup": "default every protocol/backend dimension = 0; overrides: none"
       },
       "affected_clauses": [
-        "v1 challenge powers",
-        "v1 fold coefficients",
-        "v1 KZG coefficients"
+        "v1 GIPA prover commitments",
+        "v1 commitment failure order",
+        "Goal validity unchanged"
       ],
-      "theorem": "Exact value equality and counted elimination of each duplicated arithmetic operation",
-      "transcript_wire_impact": "none",
-      "assumptions": [],
+      "theorem": "Ipp.Optimization.shared_pairing_preparation_exact proves ordered com_a, com_b, ip_ab, and com_c equality under prepared-kernel conformance; Ipp.Cost.proverRoundPairingPreparationShared_savings and proverRoundPairingPreparationShared_strictlyImproves prove the exact normalization/preparation recurrence and strict vector decrease",
+      "transcript_wire_impact": "none; all four pairing outputs and the derived round challenge must be byte-identical",
+      "assumptions": [
+        "Arkworks prepared pairing evaluates the same pairing product as PairingInnerProduct on valid equal non-empty vectors"
+      ],
       "error_term": "0",
-      "boundary": "v1 prover and verifier arithmetic",
-      "status": "open",
-      "rejection_reason": ""
+      "boundary": "Implemented in the Arkworks ProverRoundCommitmentPrimitive through typed PreparedG1/PreparedG2 values. Initial commitments remain excluded because their unequal padded operand lengths are modeled by E2 instead",
+      "status": "verified",
+      "rejection_reason": "",
+      "evidence": {
+        "lean_roots": [
+          "Ipp.Optimization.shared_pairing_preparation_exact",
+          "Ipp.Cost.proverRoundPairingPreparationShared_savings",
+          "Ipp.Cost.proverRoundPairingPreparationShared_strictlyImproves"
+        ],
+        "claims": [
+          "OPT-SHARED-PAIRING-PREPARATION"
+        ],
+        "rust_sources": [
+          "crates/crypto/proof-aggregation/src/ipp/inner_products/src/lib.rs",
+          "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs"
+        ],
+        "rust_source_sha256": {
+          "crates/crypto/proof-aggregation/src/ipp/inner_products/src/lib.rs": "ce6be740fddd1bb03de528d5730d91a734b035e6ccdd12a6b94aa4a97c91e764",
+          "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs": "fadbf293a2f89b06e373978c23d77a4a86bca0c0d24ac48bf09704ef13293f8c"
+        },
+        "tests": [
+          "shared_prover_round_pairing_preparation_preserves_outputs_and_counts_unique_operands",
+          "shared_prover_round_pairing_preparation_preserves_shape_failure_order",
+          "aggregate_prover_profiled_preserves_proof_bytes_and_trace"
+        ],
+        "measurement": "Isolated count-48 aggregate A/B: Transfer -1.35%, NoteReshape -1.08%, ICS20 -1.75%; Transfer and ICS20 cleared Criterion's practical threshold and NoteReshape had a statistically lower interval."
+      }
     },
     {
       "id": "E6-S3-STRICT-KERNEL-DOMINANCE",
-      "category": "exact-v1",
+      "category": "rejected-path",
       "baseline_vector": "default every declared role/layer/dimension = shipping-v1; overrides: selected S3 kernel backend dimensions require a separately registered exact vector",
       "proposed_vector": "default every protocol dimension = same as baseline; default every unaffected backend dimension = same; overrides: every backend dimension of the replaced kernel = an exact candidate formula, componentwise no larger with at least one strict decrease",
       "deltas": {
@@ -258,8 +376,8 @@
       "assumptions": [],
       "error_term": "0",
       "boundary": "S3 extracted arithmetic kernels",
-      "status": "open",
-      "rejection_reason": ""
+      "status": "rejected",
+      "rejection_reason": "This is an umbrella search category, not a concrete candidate: it names no replaced expression, exact kernel vector, or source boundary. Future S3 opportunities must be registered independently with their own equivalence and cost theorem instead of claiming progress under a non-falsifiable catch-all."
     },
     {
       "id": "E7-CYCLOTOMIC-FP12",
@@ -279,13 +397,184 @@
       "transcript_wire_impact": "none",
       "assumptions": [],
       "error_term": "0",
-      "boundary": "Implemented by validate_bls12_377_gt_fast and validate_decoded_aggregate_proof; canonical bytes and Arkworks G1/G2 validation remain unchanged; bench-baseline retains PairingOutput::check",
-      "status": "open",
-      "rejection_reason": ""
+      "boundary": "Implemented by validate_bls12_377_gt_fast and validate_decoded_aggregate_proof; canonical bytes and strict failure behavior are unchanged. E10 now independently replaces the G1/G2 predicates",
+      "status": "verified",
+      "rejection_reason": "",
+      "evidence": {
+        "lean_roots": [
+          "Ipp.Bls12377.fastGtUnitMembership_iff"
+        ],
+        "claims": [
+          "OPT-FAST-GT-VALIDATION"
+        ],
+        "rust_sources": [
+          "crates/crypto/proof-aggregation/src/backend.rs",
+          "crates/crypto/proof-aggregation/src/strict_deserialize.rs"
+        ],
+        "rust_source_sha256": {
+          "crates/crypto/proof-aggregation/src/backend.rs": "9af59c7eca565a3912fc34cd6ad2a59a5ac3b77092d8f3b1c51ebbdea18e88f6",
+          "crates/crypto/proof-aggregation/src/strict_deserialize.rs": "14e549fa83de3ec8b5899b0058f1dfc32c9e6862686b1c2ff32062cd968b8549"
+        },
+        "tests": [
+          "fast_bls12_377_gt_validation_matches_arkworks_on_structured_inputs",
+          "strict_boundary_rejects_nested_component_aliases_and_malformed_bytes",
+          "v1_bytes_and_transcript_match_committed_baselines"
+        ],
+        "measurement": "The matched count-48 exact-reduction milestone, dominated on verification by fast GT decoding, improved all three verifier families by 51.96% to 52.62%."
+      }
+    },
+    {
+      "id": "E8-BATCH-CHALLENGE-INVERSION",
+      "category": "rejected-path",
+      "baseline_vector": "default every declared role/layer/dimension = shipping-v1; overrides on a successful verifier path: mu round challenges and randomizer r are inverted independently",
+      "proposed_vector": "default every dimension = same as baseline; overrides: after checking each derived challenge for zero in historical order, batch-invert the mu round challenges and r using one Fr inversion and 3*mu Fr multiplications",
+      "deltas": {
+        "prover": "default every protocol/backend dimension = 0; overrides: none",
+        "verifier": "default every protocol/backend dimension = 0; overrides: field_inversions = -mu and field_multiplications = +3*mu for the registered Montgomery batch-inversion kernel",
+        "setup": "default every protocol/backend dimension = 0; overrides: none"
+      },
+      "affected_clauses": [
+        "v1 verifier challenge chronology",
+        "v1 zero-challenge rejection",
+        "v1 randomizer rejection"
+      ],
+      "theorem": "Ipp.Optimization.batch_inverse_at_exact proves the standalone algebraic batch-inverse kernel pointwise; the production integration did not close the extracted TIPP/MIPP refinement and therefore is not claimed as a shipping theorem",
+      "transcript_wire_impact": "none; accepted challenge values, nonces, messages, and proof bytes remain identical",
+      "assumptions": [],
+      "error_term": "0",
+      "boundary": "researched at verify_tipp_mipp_challenge_prefix_core; the production experiment was reverted and the historical per-challenge inversion sequence remains shipping",
+      "status": "rejected",
+      "rejection_reason": "The standalone batch-inversion algebra and cost vector are exact, and the isolated count-48 verifier experiment improved all three families by 0.27% to 0.56%. However, moving inversions across the verifier stages changed the extracted TippMippEffect from ordered per-stage inversion effects into prechecks plus a later batch effect, invalidating the load-bearing VerifyTippMipp refinement and downstream accepted-run projections. Repair requires a proof-stack redesign rather than a local kernel proof. The production helper, interface changes, and test were deleted; the standalone algebraic theorem remains research evidence."
+    },
+    {
+      "id": "E9-STREAM-PUBLIC-INPUT-FOLD",
+      "category": "exact-v1",
+      "baseline_vector": "default every declared role/layer/dimension = shipping-v1; overrides for k public-input rows: fold_public_inputs_core materializes k powers for row folding and, when r != 1, computes r^k in a separate recurrence",
+      "proposed_vector": "default every dimension = same as baseline; overrides for k rows: when r != 1, use one streamed power recurrence for both the folded rows and the final r^k geometric-sum expression; when r = 1, fold rows directly without a power recurrence; both paths eliminate k-1 Fr multiplications",
+      "deltas": {
+        "prover": "default every protocol/backend dimension = 0; overrides: none",
+        "verifier": "default every protocol/backend dimension = 0; overrides: field_multiplications = -(k-1) for both r = 1 and r != 1; removal of the temporary power vector is not counted",
+        "setup": "default every protocol/backend dimension = 0; overrides: none"
+      },
+      "affected_clauses": [
+        "v1 public-input projection",
+        "v1 PPE input commitment"
+      ],
+      "theorem": "Ipp.Optimization.streamed_weighted_sum_exact and streamed_terminal_power_exact prove the row and terminal-power equalities; Ipp.Cost.publicInputCoefficientStreamed_exact_saving proves exactly k-1 fewer field multiplications, with Rust parity covering both r branches and malformed shapes",
+      "transcript_wire_impact": "none",
+      "assumptions": [],
+      "error_term": "0",
+      "boundary": "fold_public_inputs_core, already included in the hax/Aeneas production extraction graph",
+      "status": "verified",
+      "rejection_reason": "",
+      "evidence": {
+        "lean_roots": [
+          "Ipp.Optimization.streamed_weighted_sum_exact",
+          "Ipp.Optimization.streamed_terminal_power_exact",
+          "Ipp.Cost.publicInputCoefficientStreamed_exact_saving"
+        ],
+        "claims": [
+          "OPT-STREAM-PUBLIC-INPUT-FOLD"
+        ],
+        "rust_sources": [
+          "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs"
+        ],
+        "rust_source_sha256": {
+          "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs": "fadbf293a2f89b06e373978c23d77a4a86bca0c0d24ac48bf09704ef13293f8c"
+        },
+        "tests": [
+          "fold_public_inputs_core_matches_baseline_across_shapes",
+          "fold_public_inputs_core_preserves_shape_rejections",
+          "fold_public_inputs_core_parity_r_not_one_multiple_rows"
+        ],
+        "measurement": "Isolated count-48 aggregate A/B improved Transfer by 0.93% and ICS20 by 0.81%; NoteReshape was inconclusive. The exact k-1 multiplication reduction has no positive registered delta."
+      }
+    },
+    {
+      "id": "E10-ENDOMORPHISM-G1-G2-SUBGROUP",
+      "category": "exact-v1",
+      "baseline_vector": "default every declared role/layer/dimension = shipping-v1; overrides: 5+2*mu accepted-wire G1 sites and 3 G2 sites use Arkworks' generic subgroup check, which multiplies an on-curve point by the prime subgroup order because BLS12-377 does not override the default",
+      "proposed_vector": "default every protocol dimension = same as baseline; overrides at 5+2*mu G1 and 3 G2 sites: first test the proved-sound BLS12-377 relations phi(P)=[-x^2]P and psi(P)=[x]P, then run the original scalar check only when the relation fails. The accepted fast path records the exact double-and-add curve savings together with 11+2*mu field multiplications, 8+2*mu endomorphism maps, and 6 coordinate Frobenius maps; the all-fallback bound is baseline plus that filter cost",
+      "deltas": {
+        "prover": "default every protocol/backend dimension = 0; overrides: none",
+        "verifier": "accepted fast path: backend curve_additions = -(573+132*mu), curve_doublings = -(1197+252*mu), field_multiplications = +(11+2*mu), endomorphism_maps = +(8+2*mu), and frobenius_maps = +6; all-fallback bound: the baseline scalar work plus the full fast-filter vector",
+        "setup": "default every protocol/backend dimension = 0; overrides: none"
+      },
+      "affected_clauses": [
+        "v1 canonical G1 decoding",
+        "v1 canonical G2 decoding",
+        "Goal malformed-input rejection"
+      ],
+      "theorem": "Lean constructs the concrete G1 phi and G2 psi additive maps, proves each fast relation sound for Arkworks [r]P=0 membership, and proves (fast relation OR scalar fallback) iff [r]P=0; whole-list acceptance and first-failure position follow. Ipp.Cost proves both the accepted fast-path vector and the all-fallback bound",
+      "transcript_wire_impact": "none",
+      "assumptions": [
+        "PublishedCurveOrderFacts supplies the cited BLS12-377 G1/G2 point counts",
+        "Rust's inline G2 coordinate map and pinned constants conform to the concrete formal psi definition; differential tests cover subgroup, cofactor-torsion, identity, and off-curve inputs"
+      ],
+      "error_term": "0",
+      "boundary": "validate_bls12_377_g1_fast, validate_bls12_377_g2_fast, validate_decoded_aggregate_proof, and deserialize_compressed_strict_with; canonical reserialization and full consumption remain unchanged",
+      "status": "verified",
+      "rejection_reason": "",
+      "evidence": {
+        "lean_roots": [
+          "Ipp.FastSubgroupValidation.blsSeed_squared_exact",
+          "Ipp.Bls12377G1Endomorphism.g1_fast_sound",
+          "Ipp.Bls12377G2SubgroupSoundness.g2_fast_sound",
+          "Ipp.FastSubgroupValidation.g1VerifiedMembership_iff_arkworks",
+          "Ipp.FastSubgroupValidation.g2VerifiedMembership_iff_arkworks",
+          "Ipp.FastSubgroupValidation.fastCheck_eq_arkworksCheck",
+          "Ipp.FastSubgroupValidation.strictDecoder_failure_order_preserved",
+          "Ipp.FastSubgroupValidation.strictDecoder_acceptance_preserved",
+          "Ipp.Cost.verifierSubgroupValidationFast_exact_curve_savings",
+          "Ipp.Cost.verifierSubgroupValidationFast_exact_added_maps",
+          "Ipp.Cost.verifierSubgroupValidationFallbackWorstCase_exact"
+        ],
+        "claims": [
+          "OPT-FAST-G1-G2-VALIDATION"
+        ],
+        "rust_sources": [
+          "crates/crypto/proof-aggregation/src/backend.rs",
+          "crates/crypto/proof-aggregation/src/strict_deserialize.rs",
+          "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs"
+        ],
+        "rust_source_sha256": {
+          "crates/crypto/proof-aggregation/src/backend.rs": "9af59c7eca565a3912fc34cd6ad2a59a5ac3b77092d8f3b1c51ebbdea18e88f6",
+          "crates/crypto/proof-aggregation/src/strict_deserialize.rs": "14e549fa83de3ec8b5899b0058f1dfc32c9e6862686b1c2ff32062cd968b8549",
+          "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs": "fadbf293a2f89b06e373978c23d77a4a86bca0c0d24ac48bf09704ef13293f8c"
+        },
+        "tests": [
+          "fast_bls12_377_g1_g2_validation_matches_arkworks",
+          "strict_boundary_rejects_nested_component_aliases_and_malformed_bytes",
+          "v1_bytes_and_transcript_match_committed_baselines"
+        ],
+        "measurement": "Isolated count-48 verifier A/B: Transfer -4.58% (CI -4.95%..-4.14%), NoteReshape -14.38% (CI -16.20%..-12.61%), ICS20 -9.42% (CI -9.99%..-8.85%)."
+      }
+    },
+    {
+      "id": "E11-SHARED-GIPA-FOLD-SCHEDULE",
+      "category": "rejected-path",
+      "baseline_vector": "default every declared role/layer/dimension = shipping-v1; overrides: four GT GIPA outputs already use a flattened shared scalar schedule, while com_z is still folded chronologically with the same inverse/raw challenge pairs",
+      "proposed_vector": "default every protocol dimension = same as baseline; overrides: flatten com_z into a (1+2*mu)-term G1 MSM and expose one scalar-digit schedule to all four GT lanes and the G1 lane; concrete scalar-decomposition, field, and curve deltas remain open until the cross-group kernel is fixed",
+      "deltas": {
+        "prover": "default every protocol/backend dimension = 0; overrides: none",
+        "verifier": "default every protocol dimension = 0; scalar_decompositions = open negative; field and curve dimensions = candidate-specific and must be no larger for the registered kernel",
+        "setup": "default every protocol/backend dimension = 0; overrides: none"
+      },
+      "affected_clauses": [
+        "v1 verifier GIPA folds",
+        "v1 com_z leaf equation"
+      ],
+      "theorem": "The flattened com_z MSM equals the chronological fold and the shared digit schedule is lane-wise equal to each independent GT/G1 scalar action, followed by strict backend-vector dominance for the concrete kernel",
+      "transcript_wire_impact": "none",
+      "assumptions": [],
+      "error_term": "0",
+      "boundary": "verify_tipp_mipp_challenge_prefix_core together with fold_arkworks_gt_commitments_msm",
+      "status": "rejected",
+      "rejection_reason": "A five-lane G1/GT digit schedule is value-exact, but it changes com_z from Arkworks' GLV scalar multiplication to projective bucket accumulation and therefore introduces a curve-add/double trade that cannot satisfy this candidate's componentwise kernel criterion. The profitable four-GT shared decomposition was retained and closed under E1; the cross-group production experiment was deleted."
     },
     {
       "id": "P1-RANDOMIZED-GT-VALIDATION",
-      "category": "probabilistic-v1",
+      "category": "rejected-path",
       "baseline_vector": "default every declared role/layer/dimension = shipping-v1; overrides: verifier.protocol gt_subgroup_validations = 4+8*mu accepted-wire validation sites conditional on the Arkworks decode contract",
       "proposed_vector": "default every dimension = same as baseline; overrides: verifier.protocol gt_subgroup_validations = k; verifier hashes, GT scalar actions, and all induced backend dimensions = open added costs of randomized aggregation",
       "deltas": {
@@ -306,12 +595,12 @@
       ],
       "error_term": "must be instantiated and included in an aggregate bound no larger than 2^-128",
       "boundary": "v1 verifier validation policy",
-      "status": "open",
-      "rejection_reason": ""
+      "status": "rejected",
+      "rejection_reason": "E7 supplies an exact deterministic fast predicate at every GT site with zero added soundness error. Randomized aggregation would weaken malformed-element rejection, require fresh verifier randomness at a deterministic consensus boundary, add a new error term, and has no demonstrated operation or wall-clock advantage over the shipping E7 kernel."
     },
     {
       "id": "P2-RANDOMIZED-EQUATION-BATCH",
-      "category": "probabilistic-v1",
+      "category": "rejected-path",
       "baseline_vector": "default every declared role/layer/dimension = shipping-v1; overrides: verifier.protocol final_exponentiations = 7 and source-derived accepted-path miller_terms = 10",
       "proposed_vector": "default every dimension = same as baseline; overrides: verifier.protocol final_exponentiations = 1 target; hashes, scalar multiplications, Miller terms, and all induced backend dimensions = open added or regrouped costs",
       "deltas": {
@@ -334,12 +623,83 @@
       ],
       "error_term": "batching error must be added to S1 and remain within the total 2^-128 budget",
       "boundary": "v1 verifier equation scheduler",
-      "status": "open",
-      "rejection_reason": ""
+      "status": "rejected",
+      "rejection_reason": "The shipping verifier is deterministic and consensus-facing; it has no admissible fresh private randomness source. Fiat-Shamir-derived batching coefficients would change the acceptance proof and add a correlated random-linear-combination error across KZG, base-commitment, and PPE equations. That is a new protocol/security reduction, not an exact optimization for this branch."
+    },
+    {
+      "id": "V2-0-TORUS-COMPRESSED-GT-WIRE",
+      "category": "versioned",
+      "baseline_vector": "default every declared role/layer/dimension = shipping-v1; overrides: wrapped proof bytes = 2913+4736*mu, including 4+8*mu full Fq12 target-group encodings",
+      "proposed_vector": "default every protocol dimension = same as baseline after decoding; overrides: wrapped proof bytes = 1761+2432*mu, including 4+8*mu Fq6 torus coordinates; prover and verifier transport-codec backend arithmetic is an open added cost",
+      "deltas": {
+        "prover": "default every protocol dimension = 0; overrides: wrapped proof bytes = -(1152+2304*mu); transport encoding adds one batched Fq6 inversion plus extension-field additions/multiplications whose complete backend vector remains open",
+        "verifier": "default every protocol dimension = 0 after reconstruction and validation; overrides: wrapped proof bytes = -(1152+2304*mu); transport decoding adds one batched Fq6 inversion plus extension-field additions/multiplications whose complete backend vector remains open",
+        "setup": "default every protocol/backend dimension = 0; overrides: none"
+      },
+      "affected_clauses": [
+        "versioned aggregate-proof wrapper",
+        "target-group wire encoding",
+        "v1 SnarkPack relation and transcript after decoding"
+      ],
+      "theorem": "Ipp.TorusCompression proves the BLS12-377 torus chart, both inverse directions, injectivity, zero-sentinel semantics, and exclusion of a zero encoding for nonexceptional odd-order points; Ipp.TorusV2Optimization proves total cached decoding plus exact ordered all-target round trips for certified points and arbitrary coordinates; Ipp.TorusCoordinateSerialization proves strict canonical 288-byte Fq6 decoding; Ipp.TorusAggregateSerialization proves the exact v2 byte formula and strict saving",
+      "transcript_wire_impact": "explicit disjoint v2 wrapper and half-size GT representation; the reconstructed v1 proof and transcript inputs are unchanged",
+      "assumptions": [],
+      "error_term": "0; malformed coordinates, omitted -1, non-subgroup reconstructions, and invalid proof shapes fail closed",
+      "boundary": "aggregate_family_torus_v2 validates the untyped AggregateProof before entering the torus chart; verify_family_aggregate_torus_v2 strictly decodes and validates the reconstructed regular proof; v1 entry points and bytes remain unchanged",
+      "status": "verified",
+      "rejection_reason": "",
+      "evidence": {
+        "lean_roots": [
+          "Ipp.TorusCompression.decompress_isNormOne",
+          "Ipp.TorusCompression.compress_decompress",
+          "Ipp.TorusCompression.decompress_compress",
+          "Ipp.TorusCompression.compress_ne_zero_of_odd_torsion",
+          "Ipp.TorusCompression.decompress_injective_on_nonzero",
+          "Ipp.TorusCompression.bls12377_fq6V_nonsquare",
+          "Ipp.TorusCompression.bls12377_zero_sentinel_sound",
+          "Ipp.TorusAggregateSerialization.exact_saving",
+          "Ipp.TorusAggregateSerialization.wrappedLength_count48",
+          "Ipp.TorusAggregateSerialization.strictly_smaller",
+          "Ipp.TorusV2Optimization.decompressCached_eq_decompress",
+          "Ipp.TorusV2Optimization.decodeCoordinateCached_eq_decodeCoordinate",
+          "Ipp.TorusV2Optimization.decodeCoordinate_encodeCoordinate",
+          "Ipp.TorusV2Optimization.encode_decodeCoordinate",
+          "Ipp.TorusV2Optimization.decodeCoordinates_encodeCoordinates",
+          "Ipp.TorusCoordinateSerialization.decode_exact_consumption",
+          "Ipp.TorusCoordinateSerialization.decode_injective",
+          "Ipp.TorusCoordinateSerialization.decode_rejects_wrong_length",
+          "Ipp.TorusCoordinateSerialization.decode_rejects_noncanonical_field"
+        ],
+        "claims": [
+          "TORUS-V2-CODEC-REFINEMENT",
+          "TORUS-V2-STRICT-COORDINATE-WIRE"
+        ],
+        "rust_sources": [
+          "crates/crypto/proof-aggregation/src/torus_v2.rs",
+          "crates/crypto/proof-aggregation/src/aggregate_proof_wrapper.rs",
+          "crates/crypto/proof-aggregation/src/backend.rs",
+          "crates/crypto/proof-aggregation/src/preflight.rs"
+        ],
+        "rust_source_sha256": {
+          "crates/crypto/proof-aggregation/src/torus_v2.rs": "5d3634721cd13e0f63304bc56d7433d6fa4ba0182b37f01753a57f80084fccc3",
+          "crates/crypto/proof-aggregation/src/aggregate_proof_wrapper.rs": "92ce9f58aadad956e359a6dcb5a659e22709f594799b0f8ec69ce8792e536898",
+          "crates/crypto/proof-aggregation/src/backend.rs": "9af59c7eca565a3912fc34cd6ad2a59a5ac3b77092d8f3b1c51ebbdea18e88f6",
+          "crates/crypto/proof-aggregation/src/preflight.rs": "aabb54ebf95299b3b8ef78ca9df22f03d351d97a25c0ecc15725f4f2f19f9a8d"
+        },
+        "tests": [
+          "target_torus_round_trip_including_identity",
+          "every_torus_coordinate_round_trips",
+          "identity_uses_zero_and_minus_one_is_rejected",
+          "wrapper_versions_are_disjoint",
+          "torus_v2_preflight_translation_is_bounded_and_disjoint",
+          "torus_v2_round_trips_real_aggregate_and_halves_target_wire"
+        ],
+        "measurement": "Fresh release benchmark with restored untyped-proof validation, Transfer count 48 and 100 Criterion samples: v1 aggregate median 382.26 ms, torus-v2 aggregate median 400.94 ms (+4.89%, +18.68 ms). The wrapped proof is 31329 versus 16353 bytes (-47.80%, -14976 bytes). The last decode-side comparison was v1 53.566 ms versus v2 54.183 ms (+1.15%, +0.617 ms). V2 is therefore retained as an opt-in network-size trade for the four-validator bankd deployment, not a prover-speed optimization. A projective-torus internal fold was rejected after measuring about 12x slower than Arkworks GT MSM."
+      }
     },
     {
       "id": "V2-1-COMBINE-GIPA-GT-OBJECTS",
-      "category": "versioned",
+      "category": "rejected-path",
       "baseline_vector": "default every declared role/layer/dimension = shipping-v1; overrides: proof shape has eight GT objects per GIPA round",
       "proposed_vector": "default every declared role/layer/dimension = open for the new protocol; target overrides: verifier decoded_elements/gt_subgroup_validations/gt_exponentiations and prover GT commitment work strictly decrease after combination work is included",
       "deltas": {
@@ -359,12 +719,12 @@
       ],
       "error_term": "open",
       "boundary": "separate versioned protocol specification",
-      "status": "open",
-      "rejection_reason": ""
+      "status": "rejected",
+      "rejection_reason": "Combining transcript-visible GT commitments changes the proof shape and requires a new binding or random-combination argument. E1 and E7 already reduce the v1 fold and validation work without a wire or soundness change; a combined-object protocol belongs in a separately scoped v2 design."
     },
     {
       "id": "V2-2-BATCHED-KZG-OPENING",
-      "category": "versioned",
+      "category": "rejected-path",
       "baseline_vector": "default every declared role/layer/dimension = shipping-v1; overrides: prover KZG subset has two MSMs totaling 4*n-2 terms and verifier has two KZG pairing equations",
       "proposed_vector": "default every declared role/layer/dimension = open for the new protocol; target overrides: one batched or multi-opening with exact prover MSM/field work, verifier Miller/final-exponentiation work, and setup additions",
       "deltas": {
@@ -384,12 +744,12 @@
       ],
       "error_term": "candidate-specific",
       "boundary": "separate versioned protocol specification and setup",
-      "status": "open",
-      "rejection_reason": ""
+      "status": "rejected",
+      "rejection_reason": "The two openings use distinct G1/G2 commitment-key lanes. A combined opening needs a concrete two-key relation, augmented setup, transcript, binding reduction, and new proof encoding. No such construction is present, so it is outside the exact-v1 optimization branch."
     },
     {
       "id": "V2-3-RAGGED-FOLDING",
-      "category": "versioned",
+      "category": "rejected-path",
       "baseline_vector": "default every declared role/layer/dimension = shipping-v1 at padded n=2^mu; overrides: none",
       "proposed_vector": "default every declared role/layer/dimension = open as a function of real count m and ragged shape; target overrides: padded-only prover folds/MSM/pairing terms are absent and every ragged-boundary operation is counted",
       "deltas": {
@@ -408,12 +768,12 @@
       "assumptions": [],
       "error_term": "candidate-specific",
       "boundary": "separate versioned protocol specification",
-      "status": "open",
-      "rejection_reason": ""
+      "status": "rejected",
+      "rejection_reason": "Ragged folding changes the statement cardinality, round schedule, transcript, and proof encoding. E2 already removes the dominant pairing work caused by repeat-final padding while preserving v1. A ragged protocol requires an independent completeness and soundness development."
     },
     {
       "id": "V2-4-HETEROGENEOUS-MULTI-VK",
-      "category": "versioned",
+      "category": "rejected-path",
       "baseline_vector": "default every declared role/layer/dimension = one shipping-v1 vector per verifying-key family; overrides: cross-family runtime batching gives no protocol reduction",
       "proposed_vector": "default every declared role/layer/dimension = open as a function of proofs, keys, and families; target overrides: one protocol-level aggregate pays fixed commitment/opening/PPE work once and counts multi-key binding/routing work",
       "deltas": {
@@ -433,12 +793,12 @@
       ],
       "error_term": "candidate-specific",
       "boundary": "separate versioned protocol and statement format",
-      "status": "open",
-      "rejection_reason": ""
+      "status": "rejected",
+      "rejection_reason": "A heterogeneous aggregate changes the authenticated statement and needs canonical multi-key routing plus a cross-key substitution proof. The current goal is one v1 verifying-key family per aggregate, so this is a separate product/protocol project rather than an implementation optimization."
     },
     {
       "id": "V2-5-ALTERNATIVE-ACCUMULATION",
-      "category": "versioned",
+      "category": "rejected-path",
       "baseline_vector": "default every declared role/layer/dimension = shipping-v1; overrides: prover.protocol miller_terms = 12*n-8 in the recurrence-proved release core slice",
       "proposed_vector": "default every declared role/layer/dimension = open for the replacement construction; target override: prover.protocol miller_terms is asymptotically or concretely smaller after all replacement commitments/openings and setup are counted",
       "deltas": {
@@ -457,12 +817,12 @@
       ],
       "error_term": "candidate-specific",
       "boundary": "new protocol family",
-      "status": "open",
-      "rejection_reason": ""
+      "status": "rejected",
+      "rejection_reason": "No concrete replacement construction, operation vector, setup, or security reduction is specified. An asymptotic target alone is not an implementable or formally falsifiable candidate; any future accumulator must enter as its own protocol with representative-corpus evidence."
     },
     {
       "id": "V2-6-NATIVE-GROTH16-BATCH-LOWER-BOUND",
-      "category": "versioned",
+      "category": "rejected-path",
       "baseline_vector": "default every declared role/layer/dimension = shipping-v1; overrides: none",
       "proposed_vector": "default every declared role/layer/dimension = open for randomized native Groth16 batching; target overrides: aggregation prover commitments/GIPA/KZG are absent, while verifier decoding, randomized scalar work, Miller terms, and errors scale with all n proofs",
       "deltas": {
@@ -482,12 +842,12 @@
       ],
       "error_term": "batching error explicit",
       "boundary": "comparison protocol and operation-count lower-bound",
-      "status": "open",
-      "rejection_reason": ""
+      "status": "rejected",
+      "rejection_reason": "Native randomized Groth16 batching transports all n proofs and removes SnarkPack's compression objective. It is a comparison protocol with verifier work linear in n, not an optimization of the aggregate proof path, and it inherits the same unavailable fresh-randomness issue as P2."
     },
     {
       "id": "V2-7-RECURSIVE-OR-BLOCK-ACCUMULATION",
-      "category": "versioned",
+      "category": "rejected-path",
       "baseline_vector": "default every declared role/layer/dimension = shipping-v1; overrides: verifier.protocol final_exponentiations = 7",
       "proposed_vector": "default every declared role/layer/dimension = open for the recursive or accumulated protocol; target overrides: at least one external-verifier dimension strictly decreases while recursive prover, circuit, accumulator, and setup work are all explicit",
       "deltas": {
@@ -508,8 +868,8 @@
       ],
       "error_term": "all recursive and accumulation errors explicit",
       "boundary": "new recursive or accumulated protocol",
-      "status": "open",
-      "rejection_reason": ""
+      "status": "rejected",
+      "rejection_reason": "Recursive or block accumulation introduces a new circuit, prover, setup, accumulator state machine, proof format, and security stack. No concrete BLS12-377 implementation or same-corpus operation vector is available, so it cannot be evaluated as an in-place SnarkPack optimization."
     },
     {
       "id": "R1-RUNTIME-TUNING",

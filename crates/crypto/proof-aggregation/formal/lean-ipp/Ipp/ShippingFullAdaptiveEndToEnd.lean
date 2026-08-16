@@ -59,8 +59,8 @@ local instance fullAdaptiveWrappedFsUniform :
 of `shipping_full_adaptive_end_to_end_fv`; each is constructed by invoking the
 corresponding concrete kernel theorem. -/
 structure FullAdaptiveEndToEndCertificate
-    (proverCompleteness bundleGoalRefinement adaptiveSoundness : Prop) : Prop where
-  proverCompleteness : proverCompleteness
+    (acceptedProverRefinement bundleGoalRefinement adaptiveSoundness : Prop) : Prop where
+  acceptedProverRefinement : acceptedProverRefinement
   bundleGoalRefinement : bundleGoalRefinement
   adaptiveSoundness : adaptiveSoundness
 
@@ -211,7 +211,7 @@ theorem shipping_full_adaptive_end_to_end_fv
           gipaSecurity.epsilonRoot 0 replayQueries +
           gipaSecurity.epsilonProduct 0 replayQueries) := by
   refine {
-    proverCompleteness := ?_
+    acceptedProverRefinement := ?_
     bundleGoalRefinement := ?_
     adaptiveSoundness := ?_
   }
