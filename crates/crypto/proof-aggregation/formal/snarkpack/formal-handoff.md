@@ -102,7 +102,7 @@ This file is generated from `verification-manifest.json`. Do not edit claim or a
 
 ## Audit Contract
 
-- Required capstones: 737.
+- Required capstones: 788.
 - Open claims: 1.
 - Contract evidence awaiting its required checker result: 0.
 - Allowed kernel axioms: `propext`, `Classical.choice`, `Quot.sound`.

@@ -395,7 +395,7 @@
       "sources": [
         {
           "path": "crates/crypto/proof-aggregation/src/backend.rs",
-          "sha256": "d6e82900bd14a7f523abeaf1b3fee6021374e5536048cd64a90fe70fcf941266"
+          "sha256": "616f75f1985927bca1b5b92c155895e6a1dab97b0a81a1030f96428df3f76e07"
         },
         {
           "path": "crates/crypto/proof-aggregation/src/strict_deserialize.rs",
@@ -403,7 +403,7 @@
         },
         {
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "cd25749a8214ec26a239210c316d37c1f92c954dc61cf9cade35e4f26830666a"
+          "sha256": "fadbf293a2f89b06e373978c23d77a4a86bca0c0d24ac48bf09704ef13293f8c"
         },
         {
           "path": "crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/Bls12377GtMembership.lean",
@@ -913,20 +913,99 @@
     },
     {
       "path": "Ipp/ProofAuditOptimization.lean",
-      "expected_capstones": 11,
-      "capstone_roots_sha256": "66bcb92cb86d13a6f3a174d9587252b7eb76bc8ecb09df515b5912401b3ab426",
+      "expected_capstones": 37,
+      "capstone_roots_sha256": "e0113a3f1f9b4428df4f493728714f48a8fe7ea316c98ca3ac9a33f11da3e2d2",
       "required_roots": [
         "Ipp.Optimization.repeated_left_pairing_exact",
         "Ipp.Optimization.repeated_right_pairing_exact",
         "Ipp.Optimization.omit_trailing_zero_msm_exact",
         "Ipp.Optimization.shared_gt_fold_exact",
+        "Ipp.Optimization.shared_four_lane_fold_exact",
+        "Ipp.Optimization.shared_pairing_preparation_exact",
+        "Ipp.Optimization.batch_inverse_at_exact",
+        "Ipp.Optimization.streamed_weighted_sum_exact",
+        "Ipp.Optimization.streamed_terminal_power_exact",
+        "Ipp.Optimization.even_opening_quotient_exact",
         "Ipp.Cost.prover_exact_optimized_miller_terms",
         "Ipp.Cost.prover_padding_pairing_exact_saving",
         "Ipp.Cost.prover_padding_pairing_strictly_fewer",
         "Ipp.Cost.prover_exact_optimized_g1_kzg_msm_terms",
         "Ipp.Cost.prover_exact_optimized_g2_kzg_msm_terms",
         "Ipp.Cost.prover_unpadded_kzg_exact_saving",
+        "Ipp.Cost.proverRoundPairingPreparationShared_savings",
+        "Ipp.Cost.proverRoundPairingPreparationShared_strictlyImproves",
+        "Ipp.Cost.verifierChallengeInversionBatch_exact",
+        "Ipp.Cost.verifierChallengeInversionBatch_one_inversion",
+        "Ipp.Cost.publicInputCoefficientStreamed_exact_saving",
+        "Ipp.Cost.verifierSharedGtScheduled_exact_saving",
+        "Ipp.Cost.verifierSharedGtScheduled_strictlyImproves",
+        "Ipp.FastSubgroupValidation.blsSeed_squared_exact",
+        "Ipp.Bls12377G1Endomorphism.g1_fast_sound",
+        "Ipp.Bls12377G2SubgroupSoundness.g2_fast_sound",
+        "Ipp.FastSubgroupValidation.g1VerifiedMembership_iff_arkworks",
+        "Ipp.FastSubgroupValidation.g2VerifiedMembership_iff_arkworks",
+        "Ipp.FastSubgroupValidation.fastCheck_eq_arkworksCheck",
+        "Ipp.FastSubgroupValidation.strictDecoder_failure_order_preserved",
+        "Ipp.FastSubgroupValidation.strictDecoder_acceptance_preserved",
+        "Ipp.Cost.verifierSubgroupValidationFast_exact_curve_savings",
+        "Ipp.Cost.verifierSubgroupValidationFast_exact_added_maps",
+        "Ipp.Cost.verifierSubgroupValidationFallbackWorstCase_exact",
+        "Ipp.Cost.kzgEvenOptimized_exact_savings",
+        "Ipp.Cost.kzgEvenOptimized_strictlyImproves",
         "Ipp.Bls12377.fastGtUnitMembership_iff"
+      ]
+    },
+    {
+      "path": "Ipp/ProofAuditTorusCompression.lean",
+      "expected_capstones": 13,
+      "capstone_roots_sha256": "09ca1b60435cac81548ba89e4ae3bc64d30fa6480c470d5a0a0d0793a39592cf",
+      "required_roots": [
+        "Ipp.TorusCompression.nonsquare_ne_zero",
+        "Ipp.TorusCompression.decompress_denominator_ne_zero",
+        "Ipp.TorusCompression.decompress_isNormOne",
+        "Ipp.TorusCompression.compress_decompress",
+        "Ipp.TorusCompression.decompress_compress",
+        "Ipp.TorusCompression.zero_second_coordinate_cases",
+        "Ipp.TorusCompression.neg_one_not_odd_torsion",
+        "Ipp.TorusCompression.zero_sentinel_sound",
+        "Ipp.TorusCompression.decompress_injective_on_nonzero",
+        "Ipp.TorusCompression.bls12377_fq6V_nonsquare",
+        "Ipp.TorusCompression.bls12377_fq6_two_ne_zero",
+        "Ipp.TorusCompression.bls12377_scalarModulus_odd",
+        "Ipp.TorusCompression.bls12377_zero_sentinel_sound"
+      ]
+    },
+    {
+      "path": "Ipp/ProofAuditTorusV2Optimization.lean",
+      "expected_capstones": 2,
+      "capstone_roots_sha256": "dd108810a5d60a16dd9fac1962d78b94282b0b7d31905b162072fcce9114ce35",
+      "required_roots": [
+        "Ipp.TorusV2Optimization.decompressCached_eq_decompress",
+        "Ipp.TorusV2Optimization.checkedCompress_eq_trusted_of_valid"
+      ]
+    },
+    {
+      "path": "Ipp/ProofAuditTorusAggregateSerialization.lean",
+      "expected_capstones": 5,
+      "capstone_roots_sha256": "d4c67d0f16cb638ca4c7ee0d25dc88f24aa9e251db4cb6d80bbab113c7fb6d4d",
+      "required_roots": [
+        "Ipp.TorusAggregateSerialization.serializedLength_exact",
+        "Ipp.TorusAggregateSerialization.exact_saving",
+        "Ipp.TorusAggregateSerialization.wrappedLength_exact",
+        "Ipp.TorusAggregateSerialization.wrappedLength_count48",
+        "Ipp.TorusAggregateSerialization.strictly_smaller"
+      ]
+    },
+    {
+      "path": "Ipp/ProofAuditSnarkpackV2CandidateBounds.lean",
+      "expected_capstones": 5,
+      "capstone_roots_sha256": "ab269186232f6ffb364b893b9414ee67db74bc9636d2aa73def2c499492a37ca",
+      "required_roots": [
+        "Ipp.SnarkpackV2CandidateBounds.combined_equation_allows_cancellation",
+        "Ipp.SnarkpackV2CandidateBounds.key_independent_acceptance_not_binding",
+        "Ipp.SnarkpackV2CandidateBounds.zero_padding_does_not_remove_fixed_term",
+        "Ipp.SnarkpackV2CandidateBounds.hpa_gt_bytes_per_round_overhead",
+        "Ipp.SnarkpackV2CandidateBounds.hpa_gt_bytes_per_round_strictly_larger"
       ]
     },
     {

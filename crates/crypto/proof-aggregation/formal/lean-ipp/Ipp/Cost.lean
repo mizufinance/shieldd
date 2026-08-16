@@ -38,16 +38,27 @@ deriving DecidableEq, Repr
 
 /-- Concrete backend arithmetic counts used by S3 kernels. -/
 structure Backend where
+  fieldAdds : Nat := 0
   fieldMuls : Nat := 0
   fieldSquares : Nat := 0
   fieldInversions : Nat := 0
   fieldReductions : Nat := 0
+  extensionAdds : Nat := 0
   extensionMuls : Nat := 0
   extensionSquares : Nat := 0
   extensionInversions : Nat := 0
   extensionReductions : Nat := 0
   curveAdds : Nat := 0
   curveDoubles : Nat := 0
+  scalarDecompositions : Nat := 0
+  g1NormalizationBatches : Nat := 0
+  g2NormalizationBatches : Nat := 0
+  g1NormalizedElements : Nat := 0
+  g2NormalizedElements : Nat := 0
+  g1PreparedElements : Nat := 0
+  g2PreparedElements : Nat := 0
+  endomorphismMaps : Nat := 0
+  frobeniusMaps : Nat := 0
 deriving DecidableEq, Repr
 
 /-- Operations remain separated by the role that pays for them. -/
@@ -75,16 +86,27 @@ def Protocol.ComponentwiseLE (a b : Protocol) : Prop :=
   a.finalExponentiations ≤ b.finalExponentiations
 
 def Backend.ComponentwiseLE (a b : Backend) : Prop :=
+  a.fieldAdds ≤ b.fieldAdds ∧
   a.fieldMuls ≤ b.fieldMuls ∧
   a.fieldSquares ≤ b.fieldSquares ∧
   a.fieldInversions ≤ b.fieldInversions ∧
   a.fieldReductions ≤ b.fieldReductions ∧
+  a.extensionAdds ≤ b.extensionAdds ∧
   a.extensionMuls ≤ b.extensionMuls ∧
   a.extensionSquares ≤ b.extensionSquares ∧
   a.extensionInversions ≤ b.extensionInversions ∧
   a.extensionReductions ≤ b.extensionReductions ∧
   a.curveAdds ≤ b.curveAdds ∧
-  a.curveDoubles ≤ b.curveDoubles
+  a.curveDoubles ≤ b.curveDoubles ∧
+  a.scalarDecompositions ≤ b.scalarDecompositions ∧
+  a.g1NormalizationBatches ≤ b.g1NormalizationBatches ∧
+  a.g2NormalizationBatches ≤ b.g2NormalizationBatches ∧
+  a.g1NormalizedElements ≤ b.g1NormalizedElements ∧
+  a.g2NormalizedElements ≤ b.g2NormalizedElements ∧
+  a.g1PreparedElements ≤ b.g1PreparedElements ∧
+  a.g2PreparedElements ≤ b.g2PreparedElements ∧
+  a.endomorphismMaps ≤ b.endomorphismMaps ∧
+  a.frobeniusMaps ≤ b.frobeniusMaps
 
 def Vector.ComponentwiseLE (a b : Vector) : Prop :=
   a.prover.ComponentwiseLE b.prover ∧
@@ -96,6 +118,256 @@ def Vector.ComponentwiseLE (a b : Vector) : Prop :=
 
 def Vector.StrictlyImproves (candidate baseline : Vector) : Prop :=
   candidate.ComponentwiseLE baseline ∧ candidate ≠ baseline
+
+/-! ### Shared four-lane GT digit schedule -/
+
+/-- The common backend cost includes every lane operation. The only differing
+dimension is how often the identical scalar list is decomposed. -/
+def verifierSharedGtBaseline (common : Backend) (μ : Nat) : Vector := {
+  verifierBackend := {
+    common with scalarDecompositions := 4 * (1 + 2 * μ)
+  }
+}
+
+def verifierSharedGtScheduled (common : Backend) (μ : Nat) : Vector := {
+  verifierBackend := {
+    common with scalarDecompositions := 1 + 2 * μ
+  }
+}
+
+theorem verifierSharedGtScheduled_exact_saving (common : Backend) (μ : Nat) :
+    (verifierSharedGtBaseline common μ).verifierBackend.scalarDecompositions =
+      (verifierSharedGtScheduled common μ).verifierBackend.scalarDecompositions +
+        3 * (1 + 2 * μ) := by
+  simp [verifierSharedGtBaseline, verifierSharedGtScheduled]
+  omega
+
+/-- Sharing the signed-digit decomposition strictly improves the backend
+vector while every lane operation remains the same arbitrary `common` cost. -/
+theorem verifierSharedGtScheduled_strictlyImproves
+    (common : Backend) (μ : Nat) :
+    (verifierSharedGtScheduled common μ).StrictlyImproves
+      (verifierSharedGtBaseline common μ) := by
+  simp [Vector.StrictlyImproves, Vector.ComponentwiseLE,
+    Protocol.ComponentwiseLE, Backend.ComponentwiseLE,
+    verifierSharedGtScheduled, verifierSharedGtBaseline]
+
+/-! ### G1/G2 endomorphism subgroup validation -/
+
+/-- Arkworks' default affine double-and-add validation at `5+2*μ` G1 and
+three G2 decode sites. The 253-bit subgroup order has Hamming weight 88. -/
+def verifierSubgroupValidationBaseline (μ : Nat) : Backend := {
+  curveAdds := 88 * (8 + 2 * μ)
+  curveDoubles := 253 * (8 + 2 * μ)
+}
+
+/-- The accepted fast path for the concrete BLS12-377 tests. `x²` is 127 bits
+with Hamming weight 22 and `x` is 64 bits with Hamming weight 7. -/
+def verifierSubgroupValidationFast (μ : Nat) : Backend := {
+  fieldMuls := 11 + 2 * μ
+  curveAdds := 22 * (5 + 2 * μ) + 7 * 3
+  curveDoubles := 127 * (5 + 2 * μ) + 64 * 3
+  endomorphismMaps := 8 + 2 * μ
+  frobeniusMaps := 6
+}
+
+theorem verifierSubgroupValidationFast_exact_curve_savings (μ : Nat) :
+    (verifierSubgroupValidationBaseline μ).curveAdds =
+        (verifierSubgroupValidationFast μ).curveAdds + (573 + 132 * μ) ∧
+      (verifierSubgroupValidationBaseline μ).curveDoubles =
+        (verifierSubgroupValidationFast μ).curveDoubles + (1197 + 252 * μ) := by
+  simp [verifierSubgroupValidationBaseline, verifierSubgroupValidationFast]
+  omega
+
+theorem verifierSubgroupValidationFast_exact_added_maps (μ : Nat) :
+    (verifierSubgroupValidationFast μ).fieldMuls = 11 + 2 * μ ∧
+      (verifierSubgroupValidationFast μ).endomorphismMaps = 8 + 2 * μ ∧
+      (verifierSubgroupValidationFast μ).frobeniusMaps = 6 := by
+  simp [verifierSubgroupValidationFast]
+
+/-- Bound when every endomorphism relation fails and the exact scalar fallback
+is consequently executed at every validation site. -/
+def verifierSubgroupValidationFallbackWorstCase (μ : Nat) : Backend := {
+  fieldMuls := (verifierSubgroupValidationFast μ).fieldMuls
+  curveAdds := (verifierSubgroupValidationFast μ).curveAdds +
+    (verifierSubgroupValidationBaseline μ).curveAdds
+  curveDoubles := (verifierSubgroupValidationFast μ).curveDoubles +
+    (verifierSubgroupValidationBaseline μ).curveDoubles
+  endomorphismMaps := (verifierSubgroupValidationFast μ).endomorphismMaps
+  frobeniusMaps := (verifierSubgroupValidationFast μ).frobeniusMaps
+}
+
+theorem verifierSubgroupValidationFallbackWorstCase_exact (μ : Nat) :
+    (verifierSubgroupValidationFallbackWorstCase μ).curveAdds =
+        (verifierSubgroupValidationBaseline μ).curveAdds +
+          (verifierSubgroupValidationFast μ).curveAdds ∧
+      (verifierSubgroupValidationFallbackWorstCase μ).curveDoubles =
+        (verifierSubgroupValidationBaseline μ).curveDoubles +
+          (verifierSubgroupValidationFast μ).curveDoubles := by
+  simp [verifierSubgroupValidationFallbackWorstCase, Nat.add_comm]
+
+/-! ### GIPA pairing preparation -/
+
+/-- Four independent pairing products in each combined round commitment. -/
+def proverRoundPairingPreparationBaseline (μ : Nat) : Backend := {
+  g1NormalizationBatches := 4 * μ
+  g2NormalizationBatches := 4 * μ
+  g1NormalizedElements := 4 * (2 ^ μ - 1)
+  g2NormalizedElements := 4 * (2 ^ μ - 1)
+  g1PreparedElements := 4 * (2 ^ μ - 1)
+  g2PreparedElements := 4 * (2 ^ μ - 1)
+}
+
+/-- The commitment prepares its three unique G1 and two unique G2 vectors. -/
+def proverRoundPairingPreparationShared (μ : Nat) : Backend := {
+  g1NormalizationBatches := 3 * μ
+  g2NormalizationBatches := 2 * μ
+  g1NormalizedElements := 3 * (2 ^ μ - 1)
+  g2NormalizedElements := 2 * (2 ^ μ - 1)
+  g1PreparedElements := 3 * (2 ^ μ - 1)
+  g2PreparedElements := 2 * (2 ^ μ - 1)
+}
+
+def proverRoundPairingPreparationBaselineVector (μ : Nat) : Vector := {
+  proverBackend := proverRoundPairingPreparationBaseline μ
+}
+
+def proverRoundPairingPreparationSharedVector (μ : Nat) : Vector := {
+  proverBackend := proverRoundPairingPreparationShared μ
+}
+
+theorem proverRoundPairingPreparationShared_savings (μ : Nat) :
+    (proverRoundPairingPreparationBaseline μ).g1NormalizationBatches =
+        (proverRoundPairingPreparationShared μ).g1NormalizationBatches + μ ∧
+      (proverRoundPairingPreparationBaseline μ).g2NormalizationBatches =
+        (proverRoundPairingPreparationShared μ).g2NormalizationBatches + 2 * μ ∧
+      (proverRoundPairingPreparationBaseline μ).g1NormalizedElements =
+        (proverRoundPairingPreparationShared μ).g1NormalizedElements +
+          (2 ^ μ - 1) ∧
+      (proverRoundPairingPreparationBaseline μ).g2NormalizedElements =
+        (proverRoundPairingPreparationShared μ).g2NormalizedElements +
+          2 * (2 ^ μ - 1) ∧
+      (proverRoundPairingPreparationBaseline μ).g1PreparedElements =
+        (proverRoundPairingPreparationShared μ).g1PreparedElements +
+          (2 ^ μ - 1) ∧
+      (proverRoundPairingPreparationBaseline μ).g2PreparedElements =
+        (proverRoundPairingPreparationShared μ).g2PreparedElements +
+          2 * (2 ^ μ - 1) := by
+  simp [proverRoundPairingPreparationBaseline,
+    proverRoundPairingPreparationShared]
+  omega
+
+theorem proverRoundPairingPreparationShared_strictlyImproves
+    (μ : Nat) (hμ : 0 < μ) :
+    (proverRoundPairingPreparationSharedVector μ).StrictlyImproves
+      (proverRoundPairingPreparationBaselineVector μ) := by
+  simp [Vector.StrictlyImproves, Vector.ComponentwiseLE,
+    Protocol.ComponentwiseLE, Backend.ComponentwiseLE,
+    proverRoundPairingPreparationSharedVector,
+    proverRoundPairingPreparationBaselineVector,
+    proverRoundPairingPreparationShared,
+    proverRoundPairingPreparationBaseline]
+  omega
+
+/-! ### Verifier challenge inversion -/
+
+/-- The verifier historically inverts `μ` round challenges and the
+aggregate randomizer independently. -/
+def verifierChallengeInversionBaseline (μ : Nat) : Backend := {
+  fieldInversions := μ + 1
+}
+
+/-- One serial Montgomery batch over the `μ` round challenges and randomizer. -/
+def verifierChallengeInversionBatch (μ : Nat) : Backend := {
+  fieldMuls := 3 * μ
+  fieldInversions := 1
+}
+
+/-- Exact backend trade: remove `μ` inversions and add `3μ` multiplications. -/
+theorem verifierChallengeInversionBatch_exact (μ : Nat) :
+    (verifierChallengeInversionBaseline μ).fieldInversions =
+        (verifierChallengeInversionBatch μ).fieldInversions + μ ∧
+      (verifierChallengeInversionBatch μ).fieldMuls =
+        (verifierChallengeInversionBaseline μ).fieldMuls + 3 * μ := by
+  simp [verifierChallengeInversionBaseline, verifierChallengeInversionBatch,
+    Nat.add_comm]
+
+theorem verifierChallengeInversionBatch_one_inversion (μ : Nat) :
+    (verifierChallengeInversionBatch μ).fieldInversions = 1 := by
+  rfl
+
+/-! ### Public-input coefficient streaming -/
+
+/-- Coefficient-generation multiplications in the historical two-pass fold. -/
+def publicInputCoefficientBaseline (rows : Nat) (randomizerIsOne : Bool) : Nat :=
+  if randomizerIsOne then rows - 1 else rows + (rows - 1)
+
+/-- Coefficient-generation multiplications in the streamed fold. -/
+def publicInputCoefficientStreamed (rows : Nat) (randomizerIsOne : Bool) : Nat :=
+  if randomizerIsOne then 0 else rows
+
+/-- Both randomizer branches remove exactly one duplicate multiplication for
+every row after the first. -/
+theorem publicInputCoefficientStreamed_exact_saving
+    (rows : Nat) (hrows : 0 < rows) (randomizerIsOne : Bool) :
+    publicInputCoefficientBaseline rows randomizerIsOne =
+      publicInputCoefficientStreamed rows randomizerIsOne + (rows - 1) := by
+  cases randomizerIsOne <;>
+    simp [publicInputCoefficientBaseline, publicInputCoefficientStreamed] <;>
+    omega
+
+/-! ### Even-polynomial KZG quotient -/
+
+/-- Arithmetic closed by the even-polynomial quotient model. Reductions and
+allocations remain outside this slice. -/
+structure KzgEvenArithmetic where
+  fieldAdds : Nat
+  fieldMuls : Nat
+  fieldSquares : Nat
+deriving DecidableEq, Repr
+
+/-- Historical coefficient construction, product-form evaluation, and dense
+synthetic division for a transcript of length `μ`. -/
+def kzgEvenBaseline (μ : Nat) : KzgEvenArithmetic :=
+  if μ = 0 then ⟨0, 0, 0⟩ else
+    ⟨2 * 2 ^ μ - 3 + μ, 3 * 2 ^ μ - 3 + 3 * μ, 2 * μ + 1⟩
+
+/-- Compact synthetic division in `Y = X²`, streamed expansion by `X + z`,
+and one shared evaluation recurrence. -/
+def kzgEvenOptimized (μ : Nat) : KzgEvenArithmetic :=
+  if μ = 0 then ⟨0, 0, 0⟩ else
+    ⟨2 ^ μ - 1, 3 * 2 ^ μ - 3 + μ, μ + 1⟩
+
+theorem kzgEvenOptimized_exact_savings (μ : Nat) :
+    (kzgEvenBaseline μ).fieldAdds =
+        (kzgEvenOptimized μ).fieldAdds + (2 ^ μ - 2 + μ) ∧
+      (kzgEvenBaseline μ).fieldMuls =
+        (kzgEvenOptimized μ).fieldMuls + 2 * μ ∧
+      (kzgEvenBaseline μ).fieldSquares =
+        (kzgEvenOptimized μ).fieldSquares + μ := by
+  by_cases hμ : μ = 0
+  · subst μ
+    simp [kzgEvenBaseline, kzgEvenOptimized]
+  · have hpow : 2 ≤ 2 ^ μ := by
+      obtain ⟨k, rfl⟩ := Nat.exists_eq_succ_of_ne_zero hμ
+      rw [pow_succ]
+      have hk : 0 < 2 ^ k := pow_pos (by decide) k
+      omega
+    simp [kzgEvenBaseline, kzgEvenOptimized, hμ]
+    omega
+
+theorem kzgEvenOptimized_strictlyImproves (μ : Nat) (hμ : 0 < μ) :
+    (kzgEvenOptimized μ).fieldAdds < (kzgEvenBaseline μ).fieldAdds ∧
+      (kzgEvenOptimized μ).fieldMuls < (kzgEvenBaseline μ).fieldMuls ∧
+      (kzgEvenOptimized μ).fieldSquares <
+        (kzgEvenBaseline μ).fieldSquares := by
+  have hsavings := kzgEvenOptimized_exact_savings μ
+  have hpow : 2 ≤ 2 ^ μ := by
+    obtain ⟨k, rfl⟩ := Nat.exists_eq_succ_of_ne_zero (Nat.ne_of_gt hμ)
+    rw [pow_succ]
+    have hk : 0 < 2 ^ k := pow_pos (by decide) k
+    omega
+  omega
 
 /-! ## Executable v1 protocol schedule
 

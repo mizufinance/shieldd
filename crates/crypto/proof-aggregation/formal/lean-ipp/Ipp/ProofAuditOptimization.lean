@@ -1,14 +1,41 @@
 import Ipp.Bls12377GtMembership
+import Ipp.FastSubgroupValidation
 import Ipp.Optimization
 
 #print axioms Ipp.Optimization.repeated_left_pairing_exact
 #print axioms Ipp.Optimization.repeated_right_pairing_exact
 #print axioms Ipp.Optimization.omit_trailing_zero_msm_exact
 #print axioms Ipp.Optimization.shared_gt_fold_exact
+#print axioms Ipp.Optimization.shared_four_lane_fold_exact
+#print axioms Ipp.Optimization.shared_pairing_preparation_exact
+#print axioms Ipp.Optimization.batch_inverse_at_exact
+#print axioms Ipp.Optimization.streamed_weighted_sum_exact
+#print axioms Ipp.Optimization.streamed_terminal_power_exact
+#print axioms Ipp.Optimization.even_opening_quotient_exact
 #print axioms Ipp.Cost.prover_exact_optimized_miller_terms
 #print axioms Ipp.Cost.prover_padding_pairing_exact_saving
 #print axioms Ipp.Cost.prover_padding_pairing_strictly_fewer
 #print axioms Ipp.Cost.prover_exact_optimized_g1_kzg_msm_terms
 #print axioms Ipp.Cost.prover_exact_optimized_g2_kzg_msm_terms
 #print axioms Ipp.Cost.prover_unpadded_kzg_exact_saving
+#print axioms Ipp.Cost.proverRoundPairingPreparationShared_savings
+#print axioms Ipp.Cost.proverRoundPairingPreparationShared_strictlyImproves
+#print axioms Ipp.Cost.verifierChallengeInversionBatch_exact
+#print axioms Ipp.Cost.verifierChallengeInversionBatch_one_inversion
+#print axioms Ipp.Cost.publicInputCoefficientStreamed_exact_saving
+#print axioms Ipp.Cost.verifierSharedGtScheduled_exact_saving
+#print axioms Ipp.Cost.verifierSharedGtScheduled_strictlyImproves
+#print axioms Ipp.FastSubgroupValidation.blsSeed_squared_exact
+#print axioms Ipp.Bls12377G1Endomorphism.g1_fast_sound
+#print axioms Ipp.Bls12377G2SubgroupSoundness.g2_fast_sound
+#print axioms Ipp.FastSubgroupValidation.g1VerifiedMembership_iff_arkworks
+#print axioms Ipp.FastSubgroupValidation.g2VerifiedMembership_iff_arkworks
+#print axioms Ipp.FastSubgroupValidation.fastCheck_eq_arkworksCheck
+#print axioms Ipp.FastSubgroupValidation.strictDecoder_failure_order_preserved
+#print axioms Ipp.FastSubgroupValidation.strictDecoder_acceptance_preserved
+#print axioms Ipp.Cost.verifierSubgroupValidationFast_exact_curve_savings
+#print axioms Ipp.Cost.verifierSubgroupValidationFast_exact_added_maps
+#print axioms Ipp.Cost.verifierSubgroupValidationFallbackWorstCase_exact
+#print axioms Ipp.Cost.kzgEvenOptimized_exact_savings
+#print axioms Ipp.Cost.kzgEvenOptimized_strictlyImproves
 #print axioms Ipp.Bls12377.fastGtUnitMembership_iff

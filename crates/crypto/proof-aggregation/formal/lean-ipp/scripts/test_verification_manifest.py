@@ -74,20 +74,47 @@ class VerificationManifestTests(unittest.TestCase):
 
         unproved_frontier = copy.deepcopy(register)
         unproved_frontier["formal_pareto_frontier"] = [
-            unproved_frontier["research_order"][0]
+            next(
+                candidate["id"]
+                for candidate in unproved_frontier["candidates"]
+                if candidate["status"] == "rejected"
+            )
         ]
         with self.assertRaises(VERIFICATION.VerificationError) as raised:
             VERIFICATION.validate_operation_register(unproved_frontier)
         self.assertIn("without a proved model", str(raised.exception))
 
         promoted = copy.deepcopy(register)
-        promoted["candidates"][0]["status"] = "proved-model"
+        verified = next(
+            candidate
+            for candidate in promoted["candidates"]
+            if candidate["status"] == "verified"
+        )
+        del verified["evidence"]
         with self.assertRaises(VERIFICATION.VerificationError) as raised:
             VERIFICATION.validate_operation_register(promoted)
         self.assertIn(
             "structured audited equivalence/refinement",
             str(raised.exception),
         )
+
+        unaudited = copy.deepcopy(register)
+        roots = {
+            root
+            for candidate in unaudited["candidates"]
+            for root in candidate.get("evidence", {}).get("lean_roots", [])
+        }
+        first_verified = next(
+            candidate
+            for candidate in unaudited["candidates"]
+            if candidate["status"] == "verified"
+        )
+        first_verified["evidence"]["lean_roots"].append("Ipp.Missing.root")
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.validate_operation_register(
+                unaudited, audited_roots=roots
+            )
+        self.assertIn("unaudited Lean roots", str(raised.exception))
 
     def test_missing_audit_module_fails_closed(self):
         manifest = copy.deepcopy(self.manifest)

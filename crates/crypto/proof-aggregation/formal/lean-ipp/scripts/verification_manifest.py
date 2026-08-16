@@ -35,7 +35,7 @@ OPERATION_REGISTER_PATH = (
     "operation-reduction-register.json"
 )
 OPERATION_REGISTER_SHA256 = (
-    "b79662b0ed9d2e531dadda4f72013c18bf5a1ca27e8fdd5ceaa3967265cf393a"
+    "feb821e909adc2e784141d2b7d1cbd52483d2ca7a1cdd5773929acc87cb24e35"
 )
 FSTAR_CHECKER_EVIDENCE_PATH = (
     REPO_ROOT
@@ -142,7 +142,7 @@ VERIFICATION_CONTRACT_FIELDS = (
     "deployed_srs_evidence",
 )
 VERIFICATION_CONTRACT_SHA256 = (
-    "81614a930c47e9dc3b038f093a476e46fab94a102352f53caad3210cbbd596eb"
+    "b754947cf020d0642098cb5ffa5b93630399948e6502135a487688c0cfb5e96e"
 )
 BOUNDED_SAMPLER_ROOT = "bounded_challenge_sampler_boundary_suite"
 BOUNDED_SAMPLER_TESTS = (
@@ -3253,9 +3253,11 @@ def validate_contract_evidence(
         validate_fstar_checker_evidence(manifest, repo_root)
 
 
-def validate_operation_register(register: dict[str, Any]) -> None:
-    if register.get("schema_version") != 1:
-        raise VerificationError("operation register schema_version must be 1")
+def validate_operation_register(
+    register: dict[str, Any], *, audited_roots: set[str] | None = None
+) -> None:
+    if register.get("schema_version") != 2:
+        raise VerificationError("operation register schema_version must be 2")
     baseline = register.get("baseline")
     if not isinstance(baseline, dict):
         raise VerificationError("operation register baseline must be an object")
@@ -3287,14 +3289,15 @@ def validate_operation_register(register: dict[str, Any]) -> None:
         "status",
         "rejection_reason",
     }
+    optional = {"evidence"}
     ids: list[str] = []
     statuses: dict[str, str] = {}
     for index, candidate in enumerate(candidates):
         if not isinstance(candidate, dict):
             raise VerificationError(f"candidates[{index}] must be an object")
-        if set(candidate) != required:
+        if not required.issubset(candidate) or set(candidate) - required - optional:
             missing = sorted(required - set(candidate))
-            unexpected = sorted(set(candidate) - required)
+            unexpected = sorted(set(candidate) - required - optional)
             raise VerificationError(
                 f"candidates[{index}] fields differ; "
                 f"missing={missing}, unexpected={unexpected}"
@@ -3320,11 +3323,50 @@ def validate_operation_register(register: dict[str, Any]) -> None:
             raise VerificationError(f"candidates[{index}].category is invalid")
         if candidate["status"] not in OPERATION_STATUSES:
             raise VerificationError(f"candidates[{index}].status is invalid")
-        if candidate["status"] in {"proved-model", "implemented", "verified"}:
+        advanced = candidate["status"] in {
+            "proved-model",
+            "implemented",
+            "verified",
+        }
+        evidence = candidate.get("evidence")
+        if advanced:
+            if not isinstance(evidence, dict) or set(evidence) != {
+                "lean_roots",
+                "rust_sources",
+                "tests",
+                "measurement",
+            }:
+                raise VerificationError(
+                    f"candidates[{index}] {candidate['status']} status requires "
+                    "structured audited equivalence/refinement and cost evidence"
+                )
+            for field in ("lean_roots", "rust_sources", "tests"):
+                values = evidence[field]
+                if not isinstance(values, list) or not values or not all(
+                    isinstance(value, str) and value for value in values
+                ):
+                    raise VerificationError(
+                        f"candidates[{index}].evidence.{field} must be nonempty strings"
+                    )
+                if len(values) != len(set(values)):
+                    raise VerificationError(
+                        f"candidates[{index}].evidence.{field} contains duplicates"
+                    )
+            if not isinstance(evidence["measurement"], str) or not evidence["measurement"]:
+                raise VerificationError(
+                    f"candidates[{index}].evidence.measurement must be nonempty"
+                )
+            if audited_roots is not None:
+                missing_roots = sorted(set(evidence["lean_roots"]) - audited_roots)
+                if missing_roots:
+                    raise VerificationError(
+                        f"candidates[{index}] references unaudited Lean roots: "
+                        + ", ".join(missing_roots)
+                    )
+        elif evidence is not None:
             raise VerificationError(
-                f"candidates[{index}] cannot claim {candidate['status']} until "
-                "structured audited equivalence/refinement and strict-cost "
-                "theorem roots are registered in the gate"
+                f"candidates[{index}] cannot carry proof evidence with "
+                f"status {candidate['status']}"
             )
         deltas = candidate["deltas"]
         if not isinstance(deltas, dict) or set(deltas) != {
@@ -3615,7 +3657,9 @@ def validate_repository(
         ),
         allow_stale_source_drift_kinds=pending_contract_kinds,
     )
-    validate_operation_register(load_operation_register())
+    validate_operation_register(
+        load_operation_register(), audited_roots=set(all_audit_roots)
+    )
 
     outputs = extraction_outputs(
         repo_root
@@ -3957,19 +4001,26 @@ def render_operation_markdown(register: dict[str, Any]) -> str:
             "## Active Candidates",
             "",
             "| ID | Class | Proposed vector | Prover delta | Verifier delta | "
-            "Setup delta | Required theorem | Wire impact | Error | Boundary | Status |",
-            "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+            "Setup delta | Required theorem | Wire impact | Error | Boundary | Evidence | Status |",
+            "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
         ]
     )
     for candidate in register["candidates"]:
         if candidate["status"] == "rejected":
             continue
+        evidence = candidate.get("evidence")
+        evidence_text = (
+            ", ".join(f"`{root}`" for root in evidence["lean_roots"])
+            if evidence
+            else "none"
+        )
         lines.append(
             f"| `{candidate['id']}` | {candidate['category']} | "
             f"{candidate['proposed_vector']} | {candidate['deltas']['prover']} | "
             f"{candidate['deltas']['verifier']} | {candidate['deltas']['setup']} | "
             f"{candidate['theorem']} | {candidate['transcript_wire_impact']} | "
             f"{candidate['error_term']} | {candidate['boundary']} | "
+            f"{evidence_text} | "
             f"`{candidate['status']}` |"
         )
     lines.extend(

@@ -83,7 +83,7 @@
           ]
         }
       ],
-      "source_sha256": "4af75e255262535721f9c11a11fa3748781ff28d6cce39ea325e4525393b0ede"
+      "source_sha256": "d50521e5fd10330f83ff345c239eae02d31767276d4d35cd47820b99158ac1ae"
     },
     {
       "id": "RescaleFold",
@@ -158,7 +158,7 @@
           ]
         }
       ],
-      "source_sha256": "dee10f4b4d605abef6b83273cbbc795f5b3803324fdf92c23ad52722794c8c51"
+      "source_sha256": "a2e054bdfefed5b200db48045a5edec78972c84ebe987b3c330ab944f49a039f"
     },
     {
       "id": "PolynomialEvaluationProductForm",
@@ -187,12 +187,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs",
-          "sha256": "530530a17968391a0a9c686613aebdc782747ec99428f2e96aaa43fab353f10e"
+          "sha256": "9bb33628f2730924c69ddb5fb22f905df6199b9ddff7076ec8216a06bc7c54f1"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs",
-          "sha256": "530530a17968391a0a9c686613aebdc782747ec99428f2e96aaa43fab353f10e"
+          "sha256": "9bb33628f2730924c69ddb5fb22f905df6199b9ddff7076ec8216a06bc7c54f1"
         }
       ],
       "copy_provenance": [],
@@ -235,7 +235,7 @@
           ]
         }
       ],
-      "source_sha256": "4cc081bb787ea01955c41fa77b734449c4d596de22dc348b1a64fefb45bed294"
+      "source_sha256": "e63e37761a8e94f3a17cc9d6c7ce71ce664d393ffa392ccec206415494c6a344"
     },
     {
       "id": "InversePowers",
@@ -267,12 +267,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "cd25749a8214ec26a239210c316d37c1f92c954dc61cf9cade35e4f26830666a"
+          "sha256": "ef96315a851d8edb26ade04824ae3eca7cabac9ce76f4c4a4f5fc71c21542405"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "cd25749a8214ec26a239210c316d37c1f92c954dc61cf9cade35e4f26830666a"
+          "sha256": "ef96315a851d8edb26ade04824ae3eca7cabac9ce76f4c4a4f5fc71c21542405"
         }
       ],
       "copy_provenance": [],
@@ -315,7 +315,7 @@
           ]
         }
       ],
-      "source_sha256": "9a45932d15b353fd09d4c199e45e8fe97447d8d4bfa7a2bf9607717a68cc43c3"
+      "source_sha256": "c9279e27707002523756d96e07da595f9f58fab513f09dd3f1cb52b2f4ebad98"
     },
     {
       "id": "ShiftedCommitmentKey",
@@ -347,12 +347,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "cd25749a8214ec26a239210c316d37c1f92c954dc61cf9cade35e4f26830666a"
+          "sha256": "ef96315a851d8edb26ade04824ae3eca7cabac9ce76f4c4a4f5fc71c21542405"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "cd25749a8214ec26a239210c316d37c1f92c954dc61cf9cade35e4f26830666a"
+          "sha256": "ef96315a851d8edb26ade04824ae3eca7cabac9ce76f4c4a4f5fc71c21542405"
         }
       ],
       "copy_provenance": [],
@@ -395,7 +395,7 @@
           ]
         }
       ],
-      "source_sha256": "f2ec64af482c648c007a1a46f3864f353eaa7aba798d84ee8c8616050041eb5a"
+      "source_sha256": "f61174bf9e07c8b18636acdff1b46c633569487eab922e0b9cb48af186b148ef"
     },
     {
       "id": "StructuredScalar",
@@ -427,12 +427,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "cd25749a8214ec26a239210c316d37c1f92c954dc61cf9cade35e4f26830666a"
+          "sha256": "ef96315a851d8edb26ade04824ae3eca7cabac9ce76f4c4a4f5fc71c21542405"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "cd25749a8214ec26a239210c316d37c1f92c954dc61cf9cade35e4f26830666a"
+          "sha256": "ef96315a851d8edb26ade04824ae3eca7cabac9ce76f4c4a4f5fc71c21542405"
         }
       ],
       "copy_provenance": [],
@@ -475,7 +475,7 @@
           ]
         }
       ],
-      "source_sha256": "c75ec1541b08224453b07f05722117a0f580faf6675b63b1669ccf1315eca271"
+      "source_sha256": "0433aca82d4950288ce8bef3837462d7aff9ad1fe4c74ef92ff047043eb78a45"
     },
     {
       "id": "KzgVerifiers",
@@ -507,12 +507,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs",
-          "sha256": "530530a17968391a0a9c686613aebdc782747ec99428f2e96aaa43fab353f10e"
+          "sha256": "9bb33628f2730924c69ddb5fb22f905df6199b9ddff7076ec8216a06bc7c54f1"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs",
-          "sha256": "530530a17968391a0a9c686613aebdc782747ec99428f2e96aaa43fab353f10e"
+          "sha256": "9bb33628f2730924c69ddb5fb22f905df6199b9ddff7076ec8216a06bc7c54f1"
         }
       ],
       "copy_provenance": [],
@@ -612,7 +612,7 @@
           ]
         }
       ],
-      "source_sha256": "24e92a8302d557a62e1aeb6a4c3f4d37c0da9aebe0d73c21201c4f5ce504e9c4"
+      "source_sha256": "54d0b07c0afc40e564c0a9c4e9b4ad69e69635faa2fd45b80ec2506730b2138f"
     },
     {
       "id": "PolynomialCoefficients",
@@ -641,12 +641,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs",
-          "sha256": "530530a17968391a0a9c686613aebdc782747ec99428f2e96aaa43fab353f10e"
+          "sha256": "9bb33628f2730924c69ddb5fb22f905df6199b9ddff7076ec8216a06bc7c54f1"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs",
-          "sha256": "530530a17968391a0a9c686613aebdc782747ec99428f2e96aaa43fab353f10e"
+          "sha256": "9bb33628f2730924c69ddb5fb22f905df6199b9ddff7076ec8216a06bc7c54f1"
         }
       ],
       "copy_provenance": [],
@@ -689,7 +689,7 @@
           ]
         }
       ],
-      "source_sha256": "2cdbb03a46ae75628ebd501d0c7fd0f6b4e5ceff1b1d18ffe2516af1b63a7f44"
+      "source_sha256": "384fbb417ef2936368cfe62c81877367ce796ad4c02493ca44e07f0c6b4ba828"
     },
     {
       "id": "FinalCommitmentKeys",
@@ -766,7 +766,7 @@
           ]
         }
       ],
-      "source_sha256": "32da868aec2d15c5d2e63f6883be7e6305dbcf3ee93e4b15c475afc6d8a9fa7a"
+      "source_sha256": "a844dc32670f606bc2f85db0a4017dd4ce6a04207db55e5bf55ec036800b9962"
     },
     {
       "id": "BaseCommitment",
@@ -843,13 +843,13 @@
           ]
         }
       ],
-      "source_sha256": "495ad59c9c33978a4a3988718b38a7a0af289e3e60bdf5200c9d4fd31f5ac5fe"
+      "source_sha256": "5e52fa2f3aebf84d533f46f58c988f46d8756c656950785d0265192c66e12900"
     },
     {
       "id": "Groth16Verifier",
       "campaign": "s2",
       "output": "crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/Extracted/Groth16VerifierGenerated.lean",
-      "output_sha256": "6a93696e50e66b7f4806353bd66d2b16ef4d27f6dbac3a348cbeb4c46a05b310",
+      "output_sha256": "b1bcbb25455ddea2c9a60a85238bf8f92c7477559a70e49d19db6823c7de52f7",
       "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
       "package": "ark-ip-proofs",
       "features": [],
@@ -876,12 +876,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "cd25749a8214ec26a239210c316d37c1f92c954dc61cf9cade35e4f26830666a"
+          "sha256": "ef96315a851d8edb26ade04824ae3eca7cabac9ce76f4c4a4f5fc71c21542405"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "cd25749a8214ec26a239210c316d37c1f92c954dc61cf9cade35e4f26830666a"
+          "sha256": "ef96315a851d8edb26ade04824ae3eca7cabac9ce76f4c4a4f5fc71c21542405"
         }
       ],
       "copy_provenance": [],
@@ -929,8 +929,8 @@
         "script": "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/normalize_aeneas_lean.py",
         "extra_imports": [],
         "reuse_modules": [],
-        "selected_raw_declarations_sha256": "4f06c46dad282a65f2ee2f8d0fabb75d306bd8e87e66cacaee69d56a9659e0e4",
-        "normalized_sha256": "6a93696e50e66b7f4806353bd66d2b16ef4d27f6dbac3a348cbeb4c46a05b310"
+        "selected_raw_declarations_sha256": "306212095997900ac797df3e7a9d62d494ba8e6c3ec2bf2e17a376f273e22987",
+        "normalized_sha256": "b1bcbb25455ddea2c9a60a85238bf8f92c7477559a70e49d19db6823c7de52f7"
       },
       "parity": [
         {
@@ -952,7 +952,7 @@
           ]
         }
       ],
-      "source_sha256": "eabb238bbd564db9aee5a2bfe6cd044c267d3d564761466140643338560e9c83"
+      "source_sha256": "8d7bd96d0fec4c3077e347636344083f7bc7bfd5b2796f7b37ad92691951c820"
     },
     {
       "id": "VerifyTippMipp",
@@ -986,12 +986,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "cd25749a8214ec26a239210c316d37c1f92c954dc61cf9cade35e4f26830666a"
+          "sha256": "ef96315a851d8edb26ade04824ae3eca7cabac9ce76f4c4a4f5fc71c21542405"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "cd25749a8214ec26a239210c316d37c1f92c954dc61cf9cade35e4f26830666a"
+          "sha256": "ef96315a851d8edb26ade04824ae3eca7cabac9ce76f4c4a4f5fc71c21542405"
         }
       ],
       "copy_provenance": [],
@@ -1034,13 +1034,13 @@
           ]
         }
       ],
-      "source_sha256": "9d9ea8bd7b906a803e0bf940c87e931b5b15f1efe110463141567ee9bf4a225d"
+      "source_sha256": "c2852f0a5e9178516abf1cde8893abd3a3a0adcda897099f91a9a6f1ee01b2f3"
     },
     {
       "id": "CombinedChecks",
       "campaign": "s2",
       "output": "crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/Extracted/CombinedChecksGenerated.lean",
-      "output_sha256": "cbca6ee4705f1005d0e5ba8621bdcdead419c2ca5290eed07877045b232f44b7",
+      "output_sha256": "5702a192a52673a3a67cf1a01c245e2e2405cbe6576c6727424423c06ebeb147",
       "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
       "package": "ark-ip-proofs",
       "features": [],
@@ -1066,12 +1066,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "cd25749a8214ec26a239210c316d37c1f92c954dc61cf9cade35e4f26830666a"
+          "sha256": "ef96315a851d8edb26ade04824ae3eca7cabac9ce76f4c4a4f5fc71c21542405"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "cd25749a8214ec26a239210c316d37c1f92c954dc61cf9cade35e4f26830666a"
+          "sha256": "ef96315a851d8edb26ade04824ae3eca7cabac9ce76f4c4a4f5fc71c21542405"
         }
       ],
       "copy_provenance": [],
@@ -1102,8 +1102,8 @@
         "reuse_modules": [
           "Ipp.Extracted.VerifyTippMippGenerated"
         ],
-        "selected_raw_declarations_sha256": "a17cb49a87131c0e1c0cd45aa7186d48c149cd0fa494a5ab0e6d3f4c859e6931",
-        "normalized_sha256": "cbca6ee4705f1005d0e5ba8621bdcdead419c2ca5290eed07877045b232f44b7"
+        "selected_raw_declarations_sha256": "ede3aed91f72d711172d5e6e9c972bb6bc934c8de1c7e2284e879eb00c80823f",
+        "normalized_sha256": "5702a192a52673a3a67cf1a01c245e2e2405cbe6576c6727424423c06ebeb147"
       },
       "parity": [
         {
@@ -1116,7 +1116,7 @@
           ]
         }
       ],
-      "source_sha256": "4ee2bad9e5a96c815bef2b737d935dbf9ff65a36c53840ba4391975f53307d8d"
+      "source_sha256": "2be766fd09a55153c3a8e14e6584a5462cd09bf4884385a6d455a537bf2a884b"
     },
     {
       "id": "AppVerifier",
@@ -1681,12 +1681,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "cd25749a8214ec26a239210c316d37c1f92c954dc61cf9cade35e4f26830666a"
+          "sha256": "ef96315a851d8edb26ade04824ae3eca7cabac9ce76f4c4a4f5fc71c21542405"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "cd25749a8214ec26a239210c316d37c1f92c954dc61cf9cade35e4f26830666a"
+          "sha256": "ef96315a851d8edb26ade04824ae3eca7cabac9ce76f4c4a4f5fc71c21542405"
         }
       ],
       "copy_provenance": [],
@@ -2369,7 +2369,7 @@
           ]
         }
       ],
-      "source_sha256": "c79b13baceb49e87e46a0dfce427bd9cec2c3ce0ecf66c7eeb13e555fe7f70e1"
+      "source_sha256": "e57da518b9eef909be454775c549097fe9bd92c66b77cf7ef15148c5c1dc3485"
     },
     {
       "id": "ArkworksFqMul",
@@ -4435,12 +4435,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "cd25749a8214ec26a239210c316d37c1f92c954dc61cf9cade35e4f26830666a"
+          "sha256": "ef96315a851d8edb26ade04824ae3eca7cabac9ce76f4c4a4f5fc71c21542405"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "cd25749a8214ec26a239210c316d37c1f92c954dc61cf9cade35e4f26830666a"
+          "sha256": "ef96315a851d8edb26ade04824ae3eca7cabac9ce76f4c4a4f5fc71c21542405"
         }
       ],
       "copy_provenance": [],
@@ -4637,7 +4637,7 @@
           ]
         }
       ],
-      "source_sha256": "53be5a12f31e5dbfd522a9f6e2e8be7893e866451909cd67030463bfd8ffa406"
+      "source_sha256": "bc54c1c25072eba2c5a4eb0658664cecbc8bd2485507a540b35d49fe224c7b76"
     },
     {
       "id": "StructuredScalarPower",
@@ -4714,7 +4714,7 @@
           ]
         }
       ],
-      "source_sha256": "b614352b9ce8207a9e58c0b99d67694d25abb1e7e3e82d6824282b633d541fc2"
+      "source_sha256": "cb69044217d38b1729f5addc6ee7d899017dd9212c842858d85704de5c733e19"
     },
     {
       "id": "SyntheticDivision",
@@ -4743,12 +4743,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs",
-          "sha256": "530530a17968391a0a9c686613aebdc782747ec99428f2e96aaa43fab353f10e"
+          "sha256": "9bb33628f2730924c69ddb5fb22f905df6199b9ddff7076ec8216a06bc7c54f1"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs",
-          "sha256": "530530a17968391a0a9c686613aebdc782747ec99428f2e96aaa43fab353f10e"
+          "sha256": "9bb33628f2730924c69ddb5fb22f905df6199b9ddff7076ec8216a06bc7c54f1"
         }
       ],
       "copy_provenance": [],
@@ -4791,7 +4791,7 @@
           ]
         }
       ],
-      "source_sha256": "03981d5ec9076f39ffa28890cc428f7c0b21a5a8cbcfc68ecfc87e74c7b67dc2"
+      "source_sha256": "96f56b0900f1fcececd5ad882f41573af422f2de991ba0e39a8fbe2adc337fb0"
     },
     {
       "id": "StatementBinding",

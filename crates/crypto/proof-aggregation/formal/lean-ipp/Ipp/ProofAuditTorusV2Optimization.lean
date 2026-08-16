@@ -1,0 +1,4 @@
+import Ipp.TorusV2Optimization
+
+#print axioms Ipp.TorusV2Optimization.decompressCached_eq_decompress
+#print axioms Ipp.TorusV2Optimization.checkedCompress_eq_trusted_of_valid
