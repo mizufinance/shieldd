@@ -1,18 +1,10 @@
 use anyhow::Context;
-use decaf377_rdsa::{Signature, SpendAuth};
 use futures::{FutureExt, TryStreamExt};
-use shieldd_sdk_governance::{ProposalSubmitBody, ValidatorVoteBody};
 use shieldd_sdk_proto::{
-    custody::v1::{
-        AuthorizeProposalSubmitRequest, AuthorizeValidatorDefinitionRequest,
-        AuthorizeValidatorVoteRequest,
-    },
     util::tendermint_proxy::v1::tendermint_proxy_service_client::TendermintProxyServiceClient,
-    view::v1::broadcast_transaction_response::Status as BroadcastStatus,
-    DomainType,
+    view::v1::broadcast_transaction_response::Status as BroadcastStatus, DomainType,
 };
 use shieldd_sdk_transaction::{txhash::TransactionId, Transaction, TransactionPlan};
-use shieldd_sdk_validator::validator::Validator;
 use shieldd_sdk_view::{ViewClient, ViewServer};
 use std::{fs, future::Future};
 use tonic::transport::Channel;
@@ -64,60 +56,6 @@ impl App {
             );
             Ok(tx)
         }
-    }
-
-    pub async fn sign_validator_definition(
-        &mut self,
-        validator_definition: Validator,
-    ) -> anyhow::Result<Signature<SpendAuth>> {
-        let request = AuthorizeValidatorDefinitionRequest {
-            validator_definition: Some(validator_definition.into()),
-            pre_authorizations: vec![],
-        };
-        self.custody
-            .authorize_validator_definition(request)
-            .await?
-            .into_inner()
-            .validator_definition_auth
-            .ok_or_else(|| anyhow::anyhow!("missing validator definition auth"))?
-            .try_into()
-    }
-
-    pub async fn sign_validator_vote(
-        &mut self,
-        validator_vote: ValidatorVoteBody,
-    ) -> anyhow::Result<Signature<SpendAuth>> {
-        let request = AuthorizeValidatorVoteRequest {
-            validator_vote: Some(validator_vote.into()),
-            pre_authorizations: vec![],
-        };
-        // Use the separate governance custody service, if one is configured, to sign the validator
-        // vote. This allows the governance custody service to have a different key than the main
-        // custody, which is useful for validators who want to have a separate key for voting.
-        self.governance_custody // VERY IMPORTANT: use governance custody here!
-            .authorize_validator_vote(request)
-            .await?
-            .into_inner()
-            .validator_vote_auth
-            .ok_or_else(|| anyhow::anyhow!("missing validator vote auth"))?
-            .try_into()
-    }
-
-    pub async fn sign_proposal_submit(
-        &mut self,
-        proposal_submit: ProposalSubmitBody,
-    ) -> anyhow::Result<Signature<SpendAuth>> {
-        let request = AuthorizeProposalSubmitRequest {
-            proposal_submit: Some(proposal_submit.into()),
-            pre_authorizations: vec![],
-        };
-        self.governance_custody
-            .authorize_proposal_submit(request)
-            .await?
-            .into_inner()
-            .proposal_submit_auth
-            .ok_or_else(|| anyhow::anyhow!("missing proposal submit auth"))?
-            .try_into()
     }
 
     /// Submits a transaction to the network.

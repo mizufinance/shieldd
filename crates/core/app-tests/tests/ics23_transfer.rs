@@ -1,6 +1,6 @@
 use {
     anyhow::anyhow,
-    common::ibc_tests::{MockRelayer, TestNodeWithIBC, ValidatorKeys},
+    common::ibc_tests::{MockRelayer, TestNodeWithIBC},
     once_cell::sync::Lazy,
     shieldd_sdk_asset::{asset::Cache, Value, BASE_ASSET_ID},
     shieldd_sdk_ibc::IbcToken,
@@ -32,13 +32,8 @@ async fn ics20_transfer_no_timeouts() -> anyhow::Result<()> {
     let start_time_b = start_time_a.checked_sub(39 * block_duration).unwrap();
 
     // Hardcoded keys for each chain for test reproducibility:
-    let vkeys_a = ValidatorKeys::from_seed([0u8; 32]);
-    let vkeys_b = ValidatorKeys::from_seed([1u8; 32]);
-    let sk_a = vkeys_a.validator_cons_sk.ed25519_signing_key().unwrap();
-    let sk_b = vkeys_b.validator_cons_sk.ed25519_signing_key().unwrap();
-
-    let ska = ed25519_consensus::SigningKey::try_from(sk_a.as_bytes())?;
-    let skb = ed25519_consensus::SigningKey::try_from(sk_b.as_bytes())?;
+    let ska = ed25519_consensus::SigningKey::from([0u8; 32]);
+    let skb = ed25519_consensus::SigningKey::from([1u8; 32]);
     let keys_a = (ska.clone(), ska.verification_key());
     let keys_b = (skb.clone(), skb.verification_key());
 

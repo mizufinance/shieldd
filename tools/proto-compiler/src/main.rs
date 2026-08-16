@@ -60,7 +60,6 @@ fn main() -> anyhow::Result<()> {
                 "../../proto/shieldd/shieldd/core/component/compact_block/v1/compact_block.proto",
                 "../../proto/shieldd/shieldd/core/component/compliance/v1/compliance.proto",
                 "../../proto/shieldd/shieldd/core/component/fee/v1/fee.proto",
-                "../../proto/shieldd/shieldd/core/component/governance/v1/governance.proto",
                 "../../proto/shieldd/shieldd/core/component/ibc/v1/ibc.proto",
                 "../../proto/shieldd/shieldd/core/component/sct/v1/sct.proto",
                 "../../proto/shieldd/shieldd/core/component/shielded_pool/v1/shielded_pool.proto",

@@ -1,17 +1,12 @@
 use anyhow::Result;
 use serde::de::DeserializeOwned;
-use shieldd_sdk_governance::{ProposalSubmitBody, ValidatorVoteBody};
 use shieldd_sdk_proto::DomainType;
 use shieldd_sdk_transaction::TransactionPlan;
-use shieldd_sdk_validator::validator::Validator;
 use tonic::async_trait;
 
 #[derive(Debug, Clone)]
 pub enum SigningRequest {
     TransactionPlan(TransactionPlan),
-    ValidatorDefinition(Validator),
-    ValidatorVote(ValidatorVoteBody),
-    ProposalSubmit(ProposalSubmitBody),
 }
 /// A trait abstracting over the kind of terminal interface we expect.
 ///
@@ -19,8 +14,7 @@ pub enum SigningRequest {
 /// interface, but it can also be plugged in with more general backends.
 #[async_trait]
 pub trait Terminal: Sync {
-    /// Have a user confirm that they want to sign this transaction or other data (e.g. validator
-    /// definition, validator vote)
+    /// Have a user confirm that they want to sign this transaction.
     ///
     /// In an actual terminal, this should display the data to be signed in a human readable
     /// form, and then get feedback from the user.

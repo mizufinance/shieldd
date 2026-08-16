@@ -1,7 +1,7 @@
 use {
     anyhow::{Context as _, Result},
     ark_serialize::CanonicalSerialize,
-    common::ibc_tests::{MockRelayer, TestNodeWithIBC, TestStorage, ValidatorKeys},
+    common::ibc_tests::{MockRelayer, TestNodeWithIBC, TestStorage},
     decaf377::Fr,
     decaf377_rdsa::VerificationKey,
     rand_core::OsRng,
@@ -667,12 +667,8 @@ async fn setup_relayer_at_root(
     let setup_start = Instant::now();
     let start_time_a = tendermint::Time::parse_from_rfc3339("2022-02-11T17:30:50.425417198Z")?;
     let start_time_b = start_time_a;
-    let vkeys_a = ValidatorKeys::from_seed([0u8; 32]);
-    let vkeys_b = ValidatorKeys::from_seed([1u8; 32]);
-    let sk_a = vkeys_a.validator_cons_sk.ed25519_signing_key().unwrap();
-    let sk_b = vkeys_b.validator_cons_sk.ed25519_signing_key().unwrap();
-    let ska = ed25519_consensus::SigningKey::try_from(sk_a.as_bytes())?;
-    let skb = ed25519_consensus::SigningKey::try_from(sk_b.as_bytes())?;
+    let ska = ed25519_consensus::SigningKey::from([0u8; 32]);
+    let skb = ed25519_consensus::SigningKey::from([1u8; 32]);
     let registrar_vk = VerificationKey::from(test_keys::SPEND_KEY.spend_auth_key());
     let chain_a_root = storage_root.map(|root| root.join("chain-a"));
     let chain_b_root = storage_root.map(|root| root.join("chain-b"));
@@ -895,12 +891,8 @@ fn cached_node_state(state: NodeResumeState) -> CachedNodeState {
 }
 
 async fn restore_relayer_from_setup_cache(cache: &BenchmarkSetupCache) -> Result<MockRelayer> {
-    let vkeys_a = ValidatorKeys::from_seed([0u8; 32]);
-    let vkeys_b = ValidatorKeys::from_seed([1u8; 32]);
-    let sk_a = vkeys_a.validator_cons_sk.ed25519_signing_key().unwrap();
-    let sk_b = vkeys_b.validator_cons_sk.ed25519_signing_key().unwrap();
-    let ska = ed25519_consensus::SigningKey::try_from(sk_a.as_bytes())?;
-    let skb = ed25519_consensus::SigningKey::try_from(sk_b.as_bytes())?;
+    let ska = ed25519_consensus::SigningKey::from([0u8; 32]);
+    let skb = ed25519_consensus::SigningKey::from([1u8; 32]);
 
     let chain_a_storage =
         TestStorage::copied_from(cache.path.join(&cache.metadata.chain_a.storage_dir_name)).await?;

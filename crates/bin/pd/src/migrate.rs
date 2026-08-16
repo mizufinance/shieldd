@@ -9,9 +9,8 @@ mod migrate2;
 use migrate2::framework::Migration as MigrationTrait;
 
 use anyhow::{ensure, Context};
-use cnidarium::{StateDelta, Storage};
+use cnidarium::Storage;
 use shieldd_sdk_app::SUBSTORE_PREFIXES;
-use shieldd_sdk_governance::{StateReadExt, StateWriteExt as _};
 use shieldd_sdk_sct::component::clock::EpochRead;
 use std::path::{Path, PathBuf};
 use tracing::instrument;
@@ -23,8 +22,6 @@ use std::fs::File;
 /// The kind of migration that should be performed.
 #[derive(Debug)]
 pub enum Migration {
-    /// Set the chain's halt bit to `false`.
-    ReadyToStart,
     /// IBC client recovery
     /// - Swap IBC client state
     IbcClientRecovery,
@@ -63,11 +60,6 @@ impl Migration {
         );
         let rocksdb_dir = pd_home.join("rocksdb");
         let storage = Storage::load(rocksdb_dir, SUBSTORE_PREFIXES.to_vec()).await?;
-        ensure!(
-            storage.latest_snapshot().is_chain_halted().await || force,
-            "to run a migration, the chain halt bit must be set to `true` or use the `--force` cli flag"
-        );
-
         // Assert that the local chain state version is not corrupted, see `v0.80.10` release notes.
         let latest_version = storage.latest_version();
         let block_height = storage.latest_snapshot().get_block_height().await?;
@@ -81,16 +73,6 @@ impl Migration {
         tracing::info!("started migration");
 
         match self {
-            Migration::ReadyToStart => {
-                let mut delta = StateDelta::new(storage.latest_snapshot());
-                delta.ready_to_start();
-                storage.commit_in_place(delta).await?;
-                storage.release().await;
-                tracing::info!(
-                    "migration completed: halt bit is turned off, chain is ready to start"
-                );
-                return Ok(());
-            }
             Migration::IbcClientRecovery => {
                 storage.release().await;
                 ensure!(

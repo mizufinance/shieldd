@@ -2,101 +2,26 @@ use {anyhow::Result, std::time::Duration};
 
 mod relayer;
 use anyhow::Context as _;
-use decaf377_rdsa::{SigningKey, SpendAuth, VerificationKey};
 #[allow(unused_imports)]
 pub use relayer::{MockRelayer, SendPacketEvent};
 use shieldd_sdk_app::{
     app::{MAX_BLOCK_TXS_PAYLOAD_BYTES, MAX_EVIDENCE_SIZE_BYTES},
     genesis,
 };
-use shieldd_sdk_keys::keys::{SpendKey, SpendKeyBytes};
 use shieldd_sdk_mock_consensus::TestNode;
-use shieldd_sdk_proto::core::component::validator::v1::Validator;
-use shieldd_sdk_validator::{GovernanceKey, IdentityKey};
 
 mod node;
 pub use node::{TestNodeWithIBC, TestStorage};
-use serde::Deserialize;
-use tendermint::{consensus::params::AbciParams, public_key::Algorithm, Genesis};
-
-/// Collection of all keypairs required for a Shieldd validator.
-/// Used to generate a stable identity for a [`NetworkValidator`].
-/// TODO: copied this from pd crate
-#[derive(Deserialize)]
-pub struct ValidatorKeys {
-    /// Shieldd spending key and viewing key for this node.
-    /// These need to be real curve points.
-    pub validator_id_sk: SigningKey<SpendAuth>,
-    pub validator_id_vk: VerificationKey<SpendAuth>,
-    pub validator_spend_key: SpendKeyBytes,
-    /// Consensus key for tendermint.
-    pub validator_cons_sk: tendermint::PrivateKey,
-    pub validator_cons_pk: tendermint::PublicKey,
-    /// P2P auth key for tendermint.
-    pub node_key_sk: tendermint::PrivateKey,
-    /// The identity key for the validator.
-    pub identity_key: IdentityKey,
-    #[allow(unused_variables, dead_code)]
-    pub node_key_pk: tendermint::PublicKey,
-}
-
-impl ValidatorKeys {
-    /// Use a hard-coded seed to generate a new set of validator keys.
-    pub fn from_seed(seed: [u8; 32]) -> Self {
-        // Create the spend key for this node.
-        let seed = SpendKeyBytes(seed);
-        let spend_key = SpendKey::try_from(seed.clone()).expect("test spend key should be valid");
-
-        // Create signing key and verification key for this node.
-        let validator_id_sk = spend_key.spend_auth_key();
-        let validator_id_vk = VerificationKey::from(validator_id_sk);
-
-        let validator_cons_sk = ed25519_consensus::SigningKey::from(seed.0);
-
-        // generate consensus key for tendermint.
-        let validator_cons_sk = tendermint::PrivateKey::Ed25519(
-            validator_cons_sk
-                .as_bytes()
-                .as_slice()
-                .try_into()
-                .expect("32 bytes"),
-        );
-        let validator_cons_pk = validator_cons_sk.public_key();
-
-        // generate P2P auth key for tendermint.
-        let node_key_sk = ed25519_consensus::SigningKey::from(seed.0);
-        let signing_key_bytes = node_key_sk.as_bytes().as_slice();
-
-        // generate consensus key for tendermint.
-        let node_key_sk =
-            tendermint::PrivateKey::Ed25519(signing_key_bytes.try_into().expect("32 bytes"));
-        let node_key_pk = node_key_sk.public_key();
-
-        let identity_key = IdentityKey::try_from(
-            spend_key
-                .full_viewing_key()
-                .spend_verification_key()
-                .clone(),
-        )
-        .expect("test validator identity key is nonidentity");
-        ValidatorKeys {
-            validator_id_sk: validator_id_sk.clone(),
-            validator_id_vk,
-            validator_cons_sk,
-            validator_cons_pk,
-            node_key_sk,
-            node_key_pk,
-            validator_spend_key: seed,
-            identity_key,
-        }
-    }
-}
+use tendermint::{consensus::params::AbciParams, public_key::Algorithm, vote::Power, Genesis};
 
 /// A genesis state that can be fed into CometBFT as well,
 /// for verifying compliance of the mock tendermint implementation.
 pub fn get_verified_genesis() -> Result<Genesis> {
     let start_time = tendermint::Time::parse_from_rfc3339("2022-02-11T17:30:50.425417198Z")?;
-    let vkeys_a = ValidatorKeys::from_seed([0u8; 32]);
+    let consensus_sk = ed25519_consensus::SigningKey::from([0u8; 32]);
+    let validator_cons_pk =
+        tendermint::PublicKey::from_raw_ed25519(consensus_sk.verification_key().as_bytes())
+            .expect("valid test consensus key");
 
     // TODO: make it possible to flag exporting the app state, keys, etc.
     // to files possible on the builder
@@ -104,32 +29,13 @@ pub fn get_verified_genesis() -> Result<Genesis> {
     let mut genesis_contents =
         genesis::Content::default().with_chain_id(TestNode::<()>::CHAIN_ID.to_string());
 
-    let spend_key_a = SpendKey::try_from(vkeys_a.validator_spend_key.clone())?;
-    let validator_a = Validator {
-        identity_key: Some(
-            IdentityKey::try_from(vkeys_a.validator_id_vk)
-                .expect("test validator identity key is nonidentity")
-                .into(),
-        ),
-        governance_key: Some(
-            GovernanceKey::try_from(VerificationKey::from(spend_key_a.spend_auth_key()))
-                .expect("test validator governance key is nonidentity")
-                .into(),
-        ),
-        consensus_key: vkeys_a.validator_cons_pk.to_bytes(),
-        name: "test".to_string(),
-        website: "https://example.com".to_string(),
-        description: "test".to_string(),
-        enabled: true,
-        sequence_number: 0,
+    let validator = tendermint::validator::Info {
+        address: validator_cons_pk.into(),
+        pub_key: validator_cons_pk,
+        power: Power::try_from(25_000_000_000i64)?,
+        name: Some("test validator".to_owned()),
+        proposer_priority: 0i64.try_into()?,
     };
-
-    // let's only do one validator per chain for now
-    // since it's easier to validate against cometbft
-    genesis_contents
-        .validator_content
-        .validators
-        .push(validator_a.clone());
 
     let genesis = Genesis {
         genesis_time: start_time.clone(),
@@ -169,10 +75,7 @@ pub fn get_verified_genesis() -> Result<Genesis> {
             genesis_contents,
         ))
         .unwrap(),
-        // Set empty validator set for Tendermint config, which falls back to reading
-        // validators from the AppState, via ResponseInitChain:
-        // https://docs.tendermint.com/v0.32/tendermint-core/using-tendermint.html
-        validators: vec![],
+        validators: vec![validator],
     };
 
     Ok(genesis)

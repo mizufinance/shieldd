@@ -1,6 +1,5 @@
 use shieldd_sdk_asset::balance;
 use shieldd_sdk_compliance::structs::{MsgRegisterAsset, MsgRegisterUser};
-use shieldd_sdk_governance::{ProposalSubmit, ValidatorVote};
 use shieldd_sdk_ibc::IbcRelay;
 use shieldd_sdk_shielded_pool::{
     Note, NoteReshape, NoteReshapeView, ShieldedHostWithdrawal, ShieldedHostWithdrawalView,
@@ -13,26 +12,6 @@ use crate::{ActionView, TransactionPerspective};
 pub trait IsAction {
     fn balance_commitment(&self) -> balance::Commitment;
     fn view_from_perspective(&self, txp: &TransactionPerspective) -> ActionView;
-}
-
-impl IsAction for ProposalSubmit {
-    fn balance_commitment(&self) -> balance::Commitment {
-        self.balance().commit(decaf377::Fr::from(0u64))
-    }
-
-    fn view_from_perspective(&self, _txp: &TransactionPerspective) -> ActionView {
-        ActionView::ProposalSubmit(self.to_owned())
-    }
-}
-
-impl IsAction for ValidatorVote {
-    fn balance_commitment(&self) -> balance::Commitment {
-        Default::default()
-    }
-
-    fn view_from_perspective(&self, _txp: &TransactionPerspective) -> ActionView {
-        ActionView::ValidatorVote(self.to_owned())
-    }
 }
 
 impl IsAction for Transfer {
@@ -326,16 +305,6 @@ impl IsAction for ShieldedHostWithdrawal {
                 withdrawal: self.to_owned(),
             }),
         }
-    }
-}
-
-impl IsAction for shieldd_sdk_validator::validator::Definition {
-    fn balance_commitment(&self) -> balance::Commitment {
-        Default::default()
-    }
-
-    fn view_from_perspective(&self, _txp: &TransactionPerspective) -> ActionView {
-        ActionView::ValidatorDefinition(self.clone())
     }
 }
 

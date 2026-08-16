@@ -14,7 +14,7 @@ use termion::screen::IntoAlternateScreen;
 use url::Url;
 
 use crate::{
-    config::{CustodyConfig, GovernanceCustodyConfig, PcliConfig},
+    config::{CustodyConfig, PcliConfig},
     terminal::ActualTerminal,
 };
 
@@ -47,10 +47,6 @@ pub enum InitTopSubCmd {
     /// Initialize `pcli` in view-only mode, without spending keys.
     #[clap(display_order = 200)]
     ViewOnly {},
-    /// Initialize a separate validator governance key for an existing `pcli` configuration (this
-    /// option is only meaningful for validators).
-    #[clap(subcommand, display_order = 300)]
-    ValidatorGovernanceSubkey(InitSubCmd),
     /// Wipe all `pcli` configuration and data, INCLUDING KEYS.
     #[clap(display_order = 900)]
     UnsafeWipe {},
@@ -64,8 +60,7 @@ pub enum InitSubCmd {
     /// Initialize using a manual threshold signing backend.
     #[clap(subcommand, display_order = 150)]
     Threshold(ThresholdInitCmd),
-    // This is not accessible directly by the user, because it's impermissible to initialize the
-    // governance subkey as view-only.
+    // This is selected by the top-level view-only command.
     #[clap(skip, display_order = 200)]
     ViewOnly,
     /// Initialize using a ledger hardware wallet.
@@ -119,12 +114,12 @@ fn prompt_for_password(msg: &str) -> Result<String> {
 }
 
 impl SoftKmsInitCmd {
-    fn spend_key(&self, init_type: InitType) -> Result<SpendKey> {
+    fn spend_key(&self) -> Result<SpendKey> {
         match self {
             SoftKmsInitCmd::Generate { stdout } => {
                 let seed_phrase = SeedPhrase::generate(OsRng);
                 let seed_msg = format!(
-                    "YOUR PRIVATE SEED PHRASE ({init_type:?}):\n\n\
+                    "YOUR PRIVATE SEED PHRASE:\n\n\
                    {seed_phrase}\n\n\
                    Save this in a safe place!\n\
                    DO NOT SHARE WITH ANYONE!\n"
@@ -196,32 +191,16 @@ pub enum ThresholdInitCmd {
     },
 }
 
-fn exec_deal(
-    init_type: InitType,
-    threshold: u16,
-    home: Vec<Utf8PathBuf>,
-    grpc_url: Url,
-) -> Result<()> {
+fn exec_deal(threshold: u16, home: Vec<Utf8PathBuf>, grpc_url: Url) -> Result<()> {
     if threshold < 2 {
         anyhow::bail!("threshold must be >= 2");
     }
     let n = home.len() as u16;
 
-    // Check before doing anything to make sure that files don't exist (spend key case) or that the
-    // governance key is missing in all of them (governance key case) -- we do this check first so
-    // that we don't write partial results if we would fail partway through (though we *also* check
-    // partway through to reduce chances of a race where we'd overwrite data)
+    // Check before doing anything so we don't write partial results if a config exists.
     for config_path in home.iter() {
         let config_path = config_path.join(crate::CONFIG_FILE_NAME);
-        if let InitType::GovernanceKey = init_type {
-            let config = PcliConfig::load(&config_path)?;
-            if config.governance_custody.is_some() {
-                anyhow::bail!(
-                    "governance key already exists in config file at {:?}; refusing to overwrite it",
-                    config_path
-                );
-            }
-        } else if config_path.exists() {
+        if config_path.exists() {
             anyhow::bail!(
                 "config file already exists at {:?}; refusing to overwrite it",
                 config_path
@@ -235,25 +214,12 @@ fn exec_deal(
     for (i, (config, config_path)) in configs.into_iter().zip(home.iter()).enumerate() {
         let full_viewing_key = config.fvk().clone();
 
-        let config = if let InitType::WalletKey = init_type {
-            PcliConfig {
-                custody: CustodyConfig::Threshold(config),
-                full_viewing_key,
-                grpc_url: grpc_url.clone(),
-                view_url: None,
-                disable_warning: false,
-                governance_custody: None,
-            }
-        } else {
-            let mut pcli_config = PcliConfig::load(config_path.join(crate::CONFIG_FILE_NAME))?;
-            if pcli_config.governance_custody.is_some() {
-                anyhow::bail!(
-                    "governance key already exists in config file at {:?}; refusing to overwrite it",
-                    config_path
-                );
-            }
-            pcli_config.governance_custody = Some(GovernanceCustodyConfig::Threshold(config));
-            pcli_config
+        let config = PcliConfig {
+            custody: CustodyConfig::Threshold(config),
+            full_viewing_key,
+            grpc_url: grpc_url.clone(),
+            view_url: None,
+            disable_warning: false,
         };
 
         println!("  Writing signer {} config to {}", i, config_path);
@@ -263,21 +229,11 @@ fn exec_deal(
     Ok(())
 }
 
-/// Which kind of initialization are we doing?
-#[derive(Clone, Debug, Copy)]
-enum InitType {
-    /// Initialize from scratch with a full-access wallet key.
-    WalletKey,
-    /// Add a governance key to an existing configuration.
-    GovernanceKey,
-}
-
 impl InitCmd {
     pub async fn exec(&self, home_dir: impl AsRef<camino::Utf8Path>) -> Result<()> {
-        let (init_type, subcmd) = match self.subcmd.clone() {
-            InitTopSubCmd::Wallet(subcmd) => (InitType::WalletKey, subcmd),
-            InitTopSubCmd::ValidatorGovernanceSubkey(subcmd) => (InitType::GovernanceKey, subcmd),
-            InitTopSubCmd::ViewOnly {} => (InitType::WalletKey, InitSubCmd::ViewOnly),
+        let subcmd = match self.subcmd.clone() {
+            InitTopSubCmd::Wallet(subcmd) => subcmd,
+            InitTopSubCmd::ViewOnly {} => InitSubCmd::ViewOnly,
             InitTopSubCmd::UnsafeWipe {} => {
                 println!("Deleting all data in {}...", home_dir.as_ref());
                 std::fs::remove_dir_all(home_dir.as_ref())?;
@@ -286,12 +242,7 @@ impl InitCmd {
         };
 
         if let InitSubCmd::Threshold(ThresholdInitCmd::Deal { threshold, home }) = &subcmd {
-            exec_deal(
-                init_type,
-                threshold.clone(),
-                home.clone(),
-                self.grpc_url.clone(),
-            )?;
+            exec_deal(threshold.clone(), home.clone(), self.grpc_url.clone())?;
             return Ok(());
         }
         let home_dir = home_dir.as_ref();
@@ -304,16 +255,11 @@ impl InitCmd {
                 None
             }
         };
-        let relevant_config_exists = match &init_type {
-            InitType::WalletKey => existing_config.is_some(),
-            InitType::GovernanceKey => existing_config
-                .as_ref()
-                .is_some_and(|x| x.governance_custody.is_some()),
-        };
+        let relevant_config_exists = existing_config.is_some();
 
-        let (full_viewing_key, custody) = match (&init_type, &subcmd, relevant_config_exists) {
-            (_, InitSubCmd::SoftKms(cmd), false) => {
-                let spend_key = cmd.spend_key(init_type)?;
+        let (full_viewing_key, custody) = match (&subcmd, relevant_config_exists) {
+            (InitSubCmd::SoftKms(cmd), false) => {
+                let spend_key = cmd.spend_key()?;
                 (
                     spend_key.full_viewing_key().clone(),
                     if self.encrypted {
@@ -328,7 +274,6 @@ impl InitCmd {
                 )
             }
             (
-                _,
                 InitSubCmd::Threshold(ThresholdInitCmd::Dkg {
                     threshold,
                     num_participants,
@@ -350,34 +295,19 @@ impl InitCmd {
                 };
                 (fvk, custody_config)
             }
-            (_, InitSubCmd::Threshold(ThresholdInitCmd::Deal { .. }), _) => {
+            (InitSubCmd::Threshold(ThresholdInitCmd::Deal { .. }), _) => {
                 unreachable!("this should already have been handled above")
             }
-            (InitType::WalletKey, InitSubCmd::ViewOnly {}, false) => {
+            (InitSubCmd::ViewOnly {}, false) => {
                 let full_viewing_key = prompt_for_password("Enter full viewing key: ")?
                     .parse()
                     .context("failed to parse input as FullViewingKey")?;
                 (full_viewing_key, CustodyConfig::ViewOnly)
             }
-            (InitType::GovernanceKey, InitSubCmd::ViewOnly { .. }, false) => {
-                unreachable!("governance keys can't be initialized in view-only mode")
-            }
-            (typ, InitSubCmd::ReEncrypt, true) => {
+            (InitSubCmd::ReEncrypt, true) => {
                 let config = existing_config.expect("the config should exist in this branch");
                 let fvk = config.full_viewing_key;
-                let custody = match typ {
-                    InitType::WalletKey => config.custody,
-                    InitType::GovernanceKey => match config
-                        .governance_custody
-                        .expect("the governence custody should exist in this branch")
-                    {
-                        GovernanceCustodyConfig::SoftKms(c) => CustodyConfig::SoftKms(c),
-                        GovernanceCustodyConfig::Threshold(c) => CustodyConfig::Threshold(c),
-                        GovernanceCustodyConfig::Encrypted { config, .. } => {
-                            CustodyConfig::Encrypted(config)
-                        }
-                    },
-                };
+                let custody = config.custody;
                 let custody = match custody {
                     x @ CustodyConfig::ViewOnly => x,
                     x @ CustodyConfig::Encrypted(_) => x,
@@ -402,68 +332,35 @@ impl InitCmd {
                 };
                 (fvk, custody)
             }
-            (_, InitSubCmd::ReEncrypt, false) => {
+            (InitSubCmd::ReEncrypt, false) => {
                 anyhow::bail!("re-encrypt requires existing config to exist",);
             }
             #[cfg(feature = "ledger")]
-            (InitType::WalletKey, InitSubCmd::Ledger, false) => {
+            (InitSubCmd::Ledger, false) => {
                 let config = ledger::Config::initialize(ledger::InitOptions::default()).await?;
                 let service = ledger::Service::new(config.clone());
                 let fvk = service.impl_export_full_viewing_key().await?;
                 (fvk, CustodyConfig::Ledger(config))
             }
-            #[cfg(feature = "ledger")]
-            (InitType::GovernanceKey, InitSubCmd::Ledger, false) => {
-                anyhow::bail!("governance keys are not supported on ledger devices");
-            }
-            (InitType::WalletKey, _, true) => {
+            (_, true) => {
                 anyhow::bail!(
                     "home directory {:?} is not empty; refusing to initialize",
                     home_dir
                 );
             }
-            (InitType::GovernanceKey, _, true) => {
-                anyhow::bail!(
-                        "governance key already exists in config file at {:?}; refusing to overwrite it",
-                        home_dir
-                    );
-            }
         };
 
-        let config = if let InitType::WalletKey = init_type {
-            PcliConfig {
-                custody,
-                full_viewing_key,
-                grpc_url: self.grpc_url.clone(),
-                view_url: None,
-                disable_warning: false,
-                governance_custody: None,
-            }
-        } else {
-            let config_path = home_dir.join(crate::CONFIG_FILE_NAME);
-            let mut config = PcliConfig::load(config_path)?;
-            let governance_custody = match custody {
-                CustodyConfig::SoftKms(config) => GovernanceCustodyConfig::SoftKms(config),
-                CustodyConfig::Threshold(config) => GovernanceCustodyConfig::Threshold(config),
-                CustodyConfig::Encrypted(config) => GovernanceCustodyConfig::Encrypted {
-                    fvk: full_viewing_key,
-                    config,
-                },
-                _ => unreachable!("governance keys can't be initialized in view-only mode"),
-            };
-            config.governance_custody = Some(governance_custody);
-            config
+        let config = PcliConfig {
+            custody,
+            full_viewing_key,
+            grpc_url: self.grpc_url.clone(),
+            view_url: None,
+            disable_warning: false,
         };
 
         let config_path = home_dir.join(crate::CONFIG_FILE_NAME);
         println!("Writing generated config to {}", config_path);
         config.save(config_path)?;
-
-        if let InitType::GovernanceKey = init_type {
-            println!("\nIf you defined a validator on-chain before initializing this separate governance subkey, you need to update its definition to use your new public governance key:\n");
-            println!("  governance_key = \"{}\"", config.governance_key());
-            println!("\nUntil you do this, your validator will not be able to vote on governance proposals, so it's best to do it at your earliest convenience.")
-        }
 
         Ok(())
     }

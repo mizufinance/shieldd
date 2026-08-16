@@ -16,10 +16,7 @@ use crate::{ActionView, IsAction, TransactionPerspective};
 pub enum Action {
     Transfer(shieldd_sdk_shielded_pool::Transfer),
     NoteReshape(shieldd_sdk_shielded_pool::NoteReshape),
-    ValidatorDefinition(shieldd_sdk_validator::validator::Definition),
     IbcRelay(shieldd_sdk_ibc::IbcRelay),
-    ProposalSubmit(shieldd_sdk_governance::ProposalSubmit),
-    ValidatorVote(shieldd_sdk_governance::ValidatorVote),
     ShieldedIcs20Withdrawal(shieldd_sdk_shielded_pool::ShieldedIcs20Withdrawal),
     ShieldedHostWithdrawal(shieldd_sdk_shielded_pool::ShieldedHostWithdrawal),
     ComplianceRegisterAsset(MsgRegisterAsset),
@@ -32,9 +29,6 @@ impl EffectingData for Action {
         match self {
             Action::Transfer(transfer) => transfer.effect_hash(),
             Action::NoteReshape(note_reshape) => note_reshape.effect_hash(),
-            Action::ProposalSubmit(submit) => submit.effect_hash(),
-            Action::ValidatorVote(vote) => vote.effect_hash(),
-            Action::ValidatorDefinition(defn) => defn.effect_hash(),
             Action::IbcRelay(payload) => payload.effect_hash(),
             Action::ShieldedIcs20Withdrawal(withdrawal) => withdrawal.effect_hash(),
             Action::ShieldedHostWithdrawal(withdrawal) => withdrawal.effect_hash(),
@@ -63,13 +57,10 @@ impl Action {
         match self {
             Action::Transfer(_) => tracing::info_span!("Transfer", ?idx),
             Action::NoteReshape(_) => tracing::info_span!("NoteReshape", ?idx),
-            Action::ValidatorDefinition(_) => tracing::info_span!("ValidatorDefinition", ?idx),
             Action::IbcRelay(msg) => {
                 let action_span = tracing::info_span!("IbcAction", ?idx);
                 msg.create_span(&action_span)
             }
-            Action::ProposalSubmit(_) => tracing::info_span!("ProposalSubmit", ?idx),
-            Action::ValidatorVote(_) => tracing::info_span!("ValidatorVote", ?idx),
             Action::ShieldedIcs20Withdrawal(_) => {
                 tracing::info_span!("ShieldedIcs20Withdrawal", ?idx)
             }
@@ -91,10 +82,7 @@ impl Action {
         match self {
             Action::Transfer(_) => 5,
             Action::NoteReshape(_) => 6,
-            Action::ValidatorDefinition(_) => 16,
             Action::IbcRelay(_) => 17,
-            Action::ProposalSubmit(_) => 18,
-            Action::ValidatorVote(_) => 20,
             Action::ComplianceRegisterAsset(_) => 80,
             Action::ComplianceRegisterUser(_) => 81,
             Action::AggregateBundle(_) => 82,
@@ -109,12 +97,9 @@ impl IsAction for Action {
         match self {
             Action::Transfer(transfer) => transfer.balance_commitment(),
             Action::NoteReshape(note_reshape) => note_reshape.balance_commitment(),
-            Action::ProposalSubmit(submit) => submit.balance_commitment(),
-            Action::ValidatorVote(vote) => vote.balance_commitment(),
             Action::ShieldedIcs20Withdrawal(withdrawal) => withdrawal.balance_commitment(),
             Action::ShieldedHostWithdrawal(withdrawal) => withdrawal.balance_commitment(),
             Action::IbcRelay(action) => action.balance_commitment(),
-            Action::ValidatorDefinition(_) => balance::Commitment::default(),
             Action::ComplianceRegisterAsset(_) => balance::Commitment::default(),
             Action::ComplianceRegisterUser(_) => balance::Commitment::default(),
             Action::AggregateBundle(_) => balance::Commitment::default(),
@@ -125,13 +110,8 @@ impl IsAction for Action {
         match self {
             Action::Transfer(action) => action.view_from_perspective(txp),
             Action::NoteReshape(action) => action.view_from_perspective(txp),
-            Action::ProposalSubmit(action) => action.view_from_perspective(txp),
-            Action::ValidatorVote(action) => action.view_from_perspective(txp),
             Action::ShieldedIcs20Withdrawal(action) => action.view_from_perspective(txp),
             Action::ShieldedHostWithdrawal(action) => action.view_from_perspective(txp),
-            Action::ValidatorDefinition(action) => {
-                ActionView::ValidatorDefinition(action.to_owned())
-            }
             Action::IbcRelay(action) => ActionView::IbcRelay(action.to_owned()),
             Action::ComplianceRegisterAsset(action) => {
                 ActionView::ComplianceRegisterAsset(action.to_owned())
@@ -157,17 +137,8 @@ impl From<Action> for pb::Action {
             Action::NoteReshape(inner) => pb::Action {
                 action: Some(pb::action::Action::NoteReshape(inner.into())),
             },
-            Action::ValidatorDefinition(inner) => pb::Action {
-                action: Some(pb::action::Action::ValidatorDefinition(inner.into())),
-            },
             Action::IbcRelay(inner) => pb::Action {
                 action: Some(pb::action::Action::IbcRelayAction(inner.into())),
-            },
-            Action::ProposalSubmit(inner) => pb::Action {
-                action: Some(pb::action::Action::ProposalSubmit(inner.into())),
-            },
-            Action::ValidatorVote(inner) => pb::Action {
-                action: Some(pb::action::Action::ValidatorVote(inner.into())),
             },
             Action::ShieldedIcs20Withdrawal(inner) => pb::Action {
                 action: Some(pb::action::Action::ShieldedIcs20Withdrawal(inner.into())),
@@ -203,16 +174,7 @@ impl TryFrom<pb::Action> for Action {
         {
             pb::action::Action::Transfer(inner) => Ok(Action::Transfer(inner.try_into()?)),
             pb::action::Action::NoteReshape(inner) => Ok(Action::NoteReshape(inner.try_into()?)),
-            pb::action::Action::ValidatorDefinition(inner) => {
-                Ok(Action::ValidatorDefinition(inner.try_into()?))
-            }
             pb::action::Action::IbcRelayAction(inner) => Ok(Action::IbcRelay(inner.try_into()?)),
-            pb::action::Action::ProposalSubmit(inner) => {
-                Ok(Action::ProposalSubmit(inner.try_into()?))
-            }
-            pb::action::Action::ValidatorVote(inner) => {
-                Ok(Action::ValidatorVote(inner.try_into()?))
-            }
             pb::action::Action::ShieldedIcs20Withdrawal(inner) => {
                 Ok(Action::ShieldedIcs20Withdrawal(inner.try_into()?))
             }

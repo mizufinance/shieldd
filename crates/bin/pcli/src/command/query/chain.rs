@@ -1,21 +1,13 @@
 use anyhow::{anyhow, Context, Result};
 use comfy_table::{presets, Table};
-use futures::TryStreamExt;
 use shieldd_sdk_app::params::AppParameters;
 use shieldd_sdk_proto::{
     core::{
         app::v1::{
             query_service_client::QueryServiceClient as AppQueryServiceClient, AppParametersRequest,
         },
-        component::{
-            sct::v1::{
-                query_service_client::QueryServiceClient as SctQueryServiceClient,
-                EpochByHeightRequest,
-            },
-            validator::v1::{
-                query_service_client::QueryServiceClient as ValidatorQueryServiceClient,
-                ValidatorInfoRequest,
-            },
+        component::sct::v1::{
+            query_service_client::QueryServiceClient as SctQueryServiceClient, EpochByHeightRequest,
         },
     },
     util::tendermint_proxy::v1::{
@@ -24,7 +16,6 @@ use shieldd_sdk_proto::{
     },
     Message,
 };
-use shieldd_sdk_validator::validator;
 
 use crate::App;
 
@@ -44,12 +35,6 @@ pub enum ChainCmd {
 pub struct Stats {
     current_block_height: u64,
     current_epoch: u64,
-    total_validators: u64,
-    active_validators: u64,
-    inactive_validators: u64,
-    jailed_validators: u64,
-    tombstoned_validators: u64,
-    disabled_validators: u64,
 }
 
 impl ChainCmd {
@@ -93,51 +78,9 @@ impl ChainCmd {
             .context("failed to find EpochByHeight message")?
             .index;
 
-        // Fetch validators.
-        let mut client = ValidatorQueryServiceClient::new(channel.clone());
-        let validators = client
-            .validator_info(ValidatorInfoRequest {
-                show_inactive: true,
-            })
-            .await?
-            .into_inner()
-            .try_collect::<Vec<_>>()
-            .await?
-            .into_iter()
-            .map(TryInto::try_into)
-            .collect::<Result<Vec<validator::Info>, _>>()?;
-
-        let total_validators = validators.len() as u64;
-        let active_validators = validators
-            .iter()
-            .filter(|v| v.status.state == validator::State::Active)
-            .count() as u64;
-        let inactive_validators = validators
-            .iter()
-            .filter(|v| v.status.state == validator::State::Inactive)
-            .count() as u64;
-        let jailed_validators = validators
-            .iter()
-            .filter(|v| v.status.state == validator::State::Jailed)
-            .count() as u64;
-        let tombstoned_validators = validators
-            .iter()
-            .filter(|v| v.status.state == validator::State::Tombstoned)
-            .count() as u64;
-        let disabled_validators = validators
-            .iter()
-            .filter(|v| v.status.state == validator::State::Disabled)
-            .count() as u64;
-
         Ok(Stats {
             current_block_height,
             current_epoch,
-            total_validators,
-            active_validators,
-            inactive_validators,
-            jailed_validators,
-            tombstoned_validators,
-            disabled_validators,
         })
     }
 
@@ -210,31 +153,7 @@ impl ChainCmd {
                         "Current Block Height",
                         &format!("{}", stats.current_block_height),
                     ])
-                    .add_row(vec!["Current Epoch", &format!("{}", stats.current_epoch)])
-                    .add_row(vec![
-                        "Total Validators",
-                        &format!("{}", stats.total_validators),
-                    ])
-                    .add_row(vec![
-                        "Active Validators",
-                        &format!("{}", stats.active_validators),
-                    ])
-                    .add_row(vec![
-                        "Inactive Validators",
-                        &format!("{}", stats.inactive_validators),
-                    ])
-                    .add_row(vec![
-                        "Jailed Validators",
-                        &format!("{}", stats.jailed_validators),
-                    ])
-                    .add_row(vec![
-                        "Tombstoned Validators",
-                        &format!("{}", stats.tombstoned_validators),
-                    ])
-                    .add_row(vec![
-                        "Disabled Validators",
-                        &format!("{}", stats.disabled_validators),
-                    ]);
+                    .add_row(vec!["Current Epoch", &format!("{}", stats.current_epoch)]);
 
                 println!("{table}");
             }

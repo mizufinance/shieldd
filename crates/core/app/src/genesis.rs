@@ -1,12 +1,10 @@
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_compliance::genesis::Content as ComplianceContent;
 use shieldd_sdk_fee::genesis::Content as FeeContent;
-use shieldd_sdk_governance::genesis::Content as GovernanceContent;
 use shieldd_sdk_ibc::genesis::Content as IBCContent;
 use shieldd_sdk_proto::{shieldd::core::app::v1 as pb, DomainType};
 use shieldd_sdk_sct::genesis::Content as SctContent;
 use shieldd_sdk_shielded_pool::genesis::Content as ShieldedPoolContent;
-use shieldd_sdk_validator::genesis::Content as ValidatorContent;
 
 /// The application state at genesis.
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -37,16 +35,12 @@ pub struct Content {
     pub fee_content: FeeContent,
     /// Compliance module genesis state.
     pub compliance_content: ComplianceContent,
-    /// Governance module genesis state.
-    pub governance_content: GovernanceContent,
     /// IBC module genesis state.
     pub ibc_content: IBCContent,
     // Sct module genesis state.
     pub sct_content: SctContent,
     /// Shielded pool module genesis state.
     pub shielded_pool_content: ShieldedPoolContent,
-    /// Validator component genesis state.
-    pub validator_content: ValidatorContent,
 }
 
 impl DomainType for Content {
@@ -80,11 +74,9 @@ impl From<Content> for pb::GenesisContent {
             chain_id: genesis.chain_id,
             fee_content: Some(genesis.fee_content.into()),
             compliance_content: Some(genesis.compliance_content.into()),
-            governance_content: Some(genesis.governance_content.into()),
             ibc_content: Some(genesis.ibc_content.into()),
             sct_content: Some(genesis.sct_content.into()),
             shielded_pool_content: Some(genesis.shielded_pool_content.into()),
-            validator_content: Some(genesis.validator_content.into()),
         }
     }
 }
@@ -113,10 +105,6 @@ impl TryFrom<pb::GenesisContent> for Content {
     fn try_from(msg: pb::GenesisContent) -> Result<Self, Self::Error> {
         Ok(Content {
             chain_id: msg.chain_id,
-            governance_content: msg
-                .governance_content
-                .ok_or_else(|| anyhow::anyhow!("proto response missing governance content"))?
-                .try_into()?,
             fee_content: msg
                 .fee_content
                 .ok_or_else(|| anyhow::anyhow!("proto response missing fee content"))?
@@ -137,10 +125,6 @@ impl TryFrom<pb::GenesisContent> for Content {
             shielded_pool_content: msg
                 .shielded_pool_content
                 .ok_or_else(|| anyhow::anyhow!("proto response missing shielded pool content"))?
-                .try_into()?,
-            validator_content: msg
-                .validator_content
-                .ok_or_else(|| anyhow::anyhow!("proto response missing validator content"))?
                 .try_into()?,
         })
     }
@@ -171,19 +155,6 @@ impl Content {
 #[cfg(test)]
 mod test {
     use super::*;
-    /// Check that the default implementation of contains zero validators,
-    /// requiring validators to be passed in out of band. N.B. there's also a
-    /// `validators` field in the [`tendermint::Genesis`] struct, which we don't use,
-    /// preferring the AppState definition instead.
-    #[test]
-    fn check_validator_defaults() -> anyhow::Result<()> {
-        let a = Content {
-            ..Default::default()
-        };
-        assert!(a.validator_content.validators.is_empty());
-        Ok(())
-    }
-
     #[test]
     fn missing_compliance_content_uses_default() -> anyhow::Result<()> {
         let mut proto: pb::GenesisContent = Content::default().into();

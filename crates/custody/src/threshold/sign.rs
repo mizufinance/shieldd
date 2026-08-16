@@ -10,11 +10,6 @@ use shieldd_sdk_keys::FullViewingKey;
 
 use decaf377_frost as frost;
 use frost::round1::SigningCommitments;
-use shieldd_sdk_proto::core::component::{
-    governance::v1::ProposalSubmitBody as ProtoProposalSubmitBody,
-    governance::v1::ValidatorVoteBody as ProtoValidatorVoteBody,
-    validator::v1::Validator as ProtoValidator,
-};
 use shieldd_sdk_proto::{shieldd::custody::threshold::v1 as pb, DomainType, Message};
 use shieldd_sdk_transaction::{AuthorizationData, TransactionPlan};
 use shieldd_sdk_txhash::EffectHash;
@@ -42,25 +37,9 @@ impl CoordinatorRound1 {
 
 impl From<CoordinatorRound1> for pb::CoordinatorRound1 {
     fn from(value: CoordinatorRound1) -> Self {
-        match value.request {
-            SigningRequest::TransactionPlan(plan) => Self {
-                request: Some(pb::coordinator_round1::Request::Plan(plan.into())),
-            },
-            SigningRequest::ValidatorDefinition(validator) => Self {
-                request: Some(pb::coordinator_round1::Request::ValidatorDefinition(
-                    ProtoValidator::from(validator).into(),
-                )),
-            },
-            SigningRequest::ValidatorVote(vote) => Self {
-                request: Some(pb::coordinator_round1::Request::ValidatorVote(
-                    ProtoValidatorVoteBody::from(vote).into(),
-                )),
-            },
-            SigningRequest::ProposalSubmit(proposal_submit) => Self {
-                request: Some(pb::coordinator_round1::Request::ProposalSubmit(
-                    ProtoProposalSubmitBody::from(proposal_submit).into(),
-                )),
-            },
+        let SigningRequest::TransactionPlan(plan) = value.request;
+        Self {
+            request: Some(pb::coordinator_round1::Request::Plan(plan.into())),
         }
     }
 }
@@ -75,15 +54,6 @@ impl TryFrom<pb::CoordinatorRound1> for CoordinatorRound1 {
         {
             pb::coordinator_round1::Request::Plan(plan) => Ok(Self {
                 request: SigningRequest::TransactionPlan(plan.try_into()?),
-            }),
-            pb::coordinator_round1::Request::ValidatorDefinition(def) => Ok(Self {
-                request: SigningRequest::ValidatorDefinition(def.try_into()?),
-            }),
-            pb::coordinator_round1::Request::ValidatorVote(vote) => Ok(Self {
-                request: SigningRequest::ValidatorVote(vote.try_into()?),
-            }),
-            pb::coordinator_round1::Request::ProposalSubmit(proposal_submit) => Ok(Self {
-                request: SigningRequest::ProposalSubmit(proposal_submit.try_into()?),
             }),
         }
     }
@@ -328,12 +298,8 @@ impl DomainType for FollowerRound2 {
 ///
 /// A plan can require more than one signature, hence the need for this method.
 fn required_signatures(request: &SigningRequest) -> usize {
-    match request {
-        SigningRequest::TransactionPlan(plan) => plan.num_spends(),
-        SigningRequest::ValidatorDefinition(_) => 1,
-        SigningRequest::ValidatorVote(_) => 1,
-        SigningRequest::ProposalSubmit(_) => 1,
-    }
+    let SigningRequest::TransactionPlan(plan) = request;
+    plan.num_spends()
 }
 
 fn spend_randomizers(plan: &TransactionPlan) -> impl Iterator<Item = decaf377::Fr> + '_ {
@@ -377,41 +343,18 @@ pub struct CoordinatorState2 {
     signing_packages: Vec<frost::SigningPackage>,
 }
 
-enum ToBeSigned {
-    EffectHash(EffectHash),
-    ValidatorDefinitionBytes(Vec<u8>),
-    ValidatorVoteBytes(Vec<u8>),
-    ProposalSubmitBytes(Vec<u8>),
-}
+struct ToBeSigned(EffectHash);
 
 impl SigningRequest {
     fn to_be_signed(&self, config: &Config) -> Result<ToBeSigned> {
-        let out = match self {
-            SigningRequest::TransactionPlan(plan) => {
-                ToBeSigned::EffectHash(plan.effect_hash(config.fvk())?)
-            }
-            SigningRequest::ValidatorDefinition(validator) => ToBeSigned::ValidatorDefinitionBytes(
-                ProtoValidator::from(validator.clone()).encode_to_vec(),
-            ),
-            SigningRequest::ValidatorVote(vote) => ToBeSigned::ValidatorVoteBytes(
-                ProtoValidatorVoteBody::from(vote.clone()).encode_to_vec(),
-            ),
-            SigningRequest::ProposalSubmit(proposal_submit) => ToBeSigned::ProposalSubmitBytes(
-                ProtoProposalSubmitBody::from(proposal_submit.clone()).encode_to_vec(),
-            ),
-        };
-        Ok(out)
+        let SigningRequest::TransactionPlan(plan) = self;
+        Ok(ToBeSigned(plan.effect_hash(config.fvk())?))
     }
 }
 
 impl AsRef<[u8]> for ToBeSigned {
     fn as_ref(&self) -> &[u8] {
-        match self {
-            ToBeSigned::EffectHash(x) => x.as_ref(),
-            ToBeSigned::ValidatorDefinitionBytes(x) => x.as_slice(),
-            ToBeSigned::ValidatorVoteBytes(x) => x.as_slice(),
-            ToBeSigned::ProposalSubmitBytes(x) => x.as_slice(),
-        }
+        self.0.as_ref()
     }
 }
 
@@ -502,70 +445,23 @@ pub fn coordinator_round3(
         }
     }
 
-    match state.request {
-        SigningRequest::TransactionPlan(plan) => {
-            let spend_auths = spend_randomizers(&plan)
-                .zip(share_maps.iter())
-                .zip(state.signing_packages.iter())
-                .map(|((randomizer, share_map), signing_package)| {
-                    frost::aggregate_randomized(
-                        signing_package,
-                        &share_map,
-                        &config.public_key_package(),
-                        randomizer,
-                    )
-                })
-                .collect::<Result<Vec<_>, _>>()?;
-            Ok(SigningResponse::Transaction(AuthorizationData {
-                effect_hash: {
-                    let ToBeSigned::EffectHash(effect_hash) = state.to_be_signed else {
-                        unreachable!("transaction plan request has non-effect-hash to be signed");
-                    };
-                    Some(effect_hash)
-                },
-                spend_auths,
-            }))
-        }
-        SigningRequest::ValidatorDefinition(_) => {
-            let validator_definition_auth = share_maps
-                .get(0)
-                .ok_or_else(|| anyhow!("missing signature for validator definition"))?;
-            Ok(SigningResponse::ValidatorDefinition(frost::aggregate(
-                &state
-                    .signing_packages
-                    .get(0)
-                    .expect("same number of signing packages as signatures"),
-                &validator_definition_auth,
+    let SigningRequest::TransactionPlan(plan) = state.request;
+    let spend_auths = spend_randomizers(&plan)
+        .zip(share_maps.iter())
+        .zip(state.signing_packages.iter())
+        .map(|((randomizer, share_map), signing_package)| {
+            frost::aggregate_randomized(
+                signing_package,
+                share_map,
                 &config.public_key_package(),
-            )?))
-        }
-        SigningRequest::ValidatorVote(_) => {
-            let validator_vote_auth = share_maps
-                .get(0)
-                .ok_or_else(|| anyhow!("missing signature for validator vote"))?;
-            Ok(SigningResponse::ValidatorVote(frost::aggregate(
-                &state
-                    .signing_packages
-                    .get(0)
-                    .expect("same number of signing packages as signatures"),
-                &validator_vote_auth,
-                &config.public_key_package(),
-            )?))
-        }
-        SigningRequest::ProposalSubmit(_) => {
-            let proposal_submit_auth = share_maps
-                .get(0)
-                .ok_or_else(|| anyhow!("missing signature for proposal submit"))?;
-            Ok(SigningResponse::ProposalSubmit(frost::aggregate(
-                &state
-                    .signing_packages
-                    .get(0)
-                    .expect("same number of signing packages as signatures"),
-                proposal_submit_auth,
-                &config.public_key_package(),
-            )?))
-        }
-    }
+                randomizer,
+            )
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(SigningResponse::Transaction(AuthorizationData {
+        effect_hash: Some(state.to_be_signed.0),
+        spend_auths,
+    }))
 }
 
 pub fn follower_round1(
@@ -596,32 +492,18 @@ pub fn follower_round2(
         .into_iter()
         .map(|tree| frost::SigningPackage::new(tree, to_be_signed.as_ref()));
 
-    match state.request {
-        SigningRequest::TransactionPlan(plan) => {
-            let shares = spend_randomizers(&plan)
-                .zip(signing_packages)
-                .zip(state.nonces.into_iter())
-                .map(|((randomizer, signing_package), signer_nonces)| {
-                    frost::round2::sign_randomized(
-                        &signing_package,
-                        &signer_nonces,
-                        &config.key_package(),
-                        randomizer,
-                    )
-                })
-                .collect::<Result<_, _>>()?;
-            Ok(FollowerRound2::make(config.signing_key(), shares))
-        }
-        SigningRequest::ValidatorDefinition(_)
-        | SigningRequest::ValidatorVote(_)
-        | SigningRequest::ProposalSubmit(_) => {
-            let shares = signing_packages
-                .zip(state.nonces.into_iter())
-                .map(|(signing_package, signer_nonces)| {
-                    frost::round2::sign(&signing_package, &signer_nonces, &config.key_package())
-                })
-                .collect::<Result<_, _>>()?;
-            Ok(FollowerRound2::make(config.signing_key(), shares))
-        }
-    }
+    let SigningRequest::TransactionPlan(plan) = state.request;
+    let shares = spend_randomizers(&plan)
+        .zip(signing_packages)
+        .zip(state.nonces.into_iter())
+        .map(|((randomizer, signing_package), signer_nonces)| {
+            frost::round2::sign_randomized(
+                &signing_package,
+                &signer_nonces,
+                &config.key_package(),
+                randomizer,
+            )
+        })
+        .collect::<Result<_, _>>()?;
+    Ok(FollowerRound2::make(config.signing_key(), shares))
 }

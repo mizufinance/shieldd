@@ -21,7 +21,7 @@ check_no_match() {
 check_no_match \
   "legacy tx command surface is still present" \
   'SendMulti|Sweep|TxCmd::Send\b|TxCmd::Withdraw\b|InitTopSubCmd::Spend|InitType::SpendKey|min_validator_funding|Invalid swap commitment|swap claim outputs|note_reshape_2x2' \
-  crates/bin/pcli crates/core/app crates/core/component/stake crates/core/component/shielded-pool crates/view proto/shieldd poc \
+  crates/bin/pcli crates/core/app crates/core/component/shielded-pool crates/view proto/shieldd poc \
   -g '!crates/bin/pcli/tests/cli_surface.rs'
 
 check_no_match \

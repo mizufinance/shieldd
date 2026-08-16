@@ -5,7 +5,6 @@ use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, DisplayFromStr};
 #[cfg(feature = "ledger")]
 use shieldd_sdk_custody_ledger_usb::Config as LedgerConfig;
-use shieldd_sdk_validator::GovernanceKey;
 use url::Url;
 
 use shieldd_sdk_custody::{
@@ -30,8 +29,6 @@ pub struct PcliConfig {
     pub full_viewing_key: FullViewingKey,
     /// The custody backend to use.
     pub custody: CustodyConfig,
-    /// The governance custody backend to use.
-    pub governance_custody: Option<GovernanceCustodyConfig>,
 }
 
 impl PcliConfig {
@@ -47,19 +44,6 @@ impl PcliConfig {
         let contents = toml::to_string_pretty(&self)?;
         std::fs::write(path, contents)?;
         Ok(())
-    }
-
-    pub fn governance_key(&self) -> GovernanceKey {
-        let fvk = match &self.governance_custody {
-            Some(GovernanceCustodyConfig::SoftKms(SoftKmsConfig { spend_key, .. })) => {
-                spend_key.full_viewing_key()
-            }
-            Some(GovernanceCustodyConfig::Threshold(threshold_config)) => threshold_config.fvk(),
-            Some(GovernanceCustodyConfig::Encrypted { fvk, .. }) => fvk,
-            None => &self.full_viewing_key,
-        };
-        GovernanceKey::try_from(fvk.spend_verification_key().clone())
-            .expect("full viewing keys have nonidentity spend verification keys")
     }
 }
 
@@ -79,22 +63,6 @@ pub enum CustodyConfig {
     /// A custody service using an external ledger device.
     #[cfg(feature = "ledger")]
     Ledger(LedgerConfig),
-}
-
-/// The governance custody backend to use.
-#[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
-#[serde(tag = "backend")]
-#[allow(clippy::large_enum_variant)]
-pub enum GovernanceCustodyConfig {
-    /// A software key management service.
-    SoftKms(SoftKmsConfig),
-    /// A manual threshold custody service.
-    Threshold(ThresholdConfig),
-    /// An encrypted custody service.
-    Encrypted {
-        fvk: FullViewingKey,
-        config: EncryptedConfig,
-    },
 }
 
 impl Default for CustodyConfig {
@@ -128,7 +96,6 @@ mod tests {
             custody: CustodyConfig::SoftKms(SoftKmsConfig::from(
                 shieldd_sdk_keys::test_keys::SPEND_KEY.clone(),
             )),
-            governance_custody: None,
         };
 
         let mut config2 = config.clone();

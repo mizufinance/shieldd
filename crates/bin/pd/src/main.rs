@@ -18,7 +18,7 @@ use decaf377_rdsa::{SpendAuth, VerificationKey};
 use metrics_exporter_prometheus::PrometheusBuilder;
 use pd::{
     cli::{MigrateCommand, NetworkCommand, Opt, RootCommand},
-    migrate::Migration::{IbcClientRecovery, NoOp, ReadyToStart},
+    migrate::Migration::{IbcClientRecovery, NoOp},
     network::{
         config::{get_network_dir, parse_tm_address, url_has_necessary_parts},
         generate::NetworkConfig,
@@ -384,7 +384,6 @@ async fn main() -> anyhow::Result<()> {
                     peer_address_template,
                     timeout_commit,
                     epoch_duration,
-                    active_validator_limit,
                     allocations_input_file,
                     allocation_address,
                     validators_input_file,
@@ -393,7 +392,6 @@ async fn main() -> anyhow::Result<()> {
                     compliance_registrar_vk_hex,
                     preserve_chain_id,
                     external_addresses,
-                    proposal_voting_blocks,
                     tendermint_rpc_bind,
                     tendermint_p2p_bind,
                 },
@@ -455,16 +453,14 @@ async fn main() -> anyhow::Result<()> {
                 allocation_address,
                 validators_input_file,
                 timeout_commit,
-                active_validator_limit,
                 epoch_duration,
-                proposal_voting_blocks,
                 gas_price_simple,
                 compliance_registrar_vk,
                 tendermint_rpc_bind,
                 tendermint_p2p_bind,
             )?;
             tracing::info!(
-                n_validators = t.validators.len(),
+                n_validators = t.network_validators.len(),
                 chain_id = %t.genesis.chain_id,
                 "Writing config files for network"
             );
@@ -589,7 +585,6 @@ async fn main() -> anyhow::Result<()> {
             home,
             comet_home,
             force,
-            ready_to_start,
             migration_type,
         } => {
             let (pd_home, comet_home) = match home {
@@ -607,15 +602,6 @@ async fn main() -> anyhow::Result<()> {
 
             // Handle migration subcommands
             match migration_type {
-                Some(MigrateCommand::ReadyToStart) => {
-                    tracing::info!("disabling halt order in local state");
-                    ReadyToStart
-                        .migrate(pd_home, comet_home, None, force)
-                        .instrument(pd_migrate_span)
-                        .await
-                        .context("failed to disable halt bit in local state")?;
-                    exit(0)
-                }
                 Some(MigrateCommand::IbcRecovery {
                     old_client_id,
                     new_client_id,
@@ -661,17 +647,6 @@ async fn main() -> anyhow::Result<()> {
                     .context("failed to perform no-op migration")?;
                 }
                 None => {
-                    if ready_to_start {
-                        // backward compatible interface.
-                        tracing::info!("disabling halt flag in local state");
-                        ReadyToStart
-                            .migrate(pd_home, comet_home, None, force)
-                            .instrument(pd_migrate_span)
-                            .await
-                            .context("failed to disable halt bit in local state")?;
-                        exit(0)
-                    }
-
                     let genesis_start = pd::migrate::last_block_timestamp(pd_home.clone()).await?;
                     tracing::info!(?genesis_start, "last block timestamp");
                     tracing::error!("This is the wrong migration routine for APP_VERSION=12. Read the documentation, and use the IBC client recovery routine");

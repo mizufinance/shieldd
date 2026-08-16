@@ -2242,14 +2242,8 @@ RUST_TEST_PACKAGES = (
         "lib",
     ),
     ("crates/core/component/compliance/", "shieldd-sdk-compliance", "lib"),
-    (
-        "crates/core/component/governance/",
-        "shieldd-sdk-governance",
-        "lib",
-    ),
     ("crates/core/component/ibc/", "shieldd-sdk-ibc", "lib"),
     ("crates/core/component/sct/", "shieldd-sdk-sct", "lib"),
-    ("crates/core/component/stake/", "shieldd-sdk-validator", "lib"),
     ("crates/core/keys/", "shieldd-sdk-keys", "lib"),
     ("crates/core/num/", "shieldd-sdk-num", "lib"),
     (
@@ -5757,23 +5751,6 @@ def runtime_policy_contract() -> dict:
             "symbol": "genesis_rejects_identity_authorization_keys",
         },
         {
-            "id": "RUNTIME-ACTION-AUTH-NETWORK-VALIDATOR-IDENTITY-REJECT",
-            "kind": "attack_reproduction",
-            "path": "crates/bin/pd/src/network/generate.rs",
-            "symbol": (
-                "validator_conversion_rejects_identity_authorization_key_"
-                "without_panicking"
-            ),
-        },
-        {
-            "id": "RUNTIME-ACTION-AUTH-GOVERNANCE-IDENTITY-REJECT",
-            "kind": "attack_reproduction",
-            "path": (
-                "crates/core/component/stake/src/governance_key.rs"
-            ),
-            "symbol": "governance_key_rejects_identity",
-        },
-        {
             "id": "RUNTIME-ACTION-AUTH-USER-AUTHORITY-IDENTITY-REJECT",
             "kind": "attack_reproduction",
             "path": (
@@ -5783,14 +5760,6 @@ def runtime_policy_contract() -> dict:
                 "user_registration_grant_rejects_identity_"
                 "registration_authority"
             ),
-        },
-        {
-            "id": "RUNTIME-ACTION-AUTH-VALIDATOR-IDENTITY-REJECT",
-            "kind": "attack_reproduction",
-            "path": (
-                "crates/core/component/stake/src/identity_key.rs"
-            ),
-            "symbol": "validator_identity_key_rejects_identity",
         },
         {
             "id": "RUNTIME-ACTION-PLAN-ACTION-COUNT-MISMATCH",
@@ -6282,11 +6251,11 @@ def runtime_policy_contract() -> dict:
                 "receipt."
             ),
             "parameters": {
-                "action_variants": 9,
-                "circuit_and_envelope_authorized": 3,
+            "action_variants": 8,
+            "circuit_and_envelope_authorized": 4,
                 "construction_mismatch_regressions": 5,
-                "direct_signature_and_state_authorized": 5,
-                "identity_attack_regressions": 7,
+            "direct_signature_and_state_authorized": 2,
+            "identity_attack_regressions": 4,
                 "permissionless_protocol_authorized": 1,
             },
             "sinks": ["check_tx", "verified_execution"],
@@ -6294,10 +6263,7 @@ def runtime_policy_contract() -> dict:
                 "RUNTIME-ACTION-AUTH-ASSET-POLICY-IDENTITY-REJECT",
                 "RUNTIME-ACTION-AUTH-ASSET-REGISTRAR-IDENTITY-REJECT",
                 "RUNTIME-ACTION-AUTH-GENESIS-IDENTITY-REJECT",
-                "RUNTIME-ACTION-AUTH-GOVERNANCE-IDENTITY-REJECT",
-                "RUNTIME-ACTION-AUTH-NETWORK-VALIDATOR-IDENTITY-REJECT",
                 "RUNTIME-ACTION-AUTH-USER-AUTHORITY-IDENTITY-REJECT",
-                "RUNTIME-ACTION-AUTH-VALIDATOR-IDENTITY-REJECT",
                 "RUNTIME-ACTION-PLAN-ACTION-COUNT-MISMATCH",
                 "RUNTIME-ACTION-PLAN-EFFECT-HASH-MISMATCH",
                 "RUNTIME-ACTION-PLAN-FEE-FUNDING-PRESENCE-MISMATCH",
@@ -7689,7 +7655,7 @@ _REVIEWED_TEST_EXCLUSION_SYMBOLS = {
         "host_execution_check_tx_requires_initialized_storage",
         "host_execution_exports_checkpoint_genesis",
         "host_execution_init_genesis_commits_content_genesis",
-        "host_execution_init_genesis_does_not_initialize_validator_chain_components",
+        "host_execution_init_genesis_does_not_initialize_ibc",
         "host_source_requires_32_byte_tx_hash",
         "source_key_uses_host_tx_identity_not_deposit_contents",
     ),

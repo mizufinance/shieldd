@@ -7,8 +7,6 @@ use shieldd_sdk_shielded_pool::component::Ics20Transfer;
 use shieldd_sdk_transaction::Action;
 use shieldd_sdk_txhash::TransactionContext;
 
-mod submit;
-
 use crate::ShielddHost;
 
 use super::AppActionHandler;
@@ -22,9 +20,6 @@ impl AppActionHandler for Action {
         match self {
             Action::Transfer(action) => action.check_stateless(context).await,
             Action::NoteReshape(action) => action.check_stateless(context).await,
-            Action::ValidatorDefinition(action) => action.check_stateless(()).await,
-            Action::ValidatorVote(action) => action.check_stateless(()).await,
-            Action::ProposalSubmit(action) => action.check_stateless(()).await,
             Action::IbcRelay(action) => {
                 action
                     .clone()
@@ -46,9 +41,6 @@ impl AppActionHandler for Action {
         match self {
             Action::Transfer(action) => action.check_historical(state).await,
             Action::NoteReshape(_) => Ok(()),
-            Action::ValidatorDefinition(action) => action.check_historical(state).await,
-            Action::ValidatorVote(action) => action.check_historical(state).await,
-            Action::ProposalSubmit(action) => action.check_historical(state).await,
             Action::IbcRelay(action) => {
                 action
                     .clone()
@@ -70,9 +62,6 @@ impl AppActionHandler for Action {
         match self {
             Action::Transfer(action) => action.check_and_execute(state).await,
             Action::NoteReshape(action) => action.check_and_execute(state).await,
-            Action::ValidatorDefinition(action) => action.check_and_execute(state).await,
-            Action::ValidatorVote(action) => action.check_and_execute(state).await,
-            Action::ProposalSubmit(action) => action.check_and_execute(state).await,
             Action::IbcRelay(action) => {
                 action
                     .clone()

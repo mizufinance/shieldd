@@ -181,10 +181,7 @@ fn proof_family_and_key_for_action(
             ProofFamilyId::ShieldedIcs20Withdrawal(action.body.family_id),
             action.body.family_id.deployed_proof_key(),
         )),
-        Action::ValidatorDefinition(_)
-        | Action::ValidatorVote(_)
-        | Action::ProposalSubmit(_)
-        | Action::IbcRelay(_)
+        Action::IbcRelay(_)
         | Action::ComplianceRegisterAsset(_)
         | Action::ComplianceRegisterUser(_)
         | Action::AggregateBundle(_) => None,

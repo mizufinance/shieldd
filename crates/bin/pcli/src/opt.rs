@@ -1,5 +1,5 @@
 use crate::{
-    config::{CustodyConfig, GovernanceCustodyConfig, PcliConfig},
+    config::{CustodyConfig, PcliConfig},
     default_home,
     terminal::ActualTerminal,
     App, Command,
@@ -111,41 +111,6 @@ impl Opt {
             }
         };
 
-        // Build the governance custody service...
-        let governance_custody = match &config.governance_custody {
-            Some(separate_governance_custody) => match separate_governance_custody {
-                GovernanceCustodyConfig::SoftKms(config) => {
-                    tracing::info!(
-                        "using separate software KMS custody service for validator voting"
-                    );
-                    let soft_kms = SoftKms::new(config.clone());
-                    let custody_svc = CustodyServiceServer::new(soft_kms);
-                    CustodyServiceClient::new(box_grpc_svc::local(custody_svc))
-                }
-                GovernanceCustodyConfig::Threshold(config) => {
-                    tracing::info!(
-                        "using separate manual threshold custody service for validator voting"
-                    );
-                    let threshold_kms = shieldd_sdk_custody::threshold::Threshold::new(
-                        config.clone(),
-                        ActualTerminal { fvk: Some(fvk) },
-                    );
-                    let custody_svc = CustodyServiceServer::new(threshold_kms);
-                    CustodyServiceClient::new(box_grpc_svc::local(custody_svc))
-                }
-                GovernanceCustodyConfig::Encrypted { config, .. } => {
-                    tracing::info!("using separate encrypted custody service for validator voting");
-                    let encrypted_kms = shieldd_sdk_custody::encrypted::Encrypted::new(
-                        config.clone(),
-                        ActualTerminal { fvk: Some(fvk) },
-                    );
-                    let custody_svc = CustodyServiceServer::new(encrypted_kms);
-                    CustodyServiceClient::new(box_grpc_svc::local(custody_svc))
-                }
-            },
-            None => custody.clone(), // If no separate custody for validator voting, use the same one
-        };
-
         // ...and the view service...
         let view = match (self.cmd.offline(), &config.view_url) {
             // In offline mode, don't construct a view service at all.
@@ -187,7 +152,6 @@ impl Opt {
         let app = App {
             view,
             custody,
-            governance_custody,
             config,
             save_transaction_here_instead: None,
         };

@@ -10,10 +10,7 @@ fn note_creating_output_count(tx: &Transaction) -> usize {
             Action::NoteReshape(note_reshape) => note_reshape.body.outputs.len(),
             Action::ShieldedIcs20Withdrawal(_) => 1,
             Action::ShieldedHostWithdrawal(_) => 1,
-            Action::ValidatorDefinition(_)
-            | Action::IbcRelay(_)
-            | Action::ProposalSubmit(_)
-            | Action::ValidatorVote(_)
+            Action::IbcRelay(_)
             | Action::ComplianceRegisterAsset(_)
             | Action::ComplianceRegisterUser(_)
             | Action::AggregateBundle(_) => 0,

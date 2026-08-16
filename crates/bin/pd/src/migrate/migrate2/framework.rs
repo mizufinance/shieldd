@@ -4,7 +4,6 @@ use jmt::RootHash;
 use shieldd_sdk_app::app::StateReadExt as _;
 use shieldd_sdk_app::app_version::migrate_app_version;
 use shieldd_sdk_app::SUBSTORE_PREFIXES;
-use shieldd_sdk_governance::StateWriteExt;
 use shieldd_sdk_sct::component::clock::{EpochManager, EpochRead};
 use std::path::PathBuf;
 use tracing::instrument;
@@ -72,7 +71,6 @@ pub trait Migration {
 
         self.migrate_inner(&mut delta).await?;
 
-        delta.ready_to_start();
         delta.put_block_height(0u64);
 
         let post_upgrade_root_hash = storage.commit_in_place(delta).await?;

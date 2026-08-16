@@ -1,5 +1,4 @@
-Shieldd is a privacy-focused network for shielded value transfer, validator
-management, governance, compliance, and IBC interoperability.
+Shieldd provides shielded value transfer, compliance, and IBC interoperability.
 
 The current chain surface is intentionally reduced:
 
@@ -10,14 +9,11 @@ The current chain surface is intentionally reduced:
   - `ShieldedHostWithdrawal`
 - infrastructure and control actions:
   - `IbcRelay`
-  - `ValidatorDefinition`
-  - `ProposalSubmit`
-  - `ValidatorVote`
   - `ComplianceRegisterAsset`
   - `ComplianceRegisterUser`
 
 Removed product families such as DEX, auctions, community-pool actions,
-staking/delegation economics, and legacy governance deposit flows are not part
+staking/delegation economics, governance, and validator management are not part
 of the active protocol surface.
 
 This website renders the work-in-progress protocol specification for Shieldd.
@@ -60,11 +56,4 @@ transactions, and the entire Cosmos ecosystem functions analogously to
 Zcash's transparent pool.
 
 Unlike account-based chains, Shieldd centers the note model rather than
-transparent user balances. Validators retain long-lived identity because they
-own validator definitions and participate in consensus and governance.
-
-## Governance
-
-Shieldd supports on-chain governance through proposal submission and validator
-voting. The current governance surface is validator-managed and does not include
-legacy proposal deposits, withdrawal/claim flows, or delegation-based voting.
+transparent user balances.

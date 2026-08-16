@@ -448,14 +448,8 @@ RUST_TEST_PACKAGES = (
         "lib",
     ),
     ("crates/core/component/compliance/", "shieldd-sdk-compliance", "lib"),
-    (
-        "crates/core/component/governance/",
-        "shieldd-sdk-governance",
-        "lib",
-    ),
     ("crates/core/component/ibc/", "shieldd-sdk-ibc", "lib"),
     ("crates/core/component/sct/", "shieldd-sdk-sct", "lib"),
-    ("crates/core/component/stake/", "shieldd-sdk-validator", "lib"),
     ("crates/core/keys/", "shieldd-sdk-keys", "lib"),
     ("crates/core/num/", "shieldd-sdk-num", "lib"),
     (
@@ -577,12 +571,12 @@ PROOF_ACCEPTANCE_SURFACE_SHA256 = (
 # Update only after independently reviewing every runtime-policy statement,
 # parameter, sink, test, and exact execution selector.
 RUNTIME_POLICY_CONTRACT_SHA256 = (
-    "c427df1eb36790374898f854cae5027fea4759b1ae1e4ac2f3f75acfc2cb20e8"
+    "287c6ade23d74ee1fcf1da7881cf0707b8b4fcce51b94230f1dc25ee74e75746"
 )
 # Update these only after independently reviewing every owner, source file,
 # runnable selector, kind, and execution command in the corresponding ledger.
 PROPERTY_TEST_CONTRACT_SHA256 = (
-    "41b1c01923df0ed894d36653ed0456a632e6b323adb2d6eb55df185ab35d9a7e"
+    "7bebb28101f7352e5e422e4b44f1e464d1ac86cc9a5f893e287243a7fdc41605"
 )
 ARTIFACT_TEST_CONTRACT_SHA256 = (
     "2ce903b58f534957e0c42af73c8da750ee15d74235f616d95bfdb3c6e7389cd2"
@@ -605,11 +599,9 @@ REVIEWED_TEST_DISCOVERY_ROOTS = (
     ("crates/core/app/src", "*.rs"),
     ("crates/core/asset/src", "*.rs"),
     ("crates/core/component/compliance/src", "*.rs"),
-    ("crates/core/component/governance/src", "*.rs"),
     ("crates/core/component/ibc/src", "*.rs"),
     ("crates/core/component/sct/src", "*.rs"),
     ("crates/core/component/shielded-pool/src", "*.rs"),
-    ("crates/core/component/stake/src", "*.rs"),
     ("crates/core/keys/src", "*.rs"),
     ("crates/core/num/src", "*.rs"),
     ("crates/core/transaction/src", "*.rs"),
@@ -710,8 +702,6 @@ REVIEWED_TEST_SOURCE_CENSUS = (
     "crates/core/component/shielded-pool/src/transfer/generated.rs",
     "crates/core/component/shielded-pool/src/transfer/plan.rs",
     "crates/core/component/shielded-pool/src/transfer/proof.rs",
-    "crates/core/component/stake/src/governance_key.rs",
-    "crates/core/component/stake/src/identity_key.rs",
     "crates/core/transaction/src/plan.rs",
     "crates/core/transaction/src/gas.rs",
     "crates/core/transaction/src/transaction.rs",
@@ -827,7 +817,7 @@ REVIEWED_TEST_SOURCE_CENSUS = (
 # This pins every path/symbol/reason triple rendered in reviewed_test_census.
 # Update only after deciding whether each changed test is normative evidence.
 REVIEWED_TEST_EXCLUSIONS_SHA256 = (
-    "6cc1c107f3c095b00f600e2066e87469d8e4c28a1701cc874580a05db12b8443"
+    "57202125b81f2c7015950900ef39315eb7f216ed1f9b21c3910a90ef5a15c70e"
 )
 PROPERTY_TEST_SOURCE_CENSUS = (
     "crates/core/component/compliance/src/structs.rs",
@@ -1163,11 +1153,11 @@ ANCHOR_VALIDATION_HELPER_SHA256 = {
 RUNTIME_POLICY_BASELINE = {
     "RUNTIME-POLICY-ACTION-AUTHORIZATION": {
         "parameters": {
-            "action_variants": 9,
-            "circuit_and_envelope_authorized": 3,
+            "action_variants": 8,
+            "circuit_and_envelope_authorized": 4,
             "construction_mismatch_regressions": 5,
-            "direct_signature_and_state_authorized": 5,
-            "identity_attack_regressions": 7,
+            "direct_signature_and_state_authorized": 2,
+            "identity_attack_regressions": 4,
             "permissionless_protocol_authorized": 1,
         },
         "sinks": ["check_tx", "verified_execution"],
@@ -1175,10 +1165,7 @@ RUNTIME_POLICY_BASELINE = {
             "RUNTIME-ACTION-AUTH-ASSET-POLICY-IDENTITY-REJECT",
             "RUNTIME-ACTION-AUTH-ASSET-REGISTRAR-IDENTITY-REJECT",
             "RUNTIME-ACTION-AUTH-GENESIS-IDENTITY-REJECT",
-            "RUNTIME-ACTION-AUTH-GOVERNANCE-IDENTITY-REJECT",
-            "RUNTIME-ACTION-AUTH-NETWORK-VALIDATOR-IDENTITY-REJECT",
             "RUNTIME-ACTION-AUTH-USER-AUTHORITY-IDENTITY-REJECT",
-            "RUNTIME-ACTION-AUTH-VALIDATOR-IDENTITY-REJECT",
             "RUNTIME-ACTION-PLAN-ACTION-COUNT-MISMATCH",
             "RUNTIME-ACTION-PLAN-EFFECT-HASH-MISMATCH",
             "RUNTIME-ACTION-PLAN-FEE-FUNDING-PRESENCE-MISMATCH",
@@ -2941,12 +2928,9 @@ ACTION_AUTHORIZATION_MODEL = {
         "ComplianceRegisterUser": "ComplianceRegisterUser",
         "IbcAction": "IbcRelay",
         "NoteReshape": "NoteReshape",
-        "ProposalSubmit": "ProposalSubmit",
         "ShieldedHostWithdrawal": "ShieldedHostWithdrawal",
         "ShieldedIcs20Withdrawal": "ShieldedIcs20Withdrawal",
         "Transfer": "Transfer",
-        "ValidatorDefinition": "ValidatorDefinition",
-        "ValidatorVote": "ValidatorVote",
     },
     "non_plan_actions": ("AggregateBundle",),
     "spend_bearing_action_plans": (
@@ -3092,7 +3076,7 @@ ACTION_AUTHORIZATION_MODEL = {
             ),
             "function": "required_signatures",
             "ordered": (
-                "SigningRequest::TransactionPlan(plan) => "
+                "let SigningRequest::TransactionPlan(plan) = request;",
                 "plan.num_spends()",
             ),
         },
@@ -3179,9 +3163,6 @@ ACTION_AUTHORIZATION_MODEL = {
         "direct_signature_and_state_authorized": (
             "ComplianceRegisterAsset",
             "ComplianceRegisterUser",
-            "ProposalSubmit",
-            "ValidatorDefinition",
-            "ValidatorVote",
         ),
         "internal_consensus_only": ("AggregateBundle",),
         "permissionless_protocol_authorized": ("IbcRelay",),
@@ -3421,167 +3402,6 @@ ACTION_AUTHORIZATION_MODEL = {
                 (
                     "crates/core/component/compliance/src/component/state.rs",
                     "test_user_registration_rejects_missing_wrong_and_expired_grants",
-                ),
-            ),
-        },
-        {
-            "action": "ProposalSubmit",
-            "blocks": (
-                {
-                    "label": "proposal signature authorization",
-                    "path": (
-                        "crates/core/app/src/action_handler/actions/submit.rs"
-                    ),
-                    "declaration": (
-                        r"^[ \t]*impl[ \t]+AppActionHandler[ \t]+for[ \t]+"
-                        r"ProposalSubmit\b"
-                    ),
-                    "function": "check_stateless",
-                    "ordered": (
-                        "governance_key",
-                        ".verify(&self.body.to_proto().encode_to_vec(), "
-                        "&self.auth_sig)",
-                    ),
-                },
-                {
-                    "label": "proposal governance-key state binding",
-                    "path": (
-                        "crates/core/app/src/action_handler/actions/submit.rs"
-                    ),
-                    "declaration": (
-                        r"^[ \t]*impl[ \t]+AppActionHandler[ \t]+for[ \t]+"
-                        r"ProposalSubmit\b"
-                    ),
-                    "function": "check_and_execute",
-                    "ordered": (
-                        "state.check_validator_is_active(proposer).await?;",
-                        "state",
-                        ".check_governance_key_matches_validator("
-                        "proposer, governance_key)",
-                    ),
-                },
-                {
-                    "label": "proposal governance-key identity guard",
-                    "path": (
-                        "crates/core/component/stake/src/governance_key.rs"
-                    ),
-                    "declaration": r"^[ \t]*impl[ \t]+GovernanceKey\b",
-                    "function": "verify",
-                    "ordered": (
-                        "ensure_nonidentity_spend_auth_key("
-                        '&self.0, "validator governance key")?;',
-                        "Ok(self.0.verify(message, signature)?)",
-                    ),
-                },
-            ),
-            "tests": (
-                (
-                    "crates/core/component/stake/src/governance_key.rs",
-                    "governance_key_rejects_identity",
-                ),
-            ),
-        },
-        {
-            "action": "ValidatorDefinition",
-            "blocks": (
-                {
-                    "label": "validator-definition signature authorization",
-                    "path": (
-                        "crates/core/component/stake/src/component/"
-                        "action_handler/validator_definition.rs"
-                    ),
-                    "declaration": (
-                        r"^[ \t]*impl[ \t]+ActionHandler[ \t]+for[ \t]+"
-                        r"validator::Definition\b"
-                    ),
-                    "function": "check_stateless",
-                    "ordered": (
-                        "let definition_bytes = "
-                        "self.validator.encode_to_vec();",
-                        "self.validator",
-                        ".identity_key",
-                        ".verify(&definition_bytes, &self.auth_sig)",
-                    ),
-                },
-                {
-                    "label": "validator identity-key guard",
-                    "path": (
-                        "crates/core/component/stake/src/identity_key.rs"
-                    ),
-                    "declaration": r"^[ \t]*impl[ \t]+IdentityKey\b",
-                    "function": "verify",
-                    "ordered": (
-                        "let verification_key = self.verification_key();",
-                        "ensure_nonidentity_spend_auth_key("
-                        '&verification_key, "validator identity key")?;',
-                        "Ok(verification_key.verify(message, signature)?)",
-                    ),
-                },
-            ),
-            "tests": (
-                (
-                    "crates/core/component/stake/src/identity_key.rs",
-                    "validator_identity_key_rejects_identity",
-                ),
-            ),
-        },
-        {
-            "action": "ValidatorVote",
-            "blocks": (
-                {
-                    "label": "validator-vote signature authorization",
-                    "path": (
-                        "crates/core/component/governance/src/"
-                        "action_handler/validator_vote.rs"
-                    ),
-                    "declaration": (
-                        r"^[ \t]*impl[ \t]+ActionHandler[ \t]+for[ \t]+"
-                        r"ValidatorVote\b"
-                    ),
-                    "function": "check_stateless",
-                    "ordered": (
-                        "let body_bytes = body.encode_to_vec();",
-                        "body.governance_key",
-                        ".verify(&body_bytes, auth_sig)",
-                    ),
-                },
-                {
-                    "label": "validator-vote governance-key state binding",
-                    "path": (
-                        "crates/core/component/governance/src/"
-                        "action_handler/validator_vote.rs"
-                    ),
-                    "declaration": (
-                        r"^[ \t]*impl[ \t]+ActionHandler[ \t]+for[ \t]+"
-                        r"ValidatorVote\b"
-                    ),
-                    "function": "check_and_execute",
-                    "ordered": (
-                        "state",
-                        ".check_validator_active_at_proposal_start("
-                        "*proposal, identity_key)",
-                        ".check_governance_key_matches_validator("
-                        "identity_key, governance_key)",
-                    ),
-                },
-                {
-                    "label": "validator-vote governance-key identity guard",
-                    "path": (
-                        "crates/core/component/stake/src/governance_key.rs"
-                    ),
-                    "declaration": r"^[ \t]*impl[ \t]+GovernanceKey\b",
-                    "function": "verify",
-                    "ordered": (
-                        "ensure_nonidentity_spend_auth_key("
-                        '&self.0, "validator governance key")?;',
-                        "Ok(self.0.verify(message, signature)?)",
-                    ),
-                },
-            ),
-            "tests": (
-                (
-                    "crates/core/component/stake/src/governance_key.rs",
-                    "governance_key_rejects_identity",
                 ),
             ),
         },
@@ -10174,12 +9994,9 @@ def _validate_internal_action_acceptance_surface(
         "ComplianceRegisterUser",
         "IbcRelay",
         "NoteReshape",
-        "ProposalSubmit",
         "ShieldedHostWithdrawal",
         "ShieldedIcs20Withdrawal",
         "Transfer",
-        "ValidatorDefinition",
-        "ValidatorVote",
     }
     for method_name in (
         "check_stateless",
@@ -10327,12 +10144,9 @@ def _validate_internal_action_acceptance_surface(
         "ComplianceRegisterUser",
         "IbcRelay",
         "NoteReshape",
-        "ProposalSubmit",
         "ShieldedHostWithdrawal",
         "ShieldedIcs20Withdrawal",
         "Transfer",
-        "ValidatorDefinition",
-        "ValidatorVote",
     }
     execute_variants = set(
         re.findall(
@@ -10876,12 +10690,9 @@ def validate_proof_acceptance_repository_surface(root: Path) -> None:
         "ComplianceRegisterUser",
         "IbcRelay",
         "NoteReshape",
-        "ProposalSubmit",
         "ShieldedHostWithdrawal",
         "ShieldedIcs20Withdrawal",
         "Transfer",
-        "ValidatorDefinition",
-        "ValidatorVote",
     }
     proof_key_for_action = _one_rust_function(
         cache_functions,

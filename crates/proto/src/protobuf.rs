@@ -102,33 +102,6 @@ impl TryFrom<SpendVerificationKey> for VerificationKey<SpendAuth> {
     }
 }
 
-// Consensus key
-//
-// The tendermint-rs PublicKey type already has a tendermint-proto type;
-// this redefines its proto, because the encodings are consensus-critical
-// and we don't vendor all of the tendermint protos.
-use crate::shieldd::core::keys::v1::ConsensusKey;
-
-impl DomainType for tendermint::PublicKey {
-    type Proto = ConsensusKey;
-}
-
-impl From<tendermint::PublicKey> for crate::shieldd::core::keys::v1::ConsensusKey {
-    fn from(v: tendermint::PublicKey) -> Self {
-        Self {
-            inner: v.to_bytes(),
-        }
-    }
-}
-
-impl TryFrom<crate::core::keys::v1::ConsensusKey> for tendermint::PublicKey {
-    type Error = anyhow::Error;
-    fn try_from(value: crate::core::keys::v1::ConsensusKey) -> Result<Self, Self::Error> {
-        Self::from_raw_ed25519(value.inner.as_slice())
-            .ok_or_else(|| anyhow::anyhow!("invalid ed25519 key"))
-    }
-}
-
 // IBC-rs impls
 extern crate ibc_types;
 

@@ -154,17 +154,9 @@ pub enum RootCommand {
         // get explicit consent to muck around in another daemon's state.
         #[clap(long, display_order = 200)]
         comet_home: Option<PathBuf>,
-        /// If set, force a migration to occur even if the chain is not halted.
-        /// Will not override a detected mismatch in state versions, or on signs
-        /// of corruption. This is "expert mode" and potentially destructive.
+        /// Allow migration despite a detected state-version mismatch.
         #[clap(long, display_order = 1000)]
         force: bool,
-        /// If set, edit local state to permit the node to start, despite
-        /// a pre-existing halt order, e.g. via governance. This option
-        /// can be useful for relayer operators, to run a temporary archive node
-        /// across upgrade boundaries.
-        #[clap(long, display_order = 1000)]
-        ready_to_start: bool,
         /// Optional migration subcommand. If not specified, runs the default migration.
         #[clap(subcommand)]
         migration_type: Option<MigrateCommand>,
@@ -173,8 +165,6 @@ pub enum RootCommand {
 
 #[derive(Debug, Subcommand)]
 pub enum MigrateCommand {
-    /// Reset the chain's halt bit to allow it to start.
-    ReadyToStart,
     /// Perform IBC client recovery, overwriting an old client ID with a new one.
     IbcRecovery {
         /// The old IBC client ID to replace.
@@ -187,7 +177,7 @@ pub enum MigrateCommand {
         #[clap(long, value_name = "VERSION")]
         target_app_version: Option<u64>,
     },
-    /// Perform a no-op migration that resets the halt bit and produces a new genesis.
+    /// Perform a no-op migration that produces a new genesis.
     NoOp {
         /// Optional app version to set during migration.
         #[clap(long, value_name = "VERSION")]
@@ -206,9 +196,6 @@ pub enum NetworkCommand {
         /// Number of blocks per epoch.
         #[clap(long)]
         epoch_duration: Option<u64>,
-        /// Maximum number of validators in the consensus set.
-        #[clap(long)]
-        active_validator_limit: Option<u64>,
         /// Whether to preserve the chain ID (useful for public networks) or append a random suffix (useful for dev/testing).
         #[clap(long)]
         preserve_chain_id: bool,
@@ -227,10 +214,6 @@ pub enum NetworkCommand {
         /// Testnet name [default: latest testnet].
         #[clap(long)]
         chain_id: Option<String>,
-        /// The duration, in number of blocks, that a governance proposal
-        /// can be voted on.
-        #[clap(long)]
-        proposal_voting_blocks: Option<u64>,
         /// The fixed gas price for all transactions on the network.
         /// Described as "simple" because the single value will be reused
         /// for all gas price types: block space, compact block space, verification, and execution.

@@ -3,11 +3,9 @@ package shieldd.core.app.v1;
 
 import "shieldd/core/component/fee/v1/fee.proto";
 import "shieldd/core/component/compliance/v1/compliance.proto";
-import "shieldd/core/component/governance/v1/governance.proto";
 import "shieldd/core/component/ibc/v1/ibc.proto";
 import "shieldd/core/component/sct/v1/sct.proto";
 import "shieldd/core/component/shielded_pool/v1/shielded_pool.proto";
-import "shieldd/core/component/validator/v1/validator.proto";
 import "shieldd/core/transaction/v1/transaction.proto";
 
 // Query operations for the overall Shieldd application.
@@ -33,16 +31,13 @@ message TransactionsByHeightResponse {
 }
 
 message AppParameters {
+  reserved 4, 6;
   // The chain identifier.
   string chain_id = 1;
   // Sct module parameters.
   core.component.sct.v1.SctParameters sct_params = 2;
-  // Governance module parameters.
-  core.component.governance.v1.GovernanceParameters governance_params = 4;
   // IBC module parameters.
   core.component.ibc.v1.IbcParameters ibc_params = 5;
-  // Validator component parameters.
-  core.component.validator.v1.ValidatorParameters validator_params = 6;
   // Fee module parameters.
   core.component.fee.v1.FeeParameters fee_params = 7;
   // Shielded pool module parameters.
@@ -66,14 +61,11 @@ message GenesisAppState {
 }
 
 message GenesisContent {
+  reserved 2, 4;
   // The initial chain identifier.
   string chain_id = 1;
-  // Validator component genesis state.
-  core.component.validator.v1.GenesisContent validator_content = 2;
   // Shielded pool module genesis state.
   core.component.shielded_pool.v1.GenesisContent shielded_pool_content = 3;
-  // Governance module genesis state.
-  core.component.governance.v1.GenesisContent governance_content = 4;
   // IBC module genesis state.
   core.component.ibc.v1.GenesisContent ibc_content = 5;
   // Sct module genesis state.
@@ -82,10 +74,4 @@ message GenesisContent {
   core.component.fee.v1.GenesisContent fee_content = 8;
   // Compliance module genesis state.
   core.component.compliance.v1.GenesisContent compliance_content = 9;
-}
-
-// An event triggering when the app parameters change.
-message EventAppParametersChange {
-  // The new parameters, in their entirety.
-  AppParameters new_parameters = 1;
 }

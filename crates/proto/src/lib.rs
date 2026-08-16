@@ -93,24 +93,10 @@ pub mod shieldd {
                 }
             }
 
-            pub mod governance {
-                pub mod v1 {
-                    include!("gen/shieldd.core.component.governance.v1.rs");
-                    include!("gen/shieldd.core.component.governance.v1.serde.rs");
-                }
-            }
-
             pub mod ibc {
                 pub mod v1 {
                     include!("gen/shieldd.core.component.ibc.v1.rs");
                     include!("gen/shieldd.core.component.ibc.v1.serde.rs");
-                }
-            }
-
-            pub mod validator {
-                pub mod v1 {
-                    include!("gen/shieldd.core.component.validator.v1.rs");
-                    include!("gen/shieldd.core.component.validator.v1.serde.rs");
                 }
             }
 

@@ -10,6 +10,7 @@ import "shieldd/crypto/tct/v1/tct.proto";
 
 // Contains the minimum data needed to update client state.
 message CompactBlock {
+  reserved 6;
   uint64 height = 1;
   // State payloads describing new state fragments.
   repeated StatePayload state_payloads = 2;
@@ -19,8 +20,6 @@ message CompactBlock {
   crypto.tct.v1.MerkleRoot block_root = 4;
   // The epoch root of this epoch (only present when the block is the last in an epoch).
   crypto.tct.v1.MerkleRoot epoch_root = 5;
-  // If a proposal started voting in this block, this is set to `true`.
-  bool proposal_started = 6;
   // Latest note-discovery parameters. Absent when unchanged.
   shielded_pool.v1.DiscoveryParameters discovery_parameters = 7;
   // Fixed-shape action-level routing records emitted by transactions in this block.

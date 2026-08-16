@@ -3,7 +3,6 @@ pub use init::InitCmd;
 pub use query::QueryCmd;
 pub use threshold::ThresholdCmd;
 pub use tx::TxCmd;
-pub use validator::ValidatorCmd;
 pub use view::ViewCmd;
 
 use self::tx::TxCmdWithOptions;
@@ -13,7 +12,6 @@ mod init;
 mod query;
 mod threshold;
 mod tx;
-mod validator;
 mod view;
 
 // Note on display_order:
@@ -38,7 +36,7 @@ pub enum Command {
     /// custody, hardware wallets) may be added in the future.
     #[clap(display_order = 100)]
     Init(InitCmd),
-    /// Query the public chain state, like the validator set.
+    /// Query the public chain state.
     ///
     /// This command has two modes: it can be used to query raw bytes of
     /// arbitrary keys with the `key` subcommand, or it can be used to query
@@ -54,9 +52,6 @@ pub enum Command {
     /// Follow the threshold signing protocol.
     #[clap(subcommand, display_order = 500)]
     Threshold(ThresholdCmd),
-    /// Manage a validator.
-    #[clap(subcommand, display_order = 800)]
-    Validator(ValidatorCmd),
     /// Display information related to diagnosing problems running Shieldd
     #[clap(subcommand, display_order = 999)]
     Debug(DebugCmd),
@@ -69,7 +64,6 @@ impl Command {
             Command::Init(_) => true,
             Command::Transaction(cmd) => cmd.offline(),
             Command::View(cmd) => cmd.offline(),
-            Command::Validator(cmd) => cmd.offline(),
             Command::Query(cmd) => cmd.offline(),
             Command::Debug(cmd) => cmd.offline(),
             Command::Threshold(cmd) => cmd.offline(),

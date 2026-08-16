@@ -20,8 +20,7 @@ balance by means of a _balance commitment_, using the commitment scheme for asse
 
 Shielded actions such as `Transfer` and `NoteReshape` consume and
 create shielded notes while maintaining a balanced transaction-level value
-commitment. Other supported actions, such as `ValidatorDefinition` or governance
-actions, affect non-shielded state directly.
+commitment. Other supported actions affect non-shielded state directly.
 
 The chain requires that transactions do not create or destroy value.  To
 accomplish conservation of value, the _binding signature_ proves that the

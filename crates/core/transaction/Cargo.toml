@@ -13,8 +13,6 @@ std = ["ark-ff/std", "ibc-types/std"]
 parallel = [
     "tokio",
     "shieldd-sdk-shielded-pool/parallel",
-    "shieldd-sdk-governance/parallel",
-    "shieldd-sdk-validator/parallel",
 ]
 [dependencies]
 anyhow = {workspace = true}
@@ -38,7 +36,6 @@ pbjson-types = {workspace = true}
 shieldd-sdk-asset = {workspace = true, default-features = false}
 shieldd-sdk-compliance = {workspace = true, default-features = false}
 shieldd-sdk-fee = {workspace = true, default-features = false}
-shieldd-sdk-governance = {workspace = true, default-features = false}
 shieldd-sdk-ibc = {workspace = true, default-features = false}
 shieldd-sdk-keys = {workspace = true, default-features = false}
 shieldd-sdk-num = {workspace = true, default-features = false}
@@ -47,7 +44,6 @@ shieldd-sdk-proof-aggregation = {workspace = true, default-features = true}
 shieldd-sdk-proto = {workspace = true, default-features = true}
 shieldd-sdk-sct = {workspace = true, default-features = false}
 shieldd-sdk-shielded-pool = {workspace = true, default-features = false}
-shieldd-sdk-validator = {workspace = true, default-features = false}
 shieldd-sdk-tct = {workspace = true, default-features = true }
 shieldd-sdk-txhash = {workspace = true, default-features = false}
 poseidon377 = {workspace = true, features = ["r1cs"]}

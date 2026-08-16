@@ -80,8 +80,7 @@ Transactions are signed used the [`decaf377-rdsa` construction](../crypto/decaf3
 ## `SpendAuth` Signatures
 
 `SpendAuth` signatures are included on each shielded spend-bearing action
-(for instance `Transfer` and `NoteReshape`), as well as actions such
-as `ValidatorVote` that use the same authorization domain.
+(for instance `Transfer` and `NoteReshape`).
 
 The `SpendAuth` signatures are created using a randomized signing key $rsk$ and the corresponding randomized verification key $rk$ provided on the action. The purpose of the randomization is to prevent linkage of verification keys across actions.
 

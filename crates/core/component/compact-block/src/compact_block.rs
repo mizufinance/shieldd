@@ -37,8 +37,6 @@ pub struct CompactBlock {
     pub routing_records: Vec<RoutingRecord>,
     /// Encrypted note payloads grouped by their producing action.
     pub routing_action_payloads: Vec<RoutingActionPayloads>,
-    /// If the block indicated a proposal was being started.
-    pub proposal_started: bool,
     /// Set if the app parameters have been updated. Notifies the client that it should re-sync from the fullnode RPC.
     pub app_parameters_updated: bool,
     /// Updated gas prices for the native token, if they have changed.
@@ -74,7 +72,6 @@ impl Default for CompactBlock {
             discovery_parameters: None,
             routing_records: Vec::new(),
             routing_action_payloads: Vec::new(),
-            proposal_started: false,
             app_parameters_updated: false,
             gas_prices: None,
             alt_gas_prices: Vec::new(),
@@ -95,7 +92,6 @@ impl CompactBlock {
             || !self.nullifiers.is_empty() // need to collect nullifiers
             || self.discovery_parameters.is_some() // need to save latest discovery parameters
             || !self.routing_records.is_empty() // need to scan routing records
-            || self.proposal_started // need to process proposal start
             || self.app_parameters_updated // need to save latest app parameters
             || self.gas_prices.is_some() // need to save latest gas prices
             || !self.alt_gas_prices.is_empty() // need to save latest alt gas prices
@@ -124,7 +120,6 @@ impl From<CompactBlock> for pb::CompactBlock {
             epoch_root: cb.epoch_root.map(Into::into),
             discovery_parameters: cb.discovery_parameters.map(Into::into),
             routing_records: cb.routing_records.into_iter().map(Into::into).collect(),
-            proposal_started: cb.proposal_started,
             app_parameters_updated: cb.app_parameters_updated,
             gas_prices: cb.gas_prices.map(Into::into),
             alt_gas_prices: cb.alt_gas_prices.into_iter().map(Into::into).collect(),
@@ -208,7 +203,6 @@ impl TryFrom<pb::CompactBlock> for CompactBlock {
                 .into_iter()
                 .map(TryInto::try_into)
                 .collect::<Result<Vec<_>>>()?,
-            proposal_started: value.proposal_started,
             app_parameters_updated: value.app_parameters_updated,
             gas_prices: value.gas_prices.map(TryInto::try_into).transpose()?,
             alt_gas_prices: value

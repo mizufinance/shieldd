@@ -2,7 +2,6 @@
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use shieldd_sdk_governance::{ProposalSubmit, ValidatorVote};
 use shieldd_sdk_ibc::IbcRelay;
 use shieldd_sdk_keys::{Address, FullViewingKey, PayloadKey};
 use shieldd_sdk_proto::{core::transaction::v1 as pb, DomainType};
@@ -101,38 +100,6 @@ impl TransactionPlan {
         })
     }
 
-    pub fn validator_definitions(
-        &self,
-    ) -> impl Iterator<Item = &shieldd_sdk_validator::validator::Definition> {
-        self.actions.iter().filter_map(|action| {
-            if let ActionPlan::ValidatorDefinition(definition) = action {
-                Some(definition)
-            } else {
-                None
-            }
-        })
-    }
-
-    pub fn proposal_submits(&self) -> impl Iterator<Item = &ProposalSubmit> {
-        self.actions.iter().filter_map(|action| {
-            if let ActionPlan::ProposalSubmit(submit) = action {
-                Some(submit)
-            } else {
-                None
-            }
-        })
-    }
-
-    pub fn validator_votes(&self) -> impl Iterator<Item = &ValidatorVote> {
-        self.actions.iter().filter_map(|action| {
-            if let ActionPlan::ValidatorVote(vote) = action {
-                Some(vote)
-            } else {
-                None
-            }
-        })
-    }
-
     pub fn shielded_ics20_withdrawal_plans(
         &self,
     ) -> impl Iterator<Item = &ShieldedIcs20WithdrawalPlan> {
@@ -190,10 +157,7 @@ impl TransactionPlan {
                     .collect::<Vec<_>>(),
                 ActionPlan::ShieldedIcs20Withdrawal(plan) => vec![plan.created_output_address()],
                 ActionPlan::ShieldedHostWithdrawal(plan) => vec![plan.created_output_address()],
-                ActionPlan::ValidatorDefinition(_)
-                | ActionPlan::IbcAction(_)
-                | ActionPlan::ProposalSubmit(_)
-                | ActionPlan::ValidatorVote(_)
+                ActionPlan::IbcAction(_)
                 | ActionPlan::ComplianceRegisterAsset(_)
                 | ActionPlan::ComplianceRegisterUser(_) => Vec::new(),
             })
@@ -221,10 +185,7 @@ impl TransactionPlan {
                 ActionPlan::NoteReshape(plan) => plan.family_id().output_count(),
                 ActionPlan::ShieldedIcs20Withdrawal(plan) => plan.note_creating_output_count(),
                 ActionPlan::ShieldedHostWithdrawal(plan) => plan.note_creating_output_count(),
-                ActionPlan::ValidatorDefinition(_)
-                | ActionPlan::IbcAction(_)
-                | ActionPlan::ProposalSubmit(_)
-                | ActionPlan::ValidatorVote(_)
+                ActionPlan::IbcAction(_)
                 | ActionPlan::ComplianceRegisterAsset(_)
                 | ActionPlan::ComplianceRegisterUser(_) => 0,
             })
@@ -278,10 +239,7 @@ impl TransactionPlan {
                 | ActionPlan::NoteReshape(_)
                 | ActionPlan::ShieldedIcs20Withdrawal(_)
                 | ActionPlan::ShieldedHostWithdrawal(_) => 1,
-                ActionPlan::ValidatorDefinition(_)
-                | ActionPlan::IbcAction(_)
-                | ActionPlan::ProposalSubmit(_)
-                | ActionPlan::ValidatorVote(_)
+                ActionPlan::IbcAction(_)
                 | ActionPlan::ComplianceRegisterAsset(_)
                 | ActionPlan::ComplianceRegisterUser(_) => 0,
             })

@@ -52,28 +52,6 @@ impl tower::Service<http::Request<BoxBody>> for AppQueryProxy {
 }
 
 #[derive(Clone)]
-pub struct GovernanceQueryProxy(pub Channel);
-
-impl NamedService for GovernanceQueryProxy {
-    const NAME: &'static str = "shieldd.core.component.governance.v1.QueryService";
-}
-
-impl tower::Service<http::Request<BoxBody>> for GovernanceQueryProxy {
-    type Response = http::Response<BoxBody>;
-    type Error = Infallible;
-    type Future =
-        Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send + 'static>>;
-
-    fn poll_ready(&mut self, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        Poll::Ready(Ok(()))
-    }
-
-    fn call(&mut self, req: http::Request<BoxBody>) -> Self::Future {
-        proxy(self.0.clone(), req)
-    }
-}
-
-#[derive(Clone)]
 pub struct FeeQueryProxy(pub Channel);
 
 impl NamedService for FeeQueryProxy {
@@ -147,28 +125,6 @@ impl NamedService for ChainQueryProxy {
 }
 
 impl tower::Service<http::Request<BoxBody>> for ChainQueryProxy {
-    type Response = http::Response<BoxBody>;
-    type Error = Infallible;
-    type Future =
-        Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send + 'static>>;
-
-    fn poll_ready(&mut self, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        Poll::Ready(Ok(()))
-    }
-
-    fn call(&mut self, req: http::Request<BoxBody>) -> Self::Future {
-        proxy(self.0.clone(), req)
-    }
-}
-
-#[derive(Clone)]
-pub struct ValidatorQueryProxy(pub Channel);
-
-impl NamedService for ValidatorQueryProxy {
-    const NAME: &'static str = "shieldd.core.component.validator.v1.QueryService";
-}
-
-impl tower::Service<http::Request<BoxBody>> for ValidatorQueryProxy {
     type Response = http::Response<BoxBody>;
     type Error = Infallible;
     type Future =

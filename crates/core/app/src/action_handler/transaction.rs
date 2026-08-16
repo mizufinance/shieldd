@@ -871,11 +871,7 @@ where
                 }
                 profile.other_action_execute_ms += action_start.elapsed().as_secs_f64() * 1000.0;
             }
-            action @ (Action::ValidatorDefinition(_)
-            | Action::ValidatorVote(_)
-            | Action::ProposalSubmit(_)
-            | Action::ComplianceRegisterAsset(_)
-            | Action::ComplianceRegisterUser(_)) => {
+            action @ (Action::ComplianceRegisterAsset(_) | Action::ComplianceRegisterUser(_)) => {
                 if action_spans_enabled {
                     let span = action.create_span(i);
                     action

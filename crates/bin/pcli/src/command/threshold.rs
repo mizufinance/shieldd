@@ -1,11 +1,7 @@
 use anyhow::Result;
 use shieldd_sdk_custody::threshold::Terminal;
 
-use crate::{
-    config::{CustodyConfig, GovernanceCustodyConfig},
-    terminal::ActualTerminal,
-    App,
-};
+use crate::{config::CustodyConfig, terminal::ActualTerminal, App};
 
 #[derive(Debug, clap::Subcommand)]
 pub enum ThresholdCmd {
@@ -30,21 +26,10 @@ impl ThresholdCmd {
             }
             _ => None, // If not threshold, we can't sign using threshold config
         };
-        let governance_config = match &app.config.governance_custody {
-            Some(GovernanceCustodyConfig::Threshold(governance_config)) => {
-                Some(governance_config.clone())
-            }
-            None => config.clone(), // If no governance config, use regular one
-            _ => None,              // If not threshold, we can't sign using governance config
-        };
         match self {
             ThresholdCmd::Sign => {
-                shieldd_sdk_custody::threshold::follow(
-                    config.as_ref(),
-                    governance_config.as_ref(),
-                    &ActualTerminal::default(),
-                )
-                .await
+                shieldd_sdk_custody::threshold::follow(config.as_ref(), &ActualTerminal::default())
+                    .await
             }
         }
     }

@@ -25,8 +25,6 @@ parallel = [
     "shieldd-sdk-proof-params/parallel",
     "decaf377/parallel",
     "shieldd-sdk-shielded-pool/parallel",
-    "shieldd-sdk-governance/parallel",
-    "shieldd-sdk-validator/parallel",
     "shieldd-sdk-transaction/parallel",
     "shieldd-sdk-wallet/parallel",
 ]
@@ -53,7 +51,6 @@ decaf377-rdsa = {workspace = true}
 dialoguer = "0.10.4"
 time = "0.3"
 directories = {workspace = true}
-ed25519-consensus = {workspace = true}
 futures = {workspace = true}
 hex = {workspace = true}
 http-body = {workspace = true}
@@ -71,7 +68,6 @@ shieldd-sdk-compliance = {workspace = true, default-features = true}
 shieldd-sdk-custody = {workspace = true}
 shieldd-sdk-custody-ledger-usb = {workspace = true, optional = true}
 shieldd-sdk-fee = {workspace = true, default-features = false}
-shieldd-sdk-governance = {workspace = true, default-features = false}
 shieldd-sdk-ibc = {workspace = true, default-features = false}
 shieldd-sdk-keys = {workspace = true, default-features = false}
 shieldd-sdk-num = {workspace = true, default-features = false}
@@ -79,7 +75,6 @@ shieldd-sdk-proof-params = { workspace = true, default-features = true }
 shieldd-sdk-proto = {workspace = true, features = ["rpc", "box-grpc"], default-features = true}
 shieldd-sdk-sct = {workspace = true, default-features = false}
 shieldd-sdk-shielded-pool = {workspace = true, default-features = false}
-shieldd-sdk-validator = {workspace = true, default-features = false}
 shieldd-sdk-tct = {workspace = true, default-features = true}
 shieldd-sdk-transaction = {workspace = true, default-features = true}
 shieldd-sdk-view = {workspace = true}
@@ -111,7 +106,6 @@ url = {workspace = true, features = ["serde"]}
 
 [dev-dependencies]
 assert_cmd = {workspace = true}
-shieldd-sdk-governance = {workspace = true, default-features = false}
 predicates = "2.1"
 regex = {workspace = true}
 tempfile = {workspace = true}

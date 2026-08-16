@@ -48,20 +48,10 @@ pub struct AppParameters {
     pub sct_params: ::core::option::Option<
         super::super::component::sct::v1::SctParameters,
     >,
-    /// Governance module parameters.
-    #[prost(message, optional, tag = "4")]
-    pub governance_params: ::core::option::Option<
-        super::super::component::governance::v1::GovernanceParameters,
-    >,
     /// IBC module parameters.
     #[prost(message, optional, tag = "5")]
     pub ibc_params: ::core::option::Option<
         super::super::component::ibc::v1::IbcParameters,
-    >,
-    /// Validator component parameters.
-    #[prost(message, optional, tag = "6")]
-    pub validator_params: ::core::option::Option<
-        super::super::component::validator::v1::ValidatorParameters,
     >,
     /// Fee module parameters.
     #[prost(message, optional, tag = "7")]
@@ -147,20 +137,10 @@ pub struct GenesisContent {
     /// The initial chain identifier.
     #[prost(string, tag = "1")]
     pub chain_id: ::prost::alloc::string::String,
-    /// Validator component genesis state.
-    #[prost(message, optional, tag = "2")]
-    pub validator_content: ::core::option::Option<
-        super::super::component::validator::v1::GenesisContent,
-    >,
     /// Shielded pool module genesis state.
     #[prost(message, optional, tag = "3")]
     pub shielded_pool_content: ::core::option::Option<
         super::super::component::shielded_pool::v1::GenesisContent,
-    >,
-    /// Governance module genesis state.
-    #[prost(message, optional, tag = "4")]
-    pub governance_content: ::core::option::Option<
-        super::super::component::governance::v1::GenesisContent,
     >,
     /// IBC module genesis state.
     #[prost(message, optional, tag = "5")]
@@ -191,23 +171,6 @@ impl ::prost::Name for GenesisContent {
     }
     fn type_url() -> ::prost::alloc::string::String {
         "/shieldd.core.app.v1.GenesisContent".into()
-    }
-}
-/// An event triggering when the app parameters change.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct EventAppParametersChange {
-    /// The new parameters, in their entirety.
-    #[prost(message, optional, tag = "1")]
-    pub new_parameters: ::core::option::Option<AppParameters>,
-}
-impl ::prost::Name for EventAppParametersChange {
-    const NAME: &'static str = "EventAppParametersChange";
-    const PACKAGE: &'static str = "shieldd.core.app.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.app.v1.EventAppParametersChange".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.app.v1.EventAppParametersChange".into()
     }
 }
 /// Generated client implementations.

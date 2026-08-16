@@ -66,16 +66,13 @@ shieldd-sdk-asset                   = { workspace = true, default-features = tru
 shieldd-sdk-auto-https              = { version = "2.1.0", path = "../../util/auto-https" }
 shieldd-sdk-compact-block           = { workspace = true, default-features = true }
 shieldd-sdk-compliance              = { workspace = true, default-features = true }
-shieldd-sdk-custody                 = { workspace = true }
 shieldd-sdk-fee                     = { workspace = true, default-features = true }
-shieldd-sdk-governance              = { workspace = true, features = ["parallel"], default-features = true }
 shieldd-sdk-ibc                     = { workspace = true, features = ["rpc"], default-features = true }
 shieldd-sdk-keys                    = { workspace = true, default-features = true }
 shieldd-sdk-num                     = { workspace = true, default-features = true }
 shieldd-sdk-proto                   = { workspace = true, default-features = true }
 shieldd-sdk-sct                     = { workspace = true, default-features = true }
 shieldd-sdk-shielded-pool           = { workspace = true, features = ["parallel"], default-features = true }
-shieldd-sdk-validator                   = { workspace = true, features = ["parallel"], default-features = true }
 shieldd-sdk-tct                     = { workspace = true, default-features = true }
 shieldd-sdk-tendermint-proxy        = { version = "2.1.0", path = "../../util/tendermint-proxy" }
 shieldd-sdk-tower-trace             = { workspace = true }
