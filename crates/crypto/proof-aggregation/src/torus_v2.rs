@@ -14,6 +14,9 @@ use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError
 use decaf377::{Bls12_377, Fp};
 use digest::Digest;
 
+#[cfg(feature = "bench-baseline")]
+use crate::strict_deserialize::deserialize_compressed_strict;
+#[cfg(not(feature = "bench-baseline"))]
 use crate::strict_deserialize::deserialize_compressed_strict_with;
 
 #[derive(Clone, Debug, Default, Eq, PartialEq, CanonicalDeserialize, CanonicalSerialize)]
@@ -178,7 +181,10 @@ fn deserialize_torus_aggregate_proof_wire<D: Digest + Send + Sync>(
 ) -> Result<AggregateProof<Bls12_377, D>, SerializationError> {
     // Decode fields and points without trusting their subgroup membership.
     // The reconstructed regular proof is validated below in one place.
+    #[cfg(not(feature = "bench-baseline"))]
     let proof = deserialize_compressed_strict_with::<TorusAggregateProof<D>>(bytes, |_| Ok(()))?;
+    #[cfg(feature = "bench-baseline")]
+    let proof = deserialize_compressed_strict::<TorusAggregateProof<D>>(bytes)?;
     let coordinates = aggregate_proof_target_values::<Bls12_377, TorusTarget, D>(&proof);
     let targets = decompress_targets(&coordinates)?;
     let mut targets = targets.into_iter();

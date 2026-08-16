@@ -1558,7 +1558,7 @@
     {
       "id": "ARTIFACT-EVERY-TORUS-COORDINATE-ROUND-TRIPS",
       "path": "crates/crypto/proof-aggregation/src/torus_v2.rs",
-      "source_sha256": "55ab0e59194a06cc3e9c09150da705e1e16c50e998b44c93fc57a6f3b3cefb3e"
+      "source_sha256": "5d3634721cd13e0f63304bc56d7433d6fa4ba0182b37f01753a57f80084fccc3"
     },
     {
       "id": "ARTIFACT-EXACT-DIGEST-AUTHENTICATES-REGISTRY-PAYLOAD",
@@ -1663,7 +1663,7 @@
     {
       "id": "ARTIFACT-IDENTITY-USES-ZERO-AND-MINUS-ONE-IS-REJECTED",
       "path": "crates/crypto/proof-aggregation/src/torus_v2.rs",
-      "source_sha256": "55ab0e59194a06cc3e9c09150da705e1e16c50e998b44c93fc57a6f3b3cefb3e"
+      "source_sha256": "5d3634721cd13e0f63304bc56d7433d6fa4ba0182b37f01753a57f80084fccc3"
     },
     {
       "id": "ARTIFACT-IDS-ARE-EXACT-AND-REDUCTION-IS-PERMUTATION-INVARIANT",
@@ -2388,7 +2388,7 @@
     {
       "id": "ARTIFACT-TARGET-TORUS-ROUND-TRIP-INCLUDING-IDENTITY",
       "path": "crates/crypto/proof-aggregation/src/torus_v2.rs",
-      "source_sha256": "55ab0e59194a06cc3e9c09150da705e1e16c50e998b44c93fc57a6f3b3cefb3e"
+      "source_sha256": "5d3634721cd13e0f63304bc56d7433d6fa4ba0182b37f01753a57f80084fccc3"
     },
     {
       "id": "ARTIFACT-TEST-ANOTHER-CIRCUIT",
@@ -2738,7 +2738,7 @@
     {
       "id": "ARTIFACT-WRAPPER-VERSIONS-ARE-DISJOINT",
       "path": "crates/crypto/proof-aggregation/src/torus_v2.rs",
-      "source_sha256": "55ab0e59194a06cc3e9c09150da705e1e16c50e998b44c93fc57a6f3b3cefb3e"
+      "source_sha256": "5d3634721cd13e0f63304bc56d7433d6fa4ba0182b37f01753a57f80084fccc3"
     },
     {
       "id": "ARTIFACT-WRITE-FRAME-REJECTS-OVERSIZED-REQUEST",

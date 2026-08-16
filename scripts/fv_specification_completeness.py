@@ -225,7 +225,7 @@ SEMANTIC_IMPLEMENTATION_ROOTS = (
     ("tools/gnark", (".go", ".py", ".sh")),
 )
 SEMANTIC_EXCLUDED_DIRECTORY_NAMES = frozenset(
-    {".git", ".lake", "__pycache__", "node_modules", "target"}
+    {".generated", ".git", ".lake", "__pycache__", "node_modules", "target"}
 )
 SEMANTIC_EXCLUDED_IMPLEMENTATION_PATHS = frozenset(
     {
