@@ -259,7 +259,7 @@ class ImpactPlannerTests(unittest.TestCase):
             (
                 "Ipp/Extracted/ShippingProver.lean",
                 "Ipp.ProofAuditProver",
-                False,
+                True,
             ),
             (
                 "Ipp/ShippingAdaptiveReindex.lean",

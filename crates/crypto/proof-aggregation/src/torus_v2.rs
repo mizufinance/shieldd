@@ -213,11 +213,12 @@ fn validate_regular_proof<D: Digest + Send + Sync>(
 pub(crate) fn serialize_torus_aggregate_proof<D: Digest + Send + Sync>(
     proof: &AggregateProof<Bls12_377, D>,
 ) -> Result<Vec<u8>, SerializationError> {
-    // The aggregate constructor produces subgroup-valid elements, just as the
-    // v1 encoder assumes before canonical serialization.  The untrusted decode
-    // path below still validates every reconstructed group element.  Rechecking
-    // the prover's own output here duplicated the full GT membership pass and
-    // made transport compression part of the proving critical path.
+    // Torus encoding is injective only on the certified odd-order target
+    // subgroup. AggregateProof does not carry that invariant in its Rust type,
+    // so enforce it before entering the chart. If construction later returns a
+    // proof type with a private validity certificate, this check can move into
+    // that constructor without weakening this boundary.
+    validate_regular_proof(proof)?;
     let targets = aggregate_proof_target_values::<Bls12_377, PairingOutput<Bls12_377>, D>(proof);
     let compressed = compress_targets(&targets)?;
     let mut compressed = compressed.into_iter();

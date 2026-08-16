@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "vector_dimensions": {
     "roles": [
       "prover",
@@ -169,16 +169,27 @@
         "lean_roots": [
           "Ipp.Optimization.shared_gt_fold_exact",
           "Ipp.Optimization.shared_four_lane_fold_exact",
+          "Ipp.OptimizedGtFoldRefinement.optimizedLanes_eq_terminalFold",
+          "Ipp.OptimizedGtFoldRefinement.optimizedTuple_eq_terminalFold",
+          "Ipp.Extracted.AggregateVerifier.ArkworksTippPrimitiveExecutionContract.toKernel",
           "Ipp.Cost.verifierSharedGtScheduled_exact_saving",
           "Ipp.Cost.verifierSharedGtScheduled_strictlyImproves"
         ],
-        "rust_sources": [
-          "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs"
+        "claims": [
+          "OPTIMIZED-GT-FOLD-REFINEMENT"
         ],
+        "rust_sources": [
+          "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+          "crates/crypto/proof-aggregation/src/backend.rs"
+        ],
+        "rust_source_sha256": {
+          "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs": "fadbf293a2f89b06e373978c23d77a4a86bca0c0d24ac48bf09704ef13293f8c",
+          "crates/crypto/proof-aggregation/src/backend.rs": "616f75f1985927bca1b5b92c155895e6a1dab97b0a81a1030f96428df3f76e07"
+        },
         "tests": [
           "shared_gt_fold_matches_sequential_bls12_381",
           "shared_gt_fold_matches_sequential_bls12_377",
-          "assert_shieldd_byte_trace_matches_committed_baseline"
+          "v1_bytes_and_transcript_match_committed_baselines"
         ],
         "measurement": "Isolated count-48 verifier A/B: Transfer -1.00%, NoteReshape -0.82%, ICS20 -0.66%; all Criterion confidence intervals were below zero."
       }
@@ -214,9 +225,15 @@
           "Ipp.Cost.prover_padding_pairing_exact_saving",
           "Ipp.Cost.prover_padding_pairing_strictly_fewer"
         ],
+        "claims": [
+          "OPT-PADDING-PAIRING-COALESCING"
+        ],
         "rust_sources": [
           "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs"
         ],
+        "rust_source_sha256": {
+          "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs": "fadbf293a2f89b06e373978c23d77a4a86bca0c0d24ac48bf09704ef13293f8c"
+        },
         "tests": [
           "padding_pairing_coalescing_is_exact_on_bls12_381",
           "padding_pairing_coalescing_is_exact_on_bls12_377",
@@ -253,9 +270,15 @@
           "Ipp.Cost.prover_exact_optimized_g2_kzg_msm_terms",
           "Ipp.Cost.prover_unpadded_kzg_exact_saving"
         ],
+        "claims": [
+          "OPT-KZG-MSM-PREFIX"
+        ],
         "rust_sources": [
           "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs"
         ],
+        "rust_source_sha256": {
+          "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs": "9bb33628f2730924c69ddb5fb22f905df6199b9ddff7076ec8216a06bc7c54f1"
+        },
         "tests": [
           "kzg_opening_core_owns_construction_order_and_projection",
           "kzg_opening_msm_core_forwards_exact_vectors_and_error",
@@ -315,10 +338,17 @@
           "Ipp.Cost.proverRoundPairingPreparationShared_savings",
           "Ipp.Cost.proverRoundPairingPreparationShared_strictlyImproves"
         ],
+        "claims": [
+          "OPT-SHARED-PAIRING-PREPARATION"
+        ],
         "rust_sources": [
           "crates/crypto/proof-aggregation/src/ipp/inner_products/src/lib.rs",
           "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs"
         ],
+        "rust_source_sha256": {
+          "crates/crypto/proof-aggregation/src/ipp/inner_products/src/lib.rs": "ce6be740fddd1bb03de528d5730d91a734b035e6ccdd12a6b94aa4a97c91e764",
+          "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs": "fadbf293a2f89b06e373978c23d77a4a86bca0c0d24ac48bf09704ef13293f8c"
+        },
         "tests": [
           "shared_prover_round_pairing_preparation_preserves_outputs_and_counts_unique_operands",
           "shared_prover_round_pairing_preparation_preserves_shape_failure_order",
@@ -374,14 +404,21 @@
         "lean_roots": [
           "Ipp.Bls12377.fastGtUnitMembership_iff"
         ],
+        "claims": [
+          "OPT-FAST-GT-VALIDATION"
+        ],
         "rust_sources": [
           "crates/crypto/proof-aggregation/src/backend.rs",
           "crates/crypto/proof-aggregation/src/strict_deserialize.rs"
         ],
+        "rust_source_sha256": {
+          "crates/crypto/proof-aggregation/src/backend.rs": "616f75f1985927bca1b5b92c155895e6a1dab97b0a81a1030f96428df3f76e07",
+          "crates/crypto/proof-aggregation/src/strict_deserialize.rs": "14e549fa83de3ec8b5899b0058f1dfc32c9e6862686b1c2ff32062cd968b8549"
+        },
         "tests": [
           "fast_bls12_377_gt_validation_matches_arkworks_on_structured_inputs",
           "strict_boundary_rejects_nested_component_aliases_and_malformed_bytes",
-          "assert_shieldd_byte_trace_matches_committed_baseline"
+          "v1_bytes_and_transcript_match_committed_baselines"
         ],
         "measurement": "The matched count-48 exact-reduction milestone, dominated on verification by fast GT decoding, improved all three verifier families by 51.96% to 52.62%."
       }
@@ -436,9 +473,15 @@
           "Ipp.Optimization.streamed_terminal_power_exact",
           "Ipp.Cost.publicInputCoefficientStreamed_exact_saving"
         ],
+        "claims": [
+          "OPT-STREAM-PUBLIC-INPUT-FOLD"
+        ],
         "rust_sources": [
           "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs"
         ],
+        "rust_source_sha256": {
+          "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs": "fadbf293a2f89b06e373978c23d77a4a86bca0c0d24ac48bf09704ef13293f8c"
+        },
         "tests": [
           "fold_public_inputs_core_matches_baseline_across_shapes",
           "fold_public_inputs_core_preserves_shape_rejections",
@@ -486,15 +529,23 @@
           "Ipp.Cost.verifierSubgroupValidationFast_exact_added_maps",
           "Ipp.Cost.verifierSubgroupValidationFallbackWorstCase_exact"
         ],
+        "claims": [
+          "OPT-FAST-G1-G2-VALIDATION"
+        ],
         "rust_sources": [
           "crates/crypto/proof-aggregation/src/backend.rs",
           "crates/crypto/proof-aggregation/src/strict_deserialize.rs",
           "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs"
         ],
+        "rust_source_sha256": {
+          "crates/crypto/proof-aggregation/src/backend.rs": "616f75f1985927bca1b5b92c155895e6a1dab97b0a81a1030f96428df3f76e07",
+          "crates/crypto/proof-aggregation/src/strict_deserialize.rs": "14e549fa83de3ec8b5899b0058f1dfc32c9e6862686b1c2ff32062cd968b8549",
+          "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs": "fadbf293a2f89b06e373978c23d77a4a86bca0c0d24ac48bf09704ef13293f8c"
+        },
         "tests": [
           "fast_bls12_377_g1_g2_validation_matches_arkworks",
           "strict_boundary_rejects_nested_component_aliases_and_malformed_bytes",
-          "assert_shieldd_byte_trace_matches_committed_baseline"
+          "v1_bytes_and_transcript_match_committed_baselines"
         ],
         "measurement": "Isolated count-48 verifier A/B: Transfer -4.58% (CI -4.95%..-4.14%), NoteReshape -14.38% (CI -16.20%..-12.61%), ICS20 -9.42% (CI -9.99%..-8.85%)."
       }
@@ -590,11 +641,11 @@
         "target-group wire encoding",
         "v1 SnarkPack relation and transcript after decoding"
       ],
-      "theorem": "Ipp.TorusCompression proves the BLS12-377 torus chart, inverse directions, injectivity, and sound identity sentinel; Ipp.TorusAggregateSerialization proves the exact v2 byte formula and strict saving; Ipp.TorusV2Optimization proves trusted prover-check erasure and cached decoder value equality",
+      "theorem": "Ipp.TorusCompression proves the BLS12-377 torus chart, both inverse directions, injectivity, zero-sentinel semantics, and exclusion of a zero encoding for nonexceptional odd-order points; Ipp.TorusV2Optimization proves total cached decoding plus exact ordered all-target round trips for certified points and arbitrary coordinates; Ipp.TorusCoordinateSerialization proves strict canonical 288-byte Fq6 decoding; Ipp.TorusAggregateSerialization proves the exact v2 byte formula and strict saving",
       "transcript_wire_impact": "explicit disjoint v2 wrapper and half-size GT representation; the reconstructed v1 proof and transcript inputs are unchanged",
       "assumptions": [],
       "error_term": "0; malformed coordinates, omitted -1, non-subgroup reconstructions, and invalid proof shapes fail closed",
-      "boundary": "aggregate_family_torus_v2 and verify_family_aggregate_torus_v2; v1 entry points and bytes remain unchanged",
+      "boundary": "aggregate_family_torus_v2 validates the untyped AggregateProof before entering the torus chart; verify_family_aggregate_torus_v2 strictly decodes and validates the reconstructed regular proof; v1 entry points and bytes remain unchanged",
       "status": "verified",
       "rejection_reason": "",
       "evidence": {
@@ -602,6 +653,7 @@
           "Ipp.TorusCompression.decompress_isNormOne",
           "Ipp.TorusCompression.compress_decompress",
           "Ipp.TorusCompression.decompress_compress",
+          "Ipp.TorusCompression.compress_ne_zero_of_odd_torsion",
           "Ipp.TorusCompression.decompress_injective_on_nonzero",
           "Ipp.TorusCompression.bls12377_fq6V_nonsquare",
           "Ipp.TorusCompression.bls12377_zero_sentinel_sound",
@@ -609,7 +661,18 @@
           "Ipp.TorusAggregateSerialization.wrappedLength_count48",
           "Ipp.TorusAggregateSerialization.strictly_smaller",
           "Ipp.TorusV2Optimization.decompressCached_eq_decompress",
-          "Ipp.TorusV2Optimization.checkedCompress_eq_trusted_of_valid"
+          "Ipp.TorusV2Optimization.decodeCoordinateCached_eq_decodeCoordinate",
+          "Ipp.TorusV2Optimization.decodeCoordinate_encodeCoordinate",
+          "Ipp.TorusV2Optimization.encode_decodeCoordinate",
+          "Ipp.TorusV2Optimization.decodeCoordinates_encodeCoordinates",
+          "Ipp.TorusCoordinateSerialization.decode_exact_consumption",
+          "Ipp.TorusCoordinateSerialization.decode_injective",
+          "Ipp.TorusCoordinateSerialization.decode_rejects_wrong_length",
+          "Ipp.TorusCoordinateSerialization.decode_rejects_noncanonical_field"
+        ],
+        "claims": [
+          "TORUS-V2-CODEC-REFINEMENT",
+          "TORUS-V2-STRICT-COORDINATE-WIRE"
         ],
         "rust_sources": [
           "crates/crypto/proof-aggregation/src/torus_v2.rs",
@@ -617,6 +680,12 @@
           "crates/crypto/proof-aggregation/src/backend.rs",
           "crates/crypto/proof-aggregation/src/preflight.rs"
         ],
+        "rust_source_sha256": {
+          "crates/crypto/proof-aggregation/src/torus_v2.rs": "ceb631f4e58eb31906292e97b2bafe2846b3236979b9a57a32756ccfefda55da",
+          "crates/crypto/proof-aggregation/src/aggregate_proof_wrapper.rs": "3e461eacad024d8add266f4fcaa94aa1d05631d970b57ee7b9a5381f60d92233",
+          "crates/crypto/proof-aggregation/src/backend.rs": "616f75f1985927bca1b5b92c155895e6a1dab97b0a81a1030f96428df3f76e07",
+          "crates/crypto/proof-aggregation/src/preflight.rs": "aabb54ebf95299b3b8ef78ca9df22f03d351d97a25c0ecc15725f4f2f19f9a8d"
+        },
         "tests": [
           "target_torus_round_trip_including_identity",
           "every_torus_coordinate_round_trips",
@@ -625,7 +694,7 @@
           "torus_v2_preflight_translation_is_bounded_and_disjoint",
           "torus_v2_round_trips_real_aggregate_and_halves_target_wire"
         ],
-        "measurement": "Count-48 wrapped proof: 31329 to 16353 bytes (-47.80%). After removing the redundant trusted-prover validation and caching decoder intermediates, release Criterion medians were aggregate v1 385.10 ms versus v2 378.58 ms (no retained regression) and verify v1 53.566 ms versus v2 54.183 ms (+1.15%, +0.617 ms). A projective-torus internal fold was rejected after measuring about 12x slower than Arkworks GT MSM."
+        "measurement": "Fresh release benchmark with restored untyped-proof validation, Transfer count 48 and 100 Criterion samples: v1 aggregate median 382.26 ms, torus-v2 aggregate median 400.94 ms (+4.89%, +18.68 ms). The wrapped proof is 31329 versus 16353 bytes (-47.80%, -14976 bytes). The last decode-side comparison was v1 53.566 ms versus v2 54.183 ms (+1.15%, +0.617 ms). V2 is therefore retained as an opt-in network-size trade for the four-validator bankd deployment, not a prover-speed optimization. A projective-torus internal fold was rejected after measuring about 12x slower than Arkworks GT MSM."
       }
     },
     {

@@ -116,6 +116,40 @@ class VerificationManifestTests(unittest.TestCase):
             )
         self.assertIn("unaudited Lean roots", str(raised.exception))
 
+        bad_source_hash = copy.deepcopy(register)
+        first_verified = next(
+            candidate
+            for candidate in bad_source_hash["candidates"]
+            if candidate["status"] == "verified"
+        )
+        first_source = first_verified["evidence"]["rust_sources"][0]
+        first_verified["evidence"]["rust_source_sha256"][first_source] = "0" * 64
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.validate_operation_register(bad_source_hash)
+        self.assertIn("Rust source sha256 differs", str(raised.exception))
+
+        missing_test = copy.deepcopy(register)
+        first_verified = next(
+            candidate
+            for candidate in missing_test["candidates"]
+            if candidate["status"] == "verified"
+        )
+        first_verified["evidence"]["tests"][0] = "missing_optimization_test"
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.validate_operation_register(missing_test)
+        self.assertIn("exactly one pinned Rust owner", str(raised.exception))
+
+        open_claim = copy.deepcopy(register)
+        first_verified = next(
+            candidate
+            for candidate in open_claim["candidates"]
+            if candidate["status"] == "verified"
+        )
+        first_verified["evidence"]["claims"][0] = "DEPLOYED-SRS-SOUNDNESS"
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.validate_operation_register(open_claim)
+        self.assertIn("missing or open claims", str(raised.exception))
+
     def test_missing_audit_module_fails_closed(self):
         manifest = copy.deepcopy(self.manifest)
         manifest["audit_modules"][0]["path"] = "Ipp/DeletedAudit.lean"

@@ -53,6 +53,17 @@ theorem decompress_denominator_ne_zero {γ g : K} (hγ : IsNonSquare γ) :
   apply hγ g
   exact sub_eq_zero.mp h
 
+/-- Coordinate zero is reserved for the multiplicative identity.  The raw
+torus formula would otherwise select the exceptional point `-1`. -/
+theorem decompress_zero {γ : K} (hγ : IsNonSquare γ) :
+    decompress γ 0 = negIdentity := by
+  unfold decompress negIdentity
+  apply point_ext <;> dsimp
+  · field_simp [nonsquare_ne_zero hγ]
+    ring
+  · field_simp [nonsquare_ne_zero hγ]
+    ring
+
 /-- Every decoded coordinate lies on the norm-one torus. -/
 theorem decompress_isNormOne {γ g : K} (hγ : IsNonSquare γ) :
     IsNormOne γ (decompress γ g) := by
@@ -178,6 +189,21 @@ theorem neg_one_not_odd_torsion {r : ℕ} (hr : Odd r)
   obtain ⟨k, rfl⟩ := hr
   simpa [pow_succ] using hneg
 
+/-- A non-exceptional odd-order torus point never encodes to the reserved
+identity coordinate. -/
+theorem compress_ne_zero_of_odd_torsion {γ : K} {p : Point (K := K)} {r : ℕ}
+    (hγ : IsNonSquare γ) (hchar : (2 : K) ≠ 0)
+    (hp : IsNormOne γ p) (hr : Odd r) (htorsion : p.a ^ r = 1)
+    (hb : p.b ≠ 0) :
+    compress p ≠ 0 := by
+  intro hzero
+  have hpneg : p = negIdentity := by
+    rw [← decompress_compress hγ hchar hp hb, hzero]
+    exact decompress_zero hγ
+  subst p
+  exact neg_one_not_odd_torsion hr hchar (by
+    simpa [negIdentity] using htorsion)
+
 /-- The zero sentinel uniquely represents identity on an odd-order subgroup. -/
 theorem zero_sentinel_sound {γ : K} {p : Point (K := K)} {r : ℕ}
     (hp : IsNormOne γ p) (hb : p.b = 0) (hr : Odd r)
@@ -234,10 +260,12 @@ theorem bls12377_zero_sentinel_sound {p : Point (K := Fq6Canonical)}
     bls12377_fq6_two_ne_zero htorsion
 
 #print axioms decompress_isNormOne
+#print axioms decompress_zero
 #print axioms compress_decompress
 #print axioms decompress_compress
 #print axioms zero_second_coordinate_cases
 #print axioms neg_one_not_odd_torsion
+#print axioms compress_ne_zero_of_odd_torsion
 #print axioms zero_sentinel_sound
 #print axioms decompress_injective_on_nonzero
 #print axioms bls12377_fq6V_nonsquare
