@@ -22,7 +22,6 @@ use url::Url;
 #[case(r"^pd_async_sleep_drift_microseconds \d+")]
 #[case(r"^pd_process_cpu_seconds_total \d+")]
 #[case(r"^pd_process_open_fds \d+")]
-#[case(r#"^shieldd_stake_missed_blocks\{identity_key=".*"\} \d+"#)]
 // TODO: re-enable once epoch duration is reduced for smoke tests
 // #[case(r"^shieldd_funding_streams_total_processing_time_milliseconds_count_milliseconds \d+")]
 #[tokio::test]

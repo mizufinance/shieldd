@@ -15,7 +15,10 @@ component = [
     "tonic",
     "tokio-stream",
     "tokio",
+    "shieldd-sdk-compliance/component",
     "shieldd-sdk-fee/component",
+    "shieldd-sdk-sct/component",
+    "shieldd-sdk-shielded-pool/component",
 ]
 # proving-keys = ["shieldd-sdk-proof-params/proving-keys"]
 default = ["std", "component"]
