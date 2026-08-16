@@ -288,11 +288,6 @@ PROOF_ACCEPTANCE_REQUIRED_RECEIPTED_TESTS = (
         "valid_cache_entries_reject_raw_transaction_artifact_mismatch",
         "raw-byte association evidence",
     ),
-    (
-        "crates/core/app/src/action_handler/transaction.rs",
-        "structured_join_drain_waits_for_transaction_siblings_after_error",
-        "structured task-drain evidence",
-    ),
     *(
         (
             PROOF_ACCEPTANCE_TEST_PATH,
@@ -300,7 +295,7 @@ PROOF_ACCEPTANCE_REQUIRED_RECEIPTED_TESTS = (
             "four-circuit proof acceptance evidence",
         )
         for symbol in (
-            "fv_runtime_transaction_stateless_rejects_decodable_invalid_groth16",
+            "fv_runtime_artifact_build_rejects_decodable_invalid_groth16",
             "fv_runtime_process_proposal_rejects_decodable_invalid_groth16",
             "fv_runtime_fee_funding_process_proposal_rejects_invalid_groth16",
             "fv_runtime_fee_funding_valid_proof_executes_and_persists",
@@ -557,7 +552,7 @@ REQUIRED_TEST_KINDS: dict[str, frozenset[str]] = {
     ),
 }
 PREDICATE_SEMANTICS_SHA256 = (
-    "ec5666f61b3216a1673c8a51a0a9aa8ee4c8c5336df877c95aae5010f9cb173b"
+    "10b947d4865a4982278ec9425c3a403c7fa0557fa34978e7665b3a48a36bda31"
 )
 PROPERTY_CONTRACT_SHA256 = (
     "c64105b482af65fbd8fe88054dc14ad453cf7820ecb09b8f61645f7d37cd501e"
@@ -566,12 +561,12 @@ CONSEQUENCE_ROSTER_SHA256 = (
     "9bd523d91b95d2a15e5be64712a2af06e2bb84ea4c61cd19b4e9da590e99996c"
 )
 PROOF_ACCEPTANCE_SURFACE_SHA256 = (
-    "47fa678515e0d244a318086e0a4a031cc67f1d3d3bc559ce290ee0b6c0d198be"
+    "bbbde16d8a15dfd86e8e4826a9dcaaa3c0b45f5e7090ce23f11fc4673f97ac7f"
 )
 # Update only after independently reviewing every runtime-policy statement,
 # parameter, sink, test, and exact execution selector.
 RUNTIME_POLICY_CONTRACT_SHA256 = (
-    "287c6ade23d74ee1fcf1da7881cf0707b8b4fcce51b94230f1dc25ee74e75746"
+    "26e8129dd09c09475165be56fcf7af8b1ceddce92fcfefd3fa032f2e2916dd75"
 )
 # Update these only after independently reviewing every owner, source file,
 # runnable selector, kind, and execution command in the corresponding ledger.
@@ -817,7 +812,7 @@ REVIEWED_TEST_SOURCE_CENSUS = (
 # This pins every path/symbol/reason triple rendered in reviewed_test_census.
 # Update only after deciding whether each changed test is normative evidence.
 REVIEWED_TEST_EXCLUSIONS_SHA256 = (
-    "57202125b81f2c7015950900ef39315eb7f216ed1f9b21c3910a90ef5a15c70e"
+    "776a7172e215b638b87ef4f448acd2ffbb58c0eacdb9cd40b11e9e061c28c59e"
 )
 PROPERTY_TEST_SOURCE_CENSUS = (
     "crates/core/component/compliance/src/structs.rs",
@@ -1296,10 +1291,7 @@ RUNTIME_POLICY_BASELINE = {
             "process_proposal",
             "proof_workers",
         ],
-        "test_ids": [
-            "RUNTIME-STRUCTURED-TASK-DRAIN",
-            "RUNTIME-STRUCTURED-TRANSACTION-TASK-DRAIN",
-        ],
+        "test_ids": ["RUNTIME-STRUCTURED-TASK-DRAIN"],
     },
     "RUNTIME-POLICY-TIMESTAMP-FRESHNESS": {
         "parameters": {
@@ -2913,7 +2905,10 @@ PROOF_BEARING_BINDING_AUTHORIZATION_MODEL = {
 
 ACTION_AUTHORIZATION_MODEL = {
     "action_enum_path": "crates/core/transaction/src/action.rs",
-    "dispatch_path": "crates/core/app/src/action_handler/actions.rs",
+    "stateless_dispatch_path": "crates/core/app/src/app/mod.rs",
+    "execution_dispatch_path": (
+        "crates/core/app/src/action_handler/actions.rs"
+    ),
     "profiled_execution_path": (
         "crates/core/app/src/action_handler/transaction.rs"
     ),
@@ -9432,7 +9427,7 @@ def _validate_ibc_action_authorization(
         "Action::IbcRelay(action) => { "
         "action .clone() "
         ".with_handler::<Ics20Transfer, ShielddHost>() "
-        ".check_stateless(()) .await }"
+        ".check_stateless(()) .await? }"
     )
     top_level_execute_fragment = _normalize_rust_fragment(
         "Action::IbcRelay(action) => { "
@@ -9713,24 +9708,28 @@ def validate_action_authorization_model(root: Path) -> None:
             f"drifted: expected={direct_class}, actual={direct_roster}"
         )
 
-    dispatch_source = _read_acceptance_source(
+    stateless_dispatch_source = _read_acceptance_source(
         root,
-        str(model["dispatch_path"]),
-        "transaction Action authorization dispatch",
-    )
-    dispatch_impl = _balanced_rust_declaration_block(
-        dispatch_source,
-        r"^[ \t]*impl[ \t]+AppActionHandler[ \t]+for[ \t]+Action\b",
-        "transaction Action authorization dispatch",
-    )
-    dispatch_functions = _rust_function_declarations(dispatch_impl)
-    stateless_dispatch = _one_rust_function(
-        dispatch_functions,
-        "check_stateless",
+        str(model["stateless_dispatch_path"]),
         "transaction Action stateless authorization dispatch",
     )
+    stateless_dispatch = _one_rust_function(
+        _rust_function_declarations(stateless_dispatch_source),
+        "collect_consensus_proof_items_with_artifacts",
+        "transaction Action stateless authorization dispatch",
+    )
+    execution_dispatch_source = _read_acceptance_source(
+        root,
+        str(model["execution_dispatch_path"]),
+        "transaction Action execution authorization dispatch",
+    )
+    execution_dispatch_impl = _balanced_rust_declaration_block(
+        execution_dispatch_source,
+        r"^[ \t]*impl[ \t]+AppActionHandler[ \t]+for[ \t]+Action\b",
+        "transaction Action execution authorization dispatch",
+    )
     execute_dispatch = _one_rust_function(
-        dispatch_functions,
+        _rust_function_declarations(execution_dispatch_impl),
         "check_and_execute",
         "transaction Action execution authorization dispatch",
     )
@@ -9747,10 +9746,17 @@ def validate_action_authorization_model(root: Path) -> None:
         )
     )
     for action in direct_class:
-        stateless_fragment = _normalize_rust_fragment(
-            f"Action::{action}(action) => "
-            "action.check_stateless(()).await"
-        )
+        if action == "IbcRelay":
+            stateless_fragment = _normalize_rust_fragment(
+                "Action::IbcRelay(action) => {"
+                "action.clone().with_handler::<Ics20Transfer, ShielddHost>()"
+                ".check_stateless(()).await?"
+            )
+        else:
+            stateless_fragment = _normalize_rust_fragment(
+                f"Action::{action}(action) => "
+                "action.check_stateless(()).await?"
+            )
         execute_fragment = _normalize_rust_fragment(
             f"Action::{action}(action) => "
             "action.check_and_execute(state).await"
@@ -9981,7 +9987,6 @@ def _validate_internal_action_acceptance_surface(
         {
             "check_and_execute": 1,
             "check_historical": 1,
-            "check_stateless": 1,
         }
     )
     if Counter(
@@ -9999,7 +10004,6 @@ def _validate_internal_action_acceptance_surface(
         "Transfer",
     }
     for method_name in (
-        "check_stateless",
         "check_historical",
         "check_and_execute",
     ):
@@ -10024,41 +10028,27 @@ def _validate_internal_action_acceptance_surface(
             method["body"],
             f"Action {method_name} dispatch",
         )
-    action_stateless = _one_rust_function(
-        action_functions,
-        "check_stateless",
-        "Action stateless dispatch",
-    )
     action_execute = _one_rust_function(
         action_functions,
         "check_and_execute",
         "Action mutation dispatch",
     )
-    for method, operation in (
-        (action_stateless, "check_stateless"),
-        (action_execute, "check_and_execute"),
+    normalized = _normalize_rust_fragment(action_execute["body"])
+    for variant in (
+        "Transfer",
+        "NoteReshape",
+        "ShieldedIcs20Withdrawal",
+        "ShieldedHostWithdrawal",
     ):
-        normalized = _normalize_rust_fragment(method["body"])
-        for variant in (
-            "Transfer",
-            "NoteReshape",
-            "ShieldedIcs20Withdrawal",
-            "ShieldedHostWithdrawal",
-        ):
-            fragment = (
-                f"Action::{variant}(action) => "
-                f"action.{operation}(context).await"
-                if operation == "check_stateless"
-                else (
-                    f"Action::{variant}(action) => "
-                    f"action.{operation}(state).await"
-                )
+        fragment = (
+            f"Action::{variant}(action) => "
+            "action.check_and_execute(state).await"
+        )
+        if _normalize_rust_fragment(fragment) not in normalized:
+            reject(
+                f"Action check_and_execute does not propagate {variant} "
+                "errors exactly"
             )
-            if _normalize_rust_fragment(fragment) not in normalized:
-                reject(
-                    f"Action {operation} does not propagate {variant} "
-                    "errors exactly"
-                )
 
     transaction_relative = (
         "crates/core/app/src/action_handler/transaction.rs"
@@ -10083,39 +10073,6 @@ def _validate_internal_action_acceptance_surface(
         function["name"] for function in transaction_impl_functions
     ) != expected_handler_methods:
         reject("Transaction AppActionHandler method census drifted")
-    transaction_stateless = _one_rust_function(
-        transaction_impl_functions,
-        "check_stateless",
-        "Transaction stateless join",
-    )
-    _require_ordered_symbols(
-        transaction_stateless,
-        (
-            "validate_transaction_envelope(self)?",
-            "let context = self.context()",
-            "for (i, action) in self.actions().cloned().enumerate()",
-            "action.check_stateless(context2).await",
-            "drain_joinset_results(",
-            ".await?",
-            "if let Some(fee_funding)",
-            "Action::Transfer(fee_funding.transfer.clone())",
-            ".check_stateless(context)",
-            ".await?",
-            "Ok(())",
-        ),
-        "Transaction stateless join",
-    )
-    for forbidden in (
-        "fee_funding.transfer.check_stateless",
-        "let _ = drain_joinset_results",
-        ".unwrap_or(",
-        ".unwrap_or_else(",
-    ):
-        if forbidden in transaction_stateless["body"]:
-            reject(
-                "Transaction stateless join can discard an error: "
-                f"{forbidden}"
-            )
     transaction_execute = _one_rust_function(
         transaction_impl_functions,
         "check_and_execute",
@@ -11401,17 +11358,6 @@ def validate_proof_acceptance_repository_surface(root: Path) -> None:
     )
     if "tx.spent_nullifier_count()" not in nullifier_count["body"]:
         reject("application mirrors rather than delegates nullifier counting")
-    _require_drain_before_error(
-        _one_rust_function(
-            transaction_functions,
-            "drain_joinset_results",
-            "transaction structured task drain",
-        ),
-        join_symbol="tasks.join_next().await",
-        error_symbol="result",
-        label="transaction structured task drain",
-    )
-
     canonical_tx_path = canonical_repo_path(
         root,
         "crates/core/transaction/src/transaction.rs",

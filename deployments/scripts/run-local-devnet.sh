@@ -46,7 +46,6 @@ else
         generate \
         --chain-id shieldd-local-devnet \
         --epoch-duration 302400 \
-        --proposal-voting-blocks 50 \
         --gas-price-simple 1000 \
         --compliance-registrar-vk-hex "$compliance_dev_registrar_vk_hex" \
         --timeout-commit 500ms \

@@ -4,8 +4,6 @@ package shieldd.custody.v1;
 
 import "shieldd/core/keys/v1/keys.proto";
 import "shieldd/core/transaction/v1/transaction.proto";
-import "shieldd/crypto/decaf377_rdsa/v1/decaf377_rdsa.proto";
-
 // The custody protocol is used by a wallet client to request authorization for
 // a transaction they've constructed.
 //

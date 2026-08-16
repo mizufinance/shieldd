@@ -872,10 +872,10 @@ structure ClaimedFacts where
             )
         self.assertEqual(len(validated["trace_instances"]), 374)
         self.assertEqual(len(validated["tests"]), 289)
-        self.assertEqual(len(validated["runtime_policy_tests"]), 67)
+        self.assertEqual(len(validated["runtime_policy_tests"]), 66)
         self.assertEqual(len(validated["property_contract_tests"]), 272)
         self.assertEqual(len(validated["artifact_contract_tests"]), 291)
-        self.assertEqual(len(CHECK.execution_tests(matrix())), 919)
+        self.assertEqual(len(CHECK.execution_tests(matrix())), 918)
         self.assertEqual(len(validated["property_contract"]), 25)
         self.assertEqual(
             len(
@@ -883,7 +883,7 @@ structure ClaimedFacts where
                     "production_sinks"
                 ]
             ),
-            20,
+            18,
         )
         self.assertEqual(
             len(
@@ -1332,7 +1332,8 @@ structure ClaimedFacts where
         model = CHECK.ACTION_AUTHORIZATION_MODEL
         relative_paths = {
             str(model["action_enum_path"]),
-            str(model["dispatch_path"]),
+            str(model["stateless_dispatch_path"]),
+            str(model["execution_dispatch_path"]),
             str(model["profiled_execution_path"]),
             str(model["proof_count_path"]),
             *action_plan_authorization_relatives(),
@@ -1403,7 +1404,8 @@ structure ClaimedFacts where
         model = CHECK.ACTION_AUTHORIZATION_MODEL
         relative_paths = {
             str(model["action_enum_path"]),
-            str(model["dispatch_path"]),
+            str(model["stateless_dispatch_path"]),
+            str(model["execution_dispatch_path"]),
             str(model["profiled_execution_path"]),
             str(model["proof_count_path"]),
             *action_plan_authorization_relatives(),
@@ -1471,11 +1473,11 @@ structure ClaimedFacts where
                 CHECK.validate_action_authorization_model(root)
 
             authority_path.write_text(original_authority, encoding="utf-8")
-            dispatch_path = root / str(model["dispatch_path"])
+            dispatch_path = root / str(model["stateless_dispatch_path"])
             source = dispatch_path.read_text(encoding="utf-8")
             dispatch = (
                 "Action::ComplianceRegisterUser(action) => "
-                "action.check_stateless(()).await,"
+                "action.check_stateless(()).await?,"
             )
             self.assertIn(dispatch, source)
             dispatch_path.write_text(
@@ -1585,7 +1587,8 @@ structure ClaimedFacts where
         model = CHECK.ACTION_AUTHORIZATION_MODEL
         relative_paths = {
             str(model["action_enum_path"]),
-            str(model["dispatch_path"]),
+            str(model["stateless_dispatch_path"]),
+            str(model["execution_dispatch_path"]),
             str(model["profiled_execution_path"]),
             str(model["proof_count_path"]),
             *action_plan_authorization_relatives(),
@@ -2645,14 +2648,6 @@ structure ClaimedFacts where
                 "nonproduction proof-function census drifted",
             ),
             (
-                "fee funding direct stateless bypass",
-                "crates/core/app/src/action_handler/transaction.rs",
-                "Action::Transfer(fee_funding.transfer.clone())\n"
-                "                .check_stateless(context)",
-                "fee_funding.transfer.check_stateless(context)",
-                "Transaction stateless join",
-            ),
-            (
                 "deployed benchmark feature",
                 "crates/bin/shieldd/Cargo.toml",
                 'features = ["parallel"]',
@@ -3688,7 +3683,7 @@ structure ClaimedFacts where
             )
         }
         self.assertEqual(execution_ids, expected)
-        self.assertEqual(len(execution_ids), 919)
+        self.assertEqual(len(execution_ids), 918)
 
     def test_application_test_selection_is_the_exact_evidence_union(self) -> None:
         value = matrix()

@@ -13,7 +13,11 @@ fn tx_help_exposes_only_reduced_surface_commands() {
         .stdout(predicate::str::contains("consolidate").not())
         .stdout(predicate::str::contains("split").not())
         .stdout(predicate::str::is_match(r"(?m)^\s+withdraw\s").unwrap())
-        .stdout(predicate::str::is_match(r"(?m)^\s+proposal\s").unwrap())
+        .stdout(
+            predicate::str::is_match(r"(?m)^\s+proposal\s")
+                .unwrap()
+                .not(),
+        )
         .stdout(predicate::str::is_match(r"(?m)^\s+compliance\s").unwrap())
         .stdout(
             predicate::str::is_match(r"(?m)^\s+send(?:\s|$)")
@@ -46,7 +50,7 @@ fn init_help_does_not_expose_spend_terminology() {
     cmd.assert()
         .success()
         .stdout(predicate::str::contains("view-only"))
-        .stdout(predicate::str::contains("validator-governance-subkey"))
+        .stdout(predicate::str::contains("validator-governance-subkey").not())
         .stdout(predicate::str::contains("soft-kms"))
         .stdout(
             predicate::str::is_match(r"(?m)^\s+spend(?:\s|$)")

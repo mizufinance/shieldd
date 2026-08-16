@@ -280,56 +280,6 @@
         ]
       },
       {
-        "id": "SINK-ACTION-ENUM-CHECK-STATELESS",
-        "profiles": [
-          "note_reshape1x8",
-          "note_reshape8x1",
-          "shielded_ics20_withdrawal",
-          "transfer"
-        ],
-        "entrypoint": {
-          "path": "crates/core/app/src/action_handler/actions.rs",
-          "symbols": [
-            "impl AppActionHandler for Action",
-            "async fn check_stateless"
-          ]
-        },
-        "terminal_effects": [
-          "stateless_accept"
-        ],
-        "required_guards": [
-          {
-            "path": "crates/core/app/src/action_handler/actions.rs",
-            "symbols": [
-              "Action::Transfer(action)",
-              "Action::NoteReshape(action)",
-              "Action::ShieldedIcs20Withdrawal(action)",
-              "Action::ShieldedHostWithdrawal(action)",
-              "action.check_stateless(context).await"
-            ]
-          },
-          {
-            "path": "crates/core/app/src/action_handler/transaction.rs",
-            "symbols": [
-              "validate_transaction_envelope(self)",
-              "action.check_stateless(context2).await",
-              "drain_joinset_results",
-              "Action::Transfer(fee_funding.transfer.clone())"
-            ]
-          },
-          {
-            "path": "crates/crypto/proof-params/src/batch.rs",
-            "symbols": [
-              "pub fn verify_each",
-              "verify_with_processed_vk"
-            ]
-          }
-        ],
-        "test_ids": [
-          "ACTION-TRANSACTION-STATELESS-REJECTS-INVALID-PROOF"
-        ]
-      },
-      {
         "id": "SINK-ACTION-HOST-WITHDRAWAL-CHECK-STATELESS",
         "profiles": [
           "shielded_ics20_withdrawal"
@@ -361,7 +311,7 @@
           }
         ],
         "test_ids": [
-          "ACTION-TRANSACTION-STATELESS-REJECTS-INVALID-PROOF",
+          "APP-ARTIFACT-BUILD-REJECTS-INVALID-PROOF",
           "WITHDRAWAL-RAW-EXECUTION-REQUIRES-CAPABILITY"
         ]
       },
@@ -398,7 +348,7 @@
           }
         ],
         "test_ids": [
-          "ACTION-TRANSACTION-STATELESS-REJECTS-INVALID-PROOF",
+          "APP-ARTIFACT-BUILD-REJECTS-INVALID-PROOF",
           "NOTE-RESHAPE-PROJECTION-AND-CAPABILITY-GATE"
         ]
       },
@@ -434,7 +384,7 @@
           }
         ],
         "test_ids": [
-          "ACTION-TRANSACTION-STATELESS-REJECTS-INVALID-PROOF",
+          "APP-ARTIFACT-BUILD-REJECTS-INVALID-PROOF",
           "TRANSFER-RAW-EXECUTION-REQUIRES-CAPABILITY"
         ]
       },
@@ -470,7 +420,7 @@
           }
         ],
         "test_ids": [
-          "ACTION-TRANSACTION-STATELESS-REJECTS-INVALID-PROOF",
+          "APP-ARTIFACT-BUILD-REJECTS-INVALID-PROOF",
           "WITHDRAWAL-RAW-EXECUTION-REQUIRES-CAPABILITY"
         ]
       },
@@ -1027,55 +977,6 @@
         ]
       },
       {
-        "id": "SINK-TRANSACTION-CHECK-STATELESS",
-        "profiles": [
-          "note_reshape1x8",
-          "note_reshape8x1",
-          "shielded_ics20_withdrawal",
-          "transfer"
-        ],
-        "entrypoint": {
-          "path": "crates/core/app/src/action_handler/transaction.rs",
-          "symbols": [
-            "impl AppActionHandler for Transaction",
-            "async fn check_stateless"
-          ]
-        },
-        "terminal_effects": [
-          "stateless_accept"
-        ],
-        "required_guards": [
-          {
-            "path": "crates/core/app/src/action_handler/transaction.rs",
-            "symbols": [
-              "validate_transaction_envelope(self)",
-              "action.check_stateless(context2).await",
-              "drain_joinset_results",
-              "Action::Transfer(fee_funding.transfer.clone())"
-            ]
-          },
-          {
-            "path": "crates/core/app/src/action_handler/actions.rs",
-            "symbols": [
-              "Action::Transfer(action)",
-              "Action::NoteReshape(action)",
-              "Action::ShieldedIcs20Withdrawal(action)",
-              "Action::ShieldedHostWithdrawal(action)"
-            ]
-          },
-          {
-            "path": "crates/crypto/proof-params/src/batch.rs",
-            "symbols": [
-              "pub fn verify_each",
-              "verify_with_processed_vk"
-            ]
-          }
-        ],
-        "test_ids": [
-          "ACTION-TRANSACTION-STATELESS-REJECTS-INVALID-PROOF"
-        ]
-      },
-      {
         "id": "SINK-VERIFIED-CACHE-PROMOTION",
         "profiles": [
           "note_reshape1x8",
@@ -1361,7 +1262,7 @@
       },
       {
         "id": "RUNTIME-POLICY-STRUCTURED-CONCURRENCY",
-        "statement": "Proof and transaction worker groups drain all spawned work before returning the first failure.",
+        "statement": "Proof worker groups drain all spawned work before returning the first failure.",
         "parameters": {
           "drain_before_error_return": 1
         },
@@ -1372,8 +1273,7 @@
           "proof_workers"
         ],
         "test_ids": [
-          "RUNTIME-STRUCTURED-TASK-DRAIN",
-          "RUNTIME-STRUCTURED-TRANSACTION-TASK-DRAIN"
+          "RUNTIME-STRUCTURED-TASK-DRAIN"
         ]
       },
       {
@@ -2335,22 +2235,6 @@
           "package": "shieldd-sdk-app",
           "cargo_target": "lib",
           "selector": "structured_join_drain_waits_for_siblings_after_error",
-          "build_profile": "default",
-          "features": [],
-          "prover_required": false
-        }
-      },
-      {
-        "id": "RUNTIME-STRUCTURED-TRANSACTION-TASK-DRAIN",
-        "kind": "negative",
-        "path": "crates/core/app/src/action_handler/transaction.rs",
-        "symbol": "structured_join_drain_waits_for_transaction_siblings_after_error",
-        "execution": {
-          "runner": "cargo_test",
-          "working_directory": ".",
-          "package": "shieldd-sdk-app",
-          "cargo_target": "lib",
-          "selector": "structured_join_drain_waits_for_transaction_siblings_after_error",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -12606,10 +12490,6 @@
       },
       {
         "path": "crates/core/app/src/action_handler/transaction.rs",
-        "symbol": "structured_join_drain_waits_for_transaction_siblings_after_error"
-      },
-      {
-        "path": "crates/core/app/src/action_handler/transaction.rs",
         "symbol": "transaction_action_count_policy_is_fixed_at_boundary"
       },
       {
@@ -12738,6 +12618,10 @@
       },
       {
         "path": "crates/core/app/src/app/tests/proof_acceptance_tests.rs",
+        "symbol": "fv_runtime_artifact_build_rejects_decodable_invalid_groth16"
+      },
+      {
+        "path": "crates/core/app/src/app/tests/proof_acceptance_tests.rs",
         "symbol": "fv_runtime_cache_promotion_never_exceeds_exact_groth16_attestation"
       },
       {
@@ -12767,10 +12651,6 @@
       {
         "path": "crates/core/app/src/app/tests/proof_acceptance_tests.rs",
         "symbol": "fv_runtime_process_proposal_rejects_decodable_invalid_groth16"
-      },
-      {
-        "path": "crates/core/app/src/app/tests/proof_acceptance_tests.rs",
-        "symbol": "fv_runtime_transaction_stateless_rejects_decodable_invalid_groth16"
       },
       {
         "path": "crates/core/app/src/app/tests/proof_acceptance_tests.rs",
@@ -16353,16 +16233,6 @@
         "path": "crates/core/app-tests/tests/view_server_can_be_served_on_localhost.rs",
         "symbol": "view_server_can_be_served_on_localhost",
         "reason": "out_of_scope_for_four_circuit_claim"
-      },
-      {
-        "path": "crates/core/app/src/action_handler/transaction.rs",
-        "symbol": "check_stateless_fails_on_auth_path_with_wrong_root",
-        "reason": "supporting_regression_not_claim_evidence"
-      },
-      {
-        "path": "crates/core/app/src/action_handler/transaction.rs",
-        "symbol": "check_stateless_succeeds_on_valid_spend",
-        "reason": "supporting_regression_not_claim_evidence"
       },
       {
         "path": "crates/core/app/src/action_handler/transaction.rs",
@@ -24229,10 +24099,10 @@
       }
     },
     {
-      "id": "ACTION-TRANSACTION-STATELESS-REJECTS-INVALID-PROOF",
+      "id": "APP-ARTIFACT-BUILD-REJECTS-INVALID-PROOF",
       "kind": "integration",
       "path": "crates/core/app/src/app/tests/proof_acceptance_tests.rs",
-      "symbol": "fv_runtime_transaction_stateless_rejects_decodable_invalid_groth16",
+      "symbol": "fv_runtime_artifact_build_rejects_decodable_invalid_groth16",
       "predicate_ids": [
         "EXT-PROOF-VERIFICATION"
       ],
@@ -24247,7 +24117,7 @@
         "working_directory": ".",
         "package": "shieldd-sdk-app",
         "cargo_target": "lib",
-        "selector": "fv_runtime_transaction_stateless_rejects_decodable_invalid_groth16",
+        "selector": "fv_runtime_artifact_build_rejects_decodable_invalid_groth16",
         "build_profile": "release",
         "features": [],
         "prover_required": true
@@ -35299,7 +35169,7 @@
       ],
       "test_ids": [
         "ACTION-ANCHOR-CONTEXT",
-        "ACTION-TRANSACTION-STATELESS-REJECTS-INVALID-PROOF",
+        "APP-ARTIFACT-BUILD-REJECTS-INVALID-PROOF",
         "APP-CACHE-PROMOTION-REQUIRES-EXACT-PROOF",
         "APP-COLD-DELIVER-REJECTS-INVALID-PROOF",
         "APP-EXTRACTED-CACHE-CANNOT-BYPASS-PROOF",
@@ -35394,7 +35264,7 @@
       "ledger_ids": [],
       "test_ids": [
         "ACTION-ANCHOR-CONTEXT",
-        "ACTION-TRANSACTION-STATELESS-REJECTS-INVALID-PROOF",
+        "APP-ARTIFACT-BUILD-REJECTS-INVALID-PROOF",
         "APP-CACHE-PROMOTION-REQUIRES-EXACT-PROOF",
         "APP-COLD-DELIVER-REJECTS-INVALID-PROOF",
         "APP-EXTRACTED-CACHE-CANNOT-BYPASS-PROOF",
@@ -35516,7 +35386,7 @@
       "ledger_ids": [],
       "test_ids": [
         "ACTION-ANCHOR-CONTEXT",
-        "ACTION-TRANSACTION-STATELESS-REJECTS-INVALID-PROOF",
+        "APP-ARTIFACT-BUILD-REJECTS-INVALID-PROOF",
         "APP-CACHE-PROMOTION-REQUIRES-EXACT-PROOF",
         "APP-COLD-DELIVER-REJECTS-INVALID-PROOF",
         "APP-EXTRACTED-CACHE-CANNOT-BYPASS-PROOF",
@@ -48639,7 +48509,7 @@
             "NR-EXTERNAL"
           ],
           "test_ids": [
-            "ACTION-TRANSACTION-STATELESS-REJECTS-INVALID-PROOF",
+            "APP-ARTIFACT-BUILD-REJECTS-INVALID-PROOF",
             "APP-CACHE-PROMOTION-REQUIRES-EXACT-PROOF",
             "APP-COLD-DELIVER-REJECTS-INVALID-PROOF",
             "APP-EXTRACTED-CACHE-CANNOT-BYPASS-PROOF",
@@ -48697,7 +48567,7 @@
             "NR-EXTERNAL"
           ],
           "test_ids": [
-            "ACTION-TRANSACTION-STATELESS-REJECTS-INVALID-PROOF",
+            "APP-ARTIFACT-BUILD-REJECTS-INVALID-PROOF",
             "APP-CACHE-PROMOTION-REQUIRES-EXACT-PROOF",
             "APP-COLD-DELIVER-REJECTS-INVALID-PROOF",
             "APP-EXTRACTED-CACHE-CANNOT-BYPASS-PROOF",
@@ -48755,7 +48625,7 @@
             "WITHDRAWAL-CIRCUIT"
           ],
           "test_ids": [
-            "ACTION-TRANSACTION-STATELESS-REJECTS-INVALID-PROOF",
+            "APP-ARTIFACT-BUILD-REJECTS-INVALID-PROOF",
             "APP-CACHE-PROMOTION-REQUIRES-EXACT-PROOF",
             "APP-COLD-DELIVER-REJECTS-INVALID-PROOF",
             "APP-EXTRACTED-CACHE-CANNOT-BYPASS-PROOF",
@@ -48813,7 +48683,7 @@
             "TRANSFER-CIRCUIT"
           ],
           "test_ids": [
-            "ACTION-TRANSACTION-STATELESS-REJECTS-INVALID-PROOF",
+            "APP-ARTIFACT-BUILD-REJECTS-INVALID-PROOF",
             "APP-CACHE-PROMOTION-REQUIRES-EXACT-PROOF",
             "APP-COLD-DELIVER-REJECTS-INVALID-PROOF",
             "APP-EXTRACTED-CACHE-CANNOT-BYPASS-PROOF",

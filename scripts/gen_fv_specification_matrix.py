@@ -292,43 +292,6 @@ PROOF_ACCEPTANCE_SURFACE = {
             ],
         },
         {
-            "id": "SINK-ACTION-ENUM-CHECK-STATELESS",
-            "profiles": sorted(ALL),
-            "entrypoint": {
-                "path": _ACTIONS,
-                "symbols": [
-                    "impl AppActionHandler for Action",
-                    "async fn check_stateless",
-                ],
-            },
-            "terminal_effects": ["stateless_accept"],
-            "required_guards": [
-                {
-                    "path": _ACTIONS,
-                    "symbols": [
-                        "Action::Transfer(action)",
-                        "Action::NoteReshape(action)",
-                        "Action::ShieldedIcs20Withdrawal(action)",
-                        "Action::ShieldedHostWithdrawal(action)",
-                        "action.check_stateless(context).await",
-                    ],
-                },
-                {
-                    "path": _TRANSACTION,
-                    "symbols": [
-                        "validate_transaction_envelope(self)",
-                        "action.check_stateless(context2).await",
-                        "drain_joinset_results",
-                        "Action::Transfer(fee_funding.transfer.clone())",
-                    ],
-                },
-                {
-                    "path": _BATCH,
-                    "symbols": ["pub fn verify_each", "verify_with_processed_vk"],
-                },
-            ],
-        },
-        {
             "id": "SINK-ACTION-HOST-WITHDRAWAL-CHECK-STATELESS",
             "profiles": sorted(WITHDRAWAL),
             "entrypoint": {
@@ -676,42 +639,6 @@ PROOF_ACCEPTANCE_SURFACE = {
             ],
         },
         {
-            "id": "SINK-TRANSACTION-CHECK-STATELESS",
-            "profiles": sorted(ALL),
-            "entrypoint": {
-                "path": _TRANSACTION,
-                "symbols": [
-                    "impl AppActionHandler for Transaction",
-                    "async fn check_stateless",
-                ],
-            },
-            "terminal_effects": ["stateless_accept"],
-            "required_guards": [
-                {
-                    "path": _TRANSACTION,
-                    "symbols": [
-                        "validate_transaction_envelope(self)",
-                        "action.check_stateless(context2).await",
-                        "drain_joinset_results",
-                        "Action::Transfer(fee_funding.transfer.clone())",
-                    ],
-                },
-                {
-                    "path": _ACTIONS,
-                    "symbols": [
-                        "Action::Transfer(action)",
-                        "Action::NoteReshape(action)",
-                        "Action::ShieldedIcs20Withdrawal(action)",
-                        "Action::ShieldedHostWithdrawal(action)",
-                    ],
-                },
-                {
-                    "path": _BATCH,
-                    "symbols": ["pub fn verify_each", "verify_with_processed_vk"],
-                },
-            ],
-        },
-        {
             "id": "SINK-VERIFIED-CACHE-PROMOTION",
             "profiles": sorted(ALL),
             "entrypoint": {
@@ -803,23 +730,20 @@ PROOF_ACCEPTANCE_SINK_TEST_IDS = {
         "APP-PROCESS-REJECTS-INVALID-PROOF",
         "FEE-FUNDING-PROCESS-REJECTS-INVALID-PROOF",
     ),
-    "SINK-ACTION-ENUM-CHECK-STATELESS": (
-        "ACTION-TRANSACTION-STATELESS-REJECTS-INVALID-PROOF",
-    ),
     "SINK-ACTION-HOST-WITHDRAWAL-CHECK-STATELESS": (
-        "ACTION-TRANSACTION-STATELESS-REJECTS-INVALID-PROOF",
+        "APP-ARTIFACT-BUILD-REJECTS-INVALID-PROOF",
         "WITHDRAWAL-RAW-EXECUTION-REQUIRES-CAPABILITY",
     ),
     "SINK-ACTION-NOTE-RESHAPE-CHECK-STATELESS": (
-        "ACTION-TRANSACTION-STATELESS-REJECTS-INVALID-PROOF",
+        "APP-ARTIFACT-BUILD-REJECTS-INVALID-PROOF",
         "NOTE-RESHAPE-PROJECTION-AND-CAPABILITY-GATE",
     ),
     "SINK-ACTION-TRANSFER-CHECK-STATELESS": (
-        "ACTION-TRANSACTION-STATELESS-REJECTS-INVALID-PROOF",
+        "APP-ARTIFACT-BUILD-REJECTS-INVALID-PROOF",
         "TRANSFER-RAW-EXECUTION-REQUIRES-CAPABILITY",
     ),
     "SINK-ACTION-WITHDRAWAL-CHECK-STATELESS": (
-        "ACTION-TRANSACTION-STATELESS-REJECTS-INVALID-PROOF",
+        "APP-ARTIFACT-BUILD-REJECTS-INVALID-PROOF",
         "WITHDRAWAL-RAW-EXECUTION-REQUIRES-CAPABILITY",
     ),
     "SINK-APP-DELIVER-TX": (
@@ -856,9 +780,6 @@ PROOF_ACCEPTANCE_SINK_TEST_IDS = {
     "SINK-HOST-DELIVER-TX": (
         "HOST-DELIVERY-REJECTS-INVALID-PROOF",
         "RUNTIME-HOST-DELIVERTX-PROOF-FRONTDOOR",
-    ),
-    "SINK-TRANSACTION-CHECK-STATELESS": (
-        "ACTION-TRANSACTION-STATELESS-REJECTS-INVALID-PROOF",
     ),
     "SINK-VERIFIED-CACHE-PROMOTION": (
         "APP-CACHE-PROMOTION-REQUIRES-EXACT-PROOF",
@@ -3334,11 +3255,11 @@ def tests() -> list[dict]:
             "profiles": ["shielded_ics20_withdrawal"],
         },
         {
-            "id": "ACTION-TRANSACTION-STATELESS-REJECTS-INVALID-PROOF",
+            "id": "APP-ARTIFACT-BUILD-REJECTS-INVALID-PROOF",
             "kind": "integration",
             "path": _APP_PROOF_TESTS,
             "symbol": (
-                "fv_runtime_transaction_stateless_rejects_decodable_"
+                "fv_runtime_artifact_build_rejects_decodable_"
                 "invalid_groth16"
             ),
             "predicate_ids": ["EXT-PROOF-VERIFICATION"],
@@ -6167,14 +6088,6 @@ def runtime_policy_contract() -> dict:
             "symbol": "structured_join_drain_waits_for_siblings_after_error",
         },
         {
-            "id": "RUNTIME-STRUCTURED-TRANSACTION-TASK-DRAIN",
-            "kind": "negative",
-            "path": _TRANSACTION,
-            "symbol": (
-                "structured_join_drain_waits_for_transaction_siblings_after_error"
-            ),
-        },
-        {
             "id": "RUNTIME-TIMESTAMP-CENTRAL-ZERO-DRIFT",
             "kind": "boundary_negative",
             "path": "crates/core/component/compliance/src/registry.rs",
@@ -6428,7 +6341,7 @@ def runtime_policy_contract() -> dict:
         {
             "id": "RUNTIME-POLICY-STRUCTURED-CONCURRENCY",
             "statement": (
-                "Proof and transaction worker groups drain all spawned work "
+                "Proof worker groups drain all spawned work "
                 "before returning the first failure."
             ),
             "parameters": {"drain_before_error_return": 1},
@@ -6438,10 +6351,7 @@ def runtime_policy_contract() -> dict:
                 "process_proposal",
                 "proof_workers",
             ],
-            "test_ids": [
-                "RUNTIME-STRUCTURED-TASK-DRAIN",
-                "RUNTIME-STRUCTURED-TRANSACTION-TASK-DRAIN",
-            ],
+            "test_ids": ["RUNTIME-STRUCTURED-TASK-DRAIN"],
         },
         {
             "id": "RUNTIME-POLICY-TIMESTAMP-FRESHNESS",
@@ -7611,10 +7521,6 @@ _REVIEWED_TEST_EXCLUSION_SYMBOLS = {
         "encode_withdrawals_maps_transfer_and_coin",
         "encode_withdrawals_preserves_execution_call_order_and_refund_address",
         "embedded_service_serves_a_pack_after_expanded_state_is_pruned",
-    ),
-    "crates/core/app/src/action_handler/transaction.rs": (
-        "check_stateless_fails_on_auth_path_with_wrong_root",
-        "check_stateless_succeeds_on_valid_spend",
     ),
     "crates/core/app/src/app/mod.rs": (
         "aggregate_bundle_normal_and_profiled_verification_have_result_parity",

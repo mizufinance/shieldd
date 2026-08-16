@@ -1196,11 +1196,6 @@
       "source_sha256": "bc82c501fab8e317a28ba20bb67511d5a468df61aac533e7e9d9d848258c34d6"
     },
     {
-      "id": "ACTION-TRANSACTION-STATELESS-REJECTS-INVALID-PROOF",
-      "path": "crates/core/app/src/app/tests/proof_acceptance_tests.rs",
-      "source_sha256": "a1c617fe11dfd19b258dba95bb92734d7188cc460f8132b2e017e8b3aa9b6dff"
-    },
-    {
       "id": "ADDRESS-LEGACY-WIDTH-REJECTED",
       "path": "crates/core/keys/src/address.rs",
       "source_sha256": "4fbe97f8fecb82257b6885193c5311814a3367baaf2d5e9f0cb4733bd3599aec"
@@ -1211,29 +1206,34 @@
       "source_sha256": "a1dc6a8bd5a1c9c88276d1dcad925e19b4458743c16cce261f7028a75f39f2eb"
     },
     {
+      "id": "APP-ARTIFACT-BUILD-REJECTS-INVALID-PROOF",
+      "path": "crates/core/app/src/app/tests/proof_acceptance_tests.rs",
+      "source_sha256": "91a4afd081a810e22ece38a1a4ce235fcffb63031604ca1eceeeca9d70c90011"
+    },
+    {
       "id": "APP-CACHE-PROMOTION-REQUIRES-EXACT-PROOF",
       "path": "crates/core/app/src/app/tests/proof_acceptance_tests.rs",
-      "source_sha256": "a1c617fe11dfd19b258dba95bb92734d7188cc460f8132b2e017e8b3aa9b6dff"
+      "source_sha256": "91a4afd081a810e22ece38a1a4ce235fcffb63031604ca1eceeeca9d70c90011"
     },
     {
       "id": "APP-COLD-DELIVER-REJECTS-INVALID-PROOF",
       "path": "crates/core/app/src/app/tests/proof_acceptance_tests.rs",
-      "source_sha256": "a1c617fe11dfd19b258dba95bb92734d7188cc460f8132b2e017e8b3aa9b6dff"
+      "source_sha256": "91a4afd081a810e22ece38a1a4ce235fcffb63031604ca1eceeeca9d70c90011"
     },
     {
       "id": "APP-EXTRACTED-CACHE-CANNOT-BYPASS-PROOF",
       "path": "crates/core/app/src/app/tests/proof_acceptance_tests.rs",
-      "source_sha256": "a1c617fe11dfd19b258dba95bb92734d7188cc460f8132b2e017e8b3aa9b6dff"
+      "source_sha256": "91a4afd081a810e22ece38a1a4ce235fcffb63031604ca1eceeeca9d70c90011"
     },
     {
       "id": "APP-PREPARE-EXCLUDES-INVALID-PROOF",
       "path": "crates/core/app/src/app/tests/proof_acceptance_tests.rs",
-      "source_sha256": "a1c617fe11dfd19b258dba95bb92734d7188cc460f8132b2e017e8b3aa9b6dff"
+      "source_sha256": "91a4afd081a810e22ece38a1a4ce235fcffb63031604ca1eceeeca9d70c90011"
     },
     {
       "id": "APP-PROCESS-REJECTS-INVALID-PROOF",
       "path": "crates/core/app/src/app/tests/proof_acceptance_tests.rs",
-      "source_sha256": "a1c617fe11dfd19b258dba95bb92734d7188cc460f8132b2e017e8b3aa9b6dff"
+      "source_sha256": "91a4afd081a810e22ece38a1a4ce235fcffb63031604ca1eceeeca9d70c90011"
     },
     {
       "id": "ARTIFACT-ACCEPTED-JOIN-PROJECTION-IS-EXACT-AND-FAIL-CLOSED",
@@ -2903,12 +2903,12 @@
     {
       "id": "FEE-FUNDING-PROCESS-REJECTS-INVALID-PROOF",
       "path": "crates/core/app/src/app/tests/proof_acceptance_tests.rs",
-      "source_sha256": "a1c617fe11dfd19b258dba95bb92734d7188cc460f8132b2e017e8b3aa9b6dff"
+      "source_sha256": "91a4afd081a810e22ece38a1a4ce235fcffb63031604ca1eceeeca9d70c90011"
     },
     {
       "id": "FEE-FUNDING-VALID-PROOF-EXECUTES-AND-PERSISTS",
       "path": "crates/core/app/src/app/tests/proof_acceptance_tests.rs",
-      "source_sha256": "a1c617fe11dfd19b258dba95bb92734d7188cc460f8132b2e017e8b3aa9b6dff"
+      "source_sha256": "91a4afd081a810e22ece38a1a4ce235fcffb63031604ca1eceeeca9d70c90011"
     },
     {
       "id": "GROTH16-PROOF-ALIAS-REJECT",
@@ -2933,7 +2933,7 @@
     {
       "id": "HOST-DELIVERY-REJECTS-INVALID-PROOF",
       "path": "crates/core/app/src/app/tests/proof_acceptance_tests.rs",
-      "source_sha256": "a1c617fe11dfd19b258dba95bb92734d7188cc460f8132b2e017e8b3aa9b6dff"
+      "source_sha256": "91a4afd081a810e22ece38a1a4ce235fcffb63031604ca1eceeeca9d70c90011"
     },
     {
       "id": "IVK-NONZERO-BOUNDARY",
@@ -3228,7 +3228,7 @@
     {
       "id": "PROPERTY-ANCHOR-VALIDATION-CACHE-COUNTS-SHARED-PAIR-ONCE",
       "path": "crates/core/app/src/action_handler/transaction.rs",
-      "source_sha256": "f36bd85f4789545380bdf452eadcae003960a764ab6b8a86dd966c378c9accb1"
+      "source_sha256": "c3fb17eb3536e0604c9e8801aab53fc1a646b1759fb5f25a838d1e5673e50dcb"
     },
     {
       "id": "PROPERTY-APP-CAN-SWEEP-A-COLLECTION-OF-SMALL-NOTES",
@@ -3278,7 +3278,7 @@
     {
       "id": "PROPERTY-CLAIMED-ANCHOR-VALIDATION-CACHE-COUNTS-SHARED-ANCHOR-ONCE",
       "path": "crates/core/app/src/action_handler/transaction.rs",
-      "source_sha256": "f36bd85f4789545380bdf452eadcae003960a764ab6b8a86dd966c378c9accb1"
+      "source_sha256": "c3fb17eb3536e0604c9e8801aab53fc1a646b1759fb5f25a838d1e5673e50dcb"
     },
     {
       "id": "PROPERTY-CLAIMED-HASH-PARSER-REJECTS-MODULUS-ALIAS",
@@ -4743,12 +4743,12 @@
     {
       "id": "RUNTIME-FEE-FUNDING-PROOF-SLOT-PERSISTENCE",
       "path": "crates/core/app/src/app/tests/proof_acceptance_tests.rs",
-      "source_sha256": "a1c617fe11dfd19b258dba95bb92734d7188cc460f8132b2e017e8b3aa9b6dff"
+      "source_sha256": "91a4afd081a810e22ece38a1a4ce235fcffb63031604ca1eceeeca9d70c90011"
     },
     {
       "id": "RUNTIME-FEE-FUNDING-PROOF-SLOT-REJECTION",
       "path": "crates/core/app/src/app/tests/proof_acceptance_tests.rs",
-      "source_sha256": "a1c617fe11dfd19b258dba95bb92734d7188cc460f8132b2e017e8b3aa9b6dff"
+      "source_sha256": "91a4afd081a810e22ece38a1a4ce235fcffb63031604ca1eceeeca9d70c90011"
     },
     {
       "id": "RUNTIME-FFI-CHECKTX-PROOF-FRONTDOOR",
@@ -4778,7 +4778,7 @@
     {
       "id": "RUNTIME-HOST-DELIVERTX-PROOF-FRONTDOOR",
       "path": "crates/core/app/src/app/tests/proof_acceptance_tests.rs",
-      "source_sha256": "a1c617fe11dfd19b258dba95bb92734d7188cc460f8132b2e017e8b3aa9b6dff"
+      "source_sha256": "91a4afd081a810e22ece38a1a4ce235fcffb63031604ca1eceeeca9d70c90011"
     },
     {
       "id": "RUNTIME-NO-CONSENSUS-DIAGNOSTIC-IO",
@@ -4793,7 +4793,7 @@
     {
       "id": "RUNTIME-PROCESS-INDEPENDENT-REVERIFICATION",
       "path": "crates/core/app/src/app/tests/proof_acceptance_tests.rs",
-      "source_sha256": "a1c617fe11dfd19b258dba95bb92734d7188cc460f8132b2e017e8b3aa9b6dff"
+      "source_sha256": "91a4afd081a810e22ece38a1a4ce235fcffb63031604ca1eceeeca9d70c90011"
     },
     {
       "id": "RUNTIME-PROOF-WORKER-CONCURRENCY",
@@ -4841,11 +4841,6 @@
       "source_sha256": "979ac8348eebc498c3f5cc9b6842287eb8c2d59356afd92be1d4322defb85795"
     },
     {
-      "id": "RUNTIME-STRUCTURED-TRANSACTION-TASK-DRAIN",
-      "path": "crates/core/app/src/action_handler/transaction.rs",
-      "source_sha256": "f36bd85f4789545380bdf452eadcae003960a764ab6b8a86dd966c378c9accb1"
-    },
-    {
       "id": "RUNTIME-TIMESTAMP-CENTRAL-ZERO-DRIFT",
       "path": "crates/core/component/compliance/src/registry.rs",
       "source_sha256": "47e698fe0fe715ba8e4f77fdc2f3f72af40f78668b0e401162c0fbe9152f778b"
@@ -4868,7 +4863,7 @@
     {
       "id": "RUNTIME-TRANSACTION-ACTION-COUNT",
       "path": "crates/core/app/src/action_handler/transaction.rs",
-      "source_sha256": "f36bd85f4789545380bdf452eadcae003960a764ab6b8a86dd966c378c9accb1"
+      "source_sha256": "c3fb17eb3536e0604c9e8801aab53fc1a646b1759fb5f25a838d1e5673e50dcb"
     },
     {
       "id": "RUNTIME-TRANSACTION-CANONICAL-DECODE",
@@ -4878,7 +4873,7 @@
     {
       "id": "RUNTIME-TRANSACTION-NULLIFIER-COUNT",
       "path": "crates/core/app/src/action_handler/transaction.rs",
-      "source_sha256": "f36bd85f4789545380bdf452eadcae003960a764ab6b8a86dd966c378c9accb1"
+      "source_sha256": "c3fb17eb3536e0604c9e8801aab53fc1a646b1759fb5f25a838d1e5673e50dcb"
     },
     {
       "id": "RUNTIME-TRANSACTION-NULLIFIER-PARITY-MIXED",
@@ -4918,7 +4913,7 @@
     {
       "id": "TRANSACTION-DEFERRED-INDEX-ROLLBACK",
       "path": "crates/core/app/src/app/tests/proof_acceptance_tests.rs",
-      "source_sha256": "a1c617fe11dfd19b258dba95bb92734d7188cc460f8132b2e017e8b3aa9b6dff"
+      "source_sha256": "91a4afd081a810e22ece38a1a4ce235fcffb63031604ca1eceeeca9d70c90011"
     },
     {
       "id": "TRANSACTION-IDENTITY-BINDING-MODE",
@@ -5373,12 +5368,12 @@
     {
       "id": "WITHDRAWAL-ACTION-ACCOUNTING-ROLLBACK",
       "path": "crates/core/app/src/app/tests/proof_acceptance_tests.rs",
-      "source_sha256": "a1c617fe11dfd19b258dba95bb92734d7188cc460f8132b2e017e8b3aa9b6dff"
+      "source_sha256": "91a4afd081a810e22ece38a1a4ce235fcffb63031604ca1eceeeca9d70c90011"
     },
     {
       "id": "WITHDRAWAL-ACTION-ATOMICITY",
       "path": "crates/core/app/src/app/tests/proof_acceptance_tests.rs",
-      "source_sha256": "a1c617fe11dfd19b258dba95bb92734d7188cc460f8132b2e017e8b3aa9b6dff"
+      "source_sha256": "91a4afd081a810e22ece38a1a4ce235fcffb63031604ca1eceeeca9d70c90011"
     },
     {
       "id": "WITHDRAWAL-CHANNEL-CONNECTION",
@@ -5498,7 +5493,7 @@
     {
       "id": "WITHDRAWAL-DEFERRED-INDEX-ROLLBACK",
       "path": "crates/core/app/src/app/tests/proof_acceptance_tests.rs",
-      "source_sha256": "a1c617fe11dfd19b258dba95bb92734d7188cc460f8132b2e017e8b3aa9b6dff"
+      "source_sha256": "91a4afd081a810e22ece38a1a4ce235fcffb63031604ca1eceeeca9d70c90011"
     },
     {
       "id": "WITHDRAWAL-DEPLOYED-PROOF-KEY-MAPPING",
