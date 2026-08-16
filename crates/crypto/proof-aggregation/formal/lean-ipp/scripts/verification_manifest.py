@@ -36,7 +36,7 @@ OPERATION_REGISTER_PATH = (
     "operation-reduction-register.json"
 )
 OPERATION_REGISTER_SHA256 = (
-    "a3b6bf9d74abb5d698d430125ef39a13add3c8f0fc6189abb088241db5e6290d"
+    "63b7e539ebb04871702fa65175804f76d3658ecba29d5df593bca74685f27cc9"
 )
 FSTAR_CHECKER_EVIDENCE_PATH = (
     REPO_ROOT
@@ -141,7 +141,7 @@ VERIFICATION_CONTRACT_FIELDS = (
     "deployed_srs_evidence",
 )
 VERIFICATION_CONTRACT_SHA256 = (
-    "18fcfc621903ef8ae6d8abac6aad84e878240b85c702657bb91d71282eefb809"
+    "5531b420ee8d60ebac632f054751bff2ced5c83a747c0be3205e9d7345600cf0"
 )
 BOUNDED_SAMPLER_ROOT = "bounded_challenge_sampler_boundary_suite"
 BOUNDED_SAMPLER_TESTS = (

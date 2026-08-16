@@ -2,6 +2,8 @@ use std::fmt;
 use std::ops::Range;
 
 pub const AGGREGATE_PROOF_WRAPPER_DOMAIN: &[u8] = b"shieldd.snarkpack.aggregate_proof.v1\0";
+pub const AGGREGATE_PROOF_TORUS_V2_WRAPPER_DOMAIN: &[u8] =
+    b"shieldd.snarkpack.aggregate_proof.v2\0";
 
 // Consensus-relevant bound: changing this cap changes which aggregate bundle
 // bytes validators accept and requires protocol/security review.
@@ -34,15 +36,37 @@ pub fn encode_wrapped_aggregate_proof(
     statement_digest: [u8; 32],
     inner_proof_bytes: &[u8],
 ) -> Result<Vec<u8>, AggregateProofBytesError> {
+    encode_wrapped_aggregate_proof_with_domain(
+        AGGREGATE_PROOF_WRAPPER_DOMAIN,
+        statement_digest,
+        inner_proof_bytes,
+    )
+}
+
+pub fn encode_wrapped_torus_v2_aggregate_proof(
+    statement_digest: [u8; 32],
+    inner_proof_bytes: &[u8],
+) -> Result<Vec<u8>, AggregateProofBytesError> {
+    encode_wrapped_aggregate_proof_with_domain(
+        AGGREGATE_PROOF_TORUS_V2_WRAPPER_DOMAIN,
+        statement_digest,
+        inner_proof_bytes,
+    )
+}
+
+fn encode_wrapped_aggregate_proof_with_domain(
+    domain: &[u8],
+    statement_digest: [u8; 32],
+    inner_proof_bytes: &[u8],
+) -> Result<Vec<u8>, AggregateProofBytesError> {
     let inner_len = u32::try_from(inner_proof_bytes.len()).map_err(|_| {
         AggregateProofBytesError::OversizeBytes {
             max: u32::MAX as usize,
             got: inner_proof_bytes.len(),
         }
     })?;
-    let mut bytes =
-        Vec::with_capacity(AGGREGATE_PROOF_WRAPPER_DOMAIN.len() + 32 + 4 + inner_proof_bytes.len());
-    bytes.extend_from_slice(AGGREGATE_PROOF_WRAPPER_DOMAIN);
+    let mut bytes = Vec::with_capacity(domain.len() + 32 + 4 + inner_proof_bytes.len());
+    bytes.extend_from_slice(domain);
     bytes.extend_from_slice(&statement_digest);
     bytes.extend_from_slice(&inner_len.to_le_bytes());
     bytes.extend_from_slice(inner_proof_bytes);
@@ -65,7 +89,38 @@ pub fn decode_wrapped_aggregate_proof<'a>(
         .ok_or(AggregateProofBytesError::MalformedProofBytes)
 }
 
+pub fn decode_wrapped_torus_v2_aggregate_proof<'a>(
+    wrapped_proof_bytes: &'a [u8],
+    expected_statement_digest: [u8; 32],
+    max_aggregate_proof_bytes: Option<usize>,
+) -> Result<&'a [u8], AggregateProofBytesError> {
+    let inner_range = decode_wrapped_aggregate_proof_inner_range_with_domain(
+        AGGREGATE_PROOF_TORUS_V2_WRAPPER_DOMAIN,
+        wrapped_proof_bytes,
+        expected_statement_digest,
+        max_aggregate_proof_bytes,
+    )?;
+
+    wrapped_proof_bytes
+        .get(inner_range)
+        .ok_or(AggregateProofBytesError::MalformedProofBytes)
+}
+
 pub fn decode_wrapped_aggregate_proof_inner_range(
+    wrapped_proof_bytes: &[u8],
+    expected_statement_digest: [u8; 32],
+    max_aggregate_proof_bytes: Option<usize>,
+) -> Result<Range<usize>, AggregateProofBytesError> {
+    decode_wrapped_aggregate_proof_inner_range_with_domain(
+        AGGREGATE_PROOF_WRAPPER_DOMAIN,
+        wrapped_proof_bytes,
+        expected_statement_digest,
+        max_aggregate_proof_bytes,
+    )
+}
+
+fn decode_wrapped_aggregate_proof_inner_range_with_domain(
+    domain: &[u8],
     wrapped_proof_bytes: &[u8],
     expected_statement_digest: [u8; 32],
     max_aggregate_proof_bytes: Option<usize>,
@@ -79,15 +134,15 @@ pub fn decode_wrapped_aggregate_proof_inner_range(
         }
     }
 
-    let header_len = AGGREGATE_PROOF_WRAPPER_DOMAIN.len() + 32 + 4;
+    let header_len = domain.len() + 32 + 4;
     if wrapped_proof_bytes.len() < header_len {
         return Err(AggregateProofBytesError::MalformedProofBytes);
     }
-    if !wrapped_proof_bytes.starts_with(AGGREGATE_PROOF_WRAPPER_DOMAIN) {
+    if !wrapped_proof_bytes.starts_with(domain) {
         return Err(AggregateProofBytesError::BadVersion);
     }
 
-    let digest_start = AGGREGATE_PROOF_WRAPPER_DOMAIN.len();
+    let digest_start = domain.len();
     let digest_end = digest_start + 32;
     let statement_digest = wrapped_proof_bytes
         .get(digest_start..digest_end)

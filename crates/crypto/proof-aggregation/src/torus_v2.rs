@@ -14,81 +14,7 @@ use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError
 use decaf377::{Bls12_377, Fp};
 use digest::Digest;
 
-use crate::{
-    aggregate_proof_wrapper::AggregateProofBytesError,
-    strict_deserialize::deserialize_compressed_strict_with,
-};
-
-pub const AGGREGATE_PROOF_TORUS_V2_WRAPPER_DOMAIN: &[u8] =
-    b"shieldd.snarkpack.aggregate_proof.v2\0";
-
-pub fn encode_wrapped_torus_v2_aggregate_proof(
-    statement_digest: [u8; 32],
-    inner_proof_bytes: &[u8],
-) -> Result<Vec<u8>, AggregateProofBytesError> {
-    let inner_len = u32::try_from(inner_proof_bytes.len()).map_err(|_| {
-        AggregateProofBytesError::OversizeBytes {
-            max: u32::MAX as usize,
-            got: inner_proof_bytes.len(),
-        }
-    })?;
-    let mut bytes = Vec::with_capacity(
-        AGGREGATE_PROOF_TORUS_V2_WRAPPER_DOMAIN.len() + 32 + 4 + inner_proof_bytes.len(),
-    );
-    bytes.extend_from_slice(AGGREGATE_PROOF_TORUS_V2_WRAPPER_DOMAIN);
-    bytes.extend_from_slice(&statement_digest);
-    bytes.extend_from_slice(&inner_len.to_le_bytes());
-    bytes.extend_from_slice(inner_proof_bytes);
-    Ok(bytes)
-}
-
-pub fn decode_wrapped_torus_v2_aggregate_proof<'a>(
-    wrapped_proof_bytes: &'a [u8],
-    expected_statement_digest: [u8; 32],
-    max_aggregate_proof_bytes: Option<usize>,
-) -> Result<&'a [u8], AggregateProofBytesError> {
-    if let Some(max) = max_aggregate_proof_bytes {
-        if wrapped_proof_bytes.len() > max {
-            return Err(AggregateProofBytesError::OversizeBytes {
-                max,
-                got: wrapped_proof_bytes.len(),
-            });
-        }
-    }
-
-    let header_len = AGGREGATE_PROOF_TORUS_V2_WRAPPER_DOMAIN.len() + 32 + 4;
-    if wrapped_proof_bytes.len() < header_len {
-        return Err(AggregateProofBytesError::MalformedProofBytes);
-    }
-    if !wrapped_proof_bytes.starts_with(AGGREGATE_PROOF_TORUS_V2_WRAPPER_DOMAIN) {
-        return Err(AggregateProofBytesError::BadVersion);
-    }
-
-    let digest_start = AGGREGATE_PROOF_TORUS_V2_WRAPPER_DOMAIN.len();
-    let digest_end = digest_start + 32;
-    let statement_digest = wrapped_proof_bytes
-        .get(digest_start..digest_end)
-        .ok_or(AggregateProofBytesError::MalformedProofBytes)?;
-    if statement_digest != expected_statement_digest {
-        return Err(AggregateProofBytesError::StatementDigestMismatch);
-    }
-
-    let inner_len_bytes: [u8; 4] = wrapped_proof_bytes
-        .get(digest_end..header_len)
-        .ok_or(AggregateProofBytesError::MalformedProofBytes)?
-        .try_into()
-        .map_err(|_| AggregateProofBytesError::MalformedProofBytes)?;
-    let inner_len = u32::from_le_bytes(inner_len_bytes) as usize;
-    let proof_end = header_len
-        .checked_add(inner_len)
-        .ok_or(AggregateProofBytesError::MalformedProofBytes)?;
-    if proof_end != wrapped_proof_bytes.len() {
-        return Err(AggregateProofBytesError::MalformedProofBytes);
-    }
-    wrapped_proof_bytes
-        .get(header_len..proof_end)
-        .ok_or(AggregateProofBytesError::MalformedProofBytes)
-}
+use crate::strict_deserialize::deserialize_compressed_strict_with;
 
 #[derive(Clone, Debug, Default, Eq, PartialEq, CanonicalDeserialize, CanonicalSerialize)]
 struct TorusTarget([Fp; 6]);
@@ -279,12 +205,11 @@ mod tests {
     use decaf377::{Bls12_377, Fp};
     use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 
-    use super::{
-        compress_targets, decode_wrapped_torus_v2_aggregate_proof, decompress_targets,
-        encode_wrapped_torus_v2_aggregate_proof, TorusTarget,
-    };
+    use super::{compress_targets, decompress_targets, TorusTarget};
     use crate::{
-        decode_wrapped_aggregate_proof, encode_wrapped_aggregate_proof, AggregateProofBytesError,
+        decode_wrapped_aggregate_proof, decode_wrapped_torus_v2_aggregate_proof,
+        encode_wrapped_aggregate_proof, encode_wrapped_torus_v2_aggregate_proof,
+        AggregateProofBytesError,
     };
 
     #[test]

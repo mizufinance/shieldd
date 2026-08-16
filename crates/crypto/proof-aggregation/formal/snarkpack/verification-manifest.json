@@ -372,7 +372,7 @@
         },
         {
           "path": "crates/crypto/proof-aggregation/src/aggregate_proof_wrapper.rs",
-          "sha256": "3e461eacad024d8add266f4fcaa94aa1d05631d970b57ee7b9a5381f60d92233"
+          "sha256": "92ce9f58aadad956e359a6dcb5a659e22709f594799b0f8ec69ce8792e536898"
         },
         {
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/statement_binding.rs",
@@ -395,7 +395,7 @@
       "sources": [
         {
           "path": "crates/crypto/proof-aggregation/src/backend.rs",
-          "sha256": "dff8200aaa7a401c70d018673d67152617bb1b089347cf0c33238247454aadc4"
+          "sha256": "9af59c7eca565a3912fc34cd6ad2a59a5ac3b77092d8f3b1c51ebbdea18e88f6"
         },
         {
           "path": "crates/crypto/proof-aggregation/src/strict_deserialize.rs",

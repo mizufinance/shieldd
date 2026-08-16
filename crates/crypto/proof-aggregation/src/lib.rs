@@ -23,7 +23,9 @@ use shieldd_sdk_proof_params::batch::BatchItem;
 
 pub use aggregate_proof_wrapper::{
     decode_wrapped_aggregate_proof, decode_wrapped_aggregate_proof_inner_range,
-    encode_wrapped_aggregate_proof, AggregateProofBytesError, AGGREGATE_PROOF_WRAPPER_DOMAIN,
+    decode_wrapped_torus_v2_aggregate_proof, encode_wrapped_aggregate_proof,
+    encode_wrapped_torus_v2_aggregate_proof, AggregateProofBytesError,
+    AGGREGATE_PROOF_TORUS_V2_WRAPPER_DOMAIN, AGGREGATE_PROOF_WRAPPER_DOMAIN,
     MAX_AGGREGATE_PROOF_BYTES,
 };
 #[doc(hidden)]
@@ -65,11 +67,6 @@ pub use statement::{
     AggregateStatementError, StatementEncodingInput, StatementFieldBytes, StatementPaddedRows,
     StatementPublicInputRow, AGGREGATE_PROTOCOL_VERSION,
 };
-pub use torus_v2::{
-    decode_wrapped_torus_v2_aggregate_proof, encode_wrapped_torus_v2_aggregate_proof,
-    AGGREGATE_PROOF_TORUS_V2_WRAPPER_DOMAIN,
-};
-
 pub fn aggregate_family(
     statement: &AggregateStatement,
     pvk: &PreparedVerifyingKey<Bls12_377>,

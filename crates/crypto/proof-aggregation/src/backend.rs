@@ -50,8 +50,9 @@ use crate::strict_deserialize::deserialize_compressed_strict;
 use crate::strict_deserialize::deserialize_compressed_strict_with;
 use crate::{
     aggregate_proof_wrapper::{
-        encode_wrapped_aggregate_proof, AggregateProofBytesError, AGGREGATE_PROOF_WRAPPER_DOMAIN,
-        MAX_AGGREGATE_PROOF_BYTES,
+        encode_wrapped_aggregate_proof, encode_wrapped_torus_v2_aggregate_proof,
+        AggregateProofBytesError, AGGREGATE_PROOF_TORUS_V2_WRAPPER_DOMAIN,
+        AGGREGATE_PROOF_WRAPPER_DOMAIN, MAX_AGGREGATE_PROOF_BYTES,
     },
     app_verifier::{app_verify_shipping_into_parts_core, AppVerifyShippingCall},
     preflight::{
@@ -60,10 +61,7 @@ use crate::{
     },
     srs::DevSrs,
     statement::{AggregateStatement, AggregateStatementError},
-    torus_v2::{
-        deserialize_torus_aggregate_proof, encode_wrapped_torus_v2_aggregate_proof,
-        serialize_torus_aggregate_proof, AGGREGATE_PROOF_TORUS_V2_WRAPPER_DOMAIN,
-    },
+    torus_v2::{deserialize_torus_aggregate_proof, serialize_torus_aggregate_proof},
     transcript::{
         NoteReshapeTranscriptDigest, ShieldedIcs20WithdrawalTranscriptDigest,
         TransferTranscriptDigest,
