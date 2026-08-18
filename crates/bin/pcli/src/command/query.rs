@@ -1,21 +1,17 @@
 use anyhow::{anyhow, Context, Result};
 
 mod chain;
-mod governance;
 mod ibc_query;
 mod shielded_pool;
 mod tx;
-mod validator;
 
 use base64::prelude::*;
 use chain::ChainCmd;
 use cnidarium::proto::v1::non_verifiable_key_value_request::Key as NVKey;
 use colored_json::ToColoredJson;
-use governance::GovernanceCmd;
 use ibc_query::IbcCmd;
 use shielded_pool::ShieldedPool;
 use tx::Tx;
-pub(super) use validator::ValidatorCmd;
 
 use crate::App;
 
@@ -57,12 +53,6 @@ pub enum QueryCmd {
     /// Queries information about the chain.
     #[clap(subcommand)]
     Chain(ChainCmd),
-    /// Queries information about validators.
-    #[clap(subcommand)]
-    Validator(ValidatorCmd),
-    /// Queries information about governance proposals.
-    #[clap(subcommand)]
-    Governance(GovernanceCmd),
     /// Queries information about IBC.
     #[clap(subcommand)]
     Ibc(IbcCmd),
@@ -98,14 +88,6 @@ impl QueryCmd {
 
         if let QueryCmd::Chain(chain) = self {
             return chain.exec(app).await;
-        }
-
-        if let QueryCmd::Validator(validator) = self {
-            return validator.exec(app).await;
-        }
-
-        if let QueryCmd::Governance(governance) = self {
-            return governance.exec(app).await;
         }
 
         if let QueryCmd::Ibc(ibc) = self {
@@ -149,12 +131,7 @@ impl QueryCmd {
         }
 
         let (key, storage_backend) = match self {
-            QueryCmd::Tx(_)
-            | QueryCmd::Chain(_)
-            | QueryCmd::Validator(_)
-            | QueryCmd::Governance(_)
-            | QueryCmd::Watch { .. }
-            | QueryCmd::Ibc(_) => {
+            QueryCmd::Tx(_) | QueryCmd::Chain(_) | QueryCmd::Watch { .. } | QueryCmd::Ibc(_) => {
                 unreachable!("query handled in guard");
             }
             QueryCmd::ShieldedPool(p) => (p.key().clone(), "jmt".to_string()),
@@ -219,9 +196,7 @@ impl QueryCmd {
         match self {
             QueryCmd::Tx { .. }
             | QueryCmd::Chain { .. }
-            | QueryCmd::Validator { .. }
             | QueryCmd::ShieldedPool { .. }
-            | QueryCmd::Governance { .. }
             | QueryCmd::Key { .. }
             | QueryCmd::Watch { .. }
             | QueryCmd::Ibc(_) => true,
@@ -236,8 +211,6 @@ impl QueryCmd {
             QueryCmd::ShieldedPool(sp) => sp.display_value(bytes)?,
             QueryCmd::Tx { .. }
             | QueryCmd::Chain { .. }
-            | QueryCmd::Validator { .. }
-            | QueryCmd::Governance { .. }
             | QueryCmd::Watch { .. }
             | QueryCmd::Ibc(_) => {
                 unreachable!("query is special cased")

@@ -20,9 +20,6 @@ pub struct CompactBlock {
     pub epoch_root: ::core::option::Option<
         super::super::super::super::crypto::tct::v1::MerkleRoot,
     >,
-    /// If a proposal started voting in this block, this is set to `true`.
-    #[prost(bool, tag = "6")]
-    pub proposal_started: bool,
     /// Latest note-discovery parameters. Absent when unchanged.
     #[prost(message, optional, tag = "7")]
     pub discovery_parameters: ::core::option::Option<

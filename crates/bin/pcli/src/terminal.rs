@@ -48,9 +48,6 @@ fn pretty_print_transaction_plan(
         match action {
             ActionPlan::Transfer(_) => None,
             ActionPlan::NoteReshape(_) => None,
-            ActionPlan::ValidatorDefinition(_) => None,
-            ActionPlan::ProposalSubmit(_) => None,
-            ActionPlan::ValidatorVote(_) => None,
             ActionPlan::ShieldedIcs20Withdrawal(_) => None,
             ActionPlan::ShieldedHostWithdrawal(_) => None,
             ActionPlan::IbcAction(_) => None,
@@ -109,18 +106,6 @@ impl Terminal for ActualTerminal {
             SigningRequest::TransactionPlan(plan) => {
                 pretty_print_transaction_plan(self.fvk.clone(), plan)?;
                 println!("Do you approve this transaction?");
-            }
-            SigningRequest::ValidatorDefinition(def) => {
-                println!("{}", serde_json::to_string_pretty(def)?);
-                println!("Do you approve this validator definition?");
-            }
-            SigningRequest::ValidatorVote(vote) => {
-                println!("{}", serde_json::to_string_pretty(vote)?);
-                println!("Do you approve this validator vote?");
-            }
-            SigningRequest::ProposalSubmit(proposal_submit) => {
-                println!("{}", serde_json::to_string_pretty(proposal_submit)?);
-                println!("Do you approve this proposal submission?");
             }
         };
 

@@ -196,14 +196,6 @@ impl Consensus {
 
         self.app.init_chain(&app_state).await;
 
-        // Extract the Tendermint validators from the app state
-        //
-        // NOTE: we ignore the validators passed to InitChain.validators, and instead expect them
-        // to be provided inside the initial app genesis state (`GenesisAppState`). Returning those
-        // validators in InitChain::Response tells Tendermint that they are the initial validator
-        // set. See https://docs.tendermint.com/master/spec/abci/abci.html#initchain
-        let validators = self.app.cometbft_validator_updates();
-
         let app_hash = match &app_state {
             crate::genesis::AppState::Checkpoint(h) => {
                 tracing::info!(?h, "genesis state is a checkpoint");
@@ -224,14 +216,13 @@ impl Consensus {
 
         tracing::info!(
             consensus_params = ?init_chain.consensus_params,
-            ?validators,
             app_hash = ?app_hash,
             "finished init_chain"
         );
 
         Ok(response::InitChain {
             consensus_params: Some(init_chain.consensus_params),
-            validators,
+            validators: Vec::new(),
             app_hash: app_hash.0.to_vec().try_into()?,
         })
     }
@@ -418,20 +409,10 @@ impl Consensus {
         let events = self.app.end_block(&end_block).await;
         trace_events(&events);
 
-        // Set `tm_validator_updates` to the complete set of
-        // validators and voting power. This must be the last step performed,
-        // after all voting power calculations and validator state transitions have
-        // been completed.
-        let validator_updates = self.app.cometbft_validator_updates();
-
-        tracing::debug!(
-            ?validator_updates,
-            "sending validator updates to tendermint"
-        );
         Self::record_phase_duration("end_block", started);
 
         response::EndBlock {
-            validator_updates,
+            validator_updates: Vec::new(),
             consensus_param_updates: None,
             events,
         }

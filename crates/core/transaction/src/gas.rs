@@ -5,9 +5,6 @@ use shieldd_sdk_shielded_pool::{
     ShieldedHostWithdrawal, ShieldedHostWithdrawalPlan, ShieldedIcs20Withdrawal,
     ShieldedIcs20WithdrawalPlan,
 };
-use shieldd_sdk_validator::validator::Definition as ValidatorDefinition;
-
-use shieldd_sdk_governance::{ProposalSubmit, ValidatorVote};
 
 use crate::{
     plan::{ActionPlan, TransactionPlan},
@@ -156,10 +153,7 @@ impl GasCost for ActionPlan {
                 plan.family_id().input_count(),
                 plan.family_id().output_count(),
             ),
-            ActionPlan::ValidatorDefinition(vd) => vd.gas_cost(),
             ActionPlan::IbcAction(i) => i.gas_cost(),
-            ActionPlan::ProposalSubmit(ps) => ps.gas_cost(),
-            ActionPlan::ValidatorVote(v) => v.gas_cost(),
             ActionPlan::ShieldedIcs20Withdrawal(w) => w.gas_cost(),
             ActionPlan::ShieldedHostWithdrawal(w) => w.gas_cost(),
             ActionPlan::ComplianceRegisterAsset(_) | ActionPlan::ComplianceRegisterUser(_) => Gas {
@@ -180,12 +174,9 @@ impl GasCost for Action {
                 note_reshape.body.inputs.len(),
                 note_reshape.body.outputs.len(),
             ),
-            Action::ProposalSubmit(submit) => submit.gas_cost(),
-            Action::ValidatorVote(vote) => vote.gas_cost(),
             Action::ShieldedIcs20Withdrawal(withdrawal) => withdrawal.gas_cost(),
             Action::ShieldedHostWithdrawal(withdrawal) => withdrawal.gas_cost(),
             Action::IbcRelay(x) => x.gas_cost(),
-            Action::ValidatorDefinition(x) => x.gas_cost(),
             Action::ComplianceRegisterAsset(_) | Action::ComplianceRegisterUser(_) => Gas {
                 block_space: 100,
                 compact_block_space: 100,
@@ -253,45 +244,12 @@ impl GasCost for ShieldedHostWithdrawalPlan {
     }
 }
 
-impl GasCost for ValidatorDefinition {
-    fn gas_cost(&self) -> Gas {
-        Gas {
-            block_space: self.encode_to_vec().len() as u64,
-            compact_block_space: 0,
-            verification: 200,
-            execution: 10,
-        }
-    }
-}
-
 impl GasCost for IbcRelay {
     fn gas_cost(&self) -> Gas {
         Gas {
             block_space: self.encode_to_vec().len() as u64,
             compact_block_space: 0,
             verification: 0,
-            execution: 10,
-        }
-    }
-}
-
-impl GasCost for ProposalSubmit {
-    fn gas_cost(&self) -> Gas {
-        Gas {
-            block_space: self.encode_to_vec().len() as u64,
-            compact_block_space: 0,
-            verification: 200,
-            execution: 10,
-        }
-    }
-}
-
-impl GasCost for ValidatorVote {
-    fn gas_cost(&self) -> Gas {
-        Gas {
-            block_space: self.encode_to_vec().len() as u64,
-            compact_block_space: 0,
-            verification: 200,
             execution: 10,
         }
     }

@@ -96,7 +96,6 @@ async fn run() -> Result<()> {
         Command::Debug(_) => unreachable!("debug command already executed"),
         Command::Transaction(tx_cmd) => tx_cmd.exec(&mut app).await?,
         Command::View(view_cmd) => view_cmd.exec(&mut app).await?,
-        Command::Validator(cmd) => cmd.exec(&mut app).await?,
         Command::Query(cmd) => cmd.exec(&mut app).await?,
         Command::Threshold(cmd) => cmd.exec(&mut app).await?,
     }

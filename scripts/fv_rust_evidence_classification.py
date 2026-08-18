@@ -25,11 +25,9 @@ RUST_SECURITY_ROOTS = (
     "crates/core/app/src",
     "crates/core/asset/src",
     "crates/core/component/compliance/src",
-    "crates/core/component/governance/src",
     "crates/core/component/ibc/src",
     "crates/core/component/sct/src",
     "crates/core/component/shielded-pool/src",
-    "crates/core/component/stake/src",
     "crates/core/keys/src",
     "crates/core/num/src",
     "crates/core/transaction/src",
@@ -164,16 +162,6 @@ PROPERTY_OWNER_SPECS: dict[str, tuple[TestSpec, ...]] = {
             anchor_validation_cache_counts_shared_pair_once
             claimed_anchor_validation_cache_counts_shared_anchor_once
             """,
-        ),
-        *_specs(
-            "invariant",
-            "crates/core/app/src/params/change.rs",
-            "compliance_anchor_validation_window_may_change",
-        ),
-        *_specs(
-            "boundary_negative",
-            "crates/core/app/src/params/change.rs",
-            "compliance_anchor_validation_window_must_be_positive",
         ),
         *_specs(
             "invariant",
@@ -1331,36 +1319,8 @@ EXCLUSION_SYMBOLS: dict[str, tuple[str, ...]] = {
         """
     ),
     (
-        "crates/core/app-tests/tests/"
-        "app_bootstraps_post_genesis_validator_definitions.rs"
-    ): _symbols(
-        "app_activates_post_genesis_validator_definitions_with_equal_weight"
-    ),
-    (
-        "crates/core/app-tests/tests/"
-        "app_rejects_validator_definitions_with_invalid_auth_sigs.rs"
-    ): _symbols(
-        "app_rejects_validator_definitions_with_invalid_auth_sigs"
-    ),
-    (
-        "crates/core/app-tests/tests/"
-        "app_tracks_uptime_for_genesis_validator_missing_blocks.rs"
-    ): _symbols(
-        "app_tracks_uptime_for_genesis_validator_missing_blocks"
-    ),
-    (
-        "crates/core/app-tests/tests/"
-        "app_tracks_uptime_for_genesis_validator_signing_blocks.rs"
-    ): _symbols(
-        "app_tracks_uptime_for_genesis_validator_missing_blocks"
-    ),
-    (
         "crates/core/app-tests/tests/mock_consensus_block_proving.rs"
     ): _symbols("verify_storage_proof_simple"),
-    (
-        "crates/core/app-tests/tests/"
-        "mock_consensus_can_define_a_genesis_validator.rs"
-    ): _symbols("mock_consensus_can_define_a_genesis_validator"),
     (
         "crates/core/app-tests/tests/"
         "mock_consensus_can_send_a_sequence_of_empty_blocks.rs"
@@ -1385,15 +1345,11 @@ EXCLUSION_SYMBOLS: dict[str, tuple[str, ...]] = {
         parse_tendermint_address_tcp
         """
     ),
-    "crates/core/app/src/action_handler/actions/submit.rs": _symbols(
-        "parameter_change_proposals_remain_enabled_statelessly"
-    ),
     "crates/core/app/src/app_version/component.rs": _symbols(
         "ensure_app_version_is_current_in_checks"
     ),
     "crates/core/app/src/genesis.rs": _symbols(
         """
-        check_validator_defaults
         missing_compliance_content_uses_default
         """
     ),
@@ -1564,31 +1520,6 @@ EXCLUSION_SYMBOLS: dict[str, tuple[str, ...]] = {
         test_decrypt_full_flagged_transfer
         """
     ),
-    "crates/core/component/governance/src/change.rs": _symbols(
-        """
-        apply_changes_to_gov_params
-        dump_encoded_parameters
-        preconditions_prevent_applying_changes
-        protojson_rules_block_snake_case_parameter_changes
-        """
-    ),
-    "crates/core/component/governance/src/proposal.rs": _symbols(
-        "proposal_kind_parses_ibc_freeze_variants"
-    ),
-    "crates/core/component/governance/src/tally.rs": _symbols(
-        """
-        abstain_only_tally_never_passes
-        mixed_yes_and_no_above_threshold_passes
-        mixed_yes_and_no_below_threshold_fails
-        slash_threshold_is_checked_before_pass_threshold
-        """
-    ),
-    "crates/core/component/governance/src/vote.rs": _symbols(
-        "vote_roundtrip_serialize"
-    ),
-    "crates/core/component/governance/src/voting_receipt_token.rs": _symbols(
-        "unbonding_token_denomination_round_trip"
-    ),
     "crates/core/component/ibc/src/component/client.rs": _symbols(
         """
         test_create_and_update_light_client
@@ -1716,17 +1647,6 @@ EXCLUSION_SYMBOLS: dict[str, tuple[str, ...]] = {
         """
         cache_state_machine_and_chunk_closure_are_explicit
         updater_verifies_archive_and_groth16_proof_before_ready
-        """
-    ),
-    "crates/core/component/stake/src/component/stake/tests.rs": _symbols(
-        "test_persistent_identity_by_ck"
-    ),
-    "crates/core/component/stake/src/uptime.rs": _symbols(
-        """
-        counts_missed_blocks
-        enumerate_missed_first_block
-        enumerate_uptime_simulates_bounded_queue
-        proto_round_trip
         """
     ),
     "crates/core/keys/src/address/view.rs": _symbols("address_view_basic"),
@@ -1942,9 +1862,6 @@ EXCLUSION_SYMBOLS: dict[str, tuple[str, ...]] = {
         historical_fee_funding_prices_complete_final_plan
         zero_fee_compliance_register_user_plans_without_funding_transfer
         zero_fee_ibc_action_plans_without_funding_transfer
-        zero_fee_proposal_submit_plans_without_funding_transfer
-        zero_fee_validator_definition_plans_without_funding_transfer
-        zero_fee_validator_vote_plans_without_funding_transfer
         """
     ),
     "crates/view/src/service.rs": _symbols(
@@ -1963,27 +1880,7 @@ EXCLUSION_SYMBOLS: dict[str, tuple[str, ...]] = {
 
 OUT_OF_SCOPE_EXCLUSION_PATHS = frozenset(
     {
-        (
-            "crates/core/app-tests/tests/"
-            "app_bootstraps_post_genesis_validator_definitions.rs"
-        ),
-        (
-            "crates/core/app-tests/tests/"
-            "app_rejects_validator_definitions_with_invalid_auth_sigs.rs"
-        ),
-        (
-            "crates/core/app-tests/tests/"
-            "app_tracks_uptime_for_genesis_validator_missing_blocks.rs"
-        ),
-        (
-            "crates/core/app-tests/tests/"
-            "app_tracks_uptime_for_genesis_validator_signing_blocks.rs"
-        ),
         "crates/core/app-tests/tests/mock_consensus_block_proving.rs",
-        (
-            "crates/core/app-tests/tests/"
-            "mock_consensus_can_define_a_genesis_validator.rs"
-        ),
         (
             "crates/core/app-tests/tests/"
             "mock_consensus_can_send_a_sequence_of_empty_blocks.rs"
@@ -1994,7 +1891,6 @@ OUT_OF_SCOPE_EXCLUSION_PATHS = frozenset(
         ),
         "crates/bin/pd/src/network/generate.rs",
         "crates/bin/pd/src/network/join.rs",
-        "crates/core/app/src/action_handler/actions/submit.rs",
         "crates/core/app/src/app/host.rs",
         "crates/core/app/src/genesis.rs",
         "crates/core/asset/src/asset/denom_metadata.rs",
@@ -2011,11 +1907,6 @@ OUT_OF_SCOPE_EXCLUSION_PATHS = frozenset(
         "crates/core/component/compliance/src/scanner/sync.rs",
         "crates/core/component/compliance/src/scanner/worker.rs",
         "crates/core/component/compliance/src/scanning.rs",
-        "crates/core/component/governance/src/change.rs",
-        "crates/core/component/governance/src/proposal.rs",
-        "crates/core/component/governance/src/tally.rs",
-        "crates/core/component/governance/src/vote.rs",
-        "crates/core/component/governance/src/voting_receipt_token.rs",
         "crates/core/component/ibc/src/component/client.rs",
         "crates/core/component/ibc/src/component/rpc/utils.rs",
         "crates/core/component/ibc/src/ibc_token.rs",
@@ -2023,7 +1914,6 @@ OUT_OF_SCOPE_EXCLUSION_PATHS = frozenset(
         "crates/core/component/shielded-pool/src/component/rpc/bank_query.rs",
         "crates/core/component/shielded-pool/src/component/rpc/transfer_query.rs",
         "crates/core/component/shielded-pool/src/host_withdrawal.rs",
-        "crates/core/component/stake/src/uptime.rs",
         "crates/core/keys/src/address/view.rs",
         "crates/core/keys/src/keys/bip44.rs",
         "crates/core/keys/src/keys/diversifier.rs",
@@ -2063,7 +1953,6 @@ SUPPORTING_EXCLUSION_PATHS = frozenset(
         "crates/core/asset/src/balance/imbalance.rs",
         "crates/core/asset/src/balance.rs",
         "crates/core/asset/src/value.rs",
-        "crates/core/component/stake/src/component/stake/tests.rs",
         "crates/core/component/sct/src/component/tree.rs",
         "crates/core/component/sct/src/component/rpc.rs",
         "crates/core/component/sct/src/generation_pack.rs",

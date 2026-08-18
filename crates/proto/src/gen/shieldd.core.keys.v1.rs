@@ -180,53 +180,6 @@ impl ::prost::Name for AddressIndex {
         "/shieldd.core.keys.v1.AddressIndex".into()
     }
 }
-/// A validator's identity key (decaf377-rdsa spendauth verification key).
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct IdentityKey {
-    #[prost(bytes = "vec", tag = "1")]
-    pub ik: ::prost::alloc::vec::Vec<u8>,
-}
-impl ::prost::Name for IdentityKey {
-    const NAME: &'static str = "IdentityKey";
-    const PACKAGE: &'static str = "shieldd.core.keys.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.keys.v1.IdentityKey".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.keys.v1.IdentityKey".into()
-    }
-}
-/// A validator's governance key (decaf377-rdsa spendauth verification key).
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct GovernanceKey {
-    #[prost(bytes = "vec", tag = "1")]
-    pub gk: ::prost::alloc::vec::Vec<u8>,
-}
-impl ::prost::Name for GovernanceKey {
-    const NAME: &'static str = "GovernanceKey";
-    const PACKAGE: &'static str = "shieldd.core.keys.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.keys.v1.GovernanceKey".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.keys.v1.GovernanceKey".into()
-    }
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ConsensusKey {
-    #[prost(bytes = "vec", tag = "1")]
-    pub inner: ::prost::alloc::vec::Vec<u8>,
-}
-impl ::prost::Name for ConsensusKey {
-    const NAME: &'static str = "ConsensusKey";
-    const PACKAGE: &'static str = "shieldd.core.keys.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.keys.v1.ConsensusKey".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.keys.v1.ConsensusKey".into()
-    }
-}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PositionMetadataKey {
     #[prost(bytes = "vec", tag = "1")]

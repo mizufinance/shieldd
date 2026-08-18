@@ -28,7 +28,6 @@ use {
     shieldd_sdk_compact_block::component::rpc::Server as CompactBlockServer,
     shieldd_sdk_compliance::component::RpcServer as ComplianceServer,
     shieldd_sdk_fee::component::rpc::Server as FeeServer,
-    shieldd_sdk_governance::component::rpc::Server as GovernanceServer,
     shieldd_sdk_proto::{
         core::{
             app::v1::query_service_server::QueryServiceServer as AppQueryServiceServer,
@@ -36,10 +35,8 @@ use {
                 compact_block::v1::query_service_server::QueryServiceServer as CompactBlockQueryServiceServer,
                 compliance::v1::query_service_server::QueryServiceServer as ComplianceQueryServiceServer,
                 fee::v1::query_service_server::QueryServiceServer as FeeQueryServiceServer,
-                governance::v1::query_service_server::QueryServiceServer as GovernanceQueryServiceServer,
                 sct::v1::query_service_server::QueryServiceServer as SctQueryServiceServer,
                 shielded_pool::v1::query_service_server::QueryServiceServer as ShieldedPoolQueryServiceServer,
-                validator::v1::query_service_server::QueryServiceServer as ValidatorQueryServiceServer,
             },
         },
         util::{
@@ -53,7 +50,6 @@ use {
         component::rpc::Server as SctServer, generation_pack::GenerationPackRepository,
     },
     shieldd_sdk_shielded_pool::component::rpc::Server as ShieldedPoolServer,
-    shieldd_sdk_validator::component::rpc::Server as StakeServer,
     tonic::service::{Routes, RoutesBuilder},
     tonic_web::enable as we,
 };
@@ -89,9 +85,6 @@ fn add_common_routes(
         .add_service(we(FeeQueryServiceServer::new(FeeServer::new(
             storage.clone(),
         ))))
-        .add_service(we(GovernanceQueryServiceServer::new(
-            GovernanceServer::new(storage.clone()),
-        )))
         .add_service(we(SctQueryServiceServer::new(match generation_packs {
             Some(repository) => SctServer::with_generation_packs(storage.clone(), repository),
             None => SctServer::new(storage.clone()),
@@ -103,9 +96,6 @@ fn add_common_routes(
             storage.clone(),
         ))))
         .add_service(we(BankQueryServer::new(ShieldedPoolServer::new(
-            storage.clone(),
-        ))))
-        .add_service(we(ValidatorQueryServiceServer::new(StakeServer::new(
             storage.clone(),
         ))))
         .add_service(we(ClientQueryServer::new(ibc.clone())))

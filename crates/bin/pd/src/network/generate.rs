@@ -12,20 +12,12 @@ use shieldd_sdk_app::{
 use shieldd_sdk_asset::BASE_ASSET_ID;
 use shieldd_sdk_compliance::genesis::Content as ComplianceContent;
 use shieldd_sdk_fee::genesis::Content as FeeContent;
-use shieldd_sdk_governance::genesis::Content as GovernanceContent;
-use shieldd_sdk_keys::{
-    keys::{Bip44Path, SeedPhrase, SpendKey},
-    test_keys, Address,
-};
+use shieldd_sdk_keys::Address;
 use shieldd_sdk_sct::genesis::Content as SctContent;
 use shieldd_sdk_sct::params::SctParameters;
 use shieldd_sdk_shielded_pool::{
     genesis::{self as shielded_pool_genesis, Allocation, Content as ShieldedPoolContent},
     params::ShieldedPoolParameters,
-};
-use shieldd_sdk_validator::{
-    genesis::Content as ValidatorContent, params::ValidatorParameters, validator::Validator,
-    GovernanceKey, IdentityKey,
 };
 use std::{
     fmt,
@@ -52,9 +44,6 @@ pub struct NetworkConfig {
     /// Set of validators at genesis. Uses the convenient wrapper type
     /// to generate config files.
     pub network_validators: Vec<NetworkValidator>,
-    /// Set of validators at genesis. This is the literal type embedded
-    /// inside configs, including the keys
-    pub validators: Vec<Validator>,
     /// Hostname as string for a validator's p2p service. Will have
     /// numbers affixed to it for each validator, e.g. "-0", "-1", etc.
     pub peer_address_template: Option<String>,
@@ -81,9 +70,7 @@ impl NetworkConfig {
         allocation_address: Option<Address>,
         validators_input_file: Option<PathBuf>,
         tendermint_timeout_commit: Option<tendermint::Timeout>,
-        active_validator_limit: Option<u64>,
         epoch_duration: Option<u64>,
-        proposal_voting_blocks: Option<u64>,
         gas_price_simple: Option<u64>,
         compliance_registrar_vk: Vec<VerificationKey<SpendAuth>>,
         tendermint_rpc_bind: SocketAddr,
@@ -104,30 +91,24 @@ impl NetworkConfig {
             tracing::info!(%address, "adding dynamic allocation to genesis");
             allocations.extend(NetworkAllocation::simple(address));
         }
-        // Convert to domain type, for use with other Shieldd interfaces.
-        // We do this conversion once and store it in the struct for convenience.
-        let validators: anyhow::Result<Vec<Validator>> =
-            network_validators.iter().map(|v| v.try_into()).collect();
-        let validators = validators?;
-
         let app_state = Self::make_genesis_content(
             chain_id,
             allocations,
-            validators.to_vec(),
-            active_validator_limit,
             epoch_duration,
-            proposal_voting_blocks,
             gas_price_simple,
             compliance_registrar_vk,
         )?;
-        let genesis = Self::make_genesis(app_state)?;
+        let mut genesis = Self::make_genesis(app_state)?;
+        genesis.validators = network_validators
+            .iter()
+            .map(NetworkValidator::consensus_validator)
+            .collect::<anyhow::Result<Vec<_>>>()?;
 
         Ok(NetworkConfig {
             name: chain_id.to_owned(),
             genesis,
             network_dir: get_network_dir(network_dir),
             network_validators,
-            validators: validators.to_vec(),
             peer_address_template,
             tendermint_timeout_commit,
             tendermint_rpc_bind,
@@ -204,21 +185,10 @@ impl NetworkConfig {
     fn make_genesis_content(
         chain_id: &str,
         allocations: Vec<Allocation>,
-        validators: Vec<Validator>,
-        active_validator_limit: Option<u64>,
         epoch_duration: Option<u64>,
-        proposal_voting_blocks: Option<u64>,
         gas_price_simple: Option<u64>,
         compliance_registrar_vk: Vec<VerificationKey<SpendAuth>>,
     ) -> anyhow::Result<shieldd_sdk_app::genesis::Content> {
-        let default_gov_params = shieldd_sdk_governance::params::GovernanceParameters::default();
-
-        let gov_params = shieldd_sdk_governance::params::GovernanceParameters {
-            proposal_voting_blocks: proposal_voting_blocks
-                .unwrap_or(default_gov_params.proposal_voting_blocks),
-            ..default_gov_params
-        };
-
         // Look up default app params, so we can fill in defaults.
         let default_app_params = AppParameters::default();
 
@@ -226,14 +196,6 @@ impl NetworkConfig {
 
         let app_state = shieldd_sdk_app::genesis::Content {
             chain_id: chain_id.to_string(),
-            validator_content: ValidatorContent {
-                validators: validators.into_iter().map(Into::into).collect(),
-                validator_params: ValidatorParameters {
-                    active_validator_limit: active_validator_limit
-                        .unwrap_or(default_app_params.validator_params.active_validator_limit),
-                    ..Default::default()
-                },
-            },
             fee_content: FeeContent {
                 fee_params: shieldd_sdk_fee::params::FeeParameters {
                     fixed_gas_prices: shieldd_sdk_fee::GasPrices {
@@ -245,9 +207,6 @@ impl NetworkConfig {
                     },
                     fixed_alt_gas_prices: vec![],
                 },
-            },
-            governance_content: GovernanceContent {
-                governance_params: gov_params,
             },
             compliance_content: ComplianceContent {
                 compliance_registrar_vk,
@@ -320,9 +279,6 @@ impl NetworkConfig {
             // always empty in genesis json
             app_hash: tendermint::AppHash::default(),
             app_state: shieldd_sdk_app::genesis::AppState::Content(app_state),
-            // Set empty validator set for Tendermint config, which falls back to reading
-            // validators from the AppState, via ResponseInitChain:
-            // https://docs.tendermint.com/v0.32/tendermint-core/using-tendermint.html
             validators: vec![],
         };
         Ok(genesis)
@@ -387,7 +343,6 @@ impl NetworkConfig {
 pub fn network_generate(
     network_dir: Option<PathBuf>,
     chain_id: &str,
-    active_validator_limit: Option<u64>,
     tendermint_timeout_commit: Option<tendermint::Timeout>,
     epoch_duration: Option<u64>,
     peer_address_template: Option<String>,
@@ -395,7 +350,6 @@ pub fn network_generate(
     validators_input_file: Option<PathBuf>,
     allocations_input_file: Option<PathBuf>,
     allocation_address: Option<Address>,
-    proposal_voting_blocks: Option<u64>,
     gas_price_simple: Option<u64>,
     compliance_registrar_vk: Vec<VerificationKey<SpendAuth>>,
     tendermint_rpc_bind: SocketAddr,
@@ -411,16 +365,14 @@ pub fn network_generate(
         allocation_address,
         validators_input_file,
         tendermint_timeout_commit,
-        active_validator_limit,
         epoch_duration,
-        proposal_voting_blocks,
         gas_price_simple,
         compliance_registrar_vk,
         tendermint_rpc_bind,
         tendermint_p2p_bind,
     )?;
     tracing::info!(
-        n_validators = t.validators.len(),
+        n_validators = t.network_validators.len(),
         chain_id = %t.genesis.chain_id,
         "Writing config files for network"
     );
@@ -513,10 +465,6 @@ impl NetworkAllocation {
 #[derive(Deserialize)]
 pub struct NetworkValidator {
     pub name: String,
-    pub website: String,
-    pub description: String,
-    /// All validator identities
-    pub sequence_number: u32,
     /// Optional `external_address` field for Tendermint config.
     /// Instructs peers to connect to this node's P2P service
     /// on this address.
@@ -537,10 +485,6 @@ impl NetworkValidator {
         #[derive(Deserialize)]
         struct RawNetworkValidator {
             pub name: String,
-            pub website: String,
-            pub description: String,
-            #[serde(default)]
-            pub sequence_number: u32,
             pub external_address: Option<TendermintAddress>,
             pub peer_address_template: Option<String>,
             pub keys: Option<ValidatorKeys>,
@@ -550,28 +494,19 @@ impl NetworkValidator {
 
         raw_validators
             .into_iter()
-            .map(|raw| {
+            .enumerate()
+            .map(|(index, raw)| {
                 let keys = match raw.keys {
                     Some(keys) => keys,
                     None => {
-                        // Keep local/dev validators stable across runs so the integration-test
-                        // wallet can authenticate governance actions against validator 0.
-                        let seed_phrase: SeedPhrase = test_keys::SEED_PHRASE
-                            .parse()
-                            .expect("hardcoded test seed phrase should be valid");
-                        let spend_key = SpendKey::from_seed_phrase_bip44(
-                            seed_phrase,
-                            &Bip44Path::new(raw.sequence_number),
-                        )?;
-                        ValidatorKeys::from_seed(spend_key.to_bytes().0)?
+                        let mut seed = [0u8; 32];
+                        seed[..8].copy_from_slice(&(index as u64).to_le_bytes());
+                        ValidatorKeys::from_seed(seed)?
                     }
                 };
 
                 Ok(NetworkValidator {
                     name: raw.name,
-                    website: raw.website,
-                    description: raw.description,
-                    sequence_number: raw.sequence_number,
                     external_address: raw.external_address,
                     peer_address_template: raw.peer_address_template,
                     keys,
@@ -628,54 +563,23 @@ impl NetworkValidator {
 }
 
 impl NetworkValidator {
+    fn consensus_validator(&self) -> anyhow::Result<tendermint::validator::Info> {
+        let public_key = self.keys.validator_cons_pk;
+        Ok(tendermint::validator::Info {
+            address: public_key.into(),
+            pub_key: public_key,
+            power: 1i64.try_into()?,
+            name: (!self.name.is_empty()).then(|| self.name.clone()),
+            proposer_priority: 0i64.try_into()?,
+        })
+    }
+
     pub fn generate() -> Result<Self> {
         Ok(Self {
             name: "".to_string(),
-            website: "".to_string(),
-            description: "".to_string(),
-            sequence_number: 0,
             external_address: None,
             peer_address_template: None,
             keys: ValidatorKeys::generate()?,
-        })
-    }
-}
-
-// The core Shieldd logic deals with `Validator`s, to make sure our convenient
-// wrapper type can resolve as a `Validator` when needed.
-impl TryFrom<&NetworkValidator> for Validator {
-    type Error = anyhow::Error;
-    fn try_from(tv: &NetworkValidator) -> anyhow::Result<Validator> {
-        // Validation:
-        // - Website has a max length of 70 bytes
-        if tv.website.len() > 70 {
-            anyhow::bail!("validator website field must be less than 70 bytes");
-        }
-
-        // - Name has a max length of 140 bytes
-        if tv.name.len() > 140 {
-            anyhow::bail!("validator name must be less than 140 bytes");
-        }
-
-        // - Description has a max length of 280 bytes
-        if tv.description.len() > 280 {
-            anyhow::bail!("validator description must be less than 280 bytes");
-        }
-
-        Ok(Validator {
-            // Currently there's no way to set validator keys beyond
-            // manually editing the genesis.json. Otherwise they
-            // will be randomly generated keys.
-            identity_key: IdentityKey::try_from(tv.keys.validator_id_vk)
-                .context("invalid validator identity key")?,
-            governance_key: GovernanceKey::try_from(tv.keys.validator_id_vk)
-                .context("invalid validator governance key")?,
-            consensus_key: tv.keys.validator_cons_pk,
-            name: tv.name.clone(),
-            website: tv.website.clone(),
-            description: tv.description.clone(),
-            enabled: true,
-            sequence_number: tv.sequence_number,
         })
     }
 }
@@ -738,35 +642,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use decaf377::Fr;
-    use decaf377_rdsa::SigningKey;
-
     use super::*;
-
-    #[test]
-    fn validator_conversion_rejects_identity_authorization_key_without_panicking(
-    ) -> anyhow::Result<()> {
-        let mut keys = ValidatorKeys::from_seed([1u8; 32])?;
-        keys.validator_id_vk =
-            VerificationKey::from(&SigningKey::<SpendAuth>::from(Fr::from(0u64)));
-        let network_validator = NetworkValidator {
-            name: "identity-key-validator".to_owned(),
-            website: String::new(),
-            description: String::new(),
-            sequence_number: 0,
-            external_address: None,
-            peer_address_template: None,
-            keys,
-        };
-
-        let error = Validator::try_from(&network_validator)
-            .expect_err("network config must reject identity authorization keys");
-        assert!(
-            format!("{error:#}").contains("invalid validator identity key"),
-            "unexpected error: {error:#}"
-        );
-        Ok(())
-    }
 
     #[test]
     fn parse_allocations_from_good_csv() -> anyhow::Result<()> {
@@ -817,14 +693,12 @@ mod tests {
             None,
             None,
             None,
-            None,
-            None,
             vec![],
             SocketAddr::from_str("0.0.0.0:26657")?,
             SocketAddr::from_str("0.0.0.0:26656")?,
         )?;
         assert_eq!(testnet_config.name, "test-chain-1234");
-        assert_eq!(testnet_config.genesis.validators.len(), 0);
+        assert_eq!(testnet_config.genesis.validators.len(), 2);
         // When no validators_input_file is provided, validators are loaded from
         // PD_LATEST_TESTNET_VALIDATORS (testnets/validators-ci.json) which has 2 validators.
         let shieldd_sdk_app::genesis::AppState::Content(app_state) =
@@ -832,7 +706,6 @@ mod tests {
         else {
             unimplemented!("TODO: support checkpointed app state")
         };
-        assert_eq!(app_state.validator_content.validators.len(), 2);
         assert_eq!(
             app_state
                 .shielded_pool_content
@@ -861,20 +734,17 @@ mod tests {
             None,
             None,
             None,
-            None,
-            None,
             vec![],
             SocketAddr::from_str("0.0.0.0:26657")?,
             SocketAddr::from_str("0.0.0.0:26656")?,
         )?;
         assert_eq!(testnet_config.name, "test-chain-4567");
-        assert_eq!(testnet_config.genesis.validators.len(), 0);
+        assert_eq!(testnet_config.genesis.validators.len(), 2);
         let shieldd_sdk_app::genesis::AppState::Content(app_state) =
             testnet_config.genesis.app_state
         else {
             unimplemented!("TODO: support checkpointed app state")
         };
-        assert_eq!(app_state.validator_content.validators.len(), 2);
         assert_eq!(
             app_state
                 .shielded_pool_content
@@ -886,12 +756,4 @@ mod tests {
         );
         Ok(())
     }
-
-    //    #[test]
-    //    fn testnet_validator_to_validator_conversion() -> anyhow::Result<()> {
-    //        let tv = NetworkValidator::default();
-    //        let v: Validator = tv.try_into()?;
-    //        assert!(v.website == "");
-    //        Ok(())
-    //    }
 }

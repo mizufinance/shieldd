@@ -20,12 +20,10 @@ component = [
   "shieldd-sdk-proto/cnidarium",
   "shieldd-sdk-compact-block/component",
   "shieldd-sdk-fee/component",
-  "shieldd-sdk-governance/component",
   "shieldd-sdk-ibc/component",
   "shieldd-sdk-ibc/rpc",
   "shieldd-sdk-sct/component",
   "shieldd-sdk-shielded-pool/component",
-  "shieldd-sdk-validator/component",
   "dep:tonic",
   "dep:tonic-reflection",
   "dep:tonic-web"
@@ -61,7 +59,6 @@ shieldd-sdk-asset               = { workspace = true, default-features = true }
 shieldd-sdk-app                 = { workspace = true, features = ["benchmark-helpers"], default-features = true }
 shieldd-sdk-compact-block           = { workspace = true, default-features = false }
 shieldd-sdk-fee                     = { workspace = true, default-features = false }
-shieldd-sdk-governance              = { workspace = true, default-features = false }
 shieldd-sdk-ibc                     = { workspace = true, features = ["benchmark-helpers"], default-features = false }
 shieldd-sdk-keys                    = { workspace = true, default-features = true }
 shieldd-sdk-num                     = { workspace = true, default-features = true }
@@ -70,7 +67,6 @@ shieldd-sdk-proof-params            = { workspace = true, default-features = fal
 shieldd-sdk-proto                   = { workspace = true, default-features = true }
 shieldd-sdk-sct                     = { workspace = true, default-features = false }
 shieldd-sdk-shielded-pool           = { workspace = true, features = ["benchmark-helpers", "bundled-proving-keys"], default-features = false }
-shieldd-sdk-validator                   = { workspace = true, default-features = false }
 shieldd-sdk-tct                     = { workspace = true, default-features = true }
 shieldd-sdk-test-subscriber         = { workspace = true }
 shieldd-sdk-tower-trace             = { workspace = true }
@@ -143,29 +139,8 @@ name = "app_blocktimes_increment"
 path = "tests/app_blocktimes_increment.rs"
 
 [[test]]
-name = "app_tracks_uptime_for_genesis_validator_missing_blocks"
-path = "tests/app_tracks_uptime_for_genesis_validator_missing_blocks.rs"
-
-[[test]]
-name = "app_tracks_uptime_for_genesis_validator_signing_blocks"
-path = "tests/app_tracks_uptime_for_genesis_validator_signing_blocks.rs"
-
-[[test]]
-name = "mock_consensus_can_define_a_genesis_validator"
-path = "tests/mock_consensus_can_define_a_genesis_validator.rs"
-
-[[test]]
 name = "mock_consensus_can_send_a_sequence_of_empty_blocks"
 path = "tests/mock_consensus_can_send_a_sequence_of_empty_blocks.rs"
-
-# Tests without shielded input/output plans (no compliance needed):
-[[test]]
-name = "app_rejects_validator_definitions_with_invalid_auth_sigs"
-path = "tests/app_rejects_validator_definitions_with_invalid_auth_sigs.rs"
-
-[[test]]
-name = "app_bootstraps_post_genesis_validator_definitions"
-path = "tests/app_bootstraps_post_genesis_validator_definitions.rs"
 
 # IBC proof verification test (uses IbcRelay action, not regulated):
 [[test]]

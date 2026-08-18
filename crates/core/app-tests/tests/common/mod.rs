@@ -5,7 +5,7 @@
 pub use {
     self::{
         temp_storage_ext::TempStorageExt, test_node_builder_ext::BuilderExt,
-        test_node_ext::TestNodeExt, validator_read_ext::ValidatorDataReadExt,
+        test_node_ext::TestNodeExt,
     },
     shieldd_sdk_test_subscriber::{set_tracing_subscriber, set_tracing_subscriber_with_env_filter},
 };
@@ -133,12 +133,6 @@ mod temp_storage_ext;
 ///
 /// See [`TestNodeExt`].
 mod test_node_ext;
-
-/// Helpful additions for reading validator information.
-///
-/// See [`ValidatorDataRead`][shieldd_sdk_validator::component::validator_handler::ValidatorDataRead],
-/// and [`ValidatorDataReadExt`].
-mod validator_read_ext;
 
 /// Methods for testing IBC functionality.
 #[allow(unused)]

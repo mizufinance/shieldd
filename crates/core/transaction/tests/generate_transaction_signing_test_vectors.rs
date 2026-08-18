@@ -1,6 +1,4 @@
 use decaf377::Fr;
-use decaf377_rdsa::{SigningKey, SpendAuth, VerificationKey};
-use ed25519_consensus::SigningKey as Ed25519SigningKey;
 use ibc_proto::ics23::CommitmentProof;
 use ibc_types::core::{
     channel::{msgs::MsgRecvPacket, packet::Sequence, ChannelId, Packet, PortId},
@@ -15,10 +13,6 @@ use rand::{rngs::StdRng, SeedableRng};
 use rand_core::{CryptoRng, Error as RandError, RngCore};
 use shieldd_sdk_asset::{asset::Id, Value, BASE_ASSET_DENOM};
 use shieldd_sdk_fee::Fee;
-use shieldd_sdk_governance::{
-    Proposal, ProposalPayload, ProposalSubmit, ProposalSubmitBody, ValidatorVote,
-    ValidatorVoteBody, ValidatorVoteReason, Vote,
-};
 use shieldd_sdk_ibc::IbcRelay;
 use shieldd_sdk_keys::keys::{Bip44Path, SeedPhrase, SpendKey};
 use shieldd_sdk_keys::test_keys::SEED_PHRASE;
@@ -35,11 +29,9 @@ use shieldd_sdk_shielded_pool::{
 use shieldd_sdk_transaction::{
     check_transaction_plan_enabled, ActionPlan, TransactionParameters, TransactionPlan,
 };
-use shieldd_sdk_validator::{validator, validator::Definition, GovernanceKey, IdentityKey};
 use std::io::Write;
 use std::str::FromStr;
 use std::{fs::File, io::Read};
-use tendermint;
 
 thread_local! {
     static VECTOR_RNG: std::cell::RefCell<StdRng> = std::cell::RefCell::new(
@@ -114,62 +106,6 @@ fn spend_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = ShieldedIn
     })
 }
 
-fn identity_key_strategy() -> impl Strategy<Value = IdentityKey> {
-    signing_key_strategy().prop_map(|signing_key| {
-        IdentityKey::try_from(VerificationKey::from(&signing_key))
-            .expect("generated validator identity key is nonidentity")
-    })
-}
-
-fn signing_key_strategy() -> impl Strategy<Value = SigningKey<SpendAuth>> {
-    prop::strategy::LazyJust::new(|| with_vector_rng(|rng| SigningKey::<SpendAuth>::new(rng)))
-}
-
-fn consensus_secret_key_strategy() -> impl Strategy<Value = Ed25519SigningKey> {
-    prop::strategy::LazyJust::new(|| with_vector_rng(|rng| Ed25519SigningKey::new(rng)))
-}
-
-fn validator_strategy() -> impl Strategy<Value = (validator::Validator, SigningKey<SpendAuth>)> {
-    (signing_key_strategy(), consensus_secret_key_strategy()).prop_map(
-        move |(new_validator_id_sk, new_validator_consensus_sk)| {
-            let new_validator_id =
-                IdentityKey::try_from(VerificationKey::from(&new_validator_id_sk))
-                    .expect("generated validator identity key is nonidentity");
-            let new_validator_consensus = new_validator_consensus_sk.verification_key();
-            (
-                validator::Validator {
-                    identity_key: new_validator_id.clone(),
-                    consensus_key: tendermint::PublicKey::from_raw_ed25519(
-                        &new_validator_consensus.to_bytes(),
-                    )
-                    .expect("consensus key is valid"),
-                    governance_key: GovernanceKey::try_from(VerificationKey::from(
-                        &new_validator_id_sk,
-                    ))
-                    .expect("generated validator governance key is nonidentity"),
-                    enabled: true,
-                    sequence_number: 0,
-                    name: "test validator".to_string(),
-                    website: String::default(),
-                    description: String::default(),
-                },
-                new_validator_id_sk,
-            )
-        },
-    )
-}
-
-fn validator_definition_strategy() -> impl Strategy<Value = Definition> {
-    (validator_strategy()).prop_map(|(new_validator, new_validator_id_sk)| {
-        let bytes = new_validator.encode_to_vec();
-        let auth_sig = new_validator_id_sk.sign(OsRng, &bytes);
-        Definition {
-            validator: new_validator,
-            auth_sig,
-        }
-    })
-}
-
 fn sequence_strategy() -> impl Strategy<Value = Sequence> {
     (4001..2000000000u64).prop_map(Sequence)
 }
@@ -210,71 +146,6 @@ fn ibc_action_strategy() -> impl Strategy<Value = IbcRelay> {
                 })
             },
         )
-}
-
-fn proposal_strategy() -> impl Strategy<Value = Proposal> {
-    (
-        prop::string::string_regex(r"[a-z]+-[0-9]+").unwrap(),
-        prop::string::string_regex(r"[a-z]+-[0-9]+").unwrap(),
-    )
-        .prop_map(|(title, description)| Proposal {
-            id: 0u64,
-            title,
-            description,
-            payload: ProposalPayload::Signaling { commit: None },
-        })
-}
-
-fn proposal_id_strategy() -> impl Strategy<Value = u64> {
-    0u64..1000000000u64
-}
-
-fn proposal_submit_strategy() -> impl Strategy<Value = ProposalSubmit> {
-    (
-        proposal_strategy(),
-        identity_key_strategy(),
-        signing_key_strategy(),
-    )
-        .prop_map(|(proposal, proposer, signing_key)| {
-            let governance_key = GovernanceKey::try_from(VerificationKey::from(&signing_key))
-                .expect("generated validator governance key is nonidentity");
-            let body = ProposalSubmitBody {
-                proposal,
-                proposer,
-                governance_key,
-            };
-            let auth_sig = signing_key.sign(OsRng, &body.encode_to_vec());
-            ProposalSubmit { body, auth_sig }
-        })
-}
-
-fn vote_strategy() -> impl Strategy<Value = Vote> {
-    prop_oneof![Just(Vote::Yes), Just(Vote::No), Just(Vote::Abstain),]
-}
-
-fn validator_vote_strategy() -> impl Strategy<Value = ValidatorVote> {
-    (
-        proposal_id_strategy(),
-        vote_strategy(),
-        identity_key_strategy(),
-        signing_key_strategy(),
-        prop::string::string_regex(r"[a-zA-Z0-9]+").unwrap(),
-    )
-        .prop_map(|(proposal, vote, identity_key, signing_key, reason)| {
-            let governance_key = GovernanceKey::try_from(VerificationKey::from(&signing_key))
-                .expect("generated validator governance key is nonidentity");
-            let body = ValidatorVoteBody {
-                proposal,
-                vote,
-                identity_key,
-                governance_key,
-                reason: ValidatorVoteReason(reason),
-            };
-
-            let bytes = body.encode_to_vec();
-            let auth_sig = signing_key.sign(OsRng, &bytes);
-            ValidatorVote { body, auth_sig }
-        })
 }
 
 fn shielded_ics20_withdrawal_plan_strategy(
@@ -434,10 +305,7 @@ fn action_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = ActionPla
         transfer_plan_strategy(fvk).prop_map(ActionPlan::Transfer),
         note_reshape_two_to_one_plan_strategy(fvk).prop_map(ActionPlan::NoteReshape),
         note_reshape_one_to_eight_plan_strategy(fvk).prop_map(ActionPlan::NoteReshape),
-        validator_definition_strategy().prop_map(ActionPlan::ValidatorDefinition),
-        proposal_submit_strategy().prop_map(ActionPlan::ProposalSubmit),
         ibc_action_strategy().prop_map(ActionPlan::IbcAction),
-        validator_vote_strategy().prop_map(ActionPlan::ValidatorVote),
         shielded_ics20_withdrawal_plan_strategy(fvk).prop_map(ActionPlan::ShieldedIcs20Withdrawal),
     ]
 }
@@ -550,7 +418,24 @@ fn effect_hash_test_vectors() {
         .expect("test-vector spend key should satisfy key refinements");
     let fvk = sk.full_viewing_key();
 
-    for i in 0..100 {
+    let mut vector_ids = std::fs::read_dir(test_vectors_dir)
+        .expect("test vector directory should exist")
+        .filter_map(|entry| {
+            let name = entry.ok()?.file_name();
+            let name = name.to_str()?;
+            name.strip_prefix("transaction_plan_")?
+                .strip_suffix(".json")?
+                .parse::<usize>()
+                .ok()
+        })
+        .collect::<Vec<_>>();
+    vector_ids.sort_unstable();
+    assert!(
+        !vector_ids.is_empty(),
+        "at least one signing vector is required"
+    );
+
+    for i in vector_ids {
         let json_file_path = format!("{}/transaction_plan_{}.json", test_vectors_dir, i);
         let json_plan: TransactionPlan = serde_json::from_str(
             &std::fs::read_to_string(&json_file_path)

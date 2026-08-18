@@ -12,7 +12,7 @@ Trunc32(Poseidon("shieldd.discovery.route.v2", transmission_key_s))
 
 The hash excludes the asset, regulation class, precision, height, time, epoch,
 and address-purpose metadata. Regulated and unregulated selectors are therefore
-nested low-bit prefixes of the same word. Governance parameters contain the
+nested low-bit prefixes of the same word. Application parameters contain the
 regulated precision, unregulated precision, and activation height, with
 `regulated_precision <= unregulated_precision`. Transactions reveal only the
 parameter-set identifier, never the privately selected class precision.

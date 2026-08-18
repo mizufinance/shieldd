@@ -9,7 +9,6 @@ use decaf377::Fr;
 use decaf377_rdsa::{Binding, Signature, VerificationKey, VerificationKeyBytes};
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::Balance;
-use shieldd_sdk_governance::{ProposalSubmit, ValidatorVote};
 use shieldd_sdk_ibc::IbcRelay;
 use shieldd_sdk_keys::{AddressView, FullViewingKey, PayloadKey};
 use shieldd_sdk_proto::{
@@ -298,10 +297,7 @@ impl Transaction {
                 | Action::NoteReshape(_)
                 | Action::ShieldedIcs20Withdrawal(_)
                 | Action::ShieldedHostWithdrawal(_) => 1,
-                Action::ValidatorDefinition(_)
-                | Action::ValidatorVote(_)
-                | Action::ProposalSubmit(_)
-                | Action::IbcRelay(_)
+                Action::IbcRelay(_)
                 | Action::ComplianceRegisterAsset(_)
                 | Action::ComplianceRegisterUser(_)
                 | Action::AggregateBundle(_) => 0,
@@ -485,10 +481,7 @@ impl Transaction {
                         }
                     }
                 }
-                Action::ValidatorDefinition(_)
-                | Action::IbcRelay(_)
-                | Action::ProposalSubmit(_)
-                | Action::ValidatorVote(_)
+                Action::IbcRelay(_)
                 | Action::ComplianceRegisterAsset(_)
                 | Action::ComplianceRegisterUser(_)
                 | Action::AggregateBundle(_) => {}
@@ -586,42 +579,10 @@ impl Transaction {
         self.transaction_body.actions.iter()
     }
 
-    pub fn proposal_submits(&self) -> impl Iterator<Item = &ProposalSubmit> {
-        self.actions().filter_map(|action| {
-            if let Action::ProposalSubmit(submit) = action {
-                Some(submit)
-            } else {
-                None
-            }
-        })
-    }
-
-    pub fn validator_votes(&self) -> impl Iterator<Item = &ValidatorVote> {
-        self.actions().filter_map(|action| {
-            if let Action::ValidatorVote(vote) = action {
-                Some(vote)
-            } else {
-                None
-            }
-        })
-    }
-
     pub fn ibc_actions(&self) -> impl Iterator<Item = &IbcRelay> {
         self.actions().filter_map(|action| {
             if let Action::IbcRelay(ibc_action) = action {
                 Some(ibc_action)
-            } else {
-                None
-            }
-        })
-    }
-
-    pub fn validator_definitions(
-        &self,
-    ) -> impl Iterator<Item = &shieldd_sdk_validator::validator::Definition> {
-        self.actions().filter_map(|action| {
-            if let Action::ValidatorDefinition(definition) = action {
-                Some(definition)
             } else {
                 None
             }
@@ -712,10 +673,7 @@ impl Transaction {
                 Action::NoteReshape(note_reshape) => note_reshape.body.inputs.len(),
                 Action::ShieldedIcs20Withdrawal(withdrawal) => withdrawal.body.inputs.len(),
                 Action::ShieldedHostWithdrawal(withdrawal) => withdrawal.body.inputs.len(),
-                Action::ValidatorDefinition(_)
-                | Action::ValidatorVote(_)
-                | Action::ProposalSubmit(_)
-                | Action::IbcRelay(_)
+                Action::IbcRelay(_)
                 | Action::ComplianceRegisterAsset(_)
                 | Action::ComplianceRegisterUser(_)
                 | Action::AggregateBundle(_) => 0,

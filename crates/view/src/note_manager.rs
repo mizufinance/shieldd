@@ -1509,23 +1509,17 @@ mod tests {
     use shieldd_sdk_app::params::AppParameters;
     use shieldd_sdk_asset::BASE_ASSET_ID;
     use shieldd_sdk_fee::GasPrices;
-    use shieldd_sdk_governance::{
-        Proposal, ProposalPayload, ProposalSubmit, ProposalSubmitBody, ValidatorVote,
-        ValidatorVoteBody, ValidatorVoteReason, Vote,
-    };
     use shieldd_sdk_ibc::IbcRelay;
     use shieldd_sdk_keys::keys::SeedPhrase;
     use shieldd_sdk_keys::keys::{AddressIndex, Bip44Path, SpendKey};
     use shieldd_sdk_keys::symmetric::PayloadKey;
     use shieldd_sdk_proto::core::component::compliance::v1 as compliance_pb;
     use shieldd_sdk_proto::view::v1 as pb;
-    use shieldd_sdk_proto::{DomainType, Message as _};
     use shieldd_sdk_sct::{CommitmentSource, Nullifier};
     use shieldd_sdk_shielded_pool::{discovery, note, Note, Rseed};
     use shieldd_sdk_transaction::{
         plan::ActionPlan, txhash::TransactionId, AuthorizationData, Transaction, WitnessData,
     };
-    use shieldd_sdk_validator::{validator, GovernanceKey, IdentityKey};
     use std::collections::BTreeMap;
     use std::future::Future;
     use std::pin::Pin;
@@ -1616,76 +1610,6 @@ mod tests {
             type_url: "/shieldd.test.ibc".to_owned(),
             value: vec![1, 2, 3].into(),
         })
-    }
-
-    fn test_validator_definition() -> validator::Definition {
-        let spend_key = test_spend_key(40);
-        let spend_auth_vk = spend_key.full_viewing_key().spend_verification_key();
-        let consensus_sk = ed25519_consensus::SigningKey::new(OsRng);
-        let consensus_vk = consensus_sk.verification_key();
-
-        let validator = validator::Validator {
-            identity_key: IdentityKey::try_from(spend_auth_vk.clone())
-                .expect("test spend verification key is nonidentity"),
-            governance_key: GovernanceKey::try_from(spend_auth_vk.clone())
-                .expect("test spend verification key is nonidentity"),
-            consensus_key: tendermint::PublicKey::from_raw_ed25519(&consensus_vk.to_bytes())
-                .expect("valid test consensus key"),
-            name: "reduced-surface-validator".to_owned(),
-            website: "https://example.invalid".to_owned(),
-            description: "test validator definition".to_owned(),
-            enabled: true,
-            sequence_number: 1,
-        };
-        let auth_sig = spend_key
-            .spend_auth_key()
-            .sign(OsRng, &validator.to_proto().encode_to_vec());
-
-        validator::Definition {
-            validator,
-            auth_sig,
-        }
-    }
-
-    fn test_validator_vote() -> ValidatorVote {
-        let spend_key = test_spend_key(41);
-        let vk = spend_key.full_viewing_key().spend_verification_key();
-        let body = ValidatorVoteBody {
-            proposal: 7,
-            vote: Vote::Yes,
-            identity_key: IdentityKey::try_from(vk.clone())
-                .expect("test spend verification key is nonidentity"),
-            governance_key: GovernanceKey::try_from(vk.clone())
-                .expect("test spend verification key is nonidentity"),
-            reason: ValidatorVoteReason("validator vote".to_owned()),
-        };
-        let auth_sig = spend_key
-            .spend_auth_key()
-            .sign(OsRng, &body.to_proto().encode_to_vec());
-
-        ValidatorVote { body, auth_sig }
-    }
-
-    fn test_proposal_submit() -> ProposalSubmit {
-        let spend_key = test_spend_key(42);
-        let vk = spend_key.full_viewing_key().spend_verification_key();
-        let body = ProposalSubmitBody {
-            proposal: Proposal {
-                id: 9,
-                title: "reduced surface proposal".to_owned(),
-                description: "funded by a self-transfer".to_owned(),
-                payload: ProposalPayload::Signaling { commit: None },
-            },
-            proposer: IdentityKey::try_from(vk.clone())
-                .expect("test spend verification key is nonidentity"),
-            governance_key: GovernanceKey::try_from(vk.clone())
-                .expect("test spend verification key is nonidentity"),
-        };
-        let auth_sig = spend_key
-            .spend_auth_key()
-            .sign(OsRng, &body.to_proto().encode_to_vec());
-
-        ProposalSubmit { body, auth_sig }
     }
 
     fn assert_action_only_plan(
@@ -2247,60 +2171,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn zero_fee_validator_definition_plans_without_funding_transfer() {
-        let source = AddressIndex::new(0);
-        let sender = test_address(30);
-        let view_addresses = BTreeMap::from([(source, sender.clone())]);
-        let mut view = MockNoteManagerView::new(vec![], view_addresses);
-
-        let mut note_manager = NoteManager::new(OsRng);
-        note_manager.set_gas_prices(GasPrices::zero());
-
-        let result = note_manager
-            .plan_actions_with_transfer_funding(
-                &mut view,
-                source,
-                vec![ActionPlan::ValidatorDefinition(test_validator_definition())],
-            )
-            .await
-            .expect("validator definition planning succeeds");
-
-        let NoteManagerPlanningResult::Ready { transaction_plan } = result else {
-            panic!("expected ready validator definition plan");
-        };
-        assert_action_only_plan(transaction_plan, |action| {
-            matches!(action, ActionPlan::ValidatorDefinition(_))
-        });
-    }
-
-    #[tokio::test]
-    async fn zero_fee_validator_vote_plans_without_funding_transfer() {
-        let source = AddressIndex::new(0);
-        let sender = test_address(31);
-        let view_addresses = BTreeMap::from([(source, sender.clone())]);
-        let mut view = MockNoteManagerView::new(vec![], view_addresses);
-
-        let mut note_manager = NoteManager::new(OsRng);
-        note_manager.set_gas_prices(GasPrices::zero());
-
-        let result = note_manager
-            .plan_actions_with_transfer_funding(
-                &mut view,
-                source,
-                vec![ActionPlan::ValidatorVote(test_validator_vote())],
-            )
-            .await
-            .expect("validator vote planning succeeds");
-
-        let NoteManagerPlanningResult::Ready { transaction_plan } = result else {
-            panic!("expected ready validator vote plan");
-        };
-        assert_action_only_plan(transaction_plan, |action| {
-            matches!(action, ActionPlan::ValidatorVote(_))
-        });
-    }
-
-    #[tokio::test]
     async fn zero_fee_ibc_action_plans_without_funding_transfer() {
         let source = AddressIndex::new(0);
         let sender = test_address(32);
@@ -2324,33 +2194,6 @@ mod tests {
         };
         assert_action_only_plan(transaction_plan, |action| {
             matches!(action, ActionPlan::IbcAction(_))
-        });
-    }
-
-    #[tokio::test]
-    async fn zero_fee_proposal_submit_plans_without_funding_transfer() {
-        let source = AddressIndex::new(0);
-        let sender = test_address(33);
-        let view_addresses = BTreeMap::from([(source, sender.clone())]);
-        let mut view = MockNoteManagerView::new(vec![], view_addresses);
-
-        let mut note_manager = NoteManager::new(OsRng);
-        note_manager.set_gas_prices(GasPrices::zero());
-
-        let result = note_manager
-            .plan_actions_with_transfer_funding(
-                &mut view,
-                source,
-                vec![ActionPlan::ProposalSubmit(test_proposal_submit())],
-            )
-            .await
-            .expect("proposal submit planning succeeds");
-
-        let NoteManagerPlanningResult::Ready { transaction_plan } = result else {
-            panic!("expected ready proposal submit plan");
-        };
-        assert_action_only_plan(transaction_plan, |action| {
-            matches!(action, ActionPlan::ProposalSubmit(_))
         });
     }
 

@@ -105,7 +105,6 @@ REPOSITORY_SURFACE_RELATIVES = (
     "crates/core/app/src/action_handler.rs",
     "crates/core/app/Cargo.toml",
     "crates/core/app/src/action_handler/actions.rs",
-    "crates/core/app/src/action_handler/actions/submit.rs",
     "crates/core/app/src/app/mod.rs",
     "crates/core/app/src/app/host.rs",
     "crates/core/app/src/app/validation_support.rs",
@@ -137,16 +136,6 @@ REPOSITORY_SURFACE_RELATIVES = (
     "crates/core/component/compliance/src/genesis.rs",
     "crates/core/component/compliance/src/registry.rs",
     "crates/core/component/compliance/src/structs.rs",
-    (
-        "crates/core/component/governance/src/action_handler/"
-        "validator_vote.rs"
-    ),
-    (
-        "crates/core/component/stake/src/component/action_handler/"
-        "validator_definition.rs"
-    ),
-    "crates/core/component/stake/src/governance_key.rs",
-    "crates/core/component/stake/src/identity_key.rs",
     "crates/crypto/proof-aggregation/Cargo.toml",
     "crates/crypto/proof-aggregation/src/bundle.rs",
     "crates/crypto/proof-params/src/batch.rs",
@@ -446,9 +435,9 @@ class SpecificationCompletenessTests(unittest.TestCase):
                 "lib",
             ),
             (
-                "crates/core/component/stake/src/governance_key.rs",
-                "governance_key_rejects_identity",
-                "shieldd-sdk-validator",
+                "crates/core/component/compliance/src/structs.rs",
+                "asset_registration_grant_rejects_identity_registrar_key",
+                "shieldd-sdk-compliance",
                 "lib",
             ),
             (
@@ -552,7 +541,7 @@ class SpecificationCompletenessTests(unittest.TestCase):
             CHECK.validate_rust_test_execution_target(
                 ROOT,
                 "PROPERTY-WRONG-PACKAGE",
-                "crates/core/component/stake/src/governance_key.rs",
+                "crates/core/component/compliance/src/structs.rs",
                 wrong_package,
             )
 
@@ -883,10 +872,10 @@ structure ClaimedFacts where
             )
         self.assertEqual(len(validated["trace_instances"]), 374)
         self.assertEqual(len(validated["tests"]), 289)
-        self.assertEqual(len(validated["runtime_policy_tests"]), 70)
-        self.assertEqual(len(validated["property_contract_tests"]), 274)
+        self.assertEqual(len(validated["runtime_policy_tests"]), 66)
+        self.assertEqual(len(validated["property_contract_tests"]), 272)
         self.assertEqual(len(validated["artifact_contract_tests"]), 291)
-        self.assertEqual(len(CHECK.execution_tests(matrix())), 924)
+        self.assertEqual(len(CHECK.execution_tests(matrix())), 918)
         self.assertEqual(len(validated["property_contract"]), 25)
         self.assertEqual(
             len(
@@ -894,7 +883,7 @@ structure ClaimedFacts where
                     "production_sinks"
                 ]
             ),
-            20,
+            18,
         )
         self.assertEqual(
             len(
@@ -1343,7 +1332,8 @@ structure ClaimedFacts where
         model = CHECK.ACTION_AUTHORIZATION_MODEL
         relative_paths = {
             str(model["action_enum_path"]),
-            str(model["dispatch_path"]),
+            str(model["stateless_dispatch_path"]),
+            str(model["execution_dispatch_path"]),
             str(model["profiled_execution_path"]),
             str(model["proof_count_path"]),
             *action_plan_authorization_relatives(),
@@ -1414,7 +1404,8 @@ structure ClaimedFacts where
         model = CHECK.ACTION_AUTHORIZATION_MODEL
         relative_paths = {
             str(model["action_enum_path"]),
-            str(model["dispatch_path"]),
+            str(model["stateless_dispatch_path"]),
+            str(model["execution_dispatch_path"]),
             str(model["profiled_execution_path"]),
             str(model["proof_count_path"]),
             *action_plan_authorization_relatives(),
@@ -1457,42 +1448,42 @@ structure ClaimedFacts where
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(ROOT / relative_path, destination)
 
-            identity_path = (
+            authority_path = (
                 root
-                / "crates/core/component/stake/src/identity_key.rs"
+                / "crates/core/component/compliance/src/structs.rs"
             )
-            original_identity = identity_path.read_text(encoding="utf-8")
+            original_authority = authority_path.read_text(encoding="utf-8")
             guard = (
                 "ensure_nonidentity_spend_auth_key("
-                '&verification_key, "validator identity key")?;'
+                'vk, "compliance registration authority key")?;'
             )
-            self.assertIn(guard, original_identity)
-            identity_path.write_text(
-                original_identity.replace(
+            self.assertIn(guard, original_authority)
+            authority_path.write_text(
+                original_authority.replace(
                     guard,
-                    "let _ = &verification_key;",
+                    "let _ = vk;",
                     1,
                 ),
                 encoding="utf-8",
             )
             with self.assertRaisesRegex(
                 CHECK.SpecificationCompletenessError,
-                "validator identity-key guard",
+                "user-registration signed grant",
             ):
                 CHECK.validate_action_authorization_model(root)
 
-            identity_path.write_text(original_identity, encoding="utf-8")
-            dispatch_path = root / str(model["dispatch_path"])
+            authority_path.write_text(original_authority, encoding="utf-8")
+            dispatch_path = root / str(model["stateless_dispatch_path"])
             source = dispatch_path.read_text(encoding="utf-8")
             dispatch = (
-                "Action::ValidatorDefinition(action) => "
-                "action.check_stateless(()).await,"
+                "Action::ComplianceRegisterUser(action) => "
+                "action.check_stateless(()).await?,"
             )
             self.assertIn(dispatch, source)
             dispatch_path.write_text(
                 source.replace(
                     dispatch,
-                    "Action::ValidatorDefinition(_) => Ok(()),",
+                    "Action::ComplianceRegisterUser(_) => Ok(()),",
                     1,
                 ),
                 encoding="utf-8",
@@ -1596,7 +1587,8 @@ structure ClaimedFacts where
         model = CHECK.ACTION_AUTHORIZATION_MODEL
         relative_paths = {
             str(model["action_enum_path"]),
-            str(model["dispatch_path"]),
+            str(model["stateless_dispatch_path"]),
+            str(model["execution_dispatch_path"]),
             str(model["profiled_execution_path"]),
             str(model["proof_count_path"]),
             *action_plan_authorization_relatives(),
@@ -2656,14 +2648,6 @@ structure ClaimedFacts where
                 "nonproduction proof-function census drifted",
             ),
             (
-                "fee funding direct stateless bypass",
-                "crates/core/app/src/action_handler/transaction.rs",
-                "Action::Transfer(fee_funding.transfer.clone())\n"
-                "                .check_stateless(context)",
-                "fee_funding.transfer.check_stateless(context)",
-                "Transaction stateless join",
-            ),
-            (
                 "deployed benchmark feature",
                 "crates/bin/shieldd/Cargo.toml",
                 'features = ["parallel"]',
@@ -3516,14 +3500,12 @@ structure ClaimedFacts where
                 ("crates/core/app/src", "*.rs"),
                 ("crates/core/asset/src", "*.rs"),
                 ("crates/core/component/compliance/src", "*.rs"),
-                ("crates/core/component/governance/src", "*.rs"),
                 ("crates/core/component/ibc/src", "*.rs"),
                 ("crates/core/component/sct/src", "*.rs"),
                 (
                     "crates/core/component/shielded-pool/src",
                     "*.rs",
                 ),
-                ("crates/core/component/stake/src", "*.rs"),
                 ("crates/core/keys/src", "*.rs"),
                 ("crates/core/num/src", "*.rs"),
                 ("crates/core/transaction/src", "*.rs"),
@@ -3701,7 +3683,7 @@ structure ClaimedFacts where
             )
         }
         self.assertEqual(execution_ids, expected)
-        self.assertEqual(len(execution_ids), 924)
+        self.assertEqual(len(execution_ids), 918)
 
     def test_application_test_selection_is_the_exact_evidence_union(self) -> None:
         value = matrix()

@@ -1,6 +1,5 @@
 use std::{
-    fs::{self, File},
-    io::{Read, Write},
+    fs,
     path::PathBuf,
     str::FromStr,
     time::{SystemTime, UNIX_EPOCH},
@@ -24,17 +23,11 @@ use rand_core::OsRng;
 use regex::Regex;
 
 use compliance::ComplianceCmd;
-use proposal::ProposalCmd;
 use shieldd_sdk_asset::{asset, asset::Metadata, Value};
 use shieldd_sdk_fee::FeeTier;
-use shieldd_sdk_governance::{proposal::ProposalToml, ProposalSubmit, ProposalSubmitBody};
 use shieldd_sdk_keys::{keys::AddressIndex, Address};
 use shieldd_sdk_num::Amount;
 use shieldd_sdk_proto::{
-    core::component::governance::v1::{
-        query_service_client::QueryServiceClient as GovernanceQueryServiceClient,
-        NextProposalIdRequest,
-    },
     cosmos::tx::v1beta1::{
         mode_info::{Single, Sum},
         service_client::ServiceClient as CosmosServiceClient,
@@ -48,7 +41,6 @@ use shieldd_sdk_proto::{
 };
 use shieldd_sdk_shielded_pool::{Ics20Withdrawal, NoteReshapeFamilyId};
 use shieldd_sdk_transaction::Transaction;
-use shieldd_sdk_validator::{GovernanceKey, IdentityKey};
 use shieldd_sdk_view::{NoteManager, TransferPlanningResult, ViewClient};
 use tonic::transport::{Channel, ClientTlsConfig};
 use url::Url;
@@ -57,7 +49,6 @@ use crate::App;
 use clap::Parser;
 
 mod compliance;
-mod proposal;
 
 #[derive(Debug, Parser)]
 pub struct TxCmdWithOptions {
@@ -155,9 +146,6 @@ pub enum TxCmd {
     /// Reshape notes while selecting the canonical family from the real arity.
     #[clap(name = "reshape", display_order = 101, subcommand)]
     NoteReshape(NoteReshapeCmd),
-    /// Submit or vote on a governance proposal.
-    #[clap(display_order = 500, subcommand)]
-    Proposal(ProposalCmd),
     /// Compliance-related transactions (asset and user registration).
     #[clap(display_order = 550, subcommand)]
     Compliance(ComplianceCmd),
@@ -230,51 +218,12 @@ pub enum TxCmd {
     },
 }
 
-/// Vote on a governance proposal.
-#[derive(Debug, Clone, Copy, clap::Subcommand)]
-pub enum VoteCmd {
-    /// Vote in favor of a proposal.
-    #[clap(display_order = 100)]
-    Yes {
-        /// The proposal ID to vote on.
-        #[clap(long = "on")]
-        proposal_id: u64,
-    },
-    /// Vote against a proposal.
-    #[clap(display_order = 200)]
-    No {
-        /// The proposal ID to vote on.
-        #[clap(long = "on")]
-        proposal_id: u64,
-    },
-    /// Abstain from voting on a proposal.
-    #[clap(display_order = 300)]
-    Abstain {
-        /// The proposal ID to vote on.
-        #[clap(long = "on")]
-        proposal_id: u64,
-    },
-}
-
-impl From<VoteCmd> for (u64, shieldd_sdk_governance::Vote) {
-    fn from(cmd: VoteCmd) -> (u64, shieldd_sdk_governance::Vote) {
-        match cmd {
-            VoteCmd::Yes { proposal_id } => (proposal_id, shieldd_sdk_governance::Vote::Yes),
-            VoteCmd::No { proposal_id } => (proposal_id, shieldd_sdk_governance::Vote::No),
-            VoteCmd::Abstain { proposal_id } => {
-                (proposal_id, shieldd_sdk_governance::Vote::Abstain)
-            }
-        }
-    }
-}
-
 impl TxCmd {
     /// Determine if this command requires a network sync before it executes.
     pub fn offline(&self) -> bool {
         match self {
             TxCmd::Transfer { .. } => false,
             TxCmd::NoteReshape(_) => false,
-            TxCmd::Proposal(proposal_cmd) => proposal_cmd.offline(),
             TxCmd::Compliance(compliance_cmd) => compliance_cmd.offline(),
             TxCmd::ShieldedIcs20Withdrawal { .. } => false,
             TxCmd::Broadcast { .. } => false,
@@ -470,92 +419,6 @@ impl TxCmd {
                 // This branch only handles register-asset and register-user.
                 let plan = compliance_cmd.plan(app, gas_prices).await?;
                 app.build_and_submit_transaction(plan).await?;
-            }
-            TxCmd::Proposal(ProposalCmd::Submit {
-                file,
-                source,
-                fee_tier,
-            }) => {
-                let mut proposal_file = File::open(file).context("can't open proposal file")?;
-                let mut proposal_string = String::new();
-                proposal_file
-                    .read_to_string(&mut proposal_string)
-                    .context("can't read proposal file")?;
-                let proposal_toml: ProposalToml =
-                    toml::from_str(&proposal_string).context("can't parse proposal file")?;
-                let proposal: shieldd_sdk_governance::Proposal = proposal_toml
-                    .try_into()
-                    .context("can't parse proposal file")?;
-
-                let fvk = app.config.full_viewing_key.clone();
-                let proposer = IdentityKey::try_from(fvk.spend_verification_key().clone())
-                    .expect("full viewing keys have nonidentity spend verification keys");
-                let governance_key: GovernanceKey = app.config.governance_key();
-                let body = ProposalSubmitBody {
-                    proposal,
-                    proposer,
-                    governance_key,
-                };
-                let auth_sig = app.sign_proposal_submit(body.clone()).await?;
-                let proposal_submit = ProposalSubmit { body, auth_sig };
-
-                let mut note_manager = NoteManager::new(OsRng);
-                note_manager
-                    .set_gas_prices(gas_prices)
-                    .set_fee_tier((*fee_tier).into());
-                match note_manager
-                    .plan_actions_with_transfer_funding(
-                        app.view
-                            .as_mut()
-                            .context("view service must be initialized")?,
-                        AddressIndex::new(*source),
-                        vec![proposal_submit.into()],
-                    )
-                    .await
-                    .context("can't build proposal submit transaction")?
-                {
-                    TransferPlanningResult::Ready { transaction_plan } => {
-                        app.build_and_submit_transaction(transaction_plan).await?;
-                    }
-                    TransferPlanningResult::NeedsMaintenance {
-                        maintenance_plan, ..
-                    } => {
-                        anyhow::bail!(
-                            "proposal submission requires note maintenance first; submit the suggested note reshape transaction and retry after finality: {:?}",
-                            maintenance_plan
-                        );
-                    }
-                    TransferPlanningResult::InsufficientBalance => {
-                        anyhow::bail!("insufficient balance for proposal submission fees");
-                    }
-                    TransferPlanningResult::UnsupportedIntent { reason } => {
-                        anyhow::bail!("{reason}");
-                    }
-                }
-            }
-            TxCmd::Proposal(ProposalCmd::Template { file, kind }) => {
-                let app_params = app.view().app_params().await?;
-
-                // Find out what the latest proposal ID is so we can include the next ID in the template:
-                let mut client = GovernanceQueryServiceClient::new(app.pd_channel().await?);
-                let next_proposal_id: u64 = client
-                    .next_proposal_id(NextProposalIdRequest {})
-                    .await?
-                    .into_inner()
-                    .next_proposal_id;
-
-                let toml_template: ProposalToml = kind
-                    .template_proposal(&app_params, next_proposal_id)?
-                    .into();
-
-                if let Some(file) = file {
-                    File::create(file)
-                        .with_context(|| format!("cannot create file {file:?}"))?
-                        .write_all(toml::to_string_pretty(&toml_template)?.as_bytes())
-                        .context("could not write file")?;
-                } else {
-                    println!("{}", toml::to_string_pretty(&toml_template)?);
-                }
             }
             TxCmd::ShieldedIcs20Withdrawal {
                 to,

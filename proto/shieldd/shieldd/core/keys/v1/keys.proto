@@ -60,20 +60,6 @@ message AddressIndex {
   bytes randomizer = 3;
 }
 
-// A validator's identity key (decaf377-rdsa spendauth verification key).
-message IdentityKey {
-  bytes ik = 1;
-}
-
-// A validator's governance key (decaf377-rdsa spendauth verification key).
-message GovernanceKey {
-  bytes gk = 1;
-}
-
-message ConsensusKey {
-  bytes inner = 1;
-}
-
 message PositionMetadataKey {
   bytes inner = 1;
 }

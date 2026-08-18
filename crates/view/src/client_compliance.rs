@@ -558,10 +558,7 @@ pub async fn enrich_plan_with_compliance<P: ComplianceProofProvider>(
                 );
             }
             ActionPlan::NoteReshape(_)
-            | ActionPlan::ValidatorDefinition(_)
             | ActionPlan::IbcAction(_)
-            | ActionPlan::ProposalSubmit(_)
-            | ActionPlan::ValidatorVote(_)
             | ActionPlan::ShieldedHostWithdrawal(_)
             | ActionPlan::ShieldedIcs20Withdrawal(_)
             | ActionPlan::ComplianceRegisterAsset(_)
@@ -685,10 +682,7 @@ async fn enrich_transfer_family_with_compliance<P: ComplianceProofProvider>(
                 }
             }
             ActionPlan::NoteReshape(_)
-            | ActionPlan::ValidatorDefinition(_)
             | ActionPlan::IbcAction(_)
-            | ActionPlan::ProposalSubmit(_)
-            | ActionPlan::ValidatorVote(_)
             | ActionPlan::ShieldedHostWithdrawal(_)
             | ActionPlan::ShieldedIcs20Withdrawal(_)
             | ActionPlan::ComplianceRegisterAsset(_)
@@ -886,10 +880,7 @@ async fn enrich_transfer_family_with_compliance<P: ComplianceProofProvider>(
         match action {
             ActionPlan::Transfer(transfer) => transfer.validate()?,
             ActionPlan::NoteReshape(_)
-            | ActionPlan::ValidatorDefinition(_)
             | ActionPlan::IbcAction(_)
-            | ActionPlan::ProposalSubmit(_)
-            | ActionPlan::ValidatorVote(_)
             | ActionPlan::ShieldedHostWithdrawal(_)
             | ActionPlan::ShieldedIcs20Withdrawal(_)
             | ActionPlan::ComplianceRegisterAsset(_)
@@ -1081,10 +1072,7 @@ async fn enrich_shielded_withdrawals_with_compliance<P: ComplianceProofProvider>
             }
             ActionPlan::Transfer(_)
             | ActionPlan::NoteReshape(_)
-            | ActionPlan::ValidatorDefinition(_)
             | ActionPlan::IbcAction(_)
-            | ActionPlan::ProposalSubmit(_)
-            | ActionPlan::ValidatorVote(_)
             | ActionPlan::ComplianceRegisterAsset(_)
             | ActionPlan::ComplianceRegisterUser(_) => {}
         }

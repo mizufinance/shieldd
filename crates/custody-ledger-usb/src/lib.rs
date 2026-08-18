@@ -102,27 +102,6 @@ impl pb::custody_service_server::CustodyService for Service {
         Ok(Response::new(authorization_response))
     }
 
-    async fn authorize_validator_definition(
-        &self,
-        _request: Request<pb::AuthorizeValidatorDefinitionRequest>,
-    ) -> Result<Response<pb::AuthorizeValidatorDefinitionResponse>, Status> {
-        unimplemented!("ledger does not support validator operations")
-    }
-
-    async fn authorize_validator_vote(
-        &self,
-        _request: Request<pb::AuthorizeValidatorVoteRequest>,
-    ) -> Result<Response<pb::AuthorizeValidatorVoteResponse>, Status> {
-        unimplemented!("ledger does not support validator operations")
-    }
-
-    async fn authorize_proposal_submit(
-        &self,
-        _request: Request<pb::AuthorizeProposalSubmitRequest>,
-    ) -> Result<Response<pb::AuthorizeProposalSubmitResponse>, Status> {
-        unimplemented!("ledger does not support governance proposal submission")
-    }
-
     async fn export_full_viewing_key(
         &self,
         _request: Request<pb::ExportFullViewingKeyRequest>,

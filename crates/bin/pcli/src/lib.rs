@@ -34,7 +34,6 @@ pub struct App {
     /// correctly, this can be unwrapped safely.
     pub view: Option<ViewServiceClient<BoxGrpcService>>,
     pub custody: CustodyServiceClient<BoxGrpcService>,
-    pub governance_custody: CustodyServiceClient<BoxGrpcService>,
     pub config: PcliConfig,
     /// If present, save the transaction here instead of broadcasting it.
     pub save_transaction_here_instead: Option<PathBuf>,

@@ -288,11 +288,6 @@ PROOF_ACCEPTANCE_REQUIRED_RECEIPTED_TESTS = (
         "valid_cache_entries_reject_raw_transaction_artifact_mismatch",
         "raw-byte association evidence",
     ),
-    (
-        "crates/core/app/src/action_handler/transaction.rs",
-        "structured_join_drain_waits_for_transaction_siblings_after_error",
-        "structured task-drain evidence",
-    ),
     *(
         (
             PROOF_ACCEPTANCE_TEST_PATH,
@@ -300,7 +295,7 @@ PROOF_ACCEPTANCE_REQUIRED_RECEIPTED_TESTS = (
             "four-circuit proof acceptance evidence",
         )
         for symbol in (
-            "fv_runtime_transaction_stateless_rejects_decodable_invalid_groth16",
+            "fv_runtime_artifact_build_rejects_decodable_invalid_groth16",
             "fv_runtime_process_proposal_rejects_decodable_invalid_groth16",
             "fv_runtime_fee_funding_process_proposal_rejects_invalid_groth16",
             "fv_runtime_fee_funding_valid_proof_executes_and_persists",
@@ -448,14 +443,8 @@ RUST_TEST_PACKAGES = (
         "lib",
     ),
     ("crates/core/component/compliance/", "shieldd-sdk-compliance", "lib"),
-    (
-        "crates/core/component/governance/",
-        "shieldd-sdk-governance",
-        "lib",
-    ),
     ("crates/core/component/ibc/", "shieldd-sdk-ibc", "lib"),
     ("crates/core/component/sct/", "shieldd-sdk-sct", "lib"),
-    ("crates/core/component/stake/", "shieldd-sdk-validator", "lib"),
     ("crates/core/keys/", "shieldd-sdk-keys", "lib"),
     ("crates/core/num/", "shieldd-sdk-num", "lib"),
     (
@@ -563,7 +552,7 @@ REQUIRED_TEST_KINDS: dict[str, frozenset[str]] = {
     ),
 }
 PREDICATE_SEMANTICS_SHA256 = (
-    "ec5666f61b3216a1673c8a51a0a9aa8ee4c8c5336df877c95aae5010f9cb173b"
+    "10b947d4865a4982278ec9425c3a403c7fa0557fa34978e7665b3a48a36bda31"
 )
 PROPERTY_CONTRACT_SHA256 = (
     "c64105b482af65fbd8fe88054dc14ad453cf7820ecb09b8f61645f7d37cd501e"
@@ -572,17 +561,17 @@ CONSEQUENCE_ROSTER_SHA256 = (
     "9bd523d91b95d2a15e5be64712a2af06e2bb84ea4c61cd19b4e9da590e99996c"
 )
 PROOF_ACCEPTANCE_SURFACE_SHA256 = (
-    "47fa678515e0d244a318086e0a4a031cc67f1d3d3bc559ce290ee0b6c0d198be"
+    "bbbde16d8a15dfd86e8e4826a9dcaaa3c0b45f5e7090ce23f11fc4673f97ac7f"
 )
 # Update only after independently reviewing every runtime-policy statement,
 # parameter, sink, test, and exact execution selector.
 RUNTIME_POLICY_CONTRACT_SHA256 = (
-    "c427df1eb36790374898f854cae5027fea4759b1ae1e4ac2f3f75acfc2cb20e8"
+    "26e8129dd09c09475165be56fcf7af8b1ceddce92fcfefd3fa032f2e2916dd75"
 )
 # Update these only after independently reviewing every owner, source file,
 # runnable selector, kind, and execution command in the corresponding ledger.
 PROPERTY_TEST_CONTRACT_SHA256 = (
-    "41b1c01923df0ed894d36653ed0456a632e6b323adb2d6eb55df185ab35d9a7e"
+    "7bebb28101f7352e5e422e4b44f1e464d1ac86cc9a5f893e287243a7fdc41605"
 )
 ARTIFACT_TEST_CONTRACT_SHA256 = (
     "ea16a0caa1490200fbf691f3d679bad1d160150b6b50da765be9df3623efc039"
@@ -605,11 +594,9 @@ REVIEWED_TEST_DISCOVERY_ROOTS = (
     ("crates/core/app/src", "*.rs"),
     ("crates/core/asset/src", "*.rs"),
     ("crates/core/component/compliance/src", "*.rs"),
-    ("crates/core/component/governance/src", "*.rs"),
     ("crates/core/component/ibc/src", "*.rs"),
     ("crates/core/component/sct/src", "*.rs"),
     ("crates/core/component/shielded-pool/src", "*.rs"),
-    ("crates/core/component/stake/src", "*.rs"),
     ("crates/core/keys/src", "*.rs"),
     ("crates/core/num/src", "*.rs"),
     ("crates/core/transaction/src", "*.rs"),
@@ -710,8 +697,6 @@ REVIEWED_TEST_SOURCE_CENSUS = (
     "crates/core/component/shielded-pool/src/transfer/generated.rs",
     "crates/core/component/shielded-pool/src/transfer/plan.rs",
     "crates/core/component/shielded-pool/src/transfer/proof.rs",
-    "crates/core/component/stake/src/governance_key.rs",
-    "crates/core/component/stake/src/identity_key.rs",
     "crates/core/transaction/src/plan.rs",
     "crates/core/transaction/src/gas.rs",
     "crates/core/transaction/src/transaction.rs",
@@ -827,7 +812,7 @@ REVIEWED_TEST_SOURCE_CENSUS = (
 # This pins every path/symbol/reason triple rendered in reviewed_test_census.
 # Update only after deciding whether each changed test is normative evidence.
 REVIEWED_TEST_EXCLUSIONS_SHA256 = (
-    "6cc1c107f3c095b00f600e2066e87469d8e4c28a1701cc874580a05db12b8443"
+    "776a7172e215b638b87ef4f448acd2ffbb58c0eacdb9cd40b11e9e061c28c59e"
 )
 PROPERTY_TEST_SOURCE_CENSUS = (
     "crates/core/component/compliance/src/structs.rs",
@@ -1163,11 +1148,11 @@ ANCHOR_VALIDATION_HELPER_SHA256 = {
 RUNTIME_POLICY_BASELINE = {
     "RUNTIME-POLICY-ACTION-AUTHORIZATION": {
         "parameters": {
-            "action_variants": 9,
-            "circuit_and_envelope_authorized": 3,
+            "action_variants": 8,
+            "circuit_and_envelope_authorized": 4,
             "construction_mismatch_regressions": 5,
-            "direct_signature_and_state_authorized": 5,
-            "identity_attack_regressions": 7,
+            "direct_signature_and_state_authorized": 2,
+            "identity_attack_regressions": 4,
             "permissionless_protocol_authorized": 1,
         },
         "sinks": ["check_tx", "verified_execution"],
@@ -1175,10 +1160,7 @@ RUNTIME_POLICY_BASELINE = {
             "RUNTIME-ACTION-AUTH-ASSET-POLICY-IDENTITY-REJECT",
             "RUNTIME-ACTION-AUTH-ASSET-REGISTRAR-IDENTITY-REJECT",
             "RUNTIME-ACTION-AUTH-GENESIS-IDENTITY-REJECT",
-            "RUNTIME-ACTION-AUTH-GOVERNANCE-IDENTITY-REJECT",
-            "RUNTIME-ACTION-AUTH-NETWORK-VALIDATOR-IDENTITY-REJECT",
             "RUNTIME-ACTION-AUTH-USER-AUTHORITY-IDENTITY-REJECT",
-            "RUNTIME-ACTION-AUTH-VALIDATOR-IDENTITY-REJECT",
             "RUNTIME-ACTION-PLAN-ACTION-COUNT-MISMATCH",
             "RUNTIME-ACTION-PLAN-EFFECT-HASH-MISMATCH",
             "RUNTIME-ACTION-PLAN-FEE-FUNDING-PRESENCE-MISMATCH",
@@ -1309,10 +1291,7 @@ RUNTIME_POLICY_BASELINE = {
             "process_proposal",
             "proof_workers",
         ],
-        "test_ids": [
-            "RUNTIME-STRUCTURED-TASK-DRAIN",
-            "RUNTIME-STRUCTURED-TRANSACTION-TASK-DRAIN",
-        ],
+        "test_ids": ["RUNTIME-STRUCTURED-TASK-DRAIN"],
     },
     "RUNTIME-POLICY-TIMESTAMP-FRESHNESS": {
         "parameters": {
@@ -2926,7 +2905,10 @@ PROOF_BEARING_BINDING_AUTHORIZATION_MODEL = {
 
 ACTION_AUTHORIZATION_MODEL = {
     "action_enum_path": "crates/core/transaction/src/action.rs",
-    "dispatch_path": "crates/core/app/src/action_handler/actions.rs",
+    "stateless_dispatch_path": "crates/core/app/src/app/mod.rs",
+    "execution_dispatch_path": (
+        "crates/core/app/src/action_handler/actions.rs"
+    ),
     "profiled_execution_path": (
         "crates/core/app/src/action_handler/transaction.rs"
     ),
@@ -2941,12 +2923,9 @@ ACTION_AUTHORIZATION_MODEL = {
         "ComplianceRegisterUser": "ComplianceRegisterUser",
         "IbcAction": "IbcRelay",
         "NoteReshape": "NoteReshape",
-        "ProposalSubmit": "ProposalSubmit",
         "ShieldedHostWithdrawal": "ShieldedHostWithdrawal",
         "ShieldedIcs20Withdrawal": "ShieldedIcs20Withdrawal",
         "Transfer": "Transfer",
-        "ValidatorDefinition": "ValidatorDefinition",
-        "ValidatorVote": "ValidatorVote",
     },
     "non_plan_actions": ("AggregateBundle",),
     "spend_bearing_action_plans": (
@@ -3092,7 +3071,7 @@ ACTION_AUTHORIZATION_MODEL = {
             ),
             "function": "required_signatures",
             "ordered": (
-                "SigningRequest::TransactionPlan(plan) => "
+                "let SigningRequest::TransactionPlan(plan) = request;",
                 "plan.num_spends()",
             ),
         },
@@ -3179,9 +3158,6 @@ ACTION_AUTHORIZATION_MODEL = {
         "direct_signature_and_state_authorized": (
             "ComplianceRegisterAsset",
             "ComplianceRegisterUser",
-            "ProposalSubmit",
-            "ValidatorDefinition",
-            "ValidatorVote",
         ),
         "internal_consensus_only": ("AggregateBundle",),
         "permissionless_protocol_authorized": ("IbcRelay",),
@@ -3421,167 +3397,6 @@ ACTION_AUTHORIZATION_MODEL = {
                 (
                     "crates/core/component/compliance/src/component/state.rs",
                     "test_user_registration_rejects_missing_wrong_and_expired_grants",
-                ),
-            ),
-        },
-        {
-            "action": "ProposalSubmit",
-            "blocks": (
-                {
-                    "label": "proposal signature authorization",
-                    "path": (
-                        "crates/core/app/src/action_handler/actions/submit.rs"
-                    ),
-                    "declaration": (
-                        r"^[ \t]*impl[ \t]+AppActionHandler[ \t]+for[ \t]+"
-                        r"ProposalSubmit\b"
-                    ),
-                    "function": "check_stateless",
-                    "ordered": (
-                        "governance_key",
-                        ".verify(&self.body.to_proto().encode_to_vec(), "
-                        "&self.auth_sig)",
-                    ),
-                },
-                {
-                    "label": "proposal governance-key state binding",
-                    "path": (
-                        "crates/core/app/src/action_handler/actions/submit.rs"
-                    ),
-                    "declaration": (
-                        r"^[ \t]*impl[ \t]+AppActionHandler[ \t]+for[ \t]+"
-                        r"ProposalSubmit\b"
-                    ),
-                    "function": "check_and_execute",
-                    "ordered": (
-                        "state.check_validator_is_active(proposer).await?;",
-                        "state",
-                        ".check_governance_key_matches_validator("
-                        "proposer, governance_key)",
-                    ),
-                },
-                {
-                    "label": "proposal governance-key identity guard",
-                    "path": (
-                        "crates/core/component/stake/src/governance_key.rs"
-                    ),
-                    "declaration": r"^[ \t]*impl[ \t]+GovernanceKey\b",
-                    "function": "verify",
-                    "ordered": (
-                        "ensure_nonidentity_spend_auth_key("
-                        '&self.0, "validator governance key")?;',
-                        "Ok(self.0.verify(message, signature)?)",
-                    ),
-                },
-            ),
-            "tests": (
-                (
-                    "crates/core/component/stake/src/governance_key.rs",
-                    "governance_key_rejects_identity",
-                ),
-            ),
-        },
-        {
-            "action": "ValidatorDefinition",
-            "blocks": (
-                {
-                    "label": "validator-definition signature authorization",
-                    "path": (
-                        "crates/core/component/stake/src/component/"
-                        "action_handler/validator_definition.rs"
-                    ),
-                    "declaration": (
-                        r"^[ \t]*impl[ \t]+ActionHandler[ \t]+for[ \t]+"
-                        r"validator::Definition\b"
-                    ),
-                    "function": "check_stateless",
-                    "ordered": (
-                        "let definition_bytes = "
-                        "self.validator.encode_to_vec();",
-                        "self.validator",
-                        ".identity_key",
-                        ".verify(&definition_bytes, &self.auth_sig)",
-                    ),
-                },
-                {
-                    "label": "validator identity-key guard",
-                    "path": (
-                        "crates/core/component/stake/src/identity_key.rs"
-                    ),
-                    "declaration": r"^[ \t]*impl[ \t]+IdentityKey\b",
-                    "function": "verify",
-                    "ordered": (
-                        "let verification_key = self.verification_key();",
-                        "ensure_nonidentity_spend_auth_key("
-                        '&verification_key, "validator identity key")?;',
-                        "Ok(verification_key.verify(message, signature)?)",
-                    ),
-                },
-            ),
-            "tests": (
-                (
-                    "crates/core/component/stake/src/identity_key.rs",
-                    "validator_identity_key_rejects_identity",
-                ),
-            ),
-        },
-        {
-            "action": "ValidatorVote",
-            "blocks": (
-                {
-                    "label": "validator-vote signature authorization",
-                    "path": (
-                        "crates/core/component/governance/src/"
-                        "action_handler/validator_vote.rs"
-                    ),
-                    "declaration": (
-                        r"^[ \t]*impl[ \t]+ActionHandler[ \t]+for[ \t]+"
-                        r"ValidatorVote\b"
-                    ),
-                    "function": "check_stateless",
-                    "ordered": (
-                        "let body_bytes = body.encode_to_vec();",
-                        "body.governance_key",
-                        ".verify(&body_bytes, auth_sig)",
-                    ),
-                },
-                {
-                    "label": "validator-vote governance-key state binding",
-                    "path": (
-                        "crates/core/component/governance/src/"
-                        "action_handler/validator_vote.rs"
-                    ),
-                    "declaration": (
-                        r"^[ \t]*impl[ \t]+ActionHandler[ \t]+for[ \t]+"
-                        r"ValidatorVote\b"
-                    ),
-                    "function": "check_and_execute",
-                    "ordered": (
-                        "state",
-                        ".check_validator_active_at_proposal_start("
-                        "*proposal, identity_key)",
-                        ".check_governance_key_matches_validator("
-                        "identity_key, governance_key)",
-                    ),
-                },
-                {
-                    "label": "validator-vote governance-key identity guard",
-                    "path": (
-                        "crates/core/component/stake/src/governance_key.rs"
-                    ),
-                    "declaration": r"^[ \t]*impl[ \t]+GovernanceKey\b",
-                    "function": "verify",
-                    "ordered": (
-                        "ensure_nonidentity_spend_auth_key("
-                        '&self.0, "validator governance key")?;',
-                        "Ok(self.0.verify(message, signature)?)",
-                    ),
-                },
-            ),
-            "tests": (
-                (
-                    "crates/core/component/stake/src/governance_key.rs",
-                    "governance_key_rejects_identity",
                 ),
             ),
         },
@@ -9612,7 +9427,7 @@ def _validate_ibc_action_authorization(
         "Action::IbcRelay(action) => { "
         "action .clone() "
         ".with_handler::<Ics20Transfer, ShielddHost>() "
-        ".check_stateless(()) .await }"
+        ".check_stateless(()) .await? }"
     )
     top_level_execute_fragment = _normalize_rust_fragment(
         "Action::IbcRelay(action) => { "
@@ -9893,24 +9708,28 @@ def validate_action_authorization_model(root: Path) -> None:
             f"drifted: expected={direct_class}, actual={direct_roster}"
         )
 
-    dispatch_source = _read_acceptance_source(
+    stateless_dispatch_source = _read_acceptance_source(
         root,
-        str(model["dispatch_path"]),
-        "transaction Action authorization dispatch",
-    )
-    dispatch_impl = _balanced_rust_declaration_block(
-        dispatch_source,
-        r"^[ \t]*impl[ \t]+AppActionHandler[ \t]+for[ \t]+Action\b",
-        "transaction Action authorization dispatch",
-    )
-    dispatch_functions = _rust_function_declarations(dispatch_impl)
-    stateless_dispatch = _one_rust_function(
-        dispatch_functions,
-        "check_stateless",
+        str(model["stateless_dispatch_path"]),
         "transaction Action stateless authorization dispatch",
     )
+    stateless_dispatch = _one_rust_function(
+        _rust_function_declarations(stateless_dispatch_source),
+        "collect_consensus_proof_items_with_artifacts",
+        "transaction Action stateless authorization dispatch",
+    )
+    execution_dispatch_source = _read_acceptance_source(
+        root,
+        str(model["execution_dispatch_path"]),
+        "transaction Action execution authorization dispatch",
+    )
+    execution_dispatch_impl = _balanced_rust_declaration_block(
+        execution_dispatch_source,
+        r"^[ \t]*impl[ \t]+AppActionHandler[ \t]+for[ \t]+Action\b",
+        "transaction Action execution authorization dispatch",
+    )
     execute_dispatch = _one_rust_function(
-        dispatch_functions,
+        _rust_function_declarations(execution_dispatch_impl),
         "check_and_execute",
         "transaction Action execution authorization dispatch",
     )
@@ -9927,10 +9746,17 @@ def validate_action_authorization_model(root: Path) -> None:
         )
     )
     for action in direct_class:
-        stateless_fragment = _normalize_rust_fragment(
-            f"Action::{action}(action) => "
-            "action.check_stateless(()).await"
-        )
+        if action == "IbcRelay":
+            stateless_fragment = _normalize_rust_fragment(
+                "Action::IbcRelay(action) => {"
+                "action.clone().with_handler::<Ics20Transfer, ShielddHost>()"
+                ".check_stateless(()).await?"
+            )
+        else:
+            stateless_fragment = _normalize_rust_fragment(
+                f"Action::{action}(action) => "
+                "action.check_stateless(()).await?"
+            )
         execute_fragment = _normalize_rust_fragment(
             f"Action::{action}(action) => "
             "action.check_and_execute(state).await"
@@ -10161,7 +9987,6 @@ def _validate_internal_action_acceptance_surface(
         {
             "check_and_execute": 1,
             "check_historical": 1,
-            "check_stateless": 1,
         }
     )
     if Counter(
@@ -10174,15 +9999,11 @@ def _validate_internal_action_acceptance_surface(
         "ComplianceRegisterUser",
         "IbcRelay",
         "NoteReshape",
-        "ProposalSubmit",
         "ShieldedHostWithdrawal",
         "ShieldedIcs20Withdrawal",
         "Transfer",
-        "ValidatorDefinition",
-        "ValidatorVote",
     }
     for method_name in (
-        "check_stateless",
         "check_historical",
         "check_and_execute",
     ):
@@ -10207,41 +10028,27 @@ def _validate_internal_action_acceptance_surface(
             method["body"],
             f"Action {method_name} dispatch",
         )
-    action_stateless = _one_rust_function(
-        action_functions,
-        "check_stateless",
-        "Action stateless dispatch",
-    )
     action_execute = _one_rust_function(
         action_functions,
         "check_and_execute",
         "Action mutation dispatch",
     )
-    for method, operation in (
-        (action_stateless, "check_stateless"),
-        (action_execute, "check_and_execute"),
+    normalized = _normalize_rust_fragment(action_execute["body"])
+    for variant in (
+        "Transfer",
+        "NoteReshape",
+        "ShieldedIcs20Withdrawal",
+        "ShieldedHostWithdrawal",
     ):
-        normalized = _normalize_rust_fragment(method["body"])
-        for variant in (
-            "Transfer",
-            "NoteReshape",
-            "ShieldedIcs20Withdrawal",
-            "ShieldedHostWithdrawal",
-        ):
-            fragment = (
-                f"Action::{variant}(action) => "
-                f"action.{operation}(context).await"
-                if operation == "check_stateless"
-                else (
-                    f"Action::{variant}(action) => "
-                    f"action.{operation}(state).await"
-                )
+        fragment = (
+            f"Action::{variant}(action) => "
+            "action.check_and_execute(state).await"
+        )
+        if _normalize_rust_fragment(fragment) not in normalized:
+            reject(
+                f"Action check_and_execute does not propagate {variant} "
+                "errors exactly"
             )
-            if _normalize_rust_fragment(fragment) not in normalized:
-                reject(
-                    f"Action {operation} does not propagate {variant} "
-                    "errors exactly"
-                )
 
     transaction_relative = (
         "crates/core/app/src/action_handler/transaction.rs"
@@ -10266,39 +10073,6 @@ def _validate_internal_action_acceptance_surface(
         function["name"] for function in transaction_impl_functions
     ) != expected_handler_methods:
         reject("Transaction AppActionHandler method census drifted")
-    transaction_stateless = _one_rust_function(
-        transaction_impl_functions,
-        "check_stateless",
-        "Transaction stateless join",
-    )
-    _require_ordered_symbols(
-        transaction_stateless,
-        (
-            "validate_transaction_envelope(self)?",
-            "let context = self.context()",
-            "for (i, action) in self.actions().cloned().enumerate()",
-            "action.check_stateless(context2).await",
-            "drain_joinset_results(",
-            ".await?",
-            "if let Some(fee_funding)",
-            "Action::Transfer(fee_funding.transfer.clone())",
-            ".check_stateless(context)",
-            ".await?",
-            "Ok(())",
-        ),
-        "Transaction stateless join",
-    )
-    for forbidden in (
-        "fee_funding.transfer.check_stateless",
-        "let _ = drain_joinset_results",
-        ".unwrap_or(",
-        ".unwrap_or_else(",
-    ):
-        if forbidden in transaction_stateless["body"]:
-            reject(
-                "Transaction stateless join can discard an error: "
-                f"{forbidden}"
-            )
     transaction_execute = _one_rust_function(
         transaction_impl_functions,
         "check_and_execute",
@@ -10327,12 +10101,9 @@ def _validate_internal_action_acceptance_surface(
         "ComplianceRegisterUser",
         "IbcRelay",
         "NoteReshape",
-        "ProposalSubmit",
         "ShieldedHostWithdrawal",
         "ShieldedIcs20Withdrawal",
         "Transfer",
-        "ValidatorDefinition",
-        "ValidatorVote",
     }
     execute_variants = set(
         re.findall(
@@ -10876,12 +10647,9 @@ def validate_proof_acceptance_repository_surface(root: Path) -> None:
         "ComplianceRegisterUser",
         "IbcRelay",
         "NoteReshape",
-        "ProposalSubmit",
         "ShieldedHostWithdrawal",
         "ShieldedIcs20Withdrawal",
         "Transfer",
-        "ValidatorDefinition",
-        "ValidatorVote",
     }
     proof_key_for_action = _one_rust_function(
         cache_functions,
@@ -11590,17 +11358,6 @@ def validate_proof_acceptance_repository_surface(root: Path) -> None:
     )
     if "tx.spent_nullifier_count()" not in nullifier_count["body"]:
         reject("application mirrors rather than delegates nullifier counting")
-    _require_drain_before_error(
-        _one_rust_function(
-            transaction_functions,
-            "drain_joinset_results",
-            "transaction structured task drain",
-        ),
-        join_symbol="tasks.join_next().await",
-        error_symbol="result",
-        label="transaction structured task drain",
-    )
-
     canonical_tx_path = canonical_repo_path(
         root,
         "crates/core/transaction/src/transaction.rs",

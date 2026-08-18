@@ -7,10 +7,7 @@ use tonic::{async_trait, Request, Response, Status};
 use shieldd_sdk_keys::{keys::AddressIndex, Address, FullViewingKey};
 use shieldd_sdk_proto::{custody::v1 as pb, DomainType};
 
-use crate::{
-    AuthorizeProposalSubmitRequest, AuthorizeRequest, AuthorizeValidatorDefinitionRequest,
-    AuthorizeValidatorVoteRequest,
-};
+use crate::AuthorizeRequest;
 
 pub use self::config::Config;
 use self::sign::no_signature_response;
@@ -20,18 +17,11 @@ mod config;
 mod dkg;
 mod sign;
 
-/// Authorization data returned in response to some signing request, which may be a request to
-/// authorize a transaction, a validator definition, or a validator vote.
+/// Authorization data returned for a transaction signing request.
 #[derive(Clone, Debug)]
 pub enum SigningResponse {
     /// Authorization data for a transaction.
     Transaction(AuthorizationData),
-    /// Authorization signature for a validator definition.
-    ValidatorDefinition(decaf377_rdsa::Signature<decaf377_rdsa::SpendAuth>),
-    /// Authorization signature for a validator vote.
-    ValidatorVote(decaf377_rdsa::Signature<decaf377_rdsa::SpendAuth>),
-    /// Authorization signature for a proposal submission.
-    ProposalSubmit(decaf377_rdsa::Signature<decaf377_rdsa::SpendAuth>),
 }
 
 impl From<AuthorizationData> for SigningResponse {
@@ -53,29 +43,14 @@ where
 ///
 /// All this function does is produce side effects on the terminal, potentially returning
 /// early if the user on the other end did not want to sign the transaction.
-pub async fn follow(
-    config: Option<&Config>,
-    governance_config: Option<&Config>,
-    terminal: &impl Terminal,
-) -> Result<()> {
+pub async fn follow(config: Option<&Config>, terminal: &impl Terminal) -> Result<()> {
     // Round 1
     terminal.explain("Paste the coordinator's first message:")?;
     let round1_message = terminal.next_response::<sign::CoordinatorRound1>().await?;
     // Pick the right config based on the message
-    let config = match round1_message.signing_request() {
-        SigningRequest::TransactionPlan(_) => config.ok_or(anyhow!(
-            "cannot threshold sign transaction using a non-threshold custody backend"
-        ))?,
-        SigningRequest::ValidatorDefinition(_) => config.ok_or(anyhow!(
-            "cannot threshold sign validator definition using a non-threshold custody backend"
-        ))?,
-        SigningRequest::ValidatorVote(_) => governance_config.ok_or(anyhow!(
-            "cannot threshold sign validator vote using a non-threshold validator governance custody backend"
-        ))?,
-        SigningRequest::ProposalSubmit(_) => governance_config.ok_or(anyhow!(
-            "cannot threshold sign proposal submit using a non-threshold validator governance custody backend"
-        ))?,
-    };
+    let config = config.ok_or(anyhow!(
+        "cannot threshold sign transaction using a non-threshold custody backend"
+    ))?;
     if !terminal
         .confirm_request(round1_message.signing_request())
         .await?
@@ -274,94 +249,9 @@ impl<T: Terminal + Sync + Send + 'static> pb::custody_service_server::CustodySer
                     "Failed to process transaction authorization request: {e}"
                 ))
             })?;
-        let SigningResponse::Transaction(data) = data else {
-            return Err(Status::internal(
-                "expected transaction authorization but custody service returned another kind of authorization data"
-                    .to_string()
-            ));
-        };
+        let SigningResponse::Transaction(data) = data;
         Ok(Response::new(pb::AuthorizeResponse {
             data: Some(data.into()),
-        }))
-    }
-
-    async fn authorize_validator_definition(
-        &self,
-        request: Request<pb::AuthorizeValidatorDefinitionRequest>,
-    ) -> Result<Response<pb::AuthorizeValidatorDefinitionResponse>, Status> {
-        let request: AuthorizeValidatorDefinitionRequest = request
-            .into_inner()
-            .try_into()
-            .map_err(|e| Status::invalid_argument(format!("{e}")))?;
-        let data = self
-            .authorize(SigningRequest::ValidatorDefinition(
-                request.validator_definition,
-            ))
-            .await
-            .map_err(|e| {
-                Status::internal(format!(
-                    "Failed to process validator definition authorization request: {e}"
-                ))
-            })?;
-        let SigningResponse::ValidatorDefinition(validator_definition_auth) = data else {
-            return Err(Status::internal(
-                "expected validator definition authorization but custody service returned another kind of authorization data".to_string()
-            ));
-        };
-        Ok(Response::new(pb::AuthorizeValidatorDefinitionResponse {
-            validator_definition_auth: Some(validator_definition_auth.into()),
-        }))
-    }
-
-    async fn authorize_validator_vote(
-        &self,
-        request: Request<pb::AuthorizeValidatorVoteRequest>,
-    ) -> Result<Response<pb::AuthorizeValidatorVoteResponse>, Status> {
-        let request: AuthorizeValidatorVoteRequest = request
-            .into_inner()
-            .try_into()
-            .map_err(|e| Status::invalid_argument(format!("{e}")))?;
-        let data = self
-            .authorize(SigningRequest::ValidatorVote(request.validator_vote))
-            .await
-            .map_err(|e| {
-                Status::internal(format!(
-                    "Failed to process validator vote authorization request: {e}"
-                ))
-            })?;
-        let SigningResponse::ValidatorVote(validator_vote_auth) = data else {
-            return Err(Status::internal(
-                "expected validator vote authorization but custody service returned another kind of authorization data".to_string()
-            ));
-        };
-        Ok(Response::new(pb::AuthorizeValidatorVoteResponse {
-            validator_vote_auth: Some(validator_vote_auth.into()),
-        }))
-    }
-
-    async fn authorize_proposal_submit(
-        &self,
-        request: Request<pb::AuthorizeProposalSubmitRequest>,
-    ) -> Result<Response<pb::AuthorizeProposalSubmitResponse>, Status> {
-        let request: AuthorizeProposalSubmitRequest = request
-            .into_inner()
-            .try_into()
-            .map_err(|e| Status::invalid_argument(format!("{e}")))?;
-        let data = self
-            .authorize(SigningRequest::ProposalSubmit(request.proposal_submit))
-            .await
-            .map_err(|e| {
-                Status::internal(format!(
-                    "Failed to process proposal submit authorization request: {e}"
-                ))
-            })?;
-        let SigningResponse::ProposalSubmit(proposal_submit_auth) = data else {
-            return Err(Status::internal(
-                "expected proposal submit authorization but custody service returned another kind of authorization data".to_string()
-            ));
-        };
-        Ok(Response::new(pb::AuthorizeProposalSubmitResponse {
-            proposal_submit_auth: Some(proposal_submit_auth.into()),
         }))
     }
 
@@ -568,7 +458,7 @@ mod test {
             .into_iter()
             .zip(follower_terminals.into_iter())
         {
-            tokio::spawn(async move { follow(Some(&config), Some(&config), &terminal).await });
+            tokio::spawn(async move { follow(Some(&config), &terminal).await });
         }
         let sender = coordinator_config
             .fvk()
@@ -625,10 +515,7 @@ mod test {
         let authorization_data = Threshold::new(coordinator_config, coordinator_terminal)
             .authorize(SigningRequest::TransactionPlan(plan.clone()))
             .await?;
-        let tx_authorization_data = match authorization_data {
-            SigningResponse::Transaction(tx) => tx,
-            _ => panic!("expected transaction authorization data"),
-        };
+        let SigningResponse::Transaction(tx_authorization_data) = authorization_data;
         assert_eq!(
             plan.effect_hash(&fvk)?,
             tx_authorization_data

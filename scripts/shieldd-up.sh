@@ -138,7 +138,6 @@ log_info "Generating Shieldd network..."
 run_quiet "$PD" network --network-dir "$NETWORK_DATA_DIR" generate \
     --chain-id shieldd-local-devnet \
     --epoch-duration 302400 \
-    --proposal-voting-blocks 50 \
     --gas-price-simple 1000 \
     --compliance-registrar-vk-hex "$COMPLIANCE_DEV_REGISTRAR_VK_HEX" \
     --timeout-commit 500ms \

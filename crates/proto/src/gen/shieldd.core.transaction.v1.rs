@@ -172,10 +172,7 @@ impl ::prost::Name for AggregateBundle {
 /// A state change performed by a transaction.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Action {
-    #[prost(
-        oneof = "action::Action",
-        tags = "5, 6, 16, 17, 18, 20, 80, 81, 82, 200, 201"
-    )]
+    #[prost(oneof = "action::Action", tags = "5, 6, 17, 80, 81, 82, 200, 201")]
     pub action: ::core::option::Option<action::Action>,
 }
 /// Nested message and enum types in `Action`.
@@ -186,17 +183,8 @@ pub mod action {
         Transfer(super::super::super::component::shielded_pool::v1::Transfer),
         #[prost(message, tag = "6")]
         NoteReshape(super::super::super::component::shielded_pool::v1::NoteReshape),
-        #[prost(message, tag = "16")]
-        ValidatorDefinition(
-            super::super::super::component::validator::v1::ValidatorDefinition,
-        ),
         #[prost(message, tag = "17")]
         IbcRelayAction(super::super::super::component::ibc::v1::IbcRelay),
-        /// Governance:
-        #[prost(message, tag = "18")]
-        ProposalSubmit(super::super::super::component::governance::v1::ProposalSubmit),
-        #[prost(message, tag = "20")]
-        ValidatorVote(super::super::super::component::governance::v1::ValidatorVote),
         /// Compliance
         #[prost(message, tag = "80")]
         ComplianceRegisterAsset(
@@ -461,10 +449,7 @@ impl ::prost::Name for TransactionBodyView {
 /// A view of a specific state change action performed by a transaction.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ActionView {
-    #[prost(
-        oneof = "action_view::ActionView",
-        tags = "5, 6, 16, 17, 18, 20, 80, 81, 82, 200, 201"
-    )]
+    #[prost(oneof = "action_view::ActionView", tags = "5, 6, 17, 80, 81, 82, 200, 201")]
     pub action_view: ::core::option::Option<action_view::ActionView>,
 }
 /// Nested message and enum types in `ActionView`.
@@ -476,17 +461,8 @@ pub mod action_view {
         #[prost(message, tag = "6")]
         NoteReshape(super::super::super::component::shielded_pool::v1::NoteReshapeView),
         /// Action types without visible/opaque variants
-        #[prost(message, tag = "16")]
-        ValidatorDefinition(
-            super::super::super::component::validator::v1::ValidatorDefinition,
-        ),
         #[prost(message, tag = "17")]
         IbcRelayAction(super::super::super::component::ibc::v1::IbcRelay),
-        /// Governance:
-        #[prost(message, tag = "18")]
-        ProposalSubmit(super::super::super::component::governance::v1::ProposalSubmit),
-        #[prost(message, tag = "20")]
-        ValidatorVote(super::super::super::component::governance::v1::ValidatorVote),
         /// Compliance
         #[prost(message, tag = "80")]
         ComplianceRegisterAsset(
@@ -646,10 +622,7 @@ impl ::prost::Name for FeeFundingPlan {
 /// themselves.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ActionPlan {
-    #[prost(
-        oneof = "action_plan::Action",
-        tags = "5, 6, 16, 17, 18, 20, 200, 201, 80, 81"
-    )]
+    #[prost(oneof = "action_plan::Action", tags = "5, 6, 17, 200, 201, 80, 81")]
     pub action: ::core::option::Option<action_plan::Action>,
 }
 /// Nested message and enum types in `ActionPlan`.
@@ -661,18 +634,8 @@ pub mod action_plan {
         #[prost(message, tag = "6")]
         NoteReshape(super::super::super::component::shielded_pool::v1::NoteReshapePlan),
         /// This is just a message relayed to the chain.
-        #[prost(message, tag = "16")]
-        ValidatorDefinition(
-            super::super::super::component::validator::v1::ValidatorDefinition,
-        ),
-        /// This is just a message relayed to the chain.
         #[prost(message, tag = "17")]
         IbcRelayAction(super::super::super::component::ibc::v1::IbcRelay),
-        /// Governance:
-        #[prost(message, tag = "18")]
-        ProposalSubmit(super::super::super::component::governance::v1::ProposalSubmit),
-        #[prost(message, tag = "20")]
-        ValidatorVote(super::super::super::component::governance::v1::ValidatorVote),
         #[prost(message, tag = "200")]
         ShieldedIcs20Withdrawal(
             super::super::super::component::shielded_pool::v1::ShieldedIcs20WithdrawalPlan,

@@ -43,7 +43,6 @@ use shieldd_sdk_transaction::{ActionPlan, FeeFundingPlan};
 use tendermint::v0_37::abci::response;
 use tokio::sync::OnceCell;
 
-use crate::action_handler::AppActionHandler;
 use crate::app::{HostBlock, HostExecution, MAX_BLOCK_TXS_PAYLOAD_BYTES};
 use crate::stateless_cache::ProofSlot;
 use crate::ShielddHost;
@@ -622,18 +621,18 @@ async fn put_open_withdrawal_route(app: &mut App, withdrawal: &Ics20Withdrawal) 
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn fv_runtime_transaction_stateless_rejects_decodable_invalid_groth16() -> Result<()> {
+async fn fv_runtime_artifact_build_rejects_decodable_invalid_groth16() -> Result<()> {
     let family_set = family_fixtures().await?;
 
     for fixture in &family_set.fixtures {
         let (invalid_tx, _) = mutate_to_decodable_invalid_proof(fixture)?;
-        let error = invalid_tx
-            .check_stateless(())
+        let error = App::build_tx_artifacts_profiled(&[Arc::new(invalid_tx)])
             .await
-            .expect_err("Transaction stateless handling must reject an invalid proof");
+            .err()
+            .expect("artifact construction must reject an invalid proof");
         assert!(
-            format!("{error:#}").contains("proof did not verify"),
-            "{}: Transaction stateless handling failed for the wrong reason: {error:#}",
+            format!("{error:#}").contains("verification failed"),
+            "{}: artifact construction failed for the wrong reason: {error:#}",
             fixture.label()
         );
     }

@@ -5,11 +5,9 @@ import "google/protobuf/any.proto";
 import "shieldd/core/asset/v1/asset.proto";
 import "shieldd/core/component/compliance/v1/compliance.proto";
 import "shieldd/core/component/fee/v1/fee.proto";
-import "shieldd/core/component/governance/v1/governance.proto";
 import "shieldd/core/component/ibc/v1/ibc.proto";
 import "shieldd/core/component/sct/v1/sct.proto";
 import "shieldd/core/component/shielded_pool/v1/shielded_pool.proto";
-import "shieldd/core/component/validator/v1/validator.proto";
 import "shieldd/core/keys/v1/keys.proto";
 import "shieldd/core/txhash/v1/txhash.proto";
 import "shieldd/crypto/decaf377_rdsa/v1/decaf377_rdsa.proto";
@@ -91,19 +89,14 @@ message AggregateBundle {
 
 // A state change performed by a transaction.
 message Action {
-  reserved 7;
+  reserved 7, 16, 18, 20;
   oneof action {
     component.shielded_pool.v1.Transfer transfer = 5;
     component.shielded_pool.v1.NoteReshape note_reshape = 6;
 
     // Uncommon actions have numbers > 15.
 
-    component.validator.v1.ValidatorDefinition validator_definition = 16;
     component.ibc.v1.IbcRelay ibc_relay_action = 17;
-
-    // Governance:
-    component.governance.v1.ProposalSubmit proposal_submit = 18;
-    component.governance.v1.ValidatorVote validator_vote = 20;
 
     // Compliance
     component.compliance.v1.MsgRegisterAsset compliance_register_asset = 80;
@@ -202,18 +195,13 @@ message TransactionBodyView {
 
 // A view of a specific state change action performed by a transaction.
 message ActionView {
-  reserved 7;
+  reserved 7, 16, 18, 20;
   oneof action_view {
     component.shielded_pool.v1.TransferView transfer = 5;
     component.shielded_pool.v1.NoteReshapeView note_reshape = 6;
 
     // Action types without visible/opaque variants
-    component.validator.v1.ValidatorDefinition validator_definition = 16;
     component.ibc.v1.IbcRelay ibc_relay_action = 17;
-
-    // Governance:
-    component.governance.v1.ProposalSubmit proposal_submit = 18;
-    component.governance.v1.ValidatorVote validator_vote = 20;
 
     // Compliance
     component.compliance.v1.MsgRegisterAsset compliance_register_asset = 80;
@@ -278,18 +266,13 @@ message FeeFundingPlan {
 // Some transaction Actions don't have any private data and are treated as being plans
 // themselves.
 message ActionPlan {
-  reserved 7;
+  reserved 7, 16, 18, 20;
   oneof action {
     component.shielded_pool.v1.TransferPlan transfer = 5;
     component.shielded_pool.v1.NoteReshapePlan note_reshape = 6;
 
     // This is just a message relayed to the chain.
-    component.validator.v1.ValidatorDefinition validator_definition = 16;
-    // This is just a message relayed to the chain.
     component.ibc.v1.IbcRelay ibc_relay_action = 17;
-    // Governance:
-    component.governance.v1.ProposalSubmit proposal_submit = 18;
-    component.governance.v1.ValidatorVote validator_vote = 20;
 
     component.shielded_pool.v1.ShieldedIcs20WithdrawalPlan shielded_ics20_withdrawal = 200;
     component.shielded_pool.v1.ShieldedHostWithdrawalPlan shielded_host_withdrawal = 201;

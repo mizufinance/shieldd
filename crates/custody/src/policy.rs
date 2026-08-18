@@ -5,42 +5,16 @@ use std::collections::HashSet;
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_keys::Address;
 use shieldd_sdk_proto::{
-    core::{
-        component::{
-            governance::v1::ProposalSubmitBody as ProtoProposalSubmitBody,
-            governance::v1::ValidatorVoteBody as ProtoValidatorVoteBody,
-            validator::v1::Validator as ProtoValidator,
-        },
-        transaction::v1::TransactionPlan as ProtoTransactionPlan,
-    },
-    Message as _,
+    core::transaction::v1::TransactionPlan as ProtoTransactionPlan, Message as _,
 };
 use shieldd_sdk_transaction::plan::ActionPlan;
 
-use crate::{
-    AuthorizeProposalSubmitRequest, AuthorizeRequest, AuthorizeValidatorDefinitionRequest,
-    AuthorizeValidatorVoteRequest, PreAuthorization,
-};
+use crate::{AuthorizeRequest, PreAuthorization};
 
 /// A trait for checking whether a transaction plan is allowed by a policy.
 pub trait Policy {
     /// Checks whether the proposed transaction plan is allowed by this policy.
     fn check_transaction(&self, request: &AuthorizeRequest) -> anyhow::Result<()>;
-
-    /// Checks whether the proposed validator definition is allowed by this policy.
-    fn check_validator_definition(
-        &self,
-        _request: &AuthorizeValidatorDefinitionRequest,
-    ) -> anyhow::Result<()>;
-
-    /// Checks whether the proposed validator vote is allowed by this policy.
-    fn check_validator_vote(&self, _request: &AuthorizeValidatorVoteRequest) -> anyhow::Result<()>;
-
-    /// Checks whether the proposed proposal submission is allowed by this policy.
-    fn check_proposal_submit(
-        &self,
-        _request: &AuthorizeProposalSubmitRequest,
-    ) -> anyhow::Result<()>;
 }
 
 /// A set of basic spend authorization policies.
@@ -49,8 +23,6 @@ pub trait Policy {
 /// file.  More complex policy logic than should be implemented by a custom implementation of
 /// the [`Policy`] trait.
 ///
-/// These policies do not permit validator votes or validator definition updates, so a custom policy
-/// must be used to approve these actions.
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 #[serde(tag = "type")]
 pub enum AuthPolicy {
@@ -262,24 +234,6 @@ impl Policy for AuthPolicy {
             AuthPolicy::PreAuthorization(policy) => policy.check_transaction(request),
         }
     }
-
-    fn check_validator_definition(
-        &self,
-        _request: &AuthorizeValidatorDefinitionRequest,
-    ) -> anyhow::Result<()> {
-        anyhow::bail!("validator definitions are not allowed by this policy")
-    }
-
-    fn check_validator_vote(&self, _request: &AuthorizeValidatorVoteRequest) -> anyhow::Result<()> {
-        anyhow::bail!("validator votes are not allowed by this policy")
-    }
-
-    fn check_proposal_submit(
-        &self,
-        _request: &AuthorizeProposalSubmitRequest,
-    ) -> anyhow::Result<()> {
-        anyhow::bail!("proposal submissions are not allowed by this policy")
-    }
 }
 
 impl Policy for PreAuthorizationPolicy {
@@ -287,33 +241,6 @@ impl Policy for PreAuthorizationPolicy {
         self.check_pre_authorizations(
             &request.pre_authorizations,
             ProtoTransactionPlan::from(request.plan.clone()).encode_to_vec(),
-        )
-    }
-
-    fn check_validator_definition(
-        &self,
-        request: &AuthorizeValidatorDefinitionRequest,
-    ) -> anyhow::Result<()> {
-        self.check_pre_authorizations(
-            &request.pre_authorizations,
-            ProtoValidator::from(request.validator_definition.clone()).encode_to_vec(),
-        )
-    }
-
-    fn check_validator_vote(&self, request: &AuthorizeValidatorVoteRequest) -> anyhow::Result<()> {
-        self.check_pre_authorizations(
-            &request.pre_authorizations,
-            ProtoValidatorVoteBody::from(request.validator_vote.clone()).encode_to_vec(),
-        )
-    }
-
-    fn check_proposal_submit(
-        &self,
-        request: &AuthorizeProposalSubmitRequest,
-    ) -> anyhow::Result<()> {
-        self.check_pre_authorizations(
-            &request.pre_authorizations,
-            ProtoProposalSubmitBody::from(request.proposal_submit.clone()).encode_to_vec(),
         )
     }
 }

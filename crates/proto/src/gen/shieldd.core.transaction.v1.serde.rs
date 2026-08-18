@@ -18,17 +18,8 @@ impl serde::Serialize for Action {
                 action::Action::NoteReshape(v) => {
                     struct_ser.serialize_field("noteReshape", v)?;
                 }
-                action::Action::ValidatorDefinition(v) => {
-                    struct_ser.serialize_field("validatorDefinition", v)?;
-                }
                 action::Action::IbcRelayAction(v) => {
                     struct_ser.serialize_field("ibcRelayAction", v)?;
-                }
-                action::Action::ProposalSubmit(v) => {
-                    struct_ser.serialize_field("proposalSubmit", v)?;
-                }
-                action::Action::ValidatorVote(v) => {
-                    struct_ser.serialize_field("validatorVote", v)?;
                 }
                 action::Action::ComplianceRegisterAsset(v) => {
                     struct_ser.serialize_field("complianceRegisterAsset", v)?;
@@ -60,14 +51,8 @@ impl<'de> serde::Deserialize<'de> for Action {
             "transfer",
             "note_reshape",
             "noteReshape",
-            "validator_definition",
-            "validatorDefinition",
             "ibc_relay_action",
             "ibcRelayAction",
-            "proposal_submit",
-            "proposalSubmit",
-            "validator_vote",
-            "validatorVote",
             "compliance_register_asset",
             "complianceRegisterAsset",
             "compliance_register_user",
@@ -84,10 +69,7 @@ impl<'de> serde::Deserialize<'de> for Action {
         enum GeneratedField {
             Transfer,
             NoteReshape,
-            ValidatorDefinition,
             IbcRelayAction,
-            ProposalSubmit,
-            ValidatorVote,
             ComplianceRegisterAsset,
             ComplianceRegisterUser,
             AggregateBundle,
@@ -117,10 +99,7 @@ impl<'de> serde::Deserialize<'de> for Action {
                         match value {
                             "transfer" => Ok(GeneratedField::Transfer),
                             "noteReshape" | "note_reshape" => Ok(GeneratedField::NoteReshape),
-                            "validatorDefinition" | "validator_definition" => Ok(GeneratedField::ValidatorDefinition),
                             "ibcRelayAction" | "ibc_relay_action" => Ok(GeneratedField::IbcRelayAction),
-                            "proposalSubmit" | "proposal_submit" => Ok(GeneratedField::ProposalSubmit),
-                            "validatorVote" | "validator_vote" => Ok(GeneratedField::ValidatorVote),
                             "complianceRegisterAsset" | "compliance_register_asset" => Ok(GeneratedField::ComplianceRegisterAsset),
                             "complianceRegisterUser" | "compliance_register_user" => Ok(GeneratedField::ComplianceRegisterUser),
                             "aggregateBundle" | "aggregate_bundle" => Ok(GeneratedField::AggregateBundle),
@@ -162,32 +141,11 @@ impl<'de> serde::Deserialize<'de> for Action {
                             action__ = map_.next_value::<::std::option::Option<_>>()?.map(action::Action::NoteReshape)
 ;
                         }
-                        GeneratedField::ValidatorDefinition => {
-                            if action__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("validatorDefinition"));
-                            }
-                            action__ = map_.next_value::<::std::option::Option<_>>()?.map(action::Action::ValidatorDefinition)
-;
-                        }
                         GeneratedField::IbcRelayAction => {
                             if action__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("ibcRelayAction"));
                             }
                             action__ = map_.next_value::<::std::option::Option<_>>()?.map(action::Action::IbcRelayAction)
-;
-                        }
-                        GeneratedField::ProposalSubmit => {
-                            if action__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("proposalSubmit"));
-                            }
-                            action__ = map_.next_value::<::std::option::Option<_>>()?.map(action::Action::ProposalSubmit)
-;
-                        }
-                        GeneratedField::ValidatorVote => {
-                            if action__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("validatorVote"));
-                            }
-                            action__ = map_.next_value::<::std::option::Option<_>>()?.map(action::Action::ValidatorVote)
 ;
                         }
                         GeneratedField::ComplianceRegisterAsset => {
@@ -258,17 +216,8 @@ impl serde::Serialize for ActionPlan {
                 action_plan::Action::NoteReshape(v) => {
                     struct_ser.serialize_field("noteReshape", v)?;
                 }
-                action_plan::Action::ValidatorDefinition(v) => {
-                    struct_ser.serialize_field("validatorDefinition", v)?;
-                }
                 action_plan::Action::IbcRelayAction(v) => {
                     struct_ser.serialize_field("ibcRelayAction", v)?;
-                }
-                action_plan::Action::ProposalSubmit(v) => {
-                    struct_ser.serialize_field("proposalSubmit", v)?;
-                }
-                action_plan::Action::ValidatorVote(v) => {
-                    struct_ser.serialize_field("validatorVote", v)?;
                 }
                 action_plan::Action::ShieldedIcs20Withdrawal(v) => {
                     struct_ser.serialize_field("shieldedIcs20Withdrawal", v)?;
@@ -297,14 +246,8 @@ impl<'de> serde::Deserialize<'de> for ActionPlan {
             "transfer",
             "note_reshape",
             "noteReshape",
-            "validator_definition",
-            "validatorDefinition",
             "ibc_relay_action",
             "ibcRelayAction",
-            "proposal_submit",
-            "proposalSubmit",
-            "validator_vote",
-            "validatorVote",
             "shielded_ics20_withdrawal",
             "shieldedIcs20Withdrawal",
             "shielded_host_withdrawal",
@@ -319,10 +262,7 @@ impl<'de> serde::Deserialize<'de> for ActionPlan {
         enum GeneratedField {
             Transfer,
             NoteReshape,
-            ValidatorDefinition,
             IbcRelayAction,
-            ProposalSubmit,
-            ValidatorVote,
             ShieldedIcs20Withdrawal,
             ShieldedHostWithdrawal,
             ComplianceRegisterAsset,
@@ -351,10 +291,7 @@ impl<'de> serde::Deserialize<'de> for ActionPlan {
                         match value {
                             "transfer" => Ok(GeneratedField::Transfer),
                             "noteReshape" | "note_reshape" => Ok(GeneratedField::NoteReshape),
-                            "validatorDefinition" | "validator_definition" => Ok(GeneratedField::ValidatorDefinition),
                             "ibcRelayAction" | "ibc_relay_action" => Ok(GeneratedField::IbcRelayAction),
-                            "proposalSubmit" | "proposal_submit" => Ok(GeneratedField::ProposalSubmit),
-                            "validatorVote" | "validator_vote" => Ok(GeneratedField::ValidatorVote),
                             "shieldedIcs20Withdrawal" | "shielded_ics20_withdrawal" => Ok(GeneratedField::ShieldedIcs20Withdrawal),
                             "shieldedHostWithdrawal" | "shielded_host_withdrawal" => Ok(GeneratedField::ShieldedHostWithdrawal),
                             "complianceRegisterAsset" | "compliance_register_asset" => Ok(GeneratedField::ComplianceRegisterAsset),
@@ -395,32 +332,11 @@ impl<'de> serde::Deserialize<'de> for ActionPlan {
                             action__ = map_.next_value::<::std::option::Option<_>>()?.map(action_plan::Action::NoteReshape)
 ;
                         }
-                        GeneratedField::ValidatorDefinition => {
-                            if action__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("validatorDefinition"));
-                            }
-                            action__ = map_.next_value::<::std::option::Option<_>>()?.map(action_plan::Action::ValidatorDefinition)
-;
-                        }
                         GeneratedField::IbcRelayAction => {
                             if action__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("ibcRelayAction"));
                             }
                             action__ = map_.next_value::<::std::option::Option<_>>()?.map(action_plan::Action::IbcRelayAction)
-;
-                        }
-                        GeneratedField::ProposalSubmit => {
-                            if action__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("proposalSubmit"));
-                            }
-                            action__ = map_.next_value::<::std::option::Option<_>>()?.map(action_plan::Action::ProposalSubmit)
-;
-                        }
-                        GeneratedField::ValidatorVote => {
-                            if action__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("validatorVote"));
-                            }
-                            action__ = map_.next_value::<::std::option::Option<_>>()?.map(action_plan::Action::ValidatorVote)
 ;
                         }
                         GeneratedField::ShieldedIcs20Withdrawal => {
@@ -484,17 +400,8 @@ impl serde::Serialize for ActionView {
                 action_view::ActionView::NoteReshape(v) => {
                     struct_ser.serialize_field("noteReshape", v)?;
                 }
-                action_view::ActionView::ValidatorDefinition(v) => {
-                    struct_ser.serialize_field("validatorDefinition", v)?;
-                }
                 action_view::ActionView::IbcRelayAction(v) => {
                     struct_ser.serialize_field("ibcRelayAction", v)?;
-                }
-                action_view::ActionView::ProposalSubmit(v) => {
-                    struct_ser.serialize_field("proposalSubmit", v)?;
-                }
-                action_view::ActionView::ValidatorVote(v) => {
-                    struct_ser.serialize_field("validatorVote", v)?;
                 }
                 action_view::ActionView::ComplianceRegisterAsset(v) => {
                     struct_ser.serialize_field("complianceRegisterAsset", v)?;
@@ -526,14 +433,8 @@ impl<'de> serde::Deserialize<'de> for ActionView {
             "transfer",
             "note_reshape",
             "noteReshape",
-            "validator_definition",
-            "validatorDefinition",
             "ibc_relay_action",
             "ibcRelayAction",
-            "proposal_submit",
-            "proposalSubmit",
-            "validator_vote",
-            "validatorVote",
             "compliance_register_asset",
             "complianceRegisterAsset",
             "compliance_register_user",
@@ -550,10 +451,7 @@ impl<'de> serde::Deserialize<'de> for ActionView {
         enum GeneratedField {
             Transfer,
             NoteReshape,
-            ValidatorDefinition,
             IbcRelayAction,
-            ProposalSubmit,
-            ValidatorVote,
             ComplianceRegisterAsset,
             ComplianceRegisterUser,
             AggregateBundle,
@@ -583,10 +481,7 @@ impl<'de> serde::Deserialize<'de> for ActionView {
                         match value {
                             "transfer" => Ok(GeneratedField::Transfer),
                             "noteReshape" | "note_reshape" => Ok(GeneratedField::NoteReshape),
-                            "validatorDefinition" | "validator_definition" => Ok(GeneratedField::ValidatorDefinition),
                             "ibcRelayAction" | "ibc_relay_action" => Ok(GeneratedField::IbcRelayAction),
-                            "proposalSubmit" | "proposal_submit" => Ok(GeneratedField::ProposalSubmit),
-                            "validatorVote" | "validator_vote" => Ok(GeneratedField::ValidatorVote),
                             "complianceRegisterAsset" | "compliance_register_asset" => Ok(GeneratedField::ComplianceRegisterAsset),
                             "complianceRegisterUser" | "compliance_register_user" => Ok(GeneratedField::ComplianceRegisterUser),
                             "aggregateBundle" | "aggregate_bundle" => Ok(GeneratedField::AggregateBundle),
@@ -628,32 +523,11 @@ impl<'de> serde::Deserialize<'de> for ActionView {
                             action_view__ = map_.next_value::<::std::option::Option<_>>()?.map(action_view::ActionView::NoteReshape)
 ;
                         }
-                        GeneratedField::ValidatorDefinition => {
-                            if action_view__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("validatorDefinition"));
-                            }
-                            action_view__ = map_.next_value::<::std::option::Option<_>>()?.map(action_view::ActionView::ValidatorDefinition)
-;
-                        }
                         GeneratedField::IbcRelayAction => {
                             if action_view__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("ibcRelayAction"));
                             }
                             action_view__ = map_.next_value::<::std::option::Option<_>>()?.map(action_view::ActionView::IbcRelayAction)
-;
-                        }
-                        GeneratedField::ProposalSubmit => {
-                            if action_view__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("proposalSubmit"));
-                            }
-                            action_view__ = map_.next_value::<::std::option::Option<_>>()?.map(action_view::ActionView::ProposalSubmit)
-;
-                        }
-                        GeneratedField::ValidatorVote => {
-                            if action_view__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("validatorVote"));
-                            }
-                            action_view__ = map_.next_value::<::std::option::Option<_>>()?.map(action_view::ActionView::ValidatorVote)
 ;
                         }
                         GeneratedField::ComplianceRegisterAsset => {

@@ -21,9 +21,6 @@ impl serde::Serialize for CompactBlock {
         if self.epoch_root.is_some() {
             len += 1;
         }
-        if self.proposal_started {
-            len += 1;
-        }
         if self.discovery_parameters.is_some() {
             len += 1;
         }
@@ -77,9 +74,6 @@ impl serde::Serialize for CompactBlock {
         }
         if let Some(v) = self.epoch_root.as_ref() {
             struct_ser.serialize_field("epochRoot", v)?;
-        }
-        if self.proposal_started {
-            struct_ser.serialize_field("proposalStarted", &self.proposal_started)?;
         }
         if let Some(v) = self.discovery_parameters.as_ref() {
             struct_ser.serialize_field("discoveryParameters", v)?;
@@ -141,8 +135,6 @@ impl<'de> serde::Deserialize<'de> for CompactBlock {
             "blockRoot",
             "epoch_root",
             "epochRoot",
-            "proposal_started",
-            "proposalStarted",
             "discovery_parameters",
             "discoveryParameters",
             "routing_records",
@@ -176,7 +168,6 @@ impl<'de> serde::Deserialize<'de> for CompactBlock {
             Nullifiers,
             BlockRoot,
             EpochRoot,
-            ProposalStarted,
             DiscoveryParameters,
             RoutingRecords,
             AppParametersUpdated,
@@ -216,7 +207,6 @@ impl<'de> serde::Deserialize<'de> for CompactBlock {
                             "nullifiers" => Ok(GeneratedField::Nullifiers),
                             "blockRoot" | "block_root" => Ok(GeneratedField::BlockRoot),
                             "epochRoot" | "epoch_root" => Ok(GeneratedField::EpochRoot),
-                            "proposalStarted" | "proposal_started" => Ok(GeneratedField::ProposalStarted),
                             "discoveryParameters" | "discovery_parameters" => Ok(GeneratedField::DiscoveryParameters),
                             "routingRecords" | "routing_records" => Ok(GeneratedField::RoutingRecords),
                             "appParametersUpdated" | "app_parameters_updated" => Ok(GeneratedField::AppParametersUpdated),
@@ -253,7 +243,6 @@ impl<'de> serde::Deserialize<'de> for CompactBlock {
                 let mut nullifiers__ = None;
                 let mut block_root__ = None;
                 let mut epoch_root__ = None;
-                let mut proposal_started__ = None;
                 let mut discovery_parameters__ = None;
                 let mut routing_records__ = None;
                 let mut app_parameters_updated__ = None;
@@ -299,12 +288,6 @@ impl<'de> serde::Deserialize<'de> for CompactBlock {
                                 return Err(serde::de::Error::duplicate_field("epochRoot"));
                             }
                             epoch_root__ = map_.next_value()?;
-                        }
-                        GeneratedField::ProposalStarted => {
-                            if proposal_started__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("proposalStarted"));
-                            }
-                            proposal_started__ = Some(map_.next_value()?);
                         }
                         GeneratedField::DiscoveryParameters => {
                             if discovery_parameters__.is_some() {
@@ -395,7 +378,6 @@ impl<'de> serde::Deserialize<'de> for CompactBlock {
                     nullifiers: nullifiers__.unwrap_or_default(),
                     block_root: block_root__,
                     epoch_root: epoch_root__,
-                    proposal_started: proposal_started__.unwrap_or_default(),
                     discovery_parameters: discovery_parameters__,
                     routing_records: routing_records__.unwrap_or_default(),
                     app_parameters_updated: app_parameters_updated__.unwrap_or_default(),

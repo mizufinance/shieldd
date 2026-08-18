@@ -23,7 +23,4 @@ pub mod threshold;
 
 pub use client::CustodyClient;
 pub use pre_auth::PreAuthorization;
-pub use request::{
-    AuthorizeProposalSubmitRequest, AuthorizeRequest, AuthorizeValidatorDefinitionRequest,
-    AuthorizeValidatorVoteRequest,
-};
+pub use request::AuthorizeRequest;

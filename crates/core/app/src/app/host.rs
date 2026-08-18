@@ -89,10 +89,9 @@ pub struct HostCommittedState {
     pub root_hash: Vec<u8>,
 }
 
-/// Drives Shieldd execution from a host chain without owning validator state.
+/// Drives Shieldd execution from a host chain.
 ///
-/// This adapter uses host-only lifecycle hooks, not the standalone ABCI lifecycle
-/// that runs staking, governance, IBC, validator updates, and upgrade halts.
+/// This adapter uses host-only lifecycle hooks and leaves IBC to the host chain.
 pub struct HostExecution {
     storage: Storage,
     app: App,
@@ -385,7 +384,7 @@ impl HostExecution {
 impl App {
     /// Initializes the Shieldd execution state for a host-owned chain.
     ///
-    /// Unlike `App::init_chain`, this skips staking, governance, and IBC state.
+    /// Unlike `App::init_chain`, this skips IBC state.
     async fn init_host_chain(&mut self, app_state: &AppState) {
         let mut state_tx = self
             .state
@@ -417,7 +416,7 @@ impl App {
 
     /// Runs per-block hooks for execution components only.
     ///
-    /// Unlike `App::begin_block`, this skips param changes and validator-chain hooks.
+    /// Unlike `App::begin_block`, this skips IBC hooks.
     async fn begin_host_block(&mut self, begin_block: &request::BeginBlock) -> Vec<abci::Event> {
         self.pending_sct_append_log.clear();
         let mut state_tx = StateDelta::new(self.state.clone());
@@ -437,7 +436,7 @@ impl App {
 
     /// Flushes host transactions and closes execution-component block and epoch state.
     ///
-    /// Unlike `App::end_block`, this skips IBC, governance, staking, and validator updates.
+    /// Unlike `App::end_block`, this skips IBC hooks.
     async fn end_host_block(&mut self, end_block: &request::EndBlock) -> Vec<abci::Event> {
         self.flush_deferred_block_transactions()
             .await
@@ -831,23 +830,12 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn host_execution_init_genesis_does_not_initialize_validator_chain_components(
-    ) -> Result<()> {
+    async fn host_execution_init_genesis_does_not_initialize_ibc() -> Result<()> {
         let storage = temp_storage().await;
         let mut host = HostExecution::new(storage.deref().clone());
 
         host.init_genesis(host_genesis()).await?;
 
-        assert!(
-            shieldd_sdk_validator::StateReadExt::get_stake_params(host.app.state.as_ref())
-                .await
-                .is_err()
-        );
-        assert!(shieldd_sdk_governance::StateReadExt::get_governance_params(
-            host.app.state.as_ref()
-        )
-        .await
-        .is_err());
         assert!(
             shieldd_sdk_ibc::StateReadExt::get_ibc_params(host.app.state.as_ref())
                 .await

@@ -16,7 +16,6 @@ pub static COMETBFT_SUBSTORE_PREFIX: &'static str = "cometbft-data";
 pub mod app_version;
 pub use app_version::APP_VERSION;
 
-pub mod event;
 pub mod genesis;
 pub mod params;
 

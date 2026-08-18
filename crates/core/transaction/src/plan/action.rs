@@ -8,7 +8,6 @@ use decaf377::Fr;
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::Balance;
 use shieldd_sdk_compliance::structs::{MsgRegisterAsset, MsgRegisterUser};
-use shieldd_sdk_governance::{ProposalSubmit, ValidatorVote};
 use shieldd_sdk_ibc::IbcRelay;
 use shieldd_sdk_keys::{symmetric::PayloadKey, FullViewingKey};
 use shieldd_sdk_proto::{core::transaction::v1 as pb_t, DomainType};
@@ -27,10 +26,7 @@ pub enum ActionPlan {
     Transfer(TransferPlan),
     /// Describes a padded note reshape between one and eight notes.
     NoteReshape(NoteReshapePlan),
-    ValidatorDefinition(shieldd_sdk_validator::validator::Definition),
     IbcAction(IbcRelay),
-    ProposalSubmit(ProposalSubmit),
-    ValidatorVote(ValidatorVote),
     ShieldedIcs20Withdrawal(ShieldedIcs20WithdrawalPlan),
     ShieldedHostWithdrawal(ShieldedHostWithdrawalPlan),
     /// Register an asset's regulation status in the compliance registry.
@@ -47,10 +43,7 @@ impl ActionPlan {
             ActionPlan::NoteReshape(plan) => &plan.spends,
             ActionPlan::ShieldedIcs20Withdrawal(plan) => &plan.spends,
             ActionPlan::ShieldedHostWithdrawal(plan) => &plan.spends,
-            ActionPlan::ValidatorDefinition(_)
-            | ActionPlan::IbcAction(_)
-            | ActionPlan::ProposalSubmit(_)
-            | ActionPlan::ValidatorVote(_)
+            ActionPlan::IbcAction(_)
             | ActionPlan::ComplianceRegisterAsset(_)
             | ActionPlan::ComplianceRegisterUser(_) => &[],
         }
@@ -126,10 +119,7 @@ impl ActionPlan {
                         })?,
                 )
             }
-            ValidatorDefinition(plan) => Action::ValidatorDefinition(plan.clone()),
             IbcAction(plan) => Action::IbcRelay(plan.clone()),
-            ProposalSubmit(plan) => Action::ProposalSubmit(plan.clone()),
-            ValidatorVote(plan) => Action::ValidatorVote(plan.clone()),
             ShieldedIcs20Withdrawal(plan) => {
                 let dummy_payload_key: PayloadKey = [0u8; 32].into();
                 let auth_paths = plan
@@ -196,10 +186,7 @@ impl ActionPlan {
         match self {
             ActionPlan::Transfer(_) => 5,
             ActionPlan::NoteReshape(_) => 6,
-            ActionPlan::ValidatorDefinition(_) => 16,
             ActionPlan::IbcAction(_) => 17,
-            ActionPlan::ProposalSubmit(_) => 18,
-            ActionPlan::ValidatorVote(_) => 20,
             ActionPlan::ComplianceRegisterAsset(_) => 80,
             ActionPlan::ComplianceRegisterUser(_) => 81,
             ActionPlan::ShieldedIcs20Withdrawal(_) => 200,
@@ -213,14 +200,11 @@ impl ActionPlan {
         match self {
             Transfer(action) => action.balance(),
             NoteReshape(action) => action.balance(),
-            ProposalSubmit(action) => action.balance(),
             ShieldedIcs20Withdrawal(action) => action.balance(),
             ShieldedHostWithdrawal(action) => action.balance(),
-            IbcAction(_)
-            | ValidatorDefinition(_)
-            | ValidatorVote(_)
-            | ComplianceRegisterAsset(_)
-            | ComplianceRegisterUser(_) => Balance::default(),
+            IbcAction(_) | ComplianceRegisterAsset(_) | ComplianceRegisterUser(_) => {
+                Balance::default()
+            }
         }
     }
 
@@ -232,12 +216,7 @@ impl ActionPlan {
             NoteReshape(action) => action.value_blinding,
             ShieldedIcs20Withdrawal(action) => action.value_blinding,
             ShieldedHostWithdrawal(action) => action.value_blinding,
-            ValidatorDefinition(_)
-            | IbcAction(_)
-            | ProposalSubmit(_)
-            | ValidatorVote(_)
-            | ComplianceRegisterAsset(_)
-            | ComplianceRegisterUser(_) => Fr::zero(),
+            IbcAction(_) | ComplianceRegisterAsset(_) | ComplianceRegisterUser(_) => Fr::zero(),
         }
     }
 
@@ -267,10 +246,7 @@ impl ActionPlan {
                     recent_position_floor,
                 )
                 .map(|body| body.effect_hash())?,
-            ValidatorDefinition(plan) => plan.effect_hash(),
             IbcAction(plan) => plan.effect_hash(),
-            ProposalSubmit(plan) => plan.effect_hash(),
-            ValidatorVote(plan) => plan.effect_hash(),
             ShieldedIcs20Withdrawal(plan) => plan
                 .action_body(
                     fvk,
@@ -307,27 +283,9 @@ impl From<NoteReshapePlan> for ActionPlan {
     }
 }
 
-impl From<shieldd_sdk_validator::validator::Definition> for ActionPlan {
-    fn from(inner: shieldd_sdk_validator::validator::Definition) -> ActionPlan {
-        ActionPlan::ValidatorDefinition(inner)
-    }
-}
-
 impl From<IbcRelay> for ActionPlan {
     fn from(inner: IbcRelay) -> ActionPlan {
         ActionPlan::IbcAction(inner)
-    }
-}
-
-impl From<ProposalSubmit> for ActionPlan {
-    fn from(inner: ProposalSubmit) -> ActionPlan {
-        ActionPlan::ProposalSubmit(inner)
-    }
-}
-
-impl From<ValidatorVote> for ActionPlan {
-    fn from(inner: ValidatorVote) -> ActionPlan {
-        ActionPlan::ValidatorVote(inner)
     }
 }
 
@@ -368,17 +326,8 @@ impl From<ActionPlan> for pb_t::ActionPlan {
             ActionPlan::NoteReshape(inner) => pb_t::ActionPlan {
                 action: Some(pb_t::action_plan::Action::NoteReshape(inner.into())),
             },
-            ActionPlan::ValidatorDefinition(inner) => pb_t::ActionPlan {
-                action: Some(pb_t::action_plan::Action::ValidatorDefinition(inner.into())),
-            },
             ActionPlan::IbcAction(inner) => pb_t::ActionPlan {
                 action: Some(pb_t::action_plan::Action::IbcRelayAction(inner.into())),
-            },
-            ActionPlan::ProposalSubmit(inner) => pb_t::ActionPlan {
-                action: Some(pb_t::action_plan::Action::ProposalSubmit(inner.into())),
-            },
-            ActionPlan::ValidatorVote(inner) => pb_t::ActionPlan {
-                action: Some(pb_t::action_plan::Action::ValidatorVote(inner.into())),
             },
             ActionPlan::ShieldedIcs20Withdrawal(inner) => pb_t::ActionPlan {
                 action: Some(pb_t::action_plan::Action::ShieldedIcs20Withdrawal(
@@ -422,17 +371,8 @@ impl TryFrom<pb_t::ActionPlan> for ActionPlan {
             pb_t::action_plan::Action::NoteReshape(inner) => {
                 Ok(ActionPlan::NoteReshape(inner.try_into()?))
             }
-            pb_t::action_plan::Action::ValidatorDefinition(inner) => {
-                Ok(ActionPlan::ValidatorDefinition(inner.try_into()?))
-            }
             pb_t::action_plan::Action::IbcRelayAction(inner) => {
                 Ok(ActionPlan::IbcAction(inner.try_into()?))
-            }
-            pb_t::action_plan::Action::ProposalSubmit(inner) => {
-                Ok(ActionPlan::ProposalSubmit(inner.try_into()?))
-            }
-            pb_t::action_plan::Action::ValidatorVote(inner) => {
-                Ok(ActionPlan::ValidatorVote(inner.try_into()?))
             }
             pb_t::action_plan::Action::ShieldedIcs20Withdrawal(inner) => {
                 Ok(ActionPlan::ShieldedIcs20Withdrawal(inner.try_into()?))

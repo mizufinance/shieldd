@@ -26,12 +26,10 @@ packages=(
     shieldd-sdk-asset
     shieldd-sdk-compact-block
     shieldd-sdk-fee
-    shieldd-sdk-governance
     shieldd-sdk-ibc
     shieldd-sdk-keys
     shieldd-sdk-sct
     shieldd-sdk-shielded-pool
-    shieldd-sdk-validator
     shieldd-sdk-tct
     shieldd-sdk-transaction
     shieldd-sdk-txhash

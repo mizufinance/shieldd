@@ -259,29 +259,10 @@ impl TransactionPlan {
                         }
                     }
                 }
-                (
-                    ActionPlan::ValidatorDefinition(plan),
-                    Action::ValidatorDefinition(action),
-                ) => anyhow::ensure!(
-                    plan.effect_hash() == action.effect_hash(),
-                    "validator-definition action {action_index} does not match plan"
-                ),
                 (ActionPlan::IbcAction(plan), Action::IbcRelay(action)) => anyhow::ensure!(
                     plan.effect_hash() == action.effect_hash(),
                     "IBC relay action {action_index} does not match plan"
                 ),
-                (ActionPlan::ProposalSubmit(plan), Action::ProposalSubmit(action)) => {
-                    anyhow::ensure!(
-                        plan.effect_hash() == action.effect_hash(),
-                        "proposal-submit action {action_index} does not match plan"
-                    )
-                }
-                (ActionPlan::ValidatorVote(plan), Action::ValidatorVote(action)) => {
-                    anyhow::ensure!(
-                        plan.effect_hash() == action.effect_hash(),
-                        "validator-vote action {action_index} does not match plan"
-                    )
-                }
                 (
                     ActionPlan::ComplianceRegisterAsset(plan),
                     Action::ComplianceRegisterAsset(action),

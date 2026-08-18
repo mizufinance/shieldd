@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_compliance::structs::{MsgRegisterAsset, MsgRegisterUser};
-use shieldd_sdk_governance::{ProposalSubmit, ValidatorVote};
 use shieldd_sdk_ibc::IbcRelay;
 use shieldd_sdk_proof_aggregation::AggregateBundle;
 use shieldd_sdk_proto::{core::transaction::v1 as pbt, DomainType};
@@ -17,10 +16,7 @@ use crate::Action;
 pub enum ActionView {
     Transfer(TransferView),
     NoteReshape(NoteReshapeView),
-    ValidatorDefinition(shieldd_sdk_validator::validator::Definition),
     IbcRelay(IbcRelay),
-    ProposalSubmit(ProposalSubmit),
-    ValidatorVote(ValidatorVote),
     ShieldedIcs20Withdrawal(ShieldedIcs20WithdrawalView),
     ShieldedHostWithdrawal(ShieldedHostWithdrawalView),
     ComplianceRegisterAsset(MsgRegisterAsset),
@@ -44,10 +40,7 @@ impl TryFrom<pbt::ActionView> for ActionView {
             {
                 AV::Transfer(x) => ActionView::Transfer(x.try_into()?),
                 AV::NoteReshape(x) => ActionView::NoteReshape(x.try_into()?),
-                AV::ValidatorDefinition(x) => ActionView::ValidatorDefinition(x.try_into()?),
                 AV::IbcRelayAction(x) => ActionView::IbcRelay(x.try_into()?),
-                AV::ProposalSubmit(x) => ActionView::ProposalSubmit(x.try_into()?),
-                AV::ValidatorVote(x) => ActionView::ValidatorVote(x.try_into()?),
                 AV::ShieldedIcs20Withdrawal(x) => {
                     ActionView::ShieldedIcs20Withdrawal(x.try_into()?)
                 }
@@ -69,10 +62,7 @@ impl From<ActionView> for pbt::ActionView {
             action_view: Some(match v {
                 ActionView::Transfer(x) => AV::Transfer(x.into()),
                 ActionView::NoteReshape(x) => AV::NoteReshape(x.into()),
-                ActionView::ValidatorDefinition(x) => AV::ValidatorDefinition(x.into()),
                 ActionView::IbcRelay(x) => AV::IbcRelayAction(x.into()),
-                ActionView::ProposalSubmit(x) => AV::ProposalSubmit(x.into()),
-                ActionView::ValidatorVote(x) => AV::ValidatorVote(x.into()),
                 ActionView::ShieldedIcs20Withdrawal(x) => AV::ShieldedIcs20Withdrawal(x.into()),
                 ActionView::ShieldedHostWithdrawal(x) => AV::ShieldedHostWithdrawal(x.into()),
                 ActionView::ComplianceRegisterAsset(x) => AV::ComplianceRegisterAsset(x.into()),
@@ -88,10 +78,7 @@ impl From<ActionView> for Action {
         match action_view {
             ActionView::Transfer(x) => Action::Transfer(x.into()),
             ActionView::NoteReshape(x) => Action::NoteReshape(x.into()),
-            ActionView::ValidatorDefinition(x) => Action::ValidatorDefinition(x),
             ActionView::IbcRelay(x) => Action::IbcRelay(x),
-            ActionView::ProposalSubmit(x) => Action::ProposalSubmit(x),
-            ActionView::ValidatorVote(x) => Action::ValidatorVote(x),
             ActionView::ShieldedIcs20Withdrawal(x) => match x {
                 ShieldedIcs20WithdrawalView::Visible { withdrawal, .. } => {
                     Action::ShieldedIcs20Withdrawal(withdrawal)

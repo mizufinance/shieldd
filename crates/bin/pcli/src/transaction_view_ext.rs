@@ -270,18 +270,7 @@ impl TransactionViewExt for TransactionView {
                     };
                     ["Host Withdrawal", &action]
                 }
-                shieldd_sdk_transaction::ActionView::ProposalSubmit(proposal_submit) => {
-                    action = format!(
-                        "Submit Governance Proposal #{}",
-                        proposal_submit.proposal().id
-                    );
-                    [&action, ""]
-                }
                 shieldd_sdk_transaction::ActionView::IbcRelay(_) => ["IBC Relay", ""],
-                shieldd_sdk_transaction::ActionView::ValidatorDefinition(_) => {
-                    ["Upload Validator Definition", ""]
-                }
-                shieldd_sdk_transaction::ActionView::ValidatorVote(_) => ["Validator Vote", ""],
                 shieldd_sdk_transaction::ActionView::ComplianceRegisterAsset(x) => {
                     action = format!(
                         "Register asset {} as {}",

@@ -6,10 +6,7 @@ pub mod block;
 pub mod ibc;
 pub mod insights;
 mod parsing;
-pub mod stake;
 pub mod supply;
-
-pub mod governance;
 
 #[derive(clap::Parser, Clone, Debug)]
 pub struct Options {

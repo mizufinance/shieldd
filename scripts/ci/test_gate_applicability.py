@@ -82,7 +82,7 @@ class GateApplicabilityTests(unittest.TestCase):
         )
         # The application now verifies aggregate proofs in its production
         # transaction path, so Orbis must follow that dependency transitively.
-        self.assertGreaterEqual(len(relevant.patterns) // 2, 39)
+        self.assertGreaterEqual(len(relevant.patterns) // 2, 37)
         self.assertIn("crates/core/app/**", relevant.patterns)
         self.assertIn("crates/crypto/proof-aggregation/**", relevant.patterns)
         self.assertEqual(relevant.tier, "full")

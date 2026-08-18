@@ -280,56 +280,6 @@
         ]
       },
       {
-        "id": "SINK-ACTION-ENUM-CHECK-STATELESS",
-        "profiles": [
-          "note_reshape1x8",
-          "note_reshape8x1",
-          "shielded_ics20_withdrawal",
-          "transfer"
-        ],
-        "entrypoint": {
-          "path": "crates/core/app/src/action_handler/actions.rs",
-          "symbols": [
-            "impl AppActionHandler for Action",
-            "async fn check_stateless"
-          ]
-        },
-        "terminal_effects": [
-          "stateless_accept"
-        ],
-        "required_guards": [
-          {
-            "path": "crates/core/app/src/action_handler/actions.rs",
-            "symbols": [
-              "Action::Transfer(action)",
-              "Action::NoteReshape(action)",
-              "Action::ShieldedIcs20Withdrawal(action)",
-              "Action::ShieldedHostWithdrawal(action)",
-              "action.check_stateless(context).await"
-            ]
-          },
-          {
-            "path": "crates/core/app/src/action_handler/transaction.rs",
-            "symbols": [
-              "validate_transaction_envelope(self)",
-              "action.check_stateless(context2).await",
-              "drain_joinset_results",
-              "Action::Transfer(fee_funding.transfer.clone())"
-            ]
-          },
-          {
-            "path": "crates/crypto/proof-params/src/batch.rs",
-            "symbols": [
-              "pub fn verify_each",
-              "verify_with_processed_vk"
-            ]
-          }
-        ],
-        "test_ids": [
-          "ACTION-TRANSACTION-STATELESS-REJECTS-INVALID-PROOF"
-        ]
-      },
-      {
         "id": "SINK-ACTION-HOST-WITHDRAWAL-CHECK-STATELESS",
         "profiles": [
           "shielded_ics20_withdrawal"
@@ -361,7 +311,7 @@
           }
         ],
         "test_ids": [
-          "ACTION-TRANSACTION-STATELESS-REJECTS-INVALID-PROOF",
+          "APP-ARTIFACT-BUILD-REJECTS-INVALID-PROOF",
           "WITHDRAWAL-RAW-EXECUTION-REQUIRES-CAPABILITY"
         ]
       },
@@ -398,7 +348,7 @@
           }
         ],
         "test_ids": [
-          "ACTION-TRANSACTION-STATELESS-REJECTS-INVALID-PROOF",
+          "APP-ARTIFACT-BUILD-REJECTS-INVALID-PROOF",
           "NOTE-RESHAPE-PROJECTION-AND-CAPABILITY-GATE"
         ]
       },
@@ -434,7 +384,7 @@
           }
         ],
         "test_ids": [
-          "ACTION-TRANSACTION-STATELESS-REJECTS-INVALID-PROOF",
+          "APP-ARTIFACT-BUILD-REJECTS-INVALID-PROOF",
           "TRANSFER-RAW-EXECUTION-REQUIRES-CAPABILITY"
         ]
       },
@@ -470,7 +420,7 @@
           }
         ],
         "test_ids": [
-          "ACTION-TRANSACTION-STATELESS-REJECTS-INVALID-PROOF",
+          "APP-ARTIFACT-BUILD-REJECTS-INVALID-PROOF",
           "WITHDRAWAL-RAW-EXECUTION-REQUIRES-CAPABILITY"
         ]
       },
@@ -1027,55 +977,6 @@
         ]
       },
       {
-        "id": "SINK-TRANSACTION-CHECK-STATELESS",
-        "profiles": [
-          "note_reshape1x8",
-          "note_reshape8x1",
-          "shielded_ics20_withdrawal",
-          "transfer"
-        ],
-        "entrypoint": {
-          "path": "crates/core/app/src/action_handler/transaction.rs",
-          "symbols": [
-            "impl AppActionHandler for Transaction",
-            "async fn check_stateless"
-          ]
-        },
-        "terminal_effects": [
-          "stateless_accept"
-        ],
-        "required_guards": [
-          {
-            "path": "crates/core/app/src/action_handler/transaction.rs",
-            "symbols": [
-              "validate_transaction_envelope(self)",
-              "action.check_stateless(context2).await",
-              "drain_joinset_results",
-              "Action::Transfer(fee_funding.transfer.clone())"
-            ]
-          },
-          {
-            "path": "crates/core/app/src/action_handler/actions.rs",
-            "symbols": [
-              "Action::Transfer(action)",
-              "Action::NoteReshape(action)",
-              "Action::ShieldedIcs20Withdrawal(action)",
-              "Action::ShieldedHostWithdrawal(action)"
-            ]
-          },
-          {
-            "path": "crates/crypto/proof-params/src/batch.rs",
-            "symbols": [
-              "pub fn verify_each",
-              "verify_with_processed_vk"
-            ]
-          }
-        ],
-        "test_ids": [
-          "ACTION-TRANSACTION-STATELESS-REJECTS-INVALID-PROOF"
-        ]
-      },
-      {
         "id": "SINK-VERIFIED-CACHE-PROMOTION",
         "profiles": [
           "note_reshape1x8",
@@ -1192,11 +1093,11 @@
         "id": "RUNTIME-POLICY-ACTION-AUTHORIZATION",
         "statement": "Every direct-signature transaction Action verifies its canonical signed body under a nonidentity action-specific key and enforces its state authorization before mutation. The exact regressions are executed by the formal evidence receipt.",
         "parameters": {
-          "action_variants": 9,
-          "circuit_and_envelope_authorized": 3,
+          "action_variants": 8,
+          "circuit_and_envelope_authorized": 4,
           "construction_mismatch_regressions": 5,
-          "direct_signature_and_state_authorized": 5,
-          "identity_attack_regressions": 7,
+          "direct_signature_and_state_authorized": 2,
+          "identity_attack_regressions": 4,
           "permissionless_protocol_authorized": 1
         },
         "sinks": [
@@ -1207,10 +1108,7 @@
           "RUNTIME-ACTION-AUTH-ASSET-POLICY-IDENTITY-REJECT",
           "RUNTIME-ACTION-AUTH-ASSET-REGISTRAR-IDENTITY-REJECT",
           "RUNTIME-ACTION-AUTH-GENESIS-IDENTITY-REJECT",
-          "RUNTIME-ACTION-AUTH-GOVERNANCE-IDENTITY-REJECT",
-          "RUNTIME-ACTION-AUTH-NETWORK-VALIDATOR-IDENTITY-REJECT",
           "RUNTIME-ACTION-AUTH-USER-AUTHORITY-IDENTITY-REJECT",
-          "RUNTIME-ACTION-AUTH-VALIDATOR-IDENTITY-REJECT",
           "RUNTIME-ACTION-PLAN-ACTION-COUNT-MISMATCH",
           "RUNTIME-ACTION-PLAN-EFFECT-HASH-MISMATCH",
           "RUNTIME-ACTION-PLAN-FEE-FUNDING-PRESENCE-MISMATCH",
@@ -1364,7 +1262,7 @@
       },
       {
         "id": "RUNTIME-POLICY-STRUCTURED-CONCURRENCY",
-        "statement": "Proof and transaction worker groups drain all spawned work before returning the first failure.",
+        "statement": "Proof worker groups drain all spawned work before returning the first failure.",
         "parameters": {
           "drain_before_error_return": 1
         },
@@ -1375,8 +1273,7 @@
           "proof_workers"
         ],
         "test_ids": [
-          "RUNTIME-STRUCTURED-TASK-DRAIN",
-          "RUNTIME-STRUCTURED-TRANSACTION-TASK-DRAIN"
+          "RUNTIME-STRUCTURED-TASK-DRAIN"
         ]
       },
       {
@@ -1480,38 +1377,6 @@
         }
       },
       {
-        "id": "RUNTIME-ACTION-AUTH-GOVERNANCE-IDENTITY-REJECT",
-        "kind": "attack_reproduction",
-        "path": "crates/core/component/stake/src/governance_key.rs",
-        "symbol": "governance_key_rejects_identity",
-        "execution": {
-          "runner": "cargo_test",
-          "working_directory": ".",
-          "package": "shieldd-sdk-validator",
-          "cargo_target": "lib",
-          "selector": "governance_key_rejects_identity",
-          "build_profile": "default",
-          "features": [],
-          "prover_required": false
-        }
-      },
-      {
-        "id": "RUNTIME-ACTION-AUTH-NETWORK-VALIDATOR-IDENTITY-REJECT",
-        "kind": "attack_reproduction",
-        "path": "crates/bin/pd/src/network/generate.rs",
-        "symbol": "validator_conversion_rejects_identity_authorization_key_without_panicking",
-        "execution": {
-          "runner": "cargo_test",
-          "working_directory": ".",
-          "package": "pd",
-          "cargo_target": "lib",
-          "selector": "validator_conversion_rejects_identity_authorization_key_without_panicking",
-          "build_profile": "default",
-          "features": [],
-          "prover_required": false
-        }
-      },
-      {
         "id": "RUNTIME-ACTION-AUTH-USER-AUTHORITY-IDENTITY-REJECT",
         "kind": "attack_reproduction",
         "path": "crates/core/component/compliance/src/structs.rs",
@@ -1522,22 +1387,6 @@
           "package": "shieldd-sdk-compliance",
           "cargo_target": "lib",
           "selector": "user_registration_grant_rejects_identity_registration_authority",
-          "build_profile": "default",
-          "features": [],
-          "prover_required": false
-        }
-      },
-      {
-        "id": "RUNTIME-ACTION-AUTH-VALIDATOR-IDENTITY-REJECT",
-        "kind": "attack_reproduction",
-        "path": "crates/core/component/stake/src/identity_key.rs",
-        "symbol": "validator_identity_key_rejects_identity",
-        "execution": {
-          "runner": "cargo_test",
-          "working_directory": ".",
-          "package": "shieldd-sdk-validator",
-          "cargo_target": "lib",
-          "selector": "validator_identity_key_rejects_identity",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -2392,22 +2241,6 @@
         }
       },
       {
-        "id": "RUNTIME-STRUCTURED-TRANSACTION-TASK-DRAIN",
-        "kind": "negative",
-        "path": "crates/core/app/src/action_handler/transaction.rs",
-        "symbol": "structured_join_drain_waits_for_transaction_siblings_after_error",
-        "execution": {
-          "runner": "cargo_test",
-          "working_directory": ".",
-          "package": "shieldd-sdk-app",
-          "cargo_target": "lib",
-          "selector": "structured_join_drain_waits_for_transaction_siblings_after_error",
-          "build_profile": "default",
-          "features": [],
-          "prover_required": false
-        }
-      },
-      {
         "id": "RUNTIME-TIMESTAMP-CENTRAL-ZERO-DRIFT",
         "kind": "boundary_negative",
         "path": "crates/core/component/compliance/src/registry.rs",
@@ -2580,8 +2413,6 @@
         "test_ids": [
           "PROPERTY-ANCHOR-VALIDATION-CACHE-COUNTS-SHARED-PAIR-ONCE",
           "PROPERTY-CLAIMED-ANCHOR-VALIDATION-CACHE-COUNTS-SHARED-ANCHOR-ONCE",
-          "PROPERTY-COMPLIANCE-ANCHOR-VALIDATION-WINDOW-MAY-CHANGE",
-          "PROPERTY-COMPLIANCE-ANCHOR-VALIDATION-WINDOW-MUST-BE-POSITIVE",
           "PROPERTY-FIND-MOST-RECENT-ANCHORS-USES-HISTORY-ONLY-FOR-USER-ROOT"
         ]
       },
@@ -2917,7 +2748,6 @@
       "crates/core/app/src/action_handler/transaction.rs",
       "crates/core/app/src/app/host.rs",
       "crates/core/app/src/app/mod.rs",
-      "crates/core/app/src/params/change.rs",
       "crates/core/asset/src/balance.rs",
       "crates/core/asset/src/value.rs",
       "crates/core/component/compliance/src/action_check.rs",
@@ -3261,38 +3091,6 @@
           "package": "shieldd-sdk-shielded-pool",
           "cargo_target": "lib",
           "selector": "claimed_hash_parser_rejects_modulus_alias",
-          "build_profile": "default",
-          "features": [],
-          "prover_required": false
-        }
-      },
-      {
-        "id": "PROPERTY-COMPLIANCE-ANCHOR-VALIDATION-WINDOW-MAY-CHANGE",
-        "kind": "invariant",
-        "path": "crates/core/app/src/params/change.rs",
-        "symbol": "compliance_anchor_validation_window_may_change",
-        "execution": {
-          "runner": "cargo_test",
-          "working_directory": ".",
-          "package": "shieldd-sdk-app",
-          "cargo_target": "lib",
-          "selector": "compliance_anchor_validation_window_may_change",
-          "build_profile": "default",
-          "features": [],
-          "prover_required": false
-        }
-      },
-      {
-        "id": "PROPERTY-COMPLIANCE-ANCHOR-VALIDATION-WINDOW-MUST-BE-POSITIVE",
-        "kind": "boundary_negative",
-        "path": "crates/core/app/src/params/change.rs",
-        "symbol": "compliance_anchor_validation_window_must_be_positive",
-        "execution": {
-          "runner": "cargo_test",
-          "working_directory": ".",
-          "package": "shieldd-sdk-app",
-          "cargo_target": "lib",
-          "selector": "compliance_anchor_validation_window_must_be_positive",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -12594,19 +12392,13 @@
       "crates/bin/shieldd/src/grpc.rs",
       "crates/bin/shieldd/src/service.rs",
       "crates/core/app-tests/tests/app_blocktimes_increment.rs",
-      "crates/core/app-tests/tests/app_bootstraps_post_genesis_validator_definitions.rs",
       "crates/core/app-tests/tests/app_can_sweep_a_collection_of_small_notes.rs",
       "crates/core/app-tests/tests/app_can_transfer_notes_and_detect_new_notes.rs",
-      "crates/core/app-tests/tests/app_rejects_validator_definitions_with_invalid_auth_sigs.rs",
-      "crates/core/app-tests/tests/app_tracks_uptime_for_genesis_validator_missing_blocks.rs",
-      "crates/core/app-tests/tests/app_tracks_uptime_for_genesis_validator_signing_blocks.rs",
       "crates/core/app-tests/tests/compliance_diversifier_fix.rs",
       "crates/core/app-tests/tests/ics23_transfer.rs",
       "crates/core/app-tests/tests/mock_consensus_block_proving.rs",
-      "crates/core/app-tests/tests/mock_consensus_can_define_a_genesis_validator.rs",
       "crates/core/app-tests/tests/mock_consensus_can_send_a_sequence_of_empty_blocks.rs",
       "crates/core/app-tests/tests/view_server_can_be_served_on_localhost.rs",
-      "crates/core/app/src/action_handler/actions/submit.rs",
       "crates/core/app/src/action_handler/transaction.rs",
       "crates/core/app/src/action_handler/transaction/stateless.rs",
       "crates/core/app/src/app/host.rs",
@@ -12616,7 +12408,6 @@
       "crates/core/app/src/app_version/component.rs",
       "crates/core/app/src/genesis.rs",
       "crates/core/app/src/nullifier_generation_packs.rs",
-      "crates/core/app/src/params/change.rs",
       "crates/core/app/src/server/consensus.rs",
       "crates/core/app/src/server/mempool.rs",
       "crates/core/app/src/stateless_cache.rs",
@@ -12650,11 +12441,6 @@
       "crates/core/component/compliance/src/structs.rs",
       "crates/core/component/compliance/src/transfer.rs",
       "crates/core/component/compliance/src/tree.rs",
-      "crates/core/component/governance/src/change.rs",
-      "crates/core/component/governance/src/proposal.rs",
-      "crates/core/component/governance/src/tally.rs",
-      "crates/core/component/governance/src/vote.rs",
-      "crates/core/component/governance/src/voting_receipt_token.rs",
       "crates/core/component/ibc/src/component/client.rs",
       "crates/core/component/ibc/src/component/rpc/utils.rs",
       "crates/core/component/ibc/src/ibc_token.rs",
@@ -12706,10 +12492,6 @@
       "crates/core/component/shielded-pool/src/transfer/generated.rs",
       "crates/core/component/shielded-pool/src/transfer/plan.rs",
       "crates/core/component/shielded-pool/src/transfer/proof.rs",
-      "crates/core/component/stake/src/component/stake/tests.rs",
-      "crates/core/component/stake/src/governance_key.rs",
-      "crates/core/component/stake/src/identity_key.rs",
-      "crates/core/component/stake/src/uptime.rs",
       "crates/core/keys/src/address.rs",
       "crates/core/keys/src/address/r1cs.rs",
       "crates/core/keys/src/address/view.rs",
@@ -12856,10 +12638,6 @@
     ],
     "selected": [
       {
-        "path": "crates/bin/pd/src/network/generate.rs",
-        "symbol": "validator_conversion_rejects_identity_authorization_key_without_panicking"
-      },
-      {
         "path": "crates/bin/shieldd/src/ffi.rs",
         "symbol": "ffi_execution_check_tx_rejects_invalid_transaction"
       },
@@ -12898,10 +12676,6 @@
       {
         "path": "crates/core/app/src/action_handler/transaction.rs",
         "symbol": "claimed_anchor_validation_cache_counts_shared_anchor_once"
-      },
-      {
-        "path": "crates/core/app/src/action_handler/transaction.rs",
-        "symbol": "structured_join_drain_waits_for_transaction_siblings_after_error"
       },
       {
         "path": "crates/core/app/src/action_handler/transaction.rs",
@@ -13033,6 +12807,10 @@
       },
       {
         "path": "crates/core/app/src/app/tests/proof_acceptance_tests.rs",
+        "symbol": "fv_runtime_artifact_build_rejects_decodable_invalid_groth16"
+      },
+      {
+        "path": "crates/core/app/src/app/tests/proof_acceptance_tests.rs",
         "symbol": "fv_runtime_cache_promotion_never_exceeds_exact_groth16_attestation"
       },
       {
@@ -13065,23 +12843,11 @@
       },
       {
         "path": "crates/core/app/src/app/tests/proof_acceptance_tests.rs",
-        "symbol": "fv_runtime_transaction_stateless_rejects_decodable_invalid_groth16"
-      },
-      {
-        "path": "crates/core/app/src/app/tests/proof_acceptance_tests.rs",
         "symbol": "proved_withdrawal_accounting_failure_rolls_back_action_effects"
       },
       {
         "path": "crates/core/app/src/app/tests/proof_acceptance_tests.rs",
         "symbol": "proved_withdrawal_then_later_failure_rolls_back_first_action"
-      },
-      {
-        "path": "crates/core/app/src/params/change.rs",
-        "symbol": "compliance_anchor_validation_window_may_change"
-      },
-      {
-        "path": "crates/core/app/src/params/change.rs",
-        "symbol": "compliance_anchor_validation_window_must_be_positive"
       },
       {
         "path": "crates/core/app/src/server/consensus.rs",
@@ -14378,14 +14144,6 @@
       {
         "path": "crates/core/component/shielded-pool/src/transfer/proof.rs",
         "symbol": "transfer_proof_roundtrip_regulated"
-      },
-      {
-        "path": "crates/core/component/stake/src/governance_key.rs",
-        "symbol": "governance_key_rejects_identity"
-      },
-      {
-        "path": "crates/core/component/stake/src/identity_key.rs",
-        "symbol": "validator_identity_key_rejects_identity"
       },
       {
         "path": "crates/core/keys/src/address.rs",
@@ -16695,33 +16453,8 @@
         "reason": "supporting_regression_not_claim_evidence"
       },
       {
-        "path": "crates/core/app-tests/tests/app_bootstraps_post_genesis_validator_definitions.rs",
-        "symbol": "app_activates_post_genesis_validator_definitions_with_equal_weight",
-        "reason": "out_of_scope_for_four_circuit_claim"
-      },
-      {
-        "path": "crates/core/app-tests/tests/app_rejects_validator_definitions_with_invalid_auth_sigs.rs",
-        "symbol": "app_rejects_validator_definitions_with_invalid_auth_sigs",
-        "reason": "out_of_scope_for_four_circuit_claim"
-      },
-      {
-        "path": "crates/core/app-tests/tests/app_tracks_uptime_for_genesis_validator_missing_blocks.rs",
-        "symbol": "app_tracks_uptime_for_genesis_validator_missing_blocks",
-        "reason": "out_of_scope_for_four_circuit_claim"
-      },
-      {
-        "path": "crates/core/app-tests/tests/app_tracks_uptime_for_genesis_validator_signing_blocks.rs",
-        "symbol": "app_tracks_uptime_for_genesis_validator_missing_blocks",
-        "reason": "out_of_scope_for_four_circuit_claim"
-      },
-      {
         "path": "crates/core/app-tests/tests/mock_consensus_block_proving.rs",
         "symbol": "verify_storage_proof_simple",
-        "reason": "out_of_scope_for_four_circuit_claim"
-      },
-      {
-        "path": "crates/core/app-tests/tests/mock_consensus_can_define_a_genesis_validator.rs",
-        "symbol": "mock_consensus_can_define_a_genesis_validator",
         "reason": "out_of_scope_for_four_circuit_claim"
       },
       {
@@ -16733,21 +16466,6 @@
         "path": "crates/core/app-tests/tests/view_server_can_be_served_on_localhost.rs",
         "symbol": "view_server_can_be_served_on_localhost",
         "reason": "out_of_scope_for_four_circuit_claim"
-      },
-      {
-        "path": "crates/core/app/src/action_handler/actions/submit.rs",
-        "symbol": "parameter_change_proposals_remain_enabled_statelessly",
-        "reason": "out_of_scope_for_four_circuit_claim"
-      },
-      {
-        "path": "crates/core/app/src/action_handler/transaction.rs",
-        "symbol": "check_stateless_fails_on_auth_path_with_wrong_root",
-        "reason": "supporting_regression_not_claim_evidence"
-      },
-      {
-        "path": "crates/core/app/src/action_handler/transaction.rs",
-        "symbol": "check_stateless_succeeds_on_valid_spend",
-        "reason": "supporting_regression_not_claim_evidence"
       },
       {
         "path": "crates/core/app/src/action_handler/transaction.rs",
@@ -16806,7 +16524,7 @@
       },
       {
         "path": "crates/core/app/src/app/host.rs",
-        "symbol": "host_execution_init_genesis_does_not_initialize_validator_chain_components",
+        "symbol": "host_execution_init_genesis_does_not_initialize_ibc",
         "reason": "out_of_scope_for_four_circuit_claim"
       },
       {
@@ -16983,11 +16701,6 @@
         "path": "crates/core/app/src/app_version/component.rs",
         "symbol": "ensure_app_version_is_current_in_checks",
         "reason": "supporting_regression_not_claim_evidence"
-      },
-      {
-        "path": "crates/core/app/src/genesis.rs",
-        "symbol": "check_validator_defaults",
-        "reason": "out_of_scope_for_four_circuit_claim"
       },
       {
         "path": "crates/core/app/src/genesis.rs",
@@ -17705,61 +17418,6 @@
         "reason": "out_of_scope_for_four_circuit_claim"
       },
       {
-        "path": "crates/core/component/governance/src/change.rs",
-        "symbol": "apply_changes_to_gov_params",
-        "reason": "out_of_scope_for_four_circuit_claim"
-      },
-      {
-        "path": "crates/core/component/governance/src/change.rs",
-        "symbol": "dump_encoded_parameters",
-        "reason": "out_of_scope_for_four_circuit_claim"
-      },
-      {
-        "path": "crates/core/component/governance/src/change.rs",
-        "symbol": "preconditions_prevent_applying_changes",
-        "reason": "out_of_scope_for_four_circuit_claim"
-      },
-      {
-        "path": "crates/core/component/governance/src/change.rs",
-        "symbol": "protojson_rules_block_snake_case_parameter_changes",
-        "reason": "out_of_scope_for_four_circuit_claim"
-      },
-      {
-        "path": "crates/core/component/governance/src/proposal.rs",
-        "symbol": "proposal_kind_parses_ibc_freeze_variants",
-        "reason": "out_of_scope_for_four_circuit_claim"
-      },
-      {
-        "path": "crates/core/component/governance/src/tally.rs",
-        "symbol": "abstain_only_tally_never_passes",
-        "reason": "out_of_scope_for_four_circuit_claim"
-      },
-      {
-        "path": "crates/core/component/governance/src/tally.rs",
-        "symbol": "mixed_yes_and_no_above_threshold_passes",
-        "reason": "out_of_scope_for_four_circuit_claim"
-      },
-      {
-        "path": "crates/core/component/governance/src/tally.rs",
-        "symbol": "mixed_yes_and_no_below_threshold_fails",
-        "reason": "out_of_scope_for_four_circuit_claim"
-      },
-      {
-        "path": "crates/core/component/governance/src/tally.rs",
-        "symbol": "slash_threshold_is_checked_before_pass_threshold",
-        "reason": "out_of_scope_for_four_circuit_claim"
-      },
-      {
-        "path": "crates/core/component/governance/src/vote.rs",
-        "symbol": "vote_roundtrip_serialize",
-        "reason": "out_of_scope_for_four_circuit_claim"
-      },
-      {
-        "path": "crates/core/component/governance/src/voting_receipt_token.rs",
-        "symbol": "unbonding_token_denomination_round_trip",
-        "reason": "out_of_scope_for_four_circuit_claim"
-      },
-      {
         "path": "crates/core/component/ibc/src/component/client.rs",
         "symbol": "test_create_and_update_light_client",
         "reason": "out_of_scope_for_four_circuit_claim"
@@ -18073,31 +17731,6 @@
         "path": "crates/core/component/shielded-pool/src/transfer/proof.rs",
         "symbol": "transfer_proof_roundtrip_unregulated",
         "reason": "alternate_fixture_not_normative"
-      },
-      {
-        "path": "crates/core/component/stake/src/component/stake/tests.rs",
-        "symbol": "test_persistent_identity_by_ck",
-        "reason": "supporting_regression_not_claim_evidence"
-      },
-      {
-        "path": "crates/core/component/stake/src/uptime.rs",
-        "symbol": "counts_missed_blocks",
-        "reason": "out_of_scope_for_four_circuit_claim"
-      },
-      {
-        "path": "crates/core/component/stake/src/uptime.rs",
-        "symbol": "enumerate_missed_first_block",
-        "reason": "out_of_scope_for_four_circuit_claim"
-      },
-      {
-        "path": "crates/core/component/stake/src/uptime.rs",
-        "symbol": "enumerate_uptime_simulates_bounded_queue",
-        "reason": "out_of_scope_for_four_circuit_claim"
-      },
-      {
-        "path": "crates/core/component/stake/src/uptime.rs",
-        "symbol": "proto_round_trip",
-        "reason": "out_of_scope_for_four_circuit_claim"
       },
       {
         "path": "crates/core/keys/src/address.rs",
@@ -18777,21 +18410,6 @@
       {
         "path": "crates/view/src/note_manager.rs",
         "symbol": "zero_fee_ibc_action_plans_without_funding_transfer",
-        "reason": "out_of_scope_for_four_circuit_claim"
-      },
-      {
-        "path": "crates/view/src/note_manager.rs",
-        "symbol": "zero_fee_proposal_submit_plans_without_funding_transfer",
-        "reason": "out_of_scope_for_four_circuit_claim"
-      },
-      {
-        "path": "crates/view/src/note_manager.rs",
-        "symbol": "zero_fee_validator_definition_plans_without_funding_transfer",
-        "reason": "out_of_scope_for_four_circuit_claim"
-      },
-      {
-        "path": "crates/view/src/note_manager.rs",
-        "symbol": "zero_fee_validator_vote_plans_without_funding_transfer",
         "reason": "out_of_scope_for_four_circuit_claim"
       },
       {
@@ -24714,10 +24332,10 @@
       }
     },
     {
-      "id": "ACTION-TRANSACTION-STATELESS-REJECTS-INVALID-PROOF",
+      "id": "APP-ARTIFACT-BUILD-REJECTS-INVALID-PROOF",
       "kind": "integration",
       "path": "crates/core/app/src/app/tests/proof_acceptance_tests.rs",
-      "symbol": "fv_runtime_transaction_stateless_rejects_decodable_invalid_groth16",
+      "symbol": "fv_runtime_artifact_build_rejects_decodable_invalid_groth16",
       "predicate_ids": [
         "EXT-PROOF-VERIFICATION"
       ],
@@ -24732,7 +24350,7 @@
         "working_directory": ".",
         "package": "shieldd-sdk-app",
         "cargo_target": "lib",
-        "selector": "fv_runtime_transaction_stateless_rejects_decodable_invalid_groth16",
+        "selector": "fv_runtime_artifact_build_rejects_decodable_invalid_groth16",
         "build_profile": "release",
         "features": [],
         "prover_required": true
@@ -35784,7 +35402,7 @@
       ],
       "test_ids": [
         "ACTION-ANCHOR-CONTEXT",
-        "ACTION-TRANSACTION-STATELESS-REJECTS-INVALID-PROOF",
+        "APP-ARTIFACT-BUILD-REJECTS-INVALID-PROOF",
         "APP-CACHE-PROMOTION-REQUIRES-EXACT-PROOF",
         "APP-COLD-DELIVER-REJECTS-INVALID-PROOF",
         "APP-EXTRACTED-CACHE-CANNOT-BYPASS-PROOF",
@@ -35879,7 +35497,7 @@
       "ledger_ids": [],
       "test_ids": [
         "ACTION-ANCHOR-CONTEXT",
-        "ACTION-TRANSACTION-STATELESS-REJECTS-INVALID-PROOF",
+        "APP-ARTIFACT-BUILD-REJECTS-INVALID-PROOF",
         "APP-CACHE-PROMOTION-REQUIRES-EXACT-PROOF",
         "APP-COLD-DELIVER-REJECTS-INVALID-PROOF",
         "APP-EXTRACTED-CACHE-CANNOT-BYPASS-PROOF",
@@ -36001,7 +35619,7 @@
       "ledger_ids": [],
       "test_ids": [
         "ACTION-ANCHOR-CONTEXT",
-        "ACTION-TRANSACTION-STATELESS-REJECTS-INVALID-PROOF",
+        "APP-ARTIFACT-BUILD-REJECTS-INVALID-PROOF",
         "APP-CACHE-PROMOTION-REQUIRES-EXACT-PROOF",
         "APP-COLD-DELIVER-REJECTS-INVALID-PROOF",
         "APP-EXTRACTED-CACHE-CANNOT-BYPASS-PROOF",
@@ -49124,7 +48742,7 @@
             "NR-EXTERNAL"
           ],
           "test_ids": [
-            "ACTION-TRANSACTION-STATELESS-REJECTS-INVALID-PROOF",
+            "APP-ARTIFACT-BUILD-REJECTS-INVALID-PROOF",
             "APP-CACHE-PROMOTION-REQUIRES-EXACT-PROOF",
             "APP-COLD-DELIVER-REJECTS-INVALID-PROOF",
             "APP-EXTRACTED-CACHE-CANNOT-BYPASS-PROOF",
@@ -49182,7 +48800,7 @@
             "NR-EXTERNAL"
           ],
           "test_ids": [
-            "ACTION-TRANSACTION-STATELESS-REJECTS-INVALID-PROOF",
+            "APP-ARTIFACT-BUILD-REJECTS-INVALID-PROOF",
             "APP-CACHE-PROMOTION-REQUIRES-EXACT-PROOF",
             "APP-COLD-DELIVER-REJECTS-INVALID-PROOF",
             "APP-EXTRACTED-CACHE-CANNOT-BYPASS-PROOF",
@@ -49240,7 +48858,7 @@
             "WITHDRAWAL-CIRCUIT"
           ],
           "test_ids": [
-            "ACTION-TRANSACTION-STATELESS-REJECTS-INVALID-PROOF",
+            "APP-ARTIFACT-BUILD-REJECTS-INVALID-PROOF",
             "APP-CACHE-PROMOTION-REQUIRES-EXACT-PROOF",
             "APP-COLD-DELIVER-REJECTS-INVALID-PROOF",
             "APP-EXTRACTED-CACHE-CANNOT-BYPASS-PROOF",
@@ -49298,7 +48916,7 @@
             "TRANSFER-CIRCUIT"
           ],
           "test_ids": [
-            "ACTION-TRANSACTION-STATELESS-REJECTS-INVALID-PROOF",
+            "APP-ARTIFACT-BUILD-REJECTS-INVALID-PROOF",
             "APP-CACHE-PROMOTION-REQUIRES-EXACT-PROOF",
             "APP-COLD-DELIVER-REJECTS-INVALID-PROOF",
             "APP-EXTRACTED-CACHE-CANNOT-BYPASS-PROOF",

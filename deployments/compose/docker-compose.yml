@@ -35,7 +35,6 @@ services:
             --gas-price-simple 1000 \
             --unbonding-delay 100 \
             --epoch-duration 100 \
-            --proposal-voting-blocks 50 \
             --timeout-commit 500ms \
             --validators-input-file /localnet/validators-1.json \
             --allocations-input-file /localnet/allocations.csv

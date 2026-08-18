@@ -38,7 +38,6 @@ shieldd-sdk-asset = {workspace = true, default-features = true}
 shieldd-sdk-compact-block = {workspace = true, default-features = false}
 shieldd-sdk-compliance = {workspace = true, default-features = false}
 shieldd-sdk-fee = {workspace = true, default-features = false}
-shieldd-sdk-governance = {workspace = true, default-features = false}
 shieldd-sdk-ibc = {workspace = true, default-features = false}
 shieldd-sdk-keys = {workspace = true, default-features = true}
 shieldd-sdk-num = {workspace = true, default-features = true}
@@ -46,7 +45,6 @@ shieldd-sdk-proof-params = {workspace = true, default-features = false}
 shieldd-sdk-proto = {workspace = true, features = ["rpc"], default-features = true}
 shieldd-sdk-sct = {workspace = true, default-features = false}
 shieldd-sdk-shielded-pool = {workspace = true, default-features = false}
-shieldd-sdk-validator = {workspace = true, default-features = false}
 shieldd-sdk-tct = {workspace = true, default-features = true}
 shieldd-sdk-transaction = {workspace = true, default-features = true}
 prost = {workspace = true}

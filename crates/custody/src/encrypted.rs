@@ -239,36 +239,6 @@ impl<T: Terminal + Clone + Send + Sync + 'static> pb::custody_service_server::Cu
         self.get_inner().await?.authorize(request).await
     }
 
-    async fn authorize_validator_definition(
-        &self,
-        request: Request<pb::AuthorizeValidatorDefinitionRequest>,
-    ) -> Result<Response<pb::AuthorizeValidatorDefinitionResponse>, Status> {
-        self.get_inner()
-            .await?
-            .authorize_validator_definition(request)
-            .await
-    }
-
-    async fn authorize_validator_vote(
-        &self,
-        request: Request<pb::AuthorizeValidatorVoteRequest>,
-    ) -> Result<Response<pb::AuthorizeValidatorVoteResponse>, Status> {
-        self.get_inner()
-            .await?
-            .authorize_validator_vote(request)
-            .await
-    }
-
-    async fn authorize_proposal_submit(
-        &self,
-        request: Request<pb::AuthorizeProposalSubmitRequest>,
-    ) -> Result<Response<pb::AuthorizeProposalSubmitResponse>, Status> {
-        self.get_inner()
-            .await?
-            .authorize_proposal_submit(request)
-            .await
-    }
-
     async fn export_full_viewing_key(
         &self,
         request: Request<pb::ExportFullViewingKeyRequest>,

@@ -3,7 +3,6 @@ use async_trait::async_trait;
 use cnidarium::StateWrite;
 use shieldd_sdk_compliance::{ComplianceRegistryRead, ComplianceRegistryWrite};
 use shieldd_sdk_fee::component::StateReadExt as _;
-use shieldd_sdk_governance::StateReadExt as _;
 use shieldd_sdk_proto::DomainType;
 use shieldd_sdk_sct::component::clock::EpochRead;
 use shieldd_sdk_sct::component::tree::{SctManager as _, SctRead};
@@ -55,15 +54,7 @@ trait Inner: StateWrite {
             .expect("height of block is always set");
         tracing::debug!(?height, ?end_epoch, "finishing compact block");
 
-        // This will report a "false positive" if parameters were scheduled to be changed but
-        // the update failed. We don't really care if a client re-fetches parameters in that case.
-        let mut app_parameters_updated = self
-            .param_changes_for_height(height)
-            .await
-            .expect("should be able to check for param changes")
-            .is_some();
-        // Force app_parameters_updated to true for the genesis compactblock.
-        app_parameters_updated = app_parameters_updated || height == 0;
+        let app_parameters_updated = height == 0;
 
         // Check to see if the gas prices have changed, and include them in the compact block
         // if they have (this is signaled by `shieldd_sdk_fee::StateWriteExt::put_gas_prices`):
@@ -89,9 +80,6 @@ trait Inner: StateWrite {
         let discovery_parameters = (height == 0
             || current_discovery_parameters.as_of_height == height)
             .then_some(current_discovery_parameters);
-
-        // Check to see if a governance proposal has started, and mark this fact if so.
-        let proposal_started = self.proposal_started();
 
         // End the block in the SCT and record the block root, epoch root if applicable, and the SCT
         // itself, storing the resultant block and epoch root if applicable in the compact block.
@@ -177,7 +165,6 @@ trait Inner: StateWrite {
             nullifiers,
             block_root,
             epoch_root,
-            proposal_started,
             discovery_parameters,
             routing_records,
             routing_action_payloads,

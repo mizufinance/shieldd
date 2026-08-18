@@ -24,11 +24,9 @@ members = [
   "crates/core/component/compact-block",
   "crates/core/component/compliance",
   "crates/core/component/fee",
-  "crates/core/component/governance",
   "crates/core/component/ibc",
   "crates/core/component/sct",
   "crates/core/component/shielded-pool",
-  "crates/core/component/stake",
   "crates/core/keys",
   "crates/core/num",
   "crates/core/transaction",
@@ -178,7 +176,6 @@ shieldd-sdk-compact-block           = { default-features = false, version = "2.1
 shieldd-sdk-custody                 = { version = "2.1.0", path = "crates/custody" }
 shieldd-sdk-custody-ledger-usb      = { version = "2.1.0", path = "crates/custody-ledger-usb" }
 shieldd-sdk-fee                     = { default-features = false, version = "2.1.0", path = "crates/core/component/fee" }
-shieldd-sdk-governance              = { default-features = false, version = "2.1.0", path = "crates/core/component/governance" }
 shieldd-sdk-ibc                     = { default-features = false, version = "2.1.0", path = "crates/core/component/ibc" }
 shieldd-sdk-keys                    = { default-features = false, version = "2.1.0", path = "crates/core/keys" }
 shieldd-sdk-mock-client             = { version = "2.1.0", path = "crates/test/mock-client" }
@@ -191,7 +188,6 @@ shieldd-sdk-proto                   = { default-features = false, version = "2.1
 shieldd-sdk-sct                     = { default-features = false, version = "2.1.0", path = "crates/core/component/sct" }
 shieldd-sdk-compliance              = { default-features = false, version = "2.1.0", path = "crates/core/component/compliance" }
 shieldd-sdk-shielded-pool           = { default-features = false, version = "2.1.0", path = "crates/core/component/shielded-pool" }
-shieldd-sdk-validator                = { default-features = false, version = "2.1.0", path = "crates/core/component/stake" }
 shieldd-sdk-tct                     = { default-features = false, version = "2.1.0", path = "crates/crypto/tct" }
 shieldd-sdk-test-subscriber         = { version = "2.1.0", path = "crates/test/tracing-subscriber" }
 shieldd-sdk-tower-trace             = { version = "2.1.0", path = "crates/util/tower-trace" }
