@@ -8,47 +8,29 @@ use shieldd_sdk_proto::core::component::compliance::v1::{
     ComplianceMerkleProofsRequest, ComplianceMerkleProofsResponse, ComplianceUserLeafRequest,
     ComplianceUserLeafResponse, IndexedLeafData, MerklePath, MerklePathLayer,
 };
-use shieldd_sdk_sct::component::clock::EpochRead;
 use tonic::Status;
 use tracing::instrument;
 
-use crate::registry::{ComplianceRegistryRead, MAX_ANCHOR_SEARCH_DEPTH_BLOCKS};
+use crate::registry::ComplianceRegistryRead;
 use shieldd_sdk_tct::StateCommitment;
 
 /// Maximum number of queries allowed in a batch compliance request.
 /// This prevents resource exhaustion from excessively large batch requests.
 const MAX_BATCH_SIZE: usize = 100;
 
-/// Pair the latest recorded user root with the current mutable asset root.
-///
-/// User registration is append-only, so its recent history remains admissible.
-/// Asset policy is mutable and must never be served from historical storage.
-async fn find_most_recent_anchors<S: cnidarium::StateRead + ComplianceRegistryRead>(
+/// Return the exact mutable roots required for new proofs.
+async fn current_anchors<S: cnidarium::StateRead + ComplianceRegistryRead>(
     state: &S,
-    current_height: u64,
 ) -> Result<(StateCommitment, StateCommitment), Status> {
-    let search_start = current_height;
-    let search_end = current_height.saturating_sub(MAX_ANCHOR_SEARCH_DEPTH_BLOCKS);
+    let user_anchor = state
+        .get_user_tree_root()
+        .await
+        .map_err(|e| Status::internal(format!("failed to get current user root: {e}")))?;
     let asset_anchor = state
         .get_asset_imt_root()
         .await
         .map_err(|e| Status::internal(format!("failed to get current asset root: {e}")))?;
-
-    for height in (search_end..=search_start).rev() {
-        let user_anchor = state.get_user_anchor_by_height(height).await.map_err(|e| {
-            Status::internal(format!("failed to get user anchor at height {height}: {e}"))
-        })?;
-
-        if let Some(user) = user_anchor {
-            tracing::debug!(height, "found recent recorded user root");
-            return Ok((user, asset_anchor));
-        }
-    }
-
-    Err(Status::not_found(format!(
-        "no compliance anchors found in last {} blocks (current height: {})",
-        MAX_ANCHOR_SEARCH_DEPTH_BLOCKS, current_height
-    )))
+    Ok((user_anchor, asset_anchor))
 }
 
 /// gRPC server for compliance registry queries.
@@ -122,22 +104,12 @@ impl QueryService for Server {
     ) -> Result<tonic::Response<ComplianceAnchorsResponse>, Status> {
         let state = self.storage.latest_snapshot();
 
-        // Get the current block height to find recent user-root history.
-        let current_height = state
-            .get_block_height()
-            .await
-            .map_err(|e| Status::internal(format!("failed to get block height: {e}")))?;
-
-        // User registration is append-only, so a recent recorded root remains
-        // valid. Asset policy is mutable, so always return its current root.
-        let (user_tree_root, asset_imt_root) =
-            find_most_recent_anchors(&state, current_height).await?;
+        let (user_tree_root, asset_imt_root) = current_anchors(&state).await?;
 
         tracing::debug!(
-            current_height,
             ?user_tree_root,
             ?asset_imt_root,
-            "returning recent user root and current asset root"
+            "returning current compliance roots"
         );
 
         let response = ComplianceAnchorsResponse {
@@ -170,14 +142,7 @@ impl QueryService for Server {
             .try_into()
             .map_err(|e| Status::invalid_argument(format!("could not parse asset_id: {e}")))?;
 
-        // Pair recent append-only user history with current mutable asset policy.
-        let current_height = state
-            .get_block_height()
-            .await
-            .map_err(|e| Status::internal(format!("failed to get block height: {e}")))?;
-
-        let (compliance_anchor, asset_anchor) =
-            find_most_recent_anchors(&state, current_height).await?;
+        let (compliance_anchor, asset_anchor) = current_anchors(&state).await?;
 
         // Get asset proof data from IMT (handles both regulated and unregulated)
         let asset_proof_data = state
@@ -339,14 +304,7 @@ impl QueryService for Server {
             )));
         }
 
-        // Pair recent append-only user history with current mutable asset policy.
-        let current_height = state
-            .get_block_height()
-            .await
-            .map_err(|e| Status::internal(format!("failed to get block height: {e}")))?;
-
-        let (compliance_anchor, asset_anchor) =
-            find_most_recent_anchors(&state, current_height).await?;
+        let (compliance_anchor, asset_anchor) = current_anchors(&state).await?;
 
         // Process each query
         let mut results = Vec::with_capacity(query_count);
@@ -459,24 +417,19 @@ impl QueryService for Server {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::params::{ComplianceParameters, StateWriteExt as _};
-    use crate::registry::{ComplianceRegistryComponentWrite as _, ComplianceRegistryWrite as _};
-    use crate::structs::AssetPolicy;
+    use crate::registry::ComplianceRegistryWrite as _;
+    use crate::structs::{AssetPolicy, ComplianceLeaf};
     use cnidarium::TempStorage;
     use decaf377::Fq;
     use shieldd_sdk_asset::asset;
-    use shieldd_sdk_sct::component::clock::EpochManager as _;
+    use shieldd_sdk_keys::Address;
 
     #[tokio::test]
-    async fn find_most_recent_anchors_uses_history_only_for_user_root() {
+    async fn current_anchors_returns_both_mutable_roots() {
         let storage = TempStorage::new().await.unwrap();
         let snapshot = storage.latest_snapshot();
         let mut state = cnidarium::StateDelta::new(snapshot);
-        state.put_compliance_params(ComplianceParameters::default());
-
-        state.put_block_height(5);
-        state.finish_block_compliance_anchors(5).await.unwrap();
-        let recorded_user_root = state.get_user_tree_root().await.unwrap();
+        let stale_user_root = state.get_user_tree_root().await.unwrap();
         let stale_asset_root = state.get_asset_imt_root().await.unwrap();
         state
             .test_only_register_asset(
@@ -492,8 +445,18 @@ mod tests {
             .unwrap();
         let current_asset_root = state.get_asset_imt_root().await.unwrap();
         assert_ne!(stale_asset_root, current_asset_root);
+        state
+            .test_only_add_compliance_leaf(ComplianceLeaf::new(
+                Address::dummy(&mut rand::thread_rng()),
+                asset::Id(Fq::from(55u64)),
+                Fq::from(7u64),
+            ))
+            .await
+            .unwrap();
+        let current_user_root = state.get_user_tree_root().await.unwrap();
+        assert_ne!(stale_user_root, current_user_root);
 
-        let found = find_most_recent_anchors(&state, 8).await.unwrap();
-        assert_eq!(found, (recorded_user_root, current_asset_root));
+        let found = current_anchors(&state).await.unwrap();
+        assert_eq!(found, (current_user_root, current_asset_root));
     }
 }

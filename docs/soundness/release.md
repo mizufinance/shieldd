@@ -49,7 +49,7 @@ restamping is never a fix for a failed semantic or source-drift gate.
 11. Constraint and performance deltas are recorded when the circuit changed.
 12. Runtime premises named by the final theorem have focused regressions:
     fixed shape/key selection, body/public-input projection, signatures,
-    current asset policy, recent user roots, transaction-wide nullifier
+    current asset policy and user-status roots, transaction-wide nullifier
     uniqueness, proof-bound effects, and withdrawal payload/state checks.
     Action-local state claims use the exact typed pre-state, action delta, and
     post-state transition. Transaction-wide uniqueness and commit use

@@ -151,6 +151,7 @@ func newShieldedIcs20WithdrawalCircuitAssignment(
 		SlotID:         fqString(witness.SenderSlotID),
 		SlotDerivation: fqString(witness.SenderSlotDerivation),
 		D:              fqString(witness.SenderD),
+		Status:         fqString(witness.SenderStatus),
 		Path:           senderPath,
 		Position:       witness.SenderCompliancePosition,
 	}

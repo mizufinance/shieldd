@@ -56,15 +56,15 @@ class Deployment:
 
 DEPLOYMENTS = (
     Deployment(f"gadget.poseidon_encryption.address@{recovery.ADDRESS_DIGEST}",
-               "gadget.poseidon_encryption.address", 2856, 2191, (107, 109),
+               "gadget.poseidon_encryption.address", 2856, 2191, (109, 111),
                "9f95984ebe58e37464b11e794a3411317da3fe6fe246824c402af8d30f712745",
                "gadget.poseidon_encryption.address@1808b9687f711325"),
     Deployment(f"gadget.poseidon_encryption.amount@{recovery.AMOUNT_DIGEST}",
-               "gadget.poseidon_encryption.amount", 1312, 978, (106, 108),
+               "gadget.poseidon_encryption.amount", 1312, 978, (108, 110),
                "892c99b0bb81422368c0daf5ce37187f7235f230d6ae0ce22b474cac2b6938d7",
                "gadget.poseidon_encryption.amount@6d2d73f6dbb6bf24"),
     Deployment(f"gadget.poseidon_encryption.detection@{recovery.DETECTION_DIGEST}",
-               "gadget.poseidon_encryption.detection", 2446, 2116, (105,),
+               "gadget.poseidon_encryption.detection", 2446, 2116, (107,),
                "7f25ad680d81728108fb0478c1e95d1f32428773915094f6fbd7238b5ea581e6",
                "gadget.poseidon_encryption.detection@e05752542c0ac1c3"),
 )

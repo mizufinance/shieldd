@@ -47,6 +47,7 @@ pub struct NoteReshapeBody {
     pub routing_tag: RoutingTag,
     pub routing_parameter_set_id: Fq,
     pub asset_anchor: tct::StateCommitment,
+    pub compliance_anchor: tct::StateCommitment,
 }
 
 #[derive(Clone, Debug)]
@@ -242,6 +243,7 @@ impl From<NoteReshapeBody> for pb::NoteReshapeBody {
             routing_tag: Some(msg.routing_tag.into()),
             routing_parameter_set_id: msg.routing_parameter_set_id.to_bytes().to_vec(),
             asset_anchor: Some(msg.asset_anchor.into()),
+            compliance_anchor: Some(msg.compliance_anchor.into()),
         }
     }
 }
@@ -288,6 +290,11 @@ impl TryFrom<pb::NoteReshapeBody> for NoteReshapeBody {
                 .ok_or_else(|| anyhow::anyhow!("missing asset anchor"))?
                 .try_into()
                 .context("malformed asset anchor")?,
+            compliance_anchor: proto
+                .compliance_anchor
+                .ok_or_else(|| anyhow::anyhow!("missing compliance anchor"))?
+                .try_into()
+                .context("malformed compliance anchor")?,
         };
         body.validate_shape()?;
         Ok(body)

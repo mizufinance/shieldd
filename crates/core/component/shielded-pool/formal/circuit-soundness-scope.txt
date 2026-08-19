@@ -88,7 +88,7 @@ ZK-FIND-FV-SETUP-PROVENANCE-OVERCLAIM|scripts/check-fv-profiles.py:"toxic_waste_
 ZK-FIND-IVK-ZERO-TRANSMISSION-IDENTITY|tools/gnark/internal/circuits/transfer_circuit.go:lhs=auth.ivk_reduced
 ZK-FIND-STATELESS-CACHE-IDENTITY-AND-BOUNDS|crates/core/app/src/stateless_cache.rs:pub fn get(&self, hash: &[u8; 32], raw_tx: &[u8])
 ZK-FIND-TRANSFER-ASSET-SENTINEL|tools/gnark/internal/circuits/transfer_circuit.go:api.AssertIsDifferent(shared.sharedAssetID, 0)
-ZK-FIND-TRANSFER-COMPLIANCE-NONCE-REUSE|crates/view/src/client_compliance.rs:fn fresh_transfer_nonce
+ZK-FIND-TRANSFER-COMPLIANCE-NONCE-REUSE|crates/view/src/client_compliance.rs:fn fresh_action_nonce
 ZK-FIND-TRANSFER-DETECTION-ASSET-FLAG-ALIAS|tools/gnark/internal/compliance/transfer_encryption.go:api.Mul(isFlagged, transferDetectionFlagBit)
 ZK-FIND-TRANSFER-HANDWRITTEN-STATEMENT-DUPLICATE|tools/gnark/lean/ShielddGnarkFormal/Protocol/Transfer/Concrete.lean:def statementFields (action : Action F Path24 Path16) : List F :=
 ZK-FIND-TRANSFER-ZERO-TIER-SCALAR|crates/core/component/compliance/src/transfer.rs:fn sample_nonzero_scalar

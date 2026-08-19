@@ -46,55 +46,55 @@ EXCLUDED = {
 }
 REVIEWED_TEMPLATE_DIGESTS = {
     "NoteReshape1x8Balance.lean":
-        "a9ba7c1b295bbe0f1747cbbe571ef4a3bcfee38cfdbec20c97f0569e8cd9c988",
+        "0ab0fd43f0631fb8d931ecdf6f203c1add6559f93f783f886eae639d4e7006d0",
     "NoteReshape1x8BalanceAccFinal.lean":
-        "cbe1a4763f1b92560b845810a61cb48cb686d18e1e8be9294a9495120bfe6ff8",
+        "10a6ece22edb3c90e9f865b367e06398eda2e4920bf170eaab00a44b68dbadc2",
     "NoteReshape1x8BalanceCompress.lean":
-        "990773ac83046717955bc697aee5a819472e54b539f3ecf5c771bbba0e08d329",
+        "5e8696e656b899a44a37dce49d6993d2fb12285f2256bf37eef52b4673a3ad33",
     "NoteReshape1x8BalanceCompressRunX0.lean":
-        "76a47ad022115ab04313422ce9ee9c46ac659e6dde091f60e132085056da04b2",
+        "0fc343a9e1f0cc8b242ac6d8a3eab5eb641a12187e0a6928e6cd8ecc1b964b28",
     "NoteReshape1x8BalanceCompressRunX1.lean":
-        "93ddd476397ef7c9fa7a03895def9b9346f9d00f5f14614cbe04282779c2852d",
+        "8c9f45ad1f156c353d41b1446a3bb95fa6440e4c4d9ff8c8410bbdf7af0cac7a",
     "NoteReshape1x8BalanceCompressRunY0.lean":
-        "f209040673a7ffc3b9eb74cb9a08aebf88c44a23357fb01a0f93a89760006d0d",
+        "15de681044fc5788831146a330bc58d1007e7b3781f05136e5467bf8ed7fc448",
     "NoteReshape1x8BalanceCompressRunY1.lean":
-        "10ac6994d08cc769ac014109c89797d345511078bca37c567e443b4e85513872",
+        "af632af21d992103a4aeaeb45f5d253593d4f7c783717d24d66916ab8e3aa041",
     "NoteReshape1x8BalanceCompressRuns.lean":
-        "fe60babbd227fc65b2e265ea0cdf8f23036bd4d5de7c8754e31cb9a2a6355b9a",
+        "132f986b36afda6d8f6af6986d8c072d0634c497e1f18f816f8c7d8b49dadc8c",
     "NoteReshape1x8BalanceCompressRunsSupport.lean":
-        "0d0ed524f8ce8b2f54623bc5e05c073b6b60fbcdc6993b2291bab0daa238a2a1",
+        "c7d02d5ec1652735e3978da1eb91d20bb1c3aa18cf3cc6bda424a3316958d0fe",
     "NoteReshape1x8BalanceCross.lean":
-        "94ca60017c316d6a980694ec9b4862123d8ef41522b146e8dc263ab3d5912c49",
+        "e45b97f886695a052f312205ec611a818dc3e415b7029c4f6d9a1275d2071569",
     "NoteReshape1x8BalanceCrossRunX0.lean":
-        "4cb52cc64a08c986b7642219d0bc9410e7821e4bbf11bc3d541f9f8d9a6e6773",
+        "dcebe98c1eb38ae5bcb14475a51cbd8478660683ab1686cffa946d83f86b9737",
     "NoteReshape1x8BalanceCrossRunX1.lean":
-        "f295663a17fc15596780862bf0d886765967101a3a541feeedfc487560e94129",
+        "0a8df58b6543254e502e6eef0985da24f3d30b9376bdbb09cffc329c8ad6ab48",
     "NoteReshape1x8BalanceCrossRunY0.lean":
-        "1c2348c83cf4a34afb1903fddeba1c5777236210ca6e1413fca9c44ac8ac1f76",
+        "20dd634e0ef13382a16c40d6d19870a5688c0396d4b7dc563414741f737053ca",
     "NoteReshape1x8BalanceCrossRunY1.lean":
-        "de29047da4eff433a61f2a050e4aff00278db00c9b51349b756fe22ca7b2ceb1",
+        "96f30e1e8ee5f96bfa5f7c16cf8f98d8ae6f86c800c9e1d8a8ad9ff4c03f736a",
     "NoteReshape1x8BalanceCrossRuns.lean":
-        "3e4c83c2e86181e85fa163c1b4053248464cadc47bea60c69ed3810c489d9b4f",
+        "39aab66335d58339d96f69bdeac9a61f48ed83a47d53779a83fc20a8be9cc25b",
     "NoteReshape1x8BalanceCrossRunsSupport.lean":
-        "310b385805ff41017374a96ddf52e551476844f901ac91c1c052faedd8942a4c",
+        "f4142fae412920ed488702873ebd25eca5e9228d2f11f4ff2a699789e89628a4",
     "NoteReshape1x8BalanceRunX0.lean":
-        "2b8256e972dbb4b05ee3b5dc622a8596ec47ba59f51a51b1a4b77c7729058e09",
+        "eaf911309ff2b7f6d58824d8636056b493689a8a694ce0e8f011516f14192571",
     "NoteReshape1x8BalanceRunX1.lean":
-        "3f128e5dae7cf82732f4119d684cd18b2ffc1445fc316959913ce3774dbe4bc8",
+        "d47337bdb7b2d4a885c4e07b71e6eb9df94f9e3370262195fe8394e318c48b7d",
     "NoteReshape1x8BalanceRunY0.lean":
-        "b2a20c0e0c66daa84b47e42d15f6d78519f47deb14bd5408ee3dbe802b73b223",
+        "679418bdef4037e9ee841a5ac12e3a002c13ecc5ed64ec470dc2d8829a56b036",
     "NoteReshape1x8BalanceRunY1.lean":
-        "66c1da7f5977b9b3ead5e8e5c81ccdb4aaabe8a300d1bba6387fcf47a4acde62",
+        "42a94b46ee4b26821498d2e79a76cbbd6e5802a51c4ee469b12e29d837cc01fe",
     "NoteReshape1x8BalanceRuns.lean":
-        "4ff4d5c05d72c4c9b35137cbfe5373fbf5f23f0e811ea21e85bb45f38b5f8e32",
+        "c686e9a12c00df116a20dfa668b2e733b1db3797d01805c5b6ab3000fc67d8f8",
     "NoteReshape1x8BalanceRunsSupport.lean":
-        "1d2d2dc1147e8f1f37d1bcff8654f1a3d9e3dcaf937f5bc9f7a574b7308b27a3",
+        "6c77d0aac9a7388d0ea0ece82f43dda8686bbc56bd31dfd93a59c7668e8c9f70",
     "NoteReshape1x8BalanceRunsX.lean":
-        "d8778072efd17f25efc1f6122c361d9f2b0fb7773c64cfbec568e9014f3ddd5f",
+        "09163842daf46698645468aae43fd8d92e558534b35d8370def917fe06d23aa9",
     "NoteReshape1x8BalanceRunsY.lean":
-        "8bfc37f4bd26e23dc770bd82b9281cd6ef6f2afeef7f1fd46a37f7827ebe7ea8",
+        "407978807ff909c901ae236b2912580a239ea39f62da1e171928949013d01552",
     "NoteReshape8x1Balance.lean":
-        "56981b5849234a2232743c71d0ce90932ddb2c8bc84c1ae85b7a08a67d204d2b",
+        "33f7b550bde970b773610f89725f5564c6950f64133bdbad26155d6ed0a208e5",
 }
 
 

@@ -191,6 +191,7 @@ def senderCompliance (rho : Nat → DeployedF) :
     slotId := senderSlotId rho
     slotDerivation := senderSlotDerivation rho
     d := senderD rho
+    status := senderStatus rho
     path := senderPath rho
     position := senderPosition rho
   }
@@ -203,6 +204,7 @@ def receiverCompliance (rho : Nat → DeployedF) :
     slotId := output0RecipientSlotId rho
     slotDerivation := output0RecipientSlotDerivation rho
     d := output0RecipientD rho
+    status := output0RecipientStatus rho
     path := receiverPath rho
     position := output0RecipientPosition rho
   }
@@ -215,7 +217,7 @@ def saltAt (rho : Nat → DeployedF) (index : Fin 5) : DeployedF :=
   else salt4 rho
 
 def routingRolesSwapped (rho : Nat → DeployedF) : DeployedF :=
-  rho 65376
+  rho 65460
 
 def metadata (rho : Nat → DeployedF) : ComplianceMetadata DeployedF :=
   {

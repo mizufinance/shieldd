@@ -400,31 +400,31 @@ theorem specification_note_spend_owner_binding
 theorem specification_routing_parameters
     (rho : Nat → DeployedF)
     (h : relationAll rho) :
-    Seg30.contract.spec rho ∧
-      Seg31.contract.spec rho ∧
-      Seg32.contract.spec rho := by
+    Seg34.contract.spec rho ∧
+      Seg35.contract.spec rho ∧
+      Seg36.contract.spec rho := by
   have facts := note_reshape8x1_circuitFacts rho h
   exact
-    ⟨facts.shared.RoutingPrecisionSelectSeg30,
-      facts.shared.RoutingParametersHashSeg31,
-      facts.shared.RoutingParametersBindSeg32⟩
+    ⟨facts.shared.RoutingPrecisionSelectSeg34,
+      facts.shared.RoutingParametersHashSeg35,
+      facts.shared.RoutingParametersBindSeg36⟩
 
 /-- `ROUTING-TAG-DERIVATION` for the exact deployed relation. -/
 theorem specification_routing_tag_derivation
     (rho : Nat → DeployedF)
     (h : relationAll rho) :
-    Seg33.contract.spec rho ∧
-      Seg34.contract.spec rho ∧
-      Seg35.contract.spec rho ∧
-      Seg36.contract.spec rho ∧
-      Seg37.contract.spec rho := by
+    Seg37.contract.spec rho ∧
+      Seg38.contract.spec rho ∧
+      Seg39.contract.spec rho ∧
+      Seg40.contract.spec rho ∧
+      Seg41.contract.spec rho := by
   have facts := note_reshape8x1_circuitFacts rho h
   exact
-    ⟨facts.shared.RoutingRouteWordSeg33,
-      facts.shared.RoutingTagPublicRangeSeg34,
-      facts.shared.RoutingTagRouteBitsSeg35,
-      facts.shared.RoutingTagRandomWordSeg36,
-      facts.shared.RoutingTagComposeSeg37⟩
+    ⟨facts.shared.RoutingRouteWordSeg37,
+      facts.shared.RoutingTagPublicRangeSeg38,
+      facts.shared.RoutingTagRouteBitsSeg39,
+      facts.shared.RoutingTagRandomWordSeg40,
+      facts.shared.RoutingTagComposeSeg41⟩
 
 /-- `SCT-SPEND-MEMBERSHIP` for the exact deployed relation. -/
 theorem specification_sct_spend_membership

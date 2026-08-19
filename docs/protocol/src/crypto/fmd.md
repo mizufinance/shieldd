@@ -1,8 +1,8 @@
 # Fuzzy Message Detection
 
-By design, privacy-preserving blockchains like Shieldd don't reveal metadata
+By design, Shieldd's private execution inside Bankd does not reveal metadata
 about the sender or receiver of a transaction.  However, this means that users
-must scan the entire chain to determine which transactions relate to their
+must scan the Shieldd compact-block stream to determine which actions relate to their
 addresses.  This imposes large bandwidth and latency costs on users who do not
 maintain online replicas of the chain state, as they must "catch up" each time
 they come online by scanning all transactions that have occurred since their

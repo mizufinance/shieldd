@@ -2,7 +2,7 @@ import ShielddGnarkFormal.ChoiceFreeZMod
 import ShielddGnarkFormal.Deployed.PrimeOrder
 import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.SemanticBindings
 import ShielddGnarkFormal.Protocol.ShieldedIcs20Withdrawal.Concrete
-import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg57
+import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg58
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafConservationNetBalanceCommitment2_236fd0549adf468bfd993cdf1a3c2b4bbf80d1c8f9b95e4fda163888ecd365f6
 import Mathlib.Tactic.FinCases
 import Mathlib.Tactic.LinearCombination
@@ -27,19 +27,19 @@ local instance withdrawalSeamPrimeBalanceInputs : Fact (Nat.Prime SemanticOrder)
 
 /-- Exact x-coordinate emitted by the deployed net-balance accumulator. -/
 def netBalanceCommitmentX (rho : Nat → SemanticF) : SemanticF :=
-  (Deployed.Templates.Semantics.TDecafConservationNetBalanceCommitment2_236fd0549adf468bfd993cdf1a3c2b4bbf80d1c8f9b95e4fda163888ecd365f6.NbSupport.nbBlindAccState (Seg57.localRho rho) 251).x
+  (Deployed.Templates.Semantics.TDecafConservationNetBalanceCommitment2_236fd0549adf468bfd993cdf1a3c2b4bbf80d1c8f9b95e4fda163888ecd365f6.NbSupport.nbBlindAccState (Seg58.localRho rho) 251).x
 
 /-- Exact y-coordinate emitted by the deployed net-balance accumulator. -/
 def netBalanceCommitmentY (rho : Nat → SemanticF) : SemanticF :=
-  (Deployed.Templates.Semantics.TDecafConservationNetBalanceCommitment2_236fd0549adf468bfd993cdf1a3c2b4bbf80d1c8f9b95e4fda163888ecd365f6.NbSupport.nbBlindAccState (Seg57.localRho rho) 251).y
+  (Deployed.Templates.Semantics.TDecafConservationNetBalanceCommitment2_236fd0549adf468bfd993cdf1a3c2b4bbf80d1c8f9b95e4fda163888ecd365f6.NbSupport.nbBlindAccState (Seg58.localRho rho) 251).y
 
 /-- Specialized final x-coordinate equation, avoiding the 252-arm state match. -/
 theorem netBalanceCommitmentX_eq_delta
     (rho : Nat → SemanticF) :
     netBalanceCommitmentX rho =
       (4661681602708190761543544705274244814260880986867766715334030151044279151219 : Deployed.Templates.Semantics.TDecafConservationNetBalanceCommitment2_236fd0549adf468bfd993cdf1a3c2b4bbf80d1c8f9b95e4fda163888ecd365f6.NbSupport.F) *
-          (id (α := Deployed.Templates.Semantics.TDecafConservationNetBalanceCommitment2_236fd0549adf468bfd993cdf1a3c2b4bbf80d1c8f9b95e4fda163888ecd365f6.NbSupport.F) (Seg57.localRho rho 517)) +
-        Deployed.Templates.Semantics.TDecafConservationNetBalanceCommitment2_236fd0549adf468bfd993cdf1a3c2b4bbf80d1c8f9b95e4fda163888ecd365f6.NbSupport.nbBlindDeltaX250 (Seg57.localRho rho) := by
+          (id (α := Deployed.Templates.Semantics.TDecafConservationNetBalanceCommitment2_236fd0549adf468bfd993cdf1a3c2b4bbf80d1c8f9b95e4fda163888ecd365f6.NbSupport.F) (Seg58.localRho rho 517)) +
+        Deployed.Templates.Semantics.TDecafConservationNetBalanceCommitment2_236fd0549adf468bfd993cdf1a3c2b4bbf80d1c8f9b95e4fda163888ecd365f6.NbSupport.nbBlindDeltaX250 (Seg58.localRho rho) := by
   rfl
 
 /-- Specialized final y-coordinate equation, avoiding the 252-arm state match. -/
@@ -48,78 +48,78 @@ theorem netBalanceCommitmentY_eq_delta
     netBalanceCommitmentY rho =
       (1 : Deployed.Templates.Semantics.TDecafConservationNetBalanceCommitment2_236fd0549adf468bfd993cdf1a3c2b4bbf80d1c8f9b95e4fda163888ecd365f6.NbSupport.F) +
         (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Deployed.Templates.Semantics.TDecafConservationNetBalanceCommitment2_236fd0549adf468bfd993cdf1a3c2b4bbf80d1c8f9b95e4fda163888ecd365f6.NbSupport.F) *
-          (id (α := Deployed.Templates.Semantics.TDecafConservationNetBalanceCommitment2_236fd0549adf468bfd993cdf1a3c2b4bbf80d1c8f9b95e4fda163888ecd365f6.NbSupport.F) (Seg57.localRho rho 517)) +
-        Deployed.Templates.Semantics.TDecafConservationNetBalanceCommitment2_236fd0549adf468bfd993cdf1a3c2b4bbf80d1c8f9b95e4fda163888ecd365f6.NbSupport.nbBlindDeltaY250 (Seg57.localRho rho) := by
+          (id (α := Deployed.Templates.Semantics.TDecafConservationNetBalanceCommitment2_236fd0549adf468bfd993cdf1a3c2b4bbf80d1c8f9b95e4fda163888ecd365f6.NbSupport.F) (Seg58.localRho rho 517)) +
+        Deployed.Templates.Semantics.TDecafConservationNetBalanceCommitment2_236fd0549adf468bfd993cdf1a3c2b4bbf80d1c8f9b95e4fda163888ecd365f6.NbSupport.nbBlindDeltaY250 (Seg58.localRho rho) := by
   rfl
 
 /-- The required spend amount is the first exact net-balance input. -/
 theorem spend0NoteAmount_eq_netBalanceInput0
     (rho : Nat → SemanticF) :
-    spend0NoteAmount rho = Seg57.localRho rho 129 := by
+    spend0NoteAmount rho = Seg58.localRho rho 129 := by
   have hseat :
-      Seg57.wireSeating 129 =
-        138 := by
+      Seg58.wireSeating 129 =
+        139 := by
     decide +kernel
   simp only [
     spend0NoteAmount, spend0NoteAmountLC,
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-    StrideRun.eval, Seg57.localRho, Deployed.Templates.seated,
+    StrideRun.eval, Seg58.localRho, Deployed.Templates.seated,
     hseat, zero_add, one_mul, add_zero]
 
 /-- The optional spend amount is the second exact net-balance input. -/
 theorem spend1NoteAmount_eq_netBalanceInput1
     (rho : Nat → SemanticF) :
-    spend1NoteAmount rho = Seg57.localRho rho 258 := by
+    spend1NoteAmount rho = Seg58.localRho rho 258 := by
   have hseat :
-      Seg57.wireSeating 258 =
-        218 := by
+      Seg58.wireSeating 258 =
+        219 := by
     decide +kernel
   simp only [
     spend1NoteAmount, spend1NoteAmountLC,
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-    StrideRun.eval, Seg57.localRho, Deployed.Templates.seated,
+    StrideRun.eval, Seg58.localRho, Deployed.Templates.seated,
     hseat, zero_add, one_mul, add_zero]
 
 /-- The change output amount is the first exact net-balance output. -/
 theorem output0NoteAmount_eq_netBalanceOutput0
     (rho : Nat → SemanticF) :
-    output0NoteAmount rho = Seg57.localRho rho 387 := by
+    output0NoteAmount rho = Seg58.localRho rho 387 := by
   have hseat :
-      Seg57.wireSeating 387 =
-        298 := by
+      Seg58.wireSeating 387 =
+        299 := by
     decide +kernel
   simp only [
     output0NoteAmount, output0NoteAmountLC,
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-    StrideRun.eval, Seg57.localRho, Deployed.Templates.seated,
+    StrideRun.eval, Seg58.localRho, Deployed.Templates.seated,
     hseat, zero_add, one_mul, add_zero]
 
 /-- The outbound amount is the second exact net-balance output. -/
 theorem outboundAmount_eq_netBalanceOutput1
     (rho : Nat → SemanticF) :
-    outboundAmount rho = Seg57.localRho rho 516 := by
+    outboundAmount rho = Seg58.localRho rho 516 := by
   have hseat :
-      Seg57.wireSeating 516 =
+      Seg58.wireSeating 516 =
         10 := by
     decide +kernel
   simp only [
     outboundAmount, outboundAmountLC,
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-    StrideRun.eval, Seg57.localRho, Deployed.Templates.seated,
+    StrideRun.eval, Seg58.localRho, Deployed.Templates.seated,
     hseat, zero_add, one_mul, add_zero]
 
 /-- The action balance blinding is the exact net-balance scalar input. -/
 theorem actionBalanceBlinding_eq_netBalanceBlind
     (rho : Nat → SemanticF) :
-    actionBalanceBlinding rho = Seg57.localRho rho 768 := by
+    actionBalanceBlinding rho = Seg58.localRho rho 768 := by
   have hseat :
-      Seg57.wireSeating 768 =
+      Seg58.wireSeating 768 =
         15 := by
     decide +kernel
   simp only [
     actionBalanceBlinding, actionBalanceBlindingLC,
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-    StrideRun.eval, Seg57.localRho, Deployed.Templates.seated,
+    StrideRun.eval, Seg58.localRho, Deployed.Templates.seated,
     hseat, zero_add, one_mul, add_zero]
 
 /-- Protocol-facing conservation statement in compiler-labelled roles. -/
@@ -139,10 +139,10 @@ def ConservationSpec (rho : Nat → SemanticF) : Prop :=
 
 /-- The exact segment specification implies compiler-labelled conservation. -/
 theorem conservationSpec_of_segmentSpec
-    (rho : Nat → SemanticF) (h : Seg57.contract.spec rho) :
+    (rho : Nat → SemanticF) (h : Seg58.contract.spec rho) :
     ConservationSpec rho := by
   change Deployed.Templates.Semantics.TDecafConservationNetBalanceCommitment2_236fd0549adf468bfd993cdf1a3c2b4bbf80d1c8f9b95e4fda163888ecd365f6.spec
-    (Seg57.localRho rho) at h
+    (Seg58.localRho rho) at h
   unfold Deployed.Templates.Semantics.TDecafConservationNetBalanceCommitment2_236fd0549adf468bfd993cdf1a3c2b4bbf80d1c8f9b95e4fda163888ecd365f6.spec at h
   unfold ConservationSpec
   rw [

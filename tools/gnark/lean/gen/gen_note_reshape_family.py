@@ -2319,9 +2319,8 @@ def main() -> None:
     if args.prune:
         owned = set(files)
         owned.update(
-            path
-            for path in args.out_dir.glob("Seg*.lean")
-            if re.fullmatch(r"Seg\d+\.lean", path.name)
+            args.out_dir / f"Seg{segment['index']}.lean"
+            for segment in constraint_segments(ir)
         )
         obsolete = sorted(set(args.out_dir.rglob("*.lean")) - owned)
         if args.check and obsolete:

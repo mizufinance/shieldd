@@ -1,12 +1,13 @@
 use std::sync::Arc;
 
 use shieldd_sdk_proto::execution_client::v1::{
-    execution_client_service_server::ExecutionClientService, ArchivedNullifierProofRequest,
-    ArchivedNullifierProofResponse, BeginBlockRequest, BeginBlockResponse, CheckTxRequest,
-    CheckTxResponse, CommitRequest, CommitResponse, DeliverTxRequest, DeliverTxResponse,
-    DepositRequest, DepositResponse, EndBlockRequest, EndBlockResponse, ExportGenesisRequest,
-    ExportGenesisResponse, GetCommittedStateRequest, GetCommittedStateResponse, InitGenesisRequest,
-    InitGenesisResponse, RollbackRequest, RollbackResponse,
+    execution_client_service_server::ExecutionClientService, ApplyComplianceActionRequest,
+    ApplyComplianceActionResponse, ArchivedNullifierProofRequest, ArchivedNullifierProofResponse,
+    BeginBlockRequest, BeginBlockResponse, CheckTxRequest, CheckTxResponse, CommitRequest,
+    CommitResponse, DeliverTxRequest, DeliverTxResponse, DepositRequest, DepositResponse,
+    EndBlockRequest, EndBlockResponse, ExportGenesisRequest, ExportGenesisResponse,
+    GetCommittedStateRequest, GetCommittedStateResponse, InitGenesisRequest, InitGenesisResponse,
+    RollbackRequest, RollbackResponse,
 };
 use tokio::sync::RwLock;
 use tonic::{Request, Response, Status};
@@ -66,6 +67,19 @@ impl ExecutionClientService for GrpcExecutionClient {
             .write()
             .await
             .deposit(request.into_inner())
+            .await
+            .map(Response::new)
+            .map_err(status)
+    }
+
+    async fn apply_compliance_action(
+        &self,
+        request: Request<ApplyComplianceActionRequest>,
+    ) -> std::result::Result<Response<ApplyComplianceActionResponse>, Status> {
+        self.service
+            .write()
+            .await
+            .apply_compliance_action(request.into_inner())
             .await
             .map(Response::new)
             .map_err(status)

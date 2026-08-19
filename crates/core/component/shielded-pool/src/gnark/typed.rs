@@ -24,6 +24,7 @@ pub struct ComplianceLeafBinary {
     pub slot_id: [u8; 32],
     pub slot_derivation: [u8; 32],
     pub d: [u8; 32],
+    pub status: [u8; 32],
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -153,6 +154,7 @@ pub(crate) fn compliance_leaf_from_typed(
         slot_id: decaf377::Fq::from(leaf.slot_id).to_bytes(),
         slot_derivation: leaf.slot_derivation.to_bytes(),
         d: leaf.d.to_bytes(),
+        status: leaf.status.as_field().to_bytes(),
     })
 }
 

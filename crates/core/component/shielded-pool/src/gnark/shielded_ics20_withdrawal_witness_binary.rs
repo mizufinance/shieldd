@@ -14,7 +14,7 @@ use crate::{
 };
 
 const SHIELDED_ICS20_WITHDRAWAL_WITNESS_MAGIC: &[u8; 4] = b"PIWG";
-const SHIELDED_ICS20_WITHDRAWAL_WITNESS_VERSION: u32 = 10;
+const SHIELDED_ICS20_WITHDRAWAL_WITNESS_VERSION: u32 = 11;
 
 impl ShieldedIcs20WithdrawalWitnessV10 {
     pub fn encode(&self) -> Result<Vec<u8>> {
@@ -52,6 +52,7 @@ impl ShieldedIcs20WithdrawalWitnessV10 {
         put_bytes(&mut buf, &self.sender_slot_id);
         put_bytes(&mut buf, &self.sender_slot_derivation);
         put_bytes(&mut buf, &self.sender_d);
+        put_bytes(&mut buf, &self.sender_status);
         encode_required_spend(&mut buf, &self.required_spend)?;
         encode_optional_spend(&mut buf, &self.optional_spend)?;
         encode_change_output(&mut buf, &self.change_output);
@@ -128,6 +129,7 @@ impl ShieldedIcs20WithdrawalWitnessV10 {
             sender_slot_id: cursor.read_fixed::<32>()?,
             sender_slot_derivation: cursor.read_fixed::<32>()?,
             sender_d: cursor.read_fixed::<32>()?,
+            sender_status: cursor.read_fixed::<32>()?,
             required_spend: decode_required_spend(&mut cursor)?,
             optional_spend: decode_optional_spend(&mut cursor)?,
             change_output: decode_change_output(&mut cursor)?,

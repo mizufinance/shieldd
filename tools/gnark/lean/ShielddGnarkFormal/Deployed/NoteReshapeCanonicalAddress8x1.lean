@@ -136,9 +136,9 @@ theorem canonicalTransmissionFacts_of_exact
       Contracts.NoteReshape8x1.sharedDivGenNonIdentity_of_exact rho facts
   · have hdtk := facts.shared.DecafDiversifiedTransmissionKeySeg17
     have hw2211 : Contracts.NoteReshape8x1.Seg17.wireSeating 2211 =
-        16 := by rfl
-    have hw2212 : Contracts.NoteReshape8x1.Seg17.wireSeating 2212 =
         17 := by rfl
+    have hw2212 : Contracts.NoteReshape8x1.Seg17.wireSeating 2212 =
+        18 := by rfl
     have hCurveProtocol :=
       Decaf377Assumptions.onCurve_of_compress
         (NoteReshapeCanonical.toDecafPoint

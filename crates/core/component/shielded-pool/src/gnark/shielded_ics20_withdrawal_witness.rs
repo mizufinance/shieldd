@@ -82,6 +82,7 @@ pub struct ShieldedIcs20WithdrawalWitnessV10 {
     pub sender_slot_id: [u8; 32],
     pub sender_slot_derivation: [u8; 32],
     pub sender_d: [u8; 32],
+    pub sender_status: [u8; 32],
     pub required_spend: ShieldedIcs20WithdrawalRequiredSpendWitnessV10,
     pub optional_spend: ShieldedIcs20WithdrawalOptionalSpendWitnessV10,
     pub change_output: ShieldedIcs20WithdrawalChangeWitnessV10,
@@ -89,8 +90,8 @@ pub struct ShieldedIcs20WithdrawalWitnessV10 {
     pub sender_diversified_generator_affine: PointAffineBytes,
 }
 
-fn compliance_leaf_parts(leaf: &ComplianceLeafBinary) -> ([u8; 32], [u8; 32], [u8; 32]) {
-    (leaf.slot_id, leaf.slot_derivation, leaf.d)
+fn compliance_leaf_parts(leaf: &ComplianceLeafBinary) -> ([u8; 32], [u8; 32], [u8; 32], [u8; 32]) {
+    (leaf.slot_id, leaf.slot_derivation, leaf.d, leaf.status)
 }
 
 fn verification_key_point(
@@ -200,7 +201,7 @@ impl ShieldedIcs20WithdrawalWitnessV10 {
             shielded_ics20_withdrawal_statement_hash_from_public(public)
                 .map_err(|e| anyhow!("compute {} statement hash: {e}", public.family_id.label()))?;
         let sender_leaf = compliance_leaf_from_typed(&private.sender_leaf)?;
-        let (sender_slot_id, sender_slot_derivation, sender_d) =
+        let (sender_slot_id, sender_slot_derivation, sender_d, sender_status) =
             compliance_leaf_parts(&sender_leaf);
 
         let required_spend = spend_witness(&public.inputs[0], &private.required_input, 0)?;
@@ -249,6 +250,7 @@ impl ShieldedIcs20WithdrawalWitnessV10 {
             sender_slot_id,
             sender_slot_derivation,
             sender_d,
+            sender_status,
             required_spend,
             optional_spend,
             change_output: change_witness(&public.change_output, &private.change_output),

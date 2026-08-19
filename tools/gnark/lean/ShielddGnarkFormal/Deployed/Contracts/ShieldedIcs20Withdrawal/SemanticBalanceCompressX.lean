@@ -33,35 +33,35 @@ wires, including the coefficient-bearing seed wire.
 theorem netBalanceCommitmentX_eq_compressInputX
     (rho : Nat → SemanticF) :
     netBalanceCommitmentX rho =
-      Deployed.Templates.Semantics.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.inputX (Seg58.localRho rho) := by
+      Deployed.Templates.Semantics.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.inputX (Seg59.localRho rho) := by
   have hperm :
       ((List.range 149).map (fun offset =>
-          Seg57.wireSeating (772 + offset * 5)) ++
+          Seg58.wireSeating (772 + offset * 5)) ++
         (List.range 101).map (fun offset =>
-          Seg57.wireSeating (1520 + offset * 8))).Perm
+          Seg58.wireSeating (1520 + offset * 8))).Perm
         ((List.range 250).map (fun offset =>
-          Seg58.wireSeating (2 + offset))) := by
+          Seg59.wireSeating (2 + offset))) := by
     exact
       Deployed.ShieldedIcs20WithdrawalBalanceSeating.compressXPerm
   have hsum := sumAux_pair_eq_of_perm rho
-    Seg57.wireSeating Seg58.wireSeating
+    Seg58.wireSeating Seg59.wireSeating
     772 5 149 1520 8 101 2 1 250 hperm
   change
-    StrideRun.sumAux (Deployed.Templates.seated rho Seg57.wireSeating)
+    StrideRun.sumAux (Deployed.Templates.seated rho Seg58.wireSeating)
           772 5 149 +
-        StrideRun.sumAux (Deployed.Templates.seated rho Seg57.wireSeating)
+        StrideRun.sumAux (Deployed.Templates.seated rho Seg58.wireSeating)
           1520 8 101 =
-      StrideRun.sumAux (Deployed.Templates.seated rho Seg58.wireSeating)
+      StrideRun.sumAux (Deployed.Templates.seated rho Seg59.wireSeating)
         2 1 250 at hsum
   have hseed :
-      Seg57.wireSeating 517 = Seg58.wireSeating 1 := by
+      Seg58.wireSeating 517 = Seg59.wireSeating 1 := by
     decide +kernel
   simp only [
     netBalanceCommitmentX_eq_delta,
     Deployed.Templates.Semantics.TDecafConservationNetBalanceCommitment2_236fd0549adf468bfd993cdf1a3c2b4bbf80d1c8f9b95e4fda163888ecd365f6.NbSupport.nbBlindDeltaX250, Deployed.Templates.Semantics.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.inputX,
     Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationLc0,
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-    StrideRun.eval, Seg57.localRho, Seg58.localRho,
+    StrideRun.eval, Seg58.localRho, Seg59.localRho,
     Deployed.Templates.seated, hseed, zero_add, one_mul, add_zero]
   rw [hsum]
   ac_rfl

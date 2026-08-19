@@ -35,16 +35,16 @@ randomized keys, conservation, canonical encodings, and the exact native
 statement hash. Transfer additionally covers its asset/user
 registry proofs, regulation-gated threshold comparison, unconditional compliance
 ciphertexts, salts, shared-secret/ACK derivations, and factored metadata.
-Transfer V18 also proves the v3 six-field compliance leaves, excludes
+Transfer also proves the v4 seven-field compliance leaves and `Active` status, excludes
 the asset-tree zero sentinel, constrains both detection slots to 32 bits, and
 keeps the exact asset separate from the flag packed into sender-slot bit 32.
-It has no DLEQ or public shared-point surface. Withdrawal V10 proves the same
+It has no DLEQ or public shared-point surface. Withdrawal proves the same
 leaf/sentinel invariants, its compact canonical asset leaf, outbound value, and
 all four 128-bit effect-hash limbs. The recent-position floor and each
 history-required bit are included in the exact public statement projection.
 
 External proof-key selection, body/public-input projection, signatures, current
-asset policy, recent append-only user roots, registry authorization, nullifier
+asset policy and user-status roots, registry authorization, nullifier
 state, output persistence, timestamp checks, and withdrawal execution stay
 outside Groth16. State-changing premises are one concrete typed
 `ConsensusTransition before action delta after`: it states freshness against
@@ -212,9 +212,10 @@ branch/disclosure contract, role, trace row, formal fact, transition clause,
 ledger row, required test, or stated assumption silently falls out of the
 implementation/proof chain.
 
-The version-5 NoteReshape witness contains one private shared asset ID,
-diversified generator, transmission key, and routing nonce. Transfer V18 and Withdrawal V10 likewise
-derive their public bodies and shared sender context from canonical plan facts.
+The version-6 NoteReshape witness contains one private shared asset ID,
+diversified generator, transmission key, routing nonce, and current user-status
+proof. Transfer V19 and Withdrawal V11 likewise derive their public bodies,
+shared sender context, and status facts from canonical plan data.
 There is no persisted placeholder action body or duplicate balance in any of
 the three proof plans.
 

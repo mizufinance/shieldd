@@ -2,9 +2,14 @@ use super::*;
 
 use anyhow::{ensure, Context as _};
 use shieldd_sdk_asset::{asset, Value};
+use shieldd_sdk_compliance::{
+    ComplianceRegistryRead as _, ComplianceRegistryWrite as _, UserAssetStatus,
+    UserAssetStatusAction,
+};
 use shieldd_sdk_keys::Address;
 use shieldd_sdk_num::Amount;
 use shieldd_sdk_proto::execution_client::v1::{
+    apply_compliance_action_request, ApplyComplianceActionRequest, ApplyComplianceActionResponse,
     DepositRequest, DepositResponse, HostSource as ProtoHostSource,
 };
 use shieldd_sdk_shielded_pool::component::{
@@ -14,8 +19,10 @@ use shieldd_sdk_shielded_pool::HostWithdrawalDestination;
 use std::str::FromStr as _;
 use std::time::Instant;
 
-const HOST_DEPOSIT_SOURCE_PREFIX: &str = "application/host_deposit/source";
+const HOST_ACTION_SOURCE_PREFIX: &str = "application/host_action/source";
 const HOST_DEPOSIT_DOMAIN: &[u8] = b"shieldd.host_deposit.v1";
+const HOST_COMPLIANCE_ACTION_DOMAIN: &[u8] = b"shieldd.host_compliance_action.v1";
+const HOST_ACTION_ID_DOMAIN: &[u8] = b"shieldd.host_action_id.v1";
 const HOST_PROPOSER_ADDRESS: [u8; 20] = [0u8; 20];
 
 #[derive(Clone, Debug)]
@@ -103,6 +110,30 @@ pub struct HostExecution {
 pub struct HostDepositResult {
     pub response: DepositResponse,
     pub events: Vec<abci::Event>,
+}
+
+#[derive(Debug)]
+pub struct HostComplianceActionResult {
+    pub response: ApplyComplianceActionResponse,
+    pub events: Vec<abci::Event>,
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+struct HostActionReceipt {
+    request_digest: [u8; 32],
+    result: HostActionReceiptResult,
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+enum HostActionReceiptResult {
+    Deposit {
+        deposit_id: [u8; 32],
+    },
+    Compliance {
+        action_id: [u8; 32],
+        previous_status: UserAssetStatus,
+        current_status: UserAssetStatus,
+    },
 }
 
 impl HostExecution {
@@ -259,6 +290,18 @@ impl HostExecution {
         );
 
         self.app.deposit(deposit).await
+    }
+
+    pub async fn apply_compliance_action(
+        &mut self,
+        request: ApplyComplianceActionRequest,
+    ) -> Result<HostComplianceActionResult> {
+        ensure!(
+            self.phase == HostExecutionPhase::InBlock,
+            "compliance action called while host execution phase is {:?}",
+            self.phase
+        );
+        self.app.apply_compliance_action(request).await
     }
 
     pub async fn check_tx(&self, tx_bytes: &[u8]) -> Result<HostTxResponse> {
@@ -570,16 +613,46 @@ impl App {
         let chain_id = state_tx.get_chain_id().await?;
         let parsed = ParsedHostDeposit::parse(chain_id, deposit)?;
         let source_key = parsed.source_key();
+        let current_height = state_tx.get_block_height().await?;
+        validate_host_source(&parsed.source, current_height)?;
 
-        ensure!(
-            state_tx.get_raw(&source_key).await?.is_none(),
-            "host deposit source has already been processed"
-        );
+        if let Some(receipt) = load_host_action_receipt(&state_tx, &source_key).await? {
+            ensure!(
+                receipt.request_digest == parsed.deposit_id,
+                "host source was already used by a different request"
+            );
+            let HostActionReceiptResult::Deposit { deposit_id } = receipt.result else {
+                anyhow::bail!("host source was already used by a different action kind");
+            };
+            return Ok(HostDepositResult {
+                response: DepositResponse {
+                    deposit_id: deposit_id.to_vec(),
+                },
+                events: Vec::new(),
+            });
+        }
 
         let deposit_id = parsed.deposit_id;
-        state_tx.put_raw(source_key, deposit_id.to_vec());
+        store_host_action_receipt(
+            &mut state_tx,
+            source_key,
+            &HostActionReceipt {
+                request_digest: parsed.deposit_id,
+                result: HostActionReceiptResult::Deposit { deposit_id },
+            },
+        )?;
 
         state_tx.register_denom(&parsed.denom).await;
+        if state_tx.is_asset_regulated(parsed.value().asset_id).await? {
+            let leaf = state_tx
+                .get_user_leaf(&parsed.recipient, parsed.value().asset_id)
+                .await?
+                .ok_or_else(|| anyhow::anyhow!("regulated deposit recipient is not registered"))?;
+            ensure!(
+                leaf.status == UserAssetStatus::Active,
+                "regulated deposit recipient is not active"
+            );
+        }
         state_tx
             .mint_note(
                 parsed.value(),
@@ -602,6 +675,68 @@ impl App {
             events,
         })
     }
+
+    pub async fn apply_compliance_action(
+        &mut self,
+        request: ApplyComplianceActionRequest,
+    ) -> Result<HostComplianceActionResult> {
+        let mut state_tx = StateDelta::new(self.state.clone());
+        let chain_id = state_tx.get_chain_id().await?;
+        let parsed = ParsedHostComplianceAction::parse(chain_id, request)?;
+        let current_height = state_tx.get_block_height().await?;
+        validate_host_source(&parsed.source, current_height)?;
+        let source_key = parsed.source_key();
+
+        if let Some(receipt) = load_host_action_receipt(&state_tx, &source_key).await? {
+            ensure!(
+                receipt.request_digest == parsed.request_digest,
+                "host source was already used by a different request"
+            );
+            let HostActionReceiptResult::Compliance {
+                action_id,
+                previous_status,
+                current_status,
+            } = receipt.result
+            else {
+                anyhow::bail!("host source was already used by a different action kind");
+            };
+            return Ok(HostComplianceActionResult {
+                response: compliance_action_response(
+                    action_id,
+                    previous_status,
+                    current_status,
+                    true,
+                ),
+                events: Vec::new(),
+            });
+        }
+
+        let event = state_tx
+            .apply_user_status_action(&parsed.address, parsed.asset_id, parsed.action)
+            .await?;
+        let current_status = event.leaf.status;
+        store_host_action_receipt(
+            &mut state_tx,
+            source_key,
+            &HostActionReceipt {
+                request_digest: parsed.request_digest,
+                result: HostActionReceiptResult::Compliance {
+                    action_id: parsed.action_id,
+                    previous_status: event.previous_status,
+                    current_status,
+                },
+            },
+        )?;
+
+        let response = compliance_action_response(
+            parsed.action_id,
+            event.previous_status,
+            current_status,
+            false,
+        );
+        let events = self.apply(state_tx);
+        Ok(HostComplianceActionResult { response, events })
+    }
 }
 
 struct ParsedHostDeposit {
@@ -616,7 +751,6 @@ struct ParsedHostDeposit {
 impl ParsedHostDeposit {
     fn parse(chain_id: String, deposit: DepositRequest) -> Result<Self> {
         let source = deposit.source.context("host deposit source is required")?;
-        validate_host_source(&source)?;
 
         let denom: asset::Metadata = deposit
             .denom
@@ -652,26 +786,137 @@ impl ParsedHostDeposit {
     }
 
     fn source_key(&self) -> String {
-        host_deposit_source_key(&self.chain_id, &self.source)
+        host_action_source_key(&self.chain_id, &self.source)
     }
 }
 
-fn validate_host_source(source: &ProtoHostSource) -> Result<()> {
+struct ParsedHostComplianceAction {
+    chain_id: String,
+    source: ProtoHostSource,
+    address: Address,
+    asset_id: asset::Id,
+    action: UserAssetStatusAction,
+    action_id: [u8; 32],
+    request_digest: [u8; 32],
+}
+
+impl ParsedHostComplianceAction {
+    fn parse(chain_id: String, request: ApplyComplianceActionRequest) -> Result<Self> {
+        let source = request
+            .source
+            .context("host compliance action source is required")?;
+        let (address, asset_id, action) = match request
+            .action
+            .context("host compliance action is required")?
+        {
+            apply_compliance_action_request::Action::Freeze(action) => (
+                action
+                    .address
+                    .context("freeze address is required")?
+                    .try_into()
+                    .context("invalid freeze address")?,
+                action
+                    .asset_id
+                    .context("freeze asset ID is required")?
+                    .try_into()
+                    .context("invalid freeze asset ID")?,
+                UserAssetStatusAction::Freeze,
+            ),
+            apply_compliance_action_request::Action::Unfreeze(action) => (
+                action
+                    .address
+                    .context("unfreeze address is required")?
+                    .try_into()
+                    .context("invalid unfreeze address")?,
+                action
+                    .asset_id
+                    .context("unfreeze asset ID is required")?
+                    .try_into()
+                    .context("invalid unfreeze asset ID")?,
+                UserAssetStatusAction::Unfreeze,
+            ),
+        };
+        let action_id = derive_host_action_id(&chain_id, &source);
+        let request_digest =
+            derive_compliance_action_digest(&chain_id, &source, &address, asset_id, action);
+        Ok(Self {
+            chain_id,
+            source,
+            address,
+            asset_id,
+            action,
+            action_id,
+            request_digest,
+        })
+    }
+
+    fn source_key(&self) -> String {
+        host_action_source_key(&self.chain_id, &self.source)
+    }
+}
+
+fn validate_host_source(source: &ProtoHostSource, current_height: u64) -> Result<()> {
     ensure!(
         source.tx_hash.len() == 32,
-        "host deposit source tx_hash must be 32 bytes"
+        "host source tx_hash must be 32 bytes"
+    );
+    ensure!(
+        source.height == current_height,
+        "host source height {} does not match active block height {current_height}",
+        source.height
     );
     Ok(())
 }
 
-fn host_deposit_source_key(chain_id: &str, source: &ProtoHostSource) -> String {
+fn host_action_source_key(chain_id: &str, source: &ProtoHostSource) -> String {
     format!(
-        "{HOST_DEPOSIT_SOURCE_PREFIX}/{}/{}/{:020}/{:010}",
-        chain_id,
-        hex::encode(&source.tx_hash),
+        "{HOST_ACTION_SOURCE_PREFIX}/{}/{:020}/{:010}/{:010}",
+        hex::encode(chain_id.as_bytes()),
         source.height,
+        source.tx_index,
         source.msg_index,
     )
+}
+
+async fn load_host_action_receipt<S: StateRead + ?Sized>(
+    state: &S,
+    key: &str,
+) -> Result<Option<HostActionReceipt>> {
+    state
+        .get_raw(key)
+        .await?
+        .map(|bytes| bincode::deserialize(&bytes).context("decoding host action receipt"))
+        .transpose()
+}
+
+fn store_host_action_receipt<S: StateWrite + ?Sized>(
+    state: &mut S,
+    key: String,
+    receipt: &HostActionReceipt,
+) -> Result<()> {
+    state.put_raw(
+        key,
+        bincode::serialize(receipt).context("encoding host action receipt")?,
+    );
+    Ok(())
+}
+
+fn compliance_action_response(
+    action_id: [u8; 32],
+    previous_status: UserAssetStatus,
+    current_status: UserAssetStatus,
+    replayed: bool,
+) -> ApplyComplianceActionResponse {
+    ApplyComplianceActionResponse {
+        action_id: action_id.to_vec(),
+        previous_status: shieldd_sdk_proto::core::component::compliance::v1::UserAssetStatus::from(
+            previous_status,
+        ) as i32,
+        current_status: shieldd_sdk_proto::core::component::compliance::v1::UserAssetStatus::from(
+            current_status,
+        ) as i32,
+        replayed,
+    }
 }
 
 fn derive_deposit_id(
@@ -685,11 +930,46 @@ fn derive_deposit_id(
     hash_bytes(&mut hasher, HOST_DEPOSIT_DOMAIN);
     hash_bytes(&mut hasher, chain_id.as_bytes());
     hasher.update(source.height.to_be_bytes());
+    hasher.update(source.tx_index.to_be_bytes());
     hash_bytes(&mut hasher, &source.tx_hash);
     hasher.update(source.msg_index.to_be_bytes());
     hash_bytes(&mut hasher, denom.to_string().as_bytes());
     hash_bytes(&mut hasher, amount.to_string().as_bytes());
     hash_bytes(&mut hasher, recipient.to_string().as_bytes());
+    hasher.finalize().into()
+}
+
+fn derive_host_action_id(chain_id: &str, source: &ProtoHostSource) -> [u8; 32] {
+    let mut hasher = sha2::Sha256::new();
+    hash_bytes(&mut hasher, HOST_ACTION_ID_DOMAIN);
+    hash_bytes(&mut hasher, chain_id.as_bytes());
+    hasher.update(source.height.to_be_bytes());
+    hasher.update(source.tx_index.to_be_bytes());
+    hash_bytes(&mut hasher, &source.tx_hash);
+    hasher.update(source.msg_index.to_be_bytes());
+    hasher.finalize().into()
+}
+
+fn derive_compliance_action_digest(
+    chain_id: &str,
+    source: &ProtoHostSource,
+    address: &Address,
+    asset_id: asset::Id,
+    action: UserAssetStatusAction,
+) -> [u8; 32] {
+    let mut hasher = sha2::Sha256::new();
+    hash_bytes(&mut hasher, HOST_COMPLIANCE_ACTION_DOMAIN);
+    hash_bytes(&mut hasher, chain_id.as_bytes());
+    hasher.update(source.height.to_be_bytes());
+    hasher.update(source.tx_index.to_be_bytes());
+    hash_bytes(&mut hasher, &source.tx_hash);
+    hasher.update(source.msg_index.to_be_bytes());
+    hash_bytes(&mut hasher, &address.to_vec());
+    hash_bytes(&mut hasher, &asset_id.0.to_bytes());
+    hasher.update([match action {
+        UserAssetStatusAction::Freeze => 1,
+        UserAssetStatusAction::Unfreeze => 2,
+    }]);
     hasher.finalize().into()
 }
 
@@ -706,8 +986,10 @@ mod tests {
     use cnidarium::TempStorage;
     use cnidarium_component::ActionHandler as _;
     use shieldd_sdk_asset::BASE_ASSET_DENOM;
+    use shieldd_sdk_compliance::{AssetPolicy, ComplianceLeaf};
     use shieldd_sdk_keys::symmetric::{OvkWrappedKey, WrappedMemoKey};
     use shieldd_sdk_keys::test_keys;
+    use shieldd_sdk_proto::execution_client::v1::{FreezeUserAsset, UnfreezeUserAsset};
     use shieldd_sdk_shielded_pool::component::StateReadExt as _;
     use shieldd_sdk_shielded_pool::{
         EvmCall, HostExecution as DomainHostExecution, HostTransfer,
@@ -734,12 +1016,17 @@ mod tests {
         }
     }
 
-    fn host_source(msg_index: u32) -> ProtoHostSource {
+    fn host_source_at(height: u64, msg_index: u32) -> ProtoHostSource {
         ProtoHostSource {
-            height: 42,
+            height,
             tx_hash: [7u8; 32].to_vec(),
+            tx_index: 0,
             msg_index,
         }
+    }
+
+    fn host_source(msg_index: u32) -> ProtoHostSource {
+        host_source_at(1, msg_index)
     }
 
     fn deposit_request(msg_index: u32) -> DepositRequest {
@@ -749,6 +1036,56 @@ mod tests {
             recipient: test_keys::ADDRESS_0.to_string(),
             source: Some(host_source(msg_index)),
         }
+    }
+
+    fn compliance_request(
+        source: ProtoHostSource,
+        action: UserAssetStatusAction,
+    ) -> ApplyComplianceActionRequest {
+        let address = Some(test_keys::ADDRESS_0.deref().clone().into());
+        let asset_id = Some(BASE_ASSET_DENOM.id().into());
+        let action = match action {
+            UserAssetStatusAction::Freeze => {
+                apply_compliance_action_request::Action::Freeze(FreezeUserAsset {
+                    address,
+                    asset_id,
+                })
+            }
+            UserAssetStatusAction::Unfreeze => {
+                apply_compliance_action_request::Action::Unfreeze(UnfreezeUserAsset {
+                    address,
+                    asset_id,
+                })
+            }
+        };
+        ApplyComplianceActionRequest {
+            source: Some(source),
+            action: Some(action),
+        }
+    }
+
+    async fn register_regulated_test_user(host: &mut HostExecution) -> Result<()> {
+        let mut state_tx = StateDelta::new(host.app.state.clone());
+        state_tx
+            .test_only_register_asset(
+                BASE_ASSET_DENOM.id(),
+                AssetPolicy::simple(
+                    decaf377::Element::GENERATOR,
+                    u128::MAX,
+                    decaf377::Element::GENERATOR,
+                ),
+                true,
+            )
+            .await?;
+        state_tx
+            .test_only_add_compliance_leaf(ComplianceLeaf::new(
+                test_keys::ADDRESS_0.deref().clone(),
+                BASE_ASSET_DENOM.id(),
+                decaf377::Fq::from(7u64),
+            ))
+            .await?;
+        host.app.apply(state_tx);
+        Ok(())
     }
 
     fn host_withdrawal_action() -> ShieldedHostWithdrawal {
@@ -791,22 +1128,89 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn deposit_mints_note_and_rejects_replayed_host_source() -> Result<()> {
+    async fn deposit_mints_note_and_exact_replay_returns_same_result() -> Result<()> {
         let storage = temp_storage().await;
         let mut app = App::new(storage.latest_snapshot());
         app.init_chain(&host_genesis()).await;
         assert!(!app.state.host_withdrawals_enabled().await?);
 
-        let first = app.deposit(deposit_request(0)).await?;
+        let height = app.state.get_block_height().await?;
+        let mut request = deposit_request(0);
+        request.source = Some(host_source_at(height, 0));
+        let first = app.deposit(request.clone()).await?;
         assert_eq!(first.response.deposit_id.len(), 32);
         assert!(!first.events.is_empty());
 
-        let replay = app.deposit(deposit_request(0)).await;
-        assert!(replay
-            .expect_err("replayed host source must fail")
-            .to_string()
-            .contains("host deposit source has already been processed"));
+        let replay = app.deposit(request).await?;
+        assert_eq!(replay.response.deposit_id, first.response.deposit_id);
+        assert!(replay.events.is_empty());
 
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn compliance_actions_are_typed_atomic_and_replay_safe() -> Result<()> {
+        let storage = temp_storage().await;
+        let mut host = HostExecution::new(storage.deref().clone());
+        host.init_genesis(host_genesis()).await?;
+        host.commit().await?;
+        host.begin_block(host_block(1)).await?;
+        register_regulated_test_user(&mut host).await?;
+
+        let failed_source = host_source_at(1, 0);
+        let failed = host
+            .apply_compliance_action(compliance_request(
+                failed_source.clone(),
+                UserAssetStatusAction::Unfreeze,
+            ))
+            .await
+            .expect_err("an active user cannot be unfrozen");
+        assert!(failed.to_string().contains("only a frozen user asset"));
+
+        let first = host
+            .apply_compliance_action(compliance_request(
+                failed_source.clone(),
+                UserAssetStatusAction::Freeze,
+            ))
+            .await?;
+        assert_eq!(first.response.action_id.len(), 32);
+        assert_eq!(first.response.previous_status, 1);
+        assert_eq!(first.response.current_status, 2);
+        assert!(!first.response.replayed);
+
+        let replay = host
+            .apply_compliance_action(compliance_request(
+                failed_source,
+                UserAssetStatusAction::Freeze,
+            ))
+            .await?;
+        assert_eq!(replay.response.action_id, first.response.action_id);
+        assert!(replay.response.replayed);
+        assert!(replay.events.is_empty());
+
+        let conflict = host
+            .apply_compliance_action(compliance_request(
+                host_source_at(1, 0),
+                UserAssetStatusAction::Unfreeze,
+            ))
+            .await
+            .expect_err("a host source cannot name a different successful action");
+        assert!(conflict.to_string().contains("different request"));
+
+        let frozen_deposit = host.deposit(deposit_request(1)).await;
+        assert!(frozen_deposit
+            .expect_err("regulated deposits to frozen users must fail")
+            .to_string()
+            .contains("not active"));
+
+        let unfreeze = host
+            .apply_compliance_action(compliance_request(
+                host_source_at(1, 2),
+                UserAssetStatusAction::Unfreeze,
+            ))
+            .await?;
+        assert_eq!(unfreeze.response.previous_status, 2);
+        assert_eq!(unfreeze.response.current_status, 1);
         Ok(())
     }
 
@@ -1085,12 +1489,12 @@ mod tests {
     #[test]
     fn source_key_uses_host_tx_identity_not_deposit_contents() {
         assert_eq!(
-            host_deposit_source_key("bankd-local", &host_source(3)),
-            host_deposit_source_key("bankd-local", &host_source(3)),
+            host_action_source_key("bankd-local", &host_source(3)),
+            host_action_source_key("bankd-local", &host_source(3)),
         );
         assert_ne!(
-            host_deposit_source_key("bankd-local", &host_source(3)),
-            host_deposit_source_key("bankd-local", &host_source(4)),
+            host_action_source_key("bankd-local", &host_source(3)),
+            host_action_source_key("bankd-local", &host_source(4)),
         );
     }
 
@@ -1099,10 +1503,11 @@ mod tests {
         let source = ProtoHostSource {
             height: 42,
             tx_hash: [7u8; 31].to_vec(),
+            tx_index: 0,
             msg_index: 0,
         };
 
-        assert!(validate_host_source(&source).is_err());
+        assert!(validate_host_source(&source, 42).is_err());
     }
 
     #[test]

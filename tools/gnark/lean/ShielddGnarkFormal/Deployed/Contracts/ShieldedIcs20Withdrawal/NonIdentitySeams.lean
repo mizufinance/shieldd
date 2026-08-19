@@ -47,9 +47,9 @@ theorem senderTransmissionComputedNonIdentity_of_exact
     senderTransmissionComputed0 rho ≠ 0 := by
   have h := facts.canonicalSender.AssertDecafNonIdentitySeg9.2
   change Seg9.localRho rho 2 + Seg9.localRho rho 3 ≠ 0 at h
-  have h1 : Seg9.wireSeating 2 = 5958 := by
+  have h1 : Seg9.wireSeating 2 = 5959 := by
     decide +kernel
-  have h2 : Seg9.wireSeating 3 = 5966 := by
+  have h2 : Seg9.wireSeating 3 = 5967 := by
     decide +kernel
   simpa only [
     senderTransmissionComputed0, senderTransmissionComputed0LC,

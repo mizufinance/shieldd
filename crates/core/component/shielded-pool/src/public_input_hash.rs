@@ -14,7 +14,7 @@ use crate::{
     NoteReshapeFamilyId,
 };
 
-pub const NOTE_RESHAPE_STATEMENT_BASE_FIELDS: usize = 6;
+pub const NOTE_RESHAPE_STATEMENT_BASE_FIELDS: usize = 7;
 pub const NOTE_RESHAPE_STATEMENT_FIELDS_PER_INPUT: usize = 3;
 pub const NOTE_RESHAPE_STATEMENT_FIELDS_PER_OUTPUT: usize = 1;
 pub const TRANSFER_STATEMENT_BASE_FIELDS: usize = 39;
@@ -233,7 +233,7 @@ pub fn note_reshape_statement_fields(
         &public.inputs,
         &public.outputs,
         public.recent_position_floor,
-        expected - 3,
+        expected - 4,
         note_reshape_field_encoding_error,
     )?;
     let routing_offset = 2 + public.outputs.len();
@@ -241,6 +241,7 @@ pub fn note_reshape_statement_fields(
         routing_offset..routing_offset,
         [
             public.asset_anchor.0,
+            public.compliance_anchor.0,
             Fq::from(public.routing_tag.value),
             public.routing_parameter_set_id,
         ],
@@ -499,7 +500,7 @@ pub fn note_reshape_statement_hash(
     fields: &[Fq],
 ) -> Result<Fq, StatementHashError> {
     hash_statement_fields(
-        &note_reshape_statement_hash_constant(family_id, "v3"),
+        &note_reshape_statement_hash_constant(family_id, "v4"),
         note_reshape_statement_hash_constant(family_id, "pad0"),
         note_reshape_statement_hash_constant(family_id, "pad1"),
         fields,
@@ -561,7 +562,7 @@ pub fn note_reshape_statement_hash_var(
 ) -> Result<FqVar, SynthesisError> {
     hash_statement_fields_var(
         cs,
-        &note_reshape_statement_hash_constant(family_id, "v3"),
+        &note_reshape_statement_hash_constant(family_id, "v4"),
         note_reshape_statement_hash_constant(family_id, "pad0"),
         note_reshape_statement_hash_constant(family_id, "pad1"),
         fields,
@@ -615,6 +616,7 @@ mod tests {
             &crate::gnark::point_affine_compress_to_field_bytes(&witness.balance_commitment_affine),
         ));
         fields.push(Fq::from_le_bytes_mod_order(&witness.asset_anchor));
+        fields.push(Fq::from_le_bytes_mod_order(&witness.compliance_anchor));
         fields.push(Fq::from_le_bytes_mod_order(&witness.routing_tag));
         fields.push(Fq::from_le_bytes_mod_order(
             &witness.routing_parameter_set_id,

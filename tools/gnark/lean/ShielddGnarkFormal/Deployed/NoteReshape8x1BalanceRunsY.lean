@@ -9,14 +9,14 @@ namespace Shieldd.GnarkFormal.Deployed.NoteReshape8x1BalanceRunsY
 open Shieldd.GnarkFormal
 open Contracts.NoteReshape8x1
 
-theorem y0 (rho : Nat → Seg162.F) :
-    StrideRun.sumAux (Seg162.localRho rho) 1418 5 149 =
-      StrideRun.sumAux rho 123292 5 149 :=
+theorem y0 (rho : Nat → Seg166.F) :
+    StrideRun.sumAux (Seg166.localRho rho) 1418 5 149 =
+      StrideRun.sumAux rho 129610 5 149 :=
   NoteReshape8x1BalanceRunY0.seated rho
 
-theorem y1 (rho : Nat → Seg162.F) :
-    StrideRun.sumAux (Seg162.localRho rho) 2166 8 101 =
-      StrideRun.sumAux rho 124040 8 101 :=
+theorem y1 (rho : Nat → Seg166.F) :
+    StrideRun.sumAux (Seg166.localRho rho) 2166 8 101 =
+      StrideRun.sumAux rho 130358 8 101 :=
   NoteReshape8x1BalanceRunY1.seated rho
 
 end Shieldd.GnarkFormal.Deployed.NoteReshape8x1BalanceRunsY

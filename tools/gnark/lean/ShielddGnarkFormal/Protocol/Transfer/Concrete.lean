@@ -33,7 +33,7 @@ def assetLeafDomain : F :=
   7414146286439358428123110060125696348906971675449116418017868010797147357618
 
 def complianceLeafDomain : F :=
-  5091441079939941903017664305347261861704474070005805806880013805880773073215
+  7622592512688680933372249798274825146043518728282898866874410341055945679433
 
 def transferSaltDomain : F :=
   9814218119045249492697294661951473569697737758904858008162255371556112438507966978708003569286295669273377765221863563035644922446591724449801876769478652
@@ -191,10 +191,10 @@ def assetRegistry (action : Action F Path24 Path16) : Prop :=
 
 def complianceLeafHash
     (proof : ComplianceProof F Path16) : F :=
-  Poseidon377.hash6 complianceLeafDomain
+  Poseidon377.hash7 complianceLeafDomain
     proof.address.diversifiedGeneratorEncoding
     proof.address.transmissionEncoding proof.assetId
-    proof.slotId proof.slotDerivation proof.d
+    proof.slotId proof.slotDerivation proof.d proof.status
 
 def complianceMembership
     (action : Action F Path24 Path16)
@@ -204,7 +204,8 @@ def complianceMembership
     proof.position.val < 2 ^ 32 ∧
     (action.assetProof.isRegulated = 1 →
       Common.quadMember action.complianceAnchor
-        (complianceLeafHash proof) proof.path proof.position)
+        (complianceLeafHash proof) proof.path proof.position ∧
+      proof.status = 1)
 
 def senderCompliance (action : Action F Path24 Path16) : Prop :=
   action.senderCompliance.address = action.sender ∧

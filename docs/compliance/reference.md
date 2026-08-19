@@ -1,6 +1,6 @@
 # Compliance Reference
 
-Technical lookup material for the deployed V18 transfer compliance surface.
+Technical lookup material for the current transfer compliance surface.
 See `flow.md` for the end-to-end lifecycle.
 
 ## Transfer Wire Format
@@ -36,7 +36,7 @@ TransferComplianceMetadata: 328 bytes
 Every Fq and compressed point must decode canonically. Metadata timestamp zero
 is invalid. Tier labels are not serialized; fixed ordering is the tier domain.
 
-The V18 transport has no upload bundle, encrypted seed envelope, public shared
+The transport has no upload bundle, encrypted seed envelope, public shared
 point, DLEQ challenge, or DLEQ response.
 
 After decryption, the four detection words are:
@@ -49,7 +49,7 @@ After decryption, the four detection words are:
 ```
 
 Both slots are canonical `u32` values, and the routing permutation is a
-canonical bit. Word 0 is the exact asset id; V18 does not combine the asset
+canonical bit. Word 0 is the exact asset id; the circuit does not combine the asset
 with either flag.
 
 ## Transfer Key And Address Validity
@@ -148,22 +148,23 @@ native privacy premises, not public circuit facts.
 | Compliance tree | `(address, asset) -> ComplianceLeaf` | arity 4, depth 16 |
 | Asset tree | regulated policy membership and unregulated gap | indexed tree |
 
-Consensus requires the current mutable asset-policy root and permits a recent
-recorded root of the separate append-only compliance tree. Large node
+Consensus requires the exact current mutable asset-policy and user-status
+roots. Large node
 materialization is nonverifiable storage checked against those committed
 roots.
 
-`ComplianceLeaf` v3 is
+`ComplianceLeaf` v4 is
 
 ```text
-PoseidonHash6(
-  "shieldd.compliance.leaf.v3",
+PoseidonHash7(
+  "shieldd.compliance.leaf.v4",
   diversified_generator_fq,
   transmission_key_fq,
   asset_id,
   slot_id,
   slot_derivation,
-  d
+  d,
+  status
 )
 ```
 
@@ -226,7 +227,7 @@ facts before advancing the row to `evidence_valid`.
 Flagged transfers can be completed by issuer-DK decryption after evidence
 validation. Orbis v0 export and import always return errors because its public
 proof reveals the seed-opening DH point. Consequently, unflagged ACK-tier PRE
-audit is unavailable in V18.
+audit is currently unavailable.
 
 The retained DLEQ implementation and Lean/Tamarin material are standalone
 research. No deployed statement field, transaction byte, evidence object, or
@@ -245,7 +246,8 @@ there is no second circuit architecture to maintain.
 
 - Flagging is per receiver amount and regulation-gated:
   `is_regulated * (amount >= authenticated_leaf_threshold)`.
-- Note reshapes carry no transfer compliance surface.
+- Note reshapes carry no transfer audit ciphertext, but regulated reshapes prove
+  the owner leaf is `Active` under the exact current compliance root.
 - Asset policies and registrations are immutable.
 - Channel whitelist enforcement is first-hop only.
 - Cross-tier randomizer/EPK independence is mandatory.

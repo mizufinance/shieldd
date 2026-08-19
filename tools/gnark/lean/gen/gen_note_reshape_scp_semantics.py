@@ -52,18 +52,18 @@ ROW_COUNT = 9015
 LOCAL_WIRE_COUNT = 8993
 REFERENCE_LOCAL_WIRE_COUNT = 8993
 PART_SIZE = 80
-SOURCE_SEGMENT = 33
+SOURCE_SEGMENT = 37
 
 DIRECT_INSTANCES = (
-    ("note_reshape1x8", 33),
-    ("note_reshape8x1", 42),
-    ("note_reshape8x1", 57),
-    ("note_reshape8x1", 72),
-    ("note_reshape8x1", 87),
-    ("note_reshape8x1", 102),
-    ("note_reshape8x1", 117),
-    ("note_reshape8x1", 132),
-    ("note_reshape8x1", 147),
+    ("note_reshape1x8", 37),
+    ("note_reshape8x1", 46),
+    ("note_reshape8x1", 61),
+    ("note_reshape8x1", 76),
+    ("note_reshape8x1", 91),
+    ("note_reshape8x1", 106),
+    ("note_reshape8x1", 121),
+    ("note_reshape8x1", 136),
+    ("note_reshape8x1", 151),
 )
 DIRECT_CONSTANT_VECTOR = (
     "02b3d6f5192c3b01e169435bcb1e038a"
@@ -71,10 +71,10 @@ DIRECT_CONSTANT_VECTOR = (
 )
 DIRECT_CLASS_KEY = "gadget.state_commitment_path@088ab48133b9d3af"
 WITHDRAWAL_INSTANCES = (
-    ("shielded_ics20_withdrawal", 30),
-    ("shielded_ics20_withdrawal", 41),
-    ("transfer", 34),
-    ("transfer", 46),
+    ("shielded_ics20_withdrawal", 31),
+    ("shielded_ics20_withdrawal", 42),
+    ("transfer", 35),
+    ("transfer", 47),
 )
 WITHDRAWAL_CONSTANT_VECTOR = (
     "64c43dfa0781373078a353d0673f774a0"

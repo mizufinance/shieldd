@@ -8,7 +8,7 @@ import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg12
 import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg17
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TGadgetAssetRegistryPath_15ce53a7aa20f1e3be74b254ad3c8969ad9eebbd2a6c1efaabc49db1f4e46c67
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TAssertEq_5e5758a2d4a6d172e743a9ad78863e351485ec2c3a01a4ef7fdc4d01f6c826ef
-import ShielddGnarkFormal.Deployed.Templates.Semantics.TGadgetCompliancePath_d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686
+import ShielddGnarkFormal.Deployed.Templates.Semantics.TGadgetCompliancePath_3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b
 import ShielddGnarkFormal.QuadPathProtocolBridge
 import Mathlib.Tactic.FinCases
 import Mathlib.Tactic.LinearCombination
@@ -90,6 +90,16 @@ private theorem withdrawalSeamCoeff8 :
       -(603175839244883601732058924198681895098278523939575987709659532565529231360 : SemanticF) := by
   decide +kernel
 
+private theorem withdrawalSeamCoeff9 :
+    (7881497632799812395965569942862776762617506046143792906072884558856248623105 : SemanticF) =
+      -(562964116628558028283254995918769768758393289010270921862348897061160615936 : SemanticF) := by
+  decide +kernel
+
+private theorem withdrawalSeamCoeff10 :
+    (7916682890089097272733273380107699873164905626706934838689281364922571161601 : SemanticF) =
+      -(527778859339273151515551558673846658210993708447128989245952090994838077440 : SemanticF) := by
+  decide +kernel
+
 theorem assetPathAt_eq_deployedWire
     (rho : Nat → SemanticF) (index : Fin 48) :
     assetPathAt rho index = rho (31 + index.val) := by
@@ -102,7 +112,7 @@ theorem assetPathAt_eq_deployedWire
 
 theorem senderPathAt_eq_deployedWire
     (rho : Nat → SemanticF) (index : Fin 48) :
-    senderPathAt rho index = rho (85 + index.val) := by
+    senderPathAt rho index = rho (86 + index.val) := by
   rcases index with ⟨index, index_lt⟩
   interval_cases index <;>
     simp [
@@ -129,7 +139,7 @@ theorem senderPosition_eq_pathPosition
       Seg17.localRho rho 33 := by
   have hseat :
       Seg17.wireSeating 33 =
-        133 := by
+        134 := by
     decide +kernel
   simp only [
     senderPosition, senderPositionLC,
@@ -144,17 +154,17 @@ theorem assetLeafCommitment_eq_pathLeaf
     assetLeafCommitment rho =
       Deployed.Templates.Semantics.TGadgetAssetRegistryPath_15ce53a7aa20f1e3be74b254ad3c8969ad9eebbd2a6c1efaabc49db1f4e46c67.leaf
         (Seg11.localRho rho) := by
-  have hl39 : Seg11.wireSeating 39 = 7036 := by
+  have hl39 : Seg11.wireSeating 39 = 7037 := by
     decide +kernel
-  have hl40 : Seg11.wireSeating 40 = 7041 := by
+  have hl40 : Seg11.wireSeating 40 = 7042 := by
     decide +kernel
-  have hl41 : Seg11.wireSeating 41 = 7046 := by
+  have hl41 : Seg11.wireSeating 41 = 7047 := by
     decide +kernel
-  have hl42 : Seg11.wireSeating 42 = 7051 := by
+  have hl42 : Seg11.wireSeating 42 = 7052 := by
     decide +kernel
-  have hl43 : Seg11.wireSeating 43 = 7056 := by
+  have hl43 : Seg11.wireSeating 43 = 7057 := by
     decide +kernel
-  have hl44 : Seg11.wireSeating 44 = 7061 := by
+  have hl44 : Seg11.wireSeating 44 = 7062 := by
     decide +kernel
   simp only [
     assetLeafCommitment, assetLeafCommitmentLC,
@@ -170,32 +180,34 @@ theorem assetLeafCommitment_eq_pathLeaf
 theorem senderLeafCommitment_eq_pathLeaf
     (rho : Nat → SemanticF) :
     senderLeafCommitment rho =
-      Deployed.Templates.Semantics.TGadgetCompliancePath_d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686.leaf
+      Deployed.Templates.Semantics.TGadgetCompliancePath_3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b.leaf
         (Seg17.localRho rho) := by
-  have hl39 : Seg17.wireSeating 39 = 16295 := by
+  have hl39 : Seg17.wireSeating 39 = 16331 := by
     decide +kernel
-  have hl40 : Seg17.wireSeating 40 = 16300 := by
+  have hl40 : Seg17.wireSeating 40 = 16336 := by
     decide +kernel
-  have hl41 : Seg17.wireSeating 41 = 16305 := by
+  have hl41 : Seg17.wireSeating 41 = 16341 := by
     decide +kernel
-  have hl42 : Seg17.wireSeating 42 = 16310 := by
+  have hl42 : Seg17.wireSeating 42 = 16346 := by
     decide +kernel
-  have hl43 : Seg17.wireSeating 43 = 16315 := by
+  have hl43 : Seg17.wireSeating 43 = 16351 := by
     decide +kernel
-  have hl44 : Seg17.wireSeating 44 = 16320 := by
+  have hl44 : Seg17.wireSeating 44 = 16356 := by
     decide +kernel
-  have hl45 : Seg17.wireSeating 45 = 16325 := by
+  have hl45 : Seg17.wireSeating 45 = 16361 := by
+    decide +kernel
+  have hl46 : Seg17.wireSeating 46 = 16366 := by
     decide +kernel
   simp only [
     senderLeafCommitment, senderLeafCommitmentLC,
-    Deployed.Templates.Semantics.TGadgetCompliancePath_d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686.leaf,
+    Deployed.Templates.Semantics.TGadgetCompliancePath_3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b.leaf,
     StructuredLC.eval, StructuredLC.sumRuns,
     StructuredLC.sumResidual, StrideRun.eval,
     Seg17.localRho,
     Deployed.Templates.seated,
-    hl39, hl40, hl41, hl42, hl43, hl44, hl45,
+    hl39, hl40, hl41, hl42, hl43, hl44, hl45, hl46,
     zero_add, one_mul, add_zero]
-  rw [withdrawalSeamCoeff2, withdrawalSeamCoeff3, withdrawalSeamCoeff4, withdrawalSeamCoeff5, withdrawalSeamCoeff6, withdrawalSeamCoeff7, withdrawalSeamCoeff8]
+  rw [withdrawalSeamCoeff3, withdrawalSeamCoeff4, withdrawalSeamCoeff5, withdrawalSeamCoeff6, withdrawalSeamCoeff7, withdrawalSeamCoeff8, withdrawalSeamCoeff9, withdrawalSeamCoeff10]
   ring
 
 theorem assetProviderPath_eq_protocolPath
@@ -315,105 +327,105 @@ theorem assetProviderPath_eq_protocolPath
 
 theorem complianceProviderPath_eq_protocolPath
     (rho : Nat → SemanticF) :
-    Deployed.Templates.Semantics.TGadgetCompliancePath_d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686.path
+    Deployed.Templates.Semantics.TGadgetCompliancePath_3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b.path
       (Seg17.localRho rho) =
       Shieldd.GnarkFormal.QuadPathProtocolBridge.vectorPath
         (senderProtocolPath rho) := by
-  have hc38 : Seg17.wireSeating 38 = 85 := by
+  have hc38 : Seg17.wireSeating 38 = 86 := by
     decide +kernel
-  have hc47 : Seg17.wireSeating 47 = 86 := by
+  have hc48 : Seg17.wireSeating 48 = 87 := by
     decide +kernel
-  have hc50 : Seg17.wireSeating 50 = 87 := by
+  have hc51 : Seg17.wireSeating 51 = 88 := by
     decide +kernel
-  have hc408 : Seg17.wireSeating 408 = 88 := by
+  have hc409 : Seg17.wireSeating 409 = 89 := by
     decide +kernel
-  have hc410 : Seg17.wireSeating 410 = 89 := by
+  have hc411 : Seg17.wireSeating 411 = 90 := by
     decide +kernel
-  have hc413 : Seg17.wireSeating 413 = 90 := by
+  have hc414 : Seg17.wireSeating 414 = 91 := by
     decide +kernel
-  have hc771 : Seg17.wireSeating 771 = 91 := by
+  have hc772 : Seg17.wireSeating 772 = 92 := by
     decide +kernel
-  have hc773 : Seg17.wireSeating 773 = 92 := by
+  have hc774 : Seg17.wireSeating 774 = 93 := by
     decide +kernel
-  have hc776 : Seg17.wireSeating 776 = 93 := by
+  have hc777 : Seg17.wireSeating 777 = 94 := by
     decide +kernel
-  have hc1134 : Seg17.wireSeating 1134 = 94 := by
+  have hc1135 : Seg17.wireSeating 1135 = 95 := by
     decide +kernel
-  have hc1136 : Seg17.wireSeating 1136 = 95 := by
+  have hc1137 : Seg17.wireSeating 1137 = 96 := by
     decide +kernel
-  have hc1139 : Seg17.wireSeating 1139 = 96 := by
+  have hc1140 : Seg17.wireSeating 1140 = 97 := by
     decide +kernel
-  have hc1497 : Seg17.wireSeating 1497 = 97 := by
+  have hc1498 : Seg17.wireSeating 1498 = 98 := by
     decide +kernel
-  have hc1499 : Seg17.wireSeating 1499 = 98 := by
+  have hc1500 : Seg17.wireSeating 1500 = 99 := by
     decide +kernel
-  have hc1502 : Seg17.wireSeating 1502 = 99 := by
+  have hc1503 : Seg17.wireSeating 1503 = 100 := by
     decide +kernel
-  have hc1860 : Seg17.wireSeating 1860 = 100 := by
+  have hc1861 : Seg17.wireSeating 1861 = 101 := by
     decide +kernel
-  have hc1862 : Seg17.wireSeating 1862 = 101 := by
+  have hc1863 : Seg17.wireSeating 1863 = 102 := by
     decide +kernel
-  have hc1865 : Seg17.wireSeating 1865 = 102 := by
+  have hc1866 : Seg17.wireSeating 1866 = 103 := by
     decide +kernel
-  have hc2223 : Seg17.wireSeating 2223 = 103 := by
+  have hc2224 : Seg17.wireSeating 2224 = 104 := by
     decide +kernel
-  have hc2225 : Seg17.wireSeating 2225 = 104 := by
+  have hc2226 : Seg17.wireSeating 2226 = 105 := by
     decide +kernel
-  have hc2228 : Seg17.wireSeating 2228 = 105 := by
+  have hc2229 : Seg17.wireSeating 2229 = 106 := by
     decide +kernel
-  have hc2586 : Seg17.wireSeating 2586 = 106 := by
+  have hc2587 : Seg17.wireSeating 2587 = 107 := by
     decide +kernel
-  have hc2588 : Seg17.wireSeating 2588 = 107 := by
+  have hc2589 : Seg17.wireSeating 2589 = 108 := by
     decide +kernel
-  have hc2591 : Seg17.wireSeating 2591 = 108 := by
+  have hc2592 : Seg17.wireSeating 2592 = 109 := by
     decide +kernel
-  have hc2949 : Seg17.wireSeating 2949 = 109 := by
+  have hc2950 : Seg17.wireSeating 2950 = 110 := by
     decide +kernel
-  have hc2951 : Seg17.wireSeating 2951 = 110 := by
+  have hc2952 : Seg17.wireSeating 2952 = 111 := by
     decide +kernel
-  have hc2954 : Seg17.wireSeating 2954 = 111 := by
+  have hc2955 : Seg17.wireSeating 2955 = 112 := by
     decide +kernel
-  have hc3312 : Seg17.wireSeating 3312 = 112 := by
+  have hc3313 : Seg17.wireSeating 3313 = 113 := by
     decide +kernel
-  have hc3314 : Seg17.wireSeating 3314 = 113 := by
+  have hc3315 : Seg17.wireSeating 3315 = 114 := by
     decide +kernel
-  have hc3317 : Seg17.wireSeating 3317 = 114 := by
+  have hc3318 : Seg17.wireSeating 3318 = 115 := by
     decide +kernel
-  have hc3675 : Seg17.wireSeating 3675 = 115 := by
+  have hc3676 : Seg17.wireSeating 3676 = 116 := by
     decide +kernel
-  have hc3677 : Seg17.wireSeating 3677 = 116 := by
+  have hc3678 : Seg17.wireSeating 3678 = 117 := by
     decide +kernel
-  have hc3680 : Seg17.wireSeating 3680 = 117 := by
+  have hc3681 : Seg17.wireSeating 3681 = 118 := by
     decide +kernel
-  have hc4038 : Seg17.wireSeating 4038 = 118 := by
+  have hc4039 : Seg17.wireSeating 4039 = 119 := by
     decide +kernel
-  have hc4040 : Seg17.wireSeating 4040 = 119 := by
+  have hc4041 : Seg17.wireSeating 4041 = 120 := by
     decide +kernel
-  have hc4043 : Seg17.wireSeating 4043 = 120 := by
+  have hc4044 : Seg17.wireSeating 4044 = 121 := by
     decide +kernel
-  have hc4401 : Seg17.wireSeating 4401 = 121 := by
+  have hc4402 : Seg17.wireSeating 4402 = 122 := by
     decide +kernel
-  have hc4403 : Seg17.wireSeating 4403 = 122 := by
+  have hc4404 : Seg17.wireSeating 4404 = 123 := by
     decide +kernel
-  have hc4406 : Seg17.wireSeating 4406 = 123 := by
+  have hc4407 : Seg17.wireSeating 4407 = 124 := by
     decide +kernel
-  have hc4764 : Seg17.wireSeating 4764 = 124 := by
+  have hc4765 : Seg17.wireSeating 4765 = 125 := by
     decide +kernel
-  have hc4766 : Seg17.wireSeating 4766 = 125 := by
+  have hc4767 : Seg17.wireSeating 4767 = 126 := by
     decide +kernel
-  have hc4769 : Seg17.wireSeating 4769 = 126 := by
+  have hc4770 : Seg17.wireSeating 4770 = 127 := by
     decide +kernel
-  have hc5127 : Seg17.wireSeating 5127 = 127 := by
+  have hc5128 : Seg17.wireSeating 5128 = 128 := by
     decide +kernel
-  have hc5129 : Seg17.wireSeating 5129 = 128 := by
+  have hc5130 : Seg17.wireSeating 5130 = 129 := by
     decide +kernel
-  have hc5132 : Seg17.wireSeating 5132 = 129 := by
+  have hc5133 : Seg17.wireSeating 5133 = 130 := by
     decide +kernel
-  have hc5490 : Seg17.wireSeating 5490 = 130 := by
+  have hc5491 : Seg17.wireSeating 5491 = 131 := by
     decide +kernel
-  have hc5492 : Seg17.wireSeating 5492 = 131 := by
+  have hc5493 : Seg17.wireSeating 5493 = 132 := by
     decide +kernel
-  have hc5495 : Seg17.wireSeating 5495 = 132 := by
+  have hc5496 : Seg17.wireSeating 5496 = 133 := by
     decide +kernel
   apply List.Vector.ext
   intro level
@@ -423,27 +435,27 @@ theorem complianceProviderPath_eq_protocolPath
   rcases sibling with ⟨sibling, sibling_lt⟩
   interval_cases level <;> interval_cases sibling <;>
     simp [
-      Deployed.Templates.Semantics.TGadgetCompliancePath_d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686.path,
+      Deployed.Templates.Semantics.TGadgetCompliancePath_3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b.path,
       Shieldd.GnarkFormal.QuadPathProtocolBridge.vectorPath,
       senderProtocolPath, senderPathAt_eq_deployedWire,
       Seg17.localRho,
       Deployed.Templates.seated,
-      hc38, hc47, hc50, hc408, hc410, hc413, hc771, hc773, hc776, hc1134, hc1136, hc1139, hc1497, hc1499, hc1502, hc1860, hc1862, hc1865, hc2223, hc2225, hc2228, hc2586, hc2588, hc2591, hc2949, hc2951, hc2954, hc3312, hc3314, hc3317, hc3675, hc3677, hc3680, hc4038, hc4040, hc4043, hc4401, hc4403, hc4406, hc4764, hc4766, hc4769, hc5127, hc5129, hc5132, hc5490, hc5492, hc5495] <;> rfl
+      hc38, hc48, hc51, hc409, hc411, hc414, hc772, hc774, hc777, hc1135, hc1137, hc1140, hc1498, hc1500, hc1503, hc1861, hc1863, hc1866, hc2224, hc2226, hc2229, hc2587, hc2589, hc2592, hc2950, hc2952, hc2955, hc3313, hc3315, hc3318, hc3676, hc3678, hc3681, hc4039, hc4041, hc4044, hc4402, hc4404, hc4407, hc4765, hc4767, hc4770, hc5128, hc5130, hc5133, hc5491, hc5493, hc5496] <;> rfl
 
 theorem assetRootComputed_eq_pathOutput
     (rho : Nat → SemanticF) :
     assetRootComputed rho =
       Deployed.Templates.Semantics.TGadgetAssetRegistryPath_15ce53a7aa20f1e3be74b254ad3c8969ad9eebbd2a6c1efaabc49db1f4e46c67.output
         (Seg11.localRho rho) := by
-  have ho5827 : Seg11.wireSeating 5827 = 12833 := by
+  have ho5827 : Seg11.wireSeating 5827 = 12834 := by
     decide +kernel
-  have ho5832 : Seg11.wireSeating 5832 = 12838 := by
+  have ho5832 : Seg11.wireSeating 5832 = 12839 := by
     decide +kernel
-  have ho5837 : Seg11.wireSeating 5837 = 12843 := by
+  have ho5837 : Seg11.wireSeating 5837 = 12844 := by
     decide +kernel
-  have ho5842 : Seg11.wireSeating 5842 = 12848 := by
+  have ho5842 : Seg11.wireSeating 5842 = 12849 := by
     decide +kernel
-  have ho5847 : Seg11.wireSeating 5847 = 12853 := by
+  have ho5847 : Seg11.wireSeating 5847 = 12854 := by
     decide +kernel
   simp only [
     assetRootComputed, assetRootComputedLC,
@@ -459,27 +471,27 @@ theorem assetRootComputed_eq_pathOutput
 theorem senderComplianceRoot_eq_pathOutput
     (rho : Nat → SemanticF) :
     senderComplianceRoot rho =
-      Deployed.Templates.Semantics.TGadgetCompliancePath_d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686.output
+      Deployed.Templates.Semantics.TGadgetCompliancePath_3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b.output
         (Seg17.localRho rho) := by
-  have ho5828 : Seg17.wireSeating 5828 = 22097 := by
+  have ho5829 : Seg17.wireSeating 5829 = 22138 := by
     decide +kernel
-  have ho5833 : Seg17.wireSeating 5833 = 22102 := by
+  have ho5834 : Seg17.wireSeating 5834 = 22143 := by
     decide +kernel
-  have ho5838 : Seg17.wireSeating 5838 = 22107 := by
+  have ho5839 : Seg17.wireSeating 5839 = 22148 := by
     decide +kernel
-  have ho5843 : Seg17.wireSeating 5843 = 22112 := by
+  have ho5844 : Seg17.wireSeating 5844 = 22153 := by
     decide +kernel
-  have ho5848 : Seg17.wireSeating 5848 = 22117 := by
+  have ho5849 : Seg17.wireSeating 5849 = 22158 := by
     decide +kernel
   simp only [
     senderComplianceRoot, senderComplianceRootLC,
-    Deployed.Templates.Semantics.TGadgetCompliancePath_d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686.output,
-    Deployed.Templates.Semantics.TGadgetCompliancePath_d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686.nodeOut15,
+    Deployed.Templates.Semantics.TGadgetCompliancePath_3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b.output,
+    Deployed.Templates.Semantics.TGadgetCompliancePath_3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b.nodeOut15,
     StructuredLC.eval, StructuredLC.sumRuns,
     StructuredLC.sumResidual, StrideRun.eval,
     Seg17.localRho,
     Deployed.Templates.seated,
-    ho5828, ho5833, ho5838, ho5843, ho5848,
+    ho5829, ho5834, ho5839, ho5844, ho5849,
     zero_add, one_mul, add_zero]
   rw [withdrawalSeamCoeff0, withdrawalSeamCoeff1, withdrawalSeamCoeff2, withdrawalSeamCoeff3, withdrawalSeamCoeff4]
   ring
@@ -492,15 +504,15 @@ theorem assetAnchor_eq_computedRoot_of_exact
   change Deployed.Templates.Semantics.TAssertEq_5e5758a2d4a6d172e743a9ad78863e351485ec2c3a01a4ef7fdc4d01f6c826ef.spec
     (Seg12.localRho rho) at h
   unfold Deployed.Templates.Semantics.TAssertEq_5e5758a2d4a6d172e743a9ad78863e351485ec2c3a01a4ef7fdc4d01f6c826ef.spec at h
-  have hr1 : Seg12.wireSeating 1 = 12833 := by
+  have hr1 : Seg12.wireSeating 1 = 12834 := by
     decide +kernel
-  have hr2 : Seg12.wireSeating 2 = 12838 := by
+  have hr2 : Seg12.wireSeating 2 = 12839 := by
     decide +kernel
-  have hr3 : Seg12.wireSeating 3 = 12843 := by
+  have hr3 : Seg12.wireSeating 3 = 12844 := by
     decide +kernel
-  have hr4 : Seg12.wireSeating 4 = 12848 := by
+  have hr4 : Seg12.wireSeating 4 = 12849 := by
     decide +kernel
-  have hr5 : Seg12.wireSeating 5 = 12853 := by
+  have hr5 : Seg12.wireSeating 5 = 12854 := by
     decide +kernel
   have hr6 : Seg12.wireSeating 6 = 6 := by
     decide +kernel
@@ -557,10 +569,10 @@ theorem compliancePath_of_exact
           senderComplianceRoot rho := by
   have hPath :=
     facts.senderCompliance.GadgetCompliancePathSeg17
-  change Deployed.Templates.Semantics.TGadgetCompliancePath_d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686.spec
+  change Deployed.Templates.Semantics.TGadgetCompliancePath_3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b.spec
     (Seg17.localRho rho) at hPath
   have hBinary :=
-    Deployed.Templates.Semantics.TGadgetCompliancePath_d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686.toBinary_of_spec
+    Deployed.Templates.Semantics.TGadgetCompliancePath_3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b.toBinary_of_spec
       (Seg17.localRho rho) hPath
   rw [← senderPosition_eq_pathPosition] at hBinary
   have hComputed := hPath.2.2
@@ -568,12 +580,12 @@ theorem compliancePath_of_exact
   have result :=
     Shieldd.GnarkFormal.QuadPathProtocolBridge.pathFacts_of_toBinary
       (senderPosition rho) (senderLeafCommitment rho)
-      (Deployed.Templates.Semantics.TGadgetCompliancePath_d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686.output
+      (Deployed.Templates.Semantics.TGadgetCompliancePath_3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b.output
         (Seg17.localRho rho))
       (senderProtocolPath rho)
-      (Deployed.Templates.Semantics.TGadgetCompliancePath_d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686.path
+      (Deployed.Templates.Semantics.TGadgetCompliancePath_3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b.path
         (Seg17.localRho rho))
-      (Deployed.Templates.Semantics.TGadgetCompliancePath_d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686.bits
+      (Deployed.Templates.Semantics.TGadgetCompliancePath_3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b.bits
         (Seg17.localRho rho))
       hBinary (complianceProviderPath_eq_protocolPath rho) hComputed
   rw [← senderComplianceRoot_eq_pathOutput] at result

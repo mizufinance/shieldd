@@ -78,12 +78,87 @@ const _: () = {
 
 /// The domain separator used to generate compliance leaf commitments.
 pub(crate) static COMPLIANCE_LEAF_DOMAIN_SEP: Lazy<Fq> = Lazy::new(|| {
-    Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(b"shieldd.compliance.leaf.v3").as_bytes())
+    Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(b"shieldd.compliance.leaf.v4").as_bytes())
 });
+
+/// Authorization state for one address and regulated asset.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum UserAssetStatus {
+    Active,
+    Frozen,
+    Seized,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum UserAssetStatusAction {
+    Freeze,
+    Unfreeze,
+}
+
+impl UserAssetStatus {
+    pub fn as_field(self) -> Fq {
+        Fq::from(match self {
+            Self::Active => 1u64,
+            Self::Frozen => 2u64,
+            Self::Seized => 3u64,
+        })
+    }
+
+    pub fn freeze(self) -> anyhow::Result<Self> {
+        anyhow::ensure!(
+            self == Self::Active,
+            "only an active user asset can be frozen"
+        );
+        Ok(Self::Frozen)
+    }
+
+    pub fn unfreeze(self) -> anyhow::Result<Self> {
+        anyhow::ensure!(
+            self == Self::Frozen,
+            "only a frozen user asset can be unfrozen"
+        );
+        Ok(Self::Active)
+    }
+}
+
+impl UserAssetStatusAction {
+    pub fn apply(self, current: UserAssetStatus) -> anyhow::Result<UserAssetStatus> {
+        match self {
+            Self::Freeze => current.freeze(),
+            Self::Unfreeze => current.unfreeze(),
+        }
+    }
+}
+
+impl TryFrom<i32> for UserAssetStatus {
+    type Error = anyhow::Error;
+
+    fn try_from(value: i32) -> Result<Self, Self::Error> {
+        match pb::UserAssetStatus::try_from(value) {
+            Ok(pb::UserAssetStatus::Active) => Ok(Self::Active),
+            Ok(pb::UserAssetStatus::Frozen) => Ok(Self::Frozen),
+            Ok(pb::UserAssetStatus::Seized) => Ok(Self::Seized),
+            Ok(pb::UserAssetStatus::Unspecified) => {
+                anyhow::bail!("user asset status must be specified")
+            }
+            Err(_) => anyhow::bail!("unknown user asset status {value}"),
+        }
+    }
+}
+
+impl From<UserAssetStatus> for pb::UserAssetStatus {
+    fn from(value: UserAssetStatus) -> Self {
+        match value {
+            UserAssetStatus::Active => Self::Active,
+            UserAssetStatus::Frozen => Self::Frozen,
+            UserAssetStatus::Seized => Self::Seized,
+        }
+    }
+}
 
 /// A compliance leaf in the public on-chain registry for regulated assets.
 ///
-/// Contains address, asset_id, slot metadata, and derivation scalar `d`.
+/// Contains address, asset ID, slot metadata, status, and derivation scalar `d`.
 /// `d = SHA512("elgamal-derivation-v1\0\0" || slot_derivation)` — matches Orbis derivation.
 /// ACK = d × ring_pk, computed in-circuit from the leaf's `d` value.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -99,6 +174,8 @@ pub struct ComplianceLeaf {
     pub slot_derivation: Fq,
     /// Derivation scalar: d = SHA512_derive(slot_derivation). Verified at registration.
     pub d: Fq,
+    /// Current authorization state for this address and asset.
+    pub status: UserAssetStatus,
 }
 
 fn validate_derivation_scalar(d: Fq, expected: Fq) -> anyhow::Result<()> {
@@ -133,6 +210,7 @@ impl ComplianceLeaf {
             slot_id,
             slot_derivation,
             d,
+            status: UserAssetStatus::Active,
         }
     }
 
@@ -157,7 +235,14 @@ impl ComplianceLeaf {
             slot_id,
             slot_derivation,
             d,
+            status: UserAssetStatus::Active,
         }
+    }
+
+    #[cfg(any(test, feature = "test-helpers"))]
+    pub fn with_status_for_test(mut self, status: UserAssetStatus) -> Self {
+        self.status = status;
+        self
     }
 
     pub fn validate_derivation(&self) -> anyhow::Result<()> {
@@ -175,7 +260,7 @@ impl ComplianceLeaf {
             .expect("transmission key is valid");
         let asset_id_field = self.asset_id.0;
 
-        let commit = poseidon377::hash_6(
+        let commit = poseidon377::hash_7(
             &COMPLIANCE_LEAF_DOMAIN_SEP,
             (
                 diversified_generator,
@@ -184,6 +269,7 @@ impl ComplianceLeaf {
                 Fq::from(self.slot_id),
                 self.slot_derivation,
                 self.d,
+                self.status.as_field(),
             ),
         );
 
@@ -239,6 +325,7 @@ impl TryFrom<pb::ComplianceLeaf> for ComplianceLeaf {
             slot_id: value.slot_id,
             slot_derivation,
             d,
+            status: value.status.try_into()?,
         };
         leaf.validate_derivation()?;
         Ok(leaf)
@@ -253,6 +340,7 @@ impl From<ComplianceLeaf> for pb::ComplianceLeaf {
             d: value.d.to_bytes().to_vec(),
             slot_id: value.slot_id,
             slot_derivation: value.slot_derivation.to_bytes().to_vec(),
+            status: pb::UserAssetStatus::from(value.status) as i32,
         }
     }
 }
@@ -1512,6 +1600,7 @@ mod tests {
             d: vec![],
             slot_id: 0,
             slot_derivation: decaf377::Fq::from(123u64).to_bytes().to_vec(),
+            status: pb::UserAssetStatus::Active as i32,
         };
 
         let err = ComplianceLeaf::try_from(proto).expect_err("missing d should fail");
@@ -1534,6 +1623,7 @@ mod tests {
                 .to_vec(),
             slot_id: 0,
             slot_derivation: vec![],
+            status: pb::UserAssetStatus::Active as i32,
         };
 
         let err = ComplianceLeaf::try_from(proto).expect_err("missing slot derivation should fail");
@@ -1553,6 +1643,7 @@ mod tests {
             d: decaf377::Fq::from(456u64).to_bytes().to_vec(),
             slot_id: 0,
             slot_derivation: decaf377::Fq::from(123u64).to_bytes().to_vec(),
+            status: pb::UserAssetStatus::Active as i32,
         };
 
         let err = ComplianceLeaf::try_from(proto).expect_err("mismatched d should fail");

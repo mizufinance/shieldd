@@ -192,7 +192,7 @@ impl<'de> serde::Deserialize<'de> for AssetPolicy {
                             if dk_pub__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("dkPub"));
                             }
-                            dk_pub__ = 
+                            dk_pub__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -200,7 +200,7 @@ impl<'de> serde::Deserialize<'de> for AssetPolicy {
                             if threshold__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("threshold"));
                             }
-                            threshold__ = 
+                            threshold__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -220,7 +220,7 @@ impl<'de> serde::Deserialize<'de> for AssetPolicy {
                             if ring_pk__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("ringPk"));
                             }
-                            ring_pk__ = 
+                            ring_pk__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -258,7 +258,7 @@ impl<'de> serde::Deserialize<'de> for AssetPolicy {
                             if slot_count__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("slotCount"));
                             }
-                            slot_count__ = 
+                            slot_count__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -656,7 +656,7 @@ impl<'de> serde::Deserialize<'de> for AssetRegistrationGrantBody {
                             if dk_pub__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("dkPub"));
                             }
-                            dk_pub__ = 
+                            dk_pub__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -664,7 +664,7 @@ impl<'de> serde::Deserialize<'de> for AssetRegistrationGrantBody {
                             if threshold__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("threshold"));
                             }
-                            threshold__ = 
+                            threshold__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -678,7 +678,7 @@ impl<'de> serde::Deserialize<'de> for AssetRegistrationGrantBody {
                             if ring_pk__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("ringPk"));
                             }
-                            ring_pk__ = 
+                            ring_pk__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -716,7 +716,7 @@ impl<'de> serde::Deserialize<'de> for AssetRegistrationGrantBody {
                             if valid_until_unix__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("validUntilUnix"));
                             }
-                            valid_until_unix__ = 
+                            valid_until_unix__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -730,7 +730,7 @@ impl<'de> serde::Deserialize<'de> for AssetRegistrationGrantBody {
                             if slot_count__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("slotCount"));
                             }
-                            slot_count__ = 
+                            slot_count__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -928,7 +928,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceAnchorsResponse {
                             if user_tree_root__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("userTreeRoot"));
                             }
-                            user_tree_root__ = 
+                            user_tree_root__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -936,7 +936,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceAnchorsResponse {
                             if asset_tree_root__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("assetTreeRoot"));
                             }
-                            asset_tree_root__ = 
+                            asset_tree_root__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -1207,7 +1207,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceAssetStatusResponse {
                             if dk_pub__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("dkPub"));
                             }
-                            dk_pub__ = 
+                            dk_pub__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -1215,7 +1215,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceAssetStatusResponse {
                             if threshold__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("threshold"));
                             }
-                            threshold__ = 
+                            threshold__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -1444,7 +1444,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceBatchMerkleProofsResponse {
                             if compliance_anchor__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("complianceAnchor"));
                             }
-                            compliance_anchor__ = 
+                            compliance_anchor__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -1452,7 +1452,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceBatchMerkleProofsResponse {
                             if asset_anchor__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("assetAnchor"));
                             }
-                            asset_anchor__ = 
+                            asset_anchor__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -1613,6 +1613,9 @@ impl serde::Serialize for ComplianceLeaf {
         if !self.slot_derivation.is_empty() {
             len += 1;
         }
+        if self.status != 0 {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.compliance.v1.ComplianceLeaf", len)?;
         if let Some(v) = self.address.as_ref() {
             struct_ser.serialize_field("address", v)?;
@@ -1633,6 +1636,11 @@ impl serde::Serialize for ComplianceLeaf {
             #[allow(clippy::needless_borrows_for_generic_args)]
             struct_ser.serialize_field("slotDerivation", pbjson::private::base64::encode(&self.slot_derivation).as_str())?;
         }
+        if self.status != 0 {
+            let v = UserAssetStatus::try_from(self.status)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", self.status)))?;
+            struct_ser.serialize_field("status", &v)?;
+        }
         struct_ser.end()
     }
 }
@@ -1651,6 +1659,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceLeaf {
             "slotId",
             "slot_derivation",
             "slotDerivation",
+            "status",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -1660,6 +1669,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceLeaf {
             D,
             SlotId,
             SlotDerivation,
+            Status,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -1687,6 +1697,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceLeaf {
                             "d" => Ok(GeneratedField::D),
                             "slotId" | "slot_id" => Ok(GeneratedField::SlotId),
                             "slotDerivation" | "slot_derivation" => Ok(GeneratedField::SlotDerivation),
+                            "status" => Ok(GeneratedField::Status),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -1711,6 +1722,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceLeaf {
                 let mut d__ = None;
                 let mut slot_id__ = None;
                 let mut slot_derivation__ = None;
+                let mut status__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Address => {
@@ -1729,7 +1741,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceLeaf {
                             if d__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("d"));
                             }
-                            d__ = 
+                            d__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -1737,7 +1749,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceLeaf {
                             if slot_id__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("slotId"));
                             }
-                            slot_id__ = 
+                            slot_id__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1745,9 +1757,15 @@ impl<'de> serde::Deserialize<'de> for ComplianceLeaf {
                             if slot_derivation__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("slotDerivation"));
                             }
-                            slot_derivation__ = 
+                            slot_derivation__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
+                        }
+                        GeneratedField::Status => {
+                            if status__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("status"));
+                            }
+                            status__ = Some(map_.next_value::<UserAssetStatus>()? as i32);
                         }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
@@ -1760,6 +1778,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceLeaf {
                     d: d__.unwrap_or_default(),
                     slot_id: slot_id__.unwrap_or_default(),
                     slot_derivation: slot_derivation__.unwrap_or_default(),
+                    status: status__.unwrap_or_default(),
                 })
             }
         }
@@ -2102,7 +2121,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceMerkleProofsResponse {
                             if compliance_position__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("compliancePosition"));
                             }
-                            compliance_position__ = 
+                            compliance_position__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2116,7 +2135,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceMerkleProofsResponse {
                             if asset_position__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("assetPosition"));
                             }
-                            asset_position__ = 
+                            asset_position__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2124,7 +2143,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceMerkleProofsResponse {
                             if compliance_anchor__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("complianceAnchor"));
                             }
-                            compliance_anchor__ = 
+                            compliance_anchor__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -2132,7 +2151,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceMerkleProofsResponse {
                             if asset_anchor__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("assetAnchor"));
                             }
-                            asset_anchor__ = 
+                            asset_anchor__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -2254,7 +2273,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceParameters {
                             if anchor_validation_window_blocks__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("anchorValidationWindowBlocks"));
                             }
-                            anchor_validation_window_blocks__ = 
+                            anchor_validation_window_blocks__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2579,7 +2598,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceViewingKey {
                             if inner__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("inner"));
                             }
-                            inner__ = 
+                            inner__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -2758,7 +2777,7 @@ impl<'de> serde::Deserialize<'de> for EventAssetRegistered {
                             if position__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("position"));
                             }
-                            position__ = 
+                            position__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2772,7 +2791,7 @@ impl<'de> serde::Deserialize<'de> for EventAssetRegistered {
                             if low_leaf_position__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("lowLeafPosition"));
                             }
-                            low_leaf_position__ = 
+                            low_leaf_position__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2915,7 +2934,7 @@ impl<'de> serde::Deserialize<'de> for EventComplianceAnchor {
                             if height__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("height"));
                             }
-                            height__ = 
+                            height__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2923,7 +2942,7 @@ impl<'de> serde::Deserialize<'de> for EventComplianceAnchor {
                             if user_anchor__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("userAnchor"));
                             }
-                            user_anchor__ = 
+                            user_anchor__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -2931,7 +2950,7 @@ impl<'de> serde::Deserialize<'de> for EventComplianceAnchor {
                             if asset_anchor__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("assetAnchor"));
                             }
-                            asset_anchor__ = 
+                            asset_anchor__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -2948,6 +2967,163 @@ impl<'de> serde::Deserialize<'de> for EventComplianceAnchor {
             }
         }
         deserializer.deserialize_struct("shieldd.core.component.compliance.v1.EventComplianceAnchor", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for EventUserAssetStatusChanged {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.position != 0 {
+            len += 1;
+        }
+        if !self.commitment.is_empty() {
+            len += 1;
+        }
+        if self.leaf.is_some() {
+            len += 1;
+        }
+        if self.previous_status != 0 {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.compliance.v1.EventUserAssetStatusChanged", len)?;
+        if self.position != 0 {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("position", ToString::to_string(&self.position).as_str())?;
+        }
+        if !self.commitment.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("commitment", pbjson::private::base64::encode(&self.commitment).as_str())?;
+        }
+        if let Some(v) = self.leaf.as_ref() {
+            struct_ser.serialize_field("leaf", v)?;
+        }
+        if self.previous_status != 0 {
+            let v = UserAssetStatus::try_from(self.previous_status)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", self.previous_status)))?;
+            struct_ser.serialize_field("previousStatus", &v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for EventUserAssetStatusChanged {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "position",
+            "commitment",
+            "leaf",
+            "previous_status",
+            "previousStatus",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Position,
+            Commitment,
+            Leaf,
+            PreviousStatus,
+            __SkipField__,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "position" => Ok(GeneratedField::Position),
+                            "commitment" => Ok(GeneratedField::Commitment),
+                            "leaf" => Ok(GeneratedField::Leaf),
+                            "previousStatus" | "previous_status" => Ok(GeneratedField::PreviousStatus),
+                            _ => Ok(GeneratedField::__SkipField__),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = EventUserAssetStatusChanged;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct shieldd.core.component.compliance.v1.EventUserAssetStatusChanged")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<EventUserAssetStatusChanged, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut position__ = None;
+                let mut commitment__ = None;
+                let mut leaf__ = None;
+                let mut previous_status__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Position => {
+                            if position__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("position"));
+                            }
+                            position__ =
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::Commitment => {
+                            if commitment__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("commitment"));
+                            }
+                            commitment__ =
+                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::Leaf => {
+                            if leaf__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("leaf"));
+                            }
+                            leaf__ = map_.next_value()?;
+                        }
+                        GeneratedField::PreviousStatus => {
+                            if previous_status__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("previousStatus"));
+                            }
+                            previous_status__ = Some(map_.next_value::<UserAssetStatus>()? as i32);
+                        }
+                        GeneratedField::__SkipField__ => {
+                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
+                        }
+                    }
+                }
+                Ok(EventUserAssetStatusChanged {
+                    position: position__.unwrap_or_default(),
+                    commitment: commitment__.unwrap_or_default(),
+                    leaf: leaf__,
+                    previous_status: previous_status__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("shieldd.core.component.compliance.v1.EventUserAssetStatusChanged", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for EventUserRegistered {
@@ -3054,7 +3230,7 @@ impl<'de> serde::Deserialize<'de> for EventUserRegistered {
                             if position__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("position"));
                             }
-                            position__ = 
+                            position__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -3062,7 +3238,7 @@ impl<'de> serde::Deserialize<'de> for EventUserRegistered {
                             if commitment__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("commitment"));
                             }
-                            commitment__ = 
+                            commitment__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -3426,7 +3602,7 @@ impl<'de> serde::Deserialize<'de> for IbcComplianceMetadata {
                             if compliance_ciphertext__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("complianceCiphertext"));
                             }
-                            compliance_ciphertext__ = 
+                            compliance_ciphertext__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -3842,7 +4018,7 @@ impl<'de> serde::Deserialize<'de> for IndexedLeafData {
                             if value__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("value"));
                             }
-                            value__ = 
+                            value__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -3850,7 +4026,7 @@ impl<'de> serde::Deserialize<'de> for IndexedLeafData {
                             if next_index__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("nextIndex"));
                             }
-                            next_index__ = 
+                            next_index__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -3858,7 +4034,7 @@ impl<'de> serde::Deserialize<'de> for IndexedLeafData {
                             if next_value__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("nextValue"));
                             }
-                            next_value__ = 
+                            next_value__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -3866,7 +4042,7 @@ impl<'de> serde::Deserialize<'de> for IndexedLeafData {
                             if dk_pub__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("dkPub"));
                             }
-                            dk_pub__ = 
+                            dk_pub__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -3874,7 +4050,7 @@ impl<'de> serde::Deserialize<'de> for IndexedLeafData {
                             if threshold__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("threshold"));
                             }
-                            threshold__ = 
+                            threshold__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -3882,7 +4058,7 @@ impl<'de> serde::Deserialize<'de> for IndexedLeafData {
                             if route_policy_hash__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("routePolicyHash"));
                             }
-                            route_policy_hash__ = 
+                            route_policy_hash__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -3890,7 +4066,7 @@ impl<'de> serde::Deserialize<'de> for IndexedLeafData {
                             if slot_count__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("slotCount"));
                             }
-                            slot_count__ = 
+                            slot_count__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -3898,7 +4074,7 @@ impl<'de> serde::Deserialize<'de> for IndexedLeafData {
                             if ring_pk__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("ringPk"));
                             }
-                            ring_pk__ = 
+                            ring_pk__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -3906,7 +4082,7 @@ impl<'de> serde::Deserialize<'de> for IndexedLeafData {
                             if ring_id_hash__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("ringIdHash"));
                             }
-                            ring_id_hash__ = 
+                            ring_id_hash__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -3914,7 +4090,7 @@ impl<'de> serde::Deserialize<'de> for IndexedLeafData {
                             if policy_id_hash__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("policyIdHash"));
                             }
-                            policy_id_hash__ = 
+                            policy_id_hash__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -3922,7 +4098,7 @@ impl<'de> serde::Deserialize<'de> for IndexedLeafData {
                             if permission_hash__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("permissionHash"));
                             }
-                            permission_hash__ = 
+                            permission_hash__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -3930,7 +4106,7 @@ impl<'de> serde::Deserialize<'de> for IndexedLeafData {
                             if resource_hash__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("resourceHash"));
                             }
-                            resource_hash__ = 
+                            resource_hash__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -4133,7 +4309,7 @@ impl<'de> serde::Deserialize<'de> for MerklePathLayer {
                             if siblings__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("siblings"));
                             }
-                            siblings__ = 
+                            siblings__ =
                                 Some(map_.next_value::<Vec<::pbjson::private::BytesDeserialize<_>>>()?
                                     .into_iter().map(|x| x.0).collect())
                             ;
@@ -4390,7 +4566,7 @@ impl<'de> serde::Deserialize<'de> for MsgRegisterAsset {
                             if dk_pub__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("dkPub"));
                             }
-                            dk_pub__ = 
+                            dk_pub__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -4398,7 +4574,7 @@ impl<'de> serde::Deserialize<'de> for MsgRegisterAsset {
                             if threshold__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("threshold"));
                             }
-                            threshold__ = 
+                            threshold__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -4412,7 +4588,7 @@ impl<'de> serde::Deserialize<'de> for MsgRegisterAsset {
                             if ring_pk__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("ringPk"));
                             }
-                            ring_pk__ = 
+                            ring_pk__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -4462,7 +4638,7 @@ impl<'de> serde::Deserialize<'de> for MsgRegisterAsset {
                             if slot_count__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("slotCount"));
                             }
-                            slot_count__ = 
+                            slot_count__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -4743,7 +4919,7 @@ impl<'de> serde::Deserialize<'de> for NativeAssetRegistration {
                             if dk_pub__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("dkPub"));
                             }
-                            dk_pub__ = 
+                            dk_pub__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -4757,7 +4933,7 @@ impl<'de> serde::Deserialize<'de> for NativeAssetRegistration {
                             if slot_count__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("slotCount"));
                             }
-                            slot_count__ = 
+                            slot_count__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -4889,7 +5065,7 @@ impl<'de> serde::Deserialize<'de> for UpdateAssetIbcPolicy {
                             if expected_route_policy_hash__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("expectedRoutePolicyHash"));
                             }
-                            expected_route_policy_hash__ = 
+                            expected_route_policy_hash__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -4912,6 +5088,83 @@ impl<'de> serde::Deserialize<'de> for UpdateAssetIbcPolicy {
             }
         }
         deserializer.deserialize_struct("shieldd.core.component.compliance.v1.UpdateAssetIbcPolicy", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for UserAssetStatus {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let variant = match self {
+            Self::Unspecified => "USER_ASSET_STATUS_UNSPECIFIED",
+            Self::Active => "USER_ASSET_STATUS_ACTIVE",
+            Self::Frozen => "USER_ASSET_STATUS_FROZEN",
+            Self::Seized => "USER_ASSET_STATUS_SEIZED",
+        };
+        serializer.serialize_str(variant)
+    }
+}
+impl<'de> serde::Deserialize<'de> for UserAssetStatus {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "USER_ASSET_STATUS_UNSPECIFIED",
+            "USER_ASSET_STATUS_ACTIVE",
+            "USER_ASSET_STATUS_FROZEN",
+            "USER_ASSET_STATUS_SEIZED",
+        ];
+
+        struct GeneratedVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = UserAssetStatus;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(formatter, "expected one of: {:?}", &FIELDS)
+            }
+
+            fn visit_i64<E>(self, v: i64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Signed(v), &self)
+                    })
+            }
+
+            fn visit_u64<E>(self, v: u64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Unsigned(v), &self)
+                    })
+            }
+
+            fn visit_str<E>(self, value: &str) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                match value {
+                    "USER_ASSET_STATUS_UNSPECIFIED" => Ok(UserAssetStatus::Unspecified),
+                    "USER_ASSET_STATUS_ACTIVE" => Ok(UserAssetStatus::Active),
+                    "USER_ASSET_STATUS_FROZEN" => Ok(UserAssetStatus::Frozen),
+                    "USER_ASSET_STATUS_SEIZED" => Ok(UserAssetStatus::Seized),
+                    _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
+                }
+            }
+        }
+        deserializer.deserialize_any(GeneratedVisitor)
     }
 }
 impl serde::Serialize for UserRegistrationGrant {
@@ -5154,7 +5407,7 @@ impl<'de> serde::Deserialize<'de> for UserRegistrationGrantBody {
                             if valid_until_unix__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("validUntilUnix"));
                             }
-                            valid_until_unix__ = 
+                            valid_until_unix__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -5162,7 +5415,7 @@ impl<'de> serde::Deserialize<'de> for UserRegistrationGrantBody {
                             if nonce__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("nonce"));
                             }
-                            nonce__ = 
+                            nonce__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }

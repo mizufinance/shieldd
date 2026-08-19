@@ -1,40 +1,42 @@
-# Chain Scope
+# Bankd execution scope
 
-This is a lightweight Shieldd deployment with a deliberately smaller action surface.
-Most application logic such as staking and DeFi lives on BankD.
-This chain's sole purpose is to provide a shielded transfer layer with compliance
-visibility for regulated assets.
+Shieldd is an embedded Bankd subsystem. The target deployment does not run an
+independent Shieldd chain, validator set, governance system, or bridge.
 
-## Supported Actions
+## Ownership boundary
 
-| Action | Purpose |
-|--------|---------|
-| `Transfer` | Spend up to two notes and create up to two shielded notes |
-| `NoteReshape` | Reshape sender-owned notes using a supported 1→8, 2→1, 4→1, or 8→1 family |
-| `IbcRelay` | IBC light client and channel lifecycle (inbound and outbound) |
-| `ShieldedIcs20Withdrawal` | Transfer tokens out via IBC |
-| `ShieldedHostWithdrawal` | Transfer or execute shielded value on BankD |
-| `ComplianceRegisterAsset` | Register a regulated asset with its issuer policy |
-| `ComplianceRegisterUser` | Register a user address for a regulated asset |
+| Bankd owns | Shieldd owns |
+| --- | --- |
+| consensus and the validator set | shielded note and nullifier state |
+| block ordering and canonical host sources | zero-knowledge proof verification |
+| issuer and authority authorization | regulated asset and user-status commitments |
+| transparent deposits, withdrawals, minting, and reissue | encrypted compliance records and audit export data |
+| atomic commit coordination | compact blocks for wallets and auditors |
 
-## Removed Actions
+Every host mutation includes the Bankd chain ID, height, transaction hash,
+transaction index, and message index. Shieldd requires the active height and
+stores a receipt under that canonical source. An exact replay returns the same
+result; reusing the source for different content or a different action kind
+fails. A failed call publishes neither its receipt nor partial state.
 
-The chain does not expose DEX, staking delegation, community-pool transaction
-actions, governance, or validator management. Those surfaces remain on BankD or
-were deleted as part of the shielded-circuit simplification.
+## Shielded actions
 
-## Relationship to BankD
+`Transfer`, `NoteReshape`, and shielded Bankd withdrawal actions execute inside
+Bankd. Fee funding is a regulated transfer and follows the same status rules.
+Legacy standalone-chain and IBC modules may remain while integration code is
+removed, but they are not part of the target deployment contract.
 
-BankD is the primary application chain. It handles:
-- Staking and validator rewards
-- DEX and liquidity positions
-- Dutch auctions
-- Community pool
-- Governance features not present on this chain
+## Compliance actions
 
-This chain connects to BankD through IBC and the host execution client. Tokens
-flow in via `IbcRelay` / ICS-20 and are shielded here for private transfers.
-Tokens flow back to BankD via `ShieldedIcs20Withdrawal` or
-`ShieldedHostWithdrawal`. Compliance enforcement applies only while tokens are
-on this chain. Host withdrawals use the same spend-side compliance proof data
-as other shielded withdrawals.
+The typed host API currently admits:
+
+- `FreezeUserAsset(address, asset_id)` — `Active -> Frozen`;
+- `UnfreezeUserAsset(address, asset_id)` — `Frozen -> Active`.
+
+Status is committed in the existing user leaf. It is scoped to one address and
+one asset; no global blacklist or independent asset-pause switch exists.
+`Seized` is a reserved terminal state for the future Bankd-owned seizure flow.
+
+All regulated proofs require the exact current user root and current asset root.
+Consequently, a proof created before a status change cannot spend through a
+historical-root acceptance window.

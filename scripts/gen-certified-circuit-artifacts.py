@@ -712,8 +712,8 @@ def external_assumptions(kind: str) -> list[str]:
     if kind == "note_reshape":
         return [
             "ExternalAuthorization: every fixed-slot randomized key is nonidentity before its signature verifies against the transaction effect hash; because the transaction contains a shielded proof, its aggregate binding key is nonidentity and its binding signature verifies against the final transaction auth hash.",
-            "TransactionProjection: the fixed family shape, action anchor, sole public-input/body projection, and deployed proof family are accepted.",
-            "LiveState: the anchor is live, every proof-bound nullifier is fresh, and all nullifiers are unique across the enclosing transaction.",
+            "TransactionProjection: the fixed family shape, action anchor, asset-policy anchor, user-status anchor, sole public-input/body projection, and deployed proof family are accepted.",
+            "LiveState: the SCT anchor is live, the asset-policy and mutable user-status roots are exact and current, both registries are authorized and well formed, every proof-bound nullifier is fresh, and all nullifiers are unique across the enclosing transaction.",
             "ActionEffects: nullifiers are inserted atomically and every proof-bound output is persisted, including fixed dummy/private slots.",
             "TransactionAtomicity: the enclosing state delta commits or rolls back every transaction effect atomically.",
         ]
@@ -721,7 +721,7 @@ def external_assumptions(kind: str) -> list[str]:
         return [
             "ExternalAuthorization: both fixed-slot randomized keys are nonidentity before their signatures verify against the transaction effect hash; because the transaction contains a shielded proof, its aggregate binding key is nonidentity and its binding signature verifies against the final transaction auth hash.",
             "TransactionProjection: fixed shape, action anchor, public-input/body projection, empty serialized input compliance ciphertexts, canonical output compliance encoding, and proof family are accepted.",
-            "LiveState: the SCT anchor and recent append-only user root are live, the asset-policy root is current, both registries are authorized and well formed, the timestamp is fresh, both distinct nullifiers are fresh, and all nullifiers are transaction-wide unique.",
+            "LiveState: the SCT anchor is live, the asset-policy and mutable user-status roots are exact and current, both registries are authorized and well formed, the timestamp is fresh, both distinct nullifiers are fresh, and all nullifiers are transaction-wide unique.",
             "ActionEffects: nullifier insertion is internally atomic and both proof-bound outputs are persisted without dummy/private suppression.",
             "TransactionAtomicity: the enclosing StateDelta commits or rolls back all transaction effects atomically.",
         ]
@@ -729,7 +729,7 @@ def external_assumptions(kind: str) -> list[str]:
         return [
             "ExternalAuthorization: both fixed-slot randomized keys are nonidentity before their signatures verify against the transaction effect hash; because the transaction contains a shielded proof, its aggregate binding key is nonidentity and its binding signature verifies against the final transaction auth hash.",
             "TransactionProjection: fixed shape, action anchor, withdrawal-body effect-hash limbs, public-input/body projection, and proof family are accepted.",
-            "LiveState: the SCT anchor and recent append-only user root are live, the asset-policy root is current, both registries are authorized and well formed, the timestamp is fresh, both distinct nullifiers are fresh, and all nullifiers are transaction-wide unique.",
+            "LiveState: the SCT anchor is live, the asset-policy and mutable user-status roots are exact and current, both registries are authorized and well formed, the timestamp is fresh, both distinct nullifiers are fresh, and all nullifiers are transaction-wide unique.",
             "WithdrawalPolicy: withdrawals are enabled and the non-zero payload, stateful packet context, payload projection, and empty serialized input compliance ciphertext are valid.",
             "ActionEffects: nullifier insertion is internally atomic, the proof-bound change output is persisted, and the withdrawal transition succeeds.",
             "TransactionAtomicity: the enclosing StateDelta commits or rolls back proof-bound and withdrawal effects all-or-nothing.",
@@ -955,6 +955,7 @@ def render(circuit: str, specification_status: dict[str, object]) -> str:
         "decaf_relation_status: exact-extracted-gadgets-composed",
         "known_limitations:",
         "- The named external checks are explicit premises of the final theorem and are not claimed to be enforced by R1CS.",
+        "- The current SR1CS pins the new per-asset status rows, but the status-specific protocol refinement remains candidate work and is not claimed by this theorem.",
         "- Binding one public field to the complete native statement relies on the documented Poseidon public-input-hash collision-resistance assumption; Withdrawal payload projection additionally relies on the documented BLAKE2b-512 effect-hash assumption.",
         "- The theorem proves the modeled cryptographic relations; protocol interpretation, gnark compilation, and Groth16 remain in the documented trust boundary.",
         "- setup_provenance.json records fresh-versus-reused setup and the setup command's per-case in-process generation self-tests. It does not retain proof bytes or proof digests; fresh schema-v4 release receipts are per-run operational prove/verify evidence and are not signed portable attestations. No setup transcript is recorded and toxic-waste erasure is not mechanically verified.",

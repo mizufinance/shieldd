@@ -61,6 +61,7 @@ type TransferUserCircuitFields struct {
 	SlotID         frontend.Variable
 	SlotDerivation frontend.Variable
 	D              frontend.Variable
+	Status         frontend.Variable
 	Path           [ComplianceQuadTreeDepth][3]frontend.Variable
 	Position       frontend.Variable
 }
@@ -317,6 +318,7 @@ func (c *TransferCircuit) bindTransferWitnessSemantics() {
 	c.bindSemantic("sender.slot_id", c.Sender.SlotID)
 	c.bindSemantic("sender.slot_derivation", c.Sender.SlotDerivation)
 	c.bindSemantic("sender.d", c.Sender.D)
+	c.bindSemantic("sender.status", c.Sender.Status)
 	c.bindSemantic("sender.path", quadPathVariables(c.Sender.Path)...)
 	c.bindSemantic("sender.position", c.Sender.Position)
 
@@ -369,6 +371,7 @@ func (c *TransferCircuit) bindTransferWitnessSemantics() {
 		c.ReceiverOutput.Recipient.SlotDerivation,
 	)
 	c.bindSemantic("output0.recipient.d", c.ReceiverOutput.Recipient.D)
+	c.bindSemantic("output0.recipient.status", c.ReceiverOutput.Recipient.Status)
 	c.bindSemantic(
 		"output0.recipient.path",
 		quadPathVariables(c.ReceiverOutput.Recipient.Path)...,
@@ -743,7 +746,7 @@ func (c *TransferCircuit) verifySharedTransferContext(api frontend.API) (transfe
 		return transferSharedContext{}, err
 	}
 
-	c.traceWiring("gadget.compliance_leaf", "div_gen_fq=sender.div_gen_fq", "transmission_fq=sender.transmission_fq", "asset_id=shared.asset_id", "slot_id=sender.slot_id", "slot_derivation=sender.slot_derivation", "d=sender.d", "out=sender.leaf_commitment")
+	c.traceWiring("gadget.compliance_leaf", "div_gen_fq=sender.div_gen_fq", "transmission_fq=sender.transmission_fq", "asset_id=shared.asset_id", "slot_id=sender.slot_id", "slot_derivation=sender.slot_derivation", "d=sender.d", "status=sender.status", "out=sender.leaf_commitment")
 	senderLeafCommitment, err := ComplianceLeafCommitmentFromCompressed(
 		api,
 		shared.senderDivGenFq,
@@ -752,6 +755,7 @@ func (c *TransferCircuit) verifySharedTransferContext(api frontend.API) (transfe
 		c.Sender.SlotID,
 		c.Sender.SlotDerivation,
 		c.Sender.D,
+		c.Sender.Status,
 	)
 	if err != nil {
 		return transferSharedContext{}, err
@@ -765,6 +769,8 @@ func (c *TransferCircuit) verifySharedTransferContext(api frontend.API) (transfe
 	c.bindSemantic("sender.compliance_root", senderComplianceRoot)
 	c.traceWiring("assert.eq_if", "lhs=sender.compliance_root", "rhs=compliance_anchor", "cond=is_regulated")
 	AssertEqualIf(api, senderComplianceRoot, c.ComplianceAnchor, c.IsRegulated)
+	c.traceWiring("assert.eq_if", "lhs=sender.status", "rhs=1", "cond=is_regulated")
+	AssertEqualIf(api, c.Sender.Status, 1, c.IsRegulated)
 
 	c.traceWiring("decaf.ack", "ring_pk=effective.ring_pk", "d=sender.d", "out=sender.ack")
 	shared.senderAck, err = DeriveACKFromLeafD(api, shared.effectiveRingPK, c.Sender.D)
@@ -1207,7 +1213,7 @@ func (c *TransferCircuit) verifyTransferReceiverOutput(
 	c.traceWiring("assert.eq", "lhs=output0.note.commitment.computed", "rhs=output0.note_commitment")
 	api.AssertIsEqual(createdCommitment, output.NoteCommitment)
 
-	c.traceWiring("gadget.compliance_leaf", "div_gen_fq=output0.recipient.div_gen_fq", "transmission_fq=output0.recipient.transmission_fq", "asset_id=shared.asset_id", "slot_id=output0.recipient.slot_id", "slot_derivation=output0.recipient.slot_derivation", "d=output0.recipient.d", "out=output0.recipient.leaf_commitment")
+	c.traceWiring("gadget.compliance_leaf", "div_gen_fq=output0.recipient.div_gen_fq", "transmission_fq=output0.recipient.transmission_fq", "asset_id=shared.asset_id", "slot_id=output0.recipient.slot_id", "slot_derivation=output0.recipient.slot_derivation", "d=output0.recipient.d", "status=output0.recipient.status", "out=output0.recipient.leaf_commitment")
 	recipientLeafCommitment, err := ComplianceLeafCommitmentFromCompressed(
 		api,
 		recipientDivGenFq,
@@ -1216,6 +1222,7 @@ func (c *TransferCircuit) verifyTransferReceiverOutput(
 		output.Recipient.SlotID,
 		output.Recipient.SlotDerivation,
 		output.Recipient.D,
+		output.Recipient.Status,
 	)
 	if err != nil {
 		return err
@@ -1232,6 +1239,8 @@ func (c *TransferCircuit) verifyTransferReceiverOutput(
 	)
 	c.traceWiring("assert.eq_if", "lhs=output0.recipient.compliance_root", "rhs=compliance_anchor", "cond=is_regulated")
 	AssertEqualIf(api, recipientComplianceRoot, c.ComplianceAnchor, c.IsRegulated)
+	c.traceWiring("assert.eq_if", "lhs=output0.recipient.status", "rhs=1", "cond=is_regulated")
+	AssertEqualIf(api, output.Recipient.Status, 1, c.IsRegulated)
 
 	statementData.outputAmounts = append(statementData.outputAmounts, output.Note.Amount)
 	statementData.outputCommitments = append(statementData.outputCommitments, output.NoteCommitment)

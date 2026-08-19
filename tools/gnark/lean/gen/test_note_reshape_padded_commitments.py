@@ -27,16 +27,16 @@ class NoteReshapePaddedCommitmentTests(unittest.TestCase):
         expected = {
             "note_reshape8x1": (
                 [
-                    (39, 40),
-                    (53, 54),
-                    (67, 68),
-                    (81, 82),
-                    (95, 96),
-                    (109, 110),
-                    (123, 124),
-                    (137, 138),
+                    (43, 44),
+                    (58, 59),
+                    (73, 74),
+                    (88, 89),
+                    (103, 104),
+                    (118, 119),
+                    (133, 134),
+                    (148, 149),
                 ],
-                (151, 152),
+                (163, 164),
             ),
         }
         for config in commitments.CONFIGS:

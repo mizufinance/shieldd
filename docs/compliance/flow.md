@@ -1,12 +1,12 @@
 # Compliance Flow
 
-Shieldd compliance gives issuers selective visibility into regulated-asset
+Shieldd, embedded inside Bankd, gives issuers selective visibility into regulated-asset
 transfers while preserving the same fixed circuit shape for unregulated
-assets. Ledger safety remains a Shieldd consensus and circuit responsibility.
+assets. Ledger safety remains a Bankd consensus and Shieldd circuit responsibility.
 External policy systems do not authorize spends or establish balance
 conservation.
 
-The deployed V18 transfer surface deliberately excludes PRE envelopes, DLEQ
+The current transfer surface deliberately excludes PRE envelopes, DLEQ
 proofs, DH shared points, and any other seed-opening material. Orbis v0 remains
 useful for ring and policy registration, but its audit export/import path is
 disabled until a non-disclosing PRE v1 exists.
@@ -34,8 +34,8 @@ AssetPolicy {
 
 Regulated assets are members of the indexed asset tree. An unregistered asset
 is proved unregulated with a valid non-membership gap. The asset proof must use
-the current mutable policy root. User compliance proofs may use a recent
-recorded root of the separate append-only user tree.
+the current mutable policy root. User compliance proofs must use the exact
+current mutable user tree because each leaf also commits freeze/seizure status.
 
 Policy admission rejects identity `dk_pub` and `ring_pk` values before
 registration can mutate durable state. This prevents a regulated asset from
@@ -50,9 +50,9 @@ d   = SHA512("elgamal-derivation-v1\0\0" || slot_derivation) reduced mod Fr
 ACK = d * ring_pk
 ```
 
-The version-3 leaf commits to the address diversified-generator encoding,
-transmission-key encoding, asset id, slot id, `slot_derivation`, and `d`.
-Registration checks the complete six-field commitment, slot bound, address
+The version-4 leaf commits to the address diversified-generator encoding,
+transmission-key encoding, asset id, slot id, `slot_derivation`, `d`, and the
+per-user/per-asset status. Registration checks the complete seven-field commitment, slot bound, address
 encoding, derivation, and
 authorization. A derived `d = 0` is rejected rather than registering the
 identity ACK. Reusing a slot reuses its derivation and ACK, so it intentionally
@@ -160,7 +160,7 @@ order.
 
 ## Consensus And Proof Boundary
 
-The V18 transfer circuit proves:
+The transfer circuit proves:
 
 - fixed two-input/two-output shape and dummy-slot semantics;
 - spend ownership, authorization-key randomization, membership, nullifiers,
@@ -169,7 +169,7 @@ The V18 transfer circuit proves:
 - asset membership versus canonical non-membership gap;
 - rejection of the asset-tree zero sentinel;
 - regulated policy selection and compliance-leaf membership;
-- complete version-3 compliance leaves;
+- complete version-4 compliance leaves and `Active` sender/receiver status;
 - threshold flag correctness;
 - four independent EPK/shared-secret/c2/payload encryption relations;
 - detection encryption;
@@ -186,8 +186,8 @@ The V18 transfer circuit proves:
   `v6`.
 
 The Rust verifier reconstructs the same 47 fields from typed public data.
-Consensus separately checks proof verification, the current asset-policy root
-and recent append-only user root, timestamp freshness, spend signatures,
+Consensus separately checks proof verification, the current asset-policy and
+user-status roots, timestamp freshness, spend signatures,
 transaction-wide nullifier uniqueness, and the
 binding signature. Transfer's effect hash includes the exact receiver
 ciphertext and metadata, so a delegated builder cannot replace encryption
@@ -254,4 +254,4 @@ This is an intentional availability restriction, not a confidentiality
 exception. A future PRE v1 must provide a non-disclosing, circuit-bound seed
 ciphertext and new formal evidence before the export/import path is enabled.
 The generic DLEQ Lean and symbolic models remain research artifacts only; they
-are not evidence for the deployed V18 transfer.
+are not evidence for the deployed transfer.

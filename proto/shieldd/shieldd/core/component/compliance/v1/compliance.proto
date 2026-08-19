@@ -30,6 +30,16 @@ message ComplianceLeaf {
   uint32 slot_id = 5;
   // Canonical random derivation material for the slot.
   bytes slot_derivation = 6;
+  // Current authorization state for this address and asset.
+  UserAssetStatus status = 7;
+}
+
+// Per-address authorization state for one regulated asset.
+enum UserAssetStatus {
+  USER_ASSET_STATUS_UNSPECIFIED = 0;
+  USER_ASSET_STATUS_ACTIVE = 1;
+  USER_ASSET_STATUS_FROZEN = 2;
+  USER_ASSET_STATUS_SEIZED = 3;
 }
 
 // Registry Actions (State Transitions)
@@ -361,6 +371,18 @@ message EventUserRegistered {
   bytes commitment = 2;
   // Full leaf data for client sync.
   ComplianceLeaf leaf = 3;
+}
+
+// Emitted when an existing user's per-asset status changes in place.
+message EventUserAssetStatusChanged {
+  // Existing position updated in the user compliance tree.
+  uint64 position = 1;
+  // Commitment of the updated compliance leaf.
+  bytes commitment = 2;
+  // Updated full leaf data for client sync.
+  ComplianceLeaf leaf = 3;
+  // Status before this transition.
+  UserAssetStatus previous_status = 4;
 }
 
 // Emitted when an asset is registered in the compliance system.

@@ -27,6 +27,15 @@ type NoteReshapeSharedNoteContextCircuitFields struct {
 	DivGen  Point2D
 }
 
+type NoteReshapeSenderCircuitFields struct {
+	SlotID         frontend.Variable
+	SlotDerivation frontend.Variable
+	D              frontend.Variable
+	Status         frontend.Variable
+	Path           [ComplianceQuadTreeDepth][3]frontend.Variable
+	Position       frontend.Variable
+}
+
 type NoteReshapeSpendCircuitFields struct {
 	Nullifier       frontend.Variable
 	RK              Point2D
@@ -50,6 +59,7 @@ type NoteReshapeCircuit struct {
 
 	ClaimedStatementHash  frontend.Variable `gnark:",public"`
 	AssetAnchor           frontend.Variable
+	ComplianceAnchor      frontend.Variable
 	RoutingTag            frontend.Variable
 	RoutingParameterSetID frontend.Variable
 	RecentPositionFloor   frontend.Variable
@@ -64,6 +74,7 @@ type NoteReshapeCircuit struct {
 	RoutingNonce          frontend.Variable
 
 	Shared          NoteReshapeSharedNoteContextCircuitFields
+	Sender          NoteReshapeSenderCircuitFields
 	Auth            TransferAuthSharedFields
 	Asset           AssetTreeFields
 	Spends          []NoteReshapeSpendCircuitFields
@@ -90,6 +101,7 @@ func NewNoteReshapeCircuit(label string, nIn, nOut int) *NoteReshapeCircuit {
 func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 	c.bindWiringTrace(api)
 	c.bindSemantic("asset_anchor", c.AssetAnchor)
+	c.bindSemantic("compliance_anchor", c.ComplianceAnchor)
 	c.bindSemantic("routing.tag", c.RoutingTag)
 	c.bindSemantic("routing.parameter_set_id", c.RoutingParameterSetID)
 	c.bindSemantic("routing.regulated_precision", c.RegulatedPrecision)
@@ -134,8 +146,15 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 		claimedBalanceCommitment.Y,
 	)
 	c.bindSemantic("action.balance_blinding", c.ActionBalanceBlinding)
+	c.bindSemantic("is_regulated", c.IsRegulated)
 	c.bindSemantic("shared.asset_id", c.Shared.AssetID)
 	c.bindSemantic("shared.div_gen", sharedDivGen.X, sharedDivGen.Y)
+	c.bindSemantic("sender.slot_id", c.Sender.SlotID)
+	c.bindSemantic("sender.slot_derivation", c.Sender.SlotDerivation)
+	c.bindSemantic("sender.d", c.Sender.D)
+	c.bindSemantic("sender.status", c.Sender.Status)
+	c.bindSemantic("sender.path", quadPathVariables(c.Sender.Path)...)
+	c.bindSemantic("sender.position", c.Sender.Position)
 	c.bindSemantic("auth.ak", sharedAK.X, sharedAK.Y)
 	c.bindSemantic("auth.nk", c.Auth.NK)
 	c.bindSemantic("auth.ivk_reduced", c.Auth.IVKReduced)
@@ -212,6 +231,31 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 	); err != nil {
 		return err
 	}
+	c.traceWiring("gadget.compliance_leaf", "div_gen_fq=shared.div_gen_fq", "transmission_fq=shared.transmission.fq", "asset_id=shared.asset_id", "slot_id=sender.slot_id", "slot_derivation=sender.slot_derivation", "d=sender.d", "status=sender.status", "out=sender.leaf_commitment")
+	senderLeafCommitment, err := ComplianceLeafCommitmentFromCompressed(
+		api,
+		sharedDivGenFq,
+		sharedTransmissionFq,
+		c.Shared.AssetID,
+		c.Sender.SlotID,
+		c.Sender.SlotDerivation,
+		c.Sender.D,
+		c.Sender.Status,
+	)
+	if err != nil {
+		return err
+	}
+	c.bindSemantic("sender.leaf_commitment", senderLeafCommitment)
+	c.traceWiring("gadget.compliance_path", "leaf=sender.leaf_commitment", "path=sender.path", "position=sender.position", "out=sender.compliance_root")
+	senderComplianceRoot, err := VerifyQuadPath(api, senderLeafCommitment, c.Sender.Path, c.Sender.Position)
+	if err != nil {
+		return err
+	}
+	c.bindSemantic("sender.compliance_root", senderComplianceRoot)
+	c.traceWiring("assert.eq_if", "lhs=sender.compliance_root", "rhs=compliance_anchor", "cond=is_regulated")
+	AssertEqualIf(api, senderComplianceRoot, c.ComplianceAnchor, c.IsRegulated)
+	c.traceWiring("assert.eq_if", "lhs=sender.status", "rhs=1", "cond=is_regulated")
+	AssertEqualIf(api, c.Sender.Status, 1, c.IsRegulated)
 	if err := verifySingleRoutingTag(
 		api,
 		c.traceWiring,
@@ -322,6 +366,7 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 	statementFields = append(
 		statementFields,
 		c.AssetAnchor,
+		c.ComplianceAnchor,
 		c.RoutingTag,
 		c.RoutingParameterSetID,
 	)

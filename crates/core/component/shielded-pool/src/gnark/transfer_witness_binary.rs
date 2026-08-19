@@ -17,7 +17,7 @@ use crate::{
 };
 
 const TRANSFER_WITNESS_MAGIC: &[u8; 4] = b"PTWG";
-const TRANSFER_WITNESS_VERSION: u32 = 18;
+const TRANSFER_WITNESS_VERSION: u32 = 19;
 
 impl TransferWitnessV18 {
     pub fn encode(&self) -> Result<Vec<u8>> {
@@ -49,6 +49,7 @@ impl TransferWitnessV18 {
         put_bytes(&mut buf, &self.sender_slot_id);
         put_bytes(&mut buf, &self.sender_slot_derivation);
         put_bytes(&mut buf, &self.sender_d);
+        put_bytes(&mut buf, &self.sender_status);
         put_bytes(&mut buf, &self.transfer_nonce_root);
         encode_vec_32(&mut buf, &self.detection_ciphertext)?;
         put_bytes(&mut buf, &self.sender_subject_derivation);
@@ -127,6 +128,7 @@ impl TransferWitnessV18 {
             sender_slot_id: cursor.read_fixed::<32>()?,
             sender_slot_derivation: cursor.read_fixed::<32>()?,
             sender_d: cursor.read_fixed::<32>()?,
+            sender_status: cursor.read_fixed::<32>()?,
             transfer_nonce_root: cursor.read_fixed::<32>()?,
             detection_ciphertext: cursor.read_vec_32()?,
             sender_subject_derivation: cursor.read_fixed::<32>()?,
@@ -262,6 +264,7 @@ fn encode_receiver_output(
     put_bytes(buf, &output.recipient_slot_id);
     put_bytes(buf, &output.recipient_slot_derivation);
     put_bytes(buf, &output.recipient_d);
+    put_bytes(buf, &output.recipient_status);
     encode_point_affine(buf, &output.recipient_diversified_generator_affine);
     encode_point_affine(buf, &output.recipient_transmission_key_affine);
     Ok(())
@@ -279,6 +282,7 @@ fn decode_receiver_output(
         recipient_slot_id: cursor.read_fixed::<32>()?,
         recipient_slot_derivation: cursor.read_fixed::<32>()?,
         recipient_d: cursor.read_fixed::<32>()?,
+        recipient_status: cursor.read_fixed::<32>()?,
         recipient_diversified_generator_affine: cursor.read_point_affine()?,
         recipient_transmission_key_affine: cursor.read_point_affine()?,
     })

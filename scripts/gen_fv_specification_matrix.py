@@ -884,7 +884,6 @@ def reviewed_predicates() -> dict[str, tuple[str, frozenset[str]]]:
         "circuit",
         TX,
         (
-            "ASSET-ID-NONZERO",
             "USER-LEAF-ADDRESS-BINDING",
             "USER-LEAF-ASSET-BINDING",
             "USER-LEAF-POLICY-SLOT-BINDING",
@@ -893,6 +892,7 @@ def reviewed_predicates() -> dict[str, tuple[str, frozenset[str]]]:
             "USER-COMPLIANCE-MEMBERSHIP-GATE",
         ),
     )
+    add("circuit", TX, ("ASSET-ID-NONZERO",))
     add("circuit", TRANSFER, ("FIELD-USER-DERIVATION-RANGE",))
     add(
         "circuit",
@@ -1706,21 +1706,27 @@ def trace_predicates(profile: str, segment: dict) -> set[str]:
     elif op == "gadget.asset_registry_ring_hash":
         result.update({"ASSET-POLICY-KEY-ENCODING", "ASSET-RING-HASH"})
     elif op == "gadget.compliance_leaf":
-        result.update(
-            {
-                "USER-LEAF-ADDRESS-BINDING",
-                "USER-LEAF-ASSET-BINDING",
-                "USER-LEAF-POLICY-SLOT-BINDING",
-                "USER-COMPLIANCE-LEAF-HASH",
-            }
-        )
+        if profile.startswith("note_reshape"):
+            result.add("PUBLIC-STATEMENT-BINDING")
+        else:
+            result.update(
+                {
+                    "USER-LEAF-ADDRESS-BINDING",
+                    "USER-LEAF-ASSET-BINDING",
+                    "USER-LEAF-POLICY-SLOT-BINDING",
+                    "USER-COMPLIANCE-LEAF-HASH",
+                }
+            )
     elif op == "gadget.compliance_path":
-        result.update(
-            {
-                "FIELD-USER-POSITION-RANGE",
-                "USER-COMPLIANCE-MEMBERSHIP-GATE",
-            }
-        )
+        if profile.startswith("note_reshape"):
+            result.add("PUBLIC-STATEMENT-BINDING")
+        else:
+            result.update(
+                {
+                    "FIELD-USER-POSITION-RANGE",
+                    "USER-COMPLIANCE-MEMBERSHIP-GATE",
+                }
+            )
     elif op == "gadget.is_zero":
         result.add("NOTE-RECEIVER-AMOUNT-NONZERO")
     elif op == "threshold.flag":
@@ -1796,8 +1802,12 @@ def trace_predicates(profile: str, segment: dict) -> set[str]:
             result.add("ASSET-REGISTRY-MEMBERSHIP")
         elif "asset.gap" in args:
             result.add("ASSET-REGISTRY-GAP-ORDERING")
-        elif "compliance_root" in args:
-            result.add("USER-COMPLIANCE-MEMBERSHIP-GATE")
+        elif "compliance_root" in args or "status" in args:
+            result.add(
+                "PUBLIC-STATEMENT-BINDING"
+                if profile.startswith("note_reshape")
+                else "USER-COMPLIANCE-MEMBERSHIP-GATE"
+            )
         elif "metadata" in args:
             result.add("COMPLIANCE-METADATA-BINDING")
         elif "statement" in args:
@@ -2783,6 +2793,17 @@ def tests() -> list[dict]:
             "profiles": sorted(TX),
         },
         {
+            "id": "VIEW-NOTE-RESHAPE-COMPLIANCE-ENRICHMENT",
+            "kind": "invariant",
+            "path": "crates/view/src/client_compliance.rs",
+            "symbol": (
+                "compliance_enrichment_replaces_note_reshape_"
+                "placeholder_witnesses"
+            ),
+            "predicate_ids": ["EXT-PLAN-BOUNDARY-CANONICALITY"],
+            "profiles": sorted(NR),
+        },
+        {
             "id": "VIEW-TRANSFER-NONCE-CROSS-ACTION-REUSE-REJECT",
             "kind": "negative",
             "path": "crates/view/src/client_compliance.rs",
@@ -3685,7 +3706,9 @@ def tests() -> list[dict]:
             "id": "COMPLIANCE-ANCHOR-LIVENESS",
             "kind": "boundary_negative",
             "path": "crates/core/component/compliance/src/registry.rs",
-            "symbol": "test_anchor_too_old_rejected",
+            "symbol": (
+                "stale_user_anchor_is_rejected_immediately_after_status_tree_change"
+            ),
             "predicate_ids": ["EXT-COMPLIANCE-ANCHOR-LIVE"],
             "profiles": sorted(TX),
         },
@@ -5139,6 +5162,22 @@ def tests() -> list[dict]:
                     "COMPLIANCE-SALT-DERIVATION",
                 ),
                 TRANSFER,
+            ),
+            circuit_test(
+                "TRANSFER-REGULATED-FROZEN-PARTICIPANT",
+                "full_circuit_negative",
+                "transfer_metamorphic_test.go",
+                "TestRegulatedTransferRejectsFrozenSenderAndRecipient",
+                ("USER-COMPLIANCE-MEMBERSHIP-GATE",),
+                TRANSFER,
+            ),
+            circuit_test(
+                "WITHDRAWAL-REGULATED-FROZEN-SENDER",
+                "full_circuit_negative",
+                "shielded_ics20_withdrawal_metamorphic_test.go",
+                "TestRegulatedWithdrawalRejectsFrozenSender",
+                ("USER-COMPLIANCE-MEMBERSHIP-GATE",),
+                WITHDRAWAL,
             ),
             circuit_test(
                 "WIRING-R1C-CANCELED-APPEARANCE",
@@ -7554,8 +7593,9 @@ _REVIEWED_TEST_EXCLUSION_SYMBOLS = {
         "selected_prefix_respects_reduced_target_size",
     ),
     "crates/core/app/src/app/host.rs": (
+        "compliance_actions_are_typed_atomic_and_replay_safe",
         "deposit_id_changes_with_host_message_index",
-        "deposit_mints_note_and_rejects_replayed_host_source",
+        "deposit_mints_note_and_exact_replay_returns_same_result",
         "host_execution_begin_block_request_uses_state_chain_id_without_validators",
         "host_execution_block_lifecycle_commits_without_validators",
         "host_execution_check_tx_requires_initialized_storage",
@@ -7571,8 +7611,11 @@ _REVIEWED_TEST_EXCLUSION_SYMBOLS = {
     ),
     "crates/core/component/compliance/src/registry.rs": (
         "add_compliance_leaf_rejects_zero_asset_before_mutation",
-        "compliance_anchor_facts_reject_future_user_height",
+        "compliance_anchor_facts_require_current_user_root",
         "corrupted_asset_structure_blocks_readiness_and_next_mutation",
+        "current_roots_remain_valid_when_the_history_window_changes",
+        "freeze_and_unfreeze_replace_the_leaf_at_its_existing_position",
+        "historical_anchors_are_retained_but_only_the_current_root_is_accepted",
         "test_add_compliance_leaf",
         "test_anchor_pruning_preserves_latest_lookup_for_reused_anchor",
         "test_anchor_pruning_removes_expired_entries",
@@ -7584,7 +7627,6 @@ _REVIEWED_TEST_EXCLUSION_SYMBOLS = {
         "test_direct_read_proofs_match_reconstructed_trees_random_trace",
         "test_genesis_anchor_attack_prevented",
         "test_get_asset_policy_cached_matches_uncached",
-        "test_historical_anchors_preserved",
         "test_ibc_origin_lookup_rejects_duplicate_base_denom",
         "test_imt_get_proof_data_regulated",
         "test_imt_get_proof_data_unregulated",
@@ -7600,7 +7642,6 @@ _REVIEWED_TEST_EXCLUSION_SYMBOLS = {
         "test_replace_asset_ibc_policy_requires_expected_hash",
         "test_share_and_verify_workflow",
         "test_shortened_anchor_window_pruning_catches_up",
-        "test_shortened_anchor_window_rejects_existing_old_anchor_immediately",
         "test_user_leaf_position_lookup",
         "test_user_leaf_roundtrip",
         "test_user_tree_full_returns_domain_error_without_mutation",
@@ -7672,6 +7713,9 @@ _REVIEWED_TEST_EXCLUSION_SYMBOLS = {
         "TestAxeExportFidelityPoseidon2",
         "TestAxeExportFidelityPoseidonHash4",
         "TestPicusExportFidelityAllGadgets",
+    ),
+    "tools/gnark/internal/circuits/note_reshape_regression_test.go": (
+        "TestNoteReshapeStatusGateRejectsFrozenRegulatedOwner",
     ),
     "tools/gnark/cmd/historicalproofspike/main_test.go": (
         "TestEmptyGenerationSentinelCoversFieldBoundaries",
@@ -8608,6 +8652,7 @@ NR_LEDGER_PREDICATES = {
             "ROUTING-TAG-DERIVATION",
         }
     ),
+    "NR-USER-STATUS": frozenset({"PUBLIC-STATEMENT-BINDING"}),
 }
 
 T_LEDGER_PREDICATES = {

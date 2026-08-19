@@ -16,9 +16,11 @@ import (
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/frontend/cs/r1cs"
 	gnarkte "github.com/consensys/gnark/std/algebra/native/twistededwards"
+	"github.com/consensys/gnark/test"
 	decafgnark "github.com/mizufinance/decaf377-go/gnark"
 	"github.com/mizufinance/shieldd/tools/gnark/internal/abi"
 	"github.com/mizufinance/shieldd/tools/gnark/internal/circuits"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/compliance"
 	"github.com/mizufinance/shieldd/tools/gnark/internal/generated"
 	"github.com/mizufinance/shieldd/tools/gnark/internal/primitives"
 	"github.com/mizufinance/shieldd/tools/gnark/internal/testfixtures"
@@ -29,6 +31,29 @@ func loadNoteReshapeRegressionAssignment(t *testing.T, label string) *circuits.N
 	t.Helper()
 	_, assignment := loadNoteReshapeRegressionWitnessAndAssignment(t, label)
 	return assignment
+}
+
+type noteReshapeStatusGateCircuit struct {
+	Status      frontend.Variable
+	IsRegulated frontend.Variable
+}
+
+func (c *noteReshapeStatusGateCircuit) Define(api frontend.API) error {
+	compliance.AssertEqualIf(api, c.Status, 1, c.IsRegulated)
+	return nil
+}
+
+func TestNoteReshapeStatusGateRejectsFrozenRegulatedOwner(t *testing.T) {
+	circuit := &noteReshapeStatusGateCircuit{}
+	assert := test.NewAssert(t)
+	assert.SolvingSucceeded(circuit, &noteReshapeStatusGateCircuit{
+		Status:      2,
+		IsRegulated: 0,
+	})
+	assert.SolvingFailed(circuit, &noteReshapeStatusGateCircuit{
+		Status:      2,
+		IsRegulated: 1,
+	})
 }
 
 func loadNoteReshapeRegressionWitnessAndAssignment(

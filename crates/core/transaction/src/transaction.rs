@@ -1080,6 +1080,7 @@ mod tests {
                 routing_tag: Default::default(),
                 routing_parameter_set_id: decaf377::Fq::from(0u64),
                 asset_anchor: shieldd_sdk_tct::StateCommitment(decaf377::Fq::from(0u64)),
+                compliance_anchor: shieldd_sdk_tct::StateCommitment(decaf377::Fq::from(0u64)),
             },
             auth_sigs: vec![[0u8; 64].into(); 8],
             proof: shieldd_sdk_shielded_pool::NoteReshapeProof::default(),
@@ -1151,6 +1152,9 @@ mod tests {
                             routing_tag: Default::default(),
                             routing_parameter_set_id: decaf377::Fq::from(0u64),
                             asset_anchor: shieldd_sdk_tct::StateCommitment(decaf377::Fq::from(0u64)),
+                            compliance_anchor: shieldd_sdk_tct::StateCommitment(
+                                decaf377::Fq::from(0u64),
+                            ),
                         },
                         auth_sigs: vec![[11u8; 64].into(), [12u8; 64].into()],
                         proof: shieldd_sdk_shielded_pool::NoteReshapeProof::default(),
@@ -1188,6 +1192,9 @@ mod tests {
                             routing_tag: Default::default(),
                             routing_parameter_set_id: decaf377::Fq::from(0u64),
                             asset_anchor: shieldd_sdk_tct::StateCommitment(decaf377::Fq::from(0u64)),
+                            compliance_anchor: shieldd_sdk_tct::StateCommitment(
+                                decaf377::Fq::from(0u64),
+                            ),
                         },
                         auth_sigs: vec![[21u8; 64].into()],
                         proof: shieldd_sdk_shielded_pool::NoteReshapeProof::default(),

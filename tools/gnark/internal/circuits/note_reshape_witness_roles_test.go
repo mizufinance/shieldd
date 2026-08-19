@@ -29,6 +29,7 @@ type witnessRoleManifest struct {
 var reviewedWitnessRoleSupports = map[string][]string{
 	"ClaimedStatementHash":                    {"NR-STATEMENT"},
 	"AssetAnchor":                             {"NR-ASSET-REGISTRY", "NR-STATEMENT"},
+	"ComplianceAnchor":                        {"NR-USER-STATUS", "NR-STATEMENT"},
 	"RoutingTag":                              {"NR-ROUTING", "NR-STATEMENT"},
 	"RoutingParameterSetID":                   {"NR-ROUTING", "NR-STATEMENT"},
 	"Anchor":                                  {"NR-MEMBERSHIP", "NR-STATEMENT"},
@@ -56,6 +57,12 @@ var reviewedWitnessRoleSupports = map[string][]string{
 	"Asset.Leaf.ResourceHash":                 {"NR-ASSET-REGISTRY"},
 	"Asset.Path":                              {"NR-ASSET-REGISTRY"},
 	"Asset.Position":                          {"NR-ASSET-REGISTRY"},
+	"Sender.SlotID":                           {"NR-USER-STATUS"},
+	"Sender.SlotDerivation":                   {"NR-USER-STATUS"},
+	"Sender.D":                                {"NR-USER-STATUS"},
+	"Sender.Status":                           {"NR-USER-STATUS"},
+	"Sender.Path":                             {"NR-USER-STATUS"},
+	"Sender.Position":                         {"NR-USER-STATUS"},
 	"Auth.AK.{X,Y}":                           {"NR-SHARED-ADDRESS", "NR-AUTHORIZATION"},
 	"Auth.NK":                                 {"NR-SHARED-ADDRESS", "NR-NULLIFIER"},
 	"Auth.IVKReduced":                         {"NR-SHARED-ADDRESS"},
@@ -112,7 +119,8 @@ func TestNoteReshapeWitnessRolesAreCompleteAndConstrained(t *testing.T) {
 		"NR-MEMBERSHIP": true, "NR-NULLIFIER": true, "NR-AUTHORIZATION": true,
 		"NR-OUTPUT-COMMITMENT": true, "NR-CONSERVATION": true,
 		"NR-STATEMENT": true, "NR-STATE": true, "NR-ASSET-REGISTRY": true,
-		"NR-ROUTING": true,
+		"NR-ROUTING":     true,
+		"NR-USER-STATUS": true,
 	}
 	for _, entry := range manifest.Roles {
 		if _, ok := seen[entry.Path]; ok {

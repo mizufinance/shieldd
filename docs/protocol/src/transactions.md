@@ -1,10 +1,10 @@
 # Transaction Model
 
-A Shieldd transaction is a bundle of _actions_ that effect changes to the chain
-state, together with additional data controlling how those actions are executed
+A Shieldd transaction is a Bankd-internal bundle of _actions_ that effects
+changes to Shieldd state, together with additional data controlling execution
 or providing additional metadata. All actions in the transaction are executed together, and the transaction succeeds or fails atomically. A transaction body has four parts:
 
-1. A list of actions effecting changes to the chain state;
+1. A list of actions effecting changes to Shieldd state;
 2. A set of `TransactionParameters` describing conditions under which the actions may be executed;
 3. An optional set of `DetectionData` that helps third-party servers detect transactions using [Fuzzy Message Detection](./crypto/fmd.md);
 4. An optional `MemoCiphertext` with an [encrypted memo](./transactions/memo.md) visible only to the sender and receiver(s) of the transaction.
@@ -13,7 +13,8 @@ The [Transaction Signing](./transactions/signing.md) section describes transacti
 
 ## Actions and Value Balance
 
-The primary content of a transaction is its list of actions. Each action is executed in sequence, and effects changes to the chain state.
+The primary content of a transaction is its list of actions. Each action is
+executed in sequence inside Bankd's atomic block lifecycle.
 
 Crucially, each action makes a shielded contribution to the transaction's value
 balance by means of a _balance commitment_, using the commitment scheme for asset values described in detail in the [Asset Model](./assets.md).
@@ -22,7 +23,7 @@ Shielded actions such as `Transfer` and `NoteReshape` consume and
 create shielded notes while maintaining a balanced transaction-level value
 commitment. Other supported actions affect non-shielded state directly.
 
-The chain requires that transactions do not create or destroy value.  To
+Bankd requires that Shieldd transactions do not create or destroy value. To
 accomplish conservation of value, the _binding signature_ proves that the
 transaction's value balance, summed up over all actions, is zero.  This
 construction works as follows.  We'd like to be able to prove that a certain
@@ -44,4 +45,6 @@ The balance commitment mechanism is essential to security. It is what "glues"
 the validity of the local state transitions provided by each action's proof
 statement into validity of the global state transition.
 
-A complete list of actions and a summary of their effects on the chain state and the transaction's value balance is provided in the [Action Reference](./transactions/actions.md).
+A complete list of target actions and a summary of their effects on Shieldd
+state and the transaction's value balance is provided in the
+[Action Reference](./transactions/actions.md).

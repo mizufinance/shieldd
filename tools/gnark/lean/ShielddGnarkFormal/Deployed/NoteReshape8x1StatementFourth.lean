@@ -32,59 +32,59 @@ def fourthBlock (fields : List DeployedF) : DeployedF :=
     (NoteReshapeCanonical.statementField fields 24
       (NoteReshapeCanonical.statementPad1 .reshape8x1))
 
-theorem canonicalFourthBlockThirtyOne
+theorem canonicalFourthBlockThirtyTwo
     (f0 f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 f13 f14 f15 f16 f17 f18
-      f19 f20 f21 f22 f23 f24 f25 f26 f27 f28 f29 f30 : DeployedF) :
+      f19 f20 f21 f22 f23 f24 f25 f26 f27 f28 f29 f30 f31 : DeployedF) :
     fourthBlock
         [f0, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13,
          f14, f15, f16, f17, f18, f19, f20, f21, f22, f23, f24, f25,
-         f26, f27, f28, f29, f30] =
+         f26, f27, f28, f29, f30, f31] =
       Poseidon7Bridge.permSpec7
-        (3061752669569786885963994164501899099507756727275361723004405046505540448967 :
+        (3369812303662745782238751015067652055738399375993471750361947871360359146526 :
           DeployedF)
         (NoteReshape8x1StatementThird.thirdBlock
           [f0, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13,
            f14, f15, f16, f17, f18, f19, f20, f21, f22, f23, f24, f25,
-           f26, f27, f28, f29, f30])
+           f26, f27, f28, f29, f30, f31])
         f19 f20 f21 f22 f23 f24 := by
   rfl
 
 theorem hash (rho : Nat → DeployedF) :
-    Deployed.Templates.Semantics.TStatementHash_72066204724e0232dbfe5f6b0c37434f1d4d53cf61944652f76487e540ff849c.Trace.hash3
-        (Seg169.localRho rho) =
+    Deployed.Templates.Semantics.TStatementHash_ae76718c78b325fc953ed63d67e8ea1e911dc2c5c95400df433473b5b0517647.Trace.hash3
+        (Seg173.localRho rho) =
       fourthBlock (NoteReshape8x1StatementFirst.fields rho) := by
-  have hw1449 : Seg169.wireSeating 1449 = 81048 := by decide +kernel
-  have hw1450 : Seg169.wireSeating 1450 = 81049 := by decide +kernel
-  have hw1456 : Seg169.wireSeating 1456 = 83228 := by decide +kernel
-  have hw1457 : Seg169.wireSeating 1457 = 83568 := by decide +kernel
-  have hw1463 : Seg169.wireSeating 1463 = 498 := by decide +kernel
-  have hw1469 : Seg169.wireSeating 1469 = 93641 := by decide +kernel
-  have hw1470 : Seg169.wireSeating 1470 = 93642 := by decide +kernel
-  have hw1476 : Seg169.wireSeating 1476 = 95821 := by decide +kernel
-  have hw1477 : Seg169.wireSeating 1477 = 96161 := by decide +kernel
-  have hw1483 : Seg169.wireSeating 1483 = 581 := by decide +kernel
+  have hw1449 : Seg173.wireSeating 1449 = 469 := by decide +kernel
+  have hw1455 : Seg173.wireSeating 1455 = 87366 := by decide +kernel
+  have hw1456 : Seg173.wireSeating 1456 = 87367 := by decide +kernel
+  have hw1462 : Seg173.wireSeating 1462 = 89546 := by decide +kernel
+  have hw1463 : Seg173.wireSeating 1463 = 89886 := by decide +kernel
+  have hw1469 : Seg173.wireSeating 1469 = 552 := by decide +kernel
+  have hw1475 : Seg173.wireSeating 1475 = 99959 := by decide +kernel
+  have hw1476 : Seg173.wireSeating 1476 = 99960 := by decide +kernel
+  have hw1482 : Seg173.wireSeating 1482 = 102139 := by decide +kernel
+  have hw1483 : Seg173.wireSeating 1483 = 102479 := by decide +kernel
   have hneg :
       (8444461749428370424248824938781546531375899335154063827935233455917409239040 :
         DeployedF) = -1 := by decide +kernel
   unfold NoteReshape8x1StatementFirst.fields
   rw [
-    Deployed.Templates.Semantics.TStatementHash_72066204724e0232dbfe5f6b0c37434f1d4d53cf61944652f76487e540ff849c.Trace.hash3,
+    Deployed.Templates.Semantics.TStatementHash_ae76718c78b325fc953ed63d67e8ea1e911dc2c5c95400df433473b5b0517647.Trace.hash3,
     NoteReshape8x1StatementThird.hash,
-    canonicalFourthBlockThirtyOne
+    canonicalFourthBlockThirtyTwo
   ]
   simp [
-    Deployed.Templates.Semantics.TStatementHash_72066204724e0232dbfe5f6b0c37434f1d4d53cf61944652f76487e540ff849c.Trace.domainLit,
+    Deployed.Templates.Semantics.TStatementHash_ae76718c78b325fc953ed63d67e8ea1e911dc2c5c95400df433473b5b0517647.Trace.domainLit,
     NoteReshape8x1StatementFirst.fields,
+    spend3HistoryRequired, spend3HistoryRequiredLC,
     spend4NullifierSelected, spend4NullifierSelectedLC,
     spend4RkCompressed, spend4RkCompressedLC,
     spend4HistoryRequired, spend4HistoryRequiredLC,
     spend5NullifierSelected, spend5NullifierSelectedLC,
     spend5RkCompressed, spend5RkCompressedLC,
-    spend5HistoryRequired, spend5HistoryRequiredLC,
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-    Seg169.localRho, Deployed.Templates.seated,
-    hw1449, hw1450, hw1456, hw1457, hw1463,
-    hw1469, hw1470, hw1476, hw1477, hw1483,
+    Seg173.localRho, Deployed.Templates.seated,
+    hw1449, hw1455, hw1456, hw1462, hw1463,
+    hw1469, hw1475, hw1476, hw1482, hw1483,
     hneg
   ]
 

@@ -153,6 +153,7 @@ def senderCompliance (rho : Nat → DeployedF) :
     slotId := senderSlotId rho
     slotDerivation := senderSlotDerivation rho
     d := senderD rho
+    status := senderStatus rho
     path := senderPath rho
     position := senderPosition rho
   }

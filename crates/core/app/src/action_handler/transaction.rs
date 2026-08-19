@@ -9,7 +9,6 @@ use cnidarium::{Snapshot, StateRead, StateWrite};
 use shieldd_sdk_compact_block::{
     component::RoutingManager as _, PendingRoutingAction, StatePayload,
 };
-use shieldd_sdk_compliance::params::StateReadExt as _;
 use shieldd_sdk_compliance::registry::{check_timestamp_freshness, ComplianceRegistryRead as _};
 use shieldd_sdk_fee::component::FeePay as _;
 use shieldd_sdk_sct::component::clock::EpochRead;
@@ -95,7 +94,7 @@ pub(crate) struct PreparedCandidateRead {
     pub effects: PreparedCandidateEffects,
 }
 
-type AnchorValidationKey = (StateCommitment, StateCommitment, u64, u64);
+type AnchorValidationKey = (StateCommitment, StateCommitment, u64);
 type ClaimedAnchorKey = shieldd_sdk_tct::Root;
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -450,33 +449,21 @@ async fn validate_compliance_anchors_read_only<S: StateRead>(
     block_height: u64,
     anchor_cache: Arc<AnchorValidationCache>,
 ) -> Result<(f64, f64)> {
-    let anchor_validation_window_blocks = state
-        .get_compliance_params()
-        .await?
-        .anchor_validation_window_blocks;
-    let anchor_key = (
-        *user_anchor,
-        *asset_anchor,
-        block_height,
-        anchor_validation_window_blocks,
-    );
+    let anchor_key = (*user_anchor, *asset_anchor, block_height);
     let validate_start = Instant::now();
     let (cell, _, cache_wait_ms) = anchor_cache.entry(anchor_key);
 
     let result = cell
         .get_or_init(|| async move {
-            let user_anchor_height = state
-                .check_user_anchor(user_anchor)
+            let current_user_anchor = state
+                .get_user_tree_root()
                 .await
-                .map_err(|e| e.to_string())?
-                .ok_or_else(|| "invalid user compliance anchor: not found in history".to_string())?;
-            if block_height > user_anchor_height + anchor_validation_window_blocks {
-                return Err(format!(
-                    "user compliance anchor too old: height {} is more than {} blocks behind current height {}",
-                    user_anchor_height,
-                    anchor_validation_window_blocks,
-                    block_height
-                ));
+                .map_err(|e| e.to_string())?;
+            if *user_anchor != current_user_anchor {
+                return Err(
+                    "user compliance anchor does not match the current user compliance root"
+                        .to_string(),
+                );
             }
 
             let current_asset_anchor = state
@@ -558,15 +545,7 @@ fn validate_compliance_anchors_read_only_sync(
     block_height: u64,
     anchor_cache: Arc<AnchorValidationCache>,
 ) -> Result<(f64, f64)> {
-    let anchor_validation_window_blocks = handle
-        .block_on(snapshot.get_compliance_params())?
-        .anchor_validation_window_blocks;
-    let anchor_key = (
-        *user_anchor,
-        *asset_anchor,
-        block_height,
-        anchor_validation_window_blocks,
-    );
+    let anchor_key = (*user_anchor, *asset_anchor, block_height);
     let validate_start = Instant::now();
     let (cell, _, cache_wait_ms) = anchor_cache.entry(anchor_key);
     let snapshot = snapshot.clone();
@@ -576,25 +555,15 @@ fn validate_compliance_anchors_read_only_sync(
     let result = handle
         .clone()
         .block_on(cell.get_or_init(|| async move {
-            let user_anchor_height = snapshot
-                .get_raw(&shieldd_sdk_compliance::state_key::anchor::user_anchor_lookup(
-                    &user_anchor,
-                ))
+            let current_user_anchor = snapshot
+                .get_user_tree_root()
                 .await
-                .map_err(|e| e.to_string())?
-                .map(|bytes| {
-                    <u64 as shieldd_sdk_proto::Message>::decode(bytes.as_slice())
-                        .map_err(|e| anyhow::anyhow!(e).to_string())
-                })
-                .transpose()?
-                .ok_or_else(|| "invalid user compliance anchor: not found in history".to_string())?;
-            if block_height > user_anchor_height + anchor_validation_window_blocks {
-                return Err(format!(
-                    "user compliance anchor too old: height {} is more than {} blocks behind current height {}",
-                    user_anchor_height,
-                    anchor_validation_window_blocks,
-                    block_height
-                ));
+                .map_err(|e| e.to_string())?;
+            if user_anchor != current_user_anchor {
+                return Err(
+                    "user compliance anchor does not match the current user compliance root"
+                        .to_string(),
+                );
             }
 
             let current_asset_anchor = snapshot
@@ -928,10 +897,11 @@ pub(crate) async fn prepare_candidate_read_profiled<S: StateRead + 'static>(
                         .map(|output| output.note_payload.clone()),
                 );
             }
-            // Note reshape has no compliance anchors. Every proof-bound input
-            // nullifier and output payload participates in prepared effects;
-            // body-only padding sentinels cannot suppress consensus writes.
             Action::NoteReshape(note_reshape) => {
+                anchor_pairs.insert((
+                    note_reshape.body.compliance_anchor,
+                    note_reshape.body.asset_anchor,
+                ));
                 for input in &note_reshape.body.inputs {
                     anyhow::ensure!(
                         tx_nullifiers.insert(input.nullifier),
@@ -1138,10 +1108,11 @@ pub(crate) fn prepare_candidate_read_blocking_profiled(
                         .map(|output| output.note_payload.clone()),
                 );
             }
-            // Note reshape has no compliance anchors. Every proof-bound input
-            // nullifier and output payload participates in prepared effects;
-            // body-only padding sentinels cannot suppress consensus writes.
             Action::NoteReshape(note_reshape) => {
+                anchor_pairs.insert((
+                    note_reshape.body.compliance_anchor,
+                    note_reshape.body.asset_anchor,
+                ));
                 for input in &note_reshape.body.inputs {
                     anyhow::ensure!(
                         tx_nullifiers.insert(input.nullifier),
@@ -1320,7 +1291,6 @@ mod tests {
             tct::StateCommitment::try_from([0; 32]).expect("valid commitment"),
             tct::StateCommitment::try_from([1; 32]).expect("valid commitment"),
             100,
-            50,
         );
 
         let mut tasks = tokio::task::JoinSet::new();

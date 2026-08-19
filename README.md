@@ -1,45 +1,43 @@
 # Shieldd
 
-Shieldd is a lightweight, fully shielded transfer chain with privacy-preserving
-compliance for regulated assets. Transactions stay private by default; for
-regulated assets, the issuer can scan and audit activity involving their asset
-while everyone else sees nothing. Unregulated assets keep full privacy.
+Shieldd is Bankd's private execution subsystem for shielded assets. It is not a
+separate product chain: Bankd owns consensus, validators, authorization, asset
+accounting, and application logic, and invokes Shieldd through the typed host
+execution API in the same validator process.
 
-> **Not production ready.** Shieldd is an active prototype.
+> **Not production ready.** Shieldd and its Bankd integration are active prototypes.
 
-## Scope
+## Target deployment
 
-The chain does one thing: shielded transfers with compliance visibility for
-regulated assets. Heavier application logic (DEX, staking rewards, community
-pool) lives on BankD, which connects over IBC.
+Bankd and Shieldd are atomic at the block boundary. The same validator set
+orders a Bankd block, calls Shieldd with canonical Bankd transaction locations,
+and commits both state transitions. Shieldd has no independent validator set,
+governance authority, or externally operated bridge in the target design.
 
-Core actions are `Transfer` and `NoteReshape` (1→8, 2→1, 4→1, or 8→1),
-alongside IBC, validator, governance, and compliance-registration actions.
-Compliance data is attached only to transfers.
+Shieldd owns the privacy-specific state machine: shielded notes and nullifiers,
+proof verification, regulated-asset policy commitments, per-address/per-asset
+status commitments, encrypted compliance records, and compact data for wallets
+and auditors. Bankd owns deposits, withdrawals, issuer authority, compliance
+action authorization, and any transparent mint or reissue caused by a future
+seizure.
 
-See [docs/compliance/chain-scope.md](docs/compliance/chain-scope.md) for the full
-action surface.
+The currently supported Bankd compliance actions are typed `FreezeUserAsset`
+and `UnfreezeUserAsset` calls. A frozen `(address, asset_id)` cannot send or
+receive that regulated asset, fund fees with it, withdraw it, deposit it, or use
+`NoteReshape`. Unregulated assets and the same address's other regulated assets
+are unaffected. There is no global address blacklist and no asset-pause action.
 
-## How compliance works
+`Seized` is reserved as a terminal user-asset state, but seizure authorization,
+balance certification, and Bankd reissue are intentionally not implemented yet.
+See [the enforcement and seizure design](docs/compliance/enforcement-and-seizure.md).
 
-When a regulated asset moves, the transfer carries an encrypted compliance
-bundle that only the asset's issuer can open. Access is tiered, so an issuer can
-be granted just what they need:
+## Compliance visibility
 
-- **detection** — which asset, and whether the transfer is flagged
-- **core** — sender address and amount
-- **extension** — counterparty
+Regulated transfers carry encrypted detection and audit records. The asset
+issuer can scan its asset's activity; unregulated transfers retain the same
+fixed proof shape without promising issuer decryptability. See:
 
-Issuers hold a static detection key and can always scan for and read flagged
-transfers on their own. Reading the remaining tiers of an unflagged transfer
-requires threshold approval through Orbis (MPC), gated by on-chain policy — no
-single party can decrypt unilaterally.
-
-For the end-to-end walkthrough and details:
-
-- [docs/compliance/flow.md](docs/compliance/flow.md) — walkthrough from issuer setup to audit
-- [docs/compliance/reference.md](docs/compliance/reference.md) — wire formats, registries, and proof details
-
-
-
-_Building the future of institutional finance - sovereign, private, and compliant by design._
+- [deployment and ownership](docs/compliance/chain-scope.md)
+- [compliance flow](docs/compliance/flow.md)
+- [technical reference](docs/compliance/reference.md)
+- [enforcement and planned seizure](docs/compliance/enforcement-and-seizure.md)

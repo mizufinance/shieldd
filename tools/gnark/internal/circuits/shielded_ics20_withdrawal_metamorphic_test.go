@@ -14,6 +14,19 @@ import (
 	"github.com/mizufinance/shieldd/tools/gnark/internal/testfixtures"
 )
 
+func TestRegulatedWithdrawalRejectsFrozenSender(t *testing.T) {
+	_, assignment, nIn := loadWithdrawalFixture(t)
+	assignment.Sender.Status = 2
+
+	if err := test.IsSolved(
+		circuits.NewShieldedIcs20WithdrawalCircuit(nIn),
+		assignment,
+		ecc.BLS12_377.ScalarField(),
+	); err == nil {
+		t.Fatal("regulated withdrawal accepted a frozen sender")
+	}
+}
+
 func TestShieldedIcs20WithdrawalUsesExplicitRequiredOptionalLayout(t *testing.T) {
 	for label, typ := range map[string]reflect.Type{
 		"binary witness": reflect.TypeOf(abi.ShieldedIcs20WithdrawalWitnessV10Binary{}),

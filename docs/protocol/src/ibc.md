@@ -1,67 +1,14 @@
-# IBC Protocol Implementation
+# Legacy IBC modules
 
-Shieldd supports the [IBC protocol](https://ibcprotocol.org/) for
-interoperating with other counterparty blockchains. Unlike most blockchains that currently deploy IBC, Shieldd is not based on the [Cosmos SDK](https://github.com/cosmos/cosmos-sdk). IBC as a protocol supports replication of data between two communicating blockchains. It provides basic building blocks for building higher-level cross chain applications, as well as a protocol specification for the most commonly used IBC applications, the [ICS-20 transfer](https://github.com/cosmos/ibc/tree/master/spec/app/ics-020-fungible-token-transfer) protocol.
+The repository still contains IBC client, channel, packet, and ICS-20 code from
+the former standalone Shieldd architecture. It is not part of the target
+deployment.
 
-Shieldd implements the core IBC protocol building blocks: [ICS-23 compatible state inclusion proofs](https://github.com/cosmos/ibc/tree/master/spec/core/ics-023-vector-commitments), [connections](https://github.com/cosmos/ibc/tree/master/spec/core/ics-003-connection-semantics) as well as [channels and packets](https://github.com/cosmos/ibc/tree/master/spec/core/ics-004-channel-and-packet-semantics).
+In the target design, Shieldd executes only inside Bankd with the same
+validators. Bankd owns deposits and withdrawals and invokes Shieldd through the
+typed host execution boundary. No IBC hop authorizes a compliance status change
+or separates Bankd and Shieldd state finality.
 
-## IBC Actions
-
-Shieldd exposes one relay-oriented IBC action, `IbcRelay`, which carries the
-IBC datagrams needed to advance clients, connections, channels, and packets:
-
-### ICS-003 Connections
-
-* `ConnOpenInit`
-* `ConnOpenTry`
-* `ConnOpenAck`
-* `ConnOpenConfirm`
-
-### ICS-004 Channels and Packets
-
-* `ChanOpenInit`
-* `ChanOpenTry`
-* `ChanOpenAck`
-* `ChanOpenConfirm`
-* `ChanCloseInit`
-* `ChanCloseConfirm`
-* `RecvPacket`
-* `Timeout`
-* `Acknowledgement`
-
-These datagrams are implemented as protocol buffers, with `IbcRelay` using a
-protobuf `oneof` to encapsulate the supported relay payloads.
-
-# Transfers into Shieldd
-
-IBC transfer mechanics are specified in [ICS20]. The
-[`FungibleTokenPacketData`][ftpd] packet describes the transfer:
-```
-FungibleTokenPacketData {
-    denomination: string,
-    amount: uint256,
-    sender: string,
-    receiver: string,
-}
-```
-
-The `sender` and `receiver` fields are used to specify the sending account on
-the source chain and the receiving account on the destination chain. However,
-for inbound transfers, the destination chain is Shieldd, which has no
-accounts. Instead, token transfers into Shieldd are decoded into a shielded
-note owned by the destination address embedded in the packet payload.
-
-Outbound transfers use the dedicated `ShieldedIcs20Withdrawal` action, which
-consumes shielded inputs, binds the resulting ICS-20 withdrawal effect, and may
-emit a sender-owned shielded change note.
-
-[ICS20]: https://github.com/cosmos/ibc/blob/master/spec/app/ics-020-fungible-token-transfer/README.md
-[ftpd]: https://github.com/cosmos/ibc/blob/master/spec/app/ics-020-fungible-token-transfer/README.md#data-structures
-
-## Handling Bridged Assets 
-
-Shieldd's native state model uses notes, which contain an amount of a
-particular asset. Amounts in Shieldd are 128-bit unsigned integers, in order
-to support assets which have potentially large base denoms (such as Ethereum).
-When receiving an IBC transfer, if the amount being transferred is greater than
-`u128`, we return an error. 
+The pages below are retained only as implementation background while obsolete
+standalone paths are removed. They must not be used as product or deployment
+documentation.

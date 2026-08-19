@@ -56,7 +56,7 @@ CERTIFIED_PROFILE_SPECS = (
         "note_reshape",
         8,
         1,
-        5,
+        6,
         "ShielddGnarkFormal.Deployed.NoteReshape8x1Soundness",
         (
             (
@@ -70,7 +70,7 @@ CERTIFIED_PROFILE_SPECS = (
         "note_reshape",
         1,
         8,
-        5,
+        6,
         "ShielddGnarkFormal.Deployed.NoteReshape1x8Soundness",
         (
             (
@@ -84,7 +84,7 @@ CERTIFIED_PROFILE_SPECS = (
         "transfer",
         2,
         2,
-        18,
+        19,
         "ShielddGnarkFormal.Deployed.TransferRefinement",
         (
             (
@@ -106,7 +106,7 @@ CERTIFIED_PROFILE_SPECS = (
         "shielded_ics20_withdrawal",
         2,
         1,
-        10,
+        11,
         "ShielddGnarkFormal.Deployed.ShieldedIcs20WithdrawalRefinement",
         (
             (
@@ -161,7 +161,7 @@ GENERATED_SHARED_POSEIDON = (
     ("CertifiedGadgetAssetRegistryLeafHash_9611146d6691Poseidon", 390),
     ("CertifiedGadgetAssetRegistryParamsHash_d65f2514fa1bPoseidon", 350),
     ("CertifiedGadgetAssetRegistryRingHash_fca220e542b4Poseidon", 390),
-    ("CertifiedGadgetComplianceLeaf_dcb0a1040c53Poseidon", 430),
+    ("CertifiedGadgetComplianceLeaf_712c7a4d010cPoseidon", 470),
     ("CertifiedGadgetNoteCommitment_252c34d237e9Poseidon", 390),
     ("CertifiedQuadPathNodePoseidon", 350),
 )

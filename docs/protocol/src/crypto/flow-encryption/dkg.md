@@ -1,7 +1,8 @@
 # Distributed Key Generation
 
-A prerequisite for flow encryption in Shieldd is some distributed key
-generation algorithm. Our [threshold encryption](./threshold-encryption.md)
+A prerequisite for deploying Shieldd flow encryption inside Bankd is a
+distributed key generation algorithm run by the Bankd validators. Our
+[threshold encryption](./threshold-encryption.md)
 scheme uses ElGamal and operates over the `decaf377` group, thus we must choose
 a DKG which operates over `decaf377` outputs a `decaf377` public key. 
 
@@ -9,11 +10,10 @@ a DKG which operates over `decaf377` outputs a `decaf377` public key.
 
 ### Minimal Round Complexity
 
-The DKG must be run by all validators at the start of every epoch. Ideally, the
+The DKG must be run by all Bankd validators at the start of every Bankd epoch. Ideally, the
 DKG should be able to run in over a single block, such that there is no delay
-between the start of the epoch and when users can delegate in the staking
-system or trade on ZSwap. As such, for optimal UX and simplicity of
-implementation, the optimal DKG for our scheme should have minimal round
+between the start of the epoch and when Shieldd can accept actions that depend
+on the new flow key. As such, the DKG should have minimal round
 complexity. Each round of communication can occur in the
 [ABCI++](https://github.com/tendermint/spec/blob/master/rfc/004-abci%2B%2B.md)
 vote extension phase. Since Tendermint votes already impose an `O(n^2)`
@@ -105,10 +105,10 @@ to each counterparty, the round complexity of our DKG rises to 3 rounds.
 
 ### ABCI++ Implementation
 
-A prerequisite for implementing any DKG scheme in Shieldd is
+A prerequisite for this design is Bankd consensus support for
 [ABCI++](https://github.com/tendermint/spec/blob/master/rfc/004-abci%2B%2B.md),
-the extension to Tendermint which adds additional hooks to the Tendermint state
-machine interface, most importantly vote extensions.
+the extension to Tendermint which adds vote extensions. Shieldd does not run a
+second consensus instance or validator set.
 
 Implementing FROST DKG with ABCI++ can be done naively by placing each round of
 communication in the Vote Extensions phase of ABCI++. This gives an upper bound

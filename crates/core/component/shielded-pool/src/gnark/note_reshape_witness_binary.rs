@@ -10,7 +10,7 @@ use crate::gnark::{
 };
 
 const NOTE_RESHAPE_WITNESS_MAGIC: &[u8; 4] = b"PNWG";
-const NOTE_RESHAPE_WITNESS_VERSION: u32 = 5;
+const NOTE_RESHAPE_WITNESS_VERSION: u32 = 6;
 
 impl NoteReshapeWitnessV5 {
     pub fn encode(&self) -> Result<Vec<u8>> {
@@ -24,6 +24,7 @@ impl NoteReshapeWitnessV5 {
         put_bytes(&mut buf, &self.anchor);
         put_bytes(&mut buf, &self.claimed_statement_hash);
         put_bytes(&mut buf, &self.asset_anchor);
+        put_bytes(&mut buf, &self.compliance_anchor);
         put_bytes(&mut buf, &self.routing_tag);
         put_bytes(&mut buf, &self.routing_parameter_set_id);
         put_bytes(&mut buf, &self.recent_position_floor);
@@ -39,6 +40,12 @@ impl NoteReshapeWitnessV5 {
         put_u8(&mut buf, self.unregulated_precision);
         put_u64(&mut buf, self.routing_as_of_height);
         put_bytes(&mut buf, &self.routing_nonce);
+        encode_merkle_path(&mut buf, &self.sender_compliance_path)?;
+        put_u64(&mut buf, self.sender_compliance_position);
+        put_bytes(&mut buf, &self.sender_slot_id);
+        put_bytes(&mut buf, &self.sender_slot_derivation);
+        put_bytes(&mut buf, &self.sender_d);
+        put_bytes(&mut buf, &self.sender_status);
         put_bytes(&mut buf, &self.shared.asset_id);
         encode_point_affine(&mut buf, &self.shared.diversified_generator_affine);
         for spend in &self.spends {
@@ -84,6 +91,7 @@ impl NoteReshapeWitnessV5 {
         let anchor = cursor.read_fixed::<32>()?;
         let claimed_statement_hash = cursor.read_fixed::<32>()?;
         let asset_anchor = cursor.read_fixed::<32>()?;
+        let compliance_anchor = cursor.read_fixed::<32>()?;
         let routing_tag = cursor.read_fixed::<32>()?;
         let routing_parameter_set_id = cursor.read_fixed::<32>()?;
         let recent_position_floor = cursor.read_fixed::<32>()?;
@@ -99,6 +107,12 @@ impl NoteReshapeWitnessV5 {
         let unregulated_precision = cursor.read_u8()?;
         let routing_as_of_height = cursor.read_u64()?;
         let routing_nonce = cursor.read_fixed::<32>()?;
+        let sender_compliance_path = cursor.read_merkle_path()?;
+        let sender_compliance_position = cursor.read_u64()?;
+        let sender_slot_id = cursor.read_fixed::<32>()?;
+        let sender_slot_derivation = cursor.read_fixed::<32>()?;
+        let sender_d = cursor.read_fixed::<32>()?;
+        let sender_status = cursor.read_fixed::<32>()?;
         let shared = NoteReshapeSharedNoteContextWitnessV5 {
             asset_id: cursor.read_fixed::<32>()?,
             diversified_generator_affine: cursor.read_point_affine()?,
@@ -137,6 +151,7 @@ impl NoteReshapeWitnessV5 {
             anchor,
             claimed_statement_hash,
             asset_anchor,
+            compliance_anchor,
             routing_tag,
             routing_parameter_set_id,
             recent_position_floor,
@@ -152,6 +167,12 @@ impl NoteReshapeWitnessV5 {
             unregulated_precision,
             routing_as_of_height,
             routing_nonce,
+            sender_compliance_path,
+            sender_compliance_position,
+            sender_slot_id,
+            sender_slot_derivation,
+            sender_d,
+            sender_status,
             shared,
             spends,
             outputs,

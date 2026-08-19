@@ -202,6 +202,7 @@ CREATE TABLE compliance_user_leaf_data (
     slot_id BIGINT NOT NULL,
     slot_derivation BLOB NOT NULL,     -- 32 bytes Fq
     d BLOB NOT NULL,                   -- 32 bytes Fq
+    status INTEGER NOT NULL,
     commitment BLOB NOT NULL,
     PRIMARY KEY (address, asset_id)
 );

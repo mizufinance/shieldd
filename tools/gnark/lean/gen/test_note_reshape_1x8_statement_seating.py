@@ -15,7 +15,7 @@ class NoteReshape1x8StatementSeatingTests(unittest.TestCase):
 
         self.assertEqual(
             (roles.statement["index"], roles.assertion["index"]),
-            (79, 80),
+            (83, 84),
         )
         self.assertEqual(
             (
@@ -58,25 +58,25 @@ class NoteReshape1x8StatementSeatingTests(unittest.TestCase):
             },
         )
         combined = "\n".join(rendered.values())
-        for retired in ("Seg57", "Seg58", "Seg59"):
+        for retired in ("Seg57", "Seg58", "Seg59", "Seg79", "Seg80"):
             self.assertNotIn(retired, combined)
         self.assertIn(
-            "theorem hw7 : Seg79.wireSeating 7 = 32820 "
+            "theorem hw7 : Seg83.wireSeating 7 = 39138 "
             ":= by decide +kernel",
             combined,
         )
         self.assertIn(
-            "theorem hw1000 : Seg79.wireSeating 1000 = 5 "
+            "theorem hw1000 : Seg83.wireSeating 1000 = 5 "
             ":= by decide +kernel",
             combined,
         )
         self.assertIn(
-            "theorem hw1 : Seg80.wireSeating 1 = 40601 "
+            "theorem hw1 : Seg84.wireSeating 1 = 46924 "
             ":= by decide +kernel",
             combined,
         )
         self.assertIn(
-            "theorem hw9 : Seg80.wireSeating 9 = 1 "
+            "theorem hw9 : Seg84.wireSeating 9 = 1 "
             ":= by decide +kernel",
             combined,
         )

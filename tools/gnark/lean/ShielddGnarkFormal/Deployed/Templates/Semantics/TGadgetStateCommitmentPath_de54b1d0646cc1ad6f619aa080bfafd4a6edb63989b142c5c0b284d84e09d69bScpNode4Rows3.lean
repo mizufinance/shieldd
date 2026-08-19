@@ -43,7 +43,7 @@ theorem template_scp_node4_seg32 (rho : Nat -> F)
     Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode4350_b95b10.seg32 (rho 1825) (rho 1830) (rho 1835) (rho 1840) (rho 1845) (rho 1850) (rho 1855) (rho 1860) (rho 1865) (rho 1870) (rho 1875) (rho 1880) (rho 1885) (rho 1890) (rho 1895) (rho 1900) (rho 1905) (rho 1910) next := by
   exact ⟨rho 1911, rho 1912, rho 1913, rho 1914, rho 1915, r1909, r1910, r1911, r1912, r1913, tail⟩
 
-theorem template_scp_node4_template (rho : Nat -> F)
+theorem template_scp_node4_seg33 (rho : Nat -> F)
     (next : F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → Prop)
     (r1914 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_de54b1d0646cc1ad6f619aa080bfafd4a6edb63989b142c5c0b284d84e09d69b.relationRow1914 rho)
     (r1915 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_de54b1d0646cc1ad6f619aa080bfafd4a6edb63989b142c5c0b284d84e09d69b.relationRow1915 rho)
@@ -87,7 +87,7 @@ theorem template_scp_node4_seg36 (rho : Nat -> F)
     Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode4350_b95b10.seg36 (rho 1825) (rho 1830) (rho 1835) (rho 1840) (rho 1845) (rho 1850) (rho 1855) (rho 1860) (rho 1865) (rho 1870) (rho 1875) (rho 1880) (rho 1885) (rho 1890) (rho 1895) (rho 1900) (rho 1905) (rho 1910) (rho 1915) (rho 1920) (rho 1925) (rho 1930) next := by
   exact ⟨rho 1931, rho 1932, rho 1933, rho 1934, rho 1935, r1929, r1930, r1931, r1932, r1933, tail⟩
 
-theorem template_scp_node4_seg37 (rho : Nat -> F)
+theorem template_scp_node4_template (rho : Nat -> F)
     (next : F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → Prop)
     (r1934 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_de54b1d0646cc1ad6f619aa080bfafd4a6edb63989b142c5c0b284d84e09d69b.relationRow1934 rho)
     (r1935 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_de54b1d0646cc1ad6f619aa080bfafd4a6edb63989b142c5c0b284d84e09d69b.relationRow1935 rho)

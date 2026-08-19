@@ -333,8 +333,9 @@ class DeployedFamilyTests(unittest.TestCase):
                 (21, wire("sender.slot_id")),
                 (27, wire("sender.slot_derivation")),
                 (33, wire("sender.d")),
+                (39, wire("sender.status")),
                 *zip(
-                    (408, 413, 418, 423, 428, 433, 438),
+                    (444, 449, 454, 459, 464, 469, 474, 479),
                     terms("sender.leaf_commitment"),
                     strict=True,
                 ),
@@ -351,6 +352,10 @@ class DeployedFamilyTests(unittest.TestCase):
                     strict=True,
                 ),
             ],
+        )
+        seat(
+            "sender_status_active_assert",
+            [(1, wire("is_regulated")), (2, wire("sender.status"))],
         )
         asset_root = terms("asset.root.computed")
         asset_gap = terms("asset.gap_valid")
@@ -1101,7 +1106,7 @@ class DeployedFamilyTests(unittest.TestCase):
     def test_transfer_refinement_is_complete_dynamic_and_closed(self) -> None:
         ir, manifest = self.transfer_refinement_fixture()
         plan = deployed._validate_transfer_refinement_plan(ir, manifest)
-        self.assertEqual(len(plan.segments), 114)
+        self.assertEqual(len(plan.segments), 116)
         self.assertEqual(
             set(spec.fact for spec in deployed.TRANSFER_TRACE_SPECS),
             set(deployed.TRANSFER_FACT_FIELDS),
@@ -1115,14 +1120,14 @@ class DeployedFamilyTests(unittest.TestCase):
         self.assertEqual(
             [plan.segments[spec.label]["index"]
              for spec in deployed.TRANSFER_TRACE_SPECS],
-            list(range(102, 330, 2)),
+            list(range(102, 334, 2)),
         )
         self.assertEqual(
             sum(
                 spec.constraint_count
                 for spec in deployed.TRANSFER_TRACE_SPECS
             ),
-            130_015,
+            130_099,
         )
         self.assertNotIn(
             "effective_threshold",
@@ -1162,7 +1167,7 @@ class DeployedFamilyTests(unittest.TestCase):
                         "template_equivalence_witness"
                     ]["canonical_local_to_deployed_wire_seating"]
                 ),
-                5849,
+            5850,
             )
             self.assertEqual(
                 plan.segments[label]["proof_template_id"],
@@ -1647,7 +1652,7 @@ class DeployedFamilyTests(unittest.TestCase):
             ),
             2,
         )
-        self.assertEqual(compliance_seams.count("have enabled' :"), 2)
+        self.assertEqual(compliance_seams.count("have enabled' :"), 4)
         self.assertNotIn("ring_nf at h ⊢", compliance_seams)
         balance_seams = action_modules["ActionBalanceSeams.lean"]
         for local in (732, 861, 990, 1119, 4467, 6026, 6027):
@@ -2349,7 +2354,7 @@ class DeployedFamilyTests(unittest.TestCase):
     ) -> None:
         ir, manifest = self.withdrawal_plan_fixture()
         plan = deployed._validate_withdrawal_refinement_plan(ir, manifest)
-        self.assertEqual(len(plan.segments), 56)
+        self.assertEqual(len(plan.segments), 57)
         self.assertEqual(
             set(spec.fact for spec in deployed.WITHDRAWAL_TRACE_SPECS),
             set(deployed.WITHDRAWAL_FACT_FIELDS),
@@ -2365,14 +2370,14 @@ class DeployedFamilyTests(unittest.TestCase):
                 plan.segments[spec.label]["index"]
                 for spec in deployed.WITHDRAWAL_TRACE_SPECS
             ],
-            list(range(503, 671, 3)),
+            list(range(503, 674, 3)),
         )
         self.assertEqual(
             sum(
                 spec.constraint_count
                 for spec in deployed.WITHDRAWAL_TRACE_SPECS
             ),
-            57_689,
+            57_731,
         )
         self.assertEqual(
             set(plan.bindings),
@@ -2416,7 +2421,7 @@ class DeployedFamilyTests(unittest.TestCase):
         )
         self.assertEqual(
             plan.segments["sender_compliance_leaf"]["constraint_count"],
-            430,
+            470,
         )
         self.assertEqual(
             len(
@@ -2424,7 +2429,7 @@ class DeployedFamilyTests(unittest.TestCase):
                     "template_equivalence_witness"
                 ]["canonical_local_to_deployed_wire_seating"]
             ),
-            5849,
+            5850,
         )
         self.assertEqual(
             plan.segments["sender_compliance_path"][
@@ -2438,7 +2443,7 @@ class DeployedFamilyTests(unittest.TestCase):
                     "template_equivalence_witness"
                 ]["canonical_local_to_deployed_wire_seating"]
             ),
-            439,
+            480,
         )
         self.assertEqual(
             plan.segments["sender_compliance_leaf"][
@@ -2558,7 +2563,7 @@ class DeployedFamilyTests(unittest.TestCase):
         providers = deployed.render_withdrawal_exact_providers(
             ir, manifest
         )
-        self.assertEqual(providers.count(".contract.spec rho"), 56)
+        self.assertEqual(providers.count(".contract.spec rho"), 57)
         for fact in deployed.WITHDRAWAL_FACT_FIELDS:
             self.assertIn(
                 f"structure {core.camel(fact)}ExactProviders",
@@ -2633,7 +2638,7 @@ class DeployedFamilyTests(unittest.TestCase):
                 config["y0"],
                 config["y1"],
             ),
-            (7, 8, 9, 5958, 5966, 5959, 5967),
+            (7, 8, 9, 5959, 5967, 5960, 5968),
         )
 
         for mutation in ("count", "locals", "provider"):
@@ -3444,7 +3449,7 @@ class DeployedFamilyTests(unittest.TestCase):
             set(plan.segments),
             {spec.label for spec in deployed.WITHDRAWAL_TRACE_SPECS},
         )
-        self.assertEqual(len(plan.segments), 56)
+        self.assertEqual(len(plan.segments), 57)
         core_ir = copy.deepcopy(ir)
         self.seat_current_withdrawal_core(core_ir, manifest)
         core_seams = deployed.render_withdrawal_core_semantic_seams(
@@ -3589,7 +3594,7 @@ class DeployedFamilyTests(unittest.TestCase):
         registry_path = semantic_parts["SemanticRegistryPathSeams.lean"]
         self.assertEqual(registry_path.count("] <;> rfl"), 4)
         self.assertEqual(
-            registry_path.count("private theorem withdrawalSeamCoeff"), 9
+            registry_path.count("private theorem withdrawalSeamCoeff"), 11
         )
         self.assertEqual(
             registry_path.count(
@@ -3606,10 +3611,10 @@ class DeployedFamilyTests(unittest.TestCase):
             registry_path,
         )
         self.assertIn(
-            "rw [withdrawalSeamCoeff2, withdrawalSeamCoeff3, "
-            "withdrawalSeamCoeff4, withdrawalSeamCoeff5, "
-            "withdrawalSeamCoeff6, withdrawalSeamCoeff7, "
-            "withdrawalSeamCoeff8]",
+            "rw [withdrawalSeamCoeff3, withdrawalSeamCoeff4, "
+            "withdrawalSeamCoeff5, withdrawalSeamCoeff6, "
+            "withdrawalSeamCoeff7, withdrawalSeamCoeff8, "
+            "withdrawalSeamCoeff9, withdrawalSeamCoeff10]",
             registry_path,
         )
         self.assertIn(
@@ -3688,7 +3693,7 @@ class DeployedFamilyTests(unittest.TestCase):
             refinement.count(
                 f"id (α := SemanticF) (Seg{compliance_index}.localRho"
             ),
-            7,
+            8,
         )
         self.assertIn("private theorem semanticOneNeZero", refinement)
         self.assertEqual(refinement.count("id_eq, zero_add"), 2)
@@ -4183,10 +4188,10 @@ class DeployedFamilyTests(unittest.TestCase):
                 "dtk": 7,
                 "compress": 8,
                 "non_identity": 9,
-                "x0": 5958,
-                "x1": 5966,
-                "y0": 5959,
-                "y1": 5967,
+                "x0": 5959,
+                "x1": 5967,
+                "y0": 5960,
+                "y1": 5968,
             },
         )
 
@@ -4204,7 +4209,7 @@ class DeployedFamilyTests(unittest.TestCase):
         )
         self.assertEqual(
             (config["x0"], config["x1"], config["y0"], config["y1"]),
-            (6775, 6783, 6776, 6784),
+            (6777, 6785, 6778, 6786),
         )
 
         wrapper, parts, seating_files = (

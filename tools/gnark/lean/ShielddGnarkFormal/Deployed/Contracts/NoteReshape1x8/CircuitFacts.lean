@@ -41,19 +41,19 @@ structure NoteReshape1x8CircuitFacts (rho : Nat → DeployedF) : Prop where
 theorem note_reshape1x8_circuitFacts (rho : Nat → DeployedF) (h : relationAll rho) :
     NoteReshape1x8CircuitFacts rho := by
   exact {
-    control := ⟨specOf10 rho h⟩
-    shared := ⟨specOf2 rho h, specOf3 rho h, specOf4 rho h, specOf5 rho h, specOf6 rho h, specOf7 rho h, specOf8 rho h, specOf9 rho h, specOf11 rho h, specOf12 rho h, specOf13 rho h, specOf14 rho h, specOf15 rho h, specOf16 rho h, specOf17 rho h, specOf18 rho h, specOf19 rho h, specOf20 rho h, specOf21 rho h, specOf22 rho h, specOf23 rho h, specOf24 rho h, specOf25 rho h, specOf26 rho h, specOf27 rho h⟩
-    balance := ⟨specOf72 rho h, specOf73 rho h, specOf74 rho h⟩
-    transcript := ⟨specOf79 rho h, specOf80 rho h⟩
-    spend0 := ⟨specOf29 rho h, specOf30 rho h, specOf31 rho h, specOf32 rho h, specOf33 rho h, specOf34 rho h, specOf35 rho h, specOf36 rho h, specOf37 rho h, specOf38 rho h⟩
-    output0 := ⟨specOf41 rho h, specOf42 rho h⟩
-    output1 := ⟨specOf45 rho h, specOf46 rho h⟩
-    output2 := ⟨specOf49 rho h, specOf50 rho h⟩
-    output3 := ⟨specOf53 rho h, specOf54 rho h⟩
-    output4 := ⟨specOf57 rho h, specOf58 rho h⟩
-    output5 := ⟨specOf61 rho h, specOf62 rho h⟩
-    output6 := ⟨specOf65 rho h, specOf66 rho h⟩
-    output7 := ⟨specOf69 rho h, specOf70 rho h⟩
+    control := ⟨specOf10 rho h, specOf22 rho h, specOf23 rho h⟩
+    shared := ⟨specOf2 rho h, specOf3 rho h, specOf4 rho h, specOf5 rho h, specOf6 rho h, specOf7 rho h, specOf8 rho h, specOf9 rho h, specOf11 rho h, specOf12 rho h, specOf13 rho h, specOf14 rho h, specOf15 rho h, specOf16 rho h, specOf17 rho h, specOf18 rho h, specOf19 rho h, specOf20 rho h, specOf21 rho h, specOf24 rho h, specOf25 rho h, specOf26 rho h, specOf27 rho h, specOf28 rho h, specOf29 rho h, specOf30 rho h, specOf31 rho h⟩
+    balance := ⟨specOf76 rho h, specOf77 rho h, specOf78 rho h⟩
+    transcript := ⟨specOf83 rho h, specOf84 rho h⟩
+    spend0 := ⟨specOf33 rho h, specOf34 rho h, specOf35 rho h, specOf36 rho h, specOf37 rho h, specOf38 rho h, specOf39 rho h, specOf40 rho h, specOf41 rho h, specOf42 rho h⟩
+    output0 := ⟨specOf45 rho h, specOf46 rho h⟩
+    output1 := ⟨specOf49 rho h, specOf50 rho h⟩
+    output2 := ⟨specOf53 rho h, specOf54 rho h⟩
+    output3 := ⟨specOf57 rho h, specOf58 rho h⟩
+    output4 := ⟨specOf61 rho h, specOf62 rho h⟩
+    output5 := ⟨specOf65 rho h, specOf66 rho h⟩
+    output6 := ⟨specOf69 rho h, specOf70 rho h⟩
+    output7 := ⟨specOf73 rho h, specOf74 rho h⟩
   }
 
 end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape1x8

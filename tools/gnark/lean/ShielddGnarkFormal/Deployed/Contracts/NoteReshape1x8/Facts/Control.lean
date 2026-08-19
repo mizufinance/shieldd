@@ -1,4 +1,6 @@
 import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.Seg10
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.Seg22
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.Seg23
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 4000000
@@ -10,5 +12,7 @@ namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape1x8
 
 structure ControlCircuitFacts (rho : Nat → Seg10.F) : Prop where
   AssertBooleanSeg10 : Seg10.contract.spec rho
+  AssertEqIfSeg22 : Seg22.contract.spec rho
+  AssertEqIfSeg23 : Seg23.contract.spec rho
 
 end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape1x8

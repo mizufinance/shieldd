@@ -122,6 +122,7 @@ func newTransferSharedAssignmentParts(
 		SlotID:         fqString(witness.SenderSlotID),
 		SlotDerivation: fqString(witness.SenderSlotDerivation),
 		D:              fqString(witness.SenderD),
+		Status:         fqString(witness.SenderStatus),
 		Path:           senderPath,
 		Position:       witness.SenderCompliancePosition,
 	}
@@ -341,6 +342,7 @@ func newTransferReceiverOutputCircuitFields(
 			SlotID:         fqString(witness.RecipientSlotID),
 			SlotDerivation: fqString(witness.RecipientSlotDerivation),
 			D:              fqString(witness.RecipientD),
+			Status:         fqString(witness.RecipientStatus),
 			Path:           recipientPath,
 			Position:       witness.RecipientCompliancePosition,
 		},

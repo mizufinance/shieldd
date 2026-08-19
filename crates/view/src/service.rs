@@ -2122,6 +2122,7 @@ impl ViewService for ViewServer {
                         d: leaf_data.d.to_vec(),
                         slot_id: leaf_data.slot_id,
                         slot_derivation: leaf_data.slot_derivation.to_vec(),
+                        status: compliance_pb::UserAssetStatus::from(leaf_data.status) as i32,
                     };
 
                     tracing::debug!(
@@ -2287,6 +2288,7 @@ impl ViewService for ViewServer {
                 d: leaf_data.d.to_vec(),
                 slot_id: leaf_data.slot_id,
                 slot_derivation: leaf_data.slot_derivation.to_vec(),
+                status: compliance_pb::UserAssetStatus::from(leaf_data.status) as i32,
             };
 
             return Ok(tonic::Response::new(pb::ComplianceUserLeafResponse {
@@ -2328,6 +2330,7 @@ impl ViewService for ViewServer {
             d: l.d,
             slot_id: l.slot_id,
             slot_derivation: l.slot_derivation,
+            status: l.status,
         });
 
         Ok(tonic::Response::new(pb::ComplianceUserLeafResponse {
@@ -2431,6 +2434,7 @@ impl ViewService for ViewServer {
                             d: leaf_data.d.to_vec(),
                             slot_id: leaf_data.slot_id,
                             slot_derivation: leaf_data.slot_derivation.to_vec(),
+                            status: compliance_pb::UserAssetStatus::from(leaf_data.status) as i32,
                         };
 
                         tracing::debug!(

@@ -2,6 +2,7 @@ use anyhow::{Context, Result};
 use async_trait::async_trait;
 use cnidarium::StateWrite;
 use cnidarium_component::ActionHandler;
+use shieldd_sdk_compliance::ComplianceRegistryRead as _;
 use shieldd_sdk_proof_params::batch::{self, BatchItem, VerifiedBatchItem};
 use shieldd_sdk_txhash::TransactionContext;
 
@@ -39,6 +40,7 @@ fn note_reshape_extract_public(
         anchor: context.anchor,
         balance_commitment: note_reshape.body.balance_commitment,
         asset_anchor: note_reshape.body.asset_anchor,
+        compliance_anchor: note_reshape.body.compliance_anchor,
         routing_tag: note_reshape.body.routing_tag,
         routing_parameter_set_id: note_reshape.body.routing_parameter_set_id,
         recent_position_floor: context.recent_position_floor,
@@ -93,6 +95,12 @@ pub async fn note_reshape_execute_verified<S: StateWrite>(
     verified_proof
         .ensure_binds(note_reshape.body.family_id.deployed_proof_key(), &item)
         .context("note_reshape verified proof capability mismatch")?;
+    state
+        .validate_compliance_anchors(
+            &note_reshape.body.compliance_anchor,
+            &note_reshape.body.asset_anchor,
+        )
+        .await?;
     note_reshape::execute_proof_bound_effects(
         &mut state,
         &note_reshape.body.inputs,

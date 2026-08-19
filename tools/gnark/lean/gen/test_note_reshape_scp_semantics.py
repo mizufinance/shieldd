@@ -126,15 +126,15 @@ class NormalizedScpSemanticsTests(unittest.TestCase):
         self.assertEqual(
             scp.DIRECT_INSTANCES,
             (
-                ("note_reshape1x8", 33),
-                ("note_reshape8x1", 42),
-                ("note_reshape8x1", 56),
-                ("note_reshape8x1", 70),
-                ("note_reshape8x1", 84),
-                ("note_reshape8x1", 98),
-                ("note_reshape8x1", 112),
-                ("note_reshape8x1", 126),
-                ("note_reshape8x1", 140),
+                ("note_reshape1x8", 37),
+                ("note_reshape8x1", 46),
+                ("note_reshape8x1", 61),
+                ("note_reshape8x1", 76),
+                ("note_reshape8x1", 91),
+                ("note_reshape8x1", 106),
+                ("note_reshape8x1", 121),
+                ("note_reshape8x1", 136),
+                ("note_reshape8x1", 151),
             ),
         )
         scp._validate_inventory_target(
@@ -171,7 +171,7 @@ class NormalizedScpSemanticsTests(unittest.TestCase):
 
     def test_active_reference_uses_exact_ir_wire_seating(self):
         segment = scp._reference_segment()
-        self.assertEqual(segment["index"], 33)
+        self.assertEqual(segment["index"], 37)
         seating = scp.SegmentTemplate.parse(
             segment
         ).canonical_wire_seating

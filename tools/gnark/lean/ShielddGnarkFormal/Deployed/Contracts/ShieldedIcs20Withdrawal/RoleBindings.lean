@@ -108,224 +108,225 @@ def witnessWireRoles : List WitnessWireRole := [
   { wireId := 82, path := "Sender_SlotID", visibility := .secret },
   { wireId := 83, path := "Sender_SlotDerivation", visibility := .secret },
   { wireId := 84, path := "Sender_D", visibility := .secret },
-  { wireId := 85, path := "Sender_Path_0_0", visibility := .secret },
-  { wireId := 86, path := "Sender_Path_0_1", visibility := .secret },
-  { wireId := 87, path := "Sender_Path_0_2", visibility := .secret },
-  { wireId := 88, path := "Sender_Path_1_0", visibility := .secret },
-  { wireId := 89, path := "Sender_Path_1_1", visibility := .secret },
-  { wireId := 90, path := "Sender_Path_1_2", visibility := .secret },
-  { wireId := 91, path := "Sender_Path_2_0", visibility := .secret },
-  { wireId := 92, path := "Sender_Path_2_1", visibility := .secret },
-  { wireId := 93, path := "Sender_Path_2_2", visibility := .secret },
-  { wireId := 94, path := "Sender_Path_3_0", visibility := .secret },
-  { wireId := 95, path := "Sender_Path_3_1", visibility := .secret },
-  { wireId := 96, path := "Sender_Path_3_2", visibility := .secret },
-  { wireId := 97, path := "Sender_Path_4_0", visibility := .secret },
-  { wireId := 98, path := "Sender_Path_4_1", visibility := .secret },
-  { wireId := 99, path := "Sender_Path_4_2", visibility := .secret },
-  { wireId := 100, path := "Sender_Path_5_0", visibility := .secret },
-  { wireId := 101, path := "Sender_Path_5_1", visibility := .secret },
-  { wireId := 102, path := "Sender_Path_5_2", visibility := .secret },
-  { wireId := 103, path := "Sender_Path_6_0", visibility := .secret },
-  { wireId := 104, path := "Sender_Path_6_1", visibility := .secret },
-  { wireId := 105, path := "Sender_Path_6_2", visibility := .secret },
-  { wireId := 106, path := "Sender_Path_7_0", visibility := .secret },
-  { wireId := 107, path := "Sender_Path_7_1", visibility := .secret },
-  { wireId := 108, path := "Sender_Path_7_2", visibility := .secret },
-  { wireId := 109, path := "Sender_Path_8_0", visibility := .secret },
-  { wireId := 110, path := "Sender_Path_8_1", visibility := .secret },
-  { wireId := 111, path := "Sender_Path_8_2", visibility := .secret },
-  { wireId := 112, path := "Sender_Path_9_0", visibility := .secret },
-  { wireId := 113, path := "Sender_Path_9_1", visibility := .secret },
-  { wireId := 114, path := "Sender_Path_9_2", visibility := .secret },
-  { wireId := 115, path := "Sender_Path_10_0", visibility := .secret },
-  { wireId := 116, path := "Sender_Path_10_1", visibility := .secret },
-  { wireId := 117, path := "Sender_Path_10_2", visibility := .secret },
-  { wireId := 118, path := "Sender_Path_11_0", visibility := .secret },
-  { wireId := 119, path := "Sender_Path_11_1", visibility := .secret },
-  { wireId := 120, path := "Sender_Path_11_2", visibility := .secret },
-  { wireId := 121, path := "Sender_Path_12_0", visibility := .secret },
-  { wireId := 122, path := "Sender_Path_12_1", visibility := .secret },
-  { wireId := 123, path := "Sender_Path_12_2", visibility := .secret },
-  { wireId := 124, path := "Sender_Path_13_0", visibility := .secret },
-  { wireId := 125, path := "Sender_Path_13_1", visibility := .secret },
-  { wireId := 126, path := "Sender_Path_13_2", visibility := .secret },
-  { wireId := 127, path := "Sender_Path_14_0", visibility := .secret },
-  { wireId := 128, path := "Sender_Path_14_1", visibility := .secret },
-  { wireId := 129, path := "Sender_Path_14_2", visibility := .secret },
-  { wireId := 130, path := "Sender_Path_15_0", visibility := .secret },
-  { wireId := 131, path := "Sender_Path_15_1", visibility := .secret },
-  { wireId := 132, path := "Sender_Path_15_2", visibility := .secret },
-  { wireId := 133, path := "Sender_Position", visibility := .secret },
-  { wireId := 134, path := "RequiredSpend_Nullifier", visibility := .secret },
-  { wireId := 135, path := "RequiredSpend_RK_X", visibility := .secret },
-  { wireId := 136, path := "RequiredSpend_RK_Y", visibility := .secret },
-  { wireId := 137, path := "RequiredSpend_Note_Blinding", visibility := .secret },
-  { wireId := 138, path := "RequiredSpend_Note_Amount", visibility := .secret },
-  { wireId := 139, path := "RequiredSpend_StateProof_Position", visibility := .secret },
-  { wireId := 140, path := "RequiredSpend_StateProof_Path_0_0", visibility := .secret },
-  { wireId := 141, path := "RequiredSpend_StateProof_Path_0_1", visibility := .secret },
-  { wireId := 142, path := "RequiredSpend_StateProof_Path_0_2", visibility := .secret },
-  { wireId := 143, path := "RequiredSpend_StateProof_Path_1_0", visibility := .secret },
-  { wireId := 144, path := "RequiredSpend_StateProof_Path_1_1", visibility := .secret },
-  { wireId := 145, path := "RequiredSpend_StateProof_Path_1_2", visibility := .secret },
-  { wireId := 146, path := "RequiredSpend_StateProof_Path_2_0", visibility := .secret },
-  { wireId := 147, path := "RequiredSpend_StateProof_Path_2_1", visibility := .secret },
-  { wireId := 148, path := "RequiredSpend_StateProof_Path_2_2", visibility := .secret },
-  { wireId := 149, path := "RequiredSpend_StateProof_Path_3_0", visibility := .secret },
-  { wireId := 150, path := "RequiredSpend_StateProof_Path_3_1", visibility := .secret },
-  { wireId := 151, path := "RequiredSpend_StateProof_Path_3_2", visibility := .secret },
-  { wireId := 152, path := "RequiredSpend_StateProof_Path_4_0", visibility := .secret },
-  { wireId := 153, path := "RequiredSpend_StateProof_Path_4_1", visibility := .secret },
-  { wireId := 154, path := "RequiredSpend_StateProof_Path_4_2", visibility := .secret },
-  { wireId := 155, path := "RequiredSpend_StateProof_Path_5_0", visibility := .secret },
-  { wireId := 156, path := "RequiredSpend_StateProof_Path_5_1", visibility := .secret },
-  { wireId := 157, path := "RequiredSpend_StateProof_Path_5_2", visibility := .secret },
-  { wireId := 158, path := "RequiredSpend_StateProof_Path_6_0", visibility := .secret },
-  { wireId := 159, path := "RequiredSpend_StateProof_Path_6_1", visibility := .secret },
-  { wireId := 160, path := "RequiredSpend_StateProof_Path_6_2", visibility := .secret },
-  { wireId := 161, path := "RequiredSpend_StateProof_Path_7_0", visibility := .secret },
-  { wireId := 162, path := "RequiredSpend_StateProof_Path_7_1", visibility := .secret },
-  { wireId := 163, path := "RequiredSpend_StateProof_Path_7_2", visibility := .secret },
-  { wireId := 164, path := "RequiredSpend_StateProof_Path_8_0", visibility := .secret },
-  { wireId := 165, path := "RequiredSpend_StateProof_Path_8_1", visibility := .secret },
-  { wireId := 166, path := "RequiredSpend_StateProof_Path_8_2", visibility := .secret },
-  { wireId := 167, path := "RequiredSpend_StateProof_Path_9_0", visibility := .secret },
-  { wireId := 168, path := "RequiredSpend_StateProof_Path_9_1", visibility := .secret },
-  { wireId := 169, path := "RequiredSpend_StateProof_Path_9_2", visibility := .secret },
-  { wireId := 170, path := "RequiredSpend_StateProof_Path_10_0", visibility := .secret },
-  { wireId := 171, path := "RequiredSpend_StateProof_Path_10_1", visibility := .secret },
-  { wireId := 172, path := "RequiredSpend_StateProof_Path_10_2", visibility := .secret },
-  { wireId := 173, path := "RequiredSpend_StateProof_Path_11_0", visibility := .secret },
-  { wireId := 174, path := "RequiredSpend_StateProof_Path_11_1", visibility := .secret },
-  { wireId := 175, path := "RequiredSpend_StateProof_Path_11_2", visibility := .secret },
-  { wireId := 176, path := "RequiredSpend_StateProof_Path_12_0", visibility := .secret },
-  { wireId := 177, path := "RequiredSpend_StateProof_Path_12_1", visibility := .secret },
-  { wireId := 178, path := "RequiredSpend_StateProof_Path_12_2", visibility := .secret },
-  { wireId := 179, path := "RequiredSpend_StateProof_Path_13_0", visibility := .secret },
-  { wireId := 180, path := "RequiredSpend_StateProof_Path_13_1", visibility := .secret },
-  { wireId := 181, path := "RequiredSpend_StateProof_Path_13_2", visibility := .secret },
-  { wireId := 182, path := "RequiredSpend_StateProof_Path_14_0", visibility := .secret },
-  { wireId := 183, path := "RequiredSpend_StateProof_Path_14_1", visibility := .secret },
-  { wireId := 184, path := "RequiredSpend_StateProof_Path_14_2", visibility := .secret },
-  { wireId := 185, path := "RequiredSpend_StateProof_Path_15_0", visibility := .secret },
-  { wireId := 186, path := "RequiredSpend_StateProof_Path_15_1", visibility := .secret },
-  { wireId := 187, path := "RequiredSpend_StateProof_Path_15_2", visibility := .secret },
-  { wireId := 188, path := "RequiredSpend_StateProof_Path_16_0", visibility := .secret },
-  { wireId := 189, path := "RequiredSpend_StateProof_Path_16_1", visibility := .secret },
-  { wireId := 190, path := "RequiredSpend_StateProof_Path_16_2", visibility := .secret },
-  { wireId := 191, path := "RequiredSpend_StateProof_Path_17_0", visibility := .secret },
-  { wireId := 192, path := "RequiredSpend_StateProof_Path_17_1", visibility := .secret },
-  { wireId := 193, path := "RequiredSpend_StateProof_Path_17_2", visibility := .secret },
-  { wireId := 194, path := "RequiredSpend_StateProof_Path_18_0", visibility := .secret },
-  { wireId := 195, path := "RequiredSpend_StateProof_Path_18_1", visibility := .secret },
-  { wireId := 196, path := "RequiredSpend_StateProof_Path_18_2", visibility := .secret },
-  { wireId := 197, path := "RequiredSpend_StateProof_Path_19_0", visibility := .secret },
-  { wireId := 198, path := "RequiredSpend_StateProof_Path_19_1", visibility := .secret },
-  { wireId := 199, path := "RequiredSpend_StateProof_Path_19_2", visibility := .secret },
-  { wireId := 200, path := "RequiredSpend_StateProof_Path_20_0", visibility := .secret },
-  { wireId := 201, path := "RequiredSpend_StateProof_Path_20_1", visibility := .secret },
-  { wireId := 202, path := "RequiredSpend_StateProof_Path_20_2", visibility := .secret },
-  { wireId := 203, path := "RequiredSpend_StateProof_Path_21_0", visibility := .secret },
-  { wireId := 204, path := "RequiredSpend_StateProof_Path_21_1", visibility := .secret },
-  { wireId := 205, path := "RequiredSpend_StateProof_Path_21_2", visibility := .secret },
-  { wireId := 206, path := "RequiredSpend_StateProof_Path_22_0", visibility := .secret },
-  { wireId := 207, path := "RequiredSpend_StateProof_Path_22_1", visibility := .secret },
-  { wireId := 208, path := "RequiredSpend_StateProof_Path_22_2", visibility := .secret },
-  { wireId := 209, path := "RequiredSpend_StateProof_Path_23_0", visibility := .secret },
-  { wireId := 210, path := "RequiredSpend_StateProof_Path_23_1", visibility := .secret },
-  { wireId := 211, path := "RequiredSpend_StateProof_Path_23_2", visibility := .secret },
-  { wireId := 212, path := "RequiredSpend_AuthRandomizer", visibility := .secret },
-  { wireId := 213, path := "RequiredSpend_HistoryRequired", visibility := .secret },
-  { wireId := 214, path := "OptionalSpend_Nullifier", visibility := .secret },
-  { wireId := 215, path := "OptionalSpend_RK_X", visibility := .secret },
-  { wireId := 216, path := "OptionalSpend_RK_Y", visibility := .secret },
-  { wireId := 217, path := "OptionalSpend_Note_Blinding", visibility := .secret },
-  { wireId := 218, path := "OptionalSpend_Note_Amount", visibility := .secret },
-  { wireId := 219, path := "OptionalSpend_StateProof_Position", visibility := .secret },
-  { wireId := 220, path := "OptionalSpend_StateProof_Path_0_0", visibility := .secret },
-  { wireId := 221, path := "OptionalSpend_StateProof_Path_0_1", visibility := .secret },
-  { wireId := 222, path := "OptionalSpend_StateProof_Path_0_2", visibility := .secret },
-  { wireId := 223, path := "OptionalSpend_StateProof_Path_1_0", visibility := .secret },
-  { wireId := 224, path := "OptionalSpend_StateProof_Path_1_1", visibility := .secret },
-  { wireId := 225, path := "OptionalSpend_StateProof_Path_1_2", visibility := .secret },
-  { wireId := 226, path := "OptionalSpend_StateProof_Path_2_0", visibility := .secret },
-  { wireId := 227, path := "OptionalSpend_StateProof_Path_2_1", visibility := .secret },
-  { wireId := 228, path := "OptionalSpend_StateProof_Path_2_2", visibility := .secret },
-  { wireId := 229, path := "OptionalSpend_StateProof_Path_3_0", visibility := .secret },
-  { wireId := 230, path := "OptionalSpend_StateProof_Path_3_1", visibility := .secret },
-  { wireId := 231, path := "OptionalSpend_StateProof_Path_3_2", visibility := .secret },
-  { wireId := 232, path := "OptionalSpend_StateProof_Path_4_0", visibility := .secret },
-  { wireId := 233, path := "OptionalSpend_StateProof_Path_4_1", visibility := .secret },
-  { wireId := 234, path := "OptionalSpend_StateProof_Path_4_2", visibility := .secret },
-  { wireId := 235, path := "OptionalSpend_StateProof_Path_5_0", visibility := .secret },
-  { wireId := 236, path := "OptionalSpend_StateProof_Path_5_1", visibility := .secret },
-  { wireId := 237, path := "OptionalSpend_StateProof_Path_5_2", visibility := .secret },
-  { wireId := 238, path := "OptionalSpend_StateProof_Path_6_0", visibility := .secret },
-  { wireId := 239, path := "OptionalSpend_StateProof_Path_6_1", visibility := .secret },
-  { wireId := 240, path := "OptionalSpend_StateProof_Path_6_2", visibility := .secret },
-  { wireId := 241, path := "OptionalSpend_StateProof_Path_7_0", visibility := .secret },
-  { wireId := 242, path := "OptionalSpend_StateProof_Path_7_1", visibility := .secret },
-  { wireId := 243, path := "OptionalSpend_StateProof_Path_7_2", visibility := .secret },
-  { wireId := 244, path := "OptionalSpend_StateProof_Path_8_0", visibility := .secret },
-  { wireId := 245, path := "OptionalSpend_StateProof_Path_8_1", visibility := .secret },
-  { wireId := 246, path := "OptionalSpend_StateProof_Path_8_2", visibility := .secret },
-  { wireId := 247, path := "OptionalSpend_StateProof_Path_9_0", visibility := .secret },
-  { wireId := 248, path := "OptionalSpend_StateProof_Path_9_1", visibility := .secret },
-  { wireId := 249, path := "OptionalSpend_StateProof_Path_9_2", visibility := .secret },
-  { wireId := 250, path := "OptionalSpend_StateProof_Path_10_0", visibility := .secret },
-  { wireId := 251, path := "OptionalSpend_StateProof_Path_10_1", visibility := .secret },
-  { wireId := 252, path := "OptionalSpend_StateProof_Path_10_2", visibility := .secret },
-  { wireId := 253, path := "OptionalSpend_StateProof_Path_11_0", visibility := .secret },
-  { wireId := 254, path := "OptionalSpend_StateProof_Path_11_1", visibility := .secret },
-  { wireId := 255, path := "OptionalSpend_StateProof_Path_11_2", visibility := .secret },
-  { wireId := 256, path := "OptionalSpend_StateProof_Path_12_0", visibility := .secret },
-  { wireId := 257, path := "OptionalSpend_StateProof_Path_12_1", visibility := .secret },
-  { wireId := 258, path := "OptionalSpend_StateProof_Path_12_2", visibility := .secret },
-  { wireId := 259, path := "OptionalSpend_StateProof_Path_13_0", visibility := .secret },
-  { wireId := 260, path := "OptionalSpend_StateProof_Path_13_1", visibility := .secret },
-  { wireId := 261, path := "OptionalSpend_StateProof_Path_13_2", visibility := .secret },
-  { wireId := 262, path := "OptionalSpend_StateProof_Path_14_0", visibility := .secret },
-  { wireId := 263, path := "OptionalSpend_StateProof_Path_14_1", visibility := .secret },
-  { wireId := 264, path := "OptionalSpend_StateProof_Path_14_2", visibility := .secret },
-  { wireId := 265, path := "OptionalSpend_StateProof_Path_15_0", visibility := .secret },
-  { wireId := 266, path := "OptionalSpend_StateProof_Path_15_1", visibility := .secret },
-  { wireId := 267, path := "OptionalSpend_StateProof_Path_15_2", visibility := .secret },
-  { wireId := 268, path := "OptionalSpend_StateProof_Path_16_0", visibility := .secret },
-  { wireId := 269, path := "OptionalSpend_StateProof_Path_16_1", visibility := .secret },
-  { wireId := 270, path := "OptionalSpend_StateProof_Path_16_2", visibility := .secret },
-  { wireId := 271, path := "OptionalSpend_StateProof_Path_17_0", visibility := .secret },
-  { wireId := 272, path := "OptionalSpend_StateProof_Path_17_1", visibility := .secret },
-  { wireId := 273, path := "OptionalSpend_StateProof_Path_17_2", visibility := .secret },
-  { wireId := 274, path := "OptionalSpend_StateProof_Path_18_0", visibility := .secret },
-  { wireId := 275, path := "OptionalSpend_StateProof_Path_18_1", visibility := .secret },
-  { wireId := 276, path := "OptionalSpend_StateProof_Path_18_2", visibility := .secret },
-  { wireId := 277, path := "OptionalSpend_StateProof_Path_19_0", visibility := .secret },
-  { wireId := 278, path := "OptionalSpend_StateProof_Path_19_1", visibility := .secret },
-  { wireId := 279, path := "OptionalSpend_StateProof_Path_19_2", visibility := .secret },
-  { wireId := 280, path := "OptionalSpend_StateProof_Path_20_0", visibility := .secret },
-  { wireId := 281, path := "OptionalSpend_StateProof_Path_20_1", visibility := .secret },
-  { wireId := 282, path := "OptionalSpend_StateProof_Path_20_2", visibility := .secret },
-  { wireId := 283, path := "OptionalSpend_StateProof_Path_21_0", visibility := .secret },
-  { wireId := 284, path := "OptionalSpend_StateProof_Path_21_1", visibility := .secret },
-  { wireId := 285, path := "OptionalSpend_StateProof_Path_21_2", visibility := .secret },
-  { wireId := 286, path := "OptionalSpend_StateProof_Path_22_0", visibility := .secret },
-  { wireId := 287, path := "OptionalSpend_StateProof_Path_22_1", visibility := .secret },
-  { wireId := 288, path := "OptionalSpend_StateProof_Path_22_2", visibility := .secret },
-  { wireId := 289, path := "OptionalSpend_StateProof_Path_23_0", visibility := .secret },
-  { wireId := 290, path := "OptionalSpend_StateProof_Path_23_1", visibility := .secret },
-  { wireId := 291, path := "OptionalSpend_StateProof_Path_23_2", visibility := .secret },
-  { wireId := 292, path := "OptionalSpend_AuthRandomizer", visibility := .secret },
-  { wireId := 293, path := "OptionalSpend_HistoryRequired", visibility := .secret },
-  { wireId := 294, path := "OptionalSpend_IsDummy", visibility := .secret },
-  { wireId := 295, path := "OptionalSpend_DummyNullifierSeed", visibility := .secret },
-  { wireId := 296, path := "ChangeOutput_NoteCommitment", visibility := .secret },
-  { wireId := 297, path := "ChangeOutput_Note_Blinding", visibility := .secret },
-  { wireId := 298, path := "ChangeOutput_Note_Amount", visibility := .secret },
+  { wireId := 85, path := "Sender_Status", visibility := .secret },
+  { wireId := 86, path := "Sender_Path_0_0", visibility := .secret },
+  { wireId := 87, path := "Sender_Path_0_1", visibility := .secret },
+  { wireId := 88, path := "Sender_Path_0_2", visibility := .secret },
+  { wireId := 89, path := "Sender_Path_1_0", visibility := .secret },
+  { wireId := 90, path := "Sender_Path_1_1", visibility := .secret },
+  { wireId := 91, path := "Sender_Path_1_2", visibility := .secret },
+  { wireId := 92, path := "Sender_Path_2_0", visibility := .secret },
+  { wireId := 93, path := "Sender_Path_2_1", visibility := .secret },
+  { wireId := 94, path := "Sender_Path_2_2", visibility := .secret },
+  { wireId := 95, path := "Sender_Path_3_0", visibility := .secret },
+  { wireId := 96, path := "Sender_Path_3_1", visibility := .secret },
+  { wireId := 97, path := "Sender_Path_3_2", visibility := .secret },
+  { wireId := 98, path := "Sender_Path_4_0", visibility := .secret },
+  { wireId := 99, path := "Sender_Path_4_1", visibility := .secret },
+  { wireId := 100, path := "Sender_Path_4_2", visibility := .secret },
+  { wireId := 101, path := "Sender_Path_5_0", visibility := .secret },
+  { wireId := 102, path := "Sender_Path_5_1", visibility := .secret },
+  { wireId := 103, path := "Sender_Path_5_2", visibility := .secret },
+  { wireId := 104, path := "Sender_Path_6_0", visibility := .secret },
+  { wireId := 105, path := "Sender_Path_6_1", visibility := .secret },
+  { wireId := 106, path := "Sender_Path_6_2", visibility := .secret },
+  { wireId := 107, path := "Sender_Path_7_0", visibility := .secret },
+  { wireId := 108, path := "Sender_Path_7_1", visibility := .secret },
+  { wireId := 109, path := "Sender_Path_7_2", visibility := .secret },
+  { wireId := 110, path := "Sender_Path_8_0", visibility := .secret },
+  { wireId := 111, path := "Sender_Path_8_1", visibility := .secret },
+  { wireId := 112, path := "Sender_Path_8_2", visibility := .secret },
+  { wireId := 113, path := "Sender_Path_9_0", visibility := .secret },
+  { wireId := 114, path := "Sender_Path_9_1", visibility := .secret },
+  { wireId := 115, path := "Sender_Path_9_2", visibility := .secret },
+  { wireId := 116, path := "Sender_Path_10_0", visibility := .secret },
+  { wireId := 117, path := "Sender_Path_10_1", visibility := .secret },
+  { wireId := 118, path := "Sender_Path_10_2", visibility := .secret },
+  { wireId := 119, path := "Sender_Path_11_0", visibility := .secret },
+  { wireId := 120, path := "Sender_Path_11_1", visibility := .secret },
+  { wireId := 121, path := "Sender_Path_11_2", visibility := .secret },
+  { wireId := 122, path := "Sender_Path_12_0", visibility := .secret },
+  { wireId := 123, path := "Sender_Path_12_1", visibility := .secret },
+  { wireId := 124, path := "Sender_Path_12_2", visibility := .secret },
+  { wireId := 125, path := "Sender_Path_13_0", visibility := .secret },
+  { wireId := 126, path := "Sender_Path_13_1", visibility := .secret },
+  { wireId := 127, path := "Sender_Path_13_2", visibility := .secret },
+  { wireId := 128, path := "Sender_Path_14_0", visibility := .secret },
+  { wireId := 129, path := "Sender_Path_14_1", visibility := .secret },
+  { wireId := 130, path := "Sender_Path_14_2", visibility := .secret },
+  { wireId := 131, path := "Sender_Path_15_0", visibility := .secret },
+  { wireId := 132, path := "Sender_Path_15_1", visibility := .secret },
+  { wireId := 133, path := "Sender_Path_15_2", visibility := .secret },
+  { wireId := 134, path := "Sender_Position", visibility := .secret },
+  { wireId := 135, path := "RequiredSpend_Nullifier", visibility := .secret },
+  { wireId := 136, path := "RequiredSpend_RK_X", visibility := .secret },
+  { wireId := 137, path := "RequiredSpend_RK_Y", visibility := .secret },
+  { wireId := 138, path := "RequiredSpend_Note_Blinding", visibility := .secret },
+  { wireId := 139, path := "RequiredSpend_Note_Amount", visibility := .secret },
+  { wireId := 140, path := "RequiredSpend_StateProof_Position", visibility := .secret },
+  { wireId := 141, path := "RequiredSpend_StateProof_Path_0_0", visibility := .secret },
+  { wireId := 142, path := "RequiredSpend_StateProof_Path_0_1", visibility := .secret },
+  { wireId := 143, path := "RequiredSpend_StateProof_Path_0_2", visibility := .secret },
+  { wireId := 144, path := "RequiredSpend_StateProof_Path_1_0", visibility := .secret },
+  { wireId := 145, path := "RequiredSpend_StateProof_Path_1_1", visibility := .secret },
+  { wireId := 146, path := "RequiredSpend_StateProof_Path_1_2", visibility := .secret },
+  { wireId := 147, path := "RequiredSpend_StateProof_Path_2_0", visibility := .secret },
+  { wireId := 148, path := "RequiredSpend_StateProof_Path_2_1", visibility := .secret },
+  { wireId := 149, path := "RequiredSpend_StateProof_Path_2_2", visibility := .secret },
+  { wireId := 150, path := "RequiredSpend_StateProof_Path_3_0", visibility := .secret },
+  { wireId := 151, path := "RequiredSpend_StateProof_Path_3_1", visibility := .secret },
+  { wireId := 152, path := "RequiredSpend_StateProof_Path_3_2", visibility := .secret },
+  { wireId := 153, path := "RequiredSpend_StateProof_Path_4_0", visibility := .secret },
+  { wireId := 154, path := "RequiredSpend_StateProof_Path_4_1", visibility := .secret },
+  { wireId := 155, path := "RequiredSpend_StateProof_Path_4_2", visibility := .secret },
+  { wireId := 156, path := "RequiredSpend_StateProof_Path_5_0", visibility := .secret },
+  { wireId := 157, path := "RequiredSpend_StateProof_Path_5_1", visibility := .secret },
+  { wireId := 158, path := "RequiredSpend_StateProof_Path_5_2", visibility := .secret },
+  { wireId := 159, path := "RequiredSpend_StateProof_Path_6_0", visibility := .secret },
+  { wireId := 160, path := "RequiredSpend_StateProof_Path_6_1", visibility := .secret },
+  { wireId := 161, path := "RequiredSpend_StateProof_Path_6_2", visibility := .secret },
+  { wireId := 162, path := "RequiredSpend_StateProof_Path_7_0", visibility := .secret },
+  { wireId := 163, path := "RequiredSpend_StateProof_Path_7_1", visibility := .secret },
+  { wireId := 164, path := "RequiredSpend_StateProof_Path_7_2", visibility := .secret },
+  { wireId := 165, path := "RequiredSpend_StateProof_Path_8_0", visibility := .secret },
+  { wireId := 166, path := "RequiredSpend_StateProof_Path_8_1", visibility := .secret },
+  { wireId := 167, path := "RequiredSpend_StateProof_Path_8_2", visibility := .secret },
+  { wireId := 168, path := "RequiredSpend_StateProof_Path_9_0", visibility := .secret },
+  { wireId := 169, path := "RequiredSpend_StateProof_Path_9_1", visibility := .secret },
+  { wireId := 170, path := "RequiredSpend_StateProof_Path_9_2", visibility := .secret },
+  { wireId := 171, path := "RequiredSpend_StateProof_Path_10_0", visibility := .secret },
+  { wireId := 172, path := "RequiredSpend_StateProof_Path_10_1", visibility := .secret },
+  { wireId := 173, path := "RequiredSpend_StateProof_Path_10_2", visibility := .secret },
+  { wireId := 174, path := "RequiredSpend_StateProof_Path_11_0", visibility := .secret },
+  { wireId := 175, path := "RequiredSpend_StateProof_Path_11_1", visibility := .secret },
+  { wireId := 176, path := "RequiredSpend_StateProof_Path_11_2", visibility := .secret },
+  { wireId := 177, path := "RequiredSpend_StateProof_Path_12_0", visibility := .secret },
+  { wireId := 178, path := "RequiredSpend_StateProof_Path_12_1", visibility := .secret },
+  { wireId := 179, path := "RequiredSpend_StateProof_Path_12_2", visibility := .secret },
+  { wireId := 180, path := "RequiredSpend_StateProof_Path_13_0", visibility := .secret },
+  { wireId := 181, path := "RequiredSpend_StateProof_Path_13_1", visibility := .secret },
+  { wireId := 182, path := "RequiredSpend_StateProof_Path_13_2", visibility := .secret },
+  { wireId := 183, path := "RequiredSpend_StateProof_Path_14_0", visibility := .secret },
+  { wireId := 184, path := "RequiredSpend_StateProof_Path_14_1", visibility := .secret },
+  { wireId := 185, path := "RequiredSpend_StateProof_Path_14_2", visibility := .secret },
+  { wireId := 186, path := "RequiredSpend_StateProof_Path_15_0", visibility := .secret },
+  { wireId := 187, path := "RequiredSpend_StateProof_Path_15_1", visibility := .secret },
+  { wireId := 188, path := "RequiredSpend_StateProof_Path_15_2", visibility := .secret },
+  { wireId := 189, path := "RequiredSpend_StateProof_Path_16_0", visibility := .secret },
+  { wireId := 190, path := "RequiredSpend_StateProof_Path_16_1", visibility := .secret },
+  { wireId := 191, path := "RequiredSpend_StateProof_Path_16_2", visibility := .secret },
+  { wireId := 192, path := "RequiredSpend_StateProof_Path_17_0", visibility := .secret },
+  { wireId := 193, path := "RequiredSpend_StateProof_Path_17_1", visibility := .secret },
+  { wireId := 194, path := "RequiredSpend_StateProof_Path_17_2", visibility := .secret },
+  { wireId := 195, path := "RequiredSpend_StateProof_Path_18_0", visibility := .secret },
+  { wireId := 196, path := "RequiredSpend_StateProof_Path_18_1", visibility := .secret },
+  { wireId := 197, path := "RequiredSpend_StateProof_Path_18_2", visibility := .secret },
+  { wireId := 198, path := "RequiredSpend_StateProof_Path_19_0", visibility := .secret },
+  { wireId := 199, path := "RequiredSpend_StateProof_Path_19_1", visibility := .secret },
+  { wireId := 200, path := "RequiredSpend_StateProof_Path_19_2", visibility := .secret },
+  { wireId := 201, path := "RequiredSpend_StateProof_Path_20_0", visibility := .secret },
+  { wireId := 202, path := "RequiredSpend_StateProof_Path_20_1", visibility := .secret },
+  { wireId := 203, path := "RequiredSpend_StateProof_Path_20_2", visibility := .secret },
+  { wireId := 204, path := "RequiredSpend_StateProof_Path_21_0", visibility := .secret },
+  { wireId := 205, path := "RequiredSpend_StateProof_Path_21_1", visibility := .secret },
+  { wireId := 206, path := "RequiredSpend_StateProof_Path_21_2", visibility := .secret },
+  { wireId := 207, path := "RequiredSpend_StateProof_Path_22_0", visibility := .secret },
+  { wireId := 208, path := "RequiredSpend_StateProof_Path_22_1", visibility := .secret },
+  { wireId := 209, path := "RequiredSpend_StateProof_Path_22_2", visibility := .secret },
+  { wireId := 210, path := "RequiredSpend_StateProof_Path_23_0", visibility := .secret },
+  { wireId := 211, path := "RequiredSpend_StateProof_Path_23_1", visibility := .secret },
+  { wireId := 212, path := "RequiredSpend_StateProof_Path_23_2", visibility := .secret },
+  { wireId := 213, path := "RequiredSpend_AuthRandomizer", visibility := .secret },
+  { wireId := 214, path := "RequiredSpend_HistoryRequired", visibility := .secret },
+  { wireId := 215, path := "OptionalSpend_Nullifier", visibility := .secret },
+  { wireId := 216, path := "OptionalSpend_RK_X", visibility := .secret },
+  { wireId := 217, path := "OptionalSpend_RK_Y", visibility := .secret },
+  { wireId := 218, path := "OptionalSpend_Note_Blinding", visibility := .secret },
+  { wireId := 219, path := "OptionalSpend_Note_Amount", visibility := .secret },
+  { wireId := 220, path := "OptionalSpend_StateProof_Position", visibility := .secret },
+  { wireId := 221, path := "OptionalSpend_StateProof_Path_0_0", visibility := .secret },
+  { wireId := 222, path := "OptionalSpend_StateProof_Path_0_1", visibility := .secret },
+  { wireId := 223, path := "OptionalSpend_StateProof_Path_0_2", visibility := .secret },
+  { wireId := 224, path := "OptionalSpend_StateProof_Path_1_0", visibility := .secret },
+  { wireId := 225, path := "OptionalSpend_StateProof_Path_1_1", visibility := .secret },
+  { wireId := 226, path := "OptionalSpend_StateProof_Path_1_2", visibility := .secret },
+  { wireId := 227, path := "OptionalSpend_StateProof_Path_2_0", visibility := .secret },
+  { wireId := 228, path := "OptionalSpend_StateProof_Path_2_1", visibility := .secret },
+  { wireId := 229, path := "OptionalSpend_StateProof_Path_2_2", visibility := .secret },
+  { wireId := 230, path := "OptionalSpend_StateProof_Path_3_0", visibility := .secret },
+  { wireId := 231, path := "OptionalSpend_StateProof_Path_3_1", visibility := .secret },
+  { wireId := 232, path := "OptionalSpend_StateProof_Path_3_2", visibility := .secret },
+  { wireId := 233, path := "OptionalSpend_StateProof_Path_4_0", visibility := .secret },
+  { wireId := 234, path := "OptionalSpend_StateProof_Path_4_1", visibility := .secret },
+  { wireId := 235, path := "OptionalSpend_StateProof_Path_4_2", visibility := .secret },
+  { wireId := 236, path := "OptionalSpend_StateProof_Path_5_0", visibility := .secret },
+  { wireId := 237, path := "OptionalSpend_StateProof_Path_5_1", visibility := .secret },
+  { wireId := 238, path := "OptionalSpend_StateProof_Path_5_2", visibility := .secret },
+  { wireId := 239, path := "OptionalSpend_StateProof_Path_6_0", visibility := .secret },
+  { wireId := 240, path := "OptionalSpend_StateProof_Path_6_1", visibility := .secret },
+  { wireId := 241, path := "OptionalSpend_StateProof_Path_6_2", visibility := .secret },
+  { wireId := 242, path := "OptionalSpend_StateProof_Path_7_0", visibility := .secret },
+  { wireId := 243, path := "OptionalSpend_StateProof_Path_7_1", visibility := .secret },
+  { wireId := 244, path := "OptionalSpend_StateProof_Path_7_2", visibility := .secret },
+  { wireId := 245, path := "OptionalSpend_StateProof_Path_8_0", visibility := .secret },
+  { wireId := 246, path := "OptionalSpend_StateProof_Path_8_1", visibility := .secret },
+  { wireId := 247, path := "OptionalSpend_StateProof_Path_8_2", visibility := .secret },
+  { wireId := 248, path := "OptionalSpend_StateProof_Path_9_0", visibility := .secret },
+  { wireId := 249, path := "OptionalSpend_StateProof_Path_9_1", visibility := .secret },
+  { wireId := 250, path := "OptionalSpend_StateProof_Path_9_2", visibility := .secret },
+  { wireId := 251, path := "OptionalSpend_StateProof_Path_10_0", visibility := .secret },
+  { wireId := 252, path := "OptionalSpend_StateProof_Path_10_1", visibility := .secret },
+  { wireId := 253, path := "OptionalSpend_StateProof_Path_10_2", visibility := .secret },
+  { wireId := 254, path := "OptionalSpend_StateProof_Path_11_0", visibility := .secret },
+  { wireId := 255, path := "OptionalSpend_StateProof_Path_11_1", visibility := .secret },
+  { wireId := 256, path := "OptionalSpend_StateProof_Path_11_2", visibility := .secret },
+  { wireId := 257, path := "OptionalSpend_StateProof_Path_12_0", visibility := .secret },
+  { wireId := 258, path := "OptionalSpend_StateProof_Path_12_1", visibility := .secret },
+  { wireId := 259, path := "OptionalSpend_StateProof_Path_12_2", visibility := .secret },
+  { wireId := 260, path := "OptionalSpend_StateProof_Path_13_0", visibility := .secret },
+  { wireId := 261, path := "OptionalSpend_StateProof_Path_13_1", visibility := .secret },
+  { wireId := 262, path := "OptionalSpend_StateProof_Path_13_2", visibility := .secret },
+  { wireId := 263, path := "OptionalSpend_StateProof_Path_14_0", visibility := .secret },
+  { wireId := 264, path := "OptionalSpend_StateProof_Path_14_1", visibility := .secret },
+  { wireId := 265, path := "OptionalSpend_StateProof_Path_14_2", visibility := .secret },
+  { wireId := 266, path := "OptionalSpend_StateProof_Path_15_0", visibility := .secret },
+  { wireId := 267, path := "OptionalSpend_StateProof_Path_15_1", visibility := .secret },
+  { wireId := 268, path := "OptionalSpend_StateProof_Path_15_2", visibility := .secret },
+  { wireId := 269, path := "OptionalSpend_StateProof_Path_16_0", visibility := .secret },
+  { wireId := 270, path := "OptionalSpend_StateProof_Path_16_1", visibility := .secret },
+  { wireId := 271, path := "OptionalSpend_StateProof_Path_16_2", visibility := .secret },
+  { wireId := 272, path := "OptionalSpend_StateProof_Path_17_0", visibility := .secret },
+  { wireId := 273, path := "OptionalSpend_StateProof_Path_17_1", visibility := .secret },
+  { wireId := 274, path := "OptionalSpend_StateProof_Path_17_2", visibility := .secret },
+  { wireId := 275, path := "OptionalSpend_StateProof_Path_18_0", visibility := .secret },
+  { wireId := 276, path := "OptionalSpend_StateProof_Path_18_1", visibility := .secret },
+  { wireId := 277, path := "OptionalSpend_StateProof_Path_18_2", visibility := .secret },
+  { wireId := 278, path := "OptionalSpend_StateProof_Path_19_0", visibility := .secret },
+  { wireId := 279, path := "OptionalSpend_StateProof_Path_19_1", visibility := .secret },
+  { wireId := 280, path := "OptionalSpend_StateProof_Path_19_2", visibility := .secret },
+  { wireId := 281, path := "OptionalSpend_StateProof_Path_20_0", visibility := .secret },
+  { wireId := 282, path := "OptionalSpend_StateProof_Path_20_1", visibility := .secret },
+  { wireId := 283, path := "OptionalSpend_StateProof_Path_20_2", visibility := .secret },
+  { wireId := 284, path := "OptionalSpend_StateProof_Path_21_0", visibility := .secret },
+  { wireId := 285, path := "OptionalSpend_StateProof_Path_21_1", visibility := .secret },
+  { wireId := 286, path := "OptionalSpend_StateProof_Path_21_2", visibility := .secret },
+  { wireId := 287, path := "OptionalSpend_StateProof_Path_22_0", visibility := .secret },
+  { wireId := 288, path := "OptionalSpend_StateProof_Path_22_1", visibility := .secret },
+  { wireId := 289, path := "OptionalSpend_StateProof_Path_22_2", visibility := .secret },
+  { wireId := 290, path := "OptionalSpend_StateProof_Path_23_0", visibility := .secret },
+  { wireId := 291, path := "OptionalSpend_StateProof_Path_23_1", visibility := .secret },
+  { wireId := 292, path := "OptionalSpend_StateProof_Path_23_2", visibility := .secret },
+  { wireId := 293, path := "OptionalSpend_AuthRandomizer", visibility := .secret },
+  { wireId := 294, path := "OptionalSpend_HistoryRequired", visibility := .secret },
+  { wireId := 295, path := "OptionalSpend_IsDummy", visibility := .secret },
+  { wireId := 296, path := "OptionalSpend_DummyNullifierSeed", visibility := .secret },
+  { wireId := 297, path := "ChangeOutput_NoteCommitment", visibility := .secret },
+  { wireId := 298, path := "ChangeOutput_Note_Blinding", visibility := .secret },
+  { wireId := 299, path := "ChangeOutput_Note_Amount", visibility := .secret },
 ]
 
 theorem witnessWireRoles_length :
-    witnessWireRoles.length = 298 := by
+    witnessWireRoles.length = 299 := by
   rfl
 
 namespace Witness
@@ -666,861 +667,865 @@ def senderSlotDerivation (rho : Nat → WitnessF) : WitnessF :=
 def senderD (rho : Nat → WitnessF) : WitnessF :=
   rho 84
 
+/-- Compiler witness path `Sender_Status`. -/
+def senderStatus (rho : Nat → WitnessF) : WitnessF :=
+  rho 85
+
 /-- Compiler witness path `Sender_Path_0_0`. -/
 def senderPath00 (rho : Nat → WitnessF) : WitnessF :=
-  rho 85
+  rho 86
 
 /-- Compiler witness path `Sender_Path_0_1`. -/
 def senderPath01 (rho : Nat → WitnessF) : WitnessF :=
-  rho 86
+  rho 87
 
 /-- Compiler witness path `Sender_Path_0_2`. -/
 def senderPath02 (rho : Nat → WitnessF) : WitnessF :=
-  rho 87
+  rho 88
 
 /-- Compiler witness path `Sender_Path_1_0`. -/
 def senderPath10 (rho : Nat → WitnessF) : WitnessF :=
-  rho 88
+  rho 89
 
 /-- Compiler witness path `Sender_Path_1_1`. -/
 def senderPath11 (rho : Nat → WitnessF) : WitnessF :=
-  rho 89
+  rho 90
 
 /-- Compiler witness path `Sender_Path_1_2`. -/
 def senderPath12 (rho : Nat → WitnessF) : WitnessF :=
-  rho 90
+  rho 91
 
 /-- Compiler witness path `Sender_Path_2_0`. -/
 def senderPath20 (rho : Nat → WitnessF) : WitnessF :=
-  rho 91
+  rho 92
 
 /-- Compiler witness path `Sender_Path_2_1`. -/
 def senderPath21 (rho : Nat → WitnessF) : WitnessF :=
-  rho 92
+  rho 93
 
 /-- Compiler witness path `Sender_Path_2_2`. -/
 def senderPath22 (rho : Nat → WitnessF) : WitnessF :=
-  rho 93
+  rho 94
 
 /-- Compiler witness path `Sender_Path_3_0`. -/
 def senderPath30 (rho : Nat → WitnessF) : WitnessF :=
-  rho 94
+  rho 95
 
 /-- Compiler witness path `Sender_Path_3_1`. -/
 def senderPath31 (rho : Nat → WitnessF) : WitnessF :=
-  rho 95
+  rho 96
 
 /-- Compiler witness path `Sender_Path_3_2`. -/
 def senderPath32 (rho : Nat → WitnessF) : WitnessF :=
-  rho 96
+  rho 97
 
 /-- Compiler witness path `Sender_Path_4_0`. -/
 def senderPath40 (rho : Nat → WitnessF) : WitnessF :=
-  rho 97
+  rho 98
 
 /-- Compiler witness path `Sender_Path_4_1`. -/
 def senderPath41 (rho : Nat → WitnessF) : WitnessF :=
-  rho 98
+  rho 99
 
 /-- Compiler witness path `Sender_Path_4_2`. -/
 def senderPath42 (rho : Nat → WitnessF) : WitnessF :=
-  rho 99
+  rho 100
 
 /-- Compiler witness path `Sender_Path_5_0`. -/
 def senderPath50 (rho : Nat → WitnessF) : WitnessF :=
-  rho 100
+  rho 101
 
 /-- Compiler witness path `Sender_Path_5_1`. -/
 def senderPath51 (rho : Nat → WitnessF) : WitnessF :=
-  rho 101
+  rho 102
 
 /-- Compiler witness path `Sender_Path_5_2`. -/
 def senderPath52 (rho : Nat → WitnessF) : WitnessF :=
-  rho 102
+  rho 103
 
 /-- Compiler witness path `Sender_Path_6_0`. -/
 def senderPath60 (rho : Nat → WitnessF) : WitnessF :=
-  rho 103
+  rho 104
 
 /-- Compiler witness path `Sender_Path_6_1`. -/
 def senderPath61 (rho : Nat → WitnessF) : WitnessF :=
-  rho 104
+  rho 105
 
 /-- Compiler witness path `Sender_Path_6_2`. -/
 def senderPath62 (rho : Nat → WitnessF) : WitnessF :=
-  rho 105
+  rho 106
 
 /-- Compiler witness path `Sender_Path_7_0`. -/
 def senderPath70 (rho : Nat → WitnessF) : WitnessF :=
-  rho 106
+  rho 107
 
 /-- Compiler witness path `Sender_Path_7_1`. -/
 def senderPath71 (rho : Nat → WitnessF) : WitnessF :=
-  rho 107
+  rho 108
 
 /-- Compiler witness path `Sender_Path_7_2`. -/
 def senderPath72 (rho : Nat → WitnessF) : WitnessF :=
-  rho 108
+  rho 109
 
 /-- Compiler witness path `Sender_Path_8_0`. -/
 def senderPath80 (rho : Nat → WitnessF) : WitnessF :=
-  rho 109
+  rho 110
 
 /-- Compiler witness path `Sender_Path_8_1`. -/
 def senderPath81 (rho : Nat → WitnessF) : WitnessF :=
-  rho 110
+  rho 111
 
 /-- Compiler witness path `Sender_Path_8_2`. -/
 def senderPath82 (rho : Nat → WitnessF) : WitnessF :=
-  rho 111
+  rho 112
 
 /-- Compiler witness path `Sender_Path_9_0`. -/
 def senderPath90 (rho : Nat → WitnessF) : WitnessF :=
-  rho 112
+  rho 113
 
 /-- Compiler witness path `Sender_Path_9_1`. -/
 def senderPath91 (rho : Nat → WitnessF) : WitnessF :=
-  rho 113
+  rho 114
 
 /-- Compiler witness path `Sender_Path_9_2`. -/
 def senderPath92 (rho : Nat → WitnessF) : WitnessF :=
-  rho 114
+  rho 115
 
 /-- Compiler witness path `Sender_Path_10_0`. -/
 def senderPath100 (rho : Nat → WitnessF) : WitnessF :=
-  rho 115
+  rho 116
 
 /-- Compiler witness path `Sender_Path_10_1`. -/
 def senderPath101 (rho : Nat → WitnessF) : WitnessF :=
-  rho 116
+  rho 117
 
 /-- Compiler witness path `Sender_Path_10_2`. -/
 def senderPath102 (rho : Nat → WitnessF) : WitnessF :=
-  rho 117
+  rho 118
 
 /-- Compiler witness path `Sender_Path_11_0`. -/
 def senderPath110 (rho : Nat → WitnessF) : WitnessF :=
-  rho 118
+  rho 119
 
 /-- Compiler witness path `Sender_Path_11_1`. -/
 def senderPath111 (rho : Nat → WitnessF) : WitnessF :=
-  rho 119
+  rho 120
 
 /-- Compiler witness path `Sender_Path_11_2`. -/
 def senderPath112 (rho : Nat → WitnessF) : WitnessF :=
-  rho 120
+  rho 121
 
 /-- Compiler witness path `Sender_Path_12_0`. -/
 def senderPath120 (rho : Nat → WitnessF) : WitnessF :=
-  rho 121
+  rho 122
 
 /-- Compiler witness path `Sender_Path_12_1`. -/
 def senderPath121 (rho : Nat → WitnessF) : WitnessF :=
-  rho 122
+  rho 123
 
 /-- Compiler witness path `Sender_Path_12_2`. -/
 def senderPath122 (rho : Nat → WitnessF) : WitnessF :=
-  rho 123
+  rho 124
 
 /-- Compiler witness path `Sender_Path_13_0`. -/
 def senderPath130 (rho : Nat → WitnessF) : WitnessF :=
-  rho 124
+  rho 125
 
 /-- Compiler witness path `Sender_Path_13_1`. -/
 def senderPath131 (rho : Nat → WitnessF) : WitnessF :=
-  rho 125
+  rho 126
 
 /-- Compiler witness path `Sender_Path_13_2`. -/
 def senderPath132 (rho : Nat → WitnessF) : WitnessF :=
-  rho 126
+  rho 127
 
 /-- Compiler witness path `Sender_Path_14_0`. -/
 def senderPath140 (rho : Nat → WitnessF) : WitnessF :=
-  rho 127
+  rho 128
 
 /-- Compiler witness path `Sender_Path_14_1`. -/
 def senderPath141 (rho : Nat → WitnessF) : WitnessF :=
-  rho 128
+  rho 129
 
 /-- Compiler witness path `Sender_Path_14_2`. -/
 def senderPath142 (rho : Nat → WitnessF) : WitnessF :=
-  rho 129
+  rho 130
 
 /-- Compiler witness path `Sender_Path_15_0`. -/
 def senderPath150 (rho : Nat → WitnessF) : WitnessF :=
-  rho 130
+  rho 131
 
 /-- Compiler witness path `Sender_Path_15_1`. -/
 def senderPath151 (rho : Nat → WitnessF) : WitnessF :=
-  rho 131
+  rho 132
 
 /-- Compiler witness path `Sender_Path_15_2`. -/
 def senderPath152 (rho : Nat → WitnessF) : WitnessF :=
-  rho 132
+  rho 133
 
 /-- Compiler witness path `Sender_Position`. -/
 def senderPosition (rho : Nat → WitnessF) : WitnessF :=
-  rho 133
+  rho 134
 
 /-- Compiler witness path `RequiredSpend_Nullifier`. -/
 def requiredSpendNullifier (rho : Nat → WitnessF) : WitnessF :=
-  rho 134
+  rho 135
 
 /-- Compiler witness path `RequiredSpend_RK_X`. -/
 def requiredSpendRKX (rho : Nat → WitnessF) : WitnessF :=
-  rho 135
+  rho 136
 
 /-- Compiler witness path `RequiredSpend_RK_Y`. -/
 def requiredSpendRKY (rho : Nat → WitnessF) : WitnessF :=
-  rho 136
+  rho 137
 
 /-- Compiler witness path `RequiredSpend_Note_Blinding`. -/
 def requiredSpendNoteBlinding (rho : Nat → WitnessF) : WitnessF :=
-  rho 137
+  rho 138
 
 /-- Compiler witness path `RequiredSpend_Note_Amount`. -/
 def requiredSpendNoteAmount (rho : Nat → WitnessF) : WitnessF :=
-  rho 138
+  rho 139
 
 /-- Compiler witness path `RequiredSpend_StateProof_Position`. -/
 def requiredSpendStateProofPosition (rho : Nat → WitnessF) : WitnessF :=
-  rho 139
+  rho 140
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_0_0`. -/
 def requiredSpendStateProofPath00 (rho : Nat → WitnessF) : WitnessF :=
-  rho 140
+  rho 141
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_0_1`. -/
 def requiredSpendStateProofPath01 (rho : Nat → WitnessF) : WitnessF :=
-  rho 141
+  rho 142
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_0_2`. -/
 def requiredSpendStateProofPath02 (rho : Nat → WitnessF) : WitnessF :=
-  rho 142
+  rho 143
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_1_0`. -/
 def requiredSpendStateProofPath10 (rho : Nat → WitnessF) : WitnessF :=
-  rho 143
+  rho 144
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_1_1`. -/
 def requiredSpendStateProofPath11 (rho : Nat → WitnessF) : WitnessF :=
-  rho 144
+  rho 145
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_1_2`. -/
 def requiredSpendStateProofPath12 (rho : Nat → WitnessF) : WitnessF :=
-  rho 145
+  rho 146
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_2_0`. -/
 def requiredSpendStateProofPath20 (rho : Nat → WitnessF) : WitnessF :=
-  rho 146
+  rho 147
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_2_1`. -/
 def requiredSpendStateProofPath21 (rho : Nat → WitnessF) : WitnessF :=
-  rho 147
+  rho 148
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_2_2`. -/
 def requiredSpendStateProofPath22 (rho : Nat → WitnessF) : WitnessF :=
-  rho 148
+  rho 149
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_3_0`. -/
 def requiredSpendStateProofPath30 (rho : Nat → WitnessF) : WitnessF :=
-  rho 149
+  rho 150
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_3_1`. -/
 def requiredSpendStateProofPath31 (rho : Nat → WitnessF) : WitnessF :=
-  rho 150
+  rho 151
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_3_2`. -/
 def requiredSpendStateProofPath32 (rho : Nat → WitnessF) : WitnessF :=
-  rho 151
+  rho 152
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_4_0`. -/
 def requiredSpendStateProofPath40 (rho : Nat → WitnessF) : WitnessF :=
-  rho 152
+  rho 153
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_4_1`. -/
 def requiredSpendStateProofPath41 (rho : Nat → WitnessF) : WitnessF :=
-  rho 153
+  rho 154
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_4_2`. -/
 def requiredSpendStateProofPath42 (rho : Nat → WitnessF) : WitnessF :=
-  rho 154
+  rho 155
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_5_0`. -/
 def requiredSpendStateProofPath50 (rho : Nat → WitnessF) : WitnessF :=
-  rho 155
+  rho 156
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_5_1`. -/
 def requiredSpendStateProofPath51 (rho : Nat → WitnessF) : WitnessF :=
-  rho 156
+  rho 157
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_5_2`. -/
 def requiredSpendStateProofPath52 (rho : Nat → WitnessF) : WitnessF :=
-  rho 157
+  rho 158
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_6_0`. -/
 def requiredSpendStateProofPath60 (rho : Nat → WitnessF) : WitnessF :=
-  rho 158
+  rho 159
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_6_1`. -/
 def requiredSpendStateProofPath61 (rho : Nat → WitnessF) : WitnessF :=
-  rho 159
+  rho 160
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_6_2`. -/
 def requiredSpendStateProofPath62 (rho : Nat → WitnessF) : WitnessF :=
-  rho 160
+  rho 161
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_7_0`. -/
 def requiredSpendStateProofPath70 (rho : Nat → WitnessF) : WitnessF :=
-  rho 161
+  rho 162
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_7_1`. -/
 def requiredSpendStateProofPath71 (rho : Nat → WitnessF) : WitnessF :=
-  rho 162
+  rho 163
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_7_2`. -/
 def requiredSpendStateProofPath72 (rho : Nat → WitnessF) : WitnessF :=
-  rho 163
+  rho 164
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_8_0`. -/
 def requiredSpendStateProofPath80 (rho : Nat → WitnessF) : WitnessF :=
-  rho 164
+  rho 165
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_8_1`. -/
 def requiredSpendStateProofPath81 (rho : Nat → WitnessF) : WitnessF :=
-  rho 165
+  rho 166
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_8_2`. -/
 def requiredSpendStateProofPath82 (rho : Nat → WitnessF) : WitnessF :=
-  rho 166
+  rho 167
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_9_0`. -/
 def requiredSpendStateProofPath90 (rho : Nat → WitnessF) : WitnessF :=
-  rho 167
+  rho 168
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_9_1`. -/
 def requiredSpendStateProofPath91 (rho : Nat → WitnessF) : WitnessF :=
-  rho 168
+  rho 169
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_9_2`. -/
 def requiredSpendStateProofPath92 (rho : Nat → WitnessF) : WitnessF :=
-  rho 169
+  rho 170
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_10_0`. -/
 def requiredSpendStateProofPath100 (rho : Nat → WitnessF) : WitnessF :=
-  rho 170
+  rho 171
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_10_1`. -/
 def requiredSpendStateProofPath101 (rho : Nat → WitnessF) : WitnessF :=
-  rho 171
+  rho 172
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_10_2`. -/
 def requiredSpendStateProofPath102 (rho : Nat → WitnessF) : WitnessF :=
-  rho 172
+  rho 173
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_11_0`. -/
 def requiredSpendStateProofPath110 (rho : Nat → WitnessF) : WitnessF :=
-  rho 173
+  rho 174
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_11_1`. -/
 def requiredSpendStateProofPath111 (rho : Nat → WitnessF) : WitnessF :=
-  rho 174
+  rho 175
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_11_2`. -/
 def requiredSpendStateProofPath112 (rho : Nat → WitnessF) : WitnessF :=
-  rho 175
+  rho 176
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_12_0`. -/
 def requiredSpendStateProofPath120 (rho : Nat → WitnessF) : WitnessF :=
-  rho 176
+  rho 177
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_12_1`. -/
 def requiredSpendStateProofPath121 (rho : Nat → WitnessF) : WitnessF :=
-  rho 177
+  rho 178
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_12_2`. -/
 def requiredSpendStateProofPath122 (rho : Nat → WitnessF) : WitnessF :=
-  rho 178
+  rho 179
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_13_0`. -/
 def requiredSpendStateProofPath130 (rho : Nat → WitnessF) : WitnessF :=
-  rho 179
+  rho 180
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_13_1`. -/
 def requiredSpendStateProofPath131 (rho : Nat → WitnessF) : WitnessF :=
-  rho 180
+  rho 181
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_13_2`. -/
 def requiredSpendStateProofPath132 (rho : Nat → WitnessF) : WitnessF :=
-  rho 181
+  rho 182
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_14_0`. -/
 def requiredSpendStateProofPath140 (rho : Nat → WitnessF) : WitnessF :=
-  rho 182
+  rho 183
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_14_1`. -/
 def requiredSpendStateProofPath141 (rho : Nat → WitnessF) : WitnessF :=
-  rho 183
+  rho 184
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_14_2`. -/
 def requiredSpendStateProofPath142 (rho : Nat → WitnessF) : WitnessF :=
-  rho 184
+  rho 185
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_15_0`. -/
 def requiredSpendStateProofPath150 (rho : Nat → WitnessF) : WitnessF :=
-  rho 185
+  rho 186
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_15_1`. -/
 def requiredSpendStateProofPath151 (rho : Nat → WitnessF) : WitnessF :=
-  rho 186
+  rho 187
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_15_2`. -/
 def requiredSpendStateProofPath152 (rho : Nat → WitnessF) : WitnessF :=
-  rho 187
+  rho 188
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_16_0`. -/
 def requiredSpendStateProofPath160 (rho : Nat → WitnessF) : WitnessF :=
-  rho 188
+  rho 189
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_16_1`. -/
 def requiredSpendStateProofPath161 (rho : Nat → WitnessF) : WitnessF :=
-  rho 189
+  rho 190
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_16_2`. -/
 def requiredSpendStateProofPath162 (rho : Nat → WitnessF) : WitnessF :=
-  rho 190
+  rho 191
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_17_0`. -/
 def requiredSpendStateProofPath170 (rho : Nat → WitnessF) : WitnessF :=
-  rho 191
+  rho 192
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_17_1`. -/
 def requiredSpendStateProofPath171 (rho : Nat → WitnessF) : WitnessF :=
-  rho 192
+  rho 193
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_17_2`. -/
 def requiredSpendStateProofPath172 (rho : Nat → WitnessF) : WitnessF :=
-  rho 193
+  rho 194
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_18_0`. -/
 def requiredSpendStateProofPath180 (rho : Nat → WitnessF) : WitnessF :=
-  rho 194
+  rho 195
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_18_1`. -/
 def requiredSpendStateProofPath181 (rho : Nat → WitnessF) : WitnessF :=
-  rho 195
+  rho 196
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_18_2`. -/
 def requiredSpendStateProofPath182 (rho : Nat → WitnessF) : WitnessF :=
-  rho 196
+  rho 197
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_19_0`. -/
 def requiredSpendStateProofPath190 (rho : Nat → WitnessF) : WitnessF :=
-  rho 197
+  rho 198
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_19_1`. -/
 def requiredSpendStateProofPath191 (rho : Nat → WitnessF) : WitnessF :=
-  rho 198
+  rho 199
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_19_2`. -/
 def requiredSpendStateProofPath192 (rho : Nat → WitnessF) : WitnessF :=
-  rho 199
+  rho 200
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_20_0`. -/
 def requiredSpendStateProofPath200 (rho : Nat → WitnessF) : WitnessF :=
-  rho 200
+  rho 201
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_20_1`. -/
 def requiredSpendStateProofPath201 (rho : Nat → WitnessF) : WitnessF :=
-  rho 201
+  rho 202
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_20_2`. -/
 def requiredSpendStateProofPath202 (rho : Nat → WitnessF) : WitnessF :=
-  rho 202
+  rho 203
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_21_0`. -/
 def requiredSpendStateProofPath210 (rho : Nat → WitnessF) : WitnessF :=
-  rho 203
+  rho 204
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_21_1`. -/
 def requiredSpendStateProofPath211 (rho : Nat → WitnessF) : WitnessF :=
-  rho 204
+  rho 205
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_21_2`. -/
 def requiredSpendStateProofPath212 (rho : Nat → WitnessF) : WitnessF :=
-  rho 205
+  rho 206
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_22_0`. -/
 def requiredSpendStateProofPath220 (rho : Nat → WitnessF) : WitnessF :=
-  rho 206
+  rho 207
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_22_1`. -/
 def requiredSpendStateProofPath221 (rho : Nat → WitnessF) : WitnessF :=
-  rho 207
+  rho 208
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_22_2`. -/
 def requiredSpendStateProofPath222 (rho : Nat → WitnessF) : WitnessF :=
-  rho 208
+  rho 209
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_23_0`. -/
 def requiredSpendStateProofPath230 (rho : Nat → WitnessF) : WitnessF :=
-  rho 209
+  rho 210
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_23_1`. -/
 def requiredSpendStateProofPath231 (rho : Nat → WitnessF) : WitnessF :=
-  rho 210
+  rho 211
 
 /-- Compiler witness path `RequiredSpend_StateProof_Path_23_2`. -/
 def requiredSpendStateProofPath232 (rho : Nat → WitnessF) : WitnessF :=
-  rho 211
+  rho 212
 
 /-- Compiler witness path `RequiredSpend_AuthRandomizer`. -/
 def requiredSpendAuthRandomizer (rho : Nat → WitnessF) : WitnessF :=
-  rho 212
+  rho 213
 
 /-- Compiler witness path `RequiredSpend_HistoryRequired`. -/
 def requiredSpendHistoryRequired (rho : Nat → WitnessF) : WitnessF :=
-  rho 213
+  rho 214
 
 /-- Compiler witness path `OptionalSpend_Nullifier`. -/
 def optionalSpendNullifier (rho : Nat → WitnessF) : WitnessF :=
-  rho 214
+  rho 215
 
 /-- Compiler witness path `OptionalSpend_RK_X`. -/
 def optionalSpendRKX (rho : Nat → WitnessF) : WitnessF :=
-  rho 215
+  rho 216
 
 /-- Compiler witness path `OptionalSpend_RK_Y`. -/
 def optionalSpendRKY (rho : Nat → WitnessF) : WitnessF :=
-  rho 216
+  rho 217
 
 /-- Compiler witness path `OptionalSpend_Note_Blinding`. -/
 def optionalSpendNoteBlinding (rho : Nat → WitnessF) : WitnessF :=
-  rho 217
+  rho 218
 
 /-- Compiler witness path `OptionalSpend_Note_Amount`. -/
 def optionalSpendNoteAmount (rho : Nat → WitnessF) : WitnessF :=
-  rho 218
+  rho 219
 
 /-- Compiler witness path `OptionalSpend_StateProof_Position`. -/
 def optionalSpendStateProofPosition (rho : Nat → WitnessF) : WitnessF :=
-  rho 219
+  rho 220
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_0_0`. -/
 def optionalSpendStateProofPath00 (rho : Nat → WitnessF) : WitnessF :=
-  rho 220
+  rho 221
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_0_1`. -/
 def optionalSpendStateProofPath01 (rho : Nat → WitnessF) : WitnessF :=
-  rho 221
+  rho 222
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_0_2`. -/
 def optionalSpendStateProofPath02 (rho : Nat → WitnessF) : WitnessF :=
-  rho 222
+  rho 223
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_1_0`. -/
 def optionalSpendStateProofPath10 (rho : Nat → WitnessF) : WitnessF :=
-  rho 223
+  rho 224
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_1_1`. -/
 def optionalSpendStateProofPath11 (rho : Nat → WitnessF) : WitnessF :=
-  rho 224
+  rho 225
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_1_2`. -/
 def optionalSpendStateProofPath12 (rho : Nat → WitnessF) : WitnessF :=
-  rho 225
+  rho 226
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_2_0`. -/
 def optionalSpendStateProofPath20 (rho : Nat → WitnessF) : WitnessF :=
-  rho 226
+  rho 227
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_2_1`. -/
 def optionalSpendStateProofPath21 (rho : Nat → WitnessF) : WitnessF :=
-  rho 227
+  rho 228
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_2_2`. -/
 def optionalSpendStateProofPath22 (rho : Nat → WitnessF) : WitnessF :=
-  rho 228
+  rho 229
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_3_0`. -/
 def optionalSpendStateProofPath30 (rho : Nat → WitnessF) : WitnessF :=
-  rho 229
+  rho 230
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_3_1`. -/
 def optionalSpendStateProofPath31 (rho : Nat → WitnessF) : WitnessF :=
-  rho 230
+  rho 231
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_3_2`. -/
 def optionalSpendStateProofPath32 (rho : Nat → WitnessF) : WitnessF :=
-  rho 231
+  rho 232
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_4_0`. -/
 def optionalSpendStateProofPath40 (rho : Nat → WitnessF) : WitnessF :=
-  rho 232
+  rho 233
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_4_1`. -/
 def optionalSpendStateProofPath41 (rho : Nat → WitnessF) : WitnessF :=
-  rho 233
+  rho 234
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_4_2`. -/
 def optionalSpendStateProofPath42 (rho : Nat → WitnessF) : WitnessF :=
-  rho 234
+  rho 235
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_5_0`. -/
 def optionalSpendStateProofPath50 (rho : Nat → WitnessF) : WitnessF :=
-  rho 235
+  rho 236
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_5_1`. -/
 def optionalSpendStateProofPath51 (rho : Nat → WitnessF) : WitnessF :=
-  rho 236
+  rho 237
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_5_2`. -/
 def optionalSpendStateProofPath52 (rho : Nat → WitnessF) : WitnessF :=
-  rho 237
+  rho 238
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_6_0`. -/
 def optionalSpendStateProofPath60 (rho : Nat → WitnessF) : WitnessF :=
-  rho 238
+  rho 239
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_6_1`. -/
 def optionalSpendStateProofPath61 (rho : Nat → WitnessF) : WitnessF :=
-  rho 239
+  rho 240
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_6_2`. -/
 def optionalSpendStateProofPath62 (rho : Nat → WitnessF) : WitnessF :=
-  rho 240
+  rho 241
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_7_0`. -/
 def optionalSpendStateProofPath70 (rho : Nat → WitnessF) : WitnessF :=
-  rho 241
+  rho 242
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_7_1`. -/
 def optionalSpendStateProofPath71 (rho : Nat → WitnessF) : WitnessF :=
-  rho 242
+  rho 243
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_7_2`. -/
 def optionalSpendStateProofPath72 (rho : Nat → WitnessF) : WitnessF :=
-  rho 243
+  rho 244
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_8_0`. -/
 def optionalSpendStateProofPath80 (rho : Nat → WitnessF) : WitnessF :=
-  rho 244
+  rho 245
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_8_1`. -/
 def optionalSpendStateProofPath81 (rho : Nat → WitnessF) : WitnessF :=
-  rho 245
+  rho 246
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_8_2`. -/
 def optionalSpendStateProofPath82 (rho : Nat → WitnessF) : WitnessF :=
-  rho 246
+  rho 247
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_9_0`. -/
 def optionalSpendStateProofPath90 (rho : Nat → WitnessF) : WitnessF :=
-  rho 247
+  rho 248
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_9_1`. -/
 def optionalSpendStateProofPath91 (rho : Nat → WitnessF) : WitnessF :=
-  rho 248
+  rho 249
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_9_2`. -/
 def optionalSpendStateProofPath92 (rho : Nat → WitnessF) : WitnessF :=
-  rho 249
+  rho 250
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_10_0`. -/
 def optionalSpendStateProofPath100 (rho : Nat → WitnessF) : WitnessF :=
-  rho 250
+  rho 251
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_10_1`. -/
 def optionalSpendStateProofPath101 (rho : Nat → WitnessF) : WitnessF :=
-  rho 251
+  rho 252
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_10_2`. -/
 def optionalSpendStateProofPath102 (rho : Nat → WitnessF) : WitnessF :=
-  rho 252
+  rho 253
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_11_0`. -/
 def optionalSpendStateProofPath110 (rho : Nat → WitnessF) : WitnessF :=
-  rho 253
+  rho 254
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_11_1`. -/
 def optionalSpendStateProofPath111 (rho : Nat → WitnessF) : WitnessF :=
-  rho 254
+  rho 255
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_11_2`. -/
 def optionalSpendStateProofPath112 (rho : Nat → WitnessF) : WitnessF :=
-  rho 255
+  rho 256
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_12_0`. -/
 def optionalSpendStateProofPath120 (rho : Nat → WitnessF) : WitnessF :=
-  rho 256
+  rho 257
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_12_1`. -/
 def optionalSpendStateProofPath121 (rho : Nat → WitnessF) : WitnessF :=
-  rho 257
+  rho 258
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_12_2`. -/
 def optionalSpendStateProofPath122 (rho : Nat → WitnessF) : WitnessF :=
-  rho 258
+  rho 259
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_13_0`. -/
 def optionalSpendStateProofPath130 (rho : Nat → WitnessF) : WitnessF :=
-  rho 259
+  rho 260
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_13_1`. -/
 def optionalSpendStateProofPath131 (rho : Nat → WitnessF) : WitnessF :=
-  rho 260
+  rho 261
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_13_2`. -/
 def optionalSpendStateProofPath132 (rho : Nat → WitnessF) : WitnessF :=
-  rho 261
+  rho 262
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_14_0`. -/
 def optionalSpendStateProofPath140 (rho : Nat → WitnessF) : WitnessF :=
-  rho 262
+  rho 263
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_14_1`. -/
 def optionalSpendStateProofPath141 (rho : Nat → WitnessF) : WitnessF :=
-  rho 263
+  rho 264
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_14_2`. -/
 def optionalSpendStateProofPath142 (rho : Nat → WitnessF) : WitnessF :=
-  rho 264
+  rho 265
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_15_0`. -/
 def optionalSpendStateProofPath150 (rho : Nat → WitnessF) : WitnessF :=
-  rho 265
+  rho 266
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_15_1`. -/
 def optionalSpendStateProofPath151 (rho : Nat → WitnessF) : WitnessF :=
-  rho 266
+  rho 267
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_15_2`. -/
 def optionalSpendStateProofPath152 (rho : Nat → WitnessF) : WitnessF :=
-  rho 267
+  rho 268
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_16_0`. -/
 def optionalSpendStateProofPath160 (rho : Nat → WitnessF) : WitnessF :=
-  rho 268
+  rho 269
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_16_1`. -/
 def optionalSpendStateProofPath161 (rho : Nat → WitnessF) : WitnessF :=
-  rho 269
+  rho 270
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_16_2`. -/
 def optionalSpendStateProofPath162 (rho : Nat → WitnessF) : WitnessF :=
-  rho 270
+  rho 271
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_17_0`. -/
 def optionalSpendStateProofPath170 (rho : Nat → WitnessF) : WitnessF :=
-  rho 271
+  rho 272
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_17_1`. -/
 def optionalSpendStateProofPath171 (rho : Nat → WitnessF) : WitnessF :=
-  rho 272
+  rho 273
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_17_2`. -/
 def optionalSpendStateProofPath172 (rho : Nat → WitnessF) : WitnessF :=
-  rho 273
+  rho 274
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_18_0`. -/
 def optionalSpendStateProofPath180 (rho : Nat → WitnessF) : WitnessF :=
-  rho 274
+  rho 275
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_18_1`. -/
 def optionalSpendStateProofPath181 (rho : Nat → WitnessF) : WitnessF :=
-  rho 275
+  rho 276
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_18_2`. -/
 def optionalSpendStateProofPath182 (rho : Nat → WitnessF) : WitnessF :=
-  rho 276
+  rho 277
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_19_0`. -/
 def optionalSpendStateProofPath190 (rho : Nat → WitnessF) : WitnessF :=
-  rho 277
+  rho 278
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_19_1`. -/
 def optionalSpendStateProofPath191 (rho : Nat → WitnessF) : WitnessF :=
-  rho 278
+  rho 279
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_19_2`. -/
 def optionalSpendStateProofPath192 (rho : Nat → WitnessF) : WitnessF :=
-  rho 279
+  rho 280
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_20_0`. -/
 def optionalSpendStateProofPath200 (rho : Nat → WitnessF) : WitnessF :=
-  rho 280
+  rho 281
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_20_1`. -/
 def optionalSpendStateProofPath201 (rho : Nat → WitnessF) : WitnessF :=
-  rho 281
+  rho 282
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_20_2`. -/
 def optionalSpendStateProofPath202 (rho : Nat → WitnessF) : WitnessF :=
-  rho 282
+  rho 283
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_21_0`. -/
 def optionalSpendStateProofPath210 (rho : Nat → WitnessF) : WitnessF :=
-  rho 283
+  rho 284
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_21_1`. -/
 def optionalSpendStateProofPath211 (rho : Nat → WitnessF) : WitnessF :=
-  rho 284
+  rho 285
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_21_2`. -/
 def optionalSpendStateProofPath212 (rho : Nat → WitnessF) : WitnessF :=
-  rho 285
+  rho 286
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_22_0`. -/
 def optionalSpendStateProofPath220 (rho : Nat → WitnessF) : WitnessF :=
-  rho 286
+  rho 287
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_22_1`. -/
 def optionalSpendStateProofPath221 (rho : Nat → WitnessF) : WitnessF :=
-  rho 287
+  rho 288
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_22_2`. -/
 def optionalSpendStateProofPath222 (rho : Nat → WitnessF) : WitnessF :=
-  rho 288
+  rho 289
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_23_0`. -/
 def optionalSpendStateProofPath230 (rho : Nat → WitnessF) : WitnessF :=
-  rho 289
+  rho 290
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_23_1`. -/
 def optionalSpendStateProofPath231 (rho : Nat → WitnessF) : WitnessF :=
-  rho 290
+  rho 291
 
 /-- Compiler witness path `OptionalSpend_StateProof_Path_23_2`. -/
 def optionalSpendStateProofPath232 (rho : Nat → WitnessF) : WitnessF :=
-  rho 291
+  rho 292
 
 /-- Compiler witness path `OptionalSpend_AuthRandomizer`. -/
 def optionalSpendAuthRandomizer (rho : Nat → WitnessF) : WitnessF :=
-  rho 292
+  rho 293
 
 /-- Compiler witness path `OptionalSpend_HistoryRequired`. -/
 def optionalSpendHistoryRequired (rho : Nat → WitnessF) : WitnessF :=
-  rho 293
+  rho 294
 
 /-- Compiler witness path `OptionalSpend_IsDummy`. -/
 def optionalSpendIsDummy (rho : Nat → WitnessF) : WitnessF :=
-  rho 294
+  rho 295
 
 /-- Compiler witness path `OptionalSpend_DummyNullifierSeed`. -/
 def optionalSpendDummyNullifierSeed (rho : Nat → WitnessF) : WitnessF :=
-  rho 295
+  rho 296
 
 /-- Compiler witness path `ChangeOutput_NoteCommitment`. -/
 def changeOutputNoteCommitment (rho : Nat → WitnessF) : WitnessF :=
-  rho 296
+  rho 297
 
 /-- Compiler witness path `ChangeOutput_Note_Blinding`. -/
 def changeOutputNoteBlinding (rho : Nat → WitnessF) : WitnessF :=
-  rho 297
+  rho 298
 
 /-- Compiler witness path `ChangeOutput_Note_Amount`. -/
 def changeOutputNoteAmount (rho : Nat → WitnessF) : WitnessF :=
-  rho 298
+  rho 299
 
 end Witness
 

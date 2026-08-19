@@ -49,7 +49,7 @@
     "EXT-ASSET-REGISTRY-AUTHORIZED": "The accepted asset-registry root is reachable only through authorized policy admission and update transitions.",
     "EXT-ASSET-REGISTRY-KEY-VALIDITY": "Every policy leaf admitted under the Transfer asset anchor has valid nonidentity detection and ring public keys with canonical encodings.",
     "EXT-BODY-PROJECTION-CANONICALITY": "Consensus decoding admits one authoritative canonical fixed-shape action-body projection; wrong arity, unknown families, malformed encodings, and stale cached body projections are rejected.",
-    "EXT-COMPLIANCE-ANCHOR-LIVE": "The state-transition checker accepts the action only while its proof-bound user-compliance anchor remains live.",
+    "EXT-COMPLIANCE-ANCHOR-LIVE": "The state-transition checker accepts the action only when its proof-bound user-compliance anchor equals the current mutable user-status root.",
     "EXT-FIXED-SHAPE-DECODE": "Canonical action decoding yields exactly the input, output, signature, and auxiliary-record arity of the selected fixed family.",
     "EXT-HONEST-COMPLIANCE-NONCE": "Honest Transfer construction uses one unpredictable nonce root that is unique across all ordinary and fee-funding actions in the enclosing transaction.",
     "EXT-HONEST-COMPLIANCE-TIER-SCALAR-NONZERO": "Honest Transfer construction rejection-samples every compliance-encryption tier scalar until it is nonzero. This is a wallet-side privacy guarantee; a malicious sender that deliberately discloses its own plaintext is outside the accepted-language claim.",
@@ -102,8 +102,8 @@
     "ROUTING-PARAMETERS": "Every proof binds one public routing parameter-set identifier to the regulated precision, unregulated precision, and activation height, enforces both precisions in the 0..32 range, and enforces regulated precision no greater than unregulated precision.",
     "ROUTING-TAG-DERIVATION": "Every public routing tag is exactly 32 bits and is proof-derived from the canonical transmission-key field, the privately selected class precision, and the nonce-derived random suffix. Transfer also proof-binds the private two-slot permutation, filler rule, and encrypted slot-to-role mapping.",
     "SCT-SPEND-MEMBERSHIP": "When an input has is_dummy = 0, its constrained note commitment is authenticated at its constrained position under the public SCT anchor; the membership equality is disabled only when is_dummy = 1.",
-    "USER-COMPLIANCE-LEAF-HASH": "Each constrained user leaf is the domain-separated six-field hash of the diversified-generator encoding, transmission-key encoding, asset ID, policy slot, derivation scalar, and d value.",
-    "USER-COMPLIANCE-MEMBERSHIP-GATE": "When isRegulated is one, each constrained user leaf is authenticated under the public compliance anchor; when it is zero, membership is not required but the leaf fields remain constrained.",
+    "USER-COMPLIANCE-LEAF-HASH": "Each constrained user leaf is the domain-separated seven-field hash of the diversified-generator encoding, transmission-key encoding, asset ID, policy slot, derivation scalar, d value, and per-asset user status.",
+    "USER-COMPLIANCE-MEMBERSHIP-GATE": "When isRegulated is one, each action-required user leaf is authenticated under the public compliance anchor and its status equals Active; when it is zero, membership and status enforcement are not required but the leaf fields remain constrained.",
     "USER-LEAF-ADDRESS-BINDING": "Each user-compliance leaf uses the exact constrained sender or receiver diversified-generator and transmission-key encodings.",
     "USER-LEAF-ASSET-BINDING": "Each user-compliance leaf uses the action's constrained asset identifier.",
     "USER-LEAF-POLICY-SLOT-BINDING": "Each user-compliance leaf uses its constrained policy slot and slot derivation values without an alternate prover-chosen copy.",
@@ -241,12 +241,12 @@
     {
       "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/NoteReshape1x8/SpecificationConsequences.lean",
       "declaration": "theorem specification_routing_parameters",
-      "signature_sha256": "a49e99ed811c3a4b43e06935b5b9da81035384dbd7ea84218b1988f58bc406f9"
+      "signature_sha256": "ba63d6c3751220d0b0145e4d2e9585cf1dc5027b92a8b9371e3127c67d3c046a"
     },
     {
       "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/NoteReshape1x8/SpecificationConsequences.lean",
       "declaration": "theorem specification_routing_tag_derivation",
-      "signature_sha256": "1be83ecedd69f04664d617b595a840e4e1d90a9a76458cd3b83004113fc40780"
+      "signature_sha256": "997aceaf624392edef2eb9ab5431c5810487d4248608b8263d0628bc913dc2ea"
     },
     {
       "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/NoteReshape1x8/SpecificationConsequences.lean",
@@ -411,12 +411,12 @@
     {
       "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/NoteReshape8x1/SpecificationConsequences.lean",
       "declaration": "theorem specification_routing_parameters",
-      "signature_sha256": "e29c2b7172404b61886edd8937e8c45b513e3336f7807ad971988a35b9785a3e"
+      "signature_sha256": "7538748571788da7c984958f1c612aee3831e3da71cf92a0b685620a7e98489f"
     },
     {
       "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/NoteReshape8x1/SpecificationConsequences.lean",
       "declaration": "theorem specification_routing_tag_derivation",
-      "signature_sha256": "cd2068441a2a387c5a4869693dcb9d61c5df50f5bd72ce6d8bfbea3db5409c25"
+      "signature_sha256": "ef26541e8af0158f308e0e4491d45a53ae001bc8e701fd63841ed4bfd1e0d47c"
     },
     {
       "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/NoteReshape8x1/SpecificationConsequences.lean",
@@ -611,7 +611,7 @@
     {
       "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/ShieldedIcs20Withdrawal/SpecificationConsequences.lean",
       "declaration": "theorem specification_user_compliance_leaf_hash",
-      "signature_sha256": "12e37a6799d323a455cc178bbc4360575e9f9ed5604ac22974baa3a7a1950104"
+      "signature_sha256": "9fae8e1e98fbee0d97bf1767a39cc5fd59acb53709422e18d9d5c94765417c37"
     },
     {
       "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/ShieldedIcs20Withdrawal/SpecificationConsequences.lean",
@@ -621,17 +621,17 @@
     {
       "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/ShieldedIcs20Withdrawal/SpecificationConsequences.lean",
       "declaration": "theorem specification_user_leaf_address_binding",
-      "signature_sha256": "fbac8af3ae56607abbf81e7e2738af2d260d18348f8fa31f8c2027445b287b9a"
+      "signature_sha256": "6250b0411beec20c575fc0b843aa93fa74c0866a90cf3597644cd46f5c4c7db2"
     },
     {
       "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/ShieldedIcs20Withdrawal/SpecificationConsequences.lean",
       "declaration": "theorem specification_user_leaf_asset_binding",
-      "signature_sha256": "615ceb300a4c3dd43814e86fda3b8f2c4b82dbf760c0179ea36f5d46cd8790c3"
+      "signature_sha256": "90e0ff659fd45110bc5b9466fd40f75a2e974fcdf0a3ac1e2f709cea4f3359c9"
     },
     {
       "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/ShieldedIcs20Withdrawal/SpecificationConsequences.lean",
       "declaration": "theorem specification_user_leaf_policy_slot_binding",
-      "signature_sha256": "5c11ca1bfd4c72f66d496dac98e7a5deacc03151cf907370918408dc36108483"
+      "signature_sha256": "0976043c46e75c444ca4a724ae4e65d8e9d56eea7fee48c1040676f659627e6a"
     },
     {
       "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/ShieldedIcs20Withdrawal/SpecificationConsequences.lean",
@@ -886,12 +886,12 @@
     {
       "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/Transfer/SpecificationConsequences.lean",
       "declaration": "theorem specification_routing_parameters",
-      "signature_sha256": "0d0367fd108e8dd205b941d538b6f673d29fa2fe5413eb7a938e55d77dd2cc07"
+      "signature_sha256": "5e4ebcfa195bed9729e88cd8f98685badf29f9f68e4530d67011697612b9b93f"
     },
     {
       "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/Transfer/SpecificationConsequences.lean",
       "declaration": "theorem specification_routing_tag_derivation",
-      "signature_sha256": "73594af25fc157ec65072c1cfe0507cecde9c546921a89e081e033964d13e652"
+      "signature_sha256": "e1ab1ffe7600a1b9fbaa00c56750bb77651ad354f77b8b766c0b70bc0c3511a4"
     },
     {
       "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/Transfer/SpecificationConsequences.lean",
@@ -916,7 +916,7 @@
     {
       "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/Transfer/SpecificationConsequences.lean",
       "declaration": "theorem specification_user_leaf_policy_slot_binding",
-      "signature_sha256": "8f43926330b5ac35a6e189a5468c066f8441637a228654aaefc892d9c74e5449"
+      "signature_sha256": "3b921616af820f53d2eb343ca1ddcee50ff2851e63123c92e848a7083bc84d28"
     },
     {
       "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/Transfer/SpecificationConsequences.lean",
@@ -2763,27 +2763,27 @@
     {
       "id": "CIRCUIT-FAMILY-EXACT-COMPILE-SHAPE",
       "path": "tools/gnark/internal/circuits/family_test.go",
-      "source_sha256": "b18c1835c8f604ba79c7eb330703ab3155845cb3cbbcbcd5fa505c72dfb1368a"
+      "source_sha256": "5de2fad46613ed1672ab60cacfdb50a7a02babb6f9aa5789c5bdac634862e8c6"
     },
     {
       "id": "CIRCUIT-FAMILY-MUTATED-BALANCE-COMMITMENT",
       "path": "tools/gnark/internal/circuits/family_test.go",
-      "source_sha256": "b18c1835c8f604ba79c7eb330703ab3155845cb3cbbcbcd5fa505c72dfb1368a"
+      "source_sha256": "5de2fad46613ed1672ab60cacfdb50a7a02babb6f9aa5789c5bdac634862e8c6"
     },
     {
       "id": "CIRCUIT-FAMILY-MUTATED-NULLIFIER",
       "path": "tools/gnark/internal/circuits/family_test.go",
-      "source_sha256": "b18c1835c8f604ba79c7eb330703ab3155845cb3cbbcbcd5fa505c72dfb1368a"
+      "source_sha256": "5de2fad46613ed1672ab60cacfdb50a7a02babb6f9aa5789c5bdac634862e8c6"
     },
     {
       "id": "CIRCUIT-FAMILY-NEGATIVE",
       "path": "tools/gnark/internal/circuits/family_test.go",
-      "source_sha256": "b18c1835c8f604ba79c7eb330703ab3155845cb3cbbcbcd5fa505c72dfb1368a"
+      "source_sha256": "5de2fad46613ed1672ab60cacfdb50a7a02babb6f9aa5789c5bdac634862e8c6"
     },
     {
       "id": "CIRCUIT-FAMILY-VALID",
       "path": "tools/gnark/internal/circuits/family_test.go",
-      "source_sha256": "b18c1835c8f604ba79c7eb330703ab3155845cb3cbbcbcd5fa505c72dfb1368a"
+      "source_sha256": "5de2fad46613ed1672ab60cacfdb50a7a02babb6f9aa5789c5bdac634862e8c6"
     },
     {
       "id": "COMMON-PLAN-AUTHORITATIVE-MEMBERSHIP",
@@ -2798,32 +2798,32 @@
     {
       "id": "COMPLIANCE-ANCHOR-LIVENESS",
       "path": "crates/core/component/compliance/src/registry.rs",
-      "source_sha256": "47e698fe0fe715ba8e4f77fdc2f3f72af40f78668b0e401162c0fbe9152f778b"
+      "source_sha256": "a04ebdfed94a35315e21c3d2f56873a33b930072f5114ccee20222ca7fbce19e"
     },
     {
       "id": "COMPLIANCE-ASSET-ANCHOR-CURRENT",
       "path": "crates/core/component/compliance/src/registry.rs",
-      "source_sha256": "47e698fe0fe715ba8e4f77fdc2f3f72af40f78668b0e401162c0fbe9152f778b"
+      "source_sha256": "a04ebdfed94a35315e21c3d2f56873a33b930072f5114ccee20222ca7fbce19e"
     },
     {
       "id": "COMPLIANCE-ASSET-AUTHORIZATION",
       "path": "crates/core/component/compliance/src/registry.rs",
-      "source_sha256": "47e698fe0fe715ba8e4f77fdc2f3f72af40f78668b0e401162c0fbe9152f778b"
+      "source_sha256": "a04ebdfed94a35315e21c3d2f56873a33b930072f5114ccee20222ca7fbce19e"
     },
     {
       "id": "COMPLIANCE-ASSET-TREE-WELL-FORMED",
       "path": "crates/core/component/compliance/src/registry.rs",
-      "source_sha256": "47e698fe0fe715ba8e4f77fdc2f3f72af40f78668b0e401162c0fbe9152f778b"
+      "source_sha256": "a04ebdfed94a35315e21c3d2f56873a33b930072f5114ccee20222ca7fbce19e"
     },
     {
       "id": "COMPLIANCE-LEAF-ADDRESS-COMMITMENT",
       "path": "crates/core/component/compliance/src/structs.rs",
-      "source_sha256": "98afff327a57d96a386aac20602ff12e89a23bd2d6cb0d63435e37fd34ce161c"
+      "source_sha256": "49778b90484a237cb801c028b491a0c5384dfe5f9c7dff4368aedc56e962751a"
     },
     {
       "id": "COMPLIANCE-LEAF-ZERO-D-REJECT",
       "path": "crates/core/component/compliance/src/structs.rs",
-      "source_sha256": "98afff327a57d96a386aac20602ff12e89a23bd2d6cb0d63435e37fd34ce161c"
+      "source_sha256": "49778b90484a237cb801c028b491a0c5384dfe5f9c7dff4368aedc56e962751a"
     },
     {
       "id": "COMPLIANCE-QUAD-PATH-CIRCUIT-COMPILES",
@@ -2838,32 +2838,32 @@
     {
       "id": "COMPLIANCE-TIMESTAMP-BOUNDARY",
       "path": "crates/core/component/compliance/src/registry.rs",
-      "source_sha256": "47e698fe0fe715ba8e4f77fdc2f3f72af40f78668b0e401162c0fbe9152f778b"
+      "source_sha256": "a04ebdfed94a35315e21c3d2f56873a33b930072f5114ccee20222ca7fbce19e"
     },
     {
       "id": "COMPLIANCE-TIMESTAMP-CURRENT-BOUNDARY",
       "path": "crates/core/component/compliance/src/registry.rs",
-      "source_sha256": "47e698fe0fe715ba8e4f77fdc2f3f72af40f78668b0e401162c0fbe9152f778b"
+      "source_sha256": "a04ebdfed94a35315e21c3d2f56873a33b930072f5114ccee20222ca7fbce19e"
     },
     {
       "id": "COMPLIANCE-TIMESTAMP-NEGATIVE-CONSENSUS",
       "path": "crates/core/component/compliance/src/registry.rs",
-      "source_sha256": "47e698fe0fe715ba8e4f77fdc2f3f72af40f78668b0e401162c0fbe9152f778b"
+      "source_sha256": "a04ebdfed94a35315e21c3d2f56873a33b930072f5114ccee20222ca7fbce19e"
     },
     {
       "id": "COMPLIANCE-TIMESTAMP-SIGNED-PARITY",
       "path": "crates/core/component/compliance/src/registry.rs",
-      "source_sha256": "47e698fe0fe715ba8e4f77fdc2f3f72af40f78668b0e401162c0fbe9152f778b"
+      "source_sha256": "a04ebdfed94a35315e21c3d2f56873a33b930072f5114ccee20222ca7fbce19e"
     },
     {
       "id": "COMPLIANCE-USER-AUTHORIZATION",
       "path": "crates/core/component/compliance/src/registry.rs",
-      "source_sha256": "47e698fe0fe715ba8e4f77fdc2f3f72af40f78668b0e401162c0fbe9152f778b"
+      "source_sha256": "a04ebdfed94a35315e21c3d2f56873a33b930072f5114ccee20222ca7fbce19e"
     },
     {
       "id": "COMPLIANCE-USER-TREE-WELL-FORMED",
       "path": "crates/core/component/compliance/src/registry.rs",
-      "source_sha256": "47e698fe0fe715ba8e4f77fdc2f3f72af40f78668b0e401162c0fbe9152f778b"
+      "source_sha256": "a04ebdfed94a35315e21c3d2f56873a33b930072f5114ccee20222ca7fbce19e"
     },
     {
       "id": "CONSENSUS-PROOF-KEY-SELECTION",
@@ -2888,7 +2888,7 @@
     {
       "id": "CONSERVATION-THEOREM-MAPPINGS-ARITY-DISTINCT",
       "path": "tools/gnark/internal/circuits/wiring_transcript_test.go",
-      "source_sha256": "88b391626f168408111b3b6f549bd164059e08abe7cde7dc5d5e3f4c9f69f55e"
+      "source_sha256": "850e307c91d02351694185d8699d5f68bb7006b36a96a2322ed4713c925a8969"
     },
     {
       "id": "DECAF-COMPANION-CURVE-PARAMETER-PARITY",
@@ -2903,7 +2903,7 @@
     {
       "id": "DECAF-COMPRESS-RUST-VECTOR-PARITY",
       "path": "tools/gnark/internal/primitives/crypto_primitives_test.go",
-      "source_sha256": "50542b6054c5101c29106c79bd9e8e0ec6b60ca122f9142e71925b0ae9995d68"
+      "source_sha256": "870b9598bc4e7254fa66823029454c20f0166bd29f4576a1d880b13747381d35"
     },
     {
       "id": "DECAF-DTK-GADGET-PARITY",
@@ -2953,7 +2953,7 @@
     {
       "id": "FEE-FUNDING-IDENTITY-RK-REJECT",
       "path": "crates/core/app/src/app/mod.rs",
-      "source_sha256": "979ac8348eebc498c3f5cc9b6842287eb8c2d59356afd92be1d4322defb85795"
+      "source_sha256": "efcf10adcb7d848c6148005fd0630fc44d3b4518ae498869826227e18d808883"
     },
     {
       "id": "FEE-FUNDING-PROCESS-REJECTS-INVALID-PROOF",
@@ -2998,52 +2998,52 @@
     {
       "id": "NOTE-COMMITMENT-DERIVATION-RUST-VECTOR-PARITY",
       "path": "tools/gnark/internal/primitives/crypto_primitives_test.go",
-      "source_sha256": "50542b6054c5101c29106c79bd9e8e0ec6b60ca122f9142e71925b0ae9995d68"
+      "source_sha256": "870b9598bc4e7254fa66823029454c20f0166bd29f4576a1d880b13747381d35"
     },
     {
       "id": "NOTE-RESHAPE-1X8-DUMMY-OUTPUT-COMMITMENT",
       "path": "tools/gnark/internal/circuits/family_test.go",
-      "source_sha256": "b18c1835c8f604ba79c7eb330703ab3155845cb3cbbcbcd5fa505c72dfb1368a"
+      "source_sha256": "5de2fad46613ed1672ab60cacfdb50a7a02babb6f9aa5789c5bdac634862e8c6"
     },
     {
       "id": "NOTE-RESHAPE-1X8-EVERY-OUTPUT-COMMITMENT",
       "path": "tools/gnark/internal/circuits/note_reshape_regression_test.go",
-      "source_sha256": "1bfa1acf5cd112be082408de8acecc996d0d8a3d66a2239d159b9437447a2b4b"
+      "source_sha256": "bd6b67b4634c0f2756ed5899e24819330e794b3ad54acfc9f495af39f9290edc"
     },
     {
       "id": "NOTE-RESHAPE-1X8-MUTATED-OUTPUT-AMOUNT",
       "path": "tools/gnark/internal/circuits/family_test.go",
-      "source_sha256": "b18c1835c8f604ba79c7eb330703ab3155845cb3cbbcbcd5fa505c72dfb1368a"
+      "source_sha256": "5de2fad46613ed1672ab60cacfdb50a7a02babb6f9aa5789c5bdac634862e8c6"
     },
     {
       "id": "NOTE-RESHAPE-1X8-OMITS-OUTPUT-DUMMY-WITNESS",
       "path": "tools/gnark/internal/circuits/note_reshape_regression_test.go",
-      "source_sha256": "1bfa1acf5cd112be082408de8acecc996d0d8a3d66a2239d159b9437447a2b4b"
+      "source_sha256": "bd6b67b4634c0f2756ed5899e24819330e794b3ad54acfc9f495af39f9290edc"
     },
     {
       "id": "NOTE-RESHAPE-1X8-PADDED-OUTPUT-FIELDS",
       "path": "tools/gnark/internal/circuits/note_reshape_regression_test.go",
-      "source_sha256": "1bfa1acf5cd112be082408de8acecc996d0d8a3d66a2239d159b9437447a2b4b"
+      "source_sha256": "bd6b67b4634c0f2756ed5899e24819330e794b3ad54acfc9f495af39f9290edc"
     },
     {
       "id": "NOTE-RESHAPE-1X8-PADDED-OUTPUT-PAYLOAD",
       "path": "tools/gnark/internal/circuits/family_test.go",
-      "source_sha256": "b18c1835c8f604ba79c7eb330703ab3155845cb3cbbcbcd5fa505c72dfb1368a"
+      "source_sha256": "5de2fad46613ed1672ab60cacfdb50a7a02babb6f9aa5789c5bdac634862e8c6"
     },
     {
       "id": "NOTE-RESHAPE-8X1-WIRING-SEMANTIC-DRIFT",
       "path": "tools/gnark/internal/circuits/wiring_transcript_test.go",
-      "source_sha256": "88b391626f168408111b3b6f549bd164059e08abe7cde7dc5d5e3f4c9f69f55e"
+      "source_sha256": "850e307c91d02351694185d8699d5f68bb7006b36a96a2322ed4713c925a8969"
     },
     {
       "id": "NOTE-RESHAPE-8X1-WIRING-TRANSCRIPT-EXACT",
       "path": "tools/gnark/internal/circuits/wiring_transcript_test.go",
-      "source_sha256": "88b391626f168408111b3b6f549bd164059e08abe7cde7dc5d5e3f4c9f69f55e"
+      "source_sha256": "850e307c91d02351694185d8699d5f68bb7006b36a96a2322ed4713c925a8969"
     },
     {
       "id": "NOTE-RESHAPE-CANONICAL-SHARED-CONTEXT-BINDINGS",
       "path": "tools/gnark/internal/circuits/wiring_transcript_test.go",
-      "source_sha256": "88b391626f168408111b3b6f549bd164059e08abe7cde7dc5d5e3f4c9f69f55e"
+      "source_sha256": "850e307c91d02351694185d8699d5f68bb7006b36a96a2322ed4713c925a8969"
     },
     {
       "id": "NOTE-RESHAPE-CONSERVATION-GADGET-PARITY",
@@ -3053,32 +3053,32 @@
     {
       "id": "NOTE-RESHAPE-DEPLOYED-PROOF-KEY-MAPPING",
       "path": "crates/core/component/shielded-pool/src/note_reshape/proof.rs",
-      "source_sha256": "554de981f4a06e7196c55376a40b2251d71505da23a3fe93daa18c97f6002d74"
+      "source_sha256": "92183ce13356d16d16386100126a17e0cb8bed789e6a4e3f373ba885eeb165e8"
     },
     {
       "id": "NOTE-RESHAPE-DUMMY-NULLIFIER-FIXED-SLOT",
       "path": "tools/gnark/internal/circuits/note_reshape_regression_test.go",
-      "source_sha256": "1bfa1acf5cd112be082408de8acecc996d0d8a3d66a2239d159b9437447a2b4b"
+      "source_sha256": "bd6b67b4634c0f2756ed5899e24819330e794b3ad54acfc9f495af39f9290edc"
     },
     {
       "id": "NOTE-RESHAPE-EVERY-PUBLIC-DUMMY-SPEND-FIELD",
       "path": "tools/gnark/internal/circuits/note_reshape_regression_test.go",
-      "source_sha256": "1bfa1acf5cd112be082408de8acecc996d0d8a3d66a2239d159b9437447a2b4b"
+      "source_sha256": "bd6b67b4634c0f2756ed5899e24819330e794b3ad54acfc9f495af39f9290edc"
     },
     {
       "id": "NOTE-RESHAPE-EVERY-PUBLIC-SPEND-OUTPUT-FIELD",
       "path": "tools/gnark/internal/circuits/note_reshape_regression_test.go",
-      "source_sha256": "1bfa1acf5cd112be082408de8acecc996d0d8a3d66a2239d159b9437447a2b4b"
+      "source_sha256": "bd6b67b4634c0f2756ed5899e24819330e794b3ad54acfc9f495af39f9290edc"
     },
     {
       "id": "NOTE-RESHAPE-EXACT-CONSERVATION-MUTATION",
       "path": "tools/gnark/internal/circuits/note_reshape_regression_test.go",
-      "source_sha256": "1bfa1acf5cd112be082408de8acecc996d0d8a3d66a2239d159b9437447a2b4b"
+      "source_sha256": "bd6b67b4634c0f2756ed5899e24819330e794b3ad54acfc9f495af39f9290edc"
     },
     {
       "id": "NOTE-RESHAPE-FIXED-SHAPE-DECODE",
       "path": "crates/core/component/shielded-pool/src/note_reshape/proof.rs",
-      "source_sha256": "554de981f4a06e7196c55376a40b2251d71505da23a3fe93daa18c97f6002d74"
+      "source_sha256": "92183ce13356d16d16386100126a17e0cb8bed789e6a4e3f373ba885eeb165e8"
     },
     {
       "id": "NOTE-RESHAPE-GENERATED-REGISTRY-MANIFEST-PARITY",
@@ -3103,57 +3103,57 @@
     {
       "id": "NOTE-RESHAPE-MANIFEST-CONSTRAINT-PARTITION",
       "path": "tools/gnark/internal/circuits/wiring_transcript_test.go",
-      "source_sha256": "88b391626f168408111b3b6f549bd164059e08abe7cde7dc5d5e3f4c9f69f55e"
+      "source_sha256": "850e307c91d02351694185d8699d5f68bb7006b36a96a2322ed4713c925a8969"
     },
     {
       "id": "NOTE-RESHAPE-MUTATED-NULLIFIER-PREIMAGE",
       "path": "tools/gnark/internal/circuits/family_test.go",
-      "source_sha256": "b18c1835c8f604ba79c7eb330703ab3155845cb3cbbcbcd5fa505c72dfb1368a"
+      "source_sha256": "5de2fad46613ed1672ab60cacfdb50a7a02babb6f9aa5789c5bdac634862e8c6"
     },
     {
       "id": "NOTE-RESHAPE-OUTGOING-VIEW",
       "path": "crates/core/component/shielded-pool/src/note_reshape/plan.rs",
-      "source_sha256": "267cd5045ca661f1561e8dabbf0758873df7d90241e3f77034ddfb16fd93c9d5"
+      "source_sha256": "e6673634fd4bd1524f9dff4e6e4925973f4897dd2f770af158609db0126cd822"
     },
     {
       "id": "NOTE-RESHAPE-PADDED-FAMILIES-VALID",
       "path": "tools/gnark/internal/circuits/family_test.go",
-      "source_sha256": "b18c1835c8f604ba79c7eb330703ab3155845cb3cbbcbcd5fa505c72dfb1368a"
+      "source_sha256": "5de2fad46613ed1672ab60cacfdb50a7a02babb6f9aa5789c5bdac634862e8c6"
     },
     {
       "id": "NOTE-RESHAPE-PADDED-SPEND-REGRESSIONS",
       "path": "tools/gnark/internal/circuits/note_reshape_regression_test.go",
-      "source_sha256": "1bfa1acf5cd112be082408de8acecc996d0d8a3d66a2239d159b9437447a2b4b"
+      "source_sha256": "bd6b67b4634c0f2756ed5899e24819330e794b3ad54acfc9f495af39f9290edc"
     },
     {
       "id": "NOTE-RESHAPE-PLAN-BOUNDARY",
       "path": "crates/core/component/shielded-pool/src/note_reshape/plan.rs",
-      "source_sha256": "267cd5045ca661f1561e8dabbf0758873df7d90241e3f77034ddfb16fd93c9d5"
+      "source_sha256": "e6673634fd4bd1524f9dff4e6e4925973f4897dd2f770af158609db0126cd822"
     },
     {
       "id": "NOTE-RESHAPE-PLAN-MATERIALIZER-COUNTS",
       "path": "crates/core/component/shielded-pool/src/note_reshape/plan.rs",
-      "source_sha256": "267cd5045ca661f1561e8dabbf0758873df7d90241e3f77034ddfb16fd93c9d5"
+      "source_sha256": "e6673634fd4bd1524f9dff4e6e4925973f4897dd2f770af158609db0126cd822"
     },
     {
       "id": "NOTE-RESHAPE-PLAN-VALIDATION-CENSUS",
       "path": "crates/core/component/shielded-pool/src/note_reshape/plan.rs",
-      "source_sha256": "267cd5045ca661f1561e8dabbf0758873df7d90241e3f77034ddfb16fd93c9d5"
+      "source_sha256": "e6673634fd4bd1524f9dff4e6e4925973f4897dd2f770af158609db0126cd822"
     },
     {
       "id": "NOTE-RESHAPE-PROJECTION-AND-CAPABILITY-GATE",
       "path": "crates/core/component/shielded-pool/src/component/action_handler/note_reshape_action.rs",
-      "source_sha256": "7dafa830c47d9b8738a6a840eebebca1fabfb6bda571f40123f4635e77924a04"
+      "source_sha256": "f188524149f7af7ab56cbb56ac7c5f7c03af573e3ff647dfbe2105db0a743246"
     },
     {
       "id": "NOTE-RESHAPE-PROOF-ROUNDTRIP",
       "path": "crates/core/component/shielded-pool/src/note_reshape/proof.rs",
-      "source_sha256": "554de981f4a06e7196c55376a40b2251d71505da23a3fe93daa18c97f6002d74"
+      "source_sha256": "92183ce13356d16d16386100126a17e0cb8bed789e6a4e3f373ba885eeb165e8"
     },
     {
       "id": "NOTE-RESHAPE-ROUTING-FAMILIES-VALID",
       "path": "tools/gnark/internal/circuits/family_test.go",
-      "source_sha256": "b18c1835c8f604ba79c7eb330703ab3155845cb3cbbcbcd5fa505c72dfb1368a"
+      "source_sha256": "5de2fad46613ed1672ab60cacfdb50a7a02babb6f9aa5789c5bdac634862e8c6"
     },
     {
       "id": "NOTE-RESHAPE-SHARED-DIVGEN-COMMITMENT-PARITY",
@@ -3173,42 +3173,42 @@
     {
       "id": "NOTE-RESHAPE-STATEMENT-OMITS-ACTIVE-COUNTS",
       "path": "tools/gnark/internal/circuits/note_reshape_regression_test.go",
-      "source_sha256": "1bfa1acf5cd112be082408de8acecc996d0d8a3d66a2239d159b9437447a2b4b"
+      "source_sha256": "bd6b67b4634c0f2756ed5899e24819330e794b3ad54acfc9f495af39f9290edc"
     },
     {
       "id": "NOTE-RESHAPE-STATEMENT-SEAMS-RUST-VECTOR-PARITY",
       "path": "tools/gnark/internal/primitives/crypto_primitives_test.go",
-      "source_sha256": "50542b6054c5101c29106c79bd9e8e0ec6b60ca122f9142e71925b0ae9995d68"
+      "source_sha256": "870b9598bc4e7254fa66823029454c20f0166bd29f4576a1d880b13747381d35"
     },
     {
       "id": "NOTE-RESHAPE-WIRE-BACKREF-REJECT",
       "path": "crates/core/component/shielded-pool/src/note_reshape/action.rs",
-      "source_sha256": "13b375c1d71a7db68c47393b8b7446c7731bcfa2bfccacc41ff67af18d09c8c3"
+      "source_sha256": "fbeb02bf8b36c283d2d03e852e212fd3348babea2a1051fee47b4669a16a080a"
     },
     {
       "id": "NOTE-RESHAPE-WIRE-FAMILY-REJECT",
       "path": "crates/core/component/shielded-pool/src/note_reshape/action.rs",
-      "source_sha256": "13b375c1d71a7db68c47393b8b7446c7731bcfa2bfccacc41ff67af18d09c8c3"
+      "source_sha256": "fbeb02bf8b36c283d2d03e852e212fd3348babea2a1051fee47b4669a16a080a"
     },
     {
       "id": "NOTE-RESHAPE-WITNESS-ROLE-COMPLETENESS",
       "path": "tools/gnark/internal/circuits/note_reshape_witness_roles_test.go",
-      "source_sha256": "fe1f97f37d844ca06bd63d63ea38cb67ae02ee282fe87aa82d177fb8dbfb2845"
+      "source_sha256": "52417e1565825f0bc5c7c2768b50abfc97e9405f0069db5940d19be35b2ee19e"
     },
     {
       "id": "NOTE-RESHAPE-WRONG-FAMILY-DOMAIN",
       "path": "tools/gnark/internal/circuits/note_reshape_regression_test.go",
-      "source_sha256": "1bfa1acf5cd112be082408de8acecc996d0d8a3d66a2239d159b9437447a2b4b"
+      "source_sha256": "bd6b67b4634c0f2756ed5899e24819330e794b3ad54acfc9f495af39f9290edc"
     },
     {
       "id": "NOTE-RESHAPE-WRONG-SHAPE",
       "path": "tools/gnark/internal/circuits/note_reshape_regression_test.go",
-      "source_sha256": "1bfa1acf5cd112be082408de8acecc996d0d8a3d66a2239d159b9437447a2b4b"
+      "source_sha256": "bd6b67b4634c0f2756ed5899e24819330e794b3ad54acfc9f495af39f9290edc"
     },
     {
       "id": "NOTE-RESHAPE-WRONG-STATEMENT-PREIMAGE",
       "path": "tools/gnark/internal/circuits/note_reshape_regression_test.go",
-      "source_sha256": "1bfa1acf5cd112be082408de8acecc996d0d8a3d66a2239d159b9437447a2b4b"
+      "source_sha256": "bd6b67b4634c0f2756ed5899e24819330e794b3ad54acfc9f495af39f9290edc"
     },
     {
       "id": "NULLIFIER-BATCH-DUPLICATE-REJECT",
@@ -3218,7 +3218,7 @@
     {
       "id": "NULLIFIER-DERIVATION-RUST-VECTOR-PARITY",
       "path": "tools/gnark/internal/primitives/crypto_primitives_test.go",
-      "source_sha256": "50542b6054c5101c29106c79bd9e8e0ec6b60ca122f9142e71925b0ae9995d68"
+      "source_sha256": "870b9598bc4e7254fa66823029454c20f0166bd29f4576a1d880b13747381d35"
     },
     {
       "id": "NULLIFIER-REPEATED-SPEND-REJECT",
@@ -3228,17 +3228,17 @@
     {
       "id": "PADDED-SPEND-MUTATED-DUMMY-NULLIFIER-SEED",
       "path": "tools/gnark/internal/circuits/family_test.go",
-      "source_sha256": "b18c1835c8f604ba79c7eb330703ab3155845cb3cbbcbcd5fa505c72dfb1368a"
+      "source_sha256": "5de2fad46613ed1672ab60cacfdb50a7a02babb6f9aa5789c5bdac634862e8c6"
     },
     {
       "id": "POSEIDON-HASH7-CIRCUIT-COMPILES",
       "path": "tools/gnark/internal/primitives/crypto_primitives_test.go",
-      "source_sha256": "50542b6054c5101c29106c79bd9e8e0ec6b60ca122f9142e71925b0ae9995d68"
+      "source_sha256": "870b9598bc4e7254fa66823029454c20f0166bd29f4576a1d880b13747381d35"
     },
     {
       "id": "POSEIDON-HASH7-RUST-VECTOR-PARITY",
       "path": "tools/gnark/internal/primitives/crypto_primitives_test.go",
-      "source_sha256": "50542b6054c5101c29106c79bd9e8e0ec6b60ca122f9142e71925b0ae9995d68"
+      "source_sha256": "870b9598bc4e7254fa66823029454c20f0166bd29f4576a1d880b13747381d35"
     },
     {
       "id": "PROOF-BOUND-NULLIFIER-PERSISTENCE",
@@ -3283,7 +3283,7 @@
     {
       "id": "PROPERTY-ANCHOR-VALIDATION-CACHE-COUNTS-SHARED-PAIR-ONCE",
       "path": "crates/core/app/src/action_handler/transaction.rs",
-      "source_sha256": "c3fb17eb3536e0604c9e8801aab53fc1a646b1759fb5f25a838d1e5673e50dcb"
+      "source_sha256": "9d19409feb3587d0c222bd213ad13aa3be725e2ee16a7eb6acde4989fbde68c2"
     },
     {
       "id": "PROPERTY-APP-CAN-SWEEP-A-COLLECTION-OF-SMALL-NOTES",
@@ -3298,27 +3298,27 @@
     {
       "id": "PROPERTY-ARTIFACT-EXTRACTION-CANNOT-BYPASS-ACTION-STATELESS-CHECKS",
       "path": "crates/core/app/src/app/mod.rs",
-      "source_sha256": "979ac8348eebc498c3f5cc9b6842287eb8c2d59356afd92be1d4322defb85795"
+      "source_sha256": "efcf10adcb7d848c6148005fd0630fc44d3b4518ae498869826227e18d808883"
     },
     {
       "id": "PROPERTY-ASSET-POLICY-REJECTS-IDENTITY-CRYPTO-KEYS",
       "path": "crates/core/component/compliance/src/structs.rs",
-      "source_sha256": "98afff327a57d96a386aac20602ff12e89a23bd2d6cb0d63435e37fd34ce161c"
+      "source_sha256": "49778b90484a237cb801c028b491a0c5384dfe5f9c7dff4368aedc56e962751a"
     },
     {
       "id": "PROPERTY-ASSET-TREE-BASICS",
       "path": "crates/view/src/compliance_tree.rs",
-      "source_sha256": "cb233dd0d536b9e7368c2704edc5b80dc81fd9f776484dd6202df607da449781"
+      "source_sha256": "7d15f39eabb80ec60cad0f12935324b0c202ba7e1ba529ff77d517f20ffc74df"
     },
     {
       "id": "PROPERTY-ASSET-TREE-PERSIST-WRITES-ONLY-DIRTY-POSITIONS-AND-RELOADS-ROOT",
       "path": "crates/view/src/compliance_tree.rs",
-      "source_sha256": "cb233dd0d536b9e7368c2704edc5b80dc81fd9f776484dd6202df607da449781"
+      "source_sha256": "7d15f39eabb80ec60cad0f12935324b0c202ba7e1ba529ff77d517f20ffc74df"
     },
     {
       "id": "PROPERTY-ASSET-TREE-SYNC-PRESERVES-POLICY",
       "path": "crates/view/src/compliance_tree.rs",
-      "source_sha256": "cb233dd0d536b9e7368c2704edc5b80dc81fd9f776484dd6202df607da449781"
+      "source_sha256": "7d15f39eabb80ec60cad0f12935324b0c202ba7e1ba529ff77d517f20ffc74df"
     },
     {
       "id": "PROPERTY-AUTHORIZATION-KEY-VAR-ENFORCES-NONIDENTITY",
@@ -3333,7 +3333,7 @@
     {
       "id": "PROPERTY-CLAIMED-ANCHOR-VALIDATION-CACHE-COUNTS-SHARED-ANCHOR-ONCE",
       "path": "crates/core/app/src/action_handler/transaction.rs",
-      "source_sha256": "c3fb17eb3536e0604c9e8801aab53fc1a646b1759fb5f25a838d1e5673e50dcb"
+      "source_sha256": "9d19409feb3587d0c222bd213ad13aa3be725e2ee16a7eb6acde4989fbde68c2"
     },
     {
       "id": "PROPERTY-CLAIMED-HASH-PARSER-REJECTS-MODULUS-ALIAS",
@@ -3344,6 +3344,11 @@
       "id": "PROPERTY-COMPLIANCE-ENRICHMENT-PRESERVES-SENDER-DIVERSIFIER-ON-SUPPORTED-TRANSFER",
       "path": "crates/core/app-tests/tests/compliance_diversifier_fix.rs",
       "source_sha256": "4aeb00a89dbd50273bf1dea7f1c4b291f2aa06ebeae76a84685d2c18acf23079"
+    },
+    {
+      "id": "PROPERTY-CURRENT-ANCHORS-RETURNS-BOTH-MUTABLE-ROOTS",
+      "path": "crates/core/component/compliance/src/component/rpc.rs",
+      "source_sha256": "9762e5f6ec93fe33586545cca719da4bfe0b933b9087b55ab18332d85780e09d"
     },
     {
       "id": "PROPERTY-DECODING-REJECTS-NON-CANONICAL-UNUSED-BITS",
@@ -3368,7 +3373,7 @@
     {
       "id": "PROPERTY-ENCODE-MERKLE-PATH-REQUIRES-EXACT-DEPTH",
       "path": "crates/core/component/shielded-pool/src/gnark/typed.rs",
-      "source_sha256": "70cc51779ddc8ffb5c58af764af28cf4cf5c8a7573bb1d7bdeed3f21c49f83f1"
+      "source_sha256": "b9d8bb3d2af21972e59747235dddfc533521b9d4974a05154fd9579fc911bd86"
     },
     {
       "id": "PROPERTY-ENCODE-TRIPLE-PATH-32-REJECTS-NON-EXACT-LENGTH",
@@ -3421,11 +3426,6 @@
       "source_sha256": "9d80f211d6511bf3bb0dca2257a9a43aed742307cddf3a3d61a9710722f24e3d"
     },
     {
-      "id": "PROPERTY-FIND-MOST-RECENT-ANCHORS-USES-HISTORY-ONLY-FOR-USER-ROOT",
-      "path": "crates/core/component/compliance/src/component/rpc.rs",
-      "source_sha256": "8416da02495cf62f38fd444ee578f8143a28831e910547fb294ea9b94e27384e"
-    },
-    {
       "id": "PROPERTY-FORGOTTEN-INCREMENTS",
       "path": "crates/crypto/tct/src/internal/hash.rs",
       "source_sha256": "a06de848b596eb4b4ca03ceca5c708d3583838ab9957915c621809a9e7fc6eb6"
@@ -3443,7 +3443,7 @@
     {
       "id": "PROPERTY-FRESH-ASSET-TREE-PERSISTS-SENTINEL-BEFORE-ADVANCING-LEAF-COUNT",
       "path": "crates/view/src/compliance_tree.rs",
-      "source_sha256": "cb233dd0d536b9e7368c2704edc5b80dc81fd9f776484dd6202df607da449781"
+      "source_sha256": "7d15f39eabb80ec60cad0f12935324b0c202ba7e1ba529ff77d517f20ffc74df"
     },
     {
       "id": "PROPERTY-FULL-TAGS-VARY-WHILE-PREFIXES-STAY-STABLE",
@@ -3473,7 +3473,7 @@
     {
       "id": "PROPERTY-HOST-EXECUTION-ACCEPTS-WITHDRAWALS-FOR-REGISTERED-ASSETS",
       "path": "crates/core/app/src/app/host.rs",
-      "source_sha256": "4536da7ec9225815021804682436107afdbafacb8cdd535d6b3a751f0a7a532d"
+      "source_sha256": "75eb2136b9217d3e372897deeb64a72a401ff8c1326ce5b1ad4b205d4e5a4d9e"
     },
     {
       "id": "PROPERTY-ICS20-WITHDRAWAL-READY-PRODUCES-WALLET-FACING-ACTION-ONLY",
@@ -3508,7 +3508,7 @@
     {
       "id": "PROPERTY-ISSUED-ADDRESS-BIRTH-HEIGHT-IS-WRITE-ONCE-AND-PURPOSE-CANNOT-CHANGE",
       "path": "crates/view/src/storage.rs",
-      "source_sha256": "6e61a37b5f26bbf7884fa9187019fb70f31a9108e043b71ad6b406699116861e"
+      "source_sha256": "c63cf8808047bfc0c5f3a1bc80a4ed59a834d5fe6634452a969e9c929dc68ad0"
     },
     {
       "id": "PROPERTY-LEGACY-ASSET-FLAG-ALIAS-IS-REJECTED",
@@ -3523,12 +3523,12 @@
     {
       "id": "PROPERTY-MERKLE-PATH-DEFAULT-IS-FIXED-WIDTH-AND-CANONICAL",
       "path": "crates/core/component/compliance/src/structs.rs",
-      "source_sha256": "98afff327a57d96a386aac20602ff12e89a23bd2d6cb0d63435e37fd34ce161c"
+      "source_sha256": "49778b90484a237cb801c028b491a0c5384dfe5f9c7dff4368aedc56e962751a"
     },
     {
       "id": "PROPERTY-MERKLE-PATH-PROTO-REJECTS-NONCANONICAL-SHAPE-AND-FIELDS",
       "path": "crates/core/component/compliance/src/structs.rs",
-      "source_sha256": "98afff327a57d96a386aac20602ff12e89a23bd2d6cb0d63435e37fd34ce161c"
+      "source_sha256": "49778b90484a237cb801c028b491a0c5384dfe5f9c7dff4368aedc56e962751a"
     },
     {
       "id": "PROPERTY-MINT-NOTE-STAGES-POSITION-DERIVED-PAYLOADS",
@@ -3563,22 +3563,22 @@
     {
       "id": "PROPERTY-NOTE-RESHAPE-PUBLIC-ENCODINGS-HAVE-NO-DUMMY-FLAGS-AFTER-REDESIGN",
       "path": "crates/core/component/shielded-pool/src/note_reshape/action.rs",
-      "source_sha256": "13b375c1d71a7db68c47393b8b7446c7731bcfa2bfccacc41ff67af18d09c8c3"
+      "source_sha256": "fbeb02bf8b36c283d2d03e852e212fd3348babea2a1051fee47b4669a16a080a"
     },
     {
       "id": "PROPERTY-NOTE-RESHAPE-STATEMENT-HAS-NO-ACTIVE-COUNTS-AFTER-REDESIGN",
       "path": "crates/core/component/shielded-pool/src/public_input_hash.rs",
-      "source_sha256": "c8686b69b4b5bc590c85fbb1adf435b85c2a1020714d1188ec2d2114cbc2d95d"
+      "source_sha256": "287b33778f77ee0a45489a0dbfa2a1178125c10cca74e3e6017c94a03ec0f3ff"
     },
     {
       "id": "PROPERTY-NOTE-RESHAPE-STATEMENT-HASH-MATCHES-GO-FIXTURES-FOR-ALL-FAMILIES",
       "path": "crates/core/component/shielded-pool/src/public_input_hash.rs",
-      "source_sha256": "c8686b69b4b5bc590c85fbb1adf435b85c2a1020714d1188ec2d2114cbc2d95d"
+      "source_sha256": "287b33778f77ee0a45489a0dbfa2a1178125c10cca74e3e6017c94a03ec0f3ff"
     },
     {
       "id": "PROPERTY-NOTE-RESHAPE-STATEMENT-HASH-NATIVE-MATCHES-R1CS",
       "path": "crates/core/component/shielded-pool/src/public_input_hash.rs",
-      "source_sha256": "c8686b69b4b5bc590c85fbb1adf435b85c2a1020714d1188ec2d2114cbc2d95d"
+      "source_sha256": "287b33778f77ee0a45489a0dbfa2a1178125c10cca74e3e6017c94a03ec0f3ff"
     },
     {
       "id": "PROPERTY-NOTE-RESHAPE-WITNESS-V5-REJECTS-BAD-LENGTH",
@@ -3603,17 +3603,17 @@
     {
       "id": "PROPERTY-NOTE-RESHAPE-WRONG-FAMILY-DOMAIN-CHANGES-THE-STATEMENT-HASH",
       "path": "crates/core/component/shielded-pool/src/public_input_hash.rs",
-      "source_sha256": "c8686b69b4b5bc590c85fbb1adf435b85c2a1020714d1188ec2d2114cbc2d95d"
+      "source_sha256": "287b33778f77ee0a45489a0dbfa2a1178125c10cca74e3e6017c94a03ec0f3ff"
     },
     {
       "id": "PROPERTY-NOTE-RESHAPE-WRONG-SHAPE-IS-REJECTED-FOR-ALL-FAMILIES",
       "path": "crates/core/component/shielded-pool/src/public_input_hash.rs",
-      "source_sha256": "c8686b69b4b5bc590c85fbb1adf435b85c2a1020714d1188ec2d2114cbc2d95d"
+      "source_sha256": "287b33778f77ee0a45489a0dbfa2a1178125c10cca74e3e6017c94a03ec0f3ff"
     },
     {
       "id": "PROPERTY-NOTE-RESHAPE-WRONG-STATEMENT-PREIMAGE-CHANGES-THE-HASH-FOR-ALL-FAMILIES",
       "path": "crates/core/component/shielded-pool/src/public_input_hash.rs",
-      "source_sha256": "c8686b69b4b5bc590c85fbb1adf435b85c2a1020714d1188ec2d2114cbc2d95d"
+      "source_sha256": "287b33778f77ee0a45489a0dbfa2a1178125c10cca74e3e6017c94a03ec0f3ff"
     },
     {
       "id": "PROPERTY-ONE-TO-MANY-PADS-REQUESTED-OUTPUTS-TO-FAMILY-CAPACITY",
@@ -3723,7 +3723,7 @@
     {
       "id": "PROPERTY-RESTORE-RECOVERS-STANDARD-AND-RANDOMIZED-ISSUED-ADDRESSES",
       "path": "crates/view/src/storage.rs",
-      "source_sha256": "6e61a37b5f26bbf7884fa9187019fb70f31a9108e043b71ad6b406699116861e"
+      "source_sha256": "c63cf8808047bfc0c5f3a1bc80a4ed59a834d5fe6634452a969e9c929dc68ad0"
     },
     {
       "id": "PROPERTY-ROUNDTRIP-ENCODE-DECODE",
@@ -3778,27 +3778,27 @@
     {
       "id": "PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V10-REJECTS-LEGACY-VERSION",
       "path": "crates/core/component/shielded-pool/src/gnark/shielded_ics20_withdrawal.rs",
-      "source_sha256": "fa4841b37795f581cce78e9d7a14e28bc7e5049f19a29dc18626bec268c200d1"
+      "source_sha256": "26e0d8963dc81e7ff36ea9814dbf8a4b30184e748ea1d1fd94cfd4e7e28e698e"
     },
     {
       "id": "PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V10-REJECTS-NON-BLINDING-BALANCE-COMMITMENT",
       "path": "crates/core/component/shielded-pool/src/gnark/shielded_ics20_withdrawal.rs",
-      "source_sha256": "fa4841b37795f581cce78e9d7a14e28bc7e5049f19a29dc18626bec268c200d1"
+      "source_sha256": "26e0d8963dc81e7ff36ea9814dbf8a4b30184e748ea1d1fd94cfd4e7e28e698e"
     },
     {
       "id": "PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V10-REJECTS-NON-CANONICAL-BOOLEAN-FLAGS",
       "path": "crates/core/component/shielded-pool/src/gnark/shielded_ics20_withdrawal.rs",
-      "source_sha256": "fa4841b37795f581cce78e9d7a14e28bc7e5049f19a29dc18626bec268c200d1"
+      "source_sha256": "26e0d8963dc81e7ff36ea9814dbf8a4b30184e748ea1d1fd94cfd4e7e28e698e"
     },
     {
       "id": "PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V10-REJECTS-UNBALANCED-AMOUNTS",
       "path": "crates/core/component/shielded-pool/src/gnark/shielded_ics20_withdrawal.rs",
-      "source_sha256": "fa4841b37795f581cce78e9d7a14e28bc7e5049f19a29dc18626bec268c200d1"
+      "source_sha256": "26e0d8963dc81e7ff36ea9814dbf8a4b30184e748ea1d1fd94cfd4e7e28e698e"
     },
     {
       "id": "PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V10-ROUNDTRIP",
       "path": "crates/core/component/shielded-pool/src/gnark/shielded_ics20_withdrawal.rs",
-      "source_sha256": "fa4841b37795f581cce78e9d7a14e28bc7e5049f19a29dc18626bec268c200d1"
+      "source_sha256": "26e0d8963dc81e7ff36ea9814dbf8a4b30184e748ea1d1fd94cfd4e7e28e698e"
     },
     {
       "id": "PROPERTY-SPARSE-RECONSTRUCTION-AND-DESERIALIZATION-REJECT-CORRUPTION",
@@ -3808,7 +3808,7 @@
     {
       "id": "PROPERTY-STANDALONE-EXECUTION-REJECTS-HOST-WITHDRAWALS",
       "path": "crates/core/app/src/app/host.rs",
-      "source_sha256": "4536da7ec9225815021804682436107afdbafacb8cdd535d6b3a751f0a7a532d"
+      "source_sha256": "75eb2136b9217d3e372897deeb64a72a401ff8c1326ce5b1ad4b205d4e5a4d9e"
     },
     {
       "id": "PROPERTY-SUBJECT-FILTER-APPLIES-ASSET-BEFORE-EACH-REGISTERED-ADDRESS-SELECTOR",
@@ -3848,32 +3848,32 @@
     {
       "id": "PROPERTY-TEST-ASSET-POLICY-BYTES-ROUNDTRIP",
       "path": "crates/core/component/compliance/src/structs.rs",
-      "source_sha256": "98afff327a57d96a386aac20602ff12e89a23bd2d6cb0d63435e37fd34ce161c"
+      "source_sha256": "49778b90484a237cb801c028b491a0c5384dfe5f9c7dff4368aedc56e962751a"
     },
     {
       "id": "PROPERTY-TEST-ASSET-POLICY-FROM-BYTES-REJECTS-MISSING-STORAGE-FIELDS",
       "path": "crates/core/component/compliance/src/structs.rs",
-      "source_sha256": "98afff327a57d96a386aac20602ff12e89a23bd2d6cb0d63435e37fd34ce161c"
+      "source_sha256": "49778b90484a237cb801c028b491a0c5384dfe5f9c7dff4368aedc56e962751a"
     },
     {
       "id": "PROPERTY-TEST-ASSET-POLICY-PROTO-REJECTS-MISSING-REQUIRED-FIELDS",
       "path": "crates/core/component/compliance/src/structs.rs",
-      "source_sha256": "98afff327a57d96a386aac20602ff12e89a23bd2d6cb0d63435e37fd34ce161c"
+      "source_sha256": "49778b90484a237cb801c028b491a0c5384dfe5f9c7dff4368aedc56e962751a"
     },
     {
       "id": "PROPERTY-TEST-ASSET-POLICY-PROTO-ROUNDTRIP",
       "path": "crates/core/component/compliance/src/structs.rs",
-      "source_sha256": "98afff327a57d96a386aac20602ff12e89a23bd2d6cb0d63435e37fd34ce161c"
+      "source_sha256": "49778b90484a237cb801c028b491a0c5384dfe5f9c7dff4368aedc56e962751a"
     },
     {
       "id": "PROPERTY-TEST-ASSET-POLICY-TO-BYTES-REJECTS-OVERLONG-ROUTE-FIELD",
       "path": "crates/core/component/compliance/src/structs.rs",
-      "source_sha256": "98afff327a57d96a386aac20602ff12e89a23bd2d6cb0d63435e37fd34ce161c"
+      "source_sha256": "49778b90484a237cb801c028b491a0c5384dfe5f9c7dff4368aedc56e962751a"
     },
     {
       "id": "PROPERTY-TEST-ASSET-POLICY-TO-BYTES-REJECTS-OVERLONG-STRING",
       "path": "crates/core/component/compliance/src/structs.rs",
-      "source_sha256": "98afff327a57d96a386aac20602ff12e89a23bd2d6cb0d63435e37fd34ce161c"
+      "source_sha256": "49778b90484a237cb801c028b491a0c5384dfe5f9c7dff4368aedc56e962751a"
     },
     {
       "id": "PROPERTY-TEST-ASSET-REGISTRATION-REJECTS-EXPIRED-GRANT",
@@ -3913,42 +3913,42 @@
     {
       "id": "PROPERTY-TEST-COMPLIANCE-LEAF-DIFFERENT-ADDRESSES-DIFFERENT-COMMITS",
       "path": "crates/core/component/compliance/src/structs.rs",
-      "source_sha256": "98afff327a57d96a386aac20602ff12e89a23bd2d6cb0d63435e37fd34ce161c"
+      "source_sha256": "49778b90484a237cb801c028b491a0c5384dfe5f9c7dff4368aedc56e962751a"
     },
     {
       "id": "PROPERTY-TEST-COMPLIANCE-LEAF-NEW",
       "path": "crates/core/component/compliance/src/structs.rs",
-      "source_sha256": "98afff327a57d96a386aac20602ff12e89a23bd2d6cb0d63435e37fd34ce161c"
+      "source_sha256": "49778b90484a237cb801c028b491a0c5384dfe5f9c7dff4368aedc56e962751a"
     },
     {
       "id": "PROPERTY-TEST-COMPLIANCE-LEAF-PROTO-REJECTS-MISMATCHED-D",
       "path": "crates/core/component/compliance/src/structs.rs",
-      "source_sha256": "98afff327a57d96a386aac20602ff12e89a23bd2d6cb0d63435e37fd34ce161c"
+      "source_sha256": "49778b90484a237cb801c028b491a0c5384dfe5f9c7dff4368aedc56e962751a"
     },
     {
       "id": "PROPERTY-TEST-COMPLIANCE-LEAF-PROTO-REJECTS-MISSING-D",
       "path": "crates/core/component/compliance/src/structs.rs",
-      "source_sha256": "98afff327a57d96a386aac20602ff12e89a23bd2d6cb0d63435e37fd34ce161c"
+      "source_sha256": "49778b90484a237cb801c028b491a0c5384dfe5f9c7dff4368aedc56e962751a"
     },
     {
       "id": "PROPERTY-TEST-COMPLIANCE-LEAF-PROTO-REJECTS-MISSING-SLOT-DERIVATION",
       "path": "crates/core/component/compliance/src/structs.rs",
-      "source_sha256": "98afff327a57d96a386aac20602ff12e89a23bd2d6cb0d63435e37fd34ce161c"
+      "source_sha256": "49778b90484a237cb801c028b491a0c5384dfe5f9c7dff4368aedc56e962751a"
     },
     {
       "id": "PROPERTY-TEST-COMPLIANCE-LEAF-PROTO-ROUNDTRIP",
       "path": "crates/core/component/compliance/src/structs.rs",
-      "source_sha256": "98afff327a57d96a386aac20602ff12e89a23bd2d6cb0d63435e37fd34ce161c"
+      "source_sha256": "49778b90484a237cb801c028b491a0c5384dfe5f9c7dff4368aedc56e962751a"
     },
     {
       "id": "PROPERTY-TEST-COMPLIANCE-PATH-GENERATION",
       "path": "crates/core/component/compliance/src/lib.rs",
-      "source_sha256": "edc22ac37a1eb469970a5fcaf95a82e9651f92601bb3d96ddf8f52a72cae2a6b"
+      "source_sha256": "2496bc97c1834e46b881e0c898b24f99d99d5dd1b23d60e78bfbaf3becd81b1c"
     },
     {
       "id": "PROPERTY-TEST-DEFAULT-UNREGULATED-POLICY-USES-SINK-KEYS",
       "path": "crates/core/component/compliance/src/structs.rs",
-      "source_sha256": "98afff327a57d96a386aac20602ff12e89a23bd2d6cb0d63435e37fd34ce161c"
+      "source_sha256": "49778b90484a237cb801c028b491a0c5384dfe5f9c7dff4368aedc56e962751a"
     },
     {
       "id": "PROPERTY-TEST-DERIVE-COMPLIANCE-SCALAR-DETERMINISTIC",
@@ -3973,7 +3973,7 @@
     {
       "id": "PROPERTY-TEST-DIFFERENT-POSITIONS",
       "path": "crates/core/component/compliance/src/lib.rs",
-      "source_sha256": "edc22ac37a1eb469970a5fcaf95a82e9651f92601bb3d96ddf8f52a72cae2a6b"
+      "source_sha256": "2496bc97c1834e46b881e0c898b24f99d99d5dd1b23d60e78bfbaf3becd81b1c"
     },
     {
       "id": "PROPERTY-TEST-DK-BASIC",
@@ -3993,7 +3993,7 @@
     {
       "id": "PROPERTY-TEST-END-TO-END-DETECTION-AND-DECRYPTION",
       "path": "crates/core/component/compliance/src/lib.rs",
-      "source_sha256": "edc22ac37a1eb469970a5fcaf95a82e9651f92601bb3d96ddf8f52a72cae2a6b"
+      "source_sha256": "2496bc97c1834e46b881e0c898b24f99d99d5dd1b23d60e78bfbaf3becd81b1c"
     },
     {
       "id": "PROPERTY-TEST-FLAG-ROUNDTRIP-VARIETY-OF-ASSET-IDS",
@@ -4203,7 +4203,7 @@
     {
       "id": "PROPERTY-TEST-MULTIPLE-USERS-PATH",
       "path": "crates/core/component/compliance/src/lib.rs",
-      "source_sha256": "edc22ac37a1eb469970a5fcaf95a82e9651f92601bb3d96ddf8f52a72cae2a6b"
+      "source_sha256": "2496bc97c1834e46b881e0c898b24f99d99d5dd1b23d60e78bfbaf3becd81b1c"
     },
     {
       "id": "PROPERTY-TEST-NO-FALSE-POSITIVE-FLAG-FOR-ASSET-WITH-HIGH-BYTE",
@@ -4218,17 +4218,17 @@
     {
       "id": "PROPERTY-TEST-NOTE-RESHAPE-V5-REJECTS-LEGACY-VERSION",
       "path": "tools/gnark/internal/abi/witness_family_test.go",
-      "source_sha256": "5f8211500d7a27aae83ffea9190a1734bf01568d122433198bd5f85a819dc768"
+      "source_sha256": "2a4d75b02a7f75a5dad972c5a7540ac25f0ac2ad035123b00a803e1e2006faca"
     },
     {
       "id": "PROPERTY-TEST-NOTE-RESHAPE-V5-REJECTS-SPLIT-ADDRESS-REPRESENTATION-PAYLOAD",
       "path": "tools/gnark/internal/abi/witness_family_test.go",
-      "source_sha256": "5f8211500d7a27aae83ffea9190a1734bf01568d122433198bd5f85a819dc768"
+      "source_sha256": "2a4d75b02a7f75a5dad972c5a7540ac25f0ac2ad035123b00a803e1e2006faca"
     },
     {
       "id": "PROPERTY-TEST-NOTE-RESHAPE-WITNESS-PADDING-ABI",
       "path": "tools/gnark/internal/abi/witness_family_test.go",
-      "source_sha256": "5f8211500d7a27aae83ffea9190a1734bf01568d122433198bd5f85a819dc768"
+      "source_sha256": "2a4d75b02a7f75a5dad972c5a7540ac25f0ac2ad035123b00a803e1e2006faca"
     },
     {
       "id": "PROPERTY-TEST-POINT-ENCODING-EQUIVALENCE",
@@ -4283,12 +4283,12 @@
     {
       "id": "PROPERTY-TEST-SAME-ADDRESS-DIFFERENT-SLOTS-DIFFERENT-D-AND-ACK",
       "path": "crates/core/component/compliance/src/structs.rs",
-      "source_sha256": "98afff327a57d96a386aac20602ff12e89a23bd2d6cb0d63435e37fd34ce161c"
+      "source_sha256": "49778b90484a237cb801c028b491a0c5384dfe5f9c7dff4368aedc56e962751a"
     },
     {
       "id": "PROPERTY-TEST-SAME-SLOT-REUSE-SAME-D-AND-ACK",
       "path": "crates/core/component/compliance/src/structs.rs",
-      "source_sha256": "98afff327a57d96a386aac20602ff12e89a23bd2d6cb0d63435e37fd34ce161c"
+      "source_sha256": "49778b90484a237cb801c028b491a0c5384dfe5f9c7dff4368aedc56e962751a"
     },
     {
       "id": "PROPERTY-TEST-SENTINEL-COVERS-FULL-RANGE",
@@ -4303,32 +4303,32 @@
     {
       "id": "PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V10-ASSIGNMENT-REJECTS-CLAIMED-HASH-MISMATCH",
       "path": "tools/gnark/internal/abi/witness_family_test.go",
-      "source_sha256": "5f8211500d7a27aae83ffea9190a1734bf01568d122433198bd5f85a819dc768"
+      "source_sha256": "2a4d75b02a7f75a5dad972c5a7540ac25f0ac2ad035123b00a803e1e2006faca"
     },
     {
       "id": "PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V10-FIXTURE-BRANCH-MATRIX",
       "path": "tools/gnark/internal/abi/witness_family_test.go",
-      "source_sha256": "5f8211500d7a27aae83ffea9190a1734bf01568d122433198bd5f85a819dc768"
+      "source_sha256": "2a4d75b02a7f75a5dad972c5a7540ac25f0ac2ad035123b00a803e1e2006faca"
     },
     {
       "id": "PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V10-REJECTS-LEGACY-VERSION",
       "path": "tools/gnark/internal/abi/witness_family_test.go",
-      "source_sha256": "5f8211500d7a27aae83ffea9190a1734bf01568d122433198bd5f85a819dc768"
+      "source_sha256": "2a4d75b02a7f75a5dad972c5a7540ac25f0ac2ad035123b00a803e1e2006faca"
     },
     {
       "id": "PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V10-REJECTS-NON-CANONICAL-BALANCE-BLINDING",
       "path": "tools/gnark/internal/abi/witness_family_test.go",
-      "source_sha256": "5f8211500d7a27aae83ffea9190a1734bf01568d122433198bd5f85a819dc768"
+      "source_sha256": "2a4d75b02a7f75a5dad972c5a7540ac25f0ac2ad035123b00a803e1e2006faca"
     },
     {
       "id": "PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V10-REJECTS-NON-CANONICAL-BOOLEAN-FLAGS",
       "path": "tools/gnark/internal/abi/witness_family_test.go",
-      "source_sha256": "5f8211500d7a27aae83ffea9190a1734bf01568d122433198bd5f85a819dc768"
+      "source_sha256": "2a4d75b02a7f75a5dad972c5a7540ac25f0ac2ad035123b00a803e1e2006faca"
     },
     {
       "id": "PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V10-REJECTS-OVERSIZED-EFFECT-HASH-LIMB",
       "path": "tools/gnark/internal/abi/witness_family_test.go",
-      "source_sha256": "5f8211500d7a27aae83ffea9190a1734bf01568d122433198bd5f85a819dc768"
+      "source_sha256": "2a4d75b02a7f75a5dad972c5a7540ac25f0ac2ad035123b00a803e1e2006faca"
     },
     {
       "id": "PROPERTY-TEST-SPARSE-STORAGE",
@@ -4353,7 +4353,7 @@
     {
       "id": "PROPERTY-TEST-TRANSFER-COMPLIANCE-PATH-GENERATION",
       "path": "crates/core/component/compliance/src/lib.rs",
-      "source_sha256": "edc22ac37a1eb469970a5fcaf95a82e9651f92601bb3d96ddf8f52a72cae2a6b"
+      "source_sha256": "2496bc97c1834e46b881e0c898b24f99d99d5dd1b23d60e78bfbaf3becd81b1c"
     },
     {
       "id": "PROPERTY-TEST-TRANSFER-STATEMENT-BALANCE-IS-DERIVED-FROM-WITNESS-INPUTS",
@@ -4368,17 +4368,17 @@
     {
       "id": "PROPERTY-TEST-TRANSFER-V18-ASSIGNMENT-REJECTS-CLAIMED-HASH-MISMATCH",
       "path": "tools/gnark/internal/abi/witness_family_test.go",
-      "source_sha256": "5f8211500d7a27aae83ffea9190a1734bf01568d122433198bd5f85a819dc768"
+      "source_sha256": "2a4d75b02a7f75a5dad972c5a7540ac25f0ac2ad035123b00a803e1e2006faca"
     },
     {
       "id": "PROPERTY-TEST-TRANSFER-V18-ASSIGNMENT-REJECTS-SERIALIZED-SEMANTIC-MUTATION",
       "path": "tools/gnark/internal/abi/witness_family_test.go",
-      "source_sha256": "5f8211500d7a27aae83ffea9190a1734bf01568d122433198bd5f85a819dc768"
+      "source_sha256": "2a4d75b02a7f75a5dad972c5a7540ac25f0ac2ad035123b00a803e1e2006faca"
     },
     {
       "id": "PROPERTY-TEST-TRANSFER-V18-REJECTS-LEGACY-VERSION",
       "path": "tools/gnark/internal/abi/witness_family_test.go",
-      "source_sha256": "5f8211500d7a27aae83ffea9190a1734bf01568d122433198bd5f85a819dc768"
+      "source_sha256": "2a4d75b02a7f75a5dad972c5a7540ac25f0ac2ad035123b00a803e1e2006faca"
     },
     {
       "id": "PROPERTY-TEST-UNREGULATED-SINK-KEYS-ARE-HASH-TO-CURVE-POINTS",
@@ -4408,17 +4408,17 @@
     {
       "id": "PROPERTY-TEST-WITNESS-FAMILIES-DECODE",
       "path": "tools/gnark/internal/abi/witness_family_test.go",
-      "source_sha256": "5f8211500d7a27aae83ffea9190a1734bf01568d122433198bd5f85a819dc768"
+      "source_sha256": "2a4d75b02a7f75a5dad972c5a7540ac25f0ac2ad035123b00a803e1e2006faca"
     },
     {
       "id": "PROPERTY-TEST-WITNESS-FAMILIES-REJECT-BAD-HEADER",
       "path": "tools/gnark/internal/abi/witness_family_test.go",
-      "source_sha256": "5f8211500d7a27aae83ffea9190a1734bf01568d122433198bd5f85a819dc768"
+      "source_sha256": "2a4d75b02a7f75a5dad972c5a7540ac25f0ac2ad035123b00a803e1e2006faca"
     },
     {
       "id": "PROPERTY-TEST-WITNESS-FAMILIES-REJECT-TRUNCATED-PAYLOAD",
       "path": "tools/gnark/internal/abi/witness_family_test.go",
-      "source_sha256": "5f8211500d7a27aae83ffea9190a1734bf01568d122433198bd5f85a819dc768"
+      "source_sha256": "2a4d75b02a7f75a5dad972c5a7540ac25f0ac2ad035123b00a803e1e2006faca"
     },
     {
       "id": "PROPERTY-TEST-WITNESS-FORMAT-VERSION-READS-BOUND-PAYLOAD-HEADER",
@@ -4448,12 +4448,12 @@
     {
       "id": "PROPERTY-TRANSACTION-BLINDING-NONCE-IS-REQUIRED-AND-CANONICAL",
       "path": "crates/core/component/shielded-pool/src/compliance_helpers.rs",
-      "source_sha256": "229134efde64cb5234fecc5df64ac6698d0eb54564b825e536c5a819b8db3eb6"
+      "source_sha256": "a9eb6a77b88efa123d2b2ddefa9b94192e010c8d5dcdec90de317cf9e97917b8"
     },
     {
       "id": "PROPERTY-TRANSFER-HIDDEN-ARITY-WITNESS-V18-ROUNDTRIP",
       "path": "crates/core/component/shielded-pool/src/gnark/transfer.rs",
-      "source_sha256": "fae89ce9bad15676f4647926fee5a9ed236ea8b6cb6b4eba9ff5dbfa1b824a7d"
+      "source_sha256": "8730e1f17d6acf34252f4c236cce5f5a96bde308ad2dbad7bfc51193c37292fa"
     },
     {
       "id": "PROPERTY-TRANSFER-READY-PRODUCES-WALLET-FACING-TRANSFER-ONLY",
@@ -4468,32 +4468,32 @@
     {
       "id": "PROPERTY-TRANSFER-STATEMENT-BINDS-ONE-FACTORED-METADATA-RECORD",
       "path": "crates/core/component/shielded-pool/src/public_input_hash.rs",
-      "source_sha256": "c8686b69b4b5bc590c85fbb1adf435b85c2a1020714d1188ec2d2114cbc2d95d"
+      "source_sha256": "287b33778f77ee0a45489a0dbfa2a1178125c10cca74e3e6017c94a03ec0f3ff"
     },
     {
       "id": "PROPERTY-TRANSFER-STATEMENT-HASH-COMMITS-TO-EVERY-FACTORED-METADATA-FIELD",
       "path": "crates/core/component/shielded-pool/src/public_input_hash.rs",
-      "source_sha256": "c8686b69b4b5bc590c85fbb1adf435b85c2a1020714d1188ec2d2114cbc2d95d"
+      "source_sha256": "287b33778f77ee0a45489a0dbfa2a1178125c10cca74e3e6017c94a03ec0f3ff"
     },
     {
       "id": "PROPERTY-TRANSFER-STATEMENT-HASH-NATIVE-MATCHES-R1CS",
       "path": "crates/core/component/shielded-pool/src/public_input_hash.rs",
-      "source_sha256": "c8686b69b4b5bc590c85fbb1adf435b85c2a1020714d1188ec2d2114cbc2d95d"
+      "source_sha256": "287b33778f77ee0a45489a0dbfa2a1178125c10cca74e3e6017c94a03ec0f3ff"
     },
     {
       "id": "PROPERTY-TRANSFER-STATEMENT-REJECTS-METADATA-TIMESTAMP-DRIFT",
       "path": "crates/core/component/shielded-pool/src/public_input_hash.rs",
-      "source_sha256": "c8686b69b4b5bc590c85fbb1adf435b85c2a1020714d1188ec2d2114cbc2d95d"
+      "source_sha256": "287b33778f77ee0a45489a0dbfa2a1178125c10cca74e3e6017c94a03ec0f3ff"
     },
     {
       "id": "PROPERTY-TRANSFER-WITNESS-V18-REJECTS-LEGACY-V15-LAYOUT",
       "path": "crates/core/component/shielded-pool/src/gnark/transfer.rs",
-      "source_sha256": "fae89ce9bad15676f4647926fee5a9ed236ea8b6cb6b4eba9ff5dbfa1b824a7d"
+      "source_sha256": "8730e1f17d6acf34252f4c236cce5f5a96bde308ad2dbad7bfc51193c37292fa"
     },
     {
       "id": "PROPERTY-TRANSFER-WITNESS-V18-ROUNDTRIP",
       "path": "crates/core/component/shielded-pool/src/gnark/transfer.rs",
-      "source_sha256": "fae89ce9bad15676f4647926fee5a9ed236ea8b6cb6b4eba9ff5dbfa1b824a7d"
+      "source_sha256": "8730e1f17d6acf34252f4c236cce5f5a96bde308ad2dbad7bfc51193c37292fa"
     },
     {
       "id": "PROPERTY-U16-CONVERT-BLOCK-INVERSE",
@@ -4533,12 +4533,12 @@
     {
       "id": "PROPERTY-USER-LEAF-RECORD-IS-COMPACT-AND-AUTHENTICATED",
       "path": "crates/core/component/compliance/src/registry.rs",
-      "source_sha256": "47e698fe0fe715ba8e4f77fdc2f3f72af40f78668b0e401162c0fbe9152f778b"
+      "source_sha256": "a04ebdfed94a35315e21c3d2f56873a33b930072f5114ccee20222ca7fbce19e"
     },
     {
       "id": "PROPERTY-USER-TREE-INSERT-AND-WITNESS",
       "path": "crates/view/src/compliance_tree.rs",
-      "source_sha256": "cb233dd0d536b9e7368c2704edc5b80dc81fd9f776484dd6202df607da449781"
+      "source_sha256": "7d15f39eabb80ec60cad0f12935324b0c202ba7e1ba529ff77d517f20ffc74df"
     },
     {
       "id": "PROPERTY-VIEWS-ADDRESS-FAILS-ON-OTHER-ADDRESS",
@@ -4613,12 +4613,12 @@
     {
       "id": "RUNTIME-ACTION-AUTH-ASSET-POLICY-IDENTITY-REJECT",
       "path": "crates/core/component/compliance/src/structs.rs",
-      "source_sha256": "98afff327a57d96a386aac20602ff12e89a23bd2d6cb0d63435e37fd34ce161c"
+      "source_sha256": "49778b90484a237cb801c028b491a0c5384dfe5f9c7dff4368aedc56e962751a"
     },
     {
       "id": "RUNTIME-ACTION-AUTH-ASSET-REGISTRAR-IDENTITY-REJECT",
       "path": "crates/core/component/compliance/src/structs.rs",
-      "source_sha256": "98afff327a57d96a386aac20602ff12e89a23bd2d6cb0d63435e37fd34ce161c"
+      "source_sha256": "49778b90484a237cb801c028b491a0c5384dfe5f9c7dff4368aedc56e962751a"
     },
     {
       "id": "RUNTIME-ACTION-AUTH-GENESIS-IDENTITY-REJECT",
@@ -4628,7 +4628,7 @@
     {
       "id": "RUNTIME-ACTION-AUTH-USER-AUTHORITY-IDENTITY-REJECT",
       "path": "crates/core/component/compliance/src/structs.rs",
-      "source_sha256": "98afff327a57d96a386aac20602ff12e89a23bd2d6cb0d63435e37fd34ce161c"
+      "source_sha256": "49778b90484a237cb801c028b491a0c5384dfe5f9c7dff4368aedc56e962751a"
     },
     {
       "id": "RUNTIME-ACTION-PLAN-ACTION-COUNT-MISMATCH",
@@ -4658,47 +4658,47 @@
     {
       "id": "RUNTIME-AGGREGATE-BAD-SRS-REJECTION",
       "path": "crates/core/app/src/app/mod.rs",
-      "source_sha256": "979ac8348eebc498c3f5cc9b6842287eb8c2d59356afd92be1d4322defb85795"
+      "source_sha256": "efcf10adcb7d848c6148005fd0630fc44d3b4518ae498869826227e18d808883"
     },
     {
       "id": "RUNTIME-AGGREGATE-HEADER-REJECTION",
       "path": "crates/core/app/src/app/mod.rs",
-      "source_sha256": "979ac8348eebc498c3f5cc9b6842287eb8c2d59356afd92be1d4322defb85795"
+      "source_sha256": "efcf10adcb7d848c6148005fd0630fc44d3b4518ae498869826227e18d808883"
     },
     {
       "id": "RUNTIME-AGGREGATE-INCOMPLETE-SEGMENT-COVERAGE",
       "path": "crates/core/app/src/app/mod.rs",
-      "source_sha256": "979ac8348eebc498c3f5cc9b6842287eb8c2d59356afd92be1d4322defb85795"
+      "source_sha256": "efcf10adcb7d848c6148005fd0630fc44d3b4518ae498869826227e18d808883"
     },
     {
       "id": "RUNTIME-AGGREGATE-JOIN-FAIL-CLOSED",
       "path": "crates/core/app/src/app/mod.rs",
-      "source_sha256": "979ac8348eebc498c3f5cc9b6842287eb8c2d59356afd92be1d4322defb85795"
+      "source_sha256": "efcf10adcb7d848c6148005fd0630fc44d3b4518ae498869826227e18d808883"
     },
     {
       "id": "RUNTIME-AGGREGATE-PLAN-COUNT-ORDER",
       "path": "crates/core/app/src/app/mod.rs",
-      "source_sha256": "979ac8348eebc498c3f5cc9b6842287eb8c2d59356afd92be1d4322defb85795"
+      "source_sha256": "efcf10adcb7d848c6148005fd0630fc44d3b4518ae498869826227e18d808883"
     },
     {
       "id": "RUNTIME-AGGREGATE-REDUCER-FAIL-CLOSED",
       "path": "crates/core/app/src/app/mod.rs",
-      "source_sha256": "979ac8348eebc498c3f5cc9b6842287eb8c2d59356afd92be1d4322defb85795"
+      "source_sha256": "efcf10adcb7d848c6148005fd0630fc44d3b4518ae498869826227e18d808883"
     },
     {
       "id": "RUNTIME-AGGREGATE-SEGMENT-ORDER",
       "path": "crates/core/app/src/app/mod.rs",
-      "source_sha256": "979ac8348eebc498c3f5cc9b6842287eb8c2d59356afd92be1d4322defb85795"
+      "source_sha256": "efcf10adcb7d848c6148005fd0630fc44d3b4518ae498869826227e18d808883"
     },
     {
       "id": "RUNTIME-AGGREGATE-SHIPPING-INPUT-BINDING",
       "path": "crates/core/app/src/app/mod.rs",
-      "source_sha256": "979ac8348eebc498c3f5cc9b6842287eb8c2d59356afd92be1d4322defb85795"
+      "source_sha256": "efcf10adcb7d848c6148005fd0630fc44d3b4518ae498869826227e18d808883"
     },
     {
       "id": "RUNTIME-AGGREGATE-TX-SHAPE",
       "path": "crates/core/app/src/app/mod.rs",
-      "source_sha256": "979ac8348eebc498c3f5cc9b6842287eb8c2d59356afd92be1d4322defb85795"
+      "source_sha256": "efcf10adcb7d848c6148005fd0630fc44d3b4518ae498869826227e18d808883"
     },
     {
       "id": "RUNTIME-CACHE-AGGREGATE-BYTE-BOUND",
@@ -4778,12 +4778,12 @@
     {
       "id": "RUNTIME-CHECKTX-INNER-SIZE",
       "path": "crates/core/app/src/app/mod.rs",
-      "source_sha256": "979ac8348eebc498c3f5cc9b6842287eb8c2d59356afd92be1d4322defb85795"
+      "source_sha256": "efcf10adcb7d848c6148005fd0630fc44d3b4518ae498869826227e18d808883"
     },
     {
       "id": "RUNTIME-DEPLOYED-PROOF-KEY-MAPPING",
       "path": "crates/core/component/shielded-pool/src/note_reshape/proof.rs",
-      "source_sha256": "554de981f4a06e7196c55376a40b2251d71505da23a3fe93daa18c97f6002d74"
+      "source_sha256": "92183ce13356d16d16386100126a17e0cb8bed789e6a4e3f373ba885eeb165e8"
     },
     {
       "id": "RUNTIME-DEPLOYED-PROOF-KEY-REGISTRY",
@@ -4818,17 +4818,17 @@
     {
       "id": "RUNTIME-GRPC-CHECKTX-PROOF-FRONTDOOR",
       "path": "crates/bin/shieldd/src/grpc.rs",
-      "source_sha256": "069f25b4967cc33aa06c1a891f122d4f35f529f5cff1ae3ff8232515ebca92fe"
+      "source_sha256": "4e7855dcca555bc75802feea6a96d568a68192e4069c40094a20dc7aa370f7fd"
     },
     {
       "id": "RUNTIME-GRPC-DELIVERTX-PROOF-FRONTDOOR",
       "path": "crates/bin/shieldd/src/grpc.rs",
-      "source_sha256": "069f25b4967cc33aa06c1a891f122d4f35f529f5cff1ae3ff8232515ebca92fe"
+      "source_sha256": "4e7855dcca555bc75802feea6a96d568a68192e4069c40094a20dc7aa370f7fd"
     },
     {
       "id": "RUNTIME-HOST-CHECKTX-PROOF-FRONTDOOR",
       "path": "crates/core/app/src/app/host.rs",
-      "source_sha256": "4536da7ec9225815021804682436107afdbafacb8cdd535d6b3a751f0a7a532d"
+      "source_sha256": "75eb2136b9217d3e372897deeb64a72a401ff8c1326ce5b1ad4b205d4e5a4d9e"
     },
     {
       "id": "RUNTIME-HOST-DELIVERTX-PROOF-FRONTDOOR",
@@ -4838,7 +4838,7 @@
     {
       "id": "RUNTIME-NO-CONSENSUS-DIAGNOSTIC-IO",
       "path": "crates/core/app/src/app/mod.rs",
-      "source_sha256": "979ac8348eebc498c3f5cc9b6842287eb8c2d59356afd92be1d4322defb85795"
+      "source_sha256": "efcf10adcb7d848c6148005fd0630fc44d3b4518ae498869826227e18d808883"
     },
     {
       "id": "RUNTIME-PREPARED-PROPOSAL-EXACT-REUSE",
@@ -4853,32 +4853,32 @@
     {
       "id": "RUNTIME-PROOF-WORKER-CONCURRENCY",
       "path": "crates/core/app/src/app/mod.rs",
-      "source_sha256": "979ac8348eebc498c3f5cc9b6842287eb8c2d59356afd92be1d4322defb85795"
+      "source_sha256": "efcf10adcb7d848c6148005fd0630fc44d3b4518ae498869826227e18d808883"
     },
     {
       "id": "RUNTIME-PROPOSAL-NULLIFIER-COUNT",
       "path": "crates/core/app/src/app/mod.rs",
-      "source_sha256": "979ac8348eebc498c3f5cc9b6842287eb8c2d59356afd92be1d4322defb85795"
+      "source_sha256": "efcf10adcb7d848c6148005fd0630fc44d3b4518ae498869826227e18d808883"
     },
     {
       "id": "RUNTIME-PROPOSAL-TX-COUNT",
       "path": "crates/core/app/src/app/mod.rs",
-      "source_sha256": "979ac8348eebc498c3f5cc9b6842287eb8c2d59356afd92be1d4322defb85795"
+      "source_sha256": "efcf10adcb7d848c6148005fd0630fc44d3b4518ae498869826227e18d808883"
     },
     {
       "id": "RUNTIME-PROPOSAL-TX-PAYLOAD",
       "path": "crates/core/app/src/app/mod.rs",
-      "source_sha256": "979ac8348eebc498c3f5cc9b6842287eb8c2d59356afd92be1d4322defb85795"
+      "source_sha256": "efcf10adcb7d848c6148005fd0630fc44d3b4518ae498869826227e18d808883"
     },
     {
       "id": "RUNTIME-PROPOSAL-TX-SIZE",
       "path": "crates/core/app/src/app/mod.rs",
-      "source_sha256": "979ac8348eebc498c3f5cc9b6842287eb8c2d59356afd92be1d4322defb85795"
+      "source_sha256": "efcf10adcb7d848c6148005fd0630fc44d3b4518ae498869826227e18d808883"
     },
     {
       "id": "RUNTIME-RAW-NOTE-RESHAPE-CAPABILITY-GATE",
       "path": "crates/core/component/shielded-pool/src/component/action_handler/note_reshape_action.rs",
-      "source_sha256": "7dafa830c47d9b8738a6a840eebebca1fabfb6bda571f40123f4635e77924a04"
+      "source_sha256": "f188524149f7af7ab56cbb56ac7c5f7c03af573e3ff647dfbe2105db0a743246"
     },
     {
       "id": "RUNTIME-RAW-TRANSFER-CAPABILITY-GATE",
@@ -4893,52 +4893,52 @@
     {
       "id": "RUNTIME-STRUCTURED-TASK-DRAIN",
       "path": "crates/core/app/src/app/mod.rs",
-      "source_sha256": "979ac8348eebc498c3f5cc9b6842287eb8c2d59356afd92be1d4322defb85795"
+      "source_sha256": "efcf10adcb7d848c6148005fd0630fc44d3b4518ae498869826227e18d808883"
     },
     {
       "id": "RUNTIME-TIMESTAMP-CENTRAL-ZERO-DRIFT",
       "path": "crates/core/component/compliance/src/registry.rs",
-      "source_sha256": "47e698fe0fe715ba8e4f77fdc2f3f72af40f78668b0e401162c0fbe9152f778b"
+      "source_sha256": "a04ebdfed94a35315e21c3d2f56873a33b930072f5114ccee20222ca7fbce19e"
     },
     {
       "id": "RUNTIME-TIMESTAMP-CURRENT-BOUNDARY",
       "path": "crates/core/component/compliance/src/registry.rs",
-      "source_sha256": "47e698fe0fe715ba8e4f77fdc2f3f72af40f78668b0e401162c0fbe9152f778b"
+      "source_sha256": "a04ebdfed94a35315e21c3d2f56873a33b930072f5114ccee20222ca7fbce19e"
     },
     {
       "id": "RUNTIME-TIMESTAMP-NEGATIVE-CONSENSUS",
       "path": "crates/core/component/compliance/src/registry.rs",
-      "source_sha256": "47e698fe0fe715ba8e4f77fdc2f3f72af40f78668b0e401162c0fbe9152f778b"
+      "source_sha256": "a04ebdfed94a35315e21c3d2f56873a33b930072f5114ccee20222ca7fbce19e"
     },
     {
       "id": "RUNTIME-TIMESTAMP-SIGNED-PARITY",
       "path": "crates/core/component/compliance/src/registry.rs",
-      "source_sha256": "47e698fe0fe715ba8e4f77fdc2f3f72af40f78668b0e401162c0fbe9152f778b"
+      "source_sha256": "a04ebdfed94a35315e21c3d2f56873a33b930072f5114ccee20222ca7fbce19e"
     },
     {
       "id": "RUNTIME-TRANSACTION-ACTION-COUNT",
       "path": "crates/core/app/src/action_handler/transaction.rs",
-      "source_sha256": "c3fb17eb3536e0604c9e8801aab53fc1a646b1759fb5f25a838d1e5673e50dcb"
+      "source_sha256": "9d19409feb3587d0c222bd213ad13aa3be725e2ee16a7eb6acde4989fbde68c2"
     },
     {
       "id": "RUNTIME-TRANSACTION-CANONICAL-DECODE",
       "path": "crates/core/transaction/src/transaction.rs",
-      "source_sha256": "9a49faec543f28043282236feede618e410eb5a113174b3c1ff50c3493deffbb"
+      "source_sha256": "ddaa890d8a85ba6ca191988cc4ce69e823604c638261e1802de35fc3d3398be1"
     },
     {
       "id": "RUNTIME-TRANSACTION-NULLIFIER-COUNT",
       "path": "crates/core/app/src/action_handler/transaction.rs",
-      "source_sha256": "c3fb17eb3536e0604c9e8801aab53fc1a646b1759fb5f25a838d1e5673e50dcb"
+      "source_sha256": "9d19409feb3587d0c222bd213ad13aa3be725e2ee16a7eb6acde4989fbde68c2"
     },
     {
       "id": "RUNTIME-TRANSACTION-NULLIFIER-PARITY-MIXED",
       "path": "crates/core/transaction/src/transaction.rs",
-      "source_sha256": "9a49faec543f28043282236feede618e410eb5a113174b3c1ff50c3493deffbb"
+      "source_sha256": "ddaa890d8a85ba6ca191988cc4ce69e823604c638261e1802de35fc3d3398be1"
     },
     {
       "id": "RUNTIME-TRANSACTION-NULLIFIER-PARITY-TRANSFER-FEE",
       "path": "crates/core/transaction/src/transaction.rs",
-      "source_sha256": "9a49faec543f28043282236feede618e410eb5a113174b3c1ff50c3493deffbb"
+      "source_sha256": "ddaa890d8a85ba6ca191988cc4ce69e823604c638261e1802de35fc3d3398be1"
     },
     {
       "id": "SCT-ANCHOR-LIVENESS-BOUNDARY",
@@ -4993,7 +4993,7 @@
     {
       "id": "TRANSACTION-STAGED-EFFECTS-ROLLBACK",
       "path": "crates/core/app/src/app/mod.rs",
-      "source_sha256": "979ac8348eebc498c3f5cc9b6842287eb8c2d59356afd92be1d4322defb85795"
+      "source_sha256": "efcf10adcb7d848c6148005fd0630fc44d3b4518ae498869826227e18d808883"
     },
     {
       "id": "TRANSACTION-ZERO-BLINDING-BUILD",
@@ -5008,7 +5008,7 @@
     {
       "id": "TRANSFER-ASSET-KEY-VALIDITY",
       "path": "crates/core/component/compliance/src/registry.rs",
-      "source_sha256": "47e698fe0fe715ba8e4f77fdc2f3f72af40f78668b0e401162c0fbe9152f778b"
+      "source_sha256": "a04ebdfed94a35315e21c3d2f56873a33b930072f5114ccee20222ca7fbce19e"
     },
     {
       "id": "TRANSFER-ASSET-SENTINEL-EXACT-ROW",
@@ -5028,12 +5028,12 @@
     {
       "id": "TRANSFER-CANONICAL-UNREGULATED-BRANCH",
       "path": "tools/gnark/internal/circuits/transfer_metamorphic_test.go",
-      "source_sha256": "26817c63be06b871dfd82989a5e5aad3a7380ec7f76a7bbc62c87ab8882ed426"
+      "source_sha256": "88b23d390363a3bc812a01d3a6b7369aa5459c3c6c261f17aeee0eff96bcd963"
     },
     {
       "id": "TRANSFER-CIRCUIT-NEGATIVE",
       "path": "tools/gnark/internal/circuits/transfer_metamorphic_test.go",
-      "source_sha256": "26817c63be06b871dfd82989a5e5aad3a7380ec7f76a7bbc62c87ab8882ed426"
+      "source_sha256": "88b23d390363a3bc812a01d3a6b7369aa5459c3c6c261f17aeee0eff96bcd963"
     },
     {
       "id": "TRANSFER-COMPLIANCE-DIRECT-METADATA-WIRING",
@@ -5063,22 +5063,22 @@
     {
       "id": "TRANSFER-DECAF-ENCODE-TO-CURVE-CIRCUIT-COMPILES",
       "path": "tools/gnark/internal/primitives/crypto_primitives_test.go",
-      "source_sha256": "50542b6054c5101c29106c79bd9e8e0ec6b60ca122f9142e71925b0ae9995d68"
+      "source_sha256": "870b9598bc4e7254fa66823029454c20f0166bd29f4576a1d880b13747381d35"
     },
     {
       "id": "TRANSFER-DECAF-ENCODE-TO-CURVE-NATIVE-RUST-VECTOR-PARITY",
       "path": "tools/gnark/internal/primitives/crypto_primitives_test.go",
-      "source_sha256": "50542b6054c5101c29106c79bd9e8e0ec6b60ca122f9142e71925b0ae9995d68"
+      "source_sha256": "870b9598bc4e7254fa66823029454c20f0166bd29f4576a1d880b13747381d35"
     },
     {
       "id": "TRANSFER-DECAF-ENCODE-TO-CURVE-RUST-VECTOR-PARITY",
       "path": "tools/gnark/internal/primitives/crypto_primitives_test.go",
-      "source_sha256": "50542b6054c5101c29106c79bd9e8e0ec6b60ca122f9142e71925b0ae9995d68"
+      "source_sha256": "870b9598bc4e7254fa66823029454c20f0166bd29f4576a1d880b13747381d35"
     },
     {
       "id": "TRANSFER-DECAF-EPHEMERAL-COMPRESS-RUST-VECTOR-PARITY",
       "path": "tools/gnark/internal/primitives/crypto_primitives_test.go",
-      "source_sha256": "50542b6054c5101c29106c79bd9e8e0ec6b60ca122f9142e71925b0ae9995d68"
+      "source_sha256": "870b9598bc4e7254fa66823029454c20f0166bd29f4576a1d880b13747381d35"
     },
     {
       "id": "TRANSFER-DERIVED-SHARED-SECRET-ENCRYPTION-WIRING",
@@ -5088,17 +5088,17 @@
     {
       "id": "TRANSFER-DETECTION-SLOT-U32-RANGE",
       "path": "tools/gnark/internal/circuits/transfer_metamorphic_test.go",
-      "source_sha256": "26817c63be06b871dfd82989a5e5aad3a7380ec7f76a7bbc62c87ab8882ed426"
+      "source_sha256": "88b23d390363a3bc812a01d3a6b7369aa5459c3c6c261f17aeee0eff96bcd963"
     },
     {
       "id": "TRANSFER-DUMMY-NULLIFIER-FIXED-SLOT",
       "path": "tools/gnark/internal/circuits/transfer_metamorphic_test.go",
-      "source_sha256": "26817c63be06b871dfd82989a5e5aad3a7380ec7f76a7bbc62c87ab8882ed426"
+      "source_sha256": "88b23d390363a3bc812a01d3a6b7369aa5459c3c6c261f17aeee0eff96bcd963"
     },
     {
       "id": "TRANSFER-DUMMY-RK-EXTERNAL-AUTHORIZATION",
       "path": "tools/gnark/internal/circuits/transfer_metamorphic_test.go",
-      "source_sha256": "26817c63be06b871dfd82989a5e5aad3a7380ec7f76a7bbc62c87ab8882ed426"
+      "source_sha256": "88b23d390363a3bc812a01d3a6b7369aa5459c3c6c261f17aeee0eff96bcd963"
     },
     {
       "id": "TRANSFER-EFFECT-HASH-COMPLIANCE-BINDING",
@@ -5108,32 +5108,32 @@
     {
       "id": "TRANSFER-EVERY-COMPLIANCE-TIER-CIPHERTEXT",
       "path": "tools/gnark/internal/circuits/transfer_metamorphic_test.go",
-      "source_sha256": "26817c63be06b871dfd82989a5e5aad3a7380ec7f76a7bbc62c87ab8882ed426"
+      "source_sha256": "88b23d390363a3bc812a01d3a6b7369aa5459c3c6c261f17aeee0eff96bcd963"
     },
     {
       "id": "TRANSFER-EVERY-DETECTION-CIPHERTEXT",
       "path": "tools/gnark/internal/circuits/transfer_metamorphic_test.go",
-      "source_sha256": "26817c63be06b871dfd82989a5e5aad3a7380ec7f76a7bbc62c87ab8882ed426"
+      "source_sha256": "88b23d390363a3bc812a01d3a6b7369aa5459c3c6c261f17aeee0eff96bcd963"
     },
     {
       "id": "TRANSFER-EVERY-METADATA-FIELD",
       "path": "tools/gnark/internal/circuits/transfer_metamorphic_test.go",
-      "source_sha256": "26817c63be06b871dfd82989a5e5aad3a7380ec7f76a7bbc62c87ab8882ed426"
+      "source_sha256": "88b23d390363a3bc812a01d3a6b7369aa5459c3c6c261f17aeee0eff96bcd963"
     },
     {
       "id": "TRANSFER-EVERY-TIER-EPK-SUBSTITUTION",
       "path": "tools/gnark/internal/circuits/transfer_metamorphic_test.go",
-      "source_sha256": "26817c63be06b871dfd82989a5e5aad3a7380ec7f76a7bbc62c87ab8882ed426"
+      "source_sha256": "88b23d390363a3bc812a01d3a6b7369aa5459c3c6c261f17aeee0eff96bcd963"
     },
     {
       "id": "TRANSFER-EXTRACTED-CACHE-UPGRADE",
       "path": "crates/core/app/src/app/mod.rs",
-      "source_sha256": "979ac8348eebc498c3f5cc9b6842287eb8c2d59356afd92be1d4322defb85795"
+      "source_sha256": "efcf10adcb7d848c6148005fd0630fc44d3b4518ae498869826227e18d808883"
     },
     {
       "id": "TRANSFER-FAMILY-VALID",
       "path": "tools/gnark/internal/circuits/family_test.go",
-      "source_sha256": "b18c1835c8f604ba79c7eb330703ab3155845cb3cbbcbcd5fa505c72dfb1368a"
+      "source_sha256": "5de2fad46613ed1672ab60cacfdb50a7a02babb6f9aa5789c5bdac634862e8c6"
     },
     {
       "id": "TRANSFER-FIXED-SHAPE-DECODE",
@@ -5188,22 +5188,22 @@
     {
       "id": "TRANSFER-MANIFEST-EXACT-CONSTRAINT-BOUNDARIES",
       "path": "tools/gnark/internal/circuits/wiring_transcript_test.go",
-      "source_sha256": "88b391626f168408111b3b6f549bd164059e08abe7cde7dc5d5e3f4c9f69f55e"
+      "source_sha256": "850e307c91d02351694185d8699d5f68bb7006b36a96a2322ed4713c925a8969"
     },
     {
       "id": "TRANSFER-MANIFEST-EXACT-GADGET-SHAPES",
       "path": "tools/gnark/internal/circuits/wiring_transcript_test.go",
-      "source_sha256": "88b391626f168408111b3b6f549bd164059e08abe7cde7dc5d5e3f4c9f69f55e"
+      "source_sha256": "850e307c91d02351694185d8699d5f68bb7006b36a96a2322ed4713c925a8969"
     },
     {
       "id": "TRANSFER-MANIFEST-SEMANTIC-BINDINGS",
       "path": "tools/gnark/internal/circuits/wiring_transcript_test.go",
-      "source_sha256": "88b391626f168408111b3b6f549bd164059e08abe7cde7dc5d5e3f4c9f69f55e"
+      "source_sha256": "850e307c91d02351694185d8699d5f68bb7006b36a96a2322ed4713c925a8969"
     },
     {
       "id": "TRANSFER-MUTATED-COMPLIANCE-SALT",
       "path": "tools/gnark/internal/circuits/family_test.go",
-      "source_sha256": "b18c1835c8f604ba79c7eb330703ab3155845cb3cbbcbcd5fa505c72dfb1368a"
+      "source_sha256": "5de2fad46613ed1672ab60cacfdb50a7a02babb6f9aa5789c5bdac634862e8c6"
     },
     {
       "id": "TRANSFER-NET-BALANCE-GADGET-PARITY",
@@ -5223,12 +5223,12 @@
     {
       "id": "TRANSFER-NONBOOLEAN-REGULATED-SELECTOR",
       "path": "tools/gnark/internal/circuits/transfer_metamorphic_test.go",
-      "source_sha256": "26817c63be06b871dfd82989a5e5aad3a7380ec7f76a7bbc62c87ab8882ed426"
+      "source_sha256": "88b23d390363a3bc812a01d3a6b7369aa5459c3c6c261f17aeee0eff96bcd963"
     },
     {
       "id": "TRANSFER-NONCE-ROOT-EVERY-TIER-SCALAR",
       "path": "tools/gnark/internal/circuits/transfer_metamorphic_test.go",
-      "source_sha256": "26817c63be06b871dfd82989a5e5aad3a7380ec7f76a7bbc62c87ab8882ed426"
+      "source_sha256": "88b23d390363a3bc812a01d3a6b7369aa5459c3c6c261f17aeee0eff96bcd963"
     },
     {
       "id": "TRANSFER-OMITS-DERIVED-DUMMY-AUTH-OUTPUT-ROLE",
@@ -5308,7 +5308,7 @@
     {
       "id": "TRANSFER-REBOUND-NET-VALUE",
       "path": "tools/gnark/internal/circuits/transfer_metamorphic_test.go",
-      "source_sha256": "26817c63be06b871dfd82989a5e5aad3a7380ec7f76a7bbc62c87ab8882ed426"
+      "source_sha256": "88b23d390363a3bc812a01d3a6b7369aa5459c3c6c261f17aeee0eff96bcd963"
     },
     {
       "id": "TRANSFER-RECEIVER-NONZERO-WIRING",
@@ -5318,12 +5318,17 @@
     {
       "id": "TRANSFER-REGULATED-ASSET-BRANCH-REJECTION",
       "path": "tools/gnark/internal/circuits/transfer_metamorphic_test.go",
-      "source_sha256": "26817c63be06b871dfd82989a5e5aad3a7380ec7f76a7bbc62c87ab8882ed426"
+      "source_sha256": "88b23d390363a3bc812a01d3a6b7369aa5459c3c6c261f17aeee0eff96bcd963"
     },
     {
       "id": "TRANSFER-REGULATED-FLAGGED-HIDDEN-ARITY",
       "path": "tools/gnark/internal/circuits/transfer_metamorphic_test.go",
-      "source_sha256": "26817c63be06b871dfd82989a5e5aad3a7380ec7f76a7bbc62c87ab8882ed426"
+      "source_sha256": "88b23d390363a3bc812a01d3a6b7369aa5459c3c6c261f17aeee0eff96bcd963"
+    },
+    {
+      "id": "TRANSFER-REGULATED-FROZEN-PARTICIPANT",
+      "path": "tools/gnark/internal/circuits/transfer_metamorphic_test.go",
+      "source_sha256": "88b23d390363a3bc812a01d3a6b7369aa5459c3c6c261f17aeee0eff96bcd963"
     },
     {
       "id": "TRANSFER-REGULATED-THRESHOLD-MATRIX",
@@ -5348,7 +5353,7 @@
     {
       "id": "TRANSFER-SHARED-SENDER-TRANSMISSION-ONCE",
       "path": "tools/gnark/internal/circuits/wiring_transcript_test.go",
-      "source_sha256": "88b391626f168408111b3b6f549bd164059e08abe7cde7dc5d5e3f4c9f69f55e"
+      "source_sha256": "850e307c91d02351694185d8699d5f68bb7006b36a96a2322ed4713c925a8969"
     },
     {
       "id": "TRANSFER-SPEND-AUTH-REJECT",
@@ -5373,12 +5378,12 @@
     {
       "id": "TRANSFER-UNREGULATED-CIPHERTEXT-POLICY-BINDING",
       "path": "tools/gnark/internal/circuits/transfer_metamorphic_test.go",
-      "source_sha256": "26817c63be06b871dfd82989a5e5aad3a7380ec7f76a7bbc62c87ab8882ed426"
+      "source_sha256": "88b23d390363a3bc812a01d3a6b7369aa5459c3c6c261f17aeee0eff96bcd963"
     },
     {
       "id": "TRANSFER-V18-ROLE-SPECIFIC-LAYOUT",
       "path": "tools/gnark/internal/circuits/transfer_metamorphic_test.go",
-      "source_sha256": "26817c63be06b871dfd82989a5e5aad3a7380ec7f76a7bbc62c87ab8882ed426"
+      "source_sha256": "88b23d390363a3bc812a01d3a6b7369aa5459c3c6c261f17aeee0eff96bcd963"
     },
     {
       "id": "TRANSFER-WIRE-COMPLIANCE-METADATA-BOUNDED",
@@ -5393,32 +5398,37 @@
     {
       "id": "VIEW-COMPLIANCE-PATH-CANONICAL-SHAPE",
       "path": "crates/view/src/client_compliance.rs",
-      "source_sha256": "879bdf0e36f78127c719c63d2d2f6ad2f796302db91566266b3b806f4ffda2c5"
+      "source_sha256": "8bd2162146f36e47d0393a213ee3b9da5eab633888ec312765b43108d3446768"
+    },
+    {
+      "id": "VIEW-NOTE-RESHAPE-COMPLIANCE-ENRICHMENT",
+      "path": "crates/view/src/client_compliance.rs",
+      "source_sha256": "8bd2162146f36e47d0393a213ee3b9da5eab633888ec312765b43108d3446768"
     },
     {
       "id": "VIEW-TRANSFER-NONCE-CROSS-ACTION-REUSE-REJECT",
       "path": "crates/view/src/client_compliance.rs",
-      "source_sha256": "879bdf0e36f78127c719c63d2d2f6ad2f796302db91566266b3b806f4ffda2c5"
+      "source_sha256": "8bd2162146f36e47d0393a213ee3b9da5eab633888ec312765b43108d3446768"
     },
     {
       "id": "VIEW-TRANSFER-NONCE-PER-ACTION-FRESHNESS",
       "path": "crates/view/src/client_compliance.rs",
-      "source_sha256": "879bdf0e36f78127c719c63d2d2f6ad2f796302db91566266b3b806f4ffda2c5"
+      "source_sha256": "8bd2162146f36e47d0393a213ee3b9da5eab633888ec312765b43108d3446768"
     },
     {
       "id": "WIRING-R1C-CANCELED-APPEARANCE",
       "path": "tools/gnark/internal/circuits/wiring_transcript_test.go",
-      "source_sha256": "88b391626f168408111b3b6f549bd164059e08abe7cde7dc5d5e3f4c9f69f55e"
+      "source_sha256": "850e307c91d02351694185d8699d5f68bb7006b36a96a2322ed4713c925a8969"
     },
     {
       "id": "WIRING-R1C-NONLINEAR-INFLUENCE",
       "path": "tools/gnark/internal/circuits/wiring_transcript_test.go",
-      "source_sha256": "88b391626f168408111b3b6f549bd164059e08abe7cde7dc5d5e3f4c9f69f55e"
+      "source_sha256": "850e307c91d02351694185d8699d5f68bb7006b36a96a2322ed4713c925a8969"
     },
     {
       "id": "WIRING-SEGMENT-CLASSIFICATION-FAILS-CLOSED",
       "path": "tools/gnark/internal/circuits/wiring_transcript_test.go",
-      "source_sha256": "88b391626f168408111b3b6f549bd164059e08abe7cde7dc5d5e3f4c9f69f55e"
+      "source_sha256": "850e307c91d02351694185d8699d5f68bb7006b36a96a2322ed4713c925a8969"
     },
     {
       "id": "WITHDRAWAL-ACTION-ACCOUNTING-ROLLBACK",
@@ -5478,7 +5488,7 @@
     {
       "id": "WITHDRAWAL-CIRCUIT-NEGATIVE",
       "path": "tools/gnark/internal/circuits/transfer_metamorphic_test.go",
-      "source_sha256": "26817c63be06b871dfd82989a5e5aad3a7380ec7f76a7bbc62c87ab8882ed426"
+      "source_sha256": "88b23d390363a3bc812a01d3a6b7369aa5459c3c6c261f17aeee0eff96bcd963"
     },
     {
       "id": "WITHDRAWAL-CLIENT-EXPIRED",
@@ -5498,12 +5508,12 @@
     {
       "id": "WITHDRAWAL-COMPACT-LEAF-SENTINEL-WIRING",
       "path": "tools/gnark/internal/circuits/shielded_ics20_withdrawal_metamorphic_test.go",
-      "source_sha256": "54802187239d98fc6769d7fc656fb79bd771f8dc682673a6e999b66142d3bd09"
+      "source_sha256": "67d5e1e5656f5b388191e0a9774adb8ebf8f67d834892bc641deffef3a9f5585"
     },
     {
       "id": "WITHDRAWAL-COMPACT-WITNESS-LAYOUT",
       "path": "tools/gnark/internal/circuits/shielded_ics20_withdrawal_metamorphic_test.go",
-      "source_sha256": "54802187239d98fc6769d7fc656fb79bd771f8dc682673a6e999b66142d3bd09"
+      "source_sha256": "67d5e1e5656f5b388191e0a9774adb8ebf8f67d834892bc641deffef3a9f5585"
     },
     {
       "id": "WITHDRAWAL-CONNECTION-HOPS-UNAMBIGUOUS",
@@ -5558,12 +5568,12 @@
     {
       "id": "WITHDRAWAL-DUMMY-NULLIFIER-FIXED-SLOT",
       "path": "tools/gnark/internal/circuits/shielded_ics20_withdrawal_metamorphic_test.go",
-      "source_sha256": "54802187239d98fc6769d7fc656fb79bd771f8dc682673a6e999b66142d3bd09"
+      "source_sha256": "67d5e1e5656f5b388191e0a9774adb8ebf8f67d834892bc641deffef3a9f5585"
     },
     {
       "id": "WITHDRAWAL-DUMMY-RK-EXTERNAL-AUTHORIZATION",
       "path": "tools/gnark/internal/circuits/transfer_metamorphic_test.go",
-      "source_sha256": "26817c63be06b871dfd82989a5e5aad3a7380ec7f76a7bbc62c87ab8882ed426"
+      "source_sha256": "88b23d390363a3bc812a01d3a6b7369aa5459c3c6c261f17aeee0eff96bcd963"
     },
     {
       "id": "WITHDRAWAL-EFFECT-HASH-BINDING",
@@ -5578,22 +5588,22 @@
     {
       "id": "WITHDRAWAL-EVERY-EFFECT-HASH-LIMB",
       "path": "tools/gnark/internal/circuits/shielded_ics20_withdrawal_metamorphic_test.go",
-      "source_sha256": "54802187239d98fc6769d7fc656fb79bd771f8dc682673a6e999b66142d3bd09"
+      "source_sha256": "67d5e1e5656f5b388191e0a9774adb8ebf8f67d834892bc641deffef3a9f5585"
     },
     {
       "id": "WITHDRAWAL-EVERY-OWNED-PUBLIC-FIELD",
       "path": "tools/gnark/internal/circuits/shielded_ics20_withdrawal_metamorphic_test.go",
-      "source_sha256": "54802187239d98fc6769d7fc656fb79bd771f8dc682673a6e999b66142d3bd09"
+      "source_sha256": "67d5e1e5656f5b388191e0a9774adb8ebf8f67d834892bc641deffef3a9f5585"
     },
     {
       "id": "WITHDRAWAL-FAMILY-VALID",
       "path": "tools/gnark/internal/circuits/family_test.go",
-      "source_sha256": "b18c1835c8f604ba79c7eb330703ab3155845cb3cbbcbcd5fa505c72dfb1368a"
+      "source_sha256": "5de2fad46613ed1672ab60cacfdb50a7a02babb6f9aa5789c5bdac634862e8c6"
     },
     {
       "id": "WITHDRAWAL-FIXED-ROUTING-FIELDS",
       "path": "tools/gnark/internal/circuits/shielded_ics20_withdrawal_metamorphic_test.go",
-      "source_sha256": "54802187239d98fc6769d7fc656fb79bd771f8dc682673a6e999b66142d3bd09"
+      "source_sha256": "67d5e1e5656f5b388191e0a9774adb8ebf8f67d834892bc641deffef3a9f5585"
     },
     {
       "id": "WITHDRAWAL-FIXED-SHAPE-DECODE",
@@ -5628,22 +5638,22 @@
     {
       "id": "WITHDRAWAL-MANIFEST-EXACT-FULLY-BOUND",
       "path": "tools/gnark/internal/circuits/wiring_transcript_test.go",
-      "source_sha256": "88b391626f168408111b3b6f549bd164059e08abe7cde7dc5d5e3f4c9f69f55e"
+      "source_sha256": "850e307c91d02351694185d8699d5f68bb7006b36a96a2322ed4713c925a8969"
     },
     {
       "id": "WITHDRAWAL-MUTATED-INTENT-FIELD",
       "path": "tools/gnark/internal/circuits/family_test.go",
-      "source_sha256": "b18c1835c8f604ba79c7eb330703ab3155845cb3cbbcbcd5fa505c72dfb1368a"
+      "source_sha256": "5de2fad46613ed1672ab60cacfdb50a7a02babb6f9aa5789c5bdac634862e8c6"
     },
     {
       "id": "WITHDRAWAL-NONBOOLEAN-REGULATED-SELECTOR",
       "path": "tools/gnark/internal/circuits/shielded_ics20_withdrawal_metamorphic_test.go",
-      "source_sha256": "54802187239d98fc6769d7fc656fb79bd771f8dc682673a6e999b66142d3bd09"
+      "source_sha256": "67d5e1e5656f5b388191e0a9774adb8ebf8f67d834892bc641deffef3a9f5585"
     },
     {
       "id": "WITHDRAWAL-OPTIONAL-DUMMY-NULLIFIER-SEED",
       "path": "tools/gnark/internal/circuits/shielded_ics20_withdrawal_metamorphic_test.go",
-      "source_sha256": "54802187239d98fc6769d7fc656fb79bd771f8dc682673a6e999b66142d3bd09"
+      "source_sha256": "67d5e1e5656f5b388191e0a9774adb8ebf8f67d834892bc641deffef3a9f5585"
     },
     {
       "id": "WITHDRAWAL-OUTGOING-VIEW",
@@ -5763,17 +5773,22 @@
     {
       "id": "WITHDRAWAL-REGULATED-ASSET-BRANCH-REJECTION",
       "path": "tools/gnark/internal/circuits/transfer_metamorphic_test.go",
-      "source_sha256": "26817c63be06b871dfd82989a5e5aad3a7380ec7f76a7bbc62c87ab8882ed426"
+      "source_sha256": "88b23d390363a3bc812a01d3a6b7369aa5459c3c6c261f17aeee0eff96bcd963"
+    },
+    {
+      "id": "WITHDRAWAL-REGULATED-FROZEN-SENDER",
+      "path": "tools/gnark/internal/circuits/shielded_ics20_withdrawal_metamorphic_test.go",
+      "source_sha256": "67d5e1e5656f5b388191e0a9774adb8ebf8f67d834892bc641deffef3a9f5585"
     },
     {
       "id": "WITHDRAWAL-REQUIRED-OPTIONAL-LAYOUT",
       "path": "tools/gnark/internal/circuits/shielded_ics20_withdrawal_metamorphic_test.go",
-      "source_sha256": "54802187239d98fc6769d7fc656fb79bd771f8dc682673a6e999b66142d3bd09"
+      "source_sha256": "67d5e1e5656f5b388191e0a9774adb8ebf8f67d834892bc641deffef3a9f5585"
     },
     {
       "id": "WITHDRAWAL-REQUIRED-SPEND-OMITS-DUMMY-LAYOUT",
       "path": "tools/gnark/internal/circuits/transfer_metamorphic_test.go",
-      "source_sha256": "26817c63be06b871dfd82989a5e5aad3a7380ec7f76a7bbc62c87ab8882ed426"
+      "source_sha256": "88b23d390363a3bc812a01d3a6b7369aa5459c3c6c261f17aeee0eff96bcd963"
     },
     {
       "id": "WITHDRAWAL-ROUTE-MEMO-ASSET-BINDING",

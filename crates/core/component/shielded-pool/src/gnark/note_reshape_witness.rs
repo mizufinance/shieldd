@@ -3,8 +3,8 @@ use decaf377::{Encoding, Fq};
 
 use crate::{
     gnark::typed::{
-        indexed_leaf_from_typed, merkle_path_from_typed, point_affine_bytes, IndexedLeafBinary,
-        MerklePathBinary, PointAffineBytes,
+        compliance_leaf_from_typed, indexed_leaf_from_typed, merkle_path_from_typed,
+        point_affine_bytes, IndexedLeafBinary, MerklePathBinary, PointAffineBytes,
     },
     note_reshape::{
         NoteReshapeInputPrivate, NoteReshapeInputPublic, NoteReshapeOutputPrivate,
@@ -51,6 +51,7 @@ pub struct NoteReshapeWitnessV5 {
     pub anchor: [u8; 32],
     pub claimed_statement_hash: [u8; 32],
     pub asset_anchor: [u8; 32],
+    pub compliance_anchor: [u8; 32],
     pub routing_tag: [u8; 32],
     pub routing_parameter_set_id: [u8; 32],
     pub recent_position_floor: [u8; 32],
@@ -66,11 +67,23 @@ pub struct NoteReshapeWitnessV5 {
     pub unregulated_precision: u8,
     pub routing_as_of_height: u64,
     pub routing_nonce: [u8; 32],
+    pub sender_compliance_path: MerklePathBinary,
+    pub sender_compliance_position: u64,
+    pub sender_slot_id: [u8; 32],
+    pub sender_slot_derivation: [u8; 32],
+    pub sender_d: [u8; 32],
+    pub sender_status: [u8; 32],
     pub shared: NoteReshapeSharedNoteContextWitnessV5,
     pub spends: Vec<NoteReshapeSpendWitnessV5>,
     pub outputs: Vec<NoteReshapeOutputWitnessV5>,
     pub balance_commitment_affine: PointAffineBytes,
     pub ak_affine: PointAffineBytes,
+}
+
+fn compliance_leaf_parts(
+    leaf: &crate::gnark::typed::ComplianceLeafBinary,
+) -> ([u8; 32], [u8; 32], [u8; 32], [u8; 32]) {
+    (leaf.slot_id, leaf.slot_derivation, leaf.d, leaf.status)
 }
 
 fn verification_key_point(
@@ -164,6 +177,9 @@ impl NoteReshapeWitnessV5 {
                 first_input.spent_note.diversified_generator(),
             )?,
         };
+        let sender_leaf = compliance_leaf_from_typed(&private.sender_leaf)?;
+        let (sender_slot_id, sender_slot_derivation, sender_d, sender_status) =
+            compliance_leaf_parts(&sender_leaf);
 
         let mut witness = Self {
             family_id: public.family_id,
@@ -173,6 +189,7 @@ impl NoteReshapeWitnessV5 {
             anchor: Fq::from(public.anchor).to_bytes(),
             claimed_statement_hash: claimed_statement_hash.to_bytes(),
             asset_anchor: public.asset_anchor.0.to_bytes(),
+            compliance_anchor: public.compliance_anchor.0.to_bytes(),
             routing_tag: Fq::from(public.routing_tag.value).to_bytes(),
             routing_parameter_set_id: public.routing_parameter_set_id.to_bytes(),
             recent_position_floor: Fq::from(public.recent_position_floor).to_bytes(),
@@ -192,6 +209,12 @@ impl NoteReshapeWitnessV5 {
             unregulated_precision: private.routing_parameters.unregulated_precision.bits(),
             routing_as_of_height: private.routing_parameters.as_of_height,
             routing_nonce: private.routing_nonce.to_bytes(),
+            sender_compliance_path: merkle_path_from_typed(&private.sender_compliance_path)?,
+            sender_compliance_position: private.sender_compliance_position,
+            sender_slot_id,
+            sender_slot_derivation,
+            sender_d,
+            sender_status,
             shared,
             spends,
             outputs,

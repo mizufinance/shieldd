@@ -364,7 +364,7 @@ mod tests {
             + ROUTING_PRIVATE_BYTES
             + MERKLE_PATH_BYTES
             + 8
-            + 3 * 32
+            + 4 * 32
             + 2 * SLIM_REQUIRED_SPEND_BYTES;
 
         let (public, private) =

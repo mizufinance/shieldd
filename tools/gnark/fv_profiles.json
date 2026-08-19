@@ -6,7 +6,7 @@
       "kind": "note_reshape",
       "n_in": 8,
       "n_out": 1,
-      "witness_format_version": 5,
+      "witness_format_version": 6,
       "proof_witnesses": [
         {
           "case": "note_reshape8x1",
@@ -24,7 +24,7 @@
       "kind": "note_reshape",
       "n_in": 1,
       "n_out": 8,
-      "witness_format_version": 5,
+      "witness_format_version": 6,
       "proof_witnesses": [
         {
           "case": "note_reshape1x8",
@@ -42,7 +42,7 @@
       "kind": "transfer",
       "n_in": 2,
       "n_out": 2,
-      "witness_format_version": 18,
+      "witness_format_version": 19,
       "proof_witnesses": [
         {
           "case": "regulated_unflagged",
@@ -68,7 +68,7 @@
       "kind": "shielded_ics20_withdrawal",
       "n_in": 2,
       "n_out": 1,
-      "witness_format_version": 10,
+      "witness_format_version": 11,
       "proof_witnesses": [
         {
           "case": "regulated_optional_real",

@@ -3,7 +3,8 @@
 Shieldd's shielded pool can record arbitrary assets.  To be precise, we define:
 
 - an *amount* to be an untyped quantity of some asset;
-- an *asset type* to be an [ADR001]-style denomination trace uniquely identifying a cross-chain asset and its provenance, such as:
+- an *asset type* to be the canonical Bankd denomination. Bankd may use an
+  [ADR001]-style trace for an IBC-sourced asset, such as:
   - `denom` (native chain A asset)
   - `transfer/channelToA/denom` (chain B representation of chain A asset)
   - `transfer/channelToB/transfer/channelToA/denom` (chain C representation of chain B representation of chain A asset)

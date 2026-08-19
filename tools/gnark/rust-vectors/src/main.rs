@@ -194,7 +194,7 @@ fn note_reshape_statement_fixture(
     n_in: usize,
     n_out: usize,
 ) -> NoteReshapeStatementFixture {
-    let domain_label = format!("shieldd.shielded_pool.{label}.public_input_hash.v3");
+    let domain_label = format!("shieldd.shielded_pool.{label}.public_input_hash.v4");
     let pad_0_label = format!("shieldd.shielded_pool.{label}.public_input_hash.pad0");
     let pad_1_label = format!("shieldd.shielded_pool.{label}.public_input_hash.pad1");
     let domain = blake2b_fq(domain_label.as_bytes());
@@ -205,6 +205,7 @@ fn note_reshape_statement_fixture(
     field_roles.extend((0..n_out).map(|index| format!("output_note_commitment_{index}")));
     field_roles.push("balance_commitment_fq".to_string());
     field_roles.push("asset_anchor".to_string());
+    field_roles.push("compliance_anchor".to_string());
     field_roles.push("routing_tag".to_string());
     field_roles.push("routing_parameter_set_id".to_string());
     field_roles.push("recent_position_floor".to_string());
@@ -469,7 +470,7 @@ fn main() {
                 blake2b_simd::blake2b(b"shieldd.leaf_binding.sender").as_bytes(),
             )
             .to_string(),
-            compliance_leaf_domain: blake2b_fq(b"shieldd.compliance.leaf.v3").to_string(),
+            compliance_leaf_domain: blake2b_fq(b"shieldd.compliance.leaf.v4").to_string(),
             issuer_detection_domain: blake2b_fq(b"shieldd.compliance.issuer_detection")
                 .to_string(),
             dleq_metadata_domain: blake2b_fq(b"shieldd.compliance.dleq_metadata").to_string(),

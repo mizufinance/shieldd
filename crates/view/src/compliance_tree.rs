@@ -28,6 +28,7 @@ pub struct ComplianceUserTree {
     inner: QuadTree,
     /// Next position for insertion
     position: u64,
+    dirty_positions: BTreeSet<u64>,
 }
 
 impl ComplianceUserTree {
@@ -36,6 +37,7 @@ impl ComplianceUserTree {
         Self {
             inner: QuadTree::new(),
             position: 0,
+            dirty_positions: BTreeSet::new(),
         }
     }
 
@@ -61,6 +63,7 @@ impl ComplianceUserTree {
         Ok(Self {
             inner: tree,
             position,
+            dirty_positions: BTreeSet::new(),
         })
     }
 
@@ -69,7 +72,18 @@ impl ComplianceUserTree {
         let pos = self.position;
         self.inner.update(pos, commitment)?;
         self.position += 1;
+        self.dirty_positions.insert(pos);
         Ok(pos)
+    }
+
+    pub fn update(&mut self, position: u64, commitment: StateCommitment) -> Result<()> {
+        anyhow::ensure!(
+            position < self.position,
+            "cannot update unknown user-tree position {position}"
+        );
+        self.inner.update(position, commitment)?;
+        self.dirty_positions.insert(position);
+        Ok(())
     }
 
     /// Get the current tree root.
@@ -96,10 +110,9 @@ impl ComplianceUserTree {
     pub fn persist(
         &self,
         store: &mut ComplianceTreeStore<'_, '_>,
-        start_position: u64,
+        _start_position: u64,
     ) -> Result<()> {
-        // Save new commitments
-        for pos in start_position..self.position {
+        for &pos in &self.dirty_positions {
             let commitment = self.inner.get_leaf(pos).ok_or_else(|| {
                 anyhow::anyhow!("missing leaf at position {} during persist", pos)
             })?;
@@ -110,6 +123,10 @@ impl ComplianceUserTree {
         store.set_user_tree_position(self.position)?;
 
         Ok(())
+    }
+
+    pub fn clear_dirty_positions(&mut self) {
+        self.dirty_positions.clear();
     }
 }
 

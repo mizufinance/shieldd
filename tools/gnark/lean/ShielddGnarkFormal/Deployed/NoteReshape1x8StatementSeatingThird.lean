@@ -1,4 +1,4 @@
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.Seg79
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.Seg83
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 1000000
@@ -10,13 +10,14 @@ namespace Shieldd.GnarkFormal.Deployed.NoteReshape1x8StatementSeating
 
 open Contracts.NoteReshape1x8
 
-theorem hw1000 : Seg79.wireSeating 1000 = 5 := by decide +kernel
-theorem hw1006 : Seg79.wireSeating 1006 = 20860 := by decide +kernel
-theorem hw1007 : Seg79.wireSeating 1007 = 20865 := by decide +kernel
-theorem hw1008 : Seg79.wireSeating 1008 = 20870 := by decide +kernel
-theorem hw1009 : Seg79.wireSeating 1009 = 20875 := by decide +kernel
-theorem hw1015 : Seg79.wireSeating 1015 = 31969 := by decide +kernel
-theorem hw1016 : Seg79.wireSeating 1016 = 32309 := by decide +kernel
-theorem hw1022 : Seg79.wireSeating 1022 = 166 := by decide +kernel
+theorem hw1000 : Seg83.wireSeating 1000 = 5 := by decide +kernel
+theorem hw1006 : Seg83.wireSeating 1006 = 6 := by decide +kernel
+theorem hw1012 : Seg83.wireSeating 1012 = 27178 := by decide +kernel
+theorem hw1013 : Seg83.wireSeating 1013 = 27183 := by decide +kernel
+theorem hw1014 : Seg83.wireSeating 1014 = 27188 := by decide +kernel
+theorem hw1015 : Seg83.wireSeating 1015 = 27193 := by decide +kernel
+theorem hw1021 : Seg83.wireSeating 1021 = 38287 := by decide +kernel
+theorem hw1022 : Seg83.wireSeating 1022 = 38627 := by decide +kernel
+theorem hw1028 : Seg83.wireSeating 1028 = 220 := by decide +kernel
 
 end Shieldd.GnarkFormal.Deployed.NoteReshape1x8StatementSeating

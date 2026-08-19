@@ -166,7 +166,7 @@ PROPERTY_OWNER_SPECS: dict[str, tuple[TestSpec, ...]] = {
         *_specs(
             "invariant",
             "crates/core/component/compliance/src/component/rpc.rs",
-            "find_most_recent_anchors_uses_history_only_for_user_root",
+            "current_anchors_returns_both_mutable_roots",
         ),
     ),
     "CIPHERTEXT-CORRECTNESS": (

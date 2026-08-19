@@ -30,6 +30,7 @@ pub struct UserLeafData {
     pub slot_id: u32,
     pub slot_derivation: [u8; 32],
     pub d: [u8; 32],
+    pub status: shieldd_sdk_compliance::UserAssetStatus,
     pub commitment: StateCommitment,
 }
 
@@ -101,7 +102,7 @@ impl ComplianceTreeStore<'_, '_> {
 
         self.0
             .prepare_cached(
-                "INSERT INTO compliance_user_positions (position, commitment) VALUES (?1, ?2) ON CONFLICT DO NOTHING",
+                "INSERT OR REPLACE INTO compliance_user_positions (position, commitment) VALUES (?1, ?2)",
             )
             .context("failed to prepare user position insert")?
             .execute((&position, &commitment))
@@ -520,6 +521,7 @@ impl ComplianceTreeStore<'_, '_> {
         slot_id: u32,
         slot_derivation: &[u8],
         d: &[u8],
+        status: shieldd_sdk_compliance::UserAssetStatus,
         commitment: StateCommitment,
     ) -> anyhow::Result<()> {
         let position = position_to_i64(position)?;
@@ -528,8 +530,8 @@ impl ComplianceTreeStore<'_, '_> {
         self.0
             .prepare_cached(
                 "INSERT OR REPLACE INTO compliance_user_leaf_data \
-                 (address, asset_id, position, slot_id, slot_derivation, d, commitment) \
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                 (address, asset_id, position, slot_id, slot_derivation, d, status, commitment) \
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
             )
             .context("failed to prepare leaf data insert")?
             .execute((
@@ -539,6 +541,8 @@ impl ComplianceTreeStore<'_, '_> {
                 &i64::from(slot_id),
                 slot_derivation,
                 d,
+                &(shieldd_sdk_proto::core::component::compliance::v1::UserAssetStatus::from(status)
+                    as i32),
                 &commitment,
             ))
             .context("failed to insert leaf data")?;
@@ -556,7 +560,7 @@ impl ComplianceTreeStore<'_, '_> {
         let mut stmt = self
             .0
             .prepare_cached(
-                "SELECT position, slot_id, slot_derivation, d, commitment \
+                "SELECT position, slot_id, slot_derivation, d, status, commitment \
                  FROM compliance_user_leaf_data \
                  WHERE address = ?1 AND asset_id = ?2",
             )
@@ -568,14 +572,15 @@ impl ComplianceTreeStore<'_, '_> {
                 let slot_id: i64 = row.get("slot_id")?;
                 let slot_derivation: Vec<u8> = row.get("slot_derivation")?;
                 let d: Vec<u8> = row.get("d")?;
+                let status: i32 = row.get("status")?;
                 let commitment: Vec<u8> = row.get("commitment")?;
-                Ok((position, slot_id, slot_derivation, d, commitment))
+                Ok((position, slot_id, slot_derivation, d, status, commitment))
             })
             .optional()
             .context("failed to query leaf data")?;
 
         match result {
-            Some((position, slot_id, slot_derivation, d, commitment)) => {
+            Some((position, slot_id, slot_derivation, d, status, commitment)) => {
                 let slot_id = u32::try_from(slot_id).map_err(|_| {
                     anyhow::anyhow!("leaf data slot_id is negative or too large: {slot_id}")
                 })?;
@@ -600,6 +605,7 @@ impl ComplianceTreeStore<'_, '_> {
                     slot_id,
                     slot_derivation,
                     d,
+                    status: status.try_into()?,
                     commitment: StateCommitment::try_from(commitment)?,
                 }))
             }

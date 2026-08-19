@@ -14,6 +14,7 @@ pub fn compliance_leaf_to_proto(leaf: &ComplianceLeaf) -> compliance_pb::Complia
         d: leaf.d.to_bytes().to_vec(),
         slot_id: leaf.slot_id,
         slot_derivation: leaf.slot_derivation.to_bytes().to_vec(),
+        status: compliance_pb::UserAssetStatus::from(leaf.status) as i32,
     }
 }
 

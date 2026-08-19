@@ -7,7 +7,6 @@ use futures::StreamExt;
 use shieldd_sdk_asset::asset;
 use shieldd_sdk_keys::ensure_nonidentity_spend_auth_key;
 use shieldd_sdk_proto::{DomainType as _, StateReadProto, StateWriteProto};
-use shieldd_sdk_sct::component::clock::EpochRead;
 use shieldd_sdk_tct::StateCommitment;
 use std::collections::BTreeMap;
 
@@ -18,7 +17,7 @@ use crate::{
     },
     params::StateReadExt as _,
     state_key,
-    structs::{AssetPolicy, ComplianceLeaf, MerklePath},
+    structs::{AssetPolicy, ComplianceLeaf, MerklePath, UserAssetStatus, UserAssetStatusAction},
     tree::{QuadTree, ZERO_HASHES},
 };
 
@@ -47,31 +46,17 @@ pub fn check_timestamp_freshness(
     Ok(())
 }
 
-/// Validate a historical user root and the current mutable asset-policy root.
+/// Require the current mutable user-status and asset-policy roots.
 pub fn validate_compliance_anchor_facts(
-    user_anchor_height: Option<u64>,
+    user_anchor: &StateCommitment,
+    current_user_anchor: &StateCommitment,
     asset_anchor: &StateCommitment,
     current_asset_anchor: &StateCommitment,
-    current_height: u64,
-    anchor_validation_window_blocks: u64,
 ) -> Result<()> {
-    let user_anchor_height = user_anchor_height
-        .ok_or_else(|| anyhow::anyhow!("invalid user compliance anchor: not found in history"))?;
     anyhow::ensure!(
-        user_anchor_height <= current_height,
-        "user compliance anchor height {} exceeds current height {}",
-        user_anchor_height,
-        current_height
+        user_anchor == current_user_anchor,
+        "user compliance anchor does not match the current user compliance root"
     );
-    if current_height.saturating_sub(user_anchor_height) > anchor_validation_window_blocks {
-        anyhow::bail!(
-            "user compliance anchor too old: height {} is more than {} blocks behind current height {}",
-            user_anchor_height,
-            anchor_validation_window_blocks,
-            current_height
-        );
-    }
-
     anyhow::ensure!(
         asset_anchor == current_asset_anchor,
         "asset compliance anchor does not match the current asset compliance root"
@@ -106,6 +91,10 @@ impl UserGrantAdmission {
             "user registration grant leaf does not match action leaf"
         );
         action.leaf.validate_derivation()?;
+        anyhow::ensure!(
+            action.leaf.status == UserAssetStatus::Active,
+            "user registrations must start active"
+        );
         anyhow::ensure!(
             grant.body.policy_id == policy.ring.policy_id,
             "user registration grant policy_id does not match asset policy"
@@ -939,32 +928,19 @@ pub trait ComplianceRegistryRead: StateRead {
             .await
     }
 
-    /// Validate the user history and require the current asset-policy root.
-    ///
-    /// User registration is append-only, so recent historical membership proofs
-    /// remain valid. Asset leaves encode mutable classification and policy;
-    /// accepting a historical asset root would preserve superseded policy and
-    /// allow false non-membership immediately after registration.
-    ///
-    /// Returns `Ok(())` if both anchors are valid and recent, otherwise returns an error.
+    /// Require the current user-status and asset-policy roots.
     async fn validate_compliance_anchors(
         &self,
         user_anchor: &StateCommitment,
         asset_anchor: &StateCommitment,
     ) -> Result<()> {
-        let current_height = self.get_block_height().await?;
-        let anchor_validation_window_blocks = self
-            .get_compliance_params()
-            .await?
-            .anchor_validation_window_blocks;
-
+        let current_user_anchor = self.get_user_tree_root().await?;
         let current_asset_anchor = self.get_asset_imt_root().await?;
         validate_compliance_anchor_facts(
-            self.check_user_anchor(user_anchor).await?,
+            user_anchor,
+            &current_user_anchor,
             asset_anchor,
             &current_asset_anchor,
-            current_height,
-            anchor_validation_window_blocks,
         )
     }
 }
@@ -1218,6 +1194,10 @@ trait ComplianceRegistryRawWrite: StateWrite + ComplianceRegistryRead {
         // depend on every caller having passed through MsgRegisterUser.
         leaf.validate_derivation()?;
         anyhow::ensure!(
+            leaf.status == UserAssetStatus::Active,
+            "new compliance leaves must start active"
+        );
+        anyhow::ensure!(
             leaf.asset_id.0 != Fq::from(0u64),
             "compliance leaf asset ID zero is reserved"
         );
@@ -1257,6 +1237,54 @@ trait ComplianceRegistryRawWrite: StateWrite + ComplianceRegistryRead {
         self.nonverifiable_put_raw(key, encode_user_leaf_record(&record)?);
 
         Ok(position)
+    }
+
+    async fn change_user_asset_status(
+        &mut self,
+        address: &shieldd_sdk_keys::Address,
+        asset_id: asset::Id,
+        action: UserAssetStatusAction,
+    ) -> Result<event::EventUserAssetStatusChanged> {
+        anyhow::ensure!(
+            self.is_asset_regulated(asset_id).await?,
+            "cannot change user status for unregulated asset {asset_id}"
+        );
+        let record = self
+            .get_user_leaf_record(address, asset_id)
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("user is not registered for asset {asset_id}"))?;
+        let previous_status = record.leaf.status;
+        let mut leaf = record.leaf;
+        leaf.status = action.apply(previous_status)?;
+        let commitment = leaf.commit();
+
+        let touched_nodes = self
+            .compute_user_path_updates(&[(record.position, commitment)])
+            .await?;
+        let root = touched_nodes
+            .last()
+            .map(|(_, _, root)| *root)
+            .ok_or_else(|| anyhow::anyhow!("user status update produced no root"))?;
+        self.put_user_tree_nodes(&touched_nodes);
+        self.put(state_key::user_tree_root().to_string(), root);
+        self.object_delete(state_key::cache::cached_user_tree());
+        self.mark_compliance_trees_modified();
+
+        let key = state_key::user_leaf_record(&leaf.address, &leaf.asset_id);
+        self.nonverifiable_put_raw(
+            key,
+            encode_user_leaf_record(&UserLeafRecord {
+                position: record.position,
+                leaf: leaf.clone(),
+            })?,
+        );
+
+        Ok(event::EventUserAssetStatusChanged {
+            position: record.position,
+            commitment,
+            leaf,
+            previous_status,
+        })
     }
 
     /// Register an asset in the IMT.
@@ -1610,6 +1638,24 @@ trait ComplianceRegistryRawWrite: StateWrite + ComplianceRegistryRead {
         self.object_put(key, pending);
     }
 
+    fn record_pending_user_status_change(&mut self, event: event::EventUserAssetStatusChanged) {
+        let key = state_key::pending_user_status_changes();
+        let mut pending: Vec<event::EventUserAssetStatusChanged> =
+            self.object_get(key).unwrap_or_default();
+        pending.push(event);
+        self.object_put(key, pending);
+    }
+
+    fn emit_user_status_change(&mut self, event: event::EventUserAssetStatusChanged) {
+        self.record_proto(event::user_asset_status_changed(
+            event.position,
+            event.commitment,
+            event.leaf.clone(),
+            event.previous_status,
+        ));
+        self.record_pending_user_status_change(event);
+    }
+
     /// Buffer an asset registration event for inclusion in the CompactBlock.
     ///
     /// This should be called when an asset is registered during transaction processing.
@@ -1646,6 +1692,13 @@ trait ComplianceRegistryRawWrite: StateWrite + ComplianceRegistryRead {
             // Empty vec is the expected state when no registrations occurred - no need to log
             Vec::new()
         });
+        self.object_delete(key);
+        result
+    }
+
+    fn pending_user_status_changes(&mut self) -> Vec<event::EventUserAssetStatusChanged> {
+        let key = state_key::pending_user_status_changes();
+        let result = self.object_get(key).unwrap_or_default();
         self.object_delete(key);
         result
     }
@@ -1717,6 +1770,20 @@ pub trait ComplianceRegistryWrite: StateWrite + ComplianceRegistryRead {
         <Self as ComplianceRegistryRawWrite>::add_compliance_leaf(self, admission.leaf).await
     }
 
+    async fn apply_user_status_action(
+        &mut self,
+        address: &shieldd_sdk_keys::Address,
+        asset_id: asset::Id,
+        action: UserAssetStatusAction,
+    ) -> Result<event::EventUserAssetStatusChanged> {
+        let event = <Self as ComplianceRegistryRawWrite>::change_user_asset_status(
+            self, address, asset_id, action,
+        )
+        .await?;
+        <Self as ComplianceRegistryRawWrite>::emit_user_status_change(self, event.clone());
+        Ok(event)
+    }
+
     /// Persist an asset registration admitted by a verified registrar grant.
     async fn register_asset_with_grant(
         &mut self,
@@ -1779,6 +1846,10 @@ pub trait ComplianceRegistryWrite: StateWrite + ComplianceRegistryRead {
     /// Drain user-registration events during compact-block construction.
     fn pending_user_registrations(&mut self) -> Vec<event::EventUserRegistered> {
         <Self as ComplianceRegistryRawWrite>::pending_user_registrations(self)
+    }
+
+    fn pending_user_status_changes(&mut self) -> Vec<event::EventUserAssetStatusChanged> {
+        <Self as ComplianceRegistryRawWrite>::pending_user_status_changes(self)
     }
 
     /// Drain asset-registration events during compact-block construction.
@@ -1870,18 +1941,19 @@ mod tests {
     }
 
     #[test]
-    fn compliance_anchor_facts_reject_future_user_height() {
+    fn compliance_anchor_facts_require_current_user_root() {
+        let user_anchor = StateCommitment(Fq::from(2u64));
+        let current_user_anchor = StateCommitment(Fq::from(3u64));
         let asset_anchor = StateCommitment(Fq::from(1u64));
         let error = validate_compliance_anchor_facts(
-            Some(11),
+            &user_anchor,
+            &current_user_anchor,
             &asset_anchor,
             &asset_anchor,
-            10,
-            TEST_ANCHOR_WINDOW_BLOCKS,
         )
-        .expect_err("a root recorded above the current height cannot be live");
+        .expect_err("a stale user root cannot be live");
         assert!(
-            error.to_string().contains("exceeds current height"),
+            error.to_string().contains("current user compliance root"),
             "unexpected error: {error:#}"
         );
     }
@@ -1909,6 +1981,66 @@ mod tests {
         // Check that the tree root changed
         let root = state.get_user_tree_root().await.unwrap();
         assert_ne!(root.0, Fq::from(0u64));
+    }
+
+    #[tokio::test]
+    async fn freeze_and_unfreeze_replace_the_leaf_at_its_existing_position() {
+        let storage = TempStorage::new().await.unwrap();
+        let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
+        let address = Address::dummy(&mut rand::thread_rng());
+        let asset_id = asset::Id(Fq::from(91u64));
+        state
+            .test_only_register_asset(
+                asset_id,
+                AssetPolicy::simple(
+                    decaf377::Element::GENERATOR,
+                    u128::MAX,
+                    decaf377::Element::GENERATOR,
+                ),
+                true,
+            )
+            .await
+            .unwrap();
+        let position = state
+            .test_only_add_compliance_leaf(ComplianceLeaf::new(
+                address.clone(),
+                asset_id,
+                Fq::from(7u64),
+            ))
+            .await
+            .unwrap();
+        let active_root = state.get_user_tree_root().await.unwrap();
+
+        let frozen = state
+            .apply_user_status_action(&address, asset_id, UserAssetStatusAction::Freeze)
+            .await
+            .unwrap();
+        assert_eq!(frozen.position, position);
+        assert_eq!(frozen.previous_status, UserAssetStatus::Active);
+        assert_eq!(frozen.leaf.status, UserAssetStatus::Frozen);
+        assert_ne!(state.get_user_tree_root().await.unwrap(), active_root);
+        assert_eq!(
+            state
+                .get_user_leaf(&address, asset_id)
+                .await
+                .unwrap()
+                .unwrap()
+                .status,
+            UserAssetStatus::Frozen
+        );
+
+        state
+            .apply_user_status_action(&address, asset_id, UserAssetStatusAction::Freeze)
+            .await
+            .expect_err("freeze cannot be applied twice");
+        let active = state
+            .apply_user_status_action(&address, asset_id, UserAssetStatusAction::Unfreeze)
+            .await
+            .unwrap();
+        assert_eq!(active.position, position);
+        assert_eq!(active.previous_status, UserAssetStatus::Frozen);
+        assert_eq!(active.leaf.status, UserAssetStatus::Active);
+        assert_eq!(state.get_user_tree_root().await.unwrap(), active_root);
     }
 
     #[tokio::test]
@@ -3184,7 +3316,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_historical_anchors_preserved() {
+    async fn historical_anchors_are_retained_but_only_the_current_root_is_accepted() {
         let storage = TempStorage::new().await.unwrap();
         let snapshot = storage.latest_snapshot();
         let mut state = cnidarium::StateDelta::new(snapshot);
@@ -3210,12 +3342,17 @@ mod tests {
         // Both anchors should be different
         assert_ne!(anchor_at_1.0, anchor_at_2.0);
 
-        // Both should be valid (current height is 2, both anchors within window)
+        // Historical records remain available for indexing and audit, but proofs
+        // must use the current root so a pre-freeze proof cannot be replayed.
         let asset_anchor = state.get_asset_imt_root().await.unwrap();
-        assert!(state
+        let error = state
             .validate_compliance_anchors(&anchor_at_1, &asset_anchor)
             .await
-            .is_ok());
+            .expect_err("a historical user root must not authorize a transaction");
+        assert!(
+            error.to_string().contains("current user compliance root"),
+            "unexpected error: {error:#}"
+        );
         assert!(state
             .validate_compliance_anchors(&anchor_at_2, &asset_anchor)
             .await
@@ -3235,7 +3372,7 @@ mod tests {
     // ========== Bounded Anchor Window Tests (Phase 7) ==========
 
     #[tokio::test]
-    async fn test_anchor_too_old_rejected() {
+    async fn stale_user_anchor_is_rejected_immediately_after_status_tree_change() {
         let storage = TempStorage::new().await.unwrap();
         let snapshot = storage.latest_snapshot();
         let mut state = cnidarium::StateDelta::new(snapshot);
@@ -3256,7 +3393,8 @@ mod tests {
         );
         state.add_compliance_leaf(leaf).await.unwrap();
 
-        // Advance to height just past the configured validation window.
+        // Advance beyond the retained-history window. The rejection is based on
+        // the current root, not the age of the historical record.
         let new_height = 1 + TEST_ANCHOR_WINDOW_BLOCKS + 1;
         state.put_block_height(new_height);
         state.record_compliance_anchors(new_height).await.unwrap();
@@ -3268,7 +3406,7 @@ mod tests {
             "Anchors should differ after adding leaf"
         );
 
-        // Validation of old anchors should fail (they're too old)
+        // Validation of the old user root must fail immediately.
         let result = state
             .validate_compliance_anchors(&old_user_anchor, &old_asset_anchor)
             .await;
@@ -3276,8 +3414,8 @@ mod tests {
         assert!(result.is_err());
         let err_msg = result.unwrap_err().to_string();
         assert!(
-            err_msg.contains("too old"),
-            "Error should mention 'too old': {}",
+            err_msg.contains("current user compliance root"),
+            "error should identify the current-root mismatch: {}",
             err_msg
         );
     }
@@ -3350,7 +3488,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_shortened_anchor_window_rejects_existing_old_anchor_immediately() {
+    async fn current_roots_remain_valid_when_the_history_window_changes() {
         let storage = TempStorage::new().await.unwrap();
         let snapshot = storage.latest_snapshot();
         let mut state = cnidarium::StateDelta::new(snapshot);
@@ -3366,14 +3504,10 @@ mod tests {
         });
         state.put_block_height(12);
 
-        let err = state
+        state
             .validate_compliance_anchors(&user_anchor, &asset_anchor)
             .await
-            .expect_err("shortened window should apply to existing anchors immediately");
-        assert!(
-            err.to_string().contains("too old"),
-            "unexpected error: {err:#}"
-        );
+            .expect("history-retention policy must not invalidate current roots");
     }
 
     #[tokio::test]

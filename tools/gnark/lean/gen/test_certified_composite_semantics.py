@@ -124,8 +124,10 @@ class CertifiedCompositeSemanticsTests(unittest.TestCase):
                 )
         changed_ir = copy.deepcopy(ir)
         segment = next(segment for segment in changed_ir["segments"]
-                       if segment.get("index") == 103)
-        segment["index"] = 108
+                       if str(segment.get("proof_template_id", "")).startswith(
+                           "gadget.poseidon_encryption."
+                       ))
+        segment["index"] += 10_000
         with self.assertRaisesRegex(ValueError, "IR segment roster drifted"):
             gen._validate_deployment_roster(registry, inventory, changed_ir)
 

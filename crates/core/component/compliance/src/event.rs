@@ -4,7 +4,7 @@ use shieldd_sdk_proto::{core::component::compliance::v1 as pb, DomainType, Name 
 use shieldd_sdk_tct::StateCommitment;
 
 use crate::indexed_tree::IndexedLeaf;
-use crate::structs::{AssetPolicy, ComplianceLeaf};
+use crate::structs::{AssetPolicy, ComplianceLeaf, UserAssetStatus};
 
 /// Create a user registration event proto for emitting via record_proto.
 pub fn user_registered(
@@ -16,6 +16,20 @@ pub fn user_registered(
         position,
         commitment: <[u8; 32]>::from(commitment).to_vec(),
         leaf: Some(leaf.into()),
+    }
+}
+
+pub fn user_asset_status_changed(
+    position: u64,
+    commitment: StateCommitment,
+    leaf: ComplianceLeaf,
+    previous_status: UserAssetStatus,
+) -> pb::EventUserAssetStatusChanged {
+    pb::EventUserAssetStatusChanged {
+        position,
+        commitment: <[u8; 32]>::from(commitment).to_vec(),
+        leaf: Some(leaf.into()),
+        previous_status: pb::UserAssetStatus::from(previous_status) as i32,
     }
 }
 
@@ -93,6 +107,52 @@ impl From<EventUserRegistered> for pb::EventUserRegistered {
             position: value.position,
             commitment: <[u8; 32]>::from(value.commitment).to_vec(),
             leaf: Some(value.leaf.into()),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct EventUserAssetStatusChanged {
+    pub position: u64,
+    pub commitment: StateCommitment,
+    pub leaf: ComplianceLeaf,
+    pub previous_status: UserAssetStatus,
+}
+
+impl DomainType for EventUserAssetStatusChanged {
+    type Proto = pb::EventUserAssetStatusChanged;
+}
+
+impl TryFrom<pb::EventUserAssetStatusChanged> for EventUserAssetStatusChanged {
+    type Error = anyhow::Error;
+
+    fn try_from(value: pb::EventUserAssetStatusChanged) -> Result<Self, Self::Error> {
+        fn inner(
+            value: pb::EventUserAssetStatusChanged,
+        ) -> anyhow::Result<EventUserAssetStatusChanged> {
+            let commitment_bytes: [u8; 32] = value
+                .commitment
+                .try_into()
+                .map_err(|_| anyhow!("commitment must be 32 bytes"))?;
+            Ok(EventUserAssetStatusChanged {
+                position: value.position,
+                commitment: StateCommitment::try_from(commitment_bytes)?,
+                leaf: value.leaf.ok_or(anyhow!("missing `leaf`"))?.try_into()?,
+                previous_status: value.previous_status.try_into()?,
+            })
+        }
+
+        inner(value).context(format!("parsing {}", pb::EventUserAssetStatusChanged::NAME))
+    }
+}
+
+impl From<EventUserAssetStatusChanged> for pb::EventUserAssetStatusChanged {
+    fn from(value: EventUserAssetStatusChanged) -> Self {
+        Self {
+            position: value.position,
+            commitment: <[u8; 32]>::from(value.commitment).to_vec(),
+            leaf: Some(value.leaf.into()),
+            previous_status: pb::UserAssetStatus::from(value.previous_status) as i32,
         }
     }
 }

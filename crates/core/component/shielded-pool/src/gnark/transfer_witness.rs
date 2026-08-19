@@ -51,6 +51,7 @@ pub struct TransferReceiverOutputWitnessV18 {
     pub recipient_slot_id: [u8; 32],
     pub recipient_slot_derivation: [u8; 32],
     pub recipient_d: [u8; 32],
+    pub recipient_status: [u8; 32],
     pub recipient_diversified_generator_affine: PointAffineBytes,
     pub recipient_transmission_key_affine: PointAffineBytes,
 }
@@ -100,6 +101,7 @@ pub struct TransferWitnessV18 {
     pub sender_slot_id: [u8; 32],
     pub sender_slot_derivation: [u8; 32],
     pub sender_d: [u8; 32],
+    pub sender_status: [u8; 32],
     pub transfer_nonce_root: [u8; 32],
     pub detection_ciphertext: Vec<[u8; 32]>,
     pub sender_subject_derivation: [u8; 32],
@@ -132,13 +134,14 @@ pub struct TransferWitnessV18 {
 
 fn compliance_leaf_parts(
     leaf: &ComplianceLeafBinary,
-) -> ([u8; 48], [u8; 32], [u8; 32], [u8; 32], [u8; 32]) {
+) -> ([u8; 48], [u8; 32], [u8; 32], [u8; 32], [u8; 32], [u8; 32]) {
     (
         leaf.address,
         leaf.asset_id,
         leaf.slot_id,
         leaf.slot_derivation,
         leaf.d,
+        leaf.status,
     )
 }
 
@@ -210,7 +213,7 @@ impl TransferWitnessV18 {
             .with_context(|| format!("compute {TRANSFER_PROOF_LABEL} statement hash"))?;
 
         let sender_leaf = compliance_leaf_from_typed(&private.sender_leaf)?;
-        let (_, _, sender_slot_id, sender_slot_derivation, sender_d) =
+        let (_, _, sender_slot_id, sender_slot_derivation, sender_d, sender_status) =
             compliance_leaf_parts(&sender_leaf);
         let required = spend_witness_parts(&public.inputs[0], &private.required_input, 0)?;
         let required_spend = TransferRequiredSpendWitnessV18 {
@@ -240,7 +243,7 @@ impl TransferWitnessV18 {
 
         let receiver_private = &private.receiver_output;
         let receiver_leaf = compliance_leaf_from_typed(&receiver_private.recipient_leaf)?;
-        let (_, _, receiver_slot_id, receiver_slot_derivation, receiver_d) =
+        let (_, _, receiver_slot_id, receiver_slot_derivation, receiver_d, receiver_status) =
             compliance_leaf_parts(&receiver_leaf);
         let receiver_output = TransferReceiverOutputWitnessV18 {
             note_commitment: public.outputs[0].note_commitment.0.to_bytes(),
@@ -253,6 +256,7 @@ impl TransferWitnessV18 {
             recipient_slot_id: receiver_slot_id,
             recipient_slot_derivation: receiver_slot_derivation,
             recipient_d: receiver_d,
+            recipient_status: receiver_status,
             recipient_diversified_generator_affine: point_affine_bytes(
                 *receiver_private
                     .recipient_leaf
@@ -303,6 +307,7 @@ impl TransferWitnessV18 {
             sender_slot_id,
             sender_slot_derivation,
             sender_d,
+            sender_status,
             transfer_nonce_root: private.compliance.transfer_nonce_root.to_bytes(),
             detection_ciphertext: public
                 .compliance

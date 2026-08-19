@@ -310,6 +310,7 @@ func appendNoteReshapeStatementFields(
 	anchor [32]byte,
 	balanceCommitmentAffine PointAffineBinary,
 	assetAnchor [32]byte,
+	complianceAnchor [32]byte,
 	routingTag [32]byte,
 	routingParameterSetID [32]byte,
 	recentPositionFloor [32]byte,
@@ -329,6 +330,7 @@ func appendNoteReshapeStatementFields(
 	fields = append(
 		fields,
 		assetAnchor,
+		complianceAnchor,
 		routingTag,
 		routingParameterSetID,
 	)
@@ -360,6 +362,7 @@ func ReconstructedNoteReshapeStatementFieldsFromWitnessV5(
 		witness.Anchor,
 		witness.BalanceCommitmentAffine,
 		witness.AssetAnchor,
+		witness.ComplianceAnchor,
 		witness.RoutingTag,
 		witness.RoutingParameterSetID,
 		witness.RecentPositionFloor,

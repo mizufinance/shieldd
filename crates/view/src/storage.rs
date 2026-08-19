@@ -1910,7 +1910,7 @@ impl Storage {
     pub async fn record_compliance_block(
         &self,
         height: u64,
-        user_tree: &crate::compliance_tree::ComplianceUserTree,
+        user_tree: &mut crate::compliance_tree::ComplianceUserTree,
         asset_tree: &mut crate::compliance_tree::ComplianceAssetTree,
         user_start_position: u64,
         asset_start_position: u64,
@@ -1946,6 +1946,7 @@ impl Storage {
         .await??;
 
         asset_tree.clear_dirty_positions();
+        user_tree.clear_dirty_positions();
 
         Ok(())
     }
@@ -1963,6 +1964,7 @@ impl Storage {
         let slot_id = leaf.slot_id;
         let slot_derivation = leaf.slot_derivation.to_bytes().to_vec();
         let d = leaf.d.to_bytes().to_vec();
+        let status = leaf.status;
 
         spawn_blocking(move || {
             let mut conn = pool.get()?;
@@ -1976,6 +1978,7 @@ impl Storage {
                     slot_id,
                     &slot_derivation,
                     &d,
+                    status,
                     commitment,
                 )?;
             }

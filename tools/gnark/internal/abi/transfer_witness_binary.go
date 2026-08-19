@@ -9,7 +9,7 @@ import (
 
 const (
 	transferWitnessV18Magic   = "PTWG"
-	transferWitnessV18Version = 18
+	transferWitnessV18Version = 19
 )
 
 type TransferComplianceCiphertextWitnessV18Binary struct {
@@ -66,6 +66,7 @@ type TransferReceiverOutputWitnessV18Binary struct {
 	RecipientSlotID               [32]byte
 	RecipientSlotDerivation       [32]byte
 	RecipientD                    [32]byte
+	RecipientStatus               [32]byte
 	RecipientDiversifiedGenerator PointAffineBinary
 	RecipientTransmissionKey      PointAffineBinary
 }
@@ -102,6 +103,7 @@ type TransferWitnessV18Binary struct {
 	SenderSlotID             [32]byte
 	SenderSlotDerivation     [32]byte
 	SenderD                  [32]byte
+	SenderStatus             [32]byte
 	TransferNonceRoot        [32]byte
 
 	DetectionCiphertext [][32]byte
@@ -236,6 +238,9 @@ func decodeTransferWitnessV18(
 		return nil, err
 	}
 	if witness.SenderD, err = read32(reader); err != nil {
+		return nil, err
+	}
+	if witness.SenderStatus, err = read32(reader); err != nil {
 		return nil, err
 	}
 	if witness.TransferNonceRoot, err = read32(reader); err != nil {
@@ -410,6 +415,9 @@ func readTransferReceiverOutputV18(
 		return output, err
 	}
 	if output.RecipientD, err = read32(reader); err != nil {
+		return output, err
+	}
+	if output.RecipientStatus, err = read32(reader); err != nil {
 		return output, err
 	}
 	if output.RecipientDiversifiedGenerator, err = readPointAffine(reader); err != nil {

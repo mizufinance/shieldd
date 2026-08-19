@@ -24,6 +24,7 @@ func NewNoteReshapeCircuitAssignmentFromWitnessV5(payload []byte) (*circuits.Not
 	assignment.ClaimedStatementHash = fqString(witness.ClaimedStatementHash)
 	assignment.Anchor = fqString(witness.Anchor)
 	assignment.AssetAnchor = fqString(witness.AssetAnchor)
+	assignment.ComplianceAnchor = fqString(witness.ComplianceAnchor)
 	assignment.RoutingTag = fqString(witness.RoutingTag)
 	assignment.RoutingParameterSetID = fqString(witness.RoutingParameterSetID)
 	assignment.RecentPositionFloor = fqString(witness.RecentPositionFloor)
@@ -51,6 +52,18 @@ func NewNoteReshapeCircuitAssignmentFromWitnessV5(payload []byte) (*circuits.Not
 	assignment.Shared = circuits.NoteReshapeSharedNoteContextCircuitFields{
 		AssetID: fqString(witness.Shared.AssetID),
 		DivGen:  point2DString(witness.Shared.DivGen),
+	}
+	senderPath, err := quadPathFromBinary(witness.SenderCompliancePath)
+	if err != nil {
+		return nil, generated.NoteReshapeFamilySpec{}, fmt.Errorf("decode note reshape sender compliance path: %w", err)
+	}
+	assignment.Sender = circuits.NoteReshapeSenderCircuitFields{
+		SlotID:         fqString(witness.SenderSlotID),
+		SlotDerivation: fqString(witness.SenderSlotDerivation),
+		D:              fqString(witness.SenderD),
+		Status:         fqString(witness.SenderStatus),
+		Path:           senderPath,
+		Position:       witness.SenderCompliancePosition,
 	}
 	for i := range witness.Spends {
 		spend, err := newNoteReshapeSpendCircuitFields(&witness.Spends[i])

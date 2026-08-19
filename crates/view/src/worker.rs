@@ -137,6 +137,7 @@ impl Worker {
     async fn process_compliance_block(&self, block: &CompactBlock) -> anyhow::Result<()> {
         // Early return if no compliance registration events in this block.
         if block.compliance_user_registrations.is_empty()
+            && block.compliance_user_status_changes.is_empty()
             && block.compliance_asset_registrations.is_empty()
         {
             return Ok(());
@@ -156,6 +157,11 @@ impl Worker {
         for event in &block.compliance_user_registrations {
             // Insert commitment into user tree (for path computation)
             let position = user_tree.insert(event.commitment)?;
+            anyhow::ensure!(
+                position == event.position,
+                "user registration position mismatch: local {position}, event {}",
+                event.position
+            );
 
             // Check if this address is in our sync scope
             let is_in_scope = self
@@ -167,6 +173,20 @@ impl Worker {
             if is_in_scope {
                 self.storage
                     .record_compliance_leaf_data(&event.leaf, position, event.commitment)
+                    .await?;
+            }
+        }
+
+        for event in &block.compliance_user_status_changes {
+            user_tree.update(event.position, event.commitment)?;
+
+            let is_in_scope = self
+                .storage
+                .is_address_in_compliance_scope(&self.fvk, &event.leaf.address)
+                .await?;
+            if is_in_scope {
+                self.storage
+                    .record_compliance_leaf_data(&event.leaf, event.position, event.commitment)
                     .await?;
             }
         }
@@ -214,7 +234,7 @@ impl Worker {
         self.storage
             .record_compliance_block(
                 height,
-                &user_tree,
+                &mut user_tree,
                 &mut asset_tree,
                 user_start_position,
                 asset_start_position,
@@ -224,6 +244,7 @@ impl Worker {
         tracing::debug!(
             height,
             user_registrations = block.compliance_user_registrations.len(),
+            user_status_changes = block.compliance_user_status_changes.len(),
             asset_registrations = block.compliance_asset_registrations.len(),
             "processed compliance block"
         );

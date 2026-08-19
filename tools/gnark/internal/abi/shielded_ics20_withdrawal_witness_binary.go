@@ -9,7 +9,7 @@ import (
 
 const (
 	shieldedIcs20WithdrawalWitnessMagic   = "PIWG"
-	shieldedIcs20WithdrawalWitnessVersion = 10
+	shieldedIcs20WithdrawalWitnessVersion = 11
 	maxShieldedIcs20WithdrawalInputs      = 2
 	minShieldedIcs20RequiredSpendBytes    = 32*3 + 8 + 4 + 32 + 64 + 1
 	minShieldedIcs20OptionalSpendBytes    = minShieldedIcs20RequiredSpendBytes + 1 + 32
@@ -80,6 +80,7 @@ type ShieldedIcs20WithdrawalWitnessV10Binary struct {
 	SenderSlotID             [32]byte
 	SenderSlotDerivation     [32]byte
 	SenderD                  [32]byte
+	SenderStatus             [32]byte
 
 	RequiredSpend ShieldedIcs20WithdrawalRequiredSpendWitnessV10Binary
 	OptionalSpend ShieldedIcs20WithdrawalOptionalSpendWitnessV10Binary
@@ -225,6 +226,9 @@ func DecodeShieldedIcs20WithdrawalWitnessV10(payload []byte) (*ShieldedIcs20With
 		return nil, family, err
 	}
 	if out.SenderD, err = read32(reader); err != nil {
+		return nil, family, err
+	}
+	if out.SenderStatus, err = read32(reader); err != nil {
 		return nil, family, err
 	}
 	if out.RequiredSpend, err = readShieldedIcs20WithdrawalRequiredSpend(reader); err != nil {

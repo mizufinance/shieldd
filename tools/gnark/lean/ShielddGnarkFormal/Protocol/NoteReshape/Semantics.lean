@@ -94,6 +94,7 @@ structure Action (F : Type u) (Path : Type v) where
   outputs : List (Output F)
   anchor : F
   assetAnchor : F
+  complianceAnchor : F
   routingTag : F
   routingParameterSetId : F
   recentPositionFloor : F

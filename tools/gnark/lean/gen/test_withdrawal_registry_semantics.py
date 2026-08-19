@@ -79,12 +79,12 @@ class WithdrawalRegistrySemanticsTest(unittest.TestCase):
                 ),
                 (
                     "gadget.compliance_leaf@"
-                    "dcb0a1040c535cf394b8bda4f381260121926f7d477fb80a22e4e84b0cb431bc",
-                    6,
-                    5091441079939941903017664305347261861704474070005805806880013805880773073215,
-                    430,
-                    439,
-                    (408, 413, 418, 423, 428, 433, 438),
+                    "712c7a4d010c3b98e4d25232885b0f2dbf3329286405042c73ffe98555c9d024",
+                    7,
+                    7622592512688680933372249798274825146043518728282898866874410341055945679433,
+                    470,
+                    480,
+                    (444, 449, 454, 459, 464, 469, 474, 479),
                 ),
             ],
         )
@@ -160,11 +160,11 @@ class WithdrawalRegistrySemanticsTest(unittest.TestCase):
         ):
             self.assertNotIn(forbidden, combined)
 
-    def test_width_seven_poseidon_uses_the_link_theorem_names(self) -> None:
+    def test_width_eight_poseidon_uses_the_link_theorem_names(self) -> None:
         template = next(
             template
             for template in subject.HASH_TEMPLATES
-            if template.rate == 6
+            if template.rate == 7
         )
         base = self.outputs[
             subject.FORMAL / "Deployed" / template.leaf / "Base.lean"
@@ -172,10 +172,8 @@ class WithdrawalRegistrySemanticsTest(unittest.TestCase):
         round_four = self.outputs[
             subject.FORMAL / "Deployed" / template.leaf / "Round04.lean"
         ]
-        self.assertIn("exact fr_eq ", base)
-        self.assertIn("exact pr_eq ", round_four)
-        self.assertNotIn("fr_eq7", base)
-        self.assertNotIn("pr_eq7", round_four)
+        self.assertIn("exact fr_eq8 ", base)
+        self.assertIn("exact pr_eq8 ", round_four)
 
 
 if __name__ == "__main__":

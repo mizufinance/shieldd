@@ -2612,6 +2612,9 @@ impl serde::Serialize for NoteReshapeBody {
         if self.asset_anchor.is_some() {
             len += 1;
         }
+        if self.compliance_anchor.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.NoteReshapeBody", len)?;
         if self.family_id != 0 {
             struct_ser.serialize_field("familyId", &self.family_id)?;
@@ -2639,6 +2642,9 @@ impl serde::Serialize for NoteReshapeBody {
         if let Some(v) = self.asset_anchor.as_ref() {
             struct_ser.serialize_field("assetAnchor", v)?;
         }
+        if let Some(v) = self.compliance_anchor.as_ref() {
+            struct_ser.serialize_field("complianceAnchor", v)?;
+        }
         struct_ser.end()
     }
 }
@@ -2662,6 +2668,8 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeBody {
             "routingParameterSetId",
             "asset_anchor",
             "assetAnchor",
+            "compliance_anchor",
+            "complianceAnchor",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -2674,6 +2682,7 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeBody {
             RoutingTag,
             RoutingParameterSetId,
             AssetAnchor,
+            ComplianceAnchor,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -2704,6 +2713,7 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeBody {
                             "routingTag" | "routing_tag" => Ok(GeneratedField::RoutingTag),
                             "routingParameterSetId" | "routing_parameter_set_id" => Ok(GeneratedField::RoutingParameterSetId),
                             "assetAnchor" | "asset_anchor" => Ok(GeneratedField::AssetAnchor),
+                            "complianceAnchor" | "compliance_anchor" => Ok(GeneratedField::ComplianceAnchor),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -2731,6 +2741,7 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeBody {
                 let mut routing_tag__ = None;
                 let mut routing_parameter_set_id__ = None;
                 let mut asset_anchor__ = None;
+                let mut compliance_anchor__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::FamilyId => {
@@ -2785,6 +2796,12 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeBody {
                             }
                             asset_anchor__ = map_.next_value()?;
                         }
+                        GeneratedField::ComplianceAnchor => {
+                            if compliance_anchor__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("complianceAnchor"));
+                            }
+                            compliance_anchor__ = map_.next_value()?;
+                        }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
                         }
@@ -2799,6 +2816,7 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeBody {
                     routing_tag: routing_tag__,
                     routing_parameter_set_id: routing_parameter_set_id__.unwrap_or_default(),
                     asset_anchor: asset_anchor__,
+                    compliance_anchor: compliance_anchor__,
                 })
             }
         }

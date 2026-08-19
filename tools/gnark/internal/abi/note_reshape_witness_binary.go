@@ -9,7 +9,7 @@ import (
 
 const (
 	noteReshapeWitnessMagic   = "PNWG"
-	noteReshapeWitnessVersion = 5
+	noteReshapeWitnessVersion = 6
 	maxNoteReshapeItems       = 8
 )
 
@@ -39,33 +39,40 @@ type NoteReshapeSharedNoteContextWitnessV5Binary struct {
 }
 
 type NoteReshapeWitnessV5Binary struct {
-	TotalLength             uint32
-	FamilyID                uint32
-	NIn                     uint32
-	NOut                    uint32
-	Anchor                  [32]byte
-	ClaimedStatementHash    [32]byte
-	AssetAnchor             [32]byte
-	RoutingTag              [32]byte
-	RoutingParameterSetID   [32]byte
-	RecentPositionFloor     [32]byte
-	ActionBalanceBlinding   [32]byte
-	NK                      [32]byte
-	AssetPath               MerklePathBinary
-	AssetPosition           uint64
-	AssetIndexedLeaf        IndexedLeafBinary
-	AssetIndexedLeafDKPub   PointAffineBinary
-	AssetIndexedLeafRingPK  PointAffineBinary
-	IsRegulated             bool
-	RegulatedPrecision      uint8
-	UnregulatedPrecision    uint8
-	RoutingAsOfHeight       uint64
-	RoutingNonce            [32]byte
-	Shared                  NoteReshapeSharedNoteContextWitnessV5Binary
-	Spends                  []NoteReshapeSpendWitnessV5Binary
-	Outputs                 []NoteReshapeOutputWitnessV5Binary
-	BalanceCommitmentAffine PointAffineBinary
-	AKAffine                PointAffineBinary
+	TotalLength              uint32
+	FamilyID                 uint32
+	NIn                      uint32
+	NOut                     uint32
+	Anchor                   [32]byte
+	ClaimedStatementHash     [32]byte
+	AssetAnchor              [32]byte
+	ComplianceAnchor         [32]byte
+	RoutingTag               [32]byte
+	RoutingParameterSetID    [32]byte
+	RecentPositionFloor      [32]byte
+	ActionBalanceBlinding    [32]byte
+	NK                       [32]byte
+	AssetPath                MerklePathBinary
+	AssetPosition            uint64
+	AssetIndexedLeaf         IndexedLeafBinary
+	AssetIndexedLeafDKPub    PointAffineBinary
+	AssetIndexedLeafRingPK   PointAffineBinary
+	IsRegulated              bool
+	RegulatedPrecision       uint8
+	UnregulatedPrecision     uint8
+	RoutingAsOfHeight        uint64
+	RoutingNonce             [32]byte
+	SenderCompliancePath     MerklePathBinary
+	SenderCompliancePosition uint64
+	SenderSlotID             [32]byte
+	SenderSlotDerivation     [32]byte
+	SenderD                  [32]byte
+	SenderStatus             [32]byte
+	Shared                   NoteReshapeSharedNoteContextWitnessV5Binary
+	Spends                   []NoteReshapeSpendWitnessV5Binary
+	Outputs                  []NoteReshapeOutputWitnessV5Binary
+	BalanceCommitmentAffine  PointAffineBinary
+	AKAffine                 PointAffineBinary
 }
 
 func DecodeNoteReshapeWitnessV5(payload []byte) (*NoteReshapeWitnessV5Binary, generated.NoteReshapeFamilySpec, error) {
@@ -129,6 +136,9 @@ func decodeNoteReshapeWitnessV5(payload []byte) (*NoteReshapeWitnessV5Binary, er
 	if witness.AssetAnchor, err = read32(reader); err != nil {
 		return nil, err
 	}
+	if witness.ComplianceAnchor, err = read32(reader); err != nil {
+		return nil, err
+	}
 	if witness.RoutingTag, err = read32(reader); err != nil {
 		return nil, err
 	}
@@ -172,6 +182,24 @@ func decodeNoteReshapeWitnessV5(payload []byte) (*NoteReshapeWitnessV5Binary, er
 		return nil, err
 	}
 	if witness.RoutingNonce, err = read32(reader); err != nil {
+		return nil, err
+	}
+	if witness.SenderCompliancePath, err = readMerklePath(reader); err != nil {
+		return nil, err
+	}
+	if witness.SenderCompliancePosition, err = readU64(reader); err != nil {
+		return nil, err
+	}
+	if witness.SenderSlotID, err = read32(reader); err != nil {
+		return nil, err
+	}
+	if witness.SenderSlotDerivation, err = read32(reader); err != nil {
+		return nil, err
+	}
+	if witness.SenderD, err = read32(reader); err != nil {
+		return nil, err
+	}
+	if witness.SenderStatus, err = read32(reader); err != nil {
 		return nil, err
 	}
 	if witness.Shared.AssetID, err = read32(reader); err != nil {

@@ -41,7 +41,7 @@ CIRCUIT_FORMAL = ROOT / "crates" / "core" / "component" / "shielded-pool" / "for
 # proof matrix for each runtime family.
 PROFILE_ABI = {
     "note_reshape8x1": (
-        5,
+        6,
         (
             (
                 "note_reshape8x1",
@@ -50,7 +50,7 @@ PROFILE_ABI = {
         ),
     ),
     "note_reshape1x8": (
-        5,
+        6,
         (
             (
                 "note_reshape1x8",
@@ -59,7 +59,7 @@ PROFILE_ABI = {
         ),
     ),
     "transfer": (
-        18,
+        19,
         (
             (
                 "regulated_unflagged",
@@ -76,7 +76,7 @@ PROFILE_ABI = {
         ),
     ),
     "shielded_ics20_withdrawal": (
-        10,
+        11,
         (
             (
                 "regulated_optional_real",

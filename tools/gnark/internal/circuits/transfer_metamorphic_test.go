@@ -93,6 +93,32 @@ func validateTransferMutationFixture(t *testing.T, assignment *circuits.Transfer
 	}
 }
 
+func TestRegulatedTransferRejectsFrozenSenderAndRecipient(t *testing.T) {
+	for _, mutate := range []struct {
+		name  string
+		apply func(*circuits.TransferCircuit)
+	}{
+		{name: "sender", apply: func(assignment *circuits.TransferCircuit) {
+			assignment.Sender.Status = 2
+		}},
+		{name: "recipient", apply: func(assignment *circuits.TransferCircuit) {
+			assignment.ReceiverOutput.Recipient.Status = 2
+		}},
+	} {
+		t.Run(mutate.name, func(t *testing.T) {
+			_, assignment := loadTransferAssignment(t)
+			mutate.apply(assignment)
+			if err := test.IsSolved(
+				circuits.NewTransferCircuit(),
+				assignment,
+				ecc.BLS12_377.ScalarField(),
+			); err == nil {
+				t.Fatalf("regulated transfer accepted a frozen %s", mutate.name)
+			}
+		})
+	}
+}
+
 func assertTransferMutationRejected(t *testing.T, mutation transferMutation) {
 	t.Helper()
 	witness, assignment := loadTransferAssignment(t)

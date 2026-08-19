@@ -1,6 +1,6 @@
 import ShielddGnarkFormal.Deployed.Contract
 import ShielddGnarkFormal.Deployed.Templates.Core
-import ShielddGnarkFormal.Deployed.Templates.Generated.TRoutingParametersBind_46f527d3e36d976837f6c928381fedce823324751461dd2d8bd615716c786979
+import ShielddGnarkFormal.Deployed.Templates.Generated.TAssertEqIf_8ce5774e50355d2a29c59780aba5615b3b4386e8925bffa9de0ad683cdc7cf8d
 import Mathlib.Data.ZMod.Basic
 
 set_option maxRecDepth 1000000
@@ -11,7 +11,7 @@ namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape1x8.Seg22
 def Order : Nat := 8444461749428370424248824938781546531375899335154063827935233455917409239041
 abbrev F := ZMod Order
 
-def wireSeatingTable : List Nat := [0, 18891, 18896, 18901, 18906, 4, 10, 17938, 17940, 17942, 17944, 17946, 17948, 17950, 17952, 17954, 17956, 17958, 17960, 17962, 17964, 17966, 17968, 17970, 17972, 17974, 17976, 17978, 17980, 17982, 17984, 17986, 17988, 17990, 17992, 17994, 17996, 17998, 18000, 18004, 18006, 18008, 18010, 18012, 18014, 18016, 18018, 18020, 18022, 18024, 18026, 18028, 18030, 18032, 18034, 18036, 18038, 18040, 18042, 18044, 18046, 18048, 18050, 18052, 18054, 18056, 18058, 18060, 18062, 18064, 18066, 18907, 18908, 18909, 18910, 18911, 18912, 18913, 18914, 18915, 18916, 18917, 18918, 18919, 18920, 18921, 18922, 18923, 18924, 18925, 18926, 18927, 18928, 18929, 18930, 18931, 18932, 18933, 18934, 18935, 18936, 18937, 18938]
+def wireSeatingTable : List Nat := [0, 11, 3, 24231, 24236, 24241, 24246, 24251, 24252]
 
 def wireSeating : Nat -> Nat :=
 fun localWire => wireSeatingTable.getD localWire 0
@@ -20,15 +20,15 @@ def localRho (rho : Nat -> F) : Nat -> F :=
     Shieldd.GnarkFormal.Deployed.Templates.seated rho wireSeating
 
 def relation (rho : Nat -> F) : Prop :=
-    Shieldd.GnarkFormal.Deployed.Templates.Generated.TRoutingParametersBind_46f527d3e36d976837f6c928381fedce823324751461dd2d8bd615716c786979.relation (localRho rho)
+    Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEqIf_8ce5774e50355d2a29c59780aba5615b3b4386e8925bffa9de0ad683cdc7cf8d.relation (localRho rho)
 
 def spec (rho : Nat -> F) : Prop :=
-    Shieldd.GnarkFormal.Deployed.Templates.Generated.TRoutingParametersBind_46f527d3e36d976837f6c928381fedce823324751461dd2d8bd615716c786979.spec (localRho rho)
+    Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEqIf_8ce5774e50355d2a29c59780aba5615b3b4386e8925bffa9de0ad683cdc7cf8d.spec (localRho rho)
 
 def contract : Shieldd.GnarkFormal.Deployed.DeployedContract F := {
 segmentIndex := 22,
-relationSha256Hex := "11cc2d01a3568ad3768e57076a7d3034c2104eb5f91a3033a10a7ad02166ba8e",
-wireRoleSha256Hex := "d6e749c40294222b441129b45bb9f547e588f4d4b6324cd48f52cc2fa244c07f",
+relationSha256Hex := "5803efd1855246ab990ead94ee7e55d5fb5e20b695d3ce08a69216d59d87add2",
+wireRoleSha256Hex := "73960f6b4499987df0279d67e74d37c951e8f8c4a558e53e017b87b60c2c6a5c",
 relation := relation,
 spec := spec
 }

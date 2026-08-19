@@ -183,6 +183,7 @@ type ComplianceLeafFixture struct {
 	SlotID         string         `json:"slot_id"`
 	SlotDerivation string         `json:"slot_derivation"`
 	D              string         `json:"d"`
+	Status         string         `json:"status"`
 }
 
 type SpendPrivateFixture struct {

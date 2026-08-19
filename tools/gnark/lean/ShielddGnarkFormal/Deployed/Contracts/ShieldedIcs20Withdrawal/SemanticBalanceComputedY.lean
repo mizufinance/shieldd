@@ -32,35 +32,35 @@ theorem balanceCommitmentComputed1_eq_netBalanceCommitmentY
     balanceCommitmentComputed1 rho = netBalanceCommitmentY rho := by
   have hperm :
       ((List.range 149).map (fun offset =>
-          Seg57.wireSeating (773 + offset * 5)) ++
+          Seg58.wireSeating (773 + offset * 5)) ++
         (List.range 101).map (fun offset =>
-          Seg57.wireSeating (1521 + offset * 8))).Perm
+          Seg58.wireSeating (1521 + offset * 8))).Perm
         ((List.range 149).map
-            (fun offset => 50388 + offset * 5) ++
+            (fun offset => 50430 + offset * 5) ++
           (List.range 101).map
-            (fun offset => 51136 + offset * 8)) := by
+            (fun offset => 51178 + offset * 8)) := by
     exact
       Deployed.ShieldedIcs20WithdrawalBalanceSeating.netYPerm
   have hsum := sumAux_pair_eq_pair_of_perm rho
-    Seg57.wireSeating (fun wire => wire)
+    Seg58.wireSeating (fun wire => wire)
     773 5 149 1521 8 101
-    50388 5 149 51136 8 101 hperm
+    50430 5 149 51178 8 101 hperm
   change
-    StrideRun.sumAux (Deployed.Templates.seated rho Seg57.wireSeating)
+    StrideRun.sumAux (Deployed.Templates.seated rho Seg58.wireSeating)
           773 5 149 +
-        StrideRun.sumAux (Deployed.Templates.seated rho Seg57.wireSeating)
+        StrideRun.sumAux (Deployed.Templates.seated rho Seg58.wireSeating)
           1521 8 101 =
-      StrideRun.sumAux rho 50388 5 149 +
-        StrideRun.sumAux rho 51136 8 101 at hsum
+      StrideRun.sumAux rho 50430 5 149 +
+        StrideRun.sumAux rho 51178 8 101 at hsum
   have hseed :
-      Seg57.wireSeating 517 = 50133 := by
+      Seg58.wireSeating 517 = 50175 := by
     decide +kernel
   simp only [
     balanceCommitmentComputed1, balanceCommitmentComputed1LC,
     netBalanceCommitmentY_eq_delta,
     Deployed.Templates.Semantics.TDecafConservationNetBalanceCommitment2_236fd0549adf468bfd993cdf1a3c2b4bbf80d1c8f9b95e4fda163888ecd365f6.NbSupport.nbBlindDeltaY250,
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-    StrideRun.eval, Seg57.localRho, Deployed.Templates.seated,
+    StrideRun.eval, Seg58.localRho, Deployed.Templates.seated,
     hseed, zero_add, one_mul, add_zero]
   rw [← hsum]
   ac_rfl

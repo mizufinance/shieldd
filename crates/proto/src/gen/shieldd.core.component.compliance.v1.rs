@@ -50,6 +50,9 @@ pub struct ComplianceLeaf {
     /// Canonical random derivation material for the slot.
     #[prost(bytes = "vec", tag = "6")]
     pub slot_derivation: ::prost::alloc::vec::Vec<u8>,
+    /// Current authorization state for this address and asset.
+    #[prost(enumeration = "UserAssetStatus", tag = "7")]
+    pub status: i32,
 }
 impl ::prost::Name for ComplianceLeaf {
     const NAME: &'static str = "ComplianceLeaf";
@@ -766,6 +769,32 @@ impl ::prost::Name for EventUserRegistered {
         "/shieldd.core.component.compliance.v1.EventUserRegistered".into()
     }
 }
+/// Emitted when an existing user's per-asset status changes in place.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct EventUserAssetStatusChanged {
+    /// Existing position updated in the user compliance tree.
+    #[prost(uint64, tag = "1")]
+    pub position: u64,
+    /// Commitment of the updated compliance leaf.
+    #[prost(bytes = "vec", tag = "2")]
+    pub commitment: ::prost::alloc::vec::Vec<u8>,
+    /// Updated full leaf data for client sync.
+    #[prost(message, optional, tag = "3")]
+    pub leaf: ::core::option::Option<ComplianceLeaf>,
+    /// Status before this transition.
+    #[prost(enumeration = "UserAssetStatus", tag = "4")]
+    pub previous_status: i32,
+}
+impl ::prost::Name for EventUserAssetStatusChanged {
+    const NAME: &'static str = "EventUserAssetStatusChanged";
+    const PACKAGE: &'static str = "shieldd.core.component.compliance.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.compliance.v1.EventUserAssetStatusChanged".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.compliance.v1.EventUserAssetStatusChanged".into()
+    }
+}
 /// Emitted when an asset is registered in the compliance system.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct EventAssetRegistered {
@@ -843,6 +872,39 @@ impl ::prost::Name for EventComplianceAnchor {
     }
     fn type_url() -> ::prost::alloc::string::String {
         "/shieldd.core.component.compliance.v1.EventComplianceAnchor".into()
+    }
+}
+/// Per-address authorization state for one regulated asset.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum UserAssetStatus {
+    Unspecified = 0,
+    Active = 1,
+    Frozen = 2,
+    Seized = 3,
+}
+impl UserAssetStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "USER_ASSET_STATUS_UNSPECIFIED",
+            Self::Active => "USER_ASSET_STATUS_ACTIVE",
+            Self::Frozen => "USER_ASSET_STATUS_FROZEN",
+            Self::Seized => "USER_ASSET_STATUS_SEIZED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "USER_ASSET_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
+            "USER_ASSET_STATUS_ACTIVE" => Some(Self::Active),
+            "USER_ASSET_STATUS_FROZEN" => Some(Self::Frozen),
+            "USER_ASSET_STATUS_SEIZED" => Some(Self::Seized),
+            _ => None,
+        }
     }
 }
 /// Generated client implementations.

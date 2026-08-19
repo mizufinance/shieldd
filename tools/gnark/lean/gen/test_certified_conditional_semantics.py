@@ -36,7 +36,7 @@ class CertifiedConditionalSemanticsTest(unittest.TestCase):
                 "select.point",
             },
         )
-        self.assertEqual(len(templates), 8)
+        self.assertEqual(len(templates), 9)
         self.assertEqual(
             [template.key for template in templates],
             sorted(template.key for template in templates),

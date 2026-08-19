@@ -32,26 +32,27 @@ theorem computedHash
          output7NoteCommitmentComputed rho,
          balanceCommitmentFq rho,
          assetAnchor rho,
+         complianceAnchor rho,
          routingTag rho,
          routingParameterSetId rho,
          recentPositionFloor rho,
          spend0NullifierComputed rho,
          spend0RkCompressed rho,
          spend0HistoryRequired rho] := by
-  have h := facts.transcript.StatementHashSeg79
+  have h := facts.transcript.StatementHashSeg83
   change
-    Deployed.Templates.Semantics.TStatementHash_83a669afde34adf36b8981f04f0c381cb17040f11d8fafcf45f8451d92c98705.spec
-      (Seg79.localRho rho) at h
+    Deployed.Templates.Semantics.TStatementHash_7acf21e44dfb02b7e86c0f61aeed9884ca62220f949cb8a03253903d5c5bec66.spec
+      (Seg83.localRho rho) at h
   unfold
-    Deployed.Templates.Semantics.TStatementHash_83a669afde34adf36b8981f04f0c381cb17040f11d8fafcf45f8451d92c98705.spec at h
+    Deployed.Templates.Semantics.TStatementHash_7acf21e44dfb02b7e86c0f61aeed9884ca62220f949cb8a03253903d5c5bec66.spec at h
   calc
     statementHash rho =
-        (Deployed.Templates.Semantics.TStatementHash_83a669afde34adf36b8981f04f0c381cb17040f11d8fafcf45f8451d92c98705.Trace.rawState2_38
-          (Seg79.localRho rho))[1] :=
+        (Deployed.Templates.Semantics.TStatementHash_7acf21e44dfb02b7e86c0f61aeed9884ca62220f949cb8a03253903d5c5bec66.Trace.rawState2_38
+          (Seg83.localRho rho))[1] :=
       NoteReshape1x8StatementOutput.hash rho
     _ =
-        Deployed.Templates.Semantics.TStatementHash_83a669afde34adf36b8981f04f0c381cb17040f11d8fafcf45f8451d92c98705.Trace.hash2
-          (Seg79.localRho rho) := h
+        Deployed.Templates.Semantics.TStatementHash_7acf21e44dfb02b7e86c0f61aeed9884ca62220f949cb8a03253903d5c5bec66.Trace.hash2
+          (Seg83.localRho rho) := h
     _ = NoteReshapeCanonical.statementHash .reshape1x8
         [anchor rho,
          output0NoteCommitmentComputed rho,
@@ -64,6 +65,7 @@ theorem computedHash
          output7NoteCommitmentComputed rho,
          balanceCommitmentFq rho,
          assetAnchor rho,
+         complianceAnchor rho,
          routingTag rho,
          routingParameterSetId rho,
          recentPositionFloor rho,
@@ -76,16 +78,16 @@ theorem publicHash
     (rho : Nat → DeployedF)
     (facts : NoteReshape1x8CircuitFacts rho) :
     claimedStatementHash rho = statementHash rho := by
-  have h := facts.transcript.AssertEqSeg80
+  have h := facts.transcript.AssertEqSeg84
   change
     Deployed.Templates.Semantics.TAssertEq_001662998b48830253568a34945bae30020bcb70574648b9aa58b23510a29b69.spec
-      (Seg80.localRho rho) at h
+      (Seg84.localRho rho) at h
   simp [
     Deployed.Templates.Semantics.TAssertEq_001662998b48830253568a34945bae30020bcb70574648b9aa58b23510a29b69.spec,
     claimedStatementHash, claimedStatementHashLC,
     statementHash, statementHashLC,
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-    Seg80.localRho, Deployed.Templates.seated,
+    Seg84.localRho, Deployed.Templates.seated,
     NoteReshape1x8StatementPublicSeating.hw1,
     NoteReshape1x8StatementPublicSeating.hw2,
     NoteReshape1x8StatementPublicSeating.hw3,
@@ -115,6 +117,7 @@ theorem claimedHash
          output7NoteCommitmentComputed rho,
          balanceCommitmentFq rho,
          assetAnchor rho,
+         complianceAnchor rho,
          routingTag rho,
          routingParameterSetId rho,
          recentPositionFloor rho,

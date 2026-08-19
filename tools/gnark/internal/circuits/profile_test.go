@@ -53,6 +53,7 @@ func (c *complianceLeafProfileCircuit) Define(api frontend.API) error {
 		c.SlotID,
 		c.SlotDerivation,
 		c.D,
+		1,
 	)
 	return err
 }

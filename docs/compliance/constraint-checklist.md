@@ -1,6 +1,6 @@
 # Compliance Constraint Checklist
 
-This checklist covers the V18 compliance surface. General spend, note,
+This checklist covers the current compliance surface. General spend, note,
 nullifier, and value constraints are tracked in
 `docs/transfer-circuit/constraint-checklist.md`.
 
@@ -29,9 +29,10 @@ nullifier, and value constraints are tracked in
   matches native key/address allocation and prevents identity-DTK ownership
   aliasing; it is not merely an honest-construction precondition.
 - Regulated transfers bind the diversified generator, transmission key, asset
-  id, slot id, `slot_derivation`, and `d` into version-3 compliance-leaf
+  id, slot id, `slot_derivation`, `d`, and status into version-4 compliance-leaf
   commitments under the accepted compliance anchor.
 - Native registration rejects a derived `d = 0`, preventing an identity ACK.
+- Regulated sender and receiver statuses must both equal `Active`.
 - ACK derivation uses the selected ring point and the bound `d`.
 - Unregulated transfers keep the same witness shape but gate membership against
   the exact asset-status branch.
@@ -92,7 +93,7 @@ nullifier, and value constraints are tracked in
 - The preimage binds the consensus recent-position floor and one
   `history_required` bit per spend.
 - The public tail commits all ten non-duplicate metadata Fq values.
-- ABI tests reject legacy V15 witnesses and wrong vector lengths.
+- ABI tests reject stale witness versions and wrong vector lengths.
 - Differential tests compare native Rust/Go reconstruction, circuit public
   assignment, and statement hash.
 
@@ -100,8 +101,10 @@ nullifier, and value constraints are tracked in
 
 ### Live Context
 
-- `validate_compliance_anchors` requires the current mutable asset root and a
-  recent append-only user-compliance root.
+- `validate_compliance_anchors` requires the exact current mutable asset and
+  user-status roots.
+- Regulated NoteReshape proves its owner is `Active`; fee funding uses Transfer,
+  so a frozen user cannot reshape notes or spend the affected asset for fees.
 - `check_timestamp_freshness` bounds target timestamp drift.
 - Proof verification precedes handler completion.
 - Spend signatures cover a Transfer effect hash containing the exact receiver
@@ -149,6 +152,6 @@ nullifier, and value constraints are tracked in
 - Public DH shared points and upload packages were deleted.
 - The duplicate AES seed envelope and its unbound-seed failure mode were
   deleted.
-- Per-tier DLEQ statement fields and validation are absent from Transfer V18.
+- Per-tier DLEQ statement fields and validation are absent from Transfer.
 - Generic DLEQ Lean/Tamarin work is research-only and does not count toward
   deployed Transfer certification.

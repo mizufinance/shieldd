@@ -173,9 +173,27 @@ TEMPLATES = (
     ),
     PathTemplate(
         "gadget.compliance_path",
-        "d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686",
-        5849,
+        "3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b",
+        5850,
         (
+            PathDeployment(
+                "note_reshape1x8",
+                (
+                    "leaf=sender.leaf_commitment",
+                    "path=sender.path",
+                    "position=sender.position",
+                    "out=sender.compliance_root",
+                ),
+            ),
+            PathDeployment(
+                "note_reshape8x1",
+                (
+                    "leaf=sender.leaf_commitment",
+                    "path=sender.path",
+                    "position=sender.position",
+                    "out=sender.compliance_root",
+                ),
+            ),
             PathDeployment(
                 "shielded_ics20_withdrawal",
                 (

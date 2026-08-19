@@ -411,6 +411,8 @@ message NoteReshapeBody {
   bytes routing_parameter_set_id = 7;
   // Asset-registry root binding the private class-dependent routing precision.
   crypto.tct.v1.StateCommitment asset_anchor = 8;
+  // Current compliance user-tree root binding the owner status for regulated assets.
+  crypto.tct.v1.StateCommitment compliance_anchor = 9;
 }
 
 message NoteReshapeView {
