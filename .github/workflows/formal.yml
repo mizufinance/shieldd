@@ -859,18 +859,14 @@ jobs:
           bash scripts/compliance-lean-dleq.sh stamps
 
       - name: Set up Nix for Alloy
-        if: >-
-          needs.applicability.outputs.soundness_tier != 'policy' &&
-          (github.event_name == 'pull_request' || github.event_name == 'merge_group')
+        if: needs.applicability.outputs.soundness_tier != 'policy'
         uses: ./.github/actions/setup-nix-rust
         with:
           rust-cache: "false"
 
       - name: Run compliance Alloy outcome gate
         id: alloy_check
-        if: >-
-          needs.applicability.outputs.soundness_tier != 'policy' &&
-          (github.event_name == 'pull_request' || github.event_name == 'merge_group')
+        if: needs.applicability.outputs.soundness_tier != 'policy'
         run: nix shell nixpkgs#alloy6 --command bash scripts/compliance-alloy.sh
 
       - name: Report soundness host results
@@ -881,7 +877,7 @@ jobs:
           JOB_STATUS: ${{ job.status }}
           POLICY_SELECTED: ${{ needs.applicability.outputs.soundness_tier == 'policy' }}
           HEAVY_SELECTED: ${{ needs.applicability.outputs.soundness_tier != 'policy' }}
-          ALLOY_SELECTED: ${{ needs.applicability.outputs.soundness_tier != 'policy' && (github.event_name == 'pull_request' || github.event_name == 'merge_group') }}
+          ALLOY_SELECTED: ${{ needs.applicability.outputs.soundness_tier != 'policy' }}
         run: |
           set -euo pipefail
           policy="skipped"
@@ -977,7 +973,6 @@ jobs:
       - name: Enforce the formal result contract
         shell: bash
         env:
-          EVENT_NAME: ${{ github.event_name }}
           APPLICABILITY: ${{ needs.applicability.result }}
           SNARKPACK_STATUS: ${{ needs.applicability.outputs.snarkpack_status }}
           SNARKPACK_TIER: ${{ needs.applicability.outputs.snarkpack_tier }}

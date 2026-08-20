@@ -4,6 +4,11 @@ A circuit release is ready only when source, deployed bytes, formal proof, key
 material, and an actual proof round trip all describe the same circuit. Hash-only
 restamping is never a fix for a failed semantic or source-drift gate.
 
+Circuit source and regenerated FV evidence must land in the same PR. Keep
+handwritten circuit, specification, and proof edits in commits before the
+generated refresh when practical; do not merge a changed circuit and repair its
+evidence in a follow-up PR.
+
 ## Required evidence
 
 1. The independent requirements source, code-owned predicate baseline,
@@ -95,6 +100,20 @@ restamping is never a fix for a failed semantic or source-drift gate.
     Acceptance-only properties consume no honest-construction
     facts; composition properties name that extra scope explicitly.
 
+## Repository evidence
+
+Git contains the release and runtime authority: deployed SR1CS, proving and
+verifying keys, metadata, hashes, setup provenance, generated proof contracts,
+and the manifests and relations needed to reproduce them. Large SR1CS files use
+Git LFS; runtime proving keys remain ordinary Git inputs. These are not
+intermediate build products.
+
+Compiler caches, logs, diagnostic bundles, and generated refresh patches are
+CI artifacts scoped to the exact candidate SHA and run attempt. They may help
+repair a failure but are not release evidence. A tracked proof input can move
+out of Git only after an immutable content-addressed store and a checked,
+offline-verifiable manifest replace it.
+
 ## Commands
 
 Run Lean serially and single-threaded:
@@ -143,6 +162,9 @@ reduction.
 
 ## Failure handling
 
+- Wrong applicability tier: follow
+  [gate failure routing](README.md#gate-failure-routing). Add a regression only
+  when the routing contract changes or a reusable missing invariant is found.
 - Source/SR1CS mismatch: regenerate and review the semantic diff; never restamp.
 - IR/witness/contract/template/wiring/capstone/CircuitFacts mismatch: fix the
   extractor, generator, or proof, regenerate, and review the exact diff.

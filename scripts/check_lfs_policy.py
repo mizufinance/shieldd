@@ -186,9 +186,27 @@ def enforce_workflow_fanout() -> None:
 
 def enforce_proof_scheduling() -> None:
     workflows = ROOT / ".github" / "workflows"
-    removed = workflows / "formal-scheduled.yml"
-    if removed.exists():
-        fail("the automatic formal proof workflow has returned")
+    scheduled = workflows / "formal-scheduled.yml"
+    if not scheduled.is_file():
+        fail("the default-branch formal drift workflow is missing")
+    text = scheduled.read_text(encoding="utf-8")
+    required = (
+        "schedule:",
+        "uses: ./.github/workflows/formal.yml",
+        "target_ref: ${{ github.sha }}",
+    )
+    missing = [value for value in required if value not in text]
+    if missing:
+        fail(
+            "the default-branch formal drift workflow is incomplete: "
+            f"missing {missing}"
+        )
+    for forbidden in ("push:", "pull_request:", "merge_group:", "runs-on:"):
+        if forbidden in text:
+            fail(
+                "the default-branch formal drift wrapper contains "
+                f"forbidden direct execution state {forbidden!r}"
+            )
     for relative in ("rust.yml", "snarkpack-release-audit.yml"):
         workflow = workflows / relative
         if re.search(r"(?m)^\s+schedule:\s*$", workflow.read_text()):
@@ -281,7 +299,10 @@ def main() -> int:
     enforce_bundle_budgets()
     enforce_paired_rotations(args.base or event_base())
     enforce_tracked_files()
-    print("LFS policy: runtime artifacts are Git-backed; constraint hydration is bounded")
+    print(
+        "LFS policy: release artifacts are Git-backed, constraint hydration is "
+        "bounded, and scheduled drift replay is isolated"
+    )
     return 0
 
 

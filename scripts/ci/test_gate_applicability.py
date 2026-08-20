@@ -474,7 +474,6 @@ class GateApplicabilityTests(unittest.TestCase):
     def test_workspace_and_toolchain_inputs_select_declared_tiers(self) -> None:
         paths = (
             "Cargo.toml",
-            "Cargo.lock",
             "rust-toolchain.toml",
             ".cargo/config.toml",
             "flake.nix",
@@ -494,8 +493,7 @@ class GateApplicabilityTests(unittest.TestCase):
                     decision.tier,
                     (
                         "static"
-                        if path
-                        in {"Cargo.toml", "Cargo.lock", "flake.nix", "flake.lock"}
+                        if path in {"Cargo.toml", "flake.nix", "flake.lock"}
                         else "extract-all"
                     ),
                 )
@@ -505,8 +503,143 @@ class GateApplicabilityTests(unittest.TestCase):
                 )
                 self.assertEqual(
                     decision.tier,
-                    "policy" if path == "Cargo.lock" else "pr",
+                    "pr",
                 )
+
+    def test_cargo_lock_fingerprint_tracks_only_reachable_packages(self) -> None:
+        base = {
+            "package": [
+                {
+                    "name": "formal-root",
+                    "version": "1.0.0",
+                    "dependencies": ["formal-dependency"],
+                },
+                {
+                    "name": "formal-dependency",
+                    "version": "1.0.0",
+                    "source": "registry+https://example.invalid/index",
+                    "checksum": "formal-v1",
+                },
+                {
+                    "name": "unrelated",
+                    "version": "1.0.0",
+                    "source": "registry+https://example.invalid/index",
+                    "checksum": "unrelated-v1",
+                },
+            ]
+        }
+        unrelated_update = json.loads(json.dumps(base))
+        unrelated_update["package"][2].update(
+            version="2.0.0", checksum="unrelated-v2"
+        )
+        relevant_update = json.loads(json.dumps(base))
+        relevant_update["package"][1]["checksum"] = "formal-v2"
+
+        before = GATE.cargo_lock_closure_fingerprint(
+            base, ("formal-root",), "base Cargo.lock"
+        )
+        after_unrelated = GATE.cargo_lock_closure_fingerprint(
+            unrelated_update, ("formal-root",), "current Cargo.lock"
+        )
+        after_relevant = GATE.cargo_lock_closure_fingerprint(
+            relevant_update, ("formal-root",), "current Cargo.lock"
+        )
+
+        self.assertEqual(before, after_unrelated)
+        self.assertNotEqual(before, after_relevant)
+
+    def test_dependency_aware_lock_rule_supersedes_base_declaration(self) -> None:
+        for declaration, legacy_tier in (
+            (self.snarkpack, "static"),
+            (self.soundness, "policy"),
+        ):
+            previous = GATE.Declaration(
+                gate=declaration.gate,
+                tiers=declaration.tiers,
+                events=declaration.events,
+                derived_inputs=declaration.derived_inputs,
+                explicit_inputs=(
+                    *declaration.explicit_inputs,
+                    {
+                        "patterns": ("Cargo.lock",),
+                        "tiers": {
+                            "pull_request": legacy_tier,
+                            "merge_group": legacy_tier,
+                            "default": "full",
+                        },
+                        "reason": "legacy broad lockfile input",
+                    },
+                ),
+                irrelevant_inputs=declaration.irrelevant_inputs,
+            )
+            decision = GATE.classify(
+                declaration,
+                "pull_request",
+                ["Cargo.lock"],
+                [
+                    GATE.InputRule(
+                        patterns=("Cargo.lock",),
+                        tier="skip",
+                        reason="relevant dependency closure is unchanged",
+                    )
+                ],
+                previous_declaration=previous,
+            )
+            with self.subTest(gate=declaration.gate):
+                self.assertEqual(
+                    (decision.status, decision.tier), ("skip", "skip")
+                )
+                self.assertFalse(decision.unknown_files)
+
+    def test_committed_formal_lock_closures_resolve_and_compare(self) -> None:
+        for declaration in (self.snarkpack, self.soundness):
+            source = next(
+                item
+                for item in declaration.derived_inputs
+                if item["type"] == "cargo_lock_closure"
+            )
+            with self.subTest(gate=declaration.gate):
+                rule = GATE.cargo_lock_closure_rule(
+                    self.root, source, "pull_request", "HEAD"
+                )
+                self.assertEqual(rule.patterns, ("Cargo.lock",))
+                self.assertEqual(rule.tier, "skip")
+
+    def test_relevant_cargo_lock_change_runs_on_pr_and_merge_candidate(
+        self,
+    ) -> None:
+        for declaration, pr_tier in (
+            (self.snarkpack, "static"),
+            (self.soundness, "pr"),
+        ):
+            source = next(
+                item
+                for item in declaration.derived_inputs
+                if item["type"] == "cargo_lock_closure"
+            )
+            for event, expected in (
+                ("pull_request", pr_tier),
+                ("merge_group", "full"),
+            ):
+                with self.subTest(gate=declaration.gate, event=event):
+                    tier = GATE.tier_for(
+                        source["tiers"], event, "test Cargo.lock closure"
+                    )
+                    decision = GATE.classify(
+                        declaration,
+                        event,
+                        ["Cargo.lock"],
+                        [
+                            GATE.InputRule(
+                                patterns=("Cargo.lock",),
+                                tier=tier,
+                                reason="relevant dependency closure changed",
+                            )
+                        ],
+                    )
+                    self.assertEqual(
+                        (decision.status, decision.tier), ("run", expected)
+                    )
 
     def test_circuit_refinement_inputs_select_pr_gate(self) -> None:
         paths = (
@@ -546,6 +679,21 @@ class GateApplicabilityTests(unittest.TestCase):
                 )
                 self.assertEqual((decision.status, decision.tier), ("run", "pr"))
 
+    def test_circuit_inputs_select_full_merge_candidate_gate(self) -> None:
+        for path in (
+            "tools/gnark/internal/circuits/transfer.go",
+            "tools/gnark/internal/abi/statement.go",
+            "tools/gnark/lean/gen/gen_deployed_family.py",
+            "tools/gnark/artifacts/transfer/circuit_metadata.json",
+        ):
+            with self.subTest(path=path):
+                decision = GATE.classify(
+                    self.soundness, "merge_group", [path], []
+                )
+                self.assertEqual(
+                    (decision.status, decision.tier), ("run", "full")
+                )
+
     def test_transaction_view_and_consensus_seams_select_soundness_gate(self) -> None:
         source = next(
             item
@@ -575,6 +723,15 @@ class GateApplicabilityTests(unittest.TestCase):
                 self.assertEqual(
                     (decision.status, decision.tier), ("run", "pr")
                 )
+
+    def test_runtime_protocol_seams_stay_bounded_in_merge_queue(self) -> None:
+        decision = GATE.classify(
+            self.soundness,
+            "merge_group",
+            ["crates/core/app/src/action_handler/transaction.rs"],
+            [],
+        )
+        self.assertEqual((decision.status, decision.tier), ("run", "pr"))
 
     def test_formal_workflow_handles_every_declared_soundness_tier(self) -> None:
         workflow = (self.root / ".github/workflows/formal.yml").read_text(
@@ -614,6 +771,14 @@ class GateApplicabilityTests(unittest.TestCase):
         self.assertIn("sudo apt-get install -y ripgrep", soundness_host)
         self.assertIn(
             "bash scripts/compliance-lean-dleq.sh stamps", soundness_host
+        )
+        self.assertIn(
+            "ALLOY_SELECTED: ${{ needs.applicability.outputs.soundness_tier != 'policy' }}",
+            soundness_host,
+        )
+        self.assertNotIn(
+            "github.event_name == 'pull_request' || github.event_name == 'merge_group'",
+            soundness_host,
         )
         self.assertIn("id: results", soundness_host)
         self.assertIn("policy: ${{ steps.results.outputs.policy }}", soundness_host)
@@ -729,6 +894,22 @@ class GateApplicabilityTests(unittest.TestCase):
                     ("run", "static"),
                 )
                 self.assertFalse(decision.unknown_files)
+
+    def test_snarkpack_control_plane_stays_static_in_merge_queue(self) -> None:
+        control = GATE.classify(
+            self.snarkpack,
+            "merge_group",
+            [".github/workflows/formal.yml"],
+            [],
+        )
+        environment = GATE.classify(
+            self.snarkpack,
+            "merge_group",
+            [".github/actions/setup-nix-rust/action.yml"],
+            [],
+        )
+        self.assertEqual((control.status, control.tier), ("run", "static"))
+        self.assertEqual((environment.status, environment.tier), ("run", "full"))
 
     def test_one_graph_input_selects_only_that_graph(self) -> None:
         manifest = self.synthetic_manifest(
@@ -1190,7 +1371,7 @@ class GateApplicabilityTests(unittest.TestCase):
             item
             for item in self.snarkpack.explicit_inputs
             if item["reason"]
-            == "workflow, classifier, diagnostic, or invoked gate implementation"
+            == "formal control-plane, applicability, summary, cache-policy, or diagnostic input"
         )
         previous = GATE.Declaration(
             gate=self.snarkpack.gate,
@@ -1313,6 +1494,7 @@ class GateApplicabilityTests(unittest.TestCase):
             "deployments/scripts/rust_doc_packages.py",
             "deployments/scripts/tests/test_rust_doc_packages.py",
             "docs/architecture/unrelated.md",
+            "docs/soundness/README.md",
             "proto/shieldd/shieldd/core/component/sct/v1/sct.proto",
         ):
             for declaration in (self.snarkpack, self.soundness):
@@ -1387,20 +1569,23 @@ class GateApplicabilityTests(unittest.TestCase):
                 )
                 self.assertFalse(decision.unknown_files)
 
-    def test_packaging_policy_overrides_broad_runtime_closure(self) -> None:
-        source = next(
-            item
-            for item in self.soundness.derived_inputs
-            if item["type"] == "cargo_local_closure"
-        )
-        rules = GATE.cargo_closure_rules(self.root, source, "pull_request")
-        decision = GATE.classify(
-            self.soundness,
-            "pull_request",
-            ["crates/core/component/shielded-pool/Cargo.toml"],
-            rules,
-        )
-        self.assertEqual((decision.status, decision.tier), ("run", "policy"))
+    def test_verifier_manifests_select_semantic_candidate_tiers(self) -> None:
+        for path in (
+            "crates/core/component/shielded-pool/Cargo.toml",
+            "crates/core/transaction/Cargo.toml",
+            "crates/crypto/proof-params/Cargo.toml",
+        ):
+            for event, tier in (
+                ("pull_request", "pr"),
+                ("merge_group", "full"),
+            ):
+                with self.subTest(path=path, event=event):
+                    decision = GATE.classify(
+                        self.soundness, event, [path], []
+                    )
+                    self.assertEqual(
+                        (decision.status, decision.tier), ("run", tier)
+                    )
 
     def test_snarkpack_evidence_uses_policy_not_circuit_soundness(self) -> None:
         for path in (
@@ -1833,6 +2018,15 @@ class GateApplicabilityTests(unittest.TestCase):
             "github.event_name == 'workflow_call') && inputs.target_ref",
             workflow,
         )
+
+        scheduled = (
+            self.root / ".github/workflows/formal-scheduled.yml"
+        ).read_text(encoding="utf-8")
+        self.assertIn("  schedule:", scheduled)
+        self.assertIn("uses: ./.github/workflows/formal.yml", scheduled)
+        self.assertIn("target_ref: ${{ github.sha }}", scheduled)
+        self.assertNotIn("runs-on:", scheduled)
+        self.assertNotIn("  push:", scheduled)
 
     def test_manual_formal_runs_accept_and_freeze_exact_commit_refs(self) -> None:
         for relative in (

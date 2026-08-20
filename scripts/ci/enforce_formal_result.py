@@ -78,7 +78,6 @@ def enforce() -> None:
             f"applicability classification failed: {applicability}"
         )
 
-    event_name = value("EVENT_NAME")
     required: list[tuple[str, str]] = []
 
     snarkpack_status = value("SNARKPACK_STATUS")
@@ -288,15 +287,9 @@ def enforce() -> None:
                     )
             else:
                 required.append(("soundness-artifact-replay", replay))
-            if event_name in {"pull_request", "merge_group"}:
-                required.append(
-                    ("soundness-alloy", soundness_results["soundness-alloy"])
-                )
-            elif soundness_results["soundness-alloy"] != "skipped":
-                raise ValueError(
-                    "non-candidate soundness run unexpectedly ran Alloy: "
-                    + soundness_results["soundness-alloy"]
-                )
+            required.append(
+                ("soundness-alloy", soundness_results["soundness-alloy"])
+            )
     else:
         raise ValueError(
             f"invalid soundness applicability status: {soundness_status}"

@@ -320,13 +320,15 @@ The Lean gate permits one Lake build at a time with `LEAN_NUM_THREADS=1`.
 Generated Lean is never edited directly; generator output and template
 ownership are byte-checked. Affected pull requests run the bounded soundness
 invariants, statement seams, manifest/stamp integrity, and Alloy checks.
-Manual/nightly GitHub-hosted runs regenerate every formal artifact and run
-deployed-key prove/verify. Lean kernel replay and the axiom audit are local
-release operations: their committed evidence binds the source closure, final
-theorem roots, axiom baseline, and toolchain, and the strict manual/nightly lane
-rejects stale evidence. This is a prototype cadence decision, not a claim that
-CI independently reruns Lean or that candidate checks replace local proof
-verification.
+Circuit, proof, and relevant toolchain changes run full artifact replay on the
+exact merge-queue candidate. The workflow has no branch-push trigger, so it is
+not repeated immediately after merge. Manual and daily default-branch runs also
+regenerate every formal artifact and run deployed-key prove/verify to detect
+toolchain, runner, and procedure drift. Lean kernel replay and the axiom audit
+remain local release operations: committed evidence binds the source closure,
+final theorem roots, axiom baseline, and toolchain, and strict replay rejects
+stale evidence. This cadence does not claim that CI independently reruns Lean
+or that candidate checks replace local proof verification.
 
 ## Lean circuit inner loop
 
@@ -341,6 +343,11 @@ The certified circuit workflow has three explicit tiers:
 Normal circuit edits should stay in `fast` until source generation and semantic
 joins stabilize, then run `affected` for the edited family. `full` is a release
 operation, not the edit loop.
+
+Keep the circuit source and regenerated FV evidence in one PR. For reviewable
+history, commit handwritten circuit/spec/proof changes before the generated
+refresh instead of mixing both in one diff. A follow-up evidence PR is not an
+acceptable interval for a changed circuit.
 
 Build telemetry is emitted by `scripts/lean-build-safe.sh` when
 `LEAN_BUILD_METRICS_OUT` is set. Budgets live in
@@ -363,16 +370,5 @@ routing, and statement seams through a thin facade.
 No command may run two Lake builds concurrently. All affected/full builds use
 `LEAN_NUM_THREADS=1` and the named-module resource guard.
 
-## Release commands
-
-```sh
-python3 scripts/gen_fv_specification_matrix.py --check
-python3 scripts/check-fv-specification-completeness.py
-bash scripts/check-fv-specification-evidence.sh
-scripts/check-certified-circuit-spec-independence.sh strict
-scripts/check-manifest-pin.sh all
-scripts/check-constraint-coverage.sh --require-full-deployed --check-typed-bindings all
-python3 scripts/gen-certified-circuit-artifacts.py
-LEAN_NUM_THREADS=1 bash scripts/check-lean-circuit-fv.sh release all
-bash scripts/check-soundness-invariants.sh strict
-```
+The terminal command list and failure policy live in
+[release.md](release.md#commands).
