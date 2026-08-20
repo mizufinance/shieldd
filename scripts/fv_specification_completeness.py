@@ -812,7 +812,7 @@ REVIEWED_TEST_SOURCE_CENSUS = (
 # This pins every path/symbol/reason triple rendered in reviewed_test_census.
 # Update only after deciding whether each changed test is normative evidence.
 REVIEWED_TEST_EXCLUSIONS_SHA256 = (
-    "67ba05ddd361c88eb7c56a0bf06998cd389eda9d9024a5ded19eaf32f7f94146"
+    "5eea8745bc23b941eed369468bdfd9a60136630d460796c9c726310dac057f78"
 )
 PROPERTY_TEST_SOURCE_CENSUS = (
     "crates/core/component/compliance/src/structs.rs",
@@ -1414,16 +1414,21 @@ EXPECTED_EXECUTION_SERVICE_PUBLIC_METHODS = frozenset(
         "app_parameters",
         "archived_nullifier_proof",
         "apply_compliance_action",
+        "asset_metadata_by_id",
         "begin_block",
         "check_tx",
         "close",
         "commit",
+        "compliance_asset_status",
+        "compliance_batch_merkle_proofs",
+        "compliance_user_leaf",
         "deliver_tx",
         "deposit",
         "end_block",
         "export_genesis",
         "get_committed_state",
         "init_genesis",
+        "key_value",
         "new",
         "open",
         "open_with_generation_packs",
@@ -8491,6 +8496,11 @@ def _validate_grpc_execution_frontdoors(root: Path) -> None:
         "METHOD_GET_COMMITTED_STATE": 10,
         "METHOD_ARCHIVED_NULLIFIER_PROOF": 11,
         "METHOD_QUERY_APP_PARAMETERS": 1_000_000,
+        "METHOD_QUERY_ASSET_METADATA_BY_ID": 1_000_001,
+        "METHOD_QUERY_COMPLIANCE_ASSET_STATUS": 1_000_002,
+        "METHOD_QUERY_COMPLIANCE_BATCH_MERKLE_PROOFS": 1_000_003,
+        "METHOD_QUERY_COMPLIANCE_USER_LEAF": 1_000_004,
+        "METHOD_QUERY_KEY_VALUE": 1_000_005,
     }
     ffi_methods = {
         name: int(value.replace("_", ""))
@@ -8523,6 +8533,14 @@ def _validate_grpc_execution_frontdoors(root: Path) -> None:
         ("METHOD_EXPORT_GENESIS", "export_genesis"),
         ("METHOD_ARCHIVED_NULLIFIER_PROOF", "archived_nullifier_proof"),
         ("METHOD_QUERY_APP_PARAMETERS", "app_parameters"),
+        ("METHOD_QUERY_ASSET_METADATA_BY_ID", "asset_metadata_by_id"),
+        ("METHOD_QUERY_COMPLIANCE_ASSET_STATUS", "compliance_asset_status"),
+        (
+            "METHOD_QUERY_COMPLIANCE_BATCH_MERKLE_PROOFS",
+            "compliance_batch_merkle_proofs",
+        ),
+        ("METHOD_QUERY_COMPLIANCE_USER_LEAF", "compliance_user_leaf"),
+        ("METHOD_QUERY_KEY_VALUE", "key_value"),
     ):
         _require_ordered_symbols(
             ffi_dispatch,

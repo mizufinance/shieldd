@@ -202,6 +202,7 @@ fn status(error: ServiceError) -> Status {
     match error.kind() {
         ErrorKind::InvalidArgument => Status::invalid_argument(error.to_string()),
         ErrorKind::FailedPrecondition => Status::failed_precondition(error.to_string()),
+        ErrorKind::NotFound => Status::not_found(error.to_string()),
         ErrorKind::Internal => Status::internal(error.to_string()),
     }
 }

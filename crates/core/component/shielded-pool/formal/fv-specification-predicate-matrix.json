@@ -16515,6 +16515,11 @@
       },
       {
         "path": "crates/bin/shieldd/src/ffi.rs",
+        "symbol": "frontend_queries_read_committed_state",
+        "reason": "supporting_regression_not_claim_evidence"
+      },
+      {
+        "path": "crates/bin/shieldd/src/ffi.rs",
         "symbol": "historical_witness_call_requires_opt_in_storage",
         "reason": "supporting_regression_not_claim_evidence"
       },

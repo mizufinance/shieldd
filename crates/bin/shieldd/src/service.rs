@@ -1,14 +1,29 @@
 use std::{fmt, path::Path};
 
 use anyhow::{Context as _, Result};
-use cnidarium::Storage;
+use cnidarium::{
+    proto::v1::{
+        query_service_server::QueryService as CnidariumQueryService, KeyValueRequest,
+        KeyValueResponse,
+    },
+    Storage,
+};
 use shieldd_sdk_app::{
     app::{App, HostBlock, HostExecution, HostTxResponse, HostWithdrawal, StateReadExt as _},
     genesis::AppState,
     SUBSTORE_PREFIXES,
 };
-use shieldd_sdk_proto::core::component::sct::v1::{
-    ArchivedNullifierProofRequest, ArchivedNullifierProofResponse,
+use shieldd_sdk_proto::core::component::{
+    compliance::v1::{
+        query_service_server::QueryService as ComplianceQueryService, ComplianceAssetStatusRequest,
+        ComplianceAssetStatusResponse, ComplianceBatchMerkleProofsRequest,
+        ComplianceBatchMerkleProofsResponse, ComplianceUserLeafRequest, ComplianceUserLeafResponse,
+    },
+    sct::v1::{ArchivedNullifierProofRequest, ArchivedNullifierProofResponse},
+    shielded_pool::v1::{
+        query_service_server::QueryService as ShieldedPoolQueryService, AssetMetadataByIdRequest,
+        AssetMetadataByIdResponse,
+    },
 };
 use shieldd_sdk_proto::{
     core::app::v1 as proto_app,
@@ -30,6 +45,7 @@ use tendermint::{abci, Time};
 pub enum ErrorKind {
     InvalidArgument,
     FailedPrecondition,
+    NotFound,
     Internal,
 }
 
@@ -58,6 +74,13 @@ impl ServiceError {
         }
     }
 
+    fn not_found(source: anyhow::Error) -> Self {
+        Self {
+            kind: ErrorKind::NotFound,
+            source,
+        }
+    }
+
     fn internal(source: anyhow::Error) -> Self {
         Self {
             kind: ErrorKind::Internal,
@@ -67,6 +90,16 @@ impl ServiceError {
 
     fn closed() -> Self {
         Self::failed_precondition(anyhow::anyhow!("Shieldd execution service is closed"))
+    }
+
+    fn query(status: tonic::Status) -> Self {
+        let source = anyhow::anyhow!(status.message().to_owned());
+        match status.code() {
+            tonic::Code::InvalidArgument => Self::invalid_argument(source),
+            tonic::Code::FailedPrecondition => Self::failed_precondition(source),
+            tonic::Code::NotFound => Self::not_found(source),
+            _ => Self::internal(source),
+        }
     }
 }
 
@@ -319,6 +352,69 @@ impl ExecutionService {
         Ok(proto_app::AppParametersResponse {
             app_parameters: Some(app_parameters.into()),
         })
+    }
+
+    pub async fn asset_metadata_by_id(
+        &self,
+        request: AssetMetadataByIdRequest,
+    ) -> std::result::Result<AssetMetadataByIdResponse, ServiceError> {
+        let storage = self.storage.as_ref().ok_or_else(ServiceError::closed)?;
+        let server = shieldd_sdk_shielded_pool::component::rpc::Server::new(storage.clone());
+        ShieldedPoolQueryService::asset_metadata_by_id(&server, tonic::Request::new(request))
+            .await
+            .map(tonic::Response::into_inner)
+            .map_err(ServiceError::query)
+    }
+
+    pub async fn compliance_asset_status(
+        &self,
+        request: ComplianceAssetStatusRequest,
+    ) -> std::result::Result<ComplianceAssetStatusResponse, ServiceError> {
+        let storage = self.storage.as_ref().ok_or_else(ServiceError::closed)?;
+        let server = shieldd_sdk_compliance::RpcServer::new(storage.clone());
+        ComplianceQueryService::compliance_asset_status(&server, tonic::Request::new(request))
+            .await
+            .map(tonic::Response::into_inner)
+            .map_err(ServiceError::query)
+    }
+
+    pub async fn compliance_batch_merkle_proofs(
+        &self,
+        request: ComplianceBatchMerkleProofsRequest,
+    ) -> std::result::Result<ComplianceBatchMerkleProofsResponse, ServiceError> {
+        let storage = self.storage.as_ref().ok_or_else(ServiceError::closed)?;
+        let server = shieldd_sdk_compliance::RpcServer::new(storage.clone());
+        ComplianceQueryService::compliance_batch_merkle_proofs(
+            &server,
+            tonic::Request::new(request),
+        )
+        .await
+        .map(tonic::Response::into_inner)
+        .map_err(ServiceError::query)
+    }
+
+    pub async fn compliance_user_leaf(
+        &self,
+        request: ComplianceUserLeafRequest,
+    ) -> std::result::Result<ComplianceUserLeafResponse, ServiceError> {
+        let storage = self.storage.as_ref().ok_or_else(ServiceError::closed)?;
+        let server = shieldd_sdk_compliance::RpcServer::new(storage.clone());
+        ComplianceQueryService::compliance_user_leaf(&server, tonic::Request::new(request))
+            .await
+            .map(tonic::Response::into_inner)
+            .map_err(ServiceError::query)
+    }
+
+    pub async fn key_value(
+        &self,
+        request: KeyValueRequest,
+    ) -> std::result::Result<KeyValueResponse, ServiceError> {
+        let storage = self.storage.as_ref().ok_or_else(ServiceError::closed)?;
+        let server = cnidarium::rpc::Server::new(storage.clone());
+        CnidariumQueryService::key_value(&server, tonic::Request::new(request))
+            .await
+            .map(tonic::Response::into_inner)
+            .map_err(ServiceError::query)
     }
 
     pub async fn rollback(

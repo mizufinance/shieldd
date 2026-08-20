@@ -29,6 +29,7 @@ enum shieldd_status {
   SHIELDD_STATUS_FAILED_PRECONDITION = 2,
   SHIELDD_STATUS_INTERNAL = 3,
   SHIELDD_STATUS_PANIC = 4,
+  SHIELDD_STATUS_NOT_FOUND = 5,
 };
 
 /*
@@ -48,12 +49,41 @@ enum shieldd_method {
   SHIELDD_METHOD_GET_COMMITTED_STATE = 10,
   SHIELDD_METHOD_ARCHIVED_NULLIFIER_PROOF = 11,
 
-  /*
-   * Read-only queries use IDs starting at 1000000. This method accepts
-   * shieldd.core.app.v1.AppParametersRequest and returns
-   * shieldd.core.app.v1.AppParametersResponse.
-   */
+  /* Read-only queries use IDs starting at 1000000. */
+
+  /* shieldd.core.app.v1.AppParametersRequest/Response */
   SHIELDD_METHOD_QUERY_APP_PARAMETERS = 1000000,
+
+  /*
+   * shieldd.core.component.shielded_pool.v1.
+   * AssetMetadataByIdRequest/Response
+   */
+  SHIELDD_METHOD_QUERY_ASSET_METADATA_BY_ID = 1000001,
+
+  /*
+   * shieldd.core.component.compliance.v1.
+   * ComplianceAssetStatusRequest/Response
+   */
+  SHIELDD_METHOD_QUERY_COMPLIANCE_ASSET_STATUS = 1000002,
+
+  /*
+   * shieldd.core.component.compliance.v1.
+   * ComplianceBatchMerkleProofsRequest/Response
+   */
+  SHIELDD_METHOD_QUERY_COMPLIANCE_BATCH_MERKLE_PROOFS = 1000003,
+
+  /*
+   * shieldd.core.component.compliance.v1.
+   * ComplianceUserLeafRequest/Response
+   */
+  SHIELDD_METHOD_QUERY_COMPLIANCE_USER_LEAF = 1000004,
+
+  /*
+   * Accepts penumbra.cnidarium.v1.KeyValueRequest and returns
+   * penumbra.cnidarium.v1.KeyValueResponse. The frontend uses this existing
+   * query with SCT state keys.
+   */
+  SHIELDD_METHOD_QUERY_KEY_VALUE = 1000005,
 };
 
 uint32_t shieldd_abi_version(void);

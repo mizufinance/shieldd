@@ -7799,6 +7799,8 @@ dependencies = [
  "decaf377",
  "prost 0.13.4",
  "shieldd-sdk-app",
+ "shieldd-sdk-asset",
+ "shieldd-sdk-compliance",
  "shieldd-sdk-keys",
  "shieldd-sdk-proto",
  "shieldd-sdk-sct",

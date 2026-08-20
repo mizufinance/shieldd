@@ -16,6 +16,7 @@ const STATUS_INVALID_ARGUMENT: i32 = 1;
 const STATUS_FAILED_PRECONDITION: i32 = 2;
 const STATUS_INTERNAL: i32 = 3;
 const STATUS_PANIC: i32 = 4;
+const STATUS_NOT_FOUND: i32 = 5;
 
 const METHOD_INIT_GENESIS: u32 = 1;
 const METHOD_BEGIN_BLOCK: u32 = 2;
@@ -31,6 +32,11 @@ const METHOD_ARCHIVED_NULLIFIER_PROOF: u32 = 11;
 
 // Read-only query method IDs start at 1_000_000.
 const METHOD_QUERY_APP_PARAMETERS: u32 = 1_000_000;
+const METHOD_QUERY_ASSET_METADATA_BY_ID: u32 = 1_000_001;
+const METHOD_QUERY_COMPLIANCE_ASSET_STATUS: u32 = 1_000_002;
+const METHOD_QUERY_COMPLIANCE_BATCH_MERKLE_PROOFS: u32 = 1_000_003;
+const METHOD_QUERY_COMPLIANCE_USER_LEAF: u32 = 1_000_004;
+const METHOD_QUERY_KEY_VALUE: u32 = 1_000_005;
 
 #[repr(C)]
 pub struct ShielddHandle {
@@ -120,6 +126,7 @@ impl FfiError {
         let status = match error.kind() {
             ErrorKind::InvalidArgument => STATUS_INVALID_ARGUMENT,
             ErrorKind::FailedPrecondition => STATUS_FAILED_PRECONDITION,
+            ErrorKind::NotFound => STATUS_NOT_FOUND,
             ErrorKind::Internal => STATUS_INTERNAL,
         };
         Self {
@@ -359,6 +366,31 @@ async fn dispatch(
             .await
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
+        METHOD_QUERY_ASSET_METADATA_BY_ID => service
+            .asset_metadata_by_id(decode(request)?)
+            .await
+            .map(|response| response.encode_to_vec())
+            .map_err(FfiError::service),
+        METHOD_QUERY_COMPLIANCE_ASSET_STATUS => service
+            .compliance_asset_status(decode(request)?)
+            .await
+            .map(|response| response.encode_to_vec())
+            .map_err(FfiError::service),
+        METHOD_QUERY_COMPLIANCE_BATCH_MERKLE_PROOFS => service
+            .compliance_batch_merkle_proofs(decode(request)?)
+            .await
+            .map(|response| response.encode_to_vec())
+            .map_err(FfiError::service),
+        METHOD_QUERY_COMPLIANCE_USER_LEAF => service
+            .compliance_user_leaf(decode(request)?)
+            .await
+            .map(|response| response.encode_to_vec())
+            .map_err(FfiError::service),
+        METHOD_QUERY_KEY_VALUE => service
+            .key_value(decode(request)?)
+            .await
+            .map(|response| response.encode_to_vec())
+            .map_err(FfiError::service),
         _ => Err(FfiError::invalid_argument(format!(
             "unknown Shieldd method {method}"
         ))),
@@ -386,9 +418,20 @@ fn panic_message(payload: Box<dyn Any + Send>) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use cnidarium::proto::v1::{KeyValueRequest, KeyValueResponse};
     use shieldd_sdk_app::genesis::{AppState, Content};
+    use shieldd_sdk_asset::asset;
+    use shieldd_sdk_keys::test_keys::ADDRESS_0;
     use shieldd_sdk_proto::core::app::v1::{AppParametersRequest, AppParametersResponse};
+    use shieldd_sdk_proto::core::component::compliance::v1::{
+        ComplianceAssetStatusRequest, ComplianceAssetStatusResponse,
+        ComplianceBatchMerkleProofsRequest, ComplianceBatchMerkleProofsResponse,
+        ComplianceBatchQuery, ComplianceUserLeafRequest, ComplianceUserLeafResponse,
+    };
     use shieldd_sdk_proto::core::component::sct::v1::ArchivedNullifierProofRequest;
+    use shieldd_sdk_proto::core::component::shielded_pool::v1::{
+        AssetMetadataByIdRequest, AssetMetadataByIdResponse,
+    };
     use shieldd_sdk_proto::execution_client::v1::{
         BeginBlockRequest, BeginBlockResponse, CheckTxRequest, CheckTxResponse, CommitRequest,
         CommitResponse, DeliverTxRequest, DeliverTxResponse, GetCommittedStateRequest,
@@ -612,6 +655,82 @@ mod tests {
         assert!(parameters.ibc_params.is_some());
         assert!(parameters.sct_params.is_some());
         assert!(parameters.shielded_pool_params.is_some());
+        close(handle);
+    }
+
+    #[test]
+    fn frontend_queries_read_committed_state() {
+        let directory = tempfile::tempdir().expect("temporary database directory");
+        let handle = open(directory.path());
+        initialize(handle);
+
+        let asset_id = asset::REGISTRY.parse_unit("shieldd").id();
+        let asset_id_proto: shieldd_sdk_proto::core::asset::v1::AssetId = asset_id.into();
+        let address: shieldd_sdk_proto::core::keys::v1::Address = ADDRESS_0.clone().into();
+
+        let metadata_response: AssetMetadataByIdResponse = call(
+            handle,
+            METHOD_QUERY_ASSET_METADATA_BY_ID,
+            AssetMetadataByIdRequest {
+                asset_id: Some(asset_id_proto.clone()),
+            },
+        );
+        assert_eq!(
+            metadata_response
+                .denom_metadata
+                .expect("known genesis asset metadata")
+                .base,
+            "ushieldd"
+        );
+
+        let status_response: ComplianceAssetStatusResponse = call(
+            handle,
+            METHOD_QUERY_COMPLIANCE_ASSET_STATUS,
+            ComplianceAssetStatusRequest {
+                asset_id: Some(asset_id_proto.clone()),
+            },
+        );
+        assert!(status_response.is_registered);
+        assert!(!status_response.is_regulated);
+
+        let leaf_response: ComplianceUserLeafResponse = call(
+            handle,
+            METHOD_QUERY_COMPLIANCE_USER_LEAF,
+            ComplianceUserLeafRequest {
+                address: Some(address.clone()),
+                asset_id: Some(asset_id_proto.clone()),
+            },
+        );
+        assert!(!leaf_response.is_registered);
+        assert!(leaf_response.leaf.is_none());
+
+        let batch_response: ComplianceBatchMerkleProofsResponse = call(
+            handle,
+            METHOD_QUERY_COMPLIANCE_BATCH_MERKLE_PROOFS,
+            ComplianceBatchMerkleProofsRequest {
+                queries: vec![ComplianceBatchQuery {
+                    address: Some(address),
+                    asset_id: Some(asset_id_proto),
+                }],
+            },
+        );
+        assert_eq!(batch_response.compliance_anchor.len(), 32);
+        assert_eq!(batch_response.asset_anchor.len(), 32);
+        assert_eq!(batch_response.results.len(), 1);
+        assert!(!batch_response.results[0].user_registered);
+        assert!(batch_response.results[0].asset_registered);
+        assert!(!batch_response.results[0].is_regulated);
+
+        let key_response: KeyValueResponse = call(
+            handle,
+            METHOD_QUERY_KEY_VALUE,
+            KeyValueRequest {
+                key: shieldd_sdk_sct::state_key::tree::anchor_by_height(0),
+                proof: false,
+            },
+        );
+        assert!(key_response.value.is_some());
+        assert!(key_response.proof.is_none());
         close(handle);
     }
 

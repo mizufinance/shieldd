@@ -3483,7 +3483,7 @@
     {
       "id": "PROPERTY-HOST-EXECUTION-ACCEPTS-WITHDRAWALS-FOR-REGISTERED-ASSETS",
       "path": "crates/core/app/src/app/host.rs",
-      "source_sha256": "745adfdbd92c266118a3cca71c6c64d3f3ccaa75158b12b1bbb9444ee448422b"
+      "source_sha256": "2ae60fb7971c3dca9a7c2c78afd986ee3c32687fb49328de98c5f2bef5bd2e37"
     },
     {
       "id": "PROPERTY-ICS20-WITHDRAWAL-READY-PRODUCES-WALLET-FACING-ACTION-ONLY",
@@ -3818,7 +3818,7 @@
     {
       "id": "PROPERTY-STANDALONE-EXECUTION-REJECTS-HOST-WITHDRAWALS",
       "path": "crates/core/app/src/app/host.rs",
-      "source_sha256": "745adfdbd92c266118a3cca71c6c64d3f3ccaa75158b12b1bbb9444ee448422b"
+      "source_sha256": "2ae60fb7971c3dca9a7c2c78afd986ee3c32687fb49328de98c5f2bef5bd2e37"
     },
     {
       "id": "PROPERTY-STATUS-PROJECTION-AUTHENTICATES-THE-PREVIOUS-LEAF-AND-EVENT-ORDER",
@@ -4833,27 +4833,27 @@
     {
       "id": "RUNTIME-FFI-CHECKTX-PROOF-FRONTDOOR",
       "path": "crates/bin/shieldd/src/ffi.rs",
-      "source_sha256": "47c7a0d0b25f4f840556bb8417ced96ed5f0c24bfd64fa7a02d296c83d2d5cf5"
+      "source_sha256": "3b7c27f55efe9f7820b30951e3c471f7f31c35a6f01c89a195b615cd611ed3e5"
     },
     {
       "id": "RUNTIME-FFI-DELIVERTX-PROOF-FRONTDOOR",
       "path": "crates/bin/shieldd/src/ffi.rs",
-      "source_sha256": "47c7a0d0b25f4f840556bb8417ced96ed5f0c24bfd64fa7a02d296c83d2d5cf5"
+      "source_sha256": "3b7c27f55efe9f7820b30951e3c471f7f31c35a6f01c89a195b615cd611ed3e5"
     },
     {
       "id": "RUNTIME-GRPC-CHECKTX-PROOF-FRONTDOOR",
       "path": "crates/bin/shieldd/src/grpc.rs",
-      "source_sha256": "4e7855dcca555bc75802feea6a96d568a68192e4069c40094a20dc7aa370f7fd"
+      "source_sha256": "dfbad1e3b81a49907b87cd2899aefc77795564d55eedab13cb559c18ff538dc0"
     },
     {
       "id": "RUNTIME-GRPC-DELIVERTX-PROOF-FRONTDOOR",
       "path": "crates/bin/shieldd/src/grpc.rs",
-      "source_sha256": "4e7855dcca555bc75802feea6a96d568a68192e4069c40094a20dc7aa370f7fd"
+      "source_sha256": "dfbad1e3b81a49907b87cd2899aefc77795564d55eedab13cb559c18ff538dc0"
     },
     {
       "id": "RUNTIME-HOST-CHECKTX-PROOF-FRONTDOOR",
       "path": "crates/core/app/src/app/host.rs",
-      "source_sha256": "745adfdbd92c266118a3cca71c6c64d3f3ccaa75158b12b1bbb9444ee448422b"
+      "source_sha256": "2ae60fb7971c3dca9a7c2c78afd986ee3c32687fb49328de98c5f2bef5bd2e37"
     },
     {
       "id": "RUNTIME-HOST-DELIVERTX-PROOF-FRONTDOOR",
