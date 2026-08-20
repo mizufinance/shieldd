@@ -46,6 +46,18 @@ class InputRule:
 
 
 @dataclass(frozen=True)
+class LockedCargoPackage:
+    name: str
+    version: str
+    source: str | None
+    dependencies: tuple[str, ...]
+
+    @property
+    def identity(self) -> tuple[str, str, str | None]:
+        return (self.name, self.version, self.source)
+
+
+@dataclass(frozen=True)
 class Declaration:
     gate: str
     tiers: tuple[str, ...]
@@ -476,6 +488,203 @@ def _relative_to_root(root: Path, value: str, where: str) -> str:
     return normalize_repo_path(relative.as_posix(), where)
 
 
+def _toml_file(path: Path, where: str) -> dict[str, Any]:
+    try:
+        value = tomllib.loads(path.read_text(encoding="utf-8"))
+    except OSError as error:
+        raise ClassificationError(f"cannot read {where}: {error}") from error
+    except tomllib.TOMLDecodeError as error:
+        raise ClassificationError(f"malformed {where}: {error}") from error
+    return _object(value, where)
+
+
+def _path_patch_directories(manifest: dict[str, Any], where: str) -> tuple[str, ...]:
+    patch_value = manifest.get("patch", {})
+    if not isinstance(patch_value, dict):
+        raise ClassificationError(f"{where}.patch must be a table")
+    directories: set[str] = set()
+    for registry, entries_value in patch_value.items():
+        entries = _object(entries_value, f"{where}.patch.{registry}")
+        for name, specification in entries.items():
+            if not isinstance(specification, dict) or "path" not in specification:
+                continue
+            directories.add(
+                normalize_repo_path(
+                    specification["path"],
+                    f"{where}.patch.{registry}.{name}.path",
+                )
+            )
+    return tuple(sorted(directories))
+
+
+def _cargo_package_version(
+    package: dict[str, Any],
+    workspace: dict[str, Any],
+    where: str,
+) -> str:
+    value = package.get("version")
+    if isinstance(value, str) and value:
+        return value
+    if isinstance(value, dict) and value == {"workspace": True}:
+        workspace_package = _object(
+            workspace.get("package"), f"{where}.workspace.package"
+        )
+        return _string(
+            workspace_package.get("version"),
+            f"{where}.workspace.package.version",
+        )
+    raise ClassificationError(
+        f"{where}.package.version must be a non-empty string or inherit "
+        "workspace.package.version"
+    )
+
+
+def _locked_cargo_packages(
+    lock: dict[str, Any], where: str
+) -> tuple[LockedCargoPackage, ...]:
+    packages_value = lock.get("package")
+    if not isinstance(packages_value, list) or not packages_value:
+        raise ClassificationError(f"{where} must contain package entries")
+    packages: list[LockedCargoPackage] = []
+    identities: set[tuple[str, str, str | None]] = set()
+    for index, value in enumerate(packages_value):
+        package = _object(value, f"{where}.package[{index}]")
+        source = package.get("source")
+        if source is not None and not isinstance(source, str):
+            raise ClassificationError(
+                f"{where}.package[{index}].source must be a string"
+            )
+        dependencies = package.get("dependencies", [])
+        if not isinstance(dependencies, list) or any(
+            not isinstance(dependency, str) or not dependency
+            for dependency in dependencies
+        ):
+            raise ClassificationError(
+                f"{where}.package[{index}].dependencies must contain strings"
+            )
+        locked = LockedCargoPackage(
+            name=_string(package.get("name"), f"{where}.package[{index}].name"),
+            version=_string(
+                package.get("version"), f"{where}.package[{index}].version"
+            ),
+            source=source,
+            dependencies=tuple(dependencies),
+        )
+        if locked.identity in identities:
+            raise ClassificationError(
+                f"duplicate {where} package identity {locked.identity!r}"
+            )
+        identities.add(locked.identity)
+        packages.append(locked)
+    return tuple(packages)
+
+
+def _resolve_locked_cargo_dependency(
+    dependency: str,
+    packages_by_name: dict[str, tuple[LockedCargoPackage, ...]],
+    where: str,
+) -> LockedCargoPackage:
+    matches: list[LockedCargoPackage] = []
+    for name, packages in packages_by_name.items():
+        if dependency != name and not dependency.startswith(f"{name} "):
+            continue
+        for package in packages:
+            forms = {package.name, f"{package.name} {package.version}"}
+            if package.source is not None:
+                forms.add(
+                    f"{package.name} {package.version} ({package.source})"
+                )
+            if dependency in forms:
+                matches.append(package)
+    if len(matches) != 1:
+        raise ClassificationError(
+            f"{where} dependency {dependency!r} resolved to "
+            f"{len(matches)} packages"
+        )
+    return matches[0]
+
+
+def _cargo_lock_closure(
+    lock: dict[str, Any],
+    roots: Iterable[tuple[str, str]],
+    where: str,
+) -> frozenset[tuple[str, str, str | None]]:
+    packages = _locked_cargo_packages(lock, where)
+    by_name = {
+        name: tuple(package for package in packages if package.name == name)
+        for name in sorted({package.name for package in packages})
+    }
+    pending: list[LockedCargoPackage] = []
+    for name, version in roots:
+        candidates = tuple(
+            package
+            for package in by_name.get(name, ())
+            if package.version == version and package.source is None
+        )
+        if len(candidates) != 1:
+            raise ClassificationError(
+                f"{where} root package {name!r} {version!r} resolved to "
+                f"{len(candidates)} packages"
+            )
+        pending.append(candidates[0])
+
+    selected: set[tuple[str, str, str | None]] = set()
+    while pending:
+        package = pending.pop()
+        if package.identity in selected:
+            continue
+        selected.add(package.identity)
+        pending.extend(
+            _resolve_locked_cargo_dependency(dependency, by_name, where)
+            for dependency in package.dependencies
+        )
+    return frozenset(selected)
+
+
+def _local_cargo_packages(
+    root: Path,
+    metadata_packages: Iterable[dict[str, Any]],
+) -> dict[str, tuple[str, str, str | None]]:
+    packages: dict[str, tuple[str, str, str | None]] = {}
+    for index, package in enumerate(metadata_packages):
+        name = _string(package.get("name"), f"cargo package {index}.name")
+        version = _string(package.get("version"), f"cargo package {name}.version")
+        manifest = _string(
+            package.get("manifest_path"), f"cargo package {name}.manifest_path"
+        )
+        directory = _relative_to_root(
+            root, str(Path(manifest).parent), f"package {name}"
+        )
+        if directory in packages:
+            raise ClassificationError(f"duplicate local Cargo directory {directory}")
+        packages[directory] = (name, version, None)
+
+    root_manifest = _toml_file(root / "Cargo.toml", "Cargo.toml")
+    workspace = _object(root_manifest.get("workspace"), "Cargo.toml.workspace")
+    for directory in _path_patch_directories(root_manifest, "Cargo.toml"):
+        manifest = _toml_file(
+            root / directory / "Cargo.toml", f"{directory}/Cargo.toml"
+        )
+        package = _object(
+            manifest.get("package"), f"{directory}/Cargo.toml.package"
+        )
+        identity = (
+            _string(package.get("name"), f"{directory}/Cargo.toml.package.name"),
+            _cargo_package_version(
+                package,
+                workspace,
+                f"{directory}/Cargo.toml",
+            ),
+            None,
+        )
+        previous = packages.setdefault(directory, identity)
+        if previous != identity:
+            raise ClassificationError(
+                f"conflicting local Cargo package identities for {directory}"
+            )
+    return packages
+
+
 def cargo_closure_rules(
     root: Path,
     source: dict[str, Any],
@@ -530,23 +739,15 @@ def cargo_closure_rules(
     if not isinstance(packages_value, list) or not packages_value:
         raise ClassificationError("cargo metadata.packages must be a non-empty array")
 
+    metadata_packages: list[dict[str, Any]] = []
     by_name: dict[str, list[dict[str, Any]]] = {}
-    by_dir: dict[str, dict[str, Any]] = {}
     for index, value in enumerate(packages_value):
         package = _object(value, f"cargo metadata.packages[{index}]")
         name = _string(package.get("name"), f"cargo package {index}.name")
-        manifest = _string(
-            package.get("manifest_path"), f"cargo package {name}.manifest_path"
-        )
-        directory = _relative_to_root(
-            root, str(Path(manifest).parent), f"package {name}"
-        )
-        if directory in by_dir:
-            raise ClassificationError(f"duplicate local Cargo directory {directory}")
+        metadata_packages.append(package)
         by_name.setdefault(name, []).append(package)
-        by_dir[directory] = package
 
-    pending: list[dict[str, Any]] = []
+    root_identities: list[tuple[str, str]] = []
     for name in source["packages"]:
         candidates = by_name.get(name, [])
         if len(candidates) != 1:
@@ -554,38 +755,23 @@ def cargo_closure_rules(
                 f"cargo root package {name!r} resolved to "
                 f"{len(candidates)} local packages"
             )
-        pending.append(candidates[0])
-
-    closure: set[str] = set()
-    while pending:
-        package = pending.pop()
-        name = package["name"]
-        directory = _relative_to_root(
-            root, str(Path(package["manifest_path"]).parent), f"package {name}"
+        root_identities.append(
+            (
+                name,
+                _string(
+                    candidates[0].get("version"), f"cargo package {name}.version"
+                ),
+            )
         )
-        if directory in closure:
-            continue
-        closure.add(directory)
-        dependencies = package.get("dependencies")
-        if not isinstance(dependencies, list):
-            raise ClassificationError(
-                f"cargo package {name}.dependencies must be an array"
-            )
-        for dependency_value in dependencies:
-            dependency = _object(
-                dependency_value, f"cargo package {name}.dependency"
-            )
-            dependency_path = dependency.get("path")
-            if dependency_path is None:
-                continue
-            dependency_dir = _relative_to_root(
-                root, dependency_path, f"cargo dependency of {name}"
-            )
-            if dependency_dir not in by_dir:
-                raise ClassificationError(
-                    f"cargo dependency {dependency_dir!r} is absent from metadata"
-                )
-            pending.append(by_dir[dependency_dir])
+
+    local_packages = _local_cargo_packages(root, metadata_packages)
+    lock = _toml_file(root / "Cargo.lock", "Cargo.lock")
+    reachable = _cargo_lock_closure(lock, root_identities, "Cargo.lock")
+    closure = {
+        directory
+        for directory, identity in local_packages.items()
+        if identity in reachable
+    }
 
     def patterns(directories: Iterable[str]) -> tuple[str, ...]:
         return tuple(
@@ -595,7 +781,7 @@ def cargo_closure_rules(
         )
 
     relevant_tier = tier_for(source["tiers"], event, "cargo closure")
-    outside = set(by_dir) - closure
+    outside = set(local_packages) - closure
     rules = [
         InputRule(
             patterns=patterns(closure),
@@ -693,8 +879,19 @@ def cargo_closure_rules_at_revision(
             f"workspace member(s) missing at {revision}: " + ", ".join(unmatched)
         )
 
+    patch_dirs = set(
+        _path_patch_directories(root_manifest, f"{revision}:Cargo.toml")
+    )
+    missing_patches = sorted(patch_dirs - manifest_dirs)
+    if missing_patches:
+        raise ClassificationError(
+            f"path patch package(s) missing at {revision}: "
+            + ", ".join(missing_patches)
+        )
+    local_dirs = workspace_dirs | patch_dirs
+    identities_by_dir: dict[str, tuple[str, str, str | None]] = {}
     directories_by_name: dict[str, str] = {}
-    for directory in sorted(workspace_dirs):
+    for directory in sorted(local_dirs):
         manifest = _git_toml_file(
             root, revision, f"{directory}/Cargo.toml"
         )
@@ -706,37 +903,35 @@ def cargo_closure_rules_at_revision(
             package.get("name"),
             f"{revision}:{directory}/Cargo.toml.package.name",
         )
+        version = _cargo_package_version(
+            package,
+            workspace,
+            f"{revision}:{directory}/Cargo.toml",
+        )
         if name in directories_by_name:
             raise ClassificationError(
-                f"duplicate workspace package {name!r} at {revision}"
+                f"duplicate local Cargo package {name!r} at {revision}"
             )
         directories_by_name[name] = directory
+        identities_by_dir[directory] = (name, version, None)
 
     lock = _git_toml_file(root, revision, "Cargo.lock")
-    packages = lock.get("package")
-    if not isinstance(packages, list):
-        raise ClassificationError(f"{revision}:Cargo.lock lacks package entries")
-    local_lock_packages: dict[str, dict[str, Any]] = {}
-    for index, value in enumerate(packages):
-        package = _object(value, f"{revision}:Cargo.lock.package[{index}]")
-        if package.get("source") is not None:
-            continue
-        name = _string(
-            package.get("name"),
-            f"{revision}:Cargo.lock.package[{index}].name",
-        )
-        if name in local_lock_packages:
-            raise ClassificationError(
-                f"duplicate local lock package {name!r} at {revision}"
-            )
-        local_lock_packages[name] = package
-
-    pending: list[str] = []
+    locked_identities = {
+        package.identity
+        for package in _locked_cargo_packages(lock, f"{revision}:Cargo.lock")
+    }
+    root_identities: list[tuple[str, str]] = []
     for name in source["packages"]:
         has_manifest = name in directories_by_name
-        has_lock_entry = name in local_lock_packages
+        identity = (
+            identities_by_dir[directories_by_name[name]]
+            if has_manifest
+            else None
+        )
+        has_lock_entry = identity in locked_identities if identity else False
         if has_manifest and has_lock_entry:
-            pending.append(name)
+            assert identity is not None
+            root_identities.append((identity[0], identity[1]))
         elif has_manifest != has_lock_entry:
             raise ClassificationError(
                 f"Cargo root package {name!r} is inconsistent at {revision}: "
@@ -745,30 +940,15 @@ def cargo_closure_rules_at_revision(
             )
         # A root absent from both historical inventories was introduced after
         # this revision and contributes no paths to the base closure.
-    closure_names: set[str] = set()
-    while pending:
-        name = pending.pop()
-        if name in closure_names:
-            continue
-        if name not in directories_by_name or name not in local_lock_packages:
-            raise ClassificationError(
-                f"Cargo dependency package {name!r} is absent at {revision}"
-            )
-        closure_names.add(name)
-        dependencies = local_lock_packages[name].get("dependencies", [])
-        if not isinstance(dependencies, list) or any(
-            not isinstance(dependency, str) for dependency in dependencies
-        ):
-            raise ClassificationError(
-                f"invalid dependencies for Cargo package {name!r} at {revision}"
-            )
-        for dependency in dependencies:
-            dependency_name = dependency.split(" ", maxsplit=1)[0]
-            if dependency_name in directories_by_name:
-                pending.append(dependency_name)
-
-    closure = {directories_by_name[name] for name in closure_names}
-    outside = workspace_dirs - closure
+    reachable = _cargo_lock_closure(
+        lock, root_identities, f"{revision}:Cargo.lock"
+    )
+    closure = {
+        directory
+        for directory, identity in identities_by_dir.items()
+        if identity in reachable
+    }
+    outside = local_dirs - closure
 
     def patterns(directories: Iterable[str]) -> tuple[str, ...]:
         return tuple(
