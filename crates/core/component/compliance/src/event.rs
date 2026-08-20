@@ -4,7 +4,7 @@ use shieldd_sdk_proto::{core::component::compliance::v1 as pb, DomainType, Name 
 use shieldd_sdk_tct::StateCommitment;
 
 use crate::indexed_tree::IndexedLeaf;
-use crate::structs::{AssetPolicy, ComplianceLeaf};
+use crate::structs::{AssetPolicy, ComplianceLeaf, UserAssetStatus};
 
 /// Create a user registration event proto for emitting via record_proto.
 pub fn user_registered(
@@ -16,6 +16,20 @@ pub fn user_registered(
         position,
         commitment: <[u8; 32]>::from(commitment).to_vec(),
         leaf: Some(leaf.into()),
+    }
+}
+
+pub fn user_asset_status_changed(
+    position: u64,
+    commitment: StateCommitment,
+    leaf: ComplianceLeaf,
+    previous_status: UserAssetStatus,
+) -> pb::EventUserAssetStatusChanged {
+    pb::EventUserAssetStatusChanged {
+        position,
+        commitment: <[u8; 32]>::from(commitment).to_vec(),
+        leaf: Some(leaf.into()),
+        previous_status: pb::UserAssetStatus::from(previous_status) as i32,
     }
 }
 
@@ -62,6 +76,16 @@ pub struct EventUserRegistered {
     pub leaf: ComplianceLeaf,
 }
 
+impl EventUserRegistered {
+    pub fn validate(&self) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            self.leaf.commit() == self.commitment,
+            "user registration leaf commitment does not match event commitment"
+        );
+        Ok(())
+    }
+}
+
 impl DomainType for EventUserRegistered {
     type Proto = pb::EventUserRegistered;
 }
@@ -77,11 +101,13 @@ impl TryFrom<pb::EventUserRegistered> for EventUserRegistered {
                 .map_err(|_| anyhow!("commitment must be 32 bytes"))?;
             let commitment = StateCommitment::try_from(commitment_bytes)?;
 
-            Ok(EventUserRegistered {
+            let event = EventUserRegistered {
                 position: value.position,
                 commitment,
                 leaf: value.leaf.ok_or(anyhow!("missing `leaf`"))?.try_into()?,
-            })
+            };
+            event.validate()?;
+            Ok(event)
         }
         inner(value).context(format!("parsing {}", pb::EventUserRegistered::NAME))
     }
@@ -93,6 +119,66 @@ impl From<EventUserRegistered> for pb::EventUserRegistered {
             position: value.position,
             commitment: <[u8; 32]>::from(value.commitment).to_vec(),
             leaf: Some(value.leaf.into()),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct EventUserAssetStatusChanged {
+    pub position: u64,
+    pub commitment: StateCommitment,
+    pub leaf: ComplianceLeaf,
+    pub previous_status: UserAssetStatus,
+}
+
+impl EventUserAssetStatusChanged {
+    pub fn validate(&self) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            self.leaf.commit() == self.commitment,
+            "user status leaf commitment does not match event commitment"
+        );
+        self.previous_status
+            .validate_transition(self.leaf.status)
+            .context("invalid user status event transition")
+    }
+}
+
+impl DomainType for EventUserAssetStatusChanged {
+    type Proto = pb::EventUserAssetStatusChanged;
+}
+
+impl TryFrom<pb::EventUserAssetStatusChanged> for EventUserAssetStatusChanged {
+    type Error = anyhow::Error;
+
+    fn try_from(value: pb::EventUserAssetStatusChanged) -> Result<Self, Self::Error> {
+        fn inner(
+            value: pb::EventUserAssetStatusChanged,
+        ) -> anyhow::Result<EventUserAssetStatusChanged> {
+            let commitment_bytes: [u8; 32] = value
+                .commitment
+                .try_into()
+                .map_err(|_| anyhow!("commitment must be 32 bytes"))?;
+            let event = EventUserAssetStatusChanged {
+                position: value.position,
+                commitment: StateCommitment::try_from(commitment_bytes)?,
+                leaf: value.leaf.ok_or(anyhow!("missing `leaf`"))?.try_into()?,
+                previous_status: value.previous_status.try_into()?,
+            };
+            event.validate()?;
+            Ok(event)
+        }
+
+        inner(value).context(format!("parsing {}", pb::EventUserAssetStatusChanged::NAME))
+    }
+}
+
+impl From<EventUserAssetStatusChanged> for pb::EventUserAssetStatusChanged {
+    fn from(value: EventUserAssetStatusChanged) -> Self {
+        Self {
+            position: value.position,
+            commitment: <[u8; 32]>::from(value.commitment).to_vec(),
+            leaf: Some(value.leaf.into()),
+            previous_status: pb::UserAssetStatus::from(value.previous_status) as i32,
         }
     }
 }
@@ -199,5 +285,61 @@ impl From<EventComplianceAnchor> for pb::EventComplianceAnchor {
             user_anchor: <[u8; 32]>::from(value.user_anchor).to_vec(),
             asset_anchor: <[u8; 32]>::from(value.asset_anchor).to_vec(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn leaf(status: UserAssetStatus) -> ComplianceLeaf {
+        let mut rng = rand::thread_rng();
+        let mut leaf = ComplianceLeaf::new(
+            shieldd_sdk_keys::Address::dummy(&mut rng),
+            asset::Id(decaf377::Fq::from(7u64)),
+            decaf377::Fq::from(9u64),
+        );
+        leaf.status = status;
+        leaf
+    }
+
+    #[test]
+    fn user_registration_rejects_mismatched_commitment() {
+        let registered = leaf(UserAssetStatus::Active);
+        let other = leaf(UserAssetStatus::Active);
+        let proto = pb::EventUserRegistered {
+            position: 0,
+            commitment: <[u8; 32]>::from(other.commit()).to_vec(),
+            leaf: Some(registered.into()),
+        };
+
+        EventUserRegistered::try_from(proto)
+            .expect_err("a registration event must bind its leaf commitment");
+    }
+
+    #[test]
+    fn user_status_event_requires_legal_bound_transition() {
+        let frozen = leaf(UserAssetStatus::Frozen);
+        let valid = pb::EventUserAssetStatusChanged {
+            position: 0,
+            commitment: <[u8; 32]>::from(frozen.commit()).to_vec(),
+            leaf: Some(frozen.clone().into()),
+            previous_status: pb::UserAssetStatus::Active as i32,
+        };
+        EventUserAssetStatusChanged::try_from(valid).expect("active to frozen is valid");
+
+        let mut illegal = pb::EventUserAssetStatusChanged {
+            position: 0,
+            commitment: <[u8; 32]>::from(frozen.commit()).to_vec(),
+            leaf: Some(frozen.clone().into()),
+            previous_status: pb::UserAssetStatus::Frozen as i32,
+        };
+        EventUserAssetStatusChanged::try_from(illegal.clone())
+            .expect_err("same-status events are not transitions");
+
+        illegal.previous_status = pb::UserAssetStatus::Active as i32;
+        illegal.commitment = <[u8; 32]>::from(leaf(UserAssetStatus::Active).commit()).to_vec();
+        EventUserAssetStatusChanged::try_from(illegal)
+            .expect_err("a status event must bind its replacement leaf commitment");
     }
 }

@@ -4,7 +4,9 @@ pub use enrichment::{AssetProofData, BatchComplianceData, ComplianceProofProvide
 pub mod event;
 
 pub mod issuer_keys;
-pub use event::{EventAssetRegistered, EventComplianceAnchor, EventUserRegistered};
+pub use event::{
+    EventAssetRegistered, EventComplianceAnchor, EventUserAssetStatusChanged, EventUserRegistered,
+};
 pub use issuer_keys::{
     DetectionKey, DetectionKeyPublic, MasterComplianceKey, MasterComplianceKeyPublic,
     DETECTION_TIER_BYTES,
@@ -23,6 +25,8 @@ pub use structs::{
     MsgRegisterUser,
     RingData,
     UpdateAssetIbcPolicy,
+    UserAssetStatus,
+    UserAssetStatusAction,
     ADDRESS_BYTES,
     // Wire format constants
     AMOUNT_BYTES,

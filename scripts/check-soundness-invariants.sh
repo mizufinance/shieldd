@@ -40,6 +40,7 @@ python3 scripts/check-fv-specification-completeness.py \
 # statement-hash domain labels out of this source-name lint.
 reject_rg_matches "legacy NoteReshape vocabulary" \
     -ni '\b(consolidate(2x1|4x1|8x1)?|split1x8)\b' . \
+    --glob '!third_party/**' \
     --glob '!target/**' \
     --glob '!tools/gnark/lean/.lake/**' \
     --glob '!tools/gnark/lean/AGENTS.md' \

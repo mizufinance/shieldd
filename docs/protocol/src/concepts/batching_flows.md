@@ -1,10 +1,9 @@
 # Batching Flows
 
-Shieldd's ledger records value as it moves between different economic roles –
-for instance, movement between shielded notes and outbound IBC withdrawals, or
-movement between different shielded asset positions. This creates a tension
+Bankd records value as it moves between transparent application accounts and
+Shieldd's private notes. This creates a tension
 between the need to reveal the total amount of value in each role as part of the
-public chain state, and the desire to shield value amounts in individual
+public Bankd state, and the desire to shield value amounts in individual
 transactions.
 
 To address this tension, Shieldd provides a mechanism to aggregate value flows
@@ -17,17 +16,17 @@ key.
 Transactions that contribute value to a batch contain an encryption of the
 amount.  To flush the batch, the validators sum the ciphertexts from all
 relevant transactions to compute an encryption of the batch total, then jointly
-decrypt it and commit it to the chain.
+decrypt it and commit it to Bankd.
 
 This mechanism doesn't require any coordination between the users whose
 transactions are batched, but it does require that the validators create and
 publish a threshold decryption key.  To allow batching across block boundaries,
-Shieldd organizes blocks into epochs, and applies changes to the validator set
-only at epoch boundaries.  Decryption keys live for the duration of the epoch,
+Bankd organizes blocks into epochs and owns validator-set changes. Decryption
+keys live for the duration of the Bankd epoch,
 allowing value flows to be batched over any time interval from 1 block up to the
 length of an epoch. We propose epoch boundaries on the order of 1-3 days.
 
-At the beginning of each epoch, the validator set performs distributed key
+At the beginning of each epoch, the Bankd validator set performs distributed key
 generation to produce a decryption key jointly controlled by the
 validators (on an approximately stake-weighted basis) and includes the
 encryption key in the first block of the epoch.

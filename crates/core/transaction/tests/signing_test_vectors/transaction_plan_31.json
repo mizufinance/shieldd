@@ -31,7 +31,8 @@
                 "inner": "0Kp7JZHSfpBSYp/mDtlw0t435eDriqJHN8dYSUFLNQI="
               },
               "d": "21a1slJRj87qGhwqRWGy62QF1f89n5mHilbKPW7riwM=",
-              "slotDerivation": "/q1rwJrc4WrTbbSnH8fM73Ll3r9XtbcJ/Cow/zNegBA="
+              "slotDerivation": "/q1rwJrc4WrTbbSnH8fM73Ll3r9XtbcJ/Cow/zNegBA=",
+              "status": "USER_ASSET_STATUS_ACTIVE"
             },
             "txBlindingNonce": "JosVXLKfQWJJrdltEw3SvOso3BVwsNzN4w4UWod5IAE=",
             "complianceAnchor": {
@@ -311,7 +312,8 @@
                 "inner": "0Kp7JZHSfpBSYp/mDtlw0t435eDriqJHN8dYSUFLNQI="
               },
               "d": "WRu/YkXtDR+Z9t1vnECnRog/qts7pN3ax1WcucrVbAE=",
-              "slotDerivation": "+ALDWVs+bZ6hcey93SPbyuKk4fph8SirFDZv5W+iuhE="
+              "slotDerivation": "+ALDWVs+bZ6hcey93SPbyuKk4fph8SirFDZv5W+iuhE=",
+              "status": "USER_ASSET_STATUS_ACTIVE"
             },
             "txBlindingNonce": "JosVXLKfQWJJrdltEw3SvOso3BVwsNzN4w4UWod5IAE=",
             "complianceAnchor": {
@@ -605,7 +607,8 @@
                 "inner": "0Kp7JZHSfpBSYp/mDtlw0t435eDriqJHN8dYSUFLNQI="
               },
               "d": "21a1slJRj87qGhwqRWGy62QF1f89n5mHilbKPW7riwM=",
-              "slotDerivation": "/q1rwJrc4WrTbbSnH8fM73Ll3r9XtbcJ/Cow/zNegBA="
+              "slotDerivation": "/q1rwJrc4WrTbbSnH8fM73Ll3r9XtbcJ/Cow/zNegBA=",
+              "status": "USER_ASSET_STATUS_ACTIVE"
             },
             "txBlindingNonce": "FJwSctfXwwjw+wCl5/u1Ve87KV1HQQzsJyUU3VtG2wI=",
             "complianceAnchor": {
@@ -887,7 +890,8 @@
                 "inner": "0Kp7JZHSfpBSYp/mDtlw0t435eDriqJHN8dYSUFLNQI="
               },
               "d": "21a1slJRj87qGhwqRWGy62QF1f89n5mHilbKPW7riwM=",
-              "slotDerivation": "/q1rwJrc4WrTbbSnH8fM73Ll3r9XtbcJ/Cow/zNegBA="
+              "slotDerivation": "/q1rwJrc4WrTbbSnH8fM73Ll3r9XtbcJ/Cow/zNegBA=",
+              "status": "USER_ASSET_STATUS_ACTIVE"
             },
             "txBlindingNonce": "r3jC3+uE/FpfpMxUbrYTPZuchFrK0AIZN38OQRe1HwI=",
             "complianceAnchor": {
@@ -1167,7 +1171,8 @@
                 "inner": "0Kp7JZHSfpBSYp/mDtlw0t435eDriqJHN8dYSUFLNQI="
               },
               "d": "21a1slJRj87qGhwqRWGy62QF1f89n5mHilbKPW7riwM=",
-              "slotDerivation": "/q1rwJrc4WrTbbSnH8fM73Ll3r9XtbcJ/Cow/zNegBA="
+              "slotDerivation": "/q1rwJrc4WrTbbSnH8fM73Ll3r9XtbcJ/Cow/zNegBA=",
+              "status": "USER_ASSET_STATUS_ACTIVE"
             },
             "txBlindingNonce": "FkoM/nOiOvLgG9VtbdRWvKb4VocLI5ncCnp/Hd2vnAE=",
             "complianceAnchor": {
@@ -1462,7 +1467,8 @@
                 "inner": "0Kp7JZHSfpBSYp/mDtlw0t435eDriqJHN8dYSUFLNQI="
               },
               "d": "21a1slJRj87qGhwqRWGy62QF1f89n5mHilbKPW7riwM=",
-              "slotDerivation": "/q1rwJrc4WrTbbSnH8fM73Ll3r9XtbcJ/Cow/zNegBA="
+              "slotDerivation": "/q1rwJrc4WrTbbSnH8fM73Ll3r9XtbcJ/Cow/zNegBA=",
+              "status": "USER_ASSET_STATUS_ACTIVE"
             },
             "txBlindingNonce": "42UZ10VQjUUbePlzlINUpiLmzmUYMmAYfGZWsxzZTAE=",
             "complianceAnchor": {
@@ -1742,7 +1748,8 @@
                 "inner": "0Kp7JZHSfpBSYp/mDtlw0t435eDriqJHN8dYSUFLNQI="
               },
               "d": "21a1slJRj87qGhwqRWGy62QF1f89n5mHilbKPW7riwM=",
-              "slotDerivation": "/q1rwJrc4WrTbbSnH8fM73Ll3r9XtbcJ/Cow/zNegBA="
+              "slotDerivation": "/q1rwJrc4WrTbbSnH8fM73Ll3r9XtbcJ/Cow/zNegBA=",
+              "status": "USER_ASSET_STATUS_ACTIVE"
             },
             "txBlindingNonce": "SXJKbUIewlETtQ0zm0LNP+8FcfrKktJhTsf14M8DJAI=",
             "complianceAnchor": {
@@ -2020,7 +2027,8 @@
                 "inner": "0Kp7JZHSfpBSYp/mDtlw0t435eDriqJHN8dYSUFLNQI="
               },
               "d": "21a1slJRj87qGhwqRWGy62QF1f89n5mHilbKPW7riwM=",
-              "slotDerivation": "/q1rwJrc4WrTbbSnH8fM73Ll3r9XtbcJ/Cow/zNegBA="
+              "slotDerivation": "/q1rwJrc4WrTbbSnH8fM73Ll3r9XtbcJ/Cow/zNegBA=",
+              "status": "USER_ASSET_STATUS_ACTIVE"
             },
             "txBlindingNonce": "bb+ZkXW8JeEVgzTze3jlNhUJEUwIDZG/fT0WockARwI=",
             "complianceAnchor": {
@@ -2298,7 +2306,8 @@
                 "inner": "0Kp7JZHSfpBSYp/mDtlw0t435eDriqJHN8dYSUFLNQI="
               },
               "d": "21a1slJRj87qGhwqRWGy62QF1f89n5mHilbKPW7riwM=",
-              "slotDerivation": "/q1rwJrc4WrTbbSnH8fM73Ll3r9XtbcJ/Cow/zNegBA="
+              "slotDerivation": "/q1rwJrc4WrTbbSnH8fM73Ll3r9XtbcJ/Cow/zNegBA=",
+              "status": "USER_ASSET_STATUS_ACTIVE"
             },
             "txBlindingNonce": "1S6AWqobfCLqO4DbQl62IWeA8XtvNs2rQhlKpT5/rgM=",
             "complianceAnchor": {
@@ -2576,7 +2585,8 @@
                 "inner": "0Kp7JZHSfpBSYp/mDtlw0t435eDriqJHN8dYSUFLNQI="
               },
               "d": "21a1slJRj87qGhwqRWGy62QF1f89n5mHilbKPW7riwM=",
-              "slotDerivation": "/q1rwJrc4WrTbbSnH8fM73Ll3r9XtbcJ/Cow/zNegBA="
+              "slotDerivation": "/q1rwJrc4WrTbbSnH8fM73Ll3r9XtbcJ/Cow/zNegBA=",
+              "status": "USER_ASSET_STATUS_ACTIVE"
             },
             "txBlindingNonce": "aSCagWNrsOI8Xa0uadGzwnUMqEruPXXEnq5jQseZQgE=",
             "complianceAnchor": {
@@ -2854,7 +2864,8 @@
                 "inner": "0Kp7JZHSfpBSYp/mDtlw0t435eDriqJHN8dYSUFLNQI="
               },
               "d": "21a1slJRj87qGhwqRWGy62QF1f89n5mHilbKPW7riwM=",
-              "slotDerivation": "/q1rwJrc4WrTbbSnH8fM73Ll3r9XtbcJ/Cow/zNegBA="
+              "slotDerivation": "/q1rwJrc4WrTbbSnH8fM73Ll3r9XtbcJ/Cow/zNegBA=",
+              "status": "USER_ASSET_STATUS_ACTIVE"
             },
             "txBlindingNonce": "f9R40wE3C73IYdT++rkX7+MiDnwJQOFKZw608OpzFQM=",
             "complianceAnchor": {
@@ -3132,7 +3143,8 @@
                 "inner": "0Kp7JZHSfpBSYp/mDtlw0t435eDriqJHN8dYSUFLNQI="
               },
               "d": "21a1slJRj87qGhwqRWGy62QF1f89n5mHilbKPW7riwM=",
-              "slotDerivation": "/q1rwJrc4WrTbbSnH8fM73Ll3r9XtbcJ/Cow/zNegBA="
+              "slotDerivation": "/q1rwJrc4WrTbbSnH8fM73Ll3r9XtbcJ/Cow/zNegBA=",
+              "status": "USER_ASSET_STATUS_ACTIVE"
             },
             "txBlindingNonce": "FC1aVs3CWNlqFRrUUc8TccWv47I80o3i1OzG0ZwHkAI=",
             "complianceAnchor": {
@@ -3410,7 +3422,8 @@
                 "inner": "0Kp7JZHSfpBSYp/mDtlw0t435eDriqJHN8dYSUFLNQI="
               },
               "d": "21a1slJRj87qGhwqRWGy62QF1f89n5mHilbKPW7riwM=",
-              "slotDerivation": "/q1rwJrc4WrTbbSnH8fM73Ll3r9XtbcJ/Cow/zNegBA="
+              "slotDerivation": "/q1rwJrc4WrTbbSnH8fM73Ll3r9XtbcJ/Cow/zNegBA=",
+              "status": "USER_ASSET_STATUS_ACTIVE"
             },
             "txBlindingNonce": "tcoV71is5ajESE6pEzOjuIznElpg/r1c6QmMUGIBlQI=",
             "complianceAnchor": {
@@ -3688,7 +3701,8 @@
                 "inner": "0Kp7JZHSfpBSYp/mDtlw0t435eDriqJHN8dYSUFLNQI="
               },
               "d": "21a1slJRj87qGhwqRWGy62QF1f89n5mHilbKPW7riwM=",
-              "slotDerivation": "/q1rwJrc4WrTbbSnH8fM73Ll3r9XtbcJ/Cow/zNegBA="
+              "slotDerivation": "/q1rwJrc4WrTbbSnH8fM73Ll3r9XtbcJ/Cow/zNegBA=",
+              "status": "USER_ASSET_STATUS_ACTIVE"
             },
             "txBlindingNonce": "No44/vpjdIEl5tllbMz59IqV9pyQSssgd9RFMf93YgM=",
             "complianceAnchor": {

@@ -41,52 +41,52 @@ CIRCUIT_FORMAL = ROOT / "crates" / "core" / "component" / "shielded-pool" / "for
 # proof matrix for each runtime family.
 PROFILE_ABI = {
     "note_reshape8x1": (
-        5,
+        6,
         (
             (
                 "note_reshape8x1",
-                "internal/testfixtures/vectors/note_reshape8x1_witness_v5.bin",
+                "internal/testfixtures/vectors/note_reshape8x1_witness_v6.bin",
             ),
         ),
     ),
     "note_reshape1x8": (
-        5,
+        6,
         (
             (
                 "note_reshape1x8",
-                "internal/testfixtures/vectors/note_reshape1x8_witness_v5.bin",
+                "internal/testfixtures/vectors/note_reshape1x8_witness_v6.bin",
             ),
         ),
     ),
     "transfer": (
-        18,
+        19,
         (
             (
                 "regulated_unflagged",
-                "internal/testfixtures/vectors/transfer_witness_v18.bin",
+                "internal/testfixtures/vectors/transfer_witness_v19.bin",
             ),
             (
                 "regulated_flagged_hidden",
-                "internal/testfixtures/vectors/transfer_flagged_witness_v18.bin",
+                "internal/testfixtures/vectors/transfer_flagged_witness_v19.bin",
             ),
             (
                 "unregulated_hidden",
-                "internal/testfixtures/vectors/transfer_unregulated_witness_v18.bin",
+                "internal/testfixtures/vectors/transfer_unregulated_witness_v19.bin",
             ),
         ),
     ),
     "shielded_ics20_withdrawal": (
-        10,
+        11,
         (
             (
                 "regulated_optional_real",
                 "internal/testfixtures/vectors/"
-                "shielded_ics20_withdrawal_witness_v10.bin",
+                "shielded_ics20_withdrawal_witness_v11.bin",
             ),
             (
                 "unregulated_optional_dummy",
                 "internal/testfixtures/vectors/"
-                "shielded_ics20_withdrawal_unregulated_witness_v10.bin",
+                "shielded_ics20_withdrawal_unregulated_witness_v11.bin",
             ),
         ),
     ),

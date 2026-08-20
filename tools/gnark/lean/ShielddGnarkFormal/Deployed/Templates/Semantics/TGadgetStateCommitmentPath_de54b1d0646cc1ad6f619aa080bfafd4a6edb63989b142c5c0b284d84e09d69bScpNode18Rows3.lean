@@ -43,7 +43,7 @@ theorem template_scp_node18_seg32 (rho : Nat -> F)
     Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode18350_67677e.seg32 (rho 6907) (rho 6912) (rho 6917) (rho 6922) (rho 6927) (rho 6932) (rho 6937) (rho 6942) (rho 6947) (rho 6952) (rho 6957) (rho 6962) (rho 6967) (rho 6972) (rho 6977) (rho 6982) (rho 6987) (rho 6992) next := by
   exact ⟨rho 6993, rho 6994, rho 6995, rho 6996, rho 6997, r7005, r7006, r7007, r7008, r7009, tail⟩
 
-theorem template_scp_node18_template (rho : Nat -> F)
+theorem template_scp_node18_seg33 (rho : Nat -> F)
     (next : F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → Prop)
     (r7010 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_de54b1d0646cc1ad6f619aa080bfafd4a6edb63989b142c5c0b284d84e09d69b.relationRow7010 rho)
     (r7011 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_de54b1d0646cc1ad6f619aa080bfafd4a6edb63989b142c5c0b284d84e09d69b.relationRow7011 rho)
@@ -87,7 +87,7 @@ theorem template_scp_node18_seg36 (rho : Nat -> F)
     Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode18350_67677e.seg36 (rho 6907) (rho 6912) (rho 6917) (rho 6922) (rho 6927) (rho 6932) (rho 6937) (rho 6942) (rho 6947) (rho 6952) (rho 6957) (rho 6962) (rho 6967) (rho 6972) (rho 6977) (rho 6982) (rho 6987) (rho 6992) (rho 6997) (rho 7002) (rho 7007) (rho 7012) next := by
   exact ⟨rho 7013, rho 7014, rho 7015, rho 7016, rho 7017, r7025, r7026, r7027, r7028, r7029, tail⟩
 
-theorem template_scp_node18_seg37 (rho : Nat -> F)
+theorem template_scp_node18_template (rho : Nat -> F)
     (next : F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → Prop)
     (r7030 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_de54b1d0646cc1ad6f619aa080bfafd4a6edb63989b142c5c0b284d84e09d69b.relationRow7030 rho)
     (r7031 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_de54b1d0646cc1ad6f619aa080bfafd4a6edb63989b142c5c0b284d84e09d69b.relationRow7031 rho)

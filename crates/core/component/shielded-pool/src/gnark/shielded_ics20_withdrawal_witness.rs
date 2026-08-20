@@ -17,7 +17,7 @@ use crate::{
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ShieldedIcs20WithdrawalRequiredSpendWitnessV10 {
+pub struct ShieldedIcs20WithdrawalRequiredSpendWitnessV11 {
     pub nullifier: [u8; 32],
     pub spent_note_blinding: [u8; 32],
     pub spent_note_amount: [u8; 32],
@@ -29,21 +29,21 @@ pub struct ShieldedIcs20WithdrawalRequiredSpendWitnessV10 {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ShieldedIcs20WithdrawalOptionalSpendWitnessV10 {
-    pub spend: ShieldedIcs20WithdrawalRequiredSpendWitnessV10,
+pub struct ShieldedIcs20WithdrawalOptionalSpendWitnessV11 {
+    pub spend: ShieldedIcs20WithdrawalRequiredSpendWitnessV11,
     pub is_dummy: bool,
     pub dummy_nullifier_seed: [u8; 32],
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ShieldedIcs20WithdrawalChangeWitnessV10 {
+pub struct ShieldedIcs20WithdrawalChangeWitnessV11 {
     pub note_commitment: [u8; 32],
     pub created_note_blinding: [u8; 32],
     pub created_note_amount: [u8; 32],
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ShieldedIcs20WithdrawalAssetLeafWitnessV10 {
+pub struct ShieldedIcs20WithdrawalAssetLeafWitnessV11 {
     pub value: [u8; 32],
     pub next_index: u64,
     pub next_value: [u8; 32],
@@ -52,7 +52,7 @@ pub struct ShieldedIcs20WithdrawalAssetLeafWitnessV10 {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ShieldedIcs20WithdrawalWitnessV10 {
+pub struct ShieldedIcs20WithdrawalWitnessV11 {
     pub family_id: ShieldedIcs20WithdrawalFamilyId,
     pub total_length: u32,
     pub n_in: u32,
@@ -71,7 +71,7 @@ pub struct ShieldedIcs20WithdrawalWitnessV10 {
     pub nk: [u8; 32],
     pub asset_path: MerklePathBinary,
     pub asset_position: u64,
-    pub asset_indexed_leaf: ShieldedIcs20WithdrawalAssetLeafWitnessV10,
+    pub asset_indexed_leaf: ShieldedIcs20WithdrawalAssetLeafWitnessV11,
     pub is_regulated: bool,
     pub regulated_precision: u8,
     pub unregulated_precision: u8,
@@ -82,15 +82,16 @@ pub struct ShieldedIcs20WithdrawalWitnessV10 {
     pub sender_slot_id: [u8; 32],
     pub sender_slot_derivation: [u8; 32],
     pub sender_d: [u8; 32],
-    pub required_spend: ShieldedIcs20WithdrawalRequiredSpendWitnessV10,
-    pub optional_spend: ShieldedIcs20WithdrawalOptionalSpendWitnessV10,
-    pub change_output: ShieldedIcs20WithdrawalChangeWitnessV10,
+    pub sender_status: [u8; 32],
+    pub required_spend: ShieldedIcs20WithdrawalRequiredSpendWitnessV11,
+    pub optional_spend: ShieldedIcs20WithdrawalOptionalSpendWitnessV11,
+    pub change_output: ShieldedIcs20WithdrawalChangeWitnessV11,
     pub ak_affine: PointAffineBytes,
     pub sender_diversified_generator_affine: PointAffineBytes,
 }
 
-fn compliance_leaf_parts(leaf: &ComplianceLeafBinary) -> ([u8; 32], [u8; 32], [u8; 32]) {
-    (leaf.slot_id, leaf.slot_derivation, leaf.d)
+fn compliance_leaf_parts(leaf: &ComplianceLeafBinary) -> ([u8; 32], [u8; 32], [u8; 32], [u8; 32]) {
+    (leaf.slot_id, leaf.slot_derivation, leaf.d, leaf.status)
 }
 
 fn verification_key_point(
@@ -106,7 +107,7 @@ fn spend_witness(
     public_input: &ShieldedIcs20WithdrawalInputPublic,
     private_input: &ShieldedIcs20WithdrawalRequiredInputPrivate,
     index: usize,
-) -> Result<ShieldedIcs20WithdrawalRequiredSpendWitnessV10> {
+) -> Result<ShieldedIcs20WithdrawalRequiredSpendWitnessV11> {
     let state_commitment_auth_path = private_input
         .state_commitment_proof
         .auth_path()
@@ -114,7 +115,7 @@ fn spend_witness(
         .map(|siblings| siblings.map(|sibling| Fq::from(sibling).to_bytes()))
         .collect::<Vec<_>>();
 
-    Ok(ShieldedIcs20WithdrawalRequiredSpendWitnessV10 {
+    Ok(ShieldedIcs20WithdrawalRequiredSpendWitnessV11 {
         nullifier: public_input.nullifier.0.to_bytes(),
         spent_note_blinding: private_input.spent_note.note_blinding().to_bytes(),
         spent_note_amount: Fq::from(private_input.spent_note.value().amount).to_bytes(),
@@ -132,8 +133,8 @@ fn spend_witness(
 fn change_witness(
     public_output: &ShieldedIcs20WithdrawalChangePublic,
     private_output: &ShieldedIcs20WithdrawalChangePrivate,
-) -> ShieldedIcs20WithdrawalChangeWitnessV10 {
-    ShieldedIcs20WithdrawalChangeWitnessV10 {
+) -> ShieldedIcs20WithdrawalChangeWitnessV11 {
+    ShieldedIcs20WithdrawalChangeWitnessV11 {
         note_commitment: public_output.note_commitment.0.to_bytes(),
         created_note_blinding: private_output.created_note.note_blinding().to_bytes(),
         created_note_amount: Fq::from(private_output.created_note.value().amount).to_bytes(),
@@ -152,7 +153,7 @@ fn u128_from_field(value: Fq, label: &str) -> Result<u128> {
     ))
 }
 
-impl ShieldedIcs20WithdrawalWitnessV10 {
+impl ShieldedIcs20WithdrawalWitnessV11 {
     pub fn from_public_private(
         public: &ShieldedIcs20WithdrawalProofPublic,
         private: &ShieldedIcs20WithdrawalProofPrivate,
@@ -200,11 +201,11 @@ impl ShieldedIcs20WithdrawalWitnessV10 {
             shielded_ics20_withdrawal_statement_hash_from_public(public)
                 .map_err(|e| anyhow!("compute {} statement hash: {e}", public.family_id.label()))?;
         let sender_leaf = compliance_leaf_from_typed(&private.sender_leaf)?;
-        let (sender_slot_id, sender_slot_derivation, sender_d) =
+        let (sender_slot_id, sender_slot_derivation, sender_d, sender_status) =
             compliance_leaf_parts(&sender_leaf);
 
         let required_spend = spend_witness(&public.inputs[0], &private.required_input, 0)?;
-        let optional_spend = ShieldedIcs20WithdrawalOptionalSpendWitnessV10 {
+        let optional_spend = ShieldedIcs20WithdrawalOptionalSpendWitnessV11 {
             spend: spend_witness(&public.inputs[1], &private.optional_input.spend, 1)?,
             is_dummy: private.optional_input.is_dummy,
             dummy_nullifier_seed: private.optional_input.dummy_nullifier_seed.to_bytes(),
@@ -232,7 +233,7 @@ impl ShieldedIcs20WithdrawalWitnessV10 {
             nk: private.nk.0.to_bytes(),
             asset_path: merkle_path_from_typed(&private.asset_path)?,
             asset_position: private.asset_position,
-            asset_indexed_leaf: ShieldedIcs20WithdrawalAssetLeafWitnessV10 {
+            asset_indexed_leaf: ShieldedIcs20WithdrawalAssetLeafWitnessV11 {
                 value: private.asset_indexed_leaf.value.to_bytes(),
                 next_index: private.asset_indexed_leaf.next_index,
                 next_value: private.asset_indexed_leaf.next_value.to_bytes(),
@@ -249,6 +250,7 @@ impl ShieldedIcs20WithdrawalWitnessV10 {
             sender_slot_id,
             sender_slot_derivation,
             sender_d,
+            sender_status,
             required_spend,
             optional_spend,
             change_output: change_witness(&public.change_output, &private.change_output),

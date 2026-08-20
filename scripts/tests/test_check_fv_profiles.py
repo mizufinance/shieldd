@@ -501,7 +501,7 @@ class ProfilePromotionTests(unittest.TestCase):
             CHECK.profile_path(
                 "transfer",
                 "witness",
-                "internal/testfixtures/../testfixtures/vectors/transfer_witness_v18.bin",
+                "internal/testfixtures/../testfixtures/vectors/transfer_witness_v19.bin",
                 base=CHECK.GNARK,
                 expected_kind="file",
             )
@@ -752,7 +752,7 @@ var TransferFamilies = []TransferFamilySpec{
                         (
                             "regulated_unflagged",
                             "internal/testfixtures/vectors/"
-                            "transfer_witness_v18.bin",
+                            "transfer_witness_v19.bin",
                         ),
                     ),
                 ),
@@ -762,7 +762,7 @@ var TransferFamilies = []TransferFamilySpec{
                         (
                             "regulated_unflagged",
                             "internal/testfixtures/vectors/"
-                            "transfer3x3_witness_v18.bin",
+                            "transfer3x3_witness_v19.bin",
                         ),
                     ),
                 ),

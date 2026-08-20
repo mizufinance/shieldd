@@ -10,7 +10,7 @@ namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TGadgetStateCommitmen
 
 open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
-/-- Normalized state-commitment Merkle path endpoint (seg33): the position
+/-- Normalized state-commitment Merkle path endpoint (seg37): the position
 bits are boolean and recompose to the position input, and the root output LC
 equals the 24-level per-height-domain quad-Merkle recovery of the committed
 leaf hash. -/
@@ -231,7 +231,7 @@ theorem sound (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relat
   norm_num at hprefixSucc23
   rw [← hprefixSucc23] at a23
   refine ⟨template_scp_bits_bool rho h, template_scp_recompose rho h, ?_⟩
-  rw [← seg33ScpNode23Out]
+  rw [← seg37ScpNode23Out]
   rw [Shieldd.GnarkFormal.Deployed.StateCommitmentPathChoiceFree.recover24H_eq_prefix23]
   exact a23
 

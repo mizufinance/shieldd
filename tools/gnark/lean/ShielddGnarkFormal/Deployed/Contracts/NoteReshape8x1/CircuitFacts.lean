@@ -41,19 +41,19 @@ structure NoteReshape8x1CircuitFacts (rho : Nat → DeployedF) : Prop where
 theorem note_reshape8x1_circuitFacts (rho : Nat → DeployedF) (h : relationAll rho) :
     NoteReshape8x1CircuitFacts rho := by
   exact {
-    control := ⟨specOf1 rho h, specOf2 rho h, specOf3 rho h, specOf4 rho h, specOf5 rho h, specOf6 rho h, specOf7 rho h, specOf8 rho h, specOf9 rho h, specOf10 rho h, specOf20 rho h, specOf40 rho h, specOf43 rho h, specOf45 rho h, specOf49 rho h, specOf55 rho h, specOf58 rho h, specOf60 rho h, specOf64 rho h, specOf70 rho h, specOf73 rho h, specOf75 rho h, specOf79 rho h, specOf85 rho h, specOf88 rho h, specOf90 rho h, specOf94 rho h, specOf100 rho h, specOf103 rho h, specOf105 rho h, specOf109 rho h, specOf115 rho h, specOf118 rho h, specOf120 rho h, specOf124 rho h, specOf130 rho h, specOf133 rho h, specOf135 rho h, specOf139 rho h, specOf145 rho h, specOf148 rho h, specOf150 rho h, specOf154 rho h⟩
-    shared := ⟨specOf12 rho h, specOf13 rho h, specOf14 rho h, specOf15 rho h, specOf16 rho h, specOf17 rho h, specOf18 rho h, specOf19 rho h, specOf21 rho h, specOf22 rho h, specOf23 rho h, specOf24 rho h, specOf25 rho h, specOf26 rho h, specOf27 rho h, specOf28 rho h, specOf29 rho h, specOf30 rho h, specOf31 rho h, specOf32 rho h, specOf33 rho h, specOf34 rho h, specOf35 rho h, specOf36 rho h, specOf37 rho h⟩
-    balance := ⟨specOf162 rho h, specOf163 rho h, specOf164 rho h⟩
-    transcript := ⟨specOf169 rho h, specOf170 rho h⟩
-    spend0 := ⟨specOf39 rho h, specOf41 rho h, specOf42 rho h, specOf44 rho h, specOf46 rho h, specOf47 rho h, specOf48 rho h, specOf50 rho h, specOf51 rho h⟩
-    spend1 := ⟨specOf54 rho h, specOf56 rho h, specOf57 rho h, specOf59 rho h, specOf61 rho h, specOf62 rho h, specOf63 rho h, specOf65 rho h, specOf66 rho h⟩
-    spend2 := ⟨specOf69 rho h, specOf71 rho h, specOf72 rho h, specOf74 rho h, specOf76 rho h, specOf77 rho h, specOf78 rho h, specOf80 rho h, specOf81 rho h⟩
-    spend3 := ⟨specOf84 rho h, specOf86 rho h, specOf87 rho h, specOf89 rho h, specOf91 rho h, specOf92 rho h, specOf93 rho h, specOf95 rho h, specOf96 rho h⟩
-    spend4 := ⟨specOf99 rho h, specOf101 rho h, specOf102 rho h, specOf104 rho h, specOf106 rho h, specOf107 rho h, specOf108 rho h, specOf110 rho h, specOf111 rho h⟩
-    spend5 := ⟨specOf114 rho h, specOf116 rho h, specOf117 rho h, specOf119 rho h, specOf121 rho h, specOf122 rho h, specOf123 rho h, specOf125 rho h, specOf126 rho h⟩
-    spend6 := ⟨specOf129 rho h, specOf131 rho h, specOf132 rho h, specOf134 rho h, specOf136 rho h, specOf137 rho h, specOf138 rho h, specOf140 rho h, specOf141 rho h⟩
-    spend7 := ⟨specOf144 rho h, specOf146 rho h, specOf147 rho h, specOf149 rho h, specOf151 rho h, specOf152 rho h, specOf153 rho h, specOf155 rho h, specOf156 rho h⟩
-    output0 := ⟨specOf159 rho h, specOf160 rho h⟩
+    control := ⟨specOf1 rho h, specOf2 rho h, specOf3 rho h, specOf4 rho h, specOf5 rho h, specOf6 rho h, specOf7 rho h, specOf8 rho h, specOf9 rho h, specOf10 rho h, specOf20 rho h, specOf32 rho h, specOf33 rho h, specOf44 rho h, specOf47 rho h, specOf49 rho h, specOf53 rho h, specOf59 rho h, specOf62 rho h, specOf64 rho h, specOf68 rho h, specOf74 rho h, specOf77 rho h, specOf79 rho h, specOf83 rho h, specOf89 rho h, specOf92 rho h, specOf94 rho h, specOf98 rho h, specOf104 rho h, specOf107 rho h, specOf109 rho h, specOf113 rho h, specOf119 rho h, specOf122 rho h, specOf124 rho h, specOf128 rho h, specOf134 rho h, specOf137 rho h, specOf139 rho h, specOf143 rho h, specOf149 rho h, specOf152 rho h, specOf154 rho h, specOf158 rho h⟩
+    shared := ⟨specOf12 rho h, specOf13 rho h, specOf14 rho h, specOf15 rho h, specOf16 rho h, specOf17 rho h, specOf18 rho h, specOf19 rho h, specOf21 rho h, specOf22 rho h, specOf23 rho h, specOf24 rho h, specOf25 rho h, specOf26 rho h, specOf27 rho h, specOf28 rho h, specOf29 rho h, specOf30 rho h, specOf31 rho h, specOf34 rho h, specOf35 rho h, specOf36 rho h, specOf37 rho h, specOf38 rho h, specOf39 rho h, specOf40 rho h, specOf41 rho h⟩
+    balance := ⟨specOf166 rho h, specOf167 rho h, specOf168 rho h⟩
+    transcript := ⟨specOf173 rho h, specOf174 rho h⟩
+    spend0 := ⟨specOf43 rho h, specOf45 rho h, specOf46 rho h, specOf48 rho h, specOf50 rho h, specOf51 rho h, specOf52 rho h, specOf54 rho h, specOf55 rho h⟩
+    spend1 := ⟨specOf58 rho h, specOf60 rho h, specOf61 rho h, specOf63 rho h, specOf65 rho h, specOf66 rho h, specOf67 rho h, specOf69 rho h, specOf70 rho h⟩
+    spend2 := ⟨specOf73 rho h, specOf75 rho h, specOf76 rho h, specOf78 rho h, specOf80 rho h, specOf81 rho h, specOf82 rho h, specOf84 rho h, specOf85 rho h⟩
+    spend3 := ⟨specOf88 rho h, specOf90 rho h, specOf91 rho h, specOf93 rho h, specOf95 rho h, specOf96 rho h, specOf97 rho h, specOf99 rho h, specOf100 rho h⟩
+    spend4 := ⟨specOf103 rho h, specOf105 rho h, specOf106 rho h, specOf108 rho h, specOf110 rho h, specOf111 rho h, specOf112 rho h, specOf114 rho h, specOf115 rho h⟩
+    spend5 := ⟨specOf118 rho h, specOf120 rho h, specOf121 rho h, specOf123 rho h, specOf125 rho h, specOf126 rho h, specOf127 rho h, specOf129 rho h, specOf130 rho h⟩
+    spend6 := ⟨specOf133 rho h, specOf135 rho h, specOf136 rho h, specOf138 rho h, specOf140 rho h, specOf141 rho h, specOf142 rho h, specOf144 rho h, specOf145 rho h⟩
+    spend7 := ⟨specOf148 rho h, specOf150 rho h, specOf151 rho h, specOf153 rho h, specOf155 rho h, specOf156 rho h, specOf157 rho h, specOf159 rho h, specOf160 rho h⟩
+    output0 := ⟨specOf163 rho h, specOf164 rho h⟩
   }
 
 end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape8x1

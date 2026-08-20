@@ -68,11 +68,13 @@ remain unconditional in the circuit, while the regulation bit gates only the
 threshold result and shared-secret selection. This is a security simplification
 of the accepted language, not an optimization claim over the historical V13
 count. Transfer V17 further separates the exact asset from the flag, constrains
-both detection slots to 32 bits, adopts v3 six-field compliance leaves,
+both detection slots to 32 bits, adopts v4 seven-field compliance leaves,
 rejects the asset-tree sentinel, and rejection-samples nonzero tier scalars.
 Those are mixed security changes, so no optimization percentage is claimed
 for them in isolation. Transfer V18 additionally binds the consensus recent
-position floor and each spend's exact old-note classification.
+position floor and each spend's exact old-note classification. Transfer V19
+adds authenticated sender and recipient status and requires both to be
+`Active` for regulated assets.
 
 ## Withdrawal follow-up
 
@@ -80,13 +82,14 @@ Withdrawal V7 derived the fixed-family public body from canonical plan facts and
 conservation-specific balance construction. Withdrawal V9 replaces repeated
 full policy openings with the canonical compact asset leaf
 `(value, nextIndex, nextValue, paramsHash, ringHash)`, adopts the shared
-v3 six-field compliance leaf, rejects the zero sentinel, and removes
+v4 seven-field compliance leaf, rejects the zero sentinel, and removes
 cross-spend transaction-nonce coupling. The fixed 2x1 relation moves from
 59,579 to 56,788 constraints: −2,791 (−4.68%). Because this combines
 simplification with security hardening, the number is a deployed relation
 delta, not a pure optimization attribution. Withdrawal V10 additionally binds
 the consensus recent-position floor and each spend's exact old-note
-classification.
+classification. Withdrawal V11 adds authenticated sender status and the
+regulated `Active` check.
 
 ## Current compiled result
 
@@ -95,8 +98,8 @@ compiles to:
 
 | Family | Committed baseline | Current | Delta |
 | --- | ---: | ---: | ---: |
-| `transfer` | 227,176 | 130,015 | −97,161 (−42.77%) |
-| `shielded_ics20_withdrawal` | 67,014 | 57,689 | −9,325 (−13.92%) |
+| `transfer` | 227,176 | 130,099 | −97,077 (−42.73%) |
+| `shielded_ics20_withdrawal` | 67,014 | 57,731 | −9,283 (−13.85%) |
 
 These are whole-relation deltas. Transfer combines deletion of the old DLEQ
 and public shared-point surface, exact amount-pair aggregation, and radix-4
@@ -118,14 +121,15 @@ The hint-free two-bit variable-base window measured:
 The 251-bit variable-base path is now deployed. On the two retained
 NoteReshape relations its compiled effect is:
 
-| Family | Before | Current | Delta |
+| Family | Post-radix-4 V5 | Current V6 | Status-enforcement delta |
 | --- | ---: | ---: | ---: |
-| `note_reshape1x8` | 29,196 | 28,596 | −600 (−2.05%) |
-| `note_reshape8x1` | 117,526 | 116,929 | −597 (−0.51%) |
+| `note_reshape1x8` | 28,596 | 50,454 | +21,858 (+76.44%) |
+| `note_reshape8x1` | 116,929 | 140,760 | +23,831 (+20.38%) |
 
-The reusable radix-4/Edwards correctness theorem and regenerated exact-row
-contracts remain release requirements; constraint counts alone are not
-certification.
+The V6 increase is the authenticated user-leaf hash, 16-level path, and status
+gate, not an optimization regression. The reusable radix-4/Edwards correctness
+theorem and regenerated exact-row contracts remain release requirements;
+constraint counts alone are not certification.
 
 The fixed-base width-2 candidate is worse, so wider fixed-base tables were not
 promoted without evidence they could recover a full-family 1%. Fake GLV and

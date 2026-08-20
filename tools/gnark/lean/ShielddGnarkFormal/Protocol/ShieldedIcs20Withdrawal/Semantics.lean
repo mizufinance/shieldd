@@ -104,6 +104,7 @@ structure ComplianceProof (F : Type u) (Path16 : Type v) where
   slotId : F
   slotDerivation : F
   d : F
+  status : F
   path : Path16
   position : F
   deriving DecidableEq, Repr

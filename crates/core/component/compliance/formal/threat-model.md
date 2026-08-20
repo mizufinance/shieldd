@@ -18,9 +18,9 @@ still depends on the Decaf377, Poseidon-stream, and hash assumptions recorded in
 ## Trust Roots
 
 The asset-policy proof is accepted only against the current mutable asset root.
-The user-compliance proof may use a recent recorded root of the append-only
-user tree. `validate_compliance_anchors` enforces these distinct liveness
-policies before proof verification; the circuit establishes membership or
+The user-compliance proof is accepted only against the exact current mutable
+user-status root. `validate_compliance_anchors` enforces both liveness policies
+before proof verification; the circuit establishes membership or
 non-membership only relative to the statement roots it receives.
 
 Asset-policy admission is also a live prerequisite: both the detection key and
@@ -56,7 +56,7 @@ disclose its own randomness.
 
 Honest construction also rejection-samples each tier scalar until nonzero.
 Registry admission rejects a zero derived `d` and requires a canonical 48-byte
-address in the v3 compliance leaf. These checks prevent identity audit capabilities
+address and status in the v4 compliance leaf. These checks prevent identity audit capabilities
 and address substitution for state admitted through the supported builders; a
 malicious creator can still disclose plaintext it already knows.
 

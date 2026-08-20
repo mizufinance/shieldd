@@ -26,7 +26,7 @@ def assetLeafDomain : F :=
   7414146286439358428123110060125696348906971675449116418017868010797147357618
 
 def complianceLeafDomain : F :=
-  5091441079939941903017664305347261861704474070005805806880013805880773073215
+  7622592512688680933372249798274825146043518728282898866874410341055945679433
 
 def statementDomain : F :=
   5099812247198162288685271307539979289604747326432821046846069957140094078946971247069215549355340101659434174086569865535097331579067581494923661232825375
@@ -128,18 +128,20 @@ def assetRegistry (action : Action F Path24 Path16) : Prop :=
 
 def complianceLeafHash
     (action : Action F Path24 Path16) : F :=
-  Poseidon377.hash6 complianceLeafDomain
+  Poseidon377.hash7 complianceLeafDomain
     action.sender.diversifiedGeneratorEncoding
     action.sender.transmissionEncoding action.withdrawal.outboundAssetId
     action.senderCompliance.slotId
     action.senderCompliance.slotDerivation action.senderCompliance.d
+    action.senderCompliance.status
 
 def senderCompliance (action : Action F Path24 Path16) : Prop :=
   action.senderCompliance.position.val < 2 ^ 32 ∧
     (action.assetProof.isRegulated = 1 →
       Common.quadRoot (complianceLeafHash action)
         action.senderCompliance.path action.senderCompliance.position =
-          action.complianceAnchor)
+          action.complianceAnchor ∧
+      action.senderCompliance.status = 1)
 
 def conservation (action : Action F Path24 Path16) : Prop :=
   Common.amount128 action.required.note.amount ∧

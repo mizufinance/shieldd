@@ -40,28 +40,28 @@ open Contracts.NoteReshape8x1.Witness (
 )
 
 def path0 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
-  NoteReshapeMembershipBridge.segmentPath (Seg42.localRho rho)
+  NoteReshapeMembershipBridge.segmentPath (Seg46.localRho rho)
 
 def path1 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
-  NoteReshapeMembershipBridge.segmentPath (Seg57.localRho rho)
+  NoteReshapeMembershipBridge.segmentPath (Seg61.localRho rho)
 
 def path2 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
-  NoteReshapeMembershipBridge.segmentPath (Seg72.localRho rho)
+  NoteReshapeMembershipBridge.segmentPath (Seg76.localRho rho)
 
 def path3 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
-  NoteReshapeMembershipBridge.segmentPath (Seg87.localRho rho)
+  NoteReshapeMembershipBridge.segmentPath (Seg91.localRho rho)
 
 def path4 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
-  NoteReshapeMembershipBridge.segmentPath (Seg102.localRho rho)
+  NoteReshapeMembershipBridge.segmentPath (Seg106.localRho rho)
 
 def path5 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
-  NoteReshapeMembershipBridge.segmentPath (Seg117.localRho rho)
+  NoteReshapeMembershipBridge.segmentPath (Seg121.localRho rho)
 
 def path6 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
-  NoteReshapeMembershipBridge.segmentPath (Seg132.localRho rho)
+  NoteReshapeMembershipBridge.segmentPath (Seg136.localRho rho)
 
 def path7 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
-  NoteReshapeMembershipBridge.segmentPath (Seg147.localRho rho)
+  NoteReshapeMembershipBridge.segmentPath (Seg151.localRho rho)
 
 def realInput0 (rho : Nat → DeployedF) :
     RealInput DeployedF NoteReshapeCanonical.Path24 :=
@@ -466,6 +466,7 @@ def action (rho : Nat → DeployedF) :
     outputs := [output0 rho]
     anchor := anchor rho
     assetAnchor := assetAnchor rho
+    complianceAnchor := complianceAnchor rho
     routingTag := routingTag rho
     routingParameterSetId := routingParameterSetId rho
     recentPositionFloor := recentPositionFloor rho
@@ -473,6 +474,45 @@ def action (rho : Nat → DeployedF) :
     balanceBlinding := actionBalanceBlinding rho
     publicStatementHash := claimedStatementHash rho
   }
+
+/-- A regulated reshape requires the sender's per-asset status to be Active. -/
+theorem senderStatusActive
+    (rho : Nat → DeployedF)
+    (facts : NoteReshape8x1CircuitFacts rho) :
+    isRegulated rho = 1 → senderStatus rho = 1 := by
+  intro regulated
+  have h := facts.control.AssertEqIfSeg33
+  change
+    Deployed.Templates.Semantics.TAssertEqIf_21d2c12b00d06e5e5a9b561d8f13c30059ff3ae69a31740109ba30ed73bb89aa.spec
+      (Seg33.localRho rho) at h
+  have hw1 : Seg33.wireSeating 1 = 11 := by decide +kernel
+  have hw2 : Seg33.wireSeating 2 = 22 := by decide +kernel
+  simp only [
+    Deployed.Templates.Semantics.TAssertEqIf_21d2c12b00d06e5e5a9b561d8f13c30059ff3ae69a31740109ba30ed73bb89aa.spec,
+    Deployed.Templates.Semantics.TAssertEqIf_21d2c12b00d06e5e5a9b561d8f13c30059ff3ae69a31740109ba30ed73bb89aa.guard,
+    Deployed.Templates.Semantics.TAssertEqIf_21d2c12b00d06e5e5a9b561d8f13c30059ff3ae69a31740109ba30ed73bb89aa.residual,
+    one_mul
+  ] at h
+  rcases h with disabled | asserted
+  · have disabledSemantic : isRegulated rho = 0 := by
+      simpa only [
+        isRegulated, isRegulatedLC,
+        StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
+        Seg33.localRho, Deployed.Templates.seated, hw1,
+        zero_add, one_mul, add_zero
+      ] using disabled
+    rw [regulated] at disabledSemantic
+    have h10 : (1 : DeployedF) ≠ 0 := by decide +kernel
+    exact (h10 disabledSemantic).elim
+  · have assertedSemantic : -1 + senderStatus rho = 0 := by
+      simpa only [
+        senderStatus, senderStatusLC,
+        StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
+        Seg33.localRho, Deployed.Templates.seated, hw2,
+        zero_add, one_mul, add_zero
+      ] using asserted
+    have recovered := congrArg (fun z : DeployedF => 1 + z) assertedSemantic
+    simpa [add_assoc] using recovered
 
 theorem nextSelectorOne
     (previous next : DeployedF)

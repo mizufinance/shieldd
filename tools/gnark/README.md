@@ -146,7 +146,7 @@ Files:
 - `crypto_primitives_test.go`: exact-match tests for `poseidon377::hash_7` and `decaf377::compress_to_field`
 - `internal/primitives/poseidon377.go`: gnark implementation of exact Shieldd `poseidon377` `hash_7`
 - `internal/primitives/decaf377.go`: gnark implementation of the minimal `decaf377` quotient gadget used in this spike
-- `internal/compliance/dleq.go`: standalone research implementation of the retired DLEQ verifier fragment; it is not part of Transfer V18
+- `internal/compliance/dleq.go`: standalone research implementation of the retired DLEQ verifier fragment; it is not part of Transfer V19
 - `dleq_test.go`: research-fixture tests for that non-deployed DLEQ fragment
 - `internal/primitives/statement_hash.go`: exact gnark statement-hash gadgets
   for the supported families
@@ -167,5 +167,5 @@ Files:
 - `artifact-mapping.md`: current Shieldd transfer artifact boundary
 - `run-verify-bench.sh`: local orchestrator for the gnark-vs-Arkworks verifier comparison
 - `internal/primitives/vectors/phase05_vectors.json`: reference vectors generated from Shieldd Rust code
-- `internal/testfixtures/vectors/transfer_witness_v18.bin`: deterministic current transfer witness payload generated from Rust
+- `internal/testfixtures/vectors/transfer_witness_v19.bin`: deterministic current transfer witness payload generated from Rust
 - `rust-vectors/`: standalone Rust utility that generates the reference vectors

@@ -38,6 +38,7 @@ message CompactBlock {
   bytes compliance_asset_anchor = 13;
   // User registrations in this block (for client sync).
   repeated compliance.v1.EventUserRegistered compliance_user_registrations = 14;
+  repeated compliance.v1.EventUserAssetStatusChanged compliance_user_status_changes = 18;
   // Asset registrations in this block (for client sync).
   repeated compliance.v1.EventAssetRegistered compliance_asset_registrations = 15;
   // Encrypted note payloads grouped by their producing action for candidate retrieval.

@@ -136,6 +136,10 @@ pub fn pending_user_registrations() -> &'static str {
     "compliance/pending_user_registrations"
 }
 
+pub fn pending_user_status_changes() -> &'static str {
+    "compliance/pending_user_status_changes"
+}
+
 /// State key for pending asset registrations (buffered during block execution).
 ///
 /// These are accumulated during transaction processing and drained when

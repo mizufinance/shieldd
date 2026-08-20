@@ -26,198 +26,252 @@ structure WitnessWireRole where
 def witnessWireRoles : List WitnessWireRole := [
   { wireId := 1, path := "ClaimedStatementHash", visibility := .public },
   { wireId := 2, path := "AssetAnchor", visibility := .secret },
-  { wireId := 3, path := "RoutingTag", visibility := .secret },
-  { wireId := 4, path := "RoutingParameterSetID", visibility := .secret },
-  { wireId := 5, path := "RecentPositionFloor", visibility := .secret },
-  { wireId := 6, path := "Anchor", visibility := .secret },
-  { wireId := 7, path := "BalanceCommitment_X", visibility := .secret },
-  { wireId := 8, path := "BalanceCommitment_Y", visibility := .secret },
-  { wireId := 9, path := "ActionBalanceBlinding", visibility := .secret },
-  { wireId := 10, path := "IsRegulated", visibility := .secret },
-  { wireId := 11, path := "RegulatedPrecision", visibility := .secret },
-  { wireId := 12, path := "UnregulatedPrecision", visibility := .secret },
-  { wireId := 13, path := "RoutingAsOfHeight", visibility := .secret },
-  { wireId := 14, path := "RoutingNonce", visibility := .secret },
-  { wireId := 15, path := "Shared_AssetID", visibility := .secret },
-  { wireId := 16, path := "Shared_DivGen_X", visibility := .secret },
-  { wireId := 17, path := "Shared_DivGen_Y", visibility := .secret },
-  { wireId := 18, path := "Auth_AK_X", visibility := .secret },
-  { wireId := 19, path := "Auth_AK_Y", visibility := .secret },
-  { wireId := 20, path := "Auth_NK", visibility := .secret },
-  { wireId := 21, path := "Auth_IVKReduced", visibility := .secret },
-  { wireId := 22, path := "Auth_IVKQuotientA", visibility := .secret },
-  { wireId := 23, path := "Asset_Leaf_Value", visibility := .secret },
-  { wireId := 24, path := "Asset_Leaf_NextIndex", visibility := .secret },
-  { wireId := 25, path := "Asset_Leaf_NextValue", visibility := .secret },
-  { wireId := 26, path := "Asset_Leaf_DKPub_X", visibility := .secret },
-  { wireId := 27, path := "Asset_Leaf_DKPub_Y", visibility := .secret },
-  { wireId := 28, path := "Asset_Leaf_Threshold", visibility := .secret },
-  { wireId := 29, path := "Asset_Leaf_SlotCount", visibility := .secret },
-  { wireId := 30, path := "Asset_Leaf_ChannelsHash", visibility := .secret },
-  { wireId := 31, path := "Asset_Leaf_RingPK_X", visibility := .secret },
-  { wireId := 32, path := "Asset_Leaf_RingPK_Y", visibility := .secret },
-  { wireId := 33, path := "Asset_Leaf_RingIDHash", visibility := .secret },
-  { wireId := 34, path := "Asset_Leaf_PolicyIDHash", visibility := .secret },
-  { wireId := 35, path := "Asset_Leaf_PermissionHash", visibility := .secret },
-  { wireId := 36, path := "Asset_Leaf_ResourceHash", visibility := .secret },
-  { wireId := 37, path := "Asset_Path_0_0", visibility := .secret },
-  { wireId := 38, path := "Asset_Path_0_1", visibility := .secret },
-  { wireId := 39, path := "Asset_Path_0_2", visibility := .secret },
-  { wireId := 40, path := "Asset_Path_1_0", visibility := .secret },
-  { wireId := 41, path := "Asset_Path_1_1", visibility := .secret },
-  { wireId := 42, path := "Asset_Path_1_2", visibility := .secret },
-  { wireId := 43, path := "Asset_Path_2_0", visibility := .secret },
-  { wireId := 44, path := "Asset_Path_2_1", visibility := .secret },
-  { wireId := 45, path := "Asset_Path_2_2", visibility := .secret },
-  { wireId := 46, path := "Asset_Path_3_0", visibility := .secret },
-  { wireId := 47, path := "Asset_Path_3_1", visibility := .secret },
-  { wireId := 48, path := "Asset_Path_3_2", visibility := .secret },
-  { wireId := 49, path := "Asset_Path_4_0", visibility := .secret },
-  { wireId := 50, path := "Asset_Path_4_1", visibility := .secret },
-  { wireId := 51, path := "Asset_Path_4_2", visibility := .secret },
-  { wireId := 52, path := "Asset_Path_5_0", visibility := .secret },
-  { wireId := 53, path := "Asset_Path_5_1", visibility := .secret },
-  { wireId := 54, path := "Asset_Path_5_2", visibility := .secret },
-  { wireId := 55, path := "Asset_Path_6_0", visibility := .secret },
-  { wireId := 56, path := "Asset_Path_6_1", visibility := .secret },
-  { wireId := 57, path := "Asset_Path_6_2", visibility := .secret },
-  { wireId := 58, path := "Asset_Path_7_0", visibility := .secret },
-  { wireId := 59, path := "Asset_Path_7_1", visibility := .secret },
-  { wireId := 60, path := "Asset_Path_7_2", visibility := .secret },
-  { wireId := 61, path := "Asset_Path_8_0", visibility := .secret },
-  { wireId := 62, path := "Asset_Path_8_1", visibility := .secret },
-  { wireId := 63, path := "Asset_Path_8_2", visibility := .secret },
-  { wireId := 64, path := "Asset_Path_9_0", visibility := .secret },
-  { wireId := 65, path := "Asset_Path_9_1", visibility := .secret },
-  { wireId := 66, path := "Asset_Path_9_2", visibility := .secret },
-  { wireId := 67, path := "Asset_Path_10_0", visibility := .secret },
-  { wireId := 68, path := "Asset_Path_10_1", visibility := .secret },
-  { wireId := 69, path := "Asset_Path_10_2", visibility := .secret },
-  { wireId := 70, path := "Asset_Path_11_0", visibility := .secret },
-  { wireId := 71, path := "Asset_Path_11_1", visibility := .secret },
-  { wireId := 72, path := "Asset_Path_11_2", visibility := .secret },
-  { wireId := 73, path := "Asset_Path_12_0", visibility := .secret },
-  { wireId := 74, path := "Asset_Path_12_1", visibility := .secret },
-  { wireId := 75, path := "Asset_Path_12_2", visibility := .secret },
-  { wireId := 76, path := "Asset_Path_13_0", visibility := .secret },
-  { wireId := 77, path := "Asset_Path_13_1", visibility := .secret },
-  { wireId := 78, path := "Asset_Path_13_2", visibility := .secret },
-  { wireId := 79, path := "Asset_Path_14_0", visibility := .secret },
-  { wireId := 80, path := "Asset_Path_14_1", visibility := .secret },
-  { wireId := 81, path := "Asset_Path_14_2", visibility := .secret },
-  { wireId := 82, path := "Asset_Path_15_0", visibility := .secret },
-  { wireId := 83, path := "Asset_Path_15_1", visibility := .secret },
-  { wireId := 84, path := "Asset_Path_15_2", visibility := .secret },
-  { wireId := 85, path := "Asset_Position", visibility := .secret },
-  { wireId := 86, path := "Spends_0_Nullifier", visibility := .secret },
-  { wireId := 87, path := "Spends_0_RK_X", visibility := .secret },
-  { wireId := 88, path := "Spends_0_RK_Y", visibility := .secret },
-  { wireId := 89, path := "Spends_0_Note_Blinding", visibility := .secret },
-  { wireId := 90, path := "Spends_0_Note_Amount", visibility := .secret },
-  { wireId := 91, path := "Spends_0_StateProof_Commitment", visibility := .secret },
-  { wireId := 92, path := "Spends_0_StateProof_Position", visibility := .secret },
-  { wireId := 93, path := "Spends_0_StateProof_Path_0_0", visibility := .secret },
-  { wireId := 94, path := "Spends_0_StateProof_Path_0_1", visibility := .secret },
-  { wireId := 95, path := "Spends_0_StateProof_Path_0_2", visibility := .secret },
-  { wireId := 96, path := "Spends_0_StateProof_Path_1_0", visibility := .secret },
-  { wireId := 97, path := "Spends_0_StateProof_Path_1_1", visibility := .secret },
-  { wireId := 98, path := "Spends_0_StateProof_Path_1_2", visibility := .secret },
-  { wireId := 99, path := "Spends_0_StateProof_Path_2_0", visibility := .secret },
-  { wireId := 100, path := "Spends_0_StateProof_Path_2_1", visibility := .secret },
-  { wireId := 101, path := "Spends_0_StateProof_Path_2_2", visibility := .secret },
-  { wireId := 102, path := "Spends_0_StateProof_Path_3_0", visibility := .secret },
-  { wireId := 103, path := "Spends_0_StateProof_Path_3_1", visibility := .secret },
-  { wireId := 104, path := "Spends_0_StateProof_Path_3_2", visibility := .secret },
-  { wireId := 105, path := "Spends_0_StateProof_Path_4_0", visibility := .secret },
-  { wireId := 106, path := "Spends_0_StateProof_Path_4_1", visibility := .secret },
-  { wireId := 107, path := "Spends_0_StateProof_Path_4_2", visibility := .secret },
-  { wireId := 108, path := "Spends_0_StateProof_Path_5_0", visibility := .secret },
-  { wireId := 109, path := "Spends_0_StateProof_Path_5_1", visibility := .secret },
-  { wireId := 110, path := "Spends_0_StateProof_Path_5_2", visibility := .secret },
-  { wireId := 111, path := "Spends_0_StateProof_Path_6_0", visibility := .secret },
-  { wireId := 112, path := "Spends_0_StateProof_Path_6_1", visibility := .secret },
-  { wireId := 113, path := "Spends_0_StateProof_Path_6_2", visibility := .secret },
-  { wireId := 114, path := "Spends_0_StateProof_Path_7_0", visibility := .secret },
-  { wireId := 115, path := "Spends_0_StateProof_Path_7_1", visibility := .secret },
-  { wireId := 116, path := "Spends_0_StateProof_Path_7_2", visibility := .secret },
-  { wireId := 117, path := "Spends_0_StateProof_Path_8_0", visibility := .secret },
-  { wireId := 118, path := "Spends_0_StateProof_Path_8_1", visibility := .secret },
-  { wireId := 119, path := "Spends_0_StateProof_Path_8_2", visibility := .secret },
-  { wireId := 120, path := "Spends_0_StateProof_Path_9_0", visibility := .secret },
-  { wireId := 121, path := "Spends_0_StateProof_Path_9_1", visibility := .secret },
-  { wireId := 122, path := "Spends_0_StateProof_Path_9_2", visibility := .secret },
-  { wireId := 123, path := "Spends_0_StateProof_Path_10_0", visibility := .secret },
-  { wireId := 124, path := "Spends_0_StateProof_Path_10_1", visibility := .secret },
-  { wireId := 125, path := "Spends_0_StateProof_Path_10_2", visibility := .secret },
-  { wireId := 126, path := "Spends_0_StateProof_Path_11_0", visibility := .secret },
-  { wireId := 127, path := "Spends_0_StateProof_Path_11_1", visibility := .secret },
-  { wireId := 128, path := "Spends_0_StateProof_Path_11_2", visibility := .secret },
-  { wireId := 129, path := "Spends_0_StateProof_Path_12_0", visibility := .secret },
-  { wireId := 130, path := "Spends_0_StateProof_Path_12_1", visibility := .secret },
-  { wireId := 131, path := "Spends_0_StateProof_Path_12_2", visibility := .secret },
-  { wireId := 132, path := "Spends_0_StateProof_Path_13_0", visibility := .secret },
-  { wireId := 133, path := "Spends_0_StateProof_Path_13_1", visibility := .secret },
-  { wireId := 134, path := "Spends_0_StateProof_Path_13_2", visibility := .secret },
-  { wireId := 135, path := "Spends_0_StateProof_Path_14_0", visibility := .secret },
-  { wireId := 136, path := "Spends_0_StateProof_Path_14_1", visibility := .secret },
-  { wireId := 137, path := "Spends_0_StateProof_Path_14_2", visibility := .secret },
-  { wireId := 138, path := "Spends_0_StateProof_Path_15_0", visibility := .secret },
-  { wireId := 139, path := "Spends_0_StateProof_Path_15_1", visibility := .secret },
-  { wireId := 140, path := "Spends_0_StateProof_Path_15_2", visibility := .secret },
-  { wireId := 141, path := "Spends_0_StateProof_Path_16_0", visibility := .secret },
-  { wireId := 142, path := "Spends_0_StateProof_Path_16_1", visibility := .secret },
-  { wireId := 143, path := "Spends_0_StateProof_Path_16_2", visibility := .secret },
-  { wireId := 144, path := "Spends_0_StateProof_Path_17_0", visibility := .secret },
-  { wireId := 145, path := "Spends_0_StateProof_Path_17_1", visibility := .secret },
-  { wireId := 146, path := "Spends_0_StateProof_Path_17_2", visibility := .secret },
-  { wireId := 147, path := "Spends_0_StateProof_Path_18_0", visibility := .secret },
-  { wireId := 148, path := "Spends_0_StateProof_Path_18_1", visibility := .secret },
-  { wireId := 149, path := "Spends_0_StateProof_Path_18_2", visibility := .secret },
-  { wireId := 150, path := "Spends_0_StateProof_Path_19_0", visibility := .secret },
-  { wireId := 151, path := "Spends_0_StateProof_Path_19_1", visibility := .secret },
-  { wireId := 152, path := "Spends_0_StateProof_Path_19_2", visibility := .secret },
-  { wireId := 153, path := "Spends_0_StateProof_Path_20_0", visibility := .secret },
-  { wireId := 154, path := "Spends_0_StateProof_Path_20_1", visibility := .secret },
-  { wireId := 155, path := "Spends_0_StateProof_Path_20_2", visibility := .secret },
-  { wireId := 156, path := "Spends_0_StateProof_Path_21_0", visibility := .secret },
-  { wireId := 157, path := "Spends_0_StateProof_Path_21_1", visibility := .secret },
-  { wireId := 158, path := "Spends_0_StateProof_Path_21_2", visibility := .secret },
-  { wireId := 159, path := "Spends_0_StateProof_Path_22_0", visibility := .secret },
-  { wireId := 160, path := "Spends_0_StateProof_Path_22_1", visibility := .secret },
-  { wireId := 161, path := "Spends_0_StateProof_Path_22_2", visibility := .secret },
-  { wireId := 162, path := "Spends_0_StateProof_Path_23_0", visibility := .secret },
-  { wireId := 163, path := "Spends_0_StateProof_Path_23_1", visibility := .secret },
-  { wireId := 164, path := "Spends_0_StateProof_Path_23_2", visibility := .secret },
-  { wireId := 165, path := "Spends_0_AuthRandomizer", visibility := .secret },
-  { wireId := 166, path := "Spends_0_HistoryRequired", visibility := .secret },
-  { wireId := 167, path := "Outputs_0_NoteCommitment", visibility := .secret },
-  { wireId := 168, path := "Outputs_0_Note_Blinding", visibility := .secret },
-  { wireId := 169, path := "Outputs_0_Note_Amount", visibility := .secret },
-  { wireId := 170, path := "Outputs_1_NoteCommitment", visibility := .secret },
-  { wireId := 171, path := "Outputs_1_Note_Blinding", visibility := .secret },
-  { wireId := 172, path := "Outputs_1_Note_Amount", visibility := .secret },
-  { wireId := 173, path := "Outputs_2_NoteCommitment", visibility := .secret },
-  { wireId := 174, path := "Outputs_2_Note_Blinding", visibility := .secret },
-  { wireId := 175, path := "Outputs_2_Note_Amount", visibility := .secret },
-  { wireId := 176, path := "Outputs_3_NoteCommitment", visibility := .secret },
-  { wireId := 177, path := "Outputs_3_Note_Blinding", visibility := .secret },
-  { wireId := 178, path := "Outputs_3_Note_Amount", visibility := .secret },
-  { wireId := 179, path := "Outputs_4_NoteCommitment", visibility := .secret },
-  { wireId := 180, path := "Outputs_4_Note_Blinding", visibility := .secret },
-  { wireId := 181, path := "Outputs_4_Note_Amount", visibility := .secret },
-  { wireId := 182, path := "Outputs_5_NoteCommitment", visibility := .secret },
-  { wireId := 183, path := "Outputs_5_Note_Blinding", visibility := .secret },
-  { wireId := 184, path := "Outputs_5_Note_Amount", visibility := .secret },
-  { wireId := 185, path := "Outputs_6_NoteCommitment", visibility := .secret },
-  { wireId := 186, path := "Outputs_6_Note_Blinding", visibility := .secret },
-  { wireId := 187, path := "Outputs_6_Note_Amount", visibility := .secret },
-  { wireId := 188, path := "Outputs_7_NoteCommitment", visibility := .secret },
-  { wireId := 189, path := "Outputs_7_Note_Blinding", visibility := .secret },
-  { wireId := 190, path := "Outputs_7_Note_Amount", visibility := .secret },
+  { wireId := 3, path := "ComplianceAnchor", visibility := .secret },
+  { wireId := 4, path := "RoutingTag", visibility := .secret },
+  { wireId := 5, path := "RoutingParameterSetID", visibility := .secret },
+  { wireId := 6, path := "RecentPositionFloor", visibility := .secret },
+  { wireId := 7, path := "Anchor", visibility := .secret },
+  { wireId := 8, path := "BalanceCommitment_X", visibility := .secret },
+  { wireId := 9, path := "BalanceCommitment_Y", visibility := .secret },
+  { wireId := 10, path := "ActionBalanceBlinding", visibility := .secret },
+  { wireId := 11, path := "IsRegulated", visibility := .secret },
+  { wireId := 12, path := "RegulatedPrecision", visibility := .secret },
+  { wireId := 13, path := "UnregulatedPrecision", visibility := .secret },
+  { wireId := 14, path := "RoutingAsOfHeight", visibility := .secret },
+  { wireId := 15, path := "RoutingNonce", visibility := .secret },
+  { wireId := 16, path := "Shared_AssetID", visibility := .secret },
+  { wireId := 17, path := "Shared_DivGen_X", visibility := .secret },
+  { wireId := 18, path := "Shared_DivGen_Y", visibility := .secret },
+  { wireId := 19, path := "Sender_SlotID", visibility := .secret },
+  { wireId := 20, path := "Sender_SlotDerivation", visibility := .secret },
+  { wireId := 21, path := "Sender_D", visibility := .secret },
+  { wireId := 22, path := "Sender_Status", visibility := .secret },
+  { wireId := 23, path := "Sender_Path_0_0", visibility := .secret },
+  { wireId := 24, path := "Sender_Path_0_1", visibility := .secret },
+  { wireId := 25, path := "Sender_Path_0_2", visibility := .secret },
+  { wireId := 26, path := "Sender_Path_1_0", visibility := .secret },
+  { wireId := 27, path := "Sender_Path_1_1", visibility := .secret },
+  { wireId := 28, path := "Sender_Path_1_2", visibility := .secret },
+  { wireId := 29, path := "Sender_Path_2_0", visibility := .secret },
+  { wireId := 30, path := "Sender_Path_2_1", visibility := .secret },
+  { wireId := 31, path := "Sender_Path_2_2", visibility := .secret },
+  { wireId := 32, path := "Sender_Path_3_0", visibility := .secret },
+  { wireId := 33, path := "Sender_Path_3_1", visibility := .secret },
+  { wireId := 34, path := "Sender_Path_3_2", visibility := .secret },
+  { wireId := 35, path := "Sender_Path_4_0", visibility := .secret },
+  { wireId := 36, path := "Sender_Path_4_1", visibility := .secret },
+  { wireId := 37, path := "Sender_Path_4_2", visibility := .secret },
+  { wireId := 38, path := "Sender_Path_5_0", visibility := .secret },
+  { wireId := 39, path := "Sender_Path_5_1", visibility := .secret },
+  { wireId := 40, path := "Sender_Path_5_2", visibility := .secret },
+  { wireId := 41, path := "Sender_Path_6_0", visibility := .secret },
+  { wireId := 42, path := "Sender_Path_6_1", visibility := .secret },
+  { wireId := 43, path := "Sender_Path_6_2", visibility := .secret },
+  { wireId := 44, path := "Sender_Path_7_0", visibility := .secret },
+  { wireId := 45, path := "Sender_Path_7_1", visibility := .secret },
+  { wireId := 46, path := "Sender_Path_7_2", visibility := .secret },
+  { wireId := 47, path := "Sender_Path_8_0", visibility := .secret },
+  { wireId := 48, path := "Sender_Path_8_1", visibility := .secret },
+  { wireId := 49, path := "Sender_Path_8_2", visibility := .secret },
+  { wireId := 50, path := "Sender_Path_9_0", visibility := .secret },
+  { wireId := 51, path := "Sender_Path_9_1", visibility := .secret },
+  { wireId := 52, path := "Sender_Path_9_2", visibility := .secret },
+  { wireId := 53, path := "Sender_Path_10_0", visibility := .secret },
+  { wireId := 54, path := "Sender_Path_10_1", visibility := .secret },
+  { wireId := 55, path := "Sender_Path_10_2", visibility := .secret },
+  { wireId := 56, path := "Sender_Path_11_0", visibility := .secret },
+  { wireId := 57, path := "Sender_Path_11_1", visibility := .secret },
+  { wireId := 58, path := "Sender_Path_11_2", visibility := .secret },
+  { wireId := 59, path := "Sender_Path_12_0", visibility := .secret },
+  { wireId := 60, path := "Sender_Path_12_1", visibility := .secret },
+  { wireId := 61, path := "Sender_Path_12_2", visibility := .secret },
+  { wireId := 62, path := "Sender_Path_13_0", visibility := .secret },
+  { wireId := 63, path := "Sender_Path_13_1", visibility := .secret },
+  { wireId := 64, path := "Sender_Path_13_2", visibility := .secret },
+  { wireId := 65, path := "Sender_Path_14_0", visibility := .secret },
+  { wireId := 66, path := "Sender_Path_14_1", visibility := .secret },
+  { wireId := 67, path := "Sender_Path_14_2", visibility := .secret },
+  { wireId := 68, path := "Sender_Path_15_0", visibility := .secret },
+  { wireId := 69, path := "Sender_Path_15_1", visibility := .secret },
+  { wireId := 70, path := "Sender_Path_15_2", visibility := .secret },
+  { wireId := 71, path := "Sender_Position", visibility := .secret },
+  { wireId := 72, path := "Auth_AK_X", visibility := .secret },
+  { wireId := 73, path := "Auth_AK_Y", visibility := .secret },
+  { wireId := 74, path := "Auth_NK", visibility := .secret },
+  { wireId := 75, path := "Auth_IVKReduced", visibility := .secret },
+  { wireId := 76, path := "Auth_IVKQuotientA", visibility := .secret },
+  { wireId := 77, path := "Asset_Leaf_Value", visibility := .secret },
+  { wireId := 78, path := "Asset_Leaf_NextIndex", visibility := .secret },
+  { wireId := 79, path := "Asset_Leaf_NextValue", visibility := .secret },
+  { wireId := 80, path := "Asset_Leaf_DKPub_X", visibility := .secret },
+  { wireId := 81, path := "Asset_Leaf_DKPub_Y", visibility := .secret },
+  { wireId := 82, path := "Asset_Leaf_Threshold", visibility := .secret },
+  { wireId := 83, path := "Asset_Leaf_SlotCount", visibility := .secret },
+  { wireId := 84, path := "Asset_Leaf_ChannelsHash", visibility := .secret },
+  { wireId := 85, path := "Asset_Leaf_RingPK_X", visibility := .secret },
+  { wireId := 86, path := "Asset_Leaf_RingPK_Y", visibility := .secret },
+  { wireId := 87, path := "Asset_Leaf_RingIDHash", visibility := .secret },
+  { wireId := 88, path := "Asset_Leaf_PolicyIDHash", visibility := .secret },
+  { wireId := 89, path := "Asset_Leaf_PermissionHash", visibility := .secret },
+  { wireId := 90, path := "Asset_Leaf_ResourceHash", visibility := .secret },
+  { wireId := 91, path := "Asset_Path_0_0", visibility := .secret },
+  { wireId := 92, path := "Asset_Path_0_1", visibility := .secret },
+  { wireId := 93, path := "Asset_Path_0_2", visibility := .secret },
+  { wireId := 94, path := "Asset_Path_1_0", visibility := .secret },
+  { wireId := 95, path := "Asset_Path_1_1", visibility := .secret },
+  { wireId := 96, path := "Asset_Path_1_2", visibility := .secret },
+  { wireId := 97, path := "Asset_Path_2_0", visibility := .secret },
+  { wireId := 98, path := "Asset_Path_2_1", visibility := .secret },
+  { wireId := 99, path := "Asset_Path_2_2", visibility := .secret },
+  { wireId := 100, path := "Asset_Path_3_0", visibility := .secret },
+  { wireId := 101, path := "Asset_Path_3_1", visibility := .secret },
+  { wireId := 102, path := "Asset_Path_3_2", visibility := .secret },
+  { wireId := 103, path := "Asset_Path_4_0", visibility := .secret },
+  { wireId := 104, path := "Asset_Path_4_1", visibility := .secret },
+  { wireId := 105, path := "Asset_Path_4_2", visibility := .secret },
+  { wireId := 106, path := "Asset_Path_5_0", visibility := .secret },
+  { wireId := 107, path := "Asset_Path_5_1", visibility := .secret },
+  { wireId := 108, path := "Asset_Path_5_2", visibility := .secret },
+  { wireId := 109, path := "Asset_Path_6_0", visibility := .secret },
+  { wireId := 110, path := "Asset_Path_6_1", visibility := .secret },
+  { wireId := 111, path := "Asset_Path_6_2", visibility := .secret },
+  { wireId := 112, path := "Asset_Path_7_0", visibility := .secret },
+  { wireId := 113, path := "Asset_Path_7_1", visibility := .secret },
+  { wireId := 114, path := "Asset_Path_7_2", visibility := .secret },
+  { wireId := 115, path := "Asset_Path_8_0", visibility := .secret },
+  { wireId := 116, path := "Asset_Path_8_1", visibility := .secret },
+  { wireId := 117, path := "Asset_Path_8_2", visibility := .secret },
+  { wireId := 118, path := "Asset_Path_9_0", visibility := .secret },
+  { wireId := 119, path := "Asset_Path_9_1", visibility := .secret },
+  { wireId := 120, path := "Asset_Path_9_2", visibility := .secret },
+  { wireId := 121, path := "Asset_Path_10_0", visibility := .secret },
+  { wireId := 122, path := "Asset_Path_10_1", visibility := .secret },
+  { wireId := 123, path := "Asset_Path_10_2", visibility := .secret },
+  { wireId := 124, path := "Asset_Path_11_0", visibility := .secret },
+  { wireId := 125, path := "Asset_Path_11_1", visibility := .secret },
+  { wireId := 126, path := "Asset_Path_11_2", visibility := .secret },
+  { wireId := 127, path := "Asset_Path_12_0", visibility := .secret },
+  { wireId := 128, path := "Asset_Path_12_1", visibility := .secret },
+  { wireId := 129, path := "Asset_Path_12_2", visibility := .secret },
+  { wireId := 130, path := "Asset_Path_13_0", visibility := .secret },
+  { wireId := 131, path := "Asset_Path_13_1", visibility := .secret },
+  { wireId := 132, path := "Asset_Path_13_2", visibility := .secret },
+  { wireId := 133, path := "Asset_Path_14_0", visibility := .secret },
+  { wireId := 134, path := "Asset_Path_14_1", visibility := .secret },
+  { wireId := 135, path := "Asset_Path_14_2", visibility := .secret },
+  { wireId := 136, path := "Asset_Path_15_0", visibility := .secret },
+  { wireId := 137, path := "Asset_Path_15_1", visibility := .secret },
+  { wireId := 138, path := "Asset_Path_15_2", visibility := .secret },
+  { wireId := 139, path := "Asset_Position", visibility := .secret },
+  { wireId := 140, path := "Spends_0_Nullifier", visibility := .secret },
+  { wireId := 141, path := "Spends_0_RK_X", visibility := .secret },
+  { wireId := 142, path := "Spends_0_RK_Y", visibility := .secret },
+  { wireId := 143, path := "Spends_0_Note_Blinding", visibility := .secret },
+  { wireId := 144, path := "Spends_0_Note_Amount", visibility := .secret },
+  { wireId := 145, path := "Spends_0_StateProof_Commitment", visibility := .secret },
+  { wireId := 146, path := "Spends_0_StateProof_Position", visibility := .secret },
+  { wireId := 147, path := "Spends_0_StateProof_Path_0_0", visibility := .secret },
+  { wireId := 148, path := "Spends_0_StateProof_Path_0_1", visibility := .secret },
+  { wireId := 149, path := "Spends_0_StateProof_Path_0_2", visibility := .secret },
+  { wireId := 150, path := "Spends_0_StateProof_Path_1_0", visibility := .secret },
+  { wireId := 151, path := "Spends_0_StateProof_Path_1_1", visibility := .secret },
+  { wireId := 152, path := "Spends_0_StateProof_Path_1_2", visibility := .secret },
+  { wireId := 153, path := "Spends_0_StateProof_Path_2_0", visibility := .secret },
+  { wireId := 154, path := "Spends_0_StateProof_Path_2_1", visibility := .secret },
+  { wireId := 155, path := "Spends_0_StateProof_Path_2_2", visibility := .secret },
+  { wireId := 156, path := "Spends_0_StateProof_Path_3_0", visibility := .secret },
+  { wireId := 157, path := "Spends_0_StateProof_Path_3_1", visibility := .secret },
+  { wireId := 158, path := "Spends_0_StateProof_Path_3_2", visibility := .secret },
+  { wireId := 159, path := "Spends_0_StateProof_Path_4_0", visibility := .secret },
+  { wireId := 160, path := "Spends_0_StateProof_Path_4_1", visibility := .secret },
+  { wireId := 161, path := "Spends_0_StateProof_Path_4_2", visibility := .secret },
+  { wireId := 162, path := "Spends_0_StateProof_Path_5_0", visibility := .secret },
+  { wireId := 163, path := "Spends_0_StateProof_Path_5_1", visibility := .secret },
+  { wireId := 164, path := "Spends_0_StateProof_Path_5_2", visibility := .secret },
+  { wireId := 165, path := "Spends_0_StateProof_Path_6_0", visibility := .secret },
+  { wireId := 166, path := "Spends_0_StateProof_Path_6_1", visibility := .secret },
+  { wireId := 167, path := "Spends_0_StateProof_Path_6_2", visibility := .secret },
+  { wireId := 168, path := "Spends_0_StateProof_Path_7_0", visibility := .secret },
+  { wireId := 169, path := "Spends_0_StateProof_Path_7_1", visibility := .secret },
+  { wireId := 170, path := "Spends_0_StateProof_Path_7_2", visibility := .secret },
+  { wireId := 171, path := "Spends_0_StateProof_Path_8_0", visibility := .secret },
+  { wireId := 172, path := "Spends_0_StateProof_Path_8_1", visibility := .secret },
+  { wireId := 173, path := "Spends_0_StateProof_Path_8_2", visibility := .secret },
+  { wireId := 174, path := "Spends_0_StateProof_Path_9_0", visibility := .secret },
+  { wireId := 175, path := "Spends_0_StateProof_Path_9_1", visibility := .secret },
+  { wireId := 176, path := "Spends_0_StateProof_Path_9_2", visibility := .secret },
+  { wireId := 177, path := "Spends_0_StateProof_Path_10_0", visibility := .secret },
+  { wireId := 178, path := "Spends_0_StateProof_Path_10_1", visibility := .secret },
+  { wireId := 179, path := "Spends_0_StateProof_Path_10_2", visibility := .secret },
+  { wireId := 180, path := "Spends_0_StateProof_Path_11_0", visibility := .secret },
+  { wireId := 181, path := "Spends_0_StateProof_Path_11_1", visibility := .secret },
+  { wireId := 182, path := "Spends_0_StateProof_Path_11_2", visibility := .secret },
+  { wireId := 183, path := "Spends_0_StateProof_Path_12_0", visibility := .secret },
+  { wireId := 184, path := "Spends_0_StateProof_Path_12_1", visibility := .secret },
+  { wireId := 185, path := "Spends_0_StateProof_Path_12_2", visibility := .secret },
+  { wireId := 186, path := "Spends_0_StateProof_Path_13_0", visibility := .secret },
+  { wireId := 187, path := "Spends_0_StateProof_Path_13_1", visibility := .secret },
+  { wireId := 188, path := "Spends_0_StateProof_Path_13_2", visibility := .secret },
+  { wireId := 189, path := "Spends_0_StateProof_Path_14_0", visibility := .secret },
+  { wireId := 190, path := "Spends_0_StateProof_Path_14_1", visibility := .secret },
+  { wireId := 191, path := "Spends_0_StateProof_Path_14_2", visibility := .secret },
+  { wireId := 192, path := "Spends_0_StateProof_Path_15_0", visibility := .secret },
+  { wireId := 193, path := "Spends_0_StateProof_Path_15_1", visibility := .secret },
+  { wireId := 194, path := "Spends_0_StateProof_Path_15_2", visibility := .secret },
+  { wireId := 195, path := "Spends_0_StateProof_Path_16_0", visibility := .secret },
+  { wireId := 196, path := "Spends_0_StateProof_Path_16_1", visibility := .secret },
+  { wireId := 197, path := "Spends_0_StateProof_Path_16_2", visibility := .secret },
+  { wireId := 198, path := "Spends_0_StateProof_Path_17_0", visibility := .secret },
+  { wireId := 199, path := "Spends_0_StateProof_Path_17_1", visibility := .secret },
+  { wireId := 200, path := "Spends_0_StateProof_Path_17_2", visibility := .secret },
+  { wireId := 201, path := "Spends_0_StateProof_Path_18_0", visibility := .secret },
+  { wireId := 202, path := "Spends_0_StateProof_Path_18_1", visibility := .secret },
+  { wireId := 203, path := "Spends_0_StateProof_Path_18_2", visibility := .secret },
+  { wireId := 204, path := "Spends_0_StateProof_Path_19_0", visibility := .secret },
+  { wireId := 205, path := "Spends_0_StateProof_Path_19_1", visibility := .secret },
+  { wireId := 206, path := "Spends_0_StateProof_Path_19_2", visibility := .secret },
+  { wireId := 207, path := "Spends_0_StateProof_Path_20_0", visibility := .secret },
+  { wireId := 208, path := "Spends_0_StateProof_Path_20_1", visibility := .secret },
+  { wireId := 209, path := "Spends_0_StateProof_Path_20_2", visibility := .secret },
+  { wireId := 210, path := "Spends_0_StateProof_Path_21_0", visibility := .secret },
+  { wireId := 211, path := "Spends_0_StateProof_Path_21_1", visibility := .secret },
+  { wireId := 212, path := "Spends_0_StateProof_Path_21_2", visibility := .secret },
+  { wireId := 213, path := "Spends_0_StateProof_Path_22_0", visibility := .secret },
+  { wireId := 214, path := "Spends_0_StateProof_Path_22_1", visibility := .secret },
+  { wireId := 215, path := "Spends_0_StateProof_Path_22_2", visibility := .secret },
+  { wireId := 216, path := "Spends_0_StateProof_Path_23_0", visibility := .secret },
+  { wireId := 217, path := "Spends_0_StateProof_Path_23_1", visibility := .secret },
+  { wireId := 218, path := "Spends_0_StateProof_Path_23_2", visibility := .secret },
+  { wireId := 219, path := "Spends_0_AuthRandomizer", visibility := .secret },
+  { wireId := 220, path := "Spends_0_HistoryRequired", visibility := .secret },
+  { wireId := 221, path := "Outputs_0_NoteCommitment", visibility := .secret },
+  { wireId := 222, path := "Outputs_0_Note_Blinding", visibility := .secret },
+  { wireId := 223, path := "Outputs_0_Note_Amount", visibility := .secret },
+  { wireId := 224, path := "Outputs_1_NoteCommitment", visibility := .secret },
+  { wireId := 225, path := "Outputs_1_Note_Blinding", visibility := .secret },
+  { wireId := 226, path := "Outputs_1_Note_Amount", visibility := .secret },
+  { wireId := 227, path := "Outputs_2_NoteCommitment", visibility := .secret },
+  { wireId := 228, path := "Outputs_2_Note_Blinding", visibility := .secret },
+  { wireId := 229, path := "Outputs_2_Note_Amount", visibility := .secret },
+  { wireId := 230, path := "Outputs_3_NoteCommitment", visibility := .secret },
+  { wireId := 231, path := "Outputs_3_Note_Blinding", visibility := .secret },
+  { wireId := 232, path := "Outputs_3_Note_Amount", visibility := .secret },
+  { wireId := 233, path := "Outputs_4_NoteCommitment", visibility := .secret },
+  { wireId := 234, path := "Outputs_4_Note_Blinding", visibility := .secret },
+  { wireId := 235, path := "Outputs_4_Note_Amount", visibility := .secret },
+  { wireId := 236, path := "Outputs_5_NoteCommitment", visibility := .secret },
+  { wireId := 237, path := "Outputs_5_Note_Blinding", visibility := .secret },
+  { wireId := 238, path := "Outputs_5_Note_Amount", visibility := .secret },
+  { wireId := 239, path := "Outputs_6_NoteCommitment", visibility := .secret },
+  { wireId := 240, path := "Outputs_6_Note_Blinding", visibility := .secret },
+  { wireId := 241, path := "Outputs_6_Note_Amount", visibility := .secret },
+  { wireId := 242, path := "Outputs_7_NoteCommitment", visibility := .secret },
+  { wireId := 243, path := "Outputs_7_Note_Blinding", visibility := .secret },
+  { wireId := 244, path := "Outputs_7_Note_Amount", visibility := .secret },
 ]
 
 theorem witnessWireRoles_length :
-    witnessWireRoles.length = 190 := by
+    witnessWireRoles.length = 244 := by
   rfl
 
 namespace Witness
@@ -230,757 +284,973 @@ def claimedStatementHash (rho : Nat → WitnessF) : WitnessF :=
 def assetAnchor (rho : Nat → WitnessF) : WitnessF :=
   rho 2
 
+/-- Compiler witness path `ComplianceAnchor`. -/
+def complianceAnchor (rho : Nat → WitnessF) : WitnessF :=
+  rho 3
+
 /-- Compiler witness path `RoutingTag`. -/
 def routingTag (rho : Nat → WitnessF) : WitnessF :=
-  rho 3
+  rho 4
 
 /-- Compiler witness path `RoutingParameterSetID`. -/
 def routingParameterSetID (rho : Nat → WitnessF) : WitnessF :=
-  rho 4
+  rho 5
 
 /-- Compiler witness path `RecentPositionFloor`. -/
 def recentPositionFloor (rho : Nat → WitnessF) : WitnessF :=
-  rho 5
+  rho 6
 
 /-- Compiler witness path `Anchor`. -/
 def anchor (rho : Nat → WitnessF) : WitnessF :=
-  rho 6
+  rho 7
 
 /-- Compiler witness path `BalanceCommitment_X`. -/
 def balanceCommitmentX (rho : Nat → WitnessF) : WitnessF :=
-  rho 7
+  rho 8
 
 /-- Compiler witness path `BalanceCommitment_Y`. -/
 def balanceCommitmentY (rho : Nat → WitnessF) : WitnessF :=
-  rho 8
+  rho 9
 
 /-- Compiler witness path `ActionBalanceBlinding`. -/
 def actionBalanceBlinding (rho : Nat → WitnessF) : WitnessF :=
-  rho 9
+  rho 10
 
 /-- Compiler witness path `IsRegulated`. -/
 def isRegulated (rho : Nat → WitnessF) : WitnessF :=
-  rho 10
+  rho 11
 
 /-- Compiler witness path `RegulatedPrecision`. -/
 def regulatedPrecision (rho : Nat → WitnessF) : WitnessF :=
-  rho 11
+  rho 12
 
 /-- Compiler witness path `UnregulatedPrecision`. -/
 def unregulatedPrecision (rho : Nat → WitnessF) : WitnessF :=
-  rho 12
+  rho 13
 
 /-- Compiler witness path `RoutingAsOfHeight`. -/
 def routingAsOfHeight (rho : Nat → WitnessF) : WitnessF :=
-  rho 13
+  rho 14
 
 /-- Compiler witness path `RoutingNonce`. -/
 def routingNonce (rho : Nat → WitnessF) : WitnessF :=
-  rho 14
+  rho 15
 
 /-- Compiler witness path `Shared_AssetID`. -/
 def sharedAssetID (rho : Nat → WitnessF) : WitnessF :=
-  rho 15
+  rho 16
 
 /-- Compiler witness path `Shared_DivGen_X`. -/
 def sharedDivGenX (rho : Nat → WitnessF) : WitnessF :=
-  rho 16
+  rho 17
 
 /-- Compiler witness path `Shared_DivGen_Y`. -/
 def sharedDivGenY (rho : Nat → WitnessF) : WitnessF :=
-  rho 17
+  rho 18
+
+/-- Compiler witness path `Sender_SlotID`. -/
+def senderSlotID (rho : Nat → WitnessF) : WitnessF :=
+  rho 19
+
+/-- Compiler witness path `Sender_SlotDerivation`. -/
+def senderSlotDerivation (rho : Nat → WitnessF) : WitnessF :=
+  rho 20
+
+/-- Compiler witness path `Sender_D`. -/
+def senderD (rho : Nat → WitnessF) : WitnessF :=
+  rho 21
+
+/-- Compiler witness path `Sender_Status`. -/
+def senderStatus (rho : Nat → WitnessF) : WitnessF :=
+  rho 22
+
+/-- Compiler witness path `Sender_Path_0_0`. -/
+def senderPath00 (rho : Nat → WitnessF) : WitnessF :=
+  rho 23
+
+/-- Compiler witness path `Sender_Path_0_1`. -/
+def senderPath01 (rho : Nat → WitnessF) : WitnessF :=
+  rho 24
+
+/-- Compiler witness path `Sender_Path_0_2`. -/
+def senderPath02 (rho : Nat → WitnessF) : WitnessF :=
+  rho 25
+
+/-- Compiler witness path `Sender_Path_1_0`. -/
+def senderPath10 (rho : Nat → WitnessF) : WitnessF :=
+  rho 26
+
+/-- Compiler witness path `Sender_Path_1_1`. -/
+def senderPath11 (rho : Nat → WitnessF) : WitnessF :=
+  rho 27
+
+/-- Compiler witness path `Sender_Path_1_2`. -/
+def senderPath12 (rho : Nat → WitnessF) : WitnessF :=
+  rho 28
+
+/-- Compiler witness path `Sender_Path_2_0`. -/
+def senderPath20 (rho : Nat → WitnessF) : WitnessF :=
+  rho 29
+
+/-- Compiler witness path `Sender_Path_2_1`. -/
+def senderPath21 (rho : Nat → WitnessF) : WitnessF :=
+  rho 30
+
+/-- Compiler witness path `Sender_Path_2_2`. -/
+def senderPath22 (rho : Nat → WitnessF) : WitnessF :=
+  rho 31
+
+/-- Compiler witness path `Sender_Path_3_0`. -/
+def senderPath30 (rho : Nat → WitnessF) : WitnessF :=
+  rho 32
+
+/-- Compiler witness path `Sender_Path_3_1`. -/
+def senderPath31 (rho : Nat → WitnessF) : WitnessF :=
+  rho 33
+
+/-- Compiler witness path `Sender_Path_3_2`. -/
+def senderPath32 (rho : Nat → WitnessF) : WitnessF :=
+  rho 34
+
+/-- Compiler witness path `Sender_Path_4_0`. -/
+def senderPath40 (rho : Nat → WitnessF) : WitnessF :=
+  rho 35
+
+/-- Compiler witness path `Sender_Path_4_1`. -/
+def senderPath41 (rho : Nat → WitnessF) : WitnessF :=
+  rho 36
+
+/-- Compiler witness path `Sender_Path_4_2`. -/
+def senderPath42 (rho : Nat → WitnessF) : WitnessF :=
+  rho 37
+
+/-- Compiler witness path `Sender_Path_5_0`. -/
+def senderPath50 (rho : Nat → WitnessF) : WitnessF :=
+  rho 38
+
+/-- Compiler witness path `Sender_Path_5_1`. -/
+def senderPath51 (rho : Nat → WitnessF) : WitnessF :=
+  rho 39
+
+/-- Compiler witness path `Sender_Path_5_2`. -/
+def senderPath52 (rho : Nat → WitnessF) : WitnessF :=
+  rho 40
+
+/-- Compiler witness path `Sender_Path_6_0`. -/
+def senderPath60 (rho : Nat → WitnessF) : WitnessF :=
+  rho 41
+
+/-- Compiler witness path `Sender_Path_6_1`. -/
+def senderPath61 (rho : Nat → WitnessF) : WitnessF :=
+  rho 42
+
+/-- Compiler witness path `Sender_Path_6_2`. -/
+def senderPath62 (rho : Nat → WitnessF) : WitnessF :=
+  rho 43
+
+/-- Compiler witness path `Sender_Path_7_0`. -/
+def senderPath70 (rho : Nat → WitnessF) : WitnessF :=
+  rho 44
+
+/-- Compiler witness path `Sender_Path_7_1`. -/
+def senderPath71 (rho : Nat → WitnessF) : WitnessF :=
+  rho 45
+
+/-- Compiler witness path `Sender_Path_7_2`. -/
+def senderPath72 (rho : Nat → WitnessF) : WitnessF :=
+  rho 46
+
+/-- Compiler witness path `Sender_Path_8_0`. -/
+def senderPath80 (rho : Nat → WitnessF) : WitnessF :=
+  rho 47
+
+/-- Compiler witness path `Sender_Path_8_1`. -/
+def senderPath81 (rho : Nat → WitnessF) : WitnessF :=
+  rho 48
+
+/-- Compiler witness path `Sender_Path_8_2`. -/
+def senderPath82 (rho : Nat → WitnessF) : WitnessF :=
+  rho 49
+
+/-- Compiler witness path `Sender_Path_9_0`. -/
+def senderPath90 (rho : Nat → WitnessF) : WitnessF :=
+  rho 50
+
+/-- Compiler witness path `Sender_Path_9_1`. -/
+def senderPath91 (rho : Nat → WitnessF) : WitnessF :=
+  rho 51
+
+/-- Compiler witness path `Sender_Path_9_2`. -/
+def senderPath92 (rho : Nat → WitnessF) : WitnessF :=
+  rho 52
+
+/-- Compiler witness path `Sender_Path_10_0`. -/
+def senderPath100 (rho : Nat → WitnessF) : WitnessF :=
+  rho 53
+
+/-- Compiler witness path `Sender_Path_10_1`. -/
+def senderPath101 (rho : Nat → WitnessF) : WitnessF :=
+  rho 54
+
+/-- Compiler witness path `Sender_Path_10_2`. -/
+def senderPath102 (rho : Nat → WitnessF) : WitnessF :=
+  rho 55
+
+/-- Compiler witness path `Sender_Path_11_0`. -/
+def senderPath110 (rho : Nat → WitnessF) : WitnessF :=
+  rho 56
+
+/-- Compiler witness path `Sender_Path_11_1`. -/
+def senderPath111 (rho : Nat → WitnessF) : WitnessF :=
+  rho 57
+
+/-- Compiler witness path `Sender_Path_11_2`. -/
+def senderPath112 (rho : Nat → WitnessF) : WitnessF :=
+  rho 58
+
+/-- Compiler witness path `Sender_Path_12_0`. -/
+def senderPath120 (rho : Nat → WitnessF) : WitnessF :=
+  rho 59
+
+/-- Compiler witness path `Sender_Path_12_1`. -/
+def senderPath121 (rho : Nat → WitnessF) : WitnessF :=
+  rho 60
+
+/-- Compiler witness path `Sender_Path_12_2`. -/
+def senderPath122 (rho : Nat → WitnessF) : WitnessF :=
+  rho 61
+
+/-- Compiler witness path `Sender_Path_13_0`. -/
+def senderPath130 (rho : Nat → WitnessF) : WitnessF :=
+  rho 62
+
+/-- Compiler witness path `Sender_Path_13_1`. -/
+def senderPath131 (rho : Nat → WitnessF) : WitnessF :=
+  rho 63
+
+/-- Compiler witness path `Sender_Path_13_2`. -/
+def senderPath132 (rho : Nat → WitnessF) : WitnessF :=
+  rho 64
+
+/-- Compiler witness path `Sender_Path_14_0`. -/
+def senderPath140 (rho : Nat → WitnessF) : WitnessF :=
+  rho 65
+
+/-- Compiler witness path `Sender_Path_14_1`. -/
+def senderPath141 (rho : Nat → WitnessF) : WitnessF :=
+  rho 66
+
+/-- Compiler witness path `Sender_Path_14_2`. -/
+def senderPath142 (rho : Nat → WitnessF) : WitnessF :=
+  rho 67
+
+/-- Compiler witness path `Sender_Path_15_0`. -/
+def senderPath150 (rho : Nat → WitnessF) : WitnessF :=
+  rho 68
+
+/-- Compiler witness path `Sender_Path_15_1`. -/
+def senderPath151 (rho : Nat → WitnessF) : WitnessF :=
+  rho 69
+
+/-- Compiler witness path `Sender_Path_15_2`. -/
+def senderPath152 (rho : Nat → WitnessF) : WitnessF :=
+  rho 70
+
+/-- Compiler witness path `Sender_Position`. -/
+def senderPosition (rho : Nat → WitnessF) : WitnessF :=
+  rho 71
 
 /-- Compiler witness path `Auth_AK_X`. -/
 def authAKX (rho : Nat → WitnessF) : WitnessF :=
-  rho 18
+  rho 72
 
 /-- Compiler witness path `Auth_AK_Y`. -/
 def authAKY (rho : Nat → WitnessF) : WitnessF :=
-  rho 19
+  rho 73
 
 /-- Compiler witness path `Auth_NK`. -/
 def authNK (rho : Nat → WitnessF) : WitnessF :=
-  rho 20
+  rho 74
 
 /-- Compiler witness path `Auth_IVKReduced`. -/
 def authIVKReduced (rho : Nat → WitnessF) : WitnessF :=
-  rho 21
+  rho 75
 
 /-- Compiler witness path `Auth_IVKQuotientA`. -/
 def authIVKQuotientA (rho : Nat → WitnessF) : WitnessF :=
-  rho 22
+  rho 76
 
 /-- Compiler witness path `Asset_Leaf_Value`. -/
 def assetLeafValue (rho : Nat → WitnessF) : WitnessF :=
-  rho 23
+  rho 77
 
 /-- Compiler witness path `Asset_Leaf_NextIndex`. -/
 def assetLeafNextIndex (rho : Nat → WitnessF) : WitnessF :=
-  rho 24
+  rho 78
 
 /-- Compiler witness path `Asset_Leaf_NextValue`. -/
 def assetLeafNextValue (rho : Nat → WitnessF) : WitnessF :=
-  rho 25
+  rho 79
 
 /-- Compiler witness path `Asset_Leaf_DKPub_X`. -/
 def assetLeafDKPubX (rho : Nat → WitnessF) : WitnessF :=
-  rho 26
+  rho 80
 
 /-- Compiler witness path `Asset_Leaf_DKPub_Y`. -/
 def assetLeafDKPubY (rho : Nat → WitnessF) : WitnessF :=
-  rho 27
+  rho 81
 
 /-- Compiler witness path `Asset_Leaf_Threshold`. -/
 def assetLeafThreshold (rho : Nat → WitnessF) : WitnessF :=
-  rho 28
+  rho 82
 
 /-- Compiler witness path `Asset_Leaf_SlotCount`. -/
 def assetLeafSlotCount (rho : Nat → WitnessF) : WitnessF :=
-  rho 29
+  rho 83
 
 /-- Compiler witness path `Asset_Leaf_ChannelsHash`. -/
 def assetLeafChannelsHash (rho : Nat → WitnessF) : WitnessF :=
-  rho 30
+  rho 84
 
 /-- Compiler witness path `Asset_Leaf_RingPK_X`. -/
 def assetLeafRingPKX (rho : Nat → WitnessF) : WitnessF :=
-  rho 31
+  rho 85
 
 /-- Compiler witness path `Asset_Leaf_RingPK_Y`. -/
 def assetLeafRingPKY (rho : Nat → WitnessF) : WitnessF :=
-  rho 32
+  rho 86
 
 /-- Compiler witness path `Asset_Leaf_RingIDHash`. -/
 def assetLeafRingIDHash (rho : Nat → WitnessF) : WitnessF :=
-  rho 33
+  rho 87
 
 /-- Compiler witness path `Asset_Leaf_PolicyIDHash`. -/
 def assetLeafPolicyIDHash (rho : Nat → WitnessF) : WitnessF :=
-  rho 34
+  rho 88
 
 /-- Compiler witness path `Asset_Leaf_PermissionHash`. -/
 def assetLeafPermissionHash (rho : Nat → WitnessF) : WitnessF :=
-  rho 35
+  rho 89
 
 /-- Compiler witness path `Asset_Leaf_ResourceHash`. -/
 def assetLeafResourceHash (rho : Nat → WitnessF) : WitnessF :=
-  rho 36
+  rho 90
 
 /-- Compiler witness path `Asset_Path_0_0`. -/
 def assetPath00 (rho : Nat → WitnessF) : WitnessF :=
-  rho 37
+  rho 91
 
 /-- Compiler witness path `Asset_Path_0_1`. -/
 def assetPath01 (rho : Nat → WitnessF) : WitnessF :=
-  rho 38
+  rho 92
 
 /-- Compiler witness path `Asset_Path_0_2`. -/
 def assetPath02 (rho : Nat → WitnessF) : WitnessF :=
-  rho 39
+  rho 93
 
 /-- Compiler witness path `Asset_Path_1_0`. -/
 def assetPath10 (rho : Nat → WitnessF) : WitnessF :=
-  rho 40
+  rho 94
 
 /-- Compiler witness path `Asset_Path_1_1`. -/
 def assetPath11 (rho : Nat → WitnessF) : WitnessF :=
-  rho 41
+  rho 95
 
 /-- Compiler witness path `Asset_Path_1_2`. -/
 def assetPath12 (rho : Nat → WitnessF) : WitnessF :=
-  rho 42
+  rho 96
 
 /-- Compiler witness path `Asset_Path_2_0`. -/
 def assetPath20 (rho : Nat → WitnessF) : WitnessF :=
-  rho 43
+  rho 97
 
 /-- Compiler witness path `Asset_Path_2_1`. -/
 def assetPath21 (rho : Nat → WitnessF) : WitnessF :=
-  rho 44
+  rho 98
 
 /-- Compiler witness path `Asset_Path_2_2`. -/
 def assetPath22 (rho : Nat → WitnessF) : WitnessF :=
-  rho 45
+  rho 99
 
 /-- Compiler witness path `Asset_Path_3_0`. -/
 def assetPath30 (rho : Nat → WitnessF) : WitnessF :=
-  rho 46
+  rho 100
 
 /-- Compiler witness path `Asset_Path_3_1`. -/
 def assetPath31 (rho : Nat → WitnessF) : WitnessF :=
-  rho 47
+  rho 101
 
 /-- Compiler witness path `Asset_Path_3_2`. -/
 def assetPath32 (rho : Nat → WitnessF) : WitnessF :=
-  rho 48
+  rho 102
 
 /-- Compiler witness path `Asset_Path_4_0`. -/
 def assetPath40 (rho : Nat → WitnessF) : WitnessF :=
-  rho 49
+  rho 103
 
 /-- Compiler witness path `Asset_Path_4_1`. -/
 def assetPath41 (rho : Nat → WitnessF) : WitnessF :=
-  rho 50
+  rho 104
 
 /-- Compiler witness path `Asset_Path_4_2`. -/
 def assetPath42 (rho : Nat → WitnessF) : WitnessF :=
-  rho 51
+  rho 105
 
 /-- Compiler witness path `Asset_Path_5_0`. -/
 def assetPath50 (rho : Nat → WitnessF) : WitnessF :=
-  rho 52
+  rho 106
 
 /-- Compiler witness path `Asset_Path_5_1`. -/
 def assetPath51 (rho : Nat → WitnessF) : WitnessF :=
-  rho 53
+  rho 107
 
 /-- Compiler witness path `Asset_Path_5_2`. -/
 def assetPath52 (rho : Nat → WitnessF) : WitnessF :=
-  rho 54
+  rho 108
 
 /-- Compiler witness path `Asset_Path_6_0`. -/
 def assetPath60 (rho : Nat → WitnessF) : WitnessF :=
-  rho 55
+  rho 109
 
 /-- Compiler witness path `Asset_Path_6_1`. -/
 def assetPath61 (rho : Nat → WitnessF) : WitnessF :=
-  rho 56
+  rho 110
 
 /-- Compiler witness path `Asset_Path_6_2`. -/
 def assetPath62 (rho : Nat → WitnessF) : WitnessF :=
-  rho 57
+  rho 111
 
 /-- Compiler witness path `Asset_Path_7_0`. -/
 def assetPath70 (rho : Nat → WitnessF) : WitnessF :=
-  rho 58
+  rho 112
 
 /-- Compiler witness path `Asset_Path_7_1`. -/
 def assetPath71 (rho : Nat → WitnessF) : WitnessF :=
-  rho 59
+  rho 113
 
 /-- Compiler witness path `Asset_Path_7_2`. -/
 def assetPath72 (rho : Nat → WitnessF) : WitnessF :=
-  rho 60
+  rho 114
 
 /-- Compiler witness path `Asset_Path_8_0`. -/
 def assetPath80 (rho : Nat → WitnessF) : WitnessF :=
-  rho 61
+  rho 115
 
 /-- Compiler witness path `Asset_Path_8_1`. -/
 def assetPath81 (rho : Nat → WitnessF) : WitnessF :=
-  rho 62
+  rho 116
 
 /-- Compiler witness path `Asset_Path_8_2`. -/
 def assetPath82 (rho : Nat → WitnessF) : WitnessF :=
-  rho 63
+  rho 117
 
 /-- Compiler witness path `Asset_Path_9_0`. -/
 def assetPath90 (rho : Nat → WitnessF) : WitnessF :=
-  rho 64
+  rho 118
 
 /-- Compiler witness path `Asset_Path_9_1`. -/
 def assetPath91 (rho : Nat → WitnessF) : WitnessF :=
-  rho 65
+  rho 119
 
 /-- Compiler witness path `Asset_Path_9_2`. -/
 def assetPath92 (rho : Nat → WitnessF) : WitnessF :=
-  rho 66
+  rho 120
 
 /-- Compiler witness path `Asset_Path_10_0`. -/
 def assetPath100 (rho : Nat → WitnessF) : WitnessF :=
-  rho 67
+  rho 121
 
 /-- Compiler witness path `Asset_Path_10_1`. -/
 def assetPath101 (rho : Nat → WitnessF) : WitnessF :=
-  rho 68
+  rho 122
 
 /-- Compiler witness path `Asset_Path_10_2`. -/
 def assetPath102 (rho : Nat → WitnessF) : WitnessF :=
-  rho 69
+  rho 123
 
 /-- Compiler witness path `Asset_Path_11_0`. -/
 def assetPath110 (rho : Nat → WitnessF) : WitnessF :=
-  rho 70
+  rho 124
 
 /-- Compiler witness path `Asset_Path_11_1`. -/
 def assetPath111 (rho : Nat → WitnessF) : WitnessF :=
-  rho 71
+  rho 125
 
 /-- Compiler witness path `Asset_Path_11_2`. -/
 def assetPath112 (rho : Nat → WitnessF) : WitnessF :=
-  rho 72
+  rho 126
 
 /-- Compiler witness path `Asset_Path_12_0`. -/
 def assetPath120 (rho : Nat → WitnessF) : WitnessF :=
-  rho 73
+  rho 127
 
 /-- Compiler witness path `Asset_Path_12_1`. -/
 def assetPath121 (rho : Nat → WitnessF) : WitnessF :=
-  rho 74
+  rho 128
 
 /-- Compiler witness path `Asset_Path_12_2`. -/
 def assetPath122 (rho : Nat → WitnessF) : WitnessF :=
-  rho 75
+  rho 129
 
 /-- Compiler witness path `Asset_Path_13_0`. -/
 def assetPath130 (rho : Nat → WitnessF) : WitnessF :=
-  rho 76
+  rho 130
 
 /-- Compiler witness path `Asset_Path_13_1`. -/
 def assetPath131 (rho : Nat → WitnessF) : WitnessF :=
-  rho 77
+  rho 131
 
 /-- Compiler witness path `Asset_Path_13_2`. -/
 def assetPath132 (rho : Nat → WitnessF) : WitnessF :=
-  rho 78
+  rho 132
 
 /-- Compiler witness path `Asset_Path_14_0`. -/
 def assetPath140 (rho : Nat → WitnessF) : WitnessF :=
-  rho 79
+  rho 133
 
 /-- Compiler witness path `Asset_Path_14_1`. -/
 def assetPath141 (rho : Nat → WitnessF) : WitnessF :=
-  rho 80
+  rho 134
 
 /-- Compiler witness path `Asset_Path_14_2`. -/
 def assetPath142 (rho : Nat → WitnessF) : WitnessF :=
-  rho 81
+  rho 135
 
 /-- Compiler witness path `Asset_Path_15_0`. -/
 def assetPath150 (rho : Nat → WitnessF) : WitnessF :=
-  rho 82
+  rho 136
 
 /-- Compiler witness path `Asset_Path_15_1`. -/
 def assetPath151 (rho : Nat → WitnessF) : WitnessF :=
-  rho 83
+  rho 137
 
 /-- Compiler witness path `Asset_Path_15_2`. -/
 def assetPath152 (rho : Nat → WitnessF) : WitnessF :=
-  rho 84
+  rho 138
 
 /-- Compiler witness path `Asset_Position`. -/
 def assetPosition (rho : Nat → WitnessF) : WitnessF :=
-  rho 85
+  rho 139
 
 /-- Compiler witness path `Spends_0_Nullifier`. -/
 def spends0Nullifier (rho : Nat → WitnessF) : WitnessF :=
-  rho 86
+  rho 140
 
 /-- Compiler witness path `Spends_0_RK_X`. -/
 def spends0RKX (rho : Nat → WitnessF) : WitnessF :=
-  rho 87
+  rho 141
 
 /-- Compiler witness path `Spends_0_RK_Y`. -/
 def spends0RKY (rho : Nat → WitnessF) : WitnessF :=
-  rho 88
+  rho 142
 
 /-- Compiler witness path `Spends_0_Note_Blinding`. -/
 def spends0NoteBlinding (rho : Nat → WitnessF) : WitnessF :=
-  rho 89
+  rho 143
 
 /-- Compiler witness path `Spends_0_Note_Amount`. -/
 def spends0NoteAmount (rho : Nat → WitnessF) : WitnessF :=
-  rho 90
+  rho 144
 
 /-- Compiler witness path `Spends_0_StateProof_Commitment`. -/
 def spends0StateProofCommitment (rho : Nat → WitnessF) : WitnessF :=
-  rho 91
+  rho 145
 
 /-- Compiler witness path `Spends_0_StateProof_Position`. -/
 def spends0StateProofPosition (rho : Nat → WitnessF) : WitnessF :=
-  rho 92
+  rho 146
 
 /-- Compiler witness path `Spends_0_StateProof_Path_0_0`. -/
 def spends0StateProofPath00 (rho : Nat → WitnessF) : WitnessF :=
-  rho 93
+  rho 147
 
 /-- Compiler witness path `Spends_0_StateProof_Path_0_1`. -/
 def spends0StateProofPath01 (rho : Nat → WitnessF) : WitnessF :=
-  rho 94
+  rho 148
 
 /-- Compiler witness path `Spends_0_StateProof_Path_0_2`. -/
 def spends0StateProofPath02 (rho : Nat → WitnessF) : WitnessF :=
-  rho 95
+  rho 149
 
 /-- Compiler witness path `Spends_0_StateProof_Path_1_0`. -/
 def spends0StateProofPath10 (rho : Nat → WitnessF) : WitnessF :=
-  rho 96
+  rho 150
 
 /-- Compiler witness path `Spends_0_StateProof_Path_1_1`. -/
 def spends0StateProofPath11 (rho : Nat → WitnessF) : WitnessF :=
-  rho 97
+  rho 151
 
 /-- Compiler witness path `Spends_0_StateProof_Path_1_2`. -/
 def spends0StateProofPath12 (rho : Nat → WitnessF) : WitnessF :=
-  rho 98
+  rho 152
 
 /-- Compiler witness path `Spends_0_StateProof_Path_2_0`. -/
 def spends0StateProofPath20 (rho : Nat → WitnessF) : WitnessF :=
-  rho 99
+  rho 153
 
 /-- Compiler witness path `Spends_0_StateProof_Path_2_1`. -/
 def spends0StateProofPath21 (rho : Nat → WitnessF) : WitnessF :=
-  rho 100
+  rho 154
 
 /-- Compiler witness path `Spends_0_StateProof_Path_2_2`. -/
 def spends0StateProofPath22 (rho : Nat → WitnessF) : WitnessF :=
-  rho 101
+  rho 155
 
 /-- Compiler witness path `Spends_0_StateProof_Path_3_0`. -/
 def spends0StateProofPath30 (rho : Nat → WitnessF) : WitnessF :=
-  rho 102
+  rho 156
 
 /-- Compiler witness path `Spends_0_StateProof_Path_3_1`. -/
 def spends0StateProofPath31 (rho : Nat → WitnessF) : WitnessF :=
-  rho 103
+  rho 157
 
 /-- Compiler witness path `Spends_0_StateProof_Path_3_2`. -/
 def spends0StateProofPath32 (rho : Nat → WitnessF) : WitnessF :=
-  rho 104
+  rho 158
 
 /-- Compiler witness path `Spends_0_StateProof_Path_4_0`. -/
 def spends0StateProofPath40 (rho : Nat → WitnessF) : WitnessF :=
-  rho 105
+  rho 159
 
 /-- Compiler witness path `Spends_0_StateProof_Path_4_1`. -/
 def spends0StateProofPath41 (rho : Nat → WitnessF) : WitnessF :=
-  rho 106
+  rho 160
 
 /-- Compiler witness path `Spends_0_StateProof_Path_4_2`. -/
 def spends0StateProofPath42 (rho : Nat → WitnessF) : WitnessF :=
-  rho 107
+  rho 161
 
 /-- Compiler witness path `Spends_0_StateProof_Path_5_0`. -/
 def spends0StateProofPath50 (rho : Nat → WitnessF) : WitnessF :=
-  rho 108
+  rho 162
 
 /-- Compiler witness path `Spends_0_StateProof_Path_5_1`. -/
 def spends0StateProofPath51 (rho : Nat → WitnessF) : WitnessF :=
-  rho 109
+  rho 163
 
 /-- Compiler witness path `Spends_0_StateProof_Path_5_2`. -/
 def spends0StateProofPath52 (rho : Nat → WitnessF) : WitnessF :=
-  rho 110
+  rho 164
 
 /-- Compiler witness path `Spends_0_StateProof_Path_6_0`. -/
 def spends0StateProofPath60 (rho : Nat → WitnessF) : WitnessF :=
-  rho 111
+  rho 165
 
 /-- Compiler witness path `Spends_0_StateProof_Path_6_1`. -/
 def spends0StateProofPath61 (rho : Nat → WitnessF) : WitnessF :=
-  rho 112
+  rho 166
 
 /-- Compiler witness path `Spends_0_StateProof_Path_6_2`. -/
 def spends0StateProofPath62 (rho : Nat → WitnessF) : WitnessF :=
-  rho 113
+  rho 167
 
 /-- Compiler witness path `Spends_0_StateProof_Path_7_0`. -/
 def spends0StateProofPath70 (rho : Nat → WitnessF) : WitnessF :=
-  rho 114
+  rho 168
 
 /-- Compiler witness path `Spends_0_StateProof_Path_7_1`. -/
 def spends0StateProofPath71 (rho : Nat → WitnessF) : WitnessF :=
-  rho 115
+  rho 169
 
 /-- Compiler witness path `Spends_0_StateProof_Path_7_2`. -/
 def spends0StateProofPath72 (rho : Nat → WitnessF) : WitnessF :=
-  rho 116
+  rho 170
 
 /-- Compiler witness path `Spends_0_StateProof_Path_8_0`. -/
 def spends0StateProofPath80 (rho : Nat → WitnessF) : WitnessF :=
-  rho 117
+  rho 171
 
 /-- Compiler witness path `Spends_0_StateProof_Path_8_1`. -/
 def spends0StateProofPath81 (rho : Nat → WitnessF) : WitnessF :=
-  rho 118
+  rho 172
 
 /-- Compiler witness path `Spends_0_StateProof_Path_8_2`. -/
 def spends0StateProofPath82 (rho : Nat → WitnessF) : WitnessF :=
-  rho 119
+  rho 173
 
 /-- Compiler witness path `Spends_0_StateProof_Path_9_0`. -/
 def spends0StateProofPath90 (rho : Nat → WitnessF) : WitnessF :=
-  rho 120
+  rho 174
 
 /-- Compiler witness path `Spends_0_StateProof_Path_9_1`. -/
 def spends0StateProofPath91 (rho : Nat → WitnessF) : WitnessF :=
-  rho 121
+  rho 175
 
 /-- Compiler witness path `Spends_0_StateProof_Path_9_2`. -/
 def spends0StateProofPath92 (rho : Nat → WitnessF) : WitnessF :=
-  rho 122
+  rho 176
 
 /-- Compiler witness path `Spends_0_StateProof_Path_10_0`. -/
 def spends0StateProofPath100 (rho : Nat → WitnessF) : WitnessF :=
-  rho 123
+  rho 177
 
 /-- Compiler witness path `Spends_0_StateProof_Path_10_1`. -/
 def spends0StateProofPath101 (rho : Nat → WitnessF) : WitnessF :=
-  rho 124
+  rho 178
 
 /-- Compiler witness path `Spends_0_StateProof_Path_10_2`. -/
 def spends0StateProofPath102 (rho : Nat → WitnessF) : WitnessF :=
-  rho 125
+  rho 179
 
 /-- Compiler witness path `Spends_0_StateProof_Path_11_0`. -/
 def spends0StateProofPath110 (rho : Nat → WitnessF) : WitnessF :=
-  rho 126
+  rho 180
 
 /-- Compiler witness path `Spends_0_StateProof_Path_11_1`. -/
 def spends0StateProofPath111 (rho : Nat → WitnessF) : WitnessF :=
-  rho 127
+  rho 181
 
 /-- Compiler witness path `Spends_0_StateProof_Path_11_2`. -/
 def spends0StateProofPath112 (rho : Nat → WitnessF) : WitnessF :=
-  rho 128
+  rho 182
 
 /-- Compiler witness path `Spends_0_StateProof_Path_12_0`. -/
 def spends0StateProofPath120 (rho : Nat → WitnessF) : WitnessF :=
-  rho 129
+  rho 183
 
 /-- Compiler witness path `Spends_0_StateProof_Path_12_1`. -/
 def spends0StateProofPath121 (rho : Nat → WitnessF) : WitnessF :=
-  rho 130
+  rho 184
 
 /-- Compiler witness path `Spends_0_StateProof_Path_12_2`. -/
 def spends0StateProofPath122 (rho : Nat → WitnessF) : WitnessF :=
-  rho 131
+  rho 185
 
 /-- Compiler witness path `Spends_0_StateProof_Path_13_0`. -/
 def spends0StateProofPath130 (rho : Nat → WitnessF) : WitnessF :=
-  rho 132
+  rho 186
 
 /-- Compiler witness path `Spends_0_StateProof_Path_13_1`. -/
 def spends0StateProofPath131 (rho : Nat → WitnessF) : WitnessF :=
-  rho 133
+  rho 187
 
 /-- Compiler witness path `Spends_0_StateProof_Path_13_2`. -/
 def spends0StateProofPath132 (rho : Nat → WitnessF) : WitnessF :=
-  rho 134
+  rho 188
 
 /-- Compiler witness path `Spends_0_StateProof_Path_14_0`. -/
 def spends0StateProofPath140 (rho : Nat → WitnessF) : WitnessF :=
-  rho 135
+  rho 189
 
 /-- Compiler witness path `Spends_0_StateProof_Path_14_1`. -/
 def spends0StateProofPath141 (rho : Nat → WitnessF) : WitnessF :=
-  rho 136
+  rho 190
 
 /-- Compiler witness path `Spends_0_StateProof_Path_14_2`. -/
 def spends0StateProofPath142 (rho : Nat → WitnessF) : WitnessF :=
-  rho 137
+  rho 191
 
 /-- Compiler witness path `Spends_0_StateProof_Path_15_0`. -/
 def spends0StateProofPath150 (rho : Nat → WitnessF) : WitnessF :=
-  rho 138
+  rho 192
 
 /-- Compiler witness path `Spends_0_StateProof_Path_15_1`. -/
 def spends0StateProofPath151 (rho : Nat → WitnessF) : WitnessF :=
-  rho 139
+  rho 193
 
 /-- Compiler witness path `Spends_0_StateProof_Path_15_2`. -/
 def spends0StateProofPath152 (rho : Nat → WitnessF) : WitnessF :=
-  rho 140
+  rho 194
 
 /-- Compiler witness path `Spends_0_StateProof_Path_16_0`. -/
 def spends0StateProofPath160 (rho : Nat → WitnessF) : WitnessF :=
-  rho 141
+  rho 195
 
 /-- Compiler witness path `Spends_0_StateProof_Path_16_1`. -/
 def spends0StateProofPath161 (rho : Nat → WitnessF) : WitnessF :=
-  rho 142
+  rho 196
 
 /-- Compiler witness path `Spends_0_StateProof_Path_16_2`. -/
 def spends0StateProofPath162 (rho : Nat → WitnessF) : WitnessF :=
-  rho 143
+  rho 197
 
 /-- Compiler witness path `Spends_0_StateProof_Path_17_0`. -/
 def spends0StateProofPath170 (rho : Nat → WitnessF) : WitnessF :=
-  rho 144
+  rho 198
 
 /-- Compiler witness path `Spends_0_StateProof_Path_17_1`. -/
 def spends0StateProofPath171 (rho : Nat → WitnessF) : WitnessF :=
-  rho 145
+  rho 199
 
 /-- Compiler witness path `Spends_0_StateProof_Path_17_2`. -/
 def spends0StateProofPath172 (rho : Nat → WitnessF) : WitnessF :=
-  rho 146
+  rho 200
 
 /-- Compiler witness path `Spends_0_StateProof_Path_18_0`. -/
 def spends0StateProofPath180 (rho : Nat → WitnessF) : WitnessF :=
-  rho 147
+  rho 201
 
 /-- Compiler witness path `Spends_0_StateProof_Path_18_1`. -/
 def spends0StateProofPath181 (rho : Nat → WitnessF) : WitnessF :=
-  rho 148
+  rho 202
 
 /-- Compiler witness path `Spends_0_StateProof_Path_18_2`. -/
 def spends0StateProofPath182 (rho : Nat → WitnessF) : WitnessF :=
-  rho 149
+  rho 203
 
 /-- Compiler witness path `Spends_0_StateProof_Path_19_0`. -/
 def spends0StateProofPath190 (rho : Nat → WitnessF) : WitnessF :=
-  rho 150
+  rho 204
 
 /-- Compiler witness path `Spends_0_StateProof_Path_19_1`. -/
 def spends0StateProofPath191 (rho : Nat → WitnessF) : WitnessF :=
-  rho 151
+  rho 205
 
 /-- Compiler witness path `Spends_0_StateProof_Path_19_2`. -/
 def spends0StateProofPath192 (rho : Nat → WitnessF) : WitnessF :=
-  rho 152
+  rho 206
 
 /-- Compiler witness path `Spends_0_StateProof_Path_20_0`. -/
 def spends0StateProofPath200 (rho : Nat → WitnessF) : WitnessF :=
-  rho 153
+  rho 207
 
 /-- Compiler witness path `Spends_0_StateProof_Path_20_1`. -/
 def spends0StateProofPath201 (rho : Nat → WitnessF) : WitnessF :=
-  rho 154
+  rho 208
 
 /-- Compiler witness path `Spends_0_StateProof_Path_20_2`. -/
 def spends0StateProofPath202 (rho : Nat → WitnessF) : WitnessF :=
-  rho 155
+  rho 209
 
 /-- Compiler witness path `Spends_0_StateProof_Path_21_0`. -/
 def spends0StateProofPath210 (rho : Nat → WitnessF) : WitnessF :=
-  rho 156
+  rho 210
 
 /-- Compiler witness path `Spends_0_StateProof_Path_21_1`. -/
 def spends0StateProofPath211 (rho : Nat → WitnessF) : WitnessF :=
-  rho 157
+  rho 211
 
 /-- Compiler witness path `Spends_0_StateProof_Path_21_2`. -/
 def spends0StateProofPath212 (rho : Nat → WitnessF) : WitnessF :=
-  rho 158
+  rho 212
 
 /-- Compiler witness path `Spends_0_StateProof_Path_22_0`. -/
 def spends0StateProofPath220 (rho : Nat → WitnessF) : WitnessF :=
-  rho 159
+  rho 213
 
 /-- Compiler witness path `Spends_0_StateProof_Path_22_1`. -/
 def spends0StateProofPath221 (rho : Nat → WitnessF) : WitnessF :=
-  rho 160
+  rho 214
 
 /-- Compiler witness path `Spends_0_StateProof_Path_22_2`. -/
 def spends0StateProofPath222 (rho : Nat → WitnessF) : WitnessF :=
-  rho 161
+  rho 215
 
 /-- Compiler witness path `Spends_0_StateProof_Path_23_0`. -/
 def spends0StateProofPath230 (rho : Nat → WitnessF) : WitnessF :=
-  rho 162
+  rho 216
 
 /-- Compiler witness path `Spends_0_StateProof_Path_23_1`. -/
 def spends0StateProofPath231 (rho : Nat → WitnessF) : WitnessF :=
-  rho 163
+  rho 217
 
 /-- Compiler witness path `Spends_0_StateProof_Path_23_2`. -/
 def spends0StateProofPath232 (rho : Nat → WitnessF) : WitnessF :=
-  rho 164
+  rho 218
 
 /-- Compiler witness path `Spends_0_AuthRandomizer`. -/
 def spends0AuthRandomizer (rho : Nat → WitnessF) : WitnessF :=
-  rho 165
+  rho 219
 
 /-- Compiler witness path `Spends_0_HistoryRequired`. -/
 def spends0HistoryRequired (rho : Nat → WitnessF) : WitnessF :=
-  rho 166
+  rho 220
 
 /-- Compiler witness path `Outputs_0_NoteCommitment`. -/
 def outputs0NoteCommitment (rho : Nat → WitnessF) : WitnessF :=
-  rho 167
+  rho 221
 
 /-- Compiler witness path `Outputs_0_Note_Blinding`. -/
 def outputs0NoteBlinding (rho : Nat → WitnessF) : WitnessF :=
-  rho 168
+  rho 222
 
 /-- Compiler witness path `Outputs_0_Note_Amount`. -/
 def outputs0NoteAmount (rho : Nat → WitnessF) : WitnessF :=
-  rho 169
+  rho 223
 
 /-- Compiler witness path `Outputs_1_NoteCommitment`. -/
 def outputs1NoteCommitment (rho : Nat → WitnessF) : WitnessF :=
-  rho 170
+  rho 224
 
 /-- Compiler witness path `Outputs_1_Note_Blinding`. -/
 def outputs1NoteBlinding (rho : Nat → WitnessF) : WitnessF :=
-  rho 171
+  rho 225
 
 /-- Compiler witness path `Outputs_1_Note_Amount`. -/
 def outputs1NoteAmount (rho : Nat → WitnessF) : WitnessF :=
-  rho 172
+  rho 226
 
 /-- Compiler witness path `Outputs_2_NoteCommitment`. -/
 def outputs2NoteCommitment (rho : Nat → WitnessF) : WitnessF :=
-  rho 173
+  rho 227
 
 /-- Compiler witness path `Outputs_2_Note_Blinding`. -/
 def outputs2NoteBlinding (rho : Nat → WitnessF) : WitnessF :=
-  rho 174
+  rho 228
 
 /-- Compiler witness path `Outputs_2_Note_Amount`. -/
 def outputs2NoteAmount (rho : Nat → WitnessF) : WitnessF :=
-  rho 175
+  rho 229
 
 /-- Compiler witness path `Outputs_3_NoteCommitment`. -/
 def outputs3NoteCommitment (rho : Nat → WitnessF) : WitnessF :=
-  rho 176
+  rho 230
 
 /-- Compiler witness path `Outputs_3_Note_Blinding`. -/
 def outputs3NoteBlinding (rho : Nat → WitnessF) : WitnessF :=
-  rho 177
+  rho 231
 
 /-- Compiler witness path `Outputs_3_Note_Amount`. -/
 def outputs3NoteAmount (rho : Nat → WitnessF) : WitnessF :=
-  rho 178
+  rho 232
 
 /-- Compiler witness path `Outputs_4_NoteCommitment`. -/
 def outputs4NoteCommitment (rho : Nat → WitnessF) : WitnessF :=
-  rho 179
+  rho 233
 
 /-- Compiler witness path `Outputs_4_Note_Blinding`. -/
 def outputs4NoteBlinding (rho : Nat → WitnessF) : WitnessF :=
-  rho 180
+  rho 234
 
 /-- Compiler witness path `Outputs_4_Note_Amount`. -/
 def outputs4NoteAmount (rho : Nat → WitnessF) : WitnessF :=
-  rho 181
+  rho 235
 
 /-- Compiler witness path `Outputs_5_NoteCommitment`. -/
 def outputs5NoteCommitment (rho : Nat → WitnessF) : WitnessF :=
-  rho 182
+  rho 236
 
 /-- Compiler witness path `Outputs_5_Note_Blinding`. -/
 def outputs5NoteBlinding (rho : Nat → WitnessF) : WitnessF :=
-  rho 183
+  rho 237
 
 /-- Compiler witness path `Outputs_5_Note_Amount`. -/
 def outputs5NoteAmount (rho : Nat → WitnessF) : WitnessF :=
-  rho 184
+  rho 238
 
 /-- Compiler witness path `Outputs_6_NoteCommitment`. -/
 def outputs6NoteCommitment (rho : Nat → WitnessF) : WitnessF :=
-  rho 185
+  rho 239
 
 /-- Compiler witness path `Outputs_6_Note_Blinding`. -/
 def outputs6NoteBlinding (rho : Nat → WitnessF) : WitnessF :=
-  rho 186
+  rho 240
 
 /-- Compiler witness path `Outputs_6_Note_Amount`. -/
 def outputs6NoteAmount (rho : Nat → WitnessF) : WitnessF :=
-  rho 187
+  rho 241
 
 /-- Compiler witness path `Outputs_7_NoteCommitment`. -/
 def outputs7NoteCommitment (rho : Nat → WitnessF) : WitnessF :=
-  rho 188
+  rho 242
 
 /-- Compiler witness path `Outputs_7_Note_Blinding`. -/
 def outputs7NoteBlinding (rho : Nat → WitnessF) : WitnessF :=
-  rho 189
+  rho 243
 
 /-- Compiler witness path `Outputs_7_Note_Amount`. -/
 def outputs7NoteAmount (rho : Nat → WitnessF) : WitnessF :=
-  rho 190
+  rho 244
 
 end Witness
 

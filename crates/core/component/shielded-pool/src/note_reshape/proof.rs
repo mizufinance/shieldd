@@ -4,7 +4,7 @@ use ark_snark::SNARK;
 use decaf377::{Bls12_377, Fq, Fr};
 use decaf377_rdsa::{SpendAuth, VerificationKey};
 use shieldd_sdk_asset::balance;
-use shieldd_sdk_compliance::{IndexedLeaf, MerklePath};
+use shieldd_sdk_compliance::{ComplianceLeaf, IndexedLeaf, MerklePath};
 use shieldd_sdk_keys::keys::NullifierKey;
 use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
 use shieldd_sdk_sct::Nullifier;
@@ -62,6 +62,7 @@ pub struct NoteReshapeProofPublic {
     pub anchor: tct::Root,
     pub balance_commitment: balance::Commitment,
     pub asset_anchor: tct::StateCommitment,
+    pub compliance_anchor: tct::StateCommitment,
     pub routing_tag: RoutingTag,
     pub routing_parameter_set_id: Fq,
     pub recent_position_floor: u64,
@@ -129,6 +130,9 @@ pub struct NoteReshapeProofPrivate {
     pub asset_path: MerklePath,
     pub asset_position: u64,
     pub asset_indexed_leaf: IndexedLeaf,
+    pub sender_compliance_path: MerklePath,
+    pub sender_compliance_position: u64,
+    pub sender_leaf: ComplianceLeaf,
     pub is_regulated: bool,
     pub routing_parameters: RoutingParameters,
     pub routing_nonce: Fq,

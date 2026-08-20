@@ -100,9 +100,9 @@ def conservation (action : Action F Path24) : Prop :=
 
 def statementDomain : FamilyPolicy → F
   | .reshape1x8 =>
-      8083011558212890722062585281830291178644145861330407768425969219879481653955
+      2364495542860899492047187451159388185152513649010245296796743723390237537741
   | .reshape8x1 =>
-      3061752669569786885963994164501899099507756727275361723004405046505540448967
+      3369812303662745782238751015067652055738399375993471750361947871360359146526
 
 def statementPad0 : FamilyPolicy → F
   | .reshape1x8 =>
@@ -138,7 +138,7 @@ def statementFields
     (action : Action F Path24) (balanceFq : F) (rkFqs : List F) : List F :=
   [action.anchor] ++
     action.outputs.map Output.commitment ++
-    [balanceFq, action.assetAnchor, action.routingTag,
+    [balanceFq, action.assetAnchor, action.complianceAnchor, action.routingTag,
       action.routingParameterSetId, action.recentPositionFloor] ++
     inputStatementFields action.inputs rkFqs
 

@@ -2,7 +2,12 @@
 
 resolver = "2"
 
-exclude = ["tools/proto-compiler", "crates/bin/orbis-test", "poc"]
+exclude = [
+  "tools/proto-compiler",
+  "crates/bin/orbis-test",
+  "poc",
+  "third_party/h2-0.3.27",
+]
 
 # Also remember to add to deployments/scripts/rust-docs
 members = [
@@ -247,6 +252,10 @@ url                              = { version = "2.2" }
 getrandom                        = { version = "0.2", default-features = false }
 
 [patch.crates-io]
+# Tendermint RPC and Orbis still require reqwest 0.11, whose h2 0.3 line has
+# no upstream release for RUSTSEC-2026-0258. This carries the upstream fix;
+# remove it once those clients migrate to reqwest 0.12.
+h2 = { path = "third_party/h2-0.3.27" }
 decaf377 = { git = "https://github.com/mizufinance/decaf377", branch = "main" }
 decaf377-rdsa = { git = "https://github.com/mizufinance/decaf377-rdsa", branch = "main" }
 poseidon377 = { git = "https://github.com/mizufinance/poseidon377", branch = "main" }

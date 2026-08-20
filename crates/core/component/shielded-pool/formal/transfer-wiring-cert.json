@@ -1,173 +1,628 @@
 {
   "schema": "shieldd.gnark.gadget_wiring_certificate.v1",
   "circuit": "transfer",
-  "sr1cs_sha256_hex": "747d468d1fc79affc067323e03abb5c96a1793fa3c247f6ca4f50bb9746de4db",
-  "n_nodes": 97,
-  "n_edges": 79,
-  "n_primary_input_roots": 395,
-  "n_internal_witness": 28048,
-  "n_shared_witness": 22,
+  "sr1cs_sha256_hex": "15f7b61b6cd5cc48764ca059ffe8a789f11be5c469cc09ad9def003b6a4a1a4f",
+  "n_nodes": 116,
+  "n_edges": 100,
+  "n_primary_input_roots": 404,
+  "n_internal_witness": 29412,
+  "n_shared_witness": 87,
   "shared_witness_wires": [
     {
-      "wire": 6768,
+      "wire": 6777,
       "consuming_segments": [
         15,
         16
       ]
     },
     {
-      "wire": 6769,
+      "wire": 6778,
       "consuming_segments": [
         15,
         16
       ]
     },
     {
-      "wire": 27412,
+      "wire": 27422,
       "consuming_segments": [
-        30,
-        84,
-        85
+        31,
+        103,
+        104
       ]
     },
     {
-      "wire": 27413,
+      "wire": 27423,
       "consuming_segments": [
-        30,
-        84,
-        85
+        31,
+        103,
+        104
       ]
     },
     {
-      "wire": 38889,
+      "wire": 38859,
       "consuming_segments": [
-        37,
-        38
+        38,
+        39
       ]
     },
     {
-      "wire": 38890,
+      "wire": 38860,
       "consuming_segments": [
-        37,
-        38
+        38,
+        39
       ]
     },
     {
-      "wire": 51371,
+      "wire": 51447,
       "consuming_segments": [
-        50,
-        51
+        52,
+        53
       ]
     },
     {
-      "wire": 51372,
+      "wire": 51448,
       "consuming_segments": [
-        50,
-        51
+        52,
+        53
       ]
     },
     {
-      "wire": 63183,
+      "wire": 63367,
       "consuming_segments": [
-        67,
-        86,
-        87
+        71,
+        105,
+        106
       ]
     },
     {
-      "wire": 63184,
+      "wire": 63368,
       "consuming_segments": [
-        67,
-        86,
-        87
+        71,
+        105,
+        106
       ]
     },
     {
-      "wire": 73208,
+      "wire": 65460,
       "consuming_segments": [
-        84,
-        89
-      ]
-    },
-    {
-      "wire": 73209,
-      "consuming_segments": [
-        84,
-        89
-      ]
-    },
-    {
-      "wire": 75966,
-      "consuming_segments": [
-        84,
-        88
-      ]
-    },
-    {
-      "wire": 75967,
-      "consuming_segments": [
-        84,
-        88
-      ]
-    },
-    {
-      "wire": 80532,
-      "consuming_segments": [
-        85,
-        90
-      ]
-    },
-    {
-      "wire": 80533,
-      "consuming_segments": [
-        85,
-        90
-      ]
-    },
-    {
-      "wire": 87856,
-      "consuming_segments": [
-        86,
-        91
-      ]
-    },
-    {
-      "wire": 87857,
-      "consuming_segments": [
-        86,
-        91
-      ]
-    },
-    {
-      "wire": 95180,
-      "consuming_segments": [
-        87,
-        92
-      ]
-    },
-    {
-      "wire": 95181,
-      "consuming_segments": [
-        87,
-        92
-      ]
-    },
-    {
-      "wire": 112354,
-      "consuming_segments": [
-        106,
+        82,
         107
       ]
     },
     {
-      "wire": 112355,
+      "wire": 65838,
+      "consuming_segments": [
+        84,
+        86
+      ]
+    },
+    {
+      "wire": 65839,
+      "consuming_segments": [
+        84,
+        86
+      ]
+    },
+    {
+      "wire": 65840,
+      "consuming_segments": [
+        84,
+        86
+      ]
+    },
+    {
+      "wire": 65841,
+      "consuming_segments": [
+        84,
+        86
+      ]
+    },
+    {
+      "wire": 65842,
+      "consuming_segments": [
+        84,
+        86
+      ]
+    },
+    {
+      "wire": 65843,
+      "consuming_segments": [
+        84,
+        86
+      ]
+    },
+    {
+      "wire": 65844,
+      "consuming_segments": [
+        84,
+        86
+      ]
+    },
+    {
+      "wire": 65845,
+      "consuming_segments": [
+        84,
+        86
+      ]
+    },
+    {
+      "wire": 65846,
+      "consuming_segments": [
+        84,
+        86
+      ]
+    },
+    {
+      "wire": 65847,
+      "consuming_segments": [
+        84,
+        86
+      ]
+    },
+    {
+      "wire": 65848,
+      "consuming_segments": [
+        84,
+        86
+      ]
+    },
+    {
+      "wire": 65849,
+      "consuming_segments": [
+        84,
+        86
+      ]
+    },
+    {
+      "wire": 65850,
+      "consuming_segments": [
+        84,
+        86
+      ]
+    },
+    {
+      "wire": 65851,
+      "consuming_segments": [
+        84,
+        86
+      ]
+    },
+    {
+      "wire": 65852,
+      "consuming_segments": [
+        84,
+        86
+      ]
+    },
+    {
+      "wire": 65853,
+      "consuming_segments": [
+        84,
+        86
+      ]
+    },
+    {
+      "wire": 65854,
+      "consuming_segments": [
+        84,
+        86
+      ]
+    },
+    {
+      "wire": 65855,
+      "consuming_segments": [
+        84,
+        86
+      ]
+    },
+    {
+      "wire": 65856,
+      "consuming_segments": [
+        84,
+        86
+      ]
+    },
+    {
+      "wire": 65857,
+      "consuming_segments": [
+        84,
+        86
+      ]
+    },
+    {
+      "wire": 65858,
+      "consuming_segments": [
+        84,
+        86
+      ]
+    },
+    {
+      "wire": 65859,
+      "consuming_segments": [
+        84,
+        86
+      ]
+    },
+    {
+      "wire": 65860,
+      "consuming_segments": [
+        84,
+        86
+      ]
+    },
+    {
+      "wire": 65861,
+      "consuming_segments": [
+        84,
+        86
+      ]
+    },
+    {
+      "wire": 65862,
+      "consuming_segments": [
+        84,
+        86
+      ]
+    },
+    {
+      "wire": 65863,
+      "consuming_segments": [
+        84,
+        86
+      ]
+    },
+    {
+      "wire": 65864,
+      "consuming_segments": [
+        84,
+        86
+      ]
+    },
+    {
+      "wire": 65865,
+      "consuming_segments": [
+        84,
+        86
+      ]
+    },
+    {
+      "wire": 65866,
+      "consuming_segments": [
+        84,
+        86
+      ]
+    },
+    {
+      "wire": 65867,
+      "consuming_segments": [
+        84,
+        86
+      ]
+    },
+    {
+      "wire": 65868,
+      "consuming_segments": [
+        84,
+        86
+      ]
+    },
+    {
+      "wire": 65869,
+      "consuming_segments": [
+        84,
+        86
+      ]
+    },
+    {
+      "wire": 66877,
+      "consuming_segments": [
+        88,
+        90
+      ]
+    },
+    {
+      "wire": 66878,
+      "consuming_segments": [
+        88,
+        90
+      ]
+    },
+    {
+      "wire": 66879,
+      "consuming_segments": [
+        88,
+        90
+      ]
+    },
+    {
+      "wire": 66880,
+      "consuming_segments": [
+        88,
+        90
+      ]
+    },
+    {
+      "wire": 66881,
+      "consuming_segments": [
+        88,
+        90
+      ]
+    },
+    {
+      "wire": 66882,
+      "consuming_segments": [
+        88,
+        90
+      ]
+    },
+    {
+      "wire": 66883,
+      "consuming_segments": [
+        88,
+        90
+      ]
+    },
+    {
+      "wire": 66884,
+      "consuming_segments": [
+        88,
+        90
+      ]
+    },
+    {
+      "wire": 66885,
+      "consuming_segments": [
+        88,
+        90
+      ]
+    },
+    {
+      "wire": 66886,
+      "consuming_segments": [
+        88,
+        90
+      ]
+    },
+    {
+      "wire": 66887,
+      "consuming_segments": [
+        88,
+        90
+      ]
+    },
+    {
+      "wire": 66888,
+      "consuming_segments": [
+        88,
+        90
+      ]
+    },
+    {
+      "wire": 66889,
+      "consuming_segments": [
+        88,
+        90
+      ]
+    },
+    {
+      "wire": 66890,
+      "consuming_segments": [
+        88,
+        90
+      ]
+    },
+    {
+      "wire": 66891,
+      "consuming_segments": [
+        88,
+        90
+      ]
+    },
+    {
+      "wire": 66892,
+      "consuming_segments": [
+        88,
+        90
+      ]
+    },
+    {
+      "wire": 66893,
+      "consuming_segments": [
+        88,
+        90
+      ]
+    },
+    {
+      "wire": 66894,
+      "consuming_segments": [
+        88,
+        90
+      ]
+    },
+    {
+      "wire": 66895,
+      "consuming_segments": [
+        88,
+        90
+      ]
+    },
+    {
+      "wire": 66896,
+      "consuming_segments": [
+        88,
+        90
+      ]
+    },
+    {
+      "wire": 66897,
+      "consuming_segments": [
+        88,
+        90
+      ]
+    },
+    {
+      "wire": 66898,
+      "consuming_segments": [
+        88,
+        90
+      ]
+    },
+    {
+      "wire": 66899,
+      "consuming_segments": [
+        88,
+        90
+      ]
+    },
+    {
+      "wire": 66900,
+      "consuming_segments": [
+        88,
+        90
+      ]
+    },
+    {
+      "wire": 66901,
+      "consuming_segments": [
+        88,
+        90
+      ]
+    },
+    {
+      "wire": 66902,
+      "consuming_segments": [
+        88,
+        90
+      ]
+    },
+    {
+      "wire": 66903,
+      "consuming_segments": [
+        88,
+        90
+      ]
+    },
+    {
+      "wire": 66904,
+      "consuming_segments": [
+        88,
+        90
+      ]
+    },
+    {
+      "wire": 66905,
+      "consuming_segments": [
+        88,
+        90
+      ]
+    },
+    {
+      "wire": 66906,
+      "consuming_segments": [
+        88,
+        90
+      ]
+    },
+    {
+      "wire": 66907,
+      "consuming_segments": [
+        88,
+        90
+      ]
+    },
+    {
+      "wire": 66908,
+      "consuming_segments": [
+        88,
+        90
+      ]
+    },
+    {
+      "wire": 77469,
+      "consuming_segments": [
+        103,
+        108
+      ]
+    },
+    {
+      "wire": 77470,
+      "consuming_segments": [
+        103,
+        108
+      ]
+    },
+    {
+      "wire": 80227,
+      "consuming_segments": [
+        103,
+        107
+      ]
+    },
+    {
+      "wire": 80228,
+      "consuming_segments": [
+        103,
+        107
+      ]
+    },
+    {
+      "wire": 84793,
+      "consuming_segments": [
+        104,
+        109
+      ]
+    },
+    {
+      "wire": 84794,
+      "consuming_segments": [
+        104,
+        109
+      ]
+    },
+    {
+      "wire": 92117,
+      "consuming_segments": [
+        105,
+        110
+      ]
+    },
+    {
+      "wire": 92118,
+      "consuming_segments": [
+        105,
+        110
+      ]
+    },
+    {
+      "wire": 99441,
       "consuming_segments": [
         106,
-        107
+        111
+      ]
+    },
+    {
+      "wire": 99442,
+      "consuming_segments": [
+        106,
+        111
+      ]
+    },
+    {
+      "wire": 116615,
+      "consuming_segments": [
+        125,
+        126
+      ]
+    },
+    {
+      "wire": 116616,
+      "consuming_segments": [
+        125,
+        126
       ]
     }
   ],
-  "n_cross_seam_constrained": 30,
+  "n_cross_seam_constrained": 44,
   "nodes": [
     {
       "segment_index": 1,
@@ -395,606 +850,758 @@
     },
     {
       "segment_index": 30,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 26538,
+      "end": 26540,
+      "constraint_count": 2
+    },
+    {
+      "segment_index": 31,
       "op": "decaf.ack",
       "kind": "gadget",
-      "start": 26538,
-      "end": 29548,
+      "start": 26540,
+      "end": 29550,
       "constraint_count": 3010
     },
     {
-      "segment_index": 32,
+      "segment_index": 33,
       "op": "gadget.note_commitment",
       "kind": "gadget",
-      "start": 29548,
-      "end": 29978,
-      "constraint_count": 430
-    },
-    {
-      "segment_index": 33,
-      "op": "gadget.nullifier",
-      "kind": "gadget",
-      "start": 29978,
-      "end": 30288,
-      "constraint_count": 310
+      "start": 29550,
+      "end": 29940,
+      "constraint_count": 390
     },
     {
       "segment_index": 34,
-      "op": "gadget.state_commitment_path",
+      "op": "gadget.nullifier",
       "kind": "gadget",
-      "start": 30288,
-      "end": 39303,
-      "constraint_count": 9015
+      "start": 29940,
+      "end": 30250,
+      "constraint_count": 310
     },
     {
       "segment_index": 35,
-      "op": "assert.eq",
-      "kind": "glue",
-      "start": 39303,
-      "end": 39304,
-      "constraint_count": 1
+      "op": "gadget.state_commitment_path",
+      "kind": "gadget",
+      "start": 30250,
+      "end": 39265,
+      "constraint_count": 9015
     },
     {
       "segment_index": 36,
       "op": "assert.eq",
       "kind": "glue",
-      "start": 39304,
-      "end": 39305,
+      "start": 39265,
+      "end": 39266,
       "constraint_count": 1
     },
     {
       "segment_index": 37,
-      "op": "decaf.randomized_verification_key",
-      "kind": "gadget",
-      "start": 39305,
-      "end": 41117,
-      "constraint_count": 1812
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 39266,
+      "end": 39267,
+      "constraint_count": 1
     },
     {
       "segment_index": 38,
-      "op": "decaf.assert_equivalent",
+      "op": "decaf.randomized_verification_key",
       "kind": "gadget",
-      "start": 41117,
-      "end": 41120,
-      "constraint_count": 3
+      "start": 39267,
+      "end": 41079,
+      "constraint_count": 1812
     },
     {
       "segment_index": 39,
+      "op": "decaf.assert_equivalent",
+      "kind": "gadget",
+      "start": 41079,
+      "end": 41082,
+      "constraint_count": 3
+    },
+    {
+      "segment_index": 40,
+      "op": "history.classify",
+      "kind": "glue",
+      "start": 41082,
+      "end": 41232,
+      "constraint_count": 150
+    },
+    {
+      "segment_index": 41,
       "op": "decaf.compress_to_field",
       "kind": "gadget",
-      "start": 41120,
-      "end": 42166,
+      "start": 41232,
+      "end": 42278,
       "constraint_count": 1046
     },
     {
-      "segment_index": 42,
+      "segment_index": 44,
       "op": "assert.boolean",
       "kind": "glue",
-      "start": 42166,
-      "end": 42167,
+      "start": 42278,
+      "end": 42279,
       "constraint_count": 1
-    },
-    {
-      "segment_index": 43,
-      "op": "gadget.note_commitment",
-      "kind": "gadget",
-      "start": 42167,
-      "end": 42597,
-      "constraint_count": 430
-    },
-    {
-      "segment_index": 44,
-      "op": "gadget.nullifier",
-      "kind": "gadget",
-      "start": 42597,
-      "end": 42907,
-      "constraint_count": 310
     },
     {
       "segment_index": 45,
-      "op": "gadget.state_commitment_path",
+      "op": "gadget.note_commitment",
       "kind": "gadget",
-      "start": 42907,
-      "end": 51922,
-      "constraint_count": 9015
+      "start": 42279,
+      "end": 42669,
+      "constraint_count": 390
     },
     {
       "segment_index": 46,
-      "op": "gadget.synthetic_dummy_nullifier",
+      "op": "gadget.nullifier",
       "kind": "gadget",
-      "start": 51922,
-      "end": 52227,
-      "constraint_count": 305
+      "start": 42669,
+      "end": 42979,
+      "constraint_count": 310
     },
     {
       "segment_index": 47,
-      "op": "dummy.mux",
-      "kind": "glue",
-      "start": 52227,
-      "end": 52229,
-      "constraint_count": 2
+      "op": "gadget.state_commitment_path",
+      "kind": "gadget",
+      "start": 42979,
+      "end": 51994,
+      "constraint_count": 9015
     },
     {
       "segment_index": 48,
-      "op": "assert.eq",
-      "kind": "glue",
-      "start": 52229,
-      "end": 52230,
-      "constraint_count": 1
+      "op": "gadget.synthetic_dummy_nullifier",
+      "kind": "gadget",
+      "start": 51994,
+      "end": 52299,
+      "constraint_count": 305
     },
     {
       "segment_index": 49,
-      "op": "assert.eq_if",
+      "op": "dummy.mux",
       "kind": "glue",
-      "start": 52230,
-      "end": 52232,
+      "start": 52299,
+      "end": 52301,
       "constraint_count": 2
     },
     {
       "segment_index": 50,
-      "op": "decaf.randomized_verification_key",
-      "kind": "gadget",
-      "start": 52232,
-      "end": 54044,
-      "constraint_count": 1812
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 52301,
+      "end": 52302,
+      "constraint_count": 1
     },
     {
       "segment_index": 51,
-      "op": "decaf.assert_equivalent_if",
-      "kind": "gadget",
-      "start": 54044,
-      "end": 54050,
-      "constraint_count": 6
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 52302,
+      "end": 52304,
+      "constraint_count": 2
     },
     {
       "segment_index": 52,
-      "op": "assert.eq_if",
-      "kind": "glue",
-      "start": 54050,
-      "end": 54052,
-      "constraint_count": 2
+      "op": "decaf.randomized_verification_key",
+      "kind": "gadget",
+      "start": 52304,
+      "end": 54116,
+      "constraint_count": 1812
     },
     {
       "segment_index": 53,
-      "op": "decaf.compress_to_field",
+      "op": "decaf.assert_equivalent_if",
       "kind": "gadget",
-      "start": 54052,
-      "end": 55098,
-      "constraint_count": 1046
+      "start": 54116,
+      "end": 54122,
+      "constraint_count": 6
+    },
+    {
+      "segment_index": 54,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 54122,
+      "end": 54124,
+      "constraint_count": 2
+    },
+    {
+      "segment_index": 55,
+      "op": "history.classify",
+      "kind": "glue",
+      "start": 54124,
+      "end": 54275,
+      "constraint_count": 151
     },
     {
       "segment_index": 56,
-      "op": "assert.decaf_non_identity",
-      "kind": "glue",
-      "start": 55098,
-      "end": 55099,
-      "constraint_count": 1
-    },
-    {
-      "segment_index": 57,
-      "op": "assert.decaf_non_identity",
-      "kind": "glue",
-      "start": 55099,
-      "end": 55100,
-      "constraint_count": 1
-    },
-    {
-      "segment_index": 58,
-      "op": "gadget.is_zero",
+      "op": "decaf.compress_to_field",
       "kind": "gadget",
-      "start": 55100,
-      "end": 55102,
-      "constraint_count": 2
+      "start": 54275,
+      "end": 55321,
+      "constraint_count": 1046
     },
     {
       "segment_index": 59,
-      "op": "decaf.compress_to_field",
-      "kind": "gadget",
-      "start": 55102,
-      "end": 56148,
-      "constraint_count": 1046
+      "op": "assert.decaf_non_identity",
+      "kind": "glue",
+      "start": 55321,
+      "end": 55322,
+      "constraint_count": 1
     },
     {
       "segment_index": 60,
-      "op": "decaf.compress_to_field",
-      "kind": "gadget",
-      "start": 56148,
-      "end": 57194,
-      "constraint_count": 1046
+      "op": "assert.decaf_non_identity",
+      "kind": "glue",
+      "start": 55322,
+      "end": 55323,
+      "constraint_count": 1
     },
     {
       "segment_index": 61,
-      "op": "gadget.note_commitment",
+      "op": "gadget.is_zero",
       "kind": "gadget",
-      "start": 57194,
-      "end": 57624,
-      "constraint_count": 430
-    },
-    {
-      "segment_index": 62,
-      "op": "assert.eq",
-      "kind": "glue",
-      "start": 57624,
-      "end": 57625,
-      "constraint_count": 1
-    },
-    {
-      "segment_index": 63,
-      "op": "gadget.compliance_leaf",
-      "kind": "gadget",
-      "start": 57625,
-      "end": 58095,
-      "constraint_count": 470
-    },
-    {
-      "segment_index": 64,
-      "op": "gadget.compliance_path",
-      "kind": "gadget",
-      "start": 58095,
-      "end": 63952,
-      "constraint_count": 5857
-    },
-    {
-      "segment_index": 65,
-      "op": "assert.eq_if",
-      "kind": "glue",
-      "start": 63952,
-      "end": 63954,
+      "start": 55323,
+      "end": 55325,
       "constraint_count": 2
     },
     {
-      "segment_index": 66,
+      "segment_index": 62,
+      "op": "decaf.compress_to_field",
+      "kind": "gadget",
+      "start": 55325,
+      "end": 56371,
+      "constraint_count": 1046
+    },
+    {
+      "segment_index": 63,
+      "op": "decaf.compress_to_field",
+      "kind": "gadget",
+      "start": 56371,
+      "end": 57417,
+      "constraint_count": 1046
+    },
+    {
+      "segment_index": 64,
+      "op": "gadget.note_commitment",
+      "kind": "gadget",
+      "start": 57417,
+      "end": 57807,
+      "constraint_count": 390
+    },
+    {
+      "segment_index": 65,
       "op": "assert.eq",
       "kind": "glue",
-      "start": 63954,
-      "end": 63955,
+      "start": 57807,
+      "end": 57808,
       "constraint_count": 1
+    },
+    {
+      "segment_index": 66,
+      "op": "gadget.compliance_leaf",
+      "kind": "gadget",
+      "start": 57808,
+      "end": 58278,
+      "constraint_count": 470
     },
     {
       "segment_index": 67,
-      "op": "decaf.ack",
+      "op": "gadget.compliance_path",
       "kind": "gadget",
-      "start": 63955,
-      "end": 66965,
-      "constraint_count": 3010
+      "start": 58278,
+      "end": 64135,
+      "constraint_count": 5857
+    },
+    {
+      "segment_index": 68,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 64135,
+      "end": 64137,
+      "constraint_count": 2
+    },
+    {
+      "segment_index": 69,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 64137,
+      "end": 64139,
+      "constraint_count": 2
     },
     {
       "segment_index": 70,
-      "op": "gadget.note_commitment",
-      "kind": "gadget",
-      "start": 66965,
-      "end": 67395,
-      "constraint_count": 430
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 64139,
+      "end": 64140,
+      "constraint_count": 1
     },
     {
       "segment_index": 71,
-      "op": "assert.eq",
-      "kind": "glue",
-      "start": 67395,
-      "end": 67396,
-      "constraint_count": 1
+      "op": "decaf.ack",
+      "kind": "gadget",
+      "start": 64140,
+      "end": 67150,
+      "constraint_count": 3010
     },
     {
       "segment_index": 74,
-      "op": "threshold.flag",
+      "op": "gadget.note_commitment",
       "kind": "gadget",
-      "start": 67396,
-      "end": 68292,
-      "constraint_count": 896
+      "start": 67150,
+      "end": 67540,
+      "constraint_count": 390
     },
     {
       "segment_index": 75,
-      "op": "decaf.compress_to_field",
-      "kind": "gadget",
-      "start": 68292,
-      "end": 69338,
-      "constraint_count": 1046
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 67540,
+      "end": 67541,
+      "constraint_count": 1
     },
     {
       "segment_index": 76,
-      "op": "decaf.compress_to_field",
-      "kind": "gadget",
-      "start": 69338,
-      "end": 70384,
-      "constraint_count": 1046
+      "op": "routing.precision.select",
+      "kind": "glue",
+      "start": 67541,
+      "end": 68205,
+      "constraint_count": 664
     },
     {
       "segment_index": 77,
-      "op": "decaf.compress_to_field",
+      "op": "routing.parameters.hash",
       "kind": "gadget",
-      "start": 70384,
-      "end": 71430,
-      "constraint_count": 1046
+      "start": 68205,
+      "end": 68515,
+      "constraint_count": 310
     },
     {
       "segment_index": 78,
-      "op": "decaf.compress_to_field",
-      "kind": "gadget",
-      "start": 71430,
-      "end": 72476,
-      "constraint_count": 1046
+      "op": "routing.parameters.bind",
+      "kind": "glue",
+      "start": 68515,
+      "end": 68548,
+      "constraint_count": 33
     },
     {
       "segment_index": 79,
-      "op": "gadget.transfer_salt",
+      "op": "routing.route_word",
       "kind": "gadget",
-      "start": 72476,
-      "end": 72741,
-      "constraint_count": 265
+      "start": 68548,
+      "end": 68778,
+      "constraint_count": 230
     },
     {
       "segment_index": 80,
-      "op": "gadget.transfer_salt",
+      "op": "routing.route_word",
       "kind": "gadget",
-      "start": 72741,
-      "end": 73006,
-      "constraint_count": 265
+      "start": 68778,
+      "end": 69008,
+      "constraint_count": 230
     },
     {
       "segment_index": 81,
-      "op": "gadget.transfer_salt",
+      "op": "routing.permutation.hash",
       "kind": "gadget",
-      "start": 73006,
-      "end": 73271,
-      "constraint_count": 265
+      "start": 69008,
+      "end": 69238,
+      "constraint_count": 230
     },
     {
       "segment_index": 82,
-      "op": "gadget.transfer_salt",
-      "kind": "gadget",
-      "start": 73271,
-      "end": 73536,
-      "constraint_count": 265
+      "op": "routing.permutation.compose",
+      "kind": "glue",
+      "start": 69238,
+      "end": 69751,
+      "constraint_count": 513
     },
     {
       "segment_index": 83,
-      "op": "gadget.transfer_salt",
-      "kind": "gadget",
-      "start": 73536,
-      "end": 73801,
-      "constraint_count": 265
+      "op": "routing.tag.public_range",
+      "kind": "glue",
+      "start": 69751,
+      "end": 69784,
+      "constraint_count": 33
     },
     {
       "segment_index": 84,
-      "op": "decaf.shared_secret",
-      "kind": "gadget",
-      "start": 73801,
-      "end": 81128,
-      "constraint_count": 7327
+      "op": "routing.tag.route_bits",
+      "kind": "glue",
+      "start": 69784,
+      "end": 70290,
+      "constraint_count": 506
     },
     {
       "segment_index": 85,
-      "op": "decaf.shared_secret",
+      "op": "routing.tag.random_word",
       "kind": "gadget",
-      "start": 81128,
-      "end": 88454,
-      "constraint_count": 7326
+      "start": 70290,
+      "end": 70555,
+      "constraint_count": 265
     },
     {
       "segment_index": 86,
-      "op": "decaf.shared_secret",
-      "kind": "gadget",
-      "start": 88454,
-      "end": 95780,
-      "constraint_count": 7326
+      "op": "routing.tag.compose",
+      "kind": "glue",
+      "start": 70555,
+      "end": 71190,
+      "constraint_count": 635
     },
     {
       "segment_index": 87,
-      "op": "decaf.shared_secret",
-      "kind": "gadget",
-      "start": 95780,
-      "end": 103106,
-      "constraint_count": 7326
+      "op": "routing.tag.public_range",
+      "kind": "glue",
+      "start": 71190,
+      "end": 71223,
+      "constraint_count": 33
     },
     {
       "segment_index": 88,
-      "op": "gadget.poseidon_encryption.detection",
-      "kind": "gadget",
-      "start": 103106,
-      "end": 105552,
-      "constraint_count": 2446
+      "op": "routing.tag.route_bits",
+      "kind": "glue",
+      "start": 71223,
+      "end": 71729,
+      "constraint_count": 506
     },
     {
       "segment_index": 89,
-      "op": "gadget.poseidon_encryption.amount",
+      "op": "routing.tag.random_word",
       "kind": "gadget",
-      "start": 105552,
-      "end": 106864,
-      "constraint_count": 1312
+      "start": 71729,
+      "end": 71994,
+      "constraint_count": 265
     },
     {
       "segment_index": 90,
-      "op": "gadget.poseidon_encryption.address",
-      "kind": "gadget",
-      "start": 106864,
-      "end": 109720,
-      "constraint_count": 2856
+      "op": "routing.tag.compose",
+      "kind": "glue",
+      "start": 71994,
+      "end": 72597,
+      "constraint_count": 603
     },
     {
-      "segment_index": 91,
-      "op": "gadget.poseidon_encryption.amount",
+      "segment_index": 93,
+      "op": "threshold.flag",
       "kind": "gadget",
-      "start": 109720,
-      "end": 111032,
-      "constraint_count": 1312
-    },
-    {
-      "segment_index": 92,
-      "op": "gadget.poseidon_encryption.address",
-      "kind": "gadget",
-      "start": 111032,
-      "end": 113888,
-      "constraint_count": 2856
+      "start": 72597,
+      "end": 73493,
+      "constraint_count": 896
     },
     {
       "segment_index": 94,
-      "op": "assert.eq",
-      "kind": "glue",
-      "start": 113888,
-      "end": 113889,
-      "constraint_count": 1
-    },
-    {
-      "segment_index": 95,
-      "op": "assert.eq",
-      "kind": "glue",
-      "start": 113889,
-      "end": 113890,
-      "constraint_count": 1
-    },
-    {
-      "segment_index": 96,
-      "op": "assert.eq",
-      "kind": "glue",
-      "start": 113890,
-      "end": 113891,
-      "constraint_count": 1
-    },
-    {
-      "segment_index": 97,
-      "op": "assert.eq",
-      "kind": "glue",
-      "start": 113891,
-      "end": 113892,
-      "constraint_count": 1
-    },
-    {
-      "segment_index": 98,
-      "op": "assert.eq",
-      "kind": "glue",
-      "start": 113892,
-      "end": 113893,
-      "constraint_count": 1
-    },
-    {
-      "segment_index": 99,
-      "op": "assert.eq",
-      "kind": "glue",
-      "start": 113893,
-      "end": 113894,
-      "constraint_count": 1
-    },
-    {
-      "segment_index": 100,
-      "op": "assert.eq",
-      "kind": "glue",
-      "start": 113894,
-      "end": 113895,
-      "constraint_count": 1
-    },
-    {
-      "segment_index": 101,
-      "op": "assert.eq",
-      "kind": "glue",
-      "start": 113895,
-      "end": 113896,
-      "constraint_count": 1
-    },
-    {
-      "segment_index": 102,
-      "op": "assert.eq",
-      "kind": "glue",
-      "start": 113896,
-      "end": 113897,
-      "constraint_count": 1
-    },
-    {
-      "segment_index": 103,
-      "op": "assert.eq",
-      "kind": "glue",
-      "start": 113897,
-      "end": 113898,
-      "constraint_count": 1
-    },
-    {
-      "segment_index": 104,
-      "op": "assert.eq",
-      "kind": "glue",
-      "start": 113898,
-      "end": 113899,
-      "constraint_count": 1
-    },
-    {
-      "segment_index": 106,
-      "op": "decaf.net_balance_commitment",
-      "kind": "gadget",
-      "start": 113899,
-      "end": 120101,
-      "constraint_count": 6202
-    },
-    {
-      "segment_index": 107,
       "op": "decaf.compress_to_field",
       "kind": "gadget",
-      "start": 120101,
-      "end": 121147,
+      "start": 73493,
+      "end": 74539,
       "constraint_count": 1046
     },
     {
-      "segment_index": 109,
-      "op": "statement.hash",
+      "segment_index": 95,
+      "op": "decaf.compress_to_field",
       "kind": "gadget",
-      "start": 121147,
-      "end": 124427,
-      "constraint_count": 3280
+      "start": 74539,
+      "end": 75585,
+      "constraint_count": 1046
+    },
+    {
+      "segment_index": 96,
+      "op": "decaf.compress_to_field",
+      "kind": "gadget",
+      "start": 75585,
+      "end": 76631,
+      "constraint_count": 1046
+    },
+    {
+      "segment_index": 97,
+      "op": "decaf.compress_to_field",
+      "kind": "gadget",
+      "start": 76631,
+      "end": 77677,
+      "constraint_count": 1046
+    },
+    {
+      "segment_index": 98,
+      "op": "gadget.transfer_salt",
+      "kind": "gadget",
+      "start": 77677,
+      "end": 77942,
+      "constraint_count": 265
+    },
+    {
+      "segment_index": 99,
+      "op": "gadget.transfer_salt",
+      "kind": "gadget",
+      "start": 77942,
+      "end": 78207,
+      "constraint_count": 265
+    },
+    {
+      "segment_index": 100,
+      "op": "gadget.transfer_salt",
+      "kind": "gadget",
+      "start": 78207,
+      "end": 78472,
+      "constraint_count": 265
+    },
+    {
+      "segment_index": 101,
+      "op": "gadget.transfer_salt",
+      "kind": "gadget",
+      "start": 78472,
+      "end": 78737,
+      "constraint_count": 265
+    },
+    {
+      "segment_index": 102,
+      "op": "gadget.transfer_salt",
+      "kind": "gadget",
+      "start": 78737,
+      "end": 79002,
+      "constraint_count": 265
+    },
+    {
+      "segment_index": 103,
+      "op": "decaf.shared_secret",
+      "kind": "gadget",
+      "start": 79002,
+      "end": 86329,
+      "constraint_count": 7327
+    },
+    {
+      "segment_index": 104,
+      "op": "decaf.shared_secret",
+      "kind": "gadget",
+      "start": 86329,
+      "end": 93655,
+      "constraint_count": 7326
+    },
+    {
+      "segment_index": 105,
+      "op": "decaf.shared_secret",
+      "kind": "gadget",
+      "start": 93655,
+      "end": 100981,
+      "constraint_count": 7326
+    },
+    {
+      "segment_index": 106,
+      "op": "decaf.shared_secret",
+      "kind": "gadget",
+      "start": 100981,
+      "end": 108307,
+      "constraint_count": 7326
+    },
+    {
+      "segment_index": 107,
+      "op": "gadget.poseidon_encryption.detection",
+      "kind": "gadget",
+      "start": 108307,
+      "end": 110753,
+      "constraint_count": 2446
+    },
+    {
+      "segment_index": 108,
+      "op": "gadget.poseidon_encryption.amount",
+      "kind": "gadget",
+      "start": 110753,
+      "end": 112065,
+      "constraint_count": 1312
+    },
+    {
+      "segment_index": 109,
+      "op": "gadget.poseidon_encryption.address",
+      "kind": "gadget",
+      "start": 112065,
+      "end": 114921,
+      "constraint_count": 2856
     },
     {
       "segment_index": 110,
+      "op": "gadget.poseidon_encryption.amount",
+      "kind": "gadget",
+      "start": 114921,
+      "end": 116233,
+      "constraint_count": 1312
+    },
+    {
+      "segment_index": 111,
+      "op": "gadget.poseidon_encryption.address",
+      "kind": "gadget",
+      "start": 116233,
+      "end": 119089,
+      "constraint_count": 2856
+    },
+    {
+      "segment_index": 113,
       "op": "assert.eq",
       "kind": "glue",
-      "start": 124427,
-      "end": 124428,
+      "start": 119089,
+      "end": 119090,
+      "constraint_count": 1
+    },
+    {
+      "segment_index": 114,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 119090,
+      "end": 119091,
+      "constraint_count": 1
+    },
+    {
+      "segment_index": 115,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 119091,
+      "end": 119092,
+      "constraint_count": 1
+    },
+    {
+      "segment_index": 116,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 119092,
+      "end": 119093,
+      "constraint_count": 1
+    },
+    {
+      "segment_index": 117,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 119093,
+      "end": 119094,
+      "constraint_count": 1
+    },
+    {
+      "segment_index": 118,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 119094,
+      "end": 119095,
+      "constraint_count": 1
+    },
+    {
+      "segment_index": 119,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 119095,
+      "end": 119096,
+      "constraint_count": 1
+    },
+    {
+      "segment_index": 120,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 119096,
+      "end": 119097,
+      "constraint_count": 1
+    },
+    {
+      "segment_index": 121,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 119097,
+      "end": 119098,
+      "constraint_count": 1
+    },
+    {
+      "segment_index": 122,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 119098,
+      "end": 119099,
+      "constraint_count": 1
+    },
+    {
+      "segment_index": 123,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 119099,
+      "end": 119100,
+      "constraint_count": 1
+    },
+    {
+      "segment_index": 125,
+      "op": "decaf.net_balance_commitment",
+      "kind": "gadget",
+      "start": 119100,
+      "end": 125302,
+      "constraint_count": 6202
+    },
+    {
+      "segment_index": 126,
+      "op": "decaf.compress_to_field",
+      "kind": "gadget",
+      "start": 125302,
+      "end": 126348,
+      "constraint_count": 1046
+    },
+    {
+      "segment_index": 128,
+      "op": "statement.hash",
+      "kind": "gadget",
+      "start": 126348,
+      "end": 130098,
+      "constraint_count": 3750
+    },
+    {
+      "segment_index": 129,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 130098,
+      "end": 130099,
       "constraint_count": 1
     }
   ],
   "edges": [
     {
       "from": 6,
-      "to": 30,
+      "to": 31,
       "shared_wires": 2
     },
     {
       "from": 6,
-      "to": 67,
+      "to": 71,
       "shared_wires": 2
     },
     {
       "from": 7,
-      "to": 84,
+      "to": 103,
       "shared_wires": 2
     },
     {
       "from": 7,
-      "to": 85,
+      "to": 104,
       "shared_wires": 2
     },
     {
       "from": 7,
-      "to": 86,
+      "to": 105,
       "shared_wires": 2
     },
     {
       "from": 7,
-      "to": 87,
+      "to": 106,
       "shared_wires": 2
     },
     {
       "from": 8,
-      "to": 96,
+      "to": 115,
       "shared_wires": 1
     },
     {
       "from": 9,
-      "to": 97,
+      "to": 116,
       "shared_wires": 1
     },
     {
       "from": 10,
-      "to": 98,
+      "to": 117,
       "shared_wires": 1
     },
     {
       "from": 11,
-      "to": 99,
+      "to": 118,
       "shared_wires": 1
     },
     {
@@ -1004,22 +1611,22 @@
     },
     {
       "from": 12,
-      "to": 32,
+      "to": 33,
       "shared_wires": 2
     },
     {
       "from": 12,
-      "to": 43,
+      "to": 45,
       "shared_wires": 2
     },
     {
       "from": 12,
-      "to": 70,
+      "to": 74,
       "shared_wires": 2
     },
     {
       "from": 12,
-      "to": 92,
+      "to": 111,
       "shared_wires": 2
     },
     {
@@ -1029,22 +1636,27 @@
     },
     {
       "from": 13,
-      "to": 32,
+      "to": 33,
       "shared_wires": 2
     },
     {
       "from": 13,
-      "to": 43,
+      "to": 45,
       "shared_wires": 2
     },
     {
       "from": 13,
-      "to": 70,
+      "to": 74,
       "shared_wires": 2
     },
     {
       "from": 13,
-      "to": 92,
+      "to": 79,
+      "shared_wires": 2
+    },
+    {
+      "from": 13,
+      "to": 111,
       "shared_wires": 2
     },
     {
@@ -1098,248 +1710,348 @@
       "shared_wires": 5
     },
     {
-      "from": 30,
-      "to": 84,
+      "from": 31,
+      "to": 103,
       "shared_wires": 2
     },
     {
-      "from": 30,
-      "to": 85,
+      "from": 31,
+      "to": 104,
       "shared_wires": 2
     },
     {
-      "from": 32,
-      "to": 33,
-      "shared_wires": 7
-    },
-    {
-      "from": 32,
+      "from": 33,
       "to": 34,
-      "shared_wires": 7
+      "shared_wires": 6
     },
     {
       "from": 33,
       "to": 35,
-      "shared_wires": 4
+      "shared_wires": 6
     },
     {
       "from": 34,
       "to": 36,
-      "shared_wires": 5
-    },
-    {
-      "from": 39,
-      "to": 109,
-      "shared_wires": 2
-    },
-    {
-      "from": 43,
-      "to": 44,
-      "shared_wires": 7
-    },
-    {
-      "from": 43,
-      "to": 45,
-      "shared_wires": 7
-    },
-    {
-      "from": 44,
-      "to": 47,
       "shared_wires": 4
     },
     {
-      "from": 45,
-      "to": 49,
+      "from": 35,
+      "to": 37,
       "shared_wires": 5
     },
     {
-      "from": 46,
+      "from": 41,
+      "to": 128,
+      "shared_wires": 2
+    },
+    {
+      "from": 45,
+      "to": 46,
+      "shared_wires": 6
+    },
+    {
+      "from": 45,
       "to": 47,
+      "shared_wires": 6
+    },
+    {
+      "from": 46,
+      "to": 49,
       "shared_wires": 4
     },
     {
       "from": 47,
-      "to": 48,
+      "to": 51,
+      "shared_wires": 5
+    },
+    {
+      "from": 48,
+      "to": 49,
+      "shared_wires": 4
+    },
+    {
+      "from": 49,
+      "to": 50,
       "shared_wires": 2
     },
     {
-      "from": 53,
-      "to": 109,
-      "shared_wires": 2
-    },
-    {
-      "from": 58,
-      "to": 66,
-      "shared_wires": 1
-    },
-    {
-      "from": 59,
-      "to": 61,
-      "shared_wires": 2
-    },
-    {
-      "from": 59,
-      "to": 63,
-      "shared_wires": 2
-    },
-    {
-      "from": 59,
-      "to": 90,
-      "shared_wires": 2
-    },
-    {
-      "from": 60,
-      "to": 61,
-      "shared_wires": 2
-    },
-    {
-      "from": 60,
-      "to": 63,
-      "shared_wires": 2
-    },
-    {
-      "from": 60,
-      "to": 90,
+      "from": 56,
+      "to": 128,
       "shared_wires": 2
     },
     {
       "from": 61,
-      "to": 62,
-      "shared_wires": 7
+      "to": 70,
+      "shared_wires": 1
+    },
+    {
+      "from": 62,
+      "to": 64,
+      "shared_wires": 2
+    },
+    {
+      "from": 62,
+      "to": 66,
+      "shared_wires": 2
+    },
+    {
+      "from": 62,
+      "to": 109,
+      "shared_wires": 2
     },
     {
       "from": 63,
       "to": 64,
-      "shared_wires": 8
+      "shared_wires": 2
+    },
+    {
+      "from": 63,
+      "to": 66,
+      "shared_wires": 2
+    },
+    {
+      "from": 63,
+      "to": 80,
+      "shared_wires": 2
+    },
+    {
+      "from": 63,
+      "to": 109,
+      "shared_wires": 2
     },
     {
       "from": 64,
       "to": 65,
+      "shared_wires": 6
+    },
+    {
+      "from": 66,
+      "to": 67,
+      "shared_wires": 8
+    },
+    {
+      "from": 67,
+      "to": 68,
       "shared_wires": 5
     },
     {
-      "from": 67,
-      "to": 86,
+      "from": 71,
+      "to": 105,
       "shared_wires": 2
     },
     {
-      "from": 67,
-      "to": 87,
+      "from": 71,
+      "to": 106,
       "shared_wires": 2
     },
     {
-      "from": 70,
-      "to": 71,
-      "shared_wires": 7
-    },
-    {
       "from": 74,
-      "to": 84,
-      "shared_wires": 1
-    },
-    {
-      "from": 74,
-      "to": 85,
-      "shared_wires": 1
-    },
-    {
-      "from": 74,
-      "to": 86,
-      "shared_wires": 1
-    },
-    {
-      "from": 74,
-      "to": 87,
-      "shared_wires": 1
-    },
-    {
-      "from": 74,
-      "to": 88,
-      "shared_wires": 1
-    },
-    {
-      "from": 75,
-      "to": 88,
-      "shared_wires": 2
-    },
-    {
-      "from": 75,
-      "to": 109,
-      "shared_wires": 2
+      "to": 75,
+      "shared_wires": 6
     },
     {
       "from": 76,
-      "to": 109,
-      "shared_wires": 2
+      "to": 78,
+      "shared_wires": 64
+    },
+    {
+      "from": 76,
+      "to": 86,
+      "shared_wires": 32
+    },
+    {
+      "from": 76,
+      "to": 90,
+      "shared_wires": 32
     },
     {
       "from": 77,
-      "to": 109,
-      "shared_wires": 2
+      "to": 78,
+      "shared_wires": 4
     },
     {
       "from": 78,
-      "to": 109,
+      "to": 86,
+      "shared_wires": 32
+    },
+    {
+      "from": 78,
+      "to": 90,
+      "shared_wires": 32
+    },
+    {
+      "from": 79,
+      "to": 82,
       "shared_wires": 2
     },
     {
       "from": 79,
-      "to": 88,
-      "shared_wires": 3
+      "to": 84,
+      "shared_wires": 2
     },
     {
       "from": 80,
-      "to": 101,
-      "shared_wires": 3
+      "to": 82,
+      "shared_wires": 2
+    },
+    {
+      "from": 80,
+      "to": 88,
+      "shared_wires": 2
     },
     {
       "from": 81,
-      "to": 102,
+      "to": 82,
+      "shared_wires": 2
+    },
+    {
+      "from": 82,
+      "to": 84,
+      "shared_wires": 1
+    },
+    {
+      "from": 82,
+      "to": 86,
       "shared_wires": 3
     },
     {
       "from": 82,
-      "to": 103,
-      "shared_wires": 3
-    },
-    {
-      "from": 83,
-      "to": 104,
-      "shared_wires": 3
-    },
-    {
-      "from": 84,
       "to": 88,
-      "shared_wires": 2
+      "shared_wires": 1
     },
     {
-      "from": 84,
-      "to": 89,
-      "shared_wires": 4
+      "from": 82,
+      "to": 90,
+      "shared_wires": 1
     },
     {
       "from": 85,
-      "to": 90,
-      "shared_wires": 4
+      "to": 86,
+      "shared_wires": 3
     },
     {
       "from": 86,
-      "to": 91,
-      "shared_wires": 4
+      "to": 83,
+      "shared_wires": 32
     },
     {
-      "from": 87,
-      "to": 92,
-      "shared_wires": 4
+      "from": 89,
+      "to": 90,
+      "shared_wires": 3
     },
     {
-      "from": 107,
-      "to": 109,
+      "from": 90,
+      "to": 87,
+      "shared_wires": 32
+    },
+    {
+      "from": 93,
+      "to": 103,
+      "shared_wires": 1
+    },
+    {
+      "from": 93,
+      "to": 104,
+      "shared_wires": 1
+    },
+    {
+      "from": 93,
+      "to": 105,
+      "shared_wires": 1
+    },
+    {
+      "from": 93,
+      "to": 106,
+      "shared_wires": 1
+    },
+    {
+      "from": 93,
+      "to": 107,
+      "shared_wires": 1
+    },
+    {
+      "from": 94,
+      "to": 107,
       "shared_wires": 2
     },
     {
-      "from": 109,
+      "from": 94,
+      "to": 128,
+      "shared_wires": 2
+    },
+    {
+      "from": 95,
+      "to": 128,
+      "shared_wires": 2
+    },
+    {
+      "from": 96,
+      "to": 128,
+      "shared_wires": 2
+    },
+    {
+      "from": 97,
+      "to": 128,
+      "shared_wires": 2
+    },
+    {
+      "from": 98,
+      "to": 107,
+      "shared_wires": 3
+    },
+    {
+      "from": 99,
+      "to": 120,
+      "shared_wires": 3
+    },
+    {
+      "from": 100,
+      "to": 121,
+      "shared_wires": 3
+    },
+    {
+      "from": 101,
+      "to": 122,
+      "shared_wires": 3
+    },
+    {
+      "from": 102,
+      "to": 123,
+      "shared_wires": 3
+    },
+    {
+      "from": 103,
+      "to": 107,
+      "shared_wires": 2
+    },
+    {
+      "from": 103,
+      "to": 108,
+      "shared_wires": 4
+    },
+    {
+      "from": 104,
+      "to": 109,
+      "shared_wires": 4
+    },
+    {
+      "from": 105,
       "to": 110,
+      "shared_wires": 4
+    },
+    {
+      "from": 106,
+      "to": 111,
+      "shared_wires": 4
+    },
+    {
+      "from": 126,
+      "to": 128,
+      "shared_wires": 2
+    },
+    {
+      "from": 128,
+      "to": 129,
       "shared_wires": 8
     }
   ],
@@ -1373,7 +2085,7 @@
     28,
     29,
     30,
-    32,
+    31,
     33,
     34,
     35,
@@ -1381,8 +2093,8 @@
     37,
     38,
     39,
-    42,
-    43,
+    40,
+    41,
     44,
     45,
     46,
@@ -1393,9 +2105,9 @@
     51,
     52,
     53,
+    54,
+    55,
     56,
-    57,
-    58,
     59,
     60,
     61,
@@ -1405,6 +2117,8 @@
     65,
     66,
     67,
+    68,
+    69,
     70,
     71,
     74,
@@ -1416,16 +2130,15 @@
     80,
     81,
     82,
-    83,
     84,
     85,
     86,
-    87,
+    83,
     88,
     89,
     90,
-    91,
-    92,
+    87,
+    93,
     94,
     95,
     96,
@@ -1437,10 +2150,28 @@
     102,
     103,
     104,
+    105,
     106,
     107,
+    108,
     109,
-    110
+    110,
+    111,
+    113,
+    114,
+    115,
+    116,
+    117,
+    118,
+    119,
+    120,
+    121,
+    122,
+    123,
+    125,
+    126,
+    128,
+    129
   ],
   "acyclic": true
 }

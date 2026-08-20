@@ -13,7 +13,7 @@ const OutputStatementFieldCount = 29
 const TransferStatementBaseFields = 39
 const TransferStatementFieldsPerInput = 3
 const TransferStatementFieldsPerOutput = 1
-const NoteReshapeStatementBaseFields = 6
+const NoteReshapeStatementBaseFields = 7
 const NoteReshapeStatementFieldsPerInput = 3
 const NoteReshapeStatementFieldsPerOutput = 1
 const ShieldedIcs20WithdrawalStatementBaseFields = 15
@@ -171,7 +171,7 @@ func NoteReshapeStatementHashForShape(
 	return transferStatementHashWithVersion(
 		api,
 		label,
-		"v3",
+		"v4",
 		fields,
 		NoteReshapeStatementFieldCount(nIn, nOut),
 	)
@@ -415,7 +415,7 @@ func NoteReshapeStatementHashNativeForShape(
 	return transferStatementHashNativeWithVersion(
 		fields,
 		label,
-		"v3",
+		"v4",
 		NoteReshapeStatementFieldCount(nIn, nOut),
 	)
 }

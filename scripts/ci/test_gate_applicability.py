@@ -141,6 +141,27 @@ class GateApplicabilityTests(unittest.TestCase):
         self.assertIn("declared skips", decision.explanation)
         self.assertIn("outside the declared closure", decision.matched[0]["reason"])
 
+    def test_path_patched_crate_follows_formal_cargo_closures(self) -> None:
+        path = "third_party/h2-0.3.27/src/lib.rs"
+        for declaration, expected in (
+            (self.snarkpack, ("run", "static")),
+            (self.soundness, ("run", "pr")),
+        ):
+            source = next(
+                item
+                for item in declaration.derived_inputs
+                if item["type"] == "cargo_local_closure"
+            )
+            rules = GATE.cargo_closure_rules(
+                self.root, source, "pull_request"
+            )
+            decision = GATE.classify(
+                declaration, "pull_request", [path], rules
+            )
+            with self.subTest(gate=declaration.gate):
+                self.assertEqual((decision.status, decision.tier), expected)
+                self.assertFalse(decision.unknown_files)
+
     def test_base_cargo_closure_classifies_deleted_workspace_package(
         self,
     ) -> None:
@@ -209,6 +230,85 @@ class GateApplicabilityTests(unittest.TestCase):
             )
 
         self.assertEqual((decision.status, decision.tier), ("skip", "skip"))
+        self.assertFalse(decision.unknown_files)
+        self.assertIn("base Cargo package", decision.matched[0]["reason"])
+
+    def test_base_cargo_closure_tracks_transitive_path_patch(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+            subprocess.run(
+                ["git", "config", "user.email", "ci@example.invalid"],
+                cwd=root,
+                check=True,
+            )
+            subprocess.run(
+                ["git", "config", "user.name", "CI"], cwd=root, check=True
+            )
+            (root / "Cargo.toml").write_text(
+                '[workspace]\nmembers = ["root-package"]\n'
+                'exclude = ["third_party/transport"]\n\n'
+                '[workspace.package]\nversion = "1.0.0"\n\n'
+                '[patch.crates-io]\n'
+                'transport = { path = "third_party/transport" }\n',
+                encoding="utf-8",
+            )
+            (root / "Cargo.lock").write_text(
+                'version = 4\n\n'
+                '[[package]]\nname = "root-package"\nversion = "1.0.0"\n'
+                'dependencies = ["relay"]\n\n'
+                '[[package]]\nname = "relay"\nversion = "1.0.0"\n'
+                'source = "registry+https://example.invalid/index"\n'
+                'dependencies = ["transport"]\n\n'
+                '[[package]]\nname = "transport"\nversion = "1.0.0"\n',
+                encoding="utf-8",
+            )
+            package_root = root / "root-package"
+            package_root.mkdir()
+            (package_root / "Cargo.toml").write_text(
+                '[package]\nname = "root-package"\nversion.workspace = true\n',
+                encoding="utf-8",
+            )
+            patch_root = root / "third_party/transport"
+            patch_root.mkdir(parents=True)
+            (patch_root / "Cargo.toml").write_text(
+                '[package]\nname = "transport"\nversion = "1.0.0"\n',
+                encoding="utf-8",
+            )
+            subprocess.run(
+                ["git", "add", "."], cwd=root, check=True, capture_output=True
+            )
+            subprocess.run(
+                ["git", "commit", "-qm", "base"], cwd=root, check=True
+            )
+            base = subprocess.run(
+                ["git", "rev-parse", "HEAD"],
+                cwd=root,
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout.strip()
+            source = {
+                "packages": ("root-package",),
+                "tiers": {
+                    "pull_request": "static",
+                    "merge_group": "full",
+                    "default": "full",
+                },
+                "reason": "fixture closure",
+            }
+
+            rules = GATE.cargo_closure_rules_at_revision(
+                root, source, "pull_request", base
+            )
+            decision = GATE.classify(
+                self.snarkpack,
+                "pull_request",
+                ["third_party/transport/src/lib.rs"],
+                rules,
+            )
+
+        self.assertEqual((decision.status, decision.tier), ("run", "static"))
         self.assertFalse(decision.unknown_files)
         self.assertIn("base Cargo package", decision.matched[0]["reason"])
 
@@ -312,37 +412,51 @@ class GateApplicabilityTests(unittest.TestCase):
         self.assertEqual(detail_value["unknown_files"], list(paths))
 
     def test_cargo_metadata_timeout_is_forwarded_and_bounded(self) -> None:
-        metadata = {
-            "packages": [
-                {
-                    "name": "fixture",
-                    "manifest_path": str(self.root / "fixture/Cargo.toml"),
-                    "dependencies": [],
-                }
-            ]
-        }
-        completed = subprocess.CompletedProcess(
-            args=["cargo", "metadata"],
-            returncode=0,
-            stdout=json.dumps(metadata),
-            stderr="",
-        )
-        source = {
-            "packages": ["fixture"],
-            "tiers": {"default": "static"},
-            "reason": "fixture closure",
-        }
-        with patch.object(
-            GATE.subprocess, "run", return_value=completed
-        ) as run:
-            rules = GATE.cargo_closure_rules(
-                self.root,
-                source,
-                "pull_request",
-                metadata_timeout_seconds=240,
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "fixture").mkdir()
+            (root / "Cargo.toml").write_text(
+                '[workspace]\nmembers = ["fixture"]\n', encoding="utf-8"
             )
-        self.assertEqual(rules[0].patterns, ("fixture/**", "fixture/Cargo.toml"))
-        self.assertEqual(run.call_args.kwargs["timeout"], 240)
+            (root / "Cargo.lock").write_text(
+                'version = 4\n\n'
+                '[[package]]\nname = "fixture"\nversion = "1.0.0"\n',
+                encoding="utf-8",
+            )
+            metadata = {
+                "packages": [
+                    {
+                        "name": "fixture",
+                        "version": "1.0.0",
+                        "manifest_path": str(root / "fixture/Cargo.toml"),
+                        "dependencies": [],
+                    }
+                ]
+            }
+            completed = subprocess.CompletedProcess(
+                args=["cargo", "metadata"],
+                returncode=0,
+                stdout=json.dumps(metadata),
+                stderr="",
+            )
+            source = {
+                "packages": ["fixture"],
+                "tiers": {"default": "static"},
+                "reason": "fixture closure",
+            }
+            with patch.object(
+                GATE.subprocess, "run", return_value=completed
+            ) as run:
+                rules = GATE.cargo_closure_rules(
+                    root,
+                    source,
+                    "pull_request",
+                    metadata_timeout_seconds=240,
+                )
+            self.assertEqual(
+                rules[0].patterns, ("fixture/**", "fixture/Cargo.toml")
+            )
+            self.assertEqual(run.call_args.kwargs["timeout"], 240)
 
         for timeout in (True, 0, -1, 901):
             with self.subTest(timeout=timeout):
@@ -538,6 +652,7 @@ class GateApplicabilityTests(unittest.TestCase):
         )
         self.assertIn("candidate|strict", runner)
         self.assertIn("--skip-semantic-digest", runner)
+        self.assertIn("--glob '!third_party/**'", runner)
         self.assertIn(
             'check-certified-circuit-spec-independence.sh "$MODE"',
             runner,

@@ -130,7 +130,7 @@ impl ::prost::Name for DepositRequest {
         "/shieldd.execution_client.v1.DepositRequest".into()
     }
 }
-/// HostSource identifies the host-chain message that caused a Shieldd deposit.
+/// HostSource identifies the canonical Bankd message that caused a Shieldd mutation.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct HostSource {
     /// Host-chain block height containing the deposit message.
@@ -142,6 +142,9 @@ pub struct HostSource {
     /// Zero-based message index within the host-chain transaction.
     #[prost(uint32, tag = "3")]
     pub msg_index: u32,
+    /// Zero-based transaction index within the host-chain block.
+    #[prost(uint32, tag = "4")]
+    pub tx_index: u32,
 }
 impl ::prost::Name for HostSource {
     const NAME: &'static str = "HostSource";
@@ -168,6 +171,94 @@ impl ::prost::Name for DepositResponse {
     }
     fn type_url() -> ::prost::alloc::string::String {
         "/shieldd.execution_client.v1.DepositResponse".into()
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct FreezeUserAsset {
+    #[prost(message, optional, tag = "1")]
+    pub address: ::core::option::Option<super::super::core::keys::v1::Address>,
+    #[prost(message, optional, tag = "2")]
+    pub asset_id: ::core::option::Option<super::super::core::asset::v1::AssetId>,
+}
+impl ::prost::Name for FreezeUserAsset {
+    const NAME: &'static str = "FreezeUserAsset";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.FreezeUserAsset".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.FreezeUserAsset".into()
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UnfreezeUserAsset {
+    #[prost(message, optional, tag = "1")]
+    pub address: ::core::option::Option<super::super::core::keys::v1::Address>,
+    #[prost(message, optional, tag = "2")]
+    pub asset_id: ::core::option::Option<super::super::core::asset::v1::AssetId>,
+}
+impl ::prost::Name for UnfreezeUserAsset {
+    const NAME: &'static str = "UnfreezeUserAsset";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.UnfreezeUserAsset".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.UnfreezeUserAsset".into()
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ApplyComplianceActionRequest {
+    #[prost(message, optional, tag = "1")]
+    pub source: ::core::option::Option<HostSource>,
+    #[prost(oneof = "apply_compliance_action_request::Action", tags = "2, 3")]
+    pub action: ::core::option::Option<apply_compliance_action_request::Action>,
+}
+/// Nested message and enum types in `ApplyComplianceActionRequest`.
+pub mod apply_compliance_action_request {
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Action {
+        #[prost(message, tag = "2")]
+        Freeze(super::FreezeUserAsset),
+        #[prost(message, tag = "3")]
+        Unfreeze(super::UnfreezeUserAsset),
+    }
+}
+impl ::prost::Name for ApplyComplianceActionRequest {
+    const NAME: &'static str = "ApplyComplianceActionRequest";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.ApplyComplianceActionRequest".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.ApplyComplianceActionRequest".into()
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ApplyComplianceActionResponse {
+    #[prost(message, optional, tag = "1")]
+    pub source: ::core::option::Option<HostSource>,
+    #[prost(
+        enumeration = "super::super::core::component::compliance::v1::UserAssetStatus",
+        tag = "2"
+    )]
+    pub previous_status: i32,
+    #[prost(
+        enumeration = "super::super::core::component::compliance::v1::UserAssetStatus",
+        tag = "3"
+    )]
+    pub current_status: i32,
+    #[prost(bool, tag = "4")]
+    pub replayed: bool,
+}
+impl ::prost::Name for ApplyComplianceActionResponse {
+    const NAME: &'static str = "ApplyComplianceActionResponse";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.ApplyComplianceActionResponse".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.ApplyComplianceActionResponse".into()
     }
 }
 /// CheckTxRequest carries a Shieldd transaction to validate without applying
@@ -526,8 +617,8 @@ pub mod execution_client_service_client {
     )]
     use tonic::codegen::*;
     use tonic::codegen::http::Uri;
-    /// ExecutionClientService is the gRPC boundary used by a host chain to drive Shieldd
-    /// execution without embedding the Shieldd app in-process.
+    /// ExecutionClientService is Bankd's typed boundary for driving its embedded
+    /// Shieldd subsystem within the same atomic block lifecycle.
     #[derive(Debug, Clone)]
     pub struct ExecutionClientServiceClient<T> {
         inner: tonic::client::Grpc<T>,
@@ -698,6 +789,36 @@ pub mod execution_client_service_client {
                     GrpcMethod::new(
                         "shieldd.execution_client.v1.ExecutionClientService",
                         "Deposit",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        /// ApplyComplianceAction applies a Bankd-authorized user/asset status transition.
+        pub async fn apply_compliance_action(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ApplyComplianceActionRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ApplyComplianceActionResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/shieldd.execution_client.v1.ExecutionClientService/ApplyComplianceAction",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "shieldd.execution_client.v1.ExecutionClientService",
+                        "ApplyComplianceAction",
                     ),
                 );
             self.inner.unary(req, path, codec).await
@@ -979,6 +1100,14 @@ pub mod execution_client_service_server {
             &self,
             request: tonic::Request<super::DepositRequest>,
         ) -> std::result::Result<tonic::Response<super::DepositResponse>, tonic::Status>;
+        /// ApplyComplianceAction applies a Bankd-authorized user/asset status transition.
+        async fn apply_compliance_action(
+            &self,
+            request: tonic::Request<super::ApplyComplianceActionRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ApplyComplianceActionResponse>,
+            tonic::Status,
+        >;
         /// CheckTx validates a Shieldd transaction supplied by the host chain without
         /// applying state changes.
         async fn check_tx(
@@ -1039,8 +1168,8 @@ pub mod execution_client_service_server {
             tonic::Status,
         >;
     }
-    /// ExecutionClientService is the gRPC boundary used by a host chain to drive Shieldd
-    /// execution without embedding the Shieldd app in-process.
+    /// ExecutionClientService is Bankd's typed boundary for driving its embedded
+    /// Shieldd subsystem within the same atomic block lifecycle.
     #[derive(Debug)]
     pub struct ExecutionClientServiceServer<T> {
         inner: Arc<T>,
@@ -1241,6 +1370,57 @@ pub mod execution_client_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = DepositSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/shieldd.execution_client.v1.ExecutionClientService/ApplyComplianceAction" => {
+                    #[allow(non_camel_case_types)]
+                    struct ApplyComplianceActionSvc<T: ExecutionClientService>(
+                        pub Arc<T>,
+                    );
+                    impl<
+                        T: ExecutionClientService,
+                    > tonic::server::UnaryService<super::ApplyComplianceActionRequest>
+                    for ApplyComplianceActionSvc<T> {
+                        type Response = super::ApplyComplianceActionResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ApplyComplianceActionRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as ExecutionClientService>::apply_compliance_action(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ApplyComplianceActionSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

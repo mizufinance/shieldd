@@ -55,7 +55,7 @@
   - [Note Commitments](./shielded_pool/note_commitments.md)
   - [Note Ciphertexts](./shielded_pool/note_ciphertexts.md)
   - [Transaction Actions](./shielded_pool/action.md)
-- [IBC Integration](./ibc.md)
+- [Legacy IBC Modules](./ibc.md)
   - [Transaction Actions](./ibc/action.md)
     - [`IbcRelay`](./ibc/action/ibc_relay.md)
     - [`Ics20Withdrawal`](./ibc/action/ics20_withdrawal.md)

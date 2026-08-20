@@ -17,16 +17,16 @@ namespace CrossRelation
 open Deployed.Templates.Relations.TDecafAssertEquivalent_44fe73acf05522f84376de4d4171a14b20527abf88695468311a6b63a8b891d7
 
 theorem x (rho : Nat → DeployedF) :
-    relationLc0 (Seg163.localRho rho) = balanceCommitmentComputed0 rho := by
+    relationLc0 (Seg167.localRho rho) = balanceCommitmentComputed0 rho := by
   unfold relationLc0
   simp only [
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
     StrideRun.eval, zero_add, one_mul, add_zero
   ]
-  rw [StrideRun.sumAux_add (Seg163.localRho rho) 3 1 149 101]
+  rw [StrideRun.sumAux_add (Seg167.localRho rho) 3 1 149 101]
   rw [NoteReshape8x1BalanceCrossRuns.x0, NoteReshape8x1BalanceCrossRuns.x1]
-  have hw2 : Seg163.wireSeating 2 = 123037 := by decide +kernel
-  simp only [Seg163.localRho, Deployed.Templates.seated, hw2]
+  have hw2 : Seg167.wireSeating 2 = 129355 := by decide +kernel
+  simp only [Seg167.localRho, Deployed.Templates.seated, hw2]
   simp only [
     balanceCommitmentComputed0, balanceCommitmentComputed0LC,
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
@@ -34,16 +34,16 @@ theorem x (rho : Nat → DeployedF) :
   ]
 
 theorem y (rho : Nat → DeployedF) :
-    relationLc1 (Seg163.localRho rho) = balanceCommitmentComputed1 rho := by
+    relationLc1 (Seg167.localRho rho) = balanceCommitmentComputed1 rho := by
   unfold relationLc1
   simp only [
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
     StrideRun.eval, zero_add, one_mul, add_zero
   ]
-  rw [StrideRun.sumAux_add (Seg163.localRho rho) 255 1 149 101]
+  rw [StrideRun.sumAux_add (Seg167.localRho rho) 255 1 149 101]
   rw [NoteReshape8x1BalanceCrossRuns.y0, NoteReshape8x1BalanceCrossRuns.y1]
-  have hw2 : Seg163.wireSeating 2 = 123037 := by decide +kernel
-  simp only [Seg163.localRho, Deployed.Templates.seated, hw2]
+  have hw2 : Seg167.wireSeating 2 = 129355 := by decide +kernel
+  simp only [Seg167.localRho, Deployed.Templates.seated, hw2]
   simp only [
     balanceCommitmentComputed1, balanceCommitmentComputed1LC,
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
@@ -61,8 +61,8 @@ theorem claimedOnCurve
   change
     Deployed.Templates.Semantics.TDecafAssertOnCurve_24bf85b2827b81673d6d4cc8defe8ee186fa904c91905b1d2fa2b9b734d52b7e.spec
       (Seg14.localRho rho) at h
-  have hw1 : Seg14.wireSeating 1 = 7 := by decide +kernel
-  have hw3 : Seg14.wireSeating 3 = 8 := by decide +kernel
+  have hw1 : Seg14.wireSeating 1 = 8 := by decide +kernel
+  have hw3 : Seg14.wireSeating 3 = 9 := by decide +kernel
   simpa [
     Deployed.Templates.Semantics.TDecafAssertOnCurve_24bf85b2827b81673d6d4cc8defe8ee186fa904c91905b1d2fa2b9b734d52b7e.spec,
     Deployed.Templates.Simple.onCurveSpec, EdwardsBridge.onCurve,
@@ -80,12 +80,12 @@ theorem crossRatio
     Decaf377Assumptions.AssertEquivalentSpec
       (NoteReshape8x1Balance.Nb.computed rho)
       ⟨claimedBalanceCommitment0 rho, claimedBalanceCommitment1 rho⟩ := by
-  have h := facts.balance.DecafAssertEquivalentSeg163
+  have h := facts.balance.DecafAssertEquivalentSeg167
   change
     Deployed.Templates.Semantics.TDecafAssertEquivalent_44fe73acf05522f84376de4d4171a14b20527abf88695468311a6b63a8b891d7.spec
-      (Seg163.localRho rho) at h
-  have hw1 : Seg163.wireSeating 1 = 8 := by decide +kernel
-  have hw254 : Seg163.wireSeating 254 = 7 := by decide +kernel
+      (Seg167.localRho rho) at h
+  have hw1 : Seg167.wireSeating 1 = 9 := by decide +kernel
+  have hw254 : Seg167.wireSeating 254 = 8 := by decide +kernel
   unfold
     Deployed.Templates.Semantics.TDecafAssertEquivalent_44fe73acf05522f84376de4d4171a14b20527abf88695468311a6b63a8b891d7.spec at h
   rw [CrossRelation.x, CrossRelation.y] at h
@@ -96,7 +96,7 @@ theorem crossRatio
     claimedBalanceCommitment0, claimedBalanceCommitment0LC,
     claimedBalanceCommitment1, claimedBalanceCommitment1LC,
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-    Seg163.localRho, Deployed.Templates.seated, hw1, hw254,
+    Seg167.localRho, Deployed.Templates.seated, hw1, hw254,
     mul_comm
   ] using h
 

@@ -27,6 +27,20 @@ def assetAnchorLC : StructuredLC SemanticF := {
 def assetAnchor (rho : Nat → SemanticF) : SemanticF :=
   StructuredLC.eval rho assetAnchorLC
 
+/-- Exact compiler LC `compliance_anchor`[0]`. -/
+def complianceAnchorLC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 3),
+  ]
+}
+
+def complianceAnchor (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho complianceAnchorLC
+
 /-- Exact compiler LC `routing.tag`[0]`. -/
 def routingTagLC : StructuredLC SemanticF := {
   const := (0 : SemanticF)
@@ -34,7 +48,7 @@ def routingTagLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 3),
+    ((1 : SemanticF), 4),
   ]
 }
 
@@ -48,7 +62,7 @@ def routingParameterSetIdLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 4),
+    ((1 : SemanticF), 5),
   ]
 }
 
@@ -62,7 +76,7 @@ def routingRegulatedPrecisionLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 11),
+    ((1 : SemanticF), 12),
   ]
 }
 
@@ -76,7 +90,7 @@ def routingUnregulatedPrecisionLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 12),
+    ((1 : SemanticF), 13),
   ]
 }
 
@@ -90,7 +104,7 @@ def routingAsOfHeightLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 13),
+    ((1 : SemanticF), 14),
   ]
 }
 
@@ -104,7 +118,7 @@ def routingNonceLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 14),
+    ((1 : SemanticF), 15),
   ]
 }
 
@@ -132,7 +146,7 @@ def recentPositionFloorLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 5),
+    ((1 : SemanticF), 6),
   ]
 }
 
@@ -146,7 +160,7 @@ def anchorLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 6),
+    ((1 : SemanticF), 7),
   ]
 }
 
@@ -160,7 +174,7 @@ def claimedBalanceCommitment0LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 7),
+    ((1 : SemanticF), 8),
   ]
 }
 
@@ -174,7 +188,7 @@ def claimedBalanceCommitment1LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 8),
+    ((1 : SemanticF), 9),
   ]
 }
 
@@ -198,12 +212,26 @@ def actionBalanceBlindingLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 9),
+    ((1 : SemanticF), 10),
   ]
 }
 
 def actionBalanceBlinding (rho : Nat → SemanticF) : SemanticF :=
   StructuredLC.eval rho actionBalanceBlindingLC
+
+/-- Exact compiler LC `is_regulated`[0]`. -/
+def isRegulatedLC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 11),
+  ]
+}
+
+def isRegulated (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho isRegulatedLC
 
 /-- Exact compiler LC `shared.asset_id`[0]`. -/
 def sharedAssetIdLC : StructuredLC SemanticF := {
@@ -212,7 +240,7 @@ def sharedAssetIdLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 15),
+    ((1 : SemanticF), 16),
   ]
 }
 
@@ -226,7 +254,7 @@ def sharedDivGen0LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 16),
+    ((1 : SemanticF), 17),
   ]
 }
 
@@ -240,7 +268,7 @@ def sharedDivGen1LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 17),
+    ((1 : SemanticF), 18),
   ]
 }
 
@@ -257,6 +285,804 @@ def sharedDivGenVector (rho : Nat → SemanticF) : List.Vector SemanticF 2 :=
 def sharedDivGenAt (rho : Nat → SemanticF) (index : Fin 2) : SemanticF :=
   (sharedDivGenVector rho)[index]
 
+/-- Exact compiler LC `sender.slot_id`[0]`. -/
+def senderSlotIdLC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 19),
+  ]
+}
+
+def senderSlotId (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderSlotIdLC
+
+/-- Exact compiler LC `sender.slot_derivation`[0]`. -/
+def senderSlotDerivationLC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 20),
+  ]
+}
+
+def senderSlotDerivation (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderSlotDerivationLC
+
+/-- Exact compiler LC `sender.d`[0]`. -/
+def senderDLC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 21),
+  ]
+}
+
+def senderD (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderDLC
+
+/-- Exact compiler LC `sender.status`[0]`. -/
+def senderStatusLC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 22),
+  ]
+}
+
+def senderStatus (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderStatusLC
+
+/-- Exact compiler LC `sender.path`[0]`. -/
+def senderPath0LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 23),
+  ]
+}
+
+def senderPath0 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath0LC
+
+/-- Exact compiler LC `sender.path`[1]`. -/
+def senderPath1LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 24),
+  ]
+}
+
+def senderPath1 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath1LC
+
+/-- Exact compiler LC `sender.path`[2]`. -/
+def senderPath2LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 25),
+  ]
+}
+
+def senderPath2 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath2LC
+
+/-- Exact compiler LC `sender.path`[3]`. -/
+def senderPath3LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 26),
+  ]
+}
+
+def senderPath3 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath3LC
+
+/-- Exact compiler LC `sender.path`[4]`. -/
+def senderPath4LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 27),
+  ]
+}
+
+def senderPath4 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath4LC
+
+/-- Exact compiler LC `sender.path`[5]`. -/
+def senderPath5LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 28),
+  ]
+}
+
+def senderPath5 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath5LC
+
+/-- Exact compiler LC `sender.path`[6]`. -/
+def senderPath6LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 29),
+  ]
+}
+
+def senderPath6 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath6LC
+
+/-- Exact compiler LC `sender.path`[7]`. -/
+def senderPath7LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 30),
+  ]
+}
+
+def senderPath7 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath7LC
+
+/-- Exact compiler LC `sender.path`[8]`. -/
+def senderPath8LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 31),
+  ]
+}
+
+def senderPath8 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath8LC
+
+/-- Exact compiler LC `sender.path`[9]`. -/
+def senderPath9LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 32),
+  ]
+}
+
+def senderPath9 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath9LC
+
+/-- Exact compiler LC `sender.path`[10]`. -/
+def senderPath10LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 33),
+  ]
+}
+
+def senderPath10 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath10LC
+
+/-- Exact compiler LC `sender.path`[11]`. -/
+def senderPath11LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 34),
+  ]
+}
+
+def senderPath11 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath11LC
+
+/-- Exact compiler LC `sender.path`[12]`. -/
+def senderPath12LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 35),
+  ]
+}
+
+def senderPath12 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath12LC
+
+/-- Exact compiler LC `sender.path`[13]`. -/
+def senderPath13LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 36),
+  ]
+}
+
+def senderPath13 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath13LC
+
+/-- Exact compiler LC `sender.path`[14]`. -/
+def senderPath14LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 37),
+  ]
+}
+
+def senderPath14 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath14LC
+
+/-- Exact compiler LC `sender.path`[15]`. -/
+def senderPath15LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 38),
+  ]
+}
+
+def senderPath15 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath15LC
+
+/-- Exact compiler LC `sender.path`[16]`. -/
+def senderPath16LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 39),
+  ]
+}
+
+def senderPath16 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath16LC
+
+/-- Exact compiler LC `sender.path`[17]`. -/
+def senderPath17LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 40),
+  ]
+}
+
+def senderPath17 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath17LC
+
+/-- Exact compiler LC `sender.path`[18]`. -/
+def senderPath18LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 41),
+  ]
+}
+
+def senderPath18 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath18LC
+
+/-- Exact compiler LC `sender.path`[19]`. -/
+def senderPath19LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 42),
+  ]
+}
+
+def senderPath19 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath19LC
+
+/-- Exact compiler LC `sender.path`[20]`. -/
+def senderPath20LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 43),
+  ]
+}
+
+def senderPath20 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath20LC
+
+/-- Exact compiler LC `sender.path`[21]`. -/
+def senderPath21LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 44),
+  ]
+}
+
+def senderPath21 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath21LC
+
+/-- Exact compiler LC `sender.path`[22]`. -/
+def senderPath22LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 45),
+  ]
+}
+
+def senderPath22 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath22LC
+
+/-- Exact compiler LC `sender.path`[23]`. -/
+def senderPath23LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 46),
+  ]
+}
+
+def senderPath23 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath23LC
+
+/-- Exact compiler LC `sender.path`[24]`. -/
+def senderPath24LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 47),
+  ]
+}
+
+def senderPath24 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath24LC
+
+/-- Exact compiler LC `sender.path`[25]`. -/
+def senderPath25LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 48),
+  ]
+}
+
+def senderPath25 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath25LC
+
+/-- Exact compiler LC `sender.path`[26]`. -/
+def senderPath26LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 49),
+  ]
+}
+
+def senderPath26 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath26LC
+
+/-- Exact compiler LC `sender.path`[27]`. -/
+def senderPath27LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 50),
+  ]
+}
+
+def senderPath27 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath27LC
+
+/-- Exact compiler LC `sender.path`[28]`. -/
+def senderPath28LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 51),
+  ]
+}
+
+def senderPath28 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath28LC
+
+/-- Exact compiler LC `sender.path`[29]`. -/
+def senderPath29LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 52),
+  ]
+}
+
+def senderPath29 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath29LC
+
+/-- Exact compiler LC `sender.path`[30]`. -/
+def senderPath30LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 53),
+  ]
+}
+
+def senderPath30 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath30LC
+
+/-- Exact compiler LC `sender.path`[31]`. -/
+def senderPath31LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 54),
+  ]
+}
+
+def senderPath31 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath31LC
+
+/-- Exact compiler LC `sender.path`[32]`. -/
+def senderPath32LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 55),
+  ]
+}
+
+def senderPath32 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath32LC
+
+/-- Exact compiler LC `sender.path`[33]`. -/
+def senderPath33LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 56),
+  ]
+}
+
+def senderPath33 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath33LC
+
+/-- Exact compiler LC `sender.path`[34]`. -/
+def senderPath34LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 57),
+  ]
+}
+
+def senderPath34 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath34LC
+
+/-- Exact compiler LC `sender.path`[35]`. -/
+def senderPath35LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 58),
+  ]
+}
+
+def senderPath35 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath35LC
+
+/-- Exact compiler LC `sender.path`[36]`. -/
+def senderPath36LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 59),
+  ]
+}
+
+def senderPath36 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath36LC
+
+/-- Exact compiler LC `sender.path`[37]`. -/
+def senderPath37LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 60),
+  ]
+}
+
+def senderPath37 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath37LC
+
+/-- Exact compiler LC `sender.path`[38]`. -/
+def senderPath38LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 61),
+  ]
+}
+
+def senderPath38 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath38LC
+
+/-- Exact compiler LC `sender.path`[39]`. -/
+def senderPath39LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 62),
+  ]
+}
+
+def senderPath39 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath39LC
+
+/-- Exact compiler LC `sender.path`[40]`. -/
+def senderPath40LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 63),
+  ]
+}
+
+def senderPath40 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath40LC
+
+/-- Exact compiler LC `sender.path`[41]`. -/
+def senderPath41LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 64),
+  ]
+}
+
+def senderPath41 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath41LC
+
+/-- Exact compiler LC `sender.path`[42]`. -/
+def senderPath42LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 65),
+  ]
+}
+
+def senderPath42 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath42LC
+
+/-- Exact compiler LC `sender.path`[43]`. -/
+def senderPath43LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 66),
+  ]
+}
+
+def senderPath43 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath43LC
+
+/-- Exact compiler LC `sender.path`[44]`. -/
+def senderPath44LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 67),
+  ]
+}
+
+def senderPath44 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath44LC
+
+/-- Exact compiler LC `sender.path`[45]`. -/
+def senderPath45LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 68),
+  ]
+}
+
+def senderPath45 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath45LC
+
+/-- Exact compiler LC `sender.path`[46]`. -/
+def senderPath46LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 69),
+  ]
+}
+
+def senderPath46 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath46LC
+
+/-- Exact compiler LC `sender.path`[47]`. -/
+def senderPath47LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 70),
+  ]
+}
+
+def senderPath47 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPath47LC
+
+/-- Ordered compiler expressions for `sender.path`. -/
+def senderPathVector (rho : Nat → SemanticF) : List.Vector SemanticF 48 :=
+  ⟨[
+    senderPath0 rho,
+    senderPath1 rho,
+    senderPath2 rho,
+    senderPath3 rho,
+    senderPath4 rho,
+    senderPath5 rho,
+    senderPath6 rho,
+    senderPath7 rho,
+    senderPath8 rho,
+    senderPath9 rho,
+    senderPath10 rho,
+    senderPath11 rho,
+    senderPath12 rho,
+    senderPath13 rho,
+    senderPath14 rho,
+    senderPath15 rho,
+    senderPath16 rho,
+    senderPath17 rho,
+    senderPath18 rho,
+    senderPath19 rho,
+    senderPath20 rho,
+    senderPath21 rho,
+    senderPath22 rho,
+    senderPath23 rho,
+    senderPath24 rho,
+    senderPath25 rho,
+    senderPath26 rho,
+    senderPath27 rho,
+    senderPath28 rho,
+    senderPath29 rho,
+    senderPath30 rho,
+    senderPath31 rho,
+    senderPath32 rho,
+    senderPath33 rho,
+    senderPath34 rho,
+    senderPath35 rho,
+    senderPath36 rho,
+    senderPath37 rho,
+    senderPath38 rho,
+    senderPath39 rho,
+    senderPath40 rho,
+    senderPath41 rho,
+    senderPath42 rho,
+    senderPath43 rho,
+    senderPath44 rho,
+    senderPath45 rho,
+    senderPath46 rho,
+    senderPath47 rho,
+  ], rfl⟩
+
+def senderPathAt (rho : Nat → SemanticF) (index : Fin 48) : SemanticF :=
+  (senderPathVector rho)[index]
+
+/-- Exact compiler LC `sender.position`[0]`. -/
+def senderPositionLC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 71),
+  ]
+}
+
+def senderPosition (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderPositionLC
+
 /-- Exact compiler LC `auth.ak`[0]`. -/
 def authAk0LC : StructuredLC SemanticF := {
   const := (0 : SemanticF)
@@ -264,7 +1090,7 @@ def authAk0LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 18),
+    ((1 : SemanticF), 72),
   ]
 }
 
@@ -278,7 +1104,7 @@ def authAk1LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 19),
+    ((1 : SemanticF), 73),
   ]
 }
 
@@ -302,7 +1128,7 @@ def authNkLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 20),
+    ((1 : SemanticF), 74),
   ]
 }
 
@@ -316,7 +1142,7 @@ def authIvkReducedLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 21),
+    ((1 : SemanticF), 75),
   ]
 }
 
@@ -330,7 +1156,7 @@ def authIvkQuotientALC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 22),
+    ((1 : SemanticF), 76),
   ]
 }
 
@@ -344,8 +1170,8 @@ def sharedDivGenFqLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 558),
-    ((1 : SemanticF), 898),
+    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 612),
+    ((1 : SemanticF), 952),
   ]
 }
 
@@ -359,8 +1185,8 @@ def sharedTransmissionComputed0LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 5853),
-    ((1 : SemanticF), 5861),
+    ((1 : SemanticF), 5907),
+    ((1 : SemanticF), 5915),
   ]
 }
 
@@ -374,8 +1200,8 @@ def sharedTransmissionComputed1LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 5854),
-    ((1 : SemanticF), 5862),
+    ((1 : SemanticF), 5908),
+    ((1 : SemanticF), 5916),
   ]
 }
 
@@ -399,8 +1225,8 @@ def sharedTransmissionFqLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 6226),
-    ((1 : SemanticF), 6566),
+    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 6280),
+    ((1 : SemanticF), 6620),
   ]
 }
 
@@ -414,8 +1240,8 @@ def assetLeafDkPubFqLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 6929),
-    ((1 : SemanticF), 7269),
+    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 6983),
+    ((1 : SemanticF), 7323),
   ]
 }
 
@@ -429,11 +1255,11 @@ def assetLeafParamsHashLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((7037051457856975353540687448984622109479916112628386523279361213264507699201 : SemanticF), 7599),
-    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 7604),
-    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 7609),
-    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 7614),
-    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 7619),
+    ((7037051457856975353540687448984622109479916112628386523279361213264507699201 : SemanticF), 7653),
+    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 7658),
+    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 7663),
+    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 7668),
+    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 7673),
   ]
 }
 
@@ -447,8 +1273,8 @@ def assetLeafRingPkFqLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 7982),
-    ((1 : SemanticF), 8322),
+    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 8036),
+    ((1 : SemanticF), 8376),
   ]
 }
 
@@ -462,12 +1288,12 @@ def assetLeafRingHashLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 8687),
-    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 8692),
-    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 8697),
-    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 8702),
-    ((2303035022571373752067861346940421781284336182314744680345972760704747974284 : SemanticF), 8707),
-    ((7740756603642672888894756193883084320427907723891225175607297334590958469121 : SemanticF), 8712),
+    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 8741),
+    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 8746),
+    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 8751),
+    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 8756),
+    ((2303035022571373752067861346940421781284336182314744680345972760704747974284 : SemanticF), 8761),
+    ((7740756603642672888894756193883084320427907723891225175607297334590958469121 : SemanticF), 8766),
   ]
 }
 
@@ -481,12 +1307,12 @@ def assetLeafCommitmentLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 9077),
-    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 9082),
-    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 9087),
-    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 9092),
-    ((2303035022571373752067861346940421781284336182314744680345972760704747974284 : SemanticF), 9097),
-    ((7740756603642672888894756193883084320427907723891225175607297334590958469121 : SemanticF), 9102),
+    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 9131),
+    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 9136),
+    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 9141),
+    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 9146),
+    ((2303035022571373752067861346940421781284336182314744680345972760704747974284 : SemanticF), 9151),
+    ((7740756603642672888894756193883084320427907723891225175607297334590958469121 : SemanticF), 9156),
   ]
 }
 
@@ -500,11 +1326,11 @@ def assetRootComputedLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((7037051457856975353540687448984622109479916112628386523279361213264507699201 : SemanticF), 14874),
-    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 14879),
-    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 14884),
-    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 14889),
-    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 14894),
+    ((7037051457856975353540687448984622109479916112628386523279361213264507699201 : SemanticF), 14928),
+    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 14933),
+    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 14938),
+    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 14943),
+    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 14948),
   ]
 }
 
@@ -518,13 +1344,52 @@ def assetGapValidLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 17934),
-    ((1 : SemanticF), 17935),
+    ((1 : SemanticF), 17988),
+    ((1 : SemanticF), 17989),
   ]
 }
 
 def assetGapValid (rho : Nat → SemanticF) : SemanticF :=
   StructuredLC.eval rho assetGapValidLC
+
+/-- Exact compiler LC `sender.leaf_commitment`[0]`. -/
+def senderLeafCommitmentLC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 18424),
+    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 18429),
+    ((2303035022571373752067861346940421781284336182314744680345972760704747974284 : SemanticF), 18434),
+    ((7740756603642672888894756193883084320427907723891225175607297334590958469121 : SemanticF), 18439),
+    ((7794887768703111160845069174259889105885445540142212764247907805462223912961 : SemanticF), 18444),
+    ((7841285910183486822516766014582864636277620811214487840225573923351880007681 : SemanticF), 18449),
+    ((7881497632799812395965569942862776762617506046143792906072884558856248623105 : SemanticF), 18454),
+    ((7916682890089097272733273380107699873164905626706934838689281364922571161601 : SemanticF), 18459),
+  ]
+}
+
+def senderLeafCommitment (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderLeafCommitmentLC
+
+/-- Exact compiler LC `sender.compliance_root`[0]`. -/
+def senderComplianceRootLC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((7037051457856975353540687448984622109479916112628386523279361213264507699201 : SemanticF), 24231),
+    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 24236),
+    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 24241),
+    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 24246),
+    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 24251),
+  ]
+}
+
+def senderComplianceRoot (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho senderComplianceRootLC
 
 /-- Exact compiler LC `spend0.note_commitment.inputs`[0]`. -/
 def spend0NoteCommitmentInputs0LC : StructuredLC SemanticF := {
@@ -533,7 +1398,7 @@ def spend0NoteCommitmentInputs0LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 89),
+    ((1 : SemanticF), 143),
   ]
 }
 
@@ -547,7 +1412,7 @@ def spend0NoteCommitmentInputs1LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 90),
+    ((1 : SemanticF), 144),
   ]
 }
 
@@ -561,7 +1426,7 @@ def spend0NoteCommitmentInputs2LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 15),
+    ((1 : SemanticF), 16),
   ]
 }
 
@@ -575,8 +1440,8 @@ def spend0NoteCommitmentInputs3LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 558),
-    ((1 : SemanticF), 898),
+    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 612),
+    ((1 : SemanticF), 952),
   ]
 }
 
@@ -590,8 +1455,8 @@ def spend0NoteCommitmentInputs4LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 6226),
-    ((1 : SemanticF), 6566),
+    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 6280),
+    ((1 : SemanticF), 6620),
   ]
 }
 
@@ -618,12 +1483,12 @@ def spend0NoteCommitmentComputedLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 20540),
-    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 20545),
-    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 20550),
-    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 20555),
-    ((2303035022571373752067861346940421781284336182314744680345972760704747974284 : SemanticF), 20560),
-    ((7740756603642672888894756193883084320427907723891225175607297334590958469121 : SemanticF), 20565),
+    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 26858),
+    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 26863),
+    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 26868),
+    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 26873),
+    ((2303035022571373752067861346940421781284336182314744680345972760704747974284 : SemanticF), 26878),
+    ((7740756603642672888894756193883084320427907723891225175607297334590958469121 : SemanticF), 26883),
   ]
 }
 
@@ -637,7 +1502,7 @@ def spend0StateProofCommitmentLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 91),
+    ((1 : SemanticF), 145),
   ]
 }
 
@@ -651,10 +1516,10 @@ def spend0NullifierComputedLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((6755569399542696339399059951025237225100719468123251062348186764733927391233 : SemanticF), 20860),
-    ((7037051457856975353540687448984622109479916112628386523279361213264507699201 : SemanticF), 20865),
-    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 20870),
-    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 20875),
+    ((6755569399542696339399059951025237225100719468123251062348186764733927391233 : SemanticF), 27178),
+    ((7037051457856975353540687448984622109479916112628386523279361213264507699201 : SemanticF), 27183),
+    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 27188),
+    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 27193),
   ]
 }
 
@@ -668,7 +1533,7 @@ def spend0NullifierClaimedLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 86),
+    ((1 : SemanticF), 140),
   ]
 }
 
@@ -682,11 +1547,11 @@ def spend0AnchorComputedLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((7037051457856975353540687448984622109479916112628386523279361213264507699201 : SemanticF), 29773),
-    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 29778),
-    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 29783),
-    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 29788),
-    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 29793),
+    ((7037051457856975353540687448984622109479916112628386523279361213264507699201 : SemanticF), 36091),
+    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 36096),
+    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 36101),
+    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 36106),
+    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 36111),
   ]
 }
 
@@ -700,7 +1565,7 @@ def spend0RkComputed0LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 31603),
+    ((1 : SemanticF), 37921),
   ]
 }
 
@@ -714,7 +1579,7 @@ def spend0RkComputed1LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 31604),
+    ((1 : SemanticF), 37922),
   ]
 }
 
@@ -738,7 +1603,7 @@ def spend0RkClaimed0LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 87),
+    ((1 : SemanticF), 141),
   ]
 }
 
@@ -752,7 +1617,7 @@ def spend0RkClaimed1LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 88),
+    ((1 : SemanticF), 142),
   ]
 }
 
@@ -776,8 +1641,8 @@ def spend0RkCompressedLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 31969),
-    ((1 : SemanticF), 32309),
+    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 38287),
+    ((1 : SemanticF), 38627),
   ]
 }
 
@@ -791,7 +1656,7 @@ def spend0HistoryRequiredLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 166),
+    ((1 : SemanticF), 220),
   ]
 }
 
@@ -805,7 +1670,7 @@ def output0NoteCommitmentInputs0LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 168),
+    ((1 : SemanticF), 222),
   ]
 }
 
@@ -819,7 +1684,7 @@ def output0NoteCommitmentInputs1LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 169),
+    ((1 : SemanticF), 223),
   ]
 }
 
@@ -833,7 +1698,7 @@ def output0NoteCommitmentInputs2LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 15),
+    ((1 : SemanticF), 16),
   ]
 }
 
@@ -847,8 +1712,8 @@ def output0NoteCommitmentInputs3LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 558),
-    ((1 : SemanticF), 898),
+    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 612),
+    ((1 : SemanticF), 952),
   ]
 }
 
@@ -862,8 +1727,8 @@ def output0NoteCommitmentInputs4LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 6226),
-    ((1 : SemanticF), 6566),
+    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 6280),
+    ((1 : SemanticF), 6620),
   ]
 }
 
@@ -890,12 +1755,12 @@ def output0NoteCommitmentComputedLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 32820),
-    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 32825),
-    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 32830),
-    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 32835),
-    ((2303035022571373752067861346940421781284336182314744680345972760704747974284 : SemanticF), 32840),
-    ((7740756603642672888894756193883084320427907723891225175607297334590958469121 : SemanticF), 32845),
+    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 39138),
+    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 39143),
+    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 39148),
+    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 39153),
+    ((2303035022571373752067861346940421781284336182314744680345972760704747974284 : SemanticF), 39158),
+    ((7740756603642672888894756193883084320427907723891225175607297334590958469121 : SemanticF), 39163),
   ]
 }
 
@@ -909,7 +1774,7 @@ def output0NoteCommitmentClaimedLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 167),
+    ((1 : SemanticF), 221),
   ]
 }
 
@@ -923,7 +1788,7 @@ def output1NoteCommitmentInputs0LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 171),
+    ((1 : SemanticF), 225),
   ]
 }
 
@@ -937,7 +1802,7 @@ def output1NoteCommitmentInputs1LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 172),
+    ((1 : SemanticF), 226),
   ]
 }
 
@@ -951,7 +1816,7 @@ def output1NoteCommitmentInputs2LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 15),
+    ((1 : SemanticF), 16),
   ]
 }
 
@@ -965,8 +1830,8 @@ def output1NoteCommitmentInputs3LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 558),
-    ((1 : SemanticF), 898),
+    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 612),
+    ((1 : SemanticF), 952),
   ]
 }
 
@@ -980,8 +1845,8 @@ def output1NoteCommitmentInputs4LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 6226),
-    ((1 : SemanticF), 6566),
+    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 6280),
+    ((1 : SemanticF), 6620),
   ]
 }
 
@@ -1008,12 +1873,12 @@ def output1NoteCommitmentComputedLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 33210),
-    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 33215),
-    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 33220),
-    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 33225),
-    ((2303035022571373752067861346940421781284336182314744680345972760704747974284 : SemanticF), 33230),
-    ((7740756603642672888894756193883084320427907723891225175607297334590958469121 : SemanticF), 33235),
+    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 39528),
+    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 39533),
+    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 39538),
+    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 39543),
+    ((2303035022571373752067861346940421781284336182314744680345972760704747974284 : SemanticF), 39548),
+    ((7740756603642672888894756193883084320427907723891225175607297334590958469121 : SemanticF), 39553),
   ]
 }
 
@@ -1027,7 +1892,7 @@ def output1NoteCommitmentClaimedLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 170),
+    ((1 : SemanticF), 224),
   ]
 }
 
@@ -1041,7 +1906,7 @@ def output2NoteCommitmentInputs0LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 174),
+    ((1 : SemanticF), 228),
   ]
 }
 
@@ -1055,7 +1920,7 @@ def output2NoteCommitmentInputs1LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 175),
+    ((1 : SemanticF), 229),
   ]
 }
 
@@ -1069,7 +1934,7 @@ def output2NoteCommitmentInputs2LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 15),
+    ((1 : SemanticF), 16),
   ]
 }
 
@@ -1083,8 +1948,8 @@ def output2NoteCommitmentInputs3LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 558),
-    ((1 : SemanticF), 898),
+    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 612),
+    ((1 : SemanticF), 952),
   ]
 }
 
@@ -1098,8 +1963,8 @@ def output2NoteCommitmentInputs4LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 6226),
-    ((1 : SemanticF), 6566),
+    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 6280),
+    ((1 : SemanticF), 6620),
   ]
 }
 
@@ -1126,12 +1991,12 @@ def output2NoteCommitmentComputedLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 33600),
-    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 33605),
-    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 33610),
-    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 33615),
-    ((2303035022571373752067861346940421781284336182314744680345972760704747974284 : SemanticF), 33620),
-    ((7740756603642672888894756193883084320427907723891225175607297334590958469121 : SemanticF), 33625),
+    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 39918),
+    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 39923),
+    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 39928),
+    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 39933),
+    ((2303035022571373752067861346940421781284336182314744680345972760704747974284 : SemanticF), 39938),
+    ((7740756603642672888894756193883084320427907723891225175607297334590958469121 : SemanticF), 39943),
   ]
 }
 
@@ -1145,7 +2010,7 @@ def output2NoteCommitmentClaimedLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 173),
+    ((1 : SemanticF), 227),
   ]
 }
 
@@ -1159,7 +2024,7 @@ def output3NoteCommitmentInputs0LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 177),
+    ((1 : SemanticF), 231),
   ]
 }
 
@@ -1173,7 +2038,7 @@ def output3NoteCommitmentInputs1LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 178),
+    ((1 : SemanticF), 232),
   ]
 }
 
@@ -1187,7 +2052,7 @@ def output3NoteCommitmentInputs2LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 15),
+    ((1 : SemanticF), 16),
   ]
 }
 
@@ -1201,8 +2066,8 @@ def output3NoteCommitmentInputs3LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 558),
-    ((1 : SemanticF), 898),
+    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 612),
+    ((1 : SemanticF), 952),
   ]
 }
 
@@ -1216,8 +2081,8 @@ def output3NoteCommitmentInputs4LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 6226),
-    ((1 : SemanticF), 6566),
+    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 6280),
+    ((1 : SemanticF), 6620),
   ]
 }
 
@@ -1244,12 +2109,12 @@ def output3NoteCommitmentComputedLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 33990),
-    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 33995),
-    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 34000),
-    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 34005),
-    ((2303035022571373752067861346940421781284336182314744680345972760704747974284 : SemanticF), 34010),
-    ((7740756603642672888894756193883084320427907723891225175607297334590958469121 : SemanticF), 34015),
+    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 40308),
+    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 40313),
+    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 40318),
+    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 40323),
+    ((2303035022571373752067861346940421781284336182314744680345972760704747974284 : SemanticF), 40328),
+    ((7740756603642672888894756193883084320427907723891225175607297334590958469121 : SemanticF), 40333),
   ]
 }
 
@@ -1263,7 +2128,7 @@ def output3NoteCommitmentClaimedLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 176),
+    ((1 : SemanticF), 230),
   ]
 }
 
@@ -1277,7 +2142,7 @@ def output4NoteCommitmentInputs0LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 180),
+    ((1 : SemanticF), 234),
   ]
 }
 
@@ -1291,7 +2156,7 @@ def output4NoteCommitmentInputs1LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 181),
+    ((1 : SemanticF), 235),
   ]
 }
 
@@ -1305,7 +2170,7 @@ def output4NoteCommitmentInputs2LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 15),
+    ((1 : SemanticF), 16),
   ]
 }
 
@@ -1319,8 +2184,8 @@ def output4NoteCommitmentInputs3LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 558),
-    ((1 : SemanticF), 898),
+    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 612),
+    ((1 : SemanticF), 952),
   ]
 }
 
@@ -1334,8 +2199,8 @@ def output4NoteCommitmentInputs4LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 6226),
-    ((1 : SemanticF), 6566),
+    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 6280),
+    ((1 : SemanticF), 6620),
   ]
 }
 
@@ -1362,12 +2227,12 @@ def output4NoteCommitmentComputedLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 34380),
-    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 34385),
-    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 34390),
-    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 34395),
-    ((2303035022571373752067861346940421781284336182314744680345972760704747974284 : SemanticF), 34400),
-    ((7740756603642672888894756193883084320427907723891225175607297334590958469121 : SemanticF), 34405),
+    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 40698),
+    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 40703),
+    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 40708),
+    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 40713),
+    ((2303035022571373752067861346940421781284336182314744680345972760704747974284 : SemanticF), 40718),
+    ((7740756603642672888894756193883084320427907723891225175607297334590958469121 : SemanticF), 40723),
   ]
 }
 
@@ -1381,7 +2246,7 @@ def output4NoteCommitmentClaimedLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 179),
+    ((1 : SemanticF), 233),
   ]
 }
 
@@ -1395,7 +2260,7 @@ def output5NoteCommitmentInputs0LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 183),
+    ((1 : SemanticF), 237),
   ]
 }
 
@@ -1409,7 +2274,7 @@ def output5NoteCommitmentInputs1LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 184),
+    ((1 : SemanticF), 238),
   ]
 }
 
@@ -1423,7 +2288,7 @@ def output5NoteCommitmentInputs2LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 15),
+    ((1 : SemanticF), 16),
   ]
 }
 
@@ -1437,8 +2302,8 @@ def output5NoteCommitmentInputs3LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 558),
-    ((1 : SemanticF), 898),
+    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 612),
+    ((1 : SemanticF), 952),
   ]
 }
 
@@ -1452,8 +2317,8 @@ def output5NoteCommitmentInputs4LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 6226),
-    ((1 : SemanticF), 6566),
+    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 6280),
+    ((1 : SemanticF), 6620),
   ]
 }
 
@@ -1480,12 +2345,12 @@ def output5NoteCommitmentComputedLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 34770),
-    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 34775),
-    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 34780),
-    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 34785),
-    ((2303035022571373752067861346940421781284336182314744680345972760704747974284 : SemanticF), 34790),
-    ((7740756603642672888894756193883084320427907723891225175607297334590958469121 : SemanticF), 34795),
+    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 41088),
+    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 41093),
+    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 41098),
+    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 41103),
+    ((2303035022571373752067861346940421781284336182314744680345972760704747974284 : SemanticF), 41108),
+    ((7740756603642672888894756193883084320427907723891225175607297334590958469121 : SemanticF), 41113),
   ]
 }
 
@@ -1499,7 +2364,7 @@ def output5NoteCommitmentClaimedLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 182),
+    ((1 : SemanticF), 236),
   ]
 }
 
@@ -1513,7 +2378,7 @@ def output6NoteCommitmentInputs0LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 186),
+    ((1 : SemanticF), 240),
   ]
 }
 
@@ -1527,7 +2392,7 @@ def output6NoteCommitmentInputs1LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 187),
+    ((1 : SemanticF), 241),
   ]
 }
 
@@ -1541,7 +2406,7 @@ def output6NoteCommitmentInputs2LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 15),
+    ((1 : SemanticF), 16),
   ]
 }
 
@@ -1555,8 +2420,8 @@ def output6NoteCommitmentInputs3LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 558),
-    ((1 : SemanticF), 898),
+    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 612),
+    ((1 : SemanticF), 952),
   ]
 }
 
@@ -1570,8 +2435,8 @@ def output6NoteCommitmentInputs4LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 6226),
-    ((1 : SemanticF), 6566),
+    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 6280),
+    ((1 : SemanticF), 6620),
   ]
 }
 
@@ -1598,12 +2463,12 @@ def output6NoteCommitmentComputedLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 35160),
-    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 35165),
-    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 35170),
-    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 35175),
-    ((2303035022571373752067861346940421781284336182314744680345972760704747974284 : SemanticF), 35180),
-    ((7740756603642672888894756193883084320427907723891225175607297334590958469121 : SemanticF), 35185),
+    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 41478),
+    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 41483),
+    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 41488),
+    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 41493),
+    ((2303035022571373752067861346940421781284336182314744680345972760704747974284 : SemanticF), 41498),
+    ((7740756603642672888894756193883084320427907723891225175607297334590958469121 : SemanticF), 41503),
   ]
 }
 
@@ -1617,7 +2482,7 @@ def output6NoteCommitmentClaimedLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 185),
+    ((1 : SemanticF), 239),
   ]
 }
 
@@ -1631,7 +2496,7 @@ def output7NoteCommitmentInputs0LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 189),
+    ((1 : SemanticF), 243),
   ]
 }
 
@@ -1645,7 +2510,7 @@ def output7NoteCommitmentInputs1LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 190),
+    ((1 : SemanticF), 244),
   ]
 }
 
@@ -1659,7 +2524,7 @@ def output7NoteCommitmentInputs2LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 15),
+    ((1 : SemanticF), 16),
   ]
 }
 
@@ -1673,8 +2538,8 @@ def output7NoteCommitmentInputs3LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 558),
-    ((1 : SemanticF), 898),
+    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 612),
+    ((1 : SemanticF), 952),
   ]
 }
 
@@ -1688,8 +2553,8 @@ def output7NoteCommitmentInputs4LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 6226),
-    ((1 : SemanticF), 6566),
+    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 6280),
+    ((1 : SemanticF), 6620),
   ]
 }
 
@@ -1716,12 +2581,12 @@ def output7NoteCommitmentComputedLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 35550),
-    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 35555),
-    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 35560),
-    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 35565),
-    ((2303035022571373752067861346940421781284336182314744680345972760704747974284 : SemanticF), 35570),
-    ((7740756603642672888894756193883084320427907723891225175607297334590958469121 : SemanticF), 35575),
+    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 41868),
+    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 41873),
+    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 41878),
+    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 41883),
+    ((2303035022571373752067861346940421781284336182314744680345972760704747974284 : SemanticF), 41888),
+    ((7740756603642672888894756193883084320427907723891225175607297334590958469121 : SemanticF), 41893),
   ]
 }
 
@@ -1735,7 +2600,7 @@ def output7NoteCommitmentClaimedLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 188),
+    ((1 : SemanticF), 242),
   ]
 }
 
@@ -1746,11 +2611,11 @@ def output7NoteCommitmentClaimed (rho : Nat → SemanticF) : SemanticF :=
 def balanceCommitmentComputed0LC : StructuredLC SemanticF := {
   const := (0 : SemanticF)
   runs := [
-    { coeff := (1 : SemanticF), start := 36982, stride := 5, count := 149 },
-    { coeff := (1 : SemanticF), start := 37730, stride := 8, count := 101 },
+    { coeff := (1 : SemanticF), start := 43300, stride := 5, count := 149 },
+    { coeff := (1 : SemanticF), start := 44048, stride := 8, count := 101 },
   ]
   residual := [
-    ((4661681602708190761543544705274244814260880986867766715334030151044279151219 : SemanticF), 36728),
+    ((4661681602708190761543544705274244814260880986867766715334030151044279151219 : SemanticF), 43046),
   ]
 }
 
@@ -1761,11 +2626,11 @@ def balanceCommitmentComputed0 (rho : Nat → SemanticF) : SemanticF :=
 def balanceCommitmentComputed1LC : StructuredLC SemanticF := {
   const := (1 : SemanticF)
   runs := [
-    { coeff := (1 : SemanticF), start := 36983, stride := 5, count := 149 },
-    { coeff := (1 : SemanticF), start := 37731, stride := 8, count := 101 },
+    { coeff := (1 : SemanticF), start := 43301, stride := 5, count := 149 },
+    { coeff := (1 : SemanticF), start := 44049, stride := 8, count := 101 },
   ]
   residual := [
-    ((4337336842509898676347982752646772244181661588533917621717979456142867120377 : SemanticF), 36728),
+    ((4337336842509898676347982752646772244181661588533917621717979456142867120377 : SemanticF), 43046),
   ]
 }
 
@@ -1789,8 +2654,8 @@ def balanceCommitmentFqLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 38896),
-    ((1 : SemanticF), 39236),
+    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 45214),
+    ((1 : SemanticF), 45554),
   ]
 }
 
@@ -1804,7 +2669,7 @@ def statementFields0LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 6),
+    ((1 : SemanticF), 7),
   ]
 }
 
@@ -1818,12 +2683,12 @@ def statementFields1LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 32820),
-    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 32825),
-    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 32830),
-    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 32835),
-    ((2303035022571373752067861346940421781284336182314744680345972760704747974284 : SemanticF), 32840),
-    ((7740756603642672888894756193883084320427907723891225175607297334590958469121 : SemanticF), 32845),
+    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 39138),
+    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 39143),
+    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 39148),
+    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 39153),
+    ((2303035022571373752067861346940421781284336182314744680345972760704747974284 : SemanticF), 39158),
+    ((7740756603642672888894756193883084320427907723891225175607297334590958469121 : SemanticF), 39163),
   ]
 }
 
@@ -1837,12 +2702,12 @@ def statementFields2LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 33210),
-    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 33215),
-    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 33220),
-    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 33225),
-    ((2303035022571373752067861346940421781284336182314744680345972760704747974284 : SemanticF), 33230),
-    ((7740756603642672888894756193883084320427907723891225175607297334590958469121 : SemanticF), 33235),
+    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 39528),
+    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 39533),
+    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 39538),
+    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 39543),
+    ((2303035022571373752067861346940421781284336182314744680345972760704747974284 : SemanticF), 39548),
+    ((7740756603642672888894756193883084320427907723891225175607297334590958469121 : SemanticF), 39553),
   ]
 }
 
@@ -1856,12 +2721,12 @@ def statementFields3LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 33600),
-    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 33605),
-    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 33610),
-    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 33615),
-    ((2303035022571373752067861346940421781284336182314744680345972760704747974284 : SemanticF), 33620),
-    ((7740756603642672888894756193883084320427907723891225175607297334590958469121 : SemanticF), 33625),
+    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 39918),
+    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 39923),
+    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 39928),
+    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 39933),
+    ((2303035022571373752067861346940421781284336182314744680345972760704747974284 : SemanticF), 39938),
+    ((7740756603642672888894756193883084320427907723891225175607297334590958469121 : SemanticF), 39943),
   ]
 }
 
@@ -1875,12 +2740,12 @@ def statementFields4LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 33990),
-    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 33995),
-    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 34000),
-    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 34005),
-    ((2303035022571373752067861346940421781284336182314744680345972760704747974284 : SemanticF), 34010),
-    ((7740756603642672888894756193883084320427907723891225175607297334590958469121 : SemanticF), 34015),
+    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 40308),
+    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 40313),
+    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 40318),
+    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 40323),
+    ((2303035022571373752067861346940421781284336182314744680345972760704747974284 : SemanticF), 40328),
+    ((7740756603642672888894756193883084320427907723891225175607297334590958469121 : SemanticF), 40333),
   ]
 }
 
@@ -1894,12 +2759,12 @@ def statementFields5LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 34380),
-    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 34385),
-    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 34390),
-    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 34395),
-    ((2303035022571373752067861346940421781284336182314744680345972760704747974284 : SemanticF), 34400),
-    ((7740756603642672888894756193883084320427907723891225175607297334590958469121 : SemanticF), 34405),
+    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 40698),
+    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 40703),
+    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 40708),
+    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 40713),
+    ((2303035022571373752067861346940421781284336182314744680345972760704747974284 : SemanticF), 40718),
+    ((7740756603642672888894756193883084320427907723891225175607297334590958469121 : SemanticF), 40723),
   ]
 }
 
@@ -1913,12 +2778,12 @@ def statementFields6LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 34770),
-    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 34775),
-    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 34780),
-    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 34785),
-    ((2303035022571373752067861346940421781284336182314744680345972760704747974284 : SemanticF), 34790),
-    ((7740756603642672888894756193883084320427907723891225175607297334590958469121 : SemanticF), 34795),
+    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 41088),
+    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 41093),
+    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 41098),
+    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 41103),
+    ((2303035022571373752067861346940421781284336182314744680345972760704747974284 : SemanticF), 41108),
+    ((7740756603642672888894756193883084320427907723891225175607297334590958469121 : SemanticF), 41113),
   ]
 }
 
@@ -1932,12 +2797,12 @@ def statementFields7LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 35160),
-    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 35165),
-    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 35170),
-    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 35175),
-    ((2303035022571373752067861346940421781284336182314744680345972760704747974284 : SemanticF), 35180),
-    ((7740756603642672888894756193883084320427907723891225175607297334590958469121 : SemanticF), 35185),
+    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 41478),
+    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 41483),
+    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 41488),
+    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 41493),
+    ((2303035022571373752067861346940421781284336182314744680345972760704747974284 : SemanticF), 41498),
+    ((7740756603642672888894756193883084320427907723891225175607297334590958469121 : SemanticF), 41503),
   ]
 }
 
@@ -1951,12 +2816,12 @@ def statementFields8LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 35550),
-    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 35555),
-    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 35560),
-    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 35565),
-    ((2303035022571373752067861346940421781284336182314744680345972760704747974284 : SemanticF), 35570),
-    ((7740756603642672888894756193883084320427907723891225175607297334590958469121 : SemanticF), 35575),
+    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 41868),
+    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 41873),
+    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 41878),
+    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 41883),
+    ((2303035022571373752067861346940421781284336182314744680345972760704747974284 : SemanticF), 41888),
+    ((7740756603642672888894756193883084320427907723891225175607297334590958469121 : SemanticF), 41893),
   ]
 }
 
@@ -1970,8 +2835,8 @@ def statementFields9LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 38896),
-    ((1 : SemanticF), 39236),
+    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 45214),
+    ((1 : SemanticF), 45554),
   ]
 }
 
@@ -2041,10 +2906,7 @@ def statementFields14LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((6755569399542696339399059951025237225100719468123251062348186764733927391233 : SemanticF), 20860),
-    ((7037051457856975353540687448984622109479916112628386523279361213264507699201 : SemanticF), 20865),
-    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 20870),
-    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 20875),
+    ((1 : SemanticF), 6),
   ]
 }
 
@@ -2058,8 +2920,10 @@ def statementFields15LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 31969),
-    ((1 : SemanticF), 32309),
+    ((6755569399542696339399059951025237225100719468123251062348186764733927391233 : SemanticF), 27178),
+    ((7037051457856975353540687448984622109479916112628386523279361213264507699201 : SemanticF), 27183),
+    ((7238110070938603220784707090384182741179342287274911852515914390786350776321 : SemanticF), 27188),
+    ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : SemanticF), 27193),
   ]
 }
 
@@ -2073,15 +2937,30 @@ def statementFields16LC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((1 : SemanticF), 166),
+    ((8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF), 38287),
+    ((1 : SemanticF), 38627),
   ]
 }
 
 def statementFields16 (rho : Nat → SemanticF) : SemanticF :=
   StructuredLC.eval rho statementFields16LC
 
+/-- Exact compiler LC `statement.fields`[17]`. -/
+def statementFields17LC : StructuredLC SemanticF := {
+  const := (0 : SemanticF)
+  runs := [
+
+  ]
+  residual := [
+    ((1 : SemanticF), 220),
+  ]
+}
+
+def statementFields17 (rho : Nat → SemanticF) : SemanticF :=
+  StructuredLC.eval rho statementFields17LC
+
 /-- Ordered compiler expressions for `statement.fields`. -/
-def statementFieldsVector (rho : Nat → SemanticF) : List.Vector SemanticF 17 :=
+def statementFieldsVector (rho : Nat → SemanticF) : List.Vector SemanticF 18 :=
   ⟨[
     statementFields0 rho,
     statementFields1 rho,
@@ -2100,9 +2979,10 @@ def statementFieldsVector (rho : Nat → SemanticF) : List.Vector SemanticF 17 :
     statementFields14 rho,
     statementFields15 rho,
     statementFields16 rho,
+    statementFields17 rho,
   ], rfl⟩
 
-def statementFieldsAt (rho : Nat → SemanticF) (index : Fin 17) : SemanticF :=
+def statementFieldsAt (rho : Nat → SemanticF) (index : Fin 18) : SemanticF :=
   (statementFieldsVector rho)[index]
 
 /-- Exact compiler LC `statement.hash`[0]`. -/
@@ -2112,14 +2992,14 @@ def statementHashLC : StructuredLC SemanticF := {
 
   ]
   residual := [
-    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 40601),
-    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 40606),
-    ((2303035022571373752067861346940421781284336182314744680345972760704747974284 : SemanticF), 40611),
-    ((7740756603642672888894756193883084320427907723891225175607297334590958469121 : SemanticF), 40616),
-    ((7794887768703111160845069174259889105885445540142212764247907805462223912961 : SemanticF), 40621),
-    ((7841285910183486822516766014582864636277620811214487840225573923351880007681 : SemanticF), 40626),
-    ((7881497632799812395965569942862776762617506046143792906072884558856248623105 : SemanticF), 40631),
-    ((7916682890089097272733273380107699873164905626706934838689281364922571161601 : SemanticF), 40636),
+    ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : SemanticF), 46924),
+    ((7600015574485533381823942444903391878238309401638657445141710110325668315137 : SemanticF), 46929),
+    ((2303035022571373752067861346940421781284336182314744680345972760704747974284 : SemanticF), 46934),
+    ((7740756603642672888894756193883084320427907723891225175607297334590958469121 : SemanticF), 46939),
+    ((7794887768703111160845069174259889105885445540142212764247907805462223912961 : SemanticF), 46944),
+    ((7841285910183486822516766014582864636277620811214487840225573923351880007681 : SemanticF), 46949),
+    ((7881497632799812395965569942862776762617506046143792906072884558856248623105 : SemanticF), 46954),
+    ((7916682890089097272733273380107699873164905626706934838689281364922571161601 : SemanticF), 46959),
   ]
 }
 

@@ -318,6 +318,7 @@ impl NoteReshapePlan {
                 anchor,
                 balance_commitment: self.balance().commit(self.value_blinding),
                 asset_anchor: first_spend.asset_anchor,
+                compliance_anchor: first_spend.compliance_anchor,
                 routing_tag,
                 routing_parameter_set_id: self.routing_parameters.id(),
                 recent_position_floor,
@@ -332,6 +333,13 @@ impl NoteReshapePlan {
                 asset_path: first_spend.asset_path.clone(),
                 asset_position: first_spend.asset_position,
                 asset_indexed_leaf: first_spend.asset_indexed_leaf.clone(),
+                sender_compliance_path: first_spend.compliance_path.clone(),
+                sender_compliance_position: first_spend.compliance_position,
+                sender_leaf: first_spend.compliance_leaf.clone().ok_or_else(|| {
+                    crate::ProofError::InvalidPublicInput(
+                        "note reshape sender compliance leaf is missing".to_owned(),
+                    )
+                })?,
                 is_regulated: first_spend.is_regulated,
                 routing_parameters: self.routing_parameters.clone(),
                 routing_nonce,
@@ -413,6 +421,7 @@ impl NoteReshapePlan {
             routing_tag,
             routing_parameter_set_id: self.routing_parameters.id(),
             asset_anchor: first_spend.asset_anchor,
+            compliance_anchor: first_spend.compliance_anchor,
         })
     }
 

@@ -47,6 +47,7 @@ type ShieldedIcs20WithdrawalSenderCircuitFields struct {
 	SlotID         frontend.Variable
 	SlotDerivation frontend.Variable
 	D              frontend.Variable
+	Status         frontend.Variable
 	Path           [ComplianceQuadTreeDepth][3]frontend.Variable
 	Position       frontend.Variable
 }
@@ -264,6 +265,7 @@ func (c *ShieldedIcs20WithdrawalCircuit) bindShieldedIcs20WithdrawalWitnessSeman
 	c.bindSemantic("sender.slot_id", c.Sender.SlotID)
 	c.bindSemantic("sender.slot_derivation", c.Sender.SlotDerivation)
 	c.bindSemantic("sender.d", c.Sender.D)
+	c.bindSemantic("sender.status", c.Sender.Status)
 	c.bindSemantic("sender.path", quadPathVariables(c.Sender.Path)...)
 	c.bindSemantic("sender.position", c.Sender.Position)
 
@@ -475,6 +477,7 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifySharedContext(
 		"slot_id=sender.slot_id",
 		"slot_derivation=sender.slot_derivation",
 		"d=sender.d",
+		"status=sender.status",
 		"out=sender.leaf_commitment",
 	)
 	senderLeafCommitment, err := ComplianceLeafCommitmentFromCompressed(
@@ -485,6 +488,7 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifySharedContext(
 		c.Sender.SlotID,
 		c.Sender.SlotDerivation,
 		c.Sender.D,
+		c.Sender.Status,
 	)
 	if err != nil {
 		return shieldedIcs20WithdrawalSharedContext{}, err
@@ -509,6 +513,8 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifySharedContext(
 		"cond=is_regulated",
 	)
 	AssertEqualIf(api, senderComplianceRoot, c.ComplianceAnchor, c.IsRegulated)
+	c.traceWiring("assert.eq_if", "lhs=sender.status", "rhs=1", "cond=is_regulated")
+	AssertEqualIf(api, c.Sender.Status, 1, c.IsRegulated)
 
 	return shared, nil
 }

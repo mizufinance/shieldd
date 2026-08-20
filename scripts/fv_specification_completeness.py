@@ -552,7 +552,7 @@ REQUIRED_TEST_KINDS: dict[str, frozenset[str]] = {
     ),
 }
 PREDICATE_SEMANTICS_SHA256 = (
-    "10b947d4865a4982278ec9425c3a403c7fa0557fa34978e7665b3a48a36bda31"
+    "6e2e936ae6f228ef029ef8adc937734bd128899f7d1e89c313065325d6d10329"
 )
 PROPERTY_CONTRACT_SHA256 = (
     "c64105b482af65fbd8fe88054dc14ad453cf7820ecb09b8f61645f7d37cd501e"
@@ -571,7 +571,7 @@ RUNTIME_POLICY_CONTRACT_SHA256 = (
 # Update these only after independently reviewing every owner, source file,
 # runnable selector, kind, and execution command in the corresponding ledger.
 PROPERTY_TEST_CONTRACT_SHA256 = (
-    "7bebb28101f7352e5e422e4b44f1e464d1ac86cc9a5f893e287243a7fdc41605"
+    "3913dde6a8cbc1d8a43abfd88fb8057d584da4e04a92ce7bc88067bbcef45bfc"
 )
 ARTIFACT_TEST_CONTRACT_SHA256 = (
     "ea16a0caa1490200fbf691f3d679bad1d160150b6b50da765be9df3623efc039"
@@ -812,7 +812,7 @@ REVIEWED_TEST_SOURCE_CENSUS = (
 # This pins every path/symbol/reason triple rendered in reviewed_test_census.
 # Update only after deciding whether each changed test is normative evidence.
 REVIEWED_TEST_EXCLUSIONS_SHA256 = (
-    "776a7172e215b638b87ef4f448acd2ffbb58c0eacdb9cd40b11e9e061c28c59e"
+    "db12fc3c23aaeb717e0dc9736c9ae2b7590d7177aae6a769ea021e1d47c18ffa"
 )
 PROPERTY_TEST_SOURCE_CENSUS = (
     "crates/core/component/compliance/src/structs.rs",
@@ -940,10 +940,10 @@ PROPERTY_TEST_CONTRACT_BASELINE = {
         PROPERTY-ENCODE-MERKLE-PATH-REQUIRES-EXACT-DEPTH
         PROPERTY-ENCODE-TRIPLE-PATH-32-REJECTS-NON-EXACT-LENGTH
         PROPERTY-ENCODE-VEC-32-REJECTS-OVERSIZED-LENGTH
-        PROPERTY-NOTE-RESHAPE-WITNESS-V5-REJECTS-BAD-LENGTH
-        PROPERTY-NOTE-RESHAPE-WITNESS-V5-REJECTS-BAD-MAGIC
-        PROPERTY-NOTE-RESHAPE-WITNESS-V5-REJECTS-BAD-VERSION
-        PROPERTY-NOTE-RESHAPE-WITNESS-V5-ROUNDTRIP
+        PROPERTY-NOTE-RESHAPE-WITNESS-V6-REJECTS-BAD-LENGTH
+        PROPERTY-NOTE-RESHAPE-WITNESS-V6-REJECTS-BAD-MAGIC
+        PROPERTY-NOTE-RESHAPE-WITNESS-V6-REJECTS-BAD-VERSION
+        PROPERTY-NOTE-RESHAPE-WITNESS-V6-ROUNDTRIP
         PROPERTY-PROOF-COORDINATE-PARSER-REJECTS-BASE-FIELD-MODULUS
         PROPERTY-READ-BOOL-ACCEPTS-ONLY-CANONICAL-BYTES
         PROPERTY-READ-FIXED-32-REJECTS-FQ-MODULUS-ALIASES
@@ -953,14 +953,14 @@ PROPERTY_TEST_CONTRACT_BASELINE = {
         PROPERTY-READ-TRIPLE-PATH-32-REJECTS-NON-EXACT-LENGTH-BEFORE-ALLOCATION
         PROPERTY-READ-U128-FIELD-REJECTS-HIGH-BITS
         PROPERTY-READ-VEC-32-REJECTS-OVERSIZED-LENGTH-BEFORE-ALLOCATION
-        PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V10-REJECTS-LEGACY-VERSION
-        PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V10-REJECTS-NON-BLINDING-BALANCE-COMMITMENT
-        PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V10-REJECTS-NON-CANONICAL-BOOLEAN-FLAGS
-        PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V10-REJECTS-UNBALANCED-AMOUNTS
-        PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V10-ROUNDTRIP
+        PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V11-REJECTS-LEGACY-VERSION
+        PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V11-REJECTS-NON-BLINDING-BALANCE-COMMITMENT
+        PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V11-REJECTS-NON-CANONICAL-BOOLEAN-FLAGS
+        PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V11-REJECTS-UNBALANCED-AMOUNTS
+        PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V11-ROUNDTRIP
         PROPERTY-TEST-ASSIGNMENT-PATH-CONVERSION-REQUIRES-EXACT-DEPTH
-        PROPERTY-TEST-NOTE-RESHAPE-V5-REJECTS-LEGACY-VERSION
-        PROPERTY-TEST-NOTE-RESHAPE-V5-REJECTS-SPLIT-ADDRESS-REPRESENTATION-PAYLOAD
+        PROPERTY-TEST-NOTE-RESHAPE-V6-REJECTS-LEGACY-VERSION
+        PROPERTY-TEST-NOTE-RESHAPE-V6-REJECTS-SPLIT-ADDRESS-REPRESENTATION-PAYLOAD
         PROPERTY-TEST-NOTE-RESHAPE-WITNESS-PADDING-ABI
         PROPERTY-TEST-READ-BOOL-ACCEPTS-ONLY-CANONICAL-BYTES
         PROPERTY-TEST-READ-FR32-REJECTS-SCALAR-MODULUS-ALIASES
@@ -968,22 +968,22 @@ PROPERTY_TEST_CONTRACT_BASELINE = {
         PROPERTY-TEST-READ-TRIPLE-PATH-REQUIRES-EXACT-DEPTH
         PROPERTY-TEST-READ-U128-FIELD-REJECTS-HIGH-BITS
         PROPERTY-TEST-READ32-REJECTS-FQ-MODULUS-ALIASES
-        PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V10-ASSIGNMENT-REJECTS-CLAIMED-HASH-MISMATCH
-        PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V10-FIXTURE-BRANCH-MATRIX
-        PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V10-REJECTS-LEGACY-VERSION
-        PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V10-REJECTS-NON-CANONICAL-BALANCE-BLINDING
-        PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V10-REJECTS-NON-CANONICAL-BOOLEAN-FLAGS
-        PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V10-REJECTS-OVERSIZED-EFFECT-HASH-LIMB
+        PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V11-ASSIGNMENT-REJECTS-CLAIMED-HASH-MISMATCH
+        PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V11-FIXTURE-BRANCH-MATRIX
+        PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V11-REJECTS-LEGACY-VERSION
+        PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V11-REJECTS-NON-CANONICAL-BALANCE-BLINDING
+        PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V11-REJECTS-NON-CANONICAL-BOOLEAN-FLAGS
+        PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V11-REJECTS-OVERSIZED-EFFECT-HASH-LIMB
         PROPERTY-TEST-TRANSFER-COMPLIANCE-METADATA-REJECTS-FQ-MODULUS-SALT
-        PROPERTY-TEST-TRANSFER-V18-ASSIGNMENT-REJECTS-CLAIMED-HASH-MISMATCH
-        PROPERTY-TEST-TRANSFER-V18-ASSIGNMENT-REJECTS-SERIALIZED-SEMANTIC-MUTATION
-        PROPERTY-TEST-TRANSFER-V18-REJECTS-LEGACY-VERSION
+        PROPERTY-TEST-TRANSFER-V19-ASSIGNMENT-REJECTS-CLAIMED-HASH-MISMATCH
+        PROPERTY-TEST-TRANSFER-V19-ASSIGNMENT-REJECTS-SERIALIZED-SEMANTIC-MUTATION
+        PROPERTY-TEST-TRANSFER-V19-REJECTS-LEGACY-VERSION
         PROPERTY-TEST-WITNESS-FAMILIES-DECODE
         PROPERTY-TEST-WITNESS-FAMILIES-REJECT-BAD-HEADER
         PROPERTY-TEST-WITNESS-FAMILIES-REJECT-TRUNCATED-PAYLOAD
-        PROPERTY-TRANSFER-HIDDEN-ARITY-WITNESS-V18-ROUNDTRIP
-        PROPERTY-TRANSFER-WITNESS-V18-REJECTS-LEGACY-V15-LAYOUT
-        PROPERTY-TRANSFER-WITNESS-V18-ROUNDTRIP
+        PROPERTY-TRANSFER-HIDDEN-ARITY-WITNESS-V19-ROUNDTRIP
+        PROPERTY-TRANSFER-WITNESS-V19-REJECTS-LEGACY-V15-LAYOUT
+        PROPERTY-TRANSFER-WITNESS-V19-ROUNDTRIP
         """.split()
     ),
 }
@@ -1393,6 +1393,7 @@ EXPECTED_APP_BENCHMARK_CFG_BLOCK_OWNERS = Counter(
 EXPECTED_HOST_EXECUTION_PUBLIC_METHODS = frozenset(
     {
         "begin_block",
+        "apply_compliance_action",
         "check_tx",
         "commit",
         "committed_state",
@@ -1411,6 +1412,7 @@ EXPECTED_HOST_EXECUTION_PUBLIC_METHODS = frozenset(
 EXPECTED_EXECUTION_SERVICE_PUBLIC_METHODS = frozenset(
     {
         "archived_nullifier_proof",
+        "apply_compliance_action",
         "begin_block",
         "check_tx",
         "close",
@@ -1430,6 +1432,7 @@ EXPECTED_EXECUTION_SERVICE_PUBLIC_METHODS = frozenset(
 EXPECTED_GRPC_EXECUTION_METHODS = Counter(
     {
         "archived_nullifier_proof": 1,
+        "apply_compliance_action": 1,
         "begin_block": 1,
         "check_tx": 1,
         "commit": 1,
@@ -1444,6 +1447,7 @@ EXPECTED_GRPC_EXECUTION_METHODS = Counter(
 )
 EXPECTED_GRPC_PROTO_METHODS = (
     "ArchivedNullifierProof",
+    "ApplyComplianceAction",
     "BeginBlock",
     "CheckTx",
     "Commit",
@@ -8212,6 +8216,11 @@ def _validate_host_execution_frontdoors(root: Path) -> None:
         "host_execution_check_tx_rejects_invalid_tx_without_entering_block",
         "HostExecution CheckTx evidence",
     )
+    require_runnable_test_declaration(
+        canonical_repo_path(root, relative, "HostExecution compliance-action evidence"),
+        "compliance_actions_are_typed_atomic_and_replay_safe",
+        "HostExecution compliance-action evidence",
+    )
 
 
 def _validate_grpc_execution_frontdoors(root: Path) -> None:
@@ -8276,6 +8285,7 @@ def _validate_grpc_execution_frontdoors(root: Path) -> None:
         )
 
     for name, request_type, lock_method in (
+        ("apply_compliance_action", "ApplyComplianceActionRequest", "write"),
         ("check_tx", "CheckTxRequest", "read"),
         ("deliver_tx", "DeliverTxRequest", "write"),
     ):
@@ -8394,6 +8404,24 @@ def _validate_grpc_execution_frontdoors(root: Path) -> None:
             ),
             f"ExecutionService {name} HostExecution delegation",
         )
+    compliance_action = _one_rust_function(
+        execution_functions,
+        "apply_compliance_action",
+        "ExecutionService compliance-action frontdoor",
+    )
+    if "request: ApplyComplianceActionRequest" not in compliance_action["header"]:
+        reject("ExecutionService compliance-action request type drifted")
+    _require_ordered_symbols(
+        compliance_action,
+        (
+            "self.execution.as_mut().ok_or_else(ServiceError::closed)?",
+            ".apply_compliance_action(request)",
+            ".await",
+            ".map_err(ServiceError::invalid_argument)?",
+            "Ok(response.response)",
+        ),
+        "ExecutionService compliance-action HostExecution delegation",
+    )
     service_functions = _rust_function_declarations(service_source)
     check_response = _one_rust_function(
         service_functions,

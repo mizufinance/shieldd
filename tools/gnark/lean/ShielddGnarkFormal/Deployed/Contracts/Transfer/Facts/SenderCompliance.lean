@@ -2,6 +2,7 @@ import ShielddGnarkFormal.Deployed.Contracts.Transfer.Seg27
 import ShielddGnarkFormal.Deployed.Contracts.Transfer.Seg28
 import ShielddGnarkFormal.Deployed.Contracts.Transfer.Seg29
 import ShielddGnarkFormal.Deployed.Contracts.Transfer.Seg30
+import ShielddGnarkFormal.Deployed.Contracts.Transfer.Seg31
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 4000000
@@ -15,6 +16,7 @@ structure SenderComplianceCircuitFacts (rho : Nat → Seg27.F) : Prop where
   GadgetComplianceLeafSeg27 : Seg27.contract.spec rho
   GadgetCompliancePathSeg28 : Seg28.contract.spec rho
   AssertEqIfSeg29 : Seg29.contract.spec rho
-  DecafAckSeg30 : Seg30.contract.spec rho
+  AssertEqIfSeg30 : Seg30.contract.spec rho
+  DecafAckSeg31 : Seg31.contract.spec rho
 
 end Shieldd.GnarkFormal.Deployed.Contracts.Transfer

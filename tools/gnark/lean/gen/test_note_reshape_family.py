@@ -107,9 +107,9 @@ class NoteReshapeFamilyTests(unittest.TestCase):
             / "tools/gnark/lean/ShielddGnarkFormal/Deployed/"
             "NoteReshape1x8Spend.lean"
         ).read_text()
-        for current_wire in (20860, 29773, 31603, 31969, 32309):
+        for current_wire in (27178, 36091, 37921, 38287, 38627):
             self.assertIn(f"= {current_wire} := by decide", spend_1x8_source)
-        for retired_wire in (7219, 16132, 17962, 18328, 18668):
+        for retired_wire in (20860, 29773, 31603, 31969, 32309):
             self.assertNotIn(f"= {retired_wire} := by decide", spend_1x8_source)
         ir = next(ir for ir in self.irs if ir["circuit"] == "note_reshape8x1")
         consequences = family.render_specification_consequences(ir)
@@ -453,8 +453,8 @@ class NoteReshapeFamilyTests(unittest.TestCase):
 
     def test_window2_transmission_seam_is_exact_and_fails_closed(self) -> None:
         expected = {
-            "note_reshape1x8": ((5853, 5861), (5854, 5862)),
-            "note_reshape8x1": ((6428, 6436), (6429, 6437)),
+            "note_reshape1x8": ((5907, 5915), (5908, 5916)),
+            "note_reshape8x1": ((6482, 6490), (6483, 6491)),
         }
         for ir in self.irs:
             manifest = self.constraint_manifests[ir["circuit"]]

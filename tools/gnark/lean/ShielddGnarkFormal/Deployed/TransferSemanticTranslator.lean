@@ -1168,27 +1168,29 @@ theorem senderCompliance_of_semantics
     (rho : Nat → SemanticF)
     (dBound : ((senderCompliance rho).d).val < 2 ^ 251)
     (positionBound : ((senderCompliance rho).position).val < 2 ^ 32)
-    (member :
+    (memberAndStatus :
       (action rho).assetProof.isRegulated = 1 →
         Common.quadMember (action rho).complianceAnchor
           (Concrete.complianceLeafHash (senderCompliance rho))
-          (senderCompliance rho).path (senderCompliance rho).position) :
+          (senderCompliance rho).path (senderCompliance rho).position ∧
+        (senderCompliance rho).status = 1) :
     Concrete.senderCompliance (action rho) := by
-  exact ⟨rfl, rfl, dBound, positionBound, member⟩
+  exact ⟨rfl, rfl, dBound, positionBound, memberAndStatus⟩
 
 /-- Assemble one receiver-compliance membership relation. -/
 theorem receiverCompliance_of_semantics
     (rho : Nat → SemanticF)
     (dBound : ((receiverCompliance rho).d).val < 2 ^ 251)
     (positionBound : ((receiverCompliance rho).position).val < 2 ^ 32)
-    (member :
+    (memberAndStatus :
       (action rho).assetProof.isRegulated = 1 →
         Common.quadMember (action rho).complianceAnchor
           (Concrete.complianceLeafHash (receiverCompliance rho))
           (receiverCompliance rho).path
-          (receiverCompliance rho).position) :
+          (receiverCompliance rho).position ∧
+        (receiverCompliance rho).status = 1) :
     Concrete.receiverCompliance (action rho) := by
-  exact ⟨rfl, rfl, dBound, positionBound, member⟩
+  exact ⟨rfl, rfl, dBound, positionBound, memberAndStatus⟩
 
 /-- Assemble the net-balance computation and compression relation. -/
 theorem balanceComputedAndCompressed_of_semantics

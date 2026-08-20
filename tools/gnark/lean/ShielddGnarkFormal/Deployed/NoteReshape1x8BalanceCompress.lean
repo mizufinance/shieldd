@@ -16,16 +16,16 @@ namespace CompressRelation
 open Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e
 
 theorem x (rho : Nat → DeployedF) :
-    relationLc0 (Seg74.localRho rho) = balanceCommitmentComputed0 rho := by
+    relationLc0 (Seg78.localRho rho) = balanceCommitmentComputed0 rho := by
   unfold relationLc0
   simp only [
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
     StrideRun.eval, zero_add, one_mul, add_zero
   ]
-  rw [StrideRun.sumAux_add (Seg74.localRho rho) 2 1 149 101]
+  rw [StrideRun.sumAux_add (Seg78.localRho rho) 2 1 149 101]
   rw [NoteReshape1x8BalanceCompressRuns.x0, NoteReshape1x8BalanceCompressRuns.x1]
-  have hw1 : Seg74.wireSeating 1 = 36728 := by decide +kernel
-  simp only [Seg74.localRho, Deployed.Templates.seated, hw1]
+  have hw1 : Seg78.wireSeating 1 = 43046 := by decide +kernel
+  simp only [Seg78.localRho, Deployed.Templates.seated, hw1]
   simp only [
     balanceCommitmentComputed0, balanceCommitmentComputed0LC,
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
@@ -33,16 +33,16 @@ theorem x (rho : Nat → DeployedF) :
   ]
 
 theorem y (rho : Nat → DeployedF) :
-    relationLc1 (Seg74.localRho rho) = balanceCommitmentComputed1 rho := by
+    relationLc1 (Seg78.localRho rho) = balanceCommitmentComputed1 rho := by
   unfold relationLc1
   simp only [
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
     StrideRun.eval, zero_add, one_mul, add_zero
   ]
-  rw [StrideRun.sumAux_add (Seg74.localRho rho) 253 1 149 101]
+  rw [StrideRun.sumAux_add (Seg78.localRho rho) 253 1 149 101]
   rw [NoteReshape1x8BalanceCompressRuns.y0, NoteReshape1x8BalanceCompressRuns.y1]
-  have hw1 : Seg74.wireSeating 1 = 36728 := by decide +kernel
-  simp only [Seg74.localRho, Deployed.Templates.seated, hw1]
+  have hw1 : Seg78.wireSeating 1 = 43046 := by decide +kernel
+  simp only [Seg78.localRho, Deployed.Templates.seated, hw1]
   simp only [
     balanceCommitmentComputed1, balanceCommitmentComputed1LC,
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
@@ -57,19 +57,19 @@ theorem computed
     Decaf377Assumptions.CompressToFieldSpec
       (NoteReshape1x8Balance.Nb.computed rho)
       (balanceCommitmentFq rho) := by
-  have h := facts.balance.DecafCompressToFieldSeg74
+  have h := facts.balance.DecafCompressToFieldSeg78
   change
     Deployed.Templates.Semantics.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.spec
-      (Seg74.localRho rho) at h
+      (Seg78.localRho rho) at h
   unfold
     Deployed.Templates.Semantics.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.spec at h
   unfold
     Deployed.Templates.Semantics.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.inputX
     Deployed.Templates.Semantics.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.inputY at h
   rw [CompressRelation.x, CompressRelation.y] at h
-  have hw1204 : Seg74.wireSeating 1204 = 39236 := by decide +kernel
-  have hw864 : Seg74.wireSeating 864 = 38896 := by decide +kernel
-  have hFq : balanceCommitmentFq rho = rho 39236 - rho 38896 := by
+  have hw1204 : Seg78.wireSeating 1204 = 45554 := by decide +kernel
+  have hw864 : Seg78.wireSeating 864 = 45214 := by decide +kernel
+  have hFq : balanceCommitmentFq rho = rho 45554 - rho 45214 := by
     simp only [
       balanceCommitmentFq, balanceCommitmentFqLC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual
@@ -89,7 +89,7 @@ theorem computed
     balanceCommitmentFq, balanceCommitmentFqLC,
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
     Deployed.Templates.Semantics.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.templateRho,
-    Seg74.localRho, Deployed.Templates.seated,
+    Seg78.localRho, Deployed.Templates.seated,
     hw1204, hw864
   ] using h
 

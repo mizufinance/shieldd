@@ -73,6 +73,7 @@ theorem circuitFacts_of_relationAll
       (complianceLeafHash_of_exact rho facts)
       compliancePath.1 compliancePath.2
       (complianceRootAsserted_of_exact rho facts)
+      (complianceStatusActive_of_exact rho facts)
       requiredAmountBound optionalAmountBound
       changeAmountBound outboundAmountBound balanceBlindingBound
       amountsConserved balancePoint
@@ -569,14 +570,15 @@ theorem specification_user_compliance_leaf_hash
     (h : relationAll rho) :
     Protocol.ShieldedIcs20Withdrawal.Concrete.complianceLeafHash
         (action rho) =
-      Poseidon377.hash6
+      Poseidon377.hash7
         Protocol.ShieldedIcs20Withdrawal.Concrete.complianceLeafDomain
         (action rho).sender.diversifiedGeneratorEncoding
         (action rho).sender.transmissionEncoding
         (action rho).withdrawal.outboundAssetId
         (action rho).senderCompliance.slotId
         (action rho).senderCompliance.slotDerivation
-        (action rho).senderCompliance.d := by
+        (action rho).senderCompliance.d
+        (action rho).senderCompliance.status := by
   rfl
 
 /-- `USER-COMPLIANCE-MEMBERSHIP-GATE` for the exact deployed relation. -/
@@ -590,7 +592,8 @@ theorem specification_user_compliance_membership_gate
         (action rho).senderCompliance.path
         (action rho).senderCompliance.position =
           (action rho).complianceAnchor := by
-  exact (relationSenderCompliance rho h).2
+  intro hreg
+  exact ((relationSenderCompliance rho h).2 hreg).1
 
 /-- `USER-LEAF-ADDRESS-BINDING` for the exact deployed relation. -/
 theorem specification_user_leaf_address_binding
@@ -598,14 +601,15 @@ theorem specification_user_leaf_address_binding
     (h : relationAll rho) :
     Protocol.ShieldedIcs20Withdrawal.Concrete.complianceLeafHash
         (action rho) =
-      Poseidon377.hash6
+      Poseidon377.hash7
         Protocol.ShieldedIcs20Withdrawal.Concrete.complianceLeafDomain
         (action rho).sender.diversifiedGeneratorEncoding
         (action rho).sender.transmissionEncoding
         (action rho).withdrawal.outboundAssetId
         (action rho).senderCompliance.slotId
         (action rho).senderCompliance.slotDerivation
-        (action rho).senderCompliance.d := by
+        (action rho).senderCompliance.d
+        (action rho).senderCompliance.status := by
   rfl
 
 /-- `USER-LEAF-ASSET-BINDING` for the exact deployed relation. -/
@@ -614,14 +618,15 @@ theorem specification_user_leaf_asset_binding
     (h : relationAll rho) :
     Protocol.ShieldedIcs20Withdrawal.Concrete.complianceLeafHash
         (action rho) =
-      Poseidon377.hash6
+      Poseidon377.hash7
         Protocol.ShieldedIcs20Withdrawal.Concrete.complianceLeafDomain
         (action rho).sender.diversifiedGeneratorEncoding
         (action rho).sender.transmissionEncoding
         (action rho).withdrawal.outboundAssetId
         (action rho).senderCompliance.slotId
         (action rho).senderCompliance.slotDerivation
-        (action rho).senderCompliance.d := by
+        (action rho).senderCompliance.d
+        (action rho).senderCompliance.status := by
   rfl
 
 /-- `USER-LEAF-POLICY-SLOT-BINDING` for the exact deployed relation. -/
@@ -630,14 +635,15 @@ theorem specification_user_leaf_policy_slot_binding
     (h : relationAll rho) :
     Protocol.ShieldedIcs20Withdrawal.Concrete.complianceLeafHash
         (action rho) =
-      Poseidon377.hash6
+      Poseidon377.hash7
         Protocol.ShieldedIcs20Withdrawal.Concrete.complianceLeafDomain
         (action rho).sender.diversifiedGeneratorEncoding
         (action rho).sender.transmissionEncoding
         (action rho).withdrawal.outboundAssetId
         (action rho).senderCompliance.slotId
         (action rho).senderCompliance.slotDerivation
-        (action rho).senderCompliance.d := by
+        (action rho).senderCompliance.d
+        (action rho).senderCompliance.status := by
   rfl
 
 /-- `VALUE-AMOUNT-128-RANGE` for the exact deployed relation. -/

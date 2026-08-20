@@ -4,12 +4,15 @@ package shieldd.execution_client.v1;
 
 import "cosmos/base/v1beta1/coin.proto";
 import "google/protobuf/timestamp.proto";
+import "shieldd/core/asset/v1/asset.proto";
 import "shieldd/core/app/v1/app.proto";
 import "shieldd/core/component/sct/v1/sct.proto";
+import "shieldd/core/component/compliance/v1/compliance.proto";
 import "shieldd/core/component/shielded_pool/v1/shielded_pool.proto";
+import "shieldd/core/keys/v1/keys.proto";
 
-// ExecutionClientService is the gRPC boundary used by a host chain to drive Shieldd
-// execution without embedding the Shieldd app in-process.
+// ExecutionClientService is Bankd's typed boundary for driving its embedded
+// Shieldd subsystem within the same atomic block lifecycle.
 service ExecutionClientService {
   // InitGenesis initializes Shieldd state from full genesis content or a
   // checkpoint supplied by the host chain.
@@ -19,6 +22,8 @@ service ExecutionClientService {
   // Deposit mints Shieldd notes for assets escrowed or burned by the host
   // chain.
   rpc Deposit(DepositRequest) returns (DepositResponse) {}
+  // ApplyComplianceAction applies a Bankd-authorized user/asset status transition.
+  rpc ApplyComplianceAction(ApplyComplianceActionRequest) returns (ApplyComplianceActionResponse) {}
   // CheckTx validates a Shieldd transaction supplied by the host chain without
   // applying state changes.
   rpc CheckTx(CheckTxRequest) returns (CheckTxResponse) {}
@@ -87,7 +92,7 @@ message DepositRequest {
   HostSource source = 4;
 }
 
-// HostSource identifies the host-chain message that caused a Shieldd deposit.
+// HostSource identifies the canonical Bankd message that caused a Shieldd mutation.
 message HostSource {
   // Host-chain block height containing the deposit message.
   uint64 height = 1;
@@ -95,12 +100,39 @@ message HostSource {
   bytes tx_hash = 2;
   // Zero-based message index within the host-chain transaction.
   uint32 msg_index = 3;
+  // Zero-based transaction index within the host-chain block.
+  uint32 tx_index = 4;
 }
 
 // DepositResponse returns the deterministic Shieldd deposit identifier.
 message DepositResponse {
   // Deposit identifier used as the Shieldd commitment source transaction id.
   bytes deposit_id = 1;
+}
+
+message FreezeUserAsset {
+  shieldd.core.keys.v1.Address address = 1;
+  shieldd.core.asset.v1.AssetId asset_id = 2;
+}
+
+message UnfreezeUserAsset {
+  shieldd.core.keys.v1.Address address = 1;
+  shieldd.core.asset.v1.AssetId asset_id = 2;
+}
+
+message ApplyComplianceActionRequest {
+  HostSource source = 1;
+  oneof action {
+    FreezeUserAsset freeze = 2;
+    UnfreezeUserAsset unfreeze = 3;
+  }
+}
+
+message ApplyComplianceActionResponse {
+  HostSource source = 1;
+  shieldd.core.component.compliance.v1.UserAssetStatus previous_status = 2;
+  shieldd.core.component.compliance.v1.UserAssetStatus current_status = 3;
+  bool replayed = 4;
 }
 
 // CheckTxRequest carries a Shieldd transaction to validate without applying

@@ -2,7 +2,9 @@ use std::convert::TryFrom;
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use shieldd_sdk_compliance::event::{EventAssetRegistered, EventUserRegistered};
+use shieldd_sdk_compliance::event::{
+    EventAssetRegistered, EventUserAssetStatusChanged, EventUserRegistered,
+};
 use shieldd_sdk_fee::GasPrices;
 use shieldd_sdk_proto::{
     core::component::compact_block::v1::CompactBlockRangeResponse,
@@ -51,6 +53,8 @@ pub struct CompactBlock {
     pub compliance_asset_anchor: Option<StateCommitment>,
     /// User registrations in this block (for compliance tree sync).
     pub compliance_user_registrations: Vec<EventUserRegistered>,
+    /// In-place user status changes in this block.
+    pub compliance_user_status_changes: Vec<EventUserAssetStatusChanged>,
     /// Asset registrations in this block (for compliance tree sync).
     pub compliance_asset_registrations: Vec<EventAssetRegistered>,
     /// Exact nullifier window, present at genesis and app-epoch boundaries.
@@ -79,6 +83,7 @@ impl Default for CompactBlock {
             compliance_user_anchor: None,
             compliance_asset_anchor: None,
             compliance_user_registrations: Vec::new(),
+            compliance_user_status_changes: Vec::new(),
             compliance_asset_registrations: Vec::new(),
             nullifier_window: None,
         }
@@ -96,6 +101,7 @@ impl CompactBlock {
             || self.gas_prices.is_some() // need to save latest gas prices
             || !self.alt_gas_prices.is_empty() // need to save latest alt gas prices
             || !self.compliance_user_registrations.is_empty() // need to sync user tree
+            || !self.compliance_user_status_changes.is_empty() // need to update user tree
             || !self.compliance_asset_registrations.is_empty() // need to sync asset tree
             || self.nullifier_window.is_some() // need to persist the planning window
     }
@@ -134,6 +140,11 @@ impl From<CompactBlock> for pb::CompactBlock {
                 .unwrap_or_default(),
             compliance_user_registrations: cb
                 .compliance_user_registrations
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+            compliance_user_status_changes: cb
+                .compliance_user_status_changes
                 .into_iter()
                 .map(Into::into)
                 .collect(),
@@ -218,6 +229,11 @@ impl TryFrom<pb::CompactBlock> for CompactBlock {
                 .into_iter()
                 .map(TryInto::try_into)
                 .collect::<Result<Vec<EventUserRegistered>>>()?,
+            compliance_user_status_changes: value
+                .compliance_user_status_changes
+                .into_iter()
+                .map(TryInto::try_into)
+                .collect::<Result<Vec<EventUserAssetStatusChanged>>>()?,
             compliance_asset_registrations: value
                 .compliance_asset_registrations
                 .into_iter()

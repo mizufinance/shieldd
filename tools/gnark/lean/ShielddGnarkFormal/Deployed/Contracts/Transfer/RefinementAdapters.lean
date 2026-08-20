@@ -23,9 +23,10 @@ import ShielddGnarkFormal.Deployed.Templates.Semantics.TGadgetAssetRegistryPath_
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TAssertEq_5e5758a2d4a6d172e743a9ad78863e351485ec2c3a01a4ef7fdc4d01f6c826ef
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TGadgetAssetRegistryGap_591fb66ca52e78949435ff7a2c295491598433f2c79f6bc52f502bf9c7dc4b16
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TAssertEq_8d8c35e681ce1b5e96aa42ceee0013036302fc4e1b1594a361d481be589b6d6c
-import ShielddGnarkFormal.Deployed.Templates.Semantics.TGadgetComplianceLeaf_dcb0a1040c535cf394b8bda4f381260121926f7d477fb80a22e4e84b0cb431bc
-import ShielddGnarkFormal.Deployed.Templates.Semantics.TGadgetCompliancePath_d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686
+import ShielddGnarkFormal.Deployed.Templates.Semantics.TGadgetComplianceLeaf_712c7a4d010c3b98e4d25232885b0f2dbf3329286405042c73ffe98555c9d024
+import ShielddGnarkFormal.Deployed.Templates.Semantics.TGadgetCompliancePath_3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TAssertEqIf_8ce5774e50355d2a29c59780aba5615b3b4386e8925bffa9de0ad683cdc7cf8d
+import ShielddGnarkFormal.Deployed.Templates.Semantics.TAssertEqIf_21d2c12b00d06e5e5a9b561d8f13c30059ff3ae69a31740109ba30ed73bb89aa
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafAck_e3974880eca25a8b5cfa17d94f28498f1dc082a93526c584816508afe0778ca1
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TGadgetNoteCommitment_252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TGadgetNullifier_5707ecfa23746942d4eee98a87b841d07f40163e3e15aeba5d907533f9aa58c4
@@ -167,11 +168,11 @@ def EffectiveRingPkSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `effective_ring_pk` local 3. -/
 @[simp] theorem effectiveRingPkAt3
     (rho : Nat → DeployedF) :
-    EffectiveRingPkValuation rho 3 = rho 407 := by
+    EffectiveRingPkValuation rho 3 = rho 409 := by
   simp only [
     EffectiveRingPkValuation, Seg6.localRho,
     Deployed.Templates.seated]
-  rw [show Seg6.wireSeating 3 = 407 by
+  rw [show Seg6.wireSeating 3 = 409 by
     decide +kernel]
 
 /-- Audited action-facing seat for `effective_ring_pk` local 4. -/
@@ -187,11 +188,11 @@ def EffectiveRingPkSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `effective_ring_pk` local 5. -/
 @[simp] theorem effectiveRingPkAt5
     (rho : Nat → DeployedF) :
-    EffectiveRingPkValuation rho 5 = rho 408 := by
+    EffectiveRingPkValuation rho 5 = rho 410 := by
   simp only [
     EffectiveRingPkValuation, Seg6.localRho,
     Deployed.Templates.seated]
-  rw [show Seg6.wireSeating 5 = 408 by
+  rw [show Seg6.wireSeating 5 = 410 by
     decide +kernel]
 
 /-- Deployed seating for the `effective_dk_pub` certified local semantics. -/
@@ -225,11 +226,11 @@ def EffectiveDkPubSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `effective_dk_pub` local 3. -/
 @[simp] theorem effectiveDkPubAt3
     (rho : Nat → DeployedF) :
-    EffectiveDkPubValuation rho 3 = rho 409 := by
+    EffectiveDkPubValuation rho 3 = rho 411 := by
   simp only [
     EffectiveDkPubValuation, Seg7.localRho,
     Deployed.Templates.seated]
-  rw [show Seg7.wireSeating 3 = 409 by
+  rw [show Seg7.wireSeating 3 = 411 by
     decide +kernel]
 
 /-- Audited action-facing seat for `effective_dk_pub` local 4. -/
@@ -245,11 +246,11 @@ def EffectiveDkPubSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `effective_dk_pub` local 5. -/
 @[simp] theorem effectiveDkPubAt5
     (rho : Nat → DeployedF) :
-    EffectiveDkPubValuation rho 5 = rho 410 := by
+    EffectiveDkPubValuation rho 5 = rho 412 := by
   simp only [
     EffectiveDkPubValuation, Seg7.localRho,
     Deployed.Templates.seated]
-  rw [show Seg7.wireSeating 5 = 410 by
+  rw [show Seg7.wireSeating 5 = 412 by
     decide +kernel]
 
 /-- Deployed seating for the `effective_ring_id_hash` certified local semantics. -/
@@ -283,11 +284,11 @@ def EffectiveRingIdHashSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `effective_ring_id_hash` local 3. -/
 @[simp] theorem effectiveRingIdHashAt3
     (rho : Nat → DeployedF) :
-    EffectiveRingIdHashValuation rho 3 = rho 411 := by
+    EffectiveRingIdHashValuation rho 3 = rho 413 := by
   simp only [
     EffectiveRingIdHashValuation, Seg8.localRho,
     Deployed.Templates.seated]
-  rw [show Seg8.wireSeating 3 = 411 by
+  rw [show Seg8.wireSeating 3 = 413 by
     decide +kernel]
 
 /-- Deployed seating for the `effective_policy_id_hash` certified local semantics. -/
@@ -321,11 +322,11 @@ def EffectivePolicyIdHashSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `effective_policy_id_hash` local 3. -/
 @[simp] theorem effectivePolicyIdHashAt3
     (rho : Nat → DeployedF) :
-    EffectivePolicyIdHashValuation rho 3 = rho 412 := by
+    EffectivePolicyIdHashValuation rho 3 = rho 414 := by
   simp only [
     EffectivePolicyIdHashValuation, Seg9.localRho,
     Deployed.Templates.seated]
-  rw [show Seg9.wireSeating 3 = 412 by
+  rw [show Seg9.wireSeating 3 = 414 by
     decide +kernel]
 
 /-- Deployed seating for the `effective_resource_hash` certified local semantics. -/
@@ -359,11 +360,11 @@ def EffectiveResourceHashSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `effective_resource_hash` local 3. -/
 @[simp] theorem effectiveResourceHashAt3
     (rho : Nat → DeployedF) :
-    EffectiveResourceHashValuation rho 3 = rho 413 := by
+    EffectiveResourceHashValuation rho 3 = rho 415 := by
   simp only [
     EffectiveResourceHashValuation, Seg10.localRho,
     Deployed.Templates.seated]
-  rw [show Seg10.wireSeating 3 = 413 by
+  rw [show Seg10.wireSeating 3 = 415 by
     decide +kernel]
 
 /-- Deployed seating for the `effective_permission_hash` certified local semantics. -/
@@ -397,11 +398,11 @@ def EffectivePermissionHashSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `effective_permission_hash` local 3. -/
 @[simp] theorem effectivePermissionHashAt3
     (rho : Nat → DeployedF) :
-    EffectivePermissionHashValuation rho 3 = rho 414 := by
+    EffectivePermissionHashValuation rho 3 = rho 416 := by
   simp only [
     EffectivePermissionHashValuation, Seg11.localRho,
     Deployed.Templates.seated]
-  rw [show Seg11.wireSeating 3 = 414 by
+  rw [show Seg11.wireSeating 3 = 416 by
     decide +kernel]
 
 /-- Deployed seating for the `sender_div_gen_compress` certified local semantics. -/
@@ -435,21 +436,21 @@ def SenderDivGenCompressSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `sender_div_gen_compress` local 365. -/
 @[simp] theorem senderDivGenCompressAt365
     (rho : Nat → DeployedF) :
-    SenderDivGenCompressValuation rho 365 = rho 777 := by
+    SenderDivGenCompressValuation rho 365 = rho 779 := by
   simp only [
     SenderDivGenCompressValuation, Seg12.localRho,
     Deployed.Templates.seated]
-  rw [show Seg12.wireSeating 365 = 777 by
+  rw [show Seg12.wireSeating 365 = 779 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_div_gen_compress` local 705. -/
 @[simp] theorem senderDivGenCompressAt705
     (rho : Nat → DeployedF) :
-    SenderDivGenCompressValuation rho 705 = rho 1117 := by
+    SenderDivGenCompressValuation rho 705 = rho 1119 := by
   simp only [
     SenderDivGenCompressValuation, Seg12.localRho,
     Deployed.Templates.seated]
-  rw [show Seg12.wireSeating 705 = 1117 by
+  rw [show Seg12.wireSeating 705 = 1119 by
     decide +kernel]
 
 /-- Deployed seating for the `sender_transmission_compress` certified local semantics. -/
@@ -483,21 +484,21 @@ def SenderTransmissionCompressSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `sender_transmission_compress` local 365. -/
 @[simp] theorem senderTransmissionCompressAt365
     (rho : Nat → DeployedF) :
-    SenderTransmissionCompressValuation rho 365 = rho 1480 := by
+    SenderTransmissionCompressValuation rho 365 = rho 1482 := by
   simp only [
     SenderTransmissionCompressValuation, Seg13.localRho,
     Deployed.Templates.seated]
-  rw [show Seg13.wireSeating 365 = 1480 by
+  rw [show Seg13.wireSeating 365 = 1482 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_transmission_compress` local 705. -/
 @[simp] theorem senderTransmissionCompressAt705
     (rho : Nat → DeployedF) :
-    SenderTransmissionCompressValuation rho 705 = rho 1820 := by
+    SenderTransmissionCompressValuation rho 705 = rho 1822 := by
   simp only [
     SenderTransmissionCompressValuation, Seg13.localRho,
     Deployed.Templates.seated]
-  rw [show Seg13.wireSeating 705 = 1820 by
+  rw [show Seg13.wireSeating 705 = 1822 by
     decide +kernel]
 
 /-- Deployed seating for the `incoming_viewing_key_nonzero` certified local semantics. -/
@@ -633,21 +634,21 @@ def AssetDkCompressSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `asset_dk_compress` local 365. -/
 @[simp] theorem assetDkCompressAt365
     (rho : Nat → DeployedF) :
-    AssetDkCompressValuation rho 365 = rho 7150 := by
+    AssetDkCompressValuation rho 365 = rho 7152 := by
   simp only [
     AssetDkCompressValuation, Seg18.localRho,
     Deployed.Templates.seated]
-  rw [show Seg18.wireSeating 365 = 7150 by
+  rw [show Seg18.wireSeating 365 = 7152 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_dk_compress` local 705. -/
 @[simp] theorem assetDkCompressAt705
     (rho : Nat → DeployedF) :
-    AssetDkCompressValuation rho 705 = rho 7490 := by
+    AssetDkCompressValuation rho 705 = rho 7492 := by
   simp only [
     AssetDkCompressValuation, Seg18.localRho,
     Deployed.Templates.seated]
-  rw [show Seg18.wireSeating 705 = 7490 by
+  rw [show Seg18.wireSeating 705 = 7492 by
     decide +kernel]
 
 /-- Deployed seating for the `asset_params_hash` certified local semantics. -/
@@ -661,21 +662,21 @@ def AssetParamsHashSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `asset_params_hash` local 1. -/
 @[simp] theorem assetParamsHashAt1
     (rho : Nat → DeployedF) :
-    AssetParamsHashValuation rho 1 = rho 7150 := by
+    AssetParamsHashValuation rho 1 = rho 7152 := by
   simp only [
     AssetParamsHashValuation, Seg19.localRho,
     Deployed.Templates.seated]
-  rw [show Seg19.wireSeating 1 = 7150 by
+  rw [show Seg19.wireSeating 1 = 7152 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_params_hash` local 2. -/
 @[simp] theorem assetParamsHashAt2
     (rho : Nat → DeployedF) :
-    AssetParamsHashValuation rho 2 = rho 7490 := by
+    AssetParamsHashValuation rho 2 = rho 7492 := by
   simp only [
     AssetParamsHashValuation, Seg19.localRho,
     Deployed.Templates.seated]
-  rw [show Seg19.wireSeating 2 = 7490 by
+  rw [show Seg19.wireSeating 2 = 7492 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_params_hash` local 8. -/
@@ -711,51 +712,51 @@ def AssetParamsHashSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `asset_params_hash` local 335. -/
 @[simp] theorem assetParamsHashAt335
     (rho : Nat → DeployedF) :
-    AssetParamsHashValuation rho 335 = rho 7820 := by
+    AssetParamsHashValuation rho 335 = rho 7822 := by
   simp only [
     AssetParamsHashValuation, Seg19.localRho,
     Deployed.Templates.seated]
-  rw [show Seg19.wireSeating 335 = 7820 by
+  rw [show Seg19.wireSeating 335 = 7822 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_params_hash` local 340. -/
 @[simp] theorem assetParamsHashAt340
     (rho : Nat → DeployedF) :
-    AssetParamsHashValuation rho 340 = rho 7825 := by
+    AssetParamsHashValuation rho 340 = rho 7827 := by
   simp only [
     AssetParamsHashValuation, Seg19.localRho,
     Deployed.Templates.seated]
-  rw [show Seg19.wireSeating 340 = 7825 by
+  rw [show Seg19.wireSeating 340 = 7827 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_params_hash` local 345. -/
 @[simp] theorem assetParamsHashAt345
     (rho : Nat → DeployedF) :
-    AssetParamsHashValuation rho 345 = rho 7830 := by
+    AssetParamsHashValuation rho 345 = rho 7832 := by
   simp only [
     AssetParamsHashValuation, Seg19.localRho,
     Deployed.Templates.seated]
-  rw [show Seg19.wireSeating 345 = 7830 by
+  rw [show Seg19.wireSeating 345 = 7832 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_params_hash` local 350. -/
 @[simp] theorem assetParamsHashAt350
     (rho : Nat → DeployedF) :
-    AssetParamsHashValuation rho 350 = rho 7835 := by
+    AssetParamsHashValuation rho 350 = rho 7837 := by
   simp only [
     AssetParamsHashValuation, Seg19.localRho,
     Deployed.Templates.seated]
-  rw [show Seg19.wireSeating 350 = 7835 by
+  rw [show Seg19.wireSeating 350 = 7837 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_params_hash` local 355. -/
 @[simp] theorem assetParamsHashAt355
     (rho : Nat → DeployedF) :
-    AssetParamsHashValuation rho 355 = rho 7840 := by
+    AssetParamsHashValuation rho 355 = rho 7842 := by
   simp only [
     AssetParamsHashValuation, Seg19.localRho,
     Deployed.Templates.seated]
-  rw [show Seg19.wireSeating 355 = 7840 by
+  rw [show Seg19.wireSeating 355 = 7842 by
     decide +kernel]
 
 /-- Deployed seating for the `asset_ring_pk_compress` certified local semantics. -/
@@ -789,21 +790,21 @@ def AssetRingPkCompressSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `asset_ring_pk_compress` local 365. -/
 @[simp] theorem assetRingPkCompressAt365
     (rho : Nat → DeployedF) :
-    AssetRingPkCompressValuation rho 365 = rho 8203 := by
+    AssetRingPkCompressValuation rho 365 = rho 8205 := by
   simp only [
     AssetRingPkCompressValuation, Seg20.localRho,
     Deployed.Templates.seated]
-  rw [show Seg20.wireSeating 365 = 8203 by
+  rw [show Seg20.wireSeating 365 = 8205 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_ring_pk_compress` local 705. -/
 @[simp] theorem assetRingPkCompressAt705
     (rho : Nat → DeployedF) :
-    AssetRingPkCompressValuation rho 705 = rho 8543 := by
+    AssetRingPkCompressValuation rho 705 = rho 8545 := by
   simp only [
     AssetRingPkCompressValuation, Seg20.localRho,
     Deployed.Templates.seated]
-  rw [show Seg20.wireSeating 705 = 8543 by
+  rw [show Seg20.wireSeating 705 = 8545 by
     decide +kernel]
 
 /-- Deployed seating for the `asset_ring_hash` certified local semantics. -/
@@ -817,21 +818,21 @@ def AssetRingHashSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `asset_ring_hash` local 1. -/
 @[simp] theorem assetRingHashAt1
     (rho : Nat → DeployedF) :
-    AssetRingHashValuation rho 1 = rho 8203 := by
+    AssetRingHashValuation rho 1 = rho 8205 := by
   simp only [
     AssetRingHashValuation, Seg21.localRho,
     Deployed.Templates.seated]
-  rw [show Seg21.wireSeating 1 = 8203 by
+  rw [show Seg21.wireSeating 1 = 8205 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_ring_hash` local 2. -/
 @[simp] theorem assetRingHashAt2
     (rho : Nat → DeployedF) :
-    AssetRingHashValuation rho 2 = rho 8543 := by
+    AssetRingHashValuation rho 2 = rho 8545 := by
   simp only [
     AssetRingHashValuation, Seg21.localRho,
     Deployed.Templates.seated]
-  rw [show Seg21.wireSeating 2 = 8543 by
+  rw [show Seg21.wireSeating 2 = 8545 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_ring_hash` local 8. -/
@@ -877,61 +878,61 @@ def AssetRingHashSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `asset_ring_hash` local 371. -/
 @[simp] theorem assetRingHashAt371
     (rho : Nat → DeployedF) :
-    AssetRingHashValuation rho 371 = rho 8908 := by
+    AssetRingHashValuation rho 371 = rho 8910 := by
   simp only [
     AssetRingHashValuation, Seg21.localRho,
     Deployed.Templates.seated]
-  rw [show Seg21.wireSeating 371 = 8908 by
+  rw [show Seg21.wireSeating 371 = 8910 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_ring_hash` local 376. -/
 @[simp] theorem assetRingHashAt376
     (rho : Nat → DeployedF) :
-    AssetRingHashValuation rho 376 = rho 8913 := by
+    AssetRingHashValuation rho 376 = rho 8915 := by
   simp only [
     AssetRingHashValuation, Seg21.localRho,
     Deployed.Templates.seated]
-  rw [show Seg21.wireSeating 376 = 8913 by
+  rw [show Seg21.wireSeating 376 = 8915 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_ring_hash` local 381. -/
 @[simp] theorem assetRingHashAt381
     (rho : Nat → DeployedF) :
-    AssetRingHashValuation rho 381 = rho 8918 := by
+    AssetRingHashValuation rho 381 = rho 8920 := by
   simp only [
     AssetRingHashValuation, Seg21.localRho,
     Deployed.Templates.seated]
-  rw [show Seg21.wireSeating 381 = 8918 by
+  rw [show Seg21.wireSeating 381 = 8920 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_ring_hash` local 386. -/
 @[simp] theorem assetRingHashAt386
     (rho : Nat → DeployedF) :
-    AssetRingHashValuation rho 386 = rho 8923 := by
+    AssetRingHashValuation rho 386 = rho 8925 := by
   simp only [
     AssetRingHashValuation, Seg21.localRho,
     Deployed.Templates.seated]
-  rw [show Seg21.wireSeating 386 = 8923 by
+  rw [show Seg21.wireSeating 386 = 8925 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_ring_hash` local 391. -/
 @[simp] theorem assetRingHashAt391
     (rho : Nat → DeployedF) :
-    AssetRingHashValuation rho 391 = rho 8928 := by
+    AssetRingHashValuation rho 391 = rho 8930 := by
   simp only [
     AssetRingHashValuation, Seg21.localRho,
     Deployed.Templates.seated]
-  rw [show Seg21.wireSeating 391 = 8928 by
+  rw [show Seg21.wireSeating 391 = 8930 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_ring_hash` local 396. -/
 @[simp] theorem assetRingHashAt396
     (rho : Nat → DeployedF) :
-    AssetRingHashValuation rho 396 = rho 8933 := by
+    AssetRingHashValuation rho 396 = rho 8935 := by
   simp only [
     AssetRingHashValuation, Seg21.localRho,
     Deployed.Templates.seated]
-  rw [show Seg21.wireSeating 396 = 8933 by
+  rw [show Seg21.wireSeating 396 = 8935 by
     decide +kernel]
 
 /-- Deployed seating for the `asset_leaf_hash` certified local semantics. -/
@@ -975,171 +976,171 @@ def AssetLeafHashSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `asset_leaf_hash` local 19. -/
 @[simp] theorem assetLeafHashAt19
     (rho : Nat → DeployedF) :
-    AssetLeafHashValuation rho 19 = rho 7820 := by
+    AssetLeafHashValuation rho 19 = rho 7822 := by
   simp only [
     AssetLeafHashValuation, Seg22.localRho,
     Deployed.Templates.seated]
-  rw [show Seg22.wireSeating 19 = 7820 by
+  rw [show Seg22.wireSeating 19 = 7822 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_leaf_hash` local 20. -/
 @[simp] theorem assetLeafHashAt20
     (rho : Nat → DeployedF) :
-    AssetLeafHashValuation rho 20 = rho 7825 := by
+    AssetLeafHashValuation rho 20 = rho 7827 := by
   simp only [
     AssetLeafHashValuation, Seg22.localRho,
     Deployed.Templates.seated]
-  rw [show Seg22.wireSeating 20 = 7825 by
+  rw [show Seg22.wireSeating 20 = 7827 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_leaf_hash` local 21. -/
 @[simp] theorem assetLeafHashAt21
     (rho : Nat → DeployedF) :
-    AssetLeafHashValuation rho 21 = rho 7830 := by
+    AssetLeafHashValuation rho 21 = rho 7832 := by
   simp only [
     AssetLeafHashValuation, Seg22.localRho,
     Deployed.Templates.seated]
-  rw [show Seg22.wireSeating 21 = 7830 by
+  rw [show Seg22.wireSeating 21 = 7832 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_leaf_hash` local 22. -/
 @[simp] theorem assetLeafHashAt22
     (rho : Nat → DeployedF) :
-    AssetLeafHashValuation rho 22 = rho 7835 := by
+    AssetLeafHashValuation rho 22 = rho 7837 := by
   simp only [
     AssetLeafHashValuation, Seg22.localRho,
     Deployed.Templates.seated]
-  rw [show Seg22.wireSeating 22 = 7835 by
+  rw [show Seg22.wireSeating 22 = 7837 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_leaf_hash` local 23. -/
 @[simp] theorem assetLeafHashAt23
     (rho : Nat → DeployedF) :
-    AssetLeafHashValuation rho 23 = rho 7840 := by
+    AssetLeafHashValuation rho 23 = rho 7842 := by
   simp only [
     AssetLeafHashValuation, Seg22.localRho,
     Deployed.Templates.seated]
-  rw [show Seg22.wireSeating 23 = 7840 by
+  rw [show Seg22.wireSeating 23 = 7842 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_leaf_hash` local 29. -/
 @[simp] theorem assetLeafHashAt29
     (rho : Nat → DeployedF) :
-    AssetLeafHashValuation rho 29 = rho 8908 := by
+    AssetLeafHashValuation rho 29 = rho 8910 := by
   simp only [
     AssetLeafHashValuation, Seg22.localRho,
     Deployed.Templates.seated]
-  rw [show Seg22.wireSeating 29 = 8908 by
+  rw [show Seg22.wireSeating 29 = 8910 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_leaf_hash` local 30. -/
 @[simp] theorem assetLeafHashAt30
     (rho : Nat → DeployedF) :
-    AssetLeafHashValuation rho 30 = rho 8913 := by
+    AssetLeafHashValuation rho 30 = rho 8915 := by
   simp only [
     AssetLeafHashValuation, Seg22.localRho,
     Deployed.Templates.seated]
-  rw [show Seg22.wireSeating 30 = 8913 by
+  rw [show Seg22.wireSeating 30 = 8915 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_leaf_hash` local 31. -/
 @[simp] theorem assetLeafHashAt31
     (rho : Nat → DeployedF) :
-    AssetLeafHashValuation rho 31 = rho 8918 := by
+    AssetLeafHashValuation rho 31 = rho 8920 := by
   simp only [
     AssetLeafHashValuation, Seg22.localRho,
     Deployed.Templates.seated]
-  rw [show Seg22.wireSeating 31 = 8918 by
+  rw [show Seg22.wireSeating 31 = 8920 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_leaf_hash` local 32. -/
 @[simp] theorem assetLeafHashAt32
     (rho : Nat → DeployedF) :
-    AssetLeafHashValuation rho 32 = rho 8923 := by
+    AssetLeafHashValuation rho 32 = rho 8925 := by
   simp only [
     AssetLeafHashValuation, Seg22.localRho,
     Deployed.Templates.seated]
-  rw [show Seg22.wireSeating 32 = 8923 by
+  rw [show Seg22.wireSeating 32 = 8925 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_leaf_hash` local 33. -/
 @[simp] theorem assetLeafHashAt33
     (rho : Nat → DeployedF) :
-    AssetLeafHashValuation rho 33 = rho 8928 := by
+    AssetLeafHashValuation rho 33 = rho 8930 := by
   simp only [
     AssetLeafHashValuation, Seg22.localRho,
     Deployed.Templates.seated]
-  rw [show Seg22.wireSeating 33 = 8928 by
+  rw [show Seg22.wireSeating 33 = 8930 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_leaf_hash` local 34. -/
 @[simp] theorem assetLeafHashAt34
     (rho : Nat → DeployedF) :
-    AssetLeafHashValuation rho 34 = rho 8933 := by
+    AssetLeafHashValuation rho 34 = rho 8935 := by
   simp only [
     AssetLeafHashValuation, Seg22.localRho,
     Deployed.Templates.seated]
-  rw [show Seg22.wireSeating 34 = 8933 by
+  rw [show Seg22.wireSeating 34 = 8935 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_leaf_hash` local 379. -/
 @[simp] theorem assetLeafHashAt379
     (rho : Nat → DeployedF) :
-    AssetLeafHashValuation rho 379 = rho 9298 := by
+    AssetLeafHashValuation rho 379 = rho 9300 := by
   simp only [
     AssetLeafHashValuation, Seg22.localRho,
     Deployed.Templates.seated]
-  rw [show Seg22.wireSeating 379 = 9298 by
+  rw [show Seg22.wireSeating 379 = 9300 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_leaf_hash` local 384. -/
 @[simp] theorem assetLeafHashAt384
     (rho : Nat → DeployedF) :
-    AssetLeafHashValuation rho 384 = rho 9303 := by
+    AssetLeafHashValuation rho 384 = rho 9305 := by
   simp only [
     AssetLeafHashValuation, Seg22.localRho,
     Deployed.Templates.seated]
-  rw [show Seg22.wireSeating 384 = 9303 by
+  rw [show Seg22.wireSeating 384 = 9305 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_leaf_hash` local 389. -/
 @[simp] theorem assetLeafHashAt389
     (rho : Nat → DeployedF) :
-    AssetLeafHashValuation rho 389 = rho 9308 := by
+    AssetLeafHashValuation rho 389 = rho 9310 := by
   simp only [
     AssetLeafHashValuation, Seg22.localRho,
     Deployed.Templates.seated]
-  rw [show Seg22.wireSeating 389 = 9308 by
+  rw [show Seg22.wireSeating 389 = 9310 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_leaf_hash` local 394. -/
 @[simp] theorem assetLeafHashAt394
     (rho : Nat → DeployedF) :
-    AssetLeafHashValuation rho 394 = rho 9313 := by
+    AssetLeafHashValuation rho 394 = rho 9315 := by
   simp only [
     AssetLeafHashValuation, Seg22.localRho,
     Deployed.Templates.seated]
-  rw [show Seg22.wireSeating 394 = 9313 by
+  rw [show Seg22.wireSeating 394 = 9315 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_leaf_hash` local 399. -/
 @[simp] theorem assetLeafHashAt399
     (rho : Nat → DeployedF) :
-    AssetLeafHashValuation rho 399 = rho 9318 := by
+    AssetLeafHashValuation rho 399 = rho 9320 := by
   simp only [
     AssetLeafHashValuation, Seg22.localRho,
     Deployed.Templates.seated]
-  rw [show Seg22.wireSeating 399 = 9318 by
+  rw [show Seg22.wireSeating 399 = 9320 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_leaf_hash` local 404. -/
 @[simp] theorem assetLeafHashAt404
     (rho : Nat → DeployedF) :
-    AssetLeafHashValuation rho 404 = rho 9323 := by
+    AssetLeafHashValuation rho 404 = rho 9325 := by
   simp only [
     AssetLeafHashValuation, Seg22.localRho,
     Deployed.Templates.seated]
-  rw [show Seg22.wireSeating 404 = 9323 by
+  rw [show Seg22.wireSeating 404 = 9325 by
     decide +kernel]
 
 /-- Deployed seating for the `asset_path` certified local semantics. -/
@@ -1173,61 +1174,61 @@ def AssetPathSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `asset_path` local 39. -/
 @[simp] theorem assetPathAt39
     (rho : Nat → DeployedF) :
-    AssetPathValuation rho 39 = rho 9298 := by
+    AssetPathValuation rho 39 = rho 9300 := by
   simp only [
     AssetPathValuation, Seg23.localRho,
     Deployed.Templates.seated]
-  rw [show Seg23.wireSeating 39 = 9298 by
+  rw [show Seg23.wireSeating 39 = 9300 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_path` local 40. -/
 @[simp] theorem assetPathAt40
     (rho : Nat → DeployedF) :
-    AssetPathValuation rho 40 = rho 9303 := by
+    AssetPathValuation rho 40 = rho 9305 := by
   simp only [
     AssetPathValuation, Seg23.localRho,
     Deployed.Templates.seated]
-  rw [show Seg23.wireSeating 40 = 9303 by
+  rw [show Seg23.wireSeating 40 = 9305 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_path` local 41. -/
 @[simp] theorem assetPathAt41
     (rho : Nat → DeployedF) :
-    AssetPathValuation rho 41 = rho 9308 := by
+    AssetPathValuation rho 41 = rho 9310 := by
   simp only [
     AssetPathValuation, Seg23.localRho,
     Deployed.Templates.seated]
-  rw [show Seg23.wireSeating 41 = 9308 by
+  rw [show Seg23.wireSeating 41 = 9310 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_path` local 42. -/
 @[simp] theorem assetPathAt42
     (rho : Nat → DeployedF) :
-    AssetPathValuation rho 42 = rho 9313 := by
+    AssetPathValuation rho 42 = rho 9315 := by
   simp only [
     AssetPathValuation, Seg23.localRho,
     Deployed.Templates.seated]
-  rw [show Seg23.wireSeating 42 = 9313 by
+  rw [show Seg23.wireSeating 42 = 9315 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_path` local 43. -/
 @[simp] theorem assetPathAt43
     (rho : Nat → DeployedF) :
-    AssetPathValuation rho 43 = rho 9318 := by
+    AssetPathValuation rho 43 = rho 9320 := by
   simp only [
     AssetPathValuation, Seg23.localRho,
     Deployed.Templates.seated]
-  rw [show Seg23.wireSeating 43 = 9318 by
+  rw [show Seg23.wireSeating 43 = 9320 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_path` local 44. -/
 @[simp] theorem assetPathAt44
     (rho : Nat → DeployedF) :
-    AssetPathValuation rho 44 = rho 9323 := by
+    AssetPathValuation rho 44 = rho 9325 := by
   simp only [
     AssetPathValuation, Seg23.localRho,
     Deployed.Templates.seated]
-  rw [show Seg23.wireSeating 44 = 9323 by
+  rw [show Seg23.wireSeating 44 = 9325 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_path` local 46. -/
@@ -1703,51 +1704,51 @@ def AssetPathSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `asset_path` local 5827. -/
 @[simp] theorem assetPathAt5827
     (rho : Nat → DeployedF) :
-    AssetPathValuation rho 5827 = rho 15095 := by
+    AssetPathValuation rho 5827 = rho 15097 := by
   simp only [
     AssetPathValuation, Seg23.localRho,
     Deployed.Templates.seated]
-  rw [show Seg23.wireSeating 5827 = 15095 by
+  rw [show Seg23.wireSeating 5827 = 15097 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_path` local 5832. -/
 @[simp] theorem assetPathAt5832
     (rho : Nat → DeployedF) :
-    AssetPathValuation rho 5832 = rho 15100 := by
+    AssetPathValuation rho 5832 = rho 15102 := by
   simp only [
     AssetPathValuation, Seg23.localRho,
     Deployed.Templates.seated]
-  rw [show Seg23.wireSeating 5832 = 15100 by
+  rw [show Seg23.wireSeating 5832 = 15102 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_path` local 5837. -/
 @[simp] theorem assetPathAt5837
     (rho : Nat → DeployedF) :
-    AssetPathValuation rho 5837 = rho 15105 := by
+    AssetPathValuation rho 5837 = rho 15107 := by
   simp only [
     AssetPathValuation, Seg23.localRho,
     Deployed.Templates.seated]
-  rw [show Seg23.wireSeating 5837 = 15105 by
+  rw [show Seg23.wireSeating 5837 = 15107 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_path` local 5842. -/
 @[simp] theorem assetPathAt5842
     (rho : Nat → DeployedF) :
-    AssetPathValuation rho 5842 = rho 15110 := by
+    AssetPathValuation rho 5842 = rho 15112 := by
   simp only [
     AssetPathValuation, Seg23.localRho,
     Deployed.Templates.seated]
-  rw [show Seg23.wireSeating 5842 = 15110 by
+  rw [show Seg23.wireSeating 5842 = 15112 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_path` local 5847. -/
 @[simp] theorem assetPathAt5847
     (rho : Nat → DeployedF) :
-    AssetPathValuation rho 5847 = rho 15115 := by
+    AssetPathValuation rho 5847 = rho 15117 := by
   simp only [
     AssetPathValuation, Seg23.localRho,
     Deployed.Templates.seated]
-  rw [show Seg23.wireSeating 5847 = 15115 by
+  rw [show Seg23.wireSeating 5847 = 15117 by
     decide +kernel]
 
 /-- Deployed seating for the `asset_root_assert` certified local semantics. -/
@@ -1761,51 +1762,51 @@ def AssetRootAssertSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `asset_root_assert` local 1. -/
 @[simp] theorem assetRootAssertAt1
     (rho : Nat → DeployedF) :
-    AssetRootAssertValuation rho 1 = rho 15095 := by
+    AssetRootAssertValuation rho 1 = rho 15097 := by
   simp only [
     AssetRootAssertValuation, Seg24.localRho,
     Deployed.Templates.seated]
-  rw [show Seg24.wireSeating 1 = 15095 by
+  rw [show Seg24.wireSeating 1 = 15097 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_root_assert` local 2. -/
 @[simp] theorem assetRootAssertAt2
     (rho : Nat → DeployedF) :
-    AssetRootAssertValuation rho 2 = rho 15100 := by
+    AssetRootAssertValuation rho 2 = rho 15102 := by
   simp only [
     AssetRootAssertValuation, Seg24.localRho,
     Deployed.Templates.seated]
-  rw [show Seg24.wireSeating 2 = 15100 by
+  rw [show Seg24.wireSeating 2 = 15102 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_root_assert` local 3. -/
 @[simp] theorem assetRootAssertAt3
     (rho : Nat → DeployedF) :
-    AssetRootAssertValuation rho 3 = rho 15105 := by
+    AssetRootAssertValuation rho 3 = rho 15107 := by
   simp only [
     AssetRootAssertValuation, Seg24.localRho,
     Deployed.Templates.seated]
-  rw [show Seg24.wireSeating 3 = 15105 by
+  rw [show Seg24.wireSeating 3 = 15107 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_root_assert` local 4. -/
 @[simp] theorem assetRootAssertAt4
     (rho : Nat → DeployedF) :
-    AssetRootAssertValuation rho 4 = rho 15110 := by
+    AssetRootAssertValuation rho 4 = rho 15112 := by
   simp only [
     AssetRootAssertValuation, Seg24.localRho,
     Deployed.Templates.seated]
-  rw [show Seg24.wireSeating 4 = 15110 by
+  rw [show Seg24.wireSeating 4 = 15112 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_root_assert` local 5. -/
 @[simp] theorem assetRootAssertAt5
     (rho : Nat → DeployedF) :
-    AssetRootAssertValuation rho 5 = rho 15115 := by
+    AssetRootAssertValuation rho 5 = rho 15117 := by
   simp only [
     AssetRootAssertValuation, Seg24.localRho,
     Deployed.Templates.seated]
-  rw [show Seg24.wireSeating 5 = 15115 by
+  rw [show Seg24.wireSeating 5 = 15117 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_root_assert` local 6. -/
@@ -1839,11 +1840,11 @@ def AssetGapSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `asset_gap` local 594. -/
 @[simp] theorem assetGapAt594
     (rho : Nat → DeployedF) :
-    AssetGapValuation rho 594 = rho 184 := by
+    AssetGapValuation rho 594 = rho 185 := by
   simp only [
     AssetGapValuation, Seg25.localRho,
     Deployed.Templates.seated]
-  rw [show Seg25.wireSeating 594 = 184 by
+  rw [show Seg25.wireSeating 594 = 185 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_gap` local 934. -/
@@ -1859,11 +1860,11 @@ def AssetGapSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `asset_gap` local 3043. -/
 @[simp] theorem assetGapAt3043
     (rho : Nat → DeployedF) :
-    AssetGapValuation rho 3043 = rho 18155 := by
+    AssetGapValuation rho 3043 = rho 18157 := by
   simp only [
     AssetGapValuation, Seg25.localRho,
     Deployed.Templates.seated]
-  rw [show Seg25.wireSeating 3043 = 18155 by
+  rw [show Seg25.wireSeating 3043 = 18157 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_gap` local 3044. -/
@@ -1879,11 +1880,11 @@ def AssetGapSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `asset_gap` local 3045. -/
 @[simp] theorem assetGapAt3045
     (rho : Nat → DeployedF) :
-    AssetGapValuation rho 3045 = rho 18156 := by
+    AssetGapValuation rho 3045 = rho 18158 := by
   simp only [
     AssetGapValuation, Seg25.localRho,
     Deployed.Templates.seated]
-  rw [show Seg25.wireSeating 3045 = 18156 by
+  rw [show Seg25.wireSeating 3045 = 18158 by
     decide +kernel]
 
 /-- Deployed seating for the `asset_gap_accept` certified local semantics. -/
@@ -1897,21 +1898,21 @@ def AssetGapAcceptSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `asset_gap_accept` local 1. -/
 @[simp] theorem assetGapAcceptAt1
     (rho : Nat → DeployedF) :
-    AssetGapAcceptValuation rho 1 = rho 18155 := by
+    AssetGapAcceptValuation rho 1 = rho 18157 := by
   simp only [
     AssetGapAcceptValuation, Seg26.localRho,
     Deployed.Templates.seated]
-  rw [show Seg26.wireSeating 1 = 18155 by
+  rw [show Seg26.wireSeating 1 = 18157 by
     decide +kernel]
 
 /-- Audited action-facing seat for `asset_gap_accept` local 2. -/
 @[simp] theorem assetGapAcceptAt2
     (rho : Nat → DeployedF) :
-    AssetGapAcceptValuation rho 2 = rho 18156 := by
+    AssetGapAcceptValuation rho 2 = rho 18158 := by
   simp only [
     AssetGapAcceptValuation, Seg26.localRho,
     Deployed.Templates.seated]
-  rw [show Seg26.wireSeating 2 = 18156 by
+  rw [show Seg26.wireSeating 2 = 18158 by
     decide +kernel]
 
 /-- Deployed seating for the `sender_compliance_leaf` certified local semantics. -/
@@ -1920,56 +1921,56 @@ def SenderComplianceLeafValuation (rho : Nat → DeployedF) : Nat → DeployedF 
 
 /-- Certified local semantics for the `sender_compliance_leaf` source operation. -/
 def SenderComplianceLeafSemanticSpec (rho : Nat → DeployedF) : Prop :=
-  Deployed.Templates.Semantics.TGadgetComplianceLeaf_dcb0a1040c535cf394b8bda4f381260121926f7d477fb80a22e4e84b0cb431bc.spec (SenderComplianceLeafValuation rho)
+  Deployed.Templates.Semantics.TGadgetComplianceLeaf_712c7a4d010c3b98e4d25232885b0f2dbf3329286405042c73ffe98555c9d024.spec (SenderComplianceLeafValuation rho)
 
 /-- Audited action-facing seat for `sender_compliance_leaf` local 1. -/
 @[simp] theorem senderComplianceLeafAt1
     (rho : Nat → DeployedF) :
-    SenderComplianceLeafValuation rho 1 = rho 777 := by
+    SenderComplianceLeafValuation rho 1 = rho 779 := by
   simp only [
     SenderComplianceLeafValuation, Seg27.localRho,
     Deployed.Templates.seated]
-  rw [show Seg27.wireSeating 1 = 777 by
+  rw [show Seg27.wireSeating 1 = 779 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_compliance_leaf` local 2. -/
 @[simp] theorem senderComplianceLeafAt2
     (rho : Nat → DeployedF) :
-    SenderComplianceLeafValuation rho 2 = rho 1117 := by
+    SenderComplianceLeafValuation rho 2 = rho 1119 := by
   simp only [
     SenderComplianceLeafValuation, Seg27.localRho,
     Deployed.Templates.seated]
-  rw [show Seg27.wireSeating 2 = 1117 by
+  rw [show Seg27.wireSeating 2 = 1119 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_compliance_leaf` local 8. -/
 @[simp] theorem senderComplianceLeafAt8
     (rho : Nat → DeployedF) :
-    SenderComplianceLeafValuation rho 8 = rho 1480 := by
+    SenderComplianceLeafValuation rho 8 = rho 1482 := by
   simp only [
     SenderComplianceLeafValuation, Seg27.localRho,
     Deployed.Templates.seated]
-  rw [show Seg27.wireSeating 8 = 1480 by
+  rw [show Seg27.wireSeating 8 = 1482 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_compliance_leaf` local 9. -/
 @[simp] theorem senderComplianceLeafAt9
     (rho : Nat → DeployedF) :
-    SenderComplianceLeafValuation rho 9 = rho 1820 := by
+    SenderComplianceLeafValuation rho 9 = rho 1822 := by
   simp only [
     SenderComplianceLeafValuation, Seg27.localRho,
     Deployed.Templates.seated]
-  rw [show Seg27.wireSeating 9 = 1820 by
+  rw [show Seg27.wireSeating 9 = 1822 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_compliance_leaf` local 15. -/
 @[simp] theorem senderComplianceLeafAt15
     (rho : Nat → DeployedF) :
-    SenderComplianceLeafValuation rho 15 = rho 184 := by
+    SenderComplianceLeafValuation rho 15 = rho 185 := by
   simp only [
     SenderComplianceLeafValuation, Seg27.localRho,
     Deployed.Templates.seated]
-  rw [show Seg27.wireSeating 15 = 184 by
+  rw [show Seg27.wireSeating 15 = 185 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_compliance_leaf` local 21. -/
@@ -2002,74 +2003,94 @@ def SenderComplianceLeafSemanticSpec (rho : Nat → DeployedF) : Prop :=
   rw [show Seg27.wireSeating 33 = 89 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_leaf` local 408. -/
-@[simp] theorem senderComplianceLeafAt408
+/-- Audited action-facing seat for `sender_compliance_leaf` local 39. -/
+@[simp] theorem senderComplianceLeafAt39
     (rho : Nat → DeployedF) :
-    SenderComplianceLeafValuation rho 408 = rho 18556 := by
+    SenderComplianceLeafValuation rho 39 = rho 90 := by
   simp only [
     SenderComplianceLeafValuation, Seg27.localRho,
     Deployed.Templates.seated]
-  rw [show Seg27.wireSeating 408 = 18556 by
+  rw [show Seg27.wireSeating 39 = 90 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_leaf` local 413. -/
-@[simp] theorem senderComplianceLeafAt413
+/-- Audited action-facing seat for `sender_compliance_leaf` local 444. -/
+@[simp] theorem senderComplianceLeafAt444
     (rho : Nat → DeployedF) :
-    SenderComplianceLeafValuation rho 413 = rho 18561 := by
+    SenderComplianceLeafValuation rho 444 = rho 18593 := by
   simp only [
     SenderComplianceLeafValuation, Seg27.localRho,
     Deployed.Templates.seated]
-  rw [show Seg27.wireSeating 413 = 18561 by
+  rw [show Seg27.wireSeating 444 = 18593 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_leaf` local 418. -/
-@[simp] theorem senderComplianceLeafAt418
+/-- Audited action-facing seat for `sender_compliance_leaf` local 449. -/
+@[simp] theorem senderComplianceLeafAt449
     (rho : Nat → DeployedF) :
-    SenderComplianceLeafValuation rho 418 = rho 18566 := by
+    SenderComplianceLeafValuation rho 449 = rho 18598 := by
   simp only [
     SenderComplianceLeafValuation, Seg27.localRho,
     Deployed.Templates.seated]
-  rw [show Seg27.wireSeating 418 = 18566 by
+  rw [show Seg27.wireSeating 449 = 18598 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_leaf` local 423. -/
-@[simp] theorem senderComplianceLeafAt423
+/-- Audited action-facing seat for `sender_compliance_leaf` local 454. -/
+@[simp] theorem senderComplianceLeafAt454
     (rho : Nat → DeployedF) :
-    SenderComplianceLeafValuation rho 423 = rho 18571 := by
+    SenderComplianceLeafValuation rho 454 = rho 18603 := by
   simp only [
     SenderComplianceLeafValuation, Seg27.localRho,
     Deployed.Templates.seated]
-  rw [show Seg27.wireSeating 423 = 18571 by
+  rw [show Seg27.wireSeating 454 = 18603 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_leaf` local 428. -/
-@[simp] theorem senderComplianceLeafAt428
+/-- Audited action-facing seat for `sender_compliance_leaf` local 459. -/
+@[simp] theorem senderComplianceLeafAt459
     (rho : Nat → DeployedF) :
-    SenderComplianceLeafValuation rho 428 = rho 18576 := by
+    SenderComplianceLeafValuation rho 459 = rho 18608 := by
   simp only [
     SenderComplianceLeafValuation, Seg27.localRho,
     Deployed.Templates.seated]
-  rw [show Seg27.wireSeating 428 = 18576 by
+  rw [show Seg27.wireSeating 459 = 18608 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_leaf` local 433. -/
-@[simp] theorem senderComplianceLeafAt433
+/-- Audited action-facing seat for `sender_compliance_leaf` local 464. -/
+@[simp] theorem senderComplianceLeafAt464
     (rho : Nat → DeployedF) :
-    SenderComplianceLeafValuation rho 433 = rho 18581 := by
+    SenderComplianceLeafValuation rho 464 = rho 18613 := by
   simp only [
     SenderComplianceLeafValuation, Seg27.localRho,
     Deployed.Templates.seated]
-  rw [show Seg27.wireSeating 433 = 18581 by
+  rw [show Seg27.wireSeating 464 = 18613 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_leaf` local 438. -/
-@[simp] theorem senderComplianceLeafAt438
+/-- Audited action-facing seat for `sender_compliance_leaf` local 469. -/
+@[simp] theorem senderComplianceLeafAt469
     (rho : Nat → DeployedF) :
-    SenderComplianceLeafValuation rho 438 = rho 18586 := by
+    SenderComplianceLeafValuation rho 469 = rho 18618 := by
   simp only [
     SenderComplianceLeafValuation, Seg27.localRho,
     Deployed.Templates.seated]
-  rw [show Seg27.wireSeating 438 = 18586 by
+  rw [show Seg27.wireSeating 469 = 18618 by
+    decide +kernel]
+
+/-- Audited action-facing seat for `sender_compliance_leaf` local 474. -/
+@[simp] theorem senderComplianceLeafAt474
+    (rho : Nat → DeployedF) :
+    SenderComplianceLeafValuation rho 474 = rho 18623 := by
+  simp only [
+    SenderComplianceLeafValuation, Seg27.localRho,
+    Deployed.Templates.seated]
+  rw [show Seg27.wireSeating 474 = 18623 by
+    decide +kernel]
+
+/-- Audited action-facing seat for `sender_compliance_leaf` local 479. -/
+@[simp] theorem senderComplianceLeafAt479
+    (rho : Nat → DeployedF) :
+    SenderComplianceLeafValuation rho 479 = rho 18628 := by
+  simp only [
+    SenderComplianceLeafValuation, Seg27.localRho,
+    Deployed.Templates.seated]
+  rw [show Seg27.wireSeating 479 = 18628 by
     decide +kernel]
 
 /-- Deployed seating for the `sender_compliance_path` certified local semantics. -/
@@ -2078,616 +2099,626 @@ def SenderCompliancePathValuation (rho : Nat → DeployedF) : Nat → DeployedF 
 
 /-- Certified local semantics for the `sender_compliance_path` source operation. -/
 def SenderCompliancePathSemanticSpec (rho : Nat → DeployedF) : Prop :=
-  Deployed.Templates.Semantics.TGadgetCompliancePath_d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686.spec (SenderCompliancePathValuation rho)
+  Deployed.Templates.Semantics.TGadgetCompliancePath_3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b.spec (SenderCompliancePathValuation rho)
 
 /-- Audited action-facing seat for `sender_compliance_path` local 33. -/
 @[simp] theorem senderCompliancePathAt33
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 33 = rho 138 := by
+    SenderCompliancePathValuation rho 33 = rho 139 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 33 = 138 by
+  rw [show Seg28.wireSeating 33 = 139 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_compliance_path` local 38. -/
 @[simp] theorem senderCompliancePathAt38
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 38 = rho 90 := by
+    SenderCompliancePathValuation rho 38 = rho 91 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 38 = 90 by
+  rw [show Seg28.wireSeating 38 = 91 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_compliance_path` local 39. -/
 @[simp] theorem senderCompliancePathAt39
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 39 = rho 18556 := by
+    SenderCompliancePathValuation rho 39 = rho 18593 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 39 = 18556 by
+  rw [show Seg28.wireSeating 39 = 18593 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_compliance_path` local 40. -/
 @[simp] theorem senderCompliancePathAt40
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 40 = rho 18561 := by
+    SenderCompliancePathValuation rho 40 = rho 18598 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 40 = 18561 by
+  rw [show Seg28.wireSeating 40 = 18598 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_compliance_path` local 41. -/
 @[simp] theorem senderCompliancePathAt41
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 41 = rho 18566 := by
+    SenderCompliancePathValuation rho 41 = rho 18603 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 41 = 18566 by
+  rw [show Seg28.wireSeating 41 = 18603 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_compliance_path` local 42. -/
 @[simp] theorem senderCompliancePathAt42
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 42 = rho 18571 := by
+    SenderCompliancePathValuation rho 42 = rho 18608 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 42 = 18571 by
+  rw [show Seg28.wireSeating 42 = 18608 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_compliance_path` local 43. -/
 @[simp] theorem senderCompliancePathAt43
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 43 = rho 18576 := by
+    SenderCompliancePathValuation rho 43 = rho 18613 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 43 = 18576 by
+  rw [show Seg28.wireSeating 43 = 18613 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_compliance_path` local 44. -/
 @[simp] theorem senderCompliancePathAt44
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 44 = rho 18581 := by
+    SenderCompliancePathValuation rho 44 = rho 18618 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 44 = 18581 by
+  rw [show Seg28.wireSeating 44 = 18618 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_compliance_path` local 45. -/
 @[simp] theorem senderCompliancePathAt45
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 45 = rho 18586 := by
+    SenderCompliancePathValuation rho 45 = rho 18623 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 45 = 18586 by
+  rw [show Seg28.wireSeating 45 = 18623 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 47. -/
-@[simp] theorem senderCompliancePathAt47
+/-- Audited action-facing seat for `sender_compliance_path` local 46. -/
+@[simp] theorem senderCompliancePathAt46
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 47 = rho 91 := by
+    SenderCompliancePathValuation rho 46 = rho 18628 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 47 = 91 by
+  rw [show Seg28.wireSeating 46 = 18628 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 50. -/
-@[simp] theorem senderCompliancePathAt50
+/-- Audited action-facing seat for `sender_compliance_path` local 48. -/
+@[simp] theorem senderCompliancePathAt48
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 50 = rho 92 := by
+    SenderCompliancePathValuation rho 48 = rho 92 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 50 = 92 by
+  rw [show Seg28.wireSeating 48 = 92 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 408. -/
-@[simp] theorem senderCompliancePathAt408
+/-- Audited action-facing seat for `sender_compliance_path` local 51. -/
+@[simp] theorem senderCompliancePathAt51
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 408 = rho 93 := by
+    SenderCompliancePathValuation rho 51 = rho 93 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 408 = 93 by
+  rw [show Seg28.wireSeating 51 = 93 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 410. -/
-@[simp] theorem senderCompliancePathAt410
+/-- Audited action-facing seat for `sender_compliance_path` local 409. -/
+@[simp] theorem senderCompliancePathAt409
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 410 = rho 94 := by
+    SenderCompliancePathValuation rho 409 = rho 94 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 410 = 94 by
+  rw [show Seg28.wireSeating 409 = 94 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 413. -/
-@[simp] theorem senderCompliancePathAt413
+/-- Audited action-facing seat for `sender_compliance_path` local 411. -/
+@[simp] theorem senderCompliancePathAt411
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 413 = rho 95 := by
+    SenderCompliancePathValuation rho 411 = rho 95 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 413 = 95 by
+  rw [show Seg28.wireSeating 411 = 95 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 771. -/
-@[simp] theorem senderCompliancePathAt771
+/-- Audited action-facing seat for `sender_compliance_path` local 414. -/
+@[simp] theorem senderCompliancePathAt414
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 771 = rho 96 := by
+    SenderCompliancePathValuation rho 414 = rho 96 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 771 = 96 by
+  rw [show Seg28.wireSeating 414 = 96 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 773. -/
-@[simp] theorem senderCompliancePathAt773
+/-- Audited action-facing seat for `sender_compliance_path` local 772. -/
+@[simp] theorem senderCompliancePathAt772
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 773 = rho 97 := by
+    SenderCompliancePathValuation rho 772 = rho 97 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 773 = 97 by
+  rw [show Seg28.wireSeating 772 = 97 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 776. -/
-@[simp] theorem senderCompliancePathAt776
+/-- Audited action-facing seat for `sender_compliance_path` local 774. -/
+@[simp] theorem senderCompliancePathAt774
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 776 = rho 98 := by
+    SenderCompliancePathValuation rho 774 = rho 98 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 776 = 98 by
+  rw [show Seg28.wireSeating 774 = 98 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 1134. -/
-@[simp] theorem senderCompliancePathAt1134
+/-- Audited action-facing seat for `sender_compliance_path` local 777. -/
+@[simp] theorem senderCompliancePathAt777
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 1134 = rho 99 := by
+    SenderCompliancePathValuation rho 777 = rho 99 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 1134 = 99 by
+  rw [show Seg28.wireSeating 777 = 99 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 1136. -/
-@[simp] theorem senderCompliancePathAt1136
+/-- Audited action-facing seat for `sender_compliance_path` local 1135. -/
+@[simp] theorem senderCompliancePathAt1135
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 1136 = rho 100 := by
+    SenderCompliancePathValuation rho 1135 = rho 100 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 1136 = 100 by
+  rw [show Seg28.wireSeating 1135 = 100 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 1139. -/
-@[simp] theorem senderCompliancePathAt1139
+/-- Audited action-facing seat for `sender_compliance_path` local 1137. -/
+@[simp] theorem senderCompliancePathAt1137
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 1139 = rho 101 := by
+    SenderCompliancePathValuation rho 1137 = rho 101 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 1139 = 101 by
+  rw [show Seg28.wireSeating 1137 = 101 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 1497. -/
-@[simp] theorem senderCompliancePathAt1497
+/-- Audited action-facing seat for `sender_compliance_path` local 1140. -/
+@[simp] theorem senderCompliancePathAt1140
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 1497 = rho 102 := by
+    SenderCompliancePathValuation rho 1140 = rho 102 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 1497 = 102 by
+  rw [show Seg28.wireSeating 1140 = 102 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 1499. -/
-@[simp] theorem senderCompliancePathAt1499
+/-- Audited action-facing seat for `sender_compliance_path` local 1498. -/
+@[simp] theorem senderCompliancePathAt1498
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 1499 = rho 103 := by
+    SenderCompliancePathValuation rho 1498 = rho 103 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 1499 = 103 by
+  rw [show Seg28.wireSeating 1498 = 103 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 1502. -/
-@[simp] theorem senderCompliancePathAt1502
+/-- Audited action-facing seat for `sender_compliance_path` local 1500. -/
+@[simp] theorem senderCompliancePathAt1500
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 1502 = rho 104 := by
+    SenderCompliancePathValuation rho 1500 = rho 104 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 1502 = 104 by
+  rw [show Seg28.wireSeating 1500 = 104 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 1860. -/
-@[simp] theorem senderCompliancePathAt1860
+/-- Audited action-facing seat for `sender_compliance_path` local 1503. -/
+@[simp] theorem senderCompliancePathAt1503
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 1860 = rho 105 := by
+    SenderCompliancePathValuation rho 1503 = rho 105 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 1860 = 105 by
+  rw [show Seg28.wireSeating 1503 = 105 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 1862. -/
-@[simp] theorem senderCompliancePathAt1862
+/-- Audited action-facing seat for `sender_compliance_path` local 1861. -/
+@[simp] theorem senderCompliancePathAt1861
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 1862 = rho 106 := by
+    SenderCompliancePathValuation rho 1861 = rho 106 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 1862 = 106 by
+  rw [show Seg28.wireSeating 1861 = 106 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 1865. -/
-@[simp] theorem senderCompliancePathAt1865
+/-- Audited action-facing seat for `sender_compliance_path` local 1863. -/
+@[simp] theorem senderCompliancePathAt1863
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 1865 = rho 107 := by
+    SenderCompliancePathValuation rho 1863 = rho 107 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 1865 = 107 by
+  rw [show Seg28.wireSeating 1863 = 107 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 2223. -/
-@[simp] theorem senderCompliancePathAt2223
+/-- Audited action-facing seat for `sender_compliance_path` local 1866. -/
+@[simp] theorem senderCompliancePathAt1866
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 2223 = rho 108 := by
+    SenderCompliancePathValuation rho 1866 = rho 108 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 2223 = 108 by
+  rw [show Seg28.wireSeating 1866 = 108 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 2225. -/
-@[simp] theorem senderCompliancePathAt2225
+/-- Audited action-facing seat for `sender_compliance_path` local 2224. -/
+@[simp] theorem senderCompliancePathAt2224
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 2225 = rho 109 := by
+    SenderCompliancePathValuation rho 2224 = rho 109 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 2225 = 109 by
+  rw [show Seg28.wireSeating 2224 = 109 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 2228. -/
-@[simp] theorem senderCompliancePathAt2228
+/-- Audited action-facing seat for `sender_compliance_path` local 2226. -/
+@[simp] theorem senderCompliancePathAt2226
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 2228 = rho 110 := by
+    SenderCompliancePathValuation rho 2226 = rho 110 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 2228 = 110 by
+  rw [show Seg28.wireSeating 2226 = 110 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 2586. -/
-@[simp] theorem senderCompliancePathAt2586
+/-- Audited action-facing seat for `sender_compliance_path` local 2229. -/
+@[simp] theorem senderCompliancePathAt2229
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 2586 = rho 111 := by
+    SenderCompliancePathValuation rho 2229 = rho 111 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 2586 = 111 by
+  rw [show Seg28.wireSeating 2229 = 111 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 2588. -/
-@[simp] theorem senderCompliancePathAt2588
+/-- Audited action-facing seat for `sender_compliance_path` local 2587. -/
+@[simp] theorem senderCompliancePathAt2587
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 2588 = rho 112 := by
+    SenderCompliancePathValuation rho 2587 = rho 112 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 2588 = 112 by
+  rw [show Seg28.wireSeating 2587 = 112 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 2591. -/
-@[simp] theorem senderCompliancePathAt2591
+/-- Audited action-facing seat for `sender_compliance_path` local 2589. -/
+@[simp] theorem senderCompliancePathAt2589
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 2591 = rho 113 := by
+    SenderCompliancePathValuation rho 2589 = rho 113 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 2591 = 113 by
+  rw [show Seg28.wireSeating 2589 = 113 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 2949. -/
-@[simp] theorem senderCompliancePathAt2949
+/-- Audited action-facing seat for `sender_compliance_path` local 2592. -/
+@[simp] theorem senderCompliancePathAt2592
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 2949 = rho 114 := by
+    SenderCompliancePathValuation rho 2592 = rho 114 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 2949 = 114 by
+  rw [show Seg28.wireSeating 2592 = 114 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 2951. -/
-@[simp] theorem senderCompliancePathAt2951
+/-- Audited action-facing seat for `sender_compliance_path` local 2950. -/
+@[simp] theorem senderCompliancePathAt2950
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 2951 = rho 115 := by
+    SenderCompliancePathValuation rho 2950 = rho 115 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 2951 = 115 by
+  rw [show Seg28.wireSeating 2950 = 115 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 2954. -/
-@[simp] theorem senderCompliancePathAt2954
+/-- Audited action-facing seat for `sender_compliance_path` local 2952. -/
+@[simp] theorem senderCompliancePathAt2952
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 2954 = rho 116 := by
+    SenderCompliancePathValuation rho 2952 = rho 116 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 2954 = 116 by
+  rw [show Seg28.wireSeating 2952 = 116 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 3312. -/
-@[simp] theorem senderCompliancePathAt3312
+/-- Audited action-facing seat for `sender_compliance_path` local 2955. -/
+@[simp] theorem senderCompliancePathAt2955
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 3312 = rho 117 := by
+    SenderCompliancePathValuation rho 2955 = rho 117 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 3312 = 117 by
+  rw [show Seg28.wireSeating 2955 = 117 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 3314. -/
-@[simp] theorem senderCompliancePathAt3314
+/-- Audited action-facing seat for `sender_compliance_path` local 3313. -/
+@[simp] theorem senderCompliancePathAt3313
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 3314 = rho 118 := by
+    SenderCompliancePathValuation rho 3313 = rho 118 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 3314 = 118 by
+  rw [show Seg28.wireSeating 3313 = 118 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 3317. -/
-@[simp] theorem senderCompliancePathAt3317
+/-- Audited action-facing seat for `sender_compliance_path` local 3315. -/
+@[simp] theorem senderCompliancePathAt3315
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 3317 = rho 119 := by
+    SenderCompliancePathValuation rho 3315 = rho 119 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 3317 = 119 by
+  rw [show Seg28.wireSeating 3315 = 119 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 3675. -/
-@[simp] theorem senderCompliancePathAt3675
+/-- Audited action-facing seat for `sender_compliance_path` local 3318. -/
+@[simp] theorem senderCompliancePathAt3318
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 3675 = rho 120 := by
+    SenderCompliancePathValuation rho 3318 = rho 120 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 3675 = 120 by
+  rw [show Seg28.wireSeating 3318 = 120 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 3677. -/
-@[simp] theorem senderCompliancePathAt3677
+/-- Audited action-facing seat for `sender_compliance_path` local 3676. -/
+@[simp] theorem senderCompliancePathAt3676
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 3677 = rho 121 := by
+    SenderCompliancePathValuation rho 3676 = rho 121 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 3677 = 121 by
+  rw [show Seg28.wireSeating 3676 = 121 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 3680. -/
-@[simp] theorem senderCompliancePathAt3680
+/-- Audited action-facing seat for `sender_compliance_path` local 3678. -/
+@[simp] theorem senderCompliancePathAt3678
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 3680 = rho 122 := by
+    SenderCompliancePathValuation rho 3678 = rho 122 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 3680 = 122 by
+  rw [show Seg28.wireSeating 3678 = 122 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 4038. -/
-@[simp] theorem senderCompliancePathAt4038
+/-- Audited action-facing seat for `sender_compliance_path` local 3681. -/
+@[simp] theorem senderCompliancePathAt3681
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 4038 = rho 123 := by
+    SenderCompliancePathValuation rho 3681 = rho 123 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 4038 = 123 by
+  rw [show Seg28.wireSeating 3681 = 123 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 4040. -/
-@[simp] theorem senderCompliancePathAt4040
+/-- Audited action-facing seat for `sender_compliance_path` local 4039. -/
+@[simp] theorem senderCompliancePathAt4039
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 4040 = rho 124 := by
+    SenderCompliancePathValuation rho 4039 = rho 124 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 4040 = 124 by
+  rw [show Seg28.wireSeating 4039 = 124 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 4043. -/
-@[simp] theorem senderCompliancePathAt4043
+/-- Audited action-facing seat for `sender_compliance_path` local 4041. -/
+@[simp] theorem senderCompliancePathAt4041
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 4043 = rho 125 := by
+    SenderCompliancePathValuation rho 4041 = rho 125 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 4043 = 125 by
+  rw [show Seg28.wireSeating 4041 = 125 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 4401. -/
-@[simp] theorem senderCompliancePathAt4401
+/-- Audited action-facing seat for `sender_compliance_path` local 4044. -/
+@[simp] theorem senderCompliancePathAt4044
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 4401 = rho 126 := by
+    SenderCompliancePathValuation rho 4044 = rho 126 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 4401 = 126 by
+  rw [show Seg28.wireSeating 4044 = 126 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 4403. -/
-@[simp] theorem senderCompliancePathAt4403
+/-- Audited action-facing seat for `sender_compliance_path` local 4402. -/
+@[simp] theorem senderCompliancePathAt4402
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 4403 = rho 127 := by
+    SenderCompliancePathValuation rho 4402 = rho 127 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 4403 = 127 by
+  rw [show Seg28.wireSeating 4402 = 127 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 4406. -/
-@[simp] theorem senderCompliancePathAt4406
+/-- Audited action-facing seat for `sender_compliance_path` local 4404. -/
+@[simp] theorem senderCompliancePathAt4404
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 4406 = rho 128 := by
+    SenderCompliancePathValuation rho 4404 = rho 128 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 4406 = 128 by
+  rw [show Seg28.wireSeating 4404 = 128 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 4764. -/
-@[simp] theorem senderCompliancePathAt4764
+/-- Audited action-facing seat for `sender_compliance_path` local 4407. -/
+@[simp] theorem senderCompliancePathAt4407
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 4764 = rho 129 := by
+    SenderCompliancePathValuation rho 4407 = rho 129 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 4764 = 129 by
+  rw [show Seg28.wireSeating 4407 = 129 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 4766. -/
-@[simp] theorem senderCompliancePathAt4766
+/-- Audited action-facing seat for `sender_compliance_path` local 4765. -/
+@[simp] theorem senderCompliancePathAt4765
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 4766 = rho 130 := by
+    SenderCompliancePathValuation rho 4765 = rho 130 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 4766 = 130 by
+  rw [show Seg28.wireSeating 4765 = 130 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 4769. -/
-@[simp] theorem senderCompliancePathAt4769
+/-- Audited action-facing seat for `sender_compliance_path` local 4767. -/
+@[simp] theorem senderCompliancePathAt4767
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 4769 = rho 131 := by
+    SenderCompliancePathValuation rho 4767 = rho 131 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 4769 = 131 by
+  rw [show Seg28.wireSeating 4767 = 131 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 5127. -/
-@[simp] theorem senderCompliancePathAt5127
+/-- Audited action-facing seat for `sender_compliance_path` local 4770. -/
+@[simp] theorem senderCompliancePathAt4770
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 5127 = rho 132 := by
+    SenderCompliancePathValuation rho 4770 = rho 132 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 5127 = 132 by
+  rw [show Seg28.wireSeating 4770 = 132 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 5129. -/
-@[simp] theorem senderCompliancePathAt5129
+/-- Audited action-facing seat for `sender_compliance_path` local 5128. -/
+@[simp] theorem senderCompliancePathAt5128
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 5129 = rho 133 := by
+    SenderCompliancePathValuation rho 5128 = rho 133 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 5129 = 133 by
+  rw [show Seg28.wireSeating 5128 = 133 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 5132. -/
-@[simp] theorem senderCompliancePathAt5132
+/-- Audited action-facing seat for `sender_compliance_path` local 5130. -/
+@[simp] theorem senderCompliancePathAt5130
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 5132 = rho 134 := by
+    SenderCompliancePathValuation rho 5130 = rho 134 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 5132 = 134 by
+  rw [show Seg28.wireSeating 5130 = 134 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 5490. -/
-@[simp] theorem senderCompliancePathAt5490
+/-- Audited action-facing seat for `sender_compliance_path` local 5133. -/
+@[simp] theorem senderCompliancePathAt5133
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 5490 = rho 135 := by
+    SenderCompliancePathValuation rho 5133 = rho 135 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 5490 = 135 by
+  rw [show Seg28.wireSeating 5133 = 135 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 5492. -/
-@[simp] theorem senderCompliancePathAt5492
+/-- Audited action-facing seat for `sender_compliance_path` local 5491. -/
+@[simp] theorem senderCompliancePathAt5491
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 5492 = rho 136 := by
+    SenderCompliancePathValuation rho 5491 = rho 136 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 5492 = 136 by
+  rw [show Seg28.wireSeating 5491 = 136 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 5495. -/
-@[simp] theorem senderCompliancePathAt5495
+/-- Audited action-facing seat for `sender_compliance_path` local 5493. -/
+@[simp] theorem senderCompliancePathAt5493
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 5495 = rho 137 := by
+    SenderCompliancePathValuation rho 5493 = rho 137 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 5495 = 137 by
+  rw [show Seg28.wireSeating 5493 = 137 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 5828. -/
-@[simp] theorem senderCompliancePathAt5828
+/-- Audited action-facing seat for `sender_compliance_path` local 5496. -/
+@[simp] theorem senderCompliancePathAt5496
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 5828 = rho 24358 := by
+    SenderCompliancePathValuation rho 5496 = rho 138 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 5828 = 24358 by
+  rw [show Seg28.wireSeating 5496 = 138 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 5833. -/
-@[simp] theorem senderCompliancePathAt5833
+/-- Audited action-facing seat for `sender_compliance_path` local 5829. -/
+@[simp] theorem senderCompliancePathAt5829
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 5833 = rho 24363 := by
+    SenderCompliancePathValuation rho 5829 = rho 24400 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 5833 = 24363 by
+  rw [show Seg28.wireSeating 5829 = 24400 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 5838. -/
-@[simp] theorem senderCompliancePathAt5838
+/-- Audited action-facing seat for `sender_compliance_path` local 5834. -/
+@[simp] theorem senderCompliancePathAt5834
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 5838 = rho 24368 := by
+    SenderCompliancePathValuation rho 5834 = rho 24405 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 5838 = 24368 by
+  rw [show Seg28.wireSeating 5834 = 24405 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 5843. -/
-@[simp] theorem senderCompliancePathAt5843
+/-- Audited action-facing seat for `sender_compliance_path` local 5839. -/
+@[simp] theorem senderCompliancePathAt5839
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 5843 = rho 24373 := by
+    SenderCompliancePathValuation rho 5839 = rho 24410 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 5843 = 24373 by
+  rw [show Seg28.wireSeating 5839 = 24410 by
     decide +kernel]
 
-/-- Audited action-facing seat for `sender_compliance_path` local 5848. -/
-@[simp] theorem senderCompliancePathAt5848
+/-- Audited action-facing seat for `sender_compliance_path` local 5844. -/
+@[simp] theorem senderCompliancePathAt5844
     (rho : Nat → DeployedF) :
-    SenderCompliancePathValuation rho 5848 = rho 24378 := by
+    SenderCompliancePathValuation rho 5844 = rho 24415 := by
   simp only [
     SenderCompliancePathValuation, Seg28.localRho,
     Deployed.Templates.seated]
-  rw [show Seg28.wireSeating 5848 = 24378 by
+  rw [show Seg28.wireSeating 5844 = 24415 by
+    decide +kernel]
+
+/-- Audited action-facing seat for `sender_compliance_path` local 5849. -/
+@[simp] theorem senderCompliancePathAt5849
+    (rho : Nat → DeployedF) :
+    SenderCompliancePathValuation rho 5849 = rho 24420 := by
+  simp only [
+    SenderCompliancePathValuation, Seg28.localRho,
+    Deployed.Templates.seated]
+  rw [show Seg28.wireSeating 5849 = 24420 by
     decide +kernel]
 
 /-- Deployed seating for the `sender_compliance_assert` certified local semantics. -/
@@ -2721,56 +2752,84 @@ def SenderComplianceAssertSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `sender_compliance_assert` local 3. -/
 @[simp] theorem senderComplianceAssertAt3
     (rho : Nat → DeployedF) :
-    SenderComplianceAssertValuation rho 3 = rho 24358 := by
+    SenderComplianceAssertValuation rho 3 = rho 24400 := by
   simp only [
     SenderComplianceAssertValuation, Seg29.localRho,
     Deployed.Templates.seated]
-  rw [show Seg29.wireSeating 3 = 24358 by
+  rw [show Seg29.wireSeating 3 = 24400 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_compliance_assert` local 4. -/
 @[simp] theorem senderComplianceAssertAt4
     (rho : Nat → DeployedF) :
-    SenderComplianceAssertValuation rho 4 = rho 24363 := by
+    SenderComplianceAssertValuation rho 4 = rho 24405 := by
   simp only [
     SenderComplianceAssertValuation, Seg29.localRho,
     Deployed.Templates.seated]
-  rw [show Seg29.wireSeating 4 = 24363 by
+  rw [show Seg29.wireSeating 4 = 24405 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_compliance_assert` local 5. -/
 @[simp] theorem senderComplianceAssertAt5
     (rho : Nat → DeployedF) :
-    SenderComplianceAssertValuation rho 5 = rho 24368 := by
+    SenderComplianceAssertValuation rho 5 = rho 24410 := by
   simp only [
     SenderComplianceAssertValuation, Seg29.localRho,
     Deployed.Templates.seated]
-  rw [show Seg29.wireSeating 5 = 24368 by
+  rw [show Seg29.wireSeating 5 = 24410 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_compliance_assert` local 6. -/
 @[simp] theorem senderComplianceAssertAt6
     (rho : Nat → DeployedF) :
-    SenderComplianceAssertValuation rho 6 = rho 24373 := by
+    SenderComplianceAssertValuation rho 6 = rho 24415 := by
   simp only [
     SenderComplianceAssertValuation, Seg29.localRho,
     Deployed.Templates.seated]
-  rw [show Seg29.wireSeating 6 = 24373 by
+  rw [show Seg29.wireSeating 6 = 24415 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_compliance_assert` local 7. -/
 @[simp] theorem senderComplianceAssertAt7
     (rho : Nat → DeployedF) :
-    SenderComplianceAssertValuation rho 7 = rho 24378 := by
+    SenderComplianceAssertValuation rho 7 = rho 24420 := by
   simp only [
     SenderComplianceAssertValuation, Seg29.localRho,
     Deployed.Templates.seated]
-  rw [show Seg29.wireSeating 7 = 24378 by
+  rw [show Seg29.wireSeating 7 = 24420 by
+    decide +kernel]
+
+/-- Deployed seating for the `sender_status_active_assert` certified local semantics. -/
+def SenderStatusActiveAssertValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
+  Seg30.localRho rho
+
+/-- Certified local semantics for the `sender_status_active_assert` source operation. -/
+def SenderStatusActiveAssertSemanticSpec (rho : Nat → DeployedF) : Prop :=
+  Deployed.Templates.Semantics.TAssertEqIf_21d2c12b00d06e5e5a9b561d8f13c30059ff3ae69a31740109ba30ed73bb89aa.spec (SenderStatusActiveAssertValuation rho)
+
+/-- Audited action-facing seat for `sender_status_active_assert` local 1. -/
+@[simp] theorem senderStatusActiveAssertAt1
+    (rho : Nat → DeployedF) :
+    SenderStatusActiveAssertValuation rho 1 = rho 11 := by
+  simp only [
+    SenderStatusActiveAssertValuation, Seg30.localRho,
+    Deployed.Templates.seated]
+  rw [show Seg30.wireSeating 1 = 11 by
+    decide +kernel]
+
+/-- Audited action-facing seat for `sender_status_active_assert` local 2. -/
+@[simp] theorem senderStatusActiveAssertAt2
+    (rho : Nat → DeployedF) :
+    SenderStatusActiveAssertValuation rho 2 = rho 90 := by
+  simp only [
+    SenderStatusActiveAssertValuation, Seg30.localRho,
+    Deployed.Templates.seated]
+  rw [show Seg30.wireSeating 2 = 90 by
     decide +kernel]
 
 /-- Deployed seating for the `sender_ack` certified local semantics. -/
 def SenderAckValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg30.localRho rho
+  Seg31.localRho rho
 
 /-- Certified local semantics for the `sender_ack` source operation. -/
 def SenderAckSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -2781,34 +2840,34 @@ def SenderAckSemanticSpec (rho : Nat → DeployedF) : Prop :=
     (rho : Nat → DeployedF) :
     SenderAckValuation rho 252 = rho 89 := by
   simp only [
-    SenderAckValuation, Seg30.localRho,
+    SenderAckValuation, Seg31.localRho,
     Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 252 = 89 by
+  rw [show Seg31.wireSeating 252 = 89 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_ack` local 253. -/
 @[simp] theorem senderAckAt253
     (rho : Nat → DeployedF) :
-    SenderAckValuation rho 253 = rho 407 := by
+    SenderAckValuation rho 253 = rho 409 := by
   simp only [
-    SenderAckValuation, Seg30.localRho,
+    SenderAckValuation, Seg31.localRho,
     Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 253 = 407 by
+  rw [show Seg31.wireSeating 253 = 409 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_ack` local 254. -/
 @[simp] theorem senderAckAt254
     (rho : Nat → DeployedF) :
-    SenderAckValuation rho 254 = rho 408 := by
+    SenderAckValuation rho 254 = rho 410 := by
   simp only [
-    SenderAckValuation, Seg30.localRho,
+    SenderAckValuation, Seg31.localRho,
     Deployed.Templates.seated]
-  rw [show Seg30.wireSeating 254 = 408 by
+  rw [show Seg31.wireSeating 254 = 410 by
     decide +kernel]
 
 /-- Deployed seating for the `required_note_commitment` certified local semantics. -/
 def RequiredNoteCommitmentValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg32.localRho rho
+  Seg33.localRho rho
 
 /-- Certified local semantics for the `required_note_commitment` source operation. -/
 def RequiredNoteCommitmentSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -2817,136 +2876,136 @@ def RequiredNoteCommitmentSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `required_note_commitment` local 1. -/
 @[simp] theorem requiredNoteCommitmentAt1
     (rho : Nat → DeployedF) :
-    RequiredNoteCommitmentValuation rho 1 = rho 182 := by
+    RequiredNoteCommitmentValuation rho 1 = rho 183 := by
   simp only [
-    RequiredNoteCommitmentValuation, Seg32.localRho,
+    RequiredNoteCommitmentValuation, Seg33.localRho,
     Deployed.Templates.seated]
-  rw [show Seg32.wireSeating 1 = 182 by
+  rw [show Seg33.wireSeating 1 = 183 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_note_commitment` local 7. -/
 @[simp] theorem requiredNoteCommitmentAt7
     (rho : Nat → DeployedF) :
-    RequiredNoteCommitmentValuation rho 7 = rho 183 := by
+    RequiredNoteCommitmentValuation rho 7 = rho 184 := by
   simp only [
-    RequiredNoteCommitmentValuation, Seg32.localRho,
+    RequiredNoteCommitmentValuation, Seg33.localRho,
     Deployed.Templates.seated]
-  rw [show Seg32.wireSeating 7 = 183 by
+  rw [show Seg33.wireSeating 7 = 184 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_note_commitment` local 13. -/
 @[simp] theorem requiredNoteCommitmentAt13
     (rho : Nat → DeployedF) :
-    RequiredNoteCommitmentValuation rho 13 = rho 184 := by
+    RequiredNoteCommitmentValuation rho 13 = rho 185 := by
   simp only [
-    RequiredNoteCommitmentValuation, Seg32.localRho,
+    RequiredNoteCommitmentValuation, Seg33.localRho,
     Deployed.Templates.seated]
-  rw [show Seg32.wireSeating 13 = 184 by
+  rw [show Seg33.wireSeating 13 = 185 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_note_commitment` local 19. -/
 @[simp] theorem requiredNoteCommitmentAt19
     (rho : Nat → DeployedF) :
-    RequiredNoteCommitmentValuation rho 19 = rho 777 := by
+    RequiredNoteCommitmentValuation rho 19 = rho 779 := by
   simp only [
-    RequiredNoteCommitmentValuation, Seg32.localRho,
+    RequiredNoteCommitmentValuation, Seg33.localRho,
     Deployed.Templates.seated]
-  rw [show Seg32.wireSeating 19 = 777 by
+  rw [show Seg33.wireSeating 19 = 779 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_note_commitment` local 20. -/
 @[simp] theorem requiredNoteCommitmentAt20
     (rho : Nat → DeployedF) :
-    RequiredNoteCommitmentValuation rho 20 = rho 1117 := by
+    RequiredNoteCommitmentValuation rho 20 = rho 1119 := by
   simp only [
-    RequiredNoteCommitmentValuation, Seg32.localRho,
+    RequiredNoteCommitmentValuation, Seg33.localRho,
     Deployed.Templates.seated]
-  rw [show Seg32.wireSeating 20 = 1117 by
+  rw [show Seg33.wireSeating 20 = 1119 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_note_commitment` local 26. -/
 @[simp] theorem requiredNoteCommitmentAt26
     (rho : Nat → DeployedF) :
-    RequiredNoteCommitmentValuation rho 26 = rho 1480 := by
+    RequiredNoteCommitmentValuation rho 26 = rho 1482 := by
   simp only [
-    RequiredNoteCommitmentValuation, Seg32.localRho,
+    RequiredNoteCommitmentValuation, Seg33.localRho,
     Deployed.Templates.seated]
-  rw [show Seg32.wireSeating 26 = 1480 by
+  rw [show Seg33.wireSeating 26 = 1482 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_note_commitment` local 27. -/
 @[simp] theorem requiredNoteCommitmentAt27
     (rho : Nat → DeployedF) :
-    RequiredNoteCommitmentValuation rho 27 = rho 1820 := by
+    RequiredNoteCommitmentValuation rho 27 = rho 1822 := by
   simp only [
-    RequiredNoteCommitmentValuation, Seg32.localRho,
+    RequiredNoteCommitmentValuation, Seg33.localRho,
     Deployed.Templates.seated]
-  rw [show Seg32.wireSeating 27 = 1820 by
+  rw [show Seg33.wireSeating 27 = 1822 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_note_commitment` local 372. -/
 @[simp] theorem requiredNoteCommitmentAt372
     (rho : Nat → DeployedF) :
-    RequiredNoteCommitmentValuation rho 372 = rho 27753 := by
+    RequiredNoteCommitmentValuation rho 372 = rho 27796 := by
   simp only [
-    RequiredNoteCommitmentValuation, Seg32.localRho,
+    RequiredNoteCommitmentValuation, Seg33.localRho,
     Deployed.Templates.seated]
-  rw [show Seg32.wireSeating 372 = 27753 by
+  rw [show Seg33.wireSeating 372 = 27796 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_note_commitment` local 377. -/
 @[simp] theorem requiredNoteCommitmentAt377
     (rho : Nat → DeployedF) :
-    RequiredNoteCommitmentValuation rho 377 = rho 27758 := by
+    RequiredNoteCommitmentValuation rho 377 = rho 27801 := by
   simp only [
-    RequiredNoteCommitmentValuation, Seg32.localRho,
+    RequiredNoteCommitmentValuation, Seg33.localRho,
     Deployed.Templates.seated]
-  rw [show Seg32.wireSeating 377 = 27758 by
+  rw [show Seg33.wireSeating 377 = 27801 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_note_commitment` local 382. -/
 @[simp] theorem requiredNoteCommitmentAt382
     (rho : Nat → DeployedF) :
-    RequiredNoteCommitmentValuation rho 382 = rho 27763 := by
+    RequiredNoteCommitmentValuation rho 382 = rho 27806 := by
   simp only [
-    RequiredNoteCommitmentValuation, Seg32.localRho,
+    RequiredNoteCommitmentValuation, Seg33.localRho,
     Deployed.Templates.seated]
-  rw [show Seg32.wireSeating 382 = 27763 by
+  rw [show Seg33.wireSeating 382 = 27806 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_note_commitment` local 387. -/
 @[simp] theorem requiredNoteCommitmentAt387
     (rho : Nat → DeployedF) :
-    RequiredNoteCommitmentValuation rho 387 = rho 27768 := by
+    RequiredNoteCommitmentValuation rho 387 = rho 27811 := by
   simp only [
-    RequiredNoteCommitmentValuation, Seg32.localRho,
+    RequiredNoteCommitmentValuation, Seg33.localRho,
     Deployed.Templates.seated]
-  rw [show Seg32.wireSeating 387 = 27768 by
+  rw [show Seg33.wireSeating 387 = 27811 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_note_commitment` local 392. -/
 @[simp] theorem requiredNoteCommitmentAt392
     (rho : Nat → DeployedF) :
-    RequiredNoteCommitmentValuation rho 392 = rho 27773 := by
+    RequiredNoteCommitmentValuation rho 392 = rho 27816 := by
   simp only [
-    RequiredNoteCommitmentValuation, Seg32.localRho,
+    RequiredNoteCommitmentValuation, Seg33.localRho,
     Deployed.Templates.seated]
-  rw [show Seg32.wireSeating 392 = 27773 by
+  rw [show Seg33.wireSeating 392 = 27816 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_note_commitment` local 397. -/
 @[simp] theorem requiredNoteCommitmentAt397
     (rho : Nat → DeployedF) :
-    RequiredNoteCommitmentValuation rho 397 = rho 27778 := by
+    RequiredNoteCommitmentValuation rho 397 = rho 27821 := by
   simp only [
-    RequiredNoteCommitmentValuation, Seg32.localRho,
+    RequiredNoteCommitmentValuation, Seg33.localRho,
     Deployed.Templates.seated]
-  rw [show Seg32.wireSeating 397 = 27778 by
+  rw [show Seg33.wireSeating 397 = 27821 by
     decide +kernel]
 
 /-- Deployed seating for the `required_nullifier` certified local semantics. -/
 def RequiredNullifierValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg33.localRho rho
+  Seg34.localRho rho
 
 /-- Certified local semantics for the `required_nullifier` source operation. -/
 def RequiredNullifierSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -2957,124 +3016,124 @@ def RequiredNullifierSemanticSpec (rho : Nat → DeployedF) : Prop :=
     (rho : Nat → DeployedF) :
     RequiredNullifierValuation rho 1 = rho 17 := by
   simp only [
-    RequiredNullifierValuation, Seg33.localRho,
+    RequiredNullifierValuation, Seg34.localRho,
     Deployed.Templates.seated]
-  rw [show Seg33.wireSeating 1 = 17 by
+  rw [show Seg34.wireSeating 1 = 17 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_nullifier` local 7. -/
 @[simp] theorem requiredNullifierAt7
     (rho : Nat → DeployedF) :
-    RequiredNullifierValuation rho 7 = rho 27753 := by
+    RequiredNullifierValuation rho 7 = rho 27796 := by
   simp only [
-    RequiredNullifierValuation, Seg33.localRho,
+    RequiredNullifierValuation, Seg34.localRho,
     Deployed.Templates.seated]
-  rw [show Seg33.wireSeating 7 = 27753 by
+  rw [show Seg34.wireSeating 7 = 27796 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_nullifier` local 8. -/
 @[simp] theorem requiredNullifierAt8
     (rho : Nat → DeployedF) :
-    RequiredNullifierValuation rho 8 = rho 27758 := by
+    RequiredNullifierValuation rho 8 = rho 27801 := by
   simp only [
-    RequiredNullifierValuation, Seg33.localRho,
+    RequiredNullifierValuation, Seg34.localRho,
     Deployed.Templates.seated]
-  rw [show Seg33.wireSeating 8 = 27758 by
+  rw [show Seg34.wireSeating 8 = 27801 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_nullifier` local 9. -/
 @[simp] theorem requiredNullifierAt9
     (rho : Nat → DeployedF) :
-    RequiredNullifierValuation rho 9 = rho 27763 := by
+    RequiredNullifierValuation rho 9 = rho 27806 := by
   simp only [
-    RequiredNullifierValuation, Seg33.localRho,
+    RequiredNullifierValuation, Seg34.localRho,
     Deployed.Templates.seated]
-  rw [show Seg33.wireSeating 9 = 27763 by
+  rw [show Seg34.wireSeating 9 = 27806 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_nullifier` local 10. -/
 @[simp] theorem requiredNullifierAt10
     (rho : Nat → DeployedF) :
-    RequiredNullifierValuation rho 10 = rho 27768 := by
+    RequiredNullifierValuation rho 10 = rho 27811 := by
   simp only [
-    RequiredNullifierValuation, Seg33.localRho,
+    RequiredNullifierValuation, Seg34.localRho,
     Deployed.Templates.seated]
-  rw [show Seg33.wireSeating 10 = 27768 by
+  rw [show Seg34.wireSeating 10 = 27811 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_nullifier` local 11. -/
 @[simp] theorem requiredNullifierAt11
     (rho : Nat → DeployedF) :
-    RequiredNullifierValuation rho 11 = rho 27773 := by
+    RequiredNullifierValuation rho 11 = rho 27816 := by
   simp only [
-    RequiredNullifierValuation, Seg33.localRho,
+    RequiredNullifierValuation, Seg34.localRho,
     Deployed.Templates.seated]
-  rw [show Seg33.wireSeating 11 = 27773 by
+  rw [show Seg34.wireSeating 11 = 27816 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_nullifier` local 12. -/
 @[simp] theorem requiredNullifierAt12
     (rho : Nat → DeployedF) :
-    RequiredNullifierValuation rho 12 = rho 27778 := by
+    RequiredNullifierValuation rho 12 = rho 27821 := by
   simp only [
-    RequiredNullifierValuation, Seg33.localRho,
+    RequiredNullifierValuation, Seg34.localRho,
     Deployed.Templates.seated]
-  rw [show Seg33.wireSeating 12 = 27778 by
+  rw [show Seg34.wireSeating 12 = 27821 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_nullifier` local 18. -/
 @[simp] theorem requiredNullifierAt18
     (rho : Nat → DeployedF) :
-    RequiredNullifierValuation rho 18 = rho 185 := by
+    RequiredNullifierValuation rho 18 = rho 186 := by
   simp only [
-    RequiredNullifierValuation, Seg33.localRho,
+    RequiredNullifierValuation, Seg34.localRho,
     Deployed.Templates.seated]
-  rw [show Seg33.wireSeating 18 = 185 by
+  rw [show Seg34.wireSeating 18 = 186 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_nullifier` local 303. -/
 @[simp] theorem requiredNullifierAt303
     (rho : Nat → DeployedF) :
-    RequiredNullifierValuation rho 303 = rho 28073 := by
+    RequiredNullifierValuation rho 303 = rho 28116 := by
   simp only [
-    RequiredNullifierValuation, Seg33.localRho,
+    RequiredNullifierValuation, Seg34.localRho,
     Deployed.Templates.seated]
-  rw [show Seg33.wireSeating 303 = 28073 by
+  rw [show Seg34.wireSeating 303 = 28116 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_nullifier` local 308. -/
 @[simp] theorem requiredNullifierAt308
     (rho : Nat → DeployedF) :
-    RequiredNullifierValuation rho 308 = rho 28078 := by
+    RequiredNullifierValuation rho 308 = rho 28121 := by
   simp only [
-    RequiredNullifierValuation, Seg33.localRho,
+    RequiredNullifierValuation, Seg34.localRho,
     Deployed.Templates.seated]
-  rw [show Seg33.wireSeating 308 = 28078 by
+  rw [show Seg34.wireSeating 308 = 28121 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_nullifier` local 313. -/
 @[simp] theorem requiredNullifierAt313
     (rho : Nat → DeployedF) :
-    RequiredNullifierValuation rho 313 = rho 28083 := by
+    RequiredNullifierValuation rho 313 = rho 28126 := by
   simp only [
-    RequiredNullifierValuation, Seg33.localRho,
+    RequiredNullifierValuation, Seg34.localRho,
     Deployed.Templates.seated]
-  rw [show Seg33.wireSeating 313 = 28083 by
+  rw [show Seg34.wireSeating 313 = 28126 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_nullifier` local 318. -/
 @[simp] theorem requiredNullifierAt318
     (rho : Nat → DeployedF) :
-    RequiredNullifierValuation rho 318 = rho 28088 := by
+    RequiredNullifierValuation rho 318 = rho 28131 := by
   simp only [
-    RequiredNullifierValuation, Seg33.localRho,
+    RequiredNullifierValuation, Seg34.localRho,
     Deployed.Templates.seated]
-  rw [show Seg33.wireSeating 318 = 28088 by
+  rw [show Seg34.wireSeating 318 = 28131 by
     decide +kernel]
 
 /-- Deployed seating for the `required_state_path` certified local semantics. -/
 def RequiredStatePathValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg34.localRho rho
+  Seg35.localRho rho
 
 /-- Certified local semantics for the `required_state_path` source operation. -/
 def RequiredStatePathSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -3083,846 +3142,846 @@ def RequiredStatePathSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `required_state_path` local 1. -/
 @[simp] theorem requiredStatePathAt1
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 1 = rho 27753 := by
+    RequiredStatePathValuation rho 1 = rho 27796 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 1 = 27753 by
+  rw [show Seg35.wireSeating 1 = 27796 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 2. -/
 @[simp] theorem requiredStatePathAt2
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 2 = rho 27758 := by
+    RequiredStatePathValuation rho 2 = rho 27801 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 2 = 27758 by
+  rw [show Seg35.wireSeating 2 = 27801 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 3. -/
 @[simp] theorem requiredStatePathAt3
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 3 = rho 27763 := by
+    RequiredStatePathValuation rho 3 = rho 27806 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 3 = 27763 by
+  rw [show Seg35.wireSeating 3 = 27806 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 4. -/
 @[simp] theorem requiredStatePathAt4
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 4 = rho 27768 := by
+    RequiredStatePathValuation rho 4 = rho 27811 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 4 = 27768 by
+  rw [show Seg35.wireSeating 4 = 27811 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 5. -/
 @[simp] theorem requiredStatePathAt5
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 5 = rho 27773 := by
+    RequiredStatePathValuation rho 5 = rho 27816 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 5 = 27773 by
+  rw [show Seg35.wireSeating 5 = 27816 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 6. -/
 @[simp] theorem requiredStatePathAt6
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 6 = rho 27778 := by
+    RequiredStatePathValuation rho 6 = rho 27821 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 6 = 27778 by
+  rw [show Seg35.wireSeating 6 = 27821 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 285. -/
 @[simp] theorem requiredStatePathAt285
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 285 = rho 185 := by
+    RequiredStatePathValuation rho 285 = rho 186 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 285 = 185 by
+  rw [show Seg35.wireSeating 285 = 186 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 290. -/
 @[simp] theorem requiredStatePathAt290
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 290 = rho 255 := by
+    RequiredStatePathValuation rho 290 = rho 256 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 290 = 255 by
+  rw [show Seg35.wireSeating 290 = 256 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 292. -/
 @[simp] theorem requiredStatePathAt292
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 292 = rho 256 := by
+    RequiredStatePathValuation rho 292 = rho 257 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 292 = 256 by
+  rw [show Seg35.wireSeating 292 = 257 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 295. -/
 @[simp] theorem requiredStatePathAt295
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 295 = rho 257 := by
+    RequiredStatePathValuation rho 295 = rho 258 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 295 = 257 by
+  rw [show Seg35.wireSeating 295 = 258 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 653. -/
 @[simp] theorem requiredStatePathAt653
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 653 = rho 252 := by
+    RequiredStatePathValuation rho 653 = rho 253 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 653 = 252 by
+  rw [show Seg35.wireSeating 653 = 253 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 655. -/
 @[simp] theorem requiredStatePathAt655
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 655 = rho 253 := by
+    RequiredStatePathValuation rho 655 = rho 254 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 655 = 253 by
+  rw [show Seg35.wireSeating 655 = 254 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 658. -/
 @[simp] theorem requiredStatePathAt658
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 658 = rho 254 := by
+    RequiredStatePathValuation rho 658 = rho 255 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 658 = 254 by
+  rw [show Seg35.wireSeating 658 = 255 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 1016. -/
 @[simp] theorem requiredStatePathAt1016
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 1016 = rho 249 := by
+    RequiredStatePathValuation rho 1016 = rho 250 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 1016 = 249 by
+  rw [show Seg35.wireSeating 1016 = 250 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 1018. -/
 @[simp] theorem requiredStatePathAt1018
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 1018 = rho 250 := by
+    RequiredStatePathValuation rho 1018 = rho 251 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 1018 = 250 by
+  rw [show Seg35.wireSeating 1018 = 251 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 1021. -/
 @[simp] theorem requiredStatePathAt1021
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 1021 = rho 251 := by
+    RequiredStatePathValuation rho 1021 = rho 252 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 1021 = 251 by
+  rw [show Seg35.wireSeating 1021 = 252 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 1379. -/
 @[simp] theorem requiredStatePathAt1379
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 1379 = rho 246 := by
+    RequiredStatePathValuation rho 1379 = rho 247 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 1379 = 246 by
+  rw [show Seg35.wireSeating 1379 = 247 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 1381. -/
 @[simp] theorem requiredStatePathAt1381
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 1381 = rho 247 := by
+    RequiredStatePathValuation rho 1381 = rho 248 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 1381 = 247 by
+  rw [show Seg35.wireSeating 1381 = 248 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 1384. -/
 @[simp] theorem requiredStatePathAt1384
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 1384 = rho 248 := by
+    RequiredStatePathValuation rho 1384 = rho 249 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 1384 = 248 by
+  rw [show Seg35.wireSeating 1384 = 249 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 1742. -/
 @[simp] theorem requiredStatePathAt1742
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 1742 = rho 243 := by
+    RequiredStatePathValuation rho 1742 = rho 244 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 1742 = 243 by
+  rw [show Seg35.wireSeating 1742 = 244 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 1744. -/
 @[simp] theorem requiredStatePathAt1744
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 1744 = rho 244 := by
+    RequiredStatePathValuation rho 1744 = rho 245 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 1744 = 244 by
+  rw [show Seg35.wireSeating 1744 = 245 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 1747. -/
 @[simp] theorem requiredStatePathAt1747
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 1747 = rho 245 := by
+    RequiredStatePathValuation rho 1747 = rho 246 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 1747 = 245 by
+  rw [show Seg35.wireSeating 1747 = 246 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 2105. -/
 @[simp] theorem requiredStatePathAt2105
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 2105 = rho 240 := by
+    RequiredStatePathValuation rho 2105 = rho 241 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 2105 = 240 by
+  rw [show Seg35.wireSeating 2105 = 241 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 2107. -/
 @[simp] theorem requiredStatePathAt2107
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 2107 = rho 241 := by
+    RequiredStatePathValuation rho 2107 = rho 242 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 2107 = 241 by
+  rw [show Seg35.wireSeating 2107 = 242 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 2110. -/
 @[simp] theorem requiredStatePathAt2110
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 2110 = rho 242 := by
+    RequiredStatePathValuation rho 2110 = rho 243 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 2110 = 242 by
+  rw [show Seg35.wireSeating 2110 = 243 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 2468. -/
 @[simp] theorem requiredStatePathAt2468
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 2468 = rho 237 := by
+    RequiredStatePathValuation rho 2468 = rho 238 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 2468 = 237 by
+  rw [show Seg35.wireSeating 2468 = 238 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 2470. -/
 @[simp] theorem requiredStatePathAt2470
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 2470 = rho 238 := by
+    RequiredStatePathValuation rho 2470 = rho 239 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 2470 = 238 by
+  rw [show Seg35.wireSeating 2470 = 239 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 2473. -/
 @[simp] theorem requiredStatePathAt2473
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 2473 = rho 239 := by
+    RequiredStatePathValuation rho 2473 = rho 240 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 2473 = 239 by
+  rw [show Seg35.wireSeating 2473 = 240 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 2831. -/
 @[simp] theorem requiredStatePathAt2831
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 2831 = rho 234 := by
+    RequiredStatePathValuation rho 2831 = rho 235 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 2831 = 234 by
+  rw [show Seg35.wireSeating 2831 = 235 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 2833. -/
 @[simp] theorem requiredStatePathAt2833
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 2833 = rho 235 := by
+    RequiredStatePathValuation rho 2833 = rho 236 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 2833 = 235 by
+  rw [show Seg35.wireSeating 2833 = 236 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 2836. -/
 @[simp] theorem requiredStatePathAt2836
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 2836 = rho 236 := by
+    RequiredStatePathValuation rho 2836 = rho 237 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 2836 = 236 by
+  rw [show Seg35.wireSeating 2836 = 237 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 3194. -/
 @[simp] theorem requiredStatePathAt3194
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 3194 = rho 231 := by
+    RequiredStatePathValuation rho 3194 = rho 232 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 3194 = 231 by
+  rw [show Seg35.wireSeating 3194 = 232 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 3196. -/
 @[simp] theorem requiredStatePathAt3196
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 3196 = rho 232 := by
+    RequiredStatePathValuation rho 3196 = rho 233 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 3196 = 232 by
+  rw [show Seg35.wireSeating 3196 = 233 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 3199. -/
 @[simp] theorem requiredStatePathAt3199
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 3199 = rho 233 := by
+    RequiredStatePathValuation rho 3199 = rho 234 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 3199 = 233 by
+  rw [show Seg35.wireSeating 3199 = 234 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 3557. -/
 @[simp] theorem requiredStatePathAt3557
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 3557 = rho 228 := by
+    RequiredStatePathValuation rho 3557 = rho 229 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 3557 = 228 by
+  rw [show Seg35.wireSeating 3557 = 229 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 3559. -/
 @[simp] theorem requiredStatePathAt3559
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 3559 = rho 229 := by
+    RequiredStatePathValuation rho 3559 = rho 230 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 3559 = 229 by
+  rw [show Seg35.wireSeating 3559 = 230 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 3562. -/
 @[simp] theorem requiredStatePathAt3562
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 3562 = rho 230 := by
+    RequiredStatePathValuation rho 3562 = rho 231 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 3562 = 230 by
+  rw [show Seg35.wireSeating 3562 = 231 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 3920. -/
 @[simp] theorem requiredStatePathAt3920
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 3920 = rho 225 := by
+    RequiredStatePathValuation rho 3920 = rho 226 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 3920 = 225 by
+  rw [show Seg35.wireSeating 3920 = 226 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 3922. -/
 @[simp] theorem requiredStatePathAt3922
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 3922 = rho 226 := by
+    RequiredStatePathValuation rho 3922 = rho 227 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 3922 = 226 by
+  rw [show Seg35.wireSeating 3922 = 227 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 3925. -/
 @[simp] theorem requiredStatePathAt3925
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 3925 = rho 227 := by
+    RequiredStatePathValuation rho 3925 = rho 228 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 3925 = 227 by
+  rw [show Seg35.wireSeating 3925 = 228 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 4283. -/
 @[simp] theorem requiredStatePathAt4283
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 4283 = rho 222 := by
+    RequiredStatePathValuation rho 4283 = rho 223 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 4283 = 222 by
+  rw [show Seg35.wireSeating 4283 = 223 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 4285. -/
 @[simp] theorem requiredStatePathAt4285
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 4285 = rho 223 := by
+    RequiredStatePathValuation rho 4285 = rho 224 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 4285 = 223 by
+  rw [show Seg35.wireSeating 4285 = 224 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 4288. -/
 @[simp] theorem requiredStatePathAt4288
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 4288 = rho 224 := by
+    RequiredStatePathValuation rho 4288 = rho 225 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 4288 = 224 by
+  rw [show Seg35.wireSeating 4288 = 225 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 4646. -/
 @[simp] theorem requiredStatePathAt4646
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 4646 = rho 219 := by
+    RequiredStatePathValuation rho 4646 = rho 220 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 4646 = 219 by
+  rw [show Seg35.wireSeating 4646 = 220 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 4648. -/
 @[simp] theorem requiredStatePathAt4648
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 4648 = rho 220 := by
+    RequiredStatePathValuation rho 4648 = rho 221 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 4648 = 220 by
+  rw [show Seg35.wireSeating 4648 = 221 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 4651. -/
 @[simp] theorem requiredStatePathAt4651
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 4651 = rho 221 := by
+    RequiredStatePathValuation rho 4651 = rho 222 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 4651 = 221 by
+  rw [show Seg35.wireSeating 4651 = 222 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 5009. -/
 @[simp] theorem requiredStatePathAt5009
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 5009 = rho 216 := by
+    RequiredStatePathValuation rho 5009 = rho 217 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 5009 = 216 by
+  rw [show Seg35.wireSeating 5009 = 217 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 5011. -/
 @[simp] theorem requiredStatePathAt5011
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 5011 = rho 217 := by
+    RequiredStatePathValuation rho 5011 = rho 218 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 5011 = 217 by
+  rw [show Seg35.wireSeating 5011 = 218 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 5014. -/
 @[simp] theorem requiredStatePathAt5014
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 5014 = rho 218 := by
+    RequiredStatePathValuation rho 5014 = rho 219 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 5014 = 218 by
+  rw [show Seg35.wireSeating 5014 = 219 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 5372. -/
 @[simp] theorem requiredStatePathAt5372
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 5372 = rho 213 := by
+    RequiredStatePathValuation rho 5372 = rho 214 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 5372 = 213 by
+  rw [show Seg35.wireSeating 5372 = 214 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 5374. -/
 @[simp] theorem requiredStatePathAt5374
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 5374 = rho 214 := by
+    RequiredStatePathValuation rho 5374 = rho 215 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 5374 = 214 by
+  rw [show Seg35.wireSeating 5374 = 215 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 5377. -/
 @[simp] theorem requiredStatePathAt5377
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 5377 = rho 215 := by
+    RequiredStatePathValuation rho 5377 = rho 216 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 5377 = 215 by
+  rw [show Seg35.wireSeating 5377 = 216 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 5735. -/
 @[simp] theorem requiredStatePathAt5735
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 5735 = rho 210 := by
+    RequiredStatePathValuation rho 5735 = rho 211 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 5735 = 210 by
+  rw [show Seg35.wireSeating 5735 = 211 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 5737. -/
 @[simp] theorem requiredStatePathAt5737
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 5737 = rho 211 := by
+    RequiredStatePathValuation rho 5737 = rho 212 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 5737 = 211 by
+  rw [show Seg35.wireSeating 5737 = 212 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 5740. -/
 @[simp] theorem requiredStatePathAt5740
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 5740 = rho 212 := by
+    RequiredStatePathValuation rho 5740 = rho 213 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 5740 = 212 by
+  rw [show Seg35.wireSeating 5740 = 213 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 6098. -/
 @[simp] theorem requiredStatePathAt6098
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 6098 = rho 207 := by
+    RequiredStatePathValuation rho 6098 = rho 208 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 6098 = 207 by
+  rw [show Seg35.wireSeating 6098 = 208 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 6100. -/
 @[simp] theorem requiredStatePathAt6100
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 6100 = rho 208 := by
+    RequiredStatePathValuation rho 6100 = rho 209 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 6100 = 208 by
+  rw [show Seg35.wireSeating 6100 = 209 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 6103. -/
 @[simp] theorem requiredStatePathAt6103
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 6103 = rho 209 := by
+    RequiredStatePathValuation rho 6103 = rho 210 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 6103 = 209 by
+  rw [show Seg35.wireSeating 6103 = 210 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 6461. -/
 @[simp] theorem requiredStatePathAt6461
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 6461 = rho 204 := by
+    RequiredStatePathValuation rho 6461 = rho 205 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 6461 = 204 by
+  rw [show Seg35.wireSeating 6461 = 205 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 6463. -/
 @[simp] theorem requiredStatePathAt6463
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 6463 = rho 205 := by
+    RequiredStatePathValuation rho 6463 = rho 206 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 6463 = 205 by
+  rw [show Seg35.wireSeating 6463 = 206 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 6466. -/
 @[simp] theorem requiredStatePathAt6466
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 6466 = rho 206 := by
+    RequiredStatePathValuation rho 6466 = rho 207 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 6466 = 206 by
+  rw [show Seg35.wireSeating 6466 = 207 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 6824. -/
 @[simp] theorem requiredStatePathAt6824
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 6824 = rho 201 := by
+    RequiredStatePathValuation rho 6824 = rho 202 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 6824 = 201 by
+  rw [show Seg35.wireSeating 6824 = 202 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 6826. -/
 @[simp] theorem requiredStatePathAt6826
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 6826 = rho 202 := by
+    RequiredStatePathValuation rho 6826 = rho 203 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 6826 = 202 by
+  rw [show Seg35.wireSeating 6826 = 203 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 6829. -/
 @[simp] theorem requiredStatePathAt6829
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 6829 = rho 203 := by
+    RequiredStatePathValuation rho 6829 = rho 204 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 6829 = 203 by
+  rw [show Seg35.wireSeating 6829 = 204 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 7187. -/
 @[simp] theorem requiredStatePathAt7187
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 7187 = rho 198 := by
+    RequiredStatePathValuation rho 7187 = rho 199 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 7187 = 198 by
+  rw [show Seg35.wireSeating 7187 = 199 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 7189. -/
 @[simp] theorem requiredStatePathAt7189
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 7189 = rho 199 := by
+    RequiredStatePathValuation rho 7189 = rho 200 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 7189 = 199 by
+  rw [show Seg35.wireSeating 7189 = 200 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 7192. -/
 @[simp] theorem requiredStatePathAt7192
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 7192 = rho 200 := by
+    RequiredStatePathValuation rho 7192 = rho 201 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 7192 = 200 by
+  rw [show Seg35.wireSeating 7192 = 201 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 7550. -/
 @[simp] theorem requiredStatePathAt7550
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 7550 = rho 195 := by
+    RequiredStatePathValuation rho 7550 = rho 196 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 7550 = 195 by
+  rw [show Seg35.wireSeating 7550 = 196 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 7552. -/
 @[simp] theorem requiredStatePathAt7552
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 7552 = rho 196 := by
+    RequiredStatePathValuation rho 7552 = rho 197 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 7552 = 196 by
+  rw [show Seg35.wireSeating 7552 = 197 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 7555. -/
 @[simp] theorem requiredStatePathAt7555
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 7555 = rho 197 := by
+    RequiredStatePathValuation rho 7555 = rho 198 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 7555 = 197 by
+  rw [show Seg35.wireSeating 7555 = 198 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 7913. -/
 @[simp] theorem requiredStatePathAt7913
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 7913 = rho 192 := by
+    RequiredStatePathValuation rho 7913 = rho 193 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 7913 = 192 by
+  rw [show Seg35.wireSeating 7913 = 193 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 7915. -/
 @[simp] theorem requiredStatePathAt7915
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 7915 = rho 193 := by
+    RequiredStatePathValuation rho 7915 = rho 194 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 7915 = 193 by
+  rw [show Seg35.wireSeating 7915 = 194 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 7918. -/
 @[simp] theorem requiredStatePathAt7918
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 7918 = rho 194 := by
+    RequiredStatePathValuation rho 7918 = rho 195 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 7918 = 194 by
+  rw [show Seg35.wireSeating 7918 = 195 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 8276. -/
 @[simp] theorem requiredStatePathAt8276
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 8276 = rho 189 := by
+    RequiredStatePathValuation rho 8276 = rho 190 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 8276 = 189 by
+  rw [show Seg35.wireSeating 8276 = 190 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 8278. -/
 @[simp] theorem requiredStatePathAt8278
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 8278 = rho 190 := by
+    RequiredStatePathValuation rho 8278 = rho 191 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 8278 = 190 by
+  rw [show Seg35.wireSeating 8278 = 191 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 8281. -/
 @[simp] theorem requiredStatePathAt8281
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 8281 = rho 191 := by
+    RequiredStatePathValuation rho 8281 = rho 192 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 8281 = 191 by
+  rw [show Seg35.wireSeating 8281 = 192 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 8639. -/
 @[simp] theorem requiredStatePathAt8639
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 8639 = rho 186 := by
+    RequiredStatePathValuation rho 8639 = rho 187 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 8639 = 186 by
+  rw [show Seg35.wireSeating 8639 = 187 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 8641. -/
 @[simp] theorem requiredStatePathAt8641
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 8641 = rho 187 := by
+    RequiredStatePathValuation rho 8641 = rho 188 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 8641 = 187 by
+  rw [show Seg35.wireSeating 8641 = 188 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 8644. -/
 @[simp] theorem requiredStatePathAt8644
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 8644 = rho 188 := by
+    RequiredStatePathValuation rho 8644 = rho 189 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 8644 = 188 by
+  rw [show Seg35.wireSeating 8644 = 189 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 8977. -/
 @[simp] theorem requiredStatePathAt8977
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 8977 = rho 36986 := by
+    RequiredStatePathValuation rho 8977 = rho 37029 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 8977 = 36986 by
+  rw [show Seg35.wireSeating 8977 = 37029 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 8982. -/
 @[simp] theorem requiredStatePathAt8982
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 8982 = rho 36991 := by
+    RequiredStatePathValuation rho 8982 = rho 37034 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 8982 = 36991 by
+  rw [show Seg35.wireSeating 8982 = 37034 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 8987. -/
 @[simp] theorem requiredStatePathAt8987
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 8987 = rho 36996 := by
+    RequiredStatePathValuation rho 8987 = rho 37039 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 8987 = 36996 by
+  rw [show Seg35.wireSeating 8987 = 37039 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 8992. -/
 @[simp] theorem requiredStatePathAt8992
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 8992 = rho 37001 := by
+    RequiredStatePathValuation rho 8992 = rho 37044 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 8992 = 37001 by
+  rw [show Seg35.wireSeating 8992 = 37044 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_state_path` local 8997. -/
 @[simp] theorem requiredStatePathAt8997
     (rho : Nat → DeployedF) :
-    RequiredStatePathValuation rho 8997 = rho 37006 := by
+    RequiredStatePathValuation rho 8997 = rho 37049 := by
   simp only [
-    RequiredStatePathValuation, Seg34.localRho,
+    RequiredStatePathValuation, Seg35.localRho,
     Deployed.Templates.seated]
-  rw [show Seg34.wireSeating 8997 = 37006 by
+  rw [show Seg35.wireSeating 8997 = 37049 by
     decide +kernel]
 
 /-- Deployed seating for the `required_nullifier_assert` certified local semantics. -/
 def RequiredNullifierAssertValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg35.localRho rho
+  Seg36.localRho rho
 
 /-- Certified local semantics for the `required_nullifier_assert` source operation. -/
 def RequiredNullifierAssertSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -3931,56 +3990,56 @@ def RequiredNullifierAssertSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `required_nullifier_assert` local 1. -/
 @[simp] theorem requiredNullifierAssertAt1
     (rho : Nat → DeployedF) :
-    RequiredNullifierAssertValuation rho 1 = rho 179 := by
+    RequiredNullifierAssertValuation rho 1 = rho 180 := by
   simp only [
-    RequiredNullifierAssertValuation, Seg35.localRho,
+    RequiredNullifierAssertValuation, Seg36.localRho,
     Deployed.Templates.seated]
-  rw [show Seg35.wireSeating 1 = 179 by
+  rw [show Seg36.wireSeating 1 = 180 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_nullifier_assert` local 2. -/
 @[simp] theorem requiredNullifierAssertAt2
     (rho : Nat → DeployedF) :
-    RequiredNullifierAssertValuation rho 2 = rho 28073 := by
+    RequiredNullifierAssertValuation rho 2 = rho 28116 := by
   simp only [
-    RequiredNullifierAssertValuation, Seg35.localRho,
+    RequiredNullifierAssertValuation, Seg36.localRho,
     Deployed.Templates.seated]
-  rw [show Seg35.wireSeating 2 = 28073 by
+  rw [show Seg36.wireSeating 2 = 28116 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_nullifier_assert` local 3. -/
 @[simp] theorem requiredNullifierAssertAt3
     (rho : Nat → DeployedF) :
-    RequiredNullifierAssertValuation rho 3 = rho 28078 := by
+    RequiredNullifierAssertValuation rho 3 = rho 28121 := by
   simp only [
-    RequiredNullifierAssertValuation, Seg35.localRho,
+    RequiredNullifierAssertValuation, Seg36.localRho,
     Deployed.Templates.seated]
-  rw [show Seg35.wireSeating 3 = 28078 by
+  rw [show Seg36.wireSeating 3 = 28121 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_nullifier_assert` local 4. -/
 @[simp] theorem requiredNullifierAssertAt4
     (rho : Nat → DeployedF) :
-    RequiredNullifierAssertValuation rho 4 = rho 28083 := by
+    RequiredNullifierAssertValuation rho 4 = rho 28126 := by
   simp only [
-    RequiredNullifierAssertValuation, Seg35.localRho,
+    RequiredNullifierAssertValuation, Seg36.localRho,
     Deployed.Templates.seated]
-  rw [show Seg35.wireSeating 4 = 28083 by
+  rw [show Seg36.wireSeating 4 = 28126 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_nullifier_assert` local 5. -/
 @[simp] theorem requiredNullifierAssertAt5
     (rho : Nat → DeployedF) :
-    RequiredNullifierAssertValuation rho 5 = rho 28088 := by
+    RequiredNullifierAssertValuation rho 5 = rho 28131 := by
   simp only [
-    RequiredNullifierAssertValuation, Seg35.localRho,
+    RequiredNullifierAssertValuation, Seg36.localRho,
     Deployed.Templates.seated]
-  rw [show Seg35.wireSeating 5 = 28088 by
+  rw [show Seg36.wireSeating 5 = 28131 by
     decide +kernel]
 
 /-- Deployed seating for the `required_anchor_assert` certified local semantics. -/
 def RequiredAnchorAssertValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg36.localRho rho
+  Seg37.localRho rho
 
 /-- Certified local semantics for the `required_anchor_assert` source operation. -/
 def RequiredAnchorAssertSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -3989,51 +4048,51 @@ def RequiredAnchorAssertSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `required_anchor_assert` local 1. -/
 @[simp] theorem requiredAnchorAssertAt1
     (rho : Nat → DeployedF) :
-    RequiredAnchorAssertValuation rho 1 = rho 36986 := by
+    RequiredAnchorAssertValuation rho 1 = rho 37029 := by
   simp only [
-    RequiredAnchorAssertValuation, Seg36.localRho,
+    RequiredAnchorAssertValuation, Seg37.localRho,
     Deployed.Templates.seated]
-  rw [show Seg36.wireSeating 1 = 36986 by
+  rw [show Seg37.wireSeating 1 = 37029 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_anchor_assert` local 2. -/
 @[simp] theorem requiredAnchorAssertAt2
     (rho : Nat → DeployedF) :
-    RequiredAnchorAssertValuation rho 2 = rho 36991 := by
+    RequiredAnchorAssertValuation rho 2 = rho 37034 := by
   simp only [
-    RequiredAnchorAssertValuation, Seg36.localRho,
+    RequiredAnchorAssertValuation, Seg37.localRho,
     Deployed.Templates.seated]
-  rw [show Seg36.wireSeating 2 = 36991 by
+  rw [show Seg37.wireSeating 2 = 37034 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_anchor_assert` local 3. -/
 @[simp] theorem requiredAnchorAssertAt3
     (rho : Nat → DeployedF) :
-    RequiredAnchorAssertValuation rho 3 = rho 36996 := by
+    RequiredAnchorAssertValuation rho 3 = rho 37039 := by
   simp only [
-    RequiredAnchorAssertValuation, Seg36.localRho,
+    RequiredAnchorAssertValuation, Seg37.localRho,
     Deployed.Templates.seated]
-  rw [show Seg36.wireSeating 3 = 36996 by
+  rw [show Seg37.wireSeating 3 = 37039 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_anchor_assert` local 4. -/
 @[simp] theorem requiredAnchorAssertAt4
     (rho : Nat → DeployedF) :
-    RequiredAnchorAssertValuation rho 4 = rho 37001 := by
+    RequiredAnchorAssertValuation rho 4 = rho 37044 := by
   simp only [
-    RequiredAnchorAssertValuation, Seg36.localRho,
+    RequiredAnchorAssertValuation, Seg37.localRho,
     Deployed.Templates.seated]
-  rw [show Seg36.wireSeating 4 = 37001 by
+  rw [show Seg37.wireSeating 4 = 37044 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_anchor_assert` local 5. -/
 @[simp] theorem requiredAnchorAssertAt5
     (rho : Nat → DeployedF) :
-    RequiredAnchorAssertValuation rho 5 = rho 37006 := by
+    RequiredAnchorAssertValuation rho 5 = rho 37049 := by
   simp only [
-    RequiredAnchorAssertValuation, Seg36.localRho,
+    RequiredAnchorAssertValuation, Seg37.localRho,
     Deployed.Templates.seated]
-  rw [show Seg36.wireSeating 5 = 37006 by
+  rw [show Seg37.wireSeating 5 = 37049 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_anchor_assert` local 6. -/
@@ -4041,14 +4100,14 @@ def RequiredAnchorAssertSemanticSpec (rho : Nat → DeployedF) : Prop :=
     (rho : Nat → DeployedF) :
     RequiredAnchorAssertValuation rho 6 = rho 6 := by
   simp only [
-    RequiredAnchorAssertValuation, Seg36.localRho,
+    RequiredAnchorAssertValuation, Seg37.localRho,
     Deployed.Templates.seated]
-  rw [show Seg36.wireSeating 6 = 6 by
+  rw [show Seg37.wireSeating 6 = 6 by
     decide +kernel]
 
 /-- Deployed seating for the `required_rvk` certified local semantics. -/
 def RequiredRvkValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg37.localRho rho
+  Seg38.localRho rho
 
 /-- Certified local semantics for the `required_rvk` source operation. -/
 def RequiredRvkSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -4057,11 +4116,11 @@ def RequiredRvkSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `required_rvk` local 252. -/
 @[simp] theorem requiredRvkAt252
     (rho : Nat → DeployedF) :
-    RequiredRvkValuation rho 252 = rho 258 := by
+    RequiredRvkValuation rho 252 = rho 259 := by
   simp only [
-    RequiredRvkValuation, Seg37.localRho,
+    RequiredRvkValuation, Seg38.localRho,
     Deployed.Templates.seated]
-  rw [show Seg37.wireSeating 252 = 258 by
+  rw [show Seg38.wireSeating 252 = 259 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_rvk` local 1807. -/
@@ -4069,9 +4128,9 @@ def RequiredRvkSemanticSpec (rho : Nat → DeployedF) : Prop :=
     (rho : Nat → DeployedF) :
     RequiredRvkValuation rho 1807 = rho 15 := by
   simp only [
-    RequiredRvkValuation, Seg37.localRho,
+    RequiredRvkValuation, Seg38.localRho,
     Deployed.Templates.seated]
-  rw [show Seg37.wireSeating 1807 = 15 by
+  rw [show Seg38.wireSeating 1807 = 15 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_rvk` local 1808. -/
@@ -4079,34 +4138,34 @@ def RequiredRvkSemanticSpec (rho : Nat → DeployedF) : Prop :=
     (rho : Nat → DeployedF) :
     RequiredRvkValuation rho 1808 = rho 16 := by
   simp only [
-    RequiredRvkValuation, Seg37.localRho,
+    RequiredRvkValuation, Seg38.localRho,
     Deployed.Templates.seated]
-  rw [show Seg37.wireSeating 1808 = 16 by
+  rw [show Seg38.wireSeating 1808 = 16 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_rvk` local 1813. -/
 @[simp] theorem requiredRvkAt1813
     (rho : Nat → DeployedF) :
-    RequiredRvkValuation rho 1813 = rho 38816 := by
+    RequiredRvkValuation rho 1813 = rho 38859 := by
   simp only [
-    RequiredRvkValuation, Seg37.localRho,
+    RequiredRvkValuation, Seg38.localRho,
     Deployed.Templates.seated]
-  rw [show Seg37.wireSeating 1813 = 38816 by
+  rw [show Seg38.wireSeating 1813 = 38859 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_rvk` local 1814. -/
 @[simp] theorem requiredRvkAt1814
     (rho : Nat → DeployedF) :
-    RequiredRvkValuation rho 1814 = rho 38817 := by
+    RequiredRvkValuation rho 1814 = rho 38860 := by
   simp only [
-    RequiredRvkValuation, Seg37.localRho,
+    RequiredRvkValuation, Seg38.localRho,
     Deployed.Templates.seated]
-  rw [show Seg37.wireSeating 1814 = 38817 by
+  rw [show Seg38.wireSeating 1814 = 38860 by
     decide +kernel]
 
 /-- Deployed seating for the `required_rk_equivalent` certified local semantics. -/
 def RequiredRkEquivalentValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg38.localRho rho
+  Seg39.localRho rho
 
 /-- Certified local semantics for the `required_rk_equivalent` source operation. -/
 def RequiredRkEquivalentSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -4115,46 +4174,46 @@ def RequiredRkEquivalentSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `required_rk_equivalent` local 1. -/
 @[simp] theorem requiredRkEquivalentAt1
     (rho : Nat → DeployedF) :
-    RequiredRkEquivalentValuation rho 1 = rho 38816 := by
+    RequiredRkEquivalentValuation rho 1 = rho 38859 := by
   simp only [
-    RequiredRkEquivalentValuation, Seg38.localRho,
+    RequiredRkEquivalentValuation, Seg39.localRho,
     Deployed.Templates.seated]
-  rw [show Seg38.wireSeating 1 = 38816 by
+  rw [show Seg39.wireSeating 1 = 38859 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_rk_equivalent` local 2. -/
 @[simp] theorem requiredRkEquivalentAt2
     (rho : Nat → DeployedF) :
-    RequiredRkEquivalentValuation rho 2 = rho 181 := by
+    RequiredRkEquivalentValuation rho 2 = rho 182 := by
   simp only [
-    RequiredRkEquivalentValuation, Seg38.localRho,
+    RequiredRkEquivalentValuation, Seg39.localRho,
     Deployed.Templates.seated]
-  rw [show Seg38.wireSeating 2 = 181 by
+  rw [show Seg39.wireSeating 2 = 182 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_rk_equivalent` local 4. -/
 @[simp] theorem requiredRkEquivalentAt4
     (rho : Nat → DeployedF) :
-    RequiredRkEquivalentValuation rho 4 = rho 180 := by
+    RequiredRkEquivalentValuation rho 4 = rho 181 := by
   simp only [
-    RequiredRkEquivalentValuation, Seg38.localRho,
+    RequiredRkEquivalentValuation, Seg39.localRho,
     Deployed.Templates.seated]
-  rw [show Seg38.wireSeating 4 = 180 by
+  rw [show Seg39.wireSeating 4 = 181 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_rk_equivalent` local 5. -/
 @[simp] theorem requiredRkEquivalentAt5
     (rho : Nat → DeployedF) :
-    RequiredRkEquivalentValuation rho 5 = rho 38817 := by
+    RequiredRkEquivalentValuation rho 5 = rho 38860 := by
   simp only [
-    RequiredRkEquivalentValuation, Seg38.localRho,
+    RequiredRkEquivalentValuation, Seg39.localRho,
     Deployed.Templates.seated]
-  rw [show Seg38.wireSeating 5 = 38817 by
+  rw [show Seg39.wireSeating 5 = 38860 by
     decide +kernel]
 
 /-- Deployed seating for the `required_history_classify` certified local semantics. -/
 def RequiredHistoryClassifyValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg39.localRho rho
+  Seg40.localRho rho
 
 /-- Certified local semantics for the `required_history_classify` source operation. -/
 def RequiredHistoryClassifySemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -4163,11 +4222,11 @@ def RequiredHistoryClassifySemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `required_history_classify` local 49. -/
 @[simp] theorem requiredHistoryClassifyAt49
     (rho : Nat → DeployedF) :
-    RequiredHistoryClassifyValuation rho 49 = rho 185 := by
+    RequiredHistoryClassifyValuation rho 49 = rho 186 := by
   simp only [
-    RequiredHistoryClassifyValuation, Seg39.localRho,
+    RequiredHistoryClassifyValuation, Seg40.localRho,
     Deployed.Templates.seated]
-  rw [show Seg39.wireSeating 49 = 185 by
+  rw [show Seg40.wireSeating 49 = 186 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_history_classify` local 98. -/
@@ -4175,24 +4234,24 @@ def RequiredHistoryClassifySemanticSpec (rho : Nat → DeployedF) : Prop :=
     (rho : Nat → DeployedF) :
     RequiredHistoryClassifyValuation rho 98 = rho 5 := by
   simp only [
-    RequiredHistoryClassifyValuation, Seg39.localRho,
+    RequiredHistoryClassifyValuation, Seg40.localRho,
     Deployed.Templates.seated]
-  rw [show Seg39.wireSeating 98 = 5 by
+  rw [show Seg40.wireSeating 98 = 5 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_history_classify` local 149. -/
 @[simp] theorem requiredHistoryClassifyAt149
     (rho : Nat → DeployedF) :
-    RequiredHistoryClassifyValuation rho 149 = rho 259 := by
+    RequiredHistoryClassifyValuation rho 149 = rho 260 := by
   simp only [
-    RequiredHistoryClassifyValuation, Seg39.localRho,
+    RequiredHistoryClassifyValuation, Seg40.localRho,
     Deployed.Templates.seated]
-  rw [show Seg39.wireSeating 149 = 259 by
+  rw [show Seg40.wireSeating 149 = 260 by
     decide +kernel]
 
 /-- Deployed seating for the `required_rk_compress` certified local semantics. -/
 def RequiredRkCompressValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg40.localRho rho
+  Seg41.localRho rho
 
 /-- Certified local semantics for the `required_rk_compress` source operation. -/
 def RequiredRkCompressSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -4201,46 +4260,46 @@ def RequiredRkCompressSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `required_rk_compress` local 1. -/
 @[simp] theorem requiredRkCompressAt1
     (rho : Nat → DeployedF) :
-    RequiredRkCompressValuation rho 1 = rho 180 := by
+    RequiredRkCompressValuation rho 1 = rho 181 := by
   simp only [
-    RequiredRkCompressValuation, Seg40.localRho,
+    RequiredRkCompressValuation, Seg41.localRho,
     Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 1 = 180 by
+  rw [show Seg41.wireSeating 1 = 181 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_rk_compress` local 3. -/
 @[simp] theorem requiredRkCompressAt3
     (rho : Nat → DeployedF) :
-    RequiredRkCompressValuation rho 3 = rho 181 := by
+    RequiredRkCompressValuation rho 3 = rho 182 := by
   simp only [
-    RequiredRkCompressValuation, Seg40.localRho,
+    RequiredRkCompressValuation, Seg41.localRho,
     Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 3 = 181 by
+  rw [show Seg41.wireSeating 3 = 182 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_rk_compress` local 365. -/
 @[simp] theorem requiredRkCompressAt365
     (rho : Nat → DeployedF) :
-    RequiredRkCompressValuation rho 365 = rho 39328 := by
+    RequiredRkCompressValuation rho 365 = rho 39371 := by
   simp only [
-    RequiredRkCompressValuation, Seg40.localRho,
+    RequiredRkCompressValuation, Seg41.localRho,
     Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 365 = 39328 by
+  rw [show Seg41.wireSeating 365 = 39371 by
     decide +kernel]
 
 /-- Audited action-facing seat for `required_rk_compress` local 705. -/
 @[simp] theorem requiredRkCompressAt705
     (rho : Nat → DeployedF) :
-    RequiredRkCompressValuation rho 705 = rho 39668 := by
+    RequiredRkCompressValuation rho 705 = rho 39711 := by
   simp only [
-    RequiredRkCompressValuation, Seg40.localRho,
+    RequiredRkCompressValuation, Seg41.localRho,
     Deployed.Templates.seated]
-  rw [show Seg40.wireSeating 705 = 39668 by
+  rw [show Seg41.wireSeating 705 = 39711 by
     decide +kernel]
 
 /-- Deployed seating for the `optional_is_dummy_boolean` certified local semantics. -/
 def OptionalIsDummyBooleanValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg43.localRho rho
+  Seg44.localRho rho
 
 /-- Certified local semantics for the `optional_is_dummy_boolean` source operation. -/
 def OptionalIsDummyBooleanSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -4249,16 +4308,16 @@ def OptionalIsDummyBooleanSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `optional_is_dummy_boolean` local 1. -/
 @[simp] theorem optionalIsDummyBooleanAt1
     (rho : Nat → DeployedF) :
-    OptionalIsDummyBooleanValuation rho 1 = rho 339 := by
+    OptionalIsDummyBooleanValuation rho 1 = rho 340 := by
   simp only [
-    OptionalIsDummyBooleanValuation, Seg43.localRho,
+    OptionalIsDummyBooleanValuation, Seg44.localRho,
     Deployed.Templates.seated]
-  rw [show Seg43.wireSeating 1 = 339 by
+  rw [show Seg44.wireSeating 1 = 340 by
     decide +kernel]
 
 /-- Deployed seating for the `optional_note_commitment` certified local semantics. -/
 def OptionalNoteCommitmentValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg44.localRho rho
+  Seg45.localRho rho
 
 /-- Certified local semantics for the `optional_note_commitment` source operation. -/
 def OptionalNoteCommitmentSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -4267,136 +4326,136 @@ def OptionalNoteCommitmentSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `optional_note_commitment` local 1. -/
 @[simp] theorem optionalNoteCommitmentAt1
     (rho : Nat → DeployedF) :
-    OptionalNoteCommitmentValuation rho 1 = rho 263 := by
+    OptionalNoteCommitmentValuation rho 1 = rho 264 := by
   simp only [
-    OptionalNoteCommitmentValuation, Seg44.localRho,
+    OptionalNoteCommitmentValuation, Seg45.localRho,
     Deployed.Templates.seated]
-  rw [show Seg44.wireSeating 1 = 263 by
+  rw [show Seg45.wireSeating 1 = 264 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_note_commitment` local 7. -/
 @[simp] theorem optionalNoteCommitmentAt7
     (rho : Nat → DeployedF) :
-    OptionalNoteCommitmentValuation rho 7 = rho 264 := by
+    OptionalNoteCommitmentValuation rho 7 = rho 265 := by
   simp only [
-    OptionalNoteCommitmentValuation, Seg44.localRho,
+    OptionalNoteCommitmentValuation, Seg45.localRho,
     Deployed.Templates.seated]
-  rw [show Seg44.wireSeating 7 = 264 by
+  rw [show Seg45.wireSeating 7 = 265 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_note_commitment` local 13. -/
 @[simp] theorem optionalNoteCommitmentAt13
     (rho : Nat → DeployedF) :
-    OptionalNoteCommitmentValuation rho 13 = rho 184 := by
+    OptionalNoteCommitmentValuation rho 13 = rho 185 := by
   simp only [
-    OptionalNoteCommitmentValuation, Seg44.localRho,
+    OptionalNoteCommitmentValuation, Seg45.localRho,
     Deployed.Templates.seated]
-  rw [show Seg44.wireSeating 13 = 184 by
+  rw [show Seg45.wireSeating 13 = 185 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_note_commitment` local 19. -/
 @[simp] theorem optionalNoteCommitmentAt19
     (rho : Nat → DeployedF) :
-    OptionalNoteCommitmentValuation rho 19 = rho 777 := by
+    OptionalNoteCommitmentValuation rho 19 = rho 779 := by
   simp only [
-    OptionalNoteCommitmentValuation, Seg44.localRho,
+    OptionalNoteCommitmentValuation, Seg45.localRho,
     Deployed.Templates.seated]
-  rw [show Seg44.wireSeating 19 = 777 by
+  rw [show Seg45.wireSeating 19 = 779 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_note_commitment` local 20. -/
 @[simp] theorem optionalNoteCommitmentAt20
     (rho : Nat → DeployedF) :
-    OptionalNoteCommitmentValuation rho 20 = rho 1117 := by
+    OptionalNoteCommitmentValuation rho 20 = rho 1119 := by
   simp only [
-    OptionalNoteCommitmentValuation, Seg44.localRho,
+    OptionalNoteCommitmentValuation, Seg45.localRho,
     Deployed.Templates.seated]
-  rw [show Seg44.wireSeating 20 = 1117 by
+  rw [show Seg45.wireSeating 20 = 1119 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_note_commitment` local 26. -/
 @[simp] theorem optionalNoteCommitmentAt26
     (rho : Nat → DeployedF) :
-    OptionalNoteCommitmentValuation rho 26 = rho 1480 := by
+    OptionalNoteCommitmentValuation rho 26 = rho 1482 := by
   simp only [
-    OptionalNoteCommitmentValuation, Seg44.localRho,
+    OptionalNoteCommitmentValuation, Seg45.localRho,
     Deployed.Templates.seated]
-  rw [show Seg44.wireSeating 26 = 1480 by
+  rw [show Seg45.wireSeating 26 = 1482 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_note_commitment` local 27. -/
 @[simp] theorem optionalNoteCommitmentAt27
     (rho : Nat → DeployedF) :
-    OptionalNoteCommitmentValuation rho 27 = rho 1820 := by
+    OptionalNoteCommitmentValuation rho 27 = rho 1822 := by
   simp only [
-    OptionalNoteCommitmentValuation, Seg44.localRho,
+    OptionalNoteCommitmentValuation, Seg45.localRho,
     Deployed.Templates.seated]
-  rw [show Seg44.wireSeating 27 = 1820 by
+  rw [show Seg45.wireSeating 27 = 1822 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_note_commitment` local 372. -/
 @[simp] theorem optionalNoteCommitmentAt372
     (rho : Nat → DeployedF) :
-    OptionalNoteCommitmentValuation rho 372 = rho 40033 := by
+    OptionalNoteCommitmentValuation rho 372 = rho 40076 := by
   simp only [
-    OptionalNoteCommitmentValuation, Seg44.localRho,
+    OptionalNoteCommitmentValuation, Seg45.localRho,
     Deployed.Templates.seated]
-  rw [show Seg44.wireSeating 372 = 40033 by
+  rw [show Seg45.wireSeating 372 = 40076 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_note_commitment` local 377. -/
 @[simp] theorem optionalNoteCommitmentAt377
     (rho : Nat → DeployedF) :
-    OptionalNoteCommitmentValuation rho 377 = rho 40038 := by
+    OptionalNoteCommitmentValuation rho 377 = rho 40081 := by
   simp only [
-    OptionalNoteCommitmentValuation, Seg44.localRho,
+    OptionalNoteCommitmentValuation, Seg45.localRho,
     Deployed.Templates.seated]
-  rw [show Seg44.wireSeating 377 = 40038 by
+  rw [show Seg45.wireSeating 377 = 40081 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_note_commitment` local 382. -/
 @[simp] theorem optionalNoteCommitmentAt382
     (rho : Nat → DeployedF) :
-    OptionalNoteCommitmentValuation rho 382 = rho 40043 := by
+    OptionalNoteCommitmentValuation rho 382 = rho 40086 := by
   simp only [
-    OptionalNoteCommitmentValuation, Seg44.localRho,
+    OptionalNoteCommitmentValuation, Seg45.localRho,
     Deployed.Templates.seated]
-  rw [show Seg44.wireSeating 382 = 40043 by
+  rw [show Seg45.wireSeating 382 = 40086 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_note_commitment` local 387. -/
 @[simp] theorem optionalNoteCommitmentAt387
     (rho : Nat → DeployedF) :
-    OptionalNoteCommitmentValuation rho 387 = rho 40048 := by
+    OptionalNoteCommitmentValuation rho 387 = rho 40091 := by
   simp only [
-    OptionalNoteCommitmentValuation, Seg44.localRho,
+    OptionalNoteCommitmentValuation, Seg45.localRho,
     Deployed.Templates.seated]
-  rw [show Seg44.wireSeating 387 = 40048 by
+  rw [show Seg45.wireSeating 387 = 40091 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_note_commitment` local 392. -/
 @[simp] theorem optionalNoteCommitmentAt392
     (rho : Nat → DeployedF) :
-    OptionalNoteCommitmentValuation rho 392 = rho 40053 := by
+    OptionalNoteCommitmentValuation rho 392 = rho 40096 := by
   simp only [
-    OptionalNoteCommitmentValuation, Seg44.localRho,
+    OptionalNoteCommitmentValuation, Seg45.localRho,
     Deployed.Templates.seated]
-  rw [show Seg44.wireSeating 392 = 40053 by
+  rw [show Seg45.wireSeating 392 = 40096 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_note_commitment` local 397. -/
 @[simp] theorem optionalNoteCommitmentAt397
     (rho : Nat → DeployedF) :
-    OptionalNoteCommitmentValuation rho 397 = rho 40058 := by
+    OptionalNoteCommitmentValuation rho 397 = rho 40101 := by
   simp only [
-    OptionalNoteCommitmentValuation, Seg44.localRho,
+    OptionalNoteCommitmentValuation, Seg45.localRho,
     Deployed.Templates.seated]
-  rw [show Seg44.wireSeating 397 = 40058 by
+  rw [show Seg45.wireSeating 397 = 40101 by
     decide +kernel]
 
 /-- Deployed seating for the `optional_nullifier` certified local semantics. -/
 def OptionalNullifierValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg45.localRho rho
+  Seg46.localRho rho
 
 /-- Certified local semantics for the `optional_nullifier` source operation. -/
 def OptionalNullifierSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -4407,124 +4466,124 @@ def OptionalNullifierSemanticSpec (rho : Nat → DeployedF) : Prop :=
     (rho : Nat → DeployedF) :
     OptionalNullifierValuation rho 1 = rho 17 := by
   simp only [
-    OptionalNullifierValuation, Seg45.localRho,
+    OptionalNullifierValuation, Seg46.localRho,
     Deployed.Templates.seated]
-  rw [show Seg45.wireSeating 1 = 17 by
+  rw [show Seg46.wireSeating 1 = 17 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_nullifier` local 7. -/
 @[simp] theorem optionalNullifierAt7
     (rho : Nat → DeployedF) :
-    OptionalNullifierValuation rho 7 = rho 40033 := by
+    OptionalNullifierValuation rho 7 = rho 40076 := by
   simp only [
-    OptionalNullifierValuation, Seg45.localRho,
+    OptionalNullifierValuation, Seg46.localRho,
     Deployed.Templates.seated]
-  rw [show Seg45.wireSeating 7 = 40033 by
+  rw [show Seg46.wireSeating 7 = 40076 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_nullifier` local 8. -/
 @[simp] theorem optionalNullifierAt8
     (rho : Nat → DeployedF) :
-    OptionalNullifierValuation rho 8 = rho 40038 := by
+    OptionalNullifierValuation rho 8 = rho 40081 := by
   simp only [
-    OptionalNullifierValuation, Seg45.localRho,
+    OptionalNullifierValuation, Seg46.localRho,
     Deployed.Templates.seated]
-  rw [show Seg45.wireSeating 8 = 40038 by
+  rw [show Seg46.wireSeating 8 = 40081 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_nullifier` local 9. -/
 @[simp] theorem optionalNullifierAt9
     (rho : Nat → DeployedF) :
-    OptionalNullifierValuation rho 9 = rho 40043 := by
+    OptionalNullifierValuation rho 9 = rho 40086 := by
   simp only [
-    OptionalNullifierValuation, Seg45.localRho,
+    OptionalNullifierValuation, Seg46.localRho,
     Deployed.Templates.seated]
-  rw [show Seg45.wireSeating 9 = 40043 by
+  rw [show Seg46.wireSeating 9 = 40086 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_nullifier` local 10. -/
 @[simp] theorem optionalNullifierAt10
     (rho : Nat → DeployedF) :
-    OptionalNullifierValuation rho 10 = rho 40048 := by
+    OptionalNullifierValuation rho 10 = rho 40091 := by
   simp only [
-    OptionalNullifierValuation, Seg45.localRho,
+    OptionalNullifierValuation, Seg46.localRho,
     Deployed.Templates.seated]
-  rw [show Seg45.wireSeating 10 = 40048 by
+  rw [show Seg46.wireSeating 10 = 40091 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_nullifier` local 11. -/
 @[simp] theorem optionalNullifierAt11
     (rho : Nat → DeployedF) :
-    OptionalNullifierValuation rho 11 = rho 40053 := by
+    OptionalNullifierValuation rho 11 = rho 40096 := by
   simp only [
-    OptionalNullifierValuation, Seg45.localRho,
+    OptionalNullifierValuation, Seg46.localRho,
     Deployed.Templates.seated]
-  rw [show Seg45.wireSeating 11 = 40053 by
+  rw [show Seg46.wireSeating 11 = 40096 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_nullifier` local 12. -/
 @[simp] theorem optionalNullifierAt12
     (rho : Nat → DeployedF) :
-    OptionalNullifierValuation rho 12 = rho 40058 := by
+    OptionalNullifierValuation rho 12 = rho 40101 := by
   simp only [
-    OptionalNullifierValuation, Seg45.localRho,
+    OptionalNullifierValuation, Seg46.localRho,
     Deployed.Templates.seated]
-  rw [show Seg45.wireSeating 12 = 40058 by
+  rw [show Seg46.wireSeating 12 = 40101 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_nullifier` local 18. -/
 @[simp] theorem optionalNullifierAt18
     (rho : Nat → DeployedF) :
-    OptionalNullifierValuation rho 18 = rho 265 := by
+    OptionalNullifierValuation rho 18 = rho 266 := by
   simp only [
-    OptionalNullifierValuation, Seg45.localRho,
+    OptionalNullifierValuation, Seg46.localRho,
     Deployed.Templates.seated]
-  rw [show Seg45.wireSeating 18 = 265 by
+  rw [show Seg46.wireSeating 18 = 266 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_nullifier` local 303. -/
 @[simp] theorem optionalNullifierAt303
     (rho : Nat → DeployedF) :
-    OptionalNullifierValuation rho 303 = rho 40353 := by
+    OptionalNullifierValuation rho 303 = rho 40396 := by
   simp only [
-    OptionalNullifierValuation, Seg45.localRho,
+    OptionalNullifierValuation, Seg46.localRho,
     Deployed.Templates.seated]
-  rw [show Seg45.wireSeating 303 = 40353 by
+  rw [show Seg46.wireSeating 303 = 40396 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_nullifier` local 308. -/
 @[simp] theorem optionalNullifierAt308
     (rho : Nat → DeployedF) :
-    OptionalNullifierValuation rho 308 = rho 40358 := by
+    OptionalNullifierValuation rho 308 = rho 40401 := by
   simp only [
-    OptionalNullifierValuation, Seg45.localRho,
+    OptionalNullifierValuation, Seg46.localRho,
     Deployed.Templates.seated]
-  rw [show Seg45.wireSeating 308 = 40358 by
+  rw [show Seg46.wireSeating 308 = 40401 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_nullifier` local 313. -/
 @[simp] theorem optionalNullifierAt313
     (rho : Nat → DeployedF) :
-    OptionalNullifierValuation rho 313 = rho 40363 := by
+    OptionalNullifierValuation rho 313 = rho 40406 := by
   simp only [
-    OptionalNullifierValuation, Seg45.localRho,
+    OptionalNullifierValuation, Seg46.localRho,
     Deployed.Templates.seated]
-  rw [show Seg45.wireSeating 313 = 40363 by
+  rw [show Seg46.wireSeating 313 = 40406 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_nullifier` local 318. -/
 @[simp] theorem optionalNullifierAt318
     (rho : Nat → DeployedF) :
-    OptionalNullifierValuation rho 318 = rho 40368 := by
+    OptionalNullifierValuation rho 318 = rho 40411 := by
   simp only [
-    OptionalNullifierValuation, Seg45.localRho,
+    OptionalNullifierValuation, Seg46.localRho,
     Deployed.Templates.seated]
-  rw [show Seg45.wireSeating 318 = 40368 by
+  rw [show Seg46.wireSeating 318 = 40411 by
     decide +kernel]
 
 /-- Deployed seating for the `optional_state_path` certified local semantics. -/
 def OptionalStatePathValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg46.localRho rho
+  Seg47.localRho rho
 
 /-- Certified local semantics for the `optional_state_path` source operation. -/
 def OptionalStatePathSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -4533,846 +4592,846 @@ def OptionalStatePathSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `optional_state_path` local 1. -/
 @[simp] theorem optionalStatePathAt1
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 1 = rho 40033 := by
+    OptionalStatePathValuation rho 1 = rho 40076 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 1 = 40033 by
+  rw [show Seg47.wireSeating 1 = 40076 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 2. -/
 @[simp] theorem optionalStatePathAt2
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 2 = rho 40038 := by
+    OptionalStatePathValuation rho 2 = rho 40081 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 2 = 40038 by
+  rw [show Seg47.wireSeating 2 = 40081 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 3. -/
 @[simp] theorem optionalStatePathAt3
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 3 = rho 40043 := by
+    OptionalStatePathValuation rho 3 = rho 40086 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 3 = 40043 by
+  rw [show Seg47.wireSeating 3 = 40086 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 4. -/
 @[simp] theorem optionalStatePathAt4
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 4 = rho 40048 := by
+    OptionalStatePathValuation rho 4 = rho 40091 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 4 = 40048 by
+  rw [show Seg47.wireSeating 4 = 40091 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 5. -/
 @[simp] theorem optionalStatePathAt5
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 5 = rho 40053 := by
+    OptionalStatePathValuation rho 5 = rho 40096 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 5 = 40053 by
+  rw [show Seg47.wireSeating 5 = 40096 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 6. -/
 @[simp] theorem optionalStatePathAt6
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 6 = rho 40058 := by
+    OptionalStatePathValuation rho 6 = rho 40101 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 6 = 40058 by
+  rw [show Seg47.wireSeating 6 = 40101 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 285. -/
 @[simp] theorem optionalStatePathAt285
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 285 = rho 265 := by
+    OptionalStatePathValuation rho 285 = rho 266 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 285 = 265 by
+  rw [show Seg47.wireSeating 285 = 266 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 290. -/
 @[simp] theorem optionalStatePathAt290
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 290 = rho 335 := by
+    OptionalStatePathValuation rho 290 = rho 336 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 290 = 335 by
+  rw [show Seg47.wireSeating 290 = 336 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 292. -/
 @[simp] theorem optionalStatePathAt292
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 292 = rho 336 := by
+    OptionalStatePathValuation rho 292 = rho 337 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 292 = 336 by
+  rw [show Seg47.wireSeating 292 = 337 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 295. -/
 @[simp] theorem optionalStatePathAt295
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 295 = rho 337 := by
+    OptionalStatePathValuation rho 295 = rho 338 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 295 = 337 by
+  rw [show Seg47.wireSeating 295 = 338 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 653. -/
 @[simp] theorem optionalStatePathAt653
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 653 = rho 332 := by
+    OptionalStatePathValuation rho 653 = rho 333 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 653 = 332 by
+  rw [show Seg47.wireSeating 653 = 333 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 655. -/
 @[simp] theorem optionalStatePathAt655
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 655 = rho 333 := by
+    OptionalStatePathValuation rho 655 = rho 334 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 655 = 333 by
+  rw [show Seg47.wireSeating 655 = 334 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 658. -/
 @[simp] theorem optionalStatePathAt658
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 658 = rho 334 := by
+    OptionalStatePathValuation rho 658 = rho 335 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 658 = 334 by
+  rw [show Seg47.wireSeating 658 = 335 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 1016. -/
 @[simp] theorem optionalStatePathAt1016
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 1016 = rho 329 := by
+    OptionalStatePathValuation rho 1016 = rho 330 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 1016 = 329 by
+  rw [show Seg47.wireSeating 1016 = 330 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 1018. -/
 @[simp] theorem optionalStatePathAt1018
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 1018 = rho 330 := by
+    OptionalStatePathValuation rho 1018 = rho 331 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 1018 = 330 by
+  rw [show Seg47.wireSeating 1018 = 331 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 1021. -/
 @[simp] theorem optionalStatePathAt1021
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 1021 = rho 331 := by
+    OptionalStatePathValuation rho 1021 = rho 332 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 1021 = 331 by
+  rw [show Seg47.wireSeating 1021 = 332 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 1379. -/
 @[simp] theorem optionalStatePathAt1379
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 1379 = rho 326 := by
+    OptionalStatePathValuation rho 1379 = rho 327 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 1379 = 326 by
+  rw [show Seg47.wireSeating 1379 = 327 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 1381. -/
 @[simp] theorem optionalStatePathAt1381
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 1381 = rho 327 := by
+    OptionalStatePathValuation rho 1381 = rho 328 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 1381 = 327 by
+  rw [show Seg47.wireSeating 1381 = 328 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 1384. -/
 @[simp] theorem optionalStatePathAt1384
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 1384 = rho 328 := by
+    OptionalStatePathValuation rho 1384 = rho 329 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 1384 = 328 by
+  rw [show Seg47.wireSeating 1384 = 329 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 1742. -/
 @[simp] theorem optionalStatePathAt1742
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 1742 = rho 323 := by
+    OptionalStatePathValuation rho 1742 = rho 324 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 1742 = 323 by
+  rw [show Seg47.wireSeating 1742 = 324 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 1744. -/
 @[simp] theorem optionalStatePathAt1744
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 1744 = rho 324 := by
+    OptionalStatePathValuation rho 1744 = rho 325 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 1744 = 324 by
+  rw [show Seg47.wireSeating 1744 = 325 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 1747. -/
 @[simp] theorem optionalStatePathAt1747
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 1747 = rho 325 := by
+    OptionalStatePathValuation rho 1747 = rho 326 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 1747 = 325 by
+  rw [show Seg47.wireSeating 1747 = 326 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 2105. -/
 @[simp] theorem optionalStatePathAt2105
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 2105 = rho 320 := by
+    OptionalStatePathValuation rho 2105 = rho 321 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 2105 = 320 by
+  rw [show Seg47.wireSeating 2105 = 321 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 2107. -/
 @[simp] theorem optionalStatePathAt2107
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 2107 = rho 321 := by
+    OptionalStatePathValuation rho 2107 = rho 322 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 2107 = 321 by
+  rw [show Seg47.wireSeating 2107 = 322 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 2110. -/
 @[simp] theorem optionalStatePathAt2110
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 2110 = rho 322 := by
+    OptionalStatePathValuation rho 2110 = rho 323 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 2110 = 322 by
+  rw [show Seg47.wireSeating 2110 = 323 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 2468. -/
 @[simp] theorem optionalStatePathAt2468
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 2468 = rho 317 := by
+    OptionalStatePathValuation rho 2468 = rho 318 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 2468 = 317 by
+  rw [show Seg47.wireSeating 2468 = 318 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 2470. -/
 @[simp] theorem optionalStatePathAt2470
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 2470 = rho 318 := by
+    OptionalStatePathValuation rho 2470 = rho 319 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 2470 = 318 by
+  rw [show Seg47.wireSeating 2470 = 319 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 2473. -/
 @[simp] theorem optionalStatePathAt2473
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 2473 = rho 319 := by
+    OptionalStatePathValuation rho 2473 = rho 320 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 2473 = 319 by
+  rw [show Seg47.wireSeating 2473 = 320 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 2831. -/
 @[simp] theorem optionalStatePathAt2831
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 2831 = rho 314 := by
+    OptionalStatePathValuation rho 2831 = rho 315 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 2831 = 314 by
+  rw [show Seg47.wireSeating 2831 = 315 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 2833. -/
 @[simp] theorem optionalStatePathAt2833
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 2833 = rho 315 := by
+    OptionalStatePathValuation rho 2833 = rho 316 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 2833 = 315 by
+  rw [show Seg47.wireSeating 2833 = 316 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 2836. -/
 @[simp] theorem optionalStatePathAt2836
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 2836 = rho 316 := by
+    OptionalStatePathValuation rho 2836 = rho 317 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 2836 = 316 by
+  rw [show Seg47.wireSeating 2836 = 317 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 3194. -/
 @[simp] theorem optionalStatePathAt3194
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 3194 = rho 311 := by
+    OptionalStatePathValuation rho 3194 = rho 312 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 3194 = 311 by
+  rw [show Seg47.wireSeating 3194 = 312 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 3196. -/
 @[simp] theorem optionalStatePathAt3196
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 3196 = rho 312 := by
+    OptionalStatePathValuation rho 3196 = rho 313 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 3196 = 312 by
+  rw [show Seg47.wireSeating 3196 = 313 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 3199. -/
 @[simp] theorem optionalStatePathAt3199
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 3199 = rho 313 := by
+    OptionalStatePathValuation rho 3199 = rho 314 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 3199 = 313 by
+  rw [show Seg47.wireSeating 3199 = 314 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 3557. -/
 @[simp] theorem optionalStatePathAt3557
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 3557 = rho 308 := by
+    OptionalStatePathValuation rho 3557 = rho 309 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 3557 = 308 by
+  rw [show Seg47.wireSeating 3557 = 309 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 3559. -/
 @[simp] theorem optionalStatePathAt3559
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 3559 = rho 309 := by
+    OptionalStatePathValuation rho 3559 = rho 310 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 3559 = 309 by
+  rw [show Seg47.wireSeating 3559 = 310 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 3562. -/
 @[simp] theorem optionalStatePathAt3562
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 3562 = rho 310 := by
+    OptionalStatePathValuation rho 3562 = rho 311 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 3562 = 310 by
+  rw [show Seg47.wireSeating 3562 = 311 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 3920. -/
 @[simp] theorem optionalStatePathAt3920
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 3920 = rho 305 := by
+    OptionalStatePathValuation rho 3920 = rho 306 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 3920 = 305 by
+  rw [show Seg47.wireSeating 3920 = 306 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 3922. -/
 @[simp] theorem optionalStatePathAt3922
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 3922 = rho 306 := by
+    OptionalStatePathValuation rho 3922 = rho 307 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 3922 = 306 by
+  rw [show Seg47.wireSeating 3922 = 307 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 3925. -/
 @[simp] theorem optionalStatePathAt3925
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 3925 = rho 307 := by
+    OptionalStatePathValuation rho 3925 = rho 308 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 3925 = 307 by
+  rw [show Seg47.wireSeating 3925 = 308 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 4283. -/
 @[simp] theorem optionalStatePathAt4283
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 4283 = rho 302 := by
+    OptionalStatePathValuation rho 4283 = rho 303 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 4283 = 302 by
+  rw [show Seg47.wireSeating 4283 = 303 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 4285. -/
 @[simp] theorem optionalStatePathAt4285
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 4285 = rho 303 := by
+    OptionalStatePathValuation rho 4285 = rho 304 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 4285 = 303 by
+  rw [show Seg47.wireSeating 4285 = 304 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 4288. -/
 @[simp] theorem optionalStatePathAt4288
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 4288 = rho 304 := by
+    OptionalStatePathValuation rho 4288 = rho 305 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 4288 = 304 by
+  rw [show Seg47.wireSeating 4288 = 305 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 4646. -/
 @[simp] theorem optionalStatePathAt4646
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 4646 = rho 299 := by
+    OptionalStatePathValuation rho 4646 = rho 300 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 4646 = 299 by
+  rw [show Seg47.wireSeating 4646 = 300 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 4648. -/
 @[simp] theorem optionalStatePathAt4648
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 4648 = rho 300 := by
+    OptionalStatePathValuation rho 4648 = rho 301 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 4648 = 300 by
+  rw [show Seg47.wireSeating 4648 = 301 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 4651. -/
 @[simp] theorem optionalStatePathAt4651
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 4651 = rho 301 := by
+    OptionalStatePathValuation rho 4651 = rho 302 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 4651 = 301 by
+  rw [show Seg47.wireSeating 4651 = 302 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 5009. -/
 @[simp] theorem optionalStatePathAt5009
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 5009 = rho 296 := by
+    OptionalStatePathValuation rho 5009 = rho 297 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 5009 = 296 by
+  rw [show Seg47.wireSeating 5009 = 297 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 5011. -/
 @[simp] theorem optionalStatePathAt5011
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 5011 = rho 297 := by
+    OptionalStatePathValuation rho 5011 = rho 298 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 5011 = 297 by
+  rw [show Seg47.wireSeating 5011 = 298 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 5014. -/
 @[simp] theorem optionalStatePathAt5014
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 5014 = rho 298 := by
+    OptionalStatePathValuation rho 5014 = rho 299 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 5014 = 298 by
+  rw [show Seg47.wireSeating 5014 = 299 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 5372. -/
 @[simp] theorem optionalStatePathAt5372
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 5372 = rho 293 := by
+    OptionalStatePathValuation rho 5372 = rho 294 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 5372 = 293 by
+  rw [show Seg47.wireSeating 5372 = 294 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 5374. -/
 @[simp] theorem optionalStatePathAt5374
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 5374 = rho 294 := by
+    OptionalStatePathValuation rho 5374 = rho 295 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 5374 = 294 by
+  rw [show Seg47.wireSeating 5374 = 295 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 5377. -/
 @[simp] theorem optionalStatePathAt5377
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 5377 = rho 295 := by
+    OptionalStatePathValuation rho 5377 = rho 296 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 5377 = 295 by
+  rw [show Seg47.wireSeating 5377 = 296 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 5735. -/
 @[simp] theorem optionalStatePathAt5735
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 5735 = rho 290 := by
+    OptionalStatePathValuation rho 5735 = rho 291 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 5735 = 290 by
+  rw [show Seg47.wireSeating 5735 = 291 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 5737. -/
 @[simp] theorem optionalStatePathAt5737
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 5737 = rho 291 := by
+    OptionalStatePathValuation rho 5737 = rho 292 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 5737 = 291 by
+  rw [show Seg47.wireSeating 5737 = 292 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 5740. -/
 @[simp] theorem optionalStatePathAt5740
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 5740 = rho 292 := by
+    OptionalStatePathValuation rho 5740 = rho 293 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 5740 = 292 by
+  rw [show Seg47.wireSeating 5740 = 293 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 6098. -/
 @[simp] theorem optionalStatePathAt6098
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 6098 = rho 287 := by
+    OptionalStatePathValuation rho 6098 = rho 288 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 6098 = 287 by
+  rw [show Seg47.wireSeating 6098 = 288 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 6100. -/
 @[simp] theorem optionalStatePathAt6100
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 6100 = rho 288 := by
+    OptionalStatePathValuation rho 6100 = rho 289 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 6100 = 288 by
+  rw [show Seg47.wireSeating 6100 = 289 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 6103. -/
 @[simp] theorem optionalStatePathAt6103
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 6103 = rho 289 := by
+    OptionalStatePathValuation rho 6103 = rho 290 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 6103 = 289 by
+  rw [show Seg47.wireSeating 6103 = 290 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 6461. -/
 @[simp] theorem optionalStatePathAt6461
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 6461 = rho 284 := by
+    OptionalStatePathValuation rho 6461 = rho 285 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 6461 = 284 by
+  rw [show Seg47.wireSeating 6461 = 285 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 6463. -/
 @[simp] theorem optionalStatePathAt6463
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 6463 = rho 285 := by
+    OptionalStatePathValuation rho 6463 = rho 286 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 6463 = 285 by
+  rw [show Seg47.wireSeating 6463 = 286 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 6466. -/
 @[simp] theorem optionalStatePathAt6466
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 6466 = rho 286 := by
+    OptionalStatePathValuation rho 6466 = rho 287 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 6466 = 286 by
+  rw [show Seg47.wireSeating 6466 = 287 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 6824. -/
 @[simp] theorem optionalStatePathAt6824
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 6824 = rho 281 := by
+    OptionalStatePathValuation rho 6824 = rho 282 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 6824 = 281 by
+  rw [show Seg47.wireSeating 6824 = 282 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 6826. -/
 @[simp] theorem optionalStatePathAt6826
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 6826 = rho 282 := by
+    OptionalStatePathValuation rho 6826 = rho 283 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 6826 = 282 by
+  rw [show Seg47.wireSeating 6826 = 283 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 6829. -/
 @[simp] theorem optionalStatePathAt6829
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 6829 = rho 283 := by
+    OptionalStatePathValuation rho 6829 = rho 284 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 6829 = 283 by
+  rw [show Seg47.wireSeating 6829 = 284 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 7187. -/
 @[simp] theorem optionalStatePathAt7187
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 7187 = rho 278 := by
+    OptionalStatePathValuation rho 7187 = rho 279 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 7187 = 278 by
+  rw [show Seg47.wireSeating 7187 = 279 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 7189. -/
 @[simp] theorem optionalStatePathAt7189
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 7189 = rho 279 := by
+    OptionalStatePathValuation rho 7189 = rho 280 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 7189 = 279 by
+  rw [show Seg47.wireSeating 7189 = 280 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 7192. -/
 @[simp] theorem optionalStatePathAt7192
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 7192 = rho 280 := by
+    OptionalStatePathValuation rho 7192 = rho 281 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 7192 = 280 by
+  rw [show Seg47.wireSeating 7192 = 281 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 7550. -/
 @[simp] theorem optionalStatePathAt7550
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 7550 = rho 275 := by
+    OptionalStatePathValuation rho 7550 = rho 276 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 7550 = 275 by
+  rw [show Seg47.wireSeating 7550 = 276 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 7552. -/
 @[simp] theorem optionalStatePathAt7552
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 7552 = rho 276 := by
+    OptionalStatePathValuation rho 7552 = rho 277 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 7552 = 276 by
+  rw [show Seg47.wireSeating 7552 = 277 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 7555. -/
 @[simp] theorem optionalStatePathAt7555
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 7555 = rho 277 := by
+    OptionalStatePathValuation rho 7555 = rho 278 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 7555 = 277 by
+  rw [show Seg47.wireSeating 7555 = 278 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 7913. -/
 @[simp] theorem optionalStatePathAt7913
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 7913 = rho 272 := by
+    OptionalStatePathValuation rho 7913 = rho 273 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 7913 = 272 by
+  rw [show Seg47.wireSeating 7913 = 273 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 7915. -/
 @[simp] theorem optionalStatePathAt7915
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 7915 = rho 273 := by
+    OptionalStatePathValuation rho 7915 = rho 274 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 7915 = 273 by
+  rw [show Seg47.wireSeating 7915 = 274 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 7918. -/
 @[simp] theorem optionalStatePathAt7918
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 7918 = rho 274 := by
+    OptionalStatePathValuation rho 7918 = rho 275 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 7918 = 274 by
+  rw [show Seg47.wireSeating 7918 = 275 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 8276. -/
 @[simp] theorem optionalStatePathAt8276
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 8276 = rho 269 := by
+    OptionalStatePathValuation rho 8276 = rho 270 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 8276 = 269 by
+  rw [show Seg47.wireSeating 8276 = 270 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 8278. -/
 @[simp] theorem optionalStatePathAt8278
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 8278 = rho 270 := by
+    OptionalStatePathValuation rho 8278 = rho 271 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 8278 = 270 by
+  rw [show Seg47.wireSeating 8278 = 271 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 8281. -/
 @[simp] theorem optionalStatePathAt8281
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 8281 = rho 271 := by
+    OptionalStatePathValuation rho 8281 = rho 272 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 8281 = 271 by
+  rw [show Seg47.wireSeating 8281 = 272 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 8639. -/
 @[simp] theorem optionalStatePathAt8639
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 8639 = rho 266 := by
+    OptionalStatePathValuation rho 8639 = rho 267 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 8639 = 266 by
+  rw [show Seg47.wireSeating 8639 = 267 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 8641. -/
 @[simp] theorem optionalStatePathAt8641
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 8641 = rho 267 := by
+    OptionalStatePathValuation rho 8641 = rho 268 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 8641 = 267 by
+  rw [show Seg47.wireSeating 8641 = 268 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 8644. -/
 @[simp] theorem optionalStatePathAt8644
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 8644 = rho 268 := by
+    OptionalStatePathValuation rho 8644 = rho 269 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 8644 = 268 by
+  rw [show Seg47.wireSeating 8644 = 269 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 8977. -/
 @[simp] theorem optionalStatePathAt8977
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 8977 = rho 49266 := by
+    OptionalStatePathValuation rho 8977 = rho 49309 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 8977 = 49266 by
+  rw [show Seg47.wireSeating 8977 = 49309 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 8982. -/
 @[simp] theorem optionalStatePathAt8982
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 8982 = rho 49271 := by
+    OptionalStatePathValuation rho 8982 = rho 49314 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 8982 = 49271 by
+  rw [show Seg47.wireSeating 8982 = 49314 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 8987. -/
 @[simp] theorem optionalStatePathAt8987
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 8987 = rho 49276 := by
+    OptionalStatePathValuation rho 8987 = rho 49319 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 8987 = 49276 by
+  rw [show Seg47.wireSeating 8987 = 49319 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 8992. -/
 @[simp] theorem optionalStatePathAt8992
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 8992 = rho 49281 := by
+    OptionalStatePathValuation rho 8992 = rho 49324 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 8992 = 49281 by
+  rw [show Seg47.wireSeating 8992 = 49324 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_state_path` local 8997. -/
 @[simp] theorem optionalStatePathAt8997
     (rho : Nat → DeployedF) :
-    OptionalStatePathValuation rho 8997 = rho 49286 := by
+    OptionalStatePathValuation rho 8997 = rho 49329 := by
   simp only [
-    OptionalStatePathValuation, Seg46.localRho,
+    OptionalStatePathValuation, Seg47.localRho,
     Deployed.Templates.seated]
-  rw [show Seg46.wireSeating 8997 = 49286 by
+  rw [show Seg47.wireSeating 8997 = 49329 by
     decide +kernel]
 
 /-- Deployed seating for the `optional_synthetic_nullifier` certified local semantics. -/
 def OptionalSyntheticNullifierValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg47.localRho rho
+  Seg48.localRho rho
 
 /-- Certified local semantics for the `optional_synthetic_nullifier` source operation. -/
 def OptionalSyntheticNullifierSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -5381,66 +5440,66 @@ def OptionalSyntheticNullifierSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `optional_synthetic_nullifier` local 1. -/
 @[simp] theorem optionalSyntheticNullifierAt1
     (rho : Nat → DeployedF) :
-    OptionalSyntheticNullifierValuation rho 1 = rho 340 := by
+    OptionalSyntheticNullifierValuation rho 1 = rho 341 := by
   simp only [
-    OptionalSyntheticNullifierValuation, Seg47.localRho,
+    OptionalSyntheticNullifierValuation, Seg48.localRho,
     Deployed.Templates.seated]
-  rw [show Seg47.wireSeating 1 = 340 by
+  rw [show Seg48.wireSeating 1 = 341 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_synthetic_nullifier` local 7. -/
 @[simp] theorem optionalSyntheticNullifierAt7
     (rho : Nat → DeployedF) :
-    OptionalSyntheticNullifierValuation rho 7 = rho 338 := by
+    OptionalSyntheticNullifierValuation rho 7 = rho 339 := by
   simp only [
-    OptionalSyntheticNullifierValuation, Seg47.localRho,
+    OptionalSyntheticNullifierValuation, Seg48.localRho,
     Deployed.Templates.seated]
-  rw [show Seg47.wireSeating 7 = 338 by
+  rw [show Seg48.wireSeating 7 = 339 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_synthetic_nullifier` local 292. -/
 @[simp] theorem optionalSyntheticNullifierAt292
     (rho : Nat → DeployedF) :
-    OptionalSyntheticNullifierValuation rho 292 = rho 49576 := by
+    OptionalSyntheticNullifierValuation rho 292 = rho 49619 := by
   simp only [
-    OptionalSyntheticNullifierValuation, Seg47.localRho,
+    OptionalSyntheticNullifierValuation, Seg48.localRho,
     Deployed.Templates.seated]
-  rw [show Seg47.wireSeating 292 = 49576 by
+  rw [show Seg48.wireSeating 292 = 49619 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_synthetic_nullifier` local 297. -/
 @[simp] theorem optionalSyntheticNullifierAt297
     (rho : Nat → DeployedF) :
-    OptionalSyntheticNullifierValuation rho 297 = rho 49581 := by
+    OptionalSyntheticNullifierValuation rho 297 = rho 49624 := by
   simp only [
-    OptionalSyntheticNullifierValuation, Seg47.localRho,
+    OptionalSyntheticNullifierValuation, Seg48.localRho,
     Deployed.Templates.seated]
-  rw [show Seg47.wireSeating 297 = 49581 by
+  rw [show Seg48.wireSeating 297 = 49624 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_synthetic_nullifier` local 302. -/
 @[simp] theorem optionalSyntheticNullifierAt302
     (rho : Nat → DeployedF) :
-    OptionalSyntheticNullifierValuation rho 302 = rho 49586 := by
+    OptionalSyntheticNullifierValuation rho 302 = rho 49629 := by
   simp only [
-    OptionalSyntheticNullifierValuation, Seg47.localRho,
+    OptionalSyntheticNullifierValuation, Seg48.localRho,
     Deployed.Templates.seated]
-  rw [show Seg47.wireSeating 302 = 49586 by
+  rw [show Seg48.wireSeating 302 = 49629 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_synthetic_nullifier` local 307. -/
 @[simp] theorem optionalSyntheticNullifierAt307
     (rho : Nat → DeployedF) :
-    OptionalSyntheticNullifierValuation rho 307 = rho 49591 := by
+    OptionalSyntheticNullifierValuation rho 307 = rho 49634 := by
   simp only [
-    OptionalSyntheticNullifierValuation, Seg47.localRho,
+    OptionalSyntheticNullifierValuation, Seg48.localRho,
     Deployed.Templates.seated]
-  rw [show Seg47.wireSeating 307 = 49591 by
+  rw [show Seg48.wireSeating 307 = 49634 by
     decide +kernel]
 
 /-- Deployed seating for the `optional_nullifier_mux` certified local semantics. -/
 def OptionalNullifierMuxValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg48.localRho rho
+  Seg49.localRho rho
 
 /-- Certified local semantics for the `optional_nullifier_mux` source operation. -/
 def OptionalNullifierMuxSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -5449,116 +5508,116 @@ def OptionalNullifierMuxSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `optional_nullifier_mux` local 1. -/
 @[simp] theorem optionalNullifierMuxAt1
     (rho : Nat → DeployedF) :
-    OptionalNullifierMuxValuation rho 1 = rho 339 := by
+    OptionalNullifierMuxValuation rho 1 = rho 340 := by
   simp only [
-    OptionalNullifierMuxValuation, Seg48.localRho,
+    OptionalNullifierMuxValuation, Seg49.localRho,
     Deployed.Templates.seated]
-  rw [show Seg48.wireSeating 1 = 339 by
+  rw [show Seg49.wireSeating 1 = 340 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_nullifier_mux` local 2. -/
 @[simp] theorem optionalNullifierMuxAt2
     (rho : Nat → DeployedF) :
-    OptionalNullifierMuxValuation rho 2 = rho 40353 := by
+    OptionalNullifierMuxValuation rho 2 = rho 40396 := by
   simp only [
-    OptionalNullifierMuxValuation, Seg48.localRho,
+    OptionalNullifierMuxValuation, Seg49.localRho,
     Deployed.Templates.seated]
-  rw [show Seg48.wireSeating 2 = 40353 by
+  rw [show Seg49.wireSeating 2 = 40396 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_nullifier_mux` local 3. -/
 @[simp] theorem optionalNullifierMuxAt3
     (rho : Nat → DeployedF) :
-    OptionalNullifierMuxValuation rho 3 = rho 40358 := by
+    OptionalNullifierMuxValuation rho 3 = rho 40401 := by
   simp only [
-    OptionalNullifierMuxValuation, Seg48.localRho,
+    OptionalNullifierMuxValuation, Seg49.localRho,
     Deployed.Templates.seated]
-  rw [show Seg48.wireSeating 3 = 40358 by
+  rw [show Seg49.wireSeating 3 = 40401 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_nullifier_mux` local 4. -/
 @[simp] theorem optionalNullifierMuxAt4
     (rho : Nat → DeployedF) :
-    OptionalNullifierMuxValuation rho 4 = rho 40363 := by
+    OptionalNullifierMuxValuation rho 4 = rho 40406 := by
   simp only [
-    OptionalNullifierMuxValuation, Seg48.localRho,
+    OptionalNullifierMuxValuation, Seg49.localRho,
     Deployed.Templates.seated]
-  rw [show Seg48.wireSeating 4 = 40363 by
+  rw [show Seg49.wireSeating 4 = 40406 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_nullifier_mux` local 5. -/
 @[simp] theorem optionalNullifierMuxAt5
     (rho : Nat → DeployedF) :
-    OptionalNullifierMuxValuation rho 5 = rho 40368 := by
+    OptionalNullifierMuxValuation rho 5 = rho 40411 := by
   simp only [
-    OptionalNullifierMuxValuation, Seg48.localRho,
+    OptionalNullifierMuxValuation, Seg49.localRho,
     Deployed.Templates.seated]
-  rw [show Seg48.wireSeating 5 = 40368 by
+  rw [show Seg49.wireSeating 5 = 40411 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_nullifier_mux` local 6. -/
 @[simp] theorem optionalNullifierMuxAt6
     (rho : Nat → DeployedF) :
-    OptionalNullifierMuxValuation rho 6 = rho 49592 := by
+    OptionalNullifierMuxValuation rho 6 = rho 49635 := by
   simp only [
-    OptionalNullifierMuxValuation, Seg48.localRho,
+    OptionalNullifierMuxValuation, Seg49.localRho,
     Deployed.Templates.seated]
-  rw [show Seg48.wireSeating 6 = 49592 by
+  rw [show Seg49.wireSeating 6 = 49635 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_nullifier_mux` local 7. -/
 @[simp] theorem optionalNullifierMuxAt7
     (rho : Nat → DeployedF) :
-    OptionalNullifierMuxValuation rho 7 = rho 49576 := by
+    OptionalNullifierMuxValuation rho 7 = rho 49619 := by
   simp only [
-    OptionalNullifierMuxValuation, Seg48.localRho,
+    OptionalNullifierMuxValuation, Seg49.localRho,
     Deployed.Templates.seated]
-  rw [show Seg48.wireSeating 7 = 49576 by
+  rw [show Seg49.wireSeating 7 = 49619 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_nullifier_mux` local 8. -/
 @[simp] theorem optionalNullifierMuxAt8
     (rho : Nat → DeployedF) :
-    OptionalNullifierMuxValuation rho 8 = rho 49581 := by
+    OptionalNullifierMuxValuation rho 8 = rho 49624 := by
   simp only [
-    OptionalNullifierMuxValuation, Seg48.localRho,
+    OptionalNullifierMuxValuation, Seg49.localRho,
     Deployed.Templates.seated]
-  rw [show Seg48.wireSeating 8 = 49581 by
+  rw [show Seg49.wireSeating 8 = 49624 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_nullifier_mux` local 9. -/
 @[simp] theorem optionalNullifierMuxAt9
     (rho : Nat → DeployedF) :
-    OptionalNullifierMuxValuation rho 9 = rho 49586 := by
+    OptionalNullifierMuxValuation rho 9 = rho 49629 := by
   simp only [
-    OptionalNullifierMuxValuation, Seg48.localRho,
+    OptionalNullifierMuxValuation, Seg49.localRho,
     Deployed.Templates.seated]
-  rw [show Seg48.wireSeating 9 = 49586 by
+  rw [show Seg49.wireSeating 9 = 49629 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_nullifier_mux` local 10. -/
 @[simp] theorem optionalNullifierMuxAt10
     (rho : Nat → DeployedF) :
-    OptionalNullifierMuxValuation rho 10 = rho 49591 := by
+    OptionalNullifierMuxValuation rho 10 = rho 49634 := by
   simp only [
-    OptionalNullifierMuxValuation, Seg48.localRho,
+    OptionalNullifierMuxValuation, Seg49.localRho,
     Deployed.Templates.seated]
-  rw [show Seg48.wireSeating 10 = 49591 by
+  rw [show Seg49.wireSeating 10 = 49634 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_nullifier_mux` local 11. -/
 @[simp] theorem optionalNullifierMuxAt11
     (rho : Nat → DeployedF) :
-    OptionalNullifierMuxValuation rho 11 = rho 49593 := by
+    OptionalNullifierMuxValuation rho 11 = rho 49636 := by
   simp only [
-    OptionalNullifierMuxValuation, Seg48.localRho,
+    OptionalNullifierMuxValuation, Seg49.localRho,
     Deployed.Templates.seated]
-  rw [show Seg48.wireSeating 11 = 49593 by
+  rw [show Seg49.wireSeating 11 = 49636 by
     decide +kernel]
 
 /-- Deployed seating for the `optional_nullifier_assert` certified local semantics. -/
 def OptionalNullifierAssertValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg49.localRho rho
+  Seg50.localRho rho
 
 /-- Certified local semantics for the `optional_nullifier_assert` source operation. -/
 def OptionalNullifierAssertSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -5567,36 +5626,36 @@ def OptionalNullifierAssertSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `optional_nullifier_assert` local 1. -/
 @[simp] theorem optionalNullifierAssertAt1
     (rho : Nat → DeployedF) :
-    OptionalNullifierAssertValuation rho 1 = rho 260 := by
+    OptionalNullifierAssertValuation rho 1 = rho 261 := by
   simp only [
-    OptionalNullifierAssertValuation, Seg49.localRho,
+    OptionalNullifierAssertValuation, Seg50.localRho,
     Deployed.Templates.seated]
-  rw [show Seg49.wireSeating 1 = 260 by
+  rw [show Seg50.wireSeating 1 = 261 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_nullifier_assert` local 2. -/
 @[simp] theorem optionalNullifierAssertAt2
     (rho : Nat → DeployedF) :
-    OptionalNullifierAssertValuation rho 2 = rho 49592 := by
+    OptionalNullifierAssertValuation rho 2 = rho 49635 := by
   simp only [
-    OptionalNullifierAssertValuation, Seg49.localRho,
+    OptionalNullifierAssertValuation, Seg50.localRho,
     Deployed.Templates.seated]
-  rw [show Seg49.wireSeating 2 = 49592 by
+  rw [show Seg50.wireSeating 2 = 49635 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_nullifier_assert` local 3. -/
 @[simp] theorem optionalNullifierAssertAt3
     (rho : Nat → DeployedF) :
-    OptionalNullifierAssertValuation rho 3 = rho 49593 := by
+    OptionalNullifierAssertValuation rho 3 = rho 49636 := by
   simp only [
-    OptionalNullifierAssertValuation, Seg49.localRho,
+    OptionalNullifierAssertValuation, Seg50.localRho,
     Deployed.Templates.seated]
-  rw [show Seg49.wireSeating 3 = 49593 by
+  rw [show Seg50.wireSeating 3 = 49636 by
     decide +kernel]
 
 /-- Deployed seating for the `optional_anchor_assert` certified local semantics. -/
 def OptionalAnchorAssertValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg50.localRho rho
+  Seg51.localRho rho
 
 /-- Certified local semantics for the `optional_anchor_assert` source operation. -/
 def OptionalAnchorAssertSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -5605,11 +5664,11 @@ def OptionalAnchorAssertSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `optional_anchor_assert` local 1. -/
 @[simp] theorem optionalAnchorAssertAt1
     (rho : Nat → DeployedF) :
-    OptionalAnchorAssertValuation rho 1 = rho 339 := by
+    OptionalAnchorAssertValuation rho 1 = rho 340 := by
   simp only [
-    OptionalAnchorAssertValuation, Seg50.localRho,
+    OptionalAnchorAssertValuation, Seg51.localRho,
     Deployed.Templates.seated]
-  rw [show Seg50.wireSeating 1 = 339 by
+  rw [show Seg51.wireSeating 1 = 340 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_anchor_assert` local 2. -/
@@ -5617,64 +5676,64 @@ def OptionalAnchorAssertSemanticSpec (rho : Nat → DeployedF) : Prop :=
     (rho : Nat → DeployedF) :
     OptionalAnchorAssertValuation rho 2 = rho 6 := by
   simp only [
-    OptionalAnchorAssertValuation, Seg50.localRho,
+    OptionalAnchorAssertValuation, Seg51.localRho,
     Deployed.Templates.seated]
-  rw [show Seg50.wireSeating 2 = 6 by
+  rw [show Seg51.wireSeating 2 = 6 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_anchor_assert` local 3. -/
 @[simp] theorem optionalAnchorAssertAt3
     (rho : Nat → DeployedF) :
-    OptionalAnchorAssertValuation rho 3 = rho 49266 := by
+    OptionalAnchorAssertValuation rho 3 = rho 49309 := by
   simp only [
-    OptionalAnchorAssertValuation, Seg50.localRho,
+    OptionalAnchorAssertValuation, Seg51.localRho,
     Deployed.Templates.seated]
-  rw [show Seg50.wireSeating 3 = 49266 by
+  rw [show Seg51.wireSeating 3 = 49309 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_anchor_assert` local 4. -/
 @[simp] theorem optionalAnchorAssertAt4
     (rho : Nat → DeployedF) :
-    OptionalAnchorAssertValuation rho 4 = rho 49271 := by
+    OptionalAnchorAssertValuation rho 4 = rho 49314 := by
   simp only [
-    OptionalAnchorAssertValuation, Seg50.localRho,
+    OptionalAnchorAssertValuation, Seg51.localRho,
     Deployed.Templates.seated]
-  rw [show Seg50.wireSeating 4 = 49271 by
+  rw [show Seg51.wireSeating 4 = 49314 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_anchor_assert` local 5. -/
 @[simp] theorem optionalAnchorAssertAt5
     (rho : Nat → DeployedF) :
-    OptionalAnchorAssertValuation rho 5 = rho 49276 := by
+    OptionalAnchorAssertValuation rho 5 = rho 49319 := by
   simp only [
-    OptionalAnchorAssertValuation, Seg50.localRho,
+    OptionalAnchorAssertValuation, Seg51.localRho,
     Deployed.Templates.seated]
-  rw [show Seg50.wireSeating 5 = 49276 by
+  rw [show Seg51.wireSeating 5 = 49319 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_anchor_assert` local 6. -/
 @[simp] theorem optionalAnchorAssertAt6
     (rho : Nat → DeployedF) :
-    OptionalAnchorAssertValuation rho 6 = rho 49281 := by
+    OptionalAnchorAssertValuation rho 6 = rho 49324 := by
   simp only [
-    OptionalAnchorAssertValuation, Seg50.localRho,
+    OptionalAnchorAssertValuation, Seg51.localRho,
     Deployed.Templates.seated]
-  rw [show Seg50.wireSeating 6 = 49281 by
+  rw [show Seg51.wireSeating 6 = 49324 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_anchor_assert` local 7. -/
 @[simp] theorem optionalAnchorAssertAt7
     (rho : Nat → DeployedF) :
-    OptionalAnchorAssertValuation rho 7 = rho 49286 := by
+    OptionalAnchorAssertValuation rho 7 = rho 49329 := by
   simp only [
-    OptionalAnchorAssertValuation, Seg50.localRho,
+    OptionalAnchorAssertValuation, Seg51.localRho,
     Deployed.Templates.seated]
-  rw [show Seg50.wireSeating 7 = 49286 by
+  rw [show Seg51.wireSeating 7 = 49329 by
     decide +kernel]
 
 /-- Deployed seating for the `optional_rvk` certified local semantics. -/
 def OptionalRvkValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg51.localRho rho
+  Seg52.localRho rho
 
 /-- Certified local semantics for the `optional_rvk` source operation. -/
 def OptionalRvkSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -5683,11 +5742,11 @@ def OptionalRvkSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `optional_rvk` local 252. -/
 @[simp] theorem optionalRvkAt252
     (rho : Nat → DeployedF) :
-    OptionalRvkValuation rho 252 = rho 338 := by
+    OptionalRvkValuation rho 252 = rho 339 := by
   simp only [
-    OptionalRvkValuation, Seg51.localRho,
+    OptionalRvkValuation, Seg52.localRho,
     Deployed.Templates.seated]
-  rw [show Seg51.wireSeating 252 = 338 by
+  rw [show Seg52.wireSeating 252 = 339 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_rvk` local 1807. -/
@@ -5695,9 +5754,9 @@ def OptionalRvkSemanticSpec (rho : Nat → DeployedF) : Prop :=
     (rho : Nat → DeployedF) :
     OptionalRvkValuation rho 1807 = rho 15 := by
   simp only [
-    OptionalRvkValuation, Seg51.localRho,
+    OptionalRvkValuation, Seg52.localRho,
     Deployed.Templates.seated]
-  rw [show Seg51.wireSeating 1807 = 15 by
+  rw [show Seg52.wireSeating 1807 = 15 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_rvk` local 1808. -/
@@ -5705,34 +5764,34 @@ def OptionalRvkSemanticSpec (rho : Nat → DeployedF) : Prop :=
     (rho : Nat → DeployedF) :
     OptionalRvkValuation rho 1808 = rho 16 := by
   simp only [
-    OptionalRvkValuation, Seg51.localRho,
+    OptionalRvkValuation, Seg52.localRho,
     Deployed.Templates.seated]
-  rw [show Seg51.wireSeating 1808 = 16 by
+  rw [show Seg52.wireSeating 1808 = 16 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_rvk` local 1813. -/
 @[simp] theorem optionalRvkAt1813
     (rho : Nat → DeployedF) :
-    OptionalRvkValuation rho 1813 = rho 51404 := by
+    OptionalRvkValuation rho 1813 = rho 51447 := by
   simp only [
-    OptionalRvkValuation, Seg51.localRho,
+    OptionalRvkValuation, Seg52.localRho,
     Deployed.Templates.seated]
-  rw [show Seg51.wireSeating 1813 = 51404 by
+  rw [show Seg52.wireSeating 1813 = 51447 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_rvk` local 1814. -/
 @[simp] theorem optionalRvkAt1814
     (rho : Nat → DeployedF) :
-    OptionalRvkValuation rho 1814 = rho 51405 := by
+    OptionalRvkValuation rho 1814 = rho 51448 := by
   simp only [
-    OptionalRvkValuation, Seg51.localRho,
+    OptionalRvkValuation, Seg52.localRho,
     Deployed.Templates.seated]
-  rw [show Seg51.wireSeating 1814 = 51405 by
+  rw [show Seg52.wireSeating 1814 = 51448 by
     decide +kernel]
 
 /-- Deployed seating for the `optional_rk_equivalent` certified local semantics. -/
 def OptionalRkEquivalentValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg52.localRho rho
+  Seg53.localRho rho
 
 /-- Certified local semantics for the `optional_rk_equivalent` source operation. -/
 def OptionalRkEquivalentSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -5741,56 +5800,56 @@ def OptionalRkEquivalentSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `optional_rk_equivalent` local 1. -/
 @[simp] theorem optionalRkEquivalentAt1
     (rho : Nat → DeployedF) :
-    OptionalRkEquivalentValuation rho 1 = rho 339 := by
+    OptionalRkEquivalentValuation rho 1 = rho 340 := by
   simp only [
-    OptionalRkEquivalentValuation, Seg52.localRho,
+    OptionalRkEquivalentValuation, Seg53.localRho,
     Deployed.Templates.seated]
-  rw [show Seg52.wireSeating 1 = 339 by
+  rw [show Seg53.wireSeating 1 = 340 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_rk_equivalent` local 2. -/
 @[simp] theorem optionalRkEquivalentAt2
     (rho : Nat → DeployedF) :
-    OptionalRkEquivalentValuation rho 2 = rho 51404 := by
+    OptionalRkEquivalentValuation rho 2 = rho 51447 := by
   simp only [
-    OptionalRkEquivalentValuation, Seg52.localRho,
+    OptionalRkEquivalentValuation, Seg53.localRho,
     Deployed.Templates.seated]
-  rw [show Seg52.wireSeating 2 = 51404 by
+  rw [show Seg53.wireSeating 2 = 51447 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_rk_equivalent` local 3. -/
 @[simp] theorem optionalRkEquivalentAt3
     (rho : Nat → DeployedF) :
-    OptionalRkEquivalentValuation rho 3 = rho 262 := by
+    OptionalRkEquivalentValuation rho 3 = rho 263 := by
   simp only [
-    OptionalRkEquivalentValuation, Seg52.localRho,
+    OptionalRkEquivalentValuation, Seg53.localRho,
     Deployed.Templates.seated]
-  rw [show Seg52.wireSeating 3 = 262 by
+  rw [show Seg53.wireSeating 3 = 263 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_rk_equivalent` local 5. -/
 @[simp] theorem optionalRkEquivalentAt5
     (rho : Nat → DeployedF) :
-    OptionalRkEquivalentValuation rho 5 = rho 261 := by
+    OptionalRkEquivalentValuation rho 5 = rho 262 := by
   simp only [
-    OptionalRkEquivalentValuation, Seg52.localRho,
+    OptionalRkEquivalentValuation, Seg53.localRho,
     Deployed.Templates.seated]
-  rw [show Seg52.wireSeating 5 = 261 by
+  rw [show Seg53.wireSeating 5 = 262 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_rk_equivalent` local 6. -/
 @[simp] theorem optionalRkEquivalentAt6
     (rho : Nat → DeployedF) :
-    OptionalRkEquivalentValuation rho 6 = rho 51405 := by
+    OptionalRkEquivalentValuation rho 6 = rho 51448 := by
   simp only [
-    OptionalRkEquivalentValuation, Seg52.localRho,
+    OptionalRkEquivalentValuation, Seg53.localRho,
     Deployed.Templates.seated]
-  rw [show Seg52.wireSeating 6 = 51405 by
+  rw [show Seg53.wireSeating 6 = 51448 by
     decide +kernel]
 
 /-- Deployed seating for the `optional_amount_zero` certified local semantics. -/
 def OptionalAmountZeroValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg53.localRho rho
+  Seg54.localRho rho
 
 /-- Certified local semantics for the `optional_amount_zero` source operation. -/
 def OptionalAmountZeroSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -5799,26 +5858,26 @@ def OptionalAmountZeroSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `optional_amount_zero` local 1. -/
 @[simp] theorem optionalAmountZeroAt1
     (rho : Nat → DeployedF) :
-    OptionalAmountZeroValuation rho 1 = rho 264 := by
+    OptionalAmountZeroValuation rho 1 = rho 265 := by
   simp only [
-    OptionalAmountZeroValuation, Seg53.localRho,
+    OptionalAmountZeroValuation, Seg54.localRho,
     Deployed.Templates.seated]
-  rw [show Seg53.wireSeating 1 = 264 by
+  rw [show Seg54.wireSeating 1 = 265 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_amount_zero` local 2. -/
 @[simp] theorem optionalAmountZeroAt2
     (rho : Nat → DeployedF) :
-    OptionalAmountZeroValuation rho 2 = rho 339 := by
+    OptionalAmountZeroValuation rho 2 = rho 340 := by
   simp only [
-    OptionalAmountZeroValuation, Seg53.localRho,
+    OptionalAmountZeroValuation, Seg54.localRho,
     Deployed.Templates.seated]
-  rw [show Seg53.wireSeating 2 = 339 by
+  rw [show Seg54.wireSeating 2 = 340 by
     decide +kernel]
 
 /-- Deployed seating for the `optional_history_classify` certified local semantics. -/
 def OptionalHistoryClassifyValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg54.localRho rho
+  Seg55.localRho rho
 
 /-- Certified local semantics for the `optional_history_classify` source operation. -/
 def OptionalHistoryClassifySemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -5827,11 +5886,11 @@ def OptionalHistoryClassifySemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `optional_history_classify` local 49. -/
 @[simp] theorem optionalHistoryClassifyAt49
     (rho : Nat → DeployedF) :
-    OptionalHistoryClassifyValuation rho 49 = rho 265 := by
+    OptionalHistoryClassifyValuation rho 49 = rho 266 := by
   simp only [
-    OptionalHistoryClassifyValuation, Seg54.localRho,
+    OptionalHistoryClassifyValuation, Seg55.localRho,
     Deployed.Templates.seated]
-  rw [show Seg54.wireSeating 49 = 265 by
+  rw [show Seg55.wireSeating 49 = 266 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_history_classify` local 98. -/
@@ -5839,34 +5898,34 @@ def OptionalHistoryClassifySemanticSpec (rho : Nat → DeployedF) : Prop :=
     (rho : Nat → DeployedF) :
     OptionalHistoryClassifyValuation rho 98 = rho 5 := by
   simp only [
-    OptionalHistoryClassifyValuation, Seg54.localRho,
+    OptionalHistoryClassifyValuation, Seg55.localRho,
     Deployed.Templates.seated]
-  rw [show Seg54.wireSeating 98 = 5 by
+  rw [show Seg55.wireSeating 98 = 5 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_history_classify` local 149. -/
 @[simp] theorem optionalHistoryClassifyAt149
     (rho : Nat → DeployedF) :
-    OptionalHistoryClassifyValuation rho 149 = rho 339 := by
+    OptionalHistoryClassifyValuation rho 149 = rho 340 := by
   simp only [
-    OptionalHistoryClassifyValuation, Seg54.localRho,
+    OptionalHistoryClassifyValuation, Seg55.localRho,
     Deployed.Templates.seated]
-  rw [show Seg54.wireSeating 149 = 339 by
+  rw [show Seg55.wireSeating 149 = 340 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_history_classify` local 151. -/
 @[simp] theorem optionalHistoryClassifyAt151
     (rho : Nat → DeployedF) :
-    OptionalHistoryClassifyValuation rho 151 = rho 341 := by
+    OptionalHistoryClassifyValuation rho 151 = rho 342 := by
   simp only [
-    OptionalHistoryClassifyValuation, Seg54.localRho,
+    OptionalHistoryClassifyValuation, Seg55.localRho,
     Deployed.Templates.seated]
-  rw [show Seg54.wireSeating 151 = 341 by
+  rw [show Seg55.wireSeating 151 = 342 by
     decide +kernel]
 
 /-- Deployed seating for the `optional_rk_compress` certified local semantics. -/
 def OptionalRkCompressValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg55.localRho rho
+  Seg56.localRho rho
 
 /-- Certified local semantics for the `optional_rk_compress` source operation. -/
 def OptionalRkCompressSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -5875,46 +5934,46 @@ def OptionalRkCompressSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `optional_rk_compress` local 1. -/
 @[simp] theorem optionalRkCompressAt1
     (rho : Nat → DeployedF) :
-    OptionalRkCompressValuation rho 1 = rho 261 := by
+    OptionalRkCompressValuation rho 1 = rho 262 := by
   simp only [
-    OptionalRkCompressValuation, Seg55.localRho,
+    OptionalRkCompressValuation, Seg56.localRho,
     Deployed.Templates.seated]
-  rw [show Seg55.wireSeating 1 = 261 by
+  rw [show Seg56.wireSeating 1 = 262 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_rk_compress` local 3. -/
 @[simp] theorem optionalRkCompressAt3
     (rho : Nat → DeployedF) :
-    OptionalRkCompressValuation rho 3 = rho 262 := by
+    OptionalRkCompressValuation rho 3 = rho 263 := by
   simp only [
-    OptionalRkCompressValuation, Seg55.localRho,
+    OptionalRkCompressValuation, Seg56.localRho,
     Deployed.Templates.seated]
-  rw [show Seg55.wireSeating 3 = 262 by
+  rw [show Seg56.wireSeating 3 = 263 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_rk_compress` local 365. -/
 @[simp] theorem optionalRkCompressAt365
     (rho : Nat → DeployedF) :
-    OptionalRkCompressValuation rho 365 = rho 51920 := by
+    OptionalRkCompressValuation rho 365 = rho 51963 := by
   simp only [
-    OptionalRkCompressValuation, Seg55.localRho,
+    OptionalRkCompressValuation, Seg56.localRho,
     Deployed.Templates.seated]
-  rw [show Seg55.wireSeating 365 = 51920 by
+  rw [show Seg56.wireSeating 365 = 51963 by
     decide +kernel]
 
 /-- Audited action-facing seat for `optional_rk_compress` local 705. -/
 @[simp] theorem optionalRkCompressAt705
     (rho : Nat → DeployedF) :
-    OptionalRkCompressValuation rho 705 = rho 52260 := by
+    OptionalRkCompressValuation rho 705 = rho 52303 := by
   simp only [
-    OptionalRkCompressValuation, Seg55.localRho,
+    OptionalRkCompressValuation, Seg56.localRho,
     Deployed.Templates.seated]
-  rw [show Seg55.wireSeating 705 = 52260 by
+  rw [show Seg56.wireSeating 705 = 52303 by
     decide +kernel]
 
 /-- Deployed seating for the `receiver_div_gen_non_identity` certified local semantics. -/
 def ReceiverDivGenNonIdentityValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg58.localRho rho
+  Seg59.localRho rho
 
 /-- Certified local semantics for the `receiver_div_gen_non_identity` source operation. -/
 def ReceiverDivGenNonIdentitySemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -5922,7 +5981,7 @@ def ReceiverDivGenNonIdentitySemanticSpec (rho : Nat → DeployedF) : Prop :=
 
 /-- Deployed seating for the `receiver_transmission_non_identity` certified local semantics. -/
 def ReceiverTransmissionNonIdentityValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg59.localRho rho
+  Seg60.localRho rho
 
 /-- Certified local semantics for the `receiver_transmission_non_identity` source operation. -/
 def ReceiverTransmissionNonIdentitySemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -5930,7 +5989,7 @@ def ReceiverTransmissionNonIdentitySemanticSpec (rho : Nat → DeployedF) : Prop
 
 /-- Deployed seating for the `receiver_amount_is_zero` certified local semantics. -/
 def ReceiverAmountIsZeroValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg60.localRho rho
+  Seg61.localRho rho
 
 /-- Certified local semantics for the `receiver_amount_is_zero` source operation. -/
 def ReceiverAmountIsZeroSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -5939,26 +5998,26 @@ def ReceiverAmountIsZeroSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `receiver_amount_is_zero` local 1. -/
 @[simp] theorem receiverAmountIsZeroAt1
     (rho : Nat → DeployedF) :
-    ReceiverAmountIsZeroValuation rho 1 = rho 344 := by
+    ReceiverAmountIsZeroValuation rho 1 = rho 345 := by
   simp only [
-    ReceiverAmountIsZeroValuation, Seg60.localRho,
+    ReceiverAmountIsZeroValuation, Seg61.localRho,
     Deployed.Templates.seated]
-  rw [show Seg60.wireSeating 1 = 344 by
+  rw [show Seg61.wireSeating 1 = 345 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_amount_is_zero` local 3. -/
 @[simp] theorem receiverAmountIsZeroAt3
     (rho : Nat → DeployedF) :
-    ReceiverAmountIsZeroValuation rho 3 = rho 52263 := by
+    ReceiverAmountIsZeroValuation rho 3 = rho 52306 := by
   simp only [
-    ReceiverAmountIsZeroValuation, Seg60.localRho,
+    ReceiverAmountIsZeroValuation, Seg61.localRho,
     Deployed.Templates.seated]
-  rw [show Seg60.wireSeating 3 = 52263 by
+  rw [show Seg61.wireSeating 3 = 52306 by
     decide +kernel]
 
 /-- Deployed seating for the `receiver_div_gen_compress` certified local semantics. -/
 def ReceiverDivGenCompressValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg61.localRho rho
+  Seg62.localRho rho
 
 /-- Certified local semantics for the `receiver_div_gen_compress` source operation. -/
 def ReceiverDivGenCompressSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -5967,46 +6026,46 @@ def ReceiverDivGenCompressSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `receiver_div_gen_compress` local 1. -/
 @[simp] theorem receiverDivGenCompressAt1
     (rho : Nat → DeployedF) :
-    ReceiverDivGenCompressValuation rho 1 = rho 345 := by
+    ReceiverDivGenCompressValuation rho 1 = rho 346 := by
   simp only [
-    ReceiverDivGenCompressValuation, Seg61.localRho,
+    ReceiverDivGenCompressValuation, Seg62.localRho,
     Deployed.Templates.seated]
-  rw [show Seg61.wireSeating 1 = 345 by
+  rw [show Seg62.wireSeating 1 = 346 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_div_gen_compress` local 3. -/
 @[simp] theorem receiverDivGenCompressAt3
     (rho : Nat → DeployedF) :
-    ReceiverDivGenCompressValuation rho 3 = rho 346 := by
+    ReceiverDivGenCompressValuation rho 3 = rho 347 := by
   simp only [
-    ReceiverDivGenCompressValuation, Seg61.localRho,
+    ReceiverDivGenCompressValuation, Seg62.localRho,
     Deployed.Templates.seated]
-  rw [show Seg61.wireSeating 3 = 346 by
+  rw [show Seg62.wireSeating 3 = 347 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_div_gen_compress` local 365. -/
 @[simp] theorem receiverDivGenCompressAt365
     (rho : Nat → DeployedF) :
-    ReceiverDivGenCompressValuation rho 365 = rho 52627 := by
+    ReceiverDivGenCompressValuation rho 365 = rho 52670 := by
   simp only [
-    ReceiverDivGenCompressValuation, Seg61.localRho,
+    ReceiverDivGenCompressValuation, Seg62.localRho,
     Deployed.Templates.seated]
-  rw [show Seg61.wireSeating 365 = 52627 by
+  rw [show Seg62.wireSeating 365 = 52670 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_div_gen_compress` local 705. -/
 @[simp] theorem receiverDivGenCompressAt705
     (rho : Nat → DeployedF) :
-    ReceiverDivGenCompressValuation rho 705 = rho 52967 := by
+    ReceiverDivGenCompressValuation rho 705 = rho 53010 := by
   simp only [
-    ReceiverDivGenCompressValuation, Seg61.localRho,
+    ReceiverDivGenCompressValuation, Seg62.localRho,
     Deployed.Templates.seated]
-  rw [show Seg61.wireSeating 705 = 52967 by
+  rw [show Seg62.wireSeating 705 = 53010 by
     decide +kernel]
 
 /-- Deployed seating for the `receiver_transmission_compress` certified local semantics. -/
 def ReceiverTransmissionCompressValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg62.localRho rho
+  Seg63.localRho rho
 
 /-- Certified local semantics for the `receiver_transmission_compress` source operation. -/
 def ReceiverTransmissionCompressSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -6015,46 +6074,46 @@ def ReceiverTransmissionCompressSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `receiver_transmission_compress` local 1. -/
 @[simp] theorem receiverTransmissionCompressAt1
     (rho : Nat → DeployedF) :
-    ReceiverTransmissionCompressValuation rho 1 = rho 347 := by
+    ReceiverTransmissionCompressValuation rho 1 = rho 348 := by
   simp only [
-    ReceiverTransmissionCompressValuation, Seg62.localRho,
+    ReceiverTransmissionCompressValuation, Seg63.localRho,
     Deployed.Templates.seated]
-  rw [show Seg62.wireSeating 1 = 347 by
+  rw [show Seg63.wireSeating 1 = 348 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_transmission_compress` local 3. -/
 @[simp] theorem receiverTransmissionCompressAt3
     (rho : Nat → DeployedF) :
-    ReceiverTransmissionCompressValuation rho 3 = rho 348 := by
+    ReceiverTransmissionCompressValuation rho 3 = rho 349 := by
   simp only [
-    ReceiverTransmissionCompressValuation, Seg62.localRho,
+    ReceiverTransmissionCompressValuation, Seg63.localRho,
     Deployed.Templates.seated]
-  rw [show Seg62.wireSeating 3 = 348 by
+  rw [show Seg63.wireSeating 3 = 349 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_transmission_compress` local 365. -/
 @[simp] theorem receiverTransmissionCompressAt365
     (rho : Nat → DeployedF) :
-    ReceiverTransmissionCompressValuation rho 365 = rho 53330 := by
+    ReceiverTransmissionCompressValuation rho 365 = rho 53373 := by
   simp only [
-    ReceiverTransmissionCompressValuation, Seg62.localRho,
+    ReceiverTransmissionCompressValuation, Seg63.localRho,
     Deployed.Templates.seated]
-  rw [show Seg62.wireSeating 365 = 53330 by
+  rw [show Seg63.wireSeating 365 = 53373 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_transmission_compress` local 705. -/
 @[simp] theorem receiverTransmissionCompressAt705
     (rho : Nat → DeployedF) :
-    ReceiverTransmissionCompressValuation rho 705 = rho 53670 := by
+    ReceiverTransmissionCompressValuation rho 705 = rho 53713 := by
   simp only [
-    ReceiverTransmissionCompressValuation, Seg62.localRho,
+    ReceiverTransmissionCompressValuation, Seg63.localRho,
     Deployed.Templates.seated]
-  rw [show Seg62.wireSeating 705 = 53670 by
+  rw [show Seg63.wireSeating 705 = 53713 by
     decide +kernel]
 
 /-- Deployed seating for the `receiver_note_commitment` certified local semantics. -/
 def ReceiverNoteCommitmentValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg63.localRho rho
+  Seg64.localRho rho
 
 /-- Certified local semantics for the `receiver_note_commitment` source operation. -/
 def ReceiverNoteCommitmentSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -6063,136 +6122,136 @@ def ReceiverNoteCommitmentSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `receiver_note_commitment` local 1. -/
 @[simp] theorem receiverNoteCommitmentAt1
     (rho : Nat → DeployedF) :
-    ReceiverNoteCommitmentValuation rho 1 = rho 343 := by
+    ReceiverNoteCommitmentValuation rho 1 = rho 344 := by
   simp only [
-    ReceiverNoteCommitmentValuation, Seg63.localRho,
+    ReceiverNoteCommitmentValuation, Seg64.localRho,
     Deployed.Templates.seated]
-  rw [show Seg63.wireSeating 1 = 343 by
+  rw [show Seg64.wireSeating 1 = 344 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_note_commitment` local 7. -/
 @[simp] theorem receiverNoteCommitmentAt7
     (rho : Nat → DeployedF) :
-    ReceiverNoteCommitmentValuation rho 7 = rho 344 := by
+    ReceiverNoteCommitmentValuation rho 7 = rho 345 := by
   simp only [
-    ReceiverNoteCommitmentValuation, Seg63.localRho,
+    ReceiverNoteCommitmentValuation, Seg64.localRho,
     Deployed.Templates.seated]
-  rw [show Seg63.wireSeating 7 = 344 by
+  rw [show Seg64.wireSeating 7 = 345 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_note_commitment` local 13. -/
 @[simp] theorem receiverNoteCommitmentAt13
     (rho : Nat → DeployedF) :
-    ReceiverNoteCommitmentValuation rho 13 = rho 184 := by
+    ReceiverNoteCommitmentValuation rho 13 = rho 185 := by
   simp only [
-    ReceiverNoteCommitmentValuation, Seg63.localRho,
+    ReceiverNoteCommitmentValuation, Seg64.localRho,
     Deployed.Templates.seated]
-  rw [show Seg63.wireSeating 13 = 184 by
+  rw [show Seg64.wireSeating 13 = 185 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_note_commitment` local 19. -/
 @[simp] theorem receiverNoteCommitmentAt19
     (rho : Nat → DeployedF) :
-    ReceiverNoteCommitmentValuation rho 19 = rho 52627 := by
+    ReceiverNoteCommitmentValuation rho 19 = rho 52670 := by
   simp only [
-    ReceiverNoteCommitmentValuation, Seg63.localRho,
+    ReceiverNoteCommitmentValuation, Seg64.localRho,
     Deployed.Templates.seated]
-  rw [show Seg63.wireSeating 19 = 52627 by
+  rw [show Seg64.wireSeating 19 = 52670 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_note_commitment` local 20. -/
 @[simp] theorem receiverNoteCommitmentAt20
     (rho : Nat → DeployedF) :
-    ReceiverNoteCommitmentValuation rho 20 = rho 52967 := by
+    ReceiverNoteCommitmentValuation rho 20 = rho 53010 := by
   simp only [
-    ReceiverNoteCommitmentValuation, Seg63.localRho,
+    ReceiverNoteCommitmentValuation, Seg64.localRho,
     Deployed.Templates.seated]
-  rw [show Seg63.wireSeating 20 = 52967 by
+  rw [show Seg64.wireSeating 20 = 53010 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_note_commitment` local 26. -/
 @[simp] theorem receiverNoteCommitmentAt26
     (rho : Nat → DeployedF) :
-    ReceiverNoteCommitmentValuation rho 26 = rho 53330 := by
+    ReceiverNoteCommitmentValuation rho 26 = rho 53373 := by
   simp only [
-    ReceiverNoteCommitmentValuation, Seg63.localRho,
+    ReceiverNoteCommitmentValuation, Seg64.localRho,
     Deployed.Templates.seated]
-  rw [show Seg63.wireSeating 26 = 53330 by
+  rw [show Seg64.wireSeating 26 = 53373 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_note_commitment` local 27. -/
 @[simp] theorem receiverNoteCommitmentAt27
     (rho : Nat → DeployedF) :
-    ReceiverNoteCommitmentValuation rho 27 = rho 53670 := by
+    ReceiverNoteCommitmentValuation rho 27 = rho 53713 := by
   simp only [
-    ReceiverNoteCommitmentValuation, Seg63.localRho,
+    ReceiverNoteCommitmentValuation, Seg64.localRho,
     Deployed.Templates.seated]
-  rw [show Seg63.wireSeating 27 = 53670 by
+  rw [show Seg64.wireSeating 27 = 53713 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_note_commitment` local 372. -/
 @[simp] theorem receiverNoteCommitmentAt372
     (rho : Nat → DeployedF) :
-    ReceiverNoteCommitmentValuation rho 372 = rho 54035 := by
+    ReceiverNoteCommitmentValuation rho 372 = rho 54078 := by
   simp only [
-    ReceiverNoteCommitmentValuation, Seg63.localRho,
+    ReceiverNoteCommitmentValuation, Seg64.localRho,
     Deployed.Templates.seated]
-  rw [show Seg63.wireSeating 372 = 54035 by
+  rw [show Seg64.wireSeating 372 = 54078 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_note_commitment` local 377. -/
 @[simp] theorem receiverNoteCommitmentAt377
     (rho : Nat → DeployedF) :
-    ReceiverNoteCommitmentValuation rho 377 = rho 54040 := by
+    ReceiverNoteCommitmentValuation rho 377 = rho 54083 := by
   simp only [
-    ReceiverNoteCommitmentValuation, Seg63.localRho,
+    ReceiverNoteCommitmentValuation, Seg64.localRho,
     Deployed.Templates.seated]
-  rw [show Seg63.wireSeating 377 = 54040 by
+  rw [show Seg64.wireSeating 377 = 54083 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_note_commitment` local 382. -/
 @[simp] theorem receiverNoteCommitmentAt382
     (rho : Nat → DeployedF) :
-    ReceiverNoteCommitmentValuation rho 382 = rho 54045 := by
+    ReceiverNoteCommitmentValuation rho 382 = rho 54088 := by
   simp only [
-    ReceiverNoteCommitmentValuation, Seg63.localRho,
+    ReceiverNoteCommitmentValuation, Seg64.localRho,
     Deployed.Templates.seated]
-  rw [show Seg63.wireSeating 382 = 54045 by
+  rw [show Seg64.wireSeating 382 = 54088 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_note_commitment` local 387. -/
 @[simp] theorem receiverNoteCommitmentAt387
     (rho : Nat → DeployedF) :
-    ReceiverNoteCommitmentValuation rho 387 = rho 54050 := by
+    ReceiverNoteCommitmentValuation rho 387 = rho 54093 := by
   simp only [
-    ReceiverNoteCommitmentValuation, Seg63.localRho,
+    ReceiverNoteCommitmentValuation, Seg64.localRho,
     Deployed.Templates.seated]
-  rw [show Seg63.wireSeating 387 = 54050 by
+  rw [show Seg64.wireSeating 387 = 54093 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_note_commitment` local 392. -/
 @[simp] theorem receiverNoteCommitmentAt392
     (rho : Nat → DeployedF) :
-    ReceiverNoteCommitmentValuation rho 392 = rho 54055 := by
+    ReceiverNoteCommitmentValuation rho 392 = rho 54098 := by
   simp only [
-    ReceiverNoteCommitmentValuation, Seg63.localRho,
+    ReceiverNoteCommitmentValuation, Seg64.localRho,
     Deployed.Templates.seated]
-  rw [show Seg63.wireSeating 392 = 54055 by
+  rw [show Seg64.wireSeating 392 = 54098 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_note_commitment` local 397. -/
 @[simp] theorem receiverNoteCommitmentAt397
     (rho : Nat → DeployedF) :
-    ReceiverNoteCommitmentValuation rho 397 = rho 54060 := by
+    ReceiverNoteCommitmentValuation rho 397 = rho 54103 := by
   simp only [
-    ReceiverNoteCommitmentValuation, Seg63.localRho,
+    ReceiverNoteCommitmentValuation, Seg64.localRho,
     Deployed.Templates.seated]
-  rw [show Seg63.wireSeating 397 = 54060 by
+  rw [show Seg64.wireSeating 397 = 54103 by
     decide +kernel]
 
 /-- Deployed seating for the `receiver_note_assert` certified local semantics. -/
 def ReceiverNoteAssertValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg64.localRho rho
+  Seg65.localRho rho
 
 /-- Certified local semantics for the `receiver_note_assert` source operation. -/
 def ReceiverNoteAssertSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -6201,852 +6260,882 @@ def ReceiverNoteAssertSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `receiver_note_assert` local 1. -/
 @[simp] theorem receiverNoteAssertAt1
     (rho : Nat → DeployedF) :
-    ReceiverNoteAssertValuation rho 1 = rho 54035 := by
+    ReceiverNoteAssertValuation rho 1 = rho 54078 := by
   simp only [
-    ReceiverNoteAssertValuation, Seg64.localRho,
+    ReceiverNoteAssertValuation, Seg65.localRho,
     Deployed.Templates.seated]
-  rw [show Seg64.wireSeating 1 = 54035 by
+  rw [show Seg65.wireSeating 1 = 54078 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_note_assert` local 2. -/
 @[simp] theorem receiverNoteAssertAt2
     (rho : Nat → DeployedF) :
-    ReceiverNoteAssertValuation rho 2 = rho 54040 := by
+    ReceiverNoteAssertValuation rho 2 = rho 54083 := by
   simp only [
-    ReceiverNoteAssertValuation, Seg64.localRho,
+    ReceiverNoteAssertValuation, Seg65.localRho,
     Deployed.Templates.seated]
-  rw [show Seg64.wireSeating 2 = 54040 by
+  rw [show Seg65.wireSeating 2 = 54083 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_note_assert` local 3. -/
 @[simp] theorem receiverNoteAssertAt3
     (rho : Nat → DeployedF) :
-    ReceiverNoteAssertValuation rho 3 = rho 54045 := by
+    ReceiverNoteAssertValuation rho 3 = rho 54088 := by
   simp only [
-    ReceiverNoteAssertValuation, Seg64.localRho,
+    ReceiverNoteAssertValuation, Seg65.localRho,
     Deployed.Templates.seated]
-  rw [show Seg64.wireSeating 3 = 54045 by
+  rw [show Seg65.wireSeating 3 = 54088 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_note_assert` local 4. -/
 @[simp] theorem receiverNoteAssertAt4
     (rho : Nat → DeployedF) :
-    ReceiverNoteAssertValuation rho 4 = rho 54050 := by
+    ReceiverNoteAssertValuation rho 4 = rho 54093 := by
   simp only [
-    ReceiverNoteAssertValuation, Seg64.localRho,
+    ReceiverNoteAssertValuation, Seg65.localRho,
     Deployed.Templates.seated]
-  rw [show Seg64.wireSeating 4 = 54050 by
+  rw [show Seg65.wireSeating 4 = 54093 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_note_assert` local 5. -/
 @[simp] theorem receiverNoteAssertAt5
     (rho : Nat → DeployedF) :
-    ReceiverNoteAssertValuation rho 5 = rho 54055 := by
+    ReceiverNoteAssertValuation rho 5 = rho 54098 := by
   simp only [
-    ReceiverNoteAssertValuation, Seg64.localRho,
+    ReceiverNoteAssertValuation, Seg65.localRho,
     Deployed.Templates.seated]
-  rw [show Seg64.wireSeating 5 = 54055 by
+  rw [show Seg65.wireSeating 5 = 54098 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_note_assert` local 6. -/
 @[simp] theorem receiverNoteAssertAt6
     (rho : Nat → DeployedF) :
-    ReceiverNoteAssertValuation rho 6 = rho 54060 := by
+    ReceiverNoteAssertValuation rho 6 = rho 54103 := by
   simp only [
-    ReceiverNoteAssertValuation, Seg64.localRho,
+    ReceiverNoteAssertValuation, Seg65.localRho,
     Deployed.Templates.seated]
-  rw [show Seg64.wireSeating 6 = 54060 by
+  rw [show Seg65.wireSeating 6 = 54103 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_note_assert` local 7. -/
 @[simp] theorem receiverNoteAssertAt7
     (rho : Nat → DeployedF) :
-    ReceiverNoteAssertValuation rho 7 = rho 342 := by
+    ReceiverNoteAssertValuation rho 7 = rho 343 := by
   simp only [
-    ReceiverNoteAssertValuation, Seg64.localRho,
+    ReceiverNoteAssertValuation, Seg65.localRho,
     Deployed.Templates.seated]
-  rw [show Seg64.wireSeating 7 = 342 by
+  rw [show Seg65.wireSeating 7 = 343 by
     decide +kernel]
 
 /-- Deployed seating for the `receiver_compliance_leaf` certified local semantics. -/
 def ReceiverComplianceLeafValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg65.localRho rho
+  Seg66.localRho rho
 
 /-- Certified local semantics for the `receiver_compliance_leaf` source operation. -/
 def ReceiverComplianceLeafSemanticSpec (rho : Nat → DeployedF) : Prop :=
-  Deployed.Templates.Semantics.TGadgetComplianceLeaf_dcb0a1040c535cf394b8bda4f381260121926f7d477fb80a22e4e84b0cb431bc.spec (ReceiverComplianceLeafValuation rho)
+  Deployed.Templates.Semantics.TGadgetComplianceLeaf_712c7a4d010c3b98e4d25232885b0f2dbf3329286405042c73ffe98555c9d024.spec (ReceiverComplianceLeafValuation rho)
 
 /-- Audited action-facing seat for `receiver_compliance_leaf` local 1. -/
 @[simp] theorem receiverComplianceLeafAt1
     (rho : Nat → DeployedF) :
-    ReceiverComplianceLeafValuation rho 1 = rho 52627 := by
+    ReceiverComplianceLeafValuation rho 1 = rho 52670 := by
   simp only [
-    ReceiverComplianceLeafValuation, Seg65.localRho,
+    ReceiverComplianceLeafValuation, Seg66.localRho,
     Deployed.Templates.seated]
-  rw [show Seg65.wireSeating 1 = 52627 by
+  rw [show Seg66.wireSeating 1 = 52670 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_compliance_leaf` local 2. -/
 @[simp] theorem receiverComplianceLeafAt2
     (rho : Nat → DeployedF) :
-    ReceiverComplianceLeafValuation rho 2 = rho 52967 := by
+    ReceiverComplianceLeafValuation rho 2 = rho 53010 := by
   simp only [
-    ReceiverComplianceLeafValuation, Seg65.localRho,
+    ReceiverComplianceLeafValuation, Seg66.localRho,
     Deployed.Templates.seated]
-  rw [show Seg65.wireSeating 2 = 52967 by
+  rw [show Seg66.wireSeating 2 = 53010 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_compliance_leaf` local 8. -/
 @[simp] theorem receiverComplianceLeafAt8
     (rho : Nat → DeployedF) :
-    ReceiverComplianceLeafValuation rho 8 = rho 53330 := by
+    ReceiverComplianceLeafValuation rho 8 = rho 53373 := by
   simp only [
-    ReceiverComplianceLeafValuation, Seg65.localRho,
+    ReceiverComplianceLeafValuation, Seg66.localRho,
     Deployed.Templates.seated]
-  rw [show Seg65.wireSeating 8 = 53330 by
+  rw [show Seg66.wireSeating 8 = 53373 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_compliance_leaf` local 9. -/
 @[simp] theorem receiverComplianceLeafAt9
     (rho : Nat → DeployedF) :
-    ReceiverComplianceLeafValuation rho 9 = rho 53670 := by
+    ReceiverComplianceLeafValuation rho 9 = rho 53713 := by
   simp only [
-    ReceiverComplianceLeafValuation, Seg65.localRho,
+    ReceiverComplianceLeafValuation, Seg66.localRho,
     Deployed.Templates.seated]
-  rw [show Seg65.wireSeating 9 = 53670 by
+  rw [show Seg66.wireSeating 9 = 53713 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_compliance_leaf` local 15. -/
 @[simp] theorem receiverComplianceLeafAt15
     (rho : Nat → DeployedF) :
-    ReceiverComplianceLeafValuation rho 15 = rho 184 := by
+    ReceiverComplianceLeafValuation rho 15 = rho 185 := by
   simp only [
-    ReceiverComplianceLeafValuation, Seg65.localRho,
+    ReceiverComplianceLeafValuation, Seg66.localRho,
     Deployed.Templates.seated]
-  rw [show Seg65.wireSeating 15 = 184 by
+  rw [show Seg66.wireSeating 15 = 185 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_compliance_leaf` local 21. -/
 @[simp] theorem receiverComplianceLeafAt21
     (rho : Nat → DeployedF) :
-    ReceiverComplianceLeafValuation rho 21 = rho 349 := by
+    ReceiverComplianceLeafValuation rho 21 = rho 350 := by
   simp only [
-    ReceiverComplianceLeafValuation, Seg65.localRho,
+    ReceiverComplianceLeafValuation, Seg66.localRho,
     Deployed.Templates.seated]
-  rw [show Seg65.wireSeating 21 = 349 by
+  rw [show Seg66.wireSeating 21 = 350 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_compliance_leaf` local 27. -/
 @[simp] theorem receiverComplianceLeafAt27
     (rho : Nat → DeployedF) :
-    ReceiverComplianceLeafValuation rho 27 = rho 350 := by
+    ReceiverComplianceLeafValuation rho 27 = rho 351 := by
   simp only [
-    ReceiverComplianceLeafValuation, Seg65.localRho,
+    ReceiverComplianceLeafValuation, Seg66.localRho,
     Deployed.Templates.seated]
-  rw [show Seg65.wireSeating 27 = 350 by
+  rw [show Seg66.wireSeating 27 = 351 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_compliance_leaf` local 33. -/
 @[simp] theorem receiverComplianceLeafAt33
     (rho : Nat → DeployedF) :
-    ReceiverComplianceLeafValuation rho 33 = rho 351 := by
+    ReceiverComplianceLeafValuation rho 33 = rho 352 := by
   simp only [
-    ReceiverComplianceLeafValuation, Seg65.localRho,
+    ReceiverComplianceLeafValuation, Seg66.localRho,
     Deployed.Templates.seated]
-  rw [show Seg65.wireSeating 33 = 351 by
+  rw [show Seg66.wireSeating 33 = 352 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_leaf` local 408. -/
-@[simp] theorem receiverComplianceLeafAt408
+/-- Audited action-facing seat for `receiver_compliance_leaf` local 39. -/
+@[simp] theorem receiverComplianceLeafAt39
     (rho : Nat → DeployedF) :
-    ReceiverComplianceLeafValuation rho 408 = rho 54460 := by
+    ReceiverComplianceLeafValuation rho 39 = rho 353 := by
   simp only [
-    ReceiverComplianceLeafValuation, Seg65.localRho,
+    ReceiverComplianceLeafValuation, Seg66.localRho,
     Deployed.Templates.seated]
-  rw [show Seg65.wireSeating 408 = 54460 by
+  rw [show Seg66.wireSeating 39 = 353 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_leaf` local 413. -/
-@[simp] theorem receiverComplianceLeafAt413
+/-- Audited action-facing seat for `receiver_compliance_leaf` local 444. -/
+@[simp] theorem receiverComplianceLeafAt444
     (rho : Nat → DeployedF) :
-    ReceiverComplianceLeafValuation rho 413 = rho 54465 := by
+    ReceiverComplianceLeafValuation rho 444 = rho 54538 := by
   simp only [
-    ReceiverComplianceLeafValuation, Seg65.localRho,
+    ReceiverComplianceLeafValuation, Seg66.localRho,
     Deployed.Templates.seated]
-  rw [show Seg65.wireSeating 413 = 54465 by
+  rw [show Seg66.wireSeating 444 = 54538 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_leaf` local 418. -/
-@[simp] theorem receiverComplianceLeafAt418
+/-- Audited action-facing seat for `receiver_compliance_leaf` local 449. -/
+@[simp] theorem receiverComplianceLeafAt449
     (rho : Nat → DeployedF) :
-    ReceiverComplianceLeafValuation rho 418 = rho 54470 := by
+    ReceiverComplianceLeafValuation rho 449 = rho 54543 := by
   simp only [
-    ReceiverComplianceLeafValuation, Seg65.localRho,
+    ReceiverComplianceLeafValuation, Seg66.localRho,
     Deployed.Templates.seated]
-  rw [show Seg65.wireSeating 418 = 54470 by
+  rw [show Seg66.wireSeating 449 = 54543 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_leaf` local 423. -/
-@[simp] theorem receiverComplianceLeafAt423
+/-- Audited action-facing seat for `receiver_compliance_leaf` local 454. -/
+@[simp] theorem receiverComplianceLeafAt454
     (rho : Nat → DeployedF) :
-    ReceiverComplianceLeafValuation rho 423 = rho 54475 := by
+    ReceiverComplianceLeafValuation rho 454 = rho 54548 := by
   simp only [
-    ReceiverComplianceLeafValuation, Seg65.localRho,
+    ReceiverComplianceLeafValuation, Seg66.localRho,
     Deployed.Templates.seated]
-  rw [show Seg65.wireSeating 423 = 54475 by
+  rw [show Seg66.wireSeating 454 = 54548 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_leaf` local 428. -/
-@[simp] theorem receiverComplianceLeafAt428
+/-- Audited action-facing seat for `receiver_compliance_leaf` local 459. -/
+@[simp] theorem receiverComplianceLeafAt459
     (rho : Nat → DeployedF) :
-    ReceiverComplianceLeafValuation rho 428 = rho 54480 := by
+    ReceiverComplianceLeafValuation rho 459 = rho 54553 := by
   simp only [
-    ReceiverComplianceLeafValuation, Seg65.localRho,
+    ReceiverComplianceLeafValuation, Seg66.localRho,
     Deployed.Templates.seated]
-  rw [show Seg65.wireSeating 428 = 54480 by
+  rw [show Seg66.wireSeating 459 = 54553 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_leaf` local 433. -/
-@[simp] theorem receiverComplianceLeafAt433
+/-- Audited action-facing seat for `receiver_compliance_leaf` local 464. -/
+@[simp] theorem receiverComplianceLeafAt464
     (rho : Nat → DeployedF) :
-    ReceiverComplianceLeafValuation rho 433 = rho 54485 := by
+    ReceiverComplianceLeafValuation rho 464 = rho 54558 := by
   simp only [
-    ReceiverComplianceLeafValuation, Seg65.localRho,
+    ReceiverComplianceLeafValuation, Seg66.localRho,
     Deployed.Templates.seated]
-  rw [show Seg65.wireSeating 433 = 54485 by
+  rw [show Seg66.wireSeating 464 = 54558 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_leaf` local 438. -/
-@[simp] theorem receiverComplianceLeafAt438
+/-- Audited action-facing seat for `receiver_compliance_leaf` local 469. -/
+@[simp] theorem receiverComplianceLeafAt469
     (rho : Nat → DeployedF) :
-    ReceiverComplianceLeafValuation rho 438 = rho 54490 := by
+    ReceiverComplianceLeafValuation rho 469 = rho 54563 := by
   simp only [
-    ReceiverComplianceLeafValuation, Seg65.localRho,
+    ReceiverComplianceLeafValuation, Seg66.localRho,
     Deployed.Templates.seated]
-  rw [show Seg65.wireSeating 438 = 54490 by
+  rw [show Seg66.wireSeating 469 = 54563 by
+    decide +kernel]
+
+/-- Audited action-facing seat for `receiver_compliance_leaf` local 474. -/
+@[simp] theorem receiverComplianceLeafAt474
+    (rho : Nat → DeployedF) :
+    ReceiverComplianceLeafValuation rho 474 = rho 54568 := by
+  simp only [
+    ReceiverComplianceLeafValuation, Seg66.localRho,
+    Deployed.Templates.seated]
+  rw [show Seg66.wireSeating 474 = 54568 by
+    decide +kernel]
+
+/-- Audited action-facing seat for `receiver_compliance_leaf` local 479. -/
+@[simp] theorem receiverComplianceLeafAt479
+    (rho : Nat → DeployedF) :
+    ReceiverComplianceLeafValuation rho 479 = rho 54573 := by
+  simp only [
+    ReceiverComplianceLeafValuation, Seg66.localRho,
+    Deployed.Templates.seated]
+  rw [show Seg66.wireSeating 479 = 54573 by
     decide +kernel]
 
 /-- Deployed seating for the `receiver_compliance_path` certified local semantics. -/
 def ReceiverCompliancePathValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg66.localRho rho
+  Seg67.localRho rho
 
 /-- Certified local semantics for the `receiver_compliance_path` source operation. -/
 def ReceiverCompliancePathSemanticSpec (rho : Nat → DeployedF) : Prop :=
-  Deployed.Templates.Semantics.TGadgetCompliancePath_d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686.spec (ReceiverCompliancePathValuation rho)
+  Deployed.Templates.Semantics.TGadgetCompliancePath_3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b.spec (ReceiverCompliancePathValuation rho)
 
 /-- Audited action-facing seat for `receiver_compliance_path` local 33. -/
 @[simp] theorem receiverCompliancePathAt33
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 33 = rho 400 := by
+    ReceiverCompliancePathValuation rho 33 = rho 402 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 33 = 400 by
+  rw [show Seg67.wireSeating 33 = 402 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_compliance_path` local 38. -/
 @[simp] theorem receiverCompliancePathAt38
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 38 = rho 352 := by
+    ReceiverCompliancePathValuation rho 38 = rho 354 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 38 = 352 by
+  rw [show Seg67.wireSeating 38 = 354 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_compliance_path` local 39. -/
 @[simp] theorem receiverCompliancePathAt39
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 39 = rho 54460 := by
+    ReceiverCompliancePathValuation rho 39 = rho 54538 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 39 = 54460 by
+  rw [show Seg67.wireSeating 39 = 54538 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_compliance_path` local 40. -/
 @[simp] theorem receiverCompliancePathAt40
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 40 = rho 54465 := by
+    ReceiverCompliancePathValuation rho 40 = rho 54543 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 40 = 54465 by
+  rw [show Seg67.wireSeating 40 = 54543 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_compliance_path` local 41. -/
 @[simp] theorem receiverCompliancePathAt41
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 41 = rho 54470 := by
+    ReceiverCompliancePathValuation rho 41 = rho 54548 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 41 = 54470 by
+  rw [show Seg67.wireSeating 41 = 54548 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_compliance_path` local 42. -/
 @[simp] theorem receiverCompliancePathAt42
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 42 = rho 54475 := by
+    ReceiverCompliancePathValuation rho 42 = rho 54553 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 42 = 54475 by
+  rw [show Seg67.wireSeating 42 = 54553 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_compliance_path` local 43. -/
 @[simp] theorem receiverCompliancePathAt43
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 43 = rho 54480 := by
+    ReceiverCompliancePathValuation rho 43 = rho 54558 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 43 = 54480 by
+  rw [show Seg67.wireSeating 43 = 54558 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_compliance_path` local 44. -/
 @[simp] theorem receiverCompliancePathAt44
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 44 = rho 54485 := by
+    ReceiverCompliancePathValuation rho 44 = rho 54563 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 44 = 54485 by
+  rw [show Seg67.wireSeating 44 = 54563 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_compliance_path` local 45. -/
 @[simp] theorem receiverCompliancePathAt45
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 45 = rho 54490 := by
+    ReceiverCompliancePathValuation rho 45 = rho 54568 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 45 = 54490 by
+  rw [show Seg67.wireSeating 45 = 54568 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 47. -/
-@[simp] theorem receiverCompliancePathAt47
+/-- Audited action-facing seat for `receiver_compliance_path` local 46. -/
+@[simp] theorem receiverCompliancePathAt46
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 47 = rho 353 := by
+    ReceiverCompliancePathValuation rho 46 = rho 54573 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 47 = 353 by
+  rw [show Seg67.wireSeating 46 = 54573 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 50. -/
-@[simp] theorem receiverCompliancePathAt50
+/-- Audited action-facing seat for `receiver_compliance_path` local 48. -/
+@[simp] theorem receiverCompliancePathAt48
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 50 = rho 354 := by
+    ReceiverCompliancePathValuation rho 48 = rho 355 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 50 = 354 by
+  rw [show Seg67.wireSeating 48 = 355 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 408. -/
-@[simp] theorem receiverCompliancePathAt408
+/-- Audited action-facing seat for `receiver_compliance_path` local 51. -/
+@[simp] theorem receiverCompliancePathAt51
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 408 = rho 355 := by
+    ReceiverCompliancePathValuation rho 51 = rho 356 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 408 = 355 by
+  rw [show Seg67.wireSeating 51 = 356 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 410. -/
-@[simp] theorem receiverCompliancePathAt410
+/-- Audited action-facing seat for `receiver_compliance_path` local 409. -/
+@[simp] theorem receiverCompliancePathAt409
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 410 = rho 356 := by
+    ReceiverCompliancePathValuation rho 409 = rho 357 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 410 = 356 by
+  rw [show Seg67.wireSeating 409 = 357 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 413. -/
-@[simp] theorem receiverCompliancePathAt413
+/-- Audited action-facing seat for `receiver_compliance_path` local 411. -/
+@[simp] theorem receiverCompliancePathAt411
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 413 = rho 357 := by
+    ReceiverCompliancePathValuation rho 411 = rho 358 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 413 = 357 by
+  rw [show Seg67.wireSeating 411 = 358 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 771. -/
-@[simp] theorem receiverCompliancePathAt771
+/-- Audited action-facing seat for `receiver_compliance_path` local 414. -/
+@[simp] theorem receiverCompliancePathAt414
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 771 = rho 358 := by
+    ReceiverCompliancePathValuation rho 414 = rho 359 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 771 = 358 by
+  rw [show Seg67.wireSeating 414 = 359 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 773. -/
-@[simp] theorem receiverCompliancePathAt773
+/-- Audited action-facing seat for `receiver_compliance_path` local 772. -/
+@[simp] theorem receiverCompliancePathAt772
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 773 = rho 359 := by
+    ReceiverCompliancePathValuation rho 772 = rho 360 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 773 = 359 by
+  rw [show Seg67.wireSeating 772 = 360 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 776. -/
-@[simp] theorem receiverCompliancePathAt776
+/-- Audited action-facing seat for `receiver_compliance_path` local 774. -/
+@[simp] theorem receiverCompliancePathAt774
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 776 = rho 360 := by
+    ReceiverCompliancePathValuation rho 774 = rho 361 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 776 = 360 by
+  rw [show Seg67.wireSeating 774 = 361 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 1134. -/
-@[simp] theorem receiverCompliancePathAt1134
+/-- Audited action-facing seat for `receiver_compliance_path` local 777. -/
+@[simp] theorem receiverCompliancePathAt777
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 1134 = rho 361 := by
+    ReceiverCompliancePathValuation rho 777 = rho 362 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 1134 = 361 by
+  rw [show Seg67.wireSeating 777 = 362 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 1136. -/
-@[simp] theorem receiverCompliancePathAt1136
+/-- Audited action-facing seat for `receiver_compliance_path` local 1135. -/
+@[simp] theorem receiverCompliancePathAt1135
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 1136 = rho 362 := by
+    ReceiverCompliancePathValuation rho 1135 = rho 363 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 1136 = 362 by
+  rw [show Seg67.wireSeating 1135 = 363 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 1139. -/
-@[simp] theorem receiverCompliancePathAt1139
+/-- Audited action-facing seat for `receiver_compliance_path` local 1137. -/
+@[simp] theorem receiverCompliancePathAt1137
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 1139 = rho 363 := by
+    ReceiverCompliancePathValuation rho 1137 = rho 364 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 1139 = 363 by
+  rw [show Seg67.wireSeating 1137 = 364 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 1497. -/
-@[simp] theorem receiverCompliancePathAt1497
+/-- Audited action-facing seat for `receiver_compliance_path` local 1140. -/
+@[simp] theorem receiverCompliancePathAt1140
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 1497 = rho 364 := by
+    ReceiverCompliancePathValuation rho 1140 = rho 365 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 1497 = 364 by
+  rw [show Seg67.wireSeating 1140 = 365 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 1499. -/
-@[simp] theorem receiverCompliancePathAt1499
+/-- Audited action-facing seat for `receiver_compliance_path` local 1498. -/
+@[simp] theorem receiverCompliancePathAt1498
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 1499 = rho 365 := by
+    ReceiverCompliancePathValuation rho 1498 = rho 366 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 1499 = 365 by
+  rw [show Seg67.wireSeating 1498 = 366 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 1502. -/
-@[simp] theorem receiverCompliancePathAt1502
+/-- Audited action-facing seat for `receiver_compliance_path` local 1500. -/
+@[simp] theorem receiverCompliancePathAt1500
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 1502 = rho 366 := by
+    ReceiverCompliancePathValuation rho 1500 = rho 367 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 1502 = 366 by
+  rw [show Seg67.wireSeating 1500 = 367 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 1860. -/
-@[simp] theorem receiverCompliancePathAt1860
+/-- Audited action-facing seat for `receiver_compliance_path` local 1503. -/
+@[simp] theorem receiverCompliancePathAt1503
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 1860 = rho 367 := by
+    ReceiverCompliancePathValuation rho 1503 = rho 368 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 1860 = 367 by
+  rw [show Seg67.wireSeating 1503 = 368 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 1862. -/
-@[simp] theorem receiverCompliancePathAt1862
+/-- Audited action-facing seat for `receiver_compliance_path` local 1861. -/
+@[simp] theorem receiverCompliancePathAt1861
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 1862 = rho 368 := by
+    ReceiverCompliancePathValuation rho 1861 = rho 369 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 1862 = 368 by
+  rw [show Seg67.wireSeating 1861 = 369 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 1865. -/
-@[simp] theorem receiverCompliancePathAt1865
+/-- Audited action-facing seat for `receiver_compliance_path` local 1863. -/
+@[simp] theorem receiverCompliancePathAt1863
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 1865 = rho 369 := by
+    ReceiverCompliancePathValuation rho 1863 = rho 370 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 1865 = 369 by
+  rw [show Seg67.wireSeating 1863 = 370 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 2223. -/
-@[simp] theorem receiverCompliancePathAt2223
+/-- Audited action-facing seat for `receiver_compliance_path` local 1866. -/
+@[simp] theorem receiverCompliancePathAt1866
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 2223 = rho 370 := by
+    ReceiverCompliancePathValuation rho 1866 = rho 371 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 2223 = 370 by
+  rw [show Seg67.wireSeating 1866 = 371 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 2225. -/
-@[simp] theorem receiverCompliancePathAt2225
+/-- Audited action-facing seat for `receiver_compliance_path` local 2224. -/
+@[simp] theorem receiverCompliancePathAt2224
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 2225 = rho 371 := by
+    ReceiverCompliancePathValuation rho 2224 = rho 372 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 2225 = 371 by
+  rw [show Seg67.wireSeating 2224 = 372 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 2228. -/
-@[simp] theorem receiverCompliancePathAt2228
+/-- Audited action-facing seat for `receiver_compliance_path` local 2226. -/
+@[simp] theorem receiverCompliancePathAt2226
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 2228 = rho 372 := by
+    ReceiverCompliancePathValuation rho 2226 = rho 373 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 2228 = 372 by
+  rw [show Seg67.wireSeating 2226 = 373 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 2586. -/
-@[simp] theorem receiverCompliancePathAt2586
+/-- Audited action-facing seat for `receiver_compliance_path` local 2229. -/
+@[simp] theorem receiverCompliancePathAt2229
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 2586 = rho 373 := by
+    ReceiverCompliancePathValuation rho 2229 = rho 374 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 2586 = 373 by
+  rw [show Seg67.wireSeating 2229 = 374 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 2588. -/
-@[simp] theorem receiverCompliancePathAt2588
+/-- Audited action-facing seat for `receiver_compliance_path` local 2587. -/
+@[simp] theorem receiverCompliancePathAt2587
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 2588 = rho 374 := by
+    ReceiverCompliancePathValuation rho 2587 = rho 375 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 2588 = 374 by
+  rw [show Seg67.wireSeating 2587 = 375 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 2591. -/
-@[simp] theorem receiverCompliancePathAt2591
+/-- Audited action-facing seat for `receiver_compliance_path` local 2589. -/
+@[simp] theorem receiverCompliancePathAt2589
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 2591 = rho 375 := by
+    ReceiverCompliancePathValuation rho 2589 = rho 376 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 2591 = 375 by
+  rw [show Seg67.wireSeating 2589 = 376 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 2949. -/
-@[simp] theorem receiverCompliancePathAt2949
+/-- Audited action-facing seat for `receiver_compliance_path` local 2592. -/
+@[simp] theorem receiverCompliancePathAt2592
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 2949 = rho 376 := by
+    ReceiverCompliancePathValuation rho 2592 = rho 377 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 2949 = 376 by
+  rw [show Seg67.wireSeating 2592 = 377 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 2951. -/
-@[simp] theorem receiverCompliancePathAt2951
+/-- Audited action-facing seat for `receiver_compliance_path` local 2950. -/
+@[simp] theorem receiverCompliancePathAt2950
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 2951 = rho 377 := by
+    ReceiverCompliancePathValuation rho 2950 = rho 378 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 2951 = 377 by
+  rw [show Seg67.wireSeating 2950 = 378 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 2954. -/
-@[simp] theorem receiverCompliancePathAt2954
+/-- Audited action-facing seat for `receiver_compliance_path` local 2952. -/
+@[simp] theorem receiverCompliancePathAt2952
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 2954 = rho 378 := by
+    ReceiverCompliancePathValuation rho 2952 = rho 379 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 2954 = 378 by
+  rw [show Seg67.wireSeating 2952 = 379 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 3312. -/
-@[simp] theorem receiverCompliancePathAt3312
+/-- Audited action-facing seat for `receiver_compliance_path` local 2955. -/
+@[simp] theorem receiverCompliancePathAt2955
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 3312 = rho 379 := by
+    ReceiverCompliancePathValuation rho 2955 = rho 380 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 3312 = 379 by
+  rw [show Seg67.wireSeating 2955 = 380 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 3314. -/
-@[simp] theorem receiverCompliancePathAt3314
+/-- Audited action-facing seat for `receiver_compliance_path` local 3313. -/
+@[simp] theorem receiverCompliancePathAt3313
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 3314 = rho 380 := by
+    ReceiverCompliancePathValuation rho 3313 = rho 381 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 3314 = 380 by
+  rw [show Seg67.wireSeating 3313 = 381 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 3317. -/
-@[simp] theorem receiverCompliancePathAt3317
+/-- Audited action-facing seat for `receiver_compliance_path` local 3315. -/
+@[simp] theorem receiverCompliancePathAt3315
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 3317 = rho 381 := by
+    ReceiverCompliancePathValuation rho 3315 = rho 382 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 3317 = 381 by
+  rw [show Seg67.wireSeating 3315 = 382 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 3675. -/
-@[simp] theorem receiverCompliancePathAt3675
+/-- Audited action-facing seat for `receiver_compliance_path` local 3318. -/
+@[simp] theorem receiverCompliancePathAt3318
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 3675 = rho 382 := by
+    ReceiverCompliancePathValuation rho 3318 = rho 383 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 3675 = 382 by
+  rw [show Seg67.wireSeating 3318 = 383 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 3677. -/
-@[simp] theorem receiverCompliancePathAt3677
+/-- Audited action-facing seat for `receiver_compliance_path` local 3676. -/
+@[simp] theorem receiverCompliancePathAt3676
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 3677 = rho 383 := by
+    ReceiverCompliancePathValuation rho 3676 = rho 384 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 3677 = 383 by
+  rw [show Seg67.wireSeating 3676 = 384 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 3680. -/
-@[simp] theorem receiverCompliancePathAt3680
+/-- Audited action-facing seat for `receiver_compliance_path` local 3678. -/
+@[simp] theorem receiverCompliancePathAt3678
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 3680 = rho 384 := by
+    ReceiverCompliancePathValuation rho 3678 = rho 385 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 3680 = 384 by
+  rw [show Seg67.wireSeating 3678 = 385 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 4038. -/
-@[simp] theorem receiverCompliancePathAt4038
+/-- Audited action-facing seat for `receiver_compliance_path` local 3681. -/
+@[simp] theorem receiverCompliancePathAt3681
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 4038 = rho 385 := by
+    ReceiverCompliancePathValuation rho 3681 = rho 386 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 4038 = 385 by
+  rw [show Seg67.wireSeating 3681 = 386 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 4040. -/
-@[simp] theorem receiverCompliancePathAt4040
+/-- Audited action-facing seat for `receiver_compliance_path` local 4039. -/
+@[simp] theorem receiverCompliancePathAt4039
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 4040 = rho 386 := by
+    ReceiverCompliancePathValuation rho 4039 = rho 387 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 4040 = 386 by
+  rw [show Seg67.wireSeating 4039 = 387 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 4043. -/
-@[simp] theorem receiverCompliancePathAt4043
+/-- Audited action-facing seat for `receiver_compliance_path` local 4041. -/
+@[simp] theorem receiverCompliancePathAt4041
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 4043 = rho 387 := by
+    ReceiverCompliancePathValuation rho 4041 = rho 388 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 4043 = 387 by
+  rw [show Seg67.wireSeating 4041 = 388 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 4401. -/
-@[simp] theorem receiverCompliancePathAt4401
+/-- Audited action-facing seat for `receiver_compliance_path` local 4044. -/
+@[simp] theorem receiverCompliancePathAt4044
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 4401 = rho 388 := by
+    ReceiverCompliancePathValuation rho 4044 = rho 389 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 4401 = 388 by
+  rw [show Seg67.wireSeating 4044 = 389 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 4403. -/
-@[simp] theorem receiverCompliancePathAt4403
+/-- Audited action-facing seat for `receiver_compliance_path` local 4402. -/
+@[simp] theorem receiverCompliancePathAt4402
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 4403 = rho 389 := by
+    ReceiverCompliancePathValuation rho 4402 = rho 390 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 4403 = 389 by
+  rw [show Seg67.wireSeating 4402 = 390 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 4406. -/
-@[simp] theorem receiverCompliancePathAt4406
+/-- Audited action-facing seat for `receiver_compliance_path` local 4404. -/
+@[simp] theorem receiverCompliancePathAt4404
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 4406 = rho 390 := by
+    ReceiverCompliancePathValuation rho 4404 = rho 391 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 4406 = 390 by
+  rw [show Seg67.wireSeating 4404 = 391 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 4764. -/
-@[simp] theorem receiverCompliancePathAt4764
+/-- Audited action-facing seat for `receiver_compliance_path` local 4407. -/
+@[simp] theorem receiverCompliancePathAt4407
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 4764 = rho 391 := by
+    ReceiverCompliancePathValuation rho 4407 = rho 392 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 4764 = 391 by
+  rw [show Seg67.wireSeating 4407 = 392 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 4766. -/
-@[simp] theorem receiverCompliancePathAt4766
+/-- Audited action-facing seat for `receiver_compliance_path` local 4765. -/
+@[simp] theorem receiverCompliancePathAt4765
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 4766 = rho 392 := by
+    ReceiverCompliancePathValuation rho 4765 = rho 393 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 4766 = 392 by
+  rw [show Seg67.wireSeating 4765 = 393 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 4769. -/
-@[simp] theorem receiverCompliancePathAt4769
+/-- Audited action-facing seat for `receiver_compliance_path` local 4767. -/
+@[simp] theorem receiverCompliancePathAt4767
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 4769 = rho 393 := by
+    ReceiverCompliancePathValuation rho 4767 = rho 394 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 4769 = 393 by
+  rw [show Seg67.wireSeating 4767 = 394 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 5127. -/
-@[simp] theorem receiverCompliancePathAt5127
+/-- Audited action-facing seat for `receiver_compliance_path` local 4770. -/
+@[simp] theorem receiverCompliancePathAt4770
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 5127 = rho 394 := by
+    ReceiverCompliancePathValuation rho 4770 = rho 395 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 5127 = 394 by
+  rw [show Seg67.wireSeating 4770 = 395 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 5129. -/
-@[simp] theorem receiverCompliancePathAt5129
+/-- Audited action-facing seat for `receiver_compliance_path` local 5128. -/
+@[simp] theorem receiverCompliancePathAt5128
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 5129 = rho 395 := by
+    ReceiverCompliancePathValuation rho 5128 = rho 396 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 5129 = 395 by
+  rw [show Seg67.wireSeating 5128 = 396 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 5132. -/
-@[simp] theorem receiverCompliancePathAt5132
+/-- Audited action-facing seat for `receiver_compliance_path` local 5130. -/
+@[simp] theorem receiverCompliancePathAt5130
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 5132 = rho 396 := by
+    ReceiverCompliancePathValuation rho 5130 = rho 397 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 5132 = 396 by
+  rw [show Seg67.wireSeating 5130 = 397 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 5490. -/
-@[simp] theorem receiverCompliancePathAt5490
+/-- Audited action-facing seat for `receiver_compliance_path` local 5133. -/
+@[simp] theorem receiverCompliancePathAt5133
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 5490 = rho 397 := by
+    ReceiverCompliancePathValuation rho 5133 = rho 398 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 5490 = 397 by
+  rw [show Seg67.wireSeating 5133 = 398 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 5492. -/
-@[simp] theorem receiverCompliancePathAt5492
+/-- Audited action-facing seat for `receiver_compliance_path` local 5491. -/
+@[simp] theorem receiverCompliancePathAt5491
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 5492 = rho 398 := by
+    ReceiverCompliancePathValuation rho 5491 = rho 399 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 5492 = 398 by
+  rw [show Seg67.wireSeating 5491 = 399 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 5495. -/
-@[simp] theorem receiverCompliancePathAt5495
+/-- Audited action-facing seat for `receiver_compliance_path` local 5493. -/
+@[simp] theorem receiverCompliancePathAt5493
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 5495 = rho 399 := by
+    ReceiverCompliancePathValuation rho 5493 = rho 400 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 5495 = 399 by
+  rw [show Seg67.wireSeating 5493 = 400 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 5828. -/
-@[simp] theorem receiverCompliancePathAt5828
+/-- Audited action-facing seat for `receiver_compliance_path` local 5496. -/
+@[simp] theorem receiverCompliancePathAt5496
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 5828 = rho 60262 := by
+    ReceiverCompliancePathValuation rho 5496 = rho 401 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 5828 = 60262 by
+  rw [show Seg67.wireSeating 5496 = 401 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 5833. -/
-@[simp] theorem receiverCompliancePathAt5833
+/-- Audited action-facing seat for `receiver_compliance_path` local 5829. -/
+@[simp] theorem receiverCompliancePathAt5829
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 5833 = rho 60267 := by
+    ReceiverCompliancePathValuation rho 5829 = rho 60345 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 5833 = 60267 by
+  rw [show Seg67.wireSeating 5829 = 60345 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 5838. -/
-@[simp] theorem receiverCompliancePathAt5838
+/-- Audited action-facing seat for `receiver_compliance_path` local 5834. -/
+@[simp] theorem receiverCompliancePathAt5834
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 5838 = rho 60272 := by
+    ReceiverCompliancePathValuation rho 5834 = rho 60350 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 5838 = 60272 by
+  rw [show Seg67.wireSeating 5834 = 60350 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 5843. -/
-@[simp] theorem receiverCompliancePathAt5843
+/-- Audited action-facing seat for `receiver_compliance_path` local 5839. -/
+@[simp] theorem receiverCompliancePathAt5839
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 5843 = rho 60277 := by
+    ReceiverCompliancePathValuation rho 5839 = rho 60355 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 5843 = 60277 by
+  rw [show Seg67.wireSeating 5839 = 60355 by
     decide +kernel]
 
-/-- Audited action-facing seat for `receiver_compliance_path` local 5848. -/
-@[simp] theorem receiverCompliancePathAt5848
+/-- Audited action-facing seat for `receiver_compliance_path` local 5844. -/
+@[simp] theorem receiverCompliancePathAt5844
     (rho : Nat → DeployedF) :
-    ReceiverCompliancePathValuation rho 5848 = rho 60282 := by
+    ReceiverCompliancePathValuation rho 5844 = rho 60360 := by
   simp only [
-    ReceiverCompliancePathValuation, Seg66.localRho,
+    ReceiverCompliancePathValuation, Seg67.localRho,
     Deployed.Templates.seated]
-  rw [show Seg66.wireSeating 5848 = 60282 by
+  rw [show Seg67.wireSeating 5844 = 60360 by
+    decide +kernel]
+
+/-- Audited action-facing seat for `receiver_compliance_path` local 5849. -/
+@[simp] theorem receiverCompliancePathAt5849
+    (rho : Nat → DeployedF) :
+    ReceiverCompliancePathValuation rho 5849 = rho 60365 := by
+  simp only [
+    ReceiverCompliancePathValuation, Seg67.localRho,
+    Deployed.Templates.seated]
+  rw [show Seg67.wireSeating 5849 = 60365 by
     decide +kernel]
 
 /-- Deployed seating for the `receiver_compliance_assert` certified local semantics. -/
 def ReceiverComplianceAssertValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg67.localRho rho
+  Seg68.localRho rho
 
 /-- Certified local semantics for the `receiver_compliance_assert` source operation. -/
 def ReceiverComplianceAssertSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -7057,9 +7146,9 @@ def ReceiverComplianceAssertSemanticSpec (rho : Nat → DeployedF) : Prop :=
     (rho : Nat → DeployedF) :
     ReceiverComplianceAssertValuation rho 1 = rho 11 := by
   simp only [
-    ReceiverComplianceAssertValuation, Seg67.localRho,
+    ReceiverComplianceAssertValuation, Seg68.localRho,
     Deployed.Templates.seated]
-  rw [show Seg67.wireSeating 1 = 11 by
+  rw [show Seg68.wireSeating 1 = 11 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_compliance_assert` local 2. -/
@@ -7067,64 +7156,92 @@ def ReceiverComplianceAssertSemanticSpec (rho : Nat → DeployedF) : Prop :=
     (rho : Nat → DeployedF) :
     ReceiverComplianceAssertValuation rho 2 = rho 8 := by
   simp only [
-    ReceiverComplianceAssertValuation, Seg67.localRho,
+    ReceiverComplianceAssertValuation, Seg68.localRho,
     Deployed.Templates.seated]
-  rw [show Seg67.wireSeating 2 = 8 by
+  rw [show Seg68.wireSeating 2 = 8 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_compliance_assert` local 3. -/
 @[simp] theorem receiverComplianceAssertAt3
     (rho : Nat → DeployedF) :
-    ReceiverComplianceAssertValuation rho 3 = rho 60262 := by
+    ReceiverComplianceAssertValuation rho 3 = rho 60345 := by
   simp only [
-    ReceiverComplianceAssertValuation, Seg67.localRho,
+    ReceiverComplianceAssertValuation, Seg68.localRho,
     Deployed.Templates.seated]
-  rw [show Seg67.wireSeating 3 = 60262 by
+  rw [show Seg68.wireSeating 3 = 60345 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_compliance_assert` local 4. -/
 @[simp] theorem receiverComplianceAssertAt4
     (rho : Nat → DeployedF) :
-    ReceiverComplianceAssertValuation rho 4 = rho 60267 := by
+    ReceiverComplianceAssertValuation rho 4 = rho 60350 := by
   simp only [
-    ReceiverComplianceAssertValuation, Seg67.localRho,
+    ReceiverComplianceAssertValuation, Seg68.localRho,
     Deployed.Templates.seated]
-  rw [show Seg67.wireSeating 4 = 60267 by
+  rw [show Seg68.wireSeating 4 = 60350 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_compliance_assert` local 5. -/
 @[simp] theorem receiverComplianceAssertAt5
     (rho : Nat → DeployedF) :
-    ReceiverComplianceAssertValuation rho 5 = rho 60272 := by
+    ReceiverComplianceAssertValuation rho 5 = rho 60355 := by
   simp only [
-    ReceiverComplianceAssertValuation, Seg67.localRho,
+    ReceiverComplianceAssertValuation, Seg68.localRho,
     Deployed.Templates.seated]
-  rw [show Seg67.wireSeating 5 = 60272 by
+  rw [show Seg68.wireSeating 5 = 60355 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_compliance_assert` local 6. -/
 @[simp] theorem receiverComplianceAssertAt6
     (rho : Nat → DeployedF) :
-    ReceiverComplianceAssertValuation rho 6 = rho 60277 := by
+    ReceiverComplianceAssertValuation rho 6 = rho 60360 := by
   simp only [
-    ReceiverComplianceAssertValuation, Seg67.localRho,
+    ReceiverComplianceAssertValuation, Seg68.localRho,
     Deployed.Templates.seated]
-  rw [show Seg67.wireSeating 6 = 60277 by
+  rw [show Seg68.wireSeating 6 = 60360 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_compliance_assert` local 7. -/
 @[simp] theorem receiverComplianceAssertAt7
     (rho : Nat → DeployedF) :
-    ReceiverComplianceAssertValuation rho 7 = rho 60282 := by
+    ReceiverComplianceAssertValuation rho 7 = rho 60365 := by
   simp only [
-    ReceiverComplianceAssertValuation, Seg67.localRho,
+    ReceiverComplianceAssertValuation, Seg68.localRho,
     Deployed.Templates.seated]
-  rw [show Seg67.wireSeating 7 = 60282 by
+  rw [show Seg68.wireSeating 7 = 60365 by
+    decide +kernel]
+
+/-- Deployed seating for the `receiver_status_active_assert` certified local semantics. -/
+def ReceiverStatusActiveAssertValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
+  Seg69.localRho rho
+
+/-- Certified local semantics for the `receiver_status_active_assert` source operation. -/
+def ReceiverStatusActiveAssertSemanticSpec (rho : Nat → DeployedF) : Prop :=
+  Deployed.Templates.Semantics.TAssertEqIf_21d2c12b00d06e5e5a9b561d8f13c30059ff3ae69a31740109ba30ed73bb89aa.spec (ReceiverStatusActiveAssertValuation rho)
+
+/-- Audited action-facing seat for `receiver_status_active_assert` local 1. -/
+@[simp] theorem receiverStatusActiveAssertAt1
+    (rho : Nat → DeployedF) :
+    ReceiverStatusActiveAssertValuation rho 1 = rho 11 := by
+  simp only [
+    ReceiverStatusActiveAssertValuation, Seg69.localRho,
+    Deployed.Templates.seated]
+  rw [show Seg69.wireSeating 1 = 11 by
+    decide +kernel]
+
+/-- Audited action-facing seat for `receiver_status_active_assert` local 2. -/
+@[simp] theorem receiverStatusActiveAssertAt2
+    (rho : Nat → DeployedF) :
+    ReceiverStatusActiveAssertValuation rho 2 = rho 353 := by
+  simp only [
+    ReceiverStatusActiveAssertValuation, Seg69.localRho,
+    Deployed.Templates.seated]
+  rw [show Seg69.wireSeating 2 = 353 by
     decide +kernel]
 
 /-- Deployed seating for the `receiver_nonzero_assert` certified local semantics. -/
 def ReceiverNonzeroAssertValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg68.localRho rho
+  Seg70.localRho rho
 
 /-- Certified local semantics for the `receiver_nonzero_assert` source operation. -/
 def ReceiverNonzeroAssertSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -7133,16 +7250,16 @@ def ReceiverNonzeroAssertSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `receiver_nonzero_assert` local 1. -/
 @[simp] theorem receiverNonzeroAssertAt1
     (rho : Nat → DeployedF) :
-    ReceiverNonzeroAssertValuation rho 1 = rho 52263 := by
+    ReceiverNonzeroAssertValuation rho 1 = rho 52306 := by
   simp only [
-    ReceiverNonzeroAssertValuation, Seg68.localRho,
+    ReceiverNonzeroAssertValuation, Seg70.localRho,
     Deployed.Templates.seated]
-  rw [show Seg68.wireSeating 1 = 52263 by
+  rw [show Seg70.wireSeating 1 = 52306 by
     decide +kernel]
 
 /-- Deployed seating for the `receiver_ack` certified local semantics. -/
 def ReceiverAckValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg69.localRho rho
+  Seg71.localRho rho
 
 /-- Certified local semantics for the `receiver_ack` source operation. -/
 def ReceiverAckSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -7151,36 +7268,36 @@ def ReceiverAckSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `receiver_ack` local 252. -/
 @[simp] theorem receiverAckAt252
     (rho : Nat → DeployedF) :
-    ReceiverAckValuation rho 252 = rho 351 := by
+    ReceiverAckValuation rho 252 = rho 352 := by
   simp only [
-    ReceiverAckValuation, Seg69.localRho,
+    ReceiverAckValuation, Seg71.localRho,
     Deployed.Templates.seated]
-  rw [show Seg69.wireSeating 252 = 351 by
+  rw [show Seg71.wireSeating 252 = 352 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_ack` local 253. -/
 @[simp] theorem receiverAckAt253
     (rho : Nat → DeployedF) :
-    ReceiverAckValuation rho 253 = rho 407 := by
+    ReceiverAckValuation rho 253 = rho 409 := by
   simp only [
-    ReceiverAckValuation, Seg69.localRho,
+    ReceiverAckValuation, Seg71.localRho,
     Deployed.Templates.seated]
-  rw [show Seg69.wireSeating 253 = 407 by
+  rw [show Seg71.wireSeating 253 = 409 by
     decide +kernel]
 
 /-- Audited action-facing seat for `receiver_ack` local 254. -/
 @[simp] theorem receiverAckAt254
     (rho : Nat → DeployedF) :
-    ReceiverAckValuation rho 254 = rho 408 := by
+    ReceiverAckValuation rho 254 = rho 410 := by
   simp only [
-    ReceiverAckValuation, Seg69.localRho,
+    ReceiverAckValuation, Seg71.localRho,
     Deployed.Templates.seated]
-  rw [show Seg69.wireSeating 254 = 408 by
+  rw [show Seg71.wireSeating 254 = 410 by
     decide +kernel]
 
 /-- Deployed seating for the `change_note_commitment` certified local semantics. -/
 def ChangeNoteCommitmentValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg72.localRho rho
+  Seg74.localRho rho
 
 /-- Certified local semantics for the `change_note_commitment` source operation. -/
 def ChangeNoteCommitmentSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -7189,136 +7306,136 @@ def ChangeNoteCommitmentSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `change_note_commitment` local 1. -/
 @[simp] theorem changeNoteCommitmentAt1
     (rho : Nat → DeployedF) :
-    ChangeNoteCommitmentValuation rho 1 = rho 402 := by
+    ChangeNoteCommitmentValuation rho 1 = rho 404 := by
   simp only [
-    ChangeNoteCommitmentValuation, Seg72.localRho,
+    ChangeNoteCommitmentValuation, Seg74.localRho,
     Deployed.Templates.seated]
-  rw [show Seg72.wireSeating 1 = 402 by
+  rw [show Seg74.wireSeating 1 = 404 by
     decide +kernel]
 
 /-- Audited action-facing seat for `change_note_commitment` local 7. -/
 @[simp] theorem changeNoteCommitmentAt7
     (rho : Nat → DeployedF) :
-    ChangeNoteCommitmentValuation rho 7 = rho 403 := by
+    ChangeNoteCommitmentValuation rho 7 = rho 405 := by
   simp only [
-    ChangeNoteCommitmentValuation, Seg72.localRho,
+    ChangeNoteCommitmentValuation, Seg74.localRho,
     Deployed.Templates.seated]
-  rw [show Seg72.wireSeating 7 = 403 by
+  rw [show Seg74.wireSeating 7 = 405 by
     decide +kernel]
 
 /-- Audited action-facing seat for `change_note_commitment` local 13. -/
 @[simp] theorem changeNoteCommitmentAt13
     (rho : Nat → DeployedF) :
-    ChangeNoteCommitmentValuation rho 13 = rho 184 := by
+    ChangeNoteCommitmentValuation rho 13 = rho 185 := by
   simp only [
-    ChangeNoteCommitmentValuation, Seg72.localRho,
+    ChangeNoteCommitmentValuation, Seg74.localRho,
     Deployed.Templates.seated]
-  rw [show Seg72.wireSeating 13 = 184 by
+  rw [show Seg74.wireSeating 13 = 185 by
     decide +kernel]
 
 /-- Audited action-facing seat for `change_note_commitment` local 19. -/
 @[simp] theorem changeNoteCommitmentAt19
     (rho : Nat → DeployedF) :
-    ChangeNoteCommitmentValuation rho 19 = rho 777 := by
+    ChangeNoteCommitmentValuation rho 19 = rho 779 := by
   simp only [
-    ChangeNoteCommitmentValuation, Seg72.localRho,
+    ChangeNoteCommitmentValuation, Seg74.localRho,
     Deployed.Templates.seated]
-  rw [show Seg72.wireSeating 19 = 777 by
+  rw [show Seg74.wireSeating 19 = 779 by
     decide +kernel]
 
 /-- Audited action-facing seat for `change_note_commitment` local 20. -/
 @[simp] theorem changeNoteCommitmentAt20
     (rho : Nat → DeployedF) :
-    ChangeNoteCommitmentValuation rho 20 = rho 1117 := by
+    ChangeNoteCommitmentValuation rho 20 = rho 1119 := by
   simp only [
-    ChangeNoteCommitmentValuation, Seg72.localRho,
+    ChangeNoteCommitmentValuation, Seg74.localRho,
     Deployed.Templates.seated]
-  rw [show Seg72.wireSeating 20 = 1117 by
+  rw [show Seg74.wireSeating 20 = 1119 by
     decide +kernel]
 
 /-- Audited action-facing seat for `change_note_commitment` local 26. -/
 @[simp] theorem changeNoteCommitmentAt26
     (rho : Nat → DeployedF) :
-    ChangeNoteCommitmentValuation rho 26 = rho 1480 := by
+    ChangeNoteCommitmentValuation rho 26 = rho 1482 := by
   simp only [
-    ChangeNoteCommitmentValuation, Seg72.localRho,
+    ChangeNoteCommitmentValuation, Seg74.localRho,
     Deployed.Templates.seated]
-  rw [show Seg72.wireSeating 26 = 1480 by
+  rw [show Seg74.wireSeating 26 = 1482 by
     decide +kernel]
 
 /-- Audited action-facing seat for `change_note_commitment` local 27. -/
 @[simp] theorem changeNoteCommitmentAt27
     (rho : Nat → DeployedF) :
-    ChangeNoteCommitmentValuation rho 27 = rho 1820 := by
+    ChangeNoteCommitmentValuation rho 27 = rho 1822 := by
   simp only [
-    ChangeNoteCommitmentValuation, Seg72.localRho,
+    ChangeNoteCommitmentValuation, Seg74.localRho,
     Deployed.Templates.seated]
-  rw [show Seg72.wireSeating 27 = 1820 by
+  rw [show Seg74.wireSeating 27 = 1822 by
     decide +kernel]
 
 /-- Audited action-facing seat for `change_note_commitment` local 372. -/
 @[simp] theorem changeNoteCommitmentAt372
     (rho : Nat → DeployedF) :
-    ChangeNoteCommitmentValuation rho 372 = rho 63657 := by
+    ChangeNoteCommitmentValuation rho 372 = rho 63741 := by
   simp only [
-    ChangeNoteCommitmentValuation, Seg72.localRho,
+    ChangeNoteCommitmentValuation, Seg74.localRho,
     Deployed.Templates.seated]
-  rw [show Seg72.wireSeating 372 = 63657 by
+  rw [show Seg74.wireSeating 372 = 63741 by
     decide +kernel]
 
 /-- Audited action-facing seat for `change_note_commitment` local 377. -/
 @[simp] theorem changeNoteCommitmentAt377
     (rho : Nat → DeployedF) :
-    ChangeNoteCommitmentValuation rho 377 = rho 63662 := by
+    ChangeNoteCommitmentValuation rho 377 = rho 63746 := by
   simp only [
-    ChangeNoteCommitmentValuation, Seg72.localRho,
+    ChangeNoteCommitmentValuation, Seg74.localRho,
     Deployed.Templates.seated]
-  rw [show Seg72.wireSeating 377 = 63662 by
+  rw [show Seg74.wireSeating 377 = 63746 by
     decide +kernel]
 
 /-- Audited action-facing seat for `change_note_commitment` local 382. -/
 @[simp] theorem changeNoteCommitmentAt382
     (rho : Nat → DeployedF) :
-    ChangeNoteCommitmentValuation rho 382 = rho 63667 := by
+    ChangeNoteCommitmentValuation rho 382 = rho 63751 := by
   simp only [
-    ChangeNoteCommitmentValuation, Seg72.localRho,
+    ChangeNoteCommitmentValuation, Seg74.localRho,
     Deployed.Templates.seated]
-  rw [show Seg72.wireSeating 382 = 63667 by
+  rw [show Seg74.wireSeating 382 = 63751 by
     decide +kernel]
 
 /-- Audited action-facing seat for `change_note_commitment` local 387. -/
 @[simp] theorem changeNoteCommitmentAt387
     (rho : Nat → DeployedF) :
-    ChangeNoteCommitmentValuation rho 387 = rho 63672 := by
+    ChangeNoteCommitmentValuation rho 387 = rho 63756 := by
   simp only [
-    ChangeNoteCommitmentValuation, Seg72.localRho,
+    ChangeNoteCommitmentValuation, Seg74.localRho,
     Deployed.Templates.seated]
-  rw [show Seg72.wireSeating 387 = 63672 by
+  rw [show Seg74.wireSeating 387 = 63756 by
     decide +kernel]
 
 /-- Audited action-facing seat for `change_note_commitment` local 392. -/
 @[simp] theorem changeNoteCommitmentAt392
     (rho : Nat → DeployedF) :
-    ChangeNoteCommitmentValuation rho 392 = rho 63677 := by
+    ChangeNoteCommitmentValuation rho 392 = rho 63761 := by
   simp only [
-    ChangeNoteCommitmentValuation, Seg72.localRho,
+    ChangeNoteCommitmentValuation, Seg74.localRho,
     Deployed.Templates.seated]
-  rw [show Seg72.wireSeating 392 = 63677 by
+  rw [show Seg74.wireSeating 392 = 63761 by
     decide +kernel]
 
 /-- Audited action-facing seat for `change_note_commitment` local 397. -/
 @[simp] theorem changeNoteCommitmentAt397
     (rho : Nat → DeployedF) :
-    ChangeNoteCommitmentValuation rho 397 = rho 63682 := by
+    ChangeNoteCommitmentValuation rho 397 = rho 63766 := by
   simp only [
-    ChangeNoteCommitmentValuation, Seg72.localRho,
+    ChangeNoteCommitmentValuation, Seg74.localRho,
     Deployed.Templates.seated]
-  rw [show Seg72.wireSeating 397 = 63682 by
+  rw [show Seg74.wireSeating 397 = 63766 by
     decide +kernel]
 
 /-- Deployed seating for the `change_note_assert` certified local semantics. -/
 def ChangeNoteAssertValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg73.localRho rho
+  Seg75.localRho rho
 
 /-- Certified local semantics for the `change_note_assert` source operation. -/
 def ChangeNoteAssertSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -7327,76 +7444,76 @@ def ChangeNoteAssertSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `change_note_assert` local 1. -/
 @[simp] theorem changeNoteAssertAt1
     (rho : Nat → DeployedF) :
-    ChangeNoteAssertValuation rho 1 = rho 63657 := by
+    ChangeNoteAssertValuation rho 1 = rho 63741 := by
   simp only [
-    ChangeNoteAssertValuation, Seg73.localRho,
+    ChangeNoteAssertValuation, Seg75.localRho,
     Deployed.Templates.seated]
-  rw [show Seg73.wireSeating 1 = 63657 by
+  rw [show Seg75.wireSeating 1 = 63741 by
     decide +kernel]
 
 /-- Audited action-facing seat for `change_note_assert` local 2. -/
 @[simp] theorem changeNoteAssertAt2
     (rho : Nat → DeployedF) :
-    ChangeNoteAssertValuation rho 2 = rho 63662 := by
+    ChangeNoteAssertValuation rho 2 = rho 63746 := by
   simp only [
-    ChangeNoteAssertValuation, Seg73.localRho,
+    ChangeNoteAssertValuation, Seg75.localRho,
     Deployed.Templates.seated]
-  rw [show Seg73.wireSeating 2 = 63662 by
+  rw [show Seg75.wireSeating 2 = 63746 by
     decide +kernel]
 
 /-- Audited action-facing seat for `change_note_assert` local 3. -/
 @[simp] theorem changeNoteAssertAt3
     (rho : Nat → DeployedF) :
-    ChangeNoteAssertValuation rho 3 = rho 63667 := by
+    ChangeNoteAssertValuation rho 3 = rho 63751 := by
   simp only [
-    ChangeNoteAssertValuation, Seg73.localRho,
+    ChangeNoteAssertValuation, Seg75.localRho,
     Deployed.Templates.seated]
-  rw [show Seg73.wireSeating 3 = 63667 by
+  rw [show Seg75.wireSeating 3 = 63751 by
     decide +kernel]
 
 /-- Audited action-facing seat for `change_note_assert` local 4. -/
 @[simp] theorem changeNoteAssertAt4
     (rho : Nat → DeployedF) :
-    ChangeNoteAssertValuation rho 4 = rho 63672 := by
+    ChangeNoteAssertValuation rho 4 = rho 63756 := by
   simp only [
-    ChangeNoteAssertValuation, Seg73.localRho,
+    ChangeNoteAssertValuation, Seg75.localRho,
     Deployed.Templates.seated]
-  rw [show Seg73.wireSeating 4 = 63672 by
+  rw [show Seg75.wireSeating 4 = 63756 by
     decide +kernel]
 
 /-- Audited action-facing seat for `change_note_assert` local 5. -/
 @[simp] theorem changeNoteAssertAt5
     (rho : Nat → DeployedF) :
-    ChangeNoteAssertValuation rho 5 = rho 63677 := by
+    ChangeNoteAssertValuation rho 5 = rho 63761 := by
   simp only [
-    ChangeNoteAssertValuation, Seg73.localRho,
+    ChangeNoteAssertValuation, Seg75.localRho,
     Deployed.Templates.seated]
-  rw [show Seg73.wireSeating 5 = 63677 by
+  rw [show Seg75.wireSeating 5 = 63761 by
     decide +kernel]
 
 /-- Audited action-facing seat for `change_note_assert` local 6. -/
 @[simp] theorem changeNoteAssertAt6
     (rho : Nat → DeployedF) :
-    ChangeNoteAssertValuation rho 6 = rho 63682 := by
+    ChangeNoteAssertValuation rho 6 = rho 63766 := by
   simp only [
-    ChangeNoteAssertValuation, Seg73.localRho,
+    ChangeNoteAssertValuation, Seg75.localRho,
     Deployed.Templates.seated]
-  rw [show Seg73.wireSeating 6 = 63682 by
+  rw [show Seg75.wireSeating 6 = 63766 by
     decide +kernel]
 
 /-- Audited action-facing seat for `change_note_assert` local 7. -/
 @[simp] theorem changeNoteAssertAt7
     (rho : Nat → DeployedF) :
-    ChangeNoteAssertValuation rho 7 = rho 401 := by
+    ChangeNoteAssertValuation rho 7 = rho 403 := by
   simp only [
-    ChangeNoteAssertValuation, Seg73.localRho,
+    ChangeNoteAssertValuation, Seg75.localRho,
     Deployed.Templates.seated]
-  rw [show Seg73.wireSeating 7 = 401 by
+  rw [show Seg75.wireSeating 7 = 403 by
     decide +kernel]
 
 /-- Deployed seating for the `routing_precision_select` certified local semantics. -/
 def RoutingPrecisionSelectValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg74.localRho rho
+  Seg76.localRho rho
 
 /-- Certified local semantics for the `routing_precision_select` source operation. -/
 def RoutingPrecisionSelectSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -7404,7 +7521,7 @@ def RoutingPrecisionSelectSemanticSpec (rho : Nat → DeployedF) : Prop :=
 
 /-- Deployed seating for the `routing_parameters_hash` certified local semantics. -/
 def RoutingParametersHashValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg75.localRho rho
+  Seg77.localRho rho
 
 /-- Certified local semantics for the `routing_parameters_hash` source operation. -/
 def RoutingParametersHashSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -7412,7 +7529,7 @@ def RoutingParametersHashSemanticSpec (rho : Nat → DeployedF) : Prop :=
 
 /-- Deployed seating for the `routing_parameters_bind` certified local semantics. -/
 def RoutingParametersBindValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg76.localRho rho
+  Seg78.localRho rho
 
 /-- Certified local semantics for the `routing_parameters_bind` source operation. -/
 def RoutingParametersBindSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -7420,7 +7537,7 @@ def RoutingParametersBindSemanticSpec (rho : Nat → DeployedF) : Prop :=
 
 /-- Deployed seating for the `routing_sender_route_word` certified local semantics. -/
 def RoutingSenderRouteWordValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg77.localRho rho
+  Seg79.localRho rho
 
 /-- Certified local semantics for the `routing_sender_route_word` source operation. -/
 def RoutingSenderRouteWordSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -7428,7 +7545,7 @@ def RoutingSenderRouteWordSemanticSpec (rho : Nat → DeployedF) : Prop :=
 
 /-- Deployed seating for the `routing_receiver_route_word` certified local semantics. -/
 def RoutingReceiverRouteWordValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg78.localRho rho
+  Seg80.localRho rho
 
 /-- Certified local semantics for the `routing_receiver_route_word` source operation. -/
 def RoutingReceiverRouteWordSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -7436,7 +7553,7 @@ def RoutingReceiverRouteWordSemanticSpec (rho : Nat → DeployedF) : Prop :=
 
 /-- Deployed seating for the `routing_permutation_hash` certified local semantics. -/
 def RoutingPermutationHashValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg79.localRho rho
+  Seg81.localRho rho
 
 /-- Certified local semantics for the `routing_permutation_hash` source operation. -/
 def RoutingPermutationHashSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -7444,7 +7561,7 @@ def RoutingPermutationHashSemanticSpec (rho : Nat → DeployedF) : Prop :=
 
 /-- Deployed seating for the `routing_permutation_compose` certified local semantics. -/
 def RoutingPermutationComposeValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg80.localRho rho
+  Seg82.localRho rho
 
 /-- Certified local semantics for the `routing_permutation_compose` source operation. -/
 def RoutingPermutationComposeSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -7452,7 +7569,7 @@ def RoutingPermutationComposeSemanticSpec (rho : Nat → DeployedF) : Prop :=
 
 /-- Deployed seating for the `routing_tag0_public_range` certified local semantics. -/
 def RoutingTag0PublicRangeValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg81.localRho rho
+  Seg83.localRho rho
 
 /-- Certified local semantics for the `routing_tag0_public_range` source operation. -/
 def RoutingTag0PublicRangeSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -7460,7 +7577,7 @@ def RoutingTag0PublicRangeSemanticSpec (rho : Nat → DeployedF) : Prop :=
 
 /-- Deployed seating for the `routing_tag0_route_bits` certified local semantics. -/
 def RoutingTag0RouteBitsValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg82.localRho rho
+  Seg84.localRho rho
 
 /-- Certified local semantics for the `routing_tag0_route_bits` source operation. -/
 def RoutingTag0RouteBitsSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -7468,7 +7585,7 @@ def RoutingTag0RouteBitsSemanticSpec (rho : Nat → DeployedF) : Prop :=
 
 /-- Deployed seating for the `routing_tag0_random_word` certified local semantics. -/
 def RoutingTag0RandomWordValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg83.localRho rho
+  Seg85.localRho rho
 
 /-- Certified local semantics for the `routing_tag0_random_word` source operation. -/
 def RoutingTag0RandomWordSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -7476,7 +7593,7 @@ def RoutingTag0RandomWordSemanticSpec (rho : Nat → DeployedF) : Prop :=
 
 /-- Deployed seating for the `routing_tag0_compose` certified local semantics. -/
 def RoutingTag0ComposeValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg84.localRho rho
+  Seg86.localRho rho
 
 /-- Certified local semantics for the `routing_tag0_compose` source operation. -/
 def RoutingTag0ComposeSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -7484,7 +7601,7 @@ def RoutingTag0ComposeSemanticSpec (rho : Nat → DeployedF) : Prop :=
 
 /-- Deployed seating for the `routing_tag1_public_range` certified local semantics. -/
 def RoutingTag1PublicRangeValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg85.localRho rho
+  Seg87.localRho rho
 
 /-- Certified local semantics for the `routing_tag1_public_range` source operation. -/
 def RoutingTag1PublicRangeSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -7492,7 +7609,7 @@ def RoutingTag1PublicRangeSemanticSpec (rho : Nat → DeployedF) : Prop :=
 
 /-- Deployed seating for the `routing_tag1_route_bits` certified local semantics. -/
 def RoutingTag1RouteBitsValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg86.localRho rho
+  Seg88.localRho rho
 
 /-- Certified local semantics for the `routing_tag1_route_bits` source operation. -/
 def RoutingTag1RouteBitsSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -7500,7 +7617,7 @@ def RoutingTag1RouteBitsSemanticSpec (rho : Nat → DeployedF) : Prop :=
 
 /-- Deployed seating for the `routing_tag1_random_word` certified local semantics. -/
 def RoutingTag1RandomWordValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg87.localRho rho
+  Seg89.localRho rho
 
 /-- Certified local semantics for the `routing_tag1_random_word` source operation. -/
 def RoutingTag1RandomWordSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -7508,7 +7625,7 @@ def RoutingTag1RandomWordSemanticSpec (rho : Nat → DeployedF) : Prop :=
 
 /-- Deployed seating for the `routing_tag1_compose` certified local semantics. -/
 def RoutingTag1ComposeValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg88.localRho rho
+  Seg90.localRho rho
 
 /-- Certified local semantics for the `routing_tag1_compose` source operation. -/
 def RoutingTag1ComposeSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -7516,7 +7633,7 @@ def RoutingTag1ComposeSemanticSpec (rho : Nat → DeployedF) : Prop :=
 
 /-- Deployed seating for the `threshold_flag` certified local semantics. -/
 def ThresholdFlagValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg91.localRho rho
+  Seg93.localRho rho
 
 /-- Certified local semantics for the `threshold_flag` source operation. -/
 def ThresholdFlagSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -7525,11 +7642,11 @@ def ThresholdFlagSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `threshold_flag` local 129. -/
 @[simp] theorem thresholdFlagAt129
     (rho : Nat → DeployedF) :
-    ThresholdFlagValuation rho 129 = rho 344 := by
+    ThresholdFlagValuation rho 129 = rho 345 := by
   simp only [
-    ThresholdFlagValuation, Seg91.localRho,
+    ThresholdFlagValuation, Seg93.localRho,
     Deployed.Templates.seated]
-  rw [show Seg91.wireSeating 129 = 344 by
+  rw [show Seg93.wireSeating 129 = 345 by
     decide +kernel]
 
 /-- Audited action-facing seat for `threshold_flag` local 258. -/
@@ -7537,9 +7654,9 @@ def ThresholdFlagSemanticSpec (rho : Nat → DeployedF) : Prop :=
     (rho : Nat → DeployedF) :
     ThresholdFlagValuation rho 258 = rho 25 := by
   simp only [
-    ThresholdFlagValuation, Seg91.localRho,
+    ThresholdFlagValuation, Seg93.localRho,
     Deployed.Templates.seated]
-  rw [show Seg91.wireSeating 258 = 25 by
+  rw [show Seg93.wireSeating 258 = 25 by
     decide +kernel]
 
 /-- Audited action-facing seat for `threshold_flag` local 896. -/
@@ -7547,24 +7664,24 @@ def ThresholdFlagSemanticSpec (rho : Nat → DeployedF) : Prop :=
     (rho : Nat → DeployedF) :
     ThresholdFlagValuation rho 896 = rho 11 := by
   simp only [
-    ThresholdFlagValuation, Seg91.localRho,
+    ThresholdFlagValuation, Seg93.localRho,
     Deployed.Templates.seated]
-  rw [show Seg91.wireSeating 896 = 11 by
+  rw [show Seg93.wireSeating 896 = 11 by
     decide +kernel]
 
 /-- Audited action-facing seat for `threshold_flag` local 897. -/
 @[simp] theorem thresholdFlagAt897
     (rho : Nat → DeployedF) :
-    ThresholdFlagValuation rho 897 = rho 68693 := by
+    ThresholdFlagValuation rho 897 = rho 68777 := by
   simp only [
-    ThresholdFlagValuation, Seg91.localRho,
+    ThresholdFlagValuation, Seg93.localRho,
     Deployed.Templates.seated]
-  rw [show Seg91.wireSeating 897 = 68693 by
+  rw [show Seg93.wireSeating 897 = 68777 by
     decide +kernel]
 
 /-- Deployed seating for the `sender_core_epk_compress` certified local semantics. -/
 def SenderCoreEpkCompressValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg92.localRho rho
+  Seg94.localRho rho
 
 /-- Certified local semantics for the `sender_core_epk_compress` source operation. -/
 def SenderCoreEpkCompressSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -7573,46 +7690,46 @@ def SenderCoreEpkCompressSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `sender_core_epk_compress` local 1. -/
 @[simp] theorem senderCoreEpkCompressAt1
     (rho : Nat → DeployedF) :
-    SenderCoreEpkCompressValuation rho 1 = rho 159 := by
+    SenderCoreEpkCompressValuation rho 1 = rho 160 := by
   simp only [
-    SenderCoreEpkCompressValuation, Seg92.localRho,
+    SenderCoreEpkCompressValuation, Seg94.localRho,
     Deployed.Templates.seated]
-  rw [show Seg92.wireSeating 1 = 159 by
+  rw [show Seg94.wireSeating 1 = 160 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_core_epk_compress` local 3. -/
 @[simp] theorem senderCoreEpkCompressAt3
     (rho : Nat → DeployedF) :
-    SenderCoreEpkCompressValuation rho 3 = rho 160 := by
+    SenderCoreEpkCompressValuation rho 3 = rho 161 := by
   simp only [
-    SenderCoreEpkCompressValuation, Seg92.localRho,
+    SenderCoreEpkCompressValuation, Seg94.localRho,
     Deployed.Templates.seated]
-  rw [show Seg92.wireSeating 3 = 160 by
+  rw [show Seg94.wireSeating 3 = 161 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_core_epk_compress` local 365. -/
 @[simp] theorem senderCoreEpkCompressAt365
     (rho : Nat → DeployedF) :
-    SenderCoreEpkCompressValuation rho 365 = rho 69056 := by
+    SenderCoreEpkCompressValuation rho 365 = rho 69140 := by
   simp only [
-    SenderCoreEpkCompressValuation, Seg92.localRho,
+    SenderCoreEpkCompressValuation, Seg94.localRho,
     Deployed.Templates.seated]
-  rw [show Seg92.wireSeating 365 = 69056 by
+  rw [show Seg94.wireSeating 365 = 69140 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_core_epk_compress` local 705. -/
 @[simp] theorem senderCoreEpkCompressAt705
     (rho : Nat → DeployedF) :
-    SenderCoreEpkCompressValuation rho 705 = rho 69396 := by
+    SenderCoreEpkCompressValuation rho 705 = rho 69480 := by
   simp only [
-    SenderCoreEpkCompressValuation, Seg92.localRho,
+    SenderCoreEpkCompressValuation, Seg94.localRho,
     Deployed.Templates.seated]
-  rw [show Seg92.wireSeating 705 = 69396 by
+  rw [show Seg94.wireSeating 705 = 69480 by
     decide +kernel]
 
 /-- Deployed seating for the `sender_ext_epk_compress` certified local semantics. -/
 def SenderExtEpkCompressValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg93.localRho rho
+  Seg95.localRho rho
 
 /-- Certified local semantics for the `sender_ext_epk_compress` source operation. -/
 def SenderExtEpkCompressSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -7621,46 +7738,46 @@ def SenderExtEpkCompressSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `sender_ext_epk_compress` local 1. -/
 @[simp] theorem senderExtEpkCompressAt1
     (rho : Nat → DeployedF) :
-    SenderExtEpkCompressValuation rho 1 = rho 163 := by
+    SenderExtEpkCompressValuation rho 1 = rho 164 := by
   simp only [
-    SenderExtEpkCompressValuation, Seg93.localRho,
+    SenderExtEpkCompressValuation, Seg95.localRho,
     Deployed.Templates.seated]
-  rw [show Seg93.wireSeating 1 = 163 by
+  rw [show Seg95.wireSeating 1 = 164 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_ext_epk_compress` local 3. -/
 @[simp] theorem senderExtEpkCompressAt3
     (rho : Nat → DeployedF) :
-    SenderExtEpkCompressValuation rho 3 = rho 164 := by
+    SenderExtEpkCompressValuation rho 3 = rho 165 := by
   simp only [
-    SenderExtEpkCompressValuation, Seg93.localRho,
+    SenderExtEpkCompressValuation, Seg95.localRho,
     Deployed.Templates.seated]
-  rw [show Seg93.wireSeating 3 = 164 by
+  rw [show Seg95.wireSeating 3 = 165 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_ext_epk_compress` local 365. -/
 @[simp] theorem senderExtEpkCompressAt365
     (rho : Nat → DeployedF) :
-    SenderExtEpkCompressValuation rho 365 = rho 69759 := by
+    SenderExtEpkCompressValuation rho 365 = rho 69843 := by
   simp only [
-    SenderExtEpkCompressValuation, Seg93.localRho,
+    SenderExtEpkCompressValuation, Seg95.localRho,
     Deployed.Templates.seated]
-  rw [show Seg93.wireSeating 365 = 69759 by
+  rw [show Seg95.wireSeating 365 = 69843 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_ext_epk_compress` local 705. -/
 @[simp] theorem senderExtEpkCompressAt705
     (rho : Nat → DeployedF) :
-    SenderExtEpkCompressValuation rho 705 = rho 70099 := by
+    SenderExtEpkCompressValuation rho 705 = rho 70183 := by
   simp only [
-    SenderExtEpkCompressValuation, Seg93.localRho,
+    SenderExtEpkCompressValuation, Seg95.localRho,
     Deployed.Templates.seated]
-  rw [show Seg93.wireSeating 705 = 70099 by
+  rw [show Seg95.wireSeating 705 = 70183 by
     decide +kernel]
 
 /-- Deployed seating for the `output_core_epk_compress` certified local semantics. -/
 def OutputCoreEpkCompressValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg94.localRho rho
+  Seg96.localRho rho
 
 /-- Certified local semantics for the `output_core_epk_compress` source operation. -/
 def OutputCoreEpkCompressSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -7669,46 +7786,46 @@ def OutputCoreEpkCompressSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `output_core_epk_compress` local 1. -/
 @[simp] theorem outputCoreEpkCompressAt1
     (rho : Nat → DeployedF) :
-    OutputCoreEpkCompressValuation rho 1 = rho 169 := by
+    OutputCoreEpkCompressValuation rho 1 = rho 170 := by
   simp only [
-    OutputCoreEpkCompressValuation, Seg94.localRho,
+    OutputCoreEpkCompressValuation, Seg96.localRho,
     Deployed.Templates.seated]
-  rw [show Seg94.wireSeating 1 = 169 by
+  rw [show Seg96.wireSeating 1 = 170 by
     decide +kernel]
 
 /-- Audited action-facing seat for `output_core_epk_compress` local 3. -/
 @[simp] theorem outputCoreEpkCompressAt3
     (rho : Nat → DeployedF) :
-    OutputCoreEpkCompressValuation rho 3 = rho 170 := by
+    OutputCoreEpkCompressValuation rho 3 = rho 171 := by
   simp only [
-    OutputCoreEpkCompressValuation, Seg94.localRho,
+    OutputCoreEpkCompressValuation, Seg96.localRho,
     Deployed.Templates.seated]
-  rw [show Seg94.wireSeating 3 = 170 by
+  rw [show Seg96.wireSeating 3 = 171 by
     decide +kernel]
 
 /-- Audited action-facing seat for `output_core_epk_compress` local 365. -/
 @[simp] theorem outputCoreEpkCompressAt365
     (rho : Nat → DeployedF) :
-    OutputCoreEpkCompressValuation rho 365 = rho 70462 := by
+    OutputCoreEpkCompressValuation rho 365 = rho 70546 := by
   simp only [
-    OutputCoreEpkCompressValuation, Seg94.localRho,
+    OutputCoreEpkCompressValuation, Seg96.localRho,
     Deployed.Templates.seated]
-  rw [show Seg94.wireSeating 365 = 70462 by
+  rw [show Seg96.wireSeating 365 = 70546 by
     decide +kernel]
 
 /-- Audited action-facing seat for `output_core_epk_compress` local 705. -/
 @[simp] theorem outputCoreEpkCompressAt705
     (rho : Nat → DeployedF) :
-    OutputCoreEpkCompressValuation rho 705 = rho 70802 := by
+    OutputCoreEpkCompressValuation rho 705 = rho 70886 := by
   simp only [
-    OutputCoreEpkCompressValuation, Seg94.localRho,
+    OutputCoreEpkCompressValuation, Seg96.localRho,
     Deployed.Templates.seated]
-  rw [show Seg94.wireSeating 705 = 70802 by
+  rw [show Seg96.wireSeating 705 = 70886 by
     decide +kernel]
 
 /-- Deployed seating for the `output_ext_epk_compress` certified local semantics. -/
 def OutputExtEpkCompressValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg95.localRho rho
+  Seg97.localRho rho
 
 /-- Certified local semantics for the `output_ext_epk_compress` source operation. -/
 def OutputExtEpkCompressSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -7717,46 +7834,46 @@ def OutputExtEpkCompressSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `output_ext_epk_compress` local 1. -/
 @[simp] theorem outputExtEpkCompressAt1
     (rho : Nat → DeployedF) :
-    OutputExtEpkCompressValuation rho 1 = rho 173 := by
+    OutputExtEpkCompressValuation rho 1 = rho 174 := by
   simp only [
-    OutputExtEpkCompressValuation, Seg95.localRho,
+    OutputExtEpkCompressValuation, Seg97.localRho,
     Deployed.Templates.seated]
-  rw [show Seg95.wireSeating 1 = 173 by
+  rw [show Seg97.wireSeating 1 = 174 by
     decide +kernel]
 
 /-- Audited action-facing seat for `output_ext_epk_compress` local 3. -/
 @[simp] theorem outputExtEpkCompressAt3
     (rho : Nat → DeployedF) :
-    OutputExtEpkCompressValuation rho 3 = rho 174 := by
+    OutputExtEpkCompressValuation rho 3 = rho 175 := by
   simp only [
-    OutputExtEpkCompressValuation, Seg95.localRho,
+    OutputExtEpkCompressValuation, Seg97.localRho,
     Deployed.Templates.seated]
-  rw [show Seg95.wireSeating 3 = 174 by
+  rw [show Seg97.wireSeating 3 = 175 by
     decide +kernel]
 
 /-- Audited action-facing seat for `output_ext_epk_compress` local 365. -/
 @[simp] theorem outputExtEpkCompressAt365
     (rho : Nat → DeployedF) :
-    OutputExtEpkCompressValuation rho 365 = rho 71165 := by
+    OutputExtEpkCompressValuation rho 365 = rho 71249 := by
   simp only [
-    OutputExtEpkCompressValuation, Seg95.localRho,
+    OutputExtEpkCompressValuation, Seg97.localRho,
     Deployed.Templates.seated]
-  rw [show Seg95.wireSeating 365 = 71165 by
+  rw [show Seg97.wireSeating 365 = 71249 by
     decide +kernel]
 
 /-- Audited action-facing seat for `output_ext_epk_compress` local 705. -/
 @[simp] theorem outputExtEpkCompressAt705
     (rho : Nat → DeployedF) :
-    OutputExtEpkCompressValuation rho 705 = rho 71505 := by
+    OutputExtEpkCompressValuation rho 705 = rho 71589 := by
   simp only [
-    OutputExtEpkCompressValuation, Seg95.localRho,
+    OutputExtEpkCompressValuation, Seg97.localRho,
     Deployed.Templates.seated]
-  rw [show Seg95.wireSeating 705 = 71505 by
+  rw [show Seg97.wireSeating 705 = 71589 by
     decide +kernel]
 
 /-- Deployed seating for the `salt0` certified local semantics. -/
 def Salt0Valuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg96.localRho rho
+  Seg98.localRho rho
 
 /-- Certified local semantics for the `salt0` source operation. -/
 def Salt0SemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -7765,46 +7882,46 @@ def Salt0SemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `salt0` local 1. -/
 @[simp] theorem salt0At1
     (rho : Nat → DeployedF) :
-    Salt0Valuation rho 1 = rho 139 := by
+    Salt0Valuation rho 1 = rho 140 := by
   simp only [
-    Salt0Valuation, Seg96.localRho,
+    Salt0Valuation, Seg98.localRho,
     Deployed.Templates.seated]
-  rw [show Seg96.wireSeating 1 = 139 by
+  rw [show Seg98.wireSeating 1 = 140 by
     decide +kernel]
 
 /-- Audited action-facing seat for `salt0` local 256. -/
 @[simp] theorem salt0At256
     (rho : Nat → DeployedF) :
-    Salt0Valuation rho 256 = rho 71760 := by
+    Salt0Valuation rho 256 = rho 71844 := by
   simp only [
-    Salt0Valuation, Seg96.localRho,
+    Salt0Valuation, Seg98.localRho,
     Deployed.Templates.seated]
-  rw [show Seg96.wireSeating 256 = 71760 by
+  rw [show Seg98.wireSeating 256 = 71844 by
     decide +kernel]
 
 /-- Audited action-facing seat for `salt0` local 261. -/
 @[simp] theorem salt0At261
     (rho : Nat → DeployedF) :
-    Salt0Valuation rho 261 = rho 71765 := by
+    Salt0Valuation rho 261 = rho 71849 := by
   simp only [
-    Salt0Valuation, Seg96.localRho,
+    Salt0Valuation, Seg98.localRho,
     Deployed.Templates.seated]
-  rw [show Seg96.wireSeating 261 = 71765 by
+  rw [show Seg98.wireSeating 261 = 71849 by
     decide +kernel]
 
 /-- Audited action-facing seat for `salt0` local 266. -/
 @[simp] theorem salt0At266
     (rho : Nat → DeployedF) :
-    Salt0Valuation rho 266 = rho 71770 := by
+    Salt0Valuation rho 266 = rho 71854 := by
   simp only [
-    Salt0Valuation, Seg96.localRho,
+    Salt0Valuation, Seg98.localRho,
     Deployed.Templates.seated]
-  rw [show Seg96.wireSeating 266 = 71770 by
+  rw [show Seg98.wireSeating 266 = 71854 by
     decide +kernel]
 
 /-- Deployed seating for the `salt1` certified local semantics. -/
 def Salt1Valuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg97.localRho rho
+  Seg99.localRho rho
 
 /-- Certified local semantics for the `salt1` source operation. -/
 def Salt1SemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -7813,46 +7930,46 @@ def Salt1SemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `salt1` local 1. -/
 @[simp] theorem salt1At1
     (rho : Nat → DeployedF) :
-    Salt1Valuation rho 1 = rho 139 := by
+    Salt1Valuation rho 1 = rho 140 := by
   simp only [
-    Salt1Valuation, Seg97.localRho,
+    Salt1Valuation, Seg99.localRho,
     Deployed.Templates.seated]
-  rw [show Seg97.wireSeating 1 = 139 by
+  rw [show Seg99.wireSeating 1 = 140 by
     decide +kernel]
 
 /-- Audited action-facing seat for `salt1` local 256. -/
 @[simp] theorem salt1At256
     (rho : Nat → DeployedF) :
-    Salt1Valuation rho 256 = rho 72025 := by
+    Salt1Valuation rho 256 = rho 72109 := by
   simp only [
-    Salt1Valuation, Seg97.localRho,
+    Salt1Valuation, Seg99.localRho,
     Deployed.Templates.seated]
-  rw [show Seg97.wireSeating 256 = 72025 by
+  rw [show Seg99.wireSeating 256 = 72109 by
     decide +kernel]
 
 /-- Audited action-facing seat for `salt1` local 261. -/
 @[simp] theorem salt1At261
     (rho : Nat → DeployedF) :
-    Salt1Valuation rho 261 = rho 72030 := by
+    Salt1Valuation rho 261 = rho 72114 := by
   simp only [
-    Salt1Valuation, Seg97.localRho,
+    Salt1Valuation, Seg99.localRho,
     Deployed.Templates.seated]
-  rw [show Seg97.wireSeating 261 = 72030 by
+  rw [show Seg99.wireSeating 261 = 72114 by
     decide +kernel]
 
 /-- Audited action-facing seat for `salt1` local 266. -/
 @[simp] theorem salt1At266
     (rho : Nat → DeployedF) :
-    Salt1Valuation rho 266 = rho 72035 := by
+    Salt1Valuation rho 266 = rho 72119 := by
   simp only [
-    Salt1Valuation, Seg97.localRho,
+    Salt1Valuation, Seg99.localRho,
     Deployed.Templates.seated]
-  rw [show Seg97.wireSeating 266 = 72035 by
+  rw [show Seg99.wireSeating 266 = 72119 by
     decide +kernel]
 
 /-- Deployed seating for the `salt2` certified local semantics. -/
 def Salt2Valuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg98.localRho rho
+  Seg100.localRho rho
 
 /-- Certified local semantics for the `salt2` source operation. -/
 def Salt2SemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -7861,46 +7978,46 @@ def Salt2SemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `salt2` local 1. -/
 @[simp] theorem salt2At1
     (rho : Nat → DeployedF) :
-    Salt2Valuation rho 1 = rho 139 := by
+    Salt2Valuation rho 1 = rho 140 := by
   simp only [
-    Salt2Valuation, Seg98.localRho,
+    Salt2Valuation, Seg100.localRho,
     Deployed.Templates.seated]
-  rw [show Seg98.wireSeating 1 = 139 by
+  rw [show Seg100.wireSeating 1 = 140 by
     decide +kernel]
 
 /-- Audited action-facing seat for `salt2` local 256. -/
 @[simp] theorem salt2At256
     (rho : Nat → DeployedF) :
-    Salt2Valuation rho 256 = rho 72290 := by
+    Salt2Valuation rho 256 = rho 72374 := by
   simp only [
-    Salt2Valuation, Seg98.localRho,
+    Salt2Valuation, Seg100.localRho,
     Deployed.Templates.seated]
-  rw [show Seg98.wireSeating 256 = 72290 by
+  rw [show Seg100.wireSeating 256 = 72374 by
     decide +kernel]
 
 /-- Audited action-facing seat for `salt2` local 261. -/
 @[simp] theorem salt2At261
     (rho : Nat → DeployedF) :
-    Salt2Valuation rho 261 = rho 72295 := by
+    Salt2Valuation rho 261 = rho 72379 := by
   simp only [
-    Salt2Valuation, Seg98.localRho,
+    Salt2Valuation, Seg100.localRho,
     Deployed.Templates.seated]
-  rw [show Seg98.wireSeating 261 = 72295 by
+  rw [show Seg100.wireSeating 261 = 72379 by
     decide +kernel]
 
 /-- Audited action-facing seat for `salt2` local 266. -/
 @[simp] theorem salt2At266
     (rho : Nat → DeployedF) :
-    Salt2Valuation rho 266 = rho 72300 := by
+    Salt2Valuation rho 266 = rho 72384 := by
   simp only [
-    Salt2Valuation, Seg98.localRho,
+    Salt2Valuation, Seg100.localRho,
     Deployed.Templates.seated]
-  rw [show Seg98.wireSeating 266 = 72300 by
+  rw [show Seg100.wireSeating 266 = 72384 by
     decide +kernel]
 
 /-- Deployed seating for the `salt3` certified local semantics. -/
 def Salt3Valuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg99.localRho rho
+  Seg101.localRho rho
 
 /-- Certified local semantics for the `salt3` source operation. -/
 def Salt3SemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -7909,46 +8026,46 @@ def Salt3SemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `salt3` local 1. -/
 @[simp] theorem salt3At1
     (rho : Nat → DeployedF) :
-    Salt3Valuation rho 1 = rho 139 := by
+    Salt3Valuation rho 1 = rho 140 := by
   simp only [
-    Salt3Valuation, Seg99.localRho,
+    Salt3Valuation, Seg101.localRho,
     Deployed.Templates.seated]
-  rw [show Seg99.wireSeating 1 = 139 by
+  rw [show Seg101.wireSeating 1 = 140 by
     decide +kernel]
 
 /-- Audited action-facing seat for `salt3` local 256. -/
 @[simp] theorem salt3At256
     (rho : Nat → DeployedF) :
-    Salt3Valuation rho 256 = rho 72555 := by
+    Salt3Valuation rho 256 = rho 72639 := by
   simp only [
-    Salt3Valuation, Seg99.localRho,
+    Salt3Valuation, Seg101.localRho,
     Deployed.Templates.seated]
-  rw [show Seg99.wireSeating 256 = 72555 by
+  rw [show Seg101.wireSeating 256 = 72639 by
     decide +kernel]
 
 /-- Audited action-facing seat for `salt3` local 261. -/
 @[simp] theorem salt3At261
     (rho : Nat → DeployedF) :
-    Salt3Valuation rho 261 = rho 72560 := by
+    Salt3Valuation rho 261 = rho 72644 := by
   simp only [
-    Salt3Valuation, Seg99.localRho,
+    Salt3Valuation, Seg101.localRho,
     Deployed.Templates.seated]
-  rw [show Seg99.wireSeating 261 = 72560 by
+  rw [show Seg101.wireSeating 261 = 72644 by
     decide +kernel]
 
 /-- Audited action-facing seat for `salt3` local 266. -/
 @[simp] theorem salt3At266
     (rho : Nat → DeployedF) :
-    Salt3Valuation rho 266 = rho 72565 := by
+    Salt3Valuation rho 266 = rho 72649 := by
   simp only [
-    Salt3Valuation, Seg99.localRho,
+    Salt3Valuation, Seg101.localRho,
     Deployed.Templates.seated]
-  rw [show Seg99.wireSeating 266 = 72565 by
+  rw [show Seg101.wireSeating 266 = 72649 by
     decide +kernel]
 
 /-- Deployed seating for the `salt4` certified local semantics. -/
 def Salt4Valuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg100.localRho rho
+  Seg102.localRho rho
 
 /-- Certified local semantics for the `salt4` source operation. -/
 def Salt4SemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -7957,46 +8074,46 @@ def Salt4SemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `salt4` local 1. -/
 @[simp] theorem salt4At1
     (rho : Nat → DeployedF) :
-    Salt4Valuation rho 1 = rho 139 := by
+    Salt4Valuation rho 1 = rho 140 := by
   simp only [
-    Salt4Valuation, Seg100.localRho,
+    Salt4Valuation, Seg102.localRho,
     Deployed.Templates.seated]
-  rw [show Seg100.wireSeating 1 = 139 by
+  rw [show Seg102.wireSeating 1 = 140 by
     decide +kernel]
 
 /-- Audited action-facing seat for `salt4` local 256. -/
 @[simp] theorem salt4At256
     (rho : Nat → DeployedF) :
-    Salt4Valuation rho 256 = rho 72820 := by
+    Salt4Valuation rho 256 = rho 72904 := by
   simp only [
-    Salt4Valuation, Seg100.localRho,
+    Salt4Valuation, Seg102.localRho,
     Deployed.Templates.seated]
-  rw [show Seg100.wireSeating 256 = 72820 by
+  rw [show Seg102.wireSeating 256 = 72904 by
     decide +kernel]
 
 /-- Audited action-facing seat for `salt4` local 261. -/
 @[simp] theorem salt4At261
     (rho : Nat → DeployedF) :
-    Salt4Valuation rho 261 = rho 72825 := by
+    Salt4Valuation rho 261 = rho 72909 := by
   simp only [
-    Salt4Valuation, Seg100.localRho,
+    Salt4Valuation, Seg102.localRho,
     Deployed.Templates.seated]
-  rw [show Seg100.wireSeating 261 = 72825 by
+  rw [show Seg102.wireSeating 261 = 72909 by
     decide +kernel]
 
 /-- Audited action-facing seat for `salt4` local 266. -/
 @[simp] theorem salt4At266
     (rho : Nat → DeployedF) :
-    Salt4Valuation rho 266 = rho 72830 := by
+    Salt4Valuation rho 266 = rho 72914 := by
   simp only [
-    Salt4Valuation, Seg100.localRho,
+    Salt4Valuation, Seg102.localRho,
     Deployed.Templates.seated]
-  rw [show Seg100.wireSeating 266 = 72830 by
+  rw [show Seg102.wireSeating 266 = 72914 by
     decide +kernel]
 
 /-- Deployed seating for the `sender_core_shared_secret` certified local semantics. -/
 def SenderCoreSharedSecretValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg101.localRho rho
+  Seg103.localRho rho
 
 /-- Certified local semantics for the `sender_core_shared_secret` source operation. -/
 def SenderCoreSharedSecretSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -8005,66 +8122,66 @@ def SenderCoreSharedSecretSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `sender_core_shared_secret` local 1. -/
 @[simp] theorem senderCoreSharedSecretAt1
     (rho : Nat → DeployedF) :
-    SenderCoreSharedSecretValuation rho 1 = rho 68693 := by
+    SenderCoreSharedSecretValuation rho 1 = rho 68777 := by
   simp only [
-    SenderCoreSharedSecretValuation, Seg101.localRho,
+    SenderCoreSharedSecretValuation, Seg103.localRho,
     Deployed.Templates.seated]
-  rw [show Seg101.wireSeating 1 = 68693 by
+  rw [show Seg103.wireSeating 1 = 68777 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_core_shared_secret` local 253. -/
 @[simp] theorem senderCoreSharedSecretAt253
     (rho : Nat → DeployedF) :
-    SenderCoreSharedSecretValuation rho 253 = rho 155 := by
+    SenderCoreSharedSecretValuation rho 253 = rho 156 := by
   simp only [
-    SenderCoreSharedSecretValuation, Seg101.localRho,
+    SenderCoreSharedSecretValuation, Seg103.localRho,
     Deployed.Templates.seated]
-  rw [show Seg101.wireSeating 253 = 155 by
+  rw [show Seg103.wireSeating 253 = 156 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_core_shared_secret` local 1807. -/
 @[simp] theorem senderCoreSharedSecretAt1807
     (rho : Nat → DeployedF) :
-    SenderCoreSharedSecretValuation rho 1807 = rho 160 := by
+    SenderCoreSharedSecretValuation rho 1807 = rho 161 := by
   simp only [
-    SenderCoreSharedSecretValuation, Seg101.localRho,
+    SenderCoreSharedSecretValuation, Seg103.localRho,
     Deployed.Templates.seated]
-  rw [show Seg101.wireSeating 1807 = 160 by
+  rw [show Seg103.wireSeating 1807 = 161 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_core_shared_secret` local 1809. -/
 @[simp] theorem senderCoreSharedSecretAt1809
     (rho : Nat → DeployedF) :
-    SenderCoreSharedSecretValuation rho 1809 = rho 159 := by
+    SenderCoreSharedSecretValuation rho 1809 = rho 160 := by
   simp only [
-    SenderCoreSharedSecretValuation, Seg101.localRho,
+    SenderCoreSharedSecretValuation, Seg103.localRho,
     Deployed.Templates.seated]
-  rw [show Seg101.wireSeating 1809 = 159 by
+  rw [show Seg103.wireSeating 1809 = 160 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_core_shared_secret` local 4573. -/
 @[simp] theorem senderCoreSharedSecretAt4573
     (rho : Nat → DeployedF) :
-    SenderCoreSharedSecretValuation rho 4573 = rho 409 := by
+    SenderCoreSharedSecretValuation rho 4573 = rho 411 := by
   simp only [
-    SenderCoreSharedSecretValuation, Seg101.localRho,
+    SenderCoreSharedSecretValuation, Seg103.localRho,
     Deployed.Templates.seated]
-  rw [show Seg101.wireSeating 4573 = 409 by
+  rw [show Seg103.wireSeating 4573 = 411 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_core_shared_secret` local 4574. -/
 @[simp] theorem senderCoreSharedSecretAt4574
     (rho : Nat → DeployedF) :
-    SenderCoreSharedSecretValuation rho 4574 = rho 410 := by
+    SenderCoreSharedSecretValuation rho 4574 = rho 412 := by
   simp only [
-    SenderCoreSharedSecretValuation, Seg101.localRho,
+    SenderCoreSharedSecretValuation, Seg103.localRho,
     Deployed.Templates.seated]
-  rw [show Seg101.wireSeating 4574 = 410 by
+  rw [show Seg103.wireSeating 4574 = 412 by
     decide +kernel]
 
 /-- Deployed seating for the `sender_ext_shared_secret` certified local semantics. -/
 def SenderExtSharedSecretValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg102.localRho rho
+  Seg104.localRho rho
 
 /-- Certified local semantics for the `sender_ext_shared_secret` source operation. -/
 def SenderExtSharedSecretSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -8073,66 +8190,66 @@ def SenderExtSharedSecretSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `sender_ext_shared_secret` local 252. -/
 @[simp] theorem senderExtSharedSecretAt252
     (rho : Nat → DeployedF) :
-    SenderExtSharedSecretValuation rho 252 = rho 156 := by
+    SenderExtSharedSecretValuation rho 252 = rho 157 := by
   simp only [
-    SenderExtSharedSecretValuation, Seg102.localRho,
+    SenderExtSharedSecretValuation, Seg104.localRho,
     Deployed.Templates.seated]
-  rw [show Seg102.wireSeating 252 = 156 by
+  rw [show Seg104.wireSeating 252 = 157 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_ext_shared_secret` local 1806. -/
 @[simp] theorem senderExtSharedSecretAt1806
     (rho : Nat → DeployedF) :
-    SenderExtSharedSecretValuation rho 1806 = rho 164 := by
+    SenderExtSharedSecretValuation rho 1806 = rho 165 := by
   simp only [
-    SenderExtSharedSecretValuation, Seg102.localRho,
+    SenderExtSharedSecretValuation, Seg104.localRho,
     Deployed.Templates.seated]
-  rw [show Seg102.wireSeating 1806 = 164 by
+  rw [show Seg104.wireSeating 1806 = 165 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_ext_shared_secret` local 1808. -/
 @[simp] theorem senderExtSharedSecretAt1808
     (rho : Nat → DeployedF) :
-    SenderExtSharedSecretValuation rho 1808 = rho 163 := by
+    SenderExtSharedSecretValuation rho 1808 = rho 164 := by
   simp only [
-    SenderExtSharedSecretValuation, Seg102.localRho,
+    SenderExtSharedSecretValuation, Seg104.localRho,
     Deployed.Templates.seated]
-  rw [show Seg102.wireSeating 1808 = 163 by
+  rw [show Seg104.wireSeating 1808 = 164 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_ext_shared_secret` local 4572. -/
 @[simp] theorem senderExtSharedSecretAt4572
     (rho : Nat → DeployedF) :
-    SenderExtSharedSecretValuation rho 4572 = rho 409 := by
+    SenderExtSharedSecretValuation rho 4572 = rho 411 := by
   simp only [
-    SenderExtSharedSecretValuation, Seg102.localRho,
+    SenderExtSharedSecretValuation, Seg104.localRho,
     Deployed.Templates.seated]
-  rw [show Seg102.wireSeating 4572 = 409 by
+  rw [show Seg104.wireSeating 4572 = 411 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_ext_shared_secret` local 4573. -/
 @[simp] theorem senderExtSharedSecretAt4573
     (rho : Nat → DeployedF) :
-    SenderExtSharedSecretValuation rho 4573 = rho 410 := by
+    SenderExtSharedSecretValuation rho 4573 = rho 412 := by
   simp only [
-    SenderExtSharedSecretValuation, Seg102.localRho,
+    SenderExtSharedSecretValuation, Seg104.localRho,
     Deployed.Templates.seated]
-  rw [show Seg102.wireSeating 4573 = 410 by
+  rw [show Seg104.wireSeating 4573 = 412 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_ext_shared_secret` local 7332. -/
 @[simp] theorem senderExtSharedSecretAt7332
     (rho : Nat → DeployedF) :
-    SenderExtSharedSecretValuation rho 7332 = rho 68693 := by
+    SenderExtSharedSecretValuation rho 7332 = rho 68777 := by
   simp only [
-    SenderExtSharedSecretValuation, Seg102.localRho,
+    SenderExtSharedSecretValuation, Seg104.localRho,
     Deployed.Templates.seated]
-  rw [show Seg102.wireSeating 7332 = 68693 by
+  rw [show Seg104.wireSeating 7332 = 68777 by
     decide +kernel]
 
 /-- Deployed seating for the `output_core_shared_secret` certified local semantics. -/
 def OutputCoreSharedSecretValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg103.localRho rho
+  Seg105.localRho rho
 
 /-- Certified local semantics for the `output_core_shared_secret` source operation. -/
 def OutputCoreSharedSecretSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -8141,66 +8258,66 @@ def OutputCoreSharedSecretSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `output_core_shared_secret` local 252. -/
 @[simp] theorem outputCoreSharedSecretAt252
     (rho : Nat → DeployedF) :
-    OutputCoreSharedSecretValuation rho 252 = rho 157 := by
+    OutputCoreSharedSecretValuation rho 252 = rho 158 := by
   simp only [
-    OutputCoreSharedSecretValuation, Seg103.localRho,
+    OutputCoreSharedSecretValuation, Seg105.localRho,
     Deployed.Templates.seated]
-  rw [show Seg103.wireSeating 252 = 157 by
+  rw [show Seg105.wireSeating 252 = 158 by
     decide +kernel]
 
 /-- Audited action-facing seat for `output_core_shared_secret` local 1806. -/
 @[simp] theorem outputCoreSharedSecretAt1806
     (rho : Nat → DeployedF) :
-    OutputCoreSharedSecretValuation rho 1806 = rho 170 := by
+    OutputCoreSharedSecretValuation rho 1806 = rho 171 := by
   simp only [
-    OutputCoreSharedSecretValuation, Seg103.localRho,
+    OutputCoreSharedSecretValuation, Seg105.localRho,
     Deployed.Templates.seated]
-  rw [show Seg103.wireSeating 1806 = 170 by
+  rw [show Seg105.wireSeating 1806 = 171 by
     decide +kernel]
 
 /-- Audited action-facing seat for `output_core_shared_secret` local 1808. -/
 @[simp] theorem outputCoreSharedSecretAt1808
     (rho : Nat → DeployedF) :
-    OutputCoreSharedSecretValuation rho 1808 = rho 169 := by
+    OutputCoreSharedSecretValuation rho 1808 = rho 170 := by
   simp only [
-    OutputCoreSharedSecretValuation, Seg103.localRho,
+    OutputCoreSharedSecretValuation, Seg105.localRho,
     Deployed.Templates.seated]
-  rw [show Seg103.wireSeating 1808 = 169 by
+  rw [show Seg105.wireSeating 1808 = 170 by
     decide +kernel]
 
 /-- Audited action-facing seat for `output_core_shared_secret` local 4572. -/
 @[simp] theorem outputCoreSharedSecretAt4572
     (rho : Nat → DeployedF) :
-    OutputCoreSharedSecretValuation rho 4572 = rho 409 := by
+    OutputCoreSharedSecretValuation rho 4572 = rho 411 := by
   simp only [
-    OutputCoreSharedSecretValuation, Seg103.localRho,
+    OutputCoreSharedSecretValuation, Seg105.localRho,
     Deployed.Templates.seated]
-  rw [show Seg103.wireSeating 4572 = 409 by
+  rw [show Seg105.wireSeating 4572 = 411 by
     decide +kernel]
 
 /-- Audited action-facing seat for `output_core_shared_secret` local 4573. -/
 @[simp] theorem outputCoreSharedSecretAt4573
     (rho : Nat → DeployedF) :
-    OutputCoreSharedSecretValuation rho 4573 = rho 410 := by
+    OutputCoreSharedSecretValuation rho 4573 = rho 412 := by
   simp only [
-    OutputCoreSharedSecretValuation, Seg103.localRho,
+    OutputCoreSharedSecretValuation, Seg105.localRho,
     Deployed.Templates.seated]
-  rw [show Seg103.wireSeating 4573 = 410 by
+  rw [show Seg105.wireSeating 4573 = 412 by
     decide +kernel]
 
 /-- Audited action-facing seat for `output_core_shared_secret` local 7332. -/
 @[simp] theorem outputCoreSharedSecretAt7332
     (rho : Nat → DeployedF) :
-    OutputCoreSharedSecretValuation rho 7332 = rho 68693 := by
+    OutputCoreSharedSecretValuation rho 7332 = rho 68777 := by
   simp only [
-    OutputCoreSharedSecretValuation, Seg103.localRho,
+    OutputCoreSharedSecretValuation, Seg105.localRho,
     Deployed.Templates.seated]
-  rw [show Seg103.wireSeating 7332 = 68693 by
+  rw [show Seg105.wireSeating 7332 = 68777 by
     decide +kernel]
 
 /-- Deployed seating for the `output_ext_shared_secret` certified local semantics. -/
 def OutputExtSharedSecretValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg104.localRho rho
+  Seg106.localRho rho
 
 /-- Certified local semantics for the `output_ext_shared_secret` source operation. -/
 def OutputExtSharedSecretSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -8209,66 +8326,66 @@ def OutputExtSharedSecretSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `output_ext_shared_secret` local 252. -/
 @[simp] theorem outputExtSharedSecretAt252
     (rho : Nat → DeployedF) :
-    OutputExtSharedSecretValuation rho 252 = rho 158 := by
+    OutputExtSharedSecretValuation rho 252 = rho 159 := by
   simp only [
-    OutputExtSharedSecretValuation, Seg104.localRho,
+    OutputExtSharedSecretValuation, Seg106.localRho,
     Deployed.Templates.seated]
-  rw [show Seg104.wireSeating 252 = 158 by
+  rw [show Seg106.wireSeating 252 = 159 by
     decide +kernel]
 
 /-- Audited action-facing seat for `output_ext_shared_secret` local 1806. -/
 @[simp] theorem outputExtSharedSecretAt1806
     (rho : Nat → DeployedF) :
-    OutputExtSharedSecretValuation rho 1806 = rho 174 := by
+    OutputExtSharedSecretValuation rho 1806 = rho 175 := by
   simp only [
-    OutputExtSharedSecretValuation, Seg104.localRho,
+    OutputExtSharedSecretValuation, Seg106.localRho,
     Deployed.Templates.seated]
-  rw [show Seg104.wireSeating 1806 = 174 by
+  rw [show Seg106.wireSeating 1806 = 175 by
     decide +kernel]
 
 /-- Audited action-facing seat for `output_ext_shared_secret` local 1808. -/
 @[simp] theorem outputExtSharedSecretAt1808
     (rho : Nat → DeployedF) :
-    OutputExtSharedSecretValuation rho 1808 = rho 173 := by
+    OutputExtSharedSecretValuation rho 1808 = rho 174 := by
   simp only [
-    OutputExtSharedSecretValuation, Seg104.localRho,
+    OutputExtSharedSecretValuation, Seg106.localRho,
     Deployed.Templates.seated]
-  rw [show Seg104.wireSeating 1808 = 173 by
+  rw [show Seg106.wireSeating 1808 = 174 by
     decide +kernel]
 
 /-- Audited action-facing seat for `output_ext_shared_secret` local 4572. -/
 @[simp] theorem outputExtSharedSecretAt4572
     (rho : Nat → DeployedF) :
-    OutputExtSharedSecretValuation rho 4572 = rho 409 := by
+    OutputExtSharedSecretValuation rho 4572 = rho 411 := by
   simp only [
-    OutputExtSharedSecretValuation, Seg104.localRho,
+    OutputExtSharedSecretValuation, Seg106.localRho,
     Deployed.Templates.seated]
-  rw [show Seg104.wireSeating 4572 = 409 by
+  rw [show Seg106.wireSeating 4572 = 411 by
     decide +kernel]
 
 /-- Audited action-facing seat for `output_ext_shared_secret` local 4573. -/
 @[simp] theorem outputExtSharedSecretAt4573
     (rho : Nat → DeployedF) :
-    OutputExtSharedSecretValuation rho 4573 = rho 410 := by
+    OutputExtSharedSecretValuation rho 4573 = rho 412 := by
   simp only [
-    OutputExtSharedSecretValuation, Seg104.localRho,
+    OutputExtSharedSecretValuation, Seg106.localRho,
     Deployed.Templates.seated]
-  rw [show Seg104.wireSeating 4573 = 410 by
+  rw [show Seg106.wireSeating 4573 = 412 by
     decide +kernel]
 
 /-- Audited action-facing seat for `output_ext_shared_secret` local 7332. -/
 @[simp] theorem outputExtSharedSecretAt7332
     (rho : Nat → DeployedF) :
-    OutputExtSharedSecretValuation rho 7332 = rho 68693 := by
+    OutputExtSharedSecretValuation rho 7332 = rho 68777 := by
   simp only [
-    OutputExtSharedSecretValuation, Seg104.localRho,
+    OutputExtSharedSecretValuation, Seg106.localRho,
     Deployed.Templates.seated]
-  rw [show Seg104.wireSeating 7332 = 68693 by
+  rw [show Seg106.wireSeating 7332 = 68777 by
     decide +kernel]
 
 /-- Deployed seating for the `detection_encryption` certified local semantics. -/
 def DetectionEncryptionValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg105.localRho rho
+  Seg107.localRho rho
 
 /-- Certified local semantics for the `detection_encryption` source operation. -/
 def DetectionEncryptionSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -8279,144 +8396,144 @@ def DetectionEncryptionSemanticSpec (rho : Nat → DeployedF) : Prop :=
     (rho : Nat → DeployedF) :
     DetectionEncryptionValuation rho 33 = rho 87 := by
   simp only [
-    DetectionEncryptionValuation, Seg105.localRho,
+    DetectionEncryptionValuation, Seg107.localRho,
     Deployed.Templates.seated]
-  rw [show Seg105.wireSeating 33 = 87 by
+  rw [show Seg107.wireSeating 33 = 87 by
     decide +kernel]
 
 /-- Audited action-facing seat for `detection_encryption` local 66. -/
 @[simp] theorem detectionEncryptionAt66
     (rho : Nat → DeployedF) :
-    DetectionEncryptionValuation rho 66 = rho 349 := by
+    DetectionEncryptionValuation rho 66 = rho 350 := by
   simp only [
-    DetectionEncryptionValuation, Seg105.localRho,
+    DetectionEncryptionValuation, Seg107.localRho,
     Deployed.Templates.seated]
-  rw [show Seg105.wireSeating 66 = 349 by
+  rw [show Seg107.wireSeating 66 = 350 by
     decide +kernel]
 
 /-- Audited action-facing seat for `detection_encryption` local 779. -/
 @[simp] theorem detectionEncryptionAt779
     (rho : Nat → DeployedF) :
-    DetectionEncryptionValuation rho 779 = rho 69056 := by
+    DetectionEncryptionValuation rho 779 = rho 69140 := by
   simp only [
-    DetectionEncryptionValuation, Seg105.localRho,
+    DetectionEncryptionValuation, Seg107.localRho,
     Deployed.Templates.seated]
-  rw [show Seg105.wireSeating 779 = 69056 by
+  rw [show Seg107.wireSeating 779 = 69140 by
     decide +kernel]
 
 /-- Audited action-facing seat for `detection_encryption` local 780. -/
 @[simp] theorem detectionEncryptionAt780
     (rho : Nat → DeployedF) :
-    DetectionEncryptionValuation rho 780 = rho 69396 := by
+    DetectionEncryptionValuation rho 780 = rho 69480 := by
   simp only [
-    DetectionEncryptionValuation, Seg105.localRho,
+    DetectionEncryptionValuation, Seg107.localRho,
     Deployed.Templates.seated]
-  rw [show Seg105.wireSeating 780 = 69396 by
+  rw [show Seg107.wireSeating 780 = 69480 by
     decide +kernel]
 
 /-- Audited action-facing seat for `detection_encryption` local 2106. -/
 @[simp] theorem detectionEncryptionAt2106
     (rho : Nat → DeployedF) :
-    DetectionEncryptionValuation rho 2106 = rho 184 := by
+    DetectionEncryptionValuation rho 2106 = rho 185 := by
   simp only [
-    DetectionEncryptionValuation, Seg105.localRho,
+    DetectionEncryptionValuation, Seg107.localRho,
     Deployed.Templates.seated]
-  rw [show Seg105.wireSeating 2106 = 184 by
+  rw [show Seg107.wireSeating 2106 = 185 by
     decide +kernel]
 
 /-- Audited action-facing seat for `detection_encryption` local 2107. -/
 @[simp] theorem detectionEncryptionAt2107
     (rho : Nat → DeployedF) :
-    DetectionEncryptionValuation rho 2107 = rho 140 := by
+    DetectionEncryptionValuation rho 2107 = rho 141 := by
   simp only [
-    DetectionEncryptionValuation, Seg105.localRho,
+    DetectionEncryptionValuation, Seg107.localRho,
     Deployed.Templates.seated]
-  rw [show Seg105.wireSeating 2107 = 140 by
+  rw [show Seg107.wireSeating 2107 = 141 by
     decide +kernel]
 
 /-- Audited action-facing seat for `detection_encryption` local 2108. -/
 @[simp] theorem detectionEncryptionAt2108
     (rho : Nat → DeployedF) :
-    DetectionEncryptionValuation rho 2108 = rho 71760 := by
+    DetectionEncryptionValuation rho 2108 = rho 71844 := by
   simp only [
-    DetectionEncryptionValuation, Seg105.localRho,
+    DetectionEncryptionValuation, Seg107.localRho,
     Deployed.Templates.seated]
-  rw [show Seg105.wireSeating 2108 = 71760 by
+  rw [show Seg107.wireSeating 2108 = 71844 by
     decide +kernel]
 
 /-- Audited action-facing seat for `detection_encryption` local 2109. -/
 @[simp] theorem detectionEncryptionAt2109
     (rho : Nat → DeployedF) :
-    DetectionEncryptionValuation rho 2109 = rho 71765 := by
+    DetectionEncryptionValuation rho 2109 = rho 71849 := by
   simp only [
-    DetectionEncryptionValuation, Seg105.localRho,
+    DetectionEncryptionValuation, Seg107.localRho,
     Deployed.Templates.seated]
-  rw [show Seg105.wireSeating 2109 = 71765 by
+  rw [show Seg107.wireSeating 2109 = 71849 by
     decide +kernel]
 
 /-- Audited action-facing seat for `detection_encryption` local 2110. -/
 @[simp] theorem detectionEncryptionAt2110
     (rho : Nat → DeployedF) :
-    DetectionEncryptionValuation rho 2110 = rho 71770 := by
+    DetectionEncryptionValuation rho 2110 = rho 71854 := by
   simp only [
-    DetectionEncryptionValuation, Seg105.localRho,
+    DetectionEncryptionValuation, Seg107.localRho,
     Deployed.Templates.seated]
-  rw [show Seg105.wireSeating 2110 = 71770 by
+  rw [show Seg107.wireSeating 2110 = 71854 by
     decide +kernel]
 
 /-- Audited action-facing seat for `detection_encryption` local 2111. -/
 @[simp] theorem detectionEncryptionAt2111
     (rho : Nat → DeployedF) :
-    DetectionEncryptionValuation rho 2111 = rho 141 := by
+    DetectionEncryptionValuation rho 2111 = rho 142 := by
   simp only [
-    DetectionEncryptionValuation, Seg105.localRho,
+    DetectionEncryptionValuation, Seg107.localRho,
     Deployed.Templates.seated]
-  rw [show Seg105.wireSeating 2111 = 141 by
+  rw [show Seg107.wireSeating 2111 = 142 by
     decide +kernel]
 
 /-- Audited action-facing seat for `detection_encryption` local 2112. -/
 @[simp] theorem detectionEncryptionAt2112
     (rho : Nat → DeployedF) :
-    DetectionEncryptionValuation rho 2112 = rho 65376 := by
+    DetectionEncryptionValuation rho 2112 = rho 65460 := by
   simp only [
-    DetectionEncryptionValuation, Seg105.localRho,
+    DetectionEncryptionValuation, Seg107.localRho,
     Deployed.Templates.seated]
-  rw [show Seg105.wireSeating 2112 = 65376 by
+  rw [show Seg107.wireSeating 2112 = 65460 by
     decide +kernel]
 
 /-- Audited action-facing seat for `detection_encryption` local 2113. -/
 @[simp] theorem detectionEncryptionAt2113
     (rho : Nat → DeployedF) :
-    DetectionEncryptionValuation rho 2113 = rho 68693 := by
+    DetectionEncryptionValuation rho 2113 = rho 68777 := by
   simp only [
-    DetectionEncryptionValuation, Seg105.localRho,
+    DetectionEncryptionValuation, Seg107.localRho,
     Deployed.Templates.seated]
-  rw [show Seg105.wireSeating 2113 = 68693 by
+  rw [show Seg107.wireSeating 2113 = 68777 by
     decide +kernel]
 
 /-- Audited action-facing seat for `detection_encryption` local 2114. -/
 @[simp] theorem detectionEncryptionAt2114
     (rho : Nat → DeployedF) :
-    DetectionEncryptionValuation rho 2114 = rho 142 := by
+    DetectionEncryptionValuation rho 2114 = rho 143 := by
   simp only [
-    DetectionEncryptionValuation, Seg105.localRho,
+    DetectionEncryptionValuation, Seg107.localRho,
     Deployed.Templates.seated]
-  rw [show Seg105.wireSeating 2114 = 142 by
+  rw [show Seg107.wireSeating 2114 = 143 by
     decide +kernel]
 
 /-- Audited action-facing seat for `detection_encryption` local 2115. -/
 @[simp] theorem detectionEncryptionAt2115
     (rho : Nat → DeployedF) :
-    DetectionEncryptionValuation rho 2115 = rho 143 := by
+    DetectionEncryptionValuation rho 2115 = rho 144 := by
   simp only [
-    DetectionEncryptionValuation, Seg105.localRho,
+    DetectionEncryptionValuation, Seg107.localRho,
     Deployed.Templates.seated]
-  rw [show Seg105.wireSeating 2115 = 143 by
+  rw [show Seg107.wireSeating 2115 = 144 by
     decide +kernel]
 
 /-- Deployed seating for the `sender_amount_encryption` certified local semantics. -/
 def SenderAmountEncryptionValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg106.localRho rho
+  Seg108.localRho rho
 
 /-- Certified local semantics for the `sender_amount_encryption` source operation. -/
 def SenderAmountEncryptionSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -8425,36 +8542,36 @@ def SenderAmountEncryptionSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `sender_amount_encryption` local 710. -/
 @[simp] theorem senderAmountEncryptionAt710
     (rho : Nat → DeployedF) :
-    SenderAmountEncryptionValuation rho 710 = rho 161 := by
+    SenderAmountEncryptionValuation rho 710 = rho 162 := by
   simp only [
-    SenderAmountEncryptionValuation, Seg106.localRho,
+    SenderAmountEncryptionValuation, Seg108.localRho,
     Deployed.Templates.seated]
-  rw [show Seg106.wireSeating 710 = 161 by
+  rw [show Seg108.wireSeating 710 = 162 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_amount_encryption` local 976. -/
 @[simp] theorem senderAmountEncryptionAt976
     (rho : Nat → DeployedF) :
-    SenderAmountEncryptionValuation rho 976 = rho 344 := by
+    SenderAmountEncryptionValuation rho 976 = rho 345 := by
   simp only [
-    SenderAmountEncryptionValuation, Seg106.localRho,
+    SenderAmountEncryptionValuation, Seg108.localRho,
     Deployed.Templates.seated]
-  rw [show Seg106.wireSeating 976 = 344 by
+  rw [show Seg108.wireSeating 976 = 345 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_amount_encryption` local 977. -/
 @[simp] theorem senderAmountEncryptionAt977
     (rho : Nat → DeployedF) :
-    SenderAmountEncryptionValuation rho 977 = rho 162 := by
+    SenderAmountEncryptionValuation rho 977 = rho 163 := by
   simp only [
-    SenderAmountEncryptionValuation, Seg106.localRho,
+    SenderAmountEncryptionValuation, Seg108.localRho,
     Deployed.Templates.seated]
-  rw [show Seg106.wireSeating 977 = 162 by
+  rw [show Seg108.wireSeating 977 = 163 by
     decide +kernel]
 
 /-- Deployed seating for the `sender_address_encryption` certified local semantics. -/
 def SenderAddressEncryptionValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg107.localRho rho
+  Seg109.localRho rho
 
 /-- Certified local semantics for the `sender_address_encryption` source operation. -/
 def SenderAddressEncryptionSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -8463,86 +8580,86 @@ def SenderAddressEncryptionSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `sender_address_encryption` local 963. -/
 @[simp] theorem senderAddressEncryptionAt963
     (rho : Nat → DeployedF) :
-    SenderAddressEncryptionValuation rho 963 = rho 52627 := by
+    SenderAddressEncryptionValuation rho 963 = rho 52670 := by
   simp only [
-    SenderAddressEncryptionValuation, Seg107.localRho,
+    SenderAddressEncryptionValuation, Seg109.localRho,
     Deployed.Templates.seated]
-  rw [show Seg107.wireSeating 963 = 52627 by
+  rw [show Seg109.wireSeating 963 = 52670 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_address_encryption` local 964. -/
 @[simp] theorem senderAddressEncryptionAt964
     (rho : Nat → DeployedF) :
-    SenderAddressEncryptionValuation rho 964 = rho 52967 := by
+    SenderAddressEncryptionValuation rho 964 = rho 53010 := by
   simp only [
-    SenderAddressEncryptionValuation, Seg107.localRho,
+    SenderAddressEncryptionValuation, Seg109.localRho,
     Deployed.Templates.seated]
-  rw [show Seg107.wireSeating 964 = 52967 by
+  rw [show Seg109.wireSeating 964 = 53010 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_address_encryption` local 1304. -/
 @[simp] theorem senderAddressEncryptionAt1304
     (rho : Nat → DeployedF) :
-    SenderAddressEncryptionValuation rho 1304 = rho 53330 := by
+    SenderAddressEncryptionValuation rho 1304 = rho 53373 := by
   simp only [
-    SenderAddressEncryptionValuation, Seg107.localRho,
+    SenderAddressEncryptionValuation, Seg109.localRho,
     Deployed.Templates.seated]
-  rw [show Seg107.wireSeating 1304 = 53330 by
+  rw [show Seg109.wireSeating 1304 = 53373 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_address_encryption` local 1305. -/
 @[simp] theorem senderAddressEncryptionAt1305
     (rho : Nat → DeployedF) :
-    SenderAddressEncryptionValuation rho 1305 = rho 53670 := by
+    SenderAddressEncryptionValuation rho 1305 = rho 53713 := by
   simp only [
-    SenderAddressEncryptionValuation, Seg107.localRho,
+    SenderAddressEncryptionValuation, Seg109.localRho,
     Deployed.Templates.seated]
-  rw [show Seg107.wireSeating 1305 = 53670 by
+  rw [show Seg109.wireSeating 1305 = 53713 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_address_encryption` local 1392. -/
 @[simp] theorem senderAddressEncryptionAt1392
     (rho : Nat → DeployedF) :
-    SenderAddressEncryptionValuation rho 1392 = rho 165 := by
+    SenderAddressEncryptionValuation rho 1392 = rho 166 := by
   simp only [
-    SenderAddressEncryptionValuation, Seg107.localRho,
+    SenderAddressEncryptionValuation, Seg109.localRho,
     Deployed.Templates.seated]
-  rw [show Seg107.wireSeating 1392 = 165 by
+  rw [show Seg109.wireSeating 1392 = 166 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_address_encryption` local 1658. -/
 @[simp] theorem senderAddressEncryptionAt1658
     (rho : Nat → DeployedF) :
-    SenderAddressEncryptionValuation rho 1658 = rho 166 := by
+    SenderAddressEncryptionValuation rho 1658 = rho 167 := by
   simp only [
-    SenderAddressEncryptionValuation, Seg107.localRho,
+    SenderAddressEncryptionValuation, Seg109.localRho,
     Deployed.Templates.seated]
-  rw [show Seg107.wireSeating 1658 = 166 by
+  rw [show Seg109.wireSeating 1658 = 167 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_address_encryption` local 1924. -/
 @[simp] theorem senderAddressEncryptionAt1924
     (rho : Nat → DeployedF) :
-    SenderAddressEncryptionValuation rho 1924 = rho 167 := by
+    SenderAddressEncryptionValuation rho 1924 = rho 168 := by
   simp only [
-    SenderAddressEncryptionValuation, Seg107.localRho,
+    SenderAddressEncryptionValuation, Seg109.localRho,
     Deployed.Templates.seated]
-  rw [show Seg107.wireSeating 1924 = 167 by
+  rw [show Seg109.wireSeating 1924 = 168 by
     decide +kernel]
 
 /-- Audited action-facing seat for `sender_address_encryption` local 2190. -/
 @[simp] theorem senderAddressEncryptionAt2190
     (rho : Nat → DeployedF) :
-    SenderAddressEncryptionValuation rho 2190 = rho 168 := by
+    SenderAddressEncryptionValuation rho 2190 = rho 169 := by
   simp only [
-    SenderAddressEncryptionValuation, Seg107.localRho,
+    SenderAddressEncryptionValuation, Seg109.localRho,
     Deployed.Templates.seated]
-  rw [show Seg107.wireSeating 2190 = 168 by
+  rw [show Seg109.wireSeating 2190 = 169 by
     decide +kernel]
 
 /-- Deployed seating for the `output_amount_encryption` certified local semantics. -/
 def OutputAmountEncryptionValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg108.localRho rho
+  Seg110.localRho rho
 
 /-- Certified local semantics for the `output_amount_encryption` source operation. -/
 def OutputAmountEncryptionSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -8551,36 +8668,36 @@ def OutputAmountEncryptionSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `output_amount_encryption` local 710. -/
 @[simp] theorem outputAmountEncryptionAt710
     (rho : Nat → DeployedF) :
-    OutputAmountEncryptionValuation rho 710 = rho 171 := by
+    OutputAmountEncryptionValuation rho 710 = rho 172 := by
   simp only [
-    OutputAmountEncryptionValuation, Seg108.localRho,
+    OutputAmountEncryptionValuation, Seg110.localRho,
     Deployed.Templates.seated]
-  rw [show Seg108.wireSeating 710 = 171 by
+  rw [show Seg110.wireSeating 710 = 172 by
     decide +kernel]
 
 /-- Audited action-facing seat for `output_amount_encryption` local 976. -/
 @[simp] theorem outputAmountEncryptionAt976
     (rho : Nat → DeployedF) :
-    OutputAmountEncryptionValuation rho 976 = rho 344 := by
+    OutputAmountEncryptionValuation rho 976 = rho 345 := by
   simp only [
-    OutputAmountEncryptionValuation, Seg108.localRho,
+    OutputAmountEncryptionValuation, Seg110.localRho,
     Deployed.Templates.seated]
-  rw [show Seg108.wireSeating 976 = 344 by
+  rw [show Seg110.wireSeating 976 = 345 by
     decide +kernel]
 
 /-- Audited action-facing seat for `output_amount_encryption` local 977. -/
 @[simp] theorem outputAmountEncryptionAt977
     (rho : Nat → DeployedF) :
-    OutputAmountEncryptionValuation rho 977 = rho 172 := by
+    OutputAmountEncryptionValuation rho 977 = rho 173 := by
   simp only [
-    OutputAmountEncryptionValuation, Seg108.localRho,
+    OutputAmountEncryptionValuation, Seg110.localRho,
     Deployed.Templates.seated]
-  rw [show Seg108.wireSeating 977 = 172 by
+  rw [show Seg110.wireSeating 977 = 173 by
     decide +kernel]
 
 /-- Deployed seating for the `output_address_encryption` certified local semantics. -/
 def OutputAddressEncryptionValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg109.localRho rho
+  Seg111.localRho rho
 
 /-- Certified local semantics for the `output_address_encryption` source operation. -/
 def OutputAddressEncryptionSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -8589,86 +8706,86 @@ def OutputAddressEncryptionSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `output_address_encryption` local 963. -/
 @[simp] theorem outputAddressEncryptionAt963
     (rho : Nat → DeployedF) :
-    OutputAddressEncryptionValuation rho 963 = rho 777 := by
+    OutputAddressEncryptionValuation rho 963 = rho 779 := by
   simp only [
-    OutputAddressEncryptionValuation, Seg109.localRho,
+    OutputAddressEncryptionValuation, Seg111.localRho,
     Deployed.Templates.seated]
-  rw [show Seg109.wireSeating 963 = 777 by
+  rw [show Seg111.wireSeating 963 = 779 by
     decide +kernel]
 
 /-- Audited action-facing seat for `output_address_encryption` local 964. -/
 @[simp] theorem outputAddressEncryptionAt964
     (rho : Nat → DeployedF) :
-    OutputAddressEncryptionValuation rho 964 = rho 1117 := by
+    OutputAddressEncryptionValuation rho 964 = rho 1119 := by
   simp only [
-    OutputAddressEncryptionValuation, Seg109.localRho,
+    OutputAddressEncryptionValuation, Seg111.localRho,
     Deployed.Templates.seated]
-  rw [show Seg109.wireSeating 964 = 1117 by
+  rw [show Seg111.wireSeating 964 = 1119 by
     decide +kernel]
 
 /-- Audited action-facing seat for `output_address_encryption` local 1304. -/
 @[simp] theorem outputAddressEncryptionAt1304
     (rho : Nat → DeployedF) :
-    OutputAddressEncryptionValuation rho 1304 = rho 1480 := by
+    OutputAddressEncryptionValuation rho 1304 = rho 1482 := by
   simp only [
-    OutputAddressEncryptionValuation, Seg109.localRho,
+    OutputAddressEncryptionValuation, Seg111.localRho,
     Deployed.Templates.seated]
-  rw [show Seg109.wireSeating 1304 = 1480 by
+  rw [show Seg111.wireSeating 1304 = 1482 by
     decide +kernel]
 
 /-- Audited action-facing seat for `output_address_encryption` local 1305. -/
 @[simp] theorem outputAddressEncryptionAt1305
     (rho : Nat → DeployedF) :
-    OutputAddressEncryptionValuation rho 1305 = rho 1820 := by
+    OutputAddressEncryptionValuation rho 1305 = rho 1822 := by
   simp only [
-    OutputAddressEncryptionValuation, Seg109.localRho,
+    OutputAddressEncryptionValuation, Seg111.localRho,
     Deployed.Templates.seated]
-  rw [show Seg109.wireSeating 1305 = 1820 by
+  rw [show Seg111.wireSeating 1305 = 1822 by
     decide +kernel]
 
 /-- Audited action-facing seat for `output_address_encryption` local 1392. -/
 @[simp] theorem outputAddressEncryptionAt1392
     (rho : Nat → DeployedF) :
-    OutputAddressEncryptionValuation rho 1392 = rho 175 := by
+    OutputAddressEncryptionValuation rho 1392 = rho 176 := by
   simp only [
-    OutputAddressEncryptionValuation, Seg109.localRho,
+    OutputAddressEncryptionValuation, Seg111.localRho,
     Deployed.Templates.seated]
-  rw [show Seg109.wireSeating 1392 = 175 by
+  rw [show Seg111.wireSeating 1392 = 176 by
     decide +kernel]
 
 /-- Audited action-facing seat for `output_address_encryption` local 1658. -/
 @[simp] theorem outputAddressEncryptionAt1658
     (rho : Nat → DeployedF) :
-    OutputAddressEncryptionValuation rho 1658 = rho 176 := by
+    OutputAddressEncryptionValuation rho 1658 = rho 177 := by
   simp only [
-    OutputAddressEncryptionValuation, Seg109.localRho,
+    OutputAddressEncryptionValuation, Seg111.localRho,
     Deployed.Templates.seated]
-  rw [show Seg109.wireSeating 1658 = 176 by
+  rw [show Seg111.wireSeating 1658 = 177 by
     decide +kernel]
 
 /-- Audited action-facing seat for `output_address_encryption` local 1924. -/
 @[simp] theorem outputAddressEncryptionAt1924
     (rho : Nat → DeployedF) :
-    OutputAddressEncryptionValuation rho 1924 = rho 177 := by
+    OutputAddressEncryptionValuation rho 1924 = rho 178 := by
   simp only [
-    OutputAddressEncryptionValuation, Seg109.localRho,
+    OutputAddressEncryptionValuation, Seg111.localRho,
     Deployed.Templates.seated]
-  rw [show Seg109.wireSeating 1924 = 177 by
+  rw [show Seg111.wireSeating 1924 = 178 by
     decide +kernel]
 
 /-- Audited action-facing seat for `output_address_encryption` local 2190. -/
 @[simp] theorem outputAddressEncryptionAt2190
     (rho : Nat → DeployedF) :
-    OutputAddressEncryptionValuation rho 2190 = rho 178 := by
+    OutputAddressEncryptionValuation rho 2190 = rho 179 := by
   simp only [
-    OutputAddressEncryptionValuation, Seg109.localRho,
+    OutputAddressEncryptionValuation, Seg111.localRho,
     Deployed.Templates.seated]
-  rw [show Seg109.wireSeating 2190 = 178 by
+  rw [show Seg111.wireSeating 2190 = 179 by
     decide +kernel]
 
 /-- Deployed seating for the `metadata_sender_subject_derivation` certified local semantics. -/
 def MetadataSenderSubjectDerivationValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg111.localRho rho
+  Seg113.localRho rho
 
 /-- Certified local semantics for the `metadata_sender_subject_derivation` source operation. -/
 def MetadataSenderSubjectDerivationSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -8677,11 +8794,11 @@ def MetadataSenderSubjectDerivationSemanticSpec (rho : Nat → DeployedF) : Prop
 /-- Audited action-facing seat for `metadata_sender_subject_derivation` local 1. -/
 @[simp] theorem metadataSenderSubjectDerivationAt1
     (rho : Nat → DeployedF) :
-    MetadataSenderSubjectDerivationValuation rho 1 = rho 144 := by
+    MetadataSenderSubjectDerivationValuation rho 1 = rho 145 := by
   simp only [
-    MetadataSenderSubjectDerivationValuation, Seg111.localRho,
+    MetadataSenderSubjectDerivationValuation, Seg113.localRho,
     Deployed.Templates.seated]
-  rw [show Seg111.wireSeating 1 = 144 by
+  rw [show Seg113.wireSeating 1 = 145 by
     decide +kernel]
 
 /-- Audited action-facing seat for `metadata_sender_subject_derivation` local 2. -/
@@ -8689,14 +8806,14 @@ def MetadataSenderSubjectDerivationSemanticSpec (rho : Nat → DeployedF) : Prop
     (rho : Nat → DeployedF) :
     MetadataSenderSubjectDerivationValuation rho 2 = rho 88 := by
   simp only [
-    MetadataSenderSubjectDerivationValuation, Seg111.localRho,
+    MetadataSenderSubjectDerivationValuation, Seg113.localRho,
     Deployed.Templates.seated]
-  rw [show Seg111.wireSeating 2 = 88 by
+  rw [show Seg113.wireSeating 2 = 88 by
     decide +kernel]
 
 /-- Deployed seating for the `metadata_output_subject_derivation` certified local semantics. -/
 def MetadataOutputSubjectDerivationValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg112.localRho rho
+  Seg114.localRho rho
 
 /-- Certified local semantics for the `metadata_output_subject_derivation` source operation. -/
 def MetadataOutputSubjectDerivationSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -8705,26 +8822,26 @@ def MetadataOutputSubjectDerivationSemanticSpec (rho : Nat → DeployedF) : Prop
 /-- Audited action-facing seat for `metadata_output_subject_derivation` local 1. -/
 @[simp] theorem metadataOutputSubjectDerivationAt1
     (rho : Nat → DeployedF) :
-    MetadataOutputSubjectDerivationValuation rho 1 = rho 145 := by
+    MetadataOutputSubjectDerivationValuation rho 1 = rho 146 := by
   simp only [
-    MetadataOutputSubjectDerivationValuation, Seg112.localRho,
+    MetadataOutputSubjectDerivationValuation, Seg114.localRho,
     Deployed.Templates.seated]
-  rw [show Seg112.wireSeating 1 = 145 by
+  rw [show Seg114.wireSeating 1 = 146 by
     decide +kernel]
 
 /-- Audited action-facing seat for `metadata_output_subject_derivation` local 2. -/
 @[simp] theorem metadataOutputSubjectDerivationAt2
     (rho : Nat → DeployedF) :
-    MetadataOutputSubjectDerivationValuation rho 2 = rho 350 := by
+    MetadataOutputSubjectDerivationValuation rho 2 = rho 351 := by
   simp only [
-    MetadataOutputSubjectDerivationValuation, Seg112.localRho,
+    MetadataOutputSubjectDerivationValuation, Seg114.localRho,
     Deployed.Templates.seated]
-  rw [show Seg112.wireSeating 2 = 350 by
+  rw [show Seg114.wireSeating 2 = 351 by
     decide +kernel]
 
 /-- Deployed seating for the `metadata_ring_id_hash` certified local semantics. -/
 def MetadataRingIdHashValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg113.localRho rho
+  Seg115.localRho rho
 
 /-- Certified local semantics for the `metadata_ring_id_hash` source operation. -/
 def MetadataRingIdHashSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -8733,26 +8850,26 @@ def MetadataRingIdHashSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `metadata_ring_id_hash` local 1. -/
 @[simp] theorem metadataRingIdHashAt1
     (rho : Nat → DeployedF) :
-    MetadataRingIdHashValuation rho 1 = rho 146 := by
+    MetadataRingIdHashValuation rho 1 = rho 147 := by
   simp only [
-    MetadataRingIdHashValuation, Seg113.localRho,
+    MetadataRingIdHashValuation, Seg115.localRho,
     Deployed.Templates.seated]
-  rw [show Seg113.wireSeating 1 = 146 by
+  rw [show Seg115.wireSeating 1 = 147 by
     decide +kernel]
 
 /-- Audited action-facing seat for `metadata_ring_id_hash` local 2. -/
 @[simp] theorem metadataRingIdHashAt2
     (rho : Nat → DeployedF) :
-    MetadataRingIdHashValuation rho 2 = rho 411 := by
+    MetadataRingIdHashValuation rho 2 = rho 413 := by
   simp only [
-    MetadataRingIdHashValuation, Seg113.localRho,
+    MetadataRingIdHashValuation, Seg115.localRho,
     Deployed.Templates.seated]
-  rw [show Seg113.wireSeating 2 = 411 by
+  rw [show Seg115.wireSeating 2 = 413 by
     decide +kernel]
 
 /-- Deployed seating for the `metadata_policy_id_hash` certified local semantics. -/
 def MetadataPolicyIdHashValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg114.localRho rho
+  Seg116.localRho rho
 
 /-- Certified local semantics for the `metadata_policy_id_hash` source operation. -/
 def MetadataPolicyIdHashSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -8761,26 +8878,26 @@ def MetadataPolicyIdHashSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `metadata_policy_id_hash` local 1. -/
 @[simp] theorem metadataPolicyIdHashAt1
     (rho : Nat → DeployedF) :
-    MetadataPolicyIdHashValuation rho 1 = rho 147 := by
+    MetadataPolicyIdHashValuation rho 1 = rho 148 := by
   simp only [
-    MetadataPolicyIdHashValuation, Seg114.localRho,
+    MetadataPolicyIdHashValuation, Seg116.localRho,
     Deployed.Templates.seated]
-  rw [show Seg114.wireSeating 1 = 147 by
+  rw [show Seg116.wireSeating 1 = 148 by
     decide +kernel]
 
 /-- Audited action-facing seat for `metadata_policy_id_hash` local 2. -/
 @[simp] theorem metadataPolicyIdHashAt2
     (rho : Nat → DeployedF) :
-    MetadataPolicyIdHashValuation rho 2 = rho 412 := by
+    MetadataPolicyIdHashValuation rho 2 = rho 414 := by
   simp only [
-    MetadataPolicyIdHashValuation, Seg114.localRho,
+    MetadataPolicyIdHashValuation, Seg116.localRho,
     Deployed.Templates.seated]
-  rw [show Seg114.wireSeating 2 = 412 by
+  rw [show Seg116.wireSeating 2 = 414 by
     decide +kernel]
 
 /-- Deployed seating for the `metadata_resource_hash` certified local semantics. -/
 def MetadataResourceHashValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg115.localRho rho
+  Seg117.localRho rho
 
 /-- Certified local semantics for the `metadata_resource_hash` source operation. -/
 def MetadataResourceHashSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -8789,26 +8906,26 @@ def MetadataResourceHashSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `metadata_resource_hash` local 1. -/
 @[simp] theorem metadataResourceHashAt1
     (rho : Nat → DeployedF) :
-    MetadataResourceHashValuation rho 1 = rho 148 := by
+    MetadataResourceHashValuation rho 1 = rho 149 := by
   simp only [
-    MetadataResourceHashValuation, Seg115.localRho,
+    MetadataResourceHashValuation, Seg117.localRho,
     Deployed.Templates.seated]
-  rw [show Seg115.wireSeating 1 = 148 by
+  rw [show Seg117.wireSeating 1 = 149 by
     decide +kernel]
 
 /-- Audited action-facing seat for `metadata_resource_hash` local 2. -/
 @[simp] theorem metadataResourceHashAt2
     (rho : Nat → DeployedF) :
-    MetadataResourceHashValuation rho 2 = rho 413 := by
+    MetadataResourceHashValuation rho 2 = rho 415 := by
   simp only [
-    MetadataResourceHashValuation, Seg115.localRho,
+    MetadataResourceHashValuation, Seg117.localRho,
     Deployed.Templates.seated]
-  rw [show Seg115.wireSeating 2 = 413 by
+  rw [show Seg117.wireSeating 2 = 415 by
     decide +kernel]
 
 /-- Deployed seating for the `metadata_permission_hash` certified local semantics. -/
 def MetadataPermissionHashValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg116.localRho rho
+  Seg118.localRho rho
 
 /-- Certified local semantics for the `metadata_permission_hash` source operation. -/
 def MetadataPermissionHashSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -8817,26 +8934,26 @@ def MetadataPermissionHashSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `metadata_permission_hash` local 1. -/
 @[simp] theorem metadataPermissionHashAt1
     (rho : Nat → DeployedF) :
-    MetadataPermissionHashValuation rho 1 = rho 149 := by
+    MetadataPermissionHashValuation rho 1 = rho 150 := by
   simp only [
-    MetadataPermissionHashValuation, Seg116.localRho,
+    MetadataPermissionHashValuation, Seg118.localRho,
     Deployed.Templates.seated]
-  rw [show Seg116.wireSeating 1 = 149 by
+  rw [show Seg118.wireSeating 1 = 150 by
     decide +kernel]
 
 /-- Audited action-facing seat for `metadata_permission_hash` local 2. -/
 @[simp] theorem metadataPermissionHashAt2
     (rho : Nat → DeployedF) :
-    MetadataPermissionHashValuation rho 2 = rho 414 := by
+    MetadataPermissionHashValuation rho 2 = rho 416 := by
   simp only [
-    MetadataPermissionHashValuation, Seg116.localRho,
+    MetadataPermissionHashValuation, Seg118.localRho,
     Deployed.Templates.seated]
-  rw [show Seg116.wireSeating 2 = 414 by
+  rw [show Seg118.wireSeating 2 = 416 by
     decide +kernel]
 
 /-- Deployed seating for the `metadata_target_timestamp` certified local semantics. -/
 def MetadataTargetTimestampValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg117.localRho rho
+  Seg119.localRho rho
 
 /-- Certified local semantics for the `metadata_target_timestamp` source operation. -/
 def MetadataTargetTimestampSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -8845,11 +8962,11 @@ def MetadataTargetTimestampSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `metadata_target_timestamp` local 1. -/
 @[simp] theorem metadataTargetTimestampAt1
     (rho : Nat → DeployedF) :
-    MetadataTargetTimestampValuation rho 1 = rho 150 := by
+    MetadataTargetTimestampValuation rho 1 = rho 151 := by
   simp only [
-    MetadataTargetTimestampValuation, Seg117.localRho,
+    MetadataTargetTimestampValuation, Seg119.localRho,
     Deployed.Templates.seated]
-  rw [show Seg117.wireSeating 1 = 150 by
+  rw [show Seg119.wireSeating 1 = 151 by
     decide +kernel]
 
 /-- Audited action-facing seat for `metadata_target_timestamp` local 2. -/
@@ -8857,14 +8974,14 @@ def MetadataTargetTimestampSemanticSpec (rho : Nat → DeployedF) : Prop :=
     (rho : Nat → DeployedF) :
     MetadataTargetTimestampValuation rho 2 = rho 9 := by
   simp only [
-    MetadataTargetTimestampValuation, Seg117.localRho,
+    MetadataTargetTimestampValuation, Seg119.localRho,
     Deployed.Templates.seated]
-  rw [show Seg117.wireSeating 2 = 9 by
+  rw [show Seg119.wireSeating 2 = 9 by
     decide +kernel]
 
 /-- Deployed seating for the `metadata_sender_core_salt` certified local semantics. -/
 def MetadataSenderCoreSaltValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg118.localRho rho
+  Seg120.localRho rho
 
 /-- Certified local semantics for the `metadata_sender_core_salt` source operation. -/
 def MetadataSenderCoreSaltSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -8873,46 +8990,46 @@ def MetadataSenderCoreSaltSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `metadata_sender_core_salt` local 1. -/
 @[simp] theorem metadataSenderCoreSaltAt1
     (rho : Nat → DeployedF) :
-    MetadataSenderCoreSaltValuation rho 1 = rho 151 := by
+    MetadataSenderCoreSaltValuation rho 1 = rho 152 := by
   simp only [
-    MetadataSenderCoreSaltValuation, Seg118.localRho,
+    MetadataSenderCoreSaltValuation, Seg120.localRho,
     Deployed.Templates.seated]
-  rw [show Seg118.wireSeating 1 = 151 by
+  rw [show Seg120.wireSeating 1 = 152 by
     decide +kernel]
 
 /-- Audited action-facing seat for `metadata_sender_core_salt` local 2. -/
 @[simp] theorem metadataSenderCoreSaltAt2
     (rho : Nat → DeployedF) :
-    MetadataSenderCoreSaltValuation rho 2 = rho 72025 := by
+    MetadataSenderCoreSaltValuation rho 2 = rho 72109 := by
   simp only [
-    MetadataSenderCoreSaltValuation, Seg118.localRho,
+    MetadataSenderCoreSaltValuation, Seg120.localRho,
     Deployed.Templates.seated]
-  rw [show Seg118.wireSeating 2 = 72025 by
+  rw [show Seg120.wireSeating 2 = 72109 by
     decide +kernel]
 
 /-- Audited action-facing seat for `metadata_sender_core_salt` local 3. -/
 @[simp] theorem metadataSenderCoreSaltAt3
     (rho : Nat → DeployedF) :
-    MetadataSenderCoreSaltValuation rho 3 = rho 72030 := by
+    MetadataSenderCoreSaltValuation rho 3 = rho 72114 := by
   simp only [
-    MetadataSenderCoreSaltValuation, Seg118.localRho,
+    MetadataSenderCoreSaltValuation, Seg120.localRho,
     Deployed.Templates.seated]
-  rw [show Seg118.wireSeating 3 = 72030 by
+  rw [show Seg120.wireSeating 3 = 72114 by
     decide +kernel]
 
 /-- Audited action-facing seat for `metadata_sender_core_salt` local 4. -/
 @[simp] theorem metadataSenderCoreSaltAt4
     (rho : Nat → DeployedF) :
-    MetadataSenderCoreSaltValuation rho 4 = rho 72035 := by
+    MetadataSenderCoreSaltValuation rho 4 = rho 72119 := by
   simp only [
-    MetadataSenderCoreSaltValuation, Seg118.localRho,
+    MetadataSenderCoreSaltValuation, Seg120.localRho,
     Deployed.Templates.seated]
-  rw [show Seg118.wireSeating 4 = 72035 by
+  rw [show Seg120.wireSeating 4 = 72119 by
     decide +kernel]
 
 /-- Deployed seating for the `metadata_sender_ext_salt` certified local semantics. -/
 def MetadataSenderExtSaltValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg119.localRho rho
+  Seg121.localRho rho
 
 /-- Certified local semantics for the `metadata_sender_ext_salt` source operation. -/
 def MetadataSenderExtSaltSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -8921,46 +9038,46 @@ def MetadataSenderExtSaltSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `metadata_sender_ext_salt` local 1. -/
 @[simp] theorem metadataSenderExtSaltAt1
     (rho : Nat → DeployedF) :
-    MetadataSenderExtSaltValuation rho 1 = rho 152 := by
+    MetadataSenderExtSaltValuation rho 1 = rho 153 := by
   simp only [
-    MetadataSenderExtSaltValuation, Seg119.localRho,
+    MetadataSenderExtSaltValuation, Seg121.localRho,
     Deployed.Templates.seated]
-  rw [show Seg119.wireSeating 1 = 152 by
+  rw [show Seg121.wireSeating 1 = 153 by
     decide +kernel]
 
 /-- Audited action-facing seat for `metadata_sender_ext_salt` local 2. -/
 @[simp] theorem metadataSenderExtSaltAt2
     (rho : Nat → DeployedF) :
-    MetadataSenderExtSaltValuation rho 2 = rho 72290 := by
+    MetadataSenderExtSaltValuation rho 2 = rho 72374 := by
   simp only [
-    MetadataSenderExtSaltValuation, Seg119.localRho,
+    MetadataSenderExtSaltValuation, Seg121.localRho,
     Deployed.Templates.seated]
-  rw [show Seg119.wireSeating 2 = 72290 by
+  rw [show Seg121.wireSeating 2 = 72374 by
     decide +kernel]
 
 /-- Audited action-facing seat for `metadata_sender_ext_salt` local 3. -/
 @[simp] theorem metadataSenderExtSaltAt3
     (rho : Nat → DeployedF) :
-    MetadataSenderExtSaltValuation rho 3 = rho 72295 := by
+    MetadataSenderExtSaltValuation rho 3 = rho 72379 := by
   simp only [
-    MetadataSenderExtSaltValuation, Seg119.localRho,
+    MetadataSenderExtSaltValuation, Seg121.localRho,
     Deployed.Templates.seated]
-  rw [show Seg119.wireSeating 3 = 72295 by
+  rw [show Seg121.wireSeating 3 = 72379 by
     decide +kernel]
 
 /-- Audited action-facing seat for `metadata_sender_ext_salt` local 4. -/
 @[simp] theorem metadataSenderExtSaltAt4
     (rho : Nat → DeployedF) :
-    MetadataSenderExtSaltValuation rho 4 = rho 72300 := by
+    MetadataSenderExtSaltValuation rho 4 = rho 72384 := by
   simp only [
-    MetadataSenderExtSaltValuation, Seg119.localRho,
+    MetadataSenderExtSaltValuation, Seg121.localRho,
     Deployed.Templates.seated]
-  rw [show Seg119.wireSeating 4 = 72300 by
+  rw [show Seg121.wireSeating 4 = 72384 by
     decide +kernel]
 
 /-- Deployed seating for the `metadata_output_core_salt` certified local semantics. -/
 def MetadataOutputCoreSaltValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg120.localRho rho
+  Seg122.localRho rho
 
 /-- Certified local semantics for the `metadata_output_core_salt` source operation. -/
 def MetadataOutputCoreSaltSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -8969,46 +9086,46 @@ def MetadataOutputCoreSaltSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `metadata_output_core_salt` local 1. -/
 @[simp] theorem metadataOutputCoreSaltAt1
     (rho : Nat → DeployedF) :
-    MetadataOutputCoreSaltValuation rho 1 = rho 153 := by
+    MetadataOutputCoreSaltValuation rho 1 = rho 154 := by
   simp only [
-    MetadataOutputCoreSaltValuation, Seg120.localRho,
+    MetadataOutputCoreSaltValuation, Seg122.localRho,
     Deployed.Templates.seated]
-  rw [show Seg120.wireSeating 1 = 153 by
+  rw [show Seg122.wireSeating 1 = 154 by
     decide +kernel]
 
 /-- Audited action-facing seat for `metadata_output_core_salt` local 2. -/
 @[simp] theorem metadataOutputCoreSaltAt2
     (rho : Nat → DeployedF) :
-    MetadataOutputCoreSaltValuation rho 2 = rho 72555 := by
+    MetadataOutputCoreSaltValuation rho 2 = rho 72639 := by
   simp only [
-    MetadataOutputCoreSaltValuation, Seg120.localRho,
+    MetadataOutputCoreSaltValuation, Seg122.localRho,
     Deployed.Templates.seated]
-  rw [show Seg120.wireSeating 2 = 72555 by
+  rw [show Seg122.wireSeating 2 = 72639 by
     decide +kernel]
 
 /-- Audited action-facing seat for `metadata_output_core_salt` local 3. -/
 @[simp] theorem metadataOutputCoreSaltAt3
     (rho : Nat → DeployedF) :
-    MetadataOutputCoreSaltValuation rho 3 = rho 72560 := by
+    MetadataOutputCoreSaltValuation rho 3 = rho 72644 := by
   simp only [
-    MetadataOutputCoreSaltValuation, Seg120.localRho,
+    MetadataOutputCoreSaltValuation, Seg122.localRho,
     Deployed.Templates.seated]
-  rw [show Seg120.wireSeating 3 = 72560 by
+  rw [show Seg122.wireSeating 3 = 72644 by
     decide +kernel]
 
 /-- Audited action-facing seat for `metadata_output_core_salt` local 4. -/
 @[simp] theorem metadataOutputCoreSaltAt4
     (rho : Nat → DeployedF) :
-    MetadataOutputCoreSaltValuation rho 4 = rho 72565 := by
+    MetadataOutputCoreSaltValuation rho 4 = rho 72649 := by
   simp only [
-    MetadataOutputCoreSaltValuation, Seg120.localRho,
+    MetadataOutputCoreSaltValuation, Seg122.localRho,
     Deployed.Templates.seated]
-  rw [show Seg120.wireSeating 4 = 72565 by
+  rw [show Seg122.wireSeating 4 = 72649 by
     decide +kernel]
 
 /-- Deployed seating for the `metadata_output_ext_salt` certified local semantics. -/
 def MetadataOutputExtSaltValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg121.localRho rho
+  Seg123.localRho rho
 
 /-- Certified local semantics for the `metadata_output_ext_salt` source operation. -/
 def MetadataOutputExtSaltSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -9017,46 +9134,46 @@ def MetadataOutputExtSaltSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `metadata_output_ext_salt` local 1. -/
 @[simp] theorem metadataOutputExtSaltAt1
     (rho : Nat → DeployedF) :
-    MetadataOutputExtSaltValuation rho 1 = rho 154 := by
+    MetadataOutputExtSaltValuation rho 1 = rho 155 := by
   simp only [
-    MetadataOutputExtSaltValuation, Seg121.localRho,
+    MetadataOutputExtSaltValuation, Seg123.localRho,
     Deployed.Templates.seated]
-  rw [show Seg121.wireSeating 1 = 154 by
+  rw [show Seg123.wireSeating 1 = 155 by
     decide +kernel]
 
 /-- Audited action-facing seat for `metadata_output_ext_salt` local 2. -/
 @[simp] theorem metadataOutputExtSaltAt2
     (rho : Nat → DeployedF) :
-    MetadataOutputExtSaltValuation rho 2 = rho 72820 := by
+    MetadataOutputExtSaltValuation rho 2 = rho 72904 := by
   simp only [
-    MetadataOutputExtSaltValuation, Seg121.localRho,
+    MetadataOutputExtSaltValuation, Seg123.localRho,
     Deployed.Templates.seated]
-  rw [show Seg121.wireSeating 2 = 72820 by
+  rw [show Seg123.wireSeating 2 = 72904 by
     decide +kernel]
 
 /-- Audited action-facing seat for `metadata_output_ext_salt` local 3. -/
 @[simp] theorem metadataOutputExtSaltAt3
     (rho : Nat → DeployedF) :
-    MetadataOutputExtSaltValuation rho 3 = rho 72825 := by
+    MetadataOutputExtSaltValuation rho 3 = rho 72909 := by
   simp only [
-    MetadataOutputExtSaltValuation, Seg121.localRho,
+    MetadataOutputExtSaltValuation, Seg123.localRho,
     Deployed.Templates.seated]
-  rw [show Seg121.wireSeating 3 = 72825 by
+  rw [show Seg123.wireSeating 3 = 72909 by
     decide +kernel]
 
 /-- Audited action-facing seat for `metadata_output_ext_salt` local 4. -/
 @[simp] theorem metadataOutputExtSaltAt4
     (rho : Nat → DeployedF) :
-    MetadataOutputExtSaltValuation rho 4 = rho 72830 := by
+    MetadataOutputExtSaltValuation rho 4 = rho 72914 := by
   simp only [
-    MetadataOutputExtSaltValuation, Seg121.localRho,
+    MetadataOutputExtSaltValuation, Seg123.localRho,
     Deployed.Templates.seated]
-  rw [show Seg121.wireSeating 4 = 72830 by
+  rw [show Seg123.wireSeating 4 = 72914 by
     decide +kernel]
 
 /-- Deployed seating for the `net_balance` certified local semantics. -/
 def NetBalanceValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg123.localRho rho
+  Seg125.localRho rho
 
 /-- Certified local semantics for the `net_balance` source operation. -/
 def NetBalanceSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -9065,51 +9182,51 @@ def NetBalanceSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `net_balance` local 1. -/
 @[simp] theorem netBalanceAt1
     (rho : Nat → DeployedF) :
-    NetBalanceValuation rho 1 = rho 184 := by
+    NetBalanceValuation rho 1 = rho 185 := by
   simp only [
-    NetBalanceValuation, Seg123.localRho,
+    NetBalanceValuation, Seg125.localRho,
     Deployed.Templates.seated]
-  rw [show Seg123.wireSeating 1 = 184 by
+  rw [show Seg125.wireSeating 1 = 185 by
     decide +kernel]
 
 /-- Audited action-facing seat for `net_balance` local 732. -/
 @[simp] theorem netBalanceAt732
     (rho : Nat → DeployedF) :
-    NetBalanceValuation rho 732 = rho 183 := by
+    NetBalanceValuation rho 732 = rho 184 := by
   simp only [
-    NetBalanceValuation, Seg123.localRho,
+    NetBalanceValuation, Seg125.localRho,
     Deployed.Templates.seated]
-  rw [show Seg123.wireSeating 732 = 183 by
+  rw [show Seg125.wireSeating 732 = 184 by
     decide +kernel]
 
 /-- Audited action-facing seat for `net_balance` local 861. -/
 @[simp] theorem netBalanceAt861
     (rho : Nat → DeployedF) :
-    NetBalanceValuation rho 861 = rho 264 := by
+    NetBalanceValuation rho 861 = rho 265 := by
   simp only [
-    NetBalanceValuation, Seg123.localRho,
+    NetBalanceValuation, Seg125.localRho,
     Deployed.Templates.seated]
-  rw [show Seg123.wireSeating 861 = 264 by
+  rw [show Seg125.wireSeating 861 = 265 by
     decide +kernel]
 
 /-- Audited action-facing seat for `net_balance` local 990. -/
 @[simp] theorem netBalanceAt990
     (rho : Nat → DeployedF) :
-    NetBalanceValuation rho 990 = rho 344 := by
+    NetBalanceValuation rho 990 = rho 345 := by
   simp only [
-    NetBalanceValuation, Seg123.localRho,
+    NetBalanceValuation, Seg125.localRho,
     Deployed.Templates.seated]
-  rw [show Seg123.wireSeating 990 = 344 by
+  rw [show Seg125.wireSeating 990 = 345 by
     decide +kernel]
 
 /-- Audited action-facing seat for `net_balance` local 1119. -/
 @[simp] theorem netBalanceAt1119
     (rho : Nat → DeployedF) :
-    NetBalanceValuation rho 1119 = rho 403 := by
+    NetBalanceValuation rho 1119 = rho 405 := by
   simp only [
-    NetBalanceValuation, Seg123.localRho,
+    NetBalanceValuation, Seg125.localRho,
     Deployed.Templates.seated]
-  rw [show Seg123.wireSeating 1119 = 403 by
+  rw [show Seg125.wireSeating 1119 = 405 by
     decide +kernel]
 
 /-- Audited action-facing seat for `net_balance` local 4467. -/
@@ -9117,34 +9234,34 @@ def NetBalanceSemanticSpec (rho : Nat → DeployedF) : Prop :=
     (rho : Nat → DeployedF) :
     NetBalanceValuation rho 4467 = rho 10 := by
   simp only [
-    NetBalanceValuation, Seg123.localRho,
+    NetBalanceValuation, Seg125.localRho,
     Deployed.Templates.seated]
-  rw [show Seg123.wireSeating 4467 = 10 by
+  rw [show Seg125.wireSeating 4467 = 10 by
     decide +kernel]
 
 /-- Audited action-facing seat for `net_balance` local 6026. -/
 @[simp] theorem netBalanceAt6026
     (rho : Nat → DeployedF) :
-    NetBalanceValuation rho 6026 = rho 116531 := by
+    NetBalanceValuation rho 6026 = rho 116615 := by
   simp only [
-    NetBalanceValuation, Seg123.localRho,
+    NetBalanceValuation, Seg125.localRho,
     Deployed.Templates.seated]
-  rw [show Seg123.wireSeating 6026 = 116531 by
+  rw [show Seg125.wireSeating 6026 = 116615 by
     decide +kernel]
 
 /-- Audited action-facing seat for `net_balance` local 6027. -/
 @[simp] theorem netBalanceAt6027
     (rho : Nat → DeployedF) :
-    NetBalanceValuation rho 6027 = rho 116532 := by
+    NetBalanceValuation rho 6027 = rho 116616 := by
   simp only [
-    NetBalanceValuation, Seg123.localRho,
+    NetBalanceValuation, Seg125.localRho,
     Deployed.Templates.seated]
-  rw [show Seg123.wireSeating 6027 = 116532 by
+  rw [show Seg125.wireSeating 6027 = 116616 by
     decide +kernel]
 
 /-- Deployed seating for the `balance_compress` certified local semantics. -/
 def BalanceCompressValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg124.localRho rho
+  Seg126.localRho rho
 
 /-- Certified local semantics for the `balance_compress` source operation. -/
 def BalanceCompressSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -9153,46 +9270,46 @@ def BalanceCompressSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `balance_compress` local 1. -/
 @[simp] theorem balanceCompressAt1
     (rho : Nat → DeployedF) :
-    BalanceCompressValuation rho 1 = rho 116531 := by
+    BalanceCompressValuation rho 1 = rho 116615 := by
   simp only [
-    BalanceCompressValuation, Seg124.localRho,
+    BalanceCompressValuation, Seg126.localRho,
     Deployed.Templates.seated]
-  rw [show Seg124.wireSeating 1 = 116531 by
+  rw [show Seg126.wireSeating 1 = 116615 by
     decide +kernel]
 
 /-- Audited action-facing seat for `balance_compress` local 3. -/
 @[simp] theorem balanceCompressAt3
     (rho : Nat → DeployedF) :
-    BalanceCompressValuation rho 3 = rho 116532 := by
+    BalanceCompressValuation rho 3 = rho 116616 := by
   simp only [
-    BalanceCompressValuation, Seg124.localRho,
+    BalanceCompressValuation, Seg126.localRho,
     Deployed.Templates.seated]
-  rw [show Seg124.wireSeating 3 = 116532 by
+  rw [show Seg126.wireSeating 3 = 116616 by
     decide +kernel]
 
 /-- Audited action-facing seat for `balance_compress` local 365. -/
 @[simp] theorem balanceCompressAt365
     (rho : Nat → DeployedF) :
-    BalanceCompressValuation rho 365 = rho 116895 := by
+    BalanceCompressValuation rho 365 = rho 116979 := by
   simp only [
-    BalanceCompressValuation, Seg124.localRho,
+    BalanceCompressValuation, Seg126.localRho,
     Deployed.Templates.seated]
-  rw [show Seg124.wireSeating 365 = 116895 by
+  rw [show Seg126.wireSeating 365 = 116979 by
     decide +kernel]
 
 /-- Audited action-facing seat for `balance_compress` local 705. -/
 @[simp] theorem balanceCompressAt705
     (rho : Nat → DeployedF) :
-    BalanceCompressValuation rho 705 = rho 117235 := by
+    BalanceCompressValuation rho 705 = rho 117319 := by
   simp only [
-    BalanceCompressValuation, Seg124.localRho,
+    BalanceCompressValuation, Seg126.localRho,
     Deployed.Templates.seated]
-  rw [show Seg124.wireSeating 705 = 117235 by
+  rw [show Seg126.wireSeating 705 = 117319 by
     decide +kernel]
 
 /-- Deployed seating for the `statement_hash` certified local semantics. -/
 def StatementHashValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg126.localRho rho
+  Seg128.localRho rho
 
 /-- Certified local semantics for the `statement_hash` source operation. -/
 def StatementHashSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -9203,49 +9320,49 @@ def StatementHashSemanticSpec (rho : Nat → DeployedF) : Prop :=
     (rho : Nat → DeployedF) :
     StatementHashValuation rho 1 = rho 6 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 1 = 6 by
+  rw [show Seg128.wireSeating 1 = 6 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 7. -/
 @[simp] theorem statementHashAt7
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 7 = rho 342 := by
+    StatementHashValuation rho 7 = rho 343 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 7 = 342 by
+  rw [show Seg128.wireSeating 7 = 343 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 13. -/
 @[simp] theorem statementHashAt13
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 13 = rho 401 := by
+    StatementHashValuation rho 13 = rho 403 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 13 = 401 by
+  rw [show Seg128.wireSeating 13 = 403 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 19. -/
 @[simp] theorem statementHashAt19
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 19 = rho 116895 := by
+    StatementHashValuation rho 19 = rho 116979 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 19 = 116895 by
+  rw [show Seg128.wireSeating 19 = 116979 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 20. -/
 @[simp] theorem statementHashAt20
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 20 = rho 117235 := by
+    StatementHashValuation rho 20 = rho 117319 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 20 = 117235 by
+  rw [show Seg128.wireSeating 20 = 117319 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 26. -/
@@ -9253,9 +9370,9 @@ def StatementHashSemanticSpec (rho : Nat → DeployedF) : Prop :=
     (rho : Nat → DeployedF) :
     StatementHashValuation rho 26 = rho 2 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 26 = 2 by
+  rw [show Seg128.wireSeating 26 = 2 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 32. -/
@@ -9263,9 +9380,9 @@ def StatementHashSemanticSpec (rho : Nat → DeployedF) : Prop :=
     (rho : Nat → DeployedF) :
     StatementHashValuation rho 32 = rho 3 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 32 = 3 by
+  rw [show Seg128.wireSeating 32 = 3 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 38. -/
@@ -9273,9 +9390,9 @@ def StatementHashSemanticSpec (rho : Nat → DeployedF) : Prop :=
     (rho : Nat → DeployedF) :
     StatementHashValuation rho 38 = rho 4 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 38 = 4 by
+  rw [show Seg128.wireSeating 38 = 4 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 484. -/
@@ -9283,89 +9400,89 @@ def StatementHashSemanticSpec (rho : Nat → DeployedF) : Prop :=
     (rho : Nat → DeployedF) :
     StatementHashValuation rho 484 = rho 5 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 484 = 5 by
+  rw [show Seg128.wireSeating 484 = 5 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 490. -/
 @[simp] theorem statementHashAt490
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 490 = rho 179 := by
+    StatementHashValuation rho 490 = rho 180 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 490 = 179 by
+  rw [show Seg128.wireSeating 490 = 180 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 496. -/
 @[simp] theorem statementHashAt496
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 496 = rho 39328 := by
+    StatementHashValuation rho 496 = rho 39371 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 496 = 39328 by
+  rw [show Seg128.wireSeating 496 = 39371 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 497. -/
 @[simp] theorem statementHashAt497
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 497 = rho 39668 := by
+    StatementHashValuation rho 497 = rho 39711 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 497 = 39668 by
+  rw [show Seg128.wireSeating 497 = 39711 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 503. -/
 @[simp] theorem statementHashAt503
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 503 = rho 259 := by
+    StatementHashValuation rho 503 = rho 260 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 503 = 259 by
+  rw [show Seg128.wireSeating 503 = 260 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 509. -/
 @[simp] theorem statementHashAt509
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 509 = rho 260 := by
+    StatementHashValuation rho 509 = rho 261 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 509 = 260 by
+  rw [show Seg128.wireSeating 509 = 261 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 515. -/
 @[simp] theorem statementHashAt515
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 515 = rho 51920 := by
+    StatementHashValuation rho 515 = rho 51963 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 515 = 51920 by
+  rw [show Seg128.wireSeating 515 = 51963 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 516. -/
 @[simp] theorem statementHashAt516
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 516 = rho 52260 := by
+    StatementHashValuation rho 516 = rho 52303 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 516 = 52260 by
+  rw [show Seg128.wireSeating 516 = 52303 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 962. -/
 @[simp] theorem statementHashAt962
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 962 = rho 341 := by
+    StatementHashValuation rho 962 = rho 342 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 962 = 341 by
+  rw [show Seg128.wireSeating 962 = 342 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 968. -/
@@ -9373,9 +9490,9 @@ def StatementHashSemanticSpec (rho : Nat → DeployedF) : Prop :=
     (rho : Nat → DeployedF) :
     StatementHashValuation rho 968 = rho 7 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 968 = 7 by
+  rw [show Seg128.wireSeating 968 = 7 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 974. -/
@@ -9383,249 +9500,249 @@ def StatementHashSemanticSpec (rho : Nat → DeployedF) : Prop :=
     (rho : Nat → DeployedF) :
     StatementHashValuation rho 974 = rho 8 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 974 = 8 by
+  rw [show Seg128.wireSeating 974 = 8 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 980. -/
 @[simp] theorem statementHashAt980
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 980 = rho 140 := by
+    StatementHashValuation rho 980 = rho 141 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 980 = 140 by
+  rw [show Seg128.wireSeating 980 = 141 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 986. -/
 @[simp] theorem statementHashAt986
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 986 = rho 141 := by
+    StatementHashValuation rho 986 = rho 142 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 986 = 141 by
+  rw [show Seg128.wireSeating 986 = 142 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 992. -/
 @[simp] theorem statementHashAt992
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 992 = rho 142 := by
+    StatementHashValuation rho 992 = rho 143 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 992 = 142 by
+  rw [show Seg128.wireSeating 992 = 143 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 1438. -/
 @[simp] theorem statementHashAt1438
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 1438 = rho 143 := by
+    StatementHashValuation rho 1438 = rho 144 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 1438 = 143 by
+  rw [show Seg128.wireSeating 1438 = 144 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 1444. -/
 @[simp] theorem statementHashAt1444
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 1444 = rho 69056 := by
+    StatementHashValuation rho 1444 = rho 69140 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 1444 = 69056 by
+  rw [show Seg128.wireSeating 1444 = 69140 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 1445. -/
 @[simp] theorem statementHashAt1445
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 1445 = rho 69396 := by
+    StatementHashValuation rho 1445 = rho 69480 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 1445 = 69396 by
+  rw [show Seg128.wireSeating 1445 = 69480 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 1451. -/
 @[simp] theorem statementHashAt1451
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 1451 = rho 161 := by
+    StatementHashValuation rho 1451 = rho 162 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 1451 = 161 by
+  rw [show Seg128.wireSeating 1451 = 162 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 1457. -/
 @[simp] theorem statementHashAt1457
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 1457 = rho 162 := by
+    StatementHashValuation rho 1457 = rho 163 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 1457 = 162 by
+  rw [show Seg128.wireSeating 1457 = 163 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 1463. -/
 @[simp] theorem statementHashAt1463
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 1463 = rho 69759 := by
+    StatementHashValuation rho 1463 = rho 69843 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 1463 = 69759 by
+  rw [show Seg128.wireSeating 1463 = 69843 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 1464. -/
 @[simp] theorem statementHashAt1464
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 1464 = rho 70099 := by
+    StatementHashValuation rho 1464 = rho 70183 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 1464 = 70099 by
+  rw [show Seg128.wireSeating 1464 = 70183 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 1470. -/
 @[simp] theorem statementHashAt1470
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 1470 = rho 165 := by
+    StatementHashValuation rho 1470 = rho 166 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 1470 = 165 by
+  rw [show Seg128.wireSeating 1470 = 166 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 1916. -/
 @[simp] theorem statementHashAt1916
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 1916 = rho 166 := by
+    StatementHashValuation rho 1916 = rho 167 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 1916 = 166 by
+  rw [show Seg128.wireSeating 1916 = 167 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 1922. -/
 @[simp] theorem statementHashAt1922
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 1922 = rho 167 := by
+    StatementHashValuation rho 1922 = rho 168 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 1922 = 167 by
+  rw [show Seg128.wireSeating 1922 = 168 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 1928. -/
 @[simp] theorem statementHashAt1928
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 1928 = rho 168 := by
+    StatementHashValuation rho 1928 = rho 169 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 1928 = 168 by
+  rw [show Seg128.wireSeating 1928 = 169 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 1934. -/
 @[simp] theorem statementHashAt1934
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 1934 = rho 70462 := by
+    StatementHashValuation rho 1934 = rho 70546 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 1934 = 70462 by
+  rw [show Seg128.wireSeating 1934 = 70546 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 1935. -/
 @[simp] theorem statementHashAt1935
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 1935 = rho 70802 := by
+    StatementHashValuation rho 1935 = rho 70886 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 1935 = 70802 by
+  rw [show Seg128.wireSeating 1935 = 70886 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 1941. -/
 @[simp] theorem statementHashAt1941
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 1941 = rho 171 := by
+    StatementHashValuation rho 1941 = rho 172 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 1941 = 171 by
+  rw [show Seg128.wireSeating 1941 = 172 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 1947. -/
 @[simp] theorem statementHashAt1947
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 1947 = rho 172 := by
+    StatementHashValuation rho 1947 = rho 173 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 1947 = 172 by
+  rw [show Seg128.wireSeating 1947 = 173 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 2393. -/
 @[simp] theorem statementHashAt2393
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 2393 = rho 71165 := by
+    StatementHashValuation rho 2393 = rho 71249 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 2393 = 71165 by
+  rw [show Seg128.wireSeating 2393 = 71249 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 2394. -/
 @[simp] theorem statementHashAt2394
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 2394 = rho 71505 := by
+    StatementHashValuation rho 2394 = rho 71589 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 2394 = 71505 by
+  rw [show Seg128.wireSeating 2394 = 71589 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 2400. -/
 @[simp] theorem statementHashAt2400
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 2400 = rho 175 := by
+    StatementHashValuation rho 2400 = rho 176 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 2400 = 175 by
+  rw [show Seg128.wireSeating 2400 = 176 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 2406. -/
 @[simp] theorem statementHashAt2406
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 2406 = rho 176 := by
+    StatementHashValuation rho 2406 = rho 177 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 2406 = 176 by
+  rw [show Seg128.wireSeating 2406 = 177 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 2412. -/
 @[simp] theorem statementHashAt2412
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 2412 = rho 177 := by
+    StatementHashValuation rho 2412 = rho 178 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 2412 = 177 by
+  rw [show Seg128.wireSeating 2412 = 178 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 2418. -/
 @[simp] theorem statementHashAt2418
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 2418 = rho 178 := by
+    StatementHashValuation rho 2418 = rho 179 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 2418 = 178 by
+  rw [show Seg128.wireSeating 2418 = 179 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 2424. -/
@@ -9633,194 +9750,194 @@ def StatementHashSemanticSpec (rho : Nat → DeployedF) : Prop :=
     (rho : Nat → DeployedF) :
     StatementHashValuation rho 2424 = rho 9 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 2424 = 9 by
+  rw [show Seg128.wireSeating 2424 = 9 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 2870. -/
 @[simp] theorem statementHashAt2870
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 2870 = rho 144 := by
+    StatementHashValuation rho 2870 = rho 145 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 2870 = 144 by
+  rw [show Seg128.wireSeating 2870 = 145 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 2876. -/
 @[simp] theorem statementHashAt2876
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 2876 = rho 145 := by
+    StatementHashValuation rho 2876 = rho 146 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 2876 = 145 by
+  rw [show Seg128.wireSeating 2876 = 146 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 2882. -/
 @[simp] theorem statementHashAt2882
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 2882 = rho 146 := by
+    StatementHashValuation rho 2882 = rho 147 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 2882 = 146 by
+  rw [show Seg128.wireSeating 2882 = 147 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 2888. -/
 @[simp] theorem statementHashAt2888
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 2888 = rho 147 := by
+    StatementHashValuation rho 2888 = rho 148 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 2888 = 147 by
+  rw [show Seg128.wireSeating 2888 = 148 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 2894. -/
 @[simp] theorem statementHashAt2894
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 2894 = rho 148 := by
+    StatementHashValuation rho 2894 = rho 149 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 2894 = 148 by
+  rw [show Seg128.wireSeating 2894 = 149 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 2900. -/
 @[simp] theorem statementHashAt2900
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 2900 = rho 149 := by
+    StatementHashValuation rho 2900 = rho 150 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 2900 = 149 by
+  rw [show Seg128.wireSeating 2900 = 150 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 3346. -/
 @[simp] theorem statementHashAt3346
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 3346 = rho 151 := by
+    StatementHashValuation rho 3346 = rho 152 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 3346 = 151 by
+  rw [show Seg128.wireSeating 3346 = 152 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 3352. -/
 @[simp] theorem statementHashAt3352
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 3352 = rho 152 := by
+    StatementHashValuation rho 3352 = rho 153 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 3352 = 152 by
+  rw [show Seg128.wireSeating 3352 = 153 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 3358. -/
 @[simp] theorem statementHashAt3358
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 3358 = rho 153 := by
+    StatementHashValuation rho 3358 = rho 154 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 3358 = 153 by
+  rw [show Seg128.wireSeating 3358 = 154 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 3364. -/
 @[simp] theorem statementHashAt3364
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 3364 = rho 154 := by
+    StatementHashValuation rho 3364 = rho 155 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 3364 = 154 by
+  rw [show Seg128.wireSeating 3364 = 155 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 3769. -/
 @[simp] theorem statementHashAt3769
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 3769 = rho 120950 := by
+    StatementHashValuation rho 3769 = rho 121034 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 3769 = 120950 by
+  rw [show Seg128.wireSeating 3769 = 121034 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 3774. -/
 @[simp] theorem statementHashAt3774
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 3774 = rho 120955 := by
+    StatementHashValuation rho 3774 = rho 121039 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 3774 = 120955 by
+  rw [show Seg128.wireSeating 3774 = 121039 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 3779. -/
 @[simp] theorem statementHashAt3779
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 3779 = rho 120960 := by
+    StatementHashValuation rho 3779 = rho 121044 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 3779 = 120960 by
+  rw [show Seg128.wireSeating 3779 = 121044 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 3784. -/
 @[simp] theorem statementHashAt3784
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 3784 = rho 120965 := by
+    StatementHashValuation rho 3784 = rho 121049 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 3784 = 120965 by
+  rw [show Seg128.wireSeating 3784 = 121049 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 3789. -/
 @[simp] theorem statementHashAt3789
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 3789 = rho 120970 := by
+    StatementHashValuation rho 3789 = rho 121054 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 3789 = 120970 by
+  rw [show Seg128.wireSeating 3789 = 121054 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 3794. -/
 @[simp] theorem statementHashAt3794
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 3794 = rho 120975 := by
+    StatementHashValuation rho 3794 = rho 121059 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 3794 = 120975 by
+  rw [show Seg128.wireSeating 3794 = 121059 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 3799. -/
 @[simp] theorem statementHashAt3799
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 3799 = rho 120980 := by
+    StatementHashValuation rho 3799 = rho 121064 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 3799 = 120980 by
+  rw [show Seg128.wireSeating 3799 = 121064 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_hash` local 3804. -/
 @[simp] theorem statementHashAt3804
     (rho : Nat → DeployedF) :
-    StatementHashValuation rho 3804 = rho 120985 := by
+    StatementHashValuation rho 3804 = rho 121069 := by
   simp only [
-    StatementHashValuation, Seg126.localRho,
+    StatementHashValuation, Seg128.localRho,
     Deployed.Templates.seated]
-  rw [show Seg126.wireSeating 3804 = 120985 by
+  rw [show Seg128.wireSeating 3804 = 121069 by
     decide +kernel]
 
 /-- Deployed seating for the `statement_assert` certified local semantics. -/
 def StatementAssertValuation (rho : Nat → DeployedF) : Nat → DeployedF :=
-  Seg127.localRho rho
+  Seg129.localRho rho
 
 /-- Certified local semantics for the `statement_assert` source operation. -/
 def StatementAssertSemanticSpec (rho : Nat → DeployedF) : Prop :=
@@ -9829,81 +9946,81 @@ def StatementAssertSemanticSpec (rho : Nat → DeployedF) : Prop :=
 /-- Audited action-facing seat for `statement_assert` local 1. -/
 @[simp] theorem statementAssertAt1
     (rho : Nat → DeployedF) :
-    StatementAssertValuation rho 1 = rho 120950 := by
+    StatementAssertValuation rho 1 = rho 121034 := by
   simp only [
-    StatementAssertValuation, Seg127.localRho,
+    StatementAssertValuation, Seg129.localRho,
     Deployed.Templates.seated]
-  rw [show Seg127.wireSeating 1 = 120950 by
+  rw [show Seg129.wireSeating 1 = 121034 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_assert` local 2. -/
 @[simp] theorem statementAssertAt2
     (rho : Nat → DeployedF) :
-    StatementAssertValuation rho 2 = rho 120955 := by
+    StatementAssertValuation rho 2 = rho 121039 := by
   simp only [
-    StatementAssertValuation, Seg127.localRho,
+    StatementAssertValuation, Seg129.localRho,
     Deployed.Templates.seated]
-  rw [show Seg127.wireSeating 2 = 120955 by
+  rw [show Seg129.wireSeating 2 = 121039 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_assert` local 3. -/
 @[simp] theorem statementAssertAt3
     (rho : Nat → DeployedF) :
-    StatementAssertValuation rho 3 = rho 120960 := by
+    StatementAssertValuation rho 3 = rho 121044 := by
   simp only [
-    StatementAssertValuation, Seg127.localRho,
+    StatementAssertValuation, Seg129.localRho,
     Deployed.Templates.seated]
-  rw [show Seg127.wireSeating 3 = 120960 by
+  rw [show Seg129.wireSeating 3 = 121044 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_assert` local 4. -/
 @[simp] theorem statementAssertAt4
     (rho : Nat → DeployedF) :
-    StatementAssertValuation rho 4 = rho 120965 := by
+    StatementAssertValuation rho 4 = rho 121049 := by
   simp only [
-    StatementAssertValuation, Seg127.localRho,
+    StatementAssertValuation, Seg129.localRho,
     Deployed.Templates.seated]
-  rw [show Seg127.wireSeating 4 = 120965 by
+  rw [show Seg129.wireSeating 4 = 121049 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_assert` local 5. -/
 @[simp] theorem statementAssertAt5
     (rho : Nat → DeployedF) :
-    StatementAssertValuation rho 5 = rho 120970 := by
+    StatementAssertValuation rho 5 = rho 121054 := by
   simp only [
-    StatementAssertValuation, Seg127.localRho,
+    StatementAssertValuation, Seg129.localRho,
     Deployed.Templates.seated]
-  rw [show Seg127.wireSeating 5 = 120970 by
+  rw [show Seg129.wireSeating 5 = 121054 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_assert` local 6. -/
 @[simp] theorem statementAssertAt6
     (rho : Nat → DeployedF) :
-    StatementAssertValuation rho 6 = rho 120975 := by
+    StatementAssertValuation rho 6 = rho 121059 := by
   simp only [
-    StatementAssertValuation, Seg127.localRho,
+    StatementAssertValuation, Seg129.localRho,
     Deployed.Templates.seated]
-  rw [show Seg127.wireSeating 6 = 120975 by
+  rw [show Seg129.wireSeating 6 = 121059 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_assert` local 7. -/
 @[simp] theorem statementAssertAt7
     (rho : Nat → DeployedF) :
-    StatementAssertValuation rho 7 = rho 120980 := by
+    StatementAssertValuation rho 7 = rho 121064 := by
   simp only [
-    StatementAssertValuation, Seg127.localRho,
+    StatementAssertValuation, Seg129.localRho,
     Deployed.Templates.seated]
-  rw [show Seg127.wireSeating 7 = 120980 by
+  rw [show Seg129.wireSeating 7 = 121064 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_assert` local 8. -/
 @[simp] theorem statementAssertAt8
     (rho : Nat → DeployedF) :
-    StatementAssertValuation rho 8 = rho 120985 := by
+    StatementAssertValuation rho 8 = rho 121069 := by
   simp only [
-    StatementAssertValuation, Seg127.localRho,
+    StatementAssertValuation, Seg129.localRho,
     Deployed.Templates.seated]
-  rw [show Seg127.wireSeating 8 = 120985 by
+  rw [show Seg129.wireSeating 8 = 121069 by
     decide +kernel]
 
 /-- Audited action-facing seat for `statement_assert` local 9. -/
@@ -9911,9 +10028,9 @@ def StatementAssertSemanticSpec (rho : Nat → DeployedF) : Prop :=
     (rho : Nat → DeployedF) :
     StatementAssertValuation rho 9 = rho 1 := by
   simp only [
-    StatementAssertValuation, Seg127.localRho,
+    StatementAssertValuation, Seg129.localRho,
     Deployed.Templates.seated]
-  rw [show Seg127.wireSeating 9 = 1 by
+  rw [show Seg129.wireSeating 9 = 1 by
     decide +kernel]
 
 /--
@@ -9950,6 +10067,7 @@ structure TransferSemanticProviders (rho : Nat → DeployedF) : Prop where
   senderComplianceLeaf : SenderComplianceLeafSemanticSpec rho
   senderCompliancePath : SenderCompliancePathSemanticSpec rho
   senderComplianceAssert : SenderComplianceAssertSemanticSpec rho
+  senderStatusActiveAssert : SenderStatusActiveAssertSemanticSpec rho
   senderAck : SenderAckSemanticSpec rho
   requiredNoteCommitment : RequiredNoteCommitmentSemanticSpec rho
   requiredNullifier : RequiredNullifierSemanticSpec rho
@@ -9983,6 +10101,7 @@ structure TransferSemanticProviders (rho : Nat → DeployedF) : Prop where
   receiverComplianceLeaf : ReceiverComplianceLeafSemanticSpec rho
   receiverCompliancePath : ReceiverCompliancePathSemanticSpec rho
   receiverComplianceAssert : ReceiverComplianceAssertSemanticSpec rho
+  receiverStatusActiveAssert : ReceiverStatusActiveAssertSemanticSpec rho
   receiverNonzeroAssert : ReceiverNonzeroAssertSemanticSpec rho
   receiverAck : ReceiverAckSemanticSpec rho
   changeNoteCommitment : ChangeNoteCommitmentSemanticSpec rho
@@ -10119,271 +10238,277 @@ theorem transferSemanticProviders_of_exact
         change Deployed.Templates.Semantics.TAssertEq_8d8c35e681ce1b5e96aa42ceee0013036302fc4e1b1594a361d481be589b6d6c.spec (Seg26.localRho rho)
         exact exactProviders.assetRegistry.assetGapAccept
       senderComplianceLeaf := by
-        change Deployed.Templates.Semantics.TGadgetComplianceLeaf_dcb0a1040c535cf394b8bda4f381260121926f7d477fb80a22e4e84b0cb431bc.spec (Seg27.localRho rho)
+        change Deployed.Templates.Semantics.TGadgetComplianceLeaf_712c7a4d010c3b98e4d25232885b0f2dbf3329286405042c73ffe98555c9d024.spec (Seg27.localRho rho)
         exact exactProviders.senderCompliance.senderComplianceLeaf
       senderCompliancePath := by
-        change Deployed.Templates.Semantics.TGadgetCompliancePath_d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686.spec (Seg28.localRho rho)
+        change Deployed.Templates.Semantics.TGadgetCompliancePath_3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b.spec (Seg28.localRho rho)
         exact exactProviders.senderCompliance.senderCompliancePath
       senderComplianceAssert := by
         change Deployed.Templates.Semantics.TAssertEqIf_8ce5774e50355d2a29c59780aba5615b3b4386e8925bffa9de0ad683cdc7cf8d.spec (Seg29.localRho rho)
         exact exactProviders.senderCompliance.senderComplianceAssert
+      senderStatusActiveAssert := by
+        change Deployed.Templates.Semantics.TAssertEqIf_21d2c12b00d06e5e5a9b561d8f13c30059ff3ae69a31740109ba30ed73bb89aa.spec (Seg30.localRho rho)
+        exact exactProviders.senderCompliance.senderStatusActiveAssert
       senderAck := by
-        change Deployed.Templates.Semantics.TDecafAck_e3974880eca25a8b5cfa17d94f28498f1dc082a93526c584816508afe0778ca1.spec (Seg30.localRho rho)
+        change Deployed.Templates.Semantics.TDecafAck_e3974880eca25a8b5cfa17d94f28498f1dc082a93526c584816508afe0778ca1.spec (Seg31.localRho rho)
         exact exactProviders.senderCompliance.senderAck
       requiredNoteCommitment := by
-        change Deployed.Templates.Semantics.TGadgetNoteCommitment_252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c.spec (Seg32.localRho rho)
+        change Deployed.Templates.Semantics.TGadgetNoteCommitment_252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c.spec (Seg33.localRho rho)
         exact exactProviders.requiredSpend.requiredNoteCommitment
       requiredNullifier := by
-        change Deployed.Templates.Semantics.TGadgetNullifier_5707ecfa23746942d4eee98a87b841d07f40163e3e15aeba5d907533f9aa58c4.spec (Seg33.localRho rho)
+        change Deployed.Templates.Semantics.TGadgetNullifier_5707ecfa23746942d4eee98a87b841d07f40163e3e15aeba5d907533f9aa58c4.spec (Seg34.localRho rho)
         exact exactProviders.requiredSpend.requiredNullifier
       requiredStatePath := by
-        change Deployed.Templates.Semantics.TGadgetStateCommitmentPath_de54b1d0646cc1ad6f619aa080bfafd4a6edb63989b142c5c0b284d84e09d69b.spec (Seg34.localRho rho)
+        change Deployed.Templates.Semantics.TGadgetStateCommitmentPath_de54b1d0646cc1ad6f619aa080bfafd4a6edb63989b142c5c0b284d84e09d69b.spec (Seg35.localRho rho)
         exact exactProviders.requiredSpend.requiredStatePath
       requiredNullifierAssert := by
-        change Deployed.Templates.Semantics.TAssertEq_f65d80594ca3008a765694d28652f6f340f2fac809070ad4534a8c26871bd06b.spec (Seg35.localRho rho)
+        change Deployed.Templates.Semantics.TAssertEq_f65d80594ca3008a765694d28652f6f340f2fac809070ad4534a8c26871bd06b.spec (Seg36.localRho rho)
         exact exactProviders.requiredSpend.requiredNullifierAssert
       requiredAnchorAssert := by
-        change Deployed.Templates.Semantics.TAssertEq_5e5758a2d4a6d172e743a9ad78863e351485ec2c3a01a4ef7fdc4d01f6c826ef.spec (Seg36.localRho rho)
+        change Deployed.Templates.Semantics.TAssertEq_5e5758a2d4a6d172e743a9ad78863e351485ec2c3a01a4ef7fdc4d01f6c826ef.spec (Seg37.localRho rho)
         exact exactProviders.requiredSpend.requiredAnchorAssert
       requiredRvk := by
-        change Deployed.Templates.Semantics.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f.spec (Seg37.localRho rho)
+        change Deployed.Templates.Semantics.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f.spec (Seg38.localRho rho)
         exact exactProviders.requiredSpend.requiredRvk
       requiredRkEquivalent := by
-        change Deployed.Templates.Semantics.TDecafAssertEquivalent_534c1d15097e8b552f82c9624b8deece32b50ee8ae5a2eb96ed1dd0de9146b4e.spec (Seg38.localRho rho)
+        change Deployed.Templates.Semantics.TDecafAssertEquivalent_534c1d15097e8b552f82c9624b8deece32b50ee8ae5a2eb96ed1dd0de9146b4e.spec (Seg39.localRho rho)
         exact exactProviders.requiredSpend.requiredRkEquivalent
       requiredHistoryClassify := by
-        change Deployed.Templates.Semantics.THistoryClassify_24943fd2154aa0ac8bbf9adce870214e50badfb7c18cba54c33b68fcd9222905.spec (Seg39.localRho rho)
+        change Deployed.Templates.Semantics.THistoryClassify_24943fd2154aa0ac8bbf9adce870214e50badfb7c18cba54c33b68fcd9222905.spec (Seg40.localRho rho)
         exact exactProviders.requiredSpend.requiredHistoryClassify
       requiredRkCompress := by
-        change Deployed.Templates.Semantics.TDecafCompressToField_231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb.spec (Seg40.localRho rho)
+        change Deployed.Templates.Semantics.TDecafCompressToField_231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb.spec (Seg41.localRho rho)
         exact exactProviders.requiredSpend.requiredRkCompress
       optionalIsDummyBoolean := by
-        change Deployed.Templates.Semantics.TAssertBoolean_469df3cb92f6ee26f90120fa5a2d5ab48448c3e42be090ebb81d77d5431164fc.spec (Seg43.localRho rho)
+        change Deployed.Templates.Semantics.TAssertBoolean_469df3cb92f6ee26f90120fa5a2d5ab48448c3e42be090ebb81d77d5431164fc.spec (Seg44.localRho rho)
         exact exactProviders.optionalSpend.optionalIsDummyBoolean
       optionalNoteCommitment := by
-        change Deployed.Templates.Semantics.TGadgetNoteCommitment_252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c.spec (Seg44.localRho rho)
+        change Deployed.Templates.Semantics.TGadgetNoteCommitment_252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c.spec (Seg45.localRho rho)
         exact exactProviders.optionalSpend.optionalNoteCommitment
       optionalNullifier := by
-        change Deployed.Templates.Semantics.TGadgetNullifier_5707ecfa23746942d4eee98a87b841d07f40163e3e15aeba5d907533f9aa58c4.spec (Seg45.localRho rho)
+        change Deployed.Templates.Semantics.TGadgetNullifier_5707ecfa23746942d4eee98a87b841d07f40163e3e15aeba5d907533f9aa58c4.spec (Seg46.localRho rho)
         exact exactProviders.optionalSpend.optionalNullifier
       optionalStatePath := by
-        change Deployed.Templates.Semantics.TGadgetStateCommitmentPath_de54b1d0646cc1ad6f619aa080bfafd4a6edb63989b142c5c0b284d84e09d69b.spec (Seg46.localRho rho)
+        change Deployed.Templates.Semantics.TGadgetStateCommitmentPath_de54b1d0646cc1ad6f619aa080bfafd4a6edb63989b142c5c0b284d84e09d69b.spec (Seg47.localRho rho)
         exact exactProviders.optionalSpend.optionalStatePath
       optionalSyntheticNullifier := by
-        change Deployed.Templates.Semantics.TGadgetSyntheticDummyNullifier_baf815f441dc1f36dd4b49d76d50f37ec9e315a12ec74f4c16391bdd9d7017fd.spec (Seg47.localRho rho)
+        change Deployed.Templates.Semantics.TGadgetSyntheticDummyNullifier_baf815f441dc1f36dd4b49d76d50f37ec9e315a12ec74f4c16391bdd9d7017fd.spec (Seg48.localRho rho)
         exact exactProviders.optionalSpend.optionalSyntheticNullifier
       optionalNullifierMux := by
-        change Deployed.Templates.Semantics.TDummyMux_6b4f764130614aef38a5954daa8a7654deca54de7a24217406a68696772579ce.spec (Seg48.localRho rho)
+        change Deployed.Templates.Semantics.TDummyMux_6b4f764130614aef38a5954daa8a7654deca54de7a24217406a68696772579ce.spec (Seg49.localRho rho)
         exact exactProviders.optionalSpend.optionalNullifierMux
       optionalNullifierAssert := by
-        change Deployed.Templates.Semantics.TAssertEq_460e4d66ff383bde603d8cffb059ede8f489117c64d82168ec67187bae7e1bc3.spec (Seg49.localRho rho)
+        change Deployed.Templates.Semantics.TAssertEq_460e4d66ff383bde603d8cffb059ede8f489117c64d82168ec67187bae7e1bc3.spec (Seg50.localRho rho)
         exact exactProviders.optionalSpend.optionalNullifierAssert
       optionalAnchorAssert := by
-        change Deployed.Templates.Semantics.TAssertEqIf_36366df670e29c988b147701d72d7155b3720bdc777b4429912cc664e80b0b03.spec (Seg50.localRho rho)
+        change Deployed.Templates.Semantics.TAssertEqIf_36366df670e29c988b147701d72d7155b3720bdc777b4429912cc664e80b0b03.spec (Seg51.localRho rho)
         exact exactProviders.optionalSpend.optionalAnchorAssert
       optionalRvk := by
-        change Deployed.Templates.Semantics.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f.spec (Seg51.localRho rho)
+        change Deployed.Templates.Semantics.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f.spec (Seg52.localRho rho)
         exact exactProviders.optionalSpend.optionalRvk
       optionalRkEquivalent := by
-        change Deployed.Templates.Semantics.TDecafAssertEquivalentIf_5153b90a6cbb5f5ba2ec514e6df8b586236dbc591f653a4b7fdd7890eb4be84f.spec (Seg52.localRho rho)
+        change Deployed.Templates.Semantics.TDecafAssertEquivalentIf_5153b90a6cbb5f5ba2ec514e6df8b586236dbc591f653a4b7fdd7890eb4be84f.spec (Seg53.localRho rho)
         exact exactProviders.optionalSpend.optionalRkEquivalent
       optionalAmountZero := by
-        change Deployed.Templates.Semantics.TAssertEqIf_ddee3f5dbb25719dc8ce88820a48ef2b56159138d939c3b768c7bcfad396079d.spec (Seg53.localRho rho)
+        change Deployed.Templates.Semantics.TAssertEqIf_ddee3f5dbb25719dc8ce88820a48ef2b56159138d939c3b768c7bcfad396079d.spec (Seg54.localRho rho)
         exact exactProviders.optionalSpend.optionalAmountZero
       optionalHistoryClassify := by
-        change Deployed.Templates.Semantics.THistoryClassify_63bcfde2aa853f39c988314bacdeeddfe5aa236959c22bd9f97803415badf545.spec (Seg54.localRho rho)
+        change Deployed.Templates.Semantics.THistoryClassify_63bcfde2aa853f39c988314bacdeeddfe5aa236959c22bd9f97803415badf545.spec (Seg55.localRho rho)
         exact exactProviders.optionalSpend.optionalHistoryClassify
       optionalRkCompress := by
-        change Deployed.Templates.Semantics.TDecafCompressToField_231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb.spec (Seg55.localRho rho)
+        change Deployed.Templates.Semantics.TDecafCompressToField_231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb.spec (Seg56.localRho rho)
         exact exactProviders.optionalSpend.optionalRkCompress
       receiverDivGenNonIdentity := by
-        change Deployed.Templates.Semantics.TAssertDecafNonIdentity_50cbccf8f817daa8e44c093750c80e184e1fe6d1fc8286031e7838dfb6b344fd.spec (Seg58.localRho rho)
+        change Deployed.Templates.Semantics.TAssertDecafNonIdentity_50cbccf8f817daa8e44c093750c80e184e1fe6d1fc8286031e7838dfb6b344fd.spec (Seg59.localRho rho)
         exact exactProviders.receiverOutput.receiverDivGenNonIdentity
       receiverTransmissionNonIdentity := by
-        change Deployed.Templates.Semantics.TAssertDecafNonIdentity_50cbccf8f817daa8e44c093750c80e184e1fe6d1fc8286031e7838dfb6b344fd.spec (Seg59.localRho rho)
+        change Deployed.Templates.Semantics.TAssertDecafNonIdentity_50cbccf8f817daa8e44c093750c80e184e1fe6d1fc8286031e7838dfb6b344fd.spec (Seg60.localRho rho)
         exact exactProviders.receiverOutput.receiverTransmissionNonIdentity
       receiverAmountIsZero := by
-        change Deployed.Templates.Semantics.TGadgetIsZero_f86255d819c7c0651266670438637db9143483a034e8100b1d451f78c8ab9991.spec (Seg60.localRho rho)
+        change Deployed.Templates.Semantics.TGadgetIsZero_f86255d819c7c0651266670438637db9143483a034e8100b1d451f78c8ab9991.spec (Seg61.localRho rho)
         exact exactProviders.receiverOutput.receiverAmountIsZero
       receiverDivGenCompress := by
-        change Deployed.Templates.Semantics.TDecafCompressToField_231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb.spec (Seg61.localRho rho)
+        change Deployed.Templates.Semantics.TDecafCompressToField_231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb.spec (Seg62.localRho rho)
         exact exactProviders.receiverOutput.receiverDivGenCompress
       receiverTransmissionCompress := by
-        change Deployed.Templates.Semantics.TDecafCompressToField_231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb.spec (Seg62.localRho rho)
+        change Deployed.Templates.Semantics.TDecafCompressToField_231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb.spec (Seg63.localRho rho)
         exact exactProviders.receiverOutput.receiverTransmissionCompress
       receiverNoteCommitment := by
-        change Deployed.Templates.Semantics.TGadgetNoteCommitment_252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c.spec (Seg63.localRho rho)
+        change Deployed.Templates.Semantics.TGadgetNoteCommitment_252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c.spec (Seg64.localRho rho)
         exact exactProviders.receiverOutput.receiverNoteCommitment
       receiverNoteAssert := by
-        change Deployed.Templates.Semantics.TAssertEq_c4acc0cb39ee1820ee3eb4fda139846ccb6ea995c7d6605854f111a0b177b240.spec (Seg64.localRho rho)
+        change Deployed.Templates.Semantics.TAssertEq_c4acc0cb39ee1820ee3eb4fda139846ccb6ea995c7d6605854f111a0b177b240.spec (Seg65.localRho rho)
         exact exactProviders.receiverOutput.receiverNoteAssert
       receiverComplianceLeaf := by
-        change Deployed.Templates.Semantics.TGadgetComplianceLeaf_dcb0a1040c535cf394b8bda4f381260121926f7d477fb80a22e4e84b0cb431bc.spec (Seg65.localRho rho)
+        change Deployed.Templates.Semantics.TGadgetComplianceLeaf_712c7a4d010c3b98e4d25232885b0f2dbf3329286405042c73ffe98555c9d024.spec (Seg66.localRho rho)
         exact exactProviders.receiverCompliance.receiverComplianceLeaf
       receiverCompliancePath := by
-        change Deployed.Templates.Semantics.TGadgetCompliancePath_d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686.spec (Seg66.localRho rho)
+        change Deployed.Templates.Semantics.TGadgetCompliancePath_3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b.spec (Seg67.localRho rho)
         exact exactProviders.receiverCompliance.receiverCompliancePath
       receiverComplianceAssert := by
-        change Deployed.Templates.Semantics.TAssertEqIf_8ce5774e50355d2a29c59780aba5615b3b4386e8925bffa9de0ad683cdc7cf8d.spec (Seg67.localRho rho)
+        change Deployed.Templates.Semantics.TAssertEqIf_8ce5774e50355d2a29c59780aba5615b3b4386e8925bffa9de0ad683cdc7cf8d.spec (Seg68.localRho rho)
         exact exactProviders.receiverCompliance.receiverComplianceAssert
+      receiverStatusActiveAssert := by
+        change Deployed.Templates.Semantics.TAssertEqIf_21d2c12b00d06e5e5a9b561d8f13c30059ff3ae69a31740109ba30ed73bb89aa.spec (Seg69.localRho rho)
+        exact exactProviders.receiverCompliance.receiverStatusActiveAssert
       receiverNonzeroAssert := by
-        change Deployed.Templates.Semantics.TAssertEq_ca693c9a644d7a101d49302f9052719ee7e0f45605900d8e80b3c59e6b2e2ddd.spec (Seg68.localRho rho)
+        change Deployed.Templates.Semantics.TAssertEq_ca693c9a644d7a101d49302f9052719ee7e0f45605900d8e80b3c59e6b2e2ddd.spec (Seg70.localRho rho)
         exact exactProviders.receiverOutput.receiverNonzeroAssert
       receiverAck := by
-        change Deployed.Templates.Semantics.TDecafAck_e3974880eca25a8b5cfa17d94f28498f1dc082a93526c584816508afe0778ca1.spec (Seg69.localRho rho)
+        change Deployed.Templates.Semantics.TDecafAck_e3974880eca25a8b5cfa17d94f28498f1dc082a93526c584816508afe0778ca1.spec (Seg71.localRho rho)
         exact exactProviders.receiverCompliance.receiverAck
       changeNoteCommitment := by
-        change Deployed.Templates.Semantics.TGadgetNoteCommitment_252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c.spec (Seg72.localRho rho)
+        change Deployed.Templates.Semantics.TGadgetNoteCommitment_252c34d237e9b74178cdbbf5a9717debfc74e1b16a3efce054302a298f56fd4c.spec (Seg74.localRho rho)
         exact exactProviders.changeOutput.changeNoteCommitment
       changeNoteAssert := by
-        change Deployed.Templates.Semantics.TAssertEq_c4acc0cb39ee1820ee3eb4fda139846ccb6ea995c7d6605854f111a0b177b240.spec (Seg73.localRho rho)
+        change Deployed.Templates.Semantics.TAssertEq_c4acc0cb39ee1820ee3eb4fda139846ccb6ea995c7d6605854f111a0b177b240.spec (Seg75.localRho rho)
         exact exactProviders.changeOutput.changeNoteAssert
       routingPrecisionSelect := by
-        change Deployed.Templates.Semantics.TRoutingPrecisionSelect_125b62f4637be641a0e83ca5b67e6b0fde3dc4a203b53954c10e341830651161.spec (Seg74.localRho rho)
+        change Deployed.Templates.Semantics.TRoutingPrecisionSelect_125b62f4637be641a0e83ca5b67e6b0fde3dc4a203b53954c10e341830651161.spec (Seg76.localRho rho)
         exact exactProviders.statementBinding.routingPrecisionSelect
       routingParametersHash := by
-        change Deployed.Templates.Semantics.TRoutingParametersHash_4ac07381879f7b48f8431947af1db1328923b54907622f47df5426e5ea9b6653.spec (Seg75.localRho rho)
+        change Deployed.Templates.Semantics.TRoutingParametersHash_4ac07381879f7b48f8431947af1db1328923b54907622f47df5426e5ea9b6653.spec (Seg77.localRho rho)
         exact exactProviders.statementBinding.routingParametersHash
       routingParametersBind := by
-        change Deployed.Templates.Semantics.TRoutingParametersBind_46f527d3e36d976837f6c928381fedce823324751461dd2d8bd615716c786979.spec (Seg76.localRho rho)
+        change Deployed.Templates.Semantics.TRoutingParametersBind_46f527d3e36d976837f6c928381fedce823324751461dd2d8bd615716c786979.spec (Seg78.localRho rho)
         exact exactProviders.statementBinding.routingParametersBind
       routingSenderRouteWord := by
-        change Deployed.Templates.Semantics.TRoutingRouteWord_8ea7a07420a20d4c8b83bc50f00b755ab22e9fe9b8b9f9d669003cd2a5fb5279.spec (Seg77.localRho rho)
+        change Deployed.Templates.Semantics.TRoutingRouteWord_8ea7a07420a20d4c8b83bc50f00b755ab22e9fe9b8b9f9d669003cd2a5fb5279.spec (Seg79.localRho rho)
         exact exactProviders.statementBinding.routingSenderRouteWord
       routingReceiverRouteWord := by
-        change Deployed.Templates.Semantics.TRoutingRouteWord_8ea7a07420a20d4c8b83bc50f00b755ab22e9fe9b8b9f9d669003cd2a5fb5279.spec (Seg78.localRho rho)
+        change Deployed.Templates.Semantics.TRoutingRouteWord_8ea7a07420a20d4c8b83bc50f00b755ab22e9fe9b8b9f9d669003cd2a5fb5279.spec (Seg80.localRho rho)
         exact exactProviders.statementBinding.routingReceiverRouteWord
       routingPermutationHash := by
-        change Deployed.Templates.Semantics.TRoutingPermutationHash_e192a8182110fdbc13b07c4a18e32a203dbb18e8203962744b80b191a845a030.spec (Seg79.localRho rho)
+        change Deployed.Templates.Semantics.TRoutingPermutationHash_e192a8182110fdbc13b07c4a18e32a203dbb18e8203962744b80b191a845a030.spec (Seg81.localRho rho)
         exact exactProviders.statementBinding.routingPermutationHash
       routingPermutationCompose := by
-        change Deployed.Templates.Semantics.TRoutingPermutationCompose_38126e47de90298f59bd17b5452e92d8d2b20161cbaf377aef252b7e1fe3c573.spec (Seg80.localRho rho)
+        change Deployed.Templates.Semantics.TRoutingPermutationCompose_38126e47de90298f59bd17b5452e92d8d2b20161cbaf377aef252b7e1fe3c573.spec (Seg82.localRho rho)
         exact exactProviders.statementBinding.routingPermutationCompose
       routingTag0PublicRange := by
-        change Deployed.Templates.Semantics.TRoutingTagPublicRange_59e76d0fcd4dbc54aa0f71ef6780ba9462e5a0dc5ed4d67c4889d339632c9227.spec (Seg81.localRho rho)
+        change Deployed.Templates.Semantics.TRoutingTagPublicRange_59e76d0fcd4dbc54aa0f71ef6780ba9462e5a0dc5ed4d67c4889d339632c9227.spec (Seg83.localRho rho)
         exact exactProviders.statementBinding.routingTag0PublicRange
       routingTag0RouteBits := by
-        change Deployed.Templates.Semantics.TRoutingTagRouteBits_e6d7e42306aedc03d5686a40e7e216dcf3e8dda08833c3dfcf4551391cbee374.spec (Seg82.localRho rho)
+        change Deployed.Templates.Semantics.TRoutingTagRouteBits_e6d7e42306aedc03d5686a40e7e216dcf3e8dda08833c3dfcf4551391cbee374.spec (Seg84.localRho rho)
         exact exactProviders.statementBinding.routingTag0RouteBits
       routingTag0RandomWord := by
-        change Deployed.Templates.Semantics.TRoutingTagRandomWord_4480567d0ad9109ab45843d493f32a0ed4ed6acebd0be5471905902706d09764.spec (Seg83.localRho rho)
+        change Deployed.Templates.Semantics.TRoutingTagRandomWord_4480567d0ad9109ab45843d493f32a0ed4ed6acebd0be5471905902706d09764.spec (Seg85.localRho rho)
         exact exactProviders.statementBinding.routingTag0RandomWord
       routingTag0Compose := by
-        change Deployed.Templates.Semantics.TRoutingTagCompose_96b7bad6a126477ad863859abf885df171ba39077e195c445287f1fe7feb8aed.spec (Seg84.localRho rho)
+        change Deployed.Templates.Semantics.TRoutingTagCompose_96b7bad6a126477ad863859abf885df171ba39077e195c445287f1fe7feb8aed.spec (Seg86.localRho rho)
         exact exactProviders.statementBinding.routingTag0Compose
       routingTag1PublicRange := by
-        change Deployed.Templates.Semantics.TRoutingTagPublicRange_59e76d0fcd4dbc54aa0f71ef6780ba9462e5a0dc5ed4d67c4889d339632c9227.spec (Seg85.localRho rho)
+        change Deployed.Templates.Semantics.TRoutingTagPublicRange_59e76d0fcd4dbc54aa0f71ef6780ba9462e5a0dc5ed4d67c4889d339632c9227.spec (Seg87.localRho rho)
         exact exactProviders.statementBinding.routingTag1PublicRange
       routingTag1RouteBits := by
-        change Deployed.Templates.Semantics.TRoutingTagRouteBits_e6d7e42306aedc03d5686a40e7e216dcf3e8dda08833c3dfcf4551391cbee374.spec (Seg86.localRho rho)
+        change Deployed.Templates.Semantics.TRoutingTagRouteBits_e6d7e42306aedc03d5686a40e7e216dcf3e8dda08833c3dfcf4551391cbee374.spec (Seg88.localRho rho)
         exact exactProviders.statementBinding.routingTag1RouteBits
       routingTag1RandomWord := by
-        change Deployed.Templates.Semantics.TRoutingTagRandomWord_214c257798ce9ea73b964e6f1d8353234a318db1530ede36af2658731198a3fd.spec (Seg87.localRho rho)
+        change Deployed.Templates.Semantics.TRoutingTagRandomWord_214c257798ce9ea73b964e6f1d8353234a318db1530ede36af2658731198a3fd.spec (Seg89.localRho rho)
         exact exactProviders.statementBinding.routingTag1RandomWord
       routingTag1Compose := by
-        change Deployed.Templates.Semantics.TRoutingTagCompose_693a5e7e265dd4badbbd5ea9a64eb22c4ba3b423d34f08e4ae1f94375a8d3fbb.spec (Seg88.localRho rho)
+        change Deployed.Templates.Semantics.TRoutingTagCompose_693a5e7e265dd4badbbd5ea9a64eb22c4ba3b423d34f08e4ae1f94375a8d3fbb.spec (Seg90.localRho rho)
         exact exactProviders.statementBinding.routingTag1Compose
       thresholdFlag := by
-        change Deployed.Templates.Semantics.TThresholdFlag_9cff3d70e943aa401049c5bfb32ca36b67892e27bb28d1be48bb6acb16e8a202.spec (Seg91.localRho rho)
+        change Deployed.Templates.Semantics.TThresholdFlag_9cff3d70e943aa401049c5bfb32ca36b67892e27bb28d1be48bb6acb16e8a202.spec (Seg93.localRho rho)
         exact exactProviders.complianceTranscript.thresholdFlag
       senderCoreEpkCompress := by
-        change Deployed.Templates.Semantics.TDecafCompressToField_231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb.spec (Seg92.localRho rho)
+        change Deployed.Templates.Semantics.TDecafCompressToField_231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb.spec (Seg94.localRho rho)
         exact exactProviders.complianceTranscript.senderCoreEpkCompress
       senderExtEpkCompress := by
-        change Deployed.Templates.Semantics.TDecafCompressToField_231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb.spec (Seg93.localRho rho)
+        change Deployed.Templates.Semantics.TDecafCompressToField_231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb.spec (Seg95.localRho rho)
         exact exactProviders.complianceTranscript.senderExtEpkCompress
       outputCoreEpkCompress := by
-        change Deployed.Templates.Semantics.TDecafCompressToField_231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb.spec (Seg94.localRho rho)
+        change Deployed.Templates.Semantics.TDecafCompressToField_231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb.spec (Seg96.localRho rho)
         exact exactProviders.complianceTranscript.outputCoreEpkCompress
       outputExtEpkCompress := by
-        change Deployed.Templates.Semantics.TDecafCompressToField_231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb.spec (Seg95.localRho rho)
+        change Deployed.Templates.Semantics.TDecafCompressToField_231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb.spec (Seg97.localRho rho)
         exact exactProviders.complianceTranscript.outputExtEpkCompress
       salt0 := by
-        change Deployed.Templates.Semantics.TGadgetTransferSalt_f771a421e77b34e798b9a3684411305ddf046c31c0dcdd45f55a3341904f59c7.spec (Seg96.localRho rho)
+        change Deployed.Templates.Semantics.TGadgetTransferSalt_f771a421e77b34e798b9a3684411305ddf046c31c0dcdd45f55a3341904f59c7.spec (Seg98.localRho rho)
         exact exactProviders.complianceTranscript.salt0
       salt1 := by
-        change Deployed.Templates.Semantics.TGadgetTransferSalt_6102356f10803bf3a14c647c07a6804c8be9ed25097c1247a5f07e703b892326.spec (Seg97.localRho rho)
+        change Deployed.Templates.Semantics.TGadgetTransferSalt_6102356f10803bf3a14c647c07a6804c8be9ed25097c1247a5f07e703b892326.spec (Seg99.localRho rho)
         exact exactProviders.complianceTranscript.salt1
       salt2 := by
-        change Deployed.Templates.Semantics.TGadgetTransferSalt_7ca1f127ae2aba8ae3ff0daa0762a2981d18913d868dc2742d5a74f22684c557.spec (Seg98.localRho rho)
+        change Deployed.Templates.Semantics.TGadgetTransferSalt_7ca1f127ae2aba8ae3ff0daa0762a2981d18913d868dc2742d5a74f22684c557.spec (Seg100.localRho rho)
         exact exactProviders.complianceTranscript.salt2
       salt3 := by
-        change Deployed.Templates.Semantics.TGadgetTransferSalt_afc1dab7ce4cb1d665f58c0e62c3211c7152d792a45bd80acbbe3444a7be5d4e.spec (Seg99.localRho rho)
+        change Deployed.Templates.Semantics.TGadgetTransferSalt_afc1dab7ce4cb1d665f58c0e62c3211c7152d792a45bd80acbbe3444a7be5d4e.spec (Seg101.localRho rho)
         exact exactProviders.complianceTranscript.salt3
       salt4 := by
-        change Deployed.Templates.Semantics.TGadgetTransferSalt_c897628fb413fa804e577bd04151d6ba3b460e6052b87493c17e1529720c3945.spec (Seg100.localRho rho)
+        change Deployed.Templates.Semantics.TGadgetTransferSalt_c897628fb413fa804e577bd04151d6ba3b460e6052b87493c17e1529720c3945.spec (Seg102.localRho rho)
         exact exactProviders.complianceTranscript.salt4
       senderCoreSharedSecret := by
-        change Deployed.Templates.Semantics.TDecafSharedSecret_0a9405fe9fa7b69f5919b41caaa6165a64f58cf75a38a13283885fbfe7b30f0b.spec (Seg101.localRho rho)
+        change Deployed.Templates.Semantics.TDecafSharedSecret_0a9405fe9fa7b69f5919b41caaa6165a64f58cf75a38a13283885fbfe7b30f0b.spec (Seg103.localRho rho)
         exact exactProviders.complianceTranscript.senderCoreSharedSecret
       senderExtSharedSecret := by
-        change Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.spec (Seg102.localRho rho)
+        change Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.spec (Seg104.localRho rho)
         exact exactProviders.complianceTranscript.senderExtSharedSecret
       outputCoreSharedSecret := by
-        change Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.spec (Seg103.localRho rho)
+        change Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.spec (Seg105.localRho rho)
         exact exactProviders.complianceTranscript.outputCoreSharedSecret
       outputExtSharedSecret := by
-        change Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.spec (Seg104.localRho rho)
+        change Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.spec (Seg106.localRho rho)
         exact exactProviders.complianceTranscript.outputExtSharedSecret
       detectionEncryption := by
-        change Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49c.spec (Seg105.localRho rho)
+        change Deployed.Templates.Semantics.TGadgetPoseidonEncryptionDetection_63775682d65609fcb7205087c01734b96d2d3337f3d614c8ffd568df5c38c49c.spec (Seg107.localRho rho)
         exact exactProviders.complianceTranscript.detectionEncryption
       senderAmountEncryption := by
-        change Deployed.Templates.Semantics.TGadgetPoseidonEncryptionAmount_da3ae2f5f8f6a3fba6819c9764c9ee26010f080750d76981e9a4bef43587730e.spec (Seg106.localRho rho)
+        change Deployed.Templates.Semantics.TGadgetPoseidonEncryptionAmount_da3ae2f5f8f6a3fba6819c9764c9ee26010f080750d76981e9a4bef43587730e.spec (Seg108.localRho rho)
         exact exactProviders.complianceTranscript.senderAmountEncryption
       senderAddressEncryption := by
-        change Deployed.Templates.Semantics.TGadgetPoseidonEncryptionAddress_9a677aa48c09d5d9ae8091bb7349f6026be67ea81d0c4df2429a8a1f9aba905f.spec (Seg107.localRho rho)
+        change Deployed.Templates.Semantics.TGadgetPoseidonEncryptionAddress_9a677aa48c09d5d9ae8091bb7349f6026be67ea81d0c4df2429a8a1f9aba905f.spec (Seg109.localRho rho)
         exact exactProviders.complianceTranscript.senderAddressEncryption
       outputAmountEncryption := by
-        change Deployed.Templates.Semantics.TGadgetPoseidonEncryptionAmount_da3ae2f5f8f6a3fba6819c9764c9ee26010f080750d76981e9a4bef43587730e.spec (Seg108.localRho rho)
+        change Deployed.Templates.Semantics.TGadgetPoseidonEncryptionAmount_da3ae2f5f8f6a3fba6819c9764c9ee26010f080750d76981e9a4bef43587730e.spec (Seg110.localRho rho)
         exact exactProviders.complianceTranscript.outputAmountEncryption
       outputAddressEncryption := by
-        change Deployed.Templates.Semantics.TGadgetPoseidonEncryptionAddress_9a677aa48c09d5d9ae8091bb7349f6026be67ea81d0c4df2429a8a1f9aba905f.spec (Seg109.localRho rho)
+        change Deployed.Templates.Semantics.TGadgetPoseidonEncryptionAddress_9a677aa48c09d5d9ae8091bb7349f6026be67ea81d0c4df2429a8a1f9aba905f.spec (Seg111.localRho rho)
         exact exactProviders.complianceTranscript.outputAddressEncryption
       metadataSenderSubjectDerivation := by
-        change Deployed.Templates.Semantics.TAssertEq_d1faf7346a5dbff8ee29cd3032dc35de5268dd9eb13f3bf487edc1ef70d2e0bd.spec (Seg111.localRho rho)
+        change Deployed.Templates.Semantics.TAssertEq_d1faf7346a5dbff8ee29cd3032dc35de5268dd9eb13f3bf487edc1ef70d2e0bd.spec (Seg113.localRho rho)
         exact exactProviders.complianceTranscript.metadataSenderSubjectDerivation
       metadataOutputSubjectDerivation := by
-        change Deployed.Templates.Semantics.TAssertEq_d1faf7346a5dbff8ee29cd3032dc35de5268dd9eb13f3bf487edc1ef70d2e0bd.spec (Seg112.localRho rho)
+        change Deployed.Templates.Semantics.TAssertEq_d1faf7346a5dbff8ee29cd3032dc35de5268dd9eb13f3bf487edc1ef70d2e0bd.spec (Seg114.localRho rho)
         exact exactProviders.complianceTranscript.metadataOutputSubjectDerivation
       metadataRingIdHash := by
-        change Deployed.Templates.Semantics.TAssertEq_f74adf493a9dda5b54c25d40735212618ac1c1decd12a6243fb4ebe7840a0707.spec (Seg113.localRho rho)
+        change Deployed.Templates.Semantics.TAssertEq_f74adf493a9dda5b54c25d40735212618ac1c1decd12a6243fb4ebe7840a0707.spec (Seg115.localRho rho)
         exact exactProviders.complianceTranscript.metadataRingIdHash
       metadataPolicyIdHash := by
-        change Deployed.Templates.Semantics.TAssertEq_f74adf493a9dda5b54c25d40735212618ac1c1decd12a6243fb4ebe7840a0707.spec (Seg114.localRho rho)
+        change Deployed.Templates.Semantics.TAssertEq_f74adf493a9dda5b54c25d40735212618ac1c1decd12a6243fb4ebe7840a0707.spec (Seg116.localRho rho)
         exact exactProviders.complianceTranscript.metadataPolicyIdHash
       metadataResourceHash := by
-        change Deployed.Templates.Semantics.TAssertEq_f74adf493a9dda5b54c25d40735212618ac1c1decd12a6243fb4ebe7840a0707.spec (Seg115.localRho rho)
+        change Deployed.Templates.Semantics.TAssertEq_f74adf493a9dda5b54c25d40735212618ac1c1decd12a6243fb4ebe7840a0707.spec (Seg117.localRho rho)
         exact exactProviders.complianceTranscript.metadataResourceHash
       metadataPermissionHash := by
-        change Deployed.Templates.Semantics.TAssertEq_f74adf493a9dda5b54c25d40735212618ac1c1decd12a6243fb4ebe7840a0707.spec (Seg116.localRho rho)
+        change Deployed.Templates.Semantics.TAssertEq_f74adf493a9dda5b54c25d40735212618ac1c1decd12a6243fb4ebe7840a0707.spec (Seg118.localRho rho)
         exact exactProviders.complianceTranscript.metadataPermissionHash
       metadataTargetTimestamp := by
-        change Deployed.Templates.Semantics.TAssertEq_d1faf7346a5dbff8ee29cd3032dc35de5268dd9eb13f3bf487edc1ef70d2e0bd.spec (Seg117.localRho rho)
+        change Deployed.Templates.Semantics.TAssertEq_d1faf7346a5dbff8ee29cd3032dc35de5268dd9eb13f3bf487edc1ef70d2e0bd.spec (Seg119.localRho rho)
         exact exactProviders.complianceTranscript.metadataTargetTimestamp
       metadataSenderCoreSalt := by
-        change Deployed.Templates.Semantics.TAssertEq_49739cba4707f98bb6b980d3196b1d76b50766e7c367e40816b289e376ddfaed.spec (Seg118.localRho rho)
+        change Deployed.Templates.Semantics.TAssertEq_49739cba4707f98bb6b980d3196b1d76b50766e7c367e40816b289e376ddfaed.spec (Seg120.localRho rho)
         exact exactProviders.complianceTranscript.metadataSenderCoreSalt
       metadataSenderExtSalt := by
-        change Deployed.Templates.Semantics.TAssertEq_49739cba4707f98bb6b980d3196b1d76b50766e7c367e40816b289e376ddfaed.spec (Seg119.localRho rho)
+        change Deployed.Templates.Semantics.TAssertEq_49739cba4707f98bb6b980d3196b1d76b50766e7c367e40816b289e376ddfaed.spec (Seg121.localRho rho)
         exact exactProviders.complianceTranscript.metadataSenderExtSalt
       metadataOutputCoreSalt := by
-        change Deployed.Templates.Semantics.TAssertEq_49739cba4707f98bb6b980d3196b1d76b50766e7c367e40816b289e376ddfaed.spec (Seg120.localRho rho)
+        change Deployed.Templates.Semantics.TAssertEq_49739cba4707f98bb6b980d3196b1d76b50766e7c367e40816b289e376ddfaed.spec (Seg122.localRho rho)
         exact exactProviders.complianceTranscript.metadataOutputCoreSalt
       metadataOutputExtSalt := by
-        change Deployed.Templates.Semantics.TAssertEq_49739cba4707f98bb6b980d3196b1d76b50766e7c367e40816b289e376ddfaed.spec (Seg121.localRho rho)
+        change Deployed.Templates.Semantics.TAssertEq_49739cba4707f98bb6b980d3196b1d76b50766e7c367e40816b289e376ddfaed.spec (Seg123.localRho rho)
         exact exactProviders.complianceTranscript.metadataOutputExtSalt
       netBalance := by
-        change Deployed.Templates.Semantics.TDecafNetBalanceCommitment_efd414b95488606e99678399b0406544c9fda192bad5db9de83ce274ba09a681.spec (Seg123.localRho rho)
+        change Deployed.Templates.Semantics.TDecafNetBalanceCommitment_efd414b95488606e99678399b0406544c9fda192bad5db9de83ce274ba09a681.spec (Seg125.localRho rho)
         exact exactProviders.balanceComputedAndCompressed.netBalance
       balanceCompress := by
-        change Deployed.Templates.Semantics.TDecafCompressToField_231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb.spec (Seg124.localRho rho)
+        change Deployed.Templates.Semantics.TDecafCompressToField_231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb.spec (Seg126.localRho rho)
         exact exactProviders.balanceComputedAndCompressed.balanceCompress
       statementHash := by
-        change Deployed.Templates.Semantics.TStatementHash_0e54d8ea5fc5d0d95e113695b4b0340e4b6bab4d5abb13df4d51436c93755a86.spec (Seg126.localRho rho)
+        change Deployed.Templates.Semantics.TStatementHash_0e54d8ea5fc5d0d95e113695b4b0340e4b6bab4d5abb13df4d51436c93755a86.spec (Seg128.localRho rho)
         exact exactProviders.statementBinding.statementHash
       statementAssert := by
-        change Deployed.Templates.Semantics.TAssertEq_001662998b48830253568a34945bae30020bcb70574648b9aa58b23510a29b69.spec (Seg127.localRho rho)
+        change Deployed.Templates.Semantics.TAssertEq_001662998b48830253568a34945bae30020bcb70574648b9aa58b23510a29b69.spec (Seg129.localRho rho)
         exact exactProviders.statementBinding.statementAssert
   }
 
@@ -11840,7 +11965,7 @@ theorem optionalAnchor_eq_computed_of_semantic
     optionalAnchorAssertAt3, optionalAnchorAssertAt4,
     optionalAnchorAssertAt5, optionalAnchorAssertAt6,
     optionalAnchorAssertAt7] at h
-  have hreal : rho 339 = 0 := by
+  have hreal : rho 340 = 0 := by
     simpa [
       spend1IsDummy, spend1IsDummyLC,
       StructuredLC.eval, StructuredLC.sumRuns,
@@ -11896,7 +12021,7 @@ theorem optionalNullifierSelected_eq_real_of_semantic
     spend1NullifierReal, spend1NullifierRealLC,
     StructuredLC.eval, StructuredLC.sumRuns,
     StructuredLC.sumResidual, zero_add, one_mul, add_zero]
-  have hreal : rho 339 = 0 := by
+  have hreal : rho 340 = 0 := by
     simpa [
       spend1IsDummy, spend1IsDummyLC,
       StructuredLC.eval, StructuredLC.sumRuns,
@@ -11925,7 +12050,7 @@ theorem optionalNullifierSelected_eq_synthetic_of_semantic
     spend1NullifierSynthetic, spend1NullifierSyntheticLC,
     StructuredLC.eval, StructuredLC.sumRuns,
     StructuredLC.sumResidual, zero_add, one_mul, add_zero]
-  have hdummy : rho 339 = 1 := by
+  have hdummy : rho 340 = 1 := by
     simpa [
       spend1IsDummy, spend1IsDummyLC,
       StructuredLC.eval, StructuredLC.sumRuns,
@@ -11950,7 +12075,7 @@ theorem optionalDummyAmountZero_of_semantic
       spend1NoteAmount, spend1NoteAmountLC,
       StructuredLC.eval, StructuredLC.sumRuns,
       StructuredLC.sumResidual] using amountZero
-  · have hdummy : rho 339 = 1 := by
+  · have hdummy : rho 340 = 1 := by
       simpa [
         spend1IsDummy, spend1IsDummyLC,
         StructuredLC.eval, StructuredLC.sumRuns,
@@ -12001,7 +12126,7 @@ theorem optionalRkCrossRatio_of_semantic
     optionalRkEquivalentAt3, optionalRkEquivalentAt5,
     optionalRkEquivalentAt6] at h
   rcases h.2 with disabled | equal
-  · have hselector : rho 339 = 0 := by
+  · have hselector : rho 340 = 0 := by
       simpa [
         spend1IsDummy, spend1IsDummyLC,
         StructuredLC.eval, StructuredLC.sumRuns,

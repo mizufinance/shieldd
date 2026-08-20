@@ -60,7 +60,7 @@ WITHDRAWAL_GAP_ACCEPT_KEY = (
 )
 WITHDRAWAL_COMPLIANCE_PATH_KEY = (
     "gadget.compliance_path@"
-    "d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686"
+    "3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b"
 )
 WITHDRAWAL_DIVGEN_COMPRESS_KEY = (
     "decaf.compress_to_field@"
@@ -87,11 +87,15 @@ WITHDRAWAL_OBSOLETE_ASSET_LEAF_KEYS = frozenset({
 })
 COMPLIANCE_LEAF_KEY = (
     "gadget.compliance_leaf@"
-    "dcb0a1040c535cf394b8bda4f381260121926f7d477fb80a22e4e84b0cb431bc"
+    "712c7a4d010c3b98e4d25232885b0f2dbf3329286405042c73ffe98555c9d024"
 )
 WITHDRAWAL_COMPLIANCE_ASSERT_KEY = (
     "assert.eq_if@"
     "8ce5774e50355d2a29c59780aba5615b3b4386e8925bffa9de0ad683cdc7cf8d"
+)
+COMPLIANCE_STATUS_ASSERT_KEY = (
+    "assert.eq_if@"
+    "21d2c12b00d06e5e5a9b561d8f13c30059ff3ae69a31740109ba30ed73bb89aa"
 )
 WITHDRAWAL_REQUIRED_NULLIFIER_ASSERT_KEY = (
     "assert.eq@"
@@ -154,13 +158,14 @@ ASSET_LEAF_COEFFICIENTS = (
     "7740756603642672888894756193883084320427907723891225175607297334590958469121",
 )
 COMPLIANCE_LEAF_COEFFICIENTS = (
-    "7388904030749824121217721821433853214953911918259805849443329273927733084161",
     "4691367638571316902360458299323081406319944075085591015519574142176338466134",
     "7600015574485533381823942444903391878238309401638657445141710110325668315137",
     "2303035022571373752067861346940421781284336182314744680345972760704747974284",
     "7740756603642672888894756193883084320427907723891225175607297334590958469121",
     "7794887768703111160845069174259889105885445540142212764247907805462223912961",
     "7841285910183486822516766014582864636277620811214487840225573923351880007681",
+    "7881497632799812395965569942862776762617506046143792906072884558856248623105",
+    "7916682890089097272733273380107699873164905626706934838689281364922571161601",
 )
 NULLIFIER_COEFFICIENTS = (
     "6755569399542696339399059951025237225100719468123251062348186764733927391233",
@@ -226,10 +231,10 @@ TRANSFER_FACT_PROVIDER_COUNTS = {
     "requiredSpend": 9,
     "optionalSpend": 13,
     "receiverOutput": 8,
-    "receiverCompliance": 4,
+    "receiverCompliance": 5,
     "changeOutput": 2,
     "assetRegistry": 11,
-    "senderCompliance": 4,
+    "senderCompliance": 5,
     "complianceTranscript": 36,
     "balanceComputedAndCompressed": 2,
     "statementBinding": 17,
@@ -396,7 +401,7 @@ TRANSFER_ASSET_GAP_KEY = (
 TRANSFER_COMPLIANCE_LEAF_KEY = COMPLIANCE_LEAF_KEY
 TRANSFER_COMPLIANCE_PATH_KEY = (
     "gadget.compliance_path@"
-    "d7bd82da72fdc629b8c1bdb79c61af6d796050d0428cd4c08fbd6e637b8da686"
+    "3ff8249e075a1fc804f7a2e16e1c34be87b9dfff1abc41a8936c42980c28104b"
 )
 TRANSFER_ACK_KEY = (
     "decaf.ack@"
@@ -805,9 +810,10 @@ TRANSFER_TRACE_SPECS = (
             "slot_id=sender.slot_id",
             "slot_derivation=sender.slot_derivation",
             "d=sender.d",
+            "status=sender.status",
             "out=sender.leaf_commitment",
         ),
-        TRANSFER_COMPLIANCE_LEAF_KEY, 430, 439,
+        TRANSFER_COMPLIANCE_LEAF_KEY, 470, 480,
     ),
     _transfer_trace(
         "sender_compliance_path", "senderCompliance",
@@ -818,7 +824,7 @@ TRANSFER_TRACE_SPECS = (
             "position=sender.position",
             "out=sender.compliance_root",
         ),
-        TRANSFER_COMPLIANCE_PATH_KEY, 5857, 5849,
+        TRANSFER_COMPLIANCE_PATH_KEY, 5857, 5850,
     ),
     _transfer_trace(
         "sender_compliance_assert", "senderCompliance", "assert.eq_if",
@@ -828,6 +834,11 @@ TRANSFER_TRACE_SPECS = (
             "cond=is_regulated",
         ),
         WITHDRAWAL_COMPLIANCE_ASSERT_KEY, 2, 9, "glue",
+    ),
+    _transfer_trace(
+        "sender_status_active_assert", "senderCompliance", "assert.eq_if",
+        ("lhs=sender.status", "rhs=1", "cond=is_regulated"),
+        COMPLIANCE_STATUS_ASSERT_KEY, 2, 4, "glue",
     ),
     _transfer_trace(
         "sender_ack", "senderCompliance", "decaf.ack",
@@ -1103,9 +1114,10 @@ TRANSFER_TRACE_SPECS = (
             "slot_id=output0.recipient.slot_id",
             "slot_derivation=output0.recipient.slot_derivation",
             "d=output0.recipient.d",
+            "status=output0.recipient.status",
             "out=output0.recipient.leaf_commitment",
         ),
-        TRANSFER_COMPLIANCE_LEAF_KEY, 430, 439,
+        TRANSFER_COMPLIANCE_LEAF_KEY, 470, 480,
     ),
     _transfer_trace(
         "receiver_compliance_path", "receiverCompliance",
@@ -1116,7 +1128,7 @@ TRANSFER_TRACE_SPECS = (
             "position=output0.recipient.position",
             "out=output0.recipient.compliance_root",
         ),
-        TRANSFER_COMPLIANCE_PATH_KEY, 5857, 5849,
+        TRANSFER_COMPLIANCE_PATH_KEY, 5857, 5850,
     ),
     _transfer_trace(
         "receiver_compliance_assert", "receiverCompliance",
@@ -1127,6 +1139,15 @@ TRANSFER_TRACE_SPECS = (
             "cond=is_regulated",
         ),
         WITHDRAWAL_COMPLIANCE_ASSERT_KEY, 2, 9, "glue",
+    ),
+    _transfer_trace(
+        "receiver_status_active_assert", "receiverCompliance", "assert.eq_if",
+        (
+            "lhs=output0.recipient.status",
+            "rhs=1",
+            "cond=is_regulated",
+        ),
+        COMPLIANCE_STATUS_ASSERT_KEY, 2, 4, "glue",
     ),
     _transfer_trace(
         "receiver_nonzero_assert", "receiverOutput", "assert.eq",
@@ -1525,7 +1546,7 @@ WITHDRAWAL_FACT_PROVIDER_COUNTS = {
     "optionalSpend": 13,
     "changeOutput": 2,
     "assetRegistry": 7,
-    "senderCompliance": 3,
+    "senderCompliance": 4,
     "conservation": 2,
     "statementBinding": 13,
 }
@@ -1802,12 +1823,12 @@ WITHDRAWAL_TRACE_SPECS = (
             "slot_id=sender.slot_id",
             "slot_derivation=sender.slot_derivation",
             "d=sender.d",
+            "status=sender.status",
             "out=sender.leaf_commitment",
         ),
-        # Poseidon6 binds the six payload fields plus the domain lane.
         COMPLIANCE_LEAF_KEY,
-        430,
-        439,
+        470,
+        480,
     ),
     _withdrawal_trace(
         "sender_compliance_path",
@@ -1821,7 +1842,7 @@ WITHDRAWAL_TRACE_SPECS = (
         ),
         WITHDRAWAL_COMPLIANCE_PATH_KEY,
         5857,
-        5849,
+        5850,
     ),
     _withdrawal_trace(
         "sender_compliance_assert",
@@ -1835,6 +1856,16 @@ WITHDRAWAL_TRACE_SPECS = (
         WITHDRAWAL_COMPLIANCE_ASSERT_KEY,
         2,
         9,
+        "glue",
+    ),
+    _withdrawal_trace(
+        "sender_status_active_assert",
+        "senderCompliance",
+        "assert.eq_if",
+        ("lhs=sender.status", "rhs=1", "cond=is_regulated"),
+        COMPLIANCE_STATUS_ASSERT_KEY,
+        2,
+        4,
         "glue",
     ),
     _withdrawal_trace(
@@ -2979,6 +3010,7 @@ TRANSFER_ACTION_BINDING_ARITIES = {
     "sender.slot_id": 1,
     "sender.slot_derivation": 1,
     "sender.d": 1,
+    "sender.status": 1,
     "sender.path": 48,
     "sender.position": 1,
     "spend0.nullifier.claimed": 1,
@@ -3008,6 +3040,7 @@ TRANSFER_ACTION_BINDING_ARITIES = {
     "output0.recipient.slot_id": 1,
     "output0.recipient.slot_derivation": 1,
     "output0.recipient.d": 1,
+    "output0.recipient.status": 1,
     "output0.recipient.path": 48,
     "output0.recipient.position": 1,
     "output1.note_commitment.claimed": 1,
@@ -3395,12 +3428,12 @@ def _validate_transfer_selector_rows(
 
 
 TRANSFER_COMPLIANCE_PATH_LOCALS = (
-    (38, 47, 50),
+    (38, 48, 51),
     *tuple(
         (
-            45 + 363 * level,
-            47 + 363 * level,
-            50 + 363 * level,
+            46 + 363 * level,
+            48 + 363 * level,
+            51 + 363 * level,
         )
         for level in range(1, 16)
     ),
@@ -3550,6 +3583,7 @@ def _transfer_current_protocol_seats(
             "sender.slot_id",
             "sender.slot_derivation",
             "sender.d",
+            "sender.status",
             "sender.leaf_commitment",
         ),
         (
@@ -3559,6 +3593,7 @@ def _transfer_current_protocol_seats(
             "output0.recipient.slot_id",
             "output0.recipient.slot_derivation",
             "output0.recipient.d",
+            "output0.recipient.status",
             "output0.recipient.leaf_commitment",
         ),
     )
@@ -3569,6 +3604,7 @@ def _transfer_current_protocol_seats(
         slot_id,
         slot_derivation,
         d,
+        status,
         output,
     ) in compliance_specs:
         seats = (
@@ -3582,10 +3618,11 @@ def _transfer_current_protocol_seats(
             (21, _single_binding_wire(bindings, slot_id)),
             (27, _single_binding_wire(bindings, slot_derivation)),
             (33, _single_binding_wire(bindings, d)),
+            (39, _single_binding_wire(bindings, status)),
             *_transfer_expression_seats(
                 bindings,
                 output,
-                tuple(408 + 5 * index for index in range(7)),
+                tuple(444 + 5 * index for index in range(8)),
             ),
         )
         expected[label] = (
@@ -3617,7 +3654,7 @@ def _transfer_current_protocol_seats(
     for label, leaf, path, position, output in path_specs:
         seats = (
             *_transfer_expression_seats(
-                bindings, leaf, tuple(range(39, 46))
+                bindings, leaf, tuple(range(39, 47))
             ),
             *zip(
                 path_locals,
@@ -3628,7 +3665,7 @@ def _transfer_current_protocol_seats(
             *_transfer_expression_seats(
                 bindings,
                 output,
-                tuple(5828 + 5 * index for index in range(5)),
+                tuple(5829 + 5 * index for index in range(5)),
             ),
         )
         expected[label] = (
@@ -4511,11 +4548,17 @@ def _transfer_action_protocol_seats(
         "Transfer asset registry gap acceptance",
     )
 
-    for prefix, assert_label, ack_label in (
-        ("sender", "sender_compliance_assert", "sender_ack"),
+    for prefix, assert_label, status_label, ack_label in (
+        (
+            "sender",
+            "sender_compliance_assert",
+            "sender_status_active_assert",
+            "sender_ack",
+        ),
         (
             "output0.recipient",
             "receiver_compliance_assert",
+            "receiver_status_active_assert",
             "receiver_ack",
         ),
     ):
@@ -4529,6 +4572,13 @@ def _transfer_action_protocol_seats(
                 ),
             )),
             f"Transfer {assert_label} conditional anchor arguments",
+        )
+        expected[status_label] = (
+            {
+                1: single("is_regulated"),
+                2: single(f"{prefix}.status"),
+            },
+            f"Transfer {status_label} regulated Active assertion",
         )
         expected[ack_label] = (
             dict((
@@ -5227,6 +5277,7 @@ WITHDRAWAL_DIRECT_ACTION_BINDING_ARITIES = {
     "sender.slot_id": 1,
     "sender.slot_derivation": 1,
     "sender.d": 1,
+    "sender.status": 1,
     "sender.path": 48,
     "sender.position": 1,
     "spend0.nullifier.claimed": 1,
@@ -5851,6 +5902,7 @@ def senderCompliance (rho : Nat → DeployedF) :
     slotId := senderSlotId rho
     slotDerivation := senderSlotDerivation rho
     d := senderD rho
+    status := senderStatus rho
     path := senderPath rho
     position := senderPosition rho
   }}
@@ -7004,6 +7056,7 @@ def senderCompliance (rho : Nat → DeployedF) :
     slotId := senderSlotId rho
     slotDerivation := senderSlotDerivation rho
     d := senderD rho
+    status := senderStatus rho
     path := senderPath rho
     position := senderPosition rho
   }}
@@ -7016,6 +7069,7 @@ def receiverCompliance (rho : Nat → DeployedF) :
     slotId := output0RecipientSlotId rho
     slotDerivation := output0RecipientSlotDerivation rho
     d := output0RecipientD rho
+    status := output0RecipientStatus rho
     path := receiverPath rho
     position := output0RecipientPosition rho
   }}
@@ -8236,8 +8290,8 @@ def _add_transfer_spend_specification_theorems(
           (action rho).receiverCompliance.path
           (action rho).receiverCompliance.position)"""
     gated_membership_proof = """  exact
-    ⟨(relationSenderCompliance rho h).2.2.2.2,
-      (relationReceiverCompliance rho h).2.2.2.2⟩"""
+    ⟨fun hreg => ((relationSenderCompliance rho h).2.2.2.2 hreg).1,
+      fun hreg => ((relationReceiverCompliance rho h).2.2.2.2 hreg).1⟩"""
     add(
         "USER-COMPLIANCE-LEAF-HASH",
         gated_membership,
@@ -8269,24 +8323,26 @@ def _add_transfer_spend_specification_theorems(
         "USER-LEAF-POLICY-SLOT-BINDING",
         """Protocol.Transfer.Concrete.complianceLeafHash
           (action rho).senderCompliance =
-        Poseidon377.hash6
+        Poseidon377.hash7
           Protocol.Transfer.Concrete.complianceLeafDomain
           (action rho).senderCompliance.address.diversifiedGeneratorEncoding
           (action rho).senderCompliance.address.transmissionEncoding
           (action rho).senderCompliance.assetId
           (action rho).senderCompliance.slotId
           (action rho).senderCompliance.slotDerivation
-          (action rho).senderCompliance.d ∧
+          (action rho).senderCompliance.d
+          (action rho).senderCompliance.status ∧
       Protocol.Transfer.Concrete.complianceLeafHash
           (action rho).receiverCompliance =
-        Poseidon377.hash6
+        Poseidon377.hash7
           Protocol.Transfer.Concrete.complianceLeafDomain
           (action rho).receiverCompliance.address.diversifiedGeneratorEncoding
           (action rho).receiverCompliance.address.transmissionEncoding
           (action rho).receiverCompliance.assetId
           (action rho).receiverCompliance.slotId
           (action rho).receiverCompliance.slotDerivation
-          (action rho).receiverCompliance.d""",
+          (action rho).receiverCompliance.d
+          (action rho).receiverCompliance.status""",
         """  exact ⟨rfl, rfl⟩""".replace(
             "scalarMulLE", "scalarMulWindow2"
         ),
@@ -11534,9 +11590,11 @@ def render_transfer_action_seams(
             "sender_compliance_leaf",
             "sender_compliance_path",
             "sender_compliance_assert",
+            "sender_status_active_assert",
             "receiver_compliance_leaf",
             "receiver_compliance_path",
             "receiver_compliance_assert",
+            "receiver_status_active_assert",
             "sender_ack",
             "receiver_ack",
             "net_balance",
@@ -11605,27 +11663,33 @@ def render_transfer_action_seams(
         leaf_label = f"{lower}_compliance_leaf"
         path_label = f"{lower}_compliance_path"
         assert_label = f"{lower}_compliance_assert"
+        status_assert_label = f"{lower}_status_active_assert"
         leaf_provider = providers[leaf_label]
         path_provider = providers[path_label]
         assert_provider = providers[assert_label]
+        status_assert_provider = providers[status_assert_label]
         leaf_accessors = ", ".join(
             f"{lower}ComplianceLeafAt{local}"
             for local in (
-                1, 2, 8, 9, 15, 21, 27, 33,
-                408, 413, 418, 423, 428, 433, 438,
+                1, 2, 8, 9, 15, 21, 27, 33, 39,
+                444, 449, 454, 459, 464, 469, 474, 479,
             )
         )
         path_leaf_accessors = ", ".join(
             f"{lower}CompliancePathAt{local}"
-            for local in range(39, 46)
+            for local in range(39, 47)
         )
         path_output_accessors = ", ".join(
-            f"{lower}CompliancePathAt{5828 + 5 * index}"
+            f"{lower}CompliancePathAt{5829 + 5 * index}"
             for index in range(5)
         )
         assert_accessors = ", ".join(
             f"{lower}ComplianceAssertAt{local}"
             for local in range(1, 8)
+        )
+        status_assert_accessors = ", ".join(
+            f"{lower}StatusActiveAssertAt{local}"
+            for local in (1, 2)
         )
         path_bindings = action_path_unfolds[lower]
         path_accessors = compliance_path_accessors[lower]
@@ -11642,7 +11706,7 @@ def render_transfer_action_seams(
         return f"""\
 /-! ## {stable} compliance -/
 
-/-- The `{lower}` compliance leaf is the exact protocol Poseidon6 leaf. -/
+/-- The `{lower}` compliance leaf is the exact protocol Poseidon7 leaf. -/
 theorem {lower}ComplianceLeafHash_of_semantic
     (rho : Nat → DeployedF)
     (semantic : TransferSemanticProviders rho) :
@@ -11658,8 +11722,8 @@ theorem {lower}ComplianceLeafHash_of_semantic
           ({stable}ComplianceLeafValuation rho) := by
     simp only [
       {leaf_provider}.output,
-      Deployed.CertifiedGadgetComplianceLeaf_dcb0a1040c53Poseidon.s38_1,
-      Poseidon6Bridge.row7,
+      Deployed.CertifiedGadgetComplianceLeaf_712c7a4d010cPoseidon.s38_1,
+      Poseidon7Bridge.row8,
       {leaf_value}, {leaf_value}LC,
       StructuredLC.eval, StructuredLC.sumRuns,
       StructuredLC.sumResidual, StrideRun.eval,
@@ -11669,14 +11733,15 @@ theorem {lower}ComplianceLeafHash_of_semantic
     ring
   have hLeaf :
       {leaf_value} rho =
-        Poseidon6Bridge.permSpec6
+        Poseidon7Bridge.permSpec7
           Protocol.Transfer.Concrete.complianceLeafDomain
           ((C.{action_projection} rho).address.diversifiedGeneratorEncoding)
           ((C.{action_projection} rho).address.transmissionEncoding)
           ((C.{action_projection} rho).assetId)
           ((C.{action_projection} rho).slotId)
           ((C.{action_projection} rho).slotDerivation)
-          ((C.{action_projection} rho).d) := by
+          ((C.{action_projection} rho).d)
+          ((C.{action_projection} rho).status) := by
     rw [hOutput]
     simpa only [
       Protocol.Transfer.Concrete.complianceLeafDomain,
@@ -11690,10 +11755,12 @@ theorem {lower}ComplianceLeafHash_of_semantic
       senderSlotId, senderSlotIdLC,
       senderSlotDerivation, senderSlotDerivationLC,
       senderD, senderDLC,
+      senderStatus, senderStatusLC,
       output0RecipientSlotId, output0RecipientSlotIdLC,
       output0RecipientSlotDerivation,
       output0RecipientSlotDerivationLC,
       output0RecipientD, output0RecipientDLC,
+      output0RecipientStatus, output0RecipientStatusLC,
       StructuredLC.eval, StructuredLC.sumRuns,
       StructuredLC.sumResidual, StrideRun.eval,
       {leaf_accessors},
@@ -11702,7 +11769,7 @@ theorem {lower}ComplianceLeafHash_of_semantic
   rw [hLeaf]
   simp only [
     Protocol.Transfer.Concrete.complianceLeafHash,
-    Poseidon6Bridge.permSpec6
+    Poseidon7Bridge.permSpec7
   ]
 
 /-- The provider-local `{lower}` path is exactly the action path. -/
@@ -11865,6 +11932,43 @@ theorem {lower}ComplianceMember_of_semantic
     ({lower}ComplianceRootAsserted_of_semantic
       rho semantic regulated).trans hPath.2.symm⟩
 
+/-- Regulation requires the `{lower}` per-asset status to be Active. -/
+theorem {lower}ComplianceStatusActive_of_semantic
+    (rho : Nat → DeployedF)
+    (semantic : TransferSemanticProviders rho)
+    (regulated : (C.action rho).assetProof.isRegulated = 1) :
+    (C.{action_projection} rho).status = 1 := by
+  have h := semantic.{lower}StatusActiveAssert
+  unfold {stable}StatusActiveAssertSemanticSpec
+    {status_assert_provider}.spec at h
+  rcases h with disabled | enabled
+  · have hzero :
+        (C.action rho).assetProof.isRegulated = 0 := by
+      simpa [
+        {status_assert_provider}.guard,
+        C.action, C.assetProof,
+        isRegulated, isRegulatedLC,
+        StructuredLC.eval, StructuredLC.sumRuns,
+        StructuredLC.sumResidual, StrideRun.eval,
+        {lower}StatusActiveAssertAt1
+      ] using disabled
+    have h01 : (0 : DeployedF) ≠ 1 := by decide
+    exact (h01 (hzero.symm.trans regulated)).elim
+  · unfold {status_assert_provider}.residual at enabled
+    have enabled' :
+        (C.{action_projection} rho).status - 1 = 0 := by
+      simp only [
+        C.{action_projection},
+        senderStatus, senderStatusLC,
+        output0RecipientStatus, output0RecipientStatusLC,
+        StructuredLC.eval, StructuredLC.sumRuns,
+        StructuredLC.sumResidual, StrideRun.eval,
+        {status_assert_accessors},
+        zero_add, one_mul, add_zero
+      ] at enabled ⊢
+      linear_combination enabled
+    exact sub_eq_zero.mp enabled'
+
 /-- Stable `{lower}` bounds and membership consumed by static composition. -/
 theorem {lower}ComplianceFacts_of_semanticProviders
     (rho : Nat → DeployedF)
@@ -11878,11 +11982,15 @@ theorem {lower}ComplianceFacts_of_semanticProviders
           (C.action rho).complianceAnchor
           (Protocol.Transfer.Concrete.complianceLeafHash
             (C.{action_projection} rho))
-          (C.{action_path} rho) (C.{action_projection} rho).position) := by
+          (C.{action_path} rho) (C.{action_projection} rho).position ∧
+        (C.{action_projection} rho).status = 1) := by
   refine ⟨
     ({ack_theorem} rho semantic isRegulatedBoolean).1,
     ({lower}CompliancePathFacts_of_semantic rho semantic).1,
-    {lower}ComplianceMember_of_semantic rho semantic
+    fun regulated => ⟨
+      {lower}ComplianceMember_of_semantic rho semantic regulated,
+      {lower}ComplianceStatusActive_of_semantic rho semantic regulated
+    ⟩
   ⟩
 """
 
@@ -13195,7 +13303,7 @@ import ShielddGnarkFormal.Deployed.Contracts.Transfer.RefinementAction
 import ShielddGnarkFormal.Deployed.Contracts.Transfer.ActionAckSeams
 import ShielddGnarkFormal.DecafCompressionBridge
 import ShielddGnarkFormal.PoseidonEncryptionBridge
-import ShielddGnarkFormal.Poseidon6Bridge
+import ShielddGnarkFormal.Poseidon7Bridge
 import Mathlib.Tactic.LinearCombination
 import Mathlib.Tactic.NormNum
 import Mathlib.Tactic.Ring
@@ -15632,6 +15740,9 @@ def render_withdrawal_refinement_seams(
     compliance_assert_segment = plan.segments[
         "sender_compliance_assert"
     ]
+    status_assert_segment = plan.segments[
+        "sender_status_active_assert"
+    ]
     nullifier_assert_segment = plan.segments[
         "required_nullifier_assert"
     ]
@@ -15646,6 +15757,7 @@ def render_withdrawal_refinement_seams(
     leaf_index = leaf_segment["index"]
     compliance_index = compliance_segment["index"]
     compliance_assert_index = compliance_assert_segment["index"]
+    status_assert_index = status_assert_segment["index"]
     nullifier_assert_index = nullifier_assert_segment["index"]
     synthetic_index = synthetic_segment["index"]
     balance_index = balance_segment["index"]
@@ -15662,6 +15774,9 @@ def render_withdrawal_refinement_seams(
     compliance_assert = core.template_name(
         compliance_assert_segment["proof_template_id"]
     )
+    status_assert = core.template_name(
+        status_assert_segment["proof_template_id"]
+    )
     nullifier_assert = core.template_name(
         nullifier_assert_segment["proof_template_id"]
     )
@@ -15677,6 +15792,9 @@ def render_withdrawal_refinement_seams(
     compliance_sem = f"Deployed.Templates.Semantics.{compliance}"
     compliance_assert_sem = (
         f"Deployed.Templates.Semantics.{compliance_assert}"
+    )
+    status_assert_sem = (
+        f"Deployed.Templates.Semantics.{status_assert}"
     )
     nullifier_assert_sem = (
         f"Deployed.Templates.Semantics.{nullifier_assert}"
@@ -15804,12 +15922,12 @@ def render_withdrawal_refinement_seams(
         "sender.leaf_commitment",
     )
     compliance_output_locals = tuple(
-        408 + 5 * index
+        444 + 5 * index
         for index in range(len(compliance_output_wires))
     )
-    if len(compliance_output_wires) != 7:
+    if len(compliance_output_wires) != 8:
         raise ValueError(
-            "Withdrawal Poseidon6 compliance output is not seven lanes"
+            "Withdrawal Poseidon7 compliance output is not eight lanes"
         )
     compliance_seats = [
         *zip(
@@ -15838,6 +15956,7 @@ def render_withdrawal_refinement_seams(
             bindings, "sender.slot_derivation"
         )),
         (33, _single_binding_wire(bindings, "sender.d")),
+        (39, _single_binding_wire(bindings, "sender.status")),
         *zip(
             compliance_output_locals,
             compliance_output_wires,
@@ -15859,6 +15978,10 @@ def render_withdrawal_refinement_seams(
             strict=True,
         ),
     ]
+    status_assert_seats = [
+        (1, _single_binding_wire(bindings, "is_regulated")),
+        (2, _single_binding_wire(bindings, "sender.status")),
+    ]
     for segment, seats, label in (
         (dtk_segment, dtk_seats, "Withdrawal DTK"),
         (
@@ -15875,12 +15998,17 @@ def render_withdrawal_refinement_seams(
         (
             compliance_segment,
             compliance_seats,
-            "Withdrawal Poseidon6 compliance leaf",
+            "Withdrawal Poseidon7 compliance leaf",
         ),
         (
             compliance_assert_segment,
             compliance_assert_seats,
             "Withdrawal compliance assertion",
+        ),
+        (
+            status_assert_segment,
+            status_assert_seats,
+            "Withdrawal regulated Active assertion",
         ),
     ):
         _require_seats(segment, dict(seats), label)
@@ -15930,6 +16058,9 @@ def render_withdrawal_refinement_seams(
     compliance_assert_haves = _seat_haves(
         compliance_assert_index, compliance_assert_seats, "hw"
     )
+    status_assert_haves = _seat_haves(
+        status_assert_index, status_assert_seats, "hw"
+    )
     provider_imports = "\n".join(
         f"import {module}"
         for module in dict.fromkeys(
@@ -15940,6 +16071,7 @@ def render_withdrawal_refinement_seams(
                 leaf_segment,
                 compliance_segment,
                 compliance_assert_segment,
+                status_assert_segment,
                 nullifier_assert_segment,
                 synthetic_segment,
                 balance_segment,
@@ -16189,11 +16321,12 @@ theorem complianceLeafHash_of_exact
     (rho : Nat → SemanticF)
     (facts : ShieldedIcs20WithdrawalCircuitFacts rho) :
     senderLeafCommitment rho =
-      Poseidon6Bridge.permSpec6
+      Poseidon7Bridge.permSpec7
         Protocol.ShieldedIcs20Withdrawal.Concrete.complianceLeafDomain
         (senderDivGenFq rho) (senderTransmissionFq rho)
         (outboundAssetId rho) (senderSlotId rho)
-        (senderSlotDerivation rho) (senderD rho) := by
+        (senderSlotDerivation rho) (senderD rho)
+        (senderStatus rho) := by
   have h := facts.senderCompliance.GadgetComplianceLeafSeg{compliance_index}
   change {compliance_sem}.spec
     (Seg{compliance_index}.localRho rho) at h
@@ -16216,11 +16349,11 @@ theorem complianceLeafHash_of_exact
         id_eq, zero_add, one_mul, add_zero
       ]
       ring
-    _ = Poseidon6Bridge.permSpec6
+    _ = Poseidon7Bridge.permSpec7
           Protocol.ShieldedIcs20Withdrawal.Concrete.complianceLeafDomain
           (senderDivGenFq rho) (senderTransmissionFq rho)
           (outboundAssetId rho) (senderSlotId rho) (senderSlotDerivation rho)
-          (senderD rho) := by
+          (senderD rho) (senderStatus rho) := by
       simpa only [
         Protocol.ShieldedIcs20Withdrawal.Concrete.complianceLeafDomain,
         senderDivGenFq, senderDivGenFqLC,
@@ -16229,6 +16362,7 @@ theorem complianceLeafHash_of_exact
         senderSlotId, senderSlotIdLC,
         senderSlotDerivation, senderSlotDerivationLC,
         senderD, senderDLC,
+        senderStatus, senderStatusLC,
         StructuredLC.eval, StructuredLC.sumRuns,
         StructuredLC.sumResidual, StrideRun.eval,
         Seg{compliance_index}.localRho,
@@ -16270,6 +16404,41 @@ theorem complianceRootAsserted_of_exact
   · simp only [
       senderComplianceRoot, senderComplianceRootLC,
       complianceAnchor, complianceAnchorLC,
+      StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
+      zero_add, one_mul, add_zero
+    ]
+    linear_combination asserted
+
+/-- Regulation requires the sender's per-asset status to be Active. -/
+theorem complianceStatusActive_of_exact
+    (rho : Nat → SemanticF)
+    (facts : ShieldedIcs20WithdrawalCircuitFacts rho) :
+    isRegulated rho = 1 → senderStatus rho = 1 := by
+  intro regulated
+  have h := facts.senderCompliance.AssertEqIfSeg{status_assert_index}
+  change {status_assert_sem}.spec
+    (Seg{status_assert_index}.localRho rho) at h
+{status_assert_haves}
+  simp only [
+    {status_assert_sem}.spec,
+    {status_assert_sem}.guard,
+    {status_assert_sem}.residual,
+    Seg{status_assert_index}.localRho,
+    Deployed.Templates.seated,
+    hw1, hw2, one_mul
+  ] at h
+  have regulatedGlobal :
+      rho {status_assert_seats[0][1]} = 1 := by
+    simpa only [
+      isRegulated, isRegulatedLC,
+      StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
+      zero_add, one_mul, add_zero
+    ] using regulated
+  rcases h with disabled | asserted
+  · rw [regulatedGlobal] at disabled
+    exact (semanticOneNeZero disabled).elim
+  · simp only [
+      senderStatus, senderStatusLC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
       zero_add, one_mul, add_zero
     ]
@@ -17300,14 +17469,15 @@ def render_withdrawal_specification_consequences(
     )
     compliance_hash = """Protocol.ShieldedIcs20Withdrawal.Concrete.complianceLeafHash
         (action rho) =
-      Poseidon377.hash6
+      Poseidon377.hash7
         Protocol.ShieldedIcs20Withdrawal.Concrete.complianceLeafDomain
         (action rho).sender.diversifiedGeneratorEncoding
         (action rho).sender.transmissionEncoding
         (action rho).withdrawal.outboundAssetId
         (action rho).senderCompliance.slotId
         (action rho).senderCompliance.slotDerivation
-        (action rho).senderCompliance.d"""
+        (action rho).senderCompliance.d
+        (action rho).senderCompliance.status"""
     for predicate in (
         "USER-COMPLIANCE-LEAF-HASH",
         "USER-LEAF-ADDRESS-BINDING",
@@ -17324,7 +17494,7 @@ def render_withdrawal_specification_consequences(
         (action rho).senderCompliance.path
         (action rho).senderCompliance.position =
           (action rho).complianceAnchor""",
-        "  exact (relationSenderCompliance rho h).2",
+        "  intro hreg\n  exact ((relationSenderCompliance rho h).2 hreg).1",
     )
     add(
         "WITHDRAWAL-INTENT-FIELD-BINDING",
@@ -17438,6 +17608,7 @@ theorem circuitFacts_of_relationAll
       (complianceLeafHash_of_exact rho facts)
       compliancePath.1 compliancePath.2
       (complianceRootAsserted_of_exact rho facts)
+      (complianceStatusActive_of_exact rho facts)
       requiredAmountBound optionalAmountBound
       changeAmountBound outboundAmountBound balanceBlindingBound
       amountsConserved balancePoint

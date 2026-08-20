@@ -8,10 +8,10 @@ import (
 	"github.com/mizufinance/shieldd/tools/gnark/internal/primitives"
 )
 
-func NewNoteReshapeCircuitAssignmentFromWitnessV5(payload []byte) (*circuits.NoteReshapeCircuit, generated.NoteReshapeFamilySpec, error) {
-	witness, family, err := DecodeNoteReshapeWitnessV5(payload)
+func NewNoteReshapeCircuitAssignmentFromWitnessV6(payload []byte) (*circuits.NoteReshapeCircuit, generated.NoteReshapeFamilySpec, error) {
+	witness, family, err := DecodeNoteReshapeWitnessV6(payload)
 	if err != nil {
-		return nil, generated.NoteReshapeFamilySpec{}, fmt.Errorf("decode NoteReshapeWitnessV5: %w", err)
+		return nil, generated.NoteReshapeFamilySpec{}, fmt.Errorf("decode NoteReshapeWitnessV6: %w", err)
 	}
 	if len(witness.Spends) != family.NIn || len(witness.Outputs) != family.NOut {
 		return nil, generated.NoteReshapeFamilySpec{}, fmt.Errorf("note reshape witness counts mismatch: spends=%d outputs=%d expected=%dx%d", len(witness.Spends), len(witness.Outputs), family.NIn, family.NOut)
@@ -24,6 +24,7 @@ func NewNoteReshapeCircuitAssignmentFromWitnessV5(payload []byte) (*circuits.Not
 	assignment.ClaimedStatementHash = fqString(witness.ClaimedStatementHash)
 	assignment.Anchor = fqString(witness.Anchor)
 	assignment.AssetAnchor = fqString(witness.AssetAnchor)
+	assignment.ComplianceAnchor = fqString(witness.ComplianceAnchor)
 	assignment.RoutingTag = fqString(witness.RoutingTag)
 	assignment.RoutingParameterSetID = fqString(witness.RoutingParameterSetID)
 	assignment.RecentPositionFloor = fqString(witness.RecentPositionFloor)
@@ -51,6 +52,18 @@ func NewNoteReshapeCircuitAssignmentFromWitnessV5(payload []byte) (*circuits.Not
 	assignment.Shared = circuits.NoteReshapeSharedNoteContextCircuitFields{
 		AssetID: fqString(witness.Shared.AssetID),
 		DivGen:  point2DString(witness.Shared.DivGen),
+	}
+	senderPath, err := quadPathFromBinary(witness.SenderCompliancePath)
+	if err != nil {
+		return nil, generated.NoteReshapeFamilySpec{}, fmt.Errorf("decode note reshape sender compliance path: %w", err)
+	}
+	assignment.Sender = circuits.NoteReshapeSenderCircuitFields{
+		SlotID:         fqString(witness.SenderSlotID),
+		SlotDerivation: fqString(witness.SenderSlotDerivation),
+		D:              fqString(witness.SenderD),
+		Status:         fqString(witness.SenderStatus),
+		Path:           senderPath,
+		Position:       witness.SenderCompliancePosition,
 	}
 	for i := range witness.Spends {
 		spend, err := newNoteReshapeSpendCircuitFields(&witness.Spends[i])
@@ -90,7 +103,7 @@ func newNoteReshapeAuthSharedFields(nk [32]byte, akAffine PointAffineBinary) (ci
 	}, nil
 }
 
-func newNoteReshapeSpendCircuitFields(witness *NoteReshapeSpendWitnessV5Binary) (circuits.NoteReshapeSpendCircuitFields, error) {
+func newNoteReshapeSpendCircuitFields(witness *NoteReshapeSpendWitnessV6Binary) (circuits.NoteReshapeSpendCircuitFields, error) {
 	statePath, err := statePathFromBinary(witness.StateCommitmentAuthPath)
 	if err != nil {
 		return circuits.NoteReshapeSpendCircuitFields{}, fmt.Errorf("decode note reshape spend state commitment auth path: %w", err)
@@ -108,7 +121,7 @@ func newNoteReshapeSpendCircuitFields(witness *NoteReshapeSpendWitnessV5Binary) 
 	}, nil
 }
 
-func newNoteReshapeOutputCircuitFields(witness *NoteReshapeOutputWitnessV5Binary) circuits.NoteReshapeOutputCircuitFields {
+func newNoteReshapeOutputCircuitFields(witness *NoteReshapeOutputWitnessV6Binary) circuits.NoteReshapeOutputCircuitFields {
 	return circuits.NoteReshapeOutputCircuitFields{
 		NoteCommitment: fqString(witness.NoteCommitment),
 		Note: circuits.NoteReshapeNoteCircuitFields{

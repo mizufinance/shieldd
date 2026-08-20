@@ -26,7 +26,7 @@ ASSERT_ARGS = (
 )
 HASH_TEMPLATE = (
     "statement.hash@"
-    "83a669afde34adf36b8981f04f0c381cb17040f11d8fafcf45f8451d92c98705"
+    "7acf21e44dfb02b7e86c0f61aeed9884ca62220f949cb8a03253903d5c5bec66"
 )
 ASSERT_TEMPLATE = (
     "assert.eq@"
@@ -52,8 +52,8 @@ SECOND_LOCALS = (
     548,
     554,
 )
-THIRD_LOCALS = (1000, *range(1006, 1010), 1015, 1016, 1022)
-HASH_OUTPUT_LOCALS = tuple(range(1427, 1463, 5))
+THIRD_LOCALS = (1000, 1006, *range(1012, 1016), 1021, 1022, 1028)
+HASH_OUTPUT_LOCALS = tuple(range(1433, 1469, 5))
 ASSERT_INPUT_LOCALS = tuple(range(1, 9))
 ASSERT_OUTPUT_LOCAL = 9
 SEATING_SPECS = (
@@ -80,15 +80,15 @@ SEATING_SPECS = (
 )
 REVIEWED_CONSUMER_DIGESTS = {
     "NoteReshape1x8StatementFirst.lean":
-        "6bd88ef6c5193d7c40eec5da41b2b0b4493c32816e2bff9ed8937689cd1e201f",
+        "03966a4b295aaa4946ce5259fd3f846588fba6a27d79c300bfd69b3173e1325c",
     "NoteReshape1x8StatementSecond.lean":
-        "1dba7506399215e81a0e352dc27c63f569b6f2a76731ddf0d9da7b47b844193a",
+        "2c5a9210147181e07971ed9bc5def737393ef15cfd8e7f01adbcaeaa49ffcaf8",
     "NoteReshape1x8StatementThird.lean":
-        "52ea7b0e29d052c6b3d720dfa8d48ccd9f62aad41ecb32e49216588c49ec4825",
+        "b5ee79f8fefbc69ef0b53b4726560189aa5944c41afc246424f2ec58892fe44f",
     "NoteReshape1x8StatementOutput.lean":
-        "ebcea351daf74d6d4e11a6303dd117172bbfc338f30ea4e7fb8ec1b118db513c",
+        "6f2de2c5d73b07bdb48d411b1255edb0042b46b2ee9547d5a9165eb18a00e47a",
     "NoteReshape1x8TranscriptSeams.lean":
-        "928783ce1e2aef1a013e80344a6ceaa2b560e48e58ffeca3b51e38bdf88d367a",
+        "6098545a8795fdd2944092143fc93313dfc6252d2064e3a83ffb619c529e58da",
 }
 
 
@@ -121,7 +121,7 @@ def discover(
             "note_reshape1x8: statement seam templates drifted"
         )
     model.require_binding_role(
-        statement, "statement.fields", "input", exact=True, arity=17
+        statement, "statement.fields", "input", exact=True, arity=18
     )
     model.require_binding_role(
         statement, "statement.hash", "output", exact=True, arity=1

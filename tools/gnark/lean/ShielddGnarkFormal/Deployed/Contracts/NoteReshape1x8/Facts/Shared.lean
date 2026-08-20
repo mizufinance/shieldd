@@ -17,12 +17,14 @@ import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.Seg18
 import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.Seg19
 import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.Seg20
 import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.Seg21
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.Seg22
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.Seg23
 import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.Seg24
 import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.Seg25
 import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.Seg26
 import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.Seg27
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.Seg28
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.Seg29
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.Seg30
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.Seg31
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 4000000
@@ -50,13 +52,15 @@ structure SharedCircuitFacts (rho : Nat → Seg2.F) : Prop where
   AssertEqSeg17 : Seg17.contract.spec rho
   GadgetAssetRegistryGapSeg18 : Seg18.contract.spec rho
   AssertEqSeg19 : Seg19.contract.spec rho
-  RoutingPrecisionSelectSeg20 : Seg20.contract.spec rho
-  RoutingParametersHashSeg21 : Seg21.contract.spec rho
-  RoutingParametersBindSeg22 : Seg22.contract.spec rho
-  RoutingRouteWordSeg23 : Seg23.contract.spec rho
-  RoutingTagPublicRangeSeg24 : Seg24.contract.spec rho
-  RoutingTagRouteBitsSeg25 : Seg25.contract.spec rho
-  RoutingTagRandomWordSeg26 : Seg26.contract.spec rho
-  RoutingTagComposeSeg27 : Seg27.contract.spec rho
+  GadgetComplianceLeafSeg20 : Seg20.contract.spec rho
+  GadgetCompliancePathSeg21 : Seg21.contract.spec rho
+  RoutingPrecisionSelectSeg24 : Seg24.contract.spec rho
+  RoutingParametersHashSeg25 : Seg25.contract.spec rho
+  RoutingParametersBindSeg26 : Seg26.contract.spec rho
+  RoutingRouteWordSeg27 : Seg27.contract.spec rho
+  RoutingTagPublicRangeSeg28 : Seg28.contract.spec rho
+  RoutingTagRouteBitsSeg29 : Seg29.contract.spec rho
+  RoutingTagRandomWordSeg30 : Seg30.contract.spec rho
+  RoutingTagComposeSeg31 : Seg31.contract.spec rho
 
 end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape1x8

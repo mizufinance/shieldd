@@ -161,11 +161,11 @@ theorem assetGapValid_eq_gapOutput
         Seg14.localRho rho 3045 := by
   have hleft :
       Seg14.wireSeating 3043 =
-        15894 := by
+        15895 := by
     decide +kernel
   have hright :
       Seg14.wireSeating 3045 =
-        15895 := by
+        15896 := by
     decide +kernel
   simp only [
     assetGapValid, assetGapValidLC,
@@ -182,11 +182,11 @@ theorem gapAcceptanceInputs_eq_gapOutput
       assetGapValid rho := by
   have hleft :
       Seg15.wireSeating 1 =
-        15894 := by
+        15895 := by
     decide +kernel
   have hright :
       Seg15.wireSeating 2 =
-        15895 := by
+        15896 := by
     decide +kernel
   simp only [
     assetGapValid, assetGapValidLC,

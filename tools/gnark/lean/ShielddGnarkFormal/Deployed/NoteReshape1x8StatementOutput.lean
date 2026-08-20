@@ -15,15 +15,15 @@ open NoteReshape1x8StatementSeating
 
 theorem hash (rho : Nat → DeployedF) :
     statementHash rho =
-      (Deployed.Templates.Semantics.TStatementHash_83a669afde34adf36b8981f04f0c381cb17040f11d8fafcf45f8451d92c98705.Trace.rawState2_38
-        (Seg79.localRho rho))[1] := by
+      (Deployed.Templates.Semantics.TStatementHash_7acf21e44dfb02b7e86c0f61aeed9884ca62220f949cb8a03253903d5c5bec66.Trace.rawState2_38
+        (Seg83.localRho rho))[1] := by
   simp [
     statementHash, statementHashLC,
-    Deployed.Templates.Semantics.TStatementHash_83a669afde34adf36b8981f04f0c381cb17040f11d8fafcf45f8451d92c98705.Trace.rawState2_38,
-    Deployed.Templates.Semantics.TStatementHash_83a669afde34adf36b8981f04f0c381cb17040f11d8fafcf45f8451d92c98705.Trace.flatState2_38Lane1,
+    Deployed.Templates.Semantics.TStatementHash_7acf21e44dfb02b7e86c0f61aeed9884ca62220f949cb8a03253903d5c5bec66.Trace.rawState2_38,
+    Deployed.Templates.Semantics.TStatementHash_7acf21e44dfb02b7e86c0f61aeed9884ca62220f949cb8a03253903d5c5bec66.Trace.flatState2_38Lane1,
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-    Seg79.localRho, Deployed.Templates.seated,
-    hw1427, hw1432, hw1437, hw1442, hw1447, hw1452, hw1457, hw1462
+    Seg83.localRho, Deployed.Templates.seated,
+    hw1433, hw1438, hw1443, hw1448, hw1453, hw1458, hw1463, hw1468
   ]
   ring
 

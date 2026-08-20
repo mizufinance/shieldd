@@ -910,14 +910,14 @@ theorem specification_note_output_asset_binding
 theorem specification_routing_parameters
     (rho : Nat → SemanticF)
     (h : relationAll rho) :
-    Seg74.contract.spec rho ∧
-      Seg75.contract.spec rho ∧
-      Seg76.contract.spec rho := by
+    Seg76.contract.spec rho ∧
+      Seg77.contract.spec rho ∧
+      Seg78.contract.spec rho := by
   have facts := transfer_circuitFacts rho h
   exact
-    ⟨facts.statementBinding.RoutingPrecisionSelectSeg74,
-      facts.statementBinding.RoutingParametersHashSeg75,
-      facts.statementBinding.RoutingParametersBindSeg76⟩
+    ⟨facts.statementBinding.RoutingPrecisionSelectSeg76,
+      facts.statementBinding.RoutingParametersHashSeg77,
+      facts.statementBinding.RoutingParametersBindSeg78⟩
 
 /-- `NOTE-OUTPUT-OWNER-BINDING` for the exact deployed relation. -/
 theorem specification_note_output_owner_binding
@@ -961,9 +961,7 @@ theorem specification_note_spend_asset_binding
 theorem specification_routing_tag_derivation
     (rho : Nat → SemanticF)
     (h : relationAll rho) :
-    Seg77.contract.spec rho ∧
-      Seg78.contract.spec rho ∧
-      Seg79.contract.spec rho ∧
+    Seg79.contract.spec rho ∧
       Seg80.contract.spec rho ∧
       Seg81.contract.spec rho ∧
       Seg82.contract.spec rho ∧
@@ -972,21 +970,23 @@ theorem specification_routing_tag_derivation
       Seg85.contract.spec rho ∧
       Seg86.contract.spec rho ∧
       Seg87.contract.spec rho ∧
-      Seg88.contract.spec rho := by
+      Seg88.contract.spec rho ∧
+      Seg89.contract.spec rho ∧
+      Seg90.contract.spec rho := by
   have facts := transfer_circuitFacts rho h
   exact
-    ⟨facts.statementBinding.RoutingRouteWordSeg77,
-      facts.statementBinding.RoutingRouteWordSeg78,
-      facts.statementBinding.RoutingPermutationHashSeg79,
-      facts.statementBinding.RoutingPermutationComposeSeg80,
-      facts.statementBinding.RoutingTagPublicRangeSeg81,
-      facts.statementBinding.RoutingTagRouteBitsSeg82,
-      facts.statementBinding.RoutingTagRandomWordSeg83,
-      facts.statementBinding.RoutingTagComposeSeg84,
-      facts.statementBinding.RoutingTagPublicRangeSeg85,
-      facts.statementBinding.RoutingTagRouteBitsSeg86,
-      facts.statementBinding.RoutingTagRandomWordSeg87,
-      facts.statementBinding.RoutingTagComposeSeg88⟩
+    ⟨facts.statementBinding.RoutingRouteWordSeg79,
+      facts.statementBinding.RoutingRouteWordSeg80,
+      facts.statementBinding.RoutingPermutationHashSeg81,
+      facts.statementBinding.RoutingPermutationComposeSeg82,
+      facts.statementBinding.RoutingTagPublicRangeSeg83,
+      facts.statementBinding.RoutingTagRouteBitsSeg84,
+      facts.statementBinding.RoutingTagRandomWordSeg85,
+      facts.statementBinding.RoutingTagComposeSeg86,
+      facts.statementBinding.RoutingTagPublicRangeSeg87,
+      facts.statementBinding.RoutingTagRouteBitsSeg88,
+      facts.statementBinding.RoutingTagRandomWordSeg89,
+      facts.statementBinding.RoutingTagComposeSeg90⟩
 
 /-- `NOTE-SPEND-COMMITMENT` for the exact deployed relation. -/
 theorem specification_note_spend_commitment
@@ -1038,8 +1038,8 @@ theorem specification_user_compliance_leaf_hash
           (action rho).receiverCompliance.path
           (action rho).receiverCompliance.position) := by
   exact
-    ⟨(relationSenderCompliance rho h).2.2.2.2,
-      (relationReceiverCompliance rho h).2.2.2.2⟩
+    ⟨fun hreg => ((relationSenderCompliance rho h).2.2.2.2 hreg).1,
+      fun hreg => ((relationReceiverCompliance rho h).2.2.2.2 hreg).1⟩
 
 /-- `USER-COMPLIANCE-MEMBERSHIP-GATE` for the exact deployed relation. -/
 theorem specification_user_compliance_membership_gate
@@ -1058,8 +1058,8 @@ theorem specification_user_compliance_membership_gate
           (action rho).receiverCompliance.path
           (action rho).receiverCompliance.position) := by
   exact
-    ⟨(relationSenderCompliance rho h).2.2.2.2,
-      (relationReceiverCompliance rho h).2.2.2.2⟩
+    ⟨fun hreg => ((relationSenderCompliance rho h).2.2.2.2 hreg).1,
+      fun hreg => ((relationReceiverCompliance rho h).2.2.2.2 hreg).1⟩
 
 /-- `USER-LEAF-ADDRESS-BINDING` for the exact deployed relation. -/
 theorem specification_user_leaf_address_binding
@@ -1088,24 +1088,26 @@ theorem specification_user_leaf_policy_slot_binding
     (h : relationAll rho) :
     Protocol.Transfer.Concrete.complianceLeafHash
           (action rho).senderCompliance =
-        Poseidon377.hash6
+        Poseidon377.hash7
           Protocol.Transfer.Concrete.complianceLeafDomain
           (action rho).senderCompliance.address.diversifiedGeneratorEncoding
           (action rho).senderCompliance.address.transmissionEncoding
           (action rho).senderCompliance.assetId
           (action rho).senderCompliance.slotId
           (action rho).senderCompliance.slotDerivation
-          (action rho).senderCompliance.d ∧
+          (action rho).senderCompliance.d
+          (action rho).senderCompliance.status ∧
       Protocol.Transfer.Concrete.complianceLeafHash
           (action rho).receiverCompliance =
-        Poseidon377.hash6
+        Poseidon377.hash7
           Protocol.Transfer.Concrete.complianceLeafDomain
           (action rho).receiverCompliance.address.diversifiedGeneratorEncoding
           (action rho).receiverCompliance.address.transmissionEncoding
           (action rho).receiverCompliance.assetId
           (action rho).receiverCompliance.slotId
           (action rho).receiverCompliance.slotDerivation
-          (action rho).receiverCompliance.d := by
+          (action rho).receiverCompliance.d
+          (action rho).receiverCompliance.status := by
   exact ⟨rfl, rfl⟩
 
 /-- `VALUE-AMOUNT-128-RANGE` for the exact deployed relation. -/

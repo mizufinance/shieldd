@@ -3,8 +3,9 @@
 
 #### Invariants
 
-1. User-submitted transactions cannot create or destroy value. Cross-chain value
-   movement is handled explicitly by the IBC deposit and withdrawal mechanisms.
+1. User-submitted transactions cannot create or destroy value. Movement between
+   Bankd and Shieldd is handled explicitly by typed host deposit and withdrawal
+   operations.
 
 1.1. Each supported shielded action commits to its local value balance, and the
      transaction binding signature ties the total transaction balance to zero.
@@ -25,10 +26,8 @@
 - Shielded actions must consume valid note commitments, reveal fresh
   nullifiers, and create note commitments that match their proved witness data.
 - `Transfer` alone participates in compliance extraction and binding.
-- `NoteReshape` reshapes sender-owned notes without compliance
-  binding.
-- `ShieldedIcs20Withdrawal` additionally binds its outbound IBC withdrawal
-  effect while preserving shielded accounting for any sender-owned change.
+- `NoteReshape` reshapes sender-owned notes without transfer audit ciphertext,
+  but regulated reshapes bind the current user root and require `Active` status.
 - `ShieldedHostWithdrawal` binds the withdrawn value and its complete host
   destination. For execution withdrawals, this includes the refund address,
   gas limit, and ordered call batch.

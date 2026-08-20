@@ -1,15 +1,15 @@
 {
   "schema": "shieldd.gnark.gadget_wiring_certificate.v1",
   "circuit": "shielded_ics20_withdrawal",
-  "sr1cs_sha256_hex": "eeeab50e0385ba71b1b4c58e8f4c9fb2a08fb1c4cc598b11aab1bae6d51b8edb",
-  "n_nodes": 45,
-  "n_edges": 33,
-  "n_primary_input_roots": 289,
-  "n_internal_witness": 7751,
-  "n_shared_witness": 6,
+  "sr1cs_sha256_hex": "506590db8138c273052e29e2b82f3ee1d760adee8a2b564d1b37d54709653b93",
+  "n_nodes": 57,
+  "n_edges": 42,
+  "n_primary_input_roots": 298,
+  "n_internal_witness": 8388,
+  "n_shared_witness": 38,
   "shared_witness_wires": [
     {
-      "wire": 5950,
+      "wire": 5959,
       "consuming_segments": [
         7,
         8,
@@ -17,42 +17,266 @@
       ]
     },
     {
-      "wire": 5951,
+      "wire": 5960,
       "consuming_segments": [
         7,
         8
       ]
     },
     {
-      "wire": 33618,
+      "wire": 23426,
       "consuming_segments": [
-        23,
+        25,
         27
       ]
     },
     {
-      "wire": 33619,
+      "wire": 23427,
       "consuming_segments": [
-        23,
+        25,
         27
       ]
     },
     {
-      "wire": 45792,
+      "wire": 23428,
       "consuming_segments": [
-        33,
-        40
+        25,
+        27
       ]
     },
     {
-      "wire": 45793,
+      "wire": 23429,
       "consuming_segments": [
-        33,
-        40
+        25,
+        27
+      ]
+    },
+    {
+      "wire": 23430,
+      "consuming_segments": [
+        25,
+        27
+      ]
+    },
+    {
+      "wire": 23431,
+      "consuming_segments": [
+        25,
+        27
+      ]
+    },
+    {
+      "wire": 23432,
+      "consuming_segments": [
+        25,
+        27
+      ]
+    },
+    {
+      "wire": 23433,
+      "consuming_segments": [
+        25,
+        27
+      ]
+    },
+    {
+      "wire": 23434,
+      "consuming_segments": [
+        25,
+        27
+      ]
+    },
+    {
+      "wire": 23435,
+      "consuming_segments": [
+        25,
+        27
+      ]
+    },
+    {
+      "wire": 23436,
+      "consuming_segments": [
+        25,
+        27
+      ]
+    },
+    {
+      "wire": 23437,
+      "consuming_segments": [
+        25,
+        27
+      ]
+    },
+    {
+      "wire": 23438,
+      "consuming_segments": [
+        25,
+        27
+      ]
+    },
+    {
+      "wire": 23439,
+      "consuming_segments": [
+        25,
+        27
+      ]
+    },
+    {
+      "wire": 23440,
+      "consuming_segments": [
+        25,
+        27
+      ]
+    },
+    {
+      "wire": 23441,
+      "consuming_segments": [
+        25,
+        27
+      ]
+    },
+    {
+      "wire": 23442,
+      "consuming_segments": [
+        25,
+        27
+      ]
+    },
+    {
+      "wire": 23443,
+      "consuming_segments": [
+        25,
+        27
+      ]
+    },
+    {
+      "wire": 23444,
+      "consuming_segments": [
+        25,
+        27
+      ]
+    },
+    {
+      "wire": 23445,
+      "consuming_segments": [
+        25,
+        27
+      ]
+    },
+    {
+      "wire": 23446,
+      "consuming_segments": [
+        25,
+        27
+      ]
+    },
+    {
+      "wire": 23447,
+      "consuming_segments": [
+        25,
+        27
+      ]
+    },
+    {
+      "wire": 23448,
+      "consuming_segments": [
+        25,
+        27
+      ]
+    },
+    {
+      "wire": 23449,
+      "consuming_segments": [
+        25,
+        27
+      ]
+    },
+    {
+      "wire": 23450,
+      "consuming_segments": [
+        25,
+        27
+      ]
+    },
+    {
+      "wire": 23451,
+      "consuming_segments": [
+        25,
+        27
+      ]
+    },
+    {
+      "wire": 23452,
+      "consuming_segments": [
+        25,
+        27
+      ]
+    },
+    {
+      "wire": 23453,
+      "consuming_segments": [
+        25,
+        27
+      ]
+    },
+    {
+      "wire": 23454,
+      "consuming_segments": [
+        25,
+        27
+      ]
+    },
+    {
+      "wire": 23455,
+      "consuming_segments": [
+        25,
+        27
+      ]
+    },
+    {
+      "wire": 23456,
+      "consuming_segments": [
+        25,
+        27
+      ]
+    },
+    {
+      "wire": 23457,
+      "consuming_segments": [
+        25,
+        27
+      ]
+    },
+    {
+      "wire": 35828,
+      "consuming_segments": [
+        32,
+        36
+      ]
+    },
+    {
+      "wire": 35829,
+      "consuming_segments": [
+        32,
+        36
+      ]
+    },
+    {
+      "wire": 48108,
+      "consuming_segments": [
+        43,
+        50
+      ]
+    },
+    {
+      "wire": 48109,
+      "consuming_segments": [
+        43,
+        50
       ]
     }
   ],
-  "n_cross_seam_constrained": 6,
+  "n_cross_seam_constrained": 11,
   "nodes": [
     {
       "segment_index": 1,
@@ -191,227 +415,323 @@
       "constraint_count": 2
     },
     {
-      "segment_index": 20,
-      "op": "gadget.note_commitment",
-      "kind": "gadget",
+      "segment_index": 19,
+      "op": "assert.eq_if",
+      "kind": "glue",
       "start": 23695,
-      "end": 24125,
-      "constraint_count": 430
+      "end": 23697,
+      "constraint_count": 2
+    },
+    {
+      "segment_index": 20,
+      "op": "routing.precision.select",
+      "kind": "glue",
+      "start": 23697,
+      "end": 24361,
+      "constraint_count": 664
     },
     {
       "segment_index": 21,
-      "op": "gadget.nullifier",
+      "op": "routing.parameters.hash",
       "kind": "gadget",
-      "start": 24125,
-      "end": 24435,
+      "start": 24361,
+      "end": 24671,
       "constraint_count": 310
     },
     {
       "segment_index": 22,
-      "op": "gadget.state_commitment_path",
-      "kind": "gadget",
-      "start": 24435,
-      "end": 33450,
-      "constraint_count": 9015
+      "op": "routing.parameters.bind",
+      "kind": "glue",
+      "start": 24671,
+      "end": 24704,
+      "constraint_count": 33
     },
     {
       "segment_index": 23,
-      "op": "decaf.randomized_verification_key",
+      "op": "routing.route_word",
       "kind": "gadget",
-      "start": 33450,
-      "end": 35262,
-      "constraint_count": 1812
+      "start": 24704,
+      "end": 24934,
+      "constraint_count": 230
     },
     {
       "segment_index": 24,
-      "op": "decaf.compress_to_field",
-      "kind": "gadget",
-      "start": 35262,
-      "end": 36308,
-      "constraint_count": 1046
+      "op": "routing.tag.public_range",
+      "kind": "glue",
+      "start": 24934,
+      "end": 24967,
+      "constraint_count": 33
     },
     {
       "segment_index": 25,
-      "op": "assert.eq",
+      "op": "routing.tag.route_bits",
       "kind": "glue",
-      "start": 36308,
-      "end": 36309,
-      "constraint_count": 1
+      "start": 24967,
+      "end": 25473,
+      "constraint_count": 506
     },
     {
       "segment_index": 26,
-      "op": "assert.eq",
-      "kind": "glue",
-      "start": 36309,
-      "end": 36310,
-      "constraint_count": 1
+      "op": "routing.tag.random_word",
+      "kind": "gadget",
+      "start": 25473,
+      "end": 25738,
+      "constraint_count": 265
     },
     {
       "segment_index": 27,
-      "op": "decaf.assert_equivalent",
+      "op": "routing.tag.compose",
+      "kind": "glue",
+      "start": 25738,
+      "end": 26340,
+      "constraint_count": 602
+    },
+    {
+      "segment_index": 29,
+      "op": "gadget.note_commitment",
       "kind": "gadget",
-      "start": 36310,
-      "end": 36313,
-      "constraint_count": 3
+      "start": 26340,
+      "end": 26730,
+      "constraint_count": 390
     },
     {
       "segment_index": 30,
-      "op": "gadget.note_commitment",
-      "kind": "gadget",
-      "start": 36313,
-      "end": 36743,
-      "constraint_count": 430
-    },
-    {
-      "segment_index": 31,
       "op": "gadget.nullifier",
       "kind": "gadget",
-      "start": 36743,
-      "end": 37053,
+      "start": 26730,
+      "end": 27040,
       "constraint_count": 310
     },
     {
-      "segment_index": 32,
+      "segment_index": 31,
       "op": "gadget.state_commitment_path",
       "kind": "gadget",
-      "start": 37053,
-      "end": 46068,
+      "start": 27040,
+      "end": 36055,
       "constraint_count": 9015
     },
     {
-      "segment_index": 33,
+      "segment_index": 32,
       "op": "decaf.randomized_verification_key",
       "kind": "gadget",
-      "start": 46068,
-      "end": 47880,
+      "start": 36055,
+      "end": 37867,
       "constraint_count": 1812
     },
     {
-      "segment_index": 34,
+      "segment_index": 33,
       "op": "decaf.compress_to_field",
       "kind": "gadget",
-      "start": 47880,
-      "end": 48926,
+      "start": 37867,
+      "end": 38913,
       "constraint_count": 1046
     },
     {
-      "segment_index": 35,
-      "op": "assert.boolean",
+      "segment_index": 34,
+      "op": "assert.eq",
       "kind": "glue",
-      "start": 48926,
-      "end": 48927,
+      "start": 38913,
+      "end": 38914,
+      "constraint_count": 1
+    },
+    {
+      "segment_index": 35,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 38914,
+      "end": 38915,
       "constraint_count": 1
     },
     {
       "segment_index": 36,
-      "op": "gadget.synthetic_dummy_nullifier",
+      "op": "decaf.assert_equivalent",
       "kind": "gadget",
-      "start": 48927,
-      "end": 49232,
-      "constraint_count": 305
+      "start": 38915,
+      "end": 38918,
+      "constraint_count": 3
     },
     {
       "segment_index": 37,
-      "op": "dummy.mux",
+      "op": "history.classify",
       "kind": "glue",
-      "start": 49232,
-      "end": 49234,
-      "constraint_count": 2
-    },
-    {
-      "segment_index": 38,
-      "op": "assert.eq",
-      "kind": "glue",
-      "start": 49234,
-      "end": 49235,
-      "constraint_count": 1
-    },
-    {
-      "segment_index": 39,
-      "op": "assert.eq_if",
-      "kind": "glue",
-      "start": 49235,
-      "end": 49237,
-      "constraint_count": 2
+      "start": 38918,
+      "end": 39068,
+      "constraint_count": 150
     },
     {
       "segment_index": 40,
-      "op": "decaf.assert_equivalent_if",
+      "op": "gadget.note_commitment",
       "kind": "gadget",
-      "start": 49237,
-      "end": 49243,
-      "constraint_count": 6
+      "start": 39068,
+      "end": 39458,
+      "constraint_count": 390
     },
     {
       "segment_index": 41,
-      "op": "assert.eq_if",
-      "kind": "glue",
-      "start": 49243,
-      "end": 49245,
-      "constraint_count": 2
+      "op": "gadget.nullifier",
+      "kind": "gadget",
+      "start": 39458,
+      "end": 39768,
+      "constraint_count": 310
+    },
+    {
+      "segment_index": 42,
+      "op": "gadget.state_commitment_path",
+      "kind": "gadget",
+      "start": 39768,
+      "end": 48783,
+      "constraint_count": 9015
+    },
+    {
+      "segment_index": 43,
+      "op": "decaf.randomized_verification_key",
+      "kind": "gadget",
+      "start": 48783,
+      "end": 50595,
+      "constraint_count": 1812
     },
     {
       "segment_index": 44,
-      "op": "gadget.note_commitment",
-      "kind": "gadget",
-      "start": 49245,
-      "end": 49675,
-      "constraint_count": 430
-    },
-    {
-      "segment_index": 45,
-      "op": "assert.eq",
-      "kind": "glue",
-      "start": 49675,
-      "end": 49676,
-      "constraint_count": 1
-    },
-    {
-      "segment_index": 47,
-      "op": "decaf.conservation_net_balance_commitment2",
-      "kind": "gadget",
-      "start": 49676,
-      "end": 51998,
-      "constraint_count": 2322
-    },
-    {
-      "segment_index": 48,
       "op": "decaf.compress_to_field",
       "kind": "gadget",
-      "start": 51998,
-      "end": 53044,
+      "start": 50595,
+      "end": 51641,
       "constraint_count": 1046
     },
     {
-      "segment_index": 50,
-      "op": "statement.hash",
+      "segment_index": 45,
+      "op": "assert.boolean",
+      "kind": "glue",
+      "start": 51641,
+      "end": 51642,
+      "constraint_count": 1
+    },
+    {
+      "segment_index": 46,
+      "op": "gadget.synthetic_dummy_nullifier",
       "kind": "gadget",
-      "start": 53044,
-      "end": 53514,
-      "constraint_count": 470
+      "start": 51642,
+      "end": 51947,
+      "constraint_count": 305
+    },
+    {
+      "segment_index": 47,
+      "op": "dummy.mux",
+      "kind": "glue",
+      "start": 51947,
+      "end": 51949,
+      "constraint_count": 2
+    },
+    {
+      "segment_index": 48,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 51949,
+      "end": 51950,
+      "constraint_count": 1
+    },
+    {
+      "segment_index": 49,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 51950,
+      "end": 51952,
+      "constraint_count": 2
+    },
+    {
+      "segment_index": 50,
+      "op": "decaf.assert_equivalent_if",
+      "kind": "gadget",
+      "start": 51952,
+      "end": 51958,
+      "constraint_count": 6
     },
     {
       "segment_index": 51,
-      "op": "statement.hash",
-      "kind": "gadget",
-      "start": 53514,
-      "end": 53984,
-      "constraint_count": 470
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 51958,
+      "end": 51960,
+      "constraint_count": 2
     },
     {
       "segment_index": 52,
-      "op": "statement.hash",
-      "kind": "gadget",
-      "start": 53984,
-      "end": 54439,
-      "constraint_count": 455
+      "op": "history.classify",
+      "kind": "glue",
+      "start": 51960,
+      "end": 52111,
+      "constraint_count": 151
     },
     {
-      "segment_index": 53,
+      "segment_index": 55,
+      "op": "gadget.note_commitment",
+      "kind": "gadget",
+      "start": 52111,
+      "end": 52501,
+      "constraint_count": 390
+    },
+    {
+      "segment_index": 56,
       "op": "assert.eq",
       "kind": "glue",
-      "start": 54439,
-      "end": 54440,
+      "start": 52501,
+      "end": 52502,
+      "constraint_count": 1
+    },
+    {
+      "segment_index": 58,
+      "op": "decaf.conservation_net_balance_commitment2",
+      "kind": "gadget",
+      "start": 52502,
+      "end": 54824,
+      "constraint_count": 2322
+    },
+    {
+      "segment_index": 59,
+      "op": "decaf.compress_to_field",
+      "kind": "gadget",
+      "start": 54824,
+      "end": 55870,
+      "constraint_count": 1046
+    },
+    {
+      "segment_index": 61,
+      "op": "statement.hash",
+      "kind": "gadget",
+      "start": 55870,
+      "end": 56340,
+      "constraint_count": 470
+    },
+    {
+      "segment_index": 62,
+      "op": "statement.hash",
+      "kind": "gadget",
+      "start": 56340,
+      "end": 56810,
+      "constraint_count": 470
+    },
+    {
+      "segment_index": 63,
+      "op": "statement.hash",
+      "kind": "gadget",
+      "start": 56810,
+      "end": 57280,
+      "constraint_count": 470
+    },
+    {
+      "segment_index": 64,
+      "op": "statement.hash",
+      "kind": "gadget",
+      "start": 57280,
+      "end": 57730,
+      "constraint_count": 450
+    },
+    {
+      "segment_index": 65,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 57730,
+      "end": 57731,
       "constraint_count": 1
     }
   ],
@@ -423,17 +743,17 @@
     },
     {
       "from": 5,
-      "to": 20,
+      "to": 29,
       "shared_wires": 2
     },
     {
       "from": 5,
-      "to": 30,
+      "to": 40,
       "shared_wires": 2
     },
     {
       "from": 5,
-      "to": 44,
+      "to": 55,
       "shared_wires": 2
     },
     {
@@ -453,17 +773,22 @@
     },
     {
       "from": 8,
-      "to": 20,
+      "to": 23,
       "shared_wires": 2
     },
     {
       "from": 8,
-      "to": 30,
+      "to": 29,
       "shared_wires": 2
     },
     {
       "from": 8,
-      "to": 44,
+      "to": 40,
+      "shared_wires": 2
+    },
+    {
+      "from": 8,
+      "to": 55,
       "shared_wires": 2
     },
     {
@@ -493,92 +818,132 @@
     },
     {
       "from": 20,
-      "to": 21,
-      "shared_wires": 7
+      "to": 22,
+      "shared_wires": 64
     },
     {
       "from": 20,
-      "to": 22,
-      "shared_wires": 7
+      "to": 27,
+      "shared_wires": 32
     },
     {
       "from": 21,
-      "to": 25,
+      "to": 22,
       "shared_wires": 4
     },
     {
       "from": 22,
-      "to": 26,
-      "shared_wires": 5
+      "to": 27,
+      "shared_wires": 32
     },
     {
-      "from": 24,
-      "to": 50,
+      "from": 23,
+      "to": 25,
       "shared_wires": 2
     },
     {
-      "from": 30,
+      "from": 26,
+      "to": 27,
+      "shared_wires": 3
+    },
+    {
+      "from": 27,
+      "to": 24,
+      "shared_wires": 32
+    },
+    {
+      "from": 29,
+      "to": 30,
+      "shared_wires": 6
+    },
+    {
+      "from": 29,
       "to": 31,
-      "shared_wires": 7
+      "shared_wires": 6
     },
     {
       "from": 30,
-      "to": 32,
-      "shared_wires": 7
+      "to": 34,
+      "shared_wires": 4
     },
     {
       "from": 31,
-      "to": 37,
-      "shared_wires": 4
-    },
-    {
-      "from": 32,
-      "to": 39,
+      "to": 35,
       "shared_wires": 5
     },
     {
-      "from": 34,
-      "to": 50,
+      "from": 33,
+      "to": 61,
       "shared_wires": 2
     },
     {
-      "from": 36,
-      "to": 37,
+      "from": 40,
+      "to": 41,
+      "shared_wires": 6
+    },
+    {
+      "from": 40,
+      "to": 42,
+      "shared_wires": 6
+    },
+    {
+      "from": 41,
+      "to": 47,
       "shared_wires": 4
     },
     {
-      "from": 37,
-      "to": 38,
-      "shared_wires": 2
+      "from": 42,
+      "to": 49,
+      "shared_wires": 5
     },
     {
       "from": 44,
-      "to": 45,
-      "shared_wires": 7
+      "to": 62,
+      "shared_wires": 2
+    },
+    {
+      "from": 46,
+      "to": 47,
+      "shared_wires": 4
     },
     {
       "from": 47,
       "to": 48,
-      "shared_wires": 501
-    },
-    {
-      "from": 48,
-      "to": 50,
       "shared_wires": 2
     },
     {
-      "from": 50,
-      "to": 51,
+      "from": 55,
+      "to": 56,
+      "shared_wires": 6
+    },
+    {
+      "from": 58,
+      "to": 59,
+      "shared_wires": 501
+    },
+    {
+      "from": 59,
+      "to": 61,
+      "shared_wires": 2
+    },
+    {
+      "from": 61,
+      "to": 62,
       "shared_wires": 8
     },
     {
-      "from": 51,
-      "to": 52,
+      "from": 62,
+      "to": 63,
       "shared_wires": 8
     },
     {
-      "from": 52,
-      "to": 53,
+      "from": 63,
+      "to": 64,
+      "shared_wires": 8
+    },
+    {
+      "from": 64,
+      "to": 65,
       "shared_wires": 8
     }
   ],
@@ -600,14 +965,16 @@
     16,
     17,
     18,
+    19,
     20,
     21,
     22,
     23,
-    24,
     25,
     26,
     27,
+    24,
+    29,
     30,
     31,
     32,
@@ -616,18 +983,28 @@
     35,
     36,
     37,
-    38,
-    39,
     40,
     41,
+    42,
+    43,
     44,
     45,
+    46,
     47,
     48,
+    49,
     50,
     51,
     52,
-    53
+    55,
+    56,
+    58,
+    59,
+    61,
+    62,
+    63,
+    64,
+    65
   ],
   "acyclic": true
 }

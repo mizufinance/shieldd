@@ -21,6 +21,7 @@ use url::Url;
 use sct::TreeStore;
 use shieldd_sdk_app::params::AppParameters;
 use shieldd_sdk_asset::{asset, asset::Id, asset::Metadata, Value};
+use shieldd_sdk_compliance::{AssetPolicy, ComplianceLeaf};
 use shieldd_sdk_fee::GasPrices;
 use shieldd_sdk_keys::{keys::AddressIndex, Address, FullViewingKey};
 use shieldd_sdk_num::Amount;
@@ -52,6 +53,69 @@ pub struct BalanceEntry {
     pub id: Id,
     pub amount: u128,
     pub address_index: AddressIndex,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct ComplianceLeafUpdate {
+    pub leaf: ComplianceLeaf,
+    pub position: u64,
+    pub commitment: StateCommitment,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct ComplianceAssetPolicyUpdate {
+    pub asset_id: asset::Id,
+    pub policy: AssetPolicy,
+}
+
+#[cfg(test)]
+mod compliance_projection_tests {
+    use super::*;
+    use shieldd_sdk_keys::test_keys;
+
+    #[tokio::test]
+    async fn compliance_block_failure_rolls_back_leaf_tree_and_anchor_writes() {
+        let storage = Storage::initialize(
+            None::<&Utf8Path>,
+            (*test_keys::FULL_VIEWING_KEY).clone(),
+            AppParameters::default(),
+        )
+        .await
+        .unwrap();
+        let mut user_tree = storage.compliance_user_tree().await.unwrap();
+        let asset_tree = storage.compliance_asset_tree().await.unwrap();
+        let leaf = ComplianceLeaf::new(
+            test_keys::ADDRESS_0.clone(),
+            asset::Id(Fq::from(17u64)),
+            Fq::from(19u64),
+        );
+        let commitment = leaf.commit();
+        let position = user_tree.insert(commitment).unwrap();
+
+        storage
+            .record_compliance_block(
+                u64::MAX,
+                &user_tree,
+                &asset_tree,
+                0,
+                0,
+                vec![ComplianceLeafUpdate {
+                    leaf: leaf.clone(),
+                    position,
+                    commitment,
+                }],
+                Vec::new(),
+            )
+            .await
+            .expect_err("an unrepresentable anchor height must abort the transaction");
+
+        assert_eq!(storage.compliance_user_tree().await.unwrap().position(), 0);
+        assert!(storage
+            .get_compliance_leaf_data(&leaf.address, &leaf.asset_id)
+            .await
+            .unwrap()
+            .is_none());
+    }
 }
 
 #[cfg(test)]
@@ -1907,13 +1971,15 @@ impl Storage {
     }
 
     /// Record compliance tree changes for a block.
-    pub async fn record_compliance_block(
+    pub(crate) async fn record_compliance_block(
         &self,
         height: u64,
         user_tree: &crate::compliance_tree::ComplianceUserTree,
-        asset_tree: &mut crate::compliance_tree::ComplianceAssetTree,
+        asset_tree: &crate::compliance_tree::ComplianceAssetTree,
         user_start_position: u64,
         asset_start_position: u64,
+        leaf_updates: Vec<ComplianceLeafUpdate>,
+        asset_policy_updates: Vec<ComplianceAssetPolicyUpdate>,
     ) -> anyhow::Result<()> {
         let pool = self.pool.clone();
         let user_root = user_tree.root();
@@ -1936,49 +2002,30 @@ impl Storage {
                 // Persist asset tree changes
                 asset_tree_for_persist.persist(&mut store, asset_start_position)?;
 
+                for update in leaf_updates {
+                    store.add_leaf_data(
+                        &update.leaf.address.to_vec(),
+                        &update.leaf.asset_id.to_bytes(),
+                        update.position,
+                        update.leaf.slot_id,
+                        &update.leaf.slot_derivation.to_bytes(),
+                        &update.leaf.d.to_bytes(),
+                        update.leaf.status,
+                        update.commitment,
+                    )?;
+                }
+
+                for update in asset_policy_updates {
+                    store.add_asset_policy(
+                        &update.asset_id.to_bytes(),
+                        &update.policy.to_bytes()?,
+                    )?;
+                }
+
                 // Store anchors for this block
                 store.add_anchor(height, user_root, asset_root)?;
             }
 
-            tx.commit()?;
-            Ok::<(), anyhow::Error>(())
-        })
-        .await??;
-
-        asset_tree.clear_dirty_positions();
-
-        Ok(())
-    }
-
-    /// Record compliance leaf data for an address in the sync scope.
-    pub async fn record_compliance_leaf_data(
-        &self,
-        leaf: &shieldd_sdk_compliance::ComplianceLeaf,
-        position: u64,
-        commitment: StateCommitment,
-    ) -> anyhow::Result<()> {
-        let pool = self.pool.clone();
-        let address_bytes = leaf.address.to_vec();
-        let asset_bytes = leaf.asset_id.to_bytes().to_vec();
-        let slot_id = leaf.slot_id;
-        let slot_derivation = leaf.slot_derivation.to_bytes().to_vec();
-        let d = leaf.d.to_bytes().to_vec();
-
-        spawn_blocking(move || {
-            let mut conn = pool.get()?;
-            let mut tx = conn.transaction()?;
-            {
-                let mut store = compliance::ComplianceTreeStore(&mut tx);
-                store.add_leaf_data(
-                    &address_bytes,
-                    &asset_bytes,
-                    position,
-                    slot_id,
-                    &slot_derivation,
-                    &d,
-                    commitment,
-                )?;
-            }
             tx.commit()?;
             Ok::<(), anyhow::Error>(())
         })
@@ -2058,27 +2105,6 @@ impl Storage {
                 store.get_leaf_data(&address_bytes, &asset_bytes)?
             };
             Ok::<Option<compliance::UserLeafData>, anyhow::Error>(result)
-        })
-        .await?
-    }
-
-    /// Store a full asset policy.
-    pub async fn store_asset_policy(
-        &self,
-        asset_id: &asset::Id,
-        policy: &shieldd_sdk_compliance::structs::AssetPolicy,
-    ) -> anyhow::Result<()> {
-        let pool = self.pool.clone();
-        let asset_bytes = asset_id.to_bytes().to_vec();
-        let policy_bytes = policy.to_bytes()?;
-
-        spawn_blocking(move || {
-            let conn = pool.get()?;
-            conn.execute(
-                "INSERT OR REPLACE INTO compliance_asset_policies (asset_id, policy) VALUES (?1, ?2)",
-                (asset_bytes.as_slice(), policy_bytes.as_slice()),
-            )?;
-            Ok::<(), anyhow::Error>(())
         })
         .await?
     }

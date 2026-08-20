@@ -4,7 +4,7 @@ import ShielddGnarkFormal.Deployed.Contracts.Transfer.RefinementAction
 import ShielddGnarkFormal.Deployed.Contracts.Transfer.ActionAckSeams
 import ShielddGnarkFormal.DecafCompressionBridge
 import ShielddGnarkFormal.PoseidonEncryptionBridge
-import ShielddGnarkFormal.Poseidon6Bridge
+import ShielddGnarkFormal.Poseidon7Bridge
 import Mathlib.Tactic.LinearCombination
 import Mathlib.Tactic.NormNum
 import Mathlib.Tactic.Ring

@@ -48,6 +48,9 @@ impl serde::Serialize for CompactBlock {
         if !self.compliance_user_registrations.is_empty() {
             len += 1;
         }
+        if !self.compliance_user_status_changes.is_empty() {
+            len += 1;
+        }
         if !self.compliance_asset_registrations.is_empty() {
             len += 1;
         }
@@ -108,6 +111,9 @@ impl serde::Serialize for CompactBlock {
         if !self.compliance_user_registrations.is_empty() {
             struct_ser.serialize_field("complianceUserRegistrations", &self.compliance_user_registrations)?;
         }
+        if !self.compliance_user_status_changes.is_empty() {
+            struct_ser.serialize_field("complianceUserStatusChanges", &self.compliance_user_status_changes)?;
+        }
         if !self.compliance_asset_registrations.is_empty() {
             struct_ser.serialize_field("complianceAssetRegistrations", &self.compliance_asset_registrations)?;
         }
@@ -153,6 +159,8 @@ impl<'de> serde::Deserialize<'de> for CompactBlock {
             "complianceAssetAnchor",
             "compliance_user_registrations",
             "complianceUserRegistrations",
+            "compliance_user_status_changes",
+            "complianceUserStatusChanges",
             "compliance_asset_registrations",
             "complianceAssetRegistrations",
             "routing_action_payloads",
@@ -177,6 +185,7 @@ impl<'de> serde::Deserialize<'de> for CompactBlock {
             ComplianceUserAnchor,
             ComplianceAssetAnchor,
             ComplianceUserRegistrations,
+            ComplianceUserStatusChanges,
             ComplianceAssetRegistrations,
             RoutingActionPayloads,
             NullifierWindow,
@@ -216,6 +225,7 @@ impl<'de> serde::Deserialize<'de> for CompactBlock {
                             "complianceUserAnchor" | "compliance_user_anchor" => Ok(GeneratedField::ComplianceUserAnchor),
                             "complianceAssetAnchor" | "compliance_asset_anchor" => Ok(GeneratedField::ComplianceAssetAnchor),
                             "complianceUserRegistrations" | "compliance_user_registrations" => Ok(GeneratedField::ComplianceUserRegistrations),
+                            "complianceUserStatusChanges" | "compliance_user_status_changes" => Ok(GeneratedField::ComplianceUserStatusChanges),
                             "complianceAssetRegistrations" | "compliance_asset_registrations" => Ok(GeneratedField::ComplianceAssetRegistrations),
                             "routingActionPayloads" | "routing_action_payloads" => Ok(GeneratedField::RoutingActionPayloads),
                             "nullifierWindow" | "nullifier_window" => Ok(GeneratedField::NullifierWindow),
@@ -252,6 +262,7 @@ impl<'de> serde::Deserialize<'de> for CompactBlock {
                 let mut compliance_user_anchor__ = None;
                 let mut compliance_asset_anchor__ = None;
                 let mut compliance_user_registrations__ = None;
+                let mut compliance_user_status_changes__ = None;
                 let mut compliance_asset_registrations__ = None;
                 let mut routing_action_payloads__ = None;
                 let mut nullifier_window__ = None;
@@ -349,6 +360,12 @@ impl<'de> serde::Deserialize<'de> for CompactBlock {
                             }
                             compliance_user_registrations__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::ComplianceUserStatusChanges => {
+                            if compliance_user_status_changes__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("complianceUserStatusChanges"));
+                            }
+                            compliance_user_status_changes__ = Some(map_.next_value()?);
+                        }
                         GeneratedField::ComplianceAssetRegistrations => {
                             if compliance_asset_registrations__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("complianceAssetRegistrations"));
@@ -387,6 +404,7 @@ impl<'de> serde::Deserialize<'de> for CompactBlock {
                     compliance_user_anchor: compliance_user_anchor__.unwrap_or_default(),
                     compliance_asset_anchor: compliance_asset_anchor__.unwrap_or_default(),
                     compliance_user_registrations: compliance_user_registrations__.unwrap_or_default(),
+                    compliance_user_status_changes: compliance_user_status_changes__.unwrap_or_default(),
                     compliance_asset_registrations: compliance_asset_registrations__.unwrap_or_default(),
                     routing_action_payloads: routing_action_payloads__.unwrap_or_default(),
                     nullifier_window: nullifier_window__,

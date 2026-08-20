@@ -1,6 +1,7 @@
 import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg16
 import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg17
 import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg18
+import ShielddGnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg19
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 4000000
@@ -14,5 +15,6 @@ structure SenderComplianceCircuitFacts (rho : Nat → Seg16.F) : Prop where
   GadgetComplianceLeafSeg16 : Seg16.contract.spec rho
   GadgetCompliancePathSeg17 : Seg17.contract.spec rho
   AssertEqIfSeg18 : Seg18.contract.spec rho
+  AssertEqIfSeg19 : Seg19.contract.spec rho
 
 end Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal

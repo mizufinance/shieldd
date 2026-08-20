@@ -1056,6 +1056,11 @@ pub struct NoteReshapeBody {
     pub asset_anchor: ::core::option::Option<
         super::super::super::super::crypto::tct::v1::StateCommitment,
     >,
+    /// Current compliance user-tree root binding the owner status for regulated assets.
+    #[prost(message, optional, tag = "9")]
+    pub compliance_anchor: ::core::option::Option<
+        super::super::super::super::crypto::tct::v1::StateCommitment,
+    >,
 }
 impl ::prost::Name for NoteReshapeBody {
     const NAME: &'static str = "NoteReshapeBody";

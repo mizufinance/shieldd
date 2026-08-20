@@ -123,6 +123,7 @@ trait Inner: StateWrite {
 
         // Drain pending compliance registrations buffered during TX execution
         let compliance_user_registrations = self.pending_user_registrations();
+        let compliance_user_status_changes = self.pending_user_status_changes();
         let compliance_asset_registrations = self.pending_asset_registrations();
 
         let nullifier_window = if height == 0 || end_epoch {
@@ -175,6 +176,7 @@ trait Inner: StateWrite {
             compliance_user_anchor,
             compliance_asset_anchor,
             compliance_user_registrations,
+            compliance_user_status_changes,
             compliance_asset_registrations,
             nullifier_window,
         };

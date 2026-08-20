@@ -26,36 +26,36 @@ structure CanonicalSenderExactProviders (rho : Nat → DeployedF) : Prop where
 
 /-- Exact provider inventory for the `requiredSpend` obligation. -/
 structure RequiredSpendExactProviders (rho : Nat → DeployedF) : Prop where
-  requiredNoteCommitment : Seg28.contract.spec rho
-  requiredNullifier : Seg29.contract.spec rho
-  requiredStatePath : Seg30.contract.spec rho
-  requiredRvk : Seg31.contract.spec rho
-  requiredRkCompress : Seg32.contract.spec rho
-  requiredNullifierAssert : Seg33.contract.spec rho
-  requiredAnchorAssert : Seg34.contract.spec rho
-  requiredRkEquivalent : Seg35.contract.spec rho
-  requiredHistoryClassify : Seg36.contract.spec rho
+  requiredNoteCommitment : Seg29.contract.spec rho
+  requiredNullifier : Seg30.contract.spec rho
+  requiredStatePath : Seg31.contract.spec rho
+  requiredRvk : Seg32.contract.spec rho
+  requiredRkCompress : Seg33.contract.spec rho
+  requiredNullifierAssert : Seg34.contract.spec rho
+  requiredAnchorAssert : Seg35.contract.spec rho
+  requiredRkEquivalent : Seg36.contract.spec rho
+  requiredHistoryClassify : Seg37.contract.spec rho
 
 /-- Exact provider inventory for the `optionalSpend` obligation. -/
 structure OptionalSpendExactProviders (rho : Nat → DeployedF) : Prop where
-  optionalNoteCommitment : Seg39.contract.spec rho
-  optionalNullifier : Seg40.contract.spec rho
-  optionalStatePath : Seg41.contract.spec rho
-  optionalRvk : Seg42.contract.spec rho
-  optionalRkCompress : Seg43.contract.spec rho
-  optionalIsDummyBoolean : Seg44.contract.spec rho
-  optionalSyntheticNullifier : Seg45.contract.spec rho
-  optionalNullifierMux : Seg46.contract.spec rho
-  optionalNullifierAssert : Seg47.contract.spec rho
-  optionalAnchorAssert : Seg48.contract.spec rho
-  optionalRkEquivalent : Seg49.contract.spec rho
-  optionalAmountZero : Seg50.contract.spec rho
-  optionalHistoryClassify : Seg51.contract.spec rho
+  optionalNoteCommitment : Seg40.contract.spec rho
+  optionalNullifier : Seg41.contract.spec rho
+  optionalStatePath : Seg42.contract.spec rho
+  optionalRvk : Seg43.contract.spec rho
+  optionalRkCompress : Seg44.contract.spec rho
+  optionalIsDummyBoolean : Seg45.contract.spec rho
+  optionalSyntheticNullifier : Seg46.contract.spec rho
+  optionalNullifierMux : Seg47.contract.spec rho
+  optionalNullifierAssert : Seg48.contract.spec rho
+  optionalAnchorAssert : Seg49.contract.spec rho
+  optionalRkEquivalent : Seg50.contract.spec rho
+  optionalAmountZero : Seg51.contract.spec rho
+  optionalHistoryClassify : Seg52.contract.spec rho
 
 /-- Exact provider inventory for the `changeOutput` obligation. -/
 structure ChangeOutputExactProviders (rho : Nat → DeployedF) : Prop where
-  changeNoteCommitment : Seg54.contract.spec rho
-  changeNoteAssert : Seg55.contract.spec rho
+  changeNoteCommitment : Seg55.contract.spec rho
+  changeNoteAssert : Seg56.contract.spec rho
 
 /-- Exact provider inventory for the `assetRegistry` obligation. -/
 structure AssetRegistryExactProviders (rho : Nat → DeployedF) : Prop where
@@ -72,27 +72,28 @@ structure SenderComplianceExactProviders (rho : Nat → DeployedF) : Prop where
   senderComplianceLeaf : Seg16.contract.spec rho
   senderCompliancePath : Seg17.contract.spec rho
   senderComplianceAssert : Seg18.contract.spec rho
+  senderStatusActiveAssert : Seg19.contract.spec rho
 
 /-- Exact provider inventory for the `conservation` obligation. -/
 structure ConservationExactProviders (rho : Nat → DeployedF) : Prop where
-  conservationNetBalance : Seg57.contract.spec rho
-  conservationBalanceCompress : Seg58.contract.spec rho
+  conservationNetBalance : Seg58.contract.spec rho
+  conservationBalanceCompress : Seg59.contract.spec rho
 
 /-- Exact provider inventory for the `statementBinding` obligation. -/
 structure StatementBindingExactProviders (rho : Nat → DeployedF) : Prop where
-  routingPrecisionSelect : Seg19.contract.spec rho
-  routingParametersHash : Seg20.contract.spec rho
-  routingParametersBind : Seg21.contract.spec rho
-  routingSenderRouteWord : Seg22.contract.spec rho
-  routingTag0PublicRange : Seg23.contract.spec rho
-  routingTag0RouteBits : Seg24.contract.spec rho
-  routingTag0RandomWord : Seg25.contract.spec rho
-  routingTag0Compose : Seg26.contract.spec rho
-  statementBlock0 : Seg60.contract.spec rho
-  statementBlock1 : Seg61.contract.spec rho
-  statementBlock2 : Seg62.contract.spec rho
-  statementBlock3 : Seg63.contract.spec rho
-  statementAssert : Seg64.contract.spec rho
+  routingPrecisionSelect : Seg20.contract.spec rho
+  routingParametersHash : Seg21.contract.spec rho
+  routingParametersBind : Seg22.contract.spec rho
+  routingSenderRouteWord : Seg23.contract.spec rho
+  routingTag0PublicRange : Seg24.contract.spec rho
+  routingTag0RouteBits : Seg25.contract.spec rho
+  routingTag0RandomWord : Seg26.contract.spec rho
+  routingTag0Compose : Seg27.contract.spec rho
+  statementBlock0 : Seg61.contract.spec rho
+  statementBlock1 : Seg62.contract.spec rho
+  statementBlock2 : Seg63.contract.spec rho
+  statementBlock3 : Seg64.contract.spec rho
+  statementAssert : Seg65.contract.spec rho
 
 structure WithdrawalExactProviders (rho : Nat → DeployedF) : Prop where
   canonicalSender : CanonicalSenderExactProviders rho
@@ -120,34 +121,34 @@ theorem withdrawalExactProviders
       senderTransmissionNonIdentity := facts.canonicalSender.AssertDecafNonIdentitySeg9
     }
     requiredSpend := {
-      requiredNoteCommitment := facts.requiredSpend.GadgetNoteCommitmentSeg28
-      requiredNullifier := facts.requiredSpend.GadgetNullifierSeg29
-      requiredStatePath := facts.requiredSpend.GadgetStateCommitmentPathSeg30
-      requiredRvk := facts.requiredSpend.DecafRandomizedVerificationKeySeg31
-      requiredRkCompress := facts.requiredSpend.DecafCompressToFieldSeg32
-      requiredNullifierAssert := facts.requiredSpend.AssertEqSeg33
-      requiredAnchorAssert := facts.requiredSpend.AssertEqSeg34
-      requiredRkEquivalent := facts.requiredSpend.DecafAssertEquivalentSeg35
-      requiredHistoryClassify := facts.requiredSpend.HistoryClassifySeg36
+      requiredNoteCommitment := facts.requiredSpend.GadgetNoteCommitmentSeg29
+      requiredNullifier := facts.requiredSpend.GadgetNullifierSeg30
+      requiredStatePath := facts.requiredSpend.GadgetStateCommitmentPathSeg31
+      requiredRvk := facts.requiredSpend.DecafRandomizedVerificationKeySeg32
+      requiredRkCompress := facts.requiredSpend.DecafCompressToFieldSeg33
+      requiredNullifierAssert := facts.requiredSpend.AssertEqSeg34
+      requiredAnchorAssert := facts.requiredSpend.AssertEqSeg35
+      requiredRkEquivalent := facts.requiredSpend.DecafAssertEquivalentSeg36
+      requiredHistoryClassify := facts.requiredSpend.HistoryClassifySeg37
     }
     optionalSpend := {
-      optionalNoteCommitment := facts.optionalSpend.GadgetNoteCommitmentSeg39
-      optionalNullifier := facts.optionalSpend.GadgetNullifierSeg40
-      optionalStatePath := facts.optionalSpend.GadgetStateCommitmentPathSeg41
-      optionalRvk := facts.optionalSpend.DecafRandomizedVerificationKeySeg42
-      optionalRkCompress := facts.optionalSpend.DecafCompressToFieldSeg43
-      optionalIsDummyBoolean := facts.optionalSpend.AssertBooleanSeg44
-      optionalSyntheticNullifier := facts.optionalSpend.GadgetSyntheticDummyNullifierSeg45
-      optionalNullifierMux := facts.optionalSpend.DummyMuxSeg46
-      optionalNullifierAssert := facts.optionalSpend.AssertEqSeg47
-      optionalAnchorAssert := facts.optionalSpend.AssertEqIfSeg48
-      optionalRkEquivalent := facts.optionalSpend.DecafAssertEquivalentIfSeg49
-      optionalAmountZero := facts.optionalSpend.AssertEqIfSeg50
-      optionalHistoryClassify := facts.optionalSpend.HistoryClassifySeg51
+      optionalNoteCommitment := facts.optionalSpend.GadgetNoteCommitmentSeg40
+      optionalNullifier := facts.optionalSpend.GadgetNullifierSeg41
+      optionalStatePath := facts.optionalSpend.GadgetStateCommitmentPathSeg42
+      optionalRvk := facts.optionalSpend.DecafRandomizedVerificationKeySeg43
+      optionalRkCompress := facts.optionalSpend.DecafCompressToFieldSeg44
+      optionalIsDummyBoolean := facts.optionalSpend.AssertBooleanSeg45
+      optionalSyntheticNullifier := facts.optionalSpend.GadgetSyntheticDummyNullifierSeg46
+      optionalNullifierMux := facts.optionalSpend.DummyMuxSeg47
+      optionalNullifierAssert := facts.optionalSpend.AssertEqSeg48
+      optionalAnchorAssert := facts.optionalSpend.AssertEqIfSeg49
+      optionalRkEquivalent := facts.optionalSpend.DecafAssertEquivalentIfSeg50
+      optionalAmountZero := facts.optionalSpend.AssertEqIfSeg51
+      optionalHistoryClassify := facts.optionalSpend.HistoryClassifySeg52
     }
     changeOutput := {
-      changeNoteCommitment := facts.changeOutput.GadgetNoteCommitmentSeg54
-      changeNoteAssert := facts.changeOutput.AssertEqSeg55
+      changeNoteCommitment := facts.changeOutput.GadgetNoteCommitmentSeg55
+      changeNoteAssert := facts.changeOutput.AssertEqSeg56
     }
     assetRegistry := {
       isRegulatedBoolean := facts.assetRegistry.AssertBooleanSeg1
@@ -162,25 +163,26 @@ theorem withdrawalExactProviders
       senderComplianceLeaf := facts.senderCompliance.GadgetComplianceLeafSeg16
       senderCompliancePath := facts.senderCompliance.GadgetCompliancePathSeg17
       senderComplianceAssert := facts.senderCompliance.AssertEqIfSeg18
+      senderStatusActiveAssert := facts.senderCompliance.AssertEqIfSeg19
     }
     conservation := {
-      conservationNetBalance := facts.conservation.DecafConservationNetBalanceCommitment2Seg57
-      conservationBalanceCompress := facts.conservation.DecafCompressToFieldSeg58
+      conservationNetBalance := facts.conservation.DecafConservationNetBalanceCommitment2Seg58
+      conservationBalanceCompress := facts.conservation.DecafCompressToFieldSeg59
     }
     statementBinding := {
-      routingPrecisionSelect := facts.statementBinding.RoutingPrecisionSelectSeg19
-      routingParametersHash := facts.statementBinding.RoutingParametersHashSeg20
-      routingParametersBind := facts.statementBinding.RoutingParametersBindSeg21
-      routingSenderRouteWord := facts.statementBinding.RoutingRouteWordSeg22
-      routingTag0PublicRange := facts.statementBinding.RoutingTagPublicRangeSeg23
-      routingTag0RouteBits := facts.statementBinding.RoutingTagRouteBitsSeg24
-      routingTag0RandomWord := facts.statementBinding.RoutingTagRandomWordSeg25
-      routingTag0Compose := facts.statementBinding.RoutingTagComposeSeg26
-      statementBlock0 := facts.statementBinding.StatementHashSeg60
-      statementBlock1 := facts.statementBinding.StatementHashSeg61
-      statementBlock2 := facts.statementBinding.StatementHashSeg62
-      statementBlock3 := facts.statementBinding.StatementHashSeg63
-      statementAssert := facts.statementBinding.AssertEqSeg64
+      routingPrecisionSelect := facts.statementBinding.RoutingPrecisionSelectSeg20
+      routingParametersHash := facts.statementBinding.RoutingParametersHashSeg21
+      routingParametersBind := facts.statementBinding.RoutingParametersBindSeg22
+      routingSenderRouteWord := facts.statementBinding.RoutingRouteWordSeg23
+      routingTag0PublicRange := facts.statementBinding.RoutingTagPublicRangeSeg24
+      routingTag0RouteBits := facts.statementBinding.RoutingTagRouteBitsSeg25
+      routingTag0RandomWord := facts.statementBinding.RoutingTagRandomWordSeg26
+      routingTag0Compose := facts.statementBinding.RoutingTagComposeSeg27
+      statementBlock0 := facts.statementBinding.StatementHashSeg61
+      statementBlock1 := facts.statementBinding.StatementHashSeg62
+      statementBlock2 := facts.statementBinding.StatementHashSeg63
+      statementBlock3 := facts.statementBinding.StatementHashSeg64
+      statementAssert := facts.statementBinding.AssertEqSeg65
     }
   }
 

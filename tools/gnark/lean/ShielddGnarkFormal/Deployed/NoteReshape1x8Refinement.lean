@@ -29,7 +29,7 @@ open Contracts.NoteReshape1x8.Witness (
 )
 
 def path0 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
-  NoteReshapeMembershipBridge.segmentPath (Seg33.localRho rho)
+  NoteReshapeMembershipBridge.segmentPath (Seg37.localRho rho)
 
 def input0 (rho : Nat → DeployedF) :
     RealInput DeployedF NoteReshapeCanonical.Path24 :=
@@ -115,6 +115,7 @@ def action (rho : Nat → DeployedF) :
     ]
     anchor := anchor rho
     assetAnchor := assetAnchor rho
+    complianceAnchor := complianceAnchor rho
     routingTag := routingTag rho
     routingParameterSetId := routingParameterSetId rho
     recentPositionFloor := recentPositionFloor rho
@@ -123,6 +124,45 @@ def action (rho : Nat → DeployedF) :
     balanceBlinding := actionBalanceBlinding rho
     publicStatementHash := claimedStatementHash rho
   }
+
+/-- A regulated reshape requires the sender's per-asset status to be Active. -/
+theorem senderStatusActive
+    (rho : Nat → DeployedF)
+    (facts : NoteReshape1x8CircuitFacts rho) :
+    isRegulated rho = 1 → senderStatus rho = 1 := by
+  intro regulated
+  have h := facts.control.AssertEqIfSeg23
+  change
+    Deployed.Templates.Semantics.TAssertEqIf_21d2c12b00d06e5e5a9b561d8f13c30059ff3ae69a31740109ba30ed73bb89aa.spec
+      (Seg23.localRho rho) at h
+  have hw1 : Seg23.wireSeating 1 = 11 := by decide +kernel
+  have hw2 : Seg23.wireSeating 2 = 22 := by decide +kernel
+  simp only [
+    Deployed.Templates.Semantics.TAssertEqIf_21d2c12b00d06e5e5a9b561d8f13c30059ff3ae69a31740109ba30ed73bb89aa.spec,
+    Deployed.Templates.Semantics.TAssertEqIf_21d2c12b00d06e5e5a9b561d8f13c30059ff3ae69a31740109ba30ed73bb89aa.guard,
+    Deployed.Templates.Semantics.TAssertEqIf_21d2c12b00d06e5e5a9b561d8f13c30059ff3ae69a31740109ba30ed73bb89aa.residual,
+    one_mul
+  ] at h
+  rcases h with disabled | asserted
+  · have disabledSemantic : isRegulated rho = 0 := by
+      simpa only [
+        isRegulated, isRegulatedLC,
+        StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
+        Seg23.localRho, Deployed.Templates.seated, hw1,
+        zero_add, one_mul, add_zero
+      ] using disabled
+    rw [regulated] at disabledSemantic
+    have h10 : (1 : DeployedF) ≠ 0 := by decide +kernel
+    exact (h10 disabledSemantic).elim
+  · have assertedSemantic : -1 + senderStatus rho = 0 := by
+      simpa only [
+        senderStatus, senderStatusLC,
+        StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
+        Seg23.localRho, Deployed.Templates.seated, hw2,
+        zero_add, one_mul, add_zero
+      ] using asserted
+    have recovered := congrArg (fun z : DeployedF => 1 + z) assertedSemantic
+    simpa [add_assoc] using recovered
 
 theorem actionShape (rho : Nat → DeployedF) :
     canonicalShape (action rho) := by

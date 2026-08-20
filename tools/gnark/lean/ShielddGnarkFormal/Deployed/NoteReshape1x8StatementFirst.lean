@@ -20,13 +20,13 @@ abbrev DeployedF := Contracts.NoteReshape1x8.SemanticF
 attribute [-instance] ZMod.instField
 local instance choiceFreeStatementFirstCommRing : CommRing DeployedF := ZMod.commRing _
 
-theorem canonicalFirstBlockSeventeen
-    (f0 f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 f13 f14 f15 f16 : DeployedF) :
+theorem canonicalFirstBlockEighteen
+    (f0 f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 f13 f14 f15 f16 f17 : DeployedF) :
     NoteReshapeCanonical.statementFirstBlock .reshape1x8
         [f0, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14,
-         f15, f16] =
+         f15, f16, f17] =
       Poseidon7Bridge.permSpec7
-        (8083011558212890722062585281830291178644145861330407768425969219879481653955 :
+        (2364495542860899492047187451159388185152513649010245296796743723390237537741 :
           DeployedF)
         f0 f1 f2 f3 f4 f5 f6 := by
   unfold
@@ -41,8 +41,8 @@ theorem canonicalFirstBlockSeventeen
   rfl
 
 theorem hash (rho : Nat → DeployedF) :
-    Deployed.Templates.Semantics.TStatementHash_83a669afde34adf36b8981f04f0c381cb17040f11d8fafcf45f8451d92c98705.Trace.hash0
-        (Seg79.localRho rho) =
+    Deployed.Templates.Semantics.TStatementHash_7acf21e44dfb02b7e86c0f61aeed9884ca62220f949cb8a03253903d5c5bec66.Trace.hash0
+        (Seg83.localRho rho) =
       NoteReshapeCanonical.statementFirstBlock .reshape1x8
         [anchor rho,
          output0NoteCommitmentComputed rho,
@@ -55,16 +55,17 @@ theorem hash (rho : Nat → DeployedF) :
          output7NoteCommitmentComputed rho,
          balanceCommitmentFq rho,
          assetAnchor rho,
+         complianceAnchor rho,
          routingTag rho,
          routingParameterSetId rho,
          recentPositionFloor rho,
          spend0NullifierComputed rho,
          spend0RkCompressed rho,
          spend0HistoryRequired rho] := by
-  rw [canonicalFirstBlockSeventeen]
+  rw [canonicalFirstBlockEighteen]
   simp [
-    Deployed.Templates.Semantics.TStatementHash_83a669afde34adf36b8981f04f0c381cb17040f11d8fafcf45f8451d92c98705.Trace.hash0,
-    Deployed.Templates.Semantics.TStatementHash_83a669afde34adf36b8981f04f0c381cb17040f11d8fafcf45f8451d92c98705.Trace.domainLit,
+    Deployed.Templates.Semantics.TStatementHash_7acf21e44dfb02b7e86c0f61aeed9884ca62220f949cb8a03253903d5c5bec66.Trace.hash0,
+    Deployed.Templates.Semantics.TStatementHash_7acf21e44dfb02b7e86c0f61aeed9884ca62220f949cb8a03253903d5c5bec66.Trace.domainLit,
     anchor, anchorLC,
     output0NoteCommitmentComputed, output0NoteCommitmentComputedLC,
     output1NoteCommitmentComputed, output1NoteCommitmentComputedLC,
@@ -73,7 +74,7 @@ theorem hash (rho : Nat → DeployedF) :
     output4NoteCommitmentComputed, output4NoteCommitmentComputedLC,
     output5NoteCommitmentComputed, output5NoteCommitmentComputedLC,
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-    Seg79.localRho, Deployed.Templates.seated,
+    Seg83.localRho, Deployed.Templates.seated,
     hw1,
     hw7, hw8, hw9, hw10, hw11, hw12,
     hw18, hw19, hw20, hw21, hw22, hw23,

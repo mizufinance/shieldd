@@ -9,8 +9,8 @@ import ShielddGnarkFormal.NoteReshapeCommitmentBridge
 import ShielddGnarkFormal.StateMembership925Bridge
 import ShielddGnarkFormal.Poseidon3Spec
 import ShielddGnarkFormal.Poseidon5Bridge
-import ShielddGnarkFormal.Poseidon6Spec
-import ShielddGnarkFormal.Poseidon6Bridge
+import ShielddGnarkFormal.Poseidon7Spec
+import ShielddGnarkFormal.Poseidon7Bridge
 import ShielddGnarkFormal.HistoryClassifyBridge
 import ShielddGnarkFormal.Protocol.ShieldedIcs20Withdrawal.Concrete
 import ShielddGnarkFormal.Protocol.ShieldedIcs20Withdrawal.Refinement
@@ -1015,10 +1015,10 @@ theorem complianceLeafHash_of_circuitSpec
     (rho : Nat → DeployedF)
     (leafHash :
       senderLeafCommitment rho =
-        Poseidon6Bridge.permSpec6 Concrete.complianceLeafDomain
+        Poseidon7Bridge.permSpec7 Concrete.complianceLeafDomain
           (senderDivGenFq rho) (senderTransmissionFq rho)
           (outboundAssetId rho) (senderSlotId rho)
-          (senderSlotDerivation rho) (senderD rho)) :
+          (senderSlotDerivation rho) (senderD rho) (senderStatus rho)) :
     senderLeafCommitment rho =
       Concrete.complianceLeafHash (action rho) := by
   rw [leafHash]
@@ -1061,10 +1061,13 @@ theorem senderCompliance_of_exactSeams
         senderComplianceRoot rho)
     (rootAsserted :
       isRegulated rho = 1 →
-        senderComplianceRoot rho = complianceAnchor rho) :
+        senderComplianceRoot rho = complianceAnchor rho)
+    (statusActive :
+      isRegulated rho = 1 → senderStatus rho = 1) :
     Concrete.senderCompliance (action rho) := by
   refine ⟨positionBound, ?_⟩
   intro regulated
+  refine ⟨?_, statusActive regulated⟩
   change Common.quadRoot (Concrete.complianceLeafHash (action rho))
       (senderPath rho) (senderPosition rho) = complianceAnchor rho
   rw [← leafHash, pathRoot, rootAsserted regulated]
@@ -1224,10 +1227,10 @@ theorem semanticCircuitFacts_of_exactSeams
         (assetLeafValue rho) (assetLeafNextValue rho))
     (complianceLeaf :
       senderLeafCommitment rho =
-        Poseidon6Bridge.permSpec6 Concrete.complianceLeafDomain
+        Poseidon7Bridge.permSpec7 Concrete.complianceLeafDomain
           (senderDivGenFq rho) (senderTransmissionFq rho)
           (outboundAssetId rho) (senderSlotId rho)
-          (senderSlotDerivation rho) (senderD rho))
+          (senderSlotDerivation rho) (senderD rho) (senderStatus rho))
     (compliancePositionBound : (senderPosition rho).val < 2 ^ 32)
     (compliancePathRoot :
       Common.quadRoot (senderLeafCommitment rho)
@@ -1236,6 +1239,8 @@ theorem semanticCircuitFacts_of_exactSeams
     (complianceRootAsserted :
       isRegulated rho = 1 →
         senderComplianceRoot rho = complianceAnchor rho)
+    (complianceStatusActive :
+      isRegulated rho = 1 → senderStatus rho = 1)
     (requiredAmountBound : (spend0NoteAmount rho).val < 2 ^ 128)
     (optionalAmountBound : (spend1NoteAmount rho).val < 2 ^ 128)
     (changeAmountBound : (output0NoteAmount rho).val < 2 ^ 128)
@@ -1305,6 +1310,7 @@ theorem semanticCircuitFacts_of_exactSeams
       senderCompliance_of_exactSeams rho
         (complianceLeafHash_of_circuitSpec rho complianceLeaf)
         compliancePositionBound compliancePathRoot complianceRootAsserted
+        complianceStatusActive
     conservation :=
       conservation_of_circuitSpecs rho
         requiredAmountBound optionalAmountBound

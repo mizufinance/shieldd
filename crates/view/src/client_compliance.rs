@@ -543,22 +543,21 @@ pub async fn enrich_plan_with_compliance<P: ComplianceProofProvider>(
             .as_secs(),
     };
 
-    // Compliance encryption expands this private nonce deterministically into
-    // its tier seeds and ephemeral scalars. Sharing one nonce across actions
-    // would therefore reuse EPKs and stream keys. Allocate and collision-check
-    // one nonce for each Transfer action, including internal fee funding.
-    let mut used_transfer_nonces = BTreeSet::new();
-    let mut transfer_action_nonces = BTreeMap::new();
+    // Transfer compliance encryption expands this private nonce into tier seeds
+    // and ephemeral scalars, while NoteReshape binds it into its routing tag.
+    // Allocate one collision-checked nonce per shielded action, including
+    // internal fee funding.
+    let mut used_action_nonces = BTreeSet::new();
+    let mut action_nonces = BTreeMap::new();
     for (action_index, action) in plan.actions.iter().enumerate() {
         match action {
-            ActionPlan::Transfer(_) => {
-                transfer_action_nonces.insert(
+            ActionPlan::Transfer(_) | ActionPlan::NoteReshape(_) => {
+                action_nonces.insert(
                     action_index,
-                    fresh_transfer_nonce(rng, &mut used_transfer_nonces)?,
+                    fresh_action_nonce(rng, &mut used_action_nonces)?,
                 );
             }
-            ActionPlan::NoteReshape(_)
-            | ActionPlan::IbcAction(_)
+            ActionPlan::IbcAction(_)
             | ActionPlan::ShieldedHostWithdrawal(_)
             | ActionPlan::ShieldedIcs20Withdrawal(_)
             | ActionPlan::ComplianceRegisterAsset(_)
@@ -568,16 +567,12 @@ pub async fn enrich_plan_with_compliance<P: ComplianceProofProvider>(
     let fee_funding_nonce = plan
         .fee_funding
         .as_ref()
-        .map(|_| fresh_transfer_nonce(rng, &mut used_transfer_nonces))
+        .map(|_| fresh_action_nonce(rng, &mut used_action_nonces))
         .transpose()?;
 
-    enrich_transfer_family_with_compliance(
-        plan,
-        provider,
-        target_timestamp,
-        &transfer_action_nonces,
-    )
-    .await?;
+    enrich_transfer_family_with_compliance(plan, provider, target_timestamp, &action_nonces)
+        .await?;
+    enrich_note_reshapes_with_compliance(plan, provider, target_timestamp, &action_nonces).await?;
     enrich_shielded_withdrawals_with_compliance(plan, provider, target_timestamp).await?;
     if let Some(fee_funding_nonce) = fee_funding_nonce {
         enrich_internal_funding_with_compliance(
@@ -592,14 +587,14 @@ pub async fn enrich_plan_with_compliance<P: ComplianceProofProvider>(
     Ok(())
 }
 
-fn fresh_transfer_nonce(
+fn fresh_action_nonce(
     rng: &mut (impl rand_core::RngCore + rand_core::CryptoRng),
     used: &mut BTreeSet<[u8; 32]>,
 ) -> Result<Fr> {
     let nonce = Fr::rand(rng);
     anyhow::ensure!(
         used.insert(nonce.to_bytes()),
-        "compliance RNG generated a duplicate Transfer action nonce"
+        "compliance RNG generated a duplicate shielded action nonce"
     );
     Ok(nonce)
 }
@@ -630,6 +625,119 @@ enum ShieldedWithdrawalSpendLocation {
         action_index: usize,
         spend_index: usize,
     },
+}
+
+async fn enrich_note_reshapes_with_compliance<P: ComplianceProofProvider>(
+    plan: &mut TransactionPlan,
+    provider: &P,
+    target_timestamp: u64,
+    action_nonces: &BTreeMap<usize, Fr>,
+) -> Result<()> {
+    let identities = plan
+        .actions
+        .iter()
+        .enumerate()
+        .filter_map(|(action_index, action)| {
+            let ActionPlan::NoteReshape(note_reshape) = action else {
+                return None;
+            };
+            let first_spend = note_reshape.spends.first().ok_or_else(|| {
+                anyhow::anyhow!("NoteReshape action {action_index} has no real spend")
+            });
+            Some(
+                first_spend
+                    .map(|spend| (action_index, spend.note.asset_id(), spend.note.address())),
+            )
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let proof_identities = identities
+        .iter()
+        .map(|(_, asset_id, address)| (*asset_id, address.clone()))
+        .collect::<Vec<_>>();
+
+    let Some(batch_data) = fetch_batch_compliance_data(provider, &proof_identities, &[]).await?
+    else {
+        return Ok(());
+    };
+
+    for (action_index, asset_id, address) in identities {
+        let asset_proof = batch_data
+            .asset_proofs
+            .get(&asset_id)
+            .cloned()
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "compliance provider omitted asset proof for NoteReshape action {} (asset {})",
+                    action_index,
+                    asset_id
+                )
+            })?;
+        let user_proof = batch_data
+            .user_proofs
+            .get(&(address, asset_id))
+            .cloned()
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "missing user proof for NoteReshape action {}: user may not be registered for asset {}",
+                    action_index,
+                    asset_id
+                )
+            })?;
+        let asset_policy = if asset_proof.is_regulated {
+            Some(
+                batch_data
+                    .asset_policies
+                    .get(&asset_id)
+                    .cloned()
+                    .ok_or_else(|| {
+                        anyhow::anyhow!(
+                            "missing asset policy for regulated NoteReshape asset {}",
+                            asset_id
+                        )
+                    })?,
+            )
+        } else {
+            None
+        };
+        let nonce = *action_nonces.get(&action_index).ok_or_else(|| {
+            anyhow::anyhow!("missing compliance nonce for NoteReshape action {action_index}")
+        })?;
+
+        let ActionPlan::NoteReshape(note_reshape) = &mut plan.actions[action_index] else {
+            unreachable!()
+        };
+        for spend in &mut note_reshape.spends {
+            spend.asset_indexed_leaf = asset_proof.indexed_leaf.clone();
+            spend.asset_path = asset_proof.auth_path.clone();
+            spend.asset_position = asset_proof.position;
+            spend.asset_anchor = batch_data.asset_anchor;
+            spend.compliance_anchor = batch_data.compliance_anchor;
+            spend.compliance_path = user_proof.auth_path.clone();
+            spend.compliance_position = user_proof.position;
+            spend.compliance_leaf = Some(user_proof.leaf.clone());
+            spend.is_regulated = asset_proof.is_regulated;
+            spend.target_timestamp = target_timestamp;
+            spend.asset_policy = asset_policy.clone();
+            spend.tx_blinding_nonce = nonce;
+            spend.set_compliance_details()?;
+        }
+        for output in &mut note_reshape.outputs {
+            output.asset_indexed_leaf = asset_proof.indexed_leaf.clone();
+            output.asset_path = asset_proof.auth_path.clone();
+            output.asset_position = asset_proof.position;
+            output.asset_anchor = batch_data.asset_anchor;
+            output.compliance_anchor = batch_data.compliance_anchor;
+            output.compliance_path = user_proof.auth_path.clone();
+            output.compliance_position = user_proof.position;
+            output.is_regulated = asset_proof.is_regulated;
+            output.target_timestamp = target_timestamp;
+            output.asset_policy = asset_policy.clone();
+            output.set_compliance_details(&user_proof.leaf, nonce)?;
+        }
+        note_reshape.validate()?;
+    }
+
+    Ok(())
 }
 
 async fn fetch_batch_compliance_data<P: ComplianceProofProvider>(
@@ -1196,7 +1304,7 @@ async fn enrich_shielded_withdrawals_with_compliance<P: ComplianceProofProvider>
 
 #[cfg(test)]
 mod tests {
-    use super::{enrich_plan_with_compliance, fresh_transfer_nonce, parse_proto_merkle_path};
+    use super::{enrich_plan_with_compliance, fresh_action_nonce, parse_proto_merkle_path};
     use async_trait::async_trait;
     use decaf377::Fr;
     use rand::{rngs::StdRng, SeedableRng};
@@ -1208,7 +1316,9 @@ mod tests {
     };
     use shieldd_sdk_keys::Address;
     use shieldd_sdk_proto::core::component::compliance::v1 as compliance_pb;
-    use shieldd_sdk_shielded_pool::{Note, ShieldedInputPlan, ShieldedOutputPlan, TransferPlan};
+    use shieldd_sdk_shielded_pool::{
+        Note, NoteReshapePlan, ShieldedInputPlan, ShieldedOutputPlan, TransferPlan,
+    };
     use shieldd_sdk_tct::StateCommitment;
     use shieldd_sdk_transaction::{
         plan::{ActionPlan, TransactionPlan},
@@ -1308,6 +1418,30 @@ mod tests {
             .expect("self-transfer plan must be valid")
     }
 
+    fn self_note_reshape_plan(rng: &mut StdRng) -> NoteReshapePlan {
+        let address = Address::dummy(rng);
+        let input_value = Value {
+            amount: 100u64.into(),
+            asset_id: *BASE_ASSET_ID,
+        };
+        let spends = (0..8)
+            .map(|position| {
+                let note = Note::generate(rng, &address, input_value);
+                ShieldedInputPlan::new(rng, note, position.into())
+            })
+            .collect();
+        let output = ShieldedOutputPlan::new(
+            rng,
+            Value {
+                amount: 800u64.into(),
+                asset_id: *BASE_ASSET_ID,
+            },
+            address,
+        );
+        NoteReshapePlan::new_auto(spends, vec![output], Fr::rand(rng))
+            .expect("self NoteReshape plan must be valid")
+    }
+
     #[test]
     fn rpc_merkle_path_parser_requires_canonical_fixed_shape() {
         parse_proto_merkle_path(Some(MerklePath::default().into()), "test_path")
@@ -1329,17 +1463,67 @@ mod tests {
     fn transfer_compliance_nonce_allocator_rejects_cross_action_reuse() {
         let mut used = BTreeSet::new();
         let mut repeating = RepeatingRng;
-        fresh_transfer_nonce(&mut repeating, &mut used).expect("first nonce is unused");
-        fresh_transfer_nonce(&mut repeating, &mut used)
+        fresh_action_nonce(&mut repeating, &mut used).expect("first nonce is unused");
+        fresh_action_nonce(&mut repeating, &mut used)
             .expect_err("a repeated action nonce must fail closed");
 
         let mut seeded = StdRng::seed_from_u64(0x7368_6965_6c64_645f);
         let mut used = BTreeSet::new();
         for _ in 0..8 {
-            fresh_transfer_nonce(&mut seeded, &mut used)
+            fresh_action_nonce(&mut seeded, &mut used)
                 .expect("independent CSPRNG draws must produce distinct action nonces");
         }
         assert_eq!(used.len(), 8);
+    }
+
+    #[tokio::test]
+    async fn compliance_enrichment_replaces_note_reshape_placeholder_witnesses() {
+        let mut construction_rng = StdRng::seed_from_u64(13);
+        let note_reshape = self_note_reshape_plan(&mut construction_rng);
+        let placeholder_anchor = note_reshape.spends[0].compliance_anchor;
+        let mut plan = TransactionPlan {
+            actions: vec![ActionPlan::NoteReshape(note_reshape)],
+            transaction_parameters: Default::default(),
+            fee_funding: None,
+            memo: None,
+            nullifier_window: None,
+        };
+        let mut enrichment_rng = StdRng::seed_from_u64(17);
+
+        enrich_plan_with_compliance(
+            &mut plan,
+            &UnregulatedProofProvider,
+            &mut enrichment_rng,
+            Some(1_700_000_000),
+        )
+        .await
+        .expect("unregulated NoteReshape enrichment must succeed");
+
+        let ActionPlan::NoteReshape(note_reshape) = &plan.actions[0] else {
+            panic!("test plan contains one NoteReshape action")
+        };
+        let expected_anchor = StateCommitment(decaf377::Fq::from(0u64));
+        assert_ne!(placeholder_anchor, expected_anchor);
+        assert!(note_reshape
+            .spends
+            .iter()
+            .all(|spend| spend.compliance_anchor == expected_anchor));
+        assert!(note_reshape
+            .outputs
+            .iter()
+            .all(|output| output.compliance_anchor == expected_anchor));
+        let action_nonce = note_reshape.spends[0].tx_blinding_nonce;
+        assert!(note_reshape
+            .spends
+            .iter()
+            .all(|spend| spend.tx_blinding_nonce == action_nonce));
+        assert!(note_reshape
+            .outputs
+            .iter()
+            .all(|output| output.tx_blinding_nonce == action_nonce));
+        note_reshape
+            .validate()
+            .expect("enriched NoteReshape must remain valid");
     }
 
     #[tokio::test]

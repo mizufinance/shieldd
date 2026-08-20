@@ -9,38 +9,40 @@ import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg8
 import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg9
 import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg10
 import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg20
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg40
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg43
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg45
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg32
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg33
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg44
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg47
 import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg49
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg55
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg58
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg60
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg53
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg59
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg62
 import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg64
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg70
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg73
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg75
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg68
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg74
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg77
 import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg79
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg85
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg88
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg90
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg83
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg89
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg92
 import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg94
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg100
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg103
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg105
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg98
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg104
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg107
 import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg109
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg115
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg118
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg120
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg113
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg119
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg122
 import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg124
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg130
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg133
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg135
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg128
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg134
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg137
 import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg139
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg145
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg148
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg150
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg143
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg149
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg152
 import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg154
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg158
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 4000000
@@ -62,37 +64,39 @@ structure ControlCircuitFacts (rho : Nat → Seg1.F) : Prop where
   AssertDummySuffixSeg9 : Seg9.contract.spec rho
   AssertActiveRangeSeg10 : Seg10.contract.spec rho
   AssertBooleanSeg20 : Seg20.contract.spec rho
-  AssertEqIfSeg40 : Seg40.contract.spec rho
-  AssertEqIfSeg43 : Seg43.contract.spec rho
-  DummyMuxSeg45 : Seg45.contract.spec rho
-  AssertEqIfSeg49 : Seg49.contract.spec rho
-  AssertEqIfSeg55 : Seg55.contract.spec rho
-  AssertEqIfSeg58 : Seg58.contract.spec rho
-  DummyMuxSeg60 : Seg60.contract.spec rho
-  AssertEqIfSeg64 : Seg64.contract.spec rho
-  AssertEqIfSeg70 : Seg70.contract.spec rho
-  AssertEqIfSeg73 : Seg73.contract.spec rho
-  DummyMuxSeg75 : Seg75.contract.spec rho
-  AssertEqIfSeg79 : Seg79.contract.spec rho
-  AssertEqIfSeg85 : Seg85.contract.spec rho
-  AssertEqIfSeg88 : Seg88.contract.spec rho
-  DummyMuxSeg90 : Seg90.contract.spec rho
-  AssertEqIfSeg94 : Seg94.contract.spec rho
-  AssertEqIfSeg100 : Seg100.contract.spec rho
-  AssertEqIfSeg103 : Seg103.contract.spec rho
-  DummyMuxSeg105 : Seg105.contract.spec rho
-  AssertEqIfSeg109 : Seg109.contract.spec rho
-  AssertEqIfSeg115 : Seg115.contract.spec rho
-  AssertEqIfSeg118 : Seg118.contract.spec rho
-  DummyMuxSeg120 : Seg120.contract.spec rho
-  AssertEqIfSeg124 : Seg124.contract.spec rho
-  AssertEqIfSeg130 : Seg130.contract.spec rho
-  AssertEqIfSeg133 : Seg133.contract.spec rho
-  DummyMuxSeg135 : Seg135.contract.spec rho
-  AssertEqIfSeg139 : Seg139.contract.spec rho
-  AssertEqIfSeg145 : Seg145.contract.spec rho
-  AssertEqIfSeg148 : Seg148.contract.spec rho
-  DummyMuxSeg150 : Seg150.contract.spec rho
-  AssertEqIfSeg154 : Seg154.contract.spec rho
+  AssertEqIfSeg32 : Seg32.contract.spec rho
+  AssertEqIfSeg33 : Seg33.contract.spec rho
+  AssertEqIfSeg44 : Seg44.contract.spec rho
+  AssertEqIfSeg47 : Seg47.contract.spec rho
+  DummyMuxSeg49 : Seg49.contract.spec rho
+  AssertEqIfSeg53 : Seg53.contract.spec rho
+  AssertEqIfSeg59 : Seg59.contract.spec rho
+  AssertEqIfSeg62 : Seg62.contract.spec rho
+  DummyMuxSeg64 : Seg64.contract.spec rho
+  AssertEqIfSeg68 : Seg68.contract.spec rho
+  AssertEqIfSeg74 : Seg74.contract.spec rho
+  AssertEqIfSeg77 : Seg77.contract.spec rho
+  DummyMuxSeg79 : Seg79.contract.spec rho
+  AssertEqIfSeg83 : Seg83.contract.spec rho
+  AssertEqIfSeg89 : Seg89.contract.spec rho
+  AssertEqIfSeg92 : Seg92.contract.spec rho
+  DummyMuxSeg94 : Seg94.contract.spec rho
+  AssertEqIfSeg98 : Seg98.contract.spec rho
+  AssertEqIfSeg104 : Seg104.contract.spec rho
+  AssertEqIfSeg107 : Seg107.contract.spec rho
+  DummyMuxSeg109 : Seg109.contract.spec rho
+  AssertEqIfSeg113 : Seg113.contract.spec rho
+  AssertEqIfSeg119 : Seg119.contract.spec rho
+  AssertEqIfSeg122 : Seg122.contract.spec rho
+  DummyMuxSeg124 : Seg124.contract.spec rho
+  AssertEqIfSeg128 : Seg128.contract.spec rho
+  AssertEqIfSeg134 : Seg134.contract.spec rho
+  AssertEqIfSeg137 : Seg137.contract.spec rho
+  DummyMuxSeg139 : Seg139.contract.spec rho
+  AssertEqIfSeg143 : Seg143.contract.spec rho
+  AssertEqIfSeg149 : Seg149.contract.spec rho
+  AssertEqIfSeg152 : Seg152.contract.spec rho
+  DummyMuxSeg154 : Seg154.contract.spec rho
+  AssertEqIfSeg158 : Seg158.contract.spec rho
 
 end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape8x1

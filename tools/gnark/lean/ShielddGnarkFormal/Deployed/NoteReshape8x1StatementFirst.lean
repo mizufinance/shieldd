@@ -1,5 +1,5 @@
 import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.SemanticBindings
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg169
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg173
 import ShielddGnarkFormal.NoteReshapeCanonical
 import ShielddGnarkFormal.Poseidon7Bridge
 
@@ -23,6 +23,7 @@ def fields (rho : Nat → DeployedF) : List DeployedF :=
    output0NoteCommitmentComputed rho,
    balanceCommitmentFq rho,
    assetAnchor rho,
+   complianceAnchor rho,
    routingTag rho,
    routingParameterSetId rho,
    recentPositionFloor rho,
@@ -51,53 +52,53 @@ def fields (rho : Nat → DeployedF) : List DeployedF :=
    spend7RkCompressed rho,
    spend7HistoryRequired rho]
 
-theorem canonicalFirstBlockThirtyOne
+theorem canonicalFirstBlockThirtyTwo
     (f0 f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 f13 f14 f15 f16 f17 f18
-      f19 f20 f21 f22 f23 f24 f25 f26 f27 f28 f29 f30 : DeployedF) :
+      f19 f20 f21 f22 f23 f24 f25 f26 f27 f28 f29 f30 f31 : DeployedF) :
     NoteReshapeCanonical.statementFirstBlock .reshape8x1
         [f0, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13,
          f14, f15, f16, f17, f18, f19, f20, f21, f22, f23, f24, f25,
-         f26, f27, f28, f29, f30] =
+         f26, f27, f28, f29, f30, f31] =
       Poseidon7Bridge.permSpec7
-        (3061752669569786885963994164501899099507756727275361723004405046505540448967 :
+        (3369812303662745782238751015067652055738399375993471750361947871360359146526 :
           DeployedF)
         f0 f1 f2 f3 f4 f5 f6 := by
   rfl
 
 theorem hash (rho : Nat → DeployedF) :
-    Deployed.Templates.Semantics.TStatementHash_72066204724e0232dbfe5f6b0c37434f1d4d53cf61944652f76487e540ff849c.Trace.hash0
-        (Seg169.localRho rho) =
+    Deployed.Templates.Semantics.TStatementHash_ae76718c78b325fc953ed63d67e8ea1e911dc2c5c95400df433473b5b0517647.Trace.hash0
+        (Seg173.localRho rho) =
       NoteReshapeCanonical.statementFirstBlock .reshape8x1 (fields rho) := by
-  have hw1 : Seg169.wireSeating 1 = 6 := by decide +kernel
-  have hw7 : Seg169.wireSeating 7 = 121859 := by decide +kernel
-  have hw8 : Seg169.wireSeating 8 = 121864 := by decide +kernel
-  have hw9 : Seg169.wireSeating 9 = 121869 := by decide +kernel
-  have hw10 : Seg169.wireSeating 10 = 121874 := by decide +kernel
-  have hw11 : Seg169.wireSeating 11 = 121879 := by decide +kernel
-  have hw12 : Seg169.wireSeating 12 = 121884 := by decide +kernel
-  have hw18 : Seg169.wireSeating 18 = 125205 := by decide +kernel
-  have hw19 : Seg169.wireSeating 19 = 125545 := by decide +kernel
-  have hw25 : Seg169.wireSeating 25 = 2 := by decide +kernel
-  have hw31 : Seg169.wireSeating 31 = 3 := by decide +kernel
-  have hw37 : Seg169.wireSeating 37 = 4 := by decide +kernel
-  have hw43 : Seg169.wireSeating 43 = 5 := by decide +kernel
+  have hw1 : Seg173.wireSeating 1 = 7 := by decide +kernel
+  have hw7 : Seg173.wireSeating 7 = 128177 := by decide +kernel
+  have hw8 : Seg173.wireSeating 8 = 128182 := by decide +kernel
+  have hw9 : Seg173.wireSeating 9 = 128187 := by decide +kernel
+  have hw10 : Seg173.wireSeating 10 = 128192 := by decide +kernel
+  have hw11 : Seg173.wireSeating 11 = 128197 := by decide +kernel
+  have hw12 : Seg173.wireSeating 12 = 128202 := by decide +kernel
+  have hw18 : Seg173.wireSeating 18 = 131523 := by decide +kernel
+  have hw19 : Seg173.wireSeating 19 = 131863 := by decide +kernel
+  have hw25 : Seg173.wireSeating 25 = 2 := by decide +kernel
+  have hw31 : Seg173.wireSeating 31 = 3 := by decide +kernel
+  have hw37 : Seg173.wireSeating 37 = 4 := by decide +kernel
+  have hw43 : Seg173.wireSeating 43 = 5 := by decide +kernel
   have hneg :
       (8444461749428370424248824938781546531375899335154063827935233455917409239040 :
         DeployedF) = -1 := by decide +kernel
   unfold fields
-  rw [canonicalFirstBlockThirtyOne]
+  rw [canonicalFirstBlockThirtyTwo]
   simp [
-    Deployed.Templates.Semantics.TStatementHash_72066204724e0232dbfe5f6b0c37434f1d4d53cf61944652f76487e540ff849c.Trace.hash0,
-    Deployed.Templates.Semantics.TStatementHash_72066204724e0232dbfe5f6b0c37434f1d4d53cf61944652f76487e540ff849c.Trace.domainLit,
+    Deployed.Templates.Semantics.TStatementHash_ae76718c78b325fc953ed63d67e8ea1e911dc2c5c95400df433473b5b0517647.Trace.hash0,
+    Deployed.Templates.Semantics.TStatementHash_ae76718c78b325fc953ed63d67e8ea1e911dc2c5c95400df433473b5b0517647.Trace.domainLit,
     anchor, anchorLC,
     output0NoteCommitmentComputed, output0NoteCommitmentComputedLC,
     balanceCommitmentFq, balanceCommitmentFqLC,
     assetAnchor, assetAnchorLC,
+    complianceAnchor, complianceAnchorLC,
     routingTag, routingTagLC,
     routingParameterSetId, routingParameterSetIdLC,
-    recentPositionFloor, recentPositionFloorLC,
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-    Seg169.localRho, Deployed.Templates.seated,
+    Seg173.localRho, Deployed.Templates.seated,
     hw1, hw7, hw8, hw9, hw10, hw11, hw12,
     hw18, hw19, hw25, hw31, hw37, hw43,
     hneg

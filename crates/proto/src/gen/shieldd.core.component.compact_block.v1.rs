@@ -51,6 +51,10 @@ pub struct CompactBlock {
     pub compliance_user_registrations: ::prost::alloc::vec::Vec<
         super::super::compliance::v1::EventUserRegistered,
     >,
+    #[prost(message, repeated, tag = "18")]
+    pub compliance_user_status_changes: ::prost::alloc::vec::Vec<
+        super::super::compliance::v1::EventUserAssetStatusChanged,
+    >,
     /// Asset registrations in this block (for client sync).
     #[prost(message, repeated, tag = "15")]
     pub compliance_asset_registrations: ::prost::alloc::vec::Vec<

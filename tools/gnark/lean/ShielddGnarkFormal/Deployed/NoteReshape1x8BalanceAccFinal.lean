@@ -1,4 +1,4 @@
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.Seg72
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.Seg76
 
 /-! Opaque final-state projections for the 1x8 conservation ladder. -/
 

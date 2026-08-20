@@ -29,11 +29,11 @@ theorem senderTransmissionFq_eq_compressOutput
           (Seg8.localRho rho) 572 := by
   have hplus :
       Seg8.wireSeating 707 =
-        6670 := by
+        6671 := by
     decide +kernel
   have hminus :
       Seg8.wireSeating 367 =
-        6330 := by
+        6331 := by
     decide +kernel
   have hneg :
       (8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF) = -1 := by

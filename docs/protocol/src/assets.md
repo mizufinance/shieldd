@@ -1,8 +1,8 @@
 # Assets and Values
 
-Shieldd can record arbitrary assets.  These assets either originate on Shieldd
-itself, or, more commonly, originate on other IBC-connected chains.  To record
-arbitrary assets and enforce value balance between them, we draw on
+Shieldd can record arbitrary assets registered by Bankd. Shieldd does not own
+asset issuance or bridging. To record arbitrary assets and enforce value
+balance between them, we draw on
 [ideas][multi_asset] originally proposed for Zcash and adapt them to the Cosmos
 context.
 
@@ -14,9 +14,9 @@ To be precise, we define:
 - an *asset ID* to be an $\mathbb F_q$ element;
 - a *value* to be a typed quantity, i.e., an amount and an asset ID.
 
-All asset IDs are currently computed as the hash of a *denomination*, an
-[ADR001]-style denomination trace uniquely identifying a cross-chain asset and
-its provenance, such as:
+All asset IDs are currently computed as the hash of the canonical
+*denomination* supplied by Bankd. Bankd may use an [ADR001]-style trace for an
+asset it sourced through IBC, such as:
 - `denom` (native chain A asset)
 - `transfer/channelToA/denom` (chain B representation of chain A asset)
 - `transfer/channelToB/transfer/channelToA/denom` (chain C representation of chain B representation of chain A asset)
