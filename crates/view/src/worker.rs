@@ -6,6 +6,7 @@ use std::{
 
 use anyhow::Context;
 use shieldd_sdk_compact_block::CompactBlock;
+use shieldd_sdk_compliance::EventUserAssetStatusChanged;
 use shieldd_sdk_keys::FullViewingKey;
 use shieldd_sdk_proto::core::{
     app::v1::{
@@ -38,6 +39,49 @@ use crate::{
 
 // Large local benchmark genesis states can emit compact blocks well above the historic 12MB cap.
 const MAX_CB_SIZE_BYTES: usize = 64 * 1024 * 1024;
+
+fn apply_user_status_change(
+    tree: &mut ComplianceUserTree,
+    event: &EventUserAssetStatusChanged,
+) -> anyhow::Result<()> {
+    event.validate()?;
+    let mut previous_leaf = event.leaf.clone();
+    previous_leaf.status = event.previous_status;
+    let local_commitment = tree.commitment(event.position).with_context(|| {
+        format!(
+            "missing user leaf at status-change position {}",
+            event.position
+        )
+    })?;
+    anyhow::ensure!(
+        local_commitment == previous_leaf.commit(),
+        "user status change at position {} does not replace the locally authenticated previous leaf",
+        event.position
+    );
+    tree.update(event.position, event.commitment)
+}
+
+fn validate_compliance_anchors(
+    block: &CompactBlock,
+    user_tree: &ComplianceUserTree,
+    asset_tree: &ComplianceAssetTree,
+) -> anyhow::Result<()> {
+    let user_anchor = block
+        .compliance_user_anchor
+        .context("compact block is missing its compliance user anchor")?;
+    let asset_anchor = block
+        .compliance_asset_anchor
+        .context("compact block is missing its compliance asset anchor")?;
+    anyhow::ensure!(
+        user_tree.root() == user_anchor,
+        "projected compliance user root does not match compact-block anchor"
+    );
+    anyhow::ensure!(
+        asset_tree.root() == asset_anchor,
+        "projected compliance asset root does not match compact-block anchor"
+    );
+    Ok(())
+}
 
 pub struct Worker {
     storage: Storage,
@@ -135,28 +179,24 @@ impl Worker {
     /// 3. All asset registrations into the asset tree
     /// 4. Compliance anchors for the block
     async fn process_compliance_block(&self, block: &CompactBlock) -> anyhow::Result<()> {
-        // Early return if no compliance registration events in this block.
-        if block.compliance_user_registrations.is_empty()
-            && block.compliance_user_status_changes.is_empty()
-            && block.compliance_asset_registrations.is_empty()
-        {
-            return Ok(());
-        }
-
         let height = block.height;
 
         // Lock both compliance trees (asset_tree first to ensure consistent lock ordering)
         let mut asset_tree = self.compliance_asset_tree.write().await;
         let mut user_tree = self.compliance_user_tree.write().await;
 
-        // Track starting positions for persistence
-        let user_start_position = user_tree.position();
-        let asset_start_position = asset_tree.leaf_count();
+        let mut next_user_tree = user_tree.clone();
+        let mut next_asset_tree = asset_tree.clone();
+        let user_start_position = next_user_tree.position();
+        let asset_start_position = next_asset_tree.leaf_count();
+        let mut leaf_updates = Vec::new();
+        let mut asset_policy_updates = Vec::new();
 
         // Process user registrations
         for event in &block.compliance_user_registrations {
+            event.validate()?;
             // Insert commitment into user tree (for path computation)
-            let position = user_tree.insert(event.commitment)?;
+            let position = next_user_tree.insert(event.commitment)?;
             anyhow::ensure!(
                 position == event.position,
                 "user registration position mismatch: local {position}, event {}",
@@ -171,23 +211,27 @@ impl Worker {
 
             // If in scope, store leaf data for offline proof generation
             if is_in_scope {
-                self.storage
-                    .record_compliance_leaf_data(&event.leaf, position, event.commitment)
-                    .await?;
+                leaf_updates.push(crate::storage::ComplianceLeafUpdate {
+                    leaf: event.leaf.clone(),
+                    position,
+                    commitment: event.commitment,
+                });
             }
         }
 
         for event in &block.compliance_user_status_changes {
-            user_tree.update(event.position, event.commitment)?;
+            apply_user_status_change(&mut next_user_tree, event)?;
 
             let is_in_scope = self
                 .storage
                 .is_address_in_compliance_scope(&self.fvk, &event.leaf.address)
                 .await?;
             if is_in_scope {
-                self.storage
-                    .record_compliance_leaf_data(&event.leaf, event.position, event.commitment)
-                    .await?;
+                leaf_updates.push(crate::storage::ComplianceLeafUpdate {
+                    leaf: event.leaf.clone(),
+                    position: event.position,
+                    commitment: event.commitment,
+                });
             }
         }
 
@@ -206,7 +250,7 @@ impl Worker {
 
             // Use sync_from_event to preserve policy data (dk_pub, threshold)
             // This is critical for correct leaf commitments in proofs
-            asset_tree.sync_from_event(
+            next_asset_tree.sync_from_event(
                 event.indexed_leaf.clone(),
                 event.position,
                 event.updated_low_leaf.clone(),
@@ -215,16 +259,19 @@ impl Worker {
 
             // Also store the asset policy in SQLite for direct lookups
             if event.is_regulated {
-                self.storage
-                    .store_asset_policy(&event.asset_id, &event.asset_policy)
-                    .await?;
+                asset_policy_updates.push(crate::storage::ComplianceAssetPolicyUpdate {
+                    asset_id: event.asset_id,
+                    policy: event.asset_policy.clone(),
+                });
             }
         }
 
+        validate_compliance_anchors(block, &next_user_tree, &next_asset_tree)?;
+
         // Debug: log tree state after sync
-        let asset_root_after = asset_tree.root();
+        let asset_root_after = next_asset_tree.root();
         tracing::debug!(
-            asset_leaf_count = asset_tree.leaf_count(),
+            asset_leaf_count = next_asset_tree.leaf_count(),
             asset_root = ?asset_root_after.0.to_bytes(),
             asset_start_position,
             "worker: asset tree state after sync"
@@ -234,12 +281,19 @@ impl Worker {
         self.storage
             .record_compliance_block(
                 height,
-                &mut user_tree,
-                &mut asset_tree,
+                &next_user_tree,
+                &next_asset_tree,
                 user_start_position,
                 asset_start_position,
+                leaf_updates,
+                asset_policy_updates,
             )
             .await?;
+
+        next_asset_tree.clear_dirty_positions();
+        next_user_tree.clear_dirty_positions();
+        *asset_tree = next_asset_tree;
+        *user_tree = next_user_tree;
 
         tracing::debug!(
             height,
@@ -642,5 +696,61 @@ async fn sct_divergence_check(
         // Print the error immediately, so that it's visible in the logs.
         tracing::error!(?e);
         Err(e)
+    }
+}
+
+#[cfg(test)]
+mod compliance_projection_tests {
+    use super::*;
+    use shieldd_sdk_asset::asset;
+    use shieldd_sdk_compliance::{ComplianceLeaf, UserAssetStatus};
+
+    fn status_event(
+        leaf: &ComplianceLeaf,
+        previous_status: UserAssetStatus,
+        position: u64,
+    ) -> EventUserAssetStatusChanged {
+        EventUserAssetStatusChanged {
+            position,
+            commitment: leaf.commit(),
+            leaf: leaf.clone(),
+            previous_status,
+        }
+    }
+
+    #[test]
+    fn status_projection_authenticates_the_previous_leaf_and_event_order() {
+        let mut rng = rand::thread_rng();
+        let mut active = ComplianceLeaf::new(
+            shieldd_sdk_keys::Address::dummy(&mut rng),
+            asset::Id(decaf377::Fq::from(7u64)),
+            decaf377::Fq::from(11u64),
+        );
+        let mut tree = ComplianceUserTree::new();
+        let position = tree.insert(active.commit()).unwrap();
+        active.status = UserAssetStatus::Frozen;
+        let freeze = status_event(&active, UserAssetStatus::Active, position);
+
+        apply_user_status_change(&mut tree, &freeze).expect("ordered freeze must project");
+        assert_eq!(tree.commitment(position), Some(freeze.commitment));
+        apply_user_status_change(&mut tree, &freeze)
+            .expect_err("replayed or reordered status event must not project");
+    }
+
+    #[test]
+    fn empty_compliance_delta_still_requires_exact_block_anchors() {
+        let user_tree = ComplianceUserTree::new();
+        let asset_tree = ComplianceAssetTree::new();
+        let mut block = CompactBlock {
+            compliance_user_anchor: Some(user_tree.root()),
+            compliance_asset_anchor: Some(asset_tree.root()),
+            ..Default::default()
+        };
+        validate_compliance_anchors(&block, &user_tree, &asset_tree)
+            .expect("matching empty-tree anchors must validate");
+
+        block.compliance_user_anchor = None;
+        validate_compliance_anchors(&block, &user_tree, &asset_tree)
+            .expect_err("an event-free block must not bypass anchor validation");
     }
 }

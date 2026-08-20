@@ -16,20 +16,20 @@ mod typed;
 
 pub use artifacts::GnarkArtifactMetadata;
 pub use note_reshape::{
-    decode_note_reshape_witness_v5, encode_note_reshape_witness_v5,
+    decode_note_reshape_witness_v6, encode_note_reshape_witness_v6,
     translate_note_reshape_proof_result, GnarkNoteReshapeClient,
 };
-pub use note_reshape_witness::NoteReshapeWitnessV5;
+pub use note_reshape_witness::NoteReshapeWitnessV6;
 pub use shielded_ics20_withdrawal::{
-    decode_shielded_ics20_withdrawal_witness_v10, encode_shielded_ics20_withdrawal_witness_v10,
+    decode_shielded_ics20_withdrawal_witness_v11, encode_shielded_ics20_withdrawal_witness_v11,
     translate_shielded_ics20_withdrawal_proof_result, GnarkShieldedIcs20WithdrawalClient,
 };
-pub use shielded_ics20_withdrawal_witness::ShieldedIcs20WithdrawalWitnessV10;
+pub use shielded_ics20_withdrawal_witness::ShieldedIcs20WithdrawalWitnessV11;
 pub use transfer::{
-    decode_transfer_witness_v18, encode_transfer_witness_v18, translate_transfer_proof_result,
+    decode_transfer_witness_v19, encode_transfer_witness_v19, translate_transfer_proof_result,
     GnarkTransferClient,
 };
-pub use transfer_witness::TransferWitnessV18;
+pub use transfer_witness::TransferWitnessV19;
 #[cfg(test)]
 pub(crate) use typed::point_affine_compress_to_field_bytes;
 pub use typed::{ComplianceLeafBinary, IndexedLeafBinary, MerklePathBinary, PointAffineBytes};
@@ -148,8 +148,8 @@ mod soundness_fixture_tests {
 
     use crate::{
         gnark::{
-            encode_note_reshape_witness_v5, encode_shielded_ics20_withdrawal_witness_v10,
-            encode_transfer_witness_v18,
+            encode_note_reshape_witness_v6, encode_shielded_ics20_withdrawal_witness_v11,
+            encode_transfer_witness_v19,
         },
         test_proof_helpers::proof_test_helpers,
         NoteReshapeFamilyId, ShieldedIcs20WithdrawalFamilyId,
@@ -175,8 +175,8 @@ mod soundness_fixture_tests {
         let (public, private) =
             proof_test_helpers::build_transfer_roundtrip_inputs_with_rng(&mut rng, true);
         write_fixture(
-            "transfer_witness_v18.bin",
-            encode_transfer_witness_v18(&public, &private).expect("encode transfer witness"),
+            "transfer_witness_v19.bin",
+            encode_transfer_witness_v19(&public, &private).expect("encode transfer witness"),
         );
     }
 
@@ -195,8 +195,8 @@ mod soundness_fixture_tests {
                 false,
             );
         write_fixture(
-            "transfer_unregulated_witness_v18.bin",
-            encode_transfer_witness_v18(&public, &private)
+            "transfer_unregulated_witness_v19.bin",
+            encode_transfer_witness_v19(&public, &private)
                 .expect("encode unregulated transfer witness"),
         );
     }
@@ -208,8 +208,8 @@ mod soundness_fixture_tests {
                 &mut rng,
             );
         write_fixture(
-            "transfer_flagged_witness_v18.bin",
-            encode_transfer_witness_v18(&public, &private)
+            "transfer_flagged_witness_v19.bin",
+            encode_transfer_witness_v19(&public, &private)
                 .expect("encode flagged transfer witness"),
         );
     }
@@ -223,8 +223,8 @@ mod soundness_fixture_tests {
                 true,
             );
         write_fixture(
-            "shielded_ics20_withdrawal_witness_v10.bin",
-            encode_shielded_ics20_withdrawal_witness_v10(&public, &private)
+            "shielded_ics20_withdrawal_witness_v11.bin",
+            encode_shielded_ics20_withdrawal_witness_v11(&public, &private)
                 .expect("encode shielded ICS-20 withdrawal witness"),
         );
     }
@@ -239,8 +239,8 @@ mod soundness_fixture_tests {
                 1,
             );
         write_fixture(
-            "shielded_ics20_withdrawal_unregulated_witness_v10.bin",
-            encode_shielded_ics20_withdrawal_witness_v10(&public, &private)
+            "shielded_ics20_withdrawal_unregulated_witness_v11.bin",
+            encode_shielded_ics20_withdrawal_witness_v11(&public, &private)
                 .expect("encode unregulated optional-dummy withdrawal witness"),
         );
     }
@@ -283,15 +283,15 @@ mod soundness_fixture_tests {
                 NoteReshapeFamilyId::OneByEight,
             );
         write_fixture(
-            "note_reshape1x8_witness_v5.bin",
-            encode_note_reshape_witness_v5(&one_to_many_public, &one_to_many_private)
+            "note_reshape1x8_witness_v6.bin",
+            encode_note_reshape_witness_v6(&one_to_many_public, &one_to_many_private)
                 .expect("encode note reshape witness"),
         );
 
         for (family_id, seed, filename) in [(
             NoteReshapeFamilyId::EightByOne,
             0x0000_0043_3858_3101,
-            "note_reshape8x1_witness_v5.bin",
+            "note_reshape8x1_witness_v6.bin",
         )] {
             let mut rng = rand::rngs::StdRng::seed_from_u64(seed);
             let (public, private) =
@@ -300,7 +300,7 @@ mod soundness_fixture_tests {
                 );
             write_fixture(
                 filename,
-                encode_note_reshape_witness_v5(&public, &private)
+                encode_note_reshape_witness_v6(&public, &private)
                     .expect("encode note reshape witness"),
             );
         }

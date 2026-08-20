@@ -35,8 +35,15 @@ The typed host API currently admits:
 
 Status is committed in the existing user leaf. It is scoped to one address and
 one asset; no global blacklist or independent asset-pause switch exists.
-`Seized` is a reserved terminal state for the future Bankd-owned seizure flow.
+The current schema has only `Active` and `Frozen`; a terminal seizure state will
+be added only with the Bankd authorization and balance-certificate contract.
 
 All regulated proofs require the exact current user root and current asset root.
-Consequently, a proof created before a status change cannot spend through a
-historical-root acceptance window.
+Native action admission applies that exact-root requirement to every shielded
+action, including unregulated assets. Consequently, any user registration,
+status change, or asset-policy registration invalidates all pending shielded
+proofs, even for unrelated address/asset pairs. This is an explicit freshness
+tradeoff: authorization remains per asset, but proof construction is globally
+coupled so a freeze takes effect immediately. Avoiding that coupling would
+require a future asset-scoped root or version design with equivalent immediate
+revocation semantics.

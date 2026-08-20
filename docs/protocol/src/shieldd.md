@@ -16,8 +16,8 @@ roots. A status change therefore invalidates proofs created against the prior
 user root.
 
 Current compliance transitions are per `(address, asset_id)` freeze and
-unfreeze. The terminal `Seized` state is reserved for a future Bankd-authorized
-balance-certificate workflow and cannot currently be entered.
+unfreeze. The current schema has no seizure state; a terminal transition is
+planned only with a future Bankd-authorized balance-certificate workflow.
 
 This book describes cryptographic and state-machine internals. Standalone-chain
 and IBC pages document legacy modules, not the target deployment architecture.

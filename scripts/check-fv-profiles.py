@@ -45,7 +45,7 @@ PROFILE_ABI = {
         (
             (
                 "note_reshape8x1",
-                "internal/testfixtures/vectors/note_reshape8x1_witness_v5.bin",
+                "internal/testfixtures/vectors/note_reshape8x1_witness_v6.bin",
             ),
         ),
     ),
@@ -54,7 +54,7 @@ PROFILE_ABI = {
         (
             (
                 "note_reshape1x8",
-                "internal/testfixtures/vectors/note_reshape1x8_witness_v5.bin",
+                "internal/testfixtures/vectors/note_reshape1x8_witness_v6.bin",
             ),
         ),
     ),
@@ -63,15 +63,15 @@ PROFILE_ABI = {
         (
             (
                 "regulated_unflagged",
-                "internal/testfixtures/vectors/transfer_witness_v18.bin",
+                "internal/testfixtures/vectors/transfer_witness_v19.bin",
             ),
             (
                 "regulated_flagged_hidden",
-                "internal/testfixtures/vectors/transfer_flagged_witness_v18.bin",
+                "internal/testfixtures/vectors/transfer_flagged_witness_v19.bin",
             ),
             (
                 "unregulated_hidden",
-                "internal/testfixtures/vectors/transfer_unregulated_witness_v18.bin",
+                "internal/testfixtures/vectors/transfer_unregulated_witness_v19.bin",
             ),
         ),
     ),
@@ -81,12 +81,12 @@ PROFILE_ABI = {
             (
                 "regulated_optional_real",
                 "internal/testfixtures/vectors/"
-                "shielded_ics20_withdrawal_witness_v10.bin",
+                "shielded_ics20_withdrawal_witness_v11.bin",
             ),
             (
                 "unregulated_optional_dummy",
                 "internal/testfixtures/vectors/"
-                "shielded_ics20_withdrawal_unregulated_witness_v10.bin",
+                "shielded_ics20_withdrawal_unregulated_witness_v11.bin",
             ),
         ),
     ),

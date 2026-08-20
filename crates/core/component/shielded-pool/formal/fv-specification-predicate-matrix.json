@@ -2562,6 +2562,8 @@
           "PROPERTY-ASSET-TREE-BASICS",
           "PROPERTY-ASSET-TREE-PERSIST-WRITES-ONLY-DIRTY-POSITIONS-AND-RELOADS-ROOT",
           "PROPERTY-ASSET-TREE-SYNC-PRESERVES-POLICY",
+          "PROPERTY-COMPLIANCE-BLOCK-FAILURE-ROLLS-BACK-LEAF-TREE-AND-ANCHOR-WRITES",
+          "PROPERTY-EMPTY-COMPLIANCE-DELTA-STILL-REQUIRES-EXACT-BLOCK-ANCHORS",
           "PROPERTY-ENSURE-ASSETS-NOT-REGULATED-ALL-UNREGULATED",
           "PROPERTY-ENSURE-ASSETS-NOT-REGULATED-BATCH-WITH-ONE-REGULATED",
           "PROPERTY-ENSURE-NOT-REGULATED-REJECTS-REGULATED",
@@ -2572,6 +2574,7 @@
           "PROPERTY-MERKLE-PATH-DEFAULT-IS-FIXED-WIDTH-AND-CANONICAL",
           "PROPERTY-MERKLE-PATH-PROTO-REJECTS-NONCANONICAL-SHAPE-AND-FIELDS",
           "PROPERTY-SPARSE-RECONSTRUCTION-AND-DESERIALIZATION-REJECT-CORRUPTION",
+          "PROPERTY-STATUS-PROJECTION-AUTHENTICATES-THE-PREVIOUS-LEAF-AND-EVENT-ORDER",
           "PROPERTY-TEST-ASSET-POLICY-BYTES-ROUNDTRIP",
           "PROPERTY-TEST-ASSET-POLICY-FROM-BYTES-REJECTS-MISSING-STORAGE-FIELDS",
           "PROPERTY-TEST-ASSET-POLICY-PROTO-REJECTS-MISSING-REQUIRED-FIELDS",
@@ -2643,6 +2646,8 @@
           "PROPERTY-TEST-VERIFY-AUTH-PATH",
           "PROPERTY-TEST-ZERO-HASHES-PRECOMPUTED",
           "PROPERTY-USER-LEAF-RECORD-IS-COMPACT-AND-AUTHENTICATED",
+          "PROPERTY-USER-REGISTRATION-REJECTS-MISMATCHED-COMMITMENT",
+          "PROPERTY-USER-STATUS-EVENT-REQUIRES-LEGAL-BOUND-TRANSITION",
           "PROPERTY-USER-TREE-INSERT-AND-WITNESS",
           "PROPERTY-WELL-FORMEDNESS-REJECTS-COUNT-AND-POSITION-CORRUPTION",
           "PROPERTY-WELL-FORMEDNESS-REJECTS-DEPTH-AND-CAPACITY-CORRUPTION",
@@ -2684,10 +2689,10 @@
           "PROPERTY-ENCODE-MERKLE-PATH-REQUIRES-EXACT-DEPTH",
           "PROPERTY-ENCODE-TRIPLE-PATH-32-REJECTS-NON-EXACT-LENGTH",
           "PROPERTY-ENCODE-VEC-32-REJECTS-OVERSIZED-LENGTH",
-          "PROPERTY-NOTE-RESHAPE-WITNESS-V5-REJECTS-BAD-LENGTH",
-          "PROPERTY-NOTE-RESHAPE-WITNESS-V5-REJECTS-BAD-MAGIC",
-          "PROPERTY-NOTE-RESHAPE-WITNESS-V5-REJECTS-BAD-VERSION",
-          "PROPERTY-NOTE-RESHAPE-WITNESS-V5-ROUNDTRIP",
+          "PROPERTY-NOTE-RESHAPE-WITNESS-V6-REJECTS-BAD-LENGTH",
+          "PROPERTY-NOTE-RESHAPE-WITNESS-V6-REJECTS-BAD-MAGIC",
+          "PROPERTY-NOTE-RESHAPE-WITNESS-V6-REJECTS-BAD-VERSION",
+          "PROPERTY-NOTE-RESHAPE-WITNESS-V6-ROUNDTRIP",
           "PROPERTY-PROOF-COORDINATE-PARSER-REJECTS-BASE-FIELD-MODULUS",
           "PROPERTY-READ-BOOL-ACCEPTS-ONLY-CANONICAL-BYTES",
           "PROPERTY-READ-FIXED-32-REJECTS-FQ-MODULUS-ALIASES",
@@ -2697,14 +2702,14 @@
           "PROPERTY-READ-TRIPLE-PATH-32-REJECTS-NON-EXACT-LENGTH-BEFORE-ALLOCATION",
           "PROPERTY-READ-U128-FIELD-REJECTS-HIGH-BITS",
           "PROPERTY-READ-VEC-32-REJECTS-OVERSIZED-LENGTH-BEFORE-ALLOCATION",
-          "PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V10-REJECTS-LEGACY-VERSION",
-          "PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V10-REJECTS-NON-BLINDING-BALANCE-COMMITMENT",
-          "PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V10-REJECTS-NON-CANONICAL-BOOLEAN-FLAGS",
-          "PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V10-REJECTS-UNBALANCED-AMOUNTS",
-          "PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V10-ROUNDTRIP",
+          "PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V11-REJECTS-LEGACY-VERSION",
+          "PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V11-REJECTS-NON-BLINDING-BALANCE-COMMITMENT",
+          "PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V11-REJECTS-NON-CANONICAL-BOOLEAN-FLAGS",
+          "PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V11-REJECTS-UNBALANCED-AMOUNTS",
+          "PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V11-ROUNDTRIP",
           "PROPERTY-TEST-ASSIGNMENT-PATH-CONVERSION-REQUIRES-EXACT-DEPTH",
-          "PROPERTY-TEST-NOTE-RESHAPE-V5-REJECTS-LEGACY-VERSION",
-          "PROPERTY-TEST-NOTE-RESHAPE-V5-REJECTS-SPLIT-ADDRESS-REPRESENTATION-PAYLOAD",
+          "PROPERTY-TEST-NOTE-RESHAPE-V6-REJECTS-LEGACY-VERSION",
+          "PROPERTY-TEST-NOTE-RESHAPE-V6-REJECTS-SPLIT-ADDRESS-REPRESENTATION-PAYLOAD",
           "PROPERTY-TEST-NOTE-RESHAPE-WITNESS-PADDING-ABI",
           "PROPERTY-TEST-READ-BOOL-ACCEPTS-ONLY-CANONICAL-BYTES",
           "PROPERTY-TEST-READ-FR32-REJECTS-SCALAR-MODULUS-ALIASES",
@@ -2712,25 +2717,25 @@
           "PROPERTY-TEST-READ-TRIPLE-PATH-REQUIRES-EXACT-DEPTH",
           "PROPERTY-TEST-READ-U128-FIELD-REJECTS-HIGH-BITS",
           "PROPERTY-TEST-READ32-REJECTS-FQ-MODULUS-ALIASES",
-          "PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V10-ASSIGNMENT-REJECTS-CLAIMED-HASH-MISMATCH",
-          "PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V10-FIXTURE-BRANCH-MATRIX",
-          "PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V10-REJECTS-LEGACY-VERSION",
-          "PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V10-REJECTS-NON-CANONICAL-BALANCE-BLINDING",
-          "PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V10-REJECTS-NON-CANONICAL-BOOLEAN-FLAGS",
-          "PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V10-REJECTS-OVERSIZED-EFFECT-HASH-LIMB",
+          "PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V11-ASSIGNMENT-REJECTS-CLAIMED-HASH-MISMATCH",
+          "PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V11-FIXTURE-BRANCH-MATRIX",
+          "PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V11-REJECTS-LEGACY-VERSION",
+          "PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V11-REJECTS-NON-CANONICAL-BALANCE-BLINDING",
+          "PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V11-REJECTS-NON-CANONICAL-BOOLEAN-FLAGS",
+          "PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V11-REJECTS-OVERSIZED-EFFECT-HASH-LIMB",
           "PROPERTY-TEST-TRANSFER-COMPLIANCE-METADATA-REJECTS-FQ-MODULUS-SALT",
-          "PROPERTY-TEST-TRANSFER-V18-ASSIGNMENT-REJECTS-CLAIMED-HASH-MISMATCH",
-          "PROPERTY-TEST-TRANSFER-V18-ASSIGNMENT-REJECTS-SERIALIZED-SEMANTIC-MUTATION",
-          "PROPERTY-TEST-TRANSFER-V18-REJECTS-LEGACY-VERSION",
+          "PROPERTY-TEST-TRANSFER-V19-ASSIGNMENT-REJECTS-CLAIMED-HASH-MISMATCH",
+          "PROPERTY-TEST-TRANSFER-V19-ASSIGNMENT-REJECTS-SERIALIZED-SEMANTIC-MUTATION",
+          "PROPERTY-TEST-TRANSFER-V19-REJECTS-LEGACY-VERSION",
           "PROPERTY-TEST-WITNESS-FAMILIES-DECODE",
           "PROPERTY-TEST-WITNESS-FAMILIES-REJECT-BAD-HEADER",
           "PROPERTY-TEST-WITNESS-FAMILIES-REJECT-TRUNCATED-PAYLOAD",
           "PROPERTY-TEST-WITNESS-FORMAT-VERSION-READS-BOUND-PAYLOAD-HEADER",
           "PROPERTY-TEST-WITNESS-FORMAT-VERSION-REJECTS-SHORT-PAYLOAD",
           "PROPERTY-TRANSACTION-BLINDING-NONCE-IS-REQUIRED-AND-CANONICAL",
-          "PROPERTY-TRANSFER-HIDDEN-ARITY-WITNESS-V18-ROUNDTRIP",
-          "PROPERTY-TRANSFER-WITNESS-V18-REJECTS-LEGACY-V15-LAYOUT",
-          "PROPERTY-TRANSFER-WITNESS-V18-ROUNDTRIP"
+          "PROPERTY-TRANSFER-HIDDEN-ARITY-WITNESS-V19-ROUNDTRIP",
+          "PROPERTY-TRANSFER-WITNESS-V19-REJECTS-LEGACY-V15-LAYOUT",
+          "PROPERTY-TRANSFER-WITNESS-V19-ROUNDTRIP"
         ]
       },
       {
@@ -2755,6 +2760,7 @@
       "crates/core/component/compliance/src/component/rpc.rs",
       "crates/core/component/compliance/src/component/state.rs",
       "crates/core/component/compliance/src/crypto.rs",
+      "crates/core/component/compliance/src/event.rs",
       "crates/core/component/compliance/src/ibc.rs",
       "crates/core/component/compliance/src/indexed_tree.rs",
       "crates/core/component/compliance/src/issuer_keys.rs",
@@ -2802,6 +2808,7 @@
       "crates/view/src/compliance_tree.rs",
       "crates/view/src/note_manager.rs",
       "crates/view/src/storage.rs",
+      "crates/view/src/worker.rs",
       "tools/gnark/cmd/gnarkctl/main_test.go",
       "tools/gnark/internal/abi/binary_shared_test.go",
       "tools/gnark/internal/abi/statement_fields_test.go",
@@ -3097,6 +3104,22 @@
         }
       },
       {
+        "id": "PROPERTY-COMPLIANCE-BLOCK-FAILURE-ROLLS-BACK-LEAF-TREE-AND-ANCHOR-WRITES",
+        "kind": "negative",
+        "path": "crates/view/src/storage.rs",
+        "symbol": "compliance_block_failure_rolls_back_leaf_tree_and_anchor_writes",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-view",
+          "cargo_target": "lib",
+          "selector": "compliance_block_failure_rolls_back_leaf_tree_and_anchor_writes",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
         "id": "PROPERTY-COMPLIANCE-ENRICHMENT-PRESERVES-SENDER-DIVERSIFIER-ON-SUPPORTED-TRANSFER",
         "kind": "integration",
         "path": "crates/core/app-tests/tests/compliance_diversifier_fix.rs",
@@ -3187,6 +3210,22 @@
           "package": "shieldd-sdk-transaction",
           "cargo_target": "generate_transaction_signing_test_vectors",
           "selector": "effect_hash_test_vectors",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "PROPERTY-EMPTY-COMPLIANCE-DELTA-STILL-REQUIRES-EXACT-BLOCK-ANCHORS",
+        "kind": "negative",
+        "path": "crates/view/src/worker.rs",
+        "symbol": "empty_compliance_delta_still_requires_exact_block_anchors",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-view",
+          "cargo_target": "lib",
+          "selector": "empty_compliance_delta_still_requires_exact_block_anchors",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -3865,64 +3904,64 @@
         }
       },
       {
-        "id": "PROPERTY-NOTE-RESHAPE-WITNESS-V5-REJECTS-BAD-LENGTH",
+        "id": "PROPERTY-NOTE-RESHAPE-WITNESS-V6-REJECTS-BAD-LENGTH",
         "kind": "boundary_negative",
         "path": "crates/core/component/shielded-pool/src/gnark/note_reshape.rs",
-        "symbol": "note_reshape_witness_v5_rejects_bad_length",
+        "symbol": "note_reshape_witness_v6_rejects_bad_length",
         "execution": {
           "runner": "cargo_test",
           "working_directory": ".",
           "package": "shieldd-sdk-shielded-pool",
           "cargo_target": "lib",
-          "selector": "note_reshape_witness_v5_rejects_bad_length",
+          "selector": "note_reshape_witness_v6_rejects_bad_length",
           "build_profile": "default",
           "features": [],
           "prover_required": false
         }
       },
       {
-        "id": "PROPERTY-NOTE-RESHAPE-WITNESS-V5-REJECTS-BAD-MAGIC",
+        "id": "PROPERTY-NOTE-RESHAPE-WITNESS-V6-REJECTS-BAD-MAGIC",
         "kind": "negative",
         "path": "crates/core/component/shielded-pool/src/gnark/note_reshape.rs",
-        "symbol": "note_reshape_witness_v5_rejects_bad_magic",
+        "symbol": "note_reshape_witness_v6_rejects_bad_magic",
         "execution": {
           "runner": "cargo_test",
           "working_directory": ".",
           "package": "shieldd-sdk-shielded-pool",
           "cargo_target": "lib",
-          "selector": "note_reshape_witness_v5_rejects_bad_magic",
+          "selector": "note_reshape_witness_v6_rejects_bad_magic",
           "build_profile": "default",
           "features": [],
           "prover_required": false
         }
       },
       {
-        "id": "PROPERTY-NOTE-RESHAPE-WITNESS-V5-REJECTS-BAD-VERSION",
+        "id": "PROPERTY-NOTE-RESHAPE-WITNESS-V6-REJECTS-BAD-VERSION",
         "kind": "negative",
         "path": "crates/core/component/shielded-pool/src/gnark/note_reshape.rs",
-        "symbol": "note_reshape_witness_v5_rejects_bad_version",
+        "symbol": "note_reshape_witness_v6_rejects_bad_version",
         "execution": {
           "runner": "cargo_test",
           "working_directory": ".",
           "package": "shieldd-sdk-shielded-pool",
           "cargo_target": "lib",
-          "selector": "note_reshape_witness_v5_rejects_bad_version",
+          "selector": "note_reshape_witness_v6_rejects_bad_version",
           "build_profile": "default",
           "features": [],
           "prover_required": false
         }
       },
       {
-        "id": "PROPERTY-NOTE-RESHAPE-WITNESS-V5-ROUNDTRIP",
+        "id": "PROPERTY-NOTE-RESHAPE-WITNESS-V6-ROUNDTRIP",
         "kind": "parity",
         "path": "crates/core/component/shielded-pool/src/gnark/note_reshape.rs",
-        "symbol": "note_reshape_witness_v5_roundtrip",
+        "symbol": "note_reshape_witness_v6_roundtrip",
         "execution": {
           "runner": "cargo_test",
           "working_directory": ".",
           "package": "shieldd-sdk-shielded-pool",
           "cargo_target": "lib",
-          "selector": "note_reshape_witness_v5_roundtrip",
+          "selector": "note_reshape_witness_v6_roundtrip",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -4489,80 +4528,80 @@
         }
       },
       {
-        "id": "PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V10-REJECTS-LEGACY-VERSION",
+        "id": "PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V11-REJECTS-LEGACY-VERSION",
         "kind": "negative",
         "path": "crates/core/component/shielded-pool/src/gnark/shielded_ics20_withdrawal.rs",
-        "symbol": "shielded_ics20_withdrawal_witness_v10_rejects_legacy_version",
+        "symbol": "shielded_ics20_withdrawal_witness_v11_rejects_legacy_version",
         "execution": {
           "runner": "cargo_test",
           "working_directory": ".",
           "package": "shieldd-sdk-shielded-pool",
           "cargo_target": "lib",
-          "selector": "shielded_ics20_withdrawal_witness_v10_rejects_legacy_version",
+          "selector": "shielded_ics20_withdrawal_witness_v11_rejects_legacy_version",
           "build_profile": "default",
           "features": [],
           "prover_required": false
         }
       },
       {
-        "id": "PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V10-REJECTS-NON-BLINDING-BALANCE-COMMITMENT",
+        "id": "PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V11-REJECTS-NON-BLINDING-BALANCE-COMMITMENT",
         "kind": "negative",
         "path": "crates/core/component/shielded-pool/src/gnark/shielded_ics20_withdrawal.rs",
-        "symbol": "shielded_ics20_withdrawal_witness_v10_rejects_non_blinding_balance_commitment",
+        "symbol": "shielded_ics20_withdrawal_witness_v11_rejects_non_blinding_balance_commitment",
         "execution": {
           "runner": "cargo_test",
           "working_directory": ".",
           "package": "shieldd-sdk-shielded-pool",
           "cargo_target": "lib",
-          "selector": "shielded_ics20_withdrawal_witness_v10_rejects_non_blinding_balance_commitment",
+          "selector": "shielded_ics20_withdrawal_witness_v11_rejects_non_blinding_balance_commitment",
           "build_profile": "default",
           "features": [],
           "prover_required": false
         }
       },
       {
-        "id": "PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V10-REJECTS-NON-CANONICAL-BOOLEAN-FLAGS",
+        "id": "PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V11-REJECTS-NON-CANONICAL-BOOLEAN-FLAGS",
         "kind": "negative",
         "path": "crates/core/component/shielded-pool/src/gnark/shielded_ics20_withdrawal.rs",
-        "symbol": "shielded_ics20_withdrawal_witness_v10_rejects_non_canonical_boolean_flags",
+        "symbol": "shielded_ics20_withdrawal_witness_v11_rejects_non_canonical_boolean_flags",
         "execution": {
           "runner": "cargo_test",
           "working_directory": ".",
           "package": "shieldd-sdk-shielded-pool",
           "cargo_target": "lib",
-          "selector": "shielded_ics20_withdrawal_witness_v10_rejects_non_canonical_boolean_flags",
+          "selector": "shielded_ics20_withdrawal_witness_v11_rejects_non_canonical_boolean_flags",
           "build_profile": "default",
           "features": [],
           "prover_required": false
         }
       },
       {
-        "id": "PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V10-REJECTS-UNBALANCED-AMOUNTS",
+        "id": "PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V11-REJECTS-UNBALANCED-AMOUNTS",
         "kind": "negative",
         "path": "crates/core/component/shielded-pool/src/gnark/shielded_ics20_withdrawal.rs",
-        "symbol": "shielded_ics20_withdrawal_witness_v10_rejects_unbalanced_amounts",
+        "symbol": "shielded_ics20_withdrawal_witness_v11_rejects_unbalanced_amounts",
         "execution": {
           "runner": "cargo_test",
           "working_directory": ".",
           "package": "shieldd-sdk-shielded-pool",
           "cargo_target": "lib",
-          "selector": "shielded_ics20_withdrawal_witness_v10_rejects_unbalanced_amounts",
+          "selector": "shielded_ics20_withdrawal_witness_v11_rejects_unbalanced_amounts",
           "build_profile": "default",
           "features": [],
           "prover_required": false
         }
       },
       {
-        "id": "PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V10-ROUNDTRIP",
+        "id": "PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITNESS-V11-ROUNDTRIP",
         "kind": "parity",
         "path": "crates/core/component/shielded-pool/src/gnark/shielded_ics20_withdrawal.rs",
-        "symbol": "shielded_ics20_withdrawal_witness_v10_roundtrip",
+        "symbol": "shielded_ics20_withdrawal_witness_v11_roundtrip",
         "execution": {
           "runner": "cargo_test",
           "working_directory": ".",
           "package": "shieldd-sdk-shielded-pool",
           "cargo_target": "lib",
-          "selector": "shielded_ics20_withdrawal_witness_v10_roundtrip",
+          "selector": "shielded_ics20_withdrawal_witness_v11_roundtrip",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -4595,6 +4634,22 @@
           "package": "shieldd-sdk-app",
           "cargo_target": "lib",
           "selector": "standalone_execution_rejects_host_withdrawals",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "PROPERTY-STATUS-PROJECTION-AUTHENTICATES-THE-PREVIOUS-LEAF-AND-EVENT-ORDER",
+        "kind": "negative",
+        "path": "crates/view/src/worker.rs",
+        "symbol": "status_projection_authenticates_the_previous_leaf_and_event_order",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-view",
+          "cargo_target": "lib",
+          "selector": "status_projection_authenticates_the_previous_leaf_and_event_order",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -5897,32 +5952,32 @@
         }
       },
       {
-        "id": "PROPERTY-TEST-NOTE-RESHAPE-V5-REJECTS-LEGACY-VERSION",
+        "id": "PROPERTY-TEST-NOTE-RESHAPE-V6-REJECTS-LEGACY-VERSION",
         "kind": "negative",
         "path": "tools/gnark/internal/abi/witness_family_test.go",
-        "symbol": "TestNoteReshapeV5RejectsLegacyVersion",
+        "symbol": "TestNoteReshapeV6RejectsLegacyVersion",
         "execution": {
           "runner": "go_test",
           "working_directory": "tools/gnark",
           "package": "./internal/abi",
           "cargo_target": null,
-          "selector": "TestNoteReshapeV5RejectsLegacyVersion",
+          "selector": "TestNoteReshapeV6RejectsLegacyVersion",
           "build_profile": "default",
           "features": [],
           "prover_required": false
         }
       },
       {
-        "id": "PROPERTY-TEST-NOTE-RESHAPE-V5-REJECTS-SPLIT-ADDRESS-REPRESENTATION-PAYLOAD",
+        "id": "PROPERTY-TEST-NOTE-RESHAPE-V6-REJECTS-SPLIT-ADDRESS-REPRESENTATION-PAYLOAD",
         "kind": "negative",
         "path": "tools/gnark/internal/abi/witness_family_test.go",
-        "symbol": "TestNoteReshapeV5RejectsSplitAddressRepresentationPayload",
+        "symbol": "TestNoteReshapeV6RejectsSplitAddressRepresentationPayload",
         "execution": {
           "runner": "go_test",
           "working_directory": "tools/gnark",
           "package": "./internal/abi",
           "cargo_target": null,
-          "selector": "TestNoteReshapeV5RejectsSplitAddressRepresentationPayload",
+          "selector": "TestNoteReshapeV6RejectsSplitAddressRepresentationPayload",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -6169,96 +6224,96 @@
         }
       },
       {
-        "id": "PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V10-ASSIGNMENT-REJECTS-CLAIMED-HASH-MISMATCH",
+        "id": "PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V11-ASSIGNMENT-REJECTS-CLAIMED-HASH-MISMATCH",
         "kind": "negative",
         "path": "tools/gnark/internal/abi/witness_family_test.go",
-        "symbol": "TestShieldedIcs20WithdrawalV10AssignmentRejectsClaimedHashMismatch",
+        "symbol": "TestShieldedIcs20WithdrawalV11AssignmentRejectsClaimedHashMismatch",
         "execution": {
           "runner": "go_test",
           "working_directory": "tools/gnark",
           "package": "./internal/abi",
           "cargo_target": null,
-          "selector": "TestShieldedIcs20WithdrawalV10AssignmentRejectsClaimedHashMismatch",
+          "selector": "TestShieldedIcs20WithdrawalV11AssignmentRejectsClaimedHashMismatch",
           "build_profile": "default",
           "features": [],
           "prover_required": false
         }
       },
       {
-        "id": "PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V10-FIXTURE-BRANCH-MATRIX",
+        "id": "PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V11-FIXTURE-BRANCH-MATRIX",
         "kind": "invariant",
         "path": "tools/gnark/internal/abi/witness_family_test.go",
-        "symbol": "TestShieldedIcs20WithdrawalV10FixtureBranchMatrix",
+        "symbol": "TestShieldedIcs20WithdrawalV11FixtureBranchMatrix",
         "execution": {
           "runner": "go_test",
           "working_directory": "tools/gnark",
           "package": "./internal/abi",
           "cargo_target": null,
-          "selector": "TestShieldedIcs20WithdrawalV10FixtureBranchMatrix",
+          "selector": "TestShieldedIcs20WithdrawalV11FixtureBranchMatrix",
           "build_profile": "default",
           "features": [],
           "prover_required": false
         }
       },
       {
-        "id": "PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V10-REJECTS-LEGACY-VERSION",
+        "id": "PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V11-REJECTS-LEGACY-VERSION",
         "kind": "negative",
         "path": "tools/gnark/internal/abi/witness_family_test.go",
-        "symbol": "TestShieldedIcs20WithdrawalV10RejectsLegacyVersion",
+        "symbol": "TestShieldedIcs20WithdrawalV11RejectsLegacyVersion",
         "execution": {
           "runner": "go_test",
           "working_directory": "tools/gnark",
           "package": "./internal/abi",
           "cargo_target": null,
-          "selector": "TestShieldedIcs20WithdrawalV10RejectsLegacyVersion",
+          "selector": "TestShieldedIcs20WithdrawalV11RejectsLegacyVersion",
           "build_profile": "default",
           "features": [],
           "prover_required": false
         }
       },
       {
-        "id": "PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V10-REJECTS-NON-CANONICAL-BALANCE-BLINDING",
+        "id": "PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V11-REJECTS-NON-CANONICAL-BALANCE-BLINDING",
         "kind": "negative",
         "path": "tools/gnark/internal/abi/witness_family_test.go",
-        "symbol": "TestShieldedIcs20WithdrawalV10RejectsNonCanonicalBalanceBlinding",
+        "symbol": "TestShieldedIcs20WithdrawalV11RejectsNonCanonicalBalanceBlinding",
         "execution": {
           "runner": "go_test",
           "working_directory": "tools/gnark",
           "package": "./internal/abi",
           "cargo_target": null,
-          "selector": "TestShieldedIcs20WithdrawalV10RejectsNonCanonicalBalanceBlinding",
+          "selector": "TestShieldedIcs20WithdrawalV11RejectsNonCanonicalBalanceBlinding",
           "build_profile": "default",
           "features": [],
           "prover_required": false
         }
       },
       {
-        "id": "PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V10-REJECTS-NON-CANONICAL-BOOLEAN-FLAGS",
+        "id": "PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V11-REJECTS-NON-CANONICAL-BOOLEAN-FLAGS",
         "kind": "negative",
         "path": "tools/gnark/internal/abi/witness_family_test.go",
-        "symbol": "TestShieldedIcs20WithdrawalV10RejectsNonCanonicalBooleanFlags",
+        "symbol": "TestShieldedIcs20WithdrawalV11RejectsNonCanonicalBooleanFlags",
         "execution": {
           "runner": "go_test",
           "working_directory": "tools/gnark",
           "package": "./internal/abi",
           "cargo_target": null,
-          "selector": "TestShieldedIcs20WithdrawalV10RejectsNonCanonicalBooleanFlags",
+          "selector": "TestShieldedIcs20WithdrawalV11RejectsNonCanonicalBooleanFlags",
           "build_profile": "default",
           "features": [],
           "prover_required": false
         }
       },
       {
-        "id": "PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V10-REJECTS-OVERSIZED-EFFECT-HASH-LIMB",
+        "id": "PROPERTY-TEST-SHIELDED-ICS20-WITHDRAWAL-V11-REJECTS-OVERSIZED-EFFECT-HASH-LIMB",
         "kind": "boundary_negative",
         "path": "tools/gnark/internal/abi/witness_family_test.go",
-        "symbol": "TestShieldedIcs20WithdrawalV10RejectsOversizedEffectHashLimb",
+        "symbol": "TestShieldedIcs20WithdrawalV11RejectsOversizedEffectHashLimb",
         "execution": {
           "runner": "go_test",
           "working_directory": "tools/gnark",
           "package": "./internal/abi",
           "cargo_target": null,
-          "selector": "TestShieldedIcs20WithdrawalV10RejectsOversizedEffectHashLimb",
+          "selector": "TestShieldedIcs20WithdrawalV11RejectsOversizedEffectHashLimb",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -6377,48 +6432,48 @@
         }
       },
       {
-        "id": "PROPERTY-TEST-TRANSFER-V18-ASSIGNMENT-REJECTS-CLAIMED-HASH-MISMATCH",
+        "id": "PROPERTY-TEST-TRANSFER-V19-ASSIGNMENT-REJECTS-CLAIMED-HASH-MISMATCH",
         "kind": "negative",
         "path": "tools/gnark/internal/abi/witness_family_test.go",
-        "symbol": "TestTransferV18AssignmentRejectsClaimedHashMismatch",
+        "symbol": "TestTransferV19AssignmentRejectsClaimedHashMismatch",
         "execution": {
           "runner": "go_test",
           "working_directory": "tools/gnark",
           "package": "./internal/abi",
           "cargo_target": null,
-          "selector": "TestTransferV18AssignmentRejectsClaimedHashMismatch",
+          "selector": "TestTransferV19AssignmentRejectsClaimedHashMismatch",
           "build_profile": "default",
           "features": [],
           "prover_required": false
         }
       },
       {
-        "id": "PROPERTY-TEST-TRANSFER-V18-ASSIGNMENT-REJECTS-SERIALIZED-SEMANTIC-MUTATION",
+        "id": "PROPERTY-TEST-TRANSFER-V19-ASSIGNMENT-REJECTS-SERIALIZED-SEMANTIC-MUTATION",
         "kind": "negative",
         "path": "tools/gnark/internal/abi/witness_family_test.go",
-        "symbol": "TestTransferV18AssignmentRejectsSerializedSemanticMutation",
+        "symbol": "TestTransferV19AssignmentRejectsSerializedSemanticMutation",
         "execution": {
           "runner": "go_test",
           "working_directory": "tools/gnark",
           "package": "./internal/abi",
           "cargo_target": null,
-          "selector": "TestTransferV18AssignmentRejectsSerializedSemanticMutation",
+          "selector": "TestTransferV19AssignmentRejectsSerializedSemanticMutation",
           "build_profile": "default",
           "features": [],
           "prover_required": false
         }
       },
       {
-        "id": "PROPERTY-TEST-TRANSFER-V18-REJECTS-LEGACY-VERSION",
+        "id": "PROPERTY-TEST-TRANSFER-V19-REJECTS-LEGACY-VERSION",
         "kind": "negative",
         "path": "tools/gnark/internal/abi/witness_family_test.go",
-        "symbol": "TestTransferV18RejectsLegacyVersion",
+        "symbol": "TestTransferV19RejectsLegacyVersion",
         "execution": {
           "runner": "go_test",
           "working_directory": "tools/gnark",
           "package": "./internal/abi",
           "cargo_target": null,
-          "selector": "TestTransferV18RejectsLegacyVersion",
+          "selector": "TestTransferV19RejectsLegacyVersion",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -6649,16 +6704,16 @@
         }
       },
       {
-        "id": "PROPERTY-TRANSFER-HIDDEN-ARITY-WITNESS-V18-ROUNDTRIP",
+        "id": "PROPERTY-TRANSFER-HIDDEN-ARITY-WITNESS-V19-ROUNDTRIP",
         "kind": "parity",
         "path": "crates/core/component/shielded-pool/src/gnark/transfer.rs",
-        "symbol": "transfer_hidden_arity_witness_v18_roundtrip",
+        "symbol": "transfer_hidden_arity_witness_v19_roundtrip",
         "execution": {
           "runner": "cargo_test",
           "working_directory": ".",
           "package": "shieldd-sdk-shielded-pool",
           "cargo_target": "lib",
-          "selector": "transfer_hidden_arity_witness_v18_roundtrip",
+          "selector": "transfer_hidden_arity_witness_v19_roundtrip",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -6761,32 +6816,32 @@
         }
       },
       {
-        "id": "PROPERTY-TRANSFER-WITNESS-V18-REJECTS-LEGACY-V15-LAYOUT",
+        "id": "PROPERTY-TRANSFER-WITNESS-V19-REJECTS-LEGACY-V15-LAYOUT",
         "kind": "negative",
         "path": "crates/core/component/shielded-pool/src/gnark/transfer.rs",
-        "symbol": "transfer_witness_v18_rejects_legacy_v15_layout",
+        "symbol": "transfer_witness_v19_rejects_legacy_v15_layout",
         "execution": {
           "runner": "cargo_test",
           "working_directory": ".",
           "package": "shieldd-sdk-shielded-pool",
           "cargo_target": "lib",
-          "selector": "transfer_witness_v18_rejects_legacy_v15_layout",
+          "selector": "transfer_witness_v19_rejects_legacy_v15_layout",
           "build_profile": "default",
           "features": [],
           "prover_required": false
         }
       },
       {
-        "id": "PROPERTY-TRANSFER-WITNESS-V18-ROUNDTRIP",
+        "id": "PROPERTY-TRANSFER-WITNESS-V19-ROUNDTRIP",
         "kind": "parity",
         "path": "crates/core/component/shielded-pool/src/gnark/transfer.rs",
-        "symbol": "transfer_witness_v18_roundtrip",
+        "symbol": "transfer_witness_v19_roundtrip",
         "execution": {
           "runner": "cargo_test",
           "working_directory": ".",
           "package": "shieldd-sdk-shielded-pool",
           "cargo_target": "lib",
-          "selector": "transfer_witness_v18_roundtrip",
+          "selector": "transfer_witness_v19_roundtrip",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -6915,6 +6970,38 @@
           "package": "shieldd-sdk-compliance",
           "cargo_target": "lib",
           "selector": "user_leaf_record_is_compact_and_authenticated",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "PROPERTY-USER-REGISTRATION-REJECTS-MISMATCHED-COMMITMENT",
+        "kind": "negative",
+        "path": "crates/core/component/compliance/src/event.rs",
+        "symbol": "user_registration_rejects_mismatched_commitment",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-compliance",
+          "cargo_target": "lib",
+          "selector": "user_registration_rejects_mismatched_commitment",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "PROPERTY-USER-STATUS-EVENT-REQUIRES-LEGAL-BOUND-TRANSITION",
+        "kind": "negative",
+        "path": "crates/core/component/compliance/src/event.rs",
+        "symbol": "user_status_event_requires_legal_bound_transition",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-compliance",
+          "cargo_target": "lib",
+          "selector": "user_status_event_requires_legal_bound_transition",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -12426,6 +12513,7 @@
       "crates/core/component/compliance/src/component/state.rs",
       "crates/core/component/compliance/src/crypto.rs",
       "crates/core/component/compliance/src/decode_object.rs",
+      "crates/core/component/compliance/src/event.rs",
       "crates/core/component/compliance/src/evidence.rs",
       "crates/core/component/compliance/src/genesis.rs",
       "crates/core/component/compliance/src/ibc.rs",
@@ -12581,6 +12669,7 @@
       "crates/view/src/storage.rs",
       "crates/view/src/storage/compliance.rs",
       "crates/view/src/storage/sct.rs",
+      "crates/view/src/worker.rs",
       "tools/gnark/cmd/extractlean/main_test.go",
       "tools/gnark/cmd/gnarkctl/main_test.go",
       "tools/gnark/cmd/gnarkctl/poseidon_lean_test.go",
@@ -13020,6 +13109,14 @@
       {
         "path": "crates/core/component/compliance/src/decode_object.rs",
         "symbol": "transfer_metadata_rejects_zero_timestamp_and_noncanonical_fields"
+      },
+      {
+        "path": "crates/core/component/compliance/src/event.rs",
+        "symbol": "user_registration_rejects_mismatched_commitment"
+      },
+      {
+        "path": "crates/core/component/compliance/src/event.rs",
+        "symbol": "user_status_event_requires_legal_bound_transition"
       },
       {
         "path": "crates/core/component/compliance/src/genesis.rs",
@@ -13755,19 +13852,19 @@
       },
       {
         "path": "crates/core/component/shielded-pool/src/gnark/note_reshape.rs",
-        "symbol": "note_reshape_witness_v5_rejects_bad_length"
+        "symbol": "note_reshape_witness_v6_rejects_bad_length"
       },
       {
         "path": "crates/core/component/shielded-pool/src/gnark/note_reshape.rs",
-        "symbol": "note_reshape_witness_v5_rejects_bad_magic"
+        "symbol": "note_reshape_witness_v6_rejects_bad_magic"
       },
       {
         "path": "crates/core/component/shielded-pool/src/gnark/note_reshape.rs",
-        "symbol": "note_reshape_witness_v5_rejects_bad_version"
+        "symbol": "note_reshape_witness_v6_rejects_bad_version"
       },
       {
         "path": "crates/core/component/shielded-pool/src/gnark/note_reshape.rs",
-        "symbol": "note_reshape_witness_v5_roundtrip"
+        "symbol": "note_reshape_witness_v6_roundtrip"
       },
       {
         "path": "crates/core/component/shielded-pool/src/gnark/runtime.rs",
@@ -13779,35 +13876,35 @@
       },
       {
         "path": "crates/core/component/shielded-pool/src/gnark/shielded_ics20_withdrawal.rs",
-        "symbol": "shielded_ics20_withdrawal_witness_v10_rejects_legacy_version"
+        "symbol": "shielded_ics20_withdrawal_witness_v11_rejects_legacy_version"
       },
       {
         "path": "crates/core/component/shielded-pool/src/gnark/shielded_ics20_withdrawal.rs",
-        "symbol": "shielded_ics20_withdrawal_witness_v10_rejects_non_blinding_balance_commitment"
+        "symbol": "shielded_ics20_withdrawal_witness_v11_rejects_non_blinding_balance_commitment"
       },
       {
         "path": "crates/core/component/shielded-pool/src/gnark/shielded_ics20_withdrawal.rs",
-        "symbol": "shielded_ics20_withdrawal_witness_v10_rejects_non_canonical_boolean_flags"
+        "symbol": "shielded_ics20_withdrawal_witness_v11_rejects_non_canonical_boolean_flags"
       },
       {
         "path": "crates/core/component/shielded-pool/src/gnark/shielded_ics20_withdrawal.rs",
-        "symbol": "shielded_ics20_withdrawal_witness_v10_rejects_unbalanced_amounts"
+        "symbol": "shielded_ics20_withdrawal_witness_v11_rejects_unbalanced_amounts"
       },
       {
         "path": "crates/core/component/shielded-pool/src/gnark/shielded_ics20_withdrawal.rs",
-        "symbol": "shielded_ics20_withdrawal_witness_v10_roundtrip"
+        "symbol": "shielded_ics20_withdrawal_witness_v11_roundtrip"
       },
       {
         "path": "crates/core/component/shielded-pool/src/gnark/transfer.rs",
-        "symbol": "transfer_hidden_arity_witness_v18_roundtrip"
+        "symbol": "transfer_hidden_arity_witness_v19_roundtrip"
       },
       {
         "path": "crates/core/component/shielded-pool/src/gnark/transfer.rs",
-        "symbol": "transfer_witness_v18_rejects_legacy_v15_layout"
+        "symbol": "transfer_witness_v19_rejects_legacy_v15_layout"
       },
       {
         "path": "crates/core/component/shielded-pool/src/gnark/transfer.rs",
-        "symbol": "transfer_witness_v18_roundtrip"
+        "symbol": "transfer_witness_v19_roundtrip"
       },
       {
         "path": "crates/core/component/shielded-pool/src/gnark/transfer_proof_result.rs",
@@ -15423,11 +15520,23 @@
       },
       {
         "path": "crates/view/src/storage.rs",
+        "symbol": "compliance_block_failure_rolls_back_leaf_tree_and_anchor_writes"
+      },
+      {
+        "path": "crates/view/src/storage.rs",
         "symbol": "issued_address_birth_height_is_write_once_and_purpose_cannot_change"
       },
       {
         "path": "crates/view/src/storage.rs",
         "symbol": "restore_recovers_standard_and_randomized_issued_addresses"
+      },
+      {
+        "path": "crates/view/src/worker.rs",
+        "symbol": "empty_compliance_delta_still_requires_exact_block_anchors"
+      },
+      {
+        "path": "crates/view/src/worker.rs",
+        "symbol": "status_projection_authenticates_the_previous_leaf_and_event_order"
       },
       {
         "path": "tools/gnark/cmd/extractlean/main_test.go",
@@ -15535,11 +15644,11 @@
       },
       {
         "path": "tools/gnark/internal/abi/witness_family_test.go",
-        "symbol": "TestNoteReshapeV5RejectsLegacyVersion"
+        "symbol": "TestNoteReshapeV6RejectsLegacyVersion"
       },
       {
         "path": "tools/gnark/internal/abi/witness_family_test.go",
-        "symbol": "TestNoteReshapeV5RejectsSplitAddressRepresentationPayload"
+        "symbol": "TestNoteReshapeV6RejectsSplitAddressRepresentationPayload"
       },
       {
         "path": "tools/gnark/internal/abi/witness_family_test.go",
@@ -15547,39 +15656,39 @@
       },
       {
         "path": "tools/gnark/internal/abi/witness_family_test.go",
-        "symbol": "TestShieldedIcs20WithdrawalV10AssignmentRejectsClaimedHashMismatch"
+        "symbol": "TestShieldedIcs20WithdrawalV11AssignmentRejectsClaimedHashMismatch"
       },
       {
         "path": "tools/gnark/internal/abi/witness_family_test.go",
-        "symbol": "TestShieldedIcs20WithdrawalV10FixtureBranchMatrix"
+        "symbol": "TestShieldedIcs20WithdrawalV11FixtureBranchMatrix"
       },
       {
         "path": "tools/gnark/internal/abi/witness_family_test.go",
-        "symbol": "TestShieldedIcs20WithdrawalV10RejectsLegacyVersion"
+        "symbol": "TestShieldedIcs20WithdrawalV11RejectsLegacyVersion"
       },
       {
         "path": "tools/gnark/internal/abi/witness_family_test.go",
-        "symbol": "TestShieldedIcs20WithdrawalV10RejectsNonCanonicalBalanceBlinding"
+        "symbol": "TestShieldedIcs20WithdrawalV11RejectsNonCanonicalBalanceBlinding"
       },
       {
         "path": "tools/gnark/internal/abi/witness_family_test.go",
-        "symbol": "TestShieldedIcs20WithdrawalV10RejectsNonCanonicalBooleanFlags"
+        "symbol": "TestShieldedIcs20WithdrawalV11RejectsNonCanonicalBooleanFlags"
       },
       {
         "path": "tools/gnark/internal/abi/witness_family_test.go",
-        "symbol": "TestShieldedIcs20WithdrawalV10RejectsOversizedEffectHashLimb"
+        "symbol": "TestShieldedIcs20WithdrawalV11RejectsOversizedEffectHashLimb"
       },
       {
         "path": "tools/gnark/internal/abi/witness_family_test.go",
-        "symbol": "TestTransferV18AssignmentRejectsClaimedHashMismatch"
+        "symbol": "TestTransferV19AssignmentRejectsClaimedHashMismatch"
       },
       {
         "path": "tools/gnark/internal/abi/witness_family_test.go",
-        "symbol": "TestTransferV18AssignmentRejectsSerializedSemanticMutation"
+        "symbol": "TestTransferV19AssignmentRejectsSerializedSemanticMutation"
       },
       {
         "path": "tools/gnark/internal/abi/witness_family_test.go",
-        "symbol": "TestTransferV18RejectsLegacyVersion"
+        "symbol": "TestTransferV19RejectsLegacyVersion"
       },
       {
         "path": "tools/gnark/internal/abi/witness_family_test.go",
@@ -15835,11 +15944,11 @@
       },
       {
         "path": "tools/gnark/internal/circuits/shielded_ics20_withdrawal_metamorphic_test.go",
-        "symbol": "TestShieldedIcs20WithdrawalV10CarriesFixedRoutingFields"
+        "symbol": "TestShieldedIcs20WithdrawalV11CarriesFixedRoutingFields"
       },
       {
         "path": "tools/gnark/internal/circuits/shielded_ics20_withdrawal_metamorphic_test.go",
-        "symbol": "TestShieldedIcs20WithdrawalV10OmitsPolicyOpeningsAndRedundantFields"
+        "symbol": "TestShieldedIcs20WithdrawalV11OmitsPolicyOpeningsAndRedundantFields"
       },
       {
         "path": "tools/gnark/internal/circuits/shielded_ics20_withdrawal_metamorphic_test.go",
@@ -15979,7 +16088,7 @@
       },
       {
         "path": "tools/gnark/internal/circuits/transfer_metamorphic_test.go",
-        "symbol": "TestTransferV18UsesRoleSpecificSemanticLayout"
+        "symbol": "TestTransferV19UsesRoleSpecificSemanticLayout"
       },
       {
         "path": "tools/gnark/internal/circuits/wiring_transcript_test.go",
@@ -27526,7 +27635,7 @@
       "id": "WITHDRAWAL-COMPACT-WITNESS-LAYOUT",
       "kind": "invariant",
       "path": "tools/gnark/internal/circuits/shielded_ics20_withdrawal_metamorphic_test.go",
-      "symbol": "TestShieldedIcs20WithdrawalV10OmitsPolicyOpeningsAndRedundantFields",
+      "symbol": "TestShieldedIcs20WithdrawalV11OmitsPolicyOpeningsAndRedundantFields",
       "predicate_ids": [
         "CIR-SHAPE-FIXED"
       ],
@@ -27538,7 +27647,7 @@
         "working_directory": "tools/gnark",
         "package": "./internal/circuits",
         "cargo_target": null,
-        "selector": "TestShieldedIcs20WithdrawalV10OmitsPolicyOpeningsAndRedundantFields",
+        "selector": "TestShieldedIcs20WithdrawalV11OmitsPolicyOpeningsAndRedundantFields",
         "build_profile": "default",
         "features": [],
         "prover_required": false
@@ -27548,7 +27657,7 @@
       "id": "WITHDRAWAL-FIXED-ROUTING-FIELDS",
       "kind": "invariant",
       "path": "tools/gnark/internal/circuits/shielded_ics20_withdrawal_metamorphic_test.go",
-      "symbol": "TestShieldedIcs20WithdrawalV10CarriesFixedRoutingFields",
+      "symbol": "TestShieldedIcs20WithdrawalV11CarriesFixedRoutingFields",
       "predicate_ids": [
         "CIR-SHAPE-FIXED"
       ],
@@ -27560,7 +27669,7 @@
         "working_directory": "tools/gnark",
         "package": "./internal/circuits",
         "cargo_target": null,
-        "selector": "TestShieldedIcs20WithdrawalV10CarriesFixedRoutingFields",
+        "selector": "TestShieldedIcs20WithdrawalV11CarriesFixedRoutingFields",
         "build_profile": "default",
         "features": [],
         "prover_required": false
@@ -28111,10 +28220,10 @@
       }
     },
     {
-      "id": "TRANSFER-V18-ROLE-SPECIFIC-LAYOUT",
+      "id": "TRANSFER-V19-ROLE-SPECIFIC-LAYOUT",
       "kind": "invariant",
       "path": "tools/gnark/internal/circuits/transfer_metamorphic_test.go",
-      "symbol": "TestTransferV18UsesRoleSpecificSemanticLayout",
+      "symbol": "TestTransferV19UsesRoleSpecificSemanticLayout",
       "predicate_ids": [
         "CIR-SHAPE-FIXED"
       ],
@@ -28126,7 +28235,7 @@
         "working_directory": "tools/gnark",
         "package": "./internal/circuits",
         "cargo_target": null,
-        "selector": "TestTransferV18UsesRoleSpecificSemanticLayout",
+        "selector": "TestTransferV19UsesRoleSpecificSemanticLayout",
         "build_profile": "default",
         "features": [],
         "prover_required": false
@@ -34701,7 +34810,7 @@
         "TRANSFER-STATEMENT-HASH-MUTATED-FIELD",
         "TRANSFER-THRESHOLD-COMPARATOR-MATRIX",
         "TRANSFER-UNREGULATED-CIPHERTEXT-POLICY-BINDING",
-        "TRANSFER-V18-ROLE-SPECIFIC-LAYOUT",
+        "TRANSFER-V19-ROLE-SPECIFIC-LAYOUT",
         "WIRING-R1C-CANCELED-APPEARANCE",
         "WIRING-R1C-NONLINEAR-INFLUENCE",
         "WIRING-SEGMENT-CLASSIFICATION-FAILS-CLOSED"
@@ -38768,7 +38877,7 @@
             "TRANSFER-MANIFEST-SEMANTIC-BINDINGS",
             "TRANSFER-OMITS-DERIVED-DUMMY-AUTH-OUTPUT-ROLE",
             "TRANSFER-REQUIRED-OPTIONAL-SPEND-WIRING",
-            "TRANSFER-V18-ROLE-SPECIFIC-LAYOUT",
+            "TRANSFER-V19-ROLE-SPECIFIC-LAYOUT",
             "WIRING-R1C-CANCELED-APPEARANCE",
             "WIRING-R1C-NONLINEAR-INFLUENCE",
             "WIRING-SEGMENT-CLASSIFICATION-FAILS-CLOSED"

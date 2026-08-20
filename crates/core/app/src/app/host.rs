@@ -22,7 +22,6 @@ use std::time::Instant;
 const HOST_ACTION_SOURCE_PREFIX: &str = "application/host_action/source";
 const HOST_DEPOSIT_DOMAIN: &[u8] = b"shieldd.host_deposit.v1";
 const HOST_COMPLIANCE_ACTION_DOMAIN: &[u8] = b"shieldd.host_compliance_action.v1";
-const HOST_ACTION_ID_DOMAIN: &[u8] = b"shieldd.host_action_id.v1";
 const HOST_PROPOSER_ADDRESS: [u8; 20] = [0u8; 20];
 
 #[derive(Clone, Debug)]
@@ -130,10 +129,72 @@ enum HostActionReceiptResult {
         deposit_id: [u8; 32],
     },
     Compliance {
-        action_id: [u8; 32],
         previous_status: UserAssetStatus,
         current_status: UserAssetStatus,
     },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
+struct HostSource {
+    height: u64,
+    tx_hash: [u8; 32],
+    msg_index: u32,
+    tx_index: u32,
+}
+
+impl HostSource {
+    fn validate_height(&self, current_height: u64) -> Result<()> {
+        ensure!(
+            self.height == current_height,
+            "host source height {} does not match active block height {current_height}",
+            self.height
+        );
+        Ok(())
+    }
+
+    fn source_key(&self, chain_id: &str) -> String {
+        format!(
+            "{HOST_ACTION_SOURCE_PREFIX}/{}/{:020}/{:010}/{:010}",
+            hex::encode(chain_id.as_bytes()),
+            self.height,
+            self.tx_index,
+            self.msg_index,
+        )
+    }
+
+    fn hash_into(&self, hasher: &mut sha2::Sha256) {
+        hasher.update(self.height.to_be_bytes());
+        hasher.update(self.tx_index.to_be_bytes());
+        hash_bytes(hasher, &self.tx_hash);
+        hasher.update(self.msg_index.to_be_bytes());
+    }
+}
+
+impl TryFrom<ProtoHostSource> for HostSource {
+    type Error = anyhow::Error;
+
+    fn try_from(source: ProtoHostSource) -> Result<Self> {
+        let tx_hash = source.tx_hash.try_into().map_err(|bytes: Vec<u8>| {
+            anyhow::anyhow!("host source tx_hash must be 32 bytes, got {}", bytes.len())
+        })?;
+        Ok(Self {
+            height: source.height,
+            tx_hash,
+            msg_index: source.msg_index,
+            tx_index: source.tx_index,
+        })
+    }
+}
+
+impl From<HostSource> for ProtoHostSource {
+    fn from(source: HostSource) -> Self {
+        Self {
+            height: source.height,
+            tx_hash: source.tx_hash.to_vec(),
+            msg_index: source.msg_index,
+            tx_index: source.tx_index,
+        }
+    }
 }
 
 impl HostExecution {
@@ -614,7 +675,7 @@ impl App {
         let parsed = ParsedHostDeposit::parse(chain_id, deposit)?;
         let source_key = parsed.source_key();
         let current_height = state_tx.get_block_height().await?;
-        validate_host_source(&parsed.source, current_height)?;
+        parsed.source.validate_height(current_height)?;
 
         if let Some(receipt) = load_host_action_receipt(&state_tx, &source_key).await? {
             ensure!(
@@ -684,7 +745,7 @@ impl App {
         let chain_id = state_tx.get_chain_id().await?;
         let parsed = ParsedHostComplianceAction::parse(chain_id, request)?;
         let current_height = state_tx.get_block_height().await?;
-        validate_host_source(&parsed.source, current_height)?;
+        parsed.source.validate_height(current_height)?;
         let source_key = parsed.source_key();
 
         if let Some(receipt) = load_host_action_receipt(&state_tx, &source_key).await? {
@@ -693,7 +754,6 @@ impl App {
                 "host source was already used by a different request"
             );
             let HostActionReceiptResult::Compliance {
-                action_id,
                 previous_status,
                 current_status,
             } = receipt.result
@@ -702,7 +762,7 @@ impl App {
             };
             return Ok(HostComplianceActionResult {
                 response: compliance_action_response(
-                    action_id,
+                    &parsed.source,
                     previous_status,
                     current_status,
                     true,
@@ -721,7 +781,6 @@ impl App {
             &HostActionReceipt {
                 request_digest: parsed.request_digest,
                 result: HostActionReceiptResult::Compliance {
-                    action_id: parsed.action_id,
                     previous_status: event.previous_status,
                     current_status,
                 },
@@ -729,7 +788,7 @@ impl App {
         )?;
 
         let response = compliance_action_response(
-            parsed.action_id,
+            &parsed.source,
             event.previous_status,
             current_status,
             false,
@@ -741,7 +800,7 @@ impl App {
 
 struct ParsedHostDeposit {
     chain_id: String,
-    source: ProtoHostSource,
+    source: HostSource,
     denom: asset::Metadata,
     amount: Amount,
     recipient: Address,
@@ -750,7 +809,11 @@ struct ParsedHostDeposit {
 
 impl ParsedHostDeposit {
     fn parse(chain_id: String, deposit: DepositRequest) -> Result<Self> {
-        let source = deposit.source.context("host deposit source is required")?;
+        let source = deposit
+            .source
+            .context("host deposit source is required")?
+            .try_into()
+            .context("invalid host deposit source")?;
 
         let denom: asset::Metadata = deposit
             .denom
@@ -786,17 +849,16 @@ impl ParsedHostDeposit {
     }
 
     fn source_key(&self) -> String {
-        host_action_source_key(&self.chain_id, &self.source)
+        self.source.source_key(&self.chain_id)
     }
 }
 
 struct ParsedHostComplianceAction {
     chain_id: String,
-    source: ProtoHostSource,
+    source: HostSource,
     address: Address,
     asset_id: asset::Id,
     action: UserAssetStatusAction,
-    action_id: [u8; 32],
     request_digest: [u8; 32],
 }
 
@@ -804,7 +866,9 @@ impl ParsedHostComplianceAction {
     fn parse(chain_id: String, request: ApplyComplianceActionRequest) -> Result<Self> {
         let source = request
             .source
-            .context("host compliance action source is required")?;
+            .context("host compliance action source is required")?
+            .try_into()
+            .context("invalid host compliance action source")?;
         let (address, asset_id, action) = match request
             .action
             .context("host compliance action is required")?
@@ -836,7 +900,6 @@ impl ParsedHostComplianceAction {
                 UserAssetStatusAction::Unfreeze,
             ),
         };
-        let action_id = derive_host_action_id(&chain_id, &source);
         let request_digest =
             derive_compliance_action_digest(&chain_id, &source, &address, asset_id, action);
         Ok(Self {
@@ -845,37 +908,13 @@ impl ParsedHostComplianceAction {
             address,
             asset_id,
             action,
-            action_id,
             request_digest,
         })
     }
 
     fn source_key(&self) -> String {
-        host_action_source_key(&self.chain_id, &self.source)
+        self.source.source_key(&self.chain_id)
     }
-}
-
-fn validate_host_source(source: &ProtoHostSource, current_height: u64) -> Result<()> {
-    ensure!(
-        source.tx_hash.len() == 32,
-        "host source tx_hash must be 32 bytes"
-    );
-    ensure!(
-        source.height == current_height,
-        "host source height {} does not match active block height {current_height}",
-        source.height
-    );
-    Ok(())
-}
-
-fn host_action_source_key(chain_id: &str, source: &ProtoHostSource) -> String {
-    format!(
-        "{HOST_ACTION_SOURCE_PREFIX}/{}/{:020}/{:010}/{:010}",
-        hex::encode(chain_id.as_bytes()),
-        source.height,
-        source.tx_index,
-        source.msg_index,
-    )
 }
 
 async fn load_host_action_receipt<S: StateRead + ?Sized>(
@@ -902,13 +941,13 @@ fn store_host_action_receipt<S: StateWrite + ?Sized>(
 }
 
 fn compliance_action_response(
-    action_id: [u8; 32],
+    source: &HostSource,
     previous_status: UserAssetStatus,
     current_status: UserAssetStatus,
     replayed: bool,
 ) -> ApplyComplianceActionResponse {
     ApplyComplianceActionResponse {
-        action_id: action_id.to_vec(),
+        source: Some(source.clone().into()),
         previous_status: shieldd_sdk_proto::core::component::compliance::v1::UserAssetStatus::from(
             previous_status,
         ) as i32,
@@ -921,7 +960,7 @@ fn compliance_action_response(
 
 fn derive_deposit_id(
     chain_id: &str,
-    source: &ProtoHostSource,
+    source: &HostSource,
     denom: &asset::Metadata,
     amount: Amount,
     recipient: &Address,
@@ -929,30 +968,16 @@ fn derive_deposit_id(
     let mut hasher = sha2::Sha256::new();
     hash_bytes(&mut hasher, HOST_DEPOSIT_DOMAIN);
     hash_bytes(&mut hasher, chain_id.as_bytes());
-    hasher.update(source.height.to_be_bytes());
-    hasher.update(source.tx_index.to_be_bytes());
-    hash_bytes(&mut hasher, &source.tx_hash);
-    hasher.update(source.msg_index.to_be_bytes());
+    source.hash_into(&mut hasher);
     hash_bytes(&mut hasher, denom.to_string().as_bytes());
     hash_bytes(&mut hasher, amount.to_string().as_bytes());
     hash_bytes(&mut hasher, recipient.to_string().as_bytes());
     hasher.finalize().into()
 }
 
-fn derive_host_action_id(chain_id: &str, source: &ProtoHostSource) -> [u8; 32] {
-    let mut hasher = sha2::Sha256::new();
-    hash_bytes(&mut hasher, HOST_ACTION_ID_DOMAIN);
-    hash_bytes(&mut hasher, chain_id.as_bytes());
-    hasher.update(source.height.to_be_bytes());
-    hasher.update(source.tx_index.to_be_bytes());
-    hash_bytes(&mut hasher, &source.tx_hash);
-    hasher.update(source.msg_index.to_be_bytes());
-    hasher.finalize().into()
-}
-
 fn derive_compliance_action_digest(
     chain_id: &str,
-    source: &ProtoHostSource,
+    source: &HostSource,
     address: &Address,
     asset_id: asset::Id,
     action: UserAssetStatusAction,
@@ -960,10 +985,7 @@ fn derive_compliance_action_digest(
     let mut hasher = sha2::Sha256::new();
     hash_bytes(&mut hasher, HOST_COMPLIANCE_ACTION_DOMAIN);
     hash_bytes(&mut hasher, chain_id.as_bytes());
-    hasher.update(source.height.to_be_bytes());
-    hasher.update(source.tx_index.to_be_bytes());
-    hash_bytes(&mut hasher, &source.tx_hash);
-    hasher.update(source.msg_index.to_be_bytes());
+    source.hash_into(&mut hasher);
     hash_bytes(&mut hasher, &address.to_vec());
     hash_bytes(&mut hasher, &asset_id.0.to_bytes());
     hasher.update([match action {
@@ -1173,18 +1195,18 @@ mod tests {
                 UserAssetStatusAction::Freeze,
             ))
             .await?;
-        assert_eq!(first.response.action_id.len(), 32);
+        assert_eq!(first.response.source, Some(failed_source.clone()));
         assert_eq!(first.response.previous_status, 1);
         assert_eq!(first.response.current_status, 2);
         assert!(!first.response.replayed);
 
         let replay = host
             .apply_compliance_action(compliance_request(
-                failed_source,
+                failed_source.clone(),
                 UserAssetStatusAction::Freeze,
             ))
             .await?;
-        assert_eq!(replay.response.action_id, first.response.action_id);
+        assert_eq!(replay.response.source, Some(failed_source));
         assert!(replay.response.replayed);
         assert!(replay.events.is_empty());
 
@@ -1470,14 +1492,14 @@ mod tests {
         let recipient = test_keys::ADDRESS_0.clone();
         let first = derive_deposit_id(
             "bankd-local",
-            &host_source(0),
+            &HostSource::try_from(host_source(0)).unwrap(),
             &BASE_ASSET_DENOM,
             100u64.into(),
             &recipient,
         );
         let second = derive_deposit_id(
             "bankd-local",
-            &host_source(1),
+            &HostSource::try_from(host_source(1)).unwrap(),
             &BASE_ASSET_DENOM,
             100u64.into(),
             &recipient,
@@ -1489,12 +1511,20 @@ mod tests {
     #[test]
     fn source_key_uses_host_tx_identity_not_deposit_contents() {
         assert_eq!(
-            host_action_source_key("bankd-local", &host_source(3)),
-            host_action_source_key("bankd-local", &host_source(3)),
+            HostSource::try_from(host_source(3))
+                .unwrap()
+                .source_key("bankd-local"),
+            HostSource::try_from(host_source(3))
+                .unwrap()
+                .source_key("bankd-local"),
         );
         assert_ne!(
-            host_action_source_key("bankd-local", &host_source(3)),
-            host_action_source_key("bankd-local", &host_source(4)),
+            HostSource::try_from(host_source(3))
+                .unwrap()
+                .source_key("bankd-local"),
+            HostSource::try_from(host_source(4))
+                .unwrap()
+                .source_key("bankd-local"),
         );
     }
 
@@ -1507,7 +1537,7 @@ mod tests {
             msg_index: 0,
         };
 
-        assert!(validate_host_source(&source, 42).is_err());
+        assert!(HostSource::try_from(source).is_err());
     }
 
     #[test]

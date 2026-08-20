@@ -8,10 +8,10 @@ import (
 	"github.com/mizufinance/shieldd/tools/gnark/internal/primitives"
 )
 
-func NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV10(payload []byte) (*circuits.ShieldedIcs20WithdrawalCircuit, generated.ShieldedIcs20WithdrawalFamilySpec, error) {
-	witness, family, err := DecodeShieldedIcs20WithdrawalWitnessV10(payload)
+func NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV11(payload []byte) (*circuits.ShieldedIcs20WithdrawalCircuit, generated.ShieldedIcs20WithdrawalFamilySpec, error) {
+	witness, family, err := DecodeShieldedIcs20WithdrawalWitnessV11(payload)
 	if err != nil {
-		return nil, generated.ShieldedIcs20WithdrawalFamilySpec{}, fmt.Errorf("decode ShieldedIcs20WithdrawalWitnessV10: %w", err)
+		return nil, generated.ShieldedIcs20WithdrawalFamilySpec{}, fmt.Errorf("decode ShieldedIcs20WithdrawalWitnessV11: %w", err)
 	}
 	assignment, err := newShieldedIcs20WithdrawalCircuitAssignment(witness, family.NIn)
 	if err != nil {
@@ -21,7 +21,7 @@ func NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV10(payload []byte) (
 }
 
 func newShieldedIcs20WithdrawalRequiredSpendCircuitFields(
-	witness *ShieldedIcs20WithdrawalRequiredSpendWitnessV10Binary,
+	witness *ShieldedIcs20WithdrawalRequiredSpendWitnessV11Binary,
 ) (circuits.ShieldedIcs20WithdrawalRequiredSpendCircuitFields, error) {
 	var zero circuits.ShieldedIcs20WithdrawalRequiredSpendCircuitFields
 	statePath, err := statePathFromBinary(witness.StateCommitmentAuthPath)
@@ -45,10 +45,10 @@ func newShieldedIcs20WithdrawalRequiredSpendCircuitFields(
 }
 
 func newShieldedIcs20WithdrawalOptionalSpendCircuitFields(
-	witness *ShieldedIcs20WithdrawalOptionalSpendWitnessV10Binary,
+	witness *ShieldedIcs20WithdrawalOptionalSpendWitnessV11Binary,
 ) (circuits.ShieldedIcs20WithdrawalOptionalSpendCircuitFields, error) {
 	spend, err := newShieldedIcs20WithdrawalRequiredSpendCircuitFields(
-		&witness.ShieldedIcs20WithdrawalRequiredSpendWitnessV10Binary,
+		&witness.ShieldedIcs20WithdrawalRequiredSpendWitnessV11Binary,
 	)
 	if err != nil {
 		return circuits.ShieldedIcs20WithdrawalOptionalSpendCircuitFields{}, err
@@ -61,7 +61,7 @@ func newShieldedIcs20WithdrawalOptionalSpendCircuitFields(
 }
 
 func newShieldedIcs20WithdrawalChangeCircuitFields(
-	witness *ShieldedIcs20WithdrawalChangeWitnessV10Binary,
+	witness *ShieldedIcs20WithdrawalChangeWitnessV11Binary,
 ) circuits.ShieldedIcs20WithdrawalChangeCircuitFields {
 	return circuits.ShieldedIcs20WithdrawalChangeCircuitFields{
 		NoteCommitment: fqString(witness.NoteCommitment),
@@ -73,13 +73,13 @@ func newShieldedIcs20WithdrawalChangeCircuitFields(
 }
 
 func newShieldedIcs20WithdrawalCircuitAssignment(
-	witness *ShieldedIcs20WithdrawalWitnessV10Binary,
+	witness *ShieldedIcs20WithdrawalWitnessV11Binary,
 	expectedNIn int,
 ) (*circuits.ShieldedIcs20WithdrawalCircuit, error) {
 	if int(witness.NIn) != expectedNIn {
 		return nil, fmt.Errorf("shielded ICS-20 withdrawal witness shape mismatch: got %d inputs, expected %d", witness.NIn, expectedNIn)
 	}
-	reconstructedHash, err := reconstructedShieldedIcs20WithdrawalStatementHashFromWitnessV10(witness)
+	reconstructedHash, err := reconstructedShieldedIcs20WithdrawalStatementHashFromWitnessV11(witness)
 	if err != nil {
 		return nil, err
 	}

@@ -13,7 +13,7 @@ const (
 	maxNoteReshapeItems       = 8
 )
 
-type NoteReshapeSpendWitnessV5Binary struct {
+type NoteReshapeSpendWitnessV6Binary struct {
 	IsDummy                   bool
 	Nullifier                 [32]byte
 	DummyNullifierSeed        [32]byte
@@ -27,18 +27,18 @@ type NoteReshapeSpendWitnessV5Binary struct {
 	HistoryRequired           bool
 }
 
-type NoteReshapeOutputWitnessV5Binary struct {
+type NoteReshapeOutputWitnessV6Binary struct {
 	NoteCommitment      [32]byte
 	CreatedNoteBlinding [32]byte
 	CreatedNoteAmount   [32]byte
 }
 
-type NoteReshapeSharedNoteContextWitnessV5Binary struct {
+type NoteReshapeSharedNoteContextWitnessV6Binary struct {
 	AssetID [32]byte
 	DivGen  PointAffineBinary
 }
 
-type NoteReshapeWitnessV5Binary struct {
+type NoteReshapeWitnessV6Binary struct {
 	TotalLength              uint32
 	FamilyID                 uint32
 	NIn                      uint32
@@ -68,15 +68,15 @@ type NoteReshapeWitnessV5Binary struct {
 	SenderSlotDerivation     [32]byte
 	SenderD                  [32]byte
 	SenderStatus             [32]byte
-	Shared                   NoteReshapeSharedNoteContextWitnessV5Binary
-	Spends                   []NoteReshapeSpendWitnessV5Binary
-	Outputs                  []NoteReshapeOutputWitnessV5Binary
+	Shared                   NoteReshapeSharedNoteContextWitnessV6Binary
+	Spends                   []NoteReshapeSpendWitnessV6Binary
+	Outputs                  []NoteReshapeOutputWitnessV6Binary
 	BalanceCommitmentAffine  PointAffineBinary
 	AKAffine                 PointAffineBinary
 }
 
-func DecodeNoteReshapeWitnessV5(payload []byte) (*NoteReshapeWitnessV5Binary, generated.NoteReshapeFamilySpec, error) {
-	witness, err := decodeNoteReshapeWitnessV5(payload)
+func DecodeNoteReshapeWitnessV6(payload []byte) (*NoteReshapeWitnessV6Binary, generated.NoteReshapeFamilySpec, error) {
+	witness, err := decodeNoteReshapeWitnessV6(payload)
 	if err != nil {
 		return nil, generated.NoteReshapeFamilySpec{}, err
 	}
@@ -90,7 +90,7 @@ func DecodeNoteReshapeWitnessV5(payload []byte) (*NoteReshapeWitnessV5Binary, ge
 	return witness, family, nil
 }
 
-func decodeNoteReshapeWitnessV5(payload []byte) (*NoteReshapeWitnessV5Binary, error) {
+func decodeNoteReshapeWitnessV6(payload []byte) (*NoteReshapeWitnessV6Binary, error) {
 	reader := bytes.NewReader(payload)
 	magic, err := readExact(reader, 4)
 	if err != nil {
@@ -113,7 +113,7 @@ func decodeNoteReshapeWitnessV5(payload []byte) (*NoteReshapeWitnessV5Binary, er
 	if totalLength != uint32(len(payload)) {
 		return nil, fmt.Errorf("payload length mismatch: header=%d actual=%d", totalLength, len(payload))
 	}
-	witness := &NoteReshapeWitnessV5Binary{TotalLength: totalLength}
+	witness := &NoteReshapeWitnessV6Binary{TotalLength: totalLength}
 	if witness.FamilyID, err = readU32(reader); err != nil {
 		return nil, err
 	}
@@ -211,13 +211,13 @@ func decodeNoteReshapeWitnessV5(payload []byte) (*NoteReshapeWitnessV5Binary, er
 	if witness.NIn > maxNoteReshapeItems || witness.NOut > maxNoteReshapeItems {
 		return nil, fmt.Errorf("note reshape witness exceeds maximum item count")
 	}
-	witness.Spends = make([]NoteReshapeSpendWitnessV5Binary, witness.NIn)
+	witness.Spends = make([]NoteReshapeSpendWitnessV6Binary, witness.NIn)
 	for i := range witness.Spends {
 		if witness.Spends[i], err = readNoteReshapeSpend(reader, family.InputPadding == generated.InputPaddingSyntheticPrivate); err != nil {
 			return nil, err
 		}
 	}
-	witness.Outputs = make([]NoteReshapeOutputWitnessV5Binary, witness.NOut)
+	witness.Outputs = make([]NoteReshapeOutputWitnessV6Binary, witness.NOut)
 	for i := range witness.Outputs {
 		if witness.Outputs[i], err = readNoteReshapeOutput(reader); err != nil {
 			return nil, err
@@ -235,8 +235,8 @@ func decodeNoteReshapeWitnessV5(payload []byte) (*NoteReshapeWitnessV5Binary, er
 	return witness, nil
 }
 
-func readNoteReshapeSpend(reader *bytes.Reader, syntheticPrivatePadding bool) (NoteReshapeSpendWitnessV5Binary, error) {
-	var out NoteReshapeSpendWitnessV5Binary
+func readNoteReshapeSpend(reader *bytes.Reader, syntheticPrivatePadding bool) (NoteReshapeSpendWitnessV6Binary, error) {
+	var out NoteReshapeSpendWitnessV6Binary
 	var err error
 	if syntheticPrivatePadding {
 		flag, readErr := readU32(reader)
@@ -281,8 +281,8 @@ func readNoteReshapeSpend(reader *bytes.Reader, syntheticPrivatePadding bool) (N
 	return out, nil
 }
 
-func readNoteReshapeOutput(reader *bytes.Reader) (NoteReshapeOutputWitnessV5Binary, error) {
-	var out NoteReshapeOutputWitnessV5Binary
+func readNoteReshapeOutput(reader *bytes.Reader) (NoteReshapeOutputWitnessV6Binary, error) {
+	var out NoteReshapeOutputWitnessV6Binary
 	var err error
 	if out.NoteCommitment, err = read32(reader); err != nil {
 		return out, err

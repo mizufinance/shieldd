@@ -116,7 +116,7 @@ func AssertEqualIf(api frontend.API, left, right, cond frontend.Variable) {
 }
 
 // VerifyDLEQ retains the standalone legacy DLEQ relation for research tests.
-// Transfer V18 neither calls this relation nor carries its witness/public fields.
+// Transfer V19 neither calls this relation nor carries its witness/public fields.
 func VerifyDLEQ(
 	api frontend.API,
 	ack gnarkte.Point,

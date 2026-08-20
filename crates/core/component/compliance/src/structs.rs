@@ -86,7 +86,6 @@ pub(crate) static COMPLIANCE_LEAF_DOMAIN_SEP: Lazy<Fq> = Lazy::new(|| {
 pub enum UserAssetStatus {
     Active,
     Frozen,
-    Seized,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -100,8 +99,18 @@ impl UserAssetStatus {
         Fq::from(match self {
             Self::Active => 1u64,
             Self::Frozen => 2u64,
-            Self::Seized => 3u64,
         })
+    }
+
+    pub fn validate_transition(self, next: Self) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            matches!(
+                (self, next),
+                (Self::Active, Self::Frozen) | (Self::Frozen, Self::Active)
+            ),
+            "illegal user asset status transition {self:?} -> {next:?}"
+        );
+        Ok(())
     }
 
     pub fn freeze(self) -> anyhow::Result<Self> {
@@ -137,7 +146,6 @@ impl TryFrom<i32> for UserAssetStatus {
         match pb::UserAssetStatus::try_from(value) {
             Ok(pb::UserAssetStatus::Active) => Ok(Self::Active),
             Ok(pb::UserAssetStatus::Frozen) => Ok(Self::Frozen),
-            Ok(pb::UserAssetStatus::Seized) => Ok(Self::Seized),
             Ok(pb::UserAssetStatus::Unspecified) => {
                 anyhow::bail!("user asset status must be specified")
             }
@@ -151,7 +159,6 @@ impl From<UserAssetStatus> for pb::UserAssetStatus {
         match value {
             UserAssetStatus::Active => Self::Active,
             UserAssetStatus::Frozen => Self::Frozen,
-            UserAssetStatus::Seized => Self::Seized,
         }
     }
 }

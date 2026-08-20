@@ -502,6 +502,27 @@ PROPERTY_OWNER_SPECS: dict[str, tuple[TestSpec, ...]] = {
     ),
     "REGULATED-STATUS-SOUNDNESS": (
         *_specs(
+            "negative",
+            "crates/core/component/compliance/src/event.rs",
+            """
+            user_registration_rejects_mismatched_commitment
+            user_status_event_requires_legal_bound_transition
+            """,
+        ),
+        *_specs(
+            "negative",
+            "crates/view/src/storage.rs",
+            "compliance_block_failure_rolls_back_leaf_tree_and_anchor_writes",
+        ),
+        *_specs(
+            "negative",
+            "crates/view/src/worker.rs",
+            """
+            empty_compliance_delta_still_requires_exact_block_anchors
+            status_projection_authenticates_the_previous_leaf_and_event_order
+            """,
+        ),
+        *_specs(
             "invariant",
             "crates/core/component/compliance/src/registry.rs",
             "user_leaf_record_is_compact_and_authenticated",

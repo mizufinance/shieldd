@@ -3,8 +3,8 @@ use anyhow::{bail, Context, Result};
 use crate::gnark::{
     binary::{encode_triple_path_32, put_bytes, put_u32, put_u64, put_u8, BinaryCursor},
     note_reshape_witness::{
-        NoteReshapeOutputWitnessV5, NoteReshapeSharedNoteContextWitnessV5,
-        NoteReshapeSpendWitnessV5, NoteReshapeWitnessV5,
+        NoteReshapeOutputWitnessV6, NoteReshapeSharedNoteContextWitnessV6,
+        NoteReshapeSpendWitnessV6, NoteReshapeWitnessV6,
     },
     typed::{decode_indexed_leaf, encode_indexed_leaf, encode_merkle_path, encode_point_affine},
 };
@@ -12,7 +12,7 @@ use crate::gnark::{
 const NOTE_RESHAPE_WITNESS_MAGIC: &[u8; 4] = b"PNWG";
 const NOTE_RESHAPE_WITNESS_VERSION: u32 = 6;
 
-impl NoteReshapeWitnessV5 {
+impl NoteReshapeWitnessV6 {
     pub fn encode(&self) -> Result<Vec<u8>> {
         let mut buf = Vec::new();
         put_bytes(&mut buf, NOTE_RESHAPE_WITNESS_MAGIC);
@@ -113,7 +113,7 @@ impl NoteReshapeWitnessV5 {
         let sender_slot_derivation = cursor.read_fixed::<32>()?;
         let sender_d = cursor.read_fixed::<32>()?;
         let sender_status = cursor.read_fixed::<32>()?;
-        let shared = NoteReshapeSharedNoteContextWitnessV5 {
+        let shared = NoteReshapeSharedNoteContextWitnessV6 {
             asset_id: cursor.read_fixed::<32>()?,
             diversified_generator_affine: cursor.read_point_affine()?,
         };
@@ -184,7 +184,7 @@ impl NoteReshapeWitnessV5 {
 
 fn encode_spend(
     buf: &mut Vec<u8>,
-    spend: &NoteReshapeSpendWitnessV5,
+    spend: &NoteReshapeSpendWitnessV6,
     synthetic_private_padding: bool,
 ) -> Result<()> {
     if synthetic_private_padding {
@@ -206,7 +206,7 @@ fn encode_spend(
 fn decode_spend(
     cursor: &mut BinaryCursor<'_>,
     synthetic_private_padding: bool,
-) -> Result<NoteReshapeSpendWitnessV5> {
+) -> Result<NoteReshapeSpendWitnessV6> {
     let (is_dummy, dummy_nullifier_seed) = if synthetic_private_padding {
         let is_dummy = match cursor.read_u32()? {
             0 => false,
@@ -217,7 +217,7 @@ fn decode_spend(
     } else {
         (false, [0u8; 32])
     };
-    Ok(NoteReshapeSpendWitnessV5 {
+    Ok(NoteReshapeSpendWitnessV6 {
         is_dummy,
         nullifier: cursor.read_fixed::<32>()?,
         dummy_nullifier_seed,
@@ -232,14 +232,14 @@ fn decode_spend(
     })
 }
 
-fn encode_output(buf: &mut Vec<u8>, output: &NoteReshapeOutputWitnessV5) {
+fn encode_output(buf: &mut Vec<u8>, output: &NoteReshapeOutputWitnessV6) {
     put_bytes(buf, &output.note_commitment);
     put_bytes(buf, &output.created_note_blinding);
     put_bytes(buf, &output.created_note_amount);
 }
 
-fn decode_output(cursor: &mut BinaryCursor<'_>) -> Result<NoteReshapeOutputWitnessV5> {
-    Ok(NoteReshapeOutputWitnessV5 {
+fn decode_output(cursor: &mut BinaryCursor<'_>) -> Result<NoteReshapeOutputWitnessV6> {
+    Ok(NoteReshapeOutputWitnessV6 {
         note_commitment: cursor.read_fixed::<32>()?,
         created_note_blinding: cursor.read_fixed::<32>()?,
         created_note_amount: cursor.read_fixed::<32>()?,

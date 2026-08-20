@@ -35,7 +35,7 @@ AssetPolicy {
 Regulated assets are members of the indexed asset tree. An unregistered asset
 is proved unregulated with a valid non-membership gap. The asset proof must use
 the current mutable policy root. User compliance proofs must use the exact
-current mutable user tree because each leaf also commits freeze/seizure status.
+current mutable user tree because each leaf also commits authorization status.
 
 Policy admission rejects identity `dk_pub` and `ring_pk` values before
 registration can mutate durable state. This prevents a regulated asset from

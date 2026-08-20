@@ -636,7 +636,7 @@ impl TransferPlan {
             anchor,
             recent_position_floor,
         )?;
-        crate::gnark::encode_transfer_witness_v18(&public, &private)
+        crate::gnark::encode_transfer_witness_v19(&public, &private)
             .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))
     }
 

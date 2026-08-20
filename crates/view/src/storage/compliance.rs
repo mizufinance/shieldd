@@ -550,6 +550,17 @@ impl ComplianceTreeStore<'_, '_> {
         Ok(())
     }
 
+    pub fn add_asset_policy(&mut self, asset_id: &[u8], policy: &[u8]) -> anyhow::Result<()> {
+        self.0
+            .prepare_cached(
+                "INSERT OR REPLACE INTO compliance_asset_policies (asset_id, policy) VALUES (?1, ?2)",
+            )
+            .context("failed to prepare asset policy insert")?
+            .execute((asset_id, policy))
+            .context("failed to insert asset policy")?;
+        Ok(())
+    }
+
     /// Get full compliance leaf data for an address/asset pair.
     /// Returns full slot derivation data if found.
     pub fn get_leaf_data(

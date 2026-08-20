@@ -599,7 +599,7 @@ mod tests {
 
     fn go_fixture_statement_hash(path: &str) -> (NoteReshapeFamilyId, Fq) {
         let bytes = std::fs::read(path).expect("read Go note reshape fixture");
-        let witness = crate::gnark::decode_note_reshape_witness_v5(&bytes)
+        let witness = crate::gnark::decode_note_reshape_witness_v6(&bytes)
             .expect("decode Go note reshape fixture");
         let mut fields = Vec::with_capacity(note_reshape_statement_field_count(
             witness.n_in as usize,
@@ -668,15 +668,15 @@ mod tests {
             .join("../../../..")
             .join("tools/gnark/internal/testfixtures/vectors");
         for (label, filename) in [
-            ("note_reshape1x8", "note_reshape1x8_witness_v5.bin"),
-            ("note_reshape8x1", "note_reshape8x1_witness_v5.bin"),
+            ("note_reshape1x8", "note_reshape1x8_witness_v6.bin"),
+            ("note_reshape8x1", "note_reshape8x1_witness_v6.bin"),
         ] {
             let (family_id, hash) = go_fixture_statement_hash(
                 root.join(filename).to_str().expect("fixture path is UTF-8"),
             );
             assert_eq!(family_id.label(), label);
             let bytes = std::fs::read(root.join(filename)).expect("read Go note reshape fixture");
-            let witness = crate::gnark::decode_note_reshape_witness_v5(&bytes)
+            let witness = crate::gnark::decode_note_reshape_witness_v6(&bytes)
                 .expect("decode Go note reshape fixture");
             assert_eq!(
                 hash,
@@ -825,7 +825,7 @@ mod tests {
             |expected, got| StatementHashError::InvalidFieldLength { expected, got },
         )
         .expect("legacy domain hash");
-        assert_ne!(v6, v3, "V18 must not verify under the V15 hash domain");
+        assert_ne!(v6, v3, "V19 must not verify under the V15 hash domain");
     }
 
     #[test]

@@ -236,8 +236,8 @@ impl ::prost::Name for ApplyComplianceActionRequest {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ApplyComplianceActionResponse {
-    #[prost(bytes = "vec", tag = "1")]
-    pub action_id: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag = "1")]
+    pub source: ::core::option::Option<HostSource>,
     #[prost(
         enumeration = "super::super::core::component::compliance::v1::UserAssetStatus",
         tag = "2"

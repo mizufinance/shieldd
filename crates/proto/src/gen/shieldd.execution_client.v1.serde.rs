@@ -136,7 +136,7 @@ impl serde::Serialize for ApplyComplianceActionResponse {
     {
         use serde::ser::SerializeStruct;
         let mut len = 0;
-        if !self.action_id.is_empty() {
+        if self.source.is_some() {
             len += 1;
         }
         if self.previous_status != 0 {
@@ -149,10 +149,8 @@ impl serde::Serialize for ApplyComplianceActionResponse {
             len += 1;
         }
         let mut struct_ser = serializer.serialize_struct("shieldd.execution_client.v1.ApplyComplianceActionResponse", len)?;
-        if !self.action_id.is_empty() {
-            #[allow(clippy::needless_borrow)]
-            #[allow(clippy::needless_borrows_for_generic_args)]
-            struct_ser.serialize_field("actionId", pbjson::private::base64::encode(&self.action_id).as_str())?;
+        if let Some(v) = self.source.as_ref() {
+            struct_ser.serialize_field("source", v)?;
         }
         if self.previous_status != 0 {
             let v = super::super::core::component::compliance::v1::UserAssetStatus::try_from(self.previous_status)
@@ -177,8 +175,7 @@ impl<'de> serde::Deserialize<'de> for ApplyComplianceActionResponse {
         D: serde::Deserializer<'de>,
     {
         const FIELDS: &[&str] = &[
-            "action_id",
-            "actionId",
+            "source",
             "previous_status",
             "previousStatus",
             "current_status",
@@ -188,7 +185,7 @@ impl<'de> serde::Deserialize<'de> for ApplyComplianceActionResponse {
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
-            ActionId,
+            Source,
             PreviousStatus,
             CurrentStatus,
             Replayed,
@@ -214,7 +211,7 @@ impl<'de> serde::Deserialize<'de> for ApplyComplianceActionResponse {
                         E: serde::de::Error,
                     {
                         match value {
-                            "actionId" | "action_id" => Ok(GeneratedField::ActionId),
+                            "source" => Ok(GeneratedField::Source),
                             "previousStatus" | "previous_status" => Ok(GeneratedField::PreviousStatus),
                             "currentStatus" | "current_status" => Ok(GeneratedField::CurrentStatus),
                             "replayed" => Ok(GeneratedField::Replayed),
@@ -237,19 +234,17 @@ impl<'de> serde::Deserialize<'de> for ApplyComplianceActionResponse {
                 where
                     V: serde::de::MapAccess<'de>,
             {
-                let mut action_id__ = None;
+                let mut source__ = None;
                 let mut previous_status__ = None;
                 let mut current_status__ = None;
                 let mut replayed__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
-                        GeneratedField::ActionId => {
-                            if action_id__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("actionId"));
+                        GeneratedField::Source => {
+                            if source__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("source"));
                             }
-                            action_id__ = 
-                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
-                            ;
+                            source__ = map_.next_value()?;
                         }
                         GeneratedField::PreviousStatus => {
                             if previous_status__.is_some() {
@@ -275,7 +270,7 @@ impl<'de> serde::Deserialize<'de> for ApplyComplianceActionResponse {
                     }
                 }
                 Ok(ApplyComplianceActionResponse {
-                    action_id: action_id__.unwrap_or_default(),
+                    source: source__,
                     previous_status: previous_status__.unwrap_or_default(),
                     current_status: current_status__.unwrap_or_default(),
                     replayed: replayed__.unwrap_or_default(),

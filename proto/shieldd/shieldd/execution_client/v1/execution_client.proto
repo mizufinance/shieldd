@@ -129,7 +129,7 @@ message ApplyComplianceActionRequest {
 }
 
 message ApplyComplianceActionResponse {
-  bytes action_id = 1;
+  HostSource source = 1;
   shieldd.core.component.compliance.v1.UserAssetStatus previous_status = 2;
   shieldd.core.component.compliance.v1.UserAssetStatus current_status = 3;
   bool replayed = 4;

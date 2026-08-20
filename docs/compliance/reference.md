@@ -112,7 +112,7 @@ output_ext_salt
 The metadata timestamp is not appended twice: its serialized value must equal
 the statement's existing `target_timestamp`. The authoritative builders are
 `transfer_statement_fields` in Rust and `buildTransferStatementFields` /
-`ReconstructedTransferStatementFieldsFromWitnessV18` in Go.
+`ReconstructedTransferStatementFieldsFromWitnessV19` in Go.
 
 ## Effective Policy Selection
 

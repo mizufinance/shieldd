@@ -27,8 +27,8 @@ receive that regulated asset, fund fees with it, withdraw it, deposit it, or use
 `NoteReshape`. Unregulated assets and the same address's other regulated assets
 are unaffected. There is no global address blacklist and no asset-pause action.
 
-`Seized` is reserved as a terminal user-asset state, but seizure authorization,
-balance certification, and Bankd reissue are intentionally not implemented yet.
+Seizure authorization, balance certification, the terminal status transition,
+and Bankd reissue are intentionally not part of the current state machine.
 See [the enforcement and seizure design](docs/compliance/enforcement-and-seizure.md).
 
 ## Compliance visibility

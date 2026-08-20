@@ -86,6 +86,10 @@ impl ComplianceUserTree {
         Ok(())
     }
 
+    pub fn commitment(&self, position: u64) -> Option<StateCommitment> {
+        self.inner.get_leaf(position)
+    }
+
     /// Get the current tree root.
     pub fn root(&self) -> StateCommitment {
         self.inner.root()

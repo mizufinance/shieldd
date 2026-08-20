@@ -10,22 +10,21 @@ Each registered `(address, asset_id)` user leaf commits one status:
 ```text
 Active = 1
 Frozen = 2
-Seized = 3
 ```
 
 The implemented transitions are `Active -> Frozen` and `Frozen -> Active`.
-`Seized` is terminal and currently unreachable. The status belongs in the user
-leaf rather than a second tree: address, asset, registration metadata, and
-authorization state then have one authenticated position and one proof. A
-separate freeze tree would require cross-tree non-membership semantics and make
-atomic updates and wallet proof refresh more complex without adding a distinct
-ownership boundary.
+There is no seized status or seizure transition in the current schema. Status
+belongs in the user leaf rather than a second tree: address, asset, registration
+metadata, and authorization state then have one authenticated position and one
+proof. A separate freeze tree would require cross-tree non-membership semantics
+and make atomic updates and wallet proof refresh more complex without adding a
+distinct ownership boundary.
 
 For a regulated asset, Transfer proves both sender and receiver `Active`;
 withdrawal proves the sender `Active`; NoteReshape proves its owner `Active`.
 Fee funding uses Transfer. Deposits check the recipient's current leaf before
-minting. Frozen or seized users therefore cannot move the affected asset or
-reshape its notes to pay fees. Other assets remain independent.
+minting. Frozen users therefore cannot move the affected asset or reshape its
+notes to pay fees. Other assets remain authorization-independent.
 
 ## Bankd authorization boundary
 
@@ -118,11 +117,14 @@ auditor_or_quorum_signatures
 certificate_nonce
 ```
 
-Bankd will validate its authorization policy and certificate, then atomically:
+Once the authorization contract is selected, a future protocol revision can add
+a terminal `Seized` status. Bankd will validate its authorization policy and
+certificate, then atomically:
 
 1. require the current user state to be `Frozen`;
 2. consume the certificate ID in durable Bankd/Shieldd state;
-3. transition that exact leaf `Frozen -> Seized` without changing its position;
+3. transition that exact leaf from `Frozen` to the new terminal status without
+   changing its position;
 4. mint or release the certified amount on the Bankd side to the authorized
    destination; and
 5. emit a receipt binding the certificate, old/new roots, amount, and Bankd
@@ -130,6 +132,6 @@ Bankd will validate its authorization policy and certificate, then atomically:
 
 The terminal transition plus consumed-certificate index prevents a second
 seizure. Bankd mint/reissue must be in the same atomic transaction as the
-Shieldd transition; marking a leaf seized and minting in separate commits would
-permit partial execution. No `SeizeUserAsset` RPC or amount verifier is present
-until this authorization contract is selected.
+Shieldd transition; applying the terminal status and minting in separate commits
+would permit partial execution. No terminal status, `SeizeUserAsset` RPC, or
+amount verifier is present until this authorization contract is selected.
