@@ -16495,6 +16495,11 @@
       },
       {
         "path": "crates/bin/shieldd/src/ffi.rs",
+        "symbol": "app_parameters_query_reads_committed_genesis",
+        "reason": "supporting_regression_not_claim_evidence"
+      },
+      {
+        "path": "crates/bin/shieldd/src/ffi.rs",
         "symbol": "buffer_free_is_idempotent_for_the_same_buffer_struct",
         "reason": "supporting_regression_not_claim_evidence"
       },
@@ -16650,7 +16655,7 @@
       },
       {
         "path": "crates/core/app/src/app/host.rs",
-        "symbol": "host_execution_init_genesis_does_not_initialize_ibc",
+        "symbol": "host_execution_init_genesis_persists_ibc_parameters",
         "reason": "out_of_scope_for_four_circuit_claim"
       },
       {

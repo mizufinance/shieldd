@@ -29,6 +29,9 @@ const METHOD_EXPORT_GENESIS: u32 = 9;
 const METHOD_GET_COMMITTED_STATE: u32 = 10;
 const METHOD_ARCHIVED_NULLIFIER_PROOF: u32 = 11;
 
+// Read-only query method IDs start at 1_000_000.
+const METHOD_QUERY_APP_PARAMETERS: u32 = 1_000_000;
+
 #[repr(C)]
 pub struct ShielddHandle {
     _private: [u8; 0],
@@ -351,6 +354,11 @@ async fn dispatch(
             .await
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
+        METHOD_QUERY_APP_PARAMETERS => service
+            .app_parameters(decode(request)?)
+            .await
+            .map(|response| response.encode_to_vec())
+            .map_err(FfiError::service),
         _ => Err(FfiError::invalid_argument(format!(
             "unknown Shieldd method {method}"
         ))),
@@ -379,6 +387,7 @@ fn panic_message(payload: Box<dyn Any + Send>) -> String {
 mod tests {
     use super::*;
     use shieldd_sdk_app::genesis::{AppState, Content};
+    use shieldd_sdk_proto::core::app::v1::{AppParametersRequest, AppParametersResponse};
     use shieldd_sdk_proto::core::component::sct::v1::ArchivedNullifierProofRequest;
     use shieldd_sdk_proto::execution_client::v1::{
         BeginBlockRequest, BeginBlockResponse, CheckTxRequest, CheckTxResponse, CommitRequest,
@@ -571,6 +580,38 @@ mod tests {
 
         assert_eq!(committed.height, 0);
         assert_eq!(committed.root_hash, commit.root_hash);
+        close(handle);
+    }
+
+    #[test]
+    fn app_parameters_query_reads_committed_genesis() {
+        let directory = tempfile::tempdir().expect("temporary database directory");
+        let handle = open(directory.path());
+
+        let request = AppParametersRequest {}.encode_to_vec();
+        let uninitialized = shieldd_call(
+            handle,
+            METHOD_QUERY_APP_PARAMETERS,
+            request.as_ptr(),
+            request.len(),
+        );
+        assert_eq!(uninitialized.status, STATUS_FAILED_PRECONDITION);
+        assert!(error_text(&uninitialized).contains("not initialized"));
+        free_result(uninitialized);
+
+        initialize(handle);
+        let response: AppParametersResponse =
+            call(handle, METHOD_QUERY_APP_PARAMETERS, AppParametersRequest {});
+
+        let parameters = response
+            .app_parameters
+            .expect("app parameters response contains parameters");
+        assert_eq!(parameters.chain_id, "bankd-local");
+        assert!(parameters.compliance_params.is_some());
+        assert!(parameters.fee_params.is_some());
+        assert!(parameters.ibc_params.is_some());
+        assert!(parameters.sct_params.is_some());
+        assert!(parameters.shielded_pool_params.is_some());
         close(handle);
     }
 

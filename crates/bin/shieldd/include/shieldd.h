@@ -32,8 +32,8 @@ enum shieldd_status {
 };
 
 /*
- * Each request and successful response uses the corresponding
- * shieldd.execution_client.v1 protobuf message.
+ * Execution methods use the corresponding shieldd.execution_client.v1
+ * protobuf request and response unless documented otherwise.
  */
 enum shieldd_method {
   SHIELDD_METHOD_INIT_GENESIS = 1,
@@ -47,6 +47,13 @@ enum shieldd_method {
   SHIELDD_METHOD_EXPORT_GENESIS = 9,
   SHIELDD_METHOD_GET_COMMITTED_STATE = 10,
   SHIELDD_METHOD_ARCHIVED_NULLIFIER_PROOF = 11,
+
+  /*
+   * Read-only queries use IDs starting at 1000000. This method accepts
+   * shieldd.core.app.v1.AppParametersRequest and returns
+   * shieldd.core.app.v1.AppParametersResponse.
+   */
+  SHIELDD_METHOD_QUERY_APP_PARAMETERS = 1000000,
 };
 
 uint32_t shieldd_abi_version(void);

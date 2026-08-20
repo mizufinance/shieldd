@@ -6,6 +6,7 @@ use shieldd_sdk_compliance::{
     ComplianceRegistryRead as _, ComplianceRegistryWrite as _, UserAssetStatus,
     UserAssetStatusAction,
 };
+use shieldd_sdk_ibc::StateWriteExt as _;
 use shieldd_sdk_keys::Address;
 use shieldd_sdk_num::Amount;
 use shieldd_sdk_proto::execution_client::v1::{
@@ -502,6 +503,7 @@ impl App {
                 state_tx.put_host_withdrawals_enabled(true);
                 FeeComponent::init_chain(&mut state_tx, Some(&genesis.fee_content)).await;
                 Compliance::init_chain(&mut state_tx, Some(&genesis.compliance_content)).await;
+                state_tx.put_ibc_params(genesis.ibc_content.ibc_params.clone());
 
                 state_tx
                     .finish_block()
@@ -1256,16 +1258,17 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn host_execution_init_genesis_does_not_initialize_ibc() -> Result<()> {
+    async fn host_execution_init_genesis_persists_ibc_parameters() -> Result<()> {
         let storage = temp_storage().await;
         let mut host = HostExecution::new(storage.deref().clone());
 
         host.init_genesis(host_genesis()).await?;
 
-        assert!(
-            shieldd_sdk_ibc::StateReadExt::get_ibc_params(host.app.state.as_ref())
-                .await
-                .is_err()
+        let ibc_params =
+            shieldd_sdk_ibc::StateReadExt::get_ibc_params(host.app.state.as_ref()).await?;
+        assert_eq!(
+            ibc_params,
+            shieldd_sdk_ibc::params::IBCParameters::default()
         );
 
         Ok(())

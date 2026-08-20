@@ -7543,6 +7543,7 @@ _REVIEWED_TEST_EXCLUSION_SYMBOLS = {
         "sync_wallet_on_public_testnet",
     ),
     "crates/bin/shieldd/src/ffi.rs": (
+        "app_parameters_query_reads_committed_genesis",
         "buffer_free_is_idempotent_for_the_same_buffer_struct",
         "calls_sharing_a_handle_are_serialized",
         "committed_state_is_available_through_the_ffi",
@@ -7601,7 +7602,7 @@ _REVIEWED_TEST_EXCLUSION_SYMBOLS = {
         "host_execution_check_tx_requires_initialized_storage",
         "host_execution_exports_checkpoint_genesis",
         "host_execution_init_genesis_commits_content_genesis",
-        "host_execution_init_genesis_does_not_initialize_ibc",
+        "host_execution_init_genesis_persists_ibc_parameters",
         "host_source_requires_32_byte_tx_hash",
         "source_key_uses_host_tx_identity_not_deposit_contents",
     ),

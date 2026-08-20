@@ -812,7 +812,7 @@ REVIEWED_TEST_SOURCE_CENSUS = (
 # This pins every path/symbol/reason triple rendered in reviewed_test_census.
 # Update only after deciding whether each changed test is normative evidence.
 REVIEWED_TEST_EXCLUSIONS_SHA256 = (
-    "db12fc3c23aaeb717e0dc9736c9ae2b7590d7177aae6a769ea021e1d47c18ffa"
+    "67ba05ddd361c88eb7c56a0bf06998cd389eda9d9024a5ded19eaf32f7f94146"
 )
 PROPERTY_TEST_SOURCE_CENSUS = (
     "crates/core/component/compliance/src/structs.rs",
@@ -1411,6 +1411,7 @@ EXPECTED_HOST_EXECUTION_PUBLIC_METHODS = frozenset(
 )
 EXPECTED_EXECUTION_SERVICE_PUBLIC_METHODS = frozenset(
     {
+        "app_parameters",
         "archived_nullifier_proof",
         "apply_compliance_action",
         "begin_block",
@@ -8489,11 +8490,12 @@ def _validate_grpc_execution_frontdoors(root: Path) -> None:
         "METHOD_EXPORT_GENESIS": 9,
         "METHOD_GET_COMMITTED_STATE": 10,
         "METHOD_ARCHIVED_NULLIFIER_PROOF": 11,
+        "METHOD_QUERY_APP_PARAMETERS": 1_000_000,
     }
     ffi_methods = {
-        name: int(value)
+        name: int(value.replace("_", ""))
         for name, value in re.findall(
-            r"(?m)^const[ \t]+(METHOD_[A-Z_]+):[ \t]+u32[ \t]*=[ \t]*(\d+);",
+            r"(?m)^const[ \t]+(METHOD_[A-Z_]+):[ \t]+u32[ \t]*=[ \t]*([\d_]+);",
             ffi_source,
         )
     }
@@ -8520,6 +8522,7 @@ def _validate_grpc_execution_frontdoors(root: Path) -> None:
         ("METHOD_ROLLBACK", "rollback"),
         ("METHOD_EXPORT_GENESIS", "export_genesis"),
         ("METHOD_ARCHIVED_NULLIFIER_PROOF", "archived_nullifier_proof"),
+        ("METHOD_QUERY_APP_PARAMETERS", "app_parameters"),
     ):
         _require_ordered_symbols(
             ffi_dispatch,

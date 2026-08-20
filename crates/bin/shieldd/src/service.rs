@@ -3,7 +3,7 @@ use std::{fmt, path::Path};
 use anyhow::{Context as _, Result};
 use cnidarium::Storage;
 use shieldd_sdk_app::{
-    app::{App, HostBlock, HostExecution, HostTxResponse, HostWithdrawal},
+    app::{App, HostBlock, HostExecution, HostTxResponse, HostWithdrawal, StateReadExt as _},
     genesis::AppState,
     SUBSTORE_PREFIXES,
 };
@@ -296,6 +296,28 @@ impl ExecutionService {
         Ok(GetCommittedStateResponse {
             height: committed.height,
             root_hash: committed.root_hash,
+        })
+    }
+
+    pub async fn app_parameters(
+        &self,
+        _request: proto_app::AppParametersRequest,
+    ) -> std::result::Result<proto_app::AppParametersResponse, ServiceError> {
+        let storage = self.storage.as_ref().ok_or_else(ServiceError::closed)?;
+        if storage.latest_version() == u64::MAX {
+            return Err(ServiceError::failed_precondition(anyhow::anyhow!(
+                "Shieldd app state is not initialized"
+            )));
+        }
+        let app_parameters = storage
+            .latest_snapshot()
+            .get_app_params()
+            .await
+            .context("read committed Shieldd app parameters")
+            .map_err(ServiceError::internal)?;
+
+        Ok(proto_app::AppParametersResponse {
+            app_parameters: Some(app_parameters.into()),
         })
     }
 
