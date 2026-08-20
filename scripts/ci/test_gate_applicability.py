@@ -652,6 +652,7 @@ class GateApplicabilityTests(unittest.TestCase):
         )
         self.assertIn("candidate|strict", runner)
         self.assertIn("--skip-semantic-digest", runner)
+        self.assertIn("--glob '!third_party/**'", runner)
         self.assertIn(
             'check-certified-circuit-spec-independence.sh "$MODE"',
             runner,
