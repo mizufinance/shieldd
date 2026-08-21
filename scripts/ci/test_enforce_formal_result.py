@@ -17,7 +17,6 @@ def full_environment() -> dict[str, str]:
     env = os.environ.copy()
     env.update(
         {
-            "EVENT_NAME": "pull_request",
             "APPLICABILITY": "success",
             "SNARKPACK_STATUS": "run",
             "SNARKPACK_TIER": "full",
@@ -116,6 +115,16 @@ class EnforceFormalResultTests(unittest.TestCase):
         result = run_summary(env)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("PR soundness unexpectedly ran", result.stderr)
+
+    def test_scheduled_full_run_requires_alloy(self) -> None:
+        env = full_environment()
+        result = run_summary(env)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+        env["ALLOY"] = "skipped"
+        result = run_summary(env)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("soundness-alloy=skipped", result.stderr)
 
     def test_soundness_policy_runs_no_heavy_lane(self) -> None:
         env = full_environment()

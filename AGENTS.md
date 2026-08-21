@@ -56,6 +56,17 @@ They are not migration promises.
 - Document ownership, invariants, inputs, outputs, failure modes. Do not restate names or history.
 - Define docs once; reference elsewhere.
 
+## Formal Verification Gates
+
+When a formal gate is red, start at
+`docs/soundness/README.md#gate-failure-routing`. If circuit semantics did not
+change, repair the narrowest affected applicability rule, handwritten spec or
+proof, or source generator. Do not change a circuit or hand-edit generated
+Lean/artifacts merely to clear CI. Add a regression test only when routing
+behavior changes or the failure exposes a reusable missing check, not for every
+red run. Circuit changes and their regenerated evidence stay in one PR, with
+handwritten and generated changes in separate commits when practical.
+
 ## Lean Circuit Proofs
 
 All Lean-proof rules live in `tools/gnark/lean/AGENTS.md` — read it BEFORE any

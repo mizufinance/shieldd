@@ -43,19 +43,34 @@
         "default": "full"
       },
       "reason": "local Cargo dependency closure for deployed ABCI/host front doors, circuit, transaction, view construction, consensus execution, and constraint coverage seams"
+    },
+    {
+      "type": "cargo_lock_closure",
+      "path": "Cargo.lock",
+      "packages": [
+        "shieldd-constraint-coverage",
+        "shieldd-sdk-proof-params",
+        "shieldd-sdk-shielded-pool"
+      ],
+      "tiers": {
+        "pull_request": "pr",
+        "merge_group": "full",
+        "default": "full"
+      },
+      "reason": "locked Rust dependency closure for circuit coverage, proving parameters, and deployed verification"
     }
   ],
   "explicit_inputs": [
     {
       "patterns": [
         ".gitattributes",
+        ".gitignore",
         ".github/actions/prepare-proof-artifacts/**",
         ".github/actions/restore-proof-artifacts/**",
         ".github/workflows/formal-scheduled.yml",
         ".github/workflows/formal.yml",
         ".github/workflows/rust.yml",
         ".github/workflows/soundness-provers.yml",
-        "Cargo.lock",
         "ci/gates/soundness-formal.json",
         "crates/bench/Cargo.toml",
         "crates/bin/bankd-e2e-host-withdrawal-builder/Cargo.toml",
@@ -65,15 +80,8 @@
         "crates/bin/pd/Cargo.toml",
         "crates/bin/pd/build.rs",
         "crates/core/app-tests/Cargo.toml",
-        "crates/core/component/shielded-pool/Cargo.toml",
-        "crates/core/component/shielded-pool/src/gnark/artifacts.rs",
-        "crates/core/transaction/Cargo.toml",
         "crates/crypto/proof-aggregation/formal/snarkpack/fstar-checker-evidence.json",
         "crates/crypto/proof-aggregation/formal/snarkpack/verification-manifest.json",
-        "crates/crypto/proof-params/Cargo.toml",
-        "crates/crypto/proof-params/build.rs",
-        "crates/crypto/proof-params/src/gen/gnark/**",
-        "crates/crypto/proof-params/src/gnark_artifact_validation.rs",
         "crates/proto/build.rs",
         "justfile",
         "scripts/check_lfs_policy.py",
@@ -99,6 +107,13 @@
     {
       "patterns": [
         "scripts/fv_certification.py",
+        "crates/core/component/shielded-pool/Cargo.toml",
+        "crates/core/component/shielded-pool/src/gnark/artifacts.rs",
+        "crates/core/transaction/Cargo.toml",
+        "crates/crypto/proof-params/Cargo.toml",
+        "crates/crypto/proof-params/build.rs",
+        "crates/crypto/proof-params/src/gen/gnark/**",
+        "crates/crypto/proof-params/src/gnark_artifact_validation.rs",
         "tools/gnark/fv_certification_backends.json",
         "tools/gnark/fv_profiles.json",
         "tools/gnark/lean/ShielddGnarkFormal/Protocol/Common.lean",
@@ -145,7 +160,7 @@
       ],
       "tiers": {
         "pull_request": "pr",
-        "merge_group": "pr",
+        "merge_group": "full",
         "default": "full"
       },
       "reason": "certified-circuit semantics, generators, extractors, or proof-validation source"
@@ -159,7 +174,6 @@
         ".github/workflows/formal.yml",
         ".github/workflows/rust.yml",
         ".github/workflows/soundness-provers.yml",
-        "Cargo.lock",
         "Cargo.toml",
         "ci/gates/soundness-formal.json",
         "flake.lock",
@@ -170,21 +184,29 @@
       ],
       "tiers": {
         "pull_request": "pr",
-        "merge_group": "pr",
+        "merge_group": "full",
         "default": "full"
       },
       "reason": "workspace, toolchain, image, workflow, or classifier input"
     },
     {
       "patterns": [
-        ".gitignore",
         "crates/core/app/src/action_handler/transaction.rs",
         "crates/core/app/src/action_handler/transaction/**",
-        "crates/core/app/src/app/mod.rs",
+        "crates/core/app/src/app/mod.rs"
+      ],
+      "tiers": {
+        "pull_request": "pr",
+        "merge_group": "pr",
+        "default": "full"
+      },
+      "reason": "runtime transaction and consensus seams checked against committed circuit statements"
+    },
+    {
+      "patterns": [
         "crates/core/component/compliance/formal/**",
         "crates/core/component/shielded-pool/formal/**",
         "crates/core/component/shielded-pool/proofs/fstar/**",
-        "docs/soundness/**",
         "scripts/check-constraint-coverage.sh",
         "scripts/check-circuit-fv.sh",
         "scripts/check-formal-gate-self-tests.sh",
@@ -237,7 +259,7 @@
       ],
       "tiers": {
         "pull_request": "pr",
-        "merge_group": "pr",
+        "merge_group": "full",
         "default": "full"
       },
       "reason": "soundness proof, artifact, generator, runtime, or invoked gate input"

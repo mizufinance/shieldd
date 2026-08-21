@@ -1,0 +1,23 @@
+name: formal-scheduled
+
+# Scheduled workflows run from the latest commit on the default branch. Pass
+# that exact commit to the reusable full gate so the run cannot drift if dev
+# advances while jobs are queued.
+on:
+  schedule:
+    - cron: '23 5 * * *'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  full:
+    uses: ./.github/workflows/formal.yml
+    with:
+      target_ref: ${{ github.sha }}
+    secrets: inherit

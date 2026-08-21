@@ -50,6 +50,7 @@ class LockedCargoPackage:
     name: str
     version: str
     source: str | None
+    checksum: str | None
     dependencies: tuple[str, ...]
 
     @property
@@ -308,6 +309,19 @@ def declaration_from_data(
                     "reason": _string(item["reason"], f"{where}.reason"),
                 }
             )
+        elif kind == "cargo_lock_closure":
+            expected = {"type", "path", "packages", "tiers", "reason"}
+            if set(item) != expected:
+                raise ClassificationError(f"{where} has invalid fields")
+            derived.append(
+                {
+                    "type": kind,
+                    "path": normalize_repo_path(item["path"], f"{where}.path"),
+                    "packages": _strings(item["packages"], f"{where}.packages"),
+                    "tiers": _tier_map(item["tiers"], f"{where}.tiers", tiers),
+                    "reason": _string(item["reason"], f"{where}.reason"),
+                }
+            )
         elif kind == "lean_extraction_manifest":
             expected = {
                 "type",
@@ -554,6 +568,13 @@ def _locked_cargo_packages(
             raise ClassificationError(
                 f"{where}.package[{index}].source must be a string"
             )
+        checksum = package.get("checksum")
+        if checksum is not None and (
+            not isinstance(checksum, str) or not checksum
+        ):
+            raise ClassificationError(
+                f"{where}.package[{index}].checksum must be a non-empty string"
+            )
         dependencies = package.get("dependencies", [])
         if not isinstance(dependencies, list) or any(
             not isinstance(dependency, str) or not dependency
@@ -568,6 +589,7 @@ def _locked_cargo_packages(
                 package.get("version"), f"{where}.package[{index}].version"
             ),
             source=source,
+            checksum=checksum,
             dependencies=tuple(dependencies),
         )
         if locked.identity in identities:
@@ -639,6 +661,106 @@ def _cargo_lock_closure(
             for dependency in package.dependencies
         )
     return frozenset(selected)
+
+
+def cargo_lock_closure_fingerprint(
+    lock: dict[str, Any],
+    root_names: Iterable[str],
+    where: str,
+    *,
+    allow_missing_roots: bool = False,
+) -> str:
+    """Hash only the locked dependency graph reachable from named local roots."""
+
+    packages = _locked_cargo_packages(lock, where)
+    roots: list[tuple[str, str]] = []
+    missing: list[str] = []
+    for name in sorted(set(root_names)):
+        candidates = tuple(
+            package
+            for package in packages
+            if package.name == name and package.source is None
+        )
+        if not candidates and allow_missing_roots:
+            missing.append(name)
+            continue
+        if len(candidates) != 1:
+            raise ClassificationError(
+                f"{where} local root package {name!r} resolved to "
+                f"{len(candidates)} packages"
+            )
+        roots.append((candidates[0].name, candidates[0].version))
+
+    reachable = _cargo_lock_closure(lock, roots, where)
+    selected = sorted(
+        (package for package in packages if package.identity in reachable),
+        key=lambda package: (
+            package.name,
+            package.version,
+            package.source or "",
+        ),
+    )
+    digest = hashlib.sha256()
+    digest.update(b"shieldd.cargo-lock-closure.v1\n")
+    for name in missing:
+        digest.update(f"missing-root\0{name}\n".encode())
+    for package in selected:
+        row = {
+            "checksum": package.checksum,
+            "dependencies": sorted(package.dependencies),
+            "name": package.name,
+            "source": package.source,
+            "version": package.version,
+        }
+        digest.update(
+            json.dumps(row, sort_keys=True, separators=(",", ":")).encode()
+        )
+        digest.update(b"\n")
+    return digest.hexdigest()
+
+
+def cargo_lock_closure_rule(
+    root: Path,
+    source: dict[str, Any],
+    event: str,
+    base: str | None,
+) -> InputRule:
+    """Select a formal tier only when its Cargo.lock dependency graph changed."""
+
+    lock_path = source["path"]
+    current = _toml_file(root / lock_path, lock_path)
+    current_fingerprint = cargo_lock_closure_fingerprint(
+        current,
+        source["packages"],
+        lock_path,
+    )
+    relevant_tier = tier_for(source["tiers"], event, "Cargo.lock closure")
+    if base is None:
+        return InputRule(
+            patterns=(lock_path,),
+            tier=relevant_tier,
+            reason=(
+                f"{source['reason']}: no base revision was supplied, so the "
+                "dependency closure is treated as changed"
+            ),
+        )
+
+    previous = _git_toml_file(root, base, lock_path)
+    previous_fingerprint = cargo_lock_closure_fingerprint(
+        previous,
+        source["packages"],
+        f"{base}:{lock_path}",
+        allow_missing_roots=True,
+    )
+    changed = current_fingerprint != previous_fingerprint
+    return InputRule(
+        patterns=(lock_path,),
+        tier=relevant_tier if changed else "skip",
+        reason=(
+            f"{source['reason']}: relevant dependency closure "
+            f"{'changed' if changed else 'is unchanged'}"
+        ),
+    )
 
 
 def _local_cargo_packages(
@@ -1514,6 +1636,13 @@ def derived_rules(
         raise ClassificationError(
             "derived inputs must not be resolved for an unconditional event"
         )
+    normalized_changes = (
+        None
+        if changed_files is None
+        else frozenset(
+            normalize_repo_path(path, "changed path") for path in changed_files
+        )
+    )
     rules: list[InputRule] = []
     for source in declaration.derived_inputs:
         if source["type"] == "cargo_local_closure":
@@ -1523,6 +1652,15 @@ def derived_rules(
                     cargo_closure_rules_at_revision(
                         root, source, event, base
                     )
+                )
+            continue
+        if source["type"] == "cargo_lock_closure":
+            if (
+                normalized_changes is None
+                or source["path"] in normalized_changes
+            ):
+                rules.append(
+                    cargo_lock_closure_rule(root, source, event, base)
                 )
             continue
         manifest_path = root / source["path"]
@@ -1561,15 +1699,11 @@ def derived_rules(
                 for graph_id, graph in graphs.items()
             ),
         }
-        if changed_files is None:
+        if normalized_changes is None:
             # Direct callers that do not provide a candidate diff retain the
             # conservative historical behavior without an expensive scan.
             stale_graphs = frozenset(current_graphs)
         else:
-            normalized_changes = frozenset(
-                normalize_repo_path(path, "changed path")
-                for path in changed_files
-            )
             stale_graphs = (
                 extraction_stale_graphs(root, source, current)
                 if normalized_changes & evidence_paths
