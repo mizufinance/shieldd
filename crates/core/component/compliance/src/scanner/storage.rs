@@ -174,9 +174,6 @@ impl SqliteScannerStore {
                 asset_id TEXT NOT NULL,
                 is_flagged INTEGER NOT NULL,
                 salt BLOB NOT NULL,
-                sender_slot_id INTEGER NOT NULL,
-                receiver_slot_id INTEGER NOT NULL,
-                routing_roles_swapped INTEGER NOT NULL,
                 routing_tag_0 INTEGER NOT NULL,
                 routing_tag_1 INTEGER NOT NULL,
                 ciphertext_bytes BLOB NOT NULL,
@@ -718,9 +715,9 @@ impl ScannerStore for SqliteScannerStore {
             tx.execute(
                 "INSERT OR IGNORE INTO scanner_detections
                  (height, block_hash, tx_index, tx_hash, action_index, output_index,
-                  asset_id, is_flagged, salt, sender_slot_id, receiver_slot_id, routing_roles_swapped,
+                  asset_id, is_flagged, salt,
                   routing_tag_0, routing_tag_1, ciphertext_bytes, detection_status, audit_status)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)",
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
                 params![
                     tx_ref.block.height as i64,
                     tx_ref.block.block_hash.as_slice(),
@@ -731,9 +728,6 @@ impl ScannerStore for SqliteScannerStore {
                     event.asset_id.to_string(),
                     if event.is_flagged { 1i64 } else { 0i64 },
                     event.salt.to_bytes().as_slice(),
-                    event.sender_slot_id as i64,
-                    event.receiver_slot_id as i64,
-                    if event.routing_roles_swapped { 1i64 } else { 0i64 },
                     i64::from(event.routing_tags[0]),
                     i64::from(event.routing_tags[1]),
                     event.raw_bytes.as_slice(),
@@ -1102,9 +1096,6 @@ mod tests {
             asset_id: asset::Id(decaf377::Fq::from(123u64)),
             is_flagged: true,
             salt: decaf377::Fq::from(9u64),
-            sender_slot_id: 1,
-            receiver_slot_id: 2,
-            routing_roles_swapped: false,
             routing_tags: [11, 22],
             ciphertext: crate::transfer::TransferComplianceCiphertext {
                 sender_core_epk: decaf377::Element::GENERATOR,
@@ -1312,9 +1303,9 @@ mod tests {
             .execute(
                 "INSERT INTO scanner_detections
                  (height, block_hash, tx_index, tx_hash, action_index, output_index,
-                  asset_id, is_flagged, salt, sender_slot_id, receiver_slot_id, routing_roles_swapped,
+                  asset_id, is_flagged, salt,
                   routing_tag_0, routing_tag_1, ciphertext_bytes, detection_status, audit_status)
-                 VALUES (1, ?1, 0, ?2, 0, 0, 'asset', 0, ?3, 0, 0, 0, 11, 22, x'00', 'detected', 'unknown')",
+                 VALUES (1, ?1, 0, ?2, 0, 0, 'asset', 0, ?3, 11, 22, x'00', 'detected', 'unknown')",
                 params![block_hash.as_slice(), tx_hash.as_slice(), salt.as_slice()],
             )
             .expect_err("invalid audit status should fail");

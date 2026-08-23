@@ -649,7 +649,10 @@ async fn main() -> anyhow::Result<()> {
                 None => {
                     let genesis_start = pd::migrate::last_block_timestamp(pd_home.clone()).await?;
                     tracing::info!(?genesis_start, "last block timestamp");
-                    tracing::error!("This is the wrong migration routine for APP_VERSION=12. Read the documentation, and use the IBC client recovery routine");
+                    tracing::error!(
+                        app_version = APP_VERSION,
+                        "no default migration is defined for this prototype state version; use an explicit migration command or reset the node state"
+                    );
                 }
             }
         }

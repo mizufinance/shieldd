@@ -69,8 +69,6 @@ pub struct NoteReshapeWitnessV6 {
     pub routing_nonce: [u8; 32],
     pub sender_compliance_path: MerklePathBinary,
     pub sender_compliance_position: u64,
-    pub sender_slot_id: [u8; 32],
-    pub sender_slot_derivation: [u8; 32],
     pub sender_d: [u8; 32],
     pub sender_status: [u8; 32],
     pub shared: NoteReshapeSharedNoteContextWitnessV6,
@@ -80,10 +78,8 @@ pub struct NoteReshapeWitnessV6 {
     pub ak_affine: PointAffineBytes,
 }
 
-fn compliance_leaf_parts(
-    leaf: &crate::gnark::typed::ComplianceLeafBinary,
-) -> ([u8; 32], [u8; 32], [u8; 32], [u8; 32]) {
-    (leaf.slot_id, leaf.slot_derivation, leaf.d, leaf.status)
+fn compliance_leaf_parts(leaf: &crate::gnark::typed::ComplianceLeafBinary) -> ([u8; 32], [u8; 32]) {
+    (leaf.d, leaf.status)
 }
 
 fn verification_key_point(
@@ -178,8 +174,7 @@ impl NoteReshapeWitnessV6 {
             )?,
         };
         let sender_leaf = compliance_leaf_from_typed(&private.sender_leaf)?;
-        let (sender_slot_id, sender_slot_derivation, sender_d, sender_status) =
-            compliance_leaf_parts(&sender_leaf);
+        let (sender_d, sender_status) = compliance_leaf_parts(&sender_leaf);
 
         let mut witness = Self {
             family_id: public.family_id,
@@ -211,8 +206,6 @@ impl NoteReshapeWitnessV6 {
             routing_nonce: private.routing_nonce.to_bytes(),
             sender_compliance_path: merkle_path_from_typed(&private.sender_compliance_path)?,
             sender_compliance_position: private.sender_compliance_position,
-            sender_slot_id,
-            sender_slot_derivation,
             sender_d,
             sender_status,
             shared,

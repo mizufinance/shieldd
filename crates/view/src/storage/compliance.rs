@@ -14,7 +14,6 @@ pub struct IndexedLeafData {
     pub next_value: [u8; 32],
     pub dk_pub: [u8; 32],
     pub threshold: u128,
-    pub slot_count: u32,
     pub route_policy_hash: [u8; 32],
     pub ring_pk: [u8; 32],
     pub ring_id_hash: [u8; 32],
@@ -27,8 +26,6 @@ pub struct IndexedLeafData {
 #[derive(Debug, Clone)]
 pub struct UserLeafData {
     pub position: u64,
-    pub slot_id: u32,
-    pub slot_derivation: [u8; 32],
     pub d: [u8; 32],
     pub status: shieldd_sdk_compliance::UserAssetStatus,
     pub commitment: StateCommitment,
@@ -175,7 +172,7 @@ impl ComplianceTreeStore<'_, '_> {
         let mut stmt = self
             .0
             .prepare_cached(
-                "SELECT value, next_index, next_value, dk_pub, threshold, slot_count, \
+                "SELECT value, next_index, next_value, dk_pub, threshold, \
                  route_policy_hash, ring_pk, ring_id_hash, policy_id_hash, permission_hash, resource_hash \
                  FROM compliance_asset_leaves WHERE position = ?1",
             )
@@ -189,7 +186,6 @@ impl ComplianceTreeStore<'_, '_> {
                     row.get::<_, Vec<u8>>("next_value")?,
                     row.get::<_, Vec<u8>>("dk_pub")?,
                     row.get::<_, Vec<u8>>("threshold")?,
-                    row.get::<_, i64>("slot_count")?,
                     row.get::<_, Vec<u8>>("route_policy_hash")?,
                     row.get::<_, Vec<u8>>("ring_pk")?,
                     row.get::<_, Vec<u8>>("ring_id_hash")?,
@@ -208,7 +204,6 @@ impl ComplianceTreeStore<'_, '_> {
                 next_value,
                 dk_pub,
                 threshold,
-                slot_count,
                 route_policy_hash,
                 ring_pk,
                 ring_id_hash,
@@ -268,20 +263,12 @@ impl ComplianceTreeStore<'_, '_> {
                         position
                     )
                 };
-                let slot_count = u32::try_from(slot_count).map_err(|_| {
-                    anyhow::anyhow!(
-                        "asset leaf slot_count is negative or too large ({}) at position {}",
-                        slot_count,
-                        position
-                    )
-                })?;
                 Ok(Some(IndexedLeafData {
                     value,
                     next_index,
                     next_value,
                     dk_pub,
                     threshold,
-                    slot_count,
                     route_policy_hash,
                     ring_pk,
                     ring_id_hash,
@@ -313,9 +300,9 @@ impl ComplianceTreeStore<'_, '_> {
         self.0
             .prepare_cached(
                 "INSERT OR REPLACE INTO compliance_asset_leaves \
-                 (position, value, next_index, next_value, dk_pub, threshold, slot_count, \
+                 (position, value, next_index, next_value, dk_pub, threshold, \
                   route_policy_hash, ring_pk, ring_id_hash, policy_id_hash, permission_hash, resource_hash) \
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
             )
             .context("failed to prepare asset leaf insert")?
             .execute((
@@ -325,7 +312,6 @@ impl ComplianceTreeStore<'_, '_> {
                 &leaf.next_value.to_vec(),
                 &leaf.dk_pub.to_vec(),
                 &threshold_bytes,
-                &i64::from(leaf.slot_count),
                 &leaf.route_policy_hash.to_vec(),
                 &leaf.ring_pk.to_vec(),
                 &leaf.ring_id_hash.to_vec(),
@@ -518,8 +504,6 @@ impl ComplianceTreeStore<'_, '_> {
         address: &[u8],
         asset_id: &[u8],
         position: u64,
-        slot_id: u32,
-        slot_derivation: &[u8],
         d: &[u8],
         status: shieldd_sdk_compliance::UserAssetStatus,
         commitment: StateCommitment,
@@ -530,16 +514,14 @@ impl ComplianceTreeStore<'_, '_> {
         self.0
             .prepare_cached(
                 "INSERT OR REPLACE INTO compliance_user_leaf_data \
-                 (address, asset_id, position, slot_id, slot_derivation, d, status, commitment) \
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                 (address, asset_id, position, d, status, commitment) \
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
             )
             .context("failed to prepare leaf data insert")?
             .execute((
                 address,
                 asset_id,
                 &position,
-                &i64::from(slot_id),
-                slot_derivation,
                 d,
                 &(shieldd_sdk_proto::core::component::compliance::v1::UserAssetStatus::from(status)
                     as i32),
@@ -562,7 +544,6 @@ impl ComplianceTreeStore<'_, '_> {
     }
 
     /// Get full compliance leaf data for an address/asset pair.
-    /// Returns full slot derivation data if found.
     pub fn get_leaf_data(
         &mut self,
         address: &[u8],
@@ -571,7 +552,7 @@ impl ComplianceTreeStore<'_, '_> {
         let mut stmt = self
             .0
             .prepare_cached(
-                "SELECT position, slot_id, slot_derivation, d, status, commitment \
+                "SELECT position, d, status, commitment \
                  FROM compliance_user_leaf_data \
                  WHERE address = ?1 AND asset_id = ?2",
             )
@@ -580,28 +561,16 @@ impl ComplianceTreeStore<'_, '_> {
         let result = stmt
             .query_row((address, asset_id), |row| {
                 let position: i64 = row.get("position")?;
-                let slot_id: i64 = row.get("slot_id")?;
-                let slot_derivation: Vec<u8> = row.get("slot_derivation")?;
                 let d: Vec<u8> = row.get("d")?;
                 let status: i32 = row.get("status")?;
                 let commitment: Vec<u8> = row.get("commitment")?;
-                Ok((position, slot_id, slot_derivation, d, status, commitment))
+                Ok((position, d, status, commitment))
             })
             .optional()
             .context("failed to query leaf data")?;
 
         match result {
-            Some((position, slot_id, slot_derivation, d, status, commitment)) => {
-                let slot_id = u32::try_from(slot_id).map_err(|_| {
-                    anyhow::anyhow!("leaf data slot_id is negative or too large: {slot_id}")
-                })?;
-                let slot_derivation: [u8; 32] =
-                    slot_derivation.try_into().map_err(|v: Vec<u8>| {
-                        anyhow::anyhow!(
-                            "leaf data slot_derivation must be 32 bytes, got {}",
-                            v.len()
-                        )
-                    })?;
+            Some((position, d, status, commitment)) => {
                 let d: [u8; 32] = d.try_into().map_err(|v: Vec<u8>| {
                     anyhow::anyhow!("leaf data d must be 32 bytes, got {}", v.len())
                 })?;
@@ -613,8 +582,6 @@ impl ComplianceTreeStore<'_, '_> {
                 })?;
                 Ok(Some(UserLeafData {
                     position: position as u64,
-                    slot_id,
-                    slot_derivation,
                     d,
                     status: status.try_into()?,
                     commitment: StateCommitment::try_from(commitment)?,
@@ -752,7 +719,6 @@ mod tests {
             next_value: [4u8; 32],
             dk_pub: [7u8; 32],
             threshold: 1000,
-            slot_count: 10,
             route_policy_hash: [10u8; 32],
             ring_pk: [11u8; 32],
             ring_id_hash: [12u8; 32],
@@ -766,7 +732,6 @@ mod tests {
         assert_eq!(retrieved.next_index, 1);
         assert_eq!(retrieved.next_value, [4u8; 32]);
         assert_eq!(retrieved.dk_pub, [7u8; 32]);
-        assert_eq!(retrieved.slot_count, 10);
         assert_eq!(retrieved.threshold, 1000);
         assert_eq!(retrieved.route_policy_hash, [10u8; 32]);
         assert_eq!(retrieved.ring_pk, [11u8; 32]);

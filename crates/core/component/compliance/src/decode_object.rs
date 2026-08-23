@@ -10,8 +10,6 @@ use crate::indexed_tree::string_to_fq;
 /// in sender-core, sender-extension, output-core, output-extension order.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TransferComplianceMetadata {
-    pub sender_subject_derivation_bytes: [u8; 32],
-    pub output_subject_derivation_bytes: [u8; 32],
     pub ring_id_hash_bytes: [u8; 32],
     pub policy_id_hash_bytes: [u8; 32],
     pub resource_hash_bytes: [u8; 32],
@@ -23,13 +21,11 @@ pub struct TransferComplianceMetadata {
     pub output_ext_salt_bytes: [u8; 32],
 }
 
-pub const TRANSFER_COMPLIANCE_METADATA_BYTES: usize = 10 * 32 + 8;
+pub const TRANSFER_COMPLIANCE_METADATA_BYTES: usize = 8 * 32 + 8;
 
 impl TransferComplianceMetadata {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        sender_subject_derivation: Fq,
-        output_subject_derivation: Fq,
         ring_id_hash: Fq,
         policy_id_hash: Fq,
         resource_hash: Fq,
@@ -41,8 +37,6 @@ impl TransferComplianceMetadata {
         output_ext_salt: Fq,
     ) -> Self {
         Self {
-            sender_subject_derivation_bytes: sender_subject_derivation.to_bytes(),
-            output_subject_derivation_bytes: output_subject_derivation.to_bytes(),
             ring_id_hash_bytes: ring_id_hash.to_bytes(),
             policy_id_hash_bytes: policy_id_hash.to_bytes(),
             resource_hash_bytes: resource_hash.to_bytes(),
@@ -57,8 +51,6 @@ impl TransferComplianceMetadata {
 
     #[allow(clippy::too_many_arguments)]
     pub fn from_identifiers(
-        sender_subject_derivation: Fq,
-        output_subject_derivation: Fq,
         ring_id: &str,
         policy_id: &str,
         resource: &str,
@@ -70,8 +62,6 @@ impl TransferComplianceMetadata {
         output_ext_salt: Fq,
     ) -> Self {
         Self::new(
-            sender_subject_derivation,
-            output_subject_derivation,
             string_to_fq(ring_id),
             string_to_fq(policy_id),
             string_to_fq(resource),
@@ -85,8 +75,6 @@ impl TransferComplianceMetadata {
     }
 
     pub fn validate(&self) -> Result<()> {
-        self.sender_subject_derivation()?;
-        self.output_subject_derivation()?;
         self.ring_id_hash()?;
         self.policy_id_hash()?;
         self.resource_hash()?;
@@ -104,8 +92,6 @@ impl TransferComplianceMetadata {
     pub fn to_bytes(&self) -> Result<Vec<u8>> {
         self.validate()?;
         let mut out = Vec::with_capacity(TRANSFER_COMPLIANCE_METADATA_BYTES);
-        out.extend_from_slice(&self.sender_subject_derivation_bytes);
-        out.extend_from_slice(&self.output_subject_derivation_bytes);
         out.extend_from_slice(&self.ring_id_hash_bytes);
         out.extend_from_slice(&self.policy_id_hash_bytes);
         out.extend_from_slice(&self.resource_hash_bytes);
@@ -126,8 +112,6 @@ impl TransferComplianceMetadata {
         );
         let mut reader = MetadataReader::new(bytes);
         let metadata = Self {
-            sender_subject_derivation_bytes: reader.read_array::<32>()?,
-            output_subject_derivation_bytes: reader.read_array::<32>()?,
             ring_id_hash_bytes: reader.read_array::<32>()?,
             policy_id_hash_bytes: reader.read_array::<32>()?,
             resource_hash_bytes: reader.read_array::<32>()?,
@@ -141,20 +125,6 @@ impl TransferComplianceMetadata {
         reader.finish()?;
         metadata.validate()?;
         Ok(metadata)
-    }
-
-    pub fn sender_subject_derivation(&self) -> Result<Fq> {
-        parse_fq(
-            self.sender_subject_derivation_bytes,
-            "sender_subject_derivation_bytes",
-        )
-    }
-
-    pub fn output_subject_derivation(&self) -> Result<Fq> {
-        parse_fq(
-            self.output_subject_derivation_bytes,
-            "output_subject_derivation_bytes",
-        )
     }
 
     pub fn ring_id_hash(&self) -> Result<Fq> {
@@ -247,8 +217,6 @@ mod tests {
 
     fn metadata() -> TransferComplianceMetadata {
         TransferComplianceMetadata::from_identifiers(
-            Fq::from(41u64),
-            Fq::from(42u64),
             "ring-id",
             "policy-id",
             "document",
@@ -278,11 +246,22 @@ mod tests {
     }
 
     #[test]
+    fn transfer_metadata_does_not_publish_subject_derivations() {
+        let encoded = metadata().to_bytes().expect("metadata should encode");
+        for derivation in [Fq::from(41u64), Fq::from(42u64)] {
+            assert!(
+                !encoded
+                    .windows(32)
+                    .any(|window| window == derivation.to_bytes()),
+                "subject derivations must not be serialized with transfer metadata"
+            );
+        }
+    }
+
+    #[test]
     fn transfer_metadata_wire_is_exactly_the_factored_record() {
         let metadata = metadata();
         let mut expected = Vec::with_capacity(TRANSFER_COMPLIANCE_METADATA_BYTES);
-        expected.extend_from_slice(&metadata.sender_subject_derivation_bytes);
-        expected.extend_from_slice(&metadata.output_subject_derivation_bytes);
         expected.extend_from_slice(&metadata.ring_id_hash_bytes);
         expected.extend_from_slice(&metadata.policy_id_hash_bytes);
         expected.extend_from_slice(&metadata.resource_hash_bytes);

@@ -14,24 +14,30 @@
 use decaf377::{Element, Fq, Fr};
 use once_cell::sync::Lazy;
 use shieldd_sdk_asset::asset;
+use shieldd_sdk_keys::Address;
 
 use sha2::{Digest, Sha512};
 
-use crate::issuer_keys::{detection_sender_from_fq, slot_id_from_fq, DETECTION_TIER_BYTES};
+use crate::issuer_keys::{detection_flag_from_fq, DETECTION_TIER_BYTES};
 /// Domain separator for SHA-512 derivation — matches Orbis `DERIVATION_DOMAIN` exactly.
 const DERIVATION_DOMAIN: &[u8; 23] = b"elgamal-derivation-v1\0\0";
 
-/// Derive the compliance scalar `d` from canonical slot derivation material.
+/// Canonical ordinary-Orbis derivation path for one full Shieldd address.
+pub fn compliance_derivation(address: &Address) -> Vec<u8> {
+    address.to_vec()
+}
+
+/// Derive the compliance scalar `d` from the full canonical address.
 ///
-/// `d = Fr::from_le_bytes_mod_order(SHA512(DERIVATION_DOMAIN || slot_derivation.to_bytes()))`
+/// `d = Fr::from_le_bytes_mod_order(SHA512(DERIVATION_DOMAIN || address.to_vec()))`
 ///
 /// This MUST match Orbis's `derive_capability_scalar()` so PRE math cancels correctly.
 /// Orbis uses a 64-byte SHA-512 digest reduced mod `Fr` (wide reduction, negligible
 /// bias). The result is stored as Fq in the compliance leaf (Fr fits losslessly in Fq).
-pub fn derive_compliance_scalar(slot_derivation: Fq) -> Fq {
+pub fn derive_compliance_scalar(address: &Address) -> Fq {
     let mut hasher = Sha512::new();
     hasher.update(DERIVATION_DOMAIN);
-    hasher.update(slot_derivation.to_bytes());
+    hasher.update(compliance_derivation(address));
     let hash = hasher.finalize();
     // Reduce mod r first (matching Orbis's Fr::from_le_bytes_mod_order), then embed into Fq.
     // r < q for decaf377, so this conversion is lossless.
@@ -98,7 +104,7 @@ pub fn decrypt_detection_tier(
     epk_1: &Element,
     detection_ciphertext: &[u8; DETECTION_TIER_BYTES],
     expected_asset_id: &asset::Id,
-) -> anyhow::Result<(asset::Id, bool, Fq, u32, u32, bool)> {
+) -> anyhow::Result<(asset::Id, bool, Fq)> {
     let ss = *epk_1 * *dk;
 
     let epk_1_fq = epk_1.vartime_compress_to_field();
@@ -121,23 +127,18 @@ pub fn decrypt_detection_tier(
     let keystream_1 = compliance_stream_block(seed, 1);
     let salt = ct_salt - keystream_1;
 
-    let ct_sender_slot = Fq::from_le_bytes_mod_order(&detection_ciphertext[64..96]);
+    let ct_flag = Fq::from_le_bytes_mod_order(&detection_ciphertext[64..96]);
     let keystream_2 = compliance_stream_block(seed, 2);
-    let (sender_slot_id, is_flagged, routing_roles_swapped) =
-        detection_sender_from_fq(ct_sender_slot - keystream_2)?;
+    let is_flagged = detection_flag_from_fq(ct_flag - keystream_2)?;
 
-    let ct_receiver_slot = Fq::from_le_bytes_mod_order(&detection_ciphertext[96..128]);
+    let ct_reserved = Fq::from_le_bytes_mod_order(&detection_ciphertext[96..128]);
     let keystream_3 = compliance_stream_block(seed, 3);
-    let receiver_slot_id = slot_id_from_fq(ct_receiver_slot - keystream_3, "receiver_slot_id")?;
+    anyhow::ensure!(
+        ct_reserved - keystream_3 == Fq::from(0u64),
+        "detection reserved word is nonzero"
+    );
 
-    Ok((
-        *expected_asset_id,
-        is_flagged,
-        salt,
-        sender_slot_id,
-        receiver_slot_id,
-        routing_roles_swapped,
-    ))
+    Ok((*expected_asset_id, is_flagged, salt))
 }
 
 /// Decrypt an encrypted tier using Poseidon stream cipher.
@@ -191,18 +192,17 @@ mod tests {
 
     #[test]
     fn test_derive_compliance_scalar_deterministic() {
-        let fq1 = Fq::from(12345u64);
-        let fq2 = Fq::from(12345u64);
-        let fq3 = Fq::from(99999u64);
+        let address1 = &shieldd_sdk_keys::test_keys::ADDRESS_0;
+        let address2 = &shieldd_sdk_keys::test_keys::ADDRESS_1;
 
         assert_eq!(
-            derive_compliance_scalar(fq1),
-            derive_compliance_scalar(fq2),
+            derive_compliance_scalar(address1),
+            derive_compliance_scalar(address1),
             "same input must produce same scalar"
         );
         assert_ne!(
-            derive_compliance_scalar(fq1),
-            derive_compliance_scalar(fq3),
+            derive_compliance_scalar(address1),
+            derive_compliance_scalar(address2),
             "different inputs must produce different scalars"
         );
     }

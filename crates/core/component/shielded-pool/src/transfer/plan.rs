@@ -335,7 +335,7 @@ impl TransferPlan {
                 .ok_or_else(|| anyhow!("transfer requires at least one spend"))?,
         );
         let asset_policy = self.asset_policy()?;
-        let (routing, routing_roles_swapped) = self.routing();
+        let (routing, _) = self.routing();
         let compliance = build_transfer_compliance(
             &self.outputs,
             &sender_leaf,
@@ -343,7 +343,6 @@ impl TransferPlan {
             &self.spends[0].asset_indexed_leaf,
             self.spends[0].target_timestamp,
             self.spends[0].tx_blinding_nonce,
-            routing_roles_swapped,
         )?;
 
         let inputs = self
@@ -447,7 +446,7 @@ impl TransferPlan {
         let asset_policy = self
             .asset_policy()
             .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))?;
-        let (routing, routing_roles_swapped) = self.routing();
+        let (routing, _) = self.routing();
         let compliance = build_transfer_compliance(
             &self.outputs,
             &sender_leaf,
@@ -455,7 +454,6 @@ impl TransferPlan {
             &self.spends[0].asset_indexed_leaf,
             self.spends[0].target_timestamp,
             self.spends[0].tx_blinding_nonce,
-            routing_roles_swapped,
         )
         .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))?;
 
@@ -636,7 +634,7 @@ impl TransferPlan {
             anchor,
             recent_position_floor,
         )?;
-        crate::gnark::encode_transfer_witness_v19(&public, &private)
+        crate::gnark::encode_transfer_witness_v20(&public, &private)
             .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))
     }
 
@@ -1096,7 +1094,7 @@ mod tests {
             .compliance_leaf
             .as_mut()
             .expect("test spend has a compliance leaf")
-            .slot_id += 1;
+            .status = shieldd_sdk_compliance::UserAssetStatus::Frozen;
         assert_validation_and_decode_reject(
             bad_leaf,
             "transfer spends must use the same sender compliance witness",
@@ -1202,7 +1200,7 @@ mod tests {
             .compliance_leaf
             .as_mut()
             .expect("change output has a compliance leaf")
-            .slot_id += 1;
+            .status = shieldd_sdk_compliance::UserAssetStatus::Frozen;
         assert_validation_and_decode_reject(
             bad_leaf,
             "transfer change output must use the sender compliance witness",

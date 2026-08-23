@@ -8,7 +8,7 @@ use crate::{
     TxRef, TRANSFER_COMPLIANCE_METADATA_BYTES, TRANSFER_WIRE_BYTES,
 };
 
-pub const COMPLIANCE_EVIDENCE_VERSION: u32 = 3;
+pub const COMPLIANCE_EVIDENCE_VERSION: u32 = 4;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum EvidenceObjectType {
@@ -266,8 +266,7 @@ pub(crate) mod tests {
     use crate::{crypto::derive_compliance_scalar, test_helpers::make_address};
 
     fn derive_ack(ring_pk: &Element, address: &shieldd_sdk_keys::Address) -> Element {
-        let b_d_fq = address.diversified_generator().vartime_compress_to_field();
-        let d = derive_compliance_scalar(b_d_fq);
+        let d = derive_compliance_scalar(address);
         *ring_pk * Fr::from_le_bytes_mod_order(&d.to_bytes())
     }
 
@@ -291,18 +290,13 @@ pub(crate) mod tests {
                 asset_id,
             },
             false,
-            0,
-            0,
-            false,
             detection_salt,
+            Fq::from(11u64),
+            Fq::from(13u64),
         )
         .expect("fixture transfer should encrypt");
 
-        let sender_subject = sender.diversified_generator().vartime_compress_to_field();
-        let receiver_subject = receiver.diversified_generator().vartime_compress_to_field();
         let metadata = TransferComplianceMetadata::from_identifiers(
-            sender_subject,
-            receiver_subject,
             "ring-id",
             "policy-id",
             "document",
@@ -368,6 +362,17 @@ pub(crate) mod tests {
     }
 
     #[test]
+    fn evidence_rejects_previous_layout_even_with_a_valid_payload_hash() {
+        let (mut evidence, _) = valid_evidence_fixture();
+        evidence.version = COMPLIANCE_EVIDENCE_VERSION - 1;
+        evidence.payload_hash = evidence.compute_payload_hash();
+
+        let error = ComplianceEvidenceObject::from_bytes(&evidence.to_bytes())
+            .expect_err("the previous same-length layout must not be reinterpreted");
+        assert!(error.to_string().contains("unsupported evidence version"));
+    }
+
+    #[test]
     fn evidence_hash_commits_to_every_metadata_field() {
         let (evidence, _) = valid_evidence_fixture();
         let original = evidence.object_hash();
@@ -376,9 +381,7 @@ pub(crate) mod tests {
             let value = Fq::from_bytes_checked(bytes).expect("fixture field is canonical");
             *bytes = (value + Fq::from(1u64)).to_bytes();
         }
-        let mutations: [fn(&mut TransferComplianceMetadata); 11] = [
-            |m| increment(&mut m.sender_subject_derivation_bytes),
-            |m| increment(&mut m.output_subject_derivation_bytes),
+        let mutations: [fn(&mut TransferComplianceMetadata); 9] = [
             |m| increment(&mut m.ring_id_hash_bytes),
             |m| increment(&mut m.policy_id_hash_bytes),
             |m| increment(&mut m.resource_hash_bytes),

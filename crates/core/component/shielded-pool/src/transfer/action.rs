@@ -322,8 +322,8 @@ mod tests {
         };
 
         let encoded = output.encode_to_vec();
-        // Field 5, length-delimited, followed by the canonical 328-byte record.
-        assert_eq!(&encoded[..3], &[0x2a, 0xc8, 0x02]);
+        // Field 5, length-delimited, followed by the canonical 264-byte record.
+        assert_eq!(&encoded[..3], &[0x2a, 0x88, 0x02]);
         assert_eq!(&encoded[3..], metadata.as_slice());
     }
 }

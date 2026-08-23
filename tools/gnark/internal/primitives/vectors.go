@@ -99,6 +99,20 @@ type DLEQFixture struct {
 	DleqS             string `json:"dleq_s"`
 }
 
+type OrbisDerivationVector struct {
+	DerivationHex string `json:"derivation_hex"`
+	Scalar        string `json:"scalar"`
+}
+
+type CompactPreDLEQVector struct {
+	CapabilitySecret string `json:"capability_secret"`
+	ReaderSecret     string `json:"reader_secret"`
+	EPKSecret        string `json:"epk_secret"`
+	Nonce            string `json:"nonce"`
+	Challenge        string `json:"challenge"`
+	Response         string `json:"response"`
+}
+
 type NoteReshapeStatementFixture struct {
 	Label         string   `json:"label"`
 	Domain        string   `json:"domain"`
@@ -113,6 +127,8 @@ type PrototypeVectors struct {
 	Decaf377Compress       []DecafCompressVector         `json:"decaf377_compress_vectors"`
 	Decaf377Encode         []DecafEncodeVector           `json:"decaf377_encode_vectors"`
 	DleqFixture            DLEQFixture                   `json:"dleq_fixture"`
+	OrbisDerivation        OrbisDerivationVector         `json:"orbis_derivation"`
+	CompactPreDLEQ         CompactPreDLEQVector          `json:"compact_pre_dleq"`
 	NoteReshapeStatements  []NoteReshapeStatementFixture `json:"note_reshape_statements"`
 }
 
@@ -160,7 +176,6 @@ type IndexedLeafFixture struct {
 	NextValue      []byte      `json:"next_value"`
 	DKPub          []byte      `json:"dk_pub"`
 	Threshold      json.Number `json:"threshold"`
-	SlotCount      json.Number `json:"slot_count"`
 	ChannelsHash   []byte      `json:"channels_hash"`
 	RingPK         []byte      `json:"ring_pk"`
 	RingIDHash     []byte      `json:"ring_id_hash"`
@@ -178,12 +193,10 @@ type AssetIDFixture struct {
 }
 
 type ComplianceLeafFixture struct {
-	Address        AddressFixture `json:"address"`
-	AssetID        AssetIDFixture `json:"assetId"`
-	SlotID         string         `json:"slot_id"`
-	SlotDerivation string         `json:"slot_derivation"`
-	D              string         `json:"d"`
-	Status         string         `json:"status"`
+	Address AddressFixture `json:"address"`
+	AssetID AssetIDFixture `json:"assetId"`
+	D       string         `json:"d"`
+	Status  string         `json:"status"`
 }
 
 type SpendPrivateFixture struct {

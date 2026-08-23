@@ -2007,8 +2007,6 @@ impl Storage {
                         &update.leaf.address.to_vec(),
                         &update.leaf.asset_id.to_bytes(),
                         update.position,
-                        update.leaf.slot_id,
-                        &update.leaf.slot_derivation.to_bytes(),
                         &update.leaf.d.to_bytes(),
                         update.leaf.status,
                         update.commitment,

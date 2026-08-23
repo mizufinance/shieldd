@@ -141,17 +141,15 @@ func verifyRoutingAssetRegistry(
 		"gadget.asset_registry_params_hash",
 		"dk_pub_fq=asset.leaf.dk_pub_fq",
 		"threshold=asset.leaf.threshold",
-		"slot_count=asset.leaf.slot_count",
 		"channels_hash=asset.leaf.channels_hash",
 		"out=asset.leaf.params_hash",
 	)
-	paramsHash, err := Poseidon377Hash4(
+	paramsHash, err := Poseidon377Hash3(
 		api,
 		MustBigInt(vectors.Poseidon377.IMTParamsDomain),
-		[4]frontend.Variable{
+		[3]frontend.Variable{
 			dkPubFq,
 			asset.Leaf.Threshold,
-			asset.Leaf.SlotCount,
 			asset.Leaf.ChannelsHash,
 		},
 	)

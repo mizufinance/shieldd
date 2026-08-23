@@ -49,20 +49,6 @@ fn ensure_transfer_pre_available() -> Result<()> {
     )
 }
 
-fn compliance_slot_derivation_hex(label: &str) -> String {
-    let mut hash = 0xcbf29ce484222325u64;
-    for byte in label.as_bytes() {
-        hash ^= u64::from(*byte);
-        hash = hash.wrapping_mul(0x100000001b3);
-    }
-    if hash == 0 {
-        hash = 1;
-    }
-    let mut bytes = [0u8; 32];
-    bytes[..8].copy_from_slice(&hash.to_le_bytes());
-    hex::encode(bytes)
-}
-
 #[derive(Parser, Debug)]
 #[clap(
     name = "orbis-integration",
@@ -440,8 +426,6 @@ async fn seed(repo: &RepoPaths, endpoints: &OrbisEndpoints) -> Result<()> {
     )?
     .trim()
     .to_string();
-    let alice_slot_derivation_0 = compliance_slot_derivation_hex("alice:regulated_usd:0");
-    let alice_slot_derivation_1 = compliance_slot_derivation_hex("alice:regulated_usd:1");
     let alice_grant_0 = capture_pcli(
         repo,
         &env,
@@ -454,10 +438,6 @@ async fn seed(repo: &RepoPaths, endpoints: &OrbisEndpoints) -> Result<()> {
             "regulated_usd",
             "--address",
             env.get("ALICE_ADDRESS")?,
-            "--slot-id",
-            "0",
-            "--slot-derivation-hex",
-            &alice_slot_derivation_0,
             "--policy-id",
             &policy_id,
             "--registration-authority-sk-hex",
@@ -478,10 +458,6 @@ async fn seed(repo: &RepoPaths, endpoints: &OrbisEndpoints) -> Result<()> {
             "regulated_usd",
             "--address",
             &alice_address_1,
-            "--slot-id",
-            "1",
-            "--slot-derivation-hex",
-            &alice_slot_derivation_1,
             "--policy-id",
             &policy_id,
             "--registration-authority-sk-hex",
@@ -501,10 +477,6 @@ async fn seed(repo: &RepoPaths, endpoints: &OrbisEndpoints) -> Result<()> {
             "compliance",
             "register-user",
             "regulated_usd",
-            "--slot-id",
-            "0",
-            "--slot-derivation-hex",
-            &alice_slot_derivation_0,
             "--user-registration-grant-hex",
             &alice_grant_0,
         ],
@@ -534,19 +506,12 @@ async fn seed(repo: &RepoPaths, endpoints: &OrbisEndpoints) -> Result<()> {
             "regulated_usd",
             "--address-index",
             "1",
-            "--slot-id",
-            "1",
-            "--slot-derivation-hex",
-            &alice_slot_derivation_1,
             "--user-registration-grant-hex",
             &alice_grant_1,
         ],
     )?;
-    for (slot_id, who) in [(2u32, "BOB_HOME"), (3u32, "CHARLIE_HOME")] {
+    for who in ["BOB_HOME", "CHARLIE_HOME"] {
         let address_key = who.trim_end_matches("_HOME").to_string() + "_ADDRESS";
-        let slot_id_text = slot_id.to_string();
-        let slot_derivation_hex =
-            compliance_slot_derivation_hex(&format!("{who}:regulated_usd:{slot_id}"));
         let grant = capture_pcli(
             repo,
             &env,
@@ -559,10 +524,6 @@ async fn seed(repo: &RepoPaths, endpoints: &OrbisEndpoints) -> Result<()> {
                 "regulated_usd",
                 "--address",
                 env.get(&address_key)?,
-                "--slot-id",
-                &slot_id_text,
-                "--slot-derivation-hex",
-                &slot_derivation_hex,
                 "--policy-id",
                 &policy_id,
                 "--registration-authority-sk-hex",
@@ -581,10 +542,6 @@ async fn seed(repo: &RepoPaths, endpoints: &OrbisEndpoints) -> Result<()> {
                 "compliance",
                 "register-user",
                 "regulated_usd",
-                "--slot-id",
-                &slot_id_text,
-                "--slot-derivation-hex",
-                &slot_derivation_hex,
                 "--user-registration-grant-hex",
                 &grant,
             ],
@@ -1718,8 +1675,6 @@ impl AuditDemo {
             "COMPLIANCE_GRANT_VALID_UNTIL_UNIX",
             DEFAULT_COMPLIANCE_GRANT_VALID_UNTIL_UNIX,
         );
-        let slot_derivation_hex =
-            compliance_slot_derivation_hex(&format!("audit-demo:{slug}:{}:{address}", self.asset));
         let user_grant = self.capture_pcli(
             slug,
             [
@@ -1729,10 +1684,6 @@ impl AuditDemo {
                 &self.asset,
                 "--address",
                 &address,
-                "--slot-id",
-                "0",
-                "--slot-derivation-hex",
-                &slot_derivation_hex,
                 "--policy-id",
                 &policy_id,
                 "--registration-authority-sk-hex",
@@ -1750,10 +1701,6 @@ impl AuditDemo {
                 &self.asset,
                 "--address-index",
                 "0",
-                "--slot-id",
-                "0",
-                "--slot-derivation-hex",
-                &slot_derivation_hex,
                 "--user-registration-grant-hex",
                 &user_grant,
             ],
