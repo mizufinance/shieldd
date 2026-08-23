@@ -37,6 +37,7 @@ const METHOD_QUERY_COMPLIANCE_ASSET_STATUS: u32 = 1_000_002;
 const METHOD_QUERY_COMPLIANCE_BATCH_MERKLE_PROOFS: u32 = 1_000_003;
 const METHOD_QUERY_COMPLIANCE_USER_LEAF: u32 = 1_000_004;
 const METHOD_QUERY_KEY_VALUE: u32 = 1_000_005;
+const METHOD_QUERY_COMPACT_BLOCK_RANGE: u32 = 1_000_006;
 
 #[repr(C)]
 pub struct ShielddHandle {
@@ -391,6 +392,13 @@ async fn dispatch(
             .await
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
+        METHOD_QUERY_COMPACT_BLOCK_RANGE => {
+            let responses = service
+                .compact_block_range(decode(request)?)
+                .await
+                .map_err(FfiError::service)?;
+            encode_delimited(responses)
+        }
         _ => Err(FfiError::invalid_argument(format!(
             "unknown Shieldd method {method}"
         ))),
@@ -403,6 +411,22 @@ where
 {
     M::decode(request)
         .map_err(|error| FfiError::invalid_argument(format!("invalid protobuf request: {error}")))
+}
+
+fn encode_delimited<M: Message>(
+    messages: impl IntoIterator<Item = M>,
+) -> std::result::Result<Vec<u8>, FfiError> {
+    let mut encoded = Vec::new();
+    for message in messages {
+        message
+            .encode_length_delimited(&mut encoded)
+            .map_err(|error| {
+                FfiError::internal(format!(
+                    "encode length-delimited protobuf response: {error}"
+                ))
+            })?;
+    }
+    Ok(encoded)
 }
 
 fn panic_message(payload: Box<dyn Any + Send>) -> String {
@@ -423,6 +447,9 @@ mod tests {
     use shieldd_sdk_asset::asset;
     use shieldd_sdk_keys::test_keys::ADDRESS_0;
     use shieldd_sdk_proto::core::app::v1::{AppParametersRequest, AppParametersResponse};
+    use shieldd_sdk_proto::core::component::compact_block::v1::{
+        CompactBlockRangeRequest, CompactBlockRangeResponse,
+    };
     use shieldd_sdk_proto::core::component::compliance::v1::{
         ComplianceAssetStatusRequest, ComplianceAssetStatusResponse,
         ComplianceBatchMerkleProofsRequest, ComplianceBatchMerkleProofsResponse,
@@ -434,8 +461,9 @@ mod tests {
     };
     use shieldd_sdk_proto::execution_client::v1::{
         BeginBlockRequest, BeginBlockResponse, CheckTxRequest, CheckTxResponse, CommitRequest,
-        CommitResponse, DeliverTxRequest, DeliverTxResponse, GetCommittedStateRequest,
-        GetCommittedStateResponse, InitGenesisRequest, InitGenesisResponse,
+        CommitResponse, DeliverTxRequest, DeliverTxResponse, EndBlockRequest, EndBlockResponse,
+        GetCommittedStateRequest, GetCommittedStateResponse, InitGenesisRequest,
+        InitGenesisResponse,
     };
 
     fn open(directory: &std::path::Path) -> *mut ShielddHandle {
@@ -492,6 +520,34 @@ mod tests {
         response
     }
 
+    fn call_delimited<Request, Response>(
+        handle: *mut ShielddHandle,
+        method: u32,
+        request: Request,
+    ) -> Vec<Response>
+    where
+        Request: Message,
+        Response: Message + Default,
+    {
+        let request = request.encode_to_vec();
+        let result = shieldd_call(handle, method, request.as_ptr(), request.len());
+        assert_eq!(result.status, STATUS_OK, "{}", error_text(&result));
+        let mut response = if result.response.len == 0 {
+            &[][..]
+        } else {
+            unsafe { slice::from_raw_parts(result.response.data, result.response.len) }
+        };
+        let mut messages = Vec::new();
+        while !response.is_empty() {
+            messages.push(
+                Response::decode_length_delimited(&mut response)
+                    .expect("valid length-delimited protobuf response"),
+            );
+        }
+        free_result(result);
+        messages
+    }
+
     fn initialize(handle: *mut ShielddHandle) {
         let _: InitGenesisResponse = call(
             handle,
@@ -503,6 +559,21 @@ mod tests {
                 ),
             },
         );
+        let _: CommitResponse = call(handle, METHOD_COMMIT, CommitRequest {});
+    }
+
+    fn commit_empty_block(handle: *mut ShielddHandle, height: i64) {
+        let mut begin_block = BeginBlockRequest {
+            height,
+            time: Some(Default::default()),
+        };
+        begin_block
+            .time
+            .as_mut()
+            .expect("test begin-block time")
+            .seconds = 1_700_000_000 + height;
+        let _: BeginBlockResponse = call(handle, METHOD_BEGIN_BLOCK, begin_block);
+        let _: EndBlockResponse = call(handle, METHOD_END_BLOCK, EndBlockRequest { height });
         let _: CommitResponse = call(handle, METHOD_COMMIT, CommitRequest {});
     }
 
@@ -731,6 +802,62 @@ mod tests {
         );
         assert!(key_response.value.is_some());
         assert!(key_response.proof.is_none());
+        close(handle);
+    }
+
+    #[test]
+    fn compact_block_range_query_returns_length_delimited_blocks_in_order() {
+        let directory = tempfile::tempdir().expect("temporary database directory");
+        let handle = open(directory.path());
+        initialize(handle);
+        commit_empty_block(handle, 1);
+        commit_empty_block(handle, 2);
+
+        let responses: Vec<CompactBlockRangeResponse> = call_delimited(
+            handle,
+            METHOD_QUERY_COMPACT_BLOCK_RANGE,
+            CompactBlockRangeRequest {
+                start_height: 0,
+                end_height: 2,
+                keep_alive: false,
+            },
+        );
+
+        let heights = responses
+            .into_iter()
+            .map(|response| {
+                response
+                    .compact_block
+                    .expect("range response contains a compact block")
+                    .height
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(heights, vec![0, 1, 2]);
+        close(handle);
+    }
+
+    #[test]
+    fn compact_block_range_query_rejects_keep_alive() {
+        let directory = tempfile::tempdir().expect("temporary database directory");
+        let handle = open(directory.path());
+        initialize(handle);
+
+        let request = CompactBlockRangeRequest {
+            start_height: 0,
+            end_height: 0,
+            keep_alive: true,
+        }
+        .encode_to_vec();
+        let result = shieldd_call(
+            handle,
+            METHOD_QUERY_COMPACT_BLOCK_RANGE,
+            request.as_ptr(),
+            request.len(),
+        );
+
+        assert_eq!(result.status, STATUS_INVALID_ARGUMENT);
+        assert!(error_text(&result).contains("must be bounded"));
+        free_result(result);
         close(handle);
     }
 

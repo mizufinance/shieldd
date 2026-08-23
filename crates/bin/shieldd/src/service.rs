@@ -8,12 +8,17 @@ use cnidarium::{
     },
     Storage,
 };
+use futures::TryStreamExt as _;
 use shieldd_sdk_app::{
     app::{App, HostBlock, HostExecution, HostTxResponse, HostWithdrawal, StateReadExt as _},
     genesis::AppState,
     SUBSTORE_PREFIXES,
 };
 use shieldd_sdk_proto::core::component::{
+    compact_block::v1::{
+        query_service_server::QueryService as CompactBlockQueryService, CompactBlockRangeRequest,
+        CompactBlockRangeResponse,
+    },
     compliance::v1::{
         query_service_server::QueryService as ComplianceQueryService, ComplianceAssetStatusRequest,
         ComplianceAssetStatusResponse, ComplianceBatchMerkleProofsRequest,
@@ -38,9 +43,15 @@ use shieldd_sdk_proto::{
         InitGenesisRequest, InitGenesisResponse, RollbackRequest, RollbackResponse,
     },
 };
-use shieldd_sdk_sct::{generation_pack::GenerationPackRepository, nullifier_tree, Nullifier};
+use shieldd_sdk_sct::{
+    component::clock::EpochRead as _, generation_pack::GenerationPackRepository, nullifier_tree,
+    Nullifier,
+};
 use shieldd_sdk_shielded_pool::HostWithdrawalDestination;
 use tendermint::{abci, Time};
+
+const MAX_EMBEDDED_COMPACT_BLOCKS: u64 = 10_001;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ErrorKind {
     InvalidArgument,
@@ -364,6 +375,53 @@ impl ExecutionService {
             .await
             .map(tonic::Response::into_inner)
             .map_err(ServiceError::query)
+    }
+
+    pub async fn compact_block_range(
+        &self,
+        request: CompactBlockRangeRequest,
+    ) -> std::result::Result<Vec<CompactBlockRangeResponse>, ServiceError> {
+        if request.keep_alive {
+            return Err(ServiceError::invalid_argument(anyhow::anyhow!(
+                "embedded compact block ranges must be bounded"
+            )));
+        }
+
+        let storage = self.storage.as_ref().ok_or_else(ServiceError::closed)?;
+        if storage.latest_version() == u64::MAX {
+            return Err(ServiceError::failed_precondition(anyhow::anyhow!(
+                "Shieldd app state is not initialized"
+            )));
+        }
+
+        let current_height = storage
+            .latest_snapshot()
+            .get_block_height()
+            .await
+            .context("read committed Shieldd block height")
+            .map_err(ServiceError::internal)?;
+        let effective_end = if request.end_height == 0 {
+            current_height
+        } else {
+            request.end_height.min(current_height)
+        };
+        let block_count = effective_end
+            .checked_sub(request.start_height)
+            .map_or(0, |difference| difference.saturating_add(1));
+        if block_count > MAX_EMBEDDED_COMPACT_BLOCKS {
+            return Err(ServiceError::invalid_argument(anyhow::anyhow!(
+                "embedded compact block range contains {block_count} blocks; maximum is {MAX_EMBEDDED_COMPACT_BLOCKS}"
+            )));
+        }
+
+        let server = shieldd_sdk_compact_block::component::rpc::Server::new(storage.clone());
+        let stream =
+            CompactBlockQueryService::compact_block_range(&server, tonic::Request::new(request))
+                .await
+                .map(tonic::Response::into_inner)
+                .map_err(ServiceError::query)?;
+
+        stream.try_collect().await.map_err(ServiceError::query)
     }
 
     pub async fn compliance_asset_status(

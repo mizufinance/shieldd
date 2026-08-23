@@ -84,6 +84,13 @@ enum shieldd_method {
    * query with SCT state keys.
    */
   SHIELDD_METHOD_QUERY_KEY_VALUE = 1000005,
+
+  /*
+   * Accepts shieldd.core.component.compact_block.v1.
+   * CompactBlockRangeRequest with keep_alive=false. Returns zero or more
+   * protobuf-varint-delimited CompactBlockRangeResponse messages.
+   */
+  SHIELDD_METHOD_QUERY_COMPACT_BLOCK_RANGE = 1000006,
 };
 
 uint32_t shieldd_abi_version(void);
