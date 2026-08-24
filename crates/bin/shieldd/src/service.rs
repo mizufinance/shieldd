@@ -31,6 +31,10 @@ use shieldd_sdk_proto::core::component::{
     },
 };
 use shieldd_sdk_proto::{
+    cnidarium::v1::{
+        key_value_response::Value as ProtoKeyValue, KeyValueRequest as ProtoKeyValueRequest,
+        KeyValueResponse as ProtoKeyValueResponse,
+    },
     core::app::v1 as proto_app,
     cosmos::base::v1beta1::Coin,
     execution_client::v1::{
@@ -465,14 +469,26 @@ impl ExecutionService {
 
     pub async fn key_value(
         &self,
-        request: KeyValueRequest,
-    ) -> std::result::Result<KeyValueResponse, ServiceError> {
+        request: ProtoKeyValueRequest,
+    ) -> std::result::Result<ProtoKeyValueResponse, ServiceError> {
         let storage = self.storage.as_ref().ok_or_else(ServiceError::closed)?;
         let server = cnidarium::rpc::Server::new(storage.clone());
-        CnidariumQueryService::key_value(&server, tonic::Request::new(request))
-            .await
-            .map(tonic::Response::into_inner)
-            .map_err(ServiceError::query)
+        CnidariumQueryService::key_value(
+            &server,
+            tonic::Request::new(KeyValueRequest {
+                key: request.key,
+                proof: request.proof,
+            }),
+        )
+        .await
+        .map(tonic::Response::into_inner)
+        .map_err(ServiceError::query)
+        .map(|response: KeyValueResponse| ProtoKeyValueResponse {
+            value: response
+                .value
+                .map(|value| ProtoKeyValue { value: value.value }),
+            proof: response.proof,
+        })
     }
 
     pub async fn rollback(
