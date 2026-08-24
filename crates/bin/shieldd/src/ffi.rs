@@ -29,6 +29,7 @@ const METHOD_ROLLBACK: u32 = 8;
 const METHOD_EXPORT_GENESIS: u32 = 9;
 const METHOD_GET_COMMITTED_STATE: u32 = 10;
 const METHOD_ARCHIVED_NULLIFIER_PROOF: u32 = 11;
+const METHOD_APPLY_COMPLIANCE_ACTION: u32 = 12;
 
 // Read-only query method IDs start at 1_000_000.
 const METHOD_QUERY_APP_PARAMETERS: u32 = 1_000_000;
@@ -362,6 +363,11 @@ async fn dispatch(
             .await
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
+        METHOD_APPLY_COMPLIANCE_ACTION => service
+            .apply_compliance_action(decode(request)?)
+            .await
+            .map(|response| response.encode_to_vec())
+            .map_err(FfiError::service),
         METHOD_QUERY_APP_PARAMETERS => service
             .app_parameters(decode(request)?)
             .await
@@ -460,10 +466,10 @@ mod tests {
         AssetMetadataByIdRequest, AssetMetadataByIdResponse,
     };
     use shieldd_sdk_proto::execution_client::v1::{
-        BeginBlockRequest, BeginBlockResponse, CheckTxRequest, CheckTxResponse, CommitRequest,
-        CommitResponse, DeliverTxRequest, DeliverTxResponse, EndBlockRequest, EndBlockResponse,
-        GetCommittedStateRequest, GetCommittedStateResponse, InitGenesisRequest,
-        InitGenesisResponse,
+        ApplyComplianceActionRequest, BeginBlockRequest, BeginBlockResponse, CheckTxRequest,
+        CheckTxResponse, CommitRequest, CommitResponse, DeliverTxRequest, DeliverTxResponse,
+        EndBlockRequest, EndBlockResponse, GetCommittedStateRequest, GetCommittedStateResponse,
+        HostSource, InitGenesisRequest, InitGenesisResponse,
     };
 
     fn open(directory: &std::path::Path) -> *mut ShielddHandle {
@@ -641,6 +647,49 @@ mod tests {
         );
         assert_eq!(result.status, STATUS_INVALID_ARGUMENT);
         assert!(error_text(&result).contains("missing nullifier"));
+        free_result(result);
+        close(handle);
+    }
+
+    #[test]
+    fn compliance_action_is_dispatched_through_the_ffi() {
+        let directory = tempfile::tempdir().expect("temporary database directory");
+        let handle = open(directory.path());
+        initialize(handle);
+        let mut begin_block = BeginBlockRequest {
+            height: 1,
+            time: Some(Default::default()),
+        };
+        begin_block
+            .time
+            .as_mut()
+            .expect("test begin-block time")
+            .seconds = 1_700_000_001;
+        let _: BeginBlockResponse = call(handle, METHOD_BEGIN_BLOCK, begin_block);
+
+        let request = ApplyComplianceActionRequest {
+            source: Some(HostSource {
+                height: 1,
+                tx_hash: [7u8; 32].to_vec(),
+                tx_index: 0,
+                msg_index: 0,
+            }),
+            action: None,
+        }
+        .encode_to_vec();
+        let result = shieldd_call(
+            handle,
+            METHOD_APPLY_COMPLIANCE_ACTION,
+            request.as_ptr(),
+            request.len(),
+        );
+
+        assert_eq!(result.status, STATUS_INVALID_ARGUMENT);
+        let error = error_text(&result);
+        assert!(
+            error.contains("host compliance action is required"),
+            "unexpected rejection: {error}"
+        );
         free_result(result);
         close(handle);
     }
