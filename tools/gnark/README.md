@@ -51,6 +51,13 @@ path.
 CI runs the corresponding `ci-*` wrappers under `nix develop`, while local
 development can use the plain commands directly.
 
+Formal verification is owned by
+[`mizufinance/shieldd-formal`](https://github.com/mizufinance/shieldd-formal).
+The stable repository boundary is `gnarkctl export-fv`: Shieldd owns circuit
+compilation and exported typed manifests; the formal repository pins an exact
+Shieldd commit and owns every specification, generated Lean file, and formal
+gate.
+
 ## Rust Integration Environment
 
 Rust proving selects the gnark backend when the corresponding artifact
@@ -90,6 +97,11 @@ shutdown. Callers only use the family-specific supported APIs.
 Each supported family has one canonical bundled artifact set checked into
 `tools/gnark/artifacts`. Internal padding and witness-shape details are runtime
 concerns, not part of the public product surface.
+
+Constraint artifacts are fetched only for an explicitly selected bundle.
+`scripts/proof_artifacts.py` also keeps verified SR1CS objects in a local
+content-addressed cache (`.cache/proof-artifacts`, overridable with
+`SHIELDD_PROOF_ARTIFACT_CACHE`) so repeated work does not consume LFS bandwidth.
 
 When a supported circuit changes, regenerate the matching artifacts and then
 rebuild and test:

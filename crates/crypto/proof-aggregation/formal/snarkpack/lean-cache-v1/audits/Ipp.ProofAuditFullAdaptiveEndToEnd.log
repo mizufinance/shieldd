@@ -1,1 +1,0 @@
-{"caption":"","data":"'Ipp.ShippingFullAdaptiveEndToEnd.shipping_full_adaptive_end_to_end_fv' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]","endPos":{"column":6,"line":5},"fileName":"Ipp/ProofAuditFullAdaptiveEndToEnd.lean","isSilent":false,"keepFullRange":false,"kind":"[anonymous]","pos":{"column":0,"line":5},"severity":"information"}

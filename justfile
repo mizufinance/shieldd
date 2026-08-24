@@ -88,114 +88,63 @@ snarkpack-slow:
     just snarkpack-slow-one oracle
     just snarkpack-slow-one interop
 
-# Run one positively counted ignored SnarkPack test for modular CI evidence.
+# Run one ignored SnarkPack runtime test.
 snarkpack-slow-one test:
     #!/usr/bin/env bash
     set -euo pipefail
-    log="$(mktemp)"
-    trap 'rm -f "$log"' EXIT
     case "{{test}}" in
       legacy)
         package=shieldd-sdk-proof-aggregation
         filter=snarkpack_matches_legacy_batch_across_families_and_counts_slow
-        exact_name=backend::tests::snarkpack_matches_legacy_batch_across_families_and_counts_slow
         ;;
       oracle)
         package=shieldd-sdk-proof-aggregation
         filter=snarkpack_matches_single_and_batch_groth16_oracles_slow
-        exact_name=backend::tests::snarkpack_matches_single_and_batch_groth16_oracles_slow
         ;;
       interop)
         package=shieldd-sdk-proof-aggregation-reference
         filter=slow_two_way_interop_band
-        exact_name=tests::slow_two_way_interop_band
         ;;
       *)
         echo "unknown SnarkPack slow test: {{test}}" >&2
         exit 2
         ;;
     esac
-    cargo test -p "$package" "$filter" --lib -- --ignored --test-threads=1 2>&1 | tee "$log"
-    python3 crates/crypto/proof-aggregation/formal/lean-ipp/scripts/verification_manifest.py test-log "$log" --expected 1 --label "$filter" --test-name "$exact_name"
+    cargo test -p "$package" "$filter" --lib -- --ignored --test-threads=1
 
 # Run the exact ordinary tests anchoring the bounded challenge sampler and its
 # public prover/verifier exhaustion mappings.
 snarkpack-challenge-boundaries:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    sampler_log="$(mktemp)"
-    mapping_log="$(mktemp)"
-    trap 'rm -f "$sampler_log" "$mapping_log"' EXIT
-    cargo test -p ark-ip-proofs bounded_challenge_sampler_ --lib 2>&1 | tee "$sampler_log"
-    python3 crates/crypto/proof-aggregation/formal/lean-ipp/scripts/verification_manifest.py test-log "$sampler_log" --expected 7 --label "bounded_challenge_sampler_" \
-      --test-name "challenge::tests::bounded_challenge_sampler_immediate_success_queries_nonce_zero_once" \
-      --test-name "challenge::tests::bounded_challenge_sampler_retries_rejections_in_nonce_order" \
-      --test-name "challenge::tests::bounded_challenge_sampler_accepts_success_at_max_nonce" \
-      --test-name "challenge::tests::bounded_challenge_sampler_rejection_at_max_fails_closed" \
-      --test-name "challenge::tests::bounded_challenge_sampler_queries_before_incrementing" \
-      --test-name "challenge::tests::bounded_challenge_sampler_preserves_attempt_error_before_exhaustion" \
-      --test-name "challenge::tests::bounded_challenge_sampler_nonce_helpers_match_core_boundaries"
-    cargo test -p ark-ip-proofs shipping_nonce_exhaustion_maps_exact_public_error --lib 2>&1 | tee "$mapping_log"
-    python3 crates/crypto/proof-aggregation/formal/lean-ipp/scripts/verification_manifest.py test-log "$mapping_log" --expected 1 --label "shipping_nonce_exhaustion_maps_exact_public_error" --test-name "applications::groth16_aggregation::tests::shipping_nonce_exhaustion_maps_exact_public_error"
+    cargo test -p ark-ip-proofs bounded_challenge_sampler_ --lib
+    cargo test -p ark-ip-proofs shipping_nonce_exhaustion_maps_exact_public_error --lib
 
 # Run bounded SnarkPack fuzz harness smoke tests.
 snarkpack-fuzz-smoke:
     bash -lc 'set -euo pipefail; unset ROCKSDB_LIB_DIR ROCKSDB_INCLUDE_DIR; toolchain="${SNARKPACK_FUZZ_TOOLCHAIN:-nightly-2025-09-30}"; export PATH="${CARGO_HOME:-$HOME/.cargo}/bin:$PATH" RUSTUP_TOOLCHAIN="$toolchain"; runs="${SNARKPACK_FUZZ_RUNS:-16}"; fuzz_dir="crates/crypto/proof-aggregation-fuzz"; tmp="$(mktemp -d)"; trap "rm -rf \"$tmp\"" EXIT; cargo fuzz build --fuzz-dir "$fuzz_dir"; for target in wrapper_inner_range preflight_aggregate_verify deserialize_aggregate_proof; do mkdir -p "$tmp/$target"; cp "$fuzz_dir"/corpus/"$target"/* "$tmp/$target"/; cargo fuzz run --fuzz-dir "$fuzz_dir" "$target" "$tmp/$target" -- -runs="$runs"; done'
 
-# Check durable SnarkPack runtime and formal-handoff invariants.
+# Check durable SnarkPack runtime invariants.
 snarkpack-invariants:
     bash scripts/check-snarkpack-runtime-invariants.sh
-    bash scripts/check-snarkpack-invariants.sh
-
-# Run the consolidated SnarkPack functional-verification gate.
-snarkpack-fv:
-    bash scripts/snarkpack-fv.sh
-
-# Build and publish the committed SnarkPack Lean cache locally.
-snarkpack-lean-cache:
-    SNARKPACK_FV_MODE=lean-cache bash scripts/snarkpack-fv.sh
-
-# Run pinned SnarkPack formal extraction and F* proof checks.
-snarkpack-formal:
-    ./scripts/snarkpack-formal.sh
 
 # Enforce SnarkPack valid-vs-adversarial DoS latency and size thresholds.
 snarkpack-dos-gate:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    dos_log="$(mktemp)"
-    trap 'rm -f "$dos_log"' EXIT
-    cargo test --release -p shieldd-sdk-proof-aggregation snarkpack_dos_gate_valid_and_adversarial_paths_hold_thresholds --lib -- --ignored --nocapture 2>&1 | tee "$dos_log"
-    python3 crates/crypto/proof-aggregation/formal/lean-ipp/scripts/verification_manifest.py test-log "$dos_log" --expected 1 --label "snarkpack_dos_gate_valid_and_adversarial_paths_hold_thresholds" --test-name "backend::tests::snarkpack_dos_gate_valid_and_adversarial_paths_hold_thresholds"
+    cargo test --release -p shieldd-sdk-proof-aggregation snarkpack_dos_gate_valid_and_adversarial_paths_hold_thresholds --lib -- --ignored --nocapture
 
 # Run the default gnark validation suite.
 gnark-proof-tests: gnark-proof-tests-fast
 
 # CI wrapper for `check`.
 ci-check:
-    # The formal workflow owns source/checker evidence freshness and permits
-    # drift only when the matching refresh lane is selected. Generic Rust CI
-    # must still enforce every structural invariant, but must not fail before
-    # Cargo merely because that separate workflow is refreshing proof evidence.
     if command -v nix >/dev/null 2>&1; then \
-      nix develop --command env \
-        SNARKPACK_ALLOW_PENDING_FSTAR_CONTRACT_REFRESH=1 \
-        SNARKPACK_ALLOW_PENDING_LEAN_CONTRACT_REFRESH=1 \
-        SNARKPACK_ALLOW_PENDING_EXTERNAL_CONTRACT_REFRESH=1 \
-        just check; \
+      nix develop --command just check; \
     else \
-      env \
-        SNARKPACK_ALLOW_PENDING_FSTAR_CONTRACT_REFRESH=1 \
-        SNARKPACK_ALLOW_PENDING_LEAN_CONTRACT_REFRESH=1 \
-        SNARKPACK_ALLOW_PENDING_EXTERNAL_CONTRACT_REFRESH=1 \
-        just check; \
+      just check; \
     fi
 
 # CI wrapper for `test`.
 ci-test:
-    # These five constraint-coverage tests consume the formal NoteReshape SR1CS
-    # LFS artifact. The formal workflow owns that artifact and runs the tests;
-    # the ordinary Rust lane keeps every artifact-independent test.
+    # Formal extractor integration tests run in shieldd-formal. Shieldd keeps
+    # the extractor's artifact-independent unit tests in its ordinary lane.
     if command -v cargo-nextest >/dev/null 2>&1; then \
       cargo nextest run --cargo-profile ci -E 'not (package(shieldd-constraint-coverage) and (test(=ltchain::tests::recovers_r_ladder_from_real_sr1cs_and_gate_holds) or test(=ltchain::tests::recovers_q4_ladder_from_real_sr1cs) or test(=ltchain::tests::gate_fails_closed_on_wrong_bound) or test(=ltchain::tests::production_gate_recovers_both_ladders) or test(=rowmap::tests::real_rvk_slice_is_exhaustive_and_bit_exact)))'; \
     else \

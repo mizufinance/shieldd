@@ -1,4 +1,0 @@
-import Ipp.OptimizedGtFoldRefinement
-
-#print axioms Ipp.OptimizedGtFoldRefinement.optimizedLanes_eq_terminalFold
-#print axioms Ipp.OptimizedGtFoldRefinement.optimizedTuple_eq_terminalFold

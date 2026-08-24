@@ -56,21 +56,10 @@ They are not migration promises.
 - Document ownership, invariants, inputs, outputs, failure modes. Do not restate names or history.
 - Define docs once; reference elsewhere.
 
-## Formal Verification Gates
+## Formal Verification Boundary
 
-When a formal gate is red, start at
-`docs/soundness/README.md#gate-failure-routing`. If circuit semantics did not
-change, repair the narrowest affected applicability rule, handwritten spec or
-proof, or source generator. Do not change a circuit or hand-edit generated
-Lean/artifacts merely to clear CI. Add a regression test only when routing
-behavior changes or the failure exposes a reusable missing check, not for every
-red run. Circuit changes and their regenerated evidence stay in one PR, with
-handwritten and generated changes in separate commits when practical.
-
-## Lean Circuit Proofs
-
-All Lean-proof rules live in `tools/gnark/lean/AGENTS.md` — read it BEFORE any
-work under `tools/gnark/lean/` or on the proof generators/extractor. Its
-resource limits are load-bearing: unbounded concurrent `lake` builds have
-OOM-rebooted this machine twice. Minimum recall: one `lake` at a time,
-`LEAN_NUM_THREADS=1`, narrowest named module, monitored in the background.
+Formal specifications, generated evidence, Lean sources, and every formal CI
+gate live in `mizufinance/shieldd-formal`. This repository exports runtime
+circuits and typed FV inputs, but it never runs formal verification. Coordinate
+semantic changes by updating the exact Shieldd SHA in the formal repository;
+do not restore local formal gates or generated proof trees here.

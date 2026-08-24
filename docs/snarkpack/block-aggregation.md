@@ -23,7 +23,7 @@ SnarkPack is a leaf operation with three hard properties:
 ## What Filecoin does (reference, not a template)
 
 The pinned Filecoin deployment reviewed in
-[`filecoin-divergence-findings.md`](../../crates/crypto/proof-aggregation/formal/snarkpack/filecoin-divergence-findings.md)
+[`filecoin-divergence-findings.md`](https://github.com/mizufinance/shieldd-formal/blob/main/crates/crypto/proof-aggregation/formal/snarkpack/filecoin-divergence-findings.md)
 used a different model: a miner aggregated its own homogeneous sector proofs
 off-chain and submitted one `ProveCommitAggregate` message. It did not perform
 block-level aggregation. That review informs the primitive and transcript

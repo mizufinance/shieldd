@@ -46,6 +46,7 @@ poc/target/
 
 # Python3
 .venv
+/.cache/
 
 # Ignoring lock file for the parameter-setup tool.
 tools/parameter-setup/Cargo.lock

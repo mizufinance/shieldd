@@ -5,8 +5,9 @@ implementation. This document describes the production protocol and its
 intentional differences from the Arkworks/Filecoin lineage. See
 [verification.md](verification.md) for the proof boundary and current status.
 
-The formal manifest and generated handoff are authoritative. The pinned
-[Filecoin divergence review](../../crates/crypto/proof-aggregation/formal/snarkpack/filecoin-divergence-findings.md)
+The formal manifest and generated handoff in `shieldd-formal` are authoritative.
+The pinned
+[Filecoin divergence review](https://github.com/mizufinance/shieldd-formal/blob/main/crates/crypto/proof-aggregation/formal/snarkpack/filecoin-divergence-findings.md)
 is historical provenance, not a live security specification.
 
 ## Protocol

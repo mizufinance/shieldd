@@ -179,7 +179,7 @@ func writePoseidonLean(w io.Writer, vectors primitives.PoseidonVectors) error {
 
 	// Pinned parity vectors evaluated in-kernel at build time.
 	guards := []string{
-		"-- Parity with gnark/Go ground truth (see check_poseidon377_parity.sh).",
+		"-- Parity with gnark/Go ground truth is checked in shieldd-formal.",
 		fmt.Sprintf("#guard (hash2 ivkDomain 7 11).val == %s", hash2Out.String()),
 		fmt.Sprintf("#guard (hash3 nullifierDomain 3 5 9).val == %s", hash3Out.String()),
 		fmt.Sprintf("#guard (hash5 imtLeafDomain 2 3 5 7 11).val == %s", hash5Out.String()),

@@ -8,8 +8,8 @@ package circuits
 //
 // These circuits carry no fixtures and prove no statement on their own; they
 // exist purely as small, labelled R1CS export targets. Whole-circuit families
-// remain out of reach by design — see docs/soundness and
-// docs/soundness/fv.md.
+// remain out of reach by design. Formal analysis is owned by the separate
+// shieldd-formal repository.
 
 import (
 	"github.com/consensys/gnark/frontend"

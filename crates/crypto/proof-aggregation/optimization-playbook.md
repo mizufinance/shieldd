@@ -186,11 +186,12 @@ Write down:
 - the refinement theorem or assumption that must change; and
 - representative proof counts and workload regime.
 
-For Rust sources covered by modular extraction, inspect the affected graph set:
+For Rust sources covered by modular extraction, use a sibling
+`shieldd-formal` checkout pinned to the candidate commit:
 
 ```sh
-python3 crates/crypto/proof-aggregation/formal/lean-ipp/scripts/extractions.py \
-  affected --base <git-ref>
+python3 formal.py gate snarkpack --mode static \
+  --shieldd-source ../shieldd --shieldd-ref <exact-sha>
 ```
 
 Run only those modular proof lanes while iterating. A shared extractor,
@@ -198,7 +199,7 @@ normalizer, or source-inventory change can invalidate every graph; avoid such
 changes unless the optimization genuinely needs them.
 
 The reusable semantic targets are summarized in
-[`optimization-vs-fv.md`](formal/snarkpack/optimization-vs-fv.md). Generated
+[`optimization-vs-fv.md`](https://github.com/mizufinance/shieldd-formal/blob/main/crates/crypto/proof-aggregation/formal/snarkpack/optimization-vs-fv.md). Generated
 handoff files are outputs: update their manifest or source evidence and
 regenerate them rather than editing them directly.
 

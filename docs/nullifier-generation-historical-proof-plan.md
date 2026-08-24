@@ -678,9 +678,9 @@ work.
   nullifier zero, maximum field element, nonzero path positions, malformed
   flags, wrong roots, wrong indices, wrong position intervals, wrong history
   heads, reordered proofs, and trailing bytes.
-- Formal evidence for the newly deployed circuit/gadget surface under the
-  repository's existing soundness process. The current spike tests do not
-  substitute for that evidence.
+- Formal evidence for the newly deployed circuit/gadget surface in
+  `shieldd-formal`, pinned to the exact activating Shieldd commit. The current
+  spike tests do not substitute for that evidence.
 
 Whole-system end-to-end coverage and performance calibration should be done in
 the downstream application integration so Shieldd and bankd are measured

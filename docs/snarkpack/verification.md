@@ -2,8 +2,8 @@
 
 This document explains the verification stack for the design in
 [design.md](design.md). Claim status comes only from
-[`verification-manifest.json`](../../crates/crypto/proof-aggregation/formal/snarkpack/verification-manifest.json);
-the generated [formal handoff](../../crates/crypto/proof-aggregation/formal/snarkpack/formal-handoff.md)
+[`verification-manifest.json`](https://github.com/mizufinance/shieldd-formal/blob/main/crates/crypto/proof-aggregation/formal/snarkpack/verification-manifest.json);
+the generated [formal handoff](https://github.com/mizufinance/shieldd-formal/blob/main/crates/crypto/proof-aggregation/formal/snarkpack/formal-handoff.md)
 contains the complete claim and assumption tables.
 
 ## Current result
@@ -163,7 +163,7 @@ inputs reject materially faster than a valid aggregate. Thresholds live in
 
 The manifest lists every theorem root, dependency, assumption, audit module,
 allowed axiom, and evidence fingerprint. The handoff and
-[theorem graph](../../crates/crypto/proof-aggregation/formal/snarkpack/theorem-dependency-graph.md)
+[theorem graph](https://github.com/mizufinance/shieldd-formal/blob/main/crates/crypto/proof-aggregation/formal/snarkpack/theorem-dependency-graph.md)
 are generated from it. Missing, stale, duplicate, or unexpected evidence fails
 closed.
 
@@ -197,13 +197,11 @@ security level may be inferred from the conditional result.
 
 ## CI policy
 
-Pull requests compute a SnarkPack impact plan first. Unaffected changes run no
-heavy proof lane. Affected extraction graphs run in isolation; Lean builds the
-narrow transitive module closure with one thread; F* checks its stale reverse
-closure. Exact successful attestations are reusable, while scheduled and
-manually requested full verification rerun the suites.
+Shieldd pull requests run runtime checks only. The `shieldd-formal` repository
+pins an exact Shieldd commit and owns impact analysis, Lean/F* work, reusable
+attestations, and scheduled full verification.
 
 Generated Lean, F* evidence, the handoff, and the theorem graph are never edited
 as substitutes for their sources. Full CI runs extraction, Lean audits, F*,
 Rust/reference parity, slow interoperability, fuzzing, and release DoS checks.
-Local formal work uses the repository's bounded single-flight runner.
+Local formal work uses that repository's bounded single-flight runner.

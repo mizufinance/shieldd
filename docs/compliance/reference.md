@@ -258,4 +258,4 @@ there is no second circuit architecture to maintain.
 | Rust statement builder | `crates/core/component/shielded-pool/src/public_input_hash.rs` |
 | Scanner | `crates/core/component/compliance/src/scanner/` |
 | Evidence and audit | `crates/core/component/compliance/src/evidence.rs`, `audit.rs` |
-| Formal transfer semantics | `tools/gnark/lean/ShielddGnarkFormal/Protocol/Transfer/` |
+| Formal transfer semantics | [`shieldd-formal`](https://github.com/mizufinance/shieldd-formal/tree/main/tools/gnark/lean/ShielddGnarkFormal/Protocol/Transfer) |

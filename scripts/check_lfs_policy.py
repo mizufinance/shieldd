@@ -32,8 +32,14 @@ ALLOWED_LFS_PATHS = {
     f"tools/gnark/artifacts/{family}/{family}.sr1cs"
     for family in FAMILIES
 }
-EXPECTED_WORKFLOW_RESTORES = {
-    "formal.yml": 1,
+EXPECTED_WORKFLOW_RESTORES: dict[str, int] = {}
+FORMAL_WORKFLOWS = {
+    "formal-scheduled.yml",
+    "formal.yml",
+    "fv-toolchain-image.yml",
+    "snarkpack-fv-toolchain-image.yml",
+    "snarkpack-release-audit.yml",
+    "soundness-provers.yml",
 }
 
 
@@ -167,17 +173,6 @@ def enforce_workflow_fanout() -> None:
     ):
         fail("manual Rust proof replay is not isolated from candidate runs")
 
-    formal = (workflows / "formal.yml").read_text(encoding="utf-8")
-    soundness_host = formal.partition("\n  soundness-host:")[2].partition(
-        "\n  soundness-artifact-replay:"
-    )[0]
-    if (
-        "uses: ./.github/actions/prepare-proof-artifacts"
-        not in soundness_host
-        or "bundle: full" not in soundness_host
-    ):
-        fail("semantic soundness does not prepare one full artifact bundle")
-
     for name in ("containers.yml", "docs-lint.yml", "orbis-integration.yml", "release.yml", "smoke.yml"):
         text = (workflows / name).read_text(encoding="utf-8")
         if "proof-artifacts" in text:
@@ -186,28 +181,10 @@ def enforce_workflow_fanout() -> None:
 
 def enforce_proof_scheduling() -> None:
     workflows = ROOT / ".github" / "workflows"
-    scheduled = workflows / "formal-scheduled.yml"
-    if not scheduled.is_file():
-        fail("the default-branch formal drift workflow is missing")
-    text = scheduled.read_text(encoding="utf-8")
-    required = (
-        "schedule:",
-        "uses: ./.github/workflows/formal.yml",
-        "target_ref: ${{ github.sha }}",
-    )
-    missing = [value for value in required if value not in text]
-    if missing:
-        fail(
-            "the default-branch formal drift workflow is incomplete: "
-            f"missing {missing}"
-        )
-    for forbidden in ("push:", "pull_request:", "merge_group:", "runs-on:"):
-        if forbidden in text:
-            fail(
-                "the default-branch formal drift wrapper contains "
-                f"forbidden direct execution state {forbidden!r}"
-            )
-    for relative in ("rust.yml", "snarkpack-release-audit.yml"):
+    remaining = sorted(name for name in FORMAL_WORKFLOWS if (workflows / name).exists())
+    if remaining:
+        fail(f"formal verification workflows belong in shieldd-formal: {remaining}")
+    for relative in ("rust.yml",):
         workflow = workflows / relative
         if re.search(r"(?m)^\s+schedule:\s*$", workflow.read_text()):
             fail(f"{workflow.relative_to(ROOT)} schedules proof work")
@@ -301,7 +278,7 @@ def main() -> int:
     enforce_tracked_files()
     print(
         "LFS policy: release artifacts are Git-backed, constraint hydration is "
-        "bounded, and scheduled drift replay is isolated"
+        "bounded, cached by content, and formal replay is external"
     )
     return 0
 
