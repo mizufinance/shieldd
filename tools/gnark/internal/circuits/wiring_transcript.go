@@ -859,7 +859,7 @@ func segmentGadget(op string) (gadgetLabel, bridgeTheorem string, ok bool) {
 	case "decaf.shared_secret":
 		return "gadget-shared-secrets", "Shieldd.GnarkFormal.SharedSecretBridge.shared_secrets_sound", true
 	case "gadget.nullifier":
-		return "gadget-nullifier", "Shieldd.GnarkFormal.Poseidon3Bridge.circuit_sound", true
+		return "gadget-nullifier", "Shieldd.GnarkFormal.Poseidon3Bridge.nullifier_circuit_sound", true
 	case "routing.route_word", "routing.permutation.hash":
 		return "gadget-poseidon-hash2", "Shieldd.GnarkFormal.Poseidon2Bridge.perm2_uncps", true
 	case "routing.tag.random_word":
@@ -884,11 +884,11 @@ func segmentGadget(op string) (gadgetLabel, bridgeTheorem string, ok bool) {
 		// standalone gadget that also contains that Boolean row.
 		return "gadget-imt-gap-body", "Shieldd.GnarkFormal.Extracted.ImtGap.body_relation_sound", true
 	case "gadget.asset_registry_params_hash":
-		return "gadget-poseidon-hash4", "Shieldd.GnarkFormal.Poseidon4Bridge.circuit_sound", true
+		return "gadget-poseidon-hash3", "Shieldd.GnarkFormal.Poseidon3Bridge.circuit_sound", true
 	case "gadget.asset_registry_ring_hash", "gadget.asset_registry_leaf_hash":
 		return "gadget-poseidon-hash5", "Shieldd.GnarkFormal.Poseidon5Bridge.circuit_sound_eq", true
 	case "gadget.compliance_leaf":
-		return "gadget-poseidon-hash7", "Shieldd.GnarkFormal.Poseidon7Bridge.circuit_sound", true
+		return "gadget-poseidon-hash5", "Shieldd.GnarkFormal.Poseidon5Bridge.circuit_sound_eq", true
 	case "gadget.transfer_salt":
 		return "gadget-poseidon2", "Shieldd.GnarkFormal.TransferSaltBridge.transfer_salt_sound", true
 	case "gadget.poseidon_encryption.detection":

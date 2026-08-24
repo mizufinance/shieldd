@@ -121,11 +121,37 @@ pub fn ibc_origin_asset(base_denom: &str) -> String {
 pub fn user_leaf_record(
     address: &shieldd_sdk_keys::Address,
     asset_id: &shieldd_sdk_asset::asset::Id,
-) -> Vec<u8> {
-    let mut key = b"compliance/user/record/".to_vec();
-    key.extend_from_slice(&address.to_vec());
-    key.extend_from_slice(&asset_id.0.to_bytes());
-    key
+) -> String {
+    format!(
+        "compliance/user/record/{}/{}",
+        hex::encode(address.to_vec()),
+        hex::encode(asset_id.0.to_bytes())
+    )
+}
+
+/// Consensus index from a canonical address to its one audit derivation.
+pub fn user_audit_key(address: &shieldd_sdk_keys::Address) -> String {
+    format!("compliance/user/audit_key/{}", hex::encode(address.to_vec()))
+}
+
+/// Consensus index preventing one audit derivation from being shared by addresses.
+pub fn user_audit_key_owner(d: &decaf377::Fq) -> String {
+    format!(
+        "compliance/user/audit_key_owner/{}",
+        hex::encode(d.to_bytes())
+    )
+}
+
+/// Consensus duplicate index for one address and regulated asset.
+pub fn user_asset_position(
+    address: &shieldd_sdk_keys::Address,
+    asset_id: &shieldd_sdk_asset::asset::Id,
+) -> String {
+    format!(
+        "compliance/user/asset_position/{}/{}",
+        hex::encode(address.to_vec()),
+        hex::encode(asset_id.0.to_bytes())
+    )
 }
 
 /// State key for pending user registrations (buffered during block execution).

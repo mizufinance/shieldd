@@ -247,8 +247,6 @@ func TestTransferWiringOmitsUnsafeComplianceProofPackages(t *testing.T) {
 	}
 	for _, binding := range []string{
 		"compliance.metadata.begin metadata=compliance.metadata",
-		"assert.eq lhs=compliance.metadata.sender_subject_derivation rhs=sender.slot_derivation",
-		"assert.eq lhs=compliance.metadata.output_subject_derivation rhs=receiver.slot_derivation",
 		"assert.eq lhs=compliance.metadata.ring_id_hash rhs=effective.ring_id_hash",
 		"assert.eq lhs=compliance.metadata.policy_id_hash rhs=effective.policy_id_hash",
 		"assert.eq lhs=compliance.metadata.resource_hash rhs=effective.resource_hash",
@@ -303,7 +301,7 @@ func TestTransferWiringJoinsDerivedSharedSecretsToEncryption(t *testing.T) {
 	}
 
 	encryptionBindings := []string{
-		"gadget.poseidon_encryption.detection flag=is_flagged ss=sender_core.shared.issuer epk_fq=compliance.sender_core.epk_fq salt=salt0 asset_id=shared.asset_id sender_slot=sender.slot_id:u32 receiver_slot=receiver.slot_id:u32 routing_roles_swapped=permutation_bit out=compliance.detection_ciphertext",
+		"gadget.poseidon_encryption.detection flag=is_flagged ss=sender_core.shared.issuer epk_fq=compliance.sender_core.epk_fq salt=salt0 asset_id=shared.asset_id reserved=0 out=compliance.detection_ciphertext",
 		"gadget.poseidon_encryption.amount tier=sender_core ss=sender_core.shared.selected c2=compliance.sender_core.c2 amount=receiver.amount out=compliance.sender_core.ciphertext",
 		"gadget.poseidon_encryption.address tier=sender_ext ss=sender_ext.shared.selected c2=compliance.sender_ext.c2 div_gen_fq=receiver.div_gen_fq transmission_fq=receiver.transmission_fq out=compliance.sender_ext.ciphertext",
 		"gadget.poseidon_encryption.amount tier=output_core ss=output_core.shared.selected c2=compliance.output_core.c2 amount=receiver.amount out=compliance.output_core.ciphertext",

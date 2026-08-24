@@ -625,6 +625,8 @@ func gadgetCircuit(label string) (frontend.Circuit, bool) {
 		return &circuits.PoseidonHash1Gadget{}, true
 	case "gadget-poseidon2":
 		return &circuits.PoseidonHash2Gadget{}, true
+	case "gadget-poseidon-hash3":
+		return &circuits.PoseidonHash3Gadget{}, true
 	case "gadget-poseidon-hash4":
 		return &circuits.PoseidonHash4Gadget{}, true
 	case "gadget-poseidon-hash5":
@@ -1217,7 +1219,7 @@ func runReplay(args []string) error {
 	switch *circuit {
 	default:
 		if _, ok := generated.TransferFamilyByLabel(*circuit); ok {
-			assignment, _, err = abi.NewTransferCircuitAssignmentFromWitnessV19(payload)
+			assignment, _, err = abi.NewTransferCircuitAssignmentFromWitnessV20(payload)
 			if err != nil {
 				return err
 			}
@@ -1233,7 +1235,7 @@ func runReplay(args []string) error {
 			break
 		}
 		if family, ok := generated.ShieldedIcs20WithdrawalFamilyByLabel(*circuit); ok {
-			assignment, _, err = abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV11(payload)
+			assignment, _, err = abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV12(payload)
 			if err != nil {
 				return err
 			}
@@ -1380,6 +1382,9 @@ func compileCircuit(circuit string) (constraint.ConstraintSystem, float64, error
 	case "gadget-poseidon2":
 		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.PoseidonHash2Gadget{})
 		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-poseidon-hash3":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.PoseidonHash3Gadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
 	case "gadget-poseidon-hash4":
 		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.PoseidonHash4Gadget{})
 		return ccs, time.Since(compileStart).Seconds() * 1000, err
@@ -1513,15 +1518,15 @@ func witnessAssignment(circuit string, witnessPayload []byte) (frontend.Circuit,
 	switch circuit {
 	default:
 		if _, ok := generated.TransferFamilyByLabel(circuit); ok {
-			decoded, _, err := abi.DecodeTransferWitnessV19(witnessPayload)
+			decoded, _, err := abi.DecodeTransferWitnessV20(witnessPayload)
 			if err != nil {
 				return nil, witnessSummary{}, err
 			}
-			statementFields, err := abi.ReconstructedTransferStatementFieldsFromWitnessV19(decoded)
+			statementFields, err := abi.ReconstructedTransferStatementFieldsFromWitnessV20(decoded)
 			if err != nil {
 				return nil, witnessSummary{}, err
 			}
-			assignment, _, err := abi.NewTransferCircuitAssignmentFromWitnessV19(witnessPayload)
+			assignment, _, err := abi.NewTransferCircuitAssignmentFromWitnessV20(witnessPayload)
 			return assignment, witnessSummary{
 				ClaimedStatementHash: primitives.LittleEndianBytesToBigInt(decoded.ClaimedStatementHash[:]).String(),
 				StatementFields:      vec32Strings(statementFields),
@@ -1543,15 +1548,15 @@ func witnessAssignment(circuit string, witnessPayload []byte) (frontend.Circuit,
 			}, err
 		}
 		if _, ok := generated.ShieldedIcs20WithdrawalFamilyByLabel(circuit); ok {
-			decoded, _, err := abi.DecodeShieldedIcs20WithdrawalWitnessV11(witnessPayload)
+			decoded, _, err := abi.DecodeShieldedIcs20WithdrawalWitnessV12(witnessPayload)
 			if err != nil {
 				return nil, witnessSummary{}, err
 			}
-			statementFields, err := abi.ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitnessV11(decoded)
+			statementFields, err := abi.ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitnessV12(decoded)
 			if err != nil {
 				return nil, witnessSummary{}, err
 			}
-			assignment, _, err := abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV11(witnessPayload)
+			assignment, _, err := abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV12(witnessPayload)
 			return assignment, witnessSummary{
 				ClaimedStatementHash: primitives.LittleEndianBytesToBigInt(decoded.ClaimedStatementHash[:]).String(),
 				StatementFields:      vec32Strings(statementFields),

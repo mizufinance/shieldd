@@ -54,6 +54,25 @@ func (c *PoseidonHash2Gadget) Define(api frontend.API) error {
 	return nil
 }
 
+// PoseidonHash3Gadget isolates the three-input Poseidon377 permutation used by
+// compliance parameter commitments and routing-tag random words.
+type PoseidonHash3Gadget struct {
+	Domain frontend.Variable `gnark:",public"`
+	In0    frontend.Variable `gnark:",public"`
+	In1    frontend.Variable `gnark:",public"`
+	In2    frontend.Variable `gnark:",public"`
+	Out    frontend.Variable
+}
+
+func (c *PoseidonHash3Gadget) Define(api frontend.API) error {
+	out, err := Poseidon377Hash3(api, c.Domain, [3]frontend.Variable{c.In0, c.In1, c.In2})
+	if err != nil {
+		return err
+	}
+	api.AssertIsEqual(out, c.Out)
+	return nil
+}
+
 // PoseidonHash4Gadget isolates the four-input Poseidon377 permutation (rate-4,
 // t=5), the per-layer hash of the quad Merkle path (VerifyQuadPath). Same shape
 // as PoseidonHash2Gadget, wider permutation.

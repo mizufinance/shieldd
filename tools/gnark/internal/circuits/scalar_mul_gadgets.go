@@ -180,7 +180,7 @@ func (c *AckTwoStepGadget) Define(api frontend.API) error {
 
 // DLEQGadget is a standalone legacy relation retained for research/fidelity
 // tests. It probes one response equation using two scalar-multiplication
-// prefixes joined by Edwards addition (s·B1 + c·B2). Transfer V19 neither
+// prefixes joined by Edwards addition (s·B1 + c·B2). Transfer V20 neither
 // instantiates this gadget nor carries DLEQ witness or public fields.
 type DLEQGadget struct {
 	SBit0  frontend.Variable `gnark:",public"`

@@ -470,12 +470,12 @@ fn main() {
                 blake2b_simd::blake2b(b"shieldd.leaf_binding.sender").as_bytes(),
             )
             .to_string(),
-            compliance_leaf_domain: blake2b_fq(b"shieldd.compliance.leaf.v4").to_string(),
+            compliance_leaf_domain: blake2b_fq(b"shieldd.compliance.leaf.v5").to_string(),
             issuer_detection_domain: blake2b_fq(b"shieldd.compliance.issuer_detection")
                 .to_string(),
             dleq_metadata_domain: blake2b_fq(b"shieldd.compliance.dleq_metadata").to_string(),
             imt_leaf_domain: personalized_blake2b_fq(b"pen.imt.leaf____").to_string(),
-            imt_params_domain: personalized_blake2b_fq(b"pen.imt.params__").to_string(),
+            imt_params_domain: personalized_blake2b_fq(b"pen.imt.params2_").to_string(),
             imt_ring_domain: personalized_blake2b_fq(b"pen.imt.ring____").to_string(),
             hash7_domain: hash7_domain.to_string(),
             hash7_inputs: hash7_inputs.iter().map(ToString::to_string).collect(),

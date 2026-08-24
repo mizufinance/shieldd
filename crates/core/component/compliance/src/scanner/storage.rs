@@ -14,7 +14,7 @@ use crate::audit_status::{AuditStatus, DetectionStatus, ScreenStatus};
 use crate::ComplianceEvidenceObject;
 
 pub const MAX_INVALID_CIPHERTEXTS_PER_BLOCK: usize = 256;
-const SCANNER_DB_SCHEMA_VERSION: i64 = 4;
+const SCANNER_DB_SCHEMA_VERSION: i64 = 5;
 pub const HEARTBEAT_STALE_SECS: i64 = 30;
 const READ_POOL_SIZE: usize = 4;
 const SQLITE_BUSY_TIMEOUT: Duration = Duration::from_secs(5);

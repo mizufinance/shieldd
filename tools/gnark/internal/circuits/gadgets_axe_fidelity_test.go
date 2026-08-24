@@ -396,6 +396,7 @@ type fidelityCaseBuilder struct {
 
 var expandedAxeFidelityCases = []fidelityCaseBuilder{
 	{name: "gadget-poseidon-hash1", fn: poseidonHash1FidelityCase},
+	{name: "gadget-poseidon-hash3", fn: poseidonHash3FidelityCase},
 	{name: "gadget-poseidon-hash6", fn: poseidonHash6FidelityCase},
 	{name: "gadget-poseidon-hash7", fn: poseidonHash7FidelityCase},
 	{name: "gadget-iszero", fn: isZeroFidelityCase},
@@ -470,6 +471,21 @@ func poseidon2FidelityCase(t *testing.T) gadgetFidelityCase {
 		name:       "gadget-poseidon2",
 		blank:      &PoseidonHash2Gadget{},
 		assignment: &PoseidonHash2Gadget{Domain: domain, In0: in0, In1: in1, Out: out},
+	}
+}
+
+func poseidonHash3FidelityCase(t *testing.T) gadgetFidelityCase {
+	vectors := loadVectors(t)
+	domain := primitives.MustBigInt(vectors.Poseidon377.IVKDomain)
+	in := [3]*big.Int{big.NewInt(7), big.NewInt(11), big.NewInt(13)}
+	out, err := primitives.Poseidon377Hash3Native(domain, in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return gadgetFidelityCase{
+		name:       "gadget-poseidon-hash3",
+		blank:      &PoseidonHash3Gadget{},
+		assignment: &PoseidonHash3Gadget{Domain: domain, In0: in[0], In1: in[1], In2: in[2], Out: out},
 	}
 }
 

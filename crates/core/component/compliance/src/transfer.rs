@@ -6,7 +6,7 @@ use shieldd_sdk_keys::Address;
 
 use crate::{
     crypto::{compliance_stream_block, encrypt_tier_bytes, ISSUER_DETECTION_DOMAIN},
-    issuer_keys::detection_sender_plaintext,
+    issuer_keys::detection_flag_plaintext,
     structs::{C2_BYTES, DETECTION_TAG_BYTES, EPK_BYTES, FQ_BYTES},
 };
 

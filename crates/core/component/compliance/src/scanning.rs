@@ -53,7 +53,7 @@ pub fn decrypt_full_flagged(
     ciphertext: &TransferComplianceCiphertext,
     asset_id: asset::Id,
 ) -> anyhow::Result<Option<FullComplianceData>> {
-    let (_, is_flagged, _, _, _, _) = decrypt_detection_tier(
+    let (_, is_flagged, _) = decrypt_detection_tier(
         dk_secret,
         &ciphertext.sender_core_epk,
         &ciphertext.detection_tag,

@@ -126,12 +126,7 @@ mod tests {
             sender_address,
             Value { amount, asset_id },
             is_flagged,
-            0,
-            0,
-            false,
             salt,
-            salt + decaf377::Fq::from(1u64),
-            salt + decaf377::Fq::from(2u64),
         )
         .unwrap()
         .ciphertext

@@ -85,9 +85,9 @@ pub use genesis::Content as GenesisContent;
 
 pub mod crypto;
 pub use crypto::{
-    decrypt_detection_tier, decrypt_tier_bytes, derive_compliance_scalar, encrypt_tier_bytes,
-    COMPLIANCE_STREAM_CIPHER_DOMAIN, ISSUER_DETECTION_DOMAIN, UNREGULATED_SINK_DK_PUB,
-    UNREGULATED_SINK_RING_PK,
+    compliance_derivation, decrypt_detection_tier, decrypt_tier_bytes, derive_compliance_scalar,
+    encrypt_tier_bytes, COMPLIANCE_STREAM_CIPHER_DOMAIN, ISSUER_DETECTION_DOMAIN,
+    UNREGULATED_SINK_DK_PUB, UNREGULATED_SINK_RING_PK,
 };
 
 pub mod scanning;

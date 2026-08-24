@@ -9,7 +9,7 @@ import (
 
 const (
 	noteReshapeWitnessMagic   = "PNWG"
-	noteReshapeWitnessVersion = 6
+	noteReshapeWitnessVersion = 8
 	maxNoteReshapeItems       = 8
 )
 
@@ -64,8 +64,6 @@ type NoteReshapeWitnessV6Binary struct {
 	RoutingNonce             [32]byte
 	SenderCompliancePath     MerklePathBinary
 	SenderCompliancePosition uint64
-	SenderSlotID             [32]byte
-	SenderSlotDerivation     [32]byte
 	SenderD                  [32]byte
 	SenderStatus             [32]byte
 	Shared                   NoteReshapeSharedNoteContextWitnessV6Binary
@@ -188,12 +186,6 @@ func decodeNoteReshapeWitnessV6(payload []byte) (*NoteReshapeWitnessV6Binary, er
 		return nil, err
 	}
 	if witness.SenderCompliancePosition, err = readU64(reader); err != nil {
-		return nil, err
-	}
-	if witness.SenderSlotID, err = read32(reader); err != nil {
-		return nil, err
-	}
-	if witness.SenderSlotDerivation, err = read32(reader); err != nil {
 		return nil, err
 	}
 	if witness.SenderD, err = read32(reader); err != nil {

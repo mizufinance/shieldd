@@ -19,18 +19,16 @@ TransferComplianceCiphertext: 640 bytes
   512..544  output_core ciphertext: one Fq
   544..640  output_ext ciphertext: three Fq
 
-TransferComplianceMetadata: 328 bytes
-  0..32     sender_subject_derivation Fq
-  32..64    output_subject_derivation Fq
-  64..96    ring_id_hash Fq
-  96..128   policy_id_hash Fq
-  128..160  resource_hash Fq
-  160..192  permission_hash Fq
-  192..200  target_timestamp u64 little-endian
-  200..232  sender_core_salt Fq
-  232..264  sender_ext_salt Fq
-  264..296  output_core_salt Fq
-  296..328  output_ext_salt Fq
+TransferComplianceMetadata: 264 bytes
+  0..32     ring_id_hash Fq
+  32..64    policy_id_hash Fq
+  64..96    resource_hash Fq
+  96..128   permission_hash Fq
+  128..136  target_timestamp u64 little-endian
+  136..168  sender_core_salt Fq
+  168..200  sender_ext_salt Fq
+  200..232  output_core_salt Fq
+  232..264  output_ext_salt Fq
 ```
 
 Every Fq and compressed point must decode canonically. Metadata timestamp zero
@@ -44,13 +42,12 @@ After decryption, the four detection words are:
 ```text
 0  asset_id
 1  detection_salt
-2  sender_slot_id + is_flagged * 2^32 + routing_roles_swapped * 2^33
-3  receiver_slot_id
+2  is_flagged
+3  reserved zero
 ```
 
-Both slots are canonical `u32` values, and the routing permutation is a
-canonical bit. Word 0 is the exact asset id; the circuit does not combine the asset
-with either flag.
+The flag is a canonical bit. Word 0 is the exact asset id and word 3 must be
+zero. The public routing tags provide the address candidate filter separately.
 
 ## Transfer Key And Address Validity
 
@@ -70,8 +67,8 @@ malicious proof from creating a note with that ambiguous owner.
 
 ## Transfer Public Statement
 
-The fixed 2x2 Transfer statement has 47 Fq fields. Its hash uses the
-`shieldd.shielded_pool.transfer.public_input_hash.v6` domain.
+The fixed 2x2 Transfer statement has 45 Fq fields. Its hash uses the
+`shieldd.shielded_pool.transfer.public_input_hash.v7` domain.
 
 ```text
  0       anchor
@@ -88,17 +85,14 @@ The fixed 2x2 Transfer statement has 47 Fq fields. Its hash uses the
 28..30   output_core: EPK, c2, one ciphertext word
 31..35   output_ext: EPK, c2, three ciphertext words
 36       target_timestamp
-37..38   sender and output subject derivations
-39..42   ring, policy, resource, and permission hashes
-43..46   sender-core, sender-ext, output-core, and output-ext salts
+37..40   ring, policy, resource, and permission hashes
+41..44   sender-core, sender-ext, output-core, and output-ext salts
 ```
 
 The exact tail append order is:
 
 ```text
 target_timestamp,
-sender_subject_derivation,
-output_subject_derivation,
 ring_id_hash,
 policy_id_hash,
 resource_hash,
@@ -112,7 +106,7 @@ output_ext_salt
 The metadata timestamp is not appended twice: its serialized value must equal
 the statement's existing `target_timestamp`. The authoritative builders are
 `transfer_statement_fields` in Rust and `buildTransferStatementFields` /
-`ReconstructedTransferStatementFieldsFromWitnessV19` in Go.
+`ReconstructedTransferStatementFieldsFromWitnessV20` in Go.
 
 ## Effective Policy Selection
 
@@ -153,26 +147,23 @@ roots. Large node
 materialization is nonverifiable storage checked against those committed
 roots.
 
-`ComplianceLeaf` v4 is
+`ComplianceLeaf` v5 is
 
 ```text
-PoseidonHash7(
-  "shieldd.compliance.leaf.v4",
+PoseidonHash5(
+  "shieldd.compliance.leaf.v5",
   diversified_generator_fq,
   transmission_key_fq,
   asset_id,
-  slot_id,
-  slot_derivation,
   d,
   status
 )
 ```
 
-The address encodings must be canonical, and the derived `d` must be nonzero.
-Multiple addresses may share a slot, but then they
-intentionally share derivation material and ACK. Asset id zero is reserved for
-the indexed-tree sentinel and cannot be registered or used as a Transfer or
-Withdrawal action asset.
+The address encodings must be canonical, and `d` must equal the nonzero scalar
+derived from the complete canonical address bytes. Asset id zero is reserved
+for the indexed-tree sentinel and cannot be registered or used as a Transfer
+or Withdrawal action asset.
 
 Address audit plaintext is the canonical 64-byte little-endian concatenation
 of `diversified_generator_fq` and `transmission_key_fq`, split into 31-byte

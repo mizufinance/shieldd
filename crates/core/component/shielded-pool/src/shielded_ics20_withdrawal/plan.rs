@@ -493,7 +493,7 @@ impl ShieldedIcs20WithdrawalPlan {
             anchor,
             recent_position_floor,
         )?;
-        crate::gnark::encode_shielded_ics20_withdrawal_witness_v11(&public, &private)
+        crate::gnark::encode_shielded_ics20_withdrawal_witness_v12(&public, &private)
             .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))
     }
 
@@ -814,7 +814,7 @@ mod tests {
             .compliance_leaf
             .as_mut()
             .expect("test spend has a compliance leaf")
-            .slot_id += 1;
+            .status = shieldd_sdk_compliance::UserAssetStatus::Frozen;
         let err = ShieldedIcs20WithdrawalPlan::new(
             vec![first, second],
             None,

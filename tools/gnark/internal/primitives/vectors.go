@@ -171,17 +171,17 @@ type MerklePathFixture struct {
 }
 
 type IndexedLeafFixture struct {
-	Value          []byte      `json:"value"`
-	NextIndex      uint64      `json:"next_index"`
-	NextValue      []byte      `json:"next_value"`
-	DKPub          []byte      `json:"dk_pub"`
-	Threshold      json.Number `json:"threshold"`
-	ChannelsHash   []byte      `json:"channels_hash"`
-	RingPK         []byte      `json:"ring_pk"`
-	RingIDHash     []byte      `json:"ring_id_hash"`
-	PolicyIDHash   []byte      `json:"policy_id_hash"`
-	PermissionHash []byte      `json:"permission_hash"`
-	ResourceHash   []byte      `json:"resource_hash"`
+	Value           []byte      `json:"value"`
+	NextIndex       uint64      `json:"next_index"`
+	NextValue       []byte      `json:"next_value"`
+	DKPub           []byte      `json:"dk_pub"`
+	Threshold       json.Number `json:"threshold"`
+	RoutePolicyHash []byte      `json:"route_policy_hash"`
+	RingPK          []byte      `json:"ring_pk"`
+	RingIDHash      []byte      `json:"ring_id_hash"`
+	PolicyIDHash    []byte      `json:"policy_id_hash"`
+	PermissionHash  []byte      `json:"permission_hash"`
+	ResourceHash    []byte      `json:"resource_hash"`
 }
 
 type AddressFixture struct {

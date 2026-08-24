@@ -137,7 +137,7 @@ shape n_in=8 n_out=1
 0019 decaf.compress_to_field in=shared.transmission.computed out=shared.transmission.fq
 0020 assert.boolean var=is_regulated
 0021 decaf.compress_to_field in=asset.leaf.dk_pub out=asset.leaf.dk_pub_fq
-0022 gadget.asset_registry_params_hash dk_pub_fq=asset.leaf.dk_pub_fq threshold=asset.leaf.threshold channels_hash=asset.leaf.channels_hash out=asset.leaf.params_hash
+0022 gadget.asset_registry_params_hash dk_pub_fq=asset.leaf.dk_pub_fq threshold=asset.leaf.threshold route_policy_hash=asset.leaf.route_policy_hash out=asset.leaf.params_hash
 0023 decaf.compress_to_field in=asset.leaf.ring_pk out=asset.leaf.ring_pk_fq
 0024 gadget.asset_registry_ring_hash ring_pk_fq=asset.leaf.ring_pk_fq ring_id_hash=asset.leaf.ring_id_hash policy_id_hash=asset.leaf.policy_id_hash permission_hash=asset.leaf.permission_hash resource_hash=asset.leaf.resource_hash out=asset.leaf.ring_hash
 0025 gadget.asset_registry_leaf_hash value=asset.leaf.value next_index=asset.leaf.next_index next_value=asset.leaf.next_value params_hash=asset.leaf.params_hash ring_hash=asset.leaf.ring_hash out=asset.leaf.commitment
@@ -781,8 +781,8 @@ func TestTransferManifestClassifiesExactPathAndPoseidonShapes(t *testing.T) {
 		}
 	}
 
-	if got := transferStatementFieldCount(); got != 47 {
-		t.Fatalf("Transfer statement field count %d, want 47", got)
+	if got := transferStatementFieldCount(); got != 45 {
+		t.Fatalf("Transfer statement field count %d, want 45", got)
 	}
 	statementRows := make([]int, 0, 1)
 	for _, segment := range manifest.Segments {
@@ -797,7 +797,7 @@ func TestTransferManifestClassifiesExactPathAndPoseidonShapes(t *testing.T) {
 		}
 		statementRows = append(statementRows, segment.ConstraintCount)
 	}
-	expectedStatementRows := []int{3_750}
+	expectedStatementRows := []int{3_740}
 	if !reflect.DeepEqual(statementRows, expectedStatementRows) {
 		t.Fatalf(
 			"Transfer statement block rows %v, want %v",
@@ -958,16 +958,15 @@ func TestShieldedIcs20WithdrawalManifestIsExactAndFullyBound(t *testing.T) {
 		manifest,
 		[]string{
 			"point=auth.ak coordinate=x",
-			"point=compliance.epk coordinate=x",
 			"point=sender.div_gen coordinate=x",
 			"point=sender.transmission.computed coordinate=x",
 		},
 	)
 
-	if manifest.NbConstraints != 77_371 ||
+	if manifest.NbConstraints != 57_651 ||
 		manifest.NbPublic != 2 ||
-		manifest.NbSecret != 313 ||
-		manifest.NbInternal != 71_822 {
+		manifest.NbSecret != 296 ||
+		manifest.NbInternal != 54_162 {
 		t.Fatalf(
 			"unexpected withdrawal shape: constraints=%d public=%d secret=%d internal=%d",
 			manifest.NbConstraints,
@@ -1005,27 +1004,20 @@ func TestShieldedIcs20WithdrawalManifestIsExactAndFullyBound(t *testing.T) {
 		label string
 		count int
 	}{
-		"decaf.ack":                          {"gadget-ack-derivation", 1},
-		"decaf.shared_secret":                {"gadget-shared-secrets", 1},
-		"threshold.flag":                     {"gadget-threshold-regulated-flag", 1},
-		"gadget.asset_registry_params_hash":  {"gadget-poseidon-hash3", 1},
-		"gadget.asset_registry_ring_hash":    {"gadget-poseidon-hash5", 1},
-		"gadget.asset_registry_leaf_hash":    {"gadget-poseidon-hash5", 1},
-		"gadget.asset_registry_path":         {"gadget-quad-path-16", 1},
-		"gadget.compliance_leaf":             {"gadget-poseidon-hash5", 1},
-		"gadget.compliance_path":             {"gadget-quad-path-16", 1},
-		"gadget.poseidon_hash2":              {"gadget-poseidon-hash2", 1},
-		"gadget.poseidon_encryption.address": {"gadget-poseidon-encryption-address-body", 1},
-		"gadget.note_commitment":             {"gadget-poseidon-hash6", 3},
-		"gadget.nullifier":                   {"gadget-nullifier", 2},
-		"gadget.state_commitment_path":       {"gadget-quad-path-24", 2},
-		"decaf.randomized_verification_key":  {"gadget-rvk", 2},
-		"gadget.synthetic_dummy_nullifier":   {"gadget-poseidon-hash3-specialized", 1},
+		"gadget.asset_registry_leaf_hash":   {"gadget-poseidon-hash5", 1},
+		"gadget.asset_registry_path":        {"gadget-quad-path-16", 1},
+		"gadget.compliance_leaf":            {"gadget-poseidon-hash5", 1},
+		"gadget.compliance_path":            {"gadget-quad-path-16", 1},
+		"gadget.note_commitment":            {"gadget-poseidon-hash6", 3},
+		"gadget.nullifier":                  {"gadget-nullifier", 2},
+		"gadget.state_commitment_path":      {"gadget-quad-path-24", 2},
+		"decaf.randomized_verification_key": {"gadget-rvk", 2},
+		"gadget.synthetic_dummy_nullifier":  {"gadget-poseidon-hash3-specialized", 1},
 		"decaf.conservation_net_balance_commitment2": {
 			"gadget-conservation-net-balance-commitment2",
 			1,
 		},
-		"statement.hash": {"gadget-poseidon-hash7", 5},
+		"statement.hash": {"gadget-poseidon-hash7", 4},
 	}
 	seen := make(map[string]int, len(expectedGadgets))
 	for _, segment := range manifest.Segments {
