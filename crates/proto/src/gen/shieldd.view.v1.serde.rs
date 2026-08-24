@@ -6348,6 +6348,9 @@ impl serde::Serialize for TransactionPlannerRequest {
         if !self.ics20_withdrawals.is_empty() {
             len += 1;
         }
+        if !self.host_withdrawals.is_empty() {
+            len += 1;
+        }
         if self.epoch_index != 0 {
             len += 1;
         }
@@ -6377,6 +6380,9 @@ impl serde::Serialize for TransactionPlannerRequest {
         }
         if !self.ics20_withdrawals.is_empty() {
             struct_ser.serialize_field("ics20Withdrawals", &self.ics20_withdrawals)?;
+        }
+        if !self.host_withdrawals.is_empty() {
+            struct_ser.serialize_field("hostWithdrawals", &self.host_withdrawals)?;
         }
         if self.epoch_index != 0 {
             #[allow(clippy::needless_borrow)]
@@ -6415,6 +6421,8 @@ impl<'de> serde::Deserialize<'de> for TransactionPlannerRequest {
             "ibcRelayActions",
             "ics20_withdrawals",
             "ics20Withdrawals",
+            "host_withdrawals",
+            "hostWithdrawals",
             "epoch_index",
             "epochIndex",
             "epoch",
@@ -6432,6 +6440,7 @@ impl<'de> serde::Deserialize<'de> for TransactionPlannerRequest {
             Outputs,
             IbcRelayActions,
             Ics20Withdrawals,
+            HostWithdrawals,
             EpochIndex,
             Epoch,
             AutoFee,
@@ -6464,6 +6473,7 @@ impl<'de> serde::Deserialize<'de> for TransactionPlannerRequest {
                             "outputs" => Ok(GeneratedField::Outputs),
                             "ibcRelayActions" | "ibc_relay_actions" => Ok(GeneratedField::IbcRelayActions),
                             "ics20Withdrawals" | "ics20_withdrawals" => Ok(GeneratedField::Ics20Withdrawals),
+                            "hostWithdrawals" | "host_withdrawals" => Ok(GeneratedField::HostWithdrawals),
                             "epochIndex" | "epoch_index" => Ok(GeneratedField::EpochIndex),
                             "epoch" => Ok(GeneratedField::Epoch),
                             "autoFee" | "auto_fee" => Ok(GeneratedField::AutoFee),
@@ -6493,6 +6503,7 @@ impl<'de> serde::Deserialize<'de> for TransactionPlannerRequest {
                 let mut outputs__ = None;
                 let mut ibc_relay_actions__ = None;
                 let mut ics20_withdrawals__ = None;
+                let mut host_withdrawals__ = None;
                 let mut epoch_index__ = None;
                 let mut epoch__ = None;
                 let mut fee_mode__ = None;
@@ -6536,6 +6547,12 @@ impl<'de> serde::Deserialize<'de> for TransactionPlannerRequest {
                             }
                             ics20_withdrawals__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::HostWithdrawals => {
+                            if host_withdrawals__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("hostWithdrawals"));
+                            }
+                            host_withdrawals__ = Some(map_.next_value()?);
+                        }
                         GeneratedField::EpochIndex => {
                             if epoch_index__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("epochIndex"));
@@ -6576,6 +6593,7 @@ impl<'de> serde::Deserialize<'de> for TransactionPlannerRequest {
                     outputs: outputs__.unwrap_or_default(),
                     ibc_relay_actions: ibc_relay_actions__.unwrap_or_default(),
                     ics20_withdrawals: ics20_withdrawals__.unwrap_or_default(),
+                    host_withdrawals: host_withdrawals__.unwrap_or_default(),
                     epoch_index: epoch_index__.unwrap_or_default(),
                     epoch: epoch__,
                     fee_mode: fee_mode__,

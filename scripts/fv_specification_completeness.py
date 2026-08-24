@@ -571,7 +571,7 @@ RUNTIME_POLICY_CONTRACT_SHA256 = (
 # Update these only after independently reviewing every owner, source file,
 # runnable selector, kind, and execution command in the corresponding ledger.
 PROPERTY_TEST_CONTRACT_SHA256 = (
-    "3913dde6a8cbc1d8a43abfd88fb8057d584da4e04a92ce7bc88067bbcef45bfc"
+    "b55cabdca23b47b7ae35dd3a1e5136110aa605e211c24530d2f0bb5043269a31"
 )
 ARTIFACT_TEST_CONTRACT_SHA256 = (
     "ea16a0caa1490200fbf691f3d679bad1d160150b6b50da765be9df3623efc039"
@@ -812,7 +812,7 @@ REVIEWED_TEST_SOURCE_CENSUS = (
 # This pins every path/symbol/reason triple rendered in reviewed_test_census.
 # Update only after deciding whether each changed test is normative evidence.
 REVIEWED_TEST_EXCLUSIONS_SHA256 = (
-    "5eea8745bc23b941eed369468bdfd9a60136630d460796c9c726310dac057f78"
+    "edca4dc6f9ae57a6d7c51a9e462d8e1cfbdd05ba935a3835732409c7f5579402"
 )
 PROPERTY_TEST_SOURCE_CENSUS = (
     "crates/core/component/compliance/src/structs.rs",
@@ -1422,6 +1422,7 @@ EXPECTED_EXECUTION_SERVICE_PUBLIC_METHODS = frozenset(
         "compliance_asset_status",
         "compliance_batch_merkle_proofs",
         "compliance_user_leaf",
+        "compact_block_range",
         "deliver_tx",
         "deposit",
         "end_block",
@@ -8501,6 +8502,7 @@ def _validate_grpc_execution_frontdoors(root: Path) -> None:
         "METHOD_QUERY_COMPLIANCE_BATCH_MERKLE_PROOFS": 1_000_003,
         "METHOD_QUERY_COMPLIANCE_USER_LEAF": 1_000_004,
         "METHOD_QUERY_KEY_VALUE": 1_000_005,
+        "METHOD_QUERY_COMPACT_BLOCK_RANGE": 1_000_006,
     }
     ffi_methods = {
         name: int(value.replace("_", ""))
@@ -8553,6 +8555,18 @@ def _validate_grpc_execution_frontdoors(root: Path) -> None:
             ),
             f"FFI {method} ExecutionService delegation",
         )
+    _require_ordered_symbols(
+        ffi_dispatch,
+        (
+            "METHOD_QUERY_COMPACT_BLOCK_RANGE => {",
+            "service",
+            ".compact_block_range(decode(request)?)",
+            ".await",
+            ".map_err(FfiError::service)?",
+            "encode_delimited(responses)",
+        ),
+        "FFI compact_block_range ExecutionService delegation",
+    )
     shieldd_call = {
         "name": "shieldd_call",
         "body": _balanced_rust_declaration_block(

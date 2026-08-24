@@ -7547,6 +7547,8 @@ _REVIEWED_TEST_EXCLUSION_SYMBOLS = {
         "buffer_free_is_idempotent_for_the_same_buffer_struct",
         "calls_sharing_a_handle_are_serialized",
         "committed_state_is_available_through_the_ffi",
+        "compact_block_range_query_rejects_keep_alive",
+        "compact_block_range_query_returns_length_delimited_blocks_in_order",
         "frontend_queries_read_committed_state",
         "historical_witness_call_requires_opt_in_storage",
         "invalid_inputs_return_c_safe_statuses",

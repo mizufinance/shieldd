@@ -724,7 +724,10 @@ impl ViewService for ViewServer {
             .unwrap_or(0u32);
 
         if !prq.outputs.is_empty() {
-            if !prq.ibc_relay_actions.is_empty() || !prq.ics20_withdrawals.is_empty() {
+            if !prq.ibc_relay_actions.is_empty()
+                || !prq.ics20_withdrawals.is_empty()
+                || !prq.host_withdrawals.is_empty()
+            {
                 return Err(tonic::Status::invalid_argument(
                     "wallet-facing shielded transfer intents cannot be mixed with other action types in transaction_planner",
                 ));
@@ -800,7 +803,10 @@ impl ViewService for ViewServer {
         }
 
         if !prq.ics20_withdrawals.is_empty() {
-            if !prq.ibc_relay_actions.is_empty() || !prq.outputs.is_empty() {
+            if !prq.ibc_relay_actions.is_empty()
+                || !prq.outputs.is_empty()
+                || !prq.host_withdrawals.is_empty()
+            {
                 return Err(tonic::Status::invalid_argument(
                     "wallet-facing ICS-20 withdrawal intents cannot be mixed with other action types in transaction_planner",
                 ));
@@ -845,6 +851,67 @@ impl ViewService for ViewServer {
                 TransferPlanningResult::InsufficientBalance => {
                     return Err(tonic::Status::invalid_argument(
                         "insufficient balance for requested ICS-20 withdrawal",
+                    ));
+                }
+                TransferPlanningResult::UnsupportedIntent { reason } => {
+                    return Err(tonic::Status::invalid_argument(reason));
+                }
+            };
+
+            return Ok(tonic::Response::new(TransactionPlannerResponse {
+                plan: Some(transaction_plan.into()),
+            }));
+        }
+
+        if !prq.host_withdrawals.is_empty() {
+            if !prq.ibc_relay_actions.is_empty()
+                || !prq.outputs.is_empty()
+                || !prq.ics20_withdrawals.is_empty()
+            {
+                return Err(tonic::Status::invalid_argument(
+                    "wallet-facing host withdrawal intents cannot be mixed with other action types in transaction_planner",
+                ));
+            }
+            if prq.host_withdrawals.len() != 1 {
+                return Err(tonic::Status::invalid_argument(
+                    "wallet-facing host withdrawal planner supports exactly one outbound withdrawal",
+                ));
+            }
+
+            let withdrawal: shieldd_sdk_shielded_pool::HostWithdrawal = prq
+                .host_withdrawals
+                .into_iter()
+                .next()
+                .expect("checked exactly one host withdrawal")
+                .try_into()
+                .map_err(|e| {
+                    tonic::Status::invalid_argument(format!(
+                        "Could not parse host withdrawal: {e:#}"
+                    ))
+                })?;
+
+            let mut note_manager = NoteManager::new(OsRng);
+            note_manager
+                .set_gas_prices(gas_prices)
+                .expiry_height(prq.expiry_height);
+
+            let mut client_of_self = ViewServiceClient::new(ViewServiceServer::new(self.clone()));
+            let planning_result = note_manager
+                .plan_host_withdrawal(&mut client_of_self, source.into(), withdrawal)
+                .await
+                .context("could not plan wallet-facing host withdrawal")
+                .map_err(|e| tonic::Status::invalid_argument(format!("{e:#}")))?;
+
+            let transaction_plan = match planning_result {
+                TransferPlanningResult::Ready { transaction_plan } => transaction_plan,
+                TransferPlanningResult::NeedsMaintenance { .. } => {
+                    return Err(tonic::Status::invalid_argument(
+                        "wallet-facing host withdrawal requires note maintenance first",
+                    ));
+                }
+                TransferPlanningResult::InsufficientBalance => {
+                    return Err(tonic::Status::invalid_argument(
+                        "insufficient balance for requested host withdrawal",
                     ));
                 }
                 TransferPlanningResult::UnsupportedIntent { reason } => {
@@ -914,7 +981,7 @@ impl ViewService for ViewServer {
         }
 
         Err(tonic::Status::invalid_argument(
-            "transaction_planner only supports wallet-facing transfer, ICS-20 withdrawal, and transfer-funded IBC relay intents",
+            "transaction_planner only supports wallet-facing transfer, ICS-20 withdrawal, host withdrawal, and transfer-funded IBC relay intents",
         ))
     }
 

@@ -9,8 +9,9 @@ use shieldd_sdk_num::Amount;
 use shieldd_sdk_proto::view::v1::NotesRequest;
 use shieldd_sdk_sct::nullifier_generation::NullifierWindow;
 use shieldd_sdk_shielded_pool::{
-    note, Ics20Withdrawal, NoteReshapeFamilyId, NoteReshapePlan, ShieldedIcs20WithdrawalPlan,
-    ShieldedInputPlan, ShieldedOutputPlan, TransferPlan,
+    note, HostWithdrawal, Ics20Withdrawal, NoteReshapeFamilyId, NoteReshapePlan,
+    ShieldedHostWithdrawalPlan, ShieldedIcs20WithdrawalPlan, ShieldedInputPlan, ShieldedOutputPlan,
+    TransferPlan,
 };
 use shieldd_sdk_transaction::{
     check_transaction_plan_enabled,
@@ -40,6 +41,12 @@ pub struct Ics20WithdrawalResumeToken {
 }
 
 #[derive(Clone, Debug)]
+pub struct HostWithdrawalResumeToken {
+    pub source: AddressIndex,
+    pub withdrawal: HostWithdrawal,
+}
+
+#[derive(Clone, Debug)]
 pub struct ActionFundingResumeToken {
     pub source: AddressIndex,
     pub actions: Vec<ActionPlan>,
@@ -58,8 +65,55 @@ pub struct NoteReshapeResumeToken {
 pub enum NoteManagerResumeToken {
     Transfer(TransferResumeToken),
     Ics20Withdrawal(Ics20WithdrawalResumeToken),
+    HostWithdrawal(HostWithdrawalResumeToken),
     ActionFunding(ActionFundingResumeToken),
     NoteReshape(NoteReshapeResumeToken),
+}
+
+#[derive(Clone, Debug)]
+enum WalletWithdrawal {
+    Ics20(Ics20Withdrawal),
+    Host(HostWithdrawal),
+}
+
+impl WalletWithdrawal {
+    fn amount(&self) -> Amount {
+        match self {
+            Self::Ics20(withdrawal) => withdrawal.amount,
+            Self::Host(withdrawal) => withdrawal.value.amount,
+        }
+    }
+
+    fn asset_id(&self) -> asset::Id {
+        match self {
+            Self::Ics20(withdrawal) => withdrawal.denom.id(),
+            Self::Host(withdrawal) => withdrawal.value.asset_id,
+        }
+    }
+
+    fn label(&self) -> &'static str {
+        match self {
+            Self::Ics20(_) => "ICS-20 withdrawal",
+            Self::Host(_) => "host withdrawal",
+        }
+    }
+
+    fn resume_token(&self, source: AddressIndex) -> NoteManagerResumeToken {
+        match self {
+            Self::Ics20(withdrawal) => {
+                NoteManagerResumeToken::Ics20Withdrawal(Ics20WithdrawalResumeToken {
+                    source,
+                    withdrawal: withdrawal.clone(),
+                })
+            }
+            Self::Host(withdrawal) => {
+                NoteManagerResumeToken::HostWithdrawal(HostWithdrawalResumeToken {
+                    source,
+                    withdrawal: withdrawal.clone(),
+                })
+            }
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -417,6 +471,9 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             NoteManagerResumeToken::Ics20Withdrawal(token) => {
                 self.resume_ics20_withdrawal(view, token).await
             }
+            NoteManagerResumeToken::HostWithdrawal(token) => {
+                self.resume_host_withdrawal(view, token).await
+            }
             NoteManagerResumeToken::ActionFunding(token) => {
                 self.resume_action_funding(view, token).await
             }
@@ -496,10 +553,32 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
         source: AddressIndex,
         withdrawal: Ics20Withdrawal,
     ) -> Result<NoteManagerPlanningResult> {
+        self.plan_wallet_withdrawal(view, source, WalletWithdrawal::Ics20(withdrawal))
+            .await
+    }
+
+    pub async fn plan_host_withdrawal<V: ViewClient + Send + ?Sized>(
+        &mut self,
+        view: &mut V,
+        source: AddressIndex,
+        withdrawal: HostWithdrawal,
+    ) -> Result<NoteManagerPlanningResult> {
+        self.plan_wallet_withdrawal(view, source, WalletWithdrawal::Host(withdrawal))
+            .await
+    }
+
+    async fn plan_wallet_withdrawal<V: ViewClient + Send + ?Sized>(
+        &mut self,
+        view: &mut V,
+        source: AddressIndex,
+        withdrawal: WalletWithdrawal,
+    ) -> Result<NoteManagerPlanningResult> {
         let gas_prices = self
             .gas_prices
             .context("note manager instances must call set_gas_prices prior to planning")?;
-        let asset_id = withdrawal.denom.id();
+        let asset_id = withdrawal.asset_id();
+        let withdrawal_amount = withdrawal.amount();
+        let label = withdrawal.label();
 
         if let Some(result) = ensure_base_gas_prices(gas_prices) {
             return Ok(result);
@@ -516,12 +595,11 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
 
         for _ in 0..4 {
             let required_amount = if gas_prices_are_zero(gas_prices) {
-                withdrawal
-                    .amount
+                withdrawal_amount
                     .checked_add(&fee.amount())
-                    .ok_or_else(|| anyhow!("ICS-20 withdrawal amount overflow while planning"))?
+                    .ok_or_else(|| anyhow!("{label} amount overflow while planning"))?
             } else {
-                withdrawal.amount
+                withdrawal_amount
             };
             let selected = select_notes_covering(&mut notes, required_amount);
             let selected_total = selected
@@ -533,11 +611,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                 return Ok(NoteManagerPlanningResult::InsufficientBalance);
             }
 
-            let resume_token =
-                NoteManagerResumeToken::Ics20Withdrawal(Ics20WithdrawalResumeToken {
-                    source,
-                    withdrawal: withdrawal.clone(),
-                });
+            let resume_token = withdrawal.resume_token(source);
             let action_needs_maintenance = selected.len() > 2;
             let excluded_fee_notes = selected_note_commitments(&selected);
             let fee_funding_selection = if gas_prices_are_zero(gas_prices) {
@@ -561,7 +635,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                             else {
                                 return Ok(NoteManagerPlanningResult::UnsupportedIntent {
                                     reason: format!(
-                                        "ICS-20 withdrawal requires note maintenance for asset {}, but no supported note reshape family is currently applicable",
+                                        "{label} requires note maintenance for asset {}, but no supported note reshape family is currently applicable",
                                         asset_id
                                     ),
                                 });
@@ -573,15 +647,13 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                             });
                         }
 
-                        let shielded_withdrawal = self.build_ics20_withdrawal_plan(
+                        let action = self.build_wallet_withdrawal_action(
                             &selected,
                             withdrawal.clone(),
                             zero_base_fee(),
                         )?;
                         let fee_funding = self.build_fee_funding_plan(&fee_notes, fee)?;
-                        let actions = vec![ActionPlan::ShieldedIcs20Withdrawal(
-                            shielded_withdrawal.clone(),
-                        )];
+                        let actions = vec![action];
                         let new_fee = price_transaction_plan(
                             gas_prices,
                             self.fee_tier,
@@ -636,7 +708,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                 else {
                     return Ok(NoteManagerPlanningResult::UnsupportedIntent {
                         reason: format!(
-                        "ICS-20 withdrawal requires note maintenance for asset {}, but no supported note reshape family is currently applicable",
+                            "{label} requires note maintenance for asset {}, but no supported note reshape family is currently applicable",
                             asset_id
                         ),
                     });
@@ -648,24 +720,14 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                 });
             }
 
-            let shielded_withdrawal =
-                self.build_ics20_withdrawal_plan(&selected, withdrawal.clone(), fee)?;
-            let actions = vec![ActionPlan::ShieldedIcs20Withdrawal(
-                shielded_withdrawal.clone(),
-            )];
+            let action = self.build_wallet_withdrawal_action(&selected, withdrawal.clone(), fee)?;
+            let actions = vec![action];
             let new_fee =
                 price_transaction_plan(gas_prices, self.fee_tier, &actions, None, nullifier_window);
 
             if new_fee == fee {
                 let plan = self
-                    .finalize_wallet_plan(
-                        view,
-                        source,
-                        vec![ActionPlan::ShieldedIcs20Withdrawal(shielded_withdrawal)],
-                        None,
-                        new_fee,
-                        nullifier_window,
-                    )
+                    .finalize_wallet_plan(view, source, actions, None, new_fee, nullifier_window)
                     .await?;
                 return Ok(NoteManagerPlanningResult::Ready {
                     transaction_plan: plan,
@@ -676,7 +738,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             notes = self.load_notes_for_asset(view, source, asset_id).await?;
         }
 
-        Err(anyhow!("ICS-20 withdrawal planning did not converge"))
+        Err(anyhow!("{label} planning did not converge"))
     }
 
     pub async fn resume_ics20_withdrawal<V: ViewClient + Send + ?Sized>(
@@ -685,6 +747,15 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
         resume_token: Ics20WithdrawalResumeToken,
     ) -> Result<NoteManagerPlanningResult> {
         self.plan_ics20_withdrawal(view, resume_token.source, resume_token.withdrawal)
+            .await
+    }
+
+    pub async fn resume_host_withdrawal<V: ViewClient + Send + ?Sized>(
+        &mut self,
+        view: &mut V,
+        resume_token: HostWithdrawalResumeToken,
+    ) -> Result<NoteManagerPlanningResult> {
+        self.plan_host_withdrawal(view, resume_token.source, resume_token.withdrawal)
             .await
     }
 
@@ -1263,26 +1334,28 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
         Err(anyhow!("fee-funded action planning did not converge"))
     }
 
-    fn build_ics20_withdrawal_plan(
+    fn build_wallet_withdrawal_action(
         &mut self,
         selected: &[SpendableNoteRecord],
-        withdrawal: Ics20Withdrawal,
+        withdrawal: WalletWithdrawal,
         fee: Fee,
-    ) -> Result<ShieldedIcs20WithdrawalPlan> {
+    ) -> Result<ActionPlan> {
+        let label = withdrawal.label();
+        let withdrawal_amount = withdrawal.amount();
+        let asset_id = withdrawal.asset_id();
         let sender_address = selected
             .first()
             .map(|record| record.note.address())
-            .ok_or_else(|| anyhow!("ICS-20 withdrawal requires at least one selected note"))?;
+            .ok_or_else(|| anyhow!("{label} requires at least one selected note"))?;
         let total_input = selected
             .iter()
             .map(|record| record.note.amount())
             .sum::<Amount>();
-        let total_required = withdrawal
-            .amount
+        let total_required = withdrawal_amount
             .checked_add(&fee.amount())
-            .ok_or_else(|| anyhow!("ICS-20 withdrawal amount overflow while building"))?;
+            .ok_or_else(|| anyhow!("{label} amount overflow while building"))?;
         if total_input < total_required {
-            anyhow::bail!("selected notes do not cover ICS-20 withdrawal amount and fee");
+            anyhow::bail!("selected notes do not cover {label} amount and fee");
         }
 
         let change_amount = total_input - total_required;
@@ -1298,7 +1371,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                 &mut self.rng,
                 Value {
                     amount: change_amount,
-                    asset_id: withdrawal.denom.id(),
+                    asset_id,
                 },
                 sender_address,
             ))
@@ -1312,7 +1385,22 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             None => align_shielded_planning_metadata(&mut spends, &mut []),
         }
 
-        ShieldedIcs20WithdrawalPlan::new(spends, change_output, withdrawal, Fr::rand(&mut self.rng))
+        match withdrawal {
+            WalletWithdrawal::Ics20(withdrawal) => ShieldedIcs20WithdrawalPlan::new(
+                spends,
+                change_output,
+                withdrawal,
+                Fr::rand(&mut self.rng),
+            )
+            .map(ActionPlan::ShieldedIcs20Withdrawal),
+            WalletWithdrawal::Host(withdrawal) => ShieldedHostWithdrawalPlan::new(
+                spends,
+                change_output,
+                withdrawal,
+                Fr::rand(&mut self.rng),
+            )
+            .map(ActionPlan::ShieldedHostWithdrawal),
+        }
     }
 
     async fn load_notes_for_asset<V: ViewClient + Send + ?Sized>(
@@ -1516,7 +1604,9 @@ mod tests {
     use shieldd_sdk_proto::core::component::compliance::v1 as compliance_pb;
     use shieldd_sdk_proto::view::v1 as pb;
     use shieldd_sdk_sct::{CommitmentSource, Nullifier};
-    use shieldd_sdk_shielded_pool::{discovery, note, Note, Rseed};
+    use shieldd_sdk_shielded_pool::{
+        discovery, note, HostTransfer, HostWithdrawalDestination, Note, Rseed,
+    };
     use shieldd_sdk_transaction::{
         plan::ActionPlan, txhash::TransactionId, AuthorizationData, Transaction, WitnessData,
     };
@@ -1602,6 +1692,18 @@ mod tests {
             source_channel: ChannelId::from_str("channel-0").expect("valid channel id"),
             ics20_memo: String::new(),
             use_transparent_address: false,
+        }
+    }
+
+    fn test_host_withdrawal(amount: u64, recipient: &str) -> HostWithdrawal {
+        HostWithdrawal {
+            value: Value {
+                amount: amount.into(),
+                asset_id: *BASE_ASSET_ID,
+            },
+            destination: HostWithdrawalDestination::Transfer(HostTransfer {
+                recipient: recipient.to_owned(),
+            }),
         }
     }
 
@@ -2168,6 +2270,109 @@ mod tests {
             transaction_plan.actions.first(),
             Some(ActionPlan::ShieldedIcs20Withdrawal(_))
         ));
+    }
+
+    #[tokio::test]
+    async fn host_withdrawal_ready_produces_wallet_facing_action_only() {
+        let mut rng = OsRng;
+        let source = AddressIndex::new(0);
+        let sender = test_address(24);
+        let view_addresses = BTreeMap::from([(source, sender.clone())]);
+        let notes = vec![
+            spendable_note_record(&mut rng, 7, source, sender.clone(), 1),
+            spendable_note_record(&mut rng, 5, source, sender, 2),
+        ];
+        let mut view = MockNoteManagerView::new(notes, view_addresses);
+        let withdrawal = test_host_withdrawal(10, "bankd1recipient");
+
+        let mut note_manager = NoteManager::new(OsRng);
+        note_manager.set_gas_prices(GasPrices::zero());
+
+        let result = note_manager
+            .plan_host_withdrawal(&mut view, source, withdrawal.clone())
+            .await
+            .expect("host withdrawal planning succeeds");
+
+        let NoteManagerPlanningResult::Ready { transaction_plan } = result else {
+            panic!("expected ready host withdrawal plan");
+        };
+        assert_eq!(transaction_plan.actions.len(), 1);
+        let Some(ActionPlan::ShieldedHostWithdrawal(plan)) = transaction_plan.actions.first()
+        else {
+            panic!("expected shielded host withdrawal action");
+        };
+        assert_eq!(plan.withdrawal, withdrawal);
+        assert_eq!(plan.spends.len(), 2);
+        assert_eq!(
+            plan.change_output
+                .as_ref()
+                .expect("withdrawal should create change")
+                .value
+                .amount,
+            2u64.into()
+        );
+    }
+
+    #[tokio::test]
+    async fn fragmented_host_withdrawal_requests_note_reshape_then_resume_builds_action() {
+        let mut rng = OsRng;
+        let source = AddressIndex::new(0);
+        let sender = test_address(25);
+        let view_addresses = BTreeMap::from([(source, sender.clone())]);
+        let notes = vec![
+            spendable_note_record(&mut rng, 4, source, sender.clone(), 1),
+            spendable_note_record(&mut rng, 3, source, sender.clone(), 2),
+            spendable_note_record(&mut rng, 2, source, sender.clone(), 3),
+            spendable_note_record(&mut rng, 1, source, sender.clone(), 4),
+        ];
+        let mut view = MockNoteManagerView::new(notes, view_addresses);
+        let withdrawal = test_host_withdrawal(10, "bankd1recipient");
+        let mut note_manager = NoteManager::new(OsRng);
+        note_manager.set_gas_prices(GasPrices::zero());
+
+        let result = note_manager
+            .plan_host_withdrawal(&mut view, source, withdrawal.clone())
+            .await
+            .expect("host withdrawal planning succeeds");
+
+        let (maintenance_plan, resume_token) = match result {
+            NoteManagerPlanningResult::NeedsMaintenance {
+                maintenance_plan,
+                resume_token,
+            } => (maintenance_plan, resume_token),
+            _ => panic!("expected maintenance result"),
+        };
+        assert!(matches!(
+            maintenance_plan.actions.first(),
+            Some(ActionPlan::NoteReshape(note_reshape))
+                if note_reshape.family_id() == NoteReshapeFamilyId::EightByOne
+        ));
+        assert!(matches!(
+            &resume_token,
+            NoteManagerResumeToken::HostWithdrawal(_)
+        ));
+
+        view.replace_notes(vec![spendable_note_record(
+            &mut rng,
+            10,
+            source,
+            test_address(25),
+            5,
+        )]);
+
+        let resumed = note_manager
+            .resume(&mut view, resume_token)
+            .await
+            .expect("resume succeeds");
+
+        let NoteManagerPlanningResult::Ready { transaction_plan } = resumed else {
+            panic!("expected resumed host withdrawal to be ready");
+        };
+        let Some(ActionPlan::ShieldedHostWithdrawal(plan)) = transaction_plan.actions.first()
+        else {
+            panic!("expected shielded host withdrawal action");
+        };
+        assert_eq!(plan.withdrawal, withdrawal);
     }
 
     #[tokio::test]

@@ -493,8 +493,10 @@ PROPERTY_OWNER_SPECS: dict[str, tuple[TestSpec, ...]] = {
             "crates/view/src/note_manager.rs",
             """
             exact_fee_generic_funding_builds_zero_value_fee_change
+            fragmented_host_withdrawal_requests_note_reshape_then_resume_builds_action
             fragmented_ics20_withdrawal_requests_note_reshape_then_resume_builds_action
             fragmented_transfer_requests_note_reshape_then_resume_builds_transfer
+            host_withdrawal_ready_produces_wallet_facing_action_only
             ics20_withdrawal_ready_produces_wallet_facing_action_only
             transfer_ready_produces_wallet_facing_transfer_only
             """,

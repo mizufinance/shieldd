@@ -3423,12 +3423,12 @@
     {
       "id": "PROPERTY-EXACT-FEE-GENERIC-FUNDING-BUILDS-ZERO-VALUE-FEE-CHANGE",
       "path": "crates/view/src/note_manager.rs",
-      "source_sha256": "1fa3f0c40401c769e0c530753ea375959dd0be163b5974d503c2a9c9250e9892"
+      "source_sha256": "ea62f547d3932b931fbf263d8d8550ba192fb804adf1cdfde3a5e1adf330d04a"
     },
     {
       "id": "PROPERTY-EXPLICIT-MANY-TO-ONE-RETURNS-SINGLE-NOTE-RESHAPE-TRANSACTION",
       "path": "crates/view/src/note_manager.rs",
-      "source_sha256": "1fa3f0c40401c769e0c530753ea375959dd0be163b5974d503c2a9c9250e9892"
+      "source_sha256": "ea62f547d3932b931fbf263d8d8550ba192fb804adf1cdfde3a5e1adf330d04a"
     },
     {
       "id": "PROPERTY-EXTRACT-USER-MEMO-NO-MEMO-FIELD",
@@ -3441,14 +3441,19 @@
       "source_sha256": "a06de848b596eb4b4ca03ceca5c708d3583838ab9957915c621809a9e7fc6eb6"
     },
     {
+      "id": "PROPERTY-FRAGMENTED-HOST-WITHDRAWAL-REQUESTS-NOTE-RESHAPE-THEN-RESUME-BUILDS-ACTION",
+      "path": "crates/view/src/note_manager.rs",
+      "source_sha256": "ea62f547d3932b931fbf263d8d8550ba192fb804adf1cdfde3a5e1adf330d04a"
+    },
+    {
       "id": "PROPERTY-FRAGMENTED-ICS20-WITHDRAWAL-REQUESTS-NOTE-RESHAPE-THEN-RESUME-BUILDS-ACTION",
       "path": "crates/view/src/note_manager.rs",
-      "source_sha256": "1fa3f0c40401c769e0c530753ea375959dd0be163b5974d503c2a9c9250e9892"
+      "source_sha256": "ea62f547d3932b931fbf263d8d8550ba192fb804adf1cdfde3a5e1adf330d04a"
     },
     {
       "id": "PROPERTY-FRAGMENTED-TRANSFER-REQUESTS-NOTE-RESHAPE-THEN-RESUME-BUILDS-TRANSFER",
       "path": "crates/view/src/note_manager.rs",
-      "source_sha256": "1fa3f0c40401c769e0c530753ea375959dd0be163b5974d503c2a9c9250e9892"
+      "source_sha256": "ea62f547d3932b931fbf263d8d8550ba192fb804adf1cdfde3a5e1adf330d04a"
     },
     {
       "id": "PROPERTY-FRESH-ASSET-TREE-PERSISTS-SENTINEL-BEFORE-ADVANCING-LEAF-COUNT",
@@ -3486,9 +3491,14 @@
       "source_sha256": "2ae60fb7971c3dca9a7c2c78afd986ee3c32687fb49328de98c5f2bef5bd2e37"
     },
     {
+      "id": "PROPERTY-HOST-WITHDRAWAL-READY-PRODUCES-WALLET-FACING-ACTION-ONLY",
+      "path": "crates/view/src/note_manager.rs",
+      "source_sha256": "ea62f547d3932b931fbf263d8d8550ba192fb804adf1cdfde3a5e1adf330d04a"
+    },
+    {
       "id": "PROPERTY-ICS20-WITHDRAWAL-READY-PRODUCES-WALLET-FACING-ACTION-ONLY",
       "path": "crates/view/src/note_manager.rs",
-      "source_sha256": "1fa3f0c40401c769e0c530753ea375959dd0be163b5974d503c2a9c9250e9892"
+      "source_sha256": "ea62f547d3932b931fbf263d8d8550ba192fb804adf1cdfde3a5e1adf330d04a"
     },
     {
       "id": "PROPERTY-INCOMING-VIEWING-KEY-VAR-ENFORCES-NONZERO-REDUCTION",
@@ -3528,7 +3538,7 @@
     {
       "id": "PROPERTY-MANY-TO-ONE-USES-PADDED-CANONICAL-FAMILY",
       "path": "crates/view/src/note_manager.rs",
-      "source_sha256": "1fa3f0c40401c769e0c530753ea375959dd0be163b5974d503c2a9c9250e9892"
+      "source_sha256": "ea62f547d3932b931fbf263d8d8550ba192fb804adf1cdfde3a5e1adf330d04a"
     },
     {
       "id": "PROPERTY-MERKLE-PATH-DEFAULT-IS-FIXED-WIDTH-AND-CANONICAL",
@@ -3628,7 +3638,7 @@
     {
       "id": "PROPERTY-ONE-TO-MANY-PADS-REQUESTED-OUTPUTS-TO-FAMILY-CAPACITY",
       "path": "crates/view/src/note_manager.rs",
-      "source_sha256": "1fa3f0c40401c769e0c530753ea375959dd0be163b5974d503c2a9c9250e9892"
+      "source_sha256": "ea62f547d3932b931fbf263d8d8550ba192fb804adf1cdfde3a5e1adf330d04a"
     },
     {
       "id": "PROPERTY-ONLY-IBC-RELAY-ACCEPTS-SELF-FUNDED-TRANSFER",
@@ -4473,7 +4483,7 @@
     {
       "id": "PROPERTY-TRANSFER-READY-PRODUCES-WALLET-FACING-TRANSFER-ONLY",
       "path": "crates/view/src/note_manager.rs",
-      "source_sha256": "1fa3f0c40401c769e0c530753ea375959dd0be163b5974d503c2a9c9250e9892"
+      "source_sha256": "ea62f547d3932b931fbf263d8d8550ba192fb804adf1cdfde3a5e1adf330d04a"
     },
     {
       "id": "PROPERTY-TRANSFER-SHAPE-HIDES-ROLES-AND-NO-CHANGE-BRANCH",
@@ -4833,12 +4843,12 @@
     {
       "id": "RUNTIME-FFI-CHECKTX-PROOF-FRONTDOOR",
       "path": "crates/bin/shieldd/src/ffi.rs",
-      "source_sha256": "3b7c27f55efe9f7820b30951e3c471f7f31c35a6f01c89a195b615cd611ed3e5"
+      "source_sha256": "0edc48f219391cd20643bee4bd8762817b3670dbc7c79812e9b9c2b01c21f62a"
     },
     {
       "id": "RUNTIME-FFI-DELIVERTX-PROOF-FRONTDOOR",
       "path": "crates/bin/shieldd/src/ffi.rs",
-      "source_sha256": "3b7c27f55efe9f7820b30951e3c471f7f31c35a6f01c89a195b615cd611ed3e5"
+      "source_sha256": "0edc48f219391cd20643bee4bd8762817b3670dbc7c79812e9b9c2b01c21f62a"
     },
     {
       "id": "RUNTIME-GRPC-CHECKTX-PROOF-FRONTDOOR",

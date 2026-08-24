@@ -2532,9 +2532,11 @@
           "PROPERTY-EFFECT-HASH-TEST-VECTORS",
           "PROPERTY-EXACT-FEE-GENERIC-FUNDING-BUILDS-ZERO-VALUE-FEE-CHANGE",
           "PROPERTY-EXTRACT-USER-MEMO-NO-MEMO-FIELD",
+          "PROPERTY-FRAGMENTED-HOST-WITHDRAWAL-REQUESTS-NOTE-RESHAPE-THEN-RESUME-BUILDS-ACTION",
           "PROPERTY-FRAGMENTED-ICS20-WITHDRAWAL-REQUESTS-NOTE-RESHAPE-THEN-RESUME-BUILDS-ACTION",
           "PROPERTY-FRAGMENTED-TRANSFER-REQUESTS-NOTE-RESHAPE-THEN-RESUME-BUILDS-TRANSFER",
           "PROPERTY-HOST-EXECUTION-ACCEPTS-WITHDRAWALS-FOR-REGISTERED-ASSETS",
+          "PROPERTY-HOST-WITHDRAWAL-READY-PRODUCES-WALLET-FACING-ACTION-ONLY",
           "PROPERTY-ICS20-WITHDRAWAL-READY-PRODUCES-WALLET-FACING-ACTION-ONLY",
           "PROPERTY-IS-COMPLIANCE-MEMO-REJECTS-PLAIN-TEXT",
           "PROPERTY-MISSING-ASSET-ID-REJECTED",
@@ -3424,6 +3426,22 @@
         }
       },
       {
+        "id": "PROPERTY-FRAGMENTED-HOST-WITHDRAWAL-REQUESTS-NOTE-RESHAPE-THEN-RESUME-BUILDS-ACTION",
+        "kind": "integration",
+        "path": "crates/view/src/note_manager.rs",
+        "symbol": "fragmented_host_withdrawal_requests_note_reshape_then_resume_builds_action",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-view",
+          "cargo_target": "lib",
+          "selector": "fragmented_host_withdrawal_requests_note_reshape_then_resume_builds_action",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
         "id": "PROPERTY-FRAGMENTED-ICS20-WITHDRAWAL-REQUESTS-NOTE-RESHAPE-THEN-RESUME-BUILDS-ACTION",
         "kind": "integration",
         "path": "crates/view/src/note_manager.rs",
@@ -3562,6 +3580,22 @@
           "package": "shieldd-sdk-app",
           "cargo_target": "lib",
           "selector": "host_execution_accepts_withdrawals_for_registered_assets",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "PROPERTY-HOST-WITHDRAWAL-READY-PRODUCES-WALLET-FACING-ACTION-ONLY",
+        "kind": "integration",
+        "path": "crates/view/src/note_manager.rs",
+        "symbol": "host_withdrawal_ready_produces_wallet_facing_action_only",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-view",
+          "cargo_target": "lib",
+          "selector": "host_withdrawal_ready_produces_wallet_facing_action_only",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -15496,11 +15530,19 @@
       },
       {
         "path": "crates/view/src/note_manager.rs",
+        "symbol": "fragmented_host_withdrawal_requests_note_reshape_then_resume_builds_action"
+      },
+      {
+        "path": "crates/view/src/note_manager.rs",
         "symbol": "fragmented_ics20_withdrawal_requests_note_reshape_then_resume_builds_action"
       },
       {
         "path": "crates/view/src/note_manager.rs",
         "symbol": "fragmented_transfer_requests_note_reshape_then_resume_builds_transfer"
+      },
+      {
+        "path": "crates/view/src/note_manager.rs",
+        "symbol": "host_withdrawal_ready_produces_wallet_facing_action_only"
       },
       {
         "path": "crates/view/src/note_manager.rs",
@@ -16511,6 +16553,16 @@
       {
         "path": "crates/bin/shieldd/src/ffi.rs",
         "symbol": "committed_state_is_available_through_the_ffi",
+        "reason": "supporting_regression_not_claim_evidence"
+      },
+      {
+        "path": "crates/bin/shieldd/src/ffi.rs",
+        "symbol": "compact_block_range_query_rejects_keep_alive",
+        "reason": "supporting_regression_not_claim_evidence"
+      },
+      {
+        "path": "crates/bin/shieldd/src/ffi.rs",
+        "symbol": "compact_block_range_query_returns_length_delimited_blocks_in_order",
         "reason": "supporting_regression_not_claim_evidence"
       },
       {
