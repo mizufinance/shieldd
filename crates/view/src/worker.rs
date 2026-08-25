@@ -724,7 +724,6 @@ mod compliance_projection_tests {
         let mut active = ComplianceLeaf::new(
             shieldd_sdk_keys::Address::dummy(&mut rng),
             asset::Id(decaf377::Fq::from(7u64)),
-            decaf377::Fq::from(11u64),
         );
         let mut tree = ComplianceUserTree::new();
         let position = tree.insert(active.commit()).unwrap();

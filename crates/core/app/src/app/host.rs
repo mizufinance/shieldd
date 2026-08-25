@@ -1103,7 +1103,6 @@ mod tests {
             .test_only_add_compliance_leaf(ComplianceLeaf::new(
                 test_keys::ADDRESS_0.deref().clone(),
                 BASE_ASSET_DENOM.id(),
-                decaf377::Fq::from(7u64),
             ))
             .await?;
         host.app.apply(state_tx);

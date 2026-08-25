@@ -8794,7 +8794,6 @@ mod tests {
             .test_only_add_compliance_leaf(ComplianceLeaf::new(
                 Address::dummy(&mut rand::thread_rng()),
                 asset::Id(Fq::from(123u64)),
-                Fq::from(7u64),
             ))
             .await?;
         state

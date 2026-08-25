@@ -84,11 +84,7 @@ mod compliance_projection_tests {
         .unwrap();
         let mut user_tree = storage.compliance_user_tree().await.unwrap();
         let asset_tree = storage.compliance_asset_tree().await.unwrap();
-        let leaf = ComplianceLeaf::new(
-            test_keys::ADDRESS_0.clone(),
-            asset::Id(Fq::from(17u64)),
-            Fq::from(19u64),
-        );
+        let leaf = ComplianceLeaf::new(test_keys::ADDRESS_0.clone(), asset::Id(Fq::from(17u64)));
         let commitment = leaf.commit();
         let position = user_tree.insert(commitment).unwrap();
 
