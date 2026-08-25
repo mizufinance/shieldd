@@ -120,7 +120,7 @@ func init() {
 				return circuits.NewShieldedIcs20WithdrawalCircuit(family.NIn)
 			},
 			newAssignment: func(payload []byte) (frontend.Circuit, error) {
-				assignment, witnessFamily, err := abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV12(payload)
+				assignment, witnessFamily, err := abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV14(payload)
 				if err != nil {
 					return nil, err
 				}
@@ -326,7 +326,7 @@ func writeResponse(writer *bufio.Writer, status uint32, payload []byte) error {
 }
 
 func packShieldedIcs20WithdrawalProofResult(witnessPayload []byte, proof *groth16bls.Proof, proveMS float64) ([]byte, error) {
-	witness, _, err := abi.DecodeShieldedIcs20WithdrawalWitnessV12(witnessPayload)
+	witness, _, err := abi.DecodeShieldedIcs20WithdrawalWitnessV14(witnessPayload)
 	if err != nil {
 		return nil, fmt.Errorf("decode shielded ICS-20 withdrawal witness: %w", err)
 	}

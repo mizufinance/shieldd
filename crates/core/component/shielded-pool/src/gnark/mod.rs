@@ -21,10 +21,10 @@ pub use note_reshape::{
 };
 pub use note_reshape_witness::NoteReshapeWitnessV6;
 pub use shielded_ics20_withdrawal::{
-    decode_shielded_ics20_withdrawal_witness_v12, encode_shielded_ics20_withdrawal_witness_v12,
+    decode_shielded_ics20_withdrawal_witness_v14, encode_shielded_ics20_withdrawal_witness_v14,
     translate_shielded_ics20_withdrawal_proof_result, GnarkShieldedIcs20WithdrawalClient,
 };
-pub use shielded_ics20_withdrawal_witness::ShieldedIcs20WithdrawalWitnessV12;
+pub use shielded_ics20_withdrawal_witness::ShieldedIcs20WithdrawalWitnessV14;
 pub use transfer::{
     decode_transfer_witness_v20, encode_transfer_witness_v20, translate_transfer_proof_result,
     GnarkTransferClient,
@@ -148,7 +148,7 @@ mod soundness_fixture_tests {
 
     use crate::{
         gnark::{
-            encode_note_reshape_witness_v6, encode_shielded_ics20_withdrawal_witness_v12,
+            encode_note_reshape_witness_v6, encode_shielded_ics20_withdrawal_witness_v14,
             encode_transfer_witness_v20,
         },
         test_proof_helpers::proof_test_helpers,
@@ -223,8 +223,8 @@ mod soundness_fixture_tests {
                 true,
             );
         write_fixture(
-            "shielded_ics20_withdrawal_witness_v12.bin",
-            encode_shielded_ics20_withdrawal_witness_v12(&public, &private)
+            "shielded_ics20_withdrawal_witness_v14.bin",
+            encode_shielded_ics20_withdrawal_witness_v14(&public, &private)
                 .expect("encode shielded ICS-20 withdrawal witness"),
         );
     }
@@ -239,8 +239,8 @@ mod soundness_fixture_tests {
                 1,
             );
         write_fixture(
-            "shielded_ics20_withdrawal_unregulated_witness_v12.bin",
-            encode_shielded_ics20_withdrawal_witness_v12(&public, &private)
+            "shielded_ics20_withdrawal_unregulated_witness_v14.bin",
+            encode_shielded_ics20_withdrawal_witness_v14(&public, &private)
                 .expect("encode unregulated optional-dummy withdrawal witness"),
         );
     }

@@ -119,7 +119,7 @@ message TransferOutputBody {
   bytes ovk_wrapped_key = 3;
   // Compliance ciphertext encrypting created note details for the asset issuer.
   bytes compliance_ciphertext = 4;
-  // Canonical 328-byte factored circuit metadata for the receiver output only.
+  // Canonical 264-byte factored circuit metadata for the receiver output only.
   // This field must never contain DH shared points or seed-opening material.
   bytes compliance_metadata = 5;
 }
@@ -150,7 +150,7 @@ message TransferBody {
   crypto.tct.v1.StateCommitment compliance_anchor = 5;
   // Asset tree anchor used during proof generation.
   crypto.tct.v1.StateCommitment asset_anchor = 6;
-  // Fixed two-slot routing bundle; slot roles are private.
+  // Fixed sender/receiver routing-tag bundle.
   TransferRouting routing = 7;
   // Poseidon identifier of the privately selected protocol parameter set.
   bytes routing_parameter_set_id = 8;
@@ -252,6 +252,8 @@ message ShieldedHostWithdrawalBody {
   RoutingTag routing_tag = 10;
   // Poseidon identifier of the privately selected protocol parameter set.
   bytes routing_parameter_set_id = 11;
+  // Proof-bound encryption of the exact sender compliance address.
+  bytes withdrawal_compliance_ciphertext = 12;
 }
 
 message ShieldedHostWithdrawalView {
@@ -329,6 +331,8 @@ message ShieldedIcs20WithdrawalBody {
   RoutingTag routing_tag = 10;
   // Poseidon identifier of the privately selected protocol parameter set.
   bytes routing_parameter_set_id = 11;
+  // Proof-bound encryption of the exact sender compliance address.
+  bytes withdrawal_compliance_ciphertext = 12;
 }
 
 message ShieldedIcs20WithdrawalView {

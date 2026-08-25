@@ -40,6 +40,8 @@ pub struct TransferComplianceCiphertextPublic {
 pub struct TransferCompliancePublic {
     pub detection_ciphertext: Vec<Fq>,
     pub metadata: TransferComplianceMetadata,
+    pub sender_core_key_confirmation: Fq,
+    pub output_core_key_confirmation: Fq,
     pub sender_core: TransferComplianceCiphertextPublic,
     pub sender_ext: TransferComplianceCiphertextPublic,
     pub output_core: TransferComplianceCiphertextPublic,
@@ -236,6 +238,7 @@ impl TryFrom<pb::ZkTransferProof> for TransferProof {
     }
 }
 
+#[cfg(feature = "component")]
 #[cfg(all(test, any(unix, windows)))]
 mod tests {
     use std::sync::{LazyLock, Mutex};

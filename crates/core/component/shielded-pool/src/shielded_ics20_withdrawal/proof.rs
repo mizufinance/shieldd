@@ -4,7 +4,9 @@ use ark_snark::SNARK;
 use decaf377::{Bls12_377, Fq, Fr};
 use decaf377_rdsa::{SpendAuth, VerificationKey};
 use shieldd_sdk_asset::balance;
-use shieldd_sdk_compliance::{ComplianceLeaf, IndexedLeaf, MerklePath};
+use shieldd_sdk_compliance::{
+    ComplianceLeaf, IndexedLeaf, MerklePath, WithdrawalComplianceCiphertext,
+};
 use shieldd_sdk_keys::keys::NullifierKey;
 use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
 use shieldd_sdk_sct::Nullifier;
@@ -77,6 +79,7 @@ pub struct ShieldedIcs20WithdrawalProofPublic {
     pub withdrawal_effect_hash_limbs: [Fq; 4],
     pub routing_tag: RoutingTag,
     pub routing_parameter_set_id: Fq,
+    pub withdrawal_compliance_ciphertext: WithdrawalComplianceCiphertext,
     pub recent_position_floor: u64,
 }
 
@@ -147,6 +150,8 @@ pub struct ShieldedIcs20WithdrawalProofPrivate {
     pub sender_compliance_path: MerklePath,
     pub sender_compliance_position: u64,
     pub sender_leaf: ComplianceLeaf,
+    pub withdrawal_seed: Fq,
+    pub withdrawal_randomizer: Fr,
     pub required_input: ShieldedIcs20WithdrawalRequiredInputPrivate,
     pub optional_input: ShieldedIcs20WithdrawalOptionalInputPrivate,
     pub change_output: ShieldedIcs20WithdrawalChangePrivate,

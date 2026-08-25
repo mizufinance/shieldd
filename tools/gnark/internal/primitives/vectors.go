@@ -85,6 +85,20 @@ type DecafEncodeVector struct {
 	EncodingHex     string `json:"encoding_hex"`
 }
 
+type OrbisDerivationVector struct {
+	DerivationHex string `json:"derivation_hex"`
+	Scalar        string `json:"scalar"`
+}
+
+type CompactPreDLEQVector struct {
+	CapabilitySecret string `json:"capability_secret"`
+	ReaderSecret     string `json:"reader_secret"`
+	EPKSecret        string `json:"epk_secret"`
+	Nonce            string `json:"nonce"`
+	Challenge        string `json:"challenge"`
+	Response         string `json:"response"`
+}
+
 type NoteReshapeStatementFixture struct {
 	Label         string   `json:"label"`
 	Domain        string   `json:"domain"`
@@ -98,6 +112,8 @@ type PrototypeVectors struct {
 	Poseidon377            PoseidonVectors               `json:"poseidon377"`
 	Decaf377Compress       []DecafCompressVector         `json:"decaf377_compress_vectors"`
 	Decaf377Encode         []DecafEncodeVector           `json:"decaf377_encode_vectors"`
+	OrbisDerivation        OrbisDerivationVector         `json:"orbis_derivation"`
+	CompactPreDLEQ         CompactPreDLEQVector          `json:"compact_pre_dleq"`
 	NoteReshapeStatements  []NoteReshapeStatementFixture `json:"note_reshape_statements"`
 }
 
@@ -138,17 +154,17 @@ type MerklePathFixture struct {
 }
 
 type IndexedLeafFixture struct {
-	Value           []byte      `json:"value"`
-	NextIndex       uint64      `json:"next_index"`
-	NextValue       []byte      `json:"next_value"`
-	DKPub           []byte      `json:"dk_pub"`
-	Threshold       json.Number `json:"threshold"`
-	RoutePolicyHash []byte      `json:"route_policy_hash"`
-	RingPK          []byte      `json:"ring_pk"`
-	RingIDHash      []byte      `json:"ring_id_hash"`
-	PolicyIDHash    []byte      `json:"policy_id_hash"`
-	PermissionHash  []byte      `json:"permission_hash"`
-	ResourceHash    []byte      `json:"resource_hash"`
+	Value          []byte      `json:"value"`
+	NextIndex      uint64      `json:"next_index"`
+	NextValue      []byte      `json:"next_value"`
+	DKPub          []byte      `json:"dk_pub"`
+	Threshold      json.Number `json:"threshold"`
+	ChannelsHash   []byte      `json:"channels_hash"`
+	RingPK         []byte      `json:"ring_pk"`
+	RingIDHash     []byte      `json:"ring_id_hash"`
+	PolicyIDHash   []byte      `json:"policy_id_hash"`
+	PermissionHash []byte      `json:"permission_hash"`
+	ResourceHash   []byte      `json:"resource_hash"`
 }
 
 type AddressFixture struct {

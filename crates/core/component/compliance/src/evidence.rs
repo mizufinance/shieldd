@@ -291,6 +291,8 @@ pub(crate) mod tests {
             },
             false,
             detection_salt,
+            Fq::from(11u64),
+            Fq::from(13u64),
         )
         .expect("fixture transfer should encrypt");
 

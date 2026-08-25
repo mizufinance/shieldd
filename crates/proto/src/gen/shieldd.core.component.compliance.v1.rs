@@ -864,6 +864,7 @@ pub enum UserAssetStatus {
     Unspecified = 0,
     Active = 1,
     Frozen = 2,
+    Seized = 3,
 }
 impl UserAssetStatus {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -875,6 +876,7 @@ impl UserAssetStatus {
             Self::Unspecified => "USER_ASSET_STATUS_UNSPECIFIED",
             Self::Active => "USER_ASSET_STATUS_ACTIVE",
             Self::Frozen => "USER_ASSET_STATUS_FROZEN",
+            Self::Seized => "USER_ASSET_STATUS_SEIZED",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -883,6 +885,7 @@ impl UserAssetStatus {
             "USER_ASSET_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
             "USER_ASSET_STATUS_ACTIVE" => Some(Self::Active),
             "USER_ASSET_STATUS_FROZEN" => Some(Self::Frozen),
+            "USER_ASSET_STATUS_SEIZED" => Some(Self::Seized),
             _ => None,
         }
     }

@@ -304,7 +304,7 @@ pub struct TransferOutputBody {
     /// Compliance ciphertext encrypting created note details for the asset issuer.
     #[prost(bytes = "vec", tag = "4")]
     pub compliance_ciphertext: ::prost::alloc::vec::Vec<u8>,
-    /// Canonical 328-byte factored circuit metadata for the receiver output only.
+    /// Canonical 264-byte factored circuit metadata for the receiver output only.
     /// This field must never contain DH shared points or seed-opening material.
     #[prost(bytes = "vec", tag = "5")]
     pub compliance_metadata: ::prost::alloc::vec::Vec<u8>,
@@ -376,7 +376,7 @@ pub struct TransferBody {
     pub asset_anchor: ::core::option::Option<
         super::super::super::super::crypto::tct::v1::StateCommitment,
     >,
-    /// Fixed two-slot routing bundle; slot roles are private.
+    /// Fixed sender/receiver routing-tag bundle.
     #[prost(message, optional, tag = "7")]
     pub routing: ::core::option::Option<TransferRouting>,
     /// Poseidon identifier of the privately selected protocol parameter set.
@@ -636,6 +636,9 @@ pub struct ShieldedHostWithdrawalBody {
     /// Poseidon identifier of the privately selected protocol parameter set.
     #[prost(bytes = "vec", tag = "11")]
     pub routing_parameter_set_id: ::prost::alloc::vec::Vec<u8>,
+    /// Proof-bound encryption of the exact sender compliance address.
+    #[prost(bytes = "vec", tag = "12")]
+    pub withdrawal_compliance_ciphertext: ::prost::alloc::vec::Vec<u8>,
 }
 impl ::prost::Name for ShieldedHostWithdrawalBody {
     const NAME: &'static str = "ShieldedHostWithdrawalBody";
@@ -839,6 +842,9 @@ pub struct ShieldedIcs20WithdrawalBody {
     /// Poseidon identifier of the privately selected protocol parameter set.
     #[prost(bytes = "vec", tag = "11")]
     pub routing_parameter_set_id: ::prost::alloc::vec::Vec<u8>,
+    /// Proof-bound encryption of the exact sender compliance address.
+    #[prost(bytes = "vec", tag = "12")]
+    pub withdrawal_compliance_ciphertext: ::prost::alloc::vec::Vec<u8>,
 }
 impl ::prost::Name for ShieldedIcs20WithdrawalBody {
     const NAME: &'static str = "ShieldedIcs20WithdrawalBody";

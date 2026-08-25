@@ -10,13 +10,13 @@ import (
 
 const SpendStatementFieldCount = 17
 const OutputStatementFieldCount = 29
-const TransferStatementBaseFields = 37
+const TransferStatementBaseFields = 39
 const TransferStatementFieldsPerInput = 3
 const TransferStatementFieldsPerOutput = 1
 const NoteReshapeStatementBaseFields = 7
 const NoteReshapeStatementFieldsPerInput = 3
 const NoteReshapeStatementFieldsPerOutput = 1
-const ShieldedIcs20WithdrawalStatementBaseFields = 15
+const ShieldedIcs20WithdrawalStatementBaseFields = 21
 const ShieldedIcs20WithdrawalStatementFieldsPerInput = 3
 
 func hashStatementFields(
@@ -198,7 +198,7 @@ func shieldedIcs20WithdrawalStatementHash(
 	return transferStatementHashWithVersion(
 		api,
 		shieldedIcs20WithdrawalStatementLabel(nIn),
-		"v4",
+		"v5",
 		fields,
 		ShieldedIcs20WithdrawalStatementFieldCount(nIn),
 	)
@@ -427,7 +427,7 @@ func ShieldedIcs20WithdrawalStatementHashNativeForShape(
 	return transferStatementHashNativeWithVersion(
 		fields,
 		shieldedIcs20WithdrawalStatementLabel(nIn),
-		"v4",
+		"v5",
 		ShieldedIcs20WithdrawalStatementFieldCount(nIn),
 	)
 }

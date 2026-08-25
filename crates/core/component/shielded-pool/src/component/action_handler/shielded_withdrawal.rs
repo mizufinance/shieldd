@@ -3,6 +3,7 @@ use cnidarium::StateRead;
 use decaf377_rdsa::{Signature, SpendAuth};
 use shieldd_sdk_asset::{balance, Value};
 use shieldd_sdk_compliance::registry::ComplianceRegistryRead;
+use shieldd_sdk_compliance::WithdrawalComplianceCiphertext;
 use shieldd_sdk_sct::component::clock::EpochRead;
 use shieldd_sdk_tct as tct;
 use shieldd_sdk_txhash::{EffectHash, TransactionContext};
@@ -25,6 +26,7 @@ pub(crate) struct ProofPublicData<'a> {
     pub withdrawal_effect_hash: EffectHash,
     pub routing_tag: crate::discovery::RoutingTag,
     pub routing_parameter_set_id: decaf377::Fq,
+    pub withdrawal_compliance_ciphertext: &'a WithdrawalComplianceCiphertext,
 }
 
 pub(crate) fn verify_auth_sigs(
@@ -77,6 +79,7 @@ pub(crate) fn extract_public(
             ),
         routing_tag: data.routing_tag,
         routing_parameter_set_id: data.routing_parameter_set_id,
+        withdrawal_compliance_ciphertext: data.withdrawal_compliance_ciphertext.clone(),
         recent_position_floor: context.recent_position_floor,
     };
     public.validate_shape()?;

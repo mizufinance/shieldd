@@ -9,7 +9,7 @@ import (
 
 const (
 	transferWitnessV20Magic   = "PTWG"
-	transferWitnessV20Version = 20
+	transferWitnessV20Version = 22
 )
 
 type TransferComplianceCiphertextWitnessV20Binary struct {
@@ -100,16 +100,18 @@ type TransferWitnessV20Binary struct {
 	SenderStatus             [32]byte
 	TransferNonceRoot        [32]byte
 
-	DetectionCiphertext [][32]byte
-	Metadata            TransferComplianceMetadataWitnessV20Binary
-	SenderCore          TransferComplianceCiphertextWitnessV20Binary
-	SenderExt           TransferComplianceCiphertextWitnessV20Binary
-	OutputCore          TransferComplianceCiphertextWitnessV20Binary
-	OutputExt           TransferComplianceCiphertextWitnessV20Binary
-	SenderRCore         [32]byte
-	SenderRExt          [32]byte
-	OutputRCore         [32]byte
-	OutputRExt          [32]byte
+	DetectionCiphertext       [][32]byte
+	SenderCoreKeyConfirmation [32]byte
+	OutputCoreKeyConfirmation [32]byte
+	Metadata                  TransferComplianceMetadataWitnessV20Binary
+	SenderCore                TransferComplianceCiphertextWitnessV20Binary
+	SenderExt                 TransferComplianceCiphertextWitnessV20Binary
+	OutputCore                TransferComplianceCiphertextWitnessV20Binary
+	OutputExt                 TransferComplianceCiphertextWitnessV20Binary
+	SenderRCore               [32]byte
+	SenderRExt                [32]byte
+	OutputRCore               [32]byte
+	OutputRExt                [32]byte
 
 	RequiredSpend  TransferRequiredSpendWitnessV20Binary
 	OptionalSpend  TransferOptionalSpendWitnessV20Binary
@@ -235,6 +237,12 @@ func decodeTransferWitnessV20(
 		return nil, err
 	}
 	if witness.DetectionCiphertext, err = readVec32(reader); err != nil {
+		return nil, err
+	}
+	if witness.SenderCoreKeyConfirmation, err = read32(reader); err != nil {
+		return nil, err
+	}
+	if witness.OutputCoreKeyConfirmation, err = read32(reader); err != nil {
 		return nil, err
 	}
 	if witness.Metadata, err = readTransferComplianceMetadataV20(reader); err != nil {

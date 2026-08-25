@@ -4956,6 +4956,7 @@ impl serde::Serialize for UserAssetStatus {
             Self::Unspecified => "USER_ASSET_STATUS_UNSPECIFIED",
             Self::Active => "USER_ASSET_STATUS_ACTIVE",
             Self::Frozen => "USER_ASSET_STATUS_FROZEN",
+            Self::Seized => "USER_ASSET_STATUS_SEIZED",
         };
         serializer.serialize_str(variant)
     }
@@ -4970,6 +4971,7 @@ impl<'de> serde::Deserialize<'de> for UserAssetStatus {
             "USER_ASSET_STATUS_UNSPECIFIED",
             "USER_ASSET_STATUS_ACTIVE",
             "USER_ASSET_STATUS_FROZEN",
+            "USER_ASSET_STATUS_SEIZED",
         ];
 
         struct GeneratedVisitor;
@@ -5013,6 +5015,7 @@ impl<'de> serde::Deserialize<'de> for UserAssetStatus {
                     "USER_ASSET_STATUS_UNSPECIFIED" => Ok(UserAssetStatus::Unspecified),
                     "USER_ASSET_STATUS_ACTIVE" => Ok(UserAssetStatus::Active),
                     "USER_ASSET_STATUS_FROZEN" => Ok(UserAssetStatus::Frozen),
+                    "USER_ASSET_STATUS_SEIZED" => Ok(UserAssetStatus::Seized),
                     _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
                 }
             }

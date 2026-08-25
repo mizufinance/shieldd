@@ -17,10 +17,10 @@ use crate::{
 pub const NOTE_RESHAPE_STATEMENT_BASE_FIELDS: usize = 7;
 pub const NOTE_RESHAPE_STATEMENT_FIELDS_PER_INPUT: usize = 3;
 pub const NOTE_RESHAPE_STATEMENT_FIELDS_PER_OUTPUT: usize = 1;
-pub const TRANSFER_STATEMENT_BASE_FIELDS: usize = 37;
+pub const TRANSFER_STATEMENT_BASE_FIELDS: usize = 39;
 pub const TRANSFER_STATEMENT_FIELDS_PER_INPUT: usize = 3;
 pub const TRANSFER_STATEMENT_FIELDS_PER_OUTPUT: usize = 1;
-pub const SHIELDED_ICS20_WITHDRAWAL_STATEMENT_BASE_FIELDS: usize = 15;
+pub const SHIELDED_ICS20_WITHDRAWAL_STATEMENT_BASE_FIELDS: usize = 21;
 pub const SHIELDED_ICS20_WITHDRAWAL_STATEMENT_FIELDS_PER_INPUT: usize = 3;
 
 pub const fn note_reshape_statement_field_count(n_in: usize, n_out: usize) -> usize {
@@ -382,6 +382,8 @@ pub fn transfer_statement_fields(
             .to_field_elements()
             .ok_or_else(|| transfer_field_encoding_error("target_timestamp"))?,
     );
+    fields.push(compliance.sender_core_key_confirmation);
+    fields.push(compliance.output_core_key_confirmation);
     let metadata = &compliance.metadata;
     metadata
         .validate()
@@ -476,6 +478,24 @@ pub fn shielded_ics20_withdrawal_statement_fields(
     fields.extend(public.withdrawal_effect_hash_limbs);
     fields.push(Fq::from(public.routing_tag.value));
     fields.push(public.routing_parameter_set_id);
+    fields.push(
+        public
+            .withdrawal_compliance_ciphertext
+            .epk
+            .vartime_compress_to_field(),
+    );
+    fields.push(public.withdrawal_compliance_ciphertext.c2);
+    fields.push(public.withdrawal_compliance_ciphertext.key_confirmation);
+    for word in public
+        .withdrawal_compliance_ciphertext
+        .encrypted_sender_address
+        .chunks_exact(32)
+    {
+        fields.push(
+            Fq::from_bytes_checked(word.try_into().expect("32-byte ciphertext word"))
+                .expect("typed withdrawal ciphertext contains canonical fields"),
+        );
+    }
 
     if fields.len() != expected {
         return Err(StatementHashError::InvalidFieldLength {
@@ -517,7 +537,7 @@ pub fn transfer_statement_hash(fields: &[Fq]) -> Result<Fq, StatementHashError> 
 
 pub fn shielded_ics20_withdrawal_statement_hash(fields: &[Fq]) -> Result<Fq, StatementHashError> {
     hash_statement_fields(
-        &shielded_ics20_withdrawal_statement_hash_constant("v4"),
+        &shielded_ics20_withdrawal_statement_hash_constant("v5"),
         shielded_ics20_withdrawal_statement_hash_constant("pad0"),
         shielded_ics20_withdrawal_statement_hash_constant("pad1"),
         fields,
@@ -786,11 +806,13 @@ mod tests {
     }
 
     #[test]
-    fn transfer_statement_binds_one_factored_metadata_record() {
+    fn transfer_statement_binds_core_confirmation_and_private_metadata() {
         let (public, _) = proof_test_helpers::build_transfer_roundtrip_inputs(true);
         let fields = transfer_statement_fields(&public).expect("transfer statement fields");
         assert_eq!(fields.len(), TRANSFER_STATEMENT_FIELD_COUNT);
         assert_eq!(fields[36], public.target_timestamp);
+        assert_eq!(fields[37], public.compliance.sender_core_key_confirmation);
+        assert_eq!(fields[38], public.compliance.output_core_key_confirmation);
 
         let metadata = &public.compliance.metadata;
         let expected_metadata = [
@@ -803,7 +825,7 @@ mod tests {
             metadata.output_core_salt().unwrap(),
             metadata.output_ext_salt().unwrap(),
         ];
-        assert_eq!(&fields[37..], expected_metadata.as_slice());
+        assert_eq!(&fields[39..], expected_metadata.as_slice());
 
         let v7 = transfer_statement_hash(&fields).expect("v7 transfer hash");
         let alternate_domain_hash = hash_statement_fields(

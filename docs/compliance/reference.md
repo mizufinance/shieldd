@@ -9,15 +9,16 @@ Only the receiver `TransferOutputBody` carries compliance bytes. Transfer
 inputs and the change output must not carry compliance data.
 
 ```text
-TransferComplianceCiphertext: 640 bytes
+TransferComplianceCiphertext: 704 bytes
   0..128    four compressed EPKs
              sender_core, sender_ext, output_core, output_ext
   128..256  four canonical Fq c2 values in the same order
-  256..384  four-Fq detection ciphertext
-  384..416  sender_core ciphertext: one Fq
-  416..512  sender_ext ciphertext: three Fq
-  512..544  output_core ciphertext: one Fq
-  544..640  output_ext ciphertext: three Fq
+  256..320  sender-core and output-core key confirmations
+  320..448  four-Fq detection ciphertext
+  448..480  sender_core ciphertext: one Fq
+  480..576  sender_ext ciphertext: three Fq
+  576..608  output_core ciphertext: one Fq
+  608..704  output_ext ciphertext: three Fq
 
 TransferComplianceMetadata: 264 bytes
   0..32     ring_id_hash Fq
@@ -43,11 +44,12 @@ After decryption, the four detection words are:
 0  asset_id
 1  detection_salt
 2  is_flagged
-3  reserved zero
+3  reserved_zero
 ```
 
-The flag is a canonical bit. Word 0 is the exact asset id and word 3 must be
-zero. The public routing tags provide the address candidate filter separately.
+The flag is canonical boolean and word 3 is exactly zero. Word 0 is the exact
+asset ID. Detection carries no slot, role permutation, derivation, address
+fragment, or index.
 
 ## Transfer Key And Address Validity
 
@@ -67,14 +69,14 @@ malicious proof from creating a note with that ambiguous owner.
 
 ## Transfer Public Statement
 
-The fixed 2x2 Transfer statement has 45 Fq fields. Its hash uses the
+The fixed 2x2 Transfer statement has 47 Fq fields. Its hash uses the
 `shieldd.shielded_pool.transfer.public_input_hash.v7` domain.
 
 ```text
  0       anchor
  1..2    receiver and change note commitments
  3       balance commitment
- 4..5    fixed two-slot routing tags
+ 4..5    fixed sender/receiver routing tags
  6       routing parameter-set identifier
  7       recent position floor
  8..13   two (nullifier, randomized verification key, history-required bit) triples
@@ -85,14 +87,17 @@ The fixed 2x2 Transfer statement has 45 Fq fields. Its hash uses the
 28..30   output_core: EPK, c2, one ciphertext word
 31..35   output_ext: EPK, c2, three ciphertext words
 36       target_timestamp
-37..40   ring, policy, resource, and permission hashes
-41..44   sender-core, sender-ext, output-core, and output-ext salts
+37..38   sender-core and output-core key confirmations
+39..42   ring, policy, resource, and permission hashes
+43..46   sender-core, sender-ext, output-core, and output-ext salts
 ```
 
 The exact tail append order is:
 
 ```text
 target_timestamp,
+sender_core_key_confirmation,
+output_core_key_confirmation,
 ring_id_hash,
 policy_id_hash,
 resource_hash,
@@ -106,7 +111,7 @@ output_ext_salt
 The metadata timestamp is not appended twice: its serialized value must equal
 the statement's existing `target_timestamp`. The authoritative builders are
 `transfer_statement_fields` in Rust and `buildTransferStatementFields` /
-`ReconstructedTransferStatementFieldsFromWitnessV20` in Go.
+the corresponding transfer witness reconstruction in Go.
 
 ## Effective Policy Selection
 
@@ -160,10 +165,13 @@ PoseidonHash5(
 )
 ```
 
-The address encodings must be canonical, and `d` must equal the nonzero scalar
-derived from the complete canonical address bytes. Asset id zero is reserved
-for the indexed-tree sentinel and cannot be registered or used as a Transfer
-or Withdrawal action asset.
+The address encodings must be canonical, and `d` is the exact nonzero ordinary
+Orbis SHA-512 scalar derived from the full canonical address bytes. Consensus
+ownership indexes require one global derived audit key per address and one
+address per key; the same address/key pair may register across asset rings.
+Asset ID zero is reserved for
+the indexed-tree sentinel and cannot be registered or used as a Transfer or
+Withdrawal action asset.
 
 Address audit plaintext is the canonical 64-byte little-endian concatenation
 of `diversified_generator_fq` and `transmission_key_fq`, split into 31-byte

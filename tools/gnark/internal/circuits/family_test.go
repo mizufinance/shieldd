@@ -107,8 +107,8 @@ func testCircuitFamilies() []circuitFamily {
 			circuit: func() frontend.Circuit { return circuits.NewShieldedIcs20WithdrawalCircuit(2) },
 			assignment: func(t *testing.T) frontend.Circuit {
 				t.Helper()
-				fixtureBytes := testfixtures.LoadShieldedIcs20WithdrawalWitnessV12("shielded_ics20_withdrawal")
-				assignment, _, err := abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV12(fixtureBytes)
+				fixtureBytes := testfixtures.LoadShieldedIcs20WithdrawalWitnessV14("shielded_ics20_withdrawal")
+				assignment, _, err := abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV14(fixtureBytes)
 				if err != nil {
 					t.Fatalf("decode shielded ICS-20 withdrawal witness fixture: %v", err)
 				}
@@ -178,7 +178,7 @@ func compileCircuitFamilies() []struct {
 		{
 			name:    "transfer",
 			circuit: func() frontend.Circuit { return circuits.NewTransferCircuit() },
-			stats:   circuitStats{constraints: 129821, public: 2, secret: 397, internal: 120390},
+			stats:   circuitStats{constraints: 130457, public: 2, secret: 399, internal: 121024},
 		},
 		{
 			name:    "note_reshape8x1",
@@ -193,7 +193,7 @@ func compileCircuitFamilies() []struct {
 		{
 			name:    "shielded_ics20_withdrawal",
 			circuit: func() frontend.Circuit { return circuits.NewShieldedIcs20WithdrawalCircuit(2) },
-			stats:   circuitStats{constraints: 57651, public: 2, secret: 296, internal: 54162},
+			stats:   circuitStats{constraints: 77371, public: 2, secret: 313, internal: 71822},
 		},
 	}
 }
@@ -456,11 +456,11 @@ func TestPaddedSpendCircuitsRejectMutatedDummyNullifierSeed(t *testing.T) {
 				}
 				assignment = transfer
 			case "shielded_ics20_withdrawal":
-				fixture := testfixtures.LoadShieldedIcs20WithdrawalWitnessV12(
+				fixture := testfixtures.LoadShieldedIcs20WithdrawalWitnessV14(
 					"shielded_ics20_withdrawal_unregulated",
 				)
 				withdrawal, _, err :=
-					abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV12(
+					abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV14(
 						fixture,
 					)
 				if err != nil {

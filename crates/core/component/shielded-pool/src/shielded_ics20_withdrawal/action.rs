@@ -3,6 +3,7 @@ use std::convert::TryInto;
 use anyhow::{Context, Error};
 use decaf377_rdsa::{Signature, SpendAuth};
 use shieldd_sdk_asset::balance;
+use shieldd_sdk_compliance::WithdrawalComplianceCiphertext;
 use shieldd_sdk_keys::symmetric::{OvkWrappedKey, WrappedMemoKey};
 use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
 use shieldd_sdk_tct as tct;
@@ -43,6 +44,7 @@ pub struct ShieldedIcs20WithdrawalBody {
     pub asset_anchor: tct::StateCommitment,
     pub routing_tag: RoutingTag,
     pub routing_parameter_set_id: decaf377::Fq,
+    pub withdrawal_compliance_ciphertext: WithdrawalComplianceCiphertext,
 }
 
 #[derive(Clone, Debug)]
@@ -188,6 +190,10 @@ impl From<ShieldedIcs20WithdrawalBody> for pb::ShieldedIcs20WithdrawalBody {
             asset_anchor: Some(value.asset_anchor.into()),
             routing_tag: Some(value.routing_tag.into()),
             routing_parameter_set_id: value.routing_parameter_set_id.to_bytes().to_vec(),
+            withdrawal_compliance_ciphertext: value
+                .withdrawal_compliance_ciphertext
+                .to_bytes()
+                .to_vec(),
         }
     }
 }
@@ -249,6 +255,10 @@ impl TryFrom<pb::ShieldedIcs20WithdrawalBody> for ShieldedIcs20WithdrawalBody {
                     .map_err(|_| anyhow::anyhow!("routing parameter set id must be 32 bytes"))?,
             )
             .map_err(|_| anyhow::anyhow!("routing parameter set id must be canonical"))?,
+            withdrawal_compliance_ciphertext: WithdrawalComplianceCiphertext::from_bytes(
+                &value.withdrawal_compliance_ciphertext,
+            )
+            .context("malformed withdrawal compliance ciphertext")?,
         };
         body.validate_shape()?;
         Ok(body)

@@ -729,7 +729,7 @@ func runReplay(args []string) error {
 			break
 		}
 		if family, ok := generated.ShieldedIcs20WithdrawalFamilyByLabel(*circuit); ok {
-			assignment, _, err = abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV12(payload)
+			assignment, _, err = abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV14(payload)
 			if err != nil {
 				return err
 			}
@@ -917,15 +917,15 @@ func witnessAssignment(circuit string, witnessPayload []byte) (frontend.Circuit,
 			}, err
 		}
 		if _, ok := generated.ShieldedIcs20WithdrawalFamilyByLabel(circuit); ok {
-			decoded, _, err := abi.DecodeShieldedIcs20WithdrawalWitnessV12(witnessPayload)
+			decoded, _, err := abi.DecodeShieldedIcs20WithdrawalWitnessV14(witnessPayload)
 			if err != nil {
 				return nil, witnessSummary{}, err
 			}
-			statementFields, err := abi.ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitnessV12(decoded)
+			statementFields, err := abi.ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitnessV14(decoded)
 			if err != nil {
 				return nil, witnessSummary{}, err
 			}
-			assignment, _, err := abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV12(witnessPayload)
+			assignment, _, err := abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV14(witnessPayload)
 			return assignment, witnessSummary{
 				ClaimedStatementHash: primitives.LittleEndianBytesToBigInt(decoded.ClaimedStatementHash[:]).String(),
 				StatementFields:      vec32Strings(statementFields),

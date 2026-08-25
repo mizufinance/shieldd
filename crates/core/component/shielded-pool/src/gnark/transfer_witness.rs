@@ -100,6 +100,8 @@ pub struct TransferWitnessV20 {
     pub sender_status: [u8; 32],
     pub transfer_nonce_root: [u8; 32],
     pub detection_ciphertext: Vec<[u8; 32]>,
+    pub sender_core_key_confirmation: [u8; 32],
+    pub output_core_key_confirmation: [u8; 32],
     pub ring_id_hash: [u8; 32],
     pub policy_id_hash: [u8; 32],
     pub resource_hash: [u8; 32],
@@ -294,6 +296,8 @@ impl TransferWitnessV20 {
                 .iter()
                 .map(|value| value.to_bytes())
                 .collect(),
+            sender_core_key_confirmation: public.compliance.sender_core_key_confirmation.to_bytes(),
+            output_core_key_confirmation: public.compliance.output_core_key_confirmation.to_bytes(),
             ring_id_hash: public.compliance.metadata.ring_id_hash_bytes,
             policy_id_hash: public.compliance.metadata.policy_id_hash_bytes,
             resource_hash: public.compliance.metadata.resource_hash_bytes,

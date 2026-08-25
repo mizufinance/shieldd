@@ -11,7 +11,10 @@ pub mod proof_test_helpers {
 
     use decaf377::{Fq, Fr};
     use shieldd_sdk_asset::{asset, Balance, Value};
-    use shieldd_sdk_compliance::{IndexedLeaf, IndexedMerkleTree, MerklePath};
+    use shieldd_sdk_compliance::{
+        encrypt_withdrawal_with_material, withdrawal_encryption_key, IndexedLeaf,
+        IndexedMerkleTree, MerklePath,
+    };
     use shieldd_sdk_keys::{
         keys::{Bip44Path, SeedPhrase, SpendKey},
         PayloadKey,
@@ -1074,6 +1077,21 @@ pub mod proof_test_helpers {
             &routing_parameters,
             routing_nonce,
         );
+        let outbound_amount = if real_spends == 2 { 100u64 } else { 50u64 };
+        let (withdrawal_key, _) = withdrawal_encryption_key(
+            is_regulated,
+            outbound_amount.into(),
+            &base.user_leaf,
+            &base.asset_indexed_leaf,
+        )
+        .expect("select withdrawal compliance key");
+        let withdrawal = encrypt_withdrawal_with_material(
+            withdrawal_key,
+            &base.address,
+            Fq::from(31u64),
+            Fr::from(37u64),
+        )
+        .expect("encrypt withdrawal sender address");
 
         (
             ShieldedIcs20WithdrawalProofPublic {
@@ -1088,7 +1106,7 @@ pub mod proof_test_helpers {
                     note_commitment: change_note.commit(),
                 },
                 outbound_asset_id: base.value.asset_id.0,
-                outbound_amount: Fq::from(if real_spends == 2 { 100u64 } else { 50u64 }),
+                outbound_amount: Fq::from(outbound_amount),
                 withdrawal_effect_hash_limbs: [
                     Fq::from(21u64),
                     Fq::from(22u64),
@@ -1097,6 +1115,7 @@ pub mod proof_test_helpers {
                 ],
                 routing_tag,
                 routing_parameter_set_id: routing_parameters.id(),
+                withdrawal_compliance_ciphertext: withdrawal.ciphertext,
                 recent_position_floor: 0,
             },
             ShieldedIcs20WithdrawalProofPrivate {
@@ -1113,6 +1132,8 @@ pub mod proof_test_helpers {
                 sender_compliance_path: base.compliance_path,
                 sender_compliance_position: base.compliance_position,
                 sender_leaf: base.user_leaf,
+                withdrawal_seed: withdrawal.seed,
+                withdrawal_randomizer: withdrawal.r,
                 required_input,
                 optional_input,
                 change_output: ShieldedIcs20WithdrawalChangePrivate {

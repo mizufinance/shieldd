@@ -14,7 +14,7 @@ use crate::audit_status::{AuditStatus, DetectionStatus, ScreenStatus};
 use crate::ComplianceEvidenceObject;
 
 pub const MAX_INVALID_CIPHERTEXTS_PER_BLOCK: usize = 256;
-const SCANNER_DB_SCHEMA_VERSION: i64 = 5;
+const SCANNER_DB_SCHEMA_VERSION: i64 = 6;
 pub const HEARTBEAT_STALE_SECS: i64 = 30;
 const READ_POOL_SIZE: usize = 4;
 const SQLITE_BUSY_TIMEOUT: Duration = Duration::from_secs(5);
@@ -1106,6 +1106,8 @@ mod tests {
                 sender_ext_c2: decaf377::Fq::from(2u64),
                 output_core_c2: decaf377::Fq::from(3u64),
                 output_ext_c2: decaf377::Fq::from(4u64),
+                sender_core_key_confirmation: decaf377::Fq::from(5u64),
+                output_core_key_confirmation: decaf377::Fq::from(6u64),
                 detection_tag: [0u8; crate::structs::DETECTION_TAG_BYTES],
                 encrypted_sender_core: [0u8; 32],
                 encrypted_sender_ext: [0u8; 96],

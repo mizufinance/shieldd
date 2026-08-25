@@ -179,9 +179,11 @@ func (c *TransferCircuit) Define(api frontend.API) error {
 	); err != nil {
 		return err
 	}
-	if err := c.verifyTransferRouting(api, &shared, &statementData); err != nil {
+	routingRolesSwapped, err := c.verifyTransferRouting(api, &shared, &statementData)
+	if err != nil {
 		return err
 	}
+	statementData.routingRolesSwapped = routingRolesSwapped
 	c.traceWiring("output.collect", "output1", "amount->output_amounts", "commitment->statement.output_commitments")
 	c.traceWiring("compliance.begin", "tiers=sender_core,sender_ext,output_core,output_ext")
 	if err := c.verifyTransferComplianceCiphertexts(api, &shared, &statementData); err != nil {
@@ -262,10 +264,14 @@ func (c *TransferCircuit) bindTransferComplianceTier(
 	name string,
 	epk Point2D,
 	c2 frontend.Variable,
+	keyConfirmation frontend.Variable,
 	ciphertext []frontend.Variable,
 ) {
 	c.bindSemantic(name+".epk", epk.X, epk.Y)
 	c.bindSemantic(name+".c2", c2)
+	if keyConfirmation != nil {
+		c.bindSemantic(name+".key_confirmation", keyConfirmation)
+	}
 	c.bindSemantic(name+".ciphertext", ciphertext...)
 }
 
@@ -293,7 +299,7 @@ func (c *TransferCircuit) bindTransferWitnessSemantics() {
 	c.bindSemantic("asset.leaf.next_value", c.Asset.Leaf.NextValue)
 	c.bindSemantic("asset.leaf.dk_pub", c.Asset.Leaf.DKPub.X, c.Asset.Leaf.DKPub.Y)
 	c.bindSemantic("asset.leaf.threshold", c.Asset.Leaf.Threshold)
-	c.bindSemantic("asset.leaf.route_policy_hash", c.Asset.Leaf.RoutePolicyHash)
+	c.bindSemantic("asset.leaf.channels_hash", c.Asset.Leaf.ChannelsHash)
 	c.bindSemantic("asset.leaf.ring_pk", c.Asset.Leaf.RingPK.X, c.Asset.Leaf.RingPK.Y)
 	c.bindSemantic("asset.leaf.ring_id_hash", c.Asset.Leaf.RingIDHash)
 	c.bindSemantic("asset.leaf.policy_id_hash", c.Asset.Leaf.PolicyIDHash)
@@ -385,24 +391,28 @@ func (c *TransferCircuit) bindTransferWitnessSemantics() {
 		"compliance.sender_core",
 		c.Compliance.SenderCore.Epk,
 		c.Compliance.SenderCore.C2,
+		c.Compliance.SenderCore.KeyConfirmation,
 		c.Compliance.SenderCore.Ciphertext[:],
 	)
 	c.bindTransferComplianceTier(
 		"compliance.sender_ext",
 		c.Compliance.SenderExt.Epk,
 		c.Compliance.SenderExt.C2,
+		nil,
 		c.Compliance.SenderExt.Ciphertext[:],
 	)
 	c.bindTransferComplianceTier(
 		"compliance.output_core",
 		c.Compliance.OutputCore.Epk,
 		c.Compliance.OutputCore.C2,
+		c.Compliance.OutputCore.KeyConfirmation,
 		c.Compliance.OutputCore.Ciphertext[:],
 	)
 	c.bindTransferComplianceTier(
 		"compliance.output_ext",
 		c.Compliance.OutputExt.Epk,
 		c.Compliance.OutputExt.C2,
+		nil,
 		c.Compliance.OutputExt.Ciphertext[:],
 	)
 }
@@ -433,6 +443,7 @@ type transferStatementData struct {
 	receiverDivGenFq       frontend.Variable
 	receiverTransmissionFq frontend.Variable
 	receiverAck            gnarkte.Point
+	routingRolesSwapped    frontend.Variable
 	senderCoreEPKFq        frontend.Variable
 	senderExtEPKFq         frontend.Variable
 	outputCoreEPKFq        frontend.Variable
@@ -604,17 +615,17 @@ func (c *TransferCircuit) verifySharedTransferContext(api frontend.API) (transfe
 	shared := transferSharedContext{
 		ak: gnarkte.Point{X: c.Auth.AK.X, Y: c.Auth.AK.Y},
 		indexedLeaf: IndexedLeafInputs{
-			Value:           c.Asset.Leaf.Value,
-			NextIndex:       c.Asset.Leaf.NextIndex,
-			NextValue:       c.Asset.Leaf.NextValue,
-			DKPub:           gnarkte.Point{X: c.Asset.Leaf.DKPub.X, Y: c.Asset.Leaf.DKPub.Y},
-			Threshold:       c.Asset.Leaf.Threshold,
-			RoutePolicyHash: c.Asset.Leaf.RoutePolicyHash,
-			RingPK:          gnarkte.Point{X: c.Asset.Leaf.RingPK.X, Y: c.Asset.Leaf.RingPK.Y},
-			RingIDHash:      c.Asset.Leaf.RingIDHash,
-			PolicyIDHash:    c.Asset.Leaf.PolicyIDHash,
-			PermissionHash:  c.Asset.Leaf.PermissionHash,
-			ResourceHash:    c.Asset.Leaf.ResourceHash,
+			Value:          c.Asset.Leaf.Value,
+			NextIndex:      c.Asset.Leaf.NextIndex,
+			NextValue:      c.Asset.Leaf.NextValue,
+			DKPub:          gnarkte.Point{X: c.Asset.Leaf.DKPub.X, Y: c.Asset.Leaf.DKPub.Y},
+			Threshold:      c.Asset.Leaf.Threshold,
+			ChannelsHash:   c.Asset.Leaf.ChannelsHash,
+			RingPK:         gnarkte.Point{X: c.Asset.Leaf.RingPK.X, Y: c.Asset.Leaf.RingPK.Y},
+			RingIDHash:     c.Asset.Leaf.RingIDHash,
+			PolicyIDHash:   c.Asset.Leaf.PolicyIDHash,
+			PermissionHash: c.Asset.Leaf.PermissionHash,
+			ResourceHash:   c.Asset.Leaf.ResourceHash,
 		},
 		senderDivGen:       gnarkte.Point{X: c.Sender.DivGen.X, Y: c.Sender.DivGen.Y},
 		senderTransmission: gnarkte.Point{X: c.Sender.Transmission.X, Y: c.Sender.Transmission.Y},
@@ -784,7 +795,7 @@ func (c *TransferCircuit) verifyTransferAssetRegistry(
 		"gadget.asset_registry_params_hash",
 		"dk_pub_fq=asset.leaf.dk_pub_fq",
 		"threshold=asset.leaf.threshold",
-		"route_policy_hash=asset.leaf.route_policy_hash",
+		"channels_hash=asset.leaf.channels_hash",
 		"out=asset.leaf.params_hash",
 	)
 	paramsHash, err := Poseidon377Hash3(
@@ -793,7 +804,7 @@ func (c *TransferCircuit) verifyTransferAssetRegistry(
 		[3]frontend.Variable{
 			dkPubFq,
 			shared.indexedLeaf.Threshold,
-			shared.indexedLeaf.RoutePolicyHash,
+			shared.indexedLeaf.ChannelsHash,
 		},
 	)
 	if err != nil {
@@ -908,6 +919,7 @@ func (c *TransferCircuit) newTransferStatementData() transferStatementData {
 		receiverDivGenFq:       0,
 		receiverTransmissionFq: 0,
 		receiverAck:            gnarkte.Point{X: 0, Y: 0},
+		routingRolesSwapped:    0,
 		senderCoreEPKFq:        0,
 		senderExtEPKFq:         0,
 		outputCoreEPKFq:        0,
@@ -1291,6 +1303,15 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 	outputCoreEPK := gnarkte.Point{X: c.Compliance.OutputCore.Epk.X, Y: c.Compliance.OutputCore.Epk.Y}
 	outputExtEPK := gnarkte.Point{X: c.Compliance.OutputExt.Epk.X, Y: c.Compliance.OutputExt.Epk.Y}
 
+	c.traceWiring("assert.decaf_non_identity", "point=compliance.sender_core.epk", "coordinate=x")
+	AssertDecafNonIdentity(api, senderCoreEPK)
+	c.traceWiring("assert.decaf_non_identity", "point=compliance.sender_ext.epk", "coordinate=x")
+	AssertDecafNonIdentity(api, senderExtEPK)
+	c.traceWiring("assert.decaf_non_identity", "point=compliance.output_core.epk", "coordinate=x")
+	AssertDecafNonIdentity(api, outputCoreEPK)
+	c.traceWiring("assert.decaf_non_identity", "point=compliance.output_ext.epk", "coordinate=x")
+	AssertDecafNonIdentity(api, outputExtEPK)
+
 	c.traceWiring("decaf.compress_to_field", "in=compliance.sender_core.epk", "out=compliance.sender_core.epk_fq")
 	senderCoreEPKFq, err := decafgnark.CompressToField(api, senderCoreEPK)
 	if err != nil {
@@ -1410,11 +1431,14 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 	); err != nil {
 		return err
 	}
-	c.traceWiring("gadget.poseidon_encryption.amount", "tier=sender_core", "ss=sender_core.shared.selected", "c2=compliance.sender_core.c2", "amount=receiver.amount", "out=compliance.sender_core.ciphertext")
+	c.traceWiring("gadget.poseidon_encryption.amount", "tier=sender_core", "ss=sender_core.shared.selected", "c2=compliance.sender_core.c2", "epk_fq=compliance.sender_core.epk_fq", "salt=salt1", "key_confirmation=compliance.sender_core.key_confirmation", "amount=receiver.amount", "out=compliance.sender_core.ciphertext")
 	if err := VerifyPoseidonEncryptionTransferAmount(
 		api,
 		senderCoreSelected,
 		c.Compliance.SenderCore.C2,
+		statementData.senderCoreEPKFq,
+		salts[1],
+		c.Compliance.SenderCore.KeyConfirmation,
 		statementData.receiverAmount,
 		c.Compliance.SenderCore.Ciphertext,
 	); err != nil {
@@ -1431,11 +1455,14 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 	); err != nil {
 		return err
 	}
-	c.traceWiring("gadget.poseidon_encryption.amount", "tier=output_core", "ss=output_core.shared.selected", "c2=compliance.output_core.c2", "amount=receiver.amount", "out=compliance.output_core.ciphertext")
+	c.traceWiring("gadget.poseidon_encryption.amount", "tier=output_core", "ss=output_core.shared.selected", "c2=compliance.output_core.c2", "epk_fq=compliance.output_core.epk_fq", "salt=salt3", "key_confirmation=compliance.output_core.key_confirmation", "amount=receiver.amount", "out=compliance.output_core.ciphertext")
 	if err := VerifyPoseidonEncryptionTransferAmount(
 		api,
 		outputCoreSelected,
 		c.Compliance.OutputCore.C2,
+		statementData.outputCoreEPKFq,
+		salts[3],
+		c.Compliance.OutputCore.KeyConfirmation,
 		statementData.receiverAmount,
 		c.Compliance.OutputCore.Ciphertext,
 	); err != nil {
@@ -1545,6 +1572,8 @@ func (c *TransferCircuit) buildTransferStatementFields(
 	fields = append(fields, c.TargetTimestamp)
 	fields = append(
 		fields,
+		c.Compliance.SenderCore.KeyConfirmation,
+		c.Compliance.OutputCore.KeyConfirmation,
 		c.Compliance.Metadata.RingIDHash,
 		c.Compliance.Metadata.PolicyIDHash,
 		c.Compliance.Metadata.ResourceHash,

@@ -47,6 +47,35 @@ pub use transfer::{
     TRANSFER_WIRE_BYTES,
 };
 
+pub mod seizure;
+#[cfg(feature = "component")]
+pub use seizure::{
+    finalize_seizure_job, FreezeStateRead, FreezeStateWrite, SeizureStateRead, SeizureStateWrite,
+};
+pub use seizure::{
+    FreezeRecord, FreezeResultAnchor, FrozenSeizureTarget, SeizureAdvance, SeizureAuthorization,
+    SeizureChunkPublicInputs, SeizureChunkReceipt, SeizureClassifierPublicContext,
+    SeizureCommitment, SeizureFinalStatement, SeizureId, SeizureJob, SeizureJobState,
+    SeizureProofFamily, SeizureProofVerifier, SeizureReceipt, SeizureSettlement, SeizureSource,
+    MAX_SEIZURE_CHUNKS_PER_PHASE, SEIZURE_GROTH16_PROOF_BYTES,
+};
+
+pub mod pre_evidence;
+pub use pre_evidence::{
+    derive_orbis_scalar, CompactPreEvidenceV1, DleqProof, EvidenceReleaseAuthorization,
+    IssuerDhEvidenceV1, PreEvidenceV1, PreShareEvidence, VerifiedPreEvidence,
+    COMPACT_PRE_EVIDENCE_VERSION, PRE_EVIDENCE_VERSION,
+};
+
+pub mod withdrawal;
+pub use withdrawal::{
+    address_components, classify_withdrawal_with_issuer, classify_withdrawal_with_pre,
+    derive_withdrawal_encryption_material, encrypt_withdrawal, encrypt_withdrawal_with_material,
+    withdrawal_encryption_key, withdrawal_key_confirmation, WithdrawalComplianceCiphertext,
+    WithdrawalEncryptionResult, WITHDRAWAL_ADDRESS_BYTES, WITHDRAWAL_ADDRESS_CIPHERTEXT_FQS,
+    WITHDRAWAL_COMPLIANCE_WIRE_BYTES, WITHDRAWAL_KEY_CONFIRMATION_DOMAIN,
+};
+
 pub mod tree;
 pub use tree::{QuadTree, DEFAULT_DEPTH, ZERO_HASHES};
 
@@ -86,12 +115,15 @@ pub use genesis::Content as GenesisContent;
 pub mod crypto;
 pub use crypto::{
     compliance_derivation, decrypt_detection_tier, decrypt_tier_bytes, derive_compliance_scalar,
-    encrypt_tier_bytes, COMPLIANCE_STREAM_CIPHER_DOMAIN, ISSUER_DETECTION_DOMAIN,
-    UNREGULATED_SINK_DK_PUB, UNREGULATED_SINK_RING_PK,
+    encrypt_tier_bytes, transfer_key_confirmation, COMPLIANCE_STREAM_CIPHER_DOMAIN,
+    ISSUER_DETECTION_DOMAIN, TRANSFER_KEY_CONFIRMATION_DOMAIN, UNREGULATED_SINK_DK_PUB,
+    UNREGULATED_SINK_RING_PK,
 };
 
 pub mod scanning;
-pub use scanning::{decrypt_full_flagged, AddressData, FullComplianceData};
+pub use scanning::{
+    decrypt_core_amount_if_key_matches, decrypt_full_flagged, AddressData, FullComplianceData,
+};
 
 pub mod refs;
 pub use refs::{ActionRef, BlockRef, OutputRef, TxRef};
@@ -417,10 +449,11 @@ mod tests {
             },
             false,
             Fq::from(0u64),
+            Fq::from(1u64),
+            Fq::from(2u64),
         )
         .unwrap()
         .ciphertext;
-
         assert_eq!(ciphertext.to_bytes().len(), TRANSFER_WIRE_BYTES);
         assert_eq!(sender_auth_path.len(), DEFAULT_DEPTH as usize);
         assert_eq!(receiver_auth_path.len(), DEFAULT_DEPTH as usize);
@@ -485,9 +518,22 @@ mod tests {
             Value { amount, asset_id },
             true,
             Fq::from(7u64),
+            Fq::from(8u64),
+            Fq::from(9u64),
         )
         .unwrap()
         .ciphertext;
+        let metadata = TransferComplianceMetadata::from_identifiers(
+            "ring",
+            "policy",
+            "resource",
+            "permission",
+            1,
+            Fq::from(8u64),
+            Fq::from(10u64),
+            Fq::from(9u64),
+            Fq::from(11u64),
+        );
 
         let tx = ProtoTransaction {
             body: Some(TransactionBody {
@@ -504,6 +550,7 @@ mod tests {
                             ),
                             outputs: vec![TransferOutputBody {
                                 compliance_ciphertext: ciphertext.to_bytes(),
+                                compliance_metadata: metadata.to_bytes().unwrap(),
                                 ..Default::default()
                             }],
                             ..Default::default()
@@ -549,9 +596,14 @@ mod tests {
             .count();
         assert_eq!(wrong_detected, 0);
 
-        let decrypted = decrypt_full_flagged(issuer_dk.inner(), &detected_ciphertexts[0], asset_id)
-            .unwrap()
-            .expect("flagged transfer should decrypt");
+        let decrypted = decrypt_full_flagged(
+            issuer_dk.inner(),
+            &detected_ciphertexts[0],
+            &metadata,
+            asset_id,
+        )
+        .unwrap()
+        .expect("flagged transfer should decrypt");
         assert_eq!(decrypted.amount, amount);
         assert_eq!(
             decrypted.sender_address.transmission_key,

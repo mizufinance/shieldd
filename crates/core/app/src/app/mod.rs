@@ -6,7 +6,8 @@ mod validation_support;
 
 pub use self::host::{
     HostBlock, HostCommit, HostCommittedState, HostDepositResult, HostExecution,
-    HostExecutionPhase, HostExecutionResponse, HostTxResponse, HostWithdrawal,
+    HostExecutionPhase, HostExecutionResponse, HostFreezeResultAnchorResult, HostTxResponse,
+    HostWithdrawal,
 };
 #[cfg(any(test, feature = "fuzzing"))]
 pub use self::preconsensus::decode_batch_item_for_fuzz;

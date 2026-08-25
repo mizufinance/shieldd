@@ -18,17 +18,18 @@ Shieldd owns the privacy-specific state machine: shielded notes and nullifiers,
 proof verification, regulated-asset policy commitments, per-address/per-asset
 status commitments, encrypted compliance records, and compact data for wallets
 and auditors. Bankd owns deposits, withdrawals, issuer authority, compliance
-action authorization, and any transparent mint or reissue caused by a future
-seizure.
+action authorization, and any release from its existing Shieldd custody escrow
+caused by a future seizure.
 
 The currently supported Bankd compliance actions are typed `FreezeUserAsset`
 and `UnfreezeUserAsset` calls. A frozen `(address, asset_id)` cannot send or
-receive that regulated asset, fund fees with it, withdraw it, deposit it, or use
-`NoteReshape`. Unregulated assets and the same address's other regulated assets
-are unaffected. There is no global address blacklist and no asset-pause action.
+receive that regulated asset, withdraw it, deposit it, or use `NoteReshape`.
+Fees are base-asset-only. Unregulated assets and the same address's other
+regulated assets are unaffected. There is no global address blacklist and no
+asset-pause action.
 
 Seizure authorization, balance certification, the terminal status transition,
-and Bankd reissue are intentionally not part of the current state machine.
+and Bankd escrow release are intentionally not part of the current state machine.
 See [the enforcement and seizure design](docs/compliance/enforcement-and-seizure.md).
 
 ## Compliance visibility
@@ -41,3 +42,4 @@ fixed proof shape without promising issuer decryptability. See:
 - [compliance flow](docs/compliance/flow.md)
 - [technical reference](docs/compliance/reference.md)
 - [enforcement and planned seizure](docs/compliance/enforcement-and-seizure.md)
+- [asset seizure proof plan](docs/compliance/asset-seizure-proof-plan.md)

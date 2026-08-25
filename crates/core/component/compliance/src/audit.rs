@@ -10,6 +10,7 @@ use crate::audit_records::{
     OrbisAuditEntry,
 };
 use crate::audit_status::{AuditStatus, DecryptedVia, FlowType};
+use crate::decode_object::TransferComplianceMetadata;
 use crate::scanner::storage::SqliteScannerStore;
 use crate::scanner::types::AuditLedgerRow;
 #[cfg(test)]
@@ -165,13 +166,19 @@ pub fn decrypt_flagged_rows(store: &SqliteScannerStore, dk: &DetectionKey) -> Re
     let conn = store.lock_conn()?;
     let tx = conn.unchecked_transaction()?;
     let mut rows = tx.prepare(
-        "SELECT d.height, d.tx_hash, d.action_index, d.output_index, d.asset_id, d.ciphertext_bytes
+        "SELECT d.height, d.tx_hash, d.action_index, d.output_index, d.asset_id,
+                d.ciphertext_bytes, c.compliance_metadata_bytes
          FROM scanner_detections d
          JOIN audit_rows a
            ON a.height = d.height
           AND a.tx_hash = d.tx_hash
           AND a.action_index = d.action_index
           AND a.output_index = d.output_index
+         JOIN scanner_ciphertexts c
+           ON c.height = d.height
+          AND c.tx_hash = d.tx_hash
+          AND c.action_index = d.action_index
+          AND c.output_index = d.output_index
          WHERE d.is_flagged = 1
            AND d.audit_status IN (?2, ?3)
            AND a.flow_type = ?1
@@ -191,6 +198,7 @@ pub fn decrypt_flagged_rows(store: &SqliteScannerStore, dk: &DetectionKey) -> Re
                 let output_index: i64 = row.get(3)?;
                 let asset_id: String = row.get(4)?;
                 let ciphertext_bytes: Vec<u8> = row.get(5)?;
+                let metadata_bytes: Vec<u8> = row.get(6)?;
                 Ok((
                     height as u64,
                     tx_hash,
@@ -198,6 +206,7 @@ pub fn decrypt_flagged_rows(store: &SqliteScannerStore, dk: &DetectionKey) -> Re
                     output_index as u32,
                     asset_id,
                     ciphertext_bytes,
+                    metadata_bytes,
                 ))
             },
         )?
@@ -210,12 +219,15 @@ pub fn decrypt_flagged_rows(store: &SqliteScannerStore, dk: &DetectionKey) -> Re
     ])?;
 
     let mut updated = 0u64;
-    for (height, tx_hash, action_index, output_index, asset_id, ciphertext_bytes) in pending {
+    for (height, tx_hash, action_index, output_index, asset_id, ciphertext_bytes, metadata_bytes) in
+        pending
+    {
         let asset_id: asset::Id = asset_id
             .parse()
             .with_context(|| format!("parse detected asset id {asset_id}"))?;
         let ciphertext = TransferComplianceCiphertext::from_bytes(&ciphertext_bytes)?;
-        match decrypt_full_flagged(dk.inner(), &ciphertext, asset_id) {
+        let metadata = TransferComplianceMetadata::from_bytes(&metadata_bytes)?;
+        match decrypt_full_flagged(dk.inner(), &ciphertext, &metadata, asset_id) {
             Ok(Some(data)) => {
                 tx.execute(
                     "UPDATE audit_rows

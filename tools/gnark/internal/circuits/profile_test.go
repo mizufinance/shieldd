@@ -34,12 +34,12 @@ func (c *noteCommitmentProfileCircuit) Define(api frontend.API) error {
 }
 
 type complianceLeafProfileCircuit struct {
-	DivGenX frontend.Variable
-	DivGenY frontend.Variable
-	TransX  frontend.Variable
-	TransY  frontend.Variable
-	AssetID frontend.Variable
-	D       frontend.Variable
+	DivGenX        frontend.Variable
+	DivGenY        frontend.Variable
+	TransX         frontend.Variable
+	TransY         frontend.Variable
+	AssetID        frontend.Variable
+	D              frontend.Variable
 }
 
 func (c *complianceLeafProfileCircuit) Define(api frontend.API) error {
@@ -119,16 +119,16 @@ func (c *transferSaltProfileCircuit) Define(api frontend.API) error {
 }
 
 type transferDetectionProfileCircuit struct {
-	IsFlagged       frontend.Variable
-	SharedSecretX   frontend.Variable
-	SharedSecretY   frontend.Variable
-	SenderCoreEPKFq frontend.Variable
-	DetectionSalt   frontend.Variable
-	AssetID         frontend.Variable
-	Ciphertext0     frontend.Variable
-	Ciphertext1     frontend.Variable
-	Ciphertext2     frontend.Variable
-	Ciphertext3     frontend.Variable
+	IsFlagged           frontend.Variable
+	SharedSecretX       frontend.Variable
+	SharedSecretY       frontend.Variable
+	SenderCoreEPKFq     frontend.Variable
+	DetectionSalt       frontend.Variable
+	AssetID             frontend.Variable
+	Ciphertext0         frontend.Variable
+	Ciphertext1         frontend.Variable
+	Ciphertext2         frontend.Variable
+	Ciphertext3         frontend.Variable
 }
 
 func (c *transferDetectionProfileCircuit) Define(api frontend.API) error {
@@ -152,6 +152,9 @@ type transferAmountCiphertextProfileCircuit struct {
 	SharedSecretX frontend.Variable
 	SharedSecretY frontend.Variable
 	C2            frontend.Variable
+	EPKFq         frontend.Variable
+	TierSalt      frontend.Variable
+	Confirmation  frontend.Variable
 	Amount        frontend.Variable
 	Ciphertext0   frontend.Variable
 }
@@ -161,6 +164,9 @@ func (c *transferAmountCiphertextProfileCircuit) Define(api frontend.API) error 
 		api,
 		gnarkte.Point{X: c.SharedSecretX, Y: c.SharedSecretY},
 		c.C2,
+		c.EPKFq,
+		c.TierSalt,
+		c.Confirmation,
 		c.Amount,
 		[compliance.TransferCoreCiphertextFQCount]frontend.Variable{c.Ciphertext0},
 	)

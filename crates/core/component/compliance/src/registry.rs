@@ -1312,8 +1312,36 @@ trait ComplianceRegistryRawWrite: StateWrite + ComplianceRegistryRead {
             .await?
             .ok_or_else(|| anyhow::anyhow!("user is not registered for asset {asset_id}"))?;
         let previous_status = record.leaf.status;
+        let next_status = action.apply(previous_status)?;
+        self.write_user_asset_status(record, next_status).await
+    }
+
+    async fn seize_frozen_user_asset(
+        &mut self,
+        address: &shieldd_sdk_keys::Address,
+        asset_id: asset::Id,
+    ) -> Result<event::EventUserAssetStatusChanged> {
+        anyhow::ensure!(
+            self.is_asset_regulated(asset_id).await?,
+            "cannot seize user status for unregulated asset {asset_id}"
+        );
+        let record = self
+            .get_user_leaf_record(address, asset_id)
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("user is not registered for asset {asset_id}"))?;
+        let next_status = record.leaf.status.seize()?;
+        self.write_user_asset_status(record, next_status).await
+    }
+
+    async fn write_user_asset_status(
+        &mut self,
+        record: UserLeafRecord,
+        next_status: UserAssetStatus,
+    ) -> Result<event::EventUserAssetStatusChanged> {
+        let previous_status = record.leaf.status;
+        previous_status.validate_transition(next_status)?;
         let mut leaf = record.leaf;
-        leaf.status = action.apply(previous_status)?;
+        leaf.status = next_status;
         let commitment = leaf.commit();
 
         let touched_nodes = self
@@ -1778,6 +1806,21 @@ trait ComplianceRegistryRawWrite: StateWrite + ComplianceRegistryRead {
 }
 
 impl<T: StateWrite + ?Sized> ComplianceRegistryRawWrite for T {}
+
+pub(crate) async fn seize_frozen_leaf<S>(
+    state: &mut S,
+    address: &shieldd_sdk_keys::Address,
+    asset_id: asset::Id,
+) -> Result<event::EventUserAssetStatusChanged>
+where
+    S: StateWrite + ComplianceRegistryRead + ?Sized,
+{
+    let event =
+        <S as ComplianceRegistryRawWrite>::seize_frozen_user_asset(state, address, asset_id)
+            .await?;
+    <S as ComplianceRegistryRawWrite>::emit_user_status_change(state, event.clone());
+    Ok(event)
+}
 
 /// Component lifecycle operations that do not admit registry facts.
 #[async_trait]

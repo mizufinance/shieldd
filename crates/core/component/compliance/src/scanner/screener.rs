@@ -127,6 +127,8 @@ mod tests {
             Value { amount, asset_id },
             is_flagged,
             salt,
+            salt + decaf377::Fq::from(1u64),
+            salt + decaf377::Fq::from(2u64),
         )
         .unwrap()
         .ciphertext

@@ -4,6 +4,10 @@ use decaf377::Fr;
 use decaf377_rdsa::{Signature, SpendAuth};
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::{asset, Balance};
+use shieldd_sdk_compliance::{
+    derive_withdrawal_encryption_material, encrypt_withdrawal_with_material,
+    withdrawal_encryption_key, WithdrawalEncryptionResult,
+};
 use shieldd_sdk_keys::symmetric::PayloadKey;
 use shieldd_sdk_keys::FullViewingKey;
 use shieldd_sdk_keys::{symmetric::WrappedMemoKey, Address};
@@ -225,6 +229,20 @@ impl ShieldedIcs20WithdrawalPlan {
         super::withdrawal_effect_hash_limbs(effect_hash.as_bytes())
     }
 
+    fn withdrawal_compliance_encryption(&self) -> anyhow::Result<WithdrawalEncryptionResult> {
+        let sender_leaf = self.sender_leaf();
+        let amount = u128::from(self.withdrawal.amount);
+        let (encryption_key, _) = withdrawal_encryption_key(
+            self.first_spend().is_regulated,
+            amount,
+            &sender_leaf,
+            &self.first_spend().asset_indexed_leaf,
+        )?;
+        let (seed, randomizer) =
+            derive_withdrawal_encryption_material(self.first_spend().tx_blinding_nonce);
+        encrypt_withdrawal_with_material(encryption_key, &self.sender_address(), seed, randomizer)
+    }
+
     pub fn shielded_ics20_withdrawal_public_private(
         &self,
         fvk: &FullViewingKey,
@@ -324,6 +342,9 @@ impl ShieldedIcs20WithdrawalPlan {
             &self.routing_parameters,
             routing_nonce,
         );
+        let withdrawal_compliance = self
+            .withdrawal_compliance_encryption()
+            .map_err(|error| crate::ProofError::InvalidPrivateInput(error.to_string()))?;
 
         Ok((
             ShieldedIcs20WithdrawalProofPublic {
@@ -342,6 +363,7 @@ impl ShieldedIcs20WithdrawalPlan {
                 withdrawal_effect_hash_limbs,
                 routing_tag,
                 routing_parameter_set_id: self.routing_parameters.id(),
+                withdrawal_compliance_ciphertext: withdrawal_compliance.ciphertext.clone(),
                 recent_position_floor,
             },
             ShieldedIcs20WithdrawalProofPrivate {
@@ -358,6 +380,8 @@ impl ShieldedIcs20WithdrawalPlan {
                 sender_compliance_path: self.first_spend().compliance_path.clone(),
                 sender_compliance_position: self.first_spend().compliance_position,
                 sender_leaf: self.sender_leaf(),
+                withdrawal_seed: withdrawal_compliance.seed,
+                withdrawal_randomizer: withdrawal_compliance.r,
                 required_input,
                 optional_input,
                 change_output: ShieldedIcs20WithdrawalChangePrivate {
@@ -425,6 +449,7 @@ impl ShieldedIcs20WithdrawalPlan {
             &self.routing_parameters,
             routing_nonce,
         );
+        let withdrawal_compliance = self.withdrawal_compliance_encryption()?;
 
         Ok(ShieldedIcs20WithdrawalBody {
             family_id: ShieldedIcs20WithdrawalFamilyId::Canonical,
@@ -438,6 +463,7 @@ impl ShieldedIcs20WithdrawalPlan {
             asset_anchor: self.first_spend().asset_anchor,
             routing_tag,
             routing_parameter_set_id: self.routing_parameters.id(),
+            withdrawal_compliance_ciphertext: withdrawal_compliance.ciphertext,
         })
     }
 
@@ -493,7 +519,7 @@ impl ShieldedIcs20WithdrawalPlan {
             anchor,
             recent_position_floor,
         )?;
-        crate::gnark::encode_shielded_ics20_withdrawal_witness_v12(&public, &private)
+        crate::gnark::encode_shielded_ics20_withdrawal_witness_v14(&public, &private)
             .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))
     }
 

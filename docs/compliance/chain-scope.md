@@ -34,8 +34,10 @@ The typed host API currently admits:
 
 Status is committed in the existing user leaf. It is scoped to one address and
 one asset; no global blacklist or independent asset-pause switch exists.
-The current schema has only `Active` and `Frozen`; a terminal seizure state will
-be added only with the Bankd authorization and balance-certificate contract.
+The schema also reserves terminal `Seized`, which is reachable only through the
+proof-backed seizure state-machine boundary. That boundary is not exposed by a
+public action until the Bankd authorization and balance-certificate contract is
+complete.
 
 All regulated proofs require the exact current user root and current asset root.
 Native action admission applies that exact-root requirement to every shielded

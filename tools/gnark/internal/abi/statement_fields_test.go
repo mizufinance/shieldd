@@ -34,13 +34,13 @@ func TestRustGoStatementFieldDifferential(t *testing.T) {
 	})
 
 	t.Run("shielded_ics20_withdrawal", func(t *testing.T) {
-		witness, _, err := DecodeShieldedIcs20WithdrawalWitnessV12(
-			testfixtures.LoadShieldedIcs20WithdrawalWitnessV12("shielded_ics20_withdrawal"),
+		witness, _, err := DecodeShieldedIcs20WithdrawalWitnessV14(
+			testfixtures.LoadShieldedIcs20WithdrawalWitnessV14("shielded_ics20_withdrawal"),
 		)
 		if err != nil {
 			t.Fatalf("decode shielded ICS-20 withdrawal witness: %v", err)
 		}
-		reconstructed, err := ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitnessV12(witness)
+		reconstructed, err := ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitnessV14(witness)
 		if err != nil {
 			t.Fatalf("reconstruct shielded ICS-20 withdrawal statement fields: %v", err)
 		}

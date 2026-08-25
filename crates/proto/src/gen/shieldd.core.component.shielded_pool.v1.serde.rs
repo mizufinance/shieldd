@@ -4164,6 +4164,9 @@ impl serde::Serialize for ShieldedHostWithdrawalBody {
         if !self.routing_parameter_set_id.is_empty() {
             len += 1;
         }
+        if !self.withdrawal_compliance_ciphertext.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.ShieldedHostWithdrawalBody", len)?;
         if self.family_id != 0 {
             struct_ser.serialize_field("familyId", &self.family_id)?;
@@ -4202,6 +4205,11 @@ impl serde::Serialize for ShieldedHostWithdrawalBody {
             #[allow(clippy::needless_borrows_for_generic_args)]
             struct_ser.serialize_field("routingParameterSetId", pbjson::private::base64::encode(&self.routing_parameter_set_id).as_str())?;
         }
+        if !self.withdrawal_compliance_ciphertext.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("withdrawalComplianceCiphertext", pbjson::private::base64::encode(&self.withdrawal_compliance_ciphertext).as_str())?;
+        }
         struct_ser.end()
     }
 }
@@ -4231,6 +4239,8 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalBody {
             "routingTag",
             "routing_parameter_set_id",
             "routingParameterSetId",
+            "withdrawal_compliance_ciphertext",
+            "withdrawalComplianceCiphertext",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -4246,6 +4256,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalBody {
             AssetAnchor,
             RoutingTag,
             RoutingParameterSetId,
+            WithdrawalComplianceCiphertext,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -4279,6 +4290,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalBody {
                             "assetAnchor" | "asset_anchor" => Ok(GeneratedField::AssetAnchor),
                             "routingTag" | "routing_tag" => Ok(GeneratedField::RoutingTag),
                             "routingParameterSetId" | "routing_parameter_set_id" => Ok(GeneratedField::RoutingParameterSetId),
+                            "withdrawalComplianceCiphertext" | "withdrawal_compliance_ciphertext" => Ok(GeneratedField::WithdrawalComplianceCiphertext),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -4309,6 +4321,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalBody {
                 let mut asset_anchor__ = None;
                 let mut routing_tag__ = None;
                 let mut routing_parameter_set_id__ = None;
+                let mut withdrawal_compliance_ciphertext__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::FamilyId => {
@@ -4383,6 +4396,14 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalBody {
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
+                        GeneratedField::WithdrawalComplianceCiphertext => {
+                            if withdrawal_compliance_ciphertext__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("withdrawalComplianceCiphertext"));
+                            }
+                            withdrawal_compliance_ciphertext__ =
+                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
+                        }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
                         }
@@ -4400,6 +4421,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalBody {
                     asset_anchor: asset_anchor__,
                     routing_tag: routing_tag__,
                     routing_parameter_set_id: routing_parameter_set_id__.unwrap_or_default(),
+                    withdrawal_compliance_ciphertext: withdrawal_compliance_ciphertext__.unwrap_or_default(),
                 })
             }
         }
@@ -5104,6 +5126,9 @@ impl serde::Serialize for ShieldedIcs20WithdrawalBody {
         if !self.routing_parameter_set_id.is_empty() {
             len += 1;
         }
+        if !self.withdrawal_compliance_ciphertext.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.ShieldedIcs20WithdrawalBody", len)?;
         if self.family_id != 0 {
             struct_ser.serialize_field("familyId", &self.family_id)?;
@@ -5142,6 +5167,11 @@ impl serde::Serialize for ShieldedIcs20WithdrawalBody {
             #[allow(clippy::needless_borrows_for_generic_args)]
             struct_ser.serialize_field("routingParameterSetId", pbjson::private::base64::encode(&self.routing_parameter_set_id).as_str())?;
         }
+        if !self.withdrawal_compliance_ciphertext.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("withdrawalComplianceCiphertext", pbjson::private::base64::encode(&self.withdrawal_compliance_ciphertext).as_str())?;
+        }
         struct_ser.end()
     }
 }
@@ -5171,6 +5201,8 @@ impl<'de> serde::Deserialize<'de> for ShieldedIcs20WithdrawalBody {
             "routingTag",
             "routing_parameter_set_id",
             "routingParameterSetId",
+            "withdrawal_compliance_ciphertext",
+            "withdrawalComplianceCiphertext",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -5186,6 +5218,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedIcs20WithdrawalBody {
             AssetAnchor,
             RoutingTag,
             RoutingParameterSetId,
+            WithdrawalComplianceCiphertext,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -5219,6 +5252,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedIcs20WithdrawalBody {
                             "assetAnchor" | "asset_anchor" => Ok(GeneratedField::AssetAnchor),
                             "routingTag" | "routing_tag" => Ok(GeneratedField::RoutingTag),
                             "routingParameterSetId" | "routing_parameter_set_id" => Ok(GeneratedField::RoutingParameterSetId),
+                            "withdrawalComplianceCiphertext" | "withdrawal_compliance_ciphertext" => Ok(GeneratedField::WithdrawalComplianceCiphertext),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -5249,6 +5283,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedIcs20WithdrawalBody {
                 let mut asset_anchor__ = None;
                 let mut routing_tag__ = None;
                 let mut routing_parameter_set_id__ = None;
+                let mut withdrawal_compliance_ciphertext__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::FamilyId => {
@@ -5323,6 +5358,14 @@ impl<'de> serde::Deserialize<'de> for ShieldedIcs20WithdrawalBody {
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
+                        GeneratedField::WithdrawalComplianceCiphertext => {
+                            if withdrawal_compliance_ciphertext__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("withdrawalComplianceCiphertext"));
+                            }
+                            withdrawal_compliance_ciphertext__ =
+                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
+                        }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
                         }
@@ -5340,6 +5383,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedIcs20WithdrawalBody {
                     asset_anchor: asset_anchor__,
                     routing_tag: routing_tag__,
                     routing_parameter_set_id: routing_parameter_set_id__.unwrap_or_default(),
+                    withdrawal_compliance_ciphertext: withdrawal_compliance_ciphertext__.unwrap_or_default(),
                 })
             }
         }

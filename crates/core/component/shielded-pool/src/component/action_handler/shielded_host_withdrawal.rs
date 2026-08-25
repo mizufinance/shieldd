@@ -44,6 +44,7 @@ pub fn shielded_host_withdrawal_extract_public(
             withdrawal_effect_hash: action.body.withdrawal.effect_hash(),
             routing_tag: action.body.routing_tag,
             routing_parameter_set_id: action.body.routing_parameter_set_id,
+            withdrawal_compliance_ciphertext: &action.body.withdrawal_compliance_ciphertext,
         },
         context,
     )

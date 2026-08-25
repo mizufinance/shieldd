@@ -52,6 +52,17 @@ pub static COMPLIANCE_STREAM_CIPHER_DOMAIN: Lazy<Fq> = Lazy::new(|| {
     )
 });
 
+/// Domain separator for non-indexing transfer core key confirmation.
+pub static TRANSFER_KEY_CONFIRMATION_DOMAIN: Lazy<Fq> = Lazy::new(|| {
+    Fq::from_le_bytes_mod_order(
+        blake2b_simd::blake2b(b"shieldd.transfer.compliance.key_confirmation.v1").as_bytes(),
+    )
+});
+
+pub fn transfer_key_confirmation(seed: Fq, epk_fq: Fq, tier_salt: Fq) -> Fq {
+    poseidon377::hash_3(&TRANSFER_KEY_CONFIRMATION_DOMAIN, (seed, epk_fq, tier_salt))
+}
+
 pub fn compliance_stream_block(seed: Fq, counter: u64) -> Fq {
     poseidon377::hash_2(&COMPLIANCE_STREAM_CIPHER_DOMAIN, (seed, Fq::from(counter)))
 }
@@ -204,6 +215,13 @@ mod tests {
             derive_compliance_scalar(address1),
             derive_compliance_scalar(address2),
             "different inputs must produce different scalars"
+        );
+        assert_eq!(compliance_derivation(address1), address1.to_vec());
+        assert_eq!(compliance_derivation(address1).len(), 48);
+        assert_eq!(
+            Fr::from_le_bytes_mod_order(&derive_compliance_scalar(address1).to_bytes()),
+            crate::derive_orbis_scalar(&address1.to_vec()),
+            "Shieldd registration and ordinary Orbis PRE must derive the same scalar"
         );
     }
 

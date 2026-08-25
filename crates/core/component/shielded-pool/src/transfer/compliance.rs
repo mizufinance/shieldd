@@ -107,6 +107,8 @@ pub(crate) fn build_transfer_compliance(
         },
         is_flagged,
         detection_salt,
+        sender_core_salt,
+        output_core_salt,
     )?;
 
     // A non-membership witness carries the predecessor leaf. None of that
@@ -232,6 +234,8 @@ pub(crate) fn transfer_compliance_public_from_parts(
         sender_ext_c2,
         output_core_c2,
         output_ext_c2,
+        sender_core_key_confirmation,
+        output_core_key_confirmation,
         detection_ciphertext,
         sender_core_ciphertext,
         sender_ext_ciphertext,
@@ -242,6 +246,8 @@ pub(crate) fn transfer_compliance_public_from_parts(
     Ok(TransferCompliancePublic {
         detection_ciphertext: detection_ciphertext.to_vec(),
         metadata: metadata.clone(),
+        sender_core_key_confirmation,
+        output_core_key_confirmation,
         sender_core: TransferComplianceCiphertextPublic {
             epk: sender_core_epk,
             c2: sender_core_c2,

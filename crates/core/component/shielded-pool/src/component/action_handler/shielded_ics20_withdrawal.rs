@@ -86,6 +86,7 @@ fn shielded_ics20_withdrawal_extract_public(
             crate::shielded_ics20_withdrawal::withdrawal_effect_hash_limbs(effect_hash_bytes),
         routing_tag: action.body.routing_tag,
         routing_parameter_set_id: action.body.routing_parameter_set_id,
+        withdrawal_compliance_ciphertext: action.body.withdrawal_compliance_ciphertext.clone(),
         recent_position_floor: context.recent_position_floor,
     };
     public

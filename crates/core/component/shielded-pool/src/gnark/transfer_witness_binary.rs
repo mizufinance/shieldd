@@ -17,7 +17,7 @@ use crate::{
 };
 
 const TRANSFER_WITNESS_MAGIC: &[u8; 4] = b"PTWG";
-const TRANSFER_WITNESS_VERSION: u32 = 20;
+const TRANSFER_WITNESS_VERSION: u32 = 22;
 
 impl TransferWitnessV20 {
     pub fn encode(&self) -> Result<Vec<u8>> {
@@ -50,6 +50,8 @@ impl TransferWitnessV20 {
         put_bytes(&mut buf, &self.sender_status);
         put_bytes(&mut buf, &self.transfer_nonce_root);
         encode_vec_32(&mut buf, &self.detection_ciphertext)?;
+        put_bytes(&mut buf, &self.sender_core_key_confirmation);
+        put_bytes(&mut buf, &self.output_core_key_confirmation);
         put_bytes(&mut buf, &self.ring_id_hash);
         put_bytes(&mut buf, &self.policy_id_hash);
         put_bytes(&mut buf, &self.resource_hash);
@@ -125,6 +127,8 @@ impl TransferWitnessV20 {
             sender_status: cursor.read_fixed::<32>()?,
             transfer_nonce_root: cursor.read_fixed::<32>()?,
             detection_ciphertext: cursor.read_vec_32()?,
+            sender_core_key_confirmation: cursor.read_fixed::<32>()?,
+            output_core_key_confirmation: cursor.read_fixed::<32>()?,
             ring_id_hash: cursor.read_fixed::<32>()?,
             policy_id_hash: cursor.read_fixed::<32>()?,
             resource_hash: cursor.read_fixed::<32>()?,

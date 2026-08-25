@@ -250,6 +250,9 @@ pub struct ApplyComplianceActionResponse {
     pub current_status: i32,
     #[prost(bool, tag = "4")]
     pub replayed: bool,
+    /// Monotonic generation of the latest freeze for this address and asset.
+    #[prost(uint64, tag = "5")]
+    pub freeze_generation: u64,
 }
 impl ::prost::Name for ApplyComplianceActionResponse {
     const NAME: &'static str = "ApplyComplianceActionResponse";
@@ -259,6 +262,53 @@ impl ::prost::Name for ApplyComplianceActionResponse {
     }
     fn type_url() -> ::prost::alloc::string::String {
         "/shieldd.execution_client.v1.ApplyComplianceActionResponse".into()
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AttachFreezeResultAnchorRequest {
+    /// Bankd message in block y+1 that attaches the finalized result anchor.
+    #[prost(message, optional, tag = "1")]
+    pub source: ::core::option::Option<HostSource>,
+    #[prost(message, optional, tag = "2")]
+    pub address: ::core::option::Option<super::super::core::keys::v1::Address>,
+    #[prost(message, optional, tag = "3")]
+    pub asset_id: ::core::option::Option<super::super::core::asset::v1::AssetId>,
+    #[prost(uint64, tag = "4")]
+    pub freeze_generation: u64,
+    /// Canonical Bankd header hash at y+1, authenticating results from freeze block y.
+    #[prost(bytes = "vec", tag = "5")]
+    pub terminal_header_hash: ::prost::alloc::vec::Vec<u8>,
+    /// Shieldd root committed for freeze block y.
+    #[prost(bytes = "vec", tag = "6")]
+    pub terminal_shieldd_root: ::prost::alloc::vec::Vec<u8>,
+}
+impl ::prost::Name for AttachFreezeResultAnchorRequest {
+    const NAME: &'static str = "AttachFreezeResultAnchorRequest";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.AttachFreezeResultAnchorRequest".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.AttachFreezeResultAnchorRequest".into()
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AttachFreezeResultAnchorResponse {
+    #[prost(message, optional, tag = "1")]
+    pub source: ::core::option::Option<HostSource>,
+    #[prost(uint64, tag = "2")]
+    pub freeze_generation: u64,
+    #[prost(bool, tag = "3")]
+    pub replayed: bool,
+}
+impl ::prost::Name for AttachFreezeResultAnchorResponse {
+    const NAME: &'static str = "AttachFreezeResultAnchorResponse";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.AttachFreezeResultAnchorResponse".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.AttachFreezeResultAnchorResponse".into()
     }
 }
 /// CheckTxRequest carries a Shieldd transaction to validate without applying
@@ -823,6 +873,37 @@ pub mod execution_client_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
+        /// AttachFreezeResultAnchor records the finalized y+1 header and Shieldd root
+        /// for one exact freeze generation.
+        pub async fn attach_freeze_result_anchor(
+            &mut self,
+            request: impl tonic::IntoRequest<super::AttachFreezeResultAnchorRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::AttachFreezeResultAnchorResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/shieldd.execution_client.v1.ExecutionClientService/AttachFreezeResultAnchor",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "shieldd.execution_client.v1.ExecutionClientService",
+                        "AttachFreezeResultAnchor",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
         /// CheckTx validates a Shieldd transaction supplied by the host chain without
         /// applying state changes.
         pub async fn check_tx(
@@ -1106,6 +1187,15 @@ pub mod execution_client_service_server {
             request: tonic::Request<super::ApplyComplianceActionRequest>,
         ) -> std::result::Result<
             tonic::Response<super::ApplyComplianceActionResponse>,
+            tonic::Status,
+        >;
+        /// AttachFreezeResultAnchor records the finalized y+1 header and Shieldd root
+        /// for one exact freeze generation.
+        async fn attach_freeze_result_anchor(
+            &self,
+            request: tonic::Request<super::AttachFreezeResultAnchorRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::AttachFreezeResultAnchorResponse>,
             tonic::Status,
         >;
         /// CheckTx validates a Shieldd transaction supplied by the host chain without
@@ -1421,6 +1511,59 @@ pub mod execution_client_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = ApplyComplianceActionSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/shieldd.execution_client.v1.ExecutionClientService/AttachFreezeResultAnchor" => {
+                    #[allow(non_camel_case_types)]
+                    struct AttachFreezeResultAnchorSvc<T: ExecutionClientService>(
+                        pub Arc<T>,
+                    );
+                    impl<
+                        T: ExecutionClientService,
+                    > tonic::server::UnaryService<super::AttachFreezeResultAnchorRequest>
+                    for AttachFreezeResultAnchorSvc<T> {
+                        type Response = super::AttachFreezeResultAnchorResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<
+                                super::AttachFreezeResultAnchorRequest,
+                            >,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as ExecutionClientService>::attach_freeze_result_anchor(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = AttachFreezeResultAnchorSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

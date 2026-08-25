@@ -84,6 +84,7 @@ pub(crate) static COMPLIANCE_LEAF_DOMAIN_SEP: Lazy<Fq> = Lazy::new(|| {
 pub enum UserAssetStatus {
     Active,
     Frozen,
+    Seized,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -97,6 +98,7 @@ impl UserAssetStatus {
         Fq::from(match self {
             Self::Active => 1u64,
             Self::Frozen => 2u64,
+            Self::Seized => 3u64,
         })
     }
 
@@ -104,7 +106,9 @@ impl UserAssetStatus {
         anyhow::ensure!(
             matches!(
                 (self, next),
-                (Self::Active, Self::Frozen) | (Self::Frozen, Self::Active)
+                (Self::Active, Self::Frozen)
+                    | (Self::Frozen, Self::Active)
+                    | (Self::Frozen, Self::Seized)
             ),
             "illegal user asset status transition {self:?} -> {next:?}"
         );
@@ -126,6 +130,14 @@ impl UserAssetStatus {
         );
         Ok(Self::Active)
     }
+
+    pub fn seize(self) -> anyhow::Result<Self> {
+        anyhow::ensure!(
+            self == Self::Frozen,
+            "only a frozen user asset can be seized"
+        );
+        Ok(Self::Seized)
+    }
 }
 
 impl UserAssetStatusAction {
@@ -144,6 +156,7 @@ impl TryFrom<i32> for UserAssetStatus {
         match pb::UserAssetStatus::try_from(value) {
             Ok(pb::UserAssetStatus::Active) => Ok(Self::Active),
             Ok(pb::UserAssetStatus::Frozen) => Ok(Self::Frozen),
+            Ok(pb::UserAssetStatus::Seized) => Ok(Self::Seized),
             Ok(pb::UserAssetStatus::Unspecified) => {
                 anyhow::bail!("user asset status must be specified")
             }
@@ -157,6 +170,7 @@ impl From<UserAssetStatus> for pb::UserAssetStatus {
         match value {
             UserAssetStatus::Active => Self::Active,
             UserAssetStatus::Frozen => Self::Frozen,
+            UserAssetStatus::Seized => Self::Seized,
         }
     }
 }
@@ -1445,6 +1459,29 @@ impl shieldd_sdk_txhash::EffectingData for MsgRegisterUser {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn seized_is_a_terminal_user_asset_status() {
+        assert_eq!(
+            UserAssetStatus::Frozen
+                .seize()
+                .expect("freeze can be seized"),
+            UserAssetStatus::Seized
+        );
+        assert!(UserAssetStatus::Active.seize().is_err());
+        assert!(UserAssetStatus::Seized.seize().is_err());
+
+        for next in [
+            UserAssetStatus::Active,
+            UserAssetStatus::Frozen,
+            UserAssetStatus::Seized,
+        ] {
+            assert!(
+                UserAssetStatus::Seized.validate_transition(next).is_err(),
+                "Seized must reject transition to {next:?}"
+            );
+        }
+    }
 
     #[test]
     fn test_compliance_leaf_new() {

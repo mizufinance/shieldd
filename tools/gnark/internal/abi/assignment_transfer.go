@@ -129,6 +129,7 @@ func newTransferSharedAssignmentParts(
 
 func transferCoreTierFields(
 	tier *TransferComplianceCiphertextWitnessV20Binary,
+	keyConfirmation [32]byte,
 ) (circuits.TransferComplianceCoreFields, error) {
 	var zero circuits.TransferComplianceCoreFields
 	if len(tier.Ciphertext) != compliance.TransferCoreCiphertextFQCount {
@@ -139,8 +140,9 @@ func transferCoreTierFields(
 		)
 	}
 	fields := circuits.TransferComplianceCoreFields{
-		Epk: point2DString(tier.EPKAffine),
-		C2:  fqString(tier.C2),
+		Epk:             point2DString(tier.EPKAffine),
+		C2:              fqString(tier.C2),
+		KeyConfirmation: fqString(keyConfirmation),
 	}
 	for i := range tier.Ciphertext {
 		fields.Ciphertext[i] = fqString(tier.Ciphertext[i])
@@ -181,7 +183,10 @@ func newTransferComplianceFields(
 		)
 	}
 
-	senderCore, err := transferCoreTierFields(&witness.SenderCore)
+	senderCore, err := transferCoreTierFields(
+		&witness.SenderCore,
+		witness.SenderCoreKeyConfirmation,
+	)
 	if err != nil {
 		return zero, fmt.Errorf("decode transfer sender_core tier: %w", err)
 	}
@@ -189,7 +194,10 @@ func newTransferComplianceFields(
 	if err != nil {
 		return zero, fmt.Errorf("decode transfer sender_ext tier: %w", err)
 	}
-	outputCore, err := transferCoreTierFields(&witness.OutputCore)
+	outputCore, err := transferCoreTierFields(
+		&witness.OutputCore,
+		witness.OutputCoreKeyConfirmation,
+	)
 	if err != nil {
 		return zero, fmt.Errorf("decode transfer output_core tier: %w", err)
 	}

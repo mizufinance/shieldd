@@ -454,15 +454,15 @@ func TestTransferCircuitBindsUnregulatedCiphertextAndCanonicalPolicy(t *testing.
 }
 
 func TestShieldedIcs20WithdrawalCircuitRejectsRegulatedAssetRoutedAsUnregulated(t *testing.T) {
-	fixtureBytes := testfixtures.LoadShieldedIcs20WithdrawalWitnessV12("shielded_ics20_withdrawal")
-	witness, family, err := abi.DecodeShieldedIcs20WithdrawalWitnessV12(fixtureBytes)
+	fixtureBytes := testfixtures.LoadShieldedIcs20WithdrawalWitnessV14("shielded_ics20_withdrawal")
+	witness, family, err := abi.DecodeShieldedIcs20WithdrawalWitnessV14(fixtureBytes)
 	if err != nil {
 		t.Fatalf("decode shielded ICS-20 withdrawal fixture: %v", err)
 	}
 	if !witness.IsRegulated {
 		t.Fatalf("shielded ICS-20 withdrawal fixture must start regulated for this regression")
 	}
-	assignment, _, err := abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV12(fixtureBytes)
+	assignment, _, err := abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV14(fixtureBytes)
 	if err != nil {
 		t.Fatalf("build shielded ICS-20 withdrawal assignment: %v", err)
 	}
@@ -479,7 +479,7 @@ func TestShieldedIcs20WithdrawalCircuitRejectsRegulatedAssetRoutedAsUnregulated(
 
 func withdrawalDummyNullifierForSlot(
 	t *testing.T,
-	spend abi.ShieldedIcs20WithdrawalOptionalSpendWitnessV12Binary,
+	spend abi.ShieldedIcs20WithdrawalOptionalSpendWitnessV14Binary,
 	slot int,
 ) *big.Int {
 	t.Helper()
@@ -503,7 +503,7 @@ func withdrawalDummyNullifierForSlot(
 
 func makeWithdrawalOptionalSpendDummy(
 	t *testing.T,
-	witness *abi.ShieldedIcs20WithdrawalWitnessV12Binary,
+	witness *abi.ShieldedIcs20WithdrawalWitnessV14Binary,
 	assignment *circuits.ShieldedIcs20WithdrawalCircuit,
 ) {
 	t.Helper()
@@ -650,13 +650,13 @@ func TestTransferDummySpendRKIsExternallyAuthorized(t *testing.T) {
 
 func setWithdrawalStatementHash(
 	t *testing.T,
-	witness *abi.ShieldedIcs20WithdrawalWitnessV12Binary,
+	witness *abi.ShieldedIcs20WithdrawalWitnessV14Binary,
 	assignment *circuits.ShieldedIcs20WithdrawalCircuit,
 	nIn int,
 ) {
 	t.Helper()
 
-	fields, err := abi.ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitnessV12(witness)
+	fields, err := abi.ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitnessV14(witness)
 	if err != nil {
 		t.Fatalf("reconstruct withdrawal statement fields: %v", err)
 	}
@@ -672,7 +672,7 @@ func setWithdrawalStatementHash(
 
 func balanceWithdrawalAfterOptionalDummy(
 	t *testing.T,
-	witness *abi.ShieldedIcs20WithdrawalWitnessV12Binary,
+	witness *abi.ShieldedIcs20WithdrawalWitnessV14Binary,
 	assignment *circuits.ShieldedIcs20WithdrawalCircuit,
 ) {
 	t.Helper()
@@ -698,20 +698,20 @@ func balanceWithdrawalAfterOptionalDummy(
 func loadWithdrawalFixture(
 	t *testing.T,
 ) (
-	*abi.ShieldedIcs20WithdrawalWitnessV12Binary,
+	*abi.ShieldedIcs20WithdrawalWitnessV14Binary,
 	*circuits.ShieldedIcs20WithdrawalCircuit,
 	int,
 ) {
 	t.Helper()
 
-	fixtureBytes := testfixtures.LoadShieldedIcs20WithdrawalWitnessV12(
+	fixtureBytes := testfixtures.LoadShieldedIcs20WithdrawalWitnessV14(
 		"shielded_ics20_withdrawal",
 	)
-	witness, family, err := abi.DecodeShieldedIcs20WithdrawalWitnessV12(fixtureBytes)
+	witness, family, err := abi.DecodeShieldedIcs20WithdrawalWitnessV14(fixtureBytes)
 	if err != nil {
 		t.Fatalf("decode shielded ICS-20 withdrawal fixture: %v", err)
 	}
-	assignment, _, err := abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV12(
+	assignment, _, err := abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV14(
 		fixtureBytes,
 	)
 	if err != nil {
@@ -1415,6 +1415,16 @@ func TestTransferCircuitRejectsMetadataMutations(t *testing.T) {
 
 func transferMetadataMutations() []transferMutation {
 	return []transferMutation{
+		{name: "sender core key confirmation", mutate: func(t *testing.T, w *abi.TransferWitnessV20Binary, c *circuits.TransferCircuit) {
+			w.SenderCoreKeyConfirmation = addFieldElementBytes(t, w.SenderCoreKeyConfirmation, big.NewInt(1))
+			c.Compliance.SenderCore.KeyConfirmation =
+				primitives.LittleEndianBytesToBigInt(w.SenderCoreKeyConfirmation[:]).String()
+		}},
+		{name: "output core key confirmation", mutate: func(t *testing.T, w *abi.TransferWitnessV20Binary, c *circuits.TransferCircuit) {
+			w.OutputCoreKeyConfirmation = addFieldElementBytes(t, w.OutputCoreKeyConfirmation, big.NewInt(1))
+			c.Compliance.OutputCore.KeyConfirmation =
+				primitives.LittleEndianBytesToBigInt(w.OutputCoreKeyConfirmation[:]).String()
+		}},
 		{name: "ring id hash", mutate: func(t *testing.T, w *abi.TransferWitnessV20Binary, c *circuits.TransferCircuit) {
 			w.Metadata.RingIDHash = addFieldElementBytes(t, w.Metadata.RingIDHash, big.NewInt(1))
 			c.Compliance.Metadata.RingIDHash =
