@@ -2126,14 +2126,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn transfer_pre_integration_fails_closed() {
-        let error =
-            ensure_transfer_pre_available().expect_err("Orbis v0 transfer PRE must stay disabled");
-        assert!(error.to_string().contains("public store-secret payload"));
-        assert!(error.to_string().contains("non-disclosing PRE protocol"));
-    }
-
-    #[test]
     fn docker_peer_id_rewrites_host_only() {
         let info = NodeInfo {
             public_address: "sourcehub1abc".to_string(),

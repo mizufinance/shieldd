@@ -144,7 +144,7 @@ ci-check:
 # CI wrapper for `test`.
 ci-test:
     if command -v cargo-nextest >/dev/null 2>&1; then \
-      cargo nextest run --cargo-profile ci; \
+      cargo nextest run --cargo-profile ci --no-fail-fast; \
     else \
       echo "warning: cargo-nextest not found; falling back to 'cargo test --release --no-fail-fast'"; \
       cargo test --release --no-fail-fast; \

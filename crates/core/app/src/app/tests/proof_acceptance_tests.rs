@@ -621,7 +621,7 @@ async fn put_open_withdrawal_route(app: &mut App, withdrawal: &Ics20Withdrawal) 
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn fv_runtime_artifact_build_rejects_decodable_invalid_groth16() -> Result<()> {
+async fn artifact_build_rejects_decodable_invalid_groth16() -> Result<()> {
     let family_set = family_fixtures().await?;
 
     for fixture in &family_set.fixtures {
@@ -641,7 +641,7 @@ async fn fv_runtime_artifact_build_rejects_decodable_invalid_groth16() -> Result
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn fv_runtime_process_proposal_rejects_decodable_invalid_groth16() -> Result<()> {
+async fn process_proposal_rejects_decodable_invalid_groth16() -> Result<()> {
     let family_set = family_fixtures().await?;
 
     for fixture in &family_set.fixtures {
@@ -667,7 +667,7 @@ async fn fv_runtime_process_proposal_rejects_decodable_invalid_groth16() -> Resu
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn fv_runtime_fee_funding_process_proposal_rejects_invalid_groth16() -> Result<()> {
+async fn fee_funding_process_proposal_rejects_invalid_groth16() -> Result<()> {
     let family_set = family_fixtures().await?;
     let fixture = &family_set.fee_funding_fixture;
     let (invalid_tx, invalid_bytes) = mutate_to_decodable_invalid_proof(fixture)?;
@@ -690,7 +690,7 @@ async fn fv_runtime_fee_funding_process_proposal_rejects_invalid_groth16() -> Re
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn fv_runtime_fee_funding_valid_proof_executes_and_persists() -> Result<()> {
+async fn fee_funding_valid_proof_executes_and_persists() -> Result<()> {
     let family_set = family_fixtures().await?;
     let fixture = &family_set.fee_funding_fixture;
     let tx = Transaction::decode(fixture.tx_bytes.as_slice())
@@ -802,7 +802,7 @@ async fn fv_runtime_fee_funding_valid_proof_executes_and_persists() -> Result<()
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn fv_runtime_prepare_proposal_excludes_decodable_invalid_groth16() -> Result<()> {
+async fn prepare_proposal_excludes_decodable_invalid_groth16() -> Result<()> {
     let family_set = family_fixtures().await?;
 
     for fixture in &family_set.fixtures {
@@ -831,7 +831,7 @@ async fn fv_runtime_prepare_proposal_excludes_decodable_invalid_groth16() -> Res
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn fv_runtime_cold_deliver_rejects_invalid_groth16_without_state_mutation() -> Result<()> {
+async fn cold_deliver_rejects_invalid_groth16_without_state_mutation() -> Result<()> {
     let family_set = family_fixtures().await?;
 
     for fixture in &family_set.fixtures {
@@ -1094,7 +1094,7 @@ async fn proved_withdrawal_then_later_failure_rolls_back_first_action() -> Resul
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn fv_runtime_extracted_cache_cannot_bypass_groth16_verification() -> Result<()> {
+async fn extracted_cache_cannot_bypass_groth16_verification() -> Result<()> {
     let family_set = family_fixtures().await?;
 
     for fixture in &family_set.fixtures {
@@ -1102,7 +1102,7 @@ async fn fv_runtime_extracted_cache_cannot_bypass_groth16_verification() -> Resu
         let hash = tx_hash(&invalid_bytes);
         let cache = StatelessCache::new();
         let mut artifacts = App::build_tx_artifacts_extracted_for_stage_public(
-            "fv_runtime_preseed_extracted",
+            "preseed_extracted",
             &[Arc::new(invalid_tx.clone())],
         )
         .await
@@ -1124,7 +1124,7 @@ async fn fv_runtime_extracted_cache_cannot_bypass_groth16_verification() -> Resu
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn fv_runtime_host_delivery_rejects_invalid_groth16_cold_and_after_checktx() -> Result<()> {
+async fn host_delivery_rejects_invalid_groth16_cold_and_after_checktx() -> Result<()> {
     let family_set = family_fixtures().await?;
     let snapshot = family_set._storage_guard.latest_snapshot();
     let root_before = snapshot.root_hash().await?;
@@ -1200,7 +1200,7 @@ async fn fv_runtime_host_delivery_rejects_invalid_groth16_cold_and_after_checktx
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn fv_runtime_cache_promotion_never_exceeds_exact_groth16_attestation() -> Result<()> {
+async fn cache_promotion_never_exceeds_exact_groth16_attestation() -> Result<()> {
     let family_set = family_fixtures().await?;
     let transfer = family_set
         .fixtures
