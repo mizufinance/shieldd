@@ -51,7 +51,6 @@ flowchart BT
     end;
 
     BIP44(BIP44 Seed Phrase) --> spend_key_bytes;
-    BIP39(Legacy Raw BIP39) --> spend_key_bytes;
 
     spend_key_bytes --> ask;
     spend_key_bytes --> nk;

@@ -19,7 +19,7 @@ use crate::{
 };
 
 const STORAGE_SCHEMA_VERSION: &[u8] = &[3];
-const LEGACY_STORAGE_PREFIX: &str = "sct/nullifier_set/";
+const STALE_STORAGE_PREFIX: &str = "sct/nullifier_set/";
 const MAX_CONCURRENT_MARKER_READS: usize = 256;
 
 #[derive(Clone, Debug)]
@@ -364,7 +364,7 @@ pub async fn initialize<S: StateWrite + ?Sized>(state: &mut S) -> Result<()> {
                 .get_raw("sct/nullifier_set/schema_version")
                 .await?
                 .is_none(),
-        "legacy nullifier state cannot be imported; initialize protocol v2 from genesis or replay"
+        "stale nullifier state cannot be imported; initialize protocol v2 from genesis or replay"
     );
     let current = NullifierTreeId::Generation(0);
     let current_root = initialize_tree(state, current).await?;
@@ -420,17 +420,17 @@ pub async fn verify_committed_roots<S: StateRead + ?Sized>(state: &S) -> Result<
             nonverifiable.try_next().await?.is_none(),
             "durable nullifier generation storage exists without generation state"
         );
-        let legacy_verifiable = state.prefix_raw(LEGACY_STORAGE_PREFIX);
-        futures::pin_mut!(legacy_verifiable);
+        let stale_verifiable = state.prefix_raw(STALE_STORAGE_PREFIX);
+        futures::pin_mut!(stale_verifiable);
         ensure!(
-            legacy_verifiable.try_next().await?.is_none(),
-            "legacy nullifier storage requires protocol v2 replay"
+            stale_verifiable.try_next().await?.is_none(),
+            "stale nullifier storage requires protocol v2 replay"
         );
-        let legacy_nonverifiable = state.nonverifiable_prefix_raw(LEGACY_STORAGE_PREFIX.as_bytes());
-        futures::pin_mut!(legacy_nonverifiable);
+        let stale_nonverifiable = state.nonverifiable_prefix_raw(STALE_STORAGE_PREFIX.as_bytes());
+        futures::pin_mut!(stale_nonverifiable);
         ensure!(
-            legacy_nonverifiable.try_next().await?.is_none(),
-            "durable legacy nullifier storage requires protocol v2 replay"
+            stale_nonverifiable.try_next().await?.is_none(),
+            "durable stale nullifier storage requires protocol v2 replay"
         );
         return Ok(());
     };
@@ -836,11 +836,11 @@ mod tests {
             .to_string()
             .contains("storage exists without generation state"));
 
-        let mut legacy = cnidarium::StateDelta::new(snapshot);
-        legacy.put_raw(format!("{LEGACY_STORAGE_PREFIX}root"), vec![0u8; 32]);
-        let error = verify_committed_roots(&legacy)
+        let mut stale = cnidarium::StateDelta::new(snapshot);
+        stale.put_raw(format!("{STALE_STORAGE_PREFIX}root"), vec![0u8; 32]);
+        let error = verify_committed_roots(&stale)
             .await
-            .expect_err("legacy nullifier storage must require replay");
+            .expect_err("stale nullifier storage must require replay");
         assert!(error.to_string().contains("requires protocol v2 replay"));
         Ok(())
     }

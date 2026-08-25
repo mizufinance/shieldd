@@ -85,10 +85,8 @@ func TestIncomingViewingKeyNonzeroRejectsZero(t *testing.T) {
 	}
 }
 
-// legacyWithdrawalIdentitySenderCircuit is the vulnerable Withdrawal ownership
-// slice before the relation rejected identity authorization and diversified
-// generator points. It intentionally omits AssertDecafNonIdentity.
-type legacyWithdrawalIdentitySenderCircuit struct {
+// unguardedWithdrawalIdentitySenderCircuit reproduces the ownership alias.
+type unguardedWithdrawalIdentitySenderCircuit struct {
 	Anchor         frontend.Variable `gnark:",public"`
 	NoteCommitment frontend.Variable `gnark:",public"`
 	Nullifier      frontend.Variable `gnark:",public"`
@@ -105,7 +103,7 @@ type legacyWithdrawalIdentitySenderCircuit struct {
 	Path         [StateCommitmentDepth][3]frontend.Variable
 }
 
-func (c *legacyWithdrawalIdentitySenderCircuit) Define(api frontend.API) error {
+func (c *unguardedWithdrawalIdentitySenderCircuit) Define(api frontend.API) error {
 	ak := gnarkte.Point{X: c.AK.X, Y: c.AK.Y}
 	divGen := gnarkte.Point{X: c.DivGen.X, Y: c.DivGen.Y}
 
@@ -249,11 +247,11 @@ func withdrawalIdentitySenderRoot(
 	return current
 }
 
-func legacyWithdrawalIdentitySenderAssignment(
+func unguardedWithdrawalIdentitySenderAssignment(
 	t *testing.T,
 	nk *big.Int,
 	values withdrawalIdentitySenderNativeValues,
-) (*legacyWithdrawalIdentitySenderCircuit, *big.Int) {
+) (*unguardedWithdrawalIdentitySenderCircuit, *big.Int) {
 	t.Helper()
 	vectors, err := primitives.LoadPrototypeVectors()
 	if err != nil {
@@ -284,7 +282,7 @@ func legacyWithdrawalIdentitySenderAssignment(
 			path[i][j] = values.path[i][j]
 		}
 	}
-	return &legacyWithdrawalIdentitySenderCircuit{
+	return &unguardedWithdrawalIdentitySenderCircuit{
 		Anchor:         values.anchor,
 		NoteCommitment: values.commitment,
 		Nullifier:      nullifier,
@@ -301,16 +299,16 @@ func legacyWithdrawalIdentitySenderAssignment(
 	}, nullifier
 }
 
-func TestWithdrawalPreFixIdentitySenderAllowsOneAnchoredCommitmentMultipleNullifiers(
+func TestWithdrawalUnguardedIdentitySenderAllowsOwnershipAlias(
 	t *testing.T,
 ) {
 	values := withdrawalIdentitySenderValues(t)
-	first, firstNullifier := legacyWithdrawalIdentitySenderAssignment(
+	first, firstNullifier := unguardedWithdrawalIdentitySenderAssignment(
 		t,
 		big.NewInt(11),
 		values,
 	)
-	second, secondNullifier := legacyWithdrawalIdentitySenderAssignment(
+	second, secondNullifier := unguardedWithdrawalIdentitySenderAssignment(
 		t,
 		big.NewInt(12),
 		values,
@@ -322,17 +320,17 @@ func TestWithdrawalPreFixIdentitySenderAllowsOneAnchoredCommitmentMultipleNullif
 	if firstNullifier.Cmp(secondNullifier) == 0 {
 		t.Fatal("distinct nullifier keys unexpectedly produced one nullifier")
 	}
-	for name, assignment := range map[string]*legacyWithdrawalIdentitySenderCircuit{
+	for name, assignment := range map[string]*unguardedWithdrawalIdentitySenderCircuit{
 		"first nullifier key":  first,
 		"second nullifier key": second,
 	} {
 		t.Run(name, func(t *testing.T) {
 			if err := test.IsSolved(
-				&legacyWithdrawalIdentitySenderCircuit{},
+				&unguardedWithdrawalIdentitySenderCircuit{},
 				assignment,
 				ecc.BLS12_377.ScalarField(),
 			); err != nil {
-				t.Fatalf("pre-fix identity-sender relation should be satisfiable: %v", err)
+				t.Fatalf("unguarded identity-sender relation should be satisfiable: %v", err)
 			}
 		})
 	}

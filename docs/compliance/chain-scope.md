@@ -23,8 +23,7 @@ fails. A failed call publishes neither its receipt nor partial state.
 
 `Transfer`, `NoteReshape`, and shielded Bankd withdrawal actions execute inside
 Bankd. Fee funding is a regulated transfer and follows the same status rules.
-Legacy standalone-chain and IBC modules may remain while integration code is
-removed, but they are not part of the target deployment contract.
+Standalone-chain and IBC modules are outside the deployment contract.
 
 ## Compliance actions
 

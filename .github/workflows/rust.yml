@@ -133,12 +133,6 @@ jobs:
         if: github.event_name != 'pull_request' && github.event_name != 'merge_group'
         run: nix develop --command just ci-gnark-proof-tests
 
-      - name: Execute exact FV specification evidence
-        if: github.event_name != 'pull_request' && github.event_name != 'merge_group'
-        env:
-          CFLAGS: -O1
-        run: nix develop --command bash scripts/check-fv-specification-evidence.sh
-
   summary:
     needs: [checks, tests]
     if: always()

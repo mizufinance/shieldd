@@ -618,7 +618,7 @@ mod tests {{
     }}
 
     #[test]
-    fn serde_rejects_unknown_and_retired_family_ids() {{
+    fn serde_rejects_unsupported_family_ids() {{
         for id in [0, 1, 4, 99] {{
             let error = serde_json::from_str::<NoteReshapeFamilyId>(&id.to_string())
                 .expect_err(\"unknown family ids must fail closed\");

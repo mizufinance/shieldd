@@ -242,15 +242,6 @@ where
     T: Clone + Add<Output = T> + MulAssign<S> + Send + Sync,
     S: Clone + Sync,
 {
-    #[cfg(hax_compilation)]
-    {
-        let mut folded = Vec::with_capacity(scaled_half.len());
-        for index in 0..scaled_half.len() {
-            folded.push(mul_helper(&scaled_half[index], scalar) + unscaled_half[index].clone());
-        }
-        folded
-    }
-    #[cfg(not(hax_compilation))]
     if scaled_half.len() >= GIPA_RESCALE_PARALLEL_THRESHOLD {
         cfg_iter!(scaled_half)
             .map(|point| mul_helper(point, scalar))
@@ -273,8 +264,8 @@ pub(crate) fn compute_final_commitment_keys_core<F, G1, G2>(
     transcript: &[F],
     transcript_inverses: &[F],
     one: F,
-    #[cfg(not(hax_compilation))] msm_a: impl FnOnce(&[G1], &[F]) -> G1,
-    #[cfg(not(hax_compilation))] msm_b: impl FnOnce(&[G2], &[F]) -> G2,
+    msm_a: impl FnOnce(&[G1], &[F]) -> G1,
+    msm_b: impl FnOnce(&[G2], &[F]) -> G2,
 ) -> (G1, G2)
 where
     F: Copy + std::ops::Mul<Output = F>,
@@ -297,20 +288,10 @@ where
     }
     assert_eq!(ck_a_agg_challenge_exponents.len(), ck_a.len());
 
-    #[cfg(hax_compilation)]
-    {
-        (
-            ordered_msm(ck_a, &ck_a_agg_challenge_exponents),
-            ordered_msm(ck_b, &ck_b_agg_challenge_exponents),
-        )
-    }
-    #[cfg(not(hax_compilation))]
-    {
-        (
-            msm_a(ck_a, &ck_a_agg_challenge_exponents),
-            msm_b(ck_b, &ck_b_agg_challenge_exponents),
-        )
-    }
+    (
+        msm_a(ck_a, &ck_a_agg_challenge_exponents),
+        msm_b(ck_b, &ck_b_agg_challenge_exponents),
+    )
 }
 
 fn compute_final_commitment_keys<LMC, RMC, IPC>(
@@ -333,18 +314,18 @@ where
         transcript,
         &transcript_inverses,
         LMC::Scalar::one(),
-        #[cfg(all(not(hax_compilation), not(feature = "bench-baseline")))]
+        #[cfg(not(feature = "bench-baseline"))]
         LMC::msm_keys,
-        #[cfg(all(not(hax_compilation), not(feature = "bench-baseline")))]
+        #[cfg(not(feature = "bench-baseline"))]
         RMC::msm_keys,
-        #[cfg(all(not(hax_compilation), feature = "bench-baseline"))]
+        #[cfg(feature = "bench-baseline")]
         fold_keys_baseline::<LMC::Key, LMC::Scalar>,
-        #[cfg(all(not(hax_compilation), feature = "bench-baseline"))]
+        #[cfg(feature = "bench-baseline")]
         fold_keys_baseline::<RMC::Key, RMC::Scalar>,
     ))
 }
 
-#[cfg(any(test, hax_compilation))]
+#[cfg(test)]
 fn ordered_msm<K, S>(keys: &[K], scalars: &[S]) -> K
 where
     K: Clone + Add<Output = K> + MulAssign<S>,
@@ -846,7 +827,6 @@ where
         ))
     }
 
-    // Helper function used to calculate recursive challenges from proof execution (transcript in reverse)
     pub fn verify_recursive_challenge_transcript(
         context: &ChallengeContext,
         com: (&LMC::Output, &RMC::Output, &IPC::Output),
@@ -1310,9 +1290,7 @@ mod tests {
                 .map(|challenge| challenge.inverse().unwrap())
                 .collect::<Vec<_>>(),
             F::from(1u64),
-            #[cfg(not(hax_compilation))]
             ordered_msm::<_, F>,
-            #[cfg(not(hax_compilation))]
             ordered_msm::<_, F>,
         );
 

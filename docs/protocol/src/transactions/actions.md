@@ -9,5 +9,5 @@ This page lists the Shieldd actions used by the target Bankd integration.
 | `shielded_pool.v1.ShieldedHostWithdrawal` | Burns shielded value into a proof-bound host transfer or host execution effect and may produce sender-owned change. |
 
 Bankd drives deposits, asset and user registration, freeze/unfreeze, and
-withdrawal settlement through typed host operations. The retained IBC action
-types belong to the legacy standalone implementation.
+withdrawal settlement through typed host operations. IBC actions are outside
+the Bankd host action surface.

@@ -275,14 +275,14 @@ mod tests {
     }
 
     #[test]
-    fn transfer_witness_v20_rejects_legacy_v15_layout() {
+    fn transfer_witness_v20_rejects_unsupported_version() {
         let (public, private) =
             crate::test_proof_helpers::proof_test_helpers::build_transfer_roundtrip_inputs(true);
         let mut encoded =
             encode_transfer_witness_v20(&public, &private).expect("encode transfer witness");
         encoded[4..8].copy_from_slice(&15u32.to_le_bytes());
         let err = decode_transfer_witness_v20(&encoded)
-            .expect_err("version 16 decoder must reject the obsolete version 15 layout");
+            .expect_err("decoder must reject unsupported version 15");
         assert!(err
             .to_string()
             .contains("unsupported transfer witness version 15"));

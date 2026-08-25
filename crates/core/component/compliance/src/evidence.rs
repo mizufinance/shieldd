@@ -360,13 +360,13 @@ pub(crate) mod tests {
     }
 
     #[test]
-    fn evidence_rejects_previous_layout_even_with_a_valid_payload_hash() {
+    fn evidence_rejects_unsupported_version_with_valid_payload_hash() {
         let (mut evidence, _) = valid_evidence_fixture();
         evidence.version = COMPLIANCE_EVIDENCE_VERSION - 1;
         evidence.payload_hash = evidence.compute_payload_hash();
 
         let error = ComplianceEvidenceObject::from_bytes(&evidence.to_bytes())
-            .expect_err("the previous same-length layout must not be reinterpreted");
+            .expect_err("unsupported evidence versions must fail closed");
         assert!(error.to_string().contains("unsupported evidence version"));
     }
 

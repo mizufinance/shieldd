@@ -9,7 +9,6 @@ import (
 	gnarkte "github.com/consensys/gnark/std/algebra/native/twistededwards"
 	. "github.com/mizufinance/shieldd/tools/gnark/internal/compliance"
 	. "github.com/mizufinance/shieldd/tools/gnark/internal/primitives"
-	"github.com/reilabs/gnark-lean-extractor/v3/abstractor"
 )
 
 func Nullifier(
@@ -104,10 +103,11 @@ func IVKModRDecomposition(
 	api.AssertIsEqual(poly, 0)
 
 	bits := api.ToBinary(ivkReduced, 253)
-	isLess := abstractor.Call(api, ivkLessThanRGadget{Bits: bits})
+	isLess := LessThanConstant253(api, bits, rModulus)
 	api.AssertIsEqual(isLess, 1)
 
-	isLessThanQMinus4R := abstractor.Call(api, ivkLessThanQMinus4RGadget{Bits: bits})
+	qMinus4R := new(big.Int).Sub(ScalarField(), new(big.Int).Mul(big.NewInt(4), rModulus))
+	isLessThanQMinus4R := LessThanConstant253(api, bits, qMinus4R)
 	isA4 := api.IsZero(api.Sub(quotientA, 4))
 	api.AssertIsEqual(api.Mul(isA4, api.Sub(1, isLessThanQMinus4R)), 0)
 
@@ -121,38 +121,6 @@ func AssertIncomingViewingKeyNonzero(
 	ivkReduced frontend.Variable,
 ) {
 	api.AssertIsDifferent(ivkReduced, 0)
-}
-
-// These wrappers inline under gnark but give the Lean extractor stable named
-// ownership for the two fixed-bound comparison ladders.
-type ivkLessThanRGadget struct {
-	Bits []frontend.Variable
-}
-
-func (g ivkLessThanRGadget) DefineGadget(api frontend.API) interface{} {
-	vectors, err := LoadPrototypeVectors()
-	if err != nil {
-		panic(err)
-	}
-	return LessThanConstant253(
-		api,
-		g.Bits,
-		MustBigInt(vectors.Decaf377CompanionCurve.Order),
-	)
-}
-
-type ivkLessThanQMinus4RGadget struct {
-	Bits []frontend.Variable
-}
-
-func (g ivkLessThanQMinus4RGadget) DefineGadget(api frontend.API) interface{} {
-	vectors, err := LoadPrototypeVectors()
-	if err != nil {
-		panic(err)
-	}
-	rModulus := MustBigInt(vectors.Decaf377CompanionCurve.Order)
-	qMinus4R := new(big.Int).Sub(ScalarField(), new(big.Int).Mul(big.NewInt(4), rModulus))
-	return LessThanConstant253(api, g.Bits, qMinus4R)
 }
 
 // DiversifiedTransmissionKey computes ivkReduced * diversifiedGenerator.

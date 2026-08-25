@@ -143,12 +143,3 @@ nullifier, and value constraints are tracked in
   closed for Orbis v0, even when evidence is valid.
 - Unflagged ACK-tier audit therefore cannot complete until a confidentiality-
   safe PRE v1 is specified, circuit-bound, and reviewed.
-
-## Retired Surfaces
-
-- Public DH shared points and upload packages were deleted.
-- The duplicate AES seed envelope and its unbound-seed failure mode were
-  deleted.
-- Per-tier DLEQ statement fields and validation are absent from Transfer.
-- Generic DLEQ Lean/Tamarin work is research-only and does not count toward
-  deployed Transfer certification.

@@ -248,10 +248,7 @@ impl MockClient {
             );
         }
 
-        // Read block timestamp from state before enrichment.
-        // Tests use fake chain times (e.g. 2022), but SystemTime::now() returns
-        // real time. Pass the block timestamp so DLEQ proofs and on-chain freshness
-        // checks are consistent.
+        // Use chain time for deterministic freshness checks.
         let block_ts = state
             .get_current_block_timestamp()
             .await

@@ -158,19 +158,19 @@ func TestWitnessFamiliesRejectTruncatedPayload(t *testing.T) {
 	}
 }
 
-func TestNoteReshapeV6RejectsLegacyVersion(t *testing.T) {
+func TestNoteReshapeV6RejectsUnsupportedVersion(t *testing.T) {
 	payload := testfixtures.LoadNoteReshapeWitnessV6("note_reshape8x1")
 	binary.LittleEndian.PutUint32(payload[4:8], 3)
 	if _, _, err := DecodeNoteReshapeWitnessV6(payload); err == nil {
-		t.Fatal("V4 decoder must reject the obsolete V3 layout")
+		t.Fatal("decoder accepted an unsupported version")
 	}
 }
 
-func TestTransferV20RejectsLegacyVersion(t *testing.T) {
+func TestTransferV20RejectsUnsupportedVersion(t *testing.T) {
 	payload := testfixtures.LoadTransferWitnessV20("transfer")
 	binary.LittleEndian.PutUint32(payload[4:8], 16)
 	if _, _, err := DecodeTransferWitnessV20(payload); err == nil {
-		t.Fatal("V20 decoder must reject the obsolete V16 layout")
+		t.Fatal("decoder accepted an unsupported version")
 	}
 }
 
@@ -192,11 +192,11 @@ func TestTransferV20AssignmentRejectsSerializedSemanticMutation(t *testing.T) {
 	}
 }
 
-func TestShieldedIcs20WithdrawalV12RejectsLegacyVersion(t *testing.T) {
+func TestShieldedIcs20WithdrawalV12RejectsUnsupportedVersion(t *testing.T) {
 	payload := testfixtures.LoadShieldedIcs20WithdrawalWitnessV12("shielded_ics20_withdrawal")
 	binary.LittleEndian.PutUint32(payload[4:8], 8)
 	if _, _, err := DecodeShieldedIcs20WithdrawalWitnessV12(payload); err == nil {
-		t.Fatal("V9 decoder must reject the obsolete V8 layout")
+		t.Fatal("decoder accepted an unsupported version")
 	}
 }
 
@@ -309,10 +309,6 @@ func TestNoteReshapeV6RejectsSplitAddressRepresentationPayload(t *testing.T) {
 		testfixtures.LoadNoteReshapeWitnessV6("note_reshape8x1")...,
 	)
 
-	// Simulate the obsolete per-note asset, diversified generator, affine
-	// transmission, transmission encoding, and extra address field. V4 has one
-	// canonical shared context, so there is no position at which an independent
-	// representation can be decoded.
 	payload = append(payload, make([]byte, 32+64+64+32+32)...)
 	binary.LittleEndian.PutUint32(payload[8:12], uint32(len(payload)))
 

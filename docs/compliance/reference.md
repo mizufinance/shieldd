@@ -169,7 +169,7 @@ Address audit plaintext is the canonical 64-byte little-endian concatenation
 of `diversified_generator_fq` and `transmission_key_fq`, split into 31-byte
 stream words. Gnark's `ToBinary(..., 256)` clamps each native field to 253
 bits, enforces the built-in `<= p-1` check, and pads the remaining three bits
-with zero; the formal provider exposes this reducedness condition explicitly.
+with zero.
 
 ## Scanner Types And Tables
 
@@ -220,18 +220,13 @@ validation. Orbis v0 export and import always return errors because its public
 proof reveals the seed-opening DH point. Consequently, unflagged ACK-tier PRE
 audit is currently unavailable.
 
-The retained DLEQ implementation and Lean/Tamarin material are standalone
-research. No deployed statement field, transaction byte, evidence object, or
-certification claim depends on them.
+No deployed statement field, transaction byte, or evidence object depends on
+the standalone DLEQ research helper.
 
 ## Circuit Implementation Boundary
 
 The deployed Transfer and shielded-withdrawal proving systems are the gnark
-circuits under `tools/gnark/`. The obsolete Arkworks alternative modules
-historically exported as `compliance/src/r1cs.rs` and
-`shielded-pool/src/r1cs.rs` were deleted and must not be cited as circuit
-evidence. Their zero-anchor skip is not part of the accepted gnark language;
-there is no second circuit architecture to maintain.
+circuits under `tools/gnark/`. No second circuit architecture is supported.
 
 ## Restrictions
 
@@ -244,7 +239,7 @@ there is no second circuit architecture to maintain.
 - Cross-tier randomizer/EPK independence is mandatory.
 - Metadata belongs only to the receiver output.
 - PRE must remain disabled until a non-disclosing v1 is circuit-bound and
-  formally reviewed.
+  independently reviewed.
 
 ## Source Map
 
@@ -258,4 +253,4 @@ there is no second circuit architecture to maintain.
 | Rust statement builder | `crates/core/component/shielded-pool/src/public_input_hash.rs` |
 | Scanner | `crates/core/component/compliance/src/scanner/` |
 | Evidence and audit | `crates/core/component/compliance/src/evidence.rs`, `audit.rs` |
-| Formal transfer semantics | [`shieldd-formal`](https://github.com/mizufinance/shieldd-formal/tree/main/tools/gnark/lean/ShielddGnarkFormal/Protocol/Transfer) |
+| Formal verification | [`shieldd-formal`](https://github.com/mizufinance/shieldd-formal) |

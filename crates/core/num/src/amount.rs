@@ -111,18 +111,15 @@ pub fn is_bit_constrained(
 ) -> Result<Boolean<Fq>, SynthesisError> {
     let inner = value.value().unwrap_or(Fq::from(1u64));
 
-    // Get only first n bits based on that value (OOC)
     let inner_bigint = inner.into_bigint();
     let bits = &inner_bigint.to_bits_le()[0..n];
 
-    // Allocate Boolean vars for first n bits
     let mut boolean_constraints = Vec::new();
     for bit in bits {
         let boolean = Boolean::new_witness(cs.clone(), || Ok(bit))?;
         boolean_constraints.push(boolean);
     }
 
-    // Construct an FqVar from those n Boolean constraints
     let constructed_fqvar =
         Boolean::<Fq>::le_bits_to_fp(&boolean_constraints).expect("can convert to bits");
     constructed_fqvar.is_eq(&value)

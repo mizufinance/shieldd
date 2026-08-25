@@ -52,14 +52,13 @@ They are not migration promises.
 - Modularity and simplicity over cleverness.
 - Drop redundant module/crate names from function names.
 - Standard crypto abbreviations fine: `ss`, `ct`, `pt`, `esk`, `epk`, `dk`, `fq`.
-- Docs succinct and factual: module ≤8 lines, public type ≤3, function ≤2 unless real protocol nuance. Do not force docs, some things do not need it.
-- Document ownership, invariants, inputs, outputs, failure modes. Do not restate names or history.
+- Prefer clear code over comments. Document only non-obvious ownership, protocol or security invariants, and failure modes.
+- Describe the current design only. Never preserve migration notes, replaced behavior, or implementation history in code comments or docs.
+- Keep docs factual: module ≤8 lines, public type ≤3, function ≤2 unless protocol nuance requires more.
 - Define docs once; reference elsewhere.
 
 ## Formal Verification Boundary
 
-Formal specifications, generated evidence, Lean sources, and every formal CI
-gate live in `mizufinance/shieldd-formal`. This repository exports runtime
-circuits and typed FV inputs, but it never runs formal verification. Coordinate
-semantic changes by updating the exact Shieldd SHA in the formal repository;
-do not restore local formal gates or generated proof trees here.
+Formal verification lives in `mizufinance/shieldd-formal`, which pins an exact
+Shieldd commit. Do not add formal tools, specifications, generated evidence, or
+CI gates to this repository.

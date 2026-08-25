@@ -64,18 +64,9 @@ impl Info {
 
     async fn info(&self, info: request::Info) -> anyhow::Result<response::Info> {
         let state = self.storage.latest_snapshot();
-        // Previously, we used the latest version of the JMT state to
-        // report the current block height. This worked well because
-        // the JMT version and the current height were always aligned.
-        // However, adding support for genesis migrations breaks this
-        // invariant because there is a pregenesis (aka. phantom)
-        // block that occurs immediately after an upgrade. This block
-        // has height 0. To support this case, we report back the height
-        // that is stored in the state store.
+        // State height accounts for the height-zero pregenesis block.
         let last_block_height = ShielddHost::get_block_height(&state)
             .await
-            // if we can't get the block height, we're in pregenesis
-            // in that case we want to report 0 to cometbft.
             .unwrap_or_default()
             .try_into()?;
 

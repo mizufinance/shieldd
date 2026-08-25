@@ -110,7 +110,7 @@ def enforce_workflow_fanout() -> None:
         if re.search(r"(?m)^\s+lfs:\s*true\s*$", text):
             fail(f"{relative} hydrates every LFS object during checkout")
         if "materialize-proof-artifacts" in text:
-            fail(f"{relative} uses the removed self-fetching artifact action")
+            fail(f"{relative} uses a self-fetching artifact action")
         if re.search(r"proof_artifacts\.py[\"']?\s+materialize(?:\s|$)", text):
             fail(f"{relative} can fetch LFS objects outside the preparer action")
 
@@ -149,9 +149,9 @@ def enforce_workflow_fanout() -> None:
         if "restore-keys:" in action:
             fail(f"the {name} action permits inexact proof-artifact cache restores")
 
-    legacy = ROOT / ".github/actions/materialize-proof-artifacts/action.yml"
-    if legacy.exists():
-        fail("the obsolete self-fetching proof-artifact action still exists")
+    self_fetching = ROOT / ".github/actions/materialize-proof-artifacts/action.yml"
+    if self_fetching.exists():
+        fail("self-fetching proof-artifact actions are forbidden")
 
     def extract_job(text: str, name: str) -> str:
         body = text.partition(f"\n  {name}:")[2]
@@ -253,7 +253,6 @@ def enforce_tracked_files() -> None:
             f"^version {POINTER_VERSION}$",
             "--",
             ".",
-            ":!tools/gnark/lean/**",
         ).splitlines()
     )
     if tracked_paths != ALLOWED_LFS_PATHS:

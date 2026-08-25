@@ -1394,14 +1394,14 @@ mod tests {
             );
         }
 
-        let legacy_per_output_commitment = plan.outputs[0]
+        let per_output_commitment = plan.outputs[0]
             .balance()
             .commit(plan.outputs[0].value_blinding);
         let receiver = &body.outputs[0];
         assert!(Note::decrypt_key(
             receiver.ovk_wrapped_key.clone(),
             receiver.note_payload.note_commitment,
-            legacy_per_output_commitment,
+            per_output_commitment,
             test_keys::FULL_VIEWING_KEY.outgoing(),
             &receiver.note_payload.ephemeral_key,
         )

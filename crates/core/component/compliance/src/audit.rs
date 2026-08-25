@@ -937,7 +937,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn orbis_v0_export_remains_disabled_after_valid_evidence() {
+    async fn orbis_v0_export_fails_closed_with_valid_evidence() {
         let store = SqliteScannerStore::new(":memory:").unwrap();
         let (evidence, metadata) = crate::evidence::tests::valid_evidence_fixture();
         persist_evidence_detection(&store, &evidence, &metadata, false).await;
@@ -949,7 +949,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn orbis_v0_import_remains_disabled_after_valid_evidence() {
+    async fn orbis_v0_import_fails_closed_with_valid_evidence() {
         let store = SqliteScannerStore::new(":memory:").unwrap();
         let (evidence, metadata) = crate::evidence::tests::valid_evidence_fixture();
         persist_evidence_detection(&store, &evidence, &metadata, false).await;

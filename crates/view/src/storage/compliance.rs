@@ -237,32 +237,14 @@ impl ComplianceTreeStore<'_, '_> {
                         position
                     )
                 })?;
-                // Support both 8-byte (legacy u64) and 16-byte (u128) threshold storage
-                let threshold = if threshold.len() == 8 {
-                    let bytes: [u8; 8] = threshold.try_into().map_err(|v: Vec<u8>| {
-                        anyhow::anyhow!(
-                            "asset leaf threshold must be 8 bytes, got {} at position {}",
-                            v.len(),
-                            position
-                        )
-                    })?;
-                    u64::from_le_bytes(bytes) as u128
-                } else if threshold.len() == 16 {
-                    let bytes: [u8; 16] = threshold.try_into().map_err(|v: Vec<u8>| {
-                        anyhow::anyhow!(
-                            "asset leaf threshold must be 16 bytes, got {} at position {}",
-                            v.len(),
-                            position
-                        )
-                    })?;
-                    u128::from_le_bytes(bytes)
-                } else {
-                    anyhow::bail!(
-                        "asset leaf threshold must be 8 or 16 bytes, got {} at position {}",
-                        threshold.len(),
+                let threshold: [u8; 16] = threshold.try_into().map_err(|v: Vec<u8>| {
+                    anyhow::anyhow!(
+                        "asset leaf threshold must be 16 bytes, got {} at position {}",
+                        v.len(),
                         position
                     )
-                };
+                })?;
+                let threshold = u128::from_le_bytes(threshold);
                 Ok(Some(IndexedLeafData {
                     value,
                     next_index,

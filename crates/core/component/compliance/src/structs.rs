@@ -600,7 +600,7 @@ impl AssetPolicy {
 
     /// Serialize to bytes for storage.
     ///
-    /// Format starts with `AP3\0`, so obsolete policy rows fail closed.
+    /// Format starts with `AP3\0`; any other prefix fails closed.
     ///         [ring_id_len: 2] [ring_id bytes]
     ///         [policy_id_len: 2] [policy_id bytes]
     ///         [permission_len: 2] [permission bytes]

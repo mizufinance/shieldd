@@ -302,26 +302,19 @@ type ConstraintManifestShape struct {
 }
 
 type ConstraintManifestSegment struct {
-	Index              int      `json:"index"`
-	Op                 string   `json:"op"`
-	Args               []string `json:"args,omitempty"`
-	Kind               string   `json:"kind"`
-	GadgetLabel        string   `json:"gadget_label,omitempty"`
-	BridgeTheorem      string   `json:"bridge_theorem,omitempty"`
-	Start              int      `json:"start"`
-	End                int      `json:"end"`
-	ConstraintCount    int      `json:"constraint_count"`
-	InputWireIDs       []int    `json:"input_wire_ids,omitempty"`
-	OutputWireIDs      []int    `json:"output_wire_ids,omitempty"`
-	ClassificationNote string   `json:"classification_note,omitempty"`
+	Index           int      `json:"index"`
+	Op              string   `json:"op"`
+	Args            []string `json:"args,omitempty"`
+	Start           int      `json:"start"`
+	End             int      `json:"end"`
+	ConstraintCount int      `json:"constraint_count"`
+	InputWireIDs    []int    `json:"input_wire_ids,omitempty"`
+	OutputWireIDs   []int    `json:"output_wire_ids,omitempty"`
 }
 
 type ConstraintManifestBreakdown struct {
-	TotalConstraints        int            `json:"total_constraints"`
-	ConstraintsByKind       map[string]int `json:"constraints_by_kind"`
-	SegmentsByKind          map[string]int `json:"segments_by_kind"`
-	UnclassifiedConstraints int            `json:"unclassified_constraints"`
-	UnclassifiedSegments    int            `json:"unclassified_segments"`
+	TotalConstraints int `json:"total_constraints"`
+	Segments         int `json:"segments"`
 }
 
 func (m *ConstraintManifest) CanonicalJSON() ([]byte, error) {
@@ -341,7 +334,7 @@ func WriteConstraintManifest(path string, manifest *ConstraintManifest) error {
 }
 
 func ExportNoteReshapeConstraintManifest(label string, nIn, nOut int, sr1csPath string) (*ConstraintManifest, error) {
-	_, manifest, err := CompileNoteReshapeForFV(label, nIn, nOut)
+	_, manifest, err := CompileNoteReshapeForExport(label, nIn, nOut)
 	if err != nil {
 		return nil, err
 	}
@@ -355,11 +348,8 @@ func ExportNoteReshapeConstraintManifest(label string, nIn, nOut int, sr1csPath 
 	return manifest, nil
 }
 
-// CompileNoteReshapeForFV compiles one NoteReshape circuit once and returns
-// both the compiled constraint system and its semantic manifest. The FV
-// command uses this pair to emit SR1CS and manifest bytes without a second
-// frontend compile.
-func CompileNoteReshapeForFV(label string, nIn, nOut int) (constraint.ConstraintSystem, *ConstraintManifest, error) {
+// CompileNoteReshapeForExport returns the compiled circuit and semantic manifest.
+func CompileNoteReshapeForExport(label string, nIn, nOut int) (constraint.ConstraintSystem, *ConstraintManifest, error) {
 	transcript := newWiringTranscript(label, nIn, nOut)
 	transcript.recordCounts = true
 	circuit := noteReshapeCircuitWithTranscript(label, nIn, nOut, transcript)
@@ -369,11 +359,11 @@ func CompileNoteReshapeForFV(label string, nIn, nOut int) (constraint.Constraint
 		circuit,
 	)
 	if err != nil {
-		return nil, nil, fmt.Errorf("compile %s for FV artifacts: %w", label, err)
+		return nil, nil, fmt.Errorf("compile %s for export: %w", label, err)
 	}
 	manifest, err := transcript.constraintManifest(ccs, "", circuit)
 	if err != nil {
-		return nil, nil, fmt.Errorf("manifest %s for FV artifacts: %w", label, err)
+		return nil, nil, fmt.Errorf("manifest %s for export: %w", label, err)
 	}
 	return ccs, manifest, nil
 }
@@ -383,7 +373,7 @@ func ExportNoteReshape8x1ConstraintManifest(sr1csPath string) (*ConstraintManife
 }
 
 func ExportTransferConstraintManifest(sr1csPath string) (*ConstraintManifest, error) {
-	_, manifest, err := CompileTransferForFV()
+	_, manifest, err := CompileTransferForExport()
 	if err != nil {
 		return nil, err
 	}
@@ -400,7 +390,7 @@ func ExportTransferConstraintManifest(sr1csPath string) (*ConstraintManifest, er
 func ExportShieldedIcs20WithdrawalConstraintManifest(
 	sr1csPath string,
 ) (*ConstraintManifest, error) {
-	_, manifest, err := CompileShieldedIcs20WithdrawalForFV(
+	_, manifest, err := CompileShieldedIcs20WithdrawalForExport(
 		"shielded_ics20_withdrawal",
 		2,
 	)
@@ -417,9 +407,8 @@ func ExportShieldedIcs20WithdrawalConstraintManifest(
 	return manifest, nil
 }
 
-// CompileTransferForFV emits the Transfer SR1CS and semantic manifest from one
-// frontend compile.
-func CompileTransferForFV() (constraint.ConstraintSystem, *ConstraintManifest, error) {
+// CompileTransferForExport returns the compiled circuit and semantic manifest.
+func CompileTransferForExport() (constraint.ConstraintSystem, *ConstraintManifest, error) {
 	transcript := newWiringTranscript("transfer", TransferCircuitInputs, TransferCircuitOutputs)
 	transcript.recordCounts = true
 	circuit := transferCircuitWithTranscript(transcript)
@@ -429,18 +418,17 @@ func CompileTransferForFV() (constraint.ConstraintSystem, *ConstraintManifest, e
 		circuit,
 	)
 	if err != nil {
-		return nil, nil, fmt.Errorf("compile transfer for FV artifacts: %w", err)
+		return nil, nil, fmt.Errorf("compile transfer for export: %w", err)
 	}
 	manifest, err := transcript.constraintManifest(ccs, "", circuit)
 	if err != nil {
-		return nil, nil, fmt.Errorf("manifest transfer for FV artifacts: %w", err)
+		return nil, nil, fmt.Errorf("manifest transfer for export: %w", err)
 	}
 	return ccs, manifest, nil
 }
 
-// CompileShieldedIcs20WithdrawalForFV emits withdrawal SR1CS and its semantic
-// manifest from one frontend compile.
-func CompileShieldedIcs20WithdrawalForFV(
+// CompileShieldedIcs20WithdrawalForExport returns the circuit and semantic manifest.
+func CompileShieldedIcs20WithdrawalForExport(
 	label string,
 	nIn int,
 ) (constraint.ConstraintSystem, *ConstraintManifest, error) {
@@ -453,11 +441,11 @@ func CompileShieldedIcs20WithdrawalForFV(
 		circuit,
 	)
 	if err != nil {
-		return nil, nil, fmt.Errorf("compile %s for FV artifacts: %w", label, err)
+		return nil, nil, fmt.Errorf("compile %s for export: %w", label, err)
 	}
 	manifest, err := transcript.constraintManifest(ccs, "", circuit)
 	if err != nil {
-		return nil, nil, fmt.Errorf("manifest %s for FV artifacts: %w", label, err)
+		return nil, nil, fmt.Errorf("manifest %s for export: %w", label, err)
 	}
 	return ccs, manifest, nil
 }
@@ -481,33 +469,19 @@ func (t *WiringTranscript) constraintManifest(
 		if end < start {
 			return nil, fmt.Errorf("constraint count regressed at event %d %s: start %d end %d", i+1, event.op, start, end)
 		}
-		kind, gadget, theorem, note := classifyConstraintSegment(event.op)
 		segments = append(segments, ConstraintManifestSegment{
-			Index:              i + 1,
-			Op:                 event.op,
-			Args:               append([]string(nil), event.args...),
-			Kind:               kind,
-			GadgetLabel:        gadget,
-			BridgeTheorem:      theorem,
-			Start:              start,
-			End:                end,
-			ConstraintCount:    end - start,
-			ClassificationNote: note,
+			Index:           i + 1,
+			Op:              event.op,
+			Args:            append([]string(nil), event.args...),
+			Start:           start,
+			End:             end,
+			ConstraintCount: end - start,
 		})
 	}
 
 	breakdown := ConstraintManifestBreakdown{
-		TotalConstraints:  total,
-		ConstraintsByKind: make(map[string]int),
-		SegmentsByKind:    make(map[string]int),
-	}
-	for _, segment := range segments {
-		breakdown.ConstraintsByKind[segment.Kind] += segment.ConstraintCount
-		breakdown.SegmentsByKind[segment.Kind]++
-		if segment.Kind == "unclassified" {
-			breakdown.UnclassifiedConstraints += segment.ConstraintCount
-			breakdown.UnclassifiedSegments++
-		}
+		TotalConstraints: total,
+		Segments:         len(segments),
 	}
 
 	var sr1csHash string
@@ -799,113 +773,6 @@ func constraintWitnessWires(
 		})
 	}
 	return wires, nil
-}
-
-func classifyConstraintSegment(op string) (kind, gadgetLabel, bridgeTheorem, note string) {
-	if gadget, theorem, ok := segmentGadget(op); ok {
-		return "gadget", gadget, theorem, ""
-	}
-	switch {
-	case op == "shared.bind" || strings.HasSuffix(op, ".begin") || strings.HasSuffix(op, ".collect"):
-		return "marker", "", "", "semantic trace marker; expected to carry no constraints"
-	case op == "statement.append" || op == "statement.append_all" || op == "statement.assemble":
-		return "adapter", "", "", "statement vector assembly; expected to carry no constraints"
-	case op == "assert.boolean" ||
-		op == "assert.decaf_non_identity" ||
-		op == "assert.eq" ||
-		op == "assert.ne" ||
-		op == "assert.eq_if" ||
-		op == "assert.active_range" ||
-		op == "assert.dummy_suffix":
-		return "glue", "", "", "allowed assertion/copy constraint segment"
-	case op == "select.field" || op == "select.point" || op == "dummy.mux":
-		return "glue", "", "", "allowed selector/range glue segment"
-	case op == "history.classify":
-		return "glue", "", "", "48-bit position range, comparison, and required-history binding"
-	case op == "routing.precision.select" ||
-		op == "routing.parameters.bind" ||
-		op == "routing.permutation.compose" ||
-		op == "routing.tag.public_range" ||
-		op == "routing.tag.route_bits" ||
-		op == "routing.tag.compose":
-		return "glue", "", "", "routing selector, range, or equality constraints"
-	default:
-		return "unclassified", "", "", "must be discharged by a gadget mapping or by re-authoring"
-	}
-}
-
-func segmentGadget(op string) (gadgetLabel, bridgeTheorem string, ok bool) {
-	switch op {
-	case "decaf.compress_to_field":
-		return "gadget-decaf-compress-to-field", "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound", true
-	case "decaf.assert_on_curve":
-		return "gadget-decaf-assert-on-curve", "Shieldd.GnarkFormal.Deployed.DecafAssertOnCurve.circuit_sound", true
-	case "decaf.assert_equivalent", "decaf.assert_equivalent_if":
-		return "gadget-decaf-assert-equivalent", "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound", true
-	case "decaf.randomized_verification_key", "decaf.randomized_verification_key.dummy":
-		return "gadget-rvk", "Shieldd.GnarkFormal.RvkBridge.decaf377_randomizedVerificationKey_sound", true
-	case "decaf.diversified_transmission_key":
-		return "gadget-dtk", "Shieldd.GnarkFormal.DtkBridge.decaf377_diversifiedTransmissionKey_sound", true
-	case "decaf.net_balance_commitment":
-		return "gadget-net-balance-commitment2", "Shieldd.GnarkFormal.NetBalanceCommitment2Bridge.decaf377_netBalanceCommitment2_sound", true
-	// Conservation-exact NoteReshape shapes use one collapsed amount equality
-	// and the balance-blinding ladder.
-	case "decaf.conservation_net_balance_commitment":
-		return "gadget-conservation-net-balance-commitment", "Shieldd.GnarkFormal.ConservationNetBalanceCommitmentBridge.decaf377_conservationNetBalanceCommitment_sound", true
-	case "decaf.conservation_net_balance_commitment2":
-		return "gadget-conservation-net-balance-commitment2", "Shieldd.GnarkFormal.ConservationNetBalanceCommitment2Bridge.decaf377_conservationNetBalanceCommitment2_sound", true
-	case "decaf.ack":
-		return "gadget-ack-derivation", "Shieldd.GnarkFormal.AckBridge.ack_sound", true
-	case "decaf.shared_secret":
-		return "gadget-shared-secrets", "Shieldd.GnarkFormal.SharedSecretBridge.shared_secrets_sound", true
-	case "gadget.nullifier":
-		return "gadget-nullifier", "Shieldd.GnarkFormal.Poseidon3Bridge.nullifier_circuit_sound", true
-	case "routing.route_word", "routing.permutation.hash":
-		return "gadget-poseidon-hash2", "Shieldd.GnarkFormal.Poseidon2Bridge.perm2_uncps", true
-	case "routing.tag.random_word":
-		return "gadget-poseidon-hash3", "Shieldd.GnarkFormal.Poseidon3Bridge.circuit_sound", true
-	case "routing.parameters.hash":
-		return "gadget-poseidon-hash4", "Shieldd.GnarkFormal.Poseidon4Bridge.circuit_sound", true
-	case "gadget.synthetic_dummy_nullifier":
-		return "gadget-poseidon-hash3-specialized", "Shieldd.GnarkFormal.Poseidon3Bridge.perm3_uncps", true
-	case "gadget.is_zero":
-		return "gadget-iszero", "Shieldd.GnarkFormal.isZeroExtracted_implies_is_zero", true
-	case "threshold.flag":
-		return "gadget-threshold-regulated-flag", "Shieldd.GnarkFormal.ThresholdRegulatedBridge.threshold_flag_sound", true
-	case "gadget.state_commitment_path":
-		return "gadget-quad-path-24", "Shieldd.GnarkFormal.AnchorMerkle.concrete_circuit_sound24", true
-	case "gadget.asset_registry_path", "gadget.compliance_path":
-		return "gadget-quad-path-16", "Shieldd.GnarkFormal.Poseidon4Bridge.quadPath16_circuit_sound", true
-	case "gadget.note_commitment":
-		return "gadget-poseidon-hash6", "Shieldd.GnarkFormal.Poseidon6Bridge.circuit_sound", true
-	case "gadget.asset_registry_gap":
-		// The Boolean selector is constrained separately before the authenticated
-		// leaf/path pipeline, so this is the exact gap body rather than the
-		// standalone gadget that also contains that Boolean row.
-		return "gadget-imt-gap-body", "Shieldd.GnarkFormal.Extracted.ImtGap.body_relation_sound", true
-	case "gadget.asset_registry_params_hash":
-		return "gadget-poseidon-hash3", "Shieldd.GnarkFormal.Poseidon3Bridge.circuit_sound", true
-	case "gadget.asset_registry_ring_hash", "gadget.asset_registry_leaf_hash":
-		return "gadget-poseidon-hash5", "Shieldd.GnarkFormal.Poseidon5Bridge.circuit_sound_eq", true
-	case "gadget.compliance_leaf":
-		return "gadget-poseidon-hash5", "Shieldd.GnarkFormal.Poseidon5Bridge.circuit_sound_eq", true
-	case "gadget.transfer_salt":
-		return "gadget-poseidon2", "Shieldd.GnarkFormal.TransferSaltBridge.transfer_salt_sound", true
-	case "gadget.poseidon_encryption.detection":
-		return "gadget-poseidon-encryption-detection-body", "Shieldd.GnarkFormal.PoseidonEncryptionBridge.detection_body_sound", true
-	case "gadget.poseidon_encryption.amount":
-		return "gadget-poseidon-encryption-amount-body", "Shieldd.GnarkFormal.PoseidonEncryptionBridge.amount_body_sound", true
-	case "gadget.poseidon_encryption.address":
-		return "gadget-poseidon-encryption-address-body", "Shieldd.GnarkFormal.PoseidonEncryptionBridge.address_body_sound", true
-	case "gadget.metadata_hash":
-		return "gadget-poseidon-hash6", "Shieldd.GnarkFormal.Poseidon6Bridge.circuit_sound", true
-	case "gadget.dleq":
-		return "gadget-dleq-body", "Shieldd.GnarkFormal.DleqBridge.dleq_body_sound", true
-	case "statement.hash":
-		return "gadget-poseidon-hash7", "Shieldd.GnarkFormal.Poseidon7Bridge.circuit_sound", true
-	default:
-		return "", "", false
-	}
 }
 
 func currentConstraintCount(compiler frontend.Compiler) (int, bool) {

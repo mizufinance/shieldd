@@ -79,7 +79,7 @@ func TestGnarkToBinary256RejectsNonCanonicalAddressPlaintextAlias(t *testing.T) 
 	transmission := big.NewInt(2)
 	divAlias := new(big.Int).Add(div, primitives.ScalarField())
 	if divAlias.BitLen() > 256 {
-		t.Fatal("test alias does not fit the legacy 256-bit decomposition")
+		t.Fatal("test alias does not fit the 256-bit decomposition")
 	}
 	if new(big.Int).Mod(new(big.Int).Set(divAlias), primitives.ScalarField()).Cmp(div) != 0 {
 		t.Fatal("test alias is not congruent to the canonical field element")
@@ -146,6 +146,6 @@ func TestGnarkToBinary256RejectsNonCanonicalAddressPlaintextAlias(t *testing.T) 
 		aliasAssignment,
 		ecc.BLS12_377.ScalarField(),
 	); err == nil {
-		t.Fatal("canonical address packing accepted the legacy x+p plaintext alias")
+		t.Fatal("canonical address packing accepted an x+p plaintext alias")
 	}
 }

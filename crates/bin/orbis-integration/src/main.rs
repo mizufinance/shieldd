@@ -43,9 +43,8 @@ mod demo_state;
 
 fn ensure_transfer_pre_available() -> Result<()> {
     bail!(
-        "Orbis v0 transfer PRE is disabled because its public store-secret payload \
-         exposes the DH point used to open every tier seed; use only metadata/scanner \
-         flows until a non-disclosing PRE protocol is available"
+        "Orbis v0 transfer PRE is unavailable because its public store-secret payload \
+         exposes the DH point used to open every tier seed; use metadata/scanner flows"
     )
 }
 

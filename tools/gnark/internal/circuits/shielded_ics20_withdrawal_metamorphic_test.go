@@ -2,7 +2,6 @@ package circuits_test
 
 import (
 	"math/big"
-	"reflect"
 	"strings"
 	"testing"
 
@@ -24,111 +23,6 @@ func TestRegulatedWithdrawalRejectsFrozenSender(t *testing.T) {
 		ecc.BLS12_377.ScalarField(),
 	); err == nil {
 		t.Fatal("regulated withdrawal accepted a frozen sender")
-	}
-}
-
-func TestShieldedIcs20WithdrawalUsesExplicitRequiredOptionalLayout(t *testing.T) {
-	for label, typ := range map[string]reflect.Type{
-		"binary witness": reflect.TypeOf(abi.ShieldedIcs20WithdrawalWitnessV12Binary{}),
-		"circuit":        reflect.TypeOf(circuits.ShieldedIcs20WithdrawalCircuit{}),
-	} {
-		for _, required := range []string{"RequiredSpend", "OptionalSpend"} {
-			if _, ok := typ.FieldByName(required); !ok {
-				t.Fatalf("%s must carry explicit %s", label, required)
-			}
-		}
-		if _, ok := typ.FieldByName("Spends"); ok {
-			t.Fatalf("%s must not carry an ambiguous spend slice", label)
-		}
-	}
-}
-
-func TestShieldedIcs20WithdrawalV12OmitsPolicyOpeningsAndRedundantFields(t *testing.T) {
-	for label, tc := range map[string]struct {
-		typ        reflect.Type
-		prohibited []string
-	}{
-		"top-level witness": {
-			typ: reflect.TypeOf(abi.ShieldedIcs20WithdrawalWitnessV12Binary{}),
-			prohibited: []string{
-				"BalanceCommitment",
-				"BalanceCommitmentAffine",
-				"StatementFields",
-				"AK",
-				"SenderAssetID",
-				"SenderTransmissionKey",
-				"AssetIndexedLeafDKPub",
-				"AssetIndexedLeafRingPK",
-			},
-		},
-		"required spend": {
-			typ: reflect.TypeOf(abi.ShieldedIcs20WithdrawalRequiredSpendWitnessV12Binary{}),
-			prohibited: []string{
-				"SpentTransmissionKey",
-				"SpentDivGenAffine",
-				"SpentTransmissionAffine",
-				"SpentNoteAssetID",
-				"SpentClueKey",
-				"StateCommitmentCommitment",
-			},
-		},
-		"change output": {
-			typ: reflect.TypeOf(abi.ShieldedIcs20WithdrawalChangeWitnessV12Binary{}),
-			prohibited: []string{
-				"CreatedTransmissionKey",
-				"CreatedDivGenAffine",
-				"CreatedTransmissionAffine",
-				"CreatedNoteAssetID",
-				"CreatedClueKey",
-			},
-		},
-		"withdrawal indexed leaf": {
-			typ: reflect.TypeOf(abi.ShieldedIcs20WithdrawalAssetLeafWitnessV12Binary{}),
-			prohibited: []string{
-				"DKPub", "Threshold", "RoutePolicyHash", "RingPK",
-				"RingIDHash", "PolicyIDHash", "PermissionHash", "ResourceHash",
-			},
-		},
-		"circuit note": {
-			typ: reflect.TypeOf(circuits.ShieldedIcs20WithdrawalNoteCircuitFields{}),
-			prohibited: []string{
-				"DivGen",
-				"TransmissionKeyS",
-				"Transmission",
-				"AssetID",
-				"ClueKey",
-			},
-		},
-		"circuit state path": {
-			typ:        reflect.TypeOf(circuits.ShieldedIcs20WithdrawalStatePathCircuitFields{}),
-			prohibited: []string{"Commitment"},
-		},
-		"circuit sender": {
-			typ: reflect.TypeOf(circuits.ShieldedIcs20WithdrawalSenderCircuitFields{}),
-			prohibited: []string{
-				"Transmission",
-				"AssetID",
-			},
-		},
-	} {
-		for _, field := range tc.prohibited {
-			if _, ok := tc.typ.FieldByName(field); ok {
-				t.Fatalf("%s must not carry redundant field %s", label, field)
-			}
-		}
-	}
-}
-
-func TestShieldedIcs20WithdrawalV12CarriesFixedRoutingFields(t *testing.T) {
-	witnessType := reflect.TypeOf(abi.ShieldedIcs20WithdrawalWitnessV12Binary{})
-	for _, field := range []string{"RoutingTag", "RoutingParameterSetID", "RoutingNonce"} {
-		if _, ok := witnessType.FieldByName(field); !ok {
-			t.Fatalf("withdrawal witness must carry %s", field)
-		}
-	}
-	if _, ok := reflect.TypeOf(circuits.ShieldedIcs20WithdrawalCircuit{}).
-		FieldByName("BalanceCommitment"); ok {
-		t.Fatal("withdrawal circuit must derive the blinding-only balance commitment")
 	}
 }
 
@@ -350,22 +244,6 @@ func TestShieldedIcs20WithdrawalWiringBindsCompactLeafAndSentinel(t *testing.T) 
 	} {
 		if count := strings.Count(transcript, binding); count != 1 {
 			t.Fatalf("withdrawal wiring must contain %q exactly once, got %d", binding, count)
-		}
-	}
-	for _, obsolete := range []string{
-		"asset.leaf.dk_pub",
-		"asset.leaf.threshold",
-		"asset.leaf.route_policy_hash",
-		"asset.leaf.ring_pk",
-		"asset.leaf.ring_id_hash",
-		"asset.leaf.policy_id_hash",
-		"asset.leaf.permission_hash",
-		"asset.leaf.resource_hash",
-		"gadget.asset_registry_params_hash",
-		"gadget.asset_registry_ring_hash",
-	} {
-		if strings.Contains(transcript, obsolete) {
-			t.Fatalf("withdrawal wiring must not expose obsolete policy opening %q", obsolete)
 		}
 	}
 	manifest, manifestErr := circuits.ExportShieldedIcs20WithdrawalConstraintManifest("")

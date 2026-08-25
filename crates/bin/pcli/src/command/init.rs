@@ -84,13 +84,9 @@ pub enum SoftKmsInitCmd {
     /// Import a spend key from an existing seed phrase.
     #[clap(display_order = 200)]
     ImportPhrase {
-        /// If set, will use legacy BIP39 derivation.
-        ///
-        /// Use this ONLY if:
-        /// - you generated your wallet prior to Testnet 62.
-        /// - you need to replicate legacy derivation for some reason.
+        /// Use raw BIP39 derivation instead of BIP44.
         #[clap(long, action)]
-        legacy_raw_bip39_derivation: bool,
+        raw_bip39_derivation: bool,
     },
 }
 
@@ -143,15 +139,15 @@ impl SoftKmsInitCmd {
                     .context("generated seed phrase produced an invalid spend key")
             }
             SoftKmsInitCmd::ImportPhrase {
-                legacy_raw_bip39_derivation,
+                raw_bip39_derivation,
             } => {
                 let seed_phrase = prompt_for_password("Enter seed phrase: ")?;
                 let seed_phrase = SeedPhrase::from_str(&seed_phrase)
                     .context("failed to parse input as seed phrase")?;
 
-                if *legacy_raw_bip39_derivation {
+                if *raw_bip39_derivation {
                     SpendKey::from_seed_phrase_bip39(seed_phrase, 0)
-                        .context("imported seed phrase produced an invalid legacy spend key")
+                        .context("imported seed phrase produced an invalid raw BIP39 spend key")
                 } else {
                     let path = Bip44Path::new(0);
                     SpendKey::from_seed_phrase_bip44(seed_phrase, &path)

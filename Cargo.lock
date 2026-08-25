@@ -7814,22 +7814,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "shieldd-constraint-coverage"
-version = "2.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "flate2",
- "hex",
- "num-bigint",
- "num-traits",
- "serde",
- "serde_json",
- "sha2 0.10.8",
- "thiserror 1.0.69",
-]
-
-[[package]]
 name = "shieldd-orbis-client"
 version = "2.1.0"
 dependencies = [

@@ -208,7 +208,7 @@ impl Address {
         format!("{}…", &full_address[0..num_chars_to_display])
     }
 
-    /// Compat (bech32 non-m) address format
+    /// Encodes the address with Bech32.
     pub fn compat_encoding(&self) -> String {
         let proto_address = pb::Address::from(self);
         bech32str::encode(
@@ -478,7 +478,7 @@ mod tests {
     }
 
     #[test]
-    fn test_compat_encoding() {
+    fn bech32_encoding_round_trip() {
         let rng = OsRng;
         let seed_phrase = SeedPhrase::generate(rng);
         let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0))
@@ -516,7 +516,7 @@ mod tests {
     }
 
     #[test]
-    fn rejects_legacy_80_byte_address() {
+    fn rejects_unsupported_80_byte_address() {
         let bytes = vec![0u8; 80];
         assert!(Address::try_from(bytes).is_err());
     }

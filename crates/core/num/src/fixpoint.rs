@@ -730,22 +730,19 @@ pub fn convert_uint64_to_fqvar<F: PrimeField>(
     Boolean::<F>::le_bits_to_fp(&value.to_bits_le()?)
 }
 
-/// Bit constrain for FqVar and return number of bits
+/// Constrains `value` to `n` bits and returns its little-endian bits.
 pub fn bit_constrain(value: FqVar, n: usize) -> Result<Vec<Boolean<Fq>>, SynthesisError> {
     let inner = value.value().unwrap_or(Fq::zero());
 
-    // Get only first n bits based on that value (OOC)
     let inner_bigint = inner.into_bigint();
     let bits = &inner_bigint.to_bits_le()[0..n];
 
-    // Allocate Boolean vars for first n bits
     let mut boolean_constraints = Vec::new();
     for bit in bits {
         let boolean = Boolean::new_witness(value.cs().clone(), || Ok(bit))?;
         boolean_constraints.push(boolean);
     }
 
-    // Construct an FqVar from those n Boolean constraints, and constrain it to be equal to the original value
     let constructed_fqvar =
         Boolean::<Fq>::le_bits_to_fp(&boolean_constraints).expect("can convert to bits");
     constructed_fqvar.enforce_equal(&value)?;

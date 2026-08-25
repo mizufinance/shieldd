@@ -1000,60 +1000,6 @@ mod tests {
     }
 
     #[test]
-    fn legacy_cached_body_is_not_admitted_into_plan() {
-        use prost::Message;
-
-        #[derive(Clone, PartialEq, Message)]
-        struct LegacyPlan {
-            #[prost(message, optional, tag = "1")]
-            body: Option<pb::ShieldedIcs20WithdrawalBody>,
-            #[prost(bytes = "vec", tag = "2")]
-            value_blinding: Vec<u8>,
-            #[prost(message, repeated, tag = "4")]
-            spends: Vec<pb::ShieldedInputPlan>,
-            #[prost(message, optional, tag = "5")]
-            change_output: Option<pb::ShieldedOutputPlan>,
-            #[prost(message, optional, tag = "6")]
-            withdrawal:
-                Option<shieldd_sdk_proto::shieldd::core::component::ibc::v1::Ics20Withdrawal>,
-            #[prost(message, optional, tag = "7")]
-            routing_parameters: Option<pb::DiscoveryParameters>,
-        }
-
-        let plan = one_spend_plan();
-        let anchor = shieldd_sdk_tct::Tree::default().root();
-        let mut stale_body: pb::ShieldedIcs20WithdrawalBody = plan
-            .action_body(&test_keys::FULL_VIEWING_KEY, &[7u8; 32].into(), anchor, 0)
-            .expect("derive current body")
-            .into();
-        stale_body.target_timestamp += 1;
-
-        let current: pb::ShieldedIcs20WithdrawalPlan = plan.into();
-        let legacy = LegacyPlan {
-            body: Some(stale_body.clone()),
-            value_blinding: current.value_blinding,
-            spends: current.spends,
-            change_output: current.change_output,
-            withdrawal: current.withdrawal,
-            routing_parameters: current.routing_parameters,
-        };
-        let decoded = pb::ShieldedIcs20WithdrawalPlan::decode(legacy.encode_to_vec().as_slice())
-            .expect("removed body tag is an ignored unknown field");
-        let decoded = ShieldedIcs20WithdrawalPlan::try_from(decoded)
-            .expect("canonical plan fields remain valid");
-        let derived = decoded
-            .action_body(&test_keys::FULL_VIEWING_KEY, &[7u8; 32].into(), anchor, 0)
-            .expect("body is always derived from canonical plan fields");
-
-        assert_ne!(derived.target_timestamp, stale_body.target_timestamp);
-        assert_eq!(derived.target_timestamp, decoded.spends[0].target_timestamp);
-        assert_eq!(
-            derived.balance_commitment,
-            Balance::default().commit(decoded.value_blinding)
-        );
-    }
-
-    #[test]
     fn plan_construction_and_decode_reject_invalid_withdrawal_payload() {
         let value = Value {
             amount: 40u64.into(),

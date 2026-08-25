@@ -1,7 +1,6 @@
 // Requires nightly.
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
-pub mod extraction;
 pub mod proof_txs;
 
 /// Shared benchmark runner for compliance benchmarks.

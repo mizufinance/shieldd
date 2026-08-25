@@ -237,19 +237,19 @@ mod tests {
 
     #[test]
     fn test_unregulated_sink_keys_are_hash_to_curve_points() {
-        let legacy_dk_hash = blake2b_simd::blake2b(b"shieldd.compliance.unregulated.dk-pub.v1");
-        let legacy_ring_hash = blake2b_simd::blake2b(b"shieldd.compliance.unregulated.ring-pk.v1");
-        let legacy_dk_scalar = Fr::from_le_bytes_mod_order(legacy_dk_hash.as_bytes());
-        let legacy_ring_scalar = Fr::from_le_bytes_mod_order(legacy_ring_hash.as_bytes());
+        let dk_hash = blake2b_simd::blake2b(b"shieldd.compliance.unregulated.dk-pub.v1");
+        let ring_hash = blake2b_simd::blake2b(b"shieldd.compliance.unregulated.ring-pk.v1");
+        let dk_scalar = Fr::from_le_bytes_mod_order(dk_hash.as_bytes());
+        let ring_scalar = Fr::from_le_bytes_mod_order(ring_hash.as_bytes());
 
         assert_ne!(
             *UNREGULATED_SINK_DK_PUB,
-            Element::GENERATOR * legacy_dk_scalar,
+            Element::GENERATOR * dk_scalar,
             "UNREGULATED_SINK_DK_PUB must not be a public-scalar multiple of G"
         );
         assert_ne!(
             *UNREGULATED_SINK_RING_PK,
-            Element::GENERATOR * legacy_ring_scalar,
+            Element::GENERATOR * ring_scalar,
             "UNREGULATED_SINK_RING_PK must not be a public-scalar multiple of G"
         );
     }

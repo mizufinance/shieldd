@@ -332,7 +332,7 @@ mod tests {
     }
 
     #[test]
-    fn shielded_ics20_withdrawal_witness_v12_rejects_legacy_version() {
+    fn shielded_ics20_withdrawal_witness_v12_rejects_unsupported_version() {
         let (public, private) =
             proof_test_helpers::build_shielded_ics20_withdrawal_roundtrip_inputs(
                 ShieldedIcs20WithdrawalFamilyId::Canonical,
@@ -343,7 +343,7 @@ mod tests {
         encoded[4..8].copy_from_slice(&8u32.to_le_bytes());
 
         decode_shielded_ics20_withdrawal_witness_v12(&encoded)
-            .expect_err("V9 decoder must reject the obsolete V8 layout");
+            .expect_err("decoder must reject unsupported version 8");
     }
 
     #[test]

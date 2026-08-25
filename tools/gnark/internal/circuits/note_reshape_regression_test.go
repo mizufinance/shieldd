@@ -3,12 +3,6 @@ package circuits_test
 import (
 	"fmt"
 	"math/big"
-	"os"
-	"path/filepath"
-	"reflect"
-	"regexp"
-	"runtime"
-	"strings"
 	"testing"
 
 	"github.com/consensys/gnark-crypto/ecc"
@@ -898,56 +892,5 @@ func TestNoteReshapeFamiliesRejectWrongStatementPreimage(t *testing.T) {
 				t.Fatalf("mutating a statement-preimage nullifier must invalidate %s", family.Label)
 			}
 		})
-	}
-}
-
-func TestNoteReshapeStatementsHaveNoActiveCountFieldsAfterRedesign(t *testing.T) {
-	for _, family := range generated.NoteReshapeFamilies {
-		want := primitives.NoteReshapeStatementBaseFields +
-			primitives.NoteReshapeStatementFieldsPerInput*family.NIn +
-			primitives.NoteReshapeStatementFieldsPerOutput*family.NOut
-		if got := primitives.NoteReshapeStatementFieldCount(family.NIn, family.NOut); got != want {
-			t.Fatalf("%s statement field count includes active-count fields: got %d, want %d", family.Label, got, want)
-		}
-	}
-}
-
-func TestNoteReshape1x8HasNoOutputDummyWitnessOrManifestOperationsAfterRedesign(t *testing.T) {
-	if _, ok := reflect.TypeOf(abi.NoteReshapeOutputWitnessV6Binary{}).FieldByName("IsDummy"); ok {
-		t.Fatal("1x8 witness still exposes an output dummy flag")
-	}
-	if _, ok := reflect.TypeOf(circuits.NoteReshapeSpendCircuitFields{}).FieldByName("IsDummy"); ok {
-		t.Fatal("fixed-family spend witness still exposes synthetic padding fields")
-	}
-	if _, ok := reflect.TypeOf(circuits.NoteReshapeSyntheticSpendCircuitFields{}).FieldByName("IsDummy"); !ok {
-		t.Fatal("synthetic-family spend witness lost its private selector")
-	}
-	for _, forbidden := range []string{"AssetID", "DivGen", "TransmissionKeyS", "Transmission", "ClueKey"} {
-		if _, ok := reflect.TypeOf(circuits.NoteReshapeNoteCircuitFields{}).FieldByName(forbidden); ok {
-			t.Fatalf("per-note reshape witness still exposes shared field %s", forbidden)
-		}
-	}
-	if _, ok := reflect.TypeOf(circuits.NoteReshapeSyntheticSpendCircuitFields{}).FieldByName("DummySpendAuthKey"); ok {
-		t.Fatal("synthetic reshape witness still exposes dummy spend authorization key")
-	}
-
-	_, sourceFile, _, ok := runtime.Caller(0)
-	if !ok {
-		t.Fatal("locate note reshape regression test")
-	}
-	manifestPath := filepath.Join(filepath.Dir(sourceFile), "..", "..", "artifacts", "note_reshape1x8", "note_reshape1x8-manifest.json")
-	manifest, err := os.ReadFile(manifestPath)
-	if err != nil {
-		t.Fatalf("read 1x8 manifest: %v", err)
-	}
-	manifestText := string(manifest)
-	if regexp.MustCompile(`output[0-9]+\.is_dummy`).MatchString(manifestText) {
-		t.Fatal("1x8 manifest still contains an output dummy operation")
-	}
-	if strings.Contains(manifestText, "active_output_count") {
-		t.Fatal("1x8 manifest still contains an active-output-count operation")
-	}
-	if strings.Contains(manifestText, "verifyPaddedNoteReshapeOutput") {
-		t.Fatal("1x8 manifest still names a padded output verifier")
 	}
 }

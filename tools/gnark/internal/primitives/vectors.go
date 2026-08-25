@@ -50,7 +50,6 @@ type PoseidonVectors struct {
 	SenderLeafDomain      string              `json:"sender_leaf_domain"`
 	ComplianceLeafDomain  string              `json:"compliance_leaf_domain"`
 	IssuerDetectionDomain string              `json:"issuer_detection_domain"`
-	DLEQMetadataDomain    string              `json:"dleq_metadata_domain"`
 	IMTLeafDomain         string              `json:"imt_leaf_domain"`
 	IMTParamsDomain       string              `json:"imt_params_domain"`
 	IMTRingDomain         string              `json:"imt_ring_domain"`
@@ -86,33 +85,6 @@ type DecafEncodeVector struct {
 	EncodingHex     string `json:"encoding_hex"`
 }
 
-type DLEQFixture struct {
-	ChallengeKeepBits int    `json:"challenge_keep_bits"`
-	MetadataHash      string `json:"metadata_hash"`
-	WrongMetadataHash string `json:"wrong_metadata_hash"`
-	R                 string `json:"r"`
-	AckX              string `json:"ack_x"`
-	AckY              string `json:"ack_y"`
-	EpkX              string `json:"epk_x"`
-	EpkY              string `json:"epk_y"`
-	DleqC             string `json:"dleq_c"`
-	DleqS             string `json:"dleq_s"`
-}
-
-type OrbisDerivationVector struct {
-	DerivationHex string `json:"derivation_hex"`
-	Scalar        string `json:"scalar"`
-}
-
-type CompactPreDLEQVector struct {
-	CapabilitySecret string `json:"capability_secret"`
-	ReaderSecret     string `json:"reader_secret"`
-	EPKSecret        string `json:"epk_secret"`
-	Nonce            string `json:"nonce"`
-	Challenge        string `json:"challenge"`
-	Response         string `json:"response"`
-}
-
 type NoteReshapeStatementFixture struct {
 	Label         string   `json:"label"`
 	Domain        string   `json:"domain"`
@@ -126,9 +98,6 @@ type PrototypeVectors struct {
 	Poseidon377            PoseidonVectors               `json:"poseidon377"`
 	Decaf377Compress       []DecafCompressVector         `json:"decaf377_compress_vectors"`
 	Decaf377Encode         []DecafEncodeVector           `json:"decaf377_encode_vectors"`
-	DleqFixture            DLEQFixture                   `json:"dleq_fixture"`
-	OrbisDerivation        OrbisDerivationVector         `json:"orbis_derivation"`
-	CompactPreDLEQ         CompactPreDLEQVector          `json:"compact_pre_dleq"`
 	NoteReshapeStatements  []NoteReshapeStatementFixture `json:"note_reshape_statements"`
 }
 
@@ -146,8 +115,6 @@ type SpendPublicFixture struct {
 	C2Core                  string             `json:"c2_core"`
 	ComplianceCiphertext    []string           `json:"compliance_ciphertext"`
 	TargetTimestamp         string             `json:"target_timestamp"`
-	DleqC                   string             `json:"dleq_c"`
-	DleqS                   string             `json:"dleq_s"`
 	SenderLeafHash          string             `json:"sender_leaf_hash"`
 }
 

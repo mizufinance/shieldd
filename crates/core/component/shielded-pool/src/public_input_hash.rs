@@ -736,7 +736,7 @@ mod tests {
     }
 
     #[test]
-    fn note_reshape_statement_has_no_active_counts_after_redesign() {
+    fn note_reshape_statement_field_count_matches_family_shape() {
         for family_id in NoteReshapeFamilyId::ALL {
             let core = NOTE_RESHAPE_STATEMENT_BASE_FIELDS
                 + NOTE_RESHAPE_STATEMENT_FIELDS_PER_INPUT * family_id.input_count()
@@ -747,7 +747,7 @@ mod tests {
                     family_id.output_count()
                 ),
                 core,
-                "{} statement field count still includes active counts",
+                "{} statement field count mismatch",
                 family_id.label()
             );
             let (public, _) = proof_test_helpers::build_note_reshape_roundtrip_inputs(family_id);
@@ -756,7 +756,7 @@ mod tests {
                     .expect("statement fields")
                     .len(),
                 core,
-                "{} statement preimage still includes active counts",
+                "{} statement preimage length mismatch",
                 family_id.label()
             );
         }
@@ -806,7 +806,7 @@ mod tests {
         assert_eq!(&fields[37..], expected_metadata.as_slice());
 
         let v7 = transfer_statement_hash(&fields).expect("v7 transfer hash");
-        let v3 = hash_statement_fields(
+        let alternate_domain_hash = hash_statement_fields(
             &transfer_statement_hash_constant("v3"),
             transfer_statement_hash_constant("pad0"),
             transfer_statement_hash_constant("pad1"),
@@ -814,8 +814,8 @@ mod tests {
             TRANSFER_STATEMENT_FIELD_COUNT,
             |expected, got| StatementHashError::InvalidFieldLength { expected, got },
         )
-        .expect("legacy domain hash");
-        assert_ne!(v7, v3, "V20 must not verify under the V15 hash domain");
+        .expect("alternate domain hash");
+        assert_ne!(v7, alternate_domain_hash);
     }
 
     #[test]

@@ -552,20 +552,18 @@ mod tests {
     }
 
     #[test]
-    fn legacy_asset_flag_alias_is_rejected() {
+    fn high_bit_asset_alias_is_rejected() {
         let mut rng = OsRng;
         let dk = DetectionKey::demo();
         let asset_id = asset::Id(Fq::from(41u64));
         let (ciphertext, epk) = dk.encrypt_to_public(&mut rng, &asset_id, true);
 
-        let mut legacy_sentinel_bytes = [0u8; 32];
-        legacy_sentinel_bytes[31] = 1 << 5;
-        let legacy_alias =
-            asset::Id(asset_id.0 + Fq::from_le_bytes_mod_order(&legacy_sentinel_bytes));
+        let mut sentinel_bytes = [0u8; 32];
+        sentinel_bytes[31] = 1 << 5;
+        let alias = asset::Id(asset_id.0 + Fq::from_le_bytes_mod_order(&sentinel_bytes));
 
         assert!(
-            dk.try_decrypt_detection(&epk, &ciphertext, &legacy_alias)
-                .is_err(),
+            dk.try_decrypt_detection(&epk, &ciphertext, &alias).is_err(),
             "V16 word 0 must bind the exact asset independently of the flag"
         );
     }

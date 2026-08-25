@@ -8,9 +8,10 @@ and certify one exact Shieldd commit.
 | Area | Authoritative for | Checked by |
 | --- | --- | --- |
 | `docs/compliance/` | Bankd ownership boundary, compliance flow, enforcement/seizure plan, wire reference, constraints, and tests. | referenced tests |
-| `docs/snarkpack/` | SnarkPack runtime design and verification narrative. Formal handoffs and theorem evidence live in `shieldd-formal`. | runtime tests and `scripts/check-snarkpack-runtime-invariants.sh` |
-| `docs/protocol/` | Protocol background book (crypto constructions, keys, addresses). **Background only** — last synced 2026-06; it does not track every NoteReshape implementation detail. Do not cite it as evidence. | none (unpinned) |
+| `docs/snarkpack/` | SnarkPack runtime design and verification. | runtime tests and `scripts/check-snarkpack-runtime-invariants.sh` |
+| `docs/protocol/` | Protocol background for crypto constructions, keys, and addresses. Do not cite it as implementation evidence. | none |
 | `docs/transfer-circuit/` | Transfer-circuit constraint checklist (referenced by `docs/compliance/`). | referenced tests |
+| `docs/nullifier-history.md` | Nullifier-generation state, proof, and storage boundaries. | focused runtime and interoperability tests |
 | `docs/rustdoc/` | CI staging for rustdoc deploy (`notes.yml`), not documentation content. | CI |
 
 The user guide lives in a separate repository:

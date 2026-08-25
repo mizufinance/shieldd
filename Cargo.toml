@@ -42,7 +42,6 @@ members = [
   "crates/crypto/proof-aggregation",
   "crates/crypto/proof-aggregation-fuzz",
   "crates/crypto/proof-aggregation-reference",
-  "crates/crypto/constraint-coverage",
   "crates/crypto/proof-params",
   "crates/crypto/tct",
   "crates/custody",

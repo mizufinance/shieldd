@@ -96,26 +96,7 @@ crates/bench/benches/compliance/tps/{runs,microscope,admission,incremental}/
 # Android proof lab build artifacts
 **/android-proof-lab/target/
 
-# hax-generated formal extraction outputs
-crates/core/component/shielded-pool/proofs/
-crates/crypto/proof-aggregation/proofs/
-crates/crypto/proof-aggregation/src/ipp/ip_proofs/proofs/
-crates/crypto/proof-aggregation/formal/snarkpack/.generated/
-crates/core/component/shielded-pool/formal/.generated/
-
 # POC tool caches
 poc/tools/gnark-spend-prototype/.gocache/
 poc/tools/gnark-spend-prototype/.tmp/
 **/__pycache__/
-
-# ACL2 gadget-proof build outputs (env-bound: cert embeds abs paths + timestamps).
-# Source of truth is the .lisp + stamped artifact; certs are regenerated in CI.
-crates/core/component/shielded-pool/formal/acl2/*.cert
-crates/core/component/shielded-pool/formal/acl2/*.cert.out
-crates/core/component/shielded-pool/formal/acl2/*.fasl
-crates/core/component/shielded-pool/formal/acl2/*.port
-crates/core/component/shielded-pool/formal/acl2/**/*.cert
-crates/core/component/shielded-pool/formal/acl2/**/*.cert.out
-crates/core/component/shielded-pool/formal/acl2/**/*.fasl
-crates/core/component/shielded-pool/formal/acl2/**/*.port
-crates/core/component/shielded-pool/formal/acl2/Makefile-tmp
