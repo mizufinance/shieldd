@@ -1108,6 +1108,15 @@ mod tests {
         }
     }
 
+    fn regulated_test_withdrawal() -> Ics20Withdrawal {
+        Ics20Withdrawal {
+            denom: "regulated_test_asset"
+                .try_into()
+                .expect("custom test denom should parse as a base denom"),
+            ..test_withdrawal()
+        }
+    }
+
     fn policy_authorizing(routes: Vec<IbcRoute>) -> AssetPolicy {
         let mut policy = AssetPolicy::simple(
             decaf377::Element::GENERATOR,
@@ -1480,7 +1489,7 @@ mod tests {
             .await
             .expect("temporary state must initialize");
         let mut state = StateDelta::new(storage.latest_snapshot());
-        let withdrawal = test_withdrawal();
+        let withdrawal = regulated_test_withdrawal();
         put_open_outbound_route(
             &mut state,
             &withdrawal,
@@ -1526,7 +1535,7 @@ mod tests {
             .await
             .expect("temporary state must initialize");
         let mut state = StateDelta::new(storage.latest_snapshot());
-        let mut withdrawal = test_withdrawal();
+        let mut withdrawal = regulated_test_withdrawal();
         put_open_outbound_route(
             &mut state,
             &withdrawal,
@@ -1918,7 +1927,7 @@ mod tests {
             .await
             .expect("temporary state must initialize");
         let mut state = StateDelta::new(storage.latest_snapshot());
-        let withdrawal = test_withdrawal();
+        let withdrawal = regulated_test_withdrawal();
         let port = PortId::transfer();
         put_open_outbound_route(
             &mut state,

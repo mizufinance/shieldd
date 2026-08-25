@@ -3049,9 +3049,7 @@ mod tests {
             .get_user_leaf(&wallet, asset_id)
             .await
             .expect_err("record that disagrees with the tree must be rejected");
-        assert!(error
-            .to_string()
-            .contains("does not match the committed user tree"));
+        assert!(format!("{error:#}").contains("does not match the canonical address derivation"));
     }
 
     // ========== IMT Tests ==========

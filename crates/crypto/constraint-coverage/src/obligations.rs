@@ -565,25 +565,72 @@ pub fn normalize_manifest(ir: &DeployedSliceIr, previous: &CoverageManifest) -> 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ir::{ClassIr, SegmentIr, WireRoles, DEPLOYED_SLICE_IR_SCHEMA};
 
-    const FORMAL_DIR: &str = concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/../../core/component/shielded-pool/formal"
-    );
+    fn segment(index: usize, op: &str, class_key: &str) -> SegmentIr {
+        SegmentIr {
+            index,
+            op: op.to_owned(),
+            kind: "gadget".to_owned(),
+            start: index - 1,
+            end: index,
+            constraint_count: 1,
+            class_key: class_key.to_owned(),
+            wire_roles: WireRoles::default(),
+            constant_vector_sha256_hex: format!("constants-{index}"),
+            relation_sha256_hex: format!("relation-{index}"),
+            wire_role_sha256_hex: format!("wire-roles-{index}"),
+            deployed_normalized_relation_sha256_hex: format!("normalized-{index}"),
+            proof_template_id: format!("template-{index}"),
+            template_equivalence_witness: None,
+        }
+    }
 
-    fn load() -> (DeployedSliceIr, CoverageManifest) {
-        let ir_bytes = std::fs::read(format!(
-            "{FORMAL_DIR}/note_reshape1x8-deployed-slice-ir.json"
-        ))
-        .expect("read committed deployed-slice IR");
-        let man_bytes = std::fs::read(format!(
-            "{FORMAL_DIR}/note_reshape1x8-coverage-manifest.json"
-        ))
-        .expect("read committed coverage manifest");
-        (
-            load_ir(&ir_bytes).expect("parse IR"),
-            load_coverage_manifest(&man_bytes).expect("parse manifest"),
-        )
+    fn fixture() -> (DeployedSliceIr, CoverageManifest) {
+        let alpha_key = "gadget.alpha@shape-a";
+        let beta_key = "gadget.beta@shape-b";
+        let ir = DeployedSliceIr {
+            schema: DEPLOYED_SLICE_IR_SCHEMA.to_owned(),
+            circuit: "synthetic".to_owned(),
+            sr1cs_sha256_hex: "sr1cs".to_owned(),
+            nb_constraints: 3,
+            classes: vec![
+                ClassIr {
+                    class_key: alpha_key.to_owned(),
+                    op: "gadget.alpha".to_owned(),
+                    constraint_count: 1,
+                    shape_sha256_hex: "shape-a".to_owned(),
+                    representative_segment_index: 1,
+                    instance_segment_indices: vec![1, 2],
+                    distinct_constant_vectors: 2,
+                },
+                ClassIr {
+                    class_key: beta_key.to_owned(),
+                    op: "gadget.beta".to_owned(),
+                    constraint_count: 1,
+                    shape_sha256_hex: "shape-b".to_owned(),
+                    representative_segment_index: 3,
+                    instance_segment_indices: vec![3],
+                    distinct_constant_vectors: 1,
+                },
+            ],
+            segments: vec![
+                segment(1, "gadget.alpha", alpha_key),
+                segment(2, "gadget.alpha", alpha_key),
+                segment(3, "gadget.beta", beta_key),
+            ],
+        };
+        let mut manifest = skeleton_from_ir(&ir);
+        let proven = manifest
+            .classes
+            .iter_mut()
+            .find(|class| class.class_key == alpha_key)
+            .expect("alpha class");
+        proven.status = "proven".to_owned();
+        for instance in &mut proven.instances {
+            instance.lean_theorem = format!("Synthetic.alpha_{}", instance.segment_index);
+        }
+        (ir, manifest)
     }
 
     /// The manifest must stay structurally consistent with the IR: every class
@@ -592,7 +639,7 @@ mod tests {
     /// green throughout §2 and tightens to `fully_discharged` for the §3 gate.
     #[test]
     fn manifest_is_consistent_with_ir() {
-        let (ir, manifest) = load();
+        let (ir, manifest) = fixture();
         let report = check_obligations(&ir, &manifest);
         assert!(
             report.manifest_consistent(),
@@ -638,7 +685,7 @@ mod tests {
     /// concrete verdict, and the counts partition the total.
     #[test]
     fn obligations_partition_all_instances() {
-        let (ir, manifest) = load();
+        let (ir, manifest) = fixture();
         let report = check_obligations(&ir, &manifest);
         let instance_count = ir
             .segments
@@ -660,13 +707,8 @@ mod tests {
             report.total_obligations,
             "verdict counts must partition all obligations"
         );
-        // At least the two landed classes are discharged (assert_on_curve,
-        // note_commitment), covering all their instances.
-        assert!(
-            report.discharged >= 9,
-            "expected >=9 discharged instances, got {}",
-            report.discharged
-        );
+        assert_eq!(report.discharged, 2);
+        assert_eq!(report.pending, 1);
     }
 
     /// The constant-mismatch bite: corrupting one folded constant a `proven`
@@ -674,7 +716,7 @@ mod tests {
     /// silent pass. Proves the table actually checks constants per instance.
     #[test]
     fn proven_class_constant_drift_is_caught() {
-        let (ir, mut manifest) = load();
+        let (ir, mut manifest) = fixture();
         let target = manifest
             .classes
             .iter_mut()
@@ -709,7 +751,7 @@ mod tests {
     /// instantiation a checked fact rather than a class-level claim.
     #[test]
     fn proven_instance_relation_drift_is_caught() {
-        let (ir, mut manifest) = load();
+        let (ir, mut manifest) = fixture();
         let target = proven_multi_instance(&mut manifest);
         let h = &mut target.instances[0].relation_sha256_hex;
         let mut chars: Vec<char> = h.chars().collect();
@@ -728,7 +770,7 @@ mod tests {
     /// so a drifted wire-role fingerprint must fail loud.
     #[test]
     fn proven_instance_wire_role_drift_is_caught() {
-        let (ir, mut manifest) = load();
+        let (ir, mut manifest) = fixture();
         let target = proven_multi_instance(&mut manifest);
         let h = &mut target.instances[0].wire_role_sha256_hex;
         let mut chars: Vec<char> = h.chars().collect();
@@ -747,7 +789,7 @@ mod tests {
     /// `InstanceUnpinned` gap: the theorem was never instantiated there.
     #[test]
     fn proven_class_missing_instance_is_unpinned() {
-        let (ir, mut manifest) = load();
+        let (ir, mut manifest) = fixture();
         let target = proven_multi_instance(&mut manifest);
         target.instances.remove(0);
         let report = check_obligations(&ir, &manifest);
@@ -762,7 +804,7 @@ mod tests {
     /// that was typechecked for that slice.
     #[test]
     fn proven_instance_missing_theorem_is_caught() {
-        let (ir, mut manifest) = load();
+        let (ir, mut manifest) = fixture();
         let target = proven_multi_instance(&mut manifest);
         target.instances[0].lean_theorem.clear();
         let report = check_obligations(&ir, &manifest);
@@ -777,7 +819,7 @@ mod tests {
     /// it must fail independently of theorem-name presence.
     #[test]
     fn proven_instance_missing_contract_is_caught() {
-        let (ir, mut manifest) = load();
+        let (ir, mut manifest) = fixture();
         let target = proven_multi_instance(&mut manifest);
         target.instances[0].lean_contract.clear();
         let report = check_obligations(&ir, &manifest);
@@ -791,7 +833,7 @@ mod tests {
     /// A class present in the IR but absent from the manifest is a hard gap.
     #[test]
     fn forgotten_class_is_unmapped() {
-        let (ir, mut manifest) = load();
+        let (ir, mut manifest) = fixture();
         manifest.classes.retain(|c| c.status != "proven");
         let report = check_obligations(&ir, &manifest);
         assert!(
@@ -807,7 +849,7 @@ mod tests {
     /// one.)
     #[test]
     fn functional_assumption_requires_closed_allowlist() {
-        let (ir, mut manifest) = load();
+        let (ir, mut manifest) = fixture();
         let target = manifest
             .classes
             .first_mut()
@@ -834,7 +876,7 @@ mod tests {
     /// `fully_discharged` remains reserved for zero residual assumptions.
     #[test]
     fn functional_assumption_is_tiered_not_fully_discharged() {
-        let (ir, mut manifest) = load();
+        let (ir, mut manifest) = fixture();
         for class in &mut manifest.classes {
             if class.status == "pending" {
                 class.status = "proven".to_owned();

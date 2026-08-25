@@ -131,7 +131,10 @@ pub fn user_leaf_record(
 
 /// Consensus index from a canonical address to its one audit derivation.
 pub fn user_audit_key(address: &shieldd_sdk_keys::Address) -> String {
-    format!("compliance/user/audit_key/{}", hex::encode(address.to_vec()))
+    format!(
+        "compliance/user/audit_key/{}",
+        hex::encode(address.to_vec())
+    )
 }
 
 /// Consensus index preventing one audit derivation from being shared by addresses.

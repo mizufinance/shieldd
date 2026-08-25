@@ -1060,12 +1060,25 @@ mod tests {
         }
     }
 
+    fn regulated_test_denom() -> asset::Metadata {
+        "host_regulated_test_asset"
+            .try_into()
+            .expect("custom test denom should parse as a base denom")
+    }
+
+    fn regulated_deposit_request(msg_index: u32) -> DepositRequest {
+        DepositRequest {
+            denom: regulated_test_denom().to_string(),
+            ..deposit_request(msg_index)
+        }
+    }
+
     fn compliance_request(
         source: ProtoHostSource,
         action: UserAssetStatusAction,
     ) -> ApplyComplianceActionRequest {
         let address = Some(test_keys::ADDRESS_0.deref().clone().into());
-        let asset_id = Some(BASE_ASSET_DENOM.id().into());
+        let asset_id = Some(regulated_test_denom().id().into());
         let action = match action {
             UserAssetStatusAction::Freeze => {
                 apply_compliance_action_request::Action::Freeze(FreezeUserAsset {
@@ -1088,9 +1101,10 @@ mod tests {
 
     async fn register_regulated_test_user(host: &mut HostExecution) -> Result<()> {
         let mut state_tx = StateDelta::new(host.app.state.clone());
+        let asset_id = regulated_test_denom().id();
         state_tx
             .test_only_register_asset(
-                BASE_ASSET_DENOM.id(),
+                asset_id,
                 AssetPolicy::simple(
                     decaf377::Element::GENERATOR,
                     u128::MAX,
@@ -1102,7 +1116,7 @@ mod tests {
         state_tx
             .test_only_add_compliance_leaf(ComplianceLeaf::new(
                 test_keys::ADDRESS_0.deref().clone(),
-                BASE_ASSET_DENOM.id(),
+                asset_id,
             ))
             .await?;
         host.app.apply(state_tx);
@@ -1218,7 +1232,7 @@ mod tests {
             .expect_err("a host source cannot name a different successful action");
         assert!(conflict.to_string().contains("different request"));
 
-        let frozen_deposit = host.deposit(deposit_request(1)).await;
+        let frozen_deposit = host.deposit(regulated_deposit_request(1)).await;
         assert!(frozen_deposit
             .expect_err("regulated deposits to frozen users must fail")
             .to_string()
