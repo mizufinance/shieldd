@@ -29,7 +29,7 @@ nullifier, and value constraints are tracked in
   matches native key/address allocation and prevents identity-DTK ownership
   aliasing; it is not merely an honest-construction precondition.
 - Regulated transfers bind the diversified generator, transmission key, asset
-  id, slot id, `slot_derivation`, `d`, and status into version-4 compliance-leaf
+  id, canonical address-derived `d`, and status into version-5 compliance-leaf
   commitments under the accepted compliance anchor.
 - Native registration rejects a derived `d = 0`, preventing an identity ACK.
 - Regulated sender and receiver statuses must both equal `Active`.
@@ -46,12 +46,10 @@ nullifier, and value constraints are tracked in
 - An unregulated transfer is therefore never flagged, including when its
   receiver amount is `u128::MAX`.
 - Detection encryption is unconditional and uses the selected DK shared secret,
-  sender-core EPK, asset id/flag, detection salt, and both slot ids.
-- The exact plaintext order is asset, salt,
-  `sender_slot_id + is_flagged * 2^32`, receiver slot. Both slots are
-  constrained to 32 bits; the asset is not combined with the flag.
+  sender-core EPK, asset id, detection salt, canonical flag, and reserved zero.
+- Address candidate filtering uses the separate proof-bound routing tags.
 - The detection ciphertext is part of the public statement.
-- Mutation coverage: threshold boundary, flag, slot ids, salt, EPK, and each
+- Mutation coverage: threshold boundary, flag, reserved word, salt, EPK, and each
   detection ciphertext word.
 
 ### Audit-Tier Encryption
@@ -75,11 +73,10 @@ nullifier, and value constraints are tracked in
 
 ### Factored Metadata
 
-- One metadata record binds exactly 11 facts:
-  sender/output subject derivations, four selected policy hashes,
+- One metadata record binds exactly 9 facts: four selected policy hashes,
   `target_timestamp`, and four tier salts.
 - The four salts are structural tier domains in the fixed tier order.
-- The serialized record is exactly 328 bytes: ten canonical Fq encodings plus
+- The serialized record is exactly 264 bytes: eight canonical Fq encodings plus
   one little-endian u64.
 - Metadata timestamp equals the existing transfer target timestamp; it is not a
   second statement field.
@@ -88,11 +85,11 @@ nullifier, and value constraints are tracked in
 
 ### Public Statement
 
-- Rust and Go reconstruct the same 47-field preimage.
-- The statement hash domain is transfer `v6`.
+- Rust and Go reconstruct the same 45-field preimage.
+- The statement hash domain is transfer `v7`.
 - The preimage binds the consensus recent-position floor and one
   `history_required` bit per spend.
-- The public tail commits all ten non-duplicate metadata Fq values.
+- The public tail commits all eight non-duplicate metadata Fq values.
 - ABI tests reject stale witness versions and wrong vector lengths.
 - Differential tests compare native Rust/Go reconstruction, circuit public
   assignment, and statement hash.
@@ -115,7 +112,7 @@ nullifier, and value constraints are tracked in
 
 ### Wire Shape
 
-- Only the receiver output may carry the 640-byte ciphertext and 328-byte
+- Only the receiver output may carry the 640-byte ciphertext and 264-byte
   metadata.
 - Inputs and the change output carry neither.
 - Point and Fq decoders reject noncanonical values and wrong lengths.
@@ -134,7 +131,7 @@ nullifier, and value constraints are tracked in
 - `scanner_ciphertexts` stores the exact accepted ciphertext and optional
   metadata bytes.
 - `validate_and_save_evidence_object` requires both to match evidence exactly.
-- Detection asset, flag, salt, and slot facts must match the persisted
+- Detection asset, flag, and salt facts must match the persisted
   detection row.
 - Failures are persisted with bounded attacker-controlled reason text.
 
@@ -146,12 +143,3 @@ nullifier, and value constraints are tracked in
   closed for Orbis v0, even when evidence is valid.
 - Unflagged ACK-tier audit therefore cannot complete until a confidentiality-
   safe PRE v1 is specified, circuit-bound, and reviewed.
-
-## Retired Surfaces
-
-- Public DH shared points and upload packages were deleted.
-- The duplicate AES seed envelope and its unbound-seed failure mode were
-  deleted.
-- Per-tier DLEQ statement fields and validation are absent from Transfer.
-- Generic DLEQ Lean/Tamarin work is research-only and does not count toward
-  deployed Transfer certification.

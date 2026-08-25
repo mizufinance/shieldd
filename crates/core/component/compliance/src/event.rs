@@ -297,7 +297,6 @@ mod tests {
         let mut leaf = ComplianceLeaf::new(
             shieldd_sdk_keys::Address::dummy(&mut rng),
             asset::Id(decaf377::Fq::from(7u64)),
-            decaf377::Fq::from(9u64),
         );
         leaf.status = status;
         leaf

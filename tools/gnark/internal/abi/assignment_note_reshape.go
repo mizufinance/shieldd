@@ -58,12 +58,10 @@ func NewNoteReshapeCircuitAssignmentFromWitnessV6(payload []byte) (*circuits.Not
 		return nil, generated.NoteReshapeFamilySpec{}, fmt.Errorf("decode note reshape sender compliance path: %w", err)
 	}
 	assignment.Sender = circuits.NoteReshapeSenderCircuitFields{
-		SlotID:         fqString(witness.SenderSlotID),
-		SlotDerivation: fqString(witness.SenderSlotDerivation),
-		D:              fqString(witness.SenderD),
-		Status:         fqString(witness.SenderStatus),
-		Path:           senderPath,
-		Position:       witness.SenderCompliancePosition,
+		D:        fqString(witness.SenderD),
+		Status:   fqString(witness.SenderStatus),
+		Path:     senderPath,
+		Position: witness.SenderCompliancePosition,
 	}
 	for i := range witness.Spends {
 		spend, err := newNoteReshapeSpendCircuitFields(&witness.Spends[i])

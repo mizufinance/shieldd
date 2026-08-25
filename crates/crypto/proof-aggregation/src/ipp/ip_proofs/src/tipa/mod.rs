@@ -1209,13 +1209,9 @@ where
             &quotient_coefficients,
         )?
     } else {
-        // Preserve the historical backend error path for malformed effect
-        // outputs whose quotient is not shorter than the coefficient vector.
         effect.msm(srs_powers, &quotient_coefficients)?
     };
-    // Retain the historical full-length execution witness for extraction. The
-    // appended coefficient is definitionally zero and is no longer submitted
-    // to the production MSM.
+    // Keep the execution record aligned with the SRS length.
     quotient_coefficients.resize(srs_powers.len(), F::zero());
     Ok(kzg_opening_execution_from_parts(
         coefficients,
@@ -1541,7 +1537,6 @@ pub fn structured_generators_scalar_power<G: CurveGroup>(
         .collect()
 }
 
-#[cfg(not(hax_compilation))]
 fn polynomial_evaluation_product_form_from_transcript<F>(
     transcript: &Vec<F>,
     z: &F,
@@ -1564,31 +1559,6 @@ where
     product
 }
 
-#[cfg(hax_compilation)]
-fn polynomial_evaluation_product_form_from_transcript<F>(
-    transcript: &Vec<F>,
-    z: &F,
-    r_shift: &F,
-) -> F
-where
-    F: Clone + One + std::ops::Add<Output = F> + std::ops::Mul<Output = F>,
-{
-    let mut power_2_zr = (z.clone() * z.clone()) * r_shift.clone();
-    let mut product_form = Vec::new();
-    for i in 0..transcript.len() {
-        let x = transcript[i].clone();
-        product_form.push(F::one() + (x * power_2_zr.clone()));
-        power_2_zr = power_2_zr.clone() * power_2_zr;
-    }
-
-    let mut product = F::one();
-    for i in 0..product_form.len() {
-        product = product * product_form[i].clone();
-    }
-    product
-}
-
-#[cfg(not(hax_compilation))]
 fn polynomial_coefficients_from_transcript<F: Field>(transcript: &Vec<F>, r_shift: &F) -> Vec<F> {
     let mut coefficients = vec![F::one()];
     let mut power_2_r = r_shift.clone();
@@ -1604,33 +1574,6 @@ fn polynomial_coefficients_from_transcript<F: Field>(transcript: &Vec<F>, r_shif
         .interleave(vec![F::zero()].iter().cycle().take(coefficients.len() - 1))
         .cloned()
         .collect()
-}
-
-#[cfg(hax_compilation)]
-fn polynomial_coefficients_from_transcript<F>(transcript: &Vec<F>, r_shift: &F) -> Vec<F>
-where
-    F: Clone + One + Zero + std::ops::Mul<Output = F>,
-{
-    let mut coefficients = vec![F::one()];
-    let mut power_2_r = r_shift.clone();
-    for i in 0..transcript.len() {
-        let x = transcript[i].clone();
-        let factor = x * power_2_r.clone();
-        for j in 0..(2_usize).pow(i as u32) {
-            coefficients.push(coefficients[j].clone() * factor.clone());
-        }
-        power_2_r = power_2_r.clone() * power_2_r;
-    }
-
-    let logical_len = coefficients.len();
-    let mut interleaved = Vec::with_capacity(logical_len * 2 - 1);
-    for i in 0..logical_len {
-        interleaved.push(coefficients[i].clone());
-        if i + 1 < logical_len {
-            interleaved.push(F::zero());
-        }
-    }
-    interleaved
 }
 
 #[cfg(test)]

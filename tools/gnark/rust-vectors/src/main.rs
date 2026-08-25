@@ -1,5 +1,4 @@
 use ark_ec::{AffineRepr, CurveGroup};
-use ark_ff::BigInteger;
 use ark_ff::PrimeField;
 use decaf377::{Element, Encoding, Fq, Fr, ZETA};
 use poseidon_parameters::v1::{Alpha, MatrixOperations};
@@ -47,7 +46,6 @@ struct PoseidonVectors {
     sender_leaf_domain: String,
     compliance_leaf_domain: String,
     issuer_detection_domain: String,
-    dleq_metadata_domain: String,
     imt_leaf_domain: String,
     imt_params_domain: String,
     imt_ring_domain: String,
@@ -88,20 +86,6 @@ struct DecafEncodeVector {
     encoding_hex: String,
 }
 
-#[derive(Serialize)]
-struct DleqFixture {
-    challenge_keep_bits: usize,
-    metadata_hash: String,
-    wrong_metadata_hash: String,
-    r: String,
-    ack_x: String,
-    ack_y: String,
-    epk_x: String,
-    epk_y: String,
-    dleq_c: String,
-    dleq_s: String,
-}
-
 /// NoteReshape statement-hash seam fixture (H3 / Phase C).
 ///
 /// Seeded retained-family public statements in the exact production role order,
@@ -122,7 +106,6 @@ struct Vectors {
     poseidon377: PoseidonVectors,
     decaf377_compress_vectors: Vec<DecafCompressVector>,
     decaf377_encode_vectors: Vec<DecafEncodeVector>,
-    dleq_fixture: DleqFixture,
     note_reshape_statements: Vec<NoteReshapeStatementFixture>,
 }
 
@@ -133,60 +116,6 @@ fn blake2b_fq(label: &[u8]) -> Fq {
 fn personalized_blake2b_fq(personal: &[u8; 16]) -> Fq {
     let hash = blake2b_simd::Params::default().personal(personal).hash(b"");
     Fq::from_le_bytes_mod_order(hash.as_bytes())
-}
-
-fn fq_to_challenge_scalar(fq: Fq) -> Fr {
-    let mut bytes = fq.into_bigint().to_bytes_le();
-    let keep_bits = Fr::MODULUS_BIT_SIZE - 1;
-    let keep_bytes = (keep_bits as usize + 7) / 8;
-    let spare_bits = keep_bytes * 8 - keep_bits as usize;
-    bytes[keep_bytes - 1] &= 0xFF >> spare_bits;
-    Fr::from_le_bytes_mod_order(&bytes)
-}
-
-fn compute_metadata_hash(
-    policy_id_hash: Fq,
-    resource_hash: Fq,
-    permission_hash: Fq,
-    tier: Fq,
-    target_timestamp: Fq,
-    salt: Fq,
-) -> Fq {
-    let domain = blake2b_fq(b"shieldd.compliance.dleq_metadata");
-    poseidon377::hash_6(
-        &domain,
-        (
-            policy_id_hash,
-            resource_hash,
-            permission_hash,
-            tier,
-            target_timestamp,
-            salt,
-        ),
-    )
-}
-
-fn compute_dleq_native(r: Fr, k: Fr, ack: &Element, epk: &Element, metadata_hash: Fq) -> (Fq, Fr) {
-    let s_point = *ack * r;
-    let r_point = Element::GENERATOR * k;
-    let rp_point = *ack * k;
-
-    let domain = Fq::from_le_bytes_mod_order(b"elgamal-encrypt-proof-v1");
-    let c_fq_full = poseidon377::hash_7(
-        &domain,
-        (
-            metadata_hash,
-            Element::GENERATOR.vartime_compress_to_field(),
-            ack.vartime_compress_to_field(),
-            epk.vartime_compress_to_field(),
-            s_point.vartime_compress_to_field(),
-            r_point.vartime_compress_to_field(),
-            rp_point.vartime_compress_to_field(),
-        ),
-    );
-    let c_truncated = fq_to_challenge_scalar(c_fq_full);
-    let s = k + c_truncated * r;
-    (Fq::from_le_bytes_mod_order(&c_truncated.to_bytes()), s)
 }
 
 fn note_reshape_statement_fixture(
@@ -405,37 +334,6 @@ fn main() {
     let value_blinding_generator_encoding_bytes: [u8; 32] =
         value_blinding_generator_encoding.into();
 
-    let r = Fr::from(101u64);
-    let ring_sk = Fr::from(201u64);
-    let ring_pk = Element::GENERATOR * ring_sk;
-    let d_fr = Fr::from(301u64);
-    let ack = ring_pk * d_fr;
-    let epk = Element::GENERATOR * r;
-    let k = Fr::from(401u64);
-    let target_timestamp = Fq::from(1_700_000_000u64);
-    let salt = Fq::from(501u64);
-    let metadata_hash = compute_metadata_hash(
-        Fq::from(1u64),
-        Fq::from(2u64),
-        Fq::from(3u64),
-        Fq::from(1u64),
-        target_timestamp,
-        salt,
-    );
-    let wrong_metadata_hash = compute_metadata_hash(
-        Fq::from(99u64),
-        Fq::from(2u64),
-        Fq::from(3u64),
-        Fq::from(1u64),
-        target_timestamp,
-        Fq::from(777u64),
-    );
-    let (dleq_c, dleq_s) = compute_dleq_native(r, k, &ack, &epk, metadata_hash);
-    let ack_affine = ack.into_affine();
-    let (ack_x, ack_y) = ack_affine.xy().expect("ack should have coordinates");
-    let epk_affine = epk.into_affine();
-    let (epk_x, epk_y) = epk_affine.xy().expect("epk should have coordinates");
-
     let vectors = Vectors {
         decaf377_companion_curve: CurveVectors {
             a: "-1".to_string(),
@@ -470,12 +368,11 @@ fn main() {
                 blake2b_simd::blake2b(b"shieldd.leaf_binding.sender").as_bytes(),
             )
             .to_string(),
-            compliance_leaf_domain: blake2b_fq(b"shieldd.compliance.leaf.v4").to_string(),
+            compliance_leaf_domain: blake2b_fq(b"shieldd.compliance.leaf.v5").to_string(),
             issuer_detection_domain: blake2b_fq(b"shieldd.compliance.issuer_detection")
                 .to_string(),
-            dleq_metadata_domain: blake2b_fq(b"shieldd.compliance.dleq_metadata").to_string(),
             imt_leaf_domain: personalized_blake2b_fq(b"pen.imt.leaf____").to_string(),
-            imt_params_domain: personalized_blake2b_fq(b"pen.imt.params__").to_string(),
+            imt_params_domain: personalized_blake2b_fq(b"pen.imt.params2_").to_string(),
             imt_ring_domain: personalized_blake2b_fq(b"pen.imt.ring____").to_string(),
             hash7_domain: hash7_domain.to_string(),
             hash7_inputs: hash7_inputs.iter().map(ToString::to_string).collect(),
@@ -494,18 +391,6 @@ fn main() {
         },
         decaf377_compress_vectors,
         decaf377_encode_vectors,
-        dleq_fixture: DleqFixture {
-            challenge_keep_bits: (Fr::MODULUS_BIT_SIZE as usize) - 1,
-            metadata_hash: metadata_hash.to_string(),
-            wrong_metadata_hash: wrong_metadata_hash.to_string(),
-            r: r.to_string(),
-            ack_x: ack_x.to_string(),
-            ack_y: ack_y.to_string(),
-            epk_x: epk_x.to_string(),
-            epk_y: epk_y.to_string(),
-            dleq_c: dleq_c.to_string(),
-            dleq_s: Fq::from_le_bytes_mod_order(&dleq_s.to_bytes()).to_string(),
-        },
         note_reshape_statements,
     };
 

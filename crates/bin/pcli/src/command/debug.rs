@@ -32,16 +32,13 @@ impl DebugCmd {
 /// common support-related questions like "What chain are you on?"
 /// or "What version of Tendermint are you running?". Intended to display
 /// output via `pcli debug info`, for ease of pasting into chat or issues.
-// The DebugInfo struct is only used to print info to stdout,
-// so its field names won't be accessed elsewhere; thus allow dead_code.
+// Serde reads these fields through generated code.
 #[allow(dead_code)]
 #[derive(Debug, Serialize)]
 pub struct DebugInfo {
     /// CometBFT version, if cometbft is found on PATH.
     cometbft_version: Option<String>,
     /// Tendermint version, if tendermint is found on PATH.
-    // Preserved for a while during Tendermint -> CometBFT,
-    // to aid in debugging.
     tendermint_version: Option<String>,
     /// pd version, if pd is found on PATH.
     pd_version: Option<String>,

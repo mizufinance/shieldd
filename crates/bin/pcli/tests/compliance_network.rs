@@ -31,9 +31,6 @@ const DEFAULT_COMPLIANCE_DEV_AUTHORITY_SK_HEX: &str =
 const DEFAULT_COMPLIANCE_DEV_AUTHORITY_VK_HEX: &str =
     "b2ecf9b9082d6306538be73b0d6ee741141f3222152da78685d6596efc8c1506";
 const DEFAULT_COMPLIANCE_GRANT_VALID_UNTIL_UNIX: &str = "4102444800";
-const TEST_SLOT_ID: &str = "0";
-const TEST_SLOT_DERIVATION_HEX: &str =
-    "0300000000000000000000000000000000000000000000000000000000000000";
 
 /// Import the wallet from seed phrase into a temporary directory.
 fn load_wallet_into_tmpdir() -> TempDir {
@@ -162,10 +159,6 @@ fn sign_user_grant(tmpdir: &TempDir, asset_denom: &str, address: Address) -> Str
         asset_denom,
         "--address",
         &address,
-        "--slot-id",
-        TEST_SLOT_ID,
-        "--slot-derivation-hex",
-        TEST_SLOT_DERIVATION_HEX,
         "--registration-authority-sk-hex",
         &authority_sk,
         "--valid-until-unix",
@@ -410,10 +403,6 @@ fn compliance_register_user() {
         &smoke_asset,
         "--address",
         &address_string,
-        "--slot-id",
-        TEST_SLOT_ID,
-        "--slot-derivation-hex",
-        TEST_SLOT_DERIVATION_HEX,
         "--user-registration-grant-hex",
         &grant,
     ])

@@ -121,7 +121,7 @@ func transferIdentityOwnershipAliasAssignment() transferIdentityOwnershipAliasPr
 	}
 }
 
-func TestTransferIdentityDiversifierEnablesSameCommitmentDifferentNullifiersWithoutGuard(
+func TestTransferUnguardedIdentityDiversifierAliasesOwnership(
 	t *testing.T,
 ) {
 	assignment := transferIdentityOwnershipAliasAssignment()
@@ -131,7 +131,7 @@ func TestTransferIdentityDiversifierEnablesSameCommitmentDifferentNullifiersWith
 		ecc.BLS12_377.ScalarField(),
 	); err != nil {
 		t.Fatalf(
-			"the historical identity-diversifier relation should admit one commitment under distinct nullifier keys: %v",
+			"unguarded identity diversifier should admit one commitment under distinct nullifier keys: %v",
 			err,
 		)
 	}
@@ -160,9 +160,7 @@ func TestTransferCircuitRejectsIdentityAuthorizationAndDiversifiedGenerators(
 		t.Fatalf("canonical Transfer witness must satisfy non-identity guards: %v", err)
 	}
 
-	// These are whole-relation drift probes. The IVK and transmission
-	// mutations also disturb derivation/equality/commitment rows, so isolated
-	// guard evidence lives in the primitive and exact-trace tests.
+	// IVK and transmission mutations also disturb derivation and commitment rows.
 	tests := []struct {
 		name   string
 		mutate func(*circuits.TransferCircuit)

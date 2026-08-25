@@ -10,7 +10,7 @@ import (
 
 const SpendStatementFieldCount = 17
 const OutputStatementFieldCount = 29
-const TransferStatementBaseFields = 39
+const TransferStatementBaseFields = 37
 const TransferStatementFieldsPerInput = 3
 const TransferStatementFieldsPerOutput = 1
 const NoteReshapeStatementBaseFields = 7
@@ -155,7 +155,7 @@ func TransferStatementHashForShape(
 	return transferStatementHashWithVersion(
 		api,
 		transferStatementLabel(),
-		"v6",
+		"v7",
 		fields,
 		transferStatementFieldCount(nIn, nOut),
 	)
@@ -402,7 +402,7 @@ func TransferStatementHashNativeForShape(
 	return transferStatementHashNativeWithVersion(
 		fields,
 		transferStatementLabel(),
-		"v6",
+		"v7",
 		transferStatementFieldCount(nIn, nOut),
 	)
 }

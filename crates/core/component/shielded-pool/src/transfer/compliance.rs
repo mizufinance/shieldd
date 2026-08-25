@@ -51,7 +51,6 @@ pub(crate) fn build_transfer_compliance(
     asset_indexed_leaf: &IndexedLeaf,
     target_timestamp: u64,
     transfer_nonce_root: Fr,
-    routing_roles_swapped: bool,
 ) -> Result<BuildTransferComplianceResult> {
     let receiver_output = outputs
         .get(RECEIVER_OUTPUT_INDEX)
@@ -107,14 +106,9 @@ pub(crate) fn build_transfer_compliance(
             asset_id: receiver_note.asset_id(),
         },
         is_flagged,
-        sender_leaf.slot_id,
-        receiver_leaf.slot_id,
-        routing_roles_swapped,
         detection_salt,
     )?;
 
-    let sender_slot_derivation = sender_leaf.slot_derivation;
-    let receiver_slot_derivation = receiver_leaf.slot_derivation;
     // A non-membership witness carries the predecessor leaf. None of that
     // unrelated predecessor's policy identifiers may enter the public
     // statement for an unregulated transfer.
@@ -131,8 +125,6 @@ pub(crate) fn build_transfer_compliance(
         ("", "", "", "")
     };
     let metadata = TransferComplianceMetadata::from_identifiers(
-        sender_slot_derivation,
-        receiver_slot_derivation,
         ring_id,
         policy_id,
         resource,

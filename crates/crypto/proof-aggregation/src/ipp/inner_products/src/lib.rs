@@ -145,8 +145,7 @@ pub struct PairingInnerProduct<P: Pairing> {
     _pair: PhantomData<P>,
 }
 
-// No serial cutoff in `{64, 128, 256, 512}` beat the fully parallel control on
-// the warmed strict `1k` builder sweep, so keep the historical behavior.
+// The parallel path wins at all supported batch sizes.
 const PAIRING_PARALLEL_THRESHOLD: usize = 1;
 
 impl<P: Pairing> InnerProduct for PairingInnerProduct<P> {

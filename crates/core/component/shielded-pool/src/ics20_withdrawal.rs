@@ -161,8 +161,6 @@ impl From<Ics20Withdrawal> for pb::Ics20Withdrawal {
             timeout_height: Some(w.timeout_height.into()),
             timeout_time: w.timeout_time,
             source_channel: w.source_channel.to_string(),
-            // Field 8 is retained on the external protobuf boundary, but the
-            // deprecated compatibility encoding is not part of the domain.
             use_compat_address: false,
             ics20_memo: w.ics20_memo.to_string(),
             use_transparent_address: w.use_transparent_address,
@@ -233,17 +231,17 @@ mod tests {
     }
 
     #[test]
-    fn deprecated_compat_address_flag_is_rejected_on_decode() {
+    fn unsupported_compat_address_flag_is_rejected_on_decode() {
         let mut proto: pb::Ics20Withdrawal = withdrawal().into();
         proto.use_compat_address = true;
 
         let error = Ics20Withdrawal::try_from(proto)
-            .expect_err("the deprecated no-op compatibility flag must fail closed");
+            .expect_err("the unsupported compatibility flag must fail closed");
         assert!(error.to_string().contains("compatibility"));
     }
 
     #[test]
-    fn domain_encoding_clears_deprecated_compat_address_flag() {
+    fn domain_encoding_clears_compat_address_flag() {
         let proto: pb::Ics20Withdrawal = withdrawal().into();
         assert!(!proto.use_compat_address);
     }

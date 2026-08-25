@@ -1,9 +1,0 @@
-tool: tamarin-prover
-tamarin: 1.12.0
-maude: 3.5.1
-model: crates/core/component/compliance/formal/compliance-active.spthy
-model_sha256: 687cada8dffde9cd917e6df952be74b0a2cf08cc28a5f5c211d2ce9c4a86a8b0
-LEMMA DLEQ_BINDING verified
-LEMMA REPLAY_RESISTANCE verified
-LEMMA NO_KEY_CONFUSION verified
-LEMMA EXECUTABLE verified

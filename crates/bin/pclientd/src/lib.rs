@@ -126,7 +126,7 @@ pub enum Command {
         /// If present, where to fetch the assets from.
         ///
         /// If this is not present, this will use the Prax wallet registry, with the chain
-        /// ID pclientd has previously been initialize with to source the correct registry.
+        /// Registry ID used to initialize pclientd.
         ///
         /// If this is present, it will be assumed to be an HTTP URL. If the URL ends in ".json",
         /// it's assumed to be a specific registry file, which will be fetched. If the URL

@@ -8,7 +8,9 @@ from dataclasses import dataclass
 from enum import Enum
 import hashlib
 import json
+import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 
@@ -250,6 +252,61 @@ def verify(bundle: str | Bundle = Bundle.FULL) -> None:
         verify_file(artifact)
 
 
+def artifact_cache_root() -> Path:
+    configured = os.environ.get("SHIELDD_PROOF_ARTIFACT_CACHE")
+    return Path(configured).expanduser() if configured else REPO_ROOT / ".cache" / "proof-artifacts"
+
+
+def artifact_cache_path(artifact: ArtifactFile) -> Path:
+    return artifact_cache_root() / "sha256" / artifact.sha256_hex[:2] / artifact.sha256_hex
+
+
+def restore_cached_artifact(artifact: ArtifactFile) -> bool:
+    if artifact.kind is not ArtifactKind.SR1CS:
+        return False
+    cached = artifact_cache_path(artifact)
+    if not cached.is_file() or cached.is_symlink():
+        return False
+    if sha256(cached) != artifact.sha256_hex:
+        return False
+    artifact.path.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(cached, artifact.path)
+    verify_file(artifact)
+    return True
+
+
+def cache_artifact(artifact: ArtifactFile) -> None:
+    if artifact.kind is not ArtifactKind.SR1CS:
+        return
+    verify_file(artifact)
+    destination = artifact_cache_path(artifact)
+    if destination.is_file() and not destination.is_symlink():
+        if sha256(destination) == artifact.sha256_hex:
+            return
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temporary = destination.with_name(f".{destination.name}.{os.getpid()}.tmp")
+    try:
+        shutil.copy2(artifact.path, temporary)
+        if sha256(temporary) != artifact.sha256_hex:
+            raise ArtifactError(f"failed to populate proof-artifact cache for {artifact.path}")
+        os.replace(temporary, destination)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def restore_cached_bundle(bundle: str | Bundle) -> None:
+    for artifact in artifact_files(bundle):
+        try:
+            verify_file(artifact)
+        except ArtifactError:
+            restore_cached_artifact(artifact)
+
+
+def cache_bundle(bundle: str | Bundle) -> None:
+    for artifact in artifact_files(bundle):
+        cache_artifact(artifact)
+
+
 def install_lfs_filters() -> None:
     command = ["git", "lfs", "install", "--local", "--skip-smudge"]
     result = subprocess.run(command, cwd=REPO_ROOT, check=False)
@@ -289,7 +346,9 @@ def restore(bundle: str | Bundle = Bundle.FULL) -> None:
     selected = parse_bundle(bundle)
     if lfs_paths(selected):
         install_lfs_filters()
+    restore_cached_bundle(selected)
     verify(selected)
+    cache_bundle(selected)
     refresh_git_index(selected)
 
 
@@ -297,6 +356,7 @@ def materialize(bundle: str | Bundle = Bundle.FULL) -> None:
     selected = parse_bundle(bundle)
     if lfs_paths(selected):
         install_lfs_filters()
+    restore_cached_bundle(selected)
     missing_or_invalid: list[ArtifactFile] = []
     for artifact in artifact_files(selected):
         try:
@@ -336,6 +396,7 @@ def materialize(bundle: str | Bundle = Bundle.FULL) -> None:
                 "LFS, authenticate to the repository, and retry"
             )
         verify(selected)
+    cache_bundle(selected)
     refresh_git_index(selected)
 
 

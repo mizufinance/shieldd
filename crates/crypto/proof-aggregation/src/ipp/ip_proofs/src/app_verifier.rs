@@ -1,4 +1,4 @@
-//! Extraction-friendly control state for the application aggregate verifier.
+//! Control state for the application aggregate verifier.
 //!
 //! Rich proof and statement values stay at the application edge. This module
 //! owns every acceptance-relevant scalar comparison and tagged reduction.
@@ -6,7 +6,7 @@
 /// Wire version authenticated by the shipping aggregate statement.
 pub const APP_VERIFY_PROTOCOL_VERSION: u32 = 2;
 
-/// Extraction root used by the shipping-input constructor.
+/// Protocol version used by the shipping-input constructor.
 #[doc(hidden)]
 pub fn app_verify_protocol_version_core() -> u32 {
     APP_VERIFY_PROTOCOL_VERSION
@@ -176,7 +176,7 @@ pub struct AppVerifyPreparedRows<T> {
 
 /// Accepted serialized-row provenance beside the exact shipping preflight.
 ///
-/// Field values remain opaque. The extracted core operates only on their
+/// Field values remain opaque. The core operates only on their
 /// concrete serialization and retains the caller field rows together with
 /// the exact repeat-final serialized result. `BindingExecution` is an opaque
 /// call-scoped record retained without interpretation for the separate
@@ -651,7 +651,7 @@ fn app_verify_serialized_rows_have_arity(rows: &[Vec<Vec<u8>>], expected: usize)
 
 /// Structural equality for serialized rows using only concrete byte-vector
 /// equality. This avoids treating an opaque field `PartialEq` result as a
-/// proposition in the formal model.
+/// protocol claim.
 fn app_verify_serialized_row_equal(left: &[Vec<u8>], right: &[Vec<u8>]) -> bool {
     if left.len() != right.len() {
         return false;
@@ -739,7 +739,7 @@ fn app_verify_prepare_shipping_statement_rows_core<Field>(
 /// serialization, and construct the exact shipping preflight used by
 /// production.
 ///
-/// Arkworks field serialization remains outside this extracted core. The
+/// Arkworks field serialization remains outside this core. The
 /// successful carrier retains its opaque field inputs, concrete byte
 /// projection, prepared serialization, authenticated statement fields, and
 /// shipping output.

@@ -15,11 +15,7 @@ working tree only — it bloats the repo and regenerates every run. The figures
 below describe the local coverage-guided sessions, time-boxed at 61 seconds per
 target, run well beyond the 16-run smoke default.
 
-The Lean differential conformance layer is **not** a fuzz target. The transcript-
-shape domain is finite (one shape per power of two up to the SRS max), so it is
-exhaustively enumerated by `proof-aggregation-lean-conformance`, not sampled —
-see `docs/snarkpack/verification.md` (TXN-I5). The `feature/coverage` columns below describe
-machine-fuzzed byte boundaries only.
+The `feature/coverage` columns below describe machine-fuzzed byte boundaries.
 
 ## Minimized Corpora
 

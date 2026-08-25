@@ -21,15 +21,15 @@ pub use note_reshape::{
 };
 pub use note_reshape_witness::NoteReshapeWitnessV6;
 pub use shielded_ics20_withdrawal::{
-    decode_shielded_ics20_withdrawal_witness_v11, encode_shielded_ics20_withdrawal_witness_v11,
+    decode_shielded_ics20_withdrawal_witness_v12, encode_shielded_ics20_withdrawal_witness_v12,
     translate_shielded_ics20_withdrawal_proof_result, GnarkShieldedIcs20WithdrawalClient,
 };
-pub use shielded_ics20_withdrawal_witness::ShieldedIcs20WithdrawalWitnessV11;
+pub use shielded_ics20_withdrawal_witness::ShieldedIcs20WithdrawalWitnessV12;
 pub use transfer::{
-    decode_transfer_witness_v19, encode_transfer_witness_v19, translate_transfer_proof_result,
+    decode_transfer_witness_v20, encode_transfer_witness_v20, translate_transfer_proof_result,
     GnarkTransferClient,
 };
-pub use transfer_witness::TransferWitnessV19;
+pub use transfer_witness::TransferWitnessV20;
 #[cfg(test)]
 pub(crate) use typed::point_affine_compress_to_field_bytes;
 pub use typed::{ComplianceLeafBinary, IndexedLeafBinary, MerklePathBinary, PointAffineBytes};
@@ -148,8 +148,8 @@ mod soundness_fixture_tests {
 
     use crate::{
         gnark::{
-            encode_note_reshape_witness_v6, encode_shielded_ics20_withdrawal_witness_v11,
-            encode_transfer_witness_v19,
+            encode_note_reshape_witness_v6, encode_shielded_ics20_withdrawal_witness_v12,
+            encode_transfer_witness_v20,
         },
         test_proof_helpers::proof_test_helpers,
         NoteReshapeFamilyId, ShieldedIcs20WithdrawalFamilyId,
@@ -175,8 +175,8 @@ mod soundness_fixture_tests {
         let (public, private) =
             proof_test_helpers::build_transfer_roundtrip_inputs_with_rng(&mut rng, true);
         write_fixture(
-            "transfer_witness_v19.bin",
-            encode_transfer_witness_v19(&public, &private).expect("encode transfer witness"),
+            "transfer_witness_v20.bin",
+            encode_transfer_witness_v20(&public, &private).expect("encode transfer witness"),
         );
     }
 
@@ -195,8 +195,8 @@ mod soundness_fixture_tests {
                 false,
             );
         write_fixture(
-            "transfer_unregulated_witness_v19.bin",
-            encode_transfer_witness_v19(&public, &private)
+            "transfer_unregulated_witness_v20.bin",
+            encode_transfer_witness_v20(&public, &private)
                 .expect("encode unregulated transfer witness"),
         );
     }
@@ -208,8 +208,8 @@ mod soundness_fixture_tests {
                 &mut rng,
             );
         write_fixture(
-            "transfer_flagged_witness_v19.bin",
-            encode_transfer_witness_v19(&public, &private)
+            "transfer_flagged_witness_v20.bin",
+            encode_transfer_witness_v20(&public, &private)
                 .expect("encode flagged transfer witness"),
         );
     }
@@ -223,8 +223,8 @@ mod soundness_fixture_tests {
                 true,
             );
         write_fixture(
-            "shielded_ics20_withdrawal_witness_v11.bin",
-            encode_shielded_ics20_withdrawal_witness_v11(&public, &private)
+            "shielded_ics20_withdrawal_witness_v12.bin",
+            encode_shielded_ics20_withdrawal_witness_v12(&public, &private)
                 .expect("encode shielded ICS-20 withdrawal witness"),
         );
     }
@@ -239,8 +239,8 @@ mod soundness_fixture_tests {
                 1,
             );
         write_fixture(
-            "shielded_ics20_withdrawal_unregulated_witness_v11.bin",
-            encode_shielded_ics20_withdrawal_witness_v11(&public, &private)
+            "shielded_ics20_withdrawal_unregulated_witness_v12.bin",
+            encode_shielded_ics20_withdrawal_witness_v12(&public, &private)
                 .expect("encode unregulated optional-dummy withdrawal witness"),
         );
     }

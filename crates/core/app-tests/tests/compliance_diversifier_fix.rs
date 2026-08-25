@@ -45,7 +45,7 @@ async fn compliance_enrichment_preserves_sender_diversifier_on_supported_transfe
         .id();
 
     let sender = test_keys::FULL_VIEWING_KEY.payment_address(AddressIndex::from(1u32));
-    let recipient = test_keys::ADDRESS_1.deref().clone();
+    let recipient = test_keys::ADDRESS_0.deref().clone();
 
     let _test_node = {
         let mut content =

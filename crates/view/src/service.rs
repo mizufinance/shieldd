@@ -2120,8 +2120,6 @@ impl ViewService for ViewServer {
                         address: Some(address.clone().into()),
                         asset_id: Some(asset_id.into()),
                         d: leaf_data.d.to_vec(),
-                        slot_id: leaf_data.slot_id,
-                        slot_derivation: leaf_data.slot_derivation.to_vec(),
                         status: compliance_pb::UserAssetStatus::from(leaf_data.status) as i32,
                     };
 
@@ -2279,15 +2277,13 @@ impl ViewService for ViewServer {
             .map_err(|e| tonic::Status::internal(format!("storage error: {e}")))?;
 
         if let Some(leaf_data) = local_leaf_data {
-            // Local storage hit - reconstruct the leaf from stored slot material.
+            // Local storage hit - reconstruct the leaf from stored data.
             tracing::debug!(?address, ?asset_id, "using local storage for user leaf");
 
             let leaf = compliance_pb::ComplianceLeaf {
                 address: request_inner.address,
                 asset_id: request_inner.asset_id,
                 d: leaf_data.d.to_vec(),
-                slot_id: leaf_data.slot_id,
-                slot_derivation: leaf_data.slot_derivation.to_vec(),
                 status: compliance_pb::UserAssetStatus::from(leaf_data.status) as i32,
             };
 
@@ -2328,8 +2324,6 @@ impl ViewService for ViewServer {
             address: l.address,
             asset_id: l.asset_id,
             d: l.d,
-            slot_id: l.slot_id,
-            slot_derivation: l.slot_derivation,
             status: l.status,
         });
 
@@ -2432,8 +2426,6 @@ impl ViewService for ViewServer {
                             address: Some(address.clone().into()),
                             asset_id: Some(asset_id.into()),
                             d: leaf_data.d.to_vec(),
-                            slot_id: leaf_data.slot_id,
-                            slot_derivation: leaf_data.slot_derivation.to_vec(),
                             status: compliance_pb::UserAssetStatus::from(leaf_data.status) as i32,
                         };
 

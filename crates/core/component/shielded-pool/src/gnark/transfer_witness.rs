@@ -15,7 +15,7 @@ use crate::{
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct TransferRequiredSpendWitnessV19 {
+pub struct TransferRequiredSpendWitnessV20 {
     pub nullifier: [u8; 32],
     pub spent_note_blinding: [u8; 32],
     pub spent_note_amount: [u8; 32],
@@ -28,7 +28,7 @@ pub struct TransferRequiredSpendWitnessV19 {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct TransferOptionalSpendWitnessV19 {
+pub struct TransferOptionalSpendWitnessV20 {
     pub nullifier: [u8; 32],
     pub spent_note_blinding: [u8; 32],
     pub spent_note_amount: [u8; 32],
@@ -42,14 +42,12 @@ pub struct TransferOptionalSpendWitnessV19 {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct TransferReceiverOutputWitnessV19 {
+pub struct TransferReceiverOutputWitnessV20 {
     pub note_commitment: [u8; 32],
     pub created_note_blinding: [u8; 32],
     pub created_note_amount: [u8; 32],
     pub recipient_compliance_path: MerklePathBinary,
     pub recipient_compliance_position: u64,
-    pub recipient_slot_id: [u8; 32],
-    pub recipient_slot_derivation: [u8; 32],
     pub recipient_d: [u8; 32],
     pub recipient_status: [u8; 32],
     pub recipient_diversified_generator_affine: PointAffineBytes,
@@ -57,27 +55,27 @@ pub struct TransferReceiverOutputWitnessV19 {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct TransferChangeOutputWitnessV19 {
+pub struct TransferChangeOutputWitnessV20 {
     pub note_commitment: [u8; 32],
     pub created_note_blinding: [u8; 32],
     pub created_note_amount: [u8; 32],
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct TransferComplianceCiphertextWitnessV19 {
+pub struct TransferComplianceCiphertextWitnessV20 {
     pub c2: [u8; 32],
     pub ciphertext: Vec<[u8; 32]>,
     pub epk_affine: PointAffineBytes,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct TransferTierRandomizersWitnessV19 {
+pub struct TransferTierRandomizersWitnessV20 {
     pub core: [u8; 32],
     pub ext: [u8; 32],
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct TransferWitnessV19 {
+pub struct TransferWitnessV20 {
     pub total_length: u32,
     pub anchor: [u8; 32],
     pub asset_anchor: [u8; 32],
@@ -98,14 +96,10 @@ pub struct TransferWitnessV19 {
     pub routing_as_of_height: u64,
     pub sender_compliance_path: MerklePathBinary,
     pub sender_compliance_position: u64,
-    pub sender_slot_id: [u8; 32],
-    pub sender_slot_derivation: [u8; 32],
     pub sender_d: [u8; 32],
     pub sender_status: [u8; 32],
     pub transfer_nonce_root: [u8; 32],
     pub detection_ciphertext: Vec<[u8; 32]>,
-    pub sender_subject_derivation: [u8; 32],
-    pub output_subject_derivation: [u8; 32],
     pub ring_id_hash: [u8; 32],
     pub policy_id_hash: [u8; 32],
     pub resource_hash: [u8; 32],
@@ -115,16 +109,16 @@ pub struct TransferWitnessV19 {
     pub sender_ext_salt: [u8; 32],
     pub output_core_salt: [u8; 32],
     pub output_ext_salt: [u8; 32],
-    pub sender_core: TransferComplianceCiphertextWitnessV19,
-    pub sender_ext: TransferComplianceCiphertextWitnessV19,
-    pub output_core: TransferComplianceCiphertextWitnessV19,
-    pub output_ext: TransferComplianceCiphertextWitnessV19,
-    pub sender_randomizers: TransferTierRandomizersWitnessV19,
-    pub output_randomizers: TransferTierRandomizersWitnessV19,
-    pub required_spend: TransferRequiredSpendWitnessV19,
-    pub optional_spend: TransferOptionalSpendWitnessV19,
-    pub receiver_output: TransferReceiverOutputWitnessV19,
-    pub change_output: TransferChangeOutputWitnessV19,
+    pub sender_core: TransferComplianceCiphertextWitnessV20,
+    pub sender_ext: TransferComplianceCiphertextWitnessV20,
+    pub output_core: TransferComplianceCiphertextWitnessV20,
+    pub output_ext: TransferComplianceCiphertextWitnessV20,
+    pub sender_randomizers: TransferTierRandomizersWitnessV20,
+    pub output_randomizers: TransferTierRandomizersWitnessV20,
+    pub required_spend: TransferRequiredSpendWitnessV20,
+    pub optional_spend: TransferOptionalSpendWitnessV20,
+    pub receiver_output: TransferReceiverOutputWitnessV20,
+    pub change_output: TransferChangeOutputWitnessV20,
     pub ak_affine: PointAffineBytes,
     pub asset_indexed_leaf_dk_pub_affine: PointAffineBytes,
     pub asset_indexed_leaf_ring_pk_affine: PointAffineBytes,
@@ -132,17 +126,8 @@ pub struct TransferWitnessV19 {
     pub sender_transmission_key_affine: PointAffineBytes,
 }
 
-fn compliance_leaf_parts(
-    leaf: &ComplianceLeafBinary,
-) -> ([u8; 48], [u8; 32], [u8; 32], [u8; 32], [u8; 32], [u8; 32]) {
-    (
-        leaf.address,
-        leaf.asset_id,
-        leaf.slot_id,
-        leaf.slot_derivation,
-        leaf.d,
-        leaf.status,
-    )
+fn compliance_leaf_parts(leaf: &ComplianceLeafBinary) -> ([u8; 48], [u8; 32], [u8; 32], [u8; 32]) {
+    (leaf.address, leaf.asset_id, leaf.d, leaf.status)
 }
 
 fn verification_key_point(
@@ -190,8 +175,8 @@ fn spend_witness_parts(
 
 fn compliance_tier_witness(
     tier: &TransferComplianceCiphertextPublic,
-) -> Result<TransferComplianceCiphertextWitnessV19> {
-    Ok(TransferComplianceCiphertextWitnessV19 {
+) -> Result<TransferComplianceCiphertextWitnessV20> {
+    Ok(TransferComplianceCiphertextWitnessV20 {
         c2: tier.c2.to_bytes(),
         ciphertext: tier
             .ciphertext
@@ -202,7 +187,7 @@ fn compliance_tier_witness(
     })
 }
 
-impl TransferWitnessV19 {
+impl TransferWitnessV20 {
     pub fn from_public_private(
         public: &TransferProofPublic,
         private: &TransferProofPrivate,
@@ -213,10 +198,9 @@ impl TransferWitnessV19 {
             .with_context(|| format!("compute {TRANSFER_PROOF_LABEL} statement hash"))?;
 
         let sender_leaf = compliance_leaf_from_typed(&private.sender_leaf)?;
-        let (_, _, sender_slot_id, sender_slot_derivation, sender_d, sender_status) =
-            compliance_leaf_parts(&sender_leaf);
+        let (_, _, sender_d, sender_status) = compliance_leaf_parts(&sender_leaf);
         let required = spend_witness_parts(&public.inputs[0], &private.required_input, 0)?;
-        let required_spend = TransferRequiredSpendWitnessV19 {
+        let required_spend = TransferRequiredSpendWitnessV20 {
             nullifier: required.nullifier,
             spent_note_blinding: required.spent_note_blinding,
             spent_note_amount: required.spent_note_amount,
@@ -228,7 +212,7 @@ impl TransferWitnessV19 {
             history_required: public.inputs[0].history_required,
         };
         let optional = spend_witness_parts(&public.inputs[1], &private.optional_input.spend, 1)?;
-        let optional_spend = TransferOptionalSpendWitnessV19 {
+        let optional_spend = TransferOptionalSpendWitnessV20 {
             nullifier: optional.nullifier,
             spent_note_blinding: optional.spent_note_blinding,
             spent_note_amount: optional.spent_note_amount,
@@ -243,9 +227,8 @@ impl TransferWitnessV19 {
 
         let receiver_private = &private.receiver_output;
         let receiver_leaf = compliance_leaf_from_typed(&receiver_private.recipient_leaf)?;
-        let (_, _, receiver_slot_id, receiver_slot_derivation, receiver_d, receiver_status) =
-            compliance_leaf_parts(&receiver_leaf);
-        let receiver_output = TransferReceiverOutputWitnessV19 {
+        let (_, _, receiver_d, receiver_status) = compliance_leaf_parts(&receiver_leaf);
+        let receiver_output = TransferReceiverOutputWitnessV20 {
             note_commitment: public.outputs[0].note_commitment.0.to_bytes(),
             created_note_blinding: receiver_private.created_note.note_blinding().to_bytes(),
             created_note_amount: Fq::from(receiver_private.created_note.value().amount).to_bytes(),
@@ -253,8 +236,6 @@ impl TransferWitnessV19 {
                 &receiver_private.recipient_compliance_path,
             )?,
             recipient_compliance_position: receiver_private.recipient_compliance_position,
-            recipient_slot_id: receiver_slot_id,
-            recipient_slot_derivation: receiver_slot_derivation,
             recipient_d: receiver_d,
             recipient_status: receiver_status,
             recipient_diversified_generator_affine: point_affine_bytes(
@@ -269,7 +250,7 @@ impl TransferWitnessV19 {
                     .map_err(|e| anyhow!("decompress receiver transmission key: {e:?}"))?,
             )?,
         };
-        let change_output = TransferChangeOutputWitnessV19 {
+        let change_output = TransferChangeOutputWitnessV20 {
             note_commitment: public.outputs[1].note_commitment.0.to_bytes(),
             created_note_blinding: private
                 .change_output
@@ -304,8 +285,6 @@ impl TransferWitnessV19 {
             routing_as_of_height: private.routing_parameters.as_of_height,
             sender_compliance_path: merkle_path_from_typed(&private.sender_compliance_path)?,
             sender_compliance_position: private.sender_compliance_position,
-            sender_slot_id,
-            sender_slot_derivation,
             sender_d,
             sender_status,
             transfer_nonce_root: private.compliance.transfer_nonce_root.to_bytes(),
@@ -315,8 +294,6 @@ impl TransferWitnessV19 {
                 .iter()
                 .map(|value| value.to_bytes())
                 .collect(),
-            sender_subject_derivation: public.compliance.metadata.sender_subject_derivation_bytes,
-            output_subject_derivation: public.compliance.metadata.output_subject_derivation_bytes,
             ring_id_hash: public.compliance.metadata.ring_id_hash_bytes,
             policy_id_hash: public.compliance.metadata.policy_id_hash_bytes,
             resource_hash: public.compliance.metadata.resource_hash_bytes,
@@ -331,11 +308,11 @@ impl TransferWitnessV19 {
             sender_ext: compliance_tier_witness(&public.compliance.sender_ext)?,
             output_core: compliance_tier_witness(&public.compliance.output_core)?,
             output_ext: compliance_tier_witness(&public.compliance.output_ext)?,
-            sender_randomizers: TransferTierRandomizersWitnessV19 {
+            sender_randomizers: TransferTierRandomizersWitnessV20 {
                 core: private.compliance.sender.core.to_bytes(),
                 ext: private.compliance.sender.ext.to_bytes(),
             },
-            output_randomizers: TransferTierRandomizersWitnessV19 {
+            output_randomizers: TransferTierRandomizersWitnessV20 {
                 core: private.compliance.output.core.to_bytes(),
                 ext: private.compliance.output.ext.to_bytes(),
             },

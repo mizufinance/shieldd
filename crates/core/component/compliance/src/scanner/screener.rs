@@ -36,24 +36,20 @@ impl ComplianceScreener {
             }
         };
 
-        let (asset_id, is_flagged, salt, sender_slot_id, receiver_slot_id, routing_roles_swapped) =
-            match self.detection_key.try_decrypt_detection(
-                &ciphertext.sender_core_epk,
-                &ciphertext.detection_tag,
-                &self.target_asset_id,
-            ) {
-                Ok(result) => result,
-                Err(_) => return ScreeningResult::Irrelevant,
-            };
+        let (asset_id, is_flagged, salt) = match self.detection_key.try_decrypt_detection(
+            &ciphertext.sender_core_epk,
+            &ciphertext.detection_tag,
+            &self.target_asset_id,
+        ) {
+            Ok(result) => result,
+            Err(_) => return ScreeningResult::Irrelevant,
+        };
 
         ScreeningResult::Detected(DetectionEvent {
             output_ref: extracted.output_ref,
             asset_id,
             is_flagged,
             salt,
-            sender_slot_id,
-            receiver_slot_id,
-            routing_roles_swapped,
             routing_tags: extracted.routing_tags,
             ciphertext,
             raw_bytes: extracted.raw_bytes,
@@ -75,8 +71,7 @@ mod tests {
         ring_pk: &decaf377::Element,
         address: &shieldd_sdk_keys::Address,
     ) -> decaf377::Element {
-        let b_d_fq = address.diversified_generator().vartime_compress_to_field();
-        let d = derive_compliance_scalar(b_d_fq);
+        let d = derive_compliance_scalar(address);
         let d_fr = decaf377::Fr::from_le_bytes_mod_order(&d.to_bytes());
         *ring_pk * d_fr
     }
@@ -131,9 +126,6 @@ mod tests {
             sender_address,
             Value { amount, asset_id },
             is_flagged,
-            0,
-            0,
-            false,
             salt,
         )
         .unwrap()

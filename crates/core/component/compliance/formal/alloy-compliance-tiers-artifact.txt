@@ -1,9 +1,0 @@
-tool: alloy
-alloy: 6.2.0
-model: crates/core/component/compliance/formal/alloy/compliance-tiers.als
-model_sha256: 6906d2524adf3c8e1f5121890fa5a1b6f3a767fd070a8c8ddf899874f1c957d2
-alloy_output_sha256: 6785859bc895f1a92a850a8435f5f343c63b9eae12571bac50b18f5da4a067a6
-CHECK CompleteIsTerminal no-counterexample
-CHECK CompleteReachableFromAll no-counterexample
-CHECK NoPendingShortcut no-counterexample
-CHECK FourCanonicalTiers no-counterexample

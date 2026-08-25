@@ -19,5 +19,5 @@ Current compliance transitions are per `(address, asset_id)` freeze and
 unfreeze. The current schema has no seizure state; a terminal transition is
 planned only with a future Bankd-authorized balance-certificate workflow.
 
-This book describes cryptographic and state-machine internals. Standalone-chain
-and IBC pages document legacy modules, not the target deployment architecture.
+This book describes cryptographic and state-machine internals. The Bankd host
+boundary defines the target deployment architecture.

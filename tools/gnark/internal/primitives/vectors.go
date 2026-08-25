@@ -50,7 +50,6 @@ type PoseidonVectors struct {
 	SenderLeafDomain      string              `json:"sender_leaf_domain"`
 	ComplianceLeafDomain  string              `json:"compliance_leaf_domain"`
 	IssuerDetectionDomain string              `json:"issuer_detection_domain"`
-	DLEQMetadataDomain    string              `json:"dleq_metadata_domain"`
 	IMTLeafDomain         string              `json:"imt_leaf_domain"`
 	IMTParamsDomain       string              `json:"imt_params_domain"`
 	IMTRingDomain         string              `json:"imt_ring_domain"`
@@ -86,19 +85,6 @@ type DecafEncodeVector struct {
 	EncodingHex     string `json:"encoding_hex"`
 }
 
-type DLEQFixture struct {
-	ChallengeKeepBits int    `json:"challenge_keep_bits"`
-	MetadataHash      string `json:"metadata_hash"`
-	WrongMetadataHash string `json:"wrong_metadata_hash"`
-	R                 string `json:"r"`
-	AckX              string `json:"ack_x"`
-	AckY              string `json:"ack_y"`
-	EpkX              string `json:"epk_x"`
-	EpkY              string `json:"epk_y"`
-	DleqC             string `json:"dleq_c"`
-	DleqS             string `json:"dleq_s"`
-}
-
 type NoteReshapeStatementFixture struct {
 	Label         string   `json:"label"`
 	Domain        string   `json:"domain"`
@@ -112,7 +98,6 @@ type PrototypeVectors struct {
 	Poseidon377            PoseidonVectors               `json:"poseidon377"`
 	Decaf377Compress       []DecafCompressVector         `json:"decaf377_compress_vectors"`
 	Decaf377Encode         []DecafEncodeVector           `json:"decaf377_encode_vectors"`
-	DleqFixture            DLEQFixture                   `json:"dleq_fixture"`
 	NoteReshapeStatements  []NoteReshapeStatementFixture `json:"note_reshape_statements"`
 }
 
@@ -130,8 +115,6 @@ type SpendPublicFixture struct {
 	C2Core                  string             `json:"c2_core"`
 	ComplianceCiphertext    []string           `json:"compliance_ciphertext"`
 	TargetTimestamp         string             `json:"target_timestamp"`
-	DleqC                   string             `json:"dleq_c"`
-	DleqS                   string             `json:"dleq_s"`
 	SenderLeafHash          string             `json:"sender_leaf_hash"`
 }
 
@@ -155,18 +138,17 @@ type MerklePathFixture struct {
 }
 
 type IndexedLeafFixture struct {
-	Value          []byte      `json:"value"`
-	NextIndex      uint64      `json:"next_index"`
-	NextValue      []byte      `json:"next_value"`
-	DKPub          []byte      `json:"dk_pub"`
-	Threshold      json.Number `json:"threshold"`
-	SlotCount      json.Number `json:"slot_count"`
-	ChannelsHash   []byte      `json:"channels_hash"`
-	RingPK         []byte      `json:"ring_pk"`
-	RingIDHash     []byte      `json:"ring_id_hash"`
-	PolicyIDHash   []byte      `json:"policy_id_hash"`
-	PermissionHash []byte      `json:"permission_hash"`
-	ResourceHash   []byte      `json:"resource_hash"`
+	Value           []byte      `json:"value"`
+	NextIndex       uint64      `json:"next_index"`
+	NextValue       []byte      `json:"next_value"`
+	DKPub           []byte      `json:"dk_pub"`
+	Threshold       json.Number `json:"threshold"`
+	RoutePolicyHash []byte      `json:"route_policy_hash"`
+	RingPK          []byte      `json:"ring_pk"`
+	RingIDHash      []byte      `json:"ring_id_hash"`
+	PolicyIDHash    []byte      `json:"policy_id_hash"`
+	PermissionHash  []byte      `json:"permission_hash"`
+	ResourceHash    []byte      `json:"resource_hash"`
 }
 
 type AddressFixture struct {
@@ -178,12 +160,10 @@ type AssetIDFixture struct {
 }
 
 type ComplianceLeafFixture struct {
-	Address        AddressFixture `json:"address"`
-	AssetID        AssetIDFixture `json:"assetId"`
-	SlotID         string         `json:"slot_id"`
-	SlotDerivation string         `json:"slot_derivation"`
-	D              string         `json:"d"`
-	Status         string         `json:"status"`
+	Address AddressFixture `json:"address"`
+	AssetID AssetIDFixture `json:"assetId"`
+	D       string         `json:"d"`
+	Status  string         `json:"status"`
 }
 
 type SpendPrivateFixture struct {

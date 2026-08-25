@@ -64,8 +64,7 @@ impl FullViewingKey {
 
     /// Views the structure of the supplied address with this viewing key.
     pub fn view_address(&self, address: Address) -> AddressView {
-        // WART: this can't cleanly forward to a method on the IVK,
-        // because the IVK doesn't know the WalletId.
+        // The IVK cannot supply the wallet ID carried by a decoded address.
         if self.incoming().views_address(&address) {
             AddressView::Decoded {
                 index: self.incoming().index_for_diversifier(address.diversifier()),

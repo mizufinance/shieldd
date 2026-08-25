@@ -11,11 +11,11 @@ import (
 
 func TestRustGoStatementFieldDifferential(t *testing.T) {
 	t.Run("transfer", func(t *testing.T) {
-		witness, _, err := DecodeTransferWitnessV19(testfixtures.LoadTransferWitnessV19("transfer"))
+		witness, _, err := DecodeTransferWitnessV20(testfixtures.LoadTransferWitnessV20("transfer"))
 		if err != nil {
 			t.Fatalf("decode transfer witness: %v", err)
 		}
-		reconstructed, err := ReconstructedTransferStatementFieldsFromWitnessV19(witness)
+		reconstructed, err := ReconstructedTransferStatementFieldsFromWitnessV20(witness)
 		if err != nil {
 			t.Fatalf("reconstruct transfer statement fields: %v", err)
 		}
@@ -34,13 +34,13 @@ func TestRustGoStatementFieldDifferential(t *testing.T) {
 	})
 
 	t.Run("shielded_ics20_withdrawal", func(t *testing.T) {
-		witness, _, err := DecodeShieldedIcs20WithdrawalWitnessV11(
-			testfixtures.LoadShieldedIcs20WithdrawalWitnessV11("shielded_ics20_withdrawal"),
+		witness, _, err := DecodeShieldedIcs20WithdrawalWitnessV12(
+			testfixtures.LoadShieldedIcs20WithdrawalWitnessV12("shielded_ics20_withdrawal"),
 		)
 		if err != nil {
 			t.Fatalf("decode shielded ICS-20 withdrawal witness: %v", err)
 		}
-		reconstructed, err := ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitnessV11(witness)
+		reconstructed, err := ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitnessV12(witness)
 		if err != nil {
 			t.Fatalf("reconstruct shielded ICS-20 withdrawal statement fields: %v", err)
 		}
@@ -105,40 +105,40 @@ func TestRustGoStatementFieldDifferential(t *testing.T) {
 }
 
 func TestTransferStatementBalanceIsDerivedFromWitnessInputs(t *testing.T) {
-	witness, _, err := DecodeTransferWitnessV19(
-		testfixtures.LoadTransferWitnessV19("transfer"),
+	witness, _, err := DecodeTransferWitnessV20(
+		testfixtures.LoadTransferWitnessV20("transfer"),
 	)
 	if err != nil {
 		t.Fatalf("decode transfer witness: %v", err)
 	}
-	original, err := ReconstructedTransferStatementFieldsFromWitnessV19(witness)
+	original, err := ReconstructedTransferStatementFieldsFromWitnessV20(witness)
 	if err != nil {
 		t.Fatalf("reconstruct original transfer statement fields: %v", err)
 	}
 
 	witness.RequiredSpend.SpentNoteAmount[0]++
-	mutated, err := ReconstructedTransferStatementFieldsFromWitnessV19(witness)
+	mutated, err := ReconstructedTransferStatementFieldsFromWitnessV20(witness)
 	if err != nil {
 		t.Fatalf("reconstruct mutated transfer statement fields: %v", err)
 	}
 	if bytes.Equal(original[3][:], mutated[3][:]) {
 		t.Fatal("transfer balance statement field did not change with a private input amount")
 	}
-	if err := validateTransferStatementHashV19(witness); err == nil {
+	if err := validateTransferStatementHashV20(witness); err == nil {
 		t.Fatal("mutated transfer amount retained the original claimed statement hash")
 	}
 }
 
 func TestTransferStatementBalanceRejectsOversizedAmount(t *testing.T) {
-	witness, _, err := DecodeTransferWitnessV19(
-		testfixtures.LoadTransferWitnessV19("transfer"),
+	witness, _, err := DecodeTransferWitnessV20(
+		testfixtures.LoadTransferWitnessV20("transfer"),
 	)
 	if err != nil {
 		t.Fatalf("decode transfer witness: %v", err)
 	}
 	witness.RequiredSpend.SpentNoteAmount = [32]byte{}
 	witness.RequiredSpend.SpentNoteAmount[16] = 1
-	if _, err := ReconstructedTransferStatementFieldsFromWitnessV19(witness); err == nil {
+	if _, err := ReconstructedTransferStatementFieldsFromWitnessV20(witness); err == nil {
 		t.Fatal("transfer statement reconstruction accepted an amount outside the 128-bit circuit range")
 	}
 }

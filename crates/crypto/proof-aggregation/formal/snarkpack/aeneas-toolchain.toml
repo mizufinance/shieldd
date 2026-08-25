@@ -1,7 +1,0 @@
-[toolchain]
-rust = "1.89.0"
-lean = "leanprover/lean4:v4.30.0"
-hax_commit = "c8e27c5945f7fc5791939cff7c1277f4ab768fe1"
-charon_commit = "74166d896db4ae4f63101c13c22072fb2022092e"
-aeneas_commit = "e0a159645386230102a2bf89b4df2dcd2140777e"
-image_digest = "sha256:63fb57a0c07de6c4a3ded67410b26a2804d090a3ae51929708c8e4650a686282"

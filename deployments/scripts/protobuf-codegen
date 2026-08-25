@@ -6,7 +6,7 @@ set -euo pipefail
 repo_root="$(git rev-parse --show-toplevel)"
 
 # Purge the output dirs, to ensure that the codegen is complete:
-# if upstream removed files, we want them removed from all outputs, too.
+# Reset generated outputs before code generation.
 echo "Cleaning output dirs..."
 for d in proto/rust-vendored crates/proto/src/gen ; do
     rm -r "${repo_root}/${d}/"

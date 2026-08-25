@@ -70,7 +70,6 @@ pub mod proof_test_helpers {
         let policy = shieldd_sdk_compliance::AssetPolicy::new(
             dk_pub,
             threshold,
-            shieldd_sdk_compliance::DEFAULT_COMPLIANCE_SLOT_COUNT,
             vec![],
             None,
             "test-ring-id".to_string(),
@@ -104,7 +103,6 @@ pub mod proof_test_helpers {
         let policy = shieldd_sdk_compliance::AssetPolicy::new(
             low_dk_pub,
             low_threshold,
-            shieldd_sdk_compliance::DEFAULT_COMPLIANCE_SLOT_COUNT,
             vec![],
             None,
             "low-ring-id".to_string(),
@@ -221,7 +219,6 @@ pub mod proof_test_helpers {
             shieldd_sdk_compliance::AssetPolicy::new(
                 dk_pub,
                 asset_indexed_leaf.params.threshold,
-                shieldd_sdk_compliance::DEFAULT_COMPLIANCE_SLOT_COUNT,
                 vec![],
                 None,
                 "test-ring-id".to_string(),
@@ -235,27 +232,20 @@ pub mod proof_test_helpers {
         };
 
         // Receiver ACK
-        let b_d_fq = address.diversified_generator().vartime_compress_to_field();
-        let d = shieldd_sdk_compliance::derive_compliance_scalar(b_d_fq);
+        let d = shieldd_sdk_compliance::derive_compliance_scalar(&address);
         let d_fr = Fr::from_le_bytes_mod_order(&d.to_bytes());
         let ack_receiver = ring_pk * d_fr;
 
         // Sender ACK used by transfer-side compliance fixtures.
-        let sender_b_d_fq = sender_address
-            .diversified_generator()
-            .vartime_compress_to_field();
-        let sender_d = shieldd_sdk_compliance::derive_compliance_scalar(sender_b_d_fq);
+        let sender_d = shieldd_sdk_compliance::derive_compliance_scalar(&sender_address);
         let sender_d_fr = Fr::from_le_bytes_mod_order(&sender_d.to_bytes());
         let ack_sender = ring_pk * sender_d_fr;
 
         let user_leaf =
-            shieldd_sdk_compliance::ComplianceLeaf::new(address.clone(), value.asset_id, b_d_fq);
+            shieldd_sdk_compliance::ComplianceLeaf::new(address.clone(), value.asset_id);
 
-        let counterparty_leaf = shieldd_sdk_compliance::ComplianceLeaf::new(
-            sender_address.clone(),
-            value.asset_id,
-            sender_b_d_fq,
-        );
+        let counterparty_leaf =
+            shieldd_sdk_compliance::ComplianceLeaf::new(sender_address.clone(), value.asset_id);
 
         let (compliance_anchor, compliance_path, compliance_position) =
             create_user_tree_proof(&user_leaf);
@@ -468,7 +458,6 @@ pub mod proof_test_helpers {
         base.asset_policy = shieldd_sdk_compliance::AssetPolicy::new(
             base.dk_pub,
             threshold,
-            shieldd_sdk_compliance::DEFAULT_COMPLIANCE_SLOT_COUNT,
             vec![],
             None,
             "test-ring-id".to_string(),
@@ -568,14 +557,8 @@ pub mod proof_test_helpers {
             .set_compliance_details()
             .expect("set hidden-arity transfer spend compliance details");
 
-        let recipient_b_d_fq = recipient_address
-            .diversified_generator()
-            .vartime_compress_to_field();
-        let recipient_leaf = shieldd_sdk_compliance::ComplianceLeaf::new(
-            recipient_address.clone(),
-            asset_id,
-            recipient_b_d_fq,
-        );
+        let recipient_leaf =
+            shieldd_sdk_compliance::ComplianceLeaf::new(recipient_address.clone(), asset_id);
         let (
             shared_compliance_anchor,
             sender_compliance_path,

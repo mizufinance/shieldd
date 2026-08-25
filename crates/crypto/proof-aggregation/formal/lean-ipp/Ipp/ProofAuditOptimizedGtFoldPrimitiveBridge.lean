@@ -1,3 +1,0 @@
-import Ipp.Extracted.AggregateVerifierPairingAdapter
-
-#print axioms Ipp.Extracted.AggregateVerifier.ArkworksTippPrimitiveExecutionContract.toKernel

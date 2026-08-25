@@ -26,7 +26,7 @@ where
 
 /// Strict canonical decoding with a caller-owned validation predicate.
 ///
-/// This is used when an exactly equivalent, formally justified validation
+/// This is used when an equivalent validation
 /// kernel replaces a type's default `Valid::check` implementation.
 #[cfg(not(feature = "bench-baseline"))]
 pub(crate) fn deserialize_compressed_strict_with<T>(

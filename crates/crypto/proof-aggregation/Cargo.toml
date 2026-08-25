@@ -19,8 +19,6 @@ bench-baseline = ["ark-ip-proofs/bench-baseline"]
 name = "snarkpack"
 harness = false
 
-[lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(hax)'] }
 
 [dependencies]
 anyhow = { workspace = true }

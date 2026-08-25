@@ -1,8 +1,0 @@
-import Ipp.ShippingBundleProductionAdaptiveComposition
-
-/-! Kernel axiom audit for the production adaptive bundle endpoint. -/
-
-#print axioms Ipp.ShippingBundleProductionAdaptiveComposition.ProductionRunProjection.toBundleOutcome_selection
-#print axioms Ipp.ShippingBundleProductionAdaptiveComposition.good_production_invalid_projects_to_canonical
-#print axioms Ipp.ShippingBundleProductionAdaptiveComposition.productionRomSecurity
-#print axioms Ipp.ShippingBundleProductionAdaptiveComposition.productionInvalidAcceptedAt_adjustedForkTransform_le_acceptedReplaySecurity

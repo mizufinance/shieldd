@@ -68,7 +68,7 @@ func TestConservationNetBalanceCommitmentParity(t *testing.T) {
 		},
 		ecc.BLS12_377.ScalarField(),
 	); err != nil {
-		t.Fatalf("conservation-exact net-balance commitment disagrees with legacy computeTransferNetBalanceCommitment: %v", err)
+		t.Fatalf("conservation net-balance commitment disagrees with transfer commitment: %v", err)
 	}
 }
 
