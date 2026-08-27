@@ -96,27 +96,17 @@ func ComplianceLeafCommitmentFromFixtureNative(fixture SpendFixture) (*big.Int, 
 		return nil, err
 	}
 
-	slotID := big.NewInt(0)
-	if fixture.Private.UserLeaf.SlotID != "" {
-		slotID = MustBigInt(fixture.Private.UserLeaf.SlotID)
-	}
-	slotDerivation := big.NewInt(0)
-	if fixture.Private.UserLeaf.SlotDerivation != "" {
-		slotDerivation = MustBigInt(fixture.Private.UserLeaf.SlotDerivation)
-	}
 	status := big.NewInt(1)
 	if fixture.Private.UserLeaf.Status != "" {
 		status = MustBigInt(fixture.Private.UserLeaf.Status)
 	}
 
-	return Poseidon377Hash7Native(
+	return Poseidon377Hash5Native(
 		MustBigInt(vectors.Poseidon377.ComplianceLeafDomain),
-		[7]*big.Int{
+		[5]*big.Int{
 			diversifiedGeneratorFq,
 			transmissionKeyFq,
 			MustBigInt(fixture.Private.NoteAssetID),
-			slotID,
-			slotDerivation,
 			MustBigInt(fixture.Private.UserDDecimal),
 			status,
 		},
@@ -128,8 +118,6 @@ func ComplianceLeafCommitment(
 	diversifiedGenerator gnarkte.Point,
 	transmissionKey gnarkte.Point,
 	assetID frontend.Variable,
-	slotID frontend.Variable,
-	slotDerivation frontend.Variable,
 	d frontend.Variable,
 	status frontend.Variable,
 ) (frontend.Variable, error) {
@@ -147,8 +135,6 @@ func ComplianceLeafCommitment(
 		diversifiedGeneratorFq,
 		transmissionKeyFq,
 		assetID,
-		slotID,
-		slotDerivation,
 		d,
 		status,
 	)
@@ -159,8 +145,6 @@ func ComplianceLeafCommitmentFromCompressed(
 	diversifiedGeneratorFq frontend.Variable,
 	transmissionKeyFq frontend.Variable,
 	assetID frontend.Variable,
-	slotID frontend.Variable,
-	slotDerivation frontend.Variable,
 	d frontend.Variable,
 	status frontend.Variable,
 ) (frontend.Variable, error) {
@@ -169,15 +153,13 @@ func ComplianceLeafCommitmentFromCompressed(
 		return nil, err
 	}
 
-	return Poseidon377Hash7(
+	return Poseidon377Hash5(
 		api,
 		MustBigInt(vectors.Poseidon377.ComplianceLeafDomain),
-		[7]frontend.Variable{
+		[5]frontend.Variable{
 			diversifiedGeneratorFq,
 			transmissionKeyFq,
 			assetID,
-			slotID,
-			slotDerivation,
 			d,
 			status,
 		},

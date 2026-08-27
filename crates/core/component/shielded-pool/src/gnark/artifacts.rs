@@ -262,20 +262,7 @@ mod statement_parity_tests {
     use ark_ff::BigInteger;
     use std::path::PathBuf;
 
-    /// Every shieldd gnark family exposes exactly one public input wire,
-    /// `ClaimedStatementHash` — the statement-hash transcript binding (see
-    /// `note_reshape_circuit.go:23` / `transfer_circuit.go:49`, and the
-    /// per-field binding inventories under the generated coverage manifests
-    /// and deployed `CircuitFacts.lean` modules).
-    ///
-    /// The SnarkPack aggregation layer derives its per-proof arity from the VK
-    /// as `pvk.vk.gamma_abc_g1.len() - 1` (`proof-aggregation/src/statement.rs:212`).
-    /// Groth16 lays out `gamma_abc_g1` as `[gamma_abc_0, ..public inputs..]`, so
-    /// `len() - 1` is the public-input count. Nothing else pins the committed
-    /// family VKs to the circuit's actual public-input surface; this test closes
-    /// that cross-tool statement-parity axis (SnarkPack S5): a circuit change
-    /// exposing a second public input, or a VK swap, would otherwise silently
-    /// diverge the aggregated statement shape from what the circuit proves.
+    /// Every deployed family exposes only `ClaimedStatementHash` publicly.
     const EXPECTED_PUBLIC_INPUT_ARITY: usize = 1;
 
     /// All committed gnark families (one artifact dir each under tools/gnark/artifacts).

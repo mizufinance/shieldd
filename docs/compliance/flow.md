@@ -23,8 +23,8 @@ AssetPolicy {
   dk_pub,
   ring_pk,
   threshold,
-  slot_count,
-  allowed_channels,
+  allowed_ibc_routes,
+  ibc_origin,
   ring_id,
   policy_id,
   permission,
@@ -45,18 +45,16 @@ otherwise valid.
 A user registers a `(shielded address, asset)` compliance leaf:
 
 ```text
-slot_id < AssetPolicy.slot_count
-d   = SHA512("elgamal-derivation-v1\0\0" || slot_derivation) reduced mod Fr
+d   = SHA512("elgamal-derivation-v1\0\0" || canonical_address_bytes) reduced mod Fr
 ACK = d * ring_pk
 ```
 
-The version-4 leaf commits to the address diversified-generator encoding,
-transmission-key encoding, asset id, slot id, `slot_derivation`, `d`, and the
-per-user/per-asset status. Registration checks the complete seven-field commitment, slot bound, address
-encoding, derivation, and
-authorization. A derived `d = 0` is rejected rather than registering the
-identity ACK. Reusing a slot reuses its derivation and ACK, so it intentionally
-creates a linkable address cluster.
+The version-5 leaf commits to the address diversified-generator encoding,
+transmission-key encoding, asset id, canonical address-derived `d`, and the
+per-user/per-asset status. Registration checks the complete five-field
+commitment, address encoding, derivation, and authorization. A derived `d = 0`
+is rejected rather than registering the identity ACK. There is no issuer-
+assigned slot or caller-selected derivation material.
 
 Asset id zero is reserved for the indexed-tree sentinel. Registration and both
 Transfer and Withdrawal circuits reject it as an action asset, so the sentinel
@@ -95,7 +93,7 @@ authenticated predecessor leaf's threshold or the receiver amount.
 
 | Tier | Plaintext | Unflagged regulated key | Flagged regulated key |
 | --- | --- | --- | --- |
-| Detection | asset id; salt; sender slot plus flag and routing permutation; receiver slot | issuer `dk_pub` | issuer `dk_pub` |
+| Detection | asset id; salt; flag; reserved zero | issuer `dk_pub` | issuer `dk_pub` |
 | Sender core | amount | sender ACK | issuer `dk_pub` |
 | Sender extension | receiver address | sender ACK | issuer `dk_pub` |
 | Output core | amount | receiver ACK | issuer `dk_pub` |
@@ -109,13 +107,13 @@ The four detection plaintext words are exact:
 ```text
 asset_id
 detection_salt
-sender_slot_id + is_flagged * 2^32 + routing_roles_swapped * 2^33
-receiver_slot_id
+is_flagged
+0
 ```
 
-Both slot ids are constrained to 32 bits. The asset is not arithmetically
-combined with the flag, so a high asset-id bit cannot alias the classification
-bit.
+The flag is constrained to a canonical bit and the final word is constrained
+to zero. Address candidate filtering uses the separate proof-bound routing
+tags, not detection plaintext.
 
 Honest construction samples a fresh private CSPRNG nonce root for each
 Transfer action, separate from every sibling Transfer and fee-funding action.
@@ -132,7 +130,7 @@ Only the receiver output carries compliance data:
 ```text
 TransferOutputBody {
   compliance_ciphertext: 640 bytes
-  compliance_metadata:   328 bytes
+  compliance_metadata:   264 bytes
 }
 ```
 
@@ -140,8 +138,6 @@ Inputs and the change output carry neither field. The metadata is a single
 factored record:
 
 ```text
-sender_subject_derivation
-output_subject_derivation
 ring_id_hash
 policy_id_hash
 resource_hash
@@ -169,23 +165,22 @@ The transfer circuit proves:
 - asset membership versus canonical non-membership gap;
 - rejection of the asset-tree zero sentinel;
 - regulated policy selection and compliance-leaf membership;
-- complete version-4 compliance leaves and `Active` sender/receiver status;
+- complete version-5 compliance leaves and `Active` sender/receiver status;
 - threshold flag correctness;
 - four independent EPK/shared-secret/c2/payload encryption relations;
 - detection encryption;
-- 32-bit sender/receiver slot bounds and the exact
-  `sender_slot + flag * 2^32 + routing_swap * 2^33` detection packing;
+- exact asset/salt/boolean-flag/reserved-zero detection plaintext;
 - two proof-derived, privately permuted 32-bit routing tags and their complete
   parameter-set identifier;
 - the consensus recent-position floor and, for each spend, the exact old-note
   classification `!is_dummy && position < recent_position_floor`;
 - canonical address plaintext packing from the two 32-byte Fq encodings into
   31-byte stream words;
-- the single 11-field metadata binding; and
-- the exact 47-field statement preimage committed under statement-hash domain
-  `v6`.
+- the single 9-field metadata binding; and
+- the exact 45-field statement preimage committed under statement-hash domain
+  `v7`.
 
-The Rust verifier reconstructs the same 47 fields from typed public data.
+The Rust verifier reconstructs the same 45 fields from typed public data.
 Consensus separately checks proof verification, the current asset-policy and
 user-status roots, timestamp freshness, spend signatures,
 transaction-wide nullifier uniqueness, and the
@@ -224,7 +219,7 @@ keyed by height/hash/parent hash; a reorg rolls state back to the common
 ancestor before replay.
 
 Evidence version 3 contains the output reference, asset/flag/detection facts,
-the 640-byte ciphertext, the 328-byte metadata record, and a payload hash. It
+the 640-byte ciphertext, the 264-byte metadata record, and a payload hash. It
 contains no PRE envelope, shared point, or standalone DLEQ proof. Evidence
 validation compares both ciphertext and metadata to the accepted output and
 the persisted detection row before an audit can complete.
@@ -245,13 +240,11 @@ Flagged regulated transfers encrypt every audit tier to the issuer DK. After
 evidence validation, the issuer can decrypt them locally and complete the
 audit.
 
-Unflagged regulated tiers encrypt to the sender or receiver ACK. The former
-Orbis v0 path would disclose the seed-opening DH point, so both
+Unflagged regulated tiers encrypt to the sender or receiver ACK. Orbis v0
+would disclose the seed-opening DH point, so both
 `export_orbis_pending_scan` and `import_orbis_audit_entries` fail closed. An
 unflagged row therefore cannot currently complete through PRE.
 
 This is an intentional availability restriction, not a confidentiality
 exception. A future PRE v1 must provide a non-disclosing, circuit-bound seed
-ciphertext and new formal evidence before the export/import path is enabled.
-The generic DLEQ Lean and symbolic models remain research artifacts only; they
-are not evidence for the deployed transfer.
+ciphertext and independent review before the export/import path is enabled.

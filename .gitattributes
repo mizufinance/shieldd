@@ -1,9 +1,4 @@
-# Normalize all text files to LF in both index and working tree.
-# Rationale: bash scripts, Lean sources, and formal-verification metadata
-# (hax-targets.txt etc.) are consumed by LF-assuming tools; autocrlf=true
-# checkouts previously produced phantom gate failures (CR-contaminated
-# `read -r` loops in check-snarkpack-invariants.sh).
-# Specific overrides below take precedence (last match wins).
+# Normalize text files to LF. Specific overrides below take precedence.
 * text=auto eol=lf
 
 # Windows batch files require CRLF.
@@ -26,7 +21,6 @@
 *.so binary
 *.dylib binary
 *.wasm binary
-*.olean binary
 
 # Only the large constraint systems belong in LFS. Runtime proving keys stay in
 # ordinary Git so builds and tests never depend on LFS bandwidth.
@@ -34,11 +28,3 @@ tools/gnark/artifacts/note_reshape1x8/note_reshape1x8.sr1cs filter=lfs diff=lfs 
 tools/gnark/artifacts/note_reshape8x1/note_reshape8x1.sr1cs filter=lfs diff=lfs merge=lfs -text
 tools/gnark/artifacts/shielded_ics20_withdrawal/shielded_ics20_withdrawal.sr1cs filter=lfs diff=lfs merge=lfs -text
 tools/gnark/artifacts/transfer/transfer.sr1cs filter=lfs diff=lfs merge=lfs -text
-
-
-# Collapse generated circuit adapters while keeping handwritten Lean proofs
-# visible in GitHub review.
-tools/gnark/lean/ShielddGnarkFormal/Deployed/**/*.lean linguist-generated=true
-tools/gnark/lean/ShielddGnarkFormal/Deployed/*.lean linguist-generated=false
-tools/gnark/lean/ShielddGnarkFormal/Extracted/Deployed/**/*.lean linguist-generated=true
-tools/gnark/lean/ShielddGnarkFormal/PrimeCertificates/Generated/**/*.lean linguist-generated=true

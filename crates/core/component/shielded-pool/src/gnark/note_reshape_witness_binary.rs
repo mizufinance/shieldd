@@ -10,7 +10,7 @@ use crate::gnark::{
 };
 
 const NOTE_RESHAPE_WITNESS_MAGIC: &[u8; 4] = b"PNWG";
-const NOTE_RESHAPE_WITNESS_VERSION: u32 = 6;
+const NOTE_RESHAPE_WITNESS_VERSION: u32 = 8;
 
 impl NoteReshapeWitnessV6 {
     pub fn encode(&self) -> Result<Vec<u8>> {
@@ -42,8 +42,6 @@ impl NoteReshapeWitnessV6 {
         put_bytes(&mut buf, &self.routing_nonce);
         encode_merkle_path(&mut buf, &self.sender_compliance_path)?;
         put_u64(&mut buf, self.sender_compliance_position);
-        put_bytes(&mut buf, &self.sender_slot_id);
-        put_bytes(&mut buf, &self.sender_slot_derivation);
         put_bytes(&mut buf, &self.sender_d);
         put_bytes(&mut buf, &self.sender_status);
         put_bytes(&mut buf, &self.shared.asset_id);
@@ -109,8 +107,6 @@ impl NoteReshapeWitnessV6 {
         let routing_nonce = cursor.read_fixed::<32>()?;
         let sender_compliance_path = cursor.read_merkle_path()?;
         let sender_compliance_position = cursor.read_u64()?;
-        let sender_slot_id = cursor.read_fixed::<32>()?;
-        let sender_slot_derivation = cursor.read_fixed::<32>()?;
         let sender_d = cursor.read_fixed::<32>()?;
         let sender_status = cursor.read_fixed::<32>()?;
         let shared = NoteReshapeSharedNoteContextWitnessV6 {
@@ -169,8 +165,6 @@ impl NoteReshapeWitnessV6 {
             routing_nonce,
             sender_compliance_path,
             sender_compliance_position,
-            sender_slot_id,
-            sender_slot_derivation,
             sender_d,
             sender_status,
             shared,

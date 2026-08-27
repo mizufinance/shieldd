@@ -43,13 +43,11 @@ type ShieldedIcs20WithdrawalChangeCircuitFields struct {
 }
 
 type ShieldedIcs20WithdrawalSenderCircuitFields struct {
-	DivGen         Point2D
-	SlotID         frontend.Variable
-	SlotDerivation frontend.Variable
-	D              frontend.Variable
-	Status         frontend.Variable
-	Path           [ComplianceQuadTreeDepth][3]frontend.Variable
-	Position       frontend.Variable
+	DivGen   Point2D
+	D        frontend.Variable
+	Status   frontend.Variable
+	Path     [ComplianceQuadTreeDepth][3]frontend.Variable
+	Position frontend.Variable
 }
 
 // ShieldedIcs20WithdrawalAssetLeafCircuitFields carries only the committed
@@ -262,8 +260,6 @@ func (c *ShieldedIcs20WithdrawalCircuit) bindShieldedIcs20WithdrawalWitnessSeman
 	c.bindSemantic("asset.position", c.Asset.Position)
 
 	c.bindSemantic("sender.div_gen", c.Sender.DivGen.X, c.Sender.DivGen.Y)
-	c.bindSemantic("sender.slot_id", c.Sender.SlotID)
-	c.bindSemantic("sender.slot_derivation", c.Sender.SlotDerivation)
 	c.bindSemantic("sender.d", c.Sender.D)
 	c.bindSemantic("sender.status", c.Sender.Status)
 	c.bindSemantic("sender.path", quadPathVariables(c.Sender.Path)...)
@@ -474,8 +470,6 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifySharedContext(
 		"div_gen_fq=sender.div_gen_fq",
 		"transmission_fq=sender.transmission_fq",
 		"asset_id=shared.asset_id",
-		"slot_id=sender.slot_id",
-		"slot_derivation=sender.slot_derivation",
 		"d=sender.d",
 		"status=sender.status",
 		"out=sender.leaf_commitment",
@@ -485,8 +479,6 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifySharedContext(
 		shared.senderDivGenFq,
 		shared.senderTransmissionFq,
 		shared.sharedAssetID,
-		c.Sender.SlotID,
-		c.Sender.SlotDerivation,
 		c.Sender.D,
 		c.Sender.Status,
 	)

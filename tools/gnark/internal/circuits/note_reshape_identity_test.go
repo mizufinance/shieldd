@@ -320,7 +320,7 @@ func noteReshapeIdentityRoot(
 	return current
 }
 
-func TestNoteReshapeIdentityDiversifierEnablesSameCommitmentDifferentNullifiersWithoutGuard(
+func TestNoteReshapeUnguardedIdentityDiversifierAliasesOwnership(
 	t *testing.T,
 ) {
 	assignment := noteReshapeIdentityOwnershipAliasAssignment(t)
@@ -329,7 +329,7 @@ func TestNoteReshapeIdentityDiversifierEnablesSameCommitmentDifferentNullifiersW
 		&assignment,
 		ecc.BLS12_377.ScalarField(),
 	); err != nil {
-		t.Fatalf("the historical relation should remain a satisfiable regression fixture: %v", err)
+		t.Fatalf("unguarded identity relation should remain satisfiable: %v", err)
 	}
 
 	hardened := hardenedNoteReshapeIdentityOwnershipAliasProbe{
@@ -361,9 +361,7 @@ func TestNoteReshapeCircuitRejectsIdentityAuthorizationAndDiversifiedGenerator(
 				t.Fatalf("canonical witness must satisfy nonidentity guards: %v", err)
 			}
 
-			// These are whole-relation drift probes. The IVK and transmission
-			// mutations also disturb derivation/commitment rows, so isolated guard
-			// evidence lives in the primitive and exact-trace tests.
+			// IVK and transmission mutations also disturb derivation and commitment rows.
 			for _, mutation := range []struct {
 				name   string
 				mutate func(*circuits.NoteReshapeCircuit)

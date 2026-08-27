@@ -13,12 +13,8 @@ ceremony owner supplies:
 - the artifact filename and active identifier for the compile-time registry in
   `src/srs.rs`.
 
-The same registration must promote `deployed_srs_evidence` in
-`formal/snarkpack/verification-manifest.json` with the exact artifact,
-transcript, verification-evidence, registry-source, and application-source
-digests. While that record is `unregistered`, the conditional FV theorem stays
-valid and the gap remains the publication gate's sole allowed open row, but no
-instantiated deployment-security claim is permitted.
+Registration must include the artifact, transcript, verification evidence, and
+source digests. Formal evidence is maintained in `mizufinance/shieldd-formal`.
 
 Deployments may set `SHIELDD_SNARKPACK_SRS_ARTIFACT_DIR` to an absolute
 distribution directory. The runtime still accepts only the filename, artifact
@@ -26,7 +22,5 @@ digest, SRS identifier, dimensions, canonical encoding, and subgroup-valid
 points pinned by the compiled registry. Configuration cannot register new
 bytes.
 
-The first active-artifact load result, including failure, is cached for the
-life of the process. Replacing or repairing an artifact therefore requires a
-process restart; a running node never changes SRS material after its first
-load attempt.
+The first load result is cached for the process lifetime. Artifact changes
+require a restart.

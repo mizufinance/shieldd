@@ -241,9 +241,11 @@ mod tests {
     use std::sync::{LazyLock, Mutex};
 
     use super::TransferProof;
+    #[cfg(feature = "component")]
     use crate::component::transfer_extract_public;
+    #[cfg(feature = "component")]
+    use crate::test_proof_helpers::proof_test_helpers::build_transfer_action_and_public;
     use crate::test_proof_helpers::proof_test_helpers::{
-        build_transfer_action_and_public,
         build_transfer_hidden_arity_roundtrip_inputs_for_asset_with_rng, full_proof_roundtrip,
         CircuitType,
     };
@@ -258,8 +260,7 @@ mod tests {
     static TRANSFER_PROOF_TEST_MUTEX: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
     fn compliance_leaf_for(address: &shieldd_sdk_keys::Address) -> ComplianceLeaf {
-        let slot_derivation = address.diversified_generator().vartime_compress_to_field();
-        ComplianceLeaf::new(address.clone(), *BASE_ASSET_ID, slot_derivation)
+        ComplianceLeaf::new(address.clone(), *BASE_ASSET_ID)
     }
 
     fn sender_recipient_compliance_witnesses() -> (
@@ -889,6 +890,7 @@ mod tests {
             );
     }
 
+    #[cfg(feature = "component")]
     #[test]
     fn transfer_action_public_matches_proving_public_regulated() {
         let _guard = TRANSFER_PROOF_TEST_MUTEX

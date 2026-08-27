@@ -1,5 +1,0 @@
-import Ipp.ShippingProverArkworksKzgBridge
-
-#print axioms Ipp.Extracted.ShippingProverArkworksKzgBridge.vEquationAccepts_of_arkworksStatementEquations
-#print axioms Ipp.Extracted.ShippingProverArkworksKzgBridge.wEquationAccepts_of_arkworksStatementEquations
-#print axioms Ipp.Extracted.ShippingProverArkworksKzgBridge.kzgBoundary_of_wellFormedSrs_and_arkworksStatementEquations

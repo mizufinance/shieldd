@@ -14,18 +14,17 @@ import (
 const ComplianceQuadTreeDepth = 16
 
 type IndexedLeafInputs struct {
-	Value          frontend.Variable
-	NextIndex      frontend.Variable
-	NextValue      frontend.Variable
-	DKPub          gnarkte.Point
-	Threshold      frontend.Variable
-	SlotCount      frontend.Variable
-	ChannelsHash   frontend.Variable
-	RingPK         gnarkte.Point
-	RingIDHash     frontend.Variable
-	PolicyIDHash   frontend.Variable
-	PermissionHash frontend.Variable
-	ResourceHash   frontend.Variable
+	Value           frontend.Variable
+	NextIndex       frontend.Variable
+	NextValue       frontend.Variable
+	DKPub           gnarkte.Point
+	Threshold       frontend.Variable
+	RoutePolicyHash frontend.Variable
+	RingPK          gnarkte.Point
+	RingIDHash      frontend.Variable
+	PolicyIDHash    frontend.Variable
+	PermissionHash  frontend.Variable
+	ResourceHash    frontend.Variable
 }
 
 func fqFromBase64String(value string) (*big.Int, error) {
@@ -41,11 +40,6 @@ func fqFromBase64String(value string) (*big.Int, error) {
 
 func IndexedLeafInputsFromFixture(fixture primitives.SpendFixture) (IndexedLeafInputs, error) {
 	leaf := fixture.Private.AssetIndexedLeaf
-	slotCount := leaf.SlotCount.String()
-	if slotCount == "" {
-		slotCount = "0"
-	}
-
 	return IndexedLeafInputs{
 		Value:     primitives.LittleEndianBytesToBigInt(leaf.Value),
 		NextIndex: leaf.NextIndex,
@@ -54,9 +48,8 @@ func IndexedLeafInputsFromFixture(fixture primitives.SpendFixture) (IndexedLeafI
 			X: primitives.MustBigInt(fixture.Private.AssetIndexedLeafDKPubAffine.X),
 			Y: primitives.MustBigInt(fixture.Private.AssetIndexedLeafDKPubAffine.Y),
 		},
-		Threshold:    leaf.Threshold.String(),
-		SlotCount:    slotCount,
-		ChannelsHash: primitives.LittleEndianBytesToBigInt(leaf.ChannelsHash),
+		Threshold:       leaf.Threshold.String(),
+		RoutePolicyHash: primitives.LittleEndianBytesToBigInt(leaf.RoutePolicyHash),
 		RingPK: gnarkte.Point{
 			X: primitives.MustBigInt(fixture.Private.AssetIndexedLeafRingPKAffine.X),
 			Y: primitives.MustBigInt(fixture.Private.AssetIndexedLeafRingPKAffine.Y),
@@ -103,13 +96,12 @@ func IndexedLeafCommitmentNative(inputs IndexedLeafInputs) (*big.Int, error) {
 	if err != nil {
 		return nil, err
 	}
-	paramsHash, err := primitives.Poseidon377Hash4Native(
+	paramsHash, err := primitives.Poseidon377Hash3Native(
 		primitives.MustBigInt(vectors.Poseidon377.IMTParamsDomain),
-		[4]*big.Int{
+		[3]*big.Int{
 			dkPubFq,
 			primitives.MustBigInt(inputs.Threshold.(string)),
-			primitives.MustBigInt(inputs.SlotCount.(string)),
-			inputs.ChannelsHash.(*big.Int),
+			inputs.RoutePolicyHash.(*big.Int),
 		},
 	)
 	if err != nil {
@@ -156,10 +148,10 @@ func IndexedLeafCommitment(api frontend.API, inputs IndexedLeafInputs) (frontend
 	if err != nil {
 		return nil, err
 	}
-	paramsHash, err := primitives.Poseidon377Hash4(
+	paramsHash, err := primitives.Poseidon377Hash3(
 		api,
 		primitives.MustBigInt(vectors.Poseidon377.IMTParamsDomain),
-		[4]frontend.Variable{dkPubFq, inputs.Threshold, inputs.SlotCount, inputs.ChannelsHash},
+		[3]frontend.Variable{dkPubFq, inputs.Threshold, inputs.RoutePolicyHash},
 	)
 	if err != nil {
 		return nil, err

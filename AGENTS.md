@@ -52,25 +52,13 @@ They are not migration promises.
 - Modularity and simplicity over cleverness.
 - Drop redundant module/crate names from function names.
 - Standard crypto abbreviations fine: `ss`, `ct`, `pt`, `esk`, `epk`, `dk`, `fq`.
-- Docs succinct and factual: module ≤8 lines, public type ≤3, function ≤2 unless real protocol nuance. Do not force docs, some things do not need it.
-- Document ownership, invariants, inputs, outputs, failure modes. Do not restate names or history.
+- Prefer clear code over comments. Document only non-obvious ownership, protocol or security invariants, and failure modes.
+- Describe the current design only. Never preserve migration notes, replaced behavior, or implementation history in code comments or docs.
+- Keep docs factual: module ≤8 lines, public type ≤3, function ≤2 unless protocol nuance requires more.
 - Define docs once; reference elsewhere.
 
-## Formal Verification Gates
+## Formal Verification Boundary
 
-When a formal gate is red, start at
-`docs/soundness/README.md#gate-failure-routing`. If circuit semantics did not
-change, repair the narrowest affected applicability rule, handwritten spec or
-proof, or source generator. Do not change a circuit or hand-edit generated
-Lean/artifacts merely to clear CI. Add a regression test only when routing
-behavior changes or the failure exposes a reusable missing check, not for every
-red run. Circuit changes and their regenerated evidence stay in one PR, with
-handwritten and generated changes in separate commits when practical.
-
-## Lean Circuit Proofs
-
-All Lean-proof rules live in `tools/gnark/lean/AGENTS.md` — read it BEFORE any
-work under `tools/gnark/lean/` or on the proof generators/extractor. Its
-resource limits are load-bearing: unbounded concurrent `lake` builds have
-OOM-rebooted this machine twice. Minimum recall: one `lake` at a time,
-`LEAN_NUM_THREADS=1`, narrowest named module, monitored in the background.
+Formal verification lives in `mizufinance/shieldd-formal`, which pins an exact
+Shieldd commit. Do not add formal tools, specifications, generated evidence, or
+CI gates to this repository.

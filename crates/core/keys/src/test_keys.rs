@@ -7,10 +7,7 @@ use crate::{
     Address, FullViewingKey,
 };
 
-/// This address is for test purposes, allocations were added beginning with
-/// the 062-Iapetus testnet.
-/// Previously the test data was generated using BIP39 derivation starting with
-/// the 016-Pandia testnet.
+/// Seed phrase for deterministic tests and genesis fixtures.
 pub const SEED_PHRASE: &str = "comfort ten front cycle churn burger oak absent rice ice urge result art couple benefit cabbage frequent obscure hurry trick segment cool job debate";
 
 /// These addresses both correspond to the test wallet above.

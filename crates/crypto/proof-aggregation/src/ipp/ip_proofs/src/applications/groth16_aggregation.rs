@@ -157,8 +157,7 @@ where
 /// Collapse a repeat-final message suffix into one pairing term.
 ///
 /// `real_count` identifies the authenticated real prefix. Equality is checked
-/// only to decide whether the exact optimization applies; malformed internal
-/// callers retain the historical full pairing path.
+/// only to decide whether the exact optimization applies.
 #[cfg(test)]
 fn coalesce_repeated_left_suffix<G1, G2>(
     left: &[G1],
@@ -606,7 +605,7 @@ trait AggregateRandomizerEffect<F, E> {
 /// Runtime-only observation of randomizer sampling duration.
 ///
 /// The semantic adapter is generic over this effect, keeping `Instant`, `f64`,
-/// and profile accumulation outside the extracted execution record.
+/// and profile accumulation outside the execution record.
 #[cfg(not(feature = "bench-baseline"))]
 trait AggregateRandomizerTiming {
     fn begin(&mut self);
@@ -772,7 +771,7 @@ fn aggregate_adapter_effects_from_parts<RFX, FX, PE, PPE>(
 }
 
 #[cfg(not(feature = "bench-baseline"))]
-#[allow(dead_code)] // Formal extraction root; production uses the retained execution form.
+#[allow(dead_code)]
 fn verify_aggregate_adapter_core<F, G1, G2, G2Prepared, GT, ABT, CT, E, RFX, FX, PE, PPE>(
     input: AggregateAdapterCoreInput<F, G1, G2, G2Prepared, GT, ABT, CT>,
     randomizer_effect: RFX,
@@ -910,7 +909,7 @@ where
 
 /// Delegate through the exact effect bundle installed by the production
 /// verifier. The output still retains the consumed input and all accepted-path
-/// state required by the Lean adapter contract.
+/// accepted-path state required by the adapter contract.
 #[cfg(not(feature = "bench-baseline"))]
 fn verify_installed_aggregate_adapter_core<
     F,
@@ -1091,7 +1090,7 @@ where
 }
 
 #[cfg(not(feature = "bench-baseline"))]
-#[allow(dead_code)] // Formal accepted-path theorem projects this bounded retry core.
+#[allow(dead_code)]
 fn verify_aggregate_adapter_core_from_nonce<
     F,
     G1,
@@ -1430,7 +1429,7 @@ where
 }
 
 #[cfg(not(feature = "bench-baseline"))]
-#[allow(dead_code)] // Formal extraction root; production uses the retained execution form.
+#[allow(dead_code)]
 fn verify_combined_checks_core<F, G1, G2, G2Prepared, GT, ABT, CT, E, FX, PE, PPE>(
     input: CombinedChecksCoreInput<F, G1, G2, G2Prepared, GT, ABT, CT>,
     effect: FX,
@@ -1560,11 +1559,7 @@ where
         ppe,
     } = input;
 
-    #[cfg(all(
-        feature = "parallel",
-        not(feature = "bench-baseline"),
-        not(hax_compilation)
-    ))]
+    #[cfg(all(feature = "parallel", not(feature = "bench-baseline")))]
     let (tipp_result, ppe_valid) = rayon::join(
         move || {
             let mut effect = effect;
@@ -1584,7 +1579,7 @@ where
         },
     );
 
-    #[cfg(any(not(feature = "parallel"), feature = "bench-baseline", hax_compilation))]
+    #[cfg(any(not(feature = "parallel"), feature = "bench-baseline"))]
     let (tipp_result, ppe_valid) = {
         let mut effect = effect;
         let tipp_result = verify_tipp_mipp_execution_core(&tipp_mipp, &mut effect, &tipp_pairing)
@@ -1636,8 +1631,7 @@ struct TippMippChallengeTrace<F> {
 
 /// Production state after every challenge has been derived successfully.
 ///
-/// Keeping this boundary inside the shipping verifier makes the extracted
-/// challenge execution observable without exposing a new public API.
+/// This boundary keeps challenge execution observable without a public API.
 struct TippMippChallengePrefix<F, GT, ABT, CT> {
     challenges: TippMippChallengeTrace<F>,
     inverse_challenges_reversed: Vec<F>,
@@ -1653,7 +1647,7 @@ struct TippMippChallengePrefix<F, GT, ABT, CT> {
 ///
 /// `None` means the check was not reached because an earlier check returned
 /// false. This preserves the shipping failure order in the retained record.
-#[allow(dead_code)] // Fields are consumed by the generated formal projection.
+#[allow(dead_code)]
 struct TippMippLeafChecks {
     ck_v: bool,
     ck_w: bool,
@@ -1663,7 +1657,7 @@ struct TippMippLeafChecks {
 }
 
 /// Retained result of the production TIPP/MIPP verifier core.
-#[allow(dead_code)] // Retained trace fields are consumed by formal extraction.
+#[allow(dead_code)]
 struct TippMippCoreOutput<F, GT, ABT, CT> {
     challenge_prefix: TippMippChallengePrefix<F, GT, ABT, CT>,
     leaf_checks: TippMippLeafChecks,
@@ -1962,7 +1956,7 @@ where
     })
 }
 
-#[allow(dead_code)] // Formal extraction root; production uses the retained execution form.
+#[allow(dead_code)]
 fn verify_tipp_mipp_core<F, G1, G2, GT, ABT, CT, E, FX, PE>(
     input: TippMippCoreInput<F, G1, G2, GT, ABT, CT>,
     effect: &mut FX,
@@ -2034,10 +2028,8 @@ trait ProverGipaEffect<F, G1, G2, GT, ABT, CT, E> {
 
     fn invert_round(&self, challenge: &F) -> Result<F, E>;
 
-    #[cfg(not(hax_compilation))]
     fn record_commit_profile(&mut self, left_ms: f64, right_ms: f64);
 
-    #[cfg(not(hax_compilation))]
     fn record_fold_profile(
         &mut self,
         a_ms: f64,
@@ -2105,12 +2097,10 @@ where
         self.inner.invert_round(challenge)
     }
 
-    #[cfg(not(hax_compilation))]
     fn record_commit_profile(&mut self, left_ms: f64, right_ms: f64) {
         self.inner.record_commit_profile(left_ms, right_ms);
     }
 
-    #[cfg(not(hax_compilation))]
     fn record_fold_profile(
         &mut self,
         a_ms: f64,
@@ -2125,7 +2115,7 @@ where
     }
 }
 
-// Chronological fields are consumed by the extraction refinement; shipping
+// Chronological fields preserve shipping
 // serialization consumes the corresponding reversed wire fields.
 #[allow(dead_code)]
 #[derive(Clone)]
@@ -2181,7 +2171,7 @@ struct ProverGipaSemanticExecution<F, G1, G2, GT, ABT, CT> {
 ///
 /// The production proof is assembled only from this record. The record keeps
 /// the exact GIPA input/output and post-GIPA challenges beside the KZG
-/// openings, so extraction can relate one successful execution to one wire
+/// openings, so one successful execution maps to one wire
 /// proof without reconstructing discarded intermediate values.
 #[allow(dead_code)]
 struct ShippingProverExecution<F, G1, G2, GT, ABT, CT, D>
@@ -2242,7 +2232,7 @@ fn ordered_source_proofs_core<P: Pairing>(
 ///
 /// These are semantic protocol inputs, not retained runtime diagnostics. The
 /// slices remain borrowed so the boundary does not clone the proving SRS.
-#[allow(dead_code)] // Fields are consumed by the generated formal projection.
+#[allow(dead_code)]
 struct ShippingProvingSrsProjection<'a, G1, G2, G1Affine, G2Affine> {
     full_g_alpha_powers: &'a [G1],
     full_h_beta_powers: &'a [G2],
@@ -2271,7 +2261,7 @@ fn shipping_proving_srs_projection_from_parts<'a, G1, G2, G1Affine, G2Affine>(
 }
 
 /// Typed challenge values in deployed prover chronology.
-#[allow(dead_code)] // Fields are consumed by the generated formal projection.
+#[allow(dead_code)]
 struct ShippingProverChallengeTrace<F> {
     randomizer: F,
     randomizer_nonce: u64,
@@ -2303,7 +2293,7 @@ where
     }
 }
 
-/// Extraction boundary for one successful shipping aggregate-prover run.
+/// Record for one successful shipping aggregate-prover run.
 ///
 /// Every field affects the protocol result. Timers, profiles, and buffered
 /// byte-trace records remain in the runtime caller and cannot escape through
@@ -2642,12 +2632,7 @@ impl<P: Pairing>
     }
 }
 
-/// Copies a vector into ordered halves without relying on Rust range indexing.
-///
-/// Aeneas models ordinary element indexing directly, whereas range-indexed
-/// slices introduce unsupported `SliceIndex<Range*>` obligations in generated
-/// Lean. Keeping this production-used helper explicit makes the split
-/// orientation part of the extracted execution.
+/// Copies a vector into ordered halves.
 fn split_vector_at_core<T: Clone>(values: &[T], split: usize) -> (Vec<T>, Vec<T>) {
     let mut left = Vec::with_capacity(values.len());
     let mut right = Vec::with_capacity(values.len());
@@ -2690,11 +2675,7 @@ where
     E: Send,
     FX: ProverGipaEffect<F, G1, G2, GT, ABT, CT, E>,
 {
-    #[cfg(all(
-        feature = "parallel",
-        not(feature = "bench-baseline"),
-        not(hax_compilation)
-    ))]
+    #[cfg(all(feature = "parallel", not(feature = "bench-baseline")))]
     let ((left_result, left_ms), (right_result, right_ms)) = rayon::join(
         || {
             let started = Instant::now();
@@ -2708,10 +2689,7 @@ where
         },
     );
 
-    #[cfg(all(
-        any(not(feature = "parallel"), feature = "bench-baseline"),
-        not(hax_compilation)
-    ))]
+    #[cfg(any(not(feature = "parallel"), feature = "bench-baseline"))]
     let ((left_result, left_ms), (right_result, right_ms)) = {
         let left_started = Instant::now();
         let left = FX::commit_round(a_right, b_left, c_right, public_left, v_left, w_right);
@@ -2722,13 +2700,6 @@ where
         ((left, left_ms), (right, right_ms))
     };
 
-    #[cfg(hax_compilation)]
-    let (left_result, right_result) = (
-        FX::commit_round(a_right, b_left, c_right, public_left, v_left, w_right),
-        FX::commit_round(a_left, b_right, c_left, public_right, v_right, w_left),
-    );
-
-    #[cfg(not(hax_compilation))]
     effect.record_commit_profile(left_ms, right_ms);
 
     let left = left_result.map_err(|effect_error| ProverGipaCoreError {
@@ -2752,43 +2723,30 @@ where
             effect_error: Some(effect_error),
         })?;
 
-    #[cfg(not(hax_compilation))]
     let a_started = Instant::now();
     let a = fold_vector_core(a_right, a_left, &inv_challenge);
-    #[cfg(not(hax_compilation))]
     let a_ms = a_started.elapsed().as_secs_f64() * 1000.0;
 
-    #[cfg(not(hax_compilation))]
     let b_started = Instant::now();
     let b = fold_vector_core(b_right, b_left, &raw_challenge);
-    #[cfg(not(hax_compilation))]
     let b_ms = b_started.elapsed().as_secs_f64() * 1000.0;
 
-    #[cfg(not(hax_compilation))]
     let c_started = Instant::now();
     let c = fold_vector_core(c_right, c_left, &inv_challenge);
-    #[cfg(not(hax_compilation))]
     let c_ms = c_started.elapsed().as_secs_f64() * 1000.0;
 
-    #[cfg(not(hax_compilation))]
     let public_values_started = Instant::now();
     let public_values = fold_vector_core(public_right, public_left, &raw_challenge);
-    #[cfg(not(hax_compilation))]
     let public_values_ms = public_values_started.elapsed().as_secs_f64() * 1000.0;
 
-    #[cfg(not(hax_compilation))]
     let ck_v_started = Instant::now();
     let ck_v = fold_vector_core(v_right, v_left, &raw_challenge);
-    #[cfg(not(hax_compilation))]
     let ck_v_ms = ck_v_started.elapsed().as_secs_f64() * 1000.0;
 
-    #[cfg(not(hax_compilation))]
     let ck_w_started = Instant::now();
     let ck_w = fold_vector_core(w_right, w_left, &inv_challenge);
-    #[cfg(not(hax_compilation))]
     let ck_w_ms = ck_w_started.elapsed().as_secs_f64() * 1000.0;
 
-    #[cfg(not(hax_compilation))]
     effect.record_fold_profile(a_ms, b_ms, c_ms, public_values_ms, ck_v_ms, ck_w_ms);
 
     Ok(ProverGipaRoundOutput {
@@ -2805,7 +2763,7 @@ where
     })
 }
 
-/// Production-used, extraction-friendly GIPA prover schedule.
+/// Production GIPA prover schedule.
 ///
 /// All algebraic state transitions are executed here. The effect boundary is
 /// restricted to the five cross commitments, challenge derivation, and exact
@@ -3138,13 +3096,11 @@ where
             .ok_or_else(|| "round challenge must be non-zero".to_owned())
     }
 
-    #[cfg(not(hax_compilation))]
     fn record_commit_profile(&mut self, left_ms: f64, right_ms: f64) {
         self.profile.commit_l_ms += left_ms;
         self.profile.commit_r_ms += right_ms;
     }
 
-    #[cfg(not(hax_compilation))]
     fn record_fold_profile(
         &mut self,
         a_ms: f64,
@@ -3197,8 +3153,7 @@ where
     wire_rounds
 }
 
-/// Production-used extraction root for the complete successful prover
-/// boundary. All wire fields are assembled from the retained GIPA execution;
+/// Complete successful prover boundary. All wire fields come from the GIPA execution;
 /// callers cannot supply an unrelated proof beside that execution.
 fn shipping_prover_execution_from_parts<F, G1, G2, GT, ABT, CT, D>(
     gipa_execution: ProverGipaSemanticExecution<F, G1, G2, GT, ABT, CT>,
@@ -3887,7 +3842,7 @@ trait TippMippAdapterPrimitive<F, G1, G2, GT, ABT, CT> {
         messages: &[u8],
     ) -> Result<F, String>;
     fn inverse(&self, value: &F) -> Option<F>;
-    #[allow(dead_code)] // Formal effect boundary; production uses TippMippEffect.
+    #[allow(dead_code)]
     fn fold_gt_commitments(
         &self,
         roots: (&GT, &GT, &ABT, &GT),
@@ -3902,7 +3857,7 @@ trait TippMippAdapterPrimitive<F, G1, G2, GT, ABT, CT> {
     fn msm_inner_product(&self, messages: &[G1], scalars: &[F]) -> Result<G1, String>;
 }
 
-#[allow(dead_code)] // Type identity retained for the formal fold boundary.
+#[allow(dead_code)]
 type TippMippProverRound<P> = (
     TippMippCoreCommitment<
         PairingOutput<P>,
@@ -4125,7 +4080,7 @@ where
     effect.inverse(value)
 }
 
-#[allow(dead_code)] // Focused formal adapter; production folds through TippMippEffect.
+#[allow(dead_code)]
 fn arkworks_tipp_fold_gt_commitments_adapter_core<F, G1, G2, GT, ABT, CT, FX>(
     effect: &FX,
     roots: (&GT, &GT, &ABT, &GT),
@@ -4904,7 +4859,7 @@ where
     D: Digest + Send + Sync,
     S: ChallengeTraceSink,
 {
-    // Timings are observational; the extracted core below returns only the
+    // Timings are observational; the core below returns only the
     // two verifier results and the buffered TIPP/MIPP effect state.
     let started = Instant::now();
     let input = combined_checks_core_input::<P, D>(pvk, public_inputs, proof, r, ip_verifier_srs)?;
@@ -5172,7 +5127,7 @@ struct ShippingVerifierProfiledSemanticExecution<I, F, TX> {
 /// in the public byte observation; `randomizer_trace_len` retains the phase
 /// boundary inside that chronological trace.
 #[cfg(not(feature = "bench-baseline"))]
-#[allow(dead_code)] // Retained fields are consumed by the generated formal projection.
+#[allow(dead_code)]
 struct ShippingVerifierObservedExecution<I, F, TX> {
     call_id: AppVerifyCallId,
     execution: ShippingVerifierRetainedSemanticExecution<I, F, TX>,
@@ -5183,7 +5138,7 @@ struct ShippingVerifierObservedExecution<I, F, TX> {
 /// Acceptance-relevant execution after its final trace has been moved into
 /// the observed result.
 #[cfg(not(feature = "bench-baseline"))]
-#[allow(dead_code)] // Retained fields are consumed by the generated formal projection.
+#[allow(dead_code)]
 struct ShippingVerifierRetainedSemanticExecution<I, F, TX> {
     semantic: ShippingAdapterSemanticExecution<I, F, TX>,
     initial_effect_state: ShippingVerifierEffectState,
@@ -5230,7 +5185,7 @@ impl ShippingVerifierObservation {
 /// The output has no Arkworks type parameter, trait object, timing value, or
 /// shared-ownership primitive. The returned split index is the length of the
 /// randomizer prefix. Moving the records avoids duplicating transcript bytes
-/// and keeps static stage labels out of Aeneas clone lowering.
+/// and avoids duplicating static stage labels.
 #[cfg(not(feature = "bench-baseline"))]
 fn shipping_verifier_observation_core(
     call_id: AppVerifyCallId,
@@ -5259,7 +5214,7 @@ fn shipping_verifier_observation_core(
 /// Shared production payload containing the exact semantic execution and its
 /// deterministically derived, single-owned public observation.
 #[cfg(not(feature = "bench-baseline"))]
-#[allow(dead_code)] // Exact execution is consumed by the formal transport boundary.
+#[allow(dead_code)]
 struct SharedShippingVerifierObservedExecution<I, F, TX> {
     observed_execution: ShippingVerifierObservedExecution<I, F, TX>,
 }
@@ -5277,7 +5232,7 @@ fn shipping_verifier_shared_observed_execution_core<I, F, TX>(
 /// Application and backend code can transport this value but cannot forge a
 /// replacement acceptance bit or inspect retained execution state.
 /// `bench-baseline` retains only its diagnostic observation and is outside the
-/// shipping formal-verification claim.
+/// shipping path.
 #[doc(hidden)]
 pub struct ShippingVerifierExecutionCarrier<P: Pairing> {
     #[cfg(not(feature = "bench-baseline"))]
@@ -5642,7 +5597,7 @@ where
 }
 
 #[cfg(not(feature = "bench-baseline"))]
-#[allow(dead_code)] // Retained state is consumed by the generated formal projection.
+#[allow(dead_code)]
 struct ShippingVerifierEffectState {
     context: ChallengeContext,
     randomizer_trace: BufferedChallengeTraceSink,
@@ -5736,7 +5691,7 @@ where
 /// the exact context and trace chronology needed to connect that call to the
 /// deployed challenge game.
 #[cfg(not(feature = "bench-baseline"))]
-#[allow(dead_code)] // Effect states are consumed by the generated formal projection.
+#[allow(dead_code)]
 struct ShippingVerifierSemanticExecution<I, F, TX> {
     semantic: ShippingAdapterSemanticExecution<I, F, TX>,
     initial_effect_state: ShippingVerifierEffectState,
@@ -5782,7 +5737,7 @@ fn shipping_verifier_semantic_execution_with_traces_core<I, F, TX>(
 /// First-order shipping result projection used by production before profiling
 /// or opaque ownership transport.
 ///
-/// This is the extraction root for the missing result inversion. It has no
+/// This projection has no
 /// Arkworks trait bound or runtime-only value, and the accepted bit is read
 /// only from the exact semantic execution consumed into the result carrier.
 #[cfg(not(feature = "bench-baseline"))]
@@ -5958,7 +5913,7 @@ fn retain_shipping_verifier_backend_result<P: Pairing>(
 
 /// Run one shipping verifier call and retain its exact semantic effect states.
 ///
-/// The timing effect remains caller-owned, so the extracted result contains no
+/// The timing effect remains caller-owned, so the result contains no
 /// `Instant`, floating-point duration, or profile-only field.
 #[cfg(not(feature = "bench-baseline"))]
 fn run_shipping_verifier_semantic_core<P, D, S, TM>(
@@ -6062,7 +6017,7 @@ where
     let started = Instant::now();
 
     let randomizer_message = validated_aggregate_randomizer_message(proof)?;
-    // Construct the complete adapter input through the extraction root used
+    // Construct the complete adapter input through the shared root used
     // by the shipping-to-v1 refinement.
     let input = shipping_aggregate_adapter_core_input_validated::<P, D>(
         pvk,
@@ -6388,12 +6343,7 @@ where
 fn build_shifted_ck_2<P: Pairing>(ck_2: &[P::G1], r: &P::ScalarField) -> Vec<P::G1> {
     let inverse_powers = inverse_powers::<P>(ck_2.len(), r);
 
-    #[cfg(hax_compilation)]
-    {
-        return build_shifted_ck_2_inner(ck_2, &inverse_powers);
-    }
-
-    #[cfg(all(not(hax_compilation), feature = "parallel"))]
+    #[cfg(feature = "parallel")]
     {
         ck_2.par_iter()
             .zip(inverse_powers.par_iter())
@@ -6401,26 +6351,13 @@ fn build_shifted_ck_2<P: Pairing>(ck_2: &[P::G1], r: &P::ScalarField) -> Vec<P::
             .collect()
     }
 
-    #[cfg(all(not(hax_compilation), not(feature = "parallel")))]
+    #[cfg(not(feature = "parallel"))]
     {
         ck_2.iter()
             .zip(inverse_powers.iter())
             .map(|(ck, power)| *ck * power)
             .collect()
     }
-}
-
-#[cfg(hax_compilation)]
-fn build_shifted_ck_2_inner<G, F>(ck_2: &[G], inverse_powers: &[F]) -> Vec<G>
-where
-    G: Copy + std::ops::Mul<F, Output = G>,
-    F: Copy,
-{
-    let mut shifted = Vec::with_capacity(ck_2.len());
-    for index in 0..ck_2.len() {
-        shifted.push(ck_2[index] * inverse_powers[index]);
-    }
-    shifted
 }
 
 fn inverse_powers<P: Pairing>(len: usize, r: &P::ScalarField) -> Vec<P::ScalarField> {
@@ -6784,7 +6721,7 @@ where
     })
 }
 
-/// Pure, extraction-friendly construction of the complete shipping verifier
+/// Pure construction of the complete shipping verifier
 /// input after strict aggregate-proof validation.
 #[cfg(not(feature = "bench-baseline"))]
 fn shipping_aggregate_adapter_core_input<F, G1, G2, G2Prepared, GT, D>(
@@ -7905,10 +7842,8 @@ mod tests {
             Ok(*challenge + 100)
         }
 
-        #[cfg(not(hax_compilation))]
         fn record_commit_profile(&mut self, _left_ms: f64, _right_ms: f64) {}
 
-        #[cfg(not(hax_compilation))]
         fn record_fold_profile(
             &mut self,
             _a_ms: f64,

@@ -19,13 +19,13 @@ check_no_match() {
 }
 
 check_no_match \
-  "legacy tx command surface is still present" \
+  "unsupported tx command surface is present" \
   'SendMulti|Sweep|TxCmd::Send\b|TxCmd::Withdraw\b|InitTopSubCmd::Spend|InitType::SpendKey|min_validator_funding|Invalid swap commitment|swap claim outputs|note_reshape_2x2' \
   crates/bin/pcli crates/core/app crates/core/component/shielded-pool crates/view proto/shieldd poc \
   -g '!crates/bin/pcli/tests/cli_surface.rs'
 
 check_no_match \
-  "legacy command examples are still present in tests/docs/scripts" \
+  "unsupported command examples are present in tests/docs/scripts" \
   'tx send\b|tx sweep\b|send-multi\b' \
   crates/bin/pcli/tests deployments/scripts docs deployments/000-localnet \
   -g '!crates/bin/pcli/tests/cli_surface.rs' \

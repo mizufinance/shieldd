@@ -56,10 +56,10 @@ pub static IMT_LEAF_DOMAIN_SEP: Lazy<Fq> = Lazy::new(|| {
     Fq::from_le_bytes_mod_order(hash.as_bytes())
 });
 
-/// Domain separator for params sub-hash (Shieldd-decided: dk_pub, threshold, slot count, IBC route policy).
+/// Domain separator for params sub-hash (Shieldd-decided: dk_pub, threshold, IBC route policy).
 pub static PARAMS_DOMAIN_SEP: Lazy<Fq> = Lazy::new(|| {
     let hash = blake2b_simd::Params::default()
-        .personal(b"pen.imt.params__")
+        .personal(b"pen.imt.params2_")
         .hash(b"");
     Fq::from_le_bytes_mod_order(hash.as_bytes())
 });
@@ -101,7 +101,6 @@ pub fn route_policy_to_fq(params: &AssetParams) -> Fq {
 pub struct LeafParams {
     pub dk_pub: decaf377::Element,
     pub threshold: u128,
-    pub slot_count: u32,
     pub route_policy_hash: Fq,
 }
 
@@ -111,7 +110,6 @@ impl LeafParams {
         Self {
             dk_pub: p.dk_pub,
             threshold: p.threshold,
-            slot_count: p.slot_count,
             route_policy_hash: route_policy_to_fq(p),
         }
     }
@@ -122,7 +120,6 @@ impl Default for LeafParams {
         Self {
             dk_pub: *crate::crypto::UNREGULATED_SINK_DK_PUB,
             threshold: u128::MAX,
-            slot_count: 0,
             route_policy_hash: string_to_fq(""),
         }
     }
@@ -169,14 +166,9 @@ static DEFAULT_PARAMS_HASH: Lazy<Fq> = Lazy::new(|| {
     let p = LeafParams::default();
     let dk_pub_fq = p.dk_pub.vartime_compress_to_field();
     let threshold_fq = Fq::from(p.threshold);
-    poseidon377::hash_4(
+    poseidon377::hash_3(
         &PARAMS_DOMAIN_SEP,
-        (
-            dk_pub_fq,
-            threshold_fq,
-            Fq::from(p.slot_count),
-            p.route_policy_hash,
-        ),
+        (dk_pub_fq, threshold_fq, p.route_policy_hash),
     )
 });
 
@@ -226,7 +218,7 @@ pub static IMT_ZERO_HASHES: Lazy<Vec<StateCommitment>> = Lazy::new(|| {
 /// A leaf in the Indexed Merkle Tree forming a sorted linked list.
 ///
 /// All policy fields are bound into the commitment via sub-structured Poseidon:
-///   params_hash = hash_4(PARAMS_DOMAIN, dk_pub_fq, threshold_fq, slot_count_fq, route_policy_hash)
+///   params_hash = hash_3(PARAMS_DOMAIN, dk_pub_fq, threshold_fq, route_policy_hash)
 ///   ring_hash   = hash_5(RING_DOMAIN, ring_pk_fq, ring_id_hash, policy_id_hash, permission_hash, resource_hash)
 ///   leaf_commit = hash_5(LEAF_DOMAIN, value, next_index, next_value, params_hash, ring_hash)
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -303,14 +295,9 @@ impl IndexedLeaf {
     pub fn commitment_parts(&self) -> IndexedLeafCommitments {
         let dk_pub_fq = self.params.dk_pub.vartime_compress_to_field();
         let threshold_fq = Fq::from(self.params.threshold);
-        let params_hash = poseidon377::hash_4(
+        let params_hash = poseidon377::hash_3(
             &PARAMS_DOMAIN_SEP,
-            (
-                dk_pub_fq,
-                threshold_fq,
-                Fq::from(self.params.slot_count),
-                self.params.route_policy_hash,
-            ),
+            (dk_pub_fq, threshold_fq, self.params.route_policy_hash),
         );
 
         let ring_pk_fq = self.ring.ring_pk.vartime_compress_to_field();
@@ -368,7 +355,6 @@ struct IndexedLeafSerde {
     next_value: [u8; 32],
     dk_pub: [u8; 32],
     threshold: u128,
-    slot_count: u32,
     route_policy_hash: [u8; 32],
     ring_pk: [u8; 32],
     ring_id_hash: [u8; 32],
@@ -388,7 +374,6 @@ impl Serialize for IndexedLeaf {
             next_value: self.next_value.to_bytes(),
             dk_pub: self.params.dk_pub.vartime_compress().0,
             threshold: self.params.threshold,
-            slot_count: self.params.slot_count,
             route_policy_hash: self.params.route_policy_hash.to_bytes(),
             ring_pk: self.ring.ring_pk.vartime_compress().0,
             ring_id_hash: self.ring.ring_id_hash.to_bytes(),
@@ -435,7 +420,6 @@ impl<'de> Deserialize<'de> for IndexedLeaf {
             params: LeafParams {
                 dk_pub,
                 threshold: h.threshold,
-                slot_count: h.slot_count,
                 route_policy_hash,
             },
             ring: LeafRing {
@@ -464,7 +448,6 @@ impl From<IndexedLeaf> for pb::IndexedLeafData {
             dk_pub: leaf.params.dk_pub.vartime_compress().0.to_vec(),
             threshold: leaf.params.threshold.to_le_bytes().to_vec(),
             route_policy_hash: leaf.params.route_policy_hash.to_bytes().to_vec(),
-            slot_count: leaf.params.slot_count.to_le_bytes().to_vec(),
             ring_pk: leaf.ring.ring_pk.vartime_compress().0.to_vec(),
             ring_id_hash: leaf.ring.ring_id_hash.to_bytes().to_vec(),
             policy_id_hash: leaf.ring.policy_id_hash.to_bytes().to_vec(),
@@ -511,11 +494,6 @@ impl TryFrom<pb::IndexedLeafData> for IndexedLeaf {
             })?;
         let threshold = u128::from_le_bytes(threshold_bytes);
         let route_policy_hash = parse_fq(&proto.route_policy_hash, "route_policy_hash")?;
-        let slot_count_bytes: [u8; 4] =
-            proto.slot_count.as_slice().try_into().map_err(|_| {
-                anyhow!("slot_count must be 4 bytes, got {}", proto.slot_count.len())
-            })?;
-        let slot_count = u32::from_le_bytes(slot_count_bytes);
         let ring_pk = parse_element(&proto.ring_pk, "ring_pk")?;
         let ring_id_hash = parse_fq(&proto.ring_id_hash, "ring_id_hash")?;
         let policy_id_hash = parse_fq(&proto.policy_id_hash, "policy_id_hash")?;
@@ -531,7 +509,6 @@ impl TryFrom<pb::IndexedLeafData> for IndexedLeaf {
             params: LeafParams {
                 dk_pub,
                 threshold,
-                slot_count,
                 route_policy_hash,
             },
             ring: LeafRing {
@@ -599,7 +576,6 @@ impl Serialize for IndexedMerkleTree {
                         next_value: v.next_value.to_bytes(),
                         dk_pub: v.params.dk_pub.vartime_compress().0,
                         threshold: v.params.threshold,
-                        slot_count: v.params.slot_count,
                         route_policy_hash: v.params.route_policy_hash.to_bytes(),
                         ring_pk: v.ring.ring_pk.vartime_compress().0,
                         ring_id_hash: v.ring.ring_id_hash.to_bytes(),
@@ -682,7 +658,6 @@ impl<'de> Deserialize<'de> for IndexedMerkleTree {
                         params: LeafParams {
                             dk_pub,
                             threshold: h.threshold,
-                            slot_count: h.slot_count,
                             route_policy_hash,
                         },
                         ring: LeafRing {
@@ -2091,11 +2066,10 @@ mod tests {
     fn indexed_leaf_proto_rejects_omitted_policy_facts_and_invalid_points() {
         let leaf = IndexedLeaf::with_default_policy(Fq::from(100u64), 2, Fq::from(200u64));
         let proto: pb::IndexedLeafData = leaf.into();
-        let mutations: [(&str, fn(&mut pb::IndexedLeafData)); 11] = [
+        let mutations: [(&str, fn(&mut pb::IndexedLeafData)); 10] = [
             ("dk_pub", |p| p.dk_pub.clear()),
             ("threshold", |p| p.threshold.clear()),
             ("route_policy_hash", |p| p.route_policy_hash.clear()),
-            ("slot_count", |p| p.slot_count.clear()),
             ("ring_pk", |p| p.ring_pk.clear()),
             ("ring_id_hash", |p| p.ring_id_hash.clear()),
             ("policy_id_hash", |p| p.policy_id_hash.clear()),
@@ -2183,7 +2157,6 @@ mod tests {
             params: LeafParams {
                 dk_pub: decaf377::Element::default(),
                 threshold: 1000u128,
-                slot_count: crate::structs::DEFAULT_COMPLIANCE_SLOT_COUNT,
                 route_policy_hash: string_to_fq(""),
             },
             ring: LeafRing::default(),

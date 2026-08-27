@@ -17,7 +17,7 @@ use crate::{
 pub const NOTE_RESHAPE_STATEMENT_BASE_FIELDS: usize = 7;
 pub const NOTE_RESHAPE_STATEMENT_FIELDS_PER_INPUT: usize = 3;
 pub const NOTE_RESHAPE_STATEMENT_FIELDS_PER_OUTPUT: usize = 1;
-pub const TRANSFER_STATEMENT_BASE_FIELDS: usize = 39;
+pub const TRANSFER_STATEMENT_BASE_FIELDS: usize = 37;
 pub const TRANSFER_STATEMENT_FIELDS_PER_INPUT: usize = 3;
 pub const TRANSFER_STATEMENT_FIELDS_PER_OUTPUT: usize = 1;
 pub const SHIELDED_ICS20_WITHDRAWAL_STATEMENT_BASE_FIELDS: usize = 15;
@@ -392,14 +392,6 @@ pub fn transfer_statement_fields(
         ));
     }
     for (label, value) in [
-        (
-            "transfer_sender_subject_derivation",
-            metadata.sender_subject_derivation(),
-        ),
-        (
-            "transfer_output_subject_derivation",
-            metadata.output_subject_derivation(),
-        ),
         ("transfer_ring_id_hash", metadata.ring_id_hash()),
         ("transfer_policy_id_hash", metadata.policy_id_hash()),
         ("transfer_resource_hash", metadata.resource_hash()),
@@ -510,7 +502,7 @@ pub fn note_reshape_statement_hash(
 }
 
 pub fn transfer_statement_hash(fields: &[Fq]) -> Result<Fq, StatementHashError> {
-    let domain = transfer_statement_hash_constant("v6");
+    let domain = transfer_statement_hash_constant("v7");
     let pad_0 = transfer_statement_hash_constant("pad0");
     let pad_1 = transfer_statement_hash_constant("pad1");
     hash_statement_fields(
@@ -574,7 +566,7 @@ pub fn transfer_statement_hash_var(
     cs: ConstraintSystemRef<Fq>,
     fields: &[FqVar],
 ) -> Result<FqVar, SynthesisError> {
-    let domain = transfer_statement_hash_constant("v6");
+    let domain = transfer_statement_hash_constant("v7");
     let pad_0 = transfer_statement_hash_constant("pad0");
     let pad_1 = transfer_statement_hash_constant("pad1");
     hash_statement_fields_var(
@@ -744,7 +736,7 @@ mod tests {
     }
 
     #[test]
-    fn note_reshape_statement_has_no_active_counts_after_redesign() {
+    fn note_reshape_statement_field_count_matches_family_shape() {
         for family_id in NoteReshapeFamilyId::ALL {
             let core = NOTE_RESHAPE_STATEMENT_BASE_FIELDS
                 + NOTE_RESHAPE_STATEMENT_FIELDS_PER_INPUT * family_id.input_count()
@@ -755,7 +747,7 @@ mod tests {
                     family_id.output_count()
                 ),
                 core,
-                "{} statement field count still includes active counts",
+                "{} statement field count mismatch",
                 family_id.label()
             );
             let (public, _) = proof_test_helpers::build_note_reshape_roundtrip_inputs(family_id);
@@ -764,7 +756,7 @@ mod tests {
                     .expect("statement fields")
                     .len(),
                 core,
-                "{} statement preimage still includes active counts",
+                "{} statement preimage length mismatch",
                 family_id.label()
             );
         }
@@ -802,8 +794,6 @@ mod tests {
 
         let metadata = &public.compliance.metadata;
         let expected_metadata = [
-            metadata.sender_subject_derivation().unwrap(),
-            metadata.output_subject_derivation().unwrap(),
             metadata.ring_id_hash().unwrap(),
             metadata.policy_id_hash().unwrap(),
             metadata.resource_hash().unwrap(),
@@ -815,8 +805,8 @@ mod tests {
         ];
         assert_eq!(&fields[37..], expected_metadata.as_slice());
 
-        let v6 = transfer_statement_hash(&fields).expect("v6 transfer hash");
-        let v3 = hash_statement_fields(
+        let v7 = transfer_statement_hash(&fields).expect("v7 transfer hash");
+        let alternate_domain_hash = hash_statement_fields(
             &transfer_statement_hash_constant("v3"),
             transfer_statement_hash_constant("pad0"),
             transfer_statement_hash_constant("pad1"),
@@ -824,8 +814,8 @@ mod tests {
             TRANSFER_STATEMENT_FIELD_COUNT,
             |expected, got| StatementHashError::InvalidFieldLength { expected, got },
         )
-        .expect("legacy domain hash");
-        assert_ne!(v6, v3, "V19 must not verify under the V15 hash domain");
+        .expect("alternate domain hash");
+        assert_ne!(v7, alternate_domain_hash);
     }
 
     #[test]
@@ -847,9 +837,7 @@ mod tests {
             let value = Fq::from_bytes_checked(bytes).expect("fixture field is canonical");
             *bytes = (value + Fq::from(1u64)).to_bytes();
         }
-        let mutations: [fn(&mut shieldd_sdk_compliance::TransferComplianceMetadata); 10] = [
-            |m| increment(&mut m.sender_subject_derivation_bytes),
-            |m| increment(&mut m.output_subject_derivation_bytes),
+        let mutations: [fn(&mut shieldd_sdk_compliance::TransferComplianceMetadata); 8] = [
             |m| increment(&mut m.ring_id_hash_bytes),
             |m| increment(&mut m.policy_id_hash_bytes),
             |m| increment(&mut m.resource_hash_bytes),

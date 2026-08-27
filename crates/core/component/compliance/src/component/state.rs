@@ -106,10 +106,6 @@ impl Component for Compliance {
                     let registration_authority_vk = registration
                         .registration_authority_vk
                         .expect("regulated asset in genesis must have registration_authority_vk");
-                    assert!(
-                        registration.slot_count > 0,
-                        "regulated asset in genesis must have slot_count > 0"
-                    );
                     let dk_pub = decaf377::Encoding(dk_pub_bytes)
                         .vartime_decompress()
                         .expect("invalid dk_pub encoding in genesis");
@@ -118,7 +114,6 @@ impl Component for Compliance {
                         crate::structs::AssetPolicy::new(
                             dk_pub,
                             u128::MAX,
-                            registration.slot_count,
                             vec![],
                             None,
                             String::new(),
@@ -317,10 +312,6 @@ impl ActionHandler for MsgRegisterAsset {
                 self.registration_authority_vk.is_some(),
                 "regulated assets require registration_authority_vk"
             );
-            anyhow::ensure!(
-                self.slot_count > 0,
-                "regulated assets require slot_count > 0"
-            );
         } else {
             anyhow::ensure!(
                 self.allowed_ibc_routes.is_empty(),
@@ -329,10 +320,6 @@ impl ActionHandler for MsgRegisterAsset {
             anyhow::ensure!(
                 self.ibc_origin.is_none(),
                 "unregulated assets cannot set IBC origin"
-            );
-            anyhow::ensure!(
-                self.slot_count == 0,
-                "unregulated assets cannot set slot_count"
             );
         }
         grant.verify()?;
@@ -429,7 +416,6 @@ mod tests {
             is_regulated: true,
             dk_pub: Some(decaf377::Element::GENERATOR),
             threshold: None,
-            slot_count: crate::structs::DEFAULT_COMPLIANCE_SLOT_COUNT,
             allowed_ibc_routes: vec![],
             ibc_origin: None,
             ring_pk: None,
@@ -519,7 +505,6 @@ mod tests {
                 asset_id: custom_asset,
                 is_regulated: true,
                 dk_pub: Some(dk_pub_bytes),
-                slot_count: crate::structs::DEFAULT_COMPLIANCE_SLOT_COUNT,
                 registration_authority_vk: Some(VerificationKey::from(
                     &SigningKey::<SpendAuth>::new(OsRng),
                 )),
@@ -558,11 +543,7 @@ mod tests {
         .await
         .unwrap();
 
-        let leaf = ComplianceLeaf::new(
-            Address::dummy(&mut rand::thread_rng()),
-            asset_id,
-            Fq::from(0u64),
-        );
+        let leaf = ComplianceLeaf::new(Address::dummy(&mut rand::thread_rng()), asset_id);
         let msg = MsgRegisterUser {
             leaf: leaf.clone(),
             grant: Some(user_registration_grant(
@@ -579,8 +560,15 @@ mod tests {
         // Duplicate registration stays idempotent for regulated assets.
         msg.check_and_execute(&mut state).await.unwrap();
 
-        let conflicting_leaf =
-            ComplianceLeaf::new(msg.leaf.address.clone(), asset_id, Fq::from(1u64));
+        state
+            .apply_user_status_action(
+                &msg.leaf.address,
+                asset_id,
+                crate::structs::UserAssetStatusAction::Freeze,
+            )
+            .await
+            .unwrap();
+        let conflicting_leaf = msg.leaf.clone();
         let conflicting_msg = MsgRegisterUser {
             leaf: conflicting_leaf.clone(),
             grant: Some(user_registration_grant(
@@ -605,7 +593,96 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_msg_register_user_rejects_invalid_slot_id() {
+    async fn user_registration_derives_distinct_audit_keys_from_distinct_addresses() {
+        let storage = TempStorage::new().await.unwrap();
+        let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
+        let registrar_sk = SigningKey::<SpendAuth>::new(OsRng);
+        let authority_sk = SigningKey::<SpendAuth>::new(OsRng);
+        let asset_id = asset::Id(Fq::from(11u64));
+        Compliance::init_chain(
+            &mut state,
+            Some(&registrar_genesis(VerificationKey::from(&registrar_sk))),
+        )
+        .await;
+        set_test_block_time(&mut state, TEST_BLOCK_UNIX);
+        sign_asset_registration(
+            regulated_asset_msg(asset_id, VerificationKey::from(&authority_sk)),
+            &registrar_sk,
+            TEST_VALID_UNTIL_UNIX,
+        )
+        .check_and_execute(&mut state)
+        .await
+        .unwrap();
+
+        for address in [
+            Address::dummy(&mut rand::thread_rng()),
+            Address::dummy(&mut rand::thread_rng()),
+        ] {
+            let leaf = ComplianceLeaf::new(address, asset_id);
+            let msg = MsgRegisterUser {
+                leaf: leaf.clone(),
+                grant: Some(user_registration_grant(
+                    leaf,
+                    "test-policy".to_string(),
+                    &authority_sk,
+                    TEST_VALID_UNTIL_UNIX,
+                )),
+            };
+            msg.check_and_execute(&mut state).await.unwrap();
+        }
+        assert_eq!(state.get_user_count().await.unwrap(), 2);
+    }
+
+    #[tokio::test]
+    async fn user_registration_rejects_another_addresses_audit_key() {
+        let storage = TempStorage::new().await.unwrap();
+        let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
+        let registrar_sk = SigningKey::<SpendAuth>::new(OsRng);
+        let authority_sk = SigningKey::<SpendAuth>::new(OsRng);
+        let asset_id = asset::Id(Fq::from(12u64));
+        Compliance::init_chain(
+            &mut state,
+            Some(&registrar_genesis(VerificationKey::from(&registrar_sk))),
+        )
+        .await;
+        set_test_block_time(&mut state, TEST_BLOCK_UNIX);
+        sign_asset_registration(
+            regulated_asset_msg(asset_id, VerificationKey::from(&authority_sk)),
+            &registrar_sk,
+            TEST_VALID_UNTIL_UNIX,
+        )
+        .check_and_execute(&mut state)
+        .await
+        .unwrap();
+
+        let first_address = Address::dummy(&mut rand::thread_rng());
+        let second_address = Address::dummy(&mut rand::thread_rng());
+        let first_leaf = ComplianceLeaf::new(first_address, asset_id);
+        let reused_key_leaf = ComplianceLeaf::new_unchecked(second_address, asset_id, first_leaf.d);
+        let msg = MsgRegisterUser {
+            leaf: reused_key_leaf.clone(),
+            grant: Some(user_registration_grant(
+                reused_key_leaf,
+                "test-policy".to_string(),
+                &authority_sk,
+                TEST_VALID_UNTIL_UNIX,
+            )),
+        };
+        let error = msg
+            .check_stateless(())
+            .await
+            .expect_err("an address cannot reuse another address's audit key");
+        assert!(
+            error
+                .to_string()
+                .contains("does not match the canonical address derivation"),
+            "unexpected error: {error:#}"
+        );
+        assert_eq!(state.get_user_count().await.unwrap(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_msg_register_user_rejects_zero_derivation() {
         let storage = TempStorage::new().await.unwrap();
         let snapshot = storage.latest_snapshot();
         let mut state = cnidarium::StateDelta::new(snapshot);
@@ -627,10 +704,9 @@ mod tests {
         .await
         .unwrap();
 
-        let leaf = ComplianceLeaf::with_slot(
+        let leaf = ComplianceLeaf::new_unchecked(
             Address::dummy(&mut rand::thread_rng()),
             asset_id,
-            crate::structs::DEFAULT_COMPLIANCE_SLOT_COUNT,
             Fq::from(0u64),
         );
         let msg = MsgRegisterUser {
@@ -644,11 +720,12 @@ mod tests {
         };
 
         let err = msg
-            .check_and_execute(&mut state)
+            .check_stateless(())
             .await
-            .expect_err("slot_id equal to slot_count must be rejected");
+            .expect_err("zero derivation must be rejected");
         assert!(
-            err.to_string().contains("outside asset slot count"),
+            err.to_string()
+                .contains("does not match the canonical address derivation"),
             "unexpected error: {err}"
         );
         assert_eq!(state.get_user_count().await.unwrap(), 0);
@@ -663,11 +740,7 @@ mod tests {
         Compliance::init_chain(&mut state, Some(&genesis::Content::default())).await;
 
         let msg = MsgRegisterUser {
-            leaf: ComplianceLeaf::new(
-                Address::dummy(&mut rand::thread_rng()),
-                *BASE_ASSET_ID,
-                Fq::from(0u64),
-            ),
+            leaf: ComplianceLeaf::new(Address::dummy(&mut rand::thread_rng()), *BASE_ASSET_ID),
             grant: None,
         };
 
@@ -701,7 +774,6 @@ mod tests {
             leaf: ComplianceLeaf::new(
                 Address::dummy(&mut rand::thread_rng()),
                 asset::Id(Fq::from(999_999u64)),
-                Fq::from(0u64),
             ),
             grant: None,
         };
@@ -883,11 +955,7 @@ mod tests {
         .await
         .unwrap();
 
-        let leaf = ComplianceLeaf::new(
-            Address::dummy(&mut rand::thread_rng()),
-            asset_id,
-            Fq::from(0u64),
-        );
+        let leaf = ComplianceLeaf::new(Address::dummy(&mut rand::thread_rng()), asset_id);
 
         let missing_grant = MsgRegisterUser {
             leaf: leaf.clone(),
@@ -934,8 +1002,6 @@ mod tests {
         let mismatched_leaf = ComplianceLeaf::new_unchecked(
             Address::dummy(&mut rand::thread_rng()),
             asset_id,
-            0,
-            Fq::from(111u64),
             Fq::from(222u64),
         );
         let mismatched_msg = MsgRegisterUser {
@@ -952,7 +1018,9 @@ mod tests {
             .await
             .expect_err("mismatched d must be rejected before execution");
         assert!(
-            error.to_string().contains("does not match slot_derivation"),
+            error
+                .to_string()
+                .contains("does not match the canonical address derivation"),
             "unexpected error: {error}"
         );
     }
@@ -980,7 +1048,6 @@ mod tests {
                 is_regulated: false,
                 dk_pub: None,
                 threshold: None,
-                slot_count: 0,
                 allowed_ibc_routes: vec![],
                 ibc_origin: None,
                 ring_pk: None,
@@ -1031,7 +1098,6 @@ mod tests {
                 is_regulated: true,
                 dk_pub: None, // Missing!
                 threshold: None,
-                slot_count: crate::structs::DEFAULT_COMPLIANCE_SLOT_COUNT,
                 allowed_ibc_routes: vec![],
                 ibc_origin: None,
                 ring_pk: None,

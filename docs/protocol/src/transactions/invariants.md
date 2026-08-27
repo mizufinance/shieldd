@@ -12,8 +12,7 @@
 
 2. Individual actions are bound to the transaction they belong to.
 
-3. Only the reduced supported action surface is accepted. Removed action
-   families are invalid and must be rejected before execution.
+3. Unsupported action families are rejected before execution.
 
 #### Justification
 

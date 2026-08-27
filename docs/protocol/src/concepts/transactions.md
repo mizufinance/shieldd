@@ -12,8 +12,7 @@ The target Bankd integration exposes these Shieldd actions:
   - `ShieldedHostWithdrawal`
 
 Bankd owns deposits, withdrawals, asset and user registration authorization,
-and compliance status actions. Legacy IBC actions are not part of this target
-surface.
+and compliance status actions. IBC actions are outside this surface.
 
 Shielded actions consume existing note commitments, reveal nullifiers for spent
 notes, and create new note commitments when applicable. The transaction-level

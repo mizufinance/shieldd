@@ -5531,7 +5531,7 @@ impl App {
             (events, execute_profile)
         } else {
             let (stateful_result, check_historical_ms) = stateful
-                .expect("stateful task is present on legacy path")
+                .expect("stateful task is present on the standard path")
                 .await
                 .context("waiting for check_stateful task")?;
             profile.check_historical_ms = check_historical_ms;
@@ -6479,7 +6479,7 @@ impl App {
             .try_begin_transaction()
             .ok_or_else(|| {
                 anyhow::anyhow!(
-                    "legacy CheckTx could not begin state transaction after historical checks: tx_id={}, action_count={}, state_arc_strong_count={}",
+                    "CheckTx could not begin state transaction after historical checks: tx_id={}, action_count={}, state_arc_strong_count={}",
                     tx_id,
                     tx.actions().count(),
                     state_arc_strong_count,
@@ -8182,7 +8182,7 @@ mod tests {
     }
 
     #[tokio::test(flavor = "multi_thread")]
-    async fn checktx_fast_path_matches_legacy_for_supported_tx() -> Result<()> {
+    async fn checktx_fast_path_matches_standard_path() -> Result<()> {
         let (storage, _node, txs) = setup_test_txs(1).await?;
         let tx = Arc::new(Transaction::decode(
             txs.first().expect("fixture transaction").as_slice(),
@@ -8192,9 +8192,9 @@ mod tests {
         let shared_context =
             Arc::new(CheckTxSharedContext::load(&storage.latest_snapshot()).await?);
 
-        let mut legacy_app = App::new(storage.latest_snapshot());
-        tx.check_historical(legacy_app.state.clone()).await?;
-        let (legacy_events, legacy_profile) = legacy_app
+        let mut standard_app = App::new(storage.latest_snapshot());
+        tx.check_historical(standard_app.state.clone()).await?;
+        let (standard_events, standard_profile) = standard_app
             .execute_tx_checked_historical_profiled(artifact.clone())
             .await?;
 
@@ -8204,19 +8204,19 @@ mod tests {
             .execute_checktx_fast_profiled(artifact, false)
             .await?;
 
-        let mut legacy_rendered = legacy_events
+        let mut standard_rendered = standard_events
             .iter()
             .map(|event| format!("{event:?}"))
             .collect::<Vec<_>>();
-        legacy_rendered.sort();
+        standard_rendered.sort();
         let mut fast_rendered = fast_events
             .iter()
             .map(|event| format!("{event:?}"))
             .collect::<Vec<_>>();
         fast_rendered.sort();
-        assert_eq!(legacy_rendered, fast_rendered);
+        assert_eq!(standard_rendered, fast_rendered);
         assert!(
-            fast_profile.nullifier_lookup_count >= legacy_profile.nullifier_lookup_count,
+            fast_profile.nullifier_lookup_count >= standard_profile.nullifier_lookup_count,
             "fast path should not undercount nullifier checks"
         );
         assert!(
@@ -8794,7 +8794,6 @@ mod tests {
             .test_only_add_compliance_leaf(ComplianceLeaf::new(
                 Address::dummy(&mut rand::thread_rng()),
                 asset::Id(Fq::from(123u64)),
-                Fq::from(7u64),
             ))
             .await?;
         state

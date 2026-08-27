@@ -28,12 +28,10 @@ type NoteReshapeSharedNoteContextCircuitFields struct {
 }
 
 type NoteReshapeSenderCircuitFields struct {
-	SlotID         frontend.Variable
-	SlotDerivation frontend.Variable
-	D              frontend.Variable
-	Status         frontend.Variable
-	Path           [ComplianceQuadTreeDepth][3]frontend.Variable
-	Position       frontend.Variable
+	D        frontend.Variable
+	Status   frontend.Variable
+	Path     [ComplianceQuadTreeDepth][3]frontend.Variable
+	Position frontend.Variable
 }
 
 type NoteReshapeSpendCircuitFields struct {
@@ -149,8 +147,6 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 	c.bindSemantic("is_regulated", c.IsRegulated)
 	c.bindSemantic("shared.asset_id", c.Shared.AssetID)
 	c.bindSemantic("shared.div_gen", sharedDivGen.X, sharedDivGen.Y)
-	c.bindSemantic("sender.slot_id", c.Sender.SlotID)
-	c.bindSemantic("sender.slot_derivation", c.Sender.SlotDerivation)
 	c.bindSemantic("sender.d", c.Sender.D)
 	c.bindSemantic("sender.status", c.Sender.Status)
 	c.bindSemantic("sender.path", quadPathVariables(c.Sender.Path)...)
@@ -231,14 +227,12 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 	); err != nil {
 		return err
 	}
-	c.traceWiring("gadget.compliance_leaf", "div_gen_fq=shared.div_gen_fq", "transmission_fq=shared.transmission.fq", "asset_id=shared.asset_id", "slot_id=sender.slot_id", "slot_derivation=sender.slot_derivation", "d=sender.d", "status=sender.status", "out=sender.leaf_commitment")
+	c.traceWiring("gadget.compliance_leaf", "div_gen_fq=shared.div_gen_fq", "transmission_fq=shared.transmission.fq", "asset_id=shared.asset_id", "d=sender.d", "status=sender.status", "out=sender.leaf_commitment")
 	senderLeafCommitment, err := ComplianceLeafCommitmentFromCompressed(
 		api,
 		sharedDivGenFq,
 		sharedTransmissionFq,
 		c.Shared.AssetID,
-		c.Sender.SlotID,
-		c.Sender.SlotDerivation,
 		c.Sender.D,
 		c.Sender.Status,
 	)

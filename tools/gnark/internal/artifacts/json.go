@@ -12,7 +12,7 @@ import (
 	"github.com/consensys/gnark-crypto/ecc/bls12-377/fp"
 )
 
-// EncodeCanonicalJSON is the sole artifact JSON encoding accepted by FV gates.
+// EncodeCanonicalJSON returns the repository's canonical artifact encoding.
 func EncodeCanonicalJSON(value any) ([]byte, error) {
 	var out bytes.Buffer
 	encoder := json.NewEncoder(&out)

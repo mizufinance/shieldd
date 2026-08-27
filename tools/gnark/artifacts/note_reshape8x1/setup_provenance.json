@@ -3,15 +3,15 @@
   "curve": "bls12-377",
   "circuit": "note_reshape8x1",
   "mode": "fresh_setup",
-  "sr1cs_sha256_hex": "c7bf13f8b8b967e304f1e27888fcfc1a3f3538fbb14c83262a550e68fe2d99af",
-  "proving_key_sha256_hex": "a13c843cf38f45453a275d5a8e73da46ec060f38158cc1903ae8259b5c434e4f",
-  "verifying_key_binary_sha256_hex": "81e86f2829049e03b7bd2a67f4a2d9a4d341081546d63a1b2bf91d9fe86443e9",
-  "verifying_key_json_sha256_hex": "5cff9c54a4169352ac88f4b8f8889e1fa31d114c06bed4661eaa1a6553880e53",
+  "sr1cs_sha256_hex": "b1b03a5238ccb0568dd8e819c9cfdba612b2ec034cee4c721ce974620fdba3d5",
+  "proving_key_sha256_hex": "be04d65961d2c57a8e01614dd65829b8bbb711fa52b9ff956097acac7adb5da6",
+  "verifying_key_binary_sha256_hex": "85084fc5f1f9c49c98e412bca223f80e4afae7785ccce6658b584a53cee86e1d",
+  "verifying_key_json_sha256_hex": "b37f8a866ec0d441b46aeb3adc7b3baea8cf667d6b4c33d215e8df6c58ac1425",
   "generation_self_tests": [
     {
       "proof_case": "note_reshape8x1",
-      "witness_format_version": 6,
-      "witness_sha256_hex": "645a81fddeeadf4fc3c6d31d4b6f8f551b68d5b3005bd14566923b3d588a97e2",
+      "witness_format_version": 8,
+      "witness_sha256_hex": "b6265838d4fecd2fde714a0d3c2eb1f7cfbd4249def5f28103b81e4b710b77db",
       "proved_and_verified_in_process": true
     }
   ],

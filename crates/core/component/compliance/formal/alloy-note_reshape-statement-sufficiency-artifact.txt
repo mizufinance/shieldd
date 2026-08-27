@@ -1,8 +1,0 @@
-tool: alloy
-alloy: 6.2.0
-model: crates/core/component/compliance/formal/alloy/note_reshape-statement-sufficiency.als
-model_sha256: fdbd7f5becbc9ed93bde99d9ea4b4267d28f2aa193d56ec5e0cd08282132c51f
-alloy_output_sha256: d297f13ee3147235f1d0b35094bad5309e24d028cb87505eade13e53653e2d32
-CHECK NoDoubleSpend no-counterexample
-CHECK NoInflation no-counterexample
-CHECK SpendAuthBound no-counterexample

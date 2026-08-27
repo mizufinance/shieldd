@@ -141,18 +141,16 @@ func verifyRoutingAssetRegistry(
 		"gadget.asset_registry_params_hash",
 		"dk_pub_fq=asset.leaf.dk_pub_fq",
 		"threshold=asset.leaf.threshold",
-		"slot_count=asset.leaf.slot_count",
-		"channels_hash=asset.leaf.channels_hash",
+		"route_policy_hash=asset.leaf.route_policy_hash",
 		"out=asset.leaf.params_hash",
 	)
-	paramsHash, err := Poseidon377Hash4(
+	paramsHash, err := Poseidon377Hash3(
 		api,
 		MustBigInt(vectors.Poseidon377.IMTParamsDomain),
-		[4]frontend.Variable{
+		[3]frontend.Variable{
 			dkPubFq,
 			asset.Leaf.Threshold,
-			asset.Leaf.SlotCount,
-			asset.Leaf.ChannelsHash,
+			asset.Leaf.RoutePolicyHash,
 		},
 	)
 	if err != nil {
@@ -336,7 +334,7 @@ func (c *TransferCircuit) verifyTransferRouting(
 	api frontend.API,
 	shared *transferSharedContext,
 	statementData *transferStatementData,
-) (frontend.Variable, error) {
+) error {
 	c.traceWiring(
 		"routing.precision.select",
 		"regulated=regulated_precision",
@@ -364,7 +362,7 @@ func (c *TransferCircuit) verifyTransferRouting(
 		},
 	)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	c.traceWiring(
 		"routing.parameters.bind",
@@ -386,7 +384,7 @@ func (c *TransferCircuit) verifyTransferRouting(
 	)
 	senderWord, err := Poseidon377Hash1(api, routeDomain, shared.senderTransmissionFq)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	c.traceWiring(
 		"routing.route_word",
@@ -396,7 +394,7 @@ func (c *TransferCircuit) verifyTransferRouting(
 	)
 	receiverWord, err := Poseidon377Hash1(api, routeDomain, statementData.receiverTransmissionFq)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	c.traceWiring(
 		"routing.permutation.hash",
@@ -405,7 +403,7 @@ func (c *TransferCircuit) verifyTransferRouting(
 	)
 	permutationWord, err := routingPermutationWord(api, c.Compliance.TransferNonceRoot)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	c.traceWiring(
 		"routing.permutation.compose",
@@ -445,8 +443,8 @@ func (c *TransferCircuit) verifyTransferRouting(
 			publicTagBits,
 		)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
-	return swapped, nil
+	return nil
 }

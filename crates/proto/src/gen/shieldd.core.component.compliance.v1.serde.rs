@@ -36,9 +36,6 @@ impl serde::Serialize for AssetPolicy {
         if self.ibc_origin.is_some() {
             len += 1;
         }
-        if self.slot_count != 0 {
-            len += 1;
-        }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.compliance.v1.AssetPolicy", len)?;
         if !self.dk_pub.is_empty() {
             #[allow(clippy::needless_borrow)]
@@ -76,9 +73,6 @@ impl serde::Serialize for AssetPolicy {
         if let Some(v) = self.ibc_origin.as_ref() {
             struct_ser.serialize_field("ibcOrigin", v)?;
         }
-        if self.slot_count != 0 {
-            struct_ser.serialize_field("slotCount", &self.slot_count)?;
-        }
         struct_ser.end()
     }
 }
@@ -106,8 +100,6 @@ impl<'de> serde::Deserialize<'de> for AssetPolicy {
             "registrationAuthorityVk",
             "ibc_origin",
             "ibcOrigin",
-            "slot_count",
-            "slotCount",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -122,7 +114,6 @@ impl<'de> serde::Deserialize<'de> for AssetPolicy {
             Resource,
             RegistrationAuthorityVk,
             IbcOrigin,
-            SlotCount,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -155,7 +146,6 @@ impl<'de> serde::Deserialize<'de> for AssetPolicy {
                             "resource" => Ok(GeneratedField::Resource),
                             "registrationAuthorityVk" | "registration_authority_vk" => Ok(GeneratedField::RegistrationAuthorityVk),
                             "ibcOrigin" | "ibc_origin" => Ok(GeneratedField::IbcOrigin),
-                            "slotCount" | "slot_count" => Ok(GeneratedField::SlotCount),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -185,7 +175,6 @@ impl<'de> serde::Deserialize<'de> for AssetPolicy {
                 let mut resource__ = None;
                 let mut registration_authority_vk__ = None;
                 let mut ibc_origin__ = None;
-                let mut slot_count__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::DkPub => {
@@ -254,14 +243,6 @@ impl<'de> serde::Deserialize<'de> for AssetPolicy {
                             }
                             ibc_origin__ = map_.next_value()?;
                         }
-                        GeneratedField::SlotCount => {
-                            if slot_count__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("slotCount"));
-                            }
-                            slot_count__ = 
-                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
-                            ;
-                        }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
                         }
@@ -278,7 +259,6 @@ impl<'de> serde::Deserialize<'de> for AssetPolicy {
                     resource: resource__.unwrap_or_default(),
                     registration_authority_vk: registration_authority_vk__,
                     ibc_origin: ibc_origin__,
-                    slot_count: slot_count__.unwrap_or_default(),
                 })
             }
         }
@@ -462,9 +442,6 @@ impl serde::Serialize for AssetRegistrationGrantBody {
         if self.ibc_origin.is_some() {
             len += 1;
         }
-        if self.slot_count != 0 {
-            len += 1;
-        }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.compliance.v1.AssetRegistrationGrantBody", len)?;
         if let Some(v) = self.asset_id.as_ref() {
             struct_ser.serialize_field("assetId", v)?;
@@ -513,9 +490,6 @@ impl serde::Serialize for AssetRegistrationGrantBody {
         if let Some(v) = self.ibc_origin.as_ref() {
             struct_ser.serialize_field("ibcOrigin", v)?;
         }
-        if self.slot_count != 0 {
-            struct_ser.serialize_field("slotCount", &self.slot_count)?;
-        }
         struct_ser.end()
     }
 }
@@ -549,8 +523,6 @@ impl<'de> serde::Deserialize<'de> for AssetRegistrationGrantBody {
             "validUntilUnix",
             "ibc_origin",
             "ibcOrigin",
-            "slot_count",
-            "slotCount",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -568,7 +540,6 @@ impl<'de> serde::Deserialize<'de> for AssetRegistrationGrantBody {
             RegistrationAuthorityVk,
             ValidUntilUnix,
             IbcOrigin,
-            SlotCount,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -604,7 +575,6 @@ impl<'de> serde::Deserialize<'de> for AssetRegistrationGrantBody {
                             "registrationAuthorityVk" | "registration_authority_vk" => Ok(GeneratedField::RegistrationAuthorityVk),
                             "validUntilUnix" | "valid_until_unix" => Ok(GeneratedField::ValidUntilUnix),
                             "ibcOrigin" | "ibc_origin" => Ok(GeneratedField::IbcOrigin),
-                            "slotCount" | "slot_count" => Ok(GeneratedField::SlotCount),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -637,7 +607,6 @@ impl<'de> serde::Deserialize<'de> for AssetRegistrationGrantBody {
                 let mut registration_authority_vk__ = None;
                 let mut valid_until_unix__ = None;
                 let mut ibc_origin__ = None;
-                let mut slot_count__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::AssetId => {
@@ -726,14 +695,6 @@ impl<'de> serde::Deserialize<'de> for AssetRegistrationGrantBody {
                             }
                             ibc_origin__ = map_.next_value()?;
                         }
-                        GeneratedField::SlotCount => {
-                            if slot_count__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("slotCount"));
-                            }
-                            slot_count__ = 
-                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
-                            ;
-                        }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
                         }
@@ -753,7 +714,6 @@ impl<'de> serde::Deserialize<'de> for AssetRegistrationGrantBody {
                     registration_authority_vk: registration_authority_vk__,
                     valid_until_unix: valid_until_unix__.unwrap_or_default(),
                     ibc_origin: ibc_origin__,
-                    slot_count: slot_count__.unwrap_or_default(),
                 })
             }
         }
@@ -1607,12 +1567,6 @@ impl serde::Serialize for ComplianceLeaf {
         if !self.d.is_empty() {
             len += 1;
         }
-        if self.slot_id != 0 {
-            len += 1;
-        }
-        if !self.slot_derivation.is_empty() {
-            len += 1;
-        }
         if self.status != 0 {
             len += 1;
         }
@@ -1627,14 +1581,6 @@ impl serde::Serialize for ComplianceLeaf {
             #[allow(clippy::needless_borrow)]
             #[allow(clippy::needless_borrows_for_generic_args)]
             struct_ser.serialize_field("d", pbjson::private::base64::encode(&self.d).as_str())?;
-        }
-        if self.slot_id != 0 {
-            struct_ser.serialize_field("slotId", &self.slot_id)?;
-        }
-        if !self.slot_derivation.is_empty() {
-            #[allow(clippy::needless_borrow)]
-            #[allow(clippy::needless_borrows_for_generic_args)]
-            struct_ser.serialize_field("slotDerivation", pbjson::private::base64::encode(&self.slot_derivation).as_str())?;
         }
         if self.status != 0 {
             let v = UserAssetStatus::try_from(self.status)
@@ -1655,10 +1601,6 @@ impl<'de> serde::Deserialize<'de> for ComplianceLeaf {
             "asset_id",
             "assetId",
             "d",
-            "slot_id",
-            "slotId",
-            "slot_derivation",
-            "slotDerivation",
             "status",
         ];
 
@@ -1667,8 +1609,6 @@ impl<'de> serde::Deserialize<'de> for ComplianceLeaf {
             Address,
             AssetId,
             D,
-            SlotId,
-            SlotDerivation,
             Status,
             __SkipField__,
         }
@@ -1695,8 +1635,6 @@ impl<'de> serde::Deserialize<'de> for ComplianceLeaf {
                             "address" => Ok(GeneratedField::Address),
                             "assetId" | "asset_id" => Ok(GeneratedField::AssetId),
                             "d" => Ok(GeneratedField::D),
-                            "slotId" | "slot_id" => Ok(GeneratedField::SlotId),
-                            "slotDerivation" | "slot_derivation" => Ok(GeneratedField::SlotDerivation),
                             "status" => Ok(GeneratedField::Status),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
@@ -1720,8 +1658,6 @@ impl<'de> serde::Deserialize<'de> for ComplianceLeaf {
                 let mut address__ = None;
                 let mut asset_id__ = None;
                 let mut d__ = None;
-                let mut slot_id__ = None;
-                let mut slot_derivation__ = None;
                 let mut status__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
@@ -1745,22 +1681,6 @@ impl<'de> serde::Deserialize<'de> for ComplianceLeaf {
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
-                        GeneratedField::SlotId => {
-                            if slot_id__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("slotId"));
-                            }
-                            slot_id__ = 
-                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
-                            ;
-                        }
-                        GeneratedField::SlotDerivation => {
-                            if slot_derivation__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("slotDerivation"));
-                            }
-                            slot_derivation__ = 
-                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
-                            ;
-                        }
                         GeneratedField::Status => {
                             if status__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("status"));
@@ -1776,8 +1696,6 @@ impl<'de> serde::Deserialize<'de> for ComplianceLeaf {
                     address: address__,
                     asset_id: asset_id__,
                     d: d__.unwrap_or_default(),
-                    slot_id: slot_id__.unwrap_or_default(),
-                    slot_derivation: slot_derivation__.unwrap_or_default(),
                     status: status__.unwrap_or_default(),
                 })
             }
@@ -3820,9 +3738,6 @@ impl serde::Serialize for IndexedLeafData {
         if !self.route_policy_hash.is_empty() {
             len += 1;
         }
-        if !self.slot_count.is_empty() {
-            len += 1;
-        }
         if !self.ring_pk.is_empty() {
             len += 1;
         }
@@ -3869,11 +3784,6 @@ impl serde::Serialize for IndexedLeafData {
             #[allow(clippy::needless_borrows_for_generic_args)]
             struct_ser.serialize_field("routePolicyHash", pbjson::private::base64::encode(&self.route_policy_hash).as_str())?;
         }
-        if !self.slot_count.is_empty() {
-            #[allow(clippy::needless_borrow)]
-            #[allow(clippy::needless_borrows_for_generic_args)]
-            struct_ser.serialize_field("slotCount", pbjson::private::base64::encode(&self.slot_count).as_str())?;
-        }
         if !self.ring_pk.is_empty() {
             #[allow(clippy::needless_borrow)]
             #[allow(clippy::needless_borrows_for_generic_args)]
@@ -3919,8 +3829,6 @@ impl<'de> serde::Deserialize<'de> for IndexedLeafData {
             "threshold",
             "route_policy_hash",
             "routePolicyHash",
-            "slot_count",
-            "slotCount",
             "ring_pk",
             "ringPk",
             "ring_id_hash",
@@ -3941,7 +3849,6 @@ impl<'de> serde::Deserialize<'de> for IndexedLeafData {
             DkPub,
             Threshold,
             RoutePolicyHash,
-            SlotCount,
             RingPk,
             RingIdHash,
             PolicyIdHash,
@@ -3975,7 +3882,6 @@ impl<'de> serde::Deserialize<'de> for IndexedLeafData {
                             "dkPub" | "dk_pub" => Ok(GeneratedField::DkPub),
                             "threshold" => Ok(GeneratedField::Threshold),
                             "routePolicyHash" | "route_policy_hash" => Ok(GeneratedField::RoutePolicyHash),
-                            "slotCount" | "slot_count" => Ok(GeneratedField::SlotCount),
                             "ringPk" | "ring_pk" => Ok(GeneratedField::RingPk),
                             "ringIdHash" | "ring_id_hash" => Ok(GeneratedField::RingIdHash),
                             "policyIdHash" | "policy_id_hash" => Ok(GeneratedField::PolicyIdHash),
@@ -4006,7 +3912,6 @@ impl<'de> serde::Deserialize<'de> for IndexedLeafData {
                 let mut dk_pub__ = None;
                 let mut threshold__ = None;
                 let mut route_policy_hash__ = None;
-                let mut slot_count__ = None;
                 let mut ring_pk__ = None;
                 let mut ring_id_hash__ = None;
                 let mut policy_id_hash__ = None;
@@ -4062,14 +3967,6 @@ impl<'de> serde::Deserialize<'de> for IndexedLeafData {
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
-                        GeneratedField::SlotCount => {
-                            if slot_count__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("slotCount"));
-                            }
-                            slot_count__ = 
-                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
-                            ;
-                        }
                         GeneratedField::RingPk => {
                             if ring_pk__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("ringPk"));
@@ -4122,7 +4019,6 @@ impl<'de> serde::Deserialize<'de> for IndexedLeafData {
                     dk_pub: dk_pub__.unwrap_or_default(),
                     threshold: threshold__.unwrap_or_default(),
                     route_policy_hash: route_policy_hash__.unwrap_or_default(),
-                    slot_count: slot_count__.unwrap_or_default(),
                     ring_pk: ring_pk__.unwrap_or_default(),
                     ring_id_hash: ring_id_hash__.unwrap_or_default(),
                     policy_id_hash: policy_id_hash__.unwrap_or_default(),
@@ -4374,9 +4270,6 @@ impl serde::Serialize for MsgRegisterAsset {
         if self.ibc_origin.is_some() {
             len += 1;
         }
-        if self.slot_count != 0 {
-            len += 1;
-        }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.compliance.v1.MsgRegisterAsset", len)?;
         if let Some(v) = self.asset_id.as_ref() {
             struct_ser.serialize_field("assetId", v)?;
@@ -4423,9 +4316,6 @@ impl serde::Serialize for MsgRegisterAsset {
         if let Some(v) = self.ibc_origin.as_ref() {
             struct_ser.serialize_field("ibcOrigin", v)?;
         }
-        if self.slot_count != 0 {
-            struct_ser.serialize_field("slotCount", &self.slot_count)?;
-        }
         struct_ser.end()
     }
 }
@@ -4459,8 +4349,6 @@ impl<'de> serde::Deserialize<'de> for MsgRegisterAsset {
             "assetRegistrationGrant",
             "ibc_origin",
             "ibcOrigin",
-            "slot_count",
-            "slotCount",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -4478,7 +4366,6 @@ impl<'de> serde::Deserialize<'de> for MsgRegisterAsset {
             RegistrationAuthorityVk,
             AssetRegistrationGrant,
             IbcOrigin,
-            SlotCount,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -4514,7 +4401,6 @@ impl<'de> serde::Deserialize<'de> for MsgRegisterAsset {
                             "registrationAuthorityVk" | "registration_authority_vk" => Ok(GeneratedField::RegistrationAuthorityVk),
                             "assetRegistrationGrant" | "asset_registration_grant" => Ok(GeneratedField::AssetRegistrationGrant),
                             "ibcOrigin" | "ibc_origin" => Ok(GeneratedField::IbcOrigin),
-                            "slotCount" | "slot_count" => Ok(GeneratedField::SlotCount),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -4547,7 +4433,6 @@ impl<'de> serde::Deserialize<'de> for MsgRegisterAsset {
                 let mut registration_authority_vk__ = None;
                 let mut asset_registration_grant__ = None;
                 let mut ibc_origin__ = None;
-                let mut slot_count__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::AssetId => {
@@ -4634,14 +4519,6 @@ impl<'de> serde::Deserialize<'de> for MsgRegisterAsset {
                             }
                             ibc_origin__ = map_.next_value()?;
                         }
-                        GeneratedField::SlotCount => {
-                            if slot_count__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("slotCount"));
-                            }
-                            slot_count__ = 
-                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
-                            ;
-                        }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
                         }
@@ -4661,7 +4538,6 @@ impl<'de> serde::Deserialize<'de> for MsgRegisterAsset {
                     registration_authority_vk: registration_authority_vk__,
                     asset_registration_grant: asset_registration_grant__,
                     ibc_origin: ibc_origin__,
-                    slot_count: slot_count__.unwrap_or_default(),
                 })
             }
         }
@@ -4800,9 +4676,6 @@ impl serde::Serialize for NativeAssetRegistration {
         if self.registration_authority_vk.is_some() {
             len += 1;
         }
-        if self.slot_count != 0 {
-            len += 1;
-        }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.compliance.v1.NativeAssetRegistration", len)?;
         if let Some(v) = self.asset_id.as_ref() {
             struct_ser.serialize_field("assetId", v)?;
@@ -4817,9 +4690,6 @@ impl serde::Serialize for NativeAssetRegistration {
         }
         if let Some(v) = self.registration_authority_vk.as_ref() {
             struct_ser.serialize_field("registrationAuthorityVk", v)?;
-        }
-        if self.slot_count != 0 {
-            struct_ser.serialize_field("slotCount", &self.slot_count)?;
         }
         struct_ser.end()
     }
@@ -4839,8 +4709,6 @@ impl<'de> serde::Deserialize<'de> for NativeAssetRegistration {
             "dkPub",
             "registration_authority_vk",
             "registrationAuthorityVk",
-            "slot_count",
-            "slotCount",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -4849,7 +4717,6 @@ impl<'de> serde::Deserialize<'de> for NativeAssetRegistration {
             IsRegulated,
             DkPub,
             RegistrationAuthorityVk,
-            SlotCount,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -4876,7 +4743,6 @@ impl<'de> serde::Deserialize<'de> for NativeAssetRegistration {
                             "isRegulated" | "is_regulated" => Ok(GeneratedField::IsRegulated),
                             "dkPub" | "dk_pub" => Ok(GeneratedField::DkPub),
                             "registrationAuthorityVk" | "registration_authority_vk" => Ok(GeneratedField::RegistrationAuthorityVk),
-                            "slotCount" | "slot_count" => Ok(GeneratedField::SlotCount),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -4900,7 +4766,6 @@ impl<'de> serde::Deserialize<'de> for NativeAssetRegistration {
                 let mut is_regulated__ = None;
                 let mut dk_pub__ = None;
                 let mut registration_authority_vk__ = None;
-                let mut slot_count__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::AssetId => {
@@ -4929,14 +4794,6 @@ impl<'de> serde::Deserialize<'de> for NativeAssetRegistration {
                             }
                             registration_authority_vk__ = map_.next_value()?;
                         }
-                        GeneratedField::SlotCount => {
-                            if slot_count__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("slotCount"));
-                            }
-                            slot_count__ = 
-                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
-                            ;
-                        }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
                         }
@@ -4947,7 +4804,6 @@ impl<'de> serde::Deserialize<'de> for NativeAssetRegistration {
                     is_regulated: is_regulated__.unwrap_or_default(),
                     dk_pub: dk_pub__.unwrap_or_default(),
                     registration_authority_vk: registration_authority_vk__,
-                    slot_count: slot_count__.unwrap_or_default(),
                 })
             }
         }

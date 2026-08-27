@@ -56,14 +56,12 @@ type TransferOptionalSpendCircuitFields struct {
 }
 
 type TransferUserCircuitFields struct {
-	DivGen         Point2D
-	Transmission   Point2D
-	SlotID         frontend.Variable
-	SlotDerivation frontend.Variable
-	D              frontend.Variable
-	Status         frontend.Variable
-	Path           [ComplianceQuadTreeDepth][3]frontend.Variable
-	Position       frontend.Variable
+	DivGen       Point2D
+	Transmission Point2D
+	D            frontend.Variable
+	Status       frontend.Variable
+	Path         [ComplianceQuadTreeDepth][3]frontend.Variable
+	Position     frontend.Variable
 }
 
 type TransferReceiverOutputCircuitFields struct {
@@ -181,11 +179,9 @@ func (c *TransferCircuit) Define(api frontend.API) error {
 	); err != nil {
 		return err
 	}
-	routingRolesSwapped, err := c.verifyTransferRouting(api, &shared, &statementData)
-	if err != nil {
+	if err := c.verifyTransferRouting(api, &shared, &statementData); err != nil {
 		return err
 	}
-	statementData.routingRolesSwapped = routingRolesSwapped
 	c.traceWiring("output.collect", "output1", "amount->output_amounts", "commitment->statement.output_commitments")
 	c.traceWiring("compliance.begin", "tiers=sender_core,sender_ext,output_core,output_ext")
 	if err := c.verifyTransferComplianceCiphertexts(api, &shared, &statementData); err != nil {
@@ -250,8 +246,6 @@ func (c *TransferCircuit) bindTransferComplianceMetadata(
 ) {
 	c.bindSemantic(
 		name,
-		metadata.SenderSubjectDerivation,
-		metadata.OutputSubjectDerivation,
 		metadata.RingIDHash,
 		metadata.PolicyIDHash,
 		metadata.ResourceHash,
@@ -299,8 +293,7 @@ func (c *TransferCircuit) bindTransferWitnessSemantics() {
 	c.bindSemantic("asset.leaf.next_value", c.Asset.Leaf.NextValue)
 	c.bindSemantic("asset.leaf.dk_pub", c.Asset.Leaf.DKPub.X, c.Asset.Leaf.DKPub.Y)
 	c.bindSemantic("asset.leaf.threshold", c.Asset.Leaf.Threshold)
-	c.bindSemantic("asset.leaf.slot_count", c.Asset.Leaf.SlotCount)
-	c.bindSemantic("asset.leaf.channels_hash", c.Asset.Leaf.ChannelsHash)
+	c.bindSemantic("asset.leaf.route_policy_hash", c.Asset.Leaf.RoutePolicyHash)
 	c.bindSemantic("asset.leaf.ring_pk", c.Asset.Leaf.RingPK.X, c.Asset.Leaf.RingPK.Y)
 	c.bindSemantic("asset.leaf.ring_id_hash", c.Asset.Leaf.RingIDHash)
 	c.bindSemantic("asset.leaf.policy_id_hash", c.Asset.Leaf.PolicyIDHash)
@@ -315,8 +308,6 @@ func (c *TransferCircuit) bindTransferWitnessSemantics() {
 		c.Sender.Transmission.X,
 		c.Sender.Transmission.Y,
 	)
-	c.bindSemantic("sender.slot_id", c.Sender.SlotID)
-	c.bindSemantic("sender.slot_derivation", c.Sender.SlotDerivation)
 	c.bindSemantic("sender.d", c.Sender.D)
 	c.bindSemantic("sender.status", c.Sender.Status)
 	c.bindSemantic("sender.path", quadPathVariables(c.Sender.Path)...)
@@ -364,11 +355,6 @@ func (c *TransferCircuit) bindTransferWitnessSemantics() {
 		"output0.recipient.transmission",
 		c.ReceiverOutput.Recipient.Transmission.X,
 		c.ReceiverOutput.Recipient.Transmission.Y,
-	)
-	c.bindSemantic("output0.recipient.slot_id", c.ReceiverOutput.Recipient.SlotID)
-	c.bindSemantic(
-		"output0.recipient.slot_derivation",
-		c.ReceiverOutput.Recipient.SlotDerivation,
 	)
 	c.bindSemantic("output0.recipient.d", c.ReceiverOutput.Recipient.D)
 	c.bindSemantic("output0.recipient.status", c.ReceiverOutput.Recipient.Status)
@@ -446,10 +432,7 @@ type transferStatementData struct {
 	receiverAmount         frontend.Variable
 	receiverDivGenFq       frontend.Variable
 	receiverTransmissionFq frontend.Variable
-	receiverSlotID         frontend.Variable
-	receiverSlotDerivation frontend.Variable
 	receiverAck            gnarkte.Point
-	routingRolesSwapped    frontend.Variable
 	senderCoreEPKFq        frontend.Variable
 	senderExtEPKFq         frontend.Variable
 	outputCoreEPKFq        frontend.Variable
@@ -621,18 +604,17 @@ func (c *TransferCircuit) verifySharedTransferContext(api frontend.API) (transfe
 	shared := transferSharedContext{
 		ak: gnarkte.Point{X: c.Auth.AK.X, Y: c.Auth.AK.Y},
 		indexedLeaf: IndexedLeafInputs{
-			Value:          c.Asset.Leaf.Value,
-			NextIndex:      c.Asset.Leaf.NextIndex,
-			NextValue:      c.Asset.Leaf.NextValue,
-			DKPub:          gnarkte.Point{X: c.Asset.Leaf.DKPub.X, Y: c.Asset.Leaf.DKPub.Y},
-			Threshold:      c.Asset.Leaf.Threshold,
-			SlotCount:      c.Asset.Leaf.SlotCount,
-			ChannelsHash:   c.Asset.Leaf.ChannelsHash,
-			RingPK:         gnarkte.Point{X: c.Asset.Leaf.RingPK.X, Y: c.Asset.Leaf.RingPK.Y},
-			RingIDHash:     c.Asset.Leaf.RingIDHash,
-			PolicyIDHash:   c.Asset.Leaf.PolicyIDHash,
-			PermissionHash: c.Asset.Leaf.PermissionHash,
-			ResourceHash:   c.Asset.Leaf.ResourceHash,
+			Value:           c.Asset.Leaf.Value,
+			NextIndex:       c.Asset.Leaf.NextIndex,
+			NextValue:       c.Asset.Leaf.NextValue,
+			DKPub:           gnarkte.Point{X: c.Asset.Leaf.DKPub.X, Y: c.Asset.Leaf.DKPub.Y},
+			Threshold:       c.Asset.Leaf.Threshold,
+			RoutePolicyHash: c.Asset.Leaf.RoutePolicyHash,
+			RingPK:          gnarkte.Point{X: c.Asset.Leaf.RingPK.X, Y: c.Asset.Leaf.RingPK.Y},
+			RingIDHash:      c.Asset.Leaf.RingIDHash,
+			PolicyIDHash:    c.Asset.Leaf.PolicyIDHash,
+			PermissionHash:  c.Asset.Leaf.PermissionHash,
+			ResourceHash:    c.Asset.Leaf.ResourceHash,
 		},
 		senderDivGen:       gnarkte.Point{X: c.Sender.DivGen.X, Y: c.Sender.DivGen.Y},
 		senderTransmission: gnarkte.Point{X: c.Sender.Transmission.X, Y: c.Sender.Transmission.Y},
@@ -746,14 +728,12 @@ func (c *TransferCircuit) verifySharedTransferContext(api frontend.API) (transfe
 		return transferSharedContext{}, err
 	}
 
-	c.traceWiring("gadget.compliance_leaf", "div_gen_fq=sender.div_gen_fq", "transmission_fq=sender.transmission_fq", "asset_id=shared.asset_id", "slot_id=sender.slot_id", "slot_derivation=sender.slot_derivation", "d=sender.d", "status=sender.status", "out=sender.leaf_commitment")
+	c.traceWiring("gadget.compliance_leaf", "div_gen_fq=sender.div_gen_fq", "transmission_fq=sender.transmission_fq", "asset_id=shared.asset_id", "d=sender.d", "status=sender.status", "out=sender.leaf_commitment")
 	senderLeafCommitment, err := ComplianceLeafCommitmentFromCompressed(
 		api,
 		shared.senderDivGenFq,
 		shared.senderTransmissionFq,
 		shared.sharedAssetID,
-		c.Sender.SlotID,
-		c.Sender.SlotDerivation,
 		c.Sender.D,
 		c.Sender.Status,
 	)
@@ -804,18 +784,16 @@ func (c *TransferCircuit) verifyTransferAssetRegistry(
 		"gadget.asset_registry_params_hash",
 		"dk_pub_fq=asset.leaf.dk_pub_fq",
 		"threshold=asset.leaf.threshold",
-		"slot_count=asset.leaf.slot_count",
-		"channels_hash=asset.leaf.channels_hash",
+		"route_policy_hash=asset.leaf.route_policy_hash",
 		"out=asset.leaf.params_hash",
 	)
-	paramsHash, err := Poseidon377Hash4(
+	paramsHash, err := Poseidon377Hash3(
 		api,
 		MustBigInt(vectors.Poseidon377.IMTParamsDomain),
-		[4]frontend.Variable{
+		[3]frontend.Variable{
 			dkPubFq,
 			shared.indexedLeaf.Threshold,
-			shared.indexedLeaf.SlotCount,
-			shared.indexedLeaf.ChannelsHash,
+			shared.indexedLeaf.RoutePolicyHash,
 		},
 	)
 	if err != nil {
@@ -929,10 +907,7 @@ func (c *TransferCircuit) newTransferStatementData() transferStatementData {
 		receiverAmount:         0,
 		receiverDivGenFq:       0,
 		receiverTransmissionFq: 0,
-		receiverSlotID:         0,
-		receiverSlotDerivation: 0,
 		receiverAck:            gnarkte.Point{X: 0, Y: 0},
-		routingRolesSwapped:    0,
 		senderCoreEPKFq:        0,
 		senderExtEPKFq:         0,
 		outputCoreEPKFq:        0,
@@ -1213,14 +1188,12 @@ func (c *TransferCircuit) verifyTransferReceiverOutput(
 	c.traceWiring("assert.eq", "lhs=output0.note.commitment.computed", "rhs=output0.note_commitment")
 	api.AssertIsEqual(createdCommitment, output.NoteCommitment)
 
-	c.traceWiring("gadget.compliance_leaf", "div_gen_fq=output0.recipient.div_gen_fq", "transmission_fq=output0.recipient.transmission_fq", "asset_id=shared.asset_id", "slot_id=output0.recipient.slot_id", "slot_derivation=output0.recipient.slot_derivation", "d=output0.recipient.d", "status=output0.recipient.status", "out=output0.recipient.leaf_commitment")
+	c.traceWiring("gadget.compliance_leaf", "div_gen_fq=output0.recipient.div_gen_fq", "transmission_fq=output0.recipient.transmission_fq", "asset_id=shared.asset_id", "d=output0.recipient.d", "status=output0.recipient.status", "out=output0.recipient.leaf_commitment")
 	recipientLeafCommitment, err := ComplianceLeafCommitmentFromCompressed(
 		api,
 		recipientDivGenFq,
 		recipientTransmissionFq,
 		shared.sharedAssetID,
-		output.Recipient.SlotID,
-		output.Recipient.SlotDerivation,
 		output.Recipient.D,
 		output.Recipient.Status,
 	)
@@ -1255,19 +1228,12 @@ func (c *TransferCircuit) verifyTransferReceiverOutput(
 	statementData.receiverAmount = output.Note.Amount
 	statementData.receiverDivGenFq = recipientDivGenFq
 	statementData.receiverTransmissionFq = recipientTransmissionFq
-	statementData.receiverSlotID = output.Recipient.SlotID
-	statementData.receiverSlotDerivation = output.Recipient.SlotDerivation
 	statementData.receiverAck = recipientAck
 	c.bindSemantic("receiver.amount", statementData.receiverAmount)
 	c.bindSemantic("receiver.div_gen_fq", statementData.receiverDivGenFq)
 	c.bindSemantic(
 		"receiver.transmission_fq",
 		statementData.receiverTransmissionFq,
-	)
-	c.bindSemantic("receiver.slot_id", statementData.receiverSlotID)
-	c.bindSemantic(
-		"receiver.slot_derivation",
-		statementData.receiverSlotDerivation,
 	)
 	return nil
 }
@@ -1432,7 +1398,7 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 	c.bindSemantic("output_ext.shared.user", outputExtUser.X, outputExtUser.Y)
 	c.bindSemantic("output_ext.shared.selected", outputExtSelected.X, outputExtSelected.Y)
 
-	c.traceWiring("gadget.poseidon_encryption.detection", "flag=is_flagged", "ss=sender_core.shared.issuer", "epk_fq=compliance.sender_core.epk_fq", "salt=salt0", "asset_id=shared.asset_id", "sender_slot=sender.slot_id:u32", "receiver_slot=receiver.slot_id:u32", "routing_roles_swapped=permutation_bit", "out=compliance.detection_ciphertext")
+	c.traceWiring("gadget.poseidon_encryption.detection", "flag=is_flagged", "ss=sender_core.shared.issuer", "epk_fq=compliance.sender_core.epk_fq", "salt=salt0", "asset_id=shared.asset_id", "reserved=0", "out=compliance.detection_ciphertext")
 	if err := VerifyPoseidonEncryptionTransferDetection(
 		api,
 		isFlagged,
@@ -1440,9 +1406,6 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 		statementData.senderCoreEPKFq,
 		salts[0],
 		shared.sharedAssetID,
-		c.Sender.SlotID,
-		statementData.receiverSlotID,
-		statementData.routingRolesSwapped,
 		c.Compliance.DetectionCiphertext,
 	); err != nil {
 		return err
@@ -1492,10 +1455,6 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 
 	metadata := c.Compliance.Metadata
 	c.traceWiring("compliance.metadata.begin", "metadata=compliance.metadata")
-	c.traceWiring("assert.eq", "lhs=compliance.metadata.sender_subject_derivation", "rhs=sender.slot_derivation")
-	api.AssertIsEqual(metadata.SenderSubjectDerivation, c.Sender.SlotDerivation)
-	c.traceWiring("assert.eq", "lhs=compliance.metadata.output_subject_derivation", "rhs=receiver.slot_derivation")
-	api.AssertIsEqual(metadata.OutputSubjectDerivation, statementData.receiverSlotDerivation)
 	c.traceWiring("assert.eq", "lhs=compliance.metadata.ring_id_hash", "rhs=effective.ring_id_hash")
 	api.AssertIsEqual(metadata.RingIDHash, shared.effectiveRingIDHash)
 	c.traceWiring("assert.eq", "lhs=compliance.metadata.policy_id_hash", "rhs=effective.policy_id_hash")
@@ -1586,8 +1545,6 @@ func (c *TransferCircuit) buildTransferStatementFields(
 	fields = append(fields, c.TargetTimestamp)
 	fields = append(
 		fields,
-		c.Compliance.Metadata.SenderSubjectDerivation,
-		c.Compliance.Metadata.OutputSubjectDerivation,
 		c.Compliance.Metadata.RingIDHash,
 		c.Compliance.Metadata.PolicyIDHash,
 		c.Compliance.Metadata.ResourceHash,

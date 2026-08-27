@@ -84,8 +84,7 @@ COPY --from=build-env \
             /usr/src/shieldd/target/release/build \
             /usr/src/shieldd/target/release/build
 
-# Runtime deployments keep only proving material. Constraint systems and setup
-# evidence are build/formal inputs and would otherwise add about 510 MB here.
+# Runtime deployments need only proving keys; other artifacts add about 510 MB.
 COPY --from=build-env /usr/src/shieldd/tools/gnark/artifacts/note_reshape1x8/proving_key.bin /usr/share/shieldd/gnark/artifacts/note_reshape1x8/proving_key.bin
 COPY --from=build-env /usr/src/shieldd/tools/gnark/artifacts/note_reshape8x1/proving_key.bin /usr/share/shieldd/gnark/artifacts/note_reshape8x1/proving_key.bin
 COPY --from=build-env /usr/src/shieldd/tools/gnark/artifacts/shielded_ics20_withdrawal/proving_key.bin /usr/share/shieldd/gnark/artifacts/shielded_ics20_withdrawal/proving_key.bin

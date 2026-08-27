@@ -1,6 +1,4 @@
 # Dev dependencies are considered circular.
-# Previously, this test suite was located in `shieldd-sdk-app`.
-# 
 [package]
 name        = "shieldd-sdk-app-tests"
 version     = { workspace = true }

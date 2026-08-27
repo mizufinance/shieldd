@@ -1,6 +1,6 @@
 /// Representation of the Shieldd application version. Notably, this is distinct
 /// from the crate version(s). This number should only ever be incremented.
-pub const APP_VERSION: u64 = 12;
+pub const APP_VERSION: u64 = 13;
 
 cfg_if::cfg_if! {
     if #[cfg(feature="component")] {

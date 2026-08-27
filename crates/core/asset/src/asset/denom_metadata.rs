@@ -247,9 +247,6 @@ impl Inner {
 
         Self {
             id,
-            // TODO: in our legacy registry code we set the preferred unit first
-            // but elsewhere in the ecosystem the order doesn't matter or is opposite
-            //display_index: units.len() - 1,
             display_index: 0,
             units,
             base_denom,

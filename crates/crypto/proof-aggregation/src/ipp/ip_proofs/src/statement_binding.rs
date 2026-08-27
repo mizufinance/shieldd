@@ -2,7 +2,7 @@
 //!
 //! Production adapters own concrete hashing, framing, canonical encoding, and
 //! wrapper parsing. These cores own their call order, error propagation, and
-//! the exact input/output records retained for formal composition.
+//! the exact input/output records used by the runtime.
 
 /// Inputs needed to construct the authenticated statement hash chain.
 #[doc(hidden)]

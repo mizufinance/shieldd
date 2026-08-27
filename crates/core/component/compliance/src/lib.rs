@@ -32,7 +32,6 @@ pub use structs::{
     AMOUNT_BYTES,
     ASSET_ID_BYTES,
     C2_BYTES,
-    DEFAULT_COMPLIANCE_SLOT_COUNT,
     DETECTION_TAG_BYTES,
     EPK_BYTES,
     FQ_BYTES,
@@ -86,9 +85,9 @@ pub use genesis::Content as GenesisContent;
 
 pub mod crypto;
 pub use crypto::{
-    decrypt_detection_tier, decrypt_tier_bytes, derive_compliance_scalar, encrypt_tier_bytes,
-    COMPLIANCE_STREAM_CIPHER_DOMAIN, ISSUER_DETECTION_DOMAIN, UNREGULATED_SINK_DK_PUB,
-    UNREGULATED_SINK_RING_PK,
+    compliance_derivation, decrypt_detection_tier, decrypt_tier_bytes, derive_compliance_scalar,
+    encrypt_tier_bytes, COMPLIANCE_STREAM_CIPHER_DOMAIN, ISSUER_DETECTION_DOMAIN,
+    UNREGULATED_SINK_DK_PUB, UNREGULATED_SINK_RING_PK,
 };
 
 pub mod scanning;
@@ -229,7 +228,6 @@ mod tests {
         let leaf = ComplianceLeaf::new(
             Address::dummy(&mut rand::thread_rng()),
             asset::Id(Fq::from(100u64)),
-            Fq::from(0u64),
         );
 
         let user1_commit = leaf.commit();
@@ -289,11 +287,7 @@ mod tests {
         let mut commitments = Vec::new();
 
         for i in 0..4u64 {
-            let leaf = ComplianceLeaf::new(
-                Address::dummy(&mut rng),
-                asset::Id(Fq::from(i + 1)),
-                Fq::from(0u64),
-            );
+            let leaf = ComplianceLeaf::new(Address::dummy(&mut rng), asset::Id(Fq::from(i + 1)));
             commitments.push(leaf.commit());
             state.test_only_add_compliance_leaf(leaf).await.unwrap();
         }
@@ -321,25 +315,17 @@ mod tests {
         let mut rng = rand::thread_rng();
         let positions = vec![0, 5, 10];
         let mut leaves = Vec::new();
-
         for &pos in &positions {
             while state.get_user_count().await.unwrap() < pos {
-                let dummy_leaf = ComplianceLeaf::new(
-                    Address::dummy(&mut rng),
-                    asset::Id(Fq::from(1u64)),
-                    Fq::from(0u64),
-                );
+                let dummy_leaf =
+                    ComplianceLeaf::new(Address::dummy(&mut rng), asset::Id(Fq::from(1u64)));
                 state
                     .test_only_add_compliance_leaf(dummy_leaf)
                     .await
                     .unwrap();
             }
 
-            let leaf = ComplianceLeaf::new(
-                Address::dummy(&mut rng),
-                asset::Id(Fq::from(pos + 1)),
-                Fq::from(0u64),
-            );
+            let leaf = ComplianceLeaf::new(Address::dummy(&mut rng), asset::Id(Fq::from(pos + 1)));
             state
                 .test_only_add_compliance_leaf(leaf.clone())
                 .await
@@ -389,16 +375,8 @@ mod tests {
 
         let sender_address = Address::dummy(&mut rng);
         let receiver_address = Address::dummy(&mut rng);
-        let sender_slot_derivation = sender_address
-            .diversified_generator()
-            .vartime_compress_to_field();
-        let receiver_slot_derivation = receiver_address
-            .diversified_generator()
-            .vartime_compress_to_field();
-        let sender_leaf =
-            ComplianceLeaf::new(sender_address.clone(), asset_id, sender_slot_derivation);
-        let receiver_leaf =
-            ComplianceLeaf::new(receiver_address.clone(), asset_id, receiver_slot_derivation);
+        let sender_leaf = ComplianceLeaf::new(sender_address.clone(), asset_id);
+        let receiver_leaf = ComplianceLeaf::new(receiver_address.clone(), asset_id);
 
         state
             .test_only_add_compliance_leaf(sender_leaf.clone())
@@ -437,9 +415,6 @@ mod tests {
                 amount: Amount::from(100u64),
                 asset_id,
             },
-            false,
-            0,
-            0,
             false,
             Fq::from(0u64),
         )
@@ -493,21 +468,11 @@ mod tests {
 
         let sender_ack = ring_pk
             * decaf377::Fr::from_le_bytes_mod_order(
-                &derive_compliance_scalar(
-                    sender_address
-                        .diversified_generator()
-                        .vartime_compress_to_field(),
-                )
-                .to_bytes(),
+                &derive_compliance_scalar(&sender_address).to_bytes(),
             );
         let receiver_ack = ring_pk
             * decaf377::Fr::from_le_bytes_mod_order(
-                &derive_compliance_scalar(
-                    receiver_address
-                        .diversified_generator()
-                        .vartime_compress_to_field(),
-                )
-                .to_bytes(),
+                &derive_compliance_scalar(&receiver_address).to_bytes(),
             );
 
         let ciphertext = encrypt_transfer(
@@ -519,9 +484,6 @@ mod tests {
             &sender_address,
             Value { amount, asset_id },
             true,
-            0,
-            0,
-            false,
             Fq::from(7u64),
         )
         .unwrap()

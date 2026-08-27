@@ -9,12 +9,6 @@ pub mod app_verifier;
 pub mod applications;
 pub mod challenge;
 pub mod gipa;
-#[cfg(any(hax_compilation, feature = "mac-campaign"))]
-#[doc(hidden)]
-pub mod s3_07_arkworks_fq_spike;
-#[cfg(any(hax_compilation, feature = "mac-campaign"))]
-#[doc(hidden)]
-pub mod s3_07_arkworks_fr_spike;
 #[doc(hidden)]
 pub mod statement_binding;
 pub mod tipa;

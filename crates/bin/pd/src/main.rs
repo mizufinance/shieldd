@@ -74,17 +74,12 @@ async fn main() -> anyhow::Result<()> {
     // Validate options immediately.
     let Opt { cmd } = <Opt as clap::Parser>::parse();
 
-    // Instantiate tracing layers.
-    // The MetricsLayer handles enriching metrics output with labels from tracing spans.
     let metrics_layer = MetricsLayer::new();
-    // The `FmtLayer` is used to print to the console.
     let fmt_layer = tracing_subscriber::fmt::layer()
         .with_ansi(std::io::stdout().is_terminal())
         .with_target(true);
-    // The `EnvFilter` layer is used to filter events based on `RUST_LOG`.
     let filter_layer = EnvFilter::try_from_default_env().or_else(|_| EnvFilter::try_new("info"))?;
 
-    // Register the tracing subscribers.
     let registry = tracing_subscriber::registry()
         .with(filter_layer)
         .with(fmt_layer)
@@ -649,7 +644,10 @@ async fn main() -> anyhow::Result<()> {
                 None => {
                     let genesis_start = pd::migrate::last_block_timestamp(pd_home.clone()).await?;
                     tracing::info!(?genesis_start, "last block timestamp");
-                    tracing::error!("This is the wrong migration routine for APP_VERSION=12. Read the documentation, and use the IBC client recovery routine");
+                    tracing::error!(
+                        app_version = APP_VERSION,
+                        "no default migration is defined for this prototype state version; use an explicit migration command or reset the node state"
+                    );
                 }
             }
         }

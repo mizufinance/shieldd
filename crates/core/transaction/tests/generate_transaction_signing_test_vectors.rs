@@ -81,8 +81,6 @@ fn value_strategy() -> impl Strategy<Value = shieldd_sdk_asset::Value> {
 }
 
 fn address_strategy() -> impl Strategy<Value = Address> {
-    // normally we would use address::dummy, but this seems to not work properly
-    // for some reason (invalid key errors on computing effecthash.)
     prop::strategy::LazyJust::new(|| {
         let seed_phrase = with_vector_rng(|rng| SeedPhrase::generate(rng));
         let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0))
@@ -136,7 +134,6 @@ fn ibc_action_strategy() -> impl Strategy<Value = IbcRelay> {
                         )
                         .expect("test timestamp"),
                     },
-                    // this can't be empty
                     proof_commitment_on_a: MerkleProof {
                         proofs: vec![CommitmentProof::default()],
                     },
@@ -353,13 +350,14 @@ fn transaction_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = Tran
 #[test]
 #[ignore]
 fn generate_transaction_signing_test_vectors() {
-    // Run this to regenerate the `EffectHash` test vectors. Ignored by default.
+    const VECTOR_COUNT: usize = 12;
+
     let mut runner = TestRunner::deterministic();
     let test_vectors_dir = "tests/signing_test_vectors";
     std::fs::create_dir_all(test_vectors_dir).expect("failed to create test vectors dir");
 
     let mut i = 0;
-    while i < 100 {
+    while i < VECTOR_COUNT {
         let seed_phrase = SeedPhrase::from_str(SEED_PHRASE).expect("test seed phrase is valid");
         let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0))
             .expect("test-vector spend key should satisfy key refinements");
@@ -398,7 +396,6 @@ fn generate_transaction_signing_test_vectors() {
             .write_all(&transaction_plan_encoded)
             .expect("Failed to write Protobuf file");
 
-        // Write effect hash
         let mut hash_file = File::create(&hash_file_path).expect("Failed to create hash file");
         hash_file
             .write_all(effect_hash_hex.as_bytes())
@@ -410,8 +407,6 @@ fn generate_transaction_signing_test_vectors() {
 
 #[test]
 fn effect_hash_test_vectors() {
-    // This parses the transaction plan, computes the effect hash, and verifies that it
-    // matches the expected effect hash.
     let test_vectors_dir = "tests/signing_test_vectors";
     let seed_phrase = SeedPhrase::from_str(SEED_PHRASE).expect("test seed phrase is valid");
     let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0))

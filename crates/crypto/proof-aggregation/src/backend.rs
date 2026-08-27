@@ -360,7 +360,7 @@ pub(crate) fn validate_bls12_377_gt_fast(
     }
 
     // On that subgroup, q ≡ BLS_X (mod r), and the concrete cofactors are
-    // coprime. Lean proves this conjunction iff x^r=1.
+    // coprime; together these conditions are equivalent to x^r=1.
     if value.0.frobenius_map(1) != value.0.cyclotomic_exp(BLS_X) {
         return Err(SerializationError::InvalidData);
     }
@@ -378,7 +378,7 @@ pub(crate) fn validate_bls12_377_g1_fast(
         return Err(SerializationError::InvalidData);
     }
 
-    // Lean proves that the concrete relation phi(P) = [-x^2]P has no false
+    // The concrete relation phi(P) = [-x^2]P has no false
     // positives. If it does not hold, retain Arkworks' scalar check as the
     // exact fallback; valid points normally remain on the fast path.
     static BETA: LazyLock<Fp> = LazyLock::new(|| {
@@ -435,7 +435,7 @@ pub(crate) fn validate_bls12_377_g2_fast(
         return Err(SerializationError::InvalidData);
     }
 
-    // Lean proves that the concrete relation psi(P) = [x]P has no false
+    // The concrete relation psi(P) = [x]P has no false
     // positives. If it does not hold, retain Arkworks' scalar check as the
     // exact fallback. This is Arkworks' untwist-Frobenius-twist map.
     let mut psi = affine;
@@ -1913,27 +1913,6 @@ mod tests {
         }
     }
 
-    fn snarkpack_matches_legacy_batch_for_counts(counts: &[usize]) {
-        let (pvk, items) = sample_items();
-        let base_item = items.first().expect("at least one sample item").clone();
-        let srs = DevSrs::default();
-
-        for family_id in parity_families() {
-            for count in counts {
-                let repeated = vec![base_item.clone(); *count];
-                batch::batch_verify(&pvk, &repeated)
-                    .expect("legacy batch verify should accept repeated valid proofs");
-
-                let statement = statement_for_items(family_id, &pvk, *count, &repeated, &srs);
-                let aggregate = aggregate_family(&statement, &pvk, &repeated, &srs)
-                    .expect("aggregation should succeed");
-
-                verify_family_aggregate(&statement, &pvk, &aggregate, &srs)
-                    .expect("SnarkPack verify should match legacy batch verify");
-            }
-        }
-    }
-
     fn groth16_oracle_agreement_for_counts(counts: &[usize]) {
         let (pvk, items) = sample_items();
         let base_item = items.first().expect("at least one sample item").clone();
@@ -3034,17 +3013,6 @@ mod tests {
     }
 
     #[test]
-    fn snarkpack_matches_legacy_batch_across_families_and_counts() {
-        snarkpack_matches_legacy_batch_for_counts(&[1, 2, 4, 8]);
-    }
-
-    #[test]
-    #[ignore]
-    fn snarkpack_matches_legacy_batch_across_families_and_counts_slow() {
-        snarkpack_matches_legacy_batch_for_counts(&[64, 256, 1024]);
-    }
-
-    #[test]
     fn snarkpack_matches_single_and_batch_groth16_oracles() {
         groth16_oracle_agreement_for_counts(&[1, 2, 4, 8]);
     }
@@ -3097,8 +3065,7 @@ mod tests {
     fn baseline_vectors() -> Vec<(ProofFamilyId, usize, u64)> {
         let mut vectors = Vec::new();
         for family_id in parity_families() {
-            // Keep each family's fixture seed stable when another deployed
-            // family is added or retired, so byte-lock drift remains local.
+            // Keep each family's seed independent so byte drift remains local.
             let seed_base = match family_id {
                 ProofFamilyId::Transfer => 9_000,
                 ProofFamilyId::NoteReshape(family_id) => 9_000 + u64::from(family_id.get()) * 100,
@@ -3386,7 +3353,7 @@ mod tests {
         #![proptest_config(ProptestConfig::with_cases(8))]
 
         #[test]
-        fn snarkpack_property_matches_legacy_batch_oracle(
+        fn snarkpack_property_matches_batch_oracle(
             count in 1usize..=8,
             seed in any::<u64>(),
             family_index in 0usize..parity_families().len(),
@@ -3400,7 +3367,7 @@ mod tests {
 
             prop_assert!(
                 batch::batch_verify(&pvk, &padded_items).is_ok(),
-                "legacy batch verify should accept padded valid proofs"
+                "batch verify should accept padded valid proofs"
             );
 
             let statement = statement_for_items(family_id, &pvk, count, &padded_items, &srs);
@@ -3425,7 +3392,7 @@ mod tests {
 
             prop_assert!(
                 batch::batch_verify(&pvk, &mutated_items).is_err(),
-                "legacy batch verify should reject the mutated batch"
+                "batch verify should reject the mutated batch"
             );
 
             let snarkpack_result = if mutate_proof {

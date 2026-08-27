@@ -50,8 +50,3 @@ print-trace = [ "ark-std/print-trace" ]
 # crates/crypto/proof-aggregation/optimization-playbook.md.
 bench-baseline = []
 # Formal-verification campaign only: exposes the monomorphic BLS12-377 Fq
-# Montgomery multiplication closure to hax without changing production builds.
-mac-campaign = []
-
-[lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(hax_compilation)'] }

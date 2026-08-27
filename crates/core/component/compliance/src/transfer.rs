@@ -6,7 +6,7 @@ use shieldd_sdk_keys::Address;
 
 use crate::{
     crypto::{compliance_stream_block, encrypt_tier_bytes, ISSUER_DETECTION_DOMAIN},
-    issuer_keys::detection_sender_plaintext,
+    issuer_keys::detection_flag_plaintext,
     structs::{C2_BYTES, DETECTION_TAG_BYTES, EPK_BYTES, FQ_BYTES},
 };
 
@@ -259,9 +259,6 @@ pub fn encrypt_transfer(
     sender_address: &Address,
     receiver_value: Value,
     is_flagged: bool,
-    sender_slot_id: u32,
-    receiver_slot_id: u32,
-    routing_roles_swapped: bool,
     detection_salt: Fq,
 ) -> Result<TransferEncryptionResult> {
     let sender = PartyTierMaterial {
@@ -324,9 +321,9 @@ pub fn encrypt_transfer(
     );
     let detection_0 = receiver_value.asset_id.0 + compliance_stream_block(seed_detection, 0);
     let detection_1 = detection_salt + compliance_stream_block(seed_detection, 1);
-    let detection_2 = detection_sender_plaintext(sender_slot_id, is_flagged, routing_roles_swapped)
-        + compliance_stream_block(seed_detection, 2);
-    let detection_3 = Fq::from(receiver_slot_id) + compliance_stream_block(seed_detection, 3);
+    let detection_2 =
+        detection_flag_plaintext(is_flagged) + compliance_stream_block(seed_detection, 2);
+    let detection_3 = compliance_stream_block(seed_detection, 3);
     let mut detection_tag = [0u8; DETECTION_TAG_BYTES];
     detection_tag[..32].copy_from_slice(&detection_0.to_bytes());
     detection_tag[32..64].copy_from_slice(&detection_1.to_bytes());

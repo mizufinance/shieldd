@@ -1,6 +1,7 @@
 import hashlib
 import importlib.util
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -112,6 +113,51 @@ class ProofArtifactsTest(unittest.TestCase):
                 "--exclude=",
             ],
         )
+
+    def test_materialize_restores_constraint_from_content_cache(self) -> None:
+        sr1cs = self.artifacts / "transfer" / "transfer.sr1cs"
+        sr1cs.unlink()
+        cache = self.root / "shared-cache"
+        oid = hashlib.sha256(self.sr1cs).hexdigest()
+        cached = cache / "sha256" / oid[:2] / oid
+        cached.parent.mkdir(parents=True)
+        cached.write_bytes(self.sr1cs)
+
+        completed = subprocess.CompletedProcess([], 0)
+        with mock.patch.dict(
+            os.environ, {"SHIELDD_PROOF_ARTIFACT_CACHE": str(cache)}
+        ), mock.patch.object(
+            PROOF_ARTIFACTS.subprocess, "run", return_value=completed
+        ) as run:
+            PROOF_ARTIFACTS.materialize(PROOF_ARTIFACTS.Bundle.CONSTRAINTS)
+
+        self.assertEqual(sr1cs.read_bytes(), self.sr1cs)
+        self.assertFalse(
+            any(call.args[0][:3] == ["git", "lfs", "pull"] for call in run.call_args_list)
+        )
+
+    def test_materialize_replaces_corrupt_content_cache_after_lfs_pull(self) -> None:
+        sr1cs = self.artifacts / "transfer" / "transfer.sr1cs"
+        sr1cs.unlink()
+        cache = self.root / "shared-cache"
+        oid = hashlib.sha256(self.sr1cs).hexdigest()
+        cached = cache / "sha256" / oid[:2] / oid
+        cached.parent.mkdir(parents=True)
+        cached.write_bytes(b"corrupt")
+
+        def fake_run(command: list[str], **kwargs: object) -> subprocess.CompletedProcess:
+            if command[:3] == ["git", "lfs", "pull"]:
+                sr1cs.write_bytes(self.sr1cs)
+            return subprocess.CompletedProcess(command, 0)
+
+        with mock.patch.dict(
+            os.environ, {"SHIELDD_PROOF_ARTIFACT_CACHE": str(cache)}
+        ), mock.patch.object(
+            PROOF_ARTIFACTS.subprocess, "run", side_effect=fake_run
+        ):
+            PROOF_ARTIFACTS.materialize(PROOF_ARTIFACTS.Bundle.CONSTRAINTS)
+
+        self.assertEqual(cached.read_bytes(), self.sr1cs)
 
     def test_constraint_cache_identity_rejects_pointer_metadata_mismatch(self) -> None:
         pointer = PROOF_ARTIFACTS.LfsPointer(oid="a" * 64, size_bytes=23)

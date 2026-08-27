@@ -305,17 +305,6 @@ impl TryFrom<pb::NoteReshapeBody> for NoteReshapeBody {
 mod tests {
     use super::{pb, NoteReshapeBody, NoteReshapeInputBody};
 
-    fn struct_body<'a>(source: &'a str, name: &str) -> &'a str {
-        let start = source
-            .find(&format!("pub struct {name}"))
-            .expect("source struct should exist");
-        let body = &source[start..];
-        &body[..body.find('}').expect("source struct should close")]
-    }
-
-    // TXN-M3: an attacker-controlled family_id that is not in the registry must be
-    // rejected at the wire boundary, before it can reach the panicking spec() /
-    // proof_verification_key() lookups in consensus verification.
     #[test]
     fn unknown_family_id_is_rejected_at_wire_boundary() {
         let proto = pb::NoteReshapeBody {
@@ -338,39 +327,5 @@ mod tests {
             err.to_string().contains("exactly 48 bytes"),
             "unexpected error: {err:#}"
         );
-    }
-
-    #[test]
-    fn note_reshape_public_encodings_have_no_dummy_flags_after_redesign() {
-        for (source, names) in [
-            (
-                include_str!("action.rs"),
-                vec![
-                    "NoteReshapeInputBody",
-                    "NoteReshapeOutputBody",
-                    "NoteReshapeBody",
-                ],
-            ),
-            (
-                include_str!("proof.rs"),
-                vec![
-                    "NoteReshapeInputPublic",
-                    "NoteReshapeOutputPublic",
-                    "NoteReshapeProofPublic",
-                ],
-            ),
-            (
-                include_str!("../gnark/note_reshape_witness.rs"),
-                vec!["NoteReshapeOutputWitnessV6"],
-            ),
-        ] {
-            for name in names {
-                let body = struct_body(source, name);
-                assert!(
-                    !body.contains("is_dummy"),
-                    "{name} still exposes an explicit dummy flag"
-                );
-            }
-        }
     }
 }

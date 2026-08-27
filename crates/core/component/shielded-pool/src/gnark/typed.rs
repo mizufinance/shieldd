@@ -21,8 +21,6 @@ pub struct MerklePathBinary {
 pub struct ComplianceLeafBinary {
     pub address: [u8; 48],
     pub asset_id: [u8; 32],
-    pub slot_id: [u8; 32],
-    pub slot_derivation: [u8; 32],
     pub d: [u8; 32],
     pub status: [u8; 32],
 }
@@ -33,7 +31,6 @@ pub struct IndexedLeafBinary {
     pub next_index: u64,
     pub next_value: [u8; 32],
     pub threshold: [u8; 16],
-    pub slot_count: [u8; 32],
     pub route_policy_hash: [u8; 32],
     pub ring_id_hash: [u8; 32],
     pub policy_id_hash: [u8; 32],
@@ -71,7 +68,6 @@ pub(crate) fn encode_indexed_leaf(buf: &mut Vec<u8>, leaf: &IndexedLeafBinary) {
     put_bytes(buf, &leaf.next_index.to_le_bytes());
     put_bytes(buf, &leaf.next_value);
     put_bytes(buf, &leaf.threshold);
-    put_bytes(buf, &leaf.slot_count);
     put_bytes(buf, &leaf.route_policy_hash);
     put_bytes(buf, &leaf.ring_id_hash);
     put_bytes(buf, &leaf.policy_id_hash);
@@ -85,7 +81,6 @@ pub(crate) fn decode_indexed_leaf(cursor: &mut BinaryCursor<'_>) -> Result<Index
         next_index: cursor.read_u64()?,
         next_value: cursor.read_fixed::<32>()?,
         threshold: cursor.read_fixed::<16>()?,
-        slot_count: cursor.read_fixed::<32>()?,
         route_policy_hash: cursor.read_fixed::<32>()?,
         ring_id_hash: cursor.read_fixed::<32>()?,
         policy_id_hash: cursor.read_fixed::<32>()?,
@@ -128,7 +123,6 @@ pub(crate) fn indexed_leaf_from_typed(leaf: &IndexedLeaf) -> IndexedLeafBinary {
         next_index: leaf.next_index,
         next_value: leaf.next_value.to_bytes(),
         threshold: leaf.params.threshold.to_le_bytes(),
-        slot_count: decaf377::Fq::from(leaf.params.slot_count).to_bytes(),
         route_policy_hash: leaf.params.route_policy_hash.to_bytes(),
         ring_id_hash: leaf.ring.ring_id_hash.to_bytes(),
         policy_id_hash: leaf.ring.policy_id_hash.to_bytes(),
@@ -151,8 +145,6 @@ pub(crate) fn compliance_leaf_from_typed(
     Ok(ComplianceLeafBinary {
         address,
         asset_id: leaf.asset_id.0.to_bytes(),
-        slot_id: decaf377::Fq::from(leaf.slot_id).to_bytes(),
-        slot_derivation: leaf.slot_derivation.to_bytes(),
         d: leaf.d.to_bytes(),
         status: leaf.status.as_field().to_bytes(),
     })

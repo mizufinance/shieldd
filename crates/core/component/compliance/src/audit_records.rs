@@ -16,8 +16,6 @@ pub struct AuditDetectedRef {
     pub is_flagged: bool,
     #[serde(default)]
     pub routing_tags: Option<[u32; 2]>,
-    #[serde(default)]
-    pub routing_roles_swapped: bool,
     #[serde(default = "private_transfer_flow_type")]
     pub flow_type: FlowType,
 }
@@ -62,7 +60,6 @@ pub struct DetectedRefRowParts {
     pub asset_id: String,
     pub is_flagged: bool,
     pub routing_tags: Option<[u32; 2]>,
-    pub routing_roles_swapped: bool,
     pub flow_type: FlowType,
 }
 
@@ -123,29 +120,17 @@ pub fn filter_subject_candidates(
         .iter()
         .filter_map(|detected| {
             let tags = detected.routing_tags?;
-            let mut sender = false;
-            let mut receiver = false;
-            let sender_index = usize::from(detected.routing_roles_swapped);
-            let receiver_index = 1 - sender_index;
-
-            for registration in registrations
+            let matched = registrations
                 .iter()
                 .filter(|registration| registration.asset_id == detected.asset_id)
-            {
-                sender |= registration.selector.matches(tags[sender_index]);
-                receiver |= registration.selector.matches(tags[receiver_index]);
-            }
+                .any(|registration| {
+                    tags.into_iter()
+                        .any(|tag| registration.selector.matches(tag))
+                });
 
-            let mut roles = Vec::with_capacity(2);
-            if sender {
-                roles.push(AuditSubjectRole::Sender);
-            }
-            if receiver {
-                roles.push(AuditSubjectRole::Receiver);
-            }
-            (!roles.is_empty()).then(|| AuditSubjectCandidate {
+            matched.then(|| AuditSubjectCandidate {
                 detected: detected.clone(),
-                roles,
+                roles: vec![AuditSubjectRole::Sender, AuditSubjectRole::Receiver],
             })
         })
         .collect()
@@ -182,7 +167,6 @@ pub fn detected_ref_from_row_parts(row: DetectedRefRowParts) -> AuditDetectedRef
         asset_id: row.asset_id,
         is_flagged: row.is_flagged,
         routing_tags: row.routing_tags,
-        routing_roles_swapped: row.routing_roles_swapped,
         flow_type: row.flow_type,
     }
 }
@@ -251,7 +235,6 @@ mod tests {
             asset_id: "asset".to_owned(),
             is_flagged: true,
             routing_tags: Some([11, 22]),
-            routing_roles_swapped: true,
             flow_type: FlowType::PrivateTransfer,
         });
 
@@ -262,7 +245,6 @@ mod tests {
         assert_eq!(detected.asset_id, "asset");
         assert!(detected.is_flagged);
         assert_eq!(detected.routing_tags, Some([11, 22]));
-        assert!(detected.routing_roles_swapped);
         assert_eq!(detected.flow_type, FlowType::PrivateTransfer);
     }
 
@@ -270,7 +252,7 @@ mod tests {
         AuditRoutingSelector::new(12, prefix).unwrap()
     }
 
-    fn detected(asset_id: &str, tags: [u32; 2], swapped: bool) -> AuditDetectedRef {
+    fn detected(asset_id: &str, tags: [u32; 2]) -> AuditDetectedRef {
         AuditDetectedRef {
             height: 1,
             tx_hash: "01".to_owned(),
@@ -279,7 +261,6 @@ mod tests {
             asset_id: asset_id.to_owned(),
             is_flagged: false,
             routing_tags: Some(tags),
-            routing_roles_swapped: swapped,
             flow_type: FlowType::PrivateTransfer,
         }
     }
@@ -292,39 +273,35 @@ mod tests {
     }
 
     #[test]
-    fn subject_filter_finds_sender_with_or_without_change_and_after_permutation() {
+    fn subject_filter_marks_both_trial_roles_for_any_tag_hit() {
         let alice = registration("asset-a", 0x123);
         for (label, detection) in [
-            ("with_change", detected("asset-a", [0xa123, 0xb456], false)),
-            (
-                "without_change",
-                detected("asset-a", [0xc123, 0xd999], false),
-            ),
-            ("permuted", detected("asset-a", [0xe888, 0xf123], true)),
+            ("first_tag", detected("asset-a", [0xa123, 0xb456])),
+            ("second_tag", detected("asset-a", [0xe888, 0xf123])),
         ] {
             let candidates = filter_subject_candidates(&[detection], std::slice::from_ref(&alice));
             assert_eq!(candidates.len(), 1, "{label}");
-            assert_eq!(candidates[0].roles, [AuditSubjectRole::Sender], "{label}");
+            assert_eq!(
+                candidates[0].roles,
+                [AuditSubjectRole::Sender, AuditSubjectRole::Receiver],
+                "{label}"
+            );
         }
     }
 
     #[test]
-    fn subject_filter_finds_receiver_and_both_regulated_parties() {
+    fn subject_filter_rejects_wrong_asset_or_prefix() {
         let alice = registration("asset-a", 0x123);
-        let receiver = filter_subject_candidates(
-            &[detected("asset-a", [0xa456, 0xb123], false)],
+        let wrong_prefix = filter_subject_candidates(
+            &[detected("asset-a", [0xa456, 0xb789])],
             std::slice::from_ref(&alice),
         );
-        assert_eq!(receiver[0].roles, [AuditSubjectRole::Receiver]);
-
-        let both = filter_subject_candidates(
-            &[detected("asset-a", [0xa123, 0xb123], false)],
+        assert!(wrong_prefix.is_empty());
+        let wrong_asset = filter_subject_candidates(
+            &[detected("asset-b", [0xa123, 0xb456])],
             std::slice::from_ref(&alice),
         );
-        assert_eq!(
-            both[0].roles,
-            [AuditSubjectRole::Sender, AuditSubjectRole::Receiver]
-        );
+        assert!(wrong_asset.is_empty());
     }
 
     #[test]
@@ -334,9 +311,9 @@ mod tests {
             registration("asset-b", 0x456),
         ];
         let detections = [
-            detected("asset-a", [0xa123, 0xb999], false),
-            detected("asset-b", [0xc456, 0xd999], false),
-            detected("asset-a", [0xe456, 0xf999], false),
+            detected("asset-a", [0xa123, 0xb999]),
+            detected("asset-b", [0xc456, 0xd999]),
+            detected("asset-a", [0xe456, 0xf999]),
         ];
         let candidates = filter_subject_candidates(&detections, &registrations);
         assert_eq!(candidates.len(), 2);

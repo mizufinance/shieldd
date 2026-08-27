@@ -68,9 +68,7 @@ function install_pd() {
     podman system prune --force
 }
 
-# Reset pd and join a fresh network. This is mostly useful for deploying to preview.
-# For point-releases, we'll skip this logic. For chain upgrades, there's not yet
-# any special migration path, so the reset logic will still run then.
+# Reset pd and join a fresh preview network.
 function reset_pd_state() {
     # Back up ACME dir, so we don't hit ratelimit requesting new certs.
     sudo rm -rf /opt/shieldd-ci

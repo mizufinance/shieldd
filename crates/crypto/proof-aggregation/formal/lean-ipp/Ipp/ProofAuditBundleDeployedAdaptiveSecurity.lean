@@ -1,7 +1,0 @@
-import Ipp.ShippingBundleDeployedAdaptiveSecurityComposition
-
-/-!
-Audit surface for the deployed-hash adaptive bundle composition.
--/
-
-#print axioms Ipp.ShippingBundleDeployedAdaptiveSecurityComposition.realBundleInvalidAcceptedAt_adjustedForkTransform_le_acceptedReplaySecurity

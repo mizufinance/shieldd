@@ -80,8 +80,7 @@ check_reference_crate_boundary() {
     production_scan_paths+=("$path")
   done < <(
     find crates \
-      \( -path '*/formal' -o -path '*/formal/*' -o -path '*/.lake' -o -path '*/.lake/*' \) -prune \
-      -o \( -type f -name Cargo.toml -o -type d -name src \) -print
+      \( -type f -name Cargo.toml -o -type d -name src \) -print
   )
   production_reference_imports="$(
     rg -n 'shieldd-sdk-proof-aggregation-reference|proof_aggregation_reference|proof-aggregation-reference' \
