@@ -29,11 +29,12 @@ enum shieldd_status {
   SHIELDD_STATUS_FAILED_PRECONDITION = 2,
   SHIELDD_STATUS_INTERNAL = 3,
   SHIELDD_STATUS_PANIC = 4,
+  SHIELDD_STATUS_NOT_FOUND = 5,
 };
 
 /*
- * Each request and successful response uses the corresponding
- * shieldd.execution_client.v1 protobuf message.
+ * Execution methods use the corresponding shieldd.execution_client.v1
+ * protobuf request and response unless documented otherwise.
  */
 enum shieldd_method {
   SHIELDD_METHOD_INIT_GENESIS = 1,
@@ -47,6 +48,50 @@ enum shieldd_method {
   SHIELDD_METHOD_EXPORT_GENESIS = 9,
   SHIELDD_METHOD_GET_COMMITTED_STATE = 10,
   SHIELDD_METHOD_ARCHIVED_NULLIFIER_PROOF = 11,
+  SHIELDD_METHOD_APPLY_COMPLIANCE_ACTION = 12,
+
+  /* Read-only queries use IDs starting at 1000000. */
+
+  /* shieldd.core.app.v1.AppParametersRequest/Response */
+  SHIELDD_METHOD_QUERY_APP_PARAMETERS = 1000000,
+
+  /*
+   * shieldd.core.component.shielded_pool.v1.
+   * AssetMetadataByIdRequest/Response
+   */
+  SHIELDD_METHOD_QUERY_ASSET_METADATA_BY_ID = 1000001,
+
+  /*
+   * shieldd.core.component.compliance.v1.
+   * ComplianceAssetStatusRequest/Response
+   */
+  SHIELDD_METHOD_QUERY_COMPLIANCE_ASSET_STATUS = 1000002,
+
+  /*
+   * shieldd.core.component.compliance.v1.
+   * ComplianceBatchMerkleProofsRequest/Response
+   */
+  SHIELDD_METHOD_QUERY_COMPLIANCE_BATCH_MERKLE_PROOFS = 1000003,
+
+  /*
+   * shieldd.core.component.compliance.v1.
+   * ComplianceUserLeafRequest/Response
+   */
+  SHIELDD_METHOD_QUERY_COMPLIANCE_USER_LEAF = 1000004,
+
+  /*
+   * Accepts penumbra.cnidarium.v1.KeyValueRequest and returns
+   * penumbra.cnidarium.v1.KeyValueResponse. The frontend uses this existing
+   * query with SCT state keys.
+   */
+  SHIELDD_METHOD_QUERY_KEY_VALUE = 1000005,
+
+  /*
+   * Accepts shieldd.core.component.compact_block.v1.
+   * CompactBlockRangeRequest with keep_alive=false. Returns zero or more
+   * protobuf-varint-delimited CompactBlockRangeResponse messages.
+   */
+  SHIELDD_METHOD_QUERY_COMPACT_BLOCK_RANGE = 1000006,
 };
 
 uint32_t shieldd_abi_version(void);

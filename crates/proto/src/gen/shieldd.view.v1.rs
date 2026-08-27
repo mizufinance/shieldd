@@ -223,6 +223,10 @@ pub struct TransactionPlannerRequest {
     pub ics20_withdrawals: ::prost::alloc::vec::Vec<
         super::super::core::component::ibc::v1::Ics20Withdrawal,
     >,
+    #[prost(message, repeated, tag = "62")]
+    pub host_withdrawals: ::prost::alloc::vec::Vec<
+        super::super::core::component::shielded_pool::v1::HostWithdrawal,
+    >,
     /// The epoch index of the transaction being planned.
     #[deprecated]
     #[prost(uint64, tag = "200")]

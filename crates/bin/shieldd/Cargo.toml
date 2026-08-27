@@ -16,8 +16,11 @@ crate-type = ["rlib", "staticlib"]
 anyhow = { workspace = true }
 clap = { workspace = true, features = ["derive", "env"] }
 cnidarium = { workspace = true, features = ["migration", "rpc"], default-features = true }
+futures = { workspace = true }
 prost = { workspace = true }
 shieldd-sdk-app = { workspace = true, features = ["parallel"], default-features = true }
+shieldd-sdk-compact-block = { workspace = true, features = ["component"] }
+shieldd-sdk-compliance = { workspace = true, features = ["component"] }
 shieldd-sdk-proto = { workspace = true, features = ["rpc"], default-features = true }
 shieldd-sdk-sct = { workspace = true, default-features = true }
 shieldd-sdk-shielded-pool = { workspace = true, default-features = false }
@@ -37,5 +40,6 @@ tikv-jemallocator = "0.6"
 
 [dev-dependencies]
 decaf377 = { workspace = true, default-features = true }
+shieldd-sdk-asset = { workspace = true, default-features = true }
 shieldd-sdk-keys = { workspace = true, default-features = false }
 tempfile = { workspace = true }

@@ -225,6 +225,7 @@ message TransactionPlannerRequest {
   repeated TransferOutput outputs = 20;
   repeated shieldd.core.component.ibc.v1.IbcRelay ibc_relay_actions = 60;
   repeated shieldd.core.component.ibc.v1.Ics20Withdrawal ics20_withdrawals = 61;
+  repeated shieldd.core.component.shielded_pool.v1.HostWithdrawal host_withdrawals = 62;
 
   // Specifies either that the planner should compute fees automatically or that it should use a fixed fee amount.
   oneof fee_mode {

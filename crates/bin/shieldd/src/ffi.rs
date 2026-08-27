@@ -16,6 +16,7 @@ const STATUS_INVALID_ARGUMENT: i32 = 1;
 const STATUS_FAILED_PRECONDITION: i32 = 2;
 const STATUS_INTERNAL: i32 = 3;
 const STATUS_PANIC: i32 = 4;
+const STATUS_NOT_FOUND: i32 = 5;
 
 const METHOD_INIT_GENESIS: u32 = 1;
 const METHOD_BEGIN_BLOCK: u32 = 2;
@@ -28,6 +29,16 @@ const METHOD_ROLLBACK: u32 = 8;
 const METHOD_EXPORT_GENESIS: u32 = 9;
 const METHOD_GET_COMMITTED_STATE: u32 = 10;
 const METHOD_ARCHIVED_NULLIFIER_PROOF: u32 = 11;
+const METHOD_APPLY_COMPLIANCE_ACTION: u32 = 12;
+
+// Read-only query method IDs start at 1_000_000.
+const METHOD_QUERY_APP_PARAMETERS: u32 = 1_000_000;
+const METHOD_QUERY_ASSET_METADATA_BY_ID: u32 = 1_000_001;
+const METHOD_QUERY_COMPLIANCE_ASSET_STATUS: u32 = 1_000_002;
+const METHOD_QUERY_COMPLIANCE_BATCH_MERKLE_PROOFS: u32 = 1_000_003;
+const METHOD_QUERY_COMPLIANCE_USER_LEAF: u32 = 1_000_004;
+const METHOD_QUERY_KEY_VALUE: u32 = 1_000_005;
+const METHOD_QUERY_COMPACT_BLOCK_RANGE: u32 = 1_000_006;
 
 #[repr(C)]
 pub struct ShielddHandle {
@@ -117,6 +128,7 @@ impl FfiError {
         let status = match error.kind() {
             ErrorKind::InvalidArgument => STATUS_INVALID_ARGUMENT,
             ErrorKind::FailedPrecondition => STATUS_FAILED_PRECONDITION,
+            ErrorKind::NotFound => STATUS_NOT_FOUND,
             ErrorKind::Internal => STATUS_INTERNAL,
         };
         Self {
@@ -351,6 +363,48 @@ async fn dispatch(
             .await
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
+        METHOD_APPLY_COMPLIANCE_ACTION => service
+            .apply_compliance_action(decode(request)?)
+            .await
+            .map(|response| response.encode_to_vec())
+            .map_err(FfiError::service),
+        METHOD_QUERY_APP_PARAMETERS => service
+            .app_parameters(decode(request)?)
+            .await
+            .map(|response| response.encode_to_vec())
+            .map_err(FfiError::service),
+        METHOD_QUERY_ASSET_METADATA_BY_ID => service
+            .asset_metadata_by_id(decode(request)?)
+            .await
+            .map(|response| response.encode_to_vec())
+            .map_err(FfiError::service),
+        METHOD_QUERY_COMPLIANCE_ASSET_STATUS => service
+            .compliance_asset_status(decode(request)?)
+            .await
+            .map(|response| response.encode_to_vec())
+            .map_err(FfiError::service),
+        METHOD_QUERY_COMPLIANCE_BATCH_MERKLE_PROOFS => service
+            .compliance_batch_merkle_proofs(decode(request)?)
+            .await
+            .map(|response| response.encode_to_vec())
+            .map_err(FfiError::service),
+        METHOD_QUERY_COMPLIANCE_USER_LEAF => service
+            .compliance_user_leaf(decode(request)?)
+            .await
+            .map(|response| response.encode_to_vec())
+            .map_err(FfiError::service),
+        METHOD_QUERY_KEY_VALUE => service
+            .key_value(decode(request)?)
+            .await
+            .map(|response| response.encode_to_vec())
+            .map_err(FfiError::service),
+        METHOD_QUERY_COMPACT_BLOCK_RANGE => {
+            let responses = service
+                .compact_block_range(decode(request)?)
+                .await
+                .map_err(FfiError::service)?;
+            encode_delimited(responses)
+        }
         _ => Err(FfiError::invalid_argument(format!(
             "unknown Shieldd method {method}"
         ))),
@@ -363,6 +417,22 @@ where
 {
     M::decode(request)
         .map_err(|error| FfiError::invalid_argument(format!("invalid protobuf request: {error}")))
+}
+
+fn encode_delimited<M: Message>(
+    messages: impl IntoIterator<Item = M>,
+) -> std::result::Result<Vec<u8>, FfiError> {
+    let mut encoded = Vec::new();
+    for message in messages {
+        message
+            .encode_length_delimited(&mut encoded)
+            .map_err(|error| {
+                FfiError::internal(format!(
+                    "encode length-delimited protobuf response: {error}"
+                ))
+            })?;
+    }
+    Ok(encoded)
 }
 
 fn panic_message(payload: Box<dyn Any + Send>) -> String {
@@ -378,12 +448,28 @@ fn panic_message(payload: Box<dyn Any + Send>) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use cnidarium::proto::v1::{KeyValueRequest, KeyValueResponse};
     use shieldd_sdk_app::genesis::{AppState, Content};
+    use shieldd_sdk_asset::asset;
+    use shieldd_sdk_keys::test_keys::ADDRESS_0;
+    use shieldd_sdk_proto::core::app::v1::{AppParametersRequest, AppParametersResponse};
+    use shieldd_sdk_proto::core::component::compact_block::v1::{
+        CompactBlockRangeRequest, CompactBlockRangeResponse,
+    };
+    use shieldd_sdk_proto::core::component::compliance::v1::{
+        ComplianceAssetStatusRequest, ComplianceAssetStatusResponse,
+        ComplianceBatchMerkleProofsRequest, ComplianceBatchMerkleProofsResponse,
+        ComplianceBatchQuery, ComplianceUserLeafRequest, ComplianceUserLeafResponse,
+    };
     use shieldd_sdk_proto::core::component::sct::v1::ArchivedNullifierProofRequest;
+    use shieldd_sdk_proto::core::component::shielded_pool::v1::{
+        AssetMetadataByIdRequest, AssetMetadataByIdResponse,
+    };
     use shieldd_sdk_proto::execution_client::v1::{
-        BeginBlockRequest, BeginBlockResponse, CheckTxRequest, CheckTxResponse, CommitRequest,
-        CommitResponse, DeliverTxRequest, DeliverTxResponse, GetCommittedStateRequest,
-        GetCommittedStateResponse, InitGenesisRequest, InitGenesisResponse,
+        ApplyComplianceActionRequest, BeginBlockRequest, BeginBlockResponse, CheckTxRequest,
+        CheckTxResponse, CommitRequest, CommitResponse, DeliverTxRequest, DeliverTxResponse,
+        EndBlockRequest, EndBlockResponse, GetCommittedStateRequest, GetCommittedStateResponse,
+        HostSource, InitGenesisRequest, InitGenesisResponse,
     };
 
     fn open(directory: &std::path::Path) -> *mut ShielddHandle {
@@ -440,6 +526,34 @@ mod tests {
         response
     }
 
+    fn call_delimited<Request, Response>(
+        handle: *mut ShielddHandle,
+        method: u32,
+        request: Request,
+    ) -> Vec<Response>
+    where
+        Request: Message,
+        Response: Message + Default,
+    {
+        let request = request.encode_to_vec();
+        let result = shieldd_call(handle, method, request.as_ptr(), request.len());
+        assert_eq!(result.status, STATUS_OK, "{}", error_text(&result));
+        let mut response = if result.response.len == 0 {
+            &[][..]
+        } else {
+            unsafe { slice::from_raw_parts(result.response.data, result.response.len) }
+        };
+        let mut messages = Vec::new();
+        while !response.is_empty() {
+            messages.push(
+                Response::decode_length_delimited(&mut response)
+                    .expect("valid length-delimited protobuf response"),
+            );
+        }
+        free_result(result);
+        messages
+    }
+
     fn initialize(handle: *mut ShielddHandle) {
         let _: InitGenesisResponse = call(
             handle,
@@ -451,6 +565,21 @@ mod tests {
                 ),
             },
         );
+        let _: CommitResponse = call(handle, METHOD_COMMIT, CommitRequest {});
+    }
+
+    fn commit_empty_block(handle: *mut ShielddHandle, height: i64) {
+        let mut begin_block = BeginBlockRequest {
+            height,
+            time: Some(Default::default()),
+        };
+        begin_block
+            .time
+            .as_mut()
+            .expect("test begin-block time")
+            .seconds = 1_700_000_000 + height;
+        let _: BeginBlockResponse = call(handle, METHOD_BEGIN_BLOCK, begin_block);
+        let _: EndBlockResponse = call(handle, METHOD_END_BLOCK, EndBlockRequest { height });
         let _: CommitResponse = call(handle, METHOD_COMMIT, CommitRequest {});
     }
 
@@ -523,6 +652,49 @@ mod tests {
     }
 
     #[test]
+    fn compliance_action_is_dispatched_through_the_ffi() {
+        let directory = tempfile::tempdir().expect("temporary database directory");
+        let handle = open(directory.path());
+        initialize(handle);
+        let mut begin_block = BeginBlockRequest {
+            height: 1,
+            time: Some(Default::default()),
+        };
+        begin_block
+            .time
+            .as_mut()
+            .expect("test begin-block time")
+            .seconds = 1_700_000_001;
+        let _: BeginBlockResponse = call(handle, METHOD_BEGIN_BLOCK, begin_block);
+
+        let request = ApplyComplianceActionRequest {
+            source: Some(HostSource {
+                height: 1,
+                tx_hash: [7u8; 32].to_vec(),
+                tx_index: 0,
+                msg_index: 0,
+            }),
+            action: None,
+        }
+        .encode_to_vec();
+        let result = shieldd_call(
+            handle,
+            METHOD_APPLY_COMPLIANCE_ACTION,
+            request.as_ptr(),
+            request.len(),
+        );
+
+        assert_eq!(result.status, STATUS_INVALID_ARGUMENT);
+        let error = error_text(&result);
+        assert!(
+            error.contains("host compliance action is required"),
+            "unexpected rejection: {error}"
+        );
+        free_result(result);
+        close(handle);
+    }
+
+    #[test]
     fn calls_sharing_a_handle_are_serialized() {
         let directory = tempfile::tempdir().expect("temporary database directory");
         let handle = open(directory.path());
@@ -571,6 +743,170 @@ mod tests {
 
         assert_eq!(committed.height, 0);
         assert_eq!(committed.root_hash, commit.root_hash);
+        close(handle);
+    }
+
+    #[test]
+    fn app_parameters_query_reads_committed_genesis() {
+        let directory = tempfile::tempdir().expect("temporary database directory");
+        let handle = open(directory.path());
+
+        let request = AppParametersRequest {}.encode_to_vec();
+        let uninitialized = shieldd_call(
+            handle,
+            METHOD_QUERY_APP_PARAMETERS,
+            request.as_ptr(),
+            request.len(),
+        );
+        assert_eq!(uninitialized.status, STATUS_FAILED_PRECONDITION);
+        assert!(error_text(&uninitialized).contains("not initialized"));
+        free_result(uninitialized);
+
+        initialize(handle);
+        let response: AppParametersResponse =
+            call(handle, METHOD_QUERY_APP_PARAMETERS, AppParametersRequest {});
+
+        let parameters = response
+            .app_parameters
+            .expect("app parameters response contains parameters");
+        assert_eq!(parameters.chain_id, "bankd-local");
+        assert!(parameters.compliance_params.is_some());
+        assert!(parameters.fee_params.is_some());
+        assert!(parameters.ibc_params.is_some());
+        assert!(parameters.sct_params.is_some());
+        assert!(parameters.shielded_pool_params.is_some());
+        close(handle);
+    }
+
+    #[test]
+    fn frontend_queries_read_committed_state() {
+        let directory = tempfile::tempdir().expect("temporary database directory");
+        let handle = open(directory.path());
+        initialize(handle);
+
+        let asset_id = asset::REGISTRY.parse_unit("shieldd").id();
+        let asset_id_proto: shieldd_sdk_proto::core::asset::v1::AssetId = asset_id.into();
+        let address: shieldd_sdk_proto::core::keys::v1::Address = ADDRESS_0.clone().into();
+
+        let metadata_response: AssetMetadataByIdResponse = call(
+            handle,
+            METHOD_QUERY_ASSET_METADATA_BY_ID,
+            AssetMetadataByIdRequest {
+                asset_id: Some(asset_id_proto.clone()),
+            },
+        );
+        assert_eq!(
+            metadata_response
+                .denom_metadata
+                .expect("known genesis asset metadata")
+                .base,
+            "ushieldd"
+        );
+
+        let status_response: ComplianceAssetStatusResponse = call(
+            handle,
+            METHOD_QUERY_COMPLIANCE_ASSET_STATUS,
+            ComplianceAssetStatusRequest {
+                asset_id: Some(asset_id_proto.clone()),
+            },
+        );
+        assert!(status_response.is_registered);
+        assert!(!status_response.is_regulated);
+
+        let leaf_response: ComplianceUserLeafResponse = call(
+            handle,
+            METHOD_QUERY_COMPLIANCE_USER_LEAF,
+            ComplianceUserLeafRequest {
+                address: Some(address.clone()),
+                asset_id: Some(asset_id_proto.clone()),
+            },
+        );
+        assert!(!leaf_response.is_registered);
+        assert!(leaf_response.leaf.is_none());
+
+        let batch_response: ComplianceBatchMerkleProofsResponse = call(
+            handle,
+            METHOD_QUERY_COMPLIANCE_BATCH_MERKLE_PROOFS,
+            ComplianceBatchMerkleProofsRequest {
+                queries: vec![ComplianceBatchQuery {
+                    address: Some(address),
+                    asset_id: Some(asset_id_proto),
+                }],
+            },
+        );
+        assert_eq!(batch_response.compliance_anchor.len(), 32);
+        assert_eq!(batch_response.asset_anchor.len(), 32);
+        assert_eq!(batch_response.results.len(), 1);
+        assert!(!batch_response.results[0].user_registered);
+        assert!(batch_response.results[0].asset_registered);
+        assert!(!batch_response.results[0].is_regulated);
+
+        let key_response: KeyValueResponse = call(
+            handle,
+            METHOD_QUERY_KEY_VALUE,
+            KeyValueRequest {
+                key: shieldd_sdk_sct::state_key::tree::anchor_by_height(0),
+                proof: false,
+            },
+        );
+        assert!(key_response.value.is_some());
+        assert!(key_response.proof.is_none());
+        close(handle);
+    }
+
+    #[test]
+    fn compact_block_range_query_returns_length_delimited_blocks_in_order() {
+        let directory = tempfile::tempdir().expect("temporary database directory");
+        let handle = open(directory.path());
+        initialize(handle);
+        commit_empty_block(handle, 1);
+        commit_empty_block(handle, 2);
+
+        let responses: Vec<CompactBlockRangeResponse> = call_delimited(
+            handle,
+            METHOD_QUERY_COMPACT_BLOCK_RANGE,
+            CompactBlockRangeRequest {
+                start_height: 0,
+                end_height: 2,
+                keep_alive: false,
+            },
+        );
+
+        let heights = responses
+            .into_iter()
+            .map(|response| {
+                response
+                    .compact_block
+                    .expect("range response contains a compact block")
+                    .height
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(heights, vec![0, 1, 2]);
+        close(handle);
+    }
+
+    #[test]
+    fn compact_block_range_query_rejects_keep_alive() {
+        let directory = tempfile::tempdir().expect("temporary database directory");
+        let handle = open(directory.path());
+        initialize(handle);
+
+        let request = CompactBlockRangeRequest {
+            start_height: 0,
+            end_height: 0,
+            keep_alive: true,
+        }
+        .encode_to_vec();
+        let result = shieldd_call(
+            handle,
+            METHOD_QUERY_COMPACT_BLOCK_RANGE,
+            request.as_ptr(),
+            request.len(),
+        );
+
+        assert_eq!(result.status, STATUS_INVALID_ARGUMENT);
+        assert!(error_text(&result).contains("must be bounded"));
+        free_result(result);
         close(handle);
     }
 
