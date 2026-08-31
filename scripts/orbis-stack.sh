@@ -14,11 +14,12 @@ fi
 
 case "$ACTION" in
     up)
-        print_banner "Orbis Runtime Bring-Up" "sourcehub + 3 nodes via digest-pinned runtime contract"
+        print_banner "Orbis Runtime Bring-Up" "Vera + 3 nodes via pinned runtime contract"
         ensure_orbis_images
         ensure_docker_daemon
         rm -f "$ORBIS_RUNTIME_FILE"
         run_orbis_compose "$COMPOSE_FILE" down -v --remove-orphans
+        run_orbis_compose "$COMPOSE_FILE" build vera
         run_orbis_compose "$COMPOSE_FILE" up -d --pull missing
         write_orbis_runtime_config "$COMPOSE_FILE"
         wait_for_orbis_stack "$COMPOSE_FILE"
@@ -28,8 +29,9 @@ case "$ACTION" in
         print_banner "Orbis Runtime Image Pull"
         ensure_orbis_images
         ensure_docker_daemon
-        run_orbis_compose "$COMPOSE_FILE" pull
-        log_success "Orbis images pulled"
+        run_orbis_compose "$COMPOSE_FILE" pull node1 node2 node3
+        run_orbis_compose "$COMPOSE_FILE" build vera
+        log_success "Orbis image pulled and Vera image built"
         ;;
     down)
         print_banner "Orbis Runtime Teardown"

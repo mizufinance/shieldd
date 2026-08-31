@@ -214,22 +214,6 @@ orbis-integration-build:
     cargo build --release -p pd --features orbis-dev-srs
     cargo build --release -p orbis-audit -p orbis-integration
 
-# Run the full Orbis integration flow assuming release binaries already exist.
-orbis-integration-run:
-    just orbis-integration-preflight-bringup
-    ./target/release/orbis-integration run
-
-# Keep the stack running on failure for local debugging.
-orbis-integration-debug:
-    just orbis-integration-build
-    just orbis-integration-preflight-bringup
-    ./target/release/orbis-integration run --keep-on-fail
-
-# Build and run the full one-shot Shieldd + Orbis integration flow.
-orbis-integration:
-    just orbis-integration-build
-    just orbis-integration-run
-
 # Bring up Shieldd and Orbis for phased local debugging.
 orbis-integration-up:
     just orbis-integration-build
@@ -237,15 +221,11 @@ orbis-integration-up:
     ./scripts/shieldd-up.sh
     ./scripts/orbis-stack.sh up
 
-# Run the seed phase against an already running Shieldd + Orbis stack.
-orbis-integration-seed:
-    just orbis-integration-preflight-binaries
-    ./target/release/orbis-integration seed
-
-# Run the read-only verify phase against an existing seeded stack.
-orbis-integration-verify:
-    just orbis-integration-preflight-binaries
-    ./target/release/orbis-integration verify
+# Create a ring and policy against an already running Orbis/Vera stack.
+orbis-integration-setup-ring output_json:
+    just orbis-integration-preflight
+    test -x ./target/release/orbis-integration || (echo "Run cargo build --release -p orbis-integration first" >&2; exit 1)
+    ./target/release/orbis-integration setup-ring --output-json {{output_json}}
 
 # Tear down the Orbis integration stack.
 orbis-integration-down:

@@ -55,7 +55,7 @@ message MsgRegisterAsset {
   bytes ring_pk = 6;
   // Orbis DKG ring identifier.
   string ring_id = 7;
-  // SourceHub policy ID.
+  // Vera policy ID.
   string policy_id = 8;
   // ACP permission name.
   string permission = 9;
