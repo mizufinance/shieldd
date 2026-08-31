@@ -495,6 +495,7 @@ func TestNoteReshapeFamiliesRejectIsolatedExactConservationMutation(
 				witness.Shared.AssetID,
 				compressedPointFromBinary(t, witness.Shared.DivGen),
 				noteReshapeTransmissionKeyFQNative(t, witness),
+				witness.Outputs[outputIndex].RecoveryCommitment,
 			)
 			if commitment.Cmp(
 				primitives.LittleEndianBytesToBigInt(

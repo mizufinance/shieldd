@@ -774,6 +774,7 @@ pub mod proof_test_helpers {
             spend.compliance_anchor = base.compliance_anchor;
             spend.compliance_path = base.compliance_path.clone();
             spend.compliance_position = base.compliance_position;
+            spend.compliance_leaf = Some(base.user_leaf.clone());
             spend.is_regulated = is_regulated;
             spend.target_timestamp = base.target_timestamp;
             spend.tx_blinding_nonce = tx_blinding_nonce;

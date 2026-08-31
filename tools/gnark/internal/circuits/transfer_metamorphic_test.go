@@ -232,20 +232,22 @@ func noteCommitmentNativeFromFields(
 	assetID [32]byte,
 	divGenFQ *big.Int,
 	transmissionFQ *big.Int,
+	recoveryCommitment [32]byte,
 ) *big.Int {
 	t.Helper()
 	vectors, err := primitives.LoadPrototypeVectors()
 	if err != nil {
 		t.Fatalf("load prototype vectors: %v", err)
 	}
-	commitment, err := primitives.Poseidon377Hash5Native(
+	commitment, err := primitives.Poseidon377Hash6Native(
 		primitives.MustBigInt(vectors.Poseidon377.NoteCommitDomain),
-		[5]*big.Int{
+		[6]*big.Int{
 			primitives.LittleEndianBytesToBigInt(blinding[:]),
 			primitives.LittleEndianBytesToBigInt(amount[:]),
 			primitives.LittleEndianBytesToBigInt(assetID[:]),
 			divGenFQ,
 			transmissionFQ,
+			primitives.LittleEndianBytesToBigInt(recoveryCommitment[:]),
 		},
 	)
 	if err != nil {
@@ -789,6 +791,47 @@ func TestTransferCircuitAcceptsReboundNetValueAfterChangeAmountMutation(
 	}
 	witness.ChangeOutput.CreatedNoteAmount = le32FromBigInt(t, changeAmount)
 	assignment.ChangeOutput.Note.Amount = changeAmount.String()
+	witness.ChangeOutput.RecoveryCapsule.EncryptedAmount = addFieldElementBytes(
+		t,
+		witness.ChangeOutput.RecoveryCapsule.EncryptedAmount,
+		big.NewInt(1),
+	)
+	assignment.ChangeOutput.Recovery.EncryptedAmount = primitives.LittleEndianBytesToBigInt(
+		witness.ChangeOutput.RecoveryCapsule.EncryptedAmount[:],
+	).String()
+	recoveryDomainBytes := blake2b.Sum512(
+		[]byte("shieldd.recovery_capsule.commitment"),
+	)
+	recoveryCommitment, err := primitives.Poseidon377Hash6Native(
+		primitives.LittleEndianBytesToBigInt(recoveryDomainBytes[:]),
+		[6]*big.Int{
+			compressedPointFromBinary(
+				t,
+				witness.ChangeOutput.RecoveryCapsule.EPKAffine,
+			),
+			primitives.LittleEndianBytesToBigInt(
+				witness.ChangeOutput.RecoveryCapsule.C2[:],
+			),
+			primitives.LittleEndianBytesToBigInt(
+				witness.ChangeOutput.RecoveryCapsule.Salt[:],
+			),
+			primitives.LittleEndianBytesToBigInt(
+				witness.ChangeOutput.RecoveryCapsule.KeyConfirmation[:],
+			),
+			primitives.LittleEndianBytesToBigInt(
+				witness.ChangeOutput.RecoveryCapsule.EncryptedAmount[:],
+			),
+			primitives.LittleEndianBytesToBigInt(
+				witness.ChangeOutput.RecoveryCapsule.EncryptedNoteBlinding[:],
+			),
+		},
+	)
+	if err != nil {
+		t.Fatalf("rebind transfer change recovery commitment: %v", err)
+	}
+	witness.ChangeOutput.RecoveryCommitment = le32FromBigInt(t, recoveryCommitment)
+	assignment.ChangeOutput.Note.RecoveryCommitment = recoveryCommitment.String()
+	assignment.ChangeOutput.Recovery.Commitment = recoveryCommitment.String()
 
 	commitment := noteCommitmentNativeFromFields(
 		t,
@@ -797,6 +840,7 @@ func TestTransferCircuitAcceptsReboundNetValueAfterChangeAmountMutation(
 		witness.RequiredSpend.SpentNoteAssetID,
 		compressedPointFromBinary(t, witness.SenderDiversifiedGenerator),
 		compressedPointFromBinary(t, witness.SenderTransmissionKey),
+		witness.ChangeOutput.RecoveryCommitment,
 	)
 	if commitment.Cmp(
 		primitives.LittleEndianBytesToBigInt(

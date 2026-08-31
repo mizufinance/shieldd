@@ -254,7 +254,9 @@ mod tests {
         build_transfer_hidden_arity_roundtrip_inputs_for_asset_with_rng, full_proof_roundtrip,
         CircuitType,
     };
-    use crate::{Note, Rseed, ShieldedInputPlan, ShieldedOutputPlan, TransferPlan};
+    use crate::{
+        Note, RecoveryCommitment, Rseed, ShieldedInputPlan, ShieldedOutputPlan, TransferPlan,
+    };
     use decaf377::Fr;
     use shieldd_sdk_asset::{Value, BASE_ASSET_ID};
     use shieldd_sdk_compliance::{ComplianceLeaf, MerklePath, QuadTree};
@@ -455,6 +457,7 @@ mod tests {
                 asset_id: *BASE_ASSET_ID,
             },
             Rseed::generate(&mut rng),
+            RecoveryCommitment::unavailable(),
         )
         .expect("create base-asset test note");
 
@@ -521,6 +524,7 @@ mod tests {
                 asset_id: *BASE_ASSET_ID,
             },
             Rseed::generate(&mut rng),
+            RecoveryCommitment::unavailable(),
         )
         .expect("create registered base-asset test note");
 
@@ -607,6 +611,7 @@ mod tests {
                 asset_id: *BASE_ASSET_ID,
             },
             Rseed::generate(&mut rng),
+            RecoveryCommitment::unavailable(),
         )
         .expect("create registered base-asset test note");
 
@@ -619,6 +624,7 @@ mod tests {
                     asset_id: *BASE_ASSET_ID,
                 },
                 Rseed::generate(&mut rng),
+                RecoveryCommitment::unavailable(),
             )
             .expect("create filler note");
             sct.insert(tct::Witness::Forget, filler_note.commit())
@@ -706,6 +712,7 @@ mod tests {
                 asset_id: *BASE_ASSET_ID,
             },
             Rseed::generate(&mut rng),
+            RecoveryCommitment::unavailable(),
         )
         .expect("create registered base-asset test note");
 
@@ -792,6 +799,7 @@ mod tests {
                 asset_id: *BASE_ASSET_ID,
             },
             Rseed::generate(&mut rng),
+            RecoveryCommitment::unavailable(),
         )
         .expect("create registered base-asset test note");
 

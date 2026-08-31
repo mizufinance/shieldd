@@ -4,7 +4,7 @@ use shieldd_sdk_asset::{asset, Value};
 use shieldd_sdk_keys::test_keys;
 use shieldd_sdk_shielded_pool::{
     discovery::{Parameters, RoutingSelector, RoutingTag},
-    Note,
+    ShieldedOutputPlan,
 };
 
 const TRANSFERS_PER_SECOND: usize = 5_000;
@@ -15,9 +15,8 @@ fn routing_scan(c: &mut Criterion) {
     let address = fvk.payment_address(0u32.into());
     let selector =
         RoutingSelector::for_address(&address, Parameters::default().regulated_precision);
-    let note = Note::generate(
+    let (note, recovery_capsule) = ShieldedOutputPlan::new(
         &mut rng,
-        &address,
         Value {
             amount: 10u64.into(),
             asset_id: asset::Cache::with_known_assets()
@@ -25,8 +24,10 @@ fn routing_scan(c: &mut Criterion) {
                 .expect("known benchmark asset")
                 .id(),
         },
-    );
-    let payload = note.payload();
+        address,
+    )
+    .output_note_and_capsule();
+    let payload = note.payload(recovery_capsule);
 
     let mut state = 0x9e37_79b9u32;
     let tags = (0..TRANSFERS_PER_SECOND)

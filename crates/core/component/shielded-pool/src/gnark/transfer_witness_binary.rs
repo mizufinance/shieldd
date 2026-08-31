@@ -18,7 +18,7 @@ use crate::{
 };
 
 const TRANSFER_WITNESS_MAGIC: &[u8; 4] = b"PTWG";
-const TRANSFER_WITNESS_VERSION: u32 = 24;
+pub(super) const TRANSFER_WITNESS_VERSION: u32 = 24;
 
 impl TransferWitness {
     pub fn encode(&self) -> Result<Vec<u8>> {

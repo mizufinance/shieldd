@@ -175,7 +175,7 @@ impl<'de> serde::Deserialize<'de> for ClientCounter {
                             if counter__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("counter"));
                             }
-                            counter__ = 
+                            counter__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -326,7 +326,7 @@ impl<'de> serde::Deserialize<'de> for ClientData {
                             if processed_height__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("processedHeight"));
                             }
-                            processed_height__ = 
+                            processed_height__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -428,7 +428,7 @@ impl<'de> serde::Deserialize<'de> for ConnectionCounter {
                             if counter__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("counter"));
                             }
-                            counter__ = 
+                            counter__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1238,7 +1238,7 @@ impl<'de> serde::Deserialize<'de> for Ics20Withdrawal {
                             if timeout_time__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("timeoutTime"));
                             }
-                            timeout_time__ = 
+                            timeout_time__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }

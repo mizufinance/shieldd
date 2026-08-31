@@ -250,7 +250,10 @@ mod tests {
         let (public, private) =
             crate::test_proof_helpers::proof_test_helpers::build_transfer_roundtrip_inputs(true);
         let encoded = encode_transfer_witness(&public, &private).expect("encode transfer witness");
-        assert_eq!(u32::from_le_bytes(encoded[4..8].try_into().unwrap()), 23);
+        assert_eq!(
+            u32::from_le_bytes(encoded[4..8].try_into().unwrap()),
+            crate::gnark::transfer_witness_binary::TRANSFER_WITNESS_VERSION
+        );
         let decoded = decode_transfer_witness(&encoded).expect("decode transfer witness");
         let expected = TransferWitness::from_public_private(&public, &private)
             .expect("build transfer witness");

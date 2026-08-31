@@ -1,4 +1,32 @@
-use std::path::PathBuf;
+use std::{fs, path::PathBuf};
+
+fn normalize_rust_source(source: &str) -> String {
+    let mut normalized = source
+        .lines()
+        .map(str::trim_end)
+        .collect::<Vec<_>>()
+        .join("\n");
+    if source.ends_with('\n') {
+        normalized.push('\n');
+    }
+    normalized
+}
+
+fn normalize_generated_rust(target_dir: &std::path::Path) -> anyhow::Result<()> {
+    for entry in fs::read_dir(target_dir)? {
+        let path = entry?.path();
+        if path.extension().and_then(|extension| extension.to_str()) != Some("rs") {
+            continue;
+        }
+
+        let source = fs::read_to_string(&path)?;
+        let normalized = normalize_rust_source(&source);
+        if normalized != source {
+            fs::write(path, normalized)?;
+        }
+    }
+    Ok(())
+}
 
 fn main() -> anyhow::Result<()> {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -116,5 +144,18 @@ fn main() -> anyhow::Result<()> {
         ])
         .build(&[".shieldd"])?;
 
+    normalize_generated_rust(&target_dir)?;
+
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::normalize_rust_source;
+
+    #[test]
+    fn generated_rust_has_no_trailing_whitespace() {
+        assert_eq!(normalize_rust_source("one  \ntwo\t\nthree"), "one\ntwo\nthree");
+        assert_eq!(normalize_rust_source("one  \n"), "one\n");
+    }
 }

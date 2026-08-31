@@ -3151,8 +3151,7 @@ mod tests {
             .unwrap()
             .is_none());
 
-        let mut corrupt_leaf = leaf.clone();
-        corrupt_leaf.capk += decaf377::Element::GENERATOR;
+        let corrupt_leaf = leaf.clone().with_status_for_test(UserAssetStatus::Frozen);
         let corrupt = UserLeafRecord {
             position,
             leaf: corrupt_leaf,
@@ -3165,7 +3164,7 @@ mod tests {
             .get_user_leaf(&wallet, asset_id)
             .await
             .expect_err("record that disagrees with the tree must be rejected");
-        assert!(format!("{error:#}").contains("does not match authenticated tree commitment"));
+        assert!(format!("{error:#}").contains("does not match the committed user tree"));
     }
 
     // ========== IMT Tests ==========

@@ -185,12 +185,13 @@ func noteReshapeIdentityOwnershipAliasAssignment(
 	ivkReduced0, ivkQuotient0 := noteReshapeIdentityIVK(t, nk0, akFq)
 	ivkReduced1, ivkQuotient1 := noteReshapeIdentityIVK(t, nk1, akFq)
 
-	commitment, err := primitives.Poseidon377Hash5Native(
+	commitment, err := primitives.Poseidon377Hash6Native(
 		primitives.MustBigInt(vectors.Poseidon377.NoteCommitDomain),
-		[5]*big.Int{
+		[6]*big.Int{
 			big.NewInt(1234),
 			big.NewInt(55),
 			big.NewInt(777),
+			big.NewInt(0),
 			big.NewInt(0),
 			big.NewInt(0),
 		},

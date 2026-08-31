@@ -691,12 +691,10 @@ mod tests {
             witness.n_out as usize,
         ));
         fields.push(Fq::from_le_bytes_mod_order(&witness.anchor));
-        fields.extend(
-            witness
-                .outputs
-                .iter()
-                .map(|output| Fq::from_le_bytes_mod_order(&output.note_commitment)),
-        );
+        for output in &witness.outputs {
+            fields.push(Fq::from_le_bytes_mod_order(&output.note_commitment));
+            fields.push(Fq::from_le_bytes_mod_order(&output.recovery_commitment));
+        }
         fields.push(Fq::from_le_bytes_mod_order(
             &crate::gnark::point_affine_compress_to_field_bytes(&witness.balance_commitment_affine),
         ));
@@ -883,9 +881,6 @@ mod tests {
         let (public, _) = proof_test_helpers::build_transfer_roundtrip_inputs(true);
         let fields = transfer_statement_fields(&public).expect("transfer statement fields");
         assert_eq!(fields.len(), TRANSFER_STATEMENT_FIELD_COUNT);
-        assert_eq!(fields[36], public.target_timestamp);
-        assert_eq!(fields[37], public.compliance.sender_core_key_confirmation);
-        assert_eq!(fields[38], public.compliance.output_core_key_confirmation);
 
         let metadata = &public.compliance.metadata;
         let expected_metadata = [
@@ -898,11 +893,21 @@ mod tests {
             metadata.output_core_salt().unwrap(),
             metadata.output_ext_salt().unwrap(),
         ];
-        assert_eq!(&fields[39..], expected_metadata.as_slice());
+        let metadata_start = fields.len() - expected_metadata.len();
+        assert_eq!(fields[metadata_start - 3], public.target_timestamp);
+        assert_eq!(
+            fields[metadata_start - 2],
+            public.compliance.sender_core_key_confirmation
+        );
+        assert_eq!(
+            fields[metadata_start - 1],
+            public.compliance.output_core_key_confirmation
+        );
+        assert_eq!(&fields[metadata_start..], expected_metadata.as_slice());
 
-        let v7 = transfer_statement_hash(&fields).expect("v7 transfer hash");
+        let hash = transfer_statement_hash(&fields).expect("transfer hash");
         let alternate_domain_hash = hash_statement_fields(
-            &transfer_statement_hash_constant("v3"),
+            &transfer_statement_hash_constant("alternate"),
             transfer_statement_hash_constant("pad0"),
             transfer_statement_hash_constant("pad1"),
             &fields,
@@ -910,7 +915,7 @@ mod tests {
             |expected, got| StatementHashError::InvalidFieldLength { expected, got },
         )
         .expect("alternate domain hash");
-        assert_ne!(v7, alternate_domain_hash);
+        assert_ne!(hash, alternate_domain_hash);
     }
 
     #[test]
