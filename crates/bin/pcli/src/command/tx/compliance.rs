@@ -161,7 +161,7 @@ pub enum ComplianceCmd {
         /// Shieldd address authorized by this grant.
         #[clap(long)]
         address: Address,
-        /// SourceHub policy ID bound to this grant.
+        /// Vera policy ID bound to this grant.
         #[clap(long, default_value = "")]
         policy_id: String,
         /// Registration-authority signing key for this asset, hex-encoded.

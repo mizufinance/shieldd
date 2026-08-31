@@ -16,24 +16,21 @@ use clap::{Parser, Subcommand};
 use command::{collect_args, command_output, format_captured_output, render_args, run_command};
 use demo_auth::dkg_signer;
 use demo_config::{
-    compliance_dev_env, node_dial_host, process_env_or_default, sourcehub_client, OrbisEndpoints,
+    compliance_dev_env, node_dial_host, vera_client, OrbisEndpoints,
     DEFAULT_COMPLIANCE_DEV_AUTHORITY_SK_HEX, DEFAULT_COMPLIANCE_DEV_AUTHORITY_VK_HEX,
     DEFAULT_COMPLIANCE_DEV_REGISTRAR_SK_HEX, DEFAULT_COMPLIANCE_GRANT_VALID_UNTIL_UNIX,
     NODE1_DIAL_HOST, NODE2_DIAL_HOST, NODE3_DIAL_HOST, ORBIS_PERMISSION,
     ORBIS_POLICY_MARSHAL_TYPE_YAML, ORBIS_POLICY_YAML, ORBIS_RESOURCE, ORBIS_RING_POLICY_RESOURCE,
 };
 use demo_state::{
-    missing_ring, now_string, read_json, write_json, AuditDemoState, AuditRecord, AuditSubject,
-    DetectedRow, DetectedScanFile, IssuerState, LedgerRow, RingState, RowRef, ScannerState,
-    StatusDocument, UserState,
+    now_string, read_json, write_json, AuditDemoState, RingState, StatusDocument, UserState,
 };
-use orbis_common::blockchain::{orbis::WhitelistTarget, SourceHubClient};
+use orbis_common::blockchain::{orbis::WhitelistTarget, VeraClient};
 use serde::Deserialize;
 use shieldd_orbis_client::{NodeInfo, OrbisClient};
 use shieldd_sdk_compliance::{
     decrypt_flagged_rows, export_ledger_rows_json, export_scan_json, import_orbis_audit_entries,
-    mark_row_audited, record_address_alias, scanner_health_json, AuditScanExport, DetectionKey,
-    OrbisAuditEntry, SqliteScannerStore,
+    record_address_alias, AuditScanExport, DetectionKey, OrbisAuditEntry, SqliteScannerStore,
 };
 
 mod command;
@@ -76,7 +73,7 @@ enum CommandKind {
         #[clap(long)]
         output_json: PathBuf,
     },
-    /// Run bankD audit-demo setup/scanner/audit commands against an already running local stack.
+    /// Initialize the bankD Orbis legal-audit demo against a running local stack.
     AuditDemo {
         #[clap(subcommand)]
         command: AuditDemoCommand,
@@ -85,15 +82,8 @@ enum CommandKind {
 
 #[derive(Subcommand, Debug)]
 enum AuditDemoCommand {
-    /// Idempotently register regulated BRL and issuer demo subjects.
-    Setup,
-    /// Follow Shieldd blocks and continuously import regulated transfer detections.
-    Scanner,
-    /// Audit one issuer subject by name.
-    AuditUser {
-        /// Issuer registry subject: Alice, Bob, or Charlie.
-        name: String,
-    },
+    /// Initialize deterministic demo identities and an Orbis/Vera ring only.
+    PocSetup,
 }
 
 #[derive(Debug)]
@@ -144,9 +134,7 @@ async fn main() -> Result<()> {
             let endpoints = repo.orbis_endpoints()?;
             let demo = AuditDemo::from_env(endpoints)?;
             match command {
-                AuditDemoCommand::Setup => demo.setup().await,
-                AuditDemoCommand::Scanner => demo.scanner(),
-                AuditDemoCommand::AuditUser { name } => demo.audit_user(&name),
+                AuditDemoCommand::PocSetup => demo.poc_setup().await,
             }
         }
     }
@@ -166,27 +154,21 @@ async fn setup_ring(output_json: &Path, endpoints: &OrbisEndpoints) -> Result<()
     let info2 = wait_for_node_info(&node2, "node2").await?;
     let info3 = wait_for_node_info(&node3, "node3").await?;
 
-    let sourcehub = sourcehub_client(endpoints).await?;
+    let vera = vera_client(endpoints).await?;
     let (node_keys, node_routes) = orbis_node_routes(&info1, &info2, &info3)?;
     let policy_id = OrbisClient::add_policy(
-        &sourcehub,
+        &vera,
         ORBIS_POLICY_YAML,
         ORBIS_POLICY_MARSHAL_TYPE_YAML,
         ORBIS_RESOURCE,
         ORBIS_PERMISSION,
     )
     .await?;
-    OrbisClient::register_object(
-        &sourcehub,
-        &policy_id,
-        ORBIS_RING_POLICY_RESOURCE,
-        &policy_id,
-    )
-    .await?;
-    authorize_orbis_nodes_for_policy(&sourcehub, &node_routes, &policy_id).await?;
+    OrbisClient::register_object(&vera, &policy_id, ORBIS_RING_POLICY_RESOURCE, &policy_id).await?;
+    authorize_orbis_nodes_for_policy(&vera, &node_routes, &policy_id).await?;
     let dkg_signer = dkg_signer();
     let dkg = node1
-        .start_dkg(2, &node_keys, &sourcehub, &policy_id, &dkg_signer)
+        .start_dkg(2, &node_keys, &vera, &policy_id, &dkg_signer)
         .await?;
     eprintln!(
         "orbis-integration: DKG session started for ring {}: {} ({})",
@@ -194,7 +176,7 @@ async fn setup_ring(output_json: &Path, endpoints: &OrbisEndpoints) -> Result<()
     );
     eprintln!("orbis-integration: DKG message: {}", dkg.message);
 
-    let ring = wait_for_ring(&sourcehub, &dkg.ring_id).await?;
+    let ring = wait_for_ring(&vera, &dkg.ring_id).await?;
     let output = RingState {
         ring_pk_hex: ring.ring_pk_hex,
         ring_id: ring.ring_id,
@@ -268,34 +250,28 @@ async fn seed(repo: &RepoPaths, endpoints: &OrbisEndpoints) -> Result<()> {
     let info2 = wait_for_node_info(&node2, "node2").await?;
     let info3 = wait_for_node_info(&node3, "node3").await?;
 
-    let sourcehub = sourcehub_client(endpoints).await?;
+    let vera = vera_client(endpoints).await?;
     let (node_keys, node_routes) = orbis_node_routes(&info1, &info2, &info3)?;
     let policy_id = OrbisClient::add_policy(
-        &sourcehub,
+        &vera,
         ORBIS_POLICY_YAML,
         ORBIS_POLICY_MARSHAL_TYPE_YAML,
         ORBIS_RESOURCE,
         ORBIS_PERMISSION,
     )
     .await?;
-    OrbisClient::register_object(
-        &sourcehub,
-        &policy_id,
-        ORBIS_RING_POLICY_RESOURCE,
-        &policy_id,
-    )
-    .await?;
-    authorize_orbis_nodes_for_policy(&sourcehub, &node_routes, &policy_id).await?;
+    OrbisClient::register_object(&vera, &policy_id, ORBIS_RING_POLICY_RESOURCE, &policy_id).await?;
+    authorize_orbis_nodes_for_policy(&vera, &node_routes, &policy_id).await?;
     let dkg_signer = dkg_signer();
     let dkg = node1
-        .start_dkg(2, &node_keys, &sourcehub, &policy_id, &dkg_signer)
+        .start_dkg(2, &node_keys, &vera, &policy_id, &dkg_signer)
         .await?;
     eprintln!(
         "orbis-integration: DKG session started for ring {}: {} ({})",
         dkg.ring_id, dkg.session_id, dkg.status
     );
     eprintln!("orbis-integration: DKG message: {}", dkg.message);
-    let ring = wait_for_ring(&sourcehub, &dkg.ring_id).await?;
+    let ring = wait_for_ring(&vera, &dkg.ring_id).await?;
     fs::write(
         &repo.ring_info_file,
         format!(
@@ -844,7 +820,7 @@ fn run_orbis_audit(
     run_command(
         Command::new(&repo.orbis_audit_bin)
             .current_dir(&repo.root)
-            .envs(endpoints.sourcehub_env())
+            .envs(endpoints.vera_env())
             .arg("--input")
             .arg(input)
             .arg("--dk-hex")
@@ -1120,18 +1096,18 @@ fn orbis_node_routes(
 }
 
 async fn authorize_orbis_nodes_for_policy(
-    client: &SourceHubClient,
+    client: &VeraClient,
     routes: &[(String, String)],
     policy_id: &str,
 ) -> Result<()> {
     for (node_key, peer_id) in routes {
-        wait_for_sourcehub_node_info(client, node_key).await?;
+        wait_for_vera_node_info(client, node_key).await?;
         whitelist_orbis_node_for_policy(client, node_key, peer_id, policy_id).await?;
     }
     Ok(())
 }
 
-async fn wait_for_sourcehub_node_info(client: &SourceHubClient, node_key: &str) -> Result<()> {
+async fn wait_for_vera_node_info(client: &VeraClient, node_key: &str) -> Result<()> {
     let mut last_error = None;
     // 180 * 2s = 6 min. On-chain NodeInfo registration lags node startup by the
     // full funder round-trip (wait for keys -> wait for first block -> fund ->
@@ -1142,7 +1118,7 @@ async fn wait_for_sourcehub_node_info(client: &SourceHubClient, node_key: &str) 
         match client.orbis_read_node_info(node_key).await {
             Ok(Some(_)) => return Ok(()),
             Ok(None) => {
-                last_error = Some(anyhow!("Orbis NodeInfo {node_key} not found on SourceHub"));
+                last_error = Some(anyhow!("Orbis NodeInfo {node_key} not found on Vera"));
             }
             Err(error) => {
                 last_error = Some(anyhow!("failed to read Orbis NodeInfo {node_key}: {error}"));
@@ -1151,11 +1127,11 @@ async fn wait_for_sourcehub_node_info(client: &SourceHubClient, node_key: &str) 
         tokio::time::sleep(Duration::from_secs(2)).await;
     }
     Err(last_error
-        .unwrap_or_else(|| anyhow!("timed out waiting for Orbis NodeInfo {node_key} on SourceHub")))
-    .with_context(|| format!("timed out waiting for Orbis NodeInfo {node_key} on SourceHub"))
+        .unwrap_or_else(|| anyhow!("timed out waiting for Orbis NodeInfo {node_key} on Vera")))
+    .with_context(|| format!("timed out waiting for Orbis NodeInfo {node_key} on Vera"))
 }
 
-/// A single controller-issued NodeInfo transaction. SourceHub split the former
+/// A single controller-issued NodeInfo transaction. Vera split the former
 /// `MsgUpdateNodeInfo` into per-field messages, so refreshing a node's
 /// docker-routed peer id and whitelisting its policy are now distinct txs.
 enum NodeTx<'a> {
@@ -1167,7 +1143,7 @@ enum NodeTx<'a> {
 /// (test account) rewrites the peer id to the docker-routed value and whitelists
 /// the freshly created ACP policy onto the node.
 async fn whitelist_orbis_node_for_policy(
-    client: &SourceHubClient,
+    client: &VeraClient,
     node_key: &str,
     peer_id: &str,
     policy_id: &str,
@@ -1176,11 +1152,7 @@ async fn whitelist_orbis_node_for_policy(
     send_orbis_node_tx(client, node_key, NodeTx::WhitelistPolicy { policy_id }).await
 }
 
-async fn send_orbis_node_tx(
-    client: &SourceHubClient,
-    node_key: &str,
-    tx: NodeTx<'_>,
-) -> Result<()> {
+async fn send_orbis_node_tx(client: &VeraClient, node_key: &str, tx: NodeTx<'_>) -> Result<()> {
     let mut attempt = 0u32;
     loop {
         let (label, outcome) = match &tx {
@@ -1201,7 +1173,7 @@ async fn send_orbis_node_tx(
         match outcome {
             Ok(result) if result.code == 0 => return Ok(()),
             Ok(result) => {
-                if attempt < 30 && is_transient_sourcehub_tx_error(&result.log) {
+                if attempt < 30 && is_transient_vera_tx_error(&result.log) {
                     attempt += 1;
                     let _ = client.resync_nonce().await;
                     tokio::time::sleep(Duration::from_secs(1)).await;
@@ -1215,7 +1187,7 @@ async fn send_orbis_node_tx(
             }
             Err(error) => {
                 let msg = error.to_string();
-                if attempt < 30 && is_transient_sourcehub_tx_error(&msg) {
+                if attempt < 30 && is_transient_vera_tx_error(&msg) {
                     attempt += 1;
                     let _ = client.resync_nonce().await;
                     tokio::time::sleep(Duration::from_secs(1)).await;
@@ -1229,7 +1201,7 @@ async fn send_orbis_node_tx(
     }
 }
 
-fn is_transient_sourcehub_tx_error(message: &str) -> bool {
+fn is_transient_vera_tx_error(message: &str) -> bool {
     let lower = message.to_ascii_lowercase();
     lower.contains("sequence mismatch")
         || lower.contains("account not found")
@@ -1237,7 +1209,7 @@ fn is_transient_sourcehub_tx_error(message: &str) -> bool {
 }
 
 async fn wait_for_ring(
-    client: &SourceHubClient,
+    client: &VeraClient,
     ring_id: &str,
 ) -> Result<shieldd_orbis_client::RingInfo> {
     let mut last_error = None;
@@ -1300,19 +1272,51 @@ struct AuditDemo {
     demo_dir_rel: String,
     status_file: PathBuf,
     state_file: PathBuf,
-    scanner_db_rel: String,
-    scanner_db_abs: PathBuf,
-    scanner_health_file: PathBuf,
-    asset: String,
-    threshold: String,
     shieldd_grpc: String,
-    orbis_endpoint: String,
     orbis_endpoints: OrbisEndpoints,
 }
 
 impl AuditDemo {
     const ALICE_PHRASE: &'static str = "wealth flavor believe regret funny network recall kiss grape useless pepper cram hint member few certain unveil rather brick bargain curious require crowd raise";
-    const CHARLIE_PHRASE: &'static str = "decorate bright ozone fork gallery riot bus exhaust worth way bone indoor calm squirrel merry zero scheme cotton until shop any excess stage laundry";
+    const CHARLIE_PHRASE: &'static str = "comfort ten front cycle churn burger oak absent rice ice urge result art couple benefit cabbage frequent obscure hurry trick segment cool job debate";
+
+    async fn poc_setup(&self) -> Result<()> {
+        self.init_state_file()?;
+        self.write_status(
+            "running",
+            "poc-setup",
+            "Initializing demo identities and Orbis/Vera ring",
+        )?;
+        for (name, slug, phrase) in [
+            ("Alice", "alice", Some(Self::ALICE_PHRASE)),
+            ("Bob", "bob", None),
+            ("Charlie", "charlie", Some(Self::CHARLIE_PHRASE)),
+        ] {
+            self.init_wallet(slug, phrase)?;
+            let address = self.address_for(slug, 0)?;
+            let mut user = UserState::new(name, slug, self.wallet_home_rel(slug), address)?;
+            if slug == "charlie" {
+                user.add_address(1, self.address_for(slug, 1)?)?;
+            }
+            self.update_state(|state| {
+                state.users.retain(|user| user.slug != slug);
+                state.users.push(user);
+            })?;
+        }
+        let ring_file = self.demo_dir.join("ring.json");
+        setup_ring(&ring_file, &self.orbis_endpoints).await?;
+        let ring = self.read_json::<RingState>(&ring_file)?;
+        self.update_state(|state| {
+            state.ring = Some(ring);
+            state.setup.initialized = true;
+            state.setup.updated_at = Some(now_string());
+        })?;
+        self.write_status(
+            "complete",
+            "poc-setup",
+            "Demo identities and Orbis/Vera ring ready",
+        )
+    }
 
     fn from_env(orbis_endpoints: OrbisEndpoints) -> Result<Self> {
         let root = env::current_dir().context("failed to resolve current directory")?;
@@ -1321,19 +1325,12 @@ impl AuditDemo {
         let demo_dir = root.join(&demo_dir_rel);
         fs::create_dir_all(demo_dir.join("wallets"))
             .with_context(|| format!("failed to create {}", demo_dir.display()))?;
-        let scanner_db_rel = format!("{demo_dir_rel}/scanner.db");
         Ok(Self {
             status_file: demo_dir.join("status.json"),
             state_file: demo_dir.join("state.json"),
-            scanner_db_abs: demo_dir.join("scanner.db"),
-            scanner_health_file: demo_dir.join("scanner-health.json"),
             root,
             demo_dir,
             demo_dir_rel,
-            scanner_db_rel,
-            asset: env::var("AUDIT_DEMO_ASSET")
-                .unwrap_or_else(|_| "transfer/channel-0/ubrl".to_string()),
-            threshold: env::var("AUDIT_DEMO_THRESHOLD").unwrap_or_else(|_| "500000000".to_string()),
             shieldd_grpc: env::var("SHIELDD_GRPC")
                 .or_else(|_| env::var("SHIELDD_NODE_PD_URL"))
                 .unwrap_or_else(|_| {
@@ -1341,380 +1338,8 @@ impl AuditDemo {
                         env::var("SHIELDD_PD_GRPC_PORT").unwrap_or_else(|_| "8080".to_string());
                     format!("http://127.0.0.1:{port}")
                 }),
-            orbis_endpoint: env::var("ORBIS_ENDPOINT")
-                .unwrap_or_else(|_| orbis_endpoints.node1().to_string()),
             orbis_endpoints,
         })
-    }
-
-    async fn setup(&self) -> Result<()> {
-        self.init_state_file()?;
-        self.write_status("running", "setup", "Initializing audit setup")?;
-        self.init_wallet("alice", Some(Self::ALICE_PHRASE))?;
-        self.sync_wallet("alice")?;
-        self.setup_asset().await?;
-        self.register_subject("Alice", "alice", Some(Self::ALICE_PHRASE), false)?;
-        self.register_subject("Bob", "bob", None, true)?;
-        self.register_subject("Charlie", "charlie", Some(Self::CHARLIE_PHRASE), true)?;
-        self.update_state(|state| {
-            state.setup.initialized = true;
-            state.setup.updated_at = Some(now_string());
-        })?;
-        self.refresh_outputs()?;
-        self.write_status("complete", "setup", "Audit setup ready")?;
-        Ok(())
-    }
-
-    fn scanner(&self) -> Result<()> {
-        self.init_state_file()?;
-        if !self.state()?.setup.initialized {
-            self.write_health(false, "Audit setup is not ready", None)?;
-            bail!("audit setup is not ready");
-        }
-        let dk = self.issuer_dk()?;
-        self.write_health(true, "Scanner running", None)?;
-        let refresh_demo = self.clone();
-        let refresh_handle = thread::spawn(move || loop {
-            let _ = refresh_demo.refresh_outputs();
-            let last_height = refresh_demo
-                .scanner_store()
-                .ok()
-                .and_then(|store| scanner_health_json(&store).ok())
-                .and_then(|v| v.get("last_height").and_then(serde_json::Value::as_u64));
-            let _ = refresh_demo.write_health(true, "Scanner running", last_height);
-            thread::sleep(Duration::from_secs(2));
-        });
-        let _ = refresh_handle.thread().id();
-
-        let status = self
-            .pcli_command("alice")
-            .args([
-                "tx",
-                "compliance",
-                "scan",
-                "run",
-                "--node",
-                &self.shieldd_grpc,
-                "--dk-hex",
-                &dk,
-                "--scan-asset-id",
-                &self.asset,
-                "--db",
-                &self.scanner_db_rel,
-            ])
-            .status()
-            .context("failed to run pcli compliance scanner")?;
-        self.write_health(false, "Scanner stopped", None)?;
-        if status.success() {
-            Ok(())
-        } else {
-            bail!("pcli compliance scanner failed with status {status}")
-        }
-    }
-
-    fn audit_user(&self, input_name: &str) -> Result<()> {
-        ensure_transfer_pre_available()?;
-        self.init_state_file()?;
-        let subject = self
-            .subject(input_name)?
-            .ok_or_else(|| anyhow!("unknown audit subject: {input_name}"))?;
-        self.write_status(
-            "running",
-            "audit-user",
-            &format!("Auditing {}", subject.name),
-        )?;
-        self.refresh_outputs()?;
-        let detected_path = self.demo_dir.join("detected-txs.json");
-        if !detected_path.exists() {
-            write_json(&detected_path, &DetectedScanFile::empty())?;
-        }
-        let detected = self.read_json::<DetectedScanFile>(&detected_path)?.detected;
-        let ledger = self.ledger_rows()?;
-        self.mark_clear_rows_audited(&subject, &ledger)?;
-        self.refresh_outputs()?;
-        let ledger = self.ledger_rows()?;
-        let default_refs = detected
-            .iter()
-            .filter(|row| !row.is_flagged)
-            .filter(|row| row.is_private_transfer())
-            .filter(|row| {
-                let row_ref = row.row_ref();
-                !ledger
-                    .iter()
-                    .any(|ledger_row| ledger_row.matches_ref(&row_ref) && ledger_row.fully_known())
-                    && !ledger.iter().any(|ledger_row| {
-                        ledger_row.matches_ref(&row_ref)
-                            && ledger_row.self_alias_matches(&subject.name)
-                            && ledger_row.has_amount()
-                    })
-            })
-            .cloned()
-            .collect::<Vec<_>>();
-
-        if default_refs.is_empty() {
-            self.write_status(
-                "complete",
-                "audit-user",
-                &format!("No new transfers to audit for {}", subject.name),
-            )?;
-            return Ok(());
-        }
-
-        let default_input = self
-            .demo_dir
-            .join(format!("{}-default-input.json", subject.slug));
-        self.write_scan_input(&default_input, default_refs)?;
-        let default_output = self
-            .demo_dir
-            .join(format!("{}-default-audit.json", subject.slug));
-        self.run_subject_audit(&subject, "default", &default_input, &default_output)?;
-        self.update_scanner_db_from_audit(&subject.name, &default_output)?;
-
-        let default_audit = self.read_json_array(&default_output).unwrap_or_default();
-        if default_audit.is_empty() {
-            fs::write(
-                self.demo_dir
-                    .join(format!("{}-extension-audit.json", subject.slug)),
-                b"[]",
-            )?;
-            self.refresh_outputs()?;
-            self.write_status(
-                "complete",
-                "audit-user",
-                &format!("Audit complete for {}", subject.name),
-            )?;
-            return Ok(());
-        }
-
-        self.refresh_outputs()?;
-        let ledger = self.ledger_rows()?;
-        let decoded_refs = default_audit
-            .iter()
-            .filter_map(RowRef::from_value)
-            .collect::<std::collections::BTreeSet<_>>();
-        let extension_refs = detected
-            .iter()
-            .filter(|row| !row.is_flagged)
-            .filter(|row| row.is_private_transfer())
-            .filter(|row| {
-                let row_ref = row.row_ref();
-                decoded_refs.contains(&row_ref)
-                    && !ledger.iter().any(|ledger_row| {
-                        ledger_row.matches_ref(&row_ref)
-                            && ledger_row.self_alias_matches(&subject.name)
-                            && ledger_row.counterparty_alias_known()
-                    })
-            })
-            .cloned()
-            .collect::<Vec<_>>();
-
-        let extension_output = self
-            .demo_dir
-            .join(format!("{}-extension-audit.json", subject.slug));
-        if extension_refs.is_empty() {
-            fs::write(&extension_output, b"[]")?;
-        } else {
-            let extension_input = self
-                .demo_dir
-                .join(format!("{}-extension-input.json", subject.slug));
-            self.write_scan_input(&extension_input, extension_refs)?;
-            self.run_subject_audit(&subject, "extension", &extension_input, &extension_output)?;
-            self.update_scanner_db_from_audit(&subject.name, &extension_output)?;
-        }
-
-        self.refresh_outputs()?;
-        self.update_state(|state| {
-            state.audits.push(AuditRecord {
-                user_slug: subject.slug.clone(),
-                user_name: subject.name.clone(),
-                at: now_string(),
-            });
-            state.setup.updated_at = Some(now_string());
-        })?;
-        self.write_status(
-            "complete",
-            "audit-user",
-            &format!("Audit complete for {}", subject.name),
-        )?;
-        Ok(())
-    }
-
-    async fn setup_asset(&self) -> Result<()> {
-        let state = self.state()?;
-        if state.setup.asset_registered {
-            let _ = self.scanner_store()?;
-            return Ok(());
-        }
-
-        let ring_file = self.demo_dir.join("ring.json");
-        setup_ring(&ring_file, &self.orbis_endpoints).await?;
-        let ring = self.read_json::<RingState>(&ring_file)?;
-        let dk_output = self.capture_pcli("alice", ["tx", "compliance", "generate-dk"])?;
-        let dk_hex = parse_key_value_line(&dk_output, "DK (hex): ")?;
-        let dk_pub_hex = parse_key_value_line(&dk_output, "DK_pub (hex): ")?;
-        let registrar_sk = process_env_or_default(
-            "COMPLIANCE_DEV_REGISTRAR_SK_HEX",
-            DEFAULT_COMPLIANCE_DEV_REGISTRAR_SK_HEX,
-        );
-        let authority_vk = process_env_or_default(
-            "COMPLIANCE_DEV_AUTHORITY_VK_HEX",
-            DEFAULT_COMPLIANCE_DEV_AUTHORITY_VK_HEX,
-        );
-        let valid_until = process_env_or_default(
-            "COMPLIANCE_GRANT_VALID_UNTIL_UNIX",
-            DEFAULT_COMPLIANCE_GRANT_VALID_UNTIL_UNIX,
-        );
-        let asset_grant = self.capture_pcli(
-            "alice",
-            [
-                "tx",
-                "compliance",
-                "sign-asset-grant",
-                &self.asset,
-                "--regulated",
-                "--dk-pub-hex",
-                &dk_pub_hex,
-                "--threshold",
-                &self.threshold,
-                "--ring-pk-hex",
-                &ring.ring_pk_hex,
-                "--ring-id",
-                &ring.ring_id,
-                "--policy-id",
-                &ring.policy_id,
-                "--resource",
-                &ring.resource,
-                "--permission",
-                &ring.permission,
-                "--registration-authority-vk-hex",
-                &authority_vk,
-                "--registrar-sk-hex",
-                &registrar_sk,
-                "--valid-until-unix",
-                &valid_until,
-            ],
-        )?;
-        self.run_pcli(
-            "alice",
-            [
-                "tx",
-                "compliance",
-                "register-asset",
-                &self.asset,
-                "--regulated",
-                "--dk-pub-hex",
-                &dk_pub_hex,
-                "--threshold",
-                &self.threshold,
-                "--ring-pk-hex",
-                &ring.ring_pk_hex,
-                "--ring-id",
-                &ring.ring_id,
-                "--policy-id",
-                &ring.policy_id,
-                "--resource",
-                &ring.resource,
-                "--permission",
-                &ring.permission,
-                "--registration-authority-vk-hex",
-                &authority_vk,
-                "--asset-registration-grant-hex",
-                &asset_grant,
-            ],
-        )?;
-        // The registration transaction is confirmed before the next setup step,
-        // but the immediately following user-registration transaction can still
-        // hit an app-state race in the local stack. Give the chain one block and
-        // refresh Alice's view before registering subjects.
-        thread::sleep(Duration::from_secs(2));
-        self.sync_wallet("alice")?;
-        let _ = self.scanner_store()?;
-        self.update_state(|state| {
-            state.ring = Some(ring);
-            state.issuer = Some(IssuerState { dk_hex, dk_pub_hex });
-            state.setup.asset_registered = true;
-            state.setup.updated_at = Some(now_string());
-        })?;
-        Ok(())
-    }
-
-    fn register_subject(
-        &self,
-        name: &str,
-        slug: &str,
-        phrase: Option<&str>,
-        fund_fee: bool,
-    ) -> Result<()> {
-        if self.subject(slug)?.is_some() {
-            return Ok(());
-        }
-        self.init_wallet(slug, phrase)?;
-        self.sync_wallet(slug)?;
-        if fund_fee {
-            let address = self.address_for(slug, 0)?;
-            self.run_pcli(
-                "alice",
-                ["tx", "transfer", "--to", &address, "50000ushieldd"],
-            )?;
-            self.sync_wallet(slug)?;
-        }
-        let address = self.address_for(slug, 0)?;
-        let policy_id = self
-            .state()?
-            .ring
-            .as_ref()
-            .ok_or_else(missing_ring)?
-            .policy_id
-            .clone();
-        let authority_sk = process_env_or_default(
-            "COMPLIANCE_DEV_AUTHORITY_SK_HEX",
-            DEFAULT_COMPLIANCE_DEV_AUTHORITY_SK_HEX,
-        );
-        let valid_until = process_env_or_default(
-            "COMPLIANCE_GRANT_VALID_UNTIL_UNIX",
-            DEFAULT_COMPLIANCE_GRANT_VALID_UNTIL_UNIX,
-        );
-        let user_grant = self.capture_pcli(
-            slug,
-            [
-                "tx",
-                "compliance",
-                "sign-user-grant",
-                &self.asset,
-                "--address",
-                &address,
-                "--policy-id",
-                &policy_id,
-                "--registration-authority-sk-hex",
-                &authority_sk,
-                "--valid-until-unix",
-                &valid_until,
-            ],
-        )?;
-        self.run_pcli(
-            slug,
-            [
-                "tx",
-                "compliance",
-                "register-user",
-                &self.asset,
-                "--address-index",
-                "0",
-                "--user-registration-grant-hex",
-                &user_grant,
-            ],
-        )?;
-        let store = self.scanner_store()?;
-        record_address_alias(&store, &address, name)?;
-        let transparent_address = self.address_for_transparent(slug)?;
-        record_address_alias(&store, &transparent_address, name)?;
-        self.update_state(|state| {
-            let user = UserState::new(name, slug, self.wallet_home_rel(slug), address);
-            state.users.retain(|user| user.slug != slug);
-            state.users.push(user);
-            state.setup.updated_at = Some(now_string());
-        })?;
-        Ok(())
     }
 
     fn init_wallet(&self, slug: &str, phrase: Option<&str>) -> Result<()> {
@@ -1748,10 +1373,6 @@ impl AuditDemo {
         }
     }
 
-    fn sync_wallet(&self, slug: &str) -> Result<()> {
-        self.run_pcli(slug, ["view", "sync"])
-    }
-
     fn address_for(&self, slug: &str, index: u64) -> Result<String> {
         let output = self.capture_pcli(slug, ["view", "address", &index.to_string()])?;
         Ok(output
@@ -1762,160 +1383,6 @@ impl AuditDemo {
             .to_string())
     }
 
-    fn address_for_transparent(&self, slug: &str) -> Result<String> {
-        let output = self.capture_pcli(slug, ["view", "address", "0", "--transparent"])?;
-        Ok(output
-            .lines()
-            .last()
-            .unwrap_or(output.trim())
-            .trim()
-            .to_string())
-    }
-
-    fn run_subject_audit(
-        &self,
-        subject: &AuditSubject,
-        tier: &str,
-        input: &Path,
-        output: &Path,
-    ) -> Result<()> {
-        let mut command = Command::new("orbis-audit");
-        command
-            .current_dir(&self.root)
-            .envs(self.orbis_endpoints.sourcehub_env())
-            .arg("--input")
-            .arg(input)
-            .arg("--dk-hex")
-            .arg(self.issuer_dk()?)
-            .arg("--node")
-            .arg(&self.shieldd_grpc)
-            .arg("--output")
-            .arg(output)
-            .arg("--timings-json")
-            .arg(
-                self.demo_dir
-                    .join(format!("{}-{tier}-timings.json", subject.slug)),
-            )
-            .arg("--object-cache")
-            .arg(self.demo_dir.join("orbis-object-cache.json"))
-            .arg("--tier")
-            .arg(tier)
-            .arg("--orbis-endpoint")
-            .arg(&self.orbis_endpoint)
-            .arg("--subject-address")
-            .arg(&subject.address);
-        for known in self.subjects()? {
-            command.arg("--known-address").arg(known.address);
-        }
-        self.run_orbis_locked(&mut command)
-    }
-
-    fn run_orbis_locked(&self, command: &mut Command) -> Result<()> {
-        let lock = self.demo_dir.join("orbis-sourcehub.lock");
-        while fs::create_dir(&lock).is_err() {
-            thread::sleep(Duration::from_secs(1));
-        }
-        let result = run_command(command);
-        let _ = fs::remove_dir(&lock);
-        result
-    }
-
-    fn update_scanner_db_from_audit(&self, name: &str, audit_file: &Path) -> Result<()> {
-        let entries = self
-            .read_json_array(audit_file)
-            .unwrap_or_default()
-            .into_iter()
-            .map(serde_json::from_value::<OrbisAuditEntry>)
-            .collect::<std::result::Result<Vec<_>, _>>()
-            .context("failed to parse orbis-audit output")?;
-        if entries.is_empty() {
-            return Ok(());
-        }
-        let store = self.scanner_store()?;
-        import_orbis_audit_entries(&store, &entries, Some(name))?;
-        Ok(())
-    }
-
-    fn mark_clear_rows_audited(&self, subject: &AuditSubject, ledger: &[LedgerRow]) -> Result<()> {
-        for row in ledger {
-            if !row.is_clear_flow_for(&subject.name) {
-                continue;
-            }
-            if row.audited_for(&subject.name) {
-                continue;
-            }
-
-            let Some(row_ref) = row.row_ref() else {
-                continue;
-            };
-
-            let store = self.scanner_store()?;
-            mark_row_audited(
-                &store,
-                row_ref.height as u64,
-                &row_ref.tx_hash,
-                row_ref.action_index as u32,
-                row_ref.output_index as u32,
-                &subject.name,
-            )?;
-        }
-        Ok(())
-    }
-
-    fn refresh_outputs(&self) -> Result<()> {
-        self.init_state_file()?;
-        if !self.scanner_health_file.exists() {
-            self.write_health(false, "Scanner not started", None)?;
-        }
-        let detected = self.demo_dir.join("detected-txs.json");
-        let ledger_path = self.demo_dir.join("ledger.json");
-        let store = self.scanner_store()?;
-        if let Ok(dk_hex) = self.issuer_dk() {
-            let dk = detection_key_from_hex(&dk_hex)?;
-            let _ = decrypt_flagged_rows(&store, &dk)?;
-        }
-        fs::write(
-            &detected,
-            serde_json::to_vec_pretty(&export_scan_json(&store)?)?,
-        )?;
-        fs::write(
-            &ledger_path,
-            serde_json::to_vec_pretty(&export_ledger_rows_json(&store)?)?,
-        )?;
-
-        let detected_json = self.read_json::<DetectedScanFile>(&detected)?;
-        let ledger_rows = self
-            .read_json_array::<LedgerRow>(&ledger_path)
-            .unwrap_or_default();
-        let scanner = self.read_json::<ScannerState>(&self.scanner_health_file)?;
-        self.update_state(|state| {
-            let detected_rows = detected_json.detected;
-            let flagged = detected_rows.iter().filter(|row| row.is_flagged).count();
-            let audited = ledger_rows
-                .iter()
-                .filter(|row| !row.is_flagged && row.has_amount())
-                .count();
-            state.scan.detected_count = detected_rows.len();
-            state.scan.flagged_count = flagged;
-            state.scan.audited_count = audited;
-            state.scan.scan_time = detected_json.scan_info.get("scan_time").cloned();
-            state.scan.detected = detected_rows;
-            state.scanner = scanner;
-            state.ledger_rows = ledger_rows;
-            state.setup.updated_at = Some(now_string());
-        })
-    }
-
-    fn write_scan_input(&self, path: &Path, refs: Vec<DetectedRow>) -> Result<()> {
-        write_json(
-            path,
-            &DetectedScanFile {
-                scan_info: serde_json::json!({}),
-                detected: refs,
-            },
-        )
-    }
-
     fn write_status(&self, state: &str, step: &str, message: &str) -> Result<()> {
         write_json(
             &self.status_file,
@@ -1923,30 +1390,11 @@ impl AuditDemo {
         )
     }
 
-    fn write_health(&self, running: bool, message: &str, last_height: Option<u64>) -> Result<()> {
-        write_json(
-            &self.scanner_health_file,
-            &ScannerState {
-                running,
-                message: Some(message.to_string()),
-                last_height,
-                updated_at: Some(now_string()),
-            },
-        )
-    }
-
     fn init_state_file(&self) -> Result<()> {
         if self.state_file.exists() {
             return Ok(());
         }
-        write_json(
-            &self.state_file,
-            &AuditDemoState::new(
-                self.shieldd_grpc.clone(),
-                self.asset.clone(),
-                self.threshold.clone(),
-            ),
-        )
+        write_json(&self.state_file, &AuditDemoState::new())
     }
 
     fn state(&self) -> Result<AuditDemoState> {
@@ -1960,39 +1408,6 @@ impl AuditDemo {
         let mut state = self.state()?;
         mutate(&mut state);
         write_json(&self.state_file, &state)
-    }
-
-    fn issuer_dk(&self) -> Result<String> {
-        self.state()?
-            .issuer
-            .map(|issuer| issuer.dk_hex)
-            .ok_or_else(|| anyhow!("issuer DK is missing; run audit-demo setup first"))
-    }
-
-    fn scanner_store(&self) -> Result<SqliteScannerStore> {
-        SqliteScannerStore::new(&self.scanner_db_abs).with_context(|| {
-            format!(
-                "failed to open audit-demo scanner database {}",
-                self.scanner_db_abs.display()
-            )
-        })
-    }
-
-    fn subjects(&self) -> Result<Vec<AuditSubject>> {
-        Ok(self
-            .state()?
-            .users
-            .iter()
-            .filter_map(|user| user.clone().subject())
-            .collect())
-    }
-
-    fn subject(&self, name_or_slug: &str) -> Result<Option<AuditSubject>> {
-        Ok(self.state()?.subject(name_or_slug))
-    }
-
-    fn ledger_rows(&self) -> Result<Vec<LedgerRow>> {
-        self.read_json_array(self.demo_dir.join("ledger.json"))
     }
 
     fn wallet_home_rel(&self, slug: &str) -> String {
@@ -2010,16 +1425,6 @@ impl AuditDemo {
             .env("HOME", "/home/shieldd")
             .env("SHIELDD_PCLI_HOME", self.wallet_home_abs(slug));
         command
-    }
-
-    fn run_pcli<I, S>(&self, slug: &str, args: I) -> Result<()>
-    where
-        I: IntoIterator<Item = S>,
-        S: AsRef<OsStr>,
-    {
-        let args = collect_args(args);
-        eprintln!("orbis-integration audit-demo: pcli {}", render_args(&args));
-        run_command(self.pcli_command(slug).args(args))
     }
 
     fn capture_pcli<I, S>(&self, slug: &str, args: I) -> Result<String>
@@ -2043,15 +1448,7 @@ impl AuditDemo {
     fn read_json<T: for<'de> Deserialize<'de>>(&self, path: impl AsRef<Path>) -> Result<T> {
         read_json(path.as_ref())
     }
-
-    fn read_json_array<T: for<'de> Deserialize<'de>>(
-        &self,
-        path: impl AsRef<Path>,
-    ) -> Result<Vec<T>> {
-        read_json(path.as_ref())
-    }
 }
-
 fn load_required_env(path: &Path, hint: &str) -> Result<DemoEnv> {
     if !path.exists() {
         bail!("missing {}: {hint}", path.display());
@@ -2061,9 +1458,15 @@ fn load_required_env(path: &Path, hint: &str) -> Result<DemoEnv> {
 
 impl RepoPaths {
     fn discover() -> Result<Self> {
-        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../../..")
-            .canonicalize()
+        let root = env::var_os("BANKD_REPO_ROOT")
+            .map(PathBuf::from)
+            .or_else(|| env::current_dir().ok().and_then(find_repo_root))
+            .or_else(|| {
+                PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                    .join("../../..")
+                    .canonicalize()
+                    .ok()
+            })
             .context("failed to locate repo root")?;
         let tmp = env::var("COMPLIANCE_TMP")
             .map(PathBuf::from)
@@ -2091,6 +1494,13 @@ impl RepoPaths {
     fn running_orbis_endpoints(&self) -> Result<OrbisEndpoints> {
         OrbisEndpoints::load(&self.orbis_runtime_file)
     }
+}
+
+fn find_repo_root(start: PathBuf) -> Option<PathBuf> {
+    start
+        .ancestors()
+        .find(|candidate| candidate.join("infra/docker-compose.yml").is_file())
+        .map(Path::to_path_buf)
 }
 
 impl DemoEnv {
@@ -2128,7 +1538,7 @@ mod tests {
     #[test]
     fn docker_peer_id_rewrites_host_only() {
         let info = NodeInfo {
-            public_address: "sourcehub1abc".to_string(),
+            public_address: "vera1abc".to_string(),
             node_key: "node-key".to_string(),
             peer_id: "peerid".to_string(),
             p2p_address: "peerid@127.0.0.1:4001".to_string(),

@@ -506,29 +506,29 @@ orbis_published_port() {
 
 write_orbis_runtime_config() {
     local compose_file="$1"
-    local sourcehub_rpc_port sourcehub_rest_port sourcehub_grpc_port
+    local vera_rpc_port vera_rest_port vera_grpc_port
     local node1_port node2_port node3_port
     local runtime_tmp
 
-    sourcehub_rpc_port="$(orbis_published_port "$compose_file" sourcehub 26657)" || return 1
-    sourcehub_rest_port="$(orbis_published_port "$compose_file" sourcehub 1317)" || return 1
-    sourcehub_grpc_port="$(orbis_published_port "$compose_file" sourcehub 9090)" || return 1
+    vera_rpc_port="$(orbis_published_port "$compose_file" sourcehub 26657)" || return 1
+    vera_rest_port="$(orbis_published_port "$compose_file" sourcehub 1317)" || return 1
+    vera_grpc_port="$(orbis_published_port "$compose_file" sourcehub 9090)" || return 1
     node1_port="$(orbis_published_port "$compose_file" node1 50051)" || return 1
     node2_port="$(orbis_published_port "$compose_file" node2 50051)" || return 1
     node3_port="$(orbis_published_port "$compose_file" node3 50051)" || return 1
 
     runtime_tmp="$(mktemp "${ORBIS_RUNTIME_FILE}.tmp.XXXXXX")"
     if ! jq -n \
-        --arg sourcehub_rpc "http://127.0.0.1:$sourcehub_rpc_port" \
-        --arg sourcehub_rest "http://127.0.0.1:$sourcehub_rest_port" \
-        --arg sourcehub_grpc "http://127.0.0.1:$sourcehub_grpc_port" \
+        --arg vera_rpc "http://127.0.0.1:$vera_rpc_port" \
+        --arg vera_rest "http://127.0.0.1:$vera_rest_port" \
+        --arg vera_grpc "http://127.0.0.1:$vera_grpc_port" \
         --arg node1 "http://127.0.0.1:$node1_port" \
         --arg node2 "http://127.0.0.1:$node2_port" \
         --arg node3 "http://127.0.0.1:$node3_port" \
         '{
-            sourcehub_rpc: $sourcehub_rpc,
-            sourcehub_rest: $sourcehub_rest,
-            sourcehub_grpc: $sourcehub_grpc,
+            vera_rpc: $vera_rpc,
+            vera_rest: $vera_rest,
+            vera_grpc: $vera_grpc,
             node1: $node1,
             node2: $node2,
             node3: $node3
@@ -715,19 +715,19 @@ wait_for_orbis_node_production() {
 
 wait_for_orbis_stack() {
     local compose_file="$1"
-    local sourcehub_rpc
+    local vera_rpc
 
     if ! jq -e '
-        [.sourcehub_rpc, .sourcehub_rest, .sourcehub_grpc, .node1, .node2, .node3]
+        [.vera_rpc, .vera_rest, .vera_grpc, .node1, .node2, .node3]
         | all(type == "string" and length > 0)
     ' "$ORBIS_RUNTIME_FILE" >/dev/null; then
         log_error "Invalid Orbis runtime endpoint file: $ORBIS_RUNTIME_FILE"
         return 1
     fi
 
-    sourcehub_rpc="$(jq -r '.sourcehub_rpc' "$ORBIS_RUNTIME_FILE")"
+    vera_rpc="$(jq -r '.vera_rpc' "$ORBIS_RUNTIME_FILE")"
 
-    wait_for_url "$sourcehub_rpc/status" 60 2 || return 1
+    wait_for_url "$vera_rpc/status" 60 2 || return 1
     wait_for_orbis_funder "$compose_file" || return 1
     wait_for_orbis_node_production node1 || return 1
     wait_for_orbis_node_production node2 || return 1

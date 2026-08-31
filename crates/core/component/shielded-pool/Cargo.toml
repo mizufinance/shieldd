@@ -35,6 +35,7 @@ parallel = [
 ]
 docsrs = []
 benchmark-helpers = ["component", "shieldd-sdk-ibc/benchmark-helpers"]
+poc-orbis-v0 = ["shieldd-sdk-compliance/poc-orbis-v0"]
 
 [dependencies]
 anyhow = {workspace = true}

@@ -1,7 +1,7 @@
 use std::{env, fs, path::Path};
 
 use anyhow::{anyhow, bail, Context, Result};
-use orbis_common::blockchain::{ChainConfig, SourceHubClient, TxSigner, TEST_ACCOUNT_HEX_KEY};
+use orbis_common::blockchain::{ChainConfig, TxSigner, VeraClient, TEST_ACCOUNT_HEX_KEY};
 use serde::Deserialize;
 
 pub const NODE1_ENDPOINT: &str = "http://127.0.0.1:50051";
@@ -62,9 +62,9 @@ pub const DEFAULT_COMPLIANCE_GRANT_VALID_UNTIL_UNIX: &str = "4102444800";
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct OrbisEndpoints {
-    sourcehub_rpc: String,
-    sourcehub_rest: String,
-    sourcehub_grpc: String,
+    vera_rpc: String,
+    vera_rest: String,
+    vera_grpc: String,
     node1: String,
     node2: String,
     node3: String,
@@ -73,11 +73,11 @@ pub struct OrbisEndpoints {
 impl OrbisEndpoints {
     pub fn from_env() -> Self {
         Self {
-            sourcehub_rpc: sourcehub_url("ORBIS_SOURCEHUB_RPC", "ORBIS_SOURCEHUB_RPC_PORT")
+            vera_rpc: vera_url("ORBIS_VERA_RPC", "ORBIS_VERA_RPC_PORT")
                 .unwrap_or_else(|| "http://127.0.0.1:26657".to_string()),
-            sourcehub_rest: sourcehub_url("ORBIS_SOURCEHUB_REST", "ORBIS_SOURCEHUB_REST_PORT")
+            vera_rest: vera_url("ORBIS_VERA_REST", "ORBIS_VERA_REST_PORT")
                 .unwrap_or_else(|| "http://127.0.0.1:1317".to_string()),
-            sourcehub_grpc: sourcehub_url("ORBIS_SOURCEHUB_GRPC", "ORBIS_SOURCEHUB_GRPC_PORT")
+            vera_grpc: vera_url("ORBIS_VERA_GRPC", "ORBIS_VERA_GRPC_PORT")
                 .unwrap_or_else(|| "http://127.0.0.1:9090".to_string()),
             node1: node_endpoint("ORBIS_NODE1_ENDPOINT", NODE1_ENDPOINT),
             node2: node_endpoint("ORBIS_NODE2_ENDPOINT", NODE2_ENDPOINT),
@@ -101,9 +101,9 @@ impl OrbisEndpoints {
     fn from_json(raw: &str) -> Result<Self> {
         let endpoints: Self = serde_json::from_str(raw)?;
         for (name, endpoint) in [
-            ("sourcehub_rpc", endpoints.sourcehub_rpc.as_str()),
-            ("sourcehub_rest", endpoints.sourcehub_rest.as_str()),
-            ("sourcehub_grpc", endpoints.sourcehub_grpc.as_str()),
+            ("vera_rpc", endpoints.vera_rpc.as_str()),
+            ("vera_rest", endpoints.vera_rest.as_str()),
+            ("vera_grpc", endpoints.vera_grpc.as_str()),
             ("node1", endpoints.node1.as_str()),
             ("node2", endpoints.node2.as_str()),
             ("node3", endpoints.node3.as_str()),
@@ -126,11 +126,11 @@ impl OrbisEndpoints {
         &self.node1
     }
 
-    pub fn sourcehub_env(&self) -> [(&'static str, &str); 3] {
+    pub fn vera_env(&self) -> [(&'static str, &str); 3] {
         [
-            ("ORBIS_SOURCEHUB_RPC", &self.sourcehub_rpc),
-            ("ORBIS_SOURCEHUB_REST", &self.sourcehub_rest),
-            ("ORBIS_SOURCEHUB_GRPC", &self.sourcehub_grpc),
+            ("ORBIS_VERA_RPC", &self.vera_rpc),
+            ("ORBIS_VERA_REST", &self.vera_rest),
+            ("ORBIS_VERA_GRPC", &self.vera_grpc),
         ]
     }
 }
@@ -150,17 +150,17 @@ pub fn node_dial_host(env_key: &str, default: &str) -> String {
     env_or_default(env_key, default)
 }
 
-fn sourcehub_chain_config(endpoints: &OrbisEndpoints) -> ChainConfig {
+fn vera_chain_config(endpoints: &OrbisEndpoints) -> ChainConfig {
     ChainConfig::builder()
-        .chain_id(env::var("ORBIS_SOURCEHUB_CHAIN_ID").ok())
-        .rpc_url(Some(endpoints.sourcehub_rpc.clone()))
-        .rest_url(Some(endpoints.sourcehub_rest.clone()))
-        .grpc_url(Some(endpoints.sourcehub_grpc.clone()))
-        .denom(env::var("ORBIS_SOURCEHUB_DENOM").ok())
+        .chain_id(env::var("ORBIS_VERA_CHAIN_ID").ok())
+        .rpc_url(Some(endpoints.vera_rpc.clone()))
+        .rest_url(Some(endpoints.vera_rest.clone()))
+        .grpc_url(Some(endpoints.vera_grpc.clone()))
+        .denom(env::var("ORBIS_VERA_DENOM").ok())
         .build()
 }
 
-fn sourcehub_url(url_key: &str, port_key: &str) -> Option<String> {
+fn vera_url(url_key: &str, port_key: &str) -> Option<String> {
     env::var(url_key)
         .ok()
         .filter(|s| !s.is_empty())
@@ -172,13 +172,13 @@ fn sourcehub_url(url_key: &str, port_key: &str) -> Option<String> {
         })
 }
 
-pub async fn sourcehub_client(endpoints: &OrbisEndpoints) -> Result<SourceHubClient> {
-    let config = sourcehub_chain_config(endpoints);
+pub async fn vera_client(endpoints: &OrbisEndpoints) -> Result<VeraClient> {
+    let config = vera_chain_config(endpoints);
     let signer = TxSigner::from_hex_key(TEST_ACCOUNT_HEX_KEY, config.clone())
-        .map_err(|e| anyhow!("failed to create demo SourceHub signer: {}", e))?;
-    SourceHubClient::with_signer(config, signer)
+        .map_err(|e| anyhow!("failed to create demo Vera signer: {}", e))?;
+    VeraClient::with_signer(config, signer)
         .await
-        .map_err(|e| anyhow!("failed to create signed SourceHub client: {}", e))
+        .map_err(|e| anyhow!("failed to create signed Vera client: {}", e))
 }
 
 pub fn compliance_dev_env() -> Vec<(&'static str, String)> {
@@ -227,9 +227,9 @@ mod tests {
     fn runtime_endpoints_are_typed_and_complete() {
         let endpoints = OrbisEndpoints::from_json(
             r#"{
-                "sourcehub_rpc": "http://127.0.0.1:30001",
-                "sourcehub_rest": "http://127.0.0.1:30002",
-                "sourcehub_grpc": "http://127.0.0.1:30003",
+                "vera_rpc": "http://127.0.0.1:30001",
+                "vera_rest": "http://127.0.0.1:30002",
+                "vera_grpc": "http://127.0.0.1:30003",
                 "node1": "http://127.0.0.1:30004",
                 "node2": "http://127.0.0.1:30005",
                 "node3": "http://127.0.0.1:30006"
@@ -239,11 +239,11 @@ mod tests {
 
         assert_eq!(endpoints.node1(), "http://127.0.0.1:30004");
         assert_eq!(
-            endpoints.sourcehub_env(),
+            endpoints.vera_env(),
             [
-                ("ORBIS_SOURCEHUB_RPC", "http://127.0.0.1:30001"),
-                ("ORBIS_SOURCEHUB_REST", "http://127.0.0.1:30002"),
-                ("ORBIS_SOURCEHUB_GRPC", "http://127.0.0.1:30003"),
+                ("ORBIS_VERA_RPC", "http://127.0.0.1:30001"),
+                ("ORBIS_VERA_REST", "http://127.0.0.1:30002"),
+                ("ORBIS_VERA_GRPC", "http://127.0.0.1:30003"),
             ]
         );
         assert_eq!(
@@ -260,9 +260,9 @@ mod tests {
     fn runtime_endpoints_reject_missing_schemes() {
         let error = OrbisEndpoints::from_json(
             r#"{
-                "sourcehub_rpc": "127.0.0.1:30001",
-                "sourcehub_rest": "http://127.0.0.1:30002",
-                "sourcehub_grpc": "http://127.0.0.1:30003",
+                "vera_rpc": "127.0.0.1:30001",
+                "vera_rest": "http://127.0.0.1:30002",
+                "vera_grpc": "http://127.0.0.1:30003",
                 "node1": "http://127.0.0.1:30004",
                 "node2": "http://127.0.0.1:30005",
                 "node3": "http://127.0.0.1:30006"
@@ -270,7 +270,7 @@ mod tests {
         )
         .expect_err("endpoint without a scheme must fail");
 
-        assert!(error.to_string().contains("sourcehub_rpc"));
+        assert!(error.to_string().contains("vera_rpc"));
     }
 
     #[test]

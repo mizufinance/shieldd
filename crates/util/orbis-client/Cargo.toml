@@ -12,11 +12,12 @@ anyhow = { workspace = true }
 decaf377 = { workspace = true, default-features = true }
 hex = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
-
-orbis-authn = { package = "authn", git = "https://github.com/sourcenetwork/orbis-rs", rev = "b5d229aaadef4c0127203c2fccafb6771f38eaca" }
-orbis-common = { package = "common", git = "https://github.com/sourcenetwork/orbis-rs", rev = "b5d229aaadef4c0127203c2fccafb6771f38eaca" }
-orbis-proto = { package = "proto", git = "https://github.com/sourcenetwork/orbis-rs", rev = "b5d229aaadef4c0127203c2fccafb6771f38eaca" }
-orbis-tonic = { package = "tonic", version = "0.14.5", features = ["transport"] }
-
-[dev-dependencies]
+serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
+cosmrs = "0.22"
+orbis-prost = { package = "prost", version = "0.14.1" }
+
+orbis-authn = { package = "authn", git = "https://github.com/sourcenetwork/orbis-rs", rev = "1249ba8bf14c05a4b8086f239623ce98206076ea" }
+orbis-common = { package = "common", git = "https://github.com/sourcenetwork/orbis-rs", rev = "1249ba8bf14c05a4b8086f239623ce98206076ea" }
+orbis-proto = { package = "proto", git = "https://github.com/sourcenetwork/orbis-rs", rev = "1249ba8bf14c05a4b8086f239623ce98206076ea" }
+orbis-tonic = { package = "tonic", version = "0.14.5", features = ["transport"] }
