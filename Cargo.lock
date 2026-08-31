@@ -5480,12 +5480,10 @@ dependencies = [
  "authn",
  "clap",
  "common",
- "decaf377",
  "hex",
  "serde",
  "serde_json",
  "shieldd-orbis-client",
- "shieldd-sdk-compliance",
  "shieldd-sdk-keys",
  "tokio",
 ]

@@ -10,130 +10,52 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # The currently disabled flow remains one conclusive required check. When a
-  # safe PRE protocol enables it, preparation and execution share this checkout.
-  summary:
-    name: Orbis Integration Summary
+  contract:
+    name: Orbis/Vera Contract
     runs-on: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 'blacksmith-16vcpu-ubuntu-2404' || 'ubuntu-24.04' }}
-    timeout-minutes: 90
-    concurrency:
-      group: orbis-integration-host-stack-v1
-      cancel-in-progress: true
-    env:
-      COMPLIANCE_TMP: /tmp/orbis-${{ github.run_id }}-${{ github.run_attempt }}
-      SHIELDD_PD_GRPC_PORT: "28080"
-      SHIELDD_COMETBFT_RPC_PORT: "27657"
-      SHIELDD_COMETBFT_P2P_PORT: "27656"
-      SHIELDD_PCLIENTD_PORT_BASE: "28081"
-      ORBIS_COMPOSE_PROJECT_NAME: orbis-${{ github.run_id }}-${{ github.run_attempt }}
+    timeout-minutes: 45
     steps:
       - name: Checkout Shieldd
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           path: shieldd
-          fetch-depth: 0
-
-      # Orbis v0 transfer PRE discloses the DH point that opens every tier
-      # seed. Keep the gate visible and green as an explained skip.
-      - name: Explain disabled Orbis v0 PRE
-        id: classify
-        working-directory: shieldd
-        run: |
-          echo "status=skip" >> "$GITHUB_OUTPUT"
-          echo "tier=skip" >> "$GITHUB_OUTPUT"
-          echo "run=false" >> "$GITHUB_OUTPUT"
-          echo "explanation=Orbis v0 transfer PRE is disabled until a non-disclosing protocol is available." >> "$GITHUB_OUTPUT"
 
       - name: Set up Nix and Rust
-        id: setup
-        if: steps.classify.outputs.run == 'true'
         uses: ./shieldd/.github/actions/setup-nix-rust
         with:
           free-disk: "true"
           nix-cache-glob: "shieldd/**/*.nix"
           rust-workspaces: "shieldd"
 
-      - name: Clean stale owned Orbis integration resources
-        id: preclean
-        if: steps.classify.outputs.run == 'true'
-        working-directory: shieldd
-        run: nix develop --command ./scripts/orbis-ci-cleanup.sh
-
-      - name: Run Shieldd Orbis integration flow
-        id: flow
-        if: steps.classify.outputs.run == 'true'
+      - name: Test Orbis/Vera integration contracts
         working-directory: shieldd
         run: |
-          nix develop --command python3 scripts/ci/run_with_annotation.py \
-            --title "Shieldd Orbis integration flow" \
-            -- bash -euo pipefail -c '
-            pull_pid=""
-            cleanup() {
-              if [ -n "$pull_pid" ] && kill -0 "$pull_pid" 2>/dev/null; then
-                kill "$pull_pid" 2>/dev/null || true
-                wait "$pull_pid" 2>/dev/null || true
-              fi
-              ./scripts/orbis-stack.sh down || true
-              ./scripts/shieldd-down.sh || true
-            }
-            trap cleanup EXIT
+          nix develop --command cargo test --locked \
+            -p shieldd-orbis-client \
+            -p orbis-audit \
+            -p orbis-integration
+          nix develop --command cargo test --locked \
+            -p shieldd-sdk-compliance \
+            --features poc-orbis-v0
 
-            ./scripts/orbis-stack.sh pull &
-            pull_pid=$!
-            just orbis-integration-build
-            wait "$pull_pid"
-            pull_pid=""
-            just orbis-integration-run
+      - name: Validate pinned Orbis/Vera runtime
+        working-directory: shieldd
+        run: |
+          nix develop --command bash -euo pipefail -c '
+            source scripts/lib/common.sh
+            ensure_orbis_images
+            run_orbis_compose deployments/orbis/docker-compose.yml \
+              config >/dev/null
           '
 
-      - name: Clean owned integration resources
-        id: cleanup
-        if: always() && steps.classify.outputs.run == 'true'
+      - name: Smoke test pinned Orbis/Vera runtime
         working-directory: shieldd
         run: |
-          cleanup_status=0
-          nix develop --command ./scripts/orbis-stack.sh down || cleanup_status=$?
-          nix develop --command ./scripts/shieldd-down.sh || cleanup_status=$?
-          exit "$cleanup_status"
+          nix develop --command cargo build --release --locked -p orbis-integration
+          nix develop --command ./scripts/orbis-stack.sh up
+          nix develop --command just orbis-integration-setup-ring /tmp/orbis-state.json
 
-      - name: Upload integration artifacts
-        if: failure() && steps.classify.outputs.run == 'true'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: orbis-integration-artifacts
-          path: ${{ env.COMPLIANCE_TMP }}/**
-
-      - name: Check Orbis integration result
+      - name: Stop Orbis/Vera runtime
         if: always()
-        env:
-          STATUS: ${{ steps.classify.outputs.status }}
-          TIER: ${{ steps.classify.outputs.tier }}
-          EXPLANATION: ${{ steps.classify.outputs.explanation }}
-          CLASSIFY_RESULT: ${{ steps.classify.outcome }}
-          SETUP_RESULT: ${{ steps.setup.outcome }}
-          PRECLEAN_RESULT: ${{ steps.preclean.outcome }}
-          FLOW_RESULT: ${{ steps.flow.outcome }}
-          CLEANUP_RESULT: ${{ steps.cleanup.outcome }}
-        run: |
-          set -euo pipefail
-          if [[ "$CLASSIFY_RESULT" != "success" ]]; then
-            echo "applicability classification failed: $CLASSIFY_RESULT" >&2
-            exit 1
-          fi
-          if [[ "$STATUS" == "skip" ]]; then
-            if [[ "$SETUP_RESULT" != "skipped" || "$PRECLEAN_RESULT" != "skipped" || "$FLOW_RESULT" != "skipped" ]]; then
-              echo "skip tier unexpectedly ran Orbis work" >&2
-              exit 1
-            fi
-            echo "explained skip: $EXPLANATION"
-            exit 0
-          fi
-          if [[ "$STATUS" != "run" || "$TIER" != "full" ]]; then
-            echo "invalid applicability result: status=$STATUS tier=$TIER" >&2
-            exit 1
-          fi
-          if [[ "$SETUP_RESULT" != "success" || "$PRECLEAN_RESULT" != "success" || "$FLOW_RESULT" != "success" || "$CLEANUP_RESULT" != "success" ]]; then
-            echo "required Orbis contract failed: setup=$SETUP_RESULT preclean=$PRECLEAN_RESULT flow=$FLOW_RESULT cleanup=$CLEANUP_RESULT" >&2
-            exit 1
-          fi
-          echo "Orbis tier $TIER passed"
+        working-directory: shieldd
+        run: nix develop --command ./scripts/orbis-stack.sh down

@@ -425,8 +425,9 @@ orbis_pinned_rev_from_cargo() {
     printf '%s' "$revs"
 }
 
-# Load the digest-pinned integration images and verify that the Orbis image's
-# source revision matches all three Cargo git dependencies.
+# Load the pinned integration runtime and verify that the Orbis image's source
+# revision matches all three Cargo git dependencies. Vera is built locally from
+# its pinned source revision because there is no matching published image.
 ensure_orbis_images() {
     local lock_file="$COMPLIANCE_REPO_ROOT/deployments/orbis/images.lock.json"
     if [ ! -f "$lock_file" ]; then
@@ -442,7 +443,7 @@ ensure_orbis_images() {
         and (.orbis.source_revision | strings | test("^[0-9a-f]{40}$"))
         and (.orbis.crypto | strings | length > 0)
         and (.orbis.image | strings | test("^ghcr\\.io/sourcenetwork/orbis-rs@sha256:[0-9a-f]{64}$"))
-        and (.sourcehub.image | strings | test("^ghcr\\.io/sourcenetwork/sourcehub@sha256:[0-9a-f]{64}$"))
+        and (.vera.source_revision | strings | test("^[0-9a-f]{40}$"))
     ' "$lock_file" >/dev/null; then
         log_error "Invalid Orbis image lock: $lock_file"
         return 1
@@ -457,14 +458,14 @@ ensure_orbis_images() {
     fi
 
     if [ "${CI:-}" = "true" ] \
-        && { [ "${ORBIS_IMAGE+x}" = "x" ] || [ "${SOURCEHUB_IMAGE+x}" = "x" ]; }; then
-        log_error "CI may not override digest-pinned Orbis integration images"
+        && { [ "${ORBIS_IMAGE+x}" = "x" ] || [ "${VERA_IMAGE+x}" = "x" ] || [ "${VERA_REF+x}" = "x" ]; }; then
+        log_error "CI may not override the pinned Orbis/Vera integration runtime"
         return 1
     fi
 
     export ORBIS_IMAGE="${ORBIS_IMAGE:-$(jq -r '.orbis.image' "$lock_file")}"
-    export SOURCEHUB_IMAGE="${SOURCEHUB_IMAGE:-$(jq -r '.sourcehub.image' "$lock_file")}"
-    export SOURCEHUB_PLATFORM="${SOURCEHUB_PLATFORM:-linux/amd64}"
+    export VERA_REF="${VERA_REF:-$(jq -r '.vera.source_revision' "$lock_file")}"
+    export VERA_IMAGE="${VERA_IMAGE:-shieldd-vera:local}"
 }
 
 orbis_compose_project_name() {
@@ -510,9 +511,9 @@ write_orbis_runtime_config() {
     local node1_port node2_port node3_port
     local runtime_tmp
 
-    vera_rpc_port="$(orbis_published_port "$compose_file" sourcehub 26657)" || return 1
-    vera_rest_port="$(orbis_published_port "$compose_file" sourcehub 1317)" || return 1
-    vera_grpc_port="$(orbis_published_port "$compose_file" sourcehub 9090)" || return 1
+    vera_rpc_port="$(orbis_published_port "$compose_file" vera 26657)" || return 1
+    vera_rest_port="$(orbis_published_port "$compose_file" vera 1317)" || return 1
+    vera_grpc_port="$(orbis_published_port "$compose_file" vera 9090)" || return 1
     node1_port="$(orbis_published_port "$compose_file" node1 50051)" || return 1
     node2_port="$(orbis_published_port "$compose_file" node2 50051)" || return 1
     node3_port="$(orbis_published_port "$compose_file" node3 50051)" || return 1

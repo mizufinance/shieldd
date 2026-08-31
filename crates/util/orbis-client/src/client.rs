@@ -93,13 +93,39 @@ async fn run_vera_batch_tx(
     if messages.is_empty() {
         return Ok(());
     }
+
+    // Vera transactions are atomic. A duplicate in a mixed batch rolls back
+    // every new message in that transaction, so accepting the batch-level
+    // "already exists" error would silently drop the new writes. Isolate a
+    // duplicate-bearing batch until an idempotent error applies to one message
+    // only; duplicate-free subsets still retain the batching fast path.
+    let mut pending = vec![messages];
+    while let Some(mut batch) = pending.pop() {
+        match broadcast_vera_batch(client, action, &batch).await {
+            Ok(()) => {}
+            Err(error) if accepts_log(&error.to_string()) => {
+                let _ = client.resync_nonce().await;
+                if batch.len() == 1 {
+                    continue;
+                }
+                let right = batch.split_off(batch.len() / 2);
+                pending.push(right);
+                pending.push(batch);
+            }
+            Err(error) => return Err(error),
+        }
+    }
+    Ok(())
+}
+
+async fn broadcast_vera_batch(client: &VeraClient, action: &str, messages: &[Any]) -> Result<()> {
     let mut attempt = 0u32;
     loop {
         match client
-            .broadcast_proto_msgs_with_gas(messages.clone(), client.config().gas_multiplier)
+            .broadcast_proto_msgs_with_gas(messages.to_vec(), client.config().gas_multiplier)
             .await
         {
-            Ok(result) if result.code == 0 || accepts_log(&result.log) => return Ok(()),
+            Ok(result) if result.code == 0 => return Ok(()),
             Ok(result) => {
                 if attempt < VERA_TX_MAX_RETRIES && is_transient_vera_tx_error(&result.log) {
                     retry_vera_tx_after_nonce_resync(client, &mut attempt).await;
@@ -113,9 +139,6 @@ async fn run_vera_batch_tx(
             }
             Err(error) => {
                 let message = error.to_string();
-                if accepts_log(&message) {
-                    return Ok(());
-                }
                 if attempt < VERA_TX_MAX_RETRIES && is_transient_vera_tx_error(&message) {
                     retry_vera_tx_after_nonce_resync(client, &mut attempt).await;
                     continue;

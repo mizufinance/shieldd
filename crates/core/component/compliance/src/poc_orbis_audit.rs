@@ -418,9 +418,14 @@ pub fn decrypt_reencrypted_seed(
     let shared_point = *xnc_cmt - effective_pk * *reader_sk;
     let key = derive_key_from_point(&shared_point)?;
     let cipher = Aes256Gcm::new(&key.into());
+    let nonce: [u8; 12] = secret
+        .nonce
+        .as_slice()
+        .try_into()
+        .map_err(|_| anyhow!("Orbis re-encrypted seed nonce must be 12 bytes"))?;
     let plaintext = cipher
         .decrypt(
-            Nonce::from_slice(&secret.nonce),
+            Nonce::from_slice(&nonce),
             Payload {
                 msg: &secret.encrypted_data,
                 aad: &build_aad(&secret.enc_cmt, &shared_point.vartime_compress().0),
@@ -512,6 +517,14 @@ mod tests {
     #[test]
     fn package_binds_the_transfer_seed_without_serializing_it() {
         let package = package(None);
+        assert_eq!(
+            hex::encode(&package.transfer_epk),
+            "bc5ffbb7f13ea8eeb0f0364910fb6331945996a1d2389d6ac48ded74b3e2a503"
+        );
+        assert_eq!(
+            hex::encode(&package.transfer_seed_binding),
+            "888b78b7406ed3064191e25970e26bde485486b23681db68db710491b1b6b849"
+        );
         let mut stored = PocOrbisStoredAuditPackage::from(&package);
         let seed = Fq::from(99u64);
         validate_decrypted_seed(&stored, seed).expect("transfer binding should validate");
@@ -542,6 +555,21 @@ mod tests {
                 "decryption projection leaked {pre_input_field}"
             );
         }
+    }
+
+    #[test]
+    fn malformed_orbis_nonce_returns_an_error() {
+        let package = PocOrbisStoredAuditPackage::from(&package(None));
+        let secret = PocOrbisSecretEnvelope {
+            enc_cmt: vec![0; 32],
+            encrypted_data: vec![],
+            nonce: vec![0; 11],
+        };
+
+        let error =
+            decrypt_reencrypted_seed(&package, &Fr::from(1u64), &Element::GENERATOR, &secret)
+                .expect_err("an invalid nonce length must not panic");
+        assert!(error.to_string().contains("nonce must be 12 bytes"));
     }
 
     #[test]

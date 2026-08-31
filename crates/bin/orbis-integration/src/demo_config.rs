@@ -49,16 +49,6 @@ resources:
         expr: creator
 "#;
 
-pub const DEFAULT_COMPLIANCE_DEV_REGISTRAR_SK_HEX: &str =
-    "0100000000000000000000000000000000000000000000000000000000000000";
-pub const DEFAULT_COMPLIANCE_DEV_REGISTRAR_VK_HEX: &str =
-    "0800000000000000000000000000000000000000000000000000000000000000";
-pub const DEFAULT_COMPLIANCE_DEV_AUTHORITY_SK_HEX: &str =
-    "0200000000000000000000000000000000000000000000000000000000000000";
-pub const DEFAULT_COMPLIANCE_DEV_AUTHORITY_VK_HEX: &str =
-    "b2ecf9b9082d6306538be73b0d6ee741141f3222152da78685d6596efc8c1506";
-pub const DEFAULT_COMPLIANCE_GRANT_VALID_UNTIL_UNIX: &str = "4102444800";
-
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct OrbisEndpoints {
@@ -121,18 +111,6 @@ impl OrbisEndpoints {
     pub fn node_endpoints(&self) -> (String, String, String) {
         (self.node1.clone(), self.node2.clone(), self.node3.clone())
     }
-
-    pub fn node1(&self) -> &str {
-        &self.node1
-    }
-
-    pub fn vera_env(&self) -> [(&'static str, &str); 3] {
-        [
-            ("ORBIS_VERA_RPC", &self.vera_rpc),
-            ("ORBIS_VERA_REST", &self.vera_rest),
-            ("ORBIS_VERA_GRPC", &self.vera_grpc),
-        ]
-    }
 }
 
 fn env_or_default(env_key: &str, default: &str) -> String {
@@ -181,43 +159,6 @@ pub async fn vera_client(endpoints: &OrbisEndpoints) -> Result<VeraClient> {
         .map_err(|e| anyhow!("failed to create signed Vera client: {}", e))
 }
 
-pub fn compliance_dev_env() -> Vec<(&'static str, String)> {
-    vec![
-        (
-            "COMPLIANCE_DEV_REGISTRAR_SK_HEX",
-            process_env_or_default(
-                "COMPLIANCE_DEV_REGISTRAR_SK_HEX",
-                DEFAULT_COMPLIANCE_DEV_REGISTRAR_SK_HEX,
-            ),
-        ),
-        (
-            "COMPLIANCE_DEV_REGISTRAR_VK_HEX",
-            process_env_or_default(
-                "COMPLIANCE_DEV_REGISTRAR_VK_HEX",
-                DEFAULT_COMPLIANCE_DEV_REGISTRAR_VK_HEX,
-            ),
-        ),
-        (
-            "COMPLIANCE_DEV_AUTHORITY_SK_HEX",
-            process_env_or_default(
-                "COMPLIANCE_DEV_AUTHORITY_SK_HEX",
-                DEFAULT_COMPLIANCE_DEV_AUTHORITY_SK_HEX,
-            ),
-        ),
-        (
-            "COMPLIANCE_DEV_AUTHORITY_VK_HEX",
-            process_env_or_default(
-                "COMPLIANCE_DEV_AUTHORITY_VK_HEX",
-                DEFAULT_COMPLIANCE_DEV_AUTHORITY_VK_HEX,
-            ),
-        ),
-    ]
-}
-
-pub fn process_env_or_default(key: &str, default: &str) -> String {
-    env_or_default(key, default)
-}
-
 #[cfg(test)]
 mod tests {
     use super::{node_dial_host, OrbisEndpoints};
@@ -237,15 +178,10 @@ mod tests {
         )
         .expect("valid runtime endpoints");
 
-        assert_eq!(endpoints.node1(), "http://127.0.0.1:30004");
-        assert_eq!(
-            endpoints.vera_env(),
-            [
-                ("ORBIS_VERA_RPC", "http://127.0.0.1:30001"),
-                ("ORBIS_VERA_REST", "http://127.0.0.1:30002"),
-                ("ORBIS_VERA_GRPC", "http://127.0.0.1:30003"),
-            ]
-        );
+        assert_eq!(endpoints.vera_rpc, "http://127.0.0.1:30001");
+        assert_eq!(endpoints.vera_rest, "http://127.0.0.1:30002");
+        assert_eq!(endpoints.vera_grpc, "http://127.0.0.1:30003");
+        assert_eq!(endpoints.node1, "http://127.0.0.1:30004");
         assert_eq!(
             endpoints.node_endpoints(),
             (

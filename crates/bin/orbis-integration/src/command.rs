@@ -3,21 +3,9 @@ use std::{
     process::{Command, Stdio},
 };
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result};
 
 const REDACTED: &str = "<redacted>";
-
-pub fn run_command(command: &mut Command) -> Result<()> {
-    let description = describe_command(command);
-    let status = command
-        .status()
-        .with_context(|| format!("failed to run {description}"))?;
-    if status.success() {
-        Ok(())
-    } else {
-        bail!("command failed with status {status}: {description}")
-    }
-}
 
 pub fn command_output(command: &mut Command) -> Result<std::process::Output> {
     let description = describe_command(command);

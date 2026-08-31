@@ -1,12 +1,11 @@
-# Orbis integration stack: prebuilt images (no in-pipeline build).
+# Orbis integration stack: digest-pinned Orbis plus source-pinned Vera.
 #
-# sourcehub + 3 orbis nodes are pulled from GHCR instead of built from a
-# vendored orbis-rs checkout. scripts/lib/common.sh loads digest-pinned images
-# from images.lock.json and verifies the Orbis source revision against the Cargo
-# git dependencies.
+# The three Orbis nodes use a published image whose source revision matches the
+# Cargo dependencies. Vera is built locally from the source revision in
+# images.lock.json because the compatible runtime is not published as an image.
 #
 # The published orbis images are production builds (ENABLE_INTEGRATION_TEST=false)
-# so they do NOT self-fund. orbis-funder funds each node's sourcehub account from
+# so they do NOT self-fund. orbis-funder funds each node's vera account from
 # the dedicated genesis `funder` account (the host flow signs from `test`; they
 # must not share a sequence). Each bootstrap service observes the funded account
 # and transitions in-process to the production gRPC server. `restart: on-failure`
@@ -15,27 +14,31 @@
 # Fixed ORBIS_PASSWORD / ORBIS_SECRET_KEY / node-controller-key values are
 # local-test fixtures only.
 services:
-  sourcehub:
-    image: ${SOURCEHUB_IMAGE:?SOURCEHUB_IMAGE must be loaded from images.lock.json}
-    platform: ${SOURCEHUB_PLATFORM:-linux/amd64}
+  vera:
+    image: ${VERA_IMAGE:?VERA_IMAGE must be loaded from images.lock.json}
+    build:
+      context: ../..
+      dockerfile: deployments/orbis/vera.Dockerfile
+      args:
+        VERA_REF: ${VERA_REF:?VERA_REF must be loaded from images.lock.json}
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
         set -e
-        if [ ! -f /home/node/.sourcehub/config/config.toml ]; then
-          sourcehubd init local-node --chain-id sourcehub-localnet --home /home/node/.sourcehub
-          sourcehubd keys add validator --keyring-backend test --home /home/node/.sourcehub
-          echo "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about" | sourcehubd keys add test --recover --keyring-backend test --home /home/node/.sourcehub
-          echo "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art" | sourcehubd keys add funder --recover --keyring-backend test --home /home/node/.sourcehub
-          sourcehubd genesis add-genesis-account validator 100000000000uopen --keyring-backend test --home /home/node/.sourcehub
-          sourcehubd genesis add-genesis-account test 100000000000uopen --keyring-backend test --home /home/node/.sourcehub
-          sourcehubd genesis add-genesis-account funder 100000000000uopen --keyring-backend test --home /home/node/.sourcehub
-          sourcehubd genesis gentx validator 10000000000uopen --keyring-backend test --chain-id sourcehub-localnet --home /home/node/.sourcehub
-          sourcehubd genesis collect-gentxs --home /home/node/.sourcehub
+        if [ ! -f /home/node/.vera/config/config.toml ]; then
+          verad init local-node --chain-id vera-localnet --home /home/node/.vera
+          verad keys add validator --keyring-backend test --home /home/node/.vera
+          echo "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about" | verad keys add test --recover --keyring-backend test --home /home/node/.vera
+          echo "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art" | verad keys add funder --recover --keyring-backend test --home /home/node/.vera
+          verad genesis add-genesis-account validator 100000000000uopen --keyring-backend test --home /home/node/.vera
+          verad genesis add-genesis-account test 100000000000uopen --keyring-backend test --home /home/node/.vera
+          verad genesis add-genesis-account funder 100000000000uopen --keyring-backend test --home /home/node/.vera
+          verad genesis gentx validator 10000000000uopen --keyring-backend test --chain-id vera-localnet --home /home/node/.vera
+          verad genesis collect-gentxs --home /home/node/.vera
         fi
-        exec sourcehubd start --home /home/node/.sourcehub --rpc.laddr tcp://0.0.0.0:26657 --api.enable --api.address tcp://0.0.0.0:1317
+        exec verad start --home /home/node/.vera --rpc.laddr tcp://0.0.0.0:26657 --api.enable --api.address tcp://0.0.0.0:1317
     volumes:
-      - sourcehub-data:/home/node/.sourcehub
+      - vera-data:/home/node/.vera
     ports:
       - target: 26657
         published: "29000-29099"
@@ -52,7 +55,7 @@ services:
     networks:
       - orbis-integration-network
     healthcheck:
-      test: ["CMD", "sourcehubd", "status", "--home", "/home/node/.sourcehub"]
+      test: ["CMD", "verad", "status", "--home", "/home/node/.vera"]
       interval: 5s
       timeout: 5s
       retries: 30
@@ -64,7 +67,7 @@ services:
       - ORBIS_PASSWORD=testpassword123
       - ORBIS_SECRET_KEY=testsecret1testsecret1
       - RUST_LOG=debug
-    command: ["--addr", "0.0.0.0:50051", "--log-level", "debug", "--authz-grpc", "http://sourcehub:9090", "--bulletin-grpc", "http://sourcehub:9090", "--chain-rpc", "http://sourcehub:26657", "--chain-rest", "http://sourcehub:1317", "--metrics-addr", "0.0.0.0:9090", "--reshare-interval-secs", "5", "--node-controller-key", "${ORBIS_NODE_CONTROLLER_KEY:-024f4e2ad99c34d60b9ba6283c9431a8418af8673212961f97a77b6377fcd05b62}"]
+    command: ["--addr", "0.0.0.0:50051", "--log-level", "debug", "--authz-grpc", "http://vera:9090", "--bulletin-grpc", "http://vera:9090", "--chain-rpc", "http://vera:26657", "--chain-rest", "http://vera:1317", "--chain-id", "vera-localnet", "--denom", "uopen", "--metrics-addr", "0.0.0.0:9090", "--reshare-interval-secs", "5", "--node-controller-key", "${ORBIS_NODE_CONTROLLER_KEY:-024f4e2ad99c34d60b9ba6283c9431a8418af8673212961f97a77b6377fcd05b62}"]
     # The node exposes a bootstrap info service while unfunded, then transitions
     # to the production server after orbis-funder funds its persisted account.
     restart: on-failure
@@ -78,7 +81,7 @@ services:
     networks:
       - orbis-integration-network
     depends_on:
-      sourcehub:
+      vera:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "nc -z localhost 50051 || exit 1"]
@@ -93,7 +96,7 @@ services:
       - ORBIS_PASSWORD=testpassword123
       - ORBIS_SECRET_KEY=testsecret2testsecret2
       - RUST_LOG=debug
-    command: ["--addr", "0.0.0.0:50051", "--log-level", "debug", "--authz-grpc", "http://sourcehub:9090", "--bulletin-grpc", "http://sourcehub:9090", "--chain-rpc", "http://sourcehub:26657", "--chain-rest", "http://sourcehub:1317", "--metrics-addr", "0.0.0.0:9090", "--reshare-interval-secs", "5", "--node-controller-key", "${ORBIS_NODE_CONTROLLER_KEY:-024f4e2ad99c34d60b9ba6283c9431a8418af8673212961f97a77b6377fcd05b62}"]
+    command: ["--addr", "0.0.0.0:50051", "--log-level", "debug", "--authz-grpc", "http://vera:9090", "--bulletin-grpc", "http://vera:9090", "--chain-rpc", "http://vera:26657", "--chain-rest", "http://vera:1317", "--chain-id", "vera-localnet", "--denom", "uopen", "--metrics-addr", "0.0.0.0:9090", "--reshare-interval-secs", "5", "--node-controller-key", "${ORBIS_NODE_CONTROLLER_KEY:-024f4e2ad99c34d60b9ba6283c9431a8418af8673212961f97a77b6377fcd05b62}"]
     restart: on-failure
     volumes:
       - orbis-node2-data:/data
@@ -105,7 +108,7 @@ services:
     networks:
       - orbis-integration-network
     depends_on:
-      sourcehub:
+      vera:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "nc -z localhost 50051 || exit 1"]
@@ -120,7 +123,7 @@ services:
       - ORBIS_PASSWORD=testpassword123
       - ORBIS_SECRET_KEY=testsecret3testsecret3
       - RUST_LOG=debug
-    command: ["--addr", "0.0.0.0:50051", "--log-level", "debug", "--authz-grpc", "http://sourcehub:9090", "--bulletin-grpc", "http://sourcehub:9090", "--chain-rpc", "http://sourcehub:26657", "--chain-rest", "http://sourcehub:1317", "--metrics-addr", "0.0.0.0:9090", "--reshare-interval-secs", "5", "--node-controller-key", "${ORBIS_NODE_CONTROLLER_KEY:-024f4e2ad99c34d60b9ba6283c9431a8418af8673212961f97a77b6377fcd05b62}"]
+    command: ["--addr", "0.0.0.0:50051", "--log-level", "debug", "--authz-grpc", "http://vera:9090", "--bulletin-grpc", "http://vera:9090", "--chain-rpc", "http://vera:26657", "--chain-rest", "http://vera:1317", "--chain-id", "vera-localnet", "--denom", "uopen", "--metrics-addr", "0.0.0.0:9090", "--reshare-interval-secs", "5", "--node-controller-key", "${ORBIS_NODE_CONTROLLER_KEY:-024f4e2ad99c34d60b9ba6283c9431a8418af8673212961f97a77b6377fcd05b62}"]
     restart: on-failure
     volumes:
       - orbis-node3-data:/data
@@ -132,7 +135,7 @@ services:
     networks:
       - orbis-integration-network
     depends_on:
-      sourcehub:
+      vera:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "nc -z localhost 50051 || exit 1"]
@@ -141,7 +144,7 @@ services:
       retries: 30
       start_period: 30s
 
-  # Funds each orbis node's sourcehub account from the dedicated genesis
+  # Funds each orbis node's vera account from the dedicated genesis
   # `funder` account. It must NOT share an account with the host-side
   # orbis-integration flow (which signs ring/policy txs from `test`): two
   # independent signers on one Cosmos account race the sequence, and the loser
@@ -151,15 +154,14 @@ services:
   # listeners respond. The launcher separately waits for the pinned images'
   # production-ready signal before exposing endpoints to the host flow.
   orbis-funder:
-    image: ${SOURCEHUB_IMAGE:?SOURCEHUB_IMAGE must be loaded from images.lock.json}
-    platform: ${SOURCEHUB_PLATFORM:-linux/amd64}
+    image: ${VERA_IMAGE:?VERA_IMAGE must be loaded from images.lock.json}
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
         set -e
         H=/tmp/funder
         echo "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art" \
-          | sourcehubd keys add funder --recover --keyring-backend test --home "$$H"
+          | verad keys add funder --recover --keyring-backend test --home "$$H"
         for d in /n1 /n2 /n3; do
           i=0
           while [ ! -s "$$d/public_key.txt" ]; do
@@ -168,9 +170,9 @@ services:
           done
         done
         n=0
-        until sourcehubd query block --type=height 1 --node tcp://sourcehub:26657 >/dev/null 2>&1; do
+        until verad query block --type=height 1 --node tcp://vera:26657 >/dev/null 2>&1; do
           n=$$((n+1)); [ "$$n" -gt 120 ] && { echo "timeout waiting for first block"; exit 1; }
-          echo "waiting for sourcehub first block"; sleep 2
+          echo "waiting for vera first block"; sleep 2
         done
         # Fund all three nodes in ONE bank multi-send so there is a single tx
         # from the funder account (three separate sends raced their own
@@ -184,9 +186,9 @@ services:
           addrs="$$addrs $$a"
         done
         n=0
-        until out=$$(sourcehubd tx bank multi-send funder $$addrs 1000000000uopen \
-              --keyring-backend test --home "$$H" --chain-id sourcehub-localnet \
-              --node tcp://sourcehub:26657 --fees 2000uopen --yes -o json 2>&1) \
+        until out=$$(verad tx bank multi-send funder $$addrs 1000000000uopen \
+              --keyring-backend test --home "$$H" --chain-id vera-localnet \
+              --node tcp://vera:26657 --fees 2000uopen --yes -o json 2>&1) \
               && echo "$$out" | grep -q '"code":0'; do
           n=$$((n+1)); [ "$$n" -gt 60 ] && { echo "failed to fund orbis nodes: $$out"; exit 1; }
           echo "retry funding orbis nodes ($$n): $$out"; sleep 3
@@ -196,7 +198,7 @@ services:
         for d in /n1 /n2 /n3; do
           a=$$(cat "$$d/public_key.txt")
           n=0
-          until sourcehubd query bank balances "$$a" --node tcp://sourcehub:26657 -o json 2>/dev/null | grep -q uopen; do
+          until verad query bank balances "$$a" --node tcp://vera:26657 -o json 2>/dev/null | grep -q uopen; do
             n=$$((n+1)); [ "$$n" -gt 60 ] && { echo "timeout waiting for $$a balance"; exit 1; }
             echo "waiting for $$a balance"; sleep 2
           done
@@ -218,7 +220,7 @@ services:
     networks:
       - orbis-integration-network
     depends_on:
-      sourcehub:
+      vera:
         condition: service_healthy
 
 networks:
@@ -226,7 +228,7 @@ networks:
     driver: bridge
 
 volumes:
-  sourcehub-data: {}
+  vera-data: {}
   orbis-node1-data: {}
   orbis-node2-data: {}
   orbis-node3-data: {}
