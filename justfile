@@ -136,7 +136,7 @@ gnark-proof-tests: gnark-proof-tests-fast
 # CI wrapper for `check`.
 ci-check:
     if command -v nix >/dev/null 2>&1; then \
-      nix develop --command just check; \
+      nix develop .#ci --command just check; \
     else \
       just check; \
     fi
@@ -169,7 +169,7 @@ ci-gnark-proof-tests:
 # Run the Rust and gnark CI surfaces locally, using the same commands as GitHub Actions.
 ci-preflight:
     if command -v nix >/dev/null 2>&1; then \
-      nix develop --command ./deployments/scripts/check-crate-feature-sets; \
+      nix develop .#ci --command ./deployments/scripts/check-crate-feature-sets; \
     elif command -v cargo-hack >/dev/null 2>&1; then \
       ./deployments/scripts/check-crate-feature-sets; \
     else \
@@ -177,7 +177,7 @@ ci-preflight:
       cargo check --workspace --all-targets --all-features --release; \
     fi
     if command -v nix >/dev/null 2>&1; then \
-      nix develop --command ./deployments/scripts/check-wasm-compat.sh; \
+      nix develop .#ci --command ./deployments/scripts/check-wasm-compat.sh; \
     else \
       ./deployments/scripts/check-wasm-compat.sh; \
     fi

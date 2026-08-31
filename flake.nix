@@ -90,6 +90,22 @@
             toml-cli
           ];
 
+          # Keep Rust-only CI independent from standalone node and observability
+          # tooling. In particular, evaluating this shell must not build CometBFT.
+          rustCiPackages = [
+            openssl
+            cargo-hack
+            cargo-nextest
+            cargo-release
+            dbus
+            just
+            libusb1
+            protobuf
+            python3
+            ripgrep
+            toml-cli
+          ];
+
           # Native and system dependencies needed to build the Rust workspace in dev shells.
           shellBuildInputs = if stdenv.hostPlatform.isDarwin then
             with pkgs.darwin.apple_sdk.frameworks; [
@@ -219,6 +235,17 @@
             paths = [ packages.shieldd cometbft ];
           };
           devShells = {
+            ci =
+              let
+                rustToolchain = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
+                craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
+              in
+              craneLib.devShell {
+                inherit LIBCLANG_PATH ROCKSDB_LIB_DIR;
+                packages = rustCiPackages ++ shellBuildInputs;
+                shellHook = commonShellHook;
+              };
+
             default =
               let
                 rustToolchain = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
