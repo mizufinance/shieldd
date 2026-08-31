@@ -13,10 +13,10 @@ baseline analysis remains in [`tree-performance.md`](tree-performance.md).
 
 | Area | Decision | Evidence | Remaining gate |
 | --- | --- | --- | --- |
-| Nullifier | Batch updates make sense. Use proposal-ordered leaf planning, a dirty-path union, thresholded level parallelism, and a current-generation ordered cache derived from durable leaves. | Exact serialized delta, roots, membership and non-membership paths, rejected-batch atomicity, commit, and reload parity. The best 10k prototypes were 23–46x faster end to end. | A 10k-prefill run reached 9.47k/s including commit, 5.3% below the 10k/s headroom gate. Prove a retained cache on larger generations, rollover, and production disks before changing runtime code. |
+| Nullifier | Batch updates make sense. Stage successful block nullifiers and materialize one proposal-ordered dirty-path union at `EndBlock`. Use a bounded adaptive ordered scan or point reads, then thresholded level parallelism. | Exact serialized delta, roots, membership and non-membership paths, rejected-batch atomicity, commit, and reload parity. The best 10k prototypes were 23–46x faster end to end. | The production large batch currently exists only in `PrepareProposal`; `ProcessProposal` and delivery still insert per transaction. A 10k-prefill run reached 9.47k/s including commit. Prove the full lifecycle, 100k+ prefill, rollover, and production disks. |
 | Validator TCT | Proceed with a production design for parallel `Forget` block construction and direct finalized-block insertion. | Exact block/global root, position, incremental `Tree::updates` bytes, and in-memory persistence reload parity. A 1k block was 3.40x faster including root construction and insertion. | Exercise multiple blocks, epoch boundaries, app position/event integration, and the production persistence adapter. |
 | Wallet TCT | Keep the current relevant-block builder. | The spike reproduced exact eight-level block siblings for selected `Keep` positions, but did not construct the retained full-tree witness/index state needed for later updates. | A selective `Finalized` builder must prove full proof bytes, forgetting, later-block updates, reload, memory, and phone latency. |
-| Compliance view | Implement the no-event fast path first. Design a transactional dirty overlay and local asset validation next. Do not add structural sharing yet. | At 100 updates the user overlay was 4.45x faster on four threads. The asset prototype was 534x faster than checked per-insert full validation. | Run real compact-block events through SQLite/Cnidarium, corruption checks, restart, and large registries. C4 is still conditional. |
+| Compliance view | Make compliance projection and wallet block advancement one SQLite transaction, publish both trees as one immutable snapshot, and include a no-event tree fast path. Do not add structural sharing yet. | At 100 updates the user overlay was 4.45x faster on four threads. The asset prototype was 534x faster than checked per-insert full validation. | The current standalone compliance commit can advance the trees before later wallet scanning fails, and paired locks are acquired in opposite order by the worker and proof RPC. Prove failure retry, lock safety, corruption rejection, restart, and large registries. |
 | Poseidon | Keep the scalar pinned functions and parallelize independent calls with Rayon. Do not create a new crypto batch API yet. | A 1k `hash_4` batch scaled 3.66x on four threads, while parallelism added only 10–13% after nullifier work deduplication. | Reconsider SIMD only if a production profile attributes at least 40% of the selected candidate to hashing. |
 
 ## Harness and compatibility checks
@@ -74,12 +74,13 @@ all 10,000 predecessor range scans.
 | N4 concurrent predecessors | 1,073 ms | 141 ms | 1,215 ms | 20.2x | 6,684 | 20,053 | 86,682 |
 | N4 durable-leaf prefetch | 915 ms | 141 ms | 1,056 ms | 23.2x | 6,684 | 10,053 | 86,682 |
 
-The N4 scan prototype proves the value of an ordered generation index but is not
-the production design: scanning the entire generation for every batch is O(tree
-size). The intended design is a bounded, typed current-generation cache rebuilt
-from the durable leaf prefix at initialization/restart, checked against the
-generation identity/root, updated only after a successful state transition, and
-discarded on mismatch. Durable state remains authoritative.
+The N4 scan prototype proves the value of ordered access but is not the
+production design: scanning the entire generation for every batch is O(tree
+size), while retaining the entire generation would make validator memory grow
+with attacker-driven chain activity over a 30-epoch generation. The next
+prototype should scan the compact value index only under a hard byte/count and
+density budget, otherwise use deduplicated point/range reads. Durable state
+remains authoritative.
 
 N1 is rejected. It removes hundreds of thousands of eager overlay reads but
 leaves the 400,000 repeated hashes and nearly 480,000 staged writes, yielding only
@@ -88,7 +89,7 @@ leaves the 400,000 repeated hashes and nearly 480,000 staged writes, yielding on
 N2 is the essential algorithmic change. N3 is retained because thresholded
 parallel hashing adds 10–13% on the tested 10k cases without changing output or
 write order. N4 concurrent lookups are not selected. N4 prefetch is retained as
-the reference for the ordered-cache design, subject to the remaining scale gate.
+the reference for bounded ordered access, subject to the remaining scale gate.
 
 ## TCT results
 
@@ -103,7 +104,9 @@ For 1,000 commitments on four threads:
 The complete validator candidate is approximately 8.73 ms, or 3.40x faster than
 the current builder. The benchmark covers empty, 1, 3, 4, 5, 100, and 1,000-leaf
 block shapes. It does not yet cover epoch transitions or the application's event
-and Cnidarium integration.
+and Cnidarium integration. In particular, `Tree::insert_block(root)` finalizes
+the block immediately; the application must not subsequently call `end_block`
+and append an extra empty block.
 
 The selected wallet paths match the current proof's eight block-local layers for
 first, middle, and last `Keep` positions. That is enough to validate the parallel
@@ -124,6 +127,13 @@ clones and validates the full tree, with a pure proposal-order leaf plan and
 dirty-path union. It demonstrates the algorithmic problem but does not yet prove
 the validator/view storage and corruption trust boundaries.
 
+The no-event clone result is a small absolute saving. Its production value is
+avoiding tree mutation and persistence, not the reported relative ratio. Both
+published anchors must still be checked. Compliance changes must also commit in
+the same SQLite transaction as wallet block advancement; a separate successful
+compliance commit followed by a later scan failure can otherwise make retrying
+the height fail.
+
 For 1,000 independent `hash_4` calls, scalar execution took 30.72 ms and four
 Rayon workers took 8.39 ms, a 3.66x improvement with exact outputs. After
 nullifier deduplication, the same parallelism improves the complete algorithm by
@@ -141,7 +151,7 @@ API is not justified.
 5. Fetch each missing base child once; hash a level in parallel only above a local, non-consensus threshold.
 6. Validate the terminal root, changed links, membership/non-membership samples, count, and generation record.
 7. Stage each final leaf, value index, node, root, count, and generation record once through the existing `StateWrite` boundary.
-8. Publish cache changes only after the outer state transition succeeds. Rebuild the cache from durable typed leaves on startup or identity mismatch.
+8. Select a compact ordered scan only within a hard temporary-memory and density budget; otherwise use point/range reads. Do not retain an unbounded generation index.
 
 The internal plan should be a concrete typed record containing generation
 identity, starting count, final leaf mutations, and sorted node mutations. It
@@ -155,8 +165,9 @@ does not need a generic tree trait or a second storage abstraction.
 
 ### Compliance policy
 
-- A compact block with no compliance events compares cached roots and performs no clone or write.
-- An eventful block applies ordered events to a pure overlay, verifies terminal published roots, then persists unique dirty leaves/nodes transactionally.
+- A compact block with no compliance events compares both cached roots and performs no tree clone or tree write.
+- An eventful block applies ordered events to a private next snapshot, verifies terminal published roots, then persists unique dirty leaves/nodes in the same SQLite transaction as the wallet block and sync height.
+- Publish user and asset trees as one immutable snapshot so proof readers cannot observe mixed roots or deadlock on opposite lock ordering.
 - Validate the complete asset tree at load/restart and locally validate changed adjacency and paths per block. Keep periodic audit reconstruction outside the mutation hot path.
 - Do not add persistent/chunked structural sharing unless real post-C1/C2 clone/RSS measurements justify C4.
 
@@ -165,12 +176,14 @@ does not need a generic tree trait or a second storage abstraction.
 1. Add production nullifier differential fixtures first: same-gap, spread, medium prefill, duplicate, already-spent, rollover, count boundary, injected read error, commit, and restart.
 2. Add the typed nullifier plan and sequential dirty union behind no runtime compatibility path; replace the old insertion loop when parity passes.
 3. Add thresholded level parallelism and deterministic sorted staging. Tune on validator ARM and x86 hardware.
-4. Add the derived current-generation ordered cache with explicit identity, rebuild, invalidation, and post-success update rules. Benchmark 100k+ captured generations and clear 10k/s including commit.
-5. Integrate the parallel all-`Forget` TCT builder through app position reservation, events, `Tree::updates`, Cnidarium persistence, multiple blocks, and epochs.
-6. Keep wallet behavior unchanged; create a separate selective-`Keep` issue only if phone traces show relevant-block reconstruction is material.
-7. Add the compliance no-event helper and tests proving zero clones and writes.
-8. Prototype real validator/view compliance block overlays, SQLite transactions, load-time full validation, local mutation validation, corruption rejection, and restart.
-9. Profile the selected production paths before considering Poseidon SIMD, GPU work, a new WAL, mmap, or structural sharing.
+4. Change the application lifecycle to stage successful nullifiers and materialize once at `EndBlock`; remove disposable tree construction from `PrepareProposal` and per-transaction tree construction from remote `ProcessProposal`.
+5. Prototype a bounded compact ordered scan with point-read fallback. Benchmark 100k+ generations and clear 10k/s including commit without an unbounded cache.
+6. Integrate the parallel all-`Forget` TCT builder through app position reservation, a typed finalized marker, events, `Tree::updates`, Cnidarium persistence, multiple blocks, and epochs.
+7. Keep wallet TCT behavior unchanged; create a separate selective-`Keep` issue only if phone traces show relevant-block reconstruction is material.
+8. Reproduce and fix compliance cross-transaction retry and paired-lock ordering before the no-event performance work.
+9. Add the compliance no-event helper and tests proving zero tree clones/writes while still checking both anchors.
+10. Prototype real validator/view compliance block overlays, atomic SQLite block persistence, load-time full validation, local mutation validation, corruption rejection, and restart.
+11. Profile the selected production paths before considering Poseidon SIMD, GPU work, a new WAL, mmap, or structural sharing.
 
 ## Raw results and commands
 
@@ -200,6 +213,7 @@ cargo run --release -p shieldd-sdk-bench --bin tree_research -- \
 
 - Published timings use one measured repetition; the harness supports warmups, medians, and p95, but the long current baseline made the research runs intentionally sparse.
 - No 100k+ prefill, rollover/capacity geometry, injected state-read failure, retained-cache implementation, allocator, peak RSS, energy, thermal, phone, or x86 run was completed.
+- The large nullifier benchmark exercises `insert_batch`; production currently calls that at block scale only from proposer preparation, while remote proposal replay and delivery still use transaction-sized calls.
 - `TempStorage` commit was measured and restart was verified, but this is not a production disk/fsync capacity claim.
 - TCT multiple-block, epoch-boundary, 65,536-capacity, application event, and Cnidarium adapter tests remain.
 - Wallet full proof serialization, later witness updates, forgetting, reload, retained memory, and phone behavior remain.
