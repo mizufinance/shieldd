@@ -120,6 +120,17 @@ impl ShieldedHostWithdrawalPlan {
             first_spend_randomizer: self.first_spend().randomizer,
             sender_address: self.sender_address(),
             asset_id: self.withdrawal_asset_id(),
+            capk: self
+                .first_spend()
+                .compliance_leaf
+                .clone()
+                .unwrap_or_else(|| {
+                    shieldd_sdk_compliance::ComplianceLeaf::synthetic_unregulated(
+                        self.sender_address(),
+                        self.withdrawal_asset_id(),
+                    )
+                })
+                .capk,
             // Host withdrawals reuse the ICS-20 circuit and its fixed dummy-nullifier domain.
             nullifier_domain_sep_label:
                 b"shieldd.shielded_ics20_withdrawal.synthetic_dummy.nullifier",
@@ -264,6 +275,21 @@ impl ShieldedHostWithdrawalPlan {
                 state_commitment_proofs.len()
             )));
         }
+        if self.first_spend().is_regulated
+            && shieldd_sdk_compliance::compliance_nullifier_key_commitment(
+                self.first_spend().compliance_nullifier_key(fvk),
+            ) != self
+                .first_spend()
+                .compliance_leaf
+                .as_ref()
+                .expect("validated regulated spend has a compliance leaf")
+                .cnk_commitment
+        {
+            return Err(crate::ProofError::InvalidPrivateInput(
+                "wallet compliance nullifier key does not match the registered sender leaf"
+                    .to_owned(),
+            ));
+        }
 
         let mut input_publics = self
             .spends
@@ -356,6 +382,7 @@ impl ShieldedHostWithdrawalPlan {
                 inputs: input_publics,
                 change_output: ShieldedIcs20WithdrawalChangePublic {
                     note_commitment: change_note.commit(),
+                    recovery_commitment: change_note.recovery_commitment(),
                 },
                 outbound_asset_id: self.withdrawal.value.asset_id.0,
                 outbound_amount: Fq::from(self.withdrawal.value.amount),
@@ -370,6 +397,7 @@ impl ShieldedHostWithdrawalPlan {
                 action_balance_blinding: self.value_blinding,
                 ak: *fvk.spend_verification_key(),
                 nk: *fvk.nullifier_key(),
+                cnk: self.first_spend().compliance_nullifier_key(fvk),
                 asset_path: self.first_spend().asset_path.clone(),
                 asset_position: self.first_spend().asset_position,
                 asset_indexed_leaf: self.first_spend().asset_indexed_leaf.clone(),
@@ -418,11 +446,11 @@ impl ShieldedHostWithdrawalPlan {
             }
         });
 
-        let change_note = self
+        let (change_note, recovery_capsule) = self
             .change_output
             .as_ref()
-            .map(ShieldedOutputPlan::output_note)
-            .unwrap_or_else(|| padder.synthetic_dummy_output_note(1));
+            .map(ShieldedOutputPlan::output_note_and_capsule)
+            .unwrap_or_else(|| padder.synthetic_dummy_output_note_and_capsule(1));
         let esk = change_note.ephemeral_secret_key();
         let ovk_wrapped_key = change_note.encrypt_key(
             fvk.outgoing(),
@@ -435,7 +463,7 @@ impl ShieldedHostWithdrawalPlan {
             &change_note.diversified_generator(),
         );
         let change_output = ShieldedIcs20WithdrawalChangeBody {
-            note_payload: change_note.payload(),
+            note_payload: change_note.payload(recovery_capsule),
             wrapped_memo_key,
             ovk_wrapped_key,
         };

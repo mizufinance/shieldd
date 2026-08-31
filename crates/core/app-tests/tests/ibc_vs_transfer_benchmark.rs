@@ -1425,7 +1425,7 @@ async fn profile_block(chain: &mut TestNodeWithIBC, txs: Vec<Vec<u8>>) -> Result
     proposer.set_block_tx_indexing_mode(BlockTxIndexingMode::DeferredBatch);
     let prepare_start = Instant::now();
     let (prepared, prepare_profile, sidecar) = proposer
-        .prepare_proposal_v2_profiled(prepare_request, None, true)
+        .prepare_proposal_profiled(prepare_request, None, true)
         .await;
     detailed.prepare_proposal_wall_ms = elapsed_ms(prepare_start);
     apply_prepare_profile(&mut detailed, &prepare_profile);
@@ -1441,7 +1441,7 @@ async fn profile_block(chain: &mut TestNodeWithIBC, txs: Vec<Vec<u8>>) -> Result
     let mut validator = App::new(chain.storage.latest_snapshot());
     let process_start = Instant::now();
     let (process_verdict, process_profile) = validator
-        .process_proposal_v2_profiled(process_request, None, Some(&sidecar), true)
+        .process_proposal_profiled(process_request, None, Some(&sidecar), true)
         .await;
     detailed.process_proposal_wall_ms = elapsed_ms(process_start);
     anyhow::ensure!(
@@ -1492,7 +1492,7 @@ async fn run_checktx_cold(chain: &TestNodeWithIBC, txs: &[Vec<u8>]) -> Result<f6
     let start = Instant::now();
     let mut app = App::new(chain.storage.latest_snapshot());
     for tx in txs {
-        app.deliver_tx_bytes_v1_profiled(tx)
+        app.deliver_tx_bytes_uncached_profiled(tx)
             .await
             .context("cold CheckTx profile failed")?;
     }
@@ -1512,7 +1512,7 @@ async fn run_checktx_warm(
     let start = Instant::now();
     let mut app = App::new(chain.storage.latest_snapshot());
     for tx in txs {
-        app.deliver_tx_bytes_v2_profiled(tx, Some(&cache))
+        app.deliver_tx_bytes_profiled(tx, Some(&cache))
             .await
             .context("warm CheckTx profile failed")?;
     }

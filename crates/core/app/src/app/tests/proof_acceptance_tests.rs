@@ -652,7 +652,7 @@ async fn process_proposal_rejects_decodable_invalid_groth16() -> Result<()> {
         let proposal = process_request(&app, &invalid_bytes).await?;
 
         let (verdict, _) = app
-            .process_proposal_v2_profiled(proposal, Some(&cache), None, false)
+            .process_proposal_profiled(proposal, Some(&cache), None, false)
             .await;
         assert!(
             matches!(verdict, response::ProcessProposal::Reject),
@@ -677,7 +677,7 @@ async fn fee_funding_process_proposal_rejects_invalid_groth16() -> Result<()> {
     let proposal = process_request(&app, &invalid_bytes).await?;
 
     let (verdict, _) = app
-        .process_proposal_v2_profiled(proposal, Some(&cache), None, false)
+        .process_proposal_profiled(proposal, Some(&cache), None, false)
         .await;
     assert!(
         matches!(verdict, response::ProcessProposal::Reject),
@@ -813,7 +813,7 @@ async fn prepare_proposal_excludes_decodable_invalid_groth16() -> Result<()> {
         let proposal = prepare_request(&app, invalid_bytes.clone()).await?;
 
         let (prepared, _, _) = app
-            .prepare_proposal_v2_profiled(proposal, Some(&cache), false)
+            .prepare_proposal_profiled(proposal, Some(&cache), false)
             .await;
         assert!(
             prepared
@@ -1215,7 +1215,7 @@ async fn cache_promotion_never_exceeds_exact_groth16_attestation() -> Result<()>
     stage_spent_nullifier(&mut process_app, &valid_tx).await?;
     let proposal = process_request(&process_app, &transfer.tx_bytes).await?;
     let (verdict, _) = process_app
-        .process_proposal_v2_profiled(proposal, Some(&process_cache), None, false)
+        .process_proposal_profiled(proposal, Some(&process_cache), None, false)
         .await;
     assert!(matches!(verdict, response::ProcessProposal::Reject));
     assert_cache_not_promoted(

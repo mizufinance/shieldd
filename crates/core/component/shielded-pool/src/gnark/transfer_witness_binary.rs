@@ -4,10 +4,11 @@ use crate::{
     gnark::{
         binary::encode_triple_path_32,
         binary::{encode_vec_32, put_bytes, put_u32, put_u64, put_u8, BinaryCursor},
+        recovery_capsule_witness_binary::{decode_recovery_capsule, encode_recovery_capsule},
         transfer_witness::{
-            TransferChangeOutputWitnessV20, TransferComplianceCiphertextWitnessV20,
-            TransferOptionalSpendWitnessV20, TransferReceiverOutputWitnessV20,
-            TransferRequiredSpendWitnessV20, TransferTierRandomizersWitnessV20, TransferWitnessV20,
+            TransferChangeOutputWitness, TransferComplianceCiphertextWitness,
+            TransferOptionalSpendWitness, TransferReceiverOutputWitness,
+            TransferRequiredSpendWitness, TransferTierRandomizersWitness, TransferWitness,
         },
         typed::{
             decode_indexed_leaf, encode_indexed_leaf, encode_merkle_path, encode_point_affine,
@@ -17,9 +18,9 @@ use crate::{
 };
 
 const TRANSFER_WITNESS_MAGIC: &[u8; 4] = b"PTWG";
-const TRANSFER_WITNESS_VERSION: u32 = 22;
+const TRANSFER_WITNESS_VERSION: u32 = 24;
 
-impl TransferWitnessV20 {
+impl TransferWitness {
     pub fn encode(&self) -> Result<Vec<u8>> {
         let mut buf = Vec::new();
         put_bytes(&mut buf, TRANSFER_WITNESS_MAGIC);
@@ -37,6 +38,7 @@ impl TransferWitnessV20 {
         put_bytes(&mut buf, &self.recent_position_floor);
         put_bytes(&mut buf, &self.action_balance_blinding);
         put_bytes(&mut buf, &self.nk);
+        put_bytes(&mut buf, &self.cnk);
         encode_merkle_path(&mut buf, &self.asset_path)?;
         put_u64(&mut buf, self.asset_position);
         encode_indexed_leaf(&mut buf, &self.asset_indexed_leaf);
@@ -46,7 +48,8 @@ impl TransferWitnessV20 {
         put_u64(&mut buf, self.routing_as_of_height);
         encode_merkle_path(&mut buf, &self.sender_compliance_path)?;
         put_u64(&mut buf, self.sender_compliance_position);
-        put_bytes(&mut buf, &self.sender_d);
+        encode_point_affine(&mut buf, &self.sender_capk_affine);
+        put_bytes(&mut buf, &self.sender_cnk_commitment);
         put_bytes(&mut buf, &self.sender_status);
         put_bytes(&mut buf, &self.transfer_nonce_root);
         encode_vec_32(&mut buf, &self.detection_ciphertext)?;
@@ -114,6 +117,7 @@ impl TransferWitnessV20 {
             recent_position_floor: cursor.read_fixed::<32>()?,
             action_balance_blinding: cursor.read_fr()?,
             nk: cursor.read_fixed::<32>()?,
+            cnk: cursor.read_fixed::<32>()?,
             asset_path: cursor.read_merkle_path()?,
             asset_position: cursor.read_u64()?,
             asset_indexed_leaf: decode_indexed_leaf(&mut cursor)?,
@@ -123,7 +127,8 @@ impl TransferWitnessV20 {
             routing_as_of_height: cursor.read_u64()?,
             sender_compliance_path: cursor.read_merkle_path()?,
             sender_compliance_position: cursor.read_u64()?,
-            sender_d: cursor.read_fixed::<32>()?,
+            sender_capk_affine: cursor.read_point_affine()?,
+            sender_cnk_commitment: cursor.read_fixed::<32>()?,
             sender_status: cursor.read_fixed::<32>()?,
             transfer_nonce_root: cursor.read_fixed::<32>()?,
             detection_ciphertext: cursor.read_vec_32()?,
@@ -162,7 +167,7 @@ impl TransferWitnessV20 {
 
 fn encode_compliance_tier(
     buf: &mut Vec<u8>,
-    tier: &TransferComplianceCiphertextWitnessV20,
+    tier: &TransferComplianceCiphertextWitness,
 ) -> Result<()> {
     put_bytes(buf, &tier.c2);
     encode_vec_32(buf, &tier.ciphertext)?;
@@ -172,31 +177,32 @@ fn encode_compliance_tier(
 
 fn decode_compliance_tier(
     cursor: &mut BinaryCursor<'_>,
-) -> Result<TransferComplianceCiphertextWitnessV20> {
-    Ok(TransferComplianceCiphertextWitnessV20 {
+) -> Result<TransferComplianceCiphertextWitness> {
+    Ok(TransferComplianceCiphertextWitness {
         c2: cursor.read_fixed::<32>()?,
         ciphertext: cursor.read_vec_32()?,
         epk_affine: cursor.read_point_affine()?,
     })
 }
 
-fn encode_randomizers(buf: &mut Vec<u8>, randomizers: &TransferTierRandomizersWitnessV20) {
+fn encode_randomizers(buf: &mut Vec<u8>, randomizers: &TransferTierRandomizersWitness) {
     put_bytes(buf, &randomizers.core);
     put_bytes(buf, &randomizers.ext);
 }
 
-fn decode_randomizers(cursor: &mut BinaryCursor<'_>) -> Result<TransferTierRandomizersWitnessV20> {
-    Ok(TransferTierRandomizersWitnessV20 {
+fn decode_randomizers(cursor: &mut BinaryCursor<'_>) -> Result<TransferTierRandomizersWitness> {
+    Ok(TransferTierRandomizersWitness {
         core: cursor.read_fr()?,
         ext: cursor.read_fr()?,
     })
 }
 
-fn encode_required_spend(buf: &mut Vec<u8>, spend: &TransferRequiredSpendWitnessV20) -> Result<()> {
+fn encode_required_spend(buf: &mut Vec<u8>, spend: &TransferRequiredSpendWitness) -> Result<()> {
     put_bytes(buf, &spend.nullifier);
     put_bytes(buf, &spend.spent_note_blinding);
     put_bytes(buf, &spend.spent_note_amount);
     put_bytes(buf, &spend.spent_note_asset_id);
+    put_bytes(buf, &spend.spent_note_recovery_commitment);
     put_u64(buf, spend.state_commitment_position);
     encode_triple_path_32(buf, &spend.state_commitment_auth_path)?;
     put_bytes(buf, &spend.spend_auth_randomizer);
@@ -205,12 +211,13 @@ fn encode_required_spend(buf: &mut Vec<u8>, spend: &TransferRequiredSpendWitness
     Ok(())
 }
 
-fn decode_required_spend(cursor: &mut BinaryCursor<'_>) -> Result<TransferRequiredSpendWitnessV20> {
-    Ok(TransferRequiredSpendWitnessV20 {
+fn decode_required_spend(cursor: &mut BinaryCursor<'_>) -> Result<TransferRequiredSpendWitness> {
+    Ok(TransferRequiredSpendWitness {
         nullifier: cursor.read_fixed::<32>()?,
         spent_note_blinding: cursor.read_fixed::<32>()?,
         spent_note_amount: cursor.read_fixed::<32>()?,
         spent_note_asset_id: cursor.read_fixed::<32>()?,
+        spent_note_recovery_commitment: cursor.read_fixed::<32>()?,
         state_commitment_position: cursor.read_u64()?,
         state_commitment_auth_path: cursor.read_triple_path_32()?,
         spend_auth_randomizer: cursor.read_fr()?,
@@ -219,10 +226,11 @@ fn decode_required_spend(cursor: &mut BinaryCursor<'_>) -> Result<TransferRequir
     })
 }
 
-fn encode_optional_spend(buf: &mut Vec<u8>, spend: &TransferOptionalSpendWitnessV20) -> Result<()> {
+fn encode_optional_spend(buf: &mut Vec<u8>, spend: &TransferOptionalSpendWitness) -> Result<()> {
     put_bytes(buf, &spend.nullifier);
     put_bytes(buf, &spend.spent_note_blinding);
     put_bytes(buf, &spend.spent_note_amount);
+    put_bytes(buf, &spend.spent_note_recovery_commitment);
     put_u64(buf, spend.state_commitment_position);
     encode_triple_path_32(buf, &spend.state_commitment_auth_path)?;
     put_bytes(buf, &spend.spend_auth_randomizer);
@@ -233,11 +241,12 @@ fn encode_optional_spend(buf: &mut Vec<u8>, spend: &TransferOptionalSpendWitness
     Ok(())
 }
 
-fn decode_optional_spend(cursor: &mut BinaryCursor<'_>) -> Result<TransferOptionalSpendWitnessV20> {
-    Ok(TransferOptionalSpendWitnessV20 {
+fn decode_optional_spend(cursor: &mut BinaryCursor<'_>) -> Result<TransferOptionalSpendWitness> {
+    Ok(TransferOptionalSpendWitness {
         nullifier: cursor.read_fixed::<32>()?,
         spent_note_blinding: cursor.read_fixed::<32>()?,
         spent_note_amount: cursor.read_fixed::<32>()?,
+        spent_note_recovery_commitment: cursor.read_fixed::<32>()?,
         state_commitment_position: cursor.read_u64()?,
         state_commitment_auth_path: cursor.read_triple_path_32()?,
         spend_auth_randomizer: cursor.read_fr()?,
@@ -248,48 +257,53 @@ fn decode_optional_spend(cursor: &mut BinaryCursor<'_>) -> Result<TransferOption
     })
 }
 
-fn encode_receiver_output(
-    buf: &mut Vec<u8>,
-    output: &TransferReceiverOutputWitnessV20,
-) -> Result<()> {
+fn encode_receiver_output(buf: &mut Vec<u8>, output: &TransferReceiverOutputWitness) -> Result<()> {
     put_bytes(buf, &output.note_commitment);
+    put_bytes(buf, &output.recovery_commitment);
     put_bytes(buf, &output.created_note_blinding);
     put_bytes(buf, &output.created_note_amount);
+    encode_recovery_capsule(buf, &output.recovery_capsule);
     encode_merkle_path(buf, &output.recipient_compliance_path)?;
     put_u64(buf, output.recipient_compliance_position);
-    put_bytes(buf, &output.recipient_d);
+    encode_point_affine(buf, &output.recipient_capk_affine);
+    put_bytes(buf, &output.recipient_cnk_commitment);
     put_bytes(buf, &output.recipient_status);
     encode_point_affine(buf, &output.recipient_diversified_generator_affine);
     encode_point_affine(buf, &output.recipient_transmission_key_affine);
     Ok(())
 }
 
-fn decode_receiver_output(
-    cursor: &mut BinaryCursor<'_>,
-) -> Result<TransferReceiverOutputWitnessV20> {
-    Ok(TransferReceiverOutputWitnessV20 {
+fn decode_receiver_output(cursor: &mut BinaryCursor<'_>) -> Result<TransferReceiverOutputWitness> {
+    Ok(TransferReceiverOutputWitness {
         note_commitment: cursor.read_fixed::<32>()?,
+        recovery_commitment: cursor.read_fixed::<32>()?,
         created_note_blinding: cursor.read_fixed::<32>()?,
         created_note_amount: cursor.read_fixed::<32>()?,
+        recovery_capsule: decode_recovery_capsule(cursor)?,
         recipient_compliance_path: cursor.read_merkle_path()?,
         recipient_compliance_position: cursor.read_u64()?,
-        recipient_d: cursor.read_fixed::<32>()?,
+        recipient_capk_affine: cursor.read_point_affine()?,
+        recipient_cnk_commitment: cursor.read_fixed::<32>()?,
         recipient_status: cursor.read_fixed::<32>()?,
         recipient_diversified_generator_affine: cursor.read_point_affine()?,
         recipient_transmission_key_affine: cursor.read_point_affine()?,
     })
 }
 
-fn encode_change_output(buf: &mut Vec<u8>, output: &TransferChangeOutputWitnessV20) {
+fn encode_change_output(buf: &mut Vec<u8>, output: &TransferChangeOutputWitness) {
     put_bytes(buf, &output.note_commitment);
+    put_bytes(buf, &output.recovery_commitment);
     put_bytes(buf, &output.created_note_blinding);
     put_bytes(buf, &output.created_note_amount);
+    encode_recovery_capsule(buf, &output.recovery_capsule);
 }
 
-fn decode_change_output(cursor: &mut BinaryCursor<'_>) -> Result<TransferChangeOutputWitnessV20> {
-    Ok(TransferChangeOutputWitnessV20 {
+fn decode_change_output(cursor: &mut BinaryCursor<'_>) -> Result<TransferChangeOutputWitness> {
+    Ok(TransferChangeOutputWitness {
         note_commitment: cursor.read_fixed::<32>()?,
+        recovery_commitment: cursor.read_fixed::<32>()?,
         created_note_blinding: cursor.read_fixed::<32>()?,
         created_note_amount: cursor.read_fixed::<32>()?,
+        recovery_capsule: decode_recovery_capsule(cursor)?,
     })
 }

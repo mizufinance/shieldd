@@ -446,7 +446,7 @@ mod tests {
         let current_asset_root = state.get_asset_imt_root().await.unwrap();
         assert_ne!(stale_asset_root, current_asset_root);
         state
-            .test_only_add_compliance_leaf(ComplianceLeaf::new(
+            .test_only_add_compliance_leaf(ComplianceLeaf::registered_for_test(
                 Address::dummy(&mut rand::thread_rng()),
                 asset::Id(Fq::from(55u64)),
             ))

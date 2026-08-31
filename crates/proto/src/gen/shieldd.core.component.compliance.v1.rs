@@ -41,12 +41,21 @@ pub struct ComplianceLeaf {
     /// The asset ID this compliance leaf applies to.
     #[prost(message, optional, tag = "2")]
     pub asset_id: ::core::option::Option<super::super::super::asset::v1::AssetId>,
-    /// Orbis scalar derived from the full canonical address bytes and verified at registration.
+    /// Ordinary-Orbis address capability for this asset's ring.
     #[prost(bytes = "vec", tag = "3")]
-    pub d: ::prost::alloc::vec::Vec<u8>,
+    pub capk: ::prost::alloc::vec::Vec<u8>,
+    /// Poseidon commitment to the compliance nullifier key held by the user and ACP.
+    #[prost(bytes = "vec", tag = "4")]
+    pub cnk_commitment: ::prost::alloc::vec::Vec<u8>,
     /// Current authorization state for this address and asset.
-    #[prost(enumeration = "UserAssetStatus", tag = "4")]
+    #[prost(enumeration = "UserAssetStatus", tag = "5")]
     pub status: i32,
+    /// Monotonic freeze generation. Zero until the first freeze.
+    #[prost(uint64, tag = "6")]
+    pub freeze_generation: u64,
+    /// Block height at which the current freeze generation began. Zero unless frozen or seized.
+    #[prost(uint64, tag = "7")]
+    pub frozen_since_height: u64,
 }
 impl ::prost::Name for ComplianceLeaf {
     const NAME: &'static str = "ComplianceLeaf";
@@ -102,6 +111,11 @@ pub struct MsgRegisterAsset {
     /// External IBC origin for a regulated voucher asset, if any.
     #[prost(message, optional, tag = "13")]
     pub ibc_origin: ::core::option::Option<IbcAssetOrigin>,
+    /// Immutable authority key that authorizes note seizures for this asset.
+    #[prost(message, optional, tag = "14")]
+    pub seizure_authority_vk: ::core::option::Option<
+        super::super::super::super::crypto::decaf377_rdsa::v1::SpendVerificationKey,
+    >,
 }
 impl ::prost::Name for MsgRegisterAsset {
     const NAME: &'static str = "MsgRegisterAsset";
@@ -144,6 +158,10 @@ pub struct AssetRegistrationGrantBody {
     pub valid_until_unix: u64,
     #[prost(message, optional, tag = "13")]
     pub ibc_origin: ::core::option::Option<IbcAssetOrigin>,
+    #[prost(message, optional, tag = "14")]
+    pub seizure_authority_vk: ::core::option::Option<
+        super::super::super::super::crypto::decaf377_rdsa::v1::SpendVerificationKey,
+    >,
 }
 impl ::prost::Name for AssetRegistrationGrantBody {
     const NAME: &'static str = "AssetRegistrationGrantBody";
@@ -672,6 +690,10 @@ pub struct AssetPolicy {
     >,
     #[prost(message, optional, tag = "10")]
     pub ibc_origin: ::core::option::Option<IbcAssetOrigin>,
+    #[prost(message, optional, tag = "11")]
+    pub seizure_authority_vk: ::core::option::Option<
+        super::super::super::super::crypto::decaf377_rdsa::v1::SpendVerificationKey,
+    >,
 }
 impl ::prost::Name for AssetPolicy {
     const NAME: &'static str = "AssetPolicy";
@@ -718,6 +740,10 @@ pub struct NativeAssetRegistration {
     pub registration_authority_vk: ::core::option::Option<
         super::super::super::super::crypto::decaf377_rdsa::v1::SpendVerificationKey,
     >,
+    #[prost(message, optional, tag = "5")]
+    pub seizure_authority_vk: ::core::option::Option<
+        super::super::super::super::crypto::decaf377_rdsa::v1::SpendVerificationKey,
+    >,
 }
 impl ::prost::Name for NativeAssetRegistration {
     const NAME: &'static str = "NativeAssetRegistration";
@@ -727,6 +753,109 @@ impl ::prost::Name for NativeAssetRegistration {
     }
     fn type_url() -> ::prost::alloc::string::String {
         "/shieldd.core.component.compliance.v1.NativeAssetRegistration".into()
+    }
+}
+/// One ordinary Orbis PRE share and its proof of correct re-encryption.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PreShareEvidence {
+    #[prost(uint32, tag = "1")]
+    pub participant_index: u32,
+    #[prost(bytes = "vec", tag = "2")]
+    pub capability_share: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "3")]
+    pub reencrypted_share: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "4")]
+    pub challenge: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "5")]
+    pub response: ::prost::alloc::vec::Vec<u8>,
+}
+impl ::prost::Name for PreShareEvidence {
+    const NAME: &'static str = "PreShareEvidence";
+    const PACKAGE: &'static str = "shieldd.core.component.compliance.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.compliance.v1.PreShareEvidence".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.compliance.v1.PreShareEvidence".into()
+    }
+}
+/// Ordinary threshold PRE evidence returned by Orbis for one recovery capsule.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PreEvidence {
+    #[prost(uint32, tag = "1")]
+    pub version: u32,
+    #[prost(string, tag = "2")]
+    pub ring_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub object_id: ::prost::alloc::string::String,
+    #[prost(bytes = "vec", tag = "4")]
+    pub release_scope_commitment: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "5")]
+    pub derivation: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "6")]
+    pub ring_pk: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "7")]
+    pub ciphertext_epk: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "8")]
+    pub reader_pk: ::prost::alloc::vec::Vec<u8>,
+    #[prost(uint32, tag = "9")]
+    pub threshold: u32,
+    #[prost(message, repeated, tag = "10")]
+    pub shares: ::prost::alloc::vec::Vec<PreShareEvidence>,
+}
+impl ::prost::Name for PreEvidence {
+    const NAME: &'static str = "PreEvidence";
+    const PACKAGE: &'static str = "shieldd.core.component.compliance.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.compliance.v1.PreEvidence".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.compliance.v1.PreEvidence".into()
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DleqProof {
+    #[prost(bytes = "vec", tag = "1")]
+    pub commitment_g: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "2")]
+    pub commitment_h: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "3")]
+    pub response: ::prost::alloc::vec::Vec<u8>,
+}
+impl ::prost::Name for DleqProof {
+    const NAME: &'static str = "DleqProof";
+    const PACKAGE: &'static str = "shieldd.core.component.compliance.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.compliance.v1.DleqProof".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.compliance.v1.DleqProof".into()
+    }
+}
+/// Transferable aggregate proof matching the verified ordinary PRE shares.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CompactPreEvidence {
+    #[prost(uint32, tag = "1")]
+    pub version: u32,
+    #[prost(bytes = "vec", tag = "2")]
+    pub capability: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "3")]
+    pub reader_pk: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "4")]
+    pub ciphertext_epk: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "5")]
+    pub reencrypted_point: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag = "6")]
+    pub proof: ::core::option::Option<DleqProof>,
+}
+impl ::prost::Name for CompactPreEvidence {
+    const NAME: &'static str = "CompactPreEvidence";
+    const PACKAGE: &'static str = "shieldd.core.component.compliance.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.compliance.v1.CompactPreEvidence".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.compliance.v1.CompactPreEvidence".into()
     }
 }
 /// Emitted when a user is registered in the compliance tree.

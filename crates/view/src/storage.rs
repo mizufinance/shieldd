@@ -84,7 +84,10 @@ mod compliance_projection_tests {
         .unwrap();
         let mut user_tree = storage.compliance_user_tree().await.unwrap();
         let asset_tree = storage.compliance_asset_tree().await.unwrap();
-        let leaf = ComplianceLeaf::new(test_keys::ADDRESS_0.clone(), asset::Id(Fq::from(17u64)));
+        let leaf = ComplianceLeaf::synthetic_unregulated(
+            test_keys::ADDRESS_0.clone(),
+            asset::Id(Fq::from(17u64)),
+        );
         let commitment = leaf.commit();
         let position = user_tree.insert(commitment).unwrap();
 
@@ -111,6 +114,45 @@ mod compliance_projection_tests {
             .await
             .unwrap()
             .is_none());
+    }
+}
+
+#[cfg(test)]
+mod note_storage_tests {
+    use super::*;
+    use decaf377::Element;
+    use shieldd_sdk_asset::BASE_ASSET_ID;
+    use shieldd_sdk_keys::test_keys;
+
+    #[tokio::test]
+    async fn note_advice_round_trip_preserves_recovery_commitment() {
+        let storage = Storage::initialize(
+            None::<&Utf8Path>,
+            (*test_keys::FULL_VIEWING_KEY).clone(),
+            AppParameters::default(),
+        )
+        .await
+        .unwrap();
+        let (note, _) = Note::from_parts_with_recovery(
+            test_keys::ADDRESS_0.clone(),
+            Value {
+                amount: Amount::from(41u64),
+                asset_id: *BASE_ASSET_ID,
+            },
+            Rseed([42u8; 32]),
+            Element::GENERATOR,
+        )
+        .unwrap();
+        let commitment = note.commit();
+
+        storage.give_advice(note.clone()).await.unwrap();
+        let advice = storage.scan_advice(vec![commitment]).await.unwrap();
+        let restored = advice
+            .get(&commitment)
+            .expect("stored note must be returned");
+
+        assert_eq!(restored, &note);
+        assert_eq!(restored.recovery_commitment(), note.recovery_commitment());
     }
 }
 
@@ -727,6 +769,7 @@ impl Storage {
                         notes.amount,
                         notes.asset_id,
                         notes.rseed,
+                        notes.recovery_commitment,
                         spendable_notes.address_index,
                         spendable_notes.source,
                         spendable_notes.height_spent,
@@ -1182,6 +1225,7 @@ impl Storage {
                         notes.amount,
                         notes.asset_id,
                         notes.rseed,
+                        notes.recovery_commitment,
                         spendable_notes.address_index,
                         spendable_notes.source,
                         spendable_notes.height_spent,
@@ -1347,6 +1391,7 @@ impl Storage {
                         notes.amount,
                         notes.asset_id,
                         notes.rseed,
+                        notes.recovery_commitment,
                         spendable_notes.address_index,
                         spendable_notes.source,
                         spendable_notes.height_spent,
@@ -1453,17 +1498,26 @@ impl Storage {
         let amount = u128::from(note.amount()).to_be_bytes().to_vec();
         let asset_id = note.asset_id().to_bytes().to_vec();
         let rseed = note.rseed().to_bytes().to_vec();
+        let recovery_commitment: [u8; 32] = note.recovery_commitment().into();
 
         dbtx.execute(
-            "INSERT INTO notes (note_commitment, address, amount, asset_id, rseed)
-                VALUES (?1, ?2, ?3, ?4, ?5)
+            "INSERT INTO notes (note_commitment, address, amount, asset_id, rseed, recovery_commitment)
+                VALUES (?1, ?2, ?3, ?4, ?5, ?6)
                 ON CONFLICT (note_commitment)
                 DO UPDATE SET
                 address = excluded.address,
                 amount = excluded.amount,
                 asset_id = excluded.asset_id,
-                rseed = excluded.rseed",
-            (note_commitment, address, amount, asset_id, rseed),
+                rseed = excluded.rseed,
+                recovery_commitment = excluded.recovery_commitment",
+            (
+                note_commitment,
+                address,
+                amount,
+                asset_id,
+                rseed,
+                recovery_commitment,
+            ),
         )?;
 
         Ok(())
@@ -1506,7 +1560,8 @@ impl Storage {
                         notes.address,
                         notes.amount,
                         notes.asset_id,
-                        notes.rseed
+                        notes.rseed,
+                        notes.recovery_commitment
                     FROM notes
                     LEFT OUTER JOIN spendable_notes ON notes.note_commitment = spendable_notes.note_commitment
                     WHERE (spendable_notes.note_commitment IS NULL) AND (notes.note_commitment IN ({}))",
@@ -1522,6 +1577,9 @@ impl Storage {
                     let amount_u128: u128 = u128::from_be_bytes(amount);
                     let asset_id = asset::Id(Fq::from_bytes_checked(&row.get::<_, [u8; 32]>("asset_id")?).expect("asset id malformed"));
                     let rseed = Rseed(row.get::<_, [u8; 32]>("rseed")?);
+                    let recovery_commitment = row
+                        .get::<_, [u8; 32]>("recovery_commitment")?
+                        .try_into()?;
                     let note = Note::from_parts(
                         address,
                         Value {
@@ -1529,6 +1587,7 @@ impl Storage {
                             asset_id,
                         },
                         rseed,
+                        recovery_commitment,
                     )?;
                     anyhow::Ok((note.commit(), note))
                 })?
@@ -1829,6 +1888,7 @@ impl Storage {
             notes.amount,
             notes.asset_id,
             notes.rseed,
+            notes.recovery_commitment,
             spendable_notes.address_index,
             spendable_notes.source,
             spendable_notes.height_spent,
@@ -2003,8 +2063,11 @@ impl Storage {
                         &update.leaf.address.to_vec(),
                         &update.leaf.asset_id.to_bytes(),
                         update.position,
-                        &update.leaf.d.to_bytes(),
+                        &update.leaf.capk.vartime_compress().0,
+                        &update.leaf.cnk_commitment.to_bytes(),
                         update.leaf.status,
+                        update.leaf.freeze_generation,
+                        update.leaf.frozen_since_height,
                         update.commitment,
                     )?;
                 }

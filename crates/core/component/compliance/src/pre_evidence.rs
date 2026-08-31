@@ -12,6 +12,7 @@ use ark_ff::{BigInteger, PrimeField};
 use decaf377::{Element, Fr};
 use once_cell::sync::Lazy;
 use sha2::{Digest, Sha512};
+use shieldd_sdk_proto::{core::component::compliance::v1 as pb, DomainType};
 
 pub const PRE_EVIDENCE_VERSION: u32 = 1;
 pub const COMPACT_PRE_EVIDENCE_VERSION: u32 = 1;
@@ -49,7 +50,7 @@ pub struct PreShareEvidence {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct PreEvidenceV1 {
+pub struct PreEvidence {
     pub version: u32,
     pub ring_id: String,
     /// Ordinary bulletin identifier; not an additional transaction binding.
@@ -71,7 +72,7 @@ pub struct PreEvidenceV1 {
 /// vector; it does not attest to a Shieldd transaction or define a new PRE
 /// operation.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct CompactPreEvidenceV1 {
+pub struct CompactPreEvidence {
     pub version: u32,
     pub capability: Element,
     pub reader_pk: Element,
@@ -93,6 +94,150 @@ pub struct VerifiedPreEvidence {
     reencrypted_point: Element,
     ciphertext_epk: Element,
     reader_pk: Element,
+}
+
+fn decode_element(bytes: Vec<u8>, label: &str) -> Result<Element> {
+    let bytes: [u8; 32] = bytes.try_into().map_err(|bytes: Vec<u8>| {
+        anyhow::anyhow!("{label} must be 32 bytes, got {}", bytes.len())
+    })?;
+    decaf377::Encoding(bytes)
+        .vartime_decompress()
+        .map_err(|_| anyhow::anyhow!("invalid {label} point encoding"))
+}
+
+fn decode_fr(bytes: Vec<u8>, label: &str) -> Result<Fr> {
+    let bytes: [u8; 32] = bytes.try_into().map_err(|bytes: Vec<u8>| {
+        anyhow::anyhow!("{label} must be 32 bytes, got {}", bytes.len())
+    })?;
+    Fr::from_bytes_checked(&bytes).map_err(|_| anyhow::anyhow!("invalid canonical {label} scalar"))
+}
+
+fn decode32(bytes: Vec<u8>, label: &str) -> Result<[u8; 32]> {
+    bytes
+        .try_into()
+        .map_err(|bytes: Vec<u8>| anyhow::anyhow!("{label} must be 32 bytes, got {}", bytes.len()))
+}
+
+impl DomainType for PreEvidence {
+    type Proto = pb::PreEvidence;
+}
+
+impl TryFrom<pb::PreEvidence> for PreEvidence {
+    type Error = anyhow::Error;
+
+    fn try_from(value: pb::PreEvidence) -> Result<Self> {
+        let evidence = Self {
+            version: value.version,
+            ring_id: value.ring_id,
+            object_id: value.object_id,
+            release_scope_commitment: decode32(
+                value.release_scope_commitment,
+                "PRE release scope commitment",
+            )?,
+            derivation: value.derivation,
+            ring_pk: decode_element(value.ring_pk, "PRE ring_pk")?,
+            ciphertext_epk: decode_element(value.ciphertext_epk, "PRE ciphertext_epk")?,
+            reader_pk: decode_element(value.reader_pk, "PRE reader_pk")?,
+            threshold: value.threshold,
+            shares: value
+                .shares
+                .into_iter()
+                .map(|share| {
+                    Ok(PreShareEvidence {
+                        participant_index: share.participant_index,
+                        capability_share: decode_element(
+                            share.capability_share,
+                            "PRE capability share",
+                        )?,
+                        reencrypted_share: decode_element(
+                            share.reencrypted_share,
+                            "PRE reencrypted share",
+                        )?,
+                        challenge: decode_fr(share.challenge, "PRE challenge")?,
+                        response: decode_fr(share.response, "PRE response")?,
+                    })
+                })
+                .collect::<Result<_>>()?,
+        };
+        ensure!(
+            evidence.shares.len() <= MAX_PRE_SHARES,
+            "PRE evidence exceeds the share limit"
+        );
+        Ok(evidence)
+    }
+}
+
+impl From<PreEvidence> for pb::PreEvidence {
+    fn from(value: PreEvidence) -> Self {
+        Self {
+            version: value.version,
+            ring_id: value.ring_id,
+            object_id: value.object_id,
+            release_scope_commitment: value.release_scope_commitment.to_vec(),
+            derivation: value.derivation,
+            ring_pk: value.ring_pk.vartime_compress().0.to_vec(),
+            ciphertext_epk: value.ciphertext_epk.vartime_compress().0.to_vec(),
+            reader_pk: value.reader_pk.vartime_compress().0.to_vec(),
+            threshold: value.threshold,
+            shares: value
+                .shares
+                .into_iter()
+                .map(|share| pb::PreShareEvidence {
+                    participant_index: share.participant_index,
+                    capability_share: share.capability_share.vartime_compress().0.to_vec(),
+                    reencrypted_share: share.reencrypted_share.vartime_compress().0.to_vec(),
+                    challenge: share.challenge.to_bytes().to_vec(),
+                    response: share.response.to_bytes().to_vec(),
+                })
+                .collect(),
+        }
+    }
+}
+
+impl DomainType for CompactPreEvidence {
+    type Proto = pb::CompactPreEvidence;
+}
+
+impl TryFrom<pb::CompactPreEvidence> for CompactPreEvidence {
+    type Error = anyhow::Error;
+
+    fn try_from(value: pb::CompactPreEvidence) -> Result<Self> {
+        let proof = value
+            .proof
+            .ok_or_else(|| anyhow::anyhow!("compact PRE evidence is missing its DLEQ proof"))?;
+        Ok(Self {
+            version: value.version,
+            capability: decode_element(value.capability, "compact PRE capability")?,
+            reader_pk: decode_element(value.reader_pk, "compact PRE reader key")?,
+            ciphertext_epk: decode_element(value.ciphertext_epk, "compact PRE ciphertext EPK")?,
+            reencrypted_point: decode_element(
+                value.reencrypted_point,
+                "compact PRE reencrypted point",
+            )?,
+            proof: DleqProof {
+                commitment_g: decode_element(proof.commitment_g, "compact PRE commitment_g")?,
+                commitment_h: decode_element(proof.commitment_h, "compact PRE commitment_h")?,
+                response: decode_fr(proof.response, "compact PRE response")?,
+            },
+        })
+    }
+}
+
+impl From<CompactPreEvidence> for pb::CompactPreEvidence {
+    fn from(value: CompactPreEvidence) -> Self {
+        Self {
+            version: value.version,
+            capability: value.capability.vartime_compress().0.to_vec(),
+            reader_pk: value.reader_pk.vartime_compress().0.to_vec(),
+            ciphertext_epk: value.ciphertext_epk.vartime_compress().0.to_vec(),
+            reencrypted_point: value.reencrypted_point.vartime_compress().0.to_vec(),
+            proof: Some(pb::DleqProof {
+                commitment_g: value.proof.commitment_g.vartime_compress().0.to_vec(),
+                commitment_h: value.proof.commitment_h.vartime_compress().0.to_vec(),
+                response: value.proof.response.to_bytes().to_vec(),
+            }),
+        }
+    }
 }
 
 impl VerifiedPreEvidence {
@@ -122,7 +267,7 @@ impl VerifiedPreEvidence {
     }
 }
 
-impl PreEvidenceV1 {
+impl PreEvidence {
     pub fn verify(
         &self,
         authorization: &EvidenceReleaseAuthorization,
@@ -209,7 +354,7 @@ impl PreEvidenceV1 {
     }
 }
 
-impl CompactPreEvidenceV1 {
+impl CompactPreEvidence {
     pub fn verify(&self, shares: &VerifiedPreEvidence) -> Result<()> {
         ensure!(
             self.version == COMPACT_PRE_EVIDENCE_VERSION,
@@ -243,7 +388,7 @@ impl CompactPreEvidenceV1 {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct IssuerDhEvidenceV1 {
+pub struct IssuerDhEvidence {
     pub version: u32,
     pub asset_id: [u8; 32],
     pub ciphertext_epk: Element,
@@ -252,7 +397,7 @@ pub struct IssuerDhEvidenceV1 {
     pub proof: DleqProof,
 }
 
-impl IssuerDhEvidenceV1 {
+impl IssuerDhEvidence {
     pub fn verify(&self) -> Result<Element> {
         ensure!(self.version == 1, "unsupported issuer DH evidence version");
         decaf377::Fq::from_bytes_checked(&self.asset_id)
@@ -329,7 +474,7 @@ fn verify_dleq(
 }
 
 fn verify_orbis_pre_share(
-    evidence: &PreEvidenceV1,
+    evidence: &PreEvidence,
     share: &PreShareEvidence,
     reader_base: Element,
 ) -> Result<()> {
@@ -378,7 +523,7 @@ fn orbis_pre_challenge(
     Fr::from_le_bytes_mod_order(&hash.finalize())
 }
 
-fn issuer_challenge(evidence: &IssuerDhEvidenceV1) -> Fr {
+fn issuer_challenge(evidence: &IssuerDhEvidence) -> Fr {
     let asset_id = decaf377::Fq::from_bytes_checked(&evidence.asset_id)
         .expect("issuer evidence verification checked the asset ID encoding");
     let challenge = poseidon377::hash_7(
@@ -396,7 +541,7 @@ fn issuer_challenge(evidence: &IssuerDhEvidenceV1) -> Fr {
     fq_to_challenge_scalar(challenge)
 }
 
-fn compact_pre_challenge(evidence: &CompactPreEvidenceV1, reader_base: Element) -> Fr {
+fn compact_pre_challenge(evidence: &CompactPreEvidence, reader_base: Element) -> Fr {
     let head = poseidon377::hash_7(
         &COMPACT_PRE_DLEQ_DOMAIN,
         (
@@ -437,7 +582,7 @@ fn update_point(hash: &mut Sha512, point: Element) {
 mod tests {
     use super::*;
 
-    fn pre_proof(evidence: &PreEvidenceV1, index: u32, secret: Fr, nonce: Fr) -> PreShareEvidence {
+    fn pre_proof(evidence: &PreEvidence, index: u32, secret: Fr, nonce: Fr) -> PreShareEvidence {
         let reader_base = evidence.reader_pk + evidence.ciphertext_epk;
         let mut share = PreShareEvidence {
             participant_index: index,
@@ -459,14 +604,14 @@ mod tests {
         share
     }
 
-    fn valid_pre_evidence() -> (PreEvidenceV1, EvidenceReleaseAuthorization, Fr, Fr, Fr) {
+    fn valid_pre_evidence() -> (PreEvidence, EvidenceReleaseAuthorization, Fr, Fr, Fr) {
         let derivation = b"trial-address-derivation".to_vec();
         let d = derive_orbis_scalar(&derivation);
         let ring_secret = Fr::from(17u64);
         let polynomial = Fr::from(29u64);
         let reader_secret = Fr::from(31u64);
         let epk_secret = Fr::from(37u64);
-        let mut evidence = PreEvidenceV1 {
+        let mut evidence = PreEvidence {
             version: PRE_EVIDENCE_VERSION,
             ring_id: "ring-1".to_owned(),
             object_id: "object-1".to_owned(),
@@ -510,7 +655,7 @@ mod tests {
         let capability_secret = d * Fr::from(17u64);
         let nonce = Fr::from(59u64);
         let reader_base = evidence.reader_pk + evidence.ciphertext_epk;
-        let mut compact = CompactPreEvidenceV1 {
+        let mut compact = CompactPreEvidence {
             version: COMPACT_PRE_EVIDENCE_VERSION,
             capability: verified.capability,
             reader_pk: evidence.reader_pk,
@@ -593,9 +738,9 @@ mod tests {
         assert!(evidence.verify(&other_ring).is_ok());
     }
 
-    fn issuer_proof(secret: Fr, epk: Element, asset_id: [u8; 32]) -> IssuerDhEvidenceV1 {
+    fn issuer_proof(secret: Fr, epk: Element, asset_id: [u8; 32]) -> IssuerDhEvidence {
         let nonce = Fr::from(59u64);
-        let mut evidence = IssuerDhEvidenceV1 {
+        let mut evidence = IssuerDhEvidence {
             version: 1,
             asset_id,
             ciphertext_epk: epk,

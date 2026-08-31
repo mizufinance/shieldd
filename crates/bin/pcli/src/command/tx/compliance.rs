@@ -60,6 +60,9 @@ pub enum ComplianceCmd {
         /// Registration-authority verification key for regulated user grants, hex-encoded.
         #[clap(long)]
         registration_authority_vk_hex: Option<String>,
+        /// Seizure-authority verification key for regulated note seizures, hex-encoded.
+        #[clap(long)]
+        seizure_authority_vk_hex: Option<String>,
         /// Allowed direct IBC route: <local_channel,connection_id,counterparty_channel>.
         #[clap(long = "allowed-ibc-route")]
         allowed_ibc_routes: Vec<String>,
@@ -137,6 +140,9 @@ pub enum ComplianceCmd {
         /// Registration-authority verification key for regulated user grants, hex-encoded.
         #[clap(long)]
         registration_authority_vk_hex: Option<String>,
+        /// Seizure-authority verification key for regulated note seizures, hex-encoded.
+        #[clap(long)]
+        seizure_authority_vk_hex: Option<String>,
         /// Allowed direct IBC route: <local_channel,connection_id,counterparty_channel>.
         #[clap(long = "allowed-ibc-route")]
         allowed_ibc_routes: Vec<String>,
@@ -164,6 +170,12 @@ pub enum ComplianceCmd {
         /// SourceHub policy ID bound to this grant.
         #[clap(long, default_value = "")]
         policy_id: String,
+        /// Orbis ring public key for the registered asset.
+        #[clap(long)]
+        ring_pk_hex: String,
+        /// Compliance nullifier key shared with the user and held by the ACP.
+        #[clap(long)]
+        cnk_hex: String,
         /// Registration-authority signing key for this asset, hex-encoded.
         #[clap(long)]
         registration_authority_sk_hex: String,
@@ -307,6 +319,7 @@ impl ComplianceCmd {
                 permission,
                 resource,
                 registration_authority_vk_hex,
+                seizure_authority_vk_hex,
                 allowed_ibc_routes,
                 ibc_origin_base_denom,
                 ibc_origin_route,
@@ -341,6 +354,13 @@ impl ComplianceCmd {
                         "--registration-authority-vk-hex is required for regulated assets"
                     );
                 }
+                let seizure_authority_vk = seizure_authority_vk_hex
+                    .as_ref()
+                    .map(|hex_str| parse_spend_vk(hex_str, "seizure_authority_vk_hex"))
+                    .transpose()?;
+                if is_regulated && seizure_authority_vk.is_none() {
+                    anyhow::bail!("--seizure-authority-vk-hex is required for regulated assets");
+                }
                 let allowed_ibc_routes = Self::parse_ibc_routes(allowed_ibc_routes, is_regulated)?;
                 let ibc_origin = Self::parse_ibc_origin(
                     ibc_origin_base_denom.as_deref(),
@@ -361,6 +381,7 @@ impl ComplianceCmd {
                     permission: permission.clone(),
                     resource: resource.clone(),
                     registration_authority_vk,
+                    seizure_authority_vk,
                     valid_until_unix: *valid_until_unix,
                 };
                 let grant = AssetRegistrationGrant {
@@ -375,11 +396,15 @@ impl ComplianceCmd {
                 asset_id,
                 address,
                 policy_id,
+                ring_pk_hex,
+                cnk_hex,
                 registration_authority_sk_hex,
                 valid_until_unix,
             } => {
                 let asset_id = Self::parse_asset_id(asset_id)?;
-                let leaf = ComplianceLeaf::new(address.clone(), asset_id);
+                let ring_pk = parse_decaf377_element(ring_pk_hex, "ring_pk_hex")?;
+                let cnk = parse_fq(cnk_hex, "cnk_hex")?;
+                let leaf = ComplianceLeaf::registered(address.clone(), asset_id, ring_pk, cnk)?;
                 let mut nonce = vec![0u8; 16];
                 rand_core::RngCore::fill_bytes(&mut rand_core::OsRng, &mut nonce);
                 let authority_sk = parse_spend_sk(
@@ -428,6 +453,7 @@ impl ComplianceCmd {
                 permission,
                 resource,
                 registration_authority_vk_hex,
+                seizure_authority_vk_hex,
                 allowed_ibc_routes,
                 ibc_origin_base_denom,
                 ibc_origin_route,
@@ -467,6 +493,13 @@ impl ComplianceCmd {
                         "--registration-authority-vk-hex is required for regulated assets"
                     );
                 }
+                let seizure_authority_vk = seizure_authority_vk_hex
+                    .as_ref()
+                    .map(|hex_str| parse_spend_vk(hex_str, "seizure_authority_vk_hex"))
+                    .transpose()?;
+                if is_regulated && seizure_authority_vk.is_none() {
+                    anyhow::bail!("--seizure-authority-vk-hex is required for regulated assets");
+                }
                 let allowed_ibc_routes =
                     Self::parse_ibc_routes(allowed_ibc_routes, is_regulated)?;
                 let ibc_origin = Self::parse_ibc_origin(
@@ -491,6 +524,7 @@ impl ComplianceCmd {
                     permission: permission.clone(),
                     resource: resource.clone(),
                     registration_authority_vk,
+                    seizure_authority_vk,
                     asset_registration_grant: Some(asset_registration_grant),
                 };
 
@@ -526,11 +560,18 @@ impl ComplianceCmd {
                     }
                 };
 
-                let leaf = ComplianceLeaf::new(address, asset_id);
                 let grant = decode_user_registration_grant(user_registration_grant_hex)
                     .context("invalid --user-registration-grant-hex")?;
+                anyhow::ensure!(
+                    grant.body.leaf.address == address,
+                    "user registration grant address does not match the selected wallet address"
+                );
+                anyhow::ensure!(
+                    grant.body.leaf.asset_id == asset_id,
+                    "user registration grant asset does not match the requested asset"
+                );
                 let msg = MsgRegisterUser {
-                    leaf,
+                    leaf: grant.body.leaf.clone(),
                     grant: Some(grant),
                 };
 
@@ -782,6 +823,18 @@ fn parse_decaf377_element(hex_str: &str, label: &str) -> Result<decaf377::Elemen
     decaf377::Encoding(arr)
         .vartime_decompress()
         .map_err(|_| anyhow::anyhow!("invalid {label} encoding"))
+}
+
+fn parse_fq(hex_str: &str, label: &str) -> Result<decaf377::Fq> {
+    let bytes = hex::decode(hex_str).with_context(|| format!("invalid {label}: must be hex"))?;
+    if bytes.len() != 32 {
+        anyhow::bail!("{label} must be exactly 64 hex chars (32 bytes)");
+    }
+    let bytes: [u8; 32] = bytes.try_into().unwrap();
+    let value = decaf377::Fq::from_bytes_checked(&bytes)
+        .map_err(|_| anyhow::anyhow!("invalid {label} field encoding"))?;
+    anyhow::ensure!(value != decaf377::Fq::from(0u64), "{label} must be nonzero");
+    Ok(value)
 }
 
 fn parse_spend_vk(hex_str: &str, label: &str) -> Result<VerificationKey<SpendAuth>> {

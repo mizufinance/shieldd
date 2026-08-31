@@ -90,8 +90,8 @@ func testCircuitFamilies() []circuitFamily {
 			circuit: func() frontend.Circuit { return circuits.NewTransferCircuit() },
 			assignment: func(t *testing.T) frontend.Circuit {
 				t.Helper()
-				fixtureBytes := testfixtures.LoadTransferWitnessV20("transfer")
-				assignment, _, err := abi.NewTransferCircuitAssignmentFromWitnessV20(fixtureBytes)
+				fixtureBytes := testfixtures.LoadTransferWitness("transfer")
+				assignment, _, err := abi.NewTransferCircuitAssignmentFromWitness(fixtureBytes)
 				if err != nil {
 					t.Fatalf("decode transfer witness fixture: %v", err)
 				}
@@ -107,8 +107,8 @@ func testCircuitFamilies() []circuitFamily {
 			circuit: func() frontend.Circuit { return circuits.NewShieldedIcs20WithdrawalCircuit(2) },
 			assignment: func(t *testing.T) frontend.Circuit {
 				t.Helper()
-				fixtureBytes := testfixtures.LoadShieldedIcs20WithdrawalWitnessV14("shielded_ics20_withdrawal")
-				assignment, _, err := abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV14(fixtureBytes)
+				fixtureBytes := testfixtures.LoadShieldedIcs20WithdrawalWitness("shielded_ics20_withdrawal")
+				assignment, _, err := abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitness(fixtureBytes)
 				if err != nil {
 					t.Fatalf("decode shielded ICS-20 withdrawal witness fixture: %v", err)
 				}
@@ -126,8 +126,8 @@ func testCircuitFamilies() []circuitFamily {
 			},
 			assignment: func(t *testing.T) frontend.Circuit {
 				t.Helper()
-				fixtureBytes := testfixtures.LoadNoteReshapeWitnessV6("note_reshape8x1")
-				assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV6(fixtureBytes)
+				fixtureBytes := testfixtures.LoadNoteReshapeWitness("note_reshape8x1")
+				assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitness(fixtureBytes)
 				if err != nil {
 					t.Fatalf("decode note reshape witness fixture: %v", err)
 				}
@@ -143,8 +143,8 @@ func testCircuitFamilies() []circuitFamily {
 			circuit: func() frontend.Circuit { return circuits.NewNoteReshapeCircuit("note_reshape1x8", 1, 8) },
 			assignment: func(t *testing.T) frontend.Circuit {
 				t.Helper()
-				fixtureBytes := testfixtures.LoadNoteReshapeWitnessV6("note_reshape1x8")
-				assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV6(fixtureBytes)
+				fixtureBytes := testfixtures.LoadNoteReshapeWitness("note_reshape1x8")
+				assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitness(fixtureBytes)
 				if err != nil {
 					t.Fatalf("decode note reshape witness fixture: %v", err)
 				}
@@ -178,22 +178,22 @@ func compileCircuitFamilies() []struct {
 		{
 			name:    "transfer",
 			circuit: func() frontend.Circuit { return circuits.NewTransferCircuit() },
-			stats:   circuitStats{constraints: 130457, public: 2, secret: 399, internal: 121024},
+			stats:   circuitStats{constraints: 143161, public: 2, secret: 428, internal: 131649},
 		},
 		{
 			name:    "note_reshape8x1",
 			circuit: func() frontend.Circuit { return circuits.NewNoteReshapeCircuit("note_reshape8x1", 8, 1) },
-			stats:   circuitStats{constraints: 140640, public: 2, secret: 802, internal: 133732},
+			stats:   circuitStats{constraints: 150405, public: 2, secret: 824, internal: 142456},
 		},
 		{
 			name:    "note_reshape1x8",
 			circuit: func() frontend.Circuit { return circuits.NewNoteReshapeCircuit("note_reshape1x8", 1, 8) },
-			stats:   circuitStats{constraints: 50334, public: 2, secret: 240, internal: 46595},
+			stats:   circuitStats{constraints: 116552, public: 2, secret: 332, internal: 106914},
 		},
 		{
 			name:    "shielded_ics20_withdrawal",
 			circuit: func() frontend.Circuit { return circuits.NewShieldedIcs20WithdrawalCircuit(2) },
-			stats:   circuitStats{constraints: 77371, public: 2, secret: 313, internal: 71822},
+			stats:   circuitStats{constraints: 83880, public: 2, secret: 329, internal: 77291},
 		},
 	}
 }
@@ -265,7 +265,7 @@ func TestCircuitFamiliesRejectMutatedComplianceField(t *testing.T) {
 					primitives.LittleEndianBytesToBigInt(
 						witness.Metadata.SenderCoreSalt[:],
 					).String()
-				setTransferStatementHashV20(t, witness, transfer)
+				setTransferStatementHash(t, witness, transfer)
 				assignment = transfer
 			case "shielded_ics20_withdrawal":
 				_, withdrawal, _ := loadWithdrawalFixture(t)
@@ -300,7 +300,7 @@ func TestCircuitFamiliesRejectMutatedComplianceField(t *testing.T) {
 				} else {
 					noteReshape.Spends[0].Nullifier = mutatedNullifier
 				}
-				setNoteReshapeStatementHashV5(
+				setNoteReshapeStatementHash(
 					t,
 					family.name,
 					witness,
@@ -349,7 +349,7 @@ func TestCircuitFamiliesRejectMutatedBalanceCommitment(t *testing.T) {
 				}
 				witness.BalanceCommitmentAffine = witness.AKAffine
 				noteReshape.BalanceCommitment = noteReshape.Auth.AK
-				setNoteReshapeStatementHashV5(
+				setNoteReshapeStatementHash(
 					t,
 					family.name,
 					witness,
@@ -385,7 +385,7 @@ func TestCircuitFamiliesRejectMutatedNullifier(t *testing.T) {
 					primitives.LittleEndianBytesToBigInt(
 						witness.RequiredSpend.Nullifier[:],
 					).String()
-				setTransferStatementHashV20(t, witness, transfer)
+				setTransferStatementHash(t, witness, transfer)
 				assignment = transfer
 			case "shielded_ics20_withdrawal":
 				witness, withdrawal, nIn := loadWithdrawalFixture(t)
@@ -419,7 +419,7 @@ func TestCircuitFamiliesRejectMutatedNullifier(t *testing.T) {
 				} else {
 					noteReshape.Spends[0].Nullifier = mutatedNullifier
 				}
-				setNoteReshapeStatementHashV5(
+				setNoteReshapeStatementHash(
 					t,
 					family.name,
 					witness,
@@ -448,19 +448,19 @@ func TestPaddedSpendCircuitsRejectMutatedDummyNullifierSeed(t *testing.T) {
 			var assignment frontend.Circuit
 			switch family.name {
 			case "transfer":
-				fixture := testfixtures.LoadTransferWitnessV20("transfer_flagged")
+				fixture := testfixtures.LoadTransferWitness("transfer_flagged")
 				transfer, _, err :=
-					abi.NewTransferCircuitAssignmentFromWitnessV20(fixture)
+					abi.NewTransferCircuitAssignmentFromWitness(fixture)
 				if err != nil {
 					t.Fatalf("decode dummy transfer fixture: %v", err)
 				}
 				assignment = transfer
 			case "shielded_ics20_withdrawal":
-				fixture := testfixtures.LoadShieldedIcs20WithdrawalWitnessV14(
+				fixture := testfixtures.LoadShieldedIcs20WithdrawalWitness(
 					"shielded_ics20_withdrawal_unregulated",
 				)
 				withdrawal, _, err :=
-					abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV14(
+					abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitness(
 						fixture,
 					)
 				if err != nil {
@@ -526,7 +526,7 @@ func TestNoteReshapeRejectsDummyOutputCommitmentMutation(t *testing.T) {
 	if !mutated {
 		t.Fatal("note_reshape1x8 fixture must contain a dummy output")
 	}
-	setNoteReshapeStatementHashV5(
+	setNoteReshapeStatementHash(
 		t,
 		"note_reshape1x8",
 		witness,
@@ -543,8 +543,8 @@ func TestNoteReshapeRejectsDummyOutputCommitmentMutation(t *testing.T) {
 }
 
 func TestNoteReshapeRejectsPaddedOutputPayloadMutation(t *testing.T) {
-	fixtureBytes := testfixtures.LoadNoteReshapeWitnessV6("note_reshape1x8")
-	assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV6(fixtureBytes)
+	fixtureBytes := testfixtures.LoadNoteReshapeWitness("note_reshape1x8")
+	assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitness(fixtureBytes)
 	if err != nil {
 		t.Fatalf("decode note reshape witness fixture: %v", err)
 	}

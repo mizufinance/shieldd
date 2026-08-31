@@ -15,11 +15,13 @@ import (
 type NoteReshapeOutputCircuitFields struct {
 	NoteCommitment frontend.Variable
 	Note           NoteReshapeNoteCircuitFields
+	Recovery       RecoveryCapsuleFields
 }
 
 type NoteReshapeNoteCircuitFields struct {
-	Blinding frontend.Variable
-	Amount   frontend.Variable
+	Blinding           frontend.Variable
+	Amount             frontend.Variable
+	RecoveryCommitment frontend.Variable
 }
 
 type NoteReshapeSharedNoteContextCircuitFields struct {
@@ -28,10 +30,11 @@ type NoteReshapeSharedNoteContextCircuitFields struct {
 }
 
 type NoteReshapeSenderCircuitFields struct {
-	D        frontend.Variable
-	Status   frontend.Variable
-	Path     [ComplianceQuadTreeDepth][3]frontend.Variable
-	Position frontend.Variable
+	Capk          Point2D
+	CnkCommitment frontend.Variable
+	Status        frontend.Variable
+	Path          [ComplianceQuadTreeDepth][3]frontend.Variable
+	Position      frontend.Variable
 }
 
 type NoteReshapeSpendCircuitFields struct {
@@ -147,12 +150,14 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 	c.bindSemantic("is_regulated", c.IsRegulated)
 	c.bindSemantic("shared.asset_id", c.Shared.AssetID)
 	c.bindSemantic("shared.div_gen", sharedDivGen.X, sharedDivGen.Y)
-	c.bindSemantic("sender.d", c.Sender.D)
+	c.bindSemantic("sender.capk", c.Sender.Capk.X, c.Sender.Capk.Y)
+	c.bindSemantic("sender.cnk_commitment", c.Sender.CnkCommitment)
 	c.bindSemantic("sender.status", c.Sender.Status)
 	c.bindSemantic("sender.path", quadPathVariables(c.Sender.Path)...)
 	c.bindSemantic("sender.position", c.Sender.Position)
 	c.bindSemantic("auth.ak", sharedAK.X, sharedAK.Y)
 	c.bindSemantic("auth.nk", c.Auth.NK)
+	c.bindSemantic("auth.cnk", c.Auth.CNK)
 	c.bindSemantic("auth.ivk_reduced", c.Auth.IVKReduced)
 	c.bindSemantic("auth.ivk_quotient_a", c.Auth.IVKQuotientA)
 	c.traceWiring(
@@ -227,19 +232,25 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 	); err != nil {
 		return err
 	}
-	c.traceWiring("gadget.compliance_leaf", "div_gen_fq=shared.div_gen_fq", "transmission_fq=shared.transmission.fq", "asset_id=shared.asset_id", "d=sender.d", "status=sender.status", "out=sender.leaf_commitment")
+	c.traceWiring("gadget.compliance_leaf", "div_gen_fq=shared.div_gen_fq", "transmission_fq=shared.transmission.fq", "asset_id=shared.asset_id", "capk=sender.capk", "cnk_commitment=sender.cnk_commitment", "status=sender.status", "out=sender.leaf_commitment")
 	senderLeafCommitment, err := ComplianceLeafCommitmentFromCompressed(
 		api,
 		sharedDivGenFq,
 		sharedTransmissionFq,
 		c.Shared.AssetID,
-		c.Sender.D,
+		gnarkte.Point{X: c.Sender.Capk.X, Y: c.Sender.Capk.Y},
+		c.Sender.CnkCommitment,
 		c.Sender.Status,
 	)
 	if err != nil {
 		return err
 	}
 	c.bindSemantic("sender.leaf_commitment", senderLeafCommitment)
+	cnkCommitment, err := ComplianceNullifierKeyCommitment(api, c.Auth.CNK)
+	if err != nil {
+		return err
+	}
+	AssertEqualIf(api, cnkCommitment, c.Sender.CnkCommitment, c.IsRegulated)
 	c.traceWiring("gadget.compliance_path", "leaf=sender.leaf_commitment", "path=sender.path", "position=sender.position", "out=sender.compliance_root")
 	senderComplianceRoot, err := VerifyQuadPath(api, senderLeafCommitment, c.Sender.Path, c.Sender.Position)
 	if err != nil {
@@ -248,8 +259,8 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 	c.bindSemantic("sender.compliance_root", senderComplianceRoot)
 	c.traceWiring("assert.eq_if", "lhs=sender.compliance_root", "rhs=compliance_anchor", "cond=is_regulated")
 	AssertEqualIf(api, senderComplianceRoot, c.ComplianceAnchor, c.IsRegulated)
-	c.traceWiring("assert.eq_if", "lhs=sender.status", "rhs=1", "cond=is_regulated")
-	AssertEqualIf(api, c.Sender.Status, 1, c.IsRegulated)
+	c.traceWiring("gadget.active_lifecycle", "lifecycle=sender.status", "cond=is_regulated")
+	AssertActiveComplianceLifecycle(api, c.Sender.Status, c.IsRegulated)
 	if err := verifySingleRoutingTag(
 		api,
 		c.traceWiring,
@@ -268,7 +279,7 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 	inputAmounts := make([]frontend.Variable, 0, c.nIn)
 	outputAmounts := make([]frontend.Variable, 0, c.nOut)
 	statementFields := make([]frontend.Variable, 0, NoteReshapeStatementFieldCount(c.nIn, c.nOut))
-	outputCommitments := make([]frontend.Variable, 0, c.nOut)
+	outputCommitments := make([]frontend.Variable, 0, 2*c.nOut)
 	nullifiersAndRKs := make([]frontend.Variable, 0, 3*c.nIn)
 
 	for i := 0; i < c.nIn; i++ {
@@ -320,7 +331,11 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 		}
 		c.traceWiring("output.collect", outputName, "amount->output_amounts", "commitment->statement.output_commitments")
 		outputAmounts = append(outputAmounts, amount)
-		outputCommitments = append(outputCommitments, commitment)
+		outputCommitments = append(
+			outputCommitments,
+			commitment,
+			c.Outputs[i].Note.RecoveryCommitment,
+		)
 	}
 
 	// NB-1: note_reshape is always conservation-exact (single asset ID shared
@@ -461,6 +476,7 @@ func (c *NoteReshapeCircuit) verifyPaddedNoteReshapeSpend(
 		c.Shared.AssetID,
 		sharedDivGenFq,
 		sharedTransmissionFq,
+		spend.Note.RecoveryCommitment,
 	)
 	if err != nil {
 		return nil, nil, nil, err
@@ -472,6 +488,7 @@ func (c *NoteReshapeCircuit) verifyPaddedNoteReshapeSpend(
 		c.Shared.AssetID,
 		sharedDivGenFq,
 		sharedTransmissionFq,
+		spend.Note.RecoveryCommitment,
 	)
 	c.bindSemantic(name+".note.commitment.computed", spentCommitment)
 	c.bindSemantic(name+".state_proof.commitment", spend.StateProof.Commitment)
@@ -479,7 +496,8 @@ func (c *NoteReshapeCircuit) verifyPaddedNoteReshapeSpend(
 	AssertEqualIf(api, spentCommitment, spend.StateProof.Commitment, isNotDummy)
 
 	c.traceWiring("gadget.nullifier", "nk=auth.nk", "commitment="+name+".state_proof.commitment", "position="+name+".state_proof.position", "out="+name+".nullifier.real")
-	realNullifier, err := Nullifier(api, c.Auth.NK, spend.StateProof.Commitment, spend.StateProof.Position)
+	effectiveNK := api.Select(c.IsRegulated, c.Auth.CNK, c.Auth.NK)
+	realNullifier, err := Nullifier(api, effectiveNK, spend.StateProof.Commitment, spend.StateProof.Position)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -575,6 +593,7 @@ func (c *NoteReshapeCircuit) verifyFixedNoteReshapeSpend(
 		c.Shared.AssetID,
 		sharedDivGenFq,
 		sharedTransmissionFq,
+		spend.Note.RecoveryCommitment,
 	)
 	if err != nil {
 		return nil, nil, nil, err
@@ -593,7 +612,8 @@ func (c *NoteReshapeCircuit) verifyFixedNoteReshapeSpend(
 	api.AssertIsEqual(spentCommitment, spend.StateProof.Commitment)
 
 	c.traceWiring("gadget.nullifier", "nk=auth.nk", "commitment="+name+".state_proof.commitment", "position="+name+".state_proof.position", "out="+name+".nullifier.computed")
-	nullifier, err := Nullifier(api, c.Auth.NK, spend.StateProof.Commitment, spend.StateProof.Position)
+	effectiveNK := api.Select(c.IsRegulated, c.Auth.CNK, c.Auth.NK)
+	nullifier, err := Nullifier(api, effectiveNK, spend.StateProof.Commitment, spend.StateProof.Position)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -667,6 +687,7 @@ func (c *NoteReshapeCircuit) verifyFixedNoteReshapeOutput(
 		c.Shared.AssetID,
 		sharedDivGenFq,
 		sharedTransmissionFq,
+		output.Note.RecoveryCommitment,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -683,6 +704,16 @@ func (c *NoteReshapeCircuit) verifyFixedNoteReshapeOutput(
 	c.bindSemantic(name+".note.commitment.claimed", output.NoteCommitment)
 	c.traceWiring("assert.eq", "lhs="+name+".note.commitment.computed", "rhs="+name+".note_commitment")
 	api.AssertIsEqual(noteCommitment, output.NoteCommitment)
+	if err := VerifyRecoveryCapsule(
+		api,
+		gnarkte.Point{X: c.Sender.Capk.X, Y: c.Sender.Capk.Y},
+		output.Note.Amount,
+		output.Note.Blinding,
+		output.Recovery,
+	); err != nil {
+		return nil, nil, err
+	}
+	api.AssertIsEqual(output.Recovery.Commitment, output.Note.RecoveryCommitment)
 
 	return output.Note.Amount, noteCommitment, nil
 }

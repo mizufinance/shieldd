@@ -22,16 +22,22 @@ pub mod state_key;
 pub mod note;
 mod note_payload;
 mod note_reshape_padding;
+mod recovery_capsule;
 pub mod rseed;
 mod shielded_note_plan;
 
 pub use note::{Note, NoteCiphertext, NoteView};
 pub use note_payload::NotePayload;
+pub use recovery_capsule::{
+    RecoveryCapsule, RecoveryCapsuleOpening, RecoveryCommitment, RecoveryPlaintext,
+    RECOVERY_CAPSULE_BYTES,
+};
 pub use rseed::Rseed;
 
 pub use shielded_note_plan::{ShieldedInputPlan, ShieldedOutputPlan};
 
 pub mod note_reshape;
+mod note_seizure;
 pub mod public_input_hash;
 pub mod shielded_host_withdrawal;
 pub mod shielded_ics20_withdrawal;
@@ -50,6 +56,11 @@ pub use note_reshape::{
     NoteReshapeInputPrivate, NoteReshapeInputPublic, NoteReshapeOutputBody,
     NoteReshapeOutputPrivate, NoteReshapeOutputPublic, NoteReshapePlan, NoteReshapeProof,
     NoteReshapeProofPrivate, NoteReshapeProofPublic, NoteReshapeView, NOTE_RESHAPE_FAMILY_SPECS,
+};
+pub use note_seizure::{
+    NoteSeizure, NoteSeizureAuthorizationBody, NoteSeizureProof, NoteSeizureProofPrivate,
+    NoteSeizureProofPublic, MAX_NOTE_SEIZURE_CHAIN_ID_BYTES, NOTE_SEIZURE_PROOF_LABEL,
+    NOTE_SEIZURE_STATEMENT_FIELD_COUNT,
 };
 pub use shielded_host_withdrawal::{
     ShieldedHostWithdrawal, ShieldedHostWithdrawalBody, ShieldedHostWithdrawalPlan,

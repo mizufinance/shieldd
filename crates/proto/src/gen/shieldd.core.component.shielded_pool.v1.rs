@@ -138,6 +138,9 @@ pub struct Note {
     pub rseed: ::prost::alloc::vec::Vec<u8>,
     #[prost(message, optional, tag = "3")]
     pub address: ::core::option::Option<super::super::super::keys::v1::Address>,
+    /// Commitment to the recovery capsule that can spend this exact note under seizure.
+    #[prost(bytes = "vec", tag = "4")]
+    pub recovery_commitment: ::prost::alloc::vec::Vec<u8>,
 }
 impl ::prost::Name for Note {
     const NAME: &'static str = "Note";
@@ -157,6 +160,8 @@ pub struct NoteView {
     pub rseed: ::prost::alloc::vec::Vec<u8>,
     #[prost(message, optional, tag = "3")]
     pub address: ::core::option::Option<super::super::super::keys::v1::AddressView>,
+    #[prost(bytes = "vec", tag = "4")]
+    pub recovery_commitment: ::prost::alloc::vec::Vec<u8>,
 }
 impl ::prost::Name for NoteView {
     const NAME: &'static str = "NoteView";
@@ -169,7 +174,8 @@ impl ::prost::Name for NoteView {
     }
 }
 /// An encrypted note.
-/// 144 = 48(address) + 16(amount) + 32(asset ID) + 32(rseed) + 16(MAC) bytes.
+/// 176 = 48(address) + 16(amount) + 32(asset ID) + 32(rseed)
+/// + 32(recovery commitment) + 16(MAC) bytes.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct NoteCiphertext {
     #[prost(bytes = "vec", tag = "1")]
@@ -185,6 +191,23 @@ impl ::prost::Name for NoteCiphertext {
         "/shieldd.core.component.shielded_pool.v1.NoteCiphertext".into()
     }
 }
+/// Fixed-shape ordinary-Orbis envelope for amount and note blinding.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RecoveryCapsule {
+    /// Canonical 192-byte encoding of epk and five Fq words.
+    #[prost(bytes = "vec", tag = "1")]
+    pub inner: ::prost::alloc::vec::Vec<u8>,
+}
+impl ::prost::Name for RecoveryCapsule {
+    const NAME: &'static str = "RecoveryCapsule";
+    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.shielded_pool.v1.RecoveryCapsule".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.shielded_pool.v1.RecoveryCapsule".into()
+    }
+}
 /// The body of an output description, including only the minimal
 /// data required to scan and process the output.
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -198,9 +221,12 @@ pub struct NotePayload {
     #[prost(bytes = "vec", tag = "2")]
     pub ephemeral_key: ::prost::alloc::vec::Vec<u8>,
     /// An encryption of the newly created note.
-    /// 144 = 48(address) + 16(amount) + 32(asset ID) + 32(rseed) + 16(MAC) bytes.
+    /// 176-byte authenticated encryption of the newly created note.
     #[prost(message, optional, tag = "3")]
     pub encrypted_note: ::core::option::Option<NoteCiphertext>,
+    /// Public recovery sidecar authenticated by note_commitment.
+    #[prost(message, optional, tag = "4")]
+    pub recovery_capsule: ::core::option::Option<RecoveryCapsule>,
 }
 impl ::prost::Name for NotePayload {
     const NAME: &'static str = "NotePayload";
@@ -258,6 +284,112 @@ impl ::prost::Name for ZkShieldedIcs20WithdrawalProof {
     }
     fn type_url() -> ::prost::alloc::string::String {
         "/shieldd.core.component.shielded_pool.v1.ZKShieldedIcs20WithdrawalProof".into()
+    }
+}
+/// A proof that an authorized ACP can consume one real note using its canonical
+/// compliance nullifier without revealing the compliance nullifier key.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ZkNoteSeizureProof {
+    #[prost(bytes = "vec", tag = "1")]
+    pub inner: ::prost::alloc::vec::Vec<u8>,
+}
+impl ::prost::Name for ZkNoteSeizureProof {
+    const NAME: &'static str = "ZKNoteSeizureProof";
+    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.shielded_pool.v1.ZKNoteSeizureProof".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.shielded_pool.v1.ZKNoteSeizureProof".into()
+    }
+}
+/// Immutable facts signed by the asset's seizure authority.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct NoteSeizureAuthorizationBody {
+    #[prost(string, tag = "1")]
+    pub chain_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub note_commitment: ::core::option::Option<
+        super::super::super::super::crypto::tct::v1::StateCommitment,
+    >,
+    #[prost(message, optional, tag = "3")]
+    pub nullifier: ::core::option::Option<super::super::sct::v1::Nullifier>,
+    #[prost(message, optional, tag = "4")]
+    pub address: ::core::option::Option<super::super::super::keys::v1::Address>,
+    #[prost(message, optional, tag = "5")]
+    pub asset_id: ::core::option::Option<super::super::super::asset::v1::AssetId>,
+    #[prost(message, optional, tag = "6")]
+    pub amount: ::core::option::Option<super::super::super::num::v1::Amount>,
+    #[prost(uint64, tag = "7")]
+    pub freeze_generation: u64,
+    #[prost(uint64, tag = "8")]
+    pub frozen_since_height: u64,
+    #[prost(message, optional, tag = "9")]
+    pub withdrawal: ::core::option::Option<HostWithdrawal>,
+    #[prost(bytes = "vec", tag = "10")]
+    pub release_scope_commitment: ::prost::alloc::vec::Vec<u8>,
+    #[prost(uint64, tag = "11")]
+    pub expiry_height: u64,
+}
+impl ::prost::Name for NoteSeizureAuthorizationBody {
+    const NAME: &'static str = "NoteSeizureAuthorizationBody";
+    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.shielded_pool.v1.NoteSeizureAuthorizationBody".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.shielded_pool.v1.NoteSeizureAuthorizationBody".into()
+    }
+}
+/// Complete evidence needed to seize one note. It is submitted through the
+/// privileged host execution boundary rather than as a user transaction.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct NoteSeizure {
+    #[prost(message, optional, tag = "1")]
+    pub authorization: ::core::option::Option<NoteSeizureAuthorizationBody>,
+    #[prost(message, optional, tag = "2")]
+    pub authority_signature: ::core::option::Option<
+        super::super::super::super::crypto::decaf377_rdsa::v1::SpendAuthSignature,
+    >,
+    #[prost(message, optional, tag = "3")]
+    pub anchor: ::core::option::Option<
+        super::super::super::super::crypto::tct::v1::MerkleRoot,
+    >,
+    #[prost(bool, tag = "4")]
+    pub history_required: bool,
+    #[prost(uint64, tag = "5")]
+    pub recent_position_floor: u64,
+    #[prost(message, optional, tag = "6")]
+    pub recovery_capsule: ::core::option::Option<RecoveryCapsule>,
+    #[prost(bytes = "vec", tag = "7")]
+    pub recovery_seed: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "8")]
+    pub cnk_commitment: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag = "9")]
+    pub pre_evidence: ::core::option::Option<super::super::compliance::v1::PreEvidence>,
+    #[prost(message, optional, tag = "10")]
+    pub compact_pre_evidence: ::core::option::Option<
+        super::super::compliance::v1::CompactPreEvidence,
+    >,
+    #[prost(bytes = "vec", tag = "11")]
+    pub reader_secret: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag = "12")]
+    pub proof: ::core::option::Option<ZkNoteSeizureProof>,
+    #[prost(message, optional, tag = "13")]
+    pub nullifier_window: ::core::option::Option<super::super::sct::v1::NullifierWindow>,
+    #[prost(message, optional, tag = "14")]
+    pub historical_nullifier_proof: ::core::option::Option<
+        super::super::sct::v1::HistoricalNullifierProof,
+    >,
+}
+impl ::prost::Name for NoteSeizure {
+    const NAME: &'static str = "NoteSeizure";
+    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.shielded_pool.v1.NoteSeizure".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.shielded_pool.v1.NoteSeizure".into()
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]

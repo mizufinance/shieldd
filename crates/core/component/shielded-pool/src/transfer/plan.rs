@@ -145,6 +145,7 @@ impl TransferPlan {
             first_spend_randomizer: self.first_spend().randomizer,
             sender_address: self.sender_address(),
             asset_id: self.transfer_asset_id(),
+            capk: sender_leaf(self.first_spend()).capk,
             nullifier_domain_sep_label: b"shieldd.transfer.synthetic_dummy.nullifier",
             nullifier_seed_label: b"shieldd.transfer.synthetic_dummy.nullifier_seed",
             spend_auth_key_label: b"shieldd.transfer.synthetic_dummy.spend_auth_key",
@@ -370,8 +371,10 @@ impl TransferPlan {
             .iter()
             .enumerate()
             .map(|(index, output)| {
+                let (note, recovery_capsule) = output.output_note_and_capsule();
                 let (note_payload, wrapped_memo_key, ovk_wrapped_key) = transfer_output_parts(
-                    output.output_note(),
+                    note,
+                    recovery_capsule,
                     fvk.outgoing(),
                     memo_key,
                     action_balance_commitment,
@@ -397,9 +400,11 @@ impl TransferPlan {
             .collect::<anyhow::Result<Vec<_>>>()?;
         let mut outputs = outputs;
         pad_to_len(&mut outputs, PADDED_TRANSFER_OUTPUTS, |slot| {
-            let dummy_note = self.synthetic_dummy_output_note(slot);
+            let (dummy_note, recovery_capsule) =
+                self.padder().synthetic_dummy_output_note_and_capsule(slot);
             let (note_payload, wrapped_memo_key, ovk_wrapped_key) = transfer_output_parts(
                 dummy_note,
+                recovery_capsule,
                 fvk.outgoing(),
                 memo_key,
                 action_balance_commitment,
@@ -443,6 +448,16 @@ impl TransferPlan {
             )));
         }
         let sender_leaf = sender_leaf(&self.spends[0]);
+        if self.spends[0].is_regulated
+            && shieldd_sdk_compliance::compliance_nullifier_key_commitment(
+                self.spends[0].compliance_nullifier_key(fvk),
+            ) != sender_leaf.cnk_commitment
+        {
+            return Err(crate::ProofError::InvalidPrivateInput(
+                "wallet compliance nullifier key does not match the registered sender leaf"
+                    .to_owned(),
+            ));
+        }
         let asset_policy = self
             .asset_policy()
             .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))?;
@@ -485,8 +500,10 @@ impl TransferPlan {
             .outputs
             .iter()
             .map(|output| {
+                let note = output.output_note();
                 Ok(TransferOutputPublic {
-                    note_commitment: output.output_note().commit(),
+                    note_commitment: note.commit(),
+                    recovery_commitment: note.recovery_commitment(),
                 })
             })
             .collect::<Result<Vec<_>, crate::ProofError>>()?;
@@ -495,6 +512,7 @@ impl TransferPlan {
             let dummy_note = self.synthetic_dummy_output_note(slot);
             TransferOutputPublic {
                 note_commitment: dummy_note.commit(),
+                recovery_commitment: dummy_note.recovery_commitment(),
             }
         });
 
@@ -565,6 +583,7 @@ impl TransferPlan {
                 action_balance_blinding: self.value_blinding,
                 ak: *fvk.spend_verification_key(),
                 nk: *fvk.nullifier_key(),
+                cnk: self.spends[0].compliance_nullifier_key(fvk),
                 asset_path: self.spends[0].asset_path.clone(),
                 asset_position: self.spends[0].asset_position,
                 asset_indexed_leaf: self.spends[0].asset_indexed_leaf.clone(),
@@ -634,7 +653,7 @@ impl TransferPlan {
             anchor,
             recent_position_floor,
         )?;
-        crate::gnark::encode_transfer_witness_v20(&public, &private)
+        crate::gnark::encode_transfer_witness(&public, &private)
             .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))
     }
 
@@ -737,6 +756,7 @@ fn recipient_leaf(output: &ShieldedOutputPlan, created_note: &crate::Note) -> Co
 
 fn transfer_output_parts(
     note: Note,
+    recovery_capsule: crate::RecoveryCapsule,
     ovk: &OutgoingViewingKey,
     memo_key: &PayloadKey,
     action_balance_commitment: balance::Commitment,
@@ -749,7 +769,11 @@ fn transfer_output_parts(
         &note.diversified_generator(),
     );
     let ovk_wrapped_key = note.encrypt_key(ovk, action_balance_commitment);
-    (note.payload(), wrapped_memo_key, ovk_wrapped_key)
+    (
+        note.payload(recovery_capsule),
+        wrapped_memo_key,
+        ovk_wrapped_key,
+    )
 }
 
 #[cfg(test)]
@@ -1090,11 +1114,13 @@ mod tests {
     #[test]
     fn validation_rejects_every_redundant_multi_spend_witness_mutation() {
         let mut bad_leaf = two_spend_plan();
-        bad_leaf.spends[1]
+        let bad_leaf_value = bad_leaf.spends[1]
             .compliance_leaf
             .as_mut()
-            .expect("test spend has a compliance leaf")
-            .status = shieldd_sdk_compliance::UserAssetStatus::Frozen;
+            .expect("test spend has a compliance leaf");
+        bad_leaf_value.status = shieldd_sdk_compliance::UserAssetStatus::Frozen;
+        bad_leaf_value.freeze_generation = 1;
+        bad_leaf_value.frozen_since_height = 1;
         assert_validation_and_decode_reject(
             bad_leaf,
             "transfer spends must use the same sender compliance witness",
@@ -1196,11 +1222,13 @@ mod tests {
         );
 
         let mut bad_leaf = plan;
-        bad_leaf.outputs[CHANGE_OUTPUT_INDEX]
+        let bad_leaf_value = bad_leaf.outputs[CHANGE_OUTPUT_INDEX]
             .compliance_leaf
             .as_mut()
-            .expect("change output has a compliance leaf")
-            .status = shieldd_sdk_compliance::UserAssetStatus::Frozen;
+            .expect("change output has a compliance leaf");
+        bad_leaf_value.status = shieldd_sdk_compliance::UserAssetStatus::Frozen;
+        bad_leaf_value.freeze_generation = 1;
+        bad_leaf_value.frozen_since_height = 1;
         assert_validation_and_decode_reject(
             bad_leaf,
             "transfer change output must use the sender compliance witness",

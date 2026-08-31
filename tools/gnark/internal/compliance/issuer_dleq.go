@@ -24,7 +24,7 @@ func littleEndianConstant(value []byte) *big.Int {
 }
 
 // VerifyIssuerDhDLEQ proves log_G(issuerDKPub) = log_EPK(sharedPoint).
-// Its Poseidon transcript is the exact circuit counterpart of IssuerDhEvidenceV1.
+// Its Poseidon transcript is the exact circuit counterpart of IssuerDhEvidence.
 func VerifyIssuerDhDLEQ(
 	api frontend.API,
 	assetID frontend.Variable,

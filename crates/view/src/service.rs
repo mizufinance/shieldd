@@ -2119,8 +2119,11 @@ impl ViewService for ViewServer {
                     let leaf_proto = compliance_pb::ComplianceLeaf {
                         address: Some(address.clone().into()),
                         asset_id: Some(asset_id.into()),
-                        d: leaf_data.d.to_vec(),
+                        capk: leaf_data.capk.to_vec(),
+                        cnk_commitment: leaf_data.cnk_commitment.to_vec(),
                         status: compliance_pb::UserAssetStatus::from(leaf_data.status) as i32,
+                        freeze_generation: leaf_data.freeze_generation,
+                        frozen_since_height: leaf_data.frozen_since_height,
                     };
 
                     tracing::debug!(
@@ -2283,8 +2286,11 @@ impl ViewService for ViewServer {
             let leaf = compliance_pb::ComplianceLeaf {
                 address: request_inner.address,
                 asset_id: request_inner.asset_id,
-                d: leaf_data.d.to_vec(),
+                capk: leaf_data.capk.to_vec(),
+                cnk_commitment: leaf_data.cnk_commitment.to_vec(),
                 status: compliance_pb::UserAssetStatus::from(leaf_data.status) as i32,
+                freeze_generation: leaf_data.freeze_generation,
+                frozen_since_height: leaf_data.frozen_since_height,
             };
 
             return Ok(tonic::Response::new(pb::ComplianceUserLeafResponse {
@@ -2323,8 +2329,11 @@ impl ViewService for ViewServer {
         let leaf = response.leaf.map(|l| compliance_pb::ComplianceLeaf {
             address: l.address,
             asset_id: l.asset_id,
-            d: l.d,
+            capk: l.capk,
+            cnk_commitment: l.cnk_commitment,
             status: l.status,
+            freeze_generation: l.freeze_generation,
+            frozen_since_height: l.frozen_since_height,
         });
 
         Ok(tonic::Response::new(pb::ComplianceUserLeafResponse {
@@ -2425,8 +2434,11 @@ impl ViewService for ViewServer {
                         let leaf_proto = compliance_pb::ComplianceLeaf {
                             address: Some(address.clone().into()),
                             asset_id: Some(asset_id.into()),
-                            d: leaf_data.d.to_vec(),
+                            capk: leaf_data.capk.to_vec(),
+                            cnk_commitment: leaf_data.cnk_commitment.to_vec(),
                             status: compliance_pb::UserAssetStatus::from(leaf_data.status) as i32,
+                            freeze_generation: leaf_data.freeze_generation,
+                            frozen_since_height: leaf_data.frozen_since_height,
                         };
 
                         tracing::debug!(

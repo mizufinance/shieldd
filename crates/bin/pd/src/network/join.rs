@@ -342,7 +342,7 @@ fn address_could_be_external(address: &str) -> bool {
     match addr {
         Some(a) => match a.ip() {
             IpAddr::V4(ip) => !(ip.is_private() || ip.is_loopback() || ip.is_unspecified()),
-            IpAddr::V6(ip) => !(ip.is_loopback() || ip.is_unspecified()),
+            IpAddr(ip) => !(ip.is_loopback() || ip.is_unspecified()),
         },
         _ => false,
     }

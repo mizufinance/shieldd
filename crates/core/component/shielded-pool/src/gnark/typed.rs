@@ -21,7 +21,8 @@ pub struct MerklePathBinary {
 pub struct ComplianceLeafBinary {
     pub address: [u8; 48],
     pub asset_id: [u8; 32],
-    pub d: [u8; 32],
+    pub capk_affine: PointAffineBytes,
+    pub cnk_commitment: [u8; 32],
     pub status: [u8; 32],
 }
 
@@ -145,8 +146,9 @@ pub(crate) fn compliance_leaf_from_typed(
     Ok(ComplianceLeafBinary {
         address,
         asset_id: leaf.asset_id.0.to_bytes(),
-        d: leaf.d.to_bytes(),
-        status: leaf.status.as_field().to_bytes(),
+        capk_affine: point_affine_bytes(leaf.capk)?,
+        cnk_commitment: leaf.cnk_commitment.to_bytes(),
+        status: leaf.lifecycle_field().to_bytes(),
     })
 }
 

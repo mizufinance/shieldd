@@ -10,6 +10,7 @@ use tendermint::v0_37::abci;
 use tracing::instrument;
 
 use crate::{
+    audit_log::AuditLogWrite as _,
     event, genesis,
     params::StateWriteExt as _,
     registry::{
@@ -106,6 +107,9 @@ impl Component for Compliance {
                     let registration_authority_vk = registration
                         .registration_authority_vk
                         .expect("regulated asset in genesis must have registration_authority_vk");
+                    let seizure_authority_vk = registration
+                        .seizure_authority_vk
+                        .expect("regulated asset in genesis must have seizure_authority_vk");
                     let dk_pub = decaf377::Encoding(dk_pub_bytes)
                         .vartime_decompress()
                         .expect("invalid dk_pub encoding in genesis");
@@ -122,7 +126,8 @@ impl Component for Compliance {
                             String::new(),
                             String::new(),
                         )
-                        .with_registration_authority(registration_authority_vk),
+                        .with_registration_authority(registration_authority_vk)
+                        .with_seizure_authority(seizure_authority_vk),
                         true,
                     )
                 } else {
@@ -167,6 +172,10 @@ impl Component for Compliance {
             .finish_block_compliance_anchors(0)
             .await
             .expect("must be able to record initial compliance anchors");
+        state
+            .checkpoint_audit_log(0)
+            .await
+            .expect("must be able to record initial audit-log checkpoint");
         tracing::info!("recorded initial compliance anchors at genesis");
     }
 
@@ -191,6 +200,10 @@ impl Component for Compliance {
             .finish_block_compliance_anchors(height)
             .await
             .expect("must be able to record compliance anchors");
+        state
+            .checkpoint_audit_log(height)
+            .await
+            .expect("must be able to record audit-log checkpoint");
     }
 
     async fn end_epoch<S: StateWrite + 'static>(_state: &mut Arc<S>) -> Result<()> {
@@ -215,7 +228,7 @@ impl ActionHandler for MsgRegisterUser {
             grant.body.leaf == self.leaf,
             "user registration grant leaf does not match action leaf"
         );
-        self.leaf.validate_derivation()?;
+        self.leaf.validate()?;
         Ok(())
     }
 
@@ -311,6 +324,10 @@ impl ActionHandler for MsgRegisterAsset {
             anyhow::ensure!(
                 self.registration_authority_vk.is_some(),
                 "regulated assets require registration_authority_vk"
+            );
+            anyhow::ensure!(
+                self.seizure_authority_vk.is_some(),
+                "regulated assets require seizure_authority_vk"
             );
         } else {
             anyhow::ensure!(
@@ -424,6 +441,7 @@ mod tests {
             permission: String::new(),
             resource: String::new(),
             registration_authority_vk: Some(authority_vk),
+            seizure_authority_vk: Some(authority_vk),
             asset_registration_grant: None,
         }
     }
@@ -508,6 +526,9 @@ mod tests {
                 registration_authority_vk: Some(VerificationKey::from(
                     &SigningKey::<SpendAuth>::new(OsRng),
                 )),
+                seizure_authority_vk: Some(VerificationKey::from(&SigningKey::<SpendAuth>::new(
+                    OsRng,
+                ))),
             }],
             compliance_registrar_vk: vec![],
             ..Default::default()
@@ -543,7 +564,8 @@ mod tests {
         .await
         .unwrap();
 
-        let leaf = ComplianceLeaf::new(Address::dummy(&mut rand::thread_rng()), asset_id);
+        let leaf =
+            ComplianceLeaf::registered_for_test(Address::dummy(&mut rand::thread_rng()), asset_id);
         let msg = MsgRegisterUser {
             leaf: leaf.clone(),
             grant: Some(user_registration_grant(
@@ -565,6 +587,7 @@ mod tests {
                 &msg.leaf.address,
                 asset_id,
                 crate::structs::UserAssetStatusAction::Freeze,
+                1,
             )
             .await
             .unwrap();
@@ -593,7 +616,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn user_registration_derives_distinct_audit_keys_from_distinct_addresses() {
+    async fn user_registration_derives_distinct_capabilities_from_distinct_addresses() {
         let storage = TempStorage::new().await.unwrap();
         let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
         let registrar_sk = SigningKey::<SpendAuth>::new(OsRng);
@@ -618,7 +641,7 @@ mod tests {
             Address::dummy(&mut rand::thread_rng()),
             Address::dummy(&mut rand::thread_rng()),
         ] {
-            let leaf = ComplianceLeaf::new(address, asset_id);
+            let leaf = ComplianceLeaf::registered_for_test(address, asset_id);
             let msg = MsgRegisterUser {
                 leaf: leaf.clone(),
                 grant: Some(user_registration_grant(
@@ -634,7 +657,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn user_registration_rejects_another_addresses_audit_key() {
+    async fn user_registration_rejects_another_addresses_capability() {
         let storage = TempStorage::new().await.unwrap();
         let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
         let registrar_sk = SigningKey::<SpendAuth>::new(OsRng);
@@ -657,8 +680,9 @@ mod tests {
 
         let first_address = Address::dummy(&mut rand::thread_rng());
         let second_address = Address::dummy(&mut rand::thread_rng());
-        let first_leaf = ComplianceLeaf::new(first_address, asset_id);
-        let reused_key_leaf = ComplianceLeaf::new_unchecked(second_address, asset_id, first_leaf.d);
+        let first_leaf = ComplianceLeaf::registered_for_test(first_address, asset_id);
+        let mut reused_key_leaf = ComplianceLeaf::registered_for_test(second_address, asset_id);
+        reused_key_leaf.capk = first_leaf.capk;
         let msg = MsgRegisterUser {
             leaf: reused_key_leaf.clone(),
             grant: Some(user_registration_grant(
@@ -669,20 +693,20 @@ mod tests {
             )),
         };
         let error = msg
-            .check_stateless(())
+            .check_and_execute(&mut state)
             .await
-            .expect_err("an address cannot reuse another address's audit key");
+            .expect_err("an address cannot reuse another address's capability");
         assert!(
             error
                 .to_string()
-                .contains("does not match the canonical address derivation"),
+                .contains("capk does not match the address and asset ring"),
             "unexpected error: {error:#}"
         );
         assert_eq!(state.get_user_count().await.unwrap(), 0);
     }
 
     #[tokio::test]
-    async fn test_msg_register_user_rejects_zero_derivation() {
+    async fn test_msg_register_user_rejects_identity_capability() {
         let storage = TempStorage::new().await.unwrap();
         let snapshot = storage.latest_snapshot();
         let mut state = cnidarium::StateDelta::new(snapshot);
@@ -704,11 +728,9 @@ mod tests {
         .await
         .unwrap();
 
-        let leaf = ComplianceLeaf::new_unchecked(
-            Address::dummy(&mut rand::thread_rng()),
-            asset_id,
-            Fq::from(0u64),
-        );
+        let mut leaf =
+            ComplianceLeaf::registered_for_test(Address::dummy(&mut rand::thread_rng()), asset_id);
+        leaf.capk = decaf377::Element::IDENTITY;
         let msg = MsgRegisterUser {
             leaf: leaf.clone(),
             grant: Some(user_registration_grant(
@@ -722,10 +744,9 @@ mod tests {
         let err = msg
             .check_stateless(())
             .await
-            .expect_err("zero derivation must be rejected");
+            .expect_err("identity capability must be rejected");
         assert!(
-            err.to_string()
-                .contains("does not match the canonical address derivation"),
+            err.to_string().contains("capk must be nonidentity"),
             "unexpected error: {err}"
         );
         assert_eq!(state.get_user_count().await.unwrap(), 0);
@@ -740,7 +761,10 @@ mod tests {
         Compliance::init_chain(&mut state, Some(&genesis::Content::default())).await;
 
         let msg = MsgRegisterUser {
-            leaf: ComplianceLeaf::new(Address::dummy(&mut rand::thread_rng()), *BASE_ASSET_ID),
+            leaf: ComplianceLeaf::registered_for_test(
+                Address::dummy(&mut rand::thread_rng()),
+                *BASE_ASSET_ID,
+            ),
             grant: None,
         };
 
@@ -771,7 +795,7 @@ mod tests {
         Compliance::init_chain(&mut state, Some(&genesis::Content::default())).await;
 
         let msg = MsgRegisterUser {
-            leaf: ComplianceLeaf::new(
+            leaf: ComplianceLeaf::registered_for_test(
                 Address::dummy(&mut rand::thread_rng()),
                 asset::Id(Fq::from(999_999u64)),
             ),
@@ -955,7 +979,8 @@ mod tests {
         .await
         .unwrap();
 
-        let leaf = ComplianceLeaf::new(Address::dummy(&mut rand::thread_rng()), asset_id);
+        let leaf =
+            ComplianceLeaf::registered_for_test(Address::dummy(&mut rand::thread_rng()), asset_id);
 
         let missing_grant = MsgRegisterUser {
             leaf: leaf.clone(),
@@ -999,11 +1024,9 @@ mod tests {
             "unexpected error: {error}"
         );
 
-        let mismatched_leaf = ComplianceLeaf::new_unchecked(
-            Address::dummy(&mut rand::thread_rng()),
-            asset_id,
-            Fq::from(222u64),
-        );
+        let mut mismatched_leaf =
+            ComplianceLeaf::registered_for_test(Address::dummy(&mut rand::thread_rng()), asset_id);
+        mismatched_leaf.capk = decaf377::Element::GENERATOR * decaf377::Fr::from(222u64);
         let mismatched_msg = MsgRegisterUser {
             leaf: mismatched_leaf.clone(),
             grant: Some(user_registration_grant(
@@ -1014,13 +1037,13 @@ mod tests {
             )),
         };
         let error = mismatched_msg
-            .check_stateless(())
+            .check_and_execute(&mut state)
             .await
-            .expect_err("mismatched d must be rejected before execution");
+            .expect_err("mismatched capk must be rejected before execution");
         assert!(
             error
                 .to_string()
-                .contains("does not match the canonical address derivation"),
+                .contains("capk does not match the address and asset ring"),
             "unexpected error: {error}"
         );
     }
@@ -1056,6 +1079,7 @@ mod tests {
                 permission: String::new(),
                 resource: String::new(),
                 registration_authority_vk: None,
+                seizure_authority_vk: None,
                 asset_registration_grant: None,
             },
             &registrar_sk,
@@ -1106,6 +1130,7 @@ mod tests {
                 permission: String::new(),
                 resource: String::new(),
                 registration_authority_vk: Some(authority_vk),
+                seizure_authority_vk: Some(authority_vk),
                 asset_registration_grant: None,
             },
             &registrar_sk,

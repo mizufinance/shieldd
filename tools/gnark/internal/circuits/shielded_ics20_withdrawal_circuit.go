@@ -22,8 +22,9 @@ type ShieldedIcs20WithdrawalRequiredSpendCircuitFields struct {
 }
 
 type ShieldedIcs20WithdrawalNoteCircuitFields struct {
-	Blinding frontend.Variable
-	Amount   frontend.Variable
+	Blinding           frontend.Variable
+	Amount             frontend.Variable
+	RecoveryCommitment frontend.Variable
 }
 
 type ShieldedIcs20WithdrawalStatePathCircuitFields struct {
@@ -40,14 +41,16 @@ type ShieldedIcs20WithdrawalOptionalSpendCircuitFields struct {
 type ShieldedIcs20WithdrawalChangeCircuitFields struct {
 	NoteCommitment frontend.Variable
 	Note           ShieldedIcs20WithdrawalNoteCircuitFields
+	Recovery       RecoveryCapsuleFields
 }
 
 type ShieldedIcs20WithdrawalSenderCircuitFields struct {
-	DivGen   Point2D
-	D        frontend.Variable
-	Status   frontend.Variable
-	Path     [ComplianceQuadTreeDepth][3]frontend.Variable
-	Position frontend.Variable
+	DivGen        Point2D
+	Capk          Point2D
+	CnkCommitment frontend.Variable
+	Status        frontend.Variable
+	Path          [ComplianceQuadTreeDepth][3]frontend.Variable
+	Position      frontend.Variable
 }
 
 type ShieldedIcs20WithdrawalComplianceCircuitFields struct {
@@ -196,7 +199,13 @@ func (c *ShieldedIcs20WithdrawalCircuit) Define(api frontend.API) error {
 		"fields=shielded_ics20_withdrawal_statement_fields",
 	)
 	fields := make([]frontend.Variable, 0, ShieldedIcs20WithdrawalStatementFieldCount(c.nIn))
-	fields = append(fields, c.Anchor, changeCommitment, balanceCommitmentFq)
+	fields = append(
+		fields,
+		c.Anchor,
+		changeCommitment,
+		c.ChangeOutput.Note.RecoveryCommitment,
+		balanceCommitmentFq,
+	)
 	fields = append(fields, c.RecentPositionFloor)
 	fields = append(fields, nullifiersAndRKs...)
 	fields = append(
@@ -258,6 +267,7 @@ func (c *ShieldedIcs20WithdrawalCircuit) bindShieldedIcs20WithdrawalWitnessSeman
 
 	c.bindSemantic("auth.ak", c.Auth.AK.X, c.Auth.AK.Y)
 	c.bindSemantic("auth.nk", c.Auth.NK)
+	c.bindSemantic("auth.cnk", c.Auth.CNK)
 	c.bindSemantic("auth.ivk_reduced", c.Auth.IVKReduced)
 	c.bindSemantic("auth.ivk_quotient_a", c.Auth.IVKQuotientA)
 
@@ -276,7 +286,8 @@ func (c *ShieldedIcs20WithdrawalCircuit) bindShieldedIcs20WithdrawalWitnessSeman
 	c.bindSemantic("asset.position", c.Asset.Position)
 
 	c.bindSemantic("sender.div_gen", c.Sender.DivGen.X, c.Sender.DivGen.Y)
-	c.bindSemantic("sender.d", c.Sender.D)
+	c.bindSemantic("sender.capk", c.Sender.Capk.X, c.Sender.Capk.Y)
+	c.bindSemantic("sender.cnk_commitment", c.Sender.CnkCommitment)
 	c.bindSemantic("sender.status", c.Sender.Status)
 	c.bindSemantic("sender.path", quadPathVariables(c.Sender.Path)...)
 	c.bindSemantic("sender.position", c.Sender.Position)
@@ -334,7 +345,7 @@ func (c *ShieldedIcs20WithdrawalCircuit) hashShieldedIcs20WithdrawalStatement(
 			len(fields),
 		)
 	}
-	domain := shieldedIcs20WithdrawalStatementHashConstant("v5")
+	domain := shieldedIcs20WithdrawalStatementHashConstant("statement")
 	pad0 := shieldedIcs20WithdrawalStatementHashConstant("pad0")
 	pad1 := shieldedIcs20WithdrawalStatementHashConstant("pad1")
 
@@ -373,9 +384,9 @@ func (c *ShieldedIcs20WithdrawalCircuit) hashShieldedIcs20WithdrawalStatement(
 		return nil, err
 	}
 	c.bindSemantic("statement.hash.block3", block3)
-	c.traceWiring("statement.hash", "block=4", "inputs=statement.hash.block3,statement.field.025..026,pad0,pad1,pad0,pad1", "out=statement.hash.block4")
+	c.traceWiring("statement.hash", "block=4", "inputs=statement.hash.block3,statement.field.025..027,pad1,pad0,pad1", "out=statement.hash.block4")
 	block4, err := Poseidon377Hash7(api, domain, [7]frontend.Variable{
-		block3, fields[25], fields[26], pad0, pad1, pad0, pad1,
+		block3, fields[25], fields[26], fields[27], pad1, pad0, pad1,
 	})
 	if err != nil {
 		return nil, err
@@ -534,7 +545,8 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifySharedContext(
 		"div_gen_fq=sender.div_gen_fq",
 		"transmission_fq=sender.transmission_fq",
 		"asset_id=shared.asset_id",
-		"d=sender.d",
+		"capk=sender.capk",
+		"cnk_commitment=sender.cnk_commitment",
 		"status=sender.status",
 		"out=sender.leaf_commitment",
 	)
@@ -543,13 +555,19 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifySharedContext(
 		shared.senderDivGenFq,
 		shared.senderTransmissionFq,
 		shared.sharedAssetID,
-		c.Sender.D,
+		gnarkte.Point{X: c.Sender.Capk.X, Y: c.Sender.Capk.Y},
+		c.Sender.CnkCommitment,
 		c.Sender.Status,
 	)
 	if err != nil {
 		return shieldedIcs20WithdrawalSharedContext{}, err
 	}
 	c.bindSemantic("sender.leaf_commitment", senderLeafCommitment)
+	cnkCommitment, err := ComplianceNullifierKeyCommitment(api, c.Auth.CNK)
+	if err != nil {
+		return shieldedIcs20WithdrawalSharedContext{}, err
+	}
+	AssertEqualIf(api, cnkCommitment, c.Sender.CnkCommitment, c.IsRegulated)
 	c.traceWiring(
 		"gadget.compliance_path",
 		"leaf=sender.leaf_commitment",
@@ -569,19 +587,11 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifySharedContext(
 		"cond=is_regulated",
 	)
 	AssertEqualIf(api, senderComplianceRoot, c.ComplianceAnchor, c.IsRegulated)
-	c.traceWiring("assert.eq_if", "lhs=sender.status", "rhs=1", "cond=is_regulated")
-	AssertEqualIf(api, c.Sender.Status, 1, c.IsRegulated)
+	c.traceWiring("gadget.active_lifecycle", "lifecycle=sender.status", "cond=is_regulated")
+	AssertActiveComplianceLifecycle(api, c.Sender.Status, c.IsRegulated)
 
-	c.traceWiring(
-		"decaf.ack",
-		"ring_pk=effective.ring_pk",
-		"d=sender.d",
-		"out=sender.ack",
-	)
-	shared.senderACK, err = DeriveACKFromLeafD(api, shared.effectiveRingPK, c.Sender.D)
-	if err != nil {
-		return shieldedIcs20WithdrawalSharedContext{}, err
-	}
+	c.traceWiring("bind.capk", "capk=sender.capk", "out=sender.ack")
+	shared.senderACK = gnarkte.Point{X: c.Sender.Capk.X, Y: c.Sender.Capk.Y}
 	c.bindSemantic("sender.ack", shared.senderACK.X, shared.senderACK.Y)
 
 	return shared, nil
@@ -891,6 +901,7 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifySpendFacts(
 		shared.sharedAssetID,
 		shared.senderDivGenFq,
 		shared.senderTransmissionFq,
+		spend.Note.RecoveryCommitment,
 	)
 	c.traceWiring(
 		"gadget.note_commitment",
@@ -908,6 +919,7 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifySpendFacts(
 		shared.sharedAssetID,
 		shared.senderDivGenFq,
 		shared.senderTransmissionFq,
+		spend.Note.RecoveryCommitment,
 	)
 	if err != nil {
 		return shieldedIcs20WithdrawalVerifiedSpend{}, err
@@ -921,7 +933,8 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifySpendFacts(
 		"position="+name+".state_proof.position",
 		"out="+name+".nullifier.real",
 	)
-	realNullifier, err := Nullifier(api, c.Auth.NK, spentCommitment, spend.StateProof.Position)
+	effectiveNK := api.Select(c.IsRegulated, c.Auth.CNK, c.Auth.NK)
+	realNullifier, err := Nullifier(api, effectiveNK, spentCommitment, spend.StateProof.Position)
 	if err != nil {
 		return shieldedIcs20WithdrawalVerifiedSpend{}, err
 	}
@@ -1134,6 +1147,7 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifyChangeOutput(
 		shared.sharedAssetID,
 		shared.senderDivGenFq,
 		shared.senderTransmissionFq,
+		output.Note.RecoveryCommitment,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -1145,6 +1159,16 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifyChangeOutput(
 		"rhs=output0.note_commitment.claimed",
 	)
 	api.AssertIsEqual(createdCommitment, output.NoteCommitment)
+	if err := VerifyRecoveryCapsule(
+		api,
+		shared.senderACK,
+		output.Note.Amount,
+		output.Note.Blinding,
+		output.Recovery,
+	); err != nil {
+		return nil, nil, err
+	}
+	api.AssertIsEqual(output.Recovery.Commitment, output.Note.RecoveryCommitment)
 
 	return output.Note.Amount, output.NoteCommitment, nil
 }

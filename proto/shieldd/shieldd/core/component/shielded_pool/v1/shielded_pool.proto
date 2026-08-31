@@ -56,17 +56,27 @@ message Note {
   asset.v1.Value value = 1;
   bytes rseed = 2;
   keys.v1.Address address = 3;
+  // Commitment to the recovery capsule that can spend this exact note under seizure.
+  bytes recovery_commitment = 4;
 }
 
 message NoteView {
   asset.v1.ValueView value = 1;
   bytes rseed = 2;
   keys.v1.AddressView address = 3;
+  bytes recovery_commitment = 4;
 }
 
 // An encrypted note.
-// 144 = 48(address) + 16(amount) + 32(asset ID) + 32(rseed) + 16(MAC) bytes.
+// 176 = 48(address) + 16(amount) + 32(asset ID) + 32(rseed)
+//     + 32(recovery commitment) + 16(MAC) bytes.
 message NoteCiphertext {
+  bytes inner = 1;
+}
+
+// Fixed-shape ordinary-Orbis envelope for amount and note blinding.
+message RecoveryCapsule {
+  // Canonical 192-byte encoding of epk and five Fq words.
   bytes inner = 1;
 }
 
@@ -78,8 +88,10 @@ message NotePayload {
   // The encoding of an ephemeral public key. 32 bytes.
   bytes ephemeral_key = 2;
   // An encryption of the newly created note.
-  // 144 = 48(address) + 16(amount) + 32(asset ID) + 32(rseed) + 16(MAC) bytes.
+  // 176-byte authenticated encryption of the newly created note.
   NoteCiphertext encrypted_note = 3;
+  // Public recovery sidecar authenticated by note_commitment.
+  RecoveryCapsule recovery_capsule = 4;
 }
 
 // A Shieldd ZK transfer proof.
@@ -95,6 +107,46 @@ message ZKNoteReshapeProof {
 // A Shieldd ZK shielded ICS-20 withdrawal proof.
 message ZKShieldedIcs20WithdrawalProof {
   bytes inner = 1;
+}
+
+// A proof that an authorized ACP can consume one real note using its canonical
+// compliance nullifier without revealing the compliance nullifier key.
+message ZKNoteSeizureProof {
+  bytes inner = 1;
+}
+
+// Immutable facts signed by the asset's seizure authority.
+message NoteSeizureAuthorizationBody {
+  string chain_id = 1;
+  crypto.tct.v1.StateCommitment note_commitment = 2;
+  sct.v1.Nullifier nullifier = 3;
+  keys.v1.Address address = 4;
+  asset.v1.AssetId asset_id = 5;
+  num.v1.Amount amount = 6;
+  uint64 freeze_generation = 7;
+  uint64 frozen_since_height = 8;
+  HostWithdrawal withdrawal = 9;
+  bytes release_scope_commitment = 10;
+  uint64 expiry_height = 11;
+}
+
+// Complete evidence needed to seize one note. It is submitted through the
+// privileged host execution boundary rather than as a user transaction.
+message NoteSeizure {
+  NoteSeizureAuthorizationBody authorization = 1;
+  crypto.decaf377_rdsa.v1.SpendAuthSignature authority_signature = 2;
+  crypto.tct.v1.MerkleRoot anchor = 3;
+  bool history_required = 4;
+  uint64 recent_position_floor = 5;
+  RecoveryCapsule recovery_capsule = 6;
+  bytes recovery_seed = 7;
+  bytes cnk_commitment = 8;
+  compliance.v1.PreEvidence pre_evidence = 9;
+  compliance.v1.CompactPreEvidence compact_pre_evidence = 10;
+  bytes reader_secret = 11;
+  ZKNoteSeizureProof proof = 12;
+  sct.v1.NullifierWindow nullifier_window = 13;
+  sct.v1.HistoricalNullifierProof historical_nullifier_proof = 14;
 }
 
 message TransferInputBody {

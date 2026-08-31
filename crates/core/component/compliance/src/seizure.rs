@@ -6,6 +6,8 @@
 
 use anyhow::{bail, ensure, Result};
 use ark_ff::{BigInteger, PrimeField};
+use ark_groth16::{Groth16, PreparedVerifyingKey, Proof};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use shieldd_sdk_asset::asset;
@@ -31,7 +33,6 @@ pub const MAX_SEIZURE_DESTINATION_BYTES: usize = 256;
 pub const MAX_SEIZURE_JOB_BYTES: usize = 4096;
 pub const MAX_FREEZE_RECORD_BYTES: usize = 512;
 pub const SEIZURE_GROTH16_PROOF_BYTES: usize = 192;
-pub const MAX_SEIZURE_CHUNKS_PER_PHASE: u64 = 1_000;
 
 pub type SeizureId = [u8; 32];
 pub type SeizureCommitment = [u8; 32];
@@ -47,6 +48,7 @@ pub struct FreezeRecord {
     pub generation: u64,
     pub freeze_height: u64,
     pub anchor: Option<FreezeResultAnchor>,
+    pub audit_checkpoint: Option<SeizureAuditCheckpoint>,
 }
 
 /// Immutable one-block-later consensus anchor attached by the host.
@@ -82,10 +84,16 @@ impl FreezeRecord {
             generation,
             freeze_height,
             anchor: None,
+            audit_checkpoint: None,
         })
     }
 
-    pub fn attach_anchor(&mut self, generation: u64, anchor: FreezeResultAnchor) -> Result<()> {
+    pub fn attach_anchor(
+        &mut self,
+        generation: u64,
+        anchor: FreezeResultAnchor,
+        audit_checkpoint: SeizureAuditCheckpoint,
+    ) -> Result<()> {
         ensure!(
             generation == self.generation,
             "freeze result anchor generation mismatch"
@@ -98,11 +106,21 @@ impl FreezeRecord {
             anchor.terminal_shieldd_root != [0; 32],
             "freeze terminal Shieldd root must be nonzero"
         );
+        audit_checkpoint.validate()?;
+        ensure!(
+            audit_checkpoint.height == self.freeze_height,
+            "freeze audit checkpoint height mismatch"
+        );
         if let Some(existing) = &self.anchor {
             ensure!(existing == &anchor, "conflicting freeze result anchor");
+            ensure!(
+                self.audit_checkpoint.as_ref() == Some(&audit_checkpoint),
+                "conflicting freeze audit checkpoint"
+            );
             return Ok(());
         }
         self.anchor = Some(anchor);
+        self.audit_checkpoint = Some(audit_checkpoint);
         Ok(())
     }
 
@@ -116,6 +134,10 @@ impl FreezeRecord {
             .anchor
             .as_ref()
             .ok_or_else(|| anyhow::anyhow!("freeze result anchor is not attached"))?;
+        let audit_checkpoint = self
+            .audit_checkpoint
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("freeze audit checkpoint is not attached"))?;
         Ok(FrozenSeizureTarget {
             address,
             asset_id: self.asset_id,
@@ -123,6 +145,7 @@ impl FreezeRecord {
             freeze_height: self.freeze_height,
             terminal_header_hash: anchor.terminal_header_hash,
             terminal_shieldd_root: anchor.terminal_shieldd_root,
+            terminal_audit_checkpoint: audit_checkpoint.clone(),
             is_frozen,
         })
     }
@@ -139,10 +162,69 @@ pub struct SeizureChunkPublicInputs {
     pub job_id: SeizureId,
     pub family: SeizureProofFamily,
     pub sequence: u64,
+    pub terminal: bool,
     pub immutable_statement_commitment: SeizureCommitment,
     pub start_state_commitment: SeizureCommitment,
     pub end_state_commitment: SeizureCommitment,
+    pub scan_context: Option<SeizureScanPublicContext>,
     pub classifier_context: Option<SeizureClassifierPublicContext>,
+}
+
+/// Immutable authenticated range opened by every scan chunk.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SeizureScanPublicContext {
+    pub start_checkpoint: SeizureAuditCheckpoint,
+    pub terminal_checkpoint: SeizureAuditCheckpoint,
+    #[serde(with = "asset_id_serde")]
+    pub target_asset_id: asset::Id,
+    pub target_address_commitment: [u8; 32],
+    pub registered_at_height: u64,
+    pub freeze_generation: u64,
+    pub frozen_since_height: u64,
+}
+
+impl SeizureScanPublicContext {
+    pub fn from_statement(statement: &SeizureFinalStatement) -> Self {
+        Self {
+            start_checkpoint: statement.audit_start.clone(),
+            terminal_checkpoint: statement.audit_terminal.clone(),
+            target_asset_id: statement.asset_id,
+            target_address_commitment: crate::audit_bytes_commitment(
+                &statement.target_address.to_vec(),
+            )
+            .to_bytes(),
+            registered_at_height: statement.active_start_source.height,
+            freeze_generation: statement.freeze_generation,
+            frozen_since_height: statement.freeze_source.height,
+        }
+    }
+
+    pub fn validate(&self) -> Result<()> {
+        self.start_checkpoint.validate()?;
+        self.terminal_checkpoint.validate()?;
+        ensure!(
+            self.start_checkpoint.height < self.registered_at_height,
+            "seizure audit range must start before registration"
+        );
+        ensure!(
+            self.start_checkpoint.length <= self.terminal_checkpoint.length,
+            "seizure audit checkpoint length moved backwards"
+        );
+        ensure!(
+            self.registered_at_height <= self.frozen_since_height,
+            "seizure freeze precedes registration"
+        );
+        ensure!(
+            self.terminal_checkpoint.height == self.frozen_since_height,
+            "seizure terminal checkpoint must be the freeze block"
+        );
+        ensure!(
+            self.freeze_generation > 0,
+            "seizure freeze generation must be nonzero"
+        );
+        parse_state_commitment(self.target_address_commitment)?;
+        Ok(())
+    }
 }
 
 /// Target values intentionally revealed by classification proofs.
@@ -170,9 +252,12 @@ impl SeizureClassifierPublicContext {
     }
 
     pub fn validate(&self) -> Result<()> {
-        let expected = Self::for_target(self.target_asset_id, self.target_address.clone());
+        let expected_scalar = derive_orbis_scalar(&self.target_address.to_vec());
+        let mut expected_derivation = [0u8; 32];
+        let encoded = expected_scalar.into_bigint().to_bytes_le();
+        expected_derivation[..encoded.len()].copy_from_slice(&encoded);
         ensure!(
-            self.target_derivation == expected.target_derivation,
+            self.target_derivation == expected_derivation,
             "seizure classifier derivation does not match the target address"
         );
         ensure!(
@@ -192,14 +277,14 @@ impl SeizureChunkPublicInputs {
         );
         parse_state_commitment(self.start_state_commitment)?;
         parse_state_commitment(self.end_state_commitment)?;
-        match (&self.family, &self.classifier_context) {
-            (SeizureProofFamily::Scan, None) => Ok(()),
-            (SeizureProofFamily::Classify, Some(context)) => context.validate(),
-            (SeizureProofFamily::Scan, Some(_)) => {
-                bail!("scan proof must not carry classifier context")
+        match (&self.family, &self.scan_context, &self.classifier_context) {
+            (SeizureProofFamily::Scan, Some(context), None) => context.validate(),
+            (SeizureProofFamily::Classify, None, Some(context)) => context.validate(),
+            (SeizureProofFamily::Scan, _, _) => {
+                bail!("scan proof requires only scan context")
             }
-            (SeizureProofFamily::Classify, None) => {
-                bail!("classification proof requires target context")
+            (SeizureProofFamily::Classify, _, _) => {
+                bail!("classification proof requires only classifier context")
             }
         }
     }
@@ -217,8 +302,23 @@ impl SeizureChunkPublicInputs {
             fq_from_u128(statement_hi),
             parse_state_commitment(self.start_state_commitment)?,
             parse_state_commitment(self.end_state_commitment)?,
+            decaf377::Fq::from(u64::from(self.terminal)),
         ];
-        if let Some(context) = &self.classifier_context {
+        if let Some(context) = &self.scan_context {
+            inputs.extend([
+                decaf377::Fq::from(context.start_checkpoint.length),
+                context.start_checkpoint.head_fq()?,
+                decaf377::Fq::from(context.start_checkpoint.height),
+                decaf377::Fq::from(context.terminal_checkpoint.length),
+                context.terminal_checkpoint.head_fq()?,
+                decaf377::Fq::from(context.terminal_checkpoint.height),
+                context.target_asset_id.0,
+                parse_state_commitment(context.target_address_commitment)?,
+                decaf377::Fq::from(context.registered_at_height),
+                decaf377::Fq::from(context.freeze_generation),
+                decaf377::Fq::from(context.frozen_since_height),
+            ]);
+        } else if let Some(context) = &self.classifier_context {
             let (diversified_generator, transmission_key) =
                 address_public_fields(&context.target_address);
             inputs.extend([
@@ -248,6 +348,97 @@ pub trait SeizureProofVerifier {
     ) -> Result<()>;
 }
 
+/// Native verifier for the three deployed gnark Groth16 proof families.
+pub struct Groth16SeizureVerifier {
+    scan: PreparedVerifyingKey<decaf377::Bls12_377>,
+    classify: PreparedVerifyingKey<decaf377::Bls12_377>,
+    finalize: PreparedVerifyingKey<decaf377::Bls12_377>,
+}
+
+impl Groth16SeizureVerifier {
+    pub fn new(
+        scan: PreparedVerifyingKey<decaf377::Bls12_377>,
+        classify: PreparedVerifyingKey<decaf377::Bls12_377>,
+        finalize: PreparedVerifyingKey<decaf377::Bls12_377>,
+    ) -> Self {
+        Self {
+            scan,
+            classify,
+            finalize,
+        }
+    }
+
+    fn verify(
+        key: &PreparedVerifyingKey<decaf377::Bls12_377>,
+        public_inputs: &[decaf377::Fq],
+        proof_bytes: &[u8],
+        family: &str,
+    ) -> Result<()> {
+        ensure!(
+            proof_bytes.len() == SEIZURE_GROTH16_PROOF_BYTES,
+            "invalid {family} Groth16 proof length"
+        );
+        let mut remaining = proof_bytes;
+        let proof = Proof::<decaf377::Bls12_377>::deserialize_compressed(&mut remaining)
+            .map_err(|error| anyhow::anyhow!("invalid {family} Groth16 proof: {error}"))?;
+        ensure!(
+            remaining.is_empty(),
+            "{family} Groth16 proof has trailing bytes"
+        );
+        let mut canonical = Vec::with_capacity(SEIZURE_GROTH16_PROOF_BYTES);
+        proof.serialize_compressed(&mut canonical)?;
+        ensure!(
+            canonical == proof_bytes,
+            "non-canonical {family} Groth16 proof encoding"
+        );
+        ensure!(
+            Groth16::<decaf377::Bls12_377>::verify_proof(key, &proof, public_inputs)?,
+            "{family} Groth16 proof verification failed"
+        );
+        Ok(())
+    }
+}
+
+impl SeizureProofVerifier for Groth16SeizureVerifier {
+    fn verify_chunk(&self, public: &SeizureChunkPublicInputs, proof: &[u8]) -> Result<()> {
+        let public_inputs = public.gnark_public_inputs()?;
+        match public.family {
+            SeizureProofFamily::Scan => {
+                Self::verify(&self.scan, &public_inputs, proof, "seizure scan")
+            }
+            SeizureProofFamily::Classify => Self::verify(
+                &self.classify,
+                &public_inputs,
+                proof,
+                "seizure classification",
+            ),
+        }
+    }
+
+    fn verify_final(
+        &self,
+        job: &SeizureJob,
+        terminal_state_commitment: SeizureCommitment,
+        statement: &SeizureFinalStatement,
+        proof: &[u8],
+    ) -> Result<()> {
+        let SeizureJobState::Ready(ready) = &job.state else {
+            bail!("seizure job is not ready")
+        };
+        ensure!(
+            terminal_state_commitment == ready.classification_terminal_commitment,
+            "seizure final proof starts from the wrong commitment"
+        );
+        let public_inputs = statement.gnark_public_inputs(job)?;
+        Self::verify(
+            &self.finalize,
+            &public_inputs,
+            proof,
+            "seizure finalization",
+        )
+    }
+}
+
 #[cfg(feature = "component")]
 fn validate_individual_proof(proof: &[u8]) -> Result<()> {
     ensure!(
@@ -261,6 +452,7 @@ fn validate_individual_proof(proof: &[u8]) -> Result<()> {
 pub struct SeizureChunkReceipt {
     pub family: SeizureProofFamily,
     pub sequence: u64,
+    pub terminal: bool,
     pub start_state_commitment: SeizureCommitment,
     pub end_state_commitment: SeizureCommitment,
 }
@@ -301,6 +493,33 @@ pub struct SeizureSource {
     pub result_header_hash: [u8; 32],
 }
 
+/// Poseidon audit-log state committed by one end-block checkpoint.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SeizureAuditCheckpoint {
+    pub height: u64,
+    pub length: u64,
+    pub head: [u8; 32],
+}
+
+impl SeizureAuditCheckpoint {
+    pub fn from_consensus(checkpoint: crate::AuditLogCheckpoint) -> Self {
+        Self {
+            height: checkpoint.height,
+            length: checkpoint.length,
+            head: checkpoint.head.to_bytes(),
+        }
+    }
+
+    pub fn validate(&self) -> Result<()> {
+        self.head_fq()?;
+        Ok(())
+    }
+
+    pub fn head_fq(&self) -> Result<decaf377::Fq> {
+        parse_state_commitment(self.head)
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SeizureFinalStatement {
     pub certificate_id: SeizureId,
@@ -312,13 +531,11 @@ pub struct SeizureFinalStatement {
     pub target_address: Address,
     pub active_start_source: SeizureSource,
     pub freeze_source: SeizureSource,
+    pub audit_start: SeizureAuditCheckpoint,
+    pub audit_terminal: SeizureAuditCheckpoint,
     pub terminal_header_hash: [u8; 32],
     pub terminal_shieldd_root: [u8; 32],
     pub freeze_generation: u64,
-    /// Canonical private scan cursor opened by the final proof.
-    pub terminal_cursor: u128,
-    pub opening_balance: u128,
-    pub canonical_transaction_count: u64,
     pub matched_transaction_count: u64,
     pub amount: u128,
     pub authorization_record_hash: [u8; 32],
@@ -415,13 +632,19 @@ impl SeizureFinalStatement {
             self.active_start_source.height <= self.freeze_source.height,
             "seizure active range ends before it starts"
         );
+        self.audit_start.validate()?;
+        self.audit_terminal.validate()?;
+        let scan_context = SeizureScanPublicContext::from_statement(self);
+        scan_context.validate()?;
+        SeizureClassifierPublicContext::for_target(self.asset_id, self.target_address.clone())
+            .validate()?;
         ensure!(
-            self.matched_transaction_count <= self.canonical_transaction_count,
-            "matched transaction count exceeds canonical transaction count"
-        );
-        ensure!(
-            self.terminal_cursor < (1u128 << 96),
-            "seizure terminal cursor exceeds 96 bits"
+            self.matched_transaction_count
+                <= self
+                    .audit_terminal
+                    .length
+                    .saturating_sub(self.audit_start.length),
+            "matched transaction count exceeds audited effect count"
         );
         Ok(())
     }
@@ -430,7 +653,7 @@ impl SeizureFinalStatement {
     pub fn commitment(&self) -> Result<SeizureCommitment> {
         self.validate()?;
         let mut hash = Sha256::new();
-        hash.update(b"shieldd.seizure.statement.v1\0");
+        hash.update(b"shieldd.seizure.statement.v4\0");
         hash.update(self.certificate_id);
         update_len_prefixed(&mut hash, self.chain_id.as_bytes());
         update_len_prefixed(&mut hash, self.projection_version.as_bytes());
@@ -438,12 +661,11 @@ impl SeizureFinalStatement {
         update_len_prefixed(&mut hash, &self.target_address.to_vec());
         update_source(&mut hash, &self.active_start_source);
         update_source(&mut hash, &self.freeze_source);
+        update_audit_checkpoint(&mut hash, &self.audit_start);
+        update_audit_checkpoint(&mut hash, &self.audit_terminal);
         hash.update(self.terminal_header_hash);
         hash.update(self.terminal_shieldd_root);
         hash.update(self.freeze_generation.to_be_bytes());
-        hash.update(self.terminal_cursor.to_be_bytes());
-        hash.update(self.opening_balance.to_be_bytes());
-        hash.update(self.canonical_transaction_count.to_be_bytes());
         hash.update(self.matched_transaction_count.to_be_bytes());
         hash.update(self.amount.to_be_bytes());
         hash.update(self.authorization_record_hash);
@@ -477,9 +699,12 @@ impl SeizureFinalStatement {
             decaf377::Fq::from(ready.classification_terminal_sequence),
             parse_state_commitment(ready.scan_terminal_commitment)?,
             parse_state_commitment(ready.classification_terminal_commitment)?,
-            fq_from_u128(self.terminal_cursor),
-            fq_from_u128(self.opening_balance),
-            decaf377::Fq::from(self.canonical_transaction_count),
+            decaf377::Fq::from(self.audit_terminal.length),
+            self.audit_terminal.head_fq()?,
+            decaf377::Fq::from(self.audit_terminal.height),
+            decaf377::Fq::from(self.active_start_source.height),
+            decaf377::Fq::from(self.freeze_generation),
+            decaf377::Fq::from(self.freeze_source.height),
             decaf377::Fq::from(self.matched_transaction_count),
             fq_from_u128(self.amount),
             self.asset_id.0,
@@ -500,6 +725,12 @@ fn update_source(hash: &mut Sha256, source: &SeizureSource) {
     hash.update(source.result_header_hash);
 }
 
+fn update_audit_checkpoint(hash: &mut Sha256, checkpoint: &SeizureAuditCheckpoint) {
+    hash.update(checkpoint.height.to_be_bytes());
+    hash.update(checkpoint.length.to_be_bytes());
+    hash.update(checkpoint.head);
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FrozenSeizureTarget<'a> {
     pub address: &'a Address,
@@ -508,6 +739,7 @@ pub struct FrozenSeizureTarget<'a> {
     pub freeze_height: u64,
     pub terminal_header_hash: [u8; 32],
     pub terminal_shieldd_root: [u8; 32],
+    pub terminal_audit_checkpoint: SeizureAuditCheckpoint,
     pub is_frozen: bool,
 }
 
@@ -546,27 +778,40 @@ pub struct SeizureJob {
     pub job_id: SeizureId,
     pub authority: SeizureAuthority,
     pub immutable_statement_commitment: SeizureCommitment,
+    pub scan_context: SeizureScanPublicContext,
+    pub classifier_context: SeizureClassifierPublicContext,
     pub state: SeizureJobState,
 }
 
 impl SeizureJob {
     pub fn open(
-        job_id: SeizureId,
+        statement: &SeizureFinalStatement,
         authority: SeizureAuthority,
-        immutable_statement_commitment: SeizureCommitment,
         initial_state_commitment: SeizureCommitment,
     ) -> Result<Self> {
+        statement.validate()?;
+        let job_id = statement.certificate_id;
         ensure!(job_id != [0; 32], "seizure job_id must be nonzero");
         ensure!(authority != [0; 32], "seizure authority must be nonzero");
+        let immutable_statement_commitment = statement.commitment()?;
         ensure!(
             immutable_statement_commitment != [0; 32],
             "seizure statement commitment must be nonzero"
         );
         parse_state_commitment(initial_state_commitment)?;
+        let scan_context = SeizureScanPublicContext::from_statement(statement);
+        scan_context.validate()?;
+        let classifier_context = SeizureClassifierPublicContext::for_target(
+            statement.asset_id,
+            statement.target_address.clone(),
+        );
+        classifier_context.validate()?;
         Ok(Self {
             job_id,
             authority,
             immutable_statement_commitment,
+            scan_context,
+            classifier_context,
             state: SeizureJobState::Scanning(SeizureProgress {
                 next_sequence: 0,
                 state_commitment: initial_state_commitment,
@@ -590,6 +835,16 @@ impl SeizureJob {
             public.immutable_statement_commitment == self.immutable_statement_commitment,
             "seizure chunk changed immutable statement commitment"
         );
+        match public.family {
+            SeizureProofFamily::Scan => ensure!(
+                public.scan_context.as_ref() == Some(&self.scan_context),
+                "seizure chunk changed scan context"
+            ),
+            SeizureProofFamily::Classify => ensure!(
+                public.classifier_context.as_ref() == Some(&self.classifier_context),
+                "seizure chunk changed classifier context"
+            ),
+        }
 
         let progress = match (&mut self.state, public.family) {
             (SeizureJobState::Scanning(progress), SeizureProofFamily::Scan) => progress,
@@ -623,6 +878,13 @@ impl SeizureJob {
             progress.next_sequence > 0,
             "seizure scan must accept at least one chunk"
         );
+        ensure!(
+            progress
+                .last_receipt
+                .as_ref()
+                .is_some_and(|receipt| receipt.terminal),
+            "seizure scan has not accepted its terminal range chunk"
+        );
         let scan_terminal_sequence = progress.next_sequence;
         let terminal = progress.state_commitment;
         self.state = SeizureJobState::Classifying(SeizureClassificationProgress {
@@ -643,6 +905,13 @@ impl SeizureJob {
         ensure!(
             progress.next_sequence > 0,
             "seizure classification must accept at least one chunk"
+        );
+        ensure!(
+            progress
+                .last_receipt
+                .as_ref()
+                .is_some_and(|receipt| receipt.terminal),
+            "seizure classification has not consumed every candidate"
         );
         self.state = SeizureJobState::Ready(SeizureReady {
             scan_terminal_sequence: progress.scan_terminal_sequence,
@@ -732,6 +1001,10 @@ impl SeizureJob {
             "seizure terminal Shieldd root mismatch"
         );
         ensure!(
+            target.terminal_audit_checkpoint == statement.audit_terminal,
+            "seizure terminal audit checkpoint mismatch"
+        );
+        ensure!(
             denom_asset_id == statement.asset_id,
             "seizure denom asset mismatch"
         );
@@ -769,19 +1042,20 @@ fn advance_progress(
     if let Some(receipt) = last_receipt {
         if public.sequence == receipt.sequence
             && public.family == receipt.family
+            && public.terminal == receipt.terminal
             && public.start_state_commitment == receipt.start_state_commitment
             && public.end_state_commitment == receipt.end_state_commitment
         {
             return Ok(SeizureAdvance::Replay(receipt.clone()));
         }
+        ensure!(
+            !receipt.terminal,
+            "seizure phase already accepted a terminal chunk"
+        );
     }
     ensure!(
         public.sequence == *next_sequence,
         "seizure chunk sequence mismatch"
-    );
-    ensure!(
-        *next_sequence < MAX_SEIZURE_CHUNKS_PER_PHASE,
-        "seizure phase exceeds the chunk limit"
     );
     ensure!(
         public.start_state_commitment == *state_commitment,
@@ -798,6 +1072,7 @@ fn advance_progress(
     let receipt = SeizureChunkReceipt {
         family: public.family,
         sequence: public.sequence,
+        terminal: public.terminal,
         start_state_commitment: public.start_state_commitment,
         end_state_commitment: public.end_state_commitment,
     };
@@ -841,9 +1116,14 @@ pub trait FreezeStateWrite: StateWrite + FreezeStateRead {
         address: Address,
         asset_id: asset::Id,
         freeze_height: u64,
+        expected_generation: u64,
     ) -> Result<FreezeRecord> {
         let previous = self.get_freeze_record(&address, asset_id).await?;
         let record = FreezeRecord::next(previous.as_ref(), address, asset_id, freeze_height)?;
+        ensure!(
+            record.generation == expected_generation,
+            "freeze record generation does not match authenticated user leaf"
+        );
         self.put_freeze_record(record.clone())?;
         Ok(record)
     }
@@ -854,12 +1134,13 @@ pub trait FreezeStateWrite: StateWrite + FreezeStateRead {
         asset_id: asset::Id,
         generation: u64,
         anchor: FreezeResultAnchor,
+        audit_checkpoint: SeizureAuditCheckpoint,
     ) -> Result<FreezeRecord> {
         let mut record = self
             .get_freeze_record(address, asset_id)
             .await?
             .ok_or_else(|| anyhow::anyhow!("freeze record does not exist"))?;
-        record.attach_anchor(generation, anchor)?;
+        record.attach_anchor(generation, anchor, audit_checkpoint)?;
         self.put_freeze_record(record.clone())?;
         Ok(record)
     }
@@ -896,6 +1177,31 @@ pub trait SeizureStateRead: StateRead {
         ensure!(job.job_id == job_id, "stored seizure job key mismatch");
         Ok(Some(job))
     }
+
+    async fn get_target_seizure_job(
+        &self,
+        address: &Address,
+        asset_id: asset::Id,
+    ) -> Result<Option<SeizureJob>> {
+        let key = state_key::seizure_target_job(address, &asset_id);
+        let Some(bytes) = self.get_raw(&key).await? else {
+            return Ok(None);
+        };
+        let job_id: SeizureId = bytes.try_into().map_err(|bytes: Vec<u8>| {
+            anyhow::anyhow!(
+                "stored target seizure job ID must be 32 bytes, got {}",
+                bytes.len()
+            )
+        })?;
+        self.get_seizure_job(job_id).await?.map_or_else(
+            || {
+                Err(anyhow::anyhow!(
+                    "target seizure index refers to a missing job"
+                ))
+            },
+            |job| Ok(Some(job)),
+        )
+    }
 }
 
 #[cfg(feature = "component")]
@@ -908,6 +1214,21 @@ pub trait SeizureStateWrite: StateWrite + SeizureStateRead {
         ensure!(
             self.get_seizure_job(job.job_id).await?.is_none(),
             "seizure job already exists"
+        );
+        let target = &job.classifier_context.target_address;
+        let asset_id = job.classifier_context.target_asset_id;
+        if let Some(existing) = self.get_target_seizure_job(target, asset_id).await? {
+            let SeizureJobState::Seized(receipt) = existing.state else {
+                bail!("address-asset pair already has an active seizure job")
+            };
+            ensure!(
+                receipt.statement.freeze_generation < job.scan_context.freeze_generation,
+                "address-asset pair already has a seizure job for this freeze generation"
+            );
+        }
+        self.put_raw(
+            state_key::seizure_target_job(target, &asset_id),
+            job.job_id.to_vec(),
         );
         self.put_seizure_job(job)
     }
@@ -1006,6 +1327,7 @@ where
             freeze_height: statement.freeze_source.height,
             terminal_header_hash: statement.terminal_header_hash,
             terminal_shieldd_root: statement.terminal_shieldd_root,
+            terminal_audit_checkpoint: statement.audit_terminal.clone(),
             is_frozen: false,
         };
         return job.finalize_verified(
@@ -1027,6 +1349,10 @@ where
         .anchor
         .as_ref()
         .ok_or_else(|| anyhow::anyhow!("freeze result anchor is not attached"))?;
+    let audit_checkpoint = freeze
+        .audit_checkpoint
+        .as_ref()
+        .ok_or_else(|| anyhow::anyhow!("freeze audit checkpoint is not attached"))?;
     let leaf = state
         .get_user_leaf_record(&statement.target_address, statement.asset_id)
         .await?
@@ -1034,6 +1360,16 @@ where
     ensure!(
         leaf.leaf.status == UserAssetStatus::Frozen,
         "seizure target is not frozen"
+    );
+    ensure!(
+        leaf.leaf.freeze_generation == freeze.generation
+            && leaf.leaf.frozen_since_height == freeze.freeze_height,
+        "authenticated user leaf does not match the freeze record"
+    );
+    ensure!(
+        leaf.leaf.freeze_generation == statement.freeze_generation
+            && leaf.leaf.frozen_since_height == statement.freeze_source.height,
+        "seizure statement refers to a stale freeze generation"
     );
 
     let target = FrozenSeizureTarget {
@@ -1043,6 +1379,7 @@ where
         freeze_height: freeze.freeze_height,
         terminal_header_hash: anchor.terminal_header_hash,
         terminal_shieldd_root: anchor.terminal_shieldd_root,
+        terminal_audit_checkpoint: audit_checkpoint.clone(),
         is_frozen: true,
     };
     let receipt = job.finalize_verified(
@@ -1098,12 +1435,19 @@ mod tests {
                 height: 20,
                 result_header_hash: commitment(20),
             },
+            audit_start: SeizureAuditCheckpoint {
+                height: 9,
+                length: 0,
+                head: state_commitment(0),
+            },
+            audit_terminal: SeizureAuditCheckpoint {
+                height: 20,
+                length: 1_000,
+                head: state_commitment(88),
+            },
             terminal_header_hash: commitment(21),
             terminal_shieldd_root: commitment(22),
             freeze_generation: 3,
-            terminal_cursor: 20,
-            opening_balance: 0,
-            canonical_transaction_count: 1_000,
             matched_transaction_count: 7,
             amount: 123,
             authorization_record_hash: commitment(23),
@@ -1117,20 +1461,19 @@ mod tests {
         sequence: u64,
         start: SeizureCommitment,
         end: SeizureCommitment,
+        terminal: bool,
     ) -> SeizureChunkPublicInputs {
         SeizureChunkPublicInputs {
             job_id: job.job_id,
             family,
             sequence,
+            terminal,
             immutable_statement_commitment: job.immutable_statement_commitment,
             start_state_commitment: start,
             end_state_commitment: end,
-            classifier_context: (family == SeizureProofFamily::Classify).then(|| {
-                SeizureClassifierPublicContext::for_target(
-                    asset::Id(decaf377::Fq::from(9u64)),
-                    Address::dummy(&mut OsRng),
-                )
-            }),
+            scan_context: (family == SeizureProofFamily::Scan).then(|| job.scan_context.clone()),
+            classifier_context: (family == SeizureProofFamily::Classify)
+                .then(|| job.classifier_context.clone()),
         }
     }
 
@@ -1144,8 +1487,15 @@ mod tests {
             terminal_header_hash: commitment(20),
             terminal_shieldd_root: commitment(21),
         };
-        first.attach_anchor(1, anchor.clone()).unwrap();
-        first.attach_anchor(1, anchor).unwrap();
+        let checkpoint = SeizureAuditCheckpoint {
+            height: 20,
+            length: 7,
+            head: state_commitment(7),
+        };
+        first
+            .attach_anchor(1, anchor.clone(), checkpoint.clone())
+            .unwrap();
+        first.attach_anchor(1, anchor, checkpoint.clone()).unwrap();
         let stored = bincode::serialize(&first).unwrap();
         let decoded: FreezeRecord = bincode::deserialize(&stored).unwrap();
         assert_eq!(decoded, first);
@@ -1156,6 +1506,7 @@ mod tests {
                     terminal_header_hash: commitment(22),
                     terminal_shieldd_root: commitment(21),
                 },
+                checkpoint,
             )
             .is_err());
 
@@ -1169,13 +1520,7 @@ mod tests {
         let statement = statement();
         let authority = commitment(2);
         let initial = state_commitment(100);
-        let mut job = SeizureJob::open(
-            statement.certificate_id,
-            authority,
-            statement.commitment().unwrap(),
-            initial,
-        )
-        .unwrap();
+        let mut job = SeizureJob::open(&statement, authority, initial).unwrap();
 
         let mut current = initial;
         for sequence in 0..500 {
@@ -1183,7 +1528,14 @@ mod tests {
             assert!(matches!(
                 job.advance(
                     authority,
-                    chunk(&job, SeizureProofFamily::Scan, sequence, current, end)
+                    chunk(
+                        &job,
+                        SeizureProofFamily::Scan,
+                        sequence,
+                        current,
+                        end,
+                        sequence == 499,
+                    )
                 )
                 .unwrap(),
                 SeizureAdvance::Accepted(_)
@@ -1195,7 +1547,14 @@ mod tests {
             let end = state_commitment(1_001 + sequence);
             job.advance(
                 authority,
-                chunk(&job, SeizureProofFamily::Classify, sequence, current, end),
+                chunk(
+                    &job,
+                    SeizureProofFamily::Classify,
+                    sequence,
+                    current,
+                    end,
+                    sequence == 499,
+                ),
             )
             .unwrap();
             current = end;
@@ -1209,6 +1568,7 @@ mod tests {
             freeze_height: statement.freeze_source.height,
             terminal_header_hash: statement.terminal_header_hash,
             terminal_shieldd_root: statement.terminal_shieldd_root,
+            terminal_audit_checkpoint: statement.audit_terminal.clone(),
             is_frozen: true,
         };
         let authorization = SeizureAuthorization {
@@ -1241,19 +1601,14 @@ mod tests {
         let statement = statement();
         let authority = commitment(2);
         let initial = state_commitment(100);
-        let mut job = SeizureJob::open(
-            statement.certificate_id,
-            authority,
-            statement.commitment().unwrap(),
-            initial,
-        )
-        .unwrap();
+        let mut job = SeizureJob::open(&statement, authority, initial).unwrap();
         let public = chunk(
             &job,
             SeizureProofFamily::Scan,
             0,
             initial,
             state_commitment(101),
+            true,
         );
         job.advance(authority, public.clone()).unwrap();
         assert!(matches!(
@@ -1269,16 +1624,10 @@ mod tests {
         let initial = state_commitment(100);
         let scan_end = state_commitment(101);
         let classify_end = state_commitment(102);
-        let mut job = SeizureJob::open(
-            statement.certificate_id,
-            authority,
-            statement.commitment().unwrap(),
-            initial,
-        )
-        .unwrap();
+        let mut job = SeizureJob::open(&statement, authority, initial).unwrap();
 
-        let scan = chunk(&job, SeizureProofFamily::Scan, 0, initial, scan_end);
-        assert_eq!(scan.gnark_public_inputs().unwrap().len(), 7);
+        let scan = chunk(&job, SeizureProofFamily::Scan, 0, initial, scan_end, true);
+        assert_eq!(scan.gnark_public_inputs().unwrap().len(), 19);
         job.advance(authority, scan).unwrap();
         job.begin_classification(authority).unwrap();
 
@@ -1288,12 +1637,13 @@ mod tests {
             0,
             scan_end,
             classify_end,
+            true,
         );
         classify.classifier_context = Some(SeizureClassifierPublicContext::for_target(
             statement.asset_id,
             statement.target_address.clone(),
         ));
-        assert_eq!(classify.gnark_public_inputs().unwrap().len(), 11);
+        assert_eq!(classify.gnark_public_inputs().unwrap().len(), 12);
         let mut wrong_derivation = classify.clone();
         wrong_derivation
             .classifier_context
@@ -1305,10 +1655,10 @@ mod tests {
         job.advance(authority, classify).unwrap();
         job.mark_ready(authority).unwrap();
         let inputs = statement.gnark_public_inputs(&job).unwrap();
-        assert_eq!(inputs.len(), 17);
+        assert_eq!(inputs.len(), 20);
         assert_eq!(inputs[4], decaf377::Fq::from(1u64));
         assert_eq!(inputs[5], decaf377::Fq::from(1u64));
-        assert_eq!(inputs[12], fq_from_u128(statement.amount));
+        assert_eq!(inputs[15], fq_from_u128(statement.amount));
     }
 
     #[test]
@@ -1316,19 +1666,14 @@ mod tests {
         let statement = statement();
         let authority = commitment(2);
         let initial = state_commitment(100);
-        let original = SeizureJob::open(
-            statement.certificate_id,
-            authority,
-            statement.commitment().unwrap(),
-            initial,
-        )
-        .unwrap();
+        let original = SeizureJob::open(&statement, authority, initial).unwrap();
         let valid = chunk(
             &original,
             SeizureProofFamily::Scan,
             0,
             initial,
             state_commitment(101),
+            false,
         );
 
         let mutations: Vec<Box<dyn Fn(&mut SeizureChunkPublicInputs)>> = vec![
@@ -1359,16 +1704,10 @@ mod tests {
         let initial = state_commitment(100);
         let scan_end = state_commitment(101);
         let classify_end = state_commitment(102);
-        let mut job = SeizureJob::open(
-            statement.certificate_id,
-            authority,
-            statement.commitment().unwrap(),
-            initial,
-        )
-        .unwrap();
+        let mut job = SeizureJob::open(&statement, authority, initial).unwrap();
         job.advance(
             authority,
-            chunk(&job, SeizureProofFamily::Scan, 0, initial, scan_end),
+            chunk(&job, SeizureProofFamily::Scan, 0, initial, scan_end, true),
         )
         .unwrap();
         job.begin_classification(authority).unwrap();
@@ -1380,6 +1719,7 @@ mod tests {
                 0,
                 scan_end,
                 classify_end,
+                true,
             ),
         )
         .unwrap();
@@ -1392,6 +1732,7 @@ mod tests {
             freeze_height: statement.freeze_source.height,
             terminal_header_hash: statement.terminal_header_hash,
             terminal_shieldd_root: statement.terminal_shieldd_root,
+            terminal_audit_checkpoint: statement.audit_terminal.clone(),
             is_frozen: true,
         };
         let authorization = SeizureAuthorization {
@@ -1419,6 +1760,7 @@ mod tests {
             freeze_height: statement.freeze_source.height,
             terminal_header_hash: statement.terminal_header_hash,
             terminal_shieldd_root: statement.terminal_shieldd_root,
+            terminal_audit_checkpoint: statement.audit_terminal.clone(),
             is_frozen: true,
         };
         let authorization = SeizureAuthorization {
@@ -1445,6 +1787,7 @@ mod tests {
             freeze_height: statement.freeze_source.height,
             terminal_header_hash: statement.terminal_header_hash,
             terminal_shieldd_root: statement.terminal_shieldd_root,
+            terminal_audit_checkpoint: statement.audit_terminal.clone(),
             is_frozen: false,
         };
         let replay_authorization = SeizureAuthorization {
@@ -1473,6 +1816,7 @@ mod tests {
             freeze_height: statement.freeze_source.height,
             terminal_header_hash: statement.terminal_header_hash,
             terminal_shieldd_root: statement.terminal_shieldd_root,
+            terminal_audit_checkpoint: statement.audit_terminal.clone(),
             is_frozen: false,
         };
         let conflicting_denom_authorization = SeizureAuthorization {
@@ -1501,6 +1845,7 @@ mod tests {
             freeze_height: conflict.freeze_source.height,
             terminal_header_hash: conflict.terminal_header_hash,
             terminal_shieldd_root: conflict.terminal_shieldd_root,
+            terminal_audit_checkpoint: conflict.audit_terminal.clone(),
             is_frozen: true,
         };
         let conflict_authorization = SeizureAuthorization {

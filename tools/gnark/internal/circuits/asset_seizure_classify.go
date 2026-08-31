@@ -34,10 +34,6 @@ const (
 var (
 	seizureCompactPreDLEQDomain = seizureDomain("shieldd.seizure.pre.aggregate_dleq.v1")
 	seizureIssuerDhDLEQDomain   = seizureLittleEndianConstant([]byte("shieldd.issuer.dh_evidence.dleq.v1\x00"))
-	seizureCandidateHeadDomain  = seizureDomain("shieldd.seizure.candidate.head.v1")
-	seizureCandidateBodyDomain  = seizureDomain("shieldd.seizure.candidate.body.v1")
-	seizureCandidateTailDomain  = seizureDomain("shieldd.seizure.candidate.tail.v1")
-	seizureCandidateFinalDomain = seizureDomain("shieldd.seizure.candidate.final.v1")
 )
 
 func seizureLittleEndianConstant(value []byte) *big.Int {
@@ -61,7 +57,8 @@ func decafGeneratorFromVectors(vectors primitives.PrototypeVectors) (gnarkte.Poi
 }
 
 // SeizureIssuerDhEvidence is an issuer Chaum-Pedersen opening for one exact
-// accepted EPK. IssuerDKPub is carried once by the enclosing candidate.
+// accepted EPK. The issuer key comes from the candidate's authenticated
+// historical asset-policy leaf.
 type SeizureIssuerDhEvidence struct {
 	SharedPoint         Point2D
 	CommitmentGenerator Point2D
@@ -99,13 +96,22 @@ type SeizureAddressCiphertext struct {
 // by the canonical transaction decoder. Proof-only points are excluded from
 // CandidateDigest; accepted transaction fields are included.
 type SeizureCandidateRow struct {
-	Enabled      frontend.Variable
-	Kind         frontend.Variable
-	TxDigest     frontend.Variable
-	Direction    frontend.Variable
-	AssetID      frontend.Variable
-	IsFlagged    frontend.Variable
-	PublicAmount frontend.Variable
+	Enabled        frontend.Variable
+	Kind           frontend.Variable
+	TxDigest       frontend.Variable
+	Direction      frontend.Variable
+	WithdrawalKind frontend.Variable
+	AssetID        frontend.Variable
+	AssetAnchor    frontend.Variable
+	IsFlagged      frontend.Variable
+	PublicAmount   frontend.Variable
+	RingIDHash     frontend.Variable
+	PolicyIDHash   frontend.Variable
+	PermissionHash frontend.Variable
+	ResourceHash   frontend.Variable
+	AssetLeaf      compliance.IndexedLeafInputs
+	AssetPath      [compliance.ComplianceQuadTreeDepth][3]frontend.Variable
+	AssetPosition  frontend.Variable
 
 	DetectionEPK        Point2D
 	DetectionSalt       frontend.Variable
@@ -114,8 +120,6 @@ type SeizureCandidateRow struct {
 	Core    SeizureCoreCiphertext
 	Address SeizureAddressCiphertext
 
-	RingPK          Point2D
-	IssuerDKPub     Point2D
 	DetectionIssuer SeizureIssuerDhEvidence
 	CoreIssuer      SeizureIssuerDhEvidence
 	AddressIssuer   SeizureIssuerDhEvidence
@@ -134,14 +138,14 @@ type SeizureClassifyCircuit struct {
 	ImmutableStatementCommitmentHi frontend.Variable `gnark:",public"`
 	StartStateCommitment           frontend.Variable `gnark:",public"`
 	EndStateCommitment             frontend.Variable `gnark:",public"`
+	TerminalChunk                  frontend.Variable `gnark:",public"`
 
 	TargetAssetID                     frontend.Variable `gnark:",public"`
 	TargetAddressDiversifiedGenerator frontend.Variable `gnark:",public"`
 	TargetAddressTransmissionKey      frontend.Variable `gnark:",public"`
 	TargetDerivation                  frontend.Variable `gnark:",public"`
-
-	ReaderPK     Point2D
-	ReaderSecret frontend.Variable
+	ReaderPK                          Point2D
+	ReaderSecret                      frontend.Variable
 
 	// Sequence zero bridges the terminal scan commitment into the first
 	// classification commitment. Later chunks ignore this opening.
@@ -158,6 +162,7 @@ func (c *SeizureClassifyCircuit) Define(api frontend.API) error {
 	api.ToBinary(c.Sequence, 64)
 	api.ToBinary(c.ImmutableStatementCommitmentLo, 128)
 	api.ToBinary(c.ImmutableStatementCommitmentHi, 128)
+	api.AssertIsBoolean(c.TerminalChunk)
 	api.ToBinary(c.TargetAssetID, 256)
 	api.ToBinary(c.TargetAddressDiversifiedGenerator, 256)
 	api.ToBinary(c.TargetAddressTransmissionKey, 256)
@@ -327,6 +332,20 @@ func (c *SeizureClassifyCircuit) Define(api frontend.API) error {
 	api.AssertIsEqual(c.End.ClassifiedDebits, debits)
 	api.AssertIsEqual(c.End.PreviousTxDigest, previousTxDigest)
 	api.AssertIsEqual(c.End.PreviousTxMatched, previousTxMatched)
+	api.AssertIsEqual(
+		api.Mul(
+			c.TerminalChunk,
+			api.Sub(c.End.ConsumedCandidateCount, c.End.ExpectedCandidateCount),
+		),
+		0,
+	)
+	api.AssertIsEqual(
+		api.Mul(
+			c.TerminalChunk,
+			api.Sub(c.End.ConsumedCandidateDigest, c.End.ExpectedCandidateDigest),
+		),
+		0,
+	)
 
 	endCommitment, err := commitSeizureClassificationState(
 		api,
@@ -417,6 +436,13 @@ func classifySeizureCandidate(
 		selectors[SeizureCandidateIssuerWithdrawal],
 	)
 	assertEqualIf(api, row.Direction, SeizureDirectionDebit, isWithdrawal)
+	withdrawalKindValid := api.Add(
+		api.IsZero(api.Sub(row.WithdrawalKind, 1)),
+		api.IsZero(api.Sub(row.WithdrawalKind, 2)),
+	)
+	api.AssertIsEqual(api.Mul(isWithdrawal, api.Sub(withdrawalKindValid, 1)), 0)
+	api.AssertIsEqual(api.Mul(api.Sub(1, isWithdrawal), row.WithdrawalKind), 0)
+	api.AssertIsEqual(api.Mul(isTransfer, row.PublicAmount), 0)
 	assertEqualIf(api, row.IsFlagged, 0, isPre)
 	assertEqualIf(api, row.IsFlagged, 1, isIssuer)
 
@@ -426,8 +452,27 @@ func classifySeizureCandidate(
 	issuerActive := api.Mul(evidenceActive, isIssuer)
 	transferActive := api.Mul(row.Enabled, isTransfer)
 
+	api.ToBinary(row.AssetPosition, 2*compliance.ComplianceQuadTreeDepth)
+	api.ToBinary(row.AssetLeaf.NextIndex, 64)
+	api.ToBinary(row.AssetLeaf.Threshold, 128)
+	assetLeafCommitment, err := compliance.IndexedLeafCommitment(api, row.AssetLeaf)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+	assetRoot, err := compliance.VerifyQuadPath(
+		api,
+		assetLeafCommitment,
+		row.AssetPath,
+		row.AssetPosition,
+	)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+	assertEqualIf(api, assetRoot, row.AssetAnchor, row.Enabled)
+	assertEqualIf(api, row.AssetLeaf.Value, row.AssetID, row.Enabled)
+
 	detectionEPK := pointFromSeizure(row.DetectionEPK)
-	issuerDKPub := pointFromSeizure(row.IssuerDKPub)
+	issuerDKPub := row.AssetLeaf.DKPub
 	for _, point := range []gnarkte.Point{detectionEPK, issuerDKPub} {
 		curve.AssertIsOnCurve(point)
 	}
@@ -460,10 +505,24 @@ func classifySeizureCandidate(
 
 	coreEPK := pointFromSeizure(row.Core.EPK)
 	addressEPK := pointFromSeizure(row.Address.EPK)
-	ringPK := pointFromSeizure(row.RingPK)
+	ringPK := row.AssetLeaf.RingPK
 	for _, point := range []gnarkte.Point{coreEPK, addressEPK, ringPK} {
 		curve.AssertIsOnCurve(point)
 	}
+	assertEqualIf(api, row.RingIDHash, row.AssetLeaf.RingIDHash, transferActive)
+	assertEqualIf(api, row.PolicyIDHash, row.AssetLeaf.PolicyIDHash, transferActive)
+	assertEqualIf(api, row.PermissionHash, row.AssetLeaf.PermissionHash, transferActive)
+	assertEqualIf(api, row.ResourceHash, row.AssetLeaf.ResourceHash, transferActive)
+	for _, field := range []frontend.Variable{
+		row.RingIDHash,
+		row.PolicyIDHash,
+		row.PermissionHash,
+		row.ResourceHash,
+	} {
+		assertEqualIf(api, field, 0, isWithdrawal)
+	}
+	withdrawalFlagged := compliance.ThresholdFlag(api, 1, row.PublicAmount, row.AssetLeaf.Threshold)
+	assertEqualIf(api, row.IsFlagged, withdrawalFlagged, isWithdrawal)
 	targetCapability := compliance.ScalarMulWindow2LEBits(
 		api,
 		curve,
@@ -980,73 +1039,60 @@ func commitSeizureCandidate(
 	if err != nil {
 		return nil, err
 	}
-	issuerDKPub, err := compress(row.IssuerDKPub)
-	if err != nil {
-		return nil, err
-	}
-	ringPK, err := compress(row.RingPK)
-	if err != nil {
-		return nil, err
-	}
-	head, err := primitives.Poseidon377Hash7(
+	transferProjection, err := foldAuditCandidate(
 		api,
-		seizureCandidateHeadDomain,
-		[7]frontend.Variable{
-			row.TxDigest,
-			row.Kind,
+		auditTransferCandidateDomain,
+		[]frontend.Variable{
 			row.Direction,
-			row.AssetID,
-			row.IsFlagged,
-			row.PublicAmount,
+			row.AssetAnchor,
+			row.RingIDHash,
+			row.PolicyIDHash,
+			row.PermissionHash,
+			row.ResourceHash,
 			detectionEPK,
-		},
-	)
-	if err != nil {
-		return nil, err
-	}
-	body, err := primitives.Poseidon377Hash7(
-		api,
-		seizureCandidateBodyDomain,
-		[7]frontend.Variable{
-			head,
-			row.DetectionSalt,
 			row.DetectionCiphertext[0],
 			row.DetectionCiphertext[1],
 			row.DetectionCiphertext[2],
 			row.DetectionCiphertext[3],
 			coreEPK,
-		},
-	)
-	if err != nil {
-		return nil, err
-	}
-	tail, err := primitives.Poseidon377Hash7(
-		api,
-		seizureCandidateTailDomain,
-		[7]frontend.Variable{
-			body,
 			row.Core.C2,
 			row.Core.KeyConfirmation,
 			row.Core.Ciphertext,
 			row.Core.Salt,
 			addressEPK,
 			row.Address.C2,
+			row.Address.Ciphertext[0],
+			row.Address.Ciphertext[1],
+			row.Address.Ciphertext[2],
 		},
 	)
 	if err != nil {
 		return nil, err
 	}
-	return primitives.Poseidon377Hash7(
+	withdrawalProjection, err := foldAuditCandidate(
 		api,
-		seizureCandidateFinalDomain,
-		[7]frontend.Variable{
-			tail,
+		auditWithdrawalCandidateDomain,
+		[]frontend.Variable{
+			SeizureDirectionDebit,
+			row.WithdrawalKind,
+			row.AssetID,
+			row.PublicAmount,
+			row.AssetAnchor,
+			addressEPK,
+			row.Address.C2,
 			row.Address.KeyConfirmation,
 			row.Address.Ciphertext[0],
 			row.Address.Ciphertext[1],
 			row.Address.Ciphertext[2],
-			issuerDKPub,
-			ringPK,
 		},
 	)
+	if err != nil {
+		return nil, err
+	}
+	isTransfer := api.Add(
+		api.IsZero(api.Sub(row.Kind, SeizureCandidatePreTransfer)),
+		api.IsZero(api.Sub(row.Kind, SeizureCandidateIssuerTransfer)),
+	)
+	projection := api.Select(isTransfer, transferProjection, withdrawalProjection)
+	return commitAuditCandidateItem(api, row.Direction, row.TxDigest, projection)
 }

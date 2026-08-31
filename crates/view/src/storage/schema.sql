@@ -81,7 +81,8 @@ CREATE TABLE notes (
     address                 BLOB NOT NULL,
     amount                  BLOB NOT NULL,
     asset_id                BLOB NOT NULL,
-    rseed                   BLOB NOT NULL
+    rseed                   BLOB NOT NULL,
+    recovery_commitment     BLOB NOT NULL
 );
 
 -- general purpose note queries
@@ -198,8 +199,11 @@ CREATE TABLE compliance_user_leaf_data (
     address BLOB NOT NULL,
     asset_id BLOB NOT NULL,
     position BIGINT NOT NULL,
-    d BLOB NOT NULL,                   -- 32 bytes Fq
+    capk BLOB NOT NULL,                -- 32-byte compressed Decaf point
+    cnk_commitment BLOB NOT NULL,      -- 32-byte Fq
     status INTEGER NOT NULL,
+    freeze_generation BIGINT NOT NULL,
+    frozen_since_height BIGINT NOT NULL,
     commitment BLOB NOT NULL,
     PRIMARY KEY (address, asset_id)
 );

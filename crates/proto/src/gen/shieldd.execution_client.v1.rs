@@ -311,6 +311,51 @@ impl ::prost::Name for AttachFreezeResultAnchorResponse {
         "/shieldd.execution_client.v1.AttachFreezeResultAnchorResponse".into()
     }
 }
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SeizeNoteRequest {
+    #[prost(message, optional, tag = "1")]
+    pub source: ::core::option::Option<HostSource>,
+    #[prost(message, optional, tag = "2")]
+    pub seizure: ::core::option::Option<
+        super::super::core::component::shielded_pool::v1::NoteSeizure,
+    >,
+}
+impl ::prost::Name for SeizeNoteRequest {
+    const NAME: &'static str = "SeizeNoteRequest";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.SeizeNoteRequest".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.SeizeNoteRequest".into()
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SeizeNoteResponse {
+    #[prost(message, optional, tag = "1")]
+    pub source: ::core::option::Option<HostSource>,
+    #[prost(bool, tag = "2")]
+    pub replayed: bool,
+    #[prost(message, optional, tag = "3")]
+    pub withdrawal: ::core::option::Option<HostWithdrawal>,
+    #[prost(
+        enumeration = "super::super::core::component::compliance::v1::UserAssetStatus",
+        tag = "4"
+    )]
+    pub current_status: i32,
+    #[prost(uint64, tag = "5")]
+    pub freeze_generation: u64,
+}
+impl ::prost::Name for SeizeNoteResponse {
+    const NAME: &'static str = "SeizeNoteResponse";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.SeizeNoteResponse".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.SeizeNoteResponse".into()
+    }
+}
 /// CheckTxRequest carries a Shieldd transaction to validate without applying
 /// state changes.
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -904,6 +949,37 @@ pub mod execution_client_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
+        /// SeizeNote consumes one frozen regulated note and returns the exact host
+        /// settlement that Bankd must apply atomically with this call.
+        pub async fn seize_note(
+            &mut self,
+            request: impl tonic::IntoRequest<super::SeizeNoteRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::SeizeNoteResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/shieldd.execution_client.v1.ExecutionClientService/SeizeNote",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "shieldd.execution_client.v1.ExecutionClientService",
+                        "SeizeNote",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
         /// CheckTx validates a Shieldd transaction supplied by the host chain without
         /// applying state changes.
         pub async fn check_tx(
@@ -1196,6 +1272,15 @@ pub mod execution_client_service_server {
             request: tonic::Request<super::AttachFreezeResultAnchorRequest>,
         ) -> std::result::Result<
             tonic::Response<super::AttachFreezeResultAnchorResponse>,
+            tonic::Status,
+        >;
+        /// SeizeNote consumes one frozen regulated note and returns the exact host
+        /// settlement that Bankd must apply atomically with this call.
+        async fn seize_note(
+            &self,
+            request: tonic::Request<super::SeizeNoteRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::SeizeNoteResponse>,
             tonic::Status,
         >;
         /// CheckTx validates a Shieldd transaction supplied by the host chain without
@@ -1564,6 +1649,52 @@ pub mod execution_client_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = AttachFreezeResultAnchorSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/shieldd.execution_client.v1.ExecutionClientService/SeizeNote" => {
+                    #[allow(non_camel_case_types)]
+                    struct SeizeNoteSvc<T: ExecutionClientService>(pub Arc<T>);
+                    impl<
+                        T: ExecutionClientService,
+                    > tonic::server::UnaryService<super::SeizeNoteRequest>
+                    for SeizeNoteSvc<T> {
+                        type Response = super::SeizeNoteResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::SeizeNoteRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as ExecutionClientService>::seize_note(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = SeizeNoteSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

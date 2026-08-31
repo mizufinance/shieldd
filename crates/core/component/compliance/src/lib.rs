@@ -3,6 +3,14 @@ pub use enrichment::{AssetProofData, BatchComplianceData, ComplianceProofProvide
 
 pub mod event;
 
+pub mod audit_log;
+pub use audit_log::{
+    audit_bytes_commitment, AuditEffect, AuditEffectRecord, AuditLogCheckpoint, AuditLogState,
+    AuditSource, IbcOperation, WithdrawalKind, AUDIT_LOG_VERSION, MAX_AUDIT_RECORD_BYTES,
+};
+#[cfg(feature = "component")]
+pub use audit_log::{AuditLogRead, AuditLogWrite};
+
 pub mod issuer_keys;
 pub use event::{
     EventAssetRegistered, EventComplianceAnchor, EventUserAssetStatusChanged, EventUserRegistered,
@@ -14,6 +22,8 @@ pub use issuer_keys::{
 
 pub mod structs;
 pub use structs::{
+    compliance_nullifier_key_commitment,
+    derive_compliance_nullifier_key,
     AssetParams,
     AssetPolicy,
     ComplianceLeaf,
@@ -48,22 +58,26 @@ pub use transfer::{
 };
 
 pub mod seizure;
+pub mod seizure_projection;
 #[cfg(feature = "component")]
 pub use seizure::{
     finalize_seizure_job, FreezeStateRead, FreezeStateWrite, SeizureStateRead, SeizureStateWrite,
 };
 pub use seizure::{
-    FreezeRecord, FreezeResultAnchor, FrozenSeizureTarget, SeizureAdvance, SeizureAuthorization,
-    SeizureChunkPublicInputs, SeizureChunkReceipt, SeizureClassifierPublicContext,
-    SeizureCommitment, SeizureFinalStatement, SeizureId, SeizureJob, SeizureJobState,
-    SeizureProofFamily, SeizureProofVerifier, SeizureReceipt, SeizureSettlement, SeizureSource,
-    MAX_SEIZURE_CHUNKS_PER_PHASE, SEIZURE_GROTH16_PROOF_BYTES,
+    FreezeRecord, FreezeResultAnchor, FrozenSeizureTarget, SeizureAdvance, SeizureAuditCheckpoint,
+    SeizureAuthorization, SeizureChunkPublicInputs, SeizureChunkReceipt,
+    SeizureClassifierPublicContext, SeizureCommitment, SeizureFinalStatement, SeizureId,
+    SeizureJob, SeizureJobState, SeizureProofFamily, SeizureProofVerifier, SeizureReceipt,
+    SeizureScanPublicContext, SeizureSettlement, SeizureSource, SEIZURE_GROTH16_PROOF_BYTES,
+};
+pub use seizure_projection::{
+    CiphertextClassification, SeizureProjection, SeizureProjectionResult, TargetLifecycle,
 };
 
 pub mod pre_evidence;
 pub use pre_evidence::{
-    derive_orbis_scalar, CompactPreEvidenceV1, DleqProof, EvidenceReleaseAuthorization,
-    IssuerDhEvidenceV1, PreEvidenceV1, PreShareEvidence, VerifiedPreEvidence,
+    derive_orbis_scalar, CompactPreEvidence, DleqProof, EvidenceReleaseAuthorization,
+    IssuerDhEvidence, PreEvidence, PreShareEvidence, VerifiedPreEvidence,
     COMPACT_PRE_EVIDENCE_VERSION, PRE_EVIDENCE_VERSION,
 };
 
@@ -95,8 +109,8 @@ pub mod registry;
 #[cfg(feature = "component")]
 pub use registry::{
     AssetGrantAdmission, ComplianceRegistryRead, ComplianceRegistryWrite,
-    EnactedGovernanceAssetPolicyAdmission, GenesisAssetAdmission, UserGrantAdmission,
-    UserLeafRecord,
+    EnactedGovernanceAssetPolicyAdmission, GenesisAssetAdmission, NoteSeizureLifecycle,
+    UserGrantAdmission, UserLeafRecord,
 };
 
 #[cfg(feature = "component")]
@@ -257,7 +271,7 @@ mod tests {
         let snapshot = storage.latest_snapshot();
         let mut state = StateDelta::new(snapshot);
 
-        let leaf = ComplianceLeaf::new(
+        let leaf = ComplianceLeaf::synthetic_unregulated(
             Address::dummy(&mut rand::thread_rng()),
             asset::Id(Fq::from(100u64)),
         );
@@ -319,7 +333,10 @@ mod tests {
         let mut commitments = Vec::new();
 
         for i in 0..4u64 {
-            let leaf = ComplianceLeaf::new(Address::dummy(&mut rng), asset::Id(Fq::from(i + 1)));
+            let leaf = ComplianceLeaf::synthetic_unregulated(
+                Address::dummy(&mut rng),
+                asset::Id(Fq::from(i + 1)),
+            );
             commitments.push(leaf.commit());
             state.test_only_add_compliance_leaf(leaf).await.unwrap();
         }
@@ -349,15 +366,20 @@ mod tests {
         let mut leaves = Vec::new();
         for &pos in &positions {
             while state.get_user_count().await.unwrap() < pos {
-                let dummy_leaf =
-                    ComplianceLeaf::new(Address::dummy(&mut rng), asset::Id(Fq::from(1u64)));
+                let dummy_leaf = ComplianceLeaf::synthetic_unregulated(
+                    Address::dummy(&mut rng),
+                    asset::Id(Fq::from(1u64)),
+                );
                 state
                     .test_only_add_compliance_leaf(dummy_leaf)
                     .await
                     .unwrap();
             }
 
-            let leaf = ComplianceLeaf::new(Address::dummy(&mut rng), asset::Id(Fq::from(pos + 1)));
+            let leaf = ComplianceLeaf::synthetic_unregulated(
+                Address::dummy(&mut rng),
+                asset::Id(Fq::from(pos + 1)),
+            );
             state
                 .test_only_add_compliance_leaf(leaf.clone())
                 .await
@@ -407,8 +429,12 @@ mod tests {
 
         let sender_address = Address::dummy(&mut rng);
         let receiver_address = Address::dummy(&mut rng);
-        let sender_leaf = ComplianceLeaf::new(sender_address.clone(), asset_id);
-        let receiver_leaf = ComplianceLeaf::new(receiver_address.clone(), asset_id);
+        let sender_leaf =
+            ComplianceLeaf::registered(sender_address.clone(), asset_id, ring_pk, Fq::from(1u64))
+                .unwrap();
+        let receiver_leaf =
+            ComplianceLeaf::registered(receiver_address.clone(), asset_id, ring_pk, Fq::from(2u64))
+                .unwrap();
 
         state
             .test_only_add_compliance_leaf(sender_leaf.clone())
@@ -432,9 +458,8 @@ mod tests {
 
         let sender_auth_path = state.get_user_auth_path(sender_position).await.unwrap();
         let receiver_auth_path = state.get_user_auth_path(receiver_position).await.unwrap();
-        let sender_ack = ring_pk * decaf377::Fr::from_le_bytes_mod_order(&sender_leaf.d.to_bytes());
-        let receiver_ack =
-            ring_pk * decaf377::Fr::from_le_bytes_mod_order(&receiver_leaf.d.to_bytes());
+        let sender_ack = sender_leaf.capk;
+        let receiver_ack = receiver_leaf.capk;
 
         let ciphertext = encrypt_transfer(
             &mut OsRng,

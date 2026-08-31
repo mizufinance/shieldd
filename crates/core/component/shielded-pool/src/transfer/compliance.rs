@@ -61,11 +61,6 @@ pub(crate) fn build_transfer_compliance(
         .clone()
         .ok_or_else(|| anyhow!("receiver output missing compliance leaf"))?;
 
-    let ring_pk = if receiver_output.is_regulated {
-        asset_indexed_leaf.ring.ring_pk
-    } else {
-        *shieldd_sdk_compliance::UNREGULATED_SINK_RING_PK
-    };
     let dk_pub = if receiver_output.is_regulated {
         asset_indexed_leaf.params.dk_pub
     } else {
@@ -84,8 +79,8 @@ pub(crate) fn build_transfer_compliance(
         asset_indexed_leaf.params.threshold,
     );
 
-    let sender_ack = ring_pk * Fr::from_le_bytes_mod_order(&sender_leaf.d.to_bytes());
-    let receiver_ack = ring_pk * Fr::from_le_bytes_mod_order(&receiver_leaf.d.to_bytes());
+    let sender_ack = sender_leaf.capk;
+    let receiver_ack = receiver_leaf.capk;
 
     let detection_salt = derive_transfer_salt(transfer_nonce_root, b"detection");
     let sender_core_salt = derive_transfer_salt(transfer_nonce_root, b"sender_core");

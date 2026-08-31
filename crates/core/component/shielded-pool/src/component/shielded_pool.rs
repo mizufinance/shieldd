@@ -7,6 +7,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use cnidarium::{StateRead, StateWrite};
 use cnidarium_component::Component;
+use shieldd_sdk_compliance::ComplianceRegistryRead as _;
 use shieldd_sdk_proto::StateReadProto as _;
 use shieldd_sdk_proto::StateWriteProto as _;
 use shieldd_sdk_sct::component::tree::{SctManager as _, SctRead as _};
@@ -47,6 +48,13 @@ impl Component for ShieldedPool {
                         allocation.raw_amount,
                         0u128.into(),
                         "Genesis allocations contain empty note",
+                    );
+                    assert!(
+                        !state
+                            .is_asset_regulated(allocation.denom().id())
+                            .await
+                            .expect("compliance registry must be readable at genesis"),
+                        "regulated assets must be registered before issuance and cannot have genesis allocations"
                     );
 
                     // `InitChain` can mint more notes than fit in a single SCT block. Because no

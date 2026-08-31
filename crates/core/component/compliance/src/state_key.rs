@@ -63,8 +63,33 @@ pub fn asset_count() -> &'static str {
     "compliance/asset_count"
 }
 
+pub mod audit_log {
+    pub fn state() -> &'static str {
+        "compliance/audit_log/state"
+    }
+
+    pub fn record(index: u64) -> Vec<u8> {
+        format!("compliance/audit_log/record/{index:020}").into_bytes()
+    }
+
+    pub fn checkpoint(height: u64) -> String {
+        format!("compliance/audit_log/checkpoint/{height:020}")
+    }
+}
+
 pub fn seizure_job(job_id: &[u8; 32]) -> String {
     format!("compliance/seizure/jobs/{}", hex::encode(job_id))
+}
+
+pub fn seizure_target_job(
+    address: &shieldd_sdk_keys::Address,
+    asset_id: &shieldd_sdk_asset::asset::Id,
+) -> String {
+    format!(
+        "compliance/seizure/target/{}/{}",
+        hex::encode(address.to_vec()),
+        hex::encode(asset_id.0.to_bytes())
+    )
 }
 
 pub fn freeze_record(
@@ -141,22 +166,6 @@ pub fn user_leaf_record(
         "compliance/user/record/{}/{}",
         hex::encode(address.to_vec()),
         hex::encode(asset_id.0.to_bytes())
-    )
-}
-
-/// Consensus index preventing one audit derivation from being shared by addresses.
-pub fn user_audit_key_owner(d: &decaf377::Fq) -> String {
-    format!(
-        "compliance/user/audit_key/owner/{}",
-        hex::encode(d.to_bytes())
-    )
-}
-
-/// Consensus key assigning one audit scalar to an address globally.
-pub fn user_audit_key(address: &shieldd_sdk_keys::Address) -> String {
-    format!(
-        "compliance/user/audit_key/address/{}",
-        hex::encode(address.to_vec())
     )
 }
 

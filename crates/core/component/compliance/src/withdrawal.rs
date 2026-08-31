@@ -7,8 +7,8 @@ use rand_core::{CryptoRng, RngCore};
 use shieldd_sdk_keys::Address;
 
 use crate::{
-    crypto::{compliance_stream_block, UNREGULATED_SINK_RING_PK},
-    pre_evidence::{EvidenceReleaseAuthorization, IssuerDhEvidenceV1, PreEvidenceV1},
+    crypto::compliance_stream_block,
+    pre_evidence::{EvidenceReleaseAuthorization, IssuerDhEvidence, PreEvidence},
     scanning::AddressData,
     ComplianceLeaf, IndexedLeaf, FQ_BYTES,
 };
@@ -232,13 +232,7 @@ pub fn withdrawal_encryption_key(
     let key = if is_flagged {
         asset_leaf.params.dk_pub
     } else {
-        let d = Fr::from_le_bytes_mod_order(&sender_leaf.d.to_bytes());
-        let ring_pk = if is_regulated {
-            asset_leaf.ring.ring_pk
-        } else {
-            *UNREGULATED_SINK_RING_PK
-        };
-        ring_pk * d
+        sender_leaf.capk
     };
     ensure!(
         !key.is_identity(),
@@ -250,7 +244,7 @@ pub fn withdrawal_encryption_key(
 /// Verify ordinary PRE evidence for this exact ciphertext and classify its sender.
 pub fn classify_withdrawal_with_pre(
     ciphertext: &WithdrawalComplianceCiphertext,
-    evidence: &PreEvidenceV1,
+    evidence: &PreEvidence,
     authorization: &EvidenceReleaseAuthorization,
     reader_secret: Fr,
 ) -> Result<Option<AddressData>> {
@@ -267,7 +261,7 @@ pub fn classify_withdrawal_with_pre(
 /// Verify issuer DH evidence for this exact asset and ciphertext before opening it.
 pub fn classify_withdrawal_with_issuer(
     ciphertext: &WithdrawalComplianceCiphertext,
-    evidence: &IssuerDhEvidenceV1,
+    evidence: &IssuerDhEvidence,
     expected_asset_id: [u8; 32],
 ) -> Result<AddressData> {
     ensure!(

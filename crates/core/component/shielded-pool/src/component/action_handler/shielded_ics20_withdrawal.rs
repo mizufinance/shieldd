@@ -79,6 +79,14 @@ fn shielded_ics20_withdrawal_extract_public(
             .collect(),
         change_output: ShieldedIcs20WithdrawalChangePublic {
             note_commitment: action.body.change_output.note_payload.note_commitment,
+            recovery_commitment: action
+                .body
+                .change_output
+                .note_payload
+                .recovery_capsule
+                .as_ref()
+                .ok_or_else(|| anyhow::anyhow!("missing shielded withdrawal recovery capsule"))?
+                .commitment(),
         },
         outbound_asset_id: action.body.withdrawal.denom.id().0,
         outbound_amount: decaf377::Fq::from(action.body.withdrawal.amount),

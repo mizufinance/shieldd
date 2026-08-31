@@ -29,11 +29,11 @@ func TestRegulatedWithdrawalRejectsFrozenSender(t *testing.T) {
 func TestShieldedIcs20WithdrawalBindsEveryEffectHashLimb(t *testing.T) {
 	for limb, name := range []string{"0", "1", "2", "3"} {
 		t.Run(name, func(t *testing.T) {
-			fixture := testfixtures.LoadShieldedIcs20WithdrawalWitnessV14(
+			fixture := testfixtures.LoadShieldedIcs20WithdrawalWitness(
 				"shielded_ics20_withdrawal",
 			)
 			assignment, family, err :=
-				abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV14(fixture)
+				abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitness(fixture)
 			if err != nil {
 				t.Fatalf("decode withdrawal fixture: %v", err)
 			}
@@ -69,14 +69,14 @@ func TestShieldedIcs20WithdrawalBindsComplianceCiphertextAndPolicy(t *testing.T)
 		public bool
 		mutate func(
 			*testing.T,
-			*abi.ShieldedIcs20WithdrawalWitnessV14Binary,
+			*abi.ShieldedIcs20WithdrawalWitnessBinary,
 			*circuits.ShieldedIcs20WithdrawalCircuit,
 		)
 	}{
 		{
 			name:   "epk",
 			public: true,
-			mutate: func(_ *testing.T, w *abi.ShieldedIcs20WithdrawalWitnessV14Binary, c *circuits.ShieldedIcs20WithdrawalCircuit) {
+			mutate: func(_ *testing.T, w *abi.ShieldedIcs20WithdrawalWitnessBinary, c *circuits.ShieldedIcs20WithdrawalCircuit) {
 				w.WithdrawalEPKAffine = w.SenderDiversifiedGenerator
 				c.Compliance.EPK = c.Sender.DivGen
 			},
@@ -84,7 +84,7 @@ func TestShieldedIcs20WithdrawalBindsComplianceCiphertextAndPolicy(t *testing.T)
 		{
 			name:   "c2",
 			public: true,
-			mutate: func(t *testing.T, w *abi.ShieldedIcs20WithdrawalWitnessV14Binary, c *circuits.ShieldedIcs20WithdrawalCircuit) {
+			mutate: func(t *testing.T, w *abi.ShieldedIcs20WithdrawalWitnessBinary, c *circuits.ShieldedIcs20WithdrawalCircuit) {
 				w.WithdrawalC2 = addFieldElementBytes(t, w.WithdrawalC2, big.NewInt(1))
 				c.Compliance.C2 = primitives.LittleEndianBytesToBigInt(w.WithdrawalC2[:]).String()
 			},
@@ -92,7 +92,7 @@ func TestShieldedIcs20WithdrawalBindsComplianceCiphertextAndPolicy(t *testing.T)
 		{
 			name:   "key confirmation",
 			public: true,
-			mutate: func(t *testing.T, w *abi.ShieldedIcs20WithdrawalWitnessV14Binary, c *circuits.ShieldedIcs20WithdrawalCircuit) {
+			mutate: func(t *testing.T, w *abi.ShieldedIcs20WithdrawalWitnessBinary, c *circuits.ShieldedIcs20WithdrawalCircuit) {
 				w.WithdrawalKeyConfirmation = addFieldElementBytes(t, w.WithdrawalKeyConfirmation, big.NewInt(1))
 				c.Compliance.KeyConfirmation = primitives.LittleEndianBytesToBigInt(w.WithdrawalKeyConfirmation[:]).String()
 			},
@@ -100,38 +100,38 @@ func TestShieldedIcs20WithdrawalBindsComplianceCiphertextAndPolicy(t *testing.T)
 		{
 			name:   "encrypted sender address",
 			public: true,
-			mutate: func(t *testing.T, w *abi.ShieldedIcs20WithdrawalWitnessV14Binary, c *circuits.ShieldedIcs20WithdrawalCircuit) {
+			mutate: func(t *testing.T, w *abi.ShieldedIcs20WithdrawalWitnessBinary, c *circuits.ShieldedIcs20WithdrawalCircuit) {
 				w.WithdrawalEncryptedSenderAddress[1] = addFieldElementBytes(t, w.WithdrawalEncryptedSenderAddress[1], big.NewInt(1))
 				c.Compliance.EncryptedSenderAddress[1] = primitives.LittleEndianBytesToBigInt(w.WithdrawalEncryptedSenderAddress[1][:]).String()
 			},
 		},
 		{
 			name: "seed",
-			mutate: func(_ *testing.T, _ *abi.ShieldedIcs20WithdrawalWitnessV14Binary, c *circuits.ShieldedIcs20WithdrawalCircuit) {
+			mutate: func(_ *testing.T, _ *abi.ShieldedIcs20WithdrawalWitnessBinary, c *circuits.ShieldedIcs20WithdrawalCircuit) {
 				c.Compliance.Seed = mutateFieldByOne(c.Compliance.Seed)
 			},
 		},
 		{
 			name: "randomizer",
-			mutate: func(_ *testing.T, _ *abi.ShieldedIcs20WithdrawalWitnessV14Binary, c *circuits.ShieldedIcs20WithdrawalCircuit) {
+			mutate: func(_ *testing.T, _ *abi.ShieldedIcs20WithdrawalWitnessBinary, c *circuits.ShieldedIcs20WithdrawalCircuit) {
 				c.Compliance.Randomizer = mutateFieldByOne(c.Compliance.Randomizer)
 			},
 		},
 		{
 			name: "threshold",
-			mutate: func(_ *testing.T, _ *abi.ShieldedIcs20WithdrawalWitnessV14Binary, c *circuits.ShieldedIcs20WithdrawalCircuit) {
+			mutate: func(_ *testing.T, _ *abi.ShieldedIcs20WithdrawalWitnessBinary, c *circuits.ShieldedIcs20WithdrawalCircuit) {
 				c.Asset.Leaf.Threshold = 1
 			},
 		},
 		{
 			name: "issuer key",
-			mutate: func(_ *testing.T, _ *abi.ShieldedIcs20WithdrawalWitnessV14Binary, c *circuits.ShieldedIcs20WithdrawalCircuit) {
+			mutate: func(_ *testing.T, _ *abi.ShieldedIcs20WithdrawalWitnessBinary, c *circuits.ShieldedIcs20WithdrawalCircuit) {
 				c.Asset.Leaf.DKPub = c.Asset.Leaf.RingPK
 			},
 		},
 		{
 			name: "ring key",
-			mutate: func(_ *testing.T, _ *abi.ShieldedIcs20WithdrawalWitnessV14Binary, c *circuits.ShieldedIcs20WithdrawalCircuit) {
+			mutate: func(_ *testing.T, _ *abi.ShieldedIcs20WithdrawalWitnessBinary, c *circuits.ShieldedIcs20WithdrawalCircuit) {
 				c.Asset.Leaf.RingPK = c.Asset.Leaf.DKPub
 			},
 		},
@@ -162,7 +162,7 @@ func TestShieldedIcs20WithdrawalRejectsEveryOwnedPublicFieldMutation(
 		name   string
 		mutate func(
 			*testing.T,
-			*abi.ShieldedIcs20WithdrawalWitnessV14Binary,
+			*abi.ShieldedIcs20WithdrawalWitnessBinary,
 			*circuits.ShieldedIcs20WithdrawalCircuit,
 		)
 	}{
@@ -170,7 +170,7 @@ func TestShieldedIcs20WithdrawalRejectsEveryOwnedPublicFieldMutation(
 			name: "required spend nullifier",
 			mutate: func(
 				t *testing.T,
-				w *abi.ShieldedIcs20WithdrawalWitnessV14Binary,
+				w *abi.ShieldedIcs20WithdrawalWitnessBinary,
 				c *circuits.ShieldedIcs20WithdrawalCircuit,
 			) {
 				w.RequiredSpend.Nullifier = addFieldElementBytes(
@@ -187,7 +187,7 @@ func TestShieldedIcs20WithdrawalRejectsEveryOwnedPublicFieldMutation(
 			name: "optional real spend nullifier",
 			mutate: func(
 				t *testing.T,
-				w *abi.ShieldedIcs20WithdrawalWitnessV14Binary,
+				w *abi.ShieldedIcs20WithdrawalWitnessBinary,
 				c *circuits.ShieldedIcs20WithdrawalCircuit,
 			) {
 				if w.OptionalSpend.IsDummy {
@@ -207,7 +207,7 @@ func TestShieldedIcs20WithdrawalRejectsEveryOwnedPublicFieldMutation(
 			name: "required randomized verification key",
 			mutate: func(
 				t *testing.T,
-				w *abi.ShieldedIcs20WithdrawalWitnessV14Binary,
+				w *abi.ShieldedIcs20WithdrawalWitnessBinary,
 				c *circuits.ShieldedIcs20WithdrawalCircuit,
 			) {
 				if !pointsHaveDistinctCompression(
@@ -225,7 +225,7 @@ func TestShieldedIcs20WithdrawalRejectsEveryOwnedPublicFieldMutation(
 			name: "optional real randomized verification key",
 			mutate: func(
 				t *testing.T,
-				w *abi.ShieldedIcs20WithdrawalWitnessV14Binary,
+				w *abi.ShieldedIcs20WithdrawalWitnessBinary,
 				c *circuits.ShieldedIcs20WithdrawalCircuit,
 			) {
 				if w.OptionalSpend.IsDummy {
@@ -246,7 +246,7 @@ func TestShieldedIcs20WithdrawalRejectsEveryOwnedPublicFieldMutation(
 			name: "outbound asset id",
 			mutate: func(
 				t *testing.T,
-				w *abi.ShieldedIcs20WithdrawalWitnessV14Binary,
+				w *abi.ShieldedIcs20WithdrawalWitnessBinary,
 				c *circuits.ShieldedIcs20WithdrawalCircuit,
 			) {
 				w.OutboundAssetID = addFieldElementBytes(
@@ -263,7 +263,7 @@ func TestShieldedIcs20WithdrawalRejectsEveryOwnedPublicFieldMutation(
 			name: "outbound amount exact conservation",
 			mutate: func(
 				t *testing.T,
-				w *abi.ShieldedIcs20WithdrawalWitnessV14Binary,
+				w *abi.ShieldedIcs20WithdrawalWitnessBinary,
 				c *circuits.ShieldedIcs20WithdrawalCircuit,
 			) {
 				amount := primitives.LittleEndianBytesToBigInt(
@@ -284,7 +284,7 @@ func TestShieldedIcs20WithdrawalRejectsEveryOwnedPublicFieldMutation(
 			name: "change note commitment",
 			mutate: func(
 				t *testing.T,
-				w *abi.ShieldedIcs20WithdrawalWitnessV14Binary,
+				w *abi.ShieldedIcs20WithdrawalWitnessBinary,
 				c *circuits.ShieldedIcs20WithdrawalCircuit,
 			) {
 				w.ChangeOutput.NoteCommitment = addFieldElementBytes(
@@ -334,7 +334,7 @@ func TestShieldedIcs20WithdrawalWiringBindsPolicyLeafAndSentinel(t *testing.T) {
 		"gadget.asset_registry_params_hash dk_pub_fq=asset.leaf.dk_pub_fq threshold=asset.leaf.threshold channels_hash=asset.leaf.channels_hash out=asset.leaf.params_hash",
 		"gadget.asset_registry_ring_hash ring_pk_fq=asset.leaf.ring_pk_fq ring_id_hash=asset.leaf.ring_id_hash policy_id_hash=asset.leaf.policy_id_hash permission_hash=asset.leaf.permission_hash resource_hash=asset.leaf.resource_hash out=asset.leaf.ring_hash",
 		"gadget.asset_registry_leaf_hash value=asset.leaf.value next_index=asset.leaf.next_index next_value=asset.leaf.next_value params_hash=asset.leaf.params_hash ring_hash=asset.leaf.ring_hash out=asset.leaf.commitment",
-		"gadget.compliance_leaf div_gen_fq=sender.div_gen_fq transmission_fq=sender.transmission_fq asset_id=shared.asset_id d=sender.d status=sender.status out=sender.leaf_commitment",
+		"gadget.compliance_leaf div_gen_fq=sender.div_gen_fq transmission_fq=sender.transmission_fq asset_id=shared.asset_id capk=sender.capk cnk_commitment=sender.cnk_commitment status=sender.status out=sender.leaf_commitment",
 	} {
 		if count := strings.Count(transcript, binding); count != 1 {
 			t.Fatalf("withdrawal wiring must contain %q exactly once, got %d", binding, count)
@@ -377,15 +377,15 @@ func TestShieldedIcs20WithdrawalOptionalDummyBindsNullifierSeed(t *testing.T) {
 func TestShieldedIcs20WithdrawalSyntheticDummyNullifierBindsFixedSlot(
 	t *testing.T,
 ) {
-	fixture := testfixtures.LoadShieldedIcs20WithdrawalWitnessV14(
+	fixture := testfixtures.LoadShieldedIcs20WithdrawalWitness(
 		"shielded_ics20_withdrawal_unregulated",
 	)
-	witness, family, err := abi.DecodeShieldedIcs20WithdrawalWitnessV14(fixture)
+	witness, family, err := abi.DecodeShieldedIcs20WithdrawalWitness(fixture)
 	if err != nil {
 		t.Fatalf("decode dummy withdrawal fixture: %v", err)
 	}
 	assignment, _, err :=
-		abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV14(fixture)
+		abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitness(fixture)
 	if err != nil {
 		t.Fatalf("build dummy withdrawal assignment: %v", err)
 	}

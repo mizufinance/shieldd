@@ -133,6 +133,7 @@ func (c *unguardedWithdrawalIdentitySenderCircuit) Define(api frontend.API) erro
 		c.AssetID,
 		divGenFq,
 		transmissionFq,
+		0,
 	)
 	if err != nil {
 		return err

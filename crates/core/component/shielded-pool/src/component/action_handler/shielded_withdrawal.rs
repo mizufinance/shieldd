@@ -70,6 +70,13 @@ pub(crate) fn extract_public(
             .collect(),
         change_output: ShieldedIcs20WithdrawalChangePublic {
             note_commitment: change_output.note_commitment,
+            recovery_commitment: data
+                .change_output
+                .note_payload
+                .recovery_capsule
+                .as_ref()
+                .ok_or_else(|| anyhow::anyhow!("missing shielded withdrawal recovery capsule"))?
+                .commitment(),
         },
         outbound_asset_id: data.outbound_value.asset_id.0,
         outbound_amount: decaf377::Fq::from(data.outbound_value.amount),

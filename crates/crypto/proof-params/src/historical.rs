@@ -22,11 +22,11 @@ pub const CHUNK_PROOF_BYTES: usize = 480;
 
 const GENERATION_VK_JSON: &[u8] = include_bytes!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/../../../tools/gnark/artifacts/historical_generation_indexed_v2/generation_verifying_key.json"
+    "/../../../tools/gnark/artifacts/historical_generation_indexed/generation_verifying_key.json"
 ));
 const CHUNK_VK_JSON: &[u8] = include_bytes!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/../../../tools/gnark/artifacts/historical_generation_indexed_v2/chunk_verifying_key.json"
+    "/../../../tools/gnark/artifacts/historical_generation_indexed/chunk_verifying_key.json"
 ));
 
 static GENERATION_PVK: Lazy<PreparedVerifyingKey<Bls12_377>> = Lazy::new(|| {
@@ -412,7 +412,7 @@ mod tests {
     fn artifact_bytes(name: &str) -> Vec<u8> {
         std::fs::read(
             std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-                .join("../../../tools/gnark/artifacts/historical_generation_indexed_v2")
+                .join("../../../tools/gnark/artifacts/historical_generation_indexed")
                 .join(name),
         )
         .unwrap()

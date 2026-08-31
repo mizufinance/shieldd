@@ -8192,6 +8192,7 @@ version = "2.1.0"
 dependencies = [
  "anyhow",
  "ark-ff",
+ "ark-groth16",
  "ark-serialize",
  "async-trait",
  "base64 0.21.7",

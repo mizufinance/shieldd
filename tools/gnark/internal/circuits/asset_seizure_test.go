@@ -16,11 +16,70 @@ import (
 
 func seizureVariableBig(t *testing.T, value any) *big.Int {
 	t.Helper()
+	if value == nil {
+		return big.NewInt(0)
+	}
 	parsed, ok := new(big.Int).SetString(fmt.Sprint(value), 10)
 	if !ok {
 		t.Fatalf("invalid integer %v", value)
 	}
 	return parsed
+}
+
+func seizureZero(value frontend.Variable) frontend.Variable {
+	if value == nil {
+		return 0
+	}
+	return value
+}
+
+func normalizeSeizureScanState(state *SeizureScanState) {
+	state.Blind = seizureZero(state.Blind)
+	state.Cursor = seizureZero(state.Cursor)
+	state.LastHeight = seizureZero(state.LastHeight)
+	state.AuditRecordCount = seizureZero(state.AuditRecordCount)
+	state.PublicCredits = seizureZero(state.PublicCredits)
+	state.PublicDebits = seizureZero(state.PublicDebits)
+	state.TargetStatus = seizureZero(state.TargetStatus)
+	state.RegisteredAtHeight = seizureZero(state.RegisteredAtHeight)
+	state.FreezeGeneration = seizureZero(state.FreezeGeneration)
+	state.FrozenSinceHeight = seizureZero(state.FrozenSinceHeight)
+	state.CandidateCount = seizureZero(state.CandidateCount)
+	state.CandidateDigest = seizureZero(state.CandidateDigest)
+	state.CanonicalRecordDigest = seizureZero(state.CanonicalRecordDigest)
+}
+
+func normalizeSeizureScanRow(row *SeizureScanRow) {
+	row.Enabled = seizureZero(row.Enabled)
+	row.Source.Kind = seizureZero(row.Source.Kind)
+	row.Source.Height = seizureZero(row.Source.Height)
+	row.Source.TransactionIDLo = seizureZero(row.Source.TransactionIDLo)
+	row.Source.TransactionIDHi = seizureZero(row.Source.TransactionIDHi)
+	row.Source.Position0 = seizureZero(row.Source.Position0)
+	row.Source.Position1 = seizureZero(row.Source.Position1)
+	row.Source.EffectIndex = seizureZero(row.Source.EffectIndex)
+	row.Source.ContextCommitment = seizureZero(row.Source.ContextCommitment)
+	row.Effect.Kind = seizureZero(row.Effect.Kind)
+	for index := range row.Effect.Fields {
+		row.Effect.Fields[index] = seizureZero(row.Effect.Fields[index])
+	}
+}
+
+func auditCandidateItemNative(
+	t *testing.T,
+	role any,
+	txDigest *big.Int,
+	projection any,
+) *big.Int {
+	t.Helper()
+	item, err := primitives.Poseidon377Hash3Native(
+		seizureCandidateItemDomain,
+		[3]*big.Int{seizureVariableBig(t, role), txDigest, seizureVariableBig(t, projection)},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return item
 }
 
 func seizureScanCommitmentNative(
@@ -48,8 +107,8 @@ func seizureScanCommitmentNative(
 			identity,
 			seizureVariableBig(t, state.Blind),
 			seizureVariableBig(t, state.Cursor),
-			seizureVariableBig(t, state.CanonicalTxCount),
-			big.NewInt(0),
+			seizureVariableBig(t, state.LastHeight),
+			seizureVariableBig(t, state.AuditRecordCount),
 		},
 	)
 	if err != nil {
@@ -70,7 +129,101 @@ func seizureScanCommitmentNative(
 	if err != nil {
 		t.Fatal(err)
 	}
-	return tail
+	out, err := primitives.Poseidon377Hash5Native(
+		seizureScanStateTailDomain,
+		[5]*big.Int{
+			tail,
+			seizureVariableBig(t, state.RegisteredAtHeight),
+			seizureVariableBig(t, state.FreezeGeneration),
+			seizureVariableBig(t, state.FrozenSinceHeight),
+			big.NewInt(0),
+		},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
+func auditRecordCommitmentNative(t *testing.T, row SeizureScanRow) *big.Int {
+	t.Helper()
+	position1 := seizureVariableBig(t, row.Source.Position1)
+	effectIndex := seizureVariableBig(t, row.Source.EffectIndex)
+	if fmt.Sprint(row.Source.Kind) == "1" {
+		position1, effectIndex = effectIndex, big.NewInt(0)
+	}
+	sourceHead, err := primitives.Poseidon377Hash7Native(
+		auditSourceDomain,
+		[7]*big.Int{
+			seizureVariableBig(t, row.Source.Kind),
+			seizureVariableBig(t, row.Source.Height),
+			seizureVariableBig(t, row.Source.TransactionIDLo),
+			seizureVariableBig(t, row.Source.TransactionIDHi),
+			seizureVariableBig(t, row.Source.Position0),
+			position1,
+			effectIndex,
+		},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	source, err := primitives.Poseidon377Hash2Native(
+		auditSourceDomain,
+		[2]*big.Int{sourceHead, seizureVariableBig(t, row.Source.ContextCommitment)},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	effectHead, err := primitives.Poseidon377Hash7Native(
+		auditEffectHeadDomain,
+		[7]*big.Int{
+			seizureVariableBig(t, row.Effect.Kind),
+			seizureVariableBig(t, row.Effect.Fields[0]),
+			seizureVariableBig(t, row.Effect.Fields[1]),
+			seizureVariableBig(t, row.Effect.Fields[2]),
+			seizureVariableBig(t, row.Effect.Fields[3]),
+			seizureVariableBig(t, row.Effect.Fields[4]),
+			seizureVariableBig(t, row.Effect.Fields[5]),
+		},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	effect, err := primitives.Poseidon377Hash7Native(
+		auditEffectTailDomain,
+		[7]*big.Int{
+			effectHead,
+			seizureVariableBig(t, row.Effect.Fields[6]),
+			seizureVariableBig(t, row.Effect.Fields[7]),
+			seizureVariableBig(t, row.Effect.Fields[8]),
+			seizureVariableBig(t, row.Effect.Fields[9]),
+			seizureVariableBig(t, row.Effect.Fields[10]),
+			seizureVariableBig(t, row.Effect.Fields[11]),
+		},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	record, err := primitives.Poseidon377Hash3Native(
+		auditRecordDomain,
+		[3]*big.Int{big.NewInt(1), source, effect},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return record
+}
+
+func auditLogAppendNative(t *testing.T, head *big.Int, cursor any, record *big.Int) *big.Int {
+	t.Helper()
+	next, err := primitives.Poseidon377Hash3Native(
+		auditLogDomain,
+		[3]*big.Int{head, seizureVariableBig(t, cursor), record},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return next
 }
 
 func seizureClassificationCommitmentNative(
@@ -93,7 +246,7 @@ func seizureClassificationCommitmentNative(
 	if err != nil {
 		t.Fatal(err)
 	}
-	context, err := primitives.Poseidon377Hash5Native(
+	targetContext, err := primitives.Poseidon377Hash5Native(
 		seizureClassifyContextDomain,
 		[5]*big.Int{
 			identity,
@@ -109,7 +262,7 @@ func seizureClassificationCommitmentNative(
 	head, err := primitives.Poseidon377Hash5Native(
 		seizureClassifyStateHeadDomain,
 		[5]*big.Int{
-			context,
+			targetContext,
 			seizureVariableBig(t, state.Blind),
 			seizureVariableBig(t, state.ExpectedCandidateCount),
 			seizureVariableBig(t, state.ExpectedCandidateDigest),
@@ -149,66 +302,114 @@ func seizureScanAssignment(t *testing.T) *SeizureScanCircuit {
 	start := SeizureScanState{
 		Blind:                 7,
 		Cursor:                99,
-		CanonicalTxCount:      5,
+		LastHeight:            90,
+		AuditRecordCount:      5,
 		PublicCredits:         100,
 		PublicDebits:          10,
 		TargetStatus:          1,
+		RegisteredAtHeight:    10,
+		FreezeGeneration:      0,
+		FrozenSinceHeight:     0,
 		CandidateCount:        2,
 		CandidateDigest:       41,
 		CanonicalRecordDigest: 42,
 	}
+	rows := [4]SeizureScanRow{
+		{
+			Enabled: 1,
+			Source:  AuditSourceRow{Kind: 3, Height: 100, Position0: 9, Position1: 1, EffectIndex: 0, ContextCommitment: 77},
+			Effect:  AuditEffectRow{Kind: AuditEffectPublicDeposit, Fields: [12]frontend.Variable{91, 7, 92}},
+		},
+		{
+			Enabled: 1,
+			Source:  AuditSourceRow{Kind: 1, Height: 101, TransactionIDLo: 13, TransactionIDHi: 14, Position0: 0, EffectIndex: 0},
+			Effect:  AuditEffectRow{Kind: AuditEffectTransferOutput, Fields: [12]frontend.Variable{123, 124, 125, 126}},
+		},
+		{
+			Enabled: 1,
+			Source:  AuditSourceRow{Kind: 1, Height: 102, TransactionIDLo: 15, TransactionIDHi: 16, Position0: 0, EffectIndex: 0},
+			Effect:  AuditEffectRow{Kind: AuditEffectNoteReshape, Fields: [12]frontend.Variable{1, 2, 3, 4}},
+		},
+		{
+			Enabled: 1,
+			Source:  AuditSourceRow{Kind: 1, Height: 103, TransactionIDLo: 17, TransactionIDHi: 18, Position0: 0, EffectIndex: 0},
+			Effect:  AuditEffectRow{Kind: AuditEffectUserStatusChanged, Fields: [12]frontend.Variable{91, 92, 2, 1, 103}},
+		},
+	}
+	txDigest, err := primitives.Poseidon377Hash2Native(
+		seizureCandidateItemDomain,
+		[2]*big.Int{big.NewInt(13), big.NewInt(14)},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	creditItem := auditCandidateItemNative(t, SeizureDirectionCredit, txDigest, 125)
+	debitItem := auditCandidateItemNative(t, SeizureDirectionDebit, txDigest, 126)
 	candidateDigest, err := primitives.Poseidon377Hash2Native(
 		seizureCandidateChainDomain,
-		[2]*big.Int{big.NewInt(41), big.NewInt(52)},
+		[2]*big.Int{big.NewInt(41), creditItem},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	candidateDigest, err = primitives.Poseidon377Hash2Native(
+		seizureCandidateChainDomain,
+		[2]*big.Int{candidateDigest, debitItem},
 	)
 	if err != nil {
 		t.Fatal(err)
 	}
 	canonicalDigest := big.NewInt(42)
-	for digest := int64(51); digest <= 54; digest++ {
-		canonicalDigest, err = primitives.Poseidon377Hash2Native(
-			seizureRecordChainDomain,
-			[2]*big.Int{canonicalDigest, big.NewInt(digest)},
-		)
-		if err != nil {
-			t.Fatal(err)
-		}
+	for index, row := range rows {
+		canonicalDigest = auditLogAppendNative(t, canonicalDigest, 99+index, auditRecordCommitmentNative(t, row))
 	}
 	end := SeizureScanState{
 		Blind:                 8,
 		Cursor:                103,
-		CanonicalTxCount:      9,
+		LastHeight:            103,
+		AuditRecordCount:      9,
 		PublicCredits:         107,
-		PublicDebits:          13,
+		PublicDebits:          10,
 		TargetStatus:          2,
-		CandidateCount:        3,
+		RegisteredAtHeight:    10,
+		FreezeGeneration:      1,
+		FrozenSinceHeight:     103,
+		CandidateCount:        4,
 		CandidateDigest:       candidateDigest.String(),
 		CanonicalRecordDigest: canonicalDigest.String(),
 	}
+	normalizeSeizureScanState(&start)
+	normalizeSeizureScanState(&end)
 	assignment := &SeizureScanCircuit{
 		JobIDLo:                        11,
 		JobIDHi:                        12,
 		Sequence:                       3,
 		ImmutableStatementCommitmentLo: 13,
 		ImmutableStatementCommitmentHi: 14,
+		TerminalChunk:                  1,
+		StartAuditLogLength:            99,
+		StartAuditLogHead:              0,
+		StartAuditLogHeight:            9,
+		TerminalAuditLogLength:         103,
+		TerminalAuditLogHead:           canonicalDigest.String(),
+		TerminalAuditLogHeight:         103,
+		TargetAssetID:                  91,
+		TargetAddressCommitment:        92,
+		RegisteredAtHeight:             10,
+		FreezeGeneration:               1,
+		FrozenSinceHeight:              103,
 		Start:                          start,
 		End:                            end,
 	}
 	for index := range assignment.Rows {
-		assignment.Rows[index] = SeizureScanRow{
-			Enabled:               0,
-			Cursor:                0,
-			CanonicalRecordDigest: 0,
-			EffectKind:            SeizureEffectNone,
-			Amount:                0,
-		}
+		assignment.Rows[index] = SeizureScanRow{}
 	}
 	assignment.StartStateCommitment = seizureScanCommitmentNative(t, 11, 12, 13, 14, 3, start).String()
 	assignment.EndStateCommitment = seizureScanCommitmentNative(t, 11, 12, 13, 14, 4, end).String()
-	assignment.Rows[0] = SeizureScanRow{Enabled: 1, Cursor: 100, CanonicalRecordDigest: 51, EffectKind: SeizureEffectCredit, Amount: 7}
-	assignment.Rows[1] = SeizureScanRow{Enabled: 1, Cursor: 101, CanonicalRecordDigest: 52, EffectKind: SeizureEffectCandidate, Amount: 0}
-	assignment.Rows[2] = SeizureScanRow{Enabled: 1, Cursor: 102, CanonicalRecordDigest: 53, EffectKind: SeizureEffectDebit, Amount: 3}
-	assignment.Rows[3] = SeizureScanRow{Enabled: 1, Cursor: 103, CanonicalRecordDigest: 54, EffectKind: SeizureEffectFreeze, Amount: 0}
+	copy(assignment.Rows[:], rows[:])
+	for index := range assignment.Rows {
+		normalizeSeizureScanRow(&assignment.Rows[index])
+	}
 	return assignment
 }
 
@@ -219,10 +420,12 @@ func TestSeizureScanCircuitFoldsOpaqueState(t *testing.T) {
 	}
 
 	mutations := []func(*SeizureScanCircuit){
-		func(value *SeizureScanCircuit) { value.Rows[1].Cursor = 99 },
-		func(value *SeizureScanCircuit) { value.Rows[4].Amount = 1 },
+		func(value *SeizureScanCircuit) { value.Rows[1].Source.Height = 89 },
+		func(value *SeizureScanCircuit) { value.Rows[4].Effect.Fields[0] = 1 },
 		func(value *SeizureScanCircuit) { value.End.PublicCredits = 108 },
 		func(value *SeizureScanCircuit) { value.ImmutableStatementCommitmentHi = 15 },
+		func(value *SeizureScanCircuit) { value.TerminalAuditLogHead = 1 },
+		func(value *SeizureScanCircuit) { value.FrozenSinceHeight = 102 },
 	}
 	for index, mutate := range mutations {
 		mutated := *seizureScanAssignment(t)
@@ -230,6 +433,103 @@ func TestSeizureScanCircuitFoldsOpaqueState(t *testing.T) {
 		if err := test.IsSolved(&SeizureScanCircuit{}, &mutated, ecc.BLS12_377.ScalarField()); err == nil {
 			t.Fatalf("mutation %d must fail", index)
 		}
+	}
+}
+
+func seizureScanWithNonTargetWithdrawalAssignment(t *testing.T) *SeizureScanCircuit {
+	t.Helper()
+	start := SeizureScanState{Blind: 7}
+	rows := [3]SeizureScanRow{
+		{
+			Enabled: 1,
+			Source:  AuditSourceRow{Kind: 1, Height: 1, TransactionIDLo: 11, TransactionIDHi: 12, Position0: 0, EffectIndex: 0},
+			Effect:  AuditEffectRow{Kind: AuditEffectUserRegistered, Fields: [12]frontend.Variable{91, 92}},
+		},
+		{
+			Enabled: 1,
+			Source:  AuditSourceRow{Kind: 1, Height: 2, TransactionIDLo: 13, TransactionIDHi: 14, Position0: 0, EffectIndex: 0},
+			Effect:  AuditEffectRow{Kind: AuditEffectWithdrawal, Fields: [12]frontend.Variable{1, 99, 50, 123, 124, 125}},
+		},
+		{
+			Enabled: 1,
+			Source:  AuditSourceRow{Kind: 1, Height: 3, TransactionIDLo: 15, TransactionIDHi: 16, Position0: 0, EffectIndex: 0},
+			Effect:  AuditEffectRow{Kind: AuditEffectUserStatusChanged, Fields: [12]frontend.Variable{91, 92, 2, 1, 3}},
+		},
+	}
+	canonicalDigest := big.NewInt(0)
+	for index, row := range rows {
+		canonicalDigest = auditLogAppendNative(
+			t,
+			canonicalDigest,
+			index,
+			auditRecordCommitmentNative(t, row),
+		)
+	}
+	end := SeizureScanState{
+		Blind:                 8,
+		Cursor:                3,
+		LastHeight:            3,
+		AuditRecordCount:      3,
+		TargetStatus:          2,
+		RegisteredAtHeight:    1,
+		FreezeGeneration:      1,
+		FrozenSinceHeight:     3,
+		CanonicalRecordDigest: canonicalDigest.String(),
+	}
+	normalizeSeizureScanState(&start)
+	normalizeSeizureScanState(&end)
+	assignment := &SeizureScanCircuit{
+		JobIDLo:                        11,
+		JobIDHi:                        12,
+		Sequence:                       0,
+		ImmutableStatementCommitmentLo: 13,
+		ImmutableStatementCommitmentHi: 14,
+		TerminalChunk:                  1,
+		StartAuditLogLength:            0,
+		StartAuditLogHead:              0,
+		StartAuditLogHeight:            0,
+		TerminalAuditLogLength:         3,
+		TerminalAuditLogHead:           canonicalDigest.String(),
+		TerminalAuditLogHeight:         3,
+		TargetAssetID:                  91,
+		TargetAddressCommitment:        92,
+		RegisteredAtHeight:             1,
+		FreezeGeneration:               1,
+		FrozenSinceHeight:              3,
+		Start:                          start,
+		End:                            end,
+	}
+	assignment.StartStateCommitment = seizureScanCommitmentNative(
+		t, 11, 12, 13, 14, 0, start,
+	).String()
+	assignment.EndStateCommitment = seizureScanCommitmentNative(
+		t, 11, 12, 13, 14, 1, end,
+	).String()
+	copy(assignment.Rows[:], rows[:])
+	for index := range assignment.Rows {
+		normalizeSeizureScanRow(&assignment.Rows[index])
+	}
+	return assignment
+}
+
+func TestSeizureScanSkipsNonTargetWithdrawals(t *testing.T) {
+	assignment := seizureScanWithNonTargetWithdrawalAssignment(t)
+	if err := test.IsSolved(
+		&SeizureScanCircuit{},
+		assignment,
+		ecc.BLS12_377.ScalarField(),
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	mutated := seizureScanWithNonTargetWithdrawalAssignment(t)
+	mutated.Rows[1].Effect.Fields[1] = mutated.TargetAssetID
+	if err := test.IsSolved(
+		&SeizureScanCircuit{},
+		mutated,
+		ecc.BLS12_377.ScalarField(),
+	); err == nil {
+		t.Fatal("target-asset withdrawal must enter the candidate chain")
 	}
 }
 
@@ -255,11 +555,14 @@ func seizureFinalizeAssignment(t *testing.T) *SeizureFinalizeCircuit {
 		ImmutableStatementCommitmentHi:    14,
 		ScanSequence:                      4,
 		ClassificationSequence:            4,
-		TerminalCursor:                    scan.Cursor,
-		OpeningBalance:                    0,
-		CanonicalTxCount:                  scan.CanonicalTxCount,
+		TerminalAuditLogLength:            scan.Cursor,
+		TerminalAuditLogHead:              scan.CanonicalRecordDigest,
+		TerminalAuditLogHeight:            scan.LastHeight,
+		RegisteredAtHeight:                scan.RegisteredAtHeight,
+		FreezeGeneration:                  scan.FreezeGeneration,
+		FrozenSinceHeight:                 scan.FrozenSinceHeight,
 		MatchedTxCount:                    classification.MatchedTxCount,
-		Amount:                            102,
+		Amount:                            105,
 		TargetAssetID:                     91,
 		TargetAddressDiversifiedGenerator: 92,
 		TargetAddressTransmissionKey:      93,
@@ -281,7 +584,7 @@ func TestSeizureFinalizeCircuitBindsBothPhasesAndAmount(t *testing.T) {
 	}
 
 	mutations := []func(*SeizureFinalizeCircuit){
-		func(value *SeizureFinalizeCircuit) { value.Amount = 103 },
+		func(value *SeizureFinalizeCircuit) { value.Amount = 106 },
 		func(value *SeizureFinalizeCircuit) { value.Classification.ConsumedCandidateCount = 2 },
 		func(value *SeizureFinalizeCircuit) { value.Scan.TargetStatus = 1 },
 		func(value *SeizureFinalizeCircuit) { value.ScanTerminalCommitment = 99 },
@@ -444,67 +747,65 @@ func seizureCandidateDigestNative(t *testing.T, row SeizureCandidateRow) *big.In
 	point := func(value Point2D) *big.Int {
 		return seizureCompress(t, gnarkte.Point{X: variable(value.X), Y: variable(value.Y)})
 	}
-	head, err := primitives.Poseidon377Hash7Native(
-		seizureCandidateHeadDomain,
-		[7]*big.Int{
-			variable(row.TxDigest),
-			variable(row.Kind),
-			variable(row.Direction),
-			variable(row.AssetID),
-			variable(row.IsFlagged),
-			variable(row.PublicAmount),
-			point(row.DetectionEPK),
-		},
-	)
-	if err != nil {
-		t.Fatal(err)
+	fold := func(domain *big.Int, fields ...*big.Int) *big.Int {
+		head := big.NewInt(0)
+		for _, field := range fields {
+			var err error
+			head, err = primitives.Poseidon377Hash2Native(
+				domain,
+				[2]*big.Int{head, field},
+			)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+		return head
 	}
-	body, err := primitives.Poseidon377Hash7Native(
-		seizureCandidateBodyDomain,
-		[7]*big.Int{
-			head,
-			variable(row.DetectionSalt),
+	isTransfer := fmt.Sprint(row.Kind) == fmt.Sprint(SeizureCandidatePreTransfer) ||
+		fmt.Sprint(row.Kind) == fmt.Sprint(SeizureCandidateIssuerTransfer)
+	var projection *big.Int
+	if isTransfer {
+		projection = fold(
+			auditTransferCandidateDomain,
+			variable(row.Direction),
+			variable(row.AssetAnchor),
+			variable(row.RingIDHash),
+			variable(row.PolicyIDHash),
+			variable(row.PermissionHash),
+			variable(row.ResourceHash),
+			point(row.DetectionEPK),
 			variable(row.DetectionCiphertext[0]),
 			variable(row.DetectionCiphertext[1]),
 			variable(row.DetectionCiphertext[2]),
 			variable(row.DetectionCiphertext[3]),
 			point(row.Core.EPK),
-		},
-	)
-	if err != nil {
-		t.Fatal(err)
-	}
-	tail, err := primitives.Poseidon377Hash7Native(
-		seizureCandidateTailDomain,
-		[7]*big.Int{
-			body,
 			variable(row.Core.C2),
 			variable(row.Core.KeyConfirmation),
 			variable(row.Core.Ciphertext),
 			variable(row.Core.Salt),
 			point(row.Address.EPK),
 			variable(row.Address.C2),
-		},
-	)
-	if err != nil {
-		t.Fatal(err)
-	}
-	digest, err := primitives.Poseidon377Hash7Native(
-		seizureCandidateFinalDomain,
-		[7]*big.Int{
-			tail,
+			variable(row.Address.Ciphertext[0]),
+			variable(row.Address.Ciphertext[1]),
+			variable(row.Address.Ciphertext[2]),
+		)
+	} else {
+		projection = fold(
+			auditWithdrawalCandidateDomain,
+			big.NewInt(SeizureDirectionDebit),
+			variable(row.WithdrawalKind),
+			variable(row.AssetID),
+			variable(row.PublicAmount),
+			variable(row.AssetAnchor),
+			point(row.Address.EPK),
+			variable(row.Address.C2),
 			variable(row.Address.KeyConfirmation),
 			variable(row.Address.Ciphertext[0]),
 			variable(row.Address.Ciphertext[1]),
 			variable(row.Address.Ciphertext[2]),
-			point(row.IssuerDKPub),
-			point(row.RingPK),
-		},
-	)
-	if err != nil {
-		t.Fatal(err)
+		)
 	}
-	return digest
+	return auditCandidateItemNative(t, row.Direction, variable(row.TxDigest), projection)
 }
 
 func seizureFieldAdd(values ...*big.Int) *big.Int {
@@ -513,6 +814,29 @@ func seizureFieldAdd(values ...*big.Int) *big.Int {
 		out.Add(out, value)
 	}
 	return out.Mod(out, ecc.BLS12_377.ScalarField())
+}
+
+func seizureRefreshAssetAnchor(t *testing.T, row *SeizureCandidateRow) {
+	t.Helper()
+	leafCommitment, err := compliance.IndexedLeafCommitmentNative(row.AssetLeaf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var path [compliance.ComplianceQuadTreeDepth][3]*big.Int
+	for layer := range row.AssetPath {
+		for sibling := range row.AssetPath[layer] {
+			path[layer][sibling] = seizureVariableBig(t, row.AssetPath[layer][sibling])
+		}
+	}
+	root, err := compliance.VerifyQuadPathNative(
+		leafCommitment,
+		path,
+		uint64(seizureVariableBig(t, row.AssetPosition).Uint64()),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	row.AssetAnchor = root.String()
 }
 
 func seizureClassifyAssignment(t *testing.T, exactMatch bool) *SeizureClassifyCircuit {
@@ -601,12 +925,32 @@ func seizureClassifyAssignment(t *testing.T, exactMatch bool) *SeizureClassifyCi
 		CommitmentEPK:       seizurePointWitness(generator),
 		Response:            0,
 	}
+	assetLeaf := compliance.IndexedLeafInputs{
+		Value:          assetID,
+		NextIndex:      uint64(0),
+		NextValue:      big.NewInt(0),
+		DKPub:          issuerDKPub,
+		Threshold:      "100",
+		ChannelsHash:   big.NewInt(205),
+		RingPK:         generator,
+		RingIDHash:     big.NewInt(201),
+		PolicyIDHash:   big.NewInt(202),
+		PermissionHash: big.NewInt(203),
+		ResourceHash:   big.NewInt(204),
+	}
 	row := SeizureCandidateRow{
 		Enabled:             1,
 		Kind:                SeizureCandidatePreTransfer,
 		TxDigest:            77,
 		Direction:           SeizureDirectionDebit,
+		WithdrawalKind:      0,
 		AssetID:             assetID.String(),
+		RingIDHash:          201,
+		PolicyIDHash:        202,
+		PermissionHash:      203,
+		ResourceHash:        204,
+		AssetLeaf:           assetLeaf,
+		AssetPosition:       0,
 		IsFlagged:           0,
 		PublicAmount:        0,
 		DetectionEPK:        seizurePointWitness(detectionEPK),
@@ -625,8 +969,6 @@ func seizureClassifyAssignment(t *testing.T, exactMatch bool) *SeizureClassifyCi
 			KeyConfirmation: 0,
 			Ciphertext:      [3]frontend.Variable{0, 0, 0},
 		},
-		RingPK:          seizurePointWitness(generator),
-		IssuerDKPub:     seizurePointWitness(issuerDKPub),
 		DetectionIssuer: detectionEvidence,
 		CoreIssuer:      dummyIssuer,
 		AddressIssuer:   dummyIssuer,
@@ -642,6 +984,12 @@ func seizureClassifyAssignment(t *testing.T, exactMatch bool) *SeizureClassifyCi
 			compliance.DLEQChallengeBits,
 		),
 	}
+	for layer := range row.AssetPath {
+		for sibling := range row.AssetPath[layer] {
+			row.AssetPath[layer][sibling] = 0
+		}
+	}
+	seizureRefreshAssetAnchor(t, &row)
 	candidateDigest := seizureCandidateDigestNative(t, row)
 	candidateChain, err := primitives.Poseidon377Hash2Native(
 		seizureCandidateChainDomain,
@@ -653,7 +1001,7 @@ func seizureClassifyAssignment(t *testing.T, exactMatch bool) *SeizureClassifyCi
 	scanTerminal := SeizureScanState{
 		Blind:                 7,
 		Cursor:                100,
-		CanonicalTxCount:      1,
+		AuditRecordCount:      1,
 		PublicCredits:         0,
 		PublicDebits:          0,
 		TargetStatus:          2,
@@ -661,6 +1009,7 @@ func seizureClassifyAssignment(t *testing.T, exactMatch bool) *SeizureClassifyCi
 		CandidateDigest:       candidateChain.String(),
 		CanonicalRecordDigest: 88,
 	}
+	normalizeSeizureScanState(&scanTerminal)
 	start := SeizureClassificationState{
 		Blind:                   8,
 		ExpectedCandidateCount:  1,
@@ -697,6 +1046,7 @@ func seizureClassifyAssignment(t *testing.T, exactMatch bool) *SeizureClassifyCi
 		Sequence:                          0,
 		ImmutableStatementCommitmentLo:    13,
 		ImmutableStatementCommitmentHi:    14,
+		TerminalChunk:                     1,
 		TargetAssetID:                     assetID.String(),
 		TargetAddressDiversifiedGenerator: 92,
 		TargetAddressTransmissionKey:      93,
@@ -879,8 +1229,13 @@ func seizurePreWithdrawalClassifyAssignment(t *testing.T) *SeizureClassifyCircui
 	row := &assignment.Rows[0]
 	row.Kind = SeizureCandidatePreWithdrawal
 	row.Direction = SeizureDirectionDebit
+	row.WithdrawalKind = 2
 	row.IsFlagged = 0
 	row.PublicAmount = 12
+	row.RingIDHash = 0
+	row.PolicyIDHash = 0
+	row.PermissionHash = 0
+	row.ResourceHash = 0
 	row.Address.EPK = seizurePointWitness(addressEPK)
 	row.Address.C2 = seizureFieldAdd(seed, seizureCompress(t, addressShared)).String()
 	confirmation, err := primitives.Poseidon377Hash2Native(
@@ -930,7 +1285,14 @@ func seizureIssuerWithdrawalClassifyAssignment(t *testing.T) *SeizureClassifyCir
 	row := &assignment.Rows[0]
 	row.Kind = SeizureCandidateIssuerWithdrawal
 	row.Direction = SeizureDirectionDebit
+	row.WithdrawalKind = 2
 	row.PublicAmount = 12
+	row.RingIDHash = 0
+	row.PolicyIDHash = 0
+	row.PermissionHash = 0
+	row.ResourceHash = 0
+	row.AssetLeaf.Threshold = "1"
+	seizureRefreshAssetAnchor(t, row)
 	confirmation, err := primitives.Poseidon377Hash2Native(
 		compliance.WithdrawalKeyConfirmationDomain,
 		[2]*big.Int{
@@ -972,6 +1334,37 @@ func TestSeizureClassifyCircuitAcceptsExactPreMatchAndProvedNonMatch(t *testing.
 		ecc.BLS12_377.ScalarField(),
 	); err == nil {
 		t.Fatal("mutated ordinary PRE relation must fail")
+	}
+}
+
+func TestSeizureClassifyCircuitRejectsWrongAuthenticatedAssetKeys(t *testing.T) {
+	vectors, err := primitives.LoadPrototypeVectors()
+	if err != nil {
+		t.Fatal(err)
+	}
+	generator, err := decafGeneratorFromVectors(vectors)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mutations := []func(*SeizureClassifyCircuit){
+		func(value *SeizureClassifyCircuit) {
+			value.Rows[0].AssetLeaf.RingPK = seizurePoint(t, generator, big.NewInt(2))
+		},
+		func(value *SeizureClassifyCircuit) {
+			value.Rows[0].AssetLeaf.DKPub = seizurePoint(t, generator, big.NewInt(3))
+		},
+	}
+
+	for index, mutate := range mutations {
+		assignment := seizureClassifyAssignment(t, true)
+		mutate(assignment)
+		if err := test.IsSolved(
+			&SeizureClassifyCircuit{},
+			assignment,
+			ecc.BLS12_377.ScalarField(),
+		); err == nil {
+			t.Fatalf("authenticated asset key mutation %d must fail", index)
+		}
 	}
 }
 

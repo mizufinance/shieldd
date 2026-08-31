@@ -29,17 +29,20 @@ func (c *noteCommitmentProfileCircuit) Define(api frontend.API) error {
 		c.NoteAssetID,
 		gnarkte.Point{X: c.DiversifiedGenX, Y: c.DiversifiedGenY},
 		c.TransmissionKeyS,
+		0,
 	)
 	return err
 }
 
 type complianceLeafProfileCircuit struct {
-	DivGenX        frontend.Variable
-	DivGenY        frontend.Variable
-	TransX         frontend.Variable
-	TransY         frontend.Variable
-	AssetID        frontend.Variable
-	D              frontend.Variable
+	DivGenX       frontend.Variable
+	DivGenY       frontend.Variable
+	TransX        frontend.Variable
+	TransY        frontend.Variable
+	AssetID       frontend.Variable
+	CapkX         frontend.Variable
+	CapkY         frontend.Variable
+	CnkCommitment frontend.Variable
 }
 
 func (c *complianceLeafProfileCircuit) Define(api frontend.API) error {
@@ -48,7 +51,8 @@ func (c *complianceLeafProfileCircuit) Define(api frontend.API) error {
 		gnarkte.Point{X: c.DivGenX, Y: c.DivGenY},
 		gnarkte.Point{X: c.TransX, Y: c.TransY},
 		c.AssetID,
-		c.D,
+		gnarkte.Point{X: c.CapkX, Y: c.CapkY},
+		c.CnkCommitment,
 		1,
 	)
 	return err
@@ -119,16 +123,16 @@ func (c *transferSaltProfileCircuit) Define(api frontend.API) error {
 }
 
 type transferDetectionProfileCircuit struct {
-	IsFlagged           frontend.Variable
-	SharedSecretX       frontend.Variable
-	SharedSecretY       frontend.Variable
-	SenderCoreEPKFq     frontend.Variable
-	DetectionSalt       frontend.Variable
-	AssetID             frontend.Variable
-	Ciphertext0         frontend.Variable
-	Ciphertext1         frontend.Variable
-	Ciphertext2         frontend.Variable
-	Ciphertext3         frontend.Variable
+	IsFlagged       frontend.Variable
+	SharedSecretX   frontend.Variable
+	SharedSecretY   frontend.Variable
+	SenderCoreEPKFq frontend.Variable
+	DetectionSalt   frontend.Variable
+	AssetID         frontend.Variable
+	Ciphertext0     frontend.Variable
+	Ciphertext1     frontend.Variable
+	Ciphertext2     frontend.Variable
+	Ciphertext3     frontend.Variable
 }
 
 func (c *transferDetectionProfileCircuit) Define(api frontend.API) error {

@@ -463,6 +463,7 @@ impl TestNodeWithIBC {
                 permission: String::new(),
                 resource: String::new(),
                 registration_authority_vk: None,
+                seizure_authority_vk: None,
                 asset_registration_grant: None,
             };
             actions.push(Action::ComplianceRegisterAsset(msg));
@@ -471,7 +472,7 @@ impl TestNodeWithIBC {
         // Create MsgRegisterUser for each (address, asset) pair
         for address in addresses {
             for &asset_id in asset_ids {
-                let leaf = ComplianceLeaf::new(address.clone(), asset_id);
+                let leaf = ComplianceLeaf::synthetic_unregulated(address.clone(), asset_id);
                 let msg = MsgRegisterUser { leaf, grant: None };
                 actions.push(Action::ComplianceRegisterUser(msg));
             }
@@ -532,6 +533,7 @@ impl TestNodeWithIBC {
             permission: String::new(),
             resource: String::new(),
             registration_authority_vk: Some(authority_vk),
+            seizure_authority_vk: Some(authority_vk),
             asset_registration_grant: None,
         };
         let body = asset_msg.registration_grant_body(VALID_UNTIL_UNIX);
@@ -546,7 +548,7 @@ impl TestNodeWithIBC {
         actions.push(Action::ComplianceRegisterAsset(asset_msg));
 
         for address in addresses {
-            let leaf = ComplianceLeaf::new(address.clone(), asset);
+            let leaf = ComplianceLeaf::registered_for_test(address.clone(), asset);
             let body = UserRegistrationGrantBody {
                 leaf: leaf.clone(),
                 policy_id: "benchmark-policy".to_string(),

@@ -1,3 +1,4 @@
+use ark_ff::Field as _;
 use decaf377::Fq;
 use decaf377_rdsa::{Signature, SpendAuth, VerificationKey};
 use once_cell::sync::Lazy;
@@ -41,8 +42,8 @@ pub const TRANSFER_OUTPUT_WIRE_BYTES: usize =
 pub const TRANSFER_OUTPUT_CIPHERTEXT_FQS: usize =
     (DETECTION_TAG_BYTES + ENCRYPTED_TIER_BYTES * 3) / 32; // 13
 
-const ASSET_REGISTRATION_GRANT_DOMAIN: &[u8] = b"shieldd.compliance.asset_registration_grant.v1";
-const USER_REGISTRATION_GRANT_DOMAIN: &[u8] = b"shieldd.compliance.user_registration_grant.v1";
+const ASSET_REGISTRATION_GRANT_DOMAIN: &[u8] = b"shieldd.compliance.asset_registration_grant";
+const USER_REGISTRATION_GRANT_DOMAIN: &[u8] = b"shieldd.compliance.user_registration_grant";
 
 fn grant_signing_bytes(domain: &[u8], body_bytes: Vec<u8>) -> Vec<u8> {
     let mut bytes = Vec::with_capacity(domain.len() + 1 + body_bytes.len());
@@ -76,8 +77,29 @@ const _: () = {
 
 /// The domain separator used to generate compliance leaf commitments.
 pub(crate) static COMPLIANCE_LEAF_DOMAIN_SEP: Lazy<Fq> = Lazy::new(|| {
-    Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(b"shieldd.compliance.leaf.v5").as_bytes())
+    Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(b"shieldd.compliance.leaf").as_bytes())
 });
+
+static COMPLIANCE_NULLIFIER_KEY_DOMAIN_SEP: Lazy<Fq> = Lazy::new(|| {
+    Fq::from_le_bytes_mod_order(
+        blake2b_simd::blake2b(b"shieldd.compliance.nullifier_key").as_bytes(),
+    )
+});
+
+static COMPLIANCE_NULLIFIER_DERIVATION_DOMAIN_SEP: Lazy<Fq> = Lazy::new(|| {
+    Fq::from_le_bytes_mod_order(
+        blake2b_simd::blake2b(b"shieldd.compliance.nullifier_derivation").as_bytes(),
+    )
+});
+
+static SYNTHETIC_COMPLIANCE_NULLIFIER_KEY_DOMAIN_SEP: Lazy<Fq> = Lazy::new(|| {
+    Fq::from_le_bytes_mod_order(
+        blake2b_simd::blake2b(b"shieldd.compliance.synthetic_nullifier_key").as_bytes(),
+    )
+});
+
+const LIFECYCLE_STATUS_BITS: u32 = 3;
+const LIFECYCLE_GENERATION_BITS: u32 = 64;
 
 /// Authorization state for one address and regulated asset.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -177,9 +199,8 @@ impl From<UserAssetStatus> for pb::UserAssetStatus {
 
 /// A compliance leaf in the public on-chain registry for regulated assets.
 ///
-/// Contains the full address, asset ID, status, and its ordinary-Orbis derivation scalar `d`.
-/// `d = SHA512("elgamal-derivation-v1\0\0" || address.to_vec())` reduced into `Fr`.
-/// ACK = d × ring_pk, computed in-circuit from the leaf's `d` value.
+/// The leaf authenticates the address capability used by Orbis and a commitment
+/// to the compliance nullifier key released only for an authorized seizure.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(try_from = "pb::ComplianceLeaf", into = "pb::ComplianceLeaf")]
 pub struct ComplianceLeaf {
@@ -187,61 +208,195 @@ pub struct ComplianceLeaf {
     pub address: Address,
     /// The asset ID this compliance leaf applies to.
     pub asset_id: asset::Id,
-    /// Derivation scalar verified from the full canonical address at registration.
-    pub d: Fq,
+    /// Ordinary-Orbis address capability for this asset's ring.
+    pub capk: decaf377::Element,
+    /// Commitment to the compliance nullifier key held by the user and ACP.
+    pub cnk_commitment: Fq,
     /// Current authorization state for this address and asset.
     pub status: UserAssetStatus,
+    /// Monotonic generation of the latest freeze.
+    pub freeze_generation: u64,
+    /// Height where the current freeze began, or zero while active.
+    pub frozen_since_height: u64,
 }
 
-fn validate_derivation_scalar(d: Fq, expected: Fq) -> anyhow::Result<()> {
-    anyhow::ensure!(
-        expected != Fq::from(0u64),
-        "compliance leaf derivation scalar must be nonzero"
-    );
-    anyhow::ensure!(
-        d == expected,
-        "compliance leaf d does not match the canonical address derivation"
-    );
-    Ok(())
+pub fn compliance_nullifier_key_commitment(cnk: Fq) -> Fq {
+    poseidon377::hash_1(&COMPLIANCE_NULLIFIER_KEY_DOMAIN_SEP, cnk)
+}
+
+/// Derive the address-and-asset scoped key shared by its wallet and the ACP.
+pub fn derive_compliance_nullifier_key(
+    wallet_nk: Fq,
+    address: &Address,
+    asset_id: asset::Id,
+) -> Fq {
+    poseidon377::hash_4(
+        &COMPLIANCE_NULLIFIER_DERIVATION_DOMAIN_SEP,
+        (
+            wallet_nk,
+            address.diversified_generator().vartime_compress_to_field(),
+            Fq::from_bytes_checked(&address.transmission_key().0)
+                .expect("validated address transmission key"),
+            asset_id.0,
+        ),
+    )
 }
 
 impl ComplianceLeaf {
-    /// Create a leaf using the one ordinary-Orbis derivation for this address.
-    pub fn new(address: Address, asset_id: asset::Id) -> Self {
+    /// Create a registered leaf for one asset ring and ACP-held nullifier key.
+    pub fn registered(
+        address: Address,
+        asset_id: asset::Id,
+        ring_pk: decaf377::Element,
+        cnk: Fq,
+    ) -> anyhow::Result<Self> {
+        anyhow::ensure!(
+            ring_pk != decaf377::Element::IDENTITY,
+            "ring_pk must be nonidentity"
+        );
+        anyhow::ensure!(
+            cnk != Fq::from(0u64),
+            "compliance nullifier key must be nonzero"
+        );
         let d = crate::derive_compliance_scalar(&address);
-        Self {
+        let capk = ring_pk * decaf377::Fr::from_le_bytes_mod_order(&d.to_bytes());
+        anyhow::ensure!(
+            capk != decaf377::Element::IDENTITY,
+            "capk must be nonidentity"
+        );
+        Ok(Self {
             address,
             asset_id,
-            d,
+            capk,
+            cnk_commitment: compliance_nullifier_key_commitment(cnk),
             status: UserAssetStatus::Active,
-        }
+            freeze_generation: 0,
+            frozen_since_height: 0,
+        })
+    }
+
+    #[cfg(any(test, feature = "test-helpers"))]
+    pub fn registered_for_test(address: Address, asset_id: asset::Id) -> Self {
+        Self::registered(
+            address,
+            asset_id,
+            decaf377::Element::GENERATOR,
+            Fq::from(1u64),
+        )
+        .expect("fixed test compliance keys are valid")
     }
 
     /// Create the explicit synthetic leaf used only for unregulated asset proofs.
     pub fn synthetic_unregulated(address: Address, asset_id: asset::Id) -> Self {
-        Self::new(address, asset_id)
-    }
-
-    /// Create a test-only leaf with explicitly supplied d.
-    #[cfg(any(test, feature = "test-helpers"))]
-    pub fn new_unchecked(address: Address, asset_id: asset::Id, d: Fq) -> Self {
+        let d = crate::derive_compliance_scalar(&address);
+        let capk =
+            *crate::UNREGULATED_SINK_RING_PK * decaf377::Fr::from_le_bytes_mod_order(&d.to_bytes());
+        let diversified_generator = address.diversified_generator().vartime_compress_to_field();
+        let transmission_key = Fq::from_bytes_checked(&address.transmission_key().0)
+            .expect("validated address transmission key");
+        let synthetic_cnk = poseidon377::hash_3(
+            &SYNTHETIC_COMPLIANCE_NULLIFIER_KEY_DOMAIN_SEP,
+            (diversified_generator, transmission_key, asset_id.0),
+        );
         Self {
             address,
             asset_id,
-            d,
+            capk,
+            cnk_commitment: compliance_nullifier_key_commitment(synthetic_cnk),
             status: UserAssetStatus::Active,
+            freeze_generation: 0,
+            frozen_since_height: 0,
         }
     }
 
     #[cfg(any(test, feature = "test-helpers"))]
     pub fn with_status_for_test(mut self, status: UserAssetStatus) -> Self {
         self.status = status;
+        if matches!(status, UserAssetStatus::Frozen | UserAssetStatus::Seized) {
+            self.freeze_generation = 1;
+            self.frozen_since_height = 1;
+        }
         self
     }
 
-    pub fn validate_derivation(&self) -> anyhow::Result<()> {
-        let expected = crate::derive_compliance_scalar(&self.address);
-        validate_derivation_scalar(self.d, expected)
+    pub fn validate_lifecycle(&self) -> anyhow::Result<()> {
+        match self.status {
+            UserAssetStatus::Active => anyhow::ensure!(
+                self.frozen_since_height == 0,
+                "active compliance leaf cannot have a frozen-since height"
+            ),
+            UserAssetStatus::Frozen | UserAssetStatus::Seized => {
+                anyhow::ensure!(
+                    self.freeze_generation > 0,
+                    "frozen or seized compliance leaf must have a freeze generation"
+                );
+                anyhow::ensure!(
+                    self.frozen_since_height > 0,
+                    "frozen or seized compliance leaf must have a frozen-since height"
+                );
+            }
+        }
+        Ok(())
+    }
+
+    pub fn apply_status_action(
+        &mut self,
+        action: UserAssetStatusAction,
+        source_height: u64,
+    ) -> anyhow::Result<()> {
+        let next = action.apply(self.status)?;
+        match action {
+            UserAssetStatusAction::Freeze => {
+                anyhow::ensure!(source_height > 0, "freeze source height must be nonzero");
+                self.freeze_generation = self
+                    .freeze_generation
+                    .checked_add(1)
+                    .ok_or_else(|| anyhow::anyhow!("freeze generation overflow"))?;
+                self.frozen_since_height = source_height;
+            }
+            UserAssetStatusAction::Unfreeze => {
+                self.frozen_since_height = 0;
+            }
+        }
+        self.status = next;
+        self.validate_lifecycle()
+    }
+
+    /// Injective field encoding authenticated as the leaf's lifecycle value.
+    pub fn lifecycle_field(&self) -> Fq {
+        let generation_scale = Fq::from(2u64).pow([LIFECYCLE_STATUS_BITS as u64]);
+        let height_scale =
+            Fq::from(2u64).pow([(LIFECYCLE_STATUS_BITS + LIFECYCLE_GENERATION_BITS) as u64]);
+        self.status.as_field()
+            + generation_scale * Fq::from(self.freeze_generation)
+            + height_scale * Fq::from(self.frozen_since_height)
+    }
+
+    pub fn validate(&self) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            self.capk != decaf377::Element::IDENTITY,
+            "capk must be nonidentity"
+        );
+        anyhow::ensure!(
+            self.cnk_commitment != Fq::from(0u64),
+            "cnk commitment must be nonzero"
+        );
+        self.validate_lifecycle()
+    }
+
+    pub fn validate_registration(&self, ring_pk: decaf377::Element) -> anyhow::Result<()> {
+        self.validate()?;
+        anyhow::ensure!(
+            ring_pk != decaf377::Element::IDENTITY,
+            "ring_pk must be nonidentity"
+        );
+        let d = crate::derive_compliance_scalar(&self.address);
+        let expected = ring_pk * decaf377::Fr::from_le_bytes_mod_order(&d.to_bytes());
+        anyhow::ensure!(
+            self.capk == expected,
+            "capk does not match the address and asset ring"
+        );
+        Ok(())
     }
 
     /// Create the Poseidon commitment.
@@ -254,14 +409,15 @@ impl ComplianceLeaf {
             .expect("transmission key is valid");
         let asset_id_field = self.asset_id.0;
 
-        let commit = poseidon377::hash_5(
+        let commit = poseidon377::hash_6(
             &COMPLIANCE_LEAF_DOMAIN_SEP,
             (
                 diversified_generator,
                 transmission_key_s,
                 asset_id_field,
-                self.d,
-                self.status.as_field(),
+                self.capk.vartime_compress_to_field(),
+                self.cnk_commitment,
+                self.lifecycle_field(),
             ),
         );
 
@@ -287,15 +443,22 @@ impl TryFrom<pb::ComplianceLeaf> for ComplianceLeaf {
     type Error = anyhow::Error;
 
     fn try_from(value: pb::ComplianceLeaf) -> Result<Self, Self::Error> {
-        if value.d.is_empty() {
-            anyhow::bail!("missing d");
+        if value.capk.is_empty() {
+            anyhow::bail!("missing capk");
         }
-        let bytes: [u8; 32] = value
-            .d
+        let capk_bytes: [u8; 32] = value
+            .capk
             .try_into()
-            .map_err(|_| anyhow::anyhow!("d must be 32 bytes"))?;
-        let d = Fq::from_bytes_checked(&bytes)
-            .map_err(|_| anyhow::anyhow!("invalid d field element"))?;
+            .map_err(|_| anyhow::anyhow!("capk must be 32 bytes"))?;
+        let capk = decaf377::Encoding(capk_bytes)
+            .vartime_decompress()
+            .map_err(|_| anyhow::anyhow!("invalid capk encoding"))?;
+        let cnk_commitment_bytes: [u8; 32] = value
+            .cnk_commitment
+            .try_into()
+            .map_err(|_| anyhow::anyhow!("cnk_commitment must be 32 bytes"))?;
+        let cnk_commitment = Fq::from_bytes_checked(&cnk_commitment_bytes)
+            .map_err(|_| anyhow::anyhow!("invalid cnk_commitment field element"))?;
         let address = value
             .address
             .ok_or_else(|| anyhow::anyhow!("missing address"))?
@@ -306,10 +469,13 @@ impl TryFrom<pb::ComplianceLeaf> for ComplianceLeaf {
                 .asset_id
                 .ok_or_else(|| anyhow::anyhow!("missing asset_id"))?
                 .try_into()?,
-            d,
+            capk,
+            cnk_commitment,
             status: value.status.try_into()?,
+            freeze_generation: value.freeze_generation,
+            frozen_since_height: value.frozen_since_height,
         };
-        leaf.validate_derivation()?;
+        leaf.validate()?;
         Ok(leaf)
     }
 }
@@ -319,8 +485,11 @@ impl From<ComplianceLeaf> for pb::ComplianceLeaf {
         pb::ComplianceLeaf {
             address: Some(value.address.into()),
             asset_id: Some(value.asset_id.into()),
-            d: value.d.to_bytes().to_vec(),
+            capk: value.capk.vartime_compress().0.to_vec(),
+            cnk_commitment: value.cnk_commitment.to_bytes().to_vec(),
             status: pb::UserAssetStatus::from(value.status) as i32,
+            freeze_generation: value.freeze_generation,
+            frozen_since_height: value.frozen_since_height,
         }
     }
 }
@@ -508,9 +677,10 @@ pub struct AssetPolicy {
     pub params: AssetParams,
     pub ring: RingData,
     pub registration_authority_vk: Option<VerificationKey<SpendAuth>>,
+    pub seizure_authority_vk: Option<VerificationKey<SpendAuth>>,
 }
 
-const ASSET_POLICY_STORAGE_MAGIC: &[u8; 4] = b"AP3\0";
+const ASSET_POLICY_STORAGE_MAGIC: &[u8; 4] = b"ASPL";
 
 impl AssetPolicy {
     /// Create a new asset policy.
@@ -540,11 +710,17 @@ impl AssetPolicy {
                 resource,
             },
             registration_authority_vk: None,
+            seizure_authority_vk: None,
         }
     }
 
     pub fn with_registration_authority(mut self, vk: VerificationKey<SpendAuth>) -> Self {
         self.registration_authority_vk = Some(vk);
+        self
+    }
+
+    pub fn with_seizure_authority(mut self, vk: VerificationKey<SpendAuth>) -> Self {
+        self.seizure_authority_vk = Some(vk);
         self
     }
 
@@ -565,6 +741,12 @@ impl AssetPolicy {
             ensure_nonidentity_spend_auth_key(
                 registration_authority_vk,
                 "compliance registration authority key",
+            )?;
+        }
+        if let Some(seizure_authority_vk) = &self.seizure_authority_vk {
+            ensure_nonidentity_spend_auth_key(
+                seizure_authority_vk,
+                "compliance seizure authority key",
             )?;
         }
         Ok(())
@@ -609,12 +791,13 @@ impl AssetPolicy {
                 resource: String::new(),
             },
             registration_authority_vk: None,
+            seizure_authority_vk: None,
         }
     }
 
     /// Serialize to bytes for storage.
     ///
-    /// Format starts with `AP3\0`; any other prefix fails closed.
+    /// Format starts with the asset-policy magic; any other prefix fails closed.
     ///         [ring_id_len: 2] [ring_id bytes]
     ///         [policy_id_len: 2] [policy_id bytes]
     ///         [permission_len: 2] [permission bytes]
@@ -671,6 +854,12 @@ impl AssetPolicy {
         } else {
             bytes.push(0);
         }
+        if let Some(vk) = &self.seizure_authority_vk {
+            bytes.push(1);
+            bytes.extend_from_slice(&vk.to_bytes());
+        } else {
+            bytes.push(0);
+        }
         Ok(bytes)
     }
 
@@ -678,7 +867,7 @@ impl AssetPolicy {
     pub fn from_bytes(bytes: &[u8]) -> anyhow::Result<Self> {
         if bytes.len() < ASSET_POLICY_STORAGE_MAGIC.len() + 80 {
             anyhow::bail!(
-                "invalid AssetPolicy length: expected AP3 header and policy body, got {}",
+                "invalid AssetPolicy length: expected asset-policy header and body, got {}",
                 bytes.len()
             );
         }
@@ -771,6 +960,24 @@ impl AssetPolicy {
         } else {
             anyhow::bail!("invalid registration_authority_vk flag: {has_vk}");
         };
+        if offset >= bytes.len() {
+            anyhow::bail!("missing seizure_authority_vk flag");
+        }
+        let has_vk = bytes[offset];
+        offset += 1;
+        let seizure_authority_vk = if has_vk == 0 {
+            None
+        } else if has_vk == 1 {
+            if offset + 32 > bytes.len() {
+                anyhow::bail!("truncated seizure_authority_vk");
+            }
+            let vk = VerificationKey::<SpendAuth>::try_from(&bytes[offset..offset + 32])
+                .map_err(|_| anyhow::anyhow!("invalid seizure_authority_vk"))?;
+            offset += 32;
+            Some(vk)
+        } else {
+            anyhow::bail!("invalid seizure_authority_vk flag: {has_vk}");
+        };
         if offset != bytes.len() {
             anyhow::bail!("trailing bytes after AssetPolicy");
         }
@@ -790,6 +997,7 @@ impl AssetPolicy {
                 resource,
             },
             registration_authority_vk,
+            seizure_authority_vk,
         };
         policy.validate_crypto_keys()?;
         Ok(policy)
@@ -840,6 +1048,11 @@ impl TryFrom<pb::AssetPolicy> for AssetPolicy {
             .map(TryInto::try_into)
             .transpose()
             .map_err(|_| anyhow::anyhow!("invalid registration_authority_vk"))?;
+        let seizure_authority_vk = value
+            .seizure_authority_vk
+            .map(TryInto::try_into)
+            .transpose()
+            .map_err(|_| anyhow::anyhow!("invalid seizure_authority_vk"))?;
         let allowed_ibc_routes = value
             .allowed_ibc_routes
             .into_iter()
@@ -862,6 +1075,7 @@ impl TryFrom<pb::AssetPolicy> for AssetPolicy {
                 resource: value.resource,
             },
             registration_authority_vk,
+            seizure_authority_vk,
         };
         policy.validate_crypto_keys()?;
         Ok(policy)
@@ -885,6 +1099,7 @@ impl From<AssetPolicy> for pb::AssetPolicy {
             permission: value.ring.permission,
             resource: value.ring.resource,
             registration_authority_vk: value.registration_authority_vk.map(Into::into),
+            seizure_authority_vk: value.seizure_authority_vk.map(Into::into),
             ibc_origin: value.params.ibc_origin.map(Into::into),
         }
     }
@@ -908,6 +1123,7 @@ pub struct AssetRegistrationGrantBody {
     pub permission: String,
     pub resource: String,
     pub registration_authority_vk: Option<VerificationKey<SpendAuth>>,
+    pub seizure_authority_vk: Option<VerificationKey<SpendAuth>>,
     pub valid_until_unix: u64,
 }
 
@@ -925,6 +1141,12 @@ impl AssetRegistrationGrantBody {
             ensure_nonidentity_spend_auth_key(
                 registration_authority_vk,
                 "compliance registration authority key",
+            )?;
+        }
+        if let Some(seizure_authority_vk) = &self.seizure_authority_vk {
+            ensure_nonidentity_spend_auth_key(
+                seizure_authority_vk,
+                "compliance seizure authority key",
             )?;
         }
         Ok(())
@@ -950,6 +1172,11 @@ impl TryFrom<pb::AssetRegistrationGrantBody> for AssetRegistrationGrantBody {
             .map(TryInto::try_into)
             .transpose()
             .map_err(|_| anyhow::anyhow!("invalid registration_authority_vk"))?;
+        let seizure_authority_vk = value
+            .seizure_authority_vk
+            .map(TryInto::try_into)
+            .transpose()
+            .map_err(|_| anyhow::anyhow!("invalid seizure_authority_vk"))?;
         let allowed_ibc_routes = value
             .allowed_ibc_routes
             .into_iter()
@@ -973,6 +1200,7 @@ impl TryFrom<pb::AssetRegistrationGrantBody> for AssetRegistrationGrantBody {
             permission: value.permission,
             resource: value.resource,
             registration_authority_vk,
+            seizure_authority_vk,
             valid_until_unix: value.valid_until_unix,
         };
         body.validate_authorization_keys()?;
@@ -1007,6 +1235,7 @@ impl From<AssetRegistrationGrantBody> for pb::AssetRegistrationGrantBody {
             permission: value.permission,
             resource: value.resource,
             registration_authority_vk: value.registration_authority_vk.map(Into::into),
+            seizure_authority_vk: value.seizure_authority_vk.map(Into::into),
             valid_until_unix: value.valid_until_unix,
             ibc_origin: value.ibc_origin.map(Into::into),
         }
@@ -1214,6 +1443,8 @@ pub struct MsgRegisterAsset {
     pub resource: String,
     /// Immutable authority key that signs user registration grants for this asset.
     pub registration_authority_vk: Option<VerificationKey<SpendAuth>>,
+    /// Immutable authority key that signs exact note seizures for this asset.
+    pub seizure_authority_vk: Option<VerificationKey<SpendAuth>>,
     /// Registrar authorization for this asset registration.
     pub asset_registration_grant: Option<AssetRegistrationGrant>,
 }
@@ -1243,6 +1474,11 @@ impl TryFrom<pb::MsgRegisterAsset> for MsgRegisterAsset {
             .map(TryInto::try_into)
             .transpose()
             .map_err(|_| anyhow::anyhow!("invalid registration_authority_vk"))?;
+        let seizure_authority_vk = value
+            .seizure_authority_vk
+            .map(TryInto::try_into)
+            .transpose()
+            .map_err(|_| anyhow::anyhow!("invalid seizure_authority_vk"))?;
         let asset_registration_grant = value
             .asset_registration_grant
             .map(TryInto::try_into)
@@ -1270,6 +1506,7 @@ impl TryFrom<pb::MsgRegisterAsset> for MsgRegisterAsset {
             permission: value.permission,
             resource: value.resource,
             registration_authority_vk,
+            seizure_authority_vk,
             asset_registration_grant,
         };
         message.validate_authorization_keys()?;
@@ -1304,6 +1541,7 @@ impl From<MsgRegisterAsset> for pb::MsgRegisterAsset {
             permission: value.permission,
             resource: value.resource,
             registration_authority_vk: value.registration_authority_vk.map(Into::into),
+            seizure_authority_vk: value.seizure_authority_vk.map(Into::into),
             asset_registration_grant: value.asset_registration_grant.map(Into::into),
             ibc_origin: value.ibc_origin.map(Into::into),
         }
@@ -1316,6 +1554,12 @@ impl MsgRegisterAsset {
             ensure_nonidentity_spend_auth_key(
                 registration_authority_vk,
                 "compliance registration authority key",
+            )?;
+        }
+        if let Some(seizure_authority_vk) = &self.seizure_authority_vk {
+            ensure_nonidentity_spend_auth_key(
+                seizure_authority_vk,
+                "compliance seizure authority key",
             )?;
         }
         if let Some(grant) = &self.asset_registration_grant {
@@ -1339,6 +1583,7 @@ impl MsgRegisterAsset {
             permission: self.permission.clone(),
             resource: self.resource.clone(),
             registration_authority_vk: self.registration_authority_vk,
+            seizure_authority_vk: self.seizure_authority_vk,
             valid_until_unix,
         }
     }
@@ -1465,7 +1710,7 @@ mod tests {
         assert_eq!(
             UserAssetStatus::Frozen
                 .seize()
-                .expect("freeze can be seized"),
+                .expect("frozen account can be seized"),
             UserAssetStatus::Seized
         );
         assert!(UserAssetStatus::Active.seize().is_err());
@@ -1484,15 +1729,17 @@ mod tests {
     }
 
     #[test]
-    fn test_compliance_leaf_new() {
+    fn synthetic_compliance_leaf_is_valid() {
         let mut rng = rand::thread_rng();
         let address = Address::dummy(&mut rng);
         let asset_id = asset::Id(decaf377::Fq::from(100u64));
-        let leaf = ComplianceLeaf::new(address.clone(), asset_id);
+        let leaf = ComplianceLeaf::synthetic_unregulated(address.clone(), asset_id);
 
         assert_eq!(leaf.address, address);
         assert_eq!(leaf.asset_id, asset_id);
-        assert_eq!(leaf.d, crate::derive_compliance_scalar(&address));
+        leaf.validate().unwrap();
+        assert_ne!(leaf.capk, decaf377::Element::IDENTITY);
+        assert_ne!(leaf.cnk_commitment, Fq::from(0u64));
     }
 
     #[test]
@@ -1502,12 +1749,12 @@ mod tests {
         let address1 = Address::dummy(&mut rng);
         let address2 = Address::dummy(&mut rng);
 
-        let leaf1 = ComplianceLeaf::new(address1, asset_id);
-        let leaf2 = ComplianceLeaf::new(address2, asset_id);
+        let leaf1 = ComplianceLeaf::synthetic_unregulated(address1, asset_id);
+        let leaf2 = ComplianceLeaf::synthetic_unregulated(address2, asset_id);
 
         assert_ne!(
-            leaf1.d, leaf2.d,
-            "Different owners use different audit keys"
+            leaf1.capk, leaf2.capk,
+            "different owners use different capabilities"
         );
         assert_ne!(
             leaf1.commit(),
@@ -1521,62 +1768,98 @@ mod tests {
         let mut rng = rand::thread_rng();
         let wallet = Address::dummy(&mut rng);
         let asset_id = asset::Id(decaf377::Fq::from(999u64));
-        let original = ComplianceLeaf::new(wallet, asset_id);
+        let original = ComplianceLeaf::synthetic_unregulated(wallet, asset_id);
 
         let proto: pb::ComplianceLeaf = original.clone().into();
         let recovered: ComplianceLeaf = proto.try_into().expect("should parse");
 
         assert_eq!(original.address, recovered.address);
         assert_eq!(original.asset_id, recovered.asset_id);
-        assert_eq!(original.d, recovered.d);
+        assert_eq!(original.capk, recovered.capk);
+        assert_eq!(original.cnk_commitment, recovered.cnk_commitment);
         assert_eq!(original.commit().0, recovered.commit().0);
     }
 
     #[test]
-    fn test_compliance_leaf_proto_rejects_missing_d() {
+    fn compliance_leaf_authenticates_freeze_generation_and_height() {
+        let mut rng = rand::thread_rng();
+        let mut leaf = ComplianceLeaf::synthetic_unregulated(
+            Address::dummy(&mut rng),
+            asset::Id(decaf377::Fq::from(999u64)),
+        );
+        let active_commitment = leaf.commit();
+
+        leaf.apply_status_action(UserAssetStatusAction::Freeze, 40)
+            .unwrap();
+        let first_freeze = leaf.commit();
+        assert_eq!(leaf.freeze_generation, 1);
+        assert_eq!(leaf.frozen_since_height, 40);
+        assert_ne!(first_freeze, active_commitment);
+
+        leaf.apply_status_action(UserAssetStatusAction::Unfreeze, 41)
+            .unwrap();
+        assert_ne!(leaf.commit(), active_commitment);
+        leaf.apply_status_action(UserAssetStatusAction::Freeze, 50)
+            .unwrap();
+        assert_eq!(leaf.freeze_generation, 2);
+        assert_eq!(leaf.frozen_since_height, 50);
+        assert_ne!(leaf.commit(), first_freeze);
+    }
+
+    #[test]
+    fn compliance_leaf_rejects_incoherent_lifecycle() {
+        let mut rng = rand::thread_rng();
+        let mut leaf = ComplianceLeaf::synthetic_unregulated(
+            Address::dummy(&mut rng),
+            asset::Id(decaf377::Fq::from(999u64)),
+        );
+        leaf.status = UserAssetStatus::Frozen;
+        assert!(leaf.validate_lifecycle().is_err());
+        assert!(leaf
+            .apply_status_action(UserAssetStatusAction::Freeze, 0)
+            .is_err());
+    }
+
+    #[test]
+    fn test_compliance_leaf_proto_rejects_missing_capk() {
         let mut rng = rand::thread_rng();
         let proto = pb::ComplianceLeaf {
             address: Some(Address::dummy(&mut rng).into()),
             asset_id: Some(asset::Id(decaf377::Fq::from(999u64)).into()),
-            d: vec![],
+            capk: vec![],
+            cnk_commitment: Fq::from(1u64).to_bytes().to_vec(),
             status: pb::UserAssetStatus::Active as i32,
+            freeze_generation: 0,
+            frozen_since_height: 0,
         };
 
-        let err = ComplianceLeaf::try_from(proto).expect_err("missing d should fail");
+        let err = ComplianceLeaf::try_from(proto).expect_err("missing capk should fail");
 
         assert!(
-            err.to_string().contains("missing d"),
+            err.to_string().contains("missing capk"),
             "unexpected error: {err:#}"
         );
     }
 
     #[test]
-    fn test_compliance_leaf_proto_rejects_mismatched_d() {
+    fn test_compliance_leaf_proto_rejects_invalid_cnk_commitment() {
         let mut rng = rand::thread_rng();
         let address = Address::dummy(&mut rng);
         let proto = pb::ComplianceLeaf {
             address: Some(address.into()),
             asset_id: Some(asset::Id(decaf377::Fq::from(999u64)).into()),
-            d: decaf377::Fq::from(456u64).to_bytes().to_vec(),
+            capk: decaf377::Element::GENERATOR.vartime_compress().0.to_vec(),
+            cnk_commitment: vec![0xff; 32],
             status: pb::UserAssetStatus::Active as i32,
+            freeze_generation: 0,
+            frozen_since_height: 0,
         };
 
-        let err = ComplianceLeaf::try_from(proto).expect_err("mismatched d should fail");
+        let err = ComplianceLeaf::try_from(proto).expect_err("invalid cnk commitment should fail");
 
         assert!(
-            err.to_string().contains("canonical address derivation"),
+            err.to_string().contains("invalid cnk_commitment"),
             "unexpected error: {err:#}"
-        );
-    }
-
-    #[test]
-    fn test_compliance_leaf_validation_rejects_zero_d() {
-        let error = validate_derivation_scalar(decaf377::Fq::from(0u64), decaf377::Fq::from(0u64))
-            .expect_err("zero d cannot be a valid registered compliance key");
-
-        assert!(
-            error.to_string().contains("must be nonzero"),
-            "unexpected error: {error:#}"
         );
     }
 
@@ -1688,6 +1971,7 @@ mod tests {
             permission: String::new(),
             resource: String::new(),
             registration_authority_vk: None,
+            seizure_authority_vk: None,
             valid_until_unix: 1,
         };
         let signature = signing_key.sign_deterministic(&body.signing_bytes());
@@ -1719,7 +2003,7 @@ mod tests {
         let signing_key = decaf377_rdsa::SigningKey::<SpendAuth>::from(decaf377::Fr::from(0u64));
         let registration_authority_vk = VerificationKey::from(&signing_key);
         let body = UserRegistrationGrantBody {
-            leaf: ComplianceLeaf::new(
+            leaf: ComplianceLeaf::synthetic_unregulated(
                 Address::dummy(&mut rand::thread_rng()),
                 asset::Id(decaf377::Fq::from(1u64)),
             ),

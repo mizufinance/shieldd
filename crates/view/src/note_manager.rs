@@ -1516,7 +1516,7 @@ mod tests {
     use shieldd_sdk_proto::core::component::compliance::v1 as compliance_pb;
     use shieldd_sdk_proto::view::v1 as pb;
     use shieldd_sdk_sct::{CommitmentSource, Nullifier};
-    use shieldd_sdk_shielded_pool::{discovery, note, Note, Rseed};
+    use shieldd_sdk_shielded_pool::{discovery, note, Note, RecoveryCommitment, Rseed};
     use shieldd_sdk_transaction::{
         plan::ActionPlan, txhash::TransactionId, AuthorizationData, Transaction, WitnessData,
     };
@@ -1571,6 +1571,7 @@ mod tests {
                 asset_id,
             },
             Rseed::generate(rng),
+            RecoveryCommitment::unavailable(),
         )
         .expect("valid test note");
 
@@ -2201,7 +2202,8 @@ mod tests {
         let view_addresses = BTreeMap::from([(source, address.clone())]);
         let mut view = MockNoteManagerView::new(vec![], view_addresses);
 
-        let leaf = shieldd_sdk_compliance::ComplianceLeaf::new(address, *BASE_ASSET_ID);
+        let leaf =
+            shieldd_sdk_compliance::ComplianceLeaf::synthetic_unregulated(address, *BASE_ASSET_ID);
         let msg = shieldd_sdk_compliance::structs::MsgRegisterUser { leaf, grant: None };
 
         let mut note_manager = NoteManager::new(OsRng);

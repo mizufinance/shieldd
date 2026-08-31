@@ -6,8 +6,8 @@ mod validation_support;
 
 pub use self::host::{
     HostBlock, HostCommit, HostCommittedState, HostDepositResult, HostExecution,
-    HostExecutionPhase, HostExecutionResponse, HostFreezeResultAnchorResult, HostTxResponse,
-    HostWithdrawal,
+    HostExecutionPhase, HostExecutionResponse, HostFreezeResultAnchorResult, HostNoteSeizureResult,
+    HostTxResponse, HostWithdrawal,
 };
 #[cfg(any(test, feature = "fuzzing"))]
 pub use self::preconsensus::decode_batch_item_for_fuzz;
@@ -93,9 +93,10 @@ use tendermint::{account, block, chain, AppHash, Hash, Time};
 use tracing::{instrument, Instrument};
 
 use crate::action_handler::transaction::{
-    check_and_execute_profiled, check_historical_with_context,
+    append_transaction_audit_effects, check_and_execute_profiled, check_historical_with_context,
     prepare_candidate_read_blocking_profiled, prepare_candidate_read_profiled,
-    supports_parallel_prepare, HistoricalCheckContext, PreparedCandidateRead,
+    supports_parallel_prepare, verify_historical_nullifier_proof, HistoricalCheckContext,
+    PreparedCandidateRead,
 };
 use crate::action_handler::AppActionHandler;
 use crate::block_tx_indexing::BlockTxIndexingMode;
@@ -3221,7 +3222,7 @@ impl App {
         let sidecar = ProposalArtifactSidecar::from_record(envelope.sidecar.clone());
 
         Ok(self
-            .process_proposal_v2_profiled(proposal, stateless_cache, Some(&sidecar), false)
+            .process_proposal_profiled(proposal, stateless_cache, Some(&sidecar), false)
             .await)
     }
 
@@ -4288,12 +4289,12 @@ impl App {
             AppState::Content(genesis) => {
                 state_tx.put_chain_id(genesis.chain_id.clone());
                 Sct::init_chain(&mut state_tx, Some(&genesis.sct_content)).await;
+                // Compliance asset admission precedes issuance so regulated
+                // genesis allocations can be rejected by the shielded pool.
+                Compliance::init_chain(&mut state_tx, Some(&genesis.compliance_content)).await;
                 ShieldedPool::init_chain(&mut state_tx, Some(&genesis.shielded_pool_content)).await;
                 Ibc::init_chain(&mut state_tx, Some(&genesis.ibc_content)).await;
                 FeeComponent::init_chain(&mut state_tx, Some(&genesis.fee_content)).await;
-                // Initialize compliance component with empty trees for anchor tracking.
-                // Unregulated assets don't need registration (proven via non-membership).
-                Compliance::init_chain(&mut state_tx, Some(&genesis.compliance_content)).await;
 
                 state_tx
                     .finish_block()
@@ -4301,10 +4302,10 @@ impl App {
                     .expect("must be able to finish compact block");
             }
             AppState::Checkpoint(_) => {
+                Compliance::init_chain(&mut state_tx, None).await;
                 ShieldedPool::init_chain(&mut state_tx, None).await;
                 Ibc::init_chain(&mut state_tx, None).await;
                 FeeComponent::init_chain(&mut state_tx, None).await;
-                Compliance::init_chain(&mut state_tx, None).await;
             }
         };
 
@@ -4480,14 +4481,14 @@ impl App {
 
     /// Synthetic benchmark baseline: no shared artifact cache between mempool,
     /// proposer, and validator stages.
-    pub async fn prepare_proposal_v1(
+    pub async fn prepare_proposal_uncached(
         &mut self,
         proposal: request::PrepareProposal,
     ) -> response::PrepareProposal {
         self.prepare_proposal_impl(proposal, None).await
     }
 
-    pub async fn prepare_proposal_v1_profiled(
+    pub async fn prepare_proposal_uncached_profiled(
         &mut self,
         proposal: request::PrepareProposal,
         allow_oversized_proposal: bool,
@@ -4500,8 +4501,8 @@ impl App {
             .await
     }
 
-    /// Production and synthetic v2 path: use the shared artifact cache.
-    pub async fn prepare_proposal_v2(
+    /// Production path using the shared artifact cache.
+    pub async fn prepare_proposal(
         &mut self,
         proposal: request::PrepareProposal,
         stateless_cache: Option<&StatelessCache>,
@@ -4509,7 +4510,7 @@ impl App {
         self.prepare_proposal_impl(proposal, stateless_cache).await
     }
 
-    pub async fn prepare_proposal_v2_profiled(
+    pub async fn prepare_proposal_profiled(
         &mut self,
         proposal: request::PrepareProposal,
         stateless_cache: Option<&StatelessCache>,
@@ -4943,14 +4944,14 @@ impl App {
 
     /// Synthetic benchmark baseline: no shared artifact cache between mempool,
     /// proposer, and validator stages.
-    pub async fn process_proposal_v1(
+    pub async fn process_proposal_uncached(
         &mut self,
         proposal: request::ProcessProposal,
     ) -> response::ProcessProposal {
         self.process_proposal_impl(proposal, None).await
     }
 
-    pub async fn process_proposal_v1_profiled(
+    pub async fn process_proposal_uncached_profiled(
         &mut self,
         proposal: request::ProcessProposal,
         allow_oversized_proposal: bool,
@@ -4959,16 +4960,8 @@ impl App {
             .await
     }
 
-    /// Production and synthetic v2 path: use the shared artifact cache.
-    pub async fn process_proposal_v2(
-        &mut self,
-        proposal: request::ProcessProposal,
-        stateless_cache: Option<&StatelessCache>,
-    ) -> response::ProcessProposal {
-        self.process_proposal_impl(proposal, stateless_cache).await
-    }
-
-    pub async fn process_proposal_v2_profiled(
+    /// Production path using the shared artifact cache.
+    pub async fn process_proposal_profiled(
         &mut self,
         proposal: request::ProcessProposal,
         stateless_cache: Option<&StatelessCache>,
@@ -4989,7 +4982,7 @@ impl App {
         proposal: request::ProcessProposal,
         stateless_cache: Option<&StatelessCache>,
     ) -> response::ProcessProposal {
-        self.process_proposal_v2(proposal, stateless_cache).await
+        self.process_proposal_impl(proposal, stateless_cache).await
     }
 
     pub async fn begin_block(&mut self, begin_block: &request::BeginBlock) -> Vec<abci::Event> {
@@ -5142,27 +5135,19 @@ impl App {
 
     /// Synthetic benchmark baseline: no shared artifact cache between mempool,
     /// proposer, and validator stages.
-    pub async fn deliver_tx_bytes_v1(&mut self, tx_bytes: &[u8]) -> Result<Vec<abci::Event>> {
+    pub async fn deliver_tx_bytes_uncached(&mut self, tx_bytes: &[u8]) -> Result<Vec<abci::Event>> {
         self.deliver_tx_bytes_impl(tx_bytes, None).await
     }
 
-    pub async fn deliver_tx_bytes_v1_profiled(
+    pub async fn deliver_tx_bytes_uncached_profiled(
         &mut self,
         tx_bytes: &[u8],
     ) -> Result<(Vec<abci::Event>, CheckTxProfile)> {
         self.deliver_tx_bytes_impl_profiled(tx_bytes, None).await
     }
 
-    /// Production and synthetic v2 path: use the shared artifact cache.
-    pub async fn deliver_tx_bytes_v2(
-        &mut self,
-        tx_bytes: &[u8],
-        stateless_cache: Option<&StatelessCache>,
-    ) -> Result<Vec<abci::Event>> {
-        self.deliver_tx_bytes_impl(tx_bytes, stateless_cache).await
-    }
-
-    pub async fn deliver_tx_bytes_v2_profiled(
+    /// Production path using the shared artifact cache.
+    pub async fn deliver_tx_bytes_profiled(
         &mut self,
         tx_bytes: &[u8],
         stateless_cache: Option<&StatelessCache>,
@@ -5175,7 +5160,7 @@ impl App {
     /// but intentionally skips per-transaction batch proof verification on
     /// cache misses.
     #[cfg(any(test, feature = "benchmark-helpers"))]
-    pub async fn deliver_tx_bytes_v2_extracted_profiled_for_bench(
+    pub async fn deliver_tx_bytes_extracted_profiled_for_bench(
         &mut self,
         tx_bytes: &[u8],
         stateless_cache: &StatelessCache,
@@ -5274,7 +5259,7 @@ impl App {
         tx_bytes: &[u8],
         stateless_cache: Option<&StatelessCache>,
     ) -> Result<Vec<abci::Event>> {
-        self.deliver_tx_bytes_v2(tx_bytes, stateless_cache).await
+        self.deliver_tx_bytes_impl(tx_bytes, stateless_cache).await
     }
 
     fn fill_checktx_execute_profile(
@@ -5968,6 +5953,8 @@ impl App {
         profile.serial_sct_append_ms = sct_append_start.elapsed().as_secs_f64() * 1000.0;
 
         state_tx.stage_routing_actions(prepared.effects.routing_actions.clone());
+        append_transaction_audit_effects(&mut state_tx, prepared.effects.audit_effects.clone())
+            .await?;
 
         profile.check_and_execute_ms = prepared.execution_profile.action_execute_ms
             + check_and_execute_start.elapsed().as_secs_f64() * 1000.0;
@@ -6146,6 +6133,8 @@ impl App {
         profile.serial_sct_append_ms = sct_append_start.elapsed().as_secs_f64() * 1000.0;
 
         state_tx.stage_routing_actions(prepared.effects.routing_actions.clone());
+        append_transaction_audit_effects(&mut state_tx, prepared.effects.audit_effects.clone())
+            .await?;
 
         profile.check_and_execute_ms = prepared.execution_profile.action_execute_ms
             + check_and_execute_start.elapsed().as_secs_f64() * 1000.0;
@@ -8792,7 +8781,7 @@ mod tests {
         let mut state = StateDelta::new(storage.latest_snapshot());
         shieldd_sdk_sct::nullifier_tree::initialize(&mut state).await?;
         state
-            .test_only_add_compliance_leaf(ComplianceLeaf::new(
+            .test_only_add_compliance_leaf(ComplianceLeaf::registered_for_test(
                 Address::dummy(&mut rand::thread_rng()),
                 asset::Id(Fq::from(123u64)),
             ))
@@ -8905,7 +8894,7 @@ mod tests {
         let mut app = App::new(storage.latest_snapshot());
         app.set_block_tx_indexing_mode(BlockTxIndexingMode::NoIndex);
         let cache = StatelessCache::new();
-        app.deliver_tx_bytes_v2(tx_bytes.as_slice(), Some(&cache))
+        app.deliver_tx_bytes(tx_bytes.as_slice(), Some(&cache))
             .await?;
 
         let height = app.state.get_block_height().await?;
@@ -8994,7 +8983,7 @@ mod tests {
         };
 
         let (prepared, profile, _) = proposer
-            .prepare_proposal_v2_profiled(proposal, Some(&cache), false)
+            .prepare_proposal_profiled(proposal, Some(&cache), false)
             .await;
         assert_eq!(
             prepared.txs.len(),
@@ -9050,7 +9039,7 @@ mod tests {
         };
 
         let (prepared, _profile, _) = proposer
-            .prepare_proposal_v2_profiled(proposal, Some(&cache), false)
+            .prepare_proposal_profiled(proposal, Some(&cache), false)
             .await;
         assert_eq!(
             prepared.txs.len(),
@@ -9097,7 +9086,7 @@ mod tests {
         };
 
         let (prepared, profile, _) = proposer
-            .prepare_proposal_v2_profiled(proposal, Some(&cache), false)
+            .prepare_proposal_profiled(proposal, Some(&cache), false)
             .await;
         assert_eq!(
             prepared.txs.len(),

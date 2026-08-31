@@ -26,6 +26,7 @@ test-helpers = ["decaf377-ka"]
 [dependencies]
 anyhow = {workspace = true}
 ark-ff = {workspace = true}
+ark-groth16 = {workspace = true}
 base64 = {workspace = true}
 ark-serialize = {workspace = true}
 async-trait = {workspace = true}

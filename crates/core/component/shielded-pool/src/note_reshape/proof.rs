@@ -54,6 +54,7 @@ pub struct NoteReshapeInputPublic {
 #[derive(Clone, Debug)]
 pub struct NoteReshapeOutputPublic {
     pub note_commitment: tct::StateCommitment,
+    pub recovery_commitment: crate::RecoveryCommitment,
 }
 
 #[derive(Clone, Debug)]
@@ -127,6 +128,7 @@ pub struct NoteReshapeProofPrivate {
     pub action_balance_blinding: Fr,
     pub ak: VerificationKey<SpendAuth>,
     pub nk: NullifierKey,
+    pub cnk: Fq,
     pub asset_path: MerklePath,
     pub asset_position: u64,
     pub asset_indexed_leaf: IndexedLeaf,

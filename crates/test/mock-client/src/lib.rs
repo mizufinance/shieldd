@@ -566,7 +566,7 @@ mod tests {
     use shieldd_sdk_asset::{asset, Value};
     use shieldd_sdk_keys::keys::{Bip44Path, SeedPhrase, SpendKey};
     use shieldd_sdk_shielded_pool::{
-        Note, Rseed, ShieldedInputPlan, ShieldedOutputPlan, TransferPlan,
+        Note, RecoveryCommitment, Rseed, ShieldedInputPlan, ShieldedOutputPlan, TransferPlan,
     };
     use shieldd_sdk_tct::Witness;
     use shieldd_sdk_transaction::{ActionPlan, FeeFundingPlan, TransactionPlan};
@@ -587,6 +587,7 @@ mod tests {
                 asset_id: asset::Id(Fq::from(1u64)),
             },
             Rseed::generate(&mut OsRng),
+            RecoveryCommitment::unavailable(),
         )
         .expect("build note");
         let commitment = note.commit();
@@ -647,6 +648,7 @@ mod tests {
                 asset_id: asset::Id(Fq::from(1u64)),
             },
             Rseed::generate(&mut OsRng),
+            RecoveryCommitment::unavailable(),
         )
         .expect("build note");
         let commitment = note.commit();

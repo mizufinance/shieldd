@@ -70,7 +70,7 @@ func init() {
 				return circuits.NewTransferCircuit()
 			},
 			newAssignment: func(payload []byte) (frontend.Circuit, error) {
-				assignment, witnessFamily, err := abi.NewTransferCircuitAssignmentFromWitnessV20(payload)
+				assignment, witnessFamily, err := abi.NewTransferCircuitAssignmentFromWitness(payload)
 				if err != nil {
 					return nil, err
 				}
@@ -94,7 +94,7 @@ func init() {
 				return circuits.NewNoteReshapeCircuit(family.Label, family.NIn, family.NOut)
 			},
 			newAssignment: func(payload []byte) (frontend.Circuit, error) {
-				assignment, witnessFamily, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV6(payload)
+				assignment, witnessFamily, err := abi.NewNoteReshapeCircuitAssignmentFromWitness(payload)
 				if err != nil {
 					return nil, err
 				}
@@ -120,7 +120,7 @@ func init() {
 				return circuits.NewShieldedIcs20WithdrawalCircuit(family.NIn)
 			},
 			newAssignment: func(payload []byte) (frontend.Circuit, error) {
-				assignment, witnessFamily, err := abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV14(payload)
+				assignment, witnessFamily, err := abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitness(payload)
 				if err != nil {
 					return nil, err
 				}
@@ -138,12 +138,22 @@ func init() {
 			packResult: packShieldedIcs20WithdrawalProofResult,
 		}
 	}
+	circuitConfigs["note_seizure"] = circuitConfig{
+		name: "note_seizure",
+		template: func() frontend.Circuit {
+			return circuits.NewNoteSeizureCircuit()
+		},
+		newAssignment: func(payload []byte) (frontend.Circuit, error) {
+			return abi.NewNoteSeizureCircuitAssignmentFromWitness(payload)
+		},
+		packResult: packNoteSeizureProofResult,
+	}
 }
 
 func main() {
 	logger.Disable()
 
-	circuit := flag.String("circuit", "", "transfer, note-reshape, or shielded-ics20-withdrawal family label")
+	circuit := flag.String("circuit", "", "transfer, note-reshape, shielded-ics20-withdrawal, or note-seizure family label")
 	artifactDir := flag.String("artifact-dir", "", "directory containing gnark artifacts")
 	flag.Parse()
 
@@ -326,7 +336,7 @@ func writeResponse(writer *bufio.Writer, status uint32, payload []byte) error {
 }
 
 func packShieldedIcs20WithdrawalProofResult(witnessPayload []byte, proof *groth16bls.Proof, proveMS float64) ([]byte, error) {
-	witness, _, err := abi.DecodeShieldedIcs20WithdrawalWitnessV14(witnessPayload)
+	witness, _, err := abi.DecodeShieldedIcs20WithdrawalWitness(witnessPayload)
 	if err != nil {
 		return nil, fmt.Errorf("decode shielded ICS-20 withdrawal witness: %w", err)
 	}
@@ -334,7 +344,7 @@ func packShieldedIcs20WithdrawalProofResult(witnessPayload []byte, proof *groth1
 }
 
 func packTransferProofResult(witnessPayload []byte, proof *groth16bls.Proof, proveMS float64) ([]byte, error) {
-	witness, _, err := abi.DecodeTransferWitnessV20(witnessPayload)
+	witness, _, err := abi.DecodeTransferWitness(witnessPayload)
 	if err != nil {
 		return nil, fmt.Errorf("decode transfer witness: %w", err)
 	}
@@ -342,11 +352,19 @@ func packTransferProofResult(witnessPayload []byte, proof *groth16bls.Proof, pro
 }
 
 func packNoteReshapeProofResult(witnessPayload []byte, proof *groth16bls.Proof, proveMS float64) ([]byte, error) {
-	witness, _, err := abi.DecodeNoteReshapeWitnessV6(witnessPayload)
+	witness, _, err := abi.DecodeNoteReshapeWitness(witnessPayload)
 	if err != nil {
 		return nil, fmt.Errorf("decode note reshape witness: %w", err)
 	}
 	return packProofResult("PNRP", witness.ClaimedStatementHash, proof, proveMS)
+}
+
+func packNoteSeizureProofResult(witnessPayload []byte, proof *groth16bls.Proof, proveMS float64) ([]byte, error) {
+	witness, err := abi.DecodeNoteSeizureWitness(witnessPayload)
+	if err != nil {
+		return nil, fmt.Errorf("decode note seizure witness: %w", err)
+	}
+	return packProofResult("PNSP", witness.ClaimedStatementHash, proof, proveMS)
 }
 
 func packProofResult(magic string, claimedStatementHash [32]byte, proof *groth16bls.Proof, proveMS float64) ([]byte, error) {

@@ -27,6 +27,9 @@ service ExecutionClientService {
   // AttachFreezeResultAnchor records the finalized y+1 header and Shieldd root
   // for one exact freeze generation.
   rpc AttachFreezeResultAnchor(AttachFreezeResultAnchorRequest) returns (AttachFreezeResultAnchorResponse) {}
+  // SeizeNote consumes one frozen regulated note and returns the exact host
+  // settlement that Bankd must apply atomically with this call.
+  rpc SeizeNote(SeizeNoteRequest) returns (SeizeNoteResponse) {}
   // CheckTx validates a Shieldd transaction supplied by the host chain without
   // applying state changes.
   rpc CheckTx(CheckTxRequest) returns (CheckTxResponse) {}
@@ -156,6 +159,19 @@ message AttachFreezeResultAnchorResponse {
   HostSource source = 1;
   uint64 freeze_generation = 2;
   bool replayed = 3;
+}
+
+message SeizeNoteRequest {
+  HostSource source = 1;
+  shieldd.core.component.shielded_pool.v1.NoteSeizure seizure = 2;
+}
+
+message SeizeNoteResponse {
+  HostSource source = 1;
+  bool replayed = 2;
+  HostWithdrawal withdrawal = 3;
+  shieldd.core.component.compliance.v1.UserAssetStatus current_status = 4;
+  uint64 freeze_generation = 5;
 }
 
 // CheckTxRequest carries a Shieldd transaction to validate without applying

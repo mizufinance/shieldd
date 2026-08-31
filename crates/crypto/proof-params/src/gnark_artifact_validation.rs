@@ -17,6 +17,7 @@ pub(crate) enum FamilyKind {
     Transfer,
     NoteReshape,
     ShieldedIcs20Withdrawal,
+    NoteSeizure,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -48,7 +49,7 @@ pub(crate) struct DeployedFamily {
     pub max_real_outputs: usize,
 }
 
-pub(crate) const DEPLOYED_FAMILIES: [DeployedFamily; 4] = [
+pub(crate) const DEPLOYED_FAMILIES: [DeployedFamily; 5] = [
     DeployedFamily {
         kind: FamilyKind::Transfer,
         id: None,
@@ -105,12 +106,26 @@ pub(crate) const DEPLOYED_FAMILIES: [DeployedFamily; 4] = [
         min_real_outputs: 1,
         max_real_outputs: 1,
     },
+    DeployedFamily {
+        kind: FamilyKind::NoteSeizure,
+        id: None,
+        label: "note_seizure",
+        artifact_name: "note_seizure",
+        n_in: 1,
+        n_out: 0,
+        input_padding: InputPadding::Fixed,
+        output_padding: OutputPadding::Fixed,
+        min_real_inputs: 1,
+        max_real_inputs: 1,
+        min_real_outputs: 0,
+        max_real_outputs: 0,
+    },
 ];
 
 pub(crate) fn validate_deployed_family_roster(actual: &[DeployedFamily]) -> Result<()> {
     if actual != DEPLOYED_FAMILIES {
         bail!(
-            "generated proof-family roster does not match the exact four deployed families:\nexpected: {:#?}\nactual: {actual:#?}",
+            "generated proof-family roster does not match the exact deployed families:\nexpected: {:#?}\nactual: {actual:#?}",
             DEPLOYED_FAMILIES
         );
     }
@@ -966,7 +981,7 @@ mod tests {
     }
 
     #[test]
-    fn exact_roster_and_all_four_repository_artifacts_validate() {
+    fn exact_roster_and_all_repository_artifacts_validate() {
         validate_deployed_family_roster(&DEPLOYED_FAMILIES).expect("exact roster validates");
         let artifact_root =
             Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../tools/gnark/artifacts");

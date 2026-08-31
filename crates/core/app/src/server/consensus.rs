@@ -259,7 +259,7 @@ impl Consensus {
         // Once we are done, we discard it so that the application state doesn't get corrupted
         // if another round of consensus is required because the proposal fails to finalize.
         let (response, profile, _) = tmp_app
-            .prepare_proposal_v2_profiled(proposal, Some(self.stateless_cache.as_ref()), false)
+            .prepare_proposal_profiled(proposal, Some(self.stateless_cache.as_ref()), false)
             .await;
         self.aggregate_retry_cache = tmp_app.aggregate_retry_cache();
         let response_digest = Self::proposal_digest(&response.txs);
@@ -322,12 +322,7 @@ impl Consensus {
         let mut tmp_app = App::new(self.storage.latest_snapshot());
         tmp_app.set_block_tx_indexing_mode(BlockTxIndexingMode::NoIndex);
         let (response, profile) = tmp_app
-            .process_proposal_v2_profiled(
-                proposal,
-                Some(self.stateless_cache.as_ref()),
-                None,
-                false,
-            )
+            .process_proposal_profiled(proposal, Some(self.stateless_cache.as_ref()), None, false)
             .await;
         let elapsed_ms = started.elapsed().as_secs_f64() * 1000.0;
         let verdict = match response {

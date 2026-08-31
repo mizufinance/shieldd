@@ -1,16 +1,17 @@
-use decaf377::Fr;
+use decaf377::{Fq, Fr};
 use decaf377_rdsa::{SpendAuth, VerificationKey};
 use rand_core::{CryptoRng, RngCore};
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::{Balance, Value};
 use shieldd_sdk_compliance::{AssetPolicy, MerklePath};
+use shieldd_sdk_keys::keys::NullifierKey;
 use shieldd_sdk_keys::{keys::IncomingViewingKey, Address, FullViewingKey};
 use shieldd_sdk_proto::core::component::shielded_pool::v1 as pb;
 use shieldd_sdk_sct::Nullifier;
 use shieldd_sdk_tct as tct;
 use std::convert::{TryFrom, TryInto};
 
-use crate::{Backref, Note, Rseed, TransferInputBody};
+use crate::{Backref, Note, RecoveryCapsule, Rseed, TransferInputBody};
 
 // Bare shielded plan constructors are used heavily by tests, vector generation,
 // and mock flows before wallet code overwrites the target timestamp with a live
@@ -129,8 +130,27 @@ impl ShieldedInputPlan {
     }
 
     pub fn nullifier(&self, fvk: &FullViewingKey) -> Nullifier {
-        let nk = fvk.nullifier_key();
-        Nullifier::derive(nk, self.position, &self.note.commit())
+        Nullifier::derive(
+            &self.effective_nullifier_key(fvk),
+            self.position,
+            &self.note.commit(),
+        )
+    }
+
+    pub fn compliance_nullifier_key(&self, fvk: &FullViewingKey) -> Fq {
+        shieldd_sdk_compliance::derive_compliance_nullifier_key(
+            fvk.nullifier_key().0,
+            &self.note.address(),
+            self.note.asset_id(),
+        )
+    }
+
+    pub fn effective_nullifier_key(&self, fvk: &FullViewingKey) -> NullifierKey {
+        if self.is_regulated {
+            NullifierKey(self.compliance_nullifier_key(fvk))
+        } else {
+            *fvk.nullifier_key()
+        }
     }
 
     pub fn balance(&self) -> Balance {
@@ -236,9 +256,23 @@ impl ShieldedOutputPlan {
         }
     }
 
+    pub fn output_note_and_capsule(&self) -> (Note, RecoveryCapsule) {
+        let capk = self
+            .compliance_leaf
+            .clone()
+            .unwrap_or_else(|| {
+                shieldd_sdk_compliance::ComplianceLeaf::synthetic_unregulated(
+                    self.dest_address.clone(),
+                    self.value.asset_id,
+                )
+            })
+            .capk;
+        Note::from_parts_with_recovery(self.dest_address.clone(), self.value, self.rseed, capk)
+            .expect("validated output note and compliance capability")
+    }
+
     pub fn output_note(&self) -> Note {
-        Note::from_parts(self.dest_address.clone(), self.value, self.rseed)
-            .expect("transmission key in address is always valid")
+        self.output_note_and_capsule().0
     }
 
     pub fn is_viewed_by(&self, ivk: &IncomingViewingKey) -> bool {

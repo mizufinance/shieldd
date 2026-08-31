@@ -88,6 +88,7 @@ func defineNoteReshapeIdentityOwnershipAlias(
 		probe.AssetID,
 		divGenFq,
 		transmission0Fq,
+		0,
 	)
 	if err != nil {
 		return err
@@ -99,6 +100,7 @@ func defineNoteReshapeIdentityOwnershipAlias(
 		probe.AssetID,
 		divGenFq,
 		transmission1Fq,
+		0,
 	)
 	if err != nil {
 		return err

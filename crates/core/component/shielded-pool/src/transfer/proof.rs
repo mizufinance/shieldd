@@ -27,6 +27,7 @@ pub struct TransferSpendPublic {
 #[derive(Clone, Debug)]
 pub struct TransferOutputPublic {
     pub note_commitment: tct::StateCommitment,
+    pub recovery_commitment: crate::RecoveryCommitment,
 }
 
 #[derive(Clone, Debug)]
@@ -132,6 +133,7 @@ pub struct TransferProofPrivate {
     pub action_balance_blinding: Fr,
     pub ak: VerificationKey<SpendAuth>,
     pub nk: NullifierKey,
+    pub cnk: Fq,
     pub asset_path: MerklePath,
     pub asset_position: u64,
     pub asset_indexed_leaf: IndexedLeaf,
@@ -263,7 +265,7 @@ mod tests {
     static TRANSFER_PROOF_TEST_MUTEX: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
     fn compliance_leaf_for(address: &shieldd_sdk_keys::Address) -> ComplianceLeaf {
-        ComplianceLeaf::new(address.clone(), *BASE_ASSET_ID)
+        ComplianceLeaf::synthetic_unregulated(address.clone(), *BASE_ASSET_ID)
     }
 
     fn sender_recipient_compliance_witnesses() -> (

@@ -176,10 +176,11 @@ type AssetIDFixture struct {
 }
 
 type ComplianceLeafFixture struct {
-	Address AddressFixture `json:"address"`
-	AssetID AssetIDFixture `json:"assetId"`
-	D       string         `json:"d"`
-	Status  string         `json:"status"`
+	Address       AddressFixture     `json:"address"`
+	AssetID       AssetIDFixture     `json:"assetId"`
+	Capk          PointAffineFixture `json:"capk"`
+	CnkCommitment string             `json:"cnk_commitment"`
+	Status        string             `json:"status"`
 }
 
 type SpendPrivateFixture struct {
@@ -208,7 +209,6 @@ type SpendPrivateFixture struct {
 	CompliancePosition             uint64                      `json:"compliance_position"`
 	UserLeaf                       ComplianceLeafFixture       `json:"user_leaf"`
 	UserLeafCommitment             string                      `json:"user_leaf_commitment"`
-	UserDDecimal                   string                      `json:"user_d_decimal"`
 	UserDiversifiedGeneratorAffine PointAffineFixture          `json:"user_diversified_generator_affine"`
 	UserTransmissionKeyAffine      PointAffineFixture          `json:"user_transmission_key_affine"`
 	ComplianceEphemeralSecret      string                      `json:"compliance_ephemeral_secret"`

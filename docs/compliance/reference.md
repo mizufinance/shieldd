@@ -70,7 +70,7 @@ malicious proof from creating a note with that ambiguous owner.
 ## Transfer Public Statement
 
 The fixed 2x2 Transfer statement has 47 Fq fields. Its hash uses the
-`shieldd.shielded_pool.transfer.public_input_hash.v7` domain.
+`shieldd.shielded_pool.transfer.public_input_hash.statement` domain.
 
 ```text
  0       anchor
@@ -152,32 +152,26 @@ roots. Large node
 materialization is nonverifiable storage checked against those committed
 roots.
 
-`ComplianceLeaf` v5 is
+`ComplianceLeaf` is
 
 ```text
-PoseidonHash5(
-  "shieldd.compliance.leaf.v5",
+PoseidonHash6(
+  "shieldd.compliance.leaf",
   diversified_generator_fq,
   transmission_key_fq,
   asset_id,
-  d,
-  status
+  compressed_capk,
+  Poseidon(cnk),
+  packed_lifecycle
 )
 ```
 
-The address encodings must be canonical, and `d` is the exact nonzero ordinary
-Orbis SHA-512 scalar derived from the full canonical address bytes. Consensus
-ownership indexes require one global derived audit key per address and one
-address per key; the same address/key pair may register across asset rings.
-Asset ID zero is reserved for
-the indexed-tree sentinel and cannot be registered or used as a Transfer or
-Withdrawal action asset.
-
-Address audit plaintext is the canonical 64-byte little-endian concatenation
-of `diversified_generator_fq` and `transmission_key_fq`, split into 31-byte
-stream words. Gnark's `ToBinary(..., 256)` clamps each native field to 253
-bits, enforces the built-in `<= p-1` check, and pads the remaining three bits
-with zero.
+The address encodings must be canonical. `capk` is the nonidentity ordinary
+Orbis address capability for the asset ring and is validated at registration.
+`cnk` is held by the user and ACP; the leaf exposes only its Poseidon
+commitment. The packed lifecycle injectively contains status, freeze generation,
+and frozen-since height. Asset ID zero is reserved for the indexed-tree sentinel
+and cannot be registered or used as a Transfer or Withdrawal action asset.
 
 ## Scanner Types And Tables
 

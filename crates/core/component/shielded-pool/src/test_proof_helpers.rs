@@ -187,7 +187,8 @@ pub mod proof_test_helpers {
         let sender_seed = SeedPhrase::generate(&mut *rng);
         let sender_sk = SpendKey::from_seed_phrase_bip44(sender_seed, &Bip44Path::new(0))
             .expect("test spend key should satisfy key refinements");
-        let sender_ivk = sender_sk.full_viewing_key().incoming();
+        let sender_fvk = sender_sk.full_viewing_key();
+        let sender_ivk = sender_fvk.incoming();
         let sender_address = sender_ivk.payment_address(0u32.into());
 
         let value = Value {
@@ -195,8 +196,13 @@ pub mod proof_test_helpers {
             asset_id,
         };
 
-        let note = Note::from_parts(address.clone(), value, Rseed::generate(&mut *rng))
-            .expect("can create note");
+        let note = Note::from_parts(
+            address.clone(),
+            value,
+            Rseed::generate(&mut *rng),
+            crate::RecoveryCommitment::unavailable(),
+        )
+        .expect("can create note");
 
         let balance_blinding = Fr::rand(&mut *rng);
 
@@ -244,11 +250,29 @@ pub mod proof_test_helpers {
         let sender_d_fr = Fr::from_le_bytes_mod_order(&sender_d.to_bytes());
         let ack_sender = ring_pk * sender_d_fr;
 
-        let user_leaf =
-            shieldd_sdk_compliance::ComplianceLeaf::new(address.clone(), value.asset_id);
-
-        let counterparty_leaf =
-            shieldd_sdk_compliance::ComplianceLeaf::new(sender_address.clone(), value.asset_id);
+        let make_leaf = |address, wallet_nk| {
+            if is_regulated {
+                let cnk = shieldd_sdk_compliance::derive_compliance_nullifier_key(
+                    wallet_nk,
+                    &address,
+                    value.asset_id,
+                );
+                shieldd_sdk_compliance::ComplianceLeaf::registered(
+                    address,
+                    value.asset_id,
+                    ring_pk,
+                    cnk,
+                )
+                .expect("test compliance registration is valid")
+            } else {
+                shieldd_sdk_compliance::ComplianceLeaf::synthetic_unregulated(
+                    address,
+                    value.asset_id,
+                )
+            }
+        };
+        let user_leaf = make_leaf(address.clone(), fvk.nullifier_key().0);
+        let counterparty_leaf = make_leaf(sender_address.clone(), sender_fvk.nullifier_key().0);
 
         let (compliance_anchor, compliance_path, compliance_position) =
             create_user_tree_proof(&user_leaf);
@@ -326,6 +350,7 @@ pub mod proof_test_helpers {
                         asset_id,
                     },
                     crate::Rseed::generate(rng),
+                    crate::RecoveryCommitment::unavailable(),
                 )
                 .expect("create transfer test note"),
             );
@@ -355,6 +380,7 @@ pub mod proof_test_helpers {
             spend.compliance_anchor = base.compliance_anchor;
             spend.compliance_path = base.compliance_path.clone();
             spend.compliance_position = base.compliance_position;
+            spend.compliance_leaf = Some(base.user_leaf.clone());
             spend.is_regulated = is_regulated;
             spend.target_timestamp = base.target_timestamp;
             spend.tx_blinding_nonce = tx_blinding_nonce;
@@ -534,6 +560,7 @@ pub mod proof_test_helpers {
                 asset_id,
             },
             crate::Rseed::generate(&mut *rng),
+            crate::RecoveryCommitment::unavailable(),
         )
         .expect("create hidden-arity transfer test note");
 
@@ -552,6 +579,10 @@ pub mod proof_test_helpers {
         spend.asset_path = base.asset_path.clone();
         spend.asset_position = base.asset_position;
         spend.asset_anchor = base.asset_anchor;
+        spend.compliance_anchor = base.compliance_anchor;
+        spend.compliance_path = base.compliance_path.clone();
+        spend.compliance_position = base.compliance_position;
+        spend.compliance_leaf = Some(base.user_leaf.clone());
         spend.is_regulated = is_regulated;
         spend.target_timestamp = base.target_timestamp;
         spend.tx_blinding_nonce = tx_blinding_nonce;
@@ -560,8 +591,20 @@ pub mod proof_test_helpers {
             .set_compliance_details()
             .expect("set hidden-arity transfer spend compliance details");
 
-        let recipient_leaf =
-            shieldd_sdk_compliance::ComplianceLeaf::new(recipient_address.clone(), asset_id);
+        let recipient_leaf = if is_regulated {
+            shieldd_sdk_compliance::ComplianceLeaf::registered(
+                recipient_address.clone(),
+                asset_id,
+                base.ring_pk,
+                Fq::from(2u64),
+            )
+            .expect("test recipient compliance registration is valid")
+        } else {
+            shieldd_sdk_compliance::ComplianceLeaf::synthetic_unregulated(
+                recipient_address.clone(),
+                asset_id,
+            )
+        };
         let (
             shared_compliance_anchor,
             sender_compliance_path,
@@ -701,6 +744,7 @@ pub mod proof_test_helpers {
                         asset_id,
                     },
                     crate::Rseed::generate(&mut rng),
+                    crate::RecoveryCommitment::unavailable(),
                 )
                 .expect("create transfer test note"),
             );
@@ -869,6 +913,7 @@ pub mod proof_test_helpers {
                         asset_id,
                     },
                     crate::Rseed::generate(rng),
+                    crate::RecoveryCommitment::unavailable(),
                 )
                 .expect("create note reshape test note")
             })
@@ -960,6 +1005,7 @@ pub mod proof_test_helpers {
                 asset_id: base.value.asset_id,
             },
             crate::Rseed::generate(rng),
+            crate::RecoveryCommitment::unavailable(),
         )
         .expect("create shielded ICS-20 withdrawal note a");
         let note_b = crate::Note::from_parts(
@@ -969,6 +1015,7 @@ pub mod proof_test_helpers {
                 asset_id: base.value.asset_id,
             },
             crate::Rseed::generate(rng),
+            crate::RecoveryCommitment::unavailable(),
         )
         .expect("create shielded ICS-20 withdrawal note b");
 
@@ -997,13 +1044,14 @@ pub mod proof_test_helpers {
         let required_proof = sct.witness(note_a.commit()).expect("witness note a");
         let optional_proof =
             (real_spends == 2).then(|| sct.witness(note_b.commit()).expect("witness note b"));
-        let change_note = crate::Note::from_parts(
+        let (change_note, _) = crate::Note::from_parts_with_recovery(
             base.address.clone(),
             Value {
                 amount: Amount::from(20u64),
                 asset_id: base.value.asset_id,
             },
             crate::Rseed::generate(rng),
+            base.user_leaf.capk,
         )
         .expect("create shielded ICS-20 withdrawal change note");
 
@@ -1012,6 +1060,7 @@ pub mod proof_test_helpers {
             first_spend_randomizer: spend_a.randomizer,
             sender_address: base.address.clone(),
             asset_id: base.value.asset_id,
+            capk: base.user_leaf.capk,
             nullifier_domain_sep_label:
                 b"shieldd.shielded_ics20_withdrawal.synthetic_dummy.nullifier",
             nullifier_seed_label:
@@ -1104,6 +1153,7 @@ pub mod proof_test_helpers {
                 inputs: input_publics,
                 change_output: ShieldedIcs20WithdrawalChangePublic {
                     note_commitment: change_note.commit(),
+                    recovery_commitment: change_note.recovery_commitment(),
                 },
                 outbound_asset_id: base.value.asset_id.0,
                 outbound_amount: Fq::from(outbound_amount),
@@ -1123,6 +1173,11 @@ pub mod proof_test_helpers {
                 action_balance_blinding: Fr::from(13u64),
                 ak: *base.fvk.spend_verification_key(),
                 nk: *base.fvk.nullifier_key(),
+                cnk: shieldd_sdk_compliance::derive_compliance_nullifier_key(
+                    base.fvk.nullifier_key().0,
+                    &base.address,
+                    base.value.asset_id,
+                ),
                 asset_path: base.asset_path,
                 asset_position: base.asset_position,
                 asset_indexed_leaf: base.asset_indexed_leaf,

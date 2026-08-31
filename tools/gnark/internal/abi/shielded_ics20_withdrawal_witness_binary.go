@@ -9,38 +9,41 @@ import (
 
 const (
 	shieldedIcs20WithdrawalWitnessMagic   = "PIWG"
-	shieldedIcs20WithdrawalWitnessVersion = 14
+	shieldedIcs20WithdrawalWitnessVersion = 16
 	maxShieldedIcs20WithdrawalInputs      = 2
-	minShieldedIcs20RequiredSpendBytes    = 32*3 + 8 + 4 + 32 + 64 + 1
+	minShieldedIcs20RequiredSpendBytes    = 32*4 + 8 + 4 + 32 + 64 + 1
 	minShieldedIcs20OptionalSpendBytes    = minShieldedIcs20RequiredSpendBytes + 1 + 32
-	minShieldedIcs20WithdrawalChangeBytes = 32 * 3
+	minShieldedIcs20WithdrawalChangeBytes = 32 * 13
 	minShieldedIcs20WithdrawalTailBytes   = 64 * 2
 )
 
-type ShieldedIcs20WithdrawalRequiredSpendWitnessV14Binary struct {
-	Nullifier               [32]byte
-	SpentNoteBlinding       [32]byte
-	SpentNoteAmount         [32]byte
-	StateCommitmentPosition uint64
-	StateCommitmentAuthPath [][3][32]byte
-	SpendAuthRandomizer     [32]byte
-	RKAffine                PointAffineBinary
-	HistoryRequired         bool
+type ShieldedIcs20WithdrawalRequiredSpendWitnessBinary struct {
+	Nullifier                   [32]byte
+	SpentNoteBlinding           [32]byte
+	SpentNoteAmount             [32]byte
+	SpentNoteRecoveryCommitment [32]byte
+	StateCommitmentPosition     uint64
+	StateCommitmentAuthPath     [][3][32]byte
+	SpendAuthRandomizer         [32]byte
+	RKAffine                    PointAffineBinary
+	HistoryRequired             bool
 }
 
-type ShieldedIcs20WithdrawalOptionalSpendWitnessV14Binary struct {
-	ShieldedIcs20WithdrawalRequiredSpendWitnessV14Binary
+type ShieldedIcs20WithdrawalOptionalSpendWitnessBinary struct {
+	ShieldedIcs20WithdrawalRequiredSpendWitnessBinary
 	IsDummy            bool
 	DummyNullifierSeed [32]byte
 }
 
-type ShieldedIcs20WithdrawalChangeWitnessV14Binary struct {
+type ShieldedIcs20WithdrawalChangeWitnessBinary struct {
 	NoteCommitment      [32]byte
+	RecoveryCommitment  [32]byte
 	CreatedNoteBlinding [32]byte
 	CreatedNoteAmount   [32]byte
+	RecoveryCapsule     RecoveryCapsuleWitnessBinary
 }
 
-type ShieldedIcs20WithdrawalWitnessV14Binary struct {
+type ShieldedIcs20WithdrawalWitnessBinary struct {
 	TotalLength uint32
 	FamilyID    uint32
 	NIn         uint32
@@ -62,6 +65,7 @@ type ShieldedIcs20WithdrawalWitnessV14Binary struct {
 	RecentPositionFloor              [32]byte
 	ActionBalanceBlinding            [32]byte
 	NK                               [32]byte
+	CNK                              [32]byte
 
 	AssetPath                MerklePathBinary
 	AssetPosition            uint64
@@ -73,14 +77,15 @@ type ShieldedIcs20WithdrawalWitnessV14Binary struct {
 	RoutingNonce             [32]byte
 	SenderCompliancePath     MerklePathBinary
 	SenderCompliancePosition uint64
-	SenderD                  [32]byte
+	SenderCapkAffine         PointAffineBinary
+	SenderCnkCommitment      [32]byte
 	SenderStatus             [32]byte
 	WithdrawalSeed           [32]byte
 	WithdrawalRandomizer     [32]byte
 
-	RequiredSpend ShieldedIcs20WithdrawalRequiredSpendWitnessV14Binary
-	OptionalSpend ShieldedIcs20WithdrawalOptionalSpendWitnessV14Binary
-	ChangeOutput  ShieldedIcs20WithdrawalChangeWitnessV14Binary
+	RequiredSpend ShieldedIcs20WithdrawalRequiredSpendWitnessBinary
+	OptionalSpend ShieldedIcs20WithdrawalOptionalSpendWitnessBinary
+	ChangeOutput  ShieldedIcs20WithdrawalChangeWitnessBinary
 
 	AKAffine                     PointAffineBinary
 	AssetIndexedLeafDKPubAffine  PointAffineBinary
@@ -88,7 +93,7 @@ type ShieldedIcs20WithdrawalWitnessV14Binary struct {
 	SenderDiversifiedGenerator   PointAffineBinary
 }
 
-func DecodeShieldedIcs20WithdrawalWitnessV14(payload []byte) (*ShieldedIcs20WithdrawalWitnessV14Binary, generated.ShieldedIcs20WithdrawalFamilySpec, error) {
+func DecodeShieldedIcs20WithdrawalWitness(payload []byte) (*ShieldedIcs20WithdrawalWitnessBinary, generated.ShieldedIcs20WithdrawalFamilySpec, error) {
 	reader := bytes.NewReader(payload)
 
 	magic, err := readExact(reader, 4)
@@ -139,7 +144,7 @@ func DecodeShieldedIcs20WithdrawalWitnessV14(payload []byte) (*ShieldedIcs20With
 		)
 	}
 
-	out := &ShieldedIcs20WithdrawalWitnessV14Binary{
+	out := &ShieldedIcs20WithdrawalWitnessBinary{
 		TotalLength: totalLength,
 		FamilyID:    familyID,
 		NIn:         nIn,
@@ -199,6 +204,9 @@ func DecodeShieldedIcs20WithdrawalWitnessV14(payload []byte) (*ShieldedIcs20With
 	if out.NK, err = read32(reader); err != nil {
 		return nil, family, err
 	}
+	if out.CNK, err = read32(reader); err != nil {
+		return nil, family, err
+	}
 	if out.AssetPath, err = readMerklePath(reader); err != nil {
 		return nil, family, err
 	}
@@ -231,7 +239,10 @@ func DecodeShieldedIcs20WithdrawalWitnessV14(payload []byte) (*ShieldedIcs20With
 	if out.SenderCompliancePosition, err = readU64(reader); err != nil {
 		return nil, family, err
 	}
-	if out.SenderD, err = read32(reader); err != nil {
+	if out.SenderCapkAffine, err = readPointAffine(reader); err != nil {
+		return nil, family, err
+	}
+	if out.SenderCnkCommitment, err = read32(reader); err != nil {
 		return nil, family, err
 	}
 	if out.SenderStatus, err = read32(reader); err != nil {
@@ -270,8 +281,8 @@ func DecodeShieldedIcs20WithdrawalWitnessV14(payload []byte) (*ShieldedIcs20With
 	return out, family, nil
 }
 
-func readShieldedIcs20WithdrawalRequiredSpend(reader *bytes.Reader) (ShieldedIcs20WithdrawalRequiredSpendWitnessV14Binary, error) {
-	var out ShieldedIcs20WithdrawalRequiredSpendWitnessV14Binary
+func readShieldedIcs20WithdrawalRequiredSpend(reader *bytes.Reader) (ShieldedIcs20WithdrawalRequiredSpendWitnessBinary, error) {
+	var out ShieldedIcs20WithdrawalRequiredSpendWitnessBinary
 	var err error
 	if out.Nullifier, err = read32(reader); err != nil {
 		return out, err
@@ -280,6 +291,9 @@ func readShieldedIcs20WithdrawalRequiredSpend(reader *bytes.Reader) (ShieldedIcs
 		return out, err
 	}
 	if out.SpentNoteAmount, err = read32(reader); err != nil {
+		return out, err
+	}
+	if out.SpentNoteRecoveryCommitment, err = read32(reader); err != nil {
 		return out, err
 	}
 	if out.StateCommitmentPosition, err = readU64(reader); err != nil {
@@ -300,36 +314,42 @@ func readShieldedIcs20WithdrawalRequiredSpend(reader *bytes.Reader) (ShieldedIcs
 	return out, nil
 }
 
-func readShieldedIcs20WithdrawalOptionalSpend(reader *bytes.Reader) (ShieldedIcs20WithdrawalOptionalSpendWitnessV14Binary, error) {
+func readShieldedIcs20WithdrawalOptionalSpend(reader *bytes.Reader) (ShieldedIcs20WithdrawalOptionalSpendWitnessBinary, error) {
 	required, err := readShieldedIcs20WithdrawalRequiredSpend(reader)
 	if err != nil {
-		return ShieldedIcs20WithdrawalOptionalSpendWitnessV14Binary{}, err
+		return ShieldedIcs20WithdrawalOptionalSpendWitnessBinary{}, err
 	}
 	isDummy, err := readBool(reader)
 	if err != nil {
-		return ShieldedIcs20WithdrawalOptionalSpendWitnessV14Binary{}, err
+		return ShieldedIcs20WithdrawalOptionalSpendWitnessBinary{}, err
 	}
 	dummyNullifierSeed, err := read32(reader)
 	if err != nil {
-		return ShieldedIcs20WithdrawalOptionalSpendWitnessV14Binary{}, err
+		return ShieldedIcs20WithdrawalOptionalSpendWitnessBinary{}, err
 	}
-	return ShieldedIcs20WithdrawalOptionalSpendWitnessV14Binary{
-		ShieldedIcs20WithdrawalRequiredSpendWitnessV14Binary: required,
+	return ShieldedIcs20WithdrawalOptionalSpendWitnessBinary{
+		ShieldedIcs20WithdrawalRequiredSpendWitnessBinary: required,
 		IsDummy:            isDummy,
 		DummyNullifierSeed: dummyNullifierSeed,
 	}, nil
 }
 
-func readShieldedIcs20WithdrawalChange(reader *bytes.Reader) (ShieldedIcs20WithdrawalChangeWitnessV14Binary, error) {
-	var out ShieldedIcs20WithdrawalChangeWitnessV14Binary
+func readShieldedIcs20WithdrawalChange(reader *bytes.Reader) (ShieldedIcs20WithdrawalChangeWitnessBinary, error) {
+	var out ShieldedIcs20WithdrawalChangeWitnessBinary
 	var err error
 	if out.NoteCommitment, err = read32(reader); err != nil {
+		return out, err
+	}
+	if out.RecoveryCommitment, err = read32(reader); err != nil {
 		return out, err
 	}
 	if out.CreatedNoteBlinding, err = read32(reader); err != nil {
 		return out, err
 	}
 	if out.CreatedNoteAmount, err = read32(reader); err != nil {
+		return out, err
+	}
+	if out.RecoveryCapsule, err = readRecoveryCapsule(reader); err != nil {
 		return out, err
 	}
 	return out, nil

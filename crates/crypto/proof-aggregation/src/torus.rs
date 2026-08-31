@@ -1,6 +1,6 @@
-//! Half-size BLS12-377 target-group encoding for the SnarkPack v2 wire.
+//! Half-size BLS12-377 target-group encoding for the compact SnarkPack wire.
 //!
-//! The codec changes only proof transport. Verification reconstructs the v1
+//! The codec changes only proof transport. Verification reconstructs the standard
 //! target values and applies the same group and proof-shape validation.
 
 use ark_ec::pairing::{Pairing, PairingOutput};
@@ -213,8 +213,8 @@ mod tests {
 
     use super::{compress_targets, decompress_targets, TorusTarget};
     use crate::{
-        decode_wrapped_aggregate_proof, decode_wrapped_torus_v2_aggregate_proof,
-        encode_wrapped_aggregate_proof, encode_wrapped_torus_v2_aggregate_proof,
+        decode_wrapped_aggregate_proof, decode_wrapped_torus_aggregate_proof,
+        encode_wrapped_aggregate_proof, encode_wrapped_torus_aggregate_proof,
         AggregateProofBytesError,
     };
 
@@ -222,19 +222,19 @@ mod tests {
     fn wrapper_versions_are_disjoint() {
         let digest = [7u8; 32];
         let inner = [1, 2, 3, 4, 5];
-        let v1 = encode_wrapped_aggregate_proof(digest, &inner).unwrap();
-        let v2 = encode_wrapped_torus_v2_aggregate_proof(digest, &inner).unwrap();
+        let standard = encode_wrapped_aggregate_proof(digest, &inner).unwrap();
+        let torus = encode_wrapped_torus_aggregate_proof(digest, &inner).unwrap();
 
         assert_eq!(
-            decode_wrapped_torus_v2_aggregate_proof(&v2, digest, None).unwrap(),
+            decode_wrapped_torus_aggregate_proof(&torus, digest, None).unwrap(),
             inner
         );
         assert_eq!(
-            decode_wrapped_aggregate_proof(&v2, digest, None),
+            decode_wrapped_aggregate_proof(&torus, digest, None),
             Err(AggregateProofBytesError::BadVersion)
         );
         assert_eq!(
-            decode_wrapped_torus_v2_aggregate_proof(&v1, digest, None),
+            decode_wrapped_torus_aggregate_proof(&standard, digest, None),
             Err(AggregateProofBytesError::BadVersion)
         );
     }

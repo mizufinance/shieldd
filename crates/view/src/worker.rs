@@ -721,7 +721,7 @@ mod compliance_projection_tests {
     #[test]
     fn status_projection_authenticates_the_previous_leaf_and_event_order() {
         let mut rng = rand::thread_rng();
-        let mut active = ComplianceLeaf::new(
+        let mut active = ComplianceLeaf::synthetic_unregulated(
             shieldd_sdk_keys::Address::dummy(&mut rng),
             asset::Id(decaf377::Fq::from(7u64)),
         );

@@ -96,6 +96,7 @@ pub async fn setup_proof_storage(
                 is_regulated: true,
                 dk_pub: Some(decaf377::Element::GENERATOR.vartime_compress().0),
                 registration_authority_vk: Some(authority_vk),
+                seizure_authority_vk: Some(authority_vk),
             }],
             ..Default::default()
         },
@@ -125,7 +126,10 @@ pub async fn setup_proof_storage(
         test_keys::ADDRESS_1.deref().clone(),
     ] {
         state
-            .test_only_add_compliance_leaf(ComplianceLeaf::new(address, *BASE_ASSET_ID))
+            .test_only_add_compliance_leaf(ComplianceLeaf::synthetic_unregulated(
+                address,
+                *BASE_ASSET_ID,
+            ))
             .await?;
     }
     storage.commit(state).await?;

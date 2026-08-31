@@ -100,6 +100,9 @@ pub struct NativeAssetRegistration {
     /// Immutable authority key that signs user registration grants for this asset.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub registration_authority_vk: Option<VerificationKey<SpendAuth>>,
+    /// Immutable authority key that signs note seizures for this asset.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub seizure_authority_vk: Option<VerificationKey<SpendAuth>>,
 }
 
 impl NativeAssetRegistration {
@@ -108,6 +111,12 @@ impl NativeAssetRegistration {
             ensure_nonidentity_spend_auth_key(
                 registration_authority_vk,
                 "compliance registration authority key",
+            )?;
+        }
+        if let Some(seizure_authority_vk) = &self.seizure_authority_vk {
+            ensure_nonidentity_spend_auth_key(
+                seizure_authority_vk,
+                "compliance seizure authority key",
             )?;
         }
         Ok(())
@@ -144,6 +153,11 @@ impl TryFrom<pb::NativeAssetRegistration> for NativeAssetRegistration {
                 .map(TryInto::try_into)
                 .transpose()
                 .map_err(|e| anyhow::anyhow!("invalid genesis registration_authority_vk: {e}"))?,
+            seizure_authority_vk: value
+                .seizure_authority_vk
+                .map(TryInto::try_into)
+                .transpose()
+                .map_err(|e| anyhow::anyhow!("invalid genesis seizure_authority_vk: {e}"))?,
         };
         registration.validate_authorization_keys()?;
         Ok(registration)
@@ -157,6 +171,7 @@ impl From<NativeAssetRegistration> for pb::NativeAssetRegistration {
             is_regulated: value.is_regulated,
             dk_pub: value.dk_pub.map(Vec::from).unwrap_or_default(),
             registration_authority_vk: value.registration_authority_vk.map(Into::into),
+            seizure_authority_vk: value.seizure_authority_vk.map(Into::into),
         }
     }
 }
@@ -209,6 +224,7 @@ mod tests {
                 is_regulated: false,
                 dk_pub: None,
                 registration_authority_vk: Some(identity),
+                seizure_authority_vk: None,
             }],
             ..Default::default()
         };
