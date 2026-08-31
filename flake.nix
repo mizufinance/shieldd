@@ -100,6 +100,7 @@
             dbus
             just
             libusb1
+            llvmPackages.lld
             protobuf
             python3
             ripgrep
