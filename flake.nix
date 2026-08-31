@@ -196,7 +196,7 @@
                   [ clang dbus openssl rocksdb sqlite ];
 
                 inherit system PKG_CONFIG_PATH LIBCLANG_PATH ROCKSDB_LIB_DIR;
-                cargoExtraArgs = "-p pd -p pcli -p pclientd -p pindexer";
+                cargoExtraArgs = "-p pd -p pcli -p pclientd";
                 meta = {
                   description = "A fully private proof-of-stake network and decentralized exchange for the Cosmos ecosystem";
                   license = [ licenses.mit licenses.asl20 ];
@@ -211,8 +211,6 @@
             pcli.program = "${packages.shieldd}/bin/pcli";
             pclientd.type = "app";
             pclientd.program = "${packages.shieldd}/bin/pclientd";
-            pindexer.type = "app";
-            pindexer.program = "${packages.shieldd}/bin/pindexer";
             cometbft.type = "app";
             cometbft.program = "${cometbft}/bin/cometbft";
           };

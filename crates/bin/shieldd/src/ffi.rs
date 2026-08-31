@@ -40,6 +40,29 @@ const METHOD_QUERY_COMPLIANCE_USER_LEAF: u32 = 1_000_004;
 const METHOD_QUERY_KEY_VALUE: u32 = 1_000_005;
 const METHOD_QUERY_COMPACT_BLOCK_RANGE: u32 = 1_000_006;
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum Method {
+    InitGenesis,
+    BeginBlock,
+    Deposit,
+    CheckTx,
+    DeliverTx,
+    EndBlock,
+    Commit,
+    Rollback,
+    ExportGenesis,
+    GetCommittedState,
+    ArchivedNullifierProof,
+    ApplyComplianceAction,
+    QueryAppParameters,
+    QueryAssetMetadataById,
+    QueryComplianceAssetStatus,
+    QueryComplianceBatchMerkleProofs,
+    QueryComplianceUserLeaf,
+    QueryKeyValue,
+    QueryCompactBlockRange,
+}
+
 #[repr(C)]
 pub struct ShielddHandle {
     _private: [u8; 0],
@@ -134,6 +157,39 @@ impl FfiError {
         Self {
             status,
             message: error.to_string(),
+        }
+    }
+}
+
+impl TryFrom<u32> for Method {
+    type Error = FfiError;
+
+    fn try_from(method: u32) -> std::result::Result<Self, Self::Error> {
+        match method {
+            METHOD_INIT_GENESIS => Ok(Self::InitGenesis),
+            METHOD_BEGIN_BLOCK => Ok(Self::BeginBlock),
+            METHOD_DEPOSIT => Ok(Self::Deposit),
+            METHOD_CHECK_TX => Ok(Self::CheckTx),
+            METHOD_DELIVER_TX => Ok(Self::DeliverTx),
+            METHOD_END_BLOCK => Ok(Self::EndBlock),
+            METHOD_COMMIT => Ok(Self::Commit),
+            METHOD_ROLLBACK => Ok(Self::Rollback),
+            METHOD_EXPORT_GENESIS => Ok(Self::ExportGenesis),
+            METHOD_GET_COMMITTED_STATE => Ok(Self::GetCommittedState),
+            METHOD_ARCHIVED_NULLIFIER_PROOF => Ok(Self::ArchivedNullifierProof),
+            METHOD_APPLY_COMPLIANCE_ACTION => Ok(Self::ApplyComplianceAction),
+            METHOD_QUERY_APP_PARAMETERS => Ok(Self::QueryAppParameters),
+            METHOD_QUERY_ASSET_METADATA_BY_ID => Ok(Self::QueryAssetMetadataById),
+            METHOD_QUERY_COMPLIANCE_ASSET_STATUS => Ok(Self::QueryComplianceAssetStatus),
+            METHOD_QUERY_COMPLIANCE_BATCH_MERKLE_PROOFS => {
+                Ok(Self::QueryComplianceBatchMerkleProofs)
+            }
+            METHOD_QUERY_COMPLIANCE_USER_LEAF => Ok(Self::QueryComplianceUserLeaf),
+            METHOD_QUERY_KEY_VALUE => Ok(Self::QueryKeyValue),
+            METHOD_QUERY_COMPACT_BLOCK_RANGE => Ok(Self::QueryCompactBlockRange),
+            _ => Err(FfiError::invalid_argument(format!(
+                "unknown Shieldd method {method}"
+            ))),
         }
     }
 }
@@ -234,6 +290,7 @@ pub extern "C" fn shieldd_call(
         if handle.is_null() {
             return Err(FfiError::invalid_argument("handle must not be null"));
         }
+        let method = Method::try_from(method)?;
         let request = unsafe { input_bytes(request, request_len)? };
         let handle = unsafe { &*(handle.cast::<Handle>()) };
         handle.runtime.block_on(async {
@@ -304,110 +361,107 @@ unsafe fn input_bytes<'a>(data: *const u8, len: usize) -> std::result::Result<&'
 
 async fn dispatch(
     service: &mut ExecutionService,
-    method: u32,
+    method: Method,
     request: &[u8],
 ) -> std::result::Result<Vec<u8>, FfiError> {
     match method {
-        METHOD_INIT_GENESIS => service
+        Method::InitGenesis => service
             .init_genesis(decode(request)?)
             .await
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
-        METHOD_BEGIN_BLOCK => service
+        Method::BeginBlock => service
             .begin_block(decode(request)?)
             .await
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
-        METHOD_DEPOSIT => service
+        Method::Deposit => service
             .deposit(decode(request)?)
             .await
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
-        METHOD_CHECK_TX => service
+        Method::CheckTx => service
             .check_tx(decode(request)?)
             .await
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
-        METHOD_DELIVER_TX => service
+        Method::DeliverTx => service
             .deliver_tx(decode(request)?)
             .await
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
-        METHOD_END_BLOCK => service
+        Method::EndBlock => service
             .end_block(decode(request)?)
             .await
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
-        METHOD_COMMIT => service
+        Method::Commit => service
             .commit(decode(request)?)
             .await
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
-        METHOD_GET_COMMITTED_STATE => service
+        Method::GetCommittedState => service
             .get_committed_state(decode(request)?)
             .await
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
-        METHOD_ROLLBACK => service
+        Method::Rollback => service
             .rollback(decode(request)?)
             .await
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
-        METHOD_EXPORT_GENESIS => service
+        Method::ExportGenesis => service
             .export_genesis(decode(request)?)
             .await
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
-        METHOD_ARCHIVED_NULLIFIER_PROOF => service
+        Method::ArchivedNullifierProof => service
             .archived_nullifier_proof(decode(request)?)
             .await
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
-        METHOD_APPLY_COMPLIANCE_ACTION => service
+        Method::ApplyComplianceAction => service
             .apply_compliance_action(decode(request)?)
             .await
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
-        METHOD_QUERY_APP_PARAMETERS => service
+        Method::QueryAppParameters => service
             .app_parameters(decode(request)?)
             .await
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
-        METHOD_QUERY_ASSET_METADATA_BY_ID => service
+        Method::QueryAssetMetadataById => service
             .asset_metadata_by_id(decode(request)?)
             .await
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
-        METHOD_QUERY_COMPLIANCE_ASSET_STATUS => service
+        Method::QueryComplianceAssetStatus => service
             .compliance_asset_status(decode(request)?)
             .await
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
-        METHOD_QUERY_COMPLIANCE_BATCH_MERKLE_PROOFS => service
+        Method::QueryComplianceBatchMerkleProofs => service
             .compliance_batch_merkle_proofs(decode(request)?)
             .await
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
-        METHOD_QUERY_COMPLIANCE_USER_LEAF => service
+        Method::QueryComplianceUserLeaf => service
             .compliance_user_leaf(decode(request)?)
             .await
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
-        METHOD_QUERY_KEY_VALUE => service
+        Method::QueryKeyValue => service
             .key_value(decode(request)?)
             .await
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
-        METHOD_QUERY_COMPACT_BLOCK_RANGE => {
+        Method::QueryCompactBlockRange => {
             let responses = service
                 .compact_block_range(decode(request)?)
                 .await
                 .map_err(FfiError::service)?;
             encode_delimited(responses)
         }
-        _ => Err(FfiError::invalid_argument(format!(
-            "unknown Shieldd method {method}"
-        ))),
     }
 }
 
@@ -502,6 +556,57 @@ mod tests {
     fn free_result(mut result: ShielddResult) {
         shieldd_buffer_free(&mut result.response);
         shieldd_buffer_free(&mut result.error);
+    }
+
+    #[test]
+    fn abi_method_ids_map_to_their_dispatch_methods() {
+        let cases = [
+            (METHOD_INIT_GENESIS, Method::InitGenesis),
+            (METHOD_BEGIN_BLOCK, Method::BeginBlock),
+            (METHOD_DEPOSIT, Method::Deposit),
+            (METHOD_CHECK_TX, Method::CheckTx),
+            (METHOD_DELIVER_TX, Method::DeliverTx),
+            (METHOD_END_BLOCK, Method::EndBlock),
+            (METHOD_COMMIT, Method::Commit),
+            (METHOD_ROLLBACK, Method::Rollback),
+            (METHOD_EXPORT_GENESIS, Method::ExportGenesis),
+            (METHOD_GET_COMMITTED_STATE, Method::GetCommittedState),
+            (
+                METHOD_ARCHIVED_NULLIFIER_PROOF,
+                Method::ArchivedNullifierProof,
+            ),
+            (
+                METHOD_APPLY_COMPLIANCE_ACTION,
+                Method::ApplyComplianceAction,
+            ),
+            (METHOD_QUERY_APP_PARAMETERS, Method::QueryAppParameters),
+            (
+                METHOD_QUERY_ASSET_METADATA_BY_ID,
+                Method::QueryAssetMetadataById,
+            ),
+            (
+                METHOD_QUERY_COMPLIANCE_ASSET_STATUS,
+                Method::QueryComplianceAssetStatus,
+            ),
+            (
+                METHOD_QUERY_COMPLIANCE_BATCH_MERKLE_PROOFS,
+                Method::QueryComplianceBatchMerkleProofs,
+            ),
+            (
+                METHOD_QUERY_COMPLIANCE_USER_LEAF,
+                Method::QueryComplianceUserLeaf,
+            ),
+            (METHOD_QUERY_KEY_VALUE, Method::QueryKeyValue),
+            (
+                METHOD_QUERY_COMPACT_BLOCK_RANGE,
+                Method::QueryCompactBlockRange,
+            ),
+        ];
+
+        for (id, method) in cases {
+            assert!(matches!(Method::try_from(id), Ok(found) if found == method));
+        }
+        assert!(Method::try_from(u32::MAX).is_err());
     }
 
     fn call<Request, Response>(

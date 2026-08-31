@@ -44,15 +44,3 @@ pub use transaction::{
 };
 pub use view::{ActionView, MemoPlaintextView, MemoView, TransactionPerspective, TransactionView};
 pub use witness_data::WitnessData;
-
-/// A compatibility wrapper for trait implementations that are temporarily duplicated
-/// in multiple crates as an orphan rule work around until we finish splitting crates (#2288).
-pub struct Compat<'a, T>(pub &'a T);
-
-pub fn check_transaction_enabled(_tx: &Transaction) -> anyhow::Result<()> {
-    Ok(())
-}
-
-pub fn check_transaction_plan_enabled(_plan: &TransactionPlan) -> anyhow::Result<()> {
-    Ok(())
-}

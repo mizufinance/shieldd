@@ -4,7 +4,7 @@ default:
 
 # Creates and runs a local devnet with solo validator. Includes ancillary services
 
-# like metrics, postgres for storing ABCI events, and pindexer for munging those events.
+# like metrics and PostgreSQL for storing ABCI events.
 dev:
     ./deployments/scripts/check-nix-shell && \
         ./deployments/scripts/run-local-devnet.sh \
@@ -304,14 +304,6 @@ integration-pcli:
       --ignored --test-threads 1 --nocapture
     cargo test --release --features bundled-proving-keys,sct-divergence-check --package pcli --test compliance_network -- \
       --ignored --test-threads 1 --nocapture
-
-# Run integration tests for pindexer. Assumes specific dev env is already running.
-integration-pindexer:
-    if cargo nextest --version >/dev/null 2>&1; then \
-      cargo nextest run --release -p pindexer --features network-integration --run-ignored ignored-only --test-threads 1; \
-    else \
-      cargo test --release -p pindexer --features network-integration -- --ignored --test-threads 1 --nocapture; \
-    fi
 
 # Run integration tests for pd. Assumes specific dev env is already running.
 integration-pd:

@@ -14,7 +14,6 @@ use shieldd_sdk_shielded_pool::{
     TransferPlan,
 };
 use shieldd_sdk_transaction::{
-    check_transaction_plan_enabled,
     gas::GasCost,
     memo::MemoPlaintext,
     plan::{ActionPlan, MemoPlan, TransactionPlan},
@@ -1462,8 +1461,6 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
         let discovery_params = view.discovery_parameters().await?;
         plan.populate_routing_parameters(discovery_params);
         plan.sort_actions();
-        check_transaction_plan_enabled(&plan)?;
-
         let provider = ViewClientComplianceProvider::new(view);
         enrich_plan_with_compliance(&mut plan, &provider, &mut self.rng, None).await?;
 
