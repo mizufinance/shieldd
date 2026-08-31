@@ -32,6 +32,8 @@ compliance_dev_registrar_sk_hex="${COMPLIANCE_DEV_REGISTRAR_SK_HEX:-010000000000
 compliance_dev_registrar_vk_hex="${COMPLIANCE_DEV_REGISTRAR_VK_HEX:-0800000000000000000000000000000000000000000000000000000000000000}"
 compliance_dev_authority_sk_hex="${COMPLIANCE_DEV_AUTHORITY_SK_HEX:-0200000000000000000000000000000000000000000000000000000000000000}"
 compliance_dev_authority_vk_hex="${COMPLIANCE_DEV_AUTHORITY_VK_HEX:-b2ecf9b9082d6306538be73b0d6ee741141f3222152da78685d6596efc8c1506}"
+compliance_dev_seizure_authority_sk_hex="${COMPLIANCE_DEV_SEIZURE_AUTHORITY_SK_HEX:-0300000000000000000000000000000000000000000000000000000000000000}"
+compliance_dev_seizure_authority_vk_hex="${COMPLIANCE_DEV_SEIZURE_AUTHORITY_VK_HEX:-2ebd42dd3a2307083c834e79fb9e787e352dd33e0d719f86ae4adb02fe382409}"
 compliance_grant_valid_until_unix="${COMPLIANCE_GRANT_VALID_UNTIL_UNIX:-4102444800}"
 if [ "${SHIELDD_PRODUCTION:-0}" = "1" ]; then
     >&2 echo "ERROR: smoke-test.sh uses dev-only compliance keys and must not run with SHIELDD_PRODUCTION=1"
@@ -130,6 +132,7 @@ validate_dev_spend_key_pair() {
 
 validate_dev_spend_key_pair "registrar" "$compliance_dev_registrar_sk_hex" "$compliance_dev_registrar_vk_hex"
 validate_dev_spend_key_pair "authority" "$compliance_dev_authority_sk_hex" "$compliance_dev_authority_vk_hex"
+validate_dev_spend_key_pair "seizure authority" "$compliance_dev_seizure_authority_sk_hex" "$compliance_dev_seizure_authority_vk_hex"
 export COMPLIANCE_DEV_REGISTRAR_VK_HEX="$compliance_dev_registrar_vk_hex"
 
 have_postgres_tooling=true
@@ -260,6 +263,7 @@ if [ -n "$dk_hex" ] && [ -n "$dk_pub_hex" ]; then
         --dk-pub-hex "$dk_pub_hex" \
         --threshold 500000000000000000000 \
         --registration-authority-vk-hex "$compliance_dev_authority_vk_hex" \
+        --seizure-authority-vk-hex "$compliance_dev_seizure_authority_vk_hex" \
         --registrar-sk-hex "$compliance_dev_registrar_sk_hex" \
         --valid-until-unix "$compliance_grant_valid_until_unix" \
         2>&1) || {
@@ -276,6 +280,7 @@ if [ -n "$dk_hex" ] && [ -n "$dk_pub_hex" ]; then
         --dk-pub-hex "$dk_pub_hex" \
         --threshold 500000000000000000000 \
         --registration-authority-vk-hex "$compliance_dev_authority_vk_hex" \
+        --seizure-authority-vk-hex "$compliance_dev_seizure_authority_vk_hex" \
         --asset-registration-grant-hex "$asset_grant_hex"
     >&2 echo "  regulated_usd registered as regulated asset."
 
