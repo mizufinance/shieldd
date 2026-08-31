@@ -68,6 +68,7 @@ ark-serialize = {workspace = true}
 ark-snark = {workspace = true}
 ark-std = {workspace = true, default-features = false}
 bech32 = {workspace = true}
+bincode = {workspace = true}
 cnidarium = {workspace = true, features = ["migration"], default-features = true}
 csv = "1"
 decaf377 = {workspace = true, features = ["r1cs"], default-features = true}
@@ -80,6 +81,7 @@ num-bigint = {workspace = true}
 once_cell = {workspace = true}
 parking_lot = {workspace = true}
 pcli = {path = "../bin/pcli", default-features = true}
+poseidon377 = {workspace = true}
 shieldd-sdk-app = {workspace = true, features = ["benchmark-helpers"], default-features = true}
 shieldd-sdk-asset = {workspace = true, default-features = true}
 shieldd-sdk-compliance = {workspace = true, default-features = true, features = ["test-helpers"]}
@@ -100,6 +102,7 @@ shieldd-sdk-num = {workspace = true, default-features = true}
 shieldd-sdk-view = {workspace = true, default-features = true}
 rand = {workspace = true}
 rand_core = {workspace = true, features = ["getrandom"]}
+rayon = "1.10"
 reqwest = {workspace = true}
 serde = {workspace = true, features = ["derive"]}
 serde_json = {workspace = true}

@@ -12,6 +12,7 @@ and certify one exact Shieldd commit.
 | `docs/protocol/` | Protocol background for crypto constructions, keys, and addresses. Do not cite it as implementation evidence. | none |
 | `docs/transfer-circuit/` | Transfer-circuit constraint checklist (referenced by `docs/compliance/`). | referenced tests |
 | `docs/nullifier-history.md` | Nullifier-generation state, proof, and storage boundaries. | focused runtime and interoperability tests |
+| `docs/research/` | Time-bounded performance evidence and prototype decision plans; not authoritative runtime design. | referenced research benchmarks and parity tests |
 | `docs/rustdoc/` | CI staging for rustdoc deploy (`notes.yml`), not documentation content. | CI |
 
 The user guide lives in a separate repository:
