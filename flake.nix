@@ -98,6 +98,7 @@
             cargo-nextest
             cargo-release
             dbus
+            go
             just
             libusb1
             llvmPackages.lld
