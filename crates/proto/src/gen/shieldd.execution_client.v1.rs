@@ -35,6 +35,240 @@ impl ::prost::Name for ArchivedNullifierProofResponse {
         "/shieldd.execution_client.v1.ArchivedNullifierProofResponse".into()
     }
 }
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct AppParametersRequest {
+    #[prost(message, optional, tag = "1")]
+    pub request: ::core::option::Option<
+        super::super::core::app::v1::AppParametersRequest,
+    >,
+}
+impl ::prost::Name for AppParametersRequest {
+    const NAME: &'static str = "AppParametersRequest";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.AppParametersRequest".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.AppParametersRequest".into()
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AppParametersResponse {
+    #[prost(message, optional, tag = "1")]
+    pub response: ::core::option::Option<
+        super::super::core::app::v1::AppParametersResponse,
+    >,
+}
+impl ::prost::Name for AppParametersResponse {
+    const NAME: &'static str = "AppParametersResponse";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.AppParametersResponse".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.AppParametersResponse".into()
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AssetMetadataByIdRequest {
+    #[prost(message, optional, tag = "1")]
+    pub request: ::core::option::Option<
+        super::super::core::component::shielded_pool::v1::AssetMetadataByIdRequest,
+    >,
+}
+impl ::prost::Name for AssetMetadataByIdRequest {
+    const NAME: &'static str = "AssetMetadataByIdRequest";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.AssetMetadataByIdRequest".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.AssetMetadataByIdRequest".into()
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AssetMetadataByIdResponse {
+    #[prost(message, optional, tag = "1")]
+    pub response: ::core::option::Option<
+        super::super::core::component::shielded_pool::v1::AssetMetadataByIdResponse,
+    >,
+}
+impl ::prost::Name for AssetMetadataByIdResponse {
+    const NAME: &'static str = "AssetMetadataByIdResponse";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.AssetMetadataByIdResponse".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.AssetMetadataByIdResponse".into()
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ComplianceAssetStatusRequest {
+    #[prost(message, optional, tag = "1")]
+    pub request: ::core::option::Option<
+        super::super::core::component::compliance::v1::ComplianceAssetStatusRequest,
+    >,
+}
+impl ::prost::Name for ComplianceAssetStatusRequest {
+    const NAME: &'static str = "ComplianceAssetStatusRequest";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.ComplianceAssetStatusRequest".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.ComplianceAssetStatusRequest".into()
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ComplianceAssetStatusResponse {
+    #[prost(message, optional, tag = "1")]
+    pub response: ::core::option::Option<
+        super::super::core::component::compliance::v1::ComplianceAssetStatusResponse,
+    >,
+}
+impl ::prost::Name for ComplianceAssetStatusResponse {
+    const NAME: &'static str = "ComplianceAssetStatusResponse";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.ComplianceAssetStatusResponse".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.ComplianceAssetStatusResponse".into()
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ComplianceBatchMerkleProofsRequest {
+    #[prost(message, optional, tag = "1")]
+    pub request: ::core::option::Option<
+        super::super::core::component::compliance::v1::ComplianceBatchMerkleProofsRequest,
+    >,
+}
+impl ::prost::Name for ComplianceBatchMerkleProofsRequest {
+    const NAME: &'static str = "ComplianceBatchMerkleProofsRequest";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.ComplianceBatchMerkleProofsRequest".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.ComplianceBatchMerkleProofsRequest".into()
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ComplianceBatchMerkleProofsResponse {
+    #[prost(message, optional, tag = "1")]
+    pub response: ::core::option::Option<
+        super::super::core::component::compliance::v1::ComplianceBatchMerkleProofsResponse,
+    >,
+}
+impl ::prost::Name for ComplianceBatchMerkleProofsResponse {
+    const NAME: &'static str = "ComplianceBatchMerkleProofsResponse";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.ComplianceBatchMerkleProofsResponse".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.ComplianceBatchMerkleProofsResponse".into()
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ComplianceUserLeafRequest {
+    #[prost(message, optional, tag = "1")]
+    pub request: ::core::option::Option<
+        super::super::core::component::compliance::v1::ComplianceUserLeafRequest,
+    >,
+}
+impl ::prost::Name for ComplianceUserLeafRequest {
+    const NAME: &'static str = "ComplianceUserLeafRequest";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.ComplianceUserLeafRequest".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.ComplianceUserLeafRequest".into()
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ComplianceUserLeafResponse {
+    #[prost(message, optional, tag = "1")]
+    pub response: ::core::option::Option<
+        super::super::core::component::compliance::v1::ComplianceUserLeafResponse,
+    >,
+}
+impl ::prost::Name for ComplianceUserLeafResponse {
+    const NAME: &'static str = "ComplianceUserLeafResponse";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.ComplianceUserLeafResponse".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.ComplianceUserLeafResponse".into()
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct KeyValueRequest {
+    #[prost(message, optional, tag = "1")]
+    pub request: ::core::option::Option<super::super::cnidarium::v1::KeyValueRequest>,
+}
+impl ::prost::Name for KeyValueRequest {
+    const NAME: &'static str = "KeyValueRequest";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.KeyValueRequest".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.KeyValueRequest".into()
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct KeyValueResponse {
+    #[prost(message, optional, tag = "1")]
+    pub response: ::core::option::Option<super::super::cnidarium::v1::KeyValueResponse>,
+}
+impl ::prost::Name for KeyValueResponse {
+    const NAME: &'static str = "KeyValueResponse";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.KeyValueResponse".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.KeyValueResponse".into()
+    }
+}
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct CompactBlockRangeRequest {
+    #[prost(message, optional, tag = "1")]
+    pub request: ::core::option::Option<
+        super::super::core::component::compact_block::v1::CompactBlockRangeRequest,
+    >,
+}
+impl ::prost::Name for CompactBlockRangeRequest {
+    const NAME: &'static str = "CompactBlockRangeRequest";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.CompactBlockRangeRequest".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.CompactBlockRangeRequest".into()
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CompactBlockRangeResponse {
+    #[prost(message, optional, tag = "1")]
+    pub response: ::core::option::Option<
+        super::super::core::component::compact_block::v1::CompactBlockRangeResponse,
+    >,
+}
+impl ::prost::Name for CompactBlockRangeResponse {
+    const NAME: &'static str = "CompactBlockRangeResponse";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.CompactBlockRangeResponse".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.CompactBlockRangeResponse".into()
+    }
+}
 /// InitGenesisRequest carries the Shieldd genesis payload controlled by the host
 /// chain.
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -1218,6 +1452,216 @@ pub mod execution_client_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
+        /// AppParameters returns the committed Shieldd application parameters.
+        pub async fn app_parameters(
+            &mut self,
+            request: impl tonic::IntoRequest<super::AppParametersRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::AppParametersResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/shieldd.execution_client.v1.ExecutionClientService/AppParameters",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "shieldd.execution_client.v1.ExecutionClientService",
+                        "AppParameters",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        /// AssetMetadataById returns metadata for one Shieldd asset identifier.
+        pub async fn asset_metadata_by_id(
+            &mut self,
+            request: impl tonic::IntoRequest<super::AssetMetadataByIdRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::AssetMetadataByIdResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/shieldd.execution_client.v1.ExecutionClientService/AssetMetadataById",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "shieldd.execution_client.v1.ExecutionClientService",
+                        "AssetMetadataById",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        /// ComplianceAssetStatus returns the registered policy for one Shieldd asset.
+        pub async fn compliance_asset_status(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ComplianceAssetStatusRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ComplianceAssetStatusResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/shieldd.execution_client.v1.ExecutionClientService/ComplianceAssetStatus",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "shieldd.execution_client.v1.ExecutionClientService",
+                        "ComplianceAssetStatus",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        /// ComplianceBatchMerkleProofs returns the compliance witnesses needed by transaction planning.
+        pub async fn compliance_batch_merkle_proofs(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ComplianceBatchMerkleProofsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ComplianceBatchMerkleProofsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/shieldd.execution_client.v1.ExecutionClientService/ComplianceBatchMerkleProofs",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "shieldd.execution_client.v1.ExecutionClientService",
+                        "ComplianceBatchMerkleProofs",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        /// ComplianceUserLeaf returns one registered user-asset compliance leaf.
+        pub async fn compliance_user_leaf(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ComplianceUserLeafRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ComplianceUserLeafResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/shieldd.execution_client.v1.ExecutionClientService/ComplianceUserLeaf",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "shieldd.execution_client.v1.ExecutionClientService",
+                        "ComplianceUserLeaf",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        /// KeyValue returns committed verifiable Shieldd state.
+        pub async fn key_value(
+            &mut self,
+            request: impl tonic::IntoRequest<super::KeyValueRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::KeyValueResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/shieldd.execution_client.v1.ExecutionClientService/KeyValue",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "shieldd.execution_client.v1.ExecutionClientService",
+                        "KeyValue",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        /// CompactBlockRange streams a bounded committed compact-block range.
+        pub async fn compact_block_range(
+            &mut self,
+            request: impl tonic::IntoRequest<super::CompactBlockRangeRequest>,
+        ) -> std::result::Result<
+            tonic::Response<tonic::codec::Streaming<super::CompactBlockRangeResponse>>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/shieldd.execution_client.v1.ExecutionClientService/CompactBlockRange",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "shieldd.execution_client.v1.ExecutionClientService",
+                        "CompactBlockRange",
+                    ),
+                );
+            self.inner.server_streaming(req, path, codec).await
+        }
     }
 }
 /// Generated server implementations.
@@ -1340,6 +1784,71 @@ pub mod execution_client_service_server {
             request: tonic::Request<super::ArchivedNullifierProofRequest>,
         ) -> std::result::Result<
             tonic::Response<super::ArchivedNullifierProofResponse>,
+            tonic::Status,
+        >;
+        /// AppParameters returns the committed Shieldd application parameters.
+        async fn app_parameters(
+            &self,
+            request: tonic::Request<super::AppParametersRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::AppParametersResponse>,
+            tonic::Status,
+        >;
+        /// AssetMetadataById returns metadata for one Shieldd asset identifier.
+        async fn asset_metadata_by_id(
+            &self,
+            request: tonic::Request<super::AssetMetadataByIdRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::AssetMetadataByIdResponse>,
+            tonic::Status,
+        >;
+        /// ComplianceAssetStatus returns the registered policy for one Shieldd asset.
+        async fn compliance_asset_status(
+            &self,
+            request: tonic::Request<super::ComplianceAssetStatusRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ComplianceAssetStatusResponse>,
+            tonic::Status,
+        >;
+        /// ComplianceBatchMerkleProofs returns the compliance witnesses needed by transaction planning.
+        async fn compliance_batch_merkle_proofs(
+            &self,
+            request: tonic::Request<super::ComplianceBatchMerkleProofsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ComplianceBatchMerkleProofsResponse>,
+            tonic::Status,
+        >;
+        /// ComplianceUserLeaf returns one registered user-asset compliance leaf.
+        async fn compliance_user_leaf(
+            &self,
+            request: tonic::Request<super::ComplianceUserLeafRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ComplianceUserLeafResponse>,
+            tonic::Status,
+        >;
+        /// KeyValue returns committed verifiable Shieldd state.
+        async fn key_value(
+            &self,
+            request: tonic::Request<super::KeyValueRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::KeyValueResponse>,
+            tonic::Status,
+        >;
+        /// Server streaming response type for the CompactBlockRange method.
+        type CompactBlockRangeStream: tonic::codegen::tokio_stream::Stream<
+                Item = std::result::Result<
+                    super::CompactBlockRangeResponse,
+                    tonic::Status,
+                >,
+            >
+            + std::marker::Send
+            + 'static;
+        /// CompactBlockRange streams a bounded committed compact-block range.
+        async fn compact_block_range(
+            &self,
+            request: tonic::Request<super::CompactBlockRangeRequest>,
+        ) -> std::result::Result<
+            tonic::Response<Self::CompactBlockRangeStream>,
             tonic::Status,
         >;
     }
@@ -2084,6 +2593,355 @@ pub mod execution_client_service_server {
                                 max_encoding_message_size,
                             );
                         let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/shieldd.execution_client.v1.ExecutionClientService/AppParameters" => {
+                    #[allow(non_camel_case_types)]
+                    struct AppParametersSvc<T: ExecutionClientService>(pub Arc<T>);
+                    impl<
+                        T: ExecutionClientService,
+                    > tonic::server::UnaryService<super::AppParametersRequest>
+                    for AppParametersSvc<T> {
+                        type Response = super::AppParametersResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::AppParametersRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as ExecutionClientService>::app_parameters(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = AppParametersSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/shieldd.execution_client.v1.ExecutionClientService/AssetMetadataById" => {
+                    #[allow(non_camel_case_types)]
+                    struct AssetMetadataByIdSvc<T: ExecutionClientService>(pub Arc<T>);
+                    impl<
+                        T: ExecutionClientService,
+                    > tonic::server::UnaryService<super::AssetMetadataByIdRequest>
+                    for AssetMetadataByIdSvc<T> {
+                        type Response = super::AssetMetadataByIdResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::AssetMetadataByIdRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as ExecutionClientService>::asset_metadata_by_id(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = AssetMetadataByIdSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/shieldd.execution_client.v1.ExecutionClientService/ComplianceAssetStatus" => {
+                    #[allow(non_camel_case_types)]
+                    struct ComplianceAssetStatusSvc<T: ExecutionClientService>(
+                        pub Arc<T>,
+                    );
+                    impl<
+                        T: ExecutionClientService,
+                    > tonic::server::UnaryService<super::ComplianceAssetStatusRequest>
+                    for ComplianceAssetStatusSvc<T> {
+                        type Response = super::ComplianceAssetStatusResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ComplianceAssetStatusRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as ExecutionClientService>::compliance_asset_status(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ComplianceAssetStatusSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/shieldd.execution_client.v1.ExecutionClientService/ComplianceBatchMerkleProofs" => {
+                    #[allow(non_camel_case_types)]
+                    struct ComplianceBatchMerkleProofsSvc<T: ExecutionClientService>(
+                        pub Arc<T>,
+                    );
+                    impl<
+                        T: ExecutionClientService,
+                    > tonic::server::UnaryService<
+                        super::ComplianceBatchMerkleProofsRequest,
+                    > for ComplianceBatchMerkleProofsSvc<T> {
+                        type Response = super::ComplianceBatchMerkleProofsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<
+                                super::ComplianceBatchMerkleProofsRequest,
+                            >,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as ExecutionClientService>::compliance_batch_merkle_proofs(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ComplianceBatchMerkleProofsSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/shieldd.execution_client.v1.ExecutionClientService/ComplianceUserLeaf" => {
+                    #[allow(non_camel_case_types)]
+                    struct ComplianceUserLeafSvc<T: ExecutionClientService>(pub Arc<T>);
+                    impl<
+                        T: ExecutionClientService,
+                    > tonic::server::UnaryService<super::ComplianceUserLeafRequest>
+                    for ComplianceUserLeafSvc<T> {
+                        type Response = super::ComplianceUserLeafResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ComplianceUserLeafRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as ExecutionClientService>::compliance_user_leaf(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ComplianceUserLeafSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/shieldd.execution_client.v1.ExecutionClientService/KeyValue" => {
+                    #[allow(non_camel_case_types)]
+                    struct KeyValueSvc<T: ExecutionClientService>(pub Arc<T>);
+                    impl<
+                        T: ExecutionClientService,
+                    > tonic::server::UnaryService<super::KeyValueRequest>
+                    for KeyValueSvc<T> {
+                        type Response = super::KeyValueResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::KeyValueRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as ExecutionClientService>::key_value(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = KeyValueSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/shieldd.execution_client.v1.ExecutionClientService/CompactBlockRange" => {
+                    #[allow(non_camel_case_types)]
+                    struct CompactBlockRangeSvc<T: ExecutionClientService>(pub Arc<T>);
+                    impl<
+                        T: ExecutionClientService,
+                    > tonic::server::ServerStreamingService<
+                        super::CompactBlockRangeRequest,
+                    > for CompactBlockRangeSvc<T> {
+                        type Response = super::CompactBlockRangeResponse;
+                        type ResponseStream = T::CompactBlockRangeStream;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::ResponseStream>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::CompactBlockRangeRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as ExecutionClientService>::compact_block_range(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = CompactBlockRangeSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.server_streaming(method, req).await;
                         Ok(res)
                     };
                     Box::pin(fut)

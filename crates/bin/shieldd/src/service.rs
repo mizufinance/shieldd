@@ -1,16 +1,40 @@
 use std::{fmt, path::Path};
 
 use anyhow::{Context as _, Result};
-use cnidarium::Storage;
+use cnidarium::{
+    proto::v1::{
+        query_service_server::QueryService as CnidariumQueryService, KeyValueRequest,
+        KeyValueResponse,
+    },
+    Storage,
+};
+use futures::TryStreamExt as _;
 use shieldd_sdk_app::{
-    app::{App, HostBlock, HostExecution, HostTxResponse, HostWithdrawal},
+    app::{App, HostBlock, HostExecution, HostTxResponse, HostWithdrawal, StateReadExt as _},
     genesis::AppState,
     SUBSTORE_PREFIXES,
 };
-use shieldd_sdk_proto::core::component::sct::v1::{
-    ArchivedNullifierProofRequest, ArchivedNullifierProofResponse,
+use shieldd_sdk_proto::core::component::{
+    compact_block::v1::{
+        query_service_server::QueryService as CompactBlockQueryService, CompactBlockRangeRequest,
+        CompactBlockRangeResponse,
+    },
+    compliance::v1::{
+        query_service_server::QueryService as ComplianceQueryService, ComplianceAssetStatusRequest,
+        ComplianceAssetStatusResponse, ComplianceBatchMerkleProofsRequest,
+        ComplianceBatchMerkleProofsResponse, ComplianceUserLeafRequest, ComplianceUserLeafResponse,
+    },
+    sct::v1::{ArchivedNullifierProofRequest, ArchivedNullifierProofResponse},
+    shielded_pool::v1::{
+        query_service_server::QueryService as ShieldedPoolQueryService, AssetMetadataByIdRequest,
+        AssetMetadataByIdResponse,
+    },
 };
 use shieldd_sdk_proto::{
+    cnidarium::v1::{
+        key_value_response::Value as ProtoKeyValue, KeyValueRequest as ProtoKeyValueRequest,
+        KeyValueResponse as ProtoKeyValueResponse,
+    },
     core::app::v1 as proto_app,
     cosmos::base::v1beta1::Coin,
     execution_client::v1::{
@@ -25,13 +49,20 @@ use shieldd_sdk_proto::{
         SeizeNoteRequest, SeizeNoteResponse,
     },
 };
-use shieldd_sdk_sct::{generation_pack::GenerationPackRepository, nullifier_tree, Nullifier};
+use shieldd_sdk_sct::{
+    component::clock::EpochRead as _, generation_pack::GenerationPackRepository, nullifier_tree,
+    Nullifier,
+};
 use shieldd_sdk_shielded_pool::HostWithdrawalDestination;
 use tendermint::{abci, Time};
+
+const MAX_EMBEDDED_COMPACT_BLOCKS: u64 = 10_001;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ErrorKind {
     InvalidArgument,
     FailedPrecondition,
+    NotFound,
     Internal,
 }
 
@@ -60,6 +91,13 @@ impl ServiceError {
         }
     }
 
+    fn not_found(source: anyhow::Error) -> Self {
+        Self {
+            kind: ErrorKind::NotFound,
+            source,
+        }
+    }
+
     fn internal(source: anyhow::Error) -> Self {
         Self {
             kind: ErrorKind::Internal,
@@ -69,6 +107,16 @@ impl ServiceError {
 
     fn closed() -> Self {
         Self::failed_precondition(anyhow::anyhow!("Shieldd execution service is closed"))
+    }
+
+    fn query(status: tonic::Status) -> Self {
+        let source = anyhow::anyhow!(status.message().to_owned());
+        match status.code() {
+            tonic::Code::InvalidArgument => Self::invalid_argument(source),
+            tonic::Code::FailedPrecondition => Self::failed_precondition(source),
+            tonic::Code::NotFound => Self::not_found(source),
+            _ => Self::internal(source),
+        }
     }
 }
 
@@ -331,6 +379,150 @@ impl ExecutionService {
         Ok(GetCommittedStateResponse {
             height: committed.height,
             root_hash: committed.root_hash,
+        })
+    }
+
+    pub async fn app_parameters(
+        &self,
+        _request: proto_app::AppParametersRequest,
+    ) -> std::result::Result<proto_app::AppParametersResponse, ServiceError> {
+        let storage = self.storage.as_ref().ok_or_else(ServiceError::closed)?;
+        if storage.latest_version() == u64::MAX {
+            return Err(ServiceError::failed_precondition(anyhow::anyhow!(
+                "Shieldd app state is not initialized"
+            )));
+        }
+        let app_parameters = storage
+            .latest_snapshot()
+            .get_app_params()
+            .await
+            .context("read committed Shieldd app parameters")
+            .map_err(ServiceError::internal)?;
+
+        Ok(proto_app::AppParametersResponse {
+            app_parameters: Some(app_parameters.into()),
+        })
+    }
+
+    pub async fn asset_metadata_by_id(
+        &self,
+        request: AssetMetadataByIdRequest,
+    ) -> std::result::Result<AssetMetadataByIdResponse, ServiceError> {
+        let storage = self.storage.as_ref().ok_or_else(ServiceError::closed)?;
+        let server = shieldd_sdk_shielded_pool::component::rpc::Server::new(storage.clone());
+        ShieldedPoolQueryService::asset_metadata_by_id(&server, tonic::Request::new(request))
+            .await
+            .map(tonic::Response::into_inner)
+            .map_err(ServiceError::query)
+    }
+
+    pub async fn compact_block_range(
+        &self,
+        request: CompactBlockRangeRequest,
+    ) -> std::result::Result<Vec<CompactBlockRangeResponse>, ServiceError> {
+        if request.keep_alive {
+            return Err(ServiceError::invalid_argument(anyhow::anyhow!(
+                "embedded compact block ranges must be bounded"
+            )));
+        }
+
+        let storage = self.storage.as_ref().ok_or_else(ServiceError::closed)?;
+        if storage.latest_version() == u64::MAX {
+            return Err(ServiceError::failed_precondition(anyhow::anyhow!(
+                "Shieldd app state is not initialized"
+            )));
+        }
+
+        let current_height = storage
+            .latest_snapshot()
+            .get_block_height()
+            .await
+            .context("read committed Shieldd block height")
+            .map_err(ServiceError::internal)?;
+        let effective_end = if request.end_height == 0 {
+            current_height
+        } else {
+            request.end_height.min(current_height)
+        };
+        let block_count = effective_end
+            .checked_sub(request.start_height)
+            .map_or(0, |difference| difference.saturating_add(1));
+        if block_count > MAX_EMBEDDED_COMPACT_BLOCKS {
+            return Err(ServiceError::invalid_argument(anyhow::anyhow!(
+                "embedded compact block range contains {block_count} blocks; maximum is {MAX_EMBEDDED_COMPACT_BLOCKS}"
+            )));
+        }
+
+        let server = shieldd_sdk_compact_block::component::rpc::Server::new(storage.clone());
+        let stream =
+            CompactBlockQueryService::compact_block_range(&server, tonic::Request::new(request))
+                .await
+                .map(tonic::Response::into_inner)
+                .map_err(ServiceError::query)?;
+
+        stream.try_collect().await.map_err(ServiceError::query)
+    }
+
+    pub async fn compliance_asset_status(
+        &self,
+        request: ComplianceAssetStatusRequest,
+    ) -> std::result::Result<ComplianceAssetStatusResponse, ServiceError> {
+        let storage = self.storage.as_ref().ok_or_else(ServiceError::closed)?;
+        let server = shieldd_sdk_compliance::RpcServer::new(storage.clone());
+        ComplianceQueryService::compliance_asset_status(&server, tonic::Request::new(request))
+            .await
+            .map(tonic::Response::into_inner)
+            .map_err(ServiceError::query)
+    }
+
+    pub async fn compliance_batch_merkle_proofs(
+        &self,
+        request: ComplianceBatchMerkleProofsRequest,
+    ) -> std::result::Result<ComplianceBatchMerkleProofsResponse, ServiceError> {
+        let storage = self.storage.as_ref().ok_or_else(ServiceError::closed)?;
+        let server = shieldd_sdk_compliance::RpcServer::new(storage.clone());
+        ComplianceQueryService::compliance_batch_merkle_proofs(
+            &server,
+            tonic::Request::new(request),
+        )
+        .await
+        .map(tonic::Response::into_inner)
+        .map_err(ServiceError::query)
+    }
+
+    pub async fn compliance_user_leaf(
+        &self,
+        request: ComplianceUserLeafRequest,
+    ) -> std::result::Result<ComplianceUserLeafResponse, ServiceError> {
+        let storage = self.storage.as_ref().ok_or_else(ServiceError::closed)?;
+        let server = shieldd_sdk_compliance::RpcServer::new(storage.clone());
+        ComplianceQueryService::compliance_user_leaf(&server, tonic::Request::new(request))
+            .await
+            .map(tonic::Response::into_inner)
+            .map_err(ServiceError::query)
+    }
+
+    pub async fn key_value(
+        &self,
+        request: ProtoKeyValueRequest,
+    ) -> std::result::Result<ProtoKeyValueResponse, ServiceError> {
+        let storage = self.storage.as_ref().ok_or_else(ServiceError::closed)?;
+        let server = cnidarium::rpc::Server::new(storage.clone());
+        CnidariumQueryService::key_value(
+            &server,
+            tonic::Request::new(KeyValueRequest {
+                key: request.key,
+                proof: request.proof,
+            }),
+        )
+        .await
+        .map(tonic::Response::into_inner)
+        .map_err(ServiceError::query)
+        .map(|response: KeyValueResponse| ProtoKeyValueResponse {
+            value: response
+                .value
+                .map(|value| ProtoKeyValue { value: value.value }),
+            proof: response.proof,
         })
     }
 

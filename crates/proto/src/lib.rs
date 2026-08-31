@@ -46,6 +46,14 @@ pub use state::StateWriteProto;
 pub use shieldd::*;
 
 pub mod shieldd {
+    /// Shieldd storage query structures.
+    pub mod cnidarium {
+        pub mod v1 {
+            include!("gen/shieldd.cnidarium.v1.rs");
+            include!("gen/shieldd.cnidarium.v1.serde.rs");
+        }
+    }
+
     /// Core protocol structures.
     pub mod core {
         /// Top-level structures for the Shieldd application.

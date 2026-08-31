@@ -54,6 +54,7 @@ fn main() -> anyhow::Result<()> {
         .compile_protos_with_config(
             config,
             &[
+                "../../proto/shieldd/shieldd/cnidarium/v1/cnidarium.proto",
                 "../../proto/shieldd/shieldd/core/app/v1/app.proto",
                 "../../proto/shieldd/shieldd/core/asset/v1/asset.proto",
                 "../../proto/shieldd/shieldd/core/txhash/v1/txhash.proto",
