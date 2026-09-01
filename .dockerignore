@@ -39,5 +39,3 @@
 !tools/gnark/transfer_families.json
 tools/gnark/rust-vectors/target/
 tools/gnark/rust-vectors/target/**
-# picturesque setup tool, for wrangling node configs
-!tools/picturesque/

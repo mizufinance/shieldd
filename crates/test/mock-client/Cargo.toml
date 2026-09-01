@@ -13,7 +13,6 @@ async-trait = {workspace = true}
 cnidarium = {workspace = true, default-features = true}
 decaf377 = {workspace = true, default-features = true}
 shieldd-sdk-asset = {workspace = true}
-poseidon377 = {workspace = true}
 shieldd-sdk-compact-block = {workspace = true, default-features = true}
 shieldd-sdk-compliance = {workspace = true, features = ["component"], default-features = true}
 shieldd-sdk-keys = {workspace = true, default-features = true}
@@ -26,4 +25,3 @@ shieldd-sdk-tct = {workspace = true, default-features = true}
 shieldd-sdk-transaction = {workspace = true, default-features = true}
 shieldd-sdk-view = {workspace = true, default-features = true}
 rand_core = {workspace = true}
-tracing = {workspace = true}

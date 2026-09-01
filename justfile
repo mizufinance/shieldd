@@ -4,7 +4,7 @@ default:
 
 # Creates and runs a local devnet with solo validator. Includes ancillary services
 
-# like metrics, postgres for storing ABCI events, and pindexer for munging those events.
+# like metrics and PostgreSQL for storing ABCI events.
 dev:
     ./deployments/scripts/check-nix-shell && \
         ./deployments/scripts/run-local-devnet.sh \
@@ -136,7 +136,7 @@ gnark-proof-tests: gnark-proof-tests-fast
 # CI wrapper for `check`.
 ci-check:
     if command -v nix >/dev/null 2>&1; then \
-      nix develop --command just check; \
+      nix develop .#ci --command just check; \
     else \
       just check; \
     fi
@@ -169,7 +169,7 @@ ci-gnark-proof-tests:
 # Run the Rust and gnark CI surfaces locally, using the same commands as GitHub Actions.
 ci-preflight:
     if command -v nix >/dev/null 2>&1; then \
-      nix develop --command ./deployments/scripts/check-crate-feature-sets; \
+      nix develop .#ci --command ./deployments/scripts/check-crate-feature-sets; \
     elif command -v cargo-hack >/dev/null 2>&1; then \
       ./deployments/scripts/check-crate-feature-sets; \
     else \
@@ -177,7 +177,7 @@ ci-preflight:
       cargo check --workspace --all-targets --all-features --release; \
     fi
     if command -v nix >/dev/null 2>&1; then \
-      nix develop --command ./deployments/scripts/check-wasm-compat.sh; \
+      nix develop .#ci --command ./deployments/scripts/check-wasm-compat.sh; \
     else \
       ./deployments/scripts/check-wasm-compat.sh; \
     fi
@@ -284,14 +284,6 @@ integration-pcli:
       --ignored --test-threads 1 --nocapture
     cargo test --release --features bundled-proving-keys,sct-divergence-check --package pcli --test compliance_network -- \
       --ignored --test-threads 1 --nocapture
-
-# Run integration tests for pindexer. Assumes specific dev env is already running.
-integration-pindexer:
-    if cargo nextest --version >/dev/null 2>&1; then \
-      cargo nextest run --release -p pindexer --features network-integration --run-ignored ignored-only --test-threads 1; \
-    else \
-      cargo test --release -p pindexer --features network-integration -- --ignored --test-threads 1 --nocapture; \
-    fi
 
 # Run integration tests for pd. Assumes specific dev env is already running.
 integration-pd:

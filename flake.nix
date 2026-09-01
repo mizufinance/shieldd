@@ -90,6 +90,24 @@
             toml-cli
           ];
 
+          # Keep Rust-only CI independent from standalone node and observability
+          # tooling. In particular, evaluating this shell must not build CometBFT.
+          rustCiPackages = [
+            openssl
+            cargo-hack
+            cargo-nextest
+            cargo-release
+            dbus
+            go
+            just
+            libusb1
+            llvmPackages.lld
+            protobuf
+            python3
+            ripgrep
+            toml-cli
+          ];
+
           # Native and system dependencies needed to build the Rust workspace in dev shells.
           shellBuildInputs = if stdenv.hostPlatform.isDarwin then
             with pkgs.darwin.apple_sdk.frameworks; [
@@ -196,7 +214,7 @@
                   [ clang dbus openssl rocksdb sqlite ];
 
                 inherit system PKG_CONFIG_PATH LIBCLANG_PATH ROCKSDB_LIB_DIR;
-                cargoExtraArgs = "-p pd -p pcli -p pclientd -p pindexer";
+                cargoExtraArgs = "-p pd -p pcli -p pclientd";
                 meta = {
                   description = "A fully private proof-of-stake network and decentralized exchange for the Cosmos ecosystem";
                   license = [ licenses.mit licenses.asl20 ];
@@ -211,8 +229,6 @@
             pcli.program = "${packages.shieldd}/bin/pcli";
             pclientd.type = "app";
             pclientd.program = "${packages.shieldd}/bin/pclientd";
-            pindexer.type = "app";
-            pindexer.program = "${packages.shieldd}/bin/pindexer";
             cometbft.type = "app";
             cometbft.program = "${cometbft}/bin/cometbft";
           };
@@ -221,6 +237,17 @@
             paths = [ packages.shieldd cometbft ];
           };
           devShells = {
+            ci =
+              let
+                rustToolchain = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
+                craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
+              in
+              craneLib.devShell {
+                inherit LIBCLANG_PATH ROCKSDB_LIB_DIR;
+                packages = rustCiPackages ++ shellBuildInputs;
+                shellHook = commonShellHook;
+              };
+
             default =
               let
                 rustToolchain = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;

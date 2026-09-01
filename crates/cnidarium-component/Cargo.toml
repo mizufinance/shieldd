@@ -11,5 +11,4 @@ edition = {workspace = true}
 anyhow = {workspace = true}
 async-trait = {workspace = true}
 cnidarium = {workspace = true, default-features = false}
-hex = {workspace = true}
 tendermint = {workspace = true}

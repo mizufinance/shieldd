@@ -74,7 +74,6 @@ COPY --from=build-env \
             /usr/src/shieldd/target/release/pcli \
             /usr/src/shieldd/target/release/pclientd \
             /usr/src/shieldd/target/release/pd \
-            /usr/src/shieldd/target/release/pindexer \
             /usr/src/shieldd/target/release/proverdaemon \
             /usr/src/shieldd/target/release/tct-live-edit \
             /usr/bin/

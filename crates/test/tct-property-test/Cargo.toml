@@ -10,8 +10,6 @@ publish = false
 
 [dev-dependencies]
 anyhow = {workspace = true}
-futures = {workspace = true}
 shieldd-sdk-tct = {workspace = true, features = ["arbitrary"], default-features = true}
 proptest = {workspace = true}
 proptest-derive = {workspace = true}
-tokio = {workspace = true, features = ["full"]}

@@ -1,9 +1,6 @@
 //! Validation checks to ensure that [`Tree`]s are well-formed.
 
-use std::{
-    collections::BTreeMap,
-    fmt::{Display, Write},
-};
+use std::{collections::BTreeMap, fmt::Display};
 
 use crate::prelude::*;
 
@@ -337,7 +334,9 @@ pub struct InvalidForgottenVersion {
 fn display_errors(errors: impl IntoIterator<Item = impl Display>) -> String {
     let mut output = String::new();
     for error in errors.into_iter() {
-        write!(&mut output, "\n  {error}").unwrap();
+        output.push('\n');
+        output.push_str("  ");
+        output.push_str(&error.to_string());
     }
     output
 }

@@ -30,13 +30,13 @@ jobs:
           free-disk: "true"
 
       - name: Check Rust version
-        run: nix develop --command rustc --version
+        run: nix develop .#ci --command rustc --version
 
       - name: Run cargo check
         run: >-
-          nix develop --command python3 scripts/ci/run_with_annotation.py
+          nix develop .#ci --command python3 scripts/ci/run_with_annotation.py
           --title "Rust cargo check"
-          -- just ci-check
+          -- just check
 
       - name: Check for diffs
         shell: bash
@@ -65,13 +65,13 @@ jobs:
 
       - name: Check crate features
         run: >-
-          nix develop --command python3 scripts/ci/run_with_annotation.py
+          nix develop .#ci --command python3 scripts/ci/run_with_annotation.py
           --title "Rust crate feature checks"
           -- ./deployments/scripts/check-crate-feature-sets
 
       - name: Check wasm compatibility
         run: >-
-          nix develop --command python3 scripts/ci/run_with_annotation.py
+          nix develop .#ci --command python3 scripts/ci/run_with_annotation.py
           --title "Rust wasm compatibility"
           -- ./deployments/scripts/check-wasm-compat.sh
 
@@ -88,7 +88,7 @@ jobs:
 
       - name: Run tests with nextest
         run: >-
-          nix develop --command python3 scripts/ci/run_with_annotation.py
+          nix develop .#ci --command python3 scripts/ci/run_with_annotation.py
           --title "Rust nextest"
           -- just ci-test
         env:
