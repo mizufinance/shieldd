@@ -17,21 +17,14 @@ parallel = [
 [dependencies]
 anyhow = {workspace = true}
 ark-ff = {workspace = true, default-features = false}
-ark-serialize = {workspace = true}
-base64 = {workspace = true}
-bech32 = {workspace = true}
 blake2b_simd = {workspace = true}
 bytes = {workspace = true}
-chacha20poly1305 = {workspace = true}
 decaf377 = {workspace = true}
 decaf377-ka = {workspace = true}
 decaf377-rdsa = {workspace = true}
-derivative = {workspace = true}
 hex = {workspace = true}
 ibc-proto = {workspace = true, default-features = false}
 ibc-types = {workspace = true, default-features = false}
-num-bigint = {workspace = true}
-once_cell = {workspace = true}
 pbjson-types = {workspace = true}
 shieldd-sdk-asset = {workspace = true, default-features = false}
 shieldd-sdk-compliance = {workspace = true, default-features = false}
@@ -39,17 +32,14 @@ shieldd-sdk-fee = {workspace = true, default-features = false}
 shieldd-sdk-ibc = {workspace = true, default-features = false}
 shieldd-sdk-keys = {workspace = true, default-features = false}
 shieldd-sdk-num = {workspace = true, default-features = false}
-shieldd-sdk-proof-params = {workspace = true, default-features = true}
 shieldd-sdk-proof-aggregation = {workspace = true, default-features = true}
 shieldd-sdk-proto = {workspace = true, default-features = true}
 shieldd-sdk-sct = {workspace = true, default-features = false}
 shieldd-sdk-shielded-pool = {workspace = true, default-features = false}
 shieldd-sdk-tct = {workspace = true, default-features = true }
 shieldd-sdk-txhash = {workspace = true, default-features = false}
-poseidon377 = {workspace = true, features = ["r1cs"]}
 rand = {workspace = true}
 rand_core = {workspace = true, features = ["getrandom"]}
-regex = {workspace = true}
 serde = {workspace = true, features = ["derive"]}
 serde_json = {workspace = true}
 sha2 = {workspace = true}
@@ -59,8 +49,5 @@ tracing = {workspace = true}
 
 [dev-dependencies]
 proptest = {workspace = true}
-proptest-derive = {workspace = true}
 serde_json = {workspace = true}
-tendermint = {workspace = true}
-ed25519-consensus = {workspace = true}
 shieldd-sdk-tct = {workspace = true, default-features = true, features = ["arbitrary"] }

@@ -36,18 +36,10 @@ processes:
       # Create database for CometBFT writes
       createdb -h 127.0.0.1 -p ${SHIELDD_POSTGRES_PORT} shieldd_cometbft || true
       createuser -h 127.0.0.1 -p ${SHIELDD_POSTGRES_PORT} shieldd
-      psql -h 127.0.0.1 -p ${SHIELDD_POSTGRES_PORT} -d shieldd_cometbft -f crates/util/cometindex/vendor/schema.sql
+      psql -h 127.0.0.1 -p ${SHIELDD_POSTGRES_PORT} -d shieldd_cometbft -f deployments/config/cometbft-postgres.sql
       psql -h 127.0.0.1 -p ${SHIELDD_POSTGRES_PORT} -d shieldd_cometbft -c 'GRANT ALL PRIVILEGES ON DATABASE shieldd_cometbft TO shieldd;'
       psql -h 127.0.0.1 -p ${SHIELDD_POSTGRES_PORT} -d shieldd_cometbft -c 'GRANT pg_read_all_data TO shieldd;'
       psql -h 127.0.0.1 -p ${SHIELDD_POSTGRES_PORT} -d shieldd_cometbft -c 'GRANT pg_write_all_data TO shieldd;'
-
-      # Create database for pindexer
-      >&2 echo "Creating database schema for pindexer..."
-      createuser -h 127.0.0.1 -p ${SHIELDD_POSTGRES_PORT} shieldd_ro
-      createdb -h 127.0.0.1 -p ${SHIELDD_POSTGRES_PORT} shieldd_pindexer || true
-      psql -h 127.0.0.1 -p ${SHIELDD_POSTGRES_PORT} -d shieldd_cometbft -c 'GRANT pg_read_all_data TO shieldd_ro;'
-      psql -h 127.0.0.1 -p ${SHIELDD_POSTGRES_PORT} -d shieldd_pindexer -c 'GRANT pg_write_all_data TO shieldd_ro;'
-      psql -h 127.0.0.1 -p ${SHIELDD_POSTGRES_PORT} -d shieldd_pindexer -c 'GRANT ALL PRIVILEGES ON DATABASE shieldd_pindexer TO shieldd_ro;'
     depends_on:
       postgresql:
         condition: process_healthy
@@ -57,21 +49,3 @@ processes:
     depends_on:
       postgresql-init:
         condition: process_completed_successfully
-
-  # Add rule for CometBFT to wait for db to be ready.
-  pindexer:
-    environment:
-      - "RUST_LOG=debug"
-    command: |-
-      cargo run --release --bin pindexer -- \
-          --src-database-url "postgresql://127.0.0.1:${SHIELDD_POSTGRES_PORT}/shieldd_cometbft?sslmode=disable" \
-          --dst-database-url "postgresql://127.0.0.1:${SHIELDD_POSTGRES_PORT}/shieldd_pindexer?sslmode=disable" \
-          --genesis-json ${SHIELDD_DEVNET_HOME}/network_data/node0/cometbft/config/genesis.json
-    depends_on:
-      postgresql-init:
-        condition: process_completed_successfully
-      # Make sure fullnode is running, otherwise database may be empty
-      pd:
-        condition: process_healthy
-      cometbft:
-        condition: process_healthy

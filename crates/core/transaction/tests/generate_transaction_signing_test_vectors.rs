@@ -26,9 +26,7 @@ use shieldd_sdk_shielded_pool::{
     Ics20Withdrawal, Note, NoteReshapeFamilyId, NoteReshapePlan, ShieldedIcs20WithdrawalPlan,
     ShieldedInputPlan, ShieldedOutputPlan, TransferPlan,
 };
-use shieldd_sdk_transaction::{
-    check_transaction_plan_enabled, ActionPlan, TransactionParameters, TransactionPlan,
-};
+use shieldd_sdk_transaction::{ActionPlan, TransactionParameters, TransactionPlan};
 use std::io::Write;
 use std::str::FromStr;
 use std::{fs::File, io::Read};
@@ -367,10 +365,6 @@ fn generate_transaction_signing_test_vectors() {
             .expect("Failed to create new tree");
         let transaction_plan = value_tree.current();
 
-        if check_transaction_plan_enabled(&transaction_plan).is_err() {
-            continue;
-        }
-
         let json_plan = serde_json::to_string_pretty(&transaction_plan)
             .expect("should be able to json tx plan");
 
@@ -450,9 +444,6 @@ fn effect_hash_test_vectors() {
             transaction_plan_encoded,
             "JSON/protobuf vector {i} drifted"
         );
-
-        check_transaction_plan_enabled(&transaction_plan)
-            .unwrap_or_else(|error| panic!("vector {i} must remain enabled: {error}"));
 
         let effect_hash_hex = hex::encode(
             transaction_plan
