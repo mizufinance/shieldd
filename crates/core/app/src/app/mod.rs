@@ -130,7 +130,8 @@ pub const MAX_TRANSACTION_ACTION_COUNT: usize = 512;
 pub const MAX_TRANSACTION_NULLIFIER_COUNT: usize = 256;
 
 /// The maximum number of proof-bound nullifiers in one block.
-pub const MAX_BLOCK_NULLIFIER_COUNT: usize = 32_768;
+pub const MAX_BLOCK_NULLIFIER_COUNT: usize =
+    shieldd_sdk_sct::component::tree::MAX_NULLIFIERS_PER_BLOCK;
 
 /// The maximum size of the evidence portion of a block (30KB).
 pub const MAX_EVIDENCE_SIZE_BYTES: usize = 30 * 1024;
@@ -945,8 +946,16 @@ impl BlockSctAppendLog {
             }
         };
 
+        let used_in_block = base_position.commitment() as u64 + self.next_offset;
+        anyhow::ensure!(
+            used_in_block.saturating_add(payloads.len() as u64)
+                <= shieldd_sdk_sct::component::tree::SCT_BLOCK_COMMITMENT_CAPACITY as u64,
+            "SCT block commitment capacity exceeded"
+        );
         let base_position_u64: u64 = base_position.into();
-        let start = base_position_u64 + self.next_offset;
+        let start = base_position_u64
+            .checked_add(self.next_offset)
+            .context("SCT position overflow while reserving block commitments")?;
         let mut positioned = Vec::with_capacity(payloads.len());
         for (offset, payload) in payloads.into_iter().enumerate() {
             let position = shieldd_sdk_tct::Position::from(start + offset as u64);
@@ -5550,16 +5559,13 @@ impl App {
             }
         }
 
-        self.apply_prepare_proposal_nullifier_batch_profiled(
-            &block_state.staged_nullifiers,
-            profile,
-        )
-        .await?;
+        self.stage_prepare_proposal_nullifiers_profiled(&block_state.staged_nullifiers, profile)
+            .await?;
 
         Ok(included_candidates)
     }
 
-    async fn apply_prepare_proposal_nullifier_batch_profiled(
+    async fn stage_prepare_proposal_nullifiers_profiled(
         &mut self,
         entries: &[(Nullifier, CommitmentSource)],
         profile: &mut PrepareProposalProfile,
@@ -5577,7 +5583,7 @@ impl App {
         let begin_state_tx_ms = begin_state_tx_start.elapsed().as_secs_f64() * 1000.0;
 
         let insert_start = Instant::now();
-        let batch_profile = state_tx.nullify_proposal_batch(entries).await?;
+        state_tx.stage_prevalidated_nullifiers(entries).await?;
         let insert_total_ms = insert_start.elapsed().as_secs_f64() * 1000.0;
 
         let apply_start = Instant::now();
@@ -5588,9 +5594,7 @@ impl App {
         profile.stateful_filter_serial_apply_wall_ms +=
             serial_apply_start.elapsed().as_secs_f64() * 1000.0;
         profile.stateful_filter_serial_nullifier_insert_ms += insert_total_ms;
-        profile.stateful_filter_proposal_nullifier_lookup_write_ms += batch_profile.lookup_write_ms;
-        profile.stateful_filter_proposal_pending_nullifier_stage_ms +=
-            batch_profile.pending_stage_ms;
+        profile.stateful_filter_proposal_pending_nullifier_stage_ms += insert_total_ms;
         profile.stateful_filter_serial_state_delta_apply_ms += apply_ms;
         profile.stateful_filter_apply_ms += apply_ms;
         Ok(())
@@ -5661,9 +5665,7 @@ impl App {
             }
         }
 
-        state_tx
-            .add_sct_commitments_at_positions(sct_entries)
-            .await?;
+        state_tx.finalize_sct_block_forget(sct_entries).await?;
 
         #[cfg(feature = "benchmark-helpers")]
         let pending_payload_start = Instant::now();
@@ -5927,6 +5929,9 @@ impl App {
     /// This method also resets `self` as if it were constructed
     /// as an empty state over top of the newly written storage.
     pub async fn commit(&mut self, storage: Storage) -> RootHash {
+        self.state
+            .ensure_nullifier_block_materialized()
+            .expect("cannot commit an open nullifier block");
         let commit_start = Instant::now();
         let flush_start = Instant::now();
         self.flush_deferred_block_transactions()
@@ -7427,11 +7432,22 @@ mod tests {
         let (storage, _node, txs) = setup_test_txs(2).await?;
         let envelope = candidate_envelope_from_fixture_txs(&storage, &txs).await?;
         let mut app = App::new(storage.latest_snapshot());
+        let starting_generation =
+            shieldd_sdk_sct::nullifier_tree::generation_state(Arc::as_ref(&app.state)).await?;
 
         let (verdict, _profile) = app
             .process_candidate_envelope_profiled(&envelope, None)
             .await?;
         assert!(matches!(verdict, response::ProcessProposal::Accept));
+        assert_eq!(app.state.pending_nullifiers().len(), 4);
+        assert!(!app.state.nullifier_block_is_materialized());
+        assert_eq!(
+            shieldd_sdk_sct::nullifier_tree::generation_state(Arc::as_ref(&app.state))
+                .await?
+                .current_root,
+            starting_generation.current_root,
+            "ProcessProposal should reuse delivery semantics without building a disposable tree",
+        );
 
         Ok(())
     }
@@ -7667,6 +7683,9 @@ mod tests {
     async fn execute_validated_candidate_envelope_profiled_skips_proposal_validation() -> Result<()>
     {
         let (storage, _node, txs) = setup_test_txs(1).await?;
+        let spent_nullifiers = Transaction::decode(txs[0].as_slice())?
+            .spent_nullifiers()
+            .collect::<Vec<_>>();
         let envelope = candidate_envelope_from_fixture_txs(&storage, &txs).await?;
 
         let mut preflight_app = App::new(storage.latest_snapshot());
@@ -7688,6 +7707,11 @@ mod tests {
             .await?;
         assert_eq!(profile.block_tx_count, 1);
         assert!(profile.deliver_txs_wall_ms > 0.0);
+        let committed = storage.latest_snapshot();
+        for nullifier in spent_nullifiers {
+            assert!(shieldd_sdk_sct::nullifier_tree::is_spent(&committed, nullifier).await?);
+        }
+        shieldd_sdk_sct::nullifier_tree::verify_committed_roots(&committed).await?;
 
         Ok(())
     }
@@ -7828,12 +7852,14 @@ mod tests {
 
         let mut repeated = StateDelta::new(snapshot.clone());
         repeated.put_block_height(42);
+        shieldd_sdk_sct::nullifier_tree::initialize(&mut repeated).await?;
         for nullifier in &nullifiers {
             repeated.nullify(*nullifier, source.clone()).await?;
         }
 
         let mut batched = StateDelta::new(snapshot);
         batched.put_block_height(42);
+        shieldd_sdk_sct::nullifier_tree::initialize(&mut batched).await?;
         batched.nullify_all(&nullifiers, source).await?;
 
         assert_eq!(repeated.pending_nullifiers(), batched.pending_nullifiers());
@@ -7844,6 +7870,17 @@ mod tests {
                 batched.is_nullifier_spent(*nullifier).await?,
             );
         }
+
+        repeated.materialize_nullifier_block().await?;
+        batched.materialize_nullifier_block().await?;
+        assert_eq!(
+            shieldd_sdk_sct::nullifier_tree::generation_state(&repeated)
+                .await?
+                .current_root,
+            shieldd_sdk_sct::nullifier_tree::generation_state(&batched)
+                .await?
+                .current_root,
+        );
 
         Ok(())
     }
@@ -7876,13 +7913,17 @@ mod tests {
 
         let mut sequential = StateDelta::new(snapshot.clone());
         sequential.put_block_height(42);
+        shieldd_sdk_sct::nullifier_tree::initialize(&mut sequential).await?;
         for (nullifier, source) in &entries {
             sequential.nullify(*nullifier, source.clone()).await?;
         }
 
         let mut proposal_batch = StateDelta::new(snapshot);
         proposal_batch.put_block_height(42);
-        let _profile = proposal_batch.nullify_proposal_batch(&entries).await?;
+        shieldd_sdk_sct::nullifier_tree::initialize(&mut proposal_batch).await?;
+        proposal_batch
+            .stage_prevalidated_nullifiers(&entries)
+            .await?;
 
         assert_eq!(
             sequential.pending_nullifiers(),
@@ -7895,6 +7936,17 @@ mod tests {
                 proposal_batch.is_nullifier_spent(*nullifier).await?,
             );
         }
+
+        sequential.materialize_nullifier_block().await?;
+        proposal_batch.materialize_nullifier_block().await?;
+        assert_eq!(
+            shieldd_sdk_sct::nullifier_tree::generation_state(&sequential)
+                .await?
+                .current_root,
+            shieldd_sdk_sct::nullifier_tree::generation_state(&proposal_batch)
+                .await?
+                .current_root,
+        );
 
         Ok(())
     }

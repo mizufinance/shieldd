@@ -47,6 +47,7 @@ shieldd-sdk-txhash = {workspace = true, default-features = false}
 poseidon377 = {workspace = true, features = ["r1cs"]}
 rand = {workspace = true}
 rand_core = {workspace = true, features = ["getrandom"]}
+rayon = "1.10"
 serde = {workspace = true, features = ["derive"]}
 serde_json = {workspace = true}
 sha2 = {workspace = true}
