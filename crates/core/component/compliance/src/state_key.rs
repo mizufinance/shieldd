@@ -67,36 +67,6 @@ pub mod audit_log {
     pub fn state() -> &'static str {
         "compliance/audit_log/state"
     }
-
-    pub fn checkpoint(height: u64) -> String {
-        format!("compliance/audit_log/checkpoint/{height:020}")
-    }
-}
-
-pub fn seizure_job(job_id: &[u8; 32]) -> String {
-    format!("compliance/seizure/jobs/{}", hex::encode(job_id))
-}
-
-pub fn seizure_target_job(
-    address: &shieldd_sdk_keys::Address,
-    asset_id: &shieldd_sdk_asset::asset::Id,
-) -> String {
-    format!(
-        "compliance/seizure/target/{}/{}",
-        hex::encode(address.to_vec()),
-        hex::encode(asset_id.0.to_bytes())
-    )
-}
-
-pub fn freeze_record(
-    address: &shieldd_sdk_keys::Address,
-    asset_id: &shieldd_sdk_asset::asset::Id,
-) -> String {
-    format!(
-        "compliance/seizure/freeze/{}/{}",
-        hex::encode(address.to_vec()),
-        hex::encode(asset_id.0.to_bytes())
-    )
 }
 
 /// Prefix for compliance registrar verification keys.

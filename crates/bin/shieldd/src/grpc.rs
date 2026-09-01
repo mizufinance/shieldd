@@ -5,10 +5,9 @@ use shieldd_sdk_proto::execution_client::v1::{
     execution_client_service_server::ExecutionClientService, AppParametersRequest,
     AppParametersResponse, ApplyComplianceActionRequest, ApplyComplianceActionResponse,
     ArchivedNullifierProofRequest, ArchivedNullifierProofResponse, AssetMetadataByIdRequest,
-    AssetMetadataByIdResponse, AttachFreezeResultAnchorRequest, AttachFreezeResultAnchorResponse,
-    BeginBlockRequest, BeginBlockResponse, CheckTxRequest, CheckTxResponse, CommitRequest,
-    CommitResponse, CompactBlockRangeRequest, CompactBlockRangeResponse,
-    ComplianceAssetStatusRequest, ComplianceAssetStatusResponse,
+    AssetMetadataByIdResponse, BeginBlockRequest, BeginBlockResponse, CheckTxRequest,
+    CheckTxResponse, CommitRequest, CommitResponse, CompactBlockRangeRequest,
+    CompactBlockRangeResponse, ComplianceAssetStatusRequest, ComplianceAssetStatusResponse,
     ComplianceBatchMerkleProofsRequest, ComplianceBatchMerkleProofsResponse,
     ComplianceUserLeafRequest, ComplianceUserLeafResponse, DeliverTxRequest, DeliverTxResponse,
     DepositRequest, DepositResponse, EndBlockRequest, EndBlockResponse, ExportGenesisRequest,
@@ -87,19 +86,6 @@ impl ExecutionClientService for GrpcExecutionClient {
             .write()
             .await
             .apply_compliance_action(request.into_inner())
-            .await
-            .map(Response::new)
-            .map_err(status)
-    }
-
-    async fn attach_freeze_result_anchor(
-        &self,
-        request: Request<AttachFreezeResultAnchorRequest>,
-    ) -> std::result::Result<Response<AttachFreezeResultAnchorResponse>, Status> {
-        self.service
-            .write()
-            .await
-            .attach_freeze_result_anchor(request.into_inner())
             .await
             .map(Response::new)
             .map_err(status)

@@ -5,8 +5,8 @@ pub mod event;
 
 pub mod audit_log;
 pub use audit_log::{
-    audit_bytes_commitment, AuditEffect, AuditEffectRecord, AuditLogCheckpoint, AuditLogState,
-    AuditSource, IbcOperation, WithdrawalKind, AUDIT_LOG_VERSION, MAX_AUDIT_RECORD_BYTES,
+    audit_bytes_commitment, AuditEffect, AuditEffectRecord, AuditLogState, AuditSource,
+    IbcOperation, WithdrawalKind, AUDIT_LOG_VERSION, MAX_AUDIT_RECORD_BYTES,
 };
 #[cfg(feature = "component")]
 pub use audit_log::{AuditLogRead, AuditLogWrite};
@@ -56,23 +56,6 @@ pub use transfer::{
     TransferCompliancePublicInputs, TransferEncryptionResult, TRANSFER_CIPHERTEXT_FQS,
     TRANSFER_CORE_CIPHERTEXT_FQS, TRANSFER_DETECTION_FQS, TRANSFER_EXT_CIPHERTEXT_FQS,
     TRANSFER_WIRE_BYTES,
-};
-
-pub mod seizure;
-pub mod seizure_projection;
-#[cfg(feature = "component")]
-pub use seizure::{
-    finalize_seizure_job, FreezeStateRead, FreezeStateWrite, SeizureStateRead, SeizureStateWrite,
-};
-pub use seizure::{
-    FreezeRecord, FreezeResultAnchor, FrozenSeizureTarget, SeizureAdvance, SeizureAuditCheckpoint,
-    SeizureAuthorization, SeizureChunkPublicInputs, SeizureChunkReceipt,
-    SeizureClassifierPublicContext, SeizureCommitment, SeizureFinalStatement, SeizureId,
-    SeizureJob, SeizureJobState, SeizureProofFamily, SeizureProofVerifier, SeizureReceipt,
-    SeizureScanPublicContext, SeizureSettlement, SeizureSource, SEIZURE_GROTH16_PROOF_BYTES,
-};
-pub use seizure_projection::{
-    CiphertextClassification, SeizureProjection, SeizureProjectionResult, TargetLifecycle,
 };
 
 pub mod pre_evidence;

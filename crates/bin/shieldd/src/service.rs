@@ -39,8 +39,7 @@ use shieldd_sdk_proto::{
     cosmos::base::v1beta1::Coin,
     execution_client::v1::{
         host_withdrawal::Destination as ProtoDestination, ApplyComplianceActionRequest,
-        ApplyComplianceActionResponse, AttachFreezeResultAnchorRequest,
-        AttachFreezeResultAnchorResponse, BeginBlockRequest, BeginBlockResponse, CheckTxRequest,
+        ApplyComplianceActionResponse, BeginBlockRequest, BeginBlockResponse, CheckTxRequest,
         CheckTxResponse, CommitRequest, CommitResponse, DeliverTxRequest, DeliverTxResponse,
         DepositRequest, DepositResponse, EndBlockRequest, EndBlockResponse, Event as ProtoEvent,
         EventAttribute as ProtoEventAttribute, ExportGenesisRequest, ExportGenesisResponse,
@@ -274,18 +273,6 @@ impl ExecutionService {
         let execution = self.execution.as_mut().ok_or_else(ServiceError::closed)?;
         let response = execution
             .apply_compliance_action(request)
-            .await
-            .map_err(ServiceError::invalid_argument)?;
-        Ok(response.response)
-    }
-
-    pub async fn attach_freeze_result_anchor(
-        &mut self,
-        request: AttachFreezeResultAnchorRequest,
-    ) -> std::result::Result<AttachFreezeResultAnchorResponse, ServiceError> {
-        let execution = self.execution.as_mut().ok_or_else(ServiceError::closed)?;
-        let response = execution
-            .attach_freeze_result_anchor(request)
             .await
             .map_err(ServiceError::invalid_argument)?;
         Ok(response.response)

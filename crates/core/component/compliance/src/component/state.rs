@@ -10,7 +10,6 @@ use tendermint::v0_37::abci;
 use tracing::instrument;
 
 use crate::{
-    audit_log::AuditLogWrite as _,
     genesis,
     params::StateWriteExt as _,
     registry::{
@@ -172,10 +171,6 @@ impl Component for Compliance {
             .finish_block_compliance_anchors(0)
             .await
             .expect("must be able to record initial compliance anchors");
-        state
-            .checkpoint_audit_log(0)
-            .await
-            .expect("must be able to record initial audit-log checkpoint");
         tracing::info!("recorded initial compliance anchors at genesis");
     }
 
@@ -200,10 +195,6 @@ impl Component for Compliance {
             .finish_block_compliance_anchors(height)
             .await
             .expect("must be able to record compliance anchors");
-        state
-            .checkpoint_audit_log(height)
-            .await
-            .expect("must be able to record audit-log checkpoint");
     }
 
     async fn end_epoch<S: StateWrite + 'static>(_state: &mut Arc<S>) -> Result<()> {

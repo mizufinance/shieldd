@@ -258,12 +258,12 @@ pub enum AuditEffect {
 }
 
 impl AuditEffect {
-    /// Target-independent projections that a seizure proof must classify.
+    /// Target-independent projections committed by the audit log.
     ///
     /// A transfer has two projections in canonical credit-then-debit order.
     /// Together they bind every tier used to decide whether the target was the
     /// receiver or sender. A withdrawal has one debit projection.
-    pub fn candidate_commitments(&self) -> Result<Vec<Fq>> {
+    fn candidate_commitments(&self) -> Result<Vec<Fq>> {
         match self {
             Self::TransferOutput {
                 asset_anchor,
@@ -336,7 +336,7 @@ impl AuditEffect {
         }
     }
 
-    pub fn proof_fields(&self) -> Result<(u64, [Fq; 12])> {
+    fn commitment_fields(&self) -> Result<(u64, [Fq; 12])> {
         let mut fields = [Fq::from(0u64); 12];
         let kind = match self {
             Self::TransferOutput {
@@ -436,7 +436,7 @@ impl AuditEffect {
     }
 
     pub fn commitment(&self) -> Result<Fq> {
-        let (kind, fields) = self.proof_fields()?;
+        let (kind, fields) = self.commitment_fields()?;
         let head = poseidon377::hash_7(
             &AUDIT_EFFECT_HEAD_DOMAIN,
             (
@@ -962,13 +962,6 @@ impl AuditLogState {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct AuditLogCheckpoint {
-    pub height: u64,
-    pub length: u64,
-    pub head: Fq,
-}
-
 #[cfg(feature = "component")]
 #[async_trait]
 pub trait AuditLogRead: StateRead {
@@ -978,20 +971,6 @@ pub trait AuditLogRead: StateRead {
             .map(|bytes| AuditLogState::decode(&bytes).context("decoding audit log state"))
             .transpose()
             .map(|state| state.unwrap_or_default())
-    }
-
-    async fn get_audit_log_checkpoint(&self, height: u64) -> Result<Option<AuditLogCheckpoint>> {
-        self.get_raw(&state_key::audit_log::checkpoint(height))
-            .await?
-            .map(|bytes| {
-                let state = AuditLogState::decode(&bytes)?;
-                Ok(AuditLogCheckpoint {
-                    height,
-                    length: state.length,
-                    head: state.head,
-                })
-            })
-            .transpose()
     }
 }
 
@@ -1007,20 +986,6 @@ pub trait AuditLogWrite: StateWrite + AuditLogRead {
         let next = current.append(&record)?;
         self.put_raw(state_key::audit_log::state().to_owned(), next.encode());
         Ok(index)
-    }
-
-    async fn checkpoint_audit_log(&mut self, height: u64) -> Result<AuditLogCheckpoint> {
-        let state = self.get_audit_log_state().await?;
-        ensure!(
-            state.last_height <= height,
-            "audit checkpoint precedes the latest effect"
-        );
-        self.put_raw(state_key::audit_log::checkpoint(height), state.encode());
-        Ok(AuditLogCheckpoint {
-            height,
-            length: state.length,
-            head: state.head,
-        })
     }
 }
 

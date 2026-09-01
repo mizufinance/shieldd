@@ -8028,7 +8028,6 @@ dependencies = [
  "aes-gcm",
  "anyhow",
  "ark-ff",
- "ark-groth16",
  "ark-serialize",
  "async-trait",
  "base64 0.21.7",

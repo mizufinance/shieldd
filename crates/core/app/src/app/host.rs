@@ -3,18 +3,16 @@ use super::*;
 use anyhow::{ensure, Context as _};
 use shieldd_sdk_asset::{asset, Value};
 use shieldd_sdk_compliance::{
-    AuditEffect, AuditEffectRecord, AuditLogRead as _, AuditLogWrite as _, AuditSource,
-    ComplianceRegistryRead as _, ComplianceRegistryWrite as _, EvidenceReleaseAuthorization,
-    FreezeResultAnchor, FreezeStateRead as _, FreezeStateWrite as _, SeizureAuditCheckpoint,
-    UserAssetStatus, UserAssetStatusAction,
+    AuditEffect, AuditEffectRecord, AuditLogWrite as _, AuditSource, ComplianceRegistryRead as _,
+    ComplianceRegistryWrite as _, EvidenceReleaseAuthorization, UserAssetStatus,
+    UserAssetStatusAction,
 };
 use shieldd_sdk_ibc::StateWriteExt as _;
 use shieldd_sdk_keys::Address;
 use shieldd_sdk_num::Amount;
 use shieldd_sdk_proto::execution_client::v1::{
     apply_compliance_action_request, ApplyComplianceActionRequest, ApplyComplianceActionResponse,
-    AttachFreezeResultAnchorRequest, AttachFreezeResultAnchorResponse, DepositRequest,
-    DepositResponse, HostSource as ProtoHostSource, SeizeNoteRequest,
+    DepositRequest, DepositResponse, HostSource as ProtoHostSource, SeizeNoteRequest,
 };
 use shieldd_sdk_sct::component::tree::VerificationExt as _;
 use shieldd_sdk_shielded_pool::component::{
@@ -27,7 +25,6 @@ use std::time::Instant;
 const HOST_ACTION_SOURCE_PREFIX: &str = "application/host_action/source";
 const HOST_DEPOSIT_DOMAIN: &[u8] = b"shieldd.host_deposit.v1";
 const HOST_COMPLIANCE_ACTION_DOMAIN: &[u8] = b"shieldd.host_compliance_action.v1";
-const HOST_FREEZE_RESULT_ANCHOR_DOMAIN: &[u8] = b"shieldd.host_freeze_result_anchor.v1";
 const HOST_NOTE_SEIZURE_DOMAIN: &[u8] = b"shieldd.host_note_seizure";
 const HOST_PROPOSER_ADDRESS: [u8; 20] = [0u8; 20];
 
@@ -125,12 +122,6 @@ pub struct HostComplianceActionResult {
 }
 
 #[derive(Debug)]
-pub struct HostFreezeResultAnchorResult {
-    pub response: AttachFreezeResultAnchorResponse,
-    pub events: Vec<abci::Event>,
-}
-
-#[derive(Debug)]
 pub struct HostNoteSeizureResult {
     pub source: ProtoHostSource,
     pub replayed: bool,
@@ -154,9 +145,6 @@ enum HostActionReceiptResult {
     Compliance {
         previous_status: UserAssetStatus,
         current_status: UserAssetStatus,
-        freeze_generation: u64,
-    },
-    FreezeResultAnchor {
         freeze_generation: u64,
     },
     NoteSeizure {
@@ -406,18 +394,6 @@ impl HostExecution {
             self.phase
         );
         self.app.apply_compliance_action(request).await
-    }
-
-    pub async fn attach_freeze_result_anchor(
-        &mut self,
-        request: AttachFreezeResultAnchorRequest,
-    ) -> Result<HostFreezeResultAnchorResult> {
-        ensure!(
-            self.phase == HostExecutionPhase::InBlock,
-            "freeze result anchor called while host execution phase is {:?}",
-            self.phase
-        );
-        self.app.attach_freeze_result_anchor(request).await
     }
 
     pub async fn seize_note(&mut self, request: SeizeNoteRequest) -> Result<HostNoteSeizureResult> {
@@ -860,28 +836,7 @@ impl App {
             )
             .await?;
         let current_status = event.leaf.status;
-        let freeze_generation = match parsed.action {
-            UserAssetStatusAction::Freeze => {
-                state_tx
-                    .record_freeze_generation(
-                        parsed.address.clone(),
-                        parsed.asset_id,
-                        parsed.source.height,
-                        event.leaf.freeze_generation,
-                    )
-                    .await?
-                    .generation
-            }
-            UserAssetStatusAction::Unfreeze => {
-                state_tx
-                    .get_freeze_record(&parsed.address, parsed.asset_id)
-                    .await?
-                    .ok_or_else(|| {
-                        anyhow::anyhow!("frozen asset is missing its freeze generation")
-                    })?
-                    .generation
-            }
-        };
+        let freeze_generation = event.leaf.freeze_generation;
         state_tx
             .append_audit_effect(AuditEffectRecord {
                 source: parsed.source.audit_source(parsed.chain_id.clone(), 0),
@@ -916,84 +871,6 @@ impl App {
         );
         let events = self.apply(state_tx);
         Ok(HostComplianceActionResult { response, events })
-    }
-
-    pub async fn attach_freeze_result_anchor(
-        &mut self,
-        request: AttachFreezeResultAnchorRequest,
-    ) -> Result<HostFreezeResultAnchorResult> {
-        let mut state_tx = StateDelta::new(self.state.clone());
-        let chain_id = state_tx.get_chain_id().await?;
-        let parsed = ParsedFreezeResultAnchor::parse(chain_id, request)?;
-        let current_height = state_tx.get_block_height().await?;
-        parsed.source.validate_height(current_height)?;
-        let source_key = parsed.source_key();
-
-        if let Some(receipt) = load_host_action_receipt(&state_tx, &source_key).await? {
-            ensure!(
-                receipt.request_digest == parsed.request_digest,
-                "host source was already used by a different request"
-            );
-            let HostActionReceiptResult::FreezeResultAnchor { freeze_generation } = receipt.result
-            else {
-                anyhow::bail!("host source was already used by a different action kind");
-            };
-            return Ok(HostFreezeResultAnchorResult {
-                response: freeze_result_anchor_response(&parsed.source, freeze_generation, true),
-                events: Vec::new(),
-            });
-        }
-
-        let freeze = state_tx
-            .get_freeze_record(&parsed.address, parsed.asset_id)
-            .await?
-            .ok_or_else(|| anyhow::anyhow!("freeze record does not exist"))?;
-        ensure!(
-            freeze.anchor.is_none(),
-            "freeze result anchor is already attached by a different host source"
-        );
-        ensure!(
-            parsed.source.height
-                == freeze.freeze_height.checked_add(1).ok_or_else(|| {
-                    anyhow::anyhow!("freeze height cannot advance to its result-anchor block")
-                })?,
-            "freeze result anchor must be attached in block immediately after the freeze"
-        );
-        let leaf = state_tx
-            .get_user_leaf(&parsed.address, parsed.asset_id)
-            .await?
-            .ok_or_else(|| anyhow::anyhow!("frozen user asset is not registered"))?;
-        ensure!(
-            leaf.status == UserAssetStatus::Frozen,
-            "freeze result anchor target is not frozen"
-        );
-        let audit_checkpoint = state_tx
-            .get_audit_log_checkpoint(freeze.freeze_height)
-            .await?
-            .ok_or_else(|| anyhow::anyhow!("freeze block audit checkpoint does not exist"))?;
-        let record = state_tx
-            .attach_freeze_result_anchor(
-                &parsed.address,
-                parsed.asset_id,
-                parsed.freeze_generation,
-                parsed.anchor,
-                SeizureAuditCheckpoint::from_consensus(audit_checkpoint),
-            )
-            .await?;
-        store_host_action_receipt(
-            &mut state_tx,
-            source_key,
-            &HostActionReceipt {
-                request_digest: parsed.request_digest,
-                result: HostActionReceiptResult::FreezeResultAnchor {
-                    freeze_generation: record.generation,
-                },
-            },
-        )?;
-
-        let response = freeze_result_anchor_response(&parsed.source, record.generation, false);
-        let events = self.apply(state_tx);
-        Ok(HostFreezeResultAnchorResult { response, events })
     }
 
     pub async fn seize_note(&mut self, request: SeizeNoteRequest) -> Result<HostNoteSeizureResult> {
@@ -1311,16 +1188,6 @@ impl ParsedHostComplianceAction {
     }
 }
 
-struct ParsedFreezeResultAnchor {
-    chain_id: String,
-    source: HostSource,
-    address: Address,
-    asset_id: asset::Id,
-    freeze_generation: u64,
-    anchor: FreezeResultAnchor,
-    request_digest: [u8; 32],
-}
-
 struct ParsedNoteSeizure {
     chain_id: String,
     source: HostSource,
@@ -1347,72 +1214,6 @@ impl ParsedNoteSeizure {
             chain_id,
             source,
             seizure,
-            request_digest,
-        })
-    }
-
-    fn source_key(&self) -> String {
-        self.source.source_key(&self.chain_id)
-    }
-}
-
-impl ParsedFreezeResultAnchor {
-    fn parse(chain_id: String, request: AttachFreezeResultAnchorRequest) -> Result<Self> {
-        let source = request
-            .source
-            .context("host freeze result anchor source is required")?
-            .try_into()
-            .context("invalid host freeze result anchor source")?;
-        let address = request
-            .address
-            .context("freeze result anchor address is required")?
-            .try_into()
-            .context("invalid freeze result anchor address")?;
-        let asset_id = request
-            .asset_id
-            .context("freeze result anchor asset ID is required")?
-            .try_into()
-            .context("invalid freeze result anchor asset ID")?;
-        ensure!(
-            request.freeze_generation > 0,
-            "freeze result anchor generation must be nonzero"
-        );
-        let terminal_header_hash =
-            request
-                .terminal_header_hash
-                .try_into()
-                .map_err(|bytes: Vec<u8>| {
-                    anyhow::anyhow!("terminal header hash must be 32 bytes, got {}", bytes.len())
-                })?;
-        let terminal_shieldd_root =
-            request
-                .terminal_shieldd_root
-                .try_into()
-                .map_err(|bytes: Vec<u8>| {
-                    anyhow::anyhow!(
-                        "terminal Shieldd root must be 32 bytes, got {}",
-                        bytes.len()
-                    )
-                })?;
-        let anchor = FreezeResultAnchor {
-            terminal_header_hash,
-            terminal_shieldd_root,
-        };
-        let request_digest = derive_freeze_result_anchor_digest(
-            &chain_id,
-            &source,
-            &address,
-            asset_id,
-            request.freeze_generation,
-            &anchor,
-        );
-        Ok(Self {
-            chain_id,
-            source,
-            address,
-            asset_id,
-            freeze_generation: request.freeze_generation,
-            anchor,
             request_digest,
         })
     }
@@ -1465,18 +1266,6 @@ fn compliance_action_response(
     }
 }
 
-fn freeze_result_anchor_response(
-    source: &HostSource,
-    freeze_generation: u64,
-    replayed: bool,
-) -> AttachFreezeResultAnchorResponse {
-    AttachFreezeResultAnchorResponse {
-        source: Some(source.clone().into()),
-        freeze_generation,
-        replayed,
-    }
-}
-
 fn derive_deposit_id(
     chain_id: &str,
     source: &HostSource,
@@ -1514,26 +1303,6 @@ fn derive_compliance_action_digest(
     hasher.finalize().into()
 }
 
-fn derive_freeze_result_anchor_digest(
-    chain_id: &str,
-    source: &HostSource,
-    address: &Address,
-    asset_id: asset::Id,
-    freeze_generation: u64,
-    anchor: &FreezeResultAnchor,
-) -> [u8; 32] {
-    let mut hasher = sha2::Sha256::new();
-    hash_bytes(&mut hasher, HOST_FREEZE_RESULT_ANCHOR_DOMAIN);
-    hash_bytes(&mut hasher, chain_id.as_bytes());
-    source.hash_into(&mut hasher);
-    hash_bytes(&mut hasher, &address.to_vec());
-    hash_bytes(&mut hasher, &asset_id.0.to_bytes());
-    hasher.update(freeze_generation.to_be_bytes());
-    hash_bytes(&mut hasher, &anchor.terminal_header_hash);
-    hash_bytes(&mut hasher, &anchor.terminal_shieldd_root);
-    hasher.finalize().into()
-}
-
 fn derive_note_seizure_digest(chain_id: &str, source: &HostSource, seizure: &[u8]) -> [u8; 32] {
     let mut hasher = sha2::Sha256::new();
     hash_bytes(&mut hasher, HOST_NOTE_SEIZURE_DOMAIN);
@@ -1561,9 +1330,7 @@ mod tests {
     };
     use shieldd_sdk_keys::symmetric::{OvkWrappedKey, WrappedMemoKey};
     use shieldd_sdk_keys::test_keys;
-    use shieldd_sdk_proto::execution_client::v1::{
-        AttachFreezeResultAnchorRequest, FreezeUserAsset, UnfreezeUserAsset,
-    };
+    use shieldd_sdk_proto::execution_client::v1::{FreezeUserAsset, UnfreezeUserAsset};
     use shieldd_sdk_shielded_pool::component::StateReadExt as _;
     use shieldd_sdk_shielded_pool::{
         EvmCall, HostExecution as DomainHostExecution, HostTransfer,
@@ -1652,22 +1419,6 @@ mod tests {
         ApplyComplianceActionRequest {
             source: Some(source),
             action: Some(action),
-        }
-    }
-
-    fn freeze_result_anchor_request(
-        source: ProtoHostSource,
-        freeze_generation: u64,
-        terminal_header_hash: [u8; 32],
-        terminal_shieldd_root: [u8; 32],
-    ) -> AttachFreezeResultAnchorRequest {
-        AttachFreezeResultAnchorRequest {
-            source: Some(source),
-            address: Some(test_keys::ADDRESS_0.deref().clone().into()),
-            asset_id: Some(regulated_asset_id().into()),
-            freeze_generation,
-            terminal_header_hash: terminal_header_hash.to_vec(),
-            terminal_shieldd_root: terminal_shieldd_root.to_vec(),
         }
     }
 
@@ -1826,85 +1577,6 @@ mod tests {
             .await?;
         assert_eq!(unfreeze.response.previous_status, 2);
         assert_eq!(unfreeze.response.current_status, 1);
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn freeze_result_anchor_is_next_block_exact_and_replay_safe() -> Result<()> {
-        let storage = temp_storage().await;
-        let mut host = HostExecution::new(storage.deref().clone());
-        host.init_genesis(host_genesis()).await?;
-        host.commit().await?;
-
-        host.begin_block(host_block(1)).await?;
-        register_regulated_test_user(&mut host).await?;
-        let freeze = host
-            .apply_compliance_action(compliance_request(
-                host_source_at(1, 0),
-                UserAssetStatusAction::Freeze,
-            ))
-            .await?;
-        assert_eq!(freeze.response.freeze_generation, 1);
-        host.end_block(1).await?;
-        let freeze_commit = host.commit().await?;
-        let terminal_shieldd_root: [u8; 32] = freeze_commit
-            .root_hash
-            .try_into()
-            .expect("Shieldd commit root is 32 bytes");
-
-        host.begin_block(host_block(2)).await?;
-        let terminal_header_hash = [41u8; 32];
-        let source = host_source_at(2, 0);
-        let request = freeze_result_anchor_request(
-            source.clone(),
-            freeze.response.freeze_generation,
-            terminal_header_hash,
-            terminal_shieldd_root,
-        );
-        let first = host.attach_freeze_result_anchor(request.clone()).await?;
-        assert_eq!(first.response.source, Some(source.clone()));
-        assert_eq!(first.response.freeze_generation, 1);
-        assert!(!first.response.replayed);
-
-        let replay = host.attach_freeze_result_anchor(request.clone()).await?;
-        assert!(replay.response.replayed);
-        assert!(replay.events.is_empty());
-
-        let mut conflict = request;
-        conflict.terminal_header_hash[0] ^= 1;
-        assert!(host
-            .attach_freeze_result_anchor(conflict)
-            .await
-            .expect_err("the same host source cannot change its anchor")
-            .to_string()
-            .contains("different request"));
-
-        let duplicate_source = freeze_result_anchor_request(
-            host_source_at(2, 1),
-            freeze.response.freeze_generation,
-            terminal_header_hash,
-            terminal_shieldd_root,
-        );
-        assert!(host
-            .attach_freeze_result_anchor(duplicate_source)
-            .await
-            .expect_err("one freeze generation accepts one host attachment")
-            .to_string()
-            .contains("already attached"));
-
-        let record = host
-            .app
-            .state
-            .get_freeze_record(&test_keys::ADDRESS_0, regulated_asset_id())
-            .await?
-            .expect("freeze record exists");
-        assert_eq!(
-            record.anchor,
-            Some(FreezeResultAnchor {
-                terminal_header_hash,
-                terminal_shieldd_root,
-            })
-        );
         Ok(())
     }
 

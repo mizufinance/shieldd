@@ -26,9 +26,6 @@ service ExecutionClientService {
   rpc Deposit(DepositRequest) returns (DepositResponse) {}
   // ApplyComplianceAction applies a Bankd-authorized user/asset status transition.
   rpc ApplyComplianceAction(ApplyComplianceActionRequest) returns (ApplyComplianceActionResponse) {}
-  // AttachFreezeResultAnchor records the finalized y+1 header and Shieldd root
-  // for one exact freeze generation.
-  rpc AttachFreezeResultAnchor(AttachFreezeResultAnchorRequest) returns (AttachFreezeResultAnchorResponse) {}
   // SeizeNote consumes one frozen regulated note and returns the exact host
   // settlement that Bankd must apply atomically with this call.
   rpc SeizeNote(SeizeNoteRequest) returns (SeizeNoteResponse) {}
@@ -216,24 +213,6 @@ message ApplyComplianceActionResponse {
   bool replayed = 4;
   // Monotonic generation of the latest freeze for this address and asset.
   uint64 freeze_generation = 5;
-}
-
-message AttachFreezeResultAnchorRequest {
-  // Bankd message in block y+1 that attaches the finalized result anchor.
-  HostSource source = 1;
-  shieldd.core.keys.v1.Address address = 2;
-  shieldd.core.asset.v1.AssetId asset_id = 3;
-  uint64 freeze_generation = 4;
-  // Canonical Bankd header hash at y+1, authenticating results from freeze block y.
-  bytes terminal_header_hash = 5;
-  // Shieldd root committed for freeze block y.
-  bytes terminal_shieldd_root = 6;
-}
-
-message AttachFreezeResultAnchorResponse {
-  HostSource source = 1;
-  uint64 freeze_generation = 2;
-  bool replayed = 3;
 }
 
 message SeizeNoteRequest {

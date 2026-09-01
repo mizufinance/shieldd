@@ -4,8 +4,7 @@ Status: the Shieldd capsule, circuit, canonical-nullifier, verifier, lifecycle,
 host RPC, and settlement-response core is implemented. The production workflow
 is not complete: the private capsule locator, archive reconciliation, ACP/Orbis
 client, proof-building operator, Bankd authorization, and atomic Bankd
-settlement still need implementation. The historical full-audit prototype is
-not the production settlement path.
+settlement still need implementation.
 
 ## Production decision
 
@@ -256,22 +255,6 @@ does not certify completeness, because doing so recreates the historical scan.
 The authority gains nothing by omitting recoverable value, and `Seized` prevents
 the user from spending or receiving afterward.
 
-## Historical audit path
-
-Keep the existing scan/classify/finalize code as a separate offline tool for:
-
-- independent balance audits;
-- development data created before capsules;
-- reconciliation of the private locator; and
-- investigations that explicitly require a completeness certificate.
-
-Its authenticated audit-effect head and checkpoints are not prerequisites for
-`SeizeNote`, are not read by normal capsule admission, and must not impose a
-million-block proof on production settlement. Canonical blocks retain the
-record bodies; Shieldd does not duplicate each body in consensus or
-nonverifiable key-value state. Benchmark the rolling append cost independently
-at 5,000 transactions per second.
-
 ## Implementation status
 
 Implemented in Shieldd:
@@ -309,9 +292,7 @@ note seizure                                -     15,051          -
 
 Record proof duration, peak RSS, constraint count, action bytes, block bytes,
 Rust verification time, and state-write time before and after each capsule
-change. Extrapolate bytes and verification at 5,000 transactions per second;
-do not extrapolate historical seizure proving because it is no longer on the
-production path.
+change. Extrapolate bytes and verification at 5,000 transactions per second.
 
 The remaining end-to-end adversarial test matrix includes:
 

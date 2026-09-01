@@ -75,9 +75,5 @@ The end-to-end bank workflow is incomplete. It still needs:
 - Bankd-side authorization policy and atomic application of the returned
   withdrawal.
 
-The historical scan/classify/finalize circuits remain a separate audit tool.
-Their rolling audit commitment can support completeness investigations, but it
-is not read by `SeizeNote` and does not determine the settlement amount.
-
 See [the asset seizure design](asset-seizure-proof-plan.md) for cryptographic
 details, measured circuit growth, and remaining performance work.
