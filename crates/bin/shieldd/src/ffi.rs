@@ -39,6 +39,7 @@ const METHOD_QUERY_COMPLIANCE_BATCH_MERKLE_PROOFS: u32 = 1_000_003;
 const METHOD_QUERY_COMPLIANCE_USER_LEAF: u32 = 1_000_004;
 const METHOD_QUERY_KEY_VALUE: u32 = 1_000_005;
 const METHOD_QUERY_COMPACT_BLOCK_RANGE: u32 = 1_000_006;
+const METHOD_QUERY_NULLIFIER_WINDOW: u32 = 1_000_007;
 
 #[repr(C)]
 pub struct ShielddHandle {
@@ -405,6 +406,11 @@ async fn dispatch(
                 .map_err(FfiError::service)?;
             encode_delimited(responses)
         }
+        METHOD_QUERY_NULLIFIER_WINDOW => service
+            .nullifier_window(decode(request)?)
+            .await
+            .map(|response| response.encode_to_vec())
+            .map_err(FfiError::service),
         _ => Err(FfiError::invalid_argument(format!(
             "unknown Shieldd method {method}"
         ))),
@@ -461,7 +467,9 @@ mod tests {
         ComplianceBatchMerkleProofsRequest, ComplianceBatchMerkleProofsResponse,
         ComplianceBatchQuery, ComplianceUserLeafRequest, ComplianceUserLeafResponse,
     };
-    use shieldd_sdk_proto::core::component::sct::v1::ArchivedNullifierProofRequest;
+    use shieldd_sdk_proto::core::component::sct::v1::{
+        ArchivedNullifierProofRequest, NullifierWindowRequest, NullifierWindowResponse,
+    };
     use shieldd_sdk_proto::core::component::shielded_pool::v1::{
         AssetMetadataByIdRequest, AssetMetadataByIdResponse,
     };
@@ -851,6 +859,20 @@ mod tests {
         );
         assert!(key_response.value.is_some());
         assert!(key_response.proof.is_none());
+
+        let nullifier_window: NullifierWindowResponse = call(
+            handle,
+            METHOD_QUERY_NULLIFIER_WINDOW,
+            NullifierWindowRequest {},
+        );
+        let window = nullifier_window
+            .window
+            .expect("initialized state contains a nullifier window");
+        assert_eq!(
+            window.protocol_version,
+            shieldd_sdk_sct::nullifier_generation::PROTOCOL_VERSION
+        );
+        assert_eq!(window.current_generation, 0);
         close(handle);
     }
 

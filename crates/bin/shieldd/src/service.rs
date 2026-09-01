@@ -24,7 +24,10 @@ use shieldd_sdk_proto::core::component::{
         ComplianceAssetStatusResponse, ComplianceBatchMerkleProofsRequest,
         ComplianceBatchMerkleProofsResponse, ComplianceUserLeafRequest, ComplianceUserLeafResponse,
     },
-    sct::v1::{ArchivedNullifierProofRequest, ArchivedNullifierProofResponse},
+    sct::v1::{
+        query_service_server::QueryService as SctQueryService, ArchivedNullifierProofRequest,
+        ArchivedNullifierProofResponse, NullifierWindowRequest, NullifierWindowResponse,
+    },
     shielded_pool::v1::{
         query_service_server::QueryService as ShieldedPoolQueryService, AssetMetadataByIdRequest,
         AssetMetadataByIdResponse,
@@ -489,6 +492,18 @@ impl ExecutionService {
                 .map(|value| ProtoKeyValue { value: value.value }),
             proof: response.proof,
         })
+    }
+
+    pub async fn nullifier_window(
+        &self,
+        request: NullifierWindowRequest,
+    ) -> std::result::Result<NullifierWindowResponse, ServiceError> {
+        let storage = self.storage.as_ref().ok_or_else(ServiceError::closed)?;
+        let server = shieldd_sdk_sct::component::rpc::Server::new(storage.clone());
+        SctQueryService::nullifier_window(&server, tonic::Request::new(request))
+            .await
+            .map(tonic::Response::into_inner)
+            .map_err(ServiceError::query)
     }
 
     pub async fn rollback(
