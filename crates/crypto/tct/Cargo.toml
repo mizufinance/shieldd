@@ -11,7 +11,7 @@ edition = {workspace = true}
 internal = []
 arbitrary = ["proptest", "proptest-derive"]
 r1cs = ["ark-r1cs-std", "ark-relations", "decaf377/r1cs", "poseidon377/r1cs"]
-parallel = ["ark-r1cs-std/parallel", "ark-ff/parallel", "decaf377/parallel", "poseidon377/parallel"]
+parallel = ["ark-r1cs-std/parallel", "ark-ff/parallel", "decaf377/parallel", "poseidon377/parallel", "dep:rayon"]
 
 [dependencies]
 ark-ed-on-bls12-377 = { workspace = true }
@@ -35,6 +35,7 @@ poseidon377 = {workspace = true, features = ["r1cs"]}
 proptest = {workspace = true, optional = true}
 proptest-derive = {workspace = true, optional = true}
 rand = {workspace = true}
+rayon = { version = "1.10", optional = true }
 serde = {workspace = true, features = ["derive", "rc"]}
 thiserror = {workspace = true}
 tracing = {workspace = true}

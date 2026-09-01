@@ -43,8 +43,8 @@ pub mod nullifier_generations {
         "sct/nullifier_generations/state"
     }
 
-    pub fn pending_nullifiers() -> &'static str {
-        "sct/nullifier_generations/pending_nullifiers"
+    pub fn pending_block() -> &'static str {
+        "sct/nullifier_generations/pending_block"
     }
 
     pub fn retired_record(tree: NullifierTreeId) -> Vec<u8> {
@@ -175,6 +175,10 @@ pub mod tree {
 pub mod cache {
     pub fn cached_state_commitment_tree() -> &'static str {
         "sct/cache/cached_state_commitment_tree"
+    }
+
+    pub fn block_materialization() -> &'static str {
+        "sct/cache/block_materialization"
     }
 }
 

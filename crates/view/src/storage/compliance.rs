@@ -428,13 +428,20 @@ impl ComplianceTreeStore<'_, '_> {
         user_anchor: StateCommitment,
         asset_anchor: StateCommitment,
     ) -> anyhow::Result<()> {
+        if let Some((existing_user, existing_asset)) = self.get_anchor(height)? {
+            anyhow::ensure!(
+                existing_user == user_anchor && existing_asset == asset_anchor,
+                "conflicting compliance anchors already exist at height {height}"
+            );
+            return Ok(());
+        }
         let height = height_to_i64(height)?;
         let user_root = <[u8; 32]>::from(user_anchor).to_vec();
         let asset_root = <[u8; 32]>::from(asset_anchor).to_vec();
 
         self.0
             .prepare_cached(
-                "INSERT INTO compliance_anchors (height, user_root, asset_root) VALUES (?1, ?2, ?3) ON CONFLICT DO NOTHING",
+                "INSERT INTO compliance_anchors (height, user_root, asset_root) VALUES (?1, ?2, ?3)",
             )
             .context("failed to prepare anchor insert")?
             .execute((&height, &user_root, &asset_root))
@@ -775,6 +782,9 @@ mod tests {
         let user_anchor = StateCommitment::try_from([5u8; 32]).unwrap();
         let asset_anchor = StateCommitment::try_from([6u8; 32]).unwrap();
         store.add_anchor(100, user_anchor, asset_anchor).unwrap();
+        store.add_anchor(100, user_anchor, asset_anchor).unwrap();
+        let conflicting = StateCommitment::try_from([7u8; 32]).unwrap();
+        assert!(store.add_anchor(100, conflicting, asset_anchor).is_err());
         let (user, asset) = store.get_anchor(100).unwrap().unwrap();
         assert_eq!(<[u8; 32]>::from(user), [5u8; 32]);
         assert_eq!(<[u8; 32]>::from(asset), [6u8; 32]);

@@ -68,6 +68,17 @@ pub(crate) struct ComplianceAssetPolicyUpdate {
     pub policy: AssetPolicy,
 }
 
+#[derive(Debug, Clone)]
+pub(crate) struct ComplianceBlockPlan {
+    pub height: u64,
+    pub user_tree: crate::compliance_tree::ComplianceUserTreePersistence,
+    pub asset_tree: crate::compliance_tree::ComplianceAssetTreePersistence,
+    pub user_root: StateCommitment,
+    pub asset_root: StateCommitment,
+    pub leaf_updates: Vec<ComplianceLeafUpdate>,
+    pub asset_policy_updates: Vec<ComplianceAssetPolicyUpdate>,
+}
+
 #[cfg(test)]
 mod compliance_projection_tests {
     use super::*;
@@ -90,24 +101,94 @@ mod compliance_projection_tests {
         );
         let commitment = leaf.commit();
         let position = user_tree.insert(commitment).unwrap();
+        let user_root = user_tree.root();
+        let asset_root = asset_tree.root();
 
-        storage
-            .record_compliance_block(
-                u64::MAX,
-                &user_tree,
-                &asset_tree,
-                0,
-                0,
-                vec![ComplianceLeafUpdate {
-                    leaf: leaf.clone(),
-                    position,
-                    commitment,
-                }],
-                Vec::new(),
-            )
-            .await
+        let plan = ComplianceBlockPlan {
+            height: u64::MAX,
+            user_tree: user_tree.persistence_plan().unwrap(),
+            asset_tree: asset_tree.persistence_plan().unwrap(),
+            user_root,
+            asset_root,
+            leaf_updates: vec![ComplianceLeafUpdate {
+                leaf: leaf.clone(),
+                position,
+                commitment,
+            }],
+            asset_policy_updates: Vec::new(),
+        };
+        let mut conn = storage.pool.get().unwrap();
+        let mut tx = conn.transaction().unwrap();
+        Storage::record_compliance_plan_inner(&mut tx, plan)
             .expect_err("an unrepresentable anchor height must abort the transaction");
+        drop(tx);
+        drop(conn);
 
+        assert_eq!(storage.compliance_user_tree().await.unwrap().position(), 0);
+        assert!(storage
+            .get_compliance_leaf_data(&leaf.address, &leaf.asset_id)
+            .await
+            .unwrap()
+            .is_none());
+    }
+
+    #[tokio::test]
+    async fn wallet_block_failure_rolls_back_compliance_projection_and_sync_height() {
+        let storage = Storage::initialize(
+            None::<&Utf8Path>,
+            (*test_keys::FULL_VIEWING_KEY).clone(),
+            AppParameters::default(),
+        )
+        .await
+        .unwrap();
+        let mut user_tree = storage.compliance_user_tree().await.unwrap();
+        let asset_tree = storage.compliance_asset_tree().await.unwrap();
+        let leaf = ComplianceLeaf::synthetic_unregulated(
+            test_keys::ADDRESS_0.clone(),
+            asset::Id(Fq::from(19u64)),
+        );
+        let commitment = leaf.commit();
+        let position = user_tree.insert(commitment).unwrap();
+        let user_root = user_tree.root();
+        let asset_root = asset_tree.root();
+        let plan = ComplianceBlockPlan {
+            height: 0,
+            user_tree: user_tree.persistence_plan().unwrap(),
+            asset_tree: asset_tree.persistence_plan().unwrap(),
+            user_root,
+            asset_root,
+            leaf_updates: vec![ComplianceLeafUpdate {
+                leaf: leaf.clone(),
+                position,
+                commitment,
+            }],
+            asset_policy_updates: Vec::new(),
+        };
+        storage
+            .pool
+            .get()
+            .unwrap()
+            .execute_batch(
+                "CREATE TRIGGER fail_sync_height BEFORE UPDATE ON sync_height BEGIN SELECT RAISE(ABORT, 'injected sync failure'); END;",
+            )
+            .unwrap();
+        let filtered_block = FilteredBlock {
+            new_notes: BTreeMap::new(),
+            spent_nullifiers: Vec::new(),
+            height: 0,
+            discovery_parameters: None,
+            app_parameters_updated: false,
+            gas_prices: None,
+            nullifier_window: None,
+        };
+        let mut sct = tct::Tree::new();
+        let channel = tonic::transport::Endpoint::from_static("http://127.0.0.1:1").connect_lazy();
+        storage
+            .record_block(filtered_block, Vec::new(), &mut sct, channel, Some(plan))
+            .await
+            .expect_err("injected sync-height failure must abort the wallet transaction");
+
+        assert_eq!(storage.last_sync_height().await.unwrap(), None);
         assert_eq!(storage.compliance_user_tree().await.unwrap().position(), 0);
         assert!(storage
             .get_compliance_leaf_data(&leaf.address, &leaf.asset_id)
@@ -1625,12 +1706,13 @@ impl Storage {
             .await?
     }
 
-    pub async fn record_block(
+    pub(crate) async fn record_block(
         &self,
         filtered_block: FilteredBlock,
         transactions: Vec<Transaction>,
         sct: &mut tct::Tree,
         channel: tonic::transport::Channel,
+        compliance_plan: Option<ComplianceBlockPlan>,
     ) -> anyhow::Result<()> {
         //Check that the incoming block height follows the latest recorded height
         let last_sync_height = self.last_sync_height().await?;
@@ -1836,6 +1918,14 @@ impl Storage {
                 )?;
             }
 
+            if let Some(plan) = compliance_plan {
+                anyhow::ensure!(
+                    plan.height == filtered_block.height,
+                    "compliance plan height does not match wallet block height"
+                );
+                Storage::record_compliance_plan_inner(&mut dbtx, plan)?;
+            }
+
             // Record block height as latest synced height
             let latest_sync_height = filtered_block.height as i64;
             dbtx.execute("UPDATE sync_height SET height = ?1", [latest_sync_height])?;
@@ -2026,69 +2116,36 @@ impl Storage {
         .await?
     }
 
-    /// Record compliance tree changes for a block.
-    pub(crate) async fn record_compliance_block(
-        &self,
-        height: u64,
-        user_tree: &crate::compliance_tree::ComplianceUserTree,
-        asset_tree: &crate::compliance_tree::ComplianceAssetTree,
-        user_start_position: u64,
-        asset_start_position: u64,
-        leaf_updates: Vec<ComplianceLeafUpdate>,
-        asset_policy_updates: Vec<ComplianceAssetPolicyUpdate>,
+    fn record_compliance_plan_inner(
+        dbtx: &mut r2d2_sqlite::rusqlite::Transaction<'_>,
+        plan: ComplianceBlockPlan,
     ) -> anyhow::Result<()> {
-        let pool = self.pool.clone();
-        let user_root = user_tree.root();
-        let asset_root = asset_tree.root();
-
-        // Clone tree state for persistence
-        let user_tree_for_persist = user_tree.clone();
-        let asset_tree_for_persist = asset_tree.clone();
-
-        spawn_blocking(move || {
-            let mut conn = pool.get()?;
-            let mut tx = conn.transaction()?;
-
-            {
-                let mut store = compliance::ComplianceTreeStore(&mut tx);
-
-                // Persist user tree changes
-                user_tree_for_persist.persist(&mut store, user_start_position)?;
-
-                // Persist asset tree changes
-                asset_tree_for_persist.persist(&mut store, asset_start_position)?;
-
-                for update in leaf_updates {
-                    store.add_leaf_data(
-                        &update.leaf.address.to_vec(),
-                        &update.leaf.asset_id.to_bytes(),
-                        update.position,
-                        &update.leaf.capk.vartime_compress().0,
-                        &update.leaf.cnk_commitment.to_bytes(),
-                        update.leaf.status,
-                        update.leaf.freeze_generation,
-                        update.leaf.frozen_since_height,
-                        update.commitment,
-                    )?;
-                }
-
-                for update in asset_policy_updates {
-                    store.add_asset_policy(
-                        &update.asset_id.to_bytes(),
-                        &update.policy.to_bytes()?,
-                    )?;
-                }
-
-                // Store anchors for this block
-                store.add_anchor(height, user_root, asset_root)?;
-            }
-
-            tx.commit()?;
-            Ok::<(), anyhow::Error>(())
-        })
-        .await??;
-
-        Ok(())
+        let mut store = compliance::ComplianceTreeStore(dbtx);
+        for write in plan.user_tree.leaves {
+            store.add_user_position(write.position, write.commitment)?;
+        }
+        store.set_user_tree_position(plan.user_tree.next_position)?;
+        for write in plan.asset_tree.leaves {
+            store.add_asset_leaf(write.position, write.leaf)?;
+        }
+        store.set_asset_tree_leaf_count(plan.asset_tree.leaf_count)?;
+        for update in plan.leaf_updates {
+            store.add_leaf_data(
+                &update.leaf.address.to_vec(),
+                &update.leaf.asset_id.to_bytes(),
+                update.position,
+                &update.leaf.capk.vartime_compress().0,
+                &update.leaf.cnk_commitment.to_bytes(),
+                update.leaf.status,
+                update.leaf.freeze_generation,
+                update.leaf.frozen_since_height,
+                update.commitment,
+            )?;
+        }
+        for update in plan.asset_policy_updates {
+            store.add_asset_policy(&update.asset_id.to_bytes(), &update.policy.to_bytes()?)?;
+        }
+        store.add_anchor(plan.height, plan.user_root, plan.asset_root)
     }
 
     /// Record a counterparty address for tracking.

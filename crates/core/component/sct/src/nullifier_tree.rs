@@ -1,9 +1,12 @@
 use anyhow::{ensure, Context, Result};
+use ark_ff::PrimeField;
 use cnidarium::{StateRead, StateWrite};
 use decaf377::Fq;
 use futures::{stream, StreamExt, TryStreamExt};
+#[cfg(feature = "parallel")]
+use rayon::prelude::*;
 use shieldd_sdk_proto::{StateReadProto, StateWriteProto};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::{
     generation_pack::NullifierGenerationPack,
@@ -21,8 +24,30 @@ use crate::{
 const STORAGE_SCHEMA_VERSION: &[u8] = &[3];
 const STALE_STORAGE_PREFIX: &str = "sct/nullifier_set/";
 const MAX_CONCURRENT_MARKER_READS: usize = 256;
+const MAX_CONCURRENT_TREE_READS: usize = 256;
+const MAX_ORDERED_SCAN_ENTRIES: u64 = 131_072;
+const ORDERED_SCAN_DENSITY_DIVISOR: u64 = 8;
+#[cfg(feature = "parallel")]
+const PARALLEL_HASH_THRESHOLD: usize = 64;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+struct NodeKey {
+    level: u8,
+    position: u64,
+}
+
+struct NullifierBatchPlan {
+    starting_tree: NullifierTreeId,
+    starting_root: [u8; 32],
+    starting_count: u64,
+    ordered: Vec<Nullifier>,
+    leaves: BTreeMap<u64, IndexedNullifierLeaf>,
+    nodes: BTreeMap<NodeKey, Fq>,
+    final_root: [u8; 32],
+    final_count: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NullifierLookup {
     pub tree: NullifierTreeId,
     pub root: [u8; 32],
@@ -60,6 +85,11 @@ async fn leaf_count<S: StateRead + ?Sized>(state: &S, tree: NullifierTreeId) -> 
         .get_proto(&state_key::nullifier_generations::leaf_count(tree))
         .await?
         .context("nullifier IMT leaf count is missing")
+}
+
+pub async fn current_leaf_count<S: StateRead + ?Sized>(state: &S) -> Result<u64> {
+    let generation = generation_state(state).await?;
+    leaf_count(state, generation.current_tree).await
 }
 
 async fn read_leaf<S: StateRead + ?Sized>(
@@ -502,6 +532,7 @@ pub async fn contains_batch<S: StateRead + ?Sized>(
     Ok(results.into_iter().map(|(_, spent)| spent).collect())
 }
 
+#[cfg(test)]
 async fn insert_one<S: StateWrite + ?Sized>(
     state: &mut S,
     tree: NullifierTreeId,
@@ -563,6 +594,356 @@ async fn insert_one<S: StateWrite + ?Sized>(
     Ok(root.to_bytes())
 }
 
+async fn scan_ordered_index<S: StateRead + ?Sized>(
+    state: &S,
+    tree: NullifierTreeId,
+    count: u64,
+    batch_len: usize,
+) -> Result<Option<BTreeMap<FqOrdKey, u64>>> {
+    let durable_entries = count.saturating_sub(1);
+    if durable_entries > MAX_ORDERED_SCAN_ENTRIES
+        || (batch_len as u64).saturating_mul(ORDERED_SCAN_DENSITY_DIVISOR) < durable_entries
+    {
+        return Ok(None);
+    }
+
+    let prefix = state_key::nullifier_generations::value_desc_prefix(tree);
+    let stream = state.nonverifiable_range_raw(Some(&prefix), Vec::new()..)?;
+    futures::pin_mut!(stream);
+    let mut ordered = BTreeMap::new();
+    let mut positions = BTreeSet::new();
+    while let Some((key, bytes)) = stream.try_next().await? {
+        ensure!(
+            ordered.len() < MAX_ORDERED_SCAN_ENTRIES as usize,
+            "nullifier ordered-index scan exceeds its memory bound"
+        );
+        let suffix = key
+            .strip_prefix(prefix.as_slice())
+            .unwrap_or(key.as_slice());
+        let mut ascending: [u8; 32] = suffix.try_into().map_err(|_| {
+            anyhow::anyhow!("nullifier ordered-index key must contain exactly 32 bytes")
+        })?;
+        for byte in &mut ascending {
+            *byte = !*byte;
+        }
+        let value = Fq::from_be_bytes_mod_order(&ascending);
+        let ordered_key = FqOrdKey(ascending);
+        ensure!(
+            FqOrdKey::from(value) == ordered_key,
+            "nullifier ordered-index key is not canonical"
+        );
+        let position = decode_position(bytes)?;
+        ensure!(
+            (1..count).contains(&position),
+            "nullifier ordered-index position is out of range"
+        );
+        ensure!(
+            ordered.insert(ordered_key, position).is_none(),
+            "duplicate nullifier ordered-index value"
+        );
+        ensure!(
+            positions.insert(position),
+            "duplicate nullifier ordered-index position"
+        );
+    }
+    ensure!(
+        ordered.len() as u64 == durable_entries,
+        "nullifier ordered-index count does not match durable leaf count"
+    );
+    Ok(Some(ordered))
+}
+
+async fn durable_predecessor_positions<S: StateRead + ?Sized>(
+    state: &S,
+    tree: NullifierTreeId,
+    count: u64,
+    nullifiers: &[Nullifier],
+) -> Result<Vec<u64>> {
+    if let Some(ordered) = scan_ordered_index(state, tree, count, nullifiers.len()).await? {
+        return Ok(nullifiers
+            .iter()
+            .map(|nullifier| {
+                ordered
+                    .range(..FqOrdKey::from(nullifier.0))
+                    .next_back()
+                    .map(|(_, position)| *position)
+                    .unwrap_or(0)
+            })
+            .collect());
+    }
+
+    let mut positions = stream::iter(nullifiers.iter().copied().enumerate())
+        .map(|(index, nullifier)| async move {
+            Ok::<_, anyhow::Error>((
+                index,
+                read_predecessor_position(state, tree, nullifier.0).await?,
+            ))
+        })
+        .buffer_unordered(MAX_CONCURRENT_TREE_READS)
+        .try_collect::<Vec<_>>()
+        .await?;
+    positions.sort_unstable_by_key(|(index, _)| *index);
+    Ok(positions
+        .into_iter()
+        .map(|(_, position)| position)
+        .collect())
+}
+
+async fn plan_changed_leaves<S: StateRead + ?Sized>(
+    state: &S,
+    tree: NullifierTreeId,
+    start_count: u64,
+    nullifiers: &[Nullifier],
+) -> Result<BTreeMap<u64, IndexedNullifierLeaf>> {
+    ensure!(
+        start_count.saturating_add(nullifiers.len() as u64) <= CAPACITY,
+        "nullifier generation is full"
+    );
+    let predecessor_positions =
+        durable_predecessor_positions(state, tree, start_count, nullifiers).await?;
+    let unique_positions = predecessor_positions
+        .iter()
+        .copied()
+        .collect::<BTreeSet<_>>();
+    let durable_leaves = stream::iter(unique_positions)
+        .map(|position| async move {
+            Ok::<_, anyhow::Error>((position, read_leaf(state, tree, position).await?))
+        })
+        .buffer_unordered(MAX_CONCURRENT_TREE_READS)
+        .try_collect::<Vec<_>>()
+        .await?
+        .into_iter()
+        .collect::<BTreeMap<_, _>>();
+
+    let mut changed = BTreeMap::new();
+    let mut batch_index = BTreeMap::<FqOrdKey, u64>::new();
+    for ((offset, nullifier), durable_position) in nullifiers
+        .iter()
+        .copied()
+        .enumerate()
+        .zip(predecessor_positions)
+    {
+        let target = FqOrdKey::from(nullifier.0);
+        let durable_leaf = changed
+            .get(&durable_position)
+            .copied()
+            .or_else(|| durable_leaves.get(&durable_position).copied())
+            .context("durable nullifier predecessor is missing")?;
+        let batch_predecessor = batch_index.range(..target).next_back();
+        let predecessor_position = match batch_predecessor {
+            Some((key, position))
+                if durable_leaf.is_lower_sentinel
+                    || *key > FqOrdKey::from(durable_leaf.value_fq()?) =>
+            {
+                *position
+            }
+            _ => durable_position,
+        };
+        let predecessor = if predecessor_position == durable_position {
+            durable_leaf
+        } else {
+            changed
+                .get(&predecessor_position)
+                .copied()
+                .context("batch nullifier predecessor is missing")?
+        };
+        if !predecessor.is_lower_sentinel {
+            ensure!(
+                FqOrdKey::from(predecessor.value_fq()?) < target,
+                "invalid predecessor"
+            );
+        }
+        if !predecessor.is_terminal {
+            ensure!(
+                target < FqOrdKey::from(predecessor.next_value_fq()?),
+                "invalid successor gap"
+            );
+        }
+
+        let position = start_count + offset as u64;
+        let inserted = IndexedNullifierLeaf::ordinary(
+            nullifier,
+            predecessor.next_index,
+            predecessor.next_value,
+            predecessor.is_terminal,
+        );
+        let updated_predecessor = IndexedNullifierLeaf {
+            next_index: position,
+            next_value: nullifier.to_bytes(),
+            is_terminal: false,
+            ..predecessor
+        };
+        changed.insert(predecessor_position, updated_predecessor);
+        changed.insert(position, inserted);
+        batch_index.insert(target, position);
+    }
+    Ok(changed)
+}
+
+async fn compute_dirty_nodes<S: StateRead + ?Sized>(
+    state: &S,
+    tree: NullifierTreeId,
+    leaves: &BTreeMap<u64, IndexedNullifierLeaf>,
+) -> Result<BTreeMap<NodeKey, Fq>> {
+    let mut nodes = BTreeMap::new();
+    let mut dirty = Vec::with_capacity(leaves.len());
+    for (&position, leaf) in leaves {
+        nodes.insert(NodeKey { level: 0, position }, leaf.commitment()?);
+        dirty.push(position);
+    }
+
+    for level in 0..DEPTH {
+        let parents = dirty
+            .iter()
+            .map(|position| position / 4)
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect::<Vec<_>>();
+        let mut missing = Vec::new();
+        for &parent in &parents {
+            for offset in 0..4 {
+                let key = NodeKey {
+                    level,
+                    position: parent * 4 + offset,
+                };
+                if !nodes.contains_key(&key) {
+                    missing.push(key);
+                }
+            }
+        }
+        let base_nodes = stream::iter(missing)
+            .map(|key| async move {
+                Ok::<_, anyhow::Error>((
+                    key,
+                    read_node(state, tree, key.level, key.position).await?,
+                ))
+            })
+            .buffer_unordered(MAX_CONCURRENT_TREE_READS)
+            .try_collect::<Vec<_>>()
+            .await?
+            .into_iter()
+            .collect::<BTreeMap<_, _>>();
+        let inputs = parents
+            .iter()
+            .map(|&parent| {
+                let children = std::array::from_fn(|offset| {
+                    let key = NodeKey {
+                        level,
+                        position: parent * 4 + offset as u64,
+                    };
+                    nodes
+                        .get(&key)
+                        .or_else(|| base_nodes.get(&key))
+                        .copied()
+                        .expect("every dirty child is available")
+                });
+                (parent, children)
+            })
+            .collect::<Vec<_>>();
+        #[cfg(feature = "parallel")]
+        let parent_nodes = if inputs.len() >= PARALLEL_HASH_THRESHOLD {
+            inputs
+                .par_iter()
+                .map(|(position, children)| (*position, hash_children(*children)))
+                .collect::<Vec<_>>()
+        } else {
+            inputs
+                .iter()
+                .map(|(position, children)| (*position, hash_children(*children)))
+                .collect::<Vec<_>>()
+        };
+        #[cfg(not(feature = "parallel"))]
+        let parent_nodes = inputs
+            .iter()
+            .map(|(position, children)| (*position, hash_children(*children)))
+            .collect::<Vec<_>>();
+        for (position, hash) in parent_nodes {
+            nodes.insert(
+                NodeKey {
+                    level: level + 1,
+                    position,
+                },
+                hash,
+            );
+        }
+        dirty = parents;
+    }
+    Ok(nodes)
+}
+
+async fn plan_batch<S: StateRead + ?Sized>(
+    state: &S,
+    generation: &NullifierGenerationState,
+    ordered: Vec<Nullifier>,
+) -> Result<NullifierBatchPlan> {
+    let starting_count = leaf_count(state, generation.current_tree).await?;
+    let leaves =
+        plan_changed_leaves(state, generation.current_tree, starting_count, &ordered).await?;
+    let nodes = compute_dirty_nodes(state, generation.current_tree, &leaves).await?;
+    let final_root = nodes
+        .get(&NodeKey {
+            level: DEPTH,
+            position: 0,
+        })
+        .copied()
+        .context("nullifier batch did not produce a root")?
+        .to_bytes();
+    Ok(NullifierBatchPlan {
+        starting_tree: generation.current_tree,
+        starting_root: generation.current_root,
+        starting_count,
+        final_count: starting_count + ordered.len() as u64,
+        ordered,
+        leaves,
+        nodes,
+        final_root,
+    })
+}
+
+async fn apply_batch_plan<S: StateWrite + ?Sized>(
+    state: &mut S,
+    plan: NullifierBatchPlan,
+) -> Result<()> {
+    let mut generation = generation_state(state).await?;
+    ensure!(
+        generation.current_tree == plan.starting_tree
+            && generation.current_root == plan.starting_root
+            && leaf_count(state, generation.current_tree).await? == plan.starting_count,
+        "nullifier generation changed while planning a batch"
+    );
+    ensure!(
+        plan.final_count == plan.starting_count + plan.ordered.len() as u64,
+        "invalid nullifier batch final count"
+    );
+    for (position, leaf) in plan.leaves {
+        put_leaf(state, generation.current_tree, position, leaf)?;
+    }
+    for (key, hash) in plan.nodes {
+        put_node(
+            state,
+            generation.current_tree,
+            key.level,
+            key.position,
+            hash,
+        );
+    }
+    state.put_raw(
+        state_key::nullifier_generations::root(generation.current_tree),
+        plan.final_root.to_vec(),
+    );
+    state.put_proto(
+        state_key::nullifier_generations::leaf_count(generation.current_tree),
+        plan.final_count,
+    );
+    generation.current_root = plan.final_root;
+    generation.validate()?;
+    state.put(
+        state_key::nullifier_generations::state().to_owned(),
+        generation,
+    );
+    Ok(())
+}
+
 pub async fn insert_batch<S: StateWrite + ?Sized>(
     state: &mut S,
     nullifiers: impl IntoIterator<Item = Nullifier>,
@@ -583,16 +964,9 @@ pub async fn insert_batch<S: StateWrite + ?Sized>(
     for (nullifier, spent) in ordered.iter().zip(contains_batch(state, &ordered).await?) {
         ensure!(!spent, "nullifier {nullifier} was already spent");
     }
-    let mut generation = generation_state(state).await?;
-    for nullifier in ordered {
-        generation.current_root = insert_one(state, generation.current_tree, nullifier).await?;
-    }
-    generation.validate()?;
-    state.put(
-        state_key::nullifier_generations::state().to_owned(),
-        generation,
-    );
-    Ok(())
+    let generation = generation_state(state).await?;
+    let plan = plan_batch(state, &generation, ordered).await?;
+    apply_batch_plan(state, plan).await
 }
 
 pub async fn rollover<S: StateWrite + ?Sized>(
@@ -805,6 +1179,20 @@ mod tests {
     use super::*;
     use cnidarium::TempStorage;
 
+    async fn collect_generation_storage<S: StateRead + ?Sized>(
+        state: &S,
+    ) -> Result<BTreeMap<Vec<u8>, Vec<u8>>> {
+        let stream = state.nonverifiable_prefix_raw(
+            state_key::nullifier_generations::storage_prefix().as_bytes(),
+        );
+        futures::pin_mut!(stream);
+        let mut rows = BTreeMap::new();
+        while let Some((key, value)) = stream.try_next().await? {
+            rows.insert(key, value);
+        }
+        Ok(rows)
+    }
+
     fn nullifier(value: u64) -> Nullifier {
         Nullifier(Fq::from(value))
     }
@@ -916,6 +1304,48 @@ mod tests {
         assert!(error.to_string().contains("already spent"));
         assert_eq!(generation_state(&state).await?.current_root, root);
         assert!(is_spent(&state, nf).await?);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn dirty_batch_matches_sequential_storage_for_proposal_order() -> Result<()> {
+        let storage = TempStorage::new().await?;
+        let snapshot = storage.latest_snapshot();
+        let values = [0, 99, 4, 17, 1, 65, 3, 500, 2, 250, u64::MAX]
+            .into_iter()
+            .map(nullifier)
+            .collect::<Vec<_>>();
+
+        let mut sequential = cnidarium::StateDelta::new(snapshot.clone());
+        initialize(&mut sequential).await?;
+        let mut generation = generation_state(&sequential).await?;
+        for nullifier in &values {
+            generation.current_root =
+                insert_one(&mut sequential, generation.current_tree, *nullifier).await?;
+        }
+        generation.validate()?;
+        sequential.put(
+            state_key::nullifier_generations::state().to_owned(),
+            generation,
+        );
+
+        let mut batched = cnidarium::StateDelta::new(snapshot);
+        insert_batch(&mut batched, values.clone()).await?;
+
+        assert_eq!(
+            generation_state(&sequential).await?,
+            generation_state(&batched).await?
+        );
+        assert_eq!(
+            collect_generation_storage(&sequential).await?,
+            collect_generation_storage(&batched).await?
+        );
+        for nullifier in values {
+            assert_eq!(
+                active_lookups(&sequential, nullifier).await?,
+                active_lookups(&batched, nullifier).await?
+            );
+        }
         Ok(())
     }
 

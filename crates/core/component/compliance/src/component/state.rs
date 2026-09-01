@@ -87,9 +87,6 @@ impl Component for Compliance {
             }
         }
 
-        // Genesis starts clean; modifications during init/register calls will set this.
-        state.reset_compliance_tree_dirty_flag();
-
         // Register native assets from genesis configuration.
         if let Some(genesis) = app_state {
             for registrar_vk in &genesis.compliance_registrar_vk {
