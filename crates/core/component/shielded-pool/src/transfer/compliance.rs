@@ -203,9 +203,12 @@ pub(crate) fn build_transfer_compliance(
     // A non-membership witness carries the predecessor leaf. None of that
     // unrelated predecessor's policy identifiers may enter the public
     // statement for an unregulated transfer.
-    let (ring_id, policy_id, resource, permission) = if receiver_output.is_regulated {
-        let asset_policy =
-            asset_policy.ok_or_else(|| anyhow!("regulated transfer missing asset policy"))?;
+    let asset_policy = if receiver_output.is_regulated {
+        Some(asset_policy.ok_or_else(|| anyhow!("regulated transfer missing asset policy"))?)
+    } else {
+        None
+    };
+    let (ring_id, policy_id, resource, permission) = if let Some(asset_policy) = asset_policy {
         (
             asset_policy.ring.ring_id.as_str(),
             asset_policy.ring.policy_id.as_str(),
@@ -229,12 +232,12 @@ pub(crate) fn build_transfer_compliance(
     metadata.validate()?;
 
     #[cfg(feature = "poc-orbis-v0")]
-    let poc_orbis_audit_bundle = if receiver_output.is_regulated {
+    let poc_orbis_audit_bundle = if let Some(asset_policy) = asset_policy {
         let mut audit_rng = StdRng::from_seed(transfer_orbis_audit_rng_seed(transfer_nonce_root));
         Some(PocOrbisAuditBundle {
             subject: build_orbis_tier_bundle(
                 &mut audit_rng,
-                &ring_pk,
+                &asset_policy.ring.ring_pk,
                 Some(sender_leaf.address.to_vec()),
                 Some(receiver_note.address().to_vec()),
                 &encryption,
@@ -246,7 +249,7 @@ pub(crate) fn build_transfer_compliance(
             )?,
             investigation: build_orbis_tier_bundle(
                 &mut audit_rng,
-                &ring_pk,
+                &asset_policy.ring.ring_pk,
                 None,
                 None,
                 &encryption,
