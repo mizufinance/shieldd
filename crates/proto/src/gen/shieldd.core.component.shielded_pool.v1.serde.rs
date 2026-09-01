@@ -3721,9 +3721,6 @@ impl serde::Serialize for NoteSeizure {
         if self.pre_evidence.is_some() {
             len += 1;
         }
-        if self.compact_pre_evidence.is_some() {
-            len += 1;
-        }
         if !self.reader_secret.is_empty() {
             len += 1;
         }
@@ -3770,9 +3767,6 @@ impl serde::Serialize for NoteSeizure {
         if let Some(v) = self.pre_evidence.as_ref() {
             struct_ser.serialize_field("preEvidence", v)?;
         }
-        if let Some(v) = self.compact_pre_evidence.as_ref() {
-            struct_ser.serialize_field("compactPreEvidence", v)?;
-        }
         if !self.reader_secret.is_empty() {
             #[allow(clippy::needless_borrow)]
             #[allow(clippy::needless_borrows_for_generic_args)]
@@ -3813,8 +3807,6 @@ impl<'de> serde::Deserialize<'de> for NoteSeizure {
             "cnkCommitment",
             "pre_evidence",
             "preEvidence",
-            "compact_pre_evidence",
-            "compactPreEvidence",
             "reader_secret",
             "readerSecret",
             "proof",
@@ -3835,7 +3827,6 @@ impl<'de> serde::Deserialize<'de> for NoteSeizure {
             RecoverySeed,
             CnkCommitment,
             PreEvidence,
-            CompactPreEvidence,
             ReaderSecret,
             Proof,
             NullifierWindow,
@@ -3871,7 +3862,6 @@ impl<'de> serde::Deserialize<'de> for NoteSeizure {
                             "recoverySeed" | "recovery_seed" => Ok(GeneratedField::RecoverySeed),
                             "cnkCommitment" | "cnk_commitment" => Ok(GeneratedField::CnkCommitment),
                             "preEvidence" | "pre_evidence" => Ok(GeneratedField::PreEvidence),
-                            "compactPreEvidence" | "compact_pre_evidence" => Ok(GeneratedField::CompactPreEvidence),
                             "readerSecret" | "reader_secret" => Ok(GeneratedField::ReaderSecret),
                             "proof" => Ok(GeneratedField::Proof),
                             "nullifierWindow" | "nullifier_window" => Ok(GeneratedField::NullifierWindow),
@@ -3904,7 +3894,6 @@ impl<'de> serde::Deserialize<'de> for NoteSeizure {
                 let mut recovery_seed__ = None;
                 let mut cnk_commitment__ = None;
                 let mut pre_evidence__ = None;
-                let mut compact_pre_evidence__ = None;
                 let mut reader_secret__ = None;
                 let mut proof__ = None;
                 let mut nullifier_window__ = None;
@@ -3971,12 +3960,6 @@ impl<'de> serde::Deserialize<'de> for NoteSeizure {
                             }
                             pre_evidence__ = map_.next_value()?;
                         }
-                        GeneratedField::CompactPreEvidence => {
-                            if compact_pre_evidence__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("compactPreEvidence"));
-                            }
-                            compact_pre_evidence__ = map_.next_value()?;
-                        }
                         GeneratedField::ReaderSecret => {
                             if reader_secret__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("readerSecret"));
@@ -4018,7 +4001,6 @@ impl<'de> serde::Deserialize<'de> for NoteSeizure {
                     recovery_seed: recovery_seed__.unwrap_or_default(),
                     cnk_commitment: cnk_commitment__.unwrap_or_default(),
                     pre_evidence: pre_evidence__,
-                    compact_pre_evidence: compact_pre_evidence__,
                     reader_secret: reader_secret__.unwrap_or_default(),
                     proof: proof__,
                     nullifier_window: nullifier_window__,

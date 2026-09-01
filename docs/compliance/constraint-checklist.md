@@ -29,8 +29,8 @@ nullifier, and value constraints are tracked in
   matches native key/address allocation and prevents identity-DTK ownership
   aliasing; it is not merely an honest-construction precondition.
 - Regulated transfers bind the diversified generator, transmission key, asset
-  ID, exact full-address derivation `d`, and status into version-5
-  compliance-leaf commitments under the accepted compliance anchor.
+  ID, capability, CNK commitment, and lifecycle into compliance-leaf
+  commitments under the accepted compliance anchor.
 - Native registration rejects a derived `d = 0`, preventing an identity ACK.
 - Regulated sender and receiver statuses must both equal `Active`.
 - ACK derivation uses the selected ring point and the bound `d`.
@@ -89,7 +89,7 @@ nullifier, and value constraints are tracked in
 ### Public Statement
 
 - Rust and Go reconstruct the same 47-field preimage.
-- The statement hash domain is transfer `v7`.
+- The statement hash uses the canonical transfer domain.
 - The preimage binds the consensus recent-position floor and one
   `history_required` bit per spend.
 - The public tail commits both core key confirmations and all eight
@@ -143,7 +143,5 @@ nullifier, and value constraints are tracked in
 
 - Audit completion requires `evidence_valid`.
 - Flagged rows may complete through issuer-DK tier decryption.
-- `export_orbis_pending_scan` and `import_orbis_audit_entries` always fail
-  closed for Orbis v0, even when evidence is valid.
-- Unflagged ACK-tier audit therefore cannot complete until a confidentiality-
-  safe PRE v1 is specified, circuit-bound, and reviewed.
+- No scanner PRE import workflow is exposed. Unflagged ACK-tier audit therefore
+  remains incomplete even when transaction evidence is valid.

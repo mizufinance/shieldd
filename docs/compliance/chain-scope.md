@@ -30,14 +30,18 @@ Standalone-chain and IBC modules are outside the deployment contract.
 The typed host API currently admits:
 
 - `FreezeUserAsset(address, asset_id)` — `Active -> Frozen`;
-- `UnfreezeUserAsset(address, asset_id)` — `Frozen -> Active`.
+- `UnfreezeUserAsset(address, asset_id)` — `Frozen -> Active`; and
+- `SeizeNote` — consumes one authority-approved note and performs
+  `Frozen -> Seized`, or consumes another note from the same `Seized`
+  generation.
 
 Status is committed in the existing user leaf. It is scoped to one address and
 one asset; no global blacklist or independent asset-pause switch exists.
-The schema also reserves terminal `Seized`, which is reachable only through the
-proof-backed seizure state-machine boundary. That boundary is not exposed by a
-public action until the Bankd authorization and balance-certificate contract is
-complete.
+`SeizeNote` is a privileged host call, not a user transaction action. Shieldd
+verifies the authority signature, current freeze generation, ordinary Orbis PRE
+evidence, note-membership proof, canonical nullifier, and exact withdrawal. The
+private capsule locator, ACP release client, and Bankd-side atomic settlement
+remain outside the implemented Shieldd boundary.
 
 All regulated proofs require the exact current user root and current asset root.
 Native action admission applies that exact-root requirement to every shielded

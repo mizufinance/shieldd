@@ -980,13 +980,6 @@ pub trait AuditLogRead: StateRead {
             .map(|state| state.unwrap_or_default())
     }
 
-    async fn get_audit_log_record(&self, index: u64) -> Result<Option<AuditEffectRecord>> {
-        self.nonverifiable_get_raw(&state_key::audit_log::record(index))
-            .await?
-            .map(|bytes| AuditEffectRecord::decode(&bytes))
-            .transpose()
-    }
-
     async fn get_audit_log_checkpoint(&self, height: u64) -> Result<Option<AuditLogCheckpoint>> {
         self.get_raw(&state_key::audit_log::checkpoint(height))
             .await?
@@ -1009,11 +1002,9 @@ impl<T: StateRead + ?Sized> AuditLogRead for T {}
 #[async_trait]
 pub trait AuditLogWrite: StateWrite + AuditLogRead {
     async fn append_audit_effect(&mut self, record: AuditEffectRecord) -> Result<u64> {
-        let encoded = record.encode()?;
         let current = self.get_audit_log_state().await?;
         let index = current.length;
         let next = current.append(&record)?;
-        self.nonverifiable_put_raw(state_key::audit_log::record(index), encoded);
         self.put_raw(state_key::audit_log::state().to_owned(), next.encode());
         Ok(index)
     }

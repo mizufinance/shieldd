@@ -68,10 +68,6 @@ pub mod audit_log {
         "compliance/audit_log/state"
     }
 
-    pub fn record(index: u64) -> Vec<u8> {
-        format!("compliance/audit_log/record/{index:020}").into_bytes()
-    }
-
     pub fn checkpoint(height: u64) -> String {
         format!("compliance/audit_log/checkpoint/{height:020}")
     }

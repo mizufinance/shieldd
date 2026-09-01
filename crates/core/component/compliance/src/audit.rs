@@ -7,7 +7,6 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::audit_records::{
     detected_ref_from_row_parts, AuditDetectedRef, AuditScanExport, DetectedRefRowParts,
-    OrbisAuditEntry,
 };
 use crate::audit_status::{AuditStatus, DecryptedVia, FlowType};
 use crate::decode_object::TransferComplianceMetadata;
@@ -289,22 +288,6 @@ pub fn decrypt_flagged_rows(store: &SqliteScannerStore, dk: &DetectionKey) -> Re
     }
     tx.commit()?;
     Ok(updated)
-}
-
-pub fn export_orbis_pending_scan(_store: &SqliteScannerStore) -> Result<AuditScanExport> {
-    anyhow::bail!(
-        "Orbis v0 audit export is disabled because its public proof reveals the seed-opening DH point"
-    )
-}
-
-pub fn import_orbis_audit_entries(
-    _store: &SqliteScannerStore,
-    _entries: &[OrbisAuditEntry],
-    _subject: Option<&str>,
-) -> Result<u64> {
-    anyhow::bail!(
-        "Orbis v0 audit import is disabled because it cannot originate from a confidentiality-safe PRE request"
-    )
 }
 
 pub fn record_evidence_failure(
@@ -949,34 +932,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn orbis_v0_export_fails_closed_with_valid_evidence() {
-        let store = SqliteScannerStore::new(":memory:").unwrap();
-        let (evidence, metadata) = crate::evidence::tests::valid_evidence_fixture();
-        persist_evidence_detection(&store, &evidence, &metadata, false).await;
-        validate_and_save_evidence_object(&store, &evidence).unwrap();
-        let error = export_orbis_pending_scan(&store).unwrap_err();
-        assert!(error
-            .to_string()
-            .contains("Orbis v0 audit export is disabled"));
-    }
-
-    #[tokio::test]
-    async fn orbis_v0_import_fails_closed_with_valid_evidence() {
-        let store = SqliteScannerStore::new(":memory:").unwrap();
-        let (evidence, metadata) = crate::evidence::tests::valid_evidence_fixture();
-        persist_evidence_detection(&store, &evidence, &metadata, false).await;
-        validate_and_save_evidence_object(&store, &evidence).unwrap();
-        let entry = orbis_entry(&evidence);
-
-        let error = import_orbis_audit_entries(&store, std::slice::from_ref(&entry), Some("alice"))
-            .unwrap_err();
-        assert!(error
-            .to_string()
-            .contains("Orbis v0 audit import is disabled"));
-        assert_eq!(audit_status(&store, &evidence), AUDIT_STATUS_EVIDENCE_VALID);
-    }
-
-    #[tokio::test]
     async fn flagged_decrypt_requires_valid_evidence() {
         let store = SqliteScannerStore::new(":memory:").unwrap();
         let (evidence, metadata) = crate::evidence::tests::valid_evidence_fixture();
@@ -1098,18 +1053,5 @@ mod tests {
             |row| row.get(0),
         )
         .unwrap()
-    }
-
-    fn orbis_entry(evidence: &ComplianceEvidenceObject) -> OrbisAuditEntry {
-        OrbisAuditEntry {
-            height: evidence.output_ref.action.tx.block.height,
-            tx_hash: hex::encode(evidence.output_ref.action.tx.tx_hash.as_ref()),
-            action_index: evidence.output_ref.action.action_index,
-            output_index: evidence.output_ref.output_index,
-            amount: "1234".to_string(),
-            self_address: "receiver".to_string(),
-            counterparty: "sender".to_string(),
-            decrypted_via: DecryptedVia::OrbisPre,
-        }
     }
 }

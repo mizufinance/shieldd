@@ -19,7 +19,7 @@ proof verification, regulated-asset policy commitments, per-address/per-asset
 status commitments, encrypted compliance records, and compact data for wallets
 and auditors. Bankd owns deposits, withdrawals, issuer authority, compliance
 action authorization, and any release from its existing Shieldd custody escrow
-caused by a future seizure.
+caused by an authorized seizure.
 
 The currently supported Bankd compliance actions are typed `FreezeUserAsset`
 and `UnfreezeUserAsset` calls. A frozen `(address, asset_id)` cannot send or
@@ -28,9 +28,11 @@ Fees are base-asset-only. Unregulated assets and the same address's other
 regulated assets are unaffected. There is no global address blacklist and no
 asset-pause action.
 
-Seizure authorization, balance certification, the terminal status transition,
-and Bankd escrow release are intentionally not part of the current state machine.
-See [the enforcement and seizure design](docs/compliance/enforcement-and-seizure.md).
+The privileged `SeizeNote` host call verifies one authority-approved recovery
+capsule proof, consumes the real note with its canonical nullifier, advances the
+leaf to terminal `Seized`, and returns an exact Bankd withdrawal. The private
+capsule locator, ACP/Orbis release workflow, and Bankd settlement integration
+are not implemented yet. See [the enforcement and seizure design](docs/compliance/enforcement-and-seizure.md).
 
 ## Compliance visibility
 
@@ -41,5 +43,5 @@ fixed proof shape without promising issuer decryptability. See:
 - [deployment and ownership](docs/compliance/chain-scope.md)
 - [compliance flow](docs/compliance/flow.md)
 - [technical reference](docs/compliance/reference.md)
-- [enforcement and planned seizure](docs/compliance/enforcement-and-seizure.md)
+- [enforcement and seizure](docs/compliance/enforcement-and-seizure.md)
 - [asset seizure proof plan](docs/compliance/asset-seizure-proof-plan.md)

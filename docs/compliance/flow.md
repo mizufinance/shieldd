@@ -48,13 +48,10 @@ d   = SHA512("elgamal-derivation-v1\0\0" || canonical_address_bytes) reduced mod
 ACK = d * ring_pk
 ```
 
-The version-5 leaf commits to the address diversified-generator encoding,
-transmission-key encoding, asset ID, `d`, and per-user/per-asset status.
-Registration checks the complete five-field commitment, canonical address
-encoding, exact full-address derivation, and authorization. A derived `d = 0`
-is rejected. Consensus assigns one global derived audit key to one address and
-rejects both a second key for that address and reuse by another address. The
-same address/key pair may register in multiple asset rings.
+The leaf commits to the address encodings, asset ID, ordinary Orbis capability,
+compliance-nullifier-key commitment, and lifecycle. Registration checks the
+canonical address, capability derivation, and authorization. A derived `d = 0`
+is rejected. The same address may register independently for multiple assets.
 
 Asset id zero is reserved for the indexed-tree sentinel. Registration and both
 Transfer and Withdrawal circuits reject it as an action asset, so the sentinel
@@ -169,7 +166,7 @@ The transfer circuit proves:
 - asset membership versus canonical non-membership gap;
 - rejection of the asset-tree zero sentinel;
 - regulated policy selection and compliance-leaf membership;
-- complete version-5 compliance leaves and `Active` sender/receiver status;
+- complete compliance leaves and `Active` sender/receiver status;
 - threshold flag correctness;
 - four independent EPK/shared-secret/c2/payload encryption relations;
 - detection encryption;
@@ -182,8 +179,8 @@ The transfer circuit proves:
 - canonical address plaintext packing from the two 32-byte Fq encodings into
   31-byte stream words;
 - the single 9-field metadata binding; and
-- the exact 47-field statement preimage committed under statement-hash domain
-  `v7`.
+- the exact 47-field statement preimage committed under the canonical transfer
+  statement-hash domain.
 
 The Rust verifier reconstructs the same 47 fields from typed public data.
 Consensus separately checks proof verification, the current asset-policy and
@@ -223,7 +220,7 @@ no persistence, chain fetches, ACP decisions, or PRE calls. Scanner blocks are
 keyed by height/hash/parent hash; a reorg rolls state back to the common
 ancestor before replay.
 
-Evidence version 3 contains the output reference, asset/flag/detection facts,
+The evidence object contains the output reference, asset/flag/detection facts,
 the 704-byte ciphertext, the 264-byte metadata record, and a payload hash. It
 contains no PRE envelope, shared point, or standalone DLEQ proof. Evidence
 validation compares both ciphertext and metadata to the accepted output and
@@ -245,11 +242,9 @@ Flagged regulated transfers encrypt every audit tier to the issuer DK. After
 evidence validation, the issuer can decrypt them locally and complete the
 audit.
 
-Unflagged regulated tiers encrypt to the sender or receiver ACK. Orbis v0
-would disclose the seed-opening DH point, so both
-`export_orbis_pending_scan` and `import_orbis_audit_entries` fail closed. An
-unflagged row therefore cannot currently complete through PRE.
-
-This is an intentional availability restriction, not a confidentiality
-exception. A future PRE v1 must provide a non-disclosing, circuit-bound seed
-ciphertext and independent review before the export/import path is enabled.
+Unflagged regulated tiers encrypt to the sender or receiver ACK. The scanner has
+no PRE import workflow, so an unflagged row cannot currently complete through
+PRE. This is an availability limitation, not permission to publish PRE
+envelopes or seed-opening material in scanner evidence. The privileged
+`SeizeNote` path verifies ordinary PRE evidence separately under its signed
+release scope.

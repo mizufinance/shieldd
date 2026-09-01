@@ -1083,7 +1083,6 @@ impl App {
             release_scope_commitment: authorization.release_scope_commitment,
         };
         let verified_pre = seizure.pre_evidence.verify(&release)?;
-        seizure.compact_pre_evidence.verify(&verified_pre)?;
         ensure!(
             seizure.pre_evidence.derivation == authorization.address.to_vec(),
             "PRE derivation is not the seized address"

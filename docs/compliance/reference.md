@@ -197,7 +197,7 @@ ExtractedComplianceCiphertext { output_ref, routing_tags, raw_bytes, metadata_by
 | `audit_decryption_failures` | bounded decryption failures |
 | `audit_evidence_failures` | bounded evidence failures |
 
-## Evidence Version 3
+## Scanner evidence
 
 `ComplianceEvidenceObject` contains:
 
@@ -218,9 +218,10 @@ facts before advancing the row to `evidence_valid`.
 ## Audit Boundary
 
 Flagged transfers can be completed by issuer-DK decryption after evidence
-validation. Orbis v0 export and import always return errors because its public
-proof reveals the seed-opening DH point. Consequently, unflagged ACK-tier PRE
-audit is currently unavailable.
+validation. Scanner evidence never publishes PRE envelopes or seed-opening DH
+points. The privileged note-seizure host call accepts ordinary Orbis PRE share
+evidence directly and verifies it against the current leaf and signed release
+scope; it is not part of transaction or scanner evidence.
 
 No deployed statement field, transaction byte, or evidence object depends on
 the standalone DLEQ research helper.
@@ -240,8 +241,7 @@ circuits under `tools/gnark/`. No second circuit architecture is supported.
 - Channel whitelist enforcement is first-hop only.
 - Cross-tier randomizer/EPK independence is mandatory.
 - Metadata belongs only to the receiver output.
-- PRE must remain disabled until a non-disclosing v1 is circuit-bound and
-  independently reviewed.
+- PRE material must remain outside public transaction and scanner evidence.
 
 ## Source Map
 

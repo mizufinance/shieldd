@@ -1,8 +1,10 @@
 # Asset seizure
 
-Status: the production design is fixed, but the capsule circuits and seizure
-action are not implemented. The branch contains the compliance-leaf foundation
-and a separate historical full-audit proof prototype. The historical path is
+Status: the Shieldd capsule, circuit, canonical-nullifier, verifier, lifecycle,
+host RPC, and settlement-response core is implemented. The production workflow
+is not complete: the private capsule locator, archive reconciliation, ACP/Orbis
+client, proof-building operator, Bankd authorization, and atomic Bankd
+settlement still need implementation. The historical full-audit prototype is
 not the production settlement path.
 
 ## Production decision
@@ -101,20 +103,20 @@ note commitment are public to the seizure proof. Encrypting the full note,
 address, asset, or `rseed` would add bytes and constraints without adding a
 seizure capability.
 
-The field-native capsule has a fixed public shape derived from the ordinary
-Orbis ciphertext format:
+The current field-native capsule is a self-contained 192-byte ciphertext:
 
 ```text
-ephemeral header
+ephemeral public key
+encrypted seed envelope
+salt
 key confirmation
 encrypted amount
 encrypted note_blinding
 ```
 
-The exact header fields must be taken from the existing Orbis implementation;
-Shieldd must not invent a second encryption protocol. Capsule components are
-Poseidon-committed, and that commitment is an input to the real note
-commitment:
+It uses the same Decaf capability and seed-release relation verified by ordinary
+Orbis PRE evidence. Capsule components are Poseidon-committed, and that
+commitment is an input to the real note commitment:
 
 ```text
 capsule_commitment = Poseidon(capsule fields)
@@ -141,21 +143,20 @@ random capsule. Dummy output slots also use well-formed fixed-shape data. No
 public key, flag, length, omitted field, or constant ciphertext may identify the
 branch.
 
-### Reuse encryption work
+### Header factoring
 
-Do not add a fresh public-key encryption header when an action already has the
-right Orbis context.
+The implementation currently creates an independent self-contained capsule for
+each output. This keeps note recovery local to one archived output, but it does
+not reuse transfer compliance headers or share a header across note-reshape
+outputs. The cost is most visible in the one-input/eight-output circuit.
 
-- A transfer has receiver and sender Orbis headers already. Add the receiver
-  note opening under the receiver ACK shared secret and the change-note opening
-  under the sender ACK shared secret. Recovery always uses ACK/`capk`, even when
-  the existing policy ciphertext selects the issuer key for a flagged transfer.
-- A note reshape has one owner and up to eight outputs. Use one randomized
-  action header for that owner's `capk`, then eight independently salted and
-  committed slot bodies. These are eight capsules with a shared header, not one
-  all-or-nothing capsule.
-- A public note-creation path uses one header per distinct recipient capability.
-- A withdrawal creates no Shieldd note, so it adds no output capsule.
+Before launch, benchmark and design an action-level header representation. A
+note reshape can share one owner header while retaining eight independently
+salted slot bodies and eight separately committed logical capsules. Transfer
+reuse is less direct because sender, receiver, and flagged-policy ciphertexts
+may select different capabilities. Header factoring must preserve a
+self-contained canonical locator from each note to its action header and must
+not add a public regulated/unregulated discriminator.
 
 Encryption is performed locally from the public capability. Normal transaction
 construction does not contact Orbis. Orbis is contacted only to decrypt during
@@ -205,7 +206,8 @@ canonical nullifier
 amount
 ```
 
-The private witness contains the note, its SCT path, and `cnk`. Orbis evidence
+The private witness contains the recovered note blinding, its SCT path, and
+`cnk`. Orbis evidence
 is verified natively against current consensus policy and the current
 compliance leaf before the proof is accepted. The circuit proves:
 
@@ -219,7 +221,7 @@ compliance leaf before the proof is accepted. The circuit proves:
 
 Native admission verifies the configured authority signature and expiry,
 checks the current leaf, capability, CNK commitment, and freeze generation,
-verifies the ordinary and compact PRE evidence, applies the existing current
+verifies the ordinary PRE share evidence, applies the existing current
 and archived nullifier nonmembership checks, and verifies the Groth16 proof.
 Within Shieldd, one state delta atomically inserts the nullifier, records the
 audit effect and receipt, and changes `Frozen` to `Seized` on the first accepted
@@ -263,48 +265,46 @@ Keep the existing scan/classify/finalize code as a separate offline tool for:
 - reconciliation of the private locator; and
 - investigations that explicitly require a completeness certificate.
 
-Its authenticated audit-effect log and checkpoints are not prerequisites for
-`SeizeNote`, must not be read by normal capsule admission, and must not impose a
-million-block proof on production settlement. Do not duplicate capsule bytes in
-consensus key-value state. If the audit log is retained, benchmark its append
-cost independently at 5,000 transactions per second.
+Its authenticated audit-effect head and checkpoints are not prerequisites for
+`SeizeNote`, are not read by normal capsule admission, and must not impose a
+million-block proof on production settlement. Canonical blocks retain the
+record bodies; Shieldd does not duplicate each body in consensus or
+nonverifiable key-value state. Benchmark the rolling append cost independently
+at 5,000 transactions per second.
 
-## Implementation order
+## Implementation status
 
-1. Finish the leaf and lifecycle in place. Keep canonical unversioned domain
-   types, validate `capk` at registration, commit `cnk`, and remove the
-   intermediate authorization state.
-2. Add `RecoveryCapsule` and its Poseidon commitment. Extend `Note` with the
-   capsule commitment and change the note commitment in place; there is no
-   legacy note path or migration in this pre-launch repository.
-3. Change regulated input nullifiers to use committed `cnk` in transfer,
-   note reshape, and withdrawal circuits. Add parity tests for the Rust and Go
-   nullifier helpers.
-4. Add one capsule slot per output. Reuse transfer Orbis headers, add the shared
-   note-reshape header with per-output slots, and cover every public note creator.
-5. Implement `SeizeNote`, the gnark circuit, Rust verifier and offline prover,
-   privileged host RPC, state transition, nullifier insertion, receipt, and
-   typed Bankd settlement response. It is not a normal user transaction action.
-6. Add the ACP authorization/release client and adapt the existing Orbis
-   decryption evidence response. Do not create a new evidence format if the
-   existing response already carries the required proof.
-7. Add the durable private capsule locator and archive reconciliation worker at
-   the storage edge.
-8. Regenerate all proof keys, metadata, witnesses, vectors, and fixtures once.
-   Delete replaced artifacts rather than keeping numbered alternatives.
-9. Keep historical proof commands and storage explicitly separate from the
-   production capsule APIs.
+Implemented in Shieldd:
+
+- unversioned leaf lifecycle with validated `capk` and committed `cnk`;
+- capsule-bound note commitments and fixed-shape capsules for every real and
+  hidden-arity output;
+- canonical regulated nullifiers in transfer, note reshape, and withdrawal;
+- the note-seizure Groth16 circuit, Rust verifier and daemon prover client;
+- ordinary Orbis PRE evidence admission, authority signature, host RPC,
+  lifecycle transition, nullifier insertion, receipt, and typed settlement; and
+- regenerated circuit keys, metadata, witnesses, vectors, and fixtures.
+
+Not implemented:
+
+- private capsule locator and deterministic archive reconciliation;
+- ACP authorization/CNK release and Orbis request clients;
+- the operator that assembles recovered openings, SCT paths, proofs, and host
+  requests;
+- Bankd policy and atomic settlement integration; and
+- action-header factoring and complete end-to-end adversarial tests.
 
 ## Verification and performance gates
 
-The current leaf/capability refactor has these gnark constraint baselines before
-capsule work:
+Generated circuit metadata records this capsule-related growth:
 
 ```text
-transfer                                126,887
-note reshape, one input/eight outputs    51,559
-note reshape, eight inputs/one output   141,865
-shielded withdrawal                      75,586
+                                      before    current    increase
+transfer                              126,887    143,161      12.8%
+note reshape, one input/eight outputs  51,559    116,552     126.1%
+note reshape, eight inputs/one output 141,865    150,405       6.0%
+shielded withdrawal                    75,586     83,880      11.0%
+note seizure                                -     15,051          -
 ```
 
 Record proof duration, peak RSS, constraint count, action bytes, block bytes,
@@ -313,7 +313,7 @@ change. Extrapolate bytes and verification at 5,000 transactions per second;
 do not extrapolate historical seizure proving because it is no longer on the
 production path.
 
-Required adversarial tests include:
+The remaining end-to-end adversarial test matrix includes:
 
 - capsule swapped between output slots;
 - capsule opening with wrong amount, blinding, address, asset, or `capk`;
@@ -333,8 +333,8 @@ generation, not inferred from constraint-only tests.
 
 ## Open production decisions
 
-- Freeze the exact ordinary-Orbis capsule fields and confirm that its existing
-  evidence proves the required ACK opening.
+- Confirm the ordinary Orbis client response maps exactly to the admitted PRE
+  evidence and add cross-implementation vectors.
 - Define ACP generation, backup, rotation, and hardware custody for `cnk`.
 - Define the authority key set, signature threshold, expiry bounds, case nonce,
   and emergency revocation policy.

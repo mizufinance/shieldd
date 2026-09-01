@@ -396,16 +396,6 @@ message DleqProof {
   bytes response = 3;
 }
 
-// Transferable aggregate proof matching the verified ordinary PRE shares.
-message CompactPreEvidence {
-  uint32 version = 1;
-  bytes capability = 2;
-  bytes reader_pk = 3;
-  bytes ciphertext_epk = 4;
-  bytes reencrypted_point = 5;
-  DleqProof proof = 6;
-}
-
 // Emitted when a user is registered in the compliance tree.
 message EventUserRegistered {
   // The position in the user compliance tree.

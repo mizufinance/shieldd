@@ -76,7 +76,7 @@ impl NoteSeizureWitness {
                 encrypted_note_blinding: capsule.encrypted_note_blinding.to_bytes(),
                 seed: public.recovery_seed.to_bytes(),
             },
-            note_blinding: private.note.note_blinding().to_bytes(),
+            note_blinding: private.note_blinding.to_bytes(),
             position: u64::from(private.state_commitment_proof.position()),
             state_commitment_auth_path: private
                 .state_commitment_proof

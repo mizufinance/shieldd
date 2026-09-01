@@ -15,7 +15,6 @@ use sha2::{Digest, Sha512};
 use shieldd_sdk_proto::{core::component::compliance::v1 as pb, DomainType};
 
 pub const PRE_EVIDENCE_VERSION: u32 = 1;
-pub const COMPACT_PRE_EVIDENCE_VERSION: u32 = 1;
 pub const MAX_PRE_EVIDENCE_ID_BYTES: usize = 256;
 pub const MAX_PRE_DERIVATION_BYTES: usize = 256;
 pub const MAX_PRE_SHARES: usize = 64;
@@ -24,12 +23,6 @@ const ORBIS_DERIVATION_DOMAIN: &[u8] = b"elgamal-derivation-v1\0\0";
 const ORBIS_PRE_DLEQ_DOMAIN: &[u8] = b"elgamal-reencrypt-challenge-v1";
 static ISSUER_DLEQ_DOMAIN: Lazy<decaf377::Fq> =
     Lazy::new(|| decaf377::Fq::from_le_bytes_mod_order(b"shieldd.issuer.dh_evidence.dleq.v1\0"));
-static COMPACT_PRE_DLEQ_DOMAIN: Lazy<decaf377::Fq> = Lazy::new(|| {
-    let digest = blake2b_simd::Params::new()
-        .hash_length(64)
-        .hash(b"shieldd.seizure.pre.aggregate_dleq.v1");
-    decaf377::Fq::from_le_bytes_mod_order(digest.as_bytes())
-});
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DleqProof {
@@ -64,21 +57,6 @@ pub struct PreEvidence {
     pub reader_pk: Element,
     pub threshold: u32,
     pub shares: Vec<PreShareEvidence>,
-}
-
-/// Transferable threshold proof attached to the ordinary `StartPre` response.
-///
-/// It proves the aggregate relation already established by the verified share
-/// vector; it does not attest to a Shieldd transaction or define a new PRE
-/// operation.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct CompactPreEvidence {
-    pub version: u32,
-    pub capability: Element,
-    pub reader_pk: Element,
-    pub ciphertext_epk: Element,
-    pub reencrypted_point: Element,
-    pub proof: DleqProof,
 }
 
 /// Representation-neutral output of the evolving ACP adapter.
@@ -194,52 +172,6 @@ impl From<PreEvidence> for pb::PreEvidence {
     }
 }
 
-impl DomainType for CompactPreEvidence {
-    type Proto = pb::CompactPreEvidence;
-}
-
-impl TryFrom<pb::CompactPreEvidence> for CompactPreEvidence {
-    type Error = anyhow::Error;
-
-    fn try_from(value: pb::CompactPreEvidence) -> Result<Self> {
-        let proof = value
-            .proof
-            .ok_or_else(|| anyhow::anyhow!("compact PRE evidence is missing its DLEQ proof"))?;
-        Ok(Self {
-            version: value.version,
-            capability: decode_element(value.capability, "compact PRE capability")?,
-            reader_pk: decode_element(value.reader_pk, "compact PRE reader key")?,
-            ciphertext_epk: decode_element(value.ciphertext_epk, "compact PRE ciphertext EPK")?,
-            reencrypted_point: decode_element(
-                value.reencrypted_point,
-                "compact PRE reencrypted point",
-            )?,
-            proof: DleqProof {
-                commitment_g: decode_element(proof.commitment_g, "compact PRE commitment_g")?,
-                commitment_h: decode_element(proof.commitment_h, "compact PRE commitment_h")?,
-                response: decode_fr(proof.response, "compact PRE response")?,
-            },
-        })
-    }
-}
-
-impl From<CompactPreEvidence> for pb::CompactPreEvidence {
-    fn from(value: CompactPreEvidence) -> Self {
-        Self {
-            version: value.version,
-            capability: value.capability.vartime_compress().0.to_vec(),
-            reader_pk: value.reader_pk.vartime_compress().0.to_vec(),
-            ciphertext_epk: value.ciphertext_epk.vartime_compress().0.to_vec(),
-            reencrypted_point: value.reencrypted_point.vartime_compress().0.to_vec(),
-            proof: Some(pb::DleqProof {
-                commitment_g: value.proof.commitment_g.vartime_compress().0.to_vec(),
-                commitment_h: value.proof.commitment_h.vartime_compress().0.to_vec(),
-                response: value.proof.response.to_bytes().to_vec(),
-            }),
-        }
-    }
-}
-
 impl VerifiedPreEvidence {
     pub fn capability(&self) -> Element {
         self.capability
@@ -351,39 +283,6 @@ impl PreEvidence {
             ciphertext_epk: self.ciphertext_epk,
             reader_pk: self.reader_pk,
         })
-    }
-}
-
-impl CompactPreEvidence {
-    pub fn verify(&self, shares: &VerifiedPreEvidence) -> Result<()> {
-        ensure!(
-            self.version == COMPACT_PRE_EVIDENCE_VERSION,
-            "unsupported compact PRE evidence version"
-        );
-        ensure_nonidentity("compact PRE capability", self.capability)?;
-        ensure_nonidentity("compact PRE reader key", self.reader_pk)?;
-        ensure_nonidentity("compact PRE ciphertext EPK", self.ciphertext_epk)?;
-        ensure_nonidentity("compact PRE result", self.reencrypted_point)?;
-        ensure_nonidentity("compact PRE generator commitment", self.proof.commitment_g)?;
-        ensure_nonidentity("compact PRE reader commitment", self.proof.commitment_h)?;
-        ensure!(
-            self.capability == shares.capability
-                && self.reader_pk == shares.reader_pk
-                && self.ciphertext_epk == shares.ciphertext_epk
-                && self.reencrypted_point == shares.reencrypted_point,
-            "compact PRE evidence differs from the verified ordinary PRE shares"
-        );
-        let reader_base = self.reader_pk + self.ciphertext_epk;
-        ensure_nonidentity("compact PRE reader base", reader_base)?;
-        let challenge = compact_pre_challenge(self, reader_base);
-        verify_dleq(
-            Element::GENERATOR,
-            reader_base,
-            self.capability,
-            self.reencrypted_point,
-            &self.proof,
-            challenge,
-        )
     }
 }
 
@@ -541,29 +440,6 @@ fn issuer_challenge(evidence: &IssuerDhEvidence) -> Fr {
     fq_to_challenge_scalar(challenge)
 }
 
-fn compact_pre_challenge(evidence: &CompactPreEvidence, reader_base: Element) -> Fr {
-    let head = poseidon377::hash_7(
-        &COMPACT_PRE_DLEQ_DOMAIN,
-        (
-            Element::GENERATOR.vartime_compress_to_field(),
-            evidence.capability.vartime_compress_to_field(),
-            evidence.reader_pk.vartime_compress_to_field(),
-            evidence.ciphertext_epk.vartime_compress_to_field(),
-            reader_base.vartime_compress_to_field(),
-            evidence.reencrypted_point.vartime_compress_to_field(),
-            evidence.proof.commitment_g.vartime_compress_to_field(),
-        ),
-    );
-    let challenge = poseidon377::hash_2(
-        &COMPACT_PRE_DLEQ_DOMAIN,
-        (
-            head,
-            evidence.proof.commitment_h.vartime_compress_to_field(),
-        ),
-    );
-    fq_to_challenge_scalar(challenge)
-}
-
 fn fq_to_challenge_scalar(challenge: decaf377::Fq) -> Fr {
     let mut bytes = challenge.into_bigint().to_bytes_le();
     bytes.resize(32, 0);
@@ -646,34 +522,6 @@ mod tests {
             verified.recover_shared_point(reader_secret).unwrap(),
             ring_pk * (d * epk_secret)
         );
-    }
-
-    #[test]
-    fn compact_pre_proof_matches_verified_ordinary_shares() {
-        let (evidence, authorization, _reader_secret, _epk_secret, d) = valid_pre_evidence();
-        let verified = evidence.verify(&authorization).unwrap();
-        let capability_secret = d * Fr::from(17u64);
-        let nonce = Fr::from(59u64);
-        let reader_base = evidence.reader_pk + evidence.ciphertext_epk;
-        let mut compact = CompactPreEvidence {
-            version: COMPACT_PRE_EVIDENCE_VERSION,
-            capability: verified.capability,
-            reader_pk: evidence.reader_pk,
-            ciphertext_epk: evidence.ciphertext_epk,
-            reencrypted_point: verified.reencrypted_point,
-            proof: DleqProof {
-                commitment_g: Element::GENERATOR * nonce,
-                commitment_h: reader_base * nonce,
-                response: Fr::from(0u64),
-            },
-        };
-        let challenge = compact_pre_challenge(&compact, reader_base);
-        compact.proof.response = nonce + challenge * capability_secret;
-        compact.verify(&verified).unwrap();
-
-        let mut mutated = compact;
-        mutated.proof.response += Fr::from(1u64);
-        assert!(mutated.verify(&verified).is_err());
     }
 
     #[test]

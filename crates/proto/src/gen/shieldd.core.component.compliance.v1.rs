@@ -835,32 +835,6 @@ impl ::prost::Name for DleqProof {
         "/shieldd.core.component.compliance.v1.DleqProof".into()
     }
 }
-/// Transferable aggregate proof matching the verified ordinary PRE shares.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct CompactPreEvidence {
-    #[prost(uint32, tag = "1")]
-    pub version: u32,
-    #[prost(bytes = "vec", tag = "2")]
-    pub capability: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes = "vec", tag = "3")]
-    pub reader_pk: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes = "vec", tag = "4")]
-    pub ciphertext_epk: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes = "vec", tag = "5")]
-    pub reencrypted_point: ::prost::alloc::vec::Vec<u8>,
-    #[prost(message, optional, tag = "6")]
-    pub proof: ::core::option::Option<DleqProof>,
-}
-impl ::prost::Name for CompactPreEvidence {
-    const NAME: &'static str = "CompactPreEvidence";
-    const PACKAGE: &'static str = "shieldd.core.component.compliance.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.compliance.v1.CompactPreEvidence".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.compliance.v1.CompactPreEvidence".into()
-    }
-}
 /// Emitted when a user is registered in the compliance tree.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct EventUserRegistered {

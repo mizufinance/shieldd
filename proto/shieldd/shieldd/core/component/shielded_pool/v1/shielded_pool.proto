@@ -133,6 +133,8 @@ message NoteSeizureAuthorizationBody {
 // Complete evidence needed to seize one note. It is submitted through the
 // privileged host execution boundary rather than as a user transaction.
 message NoteSeizure {
+  reserved 10;
+
   NoteSeizureAuthorizationBody authorization = 1;
   crypto.decaf377_rdsa.v1.SpendAuthSignature authority_signature = 2;
   crypto.tct.v1.MerkleRoot anchor = 3;
@@ -142,7 +144,6 @@ message NoteSeizure {
   bytes recovery_seed = 7;
   bytes cnk_commitment = 8;
   compliance.v1.PreEvidence pre_evidence = 9;
-  compliance.v1.CompactPreEvidence compact_pre_evidence = 10;
   bytes reader_secret = 11;
   ZKNoteSeizureProof proof = 12;
   sct.v1.NullifierWindow nullifier_window = 13;

@@ -5,7 +5,7 @@ use ark_snark::SNARK;
 use decaf377::{Bls12_377, Fq, Fr};
 use decaf377_rdsa::{Signature, SpendAuth, VerificationKey};
 use shieldd_sdk_asset::{asset, Value};
-use shieldd_sdk_compliance::{CompactPreEvidence, PreEvidence};
+use shieldd_sdk_compliance::PreEvidence;
 use shieldd_sdk_keys::Address;
 use shieldd_sdk_num::Amount;
 use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
@@ -17,7 +17,7 @@ use shieldd_sdk_tct as tct;
 
 use crate::{
     public_input_hash::{note_seizure_statement_hash_from_public, StatementHashError},
-    HostWithdrawal, Note, RecoveryCapsule,
+    HostWithdrawal, RecoveryCapsule,
 };
 
 pub const NOTE_SEIZURE_PROOF_LABEL: &str = "note_seizure";
@@ -204,40 +204,33 @@ impl NoteSeizureProofPublic {
 /// Private opening proving that the authorization consumes the real SCT note.
 #[derive(Clone, Debug)]
 pub struct NoteSeizureProofPrivate {
-    pub note: Note,
+    pub note_blinding: Fq,
     pub state_commitment_proof: tct::Proof,
     pub cnk: Fq,
 }
 
 impl NoteSeizureProofPrivate {
     pub fn validate_against(&self, public: &NoteSeizureProofPublic) -> Result<()> {
+        let note_commitment = crate::note::commitment_from_address(
+            public.authorization.address.clone(),
+            Value {
+                amount: public.authorization.amount,
+                asset_id: public.authorization.asset_id,
+            },
+            self.note_blinding,
+            public.recovery_capsule.commitment(),
+        )?;
         ensure!(
-            self.note.commit() == public.authorization.note_commitment,
+            note_commitment == public.authorization.note_commitment,
             "note seizure witness note commitment mismatch"
         );
         ensure!(
-            self.state_commitment_proof.commitment() == self.note.commit(),
+            self.state_commitment_proof.commitment() == note_commitment,
             "note seizure SCT proof commitment mismatch"
         );
         ensure!(
             self.state_commitment_proof.root() == public.anchor,
             "note seizure SCT proof anchor mismatch"
-        );
-        ensure!(
-            self.note.address() == public.authorization.address,
-            "note seizure witness address mismatch"
-        );
-        ensure!(
-            self.note.value()
-                == Value {
-                    amount: public.authorization.amount,
-                    asset_id: public.authorization.asset_id,
-                },
-            "note seizure witness value mismatch"
-        );
-        ensure!(
-            self.note.recovery_commitment() == public.recovery_capsule.commitment(),
-            "note seizure witness recovery commitment mismatch"
         );
         ensure!(
             shieldd_sdk_compliance::compliance_nullifier_key_commitment(self.cnk)
@@ -248,7 +241,7 @@ impl NoteSeizureProofPrivate {
             Nullifier::derive(
                 &shieldd_sdk_keys::keys::NullifierKey(self.cnk),
                 self.state_commitment_proof.position(),
-                &self.note.commit(),
+                &note_commitment,
             ) == public.authorization.nullifier,
             "note seizure canonical nullifier mismatch"
         );
@@ -263,7 +256,7 @@ impl NoteSeizureProofPrivate {
             .decrypt_with_seed(public.recovery_seed)?;
         ensure!(
             plaintext.amount == public.authorization.amount
-                && plaintext.note_blinding == self.note.note_blinding(),
+                && plaintext.note_blinding == self.note_blinding,
             "note seizure recovery plaintext mismatch"
         );
         Ok(())
@@ -347,7 +340,6 @@ pub struct NoteSeizure {
     pub recovery_seed: Fq,
     pub cnk_commitment: Fq,
     pub pre_evidence: PreEvidence,
-    pub compact_pre_evidence: CompactPreEvidence,
     pub reader_secret: Fr,
     pub proof: NoteSeizureProof,
     pub nullifier_window: NullifierWindow,
@@ -428,10 +420,6 @@ impl TryFrom<pb::NoteSeizure> for NoteSeizure {
                 .pre_evidence
                 .context("note seizure is missing PRE evidence")?
                 .try_into()?,
-            compact_pre_evidence: value
-                .compact_pre_evidence
-                .context("note seizure is missing compact PRE evidence")?
-                .try_into()?,
             reader_secret: decode_fr(value.reader_secret, "note seizure reader secret")?,
             proof: value
                 .proof
@@ -463,7 +451,6 @@ impl From<NoteSeizure> for pb::NoteSeizure {
             recovery_seed: value.recovery_seed.to_bytes().to_vec(),
             cnk_commitment: value.cnk_commitment.to_bytes().to_vec(),
             pre_evidence: Some(value.pre_evidence.into()),
-            compact_pre_evidence: Some(value.compact_pre_evidence.into()),
             reader_secret: value.reader_secret.to_bytes().to_vec(),
             proof: Some(value.proof.into()),
             nullifier_window: Some(value.nullifier_window.into()),
@@ -553,5 +540,59 @@ mod tests {
             body.signing_bytes().unwrap()
         );
         assert_eq!(decoded.commitment().unwrap(), body.commitment().unwrap());
+    }
+
+    #[test]
+    fn seizure_witness_needs_recovered_blinding_not_note_rseed() {
+        let mut body = authorization();
+        let capk = decaf377::Element::GENERATOR * Fr::from(19u64);
+        let rseed = crate::Rseed([17; 32]);
+        let note_blinding = rseed.derive_note_blinding();
+        let (capsule, opening) =
+            RecoveryCapsule::encrypt(body.amount, note_blinding, capk, rseed).unwrap();
+        body.note_commitment = crate::note::commitment_from_address(
+            body.address.clone(),
+            Value {
+                amount: body.amount,
+                asset_id: body.asset_id,
+            },
+            note_blinding,
+            capsule.commitment(),
+        )
+        .unwrap();
+
+        let mut tree = tct::Tree::new();
+        tree.insert(tct::Witness::Keep, body.note_commitment)
+            .unwrap();
+        let state_commitment_proof = tree.witness(body.note_commitment).unwrap();
+        let cnk = Fq::from(23u64);
+        body.nullifier = Nullifier::derive(
+            &shieldd_sdk_keys::keys::NullifierKey(cnk),
+            state_commitment_proof.position(),
+            &body.note_commitment,
+        );
+        let public = NoteSeizureProofPublic {
+            authorization: body,
+            anchor: state_commitment_proof.root(),
+            history_required: false,
+            recent_position_floor: 0,
+            recovery_capsule: capsule,
+            recovery_seed: opening.seed,
+            cnk_commitment: shieldd_sdk_compliance::compliance_nullifier_key_commitment(cnk),
+        };
+        let private = NoteSeizureProofPrivate {
+            note_blinding,
+            state_commitment_proof,
+            cnk,
+        };
+
+        private.validate_against(&public).unwrap();
+        crate::gnark::encode_note_seizure_witness(&public, &private).unwrap();
+
+        let mut wrong = private;
+        wrong.note_blinding += Fq::from(1u64);
+        wrong
+            .validate_against(&public)
+            .expect_err("a different recovered blinding must not open the note");
     }
 }

@@ -77,9 +77,8 @@ pub use seizure_projection::{
 
 pub mod pre_evidence;
 pub use pre_evidence::{
-    derive_orbis_scalar, CompactPreEvidence, DleqProof, EvidenceReleaseAuthorization,
-    IssuerDhEvidence, PreEvidence, PreShareEvidence, VerifiedPreEvidence,
-    COMPACT_PRE_EVIDENCE_VERSION, PRE_EVIDENCE_VERSION,
+    derive_orbis_scalar, DleqProof, EvidenceReleaseAuthorization, IssuerDhEvidence, PreEvidence,
+    PreShareEvidence, VerifiedPreEvidence, PRE_EVIDENCE_VERSION,
 };
 
 pub mod withdrawal;
@@ -155,7 +154,7 @@ pub use audit_status::{AuditStatus, DecryptedVia, FlowType};
 pub mod audit_records;
 pub use audit_records::{
     filter_subject_candidates, AuditDetectedRef, AuditRoutingSelector, AuditScanExport,
-    AuditSubjectCandidate, AuditSubjectRegistration, AuditSubjectRole, OrbisAuditEntry,
+    AuditSubjectCandidate, AuditSubjectRegistration, AuditSubjectRole,
 };
 
 #[cfg(feature = "component")]
@@ -163,9 +162,8 @@ pub mod audit;
 #[cfg(feature = "component")]
 pub use audit::{
     decrypt_flagged_rows, export_detected_refs, export_ledger_rows, export_ledger_rows_json,
-    export_orbis_pending_scan, export_scan_json, import_orbis_audit_entries, mark_row_audited,
-    record_address_alias, record_evidence_failure, scanner_health_json,
-    validate_and_save_evidence_object,
+    export_scan_json, mark_row_audited, record_address_alias, record_evidence_failure,
+    scanner_health_json, validate_and_save_evidence_object,
 };
 
 mod tx_id;

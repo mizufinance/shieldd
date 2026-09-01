@@ -367,10 +367,6 @@ pub struct NoteSeizure {
     pub cnk_commitment: ::prost::alloc::vec::Vec<u8>,
     #[prost(message, optional, tag = "9")]
     pub pre_evidence: ::core::option::Option<super::super::compliance::v1::PreEvidence>,
-    #[prost(message, optional, tag = "10")]
-    pub compact_pre_evidence: ::core::option::Option<
-        super::super::compliance::v1::CompactPreEvidence,
-    >,
     #[prost(bytes = "vec", tag = "11")]
     pub reader_secret: ::prost::alloc::vec::Vec<u8>,
     #[prost(message, optional, tag = "12")]

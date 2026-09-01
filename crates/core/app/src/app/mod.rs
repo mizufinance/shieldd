@@ -3892,28 +3892,6 @@ impl App {
             .0
     }
 
-    /// Synthetic benchmark baseline: no shared artifact cache between mempool,
-    /// proposer, and validator stages.
-    pub async fn prepare_proposal_uncached(
-        &mut self,
-        proposal: request::PrepareProposal,
-    ) -> response::PrepareProposal {
-        self.prepare_proposal_impl(proposal, None).await
-    }
-
-    pub async fn prepare_proposal_uncached_profiled(
-        &mut self,
-        proposal: request::PrepareProposal,
-        allow_oversized_proposal: bool,
-    ) -> (
-        response::PrepareProposal,
-        PrepareProposalProfile,
-        Option<ProposalArtifactSidecar>,
-    ) {
-        self.prepare_proposal_impl_profiled(proposal, None, allow_oversized_proposal)
-            .await
-    }
-
     /// Production path using the shared artifact cache.
     pub async fn prepare_proposal(
         &mut self,
@@ -4355,24 +4333,6 @@ impl App {
             .0
     }
 
-    /// Synthetic benchmark baseline: no shared artifact cache between mempool,
-    /// proposer, and validator stages.
-    pub async fn process_proposal_uncached(
-        &mut self,
-        proposal: request::ProcessProposal,
-    ) -> response::ProcessProposal {
-        self.process_proposal_impl(proposal, None).await
-    }
-
-    pub async fn process_proposal_uncached_profiled(
-        &mut self,
-        proposal: request::ProcessProposal,
-        allow_oversized_proposal: bool,
-    ) -> (response::ProcessProposal, ProcessProposalProfile) {
-        self.process_proposal_impl_profiled(proposal, None, None, allow_oversized_proposal)
-            .await
-    }
-
     /// Production path using the shared artifact cache.
     pub async fn process_proposal_profiled(
         &mut self,
@@ -4546,12 +4506,6 @@ impl App {
         Ok((events, profile))
     }
 
-    /// Synthetic benchmark baseline: no shared artifact cache between mempool,
-    /// proposer, and validator stages.
-    pub async fn deliver_tx_bytes_uncached(&mut self, tx_bytes: &[u8]) -> Result<Vec<abci::Event>> {
-        self.deliver_tx_bytes_impl(tx_bytes, None).await
-    }
-
     pub async fn deliver_tx_bytes_uncached_profiled(
         &mut self,
         tx_bytes: &[u8],
@@ -4567,104 +4521,6 @@ impl App {
     ) -> Result<(Vec<abci::Event>, CheckTxProfile)> {
         self.deliver_tx_bytes_impl_profiled(tx_bytes, stateless_cache)
             .await
-    }
-
-    /// Benchmark-only admission path that reuses extracted stateless artifacts
-    /// but intentionally skips per-transaction batch proof verification on
-    /// cache misses.
-    #[cfg(any(test, feature = "benchmark-helpers"))]
-    pub async fn deliver_tx_bytes_extracted_profiled_for_bench(
-        &mut self,
-        tx_bytes: &[u8],
-        stateless_cache: &StatelessCache,
-    ) -> Result<(Vec<abci::Event>, CheckTxProfile)> {
-        let total_start = Instant::now();
-        let mut profile = CheckTxProfile::default();
-        anyhow::ensure!(
-            transaction_size_allowed(tx_bytes.len()),
-            "transaction size {} exceeds maximum {}",
-            tx_bytes.len(),
-            MAX_TRANSACTION_SIZE_BYTES
-        );
-        let cache_lookup_start = Instant::now();
-        let hash: [u8; 32] = sha2::Sha256::digest(tx_bytes).into();
-        let cache_entry = stateless_cache.get(&hash, tx_bytes);
-        profile.checktx_cache_lookup_ms = cache_lookup_start.elapsed().as_secs_f64() * 1000.0;
-
-        match cache_entry {
-            Some(CacheEntry::Extracted(extracted)) => {
-                let (mut verified, verify_profile) = match Self::verify_tx_artifacts_for_stage(
-                    "checktx_extract_only_upgrade",
-                    std::slice::from_ref(&extracted),
-                )
-                .await
-                {
-                    Ok(verified) => verified,
-                    Err(error) => {
-                        stateless_cache.insert_invalid(tx_bytes)?;
-                        return Err(error);
-                    }
-                };
-                profile.stateless_artifact_batch_verify_ms = verify_profile.batch_verify_ms;
-                let artifact = verified
-                    .pop()
-                    .context("verified benchmark cache artifact missing")?;
-                stateless_cache.insert_fully_verified(tx_bytes, artifact.clone())?;
-                tracing::debug!("stateless cache hit (valid, extracted-for-bench)");
-                Self::record_artifact_reuse("checktx_extract_only");
-                profile.cache_hit_count = 1;
-                let skip_historical =
-                    artifact.has_matching_historical_validation(self.snapshot_version);
-                let execute_fast_start = Instant::now();
-                let (events, execute_profile) = if supports_parallel_prepare(artifact.tx())
-                    && self.checktx_shared_context.is_some()
-                {
-                    self.execute_checktx_fast_profiled(artifact.clone(), skip_historical)
-                        .await?
-                } else {
-                    self.deliver_tx_with_verified_stateless_profiled(artifact, None)
-                        .await?
-                };
-                profile.checktx_execute_fast_wall_ms =
-                    execute_fast_start.elapsed().as_secs_f64() * 1000.0;
-                profile.check_historical_ms = execute_profile.check_historical_ms;
-                Self::fill_checktx_execute_profile(&mut profile, &execute_profile);
-                profile.checktx_total_wall_ms = total_start.elapsed().as_secs_f64() * 1000.0;
-                Ok((events, profile))
-            }
-            Some(CacheEntry::FullyVerified(artifact)) => {
-                let skip_historical =
-                    artifact.has_matching_historical_validation(self.snapshot_version);
-                let (events, execute_profile) = if supports_parallel_prepare(artifact.tx())
-                    && self.checktx_shared_context.is_some()
-                {
-                    self.execute_checktx_fast_profiled(artifact.clone(), skip_historical)
-                        .await?
-                } else {
-                    self.deliver_tx_with_verified_stateless_profiled(artifact, None)
-                        .await?
-                };
-                Self::fill_checktx_execute_profile(&mut profile, &execute_profile);
-                Ok((events, profile))
-            }
-            Some(CacheEntry::Invalid) => {
-                anyhow::bail!("transaction previously failed stateless checks");
-            }
-            None => {
-                let miss_start = Instant::now();
-                let (events, mut miss_profile) = self
-                    .deliver_tx_with_stateless_extraction_caching_profiled(
-                        tx_bytes,
-                        stateless_cache,
-                    )
-                    .await?;
-                miss_profile.checktx_stateless_phase_wall_ms =
-                    miss_start.elapsed().as_secs_f64() * 1000.0;
-                miss_profile.checktx_cache_lookup_ms = profile.checktx_cache_lookup_ms;
-                miss_profile.checktx_total_wall_ms = total_start.elapsed().as_secs_f64() * 1000.0;
-                Ok((events, miss_profile))
-            }
-        }
     }
 
     pub async fn deliver_tx_bytes(
