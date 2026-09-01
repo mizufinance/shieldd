@@ -6857,7 +6857,10 @@ mod tests {
     use shieldd_sdk_compact_block::StatePayload;
     use shieldd_sdk_compliance::genesis::NativeAssetRegistration;
     use shieldd_sdk_compliance::registry::ComplianceRegistryWrite as _;
-    use shieldd_sdk_compliance::{derive_compliance_nullifier_key, AssetPolicy, ComplianceLeaf};
+    use shieldd_sdk_compliance::structs::{UserRegistrationGrant, UserRegistrationGrantBody};
+    use shieldd_sdk_compliance::{
+        derive_compliance_nullifier_key, AssetPolicy, ComplianceLeaf, MsgRegisterUser,
+    };
     use shieldd_sdk_fee::Fee;
     use shieldd_sdk_keys::{test_keys, Address};
     use shieldd_sdk_mock_client::MockClient;
@@ -6890,7 +6893,7 @@ mod tests {
     use shieldd_sdk_transaction::{
         memo::{MemoCiphertext, MemoPlaintext, MEMO_CIPHERTEXT_LEN_BYTES},
         plan::MemoPlan,
-        Action, Transaction, TransactionParameters, TransactionPlan,
+        Action, ActionPlan, Transaction, TransactionParameters, TransactionPlan,
     };
     use shieldd_sdk_txhash::AuthorizingData;
     use tendermint::v0_37::abci::{request, response};
@@ -7458,17 +7461,21 @@ mod tests {
         let authority_vk = rdsa::VerificationKey::from(test_keys::SPEND_KEY.spend_auth_key());
         let regulated_denom = "wregulated_usd";
         let regulated_asset_id = asset::REGISTRY.parse_unit(regulated_denom).id();
-        let cnk = derive_compliance_nullifier_key(
-            test_keys::SPEND_KEY.nullifier_key().0,
-            &test_keys::ADDRESS_0,
-            regulated_asset_id,
-        );
-        let leaf = ComplianceLeaf::registered(
-            test_keys::ADDRESS_0.deref().clone(),
-            regulated_asset_id,
-            decaf377::Element::GENERATOR,
-            cnk,
-        )?;
+        let make_leaf = |address: Address| {
+            let cnk = derive_compliance_nullifier_key(
+                test_keys::SPEND_KEY.nullifier_key().0,
+                &address,
+                regulated_asset_id,
+            );
+            ComplianceLeaf::registered(
+                address,
+                regulated_asset_id,
+                decaf377::Element::GENERATOR,
+                cnk,
+            )
+        };
+        let genesis_leaf = make_leaf(test_keys::ADDRESS_0.deref().clone())?;
+        let runtime_leaf = make_leaf(test_keys::ADDRESS_1.deref().clone())?;
         let app_state_bytes = serde_json::to_vec(&AppState::Content(Content {
             chain_id: TestNode::<()>::CHAIN_ID.to_string(),
             compliance_content: shieldd_sdk_compliance::genesis::Content {
@@ -7479,22 +7486,29 @@ mod tests {
                     registration_authority_vk: Some(authority_vk),
                     seizure_authority_vk: Some(authority_vk),
                 }],
-                user_leaves: vec![leaf],
+                user_leaves: vec![genesis_leaf],
                 ..Default::default()
             },
             shielded_pool_content: shieldd_sdk_shielded_pool::genesis::Content {
-                allocations: vec![Allocation {
-                    raw_amount: 1_000_000u128.into(),
-                    raw_denom: regulated_denom.to_string(),
-                    address: test_keys::ADDRESS_0.deref().clone(),
-                }],
+                allocations: vec![
+                    Allocation {
+                        raw_amount: 1_000_000u128.into(),
+                        raw_denom: regulated_denom.to_string(),
+                        address: test_keys::ADDRESS_0.deref().clone(),
+                    },
+                    Allocation {
+                        raw_amount: 1_000_000u128.into(),
+                        raw_denom: BASE_ASSET_DENOM.deref().base_denom().denom,
+                        address: test_keys::ADDRESS_0.deref().clone(),
+                    },
+                ],
                 ..Default::default()
             },
             ..Default::default()
         }))?;
 
         let consensus = Consensus::new(storage.as_ref().clone());
-        TestNode::builder()
+        let mut test_node = TestNode::builder()
             .single_validator()
             .app_state(app_state_bytes)
             .with_initial_timestamp(tendermint::Time::parse_from_rfc3339(
@@ -7502,6 +7516,145 @@ mod tests {
             )?)
             .init_chain(consensus)
             .await?;
+        test_node.block().execute().await?;
+
+        let mut client = MockClient::new(test_keys::SPEND_KEY.clone())
+            .with_sync_to_storage(&storage)
+            .await?;
+        let grant_body = UserRegistrationGrantBody {
+            leaf: runtime_leaf.clone(),
+            policy_id: String::new(),
+            valid_until_unix: 4_102_444_800,
+            nonce: vec![1u8; 16],
+        };
+        let registration = MsgRegisterUser {
+            leaf: runtime_leaf,
+            grant: Some(UserRegistrationGrant {
+                signature: test_keys::SPEND_KEY
+                    .spend_auth_key()
+                    .sign(OsRng, &grant_body.signing_bytes()),
+                body: grant_body,
+            }),
+        };
+        let mut registration_plan = TransactionPlan {
+            actions: vec![ActionPlan::from(registration)],
+            memo: None,
+            fee_funding: None,
+            transaction_parameters: TransactionParameters {
+                chain_id: TestNode::<()>::CHAIN_ID.to_string(),
+                ..Default::default()
+            },
+            nullifier_window: None,
+        };
+        let registration_tx = client
+            .witness_auth_build_with_compliance(&mut registration_plan, storage.latest_snapshot())
+            .await?;
+        test_node
+            .block()
+            .with_data(vec![registration_tx.encode_to_vec()])
+            .execute()
+            .await?;
+        client.sync_to_latest(storage.latest_snapshot()).await?;
+        let client = Arc::new(client);
+        let note = client
+            .notes
+            .values()
+            .find(|note| {
+                note.asset_id() == regulated_asset_id
+                    && note.address() == test_keys::ADDRESS_0.deref().clone()
+            })
+            .cloned()
+            .context("regulated genesis note must be recoverable")?;
+        let position = client
+            .position(note.commit())
+            .context("regulated genesis note position must be known")?;
+        let spend = ShieldedInputPlan::new(&mut OsRng, note.clone(), position);
+        let send_amount = Amount::from(100u64);
+        let mut output = ShieldedOutputPlan::new(
+            &mut OsRng,
+            Value {
+                amount: send_amount,
+                asset_id: regulated_asset_id,
+            },
+            test_keys::ADDRESS_1.deref().clone(),
+        );
+        let mut change = ShieldedOutputPlan::new(
+            &mut OsRng,
+            Value {
+                amount: note.amount() - send_amount,
+                asset_id: regulated_asset_id,
+            },
+            test_keys::ADDRESS_0.deref().clone(),
+        );
+        for output in [&mut output, &mut change] {
+            output.asset_anchor = spend.asset_anchor;
+            output.compliance_anchor = spend.compliance_anchor;
+            output.target_timestamp = spend.target_timestamp;
+            output.is_regulated = spend.is_regulated;
+            output.tx_blinding_nonce = spend.tx_blinding_nonce;
+            output.asset_indexed_leaf = spend.asset_indexed_leaf.clone();
+            output.asset_path = spend.asset_path.clone();
+            output.asset_position = spend.asset_position;
+            output.asset_policy = spend.asset_policy.clone();
+        }
+        let mut plan = TransactionPlan {
+            actions: vec![TransferPlan::new(
+                vec![spend.into()],
+                vec![output.into(), change.into()],
+                Fr::from(1u64),
+            )?
+            .into()],
+            memo: Some(MemoPlan::new(
+                &mut OsRng,
+                MemoPlaintext::blank_memo(test_keys::ADDRESS_0.deref().clone()),
+            )),
+            fee_funding: None,
+            transaction_parameters: TransactionParameters {
+                chain_id: TestNode::<()>::CHAIN_ID.to_string(),
+                ..Default::default()
+            },
+            nullifier_window: Some(test_nullifier_window()),
+        };
+        let tx_bytes = client
+            .witness_auth_build_with_compliance(&mut plan, storage.latest_snapshot())
+            .await?
+            .encode_to_vec();
+
+        let cache = StatelessCache::new();
+        let mut mempool_app = App::new(storage.latest_snapshot());
+        mempool_app.set_block_tx_indexing_mode(BlockTxIndexingMode::NoIndex);
+        mempool_app
+            .deliver_tx_bytes(tx_bytes.as_slice(), Some(&cache))
+            .await?;
+
+        test_node.block().execute().await?;
+        let mut recheck_app = App::new(storage.latest_snapshot());
+        recheck_app.set_block_tx_indexing_mode(BlockTxIndexingMode::NoIndex);
+        recheck_app
+            .deliver_tx_bytes(tx_bytes.as_slice(), Some(&cache))
+            .await
+            .context("regulated transfer must remain valid during next-block mempool recheck")?;
+
+        let mut proposer = App::new(storage.latest_snapshot());
+        proposer.set_block_tx_indexing_mode(BlockTxIndexingMode::DeferredBatch);
+        let proposal = request::PrepareProposal {
+            txs: vec![tx_bytes.into()],
+            max_tx_bytes: 1024 * 1024,
+            local_last_commit: None,
+            misbehavior: Vec::new(),
+            height: block::Height::from(4u32),
+            time: Time::unix_epoch(),
+            next_validators_hash: Hash::None,
+            proposer_address: account::Id::new([0u8; 20]),
+        };
+        let (prepared, _, _) = proposer
+            .prepare_proposal_profiled(proposal, Some(&cache), false)
+            .await;
+        assert_eq!(
+            prepared.txs.len(),
+            2,
+            "proposal must include the regulated transfer and aggregate bundle"
+        );
 
         Ok(())
     }

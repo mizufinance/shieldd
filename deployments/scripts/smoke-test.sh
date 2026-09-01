@@ -169,6 +169,13 @@ cleanup_smoke() {
         fi
 
         if [ "$exit_status" -ne 0 ] && [ -f "${smoke_test_dir:-}/devnet.log" ]; then
+            >&2 echo "=== devnet transaction diagnostics ==="
+            grep -E \
+                'checktx_frontdoor_|tx accepted|tx rejected|prepare_proposal_(start|finish)|candidate.*(reject|drop)|recheck|mempool' \
+                "${smoke_test_dir}/devnet.log" \
+                | tail -1000 >&2 \
+                || true
+            >&2 echo "=== end transaction diagnostics ==="
             >&2 echo "=== devnet log after smoke failure (last 200 lines) ==="
             tail -200 "${smoke_test_dir}/devnet.log" >&2 || true
             >&2 echo "=== end devnet log ==="

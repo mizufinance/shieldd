@@ -17,12 +17,12 @@ const (
 )
 
 var (
-	TransferSaltDomain              = transferSaltConstant("shieldd.transfer.compliance.salt")
-	TransferDetectionSaltLabel      = transferSaltConstant("detection")
-	TransferSenderCoreSaltLabel     = transferSaltConstant("sender_core")
-	TransferSenderExtSaltLabel      = transferSaltConstant("sender_ext")
-	TransferOutputCoreSaltLabel     = transferSaltConstant("output_core")
-	TransferOutputExtSaltLabel      = transferSaltConstant("output_ext")
+	TransferSaltDomain            = transferSaltConstant("shieldd.transfer.compliance.salt")
+	TransferDetectionSaltLabel    = transferSaltConstant("detection")
+	TransferSenderCoreSaltLabel   = transferSaltConstant("sender_core")
+	TransferSenderExtSaltLabel    = transferSaltConstant("sender_ext")
+	TransferOutputCoreSaltLabel   = transferSaltConstant("output_core")
+	TransferOutputExtSaltLabel    = transferSaltConstant("output_ext")
 	TransferKeyConfirmationDomain = transferSaltConstant("shieldd.transfer.compliance.key_confirmation.v1")
 )
 
