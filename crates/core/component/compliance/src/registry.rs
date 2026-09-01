@@ -1825,21 +1825,6 @@ trait ComplianceRegistryRawWrite: StateWrite + ComplianceRegistryRead {
 
 impl<T: StateWrite + ?Sized> ComplianceRegistryRawWrite for T {}
 
-pub(crate) async fn seize_frozen_leaf<S>(
-    state: &mut S,
-    address: &shieldd_sdk_keys::Address,
-    asset_id: asset::Id,
-) -> Result<event::EventUserAssetStatusChanged>
-where
-    S: StateWrite + ComplianceRegistryRead + ?Sized,
-{
-    let seized =
-        <S as ComplianceRegistryRawWrite>::seize_frozen_user_asset(state, address, asset_id)
-            .await?;
-    <S as ComplianceRegistryRawWrite>::emit_user_status_change(state, seized.clone());
-    Ok(seized)
-}
-
 #[derive(Clone, Debug)]
 pub struct NoteSeizureLifecycle {
     pub leaf: ComplianceLeaf,
