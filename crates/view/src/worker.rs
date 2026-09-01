@@ -32,7 +32,7 @@ use tonic::transport::Channel;
 use tracing::instrument;
 
 use crate::{
-    compliance_tree::{ComplianceAssetTree, ComplianceUserTree},
+    compliance_tree::{ComplianceAssetTree, ComplianceSnapshot, ComplianceUserTree},
     sync::{scan_block, FilteredBlock},
     Storage,
 };
@@ -91,10 +91,8 @@ pub struct Worker {
     sync_height_tx: watch::Sender<u64>,
     /// Tonic channel used to create GRPC clients.
     channel: Channel,
-    /// In-memory compliance user tree for local sync.
-    compliance_user_tree: Arc<RwLock<ComplianceUserTree>>,
-    /// In-memory compliance asset tree for local sync.
-    compliance_asset_tree: Arc<RwLock<ComplianceAssetTree>>,
+    /// Height-consistent compliance trees published with one atomic pointer swap.
+    compliance_snapshot: Arc<parking_lot::RwLock<Arc<ComplianceSnapshot>>>,
 }
 
 impl Worker {
@@ -104,8 +102,7 @@ impl Worker {
     /// - a shared, in-memory SCT instance;
     /// - a shared error slot;
     /// - a channel for notifying the client of sync progress;
-    /// - a shared compliance user tree;
-    /// - a shared compliance asset tree.
+    /// - a shared immutable compliance snapshot.
     #[instrument(skip_all)]
     pub async fn new(
         storage: Storage,
@@ -116,8 +113,7 @@ impl Worker {
             Arc<RwLock<shieldd_sdk_tct::Tree>>,
             Arc<Mutex<Option<anyhow::Error>>>,
             watch::Receiver<u64>,
-            Arc<RwLock<ComplianceUserTree>>,
-            Arc<RwLock<ComplianceAssetTree>>,
+            Arc<parking_lot::RwLock<Arc<ComplianceSnapshot>>>,
         ),
         anyhow::Error,
     > {
@@ -133,24 +129,24 @@ impl Worker {
         // Create a shared error slot
         let error_slot = Arc::new(Mutex::new(None));
         // Create a channel for the worker to notify of sync height changes.
-        let (sync_height_tx, mut sync_height_rx) =
-            watch::channel(storage.last_sync_height().await?.unwrap_or(0));
+        let initial_height = storage.last_sync_height().await?.unwrap_or(0);
+        let (sync_height_tx, mut sync_height_rx) = watch::channel(initial_height);
         // Mark the current height as seen, since it's not new.
         sync_height_rx.borrow_and_update();
 
         // Load compliance trees from storage
-        let compliance_user_tree = Arc::new(RwLock::new(
-            storage
-                .compliance_user_tree()
-                .await
-                .context("failed to load compliance user tree")?,
-        ));
-        let compliance_asset_tree = Arc::new(RwLock::new(
-            storage
-                .compliance_asset_tree()
-                .await
-                .context("failed to load compliance asset tree")?,
-        ));
+        let compliance_snapshot =
+            Arc::new(parking_lot::RwLock::new(Arc::new(ComplianceSnapshot {
+                height: initial_height,
+                user_tree: storage
+                    .compliance_user_tree()
+                    .await
+                    .context("failed to load compliance user tree")?,
+                asset_tree: storage
+                    .compliance_asset_tree()
+                    .await
+                    .context("failed to load compliance asset tree")?,
+            })));
 
         Ok((
             Self {
@@ -160,14 +156,12 @@ impl Worker {
                 error_slot: error_slot.clone(),
                 sync_height_tx,
                 channel,
-                compliance_user_tree: compliance_user_tree.clone(),
-                compliance_asset_tree: compliance_asset_tree.clone(),
+                compliance_snapshot: compliance_snapshot.clone(),
             },
             sct,
             error_slot,
             sync_height_rx,
-            compliance_user_tree,
-            compliance_asset_tree,
+            compliance_snapshot,
         ))
     }
 
@@ -178,15 +172,18 @@ impl Worker {
     /// 2. Full leaf data for addresses in sync scope (own + counterparties)
     /// 3. All asset registrations into the asset tree
     /// 4. Compliance anchors for the block
-    async fn process_compliance_block(&self, block: &CompactBlock) -> anyhow::Result<()> {
+    async fn prepare_compliance_block(
+        &self,
+        block: &CompactBlock,
+    ) -> anyhow::Result<(
+        Option<crate::storage::ComplianceBlockPlan>,
+        Arc<ComplianceSnapshot>,
+    )> {
         let height = block.height;
 
-        // Lock both compliance trees (asset_tree first to ensure consistent lock ordering)
-        let mut asset_tree = self.compliance_asset_tree.write().await;
-        let mut user_tree = self.compliance_user_tree.write().await;
-
-        let mut next_user_tree = user_tree.clone();
-        let mut next_asset_tree = asset_tree.clone();
+        let current = self.compliance_snapshot.read().clone();
+        let mut next_user_tree = current.user_tree.clone();
+        let mut next_asset_tree = current.asset_tree.clone();
         let user_start_position = next_user_tree.position();
         let asset_start_position = next_asset_tree.leaf_count();
         let mut leaf_updates = Vec::new();
@@ -277,23 +274,26 @@ impl Worker {
             "worker: asset tree state after sync"
         );
 
-        // Persist compliance tree changes
-        self.storage
-            .record_compliance_block(
-                height,
-                &next_user_tree,
-                &next_asset_tree,
-                user_start_position,
-                asset_start_position,
-                leaf_updates,
-                asset_policy_updates,
-            )
-            .await?;
+        let has_events = !block.compliance_user_registrations.is_empty()
+            || !block.compliance_user_status_changes.is_empty()
+            || !block.compliance_asset_registrations.is_empty();
+        let plan = has_events.then(|| crate::storage::ComplianceBlockPlan {
+            height,
+            user_tree: next_user_tree.clone(),
+            asset_tree: next_asset_tree.clone(),
+            user_start_position,
+            asset_start_position,
+            leaf_updates,
+            asset_policy_updates,
+        });
 
         next_asset_tree.clear_dirty_positions();
         next_user_tree.clear_dirty_positions();
-        *asset_tree = next_asset_tree;
-        *user_tree = next_user_tree;
+        let snapshot = Arc::new(ComplianceSnapshot {
+            height,
+            user_tree: next_user_tree,
+            asset_tree: next_asset_tree,
+        });
 
         tracing::debug!(
             height,
@@ -303,7 +303,7 @@ impl Worker {
             "processed compliance block"
         );
 
-        Ok(())
+        Ok((plan, snapshot))
     }
 
     pub async fn fetch_transactions(
@@ -438,8 +438,8 @@ impl Worker {
                     .await?;
             }
 
-            // Process compliance registrations regardless of whether block requires SCT scanning
-            self.process_compliance_block(&block).await?;
+            let (compliance_plan, next_compliance_snapshot) =
+                self.prepare_compliance_block(&block).await?;
 
             if !block.requires_scanning() {
                 // Optimization: if the block is empty, seal the in-memory SCT,
@@ -453,6 +453,11 @@ impl Worker {
                         .expect("ending the epoch must succeed");
                 }
                 self.storage.record_empty_block(height).await?;
+                anyhow::ensure!(
+                    compliance_plan.is_none(),
+                    "compliance events must force wallet block persistence"
+                );
+                *self.compliance_snapshot.write() = next_compliance_snapshot;
                 // Notify all watchers of the new height we just recorded.
                 self.sync_height_tx.send(height)?;
             } else {
@@ -586,8 +591,10 @@ impl Worker {
                         transactions,
                         &mut sct_guard,
                         self.channel.clone(),
+                        compliance_plan,
                     )
                     .await?;
+                *self.compliance_snapshot.write() = next_compliance_snapshot;
                 // Notify all watchers of the new height we just recorded.
                 self.sync_height_tx.send(filtered_block.height)?;
             }

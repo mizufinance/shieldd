@@ -1138,16 +1138,15 @@ trait ComplianceRegistryRawWrite: StateWrite + ComplianceRegistryRead {
 
     async fn ensure_asset_tree_initialized(&mut self) -> Result<()> {
         if self.get_asset_count().await? > 0 {
-            let tree = self.load_asset_imt_from_nv().await?;
-            if let Some(committed) = self
+            let committed = self
                 .get::<StateCommitment>(state_key::asset_imt_root())
                 .await?
-            {
-                anyhow::ensure!(
-                    tree.root() == committed,
-                    "asset IMT committed root does not match durable tree"
-                );
-            }
+                .context("initialized asset IMT is missing its committed root")?;
+            let materialized_root = self.read_asset_node(crate::tree::DEFAULT_DEPTH, 0).await?;
+            anyhow::ensure!(
+                materialized_root == committed,
+                "asset IMT committed root does not match its root node"
+            );
             return Ok(());
         }
         anyhow::ensure!(
@@ -1172,10 +1171,10 @@ trait ComplianceRegistryRawWrite: StateWrite + ComplianceRegistryRead {
     }
 
     async fn verify_asset_tree_after_mutation(&self, expected_root: StateCommitment) -> Result<()> {
-        let tree = self.load_asset_imt_from_nv().await?;
+        let root = self.read_asset_node(crate::tree::DEFAULT_DEPTH, 0).await?;
         anyhow::ensure!(
-            tree.root() == expected_root,
-            "asset IMT mutation did not produce its committed root"
+            root == expected_root,
+            "asset IMT mutation root node does not match its committed root"
         );
         Ok(())
     }
@@ -1602,6 +1601,10 @@ trait ComplianceRegistryRawWrite: StateWrite + ComplianceRegistryRead {
     /// proof history.
     async fn record_compliance_anchors(&mut self, height: u64) -> Result<()> {
         let trees_modified = self.compliance_trees_modified();
+
+        if trees_modified {
+            self.verify_committed_tree_roots().await?;
+        }
 
         // Get current anchors
         let user_anchor = self.get_user_tree_root().await?;
@@ -2340,7 +2343,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn corrupted_asset_structure_blocks_readiness_and_next_mutation() {
+    async fn corrupted_asset_structure_blocks_readiness_and_end_block() {
         let storage = TempStorage::new().await.unwrap();
         let snapshot = storage.latest_snapshot();
         let mut state = cnidarium::StateDelta::new(snapshot);
@@ -2354,8 +2357,6 @@ mod tests {
             .await
             .unwrap();
 
-        let root_before = state.get_asset_imt_root().await.unwrap();
-        let count_before = state.get_asset_count().await.unwrap();
         let mut sentinel = state.read_asset_leaf(0).await.unwrap();
         sentinel.next_value = Fq::from(778u64);
         state.nonverifiable_put_raw(
@@ -2373,17 +2374,19 @@ mod tests {
         );
 
         let next_asset = asset::Id(Fq::from(888u64));
-        let mutation_error = state
+        state
             .register_regulated_asset(next_asset, policy)
             .await
-            .expect_err("a malformed durable tree must block later mutations");
+            .expect("local mutation checks should not reconstruct the full tree");
+
+        let mutation_error = state
+            .record_compliance_anchors(1)
+            .await
+            .expect_err("a malformed durable tree must block end-block anchoring");
         assert!(
             mutation_error.to_string().contains("successor value"),
             "unexpected error: {mutation_error:#}"
         );
-        assert_eq!(state.get_asset_count().await.unwrap(), count_before);
-        assert_eq!(state.get_asset_imt_root().await.unwrap(), root_before);
-        assert!(state.get_asset_policy(next_asset).await.unwrap().is_none());
     }
 
     #[tokio::test]

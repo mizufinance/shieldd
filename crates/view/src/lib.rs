@@ -33,7 +33,7 @@ pub use crate::client::ViewClient;
 pub use crate::client_compliance::{
     enrich_plan_with_compliance, ViewClientComplianceExt, ViewClientComplianceProvider,
 };
-pub use crate::compliance_tree::{ComplianceAssetTree, ComplianceUserTree};
+pub use crate::compliance_tree::{ComplianceAssetTree, ComplianceSnapshot, ComplianceUserTree};
 pub use crate::historical_proof_cache::{
     advance_historical_proof_cache, HistoricalProofCache, HistoricalProofCacheState,
     HistoricalProofProvider, HistoricalProofUpdateError, HistoricalWitnessSource,

@@ -19,6 +19,14 @@ use std::collections::BTreeSet;
 
 use crate::storage::compliance::{ComplianceTreeStore, IndexedLeafData};
 
+/// An immutable, height-consistent pair of compliance trees published to proof readers.
+#[derive(Debug, Clone)]
+pub struct ComplianceSnapshot {
+    pub height: u64,
+    pub user_tree: ComplianceUserTree,
+    pub asset_tree: ComplianceAssetTree,
+}
+
 /// In-memory user compliance tree (QuadTree) with SQLite persistence.
 ///
 /// Syncs the full tree structure to enable local auth path computation,

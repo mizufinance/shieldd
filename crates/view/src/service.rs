@@ -52,10 +52,8 @@ use shieldd_sdk_transaction::{
 };
 
 use crate::{
-    compliance_tree::{ComplianceAssetTree, ComplianceUserTree},
-    historical_proof_worker::HistoricalProofWorker,
-    worker::Worker,
-    AddressPurpose, HistoricalProofProvider, IssuedAddress, NoteManager, Storage,
+    compliance_tree::ComplianceSnapshot, historical_proof_worker::HistoricalProofWorker,
+    worker::Worker, AddressPurpose, HistoricalProofProvider, IssuedAddress, NoteManager, Storage,
     TransferPlanningResult,
 };
 
@@ -224,10 +222,8 @@ pub struct ViewServer {
     node: Url,
     /// Used to watch for changes to the sync height.
     sync_height_rx: watch::Receiver<u64>,
-    /// A copy of the compliance user tree used by the worker task.
-    compliance_user_tree: Arc<RwLock<ComplianceUserTree>>,
-    /// A copy of the compliance asset tree used by the worker task.
-    compliance_asset_tree: Arc<RwLock<ComplianceAssetTree>>,
+    /// One height-consistent compliance snapshot shared with the worker.
+    compliance_snapshot: Arc<parking_lot::RwLock<Arc<ComplianceSnapshot>>>,
 }
 
 impl ViewServer {
@@ -319,18 +315,12 @@ impl ViewServer {
         let span = tracing::error_span!(parent: None, "view");
         let channel = Self::get_pd_channel(node.clone()).await?;
 
-        let (
-            worker,
-            state_commitment_tree,
-            error_slot,
-            sync_height_rx,
-            compliance_user_tree,
-            compliance_asset_tree,
-        ) = Worker::new(storage.clone(), channel.clone())
-            .instrument(span.clone())
-            .tap(|_| tracing::trace!("constructing view server worker"))
-            .await?
-            .tap(|_| tracing::debug!("constructed view server worker"));
+        let (worker, state_commitment_tree, error_slot, sync_height_rx, compliance_snapshot) =
+            Worker::new(storage.clone(), channel.clone())
+                .instrument(span.clone())
+                .tap(|_| tracing::trace!("constructing view server worker"))
+                .await?
+                .tap(|_| tracing::debug!("constructed view server worker"));
 
         tokio::spawn(worker.run().instrument(span))
             .tap(|_| tracing::debug!("spawned view server worker"));
@@ -350,8 +340,7 @@ impl ViewServer {
             sync_height_rx,
             state_commitment_tree,
             node,
-            compliance_user_tree,
-            compliance_asset_tree,
+            compliance_snapshot,
         })
     }
 
@@ -403,18 +392,9 @@ impl ViewServer {
         Ok(()).tap(|_| tracing::trace!("view server worker is healthy"))
     }
 
-    /// Get a reference to the local compliance user tree.
-    ///
-    /// This tree is synced from the chain and can be used for local proof generation.
-    pub fn compliance_user_tree(&self) -> &Arc<RwLock<ComplianceUserTree>> {
-        &self.compliance_user_tree
-    }
-
-    /// Get a reference to the local compliance asset tree.
-    ///
-    /// This tree is synced from the chain and can be used for local proof generation.
-    pub fn compliance_asset_tree(&self) -> &Arc<RwLock<ComplianceAssetTree>> {
-        &self.compliance_asset_tree
+    /// Get the local height-consistent compliance snapshot handle.
+    pub fn compliance_snapshot(&self) -> &Arc<parking_lot::RwLock<Arc<ComplianceSnapshot>>> {
+        &self.compliance_snapshot
     }
 
     /// Get a reference to the storage.
@@ -2110,8 +2090,9 @@ impl ViewService for ViewServer {
         _request: tonic::Request<pb::ComplianceAnchorsRequest>,
     ) -> Result<tonic::Response<pb::ComplianceAnchorsResponse>, tonic::Status> {
         // Use local tree roots
-        let user_root = self.compliance_user_tree.read().await.root();
-        let asset_root = self.compliance_asset_tree.read().await.root();
+        let snapshot = self.compliance_snapshot.read().clone();
+        let user_root = snapshot.user_tree.root();
+        let asset_root = snapshot.asset_tree.root();
 
         tracing::debug!(
             ?user_root,
@@ -2147,23 +2128,17 @@ impl ViewService for ViewServer {
             .try_into()
             .map_err(|e| tonic::Status::invalid_argument(format!("invalid asset_id: {e}")))?;
 
-        // Acquire read locks for entire operation (prevents worker from syncing mid-request)
-        let user_tree = self.compliance_user_tree.read().await;
-        let asset_tree = self.compliance_asset_tree.read().await;
+        let snapshot = self.compliance_snapshot.read().clone();
+        let user_tree = &snapshot.user_tree;
+        let asset_tree = &snapshot.asset_tree;
 
         let user_anchor = user_tree.root();
         let asset_anchor = asset_tree.root();
 
         // Get asset proof from local tree (always available)
-        let (asset_position, indexed_leaf, asset_path, _asset_present_as_member) = asset_tree
+        let (asset_position, indexed_leaf, asset_path, is_regulated) = asset_tree
             .get_proof_data(asset_id)
             .map_err(|e| tonic::Status::internal(format!("failed to get asset proof: {e}")))?;
-        let is_regulated = self
-            .storage
-            .get_asset_policy(&asset_id)
-            .await
-            .map_err(|e| tonic::Status::internal(format!("failed to get asset policy: {e}")))?
-            .is_some();
 
         // Try to get leaf data from local storage
         let local_leaf_data = self
@@ -2178,6 +2153,11 @@ impl ViewService for ViewServer {
                 Some(leaf_data) => {
                     // Local storage hit - compute path from held user_tree reference
                     let position = leaf_data.position;
+                    if user_tree.commitment(position) != Some(leaf_data.commitment) {
+                        return Err(tonic::Status::unavailable(
+                            "compliance projection advanced while building the proof; retry",
+                        ));
+                    }
                     let path = user_tree.witness(position).map_err(|e| {
                         tonic::Status::internal(format!("failed to compute path: {e}"))
                     })?;
@@ -2199,12 +2179,12 @@ impl ViewService for ViewServer {
                     (true, position, path, Some(leaf_proto))
                 }
                 None => {
-                    // Local storage miss - fall back to gRPC for leaf data
+                    // Local storage miss - fetch one root-bound proof response.
                     tracing::debug!(?address, ?asset_id, "local storage miss, fetching from pd");
 
                     use shieldd_sdk_proto::core::component::compliance::v1::{
                         query_service_client::QueryServiceClient as ComplianceQueryServiceClient,
-                        ComplianceUserLeafRequest,
+                        ComplianceMerkleProofsRequest,
                     };
 
                     let endpoint = get_pd_endpoint(self.node.clone()).await.map_err(|e| {
@@ -2215,16 +2195,23 @@ impl ViewService for ViewServer {
                     })?;
                     let mut client = ComplianceQueryServiceClient::new(channel);
 
-                    let leaf_request = ComplianceUserLeafRequest {
+                    let proof_request = ComplianceMerkleProofsRequest {
                         address: request_inner.address.clone(),
                         asset_id: request_inner.asset_id.clone(),
                     };
-                    let leaf_response = client
-                        .compliance_user_leaf(tonic::Request::new(leaf_request))
+                    let proof_response = client
+                        .compliance_merkle_proofs(tonic::Request::new(proof_request))
                         .await?
                         .into_inner();
+                    if proof_response.compliance_anchor.as_slice() != user_anchor.0.to_bytes()
+                        || proof_response.asset_anchor.as_slice() != asset_anchor.0.to_bytes()
+                    {
+                        return Err(tonic::Status::unavailable(
+                            "remote compliance proof is newer than the local snapshot; retry",
+                        ));
+                    }
 
-                    if !leaf_response.is_registered {
+                    if !proof_response.user_registered {
                         // User not registered - return empty proof
                         (
                             false,
@@ -2233,19 +2220,6 @@ impl ViewService for ViewServer {
                             None,
                         )
                     } else {
-                        // Got leaf from pd, need to get position and compute path locally
-                        // For now, fall back to full gRPC proof since we don't have position
-                        use shieldd_sdk_proto::core::component::compliance::v1::ComplianceMerkleProofsRequest;
-
-                        let proof_request = ComplianceMerkleProofsRequest {
-                            address: request_inner.address.clone(),
-                            asset_id: request_inner.asset_id.clone(),
-                        };
-                        let proof_response = client
-                            .compliance_merkle_proofs(tonic::Request::new(proof_request))
-                            .await?
-                            .into_inner();
-
                         let path = proof_response
                             .compliance_path
                             .map(shieldd_sdk_compliance::structs::MerklePath::try_from)
@@ -2259,14 +2233,11 @@ impl ViewService for ViewServer {
                                 tonic::Status::internal("compliance_path missing from pd response")
                             })?;
 
-                        // Include the leaf from the gRPC response
-                        let leaf = leaf_response.leaf;
-
                         (
                             proof_response.user_registered,
                             proof_response.compliance_position,
                             path,
-                            leaf,
+                            proof_response.compliance_leaf,
                         )
                     }
                 }
@@ -2294,10 +2265,6 @@ impl ViewService for ViewServer {
         };
 
         let asset_indexed_leaf_proto: compliance_pb::IndexedLeafData = indexed_leaf.clone().into();
-
-        // Release read locks (allows worker to sync)
-        drop(user_tree);
-        drop(asset_tree);
 
         Ok(tonic::Response::new(pb::ComplianceMerkleProofsResponse {
             user_registered,
@@ -2407,10 +2374,9 @@ impl ViewService for ViewServer {
     ) -> Result<tonic::Response<pb::ComplianceBatchMerkleProofsResponse>, tonic::Status> {
         let request_inner = request.into_inner();
 
-        // Acquire read locks for entire batch (prevents worker from syncing mid-batch)
-        // This follows the SCT witness() pattern at lines 1575-1627
-        let user_tree = self.compliance_user_tree.read().await;
-        let asset_tree = self.compliance_asset_tree.read().await;
+        let snapshot = self.compliance_snapshot.read().clone();
+        let user_tree = &snapshot.user_tree;
+        let asset_tree = &snapshot.asset_tree;
 
         let user_anchor = user_tree.root();
         let asset_anchor = asset_tree.root();
@@ -2428,7 +2394,7 @@ impl ViewService for ViewServer {
         // Lazy gRPC client - only created if we have cache misses
         use shieldd_sdk_proto::core::component::compliance::v1::{
             query_service_client::QueryServiceClient as ComplianceQueryServiceClient,
-            ComplianceMerkleProofsRequest, ComplianceUserLeafRequest,
+            ComplianceMerkleProofsRequest,
         };
         let mut grpc_client: Option<ComplianceQueryServiceClient<tonic::transport::Channel>> = None;
 
@@ -2449,15 +2415,9 @@ impl ViewService for ViewServer {
                 .map_err(|e| tonic::Status::invalid_argument(format!("invalid asset_id: {e}")))?;
 
             // Get asset proof from local tree (using held reference)
-            let (asset_position, indexed_leaf, asset_path, _asset_present_as_member) = asset_tree
+            let (asset_position, indexed_leaf, asset_path, is_regulated) = asset_tree
                 .get_proof_data(asset_id)
                 .map_err(|e| tonic::Status::internal(format!("failed to get asset proof: {e}")))?;
-            let is_regulated = self
-                .storage
-                .get_asset_policy(&asset_id)
-                .await
-                .map_err(|e| tonic::Status::internal(format!("failed to get asset policy: {e}")))?
-                .is_some();
 
             // Debug: log proof data
             let leaf_commitment = indexed_leaf.commit();
@@ -2485,6 +2445,11 @@ impl ViewService for ViewServer {
                 match local_leaf_data {
                     Some(leaf_data) => {
                         let position = leaf_data.position;
+                        if user_tree.commitment(position) != Some(leaf_data.commitment) {
+                            return Err(tonic::Status::unavailable(
+                                "compliance projection advanced while building the proof; retry",
+                            ));
+                        }
                         let path = user_tree.witness(position).map_err(|e| {
                             tonic::Status::internal(format!("failed to compute path: {e}"))
                         })?;
@@ -2523,18 +2488,27 @@ impl ViewService for ViewServer {
                             })?;
                             grpc_client = Some(ComplianceQueryServiceClient::new(channel));
                         }
-                        let client = grpc_client.as_mut().unwrap();
+                        let client = grpc_client
+                            .as_mut()
+                            .expect("gRPC client is initialized above");
 
-                        let leaf_request = ComplianceUserLeafRequest {
+                        let proof_request = ComplianceMerkleProofsRequest {
                             address: query.address.clone(),
                             asset_id: query.asset_id.clone(),
                         };
-                        let leaf_response = client
-                            .compliance_user_leaf(tonic::Request::new(leaf_request))
+                        let proof_response = client
+                            .compliance_merkle_proofs(tonic::Request::new(proof_request))
                             .await?
                             .into_inner();
+                        if proof_response.compliance_anchor.as_slice() != user_anchor.0.to_bytes()
+                            || proof_response.asset_anchor.as_slice() != asset_anchor.0.to_bytes()
+                        {
+                            return Err(tonic::Status::unavailable(
+                                "remote compliance proof is newer than the local snapshot; retry",
+                            ));
+                        }
 
-                        if !leaf_response.is_registered {
+                        if !proof_response.user_registered {
                             (
                                 false,
                                 0,
@@ -2542,15 +2516,6 @@ impl ViewService for ViewServer {
                                 None,
                             )
                         } else {
-                            let proof_request = ComplianceMerkleProofsRequest {
-                                address: query.address.clone(),
-                                asset_id: query.asset_id.clone(),
-                            };
-                            let proof_response = client
-                                .compliance_merkle_proofs(tonic::Request::new(proof_request))
-                                .await?
-                                .into_inner();
-
                             let path = proof_response
                                 .compliance_path
                                 .map(shieldd_sdk_compliance::structs::MerklePath::try_from)
@@ -2570,7 +2535,7 @@ impl ViewService for ViewServer {
                                 proof_response.user_registered,
                                 proof_response.compliance_position,
                                 path,
-                                leaf_response.leaf,
+                                proof_response.compliance_leaf,
                             )
                         }
                     }
@@ -2614,10 +2579,6 @@ impl ViewService for ViewServer {
                 compliance_leaf,
             });
         }
-
-        // Release read locks (allows worker to sync)
-        drop(user_tree);
-        drop(asset_tree);
 
         // Return as ViewService response
         Ok(tonic::Response::new(
