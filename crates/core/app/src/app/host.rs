@@ -632,6 +632,9 @@ impl App {
     ///
     /// Unlike `App::commit`, this does not enforce chain halt or pre-upgrade exits.
     async fn commit_host(&mut self, storage: Storage) -> RootHash {
+        self.state
+            .ensure_nullifier_block_materialized()
+            .expect("cannot commit an open nullifier block");
         let commit_start = Instant::now();
         let flush_start = Instant::now();
         self.flush_deferred_block_transactions()

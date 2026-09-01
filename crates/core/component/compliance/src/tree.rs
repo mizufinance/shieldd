@@ -422,7 +422,7 @@ impl QuadTree {
         let mut current_hash = leaf_hash;
         let mut current_position = position;
 
-        for siblings in auth_path.iter().take(depth as usize) {
+        for (level, siblings) in auth_path.iter().take(depth as usize).enumerate() {
             // Determine which child (0-3) we are
             let child_index = (current_position % 4) as usize;
 
@@ -435,8 +435,11 @@ impl QuadTree {
                 _ => unreachable!(),
             };
 
-            // Hash to get parent
-            current_hash = Self::hash_children(children[0], children[1], children[2], children[3]);
+            current_hash = if children.iter().all(|child| *child == ZERO_HASHES[level]) {
+                ZERO_HASHES[level + 1]
+            } else {
+                Self::hash_children(children[0], children[1], children[2], children[3])
+            };
 
             // Move to parent position
             current_position /= 4;
@@ -517,6 +520,19 @@ mod tests {
             &path,
             root,
             DEFAULT_DEPTH
+        ));
+    }
+
+    #[test]
+    fn empty_leaf_path_authenticates_against_the_sparse_zero_root() {
+        let tree = QuadTree::new();
+        let path = tree.auth_path(0).unwrap();
+        assert!(QuadTree::verify_auth_path(
+            0,
+            ZERO_HASHES[0],
+            &path,
+            tree.root(),
+            DEFAULT_DEPTH,
         ));
     }
 

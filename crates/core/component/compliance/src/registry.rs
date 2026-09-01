@@ -29,6 +29,31 @@ fn ensure_regulated_asset_id(asset_id: asset::Id, is_regulated: bool) -> Result<
     Ok(())
 }
 
+fn root_from_auth_path(
+    mut position: u64,
+    mut current: StateCommitment,
+    path: &[[StateCommitment; 3]],
+    hash_children: fn(
+        StateCommitment,
+        StateCommitment,
+        StateCommitment,
+        StateCommitment,
+    ) -> StateCommitment,
+) -> StateCommitment {
+    for siblings in path {
+        let children = match position % 4 {
+            0 => [current, siblings[0], siblings[1], siblings[2]],
+            1 => [siblings[0], current, siblings[1], siblings[2]],
+            2 => [siblings[0], siblings[1], current, siblings[2]],
+            3 => [siblings[0], siblings[1], siblings[2], current],
+            _ => unreachable!(),
+        };
+        current = hash_children(children[0], children[1], children[2], children[3]);
+        position /= 4;
+    }
+    current
+}
+
 // Note: QuadTree is still used for the user tree. Asset tree has been migrated to IMT.
 
 /// Maximum number of blocks the RPC will search backwards for a recorded anchor.
@@ -973,22 +998,6 @@ impl<T: StateRead + ?Sized> ComplianceRegistryRead for T {}
 /// Internal durable registry operations.
 #[async_trait]
 trait ComplianceRegistryRawWrite: StateWrite + ComplianceRegistryRead {
-    /// Track that compliance trees were modified in this block.
-    fn mark_compliance_trees_modified(&mut self) {
-        self.object_put(state_key::cache::trees_modified(), true);
-    }
-
-    /// Clear the in-block compliance tree dirty flag.
-    fn clear_compliance_trees_modified(&mut self) {
-        self.object_put(state_key::cache::trees_modified(), false);
-    }
-
-    /// Whether compliance trees were modified in this block.
-    fn compliance_trees_modified(&self) -> bool {
-        self.object_get(state_key::cache::trees_modified())
-            .unwrap_or(false)
-    }
-
     /// Update the in-block cache for the user tree.
     fn write_user_tree_cache(&mut self, tree: QuadTree) {
         self.object_put(state_key::cache::cached_user_tree(), tree);
@@ -1084,6 +1093,22 @@ trait ComplianceRegistryRawWrite: StateWrite + ComplianceRegistryRead {
         Ok(touched)
     }
 
+    async fn authenticate_user_leaf(&self, position: u64, leaf: StateCommitment) -> Result<()> {
+        let path = self.read_user_auth_path_direct(position).await?;
+        let committed = self.get_user_tree_root().await?;
+        anyhow::ensure!(
+            QuadTree::verify_auth_path(
+                position,
+                leaf,
+                &path,
+                committed,
+                crate::tree::DEFAULT_DEPTH,
+            ),
+            "user tree path at position {position} does not authenticate to the committed root"
+        );
+        Ok(())
+    }
+
     async fn compute_asset_path_updates(
         &self,
         updates: &[(u64, StateCommitment)],
@@ -1136,18 +1161,29 @@ trait ComplianceRegistryRawWrite: StateWrite + ComplianceRegistryRead {
         Ok(touched)
     }
 
+    async fn authenticate_asset_leaf(&self, position: u64, leaf: StateCommitment) -> Result<()> {
+        let path = self.read_asset_auth_path_direct(position).await?;
+        let authenticated =
+            root_from_auth_path(position, leaf, &path, IndexedMerkleTree::hash_children);
+        let committed = self.get_asset_imt_root().await?;
+        anyhow::ensure!(
+            authenticated == committed,
+            "asset tree path at position {position} does not authenticate to the committed root"
+        );
+        Ok(())
+    }
+
     async fn ensure_asset_tree_initialized(&mut self) -> Result<()> {
         if self.get_asset_count().await? > 0 {
-            let tree = self.load_asset_imt_from_nv().await?;
-            if let Some(committed) = self
+            let committed = self
                 .get::<StateCommitment>(state_key::asset_imt_root())
                 .await?
-            {
-                anyhow::ensure!(
-                    tree.root() == committed,
-                    "asset IMT committed root does not match durable tree"
-                );
-            }
+                .context("initialized asset IMT is missing its committed root")?;
+            let materialized_root = self.read_asset_node(crate::tree::DEFAULT_DEPTH, 0).await?;
+            anyhow::ensure!(
+                materialized_root == committed,
+                "asset IMT committed root does not match its root node"
+            );
             return Ok(());
         }
         anyhow::ensure!(
@@ -1167,16 +1203,6 @@ trait ComplianceRegistryRawWrite: StateWrite + ComplianceRegistryRead {
         self.put_asset_imt_nodes(&touched_nodes);
         self.put(state_key::asset_imt_root().to_string(), root);
         self.put_proto(state_key::asset_count().to_string(), 1u64);
-        self.verify_asset_tree_after_mutation(root).await?;
-        Ok(())
-    }
-
-    async fn verify_asset_tree_after_mutation(&self, expected_root: StateCommitment) -> Result<()> {
-        let tree = self.load_asset_imt_from_nv().await?;
-        anyhow::ensure!(
-            tree.root() == expected_root,
-            "asset IMT mutation did not produce its committed root"
-        );
         Ok(())
     }
 
@@ -1261,6 +1287,8 @@ trait ComplianceRegistryRawWrite: StateWrite + ComplianceRegistryRead {
 
         // Calculate the leaf commitment
         let commitment = leaf.commit();
+        self.authenticate_user_leaf(position, ZERO_HASHES[0])
+            .await?;
 
         // Increment the user count
         let new_count = position + 1;
@@ -1277,7 +1305,6 @@ trait ComplianceRegistryRawWrite: StateWrite + ComplianceRegistryRead {
         self.put_proto(state_key::user_count().to_string(), new_count);
         self.put(state_key::user_tree_root().to_string(), root);
         self.object_delete(state_key::cache::cached_user_tree());
-        self.mark_compliance_trees_modified();
 
         // Store the typed position/leaf record in consensus state and authenticate
         // it against the user-tree root on every read.
@@ -1312,9 +1339,12 @@ trait ComplianceRegistryRawWrite: StateWrite + ComplianceRegistryRead {
             .await?
             .ok_or_else(|| anyhow::anyhow!("user is not registered for asset {asset_id}"))?;
         let previous_status = record.leaf.status;
+        let previous_commitment = record.leaf.commit();
         let mut leaf = record.leaf;
         leaf.status = action.apply(previous_status)?;
         let commitment = leaf.commit();
+        self.authenticate_user_leaf(record.position, previous_commitment)
+            .await?;
 
         let touched_nodes = self
             .compute_user_path_updates(&[(record.position, commitment)])
@@ -1326,7 +1356,6 @@ trait ComplianceRegistryRawWrite: StateWrite + ComplianceRegistryRead {
         self.put_user_tree_nodes(&touched_nodes);
         self.put(state_key::user_tree_root().to_string(), root);
         self.object_delete(state_key::cache::cached_user_tree());
-        self.mark_compliance_trees_modified();
 
         let key = state_key::user_leaf_record(&leaf.address, &leaf.asset_id);
         self.put_raw(
@@ -1385,6 +1414,8 @@ trait ComplianceRegistryRawWrite: StateWrite + ComplianceRegistryRead {
                     current_leaf.next_value,
                     &policy,
                 );
+                self.authenticate_asset_leaf(position, current_leaf.commit())
+                    .await?;
                 self.put_asset_imt_leaf(position, &updated_leaf)?;
                 let touched_nodes = self
                     .compute_asset_path_updates(&[(position, updated_leaf.commit())])
@@ -1396,9 +1427,7 @@ trait ComplianceRegistryRawWrite: StateWrite + ComplianceRegistryRead {
                 self.put_asset_imt_nodes(&touched_nodes);
                 self.put(state_key::asset_imt_root().to_string(), root);
                 self.object_delete(state_key::cache::cached_asset_imt());
-                self.mark_compliance_trees_modified();
                 self.set_asset_policy(asset_id, policy)?;
-                self.verify_asset_tree_after_mutation(root).await?;
                 tracing::debug!(?asset_id, position, "upgraded existing asset to regulated");
                 return Ok(Some(InsertResult {
                     position,
@@ -1451,6 +1480,11 @@ trait ComplianceRegistryRawWrite: StateWrite + ComplianceRegistryRead {
             updated_low_leaf: updated_low_leaf.clone(),
         };
 
+        self.authenticate_asset_leaf(result.low_leaf_position, low_leaf.commit())
+            .await?;
+        self.authenticate_asset_leaf(result.position, IMT_ZERO_HASHES[0])
+            .await?;
+
         self.set_ibc_origin_asset(asset_id, &policy).await?;
 
         // Save touched leaves and paths.
@@ -1469,14 +1503,12 @@ trait ComplianceRegistryRawWrite: StateWrite + ComplianceRegistryRead {
         self.put_asset_imt_nodes(&touched_nodes);
         self.put(state_key::asset_imt_root().to_string(), root);
         self.object_delete(state_key::cache::cached_asset_imt());
-        self.mark_compliance_trees_modified();
 
         self.set_asset_policy(asset_id, policy)?;
 
         // Update the persisted asset count
         let new_count = leaf_count + 1;
         self.put_proto(state_key::asset_count().to_string(), new_count);
-        self.verify_asset_tree_after_mutation(root).await?;
 
         tracing::debug!(
             ?asset_id,
@@ -1570,6 +1602,8 @@ trait ComplianceRegistryRawWrite: StateWrite + ComplianceRegistryRead {
             current_leaf.next_value,
             &policy,
         );
+        self.authenticate_asset_leaf(position, current_leaf.commit())
+            .await?;
         self.put_asset_imt_leaf(position, &updated_leaf)?;
         let touched_nodes = self
             .compute_asset_path_updates(&[(position, updated_leaf.commit())])
@@ -1581,9 +1615,7 @@ trait ComplianceRegistryRawWrite: StateWrite + ComplianceRegistryRead {
         self.put_asset_imt_nodes(&touched_nodes);
         self.put(state_key::asset_imt_root().to_string(), root);
         self.object_delete(state_key::cache::cached_asset_imt());
-        self.mark_compliance_trees_modified();
         self.set_asset_policy(asset_id, policy)?;
-        self.verify_asset_tree_after_mutation(root).await?;
         Ok(updated_leaf)
     }
 
@@ -1601,8 +1633,6 @@ trait ComplianceRegistryRawWrite: StateWrite + ComplianceRegistryRead {
     /// root is emitted for synchronization but is never retained as admissible
     /// proof history.
     async fn record_compliance_anchors(&mut self, height: u64) -> Result<()> {
-        let trees_modified = self.compliance_trees_modified();
-
         // Get current anchors
         let user_anchor = self.get_user_tree_root().await?;
         let asset_anchor = self.get_asset_imt_root().await?;
@@ -1619,7 +1649,6 @@ trait ComplianceRegistryRawWrite: StateWrite + ComplianceRegistryRead {
 
         tracing::debug!(
             height,
-            trees_modified,
             ?user_anchor,
             ?asset_anchor,
             "recorded compliance anchors"
@@ -1659,8 +1688,6 @@ trait ComplianceRegistryRawWrite: StateWrite + ComplianceRegistryRead {
                 );
             }
         }
-
-        self.clear_compliance_trees_modified();
 
         Ok(())
     }
@@ -1790,10 +1817,6 @@ pub(crate) trait ComplianceRegistryComponentWrite:
 
     fn initialize_asset_imt_cache(&mut self, tree: IndexedMerkleTree) {
         <Self as ComplianceRegistryRawWrite>::write_asset_imt_cache(self, tree);
-    }
-
-    fn reset_compliance_tree_dirty_flag(&mut self) {
-        <Self as ComplianceRegistryRawWrite>::clear_compliance_trees_modified(self);
     }
 
     fn admit_genesis_compliance_registrar(&mut self, vk: VerificationKey<SpendAuth>) -> Result<()> {
@@ -2340,7 +2363,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn corrupted_asset_structure_blocks_readiness_and_next_mutation() {
+    async fn full_asset_structure_validation_is_confined_to_readiness() {
         let storage = TempStorage::new().await.unwrap();
         let snapshot = storage.latest_snapshot();
         let mut state = cnidarium::StateDelta::new(snapshot);
@@ -2354,8 +2377,6 @@ mod tests {
             .await
             .unwrap();
 
-        let root_before = state.get_asset_imt_root().await.unwrap();
-        let count_before = state.get_asset_count().await.unwrap();
         let mut sentinel = state.read_asset_leaf(0).await.unwrap();
         sentinel.next_value = Fq::from(778u64);
         state.nonverifiable_put_raw(
@@ -2373,17 +2394,40 @@ mod tests {
         );
 
         let next_asset = asset::Id(Fq::from(888u64));
-        let mutation_error = state
+        state
             .register_regulated_asset(next_asset, policy)
             .await
-            .expect_err("a malformed durable tree must block later mutations");
-        assert!(
-            mutation_error.to_string().contains("successor value"),
-            "unexpected error: {mutation_error:#}"
+            .expect("an unrelated authenticated mutation should not reconstruct the full tree");
+    }
+
+    #[tokio::test]
+    async fn asset_mutation_rejects_a_corrupted_touched_path() {
+        let storage = TempStorage::new().await.unwrap();
+        let snapshot = storage.latest_snapshot();
+        let mut state = cnidarium::StateDelta::new(snapshot);
+        let policy = AssetPolicy::simple(
+            decaf377::Element::GENERATOR,
+            u128::MAX,
+            decaf377::Element::GENERATOR,
         );
-        assert_eq!(state.get_asset_count().await.unwrap(), count_before);
-        assert_eq!(state.get_asset_imt_root().await.unwrap(), root_before);
-        assert!(state.get_asset_policy(next_asset).await.unwrap().is_none());
+        state
+            .register_regulated_asset(asset::Id(Fq::from(777u64)), policy.clone())
+            .await
+            .unwrap();
+
+        state.nonverifiable_put_raw(
+            state_key::tree_storage::asset_node(0, 0).into_bytes(),
+            Fq::from(99_999u64).to_bytes().to_vec(),
+        );
+
+        let error = state
+            .register_regulated_asset(asset::Id(Fq::from(888u64)), policy)
+            .await
+            .expect_err("a touched path must authenticate before mutation");
+        assert!(
+            error.to_string().contains("does not authenticate"),
+            "unexpected error: {error:#}"
+        );
     }
 
     #[tokio::test]

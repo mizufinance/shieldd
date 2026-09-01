@@ -27,6 +27,7 @@ component = [
 parallel = [
   "ark-ff/parallel",
   "shieldd-sdk-proof-params/parallel",
+  "shieldd-sdk-sct/parallel",
 ]
 benchmark-helpers = [
   "shieldd-sdk-ibc/benchmark-helpers",
