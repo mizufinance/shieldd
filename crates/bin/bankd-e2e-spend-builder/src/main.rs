@@ -5,7 +5,7 @@ use std::{env, fs, ops::Deref, path::PathBuf, str::FromStr};
 use anyhow::{anyhow, bail, Context, Result};
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use cnidarium::Storage;
-use decaf377::{Element, Encoding, Fr};
+use decaf377::{Element, Encoding, Fq, Fr};
 use decaf377_rdsa::{SigningKey, SpendAuth, VerificationKey};
 use rand_core::OsRng;
 use serde::{Deserialize, Serialize};
@@ -370,6 +370,7 @@ async fn build_registration_tx(
 fn register_asset_action(ring: RingInput) -> Result<Vec<ActionPlan>> {
     let registrar_sk = demo_signing_key(1);
     let authority_vk = VerificationKey::from(&demo_signing_key(2));
+    let seizure_authority_vk = VerificationKey::from(&demo_signing_key(3));
     let asset_id = asset::REGISTRY
         .parse_denom("ubrl")
         .expect("ubrl is a base denomination")
@@ -387,6 +388,7 @@ fn register_asset_action(ring: RingInput) -> Result<Vec<ActionPlan>> {
         permission: ring.permission,
         resource: ring.resource,
         registration_authority_vk: Some(authority_vk),
+        seizure_authority_vk: Some(seizure_authority_vk),
         valid_until_unix: 4_102_444_800,
     };
     let grant = AssetRegistrationGrant {
@@ -407,6 +409,7 @@ fn register_asset_action(ring: RingInput) -> Result<Vec<ActionPlan>> {
         permission: body.permission,
         resource: body.resource,
         registration_authority_vk: body.registration_authority_vk,
+        seizure_authority_vk: body.seizure_authority_vk,
         asset_registration_grant: Some(grant),
     })])
 }
@@ -421,7 +424,12 @@ fn register_user_action(
         .parse_denom("ubrl")
         .context("ubrl must be a base denomination")?
         .id();
-    let leaf = ComplianceLeaf::new(address, asset_id);
+    let leaf = ComplianceLeaf::registered(
+        address,
+        asset_id,
+        parse_element(&ring.ring_pk_hex)?,
+        Fq::from(u64::from(nonce) + 1),
+    )?;
     let body = UserRegistrationGrantBody {
         leaf: leaf.clone(),
         policy_id: ring.policy_id.clone(),
