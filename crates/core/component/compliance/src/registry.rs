@@ -1326,7 +1326,7 @@ trait ComplianceRegistryRawWrite: StateWrite + ComplianceRegistryRead {
         let previous_commitment = record.leaf.commit();
         let mut leaf = record.leaf;
         leaf.apply_status_action(action, source_height)?;
-        self.write_user_asset_status(record.position, previous_status, leaf)
+        self.write_user_asset_status(record.position, previous_status, previous_commitment, leaf)
             .await
     }
 
@@ -1344,10 +1344,11 @@ trait ComplianceRegistryRawWrite: StateWrite + ComplianceRegistryRead {
             .await?
             .ok_or_else(|| anyhow::anyhow!("user is not registered for asset {asset_id}"))?;
         let previous_status = record.leaf.status;
+        let previous_commitment = record.leaf.commit();
         let mut leaf = record.leaf;
         leaf.status = leaf.status.seize()?;
         leaf.validate_lifecycle()?;
-        self.write_user_asset_status(record.position, previous_status, leaf)
+        self.write_user_asset_status(record.position, previous_status, previous_commitment, leaf)
             .await
     }
 
@@ -1355,12 +1356,13 @@ trait ComplianceRegistryRawWrite: StateWrite + ComplianceRegistryRead {
         &mut self,
         position: u64,
         previous_status: UserAssetStatus,
+        previous_commitment: StateCommitment,
         leaf: ComplianceLeaf,
     ) -> Result<event::EventUserAssetStatusChanged> {
         previous_status.validate_transition(leaf.status)?;
         leaf.validate_lifecycle()?;
         let commitment = leaf.commit();
-        self.authenticate_user_leaf(record.position, previous_commitment)
+        self.authenticate_user_leaf(position, previous_commitment)
             .await?;
 
         let touched_nodes = self
