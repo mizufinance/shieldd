@@ -6893,7 +6893,7 @@ mod tests {
     use shieldd_sdk_transaction::{
         memo::{MemoCiphertext, MemoPlaintext, MEMO_CIPHERTEXT_LEN_BYTES},
         plan::MemoPlan,
-        Action, ActionPlan, Transaction, TransactionParameters, TransactionPlan,
+        Action, ActionPlan, FeeFundingPlan, Transaction, TransactionParameters, TransactionPlan,
     };
     use shieldd_sdk_txhash::AuthorizingData;
     use tendermint::v0_37::abci::{request, response};
@@ -7456,7 +7456,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn regulated_genesis_allocation_has_a_registered_recovery_capability() -> Result<()> {
+    async fn regulated_genesis_note_transfers_through_consensus_and_compact_block() -> Result<()> {
         let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
         let authority_vk = rdsa::VerificationKey::from(test_keys::SPEND_KEY.spend_auth_key());
         let regulated_denom = "wregulated_usd";
@@ -7555,7 +7555,6 @@ mod tests {
             .execute()
             .await?;
         client.sync_to_latest(storage.latest_snapshot()).await?;
-        let client = Arc::new(client);
         let note = client
             .notes
             .values()
@@ -7565,10 +7564,43 @@ mod tests {
             })
             .cloned()
             .context("regulated genesis note must be recoverable")?;
+        let spent_commitment = note.commit();
         let position = client
             .position(note.commit())
             .context("regulated genesis note position must be known")?;
         let spend = ShieldedInputPlan::new(&mut OsRng, note.clone(), position);
+        let fee_note = client
+            .notes
+            .values()
+            .find(|note| {
+                note.asset_id() == *BASE_ASSET_ID
+                    && note.address() == test_keys::ADDRESS_0.deref().clone()
+            })
+            .cloned()
+            .context("base genesis note must be recoverable for fee funding")?;
+        let fee_position = client
+            .position(fee_note.commit())
+            .context("base genesis note position must be known")?;
+        let fee_spend = ShieldedInputPlan::new(&mut OsRng, fee_note.clone(), fee_position);
+        let mut fee_change = ShieldedOutputPlan::new(
+            &mut OsRng,
+            Value {
+                amount: fee_note.amount(),
+                asset_id: *BASE_ASSET_ID,
+            },
+            test_keys::ADDRESS_0.deref().clone(),
+        );
+        fee_change.asset_anchor = fee_spend.asset_anchor;
+        fee_change.compliance_anchor = fee_spend.compliance_anchor;
+        fee_change.target_timestamp = fee_spend.target_timestamp;
+        fee_change.is_regulated = fee_spend.is_regulated;
+        fee_change.tx_blinding_nonce = fee_spend.tx_blinding_nonce;
+        fee_change.asset_indexed_leaf = fee_spend.asset_indexed_leaf.clone();
+        fee_change.asset_path = fee_spend.asset_path.clone();
+        fee_change.asset_position = fee_spend.asset_position;
+        fee_change.asset_policy = fee_spend.asset_policy.clone();
+        let fee_funding_transfer =
+            TransferPlan::from_spend_output(fee_spend.into(), fee_change.into(), Fr::from(2u64))?;
         let send_amount = Amount::from(100u64);
         let mut output = ShieldedOutputPlan::new(
             &mut OsRng,
@@ -7608,7 +7640,9 @@ mod tests {
                 &mut OsRng,
                 MemoPlaintext::blank_memo(test_keys::ADDRESS_0.deref().clone()),
             )),
-            fee_funding: None,
+            fee_funding: Some(FeeFundingPlan {
+                transfer: fee_funding_transfer,
+            }),
             transaction_parameters: TransactionParameters {
                 chain_id: TestNode::<()>::CHAIN_ID.to_string(),
                 ..Default::default()
@@ -7635,8 +7669,6 @@ mod tests {
             .await
             .context("regulated transfer must remain valid during next-block mempool recheck")?;
 
-        let mut proposer = App::new(storage.latest_snapshot());
-        proposer.set_block_tx_indexing_mode(BlockTxIndexingMode::DeferredBatch);
         let proposal = request::PrepareProposal {
             txs: vec![tx_bytes.into()],
             max_tx_bytes: 1024 * 1024,
@@ -7647,13 +7679,40 @@ mod tests {
             next_validators_hash: Hash::None,
             proposer_address: account::Id::new([0u8; 20]),
         };
-        let (prepared, _, _) = proposer
-            .prepare_proposal_profiled(proposal, Some(&cache), false)
-            .await;
+        let prepared = test_node.prepare_proposal(proposal).await?;
         assert_eq!(
             prepared.txs.len(),
             2,
             "proposal must include the regulated transfer and aggregate bundle"
+        );
+        let verdict = test_node
+            .process_proposal(request::ProcessProposal {
+                txs: prepared.txs.clone(),
+                proposed_last_commit: None,
+                misbehavior: Vec::new(),
+                hash: Hash::None,
+                height: block::Height::from(4u32),
+                time: Time::unix_epoch(),
+                next_validators_hash: Hash::None,
+                proposer_address: account::Id::new([0u8; 20]),
+            })
+            .await?;
+        assert!(matches!(verdict, response::ProcessProposal::Accept));
+        test_node
+            .block()
+            .with_data(
+                prepared
+                    .txs
+                    .into_iter()
+                    .map(|bytes| bytes.to_vec())
+                    .collect(),
+            )
+            .execute()
+            .await?;
+        client.sync_to_latest(storage.latest_snapshot()).await?;
+        assert!(
+            client.spent_note(&spent_commitment),
+            "committed regulated transfer nullifier must be visible in the compact block"
         );
 
         Ok(())

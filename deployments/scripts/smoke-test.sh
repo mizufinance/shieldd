@@ -171,9 +171,9 @@ cleanup_smoke() {
         if [ "$exit_status" -ne 0 ] && [ -f "${smoke_test_dir:-}/devnet.log" ]; then
             >&2 echo "=== devnet transaction diagnostics ==="
             grep -E \
-                'checktx_frontdoor_|tx accepted|tx rejected|prepare_proposal_(start|finish)|candidate.*(reject|drop)|recheck|mempool' \
+                'checktx_frontdoor_|tx accepted|tx rejected|candidate_tx_count=[1-9]|included_tx_count=[1-9]|proposal_tx_count=[1-9]|process_proposal_reject_reason|deliver_tx failed|num_(valid|invalid)_txs=[1-9]|view worker error|failed to fetch compact block|recheck.*(reject|fail)|mempool.*(reject|drop)' \
                 "${smoke_test_dir}/devnet.log" \
-                | tail -1000 >&2 \
+                | tail -500 >&2 \
                 || true
             >&2 echo "=== end transaction diagnostics ==="
             >&2 echo "=== devnet log after smoke failure (last 200 lines) ==="

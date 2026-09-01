@@ -24,6 +24,7 @@ pub mod structs;
 pub use structs::{
     compliance_nullifier_key_commitment,
     derive_compliance_nullifier_key,
+    effective_nullifier_key,
     AssetParams,
     AssetPolicy,
     ComplianceLeaf,

@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
 use shieldd_sdk_compact_block::{CompactBlock, StatePayload};
+use shieldd_sdk_compliance::effective_nullifier_key;
 use shieldd_sdk_fee::GasPrices;
 use shieldd_sdk_keys::FullViewingKey;
 use shieldd_sdk_sct::{nullifier_generation::NullifierWindow, Nullifier};
@@ -111,8 +112,14 @@ pub async fn scan_block(
                         .expect("inserting a commitment must succeed");
 
                     let source = payload.source().clone();
-                    let nullifier =
-                        Nullifier::derive(fvk.nullifier_key(), position, payload.commitment());
+                    let is_regulated = storage.get_asset_policy(&note.asset_id()).await?.is_some();
+                    let nk = effective_nullifier_key(
+                        *fvk.nullifier_key(),
+                        &note.address(),
+                        note.asset_id(),
+                        is_regulated,
+                    );
+                    let nullifier = Nullifier::derive(&nk, position, payload.commitment());
                     let address_index = fvk.incoming().index_for_diversifier(note.diversifier());
 
                     new_notes.insert(

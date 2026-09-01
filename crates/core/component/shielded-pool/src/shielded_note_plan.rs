@@ -146,11 +146,12 @@ impl ShieldedInputPlan {
     }
 
     pub fn effective_nullifier_key(&self, fvk: &FullViewingKey) -> NullifierKey {
-        if self.is_regulated {
-            NullifierKey(self.compliance_nullifier_key(fvk))
-        } else {
-            *fvk.nullifier_key()
-        }
+        shieldd_sdk_compliance::effective_nullifier_key(
+            *fvk.nullifier_key(),
+            &self.note.address(),
+            self.note.asset_id(),
+            self.is_regulated,
+        )
     }
 
     pub fn balance(&self) -> Balance {

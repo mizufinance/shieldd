@@ -4,7 +4,7 @@ use decaf377_rdsa::{Signature, SpendAuth, VerificationKey};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::asset;
-use shieldd_sdk_keys::{ensure_nonidentity_spend_auth_key, Address};
+use shieldd_sdk_keys::{ensure_nonidentity_spend_auth_key, keys::NullifierKey, Address};
 use shieldd_sdk_proto::shieldd::core::component::compliance::v1 as pb;
 use shieldd_sdk_proto::DomainType;
 use shieldd_sdk_tct::StateCommitment;
@@ -240,6 +240,24 @@ pub fn derive_compliance_nullifier_key(
             asset_id.0,
         ),
     )
+}
+
+/// Select the wallet or address-and-asset scoped nullifier key for an asset.
+pub fn effective_nullifier_key(
+    wallet_nk: NullifierKey,
+    address: &Address,
+    asset_id: asset::Id,
+    is_regulated: bool,
+) -> NullifierKey {
+    if is_regulated {
+        NullifierKey(derive_compliance_nullifier_key(
+            wallet_nk.0,
+            address,
+            asset_id,
+        ))
+    } else {
+        wallet_nk
+    }
 }
 
 impl ComplianceLeaf {
@@ -1704,6 +1722,27 @@ impl shieldd_sdk_txhash::EffectingData for MsgRegisterUser {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn effective_nullifier_key_is_scoped_only_for_regulated_assets() {
+        let mut rng = rand::thread_rng();
+        let wallet_nk = NullifierKey(Fq::from(7u64));
+        let address = Address::dummy(&mut rng);
+        let asset_id = asset::Id(Fq::from(11u64));
+
+        assert_eq!(
+            effective_nullifier_key(wallet_nk, &address, asset_id, false),
+            wallet_nk
+        );
+        assert_eq!(
+            effective_nullifier_key(wallet_nk, &address, asset_id, true),
+            NullifierKey(derive_compliance_nullifier_key(
+                wallet_nk.0,
+                &address,
+                asset_id
+            ))
+        );
+    }
 
     #[test]
     fn seized_is_a_terminal_user_asset_status() {
