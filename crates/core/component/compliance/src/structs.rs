@@ -659,7 +659,7 @@ pub struct RingData {
     pub ring_id: String,
     /// Aggregate ring public key (sk_ring × G).
     pub ring_pk: decaf377::Element,
-    /// SourceHub policy ID.
+    /// Vera policy ID.
     pub policy_id: String,
     /// ACP permission name.
     pub permission: String,
@@ -1435,7 +1435,7 @@ pub struct MsgRegisterAsset {
     pub ring_pk: Option<decaf377::Element>,
     /// Orbis DKG ring identifier.
     pub ring_id: String,
-    /// SourceHub policy ID.
+    /// Vera policy ID.
     pub policy_id: String,
     /// ACP permission name.
     pub permission: String,

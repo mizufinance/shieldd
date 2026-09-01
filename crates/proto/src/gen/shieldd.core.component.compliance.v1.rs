@@ -91,7 +91,7 @@ pub struct MsgRegisterAsset {
     /// Orbis DKG ring identifier.
     #[prost(string, tag = "7")]
     pub ring_id: ::prost::alloc::string::String,
-    /// SourceHub policy ID.
+    /// Vera policy ID.
     #[prost(string, tag = "8")]
     pub policy_id: ::prost::alloc::string::String,
     /// ACP permission name.

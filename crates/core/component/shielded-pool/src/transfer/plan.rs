@@ -82,6 +82,22 @@ impl TransferPlan {
         self.routing_parameters = parameters;
     }
 
+    #[cfg(feature = "poc-orbis-v0")]
+    pub fn poc_orbis_audit_bundle(
+        &self,
+    ) -> anyhow::Result<Option<shieldd_sdk_compliance::PocOrbisAuditBundle>> {
+        self.validate()?;
+        let result = build_transfer_compliance(
+            &self.outputs,
+            &sender_leaf(self.first_spend()),
+            self.asset_policy()?,
+            &self.first_spend().asset_indexed_leaf,
+            self.first_spend().target_timestamp,
+            self.first_spend().tx_blinding_nonce,
+        )?;
+        Ok(result.poc_orbis_audit_bundle)
+    }
+
     pub fn spend_randomizers(&self) -> impl Iterator<Item = Fr> + '_ {
         self.spends.iter().map(|spend| spend.randomizer)
     }

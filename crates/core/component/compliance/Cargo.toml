@@ -22,9 +22,11 @@ component = [
 default = ["component"]
 sqlite-bundled = ["rusqlite/bundled"]
 test-helpers = ["decaf377-ka"]
+poc-orbis-v0 = ["dep:aes-gcm", "dep:hkdf"]
 
 [dependencies]
 anyhow = {workspace = true}
+aes-gcm = {version = "0.10", optional = true}
 ark-ff = {workspace = true}
 ark-groth16 = {workspace = true}
 base64 = {workspace = true}
@@ -50,6 +52,7 @@ serde_json = {workspace = true}
 sha2 = {workspace = true}
 blake2b_simd = {workspace = true}
 hex = {workspace = true}
+hkdf = {version = "0.12", optional = true}
 ibc-proto = {workspace = true, optional = true, default-features = false}
 futures = {workspace = true}
 rand_core = {workspace = true}
