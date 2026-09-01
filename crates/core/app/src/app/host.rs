@@ -1385,10 +1385,6 @@ mod tests {
             .expect("custom test denom should parse as a base denom")
     }
 
-    fn regulated_asset_id() -> asset::Id {
-        regulated_test_denom().id()
-    }
-
     fn regulated_deposit_request(msg_index: u32) -> DepositRequest {
         DepositRequest {
             denom: regulated_test_denom().to_string(),
