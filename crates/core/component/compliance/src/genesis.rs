@@ -12,7 +12,10 @@ use shieldd_sdk_asset::asset;
 use shieldd_sdk_keys::ensure_nonidentity_spend_auth_key;
 use shieldd_sdk_proto::{shieldd::core::component::compliance::v1 as pb, DomainType};
 
-use crate::params::ComplianceParameters;
+use crate::{
+    params::ComplianceParameters,
+    structs::{AssetPolicy, ComplianceLeaf, UserAssetStatus},
+};
 
 /// Genesis content for the compliance component.
 ///
@@ -28,6 +31,9 @@ pub struct Content {
     pub native_assets: Vec<NativeAssetRegistration>,
     /// Compliance registrar keys authorized to register asset policies.
     pub compliance_registrar_vk: Vec<VerificationKey<SpendAuth>>,
+    /// Active users installed before regulated genesis allocations are minted.
+    #[serde(default)]
+    pub user_leaves: Vec<ComplianceLeaf>,
 }
 
 impl Content {
@@ -37,6 +43,13 @@ impl Content {
         }
         for registration in &self.native_assets {
             registration.validate_authorization_keys()?;
+        }
+        for leaf in &self.user_leaves {
+            leaf.validate()?;
+            anyhow::ensure!(
+                leaf.status == UserAssetStatus::Active,
+                "genesis compliance users must start active"
+            );
         }
         Ok(())
     }
@@ -66,6 +79,11 @@ impl TryFrom<pb::GenesisContent> for Content {
                 .into_iter()
                 .map(TryInto::try_into)
                 .collect::<Result<_, _>>()?,
+            user_leaves: value
+                .user_leaves
+                .into_iter()
+                .map(TryInto::try_into)
+                .collect::<Result<_, _>>()?,
         };
         content.validate_authorization_keys()?;
         Ok(content)
@@ -82,6 +100,7 @@ impl From<Content> for pb::GenesisContent {
                 .into_iter()
                 .map(Into::into)
                 .collect(),
+            user_leaves: value.user_leaves.into_iter().map(Into::into).collect(),
         }
     }
 }
@@ -120,6 +139,40 @@ impl NativeAssetRegistration {
             )?;
         }
         Ok(())
+    }
+
+    /// Build and validate the on-chain policy represented by this registration.
+    pub fn asset_policy(&self) -> anyhow::Result<AssetPolicy> {
+        if !self.is_regulated {
+            return Ok(AssetPolicy::default_unregulated());
+        }
+        let dk_pub = decaf377::Encoding(
+            self.dk_pub
+                .ok_or_else(|| anyhow::anyhow!("regulated genesis asset requires dk_pub"))?,
+        )
+        .vartime_decompress()
+        .map_err(|_| anyhow::anyhow!("invalid regulated genesis dk_pub"))?;
+        let registration_authority_vk = self.registration_authority_vk.ok_or_else(|| {
+            anyhow::anyhow!("regulated genesis asset requires registration_authority_vk")
+        })?;
+        let seizure_authority_vk = self.seizure_authority_vk.ok_or_else(|| {
+            anyhow::anyhow!("regulated genesis asset requires seizure_authority_vk")
+        })?;
+        let policy = AssetPolicy::new(
+            dk_pub,
+            u128::MAX,
+            vec![],
+            None,
+            String::new(),
+            decaf377::Element::GENERATOR,
+            String::new(),
+            String::new(),
+            String::new(),
+        )
+        .with_registration_authority(registration_authority_vk)
+        .with_seizure_authority(seizure_authority_vk);
+        policy.validate_crypto_keys()?;
+        Ok(policy)
     }
 }
 
@@ -187,6 +240,7 @@ mod tests {
     fn test_default_genesis() {
         let content = Content::default();
         assert!(content.native_assets.is_empty());
+        assert!(content.user_leaves.is_empty());
         assert_eq!(
             content.compliance_params.anchor_validation_window_blocks,
             crate::params::ComplianceParameters::default().anchor_validation_window_blocks

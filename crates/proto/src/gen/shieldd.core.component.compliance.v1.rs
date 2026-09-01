@@ -716,6 +716,9 @@ pub struct GenesisContent {
     >,
     #[prost(message, optional, tag = "3")]
     pub compliance_params: ::core::option::Option<ComplianceParameters>,
+    /// Active users that must exist before regulated genesis allocations are minted.
+    #[prost(message, repeated, tag = "4")]
+    pub user_leaves: ::prost::alloc::vec::Vec<ComplianceLeaf>,
 }
 impl ::prost::Name for GenesisContent {
     const NAME: &'static str = "GenesisContent";

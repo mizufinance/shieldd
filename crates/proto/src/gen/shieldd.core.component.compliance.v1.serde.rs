@@ -3644,6 +3644,9 @@ impl serde::Serialize for GenesisContent {
         if self.compliance_params.is_some() {
             len += 1;
         }
+        if !self.user_leaves.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.compliance.v1.GenesisContent", len)?;
         if !self.native_assets.is_empty() {
             struct_ser.serialize_field("nativeAssets", &self.native_assets)?;
@@ -3653,6 +3656,9 @@ impl serde::Serialize for GenesisContent {
         }
         if let Some(v) = self.compliance_params.as_ref() {
             struct_ser.serialize_field("complianceParams", v)?;
+        }
+        if !self.user_leaves.is_empty() {
+            struct_ser.serialize_field("userLeaves", &self.user_leaves)?;
         }
         struct_ser.end()
     }
@@ -3670,6 +3676,8 @@ impl<'de> serde::Deserialize<'de> for GenesisContent {
             "complianceRegistrarVk",
             "compliance_params",
             "complianceParams",
+            "user_leaves",
+            "userLeaves",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -3677,6 +3685,7 @@ impl<'de> serde::Deserialize<'de> for GenesisContent {
             NativeAssets,
             ComplianceRegistrarVk,
             ComplianceParams,
+            UserLeaves,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -3702,6 +3711,7 @@ impl<'de> serde::Deserialize<'de> for GenesisContent {
                             "nativeAssets" | "native_assets" => Ok(GeneratedField::NativeAssets),
                             "complianceRegistrarVk" | "compliance_registrar_vk" => Ok(GeneratedField::ComplianceRegistrarVk),
                             "complianceParams" | "compliance_params" => Ok(GeneratedField::ComplianceParams),
+                            "userLeaves" | "user_leaves" => Ok(GeneratedField::UserLeaves),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -3724,6 +3734,7 @@ impl<'de> serde::Deserialize<'de> for GenesisContent {
                 let mut native_assets__ = None;
                 let mut compliance_registrar_vk__ = None;
                 let mut compliance_params__ = None;
+                let mut user_leaves__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::NativeAssets => {
@@ -3744,6 +3755,12 @@ impl<'de> serde::Deserialize<'de> for GenesisContent {
                             }
                             compliance_params__ = map_.next_value()?;
                         }
+                        GeneratedField::UserLeaves => {
+                            if user_leaves__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("userLeaves"));
+                            }
+                            user_leaves__ = Some(map_.next_value()?);
+                        }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
                         }
@@ -3753,6 +3770,7 @@ impl<'de> serde::Deserialize<'de> for GenesisContent {
                     native_assets: native_assets__.unwrap_or_default(),
                     compliance_registrar_vk: compliance_registrar_vk__.unwrap_or_default(),
                     compliance_params: compliance_params__,
+                    user_leaves: user_leaves__.unwrap_or_default(),
                 })
             }
         }

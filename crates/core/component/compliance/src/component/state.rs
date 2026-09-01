@@ -11,11 +11,11 @@ use tracing::instrument;
 
 use crate::{
     audit_log::AuditLogWrite as _,
-    event, genesis,
+    genesis,
     params::StateWriteExt as _,
     registry::{
         AssetGrantAdmission, ComplianceRegistryComponentWrite, ComplianceRegistryRead,
-        ComplianceRegistryWrite, GenesisAssetAdmission, UserGrantAdmission,
+        ComplianceRegistryWrite, GenesisAssetAdmission, GenesisUserAdmission, UserGrantAdmission,
     },
     state_key,
     structs::{MsgRegisterAsset, MsgRegisterUser},
@@ -99,40 +99,10 @@ impl Component for Compliance {
             }
 
             for registration in &genesis.native_assets {
-                let (policy, is_regulated) = if registration.is_regulated {
-                    // Regulated assets MUST have a detection key.
-                    let dk_pub_bytes = registration
-                        .dk_pub
-                        .expect("regulated asset in genesis must have dk_pub");
-                    let registration_authority_vk = registration
-                        .registration_authority_vk
-                        .expect("regulated asset in genesis must have registration_authority_vk");
-                    let seizure_authority_vk = registration
-                        .seizure_authority_vk
-                        .expect("regulated asset in genesis must have seizure_authority_vk");
-                    let dk_pub = decaf377::Encoding(dk_pub_bytes)
-                        .vartime_decompress()
-                        .expect("invalid dk_pub encoding in genesis");
-
-                    (
-                        crate::structs::AssetPolicy::new(
-                            dk_pub,
-                            u128::MAX,
-                            vec![],
-                            None,
-                            String::new(),
-                            decaf377::Element::GENERATOR,
-                            String::new(),
-                            String::new(),
-                            String::new(),
-                        )
-                        .with_registration_authority(registration_authority_vk)
-                        .with_seizure_authority(seizure_authority_vk),
-                        true,
-                    )
-                } else {
-                    (crate::structs::AssetPolicy::default_unregulated(), false)
-                };
+                let policy = registration
+                    .asset_policy()
+                    .expect("native genesis asset policy must be valid");
+                let is_regulated = registration.is_regulated;
 
                 let event_policy = policy.clone();
                 if let Some(result) = state
@@ -164,6 +134,39 @@ impl Component for Compliance {
                         "registered native asset at genesis"
                     );
                 }
+            }
+
+            for leaf in &genesis.user_leaves {
+                assert!(
+                    state
+                        .is_asset_regulated(leaf.asset_id)
+                        .await
+                        .expect("genesis user asset status must be readable"),
+                    "genesis compliance users require a regulated asset"
+                );
+                let policy = state
+                    .get_asset_policy(leaf.asset_id)
+                    .await
+                    .expect("genesis user asset policy must be readable")
+                    .expect("genesis user asset must be registered");
+                let position = state
+                    .register_genesis_user(
+                        GenesisUserAdmission::validate(leaf.clone(), &policy)
+                            .expect("genesis user registration must be valid"),
+                    )
+                    .await
+                    .expect("must be able to register user at genesis");
+                state.publish_user_registration(crate::event::EventUserRegistered {
+                    position,
+                    commitment: leaf.commit(),
+                    leaf: leaf.clone(),
+                });
+                tracing::info!(
+                    address = ?leaf.address,
+                    ?leaf.asset_id,
+                    position,
+                    "registered compliance user at genesis"
+                );
             }
         }
 
@@ -288,15 +291,7 @@ impl ActionHandler for MsgRegisterUser {
             leaf: self.leaf.clone(),
         };
 
-        // Buffer the event for CompactBlock inclusion
-        state.queue_user_registration_event(event.clone());
-
-        // Also emit as ABCI event (for existing event listeners)
-        state.record_proto(event::user_registered(
-            position,
-            commitment,
-            self.leaf.clone(),
-        ));
+        state.publish_user_registration(event);
 
         Ok(())
     }
@@ -515,6 +510,14 @@ mod tests {
         let mut state = cnidarium::StateDelta::new(snapshot);
 
         let custom_asset = asset::Id(Fq::from(999u64));
+        let address = Address::dummy(&mut rand::thread_rng());
+        let leaf = ComplianceLeaf::registered(
+            address.clone(),
+            custom_asset,
+            decaf377::Element::GENERATOR,
+            Fq::from(1u64),
+        )
+        .expect("fixed genesis compliance keys are valid");
 
         // Custom genesis with a regulated asset (requires dk_pub)
         let dk_pub_bytes = decaf377::Element::GENERATOR.vartime_compress().0;
@@ -531,6 +534,7 @@ mod tests {
                 ))),
             }],
             compliance_registrar_vk: vec![],
+            user_leaves: vec![leaf.clone()],
             ..Default::default()
         };
 
@@ -539,6 +543,10 @@ mod tests {
         // Custom asset should be in IMT (regulated)
         let proof_data = state.get_asset_proof_data(custom_asset).await.unwrap();
         assert!(proof_data.is_regulated, "custom asset should be regulated");
+        assert_eq!(
+            state.get_user_leaf(&address, custom_asset).await.unwrap(),
+            Some(leaf)
+        );
     }
 
     #[tokio::test]

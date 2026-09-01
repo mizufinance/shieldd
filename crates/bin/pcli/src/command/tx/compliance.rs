@@ -11,7 +11,7 @@ use shieldd_sdk_compliance::{
     issuer_keys::DetectionKey, ComplianceLeaf, IssuerComplianceWorker, RpcAuditAdviceProvider,
     SqliteScannerStore, TendermintProxyBlockIdentityProvider,
 };
-use shieldd_sdk_keys::{ensure_nonidentity_spend_auth_key, Address};
+use shieldd_sdk_keys::{ensure_nonidentity_spend_auth_key, Address, FullViewingKey};
 use shieldd_sdk_proto::util::tendermint_proxy::v1::{
     tendermint_proxy_service_client::TendermintProxyServiceClient, GetStatusRequest,
 };
@@ -190,6 +190,15 @@ pub enum ComplianceCmd {
         #[clap(long)]
         signing_key_hex: String,
     },
+
+    /// Derive this wallet's compliance nullifier key for one address and asset.
+    DeriveCnk {
+        /// The regulated asset ID.
+        asset_id: String,
+        /// Wallet address index.
+        #[clap(long, default_value = "0")]
+        address_index: u32,
+    },
 }
 
 impl ComplianceCmd {
@@ -203,6 +212,7 @@ impl ComplianceCmd {
             ComplianceCmd::SignAssetGrant { .. } => true,
             ComplianceCmd::SignUserGrant { .. } => true,
             ComplianceCmd::DeriveSpendVk { .. } => true,
+            ComplianceCmd::DeriveCnk { .. } => true,
         }
     }
 
@@ -223,6 +233,31 @@ impl ComplianceCmd {
                 | ComplianceCmd::SignUserGrant { .. }
                 | ComplianceCmd::DeriveSpendVk { .. }
         )
+    }
+
+    /// Returns whether this command derives a wallet compliance nullifier key.
+    pub fn is_derive_cnk(&self) -> bool {
+        matches!(self, ComplianceCmd::DeriveCnk { .. })
+    }
+
+    /// Derive and print the address-and-asset scoped compliance nullifier key.
+    pub fn exec_derive_cnk(&self, fvk: &FullViewingKey) -> Result<()> {
+        let ComplianceCmd::DeriveCnk {
+            asset_id,
+            address_index,
+        } = self
+        else {
+            anyhow::bail!("exec_derive_cnk called on another compliance command");
+        };
+        let asset_id = Self::parse_asset_id(asset_id)?;
+        let address = fvk.payment_address((*address_index).into());
+        let cnk = shieldd_sdk_compliance::derive_compliance_nullifier_key(
+            fvk.nullifier_key().0,
+            &address,
+            asset_id,
+        );
+        println!("{}", hex::encode(cnk.to_bytes()));
+        Ok(())
     }
 
     /// Execute the persistent issuer scanner.
@@ -500,8 +535,7 @@ impl ComplianceCmd {
                 if is_regulated && seizure_authority_vk.is_none() {
                     anyhow::bail!("--seizure-authority-vk-hex is required for regulated assets");
                 }
-                let allowed_ibc_routes =
-                    Self::parse_ibc_routes(allowed_ibc_routes, is_regulated)?;
+                let allowed_ibc_routes = Self::parse_ibc_routes(allowed_ibc_routes, is_regulated)?;
                 let ibc_origin = Self::parse_ibc_origin(
                     ibc_origin_base_denom.as_deref(),
                     ibc_origin_route.as_deref(),
@@ -601,9 +635,10 @@ impl ComplianceCmd {
 
             ComplianceCmd::SignAssetGrant { .. }
             | ComplianceCmd::SignUserGrant { .. }
-            | ComplianceCmd::DeriveSpendVk { .. } => anyhow::bail!(
-                "offline compliance helper commands don't create transactions - use exec_sign_grant instead"
-            ),
+            | ComplianceCmd::DeriveSpendVk { .. }
+            | ComplianceCmd::DeriveCnk { .. } => {
+                anyhow::bail!("offline compliance helper commands don't create transactions")
+            }
         }
     }
 

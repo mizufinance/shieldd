@@ -385,7 +385,7 @@ async fn main() -> anyhow::Result<()> {
                     chain_id,
                     gas_price_simple,
                     compliance_registrar_vk_hex,
-                    compliance_native_assets_input_file,
+                    compliance_genesis_input_file,
                     preserve_chain_id,
                     external_addresses,
                     tendermint_rpc_bind,
@@ -452,7 +452,7 @@ async fn main() -> anyhow::Result<()> {
                 epoch_duration,
                 gas_price_simple,
                 compliance_registrar_vk,
-                compliance_native_assets_input_file,
+                compliance_genesis_input_file,
                 tendermint_rpc_bind,
                 tendermint_p2p_bind,
             )?;

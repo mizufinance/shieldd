@@ -36,6 +36,7 @@ compliance_dev_seizure_authority_sk_hex="${COMPLIANCE_DEV_SEIZURE_AUTHORITY_SK_H
 compliance_dev_seizure_authority_vk_hex="${COMPLIANCE_DEV_SEIZURE_AUTHORITY_VK_HEX:-2ebd42dd3a2307083c834e79fb9e787e352dd33e0d719f86ae4adb02fe382409}"
 compliance_dev_dk_hex="cbd713af1d345f5b2e0c70268dd8bf71e30b10187cc6fd36b067f6b3a2a30902"
 compliance_dev_dk_pub_hex="425347413a07569499089d7c3a19b31f600c712d5aca04b9eddaa0af102b4012"
+compliance_dev_ring_pk_hex="0800000000000000000000000000000000000000000000000000000000000000"
 compliance_grant_valid_until_unix="${COMPLIANCE_GRANT_VALID_UNTIL_UNIX:-4102444800}"
 if [ "${SHIELDD_PRODUCTION:-0}" = "1" ]; then
     >&2 echo "ERROR: smoke-test.sh uses dev-only compliance keys and must not run with SHIELDD_PRODUCTION=1"
@@ -189,32 +190,56 @@ cleanup_smoke() {
 
 trap cleanup_smoke EXIT
 
-compliance_native_assets_file="${smoke_test_dir}/compliance-native-assets.json"
+# Build the wallet before genesis so its regulated allocation can be bound to
+# the exact wallet-derived compliance nullifier key.
+pcli_test_home="${smoke_test_dir}/pcli-test"
+mkdir -p "$pcli_test_home"
+echo "comfort ten front cycle churn burger oak absent rice ice urge result art couple benefit cabbage frequent obscure hurry trick segment cool job debate" | \
+    cargo_cmd run --release --bin pcli -- --home "$pcli_test_home" init --grpc-url "$SHIELDD_NODE_PD_URL" soft-kms import-phrase
+smoke_addr_0=$(cargo_cmd run --release --bin pcli -- --home "$pcli_test_home" view address 0)
+require_address_output "smoke_addr_0" "$smoke_addr_0" "view address 0"
+smoke_addr_1=$(cargo_cmd run --release --bin pcli -- --home "$pcli_test_home" view address 1)
+require_address_output "smoke_addr_1" "$smoke_addr_1" "view address 1"
+compliance_dev_cnk_0_hex=$(cargo_cmd run --release --bin pcli -- --home "$pcli_test_home" tx compliance derive-cnk regulated_usd --address-index 0)
+require_hex_output "compliance_dev_cnk_0_hex" "$compliance_dev_cnk_0_hex" "$compliance_dev_cnk_0_hex" "tx compliance derive-cnk address 0"
+compliance_dev_cnk_1_hex=$(cargo_cmd run --release --bin pcli -- --home "$pcli_test_home" tx compliance derive-cnk regulated_usd --address-index 1)
+require_hex_output "compliance_dev_cnk_1_hex" "$compliance_dev_cnk_1_hex" "$compliance_dev_cnk_1_hex" "tx compliance derive-cnk address 1"
+
+compliance_genesis_file="${smoke_test_dir}/compliance-genesis.json"
 python3 - \
-    "$compliance_native_assets_file" \
+    "$compliance_genesis_file" \
     "$compliance_dev_dk_pub_hex" \
     "$compliance_dev_authority_vk_hex" \
-    "$compliance_dev_seizure_authority_vk_hex" <<'PY'
+    "$compliance_dev_seizure_authority_vk_hex" \
+    "$smoke_addr_0" \
+    "$compliance_dev_cnk_0_hex" <<'PY'
 import base64
 import json
 import sys
 
-output, dk_pub, registration_vk, seizure_vk = sys.argv[1:]
+output, dk_pub, registration_vk, seizure_vk, address, cnk = sys.argv[1:]
 
 def encoded(value):
     return base64.b64encode(bytes.fromhex(value)).decode("ascii")
 
-registrations = [{
-    "assetId": {"altBaseDenom": "wregulated_usd"},
-    "isRegulated": True,
-    "dkPub": encoded(dk_pub),
-    "registrationAuthorityVk": {"inner": encoded(registration_vk)},
-    "seizureAuthorityVk": {"inner": encoded(seizure_vk)},
-}]
+genesis = {
+    "nativeAssets": [{
+        "assetId": {"altBaseDenom": "wregulated_usd"},
+        "isRegulated": True,
+        "dkPub": encoded(dk_pub),
+        "registrationAuthorityVk": {"inner": encoded(registration_vk)},
+        "seizureAuthorityVk": {"inner": encoded(seizure_vk)},
+    }],
+    "users": [{
+        "address": address,
+        "assetId": {"altBaseDenom": "wregulated_usd"},
+        "cnkHex": cnk,
+    }],
+}
 with open(output, "w", encoding="utf-8") as destination:
-    json.dump(registrations, destination)
+    json.dump(genesis, destination)
 PY
-export COMPLIANCE_NATIVE_ASSETS_INPUT_FILE="$compliance_native_assets_file"
+export COMPLIANCE_GENESIS_INPUT_FILE="$compliance_genesis_file"
 
 # Reuse existing dev-env script, but keep process-compose in the foreground and
 # background the wrapper here so smoke can wait on readiness and clean up the
@@ -269,33 +294,14 @@ done
 # Wait for a few more blocks to ensure state is fully committed
 sleep 10
 
-# Initialize the test wallet used by the smoke compliance setup.
-pcli_test_home="${smoke_test_dir}/pcli-test"
-mkdir -p "$pcli_test_home"
-echo "comfort ten front cycle churn burger oak absent rice ice urge result art couple benefit cabbage frequent obscure hurry trick segment cool job debate" | \
-    cargo_cmd run --release --bin pcli -- --home "$pcli_test_home" init --grpc-url "$SHIELDD_NODE_PD_URL" soft-kms import-phrase
-
 # --- Compliance smoke test setup ---
-# regulated_usd is issued and registered at genesis. Register both test users,
+# regulated_usd and its funded user are registered at genesis. Register the receiver,
 # then send a transfer so the detection scan has on-chain data to find.
 >&2 echo "Setting up compliance smoke test environment..."
-smoke_addr_0=$(cargo_cmd run --release --bin pcli -- --home "$pcli_test_home" view address 0)
-require_address_output "smoke_addr_0" "$smoke_addr_0" "view address 0"
-smoke_addr_1=$(cargo_cmd run --release --bin pcli -- --home "$pcli_test_home" view address 1)
-require_address_output "smoke_addr_1" "$smoke_addr_1" "view address 1"
-user_grant_0_output=$(cargo_cmd run --release --bin pcli -- --home "$pcli_test_home" tx compliance sign-user-grant regulated_usd \
-    --address "$smoke_addr_0" \
-    --registration-authority-sk-hex "$compliance_dev_authority_sk_hex" \
-    --valid-until-unix "$compliance_grant_valid_until_unix" \
-    2>&1) || {
-    >&2 echo "ERROR: tx compliance sign-user-grant failed for smoke_addr_0"
-    >&2 printf '%s\n' "$user_grant_0_output"
-    exit 1
-}
-user_grant_0=$(printf '%s\n' "$user_grant_0_output" | tail -1)
-require_hex_output "user_grant_0" "$user_grant_0" "$user_grant_0_output" "tx compliance sign-user-grant smoke_addr_0"
 user_grant_1_output=$(cargo_cmd run --release --bin pcli -- --home "$pcli_test_home" tx compliance sign-user-grant regulated_usd \
     --address "$smoke_addr_1" \
+    --ring-pk-hex "$compliance_dev_ring_pk_hex" \
+    --cnk-hex "$compliance_dev_cnk_1_hex" \
     --registration-authority-sk-hex "$compliance_dev_authority_sk_hex" \
     --valid-until-unix "$compliance_grant_valid_until_unix" \
     2>&1) || {
@@ -305,8 +311,6 @@ user_grant_1_output=$(cargo_cmd run --release --bin pcli -- --home "$pcli_test_h
 }
 user_grant_1=$(printf '%s\n' "$user_grant_1_output" | tail -1)
 require_hex_output "user_grant_1" "$user_grant_1" "$user_grant_1_output" "tx compliance sign-user-grant smoke_addr_1"
-pcli_tx_cmd tx compliance register-user regulated_usd \
-    --user-registration-grant-hex "$user_grant_0"
 pcli_tx_cmd tx compliance register-user regulated_usd \
     --address-index 1 \
     --user-registration-grant-hex "$user_grant_1"

@@ -243,6 +243,9 @@ impl TxCmd {
             if compliance_cmd.is_sign_grant() {
                 return compliance_cmd.exec_sign_grant();
             }
+            if compliance_cmd.is_derive_cnk() {
+                return compliance_cmd.exec_derive_cnk(&app.config.full_viewing_key);
+            }
         }
 
         // The reduced chain prices gas only in the base asset.

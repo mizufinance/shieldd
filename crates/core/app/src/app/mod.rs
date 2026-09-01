@@ -4289,8 +4289,8 @@ impl App {
             AppState::Content(genesis) => {
                 state_tx.put_chain_id(genesis.chain_id.clone());
                 Sct::init_chain(&mut state_tx, Some(&genesis.sct_content)).await;
-                // Compliance asset admission precedes issuance so regulated
-                // genesis allocations can be rejected by the shielded pool.
+                // Compliance assets and users are admitted before issuance so
+                // regulated genesis notes use their registered recovery capability.
                 Compliance::init_chain(&mut state_tx, Some(&genesis.compliance_content)).await;
                 ShieldedPool::init_chain(&mut state_tx, Some(&genesis.shielded_pool_content)).await;
                 Ibc::init_chain(&mut state_tx, Some(&genesis.ibc_content)).await;
@@ -6855,8 +6855,9 @@ mod tests {
     use sha2::Digest as _;
     use shieldd_sdk_asset::{asset, Value, BASE_ASSET_DENOM, BASE_ASSET_ID};
     use shieldd_sdk_compact_block::StatePayload;
+    use shieldd_sdk_compliance::genesis::NativeAssetRegistration;
     use shieldd_sdk_compliance::registry::ComplianceRegistryWrite as _;
-    use shieldd_sdk_compliance::{AssetPolicy, ComplianceLeaf};
+    use shieldd_sdk_compliance::{derive_compliance_nullifier_key, AssetPolicy, ComplianceLeaf};
     use shieldd_sdk_fee::Fee;
     use shieldd_sdk_keys::{test_keys, Address};
     use shieldd_sdk_mock_client::MockClient;
@@ -7449,6 +7450,60 @@ mod tests {
         }
 
         Ok((storage, test_node, txs))
+    }
+
+    #[tokio::test]
+    async fn regulated_genesis_allocation_has_a_registered_recovery_capability() -> Result<()> {
+        let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
+        let authority_vk = rdsa::VerificationKey::from(test_keys::SPEND_KEY.spend_auth_key());
+        let regulated_denom = "wregulated_usd";
+        let regulated_asset_id = asset::REGISTRY.parse_unit(regulated_denom).id();
+        let cnk = derive_compliance_nullifier_key(
+            test_keys::SPEND_KEY.nullifier_key().0,
+            &test_keys::ADDRESS_0,
+            regulated_asset_id,
+        );
+        let leaf = ComplianceLeaf::registered(
+            test_keys::ADDRESS_0.deref().clone(),
+            regulated_asset_id,
+            decaf377::Element::GENERATOR,
+            cnk,
+        )?;
+        let app_state_bytes = serde_json::to_vec(&AppState::Content(Content {
+            chain_id: TestNode::<()>::CHAIN_ID.to_string(),
+            compliance_content: shieldd_sdk_compliance::genesis::Content {
+                native_assets: vec![NativeAssetRegistration {
+                    asset_id: regulated_asset_id,
+                    is_regulated: true,
+                    dk_pub: Some(decaf377::Element::GENERATOR.vartime_compress().0),
+                    registration_authority_vk: Some(authority_vk),
+                    seizure_authority_vk: Some(authority_vk),
+                }],
+                user_leaves: vec![leaf],
+                ..Default::default()
+            },
+            shielded_pool_content: shieldd_sdk_shielded_pool::genesis::Content {
+                allocations: vec![Allocation {
+                    raw_amount: 1_000_000u128.into(),
+                    raw_denom: regulated_denom.to_string(),
+                    address: test_keys::ADDRESS_0.deref().clone(),
+                }],
+                ..Default::default()
+            },
+            ..Default::default()
+        }))?;
+
+        let consensus = Consensus::new(storage.as_ref().clone());
+        TestNode::builder()
+            .single_validator()
+            .app_state(app_state_bytes)
+            .with_initial_timestamp(tendermint::Time::parse_from_rfc3339(
+                "2026-01-01T00:00:00Z",
+            )?)
+            .init_chain(consensus)
+            .await?;
+
+        Ok(())
     }
 
     async fn candidate_envelope_from_fixture_txs(

@@ -50,7 +50,7 @@ fn derive_salt(rseed: Rseed) -> Fq {
 pub struct RecoveryCommitment(pub Fq);
 
 impl RecoveryCommitment {
-    /// Explicit marker for notes outside the regulated recovery path, such as genesis allocations.
+    /// Explicit marker for notes outside the regulated recovery path.
     pub fn unavailable() -> Self {
         static UNAVAILABLE_DOMAIN: Lazy<Fq> =
             Lazy::new(|| domain(b"shieldd.recovery_capsule.unavailable"));

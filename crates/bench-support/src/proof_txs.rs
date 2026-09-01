@@ -19,7 +19,7 @@ use shieldd_sdk_app::{
 };
 use shieldd_sdk_asset::{Value, BASE_ASSET_DENOM, BASE_ASSET_ID};
 use shieldd_sdk_compliance::{
-    genesis::NativeAssetRegistration, ComplianceLeaf, ComplianceRegistryWrite,
+    derive_compliance_nullifier_key, genesis::NativeAssetRegistration, ComplianceLeaf,
 };
 use shieldd_sdk_keys::test_keys;
 use shieldd_sdk_mock_client::MockClient;
@@ -88,6 +88,20 @@ pub async fn setup_proof_storage(
     .collect();
 
     let authority_vk = VerificationKey::from(test_keys::SPEND_KEY.spend_auth_key());
+    let user_leaves = [
+        test_keys::ADDRESS_0.deref().clone(),
+        test_keys::ADDRESS_1.deref().clone(),
+    ]
+    .into_iter()
+    .map(|address| {
+        let cnk = derive_compliance_nullifier_key(
+            test_keys::SPEND_KEY.nullifier_key().0,
+            &address,
+            *BASE_ASSET_ID,
+        );
+        ComplianceLeaf::registered(address, *BASE_ASSET_ID, decaf377::Element::GENERATOR, cnk)
+    })
+    .collect::<anyhow::Result<Vec<_>>>()?;
     let content = Content {
         chain_id: TestNode::<()>::CHAIN_ID.to_string(),
         compliance_content: shieldd_sdk_compliance::genesis::Content {
@@ -98,6 +112,7 @@ pub async fn setup_proof_storage(
                 registration_authority_vk: Some(authority_vk),
                 seizure_authority_vk: Some(authority_vk),
             }],
+            user_leaves,
             ..Default::default()
         },
         shielded_pool_content: shieldd_sdk_shielded_pool::genesis::Content {
@@ -119,20 +134,6 @@ pub async fn setup_proof_storage(
         .await?;
 
     test_node.block().execute().await?;
-
-    let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
-    for address in [
-        test_keys::ADDRESS_0.deref().clone(),
-        test_keys::ADDRESS_1.deref().clone(),
-    ] {
-        state
-            .test_only_add_compliance_leaf(ComplianceLeaf::synthetic_unregulated(
-                address,
-                *BASE_ASSET_ID,
-            ))
-            .await?;
-    }
-    storage.commit(state).await?;
 
     let client = Arc::new(
         MockClient::new(test_keys::SPEND_KEY.clone())

@@ -354,6 +354,8 @@ message GenesisContent {
   repeated NativeAssetRegistration native_assets = 1;
   repeated crypto.decaf377_rdsa.v1.SpendVerificationKey compliance_registrar_vk = 2;
   ComplianceParameters compliance_params = 3;
+  // Active users that must exist before regulated genesis allocations are minted.
+  repeated ComplianceLeaf user_leaves = 4;
 }
 
 // Native asset registration configured at genesis.

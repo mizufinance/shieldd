@@ -9,17 +9,17 @@ shieldd_devnet_home="${SHIELDD_DEVNET_HOME:-$HOME/.shieldd}"
 export SHIELDD_DEVNET_HOME="$shieldd_devnet_home"
 network_data_dir="${shieldd_devnet_home}/network_data"
 compliance_dev_registrar_vk_hex="${COMPLIANCE_DEV_REGISTRAR_VK_HEX:-0800000000000000000000000000000000000000000000000000000000000000}"
-compliance_native_assets_input_file="${COMPLIANCE_NATIVE_ASSETS_INPUT_FILE:-}"
+compliance_genesis_input_file="${COMPLIANCE_GENESIS_INPUT_FILE:-}"
 compliance_genesis_args=(
     --compliance-registrar-vk-hex "$compliance_dev_registrar_vk_hex"
 )
-if [[ -n "$compliance_native_assets_input_file" ]]; then
-    if [[ ! -f "$compliance_native_assets_input_file" ]]; then
-        >&2 echo "ERROR: compliance native assets file does not exist: $compliance_native_assets_input_file"
+if [[ -n "$compliance_genesis_input_file" ]]; then
+    if [[ ! -f "$compliance_genesis_input_file" ]]; then
+        >&2 echo "ERROR: compliance genesis file does not exist: $compliance_genesis_input_file"
         exit 1
     fi
     compliance_genesis_args+=(
-        --compliance-native-assets-input-file "$compliance_native_assets_input_file"
+        --compliance-genesis-input-file "$compliance_genesis_input_file"
     )
 fi
 pd_cargo_args=()

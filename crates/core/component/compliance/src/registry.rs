@@ -121,6 +121,23 @@ impl UserGrantAdmission {
     }
 }
 
+/// A user-registry mutation admitted from validated genesis content.
+pub struct GenesisUserAdmission {
+    leaf: ComplianceLeaf,
+}
+
+impl GenesisUserAdmission {
+    pub(crate) fn validate(leaf: ComplianceLeaf, policy: &AssetPolicy) -> Result<Self> {
+        policy.validate_crypto_keys()?;
+        leaf.validate_registration(policy.ring.ring_pk)?;
+        anyhow::ensure!(
+            leaf.status == UserAssetStatus::Active,
+            "genesis compliance users must start active"
+        );
+        Ok(Self { leaf })
+    }
+}
+
 /// An asset-registry mutation admitted after the registrar grant is verified.
 pub struct AssetGrantAdmission {
     asset_id: asset::Id,
@@ -1828,8 +1845,13 @@ pub(crate) trait ComplianceRegistryComponentWrite:
         <Self as ComplianceRegistryRawWrite>::record_compliance_anchors(self, height).await
     }
 
-    fn queue_user_registration_event(&mut self, event: event::EventUserRegistered) {
-        <Self as ComplianceRegistryRawWrite>::record_pending_user_registration(self, event);
+    fn publish_user_registration(&mut self, event: event::EventUserRegistered) {
+        <Self as ComplianceRegistryRawWrite>::record_pending_user_registration(self, event.clone());
+        self.record_proto(event::user_registered(
+            event.position,
+            event.commitment,
+            event.leaf,
+        ));
     }
 
     fn publish_asset_registration(&mut self, event: event::EventAssetRegistered) {
@@ -1848,6 +1870,11 @@ impl<T: StateWrite + ?Sized> ComplianceRegistryComponentWrite for T {}
 pub trait ComplianceRegistryWrite: StateWrite + ComplianceRegistryRead {
     /// Persist a user registration admitted by a verified user grant.
     async fn register_user_with_grant(&mut self, admission: UserGrantAdmission) -> Result<u64> {
+        <Self as ComplianceRegistryRawWrite>::add_compliance_leaf(self, admission.leaf).await
+    }
+
+    /// Persist a user registration admitted during genesis validation.
+    async fn register_genesis_user(&mut self, admission: GenesisUserAdmission) -> Result<u64> {
         <Self as ComplianceRegistryRawWrite>::add_compliance_leaf(self, admission.leaf).await
     }
 
