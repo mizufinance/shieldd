@@ -6,12 +6,30 @@ Base revision: `e5359431cbbae25e4be0c706866e916feea27aa2` (`origin/dev`)
 
 Branch: `codex/tree-update-spikes`
 
-Status: implementation plan only; no production path changed
+Status: production design implemented; target-hardware release measurements remain
 
-This plan turns the prototypes in
-[`tree-spike-results.md`](tree-spike-results.md) into production work. It also
-incorporates a second pass over the application lifecycle, validator replay,
-TCT finalization, and wallet SQLite boundaries.
+This document records the production design selected from the prototypes in
+[`tree-spike-results.md`](tree-spike-results.md). The implementation covers the
+application lifecycle, validator replay, TCT finalization, and wallet SQLite
+boundaries described below.
+
+## Implementation result
+
+| Area | Implemented design |
+| --- | --- |
+| Nullifier tree | A typed batch plan resolves proposal-order leaf changes, uses a bounded ordered-index scan with point-read fallback, hashes the dirty-path union levelwise, and stages canonical writes only after planning succeeds. |
+| Block lifecycle | Transactions stage bounded ordered nullifiers in `PendingNullifierBlock`; durable or staged reads reject reuse; `Sct::end_block` materializes exactly once before rollover; commit rejects an open block. |
+| Proposals | `PrepareProposal` stages prevalidated facts without building a disposable tree. `ProcessProposal` retains transaction-delivery execution and whole-proposal rejection semantics while inheriting the same deferred nullifier state machine. |
+| Validator TCT | `builder::block::finalized_forget_root` owns block hash geometry and padding. Validator end block selects it above 64 commitments, inserts one finalized block, and consumes a typed marker without adding an empty block. Wallet `Keep` behavior is unchanged. |
+| Validator compliance | Startup and dirty end block perform full structural verification; individual asset mutations verify their materialized root locally instead of reloading the complete tree. |
+| Wallet compliance | One immutable user/asset snapshot is privately projected, persisted with the wallet block and sync height in one SQLite transaction, and published only after commit. Empty deltas still authenticate both anchors. Proofs fail closed on mixed-height auxiliary rows or remote anchors. |
+
+Correctness coverage includes exact nullifier storage/root/proof parity,
+same-block visibility and rollback, proposal staging versus committed delivery,
+TCT threshold/full-capacity/multi-block/epoch/reload parity, compliance corruption
+checks, conflicting anchor replay, and injected SQLite rollback. Release
+benchmarks on target ARM/x86 disks, peak RSS, and phone proof-latency measurements
+are operational gates rather than additional implementation paths.
 
 ## Decision
 
@@ -170,7 +188,7 @@ after commit.
 - Batch size, dirty nodes, scan bytes, and temporary memory all have checked
   hard bounds before allocation.
 
-## Planned production footprint
+## Production footprint
 
 This implementation intentionally affects more than five files. The expected
 scope is explicit here; unrelated circuits, schemas, CLI output, and formal
