@@ -10,7 +10,7 @@ use shieldd_sdk_app::{
     params::AppParameters,
 };
 use shieldd_sdk_asset::BASE_ASSET_ID;
-use shieldd_sdk_compliance::genesis::Content as ComplianceContent;
+use shieldd_sdk_compliance::genesis::{Content as ComplianceContent, NativeAssetRegistration};
 use shieldd_sdk_fee::genesis::Content as FeeContent;
 use shieldd_sdk_keys::Address;
 use shieldd_sdk_sct::genesis::Content as SctContent;
@@ -73,6 +73,7 @@ impl NetworkConfig {
         epoch_duration: Option<u64>,
         gas_price_simple: Option<u64>,
         compliance_registrar_vk: Vec<VerificationKey<SpendAuth>>,
+        compliance_native_assets_input_file: Option<PathBuf>,
         tendermint_rpc_bind: SocketAddr,
         tendermint_p2p_bind: SocketAddr,
     ) -> anyhow::Result<NetworkConfig> {
@@ -91,12 +92,15 @@ impl NetworkConfig {
             tracing::info!(%address, "adding dynamic allocation to genesis");
             allocations.extend(NetworkAllocation::simple(address));
         }
+        let compliance_native_assets =
+            Self::collect_compliance_native_assets(compliance_native_assets_input_file)?;
         let app_state = Self::make_genesis_content(
             chain_id,
             allocations,
             epoch_duration,
             gas_price_simple,
             compliance_registrar_vk,
+            compliance_native_assets,
         )?;
         let mut genesis = Self::make_genesis(app_state)?;
         genesis.validators = network_validators
@@ -188,6 +192,7 @@ impl NetworkConfig {
         epoch_duration: Option<u64>,
         gas_price_simple: Option<u64>,
         compliance_registrar_vk: Vec<VerificationKey<SpendAuth>>,
+        compliance_native_assets: Vec<NativeAssetRegistration>,
     ) -> anyhow::Result<shieldd_sdk_app::genesis::Content> {
         // Look up default app params, so we can fill in defaults.
         let default_app_params = AppParameters::default();
@@ -209,6 +214,7 @@ impl NetworkConfig {
                 },
             },
             compliance_content: ComplianceContent {
+                native_assets: compliance_native_assets,
                 compliance_registrar_vk,
                 ..Default::default()
             },
@@ -228,6 +234,29 @@ impl NetworkConfig {
             ..Default::default()
         };
         Ok(app_state)
+    }
+
+    fn collect_compliance_native_assets(
+        input_file: Option<PathBuf>,
+    ) -> anyhow::Result<Vec<NativeAssetRegistration>> {
+        let Some(input_file) = input_file else {
+            return Ok(Vec::new());
+        };
+        let file = File::open(&input_file).with_context(|| {
+            format!(
+                "could not open native compliance asset registrations {}",
+                input_file.display()
+            )
+        })?;
+        let registrations: Vec<
+            shieldd_sdk_proto::shieldd::core::component::compliance::v1::NativeAssetRegistration,
+        > = serde_json::from_reader(file).with_context(|| {
+            format!(
+                "could not parse native compliance asset registrations {}",
+                input_file.display()
+            )
+        })?;
+        registrations.into_iter().map(TryInto::try_into).collect()
     }
 
     /// Build Tendermint genesis data, based on Shieldd initial application state.
@@ -352,6 +381,7 @@ pub fn network_generate(
     allocation_address: Option<Address>,
     gas_price_simple: Option<u64>,
     compliance_registrar_vk: Vec<VerificationKey<SpendAuth>>,
+    compliance_native_assets_input_file: Option<PathBuf>,
     tendermint_rpc_bind: SocketAddr,
     tendermint_p2p_bind: SocketAddr,
 ) -> anyhow::Result<()> {
@@ -368,6 +398,7 @@ pub fn network_generate(
         epoch_duration,
         gas_price_simple,
         compliance_registrar_vk,
+        compliance_native_assets_input_file,
         tendermint_rpc_bind,
         tendermint_p2p_bind,
     )?;
@@ -645,6 +676,47 @@ mod tests {
     use super::*;
 
     #[test]
+    fn parses_native_compliance_assets() -> anyhow::Result<()> {
+        let input = tempfile::NamedTempFile::new()?;
+        std::fs::write(
+            input.path(),
+            r#"[{
+                "assetId": {"altBaseDenom": "wregulated_usd"},
+                "isRegulated": true,
+                "dkPub": "QlNHQToHVpSZCJ18OhmzH2AMcS1aygS57dqgrxArQBI=",
+                "registrationAuthorityVk": {
+                    "inner": "suz5uQgtYwZTi+c7DW7nQRQfMiIVLaeGhdZZbvyMFQY="
+                },
+                "seizureAuthorityVk": {
+                    "inner": "Lr1C3TojBwg8g055+554fjUt0z4NcZ+GrkrbAv44JAk="
+                }
+            }]"#,
+        )?;
+
+        let registrations =
+            NetworkConfig::collect_compliance_native_assets(Some(input.path().to_path_buf()))?;
+        assert_eq!(registrations.len(), 1);
+        let registration = &registrations[0];
+        let expected_asset_id: shieldd_sdk_asset::asset::Id =
+            shieldd_sdk_proto::shieldd::core::asset::v1::AssetId {
+                inner: Vec::new(),
+                alt_bech32m: String::new(),
+                alt_base_denom: "wregulated_usd".to_owned(),
+            }
+            .try_into()?;
+        assert_eq!(registration.asset_id, expected_asset_id);
+        assert!(registration.is_regulated);
+        let expected_dk_pub: [u8; 32] =
+            hex::decode("425347413a07569499089d7c3a19b31f600c712d5aca04b9eddaa0af102b4012")?
+                .try_into()
+                .map_err(|_| anyhow::anyhow!("detection key is not 32 bytes"))?;
+        assert_eq!(registration.dk_pub, Some(expected_dk_pub));
+        assert!(registration.registration_authority_vk.is_some());
+        assert!(registration.seizure_authority_vk.is_some());
+        Ok(())
+    }
+
+    #[test]
     fn parse_allocations_from_good_csv() -> anyhow::Result<()> {
         let csv_content = r#"
 "amount","denom","address"
@@ -694,6 +766,7 @@ mod tests {
             None,
             None,
             vec![],
+            None,
             SocketAddr::from_str("0.0.0.0:26657")?,
             SocketAddr::from_str("0.0.0.0:26656")?,
         )?;
@@ -735,6 +808,7 @@ mod tests {
             None,
             None,
             vec![],
+            None,
             SocketAddr::from_str("0.0.0.0:26657")?,
             SocketAddr::from_str("0.0.0.0:26656")?,
         )?;

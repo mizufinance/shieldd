@@ -34,6 +34,8 @@ compliance_dev_authority_sk_hex="${COMPLIANCE_DEV_AUTHORITY_SK_HEX:-020000000000
 compliance_dev_authority_vk_hex="${COMPLIANCE_DEV_AUTHORITY_VK_HEX:-b2ecf9b9082d6306538be73b0d6ee741141f3222152da78685d6596efc8c1506}"
 compliance_dev_seizure_authority_sk_hex="${COMPLIANCE_DEV_SEIZURE_AUTHORITY_SK_HEX:-0300000000000000000000000000000000000000000000000000000000000000}"
 compliance_dev_seizure_authority_vk_hex="${COMPLIANCE_DEV_SEIZURE_AUTHORITY_VK_HEX:-2ebd42dd3a2307083c834e79fb9e787e352dd33e0d719f86ae4adb02fe382409}"
+compliance_dev_dk_hex="cbd713af1d345f5b2e0c70268dd8bf71e30b10187cc6fd36b067f6b3a2a30902"
+compliance_dev_dk_pub_hex="425347413a07569499089d7c3a19b31f600c712d5aca04b9eddaa0af102b4012"
 compliance_grant_valid_until_unix="${COMPLIANCE_GRANT_VALID_UNTIL_UNIX:-4102444800}"
 if [ "${SHIELDD_PRODUCTION:-0}" = "1" ]; then
     >&2 echo "ERROR: smoke-test.sh uses dev-only compliance keys and must not run with SHIELDD_PRODUCTION=1"
@@ -187,6 +189,33 @@ cleanup_smoke() {
 
 trap cleanup_smoke EXIT
 
+compliance_native_assets_file="${smoke_test_dir}/compliance-native-assets.json"
+python3 - \
+    "$compliance_native_assets_file" \
+    "$compliance_dev_dk_pub_hex" \
+    "$compliance_dev_authority_vk_hex" \
+    "$compliance_dev_seizure_authority_vk_hex" <<'PY'
+import base64
+import json
+import sys
+
+output, dk_pub, registration_vk, seizure_vk = sys.argv[1:]
+
+def encoded(value):
+    return base64.b64encode(bytes.fromhex(value)).decode("ascii")
+
+registrations = [{
+    "assetId": {"altBaseDenom": "wregulated_usd"},
+    "isRegulated": True,
+    "dkPub": encoded(dk_pub),
+    "registrationAuthorityVk": {"inner": encoded(registration_vk)},
+    "seizureAuthorityVk": {"inner": encoded(seizure_vk)},
+}]
+with open(output, "w", encoding="utf-8") as destination:
+    json.dump(registrations, destination)
+PY
+export COMPLIANCE_NATIVE_ASSETS_INPUT_FILE="$compliance_native_assets_file"
+
 # Reuse existing dev-env script, but keep process-compose in the foreground and
 # background the wrapper here so smoke can wait on readiness and clean up the
 # resulting process tree on exit.
@@ -247,98 +276,59 @@ echo "comfort ten front cycle churn burger oak absent rice ice urge result art c
     cargo_cmd run --release --bin pcli -- --home "$pcli_test_home" init --grpc-url "$SHIELDD_NODE_PD_URL" soft-kms import-phrase
 
 # --- Compliance smoke test setup ---
-# Use regulated_usd (already allocated in genesis) as the unified regulated token.
-# Generate a DK, register the asset and user, then send a transfer so the
-# detection scan integration test has on-chain data to find.
+# regulated_usd is issued and registered at genesis. Register both test users,
+# then send a transfer so the detection scan has on-chain data to find.
 >&2 echo "Setting up compliance smoke test environment..."
-dk_output=$(cargo_cmd run --release --bin pcli -- --home "$pcli_test_home" tx compliance generate-dk 2>&1) || true
-dk_hex=$(echo "$dk_output" | grep "DK (hex):" | awk '{print $NF}')
-dk_pub_hex=$(echo "$dk_output" | grep "DK_pub (hex):" | awk '{print $NF}')
-
-if [ -n "$dk_hex" ] && [ -n "$dk_pub_hex" ]; then
-    >&2 echo "  DK generated successfully."
-
-    asset_grant_output=$(cargo_cmd run --release --bin pcli -- --home "$pcli_test_home" tx compliance sign-asset-grant regulated_usd \
-        --regulated \
-        --dk-pub-hex "$dk_pub_hex" \
-        --threshold 500000000000000000000 \
-        --registration-authority-vk-hex "$compliance_dev_authority_vk_hex" \
-        --seizure-authority-vk-hex "$compliance_dev_seizure_authority_vk_hex" \
-        --registrar-sk-hex "$compliance_dev_registrar_sk_hex" \
-        --valid-until-unix "$compliance_grant_valid_until_unix" \
-        2>&1) || {
-        >&2 echo "ERROR: tx compliance sign-asset-grant failed"
-        >&2 printf '%s\n' "$asset_grant_output"
-        exit 1
-    }
-    asset_grant_hex=$(printf '%s\n' "$asset_grant_output" | tail -1)
-    require_hex_output "asset_grant_hex" "$asset_grant_hex" "$asset_grant_output" "tx compliance sign-asset-grant"
-
-    # Register regulated_usd as a regulated asset with the generated DK
-    pcli_tx_cmd tx compliance register-asset regulated_usd \
-        --regulated \
-        --dk-pub-hex "$dk_pub_hex" \
-        --threshold 500000000000000000000 \
-        --registration-authority-vk-hex "$compliance_dev_authority_vk_hex" \
-        --seizure-authority-vk-hex "$compliance_dev_seizure_authority_vk_hex" \
-        --asset-registration-grant-hex "$asset_grant_hex"
-    >&2 echo "  regulated_usd registered as regulated asset."
-
-    # Register the test user for regulated_usd
-    smoke_addr_0=$(cargo_cmd run --release --bin pcli -- --home "$pcli_test_home" view address 0)
-    require_address_output "smoke_addr_0" "$smoke_addr_0" "view address 0"
-    smoke_addr_1=$(cargo_cmd run --release --bin pcli -- --home "$pcli_test_home" view address 1)
-    require_address_output "smoke_addr_1" "$smoke_addr_1" "view address 1"
-    user_grant_0_output=$(cargo_cmd run --release --bin pcli -- --home "$pcli_test_home" tx compliance sign-user-grant regulated_usd \
-        --address "$smoke_addr_0" \
-        --registration-authority-sk-hex "$compliance_dev_authority_sk_hex" \
-        --valid-until-unix "$compliance_grant_valid_until_unix" \
-        2>&1) || {
-        >&2 echo "ERROR: tx compliance sign-user-grant failed for smoke_addr_0"
-        >&2 printf '%s\n' "$user_grant_0_output"
-        exit 1
-    }
-    user_grant_0=$(printf '%s\n' "$user_grant_0_output" | tail -1)
-    require_hex_output "user_grant_0" "$user_grant_0" "$user_grant_0_output" "tx compliance sign-user-grant smoke_addr_0"
-    user_grant_1_output=$(cargo_cmd run --release --bin pcli -- --home "$pcli_test_home" tx compliance sign-user-grant regulated_usd \
-        --address "$smoke_addr_1" \
-        --registration-authority-sk-hex "$compliance_dev_authority_sk_hex" \
-        --valid-until-unix "$compliance_grant_valid_until_unix" \
-        2>&1) || {
-        >&2 echo "ERROR: tx compliance sign-user-grant failed for smoke_addr_1"
-        >&2 printf '%s\n' "$user_grant_1_output"
-        exit 1
-    }
-    user_grant_1=$(printf '%s\n' "$user_grant_1_output" | tail -1)
-    require_hex_output "user_grant_1" "$user_grant_1" "$user_grant_1_output" "tx compliance sign-user-grant smoke_addr_1"
-    pcli_tx_cmd tx compliance register-user regulated_usd \
-        --user-registration-grant-hex "$user_grant_0"
-    pcli_tx_cmd tx compliance register-user regulated_usd \
-        --address-index 1 \
-        --user-registration-grant-hex "$user_grant_1"
-    >&2 echo "  User registered for regulated_usd."
-
-    # Send a transfer so the detection scan has something to find
-    cargo_cmd run --release --bin pcli -- --home "$pcli_test_home" view sync
-    >&2 echo "  DEBUG: balance before send:"
-    cargo_cmd run --release --bin pcli -- --home "$pcli_test_home" view balance 2>&1 | tee /dev/stderr || true
-    smoke_addr=$(cargo_cmd run --release --bin pcli -- --home "$pcli_test_home" view address 1)
-    pcli_tx_cmd tx transfer 100regulated_usd --to "$smoke_addr"
-    >&2 echo "  Compliance transfer sent."
-
-    # Export env vars for integration tests
-    export COMPLIANCE_DK_HEX="$dk_hex"
-    export COMPLIANCE_DK_PUB_HEX="$dk_pub_hex"
-    export COMPLIANCE_SMOKE_ASSET="regulated_usd"
-    export COMPLIANCE_DEV_REGISTRAR_SK_HEX="$compliance_dev_registrar_sk_hex"
-    export COMPLIANCE_DEV_AUTHORITY_SK_HEX="$compliance_dev_authority_sk_hex"
-    export COMPLIANCE_DEV_AUTHORITY_VK_HEX="$compliance_dev_authority_vk_hex"
-    export COMPLIANCE_GRANT_VALID_UNTIL_UNIX="$compliance_grant_valid_until_unix"
-    >&2 echo "  Compliance env vars exported."
-else
-    >&2 echo "ERROR: DK generation failed during compliance smoke setup."
+smoke_addr_0=$(cargo_cmd run --release --bin pcli -- --home "$pcli_test_home" view address 0)
+require_address_output "smoke_addr_0" "$smoke_addr_0" "view address 0"
+smoke_addr_1=$(cargo_cmd run --release --bin pcli -- --home "$pcli_test_home" view address 1)
+require_address_output "smoke_addr_1" "$smoke_addr_1" "view address 1"
+user_grant_0_output=$(cargo_cmd run --release --bin pcli -- --home "$pcli_test_home" tx compliance sign-user-grant regulated_usd \
+    --address "$smoke_addr_0" \
+    --registration-authority-sk-hex "$compliance_dev_authority_sk_hex" \
+    --valid-until-unix "$compliance_grant_valid_until_unix" \
+    2>&1) || {
+    >&2 echo "ERROR: tx compliance sign-user-grant failed for smoke_addr_0"
+    >&2 printf '%s\n' "$user_grant_0_output"
     exit 1
-fi
+}
+user_grant_0=$(printf '%s\n' "$user_grant_0_output" | tail -1)
+require_hex_output "user_grant_0" "$user_grant_0" "$user_grant_0_output" "tx compliance sign-user-grant smoke_addr_0"
+user_grant_1_output=$(cargo_cmd run --release --bin pcli -- --home "$pcli_test_home" tx compliance sign-user-grant regulated_usd \
+    --address "$smoke_addr_1" \
+    --registration-authority-sk-hex "$compliance_dev_authority_sk_hex" \
+    --valid-until-unix "$compliance_grant_valid_until_unix" \
+    2>&1) || {
+    >&2 echo "ERROR: tx compliance sign-user-grant failed for smoke_addr_1"
+    >&2 printf '%s\n' "$user_grant_1_output"
+    exit 1
+}
+user_grant_1=$(printf '%s\n' "$user_grant_1_output" | tail -1)
+require_hex_output "user_grant_1" "$user_grant_1" "$user_grant_1_output" "tx compliance sign-user-grant smoke_addr_1"
+pcli_tx_cmd tx compliance register-user regulated_usd \
+    --user-registration-grant-hex "$user_grant_0"
+pcli_tx_cmd tx compliance register-user regulated_usd \
+    --address-index 1 \
+    --user-registration-grant-hex "$user_grant_1"
+>&2 echo "  User registered for regulated_usd."
+
+# Send a transfer so the detection scan has something to find
+cargo_cmd run --release --bin pcli -- --home "$pcli_test_home" view sync
+>&2 echo "  DEBUG: balance before send:"
+cargo_cmd run --release --bin pcli -- --home "$pcli_test_home" view balance 2>&1 | tee /dev/stderr || true
+smoke_addr=$(cargo_cmd run --release --bin pcli -- --home "$pcli_test_home" view address 1)
+pcli_tx_cmd tx transfer 100regulated_usd --to "$smoke_addr"
+>&2 echo "  Compliance transfer sent."
+
+# Export env vars for integration tests
+export COMPLIANCE_DK_HEX="$compliance_dev_dk_hex"
+export COMPLIANCE_DK_PUB_HEX="$compliance_dev_dk_pub_hex"
+export COMPLIANCE_SMOKE_ASSET="regulated_usd"
+export COMPLIANCE_DEV_REGISTRAR_SK_HEX="$compliance_dev_registrar_sk_hex"
+export COMPLIANCE_DEV_AUTHORITY_SK_HEX="$compliance_dev_authority_sk_hex"
+export COMPLIANCE_DEV_AUTHORITY_VK_HEX="$compliance_dev_authority_vk_hex"
+export COMPLIANCE_GRANT_VALID_UNTIL_UNIX="$compliance_grant_valid_until_unix"
+>&2 echo "  Compliance env vars exported."
 >&2 echo "Compliance smoke test setup complete."
 
 bash "${repo_root}/deployments/scripts/check-reduced-surface.sh"
