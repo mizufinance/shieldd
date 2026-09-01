@@ -3,6 +3,7 @@ use ark_ff::PrimeField;
 use cnidarium::{StateRead, StateWrite};
 use decaf377::Fq;
 use futures::{stream, StreamExt, TryStreamExt};
+#[cfg(feature = "parallel")]
 use rayon::prelude::*;
 use shieldd_sdk_proto::{StateReadProto, StateWriteProto};
 use std::collections::{BTreeMap, BTreeSet};
@@ -26,6 +27,7 @@ const MAX_CONCURRENT_MARKER_READS: usize = 256;
 const MAX_CONCURRENT_TREE_READS: usize = 256;
 const MAX_ORDERED_SCAN_ENTRIES: u64 = 131_072;
 const ORDERED_SCAN_DENSITY_DIVISOR: u64 = 8;
+#[cfg(feature = "parallel")]
 const PARALLEL_HASH_THRESHOLD: usize = 64;
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -838,6 +840,7 @@ async fn compute_dirty_nodes<S: StateRead + ?Sized>(
                 (parent, children)
             })
             .collect::<Vec<_>>();
+        #[cfg(feature = "parallel")]
         let parent_nodes = if inputs.len() >= PARALLEL_HASH_THRESHOLD {
             inputs
                 .par_iter()
@@ -849,6 +852,11 @@ async fn compute_dirty_nodes<S: StateRead + ?Sized>(
                 .map(|(position, children)| (*position, hash_children(*children)))
                 .collect::<Vec<_>>()
         };
+        #[cfg(not(feature = "parallel"))]
+        let parent_nodes = inputs
+            .iter()
+            .map(|(position, children)| (*position, hash_children(*children)))
+            .collect::<Vec<_>>();
         for (position, hash) in parent_nodes {
             nodes.insert(
                 NodeKey {

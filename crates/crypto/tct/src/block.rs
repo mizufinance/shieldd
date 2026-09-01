@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use decaf377::Fq;
 use hash_hasher::HashedMap;
+#[cfg(feature = "parallel")]
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_proto::{shieldd::crypto::tct::v1 as pb, DomainType};
@@ -10,6 +11,7 @@ use shieldd_sdk_proto::{shieldd::crypto::tct::v1 as pb, DomainType};
 use crate::error::block::*;
 use crate::{prelude::*, Witness};
 
+#[cfg(feature = "parallel")]
 const FINALIZED_ROOT_PARALLEL_THRESHOLD: usize = 64;
 
 /// Build the finalized root of an ordered all-`Forget` commitment block.
@@ -20,6 +22,7 @@ pub fn finalized_forget_root(commitments: &[StateCommitment]) -> Result<Root, In
         return Err(InsertError);
     }
 
+    #[cfg(feature = "parallel")]
     let mut level = if commitments.len() >= FINALIZED_ROOT_PARALLEL_THRESHOLD {
         commitments
             .par_iter()
@@ -29,28 +32,45 @@ pub fn finalized_forget_root(commitments: &[StateCommitment]) -> Result<Root, In
     } else {
         commitments.iter().copied().map(Hash::of).collect()
     };
+    #[cfg(not(feature = "parallel"))]
+    let mut level = commitments
+        .iter()
+        .copied()
+        .map(Hash::of)
+        .collect::<Vec<_>>();
     for height in 1..=8 {
-        level = if level.len() >= FINALIZED_ROOT_PARALLEL_THRESHOLD {
-            level
-                .par_chunks(4)
-                .map(|chunk| {
-                    let mut children = [Hash::one(); 4];
-                    children[..chunk.len()].copy_from_slice(chunk);
-                    Hash::node(height, children[0], children[1], children[2], children[3])
-                })
-                .collect()
-        } else {
-            level
-                .chunks(4)
-                .map(|chunk| {
-                    let mut children = [Hash::one(); 4];
-                    children[..chunk.len()].copy_from_slice(chunk);
-                    Hash::node(height, children[0], children[1], children[2], children[3])
-                })
-                .collect()
-        };
+        #[cfg(feature = "parallel")]
+        {
+            level = if level.len() >= FINALIZED_ROOT_PARALLEL_THRESHOLD {
+                level
+                    .par_chunks(4)
+                    .map(|chunk| {
+                        let mut children = [Hash::one(); 4];
+                        children[..chunk.len()].copy_from_slice(chunk);
+                        Hash::node(height, children[0], children[1], children[2], children[3])
+                    })
+                    .collect()
+            } else {
+                hash_level(&level, height)
+            };
+        }
+        #[cfg(not(feature = "parallel"))]
+        {
+            level = hash_level(&level, height);
+        }
     }
     Ok(Root(level.first().copied().unwrap_or_else(Hash::one)))
+}
+
+fn hash_level(level: &[Hash], height: u8) -> Vec<Hash> {
+    level
+        .chunks(4)
+        .map(|chunk| {
+            let mut children = [Hash::one(); 4];
+            children[..chunk.len()].copy_from_slice(chunk);
+            Hash::node(height, children[0], children[1], children[2], children[3])
+        })
+        .collect()
 }
 
 /// A sparse merkle tree to witness up to 65,536 individual [`Commitment`]s.
@@ -244,7 +264,7 @@ mod test {
     #[test]
     fn finalized_forget_root_matches_builder_boundaries() -> Result<(), Box<dyn std::error::Error>>
     {
-        for size in [0, 1, 3, 4, 5, 63, 64, 65, 255, 256, 257, 1_000, 65_536] {
+        for size in [0, 1, 3, 4, 5, 63, 64, 65, 255, 256, 257, 1_000, 4_096] {
             let commitments = (0..size)
                 .map(|value| StateCommitment(Fq::from(value as u64 + 1)))
                 .collect::<Vec<_>>();

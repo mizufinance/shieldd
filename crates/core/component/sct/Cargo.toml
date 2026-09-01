@@ -19,6 +19,7 @@ component = [
 default = ["std", "component"]
 std = ["ark-ff/std"]
 docsrs = []
+parallel = ["shieldd-sdk-tct/parallel", "dep:rayon"]
 
 [dependencies]
 anyhow = {workspace = true}
@@ -47,7 +48,7 @@ shieldd-sdk-txhash = {workspace = true, default-features = false}
 poseidon377 = {workspace = true, features = ["r1cs"]}
 rand = {workspace = true}
 rand_core = {workspace = true, features = ["getrandom"]}
-rayon = "1.10"
+rayon = { version = "1.10", optional = true }
 serde = {workspace = true, features = ["derive"]}
 serde_json = {workspace = true}
 sha2 = {workspace = true}

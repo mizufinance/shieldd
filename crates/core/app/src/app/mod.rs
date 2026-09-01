@@ -379,8 +379,6 @@ struct VerifiedStatefulTxBreakdown {
     serial_apply_wall_ms: f64,
     serial_same_block_conflict_ms: f64,
     serial_nullifier_insert_ms: f64,
-    proposal_nullifier_lookup_write_ms: f64,
-    proposal_pending_nullifier_stage_ms: f64,
     serial_sct_append_ms: f64,
     serial_event_emit_ms: f64,
     serial_fee_apply_ms: f64,
@@ -395,10 +393,18 @@ struct BlockTxIndexWriteProfile {
     tx_log_put_raw_ms: f64,
 }
 
-#[derive(Default)]
 struct PrepareBlockLocalState {
     seen_nullifiers: BTreeSet<Nullifier>,
-    staged_nullifiers: Vec<(Nullifier, CommitmentSource)>,
+    remaining_nullifier_capacity: usize,
+}
+
+impl Default for PrepareBlockLocalState {
+    fn default() -> Self {
+        Self {
+            seen_nullifiers: BTreeSet::new(),
+            remaining_nullifier_capacity: MAX_BLOCK_NULLIFIER_COUNT,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -1294,10 +1300,6 @@ impl App {
         profile.stateful_filter_serial_state_delta_apply_ms += execution_profile.apply_ms;
         profile.stateful_filter_serial_nullifier_insert_ms +=
             execution_profile.serial_nullifier_insert_ms;
-        profile.stateful_filter_proposal_nullifier_lookup_write_ms +=
-            execution_profile.proposal_nullifier_lookup_write_ms;
-        profile.stateful_filter_proposal_pending_nullifier_stage_ms +=
-            execution_profile.proposal_pending_nullifier_stage_ms;
         profile.stateful_filter_serial_sct_append_ms += execution_profile.serial_sct_append_ms;
         profile.stateful_filter_serial_event_emit_ms += execution_profile.serial_event_emit_ms;
         profile.stateful_filter_serial_fee_apply_ms += execution_profile.serial_fee_apply_ms;
@@ -1359,10 +1361,6 @@ impl App {
             serial_same_block_conflict_ms = profile.stateful_filter_serial_same_block_conflict_ms,
             serial_state_delta_apply_ms = profile.stateful_filter_serial_state_delta_apply_ms,
             serial_nullifier_insert_ms = profile.stateful_filter_serial_nullifier_insert_ms,
-            proposal_nullifier_lookup_write_ms =
-                profile.stateful_filter_proposal_nullifier_lookup_write_ms,
-            proposal_pending_nullifier_stage_ms =
-                profile.stateful_filter_proposal_pending_nullifier_stage_ms,
             serial_sct_append_ms = profile.stateful_filter_serial_sct_append_ms,
             serial_event_emit_ms = profile.stateful_filter_serial_event_emit_ms,
             serial_fee_apply_ms = profile.stateful_filter_serial_fee_apply_ms,
@@ -3835,10 +3833,6 @@ impl App {
             serial_same_block_conflict_ms = profile.stateful_filter_serial_same_block_conflict_ms,
             serial_state_delta_apply_ms = profile.stateful_filter_serial_state_delta_apply_ms,
             serial_nullifier_insert_ms = profile.stateful_filter_serial_nullifier_insert_ms,
-            proposal_nullifier_lookup_write_ms =
-                profile.stateful_filter_proposal_nullifier_lookup_write_ms,
-            proposal_pending_nullifier_stage_ms =
-                profile.stateful_filter_proposal_pending_nullifier_stage_ms,
             serial_sct_append_ms = profile.stateful_filter_serial_sct_append_ms,
             serial_event_emit_ms = profile.stateful_filter_serial_event_emit_ms,
             serial_fee_apply_ms = profile.stateful_filter_serial_fee_apply_ms,
@@ -5254,6 +5248,10 @@ impl App {
         let tx = artifact.tx().clone();
         let serial_apply_start = Instant::now();
         let conflict_check_start = Instant::now();
+        anyhow::ensure!(
+            prepared.effects.spend_nullifiers.len() <= block_state.remaining_nullifier_capacity,
+            "nullifier generation capacity exceeded by proposal"
+        );
         for nullifier in &prepared.effects.spend_nullifiers {
             anyhow::ensure!(
                 !block_state.seen_nullifiers.contains(nullifier),
@@ -5355,8 +5353,6 @@ impl App {
         profile.pay_fee_ms = pay_fee_ms;
         profile.serial_fee_apply_ms = pay_fee_ms;
 
-        let source: CommitmentSource = tx_id.clone().into();
-
         for nullifier in &prepared.effects.spend_nullifiers {
             let event_emit_start = Instant::now();
             state_tx.record_proto(
@@ -5420,14 +5416,7 @@ impl App {
         }
         profile.serial_apply_wall_ms = serial_apply_start.elapsed().as_secs_f64() * 1000.0;
 
-        block_state.staged_nullifiers.extend(
-            prepared
-                .effects
-                .spend_nullifiers
-                .iter()
-                .copied()
-                .map(|nullifier| (nullifier, source.clone())),
-        );
+        block_state.remaining_nullifier_capacity -= prepared.effects.spend_nullifiers.len();
         block_state
             .seen_nullifiers
             .extend(prepared.effects.spend_nullifiers.iter().copied());
@@ -5519,7 +5508,16 @@ impl App {
         profile.stateful_filter_claimed_anchor_cache_misses = claimed_anchor_misses;
         profile.stateful_filter_claimed_anchor_unique_values = claimed_anchor_unique_values;
 
-        let mut block_state = PrepareBlockLocalState::default();
+        let durable_nullifier_count =
+            shieldd_sdk_sct::nullifier_tree::current_leaf_count(Arc::as_ref(&self.state)).await?;
+        let remaining_generation_capacity = shieldd_sdk_sct::indexed_nullifier_tree::CAPACITY
+            .saturating_sub(durable_nullifier_count);
+        let mut block_state = PrepareBlockLocalState {
+            remaining_nullifier_capacity: usize::try_from(remaining_generation_capacity)
+                .unwrap_or(usize::MAX)
+                .min(MAX_BLOCK_NULLIFIER_COUNT),
+            ..Default::default()
+        };
         let mut included_candidates = Vec::new();
         for (candidate, prepared_result) in deduped.into_iter().zip(prepared_results.into_iter()) {
             let Some(prepared_result) = prepared_result else {
@@ -5559,45 +5557,7 @@ impl App {
             }
         }
 
-        self.stage_prepare_proposal_nullifiers_profiled(&block_state.staged_nullifiers, profile)
-            .await?;
-
         Ok(included_candidates)
-    }
-
-    async fn stage_prepare_proposal_nullifiers_profiled(
-        &mut self,
-        entries: &[(Nullifier, CommitmentSource)],
-        profile: &mut PrepareProposalProfile,
-    ) -> Result<()> {
-        if entries.is_empty() {
-            return Ok(());
-        }
-
-        let serial_apply_start = Instant::now();
-        let begin_state_tx_start = Instant::now();
-        let mut state_tx = self
-            .state
-            .try_begin_transaction()
-            .expect("state Arc should be present and unique");
-        let begin_state_tx_ms = begin_state_tx_start.elapsed().as_secs_f64() * 1000.0;
-
-        let insert_start = Instant::now();
-        state_tx.stage_prevalidated_nullifiers(entries).await?;
-        let insert_total_ms = insert_start.elapsed().as_secs_f64() * 1000.0;
-
-        let apply_start = Instant::now();
-        let _events = state_tx.apply().1;
-        let apply_ms = apply_start.elapsed().as_secs_f64() * 1000.0;
-
-        profile.stateful_filter_begin_state_tx_ms += begin_state_tx_ms;
-        profile.stateful_filter_serial_apply_wall_ms +=
-            serial_apply_start.elapsed().as_secs_f64() * 1000.0;
-        profile.stateful_filter_serial_nullifier_insert_ms += insert_total_ms;
-        profile.stateful_filter_proposal_pending_nullifier_stage_ms += insert_total_ms;
-        profile.stateful_filter_serial_state_delta_apply_ms += apply_ms;
-        profile.stateful_filter_apply_ms += apply_ms;
-        Ok(())
     }
 
     async fn append_block_transaction_to_state<S>(
@@ -7816,12 +7776,17 @@ mod tests {
         let mut app = App::new(storage.latest_snapshot());
         let mut block_state = PrepareBlockLocalState::default();
 
+        let first_nullifier_count = prepared_first.effects.spend_nullifiers.len();
         app.apply_prepared_prepare_candidate_profiled(
             artifact.clone(),
             prepared_first,
             &mut block_state,
         )
         .await?;
+        assert_eq!(
+            block_state.remaining_nullifier_capacity,
+            super::MAX_BLOCK_NULLIFIER_COUNT - first_nullifier_count
+        );
         let err = app
             .apply_prepared_prepare_candidate_profiled(artifact, prepared_second, &mut block_state)
             .await
@@ -7878,72 +7843,6 @@ mod tests {
                 .await?
                 .current_root,
             shieldd_sdk_sct::nullifier_tree::generation_state(&batched)
-                .await?
-                .current_root,
-        );
-
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn proposal_batch_nullify_matches_sequential_and_preserves_sources() -> Result<()> {
-        let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
-        let snapshot = storage.latest_snapshot();
-
-        let entries = vec![
-            (
-                Nullifier(Fq::from(21u64)),
-                CommitmentSource::Transaction {
-                    id: Some([1u8; 32]),
-                },
-            ),
-            (
-                Nullifier(Fq::from(22u64)),
-                CommitmentSource::Transaction {
-                    id: Some([2u8; 32]),
-                },
-            ),
-            (
-                Nullifier(Fq::from(23u64)),
-                CommitmentSource::Transaction {
-                    id: Some([1u8; 32]),
-                },
-            ),
-        ];
-
-        let mut sequential = StateDelta::new(snapshot.clone());
-        sequential.put_block_height(42);
-        shieldd_sdk_sct::nullifier_tree::initialize(&mut sequential).await?;
-        for (nullifier, source) in &entries {
-            sequential.nullify(*nullifier, source.clone()).await?;
-        }
-
-        let mut proposal_batch = StateDelta::new(snapshot);
-        proposal_batch.put_block_height(42);
-        shieldd_sdk_sct::nullifier_tree::initialize(&mut proposal_batch).await?;
-        proposal_batch
-            .stage_prevalidated_nullifiers(&entries)
-            .await?;
-
-        assert_eq!(
-            sequential.pending_nullifiers(),
-            proposal_batch.pending_nullifiers()
-        );
-
-        for (nullifier, _) in &entries {
-            assert_eq!(
-                sequential.is_nullifier_spent(*nullifier).await?,
-                proposal_batch.is_nullifier_spent(*nullifier).await?,
-            );
-        }
-
-        sequential.materialize_nullifier_block().await?;
-        proposal_batch.materialize_nullifier_block().await?;
-        assert_eq!(
-            shieldd_sdk_sct::nullifier_tree::generation_state(&sequential)
-                .await?
-                .current_root,
-            shieldd_sdk_sct::nullifier_tree::generation_state(&proposal_batch)
                 .await?
                 .current_root,
         );

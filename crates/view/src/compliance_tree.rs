@@ -1,12 +1,4 @@
-//! In-memory compliance trees with SQLite persistence.
-//!
-//! This module provides wrappers around the core compliance tree types
-//! (`QuadTree` for users, `IndexedMerkleTree` for assets) that enable
-//! local sync and proof generation (following the SCT pattern).
-//!
-//! The design follows the SCT pattern:
-//! - Sync full tree STRUCTURE (all commitments) for path computation
-//! - Store full LEAF DATA only for addresses in scope (own + counterparties)
+//! In-memory compliance trees with dirty-leaf SQLite persistence.
 
 use anyhow::Result;
 use shieldd_sdk_compliance::{
@@ -21,10 +13,33 @@ use crate::storage::compliance::{ComplianceTreeStore, IndexedLeafData};
 
 /// An immutable, height-consistent pair of compliance trees published to proof readers.
 #[derive(Debug, Clone)]
-pub struct ComplianceSnapshot {
-    pub height: u64,
-    pub user_tree: ComplianceUserTree,
-    pub asset_tree: ComplianceAssetTree,
+pub(crate) struct ComplianceSnapshot {
+    pub(crate) user_tree: ComplianceUserTree,
+    pub(crate) asset_tree: ComplianceAssetTree,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct ComplianceUserTreeWrite {
+    pub(crate) position: u64,
+    pub(crate) commitment: StateCommitment,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct ComplianceUserTreePersistence {
+    pub(crate) next_position: u64,
+    pub(crate) leaves: Vec<ComplianceUserTreeWrite>,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct ComplianceAssetTreeWrite {
+    pub(crate) position: u64,
+    pub(crate) leaf: IndexedLeafData,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct ComplianceAssetTreePersistence {
+    pub(crate) leaf_count: u64,
+    pub(crate) leaves: Vec<ComplianceAssetTreeWrite>,
 }
 
 /// In-memory user compliance tree (QuadTree) with SQLite persistence.
@@ -114,27 +129,24 @@ impl ComplianceUserTree {
         Ok(MerklePath::from_auth_path(auth_path))
     }
 
-    /// Persist tree state to SQLite.
-    ///
-    /// This saves:
-    /// - All commitments from `start_position` to current position
-    /// - The current position cursor
-    pub fn persist(
-        &self,
-        store: &mut ComplianceTreeStore<'_, '_>,
-        _start_position: u64,
-    ) -> Result<()> {
-        for &pos in &self.dirty_positions {
-            let commitment = self.inner.get_leaf(pos).ok_or_else(|| {
-                anyhow::anyhow!("missing leaf at position {} during persist", pos)
-            })?;
-            store.add_user_position(pos, commitment)?;
-        }
-
-        // Save position cursor
-        store.set_user_tree_position(self.position)?;
-
-        Ok(())
+    pub(crate) fn persistence_plan(&self) -> Result<ComplianceUserTreePersistence> {
+        let leaves = self
+            .dirty_positions
+            .iter()
+            .map(|&position| {
+                let commitment = self.inner.get_leaf(position).ok_or_else(|| {
+                    anyhow::anyhow!("missing user leaf at position {position} during persist")
+                })?;
+                Ok(ComplianceUserTreeWrite {
+                    position,
+                    commitment,
+                })
+            })
+            .collect::<Result<_>>()?;
+        Ok(ComplianceUserTreePersistence {
+            next_position: self.position,
+            leaves,
+        })
     }
 
     pub fn clear_dirty_positions(&mut self) {
@@ -365,41 +377,43 @@ impl ComplianceAssetTree {
         }
     }
 
-    /// Persist tree state to SQLite.
-    ///
-    /// This saves only the asset leaves touched by new registrations.
-    /// Uses INSERT OR REPLACE to handle both new and updated leaves.
-    pub fn persist(
-        &self,
-        store: &mut ComplianceTreeStore<'_, '_>,
-        _start_position: u64,
-    ) -> Result<()> {
-        let leaf_count = self.inner.leaf_count();
+    pub(crate) fn persistence_plan(&self) -> Result<ComplianceAssetTreePersistence> {
+        let leaves = self
+            .dirty_positions
+            .iter()
+            .map(|&position| {
+                let leaf = self.inner.get_leaf(position).ok_or_else(|| {
+                    anyhow::anyhow!("missing asset leaf at position {position} during persist")
+                })?;
+                let leaf = IndexedLeafData {
+                    value: leaf.value.to_bytes(),
+                    next_index: leaf.next_index,
+                    next_value: leaf.next_value.to_bytes(),
+                    dk_pub: leaf.params.dk_pub.vartime_compress().0,
+                    threshold: leaf.params.threshold,
+                    route_policy_hash: leaf.params.route_policy_hash.to_bytes(),
+                    ring_pk: leaf.ring.ring_pk.vartime_compress().0,
+                    ring_id_hash: leaf.ring.ring_id_hash.to_bytes(),
+                    policy_id_hash: leaf.ring.policy_id_hash.to_bytes(),
+                    permission_hash: leaf.ring.permission_hash.to_bytes(),
+                    resource_hash: leaf.ring.resource_hash.to_bytes(),
+                };
+                Ok(ComplianceAssetTreeWrite { position, leaf })
+            })
+            .collect::<Result<_>>()?;
+        Ok(ComplianceAssetTreePersistence {
+            leaf_count: self.inner.leaf_count(),
+            leaves,
+        })
+    }
 
-        for &pos in &self.dirty_positions {
-            let leaf = self.inner.get_leaf(pos).ok_or_else(|| {
-                anyhow::anyhow!("missing asset leaf at position {} during persist", pos)
-            })?;
-            let leaf_data = IndexedLeafData {
-                value: leaf.value.to_bytes(),
-                next_index: leaf.next_index,
-                next_value: leaf.next_value.to_bytes(),
-                dk_pub: leaf.params.dk_pub.vartime_compress().0,
-                threshold: leaf.params.threshold,
-                route_policy_hash: leaf.params.route_policy_hash.to_bytes(),
-                ring_pk: leaf.ring.ring_pk.vartime_compress().0,
-                ring_id_hash: leaf.ring.ring_id_hash.to_bytes(),
-                policy_id_hash: leaf.ring.policy_id_hash.to_bytes(),
-                permission_hash: leaf.ring.permission_hash.to_bytes(),
-                resource_hash: leaf.ring.resource_hash.to_bytes(),
-            };
-            store.add_asset_leaf(pos, leaf_data)?;
+    #[cfg(test)]
+    fn persist(&self, store: &mut ComplianceTreeStore<'_, '_>) -> Result<()> {
+        let plan = self.persistence_plan()?;
+        for write in plan.leaves {
+            store.add_asset_leaf(write.position, write.leaf)?;
         }
-
-        // Save position cursor (leaf count)
-        store.set_asset_tree_leaf_count(leaf_count)?;
-
-        Ok(())
+        store.set_asset_tree_leaf_count(plan.leaf_count)
     }
 }
 
@@ -463,7 +477,7 @@ mod tests {
         {
             let mut tx = db.transaction().unwrap();
             let mut store = ComplianceTreeStore(&mut tx);
-            tree.persist(&mut store, 0).unwrap();
+            tree.persist(&mut store).unwrap();
             tx.commit().unwrap();
         }
         tree.clear_dirty_positions();
@@ -554,7 +568,7 @@ mod tests {
         {
             let mut tx = db.transaction().unwrap();
             let mut store = ComplianceTreeStore(&mut tx);
-            tree.persist(&mut store, 1).unwrap();
+            tree.persist(&mut store).unwrap();
             tx.commit().unwrap();
         }
         tree.clear_dirty_positions();
@@ -589,7 +603,7 @@ mod tests {
         {
             let mut tx = db.transaction().unwrap();
             let mut store = ComplianceTreeStore(&mut tx);
-            tree.persist(&mut store, 2).unwrap();
+            tree.persist(&mut store).unwrap();
             tx.commit().unwrap();
         }
         tree.clear_dirty_positions();

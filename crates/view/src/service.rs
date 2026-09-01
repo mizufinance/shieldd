@@ -392,11 +392,6 @@ impl ViewServer {
         Ok(()).tap(|_| tracing::trace!("view server worker is healthy"))
     }
 
-    /// Get the local height-consistent compliance snapshot handle.
-    pub fn compliance_snapshot(&self) -> &Arc<parking_lot::RwLock<Arc<ComplianceSnapshot>>> {
-        &self.compliance_snapshot
-    }
-
     /// Get a reference to the storage.
     ///
     /// This is useful for getting leaf data for local compliance proof generation.

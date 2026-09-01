@@ -71,10 +71,10 @@ pub(crate) struct ComplianceAssetPolicyUpdate {
 #[derive(Debug, Clone)]
 pub(crate) struct ComplianceBlockPlan {
     pub height: u64,
-    pub user_tree: crate::compliance_tree::ComplianceUserTree,
-    pub asset_tree: crate::compliance_tree::ComplianceAssetTree,
-    pub user_start_position: u64,
-    pub asset_start_position: u64,
+    pub user_tree: crate::compliance_tree::ComplianceUserTreePersistence,
+    pub asset_tree: crate::compliance_tree::ComplianceAssetTreePersistence,
+    pub user_root: StateCommitment,
+    pub asset_root: StateCommitment,
     pub leaf_updates: Vec<ComplianceLeafUpdate>,
     pub asset_policy_updates: Vec<ComplianceAssetPolicyUpdate>,
 }
@@ -98,13 +98,15 @@ mod compliance_projection_tests {
         let leaf = ComplianceLeaf::new(test_keys::ADDRESS_0.clone(), asset::Id(Fq::from(17u64)));
         let commitment = leaf.commit();
         let position = user_tree.insert(commitment).unwrap();
+        let user_root = user_tree.root();
+        let asset_root = asset_tree.root();
 
         let plan = ComplianceBlockPlan {
             height: u64::MAX,
-            user_tree,
-            asset_tree,
-            user_start_position: 0,
-            asset_start_position: 0,
+            user_tree: user_tree.persistence_plan().unwrap(),
+            asset_tree: asset_tree.persistence_plan().unwrap(),
+            user_root,
+            asset_root,
             leaf_updates: vec![ComplianceLeafUpdate {
                 leaf: leaf.clone(),
                 position,
@@ -141,12 +143,14 @@ mod compliance_projection_tests {
         let leaf = ComplianceLeaf::new(test_keys::ADDRESS_0.clone(), asset::Id(Fq::from(19u64)));
         let commitment = leaf.commit();
         let position = user_tree.insert(commitment).unwrap();
+        let user_root = user_tree.root();
+        let asset_root = asset_tree.root();
         let plan = ComplianceBlockPlan {
             height: 0,
-            user_tree,
-            asset_tree,
-            user_start_position: 0,
-            asset_start_position: 0,
+            user_tree: user_tree.persistence_plan().unwrap(),
+            asset_tree: asset_tree.persistence_plan().unwrap(),
+            user_root,
+            asset_root,
             leaf_updates: vec![ComplianceLeafUpdate {
                 leaf: leaf.clone(),
                 position,
@@ -2053,13 +2057,15 @@ impl Storage {
         dbtx: &mut r2d2_sqlite::rusqlite::Transaction<'_>,
         plan: ComplianceBlockPlan,
     ) -> anyhow::Result<()> {
-        let user_root = plan.user_tree.root();
-        let asset_root = plan.asset_tree.root();
         let mut store = compliance::ComplianceTreeStore(dbtx);
-        plan.user_tree
-            .persist(&mut store, plan.user_start_position)?;
-        plan.asset_tree
-            .persist(&mut store, plan.asset_start_position)?;
+        for write in plan.user_tree.leaves {
+            store.add_user_position(write.position, write.commitment)?;
+        }
+        store.set_user_tree_position(plan.user_tree.next_position)?;
+        for write in plan.asset_tree.leaves {
+            store.add_asset_leaf(write.position, write.leaf)?;
+        }
+        store.set_asset_tree_leaf_count(plan.asset_tree.leaf_count)?;
         for update in plan.leaf_updates {
             store.add_leaf_data(
                 &update.leaf.address.to_vec(),
@@ -2073,7 +2079,7 @@ impl Storage {
         for update in plan.asset_policy_updates {
             store.add_asset_policy(&update.asset_id.to_bytes(), &update.policy.to_bytes()?)?;
         }
-        store.add_anchor(plan.height, user_root, asset_root)
+        store.add_anchor(plan.height, plan.user_root, plan.asset_root)
     }
 
     /// Record a counterparty address for tracking.

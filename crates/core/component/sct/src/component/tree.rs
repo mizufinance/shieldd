@@ -25,20 +25,15 @@ pub const MAX_NULLIFIERS_PER_BLOCK: usize = 32_768;
 
 /// Block-scoped nullifier state. Durable tree writes happen only at block finalization.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum PendingNullifierBlock {
+pub(super) enum PendingNullifierBlock {
     /// Transactions may validate and append ordered nullifiers.
     Open {
         generation: Option<crate::nullifier_generation::NullifierTreeId>,
         ordered: imbl::Vector<Nullifier>,
-        membership: BTreeSet<Nullifier>,
+        membership: imbl::OrdSet<Nullifier>,
     },
     /// The ordered nullifiers have been materialized in the active generation.
-    Materialized {
-        ordered: imbl::Vector<Nullifier>,
-        generation: crate::nullifier_generation::NullifierTreeId,
-        final_root: [u8; 32],
-        final_count: u64,
-    },
+    Materialized { ordered: imbl::Vector<Nullifier> },
 }
 
 impl Default for PendingNullifierBlock {
@@ -46,7 +41,7 @@ impl Default for PendingNullifierBlock {
         Self::Open {
             generation: None,
             ordered: imbl::Vector::new(),
-            membership: BTreeSet::new(),
+            membership: imbl::OrdSet::new(),
         }
     }
 }
@@ -61,7 +56,7 @@ impl PendingNullifierBlock {
     fn contains(&self, nullifier: &Nullifier) -> bool {
         match self {
             Self::Open { membership, .. } => membership.contains(nullifier),
-            Self::Materialized { ordered, .. } => ordered.iter().any(|item| item == nullifier),
+            Self::Materialized { .. } => false,
         }
     }
 }
@@ -139,12 +134,8 @@ pub const SCT_BLOCK_COMMITMENT_CAPACITY: usize = u16::MAX as usize + 1;
 const TCT_BATCH_THRESHOLD: usize = 64;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum SctBlockMaterialization {
-    Finalized {
-        start: tct::Position,
-        count: usize,
-        root: block::Root,
-    },
+struct FinalizedSctBlock {
+    root: block::Root,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -779,11 +770,7 @@ pub trait SctManager: StateWrite {
             self.write_sct_cache(tree);
             self.object_put(
                 state_key::cache::block_materialization(),
-                SctBlockMaterialization::Finalized {
-                    start,
-                    count: entries.len(),
-                    root,
-                },
+                FinalizedSctBlock { root },
             );
             return Ok(());
         }
@@ -828,36 +815,6 @@ pub trait SctManager: StateWrite {
         stage_nullifiers(self, nullifiers, true).await
     }
 
-    #[instrument(skip(self, entries))]
-    /// Stage a proposal-ordered batch after proposal-local conflict checks.
-    async fn stage_prevalidated_nullifiers(
-        &mut self,
-        entries: &[(Nullifier, CommitmentSource)],
-    ) -> Result<()> {
-        if entries.is_empty() {
-            return Ok(());
-        }
-
-        tracing::debug!(
-            count = entries.len(),
-            "marking proposal nullifier batch as spent"
-        );
-
-        ensure!(
-            entries.iter().all(|(_, source)| source.id().is_some()),
-            "nullifiers are only consumed by transactions"
-        );
-        stage_nullifiers(
-            self,
-            &entries
-                .iter()
-                .map(|(nullifier, _)| *nullifier)
-                .collect::<Vec<_>>(),
-            false,
-        )
-        .await
-    }
-
     /// Materialize the ordered nullifier block exactly once.
     async fn materialize_nullifier_block(&mut self) -> Result<()> {
         let pending = self
@@ -880,16 +837,9 @@ pub trait SctManager: StateWrite {
                     );
                 }
                 nullifier_tree::insert_batch(self, ordered.iter().copied()).await?;
-                let generation = nullifier_tree::generation_state(self).await?;
-                let final_count = nullifier_tree::current_leaf_count(self).await?;
                 self.object_put(
                     state_key::nullifier_generations::pending_block(),
-                    PendingNullifierBlock::Materialized {
-                        ordered,
-                        generation: generation.current_tree,
-                        final_root: generation.current_root,
-                        final_count,
-                    },
+                    PendingNullifierBlock::Materialized { ordered },
                 );
                 Ok(())
             }
@@ -910,14 +860,13 @@ pub trait SctManager: StateWrite {
 
         let mut tree = self.get_sct().await;
 
-        let block_root = match self
-            .object_get::<SctBlockMaterialization>(state_key::cache::block_materialization())
-        {
-            Some(SctBlockMaterialization::Finalized { root, .. }) => root,
-            None => tree
-                .end_block()
-                .expect("ending a block in the state commitment tree can never fail"),
-        };
+        let block_root =
+            match self.object_get::<FinalizedSctBlock>(state_key::cache::block_materialization()) {
+                Some(FinalizedSctBlock { root }) => root,
+                None => tree
+                    .end_block()
+                    .expect("ending a block in the state commitment tree can never fail"),
+            };
         self.object_delete(state_key::cache::block_materialization());
 
         // If the block ends an epoch, also close the epoch in the SCT
@@ -1283,17 +1232,16 @@ mod tests {
         let expected_root = reference.root();
 
         state.finalize_sct_block_forget(entries).await?;
-        assert!(matches!(
-            state.object_get::<SctBlockMaterialization>(state_key::cache::block_materialization()),
-            Some(SctBlockMaterialization::Finalized { count: 257, .. })
-        ));
+        assert!(state
+            .object_get::<FinalizedSctBlock>(state_key::cache::block_materialization())
+            .is_some());
         let (block_root, epoch_root) = state.end_sct_block(false).await?;
         assert_eq!(block_root, expected_block_root);
         assert_eq!(epoch_root, None);
         assert_eq!(state.get_sct().await.root(), expected_root);
         assert_eq!(state.load_sct_from_nv().await?.root(), expected_root);
         assert!(state
-            .object_get::<SctBlockMaterialization>(state_key::cache::block_materialization())
+            .object_get::<FinalizedSctBlock>(state_key::cache::block_materialization())
             .is_none());
 
         state.put_block_height(2);

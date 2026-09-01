@@ -137,7 +137,6 @@ impl Worker {
         // Load compliance trees from storage
         let compliance_snapshot =
             Arc::new(parking_lot::RwLock::new(Arc::new(ComplianceSnapshot {
-                height: initial_height,
                 user_tree: storage
                     .compliance_user_tree()
                     .await
@@ -179,13 +178,18 @@ impl Worker {
         Option<crate::storage::ComplianceBlockPlan>,
         Arc<ComplianceSnapshot>,
     )> {
-        let height = block.height;
-
         let current = self.compliance_snapshot.read().clone();
+        let has_events = !block.compliance_user_registrations.is_empty()
+            || !block.compliance_user_status_changes.is_empty()
+            || !block.compliance_asset_registrations.is_empty();
+        if !has_events {
+            validate_compliance_anchors(block, &current.user_tree, &current.asset_tree)?;
+            return Ok((None, current));
+        }
+
+        let height = block.height;
         let mut next_user_tree = current.user_tree.clone();
         let mut next_asset_tree = current.asset_tree.clone();
-        let user_start_position = next_user_tree.position();
-        let asset_start_position = next_asset_tree.leaf_count();
         let mut leaf_updates = Vec::new();
         let mut asset_policy_updates = Vec::new();
 
@@ -270,27 +274,26 @@ impl Worker {
         tracing::debug!(
             asset_leaf_count = next_asset_tree.leaf_count(),
             asset_root = ?asset_root_after.0.to_bytes(),
-            asset_start_position,
             "worker: asset tree state after sync"
         );
 
-        let has_events = !block.compliance_user_registrations.is_empty()
-            || !block.compliance_user_status_changes.is_empty()
-            || !block.compliance_asset_registrations.is_empty();
-        let plan = has_events.then(|| crate::storage::ComplianceBlockPlan {
+        let user_root = next_user_tree.root();
+        let asset_root = next_asset_tree.root();
+        let user_tree = next_user_tree.persistence_plan()?;
+        let asset_tree = next_asset_tree.persistence_plan()?;
+        let plan = crate::storage::ComplianceBlockPlan {
             height,
-            user_tree: next_user_tree.clone(),
-            asset_tree: next_asset_tree.clone(),
-            user_start_position,
-            asset_start_position,
+            user_tree,
+            asset_tree,
+            user_root,
+            asset_root,
             leaf_updates,
             asset_policy_updates,
-        });
+        };
 
         next_asset_tree.clear_dirty_positions();
         next_user_tree.clear_dirty_positions();
         let snapshot = Arc::new(ComplianceSnapshot {
-            height,
             user_tree: next_user_tree,
             asset_tree: next_asset_tree,
         });
@@ -303,7 +306,7 @@ impl Worker {
             "processed compliance block"
         );
 
-        Ok((plan, snapshot))
+        Ok((Some(plan), snapshot))
     }
 
     pub async fn fetch_transactions(
@@ -758,5 +761,29 @@ mod compliance_projection_tests {
         block.compliance_user_anchor = None;
         validate_compliance_anchors(&block, &user_tree, &asset_tree)
             .expect_err("an event-free block must not bypass anchor validation");
+    }
+
+    #[tokio::test]
+    async fn empty_compliance_delta_reuses_the_published_snapshot() {
+        let storage = Storage::initialize(
+            None::<&camino::Utf8Path>,
+            (*shieldd_sdk_keys::test_keys::FULL_VIEWING_KEY).clone(),
+            shieldd_sdk_app::params::AppParameters::default(),
+        )
+        .await
+        .unwrap();
+        let channel = tonic::transport::Endpoint::from_static("http://127.0.0.1:1").connect_lazy();
+        let (worker, _, _, _, snapshots) = Worker::new(storage, channel).await.unwrap();
+        let before = snapshots.read().clone();
+        let block = CompactBlock {
+            compliance_user_anchor: Some(before.user_tree.root()),
+            compliance_asset_anchor: Some(before.asset_tree.root()),
+            ..Default::default()
+        };
+
+        let (plan, after) = worker.prepare_compliance_block(&block).await.unwrap();
+
+        assert!(plan.is_none());
+        assert!(Arc::ptr_eq(&before, &after));
     }
 }
