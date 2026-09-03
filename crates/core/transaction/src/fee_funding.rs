@@ -33,6 +33,8 @@ impl FeeFundingPlan {
         memo_key: &shieldd_sdk_keys::symmetric::PayloadKey,
         recent_position_floor: u64,
     ) -> Result<FeeFunding> {
+        let mut transfer_plan = self.transfer.clone();
+        transfer_plan.set_fee_funding_context();
         let auth_paths = self
             .transfer
             .spends
@@ -47,8 +49,7 @@ impl FeeFundingPlan {
             })
             .collect::<Result<Vec<_>>>()?;
 
-        let transfer = self
-            .transfer
+        let transfer = transfer_plan
             .build_unauth_transfer(
                 fvk,
                 vec![[0; 64].into(); self.transfer.spends.len()],
@@ -76,7 +77,9 @@ impl FeeFundingPlan {
         memo_key: &shieldd_sdk_keys::symmetric::PayloadKey,
         recent_position_floor: u64,
     ) -> Result<EffectHash> {
-        self.transfer
+        let mut transfer = self.transfer.clone();
+        transfer.set_fee_funding_context();
+        transfer
             .transfer_body(
                 fvk,
                 memo_key,
@@ -159,8 +162,10 @@ impl DomainType for FeeFundingPlan {
 
 impl From<FeeFundingPlan> for pbt::FeeFundingPlan {
     fn from(value: FeeFundingPlan) -> Self {
+        let mut transfer = value.transfer;
+        transfer.set_fee_funding_context();
         Self {
-            transfer: Some(value.transfer.into()),
+            transfer: Some(transfer.into()),
         }
     }
 }
@@ -169,11 +174,11 @@ impl TryFrom<pbt::FeeFundingPlan> for FeeFundingPlan {
     type Error = Error;
 
     fn try_from(proto: pbt::FeeFundingPlan) -> Result<Self, Self::Error> {
-        Ok(Self {
-            transfer: proto
-                .transfer
-                .ok_or_else(|| anyhow!("missing fee funding transfer plan"))?
-                .try_into()?,
-        })
+        let mut transfer: TransferPlan = proto
+            .transfer
+            .ok_or_else(|| anyhow!("missing fee funding transfer plan"))?
+            .try_into()?;
+        transfer.set_fee_funding_context();
+        Ok(Self { transfer })
     }
 }

@@ -238,7 +238,7 @@ func transferBalanceCommitmentField(
 }
 
 // ReconstructedTransferStatementFieldsFromWitness mirrors the Go transfer
-// circuit's statement-field order using the canonical v20 witness records.
+// circuit's statement-field order using the canonical witness records.
 func ReconstructedTransferStatementFieldsFromWitness(
 	witness *TransferWitnessBinary,
 ) ([][32]byte, error) {
@@ -260,6 +260,12 @@ func ReconstructedTransferStatementFieldsFromWitness(
 	fields = append(fields, witness.RoutingTags[:]...)
 	fields = append(fields, witness.RoutingParameterSetID)
 	fields = append(fields, witness.RecentPositionFloor)
+	fields = append(fields,
+		witness.VolumeAccumulator.Nullifier,
+		witness.VolumeAccumulator.Commitment,
+		witness.VolumeAccumulator.DayStart,
+		witness.VolumeAccumulator.ProofContext,
+	)
 	for index, spend := range []struct {
 		nullifier [32]byte
 		rk        PointAffineBinary
@@ -484,6 +490,11 @@ func ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitness(
 	)
 	fields = append(fields, witness.WithdrawalEffectHashLimbs[:]...)
 	fields = append(fields, witness.RoutingTag, witness.RoutingParameterSetID)
+	fields = append(fields,
+		witness.VolumeAccumulator.Nullifier,
+		witness.VolumeAccumulator.Commitment,
+		witness.VolumeAccumulator.DayStart,
+	)
 	withdrawalEPK, err := pointAffineToField(witness.WithdrawalEPKAffine)
 	if err != nil {
 		return nil, fmt.Errorf("compress withdrawal compliance epk: %w", err)

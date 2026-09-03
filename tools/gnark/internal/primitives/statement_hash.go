@@ -10,13 +10,13 @@ import (
 
 const SpendStatementFieldCount = 17
 const OutputStatementFieldCount = 29
-const TransferStatementBaseFields = 39
+const TransferStatementBaseFields = 43
 const TransferStatementFieldsPerInput = 3
 const TransferStatementFieldsPerOutput = 2
 const NoteReshapeStatementBaseFields = 7
 const NoteReshapeStatementFieldsPerInput = 3
 const NoteReshapeStatementFieldsPerOutput = 2
-const ShieldedIcs20WithdrawalStatementBaseFields = 22
+const ShieldedIcs20WithdrawalStatementBaseFields = 25
 const ShieldedIcs20WithdrawalStatementFieldsPerInput = 3
 const NoteSeizureStatementFieldCount = 19
 
@@ -221,7 +221,7 @@ func shieldedIcs20WithdrawalStatementHash(
 func OutputStatementHash(api frontend.API, fields []frontend.Variable) (frontend.Variable, error) {
 	return hashStatementFields(
 		api,
-		outputStatementHashConstant("shieldd.shielded_pool.output.public_input_hash.v1"),
+		outputStatementHashConstant("shieldd.shielded_pool.output.public_input_hash.statement"),
 		outputStatementHashConstant("shieldd.shielded_pool.output.public_input_hash.pad0"),
 		outputStatementHashConstant("shieldd.shielded_pool.output.public_input_hash.pad1"),
 		fields,
@@ -293,7 +293,7 @@ func OutputStatementHashNative(fields []*big.Int) (*big.Int, error) {
 		return nil, errors.New("invalid output statement field count")
 	}
 
-	domain := outputStatementHashConstant("shieldd.shielded_pool.output.public_input_hash.v1")
+	domain := outputStatementHashConstant("shieldd.shielded_pool.output.public_input_hash.statement")
 	pad0 := outputStatementHashConstant("shieldd.shielded_pool.output.public_input_hash.pad0")
 	pad1 := outputStatementHashConstant("shieldd.shielded_pool.output.public_input_hash.pad1")
 	first := [7]*big.Int{pad0, pad1, pad0, pad1, pad0, pad1, pad0}

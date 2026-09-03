@@ -4,7 +4,7 @@ use rand::{rngs::StdRng, SeedableRng};
 use shieldd_sdk_asset::Value;
 #[cfg(feature = "component")]
 use shieldd_sdk_compliance::TRANSFER_WIRE_BYTES;
-#[cfg(feature = "poc-orbis-v0")]
+#[cfg(feature = "poc-orbis")]
 use shieldd_sdk_compliance::{
     build_poc_orbis_audit_package, PocOrbisAuditBundle, PocOrbisTier, PocOrbisTierBundle,
     TransferEncryptionResult,
@@ -38,25 +38,25 @@ pub(crate) fn is_change_output_index(index: usize) -> bool {
 fn transfer_compliance_rng_seed(transfer_nonce_root: Fr) -> [u8; 32] {
     let hash = blake2b_simd::Params::new()
         .hash_length(32)
-        .personal(b"pnxfer-cmprng-v1")
+        .personal(b"pnxfer-cmprng")
         .hash(&transfer_nonce_root.to_bytes());
     let mut seed = [0u8; 32];
     seed.copy_from_slice(hash.as_bytes());
     seed
 }
 
-#[cfg(feature = "poc-orbis-v0")]
+#[cfg(feature = "poc-orbis")]
 fn transfer_orbis_audit_rng_seed(transfer_nonce_root: Fr) -> [u8; 32] {
     let hash = blake2b_simd::Params::new()
         .hash_length(32)
-        .personal(b"pnxfer-orbis-v2")
+        .personal(b"pnxfer-orbis")
         .hash(&transfer_nonce_root.to_bytes());
     let mut seed = [0u8; 32];
     seed.copy_from_slice(hash.as_bytes());
     seed
 }
 
-#[cfg(feature = "poc-orbis-v0")]
+#[cfg(feature = "poc-orbis")]
 #[allow(clippy::too_many_arguments)]
 fn build_orbis_tier_bundle(
     rng: &mut StdRng,
@@ -134,10 +134,6 @@ fn build_orbis_tier_bundle(
     })
 }
 
-fn transfer_is_flagged(is_regulated: bool, amount: u128, threshold: u128) -> bool {
-    is_regulated && amount >= threshold
-}
-
 pub(crate) fn build_transfer_compliance(
     outputs: &[ShieldedOutputPlan],
     sender_leaf: &shieldd_sdk_compliance::ComplianceLeaf,
@@ -145,6 +141,7 @@ pub(crate) fn build_transfer_compliance(
     asset_indexed_leaf: &IndexedLeaf,
     target_timestamp: u64,
     transfer_nonce_root: Fr,
+    is_flagged: bool,
 ) -> Result<BuildTransferComplianceResult> {
     let receiver_output = outputs
         .get(RECEIVER_OUTPUT_INDEX)
@@ -160,18 +157,6 @@ pub(crate) fn build_transfer_compliance(
     } else {
         *shieldd_sdk_compliance::UNREGULATED_SINK_DK_PUB
     };
-
-    let receiver_amount: u128 = receiver_note.amount().into();
-    // A non-membership witness carries the predecessor leaf, whose policy must
-    // not influence an unrelated unregulated asset. Flagging is therefore
-    // disabled by the authenticated regulatory-status branch itself. Using
-    // `u128::MAX` as a sentinel is insufficient because a maximum-value note
-    // would meet that threshold.
-    let is_flagged = transfer_is_flagged(
-        receiver_output.is_regulated,
-        receiver_amount,
-        asset_indexed_leaf.params.threshold,
-    );
 
     let sender_ack = sender_leaf.capk;
     let receiver_ack = receiver_leaf.capk;
@@ -231,7 +216,7 @@ pub(crate) fn build_transfer_compliance(
     );
     metadata.validate()?;
 
-    #[cfg(feature = "poc-orbis-v0")]
+    #[cfg(feature = "poc-orbis")]
     let poc_orbis_audit_bundle = if let Some(asset_policy) = asset_policy {
         let mut audit_rng = StdRng::from_seed(transfer_orbis_audit_rng_seed(transfer_nonce_root));
         Some(PocOrbisAuditBundle {
@@ -282,7 +267,7 @@ pub(crate) fn build_transfer_compliance(
         metadata,
         public,
         private,
-        #[cfg(feature = "poc-orbis-v0")]
+        #[cfg(feature = "poc-orbis")]
         poc_orbis_audit_bundle,
     })
 }
@@ -292,7 +277,7 @@ pub(crate) struct BuildTransferComplianceResult {
     pub metadata: TransferComplianceMetadata,
     pub public: TransferCompliancePublic,
     pub private: TransferCompliancePrivate,
-    #[cfg(feature = "poc-orbis-v0")]
+    #[cfg(feature = "poc-orbis")]
     pub poc_orbis_audit_bundle: Option<PocOrbisAuditBundle>,
 }
 
@@ -402,16 +387,9 @@ pub(crate) fn transfer_compliance_public_from_parts(
 
 #[cfg(test)]
 mod tests {
-    use super::transfer_is_flagged;
     use decaf377::Fq;
     use rand::{rngs::StdRng, SeedableRng};
     use shieldd_sdk_asset::asset;
-
-    #[test]
-    fn unregulated_maximum_amount_is_never_flagged() {
-        assert!(!transfer_is_flagged(false, u128::MAX, u128::MAX));
-        assert!(transfer_is_flagged(true, u128::MAX, u128::MAX));
-    }
 
     #[test]
     fn unregulated_compliance_ignores_authenticated_predecessor_policy() {
@@ -420,7 +398,7 @@ mod tests {
         let mut first_rng = StdRng::seed_from_u64(0x554e_5245_4750_4f4c);
         let mut second_rng = StdRng::seed_from_u64(0x554e_5245_4750_4f4c);
 
-        let (first_public, first_private) = crate::test_proof_helpers::proof_test_helpers::
+        let (first_public, _first_private) = crate::test_proof_helpers::proof_test_helpers::
             build_transfer_hidden_arity_roundtrip_inputs_for_asset_populated(
                 &mut first_rng,
                 asset_id,
@@ -428,7 +406,7 @@ mod tests {
                 1,
                 false,
             );
-        let (second_public, second_private) = crate::test_proof_helpers::proof_test_helpers::
+        let (second_public, _second_private) = crate::test_proof_helpers::proof_test_helpers::
             build_transfer_hidden_arity_roundtrip_inputs_for_asset_populated(
                 &mut second_rng,
                 asset_id,
@@ -440,16 +418,6 @@ mod tests {
         // The authenticated registry root must change with its predecessor leaf,
         // but no unrelated predecessor policy may influence audit semantics.
         assert_ne!(first_public.asset_anchor, second_public.asset_anchor);
-        assert!(!transfer_is_flagged(
-            false,
-            first_private.receiver_output.created_note.amount().into(),
-            first_private.asset_indexed_leaf.params.threshold,
-        ));
-        assert!(!transfer_is_flagged(
-            false,
-            second_private.receiver_output.created_note.amount().into(),
-            second_private.asset_indexed_leaf.params.threshold,
-        ));
         assert_eq!(
             first_public.compliance.metadata,
             second_public.compliance.metadata

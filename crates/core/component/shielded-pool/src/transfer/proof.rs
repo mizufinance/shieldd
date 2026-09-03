@@ -14,7 +14,7 @@ use crate::{
     discovery::{Parameters as RoutingParameters, TransferRouting},
     public_input_hash::{transfer_statement_hash_from_public, StatementHashError},
     transfer::{transfer_input_count, transfer_output_count, TRANSFER_PROOF_LABEL},
-    Note,
+    Note, TransferProofContext, VolumeAccumulatorPrivate, VolumeAccumulatorPublic,
 };
 
 #[derive(Clone, Debug)]
@@ -62,6 +62,8 @@ pub struct TransferProofPublic {
     pub routing: TransferRouting,
     pub routing_parameter_set_id: Fq,
     pub recent_position_floor: u64,
+    pub volume_accumulator: VolumeAccumulatorPublic,
+    pub proof_context: TransferProofContext,
 }
 
 impl TransferProofPublic {
@@ -146,6 +148,7 @@ pub struct TransferProofPrivate {
     pub optional_input: TransferOptionalSpendPrivate,
     pub receiver_output: TransferReceiverOutputPrivate,
     pub change_output: TransferChangeOutputPrivate,
+    pub volume_accumulator: VolumeAccumulatorPrivate,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -323,6 +326,45 @@ mod tests {
     }
 
     #[test]
+    fn transfer_proof_roundtrip_accumulator_origin() {
+        let _guard = TRANSFER_PROOF_TEST_MUTEX
+            .lock()
+            .expect("lock transfer test mutex");
+        if super::super::test_runtime::should_skip_transfer_proof_roundtrip_tests() {
+            return;
+        }
+
+        let (public, private) = crate::test_proof_helpers::proof_test_helpers::
+            build_transfer_accumulating_hidden_arity_roundtrip_inputs_with_rng(
+                &mut rand::thread_rng(),
+                100,
+            );
+        TransferProof::prove(public.clone(), private)
+            .expect("prove transfer with a daily accumulator origin")
+            .verify(&public)
+            .expect("verify transfer with a daily accumulator origin");
+    }
+
+    #[test]
+    fn transfer_proof_roundtrip_accumulator_continuation() {
+        let _guard = TRANSFER_PROOF_TEST_MUTEX
+            .lock()
+            .expect("lock transfer test mutex");
+        if super::super::test_runtime::should_skip_transfer_proof_roundtrip_tests() {
+            return;
+        }
+
+        let (public, private) = crate::test_proof_helpers::proof_test_helpers::
+            build_transfer_continuing_accumulator_roundtrip_inputs_with_rng(
+                &mut rand::thread_rng(),
+            );
+        TransferProof::prove(public.clone(), private)
+            .expect("prove transfer continuing a daily accumulator")
+            .verify(&public)
+            .expect("verify transfer continuing a daily accumulator");
+    }
+
+    #[test]
     fn transfer_hidden_arity_1x1_roundtrip_sender_to_self() {
         let _guard = TRANSFER_PROOF_TEST_MUTEX
             .lock()
@@ -381,7 +423,7 @@ mod tests {
             .parse_unit("test_usd")
             .id();
         // Predecessor (low) leaf is a regulated asset just below test_usd, mirroring
-        // the live registry gap; threshold = 5e20 like regulated_usd.
+        // the live registry gap; daily_volume_limit = 5e20 like regulated_usd.
         let low_asset_id = test_usd.0 - decaf377::Fq::from(1u64);
         let (public, private) = crate::test_proof_helpers::proof_test_helpers::
             build_transfer_hidden_arity_roundtrip_inputs_for_asset_populated(

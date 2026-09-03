@@ -307,17 +307,10 @@ mod tests {
     }
 
     #[test]
-    fn note_reshape_witness_rejects_bad_version() {
-        let mut encoded = corrupt();
-        encoded[4..8].copy_from_slice(&2u32.to_le_bytes());
-        assert!(decode_note_reshape_witness(&encoded).is_err());
-    }
-
-    #[test]
     fn note_reshape_witness_rejects_bad_length() {
         let mut encoded = corrupt();
         let wrong_len = (encoded.len() as u32).saturating_sub(1);
-        encoded[8..12].copy_from_slice(&wrong_len.to_le_bytes());
+        encoded[4..8].copy_from_slice(&wrong_len.to_le_bytes());
         assert!(decode_note_reshape_witness(&encoded).is_err());
     }
 }

@@ -26,7 +26,7 @@ use crate::{
     ShieldedIcs20WithdrawalOptionalInputPrivate, ShieldedIcs20WithdrawalProof,
     ShieldedIcs20WithdrawalProofPrivate, ShieldedIcs20WithdrawalProofPublic,
     ShieldedIcs20WithdrawalRequiredInputPrivate, ShieldedInputPlan, ShieldedOutputPlan,
-    TransferInputBody,
+    TransferInputBody, VolumeAccumulatorPlan,
 };
 
 use super::ShieldedHostWithdrawalBody;
@@ -44,6 +44,7 @@ pub struct ShieldedHostWithdrawalPlan {
     pub change_output: Option<ShieldedOutputPlan>,
     pub withdrawal: HostWithdrawal,
     pub routing_parameters: Parameters,
+    pub volume_accumulator: VolumeAccumulatorPlan,
 }
 
 impl ShieldedHostWithdrawalPlan {
@@ -53,12 +54,17 @@ impl ShieldedHostWithdrawalPlan {
         withdrawal: HostWithdrawal,
         value_blinding: Fr,
     ) -> anyhow::Result<Self> {
+        let target_timestamp = spends
+            .first()
+            .map(|spend| spend.target_timestamp)
+            .unwrap_or(0);
         let plan = Self {
             value_blinding,
             spends,
             change_output,
             withdrawal,
             routing_parameters: Parameters::default(),
+            volume_accumulator: VolumeAccumulatorPlan::padding(target_timestamp),
         };
         plan.validate()?;
         Ok(plan)
@@ -70,6 +76,38 @@ impl ShieldedHostWithdrawalPlan {
 
     pub fn set_routing_parameters(&mut self, parameters: Parameters) {
         self.routing_parameters = parameters;
+    }
+
+    pub fn set_volume_accumulator(&mut self, plan: VolumeAccumulatorPlan) {
+        self.volume_accumulator = plan;
+    }
+
+    pub fn accumulator_prior_commitment(&self) -> Option<tct::StateCommitment> {
+        matches!(
+            self.volume_accumulator,
+            VolumeAccumulatorPlan::Continuation { .. }
+        )
+        .then(|| self.volume_accumulator.prior_commitment())
+    }
+
+    fn effective_volume_accumulator(&self) -> VolumeAccumulatorPlan {
+        if self.volume_accumulator.is_real() {
+            self.volume_accumulator.clone()
+        } else {
+            VolumeAccumulatorPlan::padding(self.first_spend().target_timestamp)
+        }
+    }
+
+    pub fn volume_accumulator_payload(
+        &self,
+        fvk: &FullViewingKey,
+    ) -> crate::VolumeAccumulatorPayload {
+        self.effective_volume_accumulator().selected_payload(
+            fvk.nullifier_key(),
+            fvk.outgoing(),
+            Fq::from_le_bytes_mod_order(&self.first_spend().tx_blinding_nonce.to_bytes()),
+            crate::TransferProofContext::Ordinary,
+        )
     }
 
     pub fn balance(&self) -> Balance {
@@ -241,10 +279,9 @@ impl ShieldedHostWithdrawalPlan {
 
     fn withdrawal_compliance_encryption(&self) -> anyhow::Result<WithdrawalEncryptionResult> {
         let sender_leaf = self.sender_leaf();
-        let amount = u128::from(self.withdrawal.value.amount);
         let (encryption_key, _) = withdrawal_encryption_key(
             self.first_spend().is_regulated,
-            amount,
+            self.first_spend().is_regulated && !self.volume_accumulator.is_real(),
             &sender_leaf,
             &self.first_spend().asset_indexed_leaf,
         )?;
@@ -268,10 +305,15 @@ impl ShieldedHostWithdrawalPlan {
     > {
         self.validate()
             .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))?;
-        if state_commitment_proofs.len() != self.spends.len() {
+        let needs_accumulator_proof = matches!(
+            self.volume_accumulator,
+            VolumeAccumulatorPlan::Continuation { .. }
+        );
+        let expected_proofs = self.spends.len() + usize::from(needs_accumulator_proof);
+        if state_commitment_proofs.len() != expected_proofs {
             return Err(crate::ProofError::InvalidPublicInput(format!(
                 "shielded host withdrawal expected {} state commitment proofs, got {}",
-                self.spends.len(),
+                expected_proofs,
                 state_commitment_proofs.len()
             )));
         }
@@ -370,6 +412,13 @@ impl ShieldedHostWithdrawalPlan {
         let withdrawal_compliance = self
             .withdrawal_compliance_encryption()
             .map_err(|error| crate::ProofError::InvalidPrivateInput(error.to_string()))?;
+        let volume_plan = self.effective_volume_accumulator();
+        let volume_payload = self.volume_accumulator_payload(fvk);
+        let volume_prior_proof = if needs_accumulator_proof {
+            state_commitment_proofs[self.spends.len()].clone()
+        } else {
+            dummy_state_commitment_proof(volume_plan.prior_commitment())
+        };
 
         Ok((
             ShieldedIcs20WithdrawalProofPublic {
@@ -391,6 +440,11 @@ impl ShieldedHostWithdrawalPlan {
                 routing_parameter_set_id: self.routing_parameters.id(),
                 withdrawal_compliance_ciphertext: withdrawal_compliance.ciphertext.clone(),
                 recent_position_floor,
+                volume_accumulator: crate::VolumeAccumulatorPublic {
+                    nullifier: volume_payload.nullifier,
+                    commitment: volume_payload.commitment,
+                    day_start: volume_payload.day_start,
+                },
             },
             ShieldedIcs20WithdrawalProofPrivate {
                 family_id: ShieldedIcs20WithdrawalFamilyId::Canonical,
@@ -412,6 +466,13 @@ impl ShieldedHostWithdrawalPlan {
                 optional_input,
                 change_output: ShieldedIcs20WithdrawalChangePrivate {
                     created_note: change_note,
+                },
+                volume_accumulator_seed: Fq::from_le_bytes_mod_order(
+                    &self.first_spend().tx_blinding_nonce.to_bytes(),
+                ),
+                volume_accumulator: crate::VolumeAccumulatorPrivate {
+                    plan: volume_plan,
+                    prior_proof: volume_prior_proof,
                 },
             },
         ))
@@ -489,6 +550,7 @@ impl ShieldedHostWithdrawalPlan {
             routing_tag,
             routing_parameter_set_id: self.routing_parameters.id(),
             withdrawal_compliance_ciphertext: withdrawal_compliance.ciphertext,
+            volume_accumulator: self.volume_accumulator_payload(fvk),
         })
     }
 
@@ -583,6 +645,7 @@ impl From<ShieldedHostWithdrawalPlan> for pb::ShieldedHostWithdrawalPlan {
             change_output: value.change_output.map(Into::into),
             withdrawal: Some(value.withdrawal.into()),
             routing_parameters: Some(value.routing_parameters.into()),
+            volume_accumulator: Some(value.volume_accumulator.into()),
         }
     }
 }
@@ -613,6 +676,10 @@ impl TryFrom<pb::ShieldedHostWithdrawalPlan> for ShieldedHostWithdrawalPlan {
             routing_parameters: value
                 .routing_parameters
                 .ok_or_else(|| anyhow!("missing routing parameters"))?
+                .try_into()?,
+            volume_accumulator: value
+                .volume_accumulator
+                .ok_or_else(|| anyhow!("missing volume accumulator plan"))?
                 .try_into()?,
         };
         plan.validate()?;

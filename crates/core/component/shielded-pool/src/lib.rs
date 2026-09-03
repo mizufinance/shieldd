@@ -25,6 +25,7 @@ mod note_reshape_padding;
 mod recovery_capsule;
 pub mod rseed;
 mod shielded_note_plan;
+mod volume_accumulator;
 
 pub use note::{Note, NoteCiphertext, NoteView};
 pub use note_payload::NotePayload;
@@ -33,6 +34,12 @@ pub use recovery_capsule::{
     RECOVERY_CAPSULE_BYTES,
 };
 pub use rseed::Rseed;
+pub use volume_accumulator::{
+    accumulated_volume, select_accumulator_day, TransferProofContext, VolumeAccumulatorPayload,
+    VolumeAccumulatorPlan, VolumeAccumulatorPrivate, VolumeAccumulatorPublic,
+    VolumeAccumulatorState, VolumeNullifier, VOLUME_ACCUMULATOR_CIPHERTEXT_BYTES,
+    VOLUME_ACCUMULATOR_RETENTION_GRACE_SECS, VOLUME_ACCUMULATOR_RETENTION_SECS,
+};
 
 pub use shielded_note_plan::{ShieldedInputPlan, ShieldedOutputPlan};
 

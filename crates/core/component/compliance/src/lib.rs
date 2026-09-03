@@ -116,14 +116,18 @@ pub use crypto::{
 
 pub mod scanning;
 pub use scanning::{
-    decrypt_core_amount_if_key_matches, decrypt_full_flagged, AddressData, FullComplianceData,
+    decrypt_core_amount_if_key_matches, decrypt_flagged_withdrawal_sender, decrypt_full_flagged,
+    AddressData, FullComplianceData, WithdrawalComplianceData,
 };
 
 pub mod refs;
-pub use refs::{ActionRef, BlockRef, OutputRef, TxRef};
+pub use refs::{ActionRef, BlockRef, ComplianceRecordRef, OutputRef, TxRef};
 
 pub mod evidence;
-pub use evidence::{ComplianceEvidenceObject, EvidenceObjectType, COMPLIANCE_EVIDENCE_VERSION};
+pub use evidence::{
+    ComplianceEvidenceCiphertext, ComplianceEvidenceMetadata, ComplianceEvidenceObject,
+    EvidenceObjectType, WithdrawalEvidencePublicData,
+};
 
 pub mod audit_validation;
 pub use audit_validation::{validate_audit_evidence, AuditValidationInput, AuditValidationStatus};
@@ -168,9 +172,9 @@ pub use ibc::IbcComplianceMetadata;
 pub mod decode_object;
 pub use decode_object::{TransferComplianceMetadata, TRANSFER_COMPLIANCE_METADATA_BYTES};
 
-#[cfg(feature = "poc-orbis-v0")]
+#[cfg(feature = "poc-orbis")]
 pub mod poc_orbis_audit;
-#[cfg(feature = "poc-orbis-v0")]
+#[cfg(feature = "poc-orbis")]
 pub use poc_orbis_audit::{
     build_poc_orbis_audit_package, decrypt_reencrypted_seed, parse_element,
     validate_decrypted_seed, PocOrbisAccess, PocOrbisAuditBundle, PocOrbisAuditPackage,
@@ -619,14 +623,13 @@ mod tests {
             .count();
         assert_eq!(wrong_detected, 0);
 
-        let decrypted = decrypt_full_flagged(
-            issuer_dk.inner(),
-            &detected_ciphertexts[0],
-            &metadata,
-            asset_id,
-        )
-        .unwrap()
-        .expect("flagged transfer should decrypt");
+        let scanner::types::ComplianceCiphertext::Transfer(ciphertext) = &detected_ciphertexts[0]
+        else {
+            panic!("transfer action must yield transfer compliance ciphertext");
+        };
+        let decrypted = decrypt_full_flagged(issuer_dk.inner(), ciphertext, &metadata, asset_id)
+            .unwrap()
+            .expect("flagged transfer should decrypt");
         assert_eq!(decrypted.amount, amount);
         assert_eq!(
             decrypted.sender_address.transmission_key,

@@ -61,14 +61,15 @@ func (c *complianceLeafProfileCircuit) Define(api frontend.API) error {
 	return err
 }
 
-type thresholdProfileCircuit struct {
-	Amount    frontend.Variable
-	Threshold frontend.Variable
-	IsFlagged frontend.Variable
+type amountComparisonProfileCircuit struct {
+	A    frontend.Variable
+	B    frontend.Variable
+	Less frontend.Variable
 }
 
-func (c *thresholdProfileCircuit) Define(api frontend.API) error {
-	compliance.VerifyThresholdFlagSimple(api, c.Amount, c.Threshold, c.IsFlagged)
+func (c *amountComparisonProfileCircuit) Define(api frontend.API) error {
+	api.AssertIsBoolean(c.Less)
+	api.AssertIsEqual(compliance.FieldLessThan(api, c.A, c.B), c.Less)
 	return nil
 }
 
@@ -300,7 +301,7 @@ func compileConstraintCount(t *testing.T, name string, circuit frontend.Circuit)
 
 func TestConstraintProfiles(t *testing.T) {
 	compileConstraintCount(t, "note commitment", &noteCommitmentProfileCircuit{})
-	compileConstraintCount(t, "threshold comparator", &thresholdProfileCircuit{})
+	compileConstraintCount(t, "amount comparator", &amountComparisonProfileCircuit{})
 	compileConstraintCount(t, "point compression", &pointCompressionProfileCircuit{})
 	compileConstraintCount(t, "compliance leaf commitment", &complianceLeafProfileCircuit{})
 	compileConstraintCount(t, "quad path", &quadPathProfileCircuit{})

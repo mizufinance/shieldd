@@ -13,6 +13,30 @@ import (
 	"github.com/mizufinance/shieldd/tools/gnark/internal/testfixtures"
 )
 
+func TestShieldedIcs20WithdrawalRejectsFeeFundingContext(t *testing.T) {
+	fixture := testfixtures.LoadShieldedIcs20WithdrawalWitness("shielded_ics20_withdrawal_unregulated")
+	witness, family, err := abi.DecodeShieldedIcs20WithdrawalWitness(fixture)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assignment, _, err := abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitness(fixture)
+	if err != nil {
+		t.Fatal(err)
+	}
+	witness.VolumeAccumulator.ProofContext = [32]byte{2}
+	witness.VolumeAccumulator.Nullifier = [32]byte{}
+	witness.VolumeAccumulator.Commitment = [32]byte{}
+	witness.VolumeAccumulator.DayStart = [32]byte{}
+	assignment.VolumeAccumulator.ProofContext = 2
+	assignment.VolumeAccumulator.Nullifier = 0
+	assignment.VolumeAccumulator.Commitment = 0
+	assignment.VolumeAccumulator.DayStart = 0
+	setWithdrawalStatementHash(t, witness, assignment, family.NIn)
+	if err := test.IsSolved(circuits.NewShieldedIcs20WithdrawalCircuit(family.NIn), assignment, ecc.BLS12_377.ScalarField()); err == nil {
+		t.Fatal("withdrawal accepted disabled fee-funding accumulator context")
+	}
+}
+
 func TestRegulatedWithdrawalRejectsFrozenSender(t *testing.T) {
 	_, assignment, nIn := loadWithdrawalFixture(t)
 	assignment.Sender.Status = 2
@@ -118,9 +142,9 @@ func TestShieldedIcs20WithdrawalBindsComplianceCiphertextAndPolicy(t *testing.T)
 			},
 		},
 		{
-			name: "threshold",
+			name: "daily_volume_limit",
 			mutate: func(_ *testing.T, _ *abi.ShieldedIcs20WithdrawalWitnessBinary, c *circuits.ShieldedIcs20WithdrawalCircuit) {
-				c.Asset.Leaf.Threshold = 1
+				c.Asset.Leaf.DailyVolumeLimit = 1
 			},
 		},
 		{
@@ -343,7 +367,7 @@ func TestShieldedIcs20WithdrawalWiringBindsPolicyLeafAndSentinel(t *testing.T) {
 
 	for _, binding := range []string{
 		"assert.ne lhs=shared.asset_id rhs=0",
-		"gadget.asset_registry_params_hash dk_pub_fq=asset.leaf.dk_pub_fq threshold=asset.leaf.threshold channels_hash=asset.leaf.channels_hash out=asset.leaf.params_hash",
+		"gadget.asset_registry_params_hash dk_pub_fq=asset.leaf.dk_pub_fq daily_volume_limit=asset.leaf.daily_volume_limit route_policy_hash=asset.leaf.route_policy_hash out=asset.leaf.params_hash",
 		"gadget.asset_registry_ring_hash ring_pk_fq=asset.leaf.ring_pk_fq ring_id_hash=asset.leaf.ring_id_hash policy_id_hash=asset.leaf.policy_id_hash permission_hash=asset.leaf.permission_hash resource_hash=asset.leaf.resource_hash out=asset.leaf.ring_hash",
 		"gadget.asset_registry_leaf_hash value=asset.leaf.value next_index=asset.leaf.next_index next_value=asset.leaf.next_value params_hash=asset.leaf.params_hash ring_hash=asset.leaf.ring_hash out=asset.leaf.commitment",
 		"gadget.compliance_leaf div_gen_fq=sender.div_gen_fq transmission_fq=sender.transmission_fq asset_id=shared.asset_id capk=sender.capk rnk_dh_pk=sender.rnk_dh_pk rnk_commitment=sender.rnk_commitment status=sender.status out=sender.leaf_commitment",

@@ -154,12 +154,22 @@ async fn build_family_fixture_set() -> Result<FamilyFixtureSet> {
     let mut note_cursor = 0usize;
     let transfer_note = notes[note_cursor].clone();
     note_cursor += 1;
-    let transfer_action = transfer_plan(&client, transfer_note, Fr::from(1u64))?;
+    let transfer_action = transfer_plan(
+        &client,
+        transfer_note,
+        Fr::from(1u64),
+        test_keys::ADDRESS_1.deref().clone(),
+    )?;
     let fee_funding_body_action = ActionPlan::from(transfer_action.clone());
 
     let fee_funding_note = notes[note_cursor].clone();
     note_cursor += 1;
-    let fee_funding_transfer = transfer_plan(&client, fee_funding_note, Fr::from(2u64))?;
+    let fee_funding_transfer = transfer_plan(
+        &client,
+        fee_funding_note.clone(),
+        Fr::from(2u64),
+        fee_funding_note.address(),
+    )?;
 
     let mut family_actions = vec![(
         DeployedProofFamily::Transfer,
@@ -334,7 +344,12 @@ fn spend_plan(client: &MockClient, note: Note) -> Result<ShieldedInputPlan> {
     Ok(ShieldedInputPlan::new(&mut OsRng, note, position))
 }
 
-fn transfer_plan(client: &MockClient, note: Note, value_blinding: Fr) -> Result<TransferPlan> {
+fn transfer_plan(
+    client: &MockClient,
+    note: Note,
+    value_blinding: Fr,
+    receiver_address: shieldd_sdk_keys::Address,
+) -> Result<TransferPlan> {
     let spend = spend_plan(client, note.clone())?;
     let mut receiver = ShieldedOutputPlan::new(
         &mut OsRng,
@@ -342,7 +357,7 @@ fn transfer_plan(client: &MockClient, note: Note, value_blinding: Fr) -> Result<
             amount: Amount::from(1u64),
             asset_id: note.asset_id(),
         },
-        test_keys::ADDRESS_1.deref().clone(),
+        receiver_address,
     );
     let mut change = ShieldedOutputPlan::new(
         &mut OsRng,

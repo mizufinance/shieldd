@@ -11,6 +11,7 @@ use shieldd_sdk_txhash::{EffectHash, EffectingData};
 use crate::{
     discovery::RoutingTag, HostWithdrawal, ShieldedIcs20WithdrawalChangeBody,
     ShieldedIcs20WithdrawalFamilyId, ShieldedIcs20WithdrawalProof, TransferInputBody,
+    TransferProofContext, VolumeAccumulatorPayload,
 };
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
@@ -31,6 +32,7 @@ pub struct ShieldedHostWithdrawalBody {
     pub routing_tag: RoutingTag,
     pub routing_parameter_set_id: decaf377::Fq,
     pub withdrawal_compliance_ciphertext: WithdrawalComplianceCiphertext,
+    pub volume_accumulator: VolumeAccumulatorPayload,
 }
 
 #[derive(Clone, Debug)]
@@ -53,6 +55,11 @@ impl ShieldedHostWithdrawalBody {
             self.family_id.input_count(),
             self.inputs.len()
         );
+        WithdrawalComplianceCiphertext::from_bytes(
+            &self.withdrawal_compliance_ciphertext.to_bytes(),
+        )?;
+        self.volume_accumulator
+            .validate(TransferProofContext::Ordinary)?;
         Ok(())
     }
 }
@@ -146,6 +153,7 @@ impl From<ShieldedHostWithdrawalBody> for pb::ShieldedHostWithdrawalBody {
                 .withdrawal_compliance_ciphertext
                 .to_bytes()
                 .to_vec(),
+            volume_accumulator: Some(value.volume_accumulator.into()),
         }
     }
 }
@@ -154,7 +162,7 @@ impl TryFrom<pb::ShieldedHostWithdrawalBody> for ShieldedHostWithdrawalBody {
     type Error = Error;
 
     fn try_from(value: pb::ShieldedHostWithdrawalBody) -> Result<Self, Self::Error> {
-        Ok(Self {
+        let body = Self {
             family_id: value.family_id.try_into()?,
             anchor: value
                 .anchor
@@ -211,7 +219,14 @@ impl TryFrom<pb::ShieldedHostWithdrawalBody> for ShieldedHostWithdrawalBody {
                 &value.withdrawal_compliance_ciphertext,
             )
             .context("malformed withdrawal compliance ciphertext")?,
-        })
+            volume_accumulator: value
+                .volume_accumulator
+                .ok_or_else(|| anyhow::anyhow!("missing volume accumulator payload"))?
+                .try_into()
+                .context("malformed volume accumulator payload")?,
+        };
+        body.validate_shape()?;
+        Ok(body)
     }
 }
 

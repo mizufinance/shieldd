@@ -43,8 +43,6 @@ fn compress_targets(
         if value.is_zero() {
             c1_inverses.push(Default::default());
         } else if value.0.c1.is_zero() {
-            // The only norm-one value omitted by the affine torus chart is
-            // -1. It is not in the odd-order BLS12-377 target subgroup.
             return Err(SerializationError::InvalidData);
         } else {
             c1_inverses.push(value.0.c1);
@@ -142,11 +140,6 @@ fn validate_regular_proof<D: Digest + Send + Sync>(
 pub(crate) fn serialize_torus_aggregate_proof<D: Digest + Send + Sync>(
     proof: &AggregateProof<Bls12_377, D>,
 ) -> Result<Vec<u8>, SerializationError> {
-    // Torus encoding is injective only on the certified odd-order target
-    // subgroup. AggregateProof does not carry that invariant in its Rust type,
-    // so enforce it before entering the chart. If construction later returns a
-    // proof type with a private validity certificate, this check can move into
-    // that constructor without weakening this boundary.
     validate_regular_proof(proof)?;
     let targets = aggregate_proof_target_values::<Bls12_377, PairingOutput<Bls12_377>, D>(proof);
     let compressed = compress_targets(&targets)?;
@@ -179,8 +172,6 @@ pub(crate) fn deserialize_torus_aggregate_proof<D: Digest + Send + Sync>(
 fn deserialize_torus_aggregate_proof_wire<D: Digest + Send + Sync>(
     bytes: &[u8],
 ) -> Result<AggregateProof<Bls12_377, D>, SerializationError> {
-    // Decode fields and points without trusting their subgroup membership.
-    // The reconstructed regular proof is validated below in one place.
     #[cfg(not(feature = "bench-baseline"))]
     let proof = deserialize_compressed_strict_with::<TorusAggregateProof<D>>(bytes, |_| Ok(()))?;
     #[cfg(feature = "bench-baseline")]

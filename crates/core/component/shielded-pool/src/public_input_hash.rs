@@ -18,10 +18,10 @@ use crate::{
 pub const NOTE_RESHAPE_STATEMENT_BASE_FIELDS: usize = 7;
 pub const NOTE_RESHAPE_STATEMENT_FIELDS_PER_INPUT: usize = 3;
 pub const NOTE_RESHAPE_STATEMENT_FIELDS_PER_OUTPUT: usize = 2;
-pub const TRANSFER_STATEMENT_BASE_FIELDS: usize = 39;
+pub const TRANSFER_STATEMENT_BASE_FIELDS: usize = 43;
 pub const TRANSFER_STATEMENT_FIELDS_PER_INPUT: usize = 3;
 pub const TRANSFER_STATEMENT_FIELDS_PER_OUTPUT: usize = 2;
-pub const SHIELDED_ICS20_WITHDRAWAL_STATEMENT_BASE_FIELDS: usize = 22;
+pub const SHIELDED_ICS20_WITHDRAWAL_STATEMENT_BASE_FIELDS: usize = 25;
 pub const SHIELDED_ICS20_WITHDRAWAL_STATEMENT_FIELDS_PER_INPUT: usize = 3;
 
 pub const fn note_reshape_statement_field_count(n_in: usize, n_out: usize) -> usize {
@@ -347,6 +347,10 @@ pub fn transfer_statement_fields(
     fields.extend(public.routing.tags.map(|tag| Fq::from(tag.value)));
     fields.push(public.routing_parameter_set_id);
     fields.push(Fq::from(public.recent_position_floor));
+    fields.push(public.volume_accumulator.nullifier.0);
+    fields.push(public.volume_accumulator.commitment.0);
+    fields.push(Fq::from(public.volume_accumulator.day_start));
+    fields.push(public.proof_context.as_field());
     for (index, spend) in public.inputs.iter().enumerate() {
         fields.extend(
             spend
@@ -497,6 +501,9 @@ pub fn shielded_ics20_withdrawal_statement_fields(
     fields.extend(public.withdrawal_effect_hash_limbs);
     fields.push(Fq::from(public.routing_tag.value));
     fields.push(public.routing_parameter_set_id);
+    fields.push(public.volume_accumulator.nullifier.0);
+    fields.push(public.volume_accumulator.commitment.0);
+    fields.push(Fq::from(public.volume_accumulator.day_start));
     fields.push(
         public
             .withdrawal_compliance_ciphertext
@@ -781,7 +788,7 @@ mod tests {
         let correct =
             note_reshape_statement_hash(family_id, &fields).expect("correct family statement hash");
         let wrong = hash_statement_fields(
-            &note_reshape_statement_hash_constant(NoteReshapeFamilyId::OneByEight, "v2"),
+            &note_reshape_statement_hash_constant(NoteReshapeFamilyId::OneByEight, "alternate"),
             note_reshape_statement_hash_constant(NoteReshapeFamilyId::OneByEight, "pad0"),
             note_reshape_statement_hash_constant(NoteReshapeFamilyId::OneByEight, "pad1"),
             &fields,

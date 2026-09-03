@@ -39,9 +39,9 @@ pub enum ComplianceCmd {
         /// Issuer's detection key public (hex, 64 chars = 32 bytes).
         #[clap(long)]
         dk_pub_hex: Option<String>,
-        /// Amount threshold for flagging, in base units.
+        /// Daily undisclosed-volume limit, in base units.
         #[clap(long)]
-        threshold: Option<u128>,
+        daily_volume_limit: Option<u128>,
         /// Orbis ring public key (hex, 64 chars = 32 bytes compressed).
         #[clap(long)]
         ring_pk_hex: Option<String>,
@@ -137,9 +137,9 @@ pub enum ComplianceCmd {
         /// Issuer's detection key public (hex, 64 chars = 32 bytes).
         #[clap(long)]
         dk_pub_hex: Option<String>,
-        /// Amount threshold for flagging, in base units.
+        /// Daily undisclosed-volume limit, in base units.
         #[clap(long)]
-        threshold: Option<u128>,
+        daily_volume_limit: Option<u128>,
         /// Orbis ring public key (hex, 64 chars = 32 bytes compressed).
         #[clap(long)]
         ring_pk_hex: Option<String>,
@@ -371,9 +371,9 @@ impl ComplianceCmd {
                 println!("Public key (use when registering asset):");
                 println!("  DK_pub (hex): {}", dk_pub_hex);
                 println!();
-                println!("To register an asset with threshold flagging:");
+                println!("To register an asset with a daily undisclosed-volume limit:");
                 println!(
-                    "  pcli tx compliance register-asset <ASSET> --regulated --dk-pub-hex {} --threshold <AMOUNT>",
+                    "  pcli tx compliance register-asset <ASSET> --regulated --dk-pub-hex {} --daily-volume-limit <AMOUNT>",
                     dk_pub_hex
                 );
 
@@ -391,7 +391,7 @@ impl ComplianceCmd {
                 regulated,
                 unregulated,
                 dk_pub_hex,
-                threshold,
+                daily_volume_limit,
                 ring_pk_hex,
                 ring_id,
                 policy_id,
@@ -459,7 +459,7 @@ impl ComplianceCmd {
                     asset_id,
                     is_regulated,
                     dk_pub,
-                    threshold: *threshold,
+                    daily_volume_limit: *daily_volume_limit,
                     allowed_ibc_routes,
                     ibc_origin,
                     ring_pk,
@@ -541,7 +541,7 @@ impl ComplianceCmd {
                 regulated,
                 unregulated,
                 dk_pub_hex,
-                threshold,
+                daily_volume_limit,
                 ring_pk_hex,
                 ring_id,
                 policy_id,
@@ -617,7 +617,7 @@ impl ComplianceCmd {
                     asset_id,
                     is_regulated,
                     dk_pub,
-                    threshold: *threshold,
+                    daily_volume_limit: *daily_volume_limit,
                     allowed_ibc_routes,
                     ibc_origin,
                     ring_pk,

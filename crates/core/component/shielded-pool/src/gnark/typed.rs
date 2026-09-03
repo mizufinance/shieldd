@@ -32,7 +32,7 @@ pub struct IndexedLeafBinary {
     pub value: [u8; 32],
     pub next_index: u64,
     pub next_value: [u8; 32],
-    pub threshold: [u8; 16],
+    pub daily_volume_limit: [u8; 16],
     pub route_policy_hash: [u8; 32],
     pub ring_id_hash: [u8; 32],
     pub policy_id_hash: [u8; 32],
@@ -69,7 +69,7 @@ pub(crate) fn encode_indexed_leaf(buf: &mut Vec<u8>, leaf: &IndexedLeafBinary) {
     put_bytes(buf, &leaf.value);
     put_bytes(buf, &leaf.next_index.to_le_bytes());
     put_bytes(buf, &leaf.next_value);
-    put_bytes(buf, &leaf.threshold);
+    put_bytes(buf, &leaf.daily_volume_limit);
     put_bytes(buf, &leaf.route_policy_hash);
     put_bytes(buf, &leaf.ring_id_hash);
     put_bytes(buf, &leaf.policy_id_hash);
@@ -82,7 +82,7 @@ pub(crate) fn decode_indexed_leaf(cursor: &mut BinaryCursor<'_>) -> Result<Index
         value: cursor.read_fixed::<32>()?,
         next_index: cursor.read_u64()?,
         next_value: cursor.read_fixed::<32>()?,
-        threshold: cursor.read_fixed::<16>()?,
+        daily_volume_limit: cursor.read_fixed::<16>()?,
         route_policy_hash: cursor.read_fixed::<32>()?,
         ring_id_hash: cursor.read_fixed::<32>()?,
         policy_id_hash: cursor.read_fixed::<32>()?,
@@ -124,7 +124,7 @@ pub(crate) fn indexed_leaf_from_typed(leaf: &IndexedLeaf) -> IndexedLeafBinary {
         value: leaf.value.to_bytes(),
         next_index: leaf.next_index,
         next_value: leaf.next_value.to_bytes(),
-        threshold: leaf.params.threshold.to_le_bytes(),
+        daily_volume_limit: leaf.params.daily_volume_limit.to_le_bytes(),
         route_policy_hash: leaf.params.route_policy_hash.to_bytes(),
         ring_id_hash: leaf.ring.ring_id_hash.to_bytes(),
         policy_id_hash: leaf.ring.policy_id_hash.to_bytes(),

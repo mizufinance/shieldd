@@ -1,5 +1,5 @@
 {
-  "schema": "shieldd.gnark.constraint_manifest.v1",
+  "schema": "shieldd.gnark.constraint_manifest",
   "circuit": "note_seizure",
   "shape": {
     "n_in": 1,

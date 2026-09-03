@@ -251,8 +251,8 @@ mod tests {
             crate::test_proof_helpers::proof_test_helpers::build_transfer_roundtrip_inputs(true);
         let encoded = encode_transfer_witness(&public, &private).expect("encode transfer witness");
         assert_eq!(
-            u32::from_le_bytes(encoded[4..8].try_into().unwrap()),
-            crate::gnark::transfer_witness_binary::TRANSFER_WITNESS_VERSION
+            u32::from_le_bytes(encoded[4..8].try_into().unwrap()) as usize,
+            encoded.len()
         );
         let decoded = decode_transfer_witness(&encoded).expect("decode transfer witness");
         let expected = TransferWitness::from_public_private(&public, &private)
@@ -274,19 +274,5 @@ mod tests {
         let expected = TransferWitness::from_public_private(&public, &private)
             .expect("build hidden-arity transfer witness");
         assert_eq!(decoded, expected);
-    }
-
-    #[test]
-    fn transfer_witness_rejects_unsupported_version() {
-        let (public, private) =
-            crate::test_proof_helpers::proof_test_helpers::build_transfer_roundtrip_inputs(true);
-        let mut encoded =
-            encode_transfer_witness(&public, &private).expect("encode transfer witness");
-        encoded[4..8].copy_from_slice(&15u32.to_le_bytes());
-        let err = decode_transfer_witness(&encoded)
-            .expect_err("decoder must reject unsupported version 15");
-        assert!(err
-            .to_string()
-            .contains("unsupported transfer witness version 15"));
     }
 }

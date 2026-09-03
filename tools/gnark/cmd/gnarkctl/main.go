@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"crypto/sha256"
-	"encoding/binary"
 	"flag"
 	"fmt"
 	"math/big"
@@ -63,11 +62,10 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "usage: gnarkctl <setup|export-circuit|export-wiring-transcript|prove|replay|verify-bench|check-vk-json> [flags]")
 }
 
-const setupProvenanceSchema = "shieldd.gnark.setup_provenance.v2"
+const setupProvenanceSchema = "shieldd.gnark.setup_provenance"
 
 type setupGenerationSelfTest struct {
 	ProofCase                  string `json:"proof_case"`
-	WitnessFormatVersion       uint32 `json:"witness_format_version"`
 	WitnessSHA256Hex           string `json:"witness_sha256_hex"`
 	ProvedAndVerifiedInProcess bool   `json:"proved_and_verified_in_process"`
 }
@@ -112,17 +110,6 @@ func isLowerSnakeIdentifier(value string) bool {
 		}
 	}
 	return true
-}
-
-func witnessFormatVersion(payload []byte) (uint32, error) {
-	const witnessHeaderLength = 8
-	if len(payload) < witnessHeaderLength {
-		return 0, fmt.Errorf(
-			"witness payload is too short for magic and version: got %d bytes",
-			len(payload),
-		)
-	}
-	return binary.LittleEndian.Uint32(payload[4:witnessHeaderLength]), nil
 }
 
 func runExportCircuit(args []string) error {
@@ -460,10 +447,6 @@ func runSetupSelfTests(
 		if err != nil {
 			return nil, fmt.Errorf("%s: decode setup witness: %w", proofCase, err)
 		}
-		witnessVersion, err := witnessFormatVersion(payload)
-		if err != nil {
-			return nil, fmt.Errorf("%s: %w", proofCase, err)
-		}
 		fullWitness, err := frontend.NewWitness(assignment, primitives.ScalarField())
 		if err != nil {
 			return nil, fmt.Errorf("%s: construct setup witness: %w", proofCase, err)
@@ -485,7 +468,6 @@ func runSetupSelfTests(
 		witnessHash := sha256.Sum256(payload)
 		tests = append(tests, setupGenerationSelfTest{
 			ProofCase:                  proofCase,
-			WitnessFormatVersion:       witnessVersion,
 			WitnessSHA256Hex:           fmt.Sprintf("%x", witnessHash[:]),
 			ProvedAndVerifiedInProcess: true,
 		})

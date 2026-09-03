@@ -234,6 +234,9 @@ pub struct TransactionPlannerRequest {
     /// The epoch of the transaction being planned.
     #[prost(message, optional, tag = "201")]
     pub epoch: ::core::option::Option<super::super::core::component::sct::v1::Epoch>,
+    /// Voluntarily disclose outbound transfers instead of consuming the daily accumulator.
+    #[prost(bool, tag = "202")]
+    pub disclose_to_issuer: bool,
     /// Specifies either that the planner should compute fees automatically or that it should use a fixed fee amount.
     #[prost(oneof = "transaction_planner_request::FeeMode", tags = "100, 101")]
     pub fee_mode: ::core::option::Option<transaction_planner_request::FeeMode>,
@@ -525,6 +528,9 @@ pub struct StatusResponse {
     /// Whether the view service is catching up with the chain state
     #[prost(bool, tag = "3")]
     pub catching_up: bool,
+    /// Consensus timestamp of the latest block known to the view service.
+    #[prost(uint64, tag = "4")]
+    pub latest_block_timestamp: u64,
 }
 impl ::prost::Name for StatusResponse {
     const NAME: &'static str = "StatusResponse";
@@ -1199,9 +1205,9 @@ pub struct ComplianceAssetStatusResponse {
     /// Issuer's detection key public (32 bytes compressed point).
     #[prost(bytes = "vec", tag = "4")]
     pub dk_pub: ::prost::alloc::vec::Vec<u8>,
-    /// Amount threshold for flagging (16 bytes, little-endian u128).
+    /// Daily undisclosed-volume limit (16-byte little-endian u128).
     #[prost(bytes = "vec", tag = "5")]
-    pub threshold: ::prost::alloc::vec::Vec<u8>,
+    pub daily_volume_limit: ::prost::alloc::vec::Vec<u8>,
     /// Full compliance asset policy for regulated assets.
     #[prost(message, optional, tag = "6")]
     pub asset_policy: ::core::option::Option<

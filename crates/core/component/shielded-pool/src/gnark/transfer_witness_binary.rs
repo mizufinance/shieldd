@@ -8,7 +8,8 @@ use crate::{
         transfer_witness::{
             TransferChangeOutputWitness, TransferComplianceCiphertextWitness,
             TransferOptionalSpendWitness, TransferReceiverOutputWitness,
-            TransferRequiredSpendWitness, TransferTierRandomizersWitness, TransferWitness,
+            TransferRequiredSpendWitness, TransferTierRandomizersWitness,
+            TransferVolumeAccumulatorWitness, TransferWitness,
         },
         typed::{
             decode_indexed_leaf, encode_indexed_leaf, encode_merkle_path, encode_point_affine,
@@ -18,13 +19,11 @@ use crate::{
 };
 
 const TRANSFER_WITNESS_MAGIC: &[u8; 4] = b"PTWG";
-pub(super) const TRANSFER_WITNESS_VERSION: u32 = 24;
 
 impl TransferWitness {
     pub fn encode(&self) -> Result<Vec<u8>> {
         let mut buf = Vec::new();
         put_bytes(&mut buf, TRANSFER_WITNESS_MAGIC);
-        put_u32(&mut buf, TRANSFER_WITNESS_VERSION);
         put_u32(&mut buf, 0);
         put_bytes(&mut buf, &self.anchor);
         put_bytes(&mut buf, &self.asset_anchor);
@@ -36,6 +35,7 @@ impl TransferWitness {
         }
         put_bytes(&mut buf, &self.routing_parameter_set_id);
         put_bytes(&mut buf, &self.recent_position_floor);
+        encode_volume_accumulator(&mut buf, &self.volume_accumulator)?;
         put_bytes(&mut buf, &self.action_balance_blinding);
         put_bytes(&mut buf, &self.nk);
         encode_merkle_path(&mut buf, &self.asset_path)?;
@@ -83,7 +83,7 @@ impl TransferWitness {
         encode_point_affine(&mut buf, &self.sender_transmission_key_affine);
 
         let total_len = u32::try_from(buf.len()).context("encoded transfer witness exceeds u32")?;
-        buf[8..12].copy_from_slice(&total_len.to_le_bytes());
+        buf[4..8].copy_from_slice(&total_len.to_le_bytes());
         Ok(buf)
     }
 
@@ -91,10 +91,6 @@ impl TransferWitness {
         let mut cursor = BinaryCursor::new(bytes);
         if cursor.read_fixed::<4>()? != *TRANSFER_WITNESS_MAGIC {
             bail!("invalid transfer witness magic");
-        }
-        let version = cursor.read_u32()?;
-        if version != TRANSFER_WITNESS_VERSION {
-            bail!("unsupported transfer witness version {version}");
         }
         let total_length = cursor.read_u32()?;
         if total_length as usize != bytes.len() {
@@ -115,6 +111,7 @@ impl TransferWitness {
             routing_tags: [cursor.read_fixed::<32>()?, cursor.read_fixed::<32>()?],
             routing_parameter_set_id: cursor.read_fixed::<32>()?,
             recent_position_floor: cursor.read_fixed::<32>()?,
+            volume_accumulator: decode_volume_accumulator(&mut cursor)?,
             action_balance_blinding: cursor.read_fr()?,
             nk: cursor.read_fixed::<32>()?,
             asset_path: cursor.read_merkle_path()?,
@@ -163,6 +160,48 @@ impl TransferWitness {
         cursor.finish(TRANSFER_PROOF_LABEL)?;
         Ok(witness)
     }
+}
+
+pub(crate) fn encode_volume_accumulator(
+    buf: &mut Vec<u8>,
+    value: &TransferVolumeAccumulatorWitness,
+) -> Result<()> {
+    put_bytes(buf, &value.nullifier);
+    put_bytes(buf, &value.commitment);
+    put_bytes(buf, &value.day_start);
+    put_bytes(buf, &value.proof_context);
+    put_u8(buf, u8::from(value.use_real));
+    put_u8(buf, u8::from(value.starts_new_day));
+    put_bytes(buf, &value.subject);
+    put_bytes(buf, &value.prior_volume);
+    put_bytes(buf, &value.prior_blinding);
+    put_bytes(buf, &value.prior_commitment);
+    put_u64(buf, value.prior_position);
+    encode_triple_path_32(buf, &value.prior_auth_path)?;
+    put_bytes(buf, &value.successor_volume);
+    put_bytes(buf, &value.successor_blinding);
+    Ok(())
+}
+
+pub(crate) fn decode_volume_accumulator(
+    cursor: &mut BinaryCursor<'_>,
+) -> Result<TransferVolumeAccumulatorWitness> {
+    Ok(TransferVolumeAccumulatorWitness {
+        nullifier: cursor.read_fixed::<32>()?,
+        commitment: cursor.read_fixed::<32>()?,
+        day_start: cursor.read_fixed::<32>()?,
+        proof_context: cursor.read_fixed::<32>()?,
+        use_real: cursor.read_bool()?,
+        starts_new_day: cursor.read_bool()?,
+        subject: cursor.read_fixed::<32>()?,
+        prior_volume: cursor.read_fixed::<32>()?,
+        prior_blinding: cursor.read_fixed::<32>()?,
+        prior_commitment: cursor.read_fixed::<32>()?,
+        prior_position: cursor.read_u64()?,
+        prior_auth_path: cursor.read_triple_path_32()?,
+        successor_volume: cursor.read_fixed::<32>()?,
+        successor_blinding: cursor.read_fixed::<32>()?,
+    })
 }
 
 fn encode_compliance_tier(

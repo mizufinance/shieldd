@@ -104,7 +104,7 @@ fn sign_asset_grant(
     tmpdir: &TempDir,
     asset_denom: &str,
     dk_pub_hex: &str,
-    threshold: &str,
+    daily_volume_limit: &str,
 ) -> String {
     let registrar_sk = env_or_default(
         "COMPLIANCE_DEV_REGISTRAR_SK_HEX",
@@ -137,8 +137,8 @@ fn sign_asset_grant(
         "--regulated",
         "--dk-pub-hex",
         dk_pub_hex,
-        "--threshold",
-        threshold,
+        "--daily-volume-limit",
+        daily_volume_limit,
         "--ring-pk-hex",
         &ring_pk,
         "--ring-id",
@@ -389,8 +389,13 @@ fn compliance_register_asset() {
         .find(|l| l.contains("DK_pub (hex):"))
         .and_then(|l| l.split_whitespace().last())
         .expect("should have dk_pub");
-    let threshold = "1000000000000000000000";
-    let grant = sign_asset_grant(&tmpdir, "smoke_test_asset_2", dk_pub_hex, threshold);
+    let daily_volume_limit = "1000000000000000000000";
+    let grant = sign_asset_grant(
+        &tmpdir,
+        "smoke_test_asset_2",
+        dk_pub_hex,
+        daily_volume_limit,
+    );
     let authority_vk = env_or_default(
         "COMPLIANCE_DEV_AUTHORITY_VK_HEX",
         DEFAULT_COMPLIANCE_DEV_AUTHORITY_VK_HEX,
@@ -417,8 +422,8 @@ fn compliance_register_asset() {
             "--regulated",
             "--dk-pub-hex",
             dk_pub_hex,
-            "--threshold",
-            threshold,
+            "--daily-volume-limit",
+            daily_volume_limit,
             "--ring-pk-hex",
             &ring_pk,
             "--ring-id",

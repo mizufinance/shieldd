@@ -298,8 +298,8 @@ func TestTransferCircuitRejectsNonBooleanRegulatedSelector(t *testing.T) {
 
 func TestTransferCircuitAcceptsCanonicalUnregulatedBranch(t *testing.T) {
 	witness, assignment := loadUnregulatedTransfer(t)
-	if got := primitives.LittleEndianBytesToBigInt(witness.AssetIndexedLeaf.Threshold[:]); got.Cmp(big.NewInt(1)) != 0 {
-		t.Fatalf("unregulated regression fixture predecessor threshold = %s, want 1", got)
+	if got := primitives.LittleEndianBytesToBigInt(witness.AssetIndexedLeaf.DailyVolumeLimit[:]); got.Cmp(big.NewInt(1)) != 0 {
+		t.Fatalf("unregulated regression fixture predecessor daily_volume_limit = %s, want 1", got)
 	}
 	if err := test.IsSolved(
 		circuits.NewTransferCircuit(),
@@ -310,7 +310,7 @@ func TestTransferCircuitAcceptsCanonicalUnregulatedBranch(t *testing.T) {
 	}
 }
 
-func TestTransferCircuitAcceptsRegulatedFlaggedHiddenArity(t *testing.T) {
+func TestTransferCircuitAcceptsRegulatedDisclosedHiddenArity(t *testing.T) {
 	fixtureBytes := testfixtures.LoadTransferWitness("transfer_flagged")
 	witness, _, err := abi.DecodeTransferWitness(fixtureBytes)
 	if err != nil {
@@ -327,18 +327,8 @@ func TestTransferCircuitAcceptsRegulatedFlaggedHiddenArity(t *testing.T) {
 	); amount.Sign() != 0 {
 		t.Fatalf("flagged transfer witness change amount = %s, want dummy zero", amount)
 	}
-	threshold := primitives.LittleEndianBytesToBigInt(
-		witness.AssetIndexedLeaf.Threshold[:],
-	)
-	receiverAmount := primitives.LittleEndianBytesToBigInt(
-		witness.ReceiverOutput.CreatedNoteAmount[:],
-	)
-	if receiverAmount.Cmp(threshold) < 0 {
-		t.Fatalf(
-			"flagged transfer receiver amount %s is below threshold %s",
-			receiverAmount,
-			threshold,
-		)
+	if witness.VolumeAccumulator.UseReal {
+		t.Fatal("disclosed transfer must use the fixed padding accumulator slot")
 	}
 
 	assignment, _, err := abi.NewTransferCircuitAssignmentFromWitness(fixtureBytes)
@@ -350,7 +340,145 @@ func TestTransferCircuitAcceptsRegulatedFlaggedHiddenArity(t *testing.T) {
 		assignment,
 		ecc.BLS12_377.ScalarField(),
 	); err != nil {
-		t.Fatalf("canonical regulated flagged transfer must satisfy the circuit: %v", err)
+		t.Fatalf("canonical regulated disclosed transfer must satisfy the circuit: %v", err)
+	}
+}
+
+func TestTransferCircuitRejectsExternalFeeFunding(t *testing.T) {
+	fixture := testfixtures.LoadTransferWitness("transfer_flagged")
+	witness, _, err := abi.DecodeTransferWitness(fixture)
+	if err != nil {
+		t.Fatalf("decode external fee-funding fixture: %v", err)
+	}
+	assignment, _, err := abi.NewTransferCircuitAssignmentFromWitness(fixture)
+	if err != nil {
+		t.Fatalf("build external fee-funding assignment: %v", err)
+	}
+	if !pointsHaveDistinctCompression(
+		t,
+		witness.SenderDiversifiedGenerator,
+		witness.ReceiverOutput.RecipientDiversifiedGenerator,
+	) && !pointsHaveDistinctCompression(
+		t,
+		witness.SenderTransmissionKey,
+		witness.ReceiverOutput.RecipientTransmissionKey,
+	) {
+		t.Fatal("fee-funding bypass fixture must have an external receiver")
+	}
+
+	two := le32FromBigInt(t, big.NewInt(2))
+	zero := [32]byte{}
+	witness.VolumeAccumulator.ProofContext = two
+	witness.VolumeAccumulator.Nullifier = zero
+	witness.VolumeAccumulator.Commitment = zero
+	witness.VolumeAccumulator.DayStart = zero
+	witness.VolumeAccumulator.UseReal = false
+	assignment.VolumeAccumulator.ProofContext = 2
+	assignment.VolumeAccumulator.Nullifier = 0
+	assignment.VolumeAccumulator.Commitment = 0
+	assignment.VolumeAccumulator.DayStart = 0
+	assignment.VolumeAccumulator.UseReal = 0
+	setTransferStatementHash(t, witness, assignment)
+
+	if err := test.IsSolved(
+		circuits.NewTransferCircuit(),
+		assignment,
+		ecc.BLS12_377.ScalarField(),
+	); err == nil {
+		t.Fatal("external regulated transfer satisfied the fee-funding circuit context")
+	}
+}
+
+func TestTransferVolumeAccumulatorAcceptsOriginAndContinuationAtLimit(t *testing.T) {
+	for _, tc := range []struct {
+		label        string
+		startsNewDay bool
+		prior        int64
+		successor    int64
+		limit        int64
+	}{
+		{label: "transfer_accumulating", startsNewDay: true, prior: 0, successor: 100, limit: 100},
+		{label: "transfer_accumulator_continuation", startsNewDay: false, prior: 25, successor: 125, limit: 125},
+	} {
+		t.Run(tc.label, func(t *testing.T) {
+			fixture := testfixtures.LoadTransferWitness(tc.label)
+			witness, _, err := abi.DecodeTransferWitness(fixture)
+			if err != nil {
+				t.Fatalf("decode accumulator fixture: %v", err)
+			}
+			if !witness.VolumeAccumulator.UseReal || witness.VolumeAccumulator.StartsNewDay != tc.startsNewDay {
+				t.Fatalf("unexpected accumulator transition mode")
+			}
+			for name, value := range map[string]struct {
+				got  *big.Int
+				want int64
+			}{
+				"prior": {
+					got:  primitives.LittleEndianBytesToBigInt(witness.VolumeAccumulator.PriorVolume[:]),
+					want: tc.prior,
+				},
+				"successor": {
+					got:  primitives.LittleEndianBytesToBigInt(witness.VolumeAccumulator.SuccessorVolume[:]),
+					want: tc.successor,
+				},
+				"limit": {
+					got:  primitives.LittleEndianBytesToBigInt(witness.AssetIndexedLeaf.DailyVolumeLimit[:]),
+					want: tc.limit,
+				},
+			} {
+				if value.got.Cmp(big.NewInt(value.want)) != 0 {
+					t.Fatalf("%s = %s, want %d", name, value.got, value.want)
+				}
+			}
+			assignment, _, err := abi.NewTransferCircuitAssignmentFromWitness(fixture)
+			if err != nil {
+				t.Fatalf("build accumulator assignment: %v", err)
+			}
+			if err := test.IsSolved(circuits.NewTransferCircuit(), assignment, ecc.BLS12_377.ScalarField()); err != nil {
+				t.Fatalf("valid accumulator transition must satisfy the circuit: %v", err)
+			}
+		})
+	}
+}
+
+func TestTransferVolumeAccumulatorRejectsOverLimitAndMalformedTransitions(t *testing.T) {
+	overLimit := testfixtures.LoadTransferWitness("transfer_accumulator_over_limit")
+	assignment, _, err := abi.NewTransferCircuitAssignmentFromWitness(overLimit)
+	if err != nil {
+		t.Fatalf("build over-limit accumulator assignment: %v", err)
+	}
+	if err := test.IsSolved(circuits.NewTransferCircuit(), assignment, ecc.BLS12_377.ScalarField()); err == nil {
+		t.Fatal("real accumulator transition accepted a candidate above the daily volume limit")
+	}
+
+	for _, tc := range []struct {
+		name   string
+		mutate func(*circuits.TransferCircuit)
+	}{
+		{name: "wrong successor", mutate: func(c *circuits.TransferCircuit) {
+			c.VolumeAccumulator.SuccessorVolume = 101
+		}},
+		{name: "origin with prior volume", mutate: func(c *circuits.TransferCircuit) {
+			c.VolumeAccumulator.PriorVolume = 1
+		}},
+		{name: "non-boolean transition mode", mutate: func(c *circuits.TransferCircuit) {
+			c.VolumeAccumulator.StartsNewDay = 2
+		}},
+		{name: "timestamp decomposition mismatch", mutate: func(c *circuits.TransferCircuit) {
+			c.VolumeAccumulator.TimestampSecond = 0
+		}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			fixture := testfixtures.LoadTransferWitness("transfer_accumulating")
+			assignment, _, err := abi.NewTransferCircuitAssignmentFromWitness(fixture)
+			if err != nil {
+				t.Fatalf("build accumulator assignment: %v", err)
+			}
+			tc.mutate(assignment)
+			if err := test.IsSolved(circuits.NewTransferCircuit(), assignment, ecc.BLS12_377.ScalarField()); err == nil {
+				t.Fatal("malformed accumulator transition satisfied the circuit")
+			}
+		})
 	}
 }
 

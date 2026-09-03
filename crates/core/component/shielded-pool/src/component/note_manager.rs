@@ -14,7 +14,7 @@ use super::StateReadExt;
 #[cfg(test)]
 use super::StateWriteExt;
 use crate::state_key;
-use crate::{Note, NotePayload, Rseed};
+use crate::{Note, NotePayload, Rseed, VolumeAccumulatorPayload};
 
 #[cfg(feature = "benchmark-helpers")]
 use shieldd_sdk_ibc::benchmarking::{record_inbound_stage, InboundStage};
@@ -145,6 +145,20 @@ pub trait NoteManager: StateWrite + StateReadExt + ComplianceRegistryRead {
         self.object_put(state_key::pending_rolled_up_payloads(), payloads);
     }
 
+    async fn add_volume_accumulator_payload(
+        &mut self,
+        payload: VolumeAccumulatorPayload,
+        source: CommitmentSource,
+    ) {
+        let position = self
+            .add_sct_commitment(payload.commitment, source.clone())
+            .await
+            .expect("volume accumulator SCT insertion must fit in the block");
+        let mut payloads = self.pending_volume_accumulator_payloads();
+        payloads.push_back((position, payload, source));
+        self.object_put(state_key::pending_volume_accumulator_payloads(), payloads);
+    }
+
     fn pending_note_payloads(
         &self,
     ) -> imbl::Vector<(tct::Position, NotePayload, CommitmentSource)> {
@@ -154,6 +168,13 @@ pub trait NoteManager: StateWrite + StateReadExt + ComplianceRegistryRead {
 
     fn pending_rolled_up_payloads(&self) -> imbl::Vector<(tct::Position, StateCommitment)> {
         self.object_get(state_key::pending_rolled_up_payloads())
+            .unwrap_or_default()
+    }
+
+    fn pending_volume_accumulator_payloads(
+        &self,
+    ) -> imbl::Vector<(tct::Position, VolumeAccumulatorPayload, CommitmentSource)> {
+        self.object_get(state_key::pending_volume_accumulator_payloads())
             .unwrap_or_default()
     }
 }

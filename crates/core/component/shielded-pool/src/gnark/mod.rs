@@ -224,6 +224,36 @@ mod soundness_fixture_tests {
         );
     }
 
+    fn write_accumulating_transfer_fixtures() {
+        for (limit, filename) in [
+            (100, "transfer_accumulating_witness.bin"),
+            (99, "transfer_accumulator_over_limit_witness.bin"),
+        ] {
+            let mut rng = rand::rngs::StdRng::seed_from_u64(
+                0x4143_4355_4d00_0000u64.saturating_add(limit as u64),
+            );
+            let (public, private) = proof_test_helpers::
+                build_transfer_accumulating_hidden_arity_roundtrip_inputs_with_rng(
+                    &mut rng, limit,
+                );
+            write_fixture(
+                filename,
+                encode_transfer_witness(&public, &private)
+                    .expect("encode accumulating transfer witness"),
+            );
+        }
+        let mut rng = rand::rngs::StdRng::seed_from_u64(0x434f_4e54_494e_5545);
+        let (public, private) =
+            proof_test_helpers::build_transfer_continuing_accumulator_roundtrip_inputs_with_rng(
+                &mut rng,
+            );
+        write_fixture(
+            "transfer_accumulator_continuation_witness.bin",
+            encode_transfer_witness(&public, &private)
+                .expect("encode continuing accumulator transfer witness"),
+        );
+    }
+
     fn write_shielded_ics20_withdrawal_fixture() {
         let mut rng = rand::rngs::StdRng::seed_from_u64(0x0000_0049_4353_3201);
         let (public, private) =
@@ -237,6 +267,37 @@ mod soundness_fixture_tests {
             encode_shielded_ics20_withdrawal_witness(&public, &private)
                 .expect("encode shielded ICS-20 withdrawal witness"),
         );
+    }
+
+    fn write_accumulating_shielded_ics20_withdrawal_fixtures() {
+        for (name, seed, mode) in [
+            (
+                "shielded_ics20_withdrawal_accumulator_origin_witness.bin",
+                0x4f52_4947_494e_0001,
+                proof_test_helpers::WithdrawalAccumulatorTestMode::Origin,
+            ),
+            (
+                "shielded_ics20_withdrawal_accumulator_continuation_witness.bin",
+                0x434f_4e54_0000_0001,
+                proof_test_helpers::WithdrawalAccumulatorTestMode::Continuation {
+                    prior_volume: 25,
+                },
+            ),
+        ] {
+            let mut rng = rand::rngs::StdRng::seed_from_u64(seed);
+            let (public, private) = proof_test_helpers::build_shielded_ics20_withdrawal_roundtrip_inputs_with_rng_and_mode(
+                &mut rng,
+                ShieldedIcs20WithdrawalFamilyId::Canonical,
+                true,
+                2,
+                mode,
+            );
+            write_fixture(
+                name,
+                encode_shielded_ics20_withdrawal_witness(&public, &private)
+                    .expect("encode accumulating withdrawal witness"),
+            );
+        }
     }
 
     fn write_unregulated_shielded_ics20_withdrawal_fixture() {
@@ -260,6 +321,7 @@ mod soundness_fixture_tests {
     fn bless_shielded_ics20_withdrawal_witness_fixture() {
         write_shielded_ics20_withdrawal_fixture();
         write_unregulated_shielded_ics20_withdrawal_fixture();
+        write_accumulating_shielded_ics20_withdrawal_fixtures();
     }
 
     #[test]
@@ -281,10 +343,17 @@ mod soundness_fixture_tests {
     }
 
     #[test]
+    #[ignore = "debug: refresh Rust-emitted accumulator transfer gnark fixtures"]
+    fn bless_accumulating_transfer_witness_fixtures() {
+        write_accumulating_transfer_fixtures();
+    }
+
+    #[test]
     #[ignore = "debug: refresh Rust-emitted gnark soundness fixtures"]
     fn bless_soundness_gnark_witness_fixtures() {
         write_transfer_fixture();
         write_flagged_transfer_fixture();
+        write_accumulating_transfer_fixtures();
 
         let mut one_to_many_rng = rand::rngs::StdRng::seed_from_u64(0x0000_0053_3158_3401);
         let (one_to_many_public, one_to_many_private) =

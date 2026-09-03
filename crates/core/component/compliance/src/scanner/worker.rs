@@ -24,10 +24,11 @@ use super::advice::AuditAdviceProvider;
 use super::screener::{ComplianceScreener, ScreeningResult};
 use super::storage::ScannerStore;
 use super::sync::{extract_clear_flows, extract_compliance_ciphertexts};
-use super::types::{BlockRef, DetectionEvent, TxRef};
+use super::types::{BlockRef, ComplianceCiphertext, DetectionEvent, TxRef};
 use crate::audit::EVIDENCE_STAGE_BUILD;
 use crate::{
-    issuer_keys::DetectionKey, ComplianceEvidenceObject, OutputRef, TransferComplianceMetadata,
+    issuer_keys::DetectionKey, ComplianceEvidenceObject, ComplianceRecordRef,
+    TransferComplianceMetadata, WithdrawalEvidencePublicData,
 };
 
 const MAX_CB_SIZE_BYTES: usize = 64 * 1024 * 1024;
@@ -356,7 +357,7 @@ impl IssuerComplianceWorker {
             };
 
             for extracted in extract_compliance_ciphertexts(&tx_ref, tx) {
-                let output_ref = extracted.output_ref.clone();
+                let output_ref = extracted.record_ref.output_ref();
                 let metadata_bytes = extracted.metadata_bytes.clone();
                 self.storage.save_ciphertext(&extracted).await?;
                 match self.screener.screen(extracted) {
@@ -369,7 +370,7 @@ impl IssuerComplianceWorker {
                             flagged_count += 1;
                         }
                         evidence_work.push(PendingEvidenceWork {
-                            output_ref: event.output_ref.clone(),
+                            record_ref: event.record_ref.clone(),
                             event: event.clone(),
                             metadata_bytes,
                         });
@@ -416,43 +417,71 @@ impl IssuerComplianceWorker {
     }
 
     async fn validate_detected_evidence(&self, work: PendingEvidenceWork) -> Result<()> {
-        let output_ref = &work.output_ref;
-        let Some(metadata_bytes) = work.metadata_bytes.as_deref() else {
-            self.storage
-                .record_evidence_failure(
-                    output_ref,
-                    EVIDENCE_STAGE_BUILD,
-                    "detected output is missing transfer compliance metadata",
+        let output_ref = work.record_ref.output_ref();
+        let evidence = match work.event.ciphertext {
+            ComplianceCiphertext::Transfer(ciphertext) => {
+                let Some(metadata_bytes) = work.metadata_bytes.as_deref() else {
+                    self.storage
+                        .record_evidence_failure(
+                            &output_ref,
+                            EVIDENCE_STAGE_BUILD,
+                            "detected record is missing compliance metadata",
+                        )
+                        .await?;
+                    return Ok(());
+                };
+                let metadata = match TransferComplianceMetadata::from_bytes(metadata_bytes) {
+                    Ok(metadata) => metadata,
+                    Err(error) => {
+                        self.storage
+                            .record_evidence_failure(
+                                &output_ref,
+                                EVIDENCE_STAGE_BUILD,
+                                &format!("failed to decode transfer compliance metadata: {error}"),
+                            )
+                            .await?;
+                        return Ok(());
+                    }
+                };
+                ComplianceEvidenceObject::new_transfer(
+                    output_ref.clone(),
+                    work.event.asset_id,
+                    work.event.is_flagged,
+                    work.event.salt,
+                    ciphertext,
+                    metadata,
                 )
-                .await?;
-            return Ok(());
-        };
-        let metadata = match TransferComplianceMetadata::from_bytes(metadata_bytes) {
-            Ok(metadata) => metadata,
-            Err(error) => {
-                self.storage
-                    .record_evidence_failure(
-                        output_ref,
-                        EVIDENCE_STAGE_BUILD,
-                        &format!("failed to decode transfer compliance metadata: {error}"),
-                    )
-                    .await?;
-                return Ok(());
+            }
+            ComplianceCiphertext::Withdrawal(ciphertext) => {
+                let Some(public) = work.event.public_withdrawal else {
+                    self.storage
+                        .record_evidence_failure(
+                            &output_ref,
+                            EVIDENCE_STAGE_BUILD,
+                            "withdrawal compliance record is missing public withdrawal data",
+                        )
+                        .await?;
+                    return Ok(());
+                };
+                ComplianceEvidenceObject::new_withdrawal(
+                    work.record_ref,
+                    work.event.asset_id,
+                    work.event.is_flagged,
+                    ciphertext,
+                    WithdrawalEvidencePublicData {
+                        amount: public.amount,
+                        self_address: public.self_address,
+                        destination: public.destination,
+                    },
+                )
             }
         };
-        let evidence = match ComplianceEvidenceObject::new_transfer(
-            output_ref.clone(),
-            work.event.asset_id,
-            work.event.is_flagged,
-            work.event.salt,
-            work.event.ciphertext,
-            metadata,
-        ) {
+        let evidence = match evidence {
             Ok(evidence) => evidence,
             Err(error) => {
                 self.storage
                     .record_evidence_failure(
-                        output_ref,
+                        &output_ref,
                         EVIDENCE_STAGE_BUILD,
                         &format!("failed to build compliance evidence: {error}"),
                     )
@@ -491,7 +520,7 @@ enum ReorgDecision {
 }
 
 struct PendingEvidenceWork {
-    output_ref: OutputRef,
+    record_ref: ComplianceRecordRef,
     event: DetectionEvent,
     metadata_bytes: Option<Vec<u8>>,
 }
@@ -676,24 +705,31 @@ mod tests {
     async fn worker_validates_detected_metadata_only_evidence() {
         let store = Arc::new(SqliteScannerStore::new(":memory:").unwrap());
         let (evidence, metadata) = crate::evidence::tests::valid_evidence_fixture();
-        let block = evidence.output_ref.action.tx.block.clone();
+        let block = evidence.output_ref().action.tx.block.clone();
+        let ciphertext = match &evidence.ciphertext {
+            crate::ComplianceEvidenceCiphertext::Transfer(value) => value.clone(),
+            _ => panic!("transfer fixture expected"),
+        };
         let event = DetectionEvent {
-            output_ref: evidence.output_ref.clone(),
+            record_ref: evidence.record_ref.clone(),
             asset_id: evidence.asset_id,
             is_flagged: evidence.is_flagged,
             salt: evidence.detection_salt,
             routing_tags: [11, 22],
-            ciphertext: evidence.transfer_ciphertext.clone(),
-            raw_bytes: evidence.transfer_ciphertext.to_bytes(),
+            ciphertext: ComplianceCiphertext::Transfer(ciphertext.clone()),
+            raw_bytes: ciphertext.to_bytes(),
+            public_withdrawal: None,
         };
 
         store.begin_block(&block).await.unwrap();
         store
             .save_ciphertext(&ExtractedComplianceCiphertext {
-                output_ref: evidence.output_ref.clone(),
+                record_ref: evidence.record_ref.clone(),
+                kind: super::super::types::ComplianceCiphertextKind::Transfer,
                 routing_tags: [11, 22],
-                raw_bytes: evidence.transfer_ciphertext.to_bytes(),
+                raw_bytes: ciphertext.to_bytes(),
                 metadata_bytes: Some(metadata.to_bytes().unwrap()),
+                public_withdrawal: None,
             })
             .await
             .unwrap();
@@ -713,7 +749,7 @@ mod tests {
 
         worker
             .validate_detected_evidence(PendingEvidenceWork {
-                output_ref: evidence.output_ref.clone(),
+                record_ref: evidence.record_ref.clone(),
                 event,
                 metadata_bytes: Some(metadata.to_bytes().unwrap()),
             })

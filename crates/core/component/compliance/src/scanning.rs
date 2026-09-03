@@ -1,4 +1,4 @@
-//! Transfer-only flagged compliance decryption helpers.
+//! Flagged compliance decryption helpers.
 
 use anyhow::{ensure, Context};
 use decaf377::{Element, Fq, Fr};
@@ -10,6 +10,7 @@ use crate::crypto::{
 };
 use crate::decode_object::TransferComplianceMetadata;
 use crate::transfer::TransferComplianceCiphertext;
+use crate::withdrawal::WithdrawalComplianceCiphertext;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct AddressData {
@@ -23,6 +24,12 @@ pub struct FullComplianceData {
     pub amount: Amount,
     pub sender_address: AddressData,
     pub receiver_address: AddressData,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct WithdrawalComplianceData {
+    pub asset_id: asset::Id,
+    pub sender_address: AddressData,
 }
 
 fn decrypt_amount_with_seed(seed: decaf377::Fq, encrypted: &[u8]) -> anyhow::Result<Amount> {
@@ -134,6 +141,20 @@ pub fn decrypt_full_flagged(
         sender_address,
         receiver_address,
     }))
+}
+
+/// Decrypt the private sender of a flagged withdrawal; amount and destination are public.
+pub fn decrypt_flagged_withdrawal_sender(
+    dk_secret: &Fr,
+    ciphertext: &WithdrawalComplianceCiphertext,
+    asset_id: asset::Id,
+) -> anyhow::Result<Option<WithdrawalComplianceData>> {
+    Ok(ciphertext
+        .decrypt_sender_if_key_matches(ciphertext.epk * *dk_secret)?
+        .map(|sender_address| WithdrawalComplianceData {
+            asset_id,
+            sender_address,
+        }))
 }
 
 #[cfg(test)]

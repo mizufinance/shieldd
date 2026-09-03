@@ -295,7 +295,6 @@ mod tests {
     };
     use decaf377::{Fq, Fr};
     use shieldd_sdk_asset::Balance;
-    use shieldd_sdk_tct::StateCommitment;
 
     #[test]
     fn shielded_ics20_withdrawal_witness_roundtrip() {
@@ -314,7 +313,7 @@ mod tests {
 
         let leaf = &decoded.asset_indexed_leaf;
         let parts = private.asset_indexed_leaf.commitment_parts();
-        let recomposed = StateCommitment(poseidon377::hash_5(
+        let recomposed = shieldd_sdk_tct::StateCommitment(poseidon377::hash_5(
             &shieldd_sdk_compliance::IMT_LEAF_DOMAIN_SEP,
             (
                 Fq::from_bytes_checked(&leaf.value).expect("canonical leaf value"),
@@ -329,21 +328,6 @@ mod tests {
             private.asset_indexed_leaf.commit(),
             "withdrawal policy opening must recompose the canonical native commitment"
         );
-    }
-
-    #[test]
-    fn shielded_ics20_withdrawal_witness_rejects_unsupported_version() {
-        let (public, private) =
-            proof_test_helpers::build_shielded_ics20_withdrawal_roundtrip_inputs(
-                ShieldedIcs20WithdrawalFamilyId::Canonical,
-                true,
-            );
-        let mut encoded = encode_shielded_ics20_withdrawal_witness(&public, &private)
-            .expect("encode shielded ICS-20 withdrawal witness");
-        encoded[4..8].copy_from_slice(&8u32.to_le_bytes());
-
-        decode_shielded_ics20_withdrawal_witness(&encoded)
-            .expect_err("decoder must reject unsupported version 8");
     }
 
     #[test]
@@ -398,7 +382,7 @@ mod tests {
         public.outbound_amount += Fq::from(1u64);
 
         ShieldedIcs20WithdrawalWitness::from_public_private(&public, &private)
-            .expect_err(" witness must reject non-conserving withdrawal amounts");
+            .expect_err("witness must reject non-conserving withdrawal amounts");
     }
 
     #[test]
@@ -411,6 +395,6 @@ mod tests {
         public.balance_commitment = Balance::default().commit(Fr::from(999u64));
 
         ShieldedIcs20WithdrawalWitness::from_public_private(&public, &private)
-            .expect_err(" witness must reject a non-blinding-only balance commitment");
+            .expect_err("witness must reject a non-blinding-only balance commitment");
     }
 }

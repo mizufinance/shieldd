@@ -3,6 +3,7 @@ use decaf377::{Encoding, Fq};
 use shieldd_sdk_asset::Balance;
 
 use crate::{
+    gnark::transfer_witness::TransferVolumeAccumulatorWitness,
     gnark::typed::{
         compliance_leaf_from_typed, indexed_leaf_from_typed, merkle_path_from_typed,
         point_affine_bytes, ComplianceLeafBinary, IndexedLeafBinary, MerklePathBinary,
@@ -85,6 +86,8 @@ pub struct ShieldedIcs20WithdrawalWitness {
     pub sender_status: [u8; 32],
     pub withdrawal_seed: [u8; 32],
     pub withdrawal_randomizer: [u8; 32],
+    pub volume_accumulator: TransferVolumeAccumulatorWitness,
+    pub volume_accumulator_seed: [u8; 32],
     pub required_spend: ShieldedIcs20WithdrawalRequiredSpendWitness,
     pub optional_spend: ShieldedIcs20WithdrawalOptionalSpendWitness,
     pub change_output: ShieldedIcs20WithdrawalChangeWitness,
@@ -226,6 +229,52 @@ impl ShieldedIcs20WithdrawalWitness {
             dummy_nullifier_seed: private.optional_input.dummy_nullifier_seed.to_bytes(),
         };
 
+        let volume_plan = &private.volume_accumulator.plan;
+        let prior_state = volume_plan.prior_state();
+        let successor_state = volume_plan.successor_state();
+        let volume_accumulator = TransferVolumeAccumulatorWitness {
+            nullifier: public.volume_accumulator.nullifier.0.to_bytes(),
+            commitment: public.volume_accumulator.commitment.0.to_bytes(),
+            day_start: Fq::from(public.volume_accumulator.day_start).to_bytes(),
+            proof_context: crate::TransferProofContext::Ordinary.as_field().to_bytes(),
+            use_real: volume_plan.is_real(),
+            starts_new_day: volume_plan.starts_new_day(),
+            subject: successor_state
+                .as_ref()
+                .map(|state| state.subject)
+                .unwrap_or_else(|| Fq::from(0u64))
+                .to_bytes(),
+            prior_volume: Fq::from(
+                prior_state
+                    .map(|state| state.undisclosed_volume)
+                    .unwrap_or(0),
+            )
+            .to_bytes(),
+            prior_blinding: prior_state
+                .map(|state| state.blinding)
+                .unwrap_or_else(|| Fq::from(0u64))
+                .to_bytes(),
+            prior_commitment: volume_plan.prior_commitment().0.to_bytes(),
+            prior_position: u64::from(private.volume_accumulator.prior_proof.position()),
+            prior_auth_path: private
+                .volume_accumulator
+                .prior_proof
+                .auth_path()
+                .iter()
+                .map(|siblings| siblings.map(|sibling| Fq::from(sibling).to_bytes()))
+                .collect(),
+            successor_volume: Fq::from(
+                successor_state
+                    .as_ref()
+                    .map(|state| state.undisclosed_volume)
+                    .unwrap_or(0),
+            )
+            .to_bytes(),
+            successor_blinding: successor_state
+                .map(|state| state.blinding)
+                .unwrap_or_else(|| Fq::from(0u64))
+                .to_bytes(),
+        };
         let mut witness = Self {
             family_id: public.family_id,
             total_length: 0,
@@ -274,6 +323,8 @@ impl ShieldedIcs20WithdrawalWitness {
             sender_status,
             withdrawal_seed: private.withdrawal_seed.to_bytes(),
             withdrawal_randomizer: private.withdrawal_randomizer.to_bytes(),
+            volume_accumulator,
+            volume_accumulator_seed: private.volume_accumulator_seed.to_bytes(),
             required_spend,
             optional_spend,
             change_output: change_witness(

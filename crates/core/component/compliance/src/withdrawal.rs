@@ -216,7 +216,7 @@ pub fn withdrawal_key_confirmation(seed: Fq, epk_fq: Fq) -> Fq {
 
 pub fn withdrawal_encryption_key(
     is_regulated: bool,
-    amount: u128,
+    is_flagged: bool,
     sender_leaf: &ComplianceLeaf,
     asset_leaf: &IndexedLeaf,
 ) -> Result<(Element, bool)> {
@@ -226,7 +226,10 @@ pub fn withdrawal_encryption_key(
             "withdrawal sender and asset registry leaves disagree on regulated asset"
         );
     }
-    let is_flagged = is_regulated && amount >= asset_leaf.params.threshold;
+    ensure!(
+        !is_flagged || is_regulated,
+        "unregulated withdrawal cannot be flagged"
+    );
     let key = if is_flagged {
         asset_leaf.params.dk_pub
     } else {

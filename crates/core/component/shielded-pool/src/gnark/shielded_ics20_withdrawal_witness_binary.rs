@@ -8,6 +8,7 @@ use crate::{
             ShieldedIcs20WithdrawalChangeWitness, ShieldedIcs20WithdrawalOptionalSpendWitness,
             ShieldedIcs20WithdrawalRequiredSpendWitness, ShieldedIcs20WithdrawalWitness,
         },
+        transfer_witness_binary::{decode_volume_accumulator, encode_volume_accumulator},
         typed::{
             decode_indexed_leaf, encode_indexed_leaf, encode_merkle_path, encode_point_affine,
         },
@@ -16,13 +17,11 @@ use crate::{
 };
 
 const SHIELDED_ICS20_WITHDRAWAL_WITNESS_MAGIC: &[u8; 4] = b"PIWG";
-const SHIELDED_ICS20_WITHDRAWAL_WITNESS_VERSION: u32 = 16;
 
 impl ShieldedIcs20WithdrawalWitness {
     pub fn encode(&self) -> Result<Vec<u8>> {
         let mut buf = Vec::new();
         put_bytes(&mut buf, SHIELDED_ICS20_WITHDRAWAL_WITNESS_MAGIC);
-        put_u32(&mut buf, SHIELDED_ICS20_WITHDRAWAL_WITNESS_VERSION);
         put_u32(&mut buf, 0);
         put_u32(&mut buf, self.family_id.get());
         put_u32(&mut buf, self.n_in);
@@ -45,6 +44,8 @@ impl ShieldedIcs20WithdrawalWitness {
             put_bytes(&mut buf, word);
         }
         put_bytes(&mut buf, &self.recent_position_floor);
+        encode_volume_accumulator(&mut buf, &self.volume_accumulator)?;
+        put_bytes(&mut buf, &self.volume_accumulator_seed);
         put_bytes(&mut buf, &self.action_balance_blinding);
         put_bytes(&mut buf, &self.nk);
         encode_merkle_path(&mut buf, &self.asset_path)?;
@@ -73,7 +74,7 @@ impl ShieldedIcs20WithdrawalWitness {
 
         let total_len = u32::try_from(buf.len())
             .context("encoded shielded ICS-20 withdrawal witness exceeds u32")?;
-        buf[8..12].copy_from_slice(&total_len.to_le_bytes());
+        buf[4..8].copy_from_slice(&total_len.to_le_bytes());
         Ok(buf)
     }
 
@@ -81,10 +82,6 @@ impl ShieldedIcs20WithdrawalWitness {
         let mut cursor = BinaryCursor::new(bytes);
         if cursor.read_fixed::<4>()? != *SHIELDED_ICS20_WITHDRAWAL_WITNESS_MAGIC {
             bail!("invalid shielded ICS-20 withdrawal witness magic");
-        }
-        let version = cursor.read_u32()?;
-        if version != SHIELDED_ICS20_WITHDRAWAL_WITNESS_VERSION {
-            bail!("unsupported shielded ICS-20 withdrawal witness version {version}");
         }
         let total_length = cursor.read_u32()?;
         if total_length as usize != bytes.len() {
@@ -134,6 +131,8 @@ impl ShieldedIcs20WithdrawalWitness {
                 cursor.read_fixed::<32>()?,
             ],
             recent_position_floor: cursor.read_fixed::<32>()?,
+            volume_accumulator: decode_volume_accumulator(&mut cursor)?,
+            volume_accumulator_seed: cursor.read_fixed::<32>()?,
             action_balance_blinding: cursor.read_fr()?,
             nk: cursor.read_fixed::<32>()?,
             asset_path: cursor.read_merkle_path()?,

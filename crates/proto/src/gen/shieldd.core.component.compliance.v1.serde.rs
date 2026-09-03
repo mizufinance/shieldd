@@ -9,7 +9,7 @@ impl serde::Serialize for AssetPolicy {
         if !self.dk_pub.is_empty() {
             len += 1;
         }
-        if !self.threshold.is_empty() {
+        if !self.daily_volume_limit.is_empty() {
             len += 1;
         }
         if !self.allowed_ibc_routes.is_empty() {
@@ -45,10 +45,10 @@ impl serde::Serialize for AssetPolicy {
             #[allow(clippy::needless_borrows_for_generic_args)]
             struct_ser.serialize_field("dkPub", pbjson::private::base64::encode(&self.dk_pub).as_str())?;
         }
-        if !self.threshold.is_empty() {
+        if !self.daily_volume_limit.is_empty() {
             #[allow(clippy::needless_borrow)]
             #[allow(clippy::needless_borrows_for_generic_args)]
-            struct_ser.serialize_field("threshold", pbjson::private::base64::encode(&self.threshold).as_str())?;
+            struct_ser.serialize_field("dailyVolumeLimit", pbjson::private::base64::encode(&self.daily_volume_limit).as_str())?;
         }
         if !self.allowed_ibc_routes.is_empty() {
             struct_ser.serialize_field("allowedIbcRoutes", &self.allowed_ibc_routes)?;
@@ -91,7 +91,8 @@ impl<'de> serde::Deserialize<'de> for AssetPolicy {
         const FIELDS: &[&str] = &[
             "dk_pub",
             "dkPub",
-            "threshold",
+            "daily_volume_limit",
+            "dailyVolumeLimit",
             "allowed_ibc_routes",
             "allowedIbcRoutes",
             "ring_id",
@@ -113,7 +114,7 @@ impl<'de> serde::Deserialize<'de> for AssetPolicy {
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             DkPub,
-            Threshold,
+            DailyVolumeLimit,
             AllowedIbcRoutes,
             RingId,
             RingPk,
@@ -146,7 +147,7 @@ impl<'de> serde::Deserialize<'de> for AssetPolicy {
                     {
                         match value {
                             "dkPub" | "dk_pub" => Ok(GeneratedField::DkPub),
-                            "threshold" => Ok(GeneratedField::Threshold),
+                            "dailyVolumeLimit" | "daily_volume_limit" => Ok(GeneratedField::DailyVolumeLimit),
                             "allowedIbcRoutes" | "allowed_ibc_routes" => Ok(GeneratedField::AllowedIbcRoutes),
                             "ringId" | "ring_id" => Ok(GeneratedField::RingId),
                             "ringPk" | "ring_pk" => Ok(GeneratedField::RingPk),
@@ -176,7 +177,7 @@ impl<'de> serde::Deserialize<'de> for AssetPolicy {
                     V: serde::de::MapAccess<'de>,
             {
                 let mut dk_pub__ = None;
-                let mut threshold__ = None;
+                let mut daily_volume_limit__ = None;
                 let mut allowed_ibc_routes__ = None;
                 let mut ring_id__ = None;
                 let mut ring_pk__ = None;
@@ -196,11 +197,11 @@ impl<'de> serde::Deserialize<'de> for AssetPolicy {
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
-                        GeneratedField::Threshold => {
-                            if threshold__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("threshold"));
+                        GeneratedField::DailyVolumeLimit => {
+                            if daily_volume_limit__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("dailyVolumeLimit"));
                             }
-                            threshold__ =
+                            daily_volume_limit__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -267,7 +268,7 @@ impl<'de> serde::Deserialize<'de> for AssetPolicy {
                 }
                 Ok(AssetPolicy {
                     dk_pub: dk_pub__.unwrap_or_default(),
-                    threshold: threshold__.unwrap_or_default(),
+                    daily_volume_limit: daily_volume_limit__.unwrap_or_default(),
                     allowed_ibc_routes: allowed_ibc_routes__.unwrap_or_default(),
                     ring_id: ring_id__.unwrap_or_default(),
                     ring_pk: ring_pk__.unwrap_or_default(),
@@ -430,7 +431,7 @@ impl serde::Serialize for AssetRegistrationGrantBody {
         if !self.dk_pub.is_empty() {
             len += 1;
         }
-        if !self.threshold.is_empty() {
+        if !self.daily_volume_limit.is_empty() {
             len += 1;
         }
         if !self.allowed_ibc_routes.is_empty() {
@@ -475,10 +476,10 @@ impl serde::Serialize for AssetRegistrationGrantBody {
             #[allow(clippy::needless_borrows_for_generic_args)]
             struct_ser.serialize_field("dkPub", pbjson::private::base64::encode(&self.dk_pub).as_str())?;
         }
-        if !self.threshold.is_empty() {
+        if !self.daily_volume_limit.is_empty() {
             #[allow(clippy::needless_borrow)]
             #[allow(clippy::needless_borrows_for_generic_args)]
-            struct_ser.serialize_field("threshold", pbjson::private::base64::encode(&self.threshold).as_str())?;
+            struct_ser.serialize_field("dailyVolumeLimit", pbjson::private::base64::encode(&self.daily_volume_limit).as_str())?;
         }
         if !self.allowed_ibc_routes.is_empty() {
             struct_ser.serialize_field("allowedIbcRoutes", &self.allowed_ibc_routes)?;
@@ -530,7 +531,8 @@ impl<'de> serde::Deserialize<'de> for AssetRegistrationGrantBody {
             "isRegulated",
             "dk_pub",
             "dkPub",
-            "threshold",
+            "daily_volume_limit",
+            "dailyVolumeLimit",
             "allowed_ibc_routes",
             "allowedIbcRoutes",
             "ring_pk",
@@ -556,7 +558,7 @@ impl<'de> serde::Deserialize<'de> for AssetRegistrationGrantBody {
             AssetId,
             IsRegulated,
             DkPub,
-            Threshold,
+            DailyVolumeLimit,
             AllowedIbcRoutes,
             RingPk,
             RingId,
@@ -592,7 +594,7 @@ impl<'de> serde::Deserialize<'de> for AssetRegistrationGrantBody {
                             "assetId" | "asset_id" => Ok(GeneratedField::AssetId),
                             "isRegulated" | "is_regulated" => Ok(GeneratedField::IsRegulated),
                             "dkPub" | "dk_pub" => Ok(GeneratedField::DkPub),
-                            "threshold" => Ok(GeneratedField::Threshold),
+                            "dailyVolumeLimit" | "daily_volume_limit" => Ok(GeneratedField::DailyVolumeLimit),
                             "allowedIbcRoutes" | "allowed_ibc_routes" => Ok(GeneratedField::AllowedIbcRoutes),
                             "ringPk" | "ring_pk" => Ok(GeneratedField::RingPk),
                             "ringId" | "ring_id" => Ok(GeneratedField::RingId),
@@ -625,7 +627,7 @@ impl<'de> serde::Deserialize<'de> for AssetRegistrationGrantBody {
                 let mut asset_id__ = None;
                 let mut is_regulated__ = None;
                 let mut dk_pub__ = None;
-                let mut threshold__ = None;
+                let mut daily_volume_limit__ = None;
                 let mut allowed_ibc_routes__ = None;
                 let mut ring_pk__ = None;
                 let mut ring_id__ = None;
@@ -658,11 +660,11 @@ impl<'de> serde::Deserialize<'de> for AssetRegistrationGrantBody {
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
-                        GeneratedField::Threshold => {
-                            if threshold__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("threshold"));
+                        GeneratedField::DailyVolumeLimit => {
+                            if daily_volume_limit__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("dailyVolumeLimit"));
                             }
-                            threshold__ =
+                            daily_volume_limit__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -739,7 +741,7 @@ impl<'de> serde::Deserialize<'de> for AssetRegistrationGrantBody {
                     asset_id: asset_id__,
                     is_regulated: is_regulated__.unwrap_or_default(),
                     dk_pub: dk_pub__.unwrap_or_default(),
-                    threshold: threshold__.unwrap_or_default(),
+                    daily_volume_limit: daily_volume_limit__.unwrap_or_default(),
                     allowed_ibc_routes: allowed_ibc_routes__.unwrap_or_default(),
                     ring_pk: ring_pk__.unwrap_or_default(),
                     ring_id: ring_id__.unwrap_or_default(),
@@ -1066,7 +1068,7 @@ impl serde::Serialize for ComplianceAssetStatusResponse {
         if !self.dk_pub.is_empty() {
             len += 1;
         }
-        if !self.threshold.is_empty() {
+        if !self.daily_volume_limit.is_empty() {
             len += 1;
         }
         if self.asset_policy.is_some() {
@@ -1087,10 +1089,10 @@ impl serde::Serialize for ComplianceAssetStatusResponse {
             #[allow(clippy::needless_borrows_for_generic_args)]
             struct_ser.serialize_field("dkPub", pbjson::private::base64::encode(&self.dk_pub).as_str())?;
         }
-        if !self.threshold.is_empty() {
+        if !self.daily_volume_limit.is_empty() {
             #[allow(clippy::needless_borrow)]
             #[allow(clippy::needless_borrows_for_generic_args)]
-            struct_ser.serialize_field("threshold", pbjson::private::base64::encode(&self.threshold).as_str())?;
+            struct_ser.serialize_field("dailyVolumeLimit", pbjson::private::base64::encode(&self.daily_volume_limit).as_str())?;
         }
         if let Some(v) = self.asset_policy.as_ref() {
             struct_ser.serialize_field("assetPolicy", v)?;
@@ -1113,7 +1115,8 @@ impl<'de> serde::Deserialize<'de> for ComplianceAssetStatusResponse {
             "isRegulated",
             "dk_pub",
             "dkPub",
-            "threshold",
+            "daily_volume_limit",
+            "dailyVolumeLimit",
             "asset_policy",
             "assetPolicy",
         ];
@@ -1124,7 +1127,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceAssetStatusResponse {
             IsRegistered,
             IsRegulated,
             DkPub,
-            Threshold,
+            DailyVolumeLimit,
             AssetPolicy,
             __SkipField__,
         }
@@ -1152,7 +1155,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceAssetStatusResponse {
                             "isRegistered" | "is_registered" => Ok(GeneratedField::IsRegistered),
                             "isRegulated" | "is_regulated" => Ok(GeneratedField::IsRegulated),
                             "dkPub" | "dk_pub" => Ok(GeneratedField::DkPub),
-                            "threshold" => Ok(GeneratedField::Threshold),
+                            "dailyVolumeLimit" | "daily_volume_limit" => Ok(GeneratedField::DailyVolumeLimit),
                             "assetPolicy" | "asset_policy" => Ok(GeneratedField::AssetPolicy),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
@@ -1177,7 +1180,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceAssetStatusResponse {
                 let mut is_registered__ = None;
                 let mut is_regulated__ = None;
                 let mut dk_pub__ = None;
-                let mut threshold__ = None;
+                let mut daily_volume_limit__ = None;
                 let mut asset_policy__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
@@ -1207,11 +1210,11 @@ impl<'de> serde::Deserialize<'de> for ComplianceAssetStatusResponse {
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
-                        GeneratedField::Threshold => {
-                            if threshold__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("threshold"));
+                        GeneratedField::DailyVolumeLimit => {
+                            if daily_volume_limit__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("dailyVolumeLimit"));
                             }
-                            threshold__ =
+                            daily_volume_limit__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -1231,7 +1234,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceAssetStatusResponse {
                     is_registered: is_registered__.unwrap_or_default(),
                     is_regulated: is_regulated__.unwrap_or_default(),
                     dk_pub: dk_pub__.unwrap_or_default(),
-                    threshold: threshold__.unwrap_or_default(),
+                    daily_volume_limit: daily_volume_limit__.unwrap_or_default(),
                     asset_policy: asset_policy__,
                 })
             }
@@ -4130,7 +4133,7 @@ impl serde::Serialize for IndexedLeafData {
         if !self.dk_pub.is_empty() {
             len += 1;
         }
-        if !self.threshold.is_empty() {
+        if !self.daily_volume_limit.is_empty() {
             len += 1;
         }
         if !self.route_policy_hash.is_empty() {
@@ -4172,10 +4175,10 @@ impl serde::Serialize for IndexedLeafData {
             #[allow(clippy::needless_borrows_for_generic_args)]
             struct_ser.serialize_field("dkPub", pbjson::private::base64::encode(&self.dk_pub).as_str())?;
         }
-        if !self.threshold.is_empty() {
+        if !self.daily_volume_limit.is_empty() {
             #[allow(clippy::needless_borrow)]
             #[allow(clippy::needless_borrows_for_generic_args)]
-            struct_ser.serialize_field("threshold", pbjson::private::base64::encode(&self.threshold).as_str())?;
+            struct_ser.serialize_field("dailyVolumeLimit", pbjson::private::base64::encode(&self.daily_volume_limit).as_str())?;
         }
         if !self.route_policy_hash.is_empty() {
             #[allow(clippy::needless_borrow)]
@@ -4224,7 +4227,8 @@ impl<'de> serde::Deserialize<'de> for IndexedLeafData {
             "nextValue",
             "dk_pub",
             "dkPub",
-            "threshold",
+            "daily_volume_limit",
+            "dailyVolumeLimit",
             "route_policy_hash",
             "routePolicyHash",
             "ring_pk",
@@ -4245,7 +4249,7 @@ impl<'de> serde::Deserialize<'de> for IndexedLeafData {
             NextIndex,
             NextValue,
             DkPub,
-            Threshold,
+            DailyVolumeLimit,
             RoutePolicyHash,
             RingPk,
             RingIdHash,
@@ -4278,7 +4282,7 @@ impl<'de> serde::Deserialize<'de> for IndexedLeafData {
                             "nextIndex" | "next_index" => Ok(GeneratedField::NextIndex),
                             "nextValue" | "next_value" => Ok(GeneratedField::NextValue),
                             "dkPub" | "dk_pub" => Ok(GeneratedField::DkPub),
-                            "threshold" => Ok(GeneratedField::Threshold),
+                            "dailyVolumeLimit" | "daily_volume_limit" => Ok(GeneratedField::DailyVolumeLimit),
                             "routePolicyHash" | "route_policy_hash" => Ok(GeneratedField::RoutePolicyHash),
                             "ringPk" | "ring_pk" => Ok(GeneratedField::RingPk),
                             "ringIdHash" | "ring_id_hash" => Ok(GeneratedField::RingIdHash),
@@ -4308,7 +4312,7 @@ impl<'de> serde::Deserialize<'de> for IndexedLeafData {
                 let mut next_index__ = None;
                 let mut next_value__ = None;
                 let mut dk_pub__ = None;
-                let mut threshold__ = None;
+                let mut daily_volume_limit__ = None;
                 let mut route_policy_hash__ = None;
                 let mut ring_pk__ = None;
                 let mut ring_id_hash__ = None;
@@ -4349,11 +4353,11 @@ impl<'de> serde::Deserialize<'de> for IndexedLeafData {
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
-                        GeneratedField::Threshold => {
-                            if threshold__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("threshold"));
+                        GeneratedField::DailyVolumeLimit => {
+                            if daily_volume_limit__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("dailyVolumeLimit"));
                             }
-                            threshold__ =
+                            daily_volume_limit__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -4415,7 +4419,7 @@ impl<'de> serde::Deserialize<'de> for IndexedLeafData {
                     next_index: next_index__.unwrap_or_default(),
                     next_value: next_value__.unwrap_or_default(),
                     dk_pub: dk_pub__.unwrap_or_default(),
-                    threshold: threshold__.unwrap_or_default(),
+                    daily_volume_limit: daily_volume_limit__.unwrap_or_default(),
                     route_policy_hash: route_policy_hash__.unwrap_or_default(),
                     ring_pk: ring_pk__.unwrap_or_default(),
                     ring_id_hash: ring_id_hash__.unwrap_or_default(),
@@ -4638,7 +4642,7 @@ impl serde::Serialize for MsgRegisterAsset {
         if !self.dk_pub.is_empty() {
             len += 1;
         }
-        if !self.threshold.is_empty() {
+        if !self.daily_volume_limit.is_empty() {
             len += 1;
         }
         if !self.allowed_ibc_routes.is_empty() {
@@ -4683,10 +4687,10 @@ impl serde::Serialize for MsgRegisterAsset {
             #[allow(clippy::needless_borrows_for_generic_args)]
             struct_ser.serialize_field("dkPub", pbjson::private::base64::encode(&self.dk_pub).as_str())?;
         }
-        if !self.threshold.is_empty() {
+        if !self.daily_volume_limit.is_empty() {
             #[allow(clippy::needless_borrow)]
             #[allow(clippy::needless_borrows_for_generic_args)]
-            struct_ser.serialize_field("threshold", pbjson::private::base64::encode(&self.threshold).as_str())?;
+            struct_ser.serialize_field("dailyVolumeLimit", pbjson::private::base64::encode(&self.daily_volume_limit).as_str())?;
         }
         if !self.allowed_ibc_routes.is_empty() {
             struct_ser.serialize_field("allowedIbcRoutes", &self.allowed_ibc_routes)?;
@@ -4736,7 +4740,8 @@ impl<'de> serde::Deserialize<'de> for MsgRegisterAsset {
             "isRegulated",
             "dk_pub",
             "dkPub",
-            "threshold",
+            "daily_volume_limit",
+            "dailyVolumeLimit",
             "allowed_ibc_routes",
             "allowedIbcRoutes",
             "ring_pk",
@@ -4762,7 +4767,7 @@ impl<'de> serde::Deserialize<'de> for MsgRegisterAsset {
             AssetId,
             IsRegulated,
             DkPub,
-            Threshold,
+            DailyVolumeLimit,
             AllowedIbcRoutes,
             RingPk,
             RingId,
@@ -4798,7 +4803,7 @@ impl<'de> serde::Deserialize<'de> for MsgRegisterAsset {
                             "assetId" | "asset_id" => Ok(GeneratedField::AssetId),
                             "isRegulated" | "is_regulated" => Ok(GeneratedField::IsRegulated),
                             "dkPub" | "dk_pub" => Ok(GeneratedField::DkPub),
-                            "threshold" => Ok(GeneratedField::Threshold),
+                            "dailyVolumeLimit" | "daily_volume_limit" => Ok(GeneratedField::DailyVolumeLimit),
                             "allowedIbcRoutes" | "allowed_ibc_routes" => Ok(GeneratedField::AllowedIbcRoutes),
                             "ringPk" | "ring_pk" => Ok(GeneratedField::RingPk),
                             "ringId" | "ring_id" => Ok(GeneratedField::RingId),
@@ -4831,7 +4836,7 @@ impl<'de> serde::Deserialize<'de> for MsgRegisterAsset {
                 let mut asset_id__ = None;
                 let mut is_regulated__ = None;
                 let mut dk_pub__ = None;
-                let mut threshold__ = None;
+                let mut daily_volume_limit__ = None;
                 let mut allowed_ibc_routes__ = None;
                 let mut ring_pk__ = None;
                 let mut ring_id__ = None;
@@ -4864,11 +4869,11 @@ impl<'de> serde::Deserialize<'de> for MsgRegisterAsset {
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
-                        GeneratedField::Threshold => {
-                            if threshold__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("threshold"));
+                        GeneratedField::DailyVolumeLimit => {
+                            if daily_volume_limit__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("dailyVolumeLimit"));
                             }
-                            threshold__ =
+                            daily_volume_limit__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -4943,7 +4948,7 @@ impl<'de> serde::Deserialize<'de> for MsgRegisterAsset {
                     asset_id: asset_id__,
                     is_regulated: is_regulated__.unwrap_or_default(),
                     dk_pub: dk_pub__.unwrap_or_default(),
-                    threshold: threshold__.unwrap_or_default(),
+                    daily_volume_limit: daily_volume_limit__.unwrap_or_default(),
                     allowed_ibc_routes: allowed_ibc_routes__.unwrap_or_default(),
                     ring_pk: ring_pk__.unwrap_or_default(),
                     ring_id: ring_id__.unwrap_or_default(),

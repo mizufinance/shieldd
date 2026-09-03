@@ -221,7 +221,7 @@ pub struct ComplianceLeaf {
     pub capk: decaf377::Element,
     /// Orbis ring public key evaluated on this address's diversified generator.
     pub rnk_dh_pk: decaf377::Element,
-    /// Commitment to the regulated nullifier key derivable by the wallet and threshold Orbis.
+    /// Commitment to the regulated nullifier key derivable by the wallet and daily_volume_limit Orbis.
     pub rnk_commitment: Fq,
     /// Current authorization state for this address and asset.
     pub status: UserAssetStatus,
@@ -580,8 +580,8 @@ impl From<ComplianceLeaf> for pb::ComplianceLeaf {
 pub struct AssetParams {
     /// Issuer's detection key public (curve point).
     pub dk_pub: decaf377::Element,
-    /// Amount threshold for flagging (u128 to cover full amount range).
-    pub threshold: u128,
+    /// Daily undisclosed-volume limit (u128 to cover the full amount range).
+    pub daily_volume_limit: u128,
     /// Direct IBC routes allowed for this asset. Empty = IBC blocked.
     pub allowed_ibc_routes: Vec<IbcRoute>,
     /// External origin for regulated voucher assets.
@@ -750,7 +750,7 @@ pub struct RingData {
 
 /// Asset-specific compliance policy stored on-chain.
 ///
-/// Contains issuer parameters (detection key, threshold, IBC route policy)
+/// Contains issuer parameters (detection key, daily volume limit, IBC route policy)
 /// and Orbis ring binding (ring_pk, policy identifiers).
 /// This is state-only data — NOT included in the IMT Merkle commitment.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -767,7 +767,7 @@ impl AssetPolicy {
     /// Create a new asset policy.
     pub fn new(
         dk_pub: decaf377::Element,
-        threshold: u128,
+        daily_volume_limit: u128,
         allowed_ibc_routes: Vec<IbcRoute>,
         ibc_origin: Option<IbcAssetOrigin>,
         ring_id: String,
@@ -779,7 +779,7 @@ impl AssetPolicy {
         Self {
             params: AssetParams {
                 dk_pub,
-                threshold,
+                daily_volume_limit,
                 allowed_ibc_routes: canonical_routes(allowed_ibc_routes),
                 ibc_origin,
             },
@@ -864,14 +864,14 @@ impl AssetPolicy {
     #[cfg(any(test, feature = "test-helpers"))]
     pub fn for_test(
         dk_pub: decaf377::Element,
-        threshold: u128,
+        daily_volume_limit: u128,
         ring_pk: decaf377::Element,
     ) -> Self {
         let authority_sk = decaf377_rdsa::SigningKey::<SpendAuth>::from(Fr::from(1u64));
         let authority_vk = VerificationKey::from(&authority_sk);
         Self::new(
             dk_pub,
-            threshold,
+            daily_volume_limit,
             vec![],
             None,
             "test-ring".to_owned(),
@@ -886,12 +886,12 @@ impl AssetPolicy {
 
     /// Create a default policy for unregulated assets.
     ///
-    /// Uses protocol sink keys for dk_pub/ring_pk and u128::MAX for threshold.
+    /// Uses protocol sink keys for dk_pub/ring_pk and an unlimited daily volume.
     pub fn default_unregulated() -> Self {
         Self {
             params: AssetParams {
                 dk_pub: *crate::crypto::UNREGULATED_SINK_DK_PUB,
-                threshold: u128::MAX,
+                daily_volume_limit: u128::MAX,
                 allowed_ibc_routes: vec![],
                 ibc_origin: None,
             },
@@ -920,7 +920,7 @@ impl AssetPolicy {
         bytes.extend_from_slice(ASSET_POLICY_STORAGE_MAGIC);
         // AssetParams
         bytes.extend_from_slice(&self.params.dk_pub.vartime_compress().0);
-        bytes.extend_from_slice(&self.params.threshold.to_le_bytes());
+        bytes.extend_from_slice(&self.params.daily_volume_limit.to_le_bytes());
         // RingData - ring_pk
         bytes.extend_from_slice(&self.ring.ring_pk.vartime_compress().0);
         fn write_string(bytes: &mut Vec<u8>, s: &str, field: &str) -> anyhow::Result<()> {
@@ -993,7 +993,7 @@ impl AssetPolicy {
         let dk_pub = decaf377::Encoding(dk_pub_bytes)
             .vartime_decompress()
             .map_err(|_| anyhow::anyhow!("invalid dk_pub encoding"))?;
-        let threshold = u128::from_le_bytes(bytes[offset..offset + 16].try_into()?);
+        let daily_volume_limit = u128::from_le_bytes(bytes[offset..offset + 16].try_into()?);
         offset += 16;
         let ring_pk_bytes: [u8; 32] = bytes[offset..offset + 32].try_into()?;
         offset += 32;
@@ -1097,7 +1097,7 @@ impl AssetPolicy {
         let policy = Self {
             params: AssetParams {
                 dk_pub,
-                threshold,
+                daily_volume_limit,
                 allowed_ibc_routes,
                 ibc_origin,
             },
@@ -1136,14 +1136,13 @@ impl TryFrom<pb::AssetPolicy> for AssetPolicy {
             .vartime_decompress()
             .map_err(|_| anyhow::anyhow!("invalid dk_pub encoding"))?;
 
-        if value.threshold.is_empty() {
-            anyhow::bail!("missing threshold");
+        if value.daily_volume_limit.is_empty() {
+            anyhow::bail!("missing daily_volume_limit");
         }
-        let bytes: [u8; 16] = value
-            .threshold
-            .try_into()
-            .map_err(|v: Vec<u8>| anyhow::anyhow!("threshold must be 16 bytes, got {}", v.len()))?;
-        let threshold = u128::from_le_bytes(bytes);
+        let bytes: [u8; 16] = value.daily_volume_limit.try_into().map_err(|v: Vec<u8>| {
+            anyhow::anyhow!("daily_volume_limit must be 16 bytes, got {}", v.len())
+        })?;
+        let daily_volume_limit = u128::from_le_bytes(bytes);
 
         if value.ring_pk.is_empty() {
             anyhow::bail!("missing ring_pk");
@@ -1175,7 +1174,7 @@ impl TryFrom<pb::AssetPolicy> for AssetPolicy {
         let policy = AssetPolicy {
             params: AssetParams {
                 dk_pub,
-                threshold,
+                daily_volume_limit,
                 allowed_ibc_routes: canonical_routes(allowed_ibc_routes),
                 ibc_origin,
             },
@@ -1198,7 +1197,7 @@ impl From<AssetPolicy> for pb::AssetPolicy {
     fn from(value: AssetPolicy) -> pb::AssetPolicy {
         pb::AssetPolicy {
             dk_pub: value.params.dk_pub.vartime_compress().0.to_vec(),
-            threshold: value.params.threshold.to_le_bytes().to_vec(),
+            daily_volume_limit: value.params.daily_volume_limit.to_le_bytes().to_vec(),
             allowed_ibc_routes: value
                 .params
                 .allowed_ibc_routes
@@ -1226,7 +1225,7 @@ pub struct AssetRegistrationGrantBody {
     pub asset_id: asset::Id,
     pub is_regulated: bool,
     pub dk_pub: Option<decaf377::Element>,
-    pub threshold: Option<u128>,
+    pub daily_volume_limit: Option<u128>,
     pub allowed_ibc_routes: Vec<IbcRoute>,
     pub ibc_origin: Option<IbcAssetOrigin>,
     pub ring_pk: Option<decaf377::Element>,
@@ -1270,11 +1269,11 @@ impl TryFrom<pb::AssetRegistrationGrantBody> for AssetRegistrationGrantBody {
 
     fn try_from(value: pb::AssetRegistrationGrantBody) -> Result<Self, Self::Error> {
         let dk_pub = decode_optional_element(value.dk_pub, "dk_pub")?;
-        let threshold = if value.threshold.is_empty() {
+        let daily_volume_limit = if value.daily_volume_limit.is_empty() {
             None
         } else {
-            let bytes: [u8; 16] = value.threshold.try_into().map_err(|v: Vec<u8>| {
-                anyhow::anyhow!("threshold must be 16 bytes, got {}", v.len())
+            let bytes: [u8; 16] = value.daily_volume_limit.try_into().map_err(|v: Vec<u8>| {
+                anyhow::anyhow!("daily_volume_limit must be 16 bytes, got {}", v.len())
             })?;
             Some(u128::from_le_bytes(bytes))
         };
@@ -1303,7 +1302,7 @@ impl TryFrom<pb::AssetRegistrationGrantBody> for AssetRegistrationGrantBody {
                 .try_into()?,
             is_regulated: value.is_regulated,
             dk_pub,
-            threshold,
+            daily_volume_limit,
             allowed_ibc_routes: canonical_routes(allowed_ibc_routes),
             ibc_origin,
             ring_pk,
@@ -1329,8 +1328,8 @@ impl From<AssetRegistrationGrantBody> for pb::AssetRegistrationGrantBody {
                 .dk_pub
                 .map(|e| e.vartime_compress().0.to_vec())
                 .unwrap_or_default(),
-            threshold: value
-                .threshold
+            daily_volume_limit: value
+                .daily_volume_limit
                 .map(|t| t.to_le_bytes().to_vec())
                 .unwrap_or_default(),
             allowed_ibc_routes: value
@@ -1537,8 +1536,8 @@ pub struct MsgRegisterAsset {
     pub is_regulated: bool,
     /// Issuer's detection key public (optional).
     pub dk_pub: Option<decaf377::Element>,
-    /// Amount threshold for flagging (optional).
-    pub threshold: Option<u128>,
+    /// Daily undisclosed-volume limit (optional).
+    pub daily_volume_limit: Option<u128>,
     /// Direct IBC routes allowed for this regulated asset. Empty = IBC blocked.
     pub allowed_ibc_routes: Vec<IbcRoute>,
     /// External IBC origin for regulated voucher assets.
@@ -1571,13 +1570,14 @@ impl TryFrom<pb::MsgRegisterAsset> for MsgRegisterAsset {
     fn try_from(value: pb::MsgRegisterAsset) -> Result<Self, Self::Error> {
         let dk_pub = decode_optional_element(value.dk_pub, "dk_pub")?;
 
-        let threshold = if value.threshold.is_empty() {
+        let daily_volume_limit = if value.daily_volume_limit.is_empty() {
             None
         } else {
-            let threshold_bytes: [u8; 16] = value.threshold.try_into().map_err(|v: Vec<u8>| {
-                anyhow::anyhow!("threshold must be 16 bytes, got {}", v.len())
-            })?;
-            Some(u128::from_le_bytes(threshold_bytes))
+            let daily_volume_limit_bytes: [u8; 16] =
+                value.daily_volume_limit.try_into().map_err(|v: Vec<u8>| {
+                    anyhow::anyhow!("daily_volume_limit must be 16 bytes, got {}", v.len())
+                })?;
+            Some(u128::from_le_bytes(daily_volume_limit_bytes))
         };
 
         let ring_pk = decode_optional_element(value.ring_pk, "ring_pk")?;
@@ -1609,7 +1609,7 @@ impl TryFrom<pb::MsgRegisterAsset> for MsgRegisterAsset {
                 .try_into()?,
             is_regulated: value.is_regulated,
             dk_pub,
-            threshold,
+            daily_volume_limit,
             allowed_ibc_routes: canonical_routes(allowed_ibc_routes),
             ibc_origin,
             ring_pk,
@@ -1635,8 +1635,8 @@ impl From<MsgRegisterAsset> for pb::MsgRegisterAsset {
                 .dk_pub
                 .map(|e| e.vartime_compress().0.to_vec())
                 .unwrap_or_default(),
-            threshold: value
-                .threshold
+            daily_volume_limit: value
+                .daily_volume_limit
                 .map(|t| t.to_le_bytes().to_vec())
                 .unwrap_or_default(),
             allowed_ibc_routes: value
@@ -1686,7 +1686,7 @@ impl MsgRegisterAsset {
             asset_id: self.asset_id,
             is_regulated: self.is_regulated,
             dk_pub: self.dk_pub,
-            threshold: self.threshold,
+            daily_volume_limit: self.daily_volume_limit,
             allowed_ibc_routes: self.allowed_ibc_routes.clone(),
             ibc_origin: self.ibc_origin.clone(),
             ring_pk: self.ring_pk,
@@ -1768,7 +1768,7 @@ impl From<UpdateAssetIbcPolicy> for pb::UpdateAssetIbcPolicy {
     }
 }
 
-/// Threshold-Orbis attestation for an address-diversified ring public key.
+/// DailyVolumeLimit-Orbis attestation for an address-diversified ring public key.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(
     try_from = "pb::OrbisCapabilityCertificate",
@@ -1924,7 +1924,7 @@ pub struct MsgRegisterUser {
     pub leaf: ComplianceLeaf,
     /// Grant authorizing this registration.
     pub grant: Option<UserRegistrationGrant>,
-    /// Orbis threshold certificate for the address-diversified ring public key.
+    /// Orbis daily_volume_limit certificate for the address-diversified ring public key.
     pub capability_certificate: Option<OrbisCapabilityCertificate>,
 }
 
@@ -2329,7 +2329,10 @@ mod tests {
         let recovered = AssetPolicy::from_bytes(&bytes).unwrap();
 
         assert_eq!(policy.params.dk_pub, recovered.params.dk_pub);
-        assert_eq!(policy.params.threshold, recovered.params.threshold);
+        assert_eq!(
+            policy.params.daily_volume_limit,
+            recovered.params.daily_volume_limit
+        );
         assert_eq!(
             policy.params.allowed_ibc_routes,
             recovered.params.allowed_ibc_routes
@@ -2441,7 +2444,7 @@ mod tests {
             asset_id: asset::Id(decaf377::Fq::from(1u64)),
             is_regulated: false,
             dk_pub: None,
-            threshold: None,
+            daily_volume_limit: None,
             allowed_ibc_routes: Vec::new(),
             ibc_origin: None,
             ring_pk: None,
@@ -2633,14 +2636,15 @@ mod tests {
         );
 
         proto.dk_pub = dk_pub.vartime_compress().0.to_vec();
-        proto.threshold.clear();
-        let err = AssetPolicy::try_from(proto.clone()).expect_err("missing threshold should fail");
+        proto.daily_volume_limit.clear();
+        let err = AssetPolicy::try_from(proto.clone())
+            .expect_err("missing daily_volume_limit should fail");
         assert!(
-            err.to_string().contains("missing threshold"),
+            err.to_string().contains("missing daily_volume_limit"),
             "unexpected error: {err:#}"
         );
 
-        proto.threshold = 500u128.to_le_bytes().to_vec();
+        proto.daily_volume_limit = 500u128.to_le_bytes().to_vec();
         proto.ring_pk.clear();
         let err = AssetPolicy::try_from(proto).expect_err("missing ring_pk should fail");
         assert!(
@@ -2661,7 +2665,7 @@ mod tests {
             policy.ring.ring_pk,
             *crate::crypto::UNREGULATED_SINK_RING_PK
         );
-        assert_eq!(policy.params.threshold, u128::MAX);
+        assert_eq!(policy.params.daily_volume_limit, u128::MAX);
     }
 
     #[test]

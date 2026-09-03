@@ -15,7 +15,7 @@ use shieldd_sdk_tct as tct;
 use crate::{
     discovery::{Parameters as RoutingParameters, RoutingTag},
     public_input_hash::shielded_ics20_withdrawal_statement_hash_from_public,
-    Note,
+    Note, VolumeAccumulatorPrivate, VolumeAccumulatorPublic,
 };
 
 use super::ShieldedIcs20WithdrawalFamilyId;
@@ -82,6 +82,7 @@ pub struct ShieldedIcs20WithdrawalProofPublic {
     pub routing_parameter_set_id: Fq,
     pub withdrawal_compliance_ciphertext: WithdrawalComplianceCiphertext,
     pub recent_position_floor: u64,
+    pub volume_accumulator: VolumeAccumulatorPublic,
 }
 
 pub(crate) fn withdrawal_effect_hash_limbs(bytes: &[u8]) -> [Fq; 4] {
@@ -156,6 +157,8 @@ pub struct ShieldedIcs20WithdrawalProofPrivate {
     pub required_input: ShieldedIcs20WithdrawalRequiredInputPrivate,
     pub optional_input: ShieldedIcs20WithdrawalOptionalInputPrivate,
     pub change_output: ShieldedIcs20WithdrawalChangePrivate,
+    pub volume_accumulator: VolumeAccumulatorPrivate,
+    pub volume_accumulator_seed: Fq,
 }
 
 impl ShieldedIcs20WithdrawalProofPrivate {
@@ -271,6 +274,7 @@ mod tests {
         ShieldedIcs20WithdrawalFamilyId,
     };
     use decaf377::Fq;
+    use rand::SeedableRng;
 
     #[test]
     fn withdrawal_deployed_key_mapping_matches_generated_registry_for_every_family() {
@@ -341,5 +345,84 @@ mod tests {
             .expect("can build shielded ICS-20 withdrawal batch item");
         assert_eq!(item.public_inputs.len(), 1);
         proof.verify(&public).expect("proof should verify");
+
+        let reject = |label: &str, changed: crate::ShieldedIcs20WithdrawalProofPublic| {
+            assert!(
+                proof.verify(&changed).is_err(),
+                "proof must reject mutated {label}"
+            );
+        };
+        let mut changed = public.clone();
+        changed.volume_accumulator.nullifier.0 += Fq::from(1u64);
+        reject("volume nullifier", changed);
+        let mut changed = public.clone();
+        changed.volume_accumulator.commitment.0 += Fq::from(1u64);
+        reject("volume commitment", changed);
+        let mut changed = public.clone();
+        changed.volume_accumulator.day_start += 86_400;
+        reject("volume day", changed);
+        let mut changed = public.clone();
+        changed.target_timestamp += Fq::from(1u64);
+        reject("target timestamp", changed);
+        let mut changed = public.clone();
+        changed.outbound_asset_id += Fq::from(1u64);
+        reject("outbound asset", changed);
+        let mut changed = public.clone();
+        changed.outbound_amount += Fq::from(1u64);
+        reject("outbound amount", changed);
+        let mut changed = public.clone();
+        changed.withdrawal_compliance_ciphertext.epk += decaf377::Element::GENERATOR;
+        reject("sender epk", changed);
+        let mut changed = public.clone();
+        changed.withdrawal_compliance_ciphertext.c2 += Fq::from(1u64);
+        reject("sender c2", changed);
+        let mut changed = public.clone();
+        changed.withdrawal_compliance_ciphertext.key_confirmation += Fq::from(1u64);
+        reject("sender key confirmation", changed);
+        for index in 0..3 {
+            let mut changed = public.clone();
+            let word = &mut changed
+                .withdrawal_compliance_ciphertext
+                .encrypted_sender_address[index * 32..(index + 1) * 32];
+            let value =
+                Fq::from_bytes_checked((&*word).try_into().unwrap()).unwrap() + Fq::from(1u64);
+            word.copy_from_slice(&value.to_bytes());
+            reject("sender ciphertext", changed);
+        }
+    }
+
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn shielded_ics20_withdrawal_accumulator_proof_branches_roundtrip() {
+        if test_runtime::should_skip_shielded_ics20_withdrawal_proof_roundtrip_tests() {
+            return;
+        }
+
+        for (seed, mode) in [
+            (
+                0x4f52_4947_494e_1001,
+                proof_test_helpers::WithdrawalAccumulatorTestMode::Origin,
+            ),
+            (
+                0x434f_4e54_1000_0001,
+                proof_test_helpers::WithdrawalAccumulatorTestMode::Continuation {
+                    prior_volume: 25,
+                },
+            ),
+        ] {
+            let mut rng = rand::rngs::StdRng::seed_from_u64(seed);
+            let (public, private) = proof_test_helpers::build_shielded_ics20_withdrawal_roundtrip_inputs_with_rng_and_mode(
+                &mut rng,
+                ShieldedIcs20WithdrawalFamilyId::Canonical,
+                true,
+                2,
+                mode,
+            );
+            let proof = ShieldedIcs20WithdrawalProof::prove(public.clone(), private)
+                .expect("withdrawal accumulator branch should prove");
+            proof
+                .verify(&public)
+                .expect("withdrawal accumulator branch should verify");
+        }
     }
 }

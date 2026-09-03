@@ -7,10 +7,7 @@ import (
 	"github.com/mizufinance/shieldd/tools/gnark/internal/generated"
 )
 
-const (
-	transferWitnessMagic   = "PTWG"
-	transferWitnessVersion = 24
-)
+const transferWitnessMagic = "PTWG"
 
 type TransferComplianceCiphertextWitnessBinary struct {
 	C2         [32]byte
@@ -81,6 +78,23 @@ type TransferChangeOutputWitnessBinary struct {
 	RecoveryCapsule     RecoveryCapsuleWitnessBinary
 }
 
+type TransferVolumeAccumulatorWitnessBinary struct {
+	Nullifier         [32]byte
+	Commitment        [32]byte
+	DayStart          [32]byte
+	ProofContext      [32]byte
+	UseReal           bool
+	StartsNewDay      bool
+	Subject           [32]byte
+	PriorVolume       [32]byte
+	PriorBlinding     [32]byte
+	PriorCommitment   [32]byte
+	PriorPosition     uint64
+	PriorAuthPath     [][3][32]byte
+	SuccessorVolume   [32]byte
+	SuccessorBlinding [32]byte
+}
+
 type TransferWitnessBinary struct {
 	TotalLength uint32
 
@@ -92,6 +106,7 @@ type TransferWitnessBinary struct {
 	RoutingTags           [2][32]byte
 	RoutingParameterSetID [32]byte
 	RecentPositionFloor   [32]byte
+	VolumeAccumulator     TransferVolumeAccumulatorWitnessBinary
 
 	ActionBalanceBlinding    [32]byte
 	NK                       [32]byte
@@ -162,13 +177,6 @@ func decodeTransferWitness(
 	if string(magic) != transferWitnessMagic {
 		return nil, fmt.Errorf("invalid %sWitness magic %q", label, string(magic))
 	}
-	version, err := readU32(reader)
-	if err != nil {
-		return nil, err
-	}
-	if version != transferWitnessVersion {
-		return nil, fmt.Errorf("unsupported %sWitness version %d", label, version)
-	}
 	totalLength, err := readU32(reader)
 	if err != nil {
 		return nil, err
@@ -203,6 +211,9 @@ func decodeTransferWitness(
 	}
 	if witness.RecentPositionFloor, err = read32(reader); err != nil {
 		return nil, err
+	}
+	if witness.VolumeAccumulator, err = readTransferVolumeAccumulator(reader); err != nil {
+		return nil, fmt.Errorf("decode transfer volume accumulator: %w", err)
 	}
 	if witness.ActionBalanceBlinding, err = readFr32(reader); err != nil {
 		return nil, err
@@ -325,6 +336,56 @@ func decodeTransferWitness(
 	}
 
 	return witness, nil
+}
+
+func readTransferVolumeAccumulator(
+	reader *bytes.Reader,
+) (TransferVolumeAccumulatorWitnessBinary, error) {
+	var value TransferVolumeAccumulatorWitnessBinary
+	var err error
+	if value.Nullifier, err = read32(reader); err != nil {
+		return value, err
+	}
+	if value.Commitment, err = read32(reader); err != nil {
+		return value, err
+	}
+	if value.DayStart, err = read32(reader); err != nil {
+		return value, err
+	}
+	if value.ProofContext, err = read32(reader); err != nil {
+		return value, err
+	}
+	if value.UseReal, err = readBool(reader); err != nil {
+		return value, err
+	}
+	if value.StartsNewDay, err = readBool(reader); err != nil {
+		return value, err
+	}
+	if value.Subject, err = read32(reader); err != nil {
+		return value, err
+	}
+	if value.PriorVolume, err = read32(reader); err != nil {
+		return value, err
+	}
+	if value.PriorBlinding, err = read32(reader); err != nil {
+		return value, err
+	}
+	if value.PriorCommitment, err = read32(reader); err != nil {
+		return value, err
+	}
+	if value.PriorPosition, err = readU64(reader); err != nil {
+		return value, err
+	}
+	if value.PriorAuthPath, err = readTriplePath(reader); err != nil {
+		return value, err
+	}
+	if value.SuccessorVolume, err = read32(reader); err != nil {
+		return value, err
+	}
+	if value.SuccessorBlinding, err = read32(reader); err != nil {
+		return value, err
+	}
+	return value, nil
 }
 
 func readTransferRequiredSpend(

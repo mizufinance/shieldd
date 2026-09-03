@@ -698,6 +698,9 @@ impl Transaction {
                     .outputs
                     .iter()
                     .map(|output| Some(output.note_payload.note_commitment))
+                    .chain(std::iter::once(Some(
+                        transfer.body.volume_accumulator.commitment,
+                    )))
                     .collect::<Vec<_>>(),
                 Action::NoteReshape(note_reshape) => note_reshape
                     .body
@@ -995,6 +998,9 @@ mod tests {
                 asset_anchor: shieldd_sdk_tct::StateCommitment(decaf377::Fq::from(12u64)),
                 routing: Default::default(),
                 routing_parameter_set_id: decaf377::Fq::from(0u64),
+                volume_accumulator:
+                    shieldd_sdk_shielded_pool::VolumeAccumulatorPayload::canonical_fee_funding(),
+                proof_context: shieldd_sdk_shielded_pool::TransferProofContext::Ordinary,
             },
             auth_sigs: vec![[17u8; 64].into(), [0u8; 64].into()],
             proof: shieldd_sdk_shielded_pool::TransferProof::default(),
@@ -1016,7 +1022,7 @@ mod tests {
             tx.spent_nullifiers().count(),
             "zero-allocation count must match the canonical iterator"
         );
-        assert_eq!(tx.state_commitments().collect::<Vec<_>>().len(), 2);
+        assert_eq!(tx.state_commitments().collect::<Vec<_>>().len(), 3);
 
         assert!(
             tx.transaction_body.validate_nullifier_history().is_err(),
@@ -1066,7 +1072,7 @@ mod tests {
         );
         assert_eq!(
             fee_funded_tx.state_commitments().collect::<Vec<_>>().len(),
-            4
+            5
         );
     }
 
@@ -1307,6 +1313,8 @@ mod tests {
                                 routing_parameter_set_id: decaf377::Fq::from(0u64),
                                 withdrawal_compliance_ciphertext:
                                     withdrawal_compliance_ciphertext(36),
+                                volume_accumulator:
+                                    shieldd_sdk_shielded_pool::VolumeAccumulatorPayload::canonical_fee_funding(),
                             },
                             auth_sigs: vec![[34u8; 64].into(), [35u8; 64].into()],
                             proof: shieldd_sdk_shielded_pool::ShieldedIcs20WithdrawalProof::default(),

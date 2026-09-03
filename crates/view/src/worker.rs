@@ -243,13 +243,13 @@ impl Worker {
                 asset_id = ?event.asset_id,
                 position = event.position,
                 is_regulated = event.is_regulated,
-                threshold = event.indexed_leaf.params.threshold,
+                daily_volume_limit = event.indexed_leaf.params.daily_volume_limit,
                 dk_pub_first_byte = event.indexed_leaf.params.dk_pub.vartime_compress().0[0],
                 low_leaf_position = event.low_leaf_position,
                 "worker: syncing asset registration"
             );
 
-            // Use sync_from_event to preserve policy data (dk_pub, threshold)
+            // Use sync_from_event to preserve policy data (dk_pub, daily_volume_limit)
             // This is critical for correct leaf commitments in proofs
             next_asset_tree.sync_from_event(
                 event.indexed_leaf.clone(),

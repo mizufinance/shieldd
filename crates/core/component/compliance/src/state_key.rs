@@ -109,8 +109,8 @@ pub mod cache {
     }
 }
 
-/// State key for asset-specific compliance policy (dk_pub, threshold).
-/// This stores issuer-defined policies for threshold-based flagging.
+/// State key for asset-specific compliance policy (dk_pub, daily_volume_limit).
+/// This stores issuer-defined policies for daily_volume_limit-based flagging.
 pub fn asset_policy(asset_id: &shieldd_sdk_asset::asset::Id) -> String {
     format!("compliance/asset_policy/{}", asset_id)
 }

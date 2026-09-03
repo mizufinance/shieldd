@@ -8,9 +8,8 @@ import (
 )
 
 const (
-	noteReshapeWitnessMagic   = "PNWG"
-	noteReshapeWitnessVersion = 10
-	maxNoteReshapeItems       = 8
+	noteReshapeWitnessMagic = "PNWG"
+	maxNoteReshapeItems     = 8
 )
 
 type NoteReshapeSpendWitnessBinary struct {
@@ -101,13 +100,6 @@ func decodeNoteReshapeWitness(payload []byte) (*NoteReshapeWitnessBinary, error)
 	}
 	if string(magic) != noteReshapeWitnessMagic {
 		return nil, fmt.Errorf("invalid note reshape witness magic %q", string(magic))
-	}
-	version, err := readU32(reader)
-	if err != nil {
-		return nil, err
-	}
-	if version != noteReshapeWitnessVersion {
-		return nil, fmt.Errorf("unsupported note reshape witness version %d", version)
 	}
 	totalLength, err := readU32(reader)
 	if err != nil {

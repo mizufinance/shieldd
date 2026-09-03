@@ -27,20 +27,17 @@ import (
 )
 
 const (
-	daemonReadyMagic      = "PGDR"
-	daemonReadyVersion    = 1
-	daemonRequestMagic    = "PGRQ"
-	daemonResponseMagic   = "PGRS"
-	daemonProtocolVersion = 1
-	daemonOpProve         = 1
-	daemonOpShutdown      = 2
+	daemonReadyMagic    = "PGDR"
+	daemonRequestMagic  = "PGRQ"
+	daemonResponseMagic = "PGRS"
+	daemonOpProve       = 1
+	daemonOpShutdown    = 2
 	// Witness payloads are a few KB; cap at 4 MiB to prevent unbounded allocation.
 	maxRequestSize = 4 * 1024 * 1024
 )
 
 type daemonReady struct {
 	Magic                    string `json:"magic"`
-	Version                  int    `json:"version"`
 	Status                   string `json:"status"`
 	Circuit                  string `json:"circuit"`
 	Curve                    string `json:"curve"`
@@ -280,7 +277,6 @@ func buildReady(circuit, artifactDir string, metadata *artifacts.CircuitMetadata
 	}
 	return &daemonReady{
 		Magic:                    daemonReadyMagic,
-		Version:                  daemonReadyVersion,
 		Status:                   "ready",
 		Circuit:                  circuit,
 		Curve:                    metadata.Curve,
@@ -292,26 +288,22 @@ func buildReady(circuit, artifactDir string, metadata *artifacts.CircuitMetadata
 }
 
 func readRequest(reader *bufio.Reader) (uint32, []byte, error) {
-	var header [16]byte
+	var header [12]byte
 	if _, err := io.ReadFull(reader, header[:]); err != nil {
 		return 0, nil, err
 	}
 	if string(header[:4]) != daemonRequestMagic {
 		return 0, nil, fmt.Errorf("invalid daemon request magic")
 	}
-	version := binary.LittleEndian.Uint32(header[4:8])
-	if version != daemonProtocolVersion {
-		return 0, nil, fmt.Errorf("unsupported daemon request version %d", version)
-	}
-	totalLen := binary.LittleEndian.Uint32(header[8:12])
-	if totalLen < 16 {
+	totalLen := binary.LittleEndian.Uint32(header[4:8])
+	if totalLen < 12 {
 		return 0, nil, fmt.Errorf("invalid daemon request length %d", totalLen)
 	}
-	payloadLen := int(totalLen) - 16
+	payloadLen := int(totalLen) - 12
 	if payloadLen > maxRequestSize {
 		return 0, nil, fmt.Errorf("daemon request payload %d bytes exceeds limit %d", payloadLen, maxRequestSize)
 	}
-	op := binary.LittleEndian.Uint32(header[12:16])
+	op := binary.LittleEndian.Uint32(header[8:12])
 	payload := make([]byte, payloadLen)
 	if _, err := io.ReadFull(reader, payload); err != nil {
 		return 0, nil, err
@@ -320,12 +312,11 @@ func readRequest(reader *bufio.Reader) (uint32, []byte, error) {
 }
 
 func writeResponse(writer *bufio.Writer, status uint32, payload []byte) error {
-	totalLen := uint32(16 + len(payload))
-	var header [16]byte
+	totalLen := uint32(12 + len(payload))
+	var header [12]byte
 	copy(header[:4], []byte(daemonResponseMagic))
-	binary.LittleEndian.PutUint32(header[4:8], daemonProtocolVersion)
-	binary.LittleEndian.PutUint32(header[8:12], totalLen)
-	binary.LittleEndian.PutUint32(header[12:16], status)
+	binary.LittleEndian.PutUint32(header[4:8], totalLen)
+	binary.LittleEndian.PutUint32(header[8:12], status)
 	if _, err := writer.Write(header[:]); err != nil {
 		return err
 	}
@@ -368,9 +359,8 @@ func packNoteSeizureProofResult(witnessPayload []byte, proof *groth16bls.Proof, 
 }
 
 func packProofResult(magic string, claimedStatementHash [32]byte, proof *groth16bls.Proof, proveMS float64) ([]byte, error) {
-	buf := bytes.NewBuffer(make([]byte, 0, 4+4+4+4+8+32+384))
+	buf := bytes.NewBuffer(make([]byte, 0, 4+4+4+8+32+384))
 	buf.WriteString(magic)
-	_ = binary.Write(buf, binary.LittleEndian, uint32(1))
 	_ = binary.Write(buf, binary.LittleEndian, uint32(0))
 	_ = binary.Write(buf, binary.LittleEndian, uint32(0))
 	_ = binary.Write(buf, binary.LittleEndian, uint64(proveMS*1000))
@@ -394,6 +384,6 @@ func packProofResult(magic string, claimedStatementHash [32]byte, proof *groth16
 	buf.Write(cy[:])
 
 	out := buf.Bytes()
-	binary.LittleEndian.PutUint32(out[8:12], uint32(len(out)))
+	binary.LittleEndian.PutUint32(out[4:8], uint32(len(out)))
 	return out, nil
 }

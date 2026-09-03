@@ -14,17 +14,17 @@ import (
 const ComplianceQuadTreeDepth = 16
 
 type IndexedLeafInputs struct {
-	Value          frontend.Variable
-	NextIndex      frontend.Variable
-	NextValue      frontend.Variable
-	DKPub          gnarkte.Point
-	Threshold      frontend.Variable
-	ChannelsHash   frontend.Variable
-	RingPK         gnarkte.Point
-	RingIDHash     frontend.Variable
-	PolicyIDHash   frontend.Variable
-	PermissionHash frontend.Variable
-	ResourceHash   frontend.Variable
+	Value            frontend.Variable
+	NextIndex        frontend.Variable
+	NextValue        frontend.Variable
+	DKPub            gnarkte.Point
+	DailyVolumeLimit frontend.Variable
+	RoutePolicyHash  frontend.Variable
+	RingPK           gnarkte.Point
+	RingIDHash       frontend.Variable
+	PolicyIDHash     frontend.Variable
+	PermissionHash   frontend.Variable
+	ResourceHash     frontend.Variable
 }
 
 func fqFromBase64String(value string) (*big.Int, error) {
@@ -48,8 +48,8 @@ func IndexedLeafInputsFromFixture(fixture primitives.SpendFixture) (IndexedLeafI
 			X: primitives.MustBigInt(fixture.Private.AssetIndexedLeafDKPubAffine.X),
 			Y: primitives.MustBigInt(fixture.Private.AssetIndexedLeafDKPubAffine.Y),
 		},
-		Threshold:    leaf.Threshold.String(),
-		ChannelsHash: primitives.LittleEndianBytesToBigInt(leaf.ChannelsHash),
+		DailyVolumeLimit: leaf.DailyVolumeLimit.String(),
+		RoutePolicyHash:  primitives.LittleEndianBytesToBigInt(leaf.RoutePolicyHash),
 		RingPK: gnarkte.Point{
 			X: primitives.MustBigInt(fixture.Private.AssetIndexedLeafRingPKAffine.X),
 			Y: primitives.MustBigInt(fixture.Private.AssetIndexedLeafRingPKAffine.Y),
@@ -100,8 +100,8 @@ func IndexedLeafCommitmentNative(inputs IndexedLeafInputs) (*big.Int, error) {
 		primitives.MustBigInt(vectors.Poseidon377.IMTParamsDomain),
 		[3]*big.Int{
 			dkPubFq,
-			primitives.MustBigInt(inputs.Threshold.(string)),
-			inputs.ChannelsHash.(*big.Int),
+			primitives.MustBigInt(inputs.DailyVolumeLimit.(string)),
+			inputs.RoutePolicyHash.(*big.Int),
 		},
 	)
 	if err != nil {
@@ -151,7 +151,7 @@ func IndexedLeafCommitment(api frontend.API, inputs IndexedLeafInputs) (frontend
 	paramsHash, err := primitives.Poseidon377Hash3(
 		api,
 		primitives.MustBigInt(vectors.Poseidon377.IMTParamsDomain),
-		[3]frontend.Variable{dkPubFq, inputs.Threshold, inputs.ChannelsHash},
+		[3]frontend.Variable{dkPubFq, inputs.DailyVolumeLimit, inputs.RoutePolicyHash},
 	)
 	if err != nil {
 		return nil, err

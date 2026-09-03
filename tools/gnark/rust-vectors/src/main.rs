@@ -248,10 +248,10 @@ fn poseidon_rate_vectors<
 }
 
 fn main() {
-    let spend_domain = blake2b_fq(b"shieldd.shielded_pool.spend.public_input_hash.v1");
+    let spend_domain = blake2b_fq(b"shieldd.shielded_pool.spend.public_input_hash.statement");
     let spend_pad_0 = blake2b_fq(b"shieldd.shielded_pool.spend.public_input_hash.pad0");
     let spend_pad_1 = blake2b_fq(b"shieldd.shielded_pool.spend.public_input_hash.pad1");
-    let hash7_domain = blake2b_fq(b"shieldd.gnark.prototype.poseidon377.hash7.v1");
+    let hash7_domain = blake2b_fq(b"shieldd.gnark.prototype.poseidon377.hash7");
     let hash7_inputs = [1u64, 2, 3, 4, 5, 6, 7].map(Fq::from);
     let hash7_output = poseidon377::hash_7(
         &hash7_domain,

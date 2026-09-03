@@ -23,8 +23,9 @@ An issuer creates its policy and ring configuration, then registers an
 AssetPolicy {
   dk_pub,
   ring_pk,
-  threshold,
-  allowed_channels,
+  daily_volume_limit,
+  allowed_ibc_routes,
+  ibc_origin,
   ring_id,
   policy_id,
   permission,
@@ -48,6 +49,11 @@ A user registers a `(shielded address, asset)` compliance leaf:
 d   = SHA512("elgamal-derivation-v1\0\0" || canonical_address_bytes) reduced mod Fr
 ACK = d * ring_pk
 ```
+
+For regulated participation, ACP permits exactly one live shielded address per
+KYC identity. Shieldd's generic diversified-address capability does not admit
+additional regulated addresses; only the ACP-approved address may appear in a
+regulated user leaf.
 
 The leaf commits to the address encodings, asset ID, capsule capability,
 compliance-nullifier-key commitment, and lifecycle. Registration checks the
@@ -77,19 +83,21 @@ The transfer planner selects one policy shape:
   compliance leaves, and the registered policy values.
 - Unregulated: exact asset-tree non-membership, fixed sink ring/DK points,
   and the canonical hash of the empty string for each policy identifier. The
-  authenticated gap-predecessor threshold remains present in the leaf witness,
-  but it cannot affect the regulation-gated flag.
+  authenticated gap-predecessor daily limit remains present in the leaf
+  witness but cannot make an unregulated transfer eligible for accumulation or
+  disclosure.
 
 Both branches construct the same detection and audit ciphertext rows. The
 encryption equations are unconditional; `is_regulated` selects the effective
-keys and policy hashes and gates the authenticated-leaf threshold result rather
-than bypassing encryption checks.
+keys and policy hashes. For an external regulated ordinary Transfer, the
+wallet either proves a real daily-volume transition or selects the fixed
+padding branch. Padding sets `is_flagged = true`; a real transition sets it to
+false. Self-transfers, unregulated transfers, and fee funding never set it.
 
-The circuit computes
-`is_flagged = is_regulated * (amount >= authenticated_leaf_threshold)`. A
-regulated transfer is therefore flagged exactly at and above its registered
-threshold; an unregulated transfer is never flagged, regardless of the
-authenticated predecessor leaf's threshold or the receiver amount.
+For a real transition the circuit proves checked `u128` addition and
+`prior_undisclosed_volume + receiver_amount <= daily_volume_limit`. Equality
+remains undisclosed. A greater candidate or explicit caller request discloses
+only the current transaction and leaves the accumulator head unchanged.
 
 | Tier | Plaintext | Unflagged regulated key | Flagged regulated key |
 | --- | --- | --- | --- |
@@ -123,6 +131,24 @@ consensus check, because the root is private and a malicious creator controls
 its own randomness. Each derived tier scalar is rejection-sampled until
 nonzero, preventing an identity EPK/shared secret from exposing an honestly
 constructed tier.
+
+### Daily volume state
+
+The accounting day is UTC-aligned and independent of the SCT epoch. Every
+target timestamp is assigned to the UTC day that contains it. Target timestamps
+must remain within ±30 minutes of signed block time, so prior-day nullifiers
+remain retained for the same grace after midnight.
+
+The first real transition in a selected day emits a deterministic private
+origin nullifier. Later transitions prove SCT membership of the predecessor
+commitment and derive its positioned nullifier. Every ordinary Transfer emits
+an indistinguishable real or padding commitment; fee funding uses a
+proof-bound disabled context and emits neither.
+
+Accumulator nullifiers live in a day-prefixed temporary consensus set rather
+than the global historical nullifier tree. Entries are retained through
+`day_start + 24h + 30m` and pruned afterward. The owner opening is recovered
+from a fixed 108-byte OVK-authenticated payload in the compact block.
 
 Only the receiver output carries compliance data:
 
@@ -168,7 +194,8 @@ The transfer circuit proves:
 - rejection of the asset-tree zero sentinel;
 - regulated policy selection and compliance-leaf membership;
 - complete compliance leaves and `Active` sender/receiver status;
-- threshold flag correctness;
+- daily-volume origin or predecessor validity, checked addition, limit, UTC
+  day selection, proof context, and disclosure flag correctness;
 - four independent EPK/shared-secret/c2/payload encryption relations;
 - detection encryption;
 - exact `(asset_id, detection_salt, is_flagged, reserved_zero)` detection
@@ -180,16 +207,16 @@ The transfer circuit proves:
 - canonical address plaintext packing from the two 32-byte Fq encodings into
   31-byte stream words;
 - the single 9-field metadata binding; and
-- the exact 47-field statement preimage committed under the canonical transfer
+- the exact 53-field statement preimage committed under the canonical transfer
   statement-hash domain.
 
-The Rust verifier reconstructs the same 47 fields from typed public data.
+The Rust verifier reconstructs the same 53 fields from typed public data.
 Consensus separately checks proof verification, the current asset-policy and
-user-status roots, timestamp freshness, spend signatures,
-transaction-wide nullifier uniqueness, and the
+user-status roots, timestamp freshness, spend signatures, transaction-wide
+spend-nullifier uniqueness, scoped daily-volume-nullifier uniqueness, and the
 binding signature. Transfer's effect hash includes the exact receiver
-ciphertext and metadata, so a delegated builder cannot replace encryption
-randomness or payload bytes after the spends are authorized.
+ciphertext, metadata, accumulator payload, and proof context, so a delegated
+builder cannot replace them after the spends are authorized.
 
 ## Scanner And Evidence
 

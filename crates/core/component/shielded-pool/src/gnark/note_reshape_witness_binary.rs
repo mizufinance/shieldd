@@ -11,13 +11,11 @@ use crate::gnark::{
 };
 
 const NOTE_RESHAPE_WITNESS_MAGIC: &[u8; 4] = b"PNWG";
-const NOTE_RESHAPE_WITNESS_VERSION: u32 = 10;
 
 impl NoteReshapeWitness {
     pub fn encode(&self) -> Result<Vec<u8>> {
         let mut buf = Vec::new();
         put_bytes(&mut buf, NOTE_RESHAPE_WITNESS_MAGIC);
-        put_u32(&mut buf, NOTE_RESHAPE_WITNESS_VERSION);
         put_u32(&mut buf, 0);
         put_u32(&mut buf, self.family_id.get());
         put_u32(&mut buf, self.n_in);
@@ -65,7 +63,7 @@ impl NoteReshapeWitness {
 
         let total_len =
             u32::try_from(buf.len()).context("encoded note reshape witness exceeds u32")?;
-        buf[8..12].copy_from_slice(&total_len.to_le_bytes());
+        buf[4..8].copy_from_slice(&total_len.to_le_bytes());
         Ok(buf)
     }
 
@@ -73,10 +71,6 @@ impl NoteReshapeWitness {
         let mut cursor = BinaryCursor::new(bytes);
         if cursor.read_fixed::<4>()? != *NOTE_RESHAPE_WITNESS_MAGIC {
             bail!("invalid note reshape witness magic")
-        }
-        let version = cursor.read_u32()?;
-        if version != NOTE_RESHAPE_WITNESS_VERSION {
-            bail!("unsupported note reshape witness version {version}")
         }
         let total_length = cursor.read_u32()?;
         if total_length as usize != bytes.len() {

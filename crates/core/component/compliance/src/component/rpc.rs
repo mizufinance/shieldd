@@ -76,10 +76,10 @@ impl QueryService for Server {
             .get_asset_policy(asset_id)
             .await
             .map_err(|e| Status::internal(format!("failed to query asset policy: {e}")))?;
-        let (dk_pub, threshold) = match &policy {
+        let (dk_pub, daily_volume_limit) = match &policy {
             Some(policy) => (
                 policy.params.dk_pub.vartime_compress().0.to_vec(),
-                policy.params.threshold.to_le_bytes().to_vec(),
+                policy.params.daily_volume_limit.to_le_bytes().to_vec(),
             ),
             None => (vec![], vec![]),
         };
@@ -90,7 +90,7 @@ impl QueryService for Server {
             is_registered: true, // With IMT, we can always answer the query
             is_regulated: proof_data.is_regulated,
             dk_pub,
-            threshold,
+            daily_volume_limit,
             asset_policy: policy.map(Into::into),
         };
 

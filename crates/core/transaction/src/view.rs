@@ -369,6 +369,7 @@ mod tests {
                                         key_confirmation: Fq::from(7u64),
                                         encrypted_sender_address: [0u8; 96],
                                     },
+                                volume_accumulator: shieldd_sdk_shielded_pool::VolumeAccumulatorPayload::canonical_fee_funding(),
                             },
                             auth_sigs: vec![[0u8; 64].into()],
                             proof: ShieldedIcs20WithdrawalProof::default(),

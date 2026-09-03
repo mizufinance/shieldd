@@ -16,8 +16,8 @@ nullifier, and value constraints are tracked in
 - Policy admission rejects identity detection and ring keys before the asset
   leaf can enter durable registry state.
 - Unregulated values select fixed sink ring/DK points and empty-string policy
-  hashes. Their authenticated predecessor-leaf threshold remains a comparator
-  input but cannot affect the regulation-gated flag.
+  hashes. Their authenticated predecessor-leaf daily limit remains in the
+  fixed witness but cannot enable accumulation or disclosure.
 - `is_regulated` is boolean and cannot be chosen independently of the tree.
 - Mutation coverage: regulated/unregulated fixtures, bad gap bounds, wrong
   asset leaf, and selected-policy field changes.
@@ -39,19 +39,23 @@ nullifier, and value constraints are tracked in
 - Mutation coverage: leaf fields, paths, positions, anchor, derivation, and ACK
   inputs.
 
-### Threshold And Detection
+### Daily Volume And Detection
 
-- The flag is exactly
-  `is_regulated * (amount >= authenticated_leaf_threshold)`.
-- An unregulated transfer is therefore never flagged, including when its
-  receiver amount is `u128::MAX`.
+- An eligible real transition proves a canonical day origin or SCT predecessor,
+  checked `u128` addition, and `candidate <= daily_volume_limit`.
+- Eligible padding means disclosure; ineligible padding remains unflagged.
+- An unregulated transfer is never flagged, including when its receiver amount
+  is `u128::MAX`.
+- UTC midnight alone selects the next day, and fee funding is constrained
+  to its statement-bound disabled context.
 - Detection encryption is unconditional and uses the selected DK shared secret,
   sender-core EPK, asset ID/flag, and detection salt.
 - The exact plaintext order is asset, salt, flag, reserved zero. The flag is
   boolean and no slot, role permutation, derivation, or address index appears.
 - The detection ciphertext is part of the public statement.
-- Mutation coverage: threshold boundary, flag, reserved word, salt, EPK, and each
-  detection ciphertext word.
+- Mutation coverage: origin, continuation, exact limit, over-limit candidate,
+  successor amount, transition mode, timestamp decomposition, flag, reserved
+  word, salt, EPK, and each detection ciphertext word.
 
 ### Audit-Tier Encryption
 
@@ -88,13 +92,13 @@ nullifier, and value constraints are tracked in
 
 ### Public Statement
 
-- Rust and Go reconstruct the same 47-field preimage.
+- Rust and Go reconstruct the same 53-field preimage.
 - The statement hash uses the canonical transfer domain.
 - The preimage binds the consensus recent-position floor and one
   `history_required` bit per spend.
 - The public tail commits both core key confirmations and all eight
   non-duplicate metadata Fq values.
-- ABI tests reject stale witness versions and wrong vector lengths.
+- ABI tests reject malformed headers and wrong vector lengths.
 - Differential tests compare native Rust/Go reconstruction, circuit public
   assignment, and statement hash.
 
@@ -111,8 +115,9 @@ nullifier, and value constraints are tracked in
 - Spend signatures cover a Transfer effect hash containing the exact receiver
   ciphertext and metadata; delegated construction cannot replace those bytes
   after authorization.
-- Transaction-wide nullifier insertion and the binding signature remain
-  external acceptance requirements.
+- Transaction-wide spend-nullifier insertion, temporary scoped daily-volume
+  nullifier insertion, and the binding signature remain external acceptance
+  requirements.
 
 ### Wire Shape
 

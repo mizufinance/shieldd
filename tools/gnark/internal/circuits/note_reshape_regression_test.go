@@ -167,7 +167,7 @@ func noteReshapeDomainHashNative(fields []*big.Int, label string) (*big.Int, err
 
 	pad0 := constant("pad0")
 	pad1 := constant("pad1")
-	domain := constant("v1")
+	domain := constant("statement")
 	first := [7]*big.Int{pad0, pad1, pad0, pad1, pad0, pad1, pad0}
 	for i := 0; i < len(first) && i < len(fields); i++ {
 		first[i] = fields[i]

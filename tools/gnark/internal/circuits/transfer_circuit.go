@@ -84,6 +84,24 @@ type TransferChangeOutputCircuitFields struct {
 	Recovery       RecoveryCapsuleFields
 }
 
+type TransferVolumeAccumulatorCircuitFields struct {
+	Nullifier         frontend.Variable
+	Commitment        frontend.Variable
+	DayStart          frontend.Variable
+	ProofContext      frontend.Variable
+	UseReal           frontend.Variable
+	StartsNewDay      frontend.Variable
+	TimestampDayIndex frontend.Variable
+	TimestampSecond   frontend.Variable
+	Subject           frontend.Variable
+	PriorVolume       frontend.Variable
+	PriorBlinding     frontend.Variable
+	PriorCommitment   frontend.Variable
+	PriorStateProof   TransferStatePathCircuitFields
+	SuccessorVolume   frontend.Variable
+	SuccessorBlinding frontend.Variable
+}
+
 const (
 	TransferCircuitInputs  = 2
 	TransferCircuitOutputs = 2
@@ -117,10 +135,11 @@ type TransferCircuit struct {
 	Sender     TransferUserCircuitFields
 	Compliance TransferComplianceFields
 
-	RequiredSpend  TransferRequiredSpendCircuitFields
-	OptionalSpend  TransferOptionalSpendCircuitFields
-	ReceiverOutput TransferReceiverOutputCircuitFields
-	ChangeOutput   TransferChangeOutputCircuitFields
+	RequiredSpend     TransferRequiredSpendCircuitFields
+	OptionalSpend     TransferOptionalSpendCircuitFields
+	ReceiverOutput    TransferReceiverOutputCircuitFields
+	ChangeOutput      TransferChangeOutputCircuitFields
+	VolumeAccumulator TransferVolumeAccumulatorCircuitFields
 }
 
 func transferStatementFieldCount() int {
@@ -189,6 +208,9 @@ func (c *TransferCircuit) Define(api frontend.API) error {
 		return err
 	}
 	statementData.routingRolesSwapped = routingRolesSwapped
+	if err := c.verifyVolumeAccumulator(api, &shared, &statementData); err != nil {
+		return err
+	}
 	c.traceWiring("output.collect", "output1", "amount->output_amounts", "commitment->statement.output_commitments")
 	c.traceWiring("compliance.begin", "tiers=sender_core,sender_ext,output_core,output_ext")
 	if err := c.verifyTransferComplianceCiphertexts(api, &shared, &statementData); err != nil {
@@ -303,8 +325,8 @@ func (c *TransferCircuit) bindTransferWitnessSemantics() {
 	c.bindSemantic("asset.leaf.next_index", c.Asset.Leaf.NextIndex)
 	c.bindSemantic("asset.leaf.next_value", c.Asset.Leaf.NextValue)
 	c.bindSemantic("asset.leaf.dk_pub", c.Asset.Leaf.DKPub.X, c.Asset.Leaf.DKPub.Y)
-	c.bindSemantic("asset.leaf.threshold", c.Asset.Leaf.Threshold)
-	c.bindSemantic("asset.leaf.channels_hash", c.Asset.Leaf.ChannelsHash)
+	c.bindSemantic("asset.leaf.daily_volume_limit", c.Asset.Leaf.DailyVolumeLimit)
+	c.bindSemantic("asset.leaf.route_policy_hash", c.Asset.Leaf.RoutePolicyHash)
 	c.bindSemantic("asset.leaf.ring_pk", c.Asset.Leaf.RingPK.X, c.Asset.Leaf.RingPK.Y)
 	c.bindSemantic("asset.leaf.ring_id_hash", c.Asset.Leaf.RingIDHash)
 	c.bindSemantic("asset.leaf.policy_id_hash", c.Asset.Leaf.PolicyIDHash)
@@ -456,6 +478,7 @@ type transferStatementData struct {
 	senderExtEPKFq         frontend.Variable
 	outputCoreEPKFq        frontend.Variable
 	outputExtEPKFq         frontend.Variable
+	isFlagged              frontend.Variable
 }
 
 // computeTransferAmountBalancePoint evaluates
@@ -623,17 +646,17 @@ func (c *TransferCircuit) verifySharedTransferContext(api frontend.API) (transfe
 	shared := transferSharedContext{
 		ak: gnarkte.Point{X: c.Auth.AK.X, Y: c.Auth.AK.Y},
 		indexedLeaf: IndexedLeafInputs{
-			Value:          c.Asset.Leaf.Value,
-			NextIndex:      c.Asset.Leaf.NextIndex,
-			NextValue:      c.Asset.Leaf.NextValue,
-			DKPub:          gnarkte.Point{X: c.Asset.Leaf.DKPub.X, Y: c.Asset.Leaf.DKPub.Y},
-			Threshold:      c.Asset.Leaf.Threshold,
-			ChannelsHash:   c.Asset.Leaf.ChannelsHash,
-			RingPK:         gnarkte.Point{X: c.Asset.Leaf.RingPK.X, Y: c.Asset.Leaf.RingPK.Y},
-			RingIDHash:     c.Asset.Leaf.RingIDHash,
-			PolicyIDHash:   c.Asset.Leaf.PolicyIDHash,
-			PermissionHash: c.Asset.Leaf.PermissionHash,
-			ResourceHash:   c.Asset.Leaf.ResourceHash,
+			Value:            c.Asset.Leaf.Value,
+			NextIndex:        c.Asset.Leaf.NextIndex,
+			NextValue:        c.Asset.Leaf.NextValue,
+			DKPub:            gnarkte.Point{X: c.Asset.Leaf.DKPub.X, Y: c.Asset.Leaf.DKPub.Y},
+			DailyVolumeLimit: c.Asset.Leaf.DailyVolumeLimit,
+			RoutePolicyHash:  c.Asset.Leaf.RoutePolicyHash,
+			RingPK:           gnarkte.Point{X: c.Asset.Leaf.RingPK.X, Y: c.Asset.Leaf.RingPK.Y},
+			RingIDHash:       c.Asset.Leaf.RingIDHash,
+			PolicyIDHash:     c.Asset.Leaf.PolicyIDHash,
+			PermissionHash:   c.Asset.Leaf.PermissionHash,
+			ResourceHash:     c.Asset.Leaf.ResourceHash,
 		},
 		senderDivGen:       gnarkte.Point{X: c.Sender.DivGen.X, Y: c.Sender.DivGen.Y},
 		senderTransmission: gnarkte.Point{X: c.Sender.Transmission.X, Y: c.Sender.Transmission.Y},
@@ -819,8 +842,8 @@ func (c *TransferCircuit) verifyTransferAssetRegistry(
 	c.traceWiring(
 		"gadget.asset_registry_params_hash",
 		"dk_pub_fq=asset.leaf.dk_pub_fq",
-		"threshold=asset.leaf.threshold",
-		"channels_hash=asset.leaf.channels_hash",
+		"daily_volume_limit=asset.leaf.daily_volume_limit",
+		"route_policy_hash=asset.leaf.route_policy_hash",
 		"out=asset.leaf.params_hash",
 	)
 	paramsHash, err := Poseidon377Hash3(
@@ -828,8 +851,8 @@ func (c *TransferCircuit) verifyTransferAssetRegistry(
 		MustBigInt(vectors.Poseidon377.IMTParamsDomain),
 		[3]frontend.Variable{
 			dkPubFq,
-			shared.indexedLeaf.Threshold,
-			shared.indexedLeaf.ChannelsHash,
+			shared.indexedLeaf.DailyVolumeLimit,
+			shared.indexedLeaf.RoutePolicyHash,
 		},
 	)
 	if err != nil {
@@ -949,7 +972,165 @@ func (c *TransferCircuit) newTransferStatementData() transferStatementData {
 		senderExtEPKFq:         0,
 		outputCoreEPKFq:        0,
 		outputExtEPKFq:         0,
+		isFlagged:              0,
 	}
+}
+
+func volumeAccumulatorDomain(label string) *big.Int {
+	sum := blake2b.Sum512([]byte(label))
+	return LittleEndianBytesToBigInt(sum[:])
+}
+
+func (c *TransferCircuit) verifyVolumeAccumulator(
+	api frontend.API,
+	shared *transferSharedContext,
+	statementData *transferStatementData,
+) error {
+	receiverSameDivGen := api.IsZero(api.Sub(shared.senderDivGenFq, statementData.receiverDivGenFq))
+	receiverSameTransmission := api.IsZero(api.Sub(shared.senderTransmissionFq, statementData.receiverTransmissionFq))
+	isSelf := api.Mul(receiverSameDivGen, receiverSameTransmission)
+	isExternal := api.Sub(1, isSelf)
+	isFee := api.Sub(c.VolumeAccumulator.ProofContext, 1)
+	// Fee funding may only reshape value back to the sender. Transaction location
+	// alone must not exempt an arbitrary external transfer from compliance.
+	api.AssertIsEqual(api.Mul(isFee, isExternal), 0)
+	isFlagged, err := verifyVolumeAccumulatorTransition(
+		api,
+		&c.VolumeAccumulator,
+		c.TargetTimestamp,
+		api.Mul(c.IsRegulated, isExternal),
+		shared.senderDivGenFq,
+		shared.senderTransmissionFq,
+		shared.sharedAssetID,
+		statementData.receiverAmount,
+		shared.indexedLeaf.DailyVolumeLimit,
+		c.Anchor,
+		c.Auth.NK,
+		c.Compliance.TransferNonceRoot,
+	)
+	if err != nil {
+		return err
+	}
+	statementData.isFlagged = isFlagged
+	return nil
+}
+
+func verifyVolumeAccumulatorTransition(
+	api frontend.API,
+	v *TransferVolumeAccumulatorCircuitFields,
+	targetTimestamp frontend.Variable,
+	eligibleOrdinary frontend.Variable,
+	senderDivGenFq frontend.Variable,
+	senderTransmissionFq frontend.Variable,
+	assetID frontend.Variable,
+	outboundAmount frontend.Variable,
+	dailyVolumeLimit frontend.Variable,
+	anchor frontend.Variable,
+	nk frontend.Variable,
+	paddingSeed frontend.Variable,
+) (frontend.Variable, error) {
+	api.AssertIsBoolean(v.UseReal)
+	api.AssertIsBoolean(v.StartsNewDay)
+	api.AssertIsBoolean(eligibleOrdinary)
+	api.AssertIsEqual(api.Mul(api.Sub(v.ProofContext, 1), api.Sub(v.ProofContext, 2)), 0)
+	isFee := api.Sub(v.ProofContext, 1)
+	isOrdinary := api.Sub(1, isFee)
+	api.AssertIsBoolean(isFee)
+	api.AssertIsBoolean(isOrdinary)
+
+	api.ToBinary(targetTimestamp, 64)
+	api.ToBinary(v.TimestampDayIndex, 48)
+	api.ToBinary(v.TimestampSecond, 17)
+	api.AssertIsEqual(targetTimestamp, api.Add(api.Mul(v.TimestampDayIndex, 86400), v.TimestampSecond))
+	api.AssertIsEqual(FieldLessThan(api, v.TimestampSecond, 86400), 1)
+	selectedDayStart := api.Mul(v.TimestampDayIndex, 86400)
+	api.AssertIsEqual(v.DayStart, api.Mul(isOrdinary, selectedDayStart))
+
+	eligible := api.Mul(isOrdinary, eligibleOrdinary)
+	api.AssertIsEqual(api.Mul(v.UseReal, api.Sub(1, eligible)), 0)
+	isFlagged := api.Mul(eligible, api.Sub(1, v.UseReal))
+	api.AssertIsBoolean(isFlagged)
+
+	subject, err := Poseidon377Hash3(
+		api,
+		volumeAccumulatorDomain("shieldd.volume.subject"),
+		[3]frontend.Variable{senderDivGenFq, senderTransmissionFq, assetID},
+	)
+	if err != nil {
+		return nil, err
+	}
+	api.AssertIsEqual(api.Mul(v.UseReal, api.Sub(v.Subject, subject)), 0)
+
+	api.ToBinary(v.PriorVolume, transferAmountBits)
+	api.ToBinary(v.SuccessorVolume, transferAmountBits)
+	api.ToBinary(dailyVolumeLimit, transferAmountBits)
+	candidate := api.Add(v.PriorVolume, outboundAmount)
+	api.ToBinary(candidate, transferAmountBits)
+	api.AssertIsEqual(api.Mul(v.UseReal, api.Sub(v.SuccessorVolume, candidate)), 0)
+	withinLimit := api.Sub(1, FieldLessThan(api, dailyVolumeLimit, candidate))
+	api.AssertIsEqual(api.Mul(v.UseReal, api.Sub(1, withinLimit)), 0)
+	api.AssertIsEqual(api.Mul(v.UseReal, v.StartsNewDay, v.PriorVolume), 0)
+
+	priorCommitment, err := Poseidon377Hash4(
+		api,
+		volumeAccumulatorDomain("shieldd.volume.state"),
+		[4]frontend.Variable{v.Subject, v.DayStart, v.PriorVolume, v.PriorBlinding},
+	)
+	if err != nil {
+		return nil, err
+	}
+	continuation := api.Mul(v.UseReal, api.Sub(1, v.StartsNewDay))
+	api.AssertIsEqual(api.Mul(continuation, api.Sub(v.PriorCommitment, priorCommitment)), 0)
+	priorPath := make([][3]frontend.Variable, len(v.PriorStateProof.Path))
+	copy(priorPath, v.PriorStateProof.Path[:])
+	priorAnchor, err := VerifyStateCommitmentPath(api, priorCommitment, v.PriorStateProof.Position, priorPath)
+	if err != nil {
+		return nil, err
+	}
+	api.AssertIsEqual(api.Mul(continuation, api.Sub(priorAnchor, anchor)), 0)
+
+	originNullifier, err := Poseidon377Hash3(
+		api,
+		volumeAccumulatorDomain("shieldd.volume.origin_nullifier"),
+		[3]frontend.Variable{nk, v.Subject, v.DayStart},
+	)
+	if err != nil {
+		return nil, err
+	}
+	continuationNullifier, err := Nullifier(api, nk, priorCommitment, v.PriorStateProof.Position)
+	if err != nil {
+		return nil, err
+	}
+	realNullifier := api.Select(v.StartsNewDay, originNullifier, continuationNullifier)
+	realCommitment, err := Poseidon377Hash4(
+		api,
+		volumeAccumulatorDomain("shieldd.volume.state"),
+		[4]frontend.Variable{v.Subject, v.DayStart, v.SuccessorVolume, v.SuccessorBlinding},
+	)
+	if err != nil {
+		return nil, err
+	}
+	paddingCommitment, err := Poseidon377Hash3(
+		api,
+		volumeAccumulatorDomain("shieldd.volume.padding_commitment"),
+		[3]frontend.Variable{nk, paddingSeed, v.DayStart},
+	)
+	if err != nil {
+		return nil, err
+	}
+	paddingNullifier, err := Poseidon377Hash3(
+		api,
+		volumeAccumulatorDomain("shieldd.volume.padding_nullifier"),
+		[3]frontend.Variable{nk, paddingSeed, v.DayStart},
+	)
+	if err != nil {
+		return nil, err
+	}
+	ordinaryNullifier := api.Select(v.UseReal, realNullifier, paddingNullifier)
+	ordinaryCommitment := api.Select(v.UseReal, realCommitment, paddingCommitment)
+	api.AssertIsEqual(v.Nullifier, api.Mul(isOrdinary, ordinaryNullifier))
+	api.AssertIsEqual(v.Commitment, api.Mul(isOrdinary, ordinaryCommitment))
+	return isFlagged, nil
 }
 
 func transferSyntheticDummyNullifierDomain() *big.Int {
@@ -1344,13 +1525,8 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 	shared *transferSharedContext,
 	statementData *transferStatementData,
 ) error {
-	c.traceWiring("threshold.flag", "regulated=is_regulated", "amount=receiver.amount", "threshold=asset.leaf.threshold", "out=is_flagged")
-	isFlagged := ThresholdFlag(
-		api,
-		c.IsRegulated,
-		statementData.receiverAmount,
-		shared.indexedLeaf.Threshold,
-	)
+	c.traceWiring("daily_volume_limit.flag", "regulated=is_regulated", "amount=receiver.amount", "daily_volume_limit=asset.leaf.daily_volume_limit", "out=is_flagged")
+	isFlagged := statementData.isFlagged
 	c.bindSemantic("is_flagged", isFlagged)
 
 	senderCoreEPK := gnarkte.Point{X: c.Compliance.SenderCore.Epk.X, Y: c.Compliance.SenderCore.Epk.Y}
@@ -1608,6 +1784,12 @@ func (c *TransferCircuit) buildTransferStatementFields(
 	fields = append(fields, c.RoutingTags[:]...)
 	fields = append(fields, c.RoutingParameterSetID)
 	fields = append(fields, c.RecentPositionFloor)
+	fields = append(fields,
+		c.VolumeAccumulator.Nullifier,
+		c.VolumeAccumulator.Commitment,
+		c.VolumeAccumulator.DayStart,
+		c.VolumeAccumulator.ProofContext,
+	)
 	fields = append(fields, statementData.nullifiersAndRKs...)
 	fields = append(fields, c.AssetAnchor, c.ComplianceAnchor)
 	fields = append(fields, c.Compliance.DetectionCiphertext[:]...)

@@ -47,7 +47,7 @@ pub struct ComplianceLeaf {
     /// Orbis ring public key evaluated on this address's diversified generator.
     #[prost(bytes = "vec", tag = "4")]
     pub rnk_dh_pk: ::prost::alloc::vec::Vec<u8>,
-    /// Poseidon commitment to the regulated nullifier key derivable by the wallet and threshold Orbis.
+    /// Poseidon commitment to the regulated nullifier key derivable by the wallet and daily_volume_limit Orbis.
     #[prost(bytes = "vec", tag = "5")]
     pub rnk_commitment: ::prost::alloc::vec::Vec<u8>,
     /// Current authorization state for this address and asset.
@@ -82,9 +82,9 @@ pub struct MsgRegisterAsset {
     /// Issuer's detection key public (32 bytes, optional).
     #[prost(bytes = "vec", tag = "3")]
     pub dk_pub: ::prost::alloc::vec::Vec<u8>,
-    /// Amount threshold for flagging (16 bytes, little-endian u128).
+    /// Daily undisclosed-volume limit (16-byte little-endian u128).
     #[prost(bytes = "vec", tag = "4")]
-    pub threshold: ::prost::alloc::vec::Vec<u8>,
+    pub daily_volume_limit: ::prost::alloc::vec::Vec<u8>,
     /// Direct IBC routes allowed for this regulated asset. Empty = IBC blocked.
     #[prost(message, repeated, tag = "5")]
     pub allowed_ibc_routes: ::prost::alloc::vec::Vec<IbcRoute>,
@@ -140,7 +140,7 @@ pub struct AssetRegistrationGrantBody {
     #[prost(bytes = "vec", tag = "3")]
     pub dk_pub: ::prost::alloc::vec::Vec<u8>,
     #[prost(bytes = "vec", tag = "4")]
-    pub threshold: ::prost::alloc::vec::Vec<u8>,
+    pub daily_volume_limit: ::prost::alloc::vec::Vec<u8>,
     #[prost(message, repeated, tag = "5")]
     pub allowed_ibc_routes: ::prost::alloc::vec::Vec<IbcRoute>,
     #[prost(bytes = "vec", tag = "6")]
@@ -313,7 +313,7 @@ pub struct MsgRegisterUser {
     /// Grant authorizing this registration.
     #[prost(message, optional, tag = "2")]
     pub grant: ::core::option::Option<UserRegistrationGrant>,
-    /// Orbis threshold certificate for the address-diversified ring public key.
+    /// Orbis daily_volume_limit certificate for the address-diversified ring public key.
     #[prost(message, optional, tag = "3")]
     pub capability_certificate: ::core::option::Option<OrbisCapabilityCertificate>,
 }
@@ -327,7 +327,7 @@ impl ::prost::Name for MsgRegisterUser {
         "/shieldd.core.component.compliance.v1.MsgRegisterUser".into()
     }
 }
-/// Threshold-Orbis attestation for an address-diversified ring public key.
+/// DailyVolumeLimit-Orbis attestation for an address-diversified ring public key.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct OrbisCapabilityCertificate {
     /// Chain on which this certificate may be used.
@@ -416,14 +416,16 @@ pub struct ComplianceAssetStatusResponse {
     #[prost(bool, tag = "3")]
     pub is_regulated: bool,
     /// Optional: Issuer's detection key public (32 bytes compressed point).
-    /// Present if the asset has a threshold policy.
+    /// Present if the asset has a daily volume policy.
     #[prost(bytes = "vec", tag = "4")]
     pub dk_pub: ::prost::alloc::vec::Vec<u8>,
-    /// Amount threshold for flagging (16 bytes, little-endian u128).
-    /// Transfers at or above this amount are encrypted to issuer's DK instead of user's daily key.
+    /// Daily undisclosed-volume limit (16-byte little-endian u128).
+    /// Maximum accumulated undisclosed outgoing volume. A candidate above this
+    /// amount discloses only the current action to the issuer; equality remains
+    /// undisclosed. Compliance encryption uses per-action key material.
     /// u128::MAX means never flag.
     #[prost(bytes = "vec", tag = "5")]
-    pub threshold: ::prost::alloc::vec::Vec<u8>,
+    pub daily_volume_limit: ::prost::alloc::vec::Vec<u8>,
     /// Full asset policy for regulated assets.
     #[prost(message, optional, tag = "6")]
     pub asset_policy: ::core::option::Option<AssetPolicy>,
@@ -667,7 +669,7 @@ pub struct IndexedLeafData {
     #[prost(bytes = "vec", tag = "4")]
     pub dk_pub: ::prost::alloc::vec::Vec<u8>,
     #[prost(bytes = "vec", tag = "5")]
-    pub threshold: ::prost::alloc::vec::Vec<u8>,
+    pub daily_volume_limit: ::prost::alloc::vec::Vec<u8>,
     #[prost(bytes = "vec", tag = "6")]
     pub route_policy_hash: ::prost::alloc::vec::Vec<u8>,
     /// Orbis-decided policy (RingData)
@@ -699,7 +701,7 @@ pub struct AssetPolicy {
     #[prost(bytes = "vec", tag = "1")]
     pub dk_pub: ::prost::alloc::vec::Vec<u8>,
     #[prost(bytes = "vec", tag = "2")]
-    pub threshold: ::prost::alloc::vec::Vec<u8>,
+    pub daily_volume_limit: ::prost::alloc::vec::Vec<u8>,
     #[prost(message, repeated, tag = "3")]
     pub allowed_ibc_routes: ::prost::alloc::vec::Vec<IbcRoute>,
     /// RingData

@@ -30,17 +30,17 @@ type SpendAuthFields struct {
 }
 
 type IndexedLeafFields struct {
-	Value          frontend.Variable
-	NextIndex      frontend.Variable
-	NextValue      frontend.Variable
-	DKPub          Point2D
-	Threshold      frontend.Variable
-	ChannelsHash   frontend.Variable
-	RingPK         Point2D
-	RingIDHash     frontend.Variable
-	PolicyIDHash   frontend.Variable
-	PermissionHash frontend.Variable
-	ResourceHash   frontend.Variable
+	Value            frontend.Variable
+	NextIndex        frontend.Variable
+	NextValue        frontend.Variable
+	DKPub            Point2D
+	DailyVolumeLimit frontend.Variable
+	RoutePolicyHash  frontend.Variable
+	RingPK           Point2D
+	RingIDHash       frontend.Variable
+	PolicyIDHash     frontend.Variable
+	PermissionHash   frontend.Variable
+	ResourceHash     frontend.Variable
 }
 
 type AssetTreeFields struct {

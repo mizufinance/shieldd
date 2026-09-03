@@ -1,28 +1,28 @@
-use std::{fs, path::PathBuf};
+use std::path::{Path, PathBuf};
 
-fn normalize_rust_source(source: &str) -> String {
-    let mut normalized = source
-        .lines()
-        .map(str::trim_end)
-        .collect::<Vec<_>>()
-        .join("\n");
-    if source.ends_with('\n') {
-        normalized.push('\n');
+fn strip_trailing_whitespace(text: &str) -> String {
+    let mut normalized = String::with_capacity(text.len());
+    for chunk in text.split_inclusive('\n') {
+        if let Some(line) = chunk.strip_suffix('\n') {
+            normalized.push_str(line.trim_end_matches([' ', '\t', '\r']));
+            normalized.push('\n');
+        } else {
+            normalized.push_str(chunk.trim_end_matches([' ', '\t', '\r']));
+        }
     }
     normalized
 }
 
-fn normalize_generated_rust(target_dir: &std::path::Path) -> anyhow::Result<()> {
-    for entry in fs::read_dir(target_dir)? {
+fn normalize_generated_rust(target_dir: &Path) -> anyhow::Result<()> {
+    for entry in std::fs::read_dir(target_dir)? {
         let path = entry?.path();
         if path.extension().and_then(|extension| extension.to_str()) != Some("rs") {
             continue;
         }
-
-        let source = fs::read_to_string(&path)?;
-        let normalized = normalize_rust_source(&source);
+        let source = std::fs::read_to_string(&path)?;
+        let normalized = strip_trailing_whitespace(&source);
         if normalized != source {
-            fs::write(path, normalized)?;
+            std::fs::write(path, normalized)?;
         }
     }
     Ok(())
@@ -151,11 +151,17 @@ fn main() -> anyhow::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::normalize_rust_source;
+    use super::strip_trailing_whitespace;
 
     #[test]
-    fn generated_rust_has_no_trailing_whitespace() {
-        assert_eq!(normalize_rust_source("one  \ntwo\t\nthree"), "one\ntwo\nthree");
-        assert_eq!(normalize_rust_source("one  \n"), "one\n");
+    fn strips_trailing_whitespace_without_changing_line_structure() {
+        assert_eq!(
+            strip_trailing_whitespace("first  \nsecond\t\nthird  "),
+            "first\nsecond\nthird"
+        );
+        assert_eq!(
+            strip_trailing_whitespace("already clean\n"),
+            "already clean\n"
+        );
     }
 }

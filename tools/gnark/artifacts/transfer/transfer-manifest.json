@@ -1,15 +1,15 @@
 {
-  "schema": "shieldd.gnark.constraint_manifest.v1",
+  "schema": "shieldd.gnark.constraint_manifest",
   "circuit": "transfer",
   "shape": {
     "n_in": 2,
     "n_out": 2
   },
-  "nb_constraints": 150593,
+  "nb_constraints": 163396,
   "nb_public_variables": 2,
-  "nb_secret_variables": 431,
-  "nb_internal_variables": 137705,
-  "sr1cs_sha256_hex": "6935ae60da833dd14c49cf6833c4023beaccc5a39aa5bdbc5912aa44a702b1c2",
+  "nb_secret_variables": 518,
+  "nb_internal_variables": 150384,
+  "sr1cs_sha256_hex": "9c7f003980d783133db6b82e4e30fd3444d1fe37bf80fd3da4c6a227d0046ff7",
   "witness_wires": [
     {
       "wire_id": 1,
@@ -45,7 +45,7 @@
       "wire_id": 6,
       "path": "Anchor",
       "visibility": "secret",
-      "constraint_rows": 4
+      "constraint_rows": 5
     },
     {
       "wire_id": 7,
@@ -63,7 +63,7 @@
       "wire_id": 9,
       "path": "TargetTimestamp",
       "visibility": "secret",
-      "constraint_rows": 3
+      "constraint_rows": 5
     },
     {
       "wire_id": 10,
@@ -111,7 +111,7 @@
       "wire_id": 17,
       "path": "Auth_NK",
       "visibility": "secret",
-      "constraint_rows": 7
+      "constraint_rows": 15
     },
     {
       "wire_id": 18,
@@ -157,13 +157,13 @@
     },
     {
       "wire_id": 25,
-      "path": "Asset_Leaf_Threshold",
+      "path": "Asset_Leaf_DailyVolumeLimit",
       "visibility": "secret",
-      "constraint_rows": 3
+      "constraint_rows": 4
     },
     {
       "wire_id": 26,
-      "path": "Asset_Leaf_ChannelsHash",
+      "path": "Asset_Leaf_RoutePolicyHash",
       "visibility": "secret",
       "constraint_rows": 2
     },
@@ -855,7 +855,7 @@
       "wire_id": 141,
       "path": "Compliance_TransferNonceRoot",
       "visibility": "secret",
-      "constraint_rows": 16
+      "constraint_rows": 20
     },
     {
       "wire_id": 142,
@@ -1131,7 +1131,7 @@
       "wire_id": 187,
       "path": "RequiredSpend_Note_AssetID",
       "visibility": "secret",
-      "constraint_rows": 21
+      "constraint_rows": 23
     },
     {
       "wire_id": 188,
@@ -2097,7 +2097,7 @@
       "wire_id": 348,
       "path": "ReceiverOutput_Note_Amount",
       "visibility": "secret",
-      "constraint_rows": 10
+      "constraint_rows": 12
     },
     {
       "wire_id": 349,
@@ -2602,6 +2602,528 @@
       "path": "ChangeOutput_Recovery_Randomizer",
       "visibility": "secret",
       "constraint_rows": 1
+    },
+    {
+      "wire_id": 433,
+      "path": "VolumeAccumulator_Nullifier",
+      "visibility": "secret",
+      "constraint_rows": 3
+    },
+    {
+      "wire_id": 434,
+      "path": "VolumeAccumulator_Commitment",
+      "visibility": "secret",
+      "constraint_rows": 3
+    },
+    {
+      "wire_id": 435,
+      "path": "VolumeAccumulator_DayStart",
+      "visibility": "secret",
+      "constraint_rows": 13
+    },
+    {
+      "wire_id": 436,
+      "path": "VolumeAccumulator_ProofContext",
+      "visibility": "secret",
+      "constraint_rows": 10
+    },
+    {
+      "wire_id": 437,
+      "path": "VolumeAccumulator_UseReal",
+      "visibility": "secret",
+      "constraint_rows": 10
+    },
+    {
+      "wire_id": 438,
+      "path": "VolumeAccumulator_StartsNewDay",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 439,
+      "path": "VolumeAccumulator_TimestampDayIndex",
+      "visibility": "secret",
+      "constraint_rows": 3
+    },
+    {
+      "wire_id": 440,
+      "path": "VolumeAccumulator_TimestampSecond",
+      "visibility": "secret",
+      "constraint_rows": 3
+    },
+    {
+      "wire_id": 441,
+      "path": "VolumeAccumulator_Subject",
+      "visibility": "secret",
+      "constraint_rows": 7
+    },
+    {
+      "wire_id": 442,
+      "path": "VolumeAccumulator_PriorVolume",
+      "visibility": "secret",
+      "constraint_rows": 7
+    },
+    {
+      "wire_id": 443,
+      "path": "VolumeAccumulator_PriorBlinding",
+      "visibility": "secret",
+      "constraint_rows": 2
+    },
+    {
+      "wire_id": 444,
+      "path": "VolumeAccumulator_PriorCommitment",
+      "visibility": "secret",
+      "constraint_rows": 1
+    },
+    {
+      "wire_id": 445,
+      "path": "VolumeAccumulator_PriorStateProof_Position",
+      "visibility": "secret",
+      "constraint_rows": 3
+    },
+    {
+      "wire_id": 446,
+      "path": "VolumeAccumulator_PriorStateProof_Path_0_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 447,
+      "path": "VolumeAccumulator_PriorStateProof_Path_0_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 448,
+      "path": "VolumeAccumulator_PriorStateProof_Path_0_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 449,
+      "path": "VolumeAccumulator_PriorStateProof_Path_1_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 450,
+      "path": "VolumeAccumulator_PriorStateProof_Path_1_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 451,
+      "path": "VolumeAccumulator_PriorStateProof_Path_1_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 452,
+      "path": "VolumeAccumulator_PriorStateProof_Path_2_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 453,
+      "path": "VolumeAccumulator_PriorStateProof_Path_2_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 454,
+      "path": "VolumeAccumulator_PriorStateProof_Path_2_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 455,
+      "path": "VolumeAccumulator_PriorStateProof_Path_3_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 456,
+      "path": "VolumeAccumulator_PriorStateProof_Path_3_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 457,
+      "path": "VolumeAccumulator_PriorStateProof_Path_3_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 458,
+      "path": "VolumeAccumulator_PriorStateProof_Path_4_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 459,
+      "path": "VolumeAccumulator_PriorStateProof_Path_4_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 460,
+      "path": "VolumeAccumulator_PriorStateProof_Path_4_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 461,
+      "path": "VolumeAccumulator_PriorStateProof_Path_5_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 462,
+      "path": "VolumeAccumulator_PriorStateProof_Path_5_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 463,
+      "path": "VolumeAccumulator_PriorStateProof_Path_5_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 464,
+      "path": "VolumeAccumulator_PriorStateProof_Path_6_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 465,
+      "path": "VolumeAccumulator_PriorStateProof_Path_6_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 466,
+      "path": "VolumeAccumulator_PriorStateProof_Path_6_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 467,
+      "path": "VolumeAccumulator_PriorStateProof_Path_7_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 468,
+      "path": "VolumeAccumulator_PriorStateProof_Path_7_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 469,
+      "path": "VolumeAccumulator_PriorStateProof_Path_7_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 470,
+      "path": "VolumeAccumulator_PriorStateProof_Path_8_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 471,
+      "path": "VolumeAccumulator_PriorStateProof_Path_8_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 472,
+      "path": "VolumeAccumulator_PriorStateProof_Path_8_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 473,
+      "path": "VolumeAccumulator_PriorStateProof_Path_9_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 474,
+      "path": "VolumeAccumulator_PriorStateProof_Path_9_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 475,
+      "path": "VolumeAccumulator_PriorStateProof_Path_9_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 476,
+      "path": "VolumeAccumulator_PriorStateProof_Path_10_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 477,
+      "path": "VolumeAccumulator_PriorStateProof_Path_10_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 478,
+      "path": "VolumeAccumulator_PriorStateProof_Path_10_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 479,
+      "path": "VolumeAccumulator_PriorStateProof_Path_11_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 480,
+      "path": "VolumeAccumulator_PriorStateProof_Path_11_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 481,
+      "path": "VolumeAccumulator_PriorStateProof_Path_11_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 482,
+      "path": "VolumeAccumulator_PriorStateProof_Path_12_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 483,
+      "path": "VolumeAccumulator_PriorStateProof_Path_12_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 484,
+      "path": "VolumeAccumulator_PriorStateProof_Path_12_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 485,
+      "path": "VolumeAccumulator_PriorStateProof_Path_13_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 486,
+      "path": "VolumeAccumulator_PriorStateProof_Path_13_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 487,
+      "path": "VolumeAccumulator_PriorStateProof_Path_13_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 488,
+      "path": "VolumeAccumulator_PriorStateProof_Path_14_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 489,
+      "path": "VolumeAccumulator_PriorStateProof_Path_14_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 490,
+      "path": "VolumeAccumulator_PriorStateProof_Path_14_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 491,
+      "path": "VolumeAccumulator_PriorStateProof_Path_15_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 492,
+      "path": "VolumeAccumulator_PriorStateProof_Path_15_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 493,
+      "path": "VolumeAccumulator_PriorStateProof_Path_15_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 494,
+      "path": "VolumeAccumulator_PriorStateProof_Path_16_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 495,
+      "path": "VolumeAccumulator_PriorStateProof_Path_16_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 496,
+      "path": "VolumeAccumulator_PriorStateProof_Path_16_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 497,
+      "path": "VolumeAccumulator_PriorStateProof_Path_17_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 498,
+      "path": "VolumeAccumulator_PriorStateProof_Path_17_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 499,
+      "path": "VolumeAccumulator_PriorStateProof_Path_17_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 500,
+      "path": "VolumeAccumulator_PriorStateProof_Path_18_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 501,
+      "path": "VolumeAccumulator_PriorStateProof_Path_18_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 502,
+      "path": "VolumeAccumulator_PriorStateProof_Path_18_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 503,
+      "path": "VolumeAccumulator_PriorStateProof_Path_19_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 504,
+      "path": "VolumeAccumulator_PriorStateProof_Path_19_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 505,
+      "path": "VolumeAccumulator_PriorStateProof_Path_19_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 506,
+      "path": "VolumeAccumulator_PriorStateProof_Path_20_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 507,
+      "path": "VolumeAccumulator_PriorStateProof_Path_20_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 508,
+      "path": "VolumeAccumulator_PriorStateProof_Path_20_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 509,
+      "path": "VolumeAccumulator_PriorStateProof_Path_21_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 510,
+      "path": "VolumeAccumulator_PriorStateProof_Path_21_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 511,
+      "path": "VolumeAccumulator_PriorStateProof_Path_21_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 512,
+      "path": "VolumeAccumulator_PriorStateProof_Path_22_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 513,
+      "path": "VolumeAccumulator_PriorStateProof_Path_22_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 514,
+      "path": "VolumeAccumulator_PriorStateProof_Path_22_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 515,
+      "path": "VolumeAccumulator_PriorStateProof_Path_23_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 516,
+      "path": "VolumeAccumulator_PriorStateProof_Path_23_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 517,
+      "path": "VolumeAccumulator_PriorStateProof_Path_23_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 518,
+      "path": "VolumeAccumulator_SuccessorVolume",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 519,
+      "path": "VolumeAccumulator_SuccessorBlinding",
+      "visibility": "secret",
+      "constraint_rows": 2
     }
   ],
   "semantic_bindings": [
@@ -2927,7 +3449,7 @@
       ]
     },
     {
-      "name": "asset.leaf.threshold",
+      "name": "asset.leaf.daily_volume_limit",
       "expressions": [
         {
           "constant": "0",
@@ -2941,7 +3463,7 @@
       ]
     },
     {
-      "name": "asset.leaf.channels_hash",
+      "name": "asset.leaf.route_policy_hash",
       "expressions": [
         {
           "constant": "0",
@@ -6709,19 +7231,19 @@
       "name": "effective.ring_pk",
       "expressions": [
         {
-          "constant": "3826970704928709070049425479926179513359061356766213604174343785803606509560",
+          "constant": "5137130679536289319172086801019188818661635996481423938281993071105025414769",
           "terms": [
             {
-              "wire_id": 436,
+              "wire_id": 523,
               "coefficient": "1"
             }
           ]
         },
         {
-          "constant": "4435054869909997083204234178514060517908537592280323551921416368800279852461",
+          "constant": "7448520079642471549799603907607143574677374037424044774902333762019934162060",
           "terms": [
             {
-              "wire_id": 437,
+              "wire_id": 524,
               "coefficient": "1"
             }
           ]
@@ -6732,19 +7254,19 @@
       "name": "effective.dk_pub",
       "expressions": [
         {
-          "constant": "6231913487103609750640950017270618557496021698282624654949751592866266721188",
+          "constant": "6943091991010186327908355613514593954864553243174057452223508858492141588797",
           "terms": [
             {
-              "wire_id": 438,
+              "wire_id": 525,
               "coefficient": "1"
             }
           ]
         },
         {
-          "constant": "2174545944513429084000285632212505083184015391631831920218451010714927555391",
+          "constant": "7577699061414190638158415127190667490634931787932918416594213747467015593932",
           "terms": [
             {
-              "wire_id": 439,
+              "wire_id": 526,
               "coefficient": "1"
             }
           ]
@@ -6758,7 +7280,7 @@
           "constant": "146917404083759493085774782844141783124558702674359650395366636584294839859",
           "terms": [
             {
-              "wire_id": 440,
+              "wire_id": 527,
               "coefficient": "1"
             }
           ]
@@ -6772,7 +7294,7 @@
           "constant": "146917404083759493085774782844141783124558702674359650395366636584294839859",
           "terms": [
             {
-              "wire_id": 441,
+              "wire_id": 528,
               "coefficient": "1"
             }
           ]
@@ -6786,7 +7308,7 @@
           "constant": "146917404083759493085774782844141783124558702674359650395366636584294839859",
           "terms": [
             {
-              "wire_id": 442,
+              "wire_id": 529,
               "coefficient": "1"
             }
           ]
@@ -6800,7 +7322,7 @@
           "constant": "146917404083759493085774782844141783124558702674359650395366636584294839859",
           "terms": [
             {
-              "wire_id": 443,
+              "wire_id": 530,
               "coefficient": "1"
             }
           ]
@@ -6814,11 +7336,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 806,
+              "wire_id": 893,
               "coefficient": "8444461749428370424248824938781546531375899335154063827935233455917409239040"
             },
             {
-              "wire_id": 1146,
+              "wire_id": 1233,
               "coefficient": "1"
             }
           ]
@@ -6832,11 +7354,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 1509,
+              "wire_id": 1596,
               "coefficient": "8444461749428370424248824938781546531375899335154063827935233455917409239040"
             },
             {
-              "wire_id": 1849,
+              "wire_id": 1936,
               "coefficient": "1"
             }
           ]
@@ -6850,11 +7372,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 6804,
+              "wire_id": 6891,
               "coefficient": "1"
             },
             {
-              "wire_id": 6812,
+              "wire_id": 6899,
               "coefficient": "1"
             }
           ]
@@ -6863,11 +7385,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 6805,
+              "wire_id": 6892,
               "coefficient": "1"
             },
             {
-              "wire_id": 6813,
+              "wire_id": 6900,
               "coefficient": "1"
             }
           ]
@@ -6881,11 +7403,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 7179,
+              "wire_id": 7266,
               "coefficient": "8444461749428370424248824938781546531375899335154063827935233455917409239040"
             },
             {
-              "wire_id": 7519,
+              "wire_id": 7606,
               "coefficient": "1"
             }
           ]
@@ -6899,19 +7421,19 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 7814,
+              "wire_id": 7901,
               "coefficient": "6755569399542696339399059951025237225100719468123251062348186764733927391233"
             },
             {
-              "wire_id": 7819,
+              "wire_id": 7906,
               "coefficient": "7037051457856975353540687448984622109479916112628386523279361213264507699201"
             },
             {
-              "wire_id": 7824,
+              "wire_id": 7911,
               "coefficient": "7238110070938603220784707090384182741179342287274911852515914390786350776321"
             },
             {
-              "wire_id": 7829,
+              "wire_id": 7916,
               "coefficient": "7388904030749824121217721821433853214953911918259805849443329273927733084161"
             }
           ]
@@ -6925,11 +7447,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 8192,
+              "wire_id": 8279,
               "coefficient": "8444461749428370424248824938781546531375899335154063827935233455917409239040"
             },
             {
-              "wire_id": 8532,
+              "wire_id": 8619,
               "coefficient": "1"
             }
           ]
@@ -6943,27 +7465,27 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 8897,
+              "wire_id": 8984,
               "coefficient": "7238110070938603220784707090384182741179342287274911852515914390786350776321"
             },
             {
-              "wire_id": 8902,
+              "wire_id": 8989,
               "coefficient": "7388904030749824121217721821433853214953911918259805849443329273927733084161"
             },
             {
-              "wire_id": 8907,
+              "wire_id": 8994,
               "coefficient": "4691367638571316902360458299323081406319944075085591015519574142176338466134"
             },
             {
-              "wire_id": 8912,
+              "wire_id": 8999,
               "coefficient": "7600015574485533381823942444903391878238309401638657445141710110325668315137"
             },
             {
-              "wire_id": 8917,
+              "wire_id": 9004,
               "coefficient": "2303035022571373752067861346940421781284336182314744680345972760704747974284"
             },
             {
-              "wire_id": 8922,
+              "wire_id": 9009,
               "coefficient": "7740756603642672888894756193883084320427907723891225175607297334590958469121"
             }
           ]
@@ -6977,27 +7499,27 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 9287,
+              "wire_id": 9374,
               "coefficient": "7238110070938603220784707090384182741179342287274911852515914390786350776321"
             },
             {
-              "wire_id": 9292,
+              "wire_id": 9379,
               "coefficient": "7388904030749824121217721821433853214953911918259805849443329273927733084161"
             },
             {
-              "wire_id": 9297,
+              "wire_id": 9384,
               "coefficient": "4691367638571316902360458299323081406319944075085591015519574142176338466134"
             },
             {
-              "wire_id": 9302,
+              "wire_id": 9389,
               "coefficient": "7600015574485533381823942444903391878238309401638657445141710110325668315137"
             },
             {
-              "wire_id": 9307,
+              "wire_id": 9394,
               "coefficient": "2303035022571373752067861346940421781284336182314744680345972760704747974284"
             },
             {
-              "wire_id": 9312,
+              "wire_id": 9399,
               "coefficient": "7740756603642672888894756193883084320427907723891225175607297334590958469121"
             }
           ]
@@ -7011,23 +7533,23 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 15084,
+              "wire_id": 15171,
               "coefficient": "7037051457856975353540687448984622109479916112628386523279361213264507699201"
             },
             {
-              "wire_id": 15089,
+              "wire_id": 15176,
               "coefficient": "7238110070938603220784707090384182741179342287274911852515914390786350776321"
             },
             {
-              "wire_id": 15094,
+              "wire_id": 15181,
               "coefficient": "7388904030749824121217721821433853214953911918259805849443329273927733084161"
             },
             {
-              "wire_id": 15099,
+              "wire_id": 15186,
               "coefficient": "4691367638571316902360458299323081406319944075085591015519574142176338466134"
             },
             {
-              "wire_id": 15104,
+              "wire_id": 15191,
               "coefficient": "7600015574485533381823942444903391878238309401638657445141710110325668315137"
             }
           ]
@@ -7041,11 +7563,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 18144,
+              "wire_id": 18231,
               "coefficient": "1"
             },
             {
-              "wire_id": 18145,
+              "wire_id": 18232,
               "coefficient": "1"
             }
           ]
@@ -7059,35 +7581,35 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 19994,
+              "wire_id": 20081,
               "coefficient": "4691367638571316902360458299323081406319944075085591015519574142176338466134"
             },
             {
-              "wire_id": 19999,
+              "wire_id": 20086,
               "coefficient": "7600015574485533381823942444903391878238309401638657445141710110325668315137"
             },
             {
-              "wire_id": 20004,
+              "wire_id": 20091,
               "coefficient": "2303035022571373752067861346940421781284336182314744680345972760704747974284"
             },
             {
-              "wire_id": 20009,
+              "wire_id": 20096,
               "coefficient": "7740756603642672888894756193883084320427907723891225175607297334590958469121"
             },
             {
-              "wire_id": 20014,
+              "wire_id": 20101,
               "coefficient": "7794887768703111160845069174259889105885445540142212764247907805462223912961"
             },
             {
-              "wire_id": 20019,
+              "wire_id": 20106,
               "coefficient": "7841285910183486822516766014582864636277620811214487840225573923351880007681"
             },
             {
-              "wire_id": 20024,
+              "wire_id": 20111,
               "coefficient": "7881497632799812395965569942862776762617506046143792906072884558856248623105"
             },
             {
-              "wire_id": 20029,
+              "wire_id": 20116,
               "coefficient": "7916682890089097272733273380107699873164905626706934838689281364922571161601"
             }
           ]
@@ -7101,23 +7623,23 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 30596,
+              "wire_id": 30683,
               "coefficient": "7037051457856975353540687448984622109479916112628386523279361213264507699201"
             },
             {
-              "wire_id": 30601,
+              "wire_id": 30688,
               "coefficient": "7238110070938603220784707090384182741179342287274911852515914390786350776321"
             },
             {
-              "wire_id": 30606,
+              "wire_id": 30693,
               "coefficient": "7388904030749824121217721821433853214953911918259805849443329273927733084161"
             },
             {
-              "wire_id": 30611,
+              "wire_id": 30698,
               "coefficient": "4691367638571316902360458299323081406319944075085591015519574142176338466134"
             },
             {
-              "wire_id": 30616,
+              "wire_id": 30703,
               "coefficient": "7600015574485533381823942444903391878238309401638657445141710110325668315137"
             }
           ]
@@ -7181,11 +7703,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 806,
+              "wire_id": 893,
               "coefficient": "8444461749428370424248824938781546531375899335154063827935233455917409239040"
             },
             {
-              "wire_id": 1146,
+              "wire_id": 1233,
               "coefficient": "1"
             }
           ]
@@ -7194,11 +7716,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 1509,
+              "wire_id": 1596,
               "coefficient": "8444461749428370424248824938781546531375899335154063827935233455917409239040"
             },
             {
-              "wire_id": 1849,
+              "wire_id": 1936,
               "coefficient": "1"
             }
           ]
@@ -7212,31 +7734,31 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 31150,
+              "wire_id": 31237,
               "coefficient": "7388904030749824121217721821433853214953911918259805849443329273927733084161"
             },
             {
-              "wire_id": 31155,
+              "wire_id": 31242,
               "coefficient": "4691367638571316902360458299323081406319944075085591015519574142176338466134"
             },
             {
-              "wire_id": 31160,
+              "wire_id": 31247,
               "coefficient": "7600015574485533381823942444903391878238309401638657445141710110325668315137"
             },
             {
-              "wire_id": 31165,
+              "wire_id": 31252,
               "coefficient": "2303035022571373752067861346940421781284336182314744680345972760704747974284"
             },
             {
-              "wire_id": 31170,
+              "wire_id": 31257,
               "coefficient": "7740756603642672888894756193883084320427907723891225175607297334590958469121"
             },
             {
-              "wire_id": 31175,
+              "wire_id": 31262,
               "coefficient": "7794887768703111160845069174259889105885445540142212764247907805462223912961"
             },
             {
-              "wire_id": 31180,
+              "wire_id": 31267,
               "coefficient": "7841285910183486822516766014582864636277620811214487840225573923351880007681"
             }
           ]
@@ -7250,19 +7772,19 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 31475,
+              "wire_id": 31562,
               "coefficient": "6755569399542696339399059951025237225100719468123251062348186764733927391233"
             },
             {
-              "wire_id": 31480,
+              "wire_id": 31567,
               "coefficient": "7037051457856975353540687448984622109479916112628386523279361213264507699201"
             },
             {
-              "wire_id": 31485,
+              "wire_id": 31572,
               "coefficient": "7238110070938603220784707090384182741179342287274911852515914390786350776321"
             },
             {
-              "wire_id": 31490,
+              "wire_id": 31577,
               "coefficient": "7388904030749824121217721821433853214953911918259805849443329273927733084161"
             }
           ]
@@ -7276,23 +7798,23 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 40388,
+              "wire_id": 40475,
               "coefficient": "7037051457856975353540687448984622109479916112628386523279361213264507699201"
             },
             {
-              "wire_id": 40393,
+              "wire_id": 40480,
               "coefficient": "7238110070938603220784707090384182741179342287274911852515914390786350776321"
             },
             {
-              "wire_id": 40398,
+              "wire_id": 40485,
               "coefficient": "7388904030749824121217721821433853214953911918259805849443329273927733084161"
             },
             {
-              "wire_id": 40403,
+              "wire_id": 40490,
               "coefficient": "4691367638571316902360458299323081406319944075085591015519574142176338466134"
             },
             {
-              "wire_id": 40408,
+              "wire_id": 40495,
               "coefficient": "7600015574485533381823942444903391878238309401638657445141710110325668315137"
             }
           ]
@@ -7306,19 +7828,19 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 31475,
+              "wire_id": 31562,
               "coefficient": "6755569399542696339399059951025237225100719468123251062348186764733927391233"
             },
             {
-              "wire_id": 31480,
+              "wire_id": 31567,
               "coefficient": "7037051457856975353540687448984622109479916112628386523279361213264507699201"
             },
             {
-              "wire_id": 31485,
+              "wire_id": 31572,
               "coefficient": "7238110070938603220784707090384182741179342287274911852515914390786350776321"
             },
             {
-              "wire_id": 31490,
+              "wire_id": 31577,
               "coefficient": "7388904030749824121217721821433853214953911918259805849443329273927733084161"
             }
           ]
@@ -7332,7 +7854,7 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 42218,
+              "wire_id": 42305,
               "coefficient": "1"
             }
           ]
@@ -7341,7 +7863,7 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 42219,
+              "wire_id": 42306,
               "coefficient": "1"
             }
           ]
@@ -7355,11 +7877,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 42730,
+              "wire_id": 42817,
               "coefficient": "8444461749428370424248824938781546531375899335154063827935233455917409239040"
             },
             {
-              "wire_id": 43070,
+              "wire_id": 43157,
               "coefficient": "1"
             }
           ]
@@ -7414,11 +7936,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 806,
+              "wire_id": 893,
               "coefficient": "8444461749428370424248824938781546531375899335154063827935233455917409239040"
             },
             {
-              "wire_id": 1146,
+              "wire_id": 1233,
               "coefficient": "1"
             }
           ]
@@ -7427,11 +7949,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 1509,
+              "wire_id": 1596,
               "coefficient": "8444461749428370424248824938781546531375899335154063827935233455917409239040"
             },
             {
-              "wire_id": 1849,
+              "wire_id": 1936,
               "coefficient": "1"
             }
           ]
@@ -7445,31 +7967,31 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 43470,
+              "wire_id": 43557,
               "coefficient": "7388904030749824121217721821433853214953911918259805849443329273927733084161"
             },
             {
-              "wire_id": 43475,
+              "wire_id": 43562,
               "coefficient": "4691367638571316902360458299323081406319944075085591015519574142176338466134"
             },
             {
-              "wire_id": 43480,
+              "wire_id": 43567,
               "coefficient": "7600015574485533381823942444903391878238309401638657445141710110325668315137"
             },
             {
-              "wire_id": 43485,
+              "wire_id": 43572,
               "coefficient": "2303035022571373752067861346940421781284336182314744680345972760704747974284"
             },
             {
-              "wire_id": 43490,
+              "wire_id": 43577,
               "coefficient": "7740756603642672888894756193883084320427907723891225175607297334590958469121"
             },
             {
-              "wire_id": 43495,
+              "wire_id": 43582,
               "coefficient": "7794887768703111160845069174259889105885445540142212764247907805462223912961"
             },
             {
-              "wire_id": 43500,
+              "wire_id": 43587,
               "coefficient": "7841285910183486822516766014582864636277620811214487840225573923351880007681"
             }
           ]
@@ -7483,19 +8005,19 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 43795,
+              "wire_id": 43882,
               "coefficient": "6755569399542696339399059951025237225100719468123251062348186764733927391233"
             },
             {
-              "wire_id": 43800,
+              "wire_id": 43887,
               "coefficient": "7037051457856975353540687448984622109479916112628386523279361213264507699201"
             },
             {
-              "wire_id": 43805,
+              "wire_id": 43892,
               "coefficient": "7238110070938603220784707090384182741179342287274911852515914390786350776321"
             },
             {
-              "wire_id": 43810,
+              "wire_id": 43897,
               "coefficient": "7388904030749824121217721821433853214953911918259805849443329273927733084161"
             }
           ]
@@ -7509,23 +8031,23 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 52708,
+              "wire_id": 52795,
               "coefficient": "7037051457856975353540687448984622109479916112628386523279361213264507699201"
             },
             {
-              "wire_id": 52713,
+              "wire_id": 52800,
               "coefficient": "7238110070938603220784707090384182741179342287274911852515914390786350776321"
             },
             {
-              "wire_id": 52718,
+              "wire_id": 52805,
               "coefficient": "7388904030749824121217721821433853214953911918259805849443329273927733084161"
             },
             {
-              "wire_id": 52723,
+              "wire_id": 52810,
               "coefficient": "4691367638571316902360458299323081406319944075085591015519574142176338466134"
             },
             {
-              "wire_id": 52728,
+              "wire_id": 52815,
               "coefficient": "7600015574485533381823942444903391878238309401638657445141710110325668315137"
             }
           ]
@@ -7539,19 +8061,19 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 53018,
+              "wire_id": 53105,
               "coefficient": "6755569399542696339399059951025237225100719468123251062348186764733927391233"
             },
             {
-              "wire_id": 53023,
+              "wire_id": 53110,
               "coefficient": "7037051457856975353540687448984622109479916112628386523279361213264507699201"
             },
             {
-              "wire_id": 53028,
+              "wire_id": 53115,
               "coefficient": "7238110070938603220784707090384182741179342287274911852515914390786350776321"
             },
             {
-              "wire_id": 53033,
+              "wire_id": 53120,
               "coefficient": "7388904030749824121217721821433853214953911918259805849443329273927733084161"
             }
           ]
@@ -7565,11 +8087,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 53034,
+              "wire_id": 53121,
               "coefficient": "1"
             },
             {
-              "wire_id": 53035,
+              "wire_id": 53122,
               "coefficient": "1"
             }
           ]
@@ -7583,7 +8105,7 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 54846,
+              "wire_id": 54933,
               "coefficient": "1"
             }
           ]
@@ -7592,7 +8114,7 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 54847,
+              "wire_id": 54934,
               "coefficient": "1"
             }
           ]
@@ -7606,11 +8128,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 55362,
+              "wire_id": 55449,
               "coefficient": "8444461749428370424248824938781546531375899335154063827935233455917409239040"
             },
             {
-              "wire_id": 55702,
+              "wire_id": 55789,
               "coefficient": "1"
             }
           ]
@@ -7624,7 +8146,7 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 55705,
+              "wire_id": 55792,
               "coefficient": "1"
             }
           ]
@@ -7638,11 +8160,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 56069,
+              "wire_id": 56156,
               "coefficient": "8444461749428370424248824938781546531375899335154063827935233455917409239040"
             },
             {
-              "wire_id": 56409,
+              "wire_id": 56496,
               "coefficient": "1"
             }
           ]
@@ -7656,11 +8178,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 56772,
+              "wire_id": 56859,
               "coefficient": "8444461749428370424248824938781546531375899335154063827935233455917409239040"
             },
             {
-              "wire_id": 57112,
+              "wire_id": 57199,
               "coefficient": "1"
             }
           ]
@@ -7701,11 +8223,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 56069,
+              "wire_id": 56156,
               "coefficient": "8444461749428370424248824938781546531375899335154063827935233455917409239040"
             },
             {
-              "wire_id": 56409,
+              "wire_id": 56496,
               "coefficient": "1"
             }
           ]
@@ -7714,11 +8236,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 56772,
+              "wire_id": 56859,
               "coefficient": "8444461749428370424248824938781546531375899335154063827935233455917409239040"
             },
             {
-              "wire_id": 57112,
+              "wire_id": 57199,
               "coefficient": "1"
             }
           ]
@@ -7732,31 +8254,31 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 57512,
+              "wire_id": 57599,
               "coefficient": "7388904030749824121217721821433853214953911918259805849443329273927733084161"
             },
             {
-              "wire_id": 57517,
+              "wire_id": 57604,
               "coefficient": "4691367638571316902360458299323081406319944075085591015519574142176338466134"
             },
             {
-              "wire_id": 57522,
+              "wire_id": 57609,
               "coefficient": "7600015574485533381823942444903391878238309401638657445141710110325668315137"
             },
             {
-              "wire_id": 57527,
+              "wire_id": 57614,
               "coefficient": "2303035022571373752067861346940421781284336182314744680345972760704747974284"
             },
             {
-              "wire_id": 57532,
+              "wire_id": 57619,
               "coefficient": "7740756603642672888894756193883084320427907723891225175607297334590958469121"
             },
             {
-              "wire_id": 57537,
+              "wire_id": 57624,
               "coefficient": "7794887768703111160845069174259889105885445540142212764247907805462223912961"
             },
             {
-              "wire_id": 57542,
+              "wire_id": 57629,
               "coefficient": "7841285910183486822516766014582864636277620811214487840225573923351880007681"
             }
           ]
@@ -7770,35 +8292,35 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 59391,
+              "wire_id": 59478,
               "coefficient": "4691367638571316902360458299323081406319944075085591015519574142176338466134"
             },
             {
-              "wire_id": 59396,
+              "wire_id": 59483,
               "coefficient": "7600015574485533381823942444903391878238309401638657445141710110325668315137"
             },
             {
-              "wire_id": 59401,
+              "wire_id": 59488,
               "coefficient": "2303035022571373752067861346940421781284336182314744680345972760704747974284"
             },
             {
-              "wire_id": 59406,
+              "wire_id": 59493,
               "coefficient": "7740756603642672888894756193883084320427907723891225175607297334590958469121"
             },
             {
-              "wire_id": 59411,
+              "wire_id": 59498,
               "coefficient": "7794887768703111160845069174259889105885445540142212764247907805462223912961"
             },
             {
-              "wire_id": 59416,
+              "wire_id": 59503,
               "coefficient": "7841285910183486822516766014582864636277620811214487840225573923351880007681"
             },
             {
-              "wire_id": 59421,
+              "wire_id": 59508,
               "coefficient": "7881497632799812395965569942862776762617506046143792906072884558856248623105"
             },
             {
-              "wire_id": 59426,
+              "wire_id": 59513,
               "coefficient": "7916682890089097272733273380107699873164905626706934838689281364922571161601"
             }
           ]
@@ -7812,23 +8334,23 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 65198,
+              "wire_id": 65285,
               "coefficient": "7037051457856975353540687448984622109479916112628386523279361213264507699201"
             },
             {
-              "wire_id": 65203,
+              "wire_id": 65290,
               "coefficient": "7238110070938603220784707090384182741179342287274911852515914390786350776321"
             },
             {
-              "wire_id": 65208,
+              "wire_id": 65295,
               "coefficient": "7388904030749824121217721821433853214953911918259805849443329273927733084161"
             },
             {
-              "wire_id": 65213,
+              "wire_id": 65300,
               "coefficient": "4691367638571316902360458299323081406319944075085591015519574142176338466134"
             },
             {
-              "wire_id": 65218,
+              "wire_id": 65305,
               "coefficient": "7600015574485533381823942444903391878238309401638657445141710110325668315137"
             }
           ]
@@ -7879,11 +8401,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 56069,
+              "wire_id": 56156,
               "coefficient": "8444461749428370424248824938781546531375899335154063827935233455917409239040"
             },
             {
-              "wire_id": 56409,
+              "wire_id": 56496,
               "coefficient": "1"
             }
           ]
@@ -7897,11 +8419,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 56772,
+              "wire_id": 56859,
               "coefficient": "8444461749428370424248824938781546531375899335154063827935233455917409239040"
             },
             {
-              "wire_id": 57112,
+              "wire_id": 57199,
               "coefficient": "1"
             }
           ]
@@ -7942,11 +8464,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 806,
+              "wire_id": 893,
               "coefficient": "8444461749428370424248824938781546531375899335154063827935233455917409239040"
             },
             {
-              "wire_id": 1146,
+              "wire_id": 1233,
               "coefficient": "1"
             }
           ]
@@ -7955,11 +8477,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 1509,
+              "wire_id": 1596,
               "coefficient": "8444461749428370424248824938781546531375899335154063827935233455917409239040"
             },
             {
-              "wire_id": 1849,
+              "wire_id": 1936,
               "coefficient": "1"
             }
           ]
@@ -7973,31 +8495,31 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 72993,
+              "wire_id": 73080,
               "coefficient": "7388904030749824121217721821433853214953911918259805849443329273927733084161"
             },
             {
-              "wire_id": 72998,
+              "wire_id": 73085,
               "coefficient": "4691367638571316902360458299323081406319944075085591015519574142176338466134"
             },
             {
-              "wire_id": 73003,
+              "wire_id": 73090,
               "coefficient": "7600015574485533381823942444903391878238309401638657445141710110325668315137"
             },
             {
-              "wire_id": 73008,
+              "wire_id": 73095,
               "coefficient": "2303035022571373752067861346940421781284336182314744680345972760704747974284"
             },
             {
-              "wire_id": 73013,
+              "wire_id": 73100,
               "coefficient": "7740756603642672888894756193883084320427907723891225175607297334590958469121"
             },
             {
-              "wire_id": 73018,
+              "wire_id": 73105,
               "coefficient": "7794887768703111160845069174259889105885445540142212764247907805462223912961"
             },
             {
-              "wire_id": 73023,
+              "wire_id": 73110,
               "coefficient": "7841285910183486822516766014582864636277620811214487840225573923351880007681"
             }
           ]
@@ -8011,7 +8533,7 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 85275,
+              "wire_id": 84995,
               "coefficient": "1"
             }
           ]
@@ -8025,11 +8547,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 85642,
+              "wire_id": 97948,
               "coefficient": "8444461749428370424248824938781546531375899335154063827935233455917409239040"
             },
             {
-              "wire_id": 85982,
+              "wire_id": 98288,
               "coefficient": "1"
             }
           ]
@@ -8043,11 +8565,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 86345,
+              "wire_id": 98651,
               "coefficient": "8444461749428370424248824938781546531375899335154063827935233455917409239040"
             },
             {
-              "wire_id": 86685,
+              "wire_id": 98991,
               "coefficient": "1"
             }
           ]
@@ -8061,11 +8583,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 87048,
+              "wire_id": 99354,
               "coefficient": "8444461749428370424248824938781546531375899335154063827935233455917409239040"
             },
             {
-              "wire_id": 87388,
+              "wire_id": 99694,
               "coefficient": "1"
             }
           ]
@@ -8079,11 +8601,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 87751,
+              "wire_id": 100057,
               "coefficient": "8444461749428370424248824938781546531375899335154063827935233455917409239040"
             },
             {
-              "wire_id": 88091,
+              "wire_id": 100397,
               "coefficient": "1"
             }
           ]
@@ -8097,15 +8619,15 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 88346,
+              "wire_id": 100652,
               "coefficient": "6333346312071277818186618704086159898531924501365547870951425091938056929281"
             },
             {
-              "wire_id": 88351,
+              "wire_id": 100657,
               "coefficient": "6755569399542696339399059951025237225100719468123251062348186764733927391233"
             },
             {
-              "wire_id": 88356,
+              "wire_id": 100662,
               "coefficient": "7037051457856975353540687448984622109479916112628386523279361213264507699201"
             }
           ]
@@ -8119,15 +8641,15 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 88611,
+              "wire_id": 100917,
               "coefficient": "6333346312071277818186618704086159898531924501365547870951425091938056929281"
             },
             {
-              "wire_id": 88616,
+              "wire_id": 100922,
               "coefficient": "6755569399542696339399059951025237225100719468123251062348186764733927391233"
             },
             {
-              "wire_id": 88621,
+              "wire_id": 100927,
               "coefficient": "7037051457856975353540687448984622109479916112628386523279361213264507699201"
             }
           ]
@@ -8141,15 +8663,15 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 88876,
+              "wire_id": 101182,
               "coefficient": "6333346312071277818186618704086159898531924501365547870951425091938056929281"
             },
             {
-              "wire_id": 88881,
+              "wire_id": 101187,
               "coefficient": "6755569399542696339399059951025237225100719468123251062348186764733927391233"
             },
             {
-              "wire_id": 88886,
+              "wire_id": 101192,
               "coefficient": "7037051457856975353540687448984622109479916112628386523279361213264507699201"
             }
           ]
@@ -8163,15 +8685,15 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 89141,
+              "wire_id": 101447,
               "coefficient": "6333346312071277818186618704086159898531924501365547870951425091938056929281"
             },
             {
-              "wire_id": 89146,
+              "wire_id": 101452,
               "coefficient": "6755569399542696339399059951025237225100719468123251062348186764733927391233"
             },
             {
-              "wire_id": 89151,
+              "wire_id": 101457,
               "coefficient": "7037051457856975353540687448984622109479916112628386523279361213264507699201"
             }
           ]
@@ -8185,15 +8707,15 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 89406,
+              "wire_id": 101712,
               "coefficient": "6333346312071277818186618704086159898531924501365547870951425091938056929281"
             },
             {
-              "wire_id": 89411,
+              "wire_id": 101717,
               "coefficient": "6755569399542696339399059951025237225100719468123251062348186764733927391233"
             },
             {
-              "wire_id": 89416,
+              "wire_id": 101722,
               "coefficient": "7037051457856975353540687448984622109479916112628386523279361213264507699201"
             }
           ]
@@ -8207,11 +8729,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 96729,
+              "wire_id": 109035,
               "coefficient": "1"
             },
             {
-              "wire_id": 96737,
+              "wire_id": 109043,
               "coefficient": "1"
             }
           ]
@@ -8220,11 +8742,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 96730,
+              "wire_id": 109036,
               "coefficient": "1"
             },
             {
-              "wire_id": 96738,
+              "wire_id": 109044,
               "coefficient": "1"
             }
           ]
@@ -8238,11 +8760,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 93971,
+              "wire_id": 106277,
               "coefficient": "1"
             },
             {
-              "wire_id": 93979,
+              "wire_id": 106285,
               "coefficient": "1"
             }
           ]
@@ -8251,11 +8773,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 93972,
+              "wire_id": 106278,
               "coefficient": "1"
             },
             {
-              "wire_id": 93980,
+              "wire_id": 106286,
               "coefficient": "1"
             }
           ]
@@ -8269,15 +8791,15 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 93971,
+              "wire_id": 106277,
               "coefficient": "1"
             },
             {
-              "wire_id": 93979,
+              "wire_id": 106285,
               "coefficient": "1"
             },
             {
-              "wire_id": 96739,
+              "wire_id": 109045,
               "coefficient": "1"
             }
           ]
@@ -8286,15 +8808,15 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 93972,
+              "wire_id": 106278,
               "coefficient": "1"
             },
             {
-              "wire_id": 93980,
+              "wire_id": 106286,
               "coefficient": "1"
             },
             {
-              "wire_id": 96740,
+              "wire_id": 109046,
               "coefficient": "1"
             }
           ]
@@ -8308,11 +8830,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 104053,
+              "wire_id": 116359,
               "coefficient": "1"
             },
             {
-              "wire_id": 104061,
+              "wire_id": 116367,
               "coefficient": "1"
             }
           ]
@@ -8321,11 +8843,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 104054,
+              "wire_id": 116360,
               "coefficient": "1"
             },
             {
-              "wire_id": 104062,
+              "wire_id": 116368,
               "coefficient": "1"
             }
           ]
@@ -8339,11 +8861,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 101295,
+              "wire_id": 113601,
               "coefficient": "1"
             },
             {
-              "wire_id": 101303,
+              "wire_id": 113609,
               "coefficient": "1"
             }
           ]
@@ -8352,11 +8874,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 101296,
+              "wire_id": 113602,
               "coefficient": "1"
             },
             {
-              "wire_id": 101304,
+              "wire_id": 113610,
               "coefficient": "1"
             }
           ]
@@ -8370,15 +8892,15 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 101295,
+              "wire_id": 113601,
               "coefficient": "1"
             },
             {
-              "wire_id": 101303,
+              "wire_id": 113609,
               "coefficient": "1"
             },
             {
-              "wire_id": 104063,
+              "wire_id": 116369,
               "coefficient": "1"
             }
           ]
@@ -8387,15 +8909,15 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 101296,
+              "wire_id": 113602,
               "coefficient": "1"
             },
             {
-              "wire_id": 101304,
+              "wire_id": 113610,
               "coefficient": "1"
             },
             {
-              "wire_id": 104064,
+              "wire_id": 116370,
               "coefficient": "1"
             }
           ]
@@ -8409,11 +8931,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 111377,
+              "wire_id": 123683,
               "coefficient": "1"
             },
             {
-              "wire_id": 111385,
+              "wire_id": 123691,
               "coefficient": "1"
             }
           ]
@@ -8422,11 +8944,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 111378,
+              "wire_id": 123684,
               "coefficient": "1"
             },
             {
-              "wire_id": 111386,
+              "wire_id": 123692,
               "coefficient": "1"
             }
           ]
@@ -8440,11 +8962,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 108619,
+              "wire_id": 120925,
               "coefficient": "1"
             },
             {
-              "wire_id": 108627,
+              "wire_id": 120933,
               "coefficient": "1"
             }
           ]
@@ -8453,11 +8975,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 108620,
+              "wire_id": 120926,
               "coefficient": "1"
             },
             {
-              "wire_id": 108628,
+              "wire_id": 120934,
               "coefficient": "1"
             }
           ]
@@ -8471,15 +8993,15 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 108619,
+              "wire_id": 120925,
               "coefficient": "1"
             },
             {
-              "wire_id": 108627,
+              "wire_id": 120933,
               "coefficient": "1"
             },
             {
-              "wire_id": 111387,
+              "wire_id": 123693,
               "coefficient": "1"
             }
           ]
@@ -8488,15 +9010,15 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 108620,
+              "wire_id": 120926,
               "coefficient": "1"
             },
             {
-              "wire_id": 108628,
+              "wire_id": 120934,
               "coefficient": "1"
             },
             {
-              "wire_id": 111388,
+              "wire_id": 123694,
               "coefficient": "1"
             }
           ]
@@ -8510,11 +9032,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 118701,
+              "wire_id": 131007,
               "coefficient": "1"
             },
             {
-              "wire_id": 118709,
+              "wire_id": 131015,
               "coefficient": "1"
             }
           ]
@@ -8523,11 +9045,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 118702,
+              "wire_id": 131008,
               "coefficient": "1"
             },
             {
-              "wire_id": 118710,
+              "wire_id": 131016,
               "coefficient": "1"
             }
           ]
@@ -8541,11 +9063,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 115943,
+              "wire_id": 128249,
               "coefficient": "1"
             },
             {
-              "wire_id": 115951,
+              "wire_id": 128257,
               "coefficient": "1"
             }
           ]
@@ -8554,11 +9076,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 115944,
+              "wire_id": 128250,
               "coefficient": "1"
             },
             {
-              "wire_id": 115952,
+              "wire_id": 128258,
               "coefficient": "1"
             }
           ]
@@ -8572,15 +9094,15 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 115943,
+              "wire_id": 128249,
               "coefficient": "1"
             },
             {
-              "wire_id": 115951,
+              "wire_id": 128257,
               "coefficient": "1"
             },
             {
-              "wire_id": 118711,
+              "wire_id": 131017,
               "coefficient": "1"
             }
           ]
@@ -8589,15 +9111,15 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 115944,
+              "wire_id": 128250,
               "coefficient": "1"
             },
             {
-              "wire_id": 115952,
+              "wire_id": 128258,
               "coefficient": "1"
             },
             {
-              "wire_id": 118712,
+              "wire_id": 131018,
               "coefficient": "1"
             }
           ]
@@ -8657,7 +9179,7 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 133673,
+              "wire_id": 145979,
               "coefficient": "1"
             }
           ]
@@ -8666,7 +9188,7 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 133674,
+              "wire_id": 145980,
               "coefficient": "1"
             }
           ]
@@ -8680,11 +9202,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 134037,
+              "wire_id": 146343,
               "coefficient": "8444461749428370424248824938781546531375899335154063827935233455917409239040"
             },
             {
-              "wire_id": 134377,
+              "wire_id": 146683,
               "coefficient": "1"
             }
           ]
@@ -8768,11 +9290,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 134037,
+              "wire_id": 146343,
               "coefficient": "8444461749428370424248824938781546531375899335154063827935233455917409239040"
             },
             {
-              "wire_id": 134377,
+              "wire_id": 146683,
               "coefficient": "1"
             }
           ]
@@ -8842,7 +9364,7 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 181,
+              "wire_id": 433,
               "coefficient": "1"
             }
           ]
@@ -8856,11 +9378,7 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 42730,
-              "coefficient": "8444461749428370424248824938781546531375899335154063827935233455917409239040"
-            },
-            {
-              "wire_id": 43070,
+              "wire_id": 434,
               "coefficient": "1"
             }
           ]
@@ -8874,7 +9392,7 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 262,
+              "wire_id": 435,
               "coefficient": "1"
             }
           ]
@@ -8888,7 +9406,7 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 263,
+              "wire_id": 436,
               "coefficient": "1"
             }
           ]
@@ -8902,11 +9420,7 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 55362,
-              "coefficient": "8444461749428370424248824938781546531375899335154063827935233455917409239040"
-            },
-            {
-              "wire_id": 55702,
+              "wire_id": 181,
               "coefficient": "1"
             }
           ]
@@ -8920,7 +9434,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 345,
+              "wire_id": 42817,
+              "coefficient": "8444461749428370424248824938781546531375899335154063827935233455917409239040"
+            },
+            {
+              "wire_id": 43157,
               "coefficient": "1"
             }
           ]
@@ -8934,7 +9452,7 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 7,
+              "wire_id": 262,
               "coefficient": "1"
             }
           ]
@@ -8948,7 +9466,7 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 8,
+              "wire_id": 263,
               "coefficient": "1"
             }
           ]
@@ -8962,7 +9480,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 142,
+              "wire_id": 55449,
+              "coefficient": "8444461749428370424248824938781546531375899335154063827935233455917409239040"
+            },
+            {
+              "wire_id": 55789,
               "coefficient": "1"
             }
           ]
@@ -8976,7 +9498,7 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 143,
+              "wire_id": 345,
               "coefficient": "1"
             }
           ]
@@ -8990,7 +9512,7 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 144,
+              "wire_id": 7,
               "coefficient": "1"
             }
           ]
@@ -9004,7 +9526,7 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 145,
+              "wire_id": 8,
               "coefficient": "1"
             }
           ]
@@ -9018,11 +9540,7 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 85642,
-              "coefficient": "8444461749428370424248824938781546531375899335154063827935233455917409239040"
-            },
-            {
-              "wire_id": 85982,
+              "wire_id": 142,
               "coefficient": "1"
             }
           ]
@@ -9036,7 +9554,7 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 161,
+              "wire_id": 143,
               "coefficient": "1"
             }
           ]
@@ -9050,7 +9568,7 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 163,
+              "wire_id": 144,
               "coefficient": "1"
             }
           ]
@@ -9064,11 +9582,7 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 86345,
-              "coefficient": "8444461749428370424248824938781546531375899335154063827935233455917409239040"
-            },
-            {
-              "wire_id": 86685,
+              "wire_id": 145,
               "coefficient": "1"
             }
           ]
@@ -9082,7 +9596,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 166,
+              "wire_id": 97948,
+              "coefficient": "8444461749428370424248824938781546531375899335154063827935233455917409239040"
+            },
+            {
+              "wire_id": 98288,
               "coefficient": "1"
             }
           ]
@@ -9096,7 +9614,7 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 167,
+              "wire_id": 161,
               "coefficient": "1"
             }
           ]
@@ -9110,7 +9628,7 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 168,
+              "wire_id": 163,
               "coefficient": "1"
             }
           ]
@@ -9124,7 +9642,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 169,
+              "wire_id": 98651,
+              "coefficient": "8444461749428370424248824938781546531375899335154063827935233455917409239040"
+            },
+            {
+              "wire_id": 98991,
               "coefficient": "1"
             }
           ]
@@ -9138,11 +9660,7 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 87048,
-              "coefficient": "8444461749428370424248824938781546531375899335154063827935233455917409239040"
-            },
-            {
-              "wire_id": 87388,
+              "wire_id": 166,
               "coefficient": "1"
             }
           ]
@@ -9156,7 +9674,7 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 172,
+              "wire_id": 167,
               "coefficient": "1"
             }
           ]
@@ -9170,7 +9688,7 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 174,
+              "wire_id": 168,
               "coefficient": "1"
             }
           ]
@@ -9184,11 +9702,7 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 87751,
-              "coefficient": "8444461749428370424248824938781546531375899335154063827935233455917409239040"
-            },
-            {
-              "wire_id": 88091,
+              "wire_id": 169,
               "coefficient": "1"
             }
           ]
@@ -9202,7 +9716,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 177,
+              "wire_id": 99354,
+              "coefficient": "8444461749428370424248824938781546531375899335154063827935233455917409239040"
+            },
+            {
+              "wire_id": 99694,
               "coefficient": "1"
             }
           ]
@@ -9216,7 +9734,7 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 178,
+              "wire_id": 172,
               "coefficient": "1"
             }
           ]
@@ -9230,7 +9748,7 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 179,
+              "wire_id": 174,
               "coefficient": "1"
             }
           ]
@@ -9244,7 +9762,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 180,
+              "wire_id": 100057,
+              "coefficient": "8444461749428370424248824938781546531375899335154063827935233455917409239040"
+            },
+            {
+              "wire_id": 100397,
               "coefficient": "1"
             }
           ]
@@ -9258,7 +9780,7 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 9,
+              "wire_id": 177,
               "coefficient": "1"
             }
           ]
@@ -9272,7 +9794,7 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 162,
+              "wire_id": 178,
               "coefficient": "1"
             }
           ]
@@ -9286,7 +9808,7 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 173,
+              "wire_id": 179,
               "coefficient": "1"
             }
           ]
@@ -9300,7 +9822,7 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 146,
+              "wire_id": 180,
               "coefficient": "1"
             }
           ]
@@ -9314,7 +9836,7 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 147,
+              "wire_id": 9,
               "coefficient": "1"
             }
           ]
@@ -9328,7 +9850,7 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 148,
+              "wire_id": 162,
               "coefficient": "1"
             }
           ]
@@ -9342,7 +9864,7 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 149,
+              "wire_id": 173,
               "coefficient": "1"
             }
           ]
@@ -9356,7 +9878,7 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 151,
+              "wire_id": 146,
               "coefficient": "1"
             }
           ]
@@ -9370,7 +9892,7 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 152,
+              "wire_id": 147,
               "coefficient": "1"
             }
           ]
@@ -9384,7 +9906,7 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 153,
+              "wire_id": 148,
               "coefficient": "1"
             }
           ]
@@ -9393,6 +9915,62 @@
     },
     {
       "name": "statement.field.048",
+      "expressions": [
+        {
+          "constant": "0",
+          "terms": [
+            {
+              "wire_id": 149,
+              "coefficient": "1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "statement.field.049",
+      "expressions": [
+        {
+          "constant": "0",
+          "terms": [
+            {
+              "wire_id": 151,
+              "coefficient": "1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "statement.field.050",
+      "expressions": [
+        {
+          "constant": "0",
+          "terms": [
+            {
+              "wire_id": 152,
+              "coefficient": "1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "statement.field.051",
+      "expressions": [
+        {
+          "constant": "0",
+          "terms": [
+            {
+              "wire_id": 153,
+              "coefficient": "1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "statement.field.052",
       "expressions": [
         {
           "constant": "0",
@@ -9457,11 +10035,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 134037,
+              "wire_id": 146343,
               "coefficient": "8444461749428370424248824938781546531375899335154063827935233455917409239040"
             },
             {
-              "wire_id": 134377,
+              "wire_id": 146683,
               "coefficient": "1"
             }
           ]
@@ -9506,6 +10084,42 @@
           "constant": "0",
           "terms": [
             {
+              "wire_id": 433,
+              "coefficient": "1"
+            }
+          ]
+        },
+        {
+          "constant": "0",
+          "terms": [
+            {
+              "wire_id": 434,
+              "coefficient": "1"
+            }
+          ]
+        },
+        {
+          "constant": "0",
+          "terms": [
+            {
+              "wire_id": 435,
+              "coefficient": "1"
+            }
+          ]
+        },
+        {
+          "constant": "0",
+          "terms": [
+            {
+              "wire_id": 436,
+              "coefficient": "1"
+            }
+          ]
+        },
+        {
+          "constant": "0",
+          "terms": [
+            {
               "wire_id": 181,
               "coefficient": "1"
             }
@@ -9515,11 +10129,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 42730,
+              "wire_id": 42817,
               "coefficient": "8444461749428370424248824938781546531375899335154063827935233455917409239040"
             },
             {
-              "wire_id": 43070,
+              "wire_id": 43157,
               "coefficient": "1"
             }
           ]
@@ -9546,11 +10160,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 55362,
+              "wire_id": 55449,
               "coefficient": "8444461749428370424248824938781546531375899335154063827935233455917409239040"
             },
             {
-              "wire_id": 55702,
+              "wire_id": 55789,
               "coefficient": "1"
             }
           ]
@@ -9622,11 +10236,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 85642,
+              "wire_id": 97948,
               "coefficient": "8444461749428370424248824938781546531375899335154063827935233455917409239040"
             },
             {
-              "wire_id": 85982,
+              "wire_id": 98288,
               "coefficient": "1"
             }
           ]
@@ -9653,11 +10267,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 86345,
+              "wire_id": 98651,
               "coefficient": "8444461749428370424248824938781546531375899335154063827935233455917409239040"
             },
             {
-              "wire_id": 86685,
+              "wire_id": 98991,
               "coefficient": "1"
             }
           ]
@@ -9702,11 +10316,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 87048,
+              "wire_id": 99354,
               "coefficient": "8444461749428370424248824938781546531375899335154063827935233455917409239040"
             },
             {
-              "wire_id": 87388,
+              "wire_id": 99694,
               "coefficient": "1"
             }
           ]
@@ -9733,11 +10347,11 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 87751,
+              "wire_id": 100057,
               "coefficient": "8444461749428370424248824938781546531375899335154063827935233455917409239040"
             },
             {
-              "wire_id": 88091,
+              "wire_id": 100397,
               "coefficient": "1"
             }
           ]
@@ -9886,35 +10500,35 @@
           "constant": "0",
           "terms": [
             {
-              "wire_id": 138102,
+              "wire_id": 150868,
               "coefficient": "4691367638571316902360458299323081406319944075085591015519574142176338466134"
             },
             {
-              "wire_id": 138107,
+              "wire_id": 150873,
               "coefficient": "7600015574485533381823942444903391878238309401638657445141710110325668315137"
             },
             {
-              "wire_id": 138112,
+              "wire_id": 150878,
               "coefficient": "2303035022571373752067861346940421781284336182314744680345972760704747974284"
             },
             {
-              "wire_id": 138117,
+              "wire_id": 150883,
               "coefficient": "7740756603642672888894756193883084320427907723891225175607297334590958469121"
             },
             {
-              "wire_id": 138122,
+              "wire_id": 150888,
               "coefficient": "7794887768703111160845069174259889105885445540142212764247907805462223912961"
             },
             {
-              "wire_id": 138127,
+              "wire_id": 150893,
               "coefficient": "7841285910183486822516766014582864636277620811214487840225573923351880007681"
             },
             {
-              "wire_id": 138132,
+              "wire_id": 150898,
               "coefficient": "7881497632799812395965569942862776762617506046143792906072884558856248623105"
             },
             {
-              "wire_id": 138137,
+              "wire_id": 150903,
               "coefficient": "7916682890089097272733273380107699873164905626706934838689281364922571161601"
             }
           ]
@@ -10143,8 +10757,8 @@
       "op": "gadget.asset_registry_params_hash",
       "args": [
         "dk_pub_fq=asset.leaf.dk_pub_fq",
-        "threshold=asset.leaf.threshold",
-        "channels_hash=asset.leaf.channels_hash",
+        "daily_volume_limit=asset.leaf.daily_volume_limit",
+        "route_policy_hash=asset.leaf.route_policy_hash",
         "out=asset.leaf.params_hash"
       ],
       "start": 8632,
@@ -11011,8 +11625,8 @@
         "out=expected_tag"
       ],
       "start": 91920,
-      "end": 92523,
-      "constraint_count": 603
+      "end": 105763,
+      "constraint_count": 13843
     },
     {
       "index": 91,
@@ -11022,8 +11636,8 @@
         "amount-\u003eoutput_amounts",
         "commitment-\u003estatement.output_commitments"
       ],
-      "start": 92523,
-      "end": 92523,
+      "start": 105763,
+      "end": 105763,
       "constraint_count": 0
     },
     {
@@ -11032,22 +11646,22 @@
       "args": [
         "tiers=sender_core,sender_ext,output_core,output_ext"
       ],
-      "start": 92523,
-      "end": 92523,
+      "start": 105763,
+      "end": 105763,
       "constraint_count": 0
     },
     {
       "index": 93,
-      "op": "threshold.flag",
+      "op": "daily_volume_limit.flag",
       "args": [
         "regulated=is_regulated",
         "amount=receiver.amount",
-        "threshold=asset.leaf.threshold",
+        "daily_volume_limit=asset.leaf.daily_volume_limit",
         "out=is_flagged"
       ],
-      "start": 92523,
-      "end": 93419,
-      "constraint_count": 896
+      "start": 105763,
+      "end": 105763,
+      "constraint_count": 0
     },
     {
       "index": 94,
@@ -11056,8 +11670,8 @@
         "point=compliance.sender_core.epk",
         "coordinate=x"
       ],
-      "start": 93419,
-      "end": 93420,
+      "start": 105763,
+      "end": 105764,
       "constraint_count": 1
     },
     {
@@ -11067,8 +11681,8 @@
         "point=compliance.sender_ext.epk",
         "coordinate=x"
       ],
-      "start": 93420,
-      "end": 93421,
+      "start": 105764,
+      "end": 105765,
       "constraint_count": 1
     },
     {
@@ -11078,8 +11692,8 @@
         "point=compliance.output_core.epk",
         "coordinate=x"
       ],
-      "start": 93421,
-      "end": 93422,
+      "start": 105765,
+      "end": 105766,
       "constraint_count": 1
     },
     {
@@ -11089,8 +11703,8 @@
         "point=compliance.output_ext.epk",
         "coordinate=x"
       ],
-      "start": 93422,
-      "end": 93423,
+      "start": 105766,
+      "end": 105767,
       "constraint_count": 1
     },
     {
@@ -11100,8 +11714,8 @@
         "in=compliance.sender_core.epk",
         "out=compliance.sender_core.epk_fq"
       ],
-      "start": 93423,
-      "end": 94469,
+      "start": 105767,
+      "end": 106813,
       "constraint_count": 1046
     },
     {
@@ -11111,8 +11725,8 @@
         "in=compliance.sender_ext.epk",
         "out=compliance.sender_ext.epk_fq"
       ],
-      "start": 94469,
-      "end": 95515,
+      "start": 106813,
+      "end": 107859,
       "constraint_count": 1046
     },
     {
@@ -11122,8 +11736,8 @@
         "in=compliance.output_core.epk",
         "out=compliance.output_core.epk_fq"
       ],
-      "start": 95515,
-      "end": 96561,
+      "start": 107859,
+      "end": 108905,
       "constraint_count": 1046
     },
     {
@@ -11133,8 +11747,8 @@
         "in=compliance.output_ext.epk",
         "out=compliance.output_ext.epk_fq"
       ],
-      "start": 96561,
-      "end": 97607,
+      "start": 108905,
+      "end": 109951,
       "constraint_count": 1046
     },
     {
@@ -11145,8 +11759,8 @@
         "nonce_root=compliance.transfer_nonce_root",
         "out=salt0"
       ],
-      "start": 97607,
-      "end": 97872,
+      "start": 109951,
+      "end": 110216,
       "constraint_count": 265
     },
     {
@@ -11157,8 +11771,8 @@
         "nonce_root=compliance.transfer_nonce_root",
         "out=salt1"
       ],
-      "start": 97872,
-      "end": 98137,
+      "start": 110216,
+      "end": 110481,
       "constraint_count": 265
     },
     {
@@ -11169,8 +11783,8 @@
         "nonce_root=compliance.transfer_nonce_root",
         "out=salt2"
       ],
-      "start": 98137,
-      "end": 98402,
+      "start": 110481,
+      "end": 110746,
       "constraint_count": 265
     },
     {
@@ -11181,8 +11795,8 @@
         "nonce_root=compliance.transfer_nonce_root",
         "out=salt3"
       ],
-      "start": 98402,
-      "end": 98667,
+      "start": 110746,
+      "end": 111011,
       "constraint_count": 265
     },
     {
@@ -11193,8 +11807,8 @@
         "nonce_root=compliance.transfer_nonce_root",
         "out=salt4"
       ],
-      "start": 98667,
-      "end": 98932,
+      "start": 111011,
+      "end": 111276,
       "constraint_count": 265
     },
     {
@@ -11211,9 +11825,9 @@
         "user=sender_core.shared.user",
         "selected=sender_core.shared.selected"
       ],
-      "start": 98932,
-      "end": 106259,
-      "constraint_count": 7327
+      "start": 111276,
+      "end": 118602,
+      "constraint_count": 7326
     },
     {
       "index": 108,
@@ -11229,8 +11843,8 @@
         "user=sender_ext.shared.user",
         "selected=sender_ext.shared.selected"
       ],
-      "start": 106259,
-      "end": 113585,
+      "start": 118602,
+      "end": 125928,
       "constraint_count": 7326
     },
     {
@@ -11247,8 +11861,8 @@
         "user=output_core.shared.user",
         "selected=output_core.shared.selected"
       ],
-      "start": 113585,
-      "end": 120911,
+      "start": 125928,
+      "end": 133254,
       "constraint_count": 7326
     },
     {
@@ -11265,8 +11879,8 @@
         "user=output_ext.shared.user",
         "selected=output_ext.shared.selected"
       ],
-      "start": 120911,
-      "end": 128237,
+      "start": 133254,
+      "end": 140580,
       "constraint_count": 7326
     },
     {
@@ -11281,8 +11895,8 @@
         "reserved=0",
         "out=compliance.detection_ciphertext"
       ],
-      "start": 128237,
-      "end": 130617,
+      "start": 140580,
+      "end": 142960,
       "constraint_count": 2380
     },
     {
@@ -11298,8 +11912,8 @@
         "amount=receiver.amount",
         "out=compliance.sender_core.ciphertext"
       ],
-      "start": 130617,
-      "end": 132240,
+      "start": 142960,
+      "end": 144583,
       "constraint_count": 1623
     },
     {
@@ -11313,8 +11927,8 @@
         "transmission_fq=receiver.transmission_fq",
         "out=compliance.sender_ext.ciphertext"
       ],
-      "start": 132240,
-      "end": 135096,
+      "start": 144583,
+      "end": 147439,
       "constraint_count": 2856
     },
     {
@@ -11330,8 +11944,8 @@
         "amount=receiver.amount",
         "out=compliance.output_core.ciphertext"
       ],
-      "start": 135096,
-      "end": 136719,
+      "start": 147439,
+      "end": 149062,
       "constraint_count": 1623
     },
     {
@@ -11345,8 +11959,8 @@
         "transmission_fq=sender.transmission_fq",
         "out=compliance.output_ext.ciphertext"
       ],
-      "start": 136719,
-      "end": 139575,
+      "start": 149062,
+      "end": 151918,
       "constraint_count": 2856
     },
     {
@@ -11355,8 +11969,8 @@
       "args": [
         "metadata=compliance.metadata"
       ],
-      "start": 139575,
-      "end": 139575,
+      "start": 151918,
+      "end": 151918,
       "constraint_count": 0
     },
     {
@@ -11366,8 +11980,8 @@
         "lhs=compliance.metadata.ring_id_hash",
         "rhs=effective.ring_id_hash"
       ],
-      "start": 139575,
-      "end": 139576,
+      "start": 151918,
+      "end": 151919,
       "constraint_count": 1
     },
     {
@@ -11377,8 +11991,8 @@
         "lhs=compliance.metadata.policy_id_hash",
         "rhs=effective.policy_id_hash"
       ],
-      "start": 139576,
-      "end": 139577,
+      "start": 151919,
+      "end": 151920,
       "constraint_count": 1
     },
     {
@@ -11388,8 +12002,8 @@
         "lhs=compliance.metadata.resource_hash",
         "rhs=effective.resource_hash"
       ],
-      "start": 139577,
-      "end": 139578,
+      "start": 151920,
+      "end": 151921,
       "constraint_count": 1
     },
     {
@@ -11399,8 +12013,8 @@
         "lhs=compliance.metadata.permission_hash",
         "rhs=effective.permission_hash"
       ],
-      "start": 139578,
-      "end": 139579,
+      "start": 151921,
+      "end": 151922,
       "constraint_count": 1
     },
     {
@@ -11410,8 +12024,8 @@
         "lhs=compliance.metadata.target_timestamp",
         "rhs=target_timestamp"
       ],
-      "start": 139579,
-      "end": 139580,
+      "start": 151922,
+      "end": 151923,
       "constraint_count": 1
     },
     {
@@ -11421,8 +12035,8 @@
         "lhs=compliance.metadata.sender_core_salt",
         "rhs=salt1"
       ],
-      "start": 139580,
-      "end": 139581,
+      "start": 151923,
+      "end": 151924,
       "constraint_count": 1
     },
     {
@@ -11432,8 +12046,8 @@
         "lhs=compliance.metadata.sender_ext_salt",
         "rhs=salt2"
       ],
-      "start": 139581,
-      "end": 139582,
+      "start": 151924,
+      "end": 151925,
       "constraint_count": 1
     },
     {
@@ -11443,8 +12057,8 @@
         "lhs=compliance.metadata.output_core_salt",
         "rhs=salt3"
       ],
-      "start": 139582,
-      "end": 139583,
+      "start": 151925,
+      "end": 151926,
       "constraint_count": 1
     },
     {
@@ -11454,8 +12068,8 @@
         "lhs=compliance.metadata.output_ext_salt",
         "rhs=salt4"
       ],
-      "start": 139583,
-      "end": 139584,
+      "start": 151926,
+      "end": 151927,
       "constraint_count": 1
     },
     {
@@ -11466,8 +12080,8 @@
         "tier_ciphertexts-\u003estatement",
         "metadata-\u003estatement"
       ],
-      "start": 139584,
-      "end": 139584,
+      "start": 151927,
+      "end": 151927,
       "constraint_count": 0
     },
     {
@@ -11480,8 +12094,8 @@
         "blinding=action_balance_blinding",
         "out=balance_commitment.computed"
       ],
-      "start": 139584,
-      "end": 145786,
+      "start": 151927,
+      "end": 158129,
       "constraint_count": 6202
     },
     {
@@ -11491,8 +12105,8 @@
         "in=balance_commitment.computed",
         "out=balance_commitment.fq"
       ],
-      "start": 145786,
-      "end": 146832,
+      "start": 158129,
+      "end": 159175,
       "constraint_count": 1046
     },
     {
@@ -11502,8 +12116,8 @@
         "shape=transfer2x2",
         "fields=transfer_statement_fields"
       ],
-      "start": 146832,
-      "end": 146832,
+      "start": 159175,
+      "end": 159175,
       "constraint_count": 0
     },
     {
@@ -11514,9 +12128,9 @@
         "fields=statement_fields",
         "out=statement_hash"
       ],
-      "start": 146832,
-      "end": 150592,
-      "constraint_count": 3760
+      "start": 159175,
+      "end": 163395,
+      "constraint_count": 4220
     },
     {
       "index": 131,
@@ -11525,13 +12139,13 @@
         "lhs=statement_hash",
         "rhs=claimed_statement_hash"
       ],
-      "start": 150592,
-      "end": 150593,
+      "start": 163395,
+      "end": 163396,
       "constraint_count": 1
     }
   ],
   "breakdown": {
-    "total_constraints": 150593,
+    "total_constraints": 163396,
     "segments": 131
   }
 }

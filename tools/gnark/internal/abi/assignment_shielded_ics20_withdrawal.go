@@ -143,6 +143,12 @@ func newShieldedIcs20WithdrawalCircuitAssignment(
 	assignment.UnregulatedPrecision = witness.UnregulatedPrecision
 	assignment.RoutingAsOfHeight = witness.RoutingAsOfHeight
 	assignment.RoutingNonce = fqString(witness.RoutingNonce)
+	volumeAccumulator, err := newVolumeAccumulatorCircuitFields(&witness.VolumeAccumulator, witness.TargetTimestamp)
+	if err != nil {
+		return nil, err
+	}
+	assignment.VolumeAccumulator = volumeAccumulator
+	assignment.VolumeAccumulatorSeed = fqString(witness.VolumeAccumulatorSeed)
 	assignment.Auth = circuits.TransferAuthSharedFields{
 		AK:           point2DString(witness.AKAffine),
 		NK:           primitives.LittleEndianBytesToBigInt(witness.NK[:]).String(),

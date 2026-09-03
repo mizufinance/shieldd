@@ -9,7 +9,6 @@ import (
 
 const (
 	shieldedIcs20WithdrawalWitnessMagic   = "PIWG"
-	shieldedIcs20WithdrawalWitnessVersion = 16
 	maxShieldedIcs20WithdrawalInputs      = 2
 	minShieldedIcs20RequiredSpendBytes    = 32*4 + 8 + 4 + 32 + 64 + 1
 	minShieldedIcs20OptionalSpendBytes    = minShieldedIcs20RequiredSpendBytes + 1 + 32
@@ -65,6 +64,8 @@ type ShieldedIcs20WithdrawalWitnessBinary struct {
 	RecentPositionFloor              [32]byte
 	ActionBalanceBlinding            [32]byte
 	NK                               [32]byte
+	VolumeAccumulator                TransferVolumeAccumulatorWitnessBinary
+	VolumeAccumulatorSeed            [32]byte
 
 	AssetPath                MerklePathBinary
 	AssetPosition            uint64
@@ -102,13 +103,6 @@ func DecodeShieldedIcs20WithdrawalWitness(payload []byte) (*ShieldedIcs20Withdra
 	}
 	if string(magic) != shieldedIcs20WithdrawalWitnessMagic {
 		return nil, generated.ShieldedIcs20WithdrawalFamilySpec{}, fmt.Errorf("invalid shielded ICS-20 withdrawal witness magic %q", string(magic))
-	}
-	version, err := readU32(reader)
-	if err != nil {
-		return nil, generated.ShieldedIcs20WithdrawalFamilySpec{}, err
-	}
-	if version != shieldedIcs20WithdrawalWitnessVersion {
-		return nil, generated.ShieldedIcs20WithdrawalFamilySpec{}, fmt.Errorf("unsupported shielded ICS-20 withdrawal witness version %d", version)
 	}
 	totalLength, err := readU32(reader)
 	if err != nil {
@@ -196,6 +190,12 @@ func DecodeShieldedIcs20WithdrawalWitness(payload []byte) (*ShieldedIcs20Withdra
 		}
 	}
 	if out.RecentPositionFloor, err = read32(reader); err != nil {
+		return nil, family, err
+	}
+	if out.VolumeAccumulator, err = readTransferVolumeAccumulator(reader); err != nil {
+		return nil, family, err
+	}
+	if out.VolumeAccumulatorSeed, err = read32(reader); err != nil {
 		return nil, family, err
 	}
 	if out.ActionBalanceBlinding, err = readFr32(reader); err != nil {

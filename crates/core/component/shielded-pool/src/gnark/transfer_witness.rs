@@ -71,6 +71,24 @@ pub struct TransferChangeOutputWitness {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub struct TransferVolumeAccumulatorWitness {
+    pub nullifier: [u8; 32],
+    pub commitment: [u8; 32],
+    pub day_start: [u8; 32],
+    pub proof_context: [u8; 32],
+    pub use_real: bool,
+    pub starts_new_day: bool,
+    pub subject: [u8; 32],
+    pub prior_volume: [u8; 32],
+    pub prior_blinding: [u8; 32],
+    pub prior_commitment: [u8; 32],
+    pub prior_position: u64,
+    pub prior_auth_path: Vec<[[u8; 32]; 3]>,
+    pub successor_volume: [u8; 32],
+    pub successor_blinding: [u8; 32],
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TransferComplianceCiphertextWitness {
     pub c2: [u8; 32],
     pub ciphertext: Vec<[u8; 32]>,
@@ -94,6 +112,7 @@ pub struct TransferWitness {
     pub routing_tags: [[u8; 32]; 2],
     pub routing_parameter_set_id: [u8; 32],
     pub recent_position_floor: [u8; 32],
+    pub volume_accumulator: TransferVolumeAccumulatorWitness,
     pub action_balance_blinding: [u8; 32],
     pub nk: [u8; 32],
     pub asset_path: MerklePathBinary,
@@ -319,6 +338,52 @@ impl TransferWitness {
                 private.sender_leaf.capk,
             )?,
         };
+        let volume_plan = &private.volume_accumulator.plan;
+        let prior_state = volume_plan.prior_state();
+        let successor_state = volume_plan.successor_state();
+        let volume_accumulator = TransferVolumeAccumulatorWitness {
+            nullifier: public.volume_accumulator.nullifier.0.to_bytes(),
+            commitment: public.volume_accumulator.commitment.0.to_bytes(),
+            day_start: Fq::from(public.volume_accumulator.day_start).to_bytes(),
+            proof_context: public.proof_context.as_field().to_bytes(),
+            use_real: volume_plan.is_real(),
+            starts_new_day: volume_plan.starts_new_day(),
+            subject: successor_state
+                .as_ref()
+                .map(|state| state.subject)
+                .unwrap_or_else(|| Fq::from(0u64))
+                .to_bytes(),
+            prior_volume: Fq::from(
+                prior_state
+                    .map(|state| state.undisclosed_volume)
+                    .unwrap_or(0),
+            )
+            .to_bytes(),
+            prior_blinding: prior_state
+                .map(|state| state.blinding)
+                .unwrap_or_else(|| Fq::from(0u64))
+                .to_bytes(),
+            prior_commitment: volume_plan.prior_commitment().0.to_bytes(),
+            prior_position: u64::from(private.volume_accumulator.prior_proof.position()),
+            prior_auth_path: private
+                .volume_accumulator
+                .prior_proof
+                .auth_path()
+                .iter()
+                .map(|siblings| siblings.map(|sibling| Fq::from(sibling).to_bytes()))
+                .collect(),
+            successor_volume: Fq::from(
+                successor_state
+                    .as_ref()
+                    .map(|state| state.undisclosed_volume)
+                    .unwrap_or(0),
+            )
+            .to_bytes(),
+            successor_blinding: successor_state
+                .map(|state| state.blinding)
+                .unwrap_or_else(|| Fq::from(0u64))
+                .to_bytes(),
+        };
 
         let mut witness = Self {
             total_length: 0,
@@ -333,6 +398,7 @@ impl TransferWitness {
                 .map(|tag| Fq::from(tag.value).to_bytes()),
             routing_parameter_set_id: public.routing_parameter_set_id.to_bytes(),
             recent_position_floor: Fq::from(public.recent_position_floor).to_bytes(),
+            volume_accumulator,
             action_balance_blinding: private.action_balance_blinding.to_bytes(),
             nk: private.nk.0.to_bytes(),
             asset_path: merkle_path_from_typed(&private.asset_path)?,

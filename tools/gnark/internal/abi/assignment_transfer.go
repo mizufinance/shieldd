@@ -375,6 +375,50 @@ func newTransferChangeOutputCircuitFields(
 	}
 }
 
+func newTransferVolumeAccumulatorCircuitFields(
+	witness *TransferWitnessBinary,
+) (circuits.TransferVolumeAccumulatorCircuitFields, error) {
+	return newVolumeAccumulatorCircuitFields(&witness.VolumeAccumulator, witness.TargetTimestamp)
+}
+
+func newVolumeAccumulatorCircuitFields(
+	witness *TransferVolumeAccumulatorWitnessBinary,
+	targetTimestamp [32]byte,
+) (circuits.TransferVolumeAccumulatorCircuitFields, error) {
+	priorProof, err := transferStatePathFields(
+		witness.PriorPosition,
+		witness.PriorAuthPath,
+	)
+	if err != nil {
+		return circuits.TransferVolumeAccumulatorCircuitFields{}, fmt.Errorf(
+			"decode volume accumulator prior state path: %w",
+			err,
+		)
+	}
+	target := primitives.LittleEndianBytesToBigInt(targetTimestamp[:])
+	if !target.IsUint64() {
+		return circuits.TransferVolumeAccumulatorCircuitFields{}, fmt.Errorf("target timestamp exceeds u64")
+	}
+	targetU64 := target.Uint64()
+	return circuits.TransferVolumeAccumulatorCircuitFields{
+		Nullifier:         fqString(witness.Nullifier),
+		Commitment:        fqString(witness.Commitment),
+		DayStart:          fqString(witness.DayStart),
+		ProofContext:      fqString(witness.ProofContext),
+		UseReal:           boolToVariable(witness.UseReal),
+		StartsNewDay:      boolToVariable(witness.StartsNewDay),
+		TimestampDayIndex: targetU64 / 86400,
+		TimestampSecond:   targetU64 % 86400,
+		Subject:           fqString(witness.Subject),
+		PriorVolume:       fqString(witness.PriorVolume),
+		PriorBlinding:     fqString(witness.PriorBlinding),
+		PriorCommitment:   fqString(witness.PriorCommitment),
+		PriorStateProof:   priorProof,
+		SuccessorVolume:   fqString(witness.SuccessorVolume),
+		SuccessorBlinding: fqString(witness.SuccessorBlinding),
+	}, nil
+}
+
 func newTransferCircuitAssignment(
 	witness *TransferWitnessBinary,
 ) (*circuits.TransferCircuit, error) {
@@ -395,6 +439,10 @@ func newTransferCircuitAssignment(
 		return nil, err
 	}
 	receiverOutput, err := newTransferReceiverOutputCircuitFields(&witness.ReceiverOutput)
+	if err != nil {
+		return nil, err
+	}
+	volumeAccumulator, err := newTransferVolumeAccumulatorCircuitFields(witness)
 	if err != nil {
 		return nil, err
 	}
@@ -423,5 +471,6 @@ func newTransferCircuitAssignment(
 	assignment.OptionalSpend = optionalSpend
 	assignment.ReceiverOutput = receiverOutput
 	assignment.ChangeOutput = newTransferChangeOutputCircuitFields(&witness.ChangeOutput)
+	assignment.VolumeAccumulator = volumeAccumulator
 	return assignment, nil
 }
