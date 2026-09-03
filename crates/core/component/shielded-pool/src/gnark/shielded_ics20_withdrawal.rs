@@ -311,51 +311,64 @@ mod tests {
             .expect("build shielded ICS-20 withdrawal witness");
         assert_eq!(decoded, expected);
 
+        let leaf = &decoded.asset_indexed_leaf;
+        let parts = private.asset_indexed_leaf.commitment_parts();
+        let recomposed = shieldd_sdk_tct::StateCommitment(poseidon377::hash_5(
+            &shieldd_sdk_compliance::IMT_LEAF_DOMAIN_SEP,
+            (
+                Fq::from_bytes_checked(&leaf.value).expect("canonical leaf value"),
+                Fq::from(leaf.next_index),
+                Fq::from_bytes_checked(&leaf.next_value).expect("canonical next value"),
+                parts.params_hash,
+                parts.ring_hash,
+            ),
+        ));
         assert_eq!(
-            Fq::from_bytes_checked(&decoded.asset_indexed_leaf.value)
-                .expect("canonical leaf value"),
-            private.asset_indexed_leaf.value,
+            recomposed,
+            private.asset_indexed_leaf.commit(),
+            "withdrawal policy opening must recompose the canonical native commitment"
         );
     }
 
     #[test]
     fn shielded_ics20_withdrawal_witness_rejects_non_canonical_boolean_flags() {
-        const HEADER_BYTES: usize = 16;
-        const TOP_FIELDS_THROUGH_RECENT: usize = 6 * 32 + 4 * 32 + 32 + 3 * 32;
-        const STATE_PATH_BYTES: usize = 4 + 24 * 3 * 32;
-        const VOLUME_ACCUMULATOR_BYTES: usize = 4 * 32 + 2 + 4 * 32 + 8 + STATE_PATH_BYTES + 2 * 32;
-        const MERKLE_PATH_BYTES: usize = 4 + 16 * (4 + 3 * 32);
-        const INDEXED_LEAF_BYTES: usize = 32 + 8 + 32 + 16 + 5 * 32;
-        const IS_REGULATED_OFFSET: usize = HEADER_BYTES
-            + TOP_FIELDS_THROUGH_RECENT
-            + VOLUME_ACCUMULATOR_BYTES
-            + 2 * 32
-            + MERKLE_PATH_BYTES
-            + 8
-            + INDEXED_LEAF_BYTES;
-        const SLIM_REQUIRED_SPEND_BYTES: usize = 3 * 32 + 8 + STATE_PATH_BYTES + 32 + 64 + 1;
-        const ROUTING_PRIVATE_BYTES: usize = 2 + 8 + 32;
-        const WITHDRAWAL_COMPLIANCE_BYTES: usize = 32 + 4 + 4 * 32 + 6 * 32 + 32 + 4 + 3 * 32 + 32;
-        const OPTIONAL_IS_DUMMY_OFFSET: usize = IS_REGULATED_OFFSET
-            + 1
-            + ROUTING_PRIVATE_BYTES
-            + MERKLE_PATH_BYTES
-            + 8
-            + 2 * 32
-            + WITHDRAWAL_COMPLIANCE_BYTES
-            + 2 * SLIM_REQUIRED_SPEND_BYTES;
-
         let (public, private) =
             proof_test_helpers::build_shielded_ics20_withdrawal_roundtrip_inputs(
                 ShieldedIcs20WithdrawalFamilyId::Canonical,
                 true,
             );
-        for offset in [IS_REGULATED_OFFSET, OPTIONAL_IS_DUMMY_OFFSET] {
-            let mut encoded = encode_shielded_ics20_withdrawal_witness(&public, &private)
-                .expect("encode shielded ICS-20 withdrawal witness");
+        let witness = ShieldedIcs20WithdrawalWitness::from_public_private(&public, &private)
+            .expect("build shielded ICS-20 withdrawal witness");
+        let encoded = witness
+            .encode()
+            .expect("encode shielded ICS-20 withdrawal witness");
+        let changed_byte_offset = |altered: &ShieldedIcs20WithdrawalWitness| {
+            let alternate = altered
+                .encode()
+                .expect("encode witness with one boolean toggled");
+            let offsets = encoded
+                .iter()
+                .zip(alternate.iter())
+                .enumerate()
+                .filter_map(|(offset, (left, right))| (left != right).then_some(offset))
+                .collect::<Vec<_>>();
+            assert_eq!(offsets.len(), 1, "one toggled boolean must change one byte");
+            offsets[0]
+        };
+
+        let mut alternate_regulation = witness.clone();
+        alternate_regulation.is_regulated = !alternate_regulation.is_regulated;
+        let mut alternate_dummy = witness.clone();
+        alternate_dummy.optional_spend.is_dummy = !alternate_dummy.optional_spend.is_dummy;
+
+        for offset in [
+            changed_byte_offset(&alternate_regulation),
+            changed_byte_offset(&alternate_dummy),
+        ] {
+            let mut encoded = encoded.clone();
             encoded[offset] = 2;
             decode_shielded_ics20_withdrawal_witness(&encoded)
-                .expect_err("decoder must reject non-canonical boolean flags");
+                .expect_err(" decoder must reject non-canonical boolean flags");
         }
     }
 

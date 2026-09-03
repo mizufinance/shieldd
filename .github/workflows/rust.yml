@@ -123,6 +123,9 @@ jobs:
         working-directory: tools/gnark
         run: go vet ./...
 
+      - name: Verify note-seizure daemon and host path
+        run: nix develop --command just note-seizure-proof-tests
+
       - name: Prepare full proof artifacts for manual replay
         if: github.event_name != 'pull_request' && github.event_name != 'merge_group'
         uses: ./.github/actions/prepare-proof-artifacts

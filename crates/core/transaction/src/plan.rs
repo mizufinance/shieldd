@@ -328,8 +328,8 @@ mod tests {
     use shieldd_sdk_shielded_pool::{
         discovery::{Parameters, Precision},
         HostTransfer, HostWithdrawalDestination, Ics20Withdrawal, Note, NoteReshape,
-        NoteReshapeFamilyId, NoteReshapePlan, NoteReshapeProof, Rseed, ShieldedInputPlan,
-        ShieldedOutputPlan,
+        NoteReshapeFamilyId, NoteReshapePlan, NoteReshapeProof, RecoveryCommitment, Rseed,
+        ShieldedInputPlan, ShieldedOutputPlan,
     };
     use shieldd_sdk_txhash::EffectHash;
     use std::{ops::Deref, str::FromStr};
@@ -408,7 +408,13 @@ mod tests {
             amount: 100u64.into(),
             asset_id: *BASE_ASSET_ID,
         };
-        let note = Note::from_parts(sender, value, Rseed::generate(&mut rng)).expect("valid note");
+        let note = Note::from_parts(
+            sender,
+            value,
+            Rseed::generate(&mut rng),
+            RecoveryCommitment::unavailable(),
+        )
+        .expect("valid note");
         let spend = ShieldedInputPlan::new(&mut rng, note, 0u64.into());
         let mut output = ShieldedOutputPlan::new(&mut rng, value, recipient);
         output.asset_anchor = spend.asset_anchor;
@@ -448,7 +454,13 @@ mod tests {
             amount: 100u64.into(),
             asset_id: *BASE_ASSET_ID,
         };
-        let note = Note::from_parts(sender, value, Rseed::generate(&mut rng)).expect("valid note");
+        let note = Note::from_parts(
+            sender,
+            value,
+            Rseed::generate(&mut rng),
+            RecoveryCommitment::unavailable(),
+        )
+        .expect("valid note");
         let spend = ShieldedInputPlan::new(&mut rng, note, 0u64.into());
         let mut output = ShieldedOutputPlan::new(&mut rng, value, recipient);
         output.asset_anchor = spend.asset_anchor;

@@ -23,104 +23,6 @@ pub struct TransferComplianceMetadata {
 
 pub const TRANSFER_COMPLIANCE_METADATA_BYTES: usize = 8 * 32 + 8;
 
-/// Canonical circuit-bound metadata for sender-only withdrawal compliance.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WithdrawalComplianceMetadata {
-    pub ring_id_hash_bytes: [u8; 32],
-    pub policy_id_hash_bytes: [u8; 32],
-    pub resource_hash_bytes: [u8; 32],
-    pub permission_hash_bytes: [u8; 32],
-    pub target_timestamp: u64,
-    pub sender_salt_bytes: [u8; 32],
-}
-
-pub const WITHDRAWAL_COMPLIANCE_METADATA_BYTES: usize = 5 * 32 + 8;
-
-impl WithdrawalComplianceMetadata {
-    pub fn from_identifiers(
-        ring_id: &str,
-        policy_id: &str,
-        resource: &str,
-        permission: &str,
-        target_timestamp: u64,
-        sender_salt: Fq,
-    ) -> Self {
-        Self {
-            ring_id_hash_bytes: string_to_fq(ring_id).to_bytes(),
-            policy_id_hash_bytes: string_to_fq(policy_id).to_bytes(),
-            resource_hash_bytes: string_to_fq(resource).to_bytes(),
-            permission_hash_bytes: string_to_fq(permission).to_bytes(),
-            target_timestamp,
-            sender_salt_bytes: sender_salt.to_bytes(),
-        }
-    }
-
-    pub fn validate(&self) -> Result<()> {
-        self.ring_id_hash()?;
-        self.policy_id_hash()?;
-        self.resource_hash()?;
-        self.permission_hash()?;
-        self.sender_salt()?;
-        ensure!(
-            self.target_timestamp != 0,
-            "target_timestamp must be non-zero"
-        );
-        Ok(())
-    }
-
-    pub fn to_bytes(&self) -> Result<Vec<u8>> {
-        self.validate()?;
-        let mut out = Vec::with_capacity(WITHDRAWAL_COMPLIANCE_METADATA_BYTES);
-        out.extend_from_slice(&self.ring_id_hash_bytes);
-        out.extend_from_slice(&self.policy_id_hash_bytes);
-        out.extend_from_slice(&self.resource_hash_bytes);
-        out.extend_from_slice(&self.permission_hash_bytes);
-        out.extend_from_slice(&self.target_timestamp.to_le_bytes());
-        out.extend_from_slice(&self.sender_salt_bytes);
-        Ok(out)
-    }
-
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
-        ensure!(
-            bytes.len() == WITHDRAWAL_COMPLIANCE_METADATA_BYTES,
-            "withdrawal compliance metadata must be {WITHDRAWAL_COMPLIANCE_METADATA_BYTES} bytes, got {}",
-            bytes.len()
-        );
-        let mut reader = MetadataReader::new(bytes);
-        let metadata = Self {
-            ring_id_hash_bytes: reader.read_array::<32>()?,
-            policy_id_hash_bytes: reader.read_array::<32>()?,
-            resource_hash_bytes: reader.read_array::<32>()?,
-            permission_hash_bytes: reader.read_array::<32>()?,
-            target_timestamp: reader.read_u64()?,
-            sender_salt_bytes: reader.read_array::<32>()?,
-        };
-        reader.finish()?;
-        metadata.validate()?;
-        Ok(metadata)
-    }
-
-    pub fn ring_id_hash(&self) -> Result<Fq> {
-        parse_fq(self.ring_id_hash_bytes, "ring_id_hash_bytes")
-    }
-
-    pub fn policy_id_hash(&self) -> Result<Fq> {
-        parse_fq(self.policy_id_hash_bytes, "policy_id_hash_bytes")
-    }
-
-    pub fn resource_hash(&self) -> Result<Fq> {
-        parse_fq(self.resource_hash_bytes, "resource_hash_bytes")
-    }
-
-    pub fn permission_hash(&self) -> Result<Fq> {
-        parse_fq(self.permission_hash_bytes, "permission_hash_bytes")
-    }
-
-    pub fn sender_salt(&self) -> Result<Fq> {
-        parse_fq(self.sender_salt_bytes, "sender_salt_bytes")
-    }
-}
-
 impl TransferComplianceMetadata {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
@@ -325,24 +227,6 @@ mod tests {
             Fq::from(13u64),
             Fq::from(14u64),
         )
-    }
-
-    #[test]
-    fn withdrawal_metadata_has_one_canonical_fixed_encoding() {
-        let metadata = WithdrawalComplianceMetadata::from_identifiers(
-            "ring-id",
-            "policy-id",
-            "document",
-            "withdraw",
-            1_700_000_000,
-            Fq::from(11u64),
-        );
-        let encoded = metadata.to_bytes().expect("metadata should encode");
-        assert_eq!(encoded.len(), WITHDRAWAL_COMPLIANCE_METADATA_BYTES);
-        assert_eq!(
-            WithdrawalComplianceMetadata::from_bytes(&encoded).expect("metadata should decode"),
-            metadata
-        );
     }
 
     #[test]

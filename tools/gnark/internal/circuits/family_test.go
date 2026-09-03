@@ -178,22 +178,22 @@ func compileCircuitFamilies() []struct {
 		{
 			name:    "transfer",
 			circuit: func() frontend.Circuit { return circuits.NewTransferCircuit() },
-			stats:   circuitStats{constraints: 142184, public: 2, secret: 484, internal: 132629},
+			stats:   circuitStats{constraints: 163396, public: 2, secret: 518, internal: 150384},
 		},
 		{
 			name:    "note_reshape8x1",
 			circuit: func() frontend.Circuit { return circuits.NewNoteReshapeCircuit("note_reshape8x1", 8, 1) },
-			stats:   circuitStats{constraints: 140640, public: 2, secret: 802, internal: 133732},
+			stats:   circuitStats{constraints: 156742, public: 2, secret: 825, internal: 147761},
 		},
 		{
 			name:    "note_reshape1x8",
 			circuit: func() frontend.Circuit { return circuits.NewNoteReshapeCircuit("note_reshape1x8", 1, 8) },
-			stats:   circuitStats{constraints: 50334, public: 2, secret: 240, internal: 46595},
+			stats:   circuitStats{constraints: 122896, public: 2, secret: 333, internal: 112226},
 		},
 		{
 			name:    "shielded_ics20_withdrawal",
 			circuit: func() frontend.Circuit { return circuits.NewShieldedIcs20WithdrawalCircuit(2) },
-			stats:   circuitStats{constraints: 93287, public: 2, secret: 409, internal: 87265},
+			stats:   circuitStats{constraints: 102571, public: 2, secret: 418, internal: 94827},
 		},
 	}
 }
@@ -323,7 +323,7 @@ func TestCircuitFamiliesRejectMutatedComplianceField(t *testing.T) {
 				} else {
 					noteReshape.Spends[0].Nullifier = mutatedNullifier
 				}
-				setNoteReshapeStatementHashV5(
+				setNoteReshapeStatementHash(
 					t,
 					family.name,
 					witness,
@@ -372,7 +372,7 @@ func TestCircuitFamiliesRejectMutatedBalanceCommitment(t *testing.T) {
 				}
 				witness.BalanceCommitmentAffine = witness.AKAffine
 				noteReshape.BalanceCommitment = noteReshape.Auth.AK
-				setNoteReshapeStatementHashV5(
+				setNoteReshapeStatementHash(
 					t,
 					family.name,
 					witness,
@@ -442,7 +442,7 @@ func TestCircuitFamiliesRejectMutatedNullifier(t *testing.T) {
 				} else {
 					noteReshape.Spends[0].Nullifier = mutatedNullifier
 				}
-				setNoteReshapeStatementHashV5(
+				setNoteReshapeStatementHash(
 					t,
 					family.name,
 					witness,
@@ -549,7 +549,7 @@ func TestNoteReshapeRejectsDummyOutputCommitmentMutation(t *testing.T) {
 	if !mutated {
 		t.Fatal("note_reshape1x8 fixture must contain a dummy output")
 	}
-	setNoteReshapeStatementHashV5(
+	setNoteReshapeStatementHash(
 		t,
 		"note_reshape1x8",
 		witness,

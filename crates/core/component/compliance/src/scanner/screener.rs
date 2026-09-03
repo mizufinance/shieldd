@@ -52,21 +52,42 @@ impl ComplianceScreener {
             }
         };
 
-        let (epk, detection_tag) = match &ciphertext {
+        let (asset_id, is_flagged, salt) = match &ciphertext {
             ComplianceCiphertext::Transfer(ciphertext) => {
-                (&ciphertext.sender_core_epk, &ciphertext.detection_tag)
+                match self.detection_key.try_decrypt_detection(
+                    &ciphertext.sender_core_epk,
+                    &ciphertext.detection_tag,
+                    &self.target_asset_id,
+                ) {
+                    Ok(result) => result,
+                    Err(_) => return ScreeningResult::Irrelevant,
+                }
             }
             ComplianceCiphertext::Withdrawal(ciphertext) => {
-                (&ciphertext.sender_epk, &ciphertext.detection_tag)
+                let Some(public) = &extracted.public_withdrawal else {
+                    return ScreeningResult::InvalidCiphertext(InvalidCiphertext {
+                        record_ref: extracted.record_ref,
+                        reason: "withdrawal is missing its public asset".to_owned(),
+                        raw_bytes: extracted.raw_bytes,
+                    });
+                };
+                if public.asset_id != self.target_asset_id {
+                    return ScreeningResult::Irrelevant;
+                }
+                let is_flagged = match ciphertext
+                    .decrypt_sender_if_key_matches(ciphertext.epk * *self.detection_key.inner())
+                {
+                    Ok(sender) => sender.is_some(),
+                    Err(error) => {
+                        return ScreeningResult::InvalidCiphertext(InvalidCiphertext {
+                            record_ref: extracted.record_ref,
+                            reason: error.to_string(),
+                            raw_bytes: extracted.raw_bytes,
+                        })
+                    }
+                };
+                (public.asset_id, is_flagged, decaf377::Fq::from(0u64))
             }
-        };
-        let (asset_id, is_flagged, salt) = match self.detection_key.try_decrypt_detection(
-            epk,
-            detection_tag,
-            &self.target_asset_id,
-        ) {
-            Ok(result) => result,
-            Err(_) => return ScreeningResult::Irrelevant,
         };
 
         ScreeningResult::Detected(DetectionEvent {
@@ -154,6 +175,8 @@ mod tests {
             Value { amount, asset_id },
             is_flagged,
             salt,
+            salt + decaf377::Fq::from(1u64),
+            salt + decaf377::Fq::from(2u64),
         )
         .unwrap()
         .ciphertext

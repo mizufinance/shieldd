@@ -50,6 +50,46 @@ func TestNoteReshapeStatusGateRejectsFrozenRegulatedOwner(t *testing.T) {
 	})
 }
 
+func TestNoteReshapeRejectsRegulatedNullifierRegistrationMutations(t *testing.T) {
+	for _, label := range []string{"note_reshape1x8", "note_reshape8x1"} {
+		label := label
+		for _, mutation := range []struct {
+			name   string
+			mutate func(*circuits.NoteReshapeCircuit)
+		}{
+			{
+				name: "dh key",
+				mutate: func(c *circuits.NoteReshapeCircuit) {
+					c.Sender.RnkDhPk.X = mutateFieldByOne(c.Sender.RnkDhPk.X)
+				},
+			},
+			{
+				name: "commitment",
+				mutate: func(c *circuits.NoteReshapeCircuit) {
+					c.Sender.RnkCommitment = mutateFieldByOne(c.Sender.RnkCommitment)
+				},
+			},
+		} {
+			mutation := mutation
+			t.Run(label+"/"+mutation.name, func(t *testing.T) {
+				assignment := loadNoteReshapeRegressionAssignment(t, label)
+				mutation.mutate(assignment)
+				family, ok := generated.NoteReshapeFamilyByLabel(label)
+				if !ok {
+					t.Fatalf("unknown note reshape family %s", label)
+				}
+				if err := test.IsSolved(
+					circuits.NewNoteReshapeCircuit(label, family.NIn, family.NOut),
+					assignment,
+					ecc.BLS12_377.ScalarField(),
+				); err == nil {
+					t.Fatalf("%s accepted a mutated regulated nullifier %s", label, mutation.name)
+				}
+			})
+		}
+	}
+}
+
 func loadNoteReshapeRegressionWitnessAndAssignment(
 	t *testing.T,
 	label string,
@@ -67,7 +107,7 @@ func loadNoteReshapeRegressionWitnessAndAssignment(
 	return witness, assignment
 }
 
-func setNoteReshapeStatementHashV5(
+func setNoteReshapeStatementHash(
 	t *testing.T,
 	label string,
 	witness *abi.NoteReshapeWitnessBinary,
@@ -303,7 +343,7 @@ func TestNoteReshapeEverySpendAndOutputPublicFieldIsConstrained(t *testing.T) {
 						).Nullifier = primitives.LittleEndianBytesToBigInt(
 							witness.Spends[spendIndex].Nullifier[:],
 						).String()
-						setNoteReshapeStatementHashV5(
+						setNoteReshapeStatementHash(
 							t,
 							family.Label,
 							witness,
@@ -376,7 +416,7 @@ func TestNoteReshapeEverySpendAndOutputPublicFieldIsConstrained(t *testing.T) {
 							assignment,
 							spendIndex,
 						).RK = circuitPointFromBinary(replacement)
-						setNoteReshapeStatementHashV5(
+						setNoteReshapeStatementHash(
 							t,
 							family.Label,
 							witness,
@@ -425,7 +465,7 @@ func TestNoteReshapeEverySpendAndOutputPublicFieldIsConstrained(t *testing.T) {
 							primitives.LittleEndianBytesToBigInt(
 								witness.Outputs[outputIndex].NoteCommitment[:],
 							).String()
-						setNoteReshapeStatementHashV5(
+						setNoteReshapeStatementHash(
 							t,
 							family.Label,
 							witness,
@@ -495,6 +535,7 @@ func TestNoteReshapeFamiliesRejectIsolatedExactConservationMutation(
 				witness.Shared.AssetID,
 				compressedPointFromBinary(t, witness.Shared.DivGen),
 				noteReshapeTransmissionKeyFQNative(t, witness),
+				witness.Outputs[outputIndex].RecoveryCommitment,
 			)
 			if commitment.Cmp(
 				primitives.LittleEndianBytesToBigInt(
@@ -511,7 +552,7 @@ func TestNoteReshapeFamiliesRejectIsolatedExactConservationMutation(
 				le32FromBigInt(t, commitment)
 			assignment.Outputs[outputIndex].NoteCommitment =
 				commitment.String()
-			setNoteReshapeStatementHashV5(
+			setNoteReshapeStatementHash(
 				t,
 				family.Label,
 				witness,
@@ -549,7 +590,7 @@ func TestNoteReshape1x8BindsEveryOutputCommitment(t *testing.T) {
 				primitives.LittleEndianBytesToBigInt(
 					witness.Outputs[outputIndex].NoteCommitment[:],
 				).String()
-			setNoteReshapeStatementHashV5(
+			setNoteReshapeStatementHash(
 				t,
 				"note_reshape1x8",
 				witness,
@@ -768,7 +809,7 @@ func TestNoteReshapeSyntheticDummyNullifiersBindFixedSlot(t *testing.T) {
 					)
 					assignment.SyntheticSpends[dummyIndex].Nullifier =
 						wrongNullifier.String()
-					setNoteReshapeStatementHashV5(
+					setNoteReshapeStatementHash(
 						t,
 						label,
 						witness,
@@ -881,7 +922,7 @@ func TestNoteReshapeFamiliesRejectWrongStatementPreimage(t *testing.T) {
 						witness.Spends[0].Nullifier[:],
 					).String()
 			}
-			setNoteReshapeStatementHashV5(
+			setNoteReshapeStatementHash(
 				t,
 				family.Label,
 				witness,

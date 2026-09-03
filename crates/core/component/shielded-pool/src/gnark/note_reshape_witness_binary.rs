@@ -6,6 +6,7 @@ use crate::gnark::{
         NoteReshapeOutputWitness, NoteReshapeSharedNoteContextWitness, NoteReshapeSpendWitness,
         NoteReshapeWitness,
     },
+    recovery_capsule_witness_binary::{decode_recovery_capsule, encode_recovery_capsule},
     typed::{decode_indexed_leaf, encode_indexed_leaf, encode_merkle_path, encode_point_affine},
 };
 
@@ -40,7 +41,9 @@ impl NoteReshapeWitness {
         put_bytes(&mut buf, &self.routing_nonce);
         encode_merkle_path(&mut buf, &self.sender_compliance_path)?;
         put_u64(&mut buf, self.sender_compliance_position);
-        put_bytes(&mut buf, &self.sender_d);
+        encode_point_affine(&mut buf, &self.sender_capk_affine);
+        encode_point_affine(&mut buf, &self.sender_rnk_dh_pk_affine);
+        put_bytes(&mut buf, &self.sender_rnk_commitment);
         put_bytes(&mut buf, &self.sender_status);
         put_bytes(&mut buf, &self.shared.asset_id);
         encode_point_affine(&mut buf, &self.shared.diversified_generator_affine);
@@ -101,7 +104,9 @@ impl NoteReshapeWitness {
         let routing_nonce = cursor.read_fixed::<32>()?;
         let sender_compliance_path = cursor.read_merkle_path()?;
         let sender_compliance_position = cursor.read_u64()?;
-        let sender_d = cursor.read_fixed::<32>()?;
+        let sender_capk_affine = cursor.read_point_affine()?;
+        let sender_rnk_dh_pk_affine = cursor.read_point_affine()?;
+        let sender_rnk_commitment = cursor.read_fixed::<32>()?;
         let sender_status = cursor.read_fixed::<32>()?;
         let shared = NoteReshapeSharedNoteContextWitness {
             asset_id: cursor.read_fixed::<32>()?,
@@ -159,7 +164,9 @@ impl NoteReshapeWitness {
             routing_nonce,
             sender_compliance_path,
             sender_compliance_position,
-            sender_d,
+            sender_capk_affine,
+            sender_rnk_dh_pk_affine,
+            sender_rnk_commitment,
             sender_status,
             shared,
             spends,
@@ -182,6 +189,7 @@ fn encode_spend(
     put_bytes(buf, &spend.nullifier);
     put_bytes(buf, &spend.spent_note_blinding);
     put_bytes(buf, &spend.spent_note_amount);
+    put_bytes(buf, &spend.spent_note_recovery_commitment);
     put_bytes(buf, &spend.state_commitment_commitment);
     put_u64(buf, spend.state_commitment_position);
     encode_triple_path_32(buf, &spend.state_commitment_auth_path)?;
@@ -211,6 +219,7 @@ fn decode_spend(
         dummy_nullifier_seed,
         spent_note_blinding: cursor.read_fixed::<32>()?,
         spent_note_amount: cursor.read_fixed::<32>()?,
+        spent_note_recovery_commitment: cursor.read_fixed::<32>()?,
         state_commitment_commitment: cursor.read_fixed::<32>()?,
         state_commitment_position: cursor.read_u64()?,
         state_commitment_auth_path: cursor.read_triple_path_32()?,
@@ -222,14 +231,18 @@ fn decode_spend(
 
 fn encode_output(buf: &mut Vec<u8>, output: &NoteReshapeOutputWitness) {
     put_bytes(buf, &output.note_commitment);
+    put_bytes(buf, &output.recovery_commitment);
     put_bytes(buf, &output.created_note_blinding);
     put_bytes(buf, &output.created_note_amount);
+    encode_recovery_capsule(buf, &output.recovery_capsule);
 }
 
 fn decode_output(cursor: &mut BinaryCursor<'_>) -> Result<NoteReshapeOutputWitness> {
     Ok(NoteReshapeOutputWitness {
         note_commitment: cursor.read_fixed::<32>()?,
+        recovery_commitment: cursor.read_fixed::<32>()?,
         created_note_blinding: cursor.read_fixed::<32>()?,
         created_note_amount: cursor.read_fixed::<32>()?,
+        recovery_capsule: decode_recovery_capsule(cursor)?,
     })
 }

@@ -27,6 +27,7 @@ pub struct TransferSpendPublic {
 #[derive(Clone, Debug)]
 pub struct TransferOutputPublic {
     pub note_commitment: tct::StateCommitment,
+    pub recovery_commitment: crate::RecoveryCommitment,
 }
 
 #[derive(Clone, Debug)]
@@ -40,6 +41,8 @@ pub struct TransferComplianceCiphertextPublic {
 pub struct TransferCompliancePublic {
     pub detection_ciphertext: Vec<Fq>,
     pub metadata: TransferComplianceMetadata,
+    pub sender_core_key_confirmation: Fq,
+    pub output_core_key_confirmation: Fq,
     pub sender_core: TransferComplianceCiphertextPublic,
     pub sender_ext: TransferComplianceCiphertextPublic,
     pub output_core: TransferComplianceCiphertextPublic,
@@ -239,6 +242,7 @@ impl TryFrom<pb::ZkTransferProof> for TransferProof {
     }
 }
 
+#[cfg(feature = "component")]
 #[cfg(all(test, any(unix, windows)))]
 mod tests {
     use std::sync::{LazyLock, Mutex};
@@ -252,7 +256,9 @@ mod tests {
         build_transfer_hidden_arity_roundtrip_inputs_for_asset_with_rng, full_proof_roundtrip,
         CircuitType,
     };
-    use crate::{Note, Rseed, ShieldedInputPlan, ShieldedOutputPlan, TransferPlan};
+    use crate::{
+        Note, RecoveryCommitment, Rseed, ShieldedInputPlan, ShieldedOutputPlan, TransferPlan,
+    };
     use decaf377::Fr;
     use shieldd_sdk_asset::{Value, BASE_ASSET_ID};
     use shieldd_sdk_compliance::{ComplianceLeaf, MerklePath, QuadTree};
@@ -263,7 +269,7 @@ mod tests {
     static TRANSFER_PROOF_TEST_MUTEX: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
     fn compliance_leaf_for(address: &shieldd_sdk_keys::Address) -> ComplianceLeaf {
-        ComplianceLeaf::new(address.clone(), *BASE_ASSET_ID)
+        ComplianceLeaf::synthetic_unregulated(address.clone(), *BASE_ASSET_ID)
     }
 
     fn sender_recipient_compliance_witnesses() -> (
@@ -492,6 +498,7 @@ mod tests {
                 asset_id: *BASE_ASSET_ID,
             },
             Rseed::generate(&mut rng),
+            RecoveryCommitment::unavailable(),
         )
         .expect("create base-asset test note");
 
@@ -558,6 +565,7 @@ mod tests {
                 asset_id: *BASE_ASSET_ID,
             },
             Rseed::generate(&mut rng),
+            RecoveryCommitment::unavailable(),
         )
         .expect("create registered base-asset test note");
 
@@ -644,6 +652,7 @@ mod tests {
                 asset_id: *BASE_ASSET_ID,
             },
             Rseed::generate(&mut rng),
+            RecoveryCommitment::unavailable(),
         )
         .expect("create registered base-asset test note");
 
@@ -656,6 +665,7 @@ mod tests {
                     asset_id: *BASE_ASSET_ID,
                 },
                 Rseed::generate(&mut rng),
+                RecoveryCommitment::unavailable(),
             )
             .expect("create filler note");
             sct.insert(tct::Witness::Forget, filler_note.commit())
@@ -743,6 +753,7 @@ mod tests {
                 asset_id: *BASE_ASSET_ID,
             },
             Rseed::generate(&mut rng),
+            RecoveryCommitment::unavailable(),
         )
         .expect("create registered base-asset test note");
 
@@ -829,6 +840,7 @@ mod tests {
                 asset_id: *BASE_ASSET_ID,
             },
             Rseed::generate(&mut rng),
+            RecoveryCommitment::unavailable(),
         )
         .expect("create registered base-asset test note");
 

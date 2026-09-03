@@ -2,22 +2,10 @@
 
 ## Prerequisites
 
-**Recommended for CI parity**: Use nix for the correct toolchain (includes cargo-nextest and the bundled gnark runtime toolchain):
+Use the Nix development shell for the CI Rust, C++, and Go toolchains:
+
 ```bash
 nix develop
-```
-
-**For day-to-day local Rust/gnark work without nix**: Install dependencies manually:
-```bash
-# cargo-nextest (required for `just test`)
-# Note: Requires compatible Rust version - check rust-toolchain.toml
-cargo install cargo-nextest
-
-# Go toolchain for tools/gnark and bundled gnark runtime compilation
-# plus a CGO-capable C toolchain (clang or gcc)
-
-# For smoke/integration tests: clean network state
-pd network unsafe-reset-all
 ```
 
 ## Quick Reference
@@ -29,6 +17,7 @@ pd network unsafe-reset-all
 | `just go-test` | `tools/gnark` Go tests only | Fast circuit/gadget iteration |
 | `just go-check` | `tools/gnark` format/build/test/vet | Before commit on gnark changes |
 | `just gnark-proof-tests` | Fast gnark inner-loop checks | During transfer/NoteReshape development |
+| `just note-seizure-proof-tests` | Real daemon, compiled verifier, and host seizure state transition | Every PR and merge candidate |
 | `just gnark-proof-tests-slow` | End-to-end gnark proof generation | Before PR on shielded-action changes |
 | `just smoke` | End-to-end | Before PR (transaction changes) |
 | `just integration-pcli` | pcli tests | Before PR (CLI changes) |
@@ -50,16 +39,17 @@ cd tools/gnark && go test ./internal/circuits ./internal/compliance
 The transaction parity test is mandatory: the scanner-side transaction hash
 helper must continue to match `Transaction::id()`.
 
-Proof-generating Rust round trips still require a release build with real
-proving keys:
+Run the real transfer proof roundtrip with bundled proving keys:
 
 ```bash
 cargo test --release -p shieldd-sdk-shielded-pool --features bundled-proving-keys transfer_proof_roundtrip --lib
 ```
 
-If a CI lane does not provide bundled proving keys, treat that command as
-optional coverage and rely on the mandatory gnark assignment metamorphic tests
-above for semantic mutation coverage.
+The note-seizure recipe sets both daemon and artifact paths explicitly. Its
+host test checks invalid-release rollback, successful seizure, duplicate-note
+rejection, persisted audit replay, and exact-source idempotency. Running unit
+tests without those environment variables skips the daemon tests and is not
+proof-path verification.
 
 Smoke the scanner CLI shape with:
 
@@ -76,18 +66,4 @@ scanner DB.
 
 ```bash
 just ci-preflight
-cargo fmt --all
-just fmt
-just check
-just test
-just go-check
-just gnark-proof-tests
-just gnark-proof-tests-slow
-just smoke
-just proto
-```
-
-```bash
-# One-shot local Orbis run
-just orbis-integration
 ```

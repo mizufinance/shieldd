@@ -62,9 +62,8 @@ pub fn extract_compliance_ciphertexts(
                     record_ref: ComplianceRecordRef::HostWithdrawal(action_ref),
                     kind: ComplianceCiphertextKind::Withdrawal,
                     routing_tags: [body.routing_tag.as_ref().map_or(0, |tag| tag.value), 0],
-                    raw_bytes: body.sender_compliance_ciphertext.clone(),
-                    metadata_bytes: (!body.sender_compliance_metadata.is_empty())
-                        .then(|| body.sender_compliance_metadata.clone()),
+                    raw_bytes: body.withdrawal_compliance_ciphertext.clone(),
+                    metadata_bytes: None,
                     public_withdrawal: Some(public_withdrawal),
                 });
             }
@@ -79,9 +78,8 @@ pub fn extract_compliance_ciphertexts(
                     record_ref: ComplianceRecordRef::Ics20Withdrawal(action_ref),
                     kind: ComplianceCiphertextKind::Withdrawal,
                     routing_tags: [body.routing_tag.as_ref().map_or(0, |tag| tag.value), 0],
-                    raw_bytes: body.sender_compliance_ciphertext.clone(),
-                    metadata_bytes: (!body.sender_compliance_metadata.is_empty())
-                        .then(|| body.sender_compliance_metadata.clone()),
+                    raw_bytes: body.withdrawal_compliance_ciphertext.clone(),
+                    metadata_bytes: None,
                     public_withdrawal: Some(public_withdrawal),
                 });
             }
@@ -115,6 +113,7 @@ fn host_withdrawal_data(
         }
     };
     Some(PublicWithdrawalData {
+        asset_id: value.asset_id,
         amount: value.amount,
         self_address,
         destination,
@@ -126,12 +125,15 @@ fn ics20_withdrawal_data(
 ) -> Option<PublicWithdrawalData> {
     let withdrawal = body.withdrawal.as_ref()?;
     let amount = withdrawal.amount?.try_into().ok()?;
+    let denom: shieldd_sdk_asset::asset::Metadata =
+        withdrawal.denom.as_ref()?.denom.as_str().try_into().ok()?;
     let self_address = withdrawal
         .return_address
         .clone()
         .and_then(|address| shieldd_sdk_keys::Address::try_from(address).ok())
         .map(|address| address.to_string());
     Some(PublicWithdrawalData {
+        asset_id: denom.id(),
         amount,
         self_address,
         destination: withdrawal.destination_chain_address.clone(),
@@ -349,8 +351,8 @@ mod tests {
                                     })),
                                 }),
                                 routing_tag: Some(RoutingTag { value: 31 }),
-                                sender_compliance_ciphertext: vec![1; 288],
-                                sender_compliance_metadata: vec![2; 168],
+                                withdrawal_compliance_ciphertext: vec![1; 192],
+
                                 ..Default::default()
                             }),
                             ..Default::default()
@@ -368,8 +370,8 @@ mod tests {
                                     ..Default::default()
                                 }),
                                 routing_tag: Some(RoutingTag { value: 41 }),
-                                sender_compliance_ciphertext: vec![3; 288],
-                                sender_compliance_metadata: vec![4; 168],
+                                withdrawal_compliance_ciphertext: vec![3; 192],
+
                                 ..Default::default()
                             }),
                             ..Default::default()

@@ -38,6 +38,9 @@ var embeddedAccumulatorOriginShieldedIcs20WithdrawalWitness []byte
 //go:embed vectors/shielded_ics20_withdrawal_accumulator_continuation_witness.bin
 var embeddedAccumulatorContinuationShieldedIcs20WithdrawalWitness []byte
 
+//go:embed vectors/note_seizure_witness.bin
+var embeddedNoteSeizureWitness []byte
+
 func LoadTransferWitness(label string) []byte {
 	switch label {
 	case "transfer":
@@ -55,6 +58,10 @@ func LoadTransferWitness(label string) []byte {
 	default:
 		panic("unknown transfer witness label: " + label)
 	}
+}
+
+func LoadNoteSeizureWitness() []byte {
+	return append([]byte(nil), embeddedNoteSeizureWitness...)
 }
 
 func LoadNoteReshapeWitness(label string) []byte {

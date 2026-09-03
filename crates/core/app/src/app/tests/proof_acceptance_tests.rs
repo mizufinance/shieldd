@@ -828,7 +828,7 @@ async fn prepare_proposal_excludes_decodable_invalid_groth16() -> Result<()> {
         let proposal = prepare_request(&app, invalid_bytes.clone()).await?;
 
         let (prepared, _, _) = app
-            .prepare_proposal_v2_profiled(proposal, Some(&cache), false)
+            .prepare_proposal_profiled(proposal, Some(&cache), false)
             .await;
         assert!(
             prepared

@@ -54,9 +54,26 @@ use shieldd_sdk_transaction::{
 
 use crate::{
     compliance_tree::ComplianceSnapshot, historical_proof_worker::HistoricalProofWorker,
-    worker::Worker, AddressPurpose, HistoricalProofProvider, IssuedAddress, NoteManager, Storage,
-    TransferPlanningResult,
+    storage::compliance::UserLeafData, worker::Worker, AddressPurpose, HistoricalProofProvider,
+    IssuedAddress, NoteManager, Storage, TransferPlanningResult,
 };
+
+fn compliance_leaf_proto(
+    address: &Address,
+    asset_id: asset::Id,
+    leaf: &UserLeafData,
+) -> compliance_pb::ComplianceLeaf {
+    compliance_pb::ComplianceLeaf {
+        address: Some(address.clone().into()),
+        asset_id: Some(asset_id.into()),
+        capk: leaf.capk.to_vec(),
+        rnk_dh_pk: leaf.rnk_dh_pk.to_vec(),
+        rnk_commitment: leaf.rnk_commitment.to_vec(),
+        status: compliance_pb::UserAssetStatus::from(leaf.status) as i32,
+        freeze_generation: leaf.freeze_generation,
+        frozen_since_height: leaf.frozen_since_height,
+    }
+}
 
 /// A [`futures::Stream`] of broadcast transaction responses.
 ///
@@ -2408,12 +2425,7 @@ impl ViewService for ViewServer {
                     })?;
 
                     // Build proto leaf from local storage
-                    let leaf_proto = compliance_pb::ComplianceLeaf {
-                        address: Some(address.clone().into()),
-                        asset_id: Some(asset_id.into()),
-                        d: leaf_data.d.to_vec(),
-                        status: compliance_pb::UserAssetStatus::from(leaf_data.status) as i32,
-                    };
+                    let leaf_proto = compliance_leaf_proto(&address, asset_id, &leaf_data);
 
                     tracing::debug!(
                         ?address,
@@ -2559,12 +2571,7 @@ impl ViewService for ViewServer {
             // Local storage hit - reconstruct the leaf from stored data.
             tracing::debug!(?address, ?asset_id, "using local storage for user leaf");
 
-            let leaf = compliance_pb::ComplianceLeaf {
-                address: request_inner.address,
-                asset_id: request_inner.asset_id,
-                d: leaf_data.d.to_vec(),
-                status: compliance_pb::UserAssetStatus::from(leaf_data.status) as i32,
-            };
+            let leaf = compliance_leaf_proto(&address, asset_id, &leaf_data);
 
             return Ok(tonic::Response::new(pb::ComplianceUserLeafResponse {
                 is_registered: true,
@@ -2598,17 +2605,9 @@ impl ViewService for ViewServer {
             .await?
             .into_inner();
 
-        // Convert compliance proto types to view proto types
-        let leaf = response.leaf.map(|l| compliance_pb::ComplianceLeaf {
-            address: l.address,
-            asset_id: l.asset_id,
-            d: l.d,
-            status: l.status,
-        });
-
         Ok(tonic::Response::new(pb::ComplianceUserLeafResponse {
             is_registered: response.is_registered,
-            leaf,
+            leaf: response.leaf,
         }))
     }
 
@@ -2699,12 +2698,7 @@ impl ViewService for ViewServer {
                             tonic::Status::internal(format!("failed to compute path: {e}"))
                         })?;
 
-                        let leaf_proto = compliance_pb::ComplianceLeaf {
-                            address: Some(address.clone().into()),
-                            asset_id: Some(asset_id.into()),
-                            d: leaf_data.d.to_vec(),
-                            status: compliance_pb::UserAssetStatus::from(leaf_data.status) as i32,
-                        };
+                        let leaf_proto = compliance_leaf_proto(&address, asset_id, &leaf_data);
 
                         tracing::debug!(
                             ?address,

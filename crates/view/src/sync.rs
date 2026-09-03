@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
 use shieldd_sdk_compact_block::{CompactBlock, StatePayload};
+use shieldd_sdk_compliance::effective_nullifier_key;
 use shieldd_sdk_fee::GasPrices;
 use shieldd_sdk_keys::FullViewingKey;
 use shieldd_sdk_sct::{nullifier_generation::NullifierWindow, Nullifier};
@@ -10,7 +11,7 @@ use shieldd_sdk_shielded_pool::{
 use shieldd_sdk_tct::{self as tct, StateCommitment};
 use tracing::Instrument;
 
-use crate::{SpendableNoteRecord, Storage};
+use crate::{storage::ComplianceBlockPlan, SpendableNoteRecord, Storage};
 
 const SCT_BLOCK_CAPACITY: usize = u16::MAX as usize + 1;
 
@@ -53,6 +54,7 @@ pub async fn scan_block(
         ..
     }: CompactBlock,
     storage: &Storage,
+    compliance_plan: Option<&ComplianceBlockPlan>,
 ) -> anyhow::Result<FilteredBlock> {
     // Trial-decrypt a note with our own specific viewing key
     let trial_decrypt_note = |note_payload: NotePayload| -> tokio::task::JoinHandle<Option<Note>> {
@@ -141,8 +143,53 @@ pub async fn scan_block(
                             .expect("inserting a commitment must succeed");
 
                         let source = payload.source().clone();
-                        let nullifier =
-                            Nullifier::derive(fvk.nullifier_key(), position, payload.commitment());
+                        let policy = match compliance_plan
+                            .and_then(|plan| plan.asset_policy(note.asset_id()))
+                        {
+                            Some(policy) => Some(policy.clone()),
+                            None => storage.get_asset_policy(&note.asset_id()).await?,
+                        };
+                        let nk = match policy {
+                            Some(policy) => {
+                                let pending_leaf = compliance_plan
+                                    .and_then(|plan| {
+                                        plan.user_leaf(&note.address(), note.asset_id())
+                                    })
+                                    .cloned();
+                                let rnk_dh_pk = match pending_leaf {
+                                    Some(leaf) => leaf.rnk_dh_pk,
+                                    None => {
+                                        let leaf = storage
+                                            .get_compliance_leaf_data(
+                                                &note.address(),
+                                                &note.asset_id(),
+                                            )
+                                            .await?
+                                            .ok_or_else(|| {
+                                                anyhow::anyhow!(
+                                                    "regulated note is missing its compliance leaf"
+                                                )
+                                            })?;
+                                        decaf377::Encoding(leaf.rnk_dh_pk)
+                                            .vartime_decompress()
+                                            .map_err(|_| {
+                                                anyhow::anyhow!("stored rnk_dh_pk is invalid")
+                                            })?
+                                    }
+                                };
+                                effective_nullifier_key(
+                                    *fvk.nullifier_key(),
+                                    fvk.incoming(),
+                                    &note.address(),
+                                    note.asset_id(),
+                                    policy.ring.ring_pk,
+                                    rnk_dh_pk,
+                                    true,
+                                )?
+                            }
+                            None => *fvk.nullifier_key(),
+                        };
+                        let nullifier = Nullifier::derive(&nk, position, payload.commitment());
                         let address_index =
                             fvk.incoming().index_for_diversifier(note.diversifier());
 

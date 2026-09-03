@@ -1410,7 +1410,7 @@ async fn profile_block(chain: &mut TestNodeWithIBC, txs: Vec<Vec<u8>>) -> Result
     proposer.set_block_tx_indexing_mode(BlockTxIndexingMode::DeferredBatch);
     let prepare_start = Instant::now();
     let (prepared, prepare_profile, sidecar) = proposer
-        .prepare_proposal_v2_profiled(prepare_request, None, true)
+        .prepare_proposal_profiled(prepare_request, None, true)
         .await;
     detailed.prepare_proposal_wall_ms = elapsed_ms(prepare_start);
     apply_prepare_profile(&mut detailed, &prepare_profile);

@@ -9,15 +9,16 @@ Only the receiver `TransferOutputBody` carries compliance bytes. Transfer
 inputs and the change output must not carry compliance data.
 
 ```text
-TransferComplianceCiphertext: 640 bytes
+TransferComplianceCiphertext: 704 bytes
   0..128    four compressed EPKs
              sender_core, sender_ext, output_core, output_ext
   128..256  four canonical Fq c2 values in the same order
-  256..384  four-Fq detection ciphertext
-  384..416  sender_core ciphertext: one Fq
-  416..512  sender_ext ciphertext: three Fq
-  512..544  output_core ciphertext: one Fq
-  544..640  output_ext ciphertext: three Fq
+  256..320  sender-core and output-core key confirmations
+  320..448  four-Fq detection ciphertext
+  448..480  sender_core ciphertext: one Fq
+  480..576  sender_ext ciphertext: three Fq
+  576..608  output_core ciphertext: one Fq
+  608..704  output_ext ciphertext: three Fq
 
 TransferComplianceMetadata: 264 bytes
   0..32     ring_id_hash Fq
@@ -43,11 +44,12 @@ After decryption, the four detection words are:
 0  asset_id
 1  detection_salt
 2  is_flagged
-3  reserved zero
+3  reserved_zero
 ```
 
-The flag is a canonical bit. Word 0 is the exact asset id and word 3 must be
-zero. The public routing tags provide the address candidate filter separately.
+The flag is canonical boolean and word 3 is exactly zero. Word 0 is the exact
+asset ID. Detection carries no slot, role permutation, derivation, address
+fragment, or index.
 
 ## Transfer Key And Address Validity
 
@@ -67,36 +69,40 @@ malicious proof from creating a note with that ambiguous owner.
 
 ## Transfer Public Statement
 
-The fixed 2x2 Transfer statement has 49 Fq fields. Its hash uses the
+The fixed 2x2 Transfer statement has 53 Fq fields. Its hash uses the
 `shieldd.shielded_pool.transfer.public_input_hash.statement` domain.
 
 ```text
  0       anchor
- 1..2    receiver and change note commitments
- 3       balance commitment
- 4..5    fixed two-slot routing tags
-6       routing parameter-set identifier
-7       recent position floor
- 8       daily-volume transition nullifier
- 9       daily-volume successor or padding commitment
-10       selected UTC day start
-11       proof context
-12..17   two (nullifier, randomized verification key, history-required bit) triples
-18..19   asset and compliance anchors
-20..23   detection ciphertext
-24..26   sender_core: EPK, c2, one ciphertext word
-27..31   sender_ext: EPK, c2, three ciphertext words
-32..34   output_core: EPK, c2, one ciphertext word
-35..39   output_ext: EPK, c2, three ciphertext words
-40       target_timestamp
-41..44   ring, policy, resource, and permission hashes
-45..48   sender-core, sender-ext, output-core, and output-ext salts
+ 1..2    receiver note and recovery-capsule commitments
+ 3..4    change note and recovery-capsule commitments
+ 5       balance commitment
+  6..7    fixed sender/receiver routing tags
+  8       routing parameter-set identifier
+  9       recent position floor
+ 10       daily-volume transition nullifier
+ 11       daily-volume successor or padding commitment
+ 12       selected UTC day start
+ 13       proof context
+ 14..19   two (nullifier, randomized verification key, history-required bit) triples
+ 20..21   asset and compliance anchors
+ 22..25   detection ciphertext
+ 26..28   sender_core: EPK, c2, one ciphertext word
+ 29..33   sender_ext: EPK, c2, three ciphertext words
+ 34..36   output_core: EPK, c2, one ciphertext word
+ 37..41   output_ext: EPK, c2, three ciphertext words
+ 42       target_timestamp
+ 43..44   sender-core and output-core key confirmations
+ 45..48   ring, policy, resource, and permission hashes
+ 49..52   sender-core, sender-ext, output-core, and output-ext salts
 ```
 
 The exact tail append order is:
 
 ```text
 target_timestamp,
+sender_core_key_confirmation,
+output_core_key_confirmation,
 ring_id_hash,
 policy_id_hash,
 resource_hash,
@@ -153,26 +159,26 @@ roots.
 `ComplianceLeaf` is
 
 ```text
-PoseidonHash5(
+PoseidonHash7(
   "shieldd.compliance.leaf",
   diversified_generator_fq,
   transmission_key_fq,
   asset_id,
-  d,
-  status
+  compressed_capk,
+  compressed_rnk_dh_pk,
+  Poseidon(rnk),
+  packed_lifecycle
 )
 ```
 
-The address encodings must be canonical, and `d` must equal the nonzero scalar
-derived from the complete canonical address bytes. Asset id zero is reserved
-for the indexed-tree sentinel and cannot be registered or used as a Transfer
-or Withdrawal action asset.
-
-Address audit plaintext is the canonical 64-byte little-endian concatenation
-of `diversified_generator_fq` and `transmission_key_fq`, split into 31-byte
-stream words. Gnark's `ToBinary(..., 256)` clamps each native field to 253
-bits, enforces the built-in `<= p-1` check, and pads the remaining three bits
-with zero.
+The address encodings must be canonical. `capk` is the nonidentity capsule
+capability. The registration certificate binds both `rnk_dh_pk = ring_sk * G_d`
+and `Poseidon(rnk)`. The wallet derives the RNK through static DH; the
+corresponding production Orbis release API is not implemented.
+The leaf exposes only its Poseidon commitment. The packed lifecycle injectively
+contains status, freeze generation, and frozen-since height. Asset ID zero is
+reserved for the indexed-tree sentinel and cannot be registered or used as a
+Transfer or Withdrawal action asset.
 
 ## Scanner Types And Tables
 
@@ -198,7 +204,7 @@ ExtractedComplianceCiphertext { output_ref, routing_tags, raw_bytes, metadata_by
 | `audit_decryption_failures` | bounded decryption failures |
 | `audit_evidence_failures` | bounded evidence failures |
 
-## Evidence
+## Scanner evidence
 
 `ComplianceEvidenceObject` contains:
 
@@ -211,7 +217,7 @@ TransferComplianceMetadata
 SHA-256 payload hash
 ```
 
-It deliberately excludes PRE envelopes, DH shared points, and standalone DLEQ
+It deliberately excludes release material, DH shared points, and standalone DLEQ
 proofs. `validate_and_save_evidence_object` verifies the payload hash, metadata
 shape, accepted ciphertext/metadata byte equality, and persisted detection
 facts before advancing the row to `evidence_valid`.
@@ -219,12 +225,12 @@ facts before advancing the row to `evidence_valid`.
 ## Audit Boundary
 
 Flagged transfers can be completed by issuer-DK decryption after evidence
-validation. Orbis prototype export and import always return errors because its public
-proof reveals the seed-opening DH point. Consequently, unflagged ACK-tier PRE
-audit is currently unavailable.
+validation. Scanner evidence never publishes seed-opening material. The
+privileged note-seizure host call uses a capsule-specific point and DLEQ proof;
+see [`enforcement-and-seizure.md`](enforcement-and-seizure.md).
 
-No deployed statement field, transaction byte, or evidence object depends on
-the standalone DLEQ research helper.
+Transfer statements, user transactions, and scanner evidence do not contain
+capsule-release material.
 
 ## Circuit Implementation Boundary
 
@@ -243,8 +249,7 @@ circuits under `tools/gnark/`. No second circuit architecture is supported.
 - Channel whitelist enforcement is first-hop only.
 - Cross-tier randomizer/EPK independence is mandatory.
 - Metadata belongs only to the receiver output.
-- PRE must remain disabled until a non-disclosing design is circuit-bound and
-  independently reviewed.
+- Capsule-release material must remain outside user transactions and scanner evidence.
 
 ## Source Map
 

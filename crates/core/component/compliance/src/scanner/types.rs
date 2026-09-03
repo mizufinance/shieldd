@@ -26,13 +26,14 @@ impl ComplianceCiphertext {
     pub fn to_bytes(&self) -> Vec<u8> {
         match self {
             Self::Transfer(ciphertext) => ciphertext.to_bytes(),
-            Self::Withdrawal(ciphertext) => ciphertext.to_bytes(),
+            Self::Withdrawal(ciphertext) => ciphertext.to_bytes().to_vec(),
         }
     }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PublicWithdrawalData {
+    pub asset_id: asset::Id,
     pub amount: shieldd_sdk_num::Amount,
     pub self_address: Option<String>,
     pub destination: String,

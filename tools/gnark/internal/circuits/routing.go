@@ -334,7 +334,7 @@ func (c *TransferCircuit) verifyTransferRouting(
 	api frontend.API,
 	shared *transferSharedContext,
 	statementData *transferStatementData,
-) error {
+) (frontend.Variable, error) {
 	c.traceWiring(
 		"routing.precision.select",
 		"regulated=regulated_precision",
@@ -362,7 +362,7 @@ func (c *TransferCircuit) verifyTransferRouting(
 		},
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	c.traceWiring(
 		"routing.parameters.bind",
@@ -384,7 +384,7 @@ func (c *TransferCircuit) verifyTransferRouting(
 	)
 	senderWord, err := Poseidon377Hash1(api, routeDomain, shared.senderTransmissionFq)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	c.traceWiring(
 		"routing.route_word",
@@ -394,7 +394,7 @@ func (c *TransferCircuit) verifyTransferRouting(
 	)
 	receiverWord, err := Poseidon377Hash1(api, routeDomain, statementData.receiverTransmissionFq)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	c.traceWiring(
 		"routing.permutation.hash",
@@ -403,7 +403,7 @@ func (c *TransferCircuit) verifyTransferRouting(
 	)
 	permutationWord, err := routingPermutationWord(api, c.Compliance.TransferNonceRoot)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	c.traceWiring(
 		"routing.permutation.compose",
@@ -443,8 +443,8 @@ func (c *TransferCircuit) verifyTransferRouting(
 			publicTagBits,
 		)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
-	return nil
+	return swapped, nil
 }

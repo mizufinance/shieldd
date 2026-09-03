@@ -59,6 +59,40 @@ func ensureFieldCount(label string, fields [][32]byte, expected int) error {
 	return nil
 }
 
+func ReconstructedNoteSeizureStatementFieldsFromWitness(
+	witness *NoteSeizureWitnessBinary,
+) ([][32]byte, error) {
+	epk, err := pointAffineToField(witness.Recovery.EPKAffine)
+	if err != nil {
+		return nil, fmt.Errorf("compress note seizure recovery EPK: %w", err)
+	}
+	fields := [][32]byte{
+		witness.Anchor,
+		witness.NoteCommitment,
+		witness.Nullifier,
+		boolField(witness.HistoryRequired),
+		witness.RecentPositionFloor,
+		witness.AddressDiversifiedGenerator,
+		witness.AddressTransmissionKey,
+		witness.AssetID,
+		witness.Amount,
+		witness.Recovery.Commitment,
+		epk,
+		witness.Recovery.C2,
+		witness.Recovery.Salt,
+		witness.Recovery.KeyConfirmation,
+		witness.Recovery.EncryptedAmount,
+		witness.Recovery.EncryptedNoteBlinding,
+		witness.Recovery.Seed,
+		witness.RnkCommitment,
+		witness.AuthorizationCommitment,
+	}
+	if err := ensureFieldCount("note seizure", fields, primitives.NoteSeizureStatementFieldCount); err != nil {
+		return nil, err
+	}
+	return fields, nil
+}
+
 // transferBalanceCommitmentField reconstructs the exact commitment that the
 // circuit computes. Transfer does not serialize a second prover-chosen affine
 // copy: the sole public statement binds this value directly.
@@ -214,7 +248,9 @@ func ReconstructedTransferStatementFieldsFromWitness(
 		fields,
 		witness.Anchor,
 		witness.ReceiverOutput.NoteCommitment,
+		witness.ReceiverOutput.RecoveryCommitment,
 		witness.ChangeOutput.NoteCommitment,
+		witness.ChangeOutput.RecoveryCommitment,
 	)
 	balanceCommitment, err := transferBalanceCommitmentField(witness)
 	if err != nil {
@@ -292,6 +328,8 @@ func ReconstructedTransferStatementFieldsFromWitness(
 	fields = append(fields, witness.TargetTimestamp)
 	fields = append(
 		fields,
+		witness.SenderCoreKeyConfirmation,
+		witness.OutputCoreKeyConfirmation,
 		witness.Metadata.RingIDHash,
 		witness.Metadata.PolicyIDHash,
 		witness.Metadata.ResourceHash,
@@ -324,7 +362,7 @@ func appendNoteReshapeStatementFields(
 ) ([][32]byte, error) {
 	fields = append(fields, anchor)
 	for _, output := range outputs {
-		fields = append(fields, output.NoteCommitment)
+		fields = append(fields, output.NoteCommitment, output.RecoveryCommitment)
 	}
 	balanceCommitment, err := pointAffineToField(balanceCommitmentAffine)
 	if err != nil {
@@ -418,7 +456,12 @@ func ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitness(
 ) ([][32]byte, error) {
 	expected := primitives.ShieldedIcs20WithdrawalStatementFieldCount(int(witness.NIn))
 	fields := make([][32]byte, 0, expected)
-	fields = append(fields, witness.Anchor, witness.ChangeOutput.NoteCommitment)
+	fields = append(
+		fields,
+		witness.Anchor,
+		witness.ChangeOutput.NoteCommitment,
+		witness.ChangeOutput.RecoveryCommitment,
+	)
 	balanceCommitment, err := shieldedIcs20WithdrawalBalanceCommitmentField(witness)
 	if err != nil {
 		return nil, err
@@ -452,20 +495,17 @@ func ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitness(
 		witness.VolumeAccumulator.Commitment,
 		witness.VolumeAccumulator.DayStart,
 	)
-	fields = append(fields, witness.DetectionCiphertext...)
-	senderEPK, err := pointAffineToField(witness.SenderEPK)
+	withdrawalEPK, err := pointAffineToField(witness.WithdrawalEPKAffine)
 	if err != nil {
-		return nil, fmt.Errorf("compress withdrawal sender epk: %w", err)
+		return nil, fmt.Errorf("compress withdrawal compliance epk: %w", err)
 	}
-	fields = append(fields, senderEPK, witness.SenderC2)
-	fields = append(fields, witness.SenderCiphertext...)
-	fields = append(fields,
-		witness.RingIDHash,
-		witness.PolicyIDHash,
-		witness.ResourceHash,
-		witness.PermissionHash,
-		witness.SenderSalt,
+	fields = append(
+		fields,
+		withdrawalEPK,
+		witness.WithdrawalC2,
+		witness.WithdrawalKeyConfirmation,
 	)
+	fields = append(fields, witness.WithdrawalEncryptedSenderAddress[:]...)
 	if err := ensureFieldCount("shielded ICS-20 withdrawal", fields, expected); err != nil {
 		return nil, err
 	}

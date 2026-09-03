@@ -21,8 +21,9 @@ type TransferAuthSharedFields struct {
 }
 
 type TransferNotePayloadCircuitFields struct {
-	Blinding frontend.Variable
-	Amount   frontend.Variable
+	Blinding           frontend.Variable
+	Amount             frontend.Variable
+	RecoveryCommitment frontend.Variable
 }
 
 type TransferStatePathCircuitFields struct {
@@ -56,18 +57,21 @@ type TransferOptionalSpendCircuitFields struct {
 }
 
 type TransferUserCircuitFields struct {
-	DivGen       Point2D
-	Transmission Point2D
-	D            frontend.Variable
-	Status       frontend.Variable
-	Path         [ComplianceQuadTreeDepth][3]frontend.Variable
-	Position     frontend.Variable
+	DivGen        Point2D
+	Transmission  Point2D
+	Capk          Point2D
+	RnkDhPk       Point2D
+	RnkCommitment frontend.Variable
+	Status        frontend.Variable
+	Path          [ComplianceQuadTreeDepth][3]frontend.Variable
+	Position      frontend.Variable
 }
 
 type TransferReceiverOutputCircuitFields struct {
 	NoteCommitment frontend.Variable
 	Note           TransferReceiverNoteCircuitFields
 	Recipient      TransferUserCircuitFields
+	Recovery       RecoveryCapsuleFields
 }
 
 type TransferReceiverNoteCircuitFields struct {
@@ -77,6 +81,7 @@ type TransferReceiverNoteCircuitFields struct {
 type TransferChangeOutputCircuitFields struct {
 	NoteCommitment frontend.Variable
 	Note           TransferNotePayloadCircuitFields
+	Recovery       RecoveryCapsuleFields
 }
 
 type TransferVolumeAccumulatorCircuitFields struct {
@@ -198,9 +203,11 @@ func (c *TransferCircuit) Define(api frontend.API) error {
 	); err != nil {
 		return err
 	}
-	if err := c.verifyTransferRouting(api, &shared, &statementData); err != nil {
+	routingRolesSwapped, err := c.verifyTransferRouting(api, &shared, &statementData)
+	if err != nil {
 		return err
 	}
+	statementData.routingRolesSwapped = routingRolesSwapped
 	if err := c.verifyVolumeAccumulator(api, &shared, &statementData); err != nil {
 		return err
 	}
@@ -284,10 +291,14 @@ func (c *TransferCircuit) bindTransferComplianceTier(
 	name string,
 	epk Point2D,
 	c2 frontend.Variable,
+	keyConfirmation frontend.Variable,
 	ciphertext []frontend.Variable,
 ) {
 	c.bindSemantic(name+".epk", epk.X, epk.Y)
 	c.bindSemantic(name+".c2", c2)
+	if keyConfirmation != nil {
+		c.bindSemantic(name+".key_confirmation", keyConfirmation)
+	}
 	c.bindSemantic(name+".ciphertext", ciphertext...)
 }
 
@@ -330,7 +341,8 @@ func (c *TransferCircuit) bindTransferWitnessSemantics() {
 		c.Sender.Transmission.X,
 		c.Sender.Transmission.Y,
 	)
-	c.bindSemantic("sender.d", c.Sender.D)
+	c.bindSemantic("sender.capk", c.Sender.Capk.X, c.Sender.Capk.Y)
+	c.bindSemantic("sender.rnk_commitment", c.Sender.RnkCommitment)
 	c.bindSemantic("sender.status", c.Sender.Status)
 	c.bindSemantic("sender.path", quadPathVariables(c.Sender.Path)...)
 	c.bindSemantic("sender.position", c.Sender.Position)
@@ -378,7 +390,8 @@ func (c *TransferCircuit) bindTransferWitnessSemantics() {
 		c.ReceiverOutput.Recipient.Transmission.X,
 		c.ReceiverOutput.Recipient.Transmission.Y,
 	)
-	c.bindSemantic("output0.recipient.d", c.ReceiverOutput.Recipient.D)
+	c.bindSemantic("output0.recipient.capk", c.ReceiverOutput.Recipient.Capk.X, c.ReceiverOutput.Recipient.Capk.Y)
+	c.bindSemantic("output0.recipient.rnk_commitment", c.ReceiverOutput.Recipient.RnkCommitment)
 	c.bindSemantic("output0.recipient.status", c.ReceiverOutput.Recipient.Status)
 	c.bindSemantic(
 		"output0.recipient.path",
@@ -407,24 +420,28 @@ func (c *TransferCircuit) bindTransferWitnessSemantics() {
 		"compliance.sender_core",
 		c.Compliance.SenderCore.Epk,
 		c.Compliance.SenderCore.C2,
+		c.Compliance.SenderCore.KeyConfirmation,
 		c.Compliance.SenderCore.Ciphertext[:],
 	)
 	c.bindTransferComplianceTier(
 		"compliance.sender_ext",
 		c.Compliance.SenderExt.Epk,
 		c.Compliance.SenderExt.C2,
+		nil,
 		c.Compliance.SenderExt.Ciphertext[:],
 	)
 	c.bindTransferComplianceTier(
 		"compliance.output_core",
 		c.Compliance.OutputCore.Epk,
 		c.Compliance.OutputCore.C2,
+		c.Compliance.OutputCore.KeyConfirmation,
 		c.Compliance.OutputCore.Ciphertext[:],
 	)
 	c.bindTransferComplianceTier(
 		"compliance.output_ext",
 		c.Compliance.OutputExt.Epk,
 		c.Compliance.OutputExt.C2,
+		nil,
 		c.Compliance.OutputExt.Ciphertext[:],
 	)
 }
@@ -443,6 +460,7 @@ type transferSharedContext struct {
 	senderDivGenFq          frontend.Variable
 	senderTransmissionFq    frontend.Variable
 	senderAck               gnarkte.Point
+	effectiveNK             frontend.Variable
 	sharedAssetID           frontend.Variable
 }
 
@@ -455,6 +473,7 @@ type transferStatementData struct {
 	receiverDivGenFq       frontend.Variable
 	receiverTransmissionFq frontend.Variable
 	receiverAck            gnarkte.Point
+	routingRolesSwapped    frontend.Variable
 	senderCoreEPKFq        frontend.Variable
 	senderExtEPKFq         frontend.Variable
 	outputCoreEPKFq        frontend.Variable
@@ -718,7 +737,7 @@ func (c *TransferCircuit) verifySharedTransferContext(api frontend.API) (transfe
 		"ivk_quotient_a=auth.ivk_quotient_a",
 		"out=sender.transmission.computed",
 	)
-	computedSenderTransmission, err := diversifiedTransmissionKeyAfterIvkNonzero(
+	computedSenderTransmission, ivkBits, err := diversifiedTransmissionKeyAndBitsAfterIvkNonzero(
 		api,
 		c.Auth.NK,
 		shared.ak,
@@ -751,19 +770,39 @@ func (c *TransferCircuit) verifySharedTransferContext(api frontend.API) (transfe
 		return transferSharedContext{}, err
 	}
 
-	c.traceWiring("gadget.compliance_leaf", "div_gen_fq=sender.div_gen_fq", "transmission_fq=sender.transmission_fq", "asset_id=shared.asset_id", "d=sender.d", "status=sender.status", "out=sender.leaf_commitment")
+	c.traceWiring("gadget.compliance_leaf", "div_gen_fq=sender.div_gen_fq", "transmission_fq=sender.transmission_fq", "asset_id=shared.asset_id", "capk=sender.capk", "rnk_dh_pk=sender.rnk_dh_pk", "rnk_commitment=sender.rnk_commitment", "status=sender.status", "out=sender.leaf_commitment")
 	senderLeafCommitment, err := ComplianceLeafCommitmentFromCompressed(
 		api,
 		shared.senderDivGenFq,
 		shared.senderTransmissionFq,
 		shared.sharedAssetID,
-		c.Sender.D,
+		gnarkte.Point{X: c.Sender.Capk.X, Y: c.Sender.Capk.Y},
+		gnarkte.Point{X: c.Sender.RnkDhPk.X, Y: c.Sender.RnkDhPk.Y},
+		c.Sender.RnkCommitment,
 		c.Sender.Status,
 	)
 	if err != nil {
 		return transferSharedContext{}, err
 	}
 	c.bindSemantic("sender.leaf_commitment", senderLeafCommitment)
+	derivedRNK, err := RegulatedNullifierKey(
+		api,
+		ivkBits,
+		gnarkte.Point{X: c.Sender.RnkDhPk.X, Y: c.Sender.RnkDhPk.Y},
+		shared.senderDivGenFq,
+		shared.senderTransmissionFq,
+		shared.sharedAssetID,
+		shared.effectiveRingPK,
+	)
+	if err != nil {
+		return transferSharedContext{}, err
+	}
+	shared.effectiveNK = api.Select(c.IsRegulated, derivedRNK, c.Auth.NK)
+	rnkCommitment, err := ComplianceNullifierKeyCommitment(api, derivedRNK)
+	if err != nil {
+		return transferSharedContext{}, err
+	}
+	AssertEqualIf(api, rnkCommitment, c.Sender.RnkCommitment, c.IsRegulated)
 	c.traceWiring("gadget.compliance_path", "leaf=sender.leaf_commitment", "path=sender.path", "position=sender.position", "out=sender.compliance_root")
 	senderComplianceRoot, err := VerifyQuadPath(api, senderLeafCommitment, c.Sender.Path, c.Sender.Position)
 	if err != nil {
@@ -772,14 +811,11 @@ func (c *TransferCircuit) verifySharedTransferContext(api frontend.API) (transfe
 	c.bindSemantic("sender.compliance_root", senderComplianceRoot)
 	c.traceWiring("assert.eq_if", "lhs=sender.compliance_root", "rhs=compliance_anchor", "cond=is_regulated")
 	AssertEqualIf(api, senderComplianceRoot, c.ComplianceAnchor, c.IsRegulated)
-	c.traceWiring("assert.eq_if", "lhs=sender.status", "rhs=1", "cond=is_regulated")
-	AssertEqualIf(api, c.Sender.Status, 1, c.IsRegulated)
+	c.traceWiring("gadget.active_lifecycle", "lifecycle=sender.status", "cond=is_regulated")
+	AssertActiveComplianceLifecycle(api, c.Sender.Status, c.IsRegulated)
 
-	c.traceWiring("decaf.ack", "ring_pk=effective.ring_pk", "d=sender.d", "out=sender.ack")
-	shared.senderAck, err = DeriveACKFromLeafD(api, shared.effectiveRingPK, c.Sender.D)
-	if err != nil {
-		return transferSharedContext{}, err
-	}
+	c.traceWiring("bind.capk", "capk=sender.capk", "out=sender.ack")
+	shared.senderAck = gnarkte.Point{X: c.Sender.Capk.X, Y: c.Sender.Capk.Y}
 	c.bindSemantic("sender.ack", shared.senderAck.X, shared.senderAck.Y)
 
 	return shared, nil
@@ -925,12 +961,13 @@ func (c *TransferCircuit) newTransferStatementData() transferStatementData {
 	return transferStatementData{
 		inputAmounts:           make([]frontend.Variable, 0, TransferCircuitInputs),
 		outputAmounts:          make([]frontend.Variable, 0, TransferCircuitOutputs),
-		outputCommitments:      make([]frontend.Variable, 0, TransferCircuitOutputs),
+		outputCommitments:      make([]frontend.Variable, 0, 2*TransferCircuitOutputs),
 		nullifiersAndRKs:       make([]frontend.Variable, 0, 2*TransferCircuitInputs),
 		receiverAmount:         0,
 		receiverDivGenFq:       0,
 		receiverTransmissionFq: 0,
 		receiverAck:            gnarkte.Point{X: 0, Y: 0},
+		routingRolesSwapped:    0,
 		senderCoreEPKFq:        0,
 		senderExtEPKFq:         0,
 		outputCoreEPKFq:        0,
@@ -1200,6 +1237,7 @@ func (c *TransferCircuit) verifyTransferSpend(
 		shared.sharedAssetID,
 		shared.senderDivGenFq,
 		shared.senderTransmissionFq,
+		spend.Note.RecoveryCommitment,
 	)
 	if err != nil {
 		return err
@@ -1207,7 +1245,7 @@ func (c *TransferCircuit) verifyTransferSpend(
 	c.bindSemantic(name+".note.commitment.computed", spentCommitment)
 
 	c.traceWiring("gadget.nullifier", "nk=auth.nk", "commitment="+name+".note.commitment.computed", "position="+name+".state_proof.position", "out="+name+".nullifier.real")
-	realNullifier, err := Nullifier(api, c.Auth.NK, spentCommitment, spend.StateProof.Position)
+	realNullifier, err := Nullifier(api, shared.effectiveNK, spentCommitment, spend.StateProof.Position)
 	if err != nil {
 		return err
 	}
@@ -1361,6 +1399,7 @@ func (c *TransferCircuit) verifyTransferReceiverOutput(
 		shared.sharedAssetID,
 		recipientDivGenFq,
 		recipientTransmissionFq,
+		output.Note.RecoveryCommitment,
 	)
 	if err != nil {
 		return err
@@ -1369,13 +1408,15 @@ func (c *TransferCircuit) verifyTransferReceiverOutput(
 	c.traceWiring("assert.eq", "lhs=output0.note.commitment.computed", "rhs=output0.note_commitment")
 	api.AssertIsEqual(createdCommitment, output.NoteCommitment)
 
-	c.traceWiring("gadget.compliance_leaf", "div_gen_fq=output0.recipient.div_gen_fq", "transmission_fq=output0.recipient.transmission_fq", "asset_id=shared.asset_id", "d=output0.recipient.d", "status=output0.recipient.status", "out=output0.recipient.leaf_commitment")
+	c.traceWiring("gadget.compliance_leaf", "div_gen_fq=output0.recipient.div_gen_fq", "transmission_fq=output0.recipient.transmission_fq", "asset_id=shared.asset_id", "capk=output0.recipient.capk", "rnk_dh_pk=output0.recipient.rnk_dh_pk", "rnk_commitment=output0.recipient.rnk_commitment", "status=output0.recipient.status", "out=output0.recipient.leaf_commitment")
 	recipientLeafCommitment, err := ComplianceLeafCommitmentFromCompressed(
 		api,
 		recipientDivGenFq,
 		recipientTransmissionFq,
 		shared.sharedAssetID,
-		output.Recipient.D,
+		gnarkte.Point{X: output.Recipient.Capk.X, Y: output.Recipient.Capk.Y},
+		gnarkte.Point{X: output.Recipient.RnkDhPk.X, Y: output.Recipient.RnkDhPk.Y},
+		output.Recipient.RnkCommitment,
 		output.Recipient.Status,
 	)
 	if err != nil {
@@ -1393,18 +1434,29 @@ func (c *TransferCircuit) verifyTransferReceiverOutput(
 	)
 	c.traceWiring("assert.eq_if", "lhs=output0.recipient.compliance_root", "rhs=compliance_anchor", "cond=is_regulated")
 	AssertEqualIf(api, recipientComplianceRoot, c.ComplianceAnchor, c.IsRegulated)
-	c.traceWiring("assert.eq_if", "lhs=output0.recipient.status", "rhs=1", "cond=is_regulated")
-	AssertEqualIf(api, output.Recipient.Status, 1, c.IsRegulated)
-
-	statementData.outputAmounts = append(statementData.outputAmounts, output.Note.Amount)
-	statementData.outputCommitments = append(statementData.outputCommitments, output.NoteCommitment)
-	c.traceWiring("assert.eq", "lhs=output0.is_dummy", "rhs=0")
-	api.AssertIsEqual(receiverIsDummy, 0)
-	c.traceWiring("decaf.ack", "ring_pk=effective.ring_pk", "d=output0.recipient.d", "out=receiver.ack")
-	recipientAck, err := DeriveACKFromLeafD(api, shared.effectiveRingPK, output.Recipient.D)
-	if err != nil {
+	c.traceWiring("gadget.active_lifecycle", "lifecycle=output0.recipient.status", "cond=is_regulated")
+	AssertActiveComplianceLifecycle(api, output.Recipient.Status, c.IsRegulated)
+	if err := VerifyRecoveryCapsule(
+		api,
+		gnarkte.Point{X: output.Recipient.Capk.X, Y: output.Recipient.Capk.Y},
+		output.Note.Amount,
+		output.Note.Blinding,
+		output.Recovery,
+	); err != nil {
 		return err
 	}
+	api.AssertIsEqual(output.Recovery.Commitment, output.Note.RecoveryCommitment)
+
+	statementData.outputAmounts = append(statementData.outputAmounts, output.Note.Amount)
+	statementData.outputCommitments = append(
+		statementData.outputCommitments,
+		output.NoteCommitment,
+		output.Note.RecoveryCommitment,
+	)
+	c.traceWiring("assert.eq", "lhs=output0.is_dummy", "rhs=0")
+	api.AssertIsEqual(receiverIsDummy, 0)
+	c.traceWiring("bind.capk", "capk=output0.recipient.capk", "out=receiver.ack")
+	recipientAck := gnarkte.Point{X: output.Recipient.Capk.X, Y: output.Recipient.Capk.Y}
 	c.bindSemantic("receiver.ack", recipientAck.X, recipientAck.Y)
 	statementData.receiverAmount = output.Note.Amount
 	statementData.receiverDivGenFq = recipientDivGenFq
@@ -1441,6 +1493,7 @@ func (c *TransferCircuit) verifyTransferChangeOutput(
 		shared.sharedAssetID,
 		shared.senderDivGenFq,
 		shared.senderTransmissionFq,
+		output.Note.RecoveryCommitment,
 	)
 	if err != nil {
 		return err
@@ -1448,8 +1501,22 @@ func (c *TransferCircuit) verifyTransferChangeOutput(
 	c.bindSemantic("output1.note.commitment.computed", createdCommitment)
 	c.traceWiring("assert.eq", "lhs=output1.note.commitment.computed", "rhs=output1.note_commitment")
 	api.AssertIsEqual(createdCommitment, output.NoteCommitment)
+	if err := VerifyRecoveryCapsule(
+		api,
+		shared.senderAck,
+		output.Note.Amount,
+		output.Note.Blinding,
+		output.Recovery,
+	); err != nil {
+		return err
+	}
+	api.AssertIsEqual(output.Recovery.Commitment, output.Note.RecoveryCommitment)
 	statementData.outputAmounts = append(statementData.outputAmounts, output.Note.Amount)
-	statementData.outputCommitments = append(statementData.outputCommitments, output.NoteCommitment)
+	statementData.outputCommitments = append(
+		statementData.outputCommitments,
+		output.NoteCommitment,
+		output.Note.RecoveryCommitment,
+	)
 	return nil
 }
 
@@ -1466,6 +1533,15 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 	senderExtEPK := gnarkte.Point{X: c.Compliance.SenderExt.Epk.X, Y: c.Compliance.SenderExt.Epk.Y}
 	outputCoreEPK := gnarkte.Point{X: c.Compliance.OutputCore.Epk.X, Y: c.Compliance.OutputCore.Epk.Y}
 	outputExtEPK := gnarkte.Point{X: c.Compliance.OutputExt.Epk.X, Y: c.Compliance.OutputExt.Epk.Y}
+
+	c.traceWiring("assert.decaf_non_identity", "point=compliance.sender_core.epk", "coordinate=x")
+	AssertDecafNonIdentity(api, senderCoreEPK)
+	c.traceWiring("assert.decaf_non_identity", "point=compliance.sender_ext.epk", "coordinate=x")
+	AssertDecafNonIdentity(api, senderExtEPK)
+	c.traceWiring("assert.decaf_non_identity", "point=compliance.output_core.epk", "coordinate=x")
+	AssertDecafNonIdentity(api, outputCoreEPK)
+	c.traceWiring("assert.decaf_non_identity", "point=compliance.output_ext.epk", "coordinate=x")
+	AssertDecafNonIdentity(api, outputExtEPK)
 
 	c.traceWiring("decaf.compress_to_field", "in=compliance.sender_core.epk", "out=compliance.sender_core.epk_fq")
 	senderCoreEPKFq, err := decafgnark.CompressToField(api, senderCoreEPK)
@@ -1586,11 +1662,14 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 	); err != nil {
 		return err
 	}
-	c.traceWiring("gadget.poseidon_encryption.amount", "tier=sender_core", "ss=sender_core.shared.selected", "c2=compliance.sender_core.c2", "amount=receiver.amount", "out=compliance.sender_core.ciphertext")
+	c.traceWiring("gadget.poseidon_encryption.amount", "tier=sender_core", "ss=sender_core.shared.selected", "c2=compliance.sender_core.c2", "epk_fq=compliance.sender_core.epk_fq", "salt=salt1", "key_confirmation=compliance.sender_core.key_confirmation", "amount=receiver.amount", "out=compliance.sender_core.ciphertext")
 	if err := VerifyPoseidonEncryptionTransferAmount(
 		api,
 		senderCoreSelected,
 		c.Compliance.SenderCore.C2,
+		statementData.senderCoreEPKFq,
+		salts[1],
+		c.Compliance.SenderCore.KeyConfirmation,
 		statementData.receiverAmount,
 		c.Compliance.SenderCore.Ciphertext,
 	); err != nil {
@@ -1607,11 +1686,14 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 	); err != nil {
 		return err
 	}
-	c.traceWiring("gadget.poseidon_encryption.amount", "tier=output_core", "ss=output_core.shared.selected", "c2=compliance.output_core.c2", "amount=receiver.amount", "out=compliance.output_core.ciphertext")
+	c.traceWiring("gadget.poseidon_encryption.amount", "tier=output_core", "ss=output_core.shared.selected", "c2=compliance.output_core.c2", "epk_fq=compliance.output_core.epk_fq", "salt=salt3", "key_confirmation=compliance.output_core.key_confirmation", "amount=receiver.amount", "out=compliance.output_core.ciphertext")
 	if err := VerifyPoseidonEncryptionTransferAmount(
 		api,
 		outputCoreSelected,
 		c.Compliance.OutputCore.C2,
+		statementData.outputCoreEPKFq,
+		salts[3],
+		c.Compliance.OutputCore.KeyConfirmation,
 		statementData.receiverAmount,
 		c.Compliance.OutputCore.Ciphertext,
 	); err != nil {
@@ -1727,6 +1809,8 @@ func (c *TransferCircuit) buildTransferStatementFields(
 	fields = append(fields, c.TargetTimestamp)
 	fields = append(
 		fields,
+		c.Compliance.SenderCore.KeyConfirmation,
+		c.Compliance.OutputCore.KeyConfirmation,
 		c.Compliance.Metadata.RingIDHash,
 		c.Compliance.Metadata.PolicyIDHash,
 		c.Compliance.Metadata.ResourceHash,

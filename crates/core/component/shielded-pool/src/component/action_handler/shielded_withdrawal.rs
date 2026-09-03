@@ -3,6 +3,7 @@ use cnidarium::StateRead;
 use decaf377_rdsa::{Signature, SpendAuth};
 use shieldd_sdk_asset::{balance, Value};
 use shieldd_sdk_compliance::registry::ComplianceRegistryRead;
+use shieldd_sdk_compliance::WithdrawalComplianceCiphertext;
 use shieldd_sdk_sct::component::clock::EpochRead;
 use shieldd_sdk_sct::component::source::SourceContext as _;
 use shieldd_sdk_tct as tct;
@@ -26,8 +27,7 @@ pub(crate) struct ProofPublicData<'a> {
     pub withdrawal_effect_hash: EffectHash,
     pub routing_tag: crate::discovery::RoutingTag,
     pub routing_parameter_set_id: decaf377::Fq,
-    pub sender_compliance_ciphertext: &'a [u8],
-    pub sender_compliance_metadata: &'a [u8],
+    pub withdrawal_compliance_ciphertext: &'a WithdrawalComplianceCiphertext,
     pub volume_accumulator: &'a crate::VolumeAccumulatorPayload,
 }
 
@@ -72,6 +72,13 @@ pub(crate) fn extract_public(
             .collect(),
         change_output: ShieldedIcs20WithdrawalChangePublic {
             note_commitment: change_output.note_commitment,
+            recovery_commitment: data
+                .change_output
+                .note_payload
+                .recovery_capsule
+                .as_ref()
+                .ok_or_else(|| anyhow::anyhow!("missing shielded withdrawal recovery capsule"))?
+                .commitment(),
         },
         outbound_asset_id: data.outbound_value.asset_id.0,
         outbound_amount: decaf377::Fq::from(data.outbound_value.amount),
@@ -81,11 +88,8 @@ pub(crate) fn extract_public(
             ),
         routing_tag: data.routing_tag,
         routing_parameter_set_id: data.routing_parameter_set_id,
+        withdrawal_compliance_ciphertext: data.withdrawal_compliance_ciphertext.clone(),
         recent_position_floor: context.recent_position_floor,
-        compliance: crate::withdrawal_compliance::public_from_bytes(
-            data.sender_compliance_ciphertext,
-            data.sender_compliance_metadata,
-        )?,
         volume_accumulator: crate::VolumeAccumulatorPublic {
             nullifier: data.volume_accumulator.nullifier,
             commitment: data.volume_accumulator.commitment,

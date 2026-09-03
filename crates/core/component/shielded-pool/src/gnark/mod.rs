@@ -3,6 +3,11 @@ mod binary;
 mod note_reshape;
 mod note_reshape_witness;
 mod note_reshape_witness_binary;
+mod note_seizure;
+mod note_seizure_witness;
+mod note_seizure_witness_binary;
+mod recovery_capsule_witness;
+mod recovery_capsule_witness_binary;
 pub mod runtime;
 mod shielded_ics20_withdrawal;
 mod shielded_ics20_withdrawal_witness;
@@ -20,6 +25,12 @@ pub use note_reshape::{
     GnarkNoteReshapeClient,
 };
 pub use note_reshape_witness::NoteReshapeWitness;
+pub use note_seizure::{
+    decode_note_seizure_witness, encode_note_seizure_witness, translate_note_seizure_proof_result,
+    GnarkNoteSeizureClient,
+};
+pub use note_seizure_witness::{NoteSeizureRecoveryWitness, NoteSeizureWitness};
+pub use recovery_capsule_witness::RecoveryCapsuleWitness;
 pub use shielded_ics20_withdrawal::{
     decode_shielded_ics20_withdrawal_witness, encode_shielded_ics20_withdrawal_witness,
     translate_shielded_ics20_withdrawal_proof_result, GnarkShieldedIcs20WithdrawalClient,

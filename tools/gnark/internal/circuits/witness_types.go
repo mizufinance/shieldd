@@ -62,9 +62,10 @@ type TransferComplianceMetadataFields struct {
 }
 
 type TransferComplianceCoreFields struct {
-	Epk        Point2D
-	C2         frontend.Variable
-	Ciphertext [compliance.TransferCoreCiphertextFQCount]frontend.Variable
+	Epk             Point2D
+	C2              frontend.Variable
+	KeyConfirmation frontend.Variable
+	Ciphertext      [compliance.TransferCoreCiphertextFQCount]frontend.Variable
 }
 
 type TransferComplianceExtFields struct {

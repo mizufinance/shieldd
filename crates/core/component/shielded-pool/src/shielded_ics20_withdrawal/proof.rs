@@ -5,7 +5,7 @@ use decaf377::{Bls12_377, Fq, Fr};
 use decaf377_rdsa::{SpendAuth, VerificationKey};
 use shieldd_sdk_asset::balance;
 use shieldd_sdk_compliance::{
-    ComplianceLeaf, IndexedLeaf, MerklePath, WithdrawalComplianceMetadata,
+    ComplianceLeaf, IndexedLeaf, MerklePath, WithdrawalComplianceCiphertext,
 };
 use shieldd_sdk_keys::keys::NullifierKey;
 use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
@@ -62,26 +62,7 @@ pub struct ShieldedIcs20WithdrawalInputPublic {
 #[derive(Clone, Debug)]
 pub struct ShieldedIcs20WithdrawalChangePublic {
     pub note_commitment: tct::StateCommitment,
-}
-
-#[derive(Clone, Debug)]
-pub struct WithdrawalComplianceCiphertextPublic {
-    pub epk: decaf377::Element,
-    pub c2: Fq,
-    pub detection_ciphertext: Vec<Fq>,
-    pub sender_ciphertext: Vec<Fq>,
-}
-
-#[derive(Clone, Debug)]
-pub struct WithdrawalCompliancePublic {
-    pub ciphertext: WithdrawalComplianceCiphertextPublic,
-    pub metadata: WithdrawalComplianceMetadata,
-}
-
-#[derive(Clone, Debug)]
-pub struct WithdrawalCompliancePrivate {
-    pub nonce_root: Fr,
-    pub sender_randomizer: Fr,
+    pub recovery_commitment: crate::RecoveryCommitment,
 }
 
 #[derive(Clone, Debug)]
@@ -99,8 +80,8 @@ pub struct ShieldedIcs20WithdrawalProofPublic {
     pub withdrawal_effect_hash_limbs: [Fq; 4],
     pub routing_tag: RoutingTag,
     pub routing_parameter_set_id: Fq,
+    pub withdrawal_compliance_ciphertext: WithdrawalComplianceCiphertext,
     pub recent_position_floor: u64,
-    pub compliance: WithdrawalCompliancePublic,
     pub volume_accumulator: VolumeAccumulatorPublic,
 }
 
@@ -171,11 +152,13 @@ pub struct ShieldedIcs20WithdrawalProofPrivate {
     pub sender_compliance_path: MerklePath,
     pub sender_compliance_position: u64,
     pub sender_leaf: ComplianceLeaf,
+    pub withdrawal_seed: Fq,
+    pub withdrawal_randomizer: Fr,
     pub required_input: ShieldedIcs20WithdrawalRequiredInputPrivate,
     pub optional_input: ShieldedIcs20WithdrawalOptionalInputPrivate,
     pub change_output: ShieldedIcs20WithdrawalChangePrivate,
-    pub compliance: WithdrawalCompliancePrivate,
     pub volume_accumulator: VolumeAccumulatorPrivate,
+    pub volume_accumulator_seed: Fq,
 }
 
 impl ShieldedIcs20WithdrawalProofPrivate {
@@ -387,40 +370,25 @@ mod tests {
         let mut changed = public.clone();
         changed.outbound_amount += Fq::from(1u64);
         reject("outbound amount", changed);
-        for index in 0..public.compliance.ciphertext.detection_ciphertext.len() {
-            let mut changed = public.clone();
-            changed.compliance.ciphertext.detection_ciphertext[index] += Fq::from(1u64);
-            reject("detection ciphertext", changed);
-        }
         let mut changed = public.clone();
-        changed.compliance.ciphertext.epk += decaf377::Element::GENERATOR;
+        changed.withdrawal_compliance_ciphertext.epk += decaf377::Element::GENERATOR;
         reject("sender epk", changed);
         let mut changed = public.clone();
-        changed.compliance.ciphertext.c2 += Fq::from(1u64);
+        changed.withdrawal_compliance_ciphertext.c2 += Fq::from(1u64);
         reject("sender c2", changed);
-        for index in 0..public.compliance.ciphertext.sender_ciphertext.len() {
+        let mut changed = public.clone();
+        changed.withdrawal_compliance_ciphertext.key_confirmation += Fq::from(1u64);
+        reject("sender key confirmation", changed);
+        for index in 0..3 {
             let mut changed = public.clone();
-            changed.compliance.ciphertext.sender_ciphertext[index] += Fq::from(1u64);
+            let word = &mut changed
+                .withdrawal_compliance_ciphertext
+                .encrypted_sender_address[index * 32..(index + 1) * 32];
+            let value =
+                Fq::from_bytes_checked((&*word).try_into().unwrap()).unwrap() + Fq::from(1u64);
+            word.copy_from_slice(&value.to_bytes());
             reject("sender ciphertext", changed);
         }
-        fn increment(bytes: &mut [u8; 32]) {
-            *bytes = (Fq::from_bytes_checked(bytes).unwrap() + Fq::from(1u64)).to_bytes();
-        }
-        let metadata_mutations: [fn(&mut shieldd_sdk_compliance::WithdrawalComplianceMetadata); 5] = [
-            |m| increment(&mut m.ring_id_hash_bytes),
-            |m| increment(&mut m.policy_id_hash_bytes),
-            |m| increment(&mut m.resource_hash_bytes),
-            |m| increment(&mut m.permission_hash_bytes),
-            |m| increment(&mut m.sender_salt_bytes),
-        ];
-        for mutate in metadata_mutations {
-            let mut changed = public.clone();
-            mutate(&mut changed.compliance.metadata);
-            reject("withdrawal compliance metadata", changed);
-        }
-        let mut changed = public.clone();
-        changed.compliance.metadata.target_timestamp += 1;
-        reject("withdrawal compliance metadata timestamp", changed);
     }
 
     #[cfg(any(unix, windows))]

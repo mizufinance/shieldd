@@ -6,8 +6,7 @@ use shieldd_sdk_asset::asset;
 use crate::{
     ActionRef, BlockRef, ComplianceRecordRef, OutputRef, TransferComplianceCiphertext,
     TransferComplianceMetadata, TxRef, WithdrawalComplianceCiphertext,
-    WithdrawalComplianceMetadata, TRANSFER_COMPLIANCE_METADATA_BYTES, TRANSFER_WIRE_BYTES,
-    WITHDRAWAL_COMPLIANCE_METADATA_BYTES, WITHDRAWAL_WIRE_BYTES,
+    TRANSFER_COMPLIANCE_METADATA_BYTES, TRANSFER_WIRE_BYTES, WITHDRAWAL_COMPLIANCE_WIRE_BYTES,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -38,7 +37,7 @@ impl ComplianceEvidenceCiphertext {
     pub fn to_bytes(&self) -> Vec<u8> {
         match self {
             Self::Transfer(value) => value.to_bytes(),
-            Self::Withdrawal(value) => value.to_bytes(),
+            Self::Withdrawal(value) => value.to_bytes().to_vec(),
         }
     }
 }
@@ -46,21 +45,21 @@ impl ComplianceEvidenceCiphertext {
 #[derive(Clone, Debug)]
 pub enum ComplianceEvidenceMetadata {
     Transfer(TransferComplianceMetadata),
-    Withdrawal(WithdrawalComplianceMetadata),
+    Withdrawal,
 }
 
 impl ComplianceEvidenceMetadata {
     pub fn validate(&self) -> Result<()> {
         match self {
             Self::Transfer(value) => value.validate(),
-            Self::Withdrawal(value) => value.validate(),
+            Self::Withdrawal => Ok(()),
         }
     }
 
     pub fn to_bytes(&self) -> Result<Vec<u8>> {
         match self {
             Self::Transfer(value) => value.to_bytes(),
-            Self::Withdrawal(value) => value.to_bytes(),
+            Self::Withdrawal => Ok(Vec::new()),
         }
     }
 }
@@ -115,9 +114,7 @@ impl ComplianceEvidenceObject {
         record_ref: ComplianceRecordRef,
         asset_id: asset::Id,
         is_flagged: bool,
-        detection_salt: Fq,
         ciphertext: WithdrawalComplianceCiphertext,
-        metadata: WithdrawalComplianceMetadata,
         public: WithdrawalEvidencePublicData,
     ) -> Result<Self> {
         let object_type = match record_ref {
@@ -127,15 +124,14 @@ impl ComplianceEvidenceObject {
                 bail!("withdrawal evidence requires a withdrawal record reference")
             }
         };
-        metadata.validate()?;
         let mut evidence = Self {
             object_type,
             record_ref,
             asset_id,
             is_flagged,
-            detection_salt,
+            detection_salt: Fq::from(0u64),
             ciphertext: ComplianceEvidenceCiphertext::Withdrawal(ciphertext),
-            metadata: ComplianceEvidenceMetadata::Withdrawal(metadata),
+            metadata: ComplianceEvidenceMetadata::Withdrawal,
             withdrawal: Some(public),
             payload_hash: [0u8; 32],
         };
@@ -180,7 +176,7 @@ impl ComplianceEvidenceObject {
                 ) | (
                     EvidenceObjectType::HostWithdrawal | EvidenceObjectType::Ics20Withdrawal,
                     ComplianceEvidenceCiphertext::Withdrawal(_),
-                    ComplianceEvidenceMetadata::Withdrawal(_),
+                    ComplianceEvidenceMetadata::Withdrawal,
                     Some(_)
                 )
             ),
@@ -234,17 +230,14 @@ impl ComplianceEvidenceObject {
             ),
             EvidenceObjectType::HostWithdrawal | EvidenceObjectType::Ics20Withdrawal => {
                 let ciphertext = WithdrawalComplianceCiphertext::from_bytes(
-                    reader.read_slice(WITHDRAWAL_WIRE_BYTES)?,
-                )?;
-                let metadata = WithdrawalComplianceMetadata::from_bytes(
-                    reader.read_slice(WITHDRAWAL_COMPLIANCE_METADATA_BYTES)?,
+                    reader.read_slice(WITHDRAWAL_COMPLIANCE_WIRE_BYTES)?,
                 )?;
                 let amount = shieldd_sdk_num::Amount::from_le_bytes(reader.read_array::<16>()?);
                 let self_address = reader.read_optional_string()?;
                 let destination = reader.read_string()?;
                 (
                     ComplianceEvidenceCiphertext::Withdrawal(ciphertext),
-                    ComplianceEvidenceMetadata::Withdrawal(metadata),
+                    ComplianceEvidenceMetadata::Withdrawal,
                     Some(WithdrawalEvidencePublicData {
                         amount,
                         self_address,
@@ -482,6 +475,8 @@ pub(crate) mod tests {
             },
             false,
             detection_salt,
+            Fq::from(11u64),
+            Fq::from(13u64),
         )
         .expect("fixture transfer should encrypt");
 
@@ -530,25 +525,8 @@ pub(crate) mod tests {
         let dk_pub = crate::DetectionKey::demo().public_key();
         let sender = make_address(19);
         let asset_id = asset::Id(Fq::from(555u64));
-        let detection_salt = Fq::from(88u64);
-        let encrypted = crate::encrypt_withdrawal_sender(
-            OsRng,
-            &(Element::GENERATOR * Fr::from(17u64)),
-            &dk_pub,
-            &sender,
-            asset_id,
-            true,
-            detection_salt,
-        )
-        .expect("fixture withdrawal should encrypt");
-        let metadata = crate::WithdrawalComplianceMetadata::from_identifiers(
-            "ring-id",
-            "policy-id",
-            "document",
-            "read",
-            1_700_000_000,
-            Fq::from(21u64),
-        );
+        let encrypted = crate::encrypt_withdrawal(OsRng, dk_pub, &sender)
+            .expect("fixture withdrawal should encrypt");
         let action = ActionRef {
             tx: valid_evidence_fixture().0.output_ref().action.tx,
             action_index: 3,
@@ -562,9 +540,7 @@ pub(crate) mod tests {
             record_ref,
             asset_id,
             true,
-            detection_salt,
             encrypted.ciphertext,
-            metadata,
             WithdrawalEvidencePublicData {
                 amount: Amount::from(4321u128),
                 self_address: Some("refund-address".to_owned()),

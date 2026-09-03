@@ -7,9 +7,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::audit_records::{
     detected_ref_from_row_parts, AuditDetectedRef, AuditScanExport, DetectedRefRowParts,
-    OrbisAuditEntry,
 };
 use crate::audit_status::{AuditStatus, DecryptedVia, FlowType};
+use crate::decode_object::TransferComplianceMetadata;
 use crate::scanner::storage::SqliteScannerStore;
 use crate::scanner::types::AuditLedgerRow;
 #[cfg(test)]
@@ -166,13 +166,18 @@ pub fn decrypt_flagged_rows(store: &SqliteScannerStore, dk: &DetectionKey) -> Re
     let conn = store.lock_conn()?;
     let tx = conn.unchecked_transaction()?;
     let mut rows = tx.prepare(
-        "SELECT d.height, d.tx_hash, d.action_index, d.output_index, d.asset_id, d.ciphertext_bytes, a.flow_type
+        "SELECT d.height, d.tx_hash, d.action_index, d.output_index, d.asset_id, d.ciphertext_bytes, a.flow_type, c.compliance_metadata_bytes
          FROM scanner_detections d
          JOIN audit_rows a
            ON a.height = d.height
           AND a.tx_hash = d.tx_hash
           AND a.action_index = d.action_index
           AND a.output_index = d.output_index
+         JOIN scanner_ciphertexts c
+           ON c.height = d.height
+          AND c.tx_hash = d.tx_hash
+          AND c.action_index = d.action_index
+          AND c.output_index = d.output_index
          WHERE d.is_flagged = 1
            AND d.audit_status IN (?1, ?2)
            AND ((a.flow_type = ?3 AND a.amount IS NULL)
@@ -194,6 +199,7 @@ pub fn decrypt_flagged_rows(store: &SqliteScannerStore, dk: &DetectionKey) -> Re
                 let asset_id: String = row.get(4)?;
                 let ciphertext_bytes: Vec<u8> = row.get(5)?;
                 let flow_type: String = row.get(6)?;
+                let metadata_bytes: Option<Vec<u8>> = row.get(7)?;
                 Ok((
                     height as u64,
                     tx_hash,
@@ -202,6 +208,7 @@ pub fn decrypt_flagged_rows(store: &SqliteScannerStore, dk: &DetectionKey) -> Re
                     asset_id,
                     ciphertext_bytes,
                     flow_type,
+                    metadata_bytes,
                 ))
             },
         )?
@@ -214,8 +221,16 @@ pub fn decrypt_flagged_rows(store: &SqliteScannerStore, dk: &DetectionKey) -> Re
     ])?;
 
     let mut updated = 0u64;
-    for (height, tx_hash, action_index, output_index, asset_id, ciphertext_bytes, flow_type) in
-        pending
+    for (
+        height,
+        tx_hash,
+        action_index,
+        output_index,
+        asset_id,
+        ciphertext_bytes,
+        flow_type,
+        metadata_bytes,
+    ) in pending
     {
         let asset_id: asset::Id = asset_id
             .parse()
@@ -223,7 +238,12 @@ pub fn decrypt_flagged_rows(store: &SqliteScannerStore, dk: &DetectionKey) -> Re
         let decrypted = match flow_type.parse::<FlowType>()? {
             FlowType::PrivateTransfer => {
                 let ciphertext = TransferComplianceCiphertext::from_bytes(&ciphertext_bytes)?;
-                decrypt_full_flagged(dk.inner(), &ciphertext, asset_id).map(|data| {
+                let metadata = TransferComplianceMetadata::from_bytes(
+                    metadata_bytes
+                        .as_deref()
+                        .context("transfer evidence is missing metadata")?,
+                )?;
+                decrypt_full_flagged(dk.inner(), &ciphertext, &metadata, asset_id).map(|data| {
                     data.map(|data| {
                         (
                             Some(data.amount.value().to_string()),
@@ -308,22 +328,6 @@ pub fn decrypt_flagged_rows(store: &SqliteScannerStore, dk: &DetectionKey) -> Re
     Ok(updated)
 }
 
-pub fn export_orbis_pending_scan(_store: &SqliteScannerStore) -> Result<AuditScanExport> {
-    anyhow::bail!(
-        "Orbis prototype audit export is disabled because its public proof reveals the seed-opening DH point"
-    )
-}
-
-pub fn import_orbis_audit_entries(
-    _store: &SqliteScannerStore,
-    _entries: &[OrbisAuditEntry],
-    _subject: Option<&str>,
-) -> Result<u64> {
-    anyhow::bail!(
-        "Orbis prototype audit import is disabled because it cannot originate from a confidentiality-safe PRE request"
-    )
-}
-
 pub fn record_evidence_failure(
     store: &SqliteScannerStore,
     output_ref: &OutputRef,
@@ -377,7 +381,11 @@ fn classify_evidence_for_persistence(
     }
 
     let metadata_bytes = evidence.metadata_bytes()?;
-    if facts.metadata_bytes.as_deref() != Some(metadata_bytes.as_slice()) {
+    let expected_metadata = match &evidence.metadata {
+        crate::ComplianceEvidenceMetadata::Transfer(_) => Some(metadata_bytes.as_slice()),
+        crate::ComplianceEvidenceMetadata::Withdrawal => None,
+    };
+    if facts.metadata_bytes.as_deref() != expected_metadata {
         return Ok(Some(EvidenceValidationFailure {
             stage: EVIDENCE_STAGE_METADATA,
             reason: "evidence metadata does not match persisted scanner metadata".to_owned(),
@@ -966,34 +974,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn orbis_export_fails_closed_with_valid_evidence() {
-        let store = SqliteScannerStore::new(":memory:").unwrap();
-        let (evidence, metadata) = crate::evidence::tests::valid_evidence_fixture();
-        persist_evidence_detection(&store, &evidence, &metadata, false).await;
-        validate_and_save_evidence_object(&store, &evidence).unwrap();
-        let error = export_orbis_pending_scan(&store).unwrap_err();
-        assert!(error
-            .to_string()
-            .contains("Orbis prototype audit export is disabled"));
-    }
-
-    #[tokio::test]
-    async fn orbis_import_fails_closed_with_valid_evidence() {
-        let store = SqliteScannerStore::new(":memory:").unwrap();
-        let (evidence, metadata) = crate::evidence::tests::valid_evidence_fixture();
-        persist_evidence_detection(&store, &evidence, &metadata, false).await;
-        validate_and_save_evidence_object(&store, &evidence).unwrap();
-        let entry = orbis_entry(&evidence);
-
-        let error = import_orbis_audit_entries(&store, std::slice::from_ref(&entry), Some("alice"))
-            .unwrap_err();
-        assert!(error
-            .to_string()
-            .contains("Orbis prototype audit import is disabled"));
-        assert_eq!(audit_status(&store, &evidence), AUDIT_STATUS_EVIDENCE_VALID);
-    }
-
-    #[tokio::test]
     async fn flagged_decrypt_requires_valid_evidence() {
         let store = SqliteScannerStore::new(":memory:").unwrap();
         let (evidence, metadata) = crate::evidence::tests::valid_evidence_fixture();
@@ -1066,6 +1046,98 @@ mod tests {
         }
     }
 
+    #[tokio::test]
+    async fn withdrawal_scanning_preserves_public_asset_and_completes_flagged_audit() {
+        use crate::scanner::{
+            screener::{ComplianceScreener, ScreeningResult},
+            types::{ComplianceCiphertext, ComplianceCiphertextKind, PublicWithdrawalData},
+        };
+        for host in [true, false] {
+            for flagged in [true, false] {
+                let store = SqliteScannerStore::new(":memory:").unwrap();
+                let (transfer, _) = crate::evidence::tests::valid_evidence_fixture();
+                let asset_id = transfer.asset_id;
+                let record_ref = if host {
+                    crate::ComplianceRecordRef::HostWithdrawal(transfer.output_ref().action)
+                } else {
+                    crate::ComplianceRecordRef::Ics20Withdrawal(transfer.output_ref().action)
+                };
+                let sender = crate::test_helpers::make_address(42);
+                let key = if flagged {
+                    DetectionKey::demo().public_key()
+                } else {
+                    decaf377::Element::GENERATOR
+                };
+                let ciphertext = crate::encrypt_withdrawal(rand_core::OsRng, key, &sender)
+                    .unwrap()
+                    .ciphertext;
+                let public = PublicWithdrawalData {
+                    asset_id,
+                    amount: 123u64.into(),
+                    self_address: None,
+                    destination: "destination".to_owned(),
+                };
+                let extracted = ExtractedComplianceCiphertext {
+                    record_ref: record_ref.clone(),
+                    kind: ComplianceCiphertextKind::Withdrawal,
+                    routing_tags: [11, 0],
+                    raw_bytes: ciphertext.to_bytes().to_vec(),
+                    metadata_bytes: None,
+                    public_withdrawal: Some(public.clone()),
+                };
+                let other_asset = asset::Id(asset_id.0 + decaf377::Fq::from(1u64));
+                assert!(matches!(
+                    ComplianceScreener::new(DetectionKey::demo(), other_asset)
+                        .screen(extracted.clone()),
+                    ScreeningResult::Irrelevant
+                ));
+                let ScreeningResult::Detected(event) =
+                    ComplianceScreener::new(DetectionKey::demo(), asset_id)
+                        .screen(extracted.clone())
+                else {
+                    panic!("public withdrawal must be detected")
+                };
+                assert_eq!(event.asset_id, asset_id);
+                assert_eq!(event.is_flagged, flagged);
+                assert!(matches!(
+                    event.ciphertext,
+                    ComplianceCiphertext::Withdrawal(_)
+                ));
+                let evidence = ComplianceEvidenceObject::new_withdrawal(
+                    record_ref,
+                    asset_id,
+                    flagged,
+                    ciphertext,
+                    crate::WithdrawalEvidencePublicData {
+                        amount: public.amount,
+                        self_address: public.self_address,
+                        destination: public.destination,
+                    },
+                )
+                .unwrap();
+                let block = evidence.output_ref().action.tx.block;
+                store.begin_block(&block).await.unwrap();
+                store.save_ciphertext(&extracted).await.unwrap();
+                store.save_detection(&event).await.unwrap();
+                store.commit_block(&block).await.unwrap();
+                validate_and_save_evidence_object(&store, &evidence).unwrap();
+                assert_eq!(audit_status(&store, &evidence), AUDIT_STATUS_EVIDENCE_VALID);
+                assert_eq!(
+                    decrypt_flagged_rows(&store, &DetectionKey::demo()).unwrap(),
+                    u64::from(flagged)
+                );
+                assert_eq!(
+                    audit_status(&store, &evidence),
+                    if flagged {
+                        crate::scanner::types::AUDIT_STATUS_AUDIT_COMPLETE
+                    } else {
+                        AUDIT_STATUS_EVIDENCE_VALID
+                    }
+                );
+            }
+        }
+    }
+
     async fn persist_evidence_detection(
         store: &SqliteScannerStore,
         evidence: &ComplianceEvidenceObject,
@@ -1125,19 +1197,5 @@ mod tests {
             |row| row.get(0),
         )
         .unwrap()
-    }
-
-    fn orbis_entry(evidence: &ComplianceEvidenceObject) -> OrbisAuditEntry {
-        let output_ref = evidence.output_ref();
-        OrbisAuditEntry {
-            height: output_ref.action.tx.block.height,
-            tx_hash: hex::encode(output_ref.action.tx.tx_hash.as_ref()),
-            action_index: output_ref.action.action_index,
-            output_index: output_ref.output_index,
-            amount: "1234".to_string(),
-            self_address: "receiver".to_string(),
-            counterparty: "sender".to_string(),
-            decrypted_via: DecryptedVia::OrbisPre,
-        }
     }
 }

@@ -1139,6 +1139,8 @@ mod tests {
                     sender_ext_c2: decaf377::Fq::from(2u64),
                     output_core_c2: decaf377::Fq::from(3u64),
                     output_ext_c2: decaf377::Fq::from(4u64),
+                    sender_core_key_confirmation: decaf377::Fq::from(5u64),
+                    output_core_key_confirmation: decaf377::Fq::from(6u64),
                     detection_tag: [0u8; crate::structs::DETECTION_TAG_BYTES],
                     encrypted_sender_core: [0u8; 32],
                     encrypted_sender_ext: [0u8; 96],

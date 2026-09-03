@@ -12,7 +12,7 @@ use {
     shieldd_sdk_asset::asset::REGISTRY,
     shieldd_sdk_compliance::{
         scanning::decrypt_full_flagged, structs::AssetPolicy, ComplianceRegistryWrite,
-        DetectionKey, TransferComplianceCiphertext,
+        DetectionKey, TransferComplianceCiphertext, TransferComplianceMetadata,
     },
     shieldd_sdk_keys::{keys::AddressIndex, symmetric::PayloadKey, test_keys},
     shieldd_sdk_mock_client::MockClient,
@@ -87,7 +87,7 @@ async fn compliance_enrichment_preserves_sender_diversifier_on_supported_transfe
     build_state
         .test_only_register_asset(
             asset_id,
-            AssetPolicy::simple(dk.public_key(), 1u128, ring_pk),
+            AssetPolicy::for_test(dk.public_key(), 1u128, ring_pk),
             true,
         )
         .await?;
@@ -151,7 +151,8 @@ async fn compliance_enrichment_preserves_sender_diversifier_on_supported_transfe
     let ciphertext =
         TransferComplianceCiphertext::from_bytes(&receiver_output.compliance_ciphertext)
             .expect("transfer output should carry a valid compliance ciphertext");
-    let decrypted = decrypt_full_flagged(dk.inner(), &ciphertext, asset_id)?
+    let metadata = TransferComplianceMetadata::from_bytes(&receiver_output.compliance_metadata)?;
+    let decrypted = decrypt_full_flagged(dk.inner(), &ciphertext, &metadata, asset_id)?
         .expect("flagged transfer compliance should decrypt");
 
     assert_eq!(

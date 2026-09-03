@@ -465,8 +465,14 @@ impl Worker {
                 self.sync_height_tx.send(height)?;
             } else {
                 // Otherwise, scan the block and commit its changes:
-                let mut filtered_block =
-                    scan_block(&self.fvk, &mut sct_guard, block, &self.storage).await?;
+                let mut filtered_block = scan_block(
+                    &self.fvk,
+                    &mut sct_guard,
+                    block,
+                    &self.storage,
+                    compliance_plan.as_ref(),
+                )
+                .await?;
 
                 // Download any transactions we detected.
                 let transactions = self.fetch_transactions(&mut filtered_block).await?;
@@ -731,7 +737,7 @@ mod compliance_projection_tests {
     #[test]
     fn status_projection_authenticates_the_previous_leaf_and_event_order() {
         let mut rng = rand::thread_rng();
-        let mut active = ComplianceLeaf::new(
+        let mut active = ComplianceLeaf::synthetic_unregulated(
             shieldd_sdk_keys::Address::dummy(&mut rng),
             asset::Id(decaf377::Fq::from(7u64)),
         );

@@ -4,6 +4,10 @@ use decaf377::Fr;
 use decaf377_rdsa::{Signature, SpendAuth};
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::{asset, Balance};
+use shieldd_sdk_compliance::{
+    derive_withdrawal_encryption_material, encrypt_withdrawal_with_material,
+    withdrawal_encryption_key, WithdrawalEncryptionResult,
+};
 use shieldd_sdk_keys::symmetric::PayloadKey;
 use shieldd_sdk_keys::FullViewingKey;
 use shieldd_sdk_keys::{symmetric::WrappedMemoKey, Address};
@@ -108,21 +112,6 @@ impl ShieldedIcs20WithdrawalPlan {
         )
     }
 
-    fn build_compliance(
-        &self,
-    ) -> anyhow::Result<crate::withdrawal_compliance::BuildWithdrawalComplianceResult> {
-        crate::withdrawal_compliance::build_withdrawal_compliance(
-            &self.sender_address(),
-            &self.sender_leaf(),
-            self.first_spend().asset_policy.as_ref(),
-            &self.first_spend().asset_indexed_leaf,
-            self.first_spend().target_timestamp,
-            self.first_spend().tx_blinding_nonce,
-            self.first_spend().is_regulated,
-            self.first_spend().is_regulated && !self.volume_accumulator.is_real(),
-        )
-    }
-
     pub fn balance(&self) -> Balance {
         self.spends
             .iter()
@@ -171,6 +160,17 @@ impl ShieldedIcs20WithdrawalPlan {
             first_spend_randomizer: self.first_spend().randomizer,
             sender_address: self.sender_address(),
             asset_id: self.withdrawal_asset_id(),
+            capk: self
+                .first_spend()
+                .compliance_leaf
+                .clone()
+                .unwrap_or_else(|| {
+                    shieldd_sdk_compliance::ComplianceLeaf::synthetic_unregulated(
+                        self.sender_address(),
+                        self.withdrawal_asset_id(),
+                    )
+                })
+                .capk,
             nullifier_domain_sep_label:
                 b"shieldd.shielded_ics20_withdrawal.synthetic_dummy.nullifier",
             nullifier_seed_label:
@@ -278,6 +278,19 @@ impl ShieldedIcs20WithdrawalPlan {
         super::withdrawal_effect_hash_limbs(effect_hash.as_bytes())
     }
 
+    fn withdrawal_compliance_encryption(&self) -> anyhow::Result<WithdrawalEncryptionResult> {
+        let sender_leaf = self.sender_leaf();
+        let (encryption_key, _) = withdrawal_encryption_key(
+            self.first_spend().is_regulated,
+            self.first_spend().is_regulated && !self.volume_accumulator.is_real(),
+            &sender_leaf,
+            &self.first_spend().asset_indexed_leaf,
+        )?;
+        let (seed, randomizer) =
+            derive_withdrawal_encryption_material(self.first_spend().tx_blinding_nonce);
+        encrypt_withdrawal_with_material(encryption_key, &self.sender_address(), seed, randomizer)
+    }
+
     pub fn shielded_ics20_withdrawal_public_private(
         &self,
         fvk: &FullViewingKey,
@@ -304,6 +317,21 @@ impl ShieldedIcs20WithdrawalPlan {
                 expected_proofs,
                 state_commitment_proofs.len()
             )));
+        }
+        if self.first_spend().is_regulated
+            && shieldd_sdk_compliance::compliance_nullifier_key_commitment(
+                self.first_spend().compliance_nullifier_key(fvk),
+            ) != self
+                .first_spend()
+                .compliance_leaf
+                .as_ref()
+                .expect("validated regulated spend has a compliance leaf")
+                .rnk_commitment
+        {
+            return Err(crate::ProofError::InvalidPrivateInput(
+                "wallet compliance nullifier key does not match the registered sender leaf"
+                    .to_owned(),
+            ));
         }
 
         let mut input_publics = self
@@ -382,9 +410,9 @@ impl ShieldedIcs20WithdrawalPlan {
             &self.routing_parameters,
             routing_nonce,
         );
-        let compliance = self
-            .build_compliance()
-            .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))?;
+        let withdrawal_compliance = self
+            .withdrawal_compliance_encryption()
+            .map_err(|error| crate::ProofError::InvalidPrivateInput(error.to_string()))?;
         let volume_plan = self.effective_volume_accumulator();
         let volume_payload = self.volume_accumulator_payload(fvk);
         let volume_prior_proof = if needs_accumulator_proof {
@@ -404,14 +432,15 @@ impl ShieldedIcs20WithdrawalPlan {
                 inputs: input_publics,
                 change_output: ShieldedIcs20WithdrawalChangePublic {
                     note_commitment: change_note.commit(),
+                    recovery_commitment: change_note.recovery_commitment(),
                 },
                 outbound_asset_id: self.withdrawal.denom.id().0,
                 outbound_amount: Fq::from(self.withdrawal.amount),
                 withdrawal_effect_hash_limbs,
                 routing_tag,
                 routing_parameter_set_id: self.routing_parameters.id(),
+                withdrawal_compliance_ciphertext: withdrawal_compliance.ciphertext.clone(),
                 recent_position_floor,
-                compliance: compliance.public,
                 volume_accumulator: crate::VolumeAccumulatorPublic {
                     nullifier: volume_payload.nullifier,
                     commitment: volume_payload.commitment,
@@ -432,12 +461,16 @@ impl ShieldedIcs20WithdrawalPlan {
                 sender_compliance_path: self.first_spend().compliance_path.clone(),
                 sender_compliance_position: self.first_spend().compliance_position,
                 sender_leaf: self.sender_leaf(),
+                withdrawal_seed: withdrawal_compliance.seed,
+                withdrawal_randomizer: withdrawal_compliance.r,
                 required_input,
                 optional_input,
                 change_output: ShieldedIcs20WithdrawalChangePrivate {
                     created_note: change_note,
                 },
-                compliance: compliance.private,
+                volume_accumulator_seed: Fq::from_le_bytes_mod_order(
+                    &self.first_spend().tx_blinding_nonce.to_bytes(),
+                ),
                 volume_accumulator: crate::VolumeAccumulatorPrivate {
                     plan: volume_plan,
                     prior_proof: volume_prior_proof,
@@ -474,11 +507,11 @@ impl ShieldedIcs20WithdrawalPlan {
             }
         });
 
-        let change_note = self
+        let (change_note, recovery_capsule) = self
             .change_output
             .as_ref()
-            .map(ShieldedOutputPlan::output_note)
-            .unwrap_or_else(|| padder.synthetic_dummy_output_note(1));
+            .map(ShieldedOutputPlan::output_note_and_capsule)
+            .unwrap_or_else(|| padder.synthetic_dummy_output_note_and_capsule(1));
         let esk = change_note.ephemeral_secret_key();
         let ovk_wrapped_key = change_note.encrypt_key(
             fvk.outgoing(),
@@ -491,7 +524,7 @@ impl ShieldedIcs20WithdrawalPlan {
             &change_note.diversified_generator(),
         );
         let change_output = ShieldedIcs20WithdrawalChangeBody {
-            note_payload: change_note.payload(),
+            note_payload: change_note.payload(recovery_capsule),
             wrapped_memo_key,
             ovk_wrapped_key,
         };
@@ -504,7 +537,7 @@ impl ShieldedIcs20WithdrawalPlan {
             &self.routing_parameters,
             routing_nonce,
         );
-        let compliance = self.build_compliance()?;
+        let withdrawal_compliance = self.withdrawal_compliance_encryption()?;
 
         Ok(ShieldedIcs20WithdrawalBody {
             family_id: ShieldedIcs20WithdrawalFamilyId::Canonical,
@@ -518,8 +551,7 @@ impl ShieldedIcs20WithdrawalPlan {
             asset_anchor: self.first_spend().asset_anchor,
             routing_tag,
             routing_parameter_set_id: self.routing_parameters.id(),
-            sender_compliance_ciphertext: compliance.ciphertext.to_bytes(),
-            sender_compliance_metadata: compliance.metadata.to_bytes()?,
+            withdrawal_compliance_ciphertext: withdrawal_compliance.ciphertext,
             volume_accumulator: self.volume_accumulator_payload(fvk),
         })
     }

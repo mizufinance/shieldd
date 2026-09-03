@@ -11,10 +11,13 @@ pub mod proof_test_helpers {
 
     use decaf377::{Fq, Fr};
     use shieldd_sdk_asset::{asset, Balance, Value};
-    use shieldd_sdk_compliance::{IndexedLeaf, IndexedMerkleTree, MerklePath};
+    use shieldd_sdk_compliance::{
+        encrypt_withdrawal_with_material, withdrawal_encryption_key, IndexedLeaf,
+        IndexedMerkleTree, MerklePath,
+    };
     use shieldd_sdk_keys::{
         keys::{Bip44Path, SeedPhrase, SpendKey},
-        PayloadKey,
+        Address, FullViewingKey, PayloadKey,
     };
     use shieldd_sdk_num::Amount;
     use shieldd_sdk_tct as tct;
@@ -191,7 +194,8 @@ pub mod proof_test_helpers {
         let sender_seed = SeedPhrase::generate(&mut *rng);
         let sender_sk = SpendKey::from_seed_phrase_bip44(sender_seed, &Bip44Path::new(0))
             .expect("test spend key should satisfy key refinements");
-        let sender_ivk = sender_sk.full_viewing_key().incoming();
+        let sender_fvk = sender_sk.full_viewing_key();
+        let sender_ivk = sender_fvk.incoming();
         let sender_address = sender_ivk.payment_address(0u32.into());
 
         let value = Value {
@@ -199,14 +203,19 @@ pub mod proof_test_helpers {
             asset_id,
         };
 
-        let note = Note::from_parts(address.clone(), value, Rseed::generate(&mut *rng))
-            .expect("can create note");
+        let note = Note::from_parts(
+            address.clone(),
+            value,
+            Rseed::generate(&mut *rng),
+            crate::RecoveryCommitment::unavailable(),
+        )
+        .expect("can create note");
 
         let balance_blinding = Fr::rand(&mut *rng);
 
         // Determine keys before IMT proof (Policy-in-Leaf binds ring_pk into the leaf)
         let (ring_pk, dk_pub) = if is_regulated {
-            let ring_sk = Fr::rand(&mut *rng);
+            let ring_sk = Fr::from(1u64);
             let ring_pk = decaf377::Element::GENERATOR * ring_sk;
             (ring_pk, decaf377::Element::GENERATOR)
         } else {
@@ -248,11 +257,34 @@ pub mod proof_test_helpers {
         let sender_d_fr = Fr::from_le_bytes_mod_order(&sender_d.to_bytes());
         let ack_sender = ring_pk * sender_d_fr;
 
-        let user_leaf =
-            shieldd_sdk_compliance::ComplianceLeaf::new(address.clone(), value.asset_id);
-
-        let counterparty_leaf =
-            shieldd_sdk_compliance::ComplianceLeaf::new(sender_address.clone(), value.asset_id);
+        let make_leaf = |address: Address, wallet_fvk: &FullViewingKey| {
+            if is_regulated {
+                let rnk_dh_pk = address.diversified_generator().clone();
+                let rnk = shieldd_sdk_compliance::derive_regulated_nullifier_key(
+                    wallet_fvk.incoming(),
+                    &address,
+                    value.asset_id,
+                    ring_pk,
+                    rnk_dh_pk,
+                )
+                .expect("test regulated nullifier derivation is valid");
+                shieldd_sdk_compliance::ComplianceLeaf::registered_from_rnk(
+                    address,
+                    value.asset_id,
+                    ring_pk,
+                    rnk_dh_pk,
+                    rnk,
+                )
+                .expect("test compliance registration is valid")
+            } else {
+                shieldd_sdk_compliance::ComplianceLeaf::synthetic_unregulated(
+                    address,
+                    value.asset_id,
+                )
+            }
+        };
+        let user_leaf = make_leaf(address.clone(), &fvk);
+        let counterparty_leaf = make_leaf(sender_address.clone(), &sender_fvk);
 
         let (compliance_anchor, compliance_path, compliance_position) =
             create_user_tree_proof(&user_leaf);
@@ -289,7 +321,7 @@ pub mod proof_test_helpers {
         is_regulated: bool,
     ) -> (crate::TransferProofPublic, crate::TransferProofPrivate) {
         use crate::{ShieldedInputPlan, ShieldedOutputPlan, TransferPlan};
-        use shieldd_sdk_asset::{asset, Value};
+        use shieldd_sdk_asset::Value;
         use shieldd_sdk_num::Amount;
 
         let base = generate_base_test_data(rng, 1, 100, is_regulated);
@@ -330,6 +362,7 @@ pub mod proof_test_helpers {
                         asset_id,
                     },
                     crate::Rseed::generate(rng),
+                    crate::RecoveryCommitment::unavailable(),
                 )
                 .expect("create transfer test note"),
             );
@@ -359,6 +392,7 @@ pub mod proof_test_helpers {
             spend.compliance_anchor = base.compliance_anchor;
             spend.compliance_path = base.compliance_path.clone();
             spend.compliance_position = base.compliance_position;
+            spend.compliance_leaf = Some(base.user_leaf.clone());
             spend.is_regulated = is_regulated;
             spend.target_timestamp = base.target_timestamp;
             spend.tx_blinding_nonce = tx_blinding_nonce;
@@ -610,6 +644,7 @@ pub mod proof_test_helpers {
                 asset_id,
             },
             crate::Rseed::generate(&mut *rng),
+            crate::RecoveryCommitment::unavailable(),
         )
         .expect("create hidden-arity transfer test note");
 
@@ -646,6 +681,10 @@ pub mod proof_test_helpers {
         spend.asset_path = base.asset_path.clone();
         spend.asset_position = base.asset_position;
         spend.asset_anchor = base.asset_anchor;
+        spend.compliance_anchor = base.compliance_anchor;
+        spend.compliance_path = base.compliance_path.clone();
+        spend.compliance_position = base.compliance_position;
+        spend.compliance_leaf = Some(base.user_leaf.clone());
         spend.is_regulated = is_regulated;
         spend.target_timestamp = base.target_timestamp;
         spend.tx_blinding_nonce = tx_blinding_nonce;
@@ -654,8 +693,21 @@ pub mod proof_test_helpers {
             .set_compliance_details()
             .expect("set hidden-arity transfer spend compliance details");
 
-        let recipient_leaf =
-            shieldd_sdk_compliance::ComplianceLeaf::new(recipient_address.clone(), asset_id);
+        let recipient_leaf = if is_regulated {
+            shieldd_sdk_compliance::ComplianceLeaf::registered_from_rnk(
+                recipient_address.clone(),
+                asset_id,
+                base.ring_pk,
+                recipient_address.diversified_generator().clone(),
+                Fq::from(2u64),
+            )
+            .expect("test recipient compliance registration is valid")
+        } else {
+            shieldd_sdk_compliance::ComplianceLeaf::synthetic_unregulated(
+                recipient_address.clone(),
+                asset_id,
+            )
+        };
         let (
             shared_compliance_anchor,
             sender_compliance_path,
@@ -828,6 +880,7 @@ pub mod proof_test_helpers {
                         asset_id,
                     },
                     crate::Rseed::generate(&mut rng),
+                    crate::RecoveryCommitment::unavailable(),
                 )
                 .expect("create transfer test note"),
             );
@@ -857,6 +910,7 @@ pub mod proof_test_helpers {
             spend.compliance_anchor = base.compliance_anchor;
             spend.compliance_path = base.compliance_path.clone();
             spend.compliance_position = base.compliance_position;
+            spend.compliance_leaf = Some(base.user_leaf.clone());
             spend.is_regulated = is_regulated;
             spend.target_timestamp = base.target_timestamp;
             spend.tx_blinding_nonce = tx_blinding_nonce;
@@ -961,10 +1015,10 @@ pub mod proof_test_helpers {
         crate::NoteReshapeProofPrivate,
     ) {
         use crate::{NoteReshapePlan, ShieldedInputPlan, ShieldedOutputPlan};
-        use shieldd_sdk_asset::{asset, Value};
+        use shieldd_sdk_asset::Value;
         use shieldd_sdk_num::Amount;
 
-        let base = generate_base_test_data(rng, 1, 100, false);
+        let base = generate_base_test_data(rng, REGULATED_ASSET_ID, 100, true);
         let real_inputs = family_id.min_real_inputs();
         let real_outputs = family_id.min_real_outputs();
         let input_total = 100u64
@@ -984,7 +1038,7 @@ pub mod proof_test_helpers {
         } else {
             split_transfer_amounts(real_outputs, input_total)
         };
-        let asset_id = asset::Id(Fq::from(1u64));
+        let asset_id = base.value.asset_id;
 
         let notes = input_amounts
             .iter()
@@ -996,6 +1050,7 @@ pub mod proof_test_helpers {
                         asset_id,
                     },
                     crate::Rseed::generate(rng),
+                    crate::RecoveryCommitment::unavailable(),
                 )
                 .expect("create note reshape test note")
             })
@@ -1014,24 +1069,58 @@ pub mod proof_test_helpers {
             })
             .collect::<Vec<_>>();
 
+        let tx_blinding_nonce = Fr::rand(rng);
         let spends = notes
             .iter()
             .cloned()
             .zip(state_commitment_proofs.iter())
-            .map(|(note, proof)| ShieldedInputPlan::new(rng, note, proof.position()))
+            .map(|(note, proof)| {
+                let mut spend = ShieldedInputPlan::new(rng, note, proof.position());
+                spend.asset_indexed_leaf = base.asset_indexed_leaf.clone();
+                spend.asset_path = base.asset_path.clone();
+                spend.asset_position = base.asset_position;
+                spend.asset_anchor = base.asset_anchor;
+                spend.compliance_anchor = base.compliance_anchor;
+                spend.compliance_path = base.compliance_path.clone();
+                spend.compliance_position = base.compliance_position;
+                spend.compliance_leaf = Some(base.user_leaf.clone());
+                spend.is_regulated = true;
+                spend.target_timestamp = base.target_timestamp;
+                spend.tx_blinding_nonce = tx_blinding_nonce;
+                spend.asset_policy = Some(base.asset_policy.clone());
+                spend
+                    .set_compliance_details()
+                    .expect("set note reshape spend compliance details");
+                spend
+            })
             .collect::<Vec<_>>();
 
         let outputs = output_amounts
             .iter()
             .map(|amount| {
-                ShieldedOutputPlan::new(
+                let mut output = ShieldedOutputPlan::new(
                     rng,
                     Value {
                         amount: Amount::from(*amount),
                         asset_id,
                     },
                     base.address.clone(),
-                )
+                );
+                output.asset_indexed_leaf = base.asset_indexed_leaf.clone();
+                output.asset_path = base.asset_path.clone();
+                output.asset_position = base.asset_position;
+                output.asset_anchor = base.asset_anchor;
+                output.compliance_anchor = base.compliance_anchor;
+                output.compliance_path = base.compliance_path.clone();
+                output.compliance_position = base.compliance_position;
+                output.is_regulated = true;
+                output.target_timestamp = base.target_timestamp;
+                output.tx_blinding_nonce = tx_blinding_nonce;
+                output.asset_policy = Some(base.asset_policy.clone());
+                output
+                    .set_compliance_details(&base.user_leaf, tx_blinding_nonce)
+                    .expect("set note reshape output compliance details");
+                output
             })
             .collect::<Vec<_>>();
 
@@ -1088,6 +1177,7 @@ pub mod proof_test_helpers {
                 asset_id: base.value.asset_id,
             },
             crate::Rseed::generate(rng),
+            crate::RecoveryCommitment::unavailable(),
         )
         .expect("create shielded ICS-20 withdrawal note a");
         let note_b = crate::Note::from_parts(
@@ -1097,6 +1187,7 @@ pub mod proof_test_helpers {
                 asset_id: base.value.asset_id,
             },
             crate::Rseed::generate(rng),
+            crate::RecoveryCommitment::unavailable(),
         )
         .expect("create shielded ICS-20 withdrawal note b");
 
@@ -1114,6 +1205,7 @@ pub mod proof_test_helpers {
             spend.asset_position = base.asset_position;
             spend.asset_indexed_leaf = base.asset_indexed_leaf.clone();
             spend.compliance_leaf = Some(base.user_leaf.clone());
+            spend.asset_policy = Some(base.asset_policy.clone());
         }
 
         let day_start = crate::select_accumulator_day(base.target_timestamp);
@@ -1149,13 +1241,14 @@ pub mod proof_test_helpers {
             sct.witness(prior.commitment())
                 .expect("witness prior withdrawal accumulator")
         });
-        let change_note = crate::Note::from_parts(
+        let (change_note, _) = crate::Note::from_parts_with_recovery(
             base.address.clone(),
             Value {
                 amount: Amount::from(20u64),
                 asset_id: base.value.asset_id,
             },
             crate::Rseed::generate(rng),
+            base.user_leaf.capk,
         )
         .expect("create shielded ICS-20 withdrawal change note");
 
@@ -1164,6 +1257,7 @@ pub mod proof_test_helpers {
             first_spend_randomizer: spend_a.randomizer,
             sender_address: base.address.clone(),
             asset_id: base.value.asset_id,
+            capk: base.user_leaf.capk,
             nullifier_domain_sep_label:
                 b"shieldd.shielded_ics20_withdrawal.synthetic_dummy.nullifier",
             nullifier_seed_label:
@@ -1229,18 +1323,21 @@ pub mod proof_test_helpers {
             &routing_parameters,
             routing_nonce,
         );
-        let compliance = crate::withdrawal_compliance::build_withdrawal_compliance(
-            &base.address,
-            &base.user_leaf,
-            is_regulated.then_some(&base.asset_policy),
-            &base.asset_indexed_leaf,
-            base.target_timestamp,
-            spend_a.tx_blinding_nonce,
+        let outbound_amount = if real_spends == 2 { 100u128 } else { 50u128 };
+        let (withdrawal_key, _) = withdrawal_encryption_key(
             is_regulated,
             is_regulated && matches!(accumulator_mode, WithdrawalAccumulatorTestMode::Padding),
+            &base.user_leaf,
+            &base.asset_indexed_leaf,
         )
-        .expect("build withdrawal compliance fixture");
-        let outbound_amount = if real_spends == 2 { 100u128 } else { 50u128 };
+        .expect("select withdrawal compliance key");
+        let withdrawal = encrypt_withdrawal_with_material(
+            withdrawal_key,
+            &base.address,
+            Fq::from(31u64),
+            Fr::from(37u64),
+        )
+        .expect("encrypt withdrawal sender address");
         let volume_plan = match accumulator_mode {
             WithdrawalAccumulatorTestMode::Padding => {
                 crate::VolumeAccumulatorPlan::padding(base.target_timestamp)
@@ -1288,6 +1385,7 @@ pub mod proof_test_helpers {
                 inputs: input_publics,
                 change_output: ShieldedIcs20WithdrawalChangePublic {
                     note_commitment: change_note.commit(),
+                    recovery_commitment: change_note.recovery_commitment(),
                 },
                 outbound_asset_id: base.value.asset_id.0,
                 outbound_amount: Fq::from(outbound_amount),
@@ -1299,8 +1397,8 @@ pub mod proof_test_helpers {
                 ],
                 routing_tag,
                 routing_parameter_set_id: routing_parameters.id(),
+                withdrawal_compliance_ciphertext: withdrawal.ciphertext,
                 recent_position_floor: 0,
-                compliance: compliance.public,
                 volume_accumulator: crate::VolumeAccumulatorPublic {
                     nullifier: volume_payload.nullifier,
                     commitment: volume_payload.commitment,
@@ -1321,12 +1419,16 @@ pub mod proof_test_helpers {
                 sender_compliance_path: base.compliance_path,
                 sender_compliance_position: base.compliance_position,
                 sender_leaf: base.user_leaf,
+                withdrawal_seed: withdrawal.seed,
+                withdrawal_randomizer: withdrawal.r,
                 required_input,
                 optional_input,
                 change_output: ShieldedIcs20WithdrawalChangePrivate {
                     created_note: change_note,
                 },
-                compliance: compliance.private,
+                volume_accumulator_seed: Fq::from_le_bytes_mod_order(
+                    &spend_a.tx_blinding_nonce.to_bytes(),
+                ),
                 volume_accumulator: crate::VolumeAccumulatorPrivate {
                     prior_proof: accumulator_prior_proof.unwrap_or_else(|| {
                         dummy_state_commitment_proof(volume_plan.prior_commitment())

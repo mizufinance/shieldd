@@ -58,10 +58,12 @@ func NewNoteReshapeCircuitAssignmentFromWitness(payload []byte) (*circuits.NoteR
 		return nil, generated.NoteReshapeFamilySpec{}, fmt.Errorf("decode note reshape sender compliance path: %w", err)
 	}
 	assignment.Sender = circuits.NoteReshapeSenderCircuitFields{
-		D:        fqString(witness.SenderD),
-		Status:   fqString(witness.SenderStatus),
-		Path:     senderPath,
-		Position: witness.SenderCompliancePosition,
+		Capk:          point2DString(witness.SenderCapkAffine),
+		RnkDhPk:       point2DString(witness.SenderRnkDhPkAffine),
+		RnkCommitment: fqString(witness.SenderRnkCommitment),
+		Status:        fqString(witness.SenderStatus),
+		Path:          senderPath,
+		Position:      witness.SenderCompliancePosition,
 	}
 	for i := range witness.Spends {
 		spend, err := newNoteReshapeSpendCircuitFields(&witness.Spends[i])
@@ -110,8 +112,9 @@ func newNoteReshapeSpendCircuitFields(witness *NoteReshapeSpendWitnessBinary) (c
 		Nullifier: fqString(witness.Nullifier),
 		RK:        point2DString(witness.RKAffine),
 		Note: circuits.NoteReshapeNoteCircuitFields{
-			Blinding: fqString(witness.SpentNoteBlinding),
-			Amount:   fqString(witness.SpentNoteAmount),
+			Blinding:           fqString(witness.SpentNoteBlinding),
+			Amount:             fqString(witness.SpentNoteAmount),
+			RecoveryCommitment: fqString(witness.SpentNoteRecoveryCommitment),
 		},
 		StateProof:      circuits.StateCommitmentFields{Commitment: fqString(witness.StateCommitmentCommitment), Position: witness.StateCommitmentPosition, Path: statePath},
 		AuthRandomizer:  fqString(witness.SpendAuthRandomizer),
@@ -123,9 +126,11 @@ func newNoteReshapeOutputCircuitFields(witness *NoteReshapeOutputWitnessBinary) 
 	return circuits.NoteReshapeOutputCircuitFields{
 		NoteCommitment: fqString(witness.NoteCommitment),
 		Note: circuits.NoteReshapeNoteCircuitFields{
-			Blinding: fqString(witness.CreatedNoteBlinding),
-			Amount:   fqString(witness.CreatedNoteAmount),
+			Blinding:           fqString(witness.CreatedNoteBlinding),
+			Amount:             fqString(witness.CreatedNoteAmount),
+			RecoveryCommitment: fqString(witness.RecoveryCommitment),
 		},
+		Recovery: recoveryCapsuleFields(witness.RecoveryCommitment, witness.RecoveryCapsule),
 	}
 }
 

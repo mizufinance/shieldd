@@ -117,18 +117,21 @@ func newTransferSharedAssignmentParts(
 		Position: witness.AssetPosition,
 	}
 	sender := circuits.TransferUserCircuitFields{
-		DivGen:       point2DString(witness.SenderDiversifiedGenerator),
-		Transmission: point2DString(witness.SenderTransmissionKey),
-		D:            fqString(witness.SenderD),
-		Status:       fqString(witness.SenderStatus),
-		Path:         senderPath,
-		Position:     witness.SenderCompliancePosition,
+		DivGen:        point2DString(witness.SenderDiversifiedGenerator),
+		Transmission:  point2DString(witness.SenderTransmissionKey),
+		Capk:          point2DString(witness.SenderCapkAffine),
+		RnkDhPk:       point2DString(witness.SenderRnkDhPkAffine),
+		RnkCommitment: fqString(witness.SenderRnkCommitment),
+		Status:        fqString(witness.SenderStatus),
+		Path:          senderPath,
+		Position:      witness.SenderCompliancePosition,
 	}
 	return auth, asset, sender, nil
 }
 
 func transferCoreTierFields(
 	tier *TransferComplianceCiphertextWitnessBinary,
+	keyConfirmation [32]byte,
 ) (circuits.TransferComplianceCoreFields, error) {
 	var zero circuits.TransferComplianceCoreFields
 	if len(tier.Ciphertext) != compliance.TransferCoreCiphertextFQCount {
@@ -139,8 +142,9 @@ func transferCoreTierFields(
 		)
 	}
 	fields := circuits.TransferComplianceCoreFields{
-		Epk: point2DString(tier.EPKAffine),
-		C2:  fqString(tier.C2),
+		Epk:             point2DString(tier.EPKAffine),
+		C2:              fqString(tier.C2),
+		KeyConfirmation: fqString(keyConfirmation),
 	}
 	for i := range tier.Ciphertext {
 		fields.Ciphertext[i] = fqString(tier.Ciphertext[i])
@@ -181,7 +185,10 @@ func newTransferComplianceFields(
 		)
 	}
 
-	senderCore, err := transferCoreTierFields(&witness.SenderCore)
+	senderCore, err := transferCoreTierFields(
+		&witness.SenderCore,
+		witness.SenderCoreKeyConfirmation,
+	)
 	if err != nil {
 		return zero, fmt.Errorf("decode transfer sender_core tier: %w", err)
 	}
@@ -189,7 +196,10 @@ func newTransferComplianceFields(
 	if err != nil {
 		return zero, fmt.Errorf("decode transfer sender_ext tier: %w", err)
 	}
-	outputCore, err := transferCoreTierFields(&witness.OutputCore)
+	outputCore, err := transferCoreTierFields(
+		&witness.OutputCore,
+		witness.OutputCoreKeyConfirmation,
+	)
 	if err != nil {
 		return zero, fmt.Errorf("decode transfer output_core tier: %w", err)
 	}
@@ -229,10 +239,12 @@ func newTransferComplianceFields(
 func transferNotePayloadFields(
 	blinding [32]byte,
 	amount [32]byte,
+	recoveryCommitment [32]byte,
 ) circuits.TransferNotePayloadCircuitFields {
 	return circuits.TransferNotePayloadCircuitFields{
-		Blinding: fqString(blinding),
-		Amount:   fqString(amount),
+		Blinding:           fqString(blinding),
+		Amount:             fqString(amount),
+		RecoveryCommitment: fqString(recoveryCommitment),
 	}
 }
 
@@ -270,6 +282,7 @@ func newTransferRequiredSpendCircuitFields(
 			TransferNotePayloadCircuitFields: transferNotePayloadFields(
 				witness.SpentNoteBlinding,
 				witness.SpentNoteAmount,
+				witness.SpentNoteRecoveryCommitment,
 			),
 			AssetID: fqString(witness.SpentNoteAssetID),
 		},
@@ -298,6 +311,7 @@ func newTransferOptionalSpendCircuitFields(
 		Note: transferNotePayloadFields(
 			witness.SpentNoteBlinding,
 			witness.SpentNoteAmount,
+			witness.SpentNoteRecoveryCommitment,
 		),
 		StateProof:         stateProof,
 		AuthRandomizer:     fqString(witness.SpendAuthRandomizer),
@@ -330,16 +344,20 @@ func newTransferReceiverOutputCircuitFields(
 			TransferNotePayloadCircuitFields: transferNotePayloadFields(
 				witness.CreatedNoteBlinding,
 				witness.CreatedNoteAmount,
+				witness.RecoveryCommitment,
 			),
 		},
 		Recipient: circuits.TransferUserCircuitFields{
-			DivGen:       point2DString(witness.RecipientDiversifiedGenerator),
-			Transmission: point2DString(witness.RecipientTransmissionKey),
-			D:            fqString(witness.RecipientD),
-			Status:       fqString(witness.RecipientStatus),
-			Path:         recipientPath,
-			Position:     witness.RecipientCompliancePosition,
+			DivGen:        point2DString(witness.RecipientDiversifiedGenerator),
+			Transmission:  point2DString(witness.RecipientTransmissionKey),
+			Capk:          point2DString(witness.RecipientCapkAffine),
+			RnkDhPk:       point2DString(witness.RecipientRnkDhPkAffine),
+			RnkCommitment: fqString(witness.RecipientRnkCommitment),
+			Status:        fqString(witness.RecipientStatus),
+			Path:          recipientPath,
+			Position:      witness.RecipientCompliancePosition,
 		},
+		Recovery: recoveryCapsuleFields(witness.RecoveryCommitment, witness.RecoveryCapsule),
 	}, nil
 }
 
@@ -351,7 +369,9 @@ func newTransferChangeOutputCircuitFields(
 		Note: transferNotePayloadFields(
 			witness.CreatedNoteBlinding,
 			witness.CreatedNoteAmount,
+			witness.RecoveryCommitment,
 		),
+		Recovery: recoveryCapsuleFields(witness.RecoveryCommitment, witness.RecoveryCapsule),
 	}
 }
 

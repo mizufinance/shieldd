@@ -53,7 +53,6 @@ impl Component for ShieldedPool {
                         0u128.into(),
                         "Genesis allocations contain empty note",
                     );
-
                     // `InitChain` can mint more notes than fit in a single SCT block. Because no
                     // ABCI `end_block` runs during genesis, we have to roll the frontier forward
                     // here to keep large synthetic allocation sets buildable.

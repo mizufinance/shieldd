@@ -135,12 +135,22 @@ func init() {
 			packResult: packShieldedIcs20WithdrawalProofResult,
 		}
 	}
+	circuitConfigs["note_seizure"] = circuitConfig{
+		name: "note_seizure",
+		template: func() frontend.Circuit {
+			return circuits.NewNoteSeizureCircuit()
+		},
+		newAssignment: func(payload []byte) (frontend.Circuit, error) {
+			return abi.NewNoteSeizureCircuitAssignmentFromWitness(payload)
+		},
+		packResult: packNoteSeizureProofResult,
+	}
 }
 
 func main() {
 	logger.Disable()
 
-	circuit := flag.String("circuit", "", "transfer, note-reshape, or shielded-ics20-withdrawal family label")
+	circuit := flag.String("circuit", "", "transfer, note-reshape, shielded-ics20-withdrawal, or note-seizure family label")
 	artifactDir := flag.String("artifact-dir", "", "directory containing gnark artifacts")
 	flag.Parse()
 
@@ -338,6 +348,14 @@ func packNoteReshapeProofResult(witnessPayload []byte, proof *groth16bls.Proof, 
 		return nil, fmt.Errorf("decode note reshape witness: %w", err)
 	}
 	return packProofResult("PNRP", witness.ClaimedStatementHash, proof, proveMS)
+}
+
+func packNoteSeizureProofResult(witnessPayload []byte, proof *groth16bls.Proof, proveMS float64) ([]byte, error) {
+	witness, err := abi.DecodeNoteSeizureWitness(witnessPayload)
+	if err != nil {
+		return nil, fmt.Errorf("decode note seizure witness: %w", err)
+	}
+	return packProofResult("PNSP", witness.ClaimedStatementHash, proof, proveMS)
 }
 
 func packProofResult(magic string, claimedStatementHash [32]byte, proof *groth16bls.Proof, proveMS float64) ([]byte, error) {

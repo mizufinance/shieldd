@@ -4,6 +4,7 @@ use crate::{
     gnark::{
         binary::encode_triple_path_32,
         binary::{encode_vec_32, put_bytes, put_u32, put_u64, put_u8, BinaryCursor},
+        recovery_capsule_witness_binary::{decode_recovery_capsule, encode_recovery_capsule},
         transfer_witness::{
             TransferChangeOutputWitness, TransferComplianceCiphertextWitness,
             TransferOptionalSpendWitness, TransferReceiverOutputWitness,
@@ -46,10 +47,14 @@ impl TransferWitness {
         put_u64(&mut buf, self.routing_as_of_height);
         encode_merkle_path(&mut buf, &self.sender_compliance_path)?;
         put_u64(&mut buf, self.sender_compliance_position);
-        put_bytes(&mut buf, &self.sender_d);
+        encode_point_affine(&mut buf, &self.sender_capk_affine);
+        encode_point_affine(&mut buf, &self.sender_rnk_dh_pk_affine);
+        put_bytes(&mut buf, &self.sender_rnk_commitment);
         put_bytes(&mut buf, &self.sender_status);
         put_bytes(&mut buf, &self.transfer_nonce_root);
         encode_vec_32(&mut buf, &self.detection_ciphertext)?;
+        put_bytes(&mut buf, &self.sender_core_key_confirmation);
+        put_bytes(&mut buf, &self.output_core_key_confirmation);
         put_bytes(&mut buf, &self.ring_id_hash);
         put_bytes(&mut buf, &self.policy_id_hash);
         put_bytes(&mut buf, &self.resource_hash);
@@ -118,10 +123,14 @@ impl TransferWitness {
             routing_as_of_height: cursor.read_u64()?,
             sender_compliance_path: cursor.read_merkle_path()?,
             sender_compliance_position: cursor.read_u64()?,
-            sender_d: cursor.read_fixed::<32>()?,
+            sender_capk_affine: cursor.read_point_affine()?,
+            sender_rnk_dh_pk_affine: cursor.read_point_affine()?,
+            sender_rnk_commitment: cursor.read_fixed::<32>()?,
             sender_status: cursor.read_fixed::<32>()?,
             transfer_nonce_root: cursor.read_fixed::<32>()?,
             detection_ciphertext: cursor.read_vec_32()?,
+            sender_core_key_confirmation: cursor.read_fixed::<32>()?,
+            output_core_key_confirmation: cursor.read_fixed::<32>()?,
             ring_id_hash: cursor.read_fixed::<32>()?,
             policy_id_hash: cursor.read_fixed::<32>()?,
             resource_hash: cursor.read_fixed::<32>()?,
@@ -232,6 +241,7 @@ fn encode_required_spend(buf: &mut Vec<u8>, spend: &TransferRequiredSpendWitness
     put_bytes(buf, &spend.spent_note_blinding);
     put_bytes(buf, &spend.spent_note_amount);
     put_bytes(buf, &spend.spent_note_asset_id);
+    put_bytes(buf, &spend.spent_note_recovery_commitment);
     put_u64(buf, spend.state_commitment_position);
     encode_triple_path_32(buf, &spend.state_commitment_auth_path)?;
     put_bytes(buf, &spend.spend_auth_randomizer);
@@ -246,6 +256,7 @@ fn decode_required_spend(cursor: &mut BinaryCursor<'_>) -> Result<TransferRequir
         spent_note_blinding: cursor.read_fixed::<32>()?,
         spent_note_amount: cursor.read_fixed::<32>()?,
         spent_note_asset_id: cursor.read_fixed::<32>()?,
+        spent_note_recovery_commitment: cursor.read_fixed::<32>()?,
         state_commitment_position: cursor.read_u64()?,
         state_commitment_auth_path: cursor.read_triple_path_32()?,
         spend_auth_randomizer: cursor.read_fr()?,
@@ -258,6 +269,7 @@ fn encode_optional_spend(buf: &mut Vec<u8>, spend: &TransferOptionalSpendWitness
     put_bytes(buf, &spend.nullifier);
     put_bytes(buf, &spend.spent_note_blinding);
     put_bytes(buf, &spend.spent_note_amount);
+    put_bytes(buf, &spend.spent_note_recovery_commitment);
     put_u64(buf, spend.state_commitment_position);
     encode_triple_path_32(buf, &spend.state_commitment_auth_path)?;
     put_bytes(buf, &spend.spend_auth_randomizer);
@@ -273,6 +285,7 @@ fn decode_optional_spend(cursor: &mut BinaryCursor<'_>) -> Result<TransferOption
         nullifier: cursor.read_fixed::<32>()?,
         spent_note_blinding: cursor.read_fixed::<32>()?,
         spent_note_amount: cursor.read_fixed::<32>()?,
+        spent_note_recovery_commitment: cursor.read_fixed::<32>()?,
         state_commitment_position: cursor.read_u64()?,
         state_commitment_auth_path: cursor.read_triple_path_32()?,
         spend_auth_randomizer: cursor.read_fr()?,
@@ -285,11 +298,15 @@ fn decode_optional_spend(cursor: &mut BinaryCursor<'_>) -> Result<TransferOption
 
 fn encode_receiver_output(buf: &mut Vec<u8>, output: &TransferReceiverOutputWitness) -> Result<()> {
     put_bytes(buf, &output.note_commitment);
+    put_bytes(buf, &output.recovery_commitment);
     put_bytes(buf, &output.created_note_blinding);
     put_bytes(buf, &output.created_note_amount);
+    encode_recovery_capsule(buf, &output.recovery_capsule);
     encode_merkle_path(buf, &output.recipient_compliance_path)?;
     put_u64(buf, output.recipient_compliance_position);
-    put_bytes(buf, &output.recipient_d);
+    encode_point_affine(buf, &output.recipient_capk_affine);
+    encode_point_affine(buf, &output.recipient_rnk_dh_pk_affine);
+    put_bytes(buf, &output.recipient_rnk_commitment);
     put_bytes(buf, &output.recipient_status);
     encode_point_affine(buf, &output.recipient_diversified_generator_affine);
     encode_point_affine(buf, &output.recipient_transmission_key_affine);
@@ -299,11 +316,15 @@ fn encode_receiver_output(buf: &mut Vec<u8>, output: &TransferReceiverOutputWitn
 fn decode_receiver_output(cursor: &mut BinaryCursor<'_>) -> Result<TransferReceiverOutputWitness> {
     Ok(TransferReceiverOutputWitness {
         note_commitment: cursor.read_fixed::<32>()?,
+        recovery_commitment: cursor.read_fixed::<32>()?,
         created_note_blinding: cursor.read_fixed::<32>()?,
         created_note_amount: cursor.read_fixed::<32>()?,
+        recovery_capsule: decode_recovery_capsule(cursor)?,
         recipient_compliance_path: cursor.read_merkle_path()?,
         recipient_compliance_position: cursor.read_u64()?,
-        recipient_d: cursor.read_fixed::<32>()?,
+        recipient_capk_affine: cursor.read_point_affine()?,
+        recipient_rnk_dh_pk_affine: cursor.read_point_affine()?,
+        recipient_rnk_commitment: cursor.read_fixed::<32>()?,
         recipient_status: cursor.read_fixed::<32>()?,
         recipient_diversified_generator_affine: cursor.read_point_affine()?,
         recipient_transmission_key_affine: cursor.read_point_affine()?,
@@ -312,14 +333,18 @@ fn decode_receiver_output(cursor: &mut BinaryCursor<'_>) -> Result<TransferRecei
 
 fn encode_change_output(buf: &mut Vec<u8>, output: &TransferChangeOutputWitness) {
     put_bytes(buf, &output.note_commitment);
+    put_bytes(buf, &output.recovery_commitment);
     put_bytes(buf, &output.created_note_blinding);
     put_bytes(buf, &output.created_note_amount);
+    encode_recovery_capsule(buf, &output.recovery_capsule);
 }
 
 fn decode_change_output(cursor: &mut BinaryCursor<'_>) -> Result<TransferChangeOutputWitness> {
     Ok(TransferChangeOutputWitness {
         note_commitment: cursor.read_fixed::<32>()?,
+        recovery_commitment: cursor.read_fixed::<32>()?,
         created_note_blinding: cursor.read_fixed::<32>()?,
         created_note_amount: cursor.read_fixed::<32>()?,
+        recovery_capsule: decode_recovery_capsule(cursor)?,
     })
 }

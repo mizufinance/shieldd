@@ -82,7 +82,8 @@ CREATE TABLE notes (
     address                 BLOB NOT NULL,
     amount                  BLOB NOT NULL,
     asset_id                BLOB NOT NULL,
-    rseed                   BLOB NOT NULL
+    rseed                   BLOB NOT NULL,
+    recovery_commitment     BLOB NOT NULL
 );
 
 -- general purpose note queries
@@ -96,7 +97,7 @@ CREATE INDEX notes_idx ON notes (
 -- Meant to represent notes which have been accepted into the note set
 CREATE TABLE spendable_notes (
     note_commitment         BLOB PRIMARY KEY NOT NULL,
-    -- the nullifier for this note, used to detect when it is spent
+    -- derived with the asset's effective wallet or compliance nullifier key
     nullifier               BLOB NOT NULL,
     -- the position of the note in the state commitment tree
     position                BIGINT NOT NULL,
@@ -222,8 +223,12 @@ CREATE TABLE compliance_user_leaf_data (
     address BLOB NOT NULL,
     asset_id BLOB NOT NULL,
     position BIGINT NOT NULL,
-    d BLOB NOT NULL,                   -- 32 bytes Fq
+    capk BLOB NOT NULL,                -- 32-byte compressed Decaf point
+    rnk_dh_pk BLOB NOT NULL,           -- 32-byte compressed Decaf point
+    rnk_commitment BLOB NOT NULL,      -- 32-byte Fq
     status INTEGER NOT NULL,
+    freeze_generation BIGINT NOT NULL,
+    frozen_since_height BIGINT NOT NULL,
     commitment BLOB NOT NULL,
     PRIMARY KEY (address, asset_id)
 );

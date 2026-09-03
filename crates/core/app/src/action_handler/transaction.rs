@@ -9,7 +9,10 @@ use cnidarium::{Snapshot, StateRead, StateWrite};
 use shieldd_sdk_compact_block::{
     component::RoutingManager as _, PendingRoutingAction, StatePayload,
 };
-use shieldd_sdk_compliance::registry::{check_timestamp_freshness, ComplianceRegistryRead as _};
+use shieldd_sdk_compliance::{
+    registry::{check_timestamp_freshness, ComplianceRegistryRead as _},
+    AuditEffect, AuditEffectRecord, AuditLogWrite as _, AuditSource, WithdrawalKind,
+};
 use shieldd_sdk_fee::component::FeePay as _;
 use shieldd_sdk_sct::component::clock::EpochRead;
 use shieldd_sdk_sct::component::source::SourceContext;
@@ -19,14 +22,15 @@ use shieldd_sdk_sct::Nullifier;
 use shieldd_sdk_shielded_pool::component::{
     note_reshape_execute_verified, shielded_host_withdrawal_execute_verified,
     shielded_ics20_withdrawal_execute_verified, transfer_execute_validated,
-    transfer_execute_verified, transfer_validate_verified, Ics20Transfer, StateReadExt as _,
+    transfer_execute_verified, transfer_validate_verified, AssetRegistryRead as _, Ics20Transfer,
+    StateReadExt as _,
 };
 use shieldd_sdk_shielded_pool::discovery;
 use shieldd_sdk_shielded_pool::TransferProofContext;
 use shieldd_sdk_shielded_pool::VolumeNullifier;
 use shieldd_sdk_tct::StateCommitment;
 use shieldd_sdk_transaction::{gas::GasCost as _, Action, Transaction};
-use shieldd_sdk_txhash::{AuthorizingData, TransactionId};
+use shieldd_sdk_txhash::{AuthorizingData, EffectingData as _, TransactionId};
 use tokio::sync::OnceCell;
 use tokio::task::JoinSet;
 use tracing::{instrument, Instrument};
@@ -84,6 +88,7 @@ pub(crate) struct PreparedCandidateEffects {
     pub volume_nullifiers: Vec<VolumeNullifier>,
     pub sct_payloads: Vec<StatePayload>,
     pub routing_actions: Vec<PendingRoutingAction>,
+    pub audit_effects: Vec<AuditEffectRecord>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -270,6 +275,187 @@ fn transaction_routing_actions(tx: &Transaction) -> Result<Vec<PendingRoutingAct
     Ok(routing_actions)
 }
 
+fn push_transaction_audit_effect(
+    records: &mut Vec<AuditEffectRecord>,
+    height: u64,
+    transaction_id: [u8; 32],
+    action_index: u32,
+    effect_index: u32,
+    effect: AuditEffect,
+) {
+    records.push(AuditEffectRecord {
+        source: AuditSource::ShielddTransaction {
+            height,
+            transaction_id,
+            action_index,
+            effect_index,
+        },
+        effect,
+    });
+}
+
+fn push_transfer_audit_effects(
+    records: &mut Vec<AuditEffectRecord>,
+    height: u64,
+    transaction_id: [u8; 32],
+    action_index: u32,
+    transfer: &shieldd_sdk_shielded_pool::Transfer,
+) -> Result<()> {
+    let mut effect_index = 0u32;
+    for output in &transfer.body.outputs {
+        if !output.compliance_ciphertext.is_empty() {
+            push_transaction_audit_effect(
+                records,
+                height,
+                transaction_id,
+                action_index,
+                effect_index,
+                AuditEffect::TransferOutput {
+                    asset_anchor: transfer.body.asset_anchor,
+                    compliance_ciphertext: output.compliance_ciphertext.clone(),
+                    compliance_metadata: output.compliance_metadata.clone(),
+                },
+            );
+            effect_index = effect_index
+                .checked_add(1)
+                .context("transfer audit effect index overflow")?;
+        }
+    }
+    Ok(())
+}
+
+fn transaction_audit_effects(tx: &Transaction, height: u64) -> Result<Vec<AuditEffectRecord>> {
+    let transaction_id = tx.id().0;
+    let mut records = Vec::new();
+
+    for (action_index, action) in tx.actions().enumerate() {
+        let action_index = u32::try_from(action_index).context("action index exceeds u32")?;
+        match action {
+            Action::Transfer(transfer) => push_transfer_audit_effects(
+                &mut records,
+                height,
+                transaction_id,
+                action_index,
+                transfer,
+            )?,
+            Action::NoteReshape(note_reshape) => push_transaction_audit_effect(
+                &mut records,
+                height,
+                transaction_id,
+                action_index,
+                0,
+                AuditEffect::NoteReshape {
+                    action_effect_hash: note_reshape.effect_hash().0,
+                },
+            ),
+            Action::ShieldedIcs20Withdrawal(withdrawal) => {
+                let value = withdrawal.body.withdrawal.value();
+                push_transaction_audit_effect(
+                    &mut records,
+                    height,
+                    transaction_id,
+                    action_index,
+                    0,
+                    AuditEffect::Withdrawal {
+                        kind: WithdrawalKind::Ics20,
+                        asset_id: value.asset_id,
+                        amount: value.amount.value(),
+                        asset_anchor: withdrawal.body.asset_anchor,
+                        compliance_ciphertext: withdrawal
+                            .body
+                            .withdrawal_compliance_ciphertext
+                            .to_bytes()
+                            .to_vec(),
+                    },
+                );
+            }
+            Action::ShieldedHostWithdrawal(withdrawal) => {
+                let value = withdrawal.body.withdrawal.value;
+                push_transaction_audit_effect(
+                    &mut records,
+                    height,
+                    transaction_id,
+                    action_index,
+                    0,
+                    AuditEffect::Withdrawal {
+                        kind: WithdrawalKind::Host,
+                        asset_id: value.asset_id,
+                        amount: value.amount.value(),
+                        asset_anchor: withdrawal.body.asset_anchor,
+                        compliance_ciphertext: withdrawal
+                            .body
+                            .withdrawal_compliance_ciphertext
+                            .to_bytes()
+                            .to_vec(),
+                    },
+                );
+            }
+            Action::IbcRelay(relay) => push_transaction_audit_effect(
+                &mut records,
+                height,
+                transaction_id,
+                action_index,
+                0,
+                AuditEffect::IbcRelay {
+                    action_effect_hash: relay.effect_hash().0,
+                },
+            ),
+            Action::ComplianceRegisterAsset(registration) => push_transaction_audit_effect(
+                &mut records,
+                height,
+                transaction_id,
+                action_index,
+                0,
+                AuditEffect::AssetRegistered {
+                    asset_id: registration.asset_id,
+                    is_regulated: registration.is_regulated,
+                },
+            ),
+            Action::ComplianceRegisterUser(registration) => push_transaction_audit_effect(
+                &mut records,
+                height,
+                transaction_id,
+                action_index,
+                0,
+                AuditEffect::UserRegistered {
+                    asset_id: registration.leaf.asset_id,
+                    address: registration.leaf.address.clone(),
+                },
+            ),
+            Action::AggregateBundle(_) => {
+                anyhow::bail!("aggregate bundles must be expanded before audit logging")
+            }
+        }
+    }
+
+    if let Some(fee_funding) = &tx.transaction_body.fee_funding {
+        let action_index =
+            u32::try_from(tx.transaction_body.actions.len()).context("action index exceeds u32")?;
+        push_transfer_audit_effects(
+            &mut records,
+            height,
+            transaction_id,
+            action_index,
+            &fee_funding.transfer,
+        )?;
+    }
+
+    for record in &records {
+        record.validate()?;
+    }
+    Ok(records)
+}
+
+pub(crate) async fn append_transaction_audit_effects<S: StateWrite + ?Sized>(
+    state: &mut S,
+    records: impl IntoIterator<Item = AuditEffectRecord>,
+) -> Result<()> {
+    for record in records {
+        state.append_audit_effect(record).await?;
+    }
+    Ok(())
+}
+
 #[derive(Clone, Debug)]
 pub(crate) struct HistoricalCheckContext {
     pub chain_id: String,
@@ -382,58 +568,63 @@ pub(crate) fn verify_historical_proofs(tx: &Transaction) -> Result<Vec<VerifiedH
         .into_iter()
         .zip(&tx.transaction_body.historical_nullifier_proofs)
         .map(|(nullifier, bundle)| {
-            let nullifier_bytes: [u8; 32] = nullifier.into();
-            let mut expected_head = empty_history_head();
-            for chunk in &bundle.completed_chunks {
-                shieldd_sdk_proof_params::historical::verify_chunk(
-                    shieldd_sdk_proof_params::historical::chunk_verification_key(),
-                    shieldd_sdk_proof_params::historical::ChunkClaim {
-                        protocol_version: PROTOCOL_VERSION,
-                        nullifier: nullifier_bytes,
-                        chunk_index: chunk.chunk_index,
-                        start_history_head: expected_head,
-                        end_history_head: chunk.end_history_head,
-                    },
-                    &chunk.groth16_proof,
-                )?;
-                expected_head = chunk.end_history_head;
-            }
-            for generation in &bundle.tail {
-                shieldd_sdk_proof_params::historical::verify_generation(
-                    shieldd_sdk_proof_params::historical::generation_verification_key(),
-                    shieldd_sdk_proof_params::historical::GenerationClaim {
-                        protocol_version: PROTOCOL_VERSION,
-                        nullifier: nullifier_bytes,
-                        generation_index: generation.generation_index,
-                        generation_root: generation.generation_root,
-                        generation_start_position: generation.generation_start_position,
-                        generation_end_position: generation.generation_end_position,
-                        start_history_head: expected_head,
-                        end_history_head: shieldd_sdk_sct::nullifier_generation::append_history(
-                            expected_head,
-                            generation.generation_index,
-                            generation.generation_root,
-                            generation.generation_start_position,
-                            generation.generation_end_position,
-                        )?,
-                    },
-                    &generation.groth16_proof,
-                )?;
-                expected_head = shieldd_sdk_sct::nullifier_generation::append_history(
-                    expected_head,
-                    generation.generation_index,
-                    generation.generation_root,
-                    generation.generation_start_position,
-                    generation.generation_end_position,
-                )?;
-            }
-            anyhow::ensure!(
-                expected_head == window.archived_history_head,
-                "verified historical proof has the wrong terminal history head"
-            );
+            verify_historical_nullifier_proof(nullifier, window, bundle)?;
             Ok(VerifiedHistoricalInput::new(nullifier, window, auth_hash))
         })
         .collect()
+}
+
+pub(crate) fn verify_historical_nullifier_proof(
+    nullifier: Nullifier,
+    window: shieldd_sdk_sct::nullifier_generation::NullifierWindow,
+    bundle: &shieldd_sdk_sct::nullifier_generation::HistoricalNullifierProof,
+) -> Result<()> {
+    bundle.validate_structure(window)?;
+    let nullifier_bytes: [u8; 32] = nullifier.into();
+    let mut expected_head = empty_history_head();
+    for chunk in &bundle.completed_chunks {
+        shieldd_sdk_proof_params::historical::verify_chunk(
+            shieldd_sdk_proof_params::historical::chunk_verification_key(),
+            shieldd_sdk_proof_params::historical::ChunkClaim {
+                protocol_version: PROTOCOL_VERSION,
+                nullifier: nullifier_bytes,
+                chunk_index: chunk.chunk_index,
+                start_history_head: expected_head,
+                end_history_head: chunk.end_history_head,
+            },
+            &chunk.groth16_proof,
+        )?;
+        expected_head = chunk.end_history_head;
+    }
+    for generation in &bundle.tail {
+        let end_history_head = shieldd_sdk_sct::nullifier_generation::append_history(
+            expected_head,
+            generation.generation_index,
+            generation.generation_root,
+            generation.generation_start_position,
+            generation.generation_end_position,
+        )?;
+        shieldd_sdk_proof_params::historical::verify_generation(
+            shieldd_sdk_proof_params::historical::generation_verification_key(),
+            shieldd_sdk_proof_params::historical::GenerationClaim {
+                protocol_version: PROTOCOL_VERSION,
+                nullifier: nullifier_bytes,
+                generation_index: generation.generation_index,
+                generation_root: generation.generation_root,
+                generation_start_position: generation.generation_start_position,
+                generation_end_position: generation.generation_end_position,
+                start_history_head: expected_head,
+                end_history_head,
+            },
+            &generation.groth16_proof,
+        )?;
+        expected_head = end_history_head;
+    }
+    anyhow::ensure!(
+        expected_head == window.archived_history_head,
+        "verified historical proof has the wrong terminal history head"
+    );
+    Ok(())
 }
 
 async fn check_nullifier_read_only<S>(
@@ -775,6 +966,12 @@ where
     profile.pay_fee_ms = pay_fee_start.elapsed().as_secs_f64() * 1000.0;
 
     let action_execute_start = Instant::now();
+    // Stage action records first so deterministic effects emitted by nested
+    // handlers follow the transaction's canonical action order. The enclosing
+    // state delta discards all of these records if execution fails.
+    let height = state.get_block_height().await?;
+    append_transaction_audit_effects(&mut state, transaction_audit_effects(tx, height)?).await?;
+
     // Fee funding is hashed before body actions and validates against the
     // pre-transaction roots used to build its proof. Its effects remain in
     // their original post-body position to preserve commitment ordering.
@@ -848,7 +1045,28 @@ where
                 }
                 profile.other_action_execute_ms += action_start.elapsed().as_secs_f64() * 1000.0;
             }
-            action @ (Action::ComplianceRegisterAsset(_) | Action::ComplianceRegisterUser(_)) => {
+            action @ Action::ComplianceRegisterAsset(registration) => {
+                if registration.is_regulated {
+                    anyhow::ensure!(
+                        state
+                            .denom_metadata_by_asset(&registration.asset_id)
+                            .await
+                            .is_none(),
+                        "regulated asset must be registered before its first issuance"
+                    );
+                }
+                if action_spans_enabled {
+                    let span = action.create_span(i);
+                    action
+                        .check_and_execute(&mut state)
+                        .instrument(span)
+                        .await?;
+                } else {
+                    action.check_and_execute(&mut state).await?;
+                }
+                profile.other_action_execute_ms += action_start.elapsed().as_secs_f64() * 1000.0;
+            }
+            action @ Action::ComplianceRegisterUser(_) => {
                 if action_spans_enabled {
                     let span = action.create_span(i);
                     action
@@ -1158,6 +1376,7 @@ pub(crate) async fn prepare_candidate_read_profiled<S: StateRead + 'static>(
     prepared.effects.volume_nullifiers = volume_nullifiers;
     prepared.effects.sct_payloads = sct_payloads;
     prepared.effects.routing_actions = transaction_routing_actions(tx.as_ref())?;
+    prepared.effects.audit_effects = transaction_audit_effects(tx.as_ref(), context.block_height)?;
     prepared.execution_profile.read_effects_build_ms =
         effects_build_start.elapsed().as_secs_f64() * 1000.0;
     prepared.execution_profile.output_add_note_payload_ms =
@@ -1383,6 +1602,7 @@ pub(crate) fn prepare_candidate_read_blocking_profiled(
     prepared.effects.volume_nullifiers = volume_nullifiers;
     prepared.effects.sct_payloads = sct_payloads;
     prepared.effects.routing_actions = transaction_routing_actions(tx.as_ref())?;
+    prepared.effects.audit_effects = transaction_audit_effects(tx.as_ref(), context.block_height)?;
     prepared.execution_profile.read_effects_build_ms =
         effects_build_start.elapsed().as_secs_f64() * 1000.0;
     prepared.execution_profile.output_add_note_payload_ms =

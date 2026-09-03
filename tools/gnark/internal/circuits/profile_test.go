@@ -29,17 +29,22 @@ func (c *noteCommitmentProfileCircuit) Define(api frontend.API) error {
 		c.NoteAssetID,
 		gnarkte.Point{X: c.DiversifiedGenX, Y: c.DiversifiedGenY},
 		c.TransmissionKeyS,
+		0,
 	)
 	return err
 }
 
 type complianceLeafProfileCircuit struct {
-	DivGenX frontend.Variable
-	DivGenY frontend.Variable
-	TransX  frontend.Variable
-	TransY  frontend.Variable
-	AssetID frontend.Variable
-	D       frontend.Variable
+	DivGenX       frontend.Variable
+	DivGenY       frontend.Variable
+	TransX        frontend.Variable
+	TransY        frontend.Variable
+	AssetID       frontend.Variable
+	CapkX         frontend.Variable
+	CapkY         frontend.Variable
+	RnkDhPkX      frontend.Variable
+	RnkDhPkY      frontend.Variable
+	RnkCommitment frontend.Variable
 }
 
 func (c *complianceLeafProfileCircuit) Define(api frontend.API) error {
@@ -48,7 +53,9 @@ func (c *complianceLeafProfileCircuit) Define(api frontend.API) error {
 		gnarkte.Point{X: c.DivGenX, Y: c.DivGenY},
 		gnarkte.Point{X: c.TransX, Y: c.TransY},
 		c.AssetID,
-		c.D,
+		gnarkte.Point{X: c.CapkX, Y: c.CapkY},
+		gnarkte.Point{X: c.RnkDhPkX, Y: c.RnkDhPkY},
+		c.RnkCommitment,
 		1,
 	)
 	return err
@@ -153,6 +160,9 @@ type transferAmountCiphertextProfileCircuit struct {
 	SharedSecretX frontend.Variable
 	SharedSecretY frontend.Variable
 	C2            frontend.Variable
+	EPKFq         frontend.Variable
+	TierSalt      frontend.Variable
+	Confirmation  frontend.Variable
 	Amount        frontend.Variable
 	Ciphertext0   frontend.Variable
 }
@@ -162,6 +172,9 @@ func (c *transferAmountCiphertextProfileCircuit) Define(api frontend.API) error 
 		api,
 		gnarkte.Point{X: c.SharedSecretX, Y: c.SharedSecretY},
 		c.C2,
+		c.EPKFq,
+		c.TierSalt,
+		c.Confirmation,
 		c.Amount,
 		[compliance.TransferCoreCiphertextFQCount]frontend.Variable{c.Ciphertext0},
 	)

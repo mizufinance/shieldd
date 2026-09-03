@@ -28,7 +28,7 @@ use super::types::{BlockRef, ComplianceCiphertext, DetectionEvent, TxRef};
 use crate::audit::EVIDENCE_STAGE_BUILD;
 use crate::{
     issuer_keys::DetectionKey, ComplianceEvidenceObject, ComplianceRecordRef,
-    TransferComplianceMetadata, WithdrawalComplianceMetadata, WithdrawalEvidencePublicData,
+    TransferComplianceMetadata, WithdrawalEvidencePublicData,
 };
 
 const MAX_CB_SIZE_BYTES: usize = 64 * 1024 * 1024;
@@ -418,18 +418,18 @@ impl IssuerComplianceWorker {
 
     async fn validate_detected_evidence(&self, work: PendingEvidenceWork) -> Result<()> {
         let output_ref = work.record_ref.output_ref();
-        let Some(metadata_bytes) = work.metadata_bytes.as_deref() else {
-            self.storage
-                .record_evidence_failure(
-                    &output_ref,
-                    EVIDENCE_STAGE_BUILD,
-                    "detected record is missing compliance metadata",
-                )
-                .await?;
-            return Ok(());
-        };
         let evidence = match work.event.ciphertext {
             ComplianceCiphertext::Transfer(ciphertext) => {
+                let Some(metadata_bytes) = work.metadata_bytes.as_deref() else {
+                    self.storage
+                        .record_evidence_failure(
+                            &output_ref,
+                            EVIDENCE_STAGE_BUILD,
+                            "detected record is missing compliance metadata",
+                        )
+                        .await?;
+                    return Ok(());
+                };
                 let metadata = match TransferComplianceMetadata::from_bytes(metadata_bytes) {
                     Ok(metadata) => metadata,
                     Err(error) => {
@@ -453,21 +453,6 @@ impl IssuerComplianceWorker {
                 )
             }
             ComplianceCiphertext::Withdrawal(ciphertext) => {
-                let metadata = match WithdrawalComplianceMetadata::from_bytes(metadata_bytes) {
-                    Ok(metadata) => metadata,
-                    Err(error) => {
-                        self.storage
-                            .record_evidence_failure(
-                                &output_ref,
-                                EVIDENCE_STAGE_BUILD,
-                                &format!(
-                                    "failed to decode withdrawal compliance metadata: {error}"
-                                ),
-                            )
-                            .await?;
-                        return Ok(());
-                    }
-                };
                 let Some(public) = work.event.public_withdrawal else {
                     self.storage
                         .record_evidence_failure(
@@ -482,9 +467,7 @@ impl IssuerComplianceWorker {
                     work.record_ref,
                     work.event.asset_id,
                     work.event.is_flagged,
-                    work.event.salt,
                     ciphertext,
-                    metadata,
                     WithdrawalEvidencePublicData {
                         amount: public.amount,
                         self_address: public.self_address,

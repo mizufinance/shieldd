@@ -13,23 +13,26 @@ const (
 )
 
 type NoteReshapeSpendWitnessBinary struct {
-	IsDummy                   bool
-	Nullifier                 [32]byte
-	DummyNullifierSeed        [32]byte
-	SpentNoteBlinding         [32]byte
-	SpentNoteAmount           [32]byte
-	StateCommitmentCommitment [32]byte
-	StateCommitmentPosition   uint64
-	StateCommitmentAuthPath   [][3][32]byte
-	SpendAuthRandomizer       [32]byte
-	RKAffine                  PointAffineBinary
-	HistoryRequired           bool
+	IsDummy                     bool
+	Nullifier                   [32]byte
+	DummyNullifierSeed          [32]byte
+	SpentNoteBlinding           [32]byte
+	SpentNoteAmount             [32]byte
+	SpentNoteRecoveryCommitment [32]byte
+	StateCommitmentCommitment   [32]byte
+	StateCommitmentPosition     uint64
+	StateCommitmentAuthPath     [][3][32]byte
+	SpendAuthRandomizer         [32]byte
+	RKAffine                    PointAffineBinary
+	HistoryRequired             bool
 }
 
 type NoteReshapeOutputWitnessBinary struct {
 	NoteCommitment      [32]byte
+	RecoveryCommitment  [32]byte
 	CreatedNoteBlinding [32]byte
 	CreatedNoteAmount   [32]byte
+	RecoveryCapsule     RecoveryCapsuleWitnessBinary
 }
 
 type NoteReshapeSharedNoteContextWitnessBinary struct {
@@ -63,7 +66,9 @@ type NoteReshapeWitnessBinary struct {
 	RoutingNonce             [32]byte
 	SenderCompliancePath     MerklePathBinary
 	SenderCompliancePosition uint64
-	SenderD                  [32]byte
+	SenderCapkAffine         PointAffineBinary
+	SenderRnkDhPkAffine      PointAffineBinary
+	SenderRnkCommitment      [32]byte
 	SenderStatus             [32]byte
 	Shared                   NoteReshapeSharedNoteContextWitnessBinary
 	Spends                   []NoteReshapeSpendWitnessBinary
@@ -180,7 +185,13 @@ func decodeNoteReshapeWitness(payload []byte) (*NoteReshapeWitnessBinary, error)
 	if witness.SenderCompliancePosition, err = readU64(reader); err != nil {
 		return nil, err
 	}
-	if witness.SenderD, err = read32(reader); err != nil {
+	if witness.SenderCapkAffine, err = readPointAffine(reader); err != nil {
+		return nil, err
+	}
+	if witness.SenderRnkDhPkAffine, err = readPointAffine(reader); err != nil {
+		return nil, err
+	}
+	if witness.SenderRnkCommitment, err = read32(reader); err != nil {
 		return nil, err
 	}
 	if witness.SenderStatus, err = read32(reader); err != nil {
@@ -244,6 +255,9 @@ func readNoteReshapeSpend(reader *bytes.Reader, syntheticPrivatePadding bool) (N
 	if out.SpentNoteAmount, err = read32(reader); err != nil {
 		return out, err
 	}
+	if out.SpentNoteRecoveryCommitment, err = read32(reader); err != nil {
+		return out, err
+	}
 	if out.StateCommitmentCommitment, err = read32(reader); err != nil {
 		return out, err
 	}
@@ -271,10 +285,16 @@ func readNoteReshapeOutput(reader *bytes.Reader) (NoteReshapeOutputWitnessBinary
 	if out.NoteCommitment, err = read32(reader); err != nil {
 		return out, err
 	}
+	if out.RecoveryCommitment, err = read32(reader); err != nil {
+		return out, err
+	}
 	if out.CreatedNoteBlinding, err = read32(reader); err != nil {
 		return out, err
 	}
 	if out.CreatedNoteAmount, err = read32(reader); err != nil {
+		return out, err
+	}
+	if out.RecoveryCapsule, err = readRecoveryCapsule(reader); err != nil {
 		return out, err
 	}
 	return out, nil

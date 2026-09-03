@@ -3,7 +3,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::audit_status::{AuditStatus, DecryptedVia, FlowType};
+use crate::audit_status::FlowType;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AuditDetectedRef {
@@ -24,31 +24,6 @@ pub struct AuditDetectedRef {
 pub struct AuditScanExport {
     pub scan_info: serde_json::Value,
     pub detected: Vec<AuditDetectedRef>,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct OrbisAuditEntry {
-    pub height: u64,
-    pub tx_hash: String,
-    pub action_index: u32,
-    #[serde(default)]
-    pub output_index: u32,
-    pub amount: String,
-    pub self_address: String,
-    pub counterparty: String,
-    pub decrypted_via: DecryptedVia,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct AuditImportRow {
-    pub audit_status: AuditStatus,
-    pub is_flagged: bool,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum OrbisImportEligibility {
-    Eligible,
-    Ineligible { reason: String },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -136,28 +111,6 @@ pub fn filter_subject_candidates(
         .collect()
 }
 
-pub fn classify_orbis_import_row(row: Option<AuditImportRow>) -> OrbisImportEligibility {
-    match row {
-        Some(row)
-            if !row.is_flagged
-                && (row.audit_status == AuditStatus::EvidenceValid
-                    || row.audit_status == AuditStatus::DecryptFailed
-                    || row.audit_status == AuditStatus::AuditComplete) =>
-        {
-            OrbisImportEligibility::Eligible
-        }
-        Some(row) => OrbisImportEligibility::Ineligible {
-            reason: format!(
-                "row is not an evidence-valid unflagged detection: {}",
-                row.audit_status
-            ),
-        },
-        None => OrbisImportEligibility::Ineligible {
-            reason: "detected row not found".to_owned(),
-        },
-    }
-}
-
 pub fn detected_ref_from_row_parts(row: DetectedRefRowParts) -> AuditDetectedRef {
     AuditDetectedRef {
         height: row.height,
@@ -178,52 +131,6 @@ fn private_transfer_flow_type() -> FlowType {
 #[cfg(test)]
 mod tests {
     use super::*;
-    fn row(audit_status: AuditStatus, is_flagged: bool) -> AuditImportRow {
-        AuditImportRow {
-            audit_status,
-            is_flagged,
-        }
-    }
-
-    #[test]
-    fn unflagged_valid_orbis_statuses_are_eligible() {
-        for status in [
-            AuditStatus::EvidenceValid,
-            AuditStatus::DecryptFailed,
-            AuditStatus::AuditComplete,
-        ] {
-            assert_eq!(
-                classify_orbis_import_row(Some(row(status, false))),
-                OrbisImportEligibility::Eligible
-            );
-        }
-    }
-
-    #[test]
-    fn flagged_or_invalid_orbis_rows_are_ineligible_with_status_reason() {
-        for (status, is_flagged) in [
-            (AuditStatus::EvidenceValid, true),
-            (AuditStatus::Pending, false),
-            (AuditStatus::EvidenceInvalid, false),
-        ] {
-            assert_eq!(
-                classify_orbis_import_row(Some(row(status, is_flagged))),
-                OrbisImportEligibility::Ineligible {
-                    reason: format!("row is not an evidence-valid unflagged detection: {status}")
-                }
-            );
-        }
-    }
-
-    #[test]
-    fn missing_orbis_row_is_ineligible_with_missing_reason() {
-        assert_eq!(
-            classify_orbis_import_row(None),
-            OrbisImportEligibility::Ineligible {
-                reason: "detected row not found".to_owned()
-            }
-        );
-    }
 
     #[test]
     fn detected_ref_projection_preserves_fields_and_hex_encodes_tx_hash() {
@@ -319,25 +226,5 @@ mod tests {
         assert_eq!(candidates.len(), 2);
         assert_eq!(candidates[0].detected.asset_id, "asset-a");
         assert_eq!(candidates[1].detected.asset_id, "asset-b");
-    }
-
-    #[test]
-    fn orbis_audit_entries_accept_orbis_pre_decryption_label() {
-        for label in ["orbis_pre"] {
-            let entry: OrbisAuditEntry = serde_json::from_value(serde_json::json!({
-                "height": 42,
-                "tx_hash": "abcd",
-                "action_index": 0,
-                "output_index": 0,
-                "amount": "1234",
-                "self_address": "receiver",
-                "counterparty": "sender",
-                "decrypted_via": label,
-            }))
-            .expect("orbis-audit output should parse");
-
-            assert_eq!(entry.decrypted_via, DecryptedVia::OrbisPre);
-            assert_eq!(entry.decrypted_via.as_str(), label);
-        }
     }
 }

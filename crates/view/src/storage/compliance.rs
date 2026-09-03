@@ -26,8 +26,12 @@ pub struct IndexedLeafData {
 #[derive(Debug, Clone)]
 pub struct UserLeafData {
     pub position: u64,
-    pub d: [u8; 32],
+    pub capk: [u8; 32],
+    pub rnk_dh_pk: [u8; 32],
+    pub rnk_commitment: [u8; 32],
     pub status: shieldd_sdk_compliance::UserAssetStatus,
+    pub freeze_generation: u64,
+    pub frozen_since_height: u64,
     pub commitment: StateCommitment,
 }
 
@@ -51,6 +55,13 @@ fn height_to_i64(height: u64) -> anyhow::Result<i64> {
             height
         )
     })
+}
+
+/// Convert a freeze generation to SQLite's signed integer representation.
+#[inline]
+fn freeze_generation_to_i64(generation: u64) -> anyhow::Result<i64> {
+    i64::try_from(generation)
+        .map_err(|_| anyhow::anyhow!("freeze generation {} exceeds i64::MAX", generation))
 }
 
 /// Storage wrapper for compliance tree operations in SQLite.
@@ -494,27 +505,37 @@ impl ComplianceTreeStore<'_, '_> {
         address: &[u8],
         asset_id: &[u8],
         position: u64,
-        d: &[u8],
+        capk: &[u8],
+        rnk_dh_pk: &[u8],
+        rnk_commitment: &[u8],
         status: shieldd_sdk_compliance::UserAssetStatus,
+        freeze_generation: u64,
+        frozen_since_height: u64,
         commitment: StateCommitment,
     ) -> anyhow::Result<()> {
         let position = position_to_i64(position)?;
+        let freeze_generation = freeze_generation_to_i64(freeze_generation)?;
+        let frozen_since_height = height_to_i64(frozen_since_height)?;
         let commitment = <[u8; 32]>::from(commitment).to_vec();
 
         self.0
             .prepare_cached(
                 "INSERT OR REPLACE INTO compliance_user_leaf_data \
-                 (address, asset_id, position, d, status, commitment) \
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                 (address, asset_id, position, capk, rnk_dh_pk, rnk_commitment, status, freeze_generation, frozen_since_height, commitment) \
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
             )
             .context("failed to prepare leaf data insert")?
             .execute((
                 address,
                 asset_id,
                 &position,
-                d,
+                capk,
+                rnk_dh_pk,
+                rnk_commitment,
                 &(shieldd_sdk_proto::core::component::compliance::v1::UserAssetStatus::from(status)
                     as i32),
+                &freeze_generation,
+                &frozen_since_height,
                 &commitment,
             ))
             .context("failed to insert leaf data")?;
@@ -542,7 +563,7 @@ impl ComplianceTreeStore<'_, '_> {
         let mut stmt = self
             .0
             .prepare_cached(
-                "SELECT position, d, status, commitment \
+                "SELECT position, capk, rnk_dh_pk, rnk_commitment, status, freeze_generation, frozen_since_height, commitment \
                  FROM compliance_user_leaf_data \
                  WHERE address = ?1 AND asset_id = ?2",
             )
@@ -551,19 +572,51 @@ impl ComplianceTreeStore<'_, '_> {
         let result = stmt
             .query_row((address, asset_id), |row| {
                 let position: i64 = row.get("position")?;
-                let d: Vec<u8> = row.get("d")?;
+                let capk: Vec<u8> = row.get("capk")?;
+                let rnk_dh_pk: Vec<u8> = row.get("rnk_dh_pk")?;
+                let rnk_commitment: Vec<u8> = row.get("rnk_commitment")?;
                 let status: i32 = row.get("status")?;
+                let freeze_generation: i64 = row.get("freeze_generation")?;
+                let frozen_since_height: i64 = row.get("frozen_since_height")?;
                 let commitment: Vec<u8> = row.get("commitment")?;
-                Ok((position, d, status, commitment))
+                Ok((
+                    position,
+                    capk,
+                    rnk_dh_pk,
+                    rnk_commitment,
+                    status,
+                    freeze_generation,
+                    frozen_since_height,
+                    commitment,
+                ))
             })
             .optional()
             .context("failed to query leaf data")?;
 
         match result {
-            Some((position, d, status, commitment)) => {
-                let d: [u8; 32] = d.try_into().map_err(|v: Vec<u8>| {
-                    anyhow::anyhow!("leaf data d must be 32 bytes, got {}", v.len())
+            Some((
+                position,
+                capk,
+                rnk_dh_pk,
+                rnk_commitment,
+                status,
+                freeze_generation,
+                frozen_since_height,
+                commitment,
+            )) => {
+                let capk: [u8; 32] = capk.try_into().map_err(|v: Vec<u8>| {
+                    anyhow::anyhow!("leaf data capk must be 32 bytes, got {}", v.len())
                 })?;
+                let rnk_dh_pk: [u8; 32] = rnk_dh_pk.try_into().map_err(|v: Vec<u8>| {
+                    anyhow::anyhow!("leaf data rnk_dh_pk must be 32 bytes, got {}", v.len())
+                })?;
+                let rnk_commitment: [u8; 32] =
+                    rnk_commitment.try_into().map_err(|v: Vec<u8>| {
+                        anyhow::anyhow!(
+                            "leaf data rnk commitment must be 32 bytes, got {}",
+                            v.len()
+                        )
+                    })?;
                 let commitment: [u8; 32] = commitment.try_into().map_err(|v: Vec<u8>| {
                     anyhow::anyhow!(
                         "leaf data commitment must be 32 bytes, got {} (database may be corrupted)",
@@ -572,8 +625,14 @@ impl ComplianceTreeStore<'_, '_> {
                 })?;
                 Ok(Some(UserLeafData {
                     position: position as u64,
-                    d,
+                    capk,
+                    rnk_dh_pk,
+                    rnk_commitment,
                     status: status.try_into()?,
+                    freeze_generation: u64::try_from(freeze_generation)
+                        .context("stored freeze generation is negative")?,
+                    frozen_since_height: u64::try_from(frozen_since_height)
+                        .context("stored frozen-since height is negative")?,
                     commitment: StateCommitment::try_from(commitment)?,
                 }))
             }
@@ -746,5 +805,31 @@ mod tests {
         assert_eq!(height, 100);
         assert_eq!(<[u8; 32]>::from(user), [5u8; 32]);
         assert_eq!(<[u8; 32]>::from(asset), [6u8; 32]);
+
+        // Freeze provenance must survive view persistence because it is part
+        // of the authenticated compliance leaf.
+        let leaf_commitment = StateCommitment::try_from([7u8; 32]).unwrap();
+        store
+            .add_leaf_data(
+                &[8u8; 80],
+                &[9u8; 32],
+                3,
+                &[10u8; 32],
+                &[11u8; 32],
+                &[12u8; 32],
+                shieldd_sdk_compliance::UserAssetStatus::Frozen,
+                4,
+                120,
+                leaf_commitment,
+            )
+            .unwrap();
+        let leaf = store
+            .get_leaf_data(&[8u8; 80], &[9u8; 32])
+            .unwrap()
+            .unwrap();
+        assert_eq!(leaf.position, 3);
+        assert_eq!(leaf.freeze_generation, 4);
+        assert_eq!(leaf.frozen_since_height, 120);
+        assert_eq!(leaf.status, shieldd_sdk_compliance::UserAssetStatus::Frozen);
     }
 }

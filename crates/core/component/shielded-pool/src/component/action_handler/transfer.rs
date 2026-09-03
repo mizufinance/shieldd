@@ -64,6 +64,12 @@ pub(crate) fn transfer_extract_public(
         .map(|output| {
             Ok(TransferOutputPublic {
                 note_commitment: output.note_payload.note_commitment,
+                recovery_commitment: output
+                    .note_payload
+                    .recovery_capsule
+                    .as_ref()
+                    .ok_or_else(|| anyhow::anyhow!("missing transfer recovery capsule"))?
+                    .commitment(),
             })
         })
         .collect::<Result<Vec<_>>>()?;

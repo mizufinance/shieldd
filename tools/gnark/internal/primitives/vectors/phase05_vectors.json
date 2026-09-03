@@ -26,6 +26,7 @@
     "tct_domain": "545001158149490383238005163525397553024965043366546261617421270984613353336",
     "sender_leaf_domain": "1081751643577254998887019393585890288513189724944506029425110868561927189081",
     "compliance_leaf_domain": "2077623952384978638715976358160297641612546336065625098468989141555296644026",
+    "compliance_nullifier_derivation_domain": "973664375357753575246807510079082632964660149995182424098383387127084017322",
     "issuer_detection_domain": "1630815545741996755848332658063839972564516410234564928278536917260276888050",
     "imt_leaf_domain": "7414146286439358428123110060125696348906971675449116418017868010797147357618",
     "imt_params_domain": "3064133732739839324562890722780110204743400790580066376892340142513796818031",
@@ -52,9 +53,10 @@
       "202",
       "303",
       "404",
-      "505"
+      "505",
+      "606"
     ],
-    "note_commit_output": "8248509123906425097214784676870186886283159718374078272591680574566545020090",
+    "note_commit_output": "6054561870585823964468131659591353184475540274961954434723792457405607052293",
     "rate_1": {
       "alpha": 17,
       "full_rounds": 8,
@@ -1768,6 +1770,10 @@
       "encoding_hex": "547f129091efe80f94d279f80c2bc7272a06bb0501c59157551151af32428b06"
     }
   ],
+  "orbis_derivation": {
+    "derivation_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f",
+    "scalar": "1193025715605820042638296979565000936182988212520272662409467010519644752199"
+  },
   "note_reshape_statements": [
     {
       "label": "note_reshape8x1",
@@ -1775,6 +1781,7 @@
       "field_roles": [
         "anchor",
         "output_note_commitment_0",
+        "output_recovery_commitment_0",
         "balance_commitment_fq",
         "asset_anchor",
         "compliance_anchor",
@@ -1838,9 +1845,10 @@
         "70029",
         "70030",
         "70031",
-        "70032"
+        "70032",
+        "70033"
       ],
-      "statement_hash": "5555505572986558735724679390899189319329312368332931145153236768511901294109"
+      "statement_hash": "3207821889633475408336896477852386272934972882377095420421648003373186176943"
     },
     {
       "label": "note_reshape1x8",
@@ -1848,13 +1856,21 @@
       "field_roles": [
         "anchor",
         "output_note_commitment_0",
+        "output_recovery_commitment_0",
         "output_note_commitment_1",
+        "output_recovery_commitment_1",
         "output_note_commitment_2",
+        "output_recovery_commitment_2",
         "output_note_commitment_3",
+        "output_recovery_commitment_3",
         "output_note_commitment_4",
+        "output_recovery_commitment_4",
         "output_note_commitment_5",
+        "output_recovery_commitment_5",
         "output_note_commitment_6",
+        "output_recovery_commitment_6",
         "output_note_commitment_7",
+        "output_recovery_commitment_7",
         "balance_commitment_fq",
         "asset_anchor",
         "compliance_anchor",
@@ -1883,9 +1899,17 @@
         "70015",
         "70016",
         "70017",
-        "70018"
+        "70018",
+        "70019",
+        "70020",
+        "70021",
+        "70022",
+        "70023",
+        "70024",
+        "70025",
+        "70026"
       ],
-      "statement_hash": "961585058214610897774366188842601386484237606011516905391561730338732128157"
+      "statement_hash": "558558355262473332012504588805203289774493968086633603788683110622247331147"
     }
   ]
 }

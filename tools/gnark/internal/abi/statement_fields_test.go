@@ -121,7 +121,7 @@ func TestTransferStatementBalanceIsDerivedFromWitnessInputs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reconstruct mutated transfer statement fields: %v", err)
 	}
-	if bytes.Equal(original[3][:], mutated[3][:]) {
+	if bytes.Equal(original[5][:], mutated[5][:]) {
 		t.Fatal("transfer balance statement field did not change with a private input amount")
 	}
 	if err := validateTransferStatementHash(witness); err == nil {

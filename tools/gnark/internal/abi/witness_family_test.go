@@ -18,6 +18,14 @@ type witnessFamily struct {
 func testWitnessFamilies() []witnessFamily {
 	return []witnessFamily{
 		{
+			name:    "note_seizure",
+			payload: func(t *testing.T) []byte { return testfixtures.LoadNoteSeizureWitness() },
+			decode: func(payload []byte) error {
+				_, err := DecodeNoteSeizureWitness(payload)
+				return err
+			},
+		},
+		{
 			name:    "transfer",
 			payload: func(t *testing.T) []byte { return testfixtures.LoadTransferWitness("transfer") },
 			decode: func(payload []byte) error {
@@ -231,7 +239,7 @@ func TestShieldedIcs20WithdrawalRejectsOversizedEffectHashLimb(t *testing.T) {
 func TestShieldedIcs20WithdrawalRejectsNonCanonicalBalanceBlinding(t *testing.T) {
 	payload := testfixtures.LoadShieldedIcs20WithdrawalWitness("shielded_ics20_withdrawal")
 	const volumeAccumulatorBytes = 4*32 + 2 + 4*32 + 8 + (4 + 24*3*32) + 2*32
-	const actionBalanceBlindingOffset = 16 + 6*32 + 4*32 + 32 + 3*32 + volumeAccumulatorBytes
+	const actionBalanceBlindingOffset = 16 + 22*32 + volumeAccumulatorBytes
 	modulus, err := bigIntToLE32(decaf377.ScalarOrder())
 	if err != nil {
 		t.Fatalf("encode Decaf377 scalar modulus: %v", err)
@@ -244,17 +252,14 @@ func TestShieldedIcs20WithdrawalRejectsNonCanonicalBalanceBlinding(t *testing.T)
 
 func TestShieldedIcs20WithdrawalRejectsNonCanonicalBooleanFlags(t *testing.T) {
 	const (
-		headerBytes               = 16
-		topFieldsThroughRecent    = 6*32 + 4*32 + 32 + 3*32
-		statePathBytes            = 4 + 24*3*32
-		volumeAccumulatorBytes    = 4*32 + 2 + 4*32 + 8 + statePathBytes + 2*32
-		merklePathBytes           = 4 + 16*(4+3*32)
-		indexedLeafBytes          = 32 + 8 + 32 + 16 + 5*32
-		isRegulatedOffset         = headerBytes + topFieldsThroughRecent + volumeAccumulatorBytes + 2*32 + merklePathBytes + 8 + indexedLeafBytes
-		slimRequiredSpendBytes    = 3*32 + 8 + statePathBytes + 32 + 64 + 1
-		routingPrivateBytes       = 2 + 8 + 32
-		withdrawalComplianceBytes = 32 + 4 + 4*32 + 6*32 + 32 + 4 + 3*32 + 32
-		optionalIsDummyOffset     = isRegulatedOffset + 1 + routingPrivateBytes + merklePathBytes + 8 + 2*32 + withdrawalComplianceBytes + 2*slimRequiredSpendBytes
+		headerBytes            = 16
+		topFieldsThroughNK     = 24*32 + 4*32 + 2 + 4*32 + 8 + (4 + 24*3*32) + 2*32
+		merklePathBytes        = 4 + 16*(4+3*32)
+		committedLeafBytes     = 32 + 8 + 32 + 16 + 5*32
+		isRegulatedOffset      = headerBytes + topFieldsThroughNK + merklePathBytes + 8 + committedLeafBytes
+		slimRequiredSpendBytes = 4*32 + 8 + 4 + 24*3*32 + 32 + 64 + 1
+		routingPrivateBytes    = 2 + 8 + 32
+		optionalIsDummyOffset  = isRegulatedOffset + 1 + routingPrivateBytes + merklePathBytes + 8 + 8*32 + 2*slimRequiredSpendBytes
 	)
 	for name, offset := range map[string]int{
 		"is_regulated":      isRegulatedOffset,
@@ -307,7 +312,7 @@ func TestNoteReshapeWitnessPaddingABI(t *testing.T) {
 		assetLeafPointBytes   = 2 * 64
 		routingPrivateBytes   = 1 + 2 + 8 + 32
 		sharedContextBytes    = 32 + 64
-		senderComplianceBytes = merklePathBytes + 8 + 2*32
+		senderComplianceBytes = merklePathBytes + 8 + 6*32
 		flagOffset            = headerBytes + topFieldsThroughNK + merklePathBytes + 8 + indexedLeafBytes + assetLeafPointBytes + routingPrivateBytes + senderComplianceBytes + sharedContextBytes
 	)
 	malformed := append([]byte(nil), syntheticPayload...)
