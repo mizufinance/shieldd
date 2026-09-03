@@ -21,8 +21,8 @@ use std::str::FromStr as _;
 use std::time::Instant;
 
 const HOST_ACTION_SOURCE_PREFIX: &str = "application/host_action/source";
-const HOST_DEPOSIT_DOMAIN: &[u8] = b"shieldd.host_deposit.v1";
-const HOST_COMPLIANCE_ACTION_DOMAIN: &[u8] = b"shieldd.host_compliance_action.v1";
+const HOST_DEPOSIT_DOMAIN: &[u8] = b"shieldd.host_deposit";
+const HOST_COMPLIANCE_ACTION_DOMAIN: &[u8] = b"shieldd.host_compliance_action";
 const HOST_PROPOSER_ADDRESS: [u8; 20] = [0u8; 20];
 
 #[derive(Clone, Debug)]

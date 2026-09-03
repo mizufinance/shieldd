@@ -75,6 +75,16 @@ impl ActionPlan {
                             .context(format!("could not get proof for {note_commitment:?}"))
                     })
                     .collect::<Result<Vec<_>>>()?;
+                let mut auth_paths = auth_paths;
+                if let Some(commitment) = transfer_plan.accumulator_prior_commitment() {
+                    auth_paths.push(
+                        witness_data
+                            .state_commitment_proofs
+                            .get(&commitment)
+                            .cloned()
+                            .context(format!("could not get proof for {commitment:?}"))?,
+                    );
+                }
 
                 Action::Transfer(
                     transfer_plan

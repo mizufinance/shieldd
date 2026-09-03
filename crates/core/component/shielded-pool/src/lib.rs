@@ -24,10 +24,16 @@ mod note_payload;
 mod note_reshape_padding;
 pub mod rseed;
 mod shielded_note_plan;
+mod volume_accumulator;
 
 pub use note::{Note, NoteCiphertext, NoteView};
 pub use note_payload::NotePayload;
 pub use rseed::Rseed;
+pub use volume_accumulator::{
+    accumulated_volume, select_accumulator_day, TransferProofContext, VolumeAccumulatorPayload,
+    VolumeAccumulatorPlan, VolumeAccumulatorPrivate, VolumeAccumulatorState, VolumeNullifier,
+    VOLUME_ACCUMULATOR_CIPHERTEXT_BYTES, VOLUME_ACCUMULATOR_RETENTION_SECS,
+};
 
 pub use shielded_note_plan::{ShieldedInputPlan, ShieldedOutputPlan};
 
@@ -69,8 +75,8 @@ pub use transfer::{
     TransferChangeOutputPrivate, TransferInputBody, TransferOptionalSpendPrivate,
     TransferOutputBody, TransferOutputPublic, TransferPlan, TransferProof, TransferProofPrivate,
     TransferProofPublic, TransferReceiverOutputPrivate, TransferSpendPrivate, TransferSpendPublic,
-    TransferView, PADDED_TRANSFER_INPUTS, PADDED_TRANSFER_OUTPUTS, TRANSFER_ARTIFACT_NAME,
-    TRANSFER_PROOF_LABEL, TRANSFER_STATEMENT_FIELD_COUNT,
+    TransferView, TransferVolumeAccumulatorPublic, PADDED_TRANSFER_INPUTS, PADDED_TRANSFER_OUTPUTS,
+    TRANSFER_ARTIFACT_NAME, TRANSFER_PROOF_LABEL, TRANSFER_STATEMENT_FIELD_COUNT,
 };
 
 #[cfg(feature = "benchmark-helpers")]

@@ -1,5 +1,5 @@
 {
-  "schema": "shieldd.gnark.constraint_manifest.v1",
+  "schema": "shieldd.gnark.constraint_manifest",
   "circuit": "note_reshape8x1",
   "shape": {
     "n_in": 8,
@@ -9,7 +9,7 @@
   "nb_public_variables": 2,
   "nb_secret_variables": 802,
   "nb_internal_variables": 133732,
-  "sr1cs_sha256_hex": "b1b03a5238ccb0568dd8e819c9cfdba612b2ec034cee4c721ce974620fdba3d5",
+  "sr1cs_sha256_hex": "440c194e98c8fc0b01fc832ac01f9c6e765f9c058973876c1928fef0187ee395",
   "witness_wires": [
     {
       "wire_id": 1,
@@ -487,7 +487,7 @@
     },
     {
       "wire_id": 80,
-      "path": "Asset_Leaf_Threshold",
+      "path": "Asset_Leaf_DailyVolumeLimit",
       "visibility": "secret",
       "constraint_rows": 2
     },
@@ -11114,7 +11114,7 @@
       "op": "gadget.asset_registry_params_hash",
       "args": [
         "dk_pub_fq=asset.leaf.dk_pub_fq",
-        "threshold=asset.leaf.threshold",
+        "daily_volume_limit=asset.leaf.daily_volume_limit",
         "route_policy_hash=asset.leaf.route_policy_hash",
         "out=asset.leaf.params_hash"
       ],

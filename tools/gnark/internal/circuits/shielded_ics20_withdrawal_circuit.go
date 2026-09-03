@@ -318,7 +318,7 @@ func (c *ShieldedIcs20WithdrawalCircuit) hashShieldedIcs20WithdrawalStatement(
 			len(fields),
 		)
 	}
-	domain := shieldedIcs20WithdrawalStatementHashConstant("v4")
+	domain := shieldedIcs20WithdrawalStatementHashConstant("statement")
 	pad0 := shieldedIcs20WithdrawalStatementHashConstant("pad0")
 	pad1 := shieldedIcs20WithdrawalStatementHashConstant("pad1")
 

@@ -57,19 +57,19 @@ pub mod proof_test_helpers {
         ring_pk: decaf377::Element,
         dk_pub: decaf377::Element,
     ) -> (tct::StateCommitment, IndexedLeaf, MerklePath, u64) {
-        create_imt_membership_proof_with_threshold(asset_id, ring_pk, dk_pub, u128::MAX)
+        create_imt_membership_proof_with_daily_volume_limit(asset_id, ring_pk, dk_pub, u128::MAX)
     }
 
-    pub fn create_imt_membership_proof_with_threshold(
+    pub fn create_imt_membership_proof_with_daily_volume_limit(
         asset_id: Fq,
         ring_pk: decaf377::Element,
         dk_pub: decaf377::Element,
-        threshold: u128,
+        daily_volume_limit: u128,
     ) -> (tct::StateCommitment, IndexedLeaf, MerklePath, u64) {
         let mut tree = IndexedMerkleTree::new();
         let policy = shieldd_sdk_compliance::AssetPolicy::new(
             dk_pub,
-            threshold,
+            daily_volume_limit,
             vec![],
             None,
             "test-ring-id".to_string(),
@@ -97,12 +97,12 @@ pub mod proof_test_helpers {
         low_asset_id: Fq,
         low_ring_pk: decaf377::Element,
         low_dk_pub: decaf377::Element,
-        low_threshold: u128,
+        low_daily_volume_limit: u128,
     ) -> (tct::StateCommitment, IndexedLeaf, MerklePath, u64) {
         let mut tree = IndexedMerkleTree::new();
         let policy = shieldd_sdk_compliance::AssetPolicy::new(
             low_dk_pub,
-            low_threshold,
+            low_daily_volume_limit,
             vec![],
             None,
             "low-ring-id".to_string(),
@@ -218,7 +218,7 @@ pub mod proof_test_helpers {
         let asset_policy = if is_regulated {
             shieldd_sdk_compliance::AssetPolicy::new(
                 dk_pub,
-                asset_indexed_leaf.params.threshold,
+                asset_indexed_leaf.params.daily_volume_limit,
                 vec![],
                 None,
                 "test-ring-id".to_string(),
@@ -435,7 +435,15 @@ pub mod proof_test_helpers {
         send_to_self: bool,
     ) -> (crate::TransferProofPublic, crate::TransferProofPrivate) {
         let base = generate_base_test_data_for_asset(rng, asset_id, 100, is_regulated);
-        build_transfer_hidden_arity_from_base(rng, base, asset_id, is_regulated, send_to_self)
+        build_transfer_hidden_arity_from_base(
+            rng,
+            base,
+            asset_id,
+            is_regulated,
+            send_to_self,
+            false,
+            None,
+        )
     }
 
     pub(crate) fn build_transfer_flagged_hidden_arity_roundtrip_inputs_with_rng(
@@ -443,13 +451,13 @@ pub mod proof_test_helpers {
     ) -> (crate::TransferProofPublic, crate::TransferProofPrivate) {
         let asset_id = shieldd_sdk_asset::asset::Id(Fq::from(1u64));
         let mut base = generate_base_test_data_for_asset(rng, asset_id, 100, true);
-        let threshold = 1u128;
+        let daily_volume_limit = 1u128;
         let (asset_anchor, asset_indexed_leaf, asset_path, asset_position) =
-            create_imt_membership_proof_with_threshold(
+            create_imt_membership_proof_with_daily_volume_limit(
                 asset_id.0,
                 base.ring_pk,
                 base.dk_pub,
-                threshold,
+                daily_volume_limit,
             );
         base.asset_anchor = asset_anchor;
         base.asset_indexed_leaf = asset_indexed_leaf;
@@ -457,7 +465,7 @@ pub mod proof_test_helpers {
         base.asset_position = asset_position;
         base.asset_policy = shieldd_sdk_compliance::AssetPolicy::new(
             base.dk_pub,
-            threshold,
+            daily_volume_limit,
             vec![],
             None,
             "test-ring-id".to_string(),
@@ -466,7 +474,7 @@ pub mod proof_test_helpers {
             "read".to_string(),
             "document".to_string(),
         );
-        build_transfer_hidden_arity_from_base(rng, base, asset_id, true, false)
+        build_transfer_hidden_arity_from_base(rng, base, asset_id, true, false, false, None)
     }
 
     /// Reproduces the orbis live unregulated non-base transfer: identical to
@@ -477,7 +485,7 @@ pub mod proof_test_helpers {
         rng: &mut (impl rand::RngCore + rand_core::CryptoRng),
         asset_id: shieldd_sdk_asset::asset::Id,
         low_asset_id: Fq,
-        low_threshold: u128,
+        low_daily_volume_limit: u128,
         send_to_self: bool,
     ) -> (crate::TransferProofPublic, crate::TransferProofPrivate) {
         let mut base = generate_base_test_data_for_asset(rng, asset_id, 100, false);
@@ -491,13 +499,75 @@ pub mod proof_test_helpers {
                 low_asset_id,
                 low_ring_pk,
                 low_dk_pub,
-                low_threshold,
+                low_daily_volume_limit,
             );
         base.asset_anchor = asset_anchor;
         base.asset_indexed_leaf = asset_indexed_leaf;
         base.asset_path = asset_path;
         base.asset_position = asset_position;
-        build_transfer_hidden_arity_from_base(rng, base, asset_id, false, send_to_self)
+        build_transfer_hidden_arity_from_base(rng, base, asset_id, false, send_to_self, false, None)
+    }
+
+    pub(crate) fn build_transfer_accumulating_hidden_arity_roundtrip_inputs_with_rng(
+        rng: &mut (impl rand::RngCore + rand_core::CryptoRng),
+        daily_volume_limit: u128,
+    ) -> (crate::TransferProofPublic, crate::TransferProofPrivate) {
+        let asset_id = shieldd_sdk_asset::asset::Id(Fq::from(1u64));
+        let mut base = generate_base_test_data_for_asset(rng, asset_id, 100, true);
+        let (asset_anchor, asset_indexed_leaf, asset_path, asset_position) =
+            create_imt_membership_proof_with_daily_volume_limit(
+                asset_id.0,
+                base.ring_pk,
+                base.dk_pub,
+                daily_volume_limit,
+            );
+        base.asset_anchor = asset_anchor;
+        base.asset_indexed_leaf = asset_indexed_leaf;
+        base.asset_path = asset_path;
+        base.asset_position = asset_position;
+        base.asset_policy = shieldd_sdk_compliance::AssetPolicy::new(
+            base.dk_pub,
+            daily_volume_limit,
+            vec![],
+            None,
+            "test-ring-id".to_string(),
+            base.ring_pk,
+            "test-policy-id".to_string(),
+            "read".to_string(),
+            "document".to_string(),
+        );
+        build_transfer_hidden_arity_from_base(rng, base, asset_id, true, false, true, None)
+    }
+
+    pub(crate) fn build_transfer_continuing_accumulator_roundtrip_inputs_with_rng(
+        rng: &mut (impl rand::RngCore + rand_core::CryptoRng),
+    ) -> (crate::TransferProofPublic, crate::TransferProofPrivate) {
+        let asset_id = shieldd_sdk_asset::asset::Id(Fq::from(1u64));
+        let daily_volume_limit = 125u128;
+        let mut base = generate_base_test_data_for_asset(rng, asset_id, 100, true);
+        let (asset_anchor, asset_indexed_leaf, asset_path, asset_position) =
+            create_imt_membership_proof_with_daily_volume_limit(
+                asset_id.0,
+                base.ring_pk,
+                base.dk_pub,
+                daily_volume_limit,
+            );
+        base.asset_anchor = asset_anchor;
+        base.asset_indexed_leaf = asset_indexed_leaf;
+        base.asset_path = asset_path;
+        base.asset_position = asset_position;
+        base.asset_policy = shieldd_sdk_compliance::AssetPolicy::new(
+            base.dk_pub,
+            daily_volume_limit,
+            vec![],
+            None,
+            "test-ring-id".to_string(),
+            base.ring_pk,
+            "test-policy-id".to_string(),
+            "read".to_string(),
+            "document".to_string(),
+        );
+        build_transfer_hidden_arity_from_base(rng, base, asset_id, true, false, true, Some(25))
     }
 
     fn build_transfer_hidden_arity_from_base(
@@ -506,6 +576,8 @@ pub mod proof_test_helpers {
         asset_id: shieldd_sdk_asset::asset::Id,
         is_regulated: bool,
         send_to_self: bool,
+        accumulate_volume: bool,
+        continuation_prior_volume: Option<u128>,
     ) -> (crate::TransferProofPublic, crate::TransferProofPrivate) {
         use crate::{ShieldedInputPlan, ShieldedOutputPlan, TransferPlan};
         use shieldd_sdk_asset::Value;
@@ -534,12 +606,30 @@ pub mod proof_test_helpers {
         )
         .expect("create hidden-arity transfer test note");
 
+        let day_start = crate::select_accumulator_day(base.target_timestamp);
+        let accumulator_subject = crate::VolumeAccumulatorState::subject(&base.address, asset_id);
+        let accumulator_prior_state =
+            continuation_prior_volume.map(|undisclosed_volume| crate::VolumeAccumulatorState {
+                subject: accumulator_subject,
+                day_start,
+                undisclosed_volume,
+                blinding: Fq::rand(&mut *rng),
+            });
+
         let mut sct = tct::Tree::new();
         sct.insert(tct::Witness::Keep, note.commit())
             .expect("insert hidden-arity transfer input note");
+        if let Some(prior) = &accumulator_prior_state {
+            sct.insert(tct::Witness::Keep, prior.commitment())
+                .expect("insert prior volume accumulator state");
+        }
         let state_commitment_proof = sct
             .witness(note.commit())
             .expect("witness hidden-arity transfer input note");
+        let accumulator_prior_proof = accumulator_prior_state.as_ref().map(|prior| {
+            sct.witness(prior.commitment())
+                .expect("witness prior volume accumulator state")
+        });
         let anchor = sct.root();
 
         let tx_blinding_nonce = Fr::rand(rng);
@@ -626,11 +716,44 @@ pub mod proof_test_helpers {
             .set_compliance_details(&recipient_leaf, tx_blinding_nonce)
             .expect("set hidden-arity transfer output compliance details");
 
-        let transfer = TransferPlan::new(vec![spend], vec![output], Fr::rand(rng))
+        let mut transfer = TransferPlan::new(vec![spend], vec![output], Fr::rand(rng))
             .expect("build hidden-arity transfer plan");
 
+        if accumulate_volume {
+            let prior_volume = accumulator_prior_state
+                .as_ref()
+                .map(|state| state.undisclosed_volume)
+                .unwrap_or(0);
+            let successor_blinding = Fq::rand(rng);
+            let accumulator = match accumulator_prior_state {
+                Some(prior) => crate::VolumeAccumulatorPlan::continuation(
+                    prior.clone(),
+                    prior.commitment(),
+                    accumulator_prior_proof
+                        .as_ref()
+                        .map(|proof| u64::from(proof.position()))
+                        .expect("continuation has a prior proof"),
+                    prior_volume + 100,
+                    successor_blinding,
+                )
+                .expect("valid continuation accumulator plan"),
+                None => crate::VolumeAccumulatorPlan::origin(crate::VolumeAccumulatorState {
+                    subject: accumulator_subject,
+                    day_start,
+                    undisclosed_volume: prior_volume + 100,
+                    blinding: successor_blinding,
+                }),
+            };
+            transfer.set_volume_accumulator(accumulator);
+        }
+
+        let mut state_commitment_proofs = vec![state_commitment_proof];
+        if let Some(proof) = accumulator_prior_proof {
+            state_commitment_proofs.push(proof);
+        }
+
         transfer
-            .transfer_public_private(&base.fvk, &[state_commitment_proof], anchor, 0)
+            .transfer_public_private(&base.fvk, &state_commitment_proofs, anchor, 0)
             .expect("derive hidden-arity transfer public/private inputs")
     }
 

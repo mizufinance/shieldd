@@ -20,7 +20,7 @@ use sha2::{Digest, Sha512};
 
 use crate::issuer_keys::{detection_flag_from_fq, DETECTION_TIER_BYTES};
 /// Domain separator for SHA-512 derivation — matches Orbis `DERIVATION_DOMAIN` exactly.
-const DERIVATION_DOMAIN: &[u8; 23] = b"elgamal-derivation-v1\0\0";
+const DERIVATION_DOMAIN: &[u8] = b"elgamal-derivation\0\0";
 
 /// Canonical ordinary-Orbis derivation path for one full Shieldd address.
 pub fn compliance_derivation(address: &Address) -> Vec<u8> {
@@ -66,14 +66,14 @@ fn derive_unregulated_sink_point(domain_sep: &[u8]) -> Element {
 /// This preserves a uniform transfer ciphertext shape without requiring a
 /// real issuer detection key for unregulated assets.
 pub static UNREGULATED_SINK_DK_PUB: Lazy<Element> =
-    Lazy::new(|| derive_unregulated_sink_point(b"shieldd.compliance.unregulated.dk-pub.v1"));
+    Lazy::new(|| derive_unregulated_sink_point(b"shieldd.compliance.unregulated.dk-pub"));
 
 /// Trapdoorless ring/ACK sink for unregulated assets.
 ///
 /// This preserves uniform ACK-derived encryption routing without reusing the
 /// detection sink point or requiring any Orbis-managed ring for unregulated assets.
 pub static UNREGULATED_SINK_RING_PK: Lazy<Element> =
-    Lazy::new(|| derive_unregulated_sink_point(b"shieldd.compliance.unregulated.ring-pk.v1"));
+    Lazy::new(|| derive_unregulated_sink_point(b"shieldd.compliance.unregulated.ring-pk"));
 
 /// Domain separator for issuer detection tier encryption.
 pub static ISSUER_DETECTION_DOMAIN: Lazy<Fq> = Lazy::new(|| {
@@ -237,8 +237,8 @@ mod tests {
 
     #[test]
     fn test_unregulated_sink_keys_are_hash_to_curve_points() {
-        let dk_hash = blake2b_simd::blake2b(b"shieldd.compliance.unregulated.dk-pub.v1");
-        let ring_hash = blake2b_simd::blake2b(b"shieldd.compliance.unregulated.ring-pk.v1");
+        let dk_hash = blake2b_simd::blake2b(b"shieldd.compliance.unregulated.dk-pub");
+        let ring_hash = blake2b_simd::blake2b(b"shieldd.compliance.unregulated.ring-pk");
         let dk_scalar = Fr::from_le_bytes_mod_order(dk_hash.as_bytes());
         let ring_scalar = Fr::from_le_bytes_mod_order(ring_hash.as_bytes());
 

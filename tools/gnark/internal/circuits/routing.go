@@ -20,10 +20,10 @@ func routingDomain(label string) *big.Int {
 }
 
 var (
-	routeDomain       = routingDomain("shieldd.discovery.route.v2")
-	tagRandomDomain   = routingDomain("shieldd.discovery.tag_random.v2")
-	permutationDomain = routingDomain("shieldd.discovery.permutation.v2")
-	parametersDomain  = routingDomain("shieldd.discovery.parameters.v2")
+	routeDomain       = routingDomain("shieldd.discovery.route")
+	tagRandomDomain   = routingDomain("shieldd.discovery.tag_random")
+	permutationDomain = routingDomain("shieldd.discovery.permutation")
+	parametersDomain  = routingDomain("shieldd.discovery.parameters")
 )
 
 func routingPrecisionBits(
@@ -140,7 +140,7 @@ func verifyRoutingAssetRegistry(
 	trace(
 		"gadget.asset_registry_params_hash",
 		"dk_pub_fq=asset.leaf.dk_pub_fq",
-		"threshold=asset.leaf.threshold",
+		"daily_volume_limit=asset.leaf.daily_volume_limit",
 		"route_policy_hash=asset.leaf.route_policy_hash",
 		"out=asset.leaf.params_hash",
 	)
@@ -149,7 +149,7 @@ func verifyRoutingAssetRegistry(
 		MustBigInt(vectors.Poseidon377.IMTParamsDomain),
 		[3]frontend.Variable{
 			dkPubFq,
-			asset.Leaf.Threshold,
+			asset.Leaf.DailyVolumeLimit,
 			asset.Leaf.RoutePolicyHash,
 		},
 	)

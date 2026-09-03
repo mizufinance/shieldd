@@ -4,9 +4,9 @@ use crate::{
     gnark::{
         binary::{encode_triple_path_32, put_bytes, put_u32, put_u64, put_u8, BinaryCursor},
         shielded_ics20_withdrawal_witness::{
-            ShieldedIcs20WithdrawalAssetLeafWitnessV12, ShieldedIcs20WithdrawalChangeWitnessV12,
-            ShieldedIcs20WithdrawalOptionalSpendWitnessV12,
-            ShieldedIcs20WithdrawalRequiredSpendWitnessV12, ShieldedIcs20WithdrawalWitnessV12,
+            ShieldedIcs20WithdrawalAssetLeafWitness, ShieldedIcs20WithdrawalChangeWitness,
+            ShieldedIcs20WithdrawalOptionalSpendWitness,
+            ShieldedIcs20WithdrawalRequiredSpendWitness, ShieldedIcs20WithdrawalWitness,
         },
         typed::{encode_merkle_path, encode_point_affine},
     },
@@ -14,13 +14,11 @@ use crate::{
 };
 
 const SHIELDED_ICS20_WITHDRAWAL_WITNESS_MAGIC: &[u8; 4] = b"PIWG";
-const SHIELDED_ICS20_WITHDRAWAL_WITNESS_VERSION: u32 = 12;
 
-impl ShieldedIcs20WithdrawalWitnessV12 {
+impl ShieldedIcs20WithdrawalWitness {
     pub fn encode(&self) -> Result<Vec<u8>> {
         let mut buf = Vec::new();
         put_bytes(&mut buf, SHIELDED_ICS20_WITHDRAWAL_WITNESS_MAGIC);
-        put_u32(&mut buf, SHIELDED_ICS20_WITHDRAWAL_WITNESS_VERSION);
         put_u32(&mut buf, 0);
         put_u32(&mut buf, self.family_id.get());
         put_u32(&mut buf, self.n_in);
@@ -59,7 +57,7 @@ impl ShieldedIcs20WithdrawalWitnessV12 {
 
         let total_len = u32::try_from(buf.len())
             .context("encoded shielded ICS-20 withdrawal witness exceeds u32")?;
-        buf[8..12].copy_from_slice(&total_len.to_le_bytes());
+        buf[4..8].copy_from_slice(&total_len.to_le_bytes());
         Ok(buf)
     }
 
@@ -67,10 +65,6 @@ impl ShieldedIcs20WithdrawalWitnessV12 {
         let mut cursor = BinaryCursor::new(bytes);
         if cursor.read_fixed::<4>()? != *SHIELDED_ICS20_WITHDRAWAL_WITNESS_MAGIC {
             bail!("invalid shielded ICS-20 withdrawal witness magic");
-        }
-        let version = cursor.read_u32()?;
-        if version != SHIELDED_ICS20_WITHDRAWAL_WITNESS_VERSION {
-            bail!("unsupported shielded ICS-20 withdrawal witness version {version}");
         }
         let total_length = cursor.read_u32()?;
         if total_length as usize != bytes.len() {
@@ -138,7 +132,7 @@ impl ShieldedIcs20WithdrawalWitnessV12 {
     }
 }
 
-fn encode_asset_leaf(buf: &mut Vec<u8>, leaf: &ShieldedIcs20WithdrawalAssetLeafWitnessV12) {
+fn encode_asset_leaf(buf: &mut Vec<u8>, leaf: &ShieldedIcs20WithdrawalAssetLeafWitness) {
     put_bytes(buf, &leaf.value);
     put_u64(buf, leaf.next_index);
     put_bytes(buf, &leaf.next_value);
@@ -148,8 +142,8 @@ fn encode_asset_leaf(buf: &mut Vec<u8>, leaf: &ShieldedIcs20WithdrawalAssetLeafW
 
 fn decode_asset_leaf(
     cursor: &mut BinaryCursor<'_>,
-) -> Result<ShieldedIcs20WithdrawalAssetLeafWitnessV12> {
-    Ok(ShieldedIcs20WithdrawalAssetLeafWitnessV12 {
+) -> Result<ShieldedIcs20WithdrawalAssetLeafWitness> {
+    Ok(ShieldedIcs20WithdrawalAssetLeafWitness {
         value: cursor.read_fixed::<32>()?,
         next_index: cursor.read_u64()?,
         next_value: cursor.read_fixed::<32>()?,
@@ -160,7 +154,7 @@ fn decode_asset_leaf(
 
 fn encode_required_spend(
     buf: &mut Vec<u8>,
-    spend: &ShieldedIcs20WithdrawalRequiredSpendWitnessV12,
+    spend: &ShieldedIcs20WithdrawalRequiredSpendWitness,
 ) -> Result<()> {
     put_bytes(buf, &spend.nullifier);
     put_bytes(buf, &spend.spent_note_blinding);
@@ -175,8 +169,8 @@ fn encode_required_spend(
 
 fn decode_required_spend(
     cursor: &mut BinaryCursor<'_>,
-) -> Result<ShieldedIcs20WithdrawalRequiredSpendWitnessV12> {
-    Ok(ShieldedIcs20WithdrawalRequiredSpendWitnessV12 {
+) -> Result<ShieldedIcs20WithdrawalRequiredSpendWitness> {
+    Ok(ShieldedIcs20WithdrawalRequiredSpendWitness {
         nullifier: cursor.read_fixed::<32>()?,
         spent_note_blinding: cursor.read_fixed::<32>()?,
         spent_note_amount: cursor.read_fixed::<32>()?,
@@ -190,7 +184,7 @@ fn decode_required_spend(
 
 fn encode_optional_spend(
     buf: &mut Vec<u8>,
-    spend: &ShieldedIcs20WithdrawalOptionalSpendWitnessV12,
+    spend: &ShieldedIcs20WithdrawalOptionalSpendWitness,
 ) -> Result<()> {
     encode_required_spend(buf, &spend.spend)?;
     put_u8(buf, u8::from(spend.is_dummy));
@@ -200,15 +194,15 @@ fn encode_optional_spend(
 
 fn decode_optional_spend(
     cursor: &mut BinaryCursor<'_>,
-) -> Result<ShieldedIcs20WithdrawalOptionalSpendWitnessV12> {
-    Ok(ShieldedIcs20WithdrawalOptionalSpendWitnessV12 {
+) -> Result<ShieldedIcs20WithdrawalOptionalSpendWitness> {
+    Ok(ShieldedIcs20WithdrawalOptionalSpendWitness {
         spend: decode_required_spend(cursor)?,
         is_dummy: cursor.read_bool()?,
         dummy_nullifier_seed: cursor.read_fixed::<32>()?,
     })
 }
 
-fn encode_change_output(buf: &mut Vec<u8>, output: &ShieldedIcs20WithdrawalChangeWitnessV12) {
+fn encode_change_output(buf: &mut Vec<u8>, output: &ShieldedIcs20WithdrawalChangeWitness) {
     put_bytes(buf, &output.note_commitment);
     put_bytes(buf, &output.created_note_blinding);
     put_bytes(buf, &output.created_note_amount);
@@ -216,8 +210,8 @@ fn encode_change_output(buf: &mut Vec<u8>, output: &ShieldedIcs20WithdrawalChang
 
 fn decode_change_output(
     cursor: &mut BinaryCursor<'_>,
-) -> Result<ShieldedIcs20WithdrawalChangeWitnessV12> {
-    Ok(ShieldedIcs20WithdrawalChangeWitnessV12 {
+) -> Result<ShieldedIcs20WithdrawalChangeWitness> {
+    Ok(ShieldedIcs20WithdrawalChangeWitness {
         note_commitment: cursor.read_fixed::<32>()?,
         created_note_blinding: cursor.read_fixed::<32>()?,
         created_note_amount: cursor.read_fixed::<32>()?,

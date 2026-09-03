@@ -493,7 +493,7 @@ impl ShieldedIcs20WithdrawalPlan {
             anchor,
             recent_position_floor,
         )?;
-        crate::gnark::encode_shielded_ics20_withdrawal_witness_v12(&public, &private)
+        crate::gnark::encode_shielded_ics20_withdrawal_witness(&public, &private)
             .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))
     }
 

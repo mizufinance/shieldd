@@ -24,7 +24,7 @@ FAMILIES = (
     "transfer",
 )
 POINTER_VERSION = "https://git-lfs.github.com/spec/v1"
-CACHE_IDENTITY_SCHEMA = "shieldd.proof-artifact-cache.v2"
+CACHE_IDENTITY_SCHEMA = "shieldd.proof-artifact-cache"
 BUNDLE_BYTE_BUDGETS = {
     "runtime": 110_000_000,
     "constraints": 560_000_000,
@@ -108,7 +108,7 @@ def artifact_files(bundle: str | Bundle = Bundle.FULL) -> list[ArtifactFile]:
     for family in FAMILIES:
         directory = ARTIFACT_ROOT / family
         metadata = json.loads((directory / "circuit_metadata.json").read_text())
-        if metadata.get("schema") != "shieldd.gnark.circuit_metadata.v2":
+        if metadata.get("schema") != "shieldd.gnark.circuit_metadata":
             raise ArtifactError(f"unsupported circuit metadata for {family}")
         if metadata.get("circuit") != family:
             raise ArtifactError(f"circuit metadata identity mismatch for {family}")

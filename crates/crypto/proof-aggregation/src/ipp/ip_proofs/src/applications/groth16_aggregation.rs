@@ -4908,7 +4908,7 @@ pub struct AggregateProofData<
 
 /// Aggregate-proof wire tree with a caller-selected target-group encoding.
 ///
-/// This is the v1 tree shape; selecting another `GT` changes only the target
+/// This is the aggregate tree shape; selecting another `GT` changes only the target
 /// values stored at its leaves. Protocol-specific codecs must still validate
 /// the reconstructed target-group values before verification.
 #[doc(hidden)]
@@ -5083,7 +5083,7 @@ where
     }
 }
 
-/// Internal post-decode representation of a v1 aggregate proof.
+/// Internal post-decode representation of an aggregate proof.
 ///
 /// Construction is restricted to `validate_aggregate_proof`, which projects
 /// every wire-level identity commitment to its required singleton scalar.
@@ -6018,7 +6018,7 @@ where
 
     let randomizer_message = validated_aggregate_randomizer_message(proof)?;
     // Construct the complete adapter input through the shared root used
-    // by the shipping-to-v1 refinement.
+    // by the shipping refinement.
     let input = shipping_aggregate_adapter_core_input_validated::<P, D>(
         pvk,
         public_inputs,

@@ -33,7 +33,9 @@ use shieldd_sdk_proto::{
     DomainType, Message,
 };
 use shieldd_sdk_sct::{nullifier_generation::NullifierWindow, CommitmentSource, Nullifier};
-use shieldd_sdk_shielded_pool::{discovery, note, Note, Rseed};
+use shieldd_sdk_shielded_pool::{
+    discovery, note, Note, Rseed, VolumeAccumulatorPayload, VolumeAccumulatorState,
+};
 use shieldd_sdk_tct::{self as tct, builder::epoch::Root};
 use shieldd_sdk_transaction::Transaction;
 use tct::StateCommitment;
@@ -53,6 +55,20 @@ pub struct BalanceEntry {
     pub id: Id,
     pub amount: u128,
     pub address_index: AddressIndex,
+}
+
+#[derive(Debug, Clone)]
+pub struct ConfirmedVolumeAccumulator {
+    pub state: VolumeAccumulatorState,
+    pub commitment: StateCommitment,
+    pub position: tct::Position,
+}
+
+#[derive(Debug, Clone)]
+pub enum VolumeAccumulatorRecovery {
+    Absent,
+    Complete(ConfirmedVolumeAccumulator),
+    Incomplete,
 }
 
 #[derive(Debug, Clone)]
@@ -174,6 +190,7 @@ mod compliance_projection_tests {
             app_parameters_updated: false,
             gas_prices: None,
             nullifier_window: None,
+            volume_accumulators: Vec::new(),
         };
         let mut sct = tct::Tree::new();
         let channel = tonic::transport::Endpoint::from_static("http://127.0.0.1:1").connect_lazy();
@@ -323,6 +340,109 @@ mod issued_address_tests {
     }
 }
 
+#[cfg(test)]
+mod volume_accumulator_tests {
+    use super::*;
+    use camino::Utf8Path;
+    use shieldd_sdk_app::params::AppParameters;
+    use shieldd_sdk_keys::test_keys;
+
+    fn state() -> VolumeAccumulatorState {
+        VolumeAccumulatorState {
+            subject: VolumeAccumulatorState::subject(
+                &test_keys::ADDRESS_0,
+                asset::Id(Fq::from(91u64)),
+            ),
+            day_start: 86_400,
+            undisclosed_volume: 50,
+            blinding: Fq::from(7u64),
+        }
+    }
+
+    fn payload(state: &VolumeAccumulatorState) -> VolumeAccumulatorPayload {
+        let commitment = state.commitment();
+        VolumeAccumulatorPayload::encrypt(
+            state,
+            true,
+            state.origin_nullifier(test_keys::FULL_VIEWING_KEY.nullifier_key()),
+            commitment,
+            test_keys::FULL_VIEWING_KEY.outgoing(),
+        )
+    }
+
+    #[tokio::test]
+    async fn reservation_is_exclusive_until_release_or_strict_expiry() {
+        let storage = Storage::initialize(
+            None::<&Utf8Path>,
+            (*test_keys::FULL_VIEWING_KEY).clone(),
+            AppParameters::default(),
+        )
+        .await
+        .unwrap();
+        let state = state();
+        let payload = payload(&state);
+
+        storage
+            .reserve_volume_accumulator(state.clone(), payload.clone(), 120, 100)
+            .await
+            .unwrap();
+        assert!(storage
+            .reserve_volume_accumulator(state.clone(), payload.clone(), 140, 120)
+            .await
+            .is_err());
+        storage
+            .reserve_volume_accumulator(state.clone(), payload.clone(), 140, 121)
+            .await
+            .unwrap();
+        storage
+            .release_volume_reservation(payload.scoped_nullifier())
+            .await
+            .unwrap();
+        storage
+            .reserve_volume_accumulator(state, payload, 160, 140)
+            .await
+            .unwrap();
+    }
+
+    #[tokio::test]
+    async fn incomplete_recovery_heads_are_explicit() {
+        let storage = Storage::initialize(
+            None::<&Utf8Path>,
+            (*test_keys::FULL_VIEWING_KEY).clone(),
+            AppParameters::default(),
+        )
+        .await
+        .unwrap();
+        let state = state();
+        storage
+            .pool
+            .get()
+            .unwrap()
+            .execute(
+                "INSERT INTO volume_accumulators
+                 (subject, day_start, volume, blinding, commitment, position, recovery_status)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, 1)",
+                (
+                    state.subject.to_bytes().to_vec(),
+                    state.day_start as i64,
+                    state.undisclosed_volume.to_le_bytes().to_vec(),
+                    state.blinding.to_bytes().to_vec(),
+                    state.commitment().0.to_bytes().to_vec(),
+                    7i64,
+                ),
+            )
+            .unwrap();
+
+        assert!(matches!(
+            storage
+                .volume_accumulator_recovery(state.subject, state.day_start)
+                .await
+                .unwrap(),
+            VolumeAccumulatorRecovery::Incomplete
+        ));
+    }
+}
+
 /// The hash of the schema for the database.
 static SCHEMA_HASH: Lazy<String> =
     Lazy::new(|| hex::encode(Sha256::digest(include_str!("storage/schema.sql"))));
@@ -345,6 +465,150 @@ pub struct Storage {
 }
 
 impl Storage {
+    pub async fn volume_accumulator_recovery(
+        &self,
+        subject: Fq,
+        day_start: u64,
+    ) -> anyhow::Result<VolumeAccumulatorRecovery> {
+        let pool = self.pool.clone();
+        spawn_blocking(move || {
+            let connection = pool.get()?;
+            let row = connection
+                .query_row(
+                    "SELECT volume, blinding, commitment, position, recovery_status
+                     FROM volume_accumulators
+                     WHERE subject = ?1 AND day_start = ?2",
+                    (subject.to_bytes().to_vec(), day_start as i64),
+                    |row| {
+                        Ok((
+                            row.get::<_, Option<Vec<u8>>>(0)?,
+                            row.get::<_, Option<Vec<u8>>>(1)?,
+                            row.get::<_, Option<Vec<u8>>>(2)?,
+                            row.get::<_, Option<i64>>(3)?,
+                            row.get::<_, i64>(4)?,
+                        ))
+                    },
+                )
+                .optional()?;
+            let Some((volume, blinding, commitment, position, recovery_status)) = row else {
+                return Ok(VolumeAccumulatorRecovery::Absent);
+            };
+            if recovery_status != 0 {
+                return Ok(VolumeAccumulatorRecovery::Incomplete);
+            }
+            let volume: [u8; 16] = volume
+                .ok_or_else(|| anyhow!("complete volume accumulator is missing its amount"))?
+                .try_into()
+                .map_err(|_| anyhow!("stored volume accumulator amount is malformed"))?;
+            let blinding = Fq::from_bytes_checked(
+                &blinding
+                    .ok_or_else(|| anyhow!("complete volume accumulator is missing its blinding"))?
+                    .try_into()
+                    .map_err(|_| anyhow!("stored volume accumulator blinding is malformed"))?,
+            )
+            .map_err(|_| anyhow!("stored volume accumulator blinding is noncanonical"))?;
+            let commitment = commitment
+                .ok_or_else(|| anyhow!("complete volume accumulator is missing its commitment"))?;
+            let commitment = StateCommitment::try_from(commitment.as_slice())?;
+            let position: u64 = position
+                .ok_or_else(|| anyhow!("complete volume accumulator is missing its position"))?
+                .try_into()
+                .map_err(|_| anyhow!("stored volume accumulator position is negative"))?;
+            Ok(VolumeAccumulatorRecovery::Complete(
+                ConfirmedVolumeAccumulator {
+                    state: VolumeAccumulatorState {
+                        subject,
+                        day_start,
+                        undisclosed_volume: u128::from_le_bytes(volume),
+                        blinding,
+                    },
+                    commitment,
+                    position: tct::Position::from(position),
+                },
+            ))
+        })
+        .await?
+    }
+
+    pub async fn reserve_volume_accumulator(
+        &self,
+        state: VolumeAccumulatorState,
+        payload: VolumeAccumulatorPayload,
+        expires_at: u64,
+        chain_time: u64,
+    ) -> anyhow::Result<()> {
+        let pool = self.pool.clone();
+        spawn_blocking(move || {
+            let mut connection = pool.get()?;
+            let transaction = connection.transaction()?;
+            transaction.execute(
+                "UPDATE volume_accumulators SET
+                   pending_nullifier = NULL,
+                   pending_expires_at = NULL
+                 WHERE subject = ?1 AND day_start = ?2
+                   AND pending_expires_at < ?3",
+                (
+                    state.subject.to_bytes().to_vec(),
+                    state.day_start as i64,
+                    chain_time as i64,
+                ),
+            )?;
+            let busy: bool = transaction.query_row(
+                "SELECT EXISTS(
+                   SELECT 1 FROM volume_accumulators
+                   WHERE subject = ?1 AND day_start = ?2 AND pending_nullifier IS NOT NULL
+                 )",
+                (
+                    state.subject.to_bytes().to_vec(),
+                    state.day_start as i64,
+                ),
+                |row| row.get(0),
+            )?;
+            anyhow::ensure!(
+                !busy,
+                "daily volume accumulator head is reserved by an in-flight transfer; request issuer disclosure or wait"
+            );
+            transaction.execute(
+                "INSERT INTO volume_accumulators
+                   (subject, day_start, pending_nullifier, pending_expires_at, recovery_status)
+                 VALUES (?1, ?2, ?3, ?4, 0)
+                 ON CONFLICT(subject, day_start) DO UPDATE SET
+                   pending_nullifier = excluded.pending_nullifier,
+                   pending_expires_at = excluded.pending_expires_at",
+                (
+                    state.subject.to_bytes().to_vec(),
+                    state.day_start as i64,
+                    payload.nullifier.to_bytes().to_vec(),
+                    expires_at as i64,
+                ),
+            )?;
+            transaction.commit()?;
+            anyhow::Ok(())
+        })
+        .await?
+    }
+
+    pub async fn release_volume_reservation(
+        &self,
+        scoped: shieldd_sdk_shielded_pool::VolumeNullifier,
+    ) -> anyhow::Result<()> {
+        let pool = self.pool.clone();
+        spawn_blocking(move || {
+            pool.get()?.execute(
+                "UPDATE volume_accumulators SET
+                   pending_nullifier = NULL,
+                   pending_expires_at = NULL
+                 WHERE day_start = ?1 AND pending_nullifier = ?2",
+                (
+                    scoped.day_start as i64,
+                    scoped.nullifier.to_bytes().to_vec(),
+                ),
+            )?;
+            anyhow::Ok(())
+        })
+        .await?
+    }
+
     fn put_historical_proof_cache_inner(
         connection: &rusqlite::Connection,
         cache: &HistoricalProofCache,
@@ -1792,6 +2056,76 @@ impl Storage {
                 };
             }
 
+            for recovered in &filtered_block.volume_accumulators {
+                let subject = recovered.state.subject.to_bytes().to_vec();
+                let day_start = recovered.state.day_start as i64;
+                let volume = recovered.state.undisclosed_volume.to_le_bytes().to_vec();
+                let blinding = recovered.state.blinding.to_bytes().to_vec();
+                let commitment = recovered.payload.commitment.0.to_bytes().to_vec();
+                let position = u64::from(recovered.position) as i64;
+                let prior: Option<(Vec<u8>, i64, i64)> = dbtx
+                    .query_row(
+                        "SELECT commitment, position, recovery_status
+                         FROM volume_accumulators
+                         WHERE subject = ?1 AND day_start = ?2 AND commitment IS NOT NULL",
+                        (&subject, day_start),
+                        |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+                    )
+                    .optional()?;
+                let (expected_nullifier, prior_is_complete) = match &prior {
+                    Some((commitment, position, recovery_status)) => {
+                        let commitment = StateCommitment::try_from(commitment.as_slice())?;
+                        let position: u64 = (*position)
+                            .try_into()
+                            .context("stored volume accumulator position is negative")?;
+                        (
+                            Nullifier::derive(
+                                fvk.nullifier_key(),
+                                tct::Position::from(position),
+                                &commitment,
+                            ),
+                            *recovery_status == 0,
+                        )
+                    }
+                    None => (
+                        recovered.state.origin_nullifier(fvk.nullifier_key()),
+                        true,
+                    ),
+                };
+                let recovery_status = i64::from(
+                    !prior_is_complete || expected_nullifier != recovered.payload.nullifier,
+                );
+                if let Some((prior_commitment, _, _)) = &prior {
+                    let prior_commitment = StateCommitment::try_from(prior_commitment.as_slice())?;
+                    anyhow::ensure!(
+                        new_sct.forget(prior_commitment),
+                        "stored volume accumulator commitment is not retained in the wallet SCT"
+                    );
+                }
+                dbtx.execute(
+                    "INSERT INTO volume_accumulators
+                     (subject, day_start, volume, blinding, commitment, position, recovery_status)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+                     ON CONFLICT(subject, day_start) DO UPDATE SET
+                       volume = excluded.volume,
+                       blinding = excluded.blinding,
+                       commitment = excluded.commitment,
+                       position = excluded.position,
+                       pending_nullifier = NULL,
+                       pending_expires_at = NULL,
+                       recovery_status = excluded.recovery_status",
+                    (
+                        &subject,
+                        day_start,
+                        &volume,
+                        &blinding,
+                        &commitment,
+                        position,
+                        recovery_status,
+                    ),
+                )?;
+            }
+
             // Update SCT table with current SCT state
             new_sct.to_writer(&mut TreeStore(&mut dbtx))?;
 
@@ -2157,7 +2491,7 @@ impl Storage {
         .await?
     }
 
-    /// Get an asset policy (threshold and DK_pub) if one exists.
+    /// Get an asset policy (daily_volume_limit and DK_pub) if one exists.
     pub async fn get_asset_policy(
         &self,
         asset_id: &asset::Id,

@@ -1,23 +1,21 @@
 {
-  "schema": "shieldd.gnark.setup_provenance.v2",
+  "schema": "shieldd.gnark.setup_provenance",
   "curve": "bls12-377",
   "circuit": "shielded_ics20_withdrawal",
   "mode": "fresh_setup",
-  "sr1cs_sha256_hex": "493abc8d370004015b028b881b5728b2d3bdb55cec932849c50e907191812725",
-  "proving_key_sha256_hex": "b80fa91410a116c52fd127ca0e9c541b71c5487dfef55726f09670b8cb8131ba",
-  "verifying_key_binary_sha256_hex": "e43d0025eb4761f37bdbf6bd2a65481a26ced0914c1ba1e4869f50b7915619f2",
-  "verifying_key_json_sha256_hex": "f3324150824b54331dca5656656e9c7ca4589955432423be1f01af742ed344f4",
+  "sr1cs_sha256_hex": "58aafb48f9080278c9778131a51104b5af1176189701d4fa68aab0cf8d71d30c",
+  "proving_key_sha256_hex": "0ba02b8fb7477e46f02ab74a477def3bde8a42ef76486ce811be21af3687bd19",
+  "verifying_key_binary_sha256_hex": "66180290c4d53ba440daccea423cee744fc4c895d9609601ff51053b9bcedb38",
+  "verifying_key_json_sha256_hex": "56e0a0aeff5b258ee8429bd4a89bd380b02fe36d7b2b02ddf86cc3d7dcc19a53",
   "generation_self_tests": [
     {
       "proof_case": "regulated_optional_real",
-      "witness_format_version": 12,
-      "witness_sha256_hex": "cd897ba47a2148c4a9f1bd9678b09619fcd716ec3b7a1cc5fb3b33223c517dfb",
+      "witness_sha256_hex": "fde6ae35940915675cc35c65b3198275b24c7f47ec54525e1dfb2f014bef88fb",
       "proved_and_verified_in_process": true
     },
     {
       "proof_case": "unregulated_optional_dummy",
-      "witness_format_version": 12,
-      "witness_sha256_hex": "7e73a47914e576ae12dbb4b80a4fd37134f1a68c6f8163e5073757c0227c0965",
+      "witness_sha256_hex": "808201a6e811dc71a077a172a7e39398a6fdf40d147b64a22311890a22281255",
       "proved_and_verified_in_process": true
     }
   ],

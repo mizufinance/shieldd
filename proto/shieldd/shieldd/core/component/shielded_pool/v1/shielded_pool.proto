@@ -154,6 +154,40 @@ message TransferBody {
   TransferRouting routing = 7;
   // Poseidon identifier of the privately selected protocol parameter set.
   bytes routing_parameter_set_id = 8;
+  // Fixed-shape daily undisclosed-volume accumulator payload.
+  VolumeAccumulatorPayload volume_accumulator = 9;
+  // Public circuit context preventing fee funding from advancing an accumulator.
+  TransferProofContext proof_context = 10;
+}
+
+enum TransferProofContext {
+  TRANSFER_PROOF_CONTEXT_UNSPECIFIED = 0;
+  TRANSFER_PROOF_CONTEXT_ORDINARY = 1;
+  TRANSFER_PROOF_CONTEXT_FEE_FUNDING = 2;
+}
+
+// Public transition material for one daily undisclosed-volume accumulator slot.
+message VolumeAccumulatorPayload {
+  sct.v1.Nullifier nullifier = 1;
+  crypto.tct.v1.StateCommitment commitment = 2;
+  // OVK-encrypted fixed-width accumulator state (92-byte plaintext plus AEAD tag).
+  bytes encrypted_state = 3;
+  // UTC day start in Unix seconds. Used only to scope temporary nullifier storage.
+  uint64 day_start = 4;
+}
+
+// Private planning state for the fixed accumulator slot.
+message VolumeAccumulatorPlan {
+  bool use_real = 1;
+  bool starts_new_day = 2;
+  uint64 day_start = 3;
+  bytes subject = 4;
+  bytes prior_volume = 5;
+  bytes prior_blinding = 6;
+  crypto.tct.v1.StateCommitment prior_commitment = 7;
+  uint64 prior_position = 8;
+  bytes successor_volume = 9;
+  bytes successor_blinding = 10;
 }
 
 message TransferView {
@@ -185,6 +219,10 @@ message TransferPlan {
   repeated ShieldedOutputPlan outputs = 5;
   // Protocol routing parameter set used to construct and prove the action.
   DiscoveryParameters routing_parameters = 6;
+  // Daily undisclosed-volume transition or a private padding transition.
+  VolumeAccumulatorPlan volume_accumulator = 7;
+  // Ordinary for user actions; fee funding is assigned only by the fee builder.
+  TransferProofContext proof_context = 8;
 }
 
 // Releases shielded value for transfer or execution on the host chain.

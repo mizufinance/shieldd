@@ -97,7 +97,7 @@ pub mod refs;
 pub use refs::{ActionRef, BlockRef, OutputRef, TxRef};
 
 pub mod evidence;
-pub use evidence::{ComplianceEvidenceObject, EvidenceObjectType, COMPLIANCE_EVIDENCE_VERSION};
+pub use evidence::{ComplianceEvidenceObject, EvidenceObjectType};
 
 pub mod audit_validation;
 pub use audit_validation::{validate_audit_evidence, AuditValidationInput, AuditValidationStatus};
@@ -143,9 +143,9 @@ pub use ibc::IbcComplianceMetadata;
 pub mod decode_object;
 pub use decode_object::{TransferComplianceMetadata, TRANSFER_COMPLIANCE_METADATA_BYTES};
 
-#[cfg(feature = "poc-orbis-v0")]
+#[cfg(feature = "poc-orbis")]
 pub mod poc_orbis_audit;
-#[cfg(feature = "poc-orbis-v0")]
+#[cfg(feature = "poc-orbis")]
 pub use poc_orbis_audit::{
     build_poc_orbis_audit_package, decrypt_reencrypted_seed, parse_element,
     validate_decrypted_seed, PocOrbisAccess, PocOrbisAuditBundle, PocOrbisAuditPackage,

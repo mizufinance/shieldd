@@ -13,7 +13,7 @@ pub struct IndexedLeafData {
     pub next_index: u64,
     pub next_value: [u8; 32],
     pub dk_pub: [u8; 32],
-    pub threshold: u128,
+    pub daily_volume_limit: u128,
     pub route_policy_hash: [u8; 32],
     pub ring_pk: [u8; 32],
     pub ring_id_hash: [u8; 32],
@@ -172,7 +172,7 @@ impl ComplianceTreeStore<'_, '_> {
         let mut stmt = self
             .0
             .prepare_cached(
-                "SELECT value, next_index, next_value, dk_pub, threshold, \
+                "SELECT value, next_index, next_value, dk_pub, daily_volume_limit, \
                  route_policy_hash, ring_pk, ring_id_hash, policy_id_hash, permission_hash, resource_hash \
                  FROM compliance_asset_leaves WHERE position = ?1",
             )
@@ -185,7 +185,7 @@ impl ComplianceTreeStore<'_, '_> {
                     row.get::<_, i64>("next_index")?,
                     row.get::<_, Vec<u8>>("next_value")?,
                     row.get::<_, Vec<u8>>("dk_pub")?,
-                    row.get::<_, Vec<u8>>("threshold")?,
+                    row.get::<_, Vec<u8>>("daily_volume_limit")?,
                     row.get::<_, Vec<u8>>("route_policy_hash")?,
                     row.get::<_, Vec<u8>>("ring_pk")?,
                     row.get::<_, Vec<u8>>("ring_id_hash")?,
@@ -203,7 +203,7 @@ impl ComplianceTreeStore<'_, '_> {
                 next_index,
                 next_value,
                 dk_pub,
-                threshold,
+                daily_volume_limit,
                 route_policy_hash,
                 ring_pk,
                 ring_id_hash,
@@ -237,20 +237,21 @@ impl ComplianceTreeStore<'_, '_> {
                         position
                     )
                 })?;
-                let threshold: [u8; 16] = threshold.try_into().map_err(|v: Vec<u8>| {
-                    anyhow::anyhow!(
-                        "asset leaf threshold must be 16 bytes, got {} at position {}",
-                        v.len(),
-                        position
-                    )
-                })?;
-                let threshold = u128::from_le_bytes(threshold);
+                let daily_volume_limit: [u8; 16] =
+                    daily_volume_limit.try_into().map_err(|v: Vec<u8>| {
+                        anyhow::anyhow!(
+                            "asset leaf daily_volume_limit must be 16 bytes, got {} at position {}",
+                            v.len(),
+                            position
+                        )
+                    })?;
+                let daily_volume_limit = u128::from_le_bytes(daily_volume_limit);
                 Ok(Some(IndexedLeafData {
                     value,
                     next_index,
                     next_value,
                     dk_pub,
-                    threshold,
+                    daily_volume_limit,
                     route_policy_hash,
                     ring_pk,
                     ring_id_hash,
@@ -275,14 +276,14 @@ impl ComplianceTreeStore<'_, '_> {
                 leaf.next_index
             )
         })?;
-        // Store threshold as BLOB (16 bytes little-endian u128)
-        let threshold_bytes = leaf.threshold.to_le_bytes().to_vec();
+        // Store daily_volume_limit as BLOB (16 bytes little-endian u128)
+        let daily_volume_limit_bytes = leaf.daily_volume_limit.to_le_bytes().to_vec();
 
         // Use INSERT OR REPLACE to update existing leaves (critical for low leaf updates)
         self.0
             .prepare_cached(
                 "INSERT OR REPLACE INTO compliance_asset_leaves \
-                 (position, value, next_index, next_value, dk_pub, threshold, \
+                 (position, value, next_index, next_value, dk_pub, daily_volume_limit, \
                   route_policy_hash, ring_pk, ring_id_hash, policy_id_hash, permission_hash, resource_hash) \
                  VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
             )
@@ -293,7 +294,7 @@ impl ComplianceTreeStore<'_, '_> {
                 &next_index,
                 &leaf.next_value.to_vec(),
                 &leaf.dk_pub.to_vec(),
-                &threshold_bytes,
+                &daily_volume_limit_bytes,
                 &leaf.route_policy_hash.to_vec(),
                 &leaf.ring_pk.to_vec(),
                 &leaf.ring_id_hash.to_vec(),
@@ -707,7 +708,7 @@ mod tests {
             next_index: 1,
             next_value: [4u8; 32],
             dk_pub: [7u8; 32],
-            threshold: 1000,
+            daily_volume_limit: 1000,
             route_policy_hash: [10u8; 32],
             ring_pk: [11u8; 32],
             ring_id_hash: [12u8; 32],
@@ -721,7 +722,7 @@ mod tests {
         assert_eq!(retrieved.next_index, 1);
         assert_eq!(retrieved.next_value, [4u8; 32]);
         assert_eq!(retrieved.dk_pub, [7u8; 32]);
-        assert_eq!(retrieved.threshold, 1000);
+        assert_eq!(retrieved.daily_volume_limit, 1000);
         assert_eq!(retrieved.route_policy_hash, [10u8; 32]);
         assert_eq!(retrieved.ring_pk, [11u8; 32]);
         assert_eq!(retrieved.ring_id_hash, [12u8; 32]);

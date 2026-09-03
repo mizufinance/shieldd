@@ -55,16 +55,6 @@ func DeriveTransferSalt(
 	)
 }
 
-func ThresholdFlag(
-	api frontend.API,
-	isRegulated frontend.Variable,
-	amount frontend.Variable,
-	threshold frontend.Variable,
-) frontend.Variable {
-	thresholdReached := api.Sub(1, fieldLessThan(api, amount, threshold))
-	return api.Mul(isRegulated, thresholdReached)
-}
-
 func VerifyPoseidonEncryptionTransferDetection(
 	api frontend.API,
 	isFlagged frontend.Variable,

@@ -7,6 +7,7 @@ use std::{
 use anyhow::{anyhow, Context};
 use async_stream::try_stream;
 use camino::Utf8Path;
+use decaf377::Fq;
 use futures::stream::{StreamExt, TryStreamExt};
 use rand::Rng;
 use rand_core::OsRng;
@@ -227,6 +228,133 @@ pub struct ViewServer {
 }
 
 impl ViewServer {
+    async fn release_volume_reservations(
+        &self,
+        reservations: &[shieldd_sdk_shielded_pool::VolumeNullifier],
+    ) {
+        for reservation in reservations {
+            if let Err(error) = self.storage.release_volume_reservation(*reservation).await {
+                tracing::warn!(?error, "failed to release volume accumulator reservation");
+            }
+        }
+    }
+
+    async fn enrich_volume_accumulator(
+        &self,
+        plan: &mut TransactionPlan,
+        disclose_to_issuer: bool,
+        chain_timestamp: u64,
+    ) -> anyhow::Result<()> {
+        let fvk = self.storage.full_viewing_key().await?;
+        for action in &mut plan.actions {
+            let ActionPlan::Transfer(transfer) = action else {
+                continue;
+            };
+            let (
+                target_timestamp,
+                is_regulated,
+                sender_address,
+                asset_id,
+                receiver_address,
+                receiver_amount,
+                daily_volume_limit,
+            ) = {
+                let spend = transfer
+                    .spends
+                    .first()
+                    .ok_or_else(|| anyhow!("transfer accumulator requires a sender spend"))?;
+                let output = transfer
+                    .outputs
+                    .first()
+                    .ok_or_else(|| anyhow!("transfer accumulator requires a receiver output"))?;
+                let daily_volume_limit = spend
+                    .asset_policy
+                    .as_ref()
+                    .map(|policy| policy.params.daily_volume_limit);
+                (
+                    spend.target_timestamp,
+                    spend.is_regulated,
+                    spend.note.address(),
+                    spend.note.asset_id(),
+                    output.dest_address.clone(),
+                    output.value.amount.value(),
+                    daily_volume_limit,
+                )
+            };
+            let day_start = shieldd_sdk_shielded_pool::select_accumulator_day(target_timestamp);
+            transfer.set_volume_accumulator(
+                shieldd_sdk_shielded_pool::VolumeAccumulatorPlan::padding(target_timestamp),
+            );
+
+            let is_external = receiver_address != sender_address;
+            if disclose_to_issuer || !is_regulated || !is_external {
+                continue;
+            }
+            let subject = shieldd_sdk_shielded_pool::VolumeAccumulatorState::subject(
+                &sender_address,
+                asset_id,
+            );
+            let recovery = self
+                .storage
+                .volume_accumulator_recovery(subject, day_start)
+                .await?;
+            let daily_volume_limit = daily_volume_limit
+                .ok_or_else(|| anyhow!("regulated transfer is missing its asset policy"))?;
+            let successor_blinding = Fq::from_le_bytes_mod_order(&OsRng.gen::<[u8; 32]>());
+            let accumulator = match recovery {
+                crate::storage::VolumeAccumulatorRecovery::Absent => {
+                    let Some(successor_volume) = shieldd_sdk_shielded_pool::accumulated_volume(
+                        0,
+                        receiver_amount,
+                        daily_volume_limit,
+                    ) else {
+                        continue;
+                    };
+                    shieldd_sdk_shielded_pool::VolumeAccumulatorPlan::origin(
+                        shieldd_sdk_shielded_pool::VolumeAccumulatorState {
+                            subject,
+                            day_start,
+                            undisclosed_volume: successor_volume,
+                            blinding: successor_blinding,
+                        },
+                    )
+                }
+                crate::storage::VolumeAccumulatorRecovery::Complete(confirmed) => {
+                    let Some(successor_volume) = shieldd_sdk_shielded_pool::accumulated_volume(
+                        confirmed.state.undisclosed_volume,
+                        receiver_amount,
+                        daily_volume_limit,
+                    ) else {
+                        continue;
+                    };
+                    shieldd_sdk_shielded_pool::VolumeAccumulatorPlan::continuation(
+                        confirmed.state,
+                        confirmed.commitment,
+                        u64::from(confirmed.position),
+                        successor_volume,
+                        successor_blinding,
+                    )?
+                }
+                crate::storage::VolumeAccumulatorRecovery::Incomplete => continue,
+            };
+            transfer.set_volume_accumulator(accumulator);
+            let payload = transfer.volume_accumulator_payload(&fvk);
+            let successor_state = transfer
+                .volume_accumulator
+                .successor_state()
+                .expect("real accumulator plan has a successor state");
+            self.storage
+                .reserve_volume_accumulator(
+                    successor_state,
+                    payload,
+                    target_timestamp.saturating_add(1_800),
+                    chain_timestamp,
+                )
+                .await?;
+        }
+        Ok(())
+    }
+
     fn address_purpose(purpose: Option<pb::AddressPurpose>) -> Result<AddressPurpose, Status> {
         match purpose.and_then(|purpose| purpose.regulated_asset_id) {
             Some(asset_id) => Ok(AddressPurpose::Regulated {
@@ -408,6 +536,18 @@ impl ViewServer {
         let self2 = self.clone();
         try_stream! {
                 let transaction_id = transaction.id();
+                let volume_reservations = transaction
+                    .actions()
+                    .filter_map(|action| match action {
+                        shieldd_sdk_transaction::Action::Transfer(transfer)
+                            if transfer.body.proof_context
+                                == shieldd_sdk_shielded_pool::TransferProofContext::Ordinary =>
+                        {
+                            Some(transfer.body.volume_accumulator.scoped_nullifier())
+                        }
+                        _ => None,
+                    })
+                    .collect::<Vec<_>>();
                 let spent_nullifier = if await_detection {
                     transaction.spent_nullifiers().next()
                 } else {
@@ -417,14 +557,15 @@ impl ViewServer {
                 // 1. Broadcast the transaction to the network.
                 // Note that "synchronous" here means "wait for the tx to be accepted by
                 // the fullnode", not "wait for the tx to be included on chain.
-                let mut fullnode_client = self2.tendermint_proxy_client().await
-                            .map_err(|e| {
-                                tonic::Status::unavailable(format!(
-                                    "couldn't connect to fullnode: {:#?}",
-                                    e
-                                ))
-                            })?
-                        ;
+                let mut fullnode_client = match self2.tendermint_proxy_client().await {
+                    Ok(client) => client,
+                    Err(error) => {
+                        self2.release_volume_reservations(&volume_reservations).await;
+                        Err(tonic::Status::unavailable(format!(
+                            "couldn't connect to fullnode: {error:#?}"
+                        )))?
+                    }
+                };
                 let node_rsp = fullnode_client
                     .broadcast_tx_sync(BroadcastTxSyncRequest {
                         params: transaction.encode_to_vec(),
@@ -441,17 +582,17 @@ impl ViewServer {
                     Ok(node_rsp) => {
                         let node_rsp = node_rsp.into_inner();
                         tracing::info!(?node_rsp);
-                        match node_rsp.code {
-                            0 => Ok(()),
-                            _ => Err(tonic::Status::new(
+                        if node_rsp.code != 0 {
+                            self2.release_volume_reservations(&volume_reservations).await;
+                            Err(tonic::Status::new(
                                 tonic::Code::Internal,
                                 format!(
                                     "Error submitting transaction: code {}, log: {}",
                                     node_rsp.code,
                                     node_rsp.log,
                                 ),
-                            )),
-                        }?;
+                            ))?;
+                        }
                         None
                     }
                     Err(broadcast_error) if broadcast_outcome_is_unknown(&broadcast_error) => {
@@ -512,12 +653,11 @@ impl ViewServer {
                             .map(Some)?,
                         }
                     }
-                    Err(broadcast_error) => resolve_broadcast_detection(
-                        broadcast_error,
-                        transaction_id,
-                        None,
-                    )
-                    .map(Some)?,
+                    Err(broadcast_error) => {
+                        self2.release_volume_reservations(&volume_reservations).await;
+                        resolve_broadcast_detection(broadcast_error, transaction_id, None)
+                            .map(Some)?
+                    }
                 };
 
                 // The transaction was submitted so we provide a status update
@@ -572,7 +712,7 @@ impl ViewServer {
     /// Return the latest block height known by the fullnode or its peers, as
     /// well as whether the fullnode is caught up with that height.
     #[instrument(skip(self))]
-    pub async fn latest_known_block_height(&self) -> anyhow::Result<(u64, bool)> {
+    async fn latest_known_block(&self) -> anyhow::Result<(u64, bool, u64)> {
         let mut client = self.tendermint_proxy_client().await?;
 
         let GetStatusResponse { sync_info, .. } = client
@@ -584,6 +724,7 @@ impl ViewServer {
 
         let SyncInfo {
             latest_block_height,
+            latest_block_time,
             catching_up,
             ..
         } = sync_info
@@ -594,6 +735,11 @@ impl ViewServer {
         // to determine the height to attempt syncing to, a validator reporting a non-consensus height
         // can cause a DoS to clients attempting to sync if `max_peer_block_height` is used.
         let latest_known_block_height = latest_block_height;
+        let latest_block_timestamp: u64 = latest_block_time
+            .ok_or_else(|| anyhow::anyhow!("node status is missing latest block time"))?
+            .seconds
+            .try_into()
+            .map_err(|_| anyhow::anyhow!("latest block time is before Unix epoch"))?;
 
         tracing::debug!(
             ?latest_block_height,
@@ -602,15 +748,24 @@ impl ViewServer {
             "found latest known block height"
         );
 
-        Ok((latest_known_block_height, catching_up))
+        Ok((
+            latest_known_block_height,
+            catching_up,
+            latest_block_timestamp,
+        ))
+    }
+
+    pub async fn latest_known_block_height(&self) -> anyhow::Result<(u64, bool)> {
+        let (height, catching_up, _) = self.latest_known_block().await?;
+        Ok((height, catching_up))
     }
 
     #[instrument(skip(self))]
     pub async fn status(&self) -> anyhow::Result<StatusResponse> {
         let full_sync_height = self.storage.last_sync_height().await?.unwrap_or(0);
 
-        let (latest_known_block_height, node_catching_up) =
-            self.latest_known_block_height().await?;
+        let (latest_known_block_height, node_catching_up, latest_block_timestamp) =
+            self.latest_known_block().await?;
 
         let height_diff = latest_known_block_height
             .checked_sub(full_sync_height)
@@ -631,6 +786,7 @@ impl ViewServer {
             full_sync_height,
             catching_up,
             partial_sync_height: full_sync_height, // Set these as the same for backwards compatibility following adding the partial_sync_height
+            latest_block_timestamp,
         })
     }
 }
@@ -686,6 +842,10 @@ impl ViewService for ViewServer {
         request: tonic::Request<pb::TransactionPlannerRequest>,
     ) -> Result<tonic::Response<pb::TransactionPlannerResponse>, tonic::Status> {
         let prq = request.into_inner();
+        let disclose_to_issuer = prq.disclose_to_issuer;
+        let (_, _, chain_timestamp) = self.latest_known_block().await.map_err(|e| {
+            tonic::Status::unavailable(format!("could not read consensus time: {e:#}"))
+        })?;
 
         let gas_prices =
             self.storage.gas_prices().await.map_err(|e| {
@@ -736,7 +896,8 @@ impl ViewService for ViewServer {
             let mut note_manager = NoteManager::new(OsRng);
             note_manager
                 .set_gas_prices(gas_prices)
-                .expiry_height(prq.expiry_height);
+                .expiry_height(prq.expiry_height)
+                .target_timestamp(chain_timestamp);
             if let Some(memo) = prq.memo {
                 note_manager.memo(memo.text);
                 if let Some(return_address) = memo.return_address {
@@ -755,7 +916,7 @@ impl ViewService for ViewServer {
                 .context("could not plan wallet-facing shielded transfer")
                 .map_err(|e| tonic::Status::invalid_argument(format!("{e:#}")))?;
 
-            let transaction_plan = match planning_result {
+            let mut transaction_plan = match planning_result {
                 TransferPlanningResult::Ready { transaction_plan } => transaction_plan,
                 TransferPlanningResult::NeedsMaintenance { .. } => {
                     return Err(tonic::Status::invalid_argument(
@@ -771,6 +932,14 @@ impl ViewService for ViewServer {
                     return Err(tonic::Status::invalid_argument(reason));
                 }
             };
+            self.enrich_volume_accumulator(
+                &mut transaction_plan,
+                disclose_to_issuer,
+                chain_timestamp,
+            )
+            .await
+            .context("could not reserve daily volume accumulator")
+            .map_err(|e| tonic::Status::failed_precondition(format!("{e:#}")))?;
 
             return Ok(tonic::Response::new(TransactionPlannerResponse {
                 plan: Some(transaction_plan.into()),
@@ -807,7 +976,8 @@ impl ViewService for ViewServer {
             let mut note_manager = NoteManager::new(OsRng);
             note_manager
                 .set_gas_prices(gas_prices)
-                .expiry_height(prq.expiry_height);
+                .expiry_height(prq.expiry_height)
+                .target_timestamp(chain_timestamp);
 
             let mut client_of_self = ViewServiceClient::new(ViewServiceServer::new(self.clone()));
             let planning_result = note_manager
@@ -868,7 +1038,8 @@ impl ViewService for ViewServer {
             let mut note_manager = NoteManager::new(OsRng);
             note_manager
                 .set_gas_prices(gas_prices)
-                .expiry_height(prq.expiry_height);
+                .expiry_height(prq.expiry_height)
+                .target_timestamp(chain_timestamp);
 
             let mut client_of_self = ViewServiceClient::new(ViewServiceServer::new(self.clone()));
             let planning_result = note_manager
@@ -903,7 +1074,8 @@ impl ViewService for ViewServer {
             let mut note_manager = NoteManager::new(OsRng);
             note_manager
                 .set_gas_prices(gas_prices)
-                .expiry_height(prq.expiry_height);
+                .expiry_height(prq.expiry_height)
+                .target_timestamp(chain_timestamp);
             if let Some(memo) = prq.memo {
                 note_manager.memo(memo.text);
                 if let Some(return_address) = memo.return_address {
@@ -1727,10 +1899,15 @@ impl ViewService for ViewServer {
             }
         }
 
-        let requested_note_commitments: Vec<StateCommitment> = all_spend_notes()
+        let mut requested_note_commitments: Vec<StateCommitment> = all_spend_notes()
             .filter(|spend| spend.note.amount() != zero_amount)
             .map(|spend| spend.note.commit().into())
             .collect();
+        requested_note_commitments.extend(
+            tx_plan
+                .transfer_plans()
+                .filter_map(|transfer| transfer.accumulator_prior_commitment()),
+        );
 
         tracing::debug!(?requested_note_commitments);
 
@@ -2052,10 +2229,10 @@ impl ViewService for ViewServer {
             .map_err(|e| tonic::Status::internal(format!("failed to get asset policy: {e}")))?;
         let is_regulated = policy.is_some();
 
-        let (dk_pub, threshold, has_policy) = match &policy {
+        let (dk_pub, daily_volume_limit, has_policy) = match &policy {
             Some(p) => (
                 p.params.dk_pub.vartime_compress().0.to_vec(),
-                p.params.threshold.to_le_bytes().to_vec(),
+                p.params.daily_volume_limit.to_le_bytes().to_vec(),
                 true,
             ),
             None => (vec![], vec![], false),
@@ -2074,7 +2251,7 @@ impl ViewService for ViewServer {
             is_registered: true,
             is_regulated,
             dk_pub,
-            threshold,
+            daily_volume_limit,
             asset_policy: policy.map(Into::into),
         }))
     }
@@ -2422,7 +2599,7 @@ impl ViewService for ViewServer {
                 is_regulated,
                 leaf_value = ?indexed_leaf.value.to_bytes(),
                 leaf_next_index = indexed_leaf.next_index,
-                leaf_threshold = indexed_leaf.params.threshold,
+                leaf_daily_volume_limit = indexed_leaf.params.daily_volume_limit,
                 leaf_dk_pub_first_byte = indexed_leaf.params.dk_pub.vartime_compress().0[0],
                 leaf_commitment = ?leaf_commitment.0.to_bytes(),
                 "compliance_batch_merkle_proofs: asset proof data"

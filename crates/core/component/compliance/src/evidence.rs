@@ -8,8 +8,6 @@ use crate::{
     TxRef, TRANSFER_COMPLIANCE_METADATA_BYTES, TRANSFER_WIRE_BYTES,
 };
 
-pub const COMPLIANCE_EVIDENCE_VERSION: u32 = 4;
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum EvidenceObjectType {
     Transfer = 1,
@@ -31,7 +29,6 @@ impl EvidenceObjectType {
 /// committed by the transfer proof.
 #[derive(Clone, Debug)]
 pub struct ComplianceEvidenceObject {
-    pub version: u32,
     pub object_type: EvidenceObjectType,
     pub output_ref: OutputRef,
     pub asset_id: asset::Id,
@@ -53,7 +50,6 @@ impl ComplianceEvidenceObject {
     ) -> Result<Self> {
         metadata.validate()?;
         let mut evidence = Self {
-            version: COMPLIANCE_EVIDENCE_VERSION,
             object_type: EvidenceObjectType::Transfer,
             output_ref,
             asset_id,
@@ -72,11 +68,6 @@ impl ComplianceEvidenceObject {
     }
 
     pub fn validate_payload_hash(&self) -> Result<()> {
-        ensure!(
-            self.version == COMPLIANCE_EVIDENCE_VERSION,
-            "unsupported evidence version {}",
-            self.version
-        );
         ensure!(
             self.object_type == EvidenceObjectType::Transfer,
             "unsupported evidence object type"
@@ -97,7 +88,6 @@ impl ComplianceEvidenceObject {
 
     pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
         let mut reader = EvidenceReader::new(bytes);
-        let version = reader.read_u32()?;
         let object_type = EvidenceObjectType::from_byte(reader.read_u8()?)?;
         let height = reader.read_u64()?;
         let block_hash = reader.read_array::<32>()?;
@@ -127,7 +117,6 @@ impl ComplianceEvidenceObject {
         reader.finish()?;
 
         let evidence = Self {
-            version,
             object_type,
             output_ref: OutputRef {
                 action: ActionRef {
@@ -162,7 +151,6 @@ impl ComplianceEvidenceObject {
 
     fn payload_bytes_without_hash(&self) -> Vec<u8> {
         let mut out = Vec::new();
-        out.extend_from_slice(&self.version.to_le_bytes());
         out.push(self.object_type as u8);
         let tx_ref = &self.output_ref.action.tx;
         out.extend_from_slice(&tx_ref.block.height.to_le_bytes());
@@ -352,22 +340,11 @@ pub(crate) mod tests {
         assert!(ComplianceEvidenceObject::from_bytes(&trailing).is_err());
 
         let mut flagged = evidence.to_bytes();
-        const BLOCK_TIME_TAG_OFFSET: usize = 4 + 1 + 8 + 32 + 32;
+        const BLOCK_TIME_TAG_OFFSET: usize = 1 + 8 + 32 + 32;
         const FLAGGED_OFFSET_WITH_BLOCK_TIME: usize =
             BLOCK_TIME_TAG_OFFSET + 1 + 8 + 4 + 32 + 4 + 4 + 32;
         flagged[FLAGGED_OFFSET_WITH_BLOCK_TIME] = 2;
         assert!(ComplianceEvidenceObject::from_bytes(&flagged).is_err());
-    }
-
-    #[test]
-    fn evidence_rejects_unsupported_version_with_valid_payload_hash() {
-        let (mut evidence, _) = valid_evidence_fixture();
-        evidence.version = COMPLIANCE_EVIDENCE_VERSION - 1;
-        evidence.payload_hash = evidence.compute_payload_hash();
-
-        let error = ComplianceEvidenceObject::from_bytes(&evidence.to_bytes())
-            .expect_err("unsupported evidence versions must fail closed");
-        assert!(error.to_string().contains("unsupported evidence version"));
     }
 
     #[test]

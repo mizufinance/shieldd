@@ -382,6 +382,12 @@ pub struct TransferBody {
     /// Poseidon identifier of the privately selected protocol parameter set.
     #[prost(bytes = "vec", tag = "8")]
     pub routing_parameter_set_id: ::prost::alloc::vec::Vec<u8>,
+    /// Fixed-shape daily undisclosed-volume accumulator payload.
+    #[prost(message, optional, tag = "9")]
+    pub volume_accumulator: ::core::option::Option<VolumeAccumulatorPayload>,
+    /// Public circuit context preventing fee funding from advancing an accumulator.
+    #[prost(enumeration = "TransferProofContext", tag = "10")]
+    pub proof_context: i32,
 }
 impl ::prost::Name for TransferBody {
     const NAME: &'static str = "TransferBody";
@@ -391,6 +397,68 @@ impl ::prost::Name for TransferBody {
     }
     fn type_url() -> ::prost::alloc::string::String {
         "/shieldd.core.component.shielded_pool.v1.TransferBody".into()
+    }
+}
+/// Public transition material for one daily undisclosed-volume accumulator slot.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct VolumeAccumulatorPayload {
+    #[prost(message, optional, tag = "1")]
+    pub nullifier: ::core::option::Option<super::super::sct::v1::Nullifier>,
+    #[prost(message, optional, tag = "2")]
+    pub commitment: ::core::option::Option<
+        super::super::super::super::crypto::tct::v1::StateCommitment,
+    >,
+    /// OVK-encrypted fixed-width accumulator state (92-byte plaintext plus AEAD tag).
+    #[prost(bytes = "vec", tag = "3")]
+    pub encrypted_state: ::prost::alloc::vec::Vec<u8>,
+    /// UTC day start in Unix seconds. Used only to scope temporary nullifier storage.
+    #[prost(uint64, tag = "4")]
+    pub day_start: u64,
+}
+impl ::prost::Name for VolumeAccumulatorPayload {
+    const NAME: &'static str = "VolumeAccumulatorPayload";
+    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.shielded_pool.v1.VolumeAccumulatorPayload".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.shielded_pool.v1.VolumeAccumulatorPayload".into()
+    }
+}
+/// Private planning state for the fixed accumulator slot.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct VolumeAccumulatorPlan {
+    #[prost(bool, tag = "1")]
+    pub use_real: bool,
+    #[prost(bool, tag = "2")]
+    pub starts_new_day: bool,
+    #[prost(uint64, tag = "3")]
+    pub day_start: u64,
+    #[prost(bytes = "vec", tag = "4")]
+    pub subject: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "5")]
+    pub prior_volume: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "6")]
+    pub prior_blinding: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag = "7")]
+    pub prior_commitment: ::core::option::Option<
+        super::super::super::super::crypto::tct::v1::StateCommitment,
+    >,
+    #[prost(uint64, tag = "8")]
+    pub prior_position: u64,
+    #[prost(bytes = "vec", tag = "9")]
+    pub successor_volume: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "10")]
+    pub successor_blinding: ::prost::alloc::vec::Vec<u8>,
+}
+impl ::prost::Name for VolumeAccumulatorPlan {
+    const NAME: &'static str = "VolumeAccumulatorPlan";
+    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.shielded_pool.v1.VolumeAccumulatorPlan".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.shielded_pool.v1.VolumeAccumulatorPlan".into()
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -470,6 +538,12 @@ pub struct TransferPlan {
     /// Protocol routing parameter set used to construct and prove the action.
     #[prost(message, optional, tag = "6")]
     pub routing_parameters: ::core::option::Option<DiscoveryParameters>,
+    /// Daily undisclosed-volume transition or a private padding transition.
+    #[prost(message, optional, tag = "7")]
+    pub volume_accumulator: ::core::option::Option<VolumeAccumulatorPlan>,
+    /// Ordinary for user actions; fee funding is assigned only by the fee builder.
+    #[prost(enumeration = "TransferProofContext", tag = "8")]
+    pub proof_context: i32,
 }
 impl ::prost::Name for TransferPlan {
     const NAME: &'static str = "TransferPlan";
@@ -1559,6 +1633,35 @@ impl ::prost::Name for EventInboundFungibleTokenTransfer {
     fn type_url() -> ::prost::alloc::string::String {
         "/shieldd.core.component.shielded_pool.v1.EventInboundFungibleTokenTransfer"
             .into()
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum TransferProofContext {
+    Unspecified = 0,
+    Ordinary = 1,
+    FeeFunding = 2,
+}
+impl TransferProofContext {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "TRANSFER_PROOF_CONTEXT_UNSPECIFIED",
+            Self::Ordinary => "TRANSFER_PROOF_CONTEXT_ORDINARY",
+            Self::FeeFunding => "TRANSFER_PROOF_CONTEXT_FEE_FUNDING",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "TRANSFER_PROOF_CONTEXT_UNSPECIFIED" => Some(Self::Unspecified),
+            "TRANSFER_PROOF_CONTEXT_ORDINARY" => Some(Self::Ordinary),
+            "TRANSFER_PROOF_CONTEXT_FEE_FUNDING" => Some(Self::FeeFunding),
+            _ => None,
+        }
     }
 }
 /// Generated client implementations.

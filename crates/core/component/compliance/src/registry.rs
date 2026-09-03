@@ -59,8 +59,8 @@ fn root_from_auth_path(
 /// Maximum number of blocks the RPC will search backwards for a recorded anchor.
 pub const MAX_ANCHOR_SEARCH_DEPTH_BLOCKS: u64 = 10;
 
-/// Maximum allowed drift between target_timestamp and block timestamp (±1 hour).
-pub const MAX_TIMESTAMP_DRIFT_SECS: u64 = 3600;
+/// Maximum allowed drift between target_timestamp and block timestamp (±30 minutes).
+pub const MAX_TIMESTAMP_DRIFT_SECS: u64 = 1_800;
 
 /// Verify a target timestamp against a signed consensus block timestamp.
 pub fn check_timestamp_freshness(
@@ -187,11 +187,11 @@ impl AssetGrantAdmission {
             let registration_authority_vk = action.registration_authority_vk.ok_or_else(|| {
                 anyhow::anyhow!("regulated assets require registration_authority_vk")
             })?;
-            let threshold = action.threshold.unwrap_or(u128::MAX);
+            let daily_volume_limit = action.daily_volume_limit.unwrap_or(u128::MAX);
             let ring_pk = action.ring_pk.unwrap_or(decaf377::Element::GENERATOR);
             AssetPolicy::new(
                 dk_pub,
-                threshold,
+                daily_volume_limit,
                 action.allowed_ibc_routes.clone(),
                 action.ibc_origin.clone(),
                 action.ring_id.clone(),
@@ -771,7 +771,7 @@ pub trait ComplianceRegistryRead: StateRead {
 
     /// Get the compliance policy for an asset.
     ///
-    /// Returns the issuer's detection key and threshold for flagged transfers.
+    /// Returns the issuer's detection key and daily_volume_limit for flagged transfers.
     /// Returns `None` if no policy is set (asset uses default behavior).
     async fn get_asset_policy(&self, asset_id: asset::Id) -> Result<Option<AssetPolicy>> {
         let key = state_key::asset_policy(&asset_id);
@@ -1534,7 +1534,7 @@ trait ComplianceRegistryRawWrite: StateWrite + ComplianceRegistryRead {
 
     /// Set the compliance policy for an asset.
     ///
-    /// Stores the issuer's detection key and threshold for flagged transfers.
+    /// Stores the issuer's detection key and daily_volume_limit for flagged transfers.
     fn set_asset_policy(&mut self, asset_id: asset::Id, policy: AssetPolicy) -> Result<()> {
         let key = state_key::asset_policy(&asset_id);
         self.put_raw(key, policy.to_bytes()?);
@@ -3744,7 +3744,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_register_asset_with_custom_threshold() {
+    async fn test_register_asset_with_custom_daily_volume_limit() {
         let storage = TempStorage::new().await.unwrap();
         let snapshot = storage.latest_snapshot();
         let mut state = cnidarium::StateDelta::new(snapshot);
@@ -3752,7 +3752,7 @@ mod tests {
         let asset_id = asset::Id(Fq::from(555u64));
         let dk_pub = decaf377::Element::GENERATOR;
 
-        // Register with threshold=500
+        // Register with daily_volume_limit=500
         state
             .register_regulated_asset(
                 asset_id,
@@ -3772,8 +3772,8 @@ mod tests {
             .unwrap()
             .expect("policy should be set after registration");
         assert_eq!(
-            policy.params.threshold, 500u128,
-            "threshold should survive round-trip"
+            policy.params.daily_volume_limit, 500u128,
+            "daily_volume_limit should survive round-trip"
         );
         assert_eq!(policy.params.dk_pub, dk_pub);
     }

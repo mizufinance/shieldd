@@ -281,7 +281,7 @@ pub fn decrypt_flagged_rows(store: &SqliteScannerStore, dk: &DetectionKey) -> Re
 
 pub fn export_orbis_pending_scan(_store: &SqliteScannerStore) -> Result<AuditScanExport> {
     anyhow::bail!(
-        "Orbis v0 audit export is disabled because its public proof reveals the seed-opening DH point"
+        "Orbis prototype audit export is disabled because its public proof reveals the seed-opening DH point"
     )
 }
 
@@ -291,7 +291,7 @@ pub fn import_orbis_audit_entries(
     _subject: Option<&str>,
 ) -> Result<u64> {
     anyhow::bail!(
-        "Orbis v0 audit import is disabled because it cannot originate from a confidentiality-safe PRE request"
+        "Orbis prototype audit import is disabled because it cannot originate from a confidentiality-safe PRE request"
     )
 }
 
@@ -937,7 +937,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn orbis_v0_export_fails_closed_with_valid_evidence() {
+    async fn orbis_export_fails_closed_with_valid_evidence() {
         let store = SqliteScannerStore::new(":memory:").unwrap();
         let (evidence, metadata) = crate::evidence::tests::valid_evidence_fixture();
         persist_evidence_detection(&store, &evidence, &metadata, false).await;
@@ -945,11 +945,11 @@ mod tests {
         let error = export_orbis_pending_scan(&store).unwrap_err();
         assert!(error
             .to_string()
-            .contains("Orbis v0 audit export is disabled"));
+            .contains("Orbis prototype audit export is disabled"));
     }
 
     #[tokio::test]
-    async fn orbis_v0_import_fails_closed_with_valid_evidence() {
+    async fn orbis_import_fails_closed_with_valid_evidence() {
         let store = SqliteScannerStore::new(":memory:").unwrap();
         let (evidence, metadata) = crate::evidence::tests::valid_evidence_fixture();
         persist_evidence_detection(&store, &evidence, &metadata, false).await;
@@ -960,7 +960,7 @@ mod tests {
             .unwrap_err();
         assert!(error
             .to_string()
-            .contains("Orbis v0 audit import is disabled"));
+            .contains("Orbis prototype audit import is disabled"));
         assert_eq!(audit_status(&store, &evidence), AUDIT_STATUS_EVIDENCE_VALID);
     }
 

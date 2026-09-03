@@ -123,7 +123,7 @@ fn note_reshape_statement_fixture(
     n_in: usize,
     n_out: usize,
 ) -> NoteReshapeStatementFixture {
-    let domain_label = format!("shieldd.shielded_pool.{label}.public_input_hash.v4");
+    let domain_label = format!("shieldd.shielded_pool.{label}.public_input_hash.statement");
     let pad_0_label = format!("shieldd.shielded_pool.{label}.public_input_hash.pad0");
     let pad_1_label = format!("shieldd.shielded_pool.{label}.public_input_hash.pad1");
     let domain = blake2b_fq(domain_label.as_bytes());
@@ -234,10 +234,10 @@ fn poseidon_rate_vectors<
 }
 
 fn main() {
-    let spend_domain = blake2b_fq(b"shieldd.shielded_pool.spend.public_input_hash.v1");
+    let spend_domain = blake2b_fq(b"shieldd.shielded_pool.spend.public_input_hash.statement");
     let spend_pad_0 = blake2b_fq(b"shieldd.shielded_pool.spend.public_input_hash.pad0");
     let spend_pad_1 = blake2b_fq(b"shieldd.shielded_pool.spend.public_input_hash.pad1");
-    let hash7_domain = blake2b_fq(b"shieldd.gnark.prototype.poseidon377.hash7.v1");
+    let hash7_domain = blake2b_fq(b"shieldd.gnark.prototype.poseidon377.hash7");
     let hash7_inputs = [1u64, 2, 3, 4, 5, 6, 7].map(Fq::from);
     let hash7_output = poseidon377::hash_7(
         &hash7_domain,
@@ -260,7 +260,7 @@ fn main() {
     );
     // Note commitment = Poseidon hash_5(note_commit_domain,
     //   [blinding, amount, assetId, divGenFq, transmissionKeyS]).
-    let note_commit_domain = blake2b_fq(b"shieldd.notecommit.v2");
+    let note_commit_domain = blake2b_fq(b"shieldd.notecommit");
     let note_commit_inputs = [101u64, 202, 303, 404, 505].map(Fq::from);
     let note_commit_output = poseidon377::hash_5(
         &note_commit_domain,
@@ -359,7 +359,7 @@ fn main() {
             spend_domain: spend_domain.to_string(),
             spend_pad_0: spend_pad_0.to_string(),
             spend_pad_1: spend_pad_1.to_string(),
-            note_commit_domain: blake2b_fq(b"shieldd.notecommit.v2").to_string(),
+            note_commit_domain: blake2b_fq(b"shieldd.notecommit").to_string(),
             nullifier_domain: blake2b_fq(b"shieldd.nullifier").to_string(),
             value_generator_domain: blake2b_fq(b"shieldd.value.generator").to_string(),
             ivk_domain: Fq::from_le_bytes_mod_order(b"shieldd.derive.ivk").to_string(),
@@ -368,7 +368,7 @@ fn main() {
                 blake2b_simd::blake2b(b"shieldd.leaf_binding.sender").as_bytes(),
             )
             .to_string(),
-            compliance_leaf_domain: blake2b_fq(b"shieldd.compliance.leaf.v5").to_string(),
+            compliance_leaf_domain: blake2b_fq(b"shieldd.compliance.leaf").to_string(),
             issuer_detection_domain: blake2b_fq(b"shieldd.compliance.issuer_detection")
                 .to_string(),
             imt_leaf_domain: personalized_blake2b_fq(b"pen.imt.leaf____").to_string(),

@@ -19,7 +19,7 @@ import (
 	"github.com/consensys/gnark/frontend/schema"
 )
 
-const wiringTranscriptSchema = "shieldd.gnark.wiring.v1"
+const wiringTranscriptSchema = "shieldd.gnark.wiring"
 
 // WiringTranscript records the semantic call graph emitted by a circuit Define.
 type WiringTranscript struct {
@@ -257,7 +257,7 @@ func ExportShieldedIcs20WithdrawalWiringTranscript(
 	return transcript.canonical()
 }
 
-const constraintManifestSchema = "shieldd.gnark.constraint_manifest.v1"
+const constraintManifestSchema = "shieldd.gnark.constraint_manifest"
 
 type ConstraintManifest struct {
 	Schema           string                      `json:"schema"`

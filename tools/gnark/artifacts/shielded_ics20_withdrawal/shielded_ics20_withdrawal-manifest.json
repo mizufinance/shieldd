@@ -1,5 +1,5 @@
 {
-  "schema": "shieldd.gnark.constraint_manifest.v1",
+  "schema": "shieldd.gnark.constraint_manifest",
   "circuit": "shielded_ics20_withdrawal",
   "shape": {
     "n_in": 2,
@@ -9,7 +9,7 @@
   "nb_public_variables": 2,
   "nb_secret_variables": 296,
   "nb_internal_variables": 54162,
-  "sr1cs_sha256_hex": "493abc8d370004015b028b881b5728b2d3bdb55cec932849c50e907191812725",
+  "sr1cs_sha256_hex": "58aafb48f9080278c9778131a51104b5af1176189701d4fa68aab0cf8d71d30c",
   "witness_wires": [
     {
       "wire_id": 1,

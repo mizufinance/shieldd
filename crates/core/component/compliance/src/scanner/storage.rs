@@ -1,6 +1,7 @@
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use rusqlite::{params, Connection, OpenFlags, OptionalExtension, Transaction};
+use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
@@ -14,7 +15,6 @@ use crate::audit_status::{AuditStatus, DetectionStatus, ScreenStatus};
 use crate::ComplianceEvidenceObject;
 
 pub const MAX_INVALID_CIPHERTEXTS_PER_BLOCK: usize = 256;
-const SCANNER_DB_SCHEMA_VERSION: i64 = 5;
 pub const HEARTBEAT_STALE_SECS: i64 = 30;
 const READ_POOL_SIZE: usize = 4;
 const SQLITE_BUSY_TIMEOUT: Duration = Duration::from_secs(5);
@@ -148,12 +148,10 @@ impl SqliteScannerStore {
     }
 
     fn initialize_schema(conn: &Connection) -> Result<()> {
-        Self::ensure_supported_schema(conn)?;
-        conn.execute_batch(
-            r#"
-            CREATE TABLE IF NOT EXISTS scanner_schema_version (
+        let schema_sql = r#"
+            CREATE TABLE IF NOT EXISTS scanner_schema (
                 id INTEGER PRIMARY KEY CHECK (id = 1),
-                version INTEGER NOT NULL
+                identity TEXT NOT NULL
             );
 
             CREATE TABLE IF NOT EXISTS scanner_blocks (
@@ -343,26 +341,28 @@ impl SqliteScannerStore {
 
             INSERT OR IGNORE INTO scanner_runtime (id) VALUES (1);
 
-            "#,
-        )?;
+            "#;
+        let schema_id = hex::encode(Sha256::digest(schema_sql.as_bytes()));
+        Self::ensure_supported_schema(conn, &schema_id)?;
+        conn.execute_batch(schema_sql)?;
         conn.execute(
-            "INSERT OR IGNORE INTO scanner_schema_version (id, version) VALUES (1, ?1)",
-            [SCANNER_DB_SCHEMA_VERSION],
+            "INSERT OR IGNORE INTO scanner_schema (id, identity) VALUES (1, ?1)",
+            [&schema_id],
         )?;
-        let version = Self::schema_version(conn)?.context("scanner DB schema version missing")?;
+        let actual = Self::schema_id(conn)?.context("scanner DB schema identity missing")?;
         anyhow::ensure!(
-            version == SCANNER_DB_SCHEMA_VERSION,
-            "unsupported scanner DB schema version {version}; recreate the scanner DB"
+            actual == schema_id,
+            "scanner DB schema identity mismatch; recreate the scanner DB"
         );
         Ok(())
     }
 
-    fn ensure_supported_schema(conn: &Connection) -> Result<()> {
-        match Self::schema_version(conn)? {
-            Some(version) => {
+    fn ensure_supported_schema(conn: &Connection, expected: &str) -> Result<()> {
+        match Self::schema_id(conn)? {
+            Some(actual) => {
                 anyhow::ensure!(
-                    version == SCANNER_DB_SCHEMA_VERSION,
-                    "unsupported scanner DB schema version {version}; recreate the scanner DB"
+                    actual == expected,
+                    "scanner DB schema identity mismatch; recreate the scanner DB"
                 );
                 Ok(())
             }
@@ -377,31 +377,31 @@ impl SqliteScannerStore {
                 )?;
                 anyhow::ensure!(
                     user_table_count == 0,
-                    "scanner DB schema is unversioned; recreate the scanner DB"
+                    "scanner DB schema is unrecognized; recreate the scanner DB"
                 );
                 Ok(())
             }
         }
     }
 
-    fn schema_version(conn: &Connection) -> Result<Option<i64>> {
-        let has_version_table: Option<i64> = conn
+    fn schema_id(conn: &Connection) -> Result<Option<String>> {
+        let has_schema_table: Option<i64> = conn
             .query_row(
-                "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'scanner_schema_version'",
+                "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'scanner_schema'",
                 [],
                 |row| row.get(0),
             )
             .optional()?;
-        if has_version_table.is_none() {
+        if has_schema_table.is_none() {
             return Ok(None);
         }
         conn.query_row(
-            "SELECT version FROM scanner_schema_version WHERE id = 1",
+            "SELECT identity FROM scanner_schema WHERE id = 1",
             [],
             |row| row.get(0),
         )
         .optional()
-        .context("read scanner DB schema version")
+        .context("read scanner DB schema identity")
     }
 
     pub fn invalid_ciphertext_count(&self) -> Result<u64> {
@@ -1211,7 +1211,7 @@ mod tests {
     }
 
     #[test]
-    fn sqlite_store_rejects_unversioned_db() {
+    fn sqlite_store_rejects_unrecognized_db() {
         let temp_file = NamedTempFile::new().unwrap();
         {
             let conn = Connection::open(temp_file.path()).unwrap();
@@ -1227,52 +1227,52 @@ mod tests {
         }
 
         let err = match SqliteScannerStore::new(temp_file.path()) {
-            Ok(_) => panic!("unversioned scanner DB should fail to open"),
+            Ok(_) => panic!("unrecognized scanner DB should fail to open"),
             Err(error) => error,
         };
 
         assert!(
             err.to_string()
-                .contains("scanner DB schema is unversioned; recreate the scanner DB"),
+                .contains("scanner DB schema is unrecognized; recreate the scanner DB"),
             "unexpected error: {err:#}"
         );
     }
 
     #[test]
-    fn sqlite_store_initializes_current_schema_and_rejects_stale_versions() {
+    fn sqlite_store_initializes_current_schema_and_rejects_wrong_identity() {
         let current_file = NamedTempFile::new().unwrap();
         let current = SqliteScannerStore::new(current_file.path()).unwrap();
-        let version: i64 = current
+        let identity: String = current
             .lock_conn()
             .unwrap()
             .query_row(
-                "SELECT version FROM scanner_schema_version WHERE id = 1",
+                "SELECT identity FROM scanner_schema WHERE id = 1",
                 [],
                 |row| row.get(0),
             )
             .unwrap();
-        assert_eq!(version, SCANNER_DB_SCHEMA_VERSION);
+        assert_eq!(identity.len(), 64);
 
         let stale_file = NamedTempFile::new().unwrap();
         {
             let conn = Connection::open(stale_file.path()).unwrap();
             conn.execute_batch(
-                "CREATE TABLE scanner_schema_version (
+                "CREATE TABLE scanner_schema (
                     id INTEGER PRIMARY KEY CHECK (id = 1),
-                    version INTEGER NOT NULL
+                    identity TEXT NOT NULL
                  );
-                 INSERT INTO scanner_schema_version (id, version) VALUES (1, 2);",
+                 INSERT INTO scanner_schema (id, identity) VALUES (1, 'wrong');",
             )
             .unwrap();
         }
         let error = match SqliteScannerStore::new(stale_file.path()) {
-            Ok(_) => panic!("stale scanner schema should fail to open"),
+            Ok(_) => panic!("wrong scanner schema should fail to open"),
             Err(error) => error,
         };
         assert!(
             error
                 .to_string()
-                .contains("unsupported scanner DB schema version 2"),
+                .contains("scanner DB schema identity mismatch"),
             "unexpected error: {error:#}"
         );
     }

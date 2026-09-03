@@ -4,7 +4,9 @@ use shieldd_sdk_compact_block::{CompactBlock, StatePayload};
 use shieldd_sdk_fee::GasPrices;
 use shieldd_sdk_keys::FullViewingKey;
 use shieldd_sdk_sct::{nullifier_generation::NullifierWindow, Nullifier};
-use shieldd_sdk_shielded_pool::{discovery, Note, NotePayload};
+use shieldd_sdk_shielded_pool::{
+    discovery, Note, NotePayload, VolumeAccumulatorPayload, VolumeAccumulatorState,
+};
 use shieldd_sdk_tct::{self as tct, StateCommitment};
 use tracing::Instrument;
 
@@ -22,6 +24,14 @@ pub struct FilteredBlock {
     pub app_parameters_updated: bool,
     pub gas_prices: Option<GasPrices>,
     pub nullifier_window: Option<NullifierWindow>,
+    pub volume_accumulators: Vec<RecoveredVolumeAccumulator>,
+}
+
+#[derive(Debug, Clone)]
+pub struct RecoveredVolumeAccumulator {
+    pub payload: VolumeAccumulatorPayload,
+    pub state: VolumeAccumulatorState,
+    pub position: tct::Position,
 }
 
 #[tracing::instrument(skip_all, fields(height = %height))]
@@ -59,6 +69,7 @@ pub async fn scan_block(
     // Trial-decrypt the notes in this block, keeping track of the ones that were meant for us
     let mut note_decryptions = Vec::new();
     let mut unknown_commitments = Vec::new();
+    let mut volume_advice = BTreeMap::new();
 
     for payload in state_payloads.iter() {
         match payload {
@@ -66,6 +77,14 @@ pub async fn scan_block(
                 note_decryptions.push(trial_decrypt_note((**note).clone()));
             }
             StatePayload::RolledUp { commitment, .. } => unknown_commitments.push(*commitment),
+            StatePayload::VolumeAccumulator { payload, .. } => {
+                match payload.trial_decrypt(fvk.outgoing()) {
+                    Some((state, true)) => {
+                        volume_advice.insert(payload.commitment, ((**payload).clone(), state));
+                    }
+                    _ => unknown_commitments.push(payload.commitment),
+                }
+            }
         }
     }
     // Having started trial decryption in the background, ask the Storage for scanning advice:
@@ -80,8 +99,9 @@ pub async fn scan_block(
     }
     // Newly detected spendable notes.
     let mut new_notes = BTreeMap::new();
+    let mut volume_accumulators = Vec::new();
 
-    if note_advice.is_empty() {
+    if note_advice.is_empty() && volume_advice.is_empty() {
         // If there are no notes we care about in this block, just insert the block root into the
         // tree instead of processing each commitment individually
         state_commitment_tree
@@ -103,38 +123,50 @@ pub async fn scan_block(
 
             // We need to insert each commitment, so use a match statement to ensure we
             // exhaustively cover all possible cases.
-            match note_advice.get(payload.commitment()) {
-                Some(note) => {
-                    // Keep track of this commitment for later witnessing
-                    let position = state_commitment_tree
-                        .insert(tct::Witness::Keep, *payload.commitment())
-                        .expect("inserting a commitment must succeed");
+            if let Some((volume_payload, state)) = volume_advice.remove(payload.commitment()) {
+                let position = state_commitment_tree
+                    .insert(tct::Witness::Keep, *payload.commitment())
+                    .expect("inserting a volume accumulator commitment must succeed");
+                volume_accumulators.push(RecoveredVolumeAccumulator {
+                    payload: volume_payload,
+                    state,
+                    position,
+                });
+            } else {
+                match note_advice.get(payload.commitment()) {
+                    Some(note) => {
+                        // Keep track of this commitment for later witnessing
+                        let position = state_commitment_tree
+                            .insert(tct::Witness::Keep, *payload.commitment())
+                            .expect("inserting a commitment must succeed");
 
-                    let source = payload.source().clone();
-                    let nullifier =
-                        Nullifier::derive(fvk.nullifier_key(), position, payload.commitment());
-                    let address_index = fvk.incoming().index_for_diversifier(note.diversifier());
+                        let source = payload.source().clone();
+                        let nullifier =
+                            Nullifier::derive(fvk.nullifier_key(), position, payload.commitment());
+                        let address_index =
+                            fvk.incoming().index_for_diversifier(note.diversifier());
 
-                    new_notes.insert(
-                        *payload.commitment(),
-                        SpendableNoteRecord {
-                            note_commitment: *payload.commitment(),
-                            height_spent: None,
-                            height_created: height,
-                            note: note.clone(),
-                            address_index,
-                            nullifier,
-                            position,
-                            source,
-                            return_address: None,
-                        },
-                    );
-                }
-                None => {
-                    // Don't remember this commitment; it wasn't ours
-                    state_commitment_tree
-                        .insert(tct::Witness::Forget, *payload.commitment())
-                        .expect("inserting a commitment must succeed");
+                        new_notes.insert(
+                            *payload.commitment(),
+                            SpendableNoteRecord {
+                                note_commitment: *payload.commitment(),
+                                height_spent: None,
+                                height_created: height,
+                                note: note.clone(),
+                                address_index,
+                                nullifier,
+                                position,
+                                source,
+                                return_address: None,
+                            },
+                        );
+                    }
+                    None => {
+                        // Don't remember this commitment; it wasn't ours
+                        state_commitment_tree
+                            .insert(tct::Witness::Forget, *payload.commitment())
+                            .expect("inserting a commitment must succeed");
+                    }
                 }
             }
 
@@ -175,6 +207,7 @@ pub async fn scan_block(
         app_parameters_updated,
         gas_prices,
         nullifier_window,
+        volume_accumulators,
     };
 
     Ok(result)

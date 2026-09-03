@@ -7,9 +7,9 @@ External policy systems do not authorize spends or establish balance
 conservation.
 
 The current transfer surface deliberately excludes PRE envelopes, DLEQ
-proofs, DH shared points, and any other seed-opening material. Orbis v0 remains
+proofs, DH shared points, and any other seed-opening material. The Orbis prototype remains
 useful for ring and policy registration, but its audit export/import path is
-disabled until a non-disclosing PRE v1 exists.
+disabled until a non-disclosing PRE design exists.
 
 For exact encodings and statement order, see `reference.md`.
 
@@ -22,7 +22,7 @@ An issuer creates its policy and ring configuration, then registers an
 AssetPolicy {
   dk_pub,
   ring_pk,
-  threshold,
+  daily_volume_limit,
   allowed_ibc_routes,
   ibc_origin,
   ring_id,
@@ -45,11 +45,16 @@ otherwise valid.
 A user registers a `(shielded address, asset)` compliance leaf:
 
 ```text
-d   = SHA512("elgamal-derivation-v1\0\0" || canonical_address_bytes) reduced mod Fr
+d   = SHA512("elgamal-derivation\0\0" || canonical_address_bytes) reduced mod Fr
 ACK = d * ring_pk
 ```
 
-The version-5 leaf commits to the address diversified-generator encoding,
+For regulated participation, ACP permits exactly one live shielded address per
+KYC identity. Shieldd's generic diversified-address capability does not admit
+additional regulated addresses; only the ACP-approved address may appear in a
+regulated user leaf.
+
+The compliance leaf commits to the address diversified-generator encoding,
 transmission-key encoding, asset id, canonical address-derived `d`, and the
 per-user/per-asset status. Registration checks the complete five-field
 commitment, address encoding, derivation, and authorization. A derived `d = 0`
@@ -77,19 +82,21 @@ The transfer planner selects one policy shape:
   compliance leaves, and the registered policy values.
 - Unregulated: exact asset-tree non-membership, fixed sink ring/DK points,
   and the canonical hash of the empty string for each policy identifier. The
-  authenticated gap-predecessor threshold remains present in the leaf witness,
-  but it cannot affect the regulation-gated flag.
+  authenticated gap-predecessor daily limit remains present in the leaf
+  witness but cannot make an unregulated transfer eligible for accumulation or
+  disclosure.
 
 Both branches construct the same detection and audit ciphertext rows. The
 encryption equations are unconditional; `is_regulated` selects the effective
-keys and policy hashes and gates the authenticated-leaf threshold result rather
-than bypassing encryption checks.
+keys and policy hashes. For an external regulated ordinary Transfer, the
+wallet either proves a real daily-volume transition or selects the fixed
+padding branch. Padding sets `is_flagged = true`; a real transition sets it to
+false. Self-transfers, unregulated transfers, and fee funding never set it.
 
-The circuit computes
-`is_flagged = is_regulated * (amount >= authenticated_leaf_threshold)`. A
-regulated transfer is therefore flagged exactly at and above its registered
-threshold; an unregulated transfer is never flagged, regardless of the
-authenticated predecessor leaf's threshold or the receiver amount.
+For a real transition the circuit proves checked `u128` addition and
+`prior_undisclosed_volume + receiver_amount <= daily_volume_limit`. Equality
+remains undisclosed. A greater candidate or explicit caller request discloses
+only the current transaction and leaves the accumulator head unchanged.
 
 | Tier | Plaintext | Unflagged regulated key | Flagged regulated key |
 | --- | --- | --- | --- |
@@ -124,6 +131,23 @@ consensus check, because the root is private and a malicious creator controls
 its own randomness. Each derived tier scalar is rejection-sampled until
 nonzero, preventing an identity EPK/shared secret from exposing an honestly
 constructed tier.
+
+### Daily volume state
+
+The accounting day is UTC-aligned and independent of the SCT epoch. A target
+timestamp in the final 30 minutes of a day is assigned to the next day. Target
+timestamps must remain within ±30 minutes of signed block time.
+
+The first real transition in a selected day emits a deterministic private
+origin nullifier. Later transitions prove SCT membership of the predecessor
+commitment and derive its positioned nullifier. Every ordinary Transfer emits
+an indistinguishable real or padding commitment; fee funding uses a
+proof-bound disabled context and emits neither.
+
+Accumulator nullifiers live in a day-prefixed temporary consensus set rather
+than the global historical nullifier tree. Entries are retained through
+`day_start + 24h + 30m` and pruned afterward. The owner opening is recovered
+from a fixed 108-byte OVK-authenticated payload in the compact block.
 
 Only the receiver output carries compliance data:
 
@@ -165,8 +189,9 @@ The transfer circuit proves:
 - asset membership versus canonical non-membership gap;
 - rejection of the asset-tree zero sentinel;
 - regulated policy selection and compliance-leaf membership;
-- complete version-5 compliance leaves and `Active` sender/receiver status;
-- threshold flag correctness;
+- complete compliance leaves and `Active` sender/receiver status;
+- daily-volume origin or predecessor validity, checked addition, limit, UTC
+  day selection, proof context, and disclosure flag correctness;
 - four independent EPK/shared-secret/c2/payload encryption relations;
 - detection encryption;
 - exact asset/salt/boolean-flag/reserved-zero detection plaintext;
@@ -177,16 +202,16 @@ The transfer circuit proves:
 - canonical address plaintext packing from the two 32-byte Fq encodings into
   31-byte stream words;
 - the single 9-field metadata binding; and
-- the exact 45-field statement preimage committed under statement-hash domain
-  `v7`.
+- the exact 49-field statement preimage committed under the transfer statement
+  domain.
 
-The Rust verifier reconstructs the same 45 fields from typed public data.
+The Rust verifier reconstructs the same 49 fields from typed public data.
 Consensus separately checks proof verification, the current asset-policy and
-user-status roots, timestamp freshness, spend signatures,
-transaction-wide nullifier uniqueness, and the
+user-status roots, timestamp freshness, spend signatures, transaction-wide
+spend-nullifier uniqueness, scoped daily-volume-nullifier uniqueness, and the
 binding signature. Transfer's effect hash includes the exact receiver
-ciphertext and metadata, so a delegated builder cannot replace encryption
-randomness or payload bytes after the spends are authorized.
+ciphertext, metadata, accumulator payload, and proof context, so a delegated
+builder cannot replace them after the spends are authorized.
 
 ## Scanner And Evidence
 
@@ -218,7 +243,7 @@ no persistence, chain fetches, ACP decisions, or PRE calls. Scanner blocks are
 keyed by height/hash/parent hash; a reorg rolls state back to the common
 ancestor before replay.
 
-Evidence version 3 contains the output reference, asset/flag/detection facts,
+Evidence contains the output reference, asset/flag/detection facts,
 the 640-byte ciphertext, the 264-byte metadata record, and a payload hash. It
 contains no PRE envelope, shared point, or standalone DLEQ proof. Evidence
 validation compares both ciphertext and metadata to the accepted output and
@@ -240,11 +265,11 @@ Flagged regulated transfers encrypt every audit tier to the issuer DK. After
 evidence validation, the issuer can decrypt them locally and complete the
 audit.
 
-Unflagged regulated tiers encrypt to the sender or receiver ACK. Orbis v0
+Unflagged regulated tiers encrypt to the sender or receiver ACK. The Orbis prototype
 would disclose the seed-opening DH point, so both
 `export_orbis_pending_scan` and `import_orbis_audit_entries` fail closed. An
 unflagged row therefore cannot currently complete through PRE.
 
 This is an intentional availability restriction, not a confidentiality
-exception. A future PRE v1 must provide a non-disclosing, circuit-bound seed
+exception. A future PRE design must provide a non-disclosing, circuit-bound seed
 ciphertext and independent review before the export/import path is enabled.

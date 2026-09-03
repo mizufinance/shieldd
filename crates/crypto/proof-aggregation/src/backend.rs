@@ -50,9 +50,7 @@ use crate::strict_deserialize::deserialize_compressed_strict;
 use crate::strict_deserialize::deserialize_compressed_strict_with;
 use crate::{
     aggregate_proof_wrapper::{
-        encode_wrapped_aggregate_proof, encode_wrapped_torus_v2_aggregate_proof,
-        AggregateProofBytesError, AGGREGATE_PROOF_TORUS_V2_WRAPPER_DOMAIN,
-        AGGREGATE_PROOF_WRAPPER_DOMAIN, MAX_AGGREGATE_PROOF_BYTES,
+        encode_wrapped_aggregate_proof, AggregateProofBytesError, MAX_AGGREGATE_PROOF_BYTES,
     },
     app_verifier::{app_verify_shipping_into_parts_core, AppVerifyShippingCall},
     preflight::{
@@ -61,7 +59,6 @@ use crate::{
     },
     srs::DevSrs,
     statement::{AggregateStatement, AggregateStatementError},
-    torus_v2::{deserialize_torus_aggregate_proof, serialize_torus_aggregate_proof},
     transcript::{
         NoteReshapeTranscriptDigest, ShieldedIcs20WithdrawalTranscriptDigest,
         TransferTranscriptDigest,
@@ -478,136 +475,6 @@ pub(crate) fn deserialize_aggregate_proof<D: Digest + Send + Sync>(
 }
 
 impl SnarkpackBackend {
-    pub fn aggregate_family_torus_v2(
-        statement: &AggregateStatement,
-        items: &[BatchItem],
-        srs: &DevSrs,
-    ) -> Result<Vec<u8>> {
-        let family_id = statement.family_id();
-        srs.ensure_supported_count(items.len())?;
-        ensure!(
-            !items.is_empty(),
-            "cannot build an aggregate proof for empty family {:?}",
-            family_id
-        );
-
-        let inner = match family_id {
-            ProofFamilyId::Transfer => {
-                aggregate_with_digest_torus_v2_real_count::<TransferTranscriptDigest>(
-                    statement.challenge_context(),
-                    items,
-                    statement.real_count() as usize,
-                    srs,
-                )
-            }
-            ProofFamilyId::NoteReshape(family_id) => match family_id {
-                NoteReshapeFamilyId::OneByEight => aggregate_with_digest_torus_v2_real_count::<
-                    NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::OneByEight.get() }>,
-                >(
-                    statement.challenge_context(),
-                    items,
-                    statement.real_count() as usize,
-                    srs,
-                ),
-                NoteReshapeFamilyId::EightByOne => aggregate_with_digest_torus_v2_real_count::<
-                    NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::EightByOne.get() }>,
-                >(
-                    statement.challenge_context(),
-                    items,
-                    statement.real_count() as usize,
-                    srs,
-                ),
-                other => Err(anyhow::anyhow!(
-                    "unknown note reshape aggregate family {}",
-                    other.get()
-                )),
-            },
-            ProofFamilyId::ShieldedIcs20Withdrawal(_) => {
-                aggregate_with_digest_torus_v2_real_count::<ShieldedIcs20WithdrawalTranscriptDigest>(
-                    statement.challenge_context(),
-                    items,
-                    statement.real_count() as usize,
-                    srs,
-                )
-            }
-        }?;
-        let wrapped =
-            encode_wrapped_torus_v2_aggregate_proof(statement.statement_digest(), &inner)?;
-        ensure!(
-            wrapped.len() <= MAX_AGGREGATE_PROOF_BYTES,
-            "wrapped aggregate proof bytes {} exceed cap {}",
-            wrapped.len(),
-            MAX_AGGREGATE_PROOF_BYTES
-        );
-        Ok(wrapped)
-    }
-
-    pub fn verify_family_aggregate_torus_v2(
-        statement: &AggregateStatement,
-        pvk: &PreparedVerifyingKey<Bls12_377>,
-        aggregate_proof_bytes: &[u8],
-        srs: &DevSrs,
-    ) -> Result<(), AggregateVerifyError> {
-        let preflight_frame = torus_v2_preflight_frame(aggregate_proof_bytes);
-        let call = preflight_aggregate_verify(AggregatePreflightInput {
-            statement,
-            pvk,
-            aggregate_proof_bytes: &preflight_frame,
-            srs,
-        })?;
-        let accepted = match call.family_id() {
-            ProofFamilyId::Transfer => verify_with_digest_torus_v2::<TransferTranscriptDigest>(
-                call.challenge_context(),
-                call.pvk(),
-                call.inner_proof_bytes(),
-                call.padded_public_inputs(),
-                call.srs(),
-            )?,
-            ProofFamilyId::NoteReshape(family_id) => match family_id {
-                NoteReshapeFamilyId::OneByEight => verify_with_digest_torus_v2::<
-                    NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::OneByEight.get() }>,
-                >(
-                    call.challenge_context(),
-                    call.pvk(),
-                    call.inner_proof_bytes(),
-                    call.padded_public_inputs(),
-                    call.srs(),
-                )?,
-                NoteReshapeFamilyId::EightByOne => verify_with_digest_torus_v2::<
-                    NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::EightByOne.get() }>,
-                >(
-                    call.challenge_context(),
-                    call.pvk(),
-                    call.inner_proof_bytes(),
-                    call.padded_public_inputs(),
-                    call.srs(),
-                )?,
-                other => {
-                    return Err(AggregateVerifyError::BadVersion(format!(
-                        "unknown note reshape aggregate family {}",
-                        other.get()
-                    )))
-                }
-            },
-            ProofFamilyId::ShieldedIcs20Withdrawal(_) => {
-                verify_with_digest_torus_v2::<ShieldedIcs20WithdrawalTranscriptDigest>(
-                    call.challenge_context(),
-                    call.pvk(),
-                    call.inner_proof_bytes(),
-                    call.padded_public_inputs(),
-                    call.srs(),
-                )?
-            }
-        };
-        if !accepted {
-            return Err(AggregateVerifyError::BackendRejected(format!(
-                "{:?}",
-                statement.family_id()
-            )));
-        }
-        Ok(())
-    }
-
     fn verify_transfer_family_aggregate_profiled_status(
         challenge_context: &ChallengeContext,
         pvk: &PreparedVerifyingKey<Bls12_377>,
@@ -1019,26 +886,6 @@ impl AggregationBackend for SnarkpackBackend {
     }
 }
 
-fn torus_v2_preflight_frame(bytes: &[u8]) -> Vec<u8> {
-    let retained_len = bytes.len().min(MAX_AGGREGATE_PROOF_BYTES.saturating_add(1));
-    let mut translated = bytes[..retained_len].to_vec();
-
-    if translated.starts_with(AGGREGATE_PROOF_TORUS_V2_WRAPPER_DOMAIN) {
-        if AGGREGATE_PROOF_TORUS_V2_WRAPPER_DOMAIN.len() != AGGREGATE_PROOF_WRAPPER_DOMAIN.len() {
-            translated.clear();
-            return translated;
-        }
-        translated[..AGGREGATE_PROOF_WRAPPER_DOMAIN.len()]
-            .copy_from_slice(AGGREGATE_PROOF_WRAPPER_DOMAIN);
-    } else if translated.starts_with(AGGREGATE_PROOF_WRAPPER_DOMAIN) {
-        // A v1 frame must remain disjoint even though the unchanged v1
-        // preflight validates the translated v2 framing below.
-        translated[0] = 0;
-    }
-
-    translated
-}
-
 fn collect_proofs(items: &[BatchItem]) -> Vec<ark_groth16::Proof<Bls12_377>> {
     items.iter().map(|item| item.proof.clone()).collect()
 }
@@ -1111,24 +958,6 @@ pub(crate) fn aggregate_with_digest_real_count<D: Digest + Send + Sync>(
     let mut bytes = Vec::new();
     aggregate.serialize_compressed(&mut bytes)?;
     Ok(bytes)
-}
-
-pub(crate) fn aggregate_with_digest_torus_v2_real_count<D: Digest + Send + Sync>(
-    challenge_context: &ChallengeContext,
-    items: &[BatchItem],
-    real_count: usize,
-    srs: &DevSrs,
-) -> Result<Vec<u8>> {
-    let inner_product_srs = srs.inner_product_srs_for_count(items.len())?;
-    let aggregate = aggregate_proofs_with_real_count::<Bls12_377, D>(
-        challenge_context,
-        &inner_product_srs,
-        &collect_proofs(items),
-        real_count,
-    )
-    .map_err(|e| anyhow::anyhow!("SnarkPack aggregation failed: {e}"))?;
-    serialize_torus_aggregate_proof(&aggregate)
-        .map_err(|e| anyhow::anyhow!("SnarkPack torus-v2 serialization failed: {e}"))
 }
 
 #[cfg(test)]
@@ -1283,26 +1112,6 @@ pub(crate) fn verify_with_digest<D: Digest + Send + Sync>(
     .map_err(|e| AggregateVerifyError::BackendRejected(e.to_string()))
 }
 
-pub(crate) fn verify_with_digest_torus_v2<D: Digest + Send + Sync>(
-    challenge_context: &ChallengeContext,
-    pvk: &PreparedVerifyingKey<Bls12_377>,
-    aggregate_proof_bytes: &[u8],
-    padded_public_inputs: &[Vec<Fq>],
-    srs: &DevSrs,
-) -> Result<bool, AggregateVerifyError> {
-    let aggregate = deserialize_torus_aggregate_proof::<D>(aggregate_proof_bytes)
-        .map_err(|e| AggregateVerifyError::MalformedProofBytes(e.to_string()))?;
-    verify_validated_aggregate_proof::<Bls12_377, D>(
-        challenge_context,
-        srs.verifier_srs()
-            .map_err(|err| AggregateVerifyError::BadPadding(err.to_string()))?,
-        pvk,
-        padded_public_inputs,
-        &aggregate,
-    )
-    .map_err(|e| AggregateVerifyError::BackendRejected(e.to_string()))
-}
-
 #[cfg(test)]
 pub(crate) fn verify_with_digest_with_trace<D, S>(
     challenge_context: &ChallengeContext,
@@ -1424,7 +1233,7 @@ mod tests {
     #[cfg(not(feature = "bench-baseline"))]
     use ark_serialize::Valid;
     use ark_snark::SNARK;
-    use decaf377::{Fp, Fq};
+    use decaf377::Fq;
     use proptest::prelude::*;
     use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
     use shieldd_sdk_proof_params::batch;
@@ -1432,12 +1241,10 @@ mod tests {
 
     use crate::transcript::TransferTranscriptDigest;
     use crate::{
-        aggregate_family, aggregate_family_profiled, aggregate_family_torus_v2,
-        decode_wrapped_aggregate_proof, decode_wrapped_torus_v2_aggregate_proof,
-        encode_wrapped_aggregate_proof, encode_wrapped_torus_v2_aggregate_proof,
-        pad_items_to_power_of_two, srs_id, statement::aggregate_verification_key_digest,
-        verify_family_aggregate, verify_family_aggregate_profiled,
-        verify_family_aggregate_torus_v2, AggregateStatement, AggregateVerifyError,
+        aggregate_family, aggregate_family_profiled, decode_wrapped_aggregate_proof,
+        encode_wrapped_aggregate_proof, pad_items_to_power_of_two, srs_id,
+        statement::aggregate_verification_key_digest, verify_family_aggregate,
+        verify_family_aggregate_profiled, AggregateStatement, AggregateVerifyError,
         AGGREGATE_PROTOCOL_VERSION,
     };
 
@@ -2101,78 +1908,6 @@ mod tests {
     }
 
     #[test]
-    fn torus_v2_preflight_translation_is_bounded_and_disjoint() {
-        let digest = [0x42; 32];
-        let inner = [1, 2, 3, 4];
-        let v2 = encode_wrapped_torus_v2_aggregate_proof(digest, &inner).unwrap();
-        let translated = torus_v2_preflight_frame(&v2);
-        assert!(translated.starts_with(AGGREGATE_PROOF_WRAPPER_DOMAIN));
-        assert_eq!(
-            &translated[AGGREGATE_PROOF_WRAPPER_DOMAIN.len()..],
-            &v2[AGGREGATE_PROOF_TORUS_V2_WRAPPER_DOMAIN.len()..]
-        );
-
-        let v1 = encode_wrapped_aggregate_proof(digest, &inner).unwrap();
-        assert!(!torus_v2_preflight_frame(&v1).starts_with(AGGREGATE_PROOF_WRAPPER_DOMAIN));
-
-        let oversized = vec![0; MAX_AGGREGATE_PROOF_BYTES + 2];
-        assert_eq!(
-            torus_v2_preflight_frame(&oversized).len(),
-            MAX_AGGREGATE_PROOF_BYTES + 1
-        );
-    }
-
-    #[test]
-    fn torus_v2_round_trips_real_aggregate_and_halves_target_wire() {
-        let (pvk, items) = sample_items();
-        let srs = DevSrs::default();
-        let padded_items =
-            pad_items_to_power_of_two(&items, srs.max_padded_count as usize).expect("padding");
-        let statement = statement_for_items(
-            ProofFamilyId::Transfer,
-            &pvk,
-            items.len(),
-            &padded_items,
-            &srs,
-        );
-
-        let v1 = aggregate_family(&statement, &pvk, &padded_items, &srs).unwrap();
-        let v2 = aggregate_family_torus_v2(&statement, &padded_items, &srs).unwrap();
-
-        verify_family_aggregate_torus_v2(&statement, &pvk, &v2, &srs).unwrap();
-        assert_eq!(v1.len(), 12_385);
-        assert_eq!(v2.len(), 6_625);
-        assert_eq!(v1.len() - v2.len(), 20 * 288);
-
-        assert!(matches!(
-            verify_family_aggregate_torus_v2(&statement, &pvk, &v1, &srs),
-            Err(AggregateVerifyError::BadVersion(_))
-        ));
-        assert!(matches!(
-            verify_family_aggregate(&statement, &pvk, &v2, &srs),
-            Err(AggregateVerifyError::BadVersion(_))
-        ));
-
-        let inner =
-            decode_wrapped_torus_v2_aggregate_proof(&v2, statement.statement_digest(), None)
-                .unwrap();
-        let inner_offset = v2.len() - inner.len();
-        let replacement = compressed_bytes(&Fp::from(1u64));
-        assert_eq!(replacement.len(), 48);
-        let mut non_subgroup_coordinate = v2.clone();
-        assert_ne!(
-            &non_subgroup_coordinate[inner_offset..inner_offset + replacement.len()],
-            replacement.as_slice()
-        );
-        non_subgroup_coordinate[inner_offset..inner_offset + replacement.len()]
-            .copy_from_slice(&replacement);
-        assert!(matches!(
-            verify_family_aggregate_torus_v2(&statement, &pvk, &non_subgroup_coordinate, &srs,),
-            Err(AggregateVerifyError::MalformedProofBytes(_))
-        ));
-    }
-
-    #[test]
     fn shipping_backend_result_materializes_the_exact_authenticated_input() {
         let (pvk, items) = sample_items();
         let srs = DevSrs::default();
@@ -2388,7 +2123,7 @@ mod tests {
         let final_g2_offset = rounds_offset + 8 + rounds * 4736;
         let first_ab_identity_len_offset = rounds_offset + 8 + 2 * gt_len;
 
-        // Identity commitments are wire-level vectors, but the v1 verifier
+        // Identity commitments are wire-level vectors, but the verifier
         // accepts only the singleton shape emitted by the prover. Both of
         // these encodings are canonically decodable and therefore exercise
         // the post-decode shape gate rather than the strict byte decoder.
@@ -2485,12 +2220,6 @@ mod tests {
         let agg_c_offset = 4 * compressed_bytes(&PairingOutput::<Bls12_377>::zero()).len();
         let mut mutated_inner = inner.to_vec();
         mutated_inner[agg_c_offset + g1_compressed_len() - 1] |= 0x40;
-        assert!(
-            AggregateProof::<Bls12_377, TransferTranscriptDigest>::deserialize_compressed(
-                &mutated_inner[..]
-            )
-            .is_ok()
-        );
         assert!(deserialize_aggregate_proof::<TransferTranscriptDigest>(&mutated_inner).is_err());
         reject(mutated_inner, "nested G1 infinity alias should reject");
 
@@ -3243,8 +2972,7 @@ mod tests {
             panic!("missing aggregate byte baseline at {BYTE_BASELINE_PATH}: {e}; regenerate with `cargo test -p shieldd-sdk-proof-aggregation regenerate_aggregate_byte_baseline -- --ignored`")
         });
 
-        // Version-drift guard: a committed baseline from a different protocol
-        // version is the mechanical fork between "preserve bytes" and "version".
+        // The baseline must identify the same consensus aggregation protocol.
         let committed_version = committed_baseline_version(&committed);
         assert_eq!(
             committed_version,
@@ -3283,13 +3011,13 @@ mod tests {
     }
 
     #[test]
-    fn v1_bytes_and_transcript_match_committed_baselines() {
+    fn aggregate_bytes_and_transcript_match_committed_baselines() {
         assert_aggregate_bytes_match_committed_baseline();
         assert_shieldd_byte_trace_matches_committed_baseline();
     }
 
     #[test]
-    #[ignore = "writes the committed challenge trace baseline after a sanctioned version change"]
+    #[ignore = "writes the committed challenge trace baseline after a sanctioned protocol change"]
     fn regenerate_shieldd_byte_trace_baseline() {
         let rendered = render_trace_baseline();
         std::fs::write(TRACE_BASELINE_PATH, rendered).expect("write trace baseline");

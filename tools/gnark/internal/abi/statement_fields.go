@@ -63,7 +63,7 @@ func ensureFieldCount(label string, fields [][32]byte, expected int) error {
 // circuit computes. Transfer does not serialize a second prover-chosen affine
 // copy: the sole public statement binds this value directly.
 func transferBalanceCommitmentField(
-	witness *TransferWitnessV20Binary,
+	witness *TransferWitnessBinary,
 ) ([32]byte, error) {
 	inputs := [2]*big.Int{
 		primitives.LittleEndianBytesToBigInt(witness.RequiredSpend.SpentNoteAmount[:]),
@@ -203,10 +203,10 @@ func transferBalanceCommitmentField(
 	return bigIntToLE32(compressed)
 }
 
-// ReconstructedTransferStatementFieldsFromWitnessV20 mirrors the Go transfer
-// circuit's statement-field order using the canonical v20 witness records.
-func ReconstructedTransferStatementFieldsFromWitnessV20(
-	witness *TransferWitnessV20Binary,
+// ReconstructedTransferStatementFieldsFromWitness mirrors the Go transfer
+// circuit's statement-field order using the canonical witness records.
+func ReconstructedTransferStatementFieldsFromWitness(
+	witness *TransferWitnessBinary,
 ) ([][32]byte, error) {
 	expected := expectedTransferStatementFieldCount()
 	fields := make([][32]byte, 0, expected)
@@ -224,6 +224,12 @@ func ReconstructedTransferStatementFieldsFromWitnessV20(
 	fields = append(fields, witness.RoutingTags[:]...)
 	fields = append(fields, witness.RoutingParameterSetID)
 	fields = append(fields, witness.RecentPositionFloor)
+	fields = append(fields,
+		witness.VolumeAccumulator.Nullifier,
+		witness.VolumeAccumulator.Commitment,
+		witness.VolumeAccumulator.DayStart,
+		witness.VolumeAccumulator.ProofContext,
+	)
 	for index, spend := range []struct {
 		nullifier [32]byte
 		rk        PointAffineBinary
@@ -250,7 +256,7 @@ func ReconstructedTransferStatementFieldsFromWitnessV20(
 	}
 	fields = append(fields, witness.DetectionCiphertext...)
 
-	appendTier := func(label string, tier TransferComplianceCiphertextWitnessV20Binary, expectedCiphertext int) error {
+	appendTier := func(label string, tier TransferComplianceCiphertextWitnessBinary, expectedCiphertext int) error {
 		if len(tier.Ciphertext) != expectedCiphertext {
 			return fmt.Errorf(
 				"expected %d %s ciphertext elements, got %d",
@@ -270,7 +276,7 @@ func ReconstructedTransferStatementFieldsFromWitnessV20(
 
 	for _, tier := range []struct {
 		label              string
-		value              TransferComplianceCiphertextWitnessV20Binary
+		value              TransferComplianceCiphertextWitnessBinary
 		expectedCiphertext int
 	}{
 		{"sender_core", witness.SenderCore, compliance.TransferCoreCiphertextFQCount},
@@ -312,8 +318,8 @@ func appendNoteReshapeStatementFields(
 	routingTag [32]byte,
 	routingParameterSetID [32]byte,
 	recentPositionFloor [32]byte,
-	spends []NoteReshapeSpendWitnessV6Binary,
-	outputs []NoteReshapeOutputWitnessV6Binary,
+	spends []NoteReshapeSpendWitnessBinary,
+	outputs []NoteReshapeOutputWitnessBinary,
 	expected int,
 ) ([][32]byte, error) {
 	fields = append(fields, anchor)
@@ -348,10 +354,10 @@ func appendNoteReshapeStatementFields(
 	return fields, nil
 }
 
-// ReconstructedNoteReshapeStatementFieldsFromWitnessV6 mirrors the unified
+// ReconstructedNoteReshapeStatementFieldsFromWitness mirrors the unified
 // note-reshape circuit's statement-field order using decoded witness fields.
-func ReconstructedNoteReshapeStatementFieldsFromWitnessV6(
-	witness *NoteReshapeWitnessV6Binary,
+func ReconstructedNoteReshapeStatementFieldsFromWitness(
+	witness *NoteReshapeWitnessBinary,
 ) ([][32]byte, error) {
 	expected := primitives.NoteReshapeStatementFieldCount(int(witness.NIn), int(witness.NOut))
 	fields, err := appendNoteReshapeStatementFields(
@@ -378,7 +384,7 @@ func ReconstructedNoteReshapeStatementFieldsFromWitnessV6(
 }
 
 func shieldedIcs20WithdrawalBalanceCommitmentField(
-	witness *ShieldedIcs20WithdrawalWitnessV12Binary,
+	witness *ShieldedIcs20WithdrawalWitnessBinary,
 ) ([32]byte, error) {
 	valueBlindingGenerator, err := circuits.ValueBlindingGeneratorNative()
 	if err != nil {
@@ -403,12 +409,12 @@ func shieldedIcs20WithdrawalBalanceCommitmentField(
 	return bigIntToLE32(compressed)
 }
 
-// ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitnessV12 mirrors the
+// ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitness mirrors the
 // Go shielded ICS-20 withdrawal circuit's statement-field order using decoded
 // witness fields. Internal conservation makes the balance commitment depend
 // only on the action balance blinding.
-func ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitnessV12(
-	witness *ShieldedIcs20WithdrawalWitnessV12Binary,
+func ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitness(
+	witness *ShieldedIcs20WithdrawalWitnessBinary,
 ) ([][32]byte, error) {
 	expected := primitives.ShieldedIcs20WithdrawalStatementFieldCount(int(witness.NIn))
 	fields := make([][32]byte, 0, expected)
@@ -419,9 +425,9 @@ func ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitnessV12(
 	}
 	fields = append(fields, balanceCommitment)
 	fields = append(fields, witness.RecentPositionFloor)
-	for index, spend := range []ShieldedIcs20WithdrawalRequiredSpendWitnessV12Binary{
+	for index, spend := range []ShieldedIcs20WithdrawalRequiredSpendWitnessBinary{
 		witness.RequiredSpend,
-		witness.OptionalSpend.ShieldedIcs20WithdrawalRequiredSpendWitnessV12Binary,
+		witness.OptionalSpend.ShieldedIcs20WithdrawalRequiredSpendWitnessBinary,
 	} {
 		fields = append(fields, spend.Nullifier)
 		rk, err := pointAffineToField(spend.RKAffine)
@@ -447,10 +453,10 @@ func ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitnessV12(
 	return fields, nil
 }
 
-func reconstructedShieldedIcs20WithdrawalStatementHashFromWitnessV12(
-	witness *ShieldedIcs20WithdrawalWitnessV12Binary,
+func reconstructedShieldedIcs20WithdrawalStatementHashFromWitness(
+	witness *ShieldedIcs20WithdrawalWitnessBinary,
 ) (*big.Int, error) {
-	fields, err := ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitnessV12(witness)
+	fields, err := ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitness(witness)
 	if err != nil {
 		return nil, fmt.Errorf("reconstruct shielded ICS-20 withdrawal statement fields: %w", err)
 	}

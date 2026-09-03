@@ -119,6 +119,20 @@ CREATE INDEX spendable_notes_by_source_idx ON spendable_notes (
     source
 );
 
+-- One confirmed daily undisclosed-volume head per private address/asset subject.
+CREATE TABLE volume_accumulators (
+    subject                 BLOB NOT NULL,
+    day_start               BIGINT NOT NULL,
+    volume                  BLOB,
+    blinding                BLOB,
+    commitment              BLOB,
+    position                BIGINT,
+    pending_nullifier       BLOB,
+    pending_expires_at      BIGINT,
+    recovery_status         TINYINT NOT NULL DEFAULT 0,
+    PRIMARY KEY (subject, day_start)
+);
+
 -- Reconstructible per-note retired-nullifier proof cache. This is deliberately
 -- separate from note and spend state and may be deleted and rebuilt.
 CREATE TABLE historical_proof_cache (
@@ -167,7 +181,7 @@ CREATE TABLE compliance_asset_leaves (
     next_index BIGINT NOT NULL,
     next_value BLOB NOT NULL,
     dk_pub BLOB NOT NULL,          -- 32 bytes compressed curve point
-    threshold BLOB NOT NULL,       -- 16 bytes little-endian u128
+    daily_volume_limit BLOB NOT NULL,       -- 16 bytes little-endian u128
     route_policy_hash BLOB NOT NULL,   -- 32 bytes Fq
     ring_pk BLOB NOT NULL,         -- 32 bytes compressed curve point
     ring_id_hash BLOB NOT NULL,    -- 32 bytes Fq

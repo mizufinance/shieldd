@@ -11,12 +11,12 @@ use sha2::{Digest, Sha256, Sha512};
 
 use crate::{indexed_tree::string_to_fq, TransferComplianceMetadata};
 
-const ENCRYPT_PROOF_DOMAIN: &[u8; 24] = b"elgamal-encrypt-proof-v1";
-const AAD_DOMAIN: &[u8; 15] = b"elgamal-aad-v1\0";
-const DERIVATION_DOMAIN: &[u8; 23] = b"elgamal-derivation-v1\0\0";
-const POLICY_METADATA_DOMAIN: &[u8] = b"orbis-policy-metadata-v1";
-const TRANSFER_SEED_BINDING_DOMAIN: &[u8] = b"shieldd-transfer-seed-binding-v1";
-const HKDF_INFO: &[u8] = b"elgamal-aes-key-v1";
+const ENCRYPT_PROOF_DOMAIN: &[u8] = b"elgamal-encrypt-proof";
+const AAD_DOMAIN: &[u8] = b"elgamal-aad\0";
+const DERIVATION_DOMAIN: &[u8] = b"elgamal-derivation\0\0";
+const POLICY_METADATA_DOMAIN: &[u8] = b"orbis-policy-metadata";
+const TRANSFER_SEED_BINDING_DOMAIN: &[u8] = b"shieldd-transfer-seed-binding";
+const HKDF_INFO: &[u8] = b"elgamal-aes-key";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]

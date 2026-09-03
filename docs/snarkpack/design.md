@@ -1,6 +1,6 @@
 # SnarkPack Design
 
-Shieldd aggregates same-verifying-key Groth16 proofs with a local SnarkPack v1
+Shieldd aggregates same-verifying-key Groth16 proofs with its local SnarkPack
 implementation. See [verification.md](verification.md) for runtime checks.
 
 ## Protocol
@@ -47,7 +47,7 @@ padding and preserves the caller-order real prefix.
 
 ### Wrapper and preflight
 
-The versioned wrapper stores the statement digest and a bounded inner proof.
+The wrapper stores the statement digest and a bounded inner proof.
 Preflight validates size, framing, family, counts, VK/SRS facts, rows, padding,
 and strict proof decoding before expensive verification.
 
@@ -65,7 +65,7 @@ evidence.
 
 ## Optimization byte-lock
 
-Internal compute changes must preserve semantics and the committed v1 proof and
+Internal compute changes must preserve semantics and the committed proof and
 transcript bytes. Wire changes require a protocol-version bump. Transcript
 changes require corresponding updates in `shieldd-formal`. The workflow is in
 [optimization-playbook.md](../../crates/crypto/proof-aggregation/optimization-playbook.md).

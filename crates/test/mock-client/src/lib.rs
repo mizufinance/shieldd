@@ -126,6 +126,13 @@ impl MockClient {
                         }
                     }
                 }
+                StatePayload::VolumeAccumulator { payload, .. } => {
+                    let witness = match payload.trial_decrypt(self.fvk.outgoing()) {
+                        Some((_, true)) => Keep,
+                        _ => Forget,
+                    };
+                    self.sct.insert(witness, payload.commitment)?;
+                }
                 StatePayload::RolledUp { commitment, .. } => {
                     if self.notes.contains_key(&commitment) {
                         // This is a note we anticipated, so retain its auth path.
