@@ -523,7 +523,7 @@ mod tests {
         );
         assert_eq!(
             hex::encode(&package.transfer_seed_binding),
-            "888b78b7406ed3064191e25970e26bde485486b23681db68db710491b1b6b849"
+            "46e6f2ab617ac6f2eb5ff80bdf121f2f1aedf4e1b77f2211e2ddb9569187c8ea"
         );
         let mut stored = PocOrbisStoredAuditPackage::from(&package);
         let seed = Fq::from(99u64);

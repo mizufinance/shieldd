@@ -182,7 +182,7 @@ impl<'de> serde::Deserialize<'de> for AssetPolicy {
                             if dk_pub__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("dkPub"));
                             }
-                            dk_pub__ =
+                            dk_pub__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -190,7 +190,7 @@ impl<'de> serde::Deserialize<'de> for AssetPolicy {
                             if daily_volume_limit__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("dailyVolumeLimit"));
                             }
-                            daily_volume_limit__ =
+                            daily_volume_limit__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -210,7 +210,7 @@ impl<'de> serde::Deserialize<'de> for AssetPolicy {
                             if ring_pk__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("ringPk"));
                             }
-                            ring_pk__ =
+                            ring_pk__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -627,7 +627,7 @@ impl<'de> serde::Deserialize<'de> for AssetRegistrationGrantBody {
                             if dk_pub__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("dkPub"));
                             }
-                            dk_pub__ =
+                            dk_pub__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -635,7 +635,7 @@ impl<'de> serde::Deserialize<'de> for AssetRegistrationGrantBody {
                             if daily_volume_limit__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("dailyVolumeLimit"));
                             }
-                            daily_volume_limit__ =
+                            daily_volume_limit__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -649,7 +649,7 @@ impl<'de> serde::Deserialize<'de> for AssetRegistrationGrantBody {
                             if ring_pk__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("ringPk"));
                             }
-                            ring_pk__ =
+                            ring_pk__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -687,7 +687,7 @@ impl<'de> serde::Deserialize<'de> for AssetRegistrationGrantBody {
                             if valid_until_unix__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("validUntilUnix"));
                             }
-                            valid_until_unix__ =
+                            valid_until_unix__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -890,7 +890,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceAnchorsResponse {
                             if user_tree_root__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("userTreeRoot"));
                             }
-                            user_tree_root__ =
+                            user_tree_root__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -898,7 +898,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceAnchorsResponse {
                             if asset_tree_root__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("assetTreeRoot"));
                             }
-                            asset_tree_root__ =
+                            asset_tree_root__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -1170,7 +1170,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceAssetStatusResponse {
                             if dk_pub__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("dkPub"));
                             }
-                            dk_pub__ =
+                            dk_pub__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -1178,7 +1178,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceAssetStatusResponse {
                             if daily_volume_limit__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("dailyVolumeLimit"));
                             }
-                            daily_volume_limit__ =
+                            daily_volume_limit__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -1407,7 +1407,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceBatchMerkleProofsResponse {
                             if compliance_anchor__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("complianceAnchor"));
                             }
-                            compliance_anchor__ =
+                            compliance_anchor__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -1415,7 +1415,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceBatchMerkleProofsResponse {
                             if asset_anchor__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("assetAnchor"));
                             }
-                            asset_anchor__ =
+                            asset_anchor__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -1680,7 +1680,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceLeaf {
                             if d__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("d"));
                             }
-                            d__ =
+                            d__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -2042,7 +2042,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceMerkleProofsResponse {
                             if compliance_position__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("compliancePosition"));
                             }
-                            compliance_position__ =
+                            compliance_position__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2056,7 +2056,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceMerkleProofsResponse {
                             if asset_position__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("assetPosition"));
                             }
-                            asset_position__ =
+                            asset_position__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2064,7 +2064,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceMerkleProofsResponse {
                             if compliance_anchor__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("complianceAnchor"));
                             }
-                            compliance_anchor__ =
+                            compliance_anchor__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -2072,7 +2072,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceMerkleProofsResponse {
                             if asset_anchor__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("assetAnchor"));
                             }
-                            asset_anchor__ =
+                            asset_anchor__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -2194,7 +2194,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceParameters {
                             if anchor_validation_window_blocks__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("anchorValidationWindowBlocks"));
                             }
-                            anchor_validation_window_blocks__ =
+                            anchor_validation_window_blocks__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2519,7 +2519,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceViewingKey {
                             if inner__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("inner"));
                             }
-                            inner__ =
+                            inner__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -2698,7 +2698,7 @@ impl<'de> serde::Deserialize<'de> for EventAssetRegistered {
                             if position__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("position"));
                             }
-                            position__ =
+                            position__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2712,7 +2712,7 @@ impl<'de> serde::Deserialize<'de> for EventAssetRegistered {
                             if low_leaf_position__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("lowLeafPosition"));
                             }
-                            low_leaf_position__ =
+                            low_leaf_position__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2855,7 +2855,7 @@ impl<'de> serde::Deserialize<'de> for EventComplianceAnchor {
                             if height__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("height"));
                             }
-                            height__ =
+                            height__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2863,7 +2863,7 @@ impl<'de> serde::Deserialize<'de> for EventComplianceAnchor {
                             if user_anchor__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("userAnchor"));
                             }
-                            user_anchor__ =
+                            user_anchor__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -2871,7 +2871,7 @@ impl<'de> serde::Deserialize<'de> for EventComplianceAnchor {
                             if asset_anchor__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("assetAnchor"));
                             }
-                            asset_anchor__ =
+                            asset_anchor__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -3007,7 +3007,7 @@ impl<'de> serde::Deserialize<'de> for EventUserAssetStatusChanged {
                             if position__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("position"));
                             }
-                            position__ =
+                            position__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -3015,7 +3015,7 @@ impl<'de> serde::Deserialize<'de> for EventUserAssetStatusChanged {
                             if commitment__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("commitment"));
                             }
-                            commitment__ =
+                            commitment__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -3151,7 +3151,7 @@ impl<'de> serde::Deserialize<'de> for EventUserRegistered {
                             if position__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("position"));
                             }
-                            position__ =
+                            position__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -3159,7 +3159,7 @@ impl<'de> serde::Deserialize<'de> for EventUserRegistered {
                             if commitment__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("commitment"));
                             }
-                            commitment__ =
+                            commitment__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -3523,7 +3523,7 @@ impl<'de> serde::Deserialize<'de> for IbcComplianceMetadata {
                             if compliance_ciphertext__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("complianceCiphertext"));
                             }
-                            compliance_ciphertext__ =
+                            compliance_ciphertext__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -3927,7 +3927,7 @@ impl<'de> serde::Deserialize<'de> for IndexedLeafData {
                             if value__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("value"));
                             }
-                            value__ =
+                            value__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -3935,7 +3935,7 @@ impl<'de> serde::Deserialize<'de> for IndexedLeafData {
                             if next_index__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("nextIndex"));
                             }
-                            next_index__ =
+                            next_index__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -3943,7 +3943,7 @@ impl<'de> serde::Deserialize<'de> for IndexedLeafData {
                             if next_value__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("nextValue"));
                             }
-                            next_value__ =
+                            next_value__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -3951,7 +3951,7 @@ impl<'de> serde::Deserialize<'de> for IndexedLeafData {
                             if dk_pub__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("dkPub"));
                             }
-                            dk_pub__ =
+                            dk_pub__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -3959,7 +3959,7 @@ impl<'de> serde::Deserialize<'de> for IndexedLeafData {
                             if daily_volume_limit__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("dailyVolumeLimit"));
                             }
-                            daily_volume_limit__ =
+                            daily_volume_limit__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -3967,7 +3967,7 @@ impl<'de> serde::Deserialize<'de> for IndexedLeafData {
                             if route_policy_hash__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("routePolicyHash"));
                             }
-                            route_policy_hash__ =
+                            route_policy_hash__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -3975,7 +3975,7 @@ impl<'de> serde::Deserialize<'de> for IndexedLeafData {
                             if ring_pk__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("ringPk"));
                             }
-                            ring_pk__ =
+                            ring_pk__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -3983,7 +3983,7 @@ impl<'de> serde::Deserialize<'de> for IndexedLeafData {
                             if ring_id_hash__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("ringIdHash"));
                             }
-                            ring_id_hash__ =
+                            ring_id_hash__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -3991,7 +3991,7 @@ impl<'de> serde::Deserialize<'de> for IndexedLeafData {
                             if policy_id_hash__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("policyIdHash"));
                             }
-                            policy_id_hash__ =
+                            policy_id_hash__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -3999,7 +3999,7 @@ impl<'de> serde::Deserialize<'de> for IndexedLeafData {
                             if permission_hash__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("permissionHash"));
                             }
-                            permission_hash__ =
+                            permission_hash__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -4007,7 +4007,7 @@ impl<'de> serde::Deserialize<'de> for IndexedLeafData {
                             if resource_hash__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("resourceHash"));
                             }
-                            resource_hash__ =
+                            resource_hash__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -4209,7 +4209,7 @@ impl<'de> serde::Deserialize<'de> for MerklePathLayer {
                             if siblings__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("siblings"));
                             }
-                            siblings__ =
+                            siblings__ = 
                                 Some(map_.next_value::<Vec<::pbjson::private::BytesDeserialize<_>>>()?
                                     .into_iter().map(|x| x.0).collect())
                             ;
@@ -4456,7 +4456,7 @@ impl<'de> serde::Deserialize<'de> for MsgRegisterAsset {
                             if dk_pub__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("dkPub"));
                             }
-                            dk_pub__ =
+                            dk_pub__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -4464,7 +4464,7 @@ impl<'de> serde::Deserialize<'de> for MsgRegisterAsset {
                             if daily_volume_limit__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("dailyVolumeLimit"));
                             }
-                            daily_volume_limit__ =
+                            daily_volume_limit__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -4478,7 +4478,7 @@ impl<'de> serde::Deserialize<'de> for MsgRegisterAsset {
                             if ring_pk__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("ringPk"));
                             }
-                            ring_pk__ =
+                            ring_pk__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -4789,7 +4789,7 @@ impl<'de> serde::Deserialize<'de> for NativeAssetRegistration {
                             if dk_pub__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("dkPub"));
                             }
-                            dk_pub__ =
+                            dk_pub__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -4926,7 +4926,7 @@ impl<'de> serde::Deserialize<'de> for UpdateAssetIbcPolicy {
                             if expected_route_policy_hash__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("expectedRoutePolicyHash"));
                             }
-                            expected_route_policy_hash__ =
+                            expected_route_policy_hash__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -5265,7 +5265,7 @@ impl<'de> serde::Deserialize<'de> for UserRegistrationGrantBody {
                             if valid_until_unix__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("validUntilUnix"));
                             }
-                            valid_until_unix__ =
+                            valid_until_unix__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -5273,7 +5273,7 @@ impl<'de> serde::Deserialize<'de> for UserRegistrationGrantBody {
                             if nonce__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("nonce"));
                             }
-                            nonce__ =
+                            nonce__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }

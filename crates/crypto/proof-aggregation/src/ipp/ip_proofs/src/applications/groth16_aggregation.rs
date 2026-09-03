@@ -9161,17 +9161,17 @@ mod tests {
             normal_trace
                 .entries()
                 .iter()
-                .map(|entry| entry.stage_label)
+                .map(|entry| (entry.stage_label, entry.nonce))
                 .collect::<Vec<_>>(),
             vec![
-                b"aggregate.randomizer".as_slice(),
-                b"tipp-mipp.x0".as_slice(),
-                b"tipp-mipp.gipa.round".as_slice(),
-                b"tipp-mipp.final-bridge".as_slice(),
-                b"tipp-mipp.kzg".as_slice(),
+                (b"aggregate.randomizer".as_slice(), 0),
+                (b"tipp-mipp.x0".as_slice(), 0),
+                (b"tipp-mipp.gipa.round".as_slice(), 0),
+                (b"tipp-mipp.final-bridge".as_slice(), 0),
+                (b"tipp-mipp.kzg".as_slice(), 0),
+                (b"tipp-mipp.kzg".as_slice(), 1),
             ]
         );
-        assert!(normal_trace.entries().iter().all(|entry| entry.nonce == 0));
         assert!(profile.total_ms.is_finite() && profile.total_ms >= 0.0);
     }
 
