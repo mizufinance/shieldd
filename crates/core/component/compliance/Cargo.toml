@@ -24,6 +24,10 @@ sqlite-bundled = ["rusqlite/bundled"]
 test-helpers = ["decaf377-ka"]
 poc-orbis-v0 = ["dep:aes-gcm", "dep:hkdf"]
 
+[[example]]
+name = "dev_orbis_registration"
+required-features = ["test-helpers"]
+
 [dependencies]
 anyhow = {workspace = true}
 aes-gcm = {version = "0.10", optional = true}

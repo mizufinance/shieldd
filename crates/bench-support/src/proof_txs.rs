@@ -21,7 +21,8 @@ use shieldd_sdk_asset::{Value, BASE_ASSET_DENOM, BASE_ASSET_ID};
 use shieldd_sdk_compliance::{
     derive_regulated_nullifier_key,
     genesis::{GenesisUserRegistration, NativeAssetRegistration},
-    ComplianceLeaf, OrbisCapabilityCertificate,
+    structs::OrbisCapabilityCertificate,
+    ComplianceLeaf,
 };
 use shieldd_sdk_keys::test_keys;
 use shieldd_sdk_mock_client::MockClient;

@@ -6091,10 +6091,11 @@ mod tests {
     use shieldd_sdk_compact_block::StatePayload;
     use shieldd_sdk_compliance::genesis::{GenesisUserRegistration, NativeAssetRegistration};
     use shieldd_sdk_compliance::registry::ComplianceRegistryWrite as _;
-    use shieldd_sdk_compliance::structs::{UserRegistrationGrant, UserRegistrationGrantBody};
+    use shieldd_sdk_compliance::structs::{
+        OrbisCapabilityCertificate, UserRegistrationGrant, UserRegistrationGrantBody,
+    };
     use shieldd_sdk_compliance::{
         derive_regulated_nullifier_key, AssetPolicy, ComplianceLeaf, MsgRegisterUser,
-        OrbisCapabilityCertificate,
     };
     use shieldd_sdk_fee::Fee;
     use shieldd_sdk_keys::{test_keys, Address};

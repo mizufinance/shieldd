@@ -574,7 +574,7 @@ impl TestNodeWithIBC {
             actions.push(Action::ComplianceRegisterUser(MsgRegisterUser {
                 leaf: leaf.clone(),
                 capability_certificate: Some(
-                    shieldd_sdk_compliance::OrbisCapabilityCertificate::sign_for_test(
+                    shieldd_sdk_compliance::structs::OrbisCapabilityCertificate::sign_for_test(
                         &self.chain_id,
                         &leaf,
                         &policy,
