@@ -290,6 +290,12 @@ message ShieldedHostWithdrawalBody {
   RoutingTag routing_tag = 10;
   // Poseidon identifier of the privately selected protocol parameter set.
   bytes routing_parameter_set_id = 11;
+  // Sender-only compliance ciphertext for the public withdrawal.
+  bytes sender_compliance_ciphertext = 12;
+  // Canonical policy and per-action sender metadata.
+  bytes sender_compliance_metadata = 13;
+  // Fixed-shape daily undisclosed-volume accumulator payload.
+  VolumeAccumulatorPayload volume_accumulator = 14;
 }
 
 message ShieldedHostWithdrawalView {
@@ -323,6 +329,8 @@ message ShieldedHostWithdrawalPlan {
   HostWithdrawal withdrawal = 6;
   // Protocol-wide routing parameters bound by the reused withdrawal proof.
   DiscoveryParameters routing_parameters = 7;
+  // Daily undisclosed-volume transition or a private padding transition.
+  VolumeAccumulatorPlan volume_accumulator = 8;
 }
 
 message ShieldedIcs20WithdrawalChangeBody {
@@ -367,6 +375,12 @@ message ShieldedIcs20WithdrawalBody {
   RoutingTag routing_tag = 10;
   // Poseidon identifier of the privately selected protocol parameter set.
   bytes routing_parameter_set_id = 11;
+  // Sender-only compliance ciphertext for the public withdrawal.
+  bytes sender_compliance_ciphertext = 12;
+  // Canonical policy and per-action sender metadata.
+  bytes sender_compliance_metadata = 13;
+  // Fixed-shape daily undisclosed-volume accumulator payload.
+  VolumeAccumulatorPayload volume_accumulator = 14;
 }
 
 message ShieldedIcs20WithdrawalView {
@@ -400,6 +414,8 @@ message ShieldedIcs20WithdrawalPlan {
   shieldd.core.component.ibc.v1.Ics20Withdrawal withdrawal = 6;
   // Protocol routing parameter set used to construct and prove the action.
   DiscoveryParameters routing_parameters = 7;
+  // Daily undisclosed-volume transition or a private padding transition.
+  VolumeAccumulatorPlan volume_accumulator = 8;
 }
 
 message NoteReshapeInputBody {

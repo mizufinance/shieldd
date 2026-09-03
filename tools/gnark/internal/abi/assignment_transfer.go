@@ -358,9 +358,16 @@ func newTransferChangeOutputCircuitFields(
 func newTransferVolumeAccumulatorCircuitFields(
 	witness *TransferWitnessBinary,
 ) (circuits.TransferVolumeAccumulatorCircuitFields, error) {
+	return newVolumeAccumulatorCircuitFields(&witness.VolumeAccumulator, witness.TargetTimestamp)
+}
+
+func newVolumeAccumulatorCircuitFields(
+	witness *TransferVolumeAccumulatorWitnessBinary,
+	targetTimestamp [32]byte,
+) (circuits.TransferVolumeAccumulatorCircuitFields, error) {
 	priorProof, err := transferStatePathFields(
-		witness.VolumeAccumulator.PriorPosition,
-		witness.VolumeAccumulator.PriorAuthPath,
+		witness.PriorPosition,
+		witness.PriorAuthPath,
 	)
 	if err != nil {
 		return circuits.TransferVolumeAccumulatorCircuitFields{}, fmt.Errorf(
@@ -368,27 +375,27 @@ func newTransferVolumeAccumulatorCircuitFields(
 			err,
 		)
 	}
-	target := primitives.LittleEndianBytesToBigInt(witness.TargetTimestamp[:])
+	target := primitives.LittleEndianBytesToBigInt(targetTimestamp[:])
 	if !target.IsUint64() {
 		return circuits.TransferVolumeAccumulatorCircuitFields{}, fmt.Errorf("target timestamp exceeds u64")
 	}
 	targetU64 := target.Uint64()
 	return circuits.TransferVolumeAccumulatorCircuitFields{
-		Nullifier:         fqString(witness.VolumeAccumulator.Nullifier),
-		Commitment:        fqString(witness.VolumeAccumulator.Commitment),
-		DayStart:          fqString(witness.VolumeAccumulator.DayStart),
-		ProofContext:      fqString(witness.VolumeAccumulator.ProofContext),
-		UseReal:           boolToVariable(witness.VolumeAccumulator.UseReal),
-		StartsNewDay:      boolToVariable(witness.VolumeAccumulator.StartsNewDay),
+		Nullifier:         fqString(witness.Nullifier),
+		Commitment:        fqString(witness.Commitment),
+		DayStart:          fqString(witness.DayStart),
+		ProofContext:      fqString(witness.ProofContext),
+		UseReal:           boolToVariable(witness.UseReal),
+		StartsNewDay:      boolToVariable(witness.StartsNewDay),
 		TimestampDayIndex: targetU64 / 86400,
 		TimestampSecond:   targetU64 % 86400,
-		Subject:           fqString(witness.VolumeAccumulator.Subject),
-		PriorVolume:       fqString(witness.VolumeAccumulator.PriorVolume),
-		PriorBlinding:     fqString(witness.VolumeAccumulator.PriorBlinding),
-		PriorCommitment:   fqString(witness.VolumeAccumulator.PriorCommitment),
+		Subject:           fqString(witness.Subject),
+		PriorVolume:       fqString(witness.PriorVolume),
+		PriorBlinding:     fqString(witness.PriorBlinding),
+		PriorCommitment:   fqString(witness.PriorCommitment),
 		PriorStateProof:   priorProof,
-		SuccessorVolume:   fqString(witness.VolumeAccumulator.SuccessorVolume),
-		SuccessorBlinding: fqString(witness.VolumeAccumulator.SuccessorBlinding),
+		SuccessorVolume:   fqString(witness.SuccessorVolume),
+		SuccessorBlinding: fqString(witness.SuccessorBlinding),
 	}, nil
 }
 

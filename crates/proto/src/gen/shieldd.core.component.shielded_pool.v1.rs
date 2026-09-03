@@ -710,6 +710,15 @@ pub struct ShieldedHostWithdrawalBody {
     /// Poseidon identifier of the privately selected protocol parameter set.
     #[prost(bytes = "vec", tag = "11")]
     pub routing_parameter_set_id: ::prost::alloc::vec::Vec<u8>,
+    /// Sender-only compliance ciphertext for the public withdrawal.
+    #[prost(bytes = "vec", tag = "12")]
+    pub sender_compliance_ciphertext: ::prost::alloc::vec::Vec<u8>,
+    /// Canonical policy and per-action sender metadata.
+    #[prost(bytes = "vec", tag = "13")]
+    pub sender_compliance_metadata: ::prost::alloc::vec::Vec<u8>,
+    /// Fixed-shape daily undisclosed-volume accumulator payload.
+    #[prost(message, optional, tag = "14")]
+    pub volume_accumulator: ::core::option::Option<VolumeAccumulatorPayload>,
 }
 impl ::prost::Name for ShieldedHostWithdrawalBody {
     const NAME: &'static str = "ShieldedHostWithdrawalBody";
@@ -810,6 +819,9 @@ pub struct ShieldedHostWithdrawalPlan {
     /// Protocol-wide routing parameters bound by the reused withdrawal proof.
     #[prost(message, optional, tag = "7")]
     pub routing_parameters: ::core::option::Option<DiscoveryParameters>,
+    /// Daily undisclosed-volume transition or a private padding transition.
+    #[prost(message, optional, tag = "8")]
+    pub volume_accumulator: ::core::option::Option<VolumeAccumulatorPlan>,
 }
 impl ::prost::Name for ShieldedHostWithdrawalPlan {
     const NAME: &'static str = "ShieldedHostWithdrawalPlan";
@@ -913,6 +925,15 @@ pub struct ShieldedIcs20WithdrawalBody {
     /// Poseidon identifier of the privately selected protocol parameter set.
     #[prost(bytes = "vec", tag = "11")]
     pub routing_parameter_set_id: ::prost::alloc::vec::Vec<u8>,
+    /// Sender-only compliance ciphertext for the public withdrawal.
+    #[prost(bytes = "vec", tag = "12")]
+    pub sender_compliance_ciphertext: ::prost::alloc::vec::Vec<u8>,
+    /// Canonical policy and per-action sender metadata.
+    #[prost(bytes = "vec", tag = "13")]
+    pub sender_compliance_metadata: ::prost::alloc::vec::Vec<u8>,
+    /// Fixed-shape daily undisclosed-volume accumulator payload.
+    #[prost(message, optional, tag = "14")]
+    pub volume_accumulator: ::core::option::Option<VolumeAccumulatorPayload>,
 }
 impl ::prost::Name for ShieldedIcs20WithdrawalBody {
     const NAME: &'static str = "ShieldedIcs20WithdrawalBody";
@@ -1013,6 +1034,9 @@ pub struct ShieldedIcs20WithdrawalPlan {
     /// Protocol routing parameter set used to construct and prove the action.
     #[prost(message, optional, tag = "7")]
     pub routing_parameters: ::core::option::Option<DiscoveryParameters>,
+    /// Daily undisclosed-volume transition or a private padding transition.
+    #[prost(message, optional, tag = "8")]
+    pub volume_accumulator: ::core::option::Option<VolumeAccumulatorPlan>,
 }
 impl ::prost::Name for ShieldedIcs20WithdrawalPlan {
     const NAME: &'static str = "ShieldedIcs20WithdrawalPlan";

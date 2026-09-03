@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/mizufinance/shieldd/tools/gnark/internal/circuits"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/compliance"
 	"github.com/mizufinance/shieldd/tools/gnark/internal/generated"
 	"github.com/mizufinance/shieldd/tools/gnark/internal/primitives"
 )
@@ -129,20 +130,23 @@ func newShieldedIcs20WithdrawalCircuitAssignment(
 	assignment.UnregulatedPrecision = witness.UnregulatedPrecision
 	assignment.RoutingAsOfHeight = witness.RoutingAsOfHeight
 	assignment.RoutingNonce = fqString(witness.RoutingNonce)
+	volumeAccumulator, err := newVolumeAccumulatorCircuitFields(&witness.VolumeAccumulator, witness.TargetTimestamp)
+	if err != nil {
+		return nil, err
+	}
+	assignment.VolumeAccumulator = volumeAccumulator
 	assignment.Auth = circuits.TransferAuthSharedFields{
 		AK:           point2DString(witness.AKAffine),
 		NK:           primitives.LittleEndianBytesToBigInt(witness.NK[:]).String(),
 		IVKReduced:   ivkReduced.String(),
 		IVKQuotientA: quotientA,
 	}
-	assignment.Asset = circuits.ShieldedIcs20WithdrawalAssetCircuitFields{
-		Leaf: circuits.ShieldedIcs20WithdrawalAssetLeafCircuitFields{
-			Value:      fqString(witness.AssetIndexedLeaf.Value),
-			NextIndex:  witness.AssetIndexedLeaf.NextIndex,
-			NextValue:  fqString(witness.AssetIndexedLeaf.NextValue),
-			ParamsHash: fqString(witness.AssetIndexedLeaf.ParamsHash),
-			RingHash:   fqString(witness.AssetIndexedLeaf.RingHash),
-		},
+	assignment.Asset = circuits.AssetTreeFields{
+		Leaf: indexedLeafFieldsFromIndexedLeafBinary(
+			witness.AssetIndexedLeaf,
+			witness.AssetIndexedLeafDKPub,
+			witness.AssetIndexedLeafRingPK,
+		),
 		Path:     assetPath,
 		Position: witness.AssetPosition,
 	}
@@ -152,6 +156,32 @@ func newShieldedIcs20WithdrawalCircuitAssignment(
 		Status:   fqString(witness.SenderStatus),
 		Path:     senderPath,
 		Position: witness.SenderCompliancePosition,
+	}
+	if len(witness.DetectionCiphertext) != compliance.TransferDetectionFQCount {
+		return nil, fmt.Errorf("expected %d withdrawal detection fields, got %d", compliance.TransferDetectionFQCount, len(witness.DetectionCiphertext))
+	}
+	if len(witness.SenderCiphertext) != compliance.TransferExtCiphertextFQCount {
+		return nil, fmt.Errorf("expected %d withdrawal sender fields, got %d", compliance.TransferExtCiphertextFQCount, len(witness.SenderCiphertext))
+	}
+	assignment.Compliance = circuits.WithdrawalComplianceCircuitFields{
+		NonceRoot: fqString(witness.ComplianceNonceRoot),
+		Metadata: circuits.WithdrawalComplianceMetadataCircuitFields{
+			RingIDHash:      fqString(witness.RingIDHash),
+			PolicyIDHash:    fqString(witness.PolicyIDHash),
+			ResourceHash:    fqString(witness.ResourceHash),
+			PermissionHash:  fqString(witness.PermissionHash),
+			TargetTimestamp: fqString(witness.MetadataTargetTimestamp),
+			SenderSalt:      fqString(witness.SenderSalt),
+		},
+		SenderEPK:        point2DString(witness.SenderEPK),
+		SenderC2:         fqString(witness.SenderC2),
+		SenderRandomizer: fqString(witness.SenderRandomizer),
+	}
+	for i := range witness.DetectionCiphertext {
+		assignment.Compliance.DetectionCiphertext[i] = fqString(witness.DetectionCiphertext[i])
+	}
+	for i := range witness.SenderCiphertext {
+		assignment.Compliance.SenderCiphertext[i] = fqString(witness.SenderCiphertext[i])
 	}
 	requiredSpend, err := newShieldedIcs20WithdrawalRequiredSpendCircuitFields(
 		&witness.RequiredSpend,

@@ -12,6 +12,7 @@ mod preflight;
 mod srs;
 mod statement;
 mod strict_deserialize;
+mod torus_v2;
 mod transcript;
 mod transfer_family_dispatch;
 
@@ -22,7 +23,9 @@ use shieldd_sdk_proof_params::batch::BatchItem;
 
 pub use aggregate_proof_wrapper::{
     decode_wrapped_aggregate_proof, decode_wrapped_aggregate_proof_inner_range,
-    encode_wrapped_aggregate_proof, AggregateProofBytesError, AGGREGATE_PROOF_WRAPPER_DOMAIN,
+    decode_wrapped_torus_v2_aggregate_proof, encode_wrapped_aggregate_proof,
+    encode_wrapped_torus_v2_aggregate_proof, AggregateProofBytesError,
+    AGGREGATE_PROOF_TORUS_V2_WRAPPER_DOMAIN, AGGREGATE_PROOF_WRAPPER_DOMAIN,
     MAX_AGGREGATE_PROOF_BYTES,
 };
 #[doc(hidden)]
@@ -82,6 +85,15 @@ pub fn aggregate_family_profiled(
     SnarkpackBackend::aggregate_family_profiled(statement, pvk, items, srs)
 }
 
+/// Build the optional SnarkPack v2 torus wire using the shared relation and transcript.
+pub fn aggregate_family_torus_v2(
+    statement: &AggregateStatement,
+    items: &[BatchItem],
+    srs: &DevSrs,
+) -> Result<Vec<u8>> {
+    SnarkpackBackend::aggregate_family_torus_v2(statement, items, srs)
+}
+
 pub fn verify_family_aggregate(
     statement: &AggregateStatement,
     pvk: &PreparedVerifyingKey<Bls12_377>,
@@ -89,6 +101,16 @@ pub fn verify_family_aggregate(
     srs: &DevSrs,
 ) -> std::result::Result<(), AggregateVerifyError> {
     SnarkpackBackend::verify_family_aggregate(statement, pvk, aggregate_proof_bytes, srs)
+}
+
+/// Verify an optional v2 torus aggregate after reconstructing its target values.
+pub fn verify_family_aggregate_torus_v2(
+    statement: &AggregateStatement,
+    pvk: &PreparedVerifyingKey<Bls12_377>,
+    aggregate_proof_bytes: &[u8],
+    srs: &DevSrs,
+) -> std::result::Result<(), AggregateVerifyError> {
+    SnarkpackBackend::verify_family_aggregate_torus_v2(statement, pvk, aggregate_proof_bytes, srs)
 }
 
 pub fn verify_family_aggregate_profiled(

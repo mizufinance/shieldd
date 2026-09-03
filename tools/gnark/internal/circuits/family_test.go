@@ -178,7 +178,7 @@ func compileCircuitFamilies() []struct {
 		{
 			name:    "transfer",
 			circuit: func() frontend.Circuit { return circuits.NewTransferCircuit() },
-			stats:   circuitStats{constraints: 142573, public: 2, secret: 484, internal: 133018},
+			stats:   circuitStats{constraints: 142184, public: 2, secret: 484, internal: 132629},
 		},
 		{
 			name:    "note_reshape8x1",
@@ -193,7 +193,7 @@ func compileCircuitFamilies() []struct {
 		{
 			name:    "shielded_ics20_withdrawal",
 			circuit: func() frontend.Circuit { return circuits.NewShieldedIcs20WithdrawalCircuit(2) },
-			stats:   circuitStats{constraints: 57651, public: 2, secret: 296, internal: 54162},
+			stats:   circuitStats{constraints: 93287, public: 2, secret: 409, internal: 87265},
 		},
 	}
 }
@@ -227,6 +227,29 @@ func TestCircuitFamiliesAcceptValidAssignment(t *testing.T) {
 				test.WithCurves(ecc.BLS12_377),
 				test.WithBackends(backend.GROTH16),
 				test.WithValidAssignment(family.assignment(t)),
+			)
+		})
+	}
+}
+
+func TestShieldedIcs20WithdrawalAccumulatorBranchesAcceptValidAssignment(t *testing.T) {
+	for _, label := range []string{
+		"shielded_ics20_withdrawal_accumulator_origin",
+		"shielded_ics20_withdrawal_accumulator_continuation",
+	} {
+		t.Run(label, func(t *testing.T) {
+			fixture := testfixtures.LoadShieldedIcs20WithdrawalWitness(label)
+			assignment, _, err := abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitness(fixture)
+			if err != nil {
+				t.Fatalf("decode withdrawal fixture: %v", err)
+			}
+
+			assert := test.NewAssert(t)
+			assert.CheckCircuit(
+				circuits.NewShieldedIcs20WithdrawalCircuit(2),
+				test.WithCurves(ecc.BLS12_377),
+				test.WithBackends(backend.GROTH16),
+				test.WithValidAssignment(assignment),
 			)
 		})
 	}

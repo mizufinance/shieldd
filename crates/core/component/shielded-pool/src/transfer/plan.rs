@@ -25,7 +25,7 @@ use crate::note_reshape_padding::{pad_to_len, HiddenArityPadder};
 use crate::transfer::{
     Transfer, TransferChangeOutputPrivate, TransferOptionalSpendPrivate, TransferOutputPublic,
     TransferProof, TransferProofPrivate, TransferProofPublic, TransferReceiverOutputPrivate,
-    TransferSpendPrivate, TransferSpendPublic, TransferVolumeAccumulatorPublic,
+    TransferSpendPrivate, TransferSpendPublic,
 };
 use crate::transfer::{
     TransferBody, TransferInputBody, TransferOutputBody, PADDED_TRANSFER_INPUTS,
@@ -666,7 +666,7 @@ impl TransferPlan {
                 routing,
                 routing_parameter_set_id: self.routing_parameters.id(),
                 recent_position_floor,
-                volume_accumulator: TransferVolumeAccumulatorPublic {
+                volume_accumulator: crate::VolumeAccumulatorPublic {
                     nullifier: volume_payload.nullifier,
                     commitment: volume_payload.commitment,
                     day_start: volume_payload.day_start,

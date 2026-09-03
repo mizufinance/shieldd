@@ -46,7 +46,7 @@ nullifier, and value constraints are tracked in
 - Eligible padding means disclosure; ineligible padding remains unflagged.
 - An unregulated transfer is never flagged, including when its receiver amount
   is `u128::MAX`.
-- The final 30 UTC minutes select the next day, and fee funding is constrained
+- UTC midnight alone selects the next day, and fee funding is constrained
   to its statement-bound disabled context.
 - Detection encryption is unconditional and uses the selected DK shared secret,
   sender-core EPK, asset id, detection salt, canonical flag, and reserved zero.

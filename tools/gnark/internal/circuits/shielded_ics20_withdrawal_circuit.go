@@ -67,6 +67,25 @@ type ShieldedIcs20WithdrawalAssetCircuitFields struct {
 	Position frontend.Variable
 }
 
+type WithdrawalComplianceMetadataCircuitFields struct {
+	RingIDHash      frontend.Variable
+	PolicyIDHash    frontend.Variable
+	ResourceHash    frontend.Variable
+	PermissionHash  frontend.Variable
+	TargetTimestamp frontend.Variable
+	SenderSalt      frontend.Variable
+}
+
+type WithdrawalComplianceCircuitFields struct {
+	NonceRoot           frontend.Variable
+	DetectionCiphertext [TransferDetectionFQCount]frontend.Variable
+	Metadata            WithdrawalComplianceMetadataCircuitFields
+	SenderEPK           Point2D
+	SenderC2            frontend.Variable
+	SenderCiphertext    [TransferExtCiphertextFQCount]frontend.Variable
+	SenderRandomizer    frontend.Variable
+}
+
 type ShieldedIcs20WithdrawalCircuit struct {
 	nIn         int
 	wiringTrace *WiringTranscript
@@ -90,9 +109,11 @@ type ShieldedIcs20WithdrawalCircuit struct {
 	RoutingAsOfHeight         frontend.Variable
 	RoutingNonce              frontend.Variable
 
-	Auth   TransferAuthSharedFields
-	Asset  ShieldedIcs20WithdrawalAssetCircuitFields
-	Sender ShieldedIcs20WithdrawalSenderCircuitFields
+	Auth              TransferAuthSharedFields
+	Asset             AssetTreeFields
+	Sender            ShieldedIcs20WithdrawalSenderCircuitFields
+	Compliance        WithdrawalComplianceCircuitFields
+	VolumeAccumulator TransferVolumeAccumulatorCircuitFields
 
 	RequiredSpend ShieldedIcs20WithdrawalRequiredSpendCircuitFields
 	OptionalSpend ShieldedIcs20WithdrawalOptionalSpendCircuitFields
@@ -114,6 +135,26 @@ func (c *ShieldedIcs20WithdrawalCircuit) Define(api frontend.API) error {
 
 	shared, err := c.verifySharedContext(api)
 	if err != nil {
+		return err
+	}
+	isFlagged, err := verifyVolumeAccumulatorTransition(
+		api,
+		&c.VolumeAccumulator,
+		c.TargetTimestamp,
+		c.IsRegulated,
+		shared.senderDivGenFq,
+		shared.senderTransmissionFq,
+		shared.sharedAssetID,
+		c.OutboundAmount,
+		shared.indexedLeaf.DailyVolumeLimit,
+		c.Anchor,
+		c.Auth.NK,
+		c.Compliance.NonceRoot,
+	)
+	if err != nil {
+		return err
+	}
+	if err := c.verifyWithdrawalCompliance(api, &shared, isFlagged); err != nil {
 		return err
 	}
 	if err := verifySingleRoutingTag(
@@ -212,12 +253,32 @@ func (c *ShieldedIcs20WithdrawalCircuit) Define(api frontend.API) error {
 	)
 	fields = append(fields, c.WithdrawalEffectHashLimbs[:]...)
 	fields = append(fields, c.RoutingTag, c.RoutingParameterSetID)
+	fields = append(fields,
+		c.VolumeAccumulator.Nullifier,
+		c.VolumeAccumulator.Commitment,
+		c.VolumeAccumulator.DayStart,
+	)
+	fields = append(fields, c.Compliance.DetectionCiphertext[:]...)
+	senderEPK := gnarkte.Point{X: c.Compliance.SenderEPK.X, Y: c.Compliance.SenderEPK.Y}
+	senderEPKFq, err := decafgnark.CompressToField(api, senderEPK)
+	if err != nil {
+		return err
+	}
+	fields = append(fields, senderEPKFq, c.Compliance.SenderC2)
+	fields = append(fields, c.Compliance.SenderCiphertext[:]...)
+	fields = append(fields,
+		c.Compliance.Metadata.RingIDHash,
+		c.Compliance.Metadata.PolicyIDHash,
+		c.Compliance.Metadata.ResourceHash,
+		c.Compliance.Metadata.PermissionHash,
+		c.Compliance.Metadata.SenderSalt,
+	)
 
 	for index, field := range fields {
 		c.bindSemantic(fmt.Sprintf("statement.field.%03d", index), field)
 	}
 	c.bindSemantic("statement.fields", fields...)
-	statementHash, err := c.hashShieldedIcs20WithdrawalStatement(api, fields)
+	statementHash, err := ShieldedIcs20WithdrawalStatementHashForShape(api, c.nIn, fields)
 	if err != nil {
 		return err
 	}
@@ -254,8 +315,12 @@ func (c *ShieldedIcs20WithdrawalCircuit) bindShieldedIcs20WithdrawalWitnessSeman
 	c.bindSemantic("asset.leaf.value", c.Asset.Leaf.Value)
 	c.bindSemantic("asset.leaf.next_index", c.Asset.Leaf.NextIndex)
 	c.bindSemantic("asset.leaf.next_value", c.Asset.Leaf.NextValue)
-	c.bindSemantic("asset.leaf.params_hash", c.Asset.Leaf.ParamsHash)
-	c.bindSemantic("asset.leaf.ring_hash", c.Asset.Leaf.RingHash)
+	c.bindSemantic("asset.leaf.daily_volume_limit", c.Asset.Leaf.DailyVolumeLimit)
+	c.bindSemantic("asset.leaf.route_policy_hash", c.Asset.Leaf.RoutePolicyHash)
+	c.bindSemantic("asset.leaf.ring_id_hash", c.Asset.Leaf.RingIDHash)
+	c.bindSemantic("asset.leaf.policy_id_hash", c.Asset.Leaf.PolicyIDHash)
+	c.bindSemantic("asset.leaf.permission_hash", c.Asset.Leaf.PermissionHash)
+	c.bindSemantic("asset.leaf.resource_hash", c.Asset.Leaf.ResourceHash)
 	c.bindSemantic("asset.path", quadPathVariables(c.Asset.Path)...)
 	c.bindSemantic("asset.position", c.Asset.Position)
 
@@ -298,76 +363,20 @@ func (c *ShieldedIcs20WithdrawalCircuit) bindShieldedIcs20WithdrawalSpendWitness
 	c.bindSemantic(name+".history_required", spend.HistoryRequired)
 }
 
-func shieldedIcs20WithdrawalStatementHashConstant(suffix string) *big.Int {
-	sum := blake2b.Sum512(
-		[]byte(
-			"shieldd.shielded_pool.shielded_ics20_withdrawal.public_input_hash." +
-				suffix,
-		),
-	)
-	return LittleEndianBytesToBigInt(sum[:])
-}
-
-func (c *ShieldedIcs20WithdrawalCircuit) hashShieldedIcs20WithdrawalStatement(
-	api frontend.API,
-	fields []frontend.Variable,
-) (frontend.Variable, error) {
-	if len(fields) != ShieldedIcs20WithdrawalStatementFieldCount(c.nIn) {
-		return nil, fmt.Errorf(
-			"invalid shielded ICS-20 withdrawal statement field count: got %d",
-			len(fields),
-		)
-	}
-	domain := shieldedIcs20WithdrawalStatementHashConstant("statement")
-	pad0 := shieldedIcs20WithdrawalStatementHashConstant("pad0")
-	pad1 := shieldedIcs20WithdrawalStatementHashConstant("pad1")
-
-	c.traceWiring("statement.hash", "block=0", "inputs=statement.field.000..006", "out=statement.hash.block0")
-	block0, err := Poseidon377Hash7(api, domain, [7]frontend.Variable{
-		fields[0], fields[1], fields[2], fields[3], fields[4], fields[5], fields[6],
-	})
-	if err != nil {
-		return nil, err
-	}
-	c.bindSemantic("statement.hash.block0", block0)
-
-	c.traceWiring("statement.hash", "block=1", "inputs=statement.hash.block0,statement.field.007..012", "out=statement.hash.block1")
-	block1, err := Poseidon377Hash7(api, domain, [7]frontend.Variable{
-		block0, fields[7], fields[8], fields[9], fields[10], fields[11], fields[12],
-	})
-	if err != nil {
-		return nil, err
-	}
-	c.bindSemantic("statement.hash.block1", block1)
-
-	c.traceWiring("statement.hash", "block=2", "inputs=statement.hash.block1,statement.field.013..018", "out=statement.hash.block2")
-	block2, err := Poseidon377Hash7(api, domain, [7]frontend.Variable{
-		block1, fields[13], fields[14], fields[15], fields[16], fields[17], fields[18],
-	})
-	if err != nil {
-		return nil, err
-	}
-	c.bindSemantic("statement.hash.block2", block2)
-
-	c.traceWiring("statement.hash", "block=3", "inputs=statement.hash.block2,statement.field.019..020,pad0,pad1,pad0,pad1", "out=statement.hash.block3")
-	block3, err := Poseidon377Hash7(api, domain, [7]frontend.Variable{
-		block2, fields[19], fields[20], pad0, pad1, pad0, pad1,
-	})
-	if err != nil {
-		return nil, err
-	}
-	c.bindSemantic("statement.hash.block3", block3)
-	return block3, nil
-}
-
 type shieldedIcs20WithdrawalSharedContext struct {
-	ak                   gnarkte.Point
-	assetLeaf            ShieldedIcs20WithdrawalAssetLeafCircuitFields
-	senderDivGen         gnarkte.Point
-	senderDivGenFq       frontend.Variable
-	senderTransmission   gnarkte.Point
-	senderTransmissionFq frontend.Variable
-	sharedAssetID        frontend.Variable
+	ak                      gnarkte.Point
+	indexedLeaf             IndexedLeafInputs
+	effectiveRingPK         gnarkte.Point
+	effectiveDKPub          gnarkte.Point
+	effectiveRingIDHash     frontend.Variable
+	effectivePolicyHash     frontend.Variable
+	effectiveResourceHash   frontend.Variable
+	effectivePermissionHash frontend.Variable
+	senderDivGen            gnarkte.Point
+	senderDivGenFq          frontend.Variable
+	senderTransmission      gnarkte.Point
+	senderTransmissionFq    frontend.Variable
+	sharedAssetID           frontend.Variable
 }
 
 func (c *ShieldedIcs20WithdrawalCircuit) verifySharedContext(
@@ -381,12 +390,18 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifySharedContext(
 	)
 	shared := shieldedIcs20WithdrawalSharedContext{
 		ak: gnarkte.Point{X: c.Auth.AK.X, Y: c.Auth.AK.Y},
-		assetLeaf: ShieldedIcs20WithdrawalAssetLeafCircuitFields{
-			Value:      c.Asset.Leaf.Value,
-			NextIndex:  c.Asset.Leaf.NextIndex,
-			NextValue:  c.Asset.Leaf.NextValue,
-			ParamsHash: c.Asset.Leaf.ParamsHash,
-			RingHash:   c.Asset.Leaf.RingHash,
+		indexedLeaf: IndexedLeafInputs{
+			Value:            c.Asset.Leaf.Value,
+			NextIndex:        c.Asset.Leaf.NextIndex,
+			NextValue:        c.Asset.Leaf.NextValue,
+			DKPub:            gnarkte.Point{X: c.Asset.Leaf.DKPub.X, Y: c.Asset.Leaf.DKPub.Y},
+			DailyVolumeLimit: c.Asset.Leaf.DailyVolumeLimit,
+			RoutePolicyHash:  c.Asset.Leaf.RoutePolicyHash,
+			RingPK:           gnarkte.Point{X: c.Asset.Leaf.RingPK.X, Y: c.Asset.Leaf.RingPK.Y},
+			RingIDHash:       c.Asset.Leaf.RingIDHash,
+			PolicyIDHash:     c.Asset.Leaf.PolicyIDHash,
+			PermissionHash:   c.Asset.Leaf.PermissionHash,
+			ResourceHash:     c.Asset.Leaf.ResourceHash,
 		},
 		senderDivGen:  gnarkte.Point{X: c.Sender.DivGen.X, Y: c.Sender.DivGen.Y},
 		sharedAssetID: c.OutboundAssetID,
@@ -464,6 +479,17 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifySharedContext(
 	if err := c.verifyShieldedIcs20WithdrawalAssetRegistry(api, &shared); err != nil {
 		return shieldedIcs20WithdrawalSharedContext{}, err
 	}
+	unregulatedRingPK, unregulatedDKPub, err := UnregulatedComplianceKeys()
+	if err != nil {
+		return shieldedIcs20WithdrawalSharedContext{}, err
+	}
+	shared.effectiveRingPK = SelectPoint(api, c.IsRegulated, shared.indexedLeaf.RingPK, unregulatedRingPK)
+	shared.effectiveDKPub = SelectPoint(api, c.IsRegulated, shared.indexedLeaf.DKPub, unregulatedDKPub)
+	emptyPolicyHash := MustBigInt(transferUnregulatedPolicyHashDecimal)
+	shared.effectiveRingIDHash = api.Select(c.IsRegulated, shared.indexedLeaf.RingIDHash, emptyPolicyHash)
+	shared.effectivePolicyHash = api.Select(c.IsRegulated, shared.indexedLeaf.PolicyIDHash, emptyPolicyHash)
+	shared.effectiveResourceHash = api.Select(c.IsRegulated, shared.indexedLeaf.ResourceHash, emptyPolicyHash)
+	shared.effectivePermissionHash = api.Select(c.IsRegulated, shared.indexedLeaf.PermissionHash, emptyPolicyHash)
 
 	c.traceWiring(
 		"gadget.compliance_leaf",
@@ -515,81 +541,80 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifyShieldedIcs20WithdrawalAssetRegis
 	api frontend.API,
 	shared *shieldedIcs20WithdrawalSharedContext,
 ) error {
-	vectors, err := LoadPrototypeVectors()
-	if err != nil {
-		return err
-	}
-
-	c.traceWiring(
-		"gadget.asset_registry_leaf_hash",
-		"value=asset.leaf.value",
-		"next_index=asset.leaf.next_index",
-		"next_value=asset.leaf.next_value",
-		"params_hash=asset.leaf.params_hash",
-		"ring_hash=asset.leaf.ring_hash",
-		"out=asset.leaf.commitment",
-	)
-	assetLeafCommitment, err := Poseidon377Hash5(
-		api,
-		MustBigInt(vectors.Poseidon377.IMTLeafDomain),
-		[5]frontend.Variable{
-			shared.assetLeaf.Value,
-			shared.assetLeaf.NextIndex,
-			shared.assetLeaf.NextValue,
-			shared.assetLeaf.ParamsHash,
-			shared.assetLeaf.RingHash,
-		},
-	)
-	if err != nil {
-		return err
-	}
-	c.bindSemantic("asset.leaf.commitment", assetLeafCommitment)
-
-	c.traceWiring(
-		"gadget.asset_registry_path",
-		"leaf=asset.leaf.commitment",
-		"path=asset.path",
-		"position=asset.position",
-		"out=asset.root.computed",
-	)
-	assetRoot, err := VerifyQuadPath(
-		api,
-		assetLeafCommitment,
-		c.Asset.Path,
-		c.Asset.Position,
-	)
-	if err != nil {
-		return err
-	}
-	c.bindSemantic("asset.root.computed", assetRoot)
-	c.traceWiring("assert.eq", "lhs=asset.root.computed", "rhs=asset_anchor")
-	api.AssertIsEqual(assetRoot, c.AssetAnchor)
-
-	// The low leaf at value zero is the reserved IMT sentinel, never an asset
-	// policy. Rejecting zero here prevents regulated equality from treating a
-	// custom sentinel proof as policy authorization.
-	c.traceWiring("assert.ne", "lhs=shared.asset_id", "rhs=0")
 	api.AssertIsDifferent(shared.sharedAssetID, 0)
-
-	c.traceWiring(
-		"gadget.asset_registry_gap",
-		"asset_id=shared.asset_id",
-		"is_regulated=is_regulated",
-		"value=asset.leaf.value",
-		"next_value=asset.leaf.next_value",
-		"out=asset.gap_valid",
-	)
-	validProof := AssetRegistryGap(
+	c.traceWiring("assert.ne", "lhs=shared.asset_id", "rhs=0")
+	c.traceWiring("gadget.asset_registry_leaf_hash", "value=asset.leaf.value", "next_index=asset.leaf.next_index", "next_value=asset.leaf.next_value", "params_hash=asset.leaf.params_hash", "ring_hash=asset.leaf.ring_hash", "out=asset.leaf.commitment")
+	return VerifyAssetRegistryIMT(
 		api,
 		shared.sharedAssetID,
 		c.IsRegulated,
-		shared.assetLeaf.Value,
-		shared.assetLeaf.NextValue,
+		shared.indexedLeaf,
+		c.Asset.Path,
+		c.Asset.Position,
+		c.AssetAnchor,
 	)
-	c.bindSemantic("asset.gap_valid", validProof)
-	c.traceWiring("assert.eq", "lhs=asset.gap_valid", "rhs=1")
-	api.AssertIsEqual(validProof, 1)
-	return nil
+}
+
+func (c *ShieldedIcs20WithdrawalCircuit) verifyWithdrawalCompliance(
+	api frontend.API,
+	shared *shieldedIcs20WithdrawalSharedContext,
+	isFlagged frontend.Variable,
+) error {
+	metadata := &c.Compliance.Metadata
+	api.AssertIsEqual(metadata.TargetTimestamp, c.TargetTimestamp)
+	api.AssertIsEqual(metadata.RingIDHash, shared.effectiveRingIDHash)
+	api.AssertIsEqual(metadata.PolicyIDHash, shared.effectivePolicyHash)
+	api.AssertIsEqual(metadata.ResourceHash, shared.effectiveResourceHash)
+	api.AssertIsEqual(metadata.PermissionHash, shared.effectivePermissionHash)
+	detectionSalt, err := DeriveWithdrawalSalt(api, c.Compliance.NonceRoot, WithdrawalDetectionSaltLabel)
+	if err != nil {
+		return err
+	}
+	senderSalt, err := DeriveWithdrawalSalt(api, c.Compliance.NonceRoot, WithdrawalSenderSaltLabel)
+	if err != nil {
+		return err
+	}
+	api.AssertIsEqual(metadata.SenderSalt, senderSalt)
+
+	senderEPK := gnarkte.Point{X: c.Compliance.SenderEPK.X, Y: c.Compliance.SenderEPK.Y}
+	senderEPKFq, err := decafgnark.CompressToField(api, senderEPK)
+	if err != nil {
+		return err
+	}
+	senderACK, err := DeriveACKFromLeafD(api, shared.effectiveRingPK, c.Sender.D)
+	if err != nil {
+		return err
+	}
+	issuerSecret, _, selectedSecret, err := DeriveSharedSecretsSpend(
+		api,
+		c.Compliance.SenderRandomizer,
+		senderACK,
+		shared.effectiveDKPub,
+		isFlagged,
+		senderEPK,
+	)
+	if err != nil {
+		return err
+	}
+	if err := VerifyPoseidonEncryptionTransferDetection(
+		api,
+		isFlagged,
+		issuerSecret,
+		senderEPKFq,
+		detectionSalt,
+		shared.sharedAssetID,
+		c.Compliance.DetectionCiphertext,
+	); err != nil {
+		return err
+	}
+	return VerifyPoseidonEncryptionTransferAddress(
+		api,
+		selectedSecret,
+		c.Compliance.SenderC2,
+		shared.senderDivGenFq,
+		shared.senderTransmissionFq,
+		c.Compliance.SenderCiphertext,
+	)
 }
 
 func shieldedIcs20WithdrawalSyntheticDummyNullifierDomain() *big.Int {

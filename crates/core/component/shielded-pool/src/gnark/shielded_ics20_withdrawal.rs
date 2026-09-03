@@ -295,7 +295,6 @@ mod tests {
     };
     use decaf377::{Fq, Fr};
     use shieldd_sdk_asset::Balance;
-    use shieldd_sdk_tct::StateCommitment;
 
     #[test]
     fn shielded_ics20_withdrawal_witness_roundtrip() {
@@ -312,43 +311,38 @@ mod tests {
             .expect("build shielded ICS-20 withdrawal witness");
         assert_eq!(decoded, expected);
 
-        let leaf = &decoded.asset_indexed_leaf;
-        let recomposed = StateCommitment(poseidon377::hash_5(
-            &shieldd_sdk_compliance::IMT_LEAF_DOMAIN_SEP,
-            (
-                Fq::from_bytes_checked(&leaf.value).expect("canonical leaf value"),
-                Fq::from(leaf.next_index),
-                Fq::from_bytes_checked(&leaf.next_value).expect("canonical next value"),
-                Fq::from_bytes_checked(&leaf.params_hash).expect("canonical params hash"),
-                Fq::from_bytes_checked(&leaf.ring_hash).expect("canonical ring hash"),
-            ),
-        ));
         assert_eq!(
-            recomposed,
-            private.asset_indexed_leaf.commit(),
-            "compact leaf view must recompose the canonical native commitment"
+            Fq::from_bytes_checked(&decoded.asset_indexed_leaf.value)
+                .expect("canonical leaf value"),
+            private.asset_indexed_leaf.value,
         );
     }
 
     #[test]
     fn shielded_ics20_withdrawal_witness_rejects_non_canonical_boolean_flags() {
         const HEADER_BYTES: usize = 16;
-        const TOP_FIELDS_THROUGH_NK: usize = 6 * 32 + 4 * 32 + 32 + 3 * 32 + 2 * 32;
+        const TOP_FIELDS_THROUGH_RECENT: usize = 6 * 32 + 4 * 32 + 32 + 3 * 32;
+        const STATE_PATH_BYTES: usize = 4 + 24 * 3 * 32;
+        const VOLUME_ACCUMULATOR_BYTES: usize = 4 * 32 + 2 + 4 * 32 + 8 + STATE_PATH_BYTES + 2 * 32;
         const MERKLE_PATH_BYTES: usize = 4 + 16 * (4 + 3 * 32);
-        const COMMITTED_INDEXED_LEAF_BYTES: usize = 32 + 8 + 3 * 32;
+        const INDEXED_LEAF_BYTES: usize = 32 + 8 + 32 + 16 + 5 * 32;
         const IS_REGULATED_OFFSET: usize = HEADER_BYTES
-            + TOP_FIELDS_THROUGH_NK
+            + TOP_FIELDS_THROUGH_RECENT
+            + VOLUME_ACCUMULATOR_BYTES
+            + 2 * 32
             + MERKLE_PATH_BYTES
             + 8
-            + COMMITTED_INDEXED_LEAF_BYTES;
-        const SLIM_REQUIRED_SPEND_BYTES: usize = 3 * 32 + 8 + 4 + 24 * 3 * 32 + 32 + 64 + 1;
+            + INDEXED_LEAF_BYTES;
+        const SLIM_REQUIRED_SPEND_BYTES: usize = 3 * 32 + 8 + STATE_PATH_BYTES + 32 + 64 + 1;
         const ROUTING_PRIVATE_BYTES: usize = 2 + 8 + 32;
+        const WITHDRAWAL_COMPLIANCE_BYTES: usize = 32 + 4 + 4 * 32 + 6 * 32 + 32 + 4 + 3 * 32 + 32;
         const OPTIONAL_IS_DUMMY_OFFSET: usize = IS_REGULATED_OFFSET
             + 1
             + ROUTING_PRIVATE_BYTES
             + MERKLE_PATH_BYTES
             + 8
             + 2 * 32
+            + WITHDRAWAL_COMPLIANCE_BYTES
             + 2 * SLIM_REQUIRED_SPEND_BYTES;
 
         let (public, private) =

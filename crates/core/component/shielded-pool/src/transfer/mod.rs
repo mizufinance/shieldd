@@ -19,6 +19,6 @@ pub use proof::{
     TransferChangeOutputPrivate, TransferComplianceCiphertextPublic, TransferCompliancePrivate,
     TransferCompliancePublic, TransferOptionalSpendPrivate, TransferOutputPublic, TransferProof,
     TransferProofPrivate, TransferProofPublic, TransferReceiverOutputPrivate, TransferSpendPrivate,
-    TransferSpendPublic, TransferTierRandomizers, TransferVolumeAccumulatorPublic,
+    TransferSpendPublic, TransferTierRandomizers,
 };
 pub use view::TransferView;

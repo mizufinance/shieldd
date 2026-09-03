@@ -44,6 +44,9 @@ pub fn shielded_host_withdrawal_extract_public(
             withdrawal_effect_hash: action.body.withdrawal.effect_hash(),
             routing_tag: action.body.routing_tag,
             routing_parameter_set_id: action.body.routing_parameter_set_id,
+            sender_compliance_ciphertext: &action.body.sender_compliance_ciphertext,
+            sender_compliance_metadata: &action.body.sender_compliance_metadata,
+            volume_accumulator: &action.body.volume_accumulator,
         },
         context,
     )
@@ -98,6 +101,7 @@ pub async fn shielded_host_withdrawal_execute_verified<S: StateWrite>(
         action.body.target_timestamp,
     )
     .await?;
+    shielded_withdrawal::validate_volume(&state, &action.body.volume_accumulator).await?;
 
     note_reshape::execute_proof_bound_effects(
         &mut state,
@@ -106,7 +110,8 @@ pub async fn shielded_host_withdrawal_execute_verified<S: StateWrite>(
         |input| input.nullifier,
         |output| &output.note_payload,
     )
-    .await
+    .await?;
+    shielded_withdrawal::execute_volume(&mut state, &action.body.volume_accumulator).await
 }
 
 #[async_trait]

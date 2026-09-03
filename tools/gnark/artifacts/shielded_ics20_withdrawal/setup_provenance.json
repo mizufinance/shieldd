@@ -3,19 +3,29 @@
   "curve": "bls12-377",
   "circuit": "shielded_ics20_withdrawal",
   "mode": "fresh_setup",
-  "sr1cs_sha256_hex": "58aafb48f9080278c9778131a51104b5af1176189701d4fa68aab0cf8d71d30c",
-  "proving_key_sha256_hex": "0ba02b8fb7477e46f02ab74a477def3bde8a42ef76486ce811be21af3687bd19",
-  "verifying_key_binary_sha256_hex": "66180290c4d53ba440daccea423cee744fc4c895d9609601ff51053b9bcedb38",
-  "verifying_key_json_sha256_hex": "56e0a0aeff5b258ee8429bd4a89bd380b02fe36d7b2b02ddf86cc3d7dcc19a53",
+  "sr1cs_sha256_hex": "eecf0173272a3fb46d1343d9dc50118c296703bb588a4c7dfd113d492e43eeff",
+  "proving_key_sha256_hex": "e885b0e5ed8c93b4fb22e8f8ce50dd0ced4a66aa4fe1fcafe80e4ac3cdb2c45c",
+  "verifying_key_binary_sha256_hex": "4d80cc37bcf26f2843c202f86b71b04dc684dcbd85e5cbfe47c0ce408d13cc99",
+  "verifying_key_json_sha256_hex": "5dc6067306b9e2503a397f16b6dcf4baad9d076d0d8d4bf517b3660940b00cab",
   "generation_self_tests": [
     {
-      "proof_case": "regulated_optional_real",
-      "witness_sha256_hex": "fde6ae35940915675cc35c65b3198275b24c7f47ec54525e1dfb2f014bef88fb",
+      "proof_case": "regulated_disclosed_padding",
+      "witness_sha256_hex": "f2d0b06725075fd6d8463b4101d17230b77b7cea0d4053fcb748205ecaa1602f",
       "proved_and_verified_in_process": true
     },
     {
-      "proof_case": "unregulated_optional_dummy",
-      "witness_sha256_hex": "808201a6e811dc71a077a172a7e39398a6fdf40d147b64a22311890a22281255",
+      "proof_case": "unregulated_padding",
+      "witness_sha256_hex": "5c48e8ad45f522720e351d9c87ff6f1badcccd3af347518f14c06e5547ba16d7",
+      "proved_and_verified_in_process": true
+    },
+    {
+      "proof_case": "regulated_accumulator_origin",
+      "witness_sha256_hex": "2f9a844a40e5b9221ac4b8007d9045d3eac98cc47fcc9d3a78dba67bc8a6fa23",
+      "proved_and_verified_in_process": true
+    },
+    {
+      "proof_case": "regulated_accumulator_continuation",
+      "witness_sha256_hex": "9837cda36285a53eaaf77b5874363356c616da6b338087f0c68414e78f07b2f2",
       "proved_and_verified_in_process": true
     }
   ],

@@ -9,7 +9,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use super::types::{
     BlockRef, ClearFlowEvent, DetectionEvent, ExtractedComplianceCiphertext, InvalidCiphertext,
-    OutputRef, DECRYPTED_VIA_PUBLIC, FLOW_TYPE_PRIVATE_TRANSFER,
+    OutputRef, DECRYPTED_VIA_PUBLIC, FLOW_TYPE_PRIVATE_TRANSFER, FLOW_TYPE_WITHDRAW,
 };
 use crate::audit_status::{AuditStatus, DetectionStatus, ScreenStatus};
 use crate::ComplianceEvidenceObject;
@@ -593,7 +593,7 @@ impl ScannerStore for SqliteScannerStore {
 
     async fn save_ciphertext(&self, ciphertext: &ExtractedComplianceCiphertext) -> Result<()> {
         let mut pending = self.lock_pending()?;
-        ensure_pending_block(&pending, &ciphertext.output_ref.action.tx.block)?;
+        ensure_pending_block(&pending, &ciphertext.record_ref.action().tx.block)?;
         pending.ciphertexts.push(ciphertext.clone());
         Ok(())
     }
@@ -607,14 +607,14 @@ impl ScannerStore for SqliteScannerStore {
 
     async fn save_detection(&self, event: &DetectionEvent) -> Result<()> {
         let mut pending = self.lock_pending()?;
-        ensure_pending_block(&pending, &event.output_ref.action.tx.block)?;
+        ensure_pending_block(&pending, &event.record_ref.action().tx.block)?;
         pending.detections.push(event.clone());
         Ok(())
     }
 
     async fn save_invalid_ciphertext(&self, invalid: &InvalidCiphertext) -> Result<()> {
         let mut pending = self.lock_pending()?;
-        ensure_pending_block(&pending, &invalid.output_ref.action.tx.block)?;
+        ensure_pending_block(&pending, &invalid.record_ref.action().tx.block)?;
         pending.invalid_statuses.push(invalid.clone());
         if pending.invalid_ciphertexts.len() < MAX_INVALID_CIPHERTEXTS_PER_BLOCK {
             pending.invalid_ciphertexts.push(invalid.clone());
@@ -667,7 +667,7 @@ impl ScannerStore for SqliteScannerStore {
         )?;
 
         for ciphertext in &pending.ciphertexts {
-            let output_ref = &ciphertext.output_ref;
+            let output_ref = ciphertext.record_ref.output_ref();
             let tx_ref = &output_ref.action.tx;
             tx.execute(
                 "INSERT OR IGNORE INTO scanner_ciphertexts
@@ -693,7 +693,7 @@ impl ScannerStore for SqliteScannerStore {
         }
 
         for event in &pending.detections {
-            let output_ref = &event.output_ref;
+            let output_ref = event.record_ref.output_ref();
             let tx_ref = &output_ref.action.tx;
             tx.execute(
                 "INSERT OR IGNORE INTO scanner_ciphertexts
@@ -711,7 +711,7 @@ impl ScannerStore for SqliteScannerStore {
                     ScreenStatus::Pending.as_str(),
                 ],
             )?;
-            update_ciphertext_status(&tx, output_ref, ScreenStatus::Detected, None)?;
+            update_ciphertext_status(&tx, &output_ref, ScreenStatus::Detected, None)?;
             tx.execute(
                 "INSERT OR IGNORE INTO scanner_detections
                  (height, block_hash, tx_index, tx_hash, action_index, output_index,
@@ -740,7 +740,7 @@ impl ScannerStore for SqliteScannerStore {
                  (height, block_hash, tx_index, tx_hash, action_index, output_index,
                   flow_type, asset_id, is_flagged, amount, self_address, counterparty_address,
                   public_address, decrypted_via, updated_at_unix)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, NULL, NULL, NULL, NULL, NULL, ?10)",
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, NULL, ?14)",
                 params![
                     tx_ref.block.height as i64,
                     tx_ref.block.block_hash.as_slice(),
@@ -748,9 +748,29 @@ impl ScannerStore for SqliteScannerStore {
                     tx_ref.tx_hash.as_ref(),
                     output_ref.action.action_index as i64,
                     output_ref.output_index as i64,
-                    FLOW_TYPE_PRIVATE_TRANSFER,
+                    if event.public_withdrawal.is_some() {
+                        FLOW_TYPE_WITHDRAW
+                    } else {
+                        FLOW_TYPE_PRIVATE_TRANSFER
+                    },
                     event.asset_id.to_string(),
                     if event.is_flagged { 1i64 } else { 0i64 },
+                    event
+                        .public_withdrawal
+                        .as_ref()
+                        .map(|public| public.amount.to_string()),
+                    event
+                        .public_withdrawal
+                        .as_ref()
+                        .and_then(|public| public.self_address.as_deref()),
+                    event
+                        .public_withdrawal
+                        .as_ref()
+                        .map(|public| public.destination.as_str()),
+                    event
+                        .public_withdrawal
+                        .as_ref()
+                        .map(|public| public.destination.as_str()),
                     block.block_time_unix,
                 ],
             )?;
@@ -759,14 +779,14 @@ impl ScannerStore for SqliteScannerStore {
         for invalid in &pending.invalid_statuses {
             update_ciphertext_status(
                 &tx,
-                &invalid.output_ref,
+                &invalid.record_ref.output_ref(),
                 ScreenStatus::Invalid,
                 Some(&invalid.reason),
             )?;
         }
 
         for invalid in &pending.invalid_ciphertexts {
-            let output_ref = &invalid.output_ref;
+            let output_ref = invalid.record_ref.output_ref();
             let tx_ref = &output_ref.action.tx;
             let reason = crate::audit::bounded_failure_reason(&invalid.reason);
             tx.execute(
@@ -1075,7 +1095,12 @@ mod tests {
 
     fn invalid(height: u64, output_index: u32) -> InvalidCiphertext {
         InvalidCiphertext {
-            output_ref: output_ref(height, 1, 2, output_index),
+            record_ref: crate::ComplianceRecordRef::TransferOutput(output_ref(
+                height,
+                1,
+                2,
+                output_index,
+            )),
             reason: "invalid".to_string(),
             raw_bytes: vec![output_index as u8],
         }
@@ -1083,36 +1108,46 @@ mod tests {
 
     fn ciphertext(height: u64, output_index: u32) -> ExtractedComplianceCiphertext {
         ExtractedComplianceCiphertext {
-            output_ref: output_ref(height, 1, 2, output_index),
+            record_ref: crate::ComplianceRecordRef::TransferOutput(output_ref(
+                height,
+                1,
+                2,
+                output_index,
+            )),
+            kind: crate::scanner::types::ComplianceCiphertextKind::Transfer,
             routing_tags: [11, 22],
             raw_bytes: vec![output_index as u8, 9],
             metadata_bytes: Some(vec![8, output_index as u8]),
+            public_withdrawal: None,
         }
     }
 
     fn detection(height: u64) -> DetectionEvent {
         DetectionEvent {
-            output_ref: output_ref(height, 1, 2, 3),
+            record_ref: crate::ComplianceRecordRef::TransferOutput(output_ref(height, 1, 2, 3)),
             asset_id: asset::Id(decaf377::Fq::from(123u64)),
             is_flagged: true,
             salt: decaf377::Fq::from(9u64),
             routing_tags: [11, 22],
-            ciphertext: crate::transfer::TransferComplianceCiphertext {
-                sender_core_epk: decaf377::Element::GENERATOR,
-                sender_ext_epk: decaf377::Element::GENERATOR,
-                output_core_epk: decaf377::Element::GENERATOR,
-                output_ext_epk: decaf377::Element::GENERATOR,
-                sender_core_c2: decaf377::Fq::from(1u64),
-                sender_ext_c2: decaf377::Fq::from(2u64),
-                output_core_c2: decaf377::Fq::from(3u64),
-                output_ext_c2: decaf377::Fq::from(4u64),
-                detection_tag: [0u8; crate::structs::DETECTION_TAG_BYTES],
-                encrypted_sender_core: [0u8; 32],
-                encrypted_sender_ext: [0u8; 96],
-                encrypted_output_core: [0u8; 32],
-                encrypted_output_ext: [0u8; 96],
-            },
+            ciphertext: crate::scanner::types::ComplianceCiphertext::Transfer(
+                crate::transfer::TransferComplianceCiphertext {
+                    sender_core_epk: decaf377::Element::GENERATOR,
+                    sender_ext_epk: decaf377::Element::GENERATOR,
+                    output_core_epk: decaf377::Element::GENERATOR,
+                    output_ext_epk: decaf377::Element::GENERATOR,
+                    sender_core_c2: decaf377::Fq::from(1u64),
+                    sender_ext_c2: decaf377::Fq::from(2u64),
+                    output_core_c2: decaf377::Fq::from(3u64),
+                    output_ext_c2: decaf377::Fq::from(4u64),
+                    detection_tag: [0u8; crate::structs::DETECTION_TAG_BYTES],
+                    encrypted_sender_core: [0u8; 32],
+                    encrypted_sender_ext: [0u8; 96],
+                    encrypted_output_core: [0u8; 32],
+                    encrypted_output_ext: [0u8; 96],
+                },
+            ),
             raw_bytes: vec![1, 2, 3],
+            public_withdrawal: None,
         }
     }
 
@@ -1167,7 +1202,7 @@ mod tests {
         store.begin_block(&block).await.unwrap();
         store.save_ciphertext(&ciphertext).await.unwrap();
         store
-            .mark_ciphertext_irrelevant(&ciphertext.output_ref)
+            .mark_ciphertext_irrelevant(&ciphertext.record_ref.output_ref())
             .await
             .unwrap();
         store.commit_block(&block).await.unwrap();
@@ -1193,16 +1228,20 @@ mod tests {
         store.begin_block(&block).await.unwrap();
         store.save_ciphertext(&ciphertext).await.unwrap();
         store
-            .mark_ciphertext_irrelevant(&ciphertext.output_ref)
+            .mark_ciphertext_irrelevant(&ciphertext.record_ref.output_ref())
             .await
             .unwrap();
         store.commit_block(&block).await.unwrap();
 
         let conn = store.lock_conn().unwrap();
         let tx = conn.unchecked_transaction().unwrap();
-        let err =
-            update_ciphertext_status(&tx, &ciphertext.output_ref, ScreenStatus::Detected, None)
-                .expect_err("irrelevant ciphertext cannot become detected");
+        let err = update_ciphertext_status(
+            &tx,
+            &ciphertext.record_ref.output_ref(),
+            ScreenStatus::Detected,
+            None,
+        )
+        .expect_err("irrelevant ciphertext cannot become detected");
 
         assert!(
             err.to_string().contains("illegal screen status transition"),
@@ -1323,7 +1362,7 @@ mod tests {
         let ciphertext = ciphertext(27, 4);
         let long_reason = "x".repeat(crate::audit::MAX_FAILURE_REASON_BYTES + 100);
         let invalid = InvalidCiphertext {
-            output_ref: ciphertext.output_ref.clone(),
+            record_ref: ciphertext.record_ref.clone(),
             reason: long_reason,
             raw_bytes: vec![1, 2, 3],
         };

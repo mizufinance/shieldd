@@ -15,7 +15,7 @@ use crate::{
     component::action_handler::note_reshape,
     component::{NoteManager as _, StateReadExt as _, StateWriteExt as _},
     Transfer, TransferOutputPublic, TransferProofContext, TransferProofPublic, TransferSpendPublic,
-    TransferVolumeAccumulatorPublic,
+    VolumeAccumulatorPublic,
 };
 
 fn transfer_verify_auth_sigs(transfer: &Transfer, context: &TransactionContext) -> Result<()> {
@@ -80,7 +80,7 @@ pub(crate) fn transfer_extract_public(
         routing: transfer.body.routing,
         routing_parameter_set_id: transfer.body.routing_parameter_set_id,
         recent_position_floor: context.recent_position_floor,
-        volume_accumulator: TransferVolumeAccumulatorPublic {
+        volume_accumulator: VolumeAccumulatorPublic {
             nullifier: transfer.body.volume_accumulator.nullifier,
             commitment: transfer.body.volume_accumulator.commitment,
             day_start: transfer.body.volume_accumulator.day_start,

@@ -446,13 +446,17 @@ impl TransactionPlan {
                 let (commitment, proof) = witness_note(spend)?;
                 state_commitment_proofs.insert(commitment, proof);
             }
-            if let ActionPlan::Transfer(transfer) = action {
-                if let Some(commitment) = transfer.accumulator_prior_commitment() {
-                    let proof = sct.witness(commitment).ok_or_else(|| {
-                        anyhow::anyhow!("volume accumulator commitment should exist in tree")
-                    })?;
-                    state_commitment_proofs.insert(commitment, proof);
-                }
+            let accumulator_commitment = match action {
+                ActionPlan::Transfer(plan) => plan.accumulator_prior_commitment(),
+                ActionPlan::ShieldedHostWithdrawal(plan) => plan.accumulator_prior_commitment(),
+                ActionPlan::ShieldedIcs20Withdrawal(plan) => plan.accumulator_prior_commitment(),
+                _ => None,
+            };
+            if let Some(commitment) = accumulator_commitment {
+                let proof = sct.witness(commitment).ok_or_else(|| {
+                    anyhow::anyhow!("volume accumulator commitment should exist in tree")
+                })?;
+                state_commitment_proofs.insert(commitment, proof);
             }
         }
         if let Some(fee_funding) = &self.fee_funding {

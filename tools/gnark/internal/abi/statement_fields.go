@@ -447,6 +447,25 @@ func ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitness(
 	)
 	fields = append(fields, witness.WithdrawalEffectHashLimbs[:]...)
 	fields = append(fields, witness.RoutingTag, witness.RoutingParameterSetID)
+	fields = append(fields,
+		witness.VolumeAccumulator.Nullifier,
+		witness.VolumeAccumulator.Commitment,
+		witness.VolumeAccumulator.DayStart,
+	)
+	fields = append(fields, witness.DetectionCiphertext...)
+	senderEPK, err := pointAffineToField(witness.SenderEPK)
+	if err != nil {
+		return nil, fmt.Errorf("compress withdrawal sender epk: %w", err)
+	}
+	fields = append(fields, senderEPK, witness.SenderC2)
+	fields = append(fields, witness.SenderCiphertext...)
+	fields = append(fields,
+		witness.RingIDHash,
+		witness.PolicyIDHash,
+		witness.ResourceHash,
+		witness.PermissionHash,
+		witness.SenderSalt,
+	)
 	if err := ensureFieldCount("shielded ICS-20 withdrawal", fields, expected); err != nil {
 		return nil, err
 	}

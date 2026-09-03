@@ -21,16 +21,27 @@ class InternalVersioningTest(unittest.TestCase):
         )
         self.assertEqual(len(failures), 2)
 
-    def test_allows_explicit_consensus_cryptographic_domains(self) -> None:
+    def test_allows_only_the_two_snarkpack_wire_domains(self) -> None:
         failures = CHECKER.violations(
             "fixture.rs",
             [
                 'b"shieldd.nullifier.history.node.v2"',
-                'b"shieldd.snarkpack.transcript.v1"',
+                'b"shieldd.snarkpack.aggregate_proof.v1\\0"',
+                'b"shieldd.snarkpack.aggregate_proof.v2\\0"',
                 "historical_generation_indexed_v2",
             ],
         )
         self.assertEqual(failures, [])
+
+    def test_rejects_other_snarkpack_wire_versions(self) -> None:
+        failures = CHECKER.violations(
+            "fixture.rs",
+            [
+                'b"shieldd.snarkpack.transcript.v1"',
+                'b"shieldd.snarkpack.aggregate_proof.v3"',
+            ],
+        )
+        self.assertEqual(len(failures), 2)
 
     def test_rejects_internal_statement_domains_in_proto_files(self) -> None:
         failures = CHECKER.violations(

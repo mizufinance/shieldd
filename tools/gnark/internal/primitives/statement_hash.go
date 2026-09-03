@@ -16,7 +16,7 @@ const TransferStatementFieldsPerOutput = 1
 const NoteReshapeStatementBaseFields = 7
 const NoteReshapeStatementFieldsPerInput = 3
 const NoteReshapeStatementFieldsPerOutput = 1
-const ShieldedIcs20WithdrawalStatementBaseFields = 15
+const ShieldedIcs20WithdrawalStatementBaseFields = 32
 const ShieldedIcs20WithdrawalStatementFieldsPerInput = 3
 
 func hashStatementFields(

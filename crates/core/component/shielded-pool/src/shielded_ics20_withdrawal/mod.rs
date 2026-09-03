@@ -22,5 +22,6 @@ pub use proof::{
     ShieldedIcs20WithdrawalInputPublic, ShieldedIcs20WithdrawalOptionalInputPrivate,
     ShieldedIcs20WithdrawalProof, ShieldedIcs20WithdrawalProofPrivate,
     ShieldedIcs20WithdrawalProofPublic, ShieldedIcs20WithdrawalRequiredInputPrivate,
+    WithdrawalComplianceCiphertextPublic, WithdrawalCompliancePrivate, WithdrawalCompliancePublic,
 };
 pub use view::ShieldedIcs20WithdrawalView;

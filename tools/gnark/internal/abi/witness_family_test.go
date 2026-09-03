@@ -68,6 +68,30 @@ func testWitnessFamilies() []witnessFamily {
 			},
 		},
 		{
+			name: "shielded_ics20_withdrawal_accumulator_origin",
+			payload: func(t *testing.T) []byte {
+				return testfixtures.LoadShieldedIcs20WithdrawalWitness(
+					"shielded_ics20_withdrawal_accumulator_origin",
+				)
+			},
+			decode: func(payload []byte) error {
+				_, _, err := DecodeShieldedIcs20WithdrawalWitness(payload)
+				return err
+			},
+		},
+		{
+			name: "shielded_ics20_withdrawal_accumulator_continuation",
+			payload: func(t *testing.T) []byte {
+				return testfixtures.LoadShieldedIcs20WithdrawalWitness(
+					"shielded_ics20_withdrawal_accumulator_continuation",
+				)
+			},
+			decode: func(payload []byte) error {
+				_, _, err := DecodeShieldedIcs20WithdrawalWitness(payload)
+				return err
+			},
+		},
+		{
 			name: "note_reshape8x1",
 			payload: func(t *testing.T) []byte {
 				return testfixtures.LoadNoteReshapeWitness("note_reshape8x1")
@@ -115,6 +139,16 @@ func TestShieldedIcs20WithdrawalFixtureBranchMatrix(t *testing.T) {
 			label:       "shielded_ics20_withdrawal_unregulated",
 			isRegulated: false,
 			isDummy:     true,
+		},
+		{
+			label:       "shielded_ics20_withdrawal_accumulator_origin",
+			isRegulated: true,
+			isDummy:     false,
+		},
+		{
+			label:       "shielded_ics20_withdrawal_accumulator_continuation",
+			isRegulated: true,
+			isDummy:     false,
 		},
 	} {
 		t.Run(tc.label, func(t *testing.T) {
@@ -196,7 +230,8 @@ func TestShieldedIcs20WithdrawalRejectsOversizedEffectHashLimb(t *testing.T) {
 
 func TestShieldedIcs20WithdrawalRejectsNonCanonicalBalanceBlinding(t *testing.T) {
 	payload := testfixtures.LoadShieldedIcs20WithdrawalWitness("shielded_ics20_withdrawal")
-	const actionBalanceBlindingOffset = 16 + 6*32 + 4*32 + 32 + 3*32
+	const volumeAccumulatorBytes = 4*32 + 2 + 4*32 + 8 + (4 + 24*3*32) + 2*32
+	const actionBalanceBlindingOffset = 16 + 6*32 + 4*32 + 32 + 3*32 + volumeAccumulatorBytes
 	modulus, err := bigIntToLE32(decaf377.ScalarOrder())
 	if err != nil {
 		t.Fatalf("encode Decaf377 scalar modulus: %v", err)
@@ -209,14 +244,17 @@ func TestShieldedIcs20WithdrawalRejectsNonCanonicalBalanceBlinding(t *testing.T)
 
 func TestShieldedIcs20WithdrawalRejectsNonCanonicalBooleanFlags(t *testing.T) {
 	const (
-		headerBytes            = 16
-		topFieldsThroughNK     = 6*32 + 4*32 + 32 + 3*32 + 2*32
-		merklePathBytes        = 4 + 16*(4+3*32)
-		committedLeafBytes     = 32 + 8 + 3*32
-		isRegulatedOffset      = headerBytes + topFieldsThroughNK + merklePathBytes + 8 + committedLeafBytes
-		slimRequiredSpendBytes = 3*32 + 8 + 4 + 24*3*32 + 32 + 64 + 1
-		routingPrivateBytes    = 2 + 8 + 32
-		optionalIsDummyOffset  = isRegulatedOffset + 1 + routingPrivateBytes + merklePathBytes + 8 + 2*32 + 2*slimRequiredSpendBytes
+		headerBytes               = 16
+		topFieldsThroughRecent    = 6*32 + 4*32 + 32 + 3*32
+		statePathBytes            = 4 + 24*3*32
+		volumeAccumulatorBytes    = 4*32 + 2 + 4*32 + 8 + statePathBytes + 2*32
+		merklePathBytes           = 4 + 16*(4+3*32)
+		indexedLeafBytes          = 32 + 8 + 32 + 16 + 5*32
+		isRegulatedOffset         = headerBytes + topFieldsThroughRecent + volumeAccumulatorBytes + 2*32 + merklePathBytes + 8 + indexedLeafBytes
+		slimRequiredSpendBytes    = 3*32 + 8 + statePathBytes + 32 + 64 + 1
+		routingPrivateBytes       = 2 + 8 + 32
+		withdrawalComplianceBytes = 32 + 4 + 4*32 + 6*32 + 32 + 4 + 3*32 + 32
+		optionalIsDummyOffset     = isRegulatedOffset + 1 + routingPrivateBytes + merklePathBytes + 8 + 2*32 + withdrawalComplianceBytes + 2*slimRequiredSpendBytes
 	)
 	for name, offset := range map[string]int{
 		"is_regulated":      isRegulatedOffset,

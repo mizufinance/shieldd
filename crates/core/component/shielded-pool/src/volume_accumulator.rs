@@ -13,8 +13,10 @@ use shieldd_sdk_sct::Nullifier;
 use shieldd_sdk_tct::{Position, Proof, StateCommitment};
 
 pub const UTC_DAY_SECS: u64 = 86_400;
-pub const VOLUME_ACCUMULATOR_BUFFER_SECS: u64 = 1_800;
-pub const VOLUME_ACCUMULATOR_RETENTION_SECS: u64 = UTC_DAY_SECS + VOLUME_ACCUMULATOR_BUFFER_SECS;
+/// Post-midnight retention for proofs whose exact timestamp is still fresh.
+pub const VOLUME_ACCUMULATOR_RETENTION_GRACE_SECS: u64 = 1_800;
+pub const VOLUME_ACCUMULATOR_RETENTION_SECS: u64 =
+    UTC_DAY_SECS + VOLUME_ACCUMULATOR_RETENTION_GRACE_SECS;
 pub const VOLUME_ACCUMULATOR_PLAINTEXT_BYTES: usize = 92;
 pub const VOLUME_ACCUMULATOR_CIPHERTEXT_BYTES: usize = VOLUME_ACCUMULATOR_PLAINTEXT_BYTES + 16;
 
@@ -36,14 +38,9 @@ fn domain(label: &[u8]) -> Fq {
     Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(label).as_bytes())
 }
 
-/// Selects a UTC accounting day. The final 30 minutes are charged to the next day.
+/// Selects the UTC accounting day containing `target_timestamp`.
 pub fn select_accumulator_day(target_timestamp: u64) -> u64 {
-    let current = target_timestamp - target_timestamp % UTC_DAY_SECS;
-    if target_timestamp % UTC_DAY_SECS >= UTC_DAY_SECS - VOLUME_ACCUMULATOR_BUFFER_SECS {
-        current.saturating_add(UTC_DAY_SECS)
-    } else {
-        current
-    }
+    target_timestamp - target_timestamp % UTC_DAY_SECS
 }
 
 /// Returns the next undisclosed volume, or `None` when this transfer must disclose.
@@ -575,15 +572,24 @@ pub struct VolumeAccumulatorPrivate {
     pub prior_proof: Proof,
 }
 
+#[derive(Clone, Debug)]
+pub struct VolumeAccumulatorPublic {
+    pub nullifier: Nullifier,
+    pub commitment: StateCommitment,
+    pub day_start: u64,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use shieldd_sdk_keys::test_keys;
 
     #[test]
-    fn final_half_hour_targets_next_day() {
-        assert_eq!(select_accumulator_day(86_399 - 1_800), 0);
-        assert_eq!(select_accumulator_day(86_400 - 1_800), 86_400);
+    fn accounting_days_change_only_at_utc_midnight() {
+        assert_eq!(select_accumulator_day(0), 0);
+        assert_eq!(select_accumulator_day(86_399), 0);
+        assert_eq!(select_accumulator_day(86_400), 86_400);
+        assert_eq!(select_accumulator_day(172_799), 86_400);
     }
 
     #[test]
@@ -591,6 +597,11 @@ mod tests {
         assert_eq!(accumulated_volume(40, 60, 100), Some(100));
         assert_eq!(accumulated_volume(100, 1, 100), None);
         assert_eq!(accumulated_volume(u128::MAX, 1, u128::MAX), None);
+
+        // A disclosed over-limit action does not consume the confirmed head,
+        // so a later smaller action can still continue from the same volume.
+        assert_eq!(accumulated_volume(80, 30, 100), None);
+        assert_eq!(accumulated_volume(80, 20, 100), Some(100));
     }
 
     #[test]

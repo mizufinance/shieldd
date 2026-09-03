@@ -10,6 +10,7 @@ use shieldd_sdk_txhash::{EffectHash, EffectingData};
 use crate::{
     discovery::RoutingTag, HostWithdrawal, ShieldedIcs20WithdrawalChangeBody,
     ShieldedIcs20WithdrawalFamilyId, ShieldedIcs20WithdrawalProof, TransferInputBody,
+    TransferProofContext, VolumeAccumulatorPayload,
 };
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
@@ -29,6 +30,9 @@ pub struct ShieldedHostWithdrawalBody {
     pub asset_anchor: tct::StateCommitment,
     pub routing_tag: RoutingTag,
     pub routing_parameter_set_id: decaf377::Fq,
+    pub sender_compliance_ciphertext: Vec<u8>,
+    pub sender_compliance_metadata: Vec<u8>,
+    pub volume_accumulator: VolumeAccumulatorPayload,
 }
 
 #[derive(Clone, Debug)]
@@ -51,6 +55,18 @@ impl ShieldedHostWithdrawalBody {
             self.family_id.input_count(),
             self.inputs.len()
         );
+        shieldd_sdk_compliance::WithdrawalComplianceCiphertext::from_bytes(
+            &self.sender_compliance_ciphertext,
+        )?;
+        let metadata = shieldd_sdk_compliance::WithdrawalComplianceMetadata::from_bytes(
+            &self.sender_compliance_metadata,
+        )?;
+        anyhow::ensure!(
+            metadata.target_timestamp == self.target_timestamp,
+            "withdrawal compliance timestamp must match body timestamp"
+        );
+        self.volume_accumulator
+            .validate(TransferProofContext::Ordinary)?;
         Ok(())
     }
 }
@@ -140,6 +156,9 @@ impl From<ShieldedHostWithdrawalBody> for pb::ShieldedHostWithdrawalBody {
             asset_anchor: Some(value.asset_anchor.into()),
             routing_tag: Some(value.routing_tag.into()),
             routing_parameter_set_id: value.routing_parameter_set_id.to_bytes().to_vec(),
+            sender_compliance_ciphertext: value.sender_compliance_ciphertext,
+            sender_compliance_metadata: value.sender_compliance_metadata,
+            volume_accumulator: Some(value.volume_accumulator.into()),
         }
     }
 }
@@ -148,7 +167,7 @@ impl TryFrom<pb::ShieldedHostWithdrawalBody> for ShieldedHostWithdrawalBody {
     type Error = Error;
 
     fn try_from(value: pb::ShieldedHostWithdrawalBody) -> Result<Self, Self::Error> {
-        Ok(Self {
+        let body = Self {
             family_id: value.family_id.try_into()?,
             anchor: value
                 .anchor
@@ -201,7 +220,16 @@ impl TryFrom<pb::ShieldedHostWithdrawalBody> for ShieldedHostWithdrawalBody {
                     .map_err(|_| anyhow::anyhow!("routing parameter set id must be 32 bytes"))?,
             )
             .map_err(|_| anyhow::anyhow!("routing parameter set id must be canonical"))?,
-        })
+            sender_compliance_ciphertext: value.sender_compliance_ciphertext,
+            sender_compliance_metadata: value.sender_compliance_metadata,
+            volume_accumulator: value
+                .volume_accumulator
+                .ok_or_else(|| anyhow::anyhow!("missing volume accumulator payload"))?
+                .try_into()
+                .context("malformed volume accumulator payload")?,
+        };
+        body.validate_shape()?;
+        Ok(body)
     }
 }
 

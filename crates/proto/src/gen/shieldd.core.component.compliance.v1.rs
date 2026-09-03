@@ -373,7 +373,9 @@ pub struct ComplianceAssetStatusResponse {
     #[prost(bytes = "vec", tag = "4")]
     pub dk_pub: ::prost::alloc::vec::Vec<u8>,
     /// Daily undisclosed-volume limit (16-byte little-endian u128).
-    /// Transfers at or above this amount are encrypted to issuer's DK instead of user's daily key.
+    /// Maximum accumulated undisclosed outgoing volume. A candidate above this
+    /// amount discloses only the current action to the issuer; equality remains
+    /// undisclosed. Compliance encryption uses per-action key material.
     /// u128::MAX means never flag.
     #[prost(bytes = "vec", tag = "5")]
     pub daily_volume_limit: ::prost::alloc::vec::Vec<u8>,

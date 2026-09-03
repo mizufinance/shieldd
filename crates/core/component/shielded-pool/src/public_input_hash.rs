@@ -3,6 +3,7 @@ use ark_relations::r1cs::{ConstraintSystemRef, SynthesisError};
 use decaf377::{r1cs::FqVar, Fq};
 use shieldd_sdk_compliance::{
     TRANSFER_CORE_CIPHERTEXT_FQS, TRANSFER_DETECTION_FQS, TRANSFER_EXT_CIPHERTEXT_FQS,
+    WITHDRAWAL_DETECTION_FQS, WITHDRAWAL_SENDER_CIPHERTEXT_FQS,
 };
 use shieldd_sdk_proof_params::statement_hash::{hash_statement_fields, hash_statement_fields_var};
 
@@ -20,7 +21,7 @@ pub const NOTE_RESHAPE_STATEMENT_FIELDS_PER_OUTPUT: usize = 1;
 pub const TRANSFER_STATEMENT_BASE_FIELDS: usize = 41;
 pub const TRANSFER_STATEMENT_FIELDS_PER_INPUT: usize = 3;
 pub const TRANSFER_STATEMENT_FIELDS_PER_OUTPUT: usize = 1;
-pub const SHIELDED_ICS20_WITHDRAWAL_STATEMENT_BASE_FIELDS: usize = 15;
+pub const SHIELDED_ICS20_WITHDRAWAL_STATEMENT_BASE_FIELDS: usize = 32;
 pub const SHIELDED_ICS20_WITHDRAWAL_STATEMENT_FIELDS_PER_INPUT: usize = 3;
 
 pub const fn note_reshape_statement_field_count(n_in: usize, n_out: usize) -> usize {
@@ -433,6 +434,39 @@ pub fn shielded_ics20_withdrawal_statement_fields(
             field: e.to_string(),
         })?;
 
+    let compliance = &public.compliance;
+    for (label, got, expected) in [
+        (
+            "withdrawal_detection_ciphertext",
+            compliance.ciphertext.detection_ciphertext.len(),
+            WITHDRAWAL_DETECTION_FQS,
+        ),
+        (
+            "withdrawal_sender_ciphertext",
+            compliance.ciphertext.sender_ciphertext.len(),
+            WITHDRAWAL_SENDER_CIPHERTEXT_FQS,
+        ),
+    ] {
+        if got != expected {
+            return Err(StatementHashError::InvalidCiphertextLength {
+                label: label.to_owned(),
+                expected,
+                got,
+            });
+        }
+    }
+    compliance
+        .metadata
+        .validate()
+        .map_err(|e| StatementHashError::FieldEncoding {
+            field: format!("withdrawal_metadata: {e}"),
+        })?;
+    if public.target_timestamp != Fq::from(compliance.metadata.target_timestamp) {
+        return Err(StatementHashError::FieldEncoding {
+            field: "withdrawal_metadata_target_timestamp".to_owned(),
+        });
+    }
+
     let expected = shielded_ics20_withdrawal_statement_field_count(public.family_id.input_count());
     let mut fields = note_reshape_statement_fields_inner(
         public.anchor,
@@ -480,6 +514,44 @@ pub fn shielded_ics20_withdrawal_statement_fields(
     fields.extend(public.withdrawal_effect_hash_limbs);
     fields.push(Fq::from(public.routing_tag.value));
     fields.push(public.routing_parameter_set_id);
+    fields.push(public.volume_accumulator.nullifier.0);
+    fields.push(public.volume_accumulator.commitment.0);
+    fields.push(Fq::from(public.volume_accumulator.day_start));
+    fields.extend(compliance.ciphertext.detection_ciphertext.iter().copied());
+    fields.extend(
+        compliance
+            .ciphertext
+            .epk
+            .to_field_elements()
+            .ok_or_else(|| StatementHashError::FieldEncoding {
+                field: "withdrawal_sender_epk".to_owned(),
+            })?,
+    );
+    fields.push(compliance.ciphertext.c2);
+    fields.extend(compliance.ciphertext.sender_ciphertext.iter().copied());
+    for (label, value) in [
+        (
+            "withdrawal_ring_id_hash",
+            compliance.metadata.ring_id_hash(),
+        ),
+        (
+            "withdrawal_policy_id_hash",
+            compliance.metadata.policy_id_hash(),
+        ),
+        (
+            "withdrawal_resource_hash",
+            compliance.metadata.resource_hash(),
+        ),
+        (
+            "withdrawal_permission_hash",
+            compliance.metadata.permission_hash(),
+        ),
+        ("withdrawal_sender_salt", compliance.metadata.sender_salt()),
+    ] {
+        fields.push(value.map_err(|e| StatementHashError::FieldEncoding {
+            field: format!("{label}: {e}"),
+        })?);
+    }
 
     if fields.len() != expected {
         return Err(StatementHashError::InvalidFieldLength {

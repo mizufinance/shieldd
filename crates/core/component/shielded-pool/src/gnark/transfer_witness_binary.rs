@@ -153,7 +153,7 @@ impl TransferWitness {
     }
 }
 
-fn encode_volume_accumulator(
+pub(crate) fn encode_volume_accumulator(
     buf: &mut Vec<u8>,
     value: &TransferVolumeAccumulatorWitness,
 ) -> Result<()> {
@@ -174,7 +174,7 @@ fn encode_volume_accumulator(
     Ok(())
 }
 
-fn decode_volume_accumulator(
+pub(crate) fn decode_volume_accumulator(
     cursor: &mut BinaryCursor<'_>,
 ) -> Result<TransferVolumeAccumulatorWitness> {
     Ok(TransferVolumeAccumulatorWitness {

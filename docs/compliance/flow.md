@@ -134,9 +134,10 @@ constructed tier.
 
 ### Daily volume state
 
-The accounting day is UTC-aligned and independent of the SCT epoch. A target
-timestamp in the final 30 minutes of a day is assigned to the next day. Target
-timestamps must remain within ±30 minutes of signed block time.
+The accounting day is UTC-aligned and independent of the SCT epoch. Every
+target timestamp is assigned to the UTC day that contains it. Target timestamps
+must remain within ±30 minutes of signed block time, so prior-day nullifiers
+remain retained for the same grace after midnight.
 
 The first real transition in a selected day emits a deterministic private
 origin nullifier. Later transitions prove SCT membership of the predecessor

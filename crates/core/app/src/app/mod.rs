@@ -3043,14 +3043,26 @@ impl App {
         let mut seen = HashSet::new();
         for artifact in artifacts {
             for action in artifact.tx.actions() {
-                if let Action::Transfer(transfer) = action {
+                let payload = match action {
+                    Action::Transfer(transfer) => {
+                        anyhow::ensure!(
+                            transfer.body.proof_context
+                                == shieldd_sdk_shielded_pool::TransferProofContext::Ordinary,
+                            "body transfer must use ordinary proof context"
+                        );
+                        Some(&transfer.body.volume_accumulator)
+                    }
+                    Action::ShieldedHostWithdrawal(withdrawal) => {
+                        Some(&withdrawal.body.volume_accumulator)
+                    }
+                    Action::ShieldedIcs20Withdrawal(withdrawal) => {
+                        Some(&withdrawal.body.volume_accumulator)
+                    }
+                    _ => None,
+                };
+                if let Some(payload) = payload {
                     anyhow::ensure!(
-                        transfer.body.proof_context
-                            == shieldd_sdk_shielded_pool::TransferProofContext::Ordinary,
-                        "body transfer must use ordinary proof context"
-                    );
-                    anyhow::ensure!(
-                        seen.insert(transfer.body.volume_accumulator.scoped_nullifier()),
+                        seen.insert(payload.scoped_nullifier()),
                         "duplicate daily volume nullifier in proposal"
                     );
                 }
@@ -3216,8 +3228,18 @@ impl App {
             }
 
             for action in candidate.tx().actions() {
-                if let Action::Transfer(transfer) = action {
-                    let scoped = transfer.body.volume_accumulator.scoped_nullifier();
+                let payload = match action {
+                    Action::Transfer(transfer) => Some(&transfer.body.volume_accumulator),
+                    Action::ShieldedHostWithdrawal(withdrawal) => {
+                        Some(&withdrawal.body.volume_accumulator)
+                    }
+                    Action::ShieldedIcs20Withdrawal(withdrawal) => {
+                        Some(&withdrawal.body.volume_accumulator)
+                    }
+                    _ => None,
+                };
+                if let Some(payload) = payload {
+                    let scoped = payload.scoped_nullifier();
                     if !tx_volume_nullifiers.insert(scoped)
                         || seen_volume_nullifiers.contains(&scoped)
                     {

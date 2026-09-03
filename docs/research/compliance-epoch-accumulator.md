@@ -43,14 +43,12 @@ The accounting period is a fixed UTC day, independent of Shieldd's SCT epoch:
 
 ```text
 utc_day_start = timestamp - timestamp % 86400
-day_start = utc_day_start + 86400  when timestamp % 86400 >= 84600
-day_start = utc_day_start          otherwise
+day_start = utc_day_start
 ```
 
-The final 30 minutes of a UTC day are charged to the following day. Consensus
-accepts a target timestamp only within ±30 minutes of signed block time. This
-lets a proof built shortly before midnight remain valid after midnight without
-introducing adjacent-window choice inside one proof.
+Consensus accepts a target timestamp only within ±30 minutes of signed block
+time. This lets a proof built shortly before midnight remain valid after
+midnight while keeping it charged to the day containing its target timestamp.
 
 Each selected day has an independent deterministic origin. A lost head blocks
 tracked transfers only for that selected day; voluntary disclosure remains
@@ -135,8 +133,7 @@ Shieldd uses voluntary disclosure as the minimal burst path instead of lanes or
 parallel budgets.
 
 User-side recursive or SnarkPack aggregation does not solve this shared-head
-dependency by itself. A future payment-batch action could consume several
-payment intents in one accumulator transition, but it is outside bankd#311.
+dependency by itself.
 
 ## Risks and controls
 
@@ -144,10 +141,13 @@ payment intents in one accumulator transition, but it is outside bankd#311.
 | --- | --- |
 | Two proofs fork one head | Wallet reservation plus scoped origin/predecessor nullifier uniqueness |
 | Lost or incomplete head opens a second daily budget | Recovery-chain status; only complete heads are plannable; new origin only on a new selected day |
-| Midnight proof expires | ±30-minute freshness and deterministic 23:30 next-day assignment |
+| Midnight proof remains valid briefly | Exact target day plus matching nullifier-retention grace |
 | Fee funding bypass is reused by a body Transfer | Proof context is statement-bound and checked against transaction location |
 | Amount or cumulative volume wraps | Circuit and native checked `u128` addition |
 | Padding leaks disclosure through action shape | Real and padding use the same ordinary-Transfer wire slot and ciphertext length |
 | Owner payload creates a new cryptographic subsystem | Existing OVK KDF plus authenticated encryption; no DH, FHE, or SNARK encryption |
 | Temporary state grows without bound | Day markers and deterministic pruning after the acceptance buffer |
 | Policy/key changes invalidate semantics | Deferred to [shieldd#38](https://github.com/mizufinance/shieldd/issues/38) |
+
+Activation requires `mizufinance/shieldd-formal` to pin the activating Shieldd
+commit and update its accumulator and withdrawal models.

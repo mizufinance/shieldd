@@ -4,6 +4,7 @@ use decaf377_rdsa::{Signature, SpendAuth};
 use shieldd_sdk_asset::{balance, Value};
 use shieldd_sdk_compliance::registry::ComplianceRegistryRead;
 use shieldd_sdk_sct::component::clock::EpochRead;
+use shieldd_sdk_sct::component::source::SourceContext as _;
 use shieldd_sdk_tct as tct;
 use shieldd_sdk_txhash::{EffectHash, TransactionContext};
 
@@ -25,6 +26,9 @@ pub(crate) struct ProofPublicData<'a> {
     pub withdrawal_effect_hash: EffectHash,
     pub routing_tag: crate::discovery::RoutingTag,
     pub routing_parameter_set_id: decaf377::Fq,
+    pub sender_compliance_ciphertext: &'a [u8],
+    pub sender_compliance_metadata: &'a [u8],
+    pub volume_accumulator: &'a crate::VolumeAccumulatorPayload,
 }
 
 pub(crate) fn verify_auth_sigs(
@@ -78,6 +82,15 @@ pub(crate) fn extract_public(
         routing_tag: data.routing_tag,
         routing_parameter_set_id: data.routing_parameter_set_id,
         recent_position_floor: context.recent_position_floor,
+        compliance: crate::withdrawal_compliance::public_from_bytes(
+            data.sender_compliance_ciphertext,
+            data.sender_compliance_metadata,
+        )?,
+        volume_accumulator: crate::VolumeAccumulatorPublic {
+            nullifier: data.volume_accumulator.nullifier,
+            commitment: data.volume_accumulator.commitment,
+            day_start: data.volume_accumulator.day_start,
+        },
     };
     public.validate_shape()?;
     Ok(public)
@@ -100,4 +113,31 @@ pub(crate) async fn validate_compliance<S: StateRead>(
     shieldd_sdk_compliance::registry::check_timestamp_freshness(target_timestamp, block_unix)?;
 
     Ok(block_time)
+}
+
+pub(crate) async fn validate_volume<S: StateRead>(
+    state: &S,
+    payload: &crate::VolumeAccumulatorPayload,
+) -> Result<()> {
+    use crate::component::StateReadExt as _;
+    state
+        .check_volume_nullifier_unspent(payload.day_start, payload.nullifier)
+        .await
+}
+
+pub(crate) async fn execute_volume<S: cnidarium::StateWrite>(
+    state: &mut S,
+    payload: &crate::VolumeAccumulatorPayload,
+) -> Result<()> {
+    use crate::component::{NoteManager as _, StateWriteExt as _};
+    let source = state
+        .get_current_source()
+        .ok_or_else(|| anyhow::anyhow!("source should be set during withdrawal execution"))?;
+    state
+        .record_volume_nullifier(payload.day_start, payload.nullifier)
+        .await?;
+    state
+        .add_volume_accumulator_payload(payload.clone(), source.into())
+        .await;
+    Ok(())
 }

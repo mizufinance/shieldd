@@ -949,59 +949,88 @@ func (c *TransferCircuit) verifyVolumeAccumulator(
 	shared *transferSharedContext,
 	statementData *transferStatementData,
 ) error {
-	v := &c.VolumeAccumulator
+	receiverSameDivGen := api.IsZero(api.Sub(shared.senderDivGenFq, statementData.receiverDivGenFq))
+	receiverSameTransmission := api.IsZero(api.Sub(shared.senderTransmissionFq, statementData.receiverTransmissionFq))
+	isSelf := api.Mul(receiverSameDivGen, receiverSameTransmission)
+	isExternal := api.Sub(1, isSelf)
+	isFee := api.Sub(c.VolumeAccumulator.ProofContext, 1)
+	// Fee funding may only reshape value back to the sender. Transaction location
+	// alone must not exempt an arbitrary external transfer from compliance.
+	api.AssertIsEqual(api.Mul(isFee, isExternal), 0)
+	isFlagged, err := verifyVolumeAccumulatorTransition(
+		api,
+		&c.VolumeAccumulator,
+		c.TargetTimestamp,
+		api.Mul(c.IsRegulated, isExternal),
+		shared.senderDivGenFq,
+		shared.senderTransmissionFq,
+		shared.sharedAssetID,
+		statementData.receiverAmount,
+		shared.indexedLeaf.DailyVolumeLimit,
+		c.Anchor,
+		c.Auth.NK,
+		c.Compliance.TransferNonceRoot,
+	)
+	if err != nil {
+		return err
+	}
+	statementData.isFlagged = isFlagged
+	return nil
+}
+
+func verifyVolumeAccumulatorTransition(
+	api frontend.API,
+	v *TransferVolumeAccumulatorCircuitFields,
+	targetTimestamp frontend.Variable,
+	eligibleOrdinary frontend.Variable,
+	senderDivGenFq frontend.Variable,
+	senderTransmissionFq frontend.Variable,
+	assetID frontend.Variable,
+	outboundAmount frontend.Variable,
+	dailyVolumeLimit frontend.Variable,
+	anchor frontend.Variable,
+	nk frontend.Variable,
+	paddingSeed frontend.Variable,
+) (frontend.Variable, error) {
 	api.AssertIsBoolean(v.UseReal)
 	api.AssertIsBoolean(v.StartsNewDay)
-
-	// The only valid contexts are ordinary=1 and fee_funding=2.
+	api.AssertIsBoolean(eligibleOrdinary)
 	api.AssertIsEqual(api.Mul(api.Sub(v.ProofContext, 1), api.Sub(v.ProofContext, 2)), 0)
 	isFee := api.Sub(v.ProofContext, 1)
 	isOrdinary := api.Sub(1, isFee)
 	api.AssertIsBoolean(isFee)
 	api.AssertIsBoolean(isOrdinary)
 
-	api.ToBinary(c.TargetTimestamp, 64)
+	api.ToBinary(targetTimestamp, 64)
 	api.ToBinary(v.TimestampDayIndex, 48)
 	api.ToBinary(v.TimestampSecond, 17)
-	api.AssertIsEqual(
-		c.TargetTimestamp,
-		api.Add(api.Mul(v.TimestampDayIndex, 86400), v.TimestampSecond),
-	)
-	secondBeforeDayEnd := FieldLessThan(api, v.TimestampSecond, 86400)
-	api.AssertIsEqual(secondBeforeDayEnd, 1)
-	isLate := api.Sub(1, FieldLessThan(api, v.TimestampSecond, 84600))
-	selectedDayStart := api.Mul(api.Add(v.TimestampDayIndex, isLate), 86400)
+	api.AssertIsEqual(targetTimestamp, api.Add(api.Mul(v.TimestampDayIndex, 86400), v.TimestampSecond))
+	api.AssertIsEqual(FieldLessThan(api, v.TimestampSecond, 86400), 1)
+	selectedDayStart := api.Mul(v.TimestampDayIndex, 86400)
 	api.AssertIsEqual(v.DayStart, api.Mul(isOrdinary, selectedDayStart))
 
-	receiverSameDivGen := api.IsZero(api.Sub(shared.senderDivGenFq, statementData.receiverDivGenFq))
-	receiverSameTransmission := api.IsZero(api.Sub(shared.senderTransmissionFq, statementData.receiverTransmissionFq))
-	isSelf := api.Mul(receiverSameDivGen, receiverSameTransmission)
-	isExternal := api.Sub(1, isSelf)
-	// Fee funding may only reshape value back to the sender. Transaction location
-	// alone must not exempt an arbitrary external transfer from compliance.
-	api.AssertIsEqual(api.Mul(isFee, isExternal), 0)
-	eligible := api.Mul(isOrdinary, c.IsRegulated, isExternal)
+	eligible := api.Mul(isOrdinary, eligibleOrdinary)
 	api.AssertIsEqual(api.Mul(v.UseReal, api.Sub(1, eligible)), 0)
-	statementData.isFlagged = api.Mul(eligible, api.Sub(1, v.UseReal))
-	api.AssertIsBoolean(statementData.isFlagged)
+	isFlagged := api.Mul(eligible, api.Sub(1, v.UseReal))
+	api.AssertIsBoolean(isFlagged)
 
 	subject, err := Poseidon377Hash3(
 		api,
 		volumeAccumulatorDomain("shieldd.volume.subject"),
-		[3]frontend.Variable{shared.senderDivGenFq, shared.senderTransmissionFq, shared.sharedAssetID},
+		[3]frontend.Variable{senderDivGenFq, senderTransmissionFq, assetID},
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	api.AssertIsEqual(api.Mul(v.UseReal, api.Sub(v.Subject, subject)), 0)
 
 	api.ToBinary(v.PriorVolume, transferAmountBits)
 	api.ToBinary(v.SuccessorVolume, transferAmountBits)
-	api.ToBinary(shared.indexedLeaf.DailyVolumeLimit, transferAmountBits)
-	candidate := api.Add(v.PriorVolume, statementData.receiverAmount)
+	api.ToBinary(dailyVolumeLimit, transferAmountBits)
+	candidate := api.Add(v.PriorVolume, outboundAmount)
 	api.ToBinary(candidate, transferAmountBits)
 	api.AssertIsEqual(api.Mul(v.UseReal, api.Sub(v.SuccessorVolume, candidate)), 0)
-	withinLimit := api.Sub(1, FieldLessThan(api, shared.indexedLeaf.DailyVolumeLimit, candidate))
+	withinLimit := api.Sub(1, FieldLessThan(api, dailyVolumeLimit, candidate))
 	api.AssertIsEqual(api.Mul(v.UseReal, api.Sub(1, withinLimit)), 0)
 	api.AssertIsEqual(api.Mul(v.UseReal, v.StartsNewDay, v.PriorVolume), 0)
 
@@ -1011,7 +1040,7 @@ func (c *TransferCircuit) verifyVolumeAccumulator(
 		[4]frontend.Variable{v.Subject, v.DayStart, v.PriorVolume, v.PriorBlinding},
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	continuation := api.Mul(v.UseReal, api.Sub(1, v.StartsNewDay))
 	api.AssertIsEqual(api.Mul(continuation, api.Sub(v.PriorCommitment, priorCommitment)), 0)
@@ -1019,21 +1048,21 @@ func (c *TransferCircuit) verifyVolumeAccumulator(
 	copy(priorPath, v.PriorStateProof.Path[:])
 	priorAnchor, err := VerifyStateCommitmentPath(api, priorCommitment, v.PriorStateProof.Position, priorPath)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	api.AssertIsEqual(api.Mul(continuation, api.Sub(priorAnchor, c.Anchor)), 0)
+	api.AssertIsEqual(api.Mul(continuation, api.Sub(priorAnchor, anchor)), 0)
 
 	originNullifier, err := Poseidon377Hash3(
 		api,
 		volumeAccumulatorDomain("shieldd.volume.origin_nullifier"),
-		[3]frontend.Variable{c.Auth.NK, v.Subject, v.DayStart},
+		[3]frontend.Variable{nk, v.Subject, v.DayStart},
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	continuationNullifier, err := Nullifier(api, c.Auth.NK, priorCommitment, v.PriorStateProof.Position)
+	continuationNullifier, err := Nullifier(api, nk, priorCommitment, v.PriorStateProof.Position)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	realNullifier := api.Select(v.StartsNewDay, originNullifier, continuationNullifier)
 	realCommitment, err := Poseidon377Hash4(
@@ -1042,29 +1071,29 @@ func (c *TransferCircuit) verifyVolumeAccumulator(
 		[4]frontend.Variable{v.Subject, v.DayStart, v.SuccessorVolume, v.SuccessorBlinding},
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	paddingCommitment, err := Poseidon377Hash3(
 		api,
 		volumeAccumulatorDomain("shieldd.volume.padding_commitment"),
-		[3]frontend.Variable{c.Auth.NK, c.Compliance.TransferNonceRoot, v.DayStart},
+		[3]frontend.Variable{nk, paddingSeed, v.DayStart},
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	paddingNullifier, err := Poseidon377Hash3(
 		api,
 		volumeAccumulatorDomain("shieldd.volume.padding_nullifier"),
-		[3]frontend.Variable{c.Auth.NK, c.Compliance.TransferNonceRoot, v.DayStart},
+		[3]frontend.Variable{nk, paddingSeed, v.DayStart},
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	ordinaryNullifier := api.Select(v.UseReal, realNullifier, paddingNullifier)
 	ordinaryCommitment := api.Select(v.UseReal, realCommitment, paddingCommitment)
 	api.AssertIsEqual(v.Nullifier, api.Mul(isOrdinary, ordinaryNullifier))
 	api.AssertIsEqual(v.Commitment, api.Mul(isOrdinary, ordinaryCommitment))
-	return nil
+	return isFlagged, nil
 }
 
 func transferSyntheticDummyNullifierDomain() *big.Int {

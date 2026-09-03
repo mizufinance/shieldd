@@ -243,116 +243,183 @@ impl ViewServer {
         &self,
         plan: &mut TransactionPlan,
         disclose_to_issuer: bool,
-        chain_timestamp: u64,
     ) -> anyhow::Result<()> {
-        let fvk = self.storage.full_viewing_key().await?;
         for action in &mut plan.actions {
-            let ActionPlan::Transfer(transfer) = action else {
-                continue;
-            };
-            let (
-                target_timestamp,
-                is_regulated,
-                sender_address,
-                asset_id,
-                receiver_address,
-                receiver_amount,
-                daily_volume_limit,
-            ) = {
-                let spend = transfer
-                    .spends
-                    .first()
-                    .ok_or_else(|| anyhow!("transfer accumulator requires a sender spend"))?;
-                let output = transfer
-                    .outputs
-                    .first()
-                    .ok_or_else(|| anyhow!("transfer accumulator requires a receiver output"))?;
-                let daily_volume_limit = spend
-                    .asset_policy
-                    .as_ref()
-                    .map(|policy| policy.params.daily_volume_limit);
-                (
-                    spend.target_timestamp,
-                    spend.is_regulated,
-                    spend.note.address(),
-                    spend.note.asset_id(),
-                    output.dest_address.clone(),
-                    output.value.amount.value(),
-                    daily_volume_limit,
-                )
-            };
-            let day_start = shieldd_sdk_shielded_pool::select_accumulator_day(target_timestamp);
-            transfer.set_volume_accumulator(
-                shieldd_sdk_shielded_pool::VolumeAccumulatorPlan::padding(target_timestamp),
-            );
-
-            let is_external = receiver_address != sender_address;
-            if disclose_to_issuer || !is_regulated || !is_external {
-                continue;
+            match action {
+                ActionPlan::Transfer(transfer) => {
+                    let spend = transfer
+                        .spends
+                        .first()
+                        .ok_or_else(|| anyhow!("transfer accumulator requires a sender spend"))?;
+                    let output = transfer.outputs.first().ok_or_else(|| {
+                        anyhow!("transfer accumulator requires a receiver output")
+                    })?;
+                    let eligible = output.dest_address != spend.note.address();
+                    let accumulator = self
+                        .select_volume_accumulator(
+                            spend,
+                            output.value.amount.value(),
+                            eligible,
+                            disclose_to_issuer,
+                        )
+                        .await?;
+                    transfer.set_volume_accumulator(accumulator);
+                }
+                ActionPlan::ShieldedHostWithdrawal(withdrawal) => {
+                    let spend = withdrawal.spends.first().ok_or_else(|| {
+                        anyhow!("host withdrawal accumulator requires a sender spend")
+                    })?;
+                    let accumulator = self
+                        .select_volume_accumulator(
+                            spend,
+                            withdrawal.withdrawal.value.amount.value(),
+                            true,
+                            disclose_to_issuer,
+                        )
+                        .await?;
+                    withdrawal.set_volume_accumulator(accumulator);
+                }
+                ActionPlan::ShieldedIcs20Withdrawal(withdrawal) => {
+                    let spend = withdrawal.spends.first().ok_or_else(|| {
+                        anyhow!("ICS-20 withdrawal accumulator requires a sender spend")
+                    })?;
+                    let accumulator = self
+                        .select_volume_accumulator(
+                            spend,
+                            withdrawal.withdrawal.amount.value(),
+                            true,
+                            disclose_to_issuer,
+                        )
+                        .await?;
+                    withdrawal.set_volume_accumulator(accumulator);
+                }
+                _ => {}
             }
-            let subject = shieldd_sdk_shielded_pool::VolumeAccumulatorState::subject(
-                &sender_address,
-                asset_id,
-            );
-            let recovery = self
-                .storage
-                .volume_accumulator_recovery(subject, day_start)
-                .await?;
-            let daily_volume_limit = daily_volume_limit
-                .ok_or_else(|| anyhow!("regulated transfer is missing its asset policy"))?;
-            let successor_blinding = Fq::from_le_bytes_mod_order(&OsRng.gen::<[u8; 32]>());
-            let accumulator = match recovery {
-                crate::storage::VolumeAccumulatorRecovery::Absent => {
-                    let Some(successor_volume) = shieldd_sdk_shielded_pool::accumulated_volume(
-                        0,
-                        receiver_amount,
-                        daily_volume_limit,
-                    ) else {
-                        continue;
-                    };
-                    shieldd_sdk_shielded_pool::VolumeAccumulatorPlan::origin(
-                        shieldd_sdk_shielded_pool::VolumeAccumulatorState {
-                            subject,
-                            day_start,
-                            undisclosed_volume: successor_volume,
-                            blinding: successor_blinding,
-                        },
+        }
+        Ok(())
+    }
+
+    async fn select_volume_accumulator(
+        &self,
+        spend: &shieldd_sdk_shielded_pool::ShieldedInputPlan,
+        outgoing_amount: u128,
+        eligible: bool,
+        disclose_to_issuer: bool,
+    ) -> anyhow::Result<shieldd_sdk_shielded_pool::VolumeAccumulatorPlan> {
+        let padding =
+            shieldd_sdk_shielded_pool::VolumeAccumulatorPlan::padding(spend.target_timestamp);
+        if disclose_to_issuer || !spend.is_regulated || !eligible {
+            return Ok(padding);
+        }
+        let limit = spend
+            .asset_policy
+            .as_ref()
+            .ok_or_else(|| anyhow!("regulated outgoing action is missing its asset policy"))?
+            .params
+            .daily_volume_limit;
+        let day_start = shieldd_sdk_shielded_pool::select_accumulator_day(spend.target_timestamp);
+        let subject = shieldd_sdk_shielded_pool::VolumeAccumulatorState::subject(
+            &spend.note.address(),
+            spend.note.asset_id(),
+        );
+        let recovery = self
+            .storage
+            .volume_accumulator_recovery(subject, day_start)
+            .await?;
+        let successor_blinding = Fq::from_le_bytes_mod_order(&OsRng.gen::<[u8; 32]>());
+        match recovery {
+            crate::storage::VolumeAccumulatorRecovery::Absent => {
+                let Some(successor_volume) =
+                    shieldd_sdk_shielded_pool::accumulated_volume(0, outgoing_amount, limit)
+                else {
+                    return Ok(padding);
+                };
+                Ok(shieldd_sdk_shielded_pool::VolumeAccumulatorPlan::origin(
+                    shieldd_sdk_shielded_pool::VolumeAccumulatorState {
+                        subject,
+                        day_start,
+                        undisclosed_volume: successor_volume,
+                        blinding: successor_blinding,
+                    },
+                ))
+            }
+            crate::storage::VolumeAccumulatorRecovery::Complete(confirmed) => {
+                let Some(successor_volume) = shieldd_sdk_shielded_pool::accumulated_volume(
+                    confirmed.state.undisclosed_volume,
+                    outgoing_amount,
+                    limit,
+                ) else {
+                    return Ok(padding);
+                };
+                shieldd_sdk_shielded_pool::VolumeAccumulatorPlan::continuation(
+                    confirmed.state,
+                    confirmed.commitment,
+                    u64::from(confirmed.position),
+                    successor_volume,
+                    successor_blinding,
+                )
+            }
+            crate::storage::VolumeAccumulatorRecovery::Incomplete => Ok(padding),
+        }
+    }
+
+    async fn reserve_volume_accumulators_for_broadcast(
+        &self,
+        transaction: &Transaction,
+        chain_timestamp: u64,
+    ) -> anyhow::Result<Vec<shieldd_sdk_shielded_pool::VolumeNullifier>> {
+        let fvk = self.storage.full_viewing_key().await?;
+        let mut reservations = Vec::new();
+        for action in transaction.actions() {
+            let (payload, target_timestamp) = match action {
+                shieldd_sdk_transaction::Action::Transfer(transfer)
+                    if transfer.body.proof_context
+                        == shieldd_sdk_shielded_pool::TransferProofContext::Ordinary =>
+                {
+                    (
+                        transfer.body.volume_accumulator.clone(),
+                        transfer.body.target_timestamp,
                     )
                 }
-                crate::storage::VolumeAccumulatorRecovery::Complete(confirmed) => {
-                    let Some(successor_volume) = shieldd_sdk_shielded_pool::accumulated_volume(
-                        confirmed.state.undisclosed_volume,
-                        receiver_amount,
-                        daily_volume_limit,
-                    ) else {
-                        continue;
-                    };
-                    shieldd_sdk_shielded_pool::VolumeAccumulatorPlan::continuation(
-                        confirmed.state,
-                        confirmed.commitment,
-                        u64::from(confirmed.position),
-                        successor_volume,
-                        successor_blinding,
-                    )?
-                }
-                crate::storage::VolumeAccumulatorRecovery::Incomplete => continue,
+                shieldd_sdk_transaction::Action::ShieldedHostWithdrawal(withdrawal) => (
+                    withdrawal.body.volume_accumulator.clone(),
+                    withdrawal.body.target_timestamp,
+                ),
+                shieldd_sdk_transaction::Action::ShieldedIcs20Withdrawal(withdrawal) => (
+                    withdrawal.body.volume_accumulator.clone(),
+                    withdrawal.body.target_timestamp,
+                ),
+                _ => continue,
             };
-            transfer.set_volume_accumulator(accumulator);
-            let payload = transfer.volume_accumulator_payload(&fvk);
-            let successor_state = transfer
-                .volume_accumulator
-                .successor_state()
-                .expect("real accumulator plan has a successor state");
+            let (state, is_real) = payload.trial_decrypt(fvk.outgoing()).ok_or_else(|| {
+                anyhow!("wallet could not recover its accumulator payload before broadcast")
+            })?;
+            if !is_real {
+                continue;
+            }
+            reservations.push(crate::storage::VolumeAccumulatorReservation {
+                state,
+                expires_at: target_timestamp.saturating_add(
+                    shieldd_sdk_shielded_pool::VOLUME_ACCUMULATOR_RETENTION_GRACE_SECS,
+                ),
+                payload,
+            });
+        }
+        let scoped = reservations
+            .iter()
+            .map(|reservation| reservation.payload.scoped_nullifier())
+            .collect::<Vec<_>>();
+        if !reservations.is_empty() {
             self.storage
-                .reserve_volume_accumulator(
-                    successor_state,
-                    payload,
-                    target_timestamp.saturating_add(1_800),
+                .reserve_volume_accumulators(
+                    reservations,
+                    transaction.id().0,
                     chain_timestamp,
+                    *fvk.nullifier_key(),
                 )
                 .await?;
         }
-        Ok(())
+        Ok(scoped)
     }
 
     fn address_purpose(purpose: Option<pb::AddressPurpose>) -> Result<AddressPurpose, Status> {
@@ -378,7 +445,8 @@ impl ViewServer {
             .await
             .map_err(|error| Status::internal(format!("could not read sync height: {error:#}")))?
             .unwrap_or(0);
-        self.storage
+        let address = self
+            .storage
             .record_issued_address(IssuedAddress {
                 address_index,
                 address: address.clone(),
@@ -536,18 +604,16 @@ impl ViewServer {
         let self2 = self.clone();
         try_stream! {
                 let transaction_id = transaction.id();
-                let volume_reservations = transaction
-                    .actions()
-                    .filter_map(|action| match action {
-                        shieldd_sdk_transaction::Action::Transfer(transfer)
-                            if transfer.body.proof_context
-                                == shieldd_sdk_shielded_pool::TransferProofContext::Ordinary =>
-                        {
-                            Some(transfer.body.volume_accumulator.scoped_nullifier())
-                        }
-                        _ => None,
-                    })
-                    .collect::<Vec<_>>();
+                let (_, _, chain_timestamp) = self2.latest_known_block().await
+                    .map_err(|error| tonic::Status::unavailable(format!(
+                        "could not determine chain time before broadcast: {error:#}"
+                    )))?;
+                let volume_reservations = self2
+                    .reserve_volume_accumulators_for_broadcast(&transaction, chain_timestamp)
+                    .await
+                    .map_err(|error| tonic::Status::failed_precondition(format!(
+                        "could not reserve daily volume accumulator: {error:#}"
+                    )))?;
                 let spent_nullifier = if await_detection {
                     transaction.spent_nullifiers().next()
                 } else {
@@ -932,14 +998,10 @@ impl ViewService for ViewServer {
                     return Err(tonic::Status::invalid_argument(reason));
                 }
             };
-            self.enrich_volume_accumulator(
-                &mut transaction_plan,
-                disclose_to_issuer,
-                chain_timestamp,
-            )
-            .await
-            .context("could not reserve daily volume accumulator")
-            .map_err(|e| tonic::Status::failed_precondition(format!("{e:#}")))?;
+            self.enrich_volume_accumulator(&mut transaction_plan, disclose_to_issuer)
+                .await
+                .context("could not plan daily volume accumulator")
+                .map_err(|e| tonic::Status::failed_precondition(format!("{e:#}")))?;
 
             return Ok(tonic::Response::new(TransactionPlannerResponse {
                 plan: Some(transaction_plan.into()),
@@ -986,7 +1048,7 @@ impl ViewService for ViewServer {
                 .context("could not plan wallet-facing ICS-20 withdrawal")
                 .map_err(|e| tonic::Status::invalid_argument(format!("{e:#}")))?;
 
-            let transaction_plan = match planning_result {
+            let mut transaction_plan = match planning_result {
                 TransferPlanningResult::Ready { transaction_plan } => transaction_plan,
                 TransferPlanningResult::NeedsMaintenance { .. } => {
                     return Err(tonic::Status::invalid_argument(
@@ -1002,6 +1064,10 @@ impl ViewService for ViewServer {
                     return Err(tonic::Status::invalid_argument(reason));
                 }
             };
+            self.enrich_volume_accumulator(&mut transaction_plan, disclose_to_issuer)
+                .await
+                .context("could not plan ICS-20 daily volume accumulator")
+                .map_err(|e| tonic::Status::failed_precondition(format!("{e:#}")))?;
 
             return Ok(tonic::Response::new(TransactionPlannerResponse {
                 plan: Some(transaction_plan.into()),
@@ -1048,7 +1114,7 @@ impl ViewService for ViewServer {
                 .context("could not plan wallet-facing host withdrawal")
                 .map_err(|e| tonic::Status::invalid_argument(format!("{e:#}")))?;
 
-            let transaction_plan = match planning_result {
+            let mut transaction_plan = match planning_result {
                 TransferPlanningResult::Ready { transaction_plan } => transaction_plan,
                 TransferPlanningResult::NeedsMaintenance { .. } => {
                     return Err(tonic::Status::invalid_argument(
@@ -1064,6 +1130,10 @@ impl ViewService for ViewServer {
                     return Err(tonic::Status::invalid_argument(reason));
                 }
             };
+            self.enrich_volume_accumulator(&mut transaction_plan, disclose_to_issuer)
+                .await
+                .context("could not plan host-withdrawal daily volume accumulator")
+                .map_err(|e| tonic::Status::failed_precondition(format!("{e:#}")))?;
 
             return Ok(tonic::Response::new(TransactionPlannerResponse {
                 plan: Some(transaction_plan.into()),
@@ -1903,11 +1973,14 @@ impl ViewService for ViewServer {
             .filter(|spend| spend.note.amount() != zero_amount)
             .map(|spend| spend.note.commit().into())
             .collect();
-        requested_note_commitments.extend(
-            tx_plan
-                .transfer_plans()
-                .filter_map(|transfer| transfer.accumulator_prior_commitment()),
-        );
+        requested_note_commitments.extend(tx_plan.actions.iter().filter_map(
+            |action| match action {
+                ActionPlan::Transfer(plan) => plan.accumulator_prior_commitment(),
+                ActionPlan::ShieldedHostWithdrawal(plan) => plan.accumulator_prior_commitment(),
+                ActionPlan::ShieldedIcs20Withdrawal(plan) => plan.accumulator_prior_commitment(),
+                _ => None,
+            },
+        ));
 
         tracing::debug!(?requested_note_commitments);
 

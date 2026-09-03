@@ -3,10 +3,10 @@
   "curve": "bls12-377",
   "circuit": "transfer",
   "mode": "fresh_setup",
-  "sr1cs_sha256_hex": "5a67dc1a2488f5304608ae47f5c9b869161470c815eb25a0dd5ee668de7a5a78",
-  "proving_key_sha256_hex": "81465f6b0d107404a283dd2c858b112f09a4f452f35454c6268d1a29fead7897",
-  "verifying_key_binary_sha256_hex": "9645dd15e61cdb926ccc22fe88710ab258d2caff16da79a8c180b3cb1d85f9cf",
-  "verifying_key_json_sha256_hex": "40ed71c49e017aa774cebf5dfd0fe8a9349eeef3ebb1e2aae293daff65ccab7a",
+  "sr1cs_sha256_hex": "213b6ae6242268160b3a1a512a0ae0c459fd36a297b1c5320fc446dd8aee153f",
+  "proving_key_sha256_hex": "4d987abd4fc3147266ebbca3098b2be19b94eaf013821e874029714f92f11734",
+  "verifying_key_binary_sha256_hex": "82d1cf13887f06b6ee10addd8b2025b18ac6dc4ad4bb5fb47db4b57e19d4cb9d",
+  "verifying_key_json_sha256_hex": "04c02bd0bfad36740b96b164d12309957d2e1df576d49d1626fa6ab2759d7c86",
   "generation_self_tests": [
     {
       "proof_case": "regulated_padding",

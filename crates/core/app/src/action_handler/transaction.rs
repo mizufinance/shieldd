@@ -951,6 +951,39 @@ pub(crate) async fn prepare_candidate_read_profiled<S: StateRead + 'static>(
                     payload: Box::new(transfer.body.volume_accumulator.clone()),
                 });
             }
+            Action::ShieldedHostWithdrawal(withdrawal) => {
+                check_action_timestamp_freshness(
+                    withdrawal.body.target_timestamp,
+                    execution_context.block_timestamp,
+                )?;
+                for input in &withdrawal.body.inputs {
+                    anyhow::ensure!(
+                        tx_nullifiers.insert(input.nullifier),
+                        "transaction contains duplicate spend nullifier {}",
+                        input.nullifier
+                    );
+                    spend_nullifiers.push(input.nullifier);
+                }
+                anchor_pairs.insert((withdrawal.body.compliance_anchor, withdrawal.body.asset_anchor));
+                sct_payloads.push((withdrawal.body.change_output.note_payload.clone(), execution_context.source.clone().into()).into());
+                let scoped = withdrawal.body.volume_accumulator.scoped_nullifier();
+                anyhow::ensure!(tx_volume_nullifiers.insert(scoped), "transaction contains duplicate daily volume nullifier {} for day {}", scoped.nullifier, scoped.day_start);
+                volume_nullifiers.push(scoped);
+                sct_payloads.push(StatePayload::VolumeAccumulator { source: execution_context.source.clone().into(), payload: Box::new(withdrawal.body.volume_accumulator.clone()) });
+            }
+            Action::ShieldedIcs20Withdrawal(withdrawal) => {
+                check_action_timestamp_freshness(withdrawal.body.target_timestamp, execution_context.block_timestamp)?;
+                for input in &withdrawal.body.inputs {
+                    anyhow::ensure!(tx_nullifiers.insert(input.nullifier), "transaction contains duplicate spend nullifier {}", input.nullifier);
+                    spend_nullifiers.push(input.nullifier);
+                }
+                anchor_pairs.insert((withdrawal.body.compliance_anchor, withdrawal.body.asset_anchor));
+                sct_payloads.push((withdrawal.body.change_output.note_payload.clone(), execution_context.source.clone().into()).into());
+                let scoped = withdrawal.body.volume_accumulator.scoped_nullifier();
+                anyhow::ensure!(tx_volume_nullifiers.insert(scoped), "transaction contains duplicate daily volume nullifier {} for day {}", scoped.nullifier, scoped.day_start);
+                volume_nullifiers.push(scoped);
+                sct_payloads.push(StatePayload::VolumeAccumulator { source: execution_context.source.clone().into(), payload: Box::new(withdrawal.body.volume_accumulator.clone()) });
+            }
             Action::NoteReshape(note_reshape) => {
                 anchor_pairs.insert((
                     note_reshape.body.compliance_anchor,
@@ -1206,6 +1239,32 @@ pub(crate) fn prepare_candidate_read_blocking_profiled(
                     source: execution_context.source.clone().into(),
                     payload: Box::new(transfer.body.volume_accumulator.clone()),
                 });
+            }
+            Action::ShieldedHostWithdrawal(withdrawal) => {
+                check_action_timestamp_freshness(withdrawal.body.target_timestamp, execution_context.block_timestamp)?;
+                for input in &withdrawal.body.inputs {
+                    anyhow::ensure!(tx_nullifiers.insert(input.nullifier), "transaction contains duplicate spend nullifier {}", input.nullifier);
+                    spend_nullifiers.push(input.nullifier);
+                }
+                anchor_pairs.insert((withdrawal.body.compliance_anchor, withdrawal.body.asset_anchor));
+                sct_payloads.push((withdrawal.body.change_output.note_payload.clone(), execution_context.source.clone().into()).into());
+                let scoped = withdrawal.body.volume_accumulator.scoped_nullifier();
+                anyhow::ensure!(tx_volume_nullifiers.insert(scoped), "transaction contains duplicate daily volume nullifier {} for day {}", scoped.nullifier, scoped.day_start);
+                volume_nullifiers.push(scoped);
+                sct_payloads.push(StatePayload::VolumeAccumulator { source: execution_context.source.clone().into(), payload: Box::new(withdrawal.body.volume_accumulator.clone()) });
+            }
+            Action::ShieldedIcs20Withdrawal(withdrawal) => {
+                check_action_timestamp_freshness(withdrawal.body.target_timestamp, execution_context.block_timestamp)?;
+                for input in &withdrawal.body.inputs {
+                    anyhow::ensure!(tx_nullifiers.insert(input.nullifier), "transaction contains duplicate spend nullifier {}", input.nullifier);
+                    spend_nullifiers.push(input.nullifier);
+                }
+                anchor_pairs.insert((withdrawal.body.compliance_anchor, withdrawal.body.asset_anchor));
+                sct_payloads.push((withdrawal.body.change_output.note_payload.clone(), execution_context.source.clone().into()).into());
+                let scoped = withdrawal.body.volume_accumulator.scoped_nullifier();
+                anyhow::ensure!(tx_volume_nullifiers.insert(scoped), "transaction contains duplicate daily volume nullifier {} for day {}", scoped.nullifier, scoped.day_start);
+                volume_nullifiers.push(scoped);
+                sct_payloads.push(StatePayload::VolumeAccumulator { source: execution_context.source.clone().into(), payload: Box::new(withdrawal.body.volume_accumulator.clone()) });
             }
             Action::NoteReshape(note_reshape) => {
                 anchor_pairs.insert((

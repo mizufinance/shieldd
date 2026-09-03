@@ -14,7 +14,7 @@ use crate::{
     discovery::{Parameters as RoutingParameters, TransferRouting},
     public_input_hash::{transfer_statement_hash_from_public, StatementHashError},
     transfer::{transfer_input_count, transfer_output_count, TRANSFER_PROOF_LABEL},
-    Note, TransferProofContext, VolumeAccumulatorPrivate,
+    Note, TransferProofContext, VolumeAccumulatorPrivate, VolumeAccumulatorPublic,
 };
 
 #[derive(Clone, Debug)]
@@ -47,13 +47,6 @@ pub struct TransferCompliancePublic {
 }
 
 #[derive(Clone, Debug)]
-pub struct TransferVolumeAccumulatorPublic {
-    pub nullifier: Nullifier,
-    pub commitment: tct::StateCommitment,
-    pub day_start: u64,
-}
-
-#[derive(Clone, Debug)]
 pub struct TransferProofPublic {
     pub anchor: tct::Root,
     pub balance_commitment: balance::Commitment,
@@ -66,7 +59,7 @@ pub struct TransferProofPublic {
     pub routing: TransferRouting,
     pub routing_parameter_set_id: Fq,
     pub recent_position_floor: u64,
-    pub volume_accumulator: TransferVolumeAccumulatorPublic,
+    pub volume_accumulator: VolumeAccumulatorPublic,
     pub proof_context: TransferProofContext,
 }
 

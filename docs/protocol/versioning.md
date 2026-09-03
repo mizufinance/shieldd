@@ -9,3 +9,7 @@ Versions remain only where the value is part of an external or consensus boundar
 protobuf package namespaces, CometBFT application upgrades, the C FFI ABI, and
 explicitly validated consensus proof protocols. Replacing a current internal format
 means deleting the old path and regenerating its fixtures and artifacts.
+
+SnarkPack is the only Shieldd-owned format with two retained wire encodings:
+the production full-target v1 wrapper and the optional torus v2 wrapper. They
+share one unversioned statement, transcript, and SRS design.

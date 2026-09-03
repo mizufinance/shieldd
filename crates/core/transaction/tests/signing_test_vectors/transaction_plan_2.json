@@ -2016,6 +2016,17 @@
           "regulatedPrecisionBits": 12,
           "unregulatedPrecisionBits": 18,
           "asOfHeight": "1"
+        },
+        "volumeAccumulator": {
+          "dayStart": "1699920000",
+          "subject": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+          "priorVolume": "AAAAAAAAAAAAAAAAAAAAAA==",
+          "priorBlinding": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+          "priorCommitment": {
+            "inner": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+          },
+          "successorVolume": "AAAAAAAAAAAAAAAAAAAAAA==",
+          "successorBlinding": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
         }
       }
     },

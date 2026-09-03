@@ -7,8 +7,9 @@ use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use decaf377::{Bls12_377, Fq};
 use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 use shieldd_sdk_proof_aggregation::{
-    aggregate_family, pad_items_to_power_of_two, srs_id, verify_family_aggregate,
-    AggregateStatement, DevSrs, ProofFamilyId, AGGREGATE_PROTOCOL_VERSION,
+    aggregate_family, aggregate_family_torus_v2, pad_items_to_power_of_two, srs_id,
+    verify_family_aggregate, verify_family_aggregate_torus_v2, AggregateStatement, DevSrs,
+    ProofFamilyId, AGGREGATE_PROTOCOL_VERSION,
 };
 use shieldd_sdk_proof_params::batch::BatchItem;
 use shieldd_sdk_shielded_pool::ShieldedIcs20WithdrawalFamilyId;
@@ -44,6 +45,7 @@ struct Fixture {
     padded_items: Vec<BatchItem>,
     statement: AggregateStatement,
     aggregate_proof: Vec<u8>,
+    torus_v2_aggregate_proof: Vec<u8>,
 }
 
 /// Committed Groth16 proof corpus directory. The expensive setup (proving-key
@@ -143,6 +145,8 @@ fn build_fixture(family_id: ProofFamilyId, count: usize, srs: &DevSrs) -> Fixtur
     .expect("statement builds");
     let aggregate_proof =
         aggregate_family(&statement, &pvk, &padded_items, srs).expect("aggregation succeeds");
+    let torus_v2_aggregate_proof =
+        aggregate_family_torus_v2(&statement, &padded_items, srs).expect("aggregation succeeds");
     Fixture {
         family_id,
         count,
@@ -150,6 +154,7 @@ fn build_fixture(family_id: ProofFamilyId, count: usize, srs: &DevSrs) -> Fixtur
         padded_items,
         statement,
         aggregate_proof,
+        torus_v2_aggregate_proof,
     }
 }
 
@@ -214,6 +219,21 @@ fn snarkpack_bench(c: &mut Criterion) {
     }
     aggregate_group.finish();
 
+    let mut torus_aggregate_group = c.benchmark_group("snarkpack torus-v2 aggregate");
+    for fixture in &fixtures {
+        torus_aggregate_group.bench_with_input(
+            BenchmarkId::new(format!("{:?}", fixture.family_id), fixture.count),
+            fixture,
+            |b, fixture| {
+                b.iter(|| {
+                    aggregate_family_torus_v2(&fixture.statement, &fixture.padded_items, &srs)
+                        .expect("aggregation succeeds");
+                });
+            },
+        );
+    }
+    torus_aggregate_group.finish();
+
     let mut verify_group = c.benchmark_group("snarkpack verify");
     for fixture in &fixtures {
         verify_group.bench_with_input(
@@ -233,6 +253,26 @@ fn snarkpack_bench(c: &mut Criterion) {
         );
     }
     verify_group.finish();
+
+    let mut torus_verify_group = c.benchmark_group("snarkpack torus-v2 verify exact");
+    for fixture in &fixtures {
+        torus_verify_group.bench_with_input(
+            BenchmarkId::new(format!("{:?}", fixture.family_id), fixture.count),
+            fixture,
+            |b, fixture| {
+                b.iter(|| {
+                    verify_family_aggregate_torus_v2(
+                        &fixture.statement,
+                        &fixture.pvk,
+                        &fixture.torus_v2_aggregate_proof,
+                        &srs,
+                    )
+                    .expect("verification succeeds");
+                });
+            },
+        );
+    }
+    torus_verify_group.finish();
 }
 
 criterion_group!(benches, snarkpack_bench);

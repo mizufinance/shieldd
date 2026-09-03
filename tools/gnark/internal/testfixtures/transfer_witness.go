@@ -32,6 +32,12 @@ var embeddedShieldedIcs20WithdrawalWitness []byte
 //go:embed vectors/shielded_ics20_withdrawal_unregulated_witness.bin
 var embeddedUnregulatedShieldedIcs20WithdrawalWitness []byte
 
+//go:embed vectors/shielded_ics20_withdrawal_accumulator_origin_witness.bin
+var embeddedAccumulatorOriginShieldedIcs20WithdrawalWitness []byte
+
+//go:embed vectors/shielded_ics20_withdrawal_accumulator_continuation_witness.bin
+var embeddedAccumulatorContinuationShieldedIcs20WithdrawalWitness []byte
+
 func LoadTransferWitness(label string) []byte {
 	switch label {
 	case "transfer":
@@ -68,6 +74,10 @@ func LoadShieldedIcs20WithdrawalWitness(label string) []byte {
 		return append([]byte(nil), embeddedShieldedIcs20WithdrawalWitness...)
 	case "shielded_ics20_withdrawal_unregulated":
 		return append([]byte(nil), embeddedUnregulatedShieldedIcs20WithdrawalWitness...)
+	case "shielded_ics20_withdrawal_accumulator_origin":
+		return append([]byte(nil), embeddedAccumulatorOriginShieldedIcs20WithdrawalWitness...)
+	case "shielded_ics20_withdrawal_accumulator_continuation":
+		return append([]byte(nil), embeddedAccumulatorContinuationShieldedIcs20WithdrawalWitness...)
 	default:
 		panic("unknown shielded ICS-20 withdrawal witness label: " + label)
 	}

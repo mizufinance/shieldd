@@ -2,13 +2,17 @@ use anyhow::{bail, Context, Result};
 
 use crate::{
     gnark::{
-        binary::{encode_triple_path_32, put_bytes, put_u32, put_u64, put_u8, BinaryCursor},
+        binary::{
+            encode_triple_path_32, encode_vec_32, put_bytes, put_u32, put_u64, put_u8, BinaryCursor,
+        },
         shielded_ics20_withdrawal_witness::{
-            ShieldedIcs20WithdrawalAssetLeafWitness, ShieldedIcs20WithdrawalChangeWitness,
-            ShieldedIcs20WithdrawalOptionalSpendWitness,
+            ShieldedIcs20WithdrawalChangeWitness, ShieldedIcs20WithdrawalOptionalSpendWitness,
             ShieldedIcs20WithdrawalRequiredSpendWitness, ShieldedIcs20WithdrawalWitness,
         },
-        typed::{encode_merkle_path, encode_point_affine},
+        transfer_witness_binary::{decode_volume_accumulator, encode_volume_accumulator},
+        typed::{
+            decode_indexed_leaf, encode_indexed_leaf, encode_merkle_path, encode_point_affine,
+        },
     },
     ShieldedIcs20WithdrawalFamilyId,
 };
@@ -35,11 +39,12 @@ impl ShieldedIcs20WithdrawalWitness {
         put_bytes(&mut buf, &self.routing_tag);
         put_bytes(&mut buf, &self.routing_parameter_set_id);
         put_bytes(&mut buf, &self.recent_position_floor);
+        encode_volume_accumulator(&mut buf, &self.volume_accumulator)?;
         put_bytes(&mut buf, &self.action_balance_blinding);
         put_bytes(&mut buf, &self.nk);
         encode_merkle_path(&mut buf, &self.asset_path)?;
         put_u64(&mut buf, self.asset_position);
-        encode_asset_leaf(&mut buf, &self.asset_indexed_leaf);
+        encode_indexed_leaf(&mut buf, &self.asset_indexed_leaf);
         put_u8(&mut buf, u8::from(self.is_regulated));
         put_u8(&mut buf, self.regulated_precision);
         put_u8(&mut buf, self.unregulated_precision);
@@ -49,11 +54,26 @@ impl ShieldedIcs20WithdrawalWitness {
         put_u64(&mut buf, self.sender_compliance_position);
         put_bytes(&mut buf, &self.sender_d);
         put_bytes(&mut buf, &self.sender_status);
+        put_bytes(&mut buf, &self.compliance_nonce_root);
+        encode_vec_32(&mut buf, &self.detection_ciphertext)?;
+        put_bytes(&mut buf, &self.ring_id_hash);
+        put_bytes(&mut buf, &self.policy_id_hash);
+        put_bytes(&mut buf, &self.resource_hash);
+        put_bytes(&mut buf, &self.permission_hash);
+        put_bytes(&mut buf, &self.metadata_target_timestamp);
+        put_bytes(&mut buf, &self.sender_salt);
+        put_bytes(&mut buf, &self.sender_c2);
+        encode_vec_32(&mut buf, &self.sender_ciphertext)?;
+        put_bytes(&mut buf, &self.sender_randomizer);
         encode_required_spend(&mut buf, &self.required_spend)?;
         encode_optional_spend(&mut buf, &self.optional_spend)?;
         encode_change_output(&mut buf, &self.change_output);
         encode_point_affine(&mut buf, &self.ak_affine);
         encode_point_affine(&mut buf, &self.sender_diversified_generator_affine);
+        encode_point_affine(&mut buf, &self.sender_transmission_key_affine);
+        encode_point_affine(&mut buf, &self.asset_indexed_leaf_dk_pub_affine);
+        encode_point_affine(&mut buf, &self.asset_indexed_leaf_ring_pk_affine);
+        encode_point_affine(&mut buf, &self.sender_epk_affine);
 
         let total_len = u32::try_from(buf.len())
             .context("encoded shielded ICS-20 withdrawal witness exceeds u32")?;
@@ -106,11 +126,12 @@ impl ShieldedIcs20WithdrawalWitness {
             routing_tag: cursor.read_fixed::<32>()?,
             routing_parameter_set_id: cursor.read_fixed::<32>()?,
             recent_position_floor: cursor.read_fixed::<32>()?,
+            volume_accumulator: decode_volume_accumulator(&mut cursor)?,
             action_balance_blinding: cursor.read_fr()?,
             nk: cursor.read_fixed::<32>()?,
             asset_path: cursor.read_merkle_path()?,
             asset_position: cursor.read_u64()?,
-            asset_indexed_leaf: decode_asset_leaf(&mut cursor)?,
+            asset_indexed_leaf: decode_indexed_leaf(&mut cursor)?,
             is_regulated: cursor.read_bool()?,
             regulated_precision: cursor.read_u8()?,
             unregulated_precision: cursor.read_u8()?,
@@ -120,36 +141,31 @@ impl ShieldedIcs20WithdrawalWitness {
             sender_compliance_position: cursor.read_u64()?,
             sender_d: cursor.read_fixed::<32>()?,
             sender_status: cursor.read_fixed::<32>()?,
+            compliance_nonce_root: cursor.read_fr()?,
+            detection_ciphertext: cursor.read_vec_32()?,
+            ring_id_hash: cursor.read_fixed::<32>()?,
+            policy_id_hash: cursor.read_fixed::<32>()?,
+            resource_hash: cursor.read_fixed::<32>()?,
+            permission_hash: cursor.read_fixed::<32>()?,
+            metadata_target_timestamp: cursor.read_fixed::<32>()?,
+            sender_salt: cursor.read_fixed::<32>()?,
+            sender_c2: cursor.read_fixed::<32>()?,
+            sender_ciphertext: cursor.read_vec_32()?,
+            sender_randomizer: cursor.read_fr()?,
             required_spend: decode_required_spend(&mut cursor)?,
             optional_spend: decode_optional_spend(&mut cursor)?,
             change_output: decode_change_output(&mut cursor)?,
             ak_affine: cursor.read_point_affine()?,
             sender_diversified_generator_affine: cursor.read_point_affine()?,
+            sender_transmission_key_affine: cursor.read_point_affine()?,
+            asset_indexed_leaf_dk_pub_affine: cursor.read_point_affine()?,
+            asset_indexed_leaf_ring_pk_affine: cursor.read_point_affine()?,
+            sender_epk_affine: cursor.read_point_affine()?,
         };
 
         cursor.finish(family_id.label())?;
         Ok(witness)
     }
-}
-
-fn encode_asset_leaf(buf: &mut Vec<u8>, leaf: &ShieldedIcs20WithdrawalAssetLeafWitness) {
-    put_bytes(buf, &leaf.value);
-    put_u64(buf, leaf.next_index);
-    put_bytes(buf, &leaf.next_value);
-    put_bytes(buf, &leaf.params_hash);
-    put_bytes(buf, &leaf.ring_hash);
-}
-
-fn decode_asset_leaf(
-    cursor: &mut BinaryCursor<'_>,
-) -> Result<ShieldedIcs20WithdrawalAssetLeafWitness> {
-    Ok(ShieldedIcs20WithdrawalAssetLeafWitness {
-        value: cursor.read_fixed::<32>()?,
-        next_index: cursor.read_u64()?,
-        next_value: cursor.read_fixed::<32>()?,
-        params_hash: cursor.read_fixed::<32>()?,
-        ring_hash: cursor.read_fixed::<32>()?,
-    })
 }
 
 fn encode_required_spend(

@@ -65,6 +65,12 @@ RULES = (
     ),
 )
 
+SNARKPACK_VERSIONED_DOMAIN = re.compile(r"shieldd\.snarkpack\.[^\"'\s]*\.v[0-9]+")
+ALLOWED_SNARKPACK_VERSIONED_DOMAINS = {
+    "shieldd.snarkpack.aggregate_proof.v1",
+    "shieldd.snarkpack.aggregate_proof.v2",
+}
+
 
 def violations(relative: str, lines: list[str]) -> list[str]:
     failures = []
@@ -72,6 +78,11 @@ def violations(relative: str, lines: list[str]) -> list[str]:
         for description, pattern in RULES:
             if pattern.search(line):
                 failures.append(f"{relative}:{line_number}: {description}: {line.strip()}")
+        for match in SNARKPACK_VERSIONED_DOMAIN.finditer(line):
+            if match.group(0) not in ALLOWED_SNARKPACK_VERSIONED_DOMAINS:
+                failures.append(
+                    f"{relative}:{line_number}: unsupported SnarkPack wire version: {line.strip()}"
+                )
     return failures
 
 

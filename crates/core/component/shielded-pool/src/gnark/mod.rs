@@ -258,6 +258,37 @@ mod soundness_fixture_tests {
         );
     }
 
+    fn write_accumulating_shielded_ics20_withdrawal_fixtures() {
+        for (name, seed, mode) in [
+            (
+                "shielded_ics20_withdrawal_accumulator_origin_witness.bin",
+                0x4f52_4947_494e_0001,
+                proof_test_helpers::WithdrawalAccumulatorTestMode::Origin,
+            ),
+            (
+                "shielded_ics20_withdrawal_accumulator_continuation_witness.bin",
+                0x434f_4e54_0000_0001,
+                proof_test_helpers::WithdrawalAccumulatorTestMode::Continuation {
+                    prior_volume: 25,
+                },
+            ),
+        ] {
+            let mut rng = rand::rngs::StdRng::seed_from_u64(seed);
+            let (public, private) = proof_test_helpers::build_shielded_ics20_withdrawal_roundtrip_inputs_with_rng_and_mode(
+                &mut rng,
+                ShieldedIcs20WithdrawalFamilyId::Canonical,
+                true,
+                2,
+                mode,
+            );
+            write_fixture(
+                name,
+                encode_shielded_ics20_withdrawal_witness(&public, &private)
+                    .expect("encode accumulating withdrawal witness"),
+            );
+        }
+    }
+
     fn write_unregulated_shielded_ics20_withdrawal_fixture() {
         let mut rng = rand::rngs::StdRng::seed_from_u64(0x554e_5245_4757_4438);
         let (public, private) =
@@ -279,6 +310,7 @@ mod soundness_fixture_tests {
     fn bless_shielded_ics20_withdrawal_witness_fixture() {
         write_shielded_ics20_withdrawal_fixture();
         write_unregulated_shielded_ics20_withdrawal_fixture();
+        write_accumulating_shielded_ics20_withdrawal_fixtures();
     }
 
     #[test]
