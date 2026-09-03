@@ -125,8 +125,6 @@ pub struct PrepareProposalProfile {
     pub stateful_filter_serial_same_block_conflict_ms: f64,
     pub stateful_filter_serial_state_delta_apply_ms: f64,
     pub stateful_filter_serial_nullifier_insert_ms: f64,
-    pub stateful_filter_proposal_nullifier_lookup_write_ms: f64,
-    pub stateful_filter_proposal_pending_nullifier_stage_ms: f64,
     pub stateful_filter_serial_sct_append_ms: f64,
     pub stateful_filter_serial_event_emit_ms: f64,
     pub stateful_filter_serial_fee_apply_ms: f64,

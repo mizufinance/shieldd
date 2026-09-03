@@ -35,8 +35,8 @@ jobs:
 
       # The `rust-toolchain.toml` file dictates which version of rust to setup.
       - name: check rust version
-        run: nix develop --command rustc --version
+        run: nix develop .#ci --command rustc --version
 
       # Publish the workspace to crates.io.
       - name: publish crates
-        run: nix develop --command ./deployments/scripts/publish-crates
+        run: nix develop .#ci --command ./deployments/scripts/publish-crates

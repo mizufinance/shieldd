@@ -57,13 +57,25 @@ impl Component for Sct {
         let state = Arc::get_mut(state).expect("there's only one reference to the state");
         state.put_block_height(begin_block.header.height.into());
         state.put_block_timestamp(begin_block.header.height.into(), begin_block.header.time);
+        state.object_put(
+            state_key::nullifier_generations::pending_block(),
+            super::tree::PendingNullifierBlock::default(),
+        );
+        state.object_delete(state_key::cache::block_materialization());
     }
 
-    #[instrument(name = "sct_component", skip(_state, _end_block))]
+    #[instrument(name = "sct_component", skip(state, _end_block))]
     async fn end_block<S: StateWrite + 'static>(
-        _state: &mut Arc<S>,
+        state: &mut Arc<S>,
         _end_block: &abci::request::EndBlock,
     ) {
+        use super::tree::SctManager as _;
+
+        Arc::get_mut(state)
+            .expect("there's only one reference to the state")
+            .materialize_nullifier_block()
+            .await
+            .expect("materialize block nullifiers");
     }
 
     #[instrument(name = "sct_component", skip(state))]

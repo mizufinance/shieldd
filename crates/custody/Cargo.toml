@@ -10,7 +10,6 @@ edition = {workspace = true}
 [dependencies]
 anyhow = {workspace = true}
 argon2 = "0.5"
-ark-ff = {workspace = true}
 ark-serialize = {workspace = true}
 base64 = {workspace = true}
 blake2b_simd = {workspace = true}
@@ -19,7 +18,6 @@ chacha20poly1305 = {workspace = true}
 decaf377 = {workspace = true}
 decaf377-frost = { version = "2.1.0", path = "../crypto/decaf377-frost" }
 decaf377-ka = {workspace = true}
-decaf377-rdsa = {workspace = true}
 ed25519-consensus = {workspace = true}
 futures = {workspace = true}
 hex = {workspace = true}
@@ -27,7 +25,6 @@ shieldd-sdk-keys = {workspace = true, default-features = true}
 shieldd-sdk-proto = {workspace = true, features = ["rpc"], default-features = true}
 shieldd-sdk-transaction = {workspace = true, default-features = true}
 shieldd-sdk-txhash = {workspace = true, default-features = true}
-prost = {workspace = true}
 rand_core = {workspace = true}
 serde = {workspace = true, features = ["derive"]}
 serde_json = {workspace = true}

@@ -130,7 +130,8 @@ pub const MAX_TRANSACTION_ACTION_COUNT: usize = 512;
 pub const MAX_TRANSACTION_NULLIFIER_COUNT: usize = 256;
 
 /// The maximum number of proof-bound nullifiers in one block.
-pub const MAX_BLOCK_NULLIFIER_COUNT: usize = 32_768;
+pub const MAX_BLOCK_NULLIFIER_COUNT: usize =
+    shieldd_sdk_sct::component::tree::MAX_NULLIFIERS_PER_BLOCK;
 
 /// The maximum size of the evidence portion of a block (30KB).
 pub const MAX_EVIDENCE_SIZE_BYTES: usize = 30 * 1024;
@@ -378,8 +379,6 @@ struct VerifiedStatefulTxBreakdown {
     serial_apply_wall_ms: f64,
     serial_same_block_conflict_ms: f64,
     serial_nullifier_insert_ms: f64,
-    proposal_nullifier_lookup_write_ms: f64,
-    proposal_pending_nullifier_stage_ms: f64,
     serial_sct_append_ms: f64,
     serial_event_emit_ms: f64,
     serial_fee_apply_ms: f64,
@@ -394,10 +393,18 @@ struct BlockTxIndexWriteProfile {
     tx_log_put_raw_ms: f64,
 }
 
-#[derive(Default)]
 struct PrepareBlockLocalState {
     seen_nullifiers: BTreeSet<Nullifier>,
-    staged_nullifiers: Vec<(Nullifier, CommitmentSource)>,
+    remaining_nullifier_capacity: usize,
+}
+
+impl Default for PrepareBlockLocalState {
+    fn default() -> Self {
+        Self {
+            seen_nullifiers: BTreeSet::new(),
+            remaining_nullifier_capacity: MAX_BLOCK_NULLIFIER_COUNT,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -945,8 +952,16 @@ impl BlockSctAppendLog {
             }
         };
 
+        let used_in_block = base_position.commitment() as u64 + self.next_offset;
+        anyhow::ensure!(
+            used_in_block.saturating_add(payloads.len() as u64)
+                <= shieldd_sdk_sct::component::tree::SCT_BLOCK_COMMITMENT_CAPACITY as u64,
+            "SCT block commitment capacity exceeded"
+        );
         let base_position_u64: u64 = base_position.into();
-        let start = base_position_u64 + self.next_offset;
+        let start = base_position_u64
+            .checked_add(self.next_offset)
+            .context("SCT position overflow while reserving block commitments")?;
         let mut positioned = Vec::with_capacity(payloads.len());
         for (offset, payload) in payloads.into_iter().enumerate() {
             let position = shieldd_sdk_tct::Position::from(start + offset as u64);
@@ -1285,10 +1300,6 @@ impl App {
         profile.stateful_filter_serial_state_delta_apply_ms += execution_profile.apply_ms;
         profile.stateful_filter_serial_nullifier_insert_ms +=
             execution_profile.serial_nullifier_insert_ms;
-        profile.stateful_filter_proposal_nullifier_lookup_write_ms +=
-            execution_profile.proposal_nullifier_lookup_write_ms;
-        profile.stateful_filter_proposal_pending_nullifier_stage_ms +=
-            execution_profile.proposal_pending_nullifier_stage_ms;
         profile.stateful_filter_serial_sct_append_ms += execution_profile.serial_sct_append_ms;
         profile.stateful_filter_serial_event_emit_ms += execution_profile.serial_event_emit_ms;
         profile.stateful_filter_serial_fee_apply_ms += execution_profile.serial_fee_apply_ms;
@@ -1350,10 +1361,6 @@ impl App {
             serial_same_block_conflict_ms = profile.stateful_filter_serial_same_block_conflict_ms,
             serial_state_delta_apply_ms = profile.stateful_filter_serial_state_delta_apply_ms,
             serial_nullifier_insert_ms = profile.stateful_filter_serial_nullifier_insert_ms,
-            proposal_nullifier_lookup_write_ms =
-                profile.stateful_filter_proposal_nullifier_lookup_write_ms,
-            proposal_pending_nullifier_stage_ms =
-                profile.stateful_filter_proposal_pending_nullifier_stage_ms,
             serial_sct_append_ms = profile.stateful_filter_serial_sct_append_ms,
             serial_event_emit_ms = profile.stateful_filter_serial_event_emit_ms,
             serial_fee_apply_ms = profile.stateful_filter_serial_fee_apply_ms,
@@ -1786,18 +1793,6 @@ impl App {
                 ..Default::default()
             },
         ))
-    }
-
-    /// Runs Groth16 batch verification on a single pre-extracted artifact.
-    /// Used by `mempool_v1_lab` strict mode to measure per-tx proof verify cost.
-    #[cfg(any(test, feature = "benchmark-helpers"))]
-    pub async fn batch_verify_tx_artifact_for_bench(artifact: &Arc<TxArtifact>) -> Result<f64> {
-        let (_, breakdown) = Self::verify_tx_artifacts_for_stage(
-            "checktx_strict_bench",
-            std::slice::from_ref(artifact),
-        )
-        .await?;
-        Ok(breakdown.batch_verify_ms)
     }
 
     /// Runs Groth16 batch verification across multiple pre-extracted artifacts in one call.
@@ -2278,11 +2273,6 @@ impl App {
         valid_binding_signature(tx)?;
         tx.aggregate_bundle_action()
             .context("aggregate bundle tx missing bundle action")
-    }
-
-    #[cfg(feature = "fuzzing")]
-    pub fn ensure_aggregate_bundle_tx_shape_for_fuzz(tx: &Transaction) -> Result<()> {
-        Self::ensure_aggregate_bundle_tx_shape(tx).map(|_| ())
     }
 
     fn expected_aggregate_verify_segments(
@@ -2807,17 +2797,6 @@ impl App {
     }
 
     #[cfg(any(test, feature = "benchmark-helpers"))]
-    pub async fn verify_aggregate_bundle_for_artifacts_public(
-        artifacts: &[Arc<TxArtifact>],
-        bundle: &AggregateBundle,
-        segment_tx_counts: Option<&[usize]>,
-    ) -> Result<()> {
-        Self::verify_aggregate_bundle_for_artifacts(artifacts, bundle, segment_tx_counts)
-            .await
-            .map(|_| ())
-    }
-
-    #[cfg(any(test, feature = "benchmark-helpers"))]
     pub async fn verify_aggregate_bundle_for_artifacts_raw_public(
         artifacts: &[Arc<TxArtifact>],
         bundle: &AggregateBundle,
@@ -2834,379 +2813,6 @@ impl App {
         bundle: AggregateBundle,
     ) -> Result<Transaction> {
         Self::new(snapshot).build_aggregate_bundle_tx(bundle).await
-    }
-
-    #[cfg(any(test, feature = "benchmark-helpers"))]
-    pub async fn validate_candidate_envelope_profiled(
-        &self,
-        envelope: &CandidateEnvelope,
-        nullifier_cache: Option<&ValidationNullifierCache>,
-    ) -> Result<(ValidationVerdict, ValidationProfile)> {
-        use shieldd_sdk_proto::core::transaction::v1::action::Action as ProtoAction;
-        use shieldd_sdk_proto::core::transaction::v1::Transaction as ProtoTransaction;
-        use shieldd_sdk_transaction::Transaction;
-
-        let mut verdict = ValidationVerdict::default();
-        let mut profile = ValidationProfile {
-            block_tx_count: envelope.block_tx_count,
-            total_payload_bytes: envelope.total_payload_bytes,
-            ..ValidationProfile::default()
-        };
-
-        let reject_shape = |verdict: &mut ValidationVerdict, reason: ValidationRejectReason| {
-            verdict.shape = ValidationStageVerdict {
-                ok: false,
-                reject_reason: Some(reason),
-            };
-            verdict.reject_reason = Some(reason);
-            verdict.final_accept = false;
-        };
-        let reject_stateful = |verdict: &mut ValidationVerdict, reason: ValidationRejectReason| {
-            verdict.shape.ok = true;
-            verdict.stateful = ValidationStageVerdict {
-                ok: false,
-                reject_reason: Some(reason),
-            };
-            verdict.reject_reason = Some(reason);
-            verdict.final_accept = false;
-        };
-        let reject_aggregate = |verdict: &mut ValidationVerdict, reason: ValidationRejectReason| {
-            verdict.shape.ok = true;
-            verdict.stateful.ok = true;
-            verdict.aggregate = ValidationStageVerdict {
-                ok: false,
-                reject_reason: Some(reason),
-            };
-            verdict.reject_reason = Some(reason);
-            verdict.final_accept = false;
-        };
-
-        let shape_start = Instant::now();
-        let computed_payload_bytes = envelope.txs.iter().map(Vec::len).sum::<usize>();
-        if envelope.txs.len() > MAX_VALIDATION_TX_COUNT
-            || envelope.block_tx_count > MAX_VALIDATION_TX_COUNT
-        {
-            reject_shape(&mut verdict, ValidationRejectReason::TxCountExceeded);
-            profile.shape_check_ms = shape_start.elapsed().as_secs_f64() * 1000.0;
-            return Ok((verdict, profile));
-        }
-        if computed_payload_bytes != envelope.total_payload_bytes {
-            reject_shape(&mut verdict, ValidationRejectReason::PayloadBytesExceeded);
-            profile.shape_check_ms = shape_start.elapsed().as_secs_f64() * 1000.0;
-            return Ok((verdict, profile));
-        }
-
-        let mut proto_txs = Vec::with_capacity(envelope.txs.len());
-        let mut block_spend_nullifier_count = 0usize;
-        for tx_bytes in &envelope.txs {
-            let proto_tx = match ProtoTransaction::decode(tx_bytes.as_slice()) {
-                Ok(tx) => tx,
-                Err(_) => {
-                    reject_shape(&mut verdict, ValidationRejectReason::TxDecodeFailed);
-                    profile.shape_check_ms = shape_start.elapsed().as_secs_f64() * 1000.0;
-                    return Ok((verdict, profile));
-                }
-            };
-            let action_count = proto_tx
-                .body
-                .as_ref()
-                .map(|body| body.actions.len())
-                .unwrap_or_default();
-            if action_count > MAX_VALIDATION_ACTIONS_PER_TX {
-                reject_shape(&mut verdict, ValidationRejectReason::ActionCountExceeded);
-                profile.shape_check_ms = shape_start.elapsed().as_secs_f64() * 1000.0;
-                return Ok((verdict, profile));
-            }
-
-            let tx_spend_nullifier_count: usize = proto_tx
-                .body
-                .as_ref()
-                .map(|body| {
-                    body.actions
-                        .iter()
-                        .map(|action| match &action.action {
-                            Some(ProtoAction::Transfer(transfer)) => transfer
-                                .body
-                                .as_ref()
-                                .map(|body| body.inputs.len())
-                                .unwrap_or_default(),
-                            Some(ProtoAction::NoteReshape(note_reshape)) => note_reshape
-                                .body
-                                .as_ref()
-                                .map(|body| body.inputs.len())
-                                .unwrap_or_default(),
-                            Some(ProtoAction::ShieldedIcs20Withdrawal(withdrawal)) => withdrawal
-                                .body
-                                .as_ref()
-                                .map(|body| body.inputs.len())
-                                .unwrap_or_default(),
-                            Some(ProtoAction::ShieldedHostWithdrawal(withdrawal)) => withdrawal
-                                .body
-                                .as_ref()
-                                .map(|body| body.inputs.len())
-                                .unwrap_or_default(),
-                            _ => 0,
-                        })
-                        .sum()
-                })
-                .unwrap_or_default();
-            if tx_spend_nullifier_count > MAX_VALIDATION_NULLIFIERS_PER_TX {
-                reject_shape(
-                    &mut verdict,
-                    ValidationRejectReason::NullifierCountExceededPerTx,
-                );
-                profile.shape_check_ms = shape_start.elapsed().as_secs_f64() * 1000.0;
-                return Ok((verdict, profile));
-            }
-            block_spend_nullifier_count += tx_spend_nullifier_count;
-            if block_spend_nullifier_count > MAX_VALIDATION_NULLIFIERS_PER_BLOCK {
-                reject_shape(
-                    &mut verdict,
-                    ValidationRejectReason::NullifierCountExceededPerBlock,
-                );
-                profile.shape_check_ms = shape_start.elapsed().as_secs_f64() * 1000.0;
-                return Ok((verdict, profile));
-            }
-            proto_txs.push(proto_tx);
-        }
-        profile.shape_check_ms = shape_start.elapsed().as_secs_f64() * 1000.0;
-
-        let sidecar_start = Instant::now();
-        if envelope.block_tx_count != envelope.txs.len()
-            || envelope.tx_hashes.len() != envelope.txs.len()
-        {
-            reject_shape(&mut verdict, ValidationRejectReason::TxHashCountMismatch);
-            profile.sidecar_check_ms = sidecar_start.elapsed().as_secs_f64() * 1000.0;
-            return Ok((verdict, profile));
-        }
-        if envelope.segment_tx_counts.iter().sum::<usize>() != envelope.txs.len()
-            || envelope.sidecar.segment_tx_counts != envelope.segment_tx_counts
-        {
-            reject_shape(
-                &mut verdict,
-                ValidationRejectReason::SegmentCoverageMismatch,
-            );
-            profile.sidecar_check_ms = sidecar_start.elapsed().as_secs_f64() * 1000.0;
-            return Ok((verdict, profile));
-        }
-
-        let computed_hashes = envelope
-            .txs
-            .iter()
-            .map(|tx_bytes| sha2::Sha256::digest(tx_bytes.as_slice()).into())
-            .collect::<Vec<[u8; 32]>>();
-        if computed_hashes != envelope.tx_hashes {
-            reject_shape(&mut verdict, ValidationRejectReason::TxHashMismatch);
-            profile.sidecar_check_ms = sidecar_start.elapsed().as_secs_f64() * 1000.0;
-            return Ok((verdict, profile));
-        }
-        if candidate_digest_from_hashes(&computed_hashes) != envelope.candidate_digest {
-            reject_shape(
-                &mut verdict,
-                ValidationRejectReason::CandidateDigestMismatch,
-            );
-            profile.sidecar_check_ms = sidecar_start.elapsed().as_secs_f64() * 1000.0;
-            return Ok((verdict, profile));
-        }
-        if envelope.sidecar.entries.len() != computed_hashes.len() {
-            reject_shape(&mut verdict, ValidationRejectReason::SidecarTxCountMismatch);
-            profile.sidecar_check_ms = sidecar_start.elapsed().as_secs_f64() * 1000.0;
-            return Ok((verdict, profile));
-        }
-        if sidecar_commitment(&envelope.sidecar, &computed_hashes) != envelope.sidecar.commitment {
-            reject_shape(
-                &mut verdict,
-                ValidationRejectReason::SidecarCommitmentMismatch,
-            );
-            profile.sidecar_check_ms = sidecar_start.elapsed().as_secs_f64() * 1000.0;
-            return Ok((verdict, profile));
-        }
-
-        let mut sorted_hashes = computed_hashes.clone();
-        sorted_hashes.sort_unstable();
-        let sidecar_hashes = envelope
-            .sidecar
-            .entries
-            .iter()
-            .map(|entry| entry.tx_hash)
-            .collect::<Vec<_>>();
-        if sidecar_hashes != sorted_hashes {
-            reject_shape(
-                &mut verdict,
-                ValidationRejectReason::SidecarEntrySetMismatch,
-            );
-            profile.sidecar_check_ms = sidecar_start.elapsed().as_secs_f64() * 1000.0;
-            return Ok((verdict, profile));
-        }
-
-        let bundle = match envelope.aggregate_bundle() {
-            Ok(Some(bundle)) => bundle,
-            Ok(None) => {
-                reject_shape(&mut verdict, ValidationRejectReason::BundleMissing);
-                profile.sidecar_check_ms = sidecar_start.elapsed().as_secs_f64() * 1000.0;
-                return Ok((verdict, profile));
-            }
-            Err(_) => {
-                reject_shape(&mut verdict, ValidationRejectReason::BundleTxShapeInvalid);
-                profile.sidecar_check_ms = sidecar_start.elapsed().as_secs_f64() * 1000.0;
-                return Ok((verdict, profile));
-            }
-        };
-        profile.sidecar_check_ms = sidecar_start.elapsed().as_secs_f64() * 1000.0;
-        verdict.shape.ok = true;
-
-        let cache_lookup_start = Instant::now();
-        let mut tx_nullifiers = Vec::with_capacity(computed_hashes.len());
-        for (tx_hash, proto_tx) in computed_hashes.iter().zip(proto_txs.iter()) {
-            if let Some(cache) = nullifier_cache {
-                if let Some(cached) = cache.get(tx_hash) {
-                    profile.cache_hit_count += 1;
-                    tx_nullifiers.push((*cached).clone());
-                    continue;
-                }
-            }
-            profile.cache_miss_count += 1;
-            tx_nullifiers.push(Self::extract_spend_nullifiers_from_proto(proto_tx)?);
-        }
-        profile.nullifier_cache_lookup_ms = cache_lookup_start.elapsed().as_secs_f64() * 1000.0;
-
-        let extract_start = Instant::now();
-        profile.total_spend_nullifiers = tx_nullifiers.iter().map(Vec::len).sum();
-        profile.nullifier_extract_ms = extract_start.elapsed().as_secs_f64() * 1000.0;
-
-        let stateful_start = Instant::now();
-        let mut seen_nullifiers = std::collections::BTreeSet::new();
-        for spend_nullifiers in &tx_nullifiers {
-            for nullifier in spend_nullifiers {
-                if !seen_nullifiers.insert(*nullifier) {
-                    reject_stateful(
-                        &mut verdict,
-                        ValidationRejectReason::DuplicateSpendNullifier,
-                    );
-                    profile.stateful_conflict_check_ms =
-                        stateful_start.elapsed().as_secs_f64() * 1000.0;
-                    return Ok((verdict, profile));
-                }
-            }
-        }
-        let unique_nullifiers = seen_nullifiers.into_iter().collect::<Vec<_>>();
-        if self
-            .state
-            .contains_nullifiers(&unique_nullifiers)
-            .await?
-            .into_iter()
-            .any(|spent| spent)
-        {
-            reject_stateful(
-                &mut verdict,
-                ValidationRejectReason::CommittedNullifierConflict,
-            );
-            profile.stateful_conflict_check_ms = stateful_start.elapsed().as_secs_f64() * 1000.0;
-            return Ok((verdict, profile));
-        }
-        profile.stateful_conflict_check_ms = stateful_start.elapsed().as_secs_f64() * 1000.0;
-        verdict.stateful.ok = true;
-
-        let aggregate_start = Instant::now();
-        let sidecar = ProposalArtifactSidecar::from_record(envelope.sidecar.clone());
-        let sidecar_entries = envelope
-            .sidecar
-            .entries
-            .iter()
-            .map(|entry| (entry.tx_hash, entry.encoded_entry.as_slice()))
-            .collect::<BTreeMap<_, _>>();
-        let mut artifacts = Vec::with_capacity(envelope.txs.len());
-        for (tx_hash, tx_bytes) in computed_hashes.iter().zip(envelope.txs.iter()) {
-            let artifact_cache_lookup_start = Instant::now();
-            if let Some(cache) = nullifier_cache {
-                if let Some(artifact) = cache.get_artifact(tx_hash) {
-                    profile.aggregate_artifact_cache_hit_count += 1;
-                    profile.aggregate_artifact_cache_lookup_ms +=
-                        artifact_cache_lookup_start.elapsed().as_secs_f64() * 1000.0;
-                    artifacts.push(artifact);
-                    continue;
-                }
-            }
-            profile.aggregate_artifact_cache_miss_count += 1;
-            profile.aggregate_artifact_cache_lookup_ms +=
-                artifact_cache_lookup_start.elapsed().as_secs_f64() * 1000.0;
-
-            let tx_decode_start = Instant::now();
-            let tx = match Transaction::decode_canonical(tx_bytes.as_slice()) {
-                Ok(tx) => Arc::new(tx),
-                Err(_) => {
-                    reject_aggregate(&mut verdict, ValidationRejectReason::TxDecodeFailed);
-                    profile.aggregate_tx_decode_ms +=
-                        tx_decode_start.elapsed().as_secs_f64() * 1000.0;
-                    profile.aggregate_verify_ms = aggregate_start.elapsed().as_secs_f64() * 1000.0;
-                    return Ok((verdict, profile));
-                }
-            };
-            profile.aggregate_tx_decode_ms += tx_decode_start.elapsed().as_secs_f64() * 1000.0;
-            let Some(encoded_entry) = sidecar_entries.get(tx_hash) else {
-                reject_aggregate(
-                    &mut verdict,
-                    ValidationRejectReason::SidecarEntrySetMismatch,
-                );
-                profile.aggregate_verify_ms = aggregate_start.elapsed().as_secs_f64() * 1000.0;
-                return Ok((verdict, profile));
-            };
-            let sidecar_decode_start = Instant::now();
-            let artifact = match sidecar.decode_artifact(*tx_hash, tx, encoded_entry) {
-                Ok(artifact) => artifact,
-                Err(_) => {
-                    reject_aggregate(&mut verdict, ValidationRejectReason::SidecarDecodeFailed);
-                    profile.aggregate_sidecar_decode_ms +=
-                        sidecar_decode_start.elapsed().as_secs_f64() * 1000.0;
-                    profile.aggregate_verify_ms = aggregate_start.elapsed().as_secs_f64() * 1000.0;
-                    return Ok((verdict, profile));
-                }
-            };
-            profile.aggregate_sidecar_decode_ms +=
-                sidecar_decode_start.elapsed().as_secs_f64() * 1000.0;
-            artifacts.push(artifact);
-        }
-        if Self::total_artifact_proof_count(&artifacts) == 0 {
-            reject_aggregate(
-                &mut verdict,
-                ValidationRejectReason::BundlePresentWithZeroProofs,
-            );
-            profile.aggregate_verify_ms = aggregate_start.elapsed().as_secs_f64() * 1000.0;
-            return Ok((verdict, profile));
-        }
-
-        let (aggregate_profile, aggregate_result) =
-            Self::verify_aggregate_bundle_for_artifacts_raw_profiled(
-                &artifacts,
-                &bundle,
-                Some(&envelope.segment_tx_counts),
-            )
-            .await;
-        profile.aggregate_verify_ms = aggregate_start.elapsed().as_secs_f64() * 1000.0;
-        profile.aggregate_expected_segments_ms = aggregate_profile.expected_segments_ms;
-        profile.aggregate_prepare_inputs_ms = aggregate_profile.prepare_inputs_ms;
-        profile.aggregate_verify_kernel_ms = (aggregate_profile.total_ms
-            - aggregate_profile.expected_segments_ms
-            - aggregate_profile.prepare_inputs_ms)
-            .max(0.0);
-        profile.aggregate_backend_deserialize_ms = aggregate_profile.backend_deserialize_ms;
-        profile.aggregate_backend_challenge_ms = aggregate_profile.backend_challenge_ms;
-        profile.aggregate_backend_tipp_mipp_ms = aggregate_profile.backend_tipp_mipp_ms;
-        profile.aggregate_backend_public_input_fold_ms =
-            aggregate_profile.backend_public_input_fold_ms;
-        profile.aggregate_backend_ppe_ms = aggregate_profile.backend_ppe_ms;
-        profile.aggregate_backend_core_total_ms = aggregate_profile.backend_core_total_ms;
-        match aggregate_result {
-            Ok(_) => {
-                verdict.aggregate.ok = true;
-                verdict.final_accept = true;
-                Ok((verdict, profile))
-            }
-            Err(_) => {
-                reject_aggregate(&mut verdict, ValidationRejectReason::AggregateVerifyFailed);
-                Ok((verdict, profile))
-            }
-        }
     }
 
     #[cfg(any(test, feature = "benchmark-helpers"))]
@@ -3338,119 +2944,6 @@ impl App {
     }
 
     #[cfg(any(test, feature = "benchmark-helpers"))]
-    fn extract_spend_nullifiers_from_proto(
-        proto_tx: &shieldd_sdk_proto::core::transaction::v1::Transaction,
-    ) -> Result<Vec<Nullifier>> {
-        use shieldd_sdk_proto::core::transaction::v1::action::Action as ProtoAction;
-
-        fn push_nullifiers<'a, I>(
-            out: &mut Vec<Nullifier>,
-            nullifiers: I,
-            label: &'static str,
-        ) -> Result<()>
-        where
-            I: IntoIterator<Item = &'a shieldd_sdk_proto::core::component::sct::v1::Nullifier>,
-        {
-            for n in nullifiers {
-                out.push(Nullifier::try_from(n.clone()).context(label)?);
-            }
-            Ok(())
-        }
-
-        let mut spend_nullifiers = Vec::new();
-        let actions = proto_tx
-            .body
-            .as_ref()
-            .into_iter()
-            .flat_map(|body| body.actions.iter());
-        for action in actions {
-            match &action.action {
-                Some(ProtoAction::Transfer(t)) => {
-                    push_nullifiers(
-                        &mut spend_nullifiers,
-                        t.body
-                            .iter()
-                            .flat_map(|b| b.inputs.iter().filter_map(|i| i.nullifier.as_ref())),
-                        "converting proto transfer nullifier",
-                    )?;
-                }
-                Some(ProtoAction::NoteReshape(note_reshape)) => {
-                    let body = note_reshape
-                        .body
-                        .as_ref()
-                        .ok_or_else(|| anyhow::anyhow!("missing proto note reshape body"))?;
-                    push_nullifiers(
-                        &mut spend_nullifiers,
-                        body.inputs
-                            .iter()
-                            .filter_map(|input| input.nullifier.as_ref()),
-                        "converting proto note reshape nullifier",
-                    )?;
-                }
-                Some(ProtoAction::ShieldedIcs20Withdrawal(w)) => {
-                    push_nullifiers(
-                        &mut spend_nullifiers,
-                        w.body
-                            .iter()
-                            .flat_map(|b| b.inputs.iter().filter_map(|i| i.nullifier.as_ref())),
-                        "converting proto shielded ICS-20 withdrawal nullifier",
-                    )?;
-                }
-                Some(ProtoAction::ShieldedHostWithdrawal(w)) => {
-                    push_nullifiers(
-                        &mut spend_nullifiers,
-                        w.body
-                            .iter()
-                            .flat_map(|b| b.inputs.iter().filter_map(|i| i.nullifier.as_ref())),
-                        "converting proto shielded host withdrawal nullifier",
-                    )?;
-                }
-                _ => {}
-            }
-        }
-        Ok(spend_nullifiers)
-    }
-
-    #[cfg(any(test, feature = "benchmark-helpers"))]
-    pub async fn build_segmented_aggregate_bundle_for_artifacts_public(
-        artifacts: &[Arc<TxArtifact>],
-        segment_tx_count: usize,
-    ) -> Result<(AggregateBundle, Vec<usize>)> {
-        let (families, segment_tx_counts, _) =
-            Self::build_segmented_family_aggregates_for_artifacts(artifacts, segment_tx_count)
-                .await?;
-        let srs = shipping_srs()?;
-        Ok((
-            AggregateBundle {
-                version: AGGREGATE_PROTOCOL_VERSION,
-                srs_id: srs_id(&srs).to_vec(),
-                families,
-            },
-            segment_tx_counts,
-        ))
-    }
-
-    #[cfg(any(test, feature = "benchmark-helpers"))]
-    pub async fn build_segmented_aggregate_bundle_for_artifacts_profiled_public(
-        artifacts: &[Arc<TxArtifact>],
-        segment_tx_count: usize,
-    ) -> Result<(AggregateBundle, Vec<usize>, AggregateBuildProfile)> {
-        let (families, segment_tx_counts, profile) =
-            Self::build_segmented_family_aggregates_for_artifacts(artifacts, segment_tx_count)
-                .await?;
-        let srs = shipping_srs()?;
-        Ok((
-            AggregateBundle {
-                version: AGGREGATE_PROTOCOL_VERSION,
-                srs_id: srs_id(&srs).to_vec(),
-                families,
-            },
-            segment_tx_counts,
-            profile,
-        ))
-    }
-
-    #[cfg(any(test, feature = "benchmark-helpers"))]
     pub async fn build_exact_segmented_aggregate_bundle_for_artifacts_profiled_public(
         artifacts: &[Arc<TxArtifact>],
         segment_tx_counts: &[usize],
@@ -3470,79 +2963,6 @@ impl App {
             },
             segment_tx_counts,
             profile,
-        ))
-    }
-
-    #[cfg(any(test, feature = "benchmark-helpers"))]
-    pub async fn build_candidate_envelope_for_bench_profiled_public(
-        snapshot: Snapshot,
-        txs: &[Vec<u8>],
-        segment_tx_count: Option<usize>,
-        source_builder_label: impl Into<String>,
-    ) -> Result<(
-        CandidateEnvelope,
-        ArtifactBuildBreakdown,
-        AggregateBuildProfile,
-    )> {
-        anyhow::ensure!(
-            !txs.is_empty(),
-            "candidate envelope requires at least one tx"
-        );
-
-        let decoded = txs
-            .iter()
-            .enumerate()
-            .map(|(index, tx_bytes)| {
-                Transaction::decode_canonical(tx_bytes.as_slice())
-                    .map(Arc::new)
-                    .with_context(|| format!("decoding bench tx ordinal {index}"))
-            })
-            .collect::<Result<Vec<_>>>()?;
-        let (verified_artifacts, artifact_profile) =
-            Self::build_tx_artifacts_for_stage("bench_candidate_envelope", &decoded).await?;
-        let artifacts = verified_artifacts
-            .iter()
-            .map(|artifact| artifact.extracted())
-            .collect::<Vec<_>>();
-
-        let segment_tx_counts = match segment_tx_count {
-            Some(0) => anyhow::bail!("segment_tx_count must be positive"),
-            Some(segment_tx_count) => decoded
-                .chunks(segment_tx_count)
-                .map(|chunk| chunk.len())
-                .collect::<Vec<_>>(),
-            None => vec![decoded.len()],
-        };
-        let (bundle, segment_tx_counts, aggregate_profile) =
-            Self::build_exact_segmented_aggregate_bundle_for_artifacts_profiled_public(
-                &artifacts,
-                &segment_tx_counts,
-            )
-            .await?;
-        let sidecar =
-            ProposalArtifactSidecar::build(&artifacts, decoded.len(), segment_tx_counts.clone())?;
-        let bundle_tx = Self::build_aggregate_bundle_tx_for_snapshot_public(snapshot, bundle)
-            .await
-            .context("building aggregate bundle tx for bench candidate")?;
-        let tx_hashes = txs
-            .iter()
-            .map(|tx_bytes| sha2::Sha256::digest(tx_bytes).into())
-            .collect::<Vec<[u8; 32]>>();
-
-        Ok((
-            CandidateEnvelope {
-                txs: txs.to_vec(),
-                tx_hashes: tx_hashes.clone(),
-                aggregate_bundle_tx_bytes: Some(bundle_tx.encode_to_vec()),
-                sidecar: sidecar.to_record(),
-                segment_tx_counts,
-                block_tx_count: txs.len(),
-                total_payload_bytes: txs.iter().map(Vec::len).sum(),
-                candidate_digest: candidate_digest_from_hashes(&tx_hashes),
-                source_builder_label: source_builder_label.into(),
-            },
-            artifact_profile,
-            aggregate_profile,
         ))
     }
 
@@ -4413,10 +3833,6 @@ impl App {
             serial_same_block_conflict_ms = profile.stateful_filter_serial_same_block_conflict_ms,
             serial_state_delta_apply_ms = profile.stateful_filter_serial_state_delta_apply_ms,
             serial_nullifier_insert_ms = profile.stateful_filter_serial_nullifier_insert_ms,
-            proposal_nullifier_lookup_write_ms =
-                profile.stateful_filter_proposal_nullifier_lookup_write_ms,
-            proposal_pending_nullifier_stage_ms =
-                profile.stateful_filter_proposal_pending_nullifier_stage_ms,
             serial_sct_append_ms = profile.stateful_filter_serial_sct_append_ms,
             serial_event_emit_ms = profile.stateful_filter_serial_event_emit_ms,
             serial_fee_apply_ms = profile.stateful_filter_serial_fee_apply_ms,
@@ -4465,47 +3881,6 @@ impl App {
             profile,
             sidecar,
         )
-    }
-
-    async fn prepare_proposal_impl(
-        &mut self,
-        proposal: request::PrepareProposal,
-        stateless_cache: Option<&StatelessCache>,
-    ) -> response::PrepareProposal {
-        self.prepare_proposal_impl_profiled(proposal, stateless_cache, false)
-            .await
-            .0
-    }
-
-    /// Synthetic benchmark baseline: no shared artifact cache between mempool,
-    /// proposer, and validator stages.
-    pub async fn prepare_proposal_v1(
-        &mut self,
-        proposal: request::PrepareProposal,
-    ) -> response::PrepareProposal {
-        self.prepare_proposal_impl(proposal, None).await
-    }
-
-    pub async fn prepare_proposal_v1_profiled(
-        &mut self,
-        proposal: request::PrepareProposal,
-        allow_oversized_proposal: bool,
-    ) -> (
-        response::PrepareProposal,
-        PrepareProposalProfile,
-        Option<ProposalArtifactSidecar>,
-    ) {
-        self.prepare_proposal_impl_profiled(proposal, None, allow_oversized_proposal)
-            .await
-    }
-
-    /// Production and synthetic v2 path: use the shared artifact cache.
-    pub async fn prepare_proposal_v2(
-        &mut self,
-        proposal: request::PrepareProposal,
-        stateless_cache: Option<&StatelessCache>,
-    ) -> response::PrepareProposal {
-        self.prepare_proposal_impl(proposal, stateless_cache).await
     }
 
     pub async fn prepare_proposal_v2_profiled(
@@ -4940,24 +4315,6 @@ impl App {
             .0
     }
 
-    /// Synthetic benchmark baseline: no shared artifact cache between mempool,
-    /// proposer, and validator stages.
-    pub async fn process_proposal_v1(
-        &mut self,
-        proposal: request::ProcessProposal,
-    ) -> response::ProcessProposal {
-        self.process_proposal_impl(proposal, None).await
-    }
-
-    pub async fn process_proposal_v1_profiled(
-        &mut self,
-        proposal: request::ProcessProposal,
-        allow_oversized_proposal: bool,
-    ) -> (response::ProcessProposal, ProcessProposalProfile) {
-        self.process_proposal_impl_profiled(proposal, None, None, allow_oversized_proposal)
-            .await
-    }
-
     /// Production and synthetic v2 path: use the shared artifact cache.
     pub async fn process_proposal_v2(
         &mut self,
@@ -5139,12 +4496,6 @@ impl App {
         Ok((events, profile))
     }
 
-    /// Synthetic benchmark baseline: no shared artifact cache between mempool,
-    /// proposer, and validator stages.
-    pub async fn deliver_tx_bytes_v1(&mut self, tx_bytes: &[u8]) -> Result<Vec<abci::Event>> {
-        self.deliver_tx_bytes_impl(tx_bytes, None).await
-    }
-
     pub async fn deliver_tx_bytes_v1_profiled(
         &mut self,
         tx_bytes: &[u8],
@@ -5168,104 +4519,6 @@ impl App {
     ) -> Result<(Vec<abci::Event>, CheckTxProfile)> {
         self.deliver_tx_bytes_impl_profiled(tx_bytes, stateless_cache)
             .await
-    }
-
-    /// Benchmark-only admission path that reuses extracted stateless artifacts
-    /// but intentionally skips per-transaction batch proof verification on
-    /// cache misses.
-    #[cfg(any(test, feature = "benchmark-helpers"))]
-    pub async fn deliver_tx_bytes_v2_extracted_profiled_for_bench(
-        &mut self,
-        tx_bytes: &[u8],
-        stateless_cache: &StatelessCache,
-    ) -> Result<(Vec<abci::Event>, CheckTxProfile)> {
-        let total_start = Instant::now();
-        let mut profile = CheckTxProfile::default();
-        anyhow::ensure!(
-            transaction_size_allowed(tx_bytes.len()),
-            "transaction size {} exceeds maximum {}",
-            tx_bytes.len(),
-            MAX_TRANSACTION_SIZE_BYTES
-        );
-        let cache_lookup_start = Instant::now();
-        let hash: [u8; 32] = sha2::Sha256::digest(tx_bytes).into();
-        let cache_entry = stateless_cache.get(&hash, tx_bytes);
-        profile.checktx_cache_lookup_ms = cache_lookup_start.elapsed().as_secs_f64() * 1000.0;
-
-        match cache_entry {
-            Some(CacheEntry::Extracted(extracted)) => {
-                let (mut verified, verify_profile) = match Self::verify_tx_artifacts_for_stage(
-                    "checktx_extract_only_upgrade",
-                    std::slice::from_ref(&extracted),
-                )
-                .await
-                {
-                    Ok(verified) => verified,
-                    Err(error) => {
-                        stateless_cache.insert_invalid(tx_bytes)?;
-                        return Err(error);
-                    }
-                };
-                profile.stateless_artifact_batch_verify_ms = verify_profile.batch_verify_ms;
-                let artifact = verified
-                    .pop()
-                    .context("verified benchmark cache artifact missing")?;
-                stateless_cache.insert_fully_verified(tx_bytes, artifact.clone())?;
-                tracing::debug!("stateless cache hit (valid, extracted-for-bench)");
-                Self::record_artifact_reuse("checktx_extract_only");
-                profile.cache_hit_count = 1;
-                let skip_historical =
-                    artifact.has_matching_historical_validation(self.snapshot_version);
-                let execute_fast_start = Instant::now();
-                let (events, execute_profile) = if supports_parallel_prepare(artifact.tx())
-                    && self.checktx_shared_context.is_some()
-                {
-                    self.execute_checktx_fast_profiled(artifact.clone(), skip_historical)
-                        .await?
-                } else {
-                    self.deliver_tx_with_verified_stateless_profiled(artifact, None)
-                        .await?
-                };
-                profile.checktx_execute_fast_wall_ms =
-                    execute_fast_start.elapsed().as_secs_f64() * 1000.0;
-                profile.check_historical_ms = execute_profile.check_historical_ms;
-                Self::fill_checktx_execute_profile(&mut profile, &execute_profile);
-                profile.checktx_total_wall_ms = total_start.elapsed().as_secs_f64() * 1000.0;
-                Ok((events, profile))
-            }
-            Some(CacheEntry::FullyVerified(artifact)) => {
-                let skip_historical =
-                    artifact.has_matching_historical_validation(self.snapshot_version);
-                let (events, execute_profile) = if supports_parallel_prepare(artifact.tx())
-                    && self.checktx_shared_context.is_some()
-                {
-                    self.execute_checktx_fast_profiled(artifact.clone(), skip_historical)
-                        .await?
-                } else {
-                    self.deliver_tx_with_verified_stateless_profiled(artifact, None)
-                        .await?
-                };
-                Self::fill_checktx_execute_profile(&mut profile, &execute_profile);
-                Ok((events, profile))
-            }
-            Some(CacheEntry::Invalid) => {
-                anyhow::bail!("transaction previously failed stateless checks");
-            }
-            None => {
-                let miss_start = Instant::now();
-                let (events, mut miss_profile) = self
-                    .deliver_tx_with_stateless_extraction_caching_profiled(
-                        tx_bytes,
-                        stateless_cache,
-                    )
-                    .await?;
-                miss_profile.checktx_stateless_phase_wall_ms =
-                    miss_start.elapsed().as_secs_f64() * 1000.0;
-                miss_profile.checktx_cache_lookup_ms = profile.checktx_cache_lookup_ms;
-                miss_profile.checktx_total_wall_ms = total_start.elapsed().as_secs_f64() * 1000.0;
-                Ok((events, miss_profile))
-            }
-        }
     }
 
     pub async fn deliver_tx_bytes(
@@ -5995,6 +5248,10 @@ impl App {
         let tx = artifact.tx().clone();
         let serial_apply_start = Instant::now();
         let conflict_check_start = Instant::now();
+        anyhow::ensure!(
+            prepared.effects.spend_nullifiers.len() <= block_state.remaining_nullifier_capacity,
+            "nullifier generation capacity exceeded by proposal"
+        );
         for nullifier in &prepared.effects.spend_nullifiers {
             anyhow::ensure!(
                 !block_state.seen_nullifiers.contains(nullifier),
@@ -6096,8 +5353,6 @@ impl App {
         profile.pay_fee_ms = pay_fee_ms;
         profile.serial_fee_apply_ms = pay_fee_ms;
 
-        let source: CommitmentSource = tx_id.clone().into();
-
         for nullifier in &prepared.effects.spend_nullifiers {
             let event_emit_start = Instant::now();
             state_tx.record_proto(
@@ -6161,14 +5416,7 @@ impl App {
         }
         profile.serial_apply_wall_ms = serial_apply_start.elapsed().as_secs_f64() * 1000.0;
 
-        block_state.staged_nullifiers.extend(
-            prepared
-                .effects
-                .spend_nullifiers
-                .iter()
-                .copied()
-                .map(|nullifier| (nullifier, source.clone())),
-        );
+        block_state.remaining_nullifier_capacity -= prepared.effects.spend_nullifiers.len();
         block_state
             .seen_nullifiers
             .extend(prepared.effects.spend_nullifiers.iter().copied());
@@ -6260,7 +5508,16 @@ impl App {
         profile.stateful_filter_claimed_anchor_cache_misses = claimed_anchor_misses;
         profile.stateful_filter_claimed_anchor_unique_values = claimed_anchor_unique_values;
 
-        let mut block_state = PrepareBlockLocalState::default();
+        let durable_nullifier_count =
+            shieldd_sdk_sct::nullifier_tree::current_leaf_count(Arc::as_ref(&self.state)).await?;
+        let remaining_generation_capacity = shieldd_sdk_sct::indexed_nullifier_tree::CAPACITY
+            .saturating_sub(durable_nullifier_count);
+        let mut block_state = PrepareBlockLocalState {
+            remaining_nullifier_capacity: usize::try_from(remaining_generation_capacity)
+                .unwrap_or(usize::MAX)
+                .min(MAX_BLOCK_NULLIFIER_COUNT),
+            ..Default::default()
+        };
         let mut included_candidates = Vec::new();
         for (candidate, prepared_result) in deduped.into_iter().zip(prepared_results.into_iter()) {
             let Some(prepared_result) = prepared_result else {
@@ -6300,50 +5557,7 @@ impl App {
             }
         }
 
-        self.apply_prepare_proposal_nullifier_batch_profiled(
-            &block_state.staged_nullifiers,
-            profile,
-        )
-        .await?;
-
         Ok(included_candidates)
-    }
-
-    async fn apply_prepare_proposal_nullifier_batch_profiled(
-        &mut self,
-        entries: &[(Nullifier, CommitmentSource)],
-        profile: &mut PrepareProposalProfile,
-    ) -> Result<()> {
-        if entries.is_empty() {
-            return Ok(());
-        }
-
-        let serial_apply_start = Instant::now();
-        let begin_state_tx_start = Instant::now();
-        let mut state_tx = self
-            .state
-            .try_begin_transaction()
-            .expect("state Arc should be present and unique");
-        let begin_state_tx_ms = begin_state_tx_start.elapsed().as_secs_f64() * 1000.0;
-
-        let insert_start = Instant::now();
-        let batch_profile = state_tx.nullify_proposal_batch(entries).await?;
-        let insert_total_ms = insert_start.elapsed().as_secs_f64() * 1000.0;
-
-        let apply_start = Instant::now();
-        let _events = state_tx.apply().1;
-        let apply_ms = apply_start.elapsed().as_secs_f64() * 1000.0;
-
-        profile.stateful_filter_begin_state_tx_ms += begin_state_tx_ms;
-        profile.stateful_filter_serial_apply_wall_ms +=
-            serial_apply_start.elapsed().as_secs_f64() * 1000.0;
-        profile.stateful_filter_serial_nullifier_insert_ms += insert_total_ms;
-        profile.stateful_filter_proposal_nullifier_lookup_write_ms += batch_profile.lookup_write_ms;
-        profile.stateful_filter_proposal_pending_nullifier_stage_ms +=
-            batch_profile.pending_stage_ms;
-        profile.stateful_filter_serial_state_delta_apply_ms += apply_ms;
-        profile.stateful_filter_apply_ms += apply_ms;
-        Ok(())
     }
 
     async fn append_block_transaction_to_state<S>(
@@ -6411,9 +5625,7 @@ impl App {
             }
         }
 
-        state_tx
-            .add_sct_commitments_at_positions(sct_entries)
-            .await?;
+        state_tx.finalize_sct_block_forget(sct_entries).await?;
 
         #[cfg(feature = "benchmark-helpers")]
         let pending_payload_start = Instant::now();
@@ -6677,6 +5889,9 @@ impl App {
     /// This method also resets `self` as if it were constructed
     /// as an empty state over top of the newly written storage.
     pub async fn commit(&mut self, storage: Storage) -> RootHash {
+        self.state
+            .ensure_nullifier_block_materialized()
+            .expect("cannot commit an open nullifier block");
         let commit_start = Instant::now();
         let flush_start = Instant::now();
         self.flush_deferred_block_transactions()
@@ -7269,61 +6484,6 @@ mod tests {
         ));
         assert!(include_str!("../server.rs")
             .contains("#[cfg(any(test, feature = \"benchmark-helpers\"))]\nmod diagnostics;"));
-    }
-
-    #[test]
-    fn artifact_extraction_keeps_all_note_reshape_fixed_slot_nullifiers() {
-        let inputs = (0..8)
-            .map(|index| shieldd_sdk_shielded_pool::NoteReshapeInputBody {
-                nullifier: Nullifier(Fq::from(400u64 + index)),
-                rk: rdsa::VerificationKey::from(rdsa::SigningKey::<rdsa::SpendAuth>::from(
-                    Fr::from(500u64 + index),
-                )),
-                encrypted_backref: shieldd_sdk_shielded_pool::EncryptedBackref::dummy(),
-                history_required: false,
-            })
-            .collect::<Vec<_>>();
-        let tx = Transaction {
-            transaction_body: shieldd_sdk_transaction::TransactionBody {
-                actions: vec![Action::NoteReshape(
-                    shieldd_sdk_shielded_pool::NoteReshape {
-                        body: shieldd_sdk_shielded_pool::NoteReshapeBody {
-                            family_id: shieldd_sdk_shielded_pool::NoteReshapeFamilyId::EightByOne,
-                            anchor: tct::Tree::default().root(),
-                            balance_commitment: shieldd_sdk_asset::Balance::default()
-                                .commit(Fr::from(1u64)),
-                            inputs,
-                            outputs: vec![shieldd_sdk_shielded_pool::NoteReshapeOutputBody {
-                                note_payload: shieldd_sdk_shielded_pool::NotePayload {
-                                    note_commitment: tct::StateCommitment(Fq::from(600u64)),
-                                    ..shieldd_sdk_shielded_pool::NotePayload::dummy()
-                                },
-                                wrapped_memo_key: shieldd_sdk_keys::symmetric::WrappedMemoKey(
-                                    [8u8; 48],
-                                ),
-                                ovk_wrapped_key: shieldd_sdk_keys::symmetric::OvkWrappedKey(
-                                    [9u8; 48],
-                                ),
-                            }],
-                            routing_tag: Default::default(),
-                            routing_parameter_set_id: Fq::from(0u64),
-                            asset_anchor: tct::StateCommitment(Fq::from(0u64)),
-                            compliance_anchor: tct::StateCommitment(Fq::from(0u64)),
-                        },
-                        auth_sigs: vec![[0u8; 64].into(); 8],
-                        proof: shieldd_sdk_shielded_pool::NoteReshapeProof::default(),
-                    },
-                )],
-                ..Default::default()
-            },
-            ..Default::default()
-        };
-        let proto: shieldd_sdk_proto::core::transaction::v1::Transaction = (&tx).into();
-
-        let extracted = App::extract_spend_nullifiers_from_proto(&proto)
-            .expect("extract NoteReshape nullifiers");
-        assert_eq!(extracted, tx.spent_nullifiers().collect::<Vec<_>>());
-        assert_eq!(extracted.len(), 8);
     }
 
     async fn delete_nv_prefix<S>(state: &mut S, prefix: &[u8]) -> Result<()>
@@ -8232,11 +7392,22 @@ mod tests {
         let (storage, _node, txs) = setup_test_txs(2).await?;
         let envelope = candidate_envelope_from_fixture_txs(&storage, &txs).await?;
         let mut app = App::new(storage.latest_snapshot());
+        let starting_generation =
+            shieldd_sdk_sct::nullifier_tree::generation_state(Arc::as_ref(&app.state)).await?;
 
         let (verdict, _profile) = app
             .process_candidate_envelope_profiled(&envelope, None)
             .await?;
         assert!(matches!(verdict, response::ProcessProposal::Accept));
+        assert_eq!(app.state.pending_nullifiers().len(), 4);
+        assert!(!app.state.nullifier_block_is_materialized());
+        assert_eq!(
+            shieldd_sdk_sct::nullifier_tree::generation_state(Arc::as_ref(&app.state))
+                .await?
+                .current_root,
+            starting_generation.current_root,
+            "ProcessProposal should reuse delivery semantics without building a disposable tree",
+        );
 
         Ok(())
     }
@@ -8472,6 +7643,9 @@ mod tests {
     async fn execute_validated_candidate_envelope_profiled_skips_proposal_validation() -> Result<()>
     {
         let (storage, _node, txs) = setup_test_txs(1).await?;
+        let spent_nullifiers = Transaction::decode(txs[0].as_slice())?
+            .spent_nullifiers()
+            .collect::<Vec<_>>();
         let envelope = candidate_envelope_from_fixture_txs(&storage, &txs).await?;
 
         let mut preflight_app = App::new(storage.latest_snapshot());
@@ -8493,6 +7667,11 @@ mod tests {
             .await?;
         assert_eq!(profile.block_tx_count, 1);
         assert!(profile.deliver_txs_wall_ms > 0.0);
+        let committed = storage.latest_snapshot();
+        for nullifier in spent_nullifiers {
+            assert!(shieldd_sdk_sct::nullifier_tree::is_spent(&committed, nullifier).await?);
+        }
+        shieldd_sdk_sct::nullifier_tree::verify_committed_roots(&committed).await?;
 
         Ok(())
     }
@@ -8597,12 +7776,17 @@ mod tests {
         let mut app = App::new(storage.latest_snapshot());
         let mut block_state = PrepareBlockLocalState::default();
 
+        let first_nullifier_count = prepared_first.effects.spend_nullifiers.len();
         app.apply_prepared_prepare_candidate_profiled(
             artifact.clone(),
             prepared_first,
             &mut block_state,
         )
         .await?;
+        assert_eq!(
+            block_state.remaining_nullifier_capacity,
+            super::MAX_BLOCK_NULLIFIER_COUNT - first_nullifier_count
+        );
         let err = app
             .apply_prepared_prepare_candidate_profiled(artifact, prepared_second, &mut block_state)
             .await
@@ -8633,12 +7817,14 @@ mod tests {
 
         let mut repeated = StateDelta::new(snapshot.clone());
         repeated.put_block_height(42);
+        shieldd_sdk_sct::nullifier_tree::initialize(&mut repeated).await?;
         for nullifier in &nullifiers {
             repeated.nullify(*nullifier, source.clone()).await?;
         }
 
         let mut batched = StateDelta::new(snapshot);
         batched.put_block_height(42);
+        shieldd_sdk_sct::nullifier_tree::initialize(&mut batched).await?;
         batched.nullify_all(&nullifiers, source).await?;
 
         assert_eq!(repeated.pending_nullifiers(), batched.pending_nullifiers());
@@ -8650,56 +7836,16 @@ mod tests {
             );
         }
 
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn proposal_batch_nullify_matches_sequential_and_preserves_sources() -> Result<()> {
-        let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
-        let snapshot = storage.latest_snapshot();
-
-        let entries = vec![
-            (
-                Nullifier(Fq::from(21u64)),
-                CommitmentSource::Transaction {
-                    id: Some([1u8; 32]),
-                },
-            ),
-            (
-                Nullifier(Fq::from(22u64)),
-                CommitmentSource::Transaction {
-                    id: Some([2u8; 32]),
-                },
-            ),
-            (
-                Nullifier(Fq::from(23u64)),
-                CommitmentSource::Transaction {
-                    id: Some([1u8; 32]),
-                },
-            ),
-        ];
-
-        let mut sequential = StateDelta::new(snapshot.clone());
-        sequential.put_block_height(42);
-        for (nullifier, source) in &entries {
-            sequential.nullify(*nullifier, source.clone()).await?;
-        }
-
-        let mut proposal_batch = StateDelta::new(snapshot);
-        proposal_batch.put_block_height(42);
-        let _profile = proposal_batch.nullify_proposal_batch(&entries).await?;
-
+        repeated.materialize_nullifier_block().await?;
+        batched.materialize_nullifier_block().await?;
         assert_eq!(
-            sequential.pending_nullifiers(),
-            proposal_batch.pending_nullifiers()
+            shieldd_sdk_sct::nullifier_tree::generation_state(&repeated)
+                .await?
+                .current_root,
+            shieldd_sdk_sct::nullifier_tree::generation_state(&batched)
+                .await?
+                .current_root,
         );
-
-        for (nullifier, _) in &entries {
-            assert_eq!(
-                sequential.is_nullifier_spent(*nullifier).await?,
-                proposal_batch.is_nullifier_spent(*nullifier).await?,
-            );
-        }
 
         Ok(())
     }

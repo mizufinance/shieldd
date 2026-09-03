@@ -95,11 +95,6 @@ pub mod cache {
     pub fn cached_asset_imt() -> &'static str {
         "compliance/cache/asset_imt"
     }
-
-    /// Dirty flag indicating whether either compliance tree was modified in this block.
-    pub fn trees_modified() -> &'static str {
-        "compliance/cache/trees_modified"
-    }
 }
 
 /// State key for asset-specific compliance policy (dk_pub, threshold).
