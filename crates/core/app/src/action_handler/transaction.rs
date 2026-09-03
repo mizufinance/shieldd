@@ -22,6 +22,8 @@ use shieldd_sdk_shielded_pool::component::{
     transfer_execute_verified, transfer_validate_verified, Ics20Transfer, StateReadExt as _,
 };
 use shieldd_sdk_shielded_pool::discovery;
+use shieldd_sdk_shielded_pool::TransferProofContext;
+use shieldd_sdk_shielded_pool::VolumeNullifier;
 use shieldd_sdk_tct::StateCommitment;
 use shieldd_sdk_transaction::{gas::GasCost as _, Action, Transaction};
 use shieldd_sdk_txhash::{AuthorizingData, TransactionId};
@@ -79,6 +81,7 @@ pub(crate) struct TransactionExecutionProfile {
 #[derive(Clone, Debug, Default)]
 pub(crate) struct PreparedCandidateEffects {
     pub spend_nullifiers: Vec<Nullifier>,
+    pub volume_nullifiers: Vec<VolumeNullifier>,
     pub sct_payloads: Vec<StatePayload>,
     pub routing_actions: Vec<PendingRoutingAction>,
 }
@@ -330,7 +333,11 @@ pub(crate) fn transaction_nullifier_count_allowed(nullifier_count: usize) -> boo
 }
 
 pub(crate) fn transaction_nullifier_count(tx: &Transaction) -> usize {
-    tx.spent_nullifier_count()
+    let volume_nullifiers = tx
+        .actions()
+        .filter(|action| matches!(action, Action::Transfer(_)))
+        .count();
+    tx.spent_nullifier_count().saturating_add(volume_nullifiers)
 }
 
 pub(crate) fn ensure_transaction_resource_bounds(tx: &Transaction) -> Result<()> {
@@ -345,7 +352,7 @@ pub(crate) fn ensure_transaction_resource_bounds(tx: &Transaction) -> Result<()>
     let nullifier_count = transaction_nullifier_count(tx);
     anyhow::ensure!(
         transaction_nullifier_count_allowed(nullifier_count),
-        "transaction spend nullifier count {} exceeds maximum {}",
+        "transaction proof-bound nullifier count {} exceeds maximum {}",
         nullifier_count,
         MAX_TRANSACTION_NULLIFIER_COUNT
     );
@@ -442,6 +449,17 @@ where
     Ok(committed_check_start.elapsed().as_secs_f64() * 1000.0)
 }
 
+async fn check_volume_nullifier_read_only<S>(state: &S, scoped: VolumeNullifier) -> Result<f64>
+where
+    S: StateRead,
+{
+    let start = Instant::now();
+    state
+        .check_volume_nullifier_unspent(scoped.day_start, scoped.nullifier)
+        .await?;
+    Ok(start.elapsed().as_secs_f64() * 1000.0)
+}
+
 async fn validate_compliance_anchors_read_only<S: StateRead>(
     state: &S,
     user_anchor: &StateCommitment,
@@ -535,6 +553,16 @@ fn check_nullifier_read_only_sync(
     let committed_check_start = Instant::now();
     handle.block_on(snapshot.check_nullifier_unspent(nullifier))?;
     Ok(committed_check_start.elapsed().as_secs_f64() * 1000.0)
+}
+
+fn check_volume_nullifier_read_only_sync(
+    handle: &tokio::runtime::Handle,
+    snapshot: &Snapshot,
+    scoped: VolumeNullifier,
+) -> Result<f64> {
+    let start = Instant::now();
+    handle.block_on(snapshot.check_volume_nullifier_unspent(scoped.day_start, scoped.nullifier))?;
+    Ok(start.elapsed().as_secs_f64() * 1000.0)
 }
 
 fn validate_compliance_anchors_read_only_sync(
@@ -756,6 +784,7 @@ where
             &fee_funding.transfer,
             &tx_context,
             artifact.proof_for_slot(ProofSlot::FeeFunding)?,
+            TransferProofContext::FeeFunding,
             &mut state,
         )
         .await?;
@@ -772,6 +801,7 @@ where
                     action,
                     &tx_context,
                     artifact.proof_for_slot(ProofSlot::BodyAction(i))?,
+                    TransferProofContext::Ordinary,
                     &mut state,
                 )
                 .await?;
@@ -867,15 +897,21 @@ pub(crate) async fn prepare_candidate_read_profiled<S: StateRead + 'static>(
         source: tx.id(),
     };
     let mut anchor_pairs = BTreeSet::new();
-    let mut output_payloads = Vec::new();
+    let mut sct_payloads = Vec::new();
     let mut spend_nullifiers = Vec::new();
     let mut tx_nullifiers = HashSet::new();
+    let mut volume_nullifiers = Vec::new();
+    let mut tx_volume_nullifiers = HashSet::new();
     let action_execute_start = Instant::now();
     let local_precheck_start = Instant::now();
 
     for (i, action) in tx.actions().enumerate() {
         match action {
             Action::Transfer(transfer) => {
+                anyhow::ensure!(
+                    transfer.body.proof_context == TransferProofContext::Ordinary,
+                    "body transfer must use ordinary proof context"
+                );
                 check_action_timestamp_freshness(
                     transfer.body.target_timestamp,
                     execution_context.block_timestamp,
@@ -889,13 +925,64 @@ pub(crate) async fn prepare_candidate_read_profiled<S: StateRead + 'static>(
                     spend_nullifiers.push(input.nullifier);
                 }
                 anchor_pairs.insert((transfer.body.compliance_anchor, transfer.body.asset_anchor));
-                output_payloads.extend(
+                sct_payloads.extend(
                     transfer
                         .body
                         .outputs
                         .iter()
-                        .map(|output| output.note_payload.clone()),
+                        .map(|output| {
+                            (
+                                output.note_payload.clone(),
+                                execution_context.source.clone().into(),
+                            )
+                                .into()
+                        }),
                 );
+                let scoped = transfer.body.volume_accumulator.scoped_nullifier();
+                anyhow::ensure!(
+                    tx_volume_nullifiers.insert(scoped),
+                    "transaction contains duplicate daily volume nullifier {} for day {}",
+                    scoped.nullifier,
+                    scoped.day_start
+                );
+                volume_nullifiers.push(scoped);
+                sct_payloads.push(StatePayload::VolumeAccumulator {
+                    source: execution_context.source.clone().into(),
+                    payload: Box::new(transfer.body.volume_accumulator.clone()),
+                });
+            }
+            Action::ShieldedHostWithdrawal(withdrawal) => {
+                check_action_timestamp_freshness(
+                    withdrawal.body.target_timestamp,
+                    execution_context.block_timestamp,
+                )?;
+                for input in &withdrawal.body.inputs {
+                    anyhow::ensure!(
+                        tx_nullifiers.insert(input.nullifier),
+                        "transaction contains duplicate spend nullifier {}",
+                        input.nullifier
+                    );
+                    spend_nullifiers.push(input.nullifier);
+                }
+                anchor_pairs.insert((withdrawal.body.compliance_anchor, withdrawal.body.asset_anchor));
+                sct_payloads.push((withdrawal.body.change_output.note_payload.clone(), execution_context.source.clone().into()).into());
+                let scoped = withdrawal.body.volume_accumulator.scoped_nullifier();
+                anyhow::ensure!(tx_volume_nullifiers.insert(scoped), "transaction contains duplicate daily volume nullifier {} for day {}", scoped.nullifier, scoped.day_start);
+                volume_nullifiers.push(scoped);
+                sct_payloads.push(StatePayload::VolumeAccumulator { source: execution_context.source.clone().into(), payload: Box::new(withdrawal.body.volume_accumulator.clone()) });
+            }
+            Action::ShieldedIcs20Withdrawal(withdrawal) => {
+                check_action_timestamp_freshness(withdrawal.body.target_timestamp, execution_context.block_timestamp)?;
+                for input in &withdrawal.body.inputs {
+                    anyhow::ensure!(tx_nullifiers.insert(input.nullifier), "transaction contains duplicate spend nullifier {}", input.nullifier);
+                    spend_nullifiers.push(input.nullifier);
+                }
+                anchor_pairs.insert((withdrawal.body.compliance_anchor, withdrawal.body.asset_anchor));
+                sct_payloads.push((withdrawal.body.change_output.note_payload.clone(), execution_context.source.clone().into()).into());
+                let scoped = withdrawal.body.volume_accumulator.scoped_nullifier();
+                anyhow::ensure!(tx_volume_nullifiers.insert(scoped), "transaction contains duplicate daily volume nullifier {} for day {}", scoped.nullifier, scoped.day_start);
+                volume_nullifiers.push(scoped);
+                sct_payloads.push(StatePayload::VolumeAccumulator { source: execution_context.source.clone().into(), payload: Box::new(withdrawal.body.volume_accumulator.clone()) });
             }
             Action::NoteReshape(note_reshape) => {
                 anchor_pairs.insert((
@@ -910,12 +997,18 @@ pub(crate) async fn prepare_candidate_read_profiled<S: StateRead + 'static>(
                     );
                     spend_nullifiers.push(input.nullifier);
                 }
-                output_payloads.extend(
+                sct_payloads.extend(
                     note_reshape
                         .body
                         .outputs
                         .iter()
-                        .map(|output| output.note_payload.clone()),
+                        .map(|output| {
+                            (
+                                output.note_payload.clone(),
+                                execution_context.source.clone().into(),
+                            )
+                                .into()
+                        }),
                 );
             }
             _ => anyhow::bail!(
@@ -926,6 +1019,10 @@ pub(crate) async fn prepare_candidate_read_profiled<S: StateRead + 'static>(
         }
     }
     if let Some(fee_funding) = &tx.transaction_body.fee_funding {
+        anyhow::ensure!(
+            fee_funding.transfer.body.proof_context == TransferProofContext::FeeFunding,
+            "fee funding transfer must use fee-funding proof context"
+        );
         check_action_timestamp_freshness(
             fee_funding.transfer.body.target_timestamp,
             execution_context.block_timestamp,
@@ -942,22 +1039,23 @@ pub(crate) async fn prepare_candidate_read_profiled<S: StateRead + 'static>(
             fee_funding.transfer.body.compliance_anchor,
             fee_funding.transfer.body.asset_anchor,
         ));
-        output_payloads.extend(
-            fee_funding
-                .transfer
-                .body
-                .outputs
-                .iter()
-                .map(|output| output.note_payload.clone()),
-        );
+        sct_payloads.extend(fee_funding.transfer.body.outputs.iter().map(|output| {
+            (
+                output.note_payload.clone(),
+                execution_context.source.clone().into(),
+            )
+                .into()
+        }));
     }
     let read_nullifiers = spend_nullifiers.clone();
+    let read_volume_nullifiers = volume_nullifiers.clone();
     prepared.execution_profile.read_local_precheck_ms =
         local_precheck_start.elapsed().as_secs_f64() * 1000.0;
 
     enum ReadTaskResult {
         Anchor { elapsed_ms: f64, cache_wait_ms: f64 },
         Nullifier(f64),
+        VolumeNullifier(f64),
     }
 
     let historical_future = async {
@@ -997,6 +1095,14 @@ pub(crate) async fn prepare_candidate_read_profiled<S: StateRead + 'static>(
                 .map(ReadTaskResult::Nullifier)
         });
     }
+    for scoped in read_volume_nullifiers {
+        let state = state.clone();
+        read_tasks.spawn(async move {
+            check_volume_nullifier_read_only(Arc::as_ref(&state), scoped)
+                .await
+                .map(ReadTaskResult::VolumeNullifier)
+        });
+    }
 
     let read_task_future = async {
         let mut execution_profile = TransactionExecutionProfile::default();
@@ -1014,6 +1120,10 @@ pub(crate) async fn prepare_candidate_read_profiled<S: StateRead + 'static>(
                     execution_profile.read_nullifier_wait_ms += elapsed_ms;
                     execution_profile.spend_nullifier_committed_check_ms += elapsed_ms;
                     execution_profile.spend_nullifier_check_ms += elapsed_ms;
+                    execution_profile.nullifier_lookup_count += 1;
+                }
+                ReadTaskResult::VolumeNullifier(elapsed_ms) => {
+                    execution_profile.read_committed_nullifier_ms += elapsed_ms;
                     execution_profile.nullifier_lookup_count += 1;
                 }
             }
@@ -1045,10 +1155,8 @@ pub(crate) async fn prepare_candidate_read_profiled<S: StateRead + 'static>(
 
     let effects_build_start = Instant::now();
     prepared.effects.spend_nullifiers = spend_nullifiers;
-    prepared.effects.sct_payloads = output_payloads
-        .into_iter()
-        .map(|note_payload| (note_payload, execution_context.source.clone().into()).into())
-        .collect();
+    prepared.effects.volume_nullifiers = volume_nullifiers;
+    prepared.effects.sct_payloads = sct_payloads;
     prepared.effects.routing_actions = transaction_routing_actions(tx.as_ref())?;
     prepared.execution_profile.read_effects_build_ms =
         effects_build_start.elapsed().as_secs_f64() * 1000.0;
@@ -1078,15 +1186,21 @@ pub(crate) fn prepare_candidate_read_blocking_profiled(
         source: tx.id(),
     };
     let mut anchor_pairs = BTreeSet::new();
-    let mut output_payloads = Vec::new();
+    let mut sct_payloads = Vec::new();
     let mut spend_nullifiers = Vec::new();
     let mut tx_nullifiers = HashSet::new();
+    let mut volume_nullifiers = Vec::new();
+    let mut tx_volume_nullifiers = HashSet::new();
     let action_execute_start = Instant::now();
     let local_precheck_start = Instant::now();
 
     for (i, action) in tx.actions().enumerate() {
         match action {
             Action::Transfer(transfer) => {
+                anyhow::ensure!(
+                    transfer.body.proof_context == TransferProofContext::Ordinary,
+                    "body transfer must use ordinary proof context"
+                );
                 check_action_timestamp_freshness(
                     transfer.body.target_timestamp,
                     execution_context.block_timestamp,
@@ -1100,13 +1214,57 @@ pub(crate) fn prepare_candidate_read_blocking_profiled(
                     spend_nullifiers.push(input.nullifier);
                 }
                 anchor_pairs.insert((transfer.body.compliance_anchor, transfer.body.asset_anchor));
-                output_payloads.extend(
+                sct_payloads.extend(
                     transfer
                         .body
                         .outputs
                         .iter()
-                        .map(|output| output.note_payload.clone()),
+                        .map(|output| {
+                            (
+                                output.note_payload.clone(),
+                                execution_context.source.clone().into(),
+                            )
+                                .into()
+                        }),
                 );
+                let scoped = transfer.body.volume_accumulator.scoped_nullifier();
+                anyhow::ensure!(
+                    tx_volume_nullifiers.insert(scoped),
+                    "transaction contains duplicate daily volume nullifier {} for day {}",
+                    scoped.nullifier,
+                    scoped.day_start
+                );
+                volume_nullifiers.push(scoped);
+                sct_payloads.push(StatePayload::VolumeAccumulator {
+                    source: execution_context.source.clone().into(),
+                    payload: Box::new(transfer.body.volume_accumulator.clone()),
+                });
+            }
+            Action::ShieldedHostWithdrawal(withdrawal) => {
+                check_action_timestamp_freshness(withdrawal.body.target_timestamp, execution_context.block_timestamp)?;
+                for input in &withdrawal.body.inputs {
+                    anyhow::ensure!(tx_nullifiers.insert(input.nullifier), "transaction contains duplicate spend nullifier {}", input.nullifier);
+                    spend_nullifiers.push(input.nullifier);
+                }
+                anchor_pairs.insert((withdrawal.body.compliance_anchor, withdrawal.body.asset_anchor));
+                sct_payloads.push((withdrawal.body.change_output.note_payload.clone(), execution_context.source.clone().into()).into());
+                let scoped = withdrawal.body.volume_accumulator.scoped_nullifier();
+                anyhow::ensure!(tx_volume_nullifiers.insert(scoped), "transaction contains duplicate daily volume nullifier {} for day {}", scoped.nullifier, scoped.day_start);
+                volume_nullifiers.push(scoped);
+                sct_payloads.push(StatePayload::VolumeAccumulator { source: execution_context.source.clone().into(), payload: Box::new(withdrawal.body.volume_accumulator.clone()) });
+            }
+            Action::ShieldedIcs20Withdrawal(withdrawal) => {
+                check_action_timestamp_freshness(withdrawal.body.target_timestamp, execution_context.block_timestamp)?;
+                for input in &withdrawal.body.inputs {
+                    anyhow::ensure!(tx_nullifiers.insert(input.nullifier), "transaction contains duplicate spend nullifier {}", input.nullifier);
+                    spend_nullifiers.push(input.nullifier);
+                }
+                anchor_pairs.insert((withdrawal.body.compliance_anchor, withdrawal.body.asset_anchor));
+                sct_payloads.push((withdrawal.body.change_output.note_payload.clone(), execution_context.source.clone().into()).into());
+                let scoped = withdrawal.body.volume_accumulator.scoped_nullifier();
+                anyhow::ensure!(tx_volume_nullifiers.insert(scoped), "transaction contains duplicate daily volume nullifier {} for day {}", scoped.nullifier, scoped.day_start);
+                volume_nullifiers.push(scoped);
+                sct_payloads.push(StatePayload::VolumeAccumulator { source: execution_context.source.clone().into(), payload: Box::new(withdrawal.body.volume_accumulator.clone()) });
             }
             Action::NoteReshape(note_reshape) => {
                 anchor_pairs.insert((
@@ -1121,12 +1279,18 @@ pub(crate) fn prepare_candidate_read_blocking_profiled(
                     );
                     spend_nullifiers.push(input.nullifier);
                 }
-                output_payloads.extend(
+                sct_payloads.extend(
                     note_reshape
                         .body
                         .outputs
                         .iter()
-                        .map(|output| output.note_payload.clone()),
+                        .map(|output| {
+                            (
+                                output.note_payload.clone(),
+                                execution_context.source.clone().into(),
+                            )
+                                .into()
+                        }),
                 );
             }
             _ => anyhow::bail!(
@@ -1137,6 +1301,10 @@ pub(crate) fn prepare_candidate_read_blocking_profiled(
         }
     }
     if let Some(fee_funding) = &tx.transaction_body.fee_funding {
+        anyhow::ensure!(
+            fee_funding.transfer.body.proof_context == TransferProofContext::FeeFunding,
+            "fee funding transfer must use fee-funding proof context"
+        );
         check_action_timestamp_freshness(
             fee_funding.transfer.body.target_timestamp,
             execution_context.block_timestamp,
@@ -1153,16 +1321,16 @@ pub(crate) fn prepare_candidate_read_blocking_profiled(
             fee_funding.transfer.body.compliance_anchor,
             fee_funding.transfer.body.asset_anchor,
         ));
-        output_payloads.extend(
-            fee_funding
-                .transfer
-                .body
-                .outputs
-                .iter()
-                .map(|output| output.note_payload.clone()),
-        );
+        sct_payloads.extend(fee_funding.transfer.body.outputs.iter().map(|output| {
+            (
+                output.note_payload.clone(),
+                execution_context.source.clone().into(),
+            )
+                .into()
+        }));
     }
     let read_nullifiers = spend_nullifiers.clone();
+    let read_volume_nullifiers = volume_nullifiers.clone();
     prepared.execution_profile.read_local_precheck_ms =
         local_precheck_start.elapsed().as_secs_f64() * 1000.0;
 
@@ -1202,15 +1370,18 @@ pub(crate) fn prepare_candidate_read_blocking_profiled(
         prepared.execution_profile.spend_nullifier_check_ms += elapsed_ms;
         prepared.execution_profile.nullifier_lookup_count += 1;
     }
+    for scoped in read_volume_nullifiers {
+        let elapsed_ms = check_volume_nullifier_read_only_sync(&handle, &snapshot, scoped)?;
+        prepared.execution_profile.read_committed_nullifier_ms += elapsed_ms;
+        prepared.execution_profile.nullifier_lookup_count += 1;
+    }
     prepared.execution_profile.read_lookup_wait_or_join_ms =
         lookup_wait_start.elapsed().as_secs_f64() * 1000.0;
 
     let effects_build_start = Instant::now();
     prepared.effects.spend_nullifiers = spend_nullifiers;
-    prepared.effects.sct_payloads = output_payloads
-        .into_iter()
-        .map(|note_payload| (note_payload, execution_context.source.clone().into()).into())
-        .collect();
+    prepared.effects.volume_nullifiers = volume_nullifiers;
+    prepared.effects.sct_payloads = sct_payloads;
     prepared.effects.routing_actions = transaction_routing_actions(tx.as_ref())?;
     prepared.execution_profile.read_effects_build_ms =
         effects_build_start.elapsed().as_secs_f64() * 1000.0;

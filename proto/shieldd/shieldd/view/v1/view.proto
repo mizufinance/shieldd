@@ -241,6 +241,9 @@ message TransactionPlannerRequest {
   // The epoch of the transaction being planned.
   shieldd.core.component.sct.v1.Epoch epoch = 201;
 
+  // Voluntarily disclose outbound transfers instead of consuming the daily accumulator.
+  bool disclose_to_issuer = 202;
+
   // Request message subtypes
   message TransferOutput {
     // The amount and denomination in which the transfer output is issued.
@@ -326,6 +329,8 @@ message StatusResponse {
   uint64 partial_sync_height = 2;
   // Whether the view service is catching up with the chain state
   bool catching_up = 3;
+  // Consensus timestamp of the latest block known to the view service.
+  uint64 latest_block_timestamp = 4;
 }
 
 // Requests streaming updates on the sync height until the view service is synchronized.
@@ -554,8 +559,8 @@ message ComplianceAssetStatusResponse {
   bool is_regulated = 3;
   // Issuer's detection key public (32 bytes compressed point).
   bytes dk_pub = 4;
-  // Amount threshold for flagging (16 bytes, little-endian u128).
-  bytes threshold = 5;
+  // Daily undisclosed-volume limit (16-byte little-endian u128).
+  bytes daily_volume_limit = 5;
   // Full compliance asset policy for regulated assets.
   core.component.compliance.v1.AssetPolicy asset_policy = 6;
 }

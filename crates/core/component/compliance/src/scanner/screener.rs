@@ -1,7 +1,13 @@
 use shieldd_sdk_asset::asset;
 
-use super::types::{DetectionEvent, ExtractedComplianceCiphertext, InvalidCiphertext};
-use crate::{issuer_keys::DetectionKey, transfer::TransferComplianceCiphertext};
+use super::types::{
+    ComplianceCiphertext, ComplianceCiphertextKind, DetectionEvent, ExtractedComplianceCiphertext,
+    InvalidCiphertext,
+};
+use crate::{
+    issuer_keys::DetectionKey, transfer::TransferComplianceCiphertext,
+    withdrawal::WithdrawalComplianceCiphertext,
+};
 
 #[derive(Clone)]
 pub struct ComplianceScreener {
@@ -25,20 +31,38 @@ impl ComplianceScreener {
     }
 
     pub fn screen(&self, extracted: ExtractedComplianceCiphertext) -> ScreeningResult {
-        let ciphertext = match TransferComplianceCiphertext::from_bytes(&extracted.raw_bytes) {
+        let ciphertext = match extracted.kind {
+            ComplianceCiphertextKind::Transfer => {
+                TransferComplianceCiphertext::from_bytes(&extracted.raw_bytes)
+                    .map(ComplianceCiphertext::Transfer)
+            }
+            ComplianceCiphertextKind::Withdrawal => {
+                WithdrawalComplianceCiphertext::from_bytes(&extracted.raw_bytes)
+                    .map(ComplianceCiphertext::Withdrawal)
+            }
+        };
+        let ciphertext = match ciphertext {
             Ok(ciphertext) => ciphertext,
             Err(error) => {
                 return ScreeningResult::InvalidCiphertext(InvalidCiphertext {
-                    output_ref: extracted.output_ref,
+                    record_ref: extracted.record_ref,
                     reason: error.to_string(),
                     raw_bytes: extracted.raw_bytes,
                 })
             }
         };
 
+        let (epk, detection_tag) = match &ciphertext {
+            ComplianceCiphertext::Transfer(ciphertext) => {
+                (&ciphertext.sender_core_epk, &ciphertext.detection_tag)
+            }
+            ComplianceCiphertext::Withdrawal(ciphertext) => {
+                (&ciphertext.sender_epk, &ciphertext.detection_tag)
+            }
+        };
         let (asset_id, is_flagged, salt) = match self.detection_key.try_decrypt_detection(
-            &ciphertext.sender_core_epk,
-            &ciphertext.detection_tag,
+            epk,
+            detection_tag,
             &self.target_asset_id,
         ) {
             Ok(result) => result,
@@ -46,13 +70,14 @@ impl ComplianceScreener {
         };
 
         ScreeningResult::Detected(DetectionEvent {
-            output_ref: extracted.output_ref,
+            record_ref: extracted.record_ref,
             asset_id,
             is_flagged,
             salt,
             routing_tags: extracted.routing_tags,
             ciphertext,
             raw_bytes: extracted.raw_bytes,
+            public_withdrawal: extracted.public_withdrawal,
         })
     }
 }
@@ -100,10 +125,12 @@ mod tests {
         };
         let _ = asset_id;
         ExtractedComplianceCiphertext {
-            output_ref,
+            record_ref: crate::ComplianceRecordRef::TransferOutput(output_ref),
+            kind: ComplianceCiphertextKind::Transfer,
             routing_tags: [11, 22],
             raw_bytes,
             metadata_bytes: None,
+            public_withdrawal: None,
         }
     }
 

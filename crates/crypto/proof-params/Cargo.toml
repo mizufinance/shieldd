@@ -55,6 +55,7 @@ tracing = {workspace = true}
 
 [dev-dependencies]
 rand_chacha = {workspace = true}
+shieldd-sdk-sct = { workspace = true, default-features = false, features = ["std"] }
 
 [package.metadata.docs.rs]
 features = [] # docs.rs

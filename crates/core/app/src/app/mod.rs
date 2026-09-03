@@ -81,6 +81,7 @@ use shieldd_sdk_shielded_pool::component::{
     shielded_ics20_withdrawal_check_stateless_and_extract, transfer_check_stateless_and_extract,
     NoteManager as _, ShieldedPool, StateReadExt as _, StateWriteExt as _,
 };
+use shieldd_sdk_shielded_pool::VolumeNullifier;
 use shieldd_sdk_transaction::gas::GasCost as _;
 use shieldd_sdk_transaction::{
     Action, FeeFunding, Transaction, TransactionBody, TransactionParameters,
@@ -140,8 +141,12 @@ fn extract_fee_funding_proof_item(
     fee_funding: &FeeFunding,
     context: &TransactionContext,
 ) -> Result<BatchItem> {
-    transfer_check_stateless_and_extract(&fee_funding.transfer, context)
-        .context("fee funding transfer stateless extraction failed")
+    transfer_check_stateless_and_extract(
+        &fee_funding.transfer,
+        context,
+        shieldd_sdk_shielded_pool::TransferProofContext::FeeFunding,
+    )
+    .context("fee funding transfer stateless extraction failed")
 }
 
 const MAX_PADDED_PROOF_COUNT: usize = 32_768;
@@ -395,6 +400,7 @@ struct BlockTxIndexWriteProfile {
 
 struct PrepareBlockLocalState {
     seen_nullifiers: BTreeSet<Nullifier>,
+    seen_volume_nullifiers: BTreeSet<VolumeNullifier>,
     remaining_nullifier_capacity: usize,
 }
 
@@ -402,6 +408,7 @@ impl Default for PrepareBlockLocalState {
     fn default() -> Self {
         Self {
             seen_nullifiers: BTreeSet::new(),
+            seen_volume_nullifiers: BTreeSet::new(),
             remaining_nullifier_capacity: MAX_BLOCK_NULLIFIER_COUNT,
         }
     }
@@ -1534,8 +1541,12 @@ impl App {
                 match action {
                     Action::Transfer(transfer) => {
                         let t1 = Instant::now();
-                        let item = transfer_check_stateless_and_extract(transfer, &context)
-                            .context("transfer stateless extraction failed")?;
+                        let item = transfer_check_stateless_and_extract(
+                            transfer,
+                            &context,
+                            shieldd_sdk_shielded_pool::TransferProofContext::Ordinary,
+                        )
+                        .context("transfer stateless extraction failed")?;
                         profile.action_extract_public_ms += t1.elapsed().as_secs_f64() * 1000.0;
                         let family_id = action_family_id(&Action::Transfer(transfer.clone()))
                             .expect("transfer has a proof family");
@@ -2826,7 +2837,7 @@ impl App {
         let sidecar = ProposalArtifactSidecar::from_record(envelope.sidecar.clone());
 
         Ok(self
-            .process_proposal_v2_profiled(proposal, stateless_cache, Some(&sidecar), false)
+            .process_proposal_profiled(proposal, stateless_cache, Some(&sidecar), false)
             .await)
     }
 
@@ -3028,6 +3039,45 @@ impl App {
         Ok(())
     }
 
+    fn ensure_unique_volume_nullifiers_from_artifacts(artifacts: &[Arc<TxArtifact>]) -> Result<()> {
+        let mut seen = HashSet::new();
+        for artifact in artifacts {
+            for action in artifact.tx.actions() {
+                let payload = match action {
+                    Action::Transfer(transfer) => {
+                        anyhow::ensure!(
+                            transfer.body.proof_context
+                                == shieldd_sdk_shielded_pool::TransferProofContext::Ordinary,
+                            "body transfer must use ordinary proof context"
+                        );
+                        Some(&transfer.body.volume_accumulator)
+                    }
+                    Action::ShieldedHostWithdrawal(withdrawal) => {
+                        Some(&withdrawal.body.volume_accumulator)
+                    }
+                    Action::ShieldedIcs20Withdrawal(withdrawal) => {
+                        Some(&withdrawal.body.volume_accumulator)
+                    }
+                    _ => None,
+                };
+                if let Some(payload) = payload {
+                    anyhow::ensure!(
+                        seen.insert(payload.scoped_nullifier()),
+                        "duplicate daily volume nullifier in proposal"
+                    );
+                }
+            }
+            if let Some(fee_funding) = &artifact.tx.transaction_body.fee_funding {
+                anyhow::ensure!(
+                    fee_funding.transfer.body.proof_context
+                        == shieldd_sdk_shielded_pool::TransferProofContext::FeeFunding,
+                    "fee funding transfer must use fee-funding proof context"
+                );
+            }
+        }
+        Ok(())
+    }
+
     async fn precheck_compliance_anchors_dedup_from_artifacts(
         &self,
         artifacts: &[Arc<TxArtifact>],
@@ -3163,9 +3213,11 @@ impl App {
         // Fast precheck: reject duplicate spends before heavier verification.
         let nullifier_dedup_start = Instant::now();
         let mut seen_nullifiers = HashSet::new();
+        let mut seen_volume_nullifiers = HashSet::new();
         let mut deduped = Vec::with_capacity(candidates.len());
         for candidate in candidates {
             let mut tx_nullifiers = HashSet::new();
+            let mut tx_volume_nullifiers = HashSet::new();
             let mut duplicate = false;
 
             for nullifier in candidate.tx().spent_nullifiers() {
@@ -3175,16 +3227,43 @@ impl App {
                 }
             }
 
+            for action in candidate.tx().actions() {
+                let payload = match action {
+                    Action::Transfer(transfer) => Some(&transfer.body.volume_accumulator),
+                    Action::ShieldedHostWithdrawal(withdrawal) => {
+                        Some(&withdrawal.body.volume_accumulator)
+                    }
+                    Action::ShieldedIcs20Withdrawal(withdrawal) => {
+                        Some(&withdrawal.body.volume_accumulator)
+                    }
+                    _ => None,
+                };
+                if let Some(payload) = payload {
+                    let scoped = payload.scoped_nullifier();
+                    if !tx_volume_nullifiers.insert(scoped)
+                        || seen_volume_nullifiers.contains(&scoped)
+                    {
+                        duplicate = true;
+                        break;
+                    }
+                }
+            }
+
             if duplicate {
                 continue;
             }
             if !block_nullifier_count_allowed(
-                seen_nullifiers.len().saturating_add(tx_nullifiers.len()),
+                seen_nullifiers
+                    .len()
+                    .saturating_add(seen_volume_nullifiers.len())
+                    .saturating_add(tx_nullifiers.len())
+                    .saturating_add(tx_volume_nullifiers.len()),
             ) {
                 break;
             }
 
             seen_nullifiers.extend(tx_nullifiers);
+            seen_volume_nullifiers.extend(tx_volume_nullifiers);
             deduped.push(candidate);
         }
         profile.nullifier_dedup_ms = nullifier_dedup_start.elapsed().as_secs_f64() * 1000.0;
@@ -4157,7 +4236,14 @@ impl App {
             .collect::<Vec<_>>();
         let block_nullifier_count = artifacts
             .iter()
-            .map(|artifact| artifact.spend_nullifiers.len())
+            .map(|artifact| {
+                artifact.spend_nullifiers.len()
+                    + artifact
+                        .tx
+                        .actions()
+                        .filter(|action| matches!(action, Action::Transfer(_)))
+                        .count()
+            })
             .sum::<usize>();
         if !block_nullifier_count_allowed(block_nullifier_count) {
             reject_process_proposal!("block_nullifier_count_exceeded", block_nullifier_count);
@@ -4165,6 +4251,9 @@ impl App {
         let nullifier_dedup_start = Instant::now();
         if Self::ensure_unique_spend_nullifiers_from_artifacts(&artifacts).is_err() {
             reject_process_proposal!("duplicate_spend_nullifiers");
+        }
+        if Self::ensure_unique_volume_nullifiers_from_artifacts(&artifacts).is_err() {
+            reject_process_proposal!("duplicate_volume_nullifiers");
         }
         profile.nullifier_dedup_ms = nullifier_dedup_start.elapsed().as_secs_f64() * 1000.0;
 
@@ -4315,16 +4404,7 @@ impl App {
             .0
     }
 
-    /// Production and synthetic v2 path: use the shared artifact cache.
-    pub async fn process_proposal_v2(
-        &mut self,
-        proposal: request::ProcessProposal,
-        stateless_cache: Option<&StatelessCache>,
-    ) -> response::ProcessProposal {
-        self.process_proposal_impl(proposal, stateless_cache).await
-    }
-
-    pub async fn process_proposal_v2_profiled(
+    pub async fn process_proposal_profiled(
         &mut self,
         proposal: request::ProcessProposal,
         stateless_cache: Option<&StatelessCache>,
@@ -4345,7 +4425,7 @@ impl App {
         proposal: request::ProcessProposal,
         stateless_cache: Option<&StatelessCache>,
     ) -> response::ProcessProposal {
-        self.process_proposal_v2(proposal, stateless_cache).await
+        self.process_proposal_impl(proposal, stateless_cache).await
     }
 
     pub async fn begin_block(&mut self, begin_block: &request::BeginBlock) -> Vec<abci::Event> {
@@ -4496,23 +4576,14 @@ impl App {
         Ok((events, profile))
     }
 
-    pub async fn deliver_tx_bytes_v1_profiled(
+    pub async fn deliver_tx_bytes_uncached_profiled(
         &mut self,
         tx_bytes: &[u8],
     ) -> Result<(Vec<abci::Event>, CheckTxProfile)> {
         self.deliver_tx_bytes_impl_profiled(tx_bytes, None).await
     }
 
-    /// Production and synthetic v2 path: use the shared artifact cache.
-    pub async fn deliver_tx_bytes_v2(
-        &mut self,
-        tx_bytes: &[u8],
-        stateless_cache: Option<&StatelessCache>,
-    ) -> Result<Vec<abci::Event>> {
-        self.deliver_tx_bytes_impl(tx_bytes, stateless_cache).await
-    }
-
-    pub async fn deliver_tx_bytes_v2_profiled(
+    pub async fn deliver_tx_bytes_profiled(
         &mut self,
         tx_bytes: &[u8],
         stateless_cache: Option<&StatelessCache>,
@@ -4526,7 +4597,7 @@ impl App {
         tx_bytes: &[u8],
         stateless_cache: Option<&StatelessCache>,
     ) -> Result<Vec<abci::Event>> {
-        self.deliver_tx_bytes_v2(tx_bytes, stateless_cache).await
+        self.deliver_tx_bytes_impl(tx_bytes, stateless_cache).await
     }
 
     fn fill_checktx_execute_profile(
@@ -5154,6 +5225,11 @@ impl App {
         state_tx
             .nullify_all(&prepared.effects.spend_nullifiers, tx_id.clone().into())
             .await?;
+        for scoped in &prepared.effects.volume_nullifiers {
+            state_tx
+                .record_volume_nullifier(scoped.day_start, scoped.nullifier)
+                .await?;
+        }
         profile.serial_nullifier_insert_ms =
             nullifier_insert_start.elapsed().as_secs_f64() * 1000.0;
 
@@ -5170,7 +5246,6 @@ impl App {
             profile.spend_nullifier_enqueue_ms += event_emit_ms;
             profile.spend_action_execute_ms += event_emit_ms;
         }
-
         for payload in &prepared.effects.sct_payloads {
             if let StatePayload::Note { note, .. } = payload {
                 let event_emit_start = Instant::now();
@@ -5248,15 +5323,28 @@ impl App {
         let tx = artifact.tx().clone();
         let serial_apply_start = Instant::now();
         let conflict_check_start = Instant::now();
+        let proof_bound_nullifier_count = prepared
+            .effects
+            .spend_nullifiers
+            .len()
+            .saturating_add(prepared.effects.volume_nullifiers.len());
         anyhow::ensure!(
-            prepared.effects.spend_nullifiers.len() <= block_state.remaining_nullifier_capacity,
-            "nullifier generation capacity exceeded by proposal"
+            proof_bound_nullifier_count <= block_state.remaining_nullifier_capacity,
+            "proof-bound nullifier capacity exceeded by proposal"
         );
         for nullifier in &prepared.effects.spend_nullifiers {
             anyhow::ensure!(
                 !block_state.seen_nullifiers.contains(nullifier),
                 "nullifier {} already spent earlier in this proposal",
                 nullifier
+            );
+        }
+        for scoped in &prepared.effects.volume_nullifiers {
+            anyhow::ensure!(
+                !block_state.seen_volume_nullifiers.contains(scoped),
+                "daily volume nullifier {} for day {} already spent earlier in this proposal",
+                scoped.nullifier,
+                scoped.day_start
             );
         }
         let serial_same_block_conflict_ms = conflict_check_start.elapsed().as_secs_f64() * 1000.0;
@@ -5353,6 +5441,12 @@ impl App {
         profile.pay_fee_ms = pay_fee_ms;
         profile.serial_fee_apply_ms = pay_fee_ms;
 
+        for scoped in &prepared.effects.volume_nullifiers {
+            state_tx
+                .record_volume_nullifier(scoped.day_start, scoped.nullifier)
+                .await?;
+        }
+
         for nullifier in &prepared.effects.spend_nullifiers {
             let event_emit_start = Instant::now();
             state_tx.record_proto(
@@ -5416,10 +5510,13 @@ impl App {
         }
         profile.serial_apply_wall_ms = serial_apply_start.elapsed().as_secs_f64() * 1000.0;
 
-        block_state.remaining_nullifier_capacity -= prepared.effects.spend_nullifiers.len();
+        block_state.remaining_nullifier_capacity -= proof_bound_nullifier_count;
         block_state
             .seen_nullifiers
             .extend(prepared.effects.spend_nullifiers.iter().copied());
+        block_state
+            .seen_volume_nullifiers
+            .extend(prepared.effects.volume_nullifiers.iter().copied());
 
         Ok((events, profile))
     }
@@ -5600,6 +5697,7 @@ impl App {
 
         let mut note_payloads = state_tx.pending_note_payloads();
         let mut rolled_up_payloads = state_tx.pending_rolled_up_payloads();
+        let mut volume_accumulator_payloads = state_tx.pending_volume_accumulator_payloads();
         let mut last_position = None;
         let mut sct_entries = Vec::with_capacity(entries.len());
 
@@ -5622,6 +5720,9 @@ impl App {
                 StatePayload::RolledUp { commitment, .. } => {
                     rolled_up_payloads.push_back((position, commitment));
                 }
+                StatePayload::VolumeAccumulator { source, payload } => {
+                    volume_accumulator_payloads.push_back((position, *payload, source));
+                }
             }
         }
 
@@ -5636,6 +5737,10 @@ impl App {
         state_tx.object_put(
             shieldd_sdk_shielded_pool::state_key::pending_rolled_up_payloads(),
             rolled_up_payloads,
+        );
+        state_tx.object_put(
+            shieldd_sdk_shielded_pool::state_key::pending_volume_accumulator_payloads(),
+            volume_accumulator_payloads,
         );
         #[cfg(feature = "benchmark-helpers")]
         record_inbound_stage(
@@ -6432,6 +6537,9 @@ mod tests {
     #[test]
     fn fee_funding_extraction_rejects_identity_randomized_key() {
         let (mut transfer, _, context) = build_transfer_action_and_public_without_proof(true);
+        transfer.body.proof_context = shieldd_sdk_shielded_pool::TransferProofContext::FeeFunding;
+        transfer.body.volume_accumulator =
+            shieldd_sdk_shielded_pool::VolumeAccumulatorPayload::canonical_fee_funding();
         let identity_sk = rdsa::SigningKey::<rdsa::SpendAuth>::from(Fr::from(0u64));
         transfer.body.inputs[0].rk = rdsa::VerificationKey::from(identity_sk.clone());
         let different_message = b"different fee funding authorization hash";
@@ -7270,8 +7378,8 @@ mod tests {
             assert_eq!(prepared.effects.spend_nullifiers.len(), 2);
             assert_eq!(
                 prepared.effects.sct_payloads.len(),
-                2,
-                "fixture transfer should create receiver and change notes",
+                3,
+                "fixture transfer should create receiver, change, and accumulator payloads",
             );
         }
 
@@ -7776,7 +7884,11 @@ mod tests {
         let mut app = App::new(storage.latest_snapshot());
         let mut block_state = PrepareBlockLocalState::default();
 
-        let first_nullifier_count = prepared_first.effects.spend_nullifiers.len();
+        let first_nullifier_count = prepared_first
+            .effects
+            .spend_nullifiers
+            .len()
+            .saturating_add(prepared_first.effects.volume_nullifiers.len());
         app.apply_prepared_prepare_candidate_profiled(
             artifact.clone(),
             prepared_first,
@@ -8050,7 +8162,7 @@ mod tests {
         let mut app = App::new(storage.latest_snapshot());
         app.set_block_tx_indexing_mode(BlockTxIndexingMode::NoIndex);
         let cache = StatelessCache::new();
-        app.deliver_tx_bytes_v2(tx_bytes.as_slice(), Some(&cache))
+        app.deliver_tx_bytes(tx_bytes.as_slice(), Some(&cache))
             .await?;
 
         let height = app.state.get_block_height().await?;

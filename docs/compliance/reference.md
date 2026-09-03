@@ -67,26 +67,30 @@ malicious proof from creating a note with that ambiguous owner.
 
 ## Transfer Public Statement
 
-The fixed 2x2 Transfer statement has 45 Fq fields. Its hash uses the
-`shieldd.shielded_pool.transfer.public_input_hash.v7` domain.
+The fixed 2x2 Transfer statement has 49 Fq fields. Its hash uses the
+`shieldd.shielded_pool.transfer.public_input_hash.statement` domain.
 
 ```text
  0       anchor
  1..2    receiver and change note commitments
  3       balance commitment
  4..5    fixed two-slot routing tags
- 6       routing parameter-set identifier
- 7       recent position floor
- 8..13   two (nullifier, randomized verification key, history-required bit) triples
-14..15   asset and compliance anchors
-16..19   detection ciphertext
-20..22   sender_core: EPK, c2, one ciphertext word
-23..27   sender_ext: EPK, c2, three ciphertext words
-28..30   output_core: EPK, c2, one ciphertext word
-31..35   output_ext: EPK, c2, three ciphertext words
-36       target_timestamp
-37..40   ring, policy, resource, and permission hashes
-41..44   sender-core, sender-ext, output-core, and output-ext salts
+6       routing parameter-set identifier
+7       recent position floor
+ 8       daily-volume transition nullifier
+ 9       daily-volume successor or padding commitment
+10       selected UTC day start
+11       proof context
+12..17   two (nullifier, randomized verification key, history-required bit) triples
+18..19   asset and compliance anchors
+20..23   detection ciphertext
+24..26   sender_core: EPK, c2, one ciphertext word
+27..31   sender_ext: EPK, c2, three ciphertext words
+32..34   output_core: EPK, c2, one ciphertext word
+35..39   output_ext: EPK, c2, three ciphertext words
+40       target_timestamp
+41..44   ring, policy, resource, and permission hashes
+45..48   sender-core, sender-ext, output-core, and output-ext salts
 ```
 
 The exact tail append order is:
@@ -106,7 +110,7 @@ output_ext_salt
 The metadata timestamp is not appended twice: its serialized value must equal
 the statement's existing `target_timestamp`. The authoritative builders are
 `transfer_statement_fields` in Rust and `buildTransferStatementFields` /
-`ReconstructedTransferStatementFieldsFromWitnessV20` in Go.
+`ReconstructedTransferStatementFieldsFromWitness` in Go.
 
 ## Effective Policy Selection
 
@@ -114,7 +118,7 @@ the statement's existing `target_timestamp`. The authoritative builders are
 | --- | --- | --- |
 | `ring_pk` | registered asset leaf | fixed unregulated sink ring point |
 | `dk_pub` | registered asset leaf | fixed unregulated sink DK point |
-| threshold comparator input | registered threshold | authenticated gap-predecessor threshold; ignored by the regulation gate |
+| daily volume limit | registered limit | authenticated gap-predecessor limit; ignored outside regulated membership |
 | four policy hashes | registered strings | hash of the empty string |
 
 The circuit constrains `is_regulated` to exact asset-tree membership or a valid
@@ -122,11 +126,10 @@ canonical non-membership gap. Encryption checks run in both branches.
 Registry admission rejects identity `dk_pub` and `ring_pk` values before a
 policy can be committed to the asset tree.
 
-The threshold flag is
-`is_regulated * (amount >= authenticated_leaf_threshold)`. It follows that
-regulated assets use their registered threshold exactly, while unregulated
-assets are never flagged regardless of the authenticated predecessor leaf's
-threshold or the receiver amount.
+An external regulated ordinary Transfer is unflagged only when it proves a
+real transition whose checked candidate is at most the authenticated daily
+volume limit. The fixed padding branch flags the transfer. Unregulated,
+self-transfer, and fee-funding contexts remain unflagged.
 
 For regulated assets, audit-tier shared secrets select ACK when unflagged and
 issuer DK when flagged. Detection always uses the selected DK. Each tier has an
@@ -147,11 +150,11 @@ roots. Large node
 materialization is nonverifiable storage checked against those committed
 roots.
 
-`ComplianceLeaf` v5 is
+`ComplianceLeaf` is
 
 ```text
 PoseidonHash5(
-  "shieldd.compliance.leaf.v5",
+  "shieldd.compliance.leaf",
   diversified_generator_fq,
   transmission_key_fq,
   asset_id,
@@ -195,12 +198,12 @@ ExtractedComplianceCiphertext { output_ref, routing_tags, raw_bytes, metadata_by
 | `audit_decryption_failures` | bounded decryption failures |
 | `audit_evidence_failures` | bounded evidence failures |
 
-## Evidence Version 3
+## Evidence
 
 `ComplianceEvidenceObject` contains:
 
 ```text
-version and transfer object type
+transfer object type
 OutputRef and block identity
 asset id, flag, detection salt
 TransferComplianceCiphertext
@@ -216,7 +219,7 @@ facts before advancing the row to `evidence_valid`.
 ## Audit Boundary
 
 Flagged transfers can be completed by issuer-DK decryption after evidence
-validation. Orbis v0 export and import always return errors because its public
+validation. Orbis prototype export and import always return errors because its public
 proof reveals the seed-opening DH point. Consequently, unflagged ACK-tier PRE
 audit is currently unavailable.
 
@@ -230,15 +233,17 @@ circuits under `tools/gnark/`. No second circuit architecture is supported.
 
 ## Restrictions
 
-- Flagging is per receiver amount and regulation-gated:
-  `is_regulated * (amount >= authenticated_leaf_threshold)`.
+- Flagging discloses only the current external regulated Transfer. Real
+  accumulator transitions advance only undisclosed receiver volume.
+- Equality with `daily_volume_limit` remains undisclosed; a greater candidate
+  uses the disclosed padding branch.
 - Note reshapes carry no transfer audit ciphertext, but regulated reshapes prove
   the owner leaf is `Active` under the exact current compliance root.
 - Asset policies and registrations are immutable.
 - Channel whitelist enforcement is first-hop only.
 - Cross-tier randomizer/EPK independence is mandatory.
 - Metadata belongs only to the receiver output.
-- PRE must remain disabled until a non-disclosing v1 is circuit-bound and
+- PRE must remain disabled until a non-disclosing design is circuit-bound and
   independently reviewed.
 
 ## Source Map

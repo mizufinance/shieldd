@@ -16,16 +16,17 @@ CREATE TABLE sync_height (height BIGINT NOT NULL);
 CREATE TABLE issued_addresses (
     address_index           BLOB NOT NULL,
     address                 BLOB PRIMARY KEY NOT NULL,
-    purpose_kind            TINYINT NOT NULL,
-    regulated_asset_id      BLOB,
     birth_height            BIGINT NOT NULL,
-    retired_height          BIGINT,
-    CHECK (
-        (purpose_kind = 0 AND regulated_asset_id IS NULL) OR
-        (purpose_kind = 1 AND regulated_asset_id IS NOT NULL)
-    )
+    retired_height          BIGINT
 );
 CREATE INDEX issued_addresses_by_index ON issued_addresses(address_index);
+
+-- A wallet has one immutable KYC address assignment per regulated asset. The
+-- same address may be assigned to any number of different assets.
+CREATE TABLE regulated_address_assignments (
+    asset_id                BLOB PRIMARY KEY NOT NULL,
+    address                 BLOB NOT NULL REFERENCES issued_addresses(address)
+);
 
 -- used for storing a cache of known assets
 CREATE TABLE assets (
@@ -119,6 +120,29 @@ CREATE INDEX spendable_notes_by_source_idx ON spendable_notes (
     source
 );
 
+-- One confirmed daily undisclosed-volume head per private address/asset subject.
+CREATE TABLE volume_accumulators (
+    subject                 BLOB NOT NULL,
+    day_start               BIGINT NOT NULL,
+    volume                  BLOB NOT NULL,
+    blinding                BLOB NOT NULL,
+    commitment              BLOB NOT NULL,
+    position                BIGINT NOT NULL,
+    recovery_status         TINYINT NOT NULL DEFAULT 0,
+    PRIMARY KEY (subject, day_start)
+);
+
+-- Broadcast-time locks are separate from confirmed accumulator recovery state.
+CREATE TABLE volume_accumulator_reservations (
+    subject                 BLOB NOT NULL,
+    day_start               BIGINT NOT NULL,
+    nullifier               BLOB NOT NULL,
+    tx_id                   BLOB NOT NULL,
+    expires_at              BIGINT NOT NULL,
+    PRIMARY KEY (subject, day_start),
+    UNIQUE (day_start, nullifier)
+);
+
 -- Reconstructible per-note retired-nullifier proof cache. This is deliberately
 -- separate from note and spend state and may be deleted and rebuilt.
 CREATE TABLE historical_proof_cache (
@@ -167,7 +191,7 @@ CREATE TABLE compliance_asset_leaves (
     next_index BIGINT NOT NULL,
     next_value BLOB NOT NULL,
     dk_pub BLOB NOT NULL,          -- 32 bytes compressed curve point
-    threshold BLOB NOT NULL,       -- 16 bytes little-endian u128
+    daily_volume_limit BLOB NOT NULL,       -- 16 bytes little-endian u128
     route_policy_hash BLOB NOT NULL,   -- 32 bytes Fq
     ring_pk BLOB NOT NULL,         -- 32 bytes compressed curve point
     ring_id_hash BLOB NOT NULL,    -- 32 bytes Fq

@@ -1,7 +1,9 @@
 use std::fmt;
 use std::ops::Range;
 
+/// Production full-target proof transport.
 pub const AGGREGATE_PROOF_WRAPPER_DOMAIN: &[u8] = b"shieldd.snarkpack.aggregate_proof.v1\0";
+/// Optional half-size torus proof transport.
 pub const AGGREGATE_PROOF_TORUS_V2_WRAPPER_DOMAIN: &[u8] =
     b"shieldd.snarkpack.aggregate_proof.v2\0";
 

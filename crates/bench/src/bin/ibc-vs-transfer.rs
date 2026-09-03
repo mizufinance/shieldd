@@ -245,7 +245,7 @@ async fn run_inner_transfer(args: &Args, txs: &[Vec<u8>]) -> Result<ScenarioRepo
         let mut validator = App::new(storage.latest_snapshot());
         let process_start = Instant::now();
         let (process_verdict, process_profile) = validator
-            .process_proposal_v2_profiled(process_request, None, Some(&sidecar), true)
+            .process_proposal_profiled(process_request, None, Some(&sidecar), true)
             .await;
         let process_wall_ms = elapsed_ms(process_start);
         anyhow::ensure!(

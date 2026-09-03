@@ -147,7 +147,6 @@ fn build_fixture(family_id: ProofFamilyId, count: usize, srs: &DevSrs) -> Fixtur
         aggregate_family(&statement, &pvk, &padded_items, srs).expect("aggregation succeeds");
     let torus_v2_aggregate_proof =
         aggregate_family_torus_v2(&statement, &padded_items, srs).expect("aggregation succeeds");
-
     Fixture {
         family_id,
         count,
@@ -227,9 +226,8 @@ fn snarkpack_bench(c: &mut Criterion) {
             fixture,
             |b, fixture| {
                 b.iter(|| {
-                    let _ =
-                        aggregate_family_torus_v2(&fixture.statement, &fixture.padded_items, &srs)
-                            .expect("aggregation succeeds");
+                    aggregate_family_torus_v2(&fixture.statement, &fixture.padded_items, &srs)
+                        .expect("aggregation succeeds");
                 });
             },
         );

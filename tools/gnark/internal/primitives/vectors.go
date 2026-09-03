@@ -138,17 +138,17 @@ type MerklePathFixture struct {
 }
 
 type IndexedLeafFixture struct {
-	Value           []byte      `json:"value"`
-	NextIndex       uint64      `json:"next_index"`
-	NextValue       []byte      `json:"next_value"`
-	DKPub           []byte      `json:"dk_pub"`
-	Threshold       json.Number `json:"threshold"`
-	RoutePolicyHash []byte      `json:"route_policy_hash"`
-	RingPK          []byte      `json:"ring_pk"`
-	RingIDHash      []byte      `json:"ring_id_hash"`
-	PolicyIDHash    []byte      `json:"policy_id_hash"`
-	PermissionHash  []byte      `json:"permission_hash"`
-	ResourceHash    []byte      `json:"resource_hash"`
+	Value            []byte      `json:"value"`
+	NextIndex        uint64      `json:"next_index"`
+	NextValue        []byte      `json:"next_value"`
+	DKPub            []byte      `json:"dk_pub"`
+	DailyVolumeLimit json.Number `json:"daily_volume_limit"`
+	RoutePolicyHash  []byte      `json:"route_policy_hash"`
+	RingPK           []byte      `json:"ring_pk"`
+	RingIDHash       []byte      `json:"ring_id_hash"`
+	PolicyIDHash     []byte      `json:"policy_id_hash"`
+	PermissionHash   []byte      `json:"permission_hash"`
+	ResourceHash     []byte      `json:"resource_hash"`
 }
 
 type AddressFixture struct {
@@ -202,7 +202,6 @@ type SpendPrivateFixture struct {
 }
 
 type SpendFixture struct {
-	SchemaVersion             string              `json:"schema_version"`
 	Public                    SpendPublicFixture  `json:"public"`
 	Private                   SpendPrivateFixture `json:"private"`
 	StatementFields           []string            `json:"statement_fields"`

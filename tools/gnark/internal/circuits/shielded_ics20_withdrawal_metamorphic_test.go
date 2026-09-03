@@ -29,11 +29,11 @@ func TestRegulatedWithdrawalRejectsFrozenSender(t *testing.T) {
 func TestShieldedIcs20WithdrawalBindsEveryEffectHashLimb(t *testing.T) {
 	for limb, name := range []string{"0", "1", "2", "3"} {
 		t.Run(name, func(t *testing.T) {
-			fixture := testfixtures.LoadShieldedIcs20WithdrawalWitnessV12(
+			fixture := testfixtures.LoadShieldedIcs20WithdrawalWitness(
 				"shielded_ics20_withdrawal",
 			)
 			assignment, family, err :=
-				abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV12(fixture)
+				abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitness(fixture)
 			if err != nil {
 				t.Fatalf("decode withdrawal fixture: %v", err)
 			}
@@ -70,7 +70,7 @@ func TestShieldedIcs20WithdrawalRejectsEveryOwnedPublicFieldMutation(
 		name   string
 		mutate func(
 			*testing.T,
-			*abi.ShieldedIcs20WithdrawalWitnessV12Binary,
+			*abi.ShieldedIcs20WithdrawalWitnessBinary,
 			*circuits.ShieldedIcs20WithdrawalCircuit,
 		)
 	}{
@@ -78,7 +78,7 @@ func TestShieldedIcs20WithdrawalRejectsEveryOwnedPublicFieldMutation(
 			name: "required spend nullifier",
 			mutate: func(
 				t *testing.T,
-				w *abi.ShieldedIcs20WithdrawalWitnessV12Binary,
+				w *abi.ShieldedIcs20WithdrawalWitnessBinary,
 				c *circuits.ShieldedIcs20WithdrawalCircuit,
 			) {
 				w.RequiredSpend.Nullifier = addFieldElementBytes(
@@ -95,7 +95,7 @@ func TestShieldedIcs20WithdrawalRejectsEveryOwnedPublicFieldMutation(
 			name: "optional real spend nullifier",
 			mutate: func(
 				t *testing.T,
-				w *abi.ShieldedIcs20WithdrawalWitnessV12Binary,
+				w *abi.ShieldedIcs20WithdrawalWitnessBinary,
 				c *circuits.ShieldedIcs20WithdrawalCircuit,
 			) {
 				if w.OptionalSpend.IsDummy {
@@ -115,7 +115,7 @@ func TestShieldedIcs20WithdrawalRejectsEveryOwnedPublicFieldMutation(
 			name: "required randomized verification key",
 			mutate: func(
 				t *testing.T,
-				w *abi.ShieldedIcs20WithdrawalWitnessV12Binary,
+				w *abi.ShieldedIcs20WithdrawalWitnessBinary,
 				c *circuits.ShieldedIcs20WithdrawalCircuit,
 			) {
 				if !pointsHaveDistinctCompression(
@@ -133,7 +133,7 @@ func TestShieldedIcs20WithdrawalRejectsEveryOwnedPublicFieldMutation(
 			name: "optional real randomized verification key",
 			mutate: func(
 				t *testing.T,
-				w *abi.ShieldedIcs20WithdrawalWitnessV12Binary,
+				w *abi.ShieldedIcs20WithdrawalWitnessBinary,
 				c *circuits.ShieldedIcs20WithdrawalCircuit,
 			) {
 				if w.OptionalSpend.IsDummy {
@@ -154,7 +154,7 @@ func TestShieldedIcs20WithdrawalRejectsEveryOwnedPublicFieldMutation(
 			name: "outbound asset id",
 			mutate: func(
 				t *testing.T,
-				w *abi.ShieldedIcs20WithdrawalWitnessV12Binary,
+				w *abi.ShieldedIcs20WithdrawalWitnessBinary,
 				c *circuits.ShieldedIcs20WithdrawalCircuit,
 			) {
 				w.OutboundAssetID = addFieldElementBytes(
@@ -171,7 +171,7 @@ func TestShieldedIcs20WithdrawalRejectsEveryOwnedPublicFieldMutation(
 			name: "outbound amount exact conservation",
 			mutate: func(
 				t *testing.T,
-				w *abi.ShieldedIcs20WithdrawalWitnessV12Binary,
+				w *abi.ShieldedIcs20WithdrawalWitnessBinary,
 				c *circuits.ShieldedIcs20WithdrawalCircuit,
 			) {
 				amount := primitives.LittleEndianBytesToBigInt(
@@ -192,7 +192,7 @@ func TestShieldedIcs20WithdrawalRejectsEveryOwnedPublicFieldMutation(
 			name: "change note commitment",
 			mutate: func(
 				t *testing.T,
-				w *abi.ShieldedIcs20WithdrawalWitnessV12Binary,
+				w *abi.ShieldedIcs20WithdrawalWitnessBinary,
 				c *circuits.ShieldedIcs20WithdrawalCircuit,
 			) {
 				w.ChangeOutput.NoteCommitment = addFieldElementBytes(
@@ -283,15 +283,15 @@ func TestShieldedIcs20WithdrawalOptionalDummyBindsNullifierSeed(t *testing.T) {
 func TestShieldedIcs20WithdrawalSyntheticDummyNullifierBindsFixedSlot(
 	t *testing.T,
 ) {
-	fixture := testfixtures.LoadShieldedIcs20WithdrawalWitnessV12(
+	fixture := testfixtures.LoadShieldedIcs20WithdrawalWitness(
 		"shielded_ics20_withdrawal_unregulated",
 	)
-	witness, family, err := abi.DecodeShieldedIcs20WithdrawalWitnessV12(fixture)
+	witness, family, err := abi.DecodeShieldedIcs20WithdrawalWitness(fixture)
 	if err != nil {
 		t.Fatalf("decode dummy withdrawal fixture: %v", err)
 	}
 	assignment, _, err :=
-		abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV12(fixture)
+		abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitness(fixture)
 	if err != nil {
 		t.Fatalf("build dummy withdrawal assignment: %v", err)
 	}

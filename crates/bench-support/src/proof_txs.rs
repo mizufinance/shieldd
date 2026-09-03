@@ -35,8 +35,7 @@ use shieldd_sdk_transaction::{
 use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
 
-const POOL_SCHEMA_VERSION: u32 = 4;
-const POOL_TX_SHAPE: &str = "regulated-preconsensus-transfer-v4";
+const POOL_TX_SHAPE: &str = "regulated-preconsensus-transfer";
 const POOL_PROOF_FAMILY: &str = "transfer";
 const POOL_ACTION_SHAPE: &str = "one_spend_two_outputs_blank_memo";
 const POOL_REGULATED: bool = true;
@@ -50,7 +49,6 @@ pub struct ProofTxPool {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ProofTxPoolMetadata {
-    pub schema_version: u32,
     pub created_at: u64,
     pub chain_id: String,
     pub tx_shape: String,
@@ -329,7 +327,6 @@ pub fn save_proof_tx_pool(out_dir: &Path, pool: &ProofTxPool) -> Result<ProofTxP
     let git_commit = git_commit();
     let git_tree_state = git_tree_state();
     let metadata = ProofTxPoolMetadata {
-        schema_version: POOL_SCHEMA_VERSION,
         created_at: unix_ts(),
         chain_id: TestNode::<()>::CHAIN_ID.to_string(),
         tx_shape: POOL_TX_SHAPE.to_string(),
@@ -362,12 +359,6 @@ pub fn save_proof_tx_pool(out_dir: &Path, pool: &ProofTxPool) -> Result<ProofTxP
 
 pub fn load_proof_tx_pool(pool_dir: &Path) -> Result<(ProofTxPool, ProofTxPoolMetadata)> {
     let metadata = read_metadata(pool_dir)?;
-    anyhow::ensure!(
-        metadata.schema_version == POOL_SCHEMA_VERSION,
-        "unsupported proof pool schema_version={} expected={}",
-        metadata.schema_version,
-        POOL_SCHEMA_VERSION
-    );
     anyhow::ensure!(
         metadata.compatibility_fingerprint == compatibility_fingerprint(metadata.tx_count)?,
         "proof pool compatibility fingerprint mismatch"
@@ -480,7 +471,6 @@ fn validate_pool(txs: &[Arc<Vec<u8>>], expected_hashes: &[String]) -> Result<()>
 
 fn compatibility_fingerprint(tx_count: usize) -> Result<String> {
     let mut hasher = sha2::Sha256::new();
-    hasher.update(POOL_SCHEMA_VERSION.to_le_bytes());
     hasher.update(TestNode::<()>::CHAIN_ID.as_bytes());
     hasher.update(POOL_TX_SHAPE.as_bytes());
     hasher.update(POOL_PROOF_FAMILY.as_bytes());

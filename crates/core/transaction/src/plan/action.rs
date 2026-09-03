@@ -75,6 +75,16 @@ impl ActionPlan {
                             .context(format!("could not get proof for {note_commitment:?}"))
                     })
                     .collect::<Result<Vec<_>>>()?;
+                let mut auth_paths = auth_paths;
+                if let Some(commitment) = transfer_plan.accumulator_prior_commitment() {
+                    auth_paths.push(
+                        witness_data
+                            .state_commitment_proofs
+                            .get(&commitment)
+                            .cloned()
+                            .context(format!("could not get proof for {commitment:?}"))?,
+                    );
+                }
 
                 Action::Transfer(
                     transfer_plan
@@ -122,7 +132,7 @@ impl ActionPlan {
             IbcAction(plan) => Action::IbcRelay(plan.clone()),
             ShieldedIcs20Withdrawal(plan) => {
                 let dummy_payload_key: PayloadKey = [0u8; 32].into();
-                let auth_paths = plan
+                let mut auth_paths = plan
                     .spends
                     .iter()
                     .map(|spend| {
@@ -134,6 +144,15 @@ impl ActionPlan {
                             .context(format!("could not get proof for {note_commitment:?}"))
                     })
                     .collect::<Result<Vec<_>>>()?;
+                if let Some(commitment) = plan.accumulator_prior_commitment() {
+                    auth_paths.push(
+                        witness_data
+                            .state_commitment_proofs
+                            .get(&commitment)
+                            .cloned()
+                            .context(format!("could not get proof for {commitment:?}"))?,
+                    );
+                }
                 Action::ShieldedIcs20Withdrawal(
                     plan.build_unauth_shielded_ics20_withdrawal(
                         fvk,
@@ -150,7 +169,7 @@ impl ActionPlan {
             }
             ShieldedHostWithdrawal(plan) => {
                 let dummy_payload_key: PayloadKey = [0u8; 32].into();
-                let auth_paths = plan
+                let mut auth_paths = plan
                     .spends
                     .iter()
                     .map(|spend| {
@@ -162,6 +181,15 @@ impl ActionPlan {
                             .context(format!("could not get proof for {note_commitment:?}"))
                     })
                     .collect::<Result<Vec<_>>>()?;
+                if let Some(commitment) = plan.accumulator_prior_commitment() {
+                    auth_paths.push(
+                        witness_data
+                            .state_commitment_proofs
+                            .get(&commitment)
+                            .cloned()
+                            .context(format!("could not get proof for {commitment:?}"))?,
+                    );
+                }
                 Action::ShieldedHostWithdrawal(
                     plan.build_unauth_shielded_host_withdrawal(
                         fvk,

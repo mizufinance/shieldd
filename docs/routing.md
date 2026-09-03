@@ -7,7 +7,7 @@ and does not use fuzzy message detection.
 For every address, the stable routing word is
 
 ```text
-Trunc32(Poseidon("shieldd.discovery.route.v2", transmission_key_s))
+Trunc32(Poseidon("shieldd.discovery.route", transmission_key_s))
 ```
 
 The hash excludes the asset, regulation class, precision, height, time, epoch,

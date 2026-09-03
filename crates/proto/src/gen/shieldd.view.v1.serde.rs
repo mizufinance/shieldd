@@ -1196,7 +1196,7 @@ impl<'de> serde::Deserialize<'de> for authorize_and_build_response::BuildProgres
                             if progress__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("progress"));
                             }
-                            progress__ = 
+                            progress__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1991,7 +1991,7 @@ impl<'de> serde::Deserialize<'de> for broadcast_transaction_response::Confirmed 
                             if detection_height__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("detectionHeight"));
                             }
-                            detection_height__ = 
+                            detection_height__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2177,7 +2177,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceAnchorsResponse {
                             if user_tree_root__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("userTreeRoot"));
                             }
-                            user_tree_root__ = 
+                            user_tree_root__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -2185,7 +2185,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceAnchorsResponse {
                             if asset_tree_root__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("assetTreeRoot"));
                             }
-                            asset_tree_root__ = 
+                            asset_tree_root__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -2319,7 +2319,7 @@ impl serde::Serialize for ComplianceAssetStatusResponse {
         if !self.dk_pub.is_empty() {
             len += 1;
         }
-        if !self.threshold.is_empty() {
+        if !self.daily_volume_limit.is_empty() {
             len += 1;
         }
         if self.asset_policy.is_some() {
@@ -2340,10 +2340,10 @@ impl serde::Serialize for ComplianceAssetStatusResponse {
             #[allow(clippy::needless_borrows_for_generic_args)]
             struct_ser.serialize_field("dkPub", pbjson::private::base64::encode(&self.dk_pub).as_str())?;
         }
-        if !self.threshold.is_empty() {
+        if !self.daily_volume_limit.is_empty() {
             #[allow(clippy::needless_borrow)]
             #[allow(clippy::needless_borrows_for_generic_args)]
-            struct_ser.serialize_field("threshold", pbjson::private::base64::encode(&self.threshold).as_str())?;
+            struct_ser.serialize_field("dailyVolumeLimit", pbjson::private::base64::encode(&self.daily_volume_limit).as_str())?;
         }
         if let Some(v) = self.asset_policy.as_ref() {
             struct_ser.serialize_field("assetPolicy", v)?;
@@ -2366,7 +2366,8 @@ impl<'de> serde::Deserialize<'de> for ComplianceAssetStatusResponse {
             "isRegulated",
             "dk_pub",
             "dkPub",
-            "threshold",
+            "daily_volume_limit",
+            "dailyVolumeLimit",
             "asset_policy",
             "assetPolicy",
         ];
@@ -2377,7 +2378,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceAssetStatusResponse {
             IsRegistered,
             IsRegulated,
             DkPub,
-            Threshold,
+            DailyVolumeLimit,
             AssetPolicy,
             __SkipField__,
         }
@@ -2405,7 +2406,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceAssetStatusResponse {
                             "isRegistered" | "is_registered" => Ok(GeneratedField::IsRegistered),
                             "isRegulated" | "is_regulated" => Ok(GeneratedField::IsRegulated),
                             "dkPub" | "dk_pub" => Ok(GeneratedField::DkPub),
-                            "threshold" => Ok(GeneratedField::Threshold),
+                            "dailyVolumeLimit" | "daily_volume_limit" => Ok(GeneratedField::DailyVolumeLimit),
                             "assetPolicy" | "asset_policy" => Ok(GeneratedField::AssetPolicy),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
@@ -2430,7 +2431,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceAssetStatusResponse {
                 let mut is_registered__ = None;
                 let mut is_regulated__ = None;
                 let mut dk_pub__ = None;
-                let mut threshold__ = None;
+                let mut daily_volume_limit__ = None;
                 let mut asset_policy__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
@@ -2456,15 +2457,15 @@ impl<'de> serde::Deserialize<'de> for ComplianceAssetStatusResponse {
                             if dk_pub__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("dkPub"));
                             }
-                            dk_pub__ = 
+                            dk_pub__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
-                        GeneratedField::Threshold => {
-                            if threshold__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("threshold"));
+                        GeneratedField::DailyVolumeLimit => {
+                            if daily_volume_limit__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("dailyVolumeLimit"));
                             }
-                            threshold__ = 
+                            daily_volume_limit__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -2484,7 +2485,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceAssetStatusResponse {
                     is_registered: is_registered__.unwrap_or_default(),
                     is_regulated: is_regulated__.unwrap_or_default(),
                     dk_pub: dk_pub__.unwrap_or_default(),
-                    threshold: threshold__.unwrap_or_default(),
+                    daily_volume_limit: daily_volume_limit__.unwrap_or_default(),
                     asset_policy: asset_policy__,
                 })
             }
@@ -2693,7 +2694,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceBatchMerkleProofsResponse {
                             if compliance_anchor__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("complianceAnchor"));
                             }
-                            compliance_anchor__ = 
+                            compliance_anchor__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -2701,7 +2702,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceBatchMerkleProofsResponse {
                             if asset_anchor__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("assetAnchor"));
                             }
-                            asset_anchor__ = 
+                            asset_anchor__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -3175,7 +3176,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceMerkleProofsResponse {
                             if compliance_position__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("compliancePosition"));
                             }
-                            compliance_position__ = 
+                            compliance_position__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -3189,7 +3190,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceMerkleProofsResponse {
                             if asset_position__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("assetPosition"));
                             }
-                            asset_position__ = 
+                            asset_position__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -3197,7 +3198,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceMerkleProofsResponse {
                             if compliance_anchor__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("complianceAnchor"));
                             }
-                            compliance_anchor__ = 
+                            compliance_anchor__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -3205,7 +3206,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceMerkleProofsResponse {
                             if asset_anchor__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("assetAnchor"));
                             }
-                            asset_anchor__ = 
+                            asset_anchor__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -5248,7 +5249,7 @@ impl<'de> serde::Deserialize<'de> for SpendableNoteRecord {
                             if height_created__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("heightCreated"));
                             }
-                            height_created__ = 
+                            height_created__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -5256,7 +5257,7 @@ impl<'de> serde::Deserialize<'de> for SpendableNoteRecord {
                             if height_spent__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("heightSpent"));
                             }
-                            height_spent__ = 
+                            height_spent__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -5264,7 +5265,7 @@ impl<'de> serde::Deserialize<'de> for SpendableNoteRecord {
                             if position__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("position"));
                             }
-                            position__ = 
+                            position__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -5390,6 +5391,9 @@ impl serde::Serialize for StatusResponse {
         if self.catching_up {
             len += 1;
         }
+        if self.latest_block_timestamp != 0 {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("shieldd.view.v1.StatusResponse", len)?;
         if self.full_sync_height != 0 {
             #[allow(clippy::needless_borrow)]
@@ -5403,6 +5407,11 @@ impl serde::Serialize for StatusResponse {
         }
         if self.catching_up {
             struct_ser.serialize_field("catchingUp", &self.catching_up)?;
+        }
+        if self.latest_block_timestamp != 0 {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("latestBlockTimestamp", ToString::to_string(&self.latest_block_timestamp).as_str())?;
         }
         struct_ser.end()
     }
@@ -5420,6 +5429,8 @@ impl<'de> serde::Deserialize<'de> for StatusResponse {
             "partialSyncHeight",
             "catching_up",
             "catchingUp",
+            "latest_block_timestamp",
+            "latestBlockTimestamp",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -5427,6 +5438,7 @@ impl<'de> serde::Deserialize<'de> for StatusResponse {
             FullSyncHeight,
             PartialSyncHeight,
             CatchingUp,
+            LatestBlockTimestamp,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -5452,6 +5464,7 @@ impl<'de> serde::Deserialize<'de> for StatusResponse {
                             "fullSyncHeight" | "full_sync_height" => Ok(GeneratedField::FullSyncHeight),
                             "partialSyncHeight" | "partial_sync_height" => Ok(GeneratedField::PartialSyncHeight),
                             "catchingUp" | "catching_up" => Ok(GeneratedField::CatchingUp),
+                            "latestBlockTimestamp" | "latest_block_timestamp" => Ok(GeneratedField::LatestBlockTimestamp),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -5474,13 +5487,14 @@ impl<'de> serde::Deserialize<'de> for StatusResponse {
                 let mut full_sync_height__ = None;
                 let mut partial_sync_height__ = None;
                 let mut catching_up__ = None;
+                let mut latest_block_timestamp__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::FullSyncHeight => {
                             if full_sync_height__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("fullSyncHeight"));
                             }
-                            full_sync_height__ = 
+                            full_sync_height__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -5488,7 +5502,7 @@ impl<'de> serde::Deserialize<'de> for StatusResponse {
                             if partial_sync_height__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("partialSyncHeight"));
                             }
-                            partial_sync_height__ = 
+                            partial_sync_height__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -5497,6 +5511,14 @@ impl<'de> serde::Deserialize<'de> for StatusResponse {
                                 return Err(serde::de::Error::duplicate_field("catchingUp"));
                             }
                             catching_up__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::LatestBlockTimestamp => {
+                            if latest_block_timestamp__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("latestBlockTimestamp"));
+                            }
+                            latest_block_timestamp__ =
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
                         }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
@@ -5507,6 +5529,7 @@ impl<'de> serde::Deserialize<'de> for StatusResponse {
                     full_sync_height: full_sync_height__.unwrap_or_default(),
                     partial_sync_height: partial_sync_height__.unwrap_or_default(),
                     catching_up: catching_up__.unwrap_or_default(),
+                    latest_block_timestamp: latest_block_timestamp__.unwrap_or_default(),
                 })
             }
         }
@@ -5694,7 +5717,7 @@ impl<'de> serde::Deserialize<'de> for StatusStreamResponse {
                             if latest_known_block_height__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("latestKnownBlockHeight"));
                             }
-                            latest_known_block_height__ = 
+                            latest_known_block_height__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -5702,7 +5725,7 @@ impl<'de> serde::Deserialize<'de> for StatusStreamResponse {
                             if full_sync_height__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("fullSyncHeight"));
                             }
-                            full_sync_height__ = 
+                            full_sync_height__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -5710,7 +5733,7 @@ impl<'de> serde::Deserialize<'de> for StatusStreamResponse {
                             if partial_sync_height__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("partialSyncHeight"));
                             }
-                            partial_sync_height__ = 
+                            partial_sync_height__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -5861,7 +5884,7 @@ impl<'de> serde::Deserialize<'de> for TransactionInfo {
                             if height__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("height"));
                             }
-                            height__ = 
+                            height__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -6200,7 +6223,7 @@ impl<'de> serde::Deserialize<'de> for TransactionInfoRequest {
                             if start_height__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("startHeight"));
                             }
-                            start_height__ = 
+                            start_height__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -6208,7 +6231,7 @@ impl<'de> serde::Deserialize<'de> for TransactionInfoRequest {
                             if end_height__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("endHeight"));
                             }
-                            end_height__ = 
+                            end_height__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -6357,6 +6380,9 @@ impl serde::Serialize for TransactionPlannerRequest {
         if self.epoch.is_some() {
             len += 1;
         }
+        if self.disclose_to_issuer {
+            len += 1;
+        }
         if self.fee_mode.is_some() {
             len += 1;
         }
@@ -6392,6 +6418,9 @@ impl serde::Serialize for TransactionPlannerRequest {
         if let Some(v) = self.epoch.as_ref() {
             struct_ser.serialize_field("epoch", v)?;
         }
+        if self.disclose_to_issuer {
+            struct_ser.serialize_field("discloseToIssuer", &self.disclose_to_issuer)?;
+        }
         if let Some(v) = self.fee_mode.as_ref() {
             match v {
                 transaction_planner_request::FeeMode::AutoFee(v) => {
@@ -6426,6 +6455,8 @@ impl<'de> serde::Deserialize<'de> for TransactionPlannerRequest {
             "epoch_index",
             "epochIndex",
             "epoch",
+            "disclose_to_issuer",
+            "discloseToIssuer",
             "auto_fee",
             "autoFee",
             "manual_fee",
@@ -6443,6 +6474,7 @@ impl<'de> serde::Deserialize<'de> for TransactionPlannerRequest {
             HostWithdrawals,
             EpochIndex,
             Epoch,
+            DiscloseToIssuer,
             AutoFee,
             ManualFee,
             __SkipField__,
@@ -6476,6 +6508,7 @@ impl<'de> serde::Deserialize<'de> for TransactionPlannerRequest {
                             "hostWithdrawals" | "host_withdrawals" => Ok(GeneratedField::HostWithdrawals),
                             "epochIndex" | "epoch_index" => Ok(GeneratedField::EpochIndex),
                             "epoch" => Ok(GeneratedField::Epoch),
+                            "discloseToIssuer" | "disclose_to_issuer" => Ok(GeneratedField::DiscloseToIssuer),
                             "autoFee" | "auto_fee" => Ok(GeneratedField::AutoFee),
                             "manualFee" | "manual_fee" => Ok(GeneratedField::ManualFee),
                             _ => Ok(GeneratedField::__SkipField__),
@@ -6506,6 +6539,7 @@ impl<'de> serde::Deserialize<'de> for TransactionPlannerRequest {
                 let mut host_withdrawals__ = None;
                 let mut epoch_index__ = None;
                 let mut epoch__ = None;
+                let mut disclose_to_issuer__ = None;
                 let mut fee_mode__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
@@ -6513,7 +6547,7 @@ impl<'de> serde::Deserialize<'de> for TransactionPlannerRequest {
                             if expiry_height__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("expiryHeight"));
                             }
-                            expiry_height__ = 
+                            expiry_height__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -6557,7 +6591,7 @@ impl<'de> serde::Deserialize<'de> for TransactionPlannerRequest {
                             if epoch_index__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("epochIndex"));
                             }
-                            epoch_index__ = 
+                            epoch_index__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -6566,6 +6600,12 @@ impl<'de> serde::Deserialize<'de> for TransactionPlannerRequest {
                                 return Err(serde::de::Error::duplicate_field("epoch"));
                             }
                             epoch__ = map_.next_value()?;
+                        }
+                        GeneratedField::DiscloseToIssuer => {
+                            if disclose_to_issuer__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("discloseToIssuer"));
+                            }
+                            disclose_to_issuer__ = Some(map_.next_value()?);
                         }
                         GeneratedField::AutoFee => {
                             if fee_mode__.is_some() {
@@ -6596,6 +6636,7 @@ impl<'de> serde::Deserialize<'de> for TransactionPlannerRequest {
                     host_withdrawals: host_withdrawals__.unwrap_or_default(),
                     epoch_index: epoch_index__.unwrap_or_default(),
                     epoch: epoch__,
+                    disclose_to_issuer: disclose_to_issuer__.unwrap_or_default(),
                     fee_mode: fee_mode__,
                 })
             }
@@ -7470,7 +7511,7 @@ impl<'de> serde::Deserialize<'de> for witness_and_build_response::BuildProgress 
                             if progress__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("progress"));
                             }
-                            progress__ = 
+                            progress__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }

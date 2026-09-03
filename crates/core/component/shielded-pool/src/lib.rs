@@ -24,10 +24,18 @@ mod note_payload;
 mod note_reshape_padding;
 pub mod rseed;
 mod shielded_note_plan;
+mod volume_accumulator;
+mod withdrawal_compliance;
 
 pub use note::{Note, NoteCiphertext, NoteView};
 pub use note_payload::NotePayload;
 pub use rseed::Rseed;
+pub use volume_accumulator::{
+    accumulated_volume, select_accumulator_day, TransferProofContext, VolumeAccumulatorPayload,
+    VolumeAccumulatorPlan, VolumeAccumulatorPrivate, VolumeAccumulatorPublic,
+    VolumeAccumulatorState, VolumeNullifier, VOLUME_ACCUMULATOR_CIPHERTEXT_BYTES,
+    VOLUME_ACCUMULATOR_RETENTION_GRACE_SECS, VOLUME_ACCUMULATOR_RETENTION_SECS,
+};
 
 pub use shielded_note_plan::{ShieldedInputPlan, ShieldedOutputPlan};
 
@@ -62,7 +70,8 @@ pub use shielded_ics20_withdrawal::{
     ShieldedIcs20WithdrawalInputPublic, ShieldedIcs20WithdrawalOptionalInputPrivate,
     ShieldedIcs20WithdrawalPlan, ShieldedIcs20WithdrawalProof, ShieldedIcs20WithdrawalProofPrivate,
     ShieldedIcs20WithdrawalProofPublic, ShieldedIcs20WithdrawalRequiredInputPrivate,
-    ShieldedIcs20WithdrawalView, SHIELDED_ICS20_WITHDRAWAL_FAMILY_SPECS,
+    ShieldedIcs20WithdrawalView, WithdrawalComplianceCiphertextPublic, WithdrawalCompliancePrivate,
+    WithdrawalCompliancePublic, SHIELDED_ICS20_WITHDRAWAL_FAMILY_SPECS,
 };
 pub use transfer::{
     transfer_auth_sig_count, transfer_input_count, transfer_output_count, Transfer, TransferBody,

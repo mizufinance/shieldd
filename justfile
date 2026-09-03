@@ -23,6 +23,7 @@ build:
 
 # Runs 'cargo check' on all rust files in the project.
 check:
+    python3 scripts/check_internal_versioning.py
     just snarkpack-invariants
     # check, failing on warnings
     RUSTFLAGS="-D warnings" cargo check --release --all-targets --all-features --target-dir=target/check

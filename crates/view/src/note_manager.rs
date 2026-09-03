@@ -194,6 +194,7 @@ pub struct NoteManager<R: RngCore + CryptoRng> {
     transaction_parameters: TransactionParameters,
     memo_text: Option<String>,
     memo_return_address: Option<Address>,
+    target_timestamp: Option<u64>,
 }
 
 impl<R: RngCore + CryptoRng> NoteManager<R> {
@@ -205,6 +206,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             transaction_parameters: TransactionParameters::default(),
             memo_text: None,
             memo_return_address: None,
+            target_timestamp: None,
         }
     }
 
@@ -230,6 +232,11 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
 
     pub fn memo_return_address(&mut self, address: Address) -> &mut Self {
         self.memo_return_address = Some(address);
+        self
+    }
+
+    pub fn target_timestamp(&mut self, target_timestamp: u64) -> &mut Self {
+        self.target_timestamp = Some(target_timestamp);
         self
     }
 
@@ -1191,9 +1198,9 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
         selected: &[SpendableNoteRecord],
         fee: Fee,
     ) -> Result<FeeFundingPlan> {
-        Ok(FeeFundingPlan {
-            transfer: self.build_self_funded_transfer_plan(selected, *BASE_ASSET_ID, fee)?,
-        })
+        let mut transfer = self.build_self_funded_transfer_plan(selected, *BASE_ASSET_ID, fee)?;
+        transfer.set_fee_funding_context();
+        Ok(FeeFundingPlan { transfer })
     }
 
     async fn select_base_fee_funding<V: ViewClient + Send + ?Sized>(
@@ -1462,7 +1469,8 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
         plan.populate_routing_parameters(discovery_params);
         plan.sort_actions();
         let provider = ViewClientComplianceProvider::new(view);
-        enrich_plan_with_compliance(&mut plan, &provider, &mut self.rng, None).await?;
+        enrich_plan_with_compliance(&mut plan, &provider, &mut self.rng, self.target_timestamp)
+            .await?;
 
         Ok(plan)
     }
@@ -1727,7 +1735,7 @@ mod tests {
             next_index: 0,
             next_value: vec![0u8; 32],
             dk_pub: vec![0u8; 32],
-            threshold: u128::MAX.to_le_bytes().to_vec(),
+            daily_volume_limit: u128::MAX.to_le_bytes().to_vec(),
             route_policy_hash: vec![0u8; 32],
             ring_pk: vec![0u8; 32],
             ring_id_hash: vec![0u8; 32],
@@ -1992,7 +2000,7 @@ mod tests {
                     is_registered: false,
                     is_regulated: false,
                     dk_pub: vec![0u8; 32],
-                    threshold: u128::MAX.to_le_bytes().to_vec(),
+                    daily_volume_limit: u128::MAX.to_le_bytes().to_vec(),
                     asset_policy: None,
                 })
             }

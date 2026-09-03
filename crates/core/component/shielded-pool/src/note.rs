@@ -85,7 +85,7 @@ pub struct NoteCiphertext(pub [u8; NOTE_CIPHERTEXT_BYTES]);
 
 /// The domain separator used to generate note commitments.
 pub(crate) static NOTECOMMIT_DOMAIN_SEP: Lazy<Fq> = Lazy::new(|| {
-    Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(b"shieldd.notecommit.v2").as_bytes())
+    Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(b"shieldd.notecommit").as_bytes())
 });
 
 #[derive(thiserror::Error, Debug)]

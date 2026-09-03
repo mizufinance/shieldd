@@ -8,10 +8,10 @@ import (
 	"github.com/mizufinance/shieldd/tools/gnark/internal/primitives"
 )
 
-func NewNoteReshapeCircuitAssignmentFromWitnessV6(payload []byte) (*circuits.NoteReshapeCircuit, generated.NoteReshapeFamilySpec, error) {
-	witness, family, err := DecodeNoteReshapeWitnessV6(payload)
+func NewNoteReshapeCircuitAssignmentFromWitness(payload []byte) (*circuits.NoteReshapeCircuit, generated.NoteReshapeFamilySpec, error) {
+	witness, family, err := DecodeNoteReshapeWitness(payload)
 	if err != nil {
-		return nil, generated.NoteReshapeFamilySpec{}, fmt.Errorf("decode NoteReshapeWitnessV6: %w", err)
+		return nil, generated.NoteReshapeFamilySpec{}, fmt.Errorf("decode NoteReshapeWitness: %w", err)
 	}
 	if len(witness.Spends) != family.NIn || len(witness.Outputs) != family.NOut {
 		return nil, generated.NoteReshapeFamilySpec{}, fmt.Errorf("note reshape witness counts mismatch: spends=%d outputs=%d expected=%dx%d", len(witness.Spends), len(witness.Outputs), family.NIn, family.NOut)
@@ -101,7 +101,7 @@ func newNoteReshapeAuthSharedFields(nk [32]byte, akAffine PointAffineBinary) (ci
 	}, nil
 }
 
-func newNoteReshapeSpendCircuitFields(witness *NoteReshapeSpendWitnessV6Binary) (circuits.NoteReshapeSpendCircuitFields, error) {
+func newNoteReshapeSpendCircuitFields(witness *NoteReshapeSpendWitnessBinary) (circuits.NoteReshapeSpendCircuitFields, error) {
 	statePath, err := statePathFromBinary(witness.StateCommitmentAuthPath)
 	if err != nil {
 		return circuits.NoteReshapeSpendCircuitFields{}, fmt.Errorf("decode note reshape spend state commitment auth path: %w", err)
@@ -119,7 +119,7 @@ func newNoteReshapeSpendCircuitFields(witness *NoteReshapeSpendWitnessV6Binary) 
 	}, nil
 }
 
-func newNoteReshapeOutputCircuitFields(witness *NoteReshapeOutputWitnessV6Binary) circuits.NoteReshapeOutputCircuitFields {
+func newNoteReshapeOutputCircuitFields(witness *NoteReshapeOutputWitnessBinary) circuits.NoteReshapeOutputCircuitFields {
 	return circuits.NoteReshapeOutputCircuitFields{
 		NoteCommitment: fqString(witness.NoteCommitment),
 		Note: circuits.NoteReshapeNoteCircuitFields{

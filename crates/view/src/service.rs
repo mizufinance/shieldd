@@ -7,6 +7,7 @@ use std::{
 use anyhow::{anyhow, Context};
 use async_stream::try_stream;
 use camino::Utf8Path;
+use decaf377::Fq;
 use futures::stream::{StreamExt, TryStreamExt};
 use rand::Rng;
 use rand_core::OsRng;
@@ -227,6 +228,200 @@ pub struct ViewServer {
 }
 
 impl ViewServer {
+    async fn release_volume_reservations(
+        &self,
+        reservations: &[shieldd_sdk_shielded_pool::VolumeNullifier],
+    ) {
+        for reservation in reservations {
+            if let Err(error) = self.storage.release_volume_reservation(*reservation).await {
+                tracing::warn!(?error, "failed to release volume accumulator reservation");
+            }
+        }
+    }
+
+    async fn enrich_volume_accumulator(
+        &self,
+        plan: &mut TransactionPlan,
+        disclose_to_issuer: bool,
+    ) -> anyhow::Result<()> {
+        for action in &mut plan.actions {
+            match action {
+                ActionPlan::Transfer(transfer) => {
+                    let spend = transfer
+                        .spends
+                        .first()
+                        .ok_or_else(|| anyhow!("transfer accumulator requires a sender spend"))?;
+                    let output = transfer.outputs.first().ok_or_else(|| {
+                        anyhow!("transfer accumulator requires a receiver output")
+                    })?;
+                    let eligible = output.dest_address != spend.note.address();
+                    let accumulator = self
+                        .select_volume_accumulator(
+                            spend,
+                            output.value.amount.value(),
+                            eligible,
+                            disclose_to_issuer,
+                        )
+                        .await?;
+                    transfer.set_volume_accumulator(accumulator);
+                }
+                ActionPlan::ShieldedHostWithdrawal(withdrawal) => {
+                    let spend = withdrawal.spends.first().ok_or_else(|| {
+                        anyhow!("host withdrawal accumulator requires a sender spend")
+                    })?;
+                    let accumulator = self
+                        .select_volume_accumulator(
+                            spend,
+                            withdrawal.withdrawal.value.amount.value(),
+                            true,
+                            disclose_to_issuer,
+                        )
+                        .await?;
+                    withdrawal.set_volume_accumulator(accumulator);
+                }
+                ActionPlan::ShieldedIcs20Withdrawal(withdrawal) => {
+                    let spend = withdrawal.spends.first().ok_or_else(|| {
+                        anyhow!("ICS-20 withdrawal accumulator requires a sender spend")
+                    })?;
+                    let accumulator = self
+                        .select_volume_accumulator(
+                            spend,
+                            withdrawal.withdrawal.amount.value(),
+                            true,
+                            disclose_to_issuer,
+                        )
+                        .await?;
+                    withdrawal.set_volume_accumulator(accumulator);
+                }
+                _ => {}
+            }
+        }
+        Ok(())
+    }
+
+    async fn select_volume_accumulator(
+        &self,
+        spend: &shieldd_sdk_shielded_pool::ShieldedInputPlan,
+        outgoing_amount: u128,
+        eligible: bool,
+        disclose_to_issuer: bool,
+    ) -> anyhow::Result<shieldd_sdk_shielded_pool::VolumeAccumulatorPlan> {
+        let padding =
+            shieldd_sdk_shielded_pool::VolumeAccumulatorPlan::padding(spend.target_timestamp);
+        if disclose_to_issuer || !spend.is_regulated || !eligible {
+            return Ok(padding);
+        }
+        let limit = spend
+            .asset_policy
+            .as_ref()
+            .ok_or_else(|| anyhow!("regulated outgoing action is missing its asset policy"))?
+            .params
+            .daily_volume_limit;
+        let day_start = shieldd_sdk_shielded_pool::select_accumulator_day(spend.target_timestamp);
+        let subject = shieldd_sdk_shielded_pool::VolumeAccumulatorState::subject(
+            &spend.note.address(),
+            spend.note.asset_id(),
+        );
+        let recovery = self
+            .storage
+            .volume_accumulator_recovery(subject, day_start)
+            .await?;
+        let successor_blinding = Fq::from_le_bytes_mod_order(&OsRng.gen::<[u8; 32]>());
+        match recovery {
+            crate::storage::VolumeAccumulatorRecovery::Absent => {
+                let Some(successor_volume) =
+                    shieldd_sdk_shielded_pool::accumulated_volume(0, outgoing_amount, limit)
+                else {
+                    return Ok(padding);
+                };
+                Ok(shieldd_sdk_shielded_pool::VolumeAccumulatorPlan::origin(
+                    shieldd_sdk_shielded_pool::VolumeAccumulatorState {
+                        subject,
+                        day_start,
+                        undisclosed_volume: successor_volume,
+                        blinding: successor_blinding,
+                    },
+                ))
+            }
+            crate::storage::VolumeAccumulatorRecovery::Complete(confirmed) => {
+                let Some(successor_volume) = shieldd_sdk_shielded_pool::accumulated_volume(
+                    confirmed.state.undisclosed_volume,
+                    outgoing_amount,
+                    limit,
+                ) else {
+                    return Ok(padding);
+                };
+                shieldd_sdk_shielded_pool::VolumeAccumulatorPlan::continuation(
+                    confirmed.state,
+                    confirmed.commitment,
+                    u64::from(confirmed.position),
+                    successor_volume,
+                    successor_blinding,
+                )
+            }
+            crate::storage::VolumeAccumulatorRecovery::Incomplete => Ok(padding),
+        }
+    }
+
+    async fn reserve_volume_accumulators_for_broadcast(
+        &self,
+        transaction: &Transaction,
+        chain_timestamp: u64,
+    ) -> anyhow::Result<Vec<shieldd_sdk_shielded_pool::VolumeNullifier>> {
+        let fvk = self.storage.full_viewing_key().await?;
+        let mut reservations = Vec::new();
+        for action in transaction.actions() {
+            let (payload, target_timestamp) = match action {
+                shieldd_sdk_transaction::Action::Transfer(transfer)
+                    if transfer.body.proof_context
+                        == shieldd_sdk_shielded_pool::TransferProofContext::Ordinary =>
+                {
+                    (
+                        transfer.body.volume_accumulator.clone(),
+                        transfer.body.target_timestamp,
+                    )
+                }
+                shieldd_sdk_transaction::Action::ShieldedHostWithdrawal(withdrawal) => (
+                    withdrawal.body.volume_accumulator.clone(),
+                    withdrawal.body.target_timestamp,
+                ),
+                shieldd_sdk_transaction::Action::ShieldedIcs20Withdrawal(withdrawal) => (
+                    withdrawal.body.volume_accumulator.clone(),
+                    withdrawal.body.target_timestamp,
+                ),
+                _ => continue,
+            };
+            let (state, is_real) = payload.trial_decrypt(fvk.outgoing()).ok_or_else(|| {
+                anyhow!("wallet could not recover its accumulator payload before broadcast")
+            })?;
+            if !is_real {
+                continue;
+            }
+            reservations.push(crate::storage::VolumeAccumulatorReservation {
+                state,
+                expires_at: target_timestamp.saturating_add(
+                    shieldd_sdk_shielded_pool::VOLUME_ACCUMULATOR_RETENTION_GRACE_SECS,
+                ),
+                payload,
+            });
+        }
+        let scoped = reservations
+            .iter()
+            .map(|reservation| reservation.payload.scoped_nullifier())
+            .collect::<Vec<_>>();
+        if !reservations.is_empty() {
+            self.storage
+                .reserve_volume_accumulators(
+                    reservations,
+                    transaction.id().0,
+                    chain_timestamp,
+                    *fvk.nullifier_key(),
+                )
+                .await?;
+        }
+        Ok(scoped)
+    }
+
     fn address_purpose(purpose: Option<pb::AddressPurpose>) -> Result<AddressPurpose, Status> {
         match purpose.and_then(|purpose| purpose.regulated_asset_id) {
             Some(asset_id) => Ok(AddressPurpose::Regulated {
@@ -250,7 +445,8 @@ impl ViewServer {
             .await
             .map_err(|error| Status::internal(format!("could not read sync height: {error:#}")))?
             .unwrap_or(0);
-        self.storage
+        let address = self
+            .storage
             .record_issued_address(IssuedAddress {
                 address_index,
                 address: address.clone(),
@@ -408,6 +604,16 @@ impl ViewServer {
         let self2 = self.clone();
         try_stream! {
                 let transaction_id = transaction.id();
+                let (_, _, chain_timestamp) = self2.latest_known_block().await
+                    .map_err(|error| tonic::Status::unavailable(format!(
+                        "could not determine chain time before broadcast: {error:#}"
+                    )))?;
+                let volume_reservations = self2
+                    .reserve_volume_accumulators_for_broadcast(&transaction, chain_timestamp)
+                    .await
+                    .map_err(|error| tonic::Status::failed_precondition(format!(
+                        "could not reserve daily volume accumulator: {error:#}"
+                    )))?;
                 let spent_nullifier = if await_detection {
                     transaction.spent_nullifiers().next()
                 } else {
@@ -417,14 +623,15 @@ impl ViewServer {
                 // 1. Broadcast the transaction to the network.
                 // Note that "synchronous" here means "wait for the tx to be accepted by
                 // the fullnode", not "wait for the tx to be included on chain.
-                let mut fullnode_client = self2.tendermint_proxy_client().await
-                            .map_err(|e| {
-                                tonic::Status::unavailable(format!(
-                                    "couldn't connect to fullnode: {:#?}",
-                                    e
-                                ))
-                            })?
-                        ;
+                let mut fullnode_client = match self2.tendermint_proxy_client().await {
+                    Ok(client) => client,
+                    Err(error) => {
+                        self2.release_volume_reservations(&volume_reservations).await;
+                        Err(tonic::Status::unavailable(format!(
+                            "couldn't connect to fullnode: {error:#?}"
+                        )))?
+                    }
+                };
                 let node_rsp = fullnode_client
                     .broadcast_tx_sync(BroadcastTxSyncRequest {
                         params: transaction.encode_to_vec(),
@@ -441,17 +648,17 @@ impl ViewServer {
                     Ok(node_rsp) => {
                         let node_rsp = node_rsp.into_inner();
                         tracing::info!(?node_rsp);
-                        match node_rsp.code {
-                            0 => Ok(()),
-                            _ => Err(tonic::Status::new(
+                        if node_rsp.code != 0 {
+                            self2.release_volume_reservations(&volume_reservations).await;
+                            Err(tonic::Status::new(
                                 tonic::Code::Internal,
                                 format!(
                                     "Error submitting transaction: code {}, log: {}",
                                     node_rsp.code,
                                     node_rsp.log,
                                 ),
-                            )),
-                        }?;
+                            ))?;
+                        }
                         None
                     }
                     Err(broadcast_error) if broadcast_outcome_is_unknown(&broadcast_error) => {
@@ -512,12 +719,11 @@ impl ViewServer {
                             .map(Some)?,
                         }
                     }
-                    Err(broadcast_error) => resolve_broadcast_detection(
-                        broadcast_error,
-                        transaction_id,
-                        None,
-                    )
-                    .map(Some)?,
+                    Err(broadcast_error) => {
+                        self2.release_volume_reservations(&volume_reservations).await;
+                        resolve_broadcast_detection(broadcast_error, transaction_id, None)
+                            .map(Some)?
+                    }
                 };
 
                 // The transaction was submitted so we provide a status update
@@ -572,7 +778,7 @@ impl ViewServer {
     /// Return the latest block height known by the fullnode or its peers, as
     /// well as whether the fullnode is caught up with that height.
     #[instrument(skip(self))]
-    pub async fn latest_known_block_height(&self) -> anyhow::Result<(u64, bool)> {
+    async fn latest_known_block(&self) -> anyhow::Result<(u64, bool, u64)> {
         let mut client = self.tendermint_proxy_client().await?;
 
         let GetStatusResponse { sync_info, .. } = client
@@ -584,6 +790,7 @@ impl ViewServer {
 
         let SyncInfo {
             latest_block_height,
+            latest_block_time,
             catching_up,
             ..
         } = sync_info
@@ -594,6 +801,11 @@ impl ViewServer {
         // to determine the height to attempt syncing to, a validator reporting a non-consensus height
         // can cause a DoS to clients attempting to sync if `max_peer_block_height` is used.
         let latest_known_block_height = latest_block_height;
+        let latest_block_timestamp: u64 = latest_block_time
+            .ok_or_else(|| anyhow::anyhow!("node status is missing latest block time"))?
+            .seconds
+            .try_into()
+            .map_err(|_| anyhow::anyhow!("latest block time is before Unix epoch"))?;
 
         tracing::debug!(
             ?latest_block_height,
@@ -602,15 +814,24 @@ impl ViewServer {
             "found latest known block height"
         );
 
-        Ok((latest_known_block_height, catching_up))
+        Ok((
+            latest_known_block_height,
+            catching_up,
+            latest_block_timestamp,
+        ))
+    }
+
+    pub async fn latest_known_block_height(&self) -> anyhow::Result<(u64, bool)> {
+        let (height, catching_up, _) = self.latest_known_block().await?;
+        Ok((height, catching_up))
     }
 
     #[instrument(skip(self))]
     pub async fn status(&self) -> anyhow::Result<StatusResponse> {
         let full_sync_height = self.storage.last_sync_height().await?.unwrap_or(0);
 
-        let (latest_known_block_height, node_catching_up) =
-            self.latest_known_block_height().await?;
+        let (latest_known_block_height, node_catching_up, latest_block_timestamp) =
+            self.latest_known_block().await?;
 
         let height_diff = latest_known_block_height
             .checked_sub(full_sync_height)
@@ -631,6 +852,7 @@ impl ViewServer {
             full_sync_height,
             catching_up,
             partial_sync_height: full_sync_height, // Set these as the same for backwards compatibility following adding the partial_sync_height
+            latest_block_timestamp,
         })
     }
 }
@@ -686,6 +908,10 @@ impl ViewService for ViewServer {
         request: tonic::Request<pb::TransactionPlannerRequest>,
     ) -> Result<tonic::Response<pb::TransactionPlannerResponse>, tonic::Status> {
         let prq = request.into_inner();
+        let disclose_to_issuer = prq.disclose_to_issuer;
+        let (_, _, chain_timestamp) = self.latest_known_block().await.map_err(|e| {
+            tonic::Status::unavailable(format!("could not read consensus time: {e:#}"))
+        })?;
 
         let gas_prices =
             self.storage.gas_prices().await.map_err(|e| {
@@ -736,7 +962,8 @@ impl ViewService for ViewServer {
             let mut note_manager = NoteManager::new(OsRng);
             note_manager
                 .set_gas_prices(gas_prices)
-                .expiry_height(prq.expiry_height);
+                .expiry_height(prq.expiry_height)
+                .target_timestamp(chain_timestamp);
             if let Some(memo) = prq.memo {
                 note_manager.memo(memo.text);
                 if let Some(return_address) = memo.return_address {
@@ -755,7 +982,7 @@ impl ViewService for ViewServer {
                 .context("could not plan wallet-facing shielded transfer")
                 .map_err(|e| tonic::Status::invalid_argument(format!("{e:#}")))?;
 
-            let transaction_plan = match planning_result {
+            let mut transaction_plan = match planning_result {
                 TransferPlanningResult::Ready { transaction_plan } => transaction_plan,
                 TransferPlanningResult::NeedsMaintenance { .. } => {
                     return Err(tonic::Status::invalid_argument(
@@ -771,6 +998,10 @@ impl ViewService for ViewServer {
                     return Err(tonic::Status::invalid_argument(reason));
                 }
             };
+            self.enrich_volume_accumulator(&mut transaction_plan, disclose_to_issuer)
+                .await
+                .context("could not plan daily volume accumulator")
+                .map_err(|e| tonic::Status::failed_precondition(format!("{e:#}")))?;
 
             return Ok(tonic::Response::new(TransactionPlannerResponse {
                 plan: Some(transaction_plan.into()),
@@ -807,7 +1038,8 @@ impl ViewService for ViewServer {
             let mut note_manager = NoteManager::new(OsRng);
             note_manager
                 .set_gas_prices(gas_prices)
-                .expiry_height(prq.expiry_height);
+                .expiry_height(prq.expiry_height)
+                .target_timestamp(chain_timestamp);
 
             let mut client_of_self = ViewServiceClient::new(ViewServiceServer::new(self.clone()));
             let planning_result = note_manager
@@ -816,7 +1048,7 @@ impl ViewService for ViewServer {
                 .context("could not plan wallet-facing ICS-20 withdrawal")
                 .map_err(|e| tonic::Status::invalid_argument(format!("{e:#}")))?;
 
-            let transaction_plan = match planning_result {
+            let mut transaction_plan = match planning_result {
                 TransferPlanningResult::Ready { transaction_plan } => transaction_plan,
                 TransferPlanningResult::NeedsMaintenance { .. } => {
                     return Err(tonic::Status::invalid_argument(
@@ -832,6 +1064,10 @@ impl ViewService for ViewServer {
                     return Err(tonic::Status::invalid_argument(reason));
                 }
             };
+            self.enrich_volume_accumulator(&mut transaction_plan, disclose_to_issuer)
+                .await
+                .context("could not plan ICS-20 daily volume accumulator")
+                .map_err(|e| tonic::Status::failed_precondition(format!("{e:#}")))?;
 
             return Ok(tonic::Response::new(TransactionPlannerResponse {
                 plan: Some(transaction_plan.into()),
@@ -868,7 +1104,8 @@ impl ViewService for ViewServer {
             let mut note_manager = NoteManager::new(OsRng);
             note_manager
                 .set_gas_prices(gas_prices)
-                .expiry_height(prq.expiry_height);
+                .expiry_height(prq.expiry_height)
+                .target_timestamp(chain_timestamp);
 
             let mut client_of_self = ViewServiceClient::new(ViewServiceServer::new(self.clone()));
             let planning_result = note_manager
@@ -877,7 +1114,7 @@ impl ViewService for ViewServer {
                 .context("could not plan wallet-facing host withdrawal")
                 .map_err(|e| tonic::Status::invalid_argument(format!("{e:#}")))?;
 
-            let transaction_plan = match planning_result {
+            let mut transaction_plan = match planning_result {
                 TransferPlanningResult::Ready { transaction_plan } => transaction_plan,
                 TransferPlanningResult::NeedsMaintenance { .. } => {
                     return Err(tonic::Status::invalid_argument(
@@ -893,6 +1130,10 @@ impl ViewService for ViewServer {
                     return Err(tonic::Status::invalid_argument(reason));
                 }
             };
+            self.enrich_volume_accumulator(&mut transaction_plan, disclose_to_issuer)
+                .await
+                .context("could not plan host-withdrawal daily volume accumulator")
+                .map_err(|e| tonic::Status::failed_precondition(format!("{e:#}")))?;
 
             return Ok(tonic::Response::new(TransactionPlannerResponse {
                 plan: Some(transaction_plan.into()),
@@ -903,7 +1144,8 @@ impl ViewService for ViewServer {
             let mut note_manager = NoteManager::new(OsRng);
             note_manager
                 .set_gas_prices(gas_prices)
-                .expiry_height(prq.expiry_height);
+                .expiry_height(prq.expiry_height)
+                .target_timestamp(chain_timestamp);
             if let Some(memo) = prq.memo {
                 note_manager.memo(memo.text);
                 if let Some(return_address) = memo.return_address {
@@ -1727,10 +1969,18 @@ impl ViewService for ViewServer {
             }
         }
 
-        let requested_note_commitments: Vec<StateCommitment> = all_spend_notes()
+        let mut requested_note_commitments: Vec<StateCommitment> = all_spend_notes()
             .filter(|spend| spend.note.amount() != zero_amount)
             .map(|spend| spend.note.commit().into())
             .collect();
+        requested_note_commitments.extend(tx_plan.actions.iter().filter_map(
+            |action| match action {
+                ActionPlan::Transfer(plan) => plan.accumulator_prior_commitment(),
+                ActionPlan::ShieldedHostWithdrawal(plan) => plan.accumulator_prior_commitment(),
+                ActionPlan::ShieldedIcs20Withdrawal(plan) => plan.accumulator_prior_commitment(),
+                _ => None,
+            },
+        ));
 
         tracing::debug!(?requested_note_commitments);
 
@@ -2052,10 +2302,10 @@ impl ViewService for ViewServer {
             .map_err(|e| tonic::Status::internal(format!("failed to get asset policy: {e}")))?;
         let is_regulated = policy.is_some();
 
-        let (dk_pub, threshold, has_policy) = match &policy {
+        let (dk_pub, daily_volume_limit, has_policy) = match &policy {
             Some(p) => (
                 p.params.dk_pub.vartime_compress().0.to_vec(),
-                p.params.threshold.to_le_bytes().to_vec(),
+                p.params.daily_volume_limit.to_le_bytes().to_vec(),
                 true,
             ),
             None => (vec![], vec![], false),
@@ -2074,7 +2324,7 @@ impl ViewService for ViewServer {
             is_registered: true,
             is_regulated,
             dk_pub,
-            threshold,
+            daily_volume_limit,
             asset_policy: policy.map(Into::into),
         }))
     }
@@ -2422,7 +2672,7 @@ impl ViewService for ViewServer {
                 is_regulated,
                 leaf_value = ?indexed_leaf.value.to_bytes(),
                 leaf_next_index = indexed_leaf.next_index,
-                leaf_threshold = indexed_leaf.params.threshold,
+                leaf_daily_volume_limit = indexed_leaf.params.daily_volume_limit,
                 leaf_dk_pub_first_byte = indexed_leaf.params.dk_pub.vartime_compress().0[0],
                 leaf_commitment = ?leaf_commitment.0.to_bytes(),
                 "compliance_batch_merkle_proofs: asset proof data"

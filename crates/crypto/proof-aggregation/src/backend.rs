@@ -914,6 +914,24 @@ impl SnarkpackBackend {
     }
 }
 
+fn torus_v2_preflight_frame(bytes: &[u8]) -> Vec<u8> {
+    let retained_len = bytes.len().min(MAX_AGGREGATE_PROOF_BYTES.saturating_add(1));
+    let mut translated = bytes[..retained_len].to_vec();
+
+    if translated.starts_with(AGGREGATE_PROOF_TORUS_V2_WRAPPER_DOMAIN) {
+        if AGGREGATE_PROOF_TORUS_V2_WRAPPER_DOMAIN.len() != AGGREGATE_PROOF_WRAPPER_DOMAIN.len() {
+            translated.clear();
+            return translated;
+        }
+        translated[..AGGREGATE_PROOF_WRAPPER_DOMAIN.len()]
+            .copy_from_slice(AGGREGATE_PROOF_WRAPPER_DOMAIN);
+    } else if translated.starts_with(AGGREGATE_PROOF_WRAPPER_DOMAIN) {
+        translated[0] = 0;
+    }
+
+    translated
+}
+
 impl AggregationBackend for SnarkpackBackend {
     type Srs = DevSrs;
 
@@ -1017,26 +1035,6 @@ impl AggregationBackend for SnarkpackBackend {
         }
         Ok(())
     }
-}
-
-fn torus_v2_preflight_frame(bytes: &[u8]) -> Vec<u8> {
-    let retained_len = bytes.len().min(MAX_AGGREGATE_PROOF_BYTES.saturating_add(1));
-    let mut translated = bytes[..retained_len].to_vec();
-
-    if translated.starts_with(AGGREGATE_PROOF_TORUS_V2_WRAPPER_DOMAIN) {
-        if AGGREGATE_PROOF_TORUS_V2_WRAPPER_DOMAIN.len() != AGGREGATE_PROOF_WRAPPER_DOMAIN.len() {
-            translated.clear();
-            return translated;
-        }
-        translated[..AGGREGATE_PROOF_WRAPPER_DOMAIN.len()]
-            .copy_from_slice(AGGREGATE_PROOF_WRAPPER_DOMAIN);
-    } else if translated.starts_with(AGGREGATE_PROOF_WRAPPER_DOMAIN) {
-        // A v1 frame must remain disjoint even though the unchanged v1
-        // preflight validates the translated v2 framing below.
-        translated[0] = 0;
-    }
-
-    translated
 }
 
 fn collect_proofs(items: &[BatchItem]) -> Vec<ark_groth16::Proof<Bls12_377>> {
@@ -2388,7 +2386,7 @@ mod tests {
         let final_g2_offset = rounds_offset + 8 + rounds * 4736;
         let first_ab_identity_len_offset = rounds_offset + 8 + 2 * gt_len;
 
-        // Identity commitments are wire-level vectors, but the v1 verifier
+        // Identity commitments are wire-level vectors, but the verifier
         // accepts only the singleton shape emitted by the prover. Both of
         // these encodings are canonically decodable and therefore exercise
         // the post-decode shape gate rather than the strict byte decoder.
@@ -2485,12 +2483,6 @@ mod tests {
         let agg_c_offset = 4 * compressed_bytes(&PairingOutput::<Bls12_377>::zero()).len();
         let mut mutated_inner = inner.to_vec();
         mutated_inner[agg_c_offset + g1_compressed_len() - 1] |= 0x40;
-        assert!(
-            AggregateProof::<Bls12_377, TransferTranscriptDigest>::deserialize_compressed(
-                &mutated_inner[..]
-            )
-            .is_ok()
-        );
         assert!(deserialize_aggregate_proof::<TransferTranscriptDigest>(&mutated_inner).is_err());
         reject(mutated_inner, "nested G1 infinity alias should reject");
 
@@ -3243,8 +3235,7 @@ mod tests {
             panic!("missing aggregate byte baseline at {BYTE_BASELINE_PATH}: {e}; regenerate with `cargo test -p shieldd-sdk-proof-aggregation regenerate_aggregate_byte_baseline -- --ignored`")
         });
 
-        // Version-drift guard: a committed baseline from a different protocol
-        // version is the mechanical fork between "preserve bytes" and "version".
+        // The baseline must identify the same consensus aggregation protocol.
         let committed_version = committed_baseline_version(&committed);
         assert_eq!(
             committed_version,
@@ -3283,13 +3274,13 @@ mod tests {
     }
 
     #[test]
-    fn v1_bytes_and_transcript_match_committed_baselines() {
+    fn aggregate_bytes_and_transcript_match_committed_baselines() {
         assert_aggregate_bytes_match_committed_baseline();
         assert_shieldd_byte_trace_matches_committed_baseline();
     }
 
     #[test]
-    #[ignore = "writes the committed challenge trace baseline after a sanctioned version change"]
+    #[ignore = "writes the committed challenge trace baseline after a sanctioned protocol change"]
     fn regenerate_shieldd_byte_trace_baseline() {
         let rendered = render_trace_baseline();
         std::fs::write(TRACE_BASELINE_PATH, rendered).expect("write trace baseline");

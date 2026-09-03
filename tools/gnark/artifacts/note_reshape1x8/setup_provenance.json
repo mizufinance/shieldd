@@ -1,17 +1,16 @@
 {
-  "schema": "shieldd.gnark.setup_provenance.v2",
+  "schema": "shieldd.gnark.setup_provenance",
   "curve": "bls12-377",
   "circuit": "note_reshape1x8",
   "mode": "fresh_setup",
-  "sr1cs_sha256_hex": "aab011f517a030d32c350e7403f8f06e18565652522ec4797042acb9ec2063d5",
-  "proving_key_sha256_hex": "54647a5206774209e36c248b4e21c96017747e83d9c9029313a98a948c492e3c",
-  "verifying_key_binary_sha256_hex": "6a297c2df56f8560b51c374c711f90a7f89aa371de26753ec99c8c89072efde4",
-  "verifying_key_json_sha256_hex": "055a54a5ee1544a3cfafa9456dbb8ad53d42f7f6388b40b9b043d90ceafb9516",
+  "sr1cs_sha256_hex": "65c43da062de93fd61663cf216be81a337437347c1d3e950aad30c04be29ee3e",
+  "proving_key_sha256_hex": "6e27bb5ca9017db6e50e4ab88fddfb0ebba4ce634abc49bb33e444ae9a30cb9f",
+  "verifying_key_binary_sha256_hex": "35fa9fae29c5e9c5d81d2d4e03071b09fe9b5752b962789f11f840111fa156b5",
+  "verifying_key_json_sha256_hex": "29eb6cb4f6e6a891dec9b3b36caeba796a60f04ddd9c615e98d9d27e0bf3cf3e",
   "generation_self_tests": [
     {
       "proof_case": "note_reshape1x8",
-      "witness_format_version": 8,
-      "witness_sha256_hex": "0cfb78031a96bb61a080181ff3539114041bd2e331cdee5429c42fe95aa62057",
+      "witness_sha256_hex": "0f8cdfa6380cc90a776a19523052e80e43ec04c6d5ff2b3ce9dce22d01125f58",
       "proved_and_verified_in_process": true
     }
   ],

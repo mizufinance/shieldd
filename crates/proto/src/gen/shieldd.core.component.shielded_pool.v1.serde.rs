@@ -487,7 +487,7 @@ impl<'de> serde::Deserialize<'de> for DiscoveryParameters {
                             if regulated_precision_bits__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("regulatedPrecisionBits"));
                             }
-                            regulated_precision_bits__ = 
+                            regulated_precision_bits__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -495,7 +495,7 @@ impl<'de> serde::Deserialize<'de> for DiscoveryParameters {
                             if unregulated_precision_bits__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("unregulatedPrecisionBits"));
                             }
-                            unregulated_precision_bits__ = 
+                            unregulated_precision_bits__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -503,7 +503,7 @@ impl<'de> serde::Deserialize<'de> for DiscoveryParameters {
                             if as_of_height__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("asOfHeight"));
                             }
-                            as_of_height__ = 
+                            as_of_height__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1338,7 +1338,7 @@ impl<'de> serde::Deserialize<'de> for EvmCall {
                             if contract__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("contract"));
                             }
-                            contract__ = 
+                            contract__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -1346,7 +1346,7 @@ impl<'de> serde::Deserialize<'de> for EvmCall {
                             if calldata__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("calldata"));
                             }
-                            calldata__ = 
+                            calldata__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -1462,7 +1462,7 @@ impl<'de> serde::Deserialize<'de> for FungibleTokenTransferPacketMetadata {
                             if sequence__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("sequence"));
                             }
-                            sequence__ = 
+                            sequence__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1832,7 +1832,7 @@ impl<'de> serde::Deserialize<'de> for HostExecution {
                             if gas_limit__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("gasLimit"));
                             }
-                            gas_limit__ = 
+                            gas_limit__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2190,7 +2190,7 @@ impl<'de> serde::Deserialize<'de> for Note {
                             if rseed__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("rseed"));
                             }
-                            rseed__ = 
+                            rseed__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -2297,7 +2297,7 @@ impl<'de> serde::Deserialize<'de> for NoteCiphertext {
                             if inner__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("inner"));
                             }
-                            inner__ = 
+                            inner__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -2425,7 +2425,7 @@ impl<'de> serde::Deserialize<'de> for NotePayload {
                             if ephemeral_key__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("ephemeralKey"));
                             }
-                            ephemeral_key__ = 
+                            ephemeral_key__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -2748,7 +2748,7 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeBody {
                             if family_id__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("familyId"));
                             }
-                            family_id__ = 
+                            family_id__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2786,7 +2786,7 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeBody {
                             if routing_parameter_set_id__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("routingParameterSetId"));
                             }
-                            routing_parameter_set_id__ = 
+                            routing_parameter_set_id__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -2949,7 +2949,7 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeInputBody {
                             if encrypted_backref__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("encryptedBackref"));
                             }
-                            encrypted_backref__ = 
+                            encrypted_backref__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -3088,7 +3088,7 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeOutputBody {
                             if wrapped_memo_key__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("wrappedMemoKey"));
                             }
-                            wrapped_memo_key__ = 
+                            wrapped_memo_key__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -3096,7 +3096,7 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeOutputBody {
                             if ovk_wrapped_key__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("ovkWrappedKey"));
                             }
-                            ovk_wrapped_key__ = 
+                            ovk_wrapped_key__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -3240,7 +3240,7 @@ impl<'de> serde::Deserialize<'de> for NoteReshapePlan {
                             if value_blinding__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("valueBlinding"));
                             }
-                            value_blinding__ = 
+                            value_blinding__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -3260,7 +3260,7 @@ impl<'de> serde::Deserialize<'de> for NoteReshapePlan {
                             if family_id__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("familyId"));
                             }
-                            family_id__ = 
+                            family_id__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -3754,7 +3754,7 @@ impl<'de> serde::Deserialize<'de> for NoteView {
                             if rseed__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("rseed"));
                             }
-                            rseed__ = 
+                            rseed__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -3870,7 +3870,7 @@ impl<'de> serde::Deserialize<'de> for RoutingSelector {
                             if precision_bits__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("precisionBits"));
                             }
-                            precision_bits__ = 
+                            precision_bits__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -3878,7 +3878,7 @@ impl<'de> serde::Deserialize<'de> for RoutingSelector {
                             if prefix__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("prefix"));
                             }
-                            prefix__ = 
+                            prefix__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -3976,7 +3976,7 @@ impl<'de> serde::Deserialize<'de> for RoutingTag {
                             if value__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("value"));
                             }
-                            value__ = 
+                            value__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -4164,6 +4164,15 @@ impl serde::Serialize for ShieldedHostWithdrawalBody {
         if !self.routing_parameter_set_id.is_empty() {
             len += 1;
         }
+        if !self.sender_compliance_ciphertext.is_empty() {
+            len += 1;
+        }
+        if !self.sender_compliance_metadata.is_empty() {
+            len += 1;
+        }
+        if self.volume_accumulator.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.ShieldedHostWithdrawalBody", len)?;
         if self.family_id != 0 {
             struct_ser.serialize_field("familyId", &self.family_id)?;
@@ -4202,6 +4211,19 @@ impl serde::Serialize for ShieldedHostWithdrawalBody {
             #[allow(clippy::needless_borrows_for_generic_args)]
             struct_ser.serialize_field("routingParameterSetId", pbjson::private::base64::encode(&self.routing_parameter_set_id).as_str())?;
         }
+        if !self.sender_compliance_ciphertext.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("senderComplianceCiphertext", pbjson::private::base64::encode(&self.sender_compliance_ciphertext).as_str())?;
+        }
+        if !self.sender_compliance_metadata.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("senderComplianceMetadata", pbjson::private::base64::encode(&self.sender_compliance_metadata).as_str())?;
+        }
+        if let Some(v) = self.volume_accumulator.as_ref() {
+            struct_ser.serialize_field("volumeAccumulator", v)?;
+        }
         struct_ser.end()
     }
 }
@@ -4231,6 +4253,12 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalBody {
             "routingTag",
             "routing_parameter_set_id",
             "routingParameterSetId",
+            "sender_compliance_ciphertext",
+            "senderComplianceCiphertext",
+            "sender_compliance_metadata",
+            "senderComplianceMetadata",
+            "volume_accumulator",
+            "volumeAccumulator",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -4246,6 +4274,9 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalBody {
             AssetAnchor,
             RoutingTag,
             RoutingParameterSetId,
+            SenderComplianceCiphertext,
+            SenderComplianceMetadata,
+            VolumeAccumulator,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -4279,6 +4310,9 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalBody {
                             "assetAnchor" | "asset_anchor" => Ok(GeneratedField::AssetAnchor),
                             "routingTag" | "routing_tag" => Ok(GeneratedField::RoutingTag),
                             "routingParameterSetId" | "routing_parameter_set_id" => Ok(GeneratedField::RoutingParameterSetId),
+                            "senderComplianceCiphertext" | "sender_compliance_ciphertext" => Ok(GeneratedField::SenderComplianceCiphertext),
+                            "senderComplianceMetadata" | "sender_compliance_metadata" => Ok(GeneratedField::SenderComplianceMetadata),
+                            "volumeAccumulator" | "volume_accumulator" => Ok(GeneratedField::VolumeAccumulator),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -4309,13 +4343,16 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalBody {
                 let mut asset_anchor__ = None;
                 let mut routing_tag__ = None;
                 let mut routing_parameter_set_id__ = None;
+                let mut sender_compliance_ciphertext__ = None;
+                let mut sender_compliance_metadata__ = None;
+                let mut volume_accumulator__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::FamilyId => {
                             if family_id__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("familyId"));
                             }
-                            family_id__ = 
+                            family_id__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -4353,7 +4390,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalBody {
                             if target_timestamp__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("targetTimestamp"));
                             }
-                            target_timestamp__ = 
+                            target_timestamp__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -4379,9 +4416,31 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalBody {
                             if routing_parameter_set_id__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("routingParameterSetId"));
                             }
-                            routing_parameter_set_id__ = 
+                            routing_parameter_set_id__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
+                        }
+                        GeneratedField::SenderComplianceCiphertext => {
+                            if sender_compliance_ciphertext__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("senderComplianceCiphertext"));
+                            }
+                            sender_compliance_ciphertext__ =
+                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::SenderComplianceMetadata => {
+                            if sender_compliance_metadata__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("senderComplianceMetadata"));
+                            }
+                            sender_compliance_metadata__ =
+                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::VolumeAccumulator => {
+                            if volume_accumulator__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("volumeAccumulator"));
+                            }
+                            volume_accumulator__ = map_.next_value()?;
                         }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
@@ -4400,6 +4459,9 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalBody {
                     asset_anchor: asset_anchor__,
                     routing_tag: routing_tag__,
                     routing_parameter_set_id: routing_parameter_set_id__.unwrap_or_default(),
+                    sender_compliance_ciphertext: sender_compliance_ciphertext__.unwrap_or_default(),
+                    sender_compliance_metadata: sender_compliance_metadata__.unwrap_or_default(),
+                    volume_accumulator: volume_accumulator__,
                 })
             }
         }
@@ -4429,6 +4491,9 @@ impl serde::Serialize for ShieldedHostWithdrawalPlan {
         if self.routing_parameters.is_some() {
             len += 1;
         }
+        if self.volume_accumulator.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.ShieldedHostWithdrawalPlan", len)?;
         if !self.value_blinding.is_empty() {
             #[allow(clippy::needless_borrow)]
@@ -4446,6 +4511,9 @@ impl serde::Serialize for ShieldedHostWithdrawalPlan {
         }
         if let Some(v) = self.routing_parameters.as_ref() {
             struct_ser.serialize_field("routingParameters", v)?;
+        }
+        if let Some(v) = self.volume_accumulator.as_ref() {
+            struct_ser.serialize_field("volumeAccumulator", v)?;
         }
         struct_ser.end()
     }
@@ -4465,6 +4533,8 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalPlan {
             "withdrawal",
             "routing_parameters",
             "routingParameters",
+            "volume_accumulator",
+            "volumeAccumulator",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -4474,6 +4544,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalPlan {
             ChangeOutput,
             Withdrawal,
             RoutingParameters,
+            VolumeAccumulator,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -4501,6 +4572,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalPlan {
                             "changeOutput" | "change_output" => Ok(GeneratedField::ChangeOutput),
                             "withdrawal" => Ok(GeneratedField::Withdrawal),
                             "routingParameters" | "routing_parameters" => Ok(GeneratedField::RoutingParameters),
+                            "volumeAccumulator" | "volume_accumulator" => Ok(GeneratedField::VolumeAccumulator),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -4525,13 +4597,14 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalPlan {
                 let mut change_output__ = None;
                 let mut withdrawal__ = None;
                 let mut routing_parameters__ = None;
+                let mut volume_accumulator__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::ValueBlinding => {
                             if value_blinding__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("valueBlinding"));
                             }
-                            value_blinding__ = 
+                            value_blinding__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -4559,6 +4632,12 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalPlan {
                             }
                             routing_parameters__ = map_.next_value()?;
                         }
+                        GeneratedField::VolumeAccumulator => {
+                            if volume_accumulator__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("volumeAccumulator"));
+                            }
+                            volume_accumulator__ = map_.next_value()?;
+                        }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
                         }
@@ -4570,6 +4649,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalPlan {
                     change_output: change_output__,
                     withdrawal: withdrawal__,
                     routing_parameters: routing_parameters__,
+                    volume_accumulator: volume_accumulator__,
                 })
             }
         }
@@ -5104,6 +5184,15 @@ impl serde::Serialize for ShieldedIcs20WithdrawalBody {
         if !self.routing_parameter_set_id.is_empty() {
             len += 1;
         }
+        if !self.sender_compliance_ciphertext.is_empty() {
+            len += 1;
+        }
+        if !self.sender_compliance_metadata.is_empty() {
+            len += 1;
+        }
+        if self.volume_accumulator.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.ShieldedIcs20WithdrawalBody", len)?;
         if self.family_id != 0 {
             struct_ser.serialize_field("familyId", &self.family_id)?;
@@ -5142,6 +5231,19 @@ impl serde::Serialize for ShieldedIcs20WithdrawalBody {
             #[allow(clippy::needless_borrows_for_generic_args)]
             struct_ser.serialize_field("routingParameterSetId", pbjson::private::base64::encode(&self.routing_parameter_set_id).as_str())?;
         }
+        if !self.sender_compliance_ciphertext.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("senderComplianceCiphertext", pbjson::private::base64::encode(&self.sender_compliance_ciphertext).as_str())?;
+        }
+        if !self.sender_compliance_metadata.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("senderComplianceMetadata", pbjson::private::base64::encode(&self.sender_compliance_metadata).as_str())?;
+        }
+        if let Some(v) = self.volume_accumulator.as_ref() {
+            struct_ser.serialize_field("volumeAccumulator", v)?;
+        }
         struct_ser.end()
     }
 }
@@ -5171,6 +5273,12 @@ impl<'de> serde::Deserialize<'de> for ShieldedIcs20WithdrawalBody {
             "routingTag",
             "routing_parameter_set_id",
             "routingParameterSetId",
+            "sender_compliance_ciphertext",
+            "senderComplianceCiphertext",
+            "sender_compliance_metadata",
+            "senderComplianceMetadata",
+            "volume_accumulator",
+            "volumeAccumulator",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -5186,6 +5294,9 @@ impl<'de> serde::Deserialize<'de> for ShieldedIcs20WithdrawalBody {
             AssetAnchor,
             RoutingTag,
             RoutingParameterSetId,
+            SenderComplianceCiphertext,
+            SenderComplianceMetadata,
+            VolumeAccumulator,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -5219,6 +5330,9 @@ impl<'de> serde::Deserialize<'de> for ShieldedIcs20WithdrawalBody {
                             "assetAnchor" | "asset_anchor" => Ok(GeneratedField::AssetAnchor),
                             "routingTag" | "routing_tag" => Ok(GeneratedField::RoutingTag),
                             "routingParameterSetId" | "routing_parameter_set_id" => Ok(GeneratedField::RoutingParameterSetId),
+                            "senderComplianceCiphertext" | "sender_compliance_ciphertext" => Ok(GeneratedField::SenderComplianceCiphertext),
+                            "senderComplianceMetadata" | "sender_compliance_metadata" => Ok(GeneratedField::SenderComplianceMetadata),
+                            "volumeAccumulator" | "volume_accumulator" => Ok(GeneratedField::VolumeAccumulator),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -5249,13 +5363,16 @@ impl<'de> serde::Deserialize<'de> for ShieldedIcs20WithdrawalBody {
                 let mut asset_anchor__ = None;
                 let mut routing_tag__ = None;
                 let mut routing_parameter_set_id__ = None;
+                let mut sender_compliance_ciphertext__ = None;
+                let mut sender_compliance_metadata__ = None;
+                let mut volume_accumulator__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::FamilyId => {
                             if family_id__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("familyId"));
                             }
-                            family_id__ = 
+                            family_id__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -5293,7 +5410,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedIcs20WithdrawalBody {
                             if target_timestamp__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("targetTimestamp"));
                             }
-                            target_timestamp__ = 
+                            target_timestamp__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -5319,9 +5436,31 @@ impl<'de> serde::Deserialize<'de> for ShieldedIcs20WithdrawalBody {
                             if routing_parameter_set_id__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("routingParameterSetId"));
                             }
-                            routing_parameter_set_id__ = 
+                            routing_parameter_set_id__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
+                        }
+                        GeneratedField::SenderComplianceCiphertext => {
+                            if sender_compliance_ciphertext__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("senderComplianceCiphertext"));
+                            }
+                            sender_compliance_ciphertext__ =
+                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::SenderComplianceMetadata => {
+                            if sender_compliance_metadata__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("senderComplianceMetadata"));
+                            }
+                            sender_compliance_metadata__ =
+                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::VolumeAccumulator => {
+                            if volume_accumulator__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("volumeAccumulator"));
+                            }
+                            volume_accumulator__ = map_.next_value()?;
                         }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
@@ -5340,6 +5479,9 @@ impl<'de> serde::Deserialize<'de> for ShieldedIcs20WithdrawalBody {
                     asset_anchor: asset_anchor__,
                     routing_tag: routing_tag__,
                     routing_parameter_set_id: routing_parameter_set_id__.unwrap_or_default(),
+                    sender_compliance_ciphertext: sender_compliance_ciphertext__.unwrap_or_default(),
+                    sender_compliance_metadata: sender_compliance_metadata__.unwrap_or_default(),
+                    volume_accumulator: volume_accumulator__,
                 })
             }
         }
@@ -5459,7 +5601,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedIcs20WithdrawalChangeBody {
                             if wrapped_memo_key__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("wrappedMemoKey"));
                             }
-                            wrapped_memo_key__ = 
+                            wrapped_memo_key__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -5467,7 +5609,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedIcs20WithdrawalChangeBody {
                             if ovk_wrapped_key__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("ovkWrappedKey"));
                             }
-                            ovk_wrapped_key__ = 
+                            ovk_wrapped_key__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -5509,6 +5651,9 @@ impl serde::Serialize for ShieldedIcs20WithdrawalPlan {
         if self.routing_parameters.is_some() {
             len += 1;
         }
+        if self.volume_accumulator.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.ShieldedIcs20WithdrawalPlan", len)?;
         if !self.value_blinding.is_empty() {
             #[allow(clippy::needless_borrow)]
@@ -5526,6 +5671,9 @@ impl serde::Serialize for ShieldedIcs20WithdrawalPlan {
         }
         if let Some(v) = self.routing_parameters.as_ref() {
             struct_ser.serialize_field("routingParameters", v)?;
+        }
+        if let Some(v) = self.volume_accumulator.as_ref() {
+            struct_ser.serialize_field("volumeAccumulator", v)?;
         }
         struct_ser.end()
     }
@@ -5545,6 +5693,8 @@ impl<'de> serde::Deserialize<'de> for ShieldedIcs20WithdrawalPlan {
             "withdrawal",
             "routing_parameters",
             "routingParameters",
+            "volume_accumulator",
+            "volumeAccumulator",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -5554,6 +5704,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedIcs20WithdrawalPlan {
             ChangeOutput,
             Withdrawal,
             RoutingParameters,
+            VolumeAccumulator,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -5581,6 +5732,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedIcs20WithdrawalPlan {
                             "changeOutput" | "change_output" => Ok(GeneratedField::ChangeOutput),
                             "withdrawal" => Ok(GeneratedField::Withdrawal),
                             "routingParameters" | "routing_parameters" => Ok(GeneratedField::RoutingParameters),
+                            "volumeAccumulator" | "volume_accumulator" => Ok(GeneratedField::VolumeAccumulator),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -5605,13 +5757,14 @@ impl<'de> serde::Deserialize<'de> for ShieldedIcs20WithdrawalPlan {
                 let mut change_output__ = None;
                 let mut withdrawal__ = None;
                 let mut routing_parameters__ = None;
+                let mut volume_accumulator__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::ValueBlinding => {
                             if value_blinding__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("valueBlinding"));
                             }
-                            value_blinding__ = 
+                            value_blinding__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -5639,6 +5792,12 @@ impl<'de> serde::Deserialize<'de> for ShieldedIcs20WithdrawalPlan {
                             }
                             routing_parameters__ = map_.next_value()?;
                         }
+                        GeneratedField::VolumeAccumulator => {
+                            if volume_accumulator__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("volumeAccumulator"));
+                            }
+                            volume_accumulator__ = map_.next_value()?;
+                        }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
                         }
@@ -5650,6 +5809,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedIcs20WithdrawalPlan {
                     change_output: change_output__,
                     withdrawal: withdrawal__,
                     routing_parameters: routing_parameters__,
+                    volume_accumulator: volume_accumulator__,
                 })
             }
         }
@@ -6276,7 +6436,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedInputPlan {
                             if position__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("position"));
                             }
-                            position__ = 
+                            position__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -6284,7 +6444,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedInputPlan {
                             if randomizer__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("randomizer"));
                             }
-                            randomizer__ = 
+                            randomizer__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -6292,7 +6452,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedInputPlan {
                             if value_blinding__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("valueBlinding"));
                             }
-                            value_blinding__ = 
+                            value_blinding__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -6300,7 +6460,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedInputPlan {
                             if target_timestamp__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("targetTimestamp"));
                             }
-                            target_timestamp__ = 
+                            target_timestamp__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -6320,7 +6480,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedInputPlan {
                             if tx_blinding_nonce__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("txBlindingNonce"));
                             }
-                            tx_blinding_nonce__ = 
+                            tx_blinding_nonce__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -6346,7 +6506,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedInputPlan {
                             if compliance_position__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("compliancePosition"));
                             }
-                            compliance_position__ = 
+                            compliance_position__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -6360,7 +6520,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedInputPlan {
                             if asset_position__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("assetPosition"));
                             }
-                            asset_position__ = 
+                            asset_position__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -6672,7 +6832,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedOutputPlan {
                             if rseed__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("rseed"));
                             }
-                            rseed__ = 
+                            rseed__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -6680,7 +6840,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedOutputPlan {
                             if value_blinding__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("valueBlinding"));
                             }
-                            value_blinding__ = 
+                            value_blinding__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -6688,7 +6848,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedOutputPlan {
                             if target_timestamp__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("targetTimestamp"));
                             }
-                            target_timestamp__ = 
+                            target_timestamp__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -6708,7 +6868,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedOutputPlan {
                             if tx_blinding_nonce__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("txBlindingNonce"));
                             }
-                            tx_blinding_nonce__ = 
+                            tx_blinding_nonce__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -6734,7 +6894,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedOutputPlan {
                             if compliance_position__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("compliancePosition"));
                             }
-                            compliance_position__ = 
+                            compliance_position__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -6748,7 +6908,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedOutputPlan {
                             if asset_position__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("assetPosition"));
                             }
-                            asset_position__ = 
+                            asset_position__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -6892,7 +7052,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedPoolParameters {
                             if discovery_grace_period_blocks__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("discoveryGracePeriodBlocks"));
                             }
-                            discovery_grace_period_blocks__ = 
+                            discovery_grace_period_blocks__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -7075,6 +7235,12 @@ impl serde::Serialize for TransferBody {
         if !self.routing_parameter_set_id.is_empty() {
             len += 1;
         }
+        if self.volume_accumulator.is_some() {
+            len += 1;
+        }
+        if self.proof_context != 0 {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.TransferBody", len)?;
         if let Some(v) = self.anchor.as_ref() {
             struct_ser.serialize_field("anchor", v)?;
@@ -7107,6 +7273,14 @@ impl serde::Serialize for TransferBody {
             #[allow(clippy::needless_borrows_for_generic_args)]
             struct_ser.serialize_field("routingParameterSetId", pbjson::private::base64::encode(&self.routing_parameter_set_id).as_str())?;
         }
+        if let Some(v) = self.volume_accumulator.as_ref() {
+            struct_ser.serialize_field("volumeAccumulator", v)?;
+        }
+        if self.proof_context != 0 {
+            let v = TransferProofContext::try_from(self.proof_context)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", self.proof_context)))?;
+            struct_ser.serialize_field("proofContext", &v)?;
+        }
         struct_ser.end()
     }
 }
@@ -7131,6 +7305,10 @@ impl<'de> serde::Deserialize<'de> for TransferBody {
             "routing",
             "routing_parameter_set_id",
             "routingParameterSetId",
+            "volume_accumulator",
+            "volumeAccumulator",
+            "proof_context",
+            "proofContext",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -7144,6 +7322,8 @@ impl<'de> serde::Deserialize<'de> for TransferBody {
             AssetAnchor,
             Routing,
             RoutingParameterSetId,
+            VolumeAccumulator,
+            ProofContext,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -7175,6 +7355,8 @@ impl<'de> serde::Deserialize<'de> for TransferBody {
                             "assetAnchor" | "asset_anchor" => Ok(GeneratedField::AssetAnchor),
                             "routing" => Ok(GeneratedField::Routing),
                             "routingParameterSetId" | "routing_parameter_set_id" => Ok(GeneratedField::RoutingParameterSetId),
+                            "volumeAccumulator" | "volume_accumulator" => Ok(GeneratedField::VolumeAccumulator),
+                            "proofContext" | "proof_context" => Ok(GeneratedField::ProofContext),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -7203,6 +7385,8 @@ impl<'de> serde::Deserialize<'de> for TransferBody {
                 let mut asset_anchor__ = None;
                 let mut routing__ = None;
                 let mut routing_parameter_set_id__ = None;
+                let mut volume_accumulator__ = None;
+                let mut proof_context__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Anchor => {
@@ -7233,7 +7417,7 @@ impl<'de> serde::Deserialize<'de> for TransferBody {
                             if target_timestamp__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("targetTimestamp"));
                             }
-                            target_timestamp__ = 
+                            target_timestamp__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -7259,9 +7443,21 @@ impl<'de> serde::Deserialize<'de> for TransferBody {
                             if routing_parameter_set_id__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("routingParameterSetId"));
                             }
-                            routing_parameter_set_id__ = 
+                            routing_parameter_set_id__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
+                        }
+                        GeneratedField::VolumeAccumulator => {
+                            if volume_accumulator__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("volumeAccumulator"));
+                            }
+                            volume_accumulator__ = map_.next_value()?;
+                        }
+                        GeneratedField::ProofContext => {
+                            if proof_context__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("proofContext"));
+                            }
+                            proof_context__ = Some(map_.next_value::<TransferProofContext>()? as i32);
                         }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
@@ -7278,6 +7474,8 @@ impl<'de> serde::Deserialize<'de> for TransferBody {
                     asset_anchor: asset_anchor__,
                     routing: routing__,
                     routing_parameter_set_id: routing_parameter_set_id__.unwrap_or_default(),
+                    volume_accumulator: volume_accumulator__,
+                    proof_context: proof_context__.unwrap_or_default(),
                 })
             }
         }
@@ -7423,7 +7621,7 @@ impl<'de> serde::Deserialize<'de> for TransferInputBody {
                             if encrypted_backref__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("encryptedBackref"));
                             }
-                            encrypted_backref__ = 
+                            encrypted_backref__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -7431,7 +7629,7 @@ impl<'de> serde::Deserialize<'de> for TransferInputBody {
                             if compliance_ciphertext__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("complianceCiphertext"));
                             }
-                            compliance_ciphertext__ = 
+                            compliance_ciphertext__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -7597,7 +7795,7 @@ impl<'de> serde::Deserialize<'de> for TransferOutputBody {
                             if wrapped_memo_key__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("wrappedMemoKey"));
                             }
-                            wrapped_memo_key__ = 
+                            wrapped_memo_key__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -7605,7 +7803,7 @@ impl<'de> serde::Deserialize<'de> for TransferOutputBody {
                             if ovk_wrapped_key__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("ovkWrappedKey"));
                             }
-                            ovk_wrapped_key__ = 
+                            ovk_wrapped_key__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -7613,7 +7811,7 @@ impl<'de> serde::Deserialize<'de> for TransferOutputBody {
                             if compliance_ciphertext__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("complianceCiphertext"));
                             }
-                            compliance_ciphertext__ = 
+                            compliance_ciphertext__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -7621,7 +7819,7 @@ impl<'de> serde::Deserialize<'de> for TransferOutputBody {
                             if compliance_metadata__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("complianceMetadata"));
                             }
-                            compliance_metadata__ = 
+                            compliance_metadata__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -7662,6 +7860,12 @@ impl serde::Serialize for TransferPlan {
         if self.routing_parameters.is_some() {
             len += 1;
         }
+        if self.volume_accumulator.is_some() {
+            len += 1;
+        }
+        if self.proof_context != 0 {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.TransferPlan", len)?;
         if !self.value_blinding.is_empty() {
             #[allow(clippy::needless_borrow)]
@@ -7676,6 +7880,14 @@ impl serde::Serialize for TransferPlan {
         }
         if let Some(v) = self.routing_parameters.as_ref() {
             struct_ser.serialize_field("routingParameters", v)?;
+        }
+        if let Some(v) = self.volume_accumulator.as_ref() {
+            struct_ser.serialize_field("volumeAccumulator", v)?;
+        }
+        if self.proof_context != 0 {
+            let v = TransferProofContext::try_from(self.proof_context)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", self.proof_context)))?;
+            struct_ser.serialize_field("proofContext", &v)?;
         }
         struct_ser.end()
     }
@@ -7693,6 +7905,10 @@ impl<'de> serde::Deserialize<'de> for TransferPlan {
             "outputs",
             "routing_parameters",
             "routingParameters",
+            "volume_accumulator",
+            "volumeAccumulator",
+            "proof_context",
+            "proofContext",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -7701,6 +7917,8 @@ impl<'de> serde::Deserialize<'de> for TransferPlan {
             Spends,
             Outputs,
             RoutingParameters,
+            VolumeAccumulator,
+            ProofContext,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -7727,6 +7945,8 @@ impl<'de> serde::Deserialize<'de> for TransferPlan {
                             "spends" => Ok(GeneratedField::Spends),
                             "outputs" => Ok(GeneratedField::Outputs),
                             "routingParameters" | "routing_parameters" => Ok(GeneratedField::RoutingParameters),
+                            "volumeAccumulator" | "volume_accumulator" => Ok(GeneratedField::VolumeAccumulator),
+                            "proofContext" | "proof_context" => Ok(GeneratedField::ProofContext),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -7750,13 +7970,15 @@ impl<'de> serde::Deserialize<'de> for TransferPlan {
                 let mut spends__ = None;
                 let mut outputs__ = None;
                 let mut routing_parameters__ = None;
+                let mut volume_accumulator__ = None;
+                let mut proof_context__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::ValueBlinding => {
                             if value_blinding__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("valueBlinding"));
                             }
-                            value_blinding__ = 
+                            value_blinding__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -7778,6 +8000,18 @@ impl<'de> serde::Deserialize<'de> for TransferPlan {
                             }
                             routing_parameters__ = map_.next_value()?;
                         }
+                        GeneratedField::VolumeAccumulator => {
+                            if volume_accumulator__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("volumeAccumulator"));
+                            }
+                            volume_accumulator__ = map_.next_value()?;
+                        }
+                        GeneratedField::ProofContext => {
+                            if proof_context__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("proofContext"));
+                            }
+                            proof_context__ = Some(map_.next_value::<TransferProofContext>()? as i32);
+                        }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
                         }
@@ -7788,10 +8022,86 @@ impl<'de> serde::Deserialize<'de> for TransferPlan {
                     spends: spends__.unwrap_or_default(),
                     outputs: outputs__.unwrap_or_default(),
                     routing_parameters: routing_parameters__,
+                    volume_accumulator: volume_accumulator__,
+                    proof_context: proof_context__.unwrap_or_default(),
                 })
             }
         }
         deserializer.deserialize_struct("shieldd.core.component.shielded_pool.v1.TransferPlan", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for TransferProofContext {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let variant = match self {
+            Self::Unspecified => "TRANSFER_PROOF_CONTEXT_UNSPECIFIED",
+            Self::Ordinary => "TRANSFER_PROOF_CONTEXT_ORDINARY",
+            Self::FeeFunding => "TRANSFER_PROOF_CONTEXT_FEE_FUNDING",
+        };
+        serializer.serialize_str(variant)
+    }
+}
+impl<'de> serde::Deserialize<'de> for TransferProofContext {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "TRANSFER_PROOF_CONTEXT_UNSPECIFIED",
+            "TRANSFER_PROOF_CONTEXT_ORDINARY",
+            "TRANSFER_PROOF_CONTEXT_FEE_FUNDING",
+        ];
+
+        struct GeneratedVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = TransferProofContext;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(formatter, "expected one of: {:?}", &FIELDS)
+            }
+
+            fn visit_i64<E>(self, v: i64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Signed(v), &self)
+                    })
+            }
+
+            fn visit_u64<E>(self, v: u64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Unsigned(v), &self)
+                    })
+            }
+
+            fn visit_str<E>(self, value: &str) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                match value {
+                    "TRANSFER_PROOF_CONTEXT_UNSPECIFIED" => Ok(TransferProofContext::Unspecified),
+                    "TRANSFER_PROOF_CONTEXT_ORDINARY" => Ok(TransferProofContext::Ordinary),
+                    "TRANSFER_PROOF_CONTEXT_FEE_FUNDING" => Ok(TransferProofContext::FeeFunding),
+                    _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
+                }
+            }
+        }
+        deserializer.deserialize_any(GeneratedVisitor)
     }
 }
 impl serde::Serialize for TransferRouting {
@@ -8246,6 +8556,447 @@ impl<'de> serde::Deserialize<'de> for transfer_view::Visible {
         deserializer.deserialize_struct("shieldd.core.component.shielded_pool.v1.TransferView.Visible", FIELDS, GeneratedVisitor)
     }
 }
+impl serde::Serialize for VolumeAccumulatorPayload {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.nullifier.is_some() {
+            len += 1;
+        }
+        if self.commitment.is_some() {
+            len += 1;
+        }
+        if !self.encrypted_state.is_empty() {
+            len += 1;
+        }
+        if self.day_start != 0 {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.VolumeAccumulatorPayload", len)?;
+        if let Some(v) = self.nullifier.as_ref() {
+            struct_ser.serialize_field("nullifier", v)?;
+        }
+        if let Some(v) = self.commitment.as_ref() {
+            struct_ser.serialize_field("commitment", v)?;
+        }
+        if !self.encrypted_state.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("encryptedState", pbjson::private::base64::encode(&self.encrypted_state).as_str())?;
+        }
+        if self.day_start != 0 {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("dayStart", ToString::to_string(&self.day_start).as_str())?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for VolumeAccumulatorPayload {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "nullifier",
+            "commitment",
+            "encrypted_state",
+            "encryptedState",
+            "day_start",
+            "dayStart",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Nullifier,
+            Commitment,
+            EncryptedState,
+            DayStart,
+            __SkipField__,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "nullifier" => Ok(GeneratedField::Nullifier),
+                            "commitment" => Ok(GeneratedField::Commitment),
+                            "encryptedState" | "encrypted_state" => Ok(GeneratedField::EncryptedState),
+                            "dayStart" | "day_start" => Ok(GeneratedField::DayStart),
+                            _ => Ok(GeneratedField::__SkipField__),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = VolumeAccumulatorPayload;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct shieldd.core.component.shielded_pool.v1.VolumeAccumulatorPayload")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<VolumeAccumulatorPayload, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut nullifier__ = None;
+                let mut commitment__ = None;
+                let mut encrypted_state__ = None;
+                let mut day_start__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Nullifier => {
+                            if nullifier__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("nullifier"));
+                            }
+                            nullifier__ = map_.next_value()?;
+                        }
+                        GeneratedField::Commitment => {
+                            if commitment__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("commitment"));
+                            }
+                            commitment__ = map_.next_value()?;
+                        }
+                        GeneratedField::EncryptedState => {
+                            if encrypted_state__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("encryptedState"));
+                            }
+                            encrypted_state__ =
+                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::DayStart => {
+                            if day_start__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("dayStart"));
+                            }
+                            day_start__ =
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::__SkipField__ => {
+                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
+                        }
+                    }
+                }
+                Ok(VolumeAccumulatorPayload {
+                    nullifier: nullifier__,
+                    commitment: commitment__,
+                    encrypted_state: encrypted_state__.unwrap_or_default(),
+                    day_start: day_start__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("shieldd.core.component.shielded_pool.v1.VolumeAccumulatorPayload", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for VolumeAccumulatorPlan {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.use_real {
+            len += 1;
+        }
+        if self.starts_new_day {
+            len += 1;
+        }
+        if self.day_start != 0 {
+            len += 1;
+        }
+        if !self.subject.is_empty() {
+            len += 1;
+        }
+        if !self.prior_volume.is_empty() {
+            len += 1;
+        }
+        if !self.prior_blinding.is_empty() {
+            len += 1;
+        }
+        if self.prior_commitment.is_some() {
+            len += 1;
+        }
+        if self.prior_position != 0 {
+            len += 1;
+        }
+        if !self.successor_volume.is_empty() {
+            len += 1;
+        }
+        if !self.successor_blinding.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.VolumeAccumulatorPlan", len)?;
+        if self.use_real {
+            struct_ser.serialize_field("useReal", &self.use_real)?;
+        }
+        if self.starts_new_day {
+            struct_ser.serialize_field("startsNewDay", &self.starts_new_day)?;
+        }
+        if self.day_start != 0 {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("dayStart", ToString::to_string(&self.day_start).as_str())?;
+        }
+        if !self.subject.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("subject", pbjson::private::base64::encode(&self.subject).as_str())?;
+        }
+        if !self.prior_volume.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("priorVolume", pbjson::private::base64::encode(&self.prior_volume).as_str())?;
+        }
+        if !self.prior_blinding.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("priorBlinding", pbjson::private::base64::encode(&self.prior_blinding).as_str())?;
+        }
+        if let Some(v) = self.prior_commitment.as_ref() {
+            struct_ser.serialize_field("priorCommitment", v)?;
+        }
+        if self.prior_position != 0 {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("priorPosition", ToString::to_string(&self.prior_position).as_str())?;
+        }
+        if !self.successor_volume.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("successorVolume", pbjson::private::base64::encode(&self.successor_volume).as_str())?;
+        }
+        if !self.successor_blinding.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("successorBlinding", pbjson::private::base64::encode(&self.successor_blinding).as_str())?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for VolumeAccumulatorPlan {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "use_real",
+            "useReal",
+            "starts_new_day",
+            "startsNewDay",
+            "day_start",
+            "dayStart",
+            "subject",
+            "prior_volume",
+            "priorVolume",
+            "prior_blinding",
+            "priorBlinding",
+            "prior_commitment",
+            "priorCommitment",
+            "prior_position",
+            "priorPosition",
+            "successor_volume",
+            "successorVolume",
+            "successor_blinding",
+            "successorBlinding",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            UseReal,
+            StartsNewDay,
+            DayStart,
+            Subject,
+            PriorVolume,
+            PriorBlinding,
+            PriorCommitment,
+            PriorPosition,
+            SuccessorVolume,
+            SuccessorBlinding,
+            __SkipField__,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "useReal" | "use_real" => Ok(GeneratedField::UseReal),
+                            "startsNewDay" | "starts_new_day" => Ok(GeneratedField::StartsNewDay),
+                            "dayStart" | "day_start" => Ok(GeneratedField::DayStart),
+                            "subject" => Ok(GeneratedField::Subject),
+                            "priorVolume" | "prior_volume" => Ok(GeneratedField::PriorVolume),
+                            "priorBlinding" | "prior_blinding" => Ok(GeneratedField::PriorBlinding),
+                            "priorCommitment" | "prior_commitment" => Ok(GeneratedField::PriorCommitment),
+                            "priorPosition" | "prior_position" => Ok(GeneratedField::PriorPosition),
+                            "successorVolume" | "successor_volume" => Ok(GeneratedField::SuccessorVolume),
+                            "successorBlinding" | "successor_blinding" => Ok(GeneratedField::SuccessorBlinding),
+                            _ => Ok(GeneratedField::__SkipField__),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = VolumeAccumulatorPlan;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct shieldd.core.component.shielded_pool.v1.VolumeAccumulatorPlan")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<VolumeAccumulatorPlan, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut use_real__ = None;
+                let mut starts_new_day__ = None;
+                let mut day_start__ = None;
+                let mut subject__ = None;
+                let mut prior_volume__ = None;
+                let mut prior_blinding__ = None;
+                let mut prior_commitment__ = None;
+                let mut prior_position__ = None;
+                let mut successor_volume__ = None;
+                let mut successor_blinding__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::UseReal => {
+                            if use_real__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("useReal"));
+                            }
+                            use_real__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::StartsNewDay => {
+                            if starts_new_day__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("startsNewDay"));
+                            }
+                            starts_new_day__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::DayStart => {
+                            if day_start__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("dayStart"));
+                            }
+                            day_start__ =
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::Subject => {
+                            if subject__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("subject"));
+                            }
+                            subject__ =
+                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::PriorVolume => {
+                            if prior_volume__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("priorVolume"));
+                            }
+                            prior_volume__ =
+                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::PriorBlinding => {
+                            if prior_blinding__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("priorBlinding"));
+                            }
+                            prior_blinding__ =
+                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::PriorCommitment => {
+                            if prior_commitment__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("priorCommitment"));
+                            }
+                            prior_commitment__ = map_.next_value()?;
+                        }
+                        GeneratedField::PriorPosition => {
+                            if prior_position__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("priorPosition"));
+                            }
+                            prior_position__ =
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::SuccessorVolume => {
+                            if successor_volume__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("successorVolume"));
+                            }
+                            successor_volume__ =
+                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::SuccessorBlinding => {
+                            if successor_blinding__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("successorBlinding"));
+                            }
+                            successor_blinding__ =
+                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::__SkipField__ => {
+                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
+                        }
+                    }
+                }
+                Ok(VolumeAccumulatorPlan {
+                    use_real: use_real__.unwrap_or_default(),
+                    starts_new_day: starts_new_day__.unwrap_or_default(),
+                    day_start: day_start__.unwrap_or_default(),
+                    subject: subject__.unwrap_or_default(),
+                    prior_volume: prior_volume__.unwrap_or_default(),
+                    prior_blinding: prior_blinding__.unwrap_or_default(),
+                    prior_commitment: prior_commitment__,
+                    prior_position: prior_position__.unwrap_or_default(),
+                    successor_volume: successor_volume__.unwrap_or_default(),
+                    successor_blinding: successor_blinding__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("shieldd.core.component.shielded_pool.v1.VolumeAccumulatorPlan", FIELDS, GeneratedVisitor)
+    }
+}
 impl serde::Serialize for ZkNoteReshapeProof {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -8328,7 +9079,7 @@ impl<'de> serde::Deserialize<'de> for ZkNoteReshapeProof {
                             if inner__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("inner"));
                             }
-                            inner__ = 
+                            inner__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -8427,7 +9178,7 @@ impl<'de> serde::Deserialize<'de> for ZkShieldedIcs20WithdrawalProof {
                             if inner__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("inner"));
                             }
-                            inner__ = 
+                            inner__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -8526,7 +9277,7 @@ impl<'de> serde::Deserialize<'de> for ZkTransferProof {
                             if inner__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("inner"));
                             }
-                            inner__ = 
+                            inner__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }

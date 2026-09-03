@@ -59,7 +59,7 @@ pub use preflight::{
 pub use srs::{
     load_active_production_srs, load_production_srs_for_id, srs_id, srs_report, DevSrs,
     DevSrsReport, DEFAULT_DEV_SRS_ID, DEFAULT_MAX_PADDED_PROOF_COUNT, DEV_SRS_BACKEND_ID,
-    DEV_SRS_CURVE_ID, DEV_SRS_VERSION, PRODUCTION_SRS_ARTIFACT_DIR_ENV,
+    DEV_SRS_CURVE_ID, PRODUCTION_SRS_ARTIFACT_DIR_ENV,
 };
 pub use statement::{
     aggregate_verification_key_digest, challenge_context, encode_statement, statement_digest,
@@ -85,8 +85,7 @@ pub fn aggregate_family_profiled(
     SnarkpackBackend::aggregate_family_profiled(statement, pvk, items, srs)
 }
 
-/// Build the SnarkPack torus-v2 wire format while retaining the v1 proof
-/// relation and Fiat-Shamir transcript.
+/// Build the optional SnarkPack v2 torus wire using the shared relation and transcript.
 pub fn aggregate_family_torus_v2(
     statement: &AggregateStatement,
     items: &[BatchItem],
@@ -104,8 +103,7 @@ pub fn verify_family_aggregate(
     SnarkpackBackend::verify_family_aggregate(statement, pvk, aggregate_proof_bytes, srs)
 }
 
-/// Verify a torus-v2 aggregate after reconstructing and validating every v1
-/// target-group value.
+/// Verify an optional v2 torus aggregate after reconstructing its target values.
 pub fn verify_family_aggregate_torus_v2(
     statement: &AggregateStatement,
     pvk: &PreparedVerifyingKey<Bls12_377>,

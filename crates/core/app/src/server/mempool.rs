@@ -110,7 +110,7 @@ impl Mempool {
         app.set_block_tx_indexing_mode(BlockTxIndexingMode::NoIndex);
 
         match app
-            .deliver_tx_bytes_v2_profiled(tx_bytes.as_ref(), Some(stateless_cache.as_ref()))
+            .deliver_tx_bytes_profiled(tx_bytes.as_ref(), Some(stateless_cache.as_ref()))
             .await
         {
             Ok((events, profile)) => {

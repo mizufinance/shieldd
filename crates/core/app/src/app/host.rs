@@ -21,8 +21,8 @@ use std::str::FromStr as _;
 use std::time::Instant;
 
 const HOST_ACTION_SOURCE_PREFIX: &str = "application/host_action/source";
-const HOST_DEPOSIT_DOMAIN: &[u8] = b"shieldd.host_deposit.v1";
-const HOST_COMPLIANCE_ACTION_DOMAIN: &[u8] = b"shieldd.host_compliance_action.v1";
+const HOST_DEPOSIT_DOMAIN: &[u8] = b"shieldd.host_deposit";
+const HOST_COMPLIANCE_ACTION_DOMAIN: &[u8] = b"shieldd.host_compliance_action";
 const HOST_PROPOSER_ADDRESS: [u8; 20] = [0u8; 20];
 
 #[derive(Clone, Debug)]
@@ -1154,6 +1154,10 @@ mod tests {
                 asset_anchor: shieldd_sdk_tct::StateCommitment(decaf377::Fq::from(0u64)),
                 routing_tag: Default::default(),
                 routing_parameter_set_id: decaf377::Fq::from(0u64),
+                sender_compliance_ciphertext: Vec::new(),
+                sender_compliance_metadata: Vec::new(),
+                volume_accumulator:
+                    shieldd_sdk_shielded_pool::VolumeAccumulatorPayload::canonical_fee_funding(),
             },
             auth_sigs: Vec::new(),
             proof: ShieldedIcs20WithdrawalProof::default(),

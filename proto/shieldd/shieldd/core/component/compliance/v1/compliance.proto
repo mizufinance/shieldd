@@ -47,8 +47,8 @@ message MsgRegisterAsset {
   bool is_regulated = 2;
   // Issuer's detection key public (32 bytes, optional).
   bytes dk_pub = 3;
-  // Amount threshold for flagging (16 bytes, little-endian u128).
-  bytes threshold = 4;
+  // Daily undisclosed-volume limit (16-byte little-endian u128).
+  bytes daily_volume_limit = 4;
   // Direct IBC routes allowed for this regulated asset. Empty = IBC blocked.
   repeated IbcRoute allowed_ibc_routes = 5;
   // Orbis ring public key (32 bytes compressed point).
@@ -75,7 +75,7 @@ message AssetRegistrationGrantBody {
   asset.v1.AssetId asset_id = 1;
   bool is_regulated = 2;
   bytes dk_pub = 3;
-  bytes threshold = 4;
+  bytes daily_volume_limit = 4;
   repeated IbcRoute allowed_ibc_routes = 5;
   bytes ring_pk = 6;
   string ring_id = 7;
@@ -190,12 +190,14 @@ message ComplianceAssetStatusResponse {
   // Whether the asset requires compliance (only meaningful if is_registered is true).
   bool is_regulated = 3;
   // Optional: Issuer's detection key public (32 bytes compressed point).
-  // Present if the asset has a threshold policy.
+  // Present if the asset has a daily volume policy.
   bytes dk_pub = 4;
-  // Amount threshold for flagging (16 bytes, little-endian u128).
-  // Transfers at or above this amount are encrypted to issuer's DK instead of user's daily key.
+  // Daily undisclosed-volume limit (16-byte little-endian u128).
+  // Maximum accumulated undisclosed outgoing volume. A candidate above this
+  // amount discloses only the current action to the issuer; equality remains
+  // undisclosed. Compliance encryption uses per-action key material.
   // u128::MAX means never flag.
-  bytes threshold = 5;
+  bytes daily_volume_limit = 5;
   // Full asset policy for regulated assets.
   AssetPolicy asset_policy = 6;
 }
@@ -313,7 +315,7 @@ message IndexedLeafData {
   bytes next_value = 3;
   // Shieldd-decided policy (AssetParams)
   bytes dk_pub = 4;
-  bytes threshold = 5;
+  bytes daily_volume_limit = 5;
   bytes route_policy_hash = 6;
   reserved 12;
   // Orbis-decided policy (RingData)
@@ -328,7 +330,7 @@ message IndexedLeafData {
 message AssetPolicy {
   // AssetParams
   bytes dk_pub = 1;
-  bytes threshold = 2;
+  bytes daily_volume_limit = 2;
   repeated IbcRoute allowed_ibc_routes = 3;
   // RingData
   string ring_id = 4;

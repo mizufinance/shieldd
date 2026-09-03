@@ -17,17 +17,32 @@ const (
 )
 
 var (
-	TransferSaltDomain          = transferSaltConstant("shieldd.transfer.compliance.salt")
-	TransferDetectionSaltLabel  = transferSaltConstant("detection")
-	TransferSenderCoreSaltLabel = transferSaltConstant("sender_core")
-	TransferSenderExtSaltLabel  = transferSaltConstant("sender_ext")
-	TransferOutputCoreSaltLabel = transferSaltConstant("output_core")
-	TransferOutputExtSaltLabel  = transferSaltConstant("output_ext")
+	TransferSaltDomain           = transferSaltConstant("shieldd.transfer.compliance.salt")
+	TransferDetectionSaltLabel   = transferSaltConstant("detection")
+	TransferSenderCoreSaltLabel  = transferSaltConstant("sender_core")
+	TransferSenderExtSaltLabel   = transferSaltConstant("sender_ext")
+	TransferOutputCoreSaltLabel  = transferSaltConstant("output_core")
+	TransferOutputExtSaltLabel   = transferSaltConstant("output_ext")
+	WithdrawalSaltDomain         = transferSaltConstant("shieldd.withdrawal.compliance.salt")
+	WithdrawalDetectionSaltLabel = transferSaltConstant("detection")
+	WithdrawalSenderSaltLabel    = transferSaltConstant("sender")
 )
 
 func transferSaltConstant(label string) *big.Int {
 	sum := blake2b.Sum512([]byte(label))
 	return primitives.LittleEndianBytesToBigInt(sum[:])
+}
+
+func DeriveWithdrawalSalt(
+	api frontend.API,
+	nonceRoot frontend.Variable,
+	label *big.Int,
+) (frontend.Variable, error) {
+	return primitives.Poseidon377Hash2(
+		api,
+		WithdrawalSaltDomain,
+		[2]frontend.Variable{nonceRoot, label},
+	)
 }
 
 func complianceStreamCipherDomain() *big.Int {
@@ -53,16 +68,6 @@ func DeriveTransferSalt(
 		TransferSaltDomain,
 		[2]frontend.Variable{transferNonceRoot, label},
 	)
-}
-
-func ThresholdFlag(
-	api frontend.API,
-	isRegulated frontend.Variable,
-	amount frontend.Variable,
-	threshold frontend.Variable,
-) frontend.Variable {
-	thresholdReached := api.Sub(1, fieldLessThan(api, amount, threshold))
-	return api.Mul(isRegulated, thresholdReached)
 }
 
 func VerifyPoseidonEncryptionTransferDetection(

@@ -16,8 +16,8 @@ nullifier, and value constraints are tracked in
 - Policy admission rejects identity detection and ring keys before the asset
   leaf can enter durable registry state.
 - Unregulated values select fixed sink ring/DK points and empty-string policy
-  hashes. Their authenticated predecessor-leaf threshold remains a comparator
-  input but cannot affect the regulation-gated flag.
+  hashes. Their authenticated predecessor-leaf daily limit remains in the
+  fixed witness but cannot enable accumulation or disclosure.
 - `is_regulated` is boolean and cannot be chosen independently of the tree.
 - Mutation coverage: regulated/unregulated fixtures, bad gap bounds, wrong
   asset leaf, and selected-policy field changes.
@@ -29,7 +29,7 @@ nullifier, and value constraints are tracked in
   matches native key/address allocation and prevents identity-DTK ownership
   aliasing; it is not merely an honest-construction precondition.
 - Regulated transfers bind the diversified generator, transmission key, asset
-  id, canonical address-derived `d`, and status into version-5 compliance-leaf
+  id, canonical address-derived `d`, and status into compliance-leaf
   commitments under the accepted compliance anchor.
 - Native registration rejects a derived `d = 0`, preventing an identity ACK.
 - Regulated sender and receiver statuses must both equal `Active`.
@@ -39,18 +39,22 @@ nullifier, and value constraints are tracked in
 - Mutation coverage: leaf fields, paths, positions, anchor, derivation, and ACK
   inputs.
 
-### Threshold And Detection
+### Daily Volume And Detection
 
-- The flag is exactly
-  `is_regulated * (amount >= authenticated_leaf_threshold)`.
-- An unregulated transfer is therefore never flagged, including when its
-  receiver amount is `u128::MAX`.
+- An eligible real transition proves a canonical day origin or SCT predecessor,
+  checked `u128` addition, and `candidate <= daily_volume_limit`.
+- Eligible padding means disclosure; ineligible padding remains unflagged.
+- An unregulated transfer is never flagged, including when its receiver amount
+  is `u128::MAX`.
+- UTC midnight alone selects the next day, and fee funding is constrained
+  to its statement-bound disabled context.
 - Detection encryption is unconditional and uses the selected DK shared secret,
   sender-core EPK, asset id, detection salt, canonical flag, and reserved zero.
 - Address candidate filtering uses the separate proof-bound routing tags.
 - The detection ciphertext is part of the public statement.
-- Mutation coverage: threshold boundary, flag, reserved word, salt, EPK, and each
-  detection ciphertext word.
+- Mutation coverage: origin, continuation, exact limit, over-limit candidate,
+  successor amount, transition mode, timestamp decomposition, flag, reserved
+  word, salt, EPK, and each detection ciphertext word.
 
 ### Audit-Tier Encryption
 
@@ -85,8 +89,8 @@ nullifier, and value constraints are tracked in
 
 ### Public Statement
 
-- Rust and Go reconstruct the same 45-field preimage.
-- The statement hash domain is transfer `v7`.
+- Rust and Go reconstruct the same 49-field preimage.
+- The statement hash uses the transfer statement domain.
 - The preimage binds the consensus recent-position floor and one
   `history_required` bit per spend.
 - The public tail commits all eight non-duplicate metadata Fq values.
@@ -107,8 +111,9 @@ nullifier, and value constraints are tracked in
 - Spend signatures cover a Transfer effect hash containing the exact receiver
   ciphertext and metadata; delegated construction cannot replace those bytes
   after authorization.
-- Transaction-wide nullifier insertion and the binding signature remain
-  external acceptance requirements.
+- Transaction-wide spend-nullifier insertion, temporary scoped daily-volume
+  nullifier insertion, and the binding signature remain external acceptance
+  requirements.
 
 ### Wire Shape
 
@@ -140,6 +145,6 @@ nullifier, and value constraints are tracked in
 - Audit completion requires `evidence_valid`.
 - Flagged rows may complete through issuer-DK tier decryption.
 - `export_orbis_pending_scan` and `import_orbis_audit_entries` always fail
-  closed for Orbis v0, even when evidence is valid.
+  closed for the Orbis prototype, even when evidence is valid.
 - Unflagged ACK-tier audit therefore cannot complete until a confidentiality-
-  safe PRE v1 is specified, circuit-bound, and reviewed.
+  safe PRE design is specified, circuit-bound, and reviewed.

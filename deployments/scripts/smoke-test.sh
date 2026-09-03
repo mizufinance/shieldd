@@ -258,7 +258,7 @@ if [ -n "$dk_hex" ] && [ -n "$dk_pub_hex" ]; then
     asset_grant_output=$(cargo_cmd run --release --bin pcli -- --home "$pcli_test_home" tx compliance sign-asset-grant regulated_usd \
         --regulated \
         --dk-pub-hex "$dk_pub_hex" \
-        --threshold 500000000000000000000 \
+        --daily-volume-limit 500000000000000000000 \
         --registration-authority-vk-hex "$compliance_dev_authority_vk_hex" \
         --registrar-sk-hex "$compliance_dev_registrar_sk_hex" \
         --valid-until-unix "$compliance_grant_valid_until_unix" \
@@ -274,7 +274,7 @@ if [ -n "$dk_hex" ] && [ -n "$dk_pub_hex" ]; then
     pcli_tx_cmd tx compliance register-asset regulated_usd \
         --regulated \
         --dk-pub-hex "$dk_pub_hex" \
-        --threshold 500000000000000000000 \
+        --daily-volume-limit 500000000000000000000 \
         --registration-authority-vk-hex "$compliance_dev_authority_vk_hex" \
         --asset-registration-grant-hex "$asset_grant_hex"
     >&2 echo "  regulated_usd registered as regulated asset."

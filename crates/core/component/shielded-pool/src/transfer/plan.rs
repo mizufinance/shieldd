@@ -32,6 +32,7 @@ use crate::transfer::{
     PADDED_TRANSFER_OUTPUTS,
 };
 use crate::{Note, ShieldedInputPlan, ShieldedOutputPlan};
+use crate::{TransferProofContext, VolumeAccumulatorPlan};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(try_from = "pb::TransferPlan", into = "pb::TransferPlan")]
@@ -40,6 +41,8 @@ pub struct TransferPlan {
     pub spends: Vec<ShieldedInputPlan>,
     pub outputs: Vec<ShieldedOutputPlan>,
     pub routing_parameters: Parameters,
+    pub volume_accumulator: VolumeAccumulatorPlan,
+    pub proof_context: TransferProofContext,
 }
 
 impl TransferPlan {
@@ -48,11 +51,17 @@ impl TransferPlan {
         outputs: Vec<ShieldedOutputPlan>,
         value_blinding: Fr,
     ) -> anyhow::Result<Self> {
+        let target_timestamp = spends
+            .first()
+            .map(|spend| spend.target_timestamp)
+            .unwrap_or(0);
         let plan = Self {
             value_blinding,
             spends,
             outputs,
             routing_parameters: Parameters::default(),
+            volume_accumulator: VolumeAccumulatorPlan::padding(target_timestamp),
+            proof_context: TransferProofContext::Ordinary,
         };
         plan.validate()?;
         Ok(plan)
@@ -82,7 +91,55 @@ impl TransferPlan {
         self.routing_parameters = parameters;
     }
 
-    #[cfg(feature = "poc-orbis-v0")]
+    pub fn set_volume_accumulator(&mut self, plan: VolumeAccumulatorPlan) {
+        self.volume_accumulator = plan;
+    }
+
+    pub fn set_fee_funding_context(&mut self) {
+        self.proof_context = TransferProofContext::FeeFunding;
+        self.volume_accumulator =
+            VolumeAccumulatorPlan::padding(self.first_spend().target_timestamp);
+    }
+
+    pub fn accumulator_prior_commitment(&self) -> Option<tct::StateCommitment> {
+        (self.proof_context == TransferProofContext::Ordinary
+            && matches!(
+                self.volume_accumulator,
+                VolumeAccumulatorPlan::Continuation { .. }
+            ))
+        .then(|| self.volume_accumulator.prior_commitment())
+    }
+
+    fn effective_volume_accumulator(&self) -> VolumeAccumulatorPlan {
+        if self.proof_context == TransferProofContext::Ordinary
+            && !self.volume_accumulator.is_real()
+        {
+            VolumeAccumulatorPlan::padding(self.first_spend().target_timestamp)
+        } else {
+            self.volume_accumulator.clone()
+        }
+    }
+
+    fn is_disclosed_to_issuer(&self) -> bool {
+        self.proof_context == TransferProofContext::Ordinary
+            && self.first_spend().is_regulated
+            && self.outputs[0].dest_address != self.sender_address()
+            && !self.volume_accumulator.is_real()
+    }
+
+    pub fn volume_accumulator_payload(
+        &self,
+        fvk: &FullViewingKey,
+    ) -> crate::VolumeAccumulatorPayload {
+        self.effective_volume_accumulator().selected_payload(
+            fvk.nullifier_key(),
+            fvk.outgoing(),
+            Fq::from_le_bytes_mod_order(&self.spends[0].tx_blinding_nonce.to_bytes()),
+            self.proof_context,
+        )
+    }
+
+    #[cfg(feature = "poc-orbis")]
     pub fn poc_orbis_audit_bundle(
         &self,
     ) -> anyhow::Result<Option<shieldd_sdk_compliance::PocOrbisAuditBundle>> {
@@ -94,6 +151,7 @@ impl TransferPlan {
             &self.first_spend().asset_indexed_leaf,
             self.first_spend().target_timestamp,
             self.first_spend().tx_blinding_nonce,
+            self.is_disclosed_to_issuer(),
         )?;
         Ok(result.poc_orbis_audit_bundle)
     }
@@ -334,6 +392,16 @@ impl TransferPlan {
                 "transfer change output must use the sender compliance witness",
             );
         }
+        if self.proof_context == TransferProofContext::FeeFunding {
+            ensure!(
+                self.outputs[0].dest_address == sender_address,
+                "fee funding receiver must be the sender"
+            );
+            ensure!(
+                !self.volume_accumulator.is_real(),
+                "fee funding must not carry a real volume accumulator"
+            );
+        }
         Ok(())
     }
 
@@ -359,6 +427,7 @@ impl TransferPlan {
             &self.spends[0].asset_indexed_leaf,
             self.spends[0].target_timestamp,
             self.spends[0].tx_blinding_nonce,
+            self.is_disclosed_to_issuer(),
         )?;
 
         let inputs = self
@@ -439,6 +508,8 @@ impl TransferPlan {
             asset_anchor: self.spends[0].asset_anchor,
             routing,
             routing_parameter_set_id: self.routing_parameters.id(),
+            volume_accumulator: self.volume_accumulator_payload(fvk),
+            proof_context: self.proof_context,
         })
     }
 
@@ -451,10 +522,16 @@ impl TransferPlan {
     ) -> Result<(TransferProofPublic, TransferProofPrivate), crate::ProofError> {
         self.validate()
             .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))?;
-        if state_commitment_proofs.len() != self.spends.len() {
+        let needs_accumulator_proof = self.proof_context == TransferProofContext::Ordinary
+            && matches!(
+                self.volume_accumulator,
+                VolumeAccumulatorPlan::Continuation { .. }
+            );
+        let expected_proofs = self.spends.len() + usize::from(needs_accumulator_proof);
+        if state_commitment_proofs.len() != expected_proofs {
             return Err(crate::ProofError::InvalidPublicInput(format!(
                 "transfer expected {} state commitment proofs, got {}",
-                self.spends.len(),
+                expected_proofs,
                 state_commitment_proofs.len()
             )));
         }
@@ -470,6 +547,7 @@ impl TransferPlan {
             &self.spends[0].asset_indexed_leaf,
             self.spends[0].target_timestamp,
             self.spends[0].tx_blinding_nonce,
+            self.is_disclosed_to_issuer(),
         )
         .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))?;
 
@@ -562,6 +640,18 @@ impl TransferPlan {
                 .map(ShieldedOutputPlan::output_note)
                 .unwrap_or_else(|| self.synthetic_dummy_output_note(CHANGE_OUTPUT_INDEX)),
         };
+        let volume_plan = self.effective_volume_accumulator();
+        let volume_payload = volume_plan.selected_payload(
+            fvk.nullifier_key(),
+            fvk.outgoing(),
+            Fq::from_le_bytes_mod_order(&self.spends[0].tx_blinding_nonce.to_bytes()),
+            self.proof_context,
+        );
+        let volume_prior_proof = if needs_accumulator_proof {
+            state_commitment_proofs[self.spends.len()].clone()
+        } else {
+            dummy_state_commitment_proof(volume_plan.prior_commitment())
+        };
 
         Ok((
             TransferProofPublic {
@@ -576,6 +666,12 @@ impl TransferPlan {
                 routing,
                 routing_parameter_set_id: self.routing_parameters.id(),
                 recent_position_floor,
+                volume_accumulator: crate::VolumeAccumulatorPublic {
+                    nullifier: volume_payload.nullifier,
+                    commitment: volume_payload.commitment,
+                    day_start: volume_payload.day_start,
+                },
+                proof_context: self.proof_context,
             },
             TransferProofPrivate {
                 action_balance_blinding: self.value_blinding,
@@ -594,6 +690,10 @@ impl TransferPlan {
                 optional_input,
                 receiver_output,
                 change_output,
+                volume_accumulator: crate::VolumeAccumulatorPrivate {
+                    plan: volume_plan,
+                    prior_proof: volume_prior_proof,
+                },
             },
         ))
     }
@@ -650,7 +750,7 @@ impl TransferPlan {
             anchor,
             recent_position_floor,
         )?;
-        crate::gnark::encode_transfer_witness_v20(&public, &private)
+        crate::gnark::encode_transfer_witness(&public, &private)
             .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))
     }
 
@@ -697,6 +797,8 @@ impl From<TransferPlan> for pb::TransferPlan {
             spends: msg.spends.into_iter().map(Into::into).collect(),
             outputs: msg.outputs.into_iter().map(Into::into).collect(),
             routing_parameters: Some(msg.routing_parameters.into()),
+            volume_accumulator: Some(msg.volume_accumulator.into()),
+            proof_context: msg.proof_context.into(),
         }
     }
 }
@@ -727,6 +829,11 @@ impl TryFrom<pb::TransferPlan> for TransferPlan {
                 .routing_parameters
                 .ok_or_else(|| anyhow!("missing routing parameters"))?
                 .try_into()?,
+            volume_accumulator: proto
+                .volume_accumulator
+                .ok_or_else(|| anyhow!("missing volume accumulator plan"))?
+                .try_into()?,
+            proof_context: proto.proof_context.try_into()?,
         };
         plan.validate()?;
         Ok(plan)
@@ -991,6 +1098,19 @@ mod tests {
                 .expect("aligned transfer plan should be valid");
         change_owner.outputs[CHANGE_OUTPUT_INDEX].dest_address = test_keys::ADDRESS_1.clone();
         assert_validation_and_decode_reject(change_owner, "change output must be sender-owned");
+    }
+
+    #[test]
+    fn fee_funding_requires_a_self_directed_receiver() {
+        let (spend, external_receiver, _, _) = transfer_parts(100, 100);
+        let mut plan = TransferPlan::new(vec![spend], vec![external_receiver], Fr::from(5u64))
+            .expect("ordinary external transfer is valid");
+        plan.set_fee_funding_context();
+        assert!(plan
+            .validate()
+            .expect_err("external fee funding must fail")
+            .to_string()
+            .contains("fee funding receiver must be the sender"));
     }
 
     #[test]

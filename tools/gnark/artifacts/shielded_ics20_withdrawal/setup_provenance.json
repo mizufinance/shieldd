@@ -1,23 +1,31 @@
 {
-  "schema": "shieldd.gnark.setup_provenance.v2",
+  "schema": "shieldd.gnark.setup_provenance",
   "curve": "bls12-377",
   "circuit": "shielded_ics20_withdrawal",
   "mode": "fresh_setup",
-  "sr1cs_sha256_hex": "493abc8d370004015b028b881b5728b2d3bdb55cec932849c50e907191812725",
-  "proving_key_sha256_hex": "b80fa91410a116c52fd127ca0e9c541b71c5487dfef55726f09670b8cb8131ba",
-  "verifying_key_binary_sha256_hex": "e43d0025eb4761f37bdbf6bd2a65481a26ced0914c1ba1e4869f50b7915619f2",
-  "verifying_key_json_sha256_hex": "f3324150824b54331dca5656656e9c7ca4589955432423be1f01af742ed344f4",
+  "sr1cs_sha256_hex": "eecf0173272a3fb46d1343d9dc50118c296703bb588a4c7dfd113d492e43eeff",
+  "proving_key_sha256_hex": "e885b0e5ed8c93b4fb22e8f8ce50dd0ced4a66aa4fe1fcafe80e4ac3cdb2c45c",
+  "verifying_key_binary_sha256_hex": "4d80cc37bcf26f2843c202f86b71b04dc684dcbd85e5cbfe47c0ce408d13cc99",
+  "verifying_key_json_sha256_hex": "5dc6067306b9e2503a397f16b6dcf4baad9d076d0d8d4bf517b3660940b00cab",
   "generation_self_tests": [
     {
-      "proof_case": "regulated_optional_real",
-      "witness_format_version": 12,
-      "witness_sha256_hex": "cd897ba47a2148c4a9f1bd9678b09619fcd716ec3b7a1cc5fb3b33223c517dfb",
+      "proof_case": "regulated_disclosed_padding",
+      "witness_sha256_hex": "f2d0b06725075fd6d8463b4101d17230b77b7cea0d4053fcb748205ecaa1602f",
       "proved_and_verified_in_process": true
     },
     {
-      "proof_case": "unregulated_optional_dummy",
-      "witness_format_version": 12,
-      "witness_sha256_hex": "7e73a47914e576ae12dbb4b80a4fd37134f1a68c6f8163e5073757c0227c0965",
+      "proof_case": "unregulated_padding",
+      "witness_sha256_hex": "5c48e8ad45f522720e351d9c87ff6f1badcccd3af347518f14c06e5547ba16d7",
+      "proved_and_verified_in_process": true
+    },
+    {
+      "proof_case": "regulated_accumulator_origin",
+      "witness_sha256_hex": "2f9a844a40e5b9221ac4b8007d9045d3eac98cc47fcc9d3a78dba67bc8a6fa23",
+      "proved_and_verified_in_process": true
+    },
+    {
+      "proof_case": "regulated_accumulator_continuation",
+      "witness_sha256_hex": "9837cda36285a53eaaf77b5874363356c616da6b338087f0c68414e78f07b2f2",
       "proved_and_verified_in_process": true
     }
   ],
