@@ -1,4 +1,32 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+
+fn strip_trailing_whitespace(text: &str) -> String {
+    let mut normalized = String::with_capacity(text.len());
+    for chunk in text.split_inclusive('\n') {
+        if let Some(line) = chunk.strip_suffix('\n') {
+            normalized.push_str(line.trim_end_matches([' ', '\t', '\r']));
+            normalized.push('\n');
+        } else {
+            normalized.push_str(chunk.trim_end_matches([' ', '\t', '\r']));
+        }
+    }
+    normalized
+}
+
+fn normalize_generated_rust(target_dir: &Path) -> anyhow::Result<()> {
+    for entry in std::fs::read_dir(target_dir)? {
+        let path = entry?.path();
+        if path.extension().and_then(|extension| extension.to_str()) != Some("rs") {
+            continue;
+        }
+        let source = std::fs::read_to_string(&path)?;
+        let normalized = strip_trailing_whitespace(&source);
+        if normalized != source {
+            std::fs::write(path, normalized)?;
+        }
+    }
+    Ok(())
+}
 
 fn main() -> anyhow::Result<()> {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -116,5 +144,24 @@ fn main() -> anyhow::Result<()> {
         ])
         .build(&[".shieldd"])?;
 
+    normalize_generated_rust(&target_dir)?;
+
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::strip_trailing_whitespace;
+
+    #[test]
+    fn strips_trailing_whitespace_without_changing_line_structure() {
+        assert_eq!(
+            strip_trailing_whitespace("first  \nsecond\t\nthird  "),
+            "first\nsecond\nthird"
+        );
+        assert_eq!(
+            strip_trailing_whitespace("already clean\n"),
+            "already clean\n"
+        );
+    }
 }
