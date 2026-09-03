@@ -1,5 +1,5 @@
 use ark_ec::{AffineRepr, CurveGroup};
-use ark_ff::{BigInteger, PrimeField};
+use ark_ff::PrimeField;
 use decaf377::{Element, Encoding, Fq, Fr, ZETA};
 use poseidon_parameters::v1::{Alpha, MatrixOperations};
 use serde::Serialize;
@@ -94,16 +94,6 @@ struct OrbisDerivationVector {
     scalar: String,
 }
 
-#[derive(Serialize)]
-struct CompactPreDleqVector {
-    capability_secret: String,
-    reader_secret: String,
-    epk_secret: String,
-    nonce: String,
-    challenge: String,
-    response: String,
-}
-
 /// NoteReshape statement-hash seam fixture (H3 / Phase C).
 ///
 /// Seeded retained-family public statements in the exact production role order,
@@ -125,7 +115,6 @@ struct Vectors {
     decaf377_compress_vectors: Vec<DecafCompressVector>,
     decaf377_encode_vectors: Vec<DecafEncodeVector>,
     orbis_derivation: OrbisDerivationVector,
-    compact_pre_dleq: CompactPreDleqVector,
     note_reshape_statements: Vec<NoteReshapeStatementFixture>,
 }
 
@@ -136,57 +125,6 @@ fn blake2b_fq(label: &[u8]) -> Fq {
 fn personalized_blake2b_fq(personal: &[u8; 16]) -> Fq {
     let hash = blake2b_simd::Params::default().personal(personal).hash(b"");
     Fq::from_le_bytes_mod_order(hash.as_bytes())
-}
-
-fn fq_to_challenge_scalar(fq: Fq) -> Fr {
-    let mut bytes = fq.into_bigint().to_bytes_le();
-    let keep_bits = Fr::MODULUS_BIT_SIZE - 1;
-    let keep_bytes = (keep_bits as usize + 7) / 8;
-    let spare_bits = keep_bytes * 8 - keep_bits as usize;
-    bytes[keep_bytes - 1] &= 0xFF >> spare_bits;
-    Fr::from_le_bytes_mod_order(&bytes)
-}
-
-fn compact_pre_dleq_vector() -> CompactPreDleqVector {
-    let capability_secret = Fr::from(17u64);
-    let reader_secret = Fr::from(31u64);
-    let epk_secret = Fr::from(23u64);
-    let nonce = Fr::from(59u64);
-    let generator = Element::GENERATOR;
-    let capability = generator * capability_secret;
-    let reader_pk = generator * reader_secret;
-    let epk = generator * epk_secret;
-    let reader_base = reader_pk + epk;
-    let reencrypted = reader_base * capability_secret;
-    let commitment_g = generator * nonce;
-    let commitment_reader = reader_base * nonce;
-    let domain = blake2b_fq(b"shieldd.seizure.pre.aggregate_dleq.v1");
-    let head = poseidon377::hash_7(
-        &domain,
-        (
-            generator.vartime_compress_to_field(),
-            capability.vartime_compress_to_field(),
-            reader_pk.vartime_compress_to_field(),
-            epk.vartime_compress_to_field(),
-            reader_base.vartime_compress_to_field(),
-            reencrypted.vartime_compress_to_field(),
-            commitment_g.vartime_compress_to_field(),
-        ),
-    );
-    let challenge_fq = poseidon377::hash_2(
-        &domain,
-        (head, commitment_reader.vartime_compress_to_field()),
-    );
-    let challenge = fq_to_challenge_scalar(challenge_fq);
-    let response = nonce + challenge * capability_secret;
-    CompactPreDleqVector {
-        capability_secret: capability_secret.into_bigint().to_string(),
-        reader_secret: reader_secret.into_bigint().to_string(),
-        epk_secret: epk_secret.into_bigint().to_string(),
-        nonce: nonce.into_bigint().to_string(),
-        challenge: challenge.into_bigint().to_string(),
-        response: response.into_bigint().to_string(),
-    }
 }
 
 fn note_reshape_statement_fixture(
@@ -480,7 +418,6 @@ fn main() {
             derivation_hex: hex::encode(derivation),
             scalar: derivation_scalar.to_string(),
         },
-        compact_pre_dleq: compact_pre_dleq_vector(),
         note_reshape_statements,
     };
 

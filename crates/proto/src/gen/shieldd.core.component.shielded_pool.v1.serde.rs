@@ -382,6 +382,495 @@ impl<'de> serde::Deserialize<'de> for AssetMetadataByIdsResponse {
         deserializer.deserialize_struct("shieldd.core.component.shielded_pool.v1.AssetMetadataByIdsResponse", FIELDS, GeneratedVisitor)
     }
 }
+impl serde::Serialize for CapsuleReleaseEvidence {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.release_id.is_empty() {
+            len += 1;
+        }
+        if !self.recovered_point.is_empty() {
+            len += 1;
+        }
+        if self.proof.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.CapsuleReleaseEvidence", len)?;
+        if !self.release_id.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("releaseId", pbjson::private::base64::encode(&self.release_id).as_str())?;
+        }
+        if !self.recovered_point.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("recoveredPoint", pbjson::private::base64::encode(&self.recovered_point).as_str())?;
+        }
+        if let Some(v) = self.proof.as_ref() {
+            struct_ser.serialize_field("proof", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for CapsuleReleaseEvidence {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "release_id",
+            "releaseId",
+            "recovered_point",
+            "recoveredPoint",
+            "proof",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            ReleaseId,
+            RecoveredPoint,
+            Proof,
+            __SkipField__,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "releaseId" | "release_id" => Ok(GeneratedField::ReleaseId),
+                            "recoveredPoint" | "recovered_point" => Ok(GeneratedField::RecoveredPoint),
+                            "proof" => Ok(GeneratedField::Proof),
+                            _ => Ok(GeneratedField::__SkipField__),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = CapsuleReleaseEvidence;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct shieldd.core.component.shielded_pool.v1.CapsuleReleaseEvidence")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<CapsuleReleaseEvidence, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut release_id__ = None;
+                let mut recovered_point__ = None;
+                let mut proof__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::ReleaseId => {
+                            if release_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("releaseId"));
+                            }
+                            release_id__ =
+                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::RecoveredPoint => {
+                            if recovered_point__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("recoveredPoint"));
+                            }
+                            recovered_point__ =
+                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::Proof => {
+                            if proof__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("proof"));
+                            }
+                            proof__ = map_.next_value()?;
+                        }
+                        GeneratedField::__SkipField__ => {
+                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
+                        }
+                    }
+                }
+                Ok(CapsuleReleaseEvidence {
+                    release_id: release_id__.unwrap_or_default(),
+                    recovered_point: recovered_point__.unwrap_or_default(),
+                    proof: proof__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("shieldd.core.component.shielded_pool.v1.CapsuleReleaseEvidence", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for CapsuleReleaseRequest {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.chain_id.is_empty() {
+            len += 1;
+        }
+        if !self.ring_id.is_empty() {
+            len += 1;
+        }
+        if !self.policy_id.is_empty() {
+            len += 1;
+        }
+        if !self.permission.is_empty() {
+            len += 1;
+        }
+        if !self.resource.is_empty() {
+            len += 1;
+        }
+        if !self.ring_pk.is_empty() {
+            len += 1;
+        }
+        if self.asset_id.is_some() {
+            len += 1;
+        }
+        if self.address.is_some() {
+            len += 1;
+        }
+        if !self.capk.is_empty() {
+            len += 1;
+        }
+        if self.note_commitment.is_some() {
+            len += 1;
+        }
+        if !self.recovery_commitment.is_empty() {
+            len += 1;
+        }
+        if !self.capsule_epk.is_empty() {
+            len += 1;
+        }
+        if !self.authority_instruction_commitment.is_empty() {
+            len += 1;
+        }
+        if self.expiry_height != 0 {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.CapsuleReleaseRequest", len)?;
+        if !self.chain_id.is_empty() {
+            struct_ser.serialize_field("chainId", &self.chain_id)?;
+        }
+        if !self.ring_id.is_empty() {
+            struct_ser.serialize_field("ringId", &self.ring_id)?;
+        }
+        if !self.policy_id.is_empty() {
+            struct_ser.serialize_field("policyId", &self.policy_id)?;
+        }
+        if !self.permission.is_empty() {
+            struct_ser.serialize_field("permission", &self.permission)?;
+        }
+        if !self.resource.is_empty() {
+            struct_ser.serialize_field("resource", &self.resource)?;
+        }
+        if !self.ring_pk.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("ringPk", pbjson::private::base64::encode(&self.ring_pk).as_str())?;
+        }
+        if let Some(v) = self.asset_id.as_ref() {
+            struct_ser.serialize_field("assetId", v)?;
+        }
+        if let Some(v) = self.address.as_ref() {
+            struct_ser.serialize_field("address", v)?;
+        }
+        if !self.capk.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("capk", pbjson::private::base64::encode(&self.capk).as_str())?;
+        }
+        if let Some(v) = self.note_commitment.as_ref() {
+            struct_ser.serialize_field("noteCommitment", v)?;
+        }
+        if !self.recovery_commitment.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("recoveryCommitment", pbjson::private::base64::encode(&self.recovery_commitment).as_str())?;
+        }
+        if !self.capsule_epk.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("capsuleEpk", pbjson::private::base64::encode(&self.capsule_epk).as_str())?;
+        }
+        if !self.authority_instruction_commitment.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("authorityInstructionCommitment", pbjson::private::base64::encode(&self.authority_instruction_commitment).as_str())?;
+        }
+        if self.expiry_height != 0 {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("expiryHeight", ToString::to_string(&self.expiry_height).as_str())?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for CapsuleReleaseRequest {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "chain_id",
+            "chainId",
+            "ring_id",
+            "ringId",
+            "policy_id",
+            "policyId",
+            "permission",
+            "resource",
+            "ring_pk",
+            "ringPk",
+            "asset_id",
+            "assetId",
+            "address",
+            "capk",
+            "note_commitment",
+            "noteCommitment",
+            "recovery_commitment",
+            "recoveryCommitment",
+            "capsule_epk",
+            "capsuleEpk",
+            "authority_instruction_commitment",
+            "authorityInstructionCommitment",
+            "expiry_height",
+            "expiryHeight",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            ChainId,
+            RingId,
+            PolicyId,
+            Permission,
+            Resource,
+            RingPk,
+            AssetId,
+            Address,
+            Capk,
+            NoteCommitment,
+            RecoveryCommitment,
+            CapsuleEpk,
+            AuthorityInstructionCommitment,
+            ExpiryHeight,
+            __SkipField__,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "chainId" | "chain_id" => Ok(GeneratedField::ChainId),
+                            "ringId" | "ring_id" => Ok(GeneratedField::RingId),
+                            "policyId" | "policy_id" => Ok(GeneratedField::PolicyId),
+                            "permission" => Ok(GeneratedField::Permission),
+                            "resource" => Ok(GeneratedField::Resource),
+                            "ringPk" | "ring_pk" => Ok(GeneratedField::RingPk),
+                            "assetId" | "asset_id" => Ok(GeneratedField::AssetId),
+                            "address" => Ok(GeneratedField::Address),
+                            "capk" => Ok(GeneratedField::Capk),
+                            "noteCommitment" | "note_commitment" => Ok(GeneratedField::NoteCommitment),
+                            "recoveryCommitment" | "recovery_commitment" => Ok(GeneratedField::RecoveryCommitment),
+                            "capsuleEpk" | "capsule_epk" => Ok(GeneratedField::CapsuleEpk),
+                            "authorityInstructionCommitment" | "authority_instruction_commitment" => Ok(GeneratedField::AuthorityInstructionCommitment),
+                            "expiryHeight" | "expiry_height" => Ok(GeneratedField::ExpiryHeight),
+                            _ => Ok(GeneratedField::__SkipField__),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = CapsuleReleaseRequest;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct shieldd.core.component.shielded_pool.v1.CapsuleReleaseRequest")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<CapsuleReleaseRequest, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut chain_id__ = None;
+                let mut ring_id__ = None;
+                let mut policy_id__ = None;
+                let mut permission__ = None;
+                let mut resource__ = None;
+                let mut ring_pk__ = None;
+                let mut asset_id__ = None;
+                let mut address__ = None;
+                let mut capk__ = None;
+                let mut note_commitment__ = None;
+                let mut recovery_commitment__ = None;
+                let mut capsule_epk__ = None;
+                let mut authority_instruction_commitment__ = None;
+                let mut expiry_height__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::ChainId => {
+                            if chain_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("chainId"));
+                            }
+                            chain_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::RingId => {
+                            if ring_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("ringId"));
+                            }
+                            ring_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::PolicyId => {
+                            if policy_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("policyId"));
+                            }
+                            policy_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Permission => {
+                            if permission__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("permission"));
+                            }
+                            permission__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Resource => {
+                            if resource__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("resource"));
+                            }
+                            resource__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::RingPk => {
+                            if ring_pk__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("ringPk"));
+                            }
+                            ring_pk__ =
+                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::AssetId => {
+                            if asset_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("assetId"));
+                            }
+                            asset_id__ = map_.next_value()?;
+                        }
+                        GeneratedField::Address => {
+                            if address__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("address"));
+                            }
+                            address__ = map_.next_value()?;
+                        }
+                        GeneratedField::Capk => {
+                            if capk__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("capk"));
+                            }
+                            capk__ =
+                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::NoteCommitment => {
+                            if note_commitment__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("noteCommitment"));
+                            }
+                            note_commitment__ = map_.next_value()?;
+                        }
+                        GeneratedField::RecoveryCommitment => {
+                            if recovery_commitment__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("recoveryCommitment"));
+                            }
+                            recovery_commitment__ =
+                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::CapsuleEpk => {
+                            if capsule_epk__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("capsuleEpk"));
+                            }
+                            capsule_epk__ =
+                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::AuthorityInstructionCommitment => {
+                            if authority_instruction_commitment__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("authorityInstructionCommitment"));
+                            }
+                            authority_instruction_commitment__ =
+                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::ExpiryHeight => {
+                            if expiry_height__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("expiryHeight"));
+                            }
+                            expiry_height__ =
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::__SkipField__ => {
+                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
+                        }
+                    }
+                }
+                Ok(CapsuleReleaseRequest {
+                    chain_id: chain_id__.unwrap_or_default(),
+                    ring_id: ring_id__.unwrap_or_default(),
+                    policy_id: policy_id__.unwrap_or_default(),
+                    permission: permission__.unwrap_or_default(),
+                    resource: resource__.unwrap_or_default(),
+                    ring_pk: ring_pk__.unwrap_or_default(),
+                    asset_id: asset_id__,
+                    address: address__,
+                    capk: capk__.unwrap_or_default(),
+                    note_commitment: note_commitment__,
+                    recovery_commitment: recovery_commitment__.unwrap_or_default(),
+                    capsule_epk: capsule_epk__.unwrap_or_default(),
+                    authority_instruction_commitment: authority_instruction_commitment__.unwrap_or_default(),
+                    expiry_height: expiry_height__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("shieldd.core.component.shielded_pool.v1.CapsuleReleaseRequest", FIELDS, GeneratedVisitor)
+    }
+}
 impl serde::Serialize for DiscoveryParameters {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -3712,16 +4201,7 @@ impl serde::Serialize for NoteSeizure {
         if self.recovery_capsule.is_some() {
             len += 1;
         }
-        if !self.recovery_seed.is_empty() {
-            len += 1;
-        }
         if !self.rnk_commitment.is_empty() {
-            len += 1;
-        }
-        if self.pre_evidence.is_some() {
-            len += 1;
-        }
-        if !self.reader_secret.is_empty() {
             len += 1;
         }
         if self.proof.is_some() {
@@ -3731,6 +4211,9 @@ impl serde::Serialize for NoteSeizure {
             len += 1;
         }
         if self.historical_nullifier_proof.is_some() {
+            len += 1;
+        }
+        if self.capsule_release.is_some() {
             len += 1;
         }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.NoteSeizure", len)?;
@@ -3754,23 +4237,10 @@ impl serde::Serialize for NoteSeizure {
         if let Some(v) = self.recovery_capsule.as_ref() {
             struct_ser.serialize_field("recoveryCapsule", v)?;
         }
-        if !self.recovery_seed.is_empty() {
-            #[allow(clippy::needless_borrow)]
-            #[allow(clippy::needless_borrows_for_generic_args)]
-            struct_ser.serialize_field("recoverySeed", pbjson::private::base64::encode(&self.recovery_seed).as_str())?;
-        }
         if !self.rnk_commitment.is_empty() {
             #[allow(clippy::needless_borrow)]
             #[allow(clippy::needless_borrows_for_generic_args)]
             struct_ser.serialize_field("rnkCommitment", pbjson::private::base64::encode(&self.rnk_commitment).as_str())?;
-        }
-        if let Some(v) = self.pre_evidence.as_ref() {
-            struct_ser.serialize_field("preEvidence", v)?;
-        }
-        if !self.reader_secret.is_empty() {
-            #[allow(clippy::needless_borrow)]
-            #[allow(clippy::needless_borrows_for_generic_args)]
-            struct_ser.serialize_field("readerSecret", pbjson::private::base64::encode(&self.reader_secret).as_str())?;
         }
         if let Some(v) = self.proof.as_ref() {
             struct_ser.serialize_field("proof", v)?;
@@ -3780,6 +4250,9 @@ impl serde::Serialize for NoteSeizure {
         }
         if let Some(v) = self.historical_nullifier_proof.as_ref() {
             struct_ser.serialize_field("historicalNullifierProof", v)?;
+        }
+        if let Some(v) = self.capsule_release.as_ref() {
+            struct_ser.serialize_field("capsuleRelease", v)?;
         }
         struct_ser.end()
     }
@@ -3801,19 +4274,15 @@ impl<'de> serde::Deserialize<'de> for NoteSeizure {
             "recentPositionFloor",
             "recovery_capsule",
             "recoveryCapsule",
-            "recovery_seed",
-            "recoverySeed",
             "rnk_commitment",
             "rnkCommitment",
-            "pre_evidence",
-            "preEvidence",
-            "reader_secret",
-            "readerSecret",
             "proof",
             "nullifier_window",
             "nullifierWindow",
             "historical_nullifier_proof",
             "historicalNullifierProof",
+            "capsule_release",
+            "capsuleRelease",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -3824,13 +4293,11 @@ impl<'de> serde::Deserialize<'de> for NoteSeizure {
             HistoryRequired,
             RecentPositionFloor,
             RecoveryCapsule,
-            RecoverySeed,
             RnkCommitment,
-            PreEvidence,
-            ReaderSecret,
             Proof,
             NullifierWindow,
             HistoricalNullifierProof,
+            CapsuleRelease,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -3859,13 +4326,11 @@ impl<'de> serde::Deserialize<'de> for NoteSeizure {
                             "historyRequired" | "history_required" => Ok(GeneratedField::HistoryRequired),
                             "recentPositionFloor" | "recent_position_floor" => Ok(GeneratedField::RecentPositionFloor),
                             "recoveryCapsule" | "recovery_capsule" => Ok(GeneratedField::RecoveryCapsule),
-                            "recoverySeed" | "recovery_seed" => Ok(GeneratedField::RecoverySeed),
                             "rnkCommitment" | "rnk_commitment" => Ok(GeneratedField::RnkCommitment),
-                            "preEvidence" | "pre_evidence" => Ok(GeneratedField::PreEvidence),
-                            "readerSecret" | "reader_secret" => Ok(GeneratedField::ReaderSecret),
                             "proof" => Ok(GeneratedField::Proof),
                             "nullifierWindow" | "nullifier_window" => Ok(GeneratedField::NullifierWindow),
                             "historicalNullifierProof" | "historical_nullifier_proof" => Ok(GeneratedField::HistoricalNullifierProof),
+                            "capsuleRelease" | "capsule_release" => Ok(GeneratedField::CapsuleRelease),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -3891,13 +4356,11 @@ impl<'de> serde::Deserialize<'de> for NoteSeizure {
                 let mut history_required__ = None;
                 let mut recent_position_floor__ = None;
                 let mut recovery_capsule__ = None;
-                let mut recovery_seed__ = None;
                 let mut rnk_commitment__ = None;
-                let mut pre_evidence__ = None;
-                let mut reader_secret__ = None;
                 let mut proof__ = None;
                 let mut nullifier_window__ = None;
                 let mut historical_nullifier_proof__ = None;
+                let mut capsule_release__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Authorization => {
@@ -3938,33 +4401,11 @@ impl<'de> serde::Deserialize<'de> for NoteSeizure {
                             }
                             recovery_capsule__ = map_.next_value()?;
                         }
-                        GeneratedField::RecoverySeed => {
-                            if recovery_seed__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("recoverySeed"));
-                            }
-                            recovery_seed__ =
-                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
-                            ;
-                        }
                         GeneratedField::RnkCommitment => {
                             if rnk_commitment__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("rnkCommitment"));
                             }
                             rnk_commitment__ =
-                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
-                            ;
-                        }
-                        GeneratedField::PreEvidence => {
-                            if pre_evidence__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("preEvidence"));
-                            }
-                            pre_evidence__ = map_.next_value()?;
-                        }
-                        GeneratedField::ReaderSecret => {
-                            if reader_secret__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("readerSecret"));
-                            }
-                            reader_secret__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -3986,6 +4427,12 @@ impl<'de> serde::Deserialize<'de> for NoteSeizure {
                             }
                             historical_nullifier_proof__ = map_.next_value()?;
                         }
+                        GeneratedField::CapsuleRelease => {
+                            if capsule_release__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("capsuleRelease"));
+                            }
+                            capsule_release__ = map_.next_value()?;
+                        }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
                         }
@@ -3998,13 +4445,11 @@ impl<'de> serde::Deserialize<'de> for NoteSeizure {
                     history_required: history_required__.unwrap_or_default(),
                     recent_position_floor: recent_position_floor__.unwrap_or_default(),
                     recovery_capsule: recovery_capsule__,
-                    recovery_seed: recovery_seed__.unwrap_or_default(),
                     rnk_commitment: rnk_commitment__.unwrap_or_default(),
-                    pre_evidence: pre_evidence__,
-                    reader_secret: reader_secret__.unwrap_or_default(),
                     proof: proof__,
                     nullifier_window: nullifier_window__,
                     historical_nullifier_proof: historical_nullifier_proof__,
+                    capsule_release: capsule_release__,
                 })
             }
         }
@@ -4046,9 +4491,6 @@ impl serde::Serialize for NoteSeizureAuthorizationBody {
         if self.withdrawal.is_some() {
             len += 1;
         }
-        if !self.release_scope_commitment.is_empty() {
-            len += 1;
-        }
         if self.expiry_height != 0 {
             len += 1;
         }
@@ -4084,11 +4526,6 @@ impl serde::Serialize for NoteSeizureAuthorizationBody {
         if let Some(v) = self.withdrawal.as_ref() {
             struct_ser.serialize_field("withdrawal", v)?;
         }
-        if !self.release_scope_commitment.is_empty() {
-            #[allow(clippy::needless_borrow)]
-            #[allow(clippy::needless_borrows_for_generic_args)]
-            struct_ser.serialize_field("releaseScopeCommitment", pbjson::private::base64::encode(&self.release_scope_commitment).as_str())?;
-        }
         if self.expiry_height != 0 {
             #[allow(clippy::needless_borrow)]
             #[allow(clippy::needless_borrows_for_generic_args)]
@@ -4118,8 +4555,6 @@ impl<'de> serde::Deserialize<'de> for NoteSeizureAuthorizationBody {
             "frozen_since_height",
             "frozenSinceHeight",
             "withdrawal",
-            "release_scope_commitment",
-            "releaseScopeCommitment",
             "expiry_height",
             "expiryHeight",
         ];
@@ -4135,7 +4570,6 @@ impl<'de> serde::Deserialize<'de> for NoteSeizureAuthorizationBody {
             FreezeGeneration,
             FrozenSinceHeight,
             Withdrawal,
-            ReleaseScopeCommitment,
             ExpiryHeight,
             __SkipField__,
         }
@@ -4168,7 +4602,6 @@ impl<'de> serde::Deserialize<'de> for NoteSeizureAuthorizationBody {
                             "freezeGeneration" | "freeze_generation" => Ok(GeneratedField::FreezeGeneration),
                             "frozenSinceHeight" | "frozen_since_height" => Ok(GeneratedField::FrozenSinceHeight),
                             "withdrawal" => Ok(GeneratedField::Withdrawal),
-                            "releaseScopeCommitment" | "release_scope_commitment" => Ok(GeneratedField::ReleaseScopeCommitment),
                             "expiryHeight" | "expiry_height" => Ok(GeneratedField::ExpiryHeight),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
@@ -4198,7 +4631,6 @@ impl<'de> serde::Deserialize<'de> for NoteSeizureAuthorizationBody {
                 let mut freeze_generation__ = None;
                 let mut frozen_since_height__ = None;
                 let mut withdrawal__ = None;
-                let mut release_scope_commitment__ = None;
                 let mut expiry_height__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
@@ -4260,14 +4692,6 @@ impl<'de> serde::Deserialize<'de> for NoteSeizureAuthorizationBody {
                             }
                             withdrawal__ = map_.next_value()?;
                         }
-                        GeneratedField::ReleaseScopeCommitment => {
-                            if release_scope_commitment__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("releaseScopeCommitment"));
-                            }
-                            release_scope_commitment__ =
-                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
-                            ;
-                        }
                         GeneratedField::ExpiryHeight => {
                             if expiry_height__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("expiryHeight"));
@@ -4291,7 +4715,6 @@ impl<'de> serde::Deserialize<'de> for NoteSeizureAuthorizationBody {
                     freeze_generation: freeze_generation__.unwrap_or_default(),
                     frozen_since_height: frozen_since_height__.unwrap_or_default(),
                     withdrawal: withdrawal__,
-                    release_scope_commitment: release_scope_commitment__.unwrap_or_default(),
                     expiry_height: expiry_height__.unwrap_or_default(),
                 })
             }

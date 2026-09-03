@@ -74,7 +74,7 @@ impl From<RecoveryCommitment> for [u8; 32] {
     }
 }
 
-/// Fixed-shape ciphertext that lets Orbis release a note opening to an authorized ACP.
+/// Fixed-shape ciphertext under a registered capsule capability.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(try_from = "pb::RecoveryCapsule", into = "pb::RecoveryCapsule")]
 pub struct RecoveryCapsule {

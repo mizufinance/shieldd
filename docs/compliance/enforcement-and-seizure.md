@@ -1,19 +1,47 @@
 # Enforcement and seizure
 
-Shieldd enforces per-asset status and verifies the cryptographic mechanics of
-seizure. Bankd decides whether a legal or governance authorization is valid and
-must settle the returned withdrawal atomically with the Shieldd call.
+Shieldd is an embedded Bankd subsystem. Bankd owns consensus, canonical host
+sources, public custody, and settlement. Shieldd owns private note state,
+compliance state, proof verification, nullifiers, and replay-safe host receipts.
+They do not jointly produce proofs.
 
-## Lifecycle
+## Capsule release
 
-Each registered `(address, asset_id)` leaf commits:
+For capsule EPK `E`, registered capability `C`, and released point `S`, Shieldd
+verifies an equality-of-discrete-logs proof for
 
 ```text
-address, asset_id, capk, rnk_dh_pk, Poseidon(rnk), status,
-freeze_generation, frozen_since_height
+C = xG
+S = xE
 ```
 
-The legal transitions are:
+The proof transcript binds a canonical release ID derived from the exact
+capsule, note, registered address and asset, current capability, Orbis policy,
+authority instruction, and expiry. It proves the DH relation for `S` under
+`C`, not that an ACP granted access. The note proof separately checks the
+capsule plaintext and note commitment.
+
+`CapsuleReleaseRequest::release_id` defines the canonical resource ID;
+`CapsuleReleaseEvidence` carries the point and proof for that ID.
+
+The intended production sequence is:
+
+1. an authority signs the exact note-seizure instruction;
+2. an ACP grants access to that capsule-specific release ID;
+3. Orbis returns `S` and the DLEQ proof only after the grant;
+4. Shieldd verifies the instruction, release, note proof, and nullifier; and
+5. Bankd atomically applies the withdrawal returned by Shieldd.
+
+The reusable `reader_secret` never enters Bankd consensus. Publishing `S` opens
+the seized capsule to observers; reusing its capability and EPK would share
+that opening with another capsule. Hiding the opening requires a larger ZK
+release relation or a threshold attestation over a hidden opening.
+
+## State transition
+
+Each registered `(address, asset_id)` leaf commits the address, asset,
+capability, regulated-nullifier derivation data, status, freeze generation, and
+freeze height. Legal transitions are:
 
 ```text
 Active -> Frozen -> Active
@@ -21,59 +49,27 @@ Active -> Frozen -> Seized
 Seized -> Seized       while consuming more notes from the same freeze
 ```
 
-`Seized` is terminal for ordinary activity. The address cannot send, receive,
-withdraw, deposit, reshape notes, or become active for that asset. Multiple
-seizure calls remain possible because one address can own multiple notes.
+Every regulated spend and receive requires an `Active` leaf under the current
+root. A new freeze generation invalidates older seizure instructions.
 
-Every regulated spend and receive proves an `Active` leaf under the exact
-current user root. Host deposits perform the same check natively. An unfreeze
-and refreeze increments `freeze_generation` and changes `frozen_since_height`,
-invalidating an earlier seizure authorization.
+`SeizeNote` verifies the authority signature and expiry, the current frozen
+leaf, the capsule-specific DLEQ release, the Groth16 note-membership and opening
+proof, the canonical regulated nullifier, and nullifier nonmembership. One
+state delta inserts the nullifier, updates the lifecycle, records the audit
+effect and receipt, and returns the exact typed Bankd withdrawal. Exact source
+replay returns the receipt without another mutation.
 
-## Per-note seizure
+## Implementation status
 
-Every real output carries a fixed-shape recovery capsule and commits that
-capsule inside the note commitment. Regulated and unregulated outputs have the
-same public shape. Publishing `capk` does not provide a public address test for
-capsules or decrypt ordinary note ciphertexts.
+| Capability | Status |
+| --- | --- |
+| Recovery capsules and note-seizure circuit | Implemented in Shieldd |
+| Capsule release request, DLEQ verifier, and host state transition | Implemented in Shieldd |
+| Production ACP policy enforcement | Not implemented |
+| Orbis capsule-release and address-DH APIs | Not implemented |
+| Private capsule locator and operator workflow | Not implemented |
+| Bankd seizure admission and atomic settlement | Not implemented |
 
-The privileged `SeizeNote` host call verifies:
-
-- the configured seizure-authority signature, chain, destination, amount,
-  expiry, and signed release scope;
-- the current `Frozen` or same-generation `Seized` leaf, including `capk`, RNK
-  commitment, freeze generation, and frozen-since height;
-- ordinary Orbis PRE share evidence for that exact capability, capsule EPK, and
-  release scope;
-- recovery of the capsule seed and its `(amount, note_blinding)` plaintext;
-- the Groth16 proof for the real note commitment, SCT membership, canonical
-  compliance nullifier, and committed RNK; and
-- current or archived nullifier nonmembership, according to the note position.
-
-The accepted state delta inserts the real note's canonical nullifier, advances
-the lifecycle on the first note, stores a replay-safe receipt, and returns an
-exact typed Bankd withdrawal. The owner-spend and seizure paths use the same
-nullifier, so neither can succeed after the other.
-
-This proves each submitted note, not completeness of the submitted set. An
-authority that omits a recoverable note only leaves value behind, while
-`Seized` prevents the owner from moving it.
-
-## Implemented boundary
-
-Shieldd currently contains the leaf lifecycle, recovery capsules in all note
-creation circuits, canonical regulated nullifiers, note-seizure circuit and
-offline prover client, native admission checks, host RPC, receipt, nullifier
-insertion, and typed settlement response.
-
-The end-to-end bank workflow is incomplete. It still needs:
-
-- a durable private capability-to-capsule locator and archive reconciliation;
-- ACP authorization and Orbis address-DH release integration;
-- an Orbis client that returns the existing PRE evidence for selected capsules;
-- an operator that rebuilds SCT paths, proves notes, and submits them; and
-- Bankd-side authorization policy and atomic application of the returned
-  withdrawal.
-
-See [the asset seizure design](asset-seizure-proof-plan.md) for cryptographic
-details, measured circuit growth, and remaining performance work.
+The Shieldd host method is protocol preparation, not a complete seizure
+product. Tests construct release evidence locally; that does not stand in for
+ACP or Orbis integration.

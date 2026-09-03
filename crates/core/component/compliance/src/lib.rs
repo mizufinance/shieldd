@@ -58,20 +58,16 @@ pub use transfer::{
     TRANSFER_WIRE_BYTES,
 };
 
-pub mod pre_evidence;
-pub use pre_evidence::{
-    derive_orbis_scalar, AddressDhReleaseEvidence, AddressDhReleaseRequest, DleqProof,
-    EvidenceReleaseAuthorization, IssuerDhEvidence, PreEvidence, PreShareEvidence,
-    VerifiedAddressDhRelease, VerifiedPreEvidence, PRE_EVIDENCE_VERSION,
-};
+pub mod dleq_evidence;
+pub use dleq_evidence::{fq_to_challenge_scalar, verify_dleq, DleqProof, IssuerDhEvidence};
 
 pub mod withdrawal;
 pub use withdrawal::{
-    address_components, classify_withdrawal_with_issuer, classify_withdrawal_with_pre,
-    derive_withdrawal_encryption_material, encrypt_withdrawal, encrypt_withdrawal_with_material,
-    withdrawal_encryption_key, withdrawal_key_confirmation, WithdrawalComplianceCiphertext,
-    WithdrawalEncryptionResult, WITHDRAWAL_ADDRESS_BYTES, WITHDRAWAL_ADDRESS_CIPHERTEXT_FQS,
-    WITHDRAWAL_COMPLIANCE_WIRE_BYTES, WITHDRAWAL_KEY_CONFIRMATION_DOMAIN,
+    address_components, classify_withdrawal_with_issuer, derive_withdrawal_encryption_material,
+    encrypt_withdrawal, encrypt_withdrawal_with_material, withdrawal_encryption_key,
+    withdrawal_key_confirmation, WithdrawalComplianceCiphertext, WithdrawalEncryptionResult,
+    WITHDRAWAL_ADDRESS_BYTES, WITHDRAWAL_ADDRESS_CIPHERTEXT_FQS, WITHDRAWAL_COMPLIANCE_WIRE_BYTES,
+    WITHDRAWAL_KEY_CONFIRMATION_DOMAIN,
 };
 
 pub mod tree;

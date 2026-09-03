@@ -91,15 +91,6 @@ type OrbisDerivationVector struct {
 	Scalar        string `json:"scalar"`
 }
 
-type CompactPreDLEQVector struct {
-	CapabilitySecret string `json:"capability_secret"`
-	ReaderSecret     string `json:"reader_secret"`
-	EPKSecret        string `json:"epk_secret"`
-	Nonce            string `json:"nonce"`
-	Challenge        string `json:"challenge"`
-	Response         string `json:"response"`
-}
-
 type NoteReshapeStatementFixture struct {
 	Label         string   `json:"label"`
 	Domain        string   `json:"domain"`
@@ -114,7 +105,6 @@ type PrototypeVectors struct {
 	Decaf377Compress       []DecafCompressVector         `json:"decaf377_compress_vectors"`
 	Decaf377Encode         []DecafEncodeVector           `json:"decaf377_encode_vectors"`
 	OrbisDerivation        OrbisDerivationVector         `json:"orbis_derivation"`
-	CompactPreDLEQ         CompactPreDLEQVector          `json:"compact_pre_dleq"`
 	NoteReshapeStatements  []NoteReshapeStatementFixture `json:"note_reshape_statements"`
 }
 

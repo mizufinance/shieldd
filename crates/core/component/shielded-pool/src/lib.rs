@@ -58,9 +58,9 @@ pub use note_reshape::{
     NoteReshapeProofPrivate, NoteReshapeProofPublic, NoteReshapeView, NOTE_RESHAPE_FAMILY_SPECS,
 };
 pub use note_seizure::{
-    NoteSeizure, NoteSeizureAuthorizationBody, NoteSeizureProof, NoteSeizureProofPrivate,
-    NoteSeizureProofPublic, MAX_NOTE_SEIZURE_CHAIN_ID_BYTES, NOTE_SEIZURE_PROOF_LABEL,
-    NOTE_SEIZURE_STATEMENT_FIELD_COUNT,
+    CapsuleReleaseEvidence, CapsuleReleaseRequest, NoteSeizure, NoteSeizureAuthorizationBody,
+    NoteSeizureProof, NoteSeizureProofPrivate, NoteSeizureProofPublic,
+    MAX_NOTE_SEIZURE_CHAIN_ID_BYTES, NOTE_SEIZURE_PROOF_LABEL, NOTE_SEIZURE_STATEMENT_FIELD_COUNT,
 };
 pub use shielded_host_withdrawal::{
     ShieldedHostWithdrawal, ShieldedHostWithdrawalBody, ShieldedHostWithdrawalPlan,

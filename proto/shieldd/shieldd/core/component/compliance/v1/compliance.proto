@@ -392,48 +392,6 @@ message NativeAssetRegistration {
   string resource = 10;
 }
 
-// One ordinary Orbis PRE share and its proof of correct re-encryption.
-message PreShareEvidence {
-  uint32 participant_index = 1;
-  bytes capability_share = 2;
-  bytes reencrypted_share = 3;
-  bytes challenge = 4;
-  bytes response = 5;
-}
-
-// Ordinary threshold PRE evidence returned by Orbis for one recovery capsule.
-message PreEvidence {
-  uint32 version = 1;
-  string ring_id = 2;
-  string object_id = 3;
-  bytes release_scope_commitment = 4;
-  bytes derivation = 5;
-  bytes ring_pk = 6;
-  bytes ciphertext_epk = 7;
-  bytes reader_pk = 8;
-  uint32 threshold = 9;
-  repeated PreShareEvidence shares = 10;
-}
-
-// ACP-authorized request for releasing one address-scoped regulated nullifier key.
-message AddressDhReleaseRequest {
-  string ring_id = 1;
-  asset.v1.AssetId asset_id = 2;
-  keys.v1.Address address = 3;
-  bytes ring_pk = 4;
-  bytes reader_pk = 5;
-  bytes authority_instruction_hash = 6;
-  uint64 expires_at_unix = 7;
-  bytes request_nonce = 8;
-}
-
-// Threshold DLEQ evidence for ring_sk * (reader_pk + pk_d).
-message AddressDhReleaseEvidence {
-  AddressDhReleaseRequest request = 1;
-  uint32 threshold = 2;
-  repeated PreShareEvidence shares = 3;
-}
-
 message DleqProof {
   bytes commitment_g = 1;
   bytes commitment_h = 2;

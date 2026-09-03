@@ -35,14 +35,16 @@ pub fn compliance_derivation(address: &Address) -> Vec<u8> {
 /// Orbis uses a 64-byte SHA-512 digest reduced mod `Fr` (wide reduction, negligible
 /// bias). The result is stored as Fq in the compliance leaf (Fr fits losslessly in Fq).
 pub fn derive_compliance_scalar(address: &Address) -> Fq {
+    let fr = capability_scalar(&compliance_derivation(address));
+    Fq::from_le_bytes_mod_order(&fr.to_bytes())
+}
+
+fn capability_scalar(derivation: &[u8]) -> Fr {
     let mut hasher = Sha512::new();
     hasher.update(DERIVATION_DOMAIN);
-    hasher.update(compliance_derivation(address));
+    hasher.update(derivation);
     let hash = hasher.finalize();
-    // Reduce mod r first (matching Orbis's Fr::from_le_bytes_mod_order), then embed into Fq.
-    // r < q for decaf377, so this conversion is lossless.
-    let fr = Fr::from_le_bytes_mod_order(&hash);
-    Fq::from_le_bytes_mod_order(&fr.to_bytes())
+    Fr::from_le_bytes_mod_order(&hash)
 }
 
 /// Domain separator for Poseidon stream cipher seed derivation.
@@ -218,10 +220,14 @@ mod tests {
         );
         assert_eq!(compliance_derivation(address1), address1.to_vec());
         assert_eq!(compliance_derivation(address1).len(), 48);
+    }
+
+    #[test]
+    fn orbis_capability_derivation_matches_cross_language_vector() {
+        let derivation: Vec<u8> = (0u8..48).collect();
         assert_eq!(
-            Fr::from_le_bytes_mod_order(&derive_compliance_scalar(address1).to_bytes()),
-            crate::derive_orbis_scalar(&address1.to_vec()),
-            "Shieldd registration and ordinary Orbis PRE must derive the same scalar"
+            capability_scalar(&derivation).to_string(),
+            "1193025715605820042638296979565000936182988212520272662409467010519644752199"
         );
     }
 

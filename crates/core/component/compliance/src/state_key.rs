@@ -67,6 +67,12 @@ pub mod audit_log {
     pub fn state() -> &'static str {
         "compliance/audit_log/state"
     }
+
+    pub fn record(index: u64) -> Vec<u8> {
+        let mut key = b"compliance/audit_log/record/".to_vec();
+        key.extend_from_slice(&index.to_be_bytes());
+        key
+    }
 }
 
 /// Prefix for compliance registrar verification keys.

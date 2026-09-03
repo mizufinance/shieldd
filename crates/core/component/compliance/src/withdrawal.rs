@@ -7,9 +7,7 @@ use rand_core::{CryptoRng, RngCore};
 use shieldd_sdk_keys::Address;
 
 use crate::{
-    crypto::compliance_stream_block,
-    pre_evidence::{EvidenceReleaseAuthorization, IssuerDhEvidence, PreEvidence},
-    scanning::AddressData,
+    crypto::compliance_stream_block, dleq_evidence::IssuerDhEvidence, scanning::AddressData,
     ComplianceLeaf, IndexedLeaf, FQ_BYTES,
 };
 
@@ -239,23 +237,6 @@ pub fn withdrawal_encryption_key(
         "withdrawal compliance selected an identity encryption key"
     );
     Ok((key, is_flagged))
-}
-
-/// Verify ordinary PRE evidence for this exact ciphertext and classify its sender.
-pub fn classify_withdrawal_with_pre(
-    ciphertext: &WithdrawalComplianceCiphertext,
-    evidence: &PreEvidence,
-    authorization: &EvidenceReleaseAuthorization,
-    reader_secret: Fr,
-) -> Result<Option<AddressData>> {
-    ensure!(
-        evidence.ciphertext_epk == ciphertext.epk,
-        "withdrawal PRE evidence is for a different ciphertext EPK"
-    );
-    let shared = evidence
-        .verify(authorization)?
-        .recover_shared_point(reader_secret)?;
-    ciphertext.decrypt_sender_if_key_matches(shared)
 }
 
 /// Verify issuer DH evidence for this exact asset and ciphertext before opening it.

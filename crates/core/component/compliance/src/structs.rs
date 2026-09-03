@@ -52,7 +52,7 @@ const USER_REGISTRATION_GRANT_DOMAIN: &[u8] = b"shieldd.compliance.user_registra
 const ORBIS_CAPABILITY_CERTIFICATE_DOMAIN: &[u8] =
     b"shieldd.compliance.orbis_capability_certificate";
 const FROST_CHALLENGE_DOMAIN: &[u8] = b"FROST-decaf377-challenge";
-const MAX_CERTIFICATE_TEXT_BYTES: usize = 256;
+pub const MAX_CERTIFICATE_TEXT_BYTES: usize = 256;
 
 fn grant_signing_bytes(domain: &[u8], body_bytes: Vec<u8>) -> Vec<u8> {
     let mut bytes = Vec::with_capacity(domain.len() + 1 + body_bytes.len());
@@ -1817,6 +1817,7 @@ impl OrbisCapabilityCertificate {
         message.extend_from_slice(&address);
         message.extend_from_slice(&leaf.address.diversified_generator().vartime_compress().0);
         message.extend_from_slice(&leaf.rnk_dh_pk.vartime_compress().0);
+        message.extend_from_slice(&leaf.rnk_commitment.to_bytes());
         Ok(message)
     }
 
@@ -2064,6 +2065,12 @@ mod tests {
         wrong_dh.rnk_dh_pk += Element::GENERATOR;
         assert!(certificate
             .verify(&wrong_dh, &policy, "shieldd-test")
+            .is_err());
+
+        let mut wrong_rnk = leaf.clone();
+        wrong_rnk.rnk_commitment += Fq::from(1u64);
+        assert!(certificate
+            .verify(&wrong_rnk, &policy, "shieldd-test")
             .is_err());
 
         let mut wrong_policy = policy.clone();

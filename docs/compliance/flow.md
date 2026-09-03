@@ -6,10 +6,11 @@ assets. Ledger safety remains a Bankd consensus and Shieldd circuit responsibili
 External policy systems do not authorize spends or establish balance
 conservation.
 
-The transaction surface deliberately excludes PRE envelopes, DLEQ proofs, DH
-shared points, and all seed-opening material. Private seizure witnesses reuse
-ordinary bulletin storage and `StartPre`; no PRE evidence is published in a
-transaction.
+Ordinary Shieldd user transactions exclude release proofs, DH shared points,
+and seed-opening material. The privileged `SeizeNote` host request carries a
+capsule-specific recovered point and DLEQ proof. See
+[`enforcement-and-seizure.md`](enforcement-and-seizure.md) for the release
+relation and the unimplemented ACP, Orbis, and Bankd boundaries.
 
 For exact encodings and statement order, see `reference.md`.
 
@@ -48,7 +49,7 @@ d   = SHA512("elgamal-derivation-v1\0\0" || canonical_address_bytes) reduced mod
 ACK = d * ring_pk
 ```
 
-The leaf commits to the address encodings, asset ID, ordinary Orbis capability,
+The leaf commits to the address encodings, asset ID, capsule capability,
 compliance-nullifier-key commitment, and lifecycle. Registration checks the
 canonical address, capability derivation, and authorization. A derived `d = 0`
 is rejected. The same address may register independently for multiple assets.
@@ -99,7 +100,7 @@ authenticated predecessor leaf's threshold or the receiver amount.
 | Output extension | sender address | receiver ACK | issuer `dk_pub` |
 
 Unregulated transfers use the selected sink policy. Its ciphertexts remain
-well-formed, but no issuer decryptability or PRE audit capability is claimed.
+well-formed, but no issuer decryptability or capability release is claimed.
 
 The four detection plaintext words are exact:
 
@@ -216,13 +217,13 @@ chain output
 ```
 
 `ComplianceScreener` is pure parsing plus detection-key screening. It performs
-no persistence, chain fetches, ACP decisions, or PRE calls. Scanner blocks are
+no persistence, chain fetches, ACP decisions, or release calls. Scanner blocks are
 keyed by height/hash/parent hash; a reorg rolls state back to the common
 ancestor before replay.
 
 The evidence object contains the output reference, asset/flag/detection facts,
 the 704-byte ciphertext, the 264-byte metadata record, and a payload hash. It
-contains no PRE envelope, shared point, or standalone DLEQ proof. Evidence
+contains no capsule-release evidence, shared point, or standalone DLEQ proof. Evidence
 validation compares both ciphertext and metadata to the accepted output and
 the persisted detection row before an audit can complete.
 
@@ -243,8 +244,6 @@ evidence validation, the issuer can decrypt them locally and complete the
 audit.
 
 Unflagged regulated tiers encrypt to the sender or receiver ACK. The scanner has
-no PRE import workflow, so an unflagged row cannot currently complete through
-PRE. This is an availability limitation, not permission to publish PRE
-envelopes or seed-opening material in scanner evidence. The privileged
-`SeizeNote` path verifies ordinary PRE evidence separately under its signed
-release scope.
+no release import workflow, so those rows cannot currently complete. Scanner
+evidence must not publish seed-opening material. `SeizeNote` is a separate
+privileged host path.

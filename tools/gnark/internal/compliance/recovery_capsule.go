@@ -70,9 +70,8 @@ func VerifyRecoveryCapsule(
 	return verifyRecoveryCapsulePlaintext(api, amount, noteBlinding, capsule)
 }
 
-// VerifyRecoveryCapsulePlaintext proves the public capsule commitment and its
-// plaintext after ordinary PRE has released the seed. The PRE envelope
-// relation is checked natively against the current compliance leaf.
+// VerifyRecoveryCapsulePlaintext proves the public capsule commitment and
+// plaintext after native release verification has derived the capsule seed.
 func VerifyRecoveryCapsulePlaintext(
 	api frontend.API,
 	amount frontend.Variable,

@@ -129,3 +129,108 @@ fn ensure_daemon_only(lib_path: Option<&Path>, daemon_path: Option<&Path>) -> Re
         (None, None) => bail!("expected {NOTE_SEIZURE_ENV_DAEMON} to be set"),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use decaf377::Fr;
+    use shieldd_sdk_asset::{asset, Value};
+    use shieldd_sdk_keys::{keys::NullifierKey, test_keys};
+    use shieldd_sdk_num::Amount;
+    use shieldd_sdk_sct::Nullifier;
+    use shieldd_sdk_tct as tct;
+
+    use super::*;
+    use crate::{HostTransfer, HostWithdrawal, HostWithdrawalDestination, RecoveryCapsule, Rseed};
+
+    fn proof_inputs() -> (NoteSeizureProofPublic, NoteSeizureProofPrivate) {
+        let address = test_keys::ADDRESS_0.clone();
+        let asset_id = asset::Id(Fq::from(11u64));
+        let amount = Amount::from(42u64);
+        let capk = decaf377::Element::GENERATOR * Fr::from(19u64);
+        let rseed = Rseed([17; 32]);
+        let note_blinding = rseed.derive_note_blinding();
+        let (recovery_capsule, opening) =
+            RecoveryCapsule::encrypt(amount, note_blinding, capk, rseed)
+                .expect("encrypt recovery capsule");
+        let note_commitment = crate::note::commitment_from_address(
+            address.clone(),
+            Value { amount, asset_id },
+            note_blinding,
+            recovery_capsule.commitment(),
+        )
+        .expect("commit note");
+
+        let mut tree = tct::Tree::new();
+        tree.insert(tct::Witness::Keep, note_commitment)
+            .expect("insert note commitment");
+        let state_commitment_proof = tree
+            .witness(note_commitment)
+            .expect("witness note commitment");
+        let rnk = Fq::from(23u64);
+        let nullifier = Nullifier::derive(
+            &NullifierKey(rnk),
+            state_commitment_proof.position(),
+            &note_commitment,
+        );
+        let authorization = crate::NoteSeizureAuthorizationBody {
+            chain_id: "shieldd-test".to_owned(),
+            note_commitment,
+            nullifier,
+            address,
+            asset_id,
+            amount,
+            freeze_generation: 2,
+            frozen_since_height: 10,
+            withdrawal: HostWithdrawal {
+                value: Value { amount, asset_id },
+                destination: HostWithdrawalDestination::Transfer(HostTransfer {
+                    recipient: "bank1seizureauthority".to_owned(),
+                }),
+            },
+            expiry_height: 20,
+        };
+
+        (
+            NoteSeizureProofPublic {
+                authorization,
+                anchor: state_commitment_proof.root(),
+                history_required: false,
+                recent_position_floor: 0,
+                recovery_capsule,
+                recovery_seed: opening.seed,
+                rnk_commitment: shieldd_sdk_compliance::compliance_nullifier_key_commitment(rnk),
+            },
+            NoteSeizureProofPrivate {
+                note_blinding,
+                state_commitment_proof,
+                rnk,
+            },
+        )
+    }
+
+    #[test]
+    fn note_seizure_proof_roundtrip() {
+        if !GnarkNoteSeizureClient::env_override_configured() {
+            eprintln!(
+                "skipping note seizure proof roundtrip without an explicitly configured prover daemon"
+            );
+            return;
+        }
+
+        let (public, private) = proof_inputs();
+        let client = GnarkNoteSeizureClient::from_env().expect("start note seizure prover");
+        let proof = client
+            .prove(&public, &private)
+            .expect("prove and verify note seizure through the daemon transport");
+
+        proof
+            .verify(&public)
+            .expect("verify note seizure with the compiled consensus key");
+
+        let mut changed_public = public;
+        changed_public.authorization.expiry_height += 1;
+        proof
+            .verify(&changed_public)
+            .expect_err("proof must not verify for a changed authorization statement");
+    }
+}

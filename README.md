@@ -40,8 +40,6 @@ Regulated transfers carry encrypted detection and audit records. The asset
 issuer can scan its asset's activity; unregulated transfers retain the same
 fixed proof shape without promising issuer decryptability. See:
 
-- [deployment and ownership](docs/compliance/chain-scope.md)
 - [compliance flow](docs/compliance/flow.md)
 - [technical reference](docs/compliance/reference.md)
 - [enforcement and seizure](docs/compliance/enforcement-and-seizure.md)
-- [asset seizure proof plan](docs/compliance/asset-seizure-proof-plan.md)

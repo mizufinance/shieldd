@@ -120,7 +120,7 @@ nullifier, and value constraints are tracked in
   metadata.
 - Inputs and the change output carry neither.
 - Point and Fq decoders reject noncanonical values and wrong lengths.
-- The wire contains no upload bundle, PRE envelope, shared point, or DLEQ proof.
+- The wire contains no capsule-release evidence, shared point, or DLEQ proof.
 
 ## Scanner And Evidence Checks
 
@@ -143,5 +143,5 @@ nullifier, and value constraints are tracked in
 
 - Audit completion requires `evidence_valid`.
 - Flagged rows may complete through issuer-DK tier decryption.
-- No scanner PRE import workflow is exposed. Unflagged ACK-tier audit therefore
+- No scanner capsule-release import workflow is exposed. Unflagged ACK-tier audit therefore
   remains incomplete even when transaction evidence is valid.

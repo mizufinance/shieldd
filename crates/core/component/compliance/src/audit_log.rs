@@ -972,6 +972,30 @@ pub trait AuditLogRead: StateRead {
             .transpose()
             .map(|state| state.unwrap_or_default())
     }
+
+    async fn get_audit_record(&self, index: u64) -> Result<Option<AuditEffectRecord>> {
+        self.nonverifiable_get_raw(&state_key::audit_log::record(index))
+            .await?
+            .map(|bytes| AuditEffectRecord::decode(&bytes).context("decoding audit log record"))
+            .transpose()
+    }
+
+    async fn verify_audit_log(&self) -> Result<AuditLogState> {
+        let expected = self.get_audit_log_state().await?;
+        let mut replayed = AuditLogState::default();
+        for index in 0..expected.length {
+            let record = self
+                .get_audit_record(index)
+                .await?
+                .ok_or_else(|| anyhow::anyhow!("missing audit log record {index}"))?;
+            replayed = replayed.append(&record)?;
+        }
+        ensure!(
+            replayed == expected,
+            "persisted audit records do not match the authenticated audit log state"
+        );
+        Ok(replayed)
+    }
 }
 
 #[cfg(feature = "component")]
@@ -983,7 +1007,14 @@ pub trait AuditLogWrite: StateWrite + AuditLogRead {
     async fn append_audit_effect(&mut self, record: AuditEffectRecord) -> Result<u64> {
         let current = self.get_audit_log_state().await?;
         let index = current.length;
+        let record_key = state_key::audit_log::record(index);
+        ensure!(
+            self.nonverifiable_get_raw(&record_key).await?.is_none(),
+            "audit log record {index} already exists"
+        );
+        let encoded = record.encode()?;
         let next = current.append(&record)?;
+        self.nonverifiable_put_raw(record_key, encoded);
         self.put_raw(state_key::audit_log::state().to_owned(), next.encode());
         Ok(index)
     }
@@ -1350,5 +1381,44 @@ mod tests {
             compliance_ciphertext: withdrawal.ciphertext.to_bytes().to_vec(),
         };
         assert_eq!(withdrawal_effect.candidate_commitments().unwrap().len(), 1);
+    }
+
+    #[cfg(feature = "component")]
+    #[tokio::test]
+    async fn state_persists_records_and_replays_the_authenticated_head() {
+        let storage = cnidarium::TempStorage::new().await.unwrap();
+        let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
+        let first = record(10, 0, 1);
+        let second = record(10, 1, 2);
+
+        assert_eq!(state.append_audit_effect(first.clone()).await.unwrap(), 0);
+        assert_eq!(state.append_audit_effect(second.clone()).await.unwrap(), 1);
+        let authenticated = state.get_audit_log_state().await.unwrap();
+        storage.commit(state).await.unwrap();
+
+        let snapshot = storage.latest_snapshot();
+        assert_eq!(snapshot.get_audit_record(0).await.unwrap(), Some(first));
+        assert_eq!(snapshot.get_audit_record(1).await.unwrap(), Some(second));
+        assert_eq!(snapshot.verify_audit_log().await.unwrap(), authenticated);
+    }
+
+    #[cfg(feature = "component")]
+    #[tokio::test]
+    async fn replay_rejects_missing_or_tampered_records() {
+        use cnidarium::StateWrite as _;
+
+        let storage = cnidarium::TempStorage::new().await.unwrap();
+        let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
+        state.append_audit_effect(record(10, 0, 1)).await.unwrap();
+        state.append_audit_effect(record(10, 1, 2)).await.unwrap();
+
+        state.nonverifiable_delete(state_key::audit_log::record(1));
+        assert!(state.verify_audit_log().await.is_err());
+
+        state.nonverifiable_put_raw(
+            state_key::audit_log::record(1),
+            record(10, 1, 3).encode().unwrap(),
+        );
+        assert!(state.verify_audit_log().await.is_err());
     }
 }

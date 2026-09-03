@@ -74,7 +74,7 @@ message NoteCiphertext {
   bytes inner = 1;
 }
 
-// Fixed-shape ordinary-Orbis envelope for amount and note blinding.
+// Fixed-shape capability ciphertext for amount and note blinding.
 message RecoveryCapsule {
   // Canonical 192-byte encoding of epk and five Fq words.
   bytes inner = 1;
@@ -109,14 +109,15 @@ message ZKShieldedIcs20WithdrawalProof {
   bytes inner = 1;
 }
 
-// A proof that an authorized ACP can consume one real note using its canonical
-// compliance nullifier without revealing the compliance nullifier key.
+// A proof that one real note is consumed with its canonical compliance nullifier.
 message ZKNoteSeizureProof {
   bytes inner = 1;
 }
 
 // Immutable facts signed by the asset's seizure authority.
 message NoteSeizureAuthorizationBody {
+  reserved 10;
+
   string chain_id = 1;
   crypto.tct.v1.StateCommitment note_commitment = 2;
   sct.v1.Nullifier nullifier = 3;
@@ -126,14 +127,38 @@ message NoteSeizureAuthorizationBody {
   uint64 freeze_generation = 7;
   uint64 frozen_since_height = 8;
   HostWithdrawal withdrawal = 9;
-  bytes release_scope_commitment = 10;
   uint64 expiry_height = 11;
+}
+
+// Canonical metadata for a future ACP-gated release of one recovery capsule.
+message CapsuleReleaseRequest {
+  string chain_id = 1;
+  string ring_id = 2;
+  string policy_id = 3;
+  string permission = 4;
+  string resource = 5;
+  bytes ring_pk = 6;
+  asset.v1.AssetId asset_id = 7;
+  keys.v1.Address address = 8;
+  bytes capk = 9;
+  crypto.tct.v1.StateCommitment note_commitment = 10;
+  bytes recovery_commitment = 11;
+  bytes capsule_epk = 12;
+  bytes authority_instruction_commitment = 13;
+  uint64 expiry_height = 14;
+}
+
+// A capsule-specific point and proof returned by a future Orbis release API.
+message CapsuleReleaseEvidence {
+  bytes release_id = 1;
+  bytes recovered_point = 2;
+  compliance.v1.DleqProof proof = 3;
 }
 
 // Complete evidence needed to seize one note. It is submitted through the
 // privileged host execution boundary rather than as a user transaction.
 message NoteSeizure {
-  reserved 10;
+  reserved 7, 9, 10, 11;
 
   NoteSeizureAuthorizationBody authorization = 1;
   crypto.decaf377_rdsa.v1.SpendAuthSignature authority_signature = 2;
@@ -141,13 +166,11 @@ message NoteSeizure {
   bool history_required = 4;
   uint64 recent_position_floor = 5;
   RecoveryCapsule recovery_capsule = 6;
-  bytes recovery_seed = 7;
   bytes rnk_commitment = 8;
-  compliance.v1.PreEvidence pre_evidence = 9;
-  bytes reader_secret = 11;
   ZKNoteSeizureProof proof = 12;
   sct.v1.NullifierWindow nullifier_window = 13;
   sct.v1.HistoricalNullifierProof historical_nullifier_proof = 14;
+  CapsuleReleaseEvidence capsule_release = 15;
 }
 
 message TransferInputBody {

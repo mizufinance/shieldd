@@ -167,10 +167,10 @@ PoseidonHash7(
 )
 ```
 
-The address encodings must be canonical. `capk` is the nonidentity ordinary
-Orbis capsule capability. `rnk_dh_pk = ring_sk * G_d` is certified by an Orbis
-FROST signature at registration. The wallet and an ACP-authorized Orbis release
-derive the same RNK through static DH; no RNK is submitted or held in custody.
+The address encodings must be canonical. `capk` is the nonidentity capsule
+capability. The registration certificate binds both `rnk_dh_pk = ring_sk * G_d`
+and `Poseidon(rnk)`. The wallet derives the RNK through static DH; the
+corresponding production Orbis release API is not implemented.
 The leaf exposes only its Poseidon commitment. The packed lifecycle injectively
 contains status, freeze generation, and frozen-since height. Asset ID zero is
 reserved for the indexed-tree sentinel and cannot be registered or used as a
@@ -213,7 +213,7 @@ TransferComplianceMetadata
 SHA-256 payload hash
 ```
 
-It deliberately excludes PRE envelopes, DH shared points, and standalone DLEQ
+It deliberately excludes release material, DH shared points, and standalone DLEQ
 proofs. `validate_and_save_evidence_object` verifies the payload hash, metadata
 shape, accepted ciphertext/metadata byte equality, and persisted detection
 facts before advancing the row to `evidence_valid`.
@@ -221,13 +221,12 @@ facts before advancing the row to `evidence_valid`.
 ## Audit Boundary
 
 Flagged transfers can be completed by issuer-DK decryption after evidence
-validation. Scanner evidence never publishes PRE envelopes or seed-opening DH
-points. The privileged note-seizure host call accepts ordinary Orbis PRE share
-evidence directly and verifies it against the current leaf and signed release
-scope; it is not part of transaction or scanner evidence.
+validation. Scanner evidence never publishes seed-opening material. The
+privileged note-seizure host call uses a capsule-specific point and DLEQ proof;
+see [`enforcement-and-seizure.md`](enforcement-and-seizure.md).
 
-No deployed statement field, transaction byte, or evidence object depends on
-the standalone DLEQ research helper.
+Transfer statements, user transactions, and scanner evidence do not contain
+capsule-release material.
 
 ## Circuit Implementation Boundary
 
@@ -244,7 +243,7 @@ circuits under `tools/gnark/`. No second circuit architecture is supported.
 - Channel whitelist enforcement is first-hop only.
 - Cross-tier randomizer/EPK independence is mandatory.
 - Metadata belongs only to the receiver output.
-- PRE material must remain outside public transaction and scanner evidence.
+- Capsule-release material must remain outside user transactions and scanner evidence.
 
 ## Source Map
 
