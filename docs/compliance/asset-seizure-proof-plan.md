@@ -30,10 +30,11 @@ be generated in parallel and aggregated later only if verification throughput
 requires it.
 
 An auditor quorum is not part of proof soundness. The seizing authority signs
-the legal authorization. Orbis performs threshold decryption and returns its
-existing verifiable evidence. The ACP releases the compliance nullifier key only
-for that signed authorization. These are distinct controls and none claims that
-all historical records were scanned.
+the legal authorization. The ACP independently controls Orbis access, while
+Orbis threshold-derives the address DH secret and opens selected capsules.
+Bankd verifies the authority instruction but does not ingest the ACP decision.
+These are distinct controls and none claims that all historical records were
+scanned.
 
 ## Authenticated account state
 
@@ -44,24 +45,29 @@ capsule accumulator. A `ComplianceLeaf` contains:
 address
 asset_id
 capk
-Poseidon(cnk)
+rnk_dh_pk
+Poseidon(rnk)
 status
 freeze_generation
 frozen_since_height
 ```
 
-`capk` is the ordinary Orbis address capability validated against the address
-and the asset ring at registration. Caching it in the leaf avoids repeating the
-address-to-ring scalar multiplication in every circuit. `capk` and the nullifier
-key commitment are immutable for the lifetime of the address-asset pair. The
-asset ring public key is likewise stable while notes can remain unspent; routine
-Orbis operator rotation must reshare that key rather than replace it. Replacing
-the public key requires an explicit asset recovery/migration design because a
-single current leaf cannot authenticate both old and new capabilities.
+`capk = d * ring_pk` remains the address-selective capsule capability.
+`rnk_dh_pk = ring_sk * G_d` is Orbis's ring key on the same diversified
+generator. The wallet derives `K = ivk * rnk_dh_pk`; Orbis derives the same
+point as `ring_sk * pk_d`. The canonical KDF binds `K`, `G_d`, `pk_d`, the
+asset, and `ring_pk`, and the leaf stores only `Poseidon(rnk)`.
 
-The user and ACP hold `cnk`; the chain stores only its commitment. The user needs
-`cnk` for an ordinary regulated spend. The output creator does not need the
-recipient's `cnk`.
+No party submits or stores an RNK. The wallet derives it locally for ordinary
+regulated spends. After ACP authorization, Orbis releases an address-scoped DH
+result from which the authority derives the same RNK. The output creator does
+not learn the recipient's RNK. The aggregate asset `ring_pk` is immutable while
+notes can remain unspent; routine operator rotation reshares that key.
+
+Registration carries an Orbis FROST capability certificate binding chain, ring,
+policy, asset, address, `G_d`, and `rnk_dh_pk`. Validators verify it before
+inserting the authority-signed leaf. This is admission validation, not a
+registration SNARK, and the certificate is not stored in the leaf.
 
 The lifecycle is:
 
@@ -80,9 +86,9 @@ transition. This is necessary because one address can own many notes.
 
 There is no intermediate authorization status. The authorization signature is
 bound to the chain, address, asset, freeze generation, destination, case nonce,
-and expiry. The ACP checks that exact signature before releasing `cnk`, and the
-chain checks it again when admitting a seizure. An unfreeze or refreeze changes
-the authenticated state or generation and invalidates stale authorization.
+and expiry. The ACP uses it to authorize Orbis access, while Bankd independently
+checks it when admitting a seizure. An unfreeze or refreeze changes the
+authenticated state or generation and invalidates stale authorization.
 
 ## Recovery capsules
 
@@ -167,14 +173,16 @@ For every real input, the transaction circuit selects the nullifier key without
 revealing whether the asset is regulated:
 
 ```text
-effective_nk = is_regulated ? cnk : wallet_nk
+effective_nk = is_regulated ? rnk : wallet_nk
 nullifier = Poseidon(effective_nk, note_commitment, position)
 ```
 
-The regulated branch proves `Poseidon(cnk)` equals the commitment in the
-authenticated sender leaf. The unregulated branch keeps the existing wallet
-nullifier key. Transfer, both note-reshape families, host withdrawal, and any
-remaining ICS withdrawal must use this same helper.
+The regulated branch derives `rnk` from `ivk * rnk_dh_pk` inside the circuit and
+proves `Poseidon(rnk)` equals the commitment in the authenticated sender leaf.
+It reuses the IVK bit decomposition already required for `pk_d`. The
+unregulated branch keeps the existing wallet nullifier key. Transfer, both
+note-reshape families, host withdrawal, and shielded ICS withdrawal use this
+same helper.
 
 An alternate seizure-only nullifier is invalid: the owner could spend with the
 wallet nullifier after the authority emitted a different one. Emitting both
@@ -205,21 +213,21 @@ canonical nullifier
 amount
 ```
 
-The private witness contains the recovered note blinding, its SCT path, and
-`cnk`. Orbis evidence
+The private witness contains the recovered note blinding, its SCT path, and the
+RNK derived from the authorized Orbis address-DH release. Capsule PRE evidence
 is verified natively against current consensus policy and the current
 compliance leaf before the proof is accepted. The circuit proves:
 
-1. `Poseidon(cnk)` equals the public CNK commitment checked against the current
+1. `Poseidon(rnk)` equals the public RNK commitment checked against the current
    leaf;
 2. the capsule commitment and recovered `(amount, note_blinding)` reconstruct
    the real note commitment for the leaf address and asset;
 3. the note is a member at the claimed position;
-4. the public nullifier is the canonical nullifier derived from `cnk`, that
+4. the public nullifier is the canonical nullifier derived from `rnk`, that
    note commitment, and that position.
 
 Native admission verifies the configured authority signature and expiry,
-checks the current leaf, capability, CNK commitment, and freeze generation,
+checks the current leaf, capability, RNK commitment, and freeze generation,
 verifies the ordinary PRE share evidence, applies the existing current
 and archived nullifier nonmembership checks, and verifies the Groth16 proof.
 Within Shieldd, one state delta atomically inserts the nullifier, records the
@@ -259,7 +267,12 @@ the user from spending or receiving afterward.
 
 Implemented in Shieldd:
 
-- unversioned leaf lifecycle with validated `capk` and committed `cnk`;
+- unversioned leaf lifecycle with `capk`, certified `rnk_dh_pk`, and committed
+  `rnk`;
+- Orbis capability-certificate admission for normal and genesis registration;
+- wallet-side registration preparation without a submitted nullifier secret;
+- a typed, transcript-bound address-DH release request and threshold evidence
+  verifier, separate from capsule PRE;
 - capsule-bound note commitments and fixed-shape capsules for every real and
   hidden-arity output;
 - canonical regulated nullifiers in transfer, note reshape, and withdrawal;
@@ -271,7 +284,7 @@ Implemented in Shieldd:
 Not implemented:
 
 - private capsule locator and deterministic archive reconciliation;
-- ACP authorization/CNK release and Orbis request clients;
+- the live ACP/Orbis address-DH service endpoint and Shieldd client;
 - the operator that assembles recovered openings, SCT paths, proofs, and host
   requests;
 - Bankd policy and atomic settlement integration; and
@@ -279,7 +292,7 @@ Not implemented:
 
 ## Verification and performance gates
 
-Generated circuit metadata records this capsule-related growth:
+Generated circuit metadata records cumulative capsule-related growth:
 
 ```text
                                       before    current    increase
@@ -289,6 +302,31 @@ note reshape, eight inputs/one output 141,865    150,405       6.0%
 shielded withdrawal                    75,586     83,880      11.0%
 note seizure                                -     15,051          -
 ```
+
+The diversified-DH change itself has the following cost relative to the prior
+committed-RNK witness design:
+
+| Circuit | Before | DH RNK | Constraint change |
+| --- | ---: | ---: | ---: |
+| Transfer | 143,161 | 150,593 | +5.2% |
+| Note reshape 1 to 8 | 116,552 | 122,896 | +5.4% |
+| Note reshape 8 to 1 | 150,405 | 156,742 | +4.2% |
+| Shielded withdrawal | 83,880 | 90,221 | +7.6% |
+
+On the Windows development host, three fresh prover-process runs per family
+gave these medians. Wall time includes loading the proving key; peak memory is
+the process peak working set. The Groth16 proof remains 192 binary bytes.
+
+| Circuit | Prove before / after | Wall before / after | Peak MiB before / after |
+| --- | ---: | ---: | ---: |
+| Transfer | 1,003 / 893 ms | 19,289 / 19,470 ms | 393 / 376 |
+| Note reshape 1 to 8 | 631 / 665 ms | 14,231 / 14,491 ms | 286 / 303 |
+| Note reshape 8 to 1 | 1,117 / 1,124 ms | 21,993 / 22,322 ms | 427 / 420 |
+| Shielded withdrawal | 519 / 536 ms | 11,377 / 11,715 ms | 242 / 253 |
+
+The state increase is exactly one 32-byte compressed point per registered
+`(address, asset)` before tree and database overhead. Transaction, note, and
+capsule state sizes do not change.
 
 Record proof duration, peak RSS, constraint count, action bytes, block bytes,
 Rust verification time, and state-write time before and after each capsule
@@ -316,7 +354,8 @@ generation, not inferred from constraint-only tests.
 
 - Confirm the ordinary Orbis client response maps exactly to the admitted PRE
   evidence and add cross-implementation vectors.
-- Define ACP generation, backup, rotation, and hardware custody for `cnk`.
+- Implement and deploy ACP-gated Orbis address-DH release; no RNK custody or
+  backup exists.
 - Define the authority key set, signature threshold, expiry bounds, case nonce,
   and emergency revocation policy.
 - Define the Bankd settlement call and atomic failure semantics.

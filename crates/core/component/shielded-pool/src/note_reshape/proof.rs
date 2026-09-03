@@ -128,7 +128,6 @@ pub struct NoteReshapeProofPrivate {
     pub action_balance_blinding: Fr,
     pub ak: VerificationKey<SpendAuth>,
     pub nk: NullifierKey,
-    pub cnk: Fq,
     pub asset_path: MerklePath,
     pub asset_position: u64,
     pub asset_indexed_leaf: IndexedLeaf,

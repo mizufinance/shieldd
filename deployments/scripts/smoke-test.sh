@@ -37,6 +37,10 @@ compliance_dev_seizure_authority_vk_hex="${COMPLIANCE_DEV_SEIZURE_AUTHORITY_VK_H
 compliance_dev_dk_hex="cbd713af1d345f5b2e0c70268dd8bf71e30b10187cc6fd36b067f6b3a2a30902"
 compliance_dev_dk_pub_hex="425347413a07569499089d7c3a19b31f600c712d5aca04b9eddaa0af102b4012"
 compliance_dev_ring_pk_hex="0800000000000000000000000000000000000000000000000000000000000000"
+compliance_dev_ring_id="shieldd-dev-ring"
+compliance_dev_policy_id="shieldd-dev-policy"
+compliance_dev_permission="read"
+compliance_dev_resource="document"
 compliance_grant_valid_until_unix="${COMPLIANCE_GRANT_VALID_UNTIL_UNIX:-4102444800}"
 if [ "${SHIELDD_PRODUCTION:-0}" = "1" ]; then
     >&2 echo "ERROR: smoke-test.sh uses dev-only compliance keys and must not run with SHIELDD_PRODUCTION=1"
@@ -207,10 +211,42 @@ smoke_addr_0=$(cargo_cmd run --release --bin pcli -- --home "$pcli_test_home" vi
 require_address_output "smoke_addr_0" "$smoke_addr_0" "view address 0"
 smoke_addr_1=$(cargo_cmd run --release --bin pcli -- --home "$pcli_test_home" view address 1)
 require_address_output "smoke_addr_1" "$smoke_addr_1" "view address 1"
-compliance_dev_cnk_0_hex=$(cargo_cmd run --release --bin pcli -- --home "$pcli_test_home" tx compliance derive-cnk regulated_usd --address-index 0)
-require_hex_output "compliance_dev_cnk_0_hex" "$compliance_dev_cnk_0_hex" "$compliance_dev_cnk_0_hex" "tx compliance derive-cnk address 0"
-compliance_dev_cnk_1_hex=$(cargo_cmd run --release --bin pcli -- --home "$pcli_test_home" tx compliance derive-cnk regulated_usd --address-index 1)
-require_hex_output "compliance_dev_cnk_1_hex" "$compliance_dev_cnk_1_hex" "$compliance_dev_cnk_1_hex" "tx compliance derive-cnk address 1"
+smoke_addr_2=$(cargo_cmd run --release --bin pcli -- --home "$pcli_test_home" view address 2)
+require_address_output "smoke_addr_2" "$smoke_addr_2" "view address 2"
+# Generate deterministic public registration fixtures for this isolated devnet.
+compliance_dev_bundle=$(cargo_cmd run --quiet --release -p shieldd-sdk-compliance \
+    --example dev_orbis_registration --no-default-features --features test-helpers)
+IFS=$'\t' read -r \
+    compliance_dev_address_0 \
+    compliance_dev_rnk_dh_pk_0_hex \
+    compliance_dev_rnk_commitment_0_hex \
+    compliance_dev_capability_certificate_0_hex \
+    compliance_dev_address_1 \
+    compliance_dev_rnk_dh_pk_1_hex \
+    compliance_dev_rnk_commitment_1_hex \
+    compliance_dev_capability_certificate_1_hex \
+    compliance_dev_address_2 \
+    compliance_dev_rnk_dh_pk_2_hex \
+    compliance_dev_rnk_commitment_2_hex \
+    compliance_dev_capability_certificate_2_hex <<< "$compliance_dev_bundle"
+if [ "$compliance_dev_address_0" != "$smoke_addr_0" ] \
+    || [ "$compliance_dev_address_1" != "$smoke_addr_1" ] \
+    || [ "$compliance_dev_address_2" != "$smoke_addr_2" ]; then
+    >&2 echo "ERROR: dev Orbis fixtures do not match the smoke wallet"
+    exit 1
+fi
+for fixture_name in \
+    compliance_dev_rnk_dh_pk_0_hex \
+    compliance_dev_rnk_commitment_0_hex \
+    compliance_dev_capability_certificate_0_hex \
+    compliance_dev_rnk_dh_pk_1_hex \
+    compliance_dev_rnk_commitment_1_hex \
+    compliance_dev_capability_certificate_1_hex \
+    compliance_dev_rnk_dh_pk_2_hex \
+    compliance_dev_rnk_commitment_2_hex \
+    compliance_dev_capability_certificate_2_hex; do
+    require_hex_output "$fixture_name" "${!fixture_name}" "$compliance_dev_bundle" "dev Orbis fixture"
+done
 
 compliance_genesis_file="${smoke_test_dir}/compliance-genesis.json"
 python3 - \
@@ -218,13 +254,34 @@ python3 - \
     "$compliance_dev_dk_pub_hex" \
     "$compliance_dev_authority_vk_hex" \
     "$compliance_dev_seizure_authority_vk_hex" \
+    "$compliance_dev_ring_pk_hex" \
+    "$compliance_dev_ring_id" \
+    "$compliance_dev_policy_id" \
+    "$compliance_dev_permission" \
+    "$compliance_dev_resource" \
     "$smoke_addr_0" \
-    "$compliance_dev_cnk_0_hex" <<'PY'
+    "$compliance_dev_rnk_dh_pk_0_hex" \
+    "$compliance_dev_rnk_commitment_0_hex" \
+    "$compliance_dev_capability_certificate_0_hex" <<'PY'
 import base64
 import json
 import sys
 
-output, dk_pub, registration_vk, seizure_vk, address, cnk = sys.argv[1:]
+(
+    output,
+    dk_pub,
+    registration_vk,
+    seizure_vk,
+    ring_pk,
+    ring_id,
+    policy_id,
+    permission,
+    resource,
+    address,
+    rnk_dh_pk,
+    rnk_commitment,
+    certificate,
+) = sys.argv[1:]
 
 def encoded(value):
     return base64.b64encode(bytes.fromhex(value)).decode("ascii")
@@ -236,11 +293,18 @@ genesis = {
         "dkPub": encoded(dk_pub),
         "registrationAuthorityVk": {"inner": encoded(registration_vk)},
         "seizureAuthorityVk": {"inner": encoded(seizure_vk)},
+        "ringPk": encoded(ring_pk),
+        "ringId": ring_id,
+        "policyId": policy_id,
+        "permission": permission,
+        "resource": resource,
     }],
     "users": [{
         "address": address,
         "assetId": {"altBaseDenom": "wregulated_usd"},
-        "cnkHex": cnk,
+        "rnkDhPkHex": rnk_dh_pk,
+        "rnkCommitmentHex": rnk_commitment,
+        "capabilityCertificateHex": certificate,
     }],
 }
 with open(output, "w", encoding="utf-8") as destination:
@@ -307,8 +371,10 @@ sleep 10
 >&2 echo "Setting up compliance smoke test environment..."
 user_grant_1_output=$(cargo_cmd run --release --bin pcli -- --home "$pcli_test_home" tx compliance sign-user-grant regulated_usd \
     --address "$smoke_addr_1" \
+    --policy-id "$compliance_dev_policy_id" \
     --ring-pk-hex "$compliance_dev_ring_pk_hex" \
-    --cnk-hex "$compliance_dev_cnk_1_hex" \
+    --rnk-dh-pk-hex "$compliance_dev_rnk_dh_pk_1_hex" \
+    --rnk-commitment-hex "$compliance_dev_rnk_commitment_1_hex" \
     --registration-authority-sk-hex "$compliance_dev_authority_sk_hex" \
     --valid-until-unix "$compliance_grant_valid_until_unix" \
     2>&1) || {
@@ -320,7 +386,8 @@ user_grant_1=$(printf '%s\n' "$user_grant_1_output" | tail -1)
 require_hex_output "user_grant_1" "$user_grant_1" "$user_grant_1_output" "tx compliance sign-user-grant smoke_addr_1"
 pcli_tx_cmd tx compliance register-user regulated_usd \
     --address-index 1 \
-    --user-registration-grant-hex "$user_grant_1"
+    --user-registration-grant-hex "$user_grant_1" \
+    --capability-certificate-hex "$compliance_dev_capability_certificate_1_hex"
 >&2 echo "  User registered for regulated_usd."
 
 # Send a transfer so the detection scan has something to find
@@ -341,6 +408,9 @@ export COMPLIANCE_DEV_AUTHORITY_VK_HEX="$compliance_dev_authority_vk_hex"
 export COMPLIANCE_DEV_SEIZURE_AUTHORITY_VK_HEX="$compliance_dev_seizure_authority_vk_hex"
 export COMPLIANCE_DEV_RING_PK_HEX="$compliance_dev_ring_pk_hex"
 export COMPLIANCE_GRANT_VALID_UNTIL_UNIX="$compliance_grant_valid_until_unix"
+export COMPLIANCE_USER_2_RNK_DH_PK_HEX="$compliance_dev_rnk_dh_pk_2_hex"
+export COMPLIANCE_USER_2_RNK_COMMITMENT_HEX="$compliance_dev_rnk_commitment_2_hex"
+export COMPLIANCE_USER_2_CAPABILITY_CERTIFICATE_HEX="$compliance_dev_capability_certificate_2_hex"
 >&2 echo "  Compliance env vars exported."
 >&2 echo "Compliance smoke test setup complete."
 

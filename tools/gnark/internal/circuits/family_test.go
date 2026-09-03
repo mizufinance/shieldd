@@ -178,22 +178,22 @@ func compileCircuitFamilies() []struct {
 		{
 			name:    "transfer",
 			circuit: func() frontend.Circuit { return circuits.NewTransferCircuit() },
-			stats:   circuitStats{constraints: 143161, public: 2, secret: 428, internal: 131649},
+			stats:   circuitStats{constraints: 150593, public: 2, secret: 431, internal: 137705},
 		},
 		{
 			name:    "note_reshape8x1",
 			circuit: func() frontend.Circuit { return circuits.NewNoteReshapeCircuit("note_reshape8x1", 8, 1) },
-			stats:   circuitStats{constraints: 150405, public: 2, secret: 824, internal: 142456},
+			stats:   circuitStats{constraints: 156742, public: 2, secret: 825, internal: 147761},
 		},
 		{
 			name:    "note_reshape1x8",
 			circuit: func() frontend.Circuit { return circuits.NewNoteReshapeCircuit("note_reshape1x8", 1, 8) },
-			stats:   circuitStats{constraints: 116552, public: 2, secret: 332, internal: 106914},
+			stats:   circuitStats{constraints: 122896, public: 2, secret: 333, internal: 112226},
 		},
 		{
 			name:    "shielded_ics20_withdrawal",
 			circuit: func() frontend.Circuit { return circuits.NewShieldedIcs20WithdrawalCircuit(2) },
-			stats:   circuitStats{constraints: 83880, public: 2, secret: 329, internal: 77291},
+			stats:   circuitStats{constraints: 90221, public: 2, secret: 330, internal: 82600},
 		},
 	}
 }

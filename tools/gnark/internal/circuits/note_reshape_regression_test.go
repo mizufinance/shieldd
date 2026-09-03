@@ -50,6 +50,46 @@ func TestNoteReshapeStatusGateRejectsFrozenRegulatedOwner(t *testing.T) {
 	})
 }
 
+func TestNoteReshapeRejectsRegulatedNullifierRegistrationMutations(t *testing.T) {
+	for _, label := range []string{"note_reshape1x8", "note_reshape8x1"} {
+		label := label
+		for _, mutation := range []struct {
+			name   string
+			mutate func(*circuits.NoteReshapeCircuit)
+		}{
+			{
+				name: "dh key",
+				mutate: func(c *circuits.NoteReshapeCircuit) {
+					c.Sender.RnkDhPk.X = mutateFieldByOne(c.Sender.RnkDhPk.X)
+				},
+			},
+			{
+				name: "commitment",
+				mutate: func(c *circuits.NoteReshapeCircuit) {
+					c.Sender.RnkCommitment = mutateFieldByOne(c.Sender.RnkCommitment)
+				},
+			},
+		} {
+			mutation := mutation
+			t.Run(label+"/"+mutation.name, func(t *testing.T) {
+				assignment := loadNoteReshapeRegressionAssignment(t, label)
+				mutation.mutate(assignment)
+				family, ok := generated.NoteReshapeFamilyByLabel(label)
+				if !ok {
+					t.Fatalf("unknown note reshape family %s", label)
+				}
+				if err := test.IsSolved(
+					circuits.NewNoteReshapeCircuit(label, family.NIn, family.NOut),
+					assignment,
+					ecc.BLS12_377.ScalarField(),
+				); err == nil {
+					t.Fatalf("%s accepted a mutated regulated nullifier %s", label, mutation.name)
+				}
+			})
+		}
+	}
+}
+
 func loadNoteReshapeRegressionWitnessAndAssignment(
 	t *testing.T,
 	label string,

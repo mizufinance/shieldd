@@ -1,10 +1,15 @@
 use ark_ff::Field as _;
-use decaf377::Fq;
+use decaf377::{Element, Fq, Fr};
 use decaf377_rdsa::{Signature, SpendAuth, VerificationKey};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha512};
 use shieldd_sdk_asset::asset;
-use shieldd_sdk_keys::{ensure_nonidentity_spend_auth_key, keys::NullifierKey, Address};
+use shieldd_sdk_keys::{
+    ensure_nonidentity_spend_auth_key,
+    keys::{IncomingViewingKey, NullifierKey},
+    Address,
+};
 use shieldd_sdk_proto::shieldd::core::component::compliance::v1 as pb;
 use shieldd_sdk_proto::DomainType;
 use shieldd_sdk_tct::StateCommitment;
@@ -44,6 +49,10 @@ pub const TRANSFER_OUTPUT_CIPHERTEXT_FQS: usize =
 
 const ASSET_REGISTRATION_GRANT_DOMAIN: &[u8] = b"shieldd.compliance.asset_registration_grant";
 const USER_REGISTRATION_GRANT_DOMAIN: &[u8] = b"shieldd.compliance.user_registration_grant";
+const ORBIS_CAPABILITY_CERTIFICATE_DOMAIN: &[u8] =
+    b"shieldd.compliance.orbis_capability_certificate";
+const FROST_CHALLENGE_DOMAIN: &[u8] = b"FROST-decaf377-challenge";
+const MAX_CERTIFICATE_TEXT_BYTES: usize = 256;
 
 fn grant_signing_bytes(domain: &[u8], body_bytes: Vec<u8>) -> Vec<u8> {
     let mut bytes = Vec::with_capacity(domain.len() + 1 + body_bytes.len());
@@ -199,8 +208,8 @@ impl From<UserAssetStatus> for pb::UserAssetStatus {
 
 /// A compliance leaf in the public on-chain registry for regulated assets.
 ///
-/// The leaf authenticates the address capability used by Orbis and a commitment
-/// to the compliance nullifier key released only for an authorized seizure.
+/// The leaf authenticates the capsule capability, diversified-DH ring key, and
+/// regulated nullifier-key commitment for one address and asset.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(try_from = "pb::ComplianceLeaf", into = "pb::ComplianceLeaf")]
 pub struct ComplianceLeaf {
@@ -210,8 +219,10 @@ pub struct ComplianceLeaf {
     pub asset_id: asset::Id,
     /// Ordinary-Orbis address capability for this asset's ring.
     pub capk: decaf377::Element,
-    /// Commitment to the compliance nullifier key held by the user and ACP.
-    pub cnk_commitment: Fq,
+    /// Orbis ring public key evaluated on this address's diversified generator.
+    pub rnk_dh_pk: decaf377::Element,
+    /// Commitment to the regulated nullifier key derivable by the wallet and threshold Orbis.
+    pub rnk_commitment: Fq,
     /// Current authorization state for this address and asset.
     pub status: UserAssetStatus,
     /// Monotonic generation of the latest freeze.
@@ -220,62 +231,76 @@ pub struct ComplianceLeaf {
     pub frozen_since_height: u64,
 }
 
-pub fn compliance_nullifier_key_commitment(cnk: Fq) -> Fq {
-    poseidon377::hash_1(&COMPLIANCE_NULLIFIER_KEY_DOMAIN_SEP, cnk)
+pub fn compliance_nullifier_key_commitment(rnk: Fq) -> Fq {
+    poseidon377::hash_1(&COMPLIANCE_NULLIFIER_KEY_DOMAIN_SEP, rnk)
 }
 
-/// Derive the address-and-asset scoped key shared by its wallet and the ACP.
-pub fn derive_compliance_nullifier_key(
-    wallet_nk: Fq,
+/// Derive the canonical regulated nullifier key through wallet-Orbis static DH.
+pub fn derive_regulated_nullifier_key(
+    ivk: &IncomingViewingKey,
     address: &Address,
     asset_id: asset::Id,
-) -> Fq {
-    poseidon377::hash_4(
+    ring_pk: Element,
+    rnk_dh_pk: Element,
+) -> anyhow::Result<Fq> {
+    anyhow::ensure!(ivk.views_address(address), "IVK does not view the address");
+    anyhow::ensure!(!ring_pk.is_identity(), "ring_pk must be nonidentity");
+    anyhow::ensure!(!rnk_dh_pk.is_identity(), "rnk_dh_pk must be nonidentity");
+    let shared = ivk
+        .key_agreement_with_element(rnk_dh_pk)
+        .map_err(|_| anyhow::anyhow!("invalid regulated nullifier DH point"))?;
+    let shared = Fq::from_bytes_checked(&shared)
+        .map_err(|_| anyhow::anyhow!("regulated nullifier DH result is not canonical"))?;
+    Ok(poseidon377::hash_5(
         &COMPLIANCE_NULLIFIER_DERIVATION_DOMAIN_SEP,
         (
-            wallet_nk,
+            shared,
             address.diversified_generator().vartime_compress_to_field(),
             Fq::from_bytes_checked(&address.transmission_key().0)
                 .expect("validated address transmission key"),
             asset_id.0,
+            ring_pk.vartime_compress_to_field(),
         ),
-    )
+    ))
 }
 
 /// Select the wallet or address-and-asset scoped nullifier key for an asset.
 pub fn effective_nullifier_key(
     wallet_nk: NullifierKey,
+    ivk: &IncomingViewingKey,
     address: &Address,
     asset_id: asset::Id,
+    ring_pk: Element,
+    rnk_dh_pk: Element,
     is_regulated: bool,
-) -> NullifierKey {
+) -> anyhow::Result<NullifierKey> {
     if is_regulated {
-        NullifierKey(derive_compliance_nullifier_key(
-            wallet_nk.0,
-            address,
-            asset_id,
-        ))
+        Ok(NullifierKey(derive_regulated_nullifier_key(
+            ivk, address, asset_id, ring_pk, rnk_dh_pk,
+        )?))
     } else {
-        wallet_nk
+        Ok(wallet_nk)
     }
 }
 
 impl ComplianceLeaf {
-    /// Create a registered leaf for one asset ring and ACP-held nullifier key.
+    /// Create a registered leaf from its public cryptographic fields.
     pub fn registered(
         address: Address,
         asset_id: asset::Id,
         ring_pk: decaf377::Element,
-        cnk: Fq,
+        rnk_dh_pk: decaf377::Element,
+        rnk_commitment: Fq,
     ) -> anyhow::Result<Self> {
         anyhow::ensure!(
             ring_pk != decaf377::Element::IDENTITY,
             "ring_pk must be nonidentity"
         );
         anyhow::ensure!(
-            cnk != Fq::from(0u64),
-            "compliance nullifier key must be nonzero"
+            rnk_commitment != Fq::from(0u64),
+            "rnk commitment must be nonzero"
         );
+        anyhow::ensure!(!rnk_dh_pk.is_identity(), "rnk_dh_pk must be nonidentity");
         let d = crate::derive_compliance_scalar(&address);
         let capk = ring_pk * decaf377::Fr::from_le_bytes_mod_order(&d.to_bytes());
         anyhow::ensure!(
@@ -286,18 +311,41 @@ impl ComplianceLeaf {
             address,
             asset_id,
             capk,
-            cnk_commitment: compliance_nullifier_key_commitment(cnk),
+            rnk_dh_pk,
+            rnk_commitment,
             status: UserAssetStatus::Active,
             freeze_generation: 0,
             frozen_since_height: 0,
         })
     }
 
-    #[cfg(any(test, feature = "test-helpers"))]
-    pub fn registered_for_test(address: Address, asset_id: asset::Id) -> Self {
+    /// Create a registered leaf by committing a locally derived RNK.
+    pub fn registered_from_rnk(
+        address: Address,
+        asset_id: asset::Id,
+        ring_pk: decaf377::Element,
+        rnk_dh_pk: decaf377::Element,
+        rnk: Fq,
+    ) -> anyhow::Result<Self> {
+        anyhow::ensure!(
+            rnk != Fq::from(0u64),
+            "regulated nullifier key must be nonzero"
+        );
         Self::registered(
             address,
             asset_id,
+            ring_pk,
+            rnk_dh_pk,
+            compliance_nullifier_key_commitment(rnk),
+        )
+    }
+
+    #[cfg(any(test, feature = "test-helpers"))]
+    pub fn registered_for_test(address: Address, asset_id: asset::Id) -> Self {
+        Self::registered_from_rnk(
+            address,
+            asset_id,
+            decaf377::Element::GENERATOR,
             decaf377::Element::GENERATOR,
             Fq::from(1u64),
         )
@@ -312,7 +360,7 @@ impl ComplianceLeaf {
         let diversified_generator = address.diversified_generator().vartime_compress_to_field();
         let transmission_key = Fq::from_bytes_checked(&address.transmission_key().0)
             .expect("validated address transmission key");
-        let synthetic_cnk = poseidon377::hash_3(
+        let synthetic_rnk = poseidon377::hash_3(
             &SYNTHETIC_COMPLIANCE_NULLIFIER_KEY_DOMAIN_SEP,
             (diversified_generator, transmission_key, asset_id.0),
         );
@@ -320,7 +368,8 @@ impl ComplianceLeaf {
             address,
             asset_id,
             capk,
-            cnk_commitment: compliance_nullifier_key_commitment(synthetic_cnk),
+            rnk_dh_pk: *crate::UNREGULATED_SINK_RING_PK,
+            rnk_commitment: compliance_nullifier_key_commitment(synthetic_rnk),
             status: UserAssetStatus::Active,
             freeze_generation: 0,
             frozen_since_height: 0,
@@ -396,8 +445,12 @@ impl ComplianceLeaf {
             "capk must be nonidentity"
         );
         anyhow::ensure!(
-            self.cnk_commitment != Fq::from(0u64),
-            "cnk commitment must be nonzero"
+            !self.rnk_dh_pk.is_identity(),
+            "rnk_dh_pk must be nonidentity"
+        );
+        anyhow::ensure!(
+            self.rnk_commitment != Fq::from(0u64),
+            "rnk commitment must be nonzero"
         );
         self.validate_lifecycle()
     }
@@ -427,14 +480,15 @@ impl ComplianceLeaf {
             .expect("transmission key is valid");
         let asset_id_field = self.asset_id.0;
 
-        let commit = poseidon377::hash_6(
+        let commit = poseidon377::hash_7(
             &COMPLIANCE_LEAF_DOMAIN_SEP,
             (
                 diversified_generator,
                 transmission_key_s,
                 asset_id_field,
                 self.capk.vartime_compress_to_field(),
-                self.cnk_commitment,
+                self.rnk_dh_pk.vartime_compress_to_field(),
+                self.rnk_commitment,
                 self.lifecycle_field(),
             ),
         );
@@ -471,12 +525,19 @@ impl TryFrom<pb::ComplianceLeaf> for ComplianceLeaf {
         let capk = decaf377::Encoding(capk_bytes)
             .vartime_decompress()
             .map_err(|_| anyhow::anyhow!("invalid capk encoding"))?;
-        let cnk_commitment_bytes: [u8; 32] = value
-            .cnk_commitment
+        let rnk_dh_pk_bytes: [u8; 32] = value
+            .rnk_dh_pk
             .try_into()
-            .map_err(|_| anyhow::anyhow!("cnk_commitment must be 32 bytes"))?;
-        let cnk_commitment = Fq::from_bytes_checked(&cnk_commitment_bytes)
-            .map_err(|_| anyhow::anyhow!("invalid cnk_commitment field element"))?;
+            .map_err(|_| anyhow::anyhow!("rnk_dh_pk must be 32 bytes"))?;
+        let rnk_dh_pk = decaf377::Encoding(rnk_dh_pk_bytes)
+            .vartime_decompress()
+            .map_err(|_| anyhow::anyhow!("invalid rnk_dh_pk encoding"))?;
+        let rnk_commitment_bytes: [u8; 32] = value
+            .rnk_commitment
+            .try_into()
+            .map_err(|_| anyhow::anyhow!("rnk_commitment must be 32 bytes"))?;
+        let rnk_commitment = Fq::from_bytes_checked(&rnk_commitment_bytes)
+            .map_err(|_| anyhow::anyhow!("invalid rnk_commitment field element"))?;
         let address = value
             .address
             .ok_or_else(|| anyhow::anyhow!("missing address"))?
@@ -488,7 +549,8 @@ impl TryFrom<pb::ComplianceLeaf> for ComplianceLeaf {
                 .ok_or_else(|| anyhow::anyhow!("missing asset_id"))?
                 .try_into()?,
             capk,
-            cnk_commitment,
+            rnk_dh_pk,
+            rnk_commitment,
             status: value.status.try_into()?,
             freeze_generation: value.freeze_generation,
             frozen_since_height: value.frozen_since_height,
@@ -504,7 +566,8 @@ impl From<ComplianceLeaf> for pb::ComplianceLeaf {
             address: Some(value.address.into()),
             asset_id: Some(value.asset_id.into()),
             capk: value.capk.vartime_compress().0.to_vec(),
-            cnk_commitment: value.cnk_commitment.to_bytes().to_vec(),
+            rnk_dh_pk: value.rnk_dh_pk.vartime_compress().0.to_vec(),
+            rnk_commitment: value.rnk_commitment.to_bytes().to_vec(),
             status: pb::UserAssetStatus::from(value.status) as i32,
             freeze_generation: value.freeze_generation,
             frozen_since_height: value.frozen_since_height,
@@ -770,24 +833,55 @@ impl AssetPolicy {
         Ok(())
     }
 
+    pub fn validate_regulated(&self) -> anyhow::Result<()> {
+        self.validate_crypto_keys()?;
+        for (name, value) in [
+            ("ring_id", self.ring.ring_id.as_str()),
+            ("policy_id", self.ring.policy_id.as_str()),
+            ("permission", self.ring.permission.as_str()),
+            ("resource", self.ring.resource.as_str()),
+        ] {
+            anyhow::ensure!(
+                !value.is_empty() && value.len() <= MAX_CERTIFICATE_TEXT_BYTES,
+                "regulated asset {name} must contain 1 to {MAX_CERTIFICATE_TEXT_BYTES} bytes"
+            );
+        }
+        anyhow::ensure!(
+            self.registration_authority_vk.is_some(),
+            "regulated asset requires a registration authority"
+        );
+        anyhow::ensure!(
+            self.seizure_authority_vk.is_some(),
+            "regulated asset requires a seizure authority"
+        );
+        Ok(())
+    }
+
     pub fn permits_ibc_route(&self, route: &IbcRoute) -> bool {
         self.params.allowed_ibc_routes.binary_search(route).is_ok()
     }
 
-    /// Create a simple policy with just dk_pub, threshold, and ring_pk.
-    /// Uses empty strings for ring_id, policy_id, permission, resource.
-    pub fn simple(dk_pub: decaf377::Element, threshold: u128, ring_pk: decaf377::Element) -> Self {
+    #[cfg(any(test, feature = "test-helpers"))]
+    pub fn for_test(
+        dk_pub: decaf377::Element,
+        threshold: u128,
+        ring_pk: decaf377::Element,
+    ) -> Self {
+        let authority_sk = decaf377_rdsa::SigningKey::<SpendAuth>::from(Fr::from(1u64));
+        let authority_vk = VerificationKey::from(&authority_sk);
         Self::new(
             dk_pub,
             threshold,
             vec![],
             None,
-            String::new(),
+            "test-ring".to_owned(),
             ring_pk,
-            String::new(),
-            String::new(),
-            String::new(),
+            "test-policy".to_owned(),
+            "read".to_owned(),
+            "document".to_owned(),
         )
+        .with_registration_authority(authority_vk)
+        .with_seizure_authority(authority_vk)
     }
 
     /// Create a default policy for unregulated assets.
@@ -1674,6 +1768,153 @@ impl From<UpdateAssetIbcPolicy> for pb::UpdateAssetIbcPolicy {
     }
 }
 
+/// Threshold-Orbis attestation for an address-diversified ring public key.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(
+    try_from = "pb::OrbisCapabilityCertificate",
+    into = "pb::OrbisCapabilityCertificate"
+)]
+pub struct OrbisCapabilityCertificate {
+    pub chain_id: String,
+    pub r_point: Element,
+    pub response: Fr,
+}
+
+impl OrbisCapabilityCertificate {
+    fn signing_bytes(
+        chain_id: &str,
+        leaf: &ComplianceLeaf,
+        policy: &AssetPolicy,
+    ) -> anyhow::Result<Vec<u8>> {
+        anyhow::ensure!(
+            !chain_id.is_empty() && chain_id.len() <= MAX_CERTIFICATE_TEXT_BYTES,
+            "invalid certificate chain_id length"
+        );
+        let mut message = Vec::with_capacity(320);
+        message.extend_from_slice(ORBIS_CAPABILITY_CERTIFICATE_DOMAIN);
+        for value in [
+            chain_id.as_bytes(),
+            policy.ring.ring_id.as_bytes(),
+            policy.ring.policy_id.as_bytes(),
+        ] {
+            anyhow::ensure!(
+                !value.is_empty() && value.len() <= MAX_CERTIFICATE_TEXT_BYTES,
+                "invalid certificate text field length"
+            );
+            let len = u32::try_from(value.len())
+                .map_err(|_| anyhow::anyhow!("certificate field is too long"))?;
+            message.extend_from_slice(&len.to_le_bytes());
+            message.extend_from_slice(value);
+        }
+        message.extend_from_slice(&policy.ring.ring_pk.vartime_compress().0);
+        message.extend_from_slice(&leaf.asset_id.0.to_bytes());
+        let address = leaf.address.to_vec();
+        message.extend_from_slice(
+            &u32::try_from(address.len())
+                .map_err(|_| anyhow::anyhow!("address encoding is too long"))?
+                .to_le_bytes(),
+        );
+        message.extend_from_slice(&address);
+        message.extend_from_slice(&leaf.address.diversified_generator().vartime_compress().0);
+        message.extend_from_slice(&leaf.rnk_dh_pk.vartime_compress().0);
+        Ok(message)
+    }
+
+    fn challenge(&self, ring_pk: Element, message: &[u8]) -> Fr {
+        let mut hash = Sha512::new();
+        hash.update(FROST_CHALLENGE_DOMAIN);
+        hash.update(self.r_point.vartime_compress().0);
+        hash.update(ring_pk.vartime_compress().0);
+        hash.update(message);
+        Fr::from_le_bytes_mod_order(&hash.finalize())
+    }
+
+    pub fn verify(
+        &self,
+        leaf: &ComplianceLeaf,
+        policy: &AssetPolicy,
+        expected_chain_id: &str,
+    ) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            self.chain_id == expected_chain_id,
+            "Orbis capability certificate chain_id mismatch"
+        );
+        anyhow::ensure!(
+            !self.r_point.is_identity(),
+            "certificate R must be nonidentity"
+        );
+        leaf.validate_registration(policy.ring.ring_pk)?;
+        let message = Self::signing_bytes(&self.chain_id, leaf, policy)?;
+        let challenge = self.challenge(policy.ring.ring_pk, &message);
+        anyhow::ensure!(
+            Element::GENERATOR * self.response == self.r_point + policy.ring.ring_pk * challenge,
+            "invalid Orbis capability certificate"
+        );
+        Ok(())
+    }
+
+    #[cfg(any(test, feature = "test-helpers"))]
+    pub fn sign_for_test(
+        chain_id: impl Into<String>,
+        leaf: &ComplianceLeaf,
+        policy: &AssetPolicy,
+        ring_sk: Fr,
+    ) -> anyhow::Result<Self> {
+        anyhow::ensure!(
+            Element::GENERATOR * ring_sk == policy.ring.ring_pk,
+            "test ring secret does not match policy ring key"
+        );
+        let chain_id = chain_id.into();
+        let nonce = Fr::from(17u64);
+        let mut certificate = Self {
+            chain_id,
+            r_point: Element::GENERATOR * nonce,
+            response: Fr::from(0u64),
+        };
+        let message = Self::signing_bytes(&certificate.chain_id, leaf, policy)?;
+        certificate.response =
+            nonce + certificate.challenge(policy.ring.ring_pk, &message) * ring_sk;
+        Ok(certificate)
+    }
+}
+
+impl DomainType for OrbisCapabilityCertificate {
+    type Proto = pb::OrbisCapabilityCertificate;
+}
+
+impl TryFrom<pb::OrbisCapabilityCertificate> for OrbisCapabilityCertificate {
+    type Error = anyhow::Error;
+
+    fn try_from(value: pb::OrbisCapabilityCertificate) -> Result<Self, Self::Error> {
+        let r_point_bytes: [u8; 32] = value
+            .r_point
+            .try_into()
+            .map_err(|_| anyhow::anyhow!("certificate r_point must be 32 bytes"))?;
+        let response_bytes: [u8; 32] = value
+            .response
+            .try_into()
+            .map_err(|_| anyhow::anyhow!("certificate response must be 32 bytes"))?;
+        Ok(Self {
+            chain_id: value.chain_id,
+            r_point: decaf377::Encoding(r_point_bytes)
+                .vartime_decompress()
+                .map_err(|_| anyhow::anyhow!("invalid certificate r_point encoding"))?,
+            response: Fr::from_bytes_checked(&response_bytes)
+                .map_err(|_| anyhow::anyhow!("invalid canonical certificate response"))?,
+        })
+    }
+}
+
+impl From<OrbisCapabilityCertificate> for pb::OrbisCapabilityCertificate {
+    fn from(value: OrbisCapabilityCertificate) -> Self {
+        Self {
+            chain_id: value.chain_id,
+            r_point: value.r_point.vartime_compress().0.to_vec(),
+            response: value.response.to_bytes().to_vec(),
+        }
+    }
+}
+
 /// Message to register a user's address for a regulated asset.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(try_from = "pb::MsgRegisterUser", into = "pb::MsgRegisterUser")]
@@ -1682,6 +1923,8 @@ pub struct MsgRegisterUser {
     pub leaf: ComplianceLeaf,
     /// Grant authorizing this registration.
     pub grant: Option<UserRegistrationGrant>,
+    /// Orbis threshold certificate for the address-diversified ring public key.
+    pub capability_certificate: Option<OrbisCapabilityCertificate>,
 }
 
 impl DomainType for MsgRegisterUser {
@@ -1698,6 +1941,10 @@ impl TryFrom<pb::MsgRegisterUser> for MsgRegisterUser {
                 .ok_or_else(|| anyhow::anyhow!("missing leaf"))?
                 .try_into()?,
             grant: value.grant.map(TryInto::try_into).transpose()?,
+            capability_certificate: value
+                .capability_certificate
+                .map(TryInto::try_into)
+                .transpose()?,
         })
     }
 }
@@ -1707,6 +1954,7 @@ impl From<MsgRegisterUser> for pb::MsgRegisterUser {
         pb::MsgRegisterUser {
             leaf: Some(value.leaf.into()),
             grant: value.grant.map(Into::into),
+            capability_certificate: value.capability_certificate.map(Into::into),
         }
     }
 }
@@ -1725,23 +1973,167 @@ mod tests {
 
     #[test]
     fn effective_nullifier_key_is_scoped_only_for_regulated_assets() {
-        let mut rng = rand::thread_rng();
-        let wallet_nk = NullifierKey(Fq::from(7u64));
-        let address = Address::dummy(&mut rng);
+        let fvk = &*shieldd_sdk_keys::test_keys::FULL_VIEWING_KEY;
+        let wallet_nk = *fvk.nullifier_key();
+        let address = fvk.payment_address(0u32.into());
         let asset_id = asset::Id(Fq::from(11u64));
+        let ring_sk = Fr::from(13u64);
+        let ring_pk = Element::GENERATOR * ring_sk;
+        let rnk_dh_pk = address.diversified_generator() * ring_sk;
 
         assert_eq!(
-            effective_nullifier_key(wallet_nk, &address, asset_id, false),
+            effective_nullifier_key(
+                wallet_nk,
+                fvk.incoming(),
+                &address,
+                asset_id,
+                ring_pk,
+                rnk_dh_pk,
+                false
+            )
+            .unwrap(),
             wallet_nk
         );
         assert_eq!(
-            effective_nullifier_key(wallet_nk, &address, asset_id, true),
-            NullifierKey(derive_compliance_nullifier_key(
-                wallet_nk.0,
+            effective_nullifier_key(
+                wallet_nk,
+                fvk.incoming(),
                 &address,
-                asset_id
-            ))
+                asset_id,
+                ring_pk,
+                rnk_dh_pk,
+                true
+            )
+            .unwrap(),
+            NullifierKey(
+                derive_regulated_nullifier_key(
+                    fvk.incoming(),
+                    &address,
+                    asset_id,
+                    ring_pk,
+                    rnk_dh_pk
+                )
+                .unwrap()
+            )
         );
+    }
+
+    fn certified_leaf() -> (ComplianceLeaf, AssetPolicy, OrbisCapabilityCertificate, Fr) {
+        let fvk = &*shieldd_sdk_keys::test_keys::FULL_VIEWING_KEY;
+        let address = fvk.payment_address(0u32.into());
+        let asset_id = asset::Id(Fq::from(77u64));
+        let ring_sk = Fr::from(19u64);
+        let ring_pk = Element::GENERATOR * ring_sk;
+        let rnk_dh_pk = address.diversified_generator() * ring_sk;
+        let rnk =
+            derive_regulated_nullifier_key(fvk.incoming(), &address, asset_id, ring_pk, rnk_dh_pk)
+                .unwrap();
+        let leaf = ComplianceLeaf::registered_from_rnk(address, asset_id, ring_pk, rnk_dh_pk, rnk)
+            .unwrap();
+        let policy = AssetPolicy::new(
+            Element::GENERATOR,
+            u128::MAX,
+            vec![],
+            None,
+            "ring-77".to_owned(),
+            ring_pk,
+            "policy-77".to_owned(),
+            "read".to_owned(),
+            "document".to_owned(),
+        );
+        let certificate =
+            OrbisCapabilityCertificate::sign_for_test("shieldd-test", &leaf, &policy, ring_sk)
+                .unwrap();
+        (leaf, policy, certificate, ring_sk)
+    }
+
+    #[test]
+    fn orbis_capability_certificate_binds_the_complete_registration() {
+        let (leaf, policy, certificate, _) = certified_leaf();
+        certificate.verify(&leaf, &policy, "shieldd-test").unwrap();
+
+        assert!(certificate.verify(&leaf, &policy, "other-chain").is_err());
+
+        let mut wrong_leaf = leaf.clone();
+        wrong_leaf.asset_id = asset::Id(Fq::from(78u64));
+        assert!(certificate
+            .verify(&wrong_leaf, &policy, "shieldd-test")
+            .is_err());
+
+        let mut wrong_dh = leaf.clone();
+        wrong_dh.rnk_dh_pk += Element::GENERATOR;
+        assert!(certificate
+            .verify(&wrong_dh, &policy, "shieldd-test")
+            .is_err());
+
+        let mut wrong_policy = policy.clone();
+        wrong_policy.ring.policy_id = "other-policy".to_owned();
+        assert!(certificate
+            .verify(&leaf, &wrong_policy, "shieldd-test")
+            .is_err());
+
+        let mut mutated = certificate;
+        mutated.response += Fr::from(1u64);
+        assert!(mutated.verify(&leaf, &policy, "shieldd-test").is_err());
+    }
+
+    #[test]
+    fn diversified_dh_derivation_changes_with_every_scope_input() {
+        let (leaf, policy, _, ring_sk) = certified_leaf();
+        let fvk = &*shieldd_sdk_keys::test_keys::FULL_VIEWING_KEY;
+        let original = derive_regulated_nullifier_key(
+            fvk.incoming(),
+            &leaf.address,
+            leaf.asset_id,
+            policy.ring.ring_pk,
+            leaf.rnk_dh_pk,
+        )
+        .unwrap();
+
+        let other_asset = derive_regulated_nullifier_key(
+            fvk.incoming(),
+            &leaf.address,
+            asset::Id(leaf.asset_id.0 + Fq::from(1u64)),
+            policy.ring.ring_pk,
+            leaf.rnk_dh_pk,
+        )
+        .unwrap();
+        let other_ring = derive_regulated_nullifier_key(
+            fvk.incoming(),
+            &leaf.address,
+            leaf.asset_id,
+            policy.ring.ring_pk + Element::GENERATOR,
+            leaf.rnk_dh_pk,
+        )
+        .unwrap();
+        assert_ne!(original, other_asset);
+        assert_ne!(original, other_ring);
+
+        let other_address = fvk.payment_address(1u32.into());
+        let other_dh = other_address.diversified_generator() * ring_sk;
+        let other_address_key = derive_regulated_nullifier_key(
+            fvk.incoming(),
+            &other_address,
+            leaf.asset_id,
+            policy.ring.ring_pk,
+            other_dh,
+        )
+        .unwrap();
+        assert_ne!(original, other_address_key);
+
+        let mut frozen = leaf;
+        frozen
+            .apply_status_action(UserAssetStatusAction::Freeze, 10)
+            .unwrap();
+        let after_freeze = derive_regulated_nullifier_key(
+            fvk.incoming(),
+            &frozen.address,
+            frozen.asset_id,
+            policy.ring.ring_pk,
+            frozen.rnk_dh_pk,
+        )
+        .unwrap();
+        assert_eq!(original, after_freeze);
     }
 
     #[test]
@@ -1778,7 +2170,7 @@ mod tests {
         assert_eq!(leaf.asset_id, asset_id);
         leaf.validate().unwrap();
         assert_ne!(leaf.capk, decaf377::Element::IDENTITY);
-        assert_ne!(leaf.cnk_commitment, Fq::from(0u64));
+        assert_ne!(leaf.rnk_commitment, Fq::from(0u64));
     }
 
     #[test]
@@ -1815,7 +2207,7 @@ mod tests {
         assert_eq!(original.address, recovered.address);
         assert_eq!(original.asset_id, recovered.asset_id);
         assert_eq!(original.capk, recovered.capk);
-        assert_eq!(original.cnk_commitment, recovered.cnk_commitment);
+        assert_eq!(original.rnk_commitment, recovered.rnk_commitment);
         assert_eq!(original.commit().0, recovered.commit().0);
     }
 
@@ -1866,7 +2258,8 @@ mod tests {
             address: Some(Address::dummy(&mut rng).into()),
             asset_id: Some(asset::Id(decaf377::Fq::from(999u64)).into()),
             capk: vec![],
-            cnk_commitment: Fq::from(1u64).to_bytes().to_vec(),
+            rnk_dh_pk: decaf377::Element::GENERATOR.vartime_compress().0.to_vec(),
+            rnk_commitment: Fq::from(1u64).to_bytes().to_vec(),
             status: pb::UserAssetStatus::Active as i32,
             freeze_generation: 0,
             frozen_since_height: 0,
@@ -1881,23 +2274,24 @@ mod tests {
     }
 
     #[test]
-    fn test_compliance_leaf_proto_rejects_invalid_cnk_commitment() {
+    fn test_compliance_leaf_proto_rejects_invalid_rnk_commitment() {
         let mut rng = rand::thread_rng();
         let address = Address::dummy(&mut rng);
         let proto = pb::ComplianceLeaf {
             address: Some(address.into()),
             asset_id: Some(asset::Id(decaf377::Fq::from(999u64)).into()),
             capk: decaf377::Element::GENERATOR.vartime_compress().0.to_vec(),
-            cnk_commitment: vec![0xff; 32],
+            rnk_dh_pk: decaf377::Element::GENERATOR.vartime_compress().0.to_vec(),
+            rnk_commitment: vec![0xff; 32],
             status: pb::UserAssetStatus::Active as i32,
             freeze_generation: 0,
             frozen_since_height: 0,
         };
 
-        let err = ComplianceLeaf::try_from(proto).expect_err("invalid cnk commitment should fail");
+        let err = ComplianceLeaf::try_from(proto).expect_err("invalid rnk commitment should fail");
 
         assert!(
-            err.to_string().contains("invalid cnk_commitment"),
+            err.to_string().contains("invalid rnk_commitment"),
             "unexpected error: {err:#}"
         );
     }
@@ -1946,15 +2340,15 @@ mod tests {
         let identity = decaf377::Element::IDENTITY;
         let generator = decaf377::Element::GENERATOR;
 
-        let identity_dk = AssetPolicy::simple(identity, 1, generator);
+        let identity_dk = AssetPolicy::for_test(identity, 1, generator);
         assert!(identity_dk.validate_crypto_keys().is_err());
         assert!(identity_dk.to_bytes().is_err());
 
-        let identity_ring = AssetPolicy::simple(generator, 1, identity);
+        let identity_ring = AssetPolicy::for_test(generator, 1, identity);
         assert!(identity_ring.validate_crypto_keys().is_err());
         assert!(identity_ring.to_bytes().is_err());
 
-        let valid = AssetPolicy::simple(generator, 1, generator);
+        let valid = AssetPolicy::for_test(generator, 1, generator);
         let mut identity_dk_proto: pb::AssetPolicy = valid.clone().into();
         identity_dk_proto.dk_pub = identity.vartime_compress().0.to_vec();
         assert!(AssetPolicy::try_from(identity_dk_proto).is_err());
@@ -1965,11 +2359,50 @@ mod tests {
     }
 
     #[test]
+    fn regulated_policy_requires_complete_orbis_and_authority_configuration() {
+        let authority_sk = decaf377_rdsa::SigningKey::<SpendAuth>::from(Fr::from(9u64));
+        let authority_vk = VerificationKey::from(&authority_sk);
+        let valid = AssetPolicy::new(
+            Element::GENERATOR,
+            1,
+            Vec::new(),
+            None,
+            "ring".to_owned(),
+            Element::GENERATOR,
+            "policy".to_owned(),
+            "read".to_owned(),
+            "document".to_owned(),
+        )
+        .with_registration_authority(authority_vk)
+        .with_seizure_authority(authority_vk);
+        valid.validate_regulated().unwrap();
+
+        for clear in [
+            |policy: &mut AssetPolicy| policy.ring.ring_id.clear(),
+            |policy: &mut AssetPolicy| policy.ring.policy_id.clear(),
+            |policy: &mut AssetPolicy| policy.ring.permission.clear(),
+            |policy: &mut AssetPolicy| policy.ring.resource.clear(),
+        ] {
+            let mut incomplete = valid.clone();
+            clear(&mut incomplete);
+            assert!(incomplete.validate_regulated().is_err());
+        }
+
+        let mut missing_registration_authority = valid.clone();
+        missing_registration_authority.registration_authority_vk = None;
+        assert!(missing_registration_authority.validate_regulated().is_err());
+
+        let mut missing_seizure_authority = valid;
+        missing_seizure_authority.seizure_authority_vk = None;
+        assert!(missing_seizure_authority.validate_regulated().is_err());
+    }
+
+    #[test]
     fn asset_policy_rejects_identity_registration_authority_key() {
         let identity_signing_key =
             decaf377_rdsa::SigningKey::<SpendAuth>::from(decaf377::Fr::from(0u64));
         let identity = VerificationKey::from(&identity_signing_key);
-        let policy = AssetPolicy::simple(
+        let policy = AssetPolicy::for_test(
             decaf377::Element::GENERATOR,
             1,
             decaf377::Element::GENERATOR,

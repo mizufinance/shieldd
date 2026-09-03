@@ -84,7 +84,7 @@ func ReconstructedNoteSeizureStatementFieldsFromWitness(
 		witness.Recovery.EncryptedAmount,
 		witness.Recovery.EncryptedNoteBlinding,
 		witness.Recovery.Seed,
-		witness.CnkCommitment,
+		witness.RnkCommitment,
 		witness.AuthorizationCommitment,
 	}
 	if err := ensureFieldCount("note seizure", fields, primitives.NoteSeizureStatementFieldCount); err != nil {

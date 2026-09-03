@@ -27,7 +27,8 @@ pub struct IndexedLeafData {
 pub struct UserLeafData {
     pub position: u64,
     pub capk: [u8; 32],
-    pub cnk_commitment: [u8; 32],
+    pub rnk_dh_pk: [u8; 32],
+    pub rnk_commitment: [u8; 32],
     pub status: shieldd_sdk_compliance::UserAssetStatus,
     pub freeze_generation: u64,
     pub frozen_since_height: u64,
@@ -504,7 +505,8 @@ impl ComplianceTreeStore<'_, '_> {
         asset_id: &[u8],
         position: u64,
         capk: &[u8],
-        cnk_commitment: &[u8],
+        rnk_dh_pk: &[u8],
+        rnk_commitment: &[u8],
         status: shieldd_sdk_compliance::UserAssetStatus,
         freeze_generation: u64,
         frozen_since_height: u64,
@@ -518,8 +520,8 @@ impl ComplianceTreeStore<'_, '_> {
         self.0
             .prepare_cached(
                 "INSERT OR REPLACE INTO compliance_user_leaf_data \
-                 (address, asset_id, position, capk, cnk_commitment, status, freeze_generation, frozen_since_height, commitment) \
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+                 (address, asset_id, position, capk, rnk_dh_pk, rnk_commitment, status, freeze_generation, frozen_since_height, commitment) \
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
             )
             .context("failed to prepare leaf data insert")?
             .execute((
@@ -527,7 +529,8 @@ impl ComplianceTreeStore<'_, '_> {
                 asset_id,
                 &position,
                 capk,
-                cnk_commitment,
+                rnk_dh_pk,
+                rnk_commitment,
                 &(shieldd_sdk_proto::core::component::compliance::v1::UserAssetStatus::from(status)
                     as i32),
                 &freeze_generation,
@@ -559,7 +562,7 @@ impl ComplianceTreeStore<'_, '_> {
         let mut stmt = self
             .0
             .prepare_cached(
-                "SELECT position, capk, cnk_commitment, status, freeze_generation, frozen_since_height, commitment \
+                "SELECT position, capk, rnk_dh_pk, rnk_commitment, status, freeze_generation, frozen_since_height, commitment \
                  FROM compliance_user_leaf_data \
                  WHERE address = ?1 AND asset_id = ?2",
             )
@@ -569,7 +572,8 @@ impl ComplianceTreeStore<'_, '_> {
             .query_row((address, asset_id), |row| {
                 let position: i64 = row.get("position")?;
                 let capk: Vec<u8> = row.get("capk")?;
-                let cnk_commitment: Vec<u8> = row.get("cnk_commitment")?;
+                let rnk_dh_pk: Vec<u8> = row.get("rnk_dh_pk")?;
+                let rnk_commitment: Vec<u8> = row.get("rnk_commitment")?;
                 let status: i32 = row.get("status")?;
                 let freeze_generation: i64 = row.get("freeze_generation")?;
                 let frozen_since_height: i64 = row.get("frozen_since_height")?;
@@ -577,7 +581,8 @@ impl ComplianceTreeStore<'_, '_> {
                 Ok((
                     position,
                     capk,
-                    cnk_commitment,
+                    rnk_dh_pk,
+                    rnk_commitment,
                     status,
                     freeze_generation,
                     frozen_since_height,
@@ -591,7 +596,8 @@ impl ComplianceTreeStore<'_, '_> {
             Some((
                 position,
                 capk,
-                cnk_commitment,
+                rnk_dh_pk,
+                rnk_commitment,
                 status,
                 freeze_generation,
                 frozen_since_height,
@@ -600,10 +606,13 @@ impl ComplianceTreeStore<'_, '_> {
                 let capk: [u8; 32] = capk.try_into().map_err(|v: Vec<u8>| {
                     anyhow::anyhow!("leaf data capk must be 32 bytes, got {}", v.len())
                 })?;
-                let cnk_commitment: [u8; 32] =
-                    cnk_commitment.try_into().map_err(|v: Vec<u8>| {
+                let rnk_dh_pk: [u8; 32] = rnk_dh_pk.try_into().map_err(|v: Vec<u8>| {
+                    anyhow::anyhow!("leaf data rnk_dh_pk must be 32 bytes, got {}", v.len())
+                })?;
+                let rnk_commitment: [u8; 32] =
+                    rnk_commitment.try_into().map_err(|v: Vec<u8>| {
                         anyhow::anyhow!(
-                            "leaf data cnk commitment must be 32 bytes, got {}",
+                            "leaf data rnk commitment must be 32 bytes, got {}",
                             v.len()
                         )
                     })?;
@@ -616,7 +625,8 @@ impl ComplianceTreeStore<'_, '_> {
                 Ok(Some(UserLeafData {
                     position: position as u64,
                     capk,
-                    cnk_commitment,
+                    rnk_dh_pk,
+                    rnk_commitment,
                     status: status.try_into()?,
                     freeze_generation: u64::try_from(freeze_generation)
                         .context("stored freeze generation is negative")?,
@@ -805,6 +815,7 @@ mod tests {
                 3,
                 &[10u8; 32],
                 &[11u8; 32],
+                &[12u8; 32],
                 shieldd_sdk_compliance::UserAssetStatus::Frozen,
                 4,
                 120,

@@ -434,7 +434,7 @@ mod tests {
         state
             .test_only_register_asset(
                 asset::Id(Fq::from(55u64)),
-                AssetPolicy::simple(
+                AssetPolicy::for_test(
                     decaf377::Element::GENERATOR,
                     u128::MAX,
                     decaf377::Element::GENERATOR,

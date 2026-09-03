@@ -26,14 +26,16 @@ message ComplianceLeaf {
   asset.v1.AssetId asset_id = 2;
   // Ordinary-Orbis address capability for this asset's ring.
   bytes capk = 3;
-  // Poseidon commitment to the compliance nullifier key held by the user and ACP.
-  bytes cnk_commitment = 4;
+  // Orbis ring public key evaluated on this address's diversified generator.
+  bytes rnk_dh_pk = 4;
+  // Poseidon commitment to the regulated nullifier key derivable by the wallet and threshold Orbis.
+  bytes rnk_commitment = 5;
   // Current authorization state for this address and asset.
-  UserAssetStatus status = 5;
+  UserAssetStatus status = 6;
   // Monotonic freeze generation. Zero until the first freeze.
-  uint64 freeze_generation = 6;
+  uint64 freeze_generation = 7;
   // Block height at which the current freeze generation began. Zero unless frozen or seized.
-  uint64 frozen_since_height = 7;
+  uint64 frozen_since_height = 8;
 }
 
 // Per-address authorization state for one regulated asset.
@@ -145,6 +147,18 @@ message MsgRegisterUser {
   ComplianceLeaf leaf = 1;
   // Grant authorizing this registration.
   UserRegistrationGrant grant = 2;
+  // Orbis threshold certificate for the address-diversified ring public key.
+  OrbisCapabilityCertificate capability_certificate = 3;
+}
+
+// Threshold-Orbis attestation for an address-diversified ring public key.
+message OrbisCapabilityCertificate {
+  // Chain on which this certificate may be used.
+  string chain_id = 1;
+  // FROST group commitment R.
+  bytes r_point = 2;
+  // Canonical FROST response scalar z.
+  bytes response = 3;
 }
 
 // ZK Data (Quad Tree Path)
@@ -355,7 +369,13 @@ message GenesisContent {
   repeated crypto.decaf377_rdsa.v1.SpendVerificationKey compliance_registrar_vk = 2;
   ComplianceParameters compliance_params = 3;
   // Active users that must exist before regulated genesis allocations are minted.
-  repeated ComplianceLeaf user_leaves = 4;
+  repeated GenesisUserRegistration user_registrations = 4;
+}
+
+// Certified active user installed at genesis.
+message GenesisUserRegistration {
+  ComplianceLeaf leaf = 1;
+  OrbisCapabilityCertificate capability_certificate = 2;
 }
 
 // Native asset registration configured at genesis.
@@ -365,6 +385,11 @@ message NativeAssetRegistration {
   bytes dk_pub = 3;
   crypto.decaf377_rdsa.v1.SpendVerificationKey registration_authority_vk = 4;
   crypto.decaf377_rdsa.v1.SpendVerificationKey seizure_authority_vk = 5;
+  bytes ring_pk = 6;
+  string ring_id = 7;
+  string policy_id = 8;
+  string permission = 9;
+  string resource = 10;
 }
 
 // One ordinary Orbis PRE share and its proof of correct re-encryption.
@@ -388,6 +413,25 @@ message PreEvidence {
   bytes reader_pk = 8;
   uint32 threshold = 9;
   repeated PreShareEvidence shares = 10;
+}
+
+// ACP-authorized request for releasing one address-scoped regulated nullifier key.
+message AddressDhReleaseRequest {
+  string ring_id = 1;
+  asset.v1.AssetId asset_id = 2;
+  keys.v1.Address address = 3;
+  bytes ring_pk = 4;
+  bytes reader_pk = 5;
+  bytes authority_instruction_hash = 6;
+  uint64 expires_at_unix = 7;
+  bytes request_nonce = 8;
+}
+
+// Threshold DLEQ evidence for ring_sk * (reader_pk + pk_d).
+message AddressDhReleaseEvidence {
+  AddressDhReleaseRequest request = 1;
+  uint32 threshold = 2;
+  repeated PreShareEvidence shares = 3;
 }
 
 message DleqProof {

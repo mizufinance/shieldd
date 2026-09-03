@@ -55,7 +55,6 @@ type NoteReshapeWitnessBinary struct {
 	RecentPositionFloor      [32]byte
 	ActionBalanceBlinding    [32]byte
 	NK                       [32]byte
-	CNK                      [32]byte
 	AssetPath                MerklePathBinary
 	AssetPosition            uint64
 	AssetIndexedLeaf         IndexedLeafBinary
@@ -69,7 +68,8 @@ type NoteReshapeWitnessBinary struct {
 	SenderCompliancePath     MerklePathBinary
 	SenderCompliancePosition uint64
 	SenderCapkAffine         PointAffineBinary
-	SenderCnkCommitment      [32]byte
+	SenderRnkDhPkAffine      PointAffineBinary
+	SenderRnkCommitment      [32]byte
 	SenderStatus             [32]byte
 	Shared                   NoteReshapeSharedNoteContextWitnessBinary
 	Spends                   []NoteReshapeSpendWitnessBinary
@@ -157,9 +157,6 @@ func decodeNoteReshapeWitness(payload []byte) (*NoteReshapeWitnessBinary, error)
 	if witness.NK, err = read32(reader); err != nil {
 		return nil, err
 	}
-	if witness.CNK, err = read32(reader); err != nil {
-		return nil, err
-	}
 	if witness.AssetPath, err = readMerklePath(reader); err != nil {
 		return nil, err
 	}
@@ -199,7 +196,10 @@ func decodeNoteReshapeWitness(payload []byte) (*NoteReshapeWitnessBinary, error)
 	if witness.SenderCapkAffine, err = readPointAffine(reader); err != nil {
 		return nil, err
 	}
-	if witness.SenderCnkCommitment, err = read32(reader); err != nil {
+	if witness.SenderRnkDhPkAffine, err = readPointAffine(reader); err != nil {
+		return nil, err
+	}
+	if witness.SenderRnkCommitment, err = read32(reader); err != nil {
 		return nil, err
 	}
 	if witness.SenderStatus, err = read32(reader); err != nil {

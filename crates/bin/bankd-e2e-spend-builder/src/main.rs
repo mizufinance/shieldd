@@ -14,7 +14,7 @@ use shieldd_sdk_asset::{asset, Value};
 use shieldd_sdk_compliance::{
     structs::{
         AssetRegistrationGrant, AssetRegistrationGrantBody, MsgRegisterAsset, MsgRegisterUser,
-        UserRegistrationGrant, UserRegistrationGrantBody,
+        OrbisCapabilityCertificate, UserRegistrationGrant, UserRegistrationGrantBody,
     },
     ComplianceLeaf, DetectionKey, PocOrbisAuditBundle,
 };
@@ -51,7 +51,7 @@ enum Operation {
     },
     RegisterUsers {
         ring: PathBuf,
-        recipients: Vec<Address>,
+        registrations: PathBuf,
     },
 }
 
@@ -63,6 +63,15 @@ struct RingInput {
     policy_id: String,
     resource: String,
     permission: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct UserRegistrationInput {
+    address: Address,
+    rnk_dh_pk_hex: String,
+    rnk_commitment_hex: String,
+    capability_certificate_hex: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -114,10 +123,16 @@ fn parse_args() -> Result<Opt> {
         },
         Some("register-users") => {
             let ring = PathBuf::from(args.next().context(
-                "usage: bankd-e2e-spend-builder <db> <chain-id> register-users <ring.json>",
+                "usage: bankd-e2e-spend-builder <db> <chain-id> register-users <ring.json> <registrations.json>",
             )?);
-            let recipients = parse_recipient_args(&mut args)?;
-            Operation::RegisterUsers { ring, recipients }
+            let registrations = PathBuf::from(
+                args.next()
+                    .context("register-users requires wallet-provided registrations.json")?,
+            );
+            Operation::RegisterUsers {
+                ring,
+                registrations,
+            }
         }
         Some("spend") => {
             let send_amount = parse_amount(args.next())?;
@@ -184,20 +199,6 @@ fn parse_amount(raw: Option<String>) -> Result<Amount> {
     }))
 }
 
-fn parse_recipient_args(args: &mut impl Iterator<Item = String>) -> Result<Vec<Address>> {
-    let mut recipients = Vec::new();
-    while let Some(arg) = args.next() {
-        match arg.as_str() {
-            "--recipient" => recipients.push(parse_address(args.next())?),
-            _ => bail!("unknown register-users argument {arg}"),
-        }
-    }
-    if recipients.is_empty() {
-        recipients.push(test_keys::ADDRESS_1.deref().clone());
-    }
-    Ok(recipients)
-}
-
 fn parse_address(raw: Option<String>) -> Result<Address> {
     let raw = raw.context("--recipient requires an address")?;
     Address::from_str(&raw).with_context(|| format!("invalid recipient address {raw}"))
@@ -257,13 +258,25 @@ async fn build_tx(opt: &Opt) -> Result<BuiltTx> {
             .await?,
             audit_bundle: None,
         }),
-        Operation::RegisterUsers { ring, recipients } => {
+        Operation::RegisterUsers {
+            ring,
+            registrations,
+        } => {
             let ring = read_ring(ring)?;
-            let actions = std::iter::once(test_keys::ADDRESS_0.deref().clone())
-                .chain(recipients.iter().cloned())
+            let registrations: Vec<UserRegistrationInput> =
+                serde_json::from_slice(&fs::read(registrations).with_context(|| {
+                    format!(
+                        "failed to read registrations file {}",
+                        registrations.display()
+                    )
+                })?)
+                .context("failed to parse wallet registration bundles")?;
+            let actions = registrations
                 .into_iter()
                 .enumerate()
-                .map(|(index, address)| register_user_action(&ring, address, index as u8))
+                .map(|(index, registration)| {
+                    register_user_action(&ring, &opt.chain_id, registration, index as u8)
+                })
                 .collect::<Result<Vec<_>>>()?;
             Ok(BuiltTx {
                 tx: build_registration_tx(&client, &opt.chain_id, actions).await?,
@@ -416,7 +429,8 @@ fn register_asset_action(ring: RingInput) -> Result<Vec<ActionPlan>> {
 
 fn register_user_action(
     ring: &RingInput,
-    address: shieldd_sdk_keys::Address,
+    chain_id: &str,
+    registration: UserRegistrationInput,
     nonce: u8,
 ) -> Result<ActionPlan> {
     let authority_sk = demo_signing_key(2);
@@ -424,12 +438,33 @@ fn register_user_action(
         .parse_denom("ubrl")
         .context("ubrl must be a base denomination")?
         .id();
+    let ring_pk = parse_element(&ring.ring_pk_hex)?;
+    let rnk_dh_pk = parse_element(&registration.rnk_dh_pk_hex)?;
+    let rnk_commitment = parse_fq(&registration.rnk_commitment_hex)?;
     let leaf = ComplianceLeaf::registered(
-        address,
+        registration.address,
         asset_id,
-        parse_element(&ring.ring_pk_hex)?,
-        Fq::from(u64::from(nonce) + 1),
+        ring_pk,
+        rnk_dh_pk,
+        rnk_commitment,
     )?;
+    let capability_certificate = OrbisCapabilityCertificate::decode(
+        hex::decode(&registration.capability_certificate_hex)
+            .context("capability certificate must be hex")?
+            .as_slice(),
+    )?;
+    let policy = shieldd_sdk_compliance::AssetPolicy::new(
+        Element::GENERATOR,
+        u128::MAX,
+        vec![],
+        None,
+        ring.ring_id.clone(),
+        ring_pk,
+        ring.policy_id.clone(),
+        ring.permission.clone(),
+        ring.resource.clone(),
+    );
+    capability_certificate.verify(&leaf, &policy, chain_id)?;
     let body = UserRegistrationGrantBody {
         leaf: leaf.clone(),
         policy_id: ring.policy_id.clone(),
@@ -437,7 +472,8 @@ fn register_user_action(
         nonce: vec![nonce; 16],
     };
     Ok(ActionPlan::from(MsgRegisterUser {
-        leaf,
+        leaf: leaf.clone(),
+        capability_certificate: Some(capability_certificate),
         grant: Some(UserRegistrationGrant {
             signature: authority_sk.sign(OsRng, &body.signing_bytes()),
             body,
@@ -459,6 +495,15 @@ fn parse_element(value: &str) -> Result<Element> {
     Encoding(bytes)
         .vartime_decompress()
         .map_err(|_| anyhow!("ringPkHex is not a valid decaf377 element"))
+}
+
+fn parse_fq(value: &str) -> Result<Fq> {
+    let bytes: [u8; 32] = hex::decode(value)
+        .context("rnkCommitmentHex must be hex")?
+        .try_into()
+        .map_err(|_| anyhow!("rnkCommitmentHex must encode 32 bytes"))?;
+    Fq::from_bytes_checked(&bytes)
+        .map_err(|_| anyhow!("rnkCommitmentHex is not a canonical field element"))
 }
 
 fn read_ring(path: &PathBuf) -> Result<RingInput> {

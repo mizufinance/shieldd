@@ -127,14 +127,28 @@ impl MockClient {
                             let position = self
                                 .position(payload.note_commitment)
                                 .expect("newly inserted note should be present in sct");
-                            let is_regulated =
-                                state.get_asset_policy(note.asset_id()).await?.is_some();
-                            let nk = effective_nullifier_key(
-                                *self.fvk.nullifier_key(),
-                                &note.address(),
-                                note.asset_id(),
-                                is_regulated,
-                            );
+                            let nk = match state.get_asset_policy(note.asset_id()).await? {
+                                Some(policy) => {
+                                    let leaf = state
+                                        .get_user_leaf(&note.address(), note.asset_id())
+                                        .await?
+                                        .ok_or_else(|| {
+                                            anyhow::anyhow!(
+                                                "regulated note is missing its compliance leaf"
+                                            )
+                                        })?;
+                                    effective_nullifier_key(
+                                        *self.fvk.nullifier_key(),
+                                        self.fvk.incoming(),
+                                        &note.address(),
+                                        note.asset_id(),
+                                        policy.ring.ring_pk,
+                                        leaf.rnk_dh_pk,
+                                        true,
+                                    )?
+                                }
+                                None => *self.fvk.nullifier_key(),
+                            };
                             let nullifier =
                                 Nullifier::derive(&nk, position, &payload.note_commitment);
                             self.notes.insert(payload.note_commitment, note.clone());

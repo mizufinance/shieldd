@@ -364,7 +364,7 @@ pub struct NoteSeizure {
     #[prost(bytes = "vec", tag = "7")]
     pub recovery_seed: ::prost::alloc::vec::Vec<u8>,
     #[prost(bytes = "vec", tag = "8")]
-    pub cnk_commitment: ::prost::alloc::vec::Vec<u8>,
+    pub rnk_commitment: ::prost::alloc::vec::Vec<u8>,
     #[prost(message, optional, tag = "9")]
     pub pre_evidence: ::core::option::Option<super::super::compliance::v1::PreEvidence>,
     #[prost(bytes = "vec", tag = "11")]

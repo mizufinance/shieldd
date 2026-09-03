@@ -2,14 +2,14 @@
   "schema": "shieldd.gnark.circuit_metadata.v2",
   "curve": "bls12-377",
   "circuit": "shielded_ics20_withdrawal",
-  "proving_key_size_bytes": 21921253,
+  "proving_key_size_bytes": 22816993,
   "verifying_key_size_bytes": 540,
-  "nb_constraints": 83880,
+  "nb_constraints": 90221,
   "nb_public_variables": 2,
-  "nb_secret_variables": 329,
-  "sr1cs_sha256_hex": "ddbbc633234bbd6c6356873b04d4a879a2aa9a4fddc90bc3ec041b261fa98c76",
-  "setup_provenance_sha256_hex": "9c0ddfd352ac5ab74ed84fe6271b3e804d59d9ee633687183c250ad2e9693ec6",
-  "proving_key_sha256_hex": "d8534baab08a3815ee6dbfae967a021a7ef37ba698bd17aab97bcbfeb8e35d38",
-  "verifying_key_binary_sha256_hex": "5126b08ab9ecf06c7a6521383daa1d189eb59dc1ac3f27d795a2225018065238",
-  "verifying_key_json_sha256_hex": "30683798ff3c2a3cfc304c77ba9e79019aaae4053a1ecbd93f5722efd6ade74e"
+  "nb_secret_variables": 330,
+  "sr1cs_sha256_hex": "db72a694112f47dccde4e59da27de0d654fba41b58cf080823d8315963d0d9c0",
+  "setup_provenance_sha256_hex": "775ee7e36e731e508ffa33fce5b4d6ffaf07cba9c888e925b7799103c9b43728",
+  "proving_key_sha256_hex": "df168d48050a7c1c158fbde7f1b43605ad341be5131332a957b6b08e08e127bb",
+  "verifying_key_binary_sha256_hex": "ac3c90b77c7a085e28a2d785d04cee166dca1b0c525e88c53c4a4650c753f6ea",
+  "verifying_key_json_sha256_hex": "1f5a751f944fa93c4a8175ae29fc7fdd691443c4af55c06cf2d456016fb1a075"
 }

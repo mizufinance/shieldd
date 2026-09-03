@@ -104,7 +104,6 @@ func newTransferSharedAssignmentParts(
 	auth := circuits.TransferAuthSharedFields{
 		AK:           point2DString(witness.AKAffine),
 		NK:           primitives.LittleEndianBytesToBigInt(witness.NK[:]).String(),
-		CNK:          fqString(witness.CNK),
 		IVKReduced:   ivkReduced.String(),
 		IVKQuotientA: quotientA,
 	}
@@ -121,7 +120,8 @@ func newTransferSharedAssignmentParts(
 		DivGen:        point2DString(witness.SenderDiversifiedGenerator),
 		Transmission:  point2DString(witness.SenderTransmissionKey),
 		Capk:          point2DString(witness.SenderCapkAffine),
-		CnkCommitment: fqString(witness.SenderCnkCommitment),
+		RnkDhPk:       point2DString(witness.SenderRnkDhPkAffine),
+		RnkCommitment: fqString(witness.SenderRnkCommitment),
 		Status:        fqString(witness.SenderStatus),
 		Path:          senderPath,
 		Position:      witness.SenderCompliancePosition,
@@ -351,7 +351,8 @@ func newTransferReceiverOutputCircuitFields(
 			DivGen:        point2DString(witness.RecipientDiversifiedGenerator),
 			Transmission:  point2DString(witness.RecipientTransmissionKey),
 			Capk:          point2DString(witness.RecipientCapkAffine),
-			CnkCommitment: fqString(witness.RecipientCnkCommitment),
+			RnkDhPk:       point2DString(witness.RecipientRnkDhPkAffine),
+			RnkCommitment: fqString(witness.RecipientRnkCommitment),
 			Status:        fqString(witness.RecipientStatus),
 			Path:          recipientPath,
 			Position:      witness.RecipientCompliancePosition,

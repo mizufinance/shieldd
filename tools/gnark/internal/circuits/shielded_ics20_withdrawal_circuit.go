@@ -47,7 +47,8 @@ type ShieldedIcs20WithdrawalChangeCircuitFields struct {
 type ShieldedIcs20WithdrawalSenderCircuitFields struct {
 	DivGen        Point2D
 	Capk          Point2D
-	CnkCommitment frontend.Variable
+	RnkDhPk       Point2D
+	RnkCommitment frontend.Variable
 	Status        frontend.Variable
 	Path          [ComplianceQuadTreeDepth][3]frontend.Variable
 	Position      frontend.Variable
@@ -267,7 +268,6 @@ func (c *ShieldedIcs20WithdrawalCircuit) bindShieldedIcs20WithdrawalWitnessSeman
 
 	c.bindSemantic("auth.ak", c.Auth.AK.X, c.Auth.AK.Y)
 	c.bindSemantic("auth.nk", c.Auth.NK)
-	c.bindSemantic("auth.cnk", c.Auth.CNK)
 	c.bindSemantic("auth.ivk_reduced", c.Auth.IVKReduced)
 	c.bindSemantic("auth.ivk_quotient_a", c.Auth.IVKQuotientA)
 
@@ -287,7 +287,7 @@ func (c *ShieldedIcs20WithdrawalCircuit) bindShieldedIcs20WithdrawalWitnessSeman
 
 	c.bindSemantic("sender.div_gen", c.Sender.DivGen.X, c.Sender.DivGen.Y)
 	c.bindSemantic("sender.capk", c.Sender.Capk.X, c.Sender.Capk.Y)
-	c.bindSemantic("sender.cnk_commitment", c.Sender.CnkCommitment)
+	c.bindSemantic("sender.rnk_commitment", c.Sender.RnkCommitment)
 	c.bindSemantic("sender.status", c.Sender.Status)
 	c.bindSemantic("sender.path", quadPathVariables(c.Sender.Path)...)
 	c.bindSemantic("sender.position", c.Sender.Position)
@@ -406,6 +406,7 @@ type shieldedIcs20WithdrawalSharedContext struct {
 	senderTransmissionFq frontend.Variable
 	senderACK            gnarkte.Point
 	sharedAssetID        frontend.Variable
+	effectiveNK          frontend.Variable
 }
 
 func (c *ShieldedIcs20WithdrawalCircuit) verifySharedContext(
@@ -503,7 +504,8 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifySharedContext(
 		"ivk_quotient_a=auth.ivk_quotient_a",
 		"out=sender.transmission.computed",
 	)
-	shared.senderTransmission, err = diversifiedTransmissionKeyAfterIvkNonzero(
+	var ivkBits []frontend.Variable
+	shared.senderTransmission, ivkBits, err = diversifiedTransmissionKeyAndBitsAfterIvkNonzero(
 		api,
 		c.Auth.NK,
 		shared.ak,
@@ -546,7 +548,8 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifySharedContext(
 		"transmission_fq=sender.transmission_fq",
 		"asset_id=shared.asset_id",
 		"capk=sender.capk",
-		"cnk_commitment=sender.cnk_commitment",
+		"rnk_dh_pk=sender.rnk_dh_pk",
+		"rnk_commitment=sender.rnk_commitment",
 		"status=sender.status",
 		"out=sender.leaf_commitment",
 	)
@@ -556,18 +559,32 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifySharedContext(
 		shared.senderTransmissionFq,
 		shared.sharedAssetID,
 		gnarkte.Point{X: c.Sender.Capk.X, Y: c.Sender.Capk.Y},
-		c.Sender.CnkCommitment,
+		gnarkte.Point{X: c.Sender.RnkDhPk.X, Y: c.Sender.RnkDhPk.Y},
+		c.Sender.RnkCommitment,
 		c.Sender.Status,
 	)
 	if err != nil {
 		return shieldedIcs20WithdrawalSharedContext{}, err
 	}
 	c.bindSemantic("sender.leaf_commitment", senderLeafCommitment)
-	cnkCommitment, err := ComplianceNullifierKeyCommitment(api, c.Auth.CNK)
+	derivedRNK, err := RegulatedNullifierKey(
+		api,
+		ivkBits,
+		gnarkte.Point{X: c.Sender.RnkDhPk.X, Y: c.Sender.RnkDhPk.Y},
+		shared.senderDivGenFq,
+		shared.senderTransmissionFq,
+		shared.sharedAssetID,
+		shared.effectiveRingPK,
+	)
 	if err != nil {
 		return shieldedIcs20WithdrawalSharedContext{}, err
 	}
-	AssertEqualIf(api, cnkCommitment, c.Sender.CnkCommitment, c.IsRegulated)
+	shared.effectiveNK = api.Select(c.IsRegulated, derivedRNK, c.Auth.NK)
+	rnkCommitment, err := ComplianceNullifierKeyCommitment(api, derivedRNK)
+	if err != nil {
+		return shieldedIcs20WithdrawalSharedContext{}, err
+	}
+	AssertEqualIf(api, rnkCommitment, c.Sender.RnkCommitment, c.IsRegulated)
 	c.traceWiring(
 		"gadget.compliance_path",
 		"leaf=sender.leaf_commitment",
@@ -933,8 +950,7 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifySpendFacts(
 		"position="+name+".state_proof.position",
 		"out="+name+".nullifier.real",
 	)
-	effectiveNK := api.Select(c.IsRegulated, c.Auth.CNK, c.Auth.NK)
-	realNullifier, err := Nullifier(api, effectiveNK, spentCommitment, spend.StateProof.Position)
+	realNullifier, err := Nullifier(api, shared.effectiveNK, spentCommitment, spend.StateProof.Position)
 	if err != nil {
 		return shieldedIcs20WithdrawalVerifiedSpend{}, err
 	}

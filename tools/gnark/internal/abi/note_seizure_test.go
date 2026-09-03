@@ -48,17 +48,17 @@ func validNoteSeizureWitness(t *testing.T) *NoteSeizureWitnessBinary {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cnk := big.NewInt(29)
-	cnkBytes, _ := bigIntToLE32(cnk)
-	cnkDomain := blake2b.Sum512([]byte("shieldd.compliance.nullifier_key"))
-	cnkCommitment, err := primitives.Poseidon377Hash1Native(
-		primitives.LittleEndianBytesToBigInt(cnkDomain[:]),
-		cnk,
+	rnk := big.NewInt(29)
+	rnkBytes, _ := bigIntToLE32(rnk)
+	rnkDomain := blake2b.Sum512([]byte("shieldd.compliance.nullifier_key"))
+	rnkCommitment, err := primitives.Poseidon377Hash1Native(
+		primitives.LittleEndianBytesToBigInt(rnkDomain[:]),
+		rnk,
 	)
 	if err != nil {
 		t.Fatal(err)
 	}
-	cnkCommitmentBytes, _ := bigIntToLE32(cnkCommitment)
+	rnkCommitmentBytes, _ := bigIntToLE32(rnkCommitment)
 	vectors, err := primitives.LoadPrototypeVectors()
 	if err != nil {
 		t.Fatal(err)
@@ -66,7 +66,7 @@ func validNoteSeizureWitness(t *testing.T) *NoteSeizureWitnessBinary {
 	nullifier, err := primitives.Poseidon377Hash3Native(
 		primitives.MustBigInt(vectors.Poseidon377.NullifierDomain),
 		[3]*big.Int{
-			cnk,
+			rnk,
 			primitives.LittleEndianBytesToBigInt(output.NoteCommitment[:]),
 			new(big.Int).SetUint64(position),
 		},
@@ -100,8 +100,8 @@ func validNoteSeizureWitness(t *testing.T) *NoteSeizureWitnessBinary {
 		NoteBlinding:            output.CreatedNoteBlinding,
 		Position:                position,
 		StateCommitmentAuthPath: path,
-		CNK:                     cnkBytes,
-		CnkCommitment:           cnkCommitmentBytes,
+		RNK:                     rnkBytes,
+		RnkCommitment:           rnkCommitmentBytes,
 	}
 	fields, err := ReconstructedNoteSeizureStatementFieldsFromWitness(witness)
 	if err != nil {
@@ -165,9 +165,9 @@ func TestNoteSeizureCircuitRejectsMutatedBindings(t *testing.T) {
 			},
 		},
 		{
-			name: "CNK",
+			name: "RNK",
 			mutate: func(w *NoteSeizureWitnessBinary) {
-				w.CNK[0]++
+				w.RNK[0]++
 			},
 		},
 		{

@@ -331,7 +331,7 @@ impl NoteReshapePlan {
                         "note reshape sender compliance leaf is missing".to_owned(),
                     )
                 })?
-                .cnk_commitment
+                .rnk_commitment
         {
             return Err(crate::ProofError::InvalidPrivateInput(
                 "wallet compliance nullifier key does not match the registered sender leaf"
@@ -364,7 +364,6 @@ impl NoteReshapePlan {
                 action_balance_blinding: self.value_blinding,
                 ak: *fvk.spend_verification_key(),
                 nk: *fvk.nullifier_key(),
-                cnk: first_spend.compliance_nullifier_key(fvk),
                 asset_path: first_spend.asset_path.clone(),
                 asset_position: first_spend.asset_position,
                 asset_indexed_leaf: first_spend.asset_indexed_leaf.clone(),

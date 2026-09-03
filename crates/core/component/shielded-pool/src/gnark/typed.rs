@@ -22,7 +22,8 @@ pub struct ComplianceLeafBinary {
     pub address: [u8; 48],
     pub asset_id: [u8; 32],
     pub capk_affine: PointAffineBytes,
-    pub cnk_commitment: [u8; 32],
+    pub rnk_dh_pk_affine: PointAffineBytes,
+    pub rnk_commitment: [u8; 32],
     pub status: [u8; 32],
 }
 
@@ -147,7 +148,8 @@ pub(crate) fn compliance_leaf_from_typed(
         address,
         asset_id: leaf.asset_id.0.to_bytes(),
         capk_affine: point_affine_bytes(leaf.capk)?,
-        cnk_commitment: leaf.cnk_commitment.to_bytes(),
+        rnk_dh_pk_affine: point_affine_bytes(leaf.rnk_dh_pk)?,
+        rnk_commitment: leaf.rnk_commitment.to_bytes(),
         status: leaf.lifecycle_field().to_bytes(),
     })
 }

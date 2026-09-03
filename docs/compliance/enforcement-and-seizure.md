@@ -9,7 +9,7 @@ must settle the returned withdrawal atomically with the Shieldd call.
 Each registered `(address, asset_id)` leaf commits:
 
 ```text
-address, asset_id, capk, Poseidon(cnk), status,
+address, asset_id, capk, rnk_dh_pk, Poseidon(rnk), status,
 freeze_generation, frozen_since_height
 ```
 
@@ -41,13 +41,13 @@ The privileged `SeizeNote` host call verifies:
 
 - the configured seizure-authority signature, chain, destination, amount,
   expiry, and signed release scope;
-- the current `Frozen` or same-generation `Seized` leaf, including `capk`, CNK
+- the current `Frozen` or same-generation `Seized` leaf, including `capk`, RNK
   commitment, freeze generation, and frozen-since height;
 - ordinary Orbis PRE share evidence for that exact capability, capsule EPK, and
   release scope;
 - recovery of the capsule seed and its `(amount, note_blinding)` plaintext;
 - the Groth16 proof for the real note commitment, SCT membership, canonical
-  compliance nullifier, and committed CNK; and
+  compliance nullifier, and committed RNK; and
 - current or archived nullifier nonmembership, according to the note position.
 
 The accepted state delta inserts the real note's canonical nullifier, advances
@@ -69,7 +69,7 @@ insertion, and typed settlement response.
 The end-to-end bank workflow is incomplete. It still needs:
 
 - a durable private capability-to-capsule locator and archive reconciliation;
-- ACP authorization and CNK-release integration;
+- ACP authorization and Orbis address-DH release integration;
 - an Orbis client that returns the existing PRE evidence for selected capsules;
 - an operator that rebuilds SCT paths, proves notes, and submits them; and
 - Bankd-side authorization policy and atomic application of the returned

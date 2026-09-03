@@ -113,8 +113,9 @@ impl UserGrantAdmission {
         action: &crate::structs::MsgRegisterUser,
         policy: &AssetPolicy,
         current_unix: u64,
+        chain_id: &str,
     ) -> Result<Self> {
-        policy.validate_crypto_keys()?;
+        policy.validate_regulated()?;
         let grant = action
             .grant
             .as_ref()
@@ -124,6 +125,11 @@ impl UserGrantAdmission {
             "user registration grant leaf does not match action leaf"
         );
         action.leaf.validate_registration(policy.ring.ring_pk)?;
+        action
+            .capability_certificate
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("missing Orbis capability certificate"))?
+            .verify(&action.leaf, policy, chain_id)?;
         anyhow::ensure!(
             action.leaf.status == UserAssetStatus::Active,
             "user registrations must start active"
@@ -152,14 +158,22 @@ pub struct GenesisUserAdmission {
 }
 
 impl GenesisUserAdmission {
-    pub(crate) fn validate(leaf: ComplianceLeaf, policy: &AssetPolicy) -> Result<Self> {
-        policy.validate_crypto_keys()?;
-        leaf.validate_registration(policy.ring.ring_pk)?;
+    pub(crate) fn validate(
+        registration: &crate::genesis::GenesisUserRegistration,
+        policy: &AssetPolicy,
+        chain_id: &str,
+    ) -> Result<Self> {
+        policy.validate_regulated()?;
+        registration
+            .capability_certificate
+            .verify(&registration.leaf, policy, chain_id)?;
         anyhow::ensure!(
-            leaf.status == UserAssetStatus::Active,
+            registration.leaf.status == UserAssetStatus::Active,
             "genesis compliance users must start active"
         );
-        Ok(Self { leaf })
+        Ok(Self {
+            leaf: registration.leaf.clone(),
+        })
     }
 }
 
@@ -208,7 +222,9 @@ impl AssetGrantAdmission {
                 .seizure_authority_vk
                 .ok_or_else(|| anyhow::anyhow!("regulated assets require seizure_authority_vk"))?;
             let threshold = action.threshold.unwrap_or(u128::MAX);
-            let ring_pk = action.ring_pk.unwrap_or(decaf377::Element::GENERATOR);
+            let ring_pk = action
+                .ring_pk
+                .ok_or_else(|| anyhow::anyhow!("regulated assets require ring_pk"))?;
             AssetPolicy::new(
                 dk_pub,
                 threshold,
@@ -224,6 +240,14 @@ impl AssetGrantAdmission {
             .with_seizure_authority(seizure_authority_vk)
         } else {
             anyhow::ensure!(
+                action.dk_pub.is_none(),
+                "unregulated assets cannot set dk_pub"
+            );
+            anyhow::ensure!(
+                action.threshold.is_none(),
+                "unregulated assets cannot set a compliance threshold"
+            );
+            anyhow::ensure!(
                 action.allowed_ibc_routes.is_empty(),
                 "unregulated assets cannot set allowed IBC routes"
             );
@@ -231,9 +255,25 @@ impl AssetGrantAdmission {
                 action.ibc_origin.is_none(),
                 "unregulated assets cannot set IBC origin"
             );
+            anyhow::ensure!(
+                action.ring_pk.is_none()
+                    && action.ring_id.is_empty()
+                    && action.policy_id.is_empty()
+                    && action.permission.is_empty()
+                    && action.resource.is_empty(),
+                "unregulated assets cannot set Orbis configuration"
+            );
+            anyhow::ensure!(
+                action.registration_authority_vk.is_none() && action.seizure_authority_vk.is_none(),
+                "unregulated assets cannot set compliance authorities"
+            );
             AssetPolicy::default_unregulated()
         };
-        policy.validate_crypto_keys()?;
+        if action.is_regulated {
+            policy.validate_regulated()?;
+        } else {
+            policy.validate_crypto_keys()?;
+        }
         Ok(Self {
             asset_id: action.asset_id,
             policy,
@@ -273,7 +313,7 @@ impl GenesisAssetAdmission {
                 policy.seizure_authority_vk.is_some(),
                 "regulated genesis asset requires a seizure authority"
             );
-            policy.validate_crypto_keys()?;
+            policy.validate_regulated()?;
         } else {
             anyhow::ensure!(
                 policy == AssetPolicy::default_unregulated(),
@@ -1409,7 +1449,7 @@ trait ComplianceRegistryRawWrite: StateWrite + ComplianceRegistryRead {
             return Ok(None);
         }
         ensure_regulated_asset_id(asset_id, true)?;
-        policy.validate_crypto_keys()?;
+        policy.validate_regulated()?;
 
         self.ensure_asset_tree_initialized().await?;
         let value = asset_id.0;
@@ -1417,44 +1457,12 @@ trait ComplianceRegistryRawWrite: StateWrite + ComplianceRegistryRead {
             anyhow::bail!("IMT insert failed: zero value is reserved for sentinel leaf");
         }
 
-        // Check if already exists. If a stale unregulated leaf from an older
-        // state exists without a policy, attach the regulated policy in place.
+        // A present IMT leaf must have the regulated policy written alongside it.
         if let Some(position) = self.read_asset_position_by_value(value).await? {
-            if is_regulated && self.get_asset_policy(asset_id).await?.is_none() {
-                self.set_ibc_origin_asset(asset_id, &policy).await?;
-                let current_leaf = self.read_asset_leaf(position).await?;
-                anyhow::ensure!(
-                    current_leaf.value == value,
-                    "asset value index inconsistent during policy update"
-                );
-                let updated_leaf = IndexedLeaf::from_policy(
-                    value,
-                    current_leaf.next_index,
-                    current_leaf.next_value,
-                    &policy,
-                );
-                self.authenticate_asset_leaf(position, current_leaf.commit())
-                    .await?;
-                self.put_asset_imt_leaf(position, &updated_leaf)?;
-                let touched_nodes = self
-                    .compute_asset_path_updates(&[(position, updated_leaf.commit())])
-                    .await?;
-                let root = touched_nodes
-                    .last()
-                    .map(|(_, _, root)| *root)
-                    .ok_or_else(|| anyhow::anyhow!("asset IMT policy update produced no root"))?;
-                self.put_asset_imt_nodes(&touched_nodes);
-                self.put(state_key::asset_imt_root().to_string(), root);
-                self.object_delete(state_key::cache::cached_asset_imt());
-                self.set_asset_policy(asset_id, policy)?;
-                tracing::debug!(?asset_id, position, "upgraded existing asset to regulated");
-                return Ok(Some(InsertResult {
-                    position,
-                    indexed_leaf: updated_leaf.clone(),
-                    low_leaf_position: position,
-                    updated_low_leaf: updated_leaf,
-                }));
-            }
+            anyhow::ensure!(
+                self.get_asset_policy(asset_id).await?.is_some(),
+                "regulated asset IMT leaf exists without its policy"
+            );
             tracing::debug!(?asset_id, position, "asset already in IMT, skipping");
             return Ok(None);
         }
@@ -2169,7 +2177,7 @@ mod tests {
         state
             .test_only_register_asset(
                 asset_id,
-                AssetPolicy::simple(
+                AssetPolicy::for_test(
                     decaf377::Element::GENERATOR,
                     u128::MAX,
                     decaf377::Element::GENERATOR,
@@ -2238,7 +2246,7 @@ mod tests {
         state
             .test_only_register_asset(
                 asset_id,
-                AssetPolicy::simple(
+                AssetPolicy::for_test(
                     decaf377::Element::GENERATOR,
                     u128::MAX,
                     decaf377::Element::GENERATOR,
@@ -2433,7 +2441,7 @@ mod tests {
         state
             .register_regulated_asset(
                 asset_id,
-                AssetPolicy::simple(
+                AssetPolicy::for_test(
                     decaf377::Element::GENERATOR,
                     u128::MAX,
                     decaf377::Element::GENERATOR,
@@ -2463,7 +2471,7 @@ mod tests {
         state
             .register_regulated_asset(
                 asset_id,
-                AssetPolicy::simple(
+                AssetPolicy::for_test(
                     decaf377::Element::GENERATOR,
                     u128::MAX,
                     decaf377::Element::GENERATOR,
@@ -2507,7 +2515,7 @@ mod tests {
         state
             .register_regulated_asset(
                 asset::Id(Fq::from(777u64)),
-                AssetPolicy::simple(
+                AssetPolicy::for_test(
                     decaf377::Element::GENERATOR,
                     u128::MAX,
                     decaf377::Element::GENERATOR,
@@ -2531,7 +2539,7 @@ mod tests {
         let storage = TempStorage::new().await.unwrap();
         let snapshot = storage.latest_snapshot();
         let mut state = cnidarium::StateDelta::new(snapshot);
-        let policy = AssetPolicy::simple(
+        let policy = AssetPolicy::for_test(
             decaf377::Element::GENERATOR,
             u128::MAX,
             decaf377::Element::GENERATOR,
@@ -2569,7 +2577,7 @@ mod tests {
         let storage = TempStorage::new().await.unwrap();
         let snapshot = storage.latest_snapshot();
         let mut state = cnidarium::StateDelta::new(snapshot);
-        let policy = AssetPolicy::simple(
+        let policy = AssetPolicy::for_test(
             decaf377::Element::GENERATOR,
             u128::MAX,
             decaf377::Element::GENERATOR,
@@ -2602,7 +2610,7 @@ mod tests {
         let snapshot = storage.latest_snapshot();
         let mut state = cnidarium::StateDelta::new(snapshot);
         let mut rng = rand::rngs::StdRng::seed_from_u64(0x5eed);
-        let policy = AssetPolicy::simple(
+        let policy = AssetPolicy::for_test(
             decaf377::Element::GENERATOR,
             u128::MAX,
             decaf377::Element::GENERATOR,
@@ -2686,7 +2694,7 @@ mod tests {
         let storage = TempStorage::new().await.unwrap();
         let snapshot = storage.latest_snapshot();
         let mut state = cnidarium::StateDelta::new(snapshot);
-        let policy = AssetPolicy::simple(
+        let policy = AssetPolicy::for_test(
             decaf377::Element::GENERATOR,
             u128::MAX,
             decaf377::Element::GENERATOR,
@@ -2740,7 +2748,7 @@ mod tests {
         state
             .register_regulated_asset(
                 asset_id,
-                AssetPolicy::simple(
+                AssetPolicy::for_test(
                     decaf377::Element::GENERATOR,
                     u128::MAX,
                     decaf377::Element::GENERATOR,
@@ -2801,7 +2809,7 @@ mod tests {
         state
             .register_regulated_asset(
                 asset_id,
-                AssetPolicy::simple(
+                AssetPolicy::for_test(
                     decaf377::Element::GENERATOR,
                     u128::MAX,
                     decaf377::Element::GENERATOR,
@@ -2822,7 +2830,7 @@ mod tests {
         state
             .register_regulated_asset(
                 asset_id,
-                AssetPolicy::simple(
+                AssetPolicy::for_test(
                     decaf377::Element::GENERATOR,
                     u128::MAX,
                     decaf377::Element::GENERATOR,
@@ -2994,7 +3002,7 @@ mod tests {
         state
             .register_regulated_asset(
                 usdc_asset_id,
-                AssetPolicy::simple(
+                AssetPolicy::for_test(
                     decaf377::Element::GENERATOR,
                     u128::MAX,
                     decaf377::Element::GENERATOR,
@@ -3061,7 +3069,7 @@ mod tests {
         state
             .register_regulated_asset(
                 dai_asset_id,
-                AssetPolicy::simple(
+                AssetPolicy::for_test(
                     decaf377::Element::GENERATOR,
                     u128::MAX,
                     decaf377::Element::GENERATOR,
@@ -3239,7 +3247,7 @@ mod tests {
         state
             .register_regulated_asset(
                 asset_id,
-                AssetPolicy::simple(
+                AssetPolicy::for_test(
                     decaf377::Element::GENERATOR,
                     u128::MAX,
                     decaf377::Element::GENERATOR,
@@ -3270,15 +3278,15 @@ mod tests {
         let cases = [
             (
                 "detection key",
-                AssetPolicy::simple(decaf377::Element::IDENTITY, 1, decaf377::Element::GENERATOR),
+                AssetPolicy::for_test(decaf377::Element::IDENTITY, 1, decaf377::Element::GENERATOR),
             ),
             (
                 "ring key",
-                AssetPolicy::simple(decaf377::Element::GENERATOR, 1, decaf377::Element::IDENTITY),
+                AssetPolicy::for_test(decaf377::Element::GENERATOR, 1, decaf377::Element::IDENTITY),
             ),
             (
                 "registration authority key",
-                AssetPolicy::simple(
+                AssetPolicy::for_test(
                     decaf377::Element::GENERATOR,
                     1,
                     decaf377::Element::GENERATOR,
@@ -3331,7 +3339,7 @@ mod tests {
         state
             .register_regulated_asset(
                 asset_id,
-                AssetPolicy::simple(
+                AssetPolicy::for_test(
                     decaf377::Element::GENERATOR,
                     u128::MAX,
                     decaf377::Element::GENERATOR,
@@ -3342,7 +3350,7 @@ mod tests {
         state
             .register_regulated_asset(
                 asset_id,
-                AssetPolicy::simple(
+                AssetPolicy::for_test(
                     decaf377::Element::GENERATOR,
                     u128::MAX,
                     decaf377::Element::GENERATOR,
@@ -3365,7 +3373,7 @@ mod tests {
         state
             .register_regulated_asset(
                 asset_id,
-                AssetPolicy::simple(
+                AssetPolicy::for_test(
                     decaf377::Element::GENERATOR,
                     u128::MAX,
                     decaf377::Element::GENERATOR,
@@ -3405,7 +3413,7 @@ mod tests {
         state
             .register_regulated_asset(
                 regulated_asset,
-                AssetPolicy::simple(
+                AssetPolicy::for_test(
                     decaf377::Element::GENERATOR,
                     u128::MAX,
                     decaf377::Element::GENERATOR,
@@ -3445,7 +3453,7 @@ mod tests {
             state
                 .register_regulated_asset(
                     *asset_id,
-                    AssetPolicy::simple(
+                    AssetPolicy::for_test(
                         decaf377::Element::GENERATOR,
                         u128::MAX,
                         decaf377::Element::GENERATOR,
@@ -3495,7 +3503,7 @@ mod tests {
         state
             .register_regulated_asset(
                 asset::Id(Fq::from(200u64)),
-                AssetPolicy::simple(
+                AssetPolicy::for_test(
                     decaf377::Element::GENERATOR,
                     u128::MAX,
                     decaf377::Element::GENERATOR,
@@ -3714,7 +3722,7 @@ mod tests {
         state
             .register_regulated_asset(
                 asset::Id(Fq::from(4242u64)),
-                AssetPolicy::simple(
+                AssetPolicy::for_test(
                     decaf377::Element::GENERATOR,
                     u128::MAX,
                     decaf377::Element::GENERATOR,
@@ -3831,7 +3839,7 @@ mod tests {
         state
             .register_regulated_asset(
                 usdc_id,
-                AssetPolicy::simple(
+                AssetPolicy::for_test(
                     decaf377::Element::GENERATOR,
                     u128::MAX,
                     decaf377::Element::GENERATOR,
@@ -3894,7 +3902,7 @@ mod tests {
         state
             .register_regulated_asset(
                 asset_id,
-                AssetPolicy::simple(dk_pub, 500u128, decaf377::Element::GENERATOR),
+                AssetPolicy::for_test(dk_pub, 500u128, decaf377::Element::GENERATOR),
             )
             .await
             .unwrap();
@@ -3924,7 +3932,7 @@ mod tests {
 
         let present_asset = asset::Id(Fq::from(77u64));
         let missing_asset = asset::Id(Fq::from(88u64));
-        let policy = AssetPolicy::simple(
+        let policy = AssetPolicy::for_test(
             decaf377::Element::GENERATOR,
             u128::MAX,
             decaf377::Element::GENERATOR,
@@ -3999,20 +4007,16 @@ mod tests {
         put_test_compliance_params(&mut state);
 
         let route = crate::IbcRoute::transfer("channel-0", "connection-0", "channel-7");
-        let policy = AssetPolicy::new(
+        let mut policy = AssetPolicy::for_test(
             decaf377::Element::GENERATOR,
             500,
-            vec![route.clone()],
-            Some(crate::IbcAssetOrigin {
-                route,
-                base_denom: "ubank".to_string(),
-            }),
-            String::new(),
             decaf377::Element::GENERATOR,
-            String::new(),
-            String::new(),
-            String::new(),
         );
+        policy.replace_allowed_ibc_routes(vec![route.clone()]);
+        policy.params.ibc_origin = Some(crate::IbcAssetOrigin {
+            route,
+            base_denom: "ubank".to_string(),
+        });
 
         let asset_id = asset::Id(Fq::from(700u64));
         state
@@ -4042,17 +4046,12 @@ mod tests {
 
         let old_route = crate::IbcRoute::transfer("channel-0", "connection-0", "channel-7");
         let new_route = crate::IbcRoute::transfer("channel-1", "connection-1", "channel-8");
-        let policy = AssetPolicy::new(
+        let mut policy = AssetPolicy::for_test(
             decaf377::Element::GENERATOR,
             500,
-            vec![old_route.clone()],
-            None,
-            String::new(),
             decaf377::Element::GENERATOR,
-            String::new(),
-            String::new(),
-            String::new(),
         );
+        policy.replace_allowed_ibc_routes(vec![old_route.clone()]);
         let expected_hash = indexed_tree::route_policy_to_fq(&policy.params).to_bytes();
         let asset_id = asset::Id(Fq::from(702u64));
 

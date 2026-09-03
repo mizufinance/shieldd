@@ -29,7 +29,7 @@ func NewNoteSeizureCircuitAssignmentFromWitness(payload []byte) (*circuits.NoteS
 		AddressTransmissionKey:  fqString(witness.AddressTransmissionKey),
 		AssetID:                 fqString(witness.AssetID),
 		Amount:                  fqString(witness.Amount),
-		CnkCommitment:           fqString(witness.CnkCommitment),
+		RnkCommitment:           fqString(witness.RnkCommitment),
 		AuthorizationCommitment: fqString(witness.AuthorizationCommitment),
 		Recovery: compliance.RecoveryCapsuleFields{
 			Commitment: fqString(recovery.Commitment),
@@ -48,6 +48,6 @@ func NewNoteSeizureCircuitAssignmentFromWitness(payload []byte) (*circuits.NoteS
 		NoteBlinding: fqString(witness.NoteBlinding),
 		Position:     witness.Position,
 		Path:         path,
-		CNK:          fqString(witness.CNK),
+		RNK:          fqString(witness.RNK),
 	}, nil
 }

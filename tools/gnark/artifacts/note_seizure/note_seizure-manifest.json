@@ -73,7 +73,7 @@
     },
     {
       "wire_id": 11,
-      "path": "CnkCommitment",
+      "path": "RnkCommitment",
       "visibility": "secret",
       "constraint_rows": 3
     },
@@ -589,7 +589,7 @@
     },
     {
       "wire_id": 97,
-      "path": "CNK",
+      "path": "RNK",
       "visibility": "secret",
       "constraint_rows": 4
     }

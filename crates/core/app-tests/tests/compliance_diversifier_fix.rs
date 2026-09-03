@@ -87,7 +87,7 @@ async fn compliance_enrichment_preserves_sender_diversifier_on_supported_transfe
     build_state
         .test_only_register_asset(
             asset_id,
-            AssetPolicy::simple(dk.public_key(), 1u128, ring_pk),
+            AssetPolicy::for_test(dk.public_key(), 1u128, ring_pk),
             true,
         )
         .await?;

@@ -54,7 +54,8 @@ pub struct TransferReceiverOutputWitness {
     pub recipient_compliance_path: MerklePathBinary,
     pub recipient_compliance_position: u64,
     pub recipient_capk_affine: PointAffineBytes,
-    pub recipient_cnk_commitment: [u8; 32],
+    pub recipient_rnk_dh_pk_affine: PointAffineBytes,
+    pub recipient_rnk_commitment: [u8; 32],
     pub recipient_status: [u8; 32],
     pub recipient_diversified_generator_affine: PointAffineBytes,
     pub recipient_transmission_key_affine: PointAffineBytes,
@@ -95,7 +96,6 @@ pub struct TransferWitness {
     pub recent_position_floor: [u8; 32],
     pub action_balance_blinding: [u8; 32],
     pub nk: [u8; 32],
-    pub cnk: [u8; 32],
     pub asset_path: MerklePathBinary,
     pub asset_position: u64,
     pub asset_indexed_leaf: IndexedLeafBinary,
@@ -106,7 +106,8 @@ pub struct TransferWitness {
     pub sender_compliance_path: MerklePathBinary,
     pub sender_compliance_position: u64,
     pub sender_capk_affine: PointAffineBytes,
-    pub sender_cnk_commitment: [u8; 32],
+    pub sender_rnk_dh_pk_affine: PointAffineBytes,
+    pub sender_rnk_commitment: [u8; 32],
     pub sender_status: [u8; 32],
     pub transfer_nonce_root: [u8; 32],
     pub detection_ciphertext: Vec<[u8; 32]>,
@@ -140,12 +141,20 @@ pub struct TransferWitness {
 
 fn compliance_leaf_parts(
     leaf: &ComplianceLeafBinary,
-) -> ([u8; 48], [u8; 32], PointAffineBytes, [u8; 32], [u8; 32]) {
+) -> (
+    [u8; 48],
+    [u8; 32],
+    PointAffineBytes,
+    PointAffineBytes,
+    [u8; 32],
+    [u8; 32],
+) {
     (
         leaf.address,
         leaf.asset_id,
         leaf.capk_affine.clone(),
-        leaf.cnk_commitment,
+        leaf.rnk_dh_pk_affine.clone(),
+        leaf.rnk_commitment,
         leaf.status,
     )
 }
@@ -220,8 +229,14 @@ impl TransferWitness {
             .with_context(|| format!("compute {TRANSFER_PROOF_LABEL} statement hash"))?;
 
         let sender_leaf = compliance_leaf_from_typed(&private.sender_leaf)?;
-        let (_, _, sender_capk_affine, sender_cnk_commitment, sender_status) =
-            compliance_leaf_parts(&sender_leaf);
+        let (
+            _,
+            _,
+            sender_capk_affine,
+            sender_rnk_dh_pk_affine,
+            sender_rnk_commitment,
+            sender_status,
+        ) = compliance_leaf_parts(&sender_leaf);
         let required = spend_witness_parts(&public.inputs[0], &private.required_input, 0)?;
         let required_spend = TransferRequiredSpendWitness {
             nullifier: required.nullifier,
@@ -252,8 +267,14 @@ impl TransferWitness {
 
         let receiver_private = &private.receiver_output;
         let receiver_leaf = compliance_leaf_from_typed(&receiver_private.recipient_leaf)?;
-        let (_, _, recipient_capk_affine, recipient_cnk_commitment, receiver_status) =
-            compliance_leaf_parts(&receiver_leaf);
+        let (
+            _,
+            _,
+            recipient_capk_affine,
+            recipient_rnk_dh_pk_affine,
+            recipient_rnk_commitment,
+            receiver_status,
+        ) = compliance_leaf_parts(&receiver_leaf);
         let receiver_output = TransferReceiverOutputWitness {
             note_commitment: public.outputs[0].note_commitment.0.to_bytes(),
             recovery_commitment: public.outputs[0].recovery_commitment.0.to_bytes(),
@@ -268,7 +289,8 @@ impl TransferWitness {
             )?,
             recipient_compliance_position: receiver_private.recipient_compliance_position,
             recipient_capk_affine,
-            recipient_cnk_commitment,
+            recipient_rnk_dh_pk_affine,
+            recipient_rnk_commitment,
             recipient_status: receiver_status,
             recipient_diversified_generator_affine: point_affine_bytes(
                 *receiver_private
@@ -313,7 +335,6 @@ impl TransferWitness {
             recent_position_floor: Fq::from(public.recent_position_floor).to_bytes(),
             action_balance_blinding: private.action_balance_blinding.to_bytes(),
             nk: private.nk.0.to_bytes(),
-            cnk: private.cnk.to_bytes(),
             asset_path: merkle_path_from_typed(&private.asset_path)?,
             asset_position: private.asset_position,
             asset_indexed_leaf: indexed_leaf_from_typed(&private.asset_indexed_leaf),
@@ -324,7 +345,8 @@ impl TransferWitness {
             sender_compliance_path: merkle_path_from_typed(&private.sender_compliance_path)?,
             sender_compliance_position: private.sender_compliance_position,
             sender_capk_affine,
-            sender_cnk_commitment,
+            sender_rnk_dh_pk_affine,
+            sender_rnk_commitment,
             sender_status,
             transfer_nonce_root: private.compliance.transfer_nonce_root.to_bytes(),
             detection_ciphertext: public

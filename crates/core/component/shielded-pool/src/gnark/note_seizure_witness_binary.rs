@@ -47,8 +47,8 @@ impl NoteSeizureWitness {
         }
         put_u64(&mut buf, self.position);
         encode_triple_path_32(&mut buf, &self.state_commitment_auth_path)?;
-        put_bytes(&mut buf, &self.cnk);
-        put_bytes(&mut buf, &self.cnk_commitment);
+        put_bytes(&mut buf, &self.rnk);
+        put_bytes(&mut buf, &self.rnk_commitment);
 
         let total_length = u32::try_from(buf.len()).context("note seizure witness exceeds u32")?;
         buf[4..8].copy_from_slice(&total_length.to_le_bytes());
@@ -86,8 +86,8 @@ impl NoteSeizureWitness {
         let note_blinding = cursor.read_fixed::<32>()?;
         let position = cursor.read_u64()?;
         let state_commitment_auth_path = cursor.read_triple_path_32()?;
-        let cnk = cursor.read_fixed::<32>()?;
-        let cnk_commitment = cursor.read_fixed::<32>()?;
+        let rnk = cursor.read_fixed::<32>()?;
+        let rnk_commitment = cursor.read_fixed::<32>()?;
         cursor.finish("note seizure witness")?;
         Ok(Self {
             total_length,
@@ -106,8 +106,8 @@ impl NoteSeizureWitness {
             note_blinding,
             position,
             state_commitment_auth_path,
-            cnk,
-            cnk_commitment,
+            rnk,
+            rnk_commitment,
         })
     }
 }

@@ -23,7 +23,7 @@ pub use issuer_keys::{
 pub mod structs;
 pub use structs::{
     compliance_nullifier_key_commitment,
-    derive_compliance_nullifier_key,
+    derive_regulated_nullifier_key,
     effective_nullifier_key,
     AssetParams,
     AssetPolicy,
@@ -60,8 +60,9 @@ pub use transfer::{
 
 pub mod pre_evidence;
 pub use pre_evidence::{
-    derive_orbis_scalar, DleqProof, EvidenceReleaseAuthorization, IssuerDhEvidence, PreEvidence,
-    PreShareEvidence, VerifiedPreEvidence, PRE_EVIDENCE_VERSION,
+    derive_orbis_scalar, AddressDhReleaseEvidence, AddressDhReleaseRequest, DleqProof,
+    EvidenceReleaseAuthorization, IssuerDhEvidence, PreEvidence, PreShareEvidence,
+    VerifiedAddressDhRelease, VerifiedPreEvidence, PRE_EVIDENCE_VERSION,
 };
 
 pub mod withdrawal;
@@ -412,7 +413,7 @@ mod tests {
         state
             .test_only_register_asset(
                 asset_id,
-                AssetPolicy::simple(issuer_dk_pub, 1_000_000, ring_pk),
+                AssetPolicy::for_test(issuer_dk_pub, 1_000_000, ring_pk),
                 true,
             )
             .await
@@ -420,12 +421,22 @@ mod tests {
 
         let sender_address = Address::dummy(&mut rng);
         let receiver_address = Address::dummy(&mut rng);
-        let sender_leaf =
-            ComplianceLeaf::registered(sender_address.clone(), asset_id, ring_pk, Fq::from(1u64))
-                .unwrap();
-        let receiver_leaf =
-            ComplianceLeaf::registered(receiver_address.clone(), asset_id, ring_pk, Fq::from(2u64))
-                .unwrap();
+        let sender_leaf = ComplianceLeaf::registered_from_rnk(
+            sender_address.clone(),
+            asset_id,
+            ring_pk,
+            sender_address.diversified_generator() * decaf377::Fr::from(999u64),
+            Fq::from(1u64),
+        )
+        .unwrap();
+        let receiver_leaf = ComplianceLeaf::registered_from_rnk(
+            receiver_address.clone(),
+            asset_id,
+            ring_pk,
+            receiver_address.diversified_generator() * decaf377::Fr::from(999u64),
+            Fq::from(2u64),
+        )
+        .unwrap();
 
         state
             .test_only_add_compliance_leaf(sender_leaf.clone())

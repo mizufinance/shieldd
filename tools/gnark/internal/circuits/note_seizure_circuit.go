@@ -24,7 +24,7 @@ type NoteSeizureCircuit struct {
 	AddressTransmissionKey  frontend.Variable
 	AssetID                 frontend.Variable
 	Amount                  frontend.Variable
-	CnkCommitment           frontend.Variable
+	RnkCommitment           frontend.Variable
 	AuthorizationCommitment frontend.Variable
 
 	Recovery RecoveryCapsuleFields
@@ -32,7 +32,7 @@ type NoteSeizureCircuit struct {
 	NoteBlinding frontend.Variable
 	Position     frontend.Variable
 	Path         [StateCommitmentDepth][3]frontend.Variable
-	CNK          frontend.Variable
+	RNK          frontend.Variable
 }
 
 func NewNoteSeizureCircuit() *NoteSeizureCircuit {
@@ -70,13 +70,13 @@ func (c *NoteSeizureCircuit) Define(api frontend.API) error {
 	}
 	api.AssertIsEqual(computedNoteCommitment, c.NoteCommitment)
 
-	cnkCommitment, err := ComplianceNullifierKeyCommitment(api, c.CNK)
+	rnkCommitment, err := ComplianceNullifierKeyCommitment(api, c.RNK)
 	if err != nil {
 		return err
 	}
-	api.AssertIsEqual(cnkCommitment, c.CnkCommitment)
+	api.AssertIsEqual(rnkCommitment, c.RnkCommitment)
 
-	computedNullifier, err := Nullifier(api, c.CNK, c.NoteCommitment, c.Position)
+	computedNullifier, err := Nullifier(api, c.RNK, c.NoteCommitment, c.Position)
 	if err != nil {
 		return err
 	}
@@ -118,7 +118,7 @@ func (c *NoteSeizureCircuit) Define(api frontend.API) error {
 		c.Recovery.EncryptedAmount,
 		c.Recovery.EncryptedNoteBlinding,
 		c.Recovery.Seed,
-		c.CnkCommitment,
+		c.RnkCommitment,
 		c.AuthorizationCommitment,
 	})
 	if err != nil {

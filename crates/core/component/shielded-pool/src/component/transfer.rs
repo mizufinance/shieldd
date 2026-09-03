@@ -1185,7 +1185,7 @@ mod tests {
     }
 
     fn policy_authorizing(routes: Vec<IbcRoute>) -> AssetPolicy {
-        let mut policy = AssetPolicy::simple(
+        let mut policy = AssetPolicy::for_test(
             decaf377::Element::GENERATOR,
             u128::MAX,
             decaf377::Element::GENERATOR,
@@ -1567,7 +1567,7 @@ mod tests {
         state
             .test_only_register_asset(
                 withdrawal.denom.id(),
-                AssetPolicy::simple(
+                AssetPolicy::for_test(
                     decaf377::Element::GENERATOR,
                     u128::MAX,
                     decaf377::Element::GENERATOR,

@@ -39,34 +39,35 @@ type PoseidonRateVectors struct {
 }
 
 type PoseidonVectors struct {
-	SpendDomain           string              `json:"spend_domain"`
-	SpendPad0             string              `json:"spend_pad_0"`
-	SpendPad1             string              `json:"spend_pad_1"`
-	NoteCommitDomain      string              `json:"note_commit_domain"`
-	NullifierDomain       string              `json:"nullifier_domain"`
-	ValueGeneratorDomain  string              `json:"value_generator_domain"`
-	IVKDomain             string              `json:"ivk_domain"`
-	TCTDomain             string              `json:"tct_domain"`
-	SenderLeafDomain      string              `json:"sender_leaf_domain"`
-	ComplianceLeafDomain  string              `json:"compliance_leaf_domain"`
-	IssuerDetectionDomain string              `json:"issuer_detection_domain"`
-	IMTLeafDomain         string              `json:"imt_leaf_domain"`
-	IMTParamsDomain       string              `json:"imt_params_domain"`
-	IMTRingDomain         string              `json:"imt_ring_domain"`
-	Hash7Domain           string              `json:"hash7_domain"`
-	Hash7Inputs           []string            `json:"hash7_inputs"`
-	Hash7Output           string              `json:"hash7_output"`
-	NullifierInputs       []string            `json:"nullifier_inputs"`
-	NullifierOutput       string              `json:"nullifier_output"`
-	NoteCommitInputs      []string            `json:"note_commit_inputs"`
-	NoteCommitOutput      string              `json:"note_commit_output"`
-	Rate1                 PoseidonRateVectors `json:"rate_1"`
-	Rate2                 PoseidonRateVectors `json:"rate_2"`
-	Rate3                 PoseidonRateVectors `json:"rate_3"`
-	Rate4                 PoseidonRateVectors `json:"rate_4"`
-	Rate5                 PoseidonRateVectors `json:"rate_5"`
-	Rate6                 PoseidonRateVectors `json:"rate_6"`
-	Rate7                 PoseidonRateVectors `json:"rate_7"`
+	SpendDomain                         string              `json:"spend_domain"`
+	SpendPad0                           string              `json:"spend_pad_0"`
+	SpendPad1                           string              `json:"spend_pad_1"`
+	NoteCommitDomain                    string              `json:"note_commit_domain"`
+	NullifierDomain                     string              `json:"nullifier_domain"`
+	ValueGeneratorDomain                string              `json:"value_generator_domain"`
+	IVKDomain                           string              `json:"ivk_domain"`
+	TCTDomain                           string              `json:"tct_domain"`
+	SenderLeafDomain                    string              `json:"sender_leaf_domain"`
+	ComplianceLeafDomain                string              `json:"compliance_leaf_domain"`
+	ComplianceNullifierDerivationDomain string              `json:"compliance_nullifier_derivation_domain"`
+	IssuerDetectionDomain               string              `json:"issuer_detection_domain"`
+	IMTLeafDomain                       string              `json:"imt_leaf_domain"`
+	IMTParamsDomain                     string              `json:"imt_params_domain"`
+	IMTRingDomain                       string              `json:"imt_ring_domain"`
+	Hash7Domain                         string              `json:"hash7_domain"`
+	Hash7Inputs                         []string            `json:"hash7_inputs"`
+	Hash7Output                         string              `json:"hash7_output"`
+	NullifierInputs                     []string            `json:"nullifier_inputs"`
+	NullifierOutput                     string              `json:"nullifier_output"`
+	NoteCommitInputs                    []string            `json:"note_commit_inputs"`
+	NoteCommitOutput                    string              `json:"note_commit_output"`
+	Rate1                               PoseidonRateVectors `json:"rate_1"`
+	Rate2                               PoseidonRateVectors `json:"rate_2"`
+	Rate3                               PoseidonRateVectors `json:"rate_3"`
+	Rate4                               PoseidonRateVectors `json:"rate_4"`
+	Rate5                               PoseidonRateVectors `json:"rate_5"`
+	Rate6                               PoseidonRateVectors `json:"rate_6"`
+	Rate7                               PoseidonRateVectors `json:"rate_7"`
 }
 
 type DecafCompressVector struct {
@@ -179,7 +180,7 @@ type ComplianceLeafFixture struct {
 	Address       AddressFixture     `json:"address"`
 	AssetID       AssetIDFixture     `json:"assetId"`
 	Capk          PointAffineFixture `json:"capk"`
-	CnkCommitment string             `json:"cnk_commitment"`
+	RnkCommitment string             `json:"rnk_commitment"`
 	Status        string             `json:"status"`
 }
 

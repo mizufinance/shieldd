@@ -44,17 +44,20 @@ pub struct ComplianceLeaf {
     /// Ordinary-Orbis address capability for this asset's ring.
     #[prost(bytes = "vec", tag = "3")]
     pub capk: ::prost::alloc::vec::Vec<u8>,
-    /// Poseidon commitment to the compliance nullifier key held by the user and ACP.
+    /// Orbis ring public key evaluated on this address's diversified generator.
     #[prost(bytes = "vec", tag = "4")]
-    pub cnk_commitment: ::prost::alloc::vec::Vec<u8>,
+    pub rnk_dh_pk: ::prost::alloc::vec::Vec<u8>,
+    /// Poseidon commitment to the regulated nullifier key derivable by the wallet and threshold Orbis.
+    #[prost(bytes = "vec", tag = "5")]
+    pub rnk_commitment: ::prost::alloc::vec::Vec<u8>,
     /// Current authorization state for this address and asset.
-    #[prost(enumeration = "UserAssetStatus", tag = "5")]
+    #[prost(enumeration = "UserAssetStatus", tag = "6")]
     pub status: i32,
     /// Monotonic freeze generation. Zero until the first freeze.
-    #[prost(uint64, tag = "6")]
+    #[prost(uint64, tag = "7")]
     pub freeze_generation: u64,
     /// Block height at which the current freeze generation began. Zero unless frozen or seized.
-    #[prost(uint64, tag = "7")]
+    #[prost(uint64, tag = "8")]
     pub frozen_since_height: u64,
 }
 impl ::prost::Name for ComplianceLeaf {
@@ -310,6 +313,9 @@ pub struct MsgRegisterUser {
     /// Grant authorizing this registration.
     #[prost(message, optional, tag = "2")]
     pub grant: ::core::option::Option<UserRegistrationGrant>,
+    /// Orbis threshold certificate for the address-diversified ring public key.
+    #[prost(message, optional, tag = "3")]
+    pub capability_certificate: ::core::option::Option<OrbisCapabilityCertificate>,
 }
 impl ::prost::Name for MsgRegisterUser {
     const NAME: &'static str = "MsgRegisterUser";
@@ -319,6 +325,29 @@ impl ::prost::Name for MsgRegisterUser {
     }
     fn type_url() -> ::prost::alloc::string::String {
         "/shieldd.core.component.compliance.v1.MsgRegisterUser".into()
+    }
+}
+/// Threshold-Orbis attestation for an address-diversified ring public key.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct OrbisCapabilityCertificate {
+    /// Chain on which this certificate may be used.
+    #[prost(string, tag = "1")]
+    pub chain_id: ::prost::alloc::string::String,
+    /// FROST group commitment R.
+    #[prost(bytes = "vec", tag = "2")]
+    pub r_point: ::prost::alloc::vec::Vec<u8>,
+    /// Canonical FROST response scalar z.
+    #[prost(bytes = "vec", tag = "3")]
+    pub response: ::prost::alloc::vec::Vec<u8>,
+}
+impl ::prost::Name for OrbisCapabilityCertificate {
+    const NAME: &'static str = "OrbisCapabilityCertificate";
+    const PACKAGE: &'static str = "shieldd.core.component.compliance.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.compliance.v1.OrbisCapabilityCertificate".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.compliance.v1.OrbisCapabilityCertificate".into()
     }
 }
 /// A Merkle path in the Quad Merkle Tree (arity 4).
@@ -718,7 +747,7 @@ pub struct GenesisContent {
     pub compliance_params: ::core::option::Option<ComplianceParameters>,
     /// Active users that must exist before regulated genesis allocations are minted.
     #[prost(message, repeated, tag = "4")]
-    pub user_leaves: ::prost::alloc::vec::Vec<ComplianceLeaf>,
+    pub user_registrations: ::prost::alloc::vec::Vec<GenesisUserRegistration>,
 }
 impl ::prost::Name for GenesisContent {
     const NAME: &'static str = "GenesisContent";
@@ -728,6 +757,24 @@ impl ::prost::Name for GenesisContent {
     }
     fn type_url() -> ::prost::alloc::string::String {
         "/shieldd.core.component.compliance.v1.GenesisContent".into()
+    }
+}
+/// Certified active user installed at genesis.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GenesisUserRegistration {
+    #[prost(message, optional, tag = "1")]
+    pub leaf: ::core::option::Option<ComplianceLeaf>,
+    #[prost(message, optional, tag = "2")]
+    pub capability_certificate: ::core::option::Option<OrbisCapabilityCertificate>,
+}
+impl ::prost::Name for GenesisUserRegistration {
+    const NAME: &'static str = "GenesisUserRegistration";
+    const PACKAGE: &'static str = "shieldd.core.component.compliance.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.compliance.v1.GenesisUserRegistration".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.compliance.v1.GenesisUserRegistration".into()
     }
 }
 /// Native asset registration configured at genesis.
@@ -747,6 +794,16 @@ pub struct NativeAssetRegistration {
     pub seizure_authority_vk: ::core::option::Option<
         super::super::super::super::crypto::decaf377_rdsa::v1::SpendVerificationKey,
     >,
+    #[prost(bytes = "vec", tag = "6")]
+    pub ring_pk: ::prost::alloc::vec::Vec<u8>,
+    #[prost(string, tag = "7")]
+    pub ring_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub policy_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub permission: ::prost::alloc::string::String,
+    #[prost(string, tag = "10")]
+    pub resource: ::prost::alloc::string::String,
 }
 impl ::prost::Name for NativeAssetRegistration {
     const NAME: &'static str = "NativeAssetRegistration";
@@ -814,6 +871,56 @@ impl ::prost::Name for PreEvidence {
     }
     fn type_url() -> ::prost::alloc::string::String {
         "/shieldd.core.component.compliance.v1.PreEvidence".into()
+    }
+}
+/// ACP-authorized request for releasing one address-scoped regulated nullifier key.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AddressDhReleaseRequest {
+    #[prost(string, tag = "1")]
+    pub ring_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub asset_id: ::core::option::Option<super::super::super::asset::v1::AssetId>,
+    #[prost(message, optional, tag = "3")]
+    pub address: ::core::option::Option<super::super::super::keys::v1::Address>,
+    #[prost(bytes = "vec", tag = "4")]
+    pub ring_pk: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "5")]
+    pub reader_pk: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "6")]
+    pub authority_instruction_hash: ::prost::alloc::vec::Vec<u8>,
+    #[prost(uint64, tag = "7")]
+    pub expires_at_unix: u64,
+    #[prost(bytes = "vec", tag = "8")]
+    pub request_nonce: ::prost::alloc::vec::Vec<u8>,
+}
+impl ::prost::Name for AddressDhReleaseRequest {
+    const NAME: &'static str = "AddressDhReleaseRequest";
+    const PACKAGE: &'static str = "shieldd.core.component.compliance.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.compliance.v1.AddressDhReleaseRequest".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.compliance.v1.AddressDhReleaseRequest".into()
+    }
+}
+/// Threshold DLEQ evidence for ring_sk * (reader_pk + pk_d).
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AddressDhReleaseEvidence {
+    #[prost(message, optional, tag = "1")]
+    pub request: ::core::option::Option<AddressDhReleaseRequest>,
+    #[prost(uint32, tag = "2")]
+    pub threshold: u32,
+    #[prost(message, repeated, tag = "3")]
+    pub shares: ::prost::alloc::vec::Vec<PreShareEvidence>,
+}
+impl ::prost::Name for AddressDhReleaseEvidence {
+    const NAME: &'static str = "AddressDhReleaseEvidence";
+    const PACKAGE: &'static str = "shieldd.core.component.compliance.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.compliance.v1.AddressDhReleaseEvidence".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.compliance.v1.AddressDhReleaseEvidence".into()
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]

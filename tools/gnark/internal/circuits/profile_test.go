@@ -42,7 +42,9 @@ type complianceLeafProfileCircuit struct {
 	AssetID       frontend.Variable
 	CapkX         frontend.Variable
 	CapkY         frontend.Variable
-	CnkCommitment frontend.Variable
+	RnkDhPkX      frontend.Variable
+	RnkDhPkY      frontend.Variable
+	RnkCommitment frontend.Variable
 }
 
 func (c *complianceLeafProfileCircuit) Define(api frontend.API) error {
@@ -52,7 +54,8 @@ func (c *complianceLeafProfileCircuit) Define(api frontend.API) error {
 		gnarkte.Point{X: c.TransX, Y: c.TransY},
 		c.AssetID,
 		gnarkte.Point{X: c.CapkX, Y: c.CapkY},
-		c.CnkCommitment,
+		gnarkte.Point{X: c.RnkDhPkX, Y: c.RnkDhPkY},
+		c.RnkCommitment,
 		1,
 	)
 	return err

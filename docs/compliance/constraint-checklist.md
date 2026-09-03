@@ -29,7 +29,7 @@ nullifier, and value constraints are tracked in
   matches native key/address allocation and prevents identity-DTK ownership
   aliasing; it is not merely an honest-construction precondition.
 - Regulated transfers bind the diversified generator, transmission key, asset
-  ID, capability, CNK commitment, and lifecycle into compliance-leaf
+  ID, capability, RNK commitment, and lifecycle into compliance-leaf
   commitments under the accepted compliance anchor.
 - Native registration rejects a derived `d = 0`, preventing an identity ACK.
 - Regulated sender and receiver statuses must both equal `Active`.

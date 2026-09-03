@@ -132,7 +132,22 @@ impl Component for Compliance {
                 }
             }
 
-            for leaf in &genesis.user_leaves {
+            let chain_id = if genesis.user_registrations.is_empty() {
+                None
+            } else {
+                Some(
+                    state
+                        .get_raw("application/data/chain_id")
+                        .await
+                        .expect("genesis chain id must be readable")
+                        .map(|bytes| {
+                            String::from_utf8(bytes).expect("genesis chain id must be UTF-8")
+                        })
+                        .expect("genesis chain id must be set before compliance initialization"),
+                )
+            };
+            for registration in &genesis.user_registrations {
+                let leaf = &registration.leaf;
                 assert!(
                     state
                         .is_asset_regulated(leaf.asset_id)
@@ -147,8 +162,14 @@ impl Component for Compliance {
                     .expect("genesis user asset must be registered");
                 let position = state
                     .register_genesis_user(
-                        GenesisUserAdmission::validate(leaf.clone(), &policy)
-                            .expect("genesis user registration must be valid"),
+                        GenesisUserAdmission::validate(
+                            registration,
+                            &policy,
+                            chain_id
+                                .as_deref()
+                                .expect("genesis user chain id is loaded"),
+                        )
+                        .expect("genesis user registration must be valid"),
                     )
                     .await
                     .expect("must be able to register user at genesis");
@@ -216,6 +237,10 @@ impl ActionHandler for MsgRegisterUser {
             .as_ref()
             .ok_or_else(|| anyhow::anyhow!("missing user registration grant"))?;
         anyhow::ensure!(
+            self.capability_certificate.is_some(),
+            "missing Orbis capability certificate"
+        );
+        anyhow::ensure!(
             grant.body.leaf == self.leaf,
             "user registration grant leaf does not match action leaf"
         );
@@ -238,7 +263,13 @@ impl ActionHandler for MsgRegisterUser {
             current_unix >= 0,
             "current block timestamp is before Unix epoch"
         );
-        let admission = UserGrantAdmission::verify(self, &policy, current_unix as u64)?;
+        let chain_id = state
+            .get_raw("application/data/chain_id")
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("chain id is not initialized"))?;
+        let chain_id = String::from_utf8(chain_id)
+            .map_err(|_| anyhow::anyhow!("stored chain id is not UTF-8"))?;
+        let admission = UserGrantAdmission::verify(self, &policy, current_unix as u64, &chain_id)?;
 
         // Check if user is already registered for this asset (idempotent)
         if let Some(existing_position) = state
@@ -370,19 +401,48 @@ mod tests {
     use shieldd_sdk_keys::Address;
     use shieldd_sdk_sct::component::clock::EpochManager;
 
-    use crate::genesis::NativeAssetRegistration;
+    use crate::genesis::{GenesisUserRegistration, NativeAssetRegistration};
     use crate::structs::{
-        AssetRegistrationGrant, ComplianceLeaf, MsgRegisterAsset, UserRegistrationGrant,
-        UserRegistrationGrantBody,
+        AssetPolicy, AssetRegistrationGrant, ComplianceLeaf, MsgRegisterAsset,
+        OrbisCapabilityCertificate, UserRegistrationGrant, UserRegistrationGrantBody,
     };
 
     const TEST_BLOCK_UNIX: i64 = 1_700_000_000;
     const TEST_VALID_UNTIL_UNIX: u64 = TEST_BLOCK_UNIX as u64 + 300;
+    const TEST_CHAIN_ID: &str = "shieldd-test";
 
     fn set_test_block_time<S: cnidarium::StateWrite>(state: &mut S, unix: i64) {
         let timestamp =
             tendermint::Time::from_unix_timestamp(unix, 0).expect("test timestamp is valid");
         state.put_block_timestamp(1, timestamp);
+        state.put_raw(
+            "application/data/chain_id".to_string(),
+            TEST_CHAIN_ID.as_bytes().to_vec(),
+        );
+    }
+
+    fn capability_certificate(
+        leaf: &ComplianceLeaf,
+        policy_id: &str,
+    ) -> OrbisCapabilityCertificate {
+        let policy = AssetPolicy::new(
+            decaf377::Element::GENERATOR,
+            u128::MAX,
+            vec![],
+            None,
+            "test-ring".to_owned(),
+            decaf377::Element::GENERATOR,
+            policy_id.to_string(),
+            "read".to_owned(),
+            "document".to_owned(),
+        );
+        OrbisCapabilityCertificate::sign_for_test(
+            TEST_CHAIN_ID,
+            leaf,
+            &policy,
+            decaf377::Fr::from(1u64),
+        )
+        .expect("test Orbis certificate is valid")
     }
 
     fn registrar_genesis(registrar_vk: VerificationKey<SpendAuth>) -> genesis::Content {
@@ -418,11 +478,11 @@ mod tests {
             threshold: None,
             allowed_ibc_routes: vec![],
             ibc_origin: None,
-            ring_pk: None,
-            ring_id: String::new(),
+            ring_pk: Some(decaf377::Element::GENERATOR),
+            ring_id: "test-ring".to_owned(),
             policy_id: "test-policy".to_string(),
-            permission: String::new(),
-            resource: String::new(),
+            permission: "read".to_owned(),
+            resource: "document".to_owned(),
             registration_authority_vk: Some(authority_vk),
             seizure_authority_vk: Some(authority_vk),
             asset_registration_grant: None,
@@ -452,6 +512,10 @@ mod tests {
         let storage = TempStorage::new().await.unwrap();
         let snapshot = storage.latest_snapshot();
         let mut state = cnidarium::StateDelta::new(snapshot);
+        state.put_raw(
+            "application/data/chain_id".to_string(),
+            TEST_CHAIN_ID.as_bytes().to_vec(),
+        );
 
         // Initialize the component with default genesis
         let genesis = genesis::Content::default();
@@ -496,13 +560,18 @@ mod tests {
         let storage = TempStorage::new().await.unwrap();
         let snapshot = storage.latest_snapshot();
         let mut state = cnidarium::StateDelta::new(snapshot);
+        state.put_raw(
+            "application/data/chain_id".to_string(),
+            TEST_CHAIN_ID.as_bytes().to_vec(),
+        );
 
         let custom_asset = asset::Id(Fq::from(999u64));
         let address = Address::dummy(&mut rand::thread_rng());
-        let leaf = ComplianceLeaf::registered(
+        let leaf = ComplianceLeaf::registered_from_rnk(
             address.clone(),
             custom_asset,
             decaf377::Element::GENERATOR,
+            address.diversified_generator().clone(),
             Fq::from(1u64),
         )
         .expect("fixed genesis compliance keys are valid");
@@ -520,9 +589,17 @@ mod tests {
                 seizure_authority_vk: Some(VerificationKey::from(&SigningKey::<SpendAuth>::new(
                     OsRng,
                 ))),
+                ring_pk: Some(decaf377::Element::GENERATOR.vartime_compress().0),
+                ring_id: "test-ring".to_owned(),
+                policy_id: "test-policy".to_owned(),
+                permission: "read".to_owned(),
+                resource: "document".to_owned(),
             }],
             compliance_registrar_vk: vec![],
-            user_leaves: vec![leaf.clone()],
+            user_registrations: vec![GenesisUserRegistration {
+                capability_certificate: capability_certificate(&leaf, "test-policy"),
+                leaf: leaf.clone(),
+            }],
             ..Default::default()
         };
 
@@ -564,6 +641,7 @@ mod tests {
             ComplianceLeaf::registered_for_test(Address::dummy(&mut rand::thread_rng()), asset_id);
         let msg = MsgRegisterUser {
             leaf: leaf.clone(),
+            capability_certificate: Some(capability_certificate(&leaf, "test-policy")),
             grant: Some(user_registration_grant(
                 leaf,
                 "test-policy".to_string(),
@@ -590,6 +668,7 @@ mod tests {
         let conflicting_leaf = msg.leaf.clone();
         let conflicting_msg = MsgRegisterUser {
             leaf: conflicting_leaf.clone(),
+            capability_certificate: Some(capability_certificate(&conflicting_leaf, "test-policy")),
             grant: Some(user_registration_grant(
                 conflicting_leaf,
                 "test-policy".to_string(),
@@ -640,6 +719,7 @@ mod tests {
             let leaf = ComplianceLeaf::registered_for_test(address, asset_id);
             let msg = MsgRegisterUser {
                 leaf: leaf.clone(),
+                capability_certificate: Some(capability_certificate(&leaf, "test-policy")),
                 grant: Some(user_registration_grant(
                     leaf,
                     "test-policy".to_string(),
@@ -681,6 +761,7 @@ mod tests {
         reused_key_leaf.capk = first_leaf.capk;
         let msg = MsgRegisterUser {
             leaf: reused_key_leaf.clone(),
+            capability_certificate: Some(capability_certificate(&reused_key_leaf, "test-policy")),
             grant: Some(user_registration_grant(
                 reused_key_leaf,
                 "test-policy".to_string(),
@@ -729,6 +810,7 @@ mod tests {
         leaf.capk = decaf377::Element::IDENTITY;
         let msg = MsgRegisterUser {
             leaf: leaf.clone(),
+            capability_certificate: Some(capability_certificate(&leaf, "test-policy")),
             grant: Some(user_registration_grant(
                 leaf,
                 "test-policy".to_string(),
@@ -762,6 +844,7 @@ mod tests {
                 *BASE_ASSET_ID,
             ),
             grant: None,
+            capability_certificate: None,
         };
 
         let error = msg.check_and_execute(&mut state).await.expect_err(
@@ -796,6 +879,7 @@ mod tests {
                 asset::Id(Fq::from(999_999u64)),
             ),
             grant: None,
+            capability_certificate: None,
         };
 
         let error = msg
@@ -850,6 +934,34 @@ mod tests {
             proof_after.is_regulated,
             "asset should be regulated after registration"
         );
+    }
+
+    #[tokio::test]
+    async fn regulated_asset_registration_requires_explicit_orbis_ring_key() {
+        let storage = TempStorage::new().await.unwrap();
+        let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
+        let registrar_sk = SigningKey::<SpendAuth>::new(OsRng);
+        let authority_sk = SigningKey::<SpendAuth>::new(OsRng);
+        Compliance::init_chain(
+            &mut state,
+            Some(&registrar_genesis(VerificationKey::from(&registrar_sk))),
+        )
+        .await;
+        set_test_block_time(&mut state, TEST_BLOCK_UNIX);
+
+        let mut registration = regulated_asset_msg(
+            asset::Id(Fq::from(124u64)),
+            VerificationKey::from(&authority_sk),
+        );
+        registration.ring_pk = None;
+        let registration =
+            sign_asset_registration(registration, &registrar_sk, TEST_VALID_UNTIL_UNIX);
+
+        let error = registration
+            .check_and_execute(&mut state)
+            .await
+            .expect_err("regulated registration without a ring key must fail");
+        assert!(error.to_string().contains("require ring_pk"));
     }
 
     #[tokio::test]
@@ -981,11 +1093,13 @@ mod tests {
         let missing_grant = MsgRegisterUser {
             leaf: leaf.clone(),
             grant: None,
+            capability_certificate: Some(capability_certificate(&leaf, "test-policy")),
         };
         assert!(missing_grant.check_stateless(()).await.is_err());
 
         let wrong_grant = MsgRegisterUser {
             leaf: leaf.clone(),
+            capability_certificate: Some(capability_certificate(&leaf, "test-policy")),
             grant: Some(user_registration_grant(
                 leaf.clone(),
                 "test-policy".to_string(),
@@ -1004,6 +1118,7 @@ mod tests {
 
         let expired_grant = MsgRegisterUser {
             leaf: leaf.clone(),
+            capability_certificate: Some(capability_certificate(&leaf, "test-policy")),
             grant: Some(user_registration_grant(
                 leaf,
                 "test-policy".to_string(),
@@ -1025,6 +1140,7 @@ mod tests {
         mismatched_leaf.capk = decaf377::Element::GENERATOR * decaf377::Fr::from(222u64);
         let mismatched_msg = MsgRegisterUser {
             leaf: mismatched_leaf.clone(),
+            capability_certificate: Some(capability_certificate(&mismatched_leaf, "test-policy")),
             grant: Some(user_registration_grant(
                 mismatched_leaf,
                 "test-policy".to_string(),

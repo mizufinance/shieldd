@@ -6089,11 +6089,12 @@ mod tests {
     use sha2::Digest as _;
     use shieldd_sdk_asset::{asset, Value, BASE_ASSET_DENOM, BASE_ASSET_ID};
     use shieldd_sdk_compact_block::StatePayload;
-    use shieldd_sdk_compliance::genesis::NativeAssetRegistration;
+    use shieldd_sdk_compliance::genesis::{GenesisUserRegistration, NativeAssetRegistration};
     use shieldd_sdk_compliance::registry::ComplianceRegistryWrite as _;
     use shieldd_sdk_compliance::structs::{UserRegistrationGrant, UserRegistrationGrantBody};
     use shieldd_sdk_compliance::{
-        derive_compliance_nullifier_key, AssetPolicy, ComplianceLeaf, MsgRegisterUser,
+        derive_regulated_nullifier_key, AssetPolicy, ComplianceLeaf, MsgRegisterUser,
+        OrbisCapabilityCertificate,
     };
     use shieldd_sdk_fee::Fee;
     use shieldd_sdk_keys::{test_keys, Address};
@@ -6640,17 +6641,34 @@ mod tests {
         let authority_vk = rdsa::VerificationKey::from(test_keys::SPEND_KEY.spend_auth_key());
         let regulated_denom = "wregulated_usd";
         let regulated_asset_id = asset::REGISTRY.parse_unit(regulated_denom).id();
+        let native_asset = NativeAssetRegistration {
+            asset_id: regulated_asset_id,
+            is_regulated: true,
+            dk_pub: Some(decaf377::Element::GENERATOR.vartime_compress().0),
+            registration_authority_vk: Some(authority_vk),
+            seizure_authority_vk: Some(authority_vk),
+            ring_pk: Some(decaf377::Element::GENERATOR.vartime_compress().0),
+            ring_id: "test-ring".to_owned(),
+            policy_id: "test-policy".to_owned(),
+            permission: "read".to_owned(),
+            resource: "document".to_owned(),
+        };
+        let policy = native_asset.asset_policy()?;
         let make_leaf = |address: Address| {
-            let cnk = derive_compliance_nullifier_key(
-                test_keys::SPEND_KEY.nullifier_key().0,
+            let rnk_dh_pk = address.diversified_generator().clone();
+            let rnk = derive_regulated_nullifier_key(
+                test_keys::FULL_VIEWING_KEY.incoming(),
                 &address,
                 regulated_asset_id,
-            );
-            ComplianceLeaf::registered(
+                decaf377::Element::GENERATOR,
+                rnk_dh_pk,
+            )?;
+            ComplianceLeaf::registered_from_rnk(
                 address,
                 regulated_asset_id,
                 decaf377::Element::GENERATOR,
-                cnk,
+                rnk_dh_pk,
+                rnk,
             )
         };
         let genesis_leaf = make_leaf(test_keys::ADDRESS_0.deref().clone())?;
@@ -6658,14 +6676,16 @@ mod tests {
         let app_state_bytes = serde_json::to_vec(&AppState::Content(Content {
             chain_id: TestNode::<()>::CHAIN_ID.to_string(),
             compliance_content: shieldd_sdk_compliance::genesis::Content {
-                native_assets: vec![NativeAssetRegistration {
-                    asset_id: regulated_asset_id,
-                    is_regulated: true,
-                    dk_pub: Some(decaf377::Element::GENERATOR.vartime_compress().0),
-                    registration_authority_vk: Some(authority_vk),
-                    seizure_authority_vk: Some(authority_vk),
+                native_assets: vec![native_asset],
+                user_registrations: vec![GenesisUserRegistration {
+                    capability_certificate: OrbisCapabilityCertificate::sign_for_test(
+                        TestNode::<()>::CHAIN_ID,
+                        &genesis_leaf,
+                        &policy,
+                        decaf377::Fr::from(1u64),
+                    )?,
+                    leaf: genesis_leaf,
                 }],
-                user_leaves: vec![genesis_leaf],
                 ..Default::default()
             },
             shielded_pool_content: shieldd_sdk_shielded_pool::genesis::Content {
@@ -6702,12 +6722,18 @@ mod tests {
             .await?;
         let grant_body = UserRegistrationGrantBody {
             leaf: runtime_leaf.clone(),
-            policy_id: String::new(),
+            policy_id: "test-policy".to_owned(),
             valid_until_unix: 4_102_444_800,
             nonce: vec![1u8; 16],
         };
         let registration = MsgRegisterUser {
-            leaf: runtime_leaf,
+            leaf: runtime_leaf.clone(),
+            capability_certificate: Some(OrbisCapabilityCertificate::sign_for_test(
+                TestNode::<()>::CHAIN_ID,
+                &runtime_leaf,
+                &policy,
+                decaf377::Fr::from(1u64),
+            )?),
             grant: Some(UserRegistrationGrant {
                 signature: test_keys::SPEND_KEY
                     .spend_auth_key()
@@ -8221,7 +8247,7 @@ mod tests {
         state
             .test_only_register_asset(
                 asset::Id(Fq::from(456u64)),
-                AssetPolicy::simple(
+                AssetPolicy::for_test(
                     decaf377::Element::GENERATOR,
                     u128::MAX,
                     decaf377::Element::GENERATOR,

@@ -284,7 +284,7 @@ impl ShieldedIcs20WithdrawalPlan {
                 .compliance_leaf
                 .as_ref()
                 .expect("validated regulated spend has a compliance leaf")
-                .cnk_commitment
+                .rnk_commitment
         {
             return Err(crate::ProofError::InvalidPrivateInput(
                 "wallet compliance nullifier key does not match the registered sender leaf"
@@ -398,7 +398,6 @@ impl ShieldedIcs20WithdrawalPlan {
                 action_balance_blinding: self.value_blinding,
                 ak: *fvk.spend_verification_key(),
                 nk: *fvk.nullifier_key(),
-                cnk: self.first_spend().compliance_nullifier_key(fvk),
                 asset_path: self.first_spend().asset_path.clone(),
                 asset_position: self.first_spend().asset_position,
                 asset_indexed_leaf: self.first_spend().asset_indexed_leaf.clone(),

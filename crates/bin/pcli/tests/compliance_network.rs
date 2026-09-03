@@ -35,6 +35,10 @@ const DEFAULT_COMPLIANCE_DEV_SEIZURE_AUTHORITY_VK_HEX: &str =
 const DEFAULT_COMPLIANCE_DEV_RING_PK_HEX: &str =
     "0800000000000000000000000000000000000000000000000000000000000000";
 const DEFAULT_COMPLIANCE_GRANT_VALID_UNTIL_UNIX: &str = "4102444800";
+const TEST_RING_ID: &str = "shieldd-smoke-ring-2";
+const TEST_POLICY_ID: &str = "shieldd-smoke-policy-2";
+const TEST_PERMISSION: &str = "read";
+const TEST_RESOURCE: &str = "document";
 
 /// Import the wallet from seed phrase into a temporary directory.
 fn load_wallet_into_tmpdir() -> TempDir {
@@ -96,27 +100,6 @@ fn env_or_default(key: &str, default: &str) -> String {
     std::env::var(key).unwrap_or_else(|_| default.to_string())
 }
 
-fn derive_cnk(tmpdir: &TempDir, asset_denom: &str, address_index: u32) -> String {
-    let mut cmd = Command::cargo_bin("pcli").unwrap();
-    cmd.args([
-        "--home",
-        tmpdir.path().to_str().unwrap(),
-        "tx",
-        "compliance",
-        "derive-cnk",
-        asset_denom,
-        "--address-index",
-        &address_index.to_string(),
-    ])
-    .timeout(std::time::Duration::from_secs(TIMEOUT_COMMAND_SECONDS));
-
-    let output = cmd.assert().success().get_output().stdout.clone();
-    String::from_utf8(output)
-        .expect("compliance nullifier key should be utf8")
-        .trim()
-        .to_string()
-}
-
 fn sign_asset_grant(
     tmpdir: &TempDir,
     asset_denom: &str,
@@ -158,6 +141,14 @@ fn sign_asset_grant(
         threshold,
         "--ring-pk-hex",
         &ring_pk,
+        "--ring-id",
+        TEST_RING_ID,
+        "--policy-id",
+        TEST_POLICY_ID,
+        "--permission",
+        TEST_PERMISSION,
+        "--resource",
+        TEST_RESOURCE,
         "--registration-authority-vk-hex",
         &authority_vk,
         "--seizure-authority-vk-hex",
@@ -181,7 +172,7 @@ fn sign_user_grant(
     asset_denom: &str,
     address: Address,
     address_index: u32,
-) -> String {
+) -> (String, String) {
     let authority_sk = env_or_default(
         "COMPLIANCE_DEV_AUTHORITY_SK_HEX",
         DEFAULT_COMPLIANCE_DEV_AUTHORITY_SK_HEX,
@@ -194,7 +185,18 @@ fn sign_user_grant(
         "COMPLIANCE_DEV_RING_PK_HEX",
         DEFAULT_COMPLIANCE_DEV_RING_PK_HEX,
     );
-    let cnk = derive_cnk(tmpdir, asset_denom, address_index);
+    let policy_id =
+        std::env::var("COMPLIANCE_DEV_POLICY_ID").unwrap_or_else(|_| "shieldd-dev-policy".into());
+    let rnk_dh_pk = std::env::var(format!("COMPLIANCE_USER_{address_index}_RNK_DH_PK_HEX"))
+        .expect("test requires an Orbis-certified RNK DH key");
+    let rnk_commitment = std::env::var(format!(
+        "COMPLIANCE_USER_{address_index}_RNK_COMMITMENT_HEX"
+    ))
+    .expect("test requires the wallet-derived RNK commitment");
+    let certificate = std::env::var(format!(
+        "COMPLIANCE_USER_{address_index}_CAPABILITY_CERTIFICATE_HEX"
+    ))
+    .expect("test requires an Orbis capability certificate");
     let address = address.to_string();
     let mut cmd = Command::cargo_bin("pcli").unwrap();
     cmd.args([
@@ -206,10 +208,14 @@ fn sign_user_grant(
         asset_denom,
         "--address",
         &address,
+        "--policy-id",
+        &policy_id,
         "--ring-pk-hex",
         &ring_pk,
-        "--cnk-hex",
-        &cnk,
+        "--rnk-dh-pk-hex",
+        &rnk_dh_pk,
+        "--rnk-commitment-hex",
+        &rnk_commitment,
         "--registration-authority-sk-hex",
         &authority_sk,
         "--valid-until-unix",
@@ -218,10 +224,11 @@ fn sign_user_grant(
     .timeout(std::time::Duration::from_secs(TIMEOUT_COMMAND_SECONDS));
 
     let output = cmd.assert().success().get_output().stdout.clone();
-    String::from_utf8(output)
+    let grant = String::from_utf8(output)
         .expect("user grant should be utf8")
         .trim()
-        .to_string()
+        .to_string();
+    (grant, certificate)
 }
 
 fn query_asset_status(
@@ -414,6 +421,14 @@ fn compliance_register_asset() {
             threshold,
             "--ring-pk-hex",
             &ring_pk,
+            "--ring-id",
+            TEST_RING_ID,
+            "--policy-id",
+            TEST_POLICY_ID,
+            "--permission",
+            TEST_PERMISSION,
+            "--resource",
+            TEST_RESOURCE,
             "--registration-authority-vk-hex",
             &authority_vk,
             "--seizure-authority-vk-hex",
@@ -455,7 +470,8 @@ fn compliance_register_user() {
 
     let smoke_asset =
         std::env::var("COMPLIANCE_SMOKE_ASSET").unwrap_or_else(|_| "regulated_usd".to_string());
-    let grant = sign_user_grant(&tmpdir, &smoke_asset, address.clone(), address_index);
+    let (grant, certificate) =
+        sign_user_grant(&tmpdir, &smoke_asset, address.clone(), address_index);
 
     let mut cmd = Command::cargo_bin("pcli").unwrap();
     cmd.args([
@@ -469,6 +485,8 @@ fn compliance_register_user() {
         &address_string,
         "--user-registration-grant-hex",
         &grant,
+        "--capability-certificate-hex",
+        &certificate,
     ])
     .timeout(std::time::Duration::from_secs(TIMEOUT_COMMAND_SECONDS));
     cmd.assert().success();

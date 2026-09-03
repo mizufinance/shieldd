@@ -473,7 +473,11 @@ impl TestNodeWithIBC {
         for address in addresses {
             for &asset_id in asset_ids {
                 let leaf = ComplianceLeaf::synthetic_unregulated(address.clone(), asset_id);
-                let msg = MsgRegisterUser { leaf, grant: None };
+                let msg = MsgRegisterUser {
+                    leaf,
+                    grant: None,
+                    capability_certificate: None,
+                };
                 actions.push(Action::ComplianceRegisterUser(msg));
             }
         }
@@ -527,11 +531,11 @@ impl TestNodeWithIBC {
             threshold: None,
             allowed_ibc_routes,
             ibc_origin,
-            ring_pk: None,
-            ring_id: String::new(),
+            ring_pk: Some(decaf377::Element::GENERATOR),
+            ring_id: "benchmark-ring".to_owned(),
             policy_id: "benchmark-policy".to_string(),
-            permission: String::new(),
-            resource: String::new(),
+            permission: "read".to_owned(),
+            resource: "document".to_owned(),
             registration_authority_vk: Some(authority_vk),
             seizure_authority_vk: Some(authority_vk),
             asset_registration_grant: None,
@@ -547,6 +551,18 @@ impl TestNodeWithIBC {
         });
         actions.push(Action::ComplianceRegisterAsset(asset_msg));
 
+        let policy = shieldd_sdk_compliance::AssetPolicy::new(
+            decaf377::Element::GENERATOR,
+            u128::MAX,
+            vec![],
+            None,
+            "benchmark-ring".to_owned(),
+            decaf377::Element::GENERATOR,
+            "benchmark-policy".to_string(),
+            "read".to_owned(),
+            "document".to_owned(),
+        );
+
         for address in addresses {
             let leaf = ComplianceLeaf::registered_for_test(address.clone(), asset);
             let body = UserRegistrationGrantBody {
@@ -556,7 +572,15 @@ impl TestNodeWithIBC {
                 nonce: address.to_string().into_bytes(),
             };
             actions.push(Action::ComplianceRegisterUser(MsgRegisterUser {
-                leaf,
+                leaf: leaf.clone(),
+                capability_certificate: Some(
+                    shieldd_sdk_compliance::OrbisCapabilityCertificate::sign_for_test(
+                        &self.chain_id,
+                        &leaf,
+                        &policy,
+                        decaf377::Fr::from(1u64),
+                    )?,
+                ),
                 grant: Some(UserRegistrationGrant {
                     signature: authority_sk.sign(
                         rand_chacha::ChaChaRng::seed_from_u64(2 + actions.len() as u64),

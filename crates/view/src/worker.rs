@@ -465,8 +465,14 @@ impl Worker {
                 self.sync_height_tx.send(height)?;
             } else {
                 // Otherwise, scan the block and commit its changes:
-                let mut filtered_block =
-                    scan_block(&self.fvk, &mut sct_guard, block, &self.storage).await?;
+                let mut filtered_block = scan_block(
+                    &self.fvk,
+                    &mut sct_guard,
+                    block,
+                    &self.storage,
+                    compliance_plan.as_ref(),
+                )
+                .await?;
 
                 // Download any transactions we detected.
                 let transactions = self.fetch_transactions(&mut filtered_block).await?;

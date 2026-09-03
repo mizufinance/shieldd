@@ -66,7 +66,8 @@ type TransferReceiverOutputWitnessBinary struct {
 	RecipientCompliancePath       MerklePathBinary
 	RecipientCompliancePosition   uint64
 	RecipientCapkAffine           PointAffineBinary
-	RecipientCnkCommitment        [32]byte
+	RecipientRnkDhPkAffine        PointAffineBinary
+	RecipientRnkCommitment        [32]byte
 	RecipientStatus               [32]byte
 	RecipientDiversifiedGenerator PointAffineBinary
 	RecipientTransmissionKey      PointAffineBinary
@@ -94,7 +95,6 @@ type TransferWitnessBinary struct {
 
 	ActionBalanceBlinding    [32]byte
 	NK                       [32]byte
-	CNK                      [32]byte
 	AssetPath                MerklePathBinary
 	AssetPosition            uint64
 	AssetIndexedLeaf         IndexedLeafBinary
@@ -105,7 +105,8 @@ type TransferWitnessBinary struct {
 	SenderCompliancePath     MerklePathBinary
 	SenderCompliancePosition uint64
 	SenderCapkAffine         PointAffineBinary
-	SenderCnkCommitment      [32]byte
+	SenderRnkDhPkAffine      PointAffineBinary
+	SenderRnkCommitment      [32]byte
 	SenderStatus             [32]byte
 	TransferNonceRoot        [32]byte
 
@@ -209,9 +210,6 @@ func decodeTransferWitness(
 	if witness.NK, err = read32(reader); err != nil {
 		return nil, err
 	}
-	if witness.CNK, err = read32(reader); err != nil {
-		return nil, err
-	}
 	if witness.AssetPath, err = readMerklePath(reader); err != nil {
 		return nil, err
 	}
@@ -242,7 +240,10 @@ func decodeTransferWitness(
 	if witness.SenderCapkAffine, err = readPointAffine(reader); err != nil {
 		return nil, err
 	}
-	if witness.SenderCnkCommitment, err = read32(reader); err != nil {
+	if witness.SenderRnkDhPkAffine, err = readPointAffine(reader); err != nil {
+		return nil, err
+	}
+	if witness.SenderRnkCommitment, err = read32(reader); err != nil {
 		return nil, err
 	}
 	if witness.SenderStatus, err = read32(reader); err != nil {
@@ -434,7 +435,10 @@ func readTransferReceiverOutput(
 	if output.RecipientCapkAffine, err = readPointAffine(reader); err != nil {
 		return output, err
 	}
-	if output.RecipientCnkCommitment, err = read32(reader); err != nil {
+	if output.RecipientRnkDhPkAffine, err = readPointAffine(reader); err != nil {
+		return output, err
+	}
+	if output.RecipientRnkCommitment, err = read32(reader); err != nil {
 		return output, err
 	}
 	if output.RecipientStatus, err = read32(reader); err != nil {

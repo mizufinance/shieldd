@@ -126,13 +126,25 @@ func TestShieldedIcs20WithdrawalBindsComplianceCiphertextAndPolicy(t *testing.T)
 		{
 			name: "issuer key",
 			mutate: func(_ *testing.T, _ *abi.ShieldedIcs20WithdrawalWitnessBinary, c *circuits.ShieldedIcs20WithdrawalCircuit) {
-				c.Asset.Leaf.DKPub = c.Asset.Leaf.RingPK
+				c.Asset.Leaf.DKPub = c.Sender.Capk
 			},
 		},
 		{
 			name: "ring key",
 			mutate: func(_ *testing.T, _ *abi.ShieldedIcs20WithdrawalWitnessBinary, c *circuits.ShieldedIcs20WithdrawalCircuit) {
-				c.Asset.Leaf.RingPK = c.Asset.Leaf.DKPub
+				c.Asset.Leaf.RingPK = c.Sender.Capk
+			},
+		},
+		{
+			name: "regulated nullifier DH key",
+			mutate: func(_ *testing.T, _ *abi.ShieldedIcs20WithdrawalWitnessBinary, c *circuits.ShieldedIcs20WithdrawalCircuit) {
+				c.Sender.RnkDhPk.X = mutateFieldByOne(c.Sender.RnkDhPk.X)
+			},
+		},
+		{
+			name: "regulated nullifier commitment",
+			mutate: func(_ *testing.T, _ *abi.ShieldedIcs20WithdrawalWitnessBinary, c *circuits.ShieldedIcs20WithdrawalCircuit) {
+				c.Sender.RnkCommitment = mutateFieldByOne(c.Sender.RnkCommitment)
 			},
 		},
 	}
@@ -334,7 +346,7 @@ func TestShieldedIcs20WithdrawalWiringBindsPolicyLeafAndSentinel(t *testing.T) {
 		"gadget.asset_registry_params_hash dk_pub_fq=asset.leaf.dk_pub_fq threshold=asset.leaf.threshold channels_hash=asset.leaf.channels_hash out=asset.leaf.params_hash",
 		"gadget.asset_registry_ring_hash ring_pk_fq=asset.leaf.ring_pk_fq ring_id_hash=asset.leaf.ring_id_hash policy_id_hash=asset.leaf.policy_id_hash permission_hash=asset.leaf.permission_hash resource_hash=asset.leaf.resource_hash out=asset.leaf.ring_hash",
 		"gadget.asset_registry_leaf_hash value=asset.leaf.value next_index=asset.leaf.next_index next_value=asset.leaf.next_value params_hash=asset.leaf.params_hash ring_hash=asset.leaf.ring_hash out=asset.leaf.commitment",
-		"gadget.compliance_leaf div_gen_fq=sender.div_gen_fq transmission_fq=sender.transmission_fq asset_id=shared.asset_id capk=sender.capk cnk_commitment=sender.cnk_commitment status=sender.status out=sender.leaf_commitment",
+		"gadget.compliance_leaf div_gen_fq=sender.div_gen_fq transmission_fq=sender.transmission_fq asset_id=shared.asset_id capk=sender.capk rnk_dh_pk=sender.rnk_dh_pk rnk_commitment=sender.rnk_commitment status=sender.status out=sender.leaf_commitment",
 	} {
 		if count := strings.Count(transcript, binding); count != 1 {
 			t.Fatalf("withdrawal wiring must contain %q exactly once, got %d", binding, count)

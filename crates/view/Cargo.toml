@@ -63,5 +63,6 @@ url = {workspace = true}
 pbjson-types = { workspace = true }
 
 [dev-dependencies]
+shieldd-sdk-compliance = {workspace = true, default-features = false, features = ["test-helpers"]}
 shieldd-sdk-keys = {workspace = true, features = ["demo"]}
 tempfile = {workspace = true}

@@ -37,8 +37,8 @@ pub struct NoteSeizureWitness {
     pub note_blinding: [u8; 32],
     pub position: u64,
     pub state_commitment_auth_path: Vec<[[u8; 32]; 3]>,
-    pub cnk: [u8; 32],
-    pub cnk_commitment: [u8; 32],
+    pub rnk: [u8; 32],
+    pub rnk_commitment: [u8; 32],
 }
 
 impl NoteSeizureWitness {
@@ -84,8 +84,8 @@ impl NoteSeizureWitness {
                 .iter()
                 .map(|siblings| siblings.map(|sibling| Fq::from(sibling).to_bytes()))
                 .collect(),
-            cnk: private.cnk.to_bytes(),
-            cnk_commitment: public.cnk_commitment.to_bytes(),
+            rnk: private.rnk.to_bytes(),
+            rnk_commitment: public.rnk_commitment.to_bytes(),
         })
     }
 }

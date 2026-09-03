@@ -16,7 +16,7 @@ func NewNoteReshapeCircuitAssignmentFromWitness(payload []byte) (*circuits.NoteR
 	if len(witness.Spends) != family.NIn || len(witness.Outputs) != family.NOut {
 		return nil, generated.NoteReshapeFamilySpec{}, fmt.Errorf("note reshape witness counts mismatch: spends=%d outputs=%d expected=%dx%d", len(witness.Spends), len(witness.Outputs), family.NIn, family.NOut)
 	}
-	auth, err := newNoteReshapeAuthSharedFields(witness.NK, witness.CNK, witness.AKAffine)
+	auth, err := newNoteReshapeAuthSharedFields(witness.NK, witness.AKAffine)
 	if err != nil {
 		return nil, generated.NoteReshapeFamilySpec{}, err
 	}
@@ -59,7 +59,8 @@ func NewNoteReshapeCircuitAssignmentFromWitness(payload []byte) (*circuits.NoteR
 	}
 	assignment.Sender = circuits.NoteReshapeSenderCircuitFields{
 		Capk:          point2DString(witness.SenderCapkAffine),
-		CnkCommitment: fqString(witness.SenderCnkCommitment),
+		RnkDhPk:       point2DString(witness.SenderRnkDhPkAffine),
+		RnkCommitment: fqString(witness.SenderRnkCommitment),
 		Status:        fqString(witness.SenderStatus),
 		Path:          senderPath,
 		Position:      witness.SenderCompliancePosition,
@@ -85,7 +86,7 @@ func NewNoteReshapeCircuitAssignmentFromWitness(payload []byte) (*circuits.NoteR
 	return assignment, family, nil
 }
 
-func newNoteReshapeAuthSharedFields(nk, cnk [32]byte, akAffine PointAffineBinary) (circuits.TransferAuthSharedFields, error) {
+func newNoteReshapeAuthSharedFields(nk [32]byte, akAffine PointAffineBinary) (circuits.TransferAuthSharedFields, error) {
 	akCompressed, err := pointAffineToField(akAffine)
 	if err != nil {
 		return circuits.TransferAuthSharedFields{}, fmt.Errorf("compress note reshape authorization key: %w", err)
@@ -97,7 +98,6 @@ func newNoteReshapeAuthSharedFields(nk, cnk [32]byte, akAffine PointAffineBinary
 	return circuits.TransferAuthSharedFields{
 		AK:           point2DString(akAffine),
 		NK:           primitives.LittleEndianBytesToBigInt(nk[:]).String(),
-		CNK:          fqString(cnk),
 		IVKReduced:   ivkReduced.String(),
 		IVKQuotientA: quotientA,
 	}, nil

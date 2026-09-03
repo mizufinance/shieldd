@@ -138,20 +138,30 @@ impl ShieldedInputPlan {
     }
 
     pub fn compliance_nullifier_key(&self, fvk: &FullViewingKey) -> Fq {
-        shieldd_sdk_compliance::derive_compliance_nullifier_key(
-            fvk.nullifier_key().0,
+        let leaf = self
+            .compliance_leaf
+            .as_ref()
+            .expect("regulated input has a compliance leaf");
+        let policy = self
+            .asset_policy
+            .as_ref()
+            .expect("regulated input has an asset policy");
+        shieldd_sdk_compliance::derive_regulated_nullifier_key(
+            fvk.incoming(),
             &self.note.address(),
             self.note.asset_id(),
+            policy.ring.ring_pk,
+            leaf.rnk_dh_pk,
         )
+        .expect("validated regulated input derives its nullifier key")
     }
 
     pub fn effective_nullifier_key(&self, fvk: &FullViewingKey) -> NullifierKey {
-        shieldd_sdk_compliance::effective_nullifier_key(
-            *fvk.nullifier_key(),
-            &self.note.address(),
-            self.note.asset_id(),
-            self.is_regulated,
-        )
+        if self.is_regulated {
+            NullifierKey(self.compliance_nullifier_key(fvk))
+        } else {
+            *fvk.nullifier_key()
+        }
     }
 
     pub fn balance(&self) -> Balance {

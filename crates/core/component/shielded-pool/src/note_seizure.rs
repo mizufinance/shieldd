@@ -192,7 +192,7 @@ pub struct NoteSeizureProofPublic {
     pub recent_position_floor: u64,
     pub recovery_capsule: RecoveryCapsule,
     pub recovery_seed: Fq,
-    pub cnk_commitment: Fq,
+    pub rnk_commitment: Fq,
 }
 
 impl NoteSeizureProofPublic {
@@ -206,7 +206,7 @@ impl NoteSeizureProofPublic {
 pub struct NoteSeizureProofPrivate {
     pub note_blinding: Fq,
     pub state_commitment_proof: tct::Proof,
-    pub cnk: Fq,
+    pub rnk: Fq,
 }
 
 impl NoteSeizureProofPrivate {
@@ -233,13 +233,13 @@ impl NoteSeizureProofPrivate {
             "note seizure SCT proof anchor mismatch"
         );
         ensure!(
-            shieldd_sdk_compliance::compliance_nullifier_key_commitment(self.cnk)
-                == public.cnk_commitment,
-            "note seizure CNK commitment mismatch"
+            shieldd_sdk_compliance::compliance_nullifier_key_commitment(self.rnk)
+                == public.rnk_commitment,
+            "note seizure RNK commitment mismatch"
         );
         ensure!(
             Nullifier::derive(
-                &shieldd_sdk_keys::keys::NullifierKey(self.cnk),
+                &shieldd_sdk_keys::keys::NullifierKey(self.rnk),
                 self.state_commitment_proof.position(),
                 &note_commitment,
             ) == public.authorization.nullifier,
@@ -338,7 +338,7 @@ pub struct NoteSeizure {
     pub recent_position_floor: u64,
     pub recovery_capsule: RecoveryCapsule,
     pub recovery_seed: Fq,
-    pub cnk_commitment: Fq,
+    pub rnk_commitment: Fq,
     pub pre_evidence: PreEvidence,
     pub reader_secret: Fr,
     pub proof: NoteSeizureProof,
@@ -380,7 +380,7 @@ impl NoteSeizure {
             recent_position_floor: self.recent_position_floor,
             recovery_capsule: self.recovery_capsule.clone(),
             recovery_seed: self.recovery_seed,
-            cnk_commitment: self.cnk_commitment,
+            rnk_commitment: self.rnk_commitment,
         }
     }
 }
@@ -415,7 +415,7 @@ impl TryFrom<pb::NoteSeizure> for NoteSeizure {
                 .context("note seizure is missing recovery capsule")?
                 .try_into()?,
             recovery_seed: decode_fq(value.recovery_seed, "note seizure recovery seed")?,
-            cnk_commitment: decode_fq(value.cnk_commitment, "note seizure CNK commitment")?,
+            rnk_commitment: decode_fq(value.rnk_commitment, "note seizure RNK commitment")?,
             pre_evidence: value
                 .pre_evidence
                 .context("note seizure is missing PRE evidence")?
@@ -449,7 +449,7 @@ impl From<NoteSeizure> for pb::NoteSeizure {
             recent_position_floor: value.recent_position_floor,
             recovery_capsule: Some(value.recovery_capsule.into()),
             recovery_seed: value.recovery_seed.to_bytes().to_vec(),
-            cnk_commitment: value.cnk_commitment.to_bytes().to_vec(),
+            rnk_commitment: value.rnk_commitment.to_bytes().to_vec(),
             pre_evidence: Some(value.pre_evidence.into()),
             reader_secret: value.reader_secret.to_bytes().to_vec(),
             proof: Some(value.proof.into()),
@@ -565,9 +565,9 @@ mod tests {
         tree.insert(tct::Witness::Keep, body.note_commitment)
             .unwrap();
         let state_commitment_proof = tree.witness(body.note_commitment).unwrap();
-        let cnk = Fq::from(23u64);
+        let rnk = Fq::from(23u64);
         body.nullifier = Nullifier::derive(
-            &shieldd_sdk_keys::keys::NullifierKey(cnk),
+            &shieldd_sdk_keys::keys::NullifierKey(rnk),
             state_commitment_proof.position(),
             &body.note_commitment,
         );
@@ -578,12 +578,12 @@ mod tests {
             recent_position_floor: 0,
             recovery_capsule: capsule,
             recovery_seed: opening.seed,
-            cnk_commitment: shieldd_sdk_compliance::compliance_nullifier_key_commitment(cnk),
+            rnk_commitment: shieldd_sdk_compliance::compliance_nullifier_key_commitment(rnk),
         };
         let private = NoteSeizureProofPrivate {
             note_blinding,
             state_commitment_proof,
-            cnk,
+            rnk,
         };
 
         private.validate_against(&public).unwrap();

@@ -242,13 +242,13 @@ func TestShieldedIcs20WithdrawalRejectsNonCanonicalBalanceBlinding(t *testing.T)
 func TestShieldedIcs20WithdrawalRejectsNonCanonicalBooleanFlags(t *testing.T) {
 	const (
 		headerBytes            = 20
-		topFieldsThroughNK     = 24 * 32
+		topFieldsThroughNK     = 23 * 32
 		merklePathBytes        = 4 + 16*(4+3*32)
 		committedLeafBytes     = 32 + 8 + 32 + 16 + 5*32
 		isRegulatedOffset      = headerBytes + topFieldsThroughNK + merklePathBytes + 8 + committedLeafBytes
 		slimRequiredSpendBytes = 4*32 + 8 + 4 + 24*3*32 + 32 + 64 + 1
 		routingPrivateBytes    = 2 + 8 + 32
-		optionalIsDummyOffset  = isRegulatedOffset + 1 + routingPrivateBytes + merklePathBytes + 8 + 6*32 + 2*slimRequiredSpendBytes
+		optionalIsDummyOffset  = isRegulatedOffset + 1 + routingPrivateBytes + merklePathBytes + 8 + 8*32 + 2*slimRequiredSpendBytes
 	)
 	for name, offset := range map[string]int{
 		"is_regulated":      isRegulatedOffset,
@@ -295,13 +295,13 @@ func TestNoteReshapeWitnessPaddingABI(t *testing.T) {
 
 	const (
 		headerBytes           = 24
-		topFieldsThroughNK    = 10 * 32
+		topFieldsThroughNK    = 9 * 32
 		merklePathBytes       = 4 + 16*(4+3*32)
 		indexedLeafBytes      = 32 + 8 + 32 + 16 + 5*32
 		assetLeafPointBytes   = 2 * 64
 		routingPrivateBytes   = 1 + 2 + 8 + 32
 		sharedContextBytes    = 32 + 64
-		senderComplianceBytes = merklePathBytes + 8 + 4*32
+		senderComplianceBytes = merklePathBytes + 8 + 6*32
 		flagOffset            = headerBytes + topFieldsThroughNK + merklePathBytes + 8 + indexedLeafBytes + assetLeafPointBytes + routingPrivateBytes + senderComplianceBytes + sharedContextBytes
 	)
 	malformed := append([]byte(nil), syntheticPayload...)

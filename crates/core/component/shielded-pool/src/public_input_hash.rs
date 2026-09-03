@@ -556,7 +556,7 @@ pub fn note_seizure_statement_fields(
         capsule.encrypted_amount,
         capsule.encrypted_note_blinding,
         public.recovery_seed,
-        public.cnk_commitment,
+        public.rnk_commitment,
         authorization_commitment,
     ];
     debug_assert_eq!(fields.len(), NOTE_SEIZURE_STATEMENT_FIELD_COUNT);

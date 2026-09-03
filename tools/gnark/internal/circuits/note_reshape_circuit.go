@@ -31,7 +31,8 @@ type NoteReshapeSharedNoteContextCircuitFields struct {
 
 type NoteReshapeSenderCircuitFields struct {
 	Capk          Point2D
-	CnkCommitment frontend.Variable
+	RnkDhPk       Point2D
+	RnkCommitment frontend.Variable
 	Status        frontend.Variable
 	Path          [ComplianceQuadTreeDepth][3]frontend.Variable
 	Position      frontend.Variable
@@ -151,13 +152,12 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 	c.bindSemantic("shared.asset_id", c.Shared.AssetID)
 	c.bindSemantic("shared.div_gen", sharedDivGen.X, sharedDivGen.Y)
 	c.bindSemantic("sender.capk", c.Sender.Capk.X, c.Sender.Capk.Y)
-	c.bindSemantic("sender.cnk_commitment", c.Sender.CnkCommitment)
+	c.bindSemantic("sender.rnk_commitment", c.Sender.RnkCommitment)
 	c.bindSemantic("sender.status", c.Sender.Status)
 	c.bindSemantic("sender.path", quadPathVariables(c.Sender.Path)...)
 	c.bindSemantic("sender.position", c.Sender.Position)
 	c.bindSemantic("auth.ak", sharedAK.X, sharedAK.Y)
 	c.bindSemantic("auth.nk", c.Auth.NK)
-	c.bindSemantic("auth.cnk", c.Auth.CNK)
 	c.bindSemantic("auth.ivk_reduced", c.Auth.IVKReduced)
 	c.bindSemantic("auth.ivk_quotient_a", c.Auth.IVKQuotientA)
 	c.traceWiring(
@@ -191,7 +191,7 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 	c.traceWiring("assert.ne", "lhs=auth.ivk_reduced", "rhs=0")
 	AssertIncomingViewingKeyNonzero(api, c.Auth.IVKReduced)
 	c.traceWiring("decaf.diversified_transmission_key", "nk=auth.nk", "ak=shared.ak", "div_gen=shared.div_gen", "ivk_reduced=auth.ivk_reduced", "ivk_quotient_a=auth.ivk_quotient_a", "out=shared.transmission.computed")
-	computedSharedTransmission, err := diversifiedTransmissionKeyAfterIvkNonzero(
+	computedSharedTransmission, ivkBits, err := diversifiedTransmissionKeyAndBitsAfterIvkNonzero(
 		api,
 		c.Auth.NK,
 		sharedAK,
@@ -232,25 +232,49 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 	); err != nil {
 		return err
 	}
-	c.traceWiring("gadget.compliance_leaf", "div_gen_fq=shared.div_gen_fq", "transmission_fq=shared.transmission.fq", "asset_id=shared.asset_id", "capk=sender.capk", "cnk_commitment=sender.cnk_commitment", "status=sender.status", "out=sender.leaf_commitment")
+	c.traceWiring("gadget.compliance_leaf", "div_gen_fq=shared.div_gen_fq", "transmission_fq=shared.transmission.fq", "asset_id=shared.asset_id", "capk=sender.capk", "rnk_dh_pk=sender.rnk_dh_pk", "rnk_commitment=sender.rnk_commitment", "status=sender.status", "out=sender.leaf_commitment")
 	senderLeafCommitment, err := ComplianceLeafCommitmentFromCompressed(
 		api,
 		sharedDivGenFq,
 		sharedTransmissionFq,
 		c.Shared.AssetID,
 		gnarkte.Point{X: c.Sender.Capk.X, Y: c.Sender.Capk.Y},
-		c.Sender.CnkCommitment,
+		gnarkte.Point{X: c.Sender.RnkDhPk.X, Y: c.Sender.RnkDhPk.Y},
+		c.Sender.RnkCommitment,
 		c.Sender.Status,
 	)
 	if err != nil {
 		return err
 	}
 	c.bindSemantic("sender.leaf_commitment", senderLeafCommitment)
-	cnkCommitment, err := ComplianceNullifierKeyCommitment(api, c.Auth.CNK)
+	unregulatedRingPK, _, err := UnregulatedComplianceKeys()
 	if err != nil {
 		return err
 	}
-	AssertEqualIf(api, cnkCommitment, c.Sender.CnkCommitment, c.IsRegulated)
+	effectiveRingPK := SelectPoint(
+		api,
+		c.IsRegulated,
+		gnarkte.Point{X: c.Asset.Leaf.RingPK.X, Y: c.Asset.Leaf.RingPK.Y},
+		unregulatedRingPK,
+	)
+	derivedRNK, err := RegulatedNullifierKey(
+		api,
+		ivkBits,
+		gnarkte.Point{X: c.Sender.RnkDhPk.X, Y: c.Sender.RnkDhPk.Y},
+		sharedDivGenFq,
+		sharedTransmissionFq,
+		c.Shared.AssetID,
+		effectiveRingPK,
+	)
+	if err != nil {
+		return err
+	}
+	effectiveNK := api.Select(c.IsRegulated, derivedRNK, c.Auth.NK)
+	rnkCommitment, err := ComplianceNullifierKeyCommitment(api, derivedRNK)
+	if err != nil {
+		return err
+	}
+	AssertEqualIf(api, rnkCommitment, c.Sender.RnkCommitment, c.IsRegulated)
 	c.traceWiring("gadget.compliance_path", "leaf=sender.leaf_commitment", "path=sender.path", "position=sender.position", "out=sender.compliance_root")
 	senderComplianceRoot, err := VerifyQuadPath(api, senderLeafCommitment, c.Sender.Path, c.Sender.Position)
 	if err != nil {
@@ -293,6 +317,7 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 				sharedAK,
 				sharedDivGenFq,
 				sharedTransmissionFq,
+				effectiveNK,
 				&c.SyntheticSpends[i],
 				i,
 			)
@@ -304,6 +329,7 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 				sharedAK,
 				sharedDivGenFq,
 				sharedTransmissionFq,
+				effectiveNK,
 				&c.Spends[i],
 			)
 			claimedHistoryRequired = c.Spends[i].HistoryRequired
@@ -454,6 +480,7 @@ func (c *NoteReshapeCircuit) verifyPaddedNoteReshapeSpend(
 	sharedAK gnarkte.Point,
 	sharedDivGenFq frontend.Variable,
 	sharedTransmissionFq frontend.Variable,
+	effectiveNK frontend.Variable,
 	spend *NoteReshapeSyntheticSpendCircuitFields,
 	index int,
 ) (frontend.Variable, frontend.Variable, frontend.Variable, error) {
@@ -496,7 +523,6 @@ func (c *NoteReshapeCircuit) verifyPaddedNoteReshapeSpend(
 	AssertEqualIf(api, spentCommitment, spend.StateProof.Commitment, isNotDummy)
 
 	c.traceWiring("gadget.nullifier", "nk=auth.nk", "commitment="+name+".state_proof.commitment", "position="+name+".state_proof.position", "out="+name+".nullifier.real")
-	effectiveNK := api.Select(c.IsRegulated, c.Auth.CNK, c.Auth.NK)
 	realNullifier, err := Nullifier(api, effectiveNK, spend.StateProof.Commitment, spend.StateProof.Position)
 	if err != nil {
 		return nil, nil, nil, err
@@ -573,6 +599,7 @@ func (c *NoteReshapeCircuit) verifyFixedNoteReshapeSpend(
 	sharedAK gnarkte.Point,
 	sharedDivGenFq frontend.Variable,
 	sharedTransmissionFq frontend.Variable,
+	effectiveNK frontend.Variable,
 	spend *NoteReshapeSpendCircuitFields,
 ) (frontend.Variable, frontend.Variable, frontend.Variable, error) {
 	rkClaimed := gnarkte.Point{X: spend.RK.X, Y: spend.RK.Y}
@@ -612,7 +639,6 @@ func (c *NoteReshapeCircuit) verifyFixedNoteReshapeSpend(
 	api.AssertIsEqual(spentCommitment, spend.StateProof.Commitment)
 
 	c.traceWiring("gadget.nullifier", "nk=auth.nk", "commitment="+name+".state_proof.commitment", "position="+name+".state_proof.position", "out="+name+".nullifier.computed")
-	effectiveNK := api.Select(c.IsRegulated, c.Auth.CNK, c.Auth.NK)
 	nullifier, err := Nullifier(api, effectiveNK, spend.StateProof.Commitment, spend.StateProof.Position)
 	if err != nil {
 		return nil, nil, nil, err

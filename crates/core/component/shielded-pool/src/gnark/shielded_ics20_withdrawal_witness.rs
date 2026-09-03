@@ -69,7 +69,6 @@ pub struct ShieldedIcs20WithdrawalWitness {
     pub recent_position_floor: [u8; 32],
     pub action_balance_blinding: [u8; 32],
     pub nk: [u8; 32],
-    pub cnk: [u8; 32],
     pub asset_path: MerklePathBinary,
     pub asset_position: u64,
     pub asset_indexed_leaf: IndexedLeafBinary,
@@ -81,7 +80,8 @@ pub struct ShieldedIcs20WithdrawalWitness {
     pub sender_compliance_path: MerklePathBinary,
     pub sender_compliance_position: u64,
     pub sender_capk_affine: PointAffineBytes,
-    pub sender_cnk_commitment: [u8; 32],
+    pub sender_rnk_dh_pk_affine: PointAffineBytes,
+    pub sender_rnk_commitment: [u8; 32],
     pub sender_status: [u8; 32],
     pub withdrawal_seed: [u8; 32],
     pub withdrawal_randomizer: [u8; 32],
@@ -94,8 +94,15 @@ pub struct ShieldedIcs20WithdrawalWitness {
     pub sender_diversified_generator_affine: PointAffineBytes,
 }
 
-fn compliance_leaf_parts(leaf: &ComplianceLeafBinary) -> (PointAffineBytes, [u8; 32], [u8; 32]) {
-    (leaf.capk_affine.clone(), leaf.cnk_commitment, leaf.status)
+fn compliance_leaf_parts(
+    leaf: &ComplianceLeafBinary,
+) -> (PointAffineBytes, PointAffineBytes, [u8; 32], [u8; 32]) {
+    (
+        leaf.capk_affine.clone(),
+        leaf.rnk_dh_pk_affine.clone(),
+        leaf.rnk_commitment,
+        leaf.status,
+    )
 }
 
 fn verification_key_point(
@@ -209,7 +216,7 @@ impl ShieldedIcs20WithdrawalWitness {
             shielded_ics20_withdrawal_statement_hash_from_public(public)
                 .map_err(|e| anyhow!("compute {} statement hash: {e}", public.family_id.label()))?;
         let sender_leaf = compliance_leaf_from_typed(&private.sender_leaf)?;
-        let (sender_capk_affine, sender_cnk_commitment, sender_status) =
+        let (sender_capk_affine, sender_rnk_dh_pk_affine, sender_rnk_commitment, sender_status) =
             compliance_leaf_parts(&sender_leaf);
 
         let required_spend = spend_witness(&public.inputs[0], &private.required_input, 0)?;
@@ -251,7 +258,6 @@ impl ShieldedIcs20WithdrawalWitness {
             recent_position_floor: Fq::from(public.recent_position_floor).to_bytes(),
             action_balance_blinding: private.action_balance_blinding.to_bytes(),
             nk: private.nk.0.to_bytes(),
-            cnk: private.cnk.to_bytes(),
             asset_path: merkle_path_from_typed(&private.asset_path)?,
             asset_position: private.asset_position,
             asset_indexed_leaf: indexed_leaf_from_typed(&private.asset_indexed_leaf),
@@ -263,7 +269,8 @@ impl ShieldedIcs20WithdrawalWitness {
             sender_compliance_path: merkle_path_from_typed(&private.sender_compliance_path)?,
             sender_compliance_position: private.sender_compliance_position,
             sender_capk_affine,
-            sender_cnk_commitment,
+            sender_rnk_dh_pk_affine,
+            sender_rnk_commitment,
             sender_status,
             withdrawal_seed: private.withdrawal_seed.to_bytes(),
             withdrawal_randomizer: private.withdrawal_randomizer.to_bytes(),

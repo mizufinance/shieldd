@@ -17,7 +17,7 @@ pub mod proof_test_helpers {
     };
     use shieldd_sdk_keys::{
         keys::{Bip44Path, SeedPhrase, SpendKey},
-        PayloadKey,
+        Address, FullViewingKey, PayloadKey,
     };
     use shieldd_sdk_num::Amount;
     use shieldd_sdk_tct as tct;
@@ -208,7 +208,7 @@ pub mod proof_test_helpers {
 
         // Determine keys before IMT proof (Policy-in-Leaf binds ring_pk into the leaf)
         let (ring_pk, dk_pub) = if is_regulated {
-            let ring_sk = Fr::rand(&mut *rng);
+            let ring_sk = Fr::from(1u64);
             let ring_pk = decaf377::Element::GENERATOR * ring_sk;
             (ring_pk, decaf377::Element::GENERATOR)
         } else {
@@ -250,18 +250,23 @@ pub mod proof_test_helpers {
         let sender_d_fr = Fr::from_le_bytes_mod_order(&sender_d.to_bytes());
         let ack_sender = ring_pk * sender_d_fr;
 
-        let make_leaf = |address, wallet_nk| {
+        let make_leaf = |address: Address, wallet_fvk: &FullViewingKey| {
             if is_regulated {
-                let cnk = shieldd_sdk_compliance::derive_compliance_nullifier_key(
-                    wallet_nk,
+                let rnk_dh_pk = address.diversified_generator().clone();
+                let rnk = shieldd_sdk_compliance::derive_regulated_nullifier_key(
+                    wallet_fvk.incoming(),
                     &address,
                     value.asset_id,
-                );
-                shieldd_sdk_compliance::ComplianceLeaf::registered(
+                    ring_pk,
+                    rnk_dh_pk,
+                )
+                .expect("test regulated nullifier derivation is valid");
+                shieldd_sdk_compliance::ComplianceLeaf::registered_from_rnk(
                     address,
                     value.asset_id,
                     ring_pk,
-                    cnk,
+                    rnk_dh_pk,
+                    rnk,
                 )
                 .expect("test compliance registration is valid")
             } else {
@@ -271,8 +276,8 @@ pub mod proof_test_helpers {
                 )
             }
         };
-        let user_leaf = make_leaf(address.clone(), fvk.nullifier_key().0);
-        let counterparty_leaf = make_leaf(sender_address.clone(), sender_fvk.nullifier_key().0);
+        let user_leaf = make_leaf(address.clone(), &fvk);
+        let counterparty_leaf = make_leaf(sender_address.clone(), &sender_fvk);
 
         let (compliance_anchor, compliance_path, compliance_position) =
             create_user_tree_proof(&user_leaf);
@@ -309,7 +314,7 @@ pub mod proof_test_helpers {
         is_regulated: bool,
     ) -> (crate::TransferProofPublic, crate::TransferProofPrivate) {
         use crate::{ShieldedInputPlan, ShieldedOutputPlan, TransferPlan};
-        use shieldd_sdk_asset::{asset, Value};
+        use shieldd_sdk_asset::Value;
         use shieldd_sdk_num::Amount;
 
         let base = generate_base_test_data(rng, 1, 100, is_regulated);
@@ -592,10 +597,11 @@ pub mod proof_test_helpers {
             .expect("set hidden-arity transfer spend compliance details");
 
         let recipient_leaf = if is_regulated {
-            shieldd_sdk_compliance::ComplianceLeaf::registered(
+            shieldd_sdk_compliance::ComplianceLeaf::registered_from_rnk(
                 recipient_address.clone(),
                 asset_id,
                 base.ring_pk,
+                recipient_address.diversified_generator().clone(),
                 Fq::from(2u64),
             )
             .expect("test recipient compliance registration is valid")
@@ -879,10 +885,10 @@ pub mod proof_test_helpers {
         crate::NoteReshapeProofPrivate,
     ) {
         use crate::{NoteReshapePlan, ShieldedInputPlan, ShieldedOutputPlan};
-        use shieldd_sdk_asset::{asset, Value};
+        use shieldd_sdk_asset::Value;
         use shieldd_sdk_num::Amount;
 
-        let base = generate_base_test_data(rng, 1, 100, false);
+        let base = generate_base_test_data(rng, REGULATED_ASSET_ID, 100, true);
         let real_inputs = family_id.min_real_inputs();
         let real_outputs = family_id.min_real_outputs();
         let input_total = 100u64
@@ -902,7 +908,7 @@ pub mod proof_test_helpers {
         } else {
             split_transfer_amounts(real_outputs, input_total)
         };
-        let asset_id = asset::Id(Fq::from(1u64));
+        let asset_id = base.value.asset_id;
 
         let notes = input_amounts
             .iter()
@@ -933,24 +939,58 @@ pub mod proof_test_helpers {
             })
             .collect::<Vec<_>>();
 
+        let tx_blinding_nonce = Fr::rand(rng);
         let spends = notes
             .iter()
             .cloned()
             .zip(state_commitment_proofs.iter())
-            .map(|(note, proof)| ShieldedInputPlan::new(rng, note, proof.position()))
+            .map(|(note, proof)| {
+                let mut spend = ShieldedInputPlan::new(rng, note, proof.position());
+                spend.asset_indexed_leaf = base.asset_indexed_leaf.clone();
+                spend.asset_path = base.asset_path.clone();
+                spend.asset_position = base.asset_position;
+                spend.asset_anchor = base.asset_anchor;
+                spend.compliance_anchor = base.compliance_anchor;
+                spend.compliance_path = base.compliance_path.clone();
+                spend.compliance_position = base.compliance_position;
+                spend.compliance_leaf = Some(base.user_leaf.clone());
+                spend.is_regulated = true;
+                spend.target_timestamp = base.target_timestamp;
+                spend.tx_blinding_nonce = tx_blinding_nonce;
+                spend.asset_policy = Some(base.asset_policy.clone());
+                spend
+                    .set_compliance_details()
+                    .expect("set note reshape spend compliance details");
+                spend
+            })
             .collect::<Vec<_>>();
 
         let outputs = output_amounts
             .iter()
             .map(|amount| {
-                ShieldedOutputPlan::new(
+                let mut output = ShieldedOutputPlan::new(
                     rng,
                     Value {
                         amount: Amount::from(*amount),
                         asset_id,
                     },
                     base.address.clone(),
-                )
+                );
+                output.asset_indexed_leaf = base.asset_indexed_leaf.clone();
+                output.asset_path = base.asset_path.clone();
+                output.asset_position = base.asset_position;
+                output.asset_anchor = base.asset_anchor;
+                output.compliance_anchor = base.compliance_anchor;
+                output.compliance_path = base.compliance_path.clone();
+                output.compliance_position = base.compliance_position;
+                output.is_regulated = true;
+                output.target_timestamp = base.target_timestamp;
+                output.tx_blinding_nonce = tx_blinding_nonce;
+                output.asset_policy = Some(base.asset_policy.clone());
+                output
+                    .set_compliance_details(&base.user_leaf, tx_blinding_nonce)
+                    .expect("set note reshape output compliance details");
+                output
             })
             .collect::<Vec<_>>();
 
@@ -1034,6 +1074,7 @@ pub mod proof_test_helpers {
             spend.asset_position = base.asset_position;
             spend.asset_indexed_leaf = base.asset_indexed_leaf.clone();
             spend.compliance_leaf = Some(base.user_leaf.clone());
+            spend.asset_policy = Some(base.asset_policy.clone());
         }
 
         let mut sct = tct::Tree::new();
@@ -1174,11 +1215,6 @@ pub mod proof_test_helpers {
                 action_balance_blinding: Fr::from(13u64),
                 ak: *base.fvk.spend_verification_key(),
                 nk: *base.fvk.nullifier_key(),
-                cnk: shieldd_sdk_compliance::derive_compliance_nullifier_key(
-                    base.fvk.nullifier_key().0,
-                    &base.address,
-                    base.value.asset_id,
-                ),
                 asset_path: base.asset_path,
                 asset_position: base.asset_position,
                 asset_indexed_leaf: base.asset_indexed_leaf,

@@ -2406,7 +2406,11 @@ mod tests {
 
         let leaf =
             shieldd_sdk_compliance::ComplianceLeaf::synthetic_unregulated(address, *BASE_ASSET_ID);
-        let msg = shieldd_sdk_compliance::structs::MsgRegisterUser { leaf, grant: None };
+        let msg = shieldd_sdk_compliance::structs::MsgRegisterUser {
+            leaf,
+            grant: None,
+            capability_certificate: None,
+        };
 
         let mut note_manager = NoteManager::new(OsRng);
         note_manager.set_gas_prices(GasPrices::zero());

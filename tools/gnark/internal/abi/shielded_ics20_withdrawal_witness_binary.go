@@ -65,7 +65,6 @@ type ShieldedIcs20WithdrawalWitnessBinary struct {
 	RecentPositionFloor              [32]byte
 	ActionBalanceBlinding            [32]byte
 	NK                               [32]byte
-	CNK                              [32]byte
 
 	AssetPath                MerklePathBinary
 	AssetPosition            uint64
@@ -78,7 +77,8 @@ type ShieldedIcs20WithdrawalWitnessBinary struct {
 	SenderCompliancePath     MerklePathBinary
 	SenderCompliancePosition uint64
 	SenderCapkAffine         PointAffineBinary
-	SenderCnkCommitment      [32]byte
+	SenderRnkDhPkAffine      PointAffineBinary
+	SenderRnkCommitment      [32]byte
 	SenderStatus             [32]byte
 	WithdrawalSeed           [32]byte
 	WithdrawalRandomizer     [32]byte
@@ -204,9 +204,6 @@ func DecodeShieldedIcs20WithdrawalWitness(payload []byte) (*ShieldedIcs20Withdra
 	if out.NK, err = read32(reader); err != nil {
 		return nil, family, err
 	}
-	if out.CNK, err = read32(reader); err != nil {
-		return nil, family, err
-	}
 	if out.AssetPath, err = readMerklePath(reader); err != nil {
 		return nil, family, err
 	}
@@ -242,7 +239,10 @@ func DecodeShieldedIcs20WithdrawalWitness(payload []byte) (*ShieldedIcs20Withdra
 	if out.SenderCapkAffine, err = readPointAffine(reader); err != nil {
 		return nil, family, err
 	}
-	if out.SenderCnkCommitment, err = read32(reader); err != nil {
+	if out.SenderRnkDhPkAffine, err = readPointAffine(reader); err != nil {
+		return nil, family, err
+	}
+	if out.SenderRnkCommitment, err = read32(reader); err != nil {
 		return nil, family, err
 	}
 	if out.SenderStatus, err = read32(reader); err != nil {

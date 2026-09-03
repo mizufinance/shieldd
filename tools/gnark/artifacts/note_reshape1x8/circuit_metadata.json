@@ -2,14 +2,14 @@
   "schema": "shieldd.gnark.circuit_metadata.v2",
   "curve": "bls12-377",
   "circuit": "note_reshape1x8",
-  "proving_key_size_bytes": 26721561,
+  "proving_key_size_bytes": 27617643,
   "verifying_key_size_bytes": 540,
-  "nb_constraints": 116552,
+  "nb_constraints": 122896,
   "nb_public_variables": 2,
-  "nb_secret_variables": 332,
-  "sr1cs_sha256_hex": "30721860da9e5c328d9e997a544320ac437ffd512494e2a40dc1459c7d49047b",
-  "setup_provenance_sha256_hex": "b200c7ceef4bc9c8aa16b9bacedd7662e6ee173a1c1285e643436ce2f7e9861e",
-  "proving_key_sha256_hex": "ec1d93b748fd1daa98b2f02f5a0c9f57f3b702700b765c5391953a1aedb84669",
-  "verifying_key_binary_sha256_hex": "a5dfaaec0cca0c2559af3079f8887d08e87317f6396be031b48fdc2211c69629",
-  "verifying_key_json_sha256_hex": "42e3a1719fcba1391efaabe8d8f1ac4cff74b175dfa59547aeeccc3441a8ffe2"
+  "nb_secret_variables": 333,
+  "sr1cs_sha256_hex": "c8f4dcb98f193a46366ff6b0a932530b78c7767df93ddb8b3c821f4cc51d5029",
+  "setup_provenance_sha256_hex": "206db2556e61d0aa35183a27300b1af8d346e156e90a052160814d467c424072",
+  "proving_key_sha256_hex": "1af4cf46d68ed50654ebf1e2e75e33ca919a0f8a4a41b9f54c8be1a7203cde4d",
+  "verifying_key_binary_sha256_hex": "51f276ef8f584d17c6b5e35e478715a2a8c66f85eb564dcfab6429b7c58c8e8b",
+  "verifying_key_json_sha256_hex": "cbcbfad8908c9443c841e7c6a11576b63fa6d878c648c954d082d77ddab60273"
 }

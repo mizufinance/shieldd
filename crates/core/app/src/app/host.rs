@@ -942,8 +942,8 @@ impl App {
             "note seizure authorization does not match the current freeze generation"
         );
         ensure!(
-            leaf.cnk_commitment == seizure.cnk_commitment,
-            "note seizure CNK commitment differs from the current compliance leaf"
+            leaf.rnk_commitment == seizure.rnk_commitment,
+            "note seizure RNK commitment differs from the current compliance leaf"
         );
 
         let current_window = shieldd_sdk_sct::nullifier_tree::generation_state(&state_tx)
@@ -1424,7 +1424,7 @@ mod tests {
         state_tx
             .test_only_register_asset(
                 asset_id,
-                AssetPolicy::simple(
+                AssetPolicy::for_test(
                     decaf377::Element::GENERATOR,
                     u128::MAX,
                     decaf377::Element::GENERATOR,

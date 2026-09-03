@@ -1015,6 +1015,26 @@ func TestTransferCircuitRejectsTransferOwnedMutations(t *testing.T) {
 			},
 		},
 		{
+			name: "sender regulated nullifier DH key",
+			mutate: func(
+				_ *testing.T,
+				_ *abi.TransferWitnessBinary,
+				c *circuits.TransferCircuit,
+			) {
+				c.Sender.RnkDhPk.X = mutateFieldByOne(c.Sender.RnkDhPk.X)
+			},
+		},
+		{
+			name: "sender regulated nullifier commitment",
+			mutate: func(
+				_ *testing.T,
+				_ *abi.TransferWitnessBinary,
+				c *circuits.TransferCircuit,
+			) {
+				c.Sender.RnkCommitment = mutateFieldByOne(c.Sender.RnkCommitment)
+			},
+		},
+		{
 			name: "receiver output note commitment",
 			mutate: func(
 				t *testing.T,

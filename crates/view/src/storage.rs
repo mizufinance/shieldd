@@ -79,10 +79,71 @@ pub(crate) struct ComplianceBlockPlan {
     pub asset_policy_updates: Vec<ComplianceAssetPolicyUpdate>,
 }
 
+impl ComplianceBlockPlan {
+    pub(crate) fn user_leaf(
+        &self,
+        address: &Address,
+        asset_id: asset::Id,
+    ) -> Option<&ComplianceLeaf> {
+        self.leaf_updates
+            .iter()
+            .rev()
+            .find(|update| &update.leaf.address == address && update.leaf.asset_id == asset_id)
+            .map(|update| &update.leaf)
+    }
+
+    pub(crate) fn asset_policy(&self, asset_id: asset::Id) -> Option<&AssetPolicy> {
+        self.asset_policy_updates
+            .iter()
+            .rev()
+            .find(|update| update.asset_id == asset_id)
+            .map(|update| &update.policy)
+    }
+}
+
 #[cfg(test)]
 mod compliance_projection_tests {
     use super::*;
     use shieldd_sdk_keys::test_keys;
+
+    #[tokio::test]
+    async fn compliance_block_plan_exposes_same_block_policy_and_user_leaf() {
+        let storage = Storage::initialize(
+            None::<&Utf8Path>,
+            (*test_keys::FULL_VIEWING_KEY).clone(),
+            AppParameters::default(),
+        )
+        .await
+        .unwrap();
+        let user_tree = storage.compliance_user_tree().await.unwrap();
+        let asset_tree = storage.compliance_asset_tree().await.unwrap();
+        let asset_id = asset::Id(Fq::from(13u64));
+        let leaf = ComplianceLeaf::synthetic_unregulated(test_keys::ADDRESS_0.clone(), asset_id);
+        let policy = AssetPolicy::for_test(
+            decaf377::Element::GENERATOR,
+            u128::MAX,
+            decaf377::Element::GENERATOR,
+        );
+        let plan = ComplianceBlockPlan {
+            height: 1,
+            user_tree: user_tree.persistence_plan().unwrap(),
+            asset_tree: asset_tree.persistence_plan().unwrap(),
+            user_root: user_tree.root(),
+            asset_root: asset_tree.root(),
+            leaf_updates: vec![ComplianceLeafUpdate {
+                commitment: leaf.commit(),
+                position: 0,
+                leaf: leaf.clone(),
+            }],
+            asset_policy_updates: vec![ComplianceAssetPolicyUpdate {
+                asset_id,
+                policy: policy.clone(),
+            }],
+        };
+
+        assert_eq!(plan.user_leaf(&test_keys::ADDRESS_0, asset_id), Some(&leaf));
+        assert_eq!(plan.asset_policy(asset_id), Some(&policy));
+    }
 
     #[tokio::test]
     async fn compliance_block_failure_rolls_back_leaf_tree_and_anchor_writes() {
@@ -2135,7 +2196,8 @@ impl Storage {
                 &update.leaf.asset_id.to_bytes(),
                 update.position,
                 &update.leaf.capk.vartime_compress().0,
-                &update.leaf.cnk_commitment.to_bytes(),
+                &update.leaf.rnk_dh_pk.vartime_compress().0,
+                &update.leaf.rnk_commitment.to_bytes(),
                 update.leaf.status,
                 update.leaf.freeze_generation,
                 update.leaf.frozen_since_height,

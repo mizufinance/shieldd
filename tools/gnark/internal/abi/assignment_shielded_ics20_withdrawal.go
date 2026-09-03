@@ -146,7 +146,6 @@ func newShieldedIcs20WithdrawalCircuitAssignment(
 	assignment.Auth = circuits.TransferAuthSharedFields{
 		AK:           point2DString(witness.AKAffine),
 		NK:           primitives.LittleEndianBytesToBigInt(witness.NK[:]).String(),
-		CNK:          fqString(witness.CNK),
 		IVKReduced:   ivkReduced.String(),
 		IVKQuotientA: quotientA,
 	}
@@ -162,7 +161,8 @@ func newShieldedIcs20WithdrawalCircuitAssignment(
 	assignment.Sender = circuits.ShieldedIcs20WithdrawalSenderCircuitFields{
 		DivGen:        point2DString(witness.SenderDiversifiedGenerator),
 		Capk:          point2DString(witness.SenderCapkAffine),
-		CnkCommitment: fqString(witness.SenderCnkCommitment),
+		RnkDhPk:       point2DString(witness.SenderRnkDhPkAffine),
+		RnkCommitment: fqString(witness.SenderRnkCommitment),
 		Status:        fqString(witness.SenderStatus),
 		Path:          senderPath,
 		Position:      witness.SenderCompliancePosition,

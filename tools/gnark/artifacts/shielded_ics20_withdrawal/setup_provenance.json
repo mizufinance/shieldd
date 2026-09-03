@@ -3,21 +3,21 @@
   "curve": "bls12-377",
   "circuit": "shielded_ics20_withdrawal",
   "mode": "fresh_setup",
-  "sr1cs_sha256_hex": "ddbbc633234bbd6c6356873b04d4a879a2aa9a4fddc90bc3ec041b261fa98c76",
-  "proving_key_sha256_hex": "d8534baab08a3815ee6dbfae967a021a7ef37ba698bd17aab97bcbfeb8e35d38",
-  "verifying_key_binary_sha256_hex": "5126b08ab9ecf06c7a6521383daa1d189eb59dc1ac3f27d795a2225018065238",
-  "verifying_key_json_sha256_hex": "30683798ff3c2a3cfc304c77ba9e79019aaae4053a1ecbd93f5722efd6ade74e",
+  "sr1cs_sha256_hex": "db72a694112f47dccde4e59da27de0d654fba41b58cf080823d8315963d0d9c0",
+  "proving_key_sha256_hex": "df168d48050a7c1c158fbde7f1b43605ad341be5131332a957b6b08e08e127bb",
+  "verifying_key_binary_sha256_hex": "ac3c90b77c7a085e28a2d785d04cee166dca1b0c525e88c53c4a4650c753f6ea",
+  "verifying_key_json_sha256_hex": "1f5a751f944fa93c4a8175ae29fc7fdd691443c4af55c06cf2d456016fb1a075",
   "generation_self_tests": [
     {
       "proof_case": "regulated_optional_real",
       "witness_format_version": 16,
-      "witness_sha256_hex": "688faff91dfed147f01131d4e52f046a0bb002e86e3b68ee675826312dd46a3e",
+      "witness_sha256_hex": "c19e7bb5f766b4ce9a979b37fb8317431936469a1c27b733bdd5430ade271818",
       "proved_and_verified_in_process": true
     },
     {
       "proof_case": "unregulated_optional_dummy",
       "witness_format_version": 16,
-      "witness_sha256_hex": "6a6a895c9867258aa4f9494c15bec3614f3cb0a1e0f235e82d6173be60657fe5",
+      "witness_sha256_hex": "48ab28f787799318961a0f895d2614a13b8d3aa9af5575960bb5155ef495324c",
       "proved_and_verified_in_process": true
     }
   ],

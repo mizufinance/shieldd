@@ -142,7 +142,7 @@ message NoteSeizure {
   uint64 recent_position_floor = 5;
   RecoveryCapsule recovery_capsule = 6;
   bytes recovery_seed = 7;
-  bytes cnk_commitment = 8;
+  bytes rnk_commitment = 8;
   compliance.v1.PreEvidence pre_evidence = 9;
   bytes reader_secret = 11;
   ZKNoteSeizureProof proof = 12;

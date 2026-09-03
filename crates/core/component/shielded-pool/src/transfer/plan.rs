@@ -467,7 +467,7 @@ impl TransferPlan {
         if self.spends[0].is_regulated
             && shieldd_sdk_compliance::compliance_nullifier_key_commitment(
                 self.spends[0].compliance_nullifier_key(fvk),
-            ) != sender_leaf.cnk_commitment
+            ) != sender_leaf.rnk_commitment
         {
             return Err(crate::ProofError::InvalidPrivateInput(
                 "wallet compliance nullifier key does not match the registered sender leaf"
@@ -599,7 +599,6 @@ impl TransferPlan {
                 action_balance_blinding: self.value_blinding,
                 ak: *fvk.spend_verification_key(),
                 nk: *fvk.nullifier_key(),
-                cnk: self.spends[0].compliance_nullifier_key(fvk),
                 asset_path: self.spends[0].asset_path.clone(),
                 asset_position: self.spends[0].asset_position,
                 asset_indexed_leaf: self.spends[0].asset_indexed_leaf.clone(),

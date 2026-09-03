@@ -36,8 +36,8 @@ type NoteSeizureWitnessBinary struct {
 	NoteBlinding                [32]byte
 	Position                    uint64
 	StateCommitmentAuthPath     [][3][32]byte
-	CNK                         [32]byte
-	CnkCommitment               [32]byte
+	RNK                         [32]byte
+	RnkCommitment               [32]byte
 }
 
 func EncodeNoteSeizureWitness(witness *NoteSeizureWitnessBinary) ([]byte, error) {
@@ -91,8 +91,8 @@ func EncodeNoteSeizureWitness(witness *NoteSeizureWitnessBinary) ([]byte, error)
 			buf.Write(sibling[:])
 		}
 	}
-	buf.Write(witness.CNK[:])
-	buf.Write(witness.CnkCommitment[:])
+	buf.Write(witness.RNK[:])
+	buf.Write(witness.RnkCommitment[:])
 	payload := buf.Bytes()
 	if len(payload) > int(^uint32(0)) {
 		return nil, fmt.Errorf("note seizure witness exceeds u32 length")
@@ -172,10 +172,10 @@ func DecodeNoteSeizureWitness(payload []byte) (*NoteSeizureWitnessBinary, error)
 	if witness.StateCommitmentAuthPath, err = readTriplePath(reader); err != nil {
 		return nil, err
 	}
-	if witness.CNK, err = read32(reader); err != nil {
+	if witness.RNK, err = read32(reader); err != nil {
 		return nil, err
 	}
-	if witness.CnkCommitment, err = read32(reader); err != nil {
+	if witness.RnkCommitment, err = read32(reader); err != nil {
 		return nil, err
 	}
 	if reader.Len() != 0 {

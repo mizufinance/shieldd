@@ -14,8 +14,45 @@ use shieldd_sdk_proto::{shieldd::core::component::compliance::v1 as pb, DomainTy
 
 use crate::{
     params::ComplianceParameters,
-    structs::{AssetPolicy, ComplianceLeaf, UserAssetStatus},
+    structs::{AssetPolicy, ComplianceLeaf, OrbisCapabilityCertificate, UserAssetStatus},
 };
+
+/// Certified active user installed before regulated genesis allocations.
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct GenesisUserRegistration {
+    pub leaf: ComplianceLeaf,
+    pub capability_certificate: OrbisCapabilityCertificate,
+}
+
+impl DomainType for GenesisUserRegistration {
+    type Proto = pb::GenesisUserRegistration;
+}
+
+impl TryFrom<pb::GenesisUserRegistration> for GenesisUserRegistration {
+    type Error = anyhow::Error;
+
+    fn try_from(value: pb::GenesisUserRegistration) -> Result<Self, Self::Error> {
+        Ok(Self {
+            leaf: value
+                .leaf
+                .ok_or_else(|| anyhow::anyhow!("missing genesis user leaf"))?
+                .try_into()?,
+            capability_certificate: value
+                .capability_certificate
+                .ok_or_else(|| anyhow::anyhow!("missing genesis Orbis capability certificate"))?
+                .try_into()?,
+        })
+    }
+}
+
+impl From<GenesisUserRegistration> for pb::GenesisUserRegistration {
+    fn from(value: GenesisUserRegistration) -> Self {
+        Self {
+            leaf: Some(value.leaf.into()),
+            capability_certificate: Some(value.capability_certificate.into()),
+        }
+    }
+}
 
 /// Genesis content for the compliance component.
 ///
@@ -33,7 +70,7 @@ pub struct Content {
     pub compliance_registrar_vk: Vec<VerificationKey<SpendAuth>>,
     /// Active users installed before regulated genesis allocations are minted.
     #[serde(default)]
-    pub user_leaves: Vec<ComplianceLeaf>,
+    pub user_registrations: Vec<GenesisUserRegistration>,
 }
 
 impl Content {
@@ -44,10 +81,10 @@ impl Content {
         for registration in &self.native_assets {
             registration.validate_authorization_keys()?;
         }
-        for leaf in &self.user_leaves {
-            leaf.validate()?;
+        for registration in &self.user_registrations {
+            registration.leaf.validate()?;
             anyhow::ensure!(
-                leaf.status == UserAssetStatus::Active,
+                registration.leaf.status == UserAssetStatus::Active,
                 "genesis compliance users must start active"
             );
         }
@@ -79,8 +116,8 @@ impl TryFrom<pb::GenesisContent> for Content {
                 .into_iter()
                 .map(TryInto::try_into)
                 .collect::<Result<_, _>>()?,
-            user_leaves: value
-                .user_leaves
+            user_registrations: value
+                .user_registrations
                 .into_iter()
                 .map(TryInto::try_into)
                 .collect::<Result<_, _>>()?,
@@ -100,7 +137,11 @@ impl From<Content> for pb::GenesisContent {
                 .into_iter()
                 .map(Into::into)
                 .collect(),
-            user_leaves: value.user_leaves.into_iter().map(Into::into).collect(),
+            user_registrations: value
+                .user_registrations
+                .into_iter()
+                .map(Into::into)
+                .collect(),
         }
     }
 }
@@ -122,6 +163,21 @@ pub struct NativeAssetRegistration {
     /// Immutable authority key that signs note seizures for this asset.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub seizure_authority_vk: Option<VerificationKey<SpendAuth>>,
+    /// Immutable aggregate Orbis ring public key.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ring_pk: Option<[u8; 32]>,
+    /// Orbis ring identifier.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub ring_id: String,
+    /// ACP policy identifier.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub policy_id: String,
+    /// ACP permission required for releases.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub permission: String,
+    /// ACP resource required for releases.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub resource: String,
 }
 
 impl NativeAssetRegistration {
@@ -144,6 +200,22 @@ impl NativeAssetRegistration {
     /// Build and validate the on-chain policy represented by this registration.
     pub fn asset_policy(&self) -> anyhow::Result<AssetPolicy> {
         if !self.is_regulated {
+            anyhow::ensure!(
+                self.dk_pub.is_none(),
+                "unregulated genesis asset cannot set dk_pub"
+            );
+            anyhow::ensure!(
+                self.registration_authority_vk.is_none() && self.seizure_authority_vk.is_none(),
+                "unregulated genesis asset cannot set compliance authorities"
+            );
+            anyhow::ensure!(
+                self.ring_pk.is_none()
+                    && self.ring_id.is_empty()
+                    && self.policy_id.is_empty()
+                    && self.permission.is_empty()
+                    && self.resource.is_empty(),
+                "unregulated genesis asset cannot set Orbis configuration"
+            );
             return Ok(AssetPolicy::default_unregulated());
         }
         let dk_pub = decaf377::Encoding(
@@ -158,20 +230,26 @@ impl NativeAssetRegistration {
         let seizure_authority_vk = self.seizure_authority_vk.ok_or_else(|| {
             anyhow::anyhow!("regulated genesis asset requires seizure_authority_vk")
         })?;
+        let ring_pk = decaf377::Encoding(
+            self.ring_pk
+                .ok_or_else(|| anyhow::anyhow!("regulated genesis asset requires ring_pk"))?,
+        )
+        .vartime_decompress()
+        .map_err(|_| anyhow::anyhow!("invalid regulated genesis ring_pk"))?;
         let policy = AssetPolicy::new(
             dk_pub,
             u128::MAX,
             vec![],
             None,
-            String::new(),
-            decaf377::Element::GENERATOR,
-            String::new(),
-            String::new(),
-            String::new(),
+            self.ring_id.clone(),
+            ring_pk,
+            self.policy_id.clone(),
+            self.permission.clone(),
+            self.resource.clone(),
         )
         .with_registration_authority(registration_authority_vk)
         .with_seizure_authority(seizure_authority_vk);
-        policy.validate_crypto_keys()?;
+        policy.validate_regulated()?;
         Ok(policy)
     }
 }
@@ -211,6 +289,21 @@ impl TryFrom<pb::NativeAssetRegistration> for NativeAssetRegistration {
                 .map(TryInto::try_into)
                 .transpose()
                 .map_err(|e| anyhow::anyhow!("invalid genesis seizure_authority_vk: {e}"))?,
+            ring_pk: if value.ring_pk.is_empty() {
+                None
+            } else {
+                Some(
+                    value
+                        .ring_pk
+                        .as_slice()
+                        .try_into()
+                        .map_err(|e| anyhow::anyhow!("genesis ring_pk must be 32 bytes: {e}"))?,
+                )
+            },
+            ring_id: value.ring_id,
+            policy_id: value.policy_id,
+            permission: value.permission,
+            resource: value.resource,
         };
         registration.validate_authorization_keys()?;
         Ok(registration)
@@ -225,6 +318,11 @@ impl From<NativeAssetRegistration> for pb::NativeAssetRegistration {
             dk_pub: value.dk_pub.map(Vec::from).unwrap_or_default(),
             registration_authority_vk: value.registration_authority_vk.map(Into::into),
             seizure_authority_vk: value.seizure_authority_vk.map(Into::into),
+            ring_pk: value.ring_pk.map(Vec::from).unwrap_or_default(),
+            ring_id: value.ring_id,
+            policy_id: value.policy_id,
+            permission: value.permission,
+            resource: value.resource,
         }
     }
 }
@@ -240,7 +338,7 @@ mod tests {
     fn test_default_genesis() {
         let content = Content::default();
         assert!(content.native_assets.is_empty());
-        assert!(content.user_leaves.is_empty());
+        assert!(content.user_registrations.is_empty());
         assert_eq!(
             content.compliance_params.anchor_validation_window_blocks,
             crate::params::ComplianceParameters::default().anchor_validation_window_blocks
@@ -279,6 +377,11 @@ mod tests {
                 dk_pub: None,
                 registration_authority_vk: Some(identity),
                 seizure_authority_vk: None,
+                ring_pk: None,
+                ring_id: String::new(),
+                policy_id: String::new(),
+                permission: String::new(),
+                resource: String::new(),
             }],
             ..Default::default()
         };
@@ -291,5 +394,26 @@ mod tests {
                 .contains("compliance registration authority key must not be identity"),
             "unexpected rejection reason: {authority_error:#}"
         );
+    }
+
+    #[test]
+    fn regulated_genesis_asset_requires_complete_orbis_configuration() {
+        let authority = VerificationKey::from(&SigningKey::<SpendAuth>::from(Fr::from(7u64)));
+        let mut registration = NativeAssetRegistration {
+            asset_id: asset::Id(decaf377::Fq::from(2u64)),
+            is_regulated: true,
+            dk_pub: Some(decaf377::Element::GENERATOR.vartime_compress().0),
+            registration_authority_vk: Some(authority),
+            seizure_authority_vk: Some(authority),
+            ring_pk: Some(decaf377::Element::GENERATOR.vartime_compress().0),
+            ring_id: "ring".to_owned(),
+            policy_id: "policy".to_owned(),
+            permission: "read".to_owned(),
+            resource: "document".to_owned(),
+        };
+        registration.asset_policy().unwrap();
+
+        registration.policy_id.clear();
+        assert!(registration.asset_policy().is_err());
     }
 }

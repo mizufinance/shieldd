@@ -155,23 +155,26 @@ roots.
 `ComplianceLeaf` is
 
 ```text
-PoseidonHash6(
+PoseidonHash7(
   "shieldd.compliance.leaf",
   diversified_generator_fq,
   transmission_key_fq,
   asset_id,
   compressed_capk,
-  Poseidon(cnk),
+  compressed_rnk_dh_pk,
+  Poseidon(rnk),
   packed_lifecycle
 )
 ```
 
 The address encodings must be canonical. `capk` is the nonidentity ordinary
-Orbis address capability for the asset ring and is validated at registration.
-`cnk` is held by the user and ACP; the leaf exposes only its Poseidon
-commitment. The packed lifecycle injectively contains status, freeze generation,
-and frozen-since height. Asset ID zero is reserved for the indexed-tree sentinel
-and cannot be registered or used as a Transfer or Withdrawal action asset.
+Orbis capsule capability. `rnk_dh_pk = ring_sk * G_d` is certified by an Orbis
+FROST signature at registration. The wallet and an ACP-authorized Orbis release
+derive the same RNK through static DH; no RNK is submitted or held in custody.
+The leaf exposes only its Poseidon commitment. The packed lifecycle injectively
+contains status, freeze generation, and frozen-since height. Asset ID zero is
+reserved for the indexed-tree sentinel and cannot be registered or used as a
+Transfer or Withdrawal action asset.
 
 ## Scanner Types And Tables
 

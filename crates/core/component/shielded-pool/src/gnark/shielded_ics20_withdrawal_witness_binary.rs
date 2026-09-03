@@ -47,7 +47,6 @@ impl ShieldedIcs20WithdrawalWitness {
         put_bytes(&mut buf, &self.recent_position_floor);
         put_bytes(&mut buf, &self.action_balance_blinding);
         put_bytes(&mut buf, &self.nk);
-        put_bytes(&mut buf, &self.cnk);
         encode_merkle_path(&mut buf, &self.asset_path)?;
         put_u64(&mut buf, self.asset_position);
         encode_indexed_leaf(&mut buf, &self.asset_indexed_leaf);
@@ -59,7 +58,8 @@ impl ShieldedIcs20WithdrawalWitness {
         encode_merkle_path(&mut buf, &self.sender_compliance_path)?;
         put_u64(&mut buf, self.sender_compliance_position);
         encode_point_affine(&mut buf, &self.sender_capk_affine);
-        put_bytes(&mut buf, &self.sender_cnk_commitment);
+        encode_point_affine(&mut buf, &self.sender_rnk_dh_pk_affine);
+        put_bytes(&mut buf, &self.sender_rnk_commitment);
         put_bytes(&mut buf, &self.sender_status);
         put_bytes(&mut buf, &self.withdrawal_seed);
         put_bytes(&mut buf, &self.withdrawal_randomizer);
@@ -136,7 +136,6 @@ impl ShieldedIcs20WithdrawalWitness {
             recent_position_floor: cursor.read_fixed::<32>()?,
             action_balance_blinding: cursor.read_fr()?,
             nk: cursor.read_fixed::<32>()?,
-            cnk: cursor.read_fixed::<32>()?,
             asset_path: cursor.read_merkle_path()?,
             asset_position: cursor.read_u64()?,
             asset_indexed_leaf: decode_indexed_leaf(&mut cursor)?,
@@ -148,7 +147,8 @@ impl ShieldedIcs20WithdrawalWitness {
             sender_compliance_path: cursor.read_merkle_path()?,
             sender_compliance_position: cursor.read_u64()?,
             sender_capk_affine: cursor.read_point_affine()?,
-            sender_cnk_commitment: cursor.read_fixed::<32>()?,
+            sender_rnk_dh_pk_affine: cursor.read_point_affine()?,
+            sender_rnk_commitment: cursor.read_fixed::<32>()?,
             sender_status: cursor.read_fixed::<32>()?,
             withdrawal_seed: cursor.read_fixed::<32>()?,
             withdrawal_randomizer: cursor.read_fr()?,

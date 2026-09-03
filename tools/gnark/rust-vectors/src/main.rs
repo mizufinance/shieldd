@@ -46,6 +46,7 @@ struct PoseidonVectors {
     tct_domain: String,
     sender_leaf_domain: String,
     compliance_leaf_domain: String,
+    compliance_nullifier_derivation_domain: String,
     issuer_detection_domain: String,
     imt_leaf_domain: String,
     imt_params_domain: String,
@@ -450,6 +451,10 @@ fn main() {
             )
             .to_string(),
             compliance_leaf_domain: blake2b_fq(b"shieldd.compliance.leaf").to_string(),
+            compliance_nullifier_derivation_domain: blake2b_fq(
+                b"shieldd.compliance.nullifier_derivation",
+            )
+            .to_string(),
             issuer_detection_domain: blake2b_fq(b"shieldd.compliance.issuer_detection").to_string(),
             imt_leaf_domain: personalized_blake2b_fq(b"pen.imt.leaf____").to_string(),
             imt_params_domain: personalized_blake2b_fq(b"pen.imt.params2_").to_string(),

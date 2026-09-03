@@ -16,13 +16,13 @@ import (
 
 func ComplianceNullifierKeyCommitment(
 	api frontend.API,
-	cnk frontend.Variable,
+	rnk frontend.Variable,
 ) (frontend.Variable, error) {
 	domain := blake2b.Sum512([]byte("shieldd.compliance.nullifier_key"))
 	return Poseidon377Hash1(
 		api,
 		LittleEndianBytesToBigInt(domain[:]),
-		cnk,
+		rnk,
 	)
 }
 
@@ -100,7 +100,8 @@ func ComplianceLeafCommitment(
 	transmissionKey gnarkte.Point,
 	assetID frontend.Variable,
 	capk gnarkte.Point,
-	cnkCommitment frontend.Variable,
+	rnkDhPk gnarkte.Point,
+	rnkCommitment frontend.Variable,
 	status frontend.Variable,
 ) (frontend.Variable, error) {
 	diversifiedGeneratorFq, err := decafgnark.CompressToField(api, diversifiedGenerator)
@@ -118,7 +119,8 @@ func ComplianceLeafCommitment(
 		transmissionKeyFq,
 		assetID,
 		capk,
-		cnkCommitment,
+		rnkDhPk,
+		rnkCommitment,
 		status,
 	)
 }
@@ -129,7 +131,8 @@ func ComplianceLeafCommitmentFromCompressed(
 	transmissionKeyFq frontend.Variable,
 	assetID frontend.Variable,
 	capk gnarkte.Point,
-	cnkCommitment frontend.Variable,
+	rnkDhPk gnarkte.Point,
+	rnkCommitment frontend.Variable,
 	status frontend.Variable,
 ) (frontend.Variable, error) {
 	vectors, err := LoadPrototypeVectors()
@@ -142,20 +145,28 @@ func ComplianceLeafCommitmentFromCompressed(
 	}
 	curve.AssertIsOnCurve(capk)
 	AssertDecafNonIdentity(api, capk)
+	curve.AssertIsOnCurve(rnkDhPk)
+	AssertDecafNonIdentity(api, rnkDhPk)
 	capkFq, err := decafgnark.CompressToField(api, capk)
 	if err != nil {
 		return nil, err
 	}
 
-	return Poseidon377Hash6(
+	rnkDhPkFq, err := decafgnark.CompressToField(api, rnkDhPk)
+	if err != nil {
+		return nil, err
+	}
+
+	return Poseidon377Hash7(
 		api,
 		MustBigInt(vectors.Poseidon377.ComplianceLeafDomain),
-		[6]frontend.Variable{
+		[7]frontend.Variable{
 			diversifiedGeneratorFq,
 			transmissionKeyFq,
 			assetID,
 			capkFq,
-			cnkCommitment,
+			rnkDhPkFq,
+			rnkCommitment,
 			status,
 		},
 	)

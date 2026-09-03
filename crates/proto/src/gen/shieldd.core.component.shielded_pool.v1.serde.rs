@@ -3715,7 +3715,7 @@ impl serde::Serialize for NoteSeizure {
         if !self.recovery_seed.is_empty() {
             len += 1;
         }
-        if !self.cnk_commitment.is_empty() {
+        if !self.rnk_commitment.is_empty() {
             len += 1;
         }
         if self.pre_evidence.is_some() {
@@ -3759,10 +3759,10 @@ impl serde::Serialize for NoteSeizure {
             #[allow(clippy::needless_borrows_for_generic_args)]
             struct_ser.serialize_field("recoverySeed", pbjson::private::base64::encode(&self.recovery_seed).as_str())?;
         }
-        if !self.cnk_commitment.is_empty() {
+        if !self.rnk_commitment.is_empty() {
             #[allow(clippy::needless_borrow)]
             #[allow(clippy::needless_borrows_for_generic_args)]
-            struct_ser.serialize_field("cnkCommitment", pbjson::private::base64::encode(&self.cnk_commitment).as_str())?;
+            struct_ser.serialize_field("rnkCommitment", pbjson::private::base64::encode(&self.rnk_commitment).as_str())?;
         }
         if let Some(v) = self.pre_evidence.as_ref() {
             struct_ser.serialize_field("preEvidence", v)?;
@@ -3803,8 +3803,8 @@ impl<'de> serde::Deserialize<'de> for NoteSeizure {
             "recoveryCapsule",
             "recovery_seed",
             "recoverySeed",
-            "cnk_commitment",
-            "cnkCommitment",
+            "rnk_commitment",
+            "rnkCommitment",
             "pre_evidence",
             "preEvidence",
             "reader_secret",
@@ -3825,7 +3825,7 @@ impl<'de> serde::Deserialize<'de> for NoteSeizure {
             RecentPositionFloor,
             RecoveryCapsule,
             RecoverySeed,
-            CnkCommitment,
+            RnkCommitment,
             PreEvidence,
             ReaderSecret,
             Proof,
@@ -3860,7 +3860,7 @@ impl<'de> serde::Deserialize<'de> for NoteSeizure {
                             "recentPositionFloor" | "recent_position_floor" => Ok(GeneratedField::RecentPositionFloor),
                             "recoveryCapsule" | "recovery_capsule" => Ok(GeneratedField::RecoveryCapsule),
                             "recoverySeed" | "recovery_seed" => Ok(GeneratedField::RecoverySeed),
-                            "cnkCommitment" | "cnk_commitment" => Ok(GeneratedField::CnkCommitment),
+                            "rnkCommitment" | "rnk_commitment" => Ok(GeneratedField::RnkCommitment),
                             "preEvidence" | "pre_evidence" => Ok(GeneratedField::PreEvidence),
                             "readerSecret" | "reader_secret" => Ok(GeneratedField::ReaderSecret),
                             "proof" => Ok(GeneratedField::Proof),
@@ -3892,7 +3892,7 @@ impl<'de> serde::Deserialize<'de> for NoteSeizure {
                 let mut recent_position_floor__ = None;
                 let mut recovery_capsule__ = None;
                 let mut recovery_seed__ = None;
-                let mut cnk_commitment__ = None;
+                let mut rnk_commitment__ = None;
                 let mut pre_evidence__ = None;
                 let mut reader_secret__ = None;
                 let mut proof__ = None;
@@ -3946,11 +3946,11 @@ impl<'de> serde::Deserialize<'de> for NoteSeizure {
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
-                        GeneratedField::CnkCommitment => {
-                            if cnk_commitment__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("cnkCommitment"));
+                        GeneratedField::RnkCommitment => {
+                            if rnk_commitment__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("rnkCommitment"));
                             }
-                            cnk_commitment__ =
+                            rnk_commitment__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -3999,7 +3999,7 @@ impl<'de> serde::Deserialize<'de> for NoteSeizure {
                     recent_position_floor: recent_position_floor__.unwrap_or_default(),
                     recovery_capsule: recovery_capsule__,
                     recovery_seed: recovery_seed__.unwrap_or_default(),
-                    cnk_commitment: cnk_commitment__.unwrap_or_default(),
+                    rnk_commitment: rnk_commitment__.unwrap_or_default(),
                     pre_evidence: pre_evidence__,
                     reader_secret: reader_secret__.unwrap_or_default(),
                     proof: proof__,

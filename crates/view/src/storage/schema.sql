@@ -200,7 +200,8 @@ CREATE TABLE compliance_user_leaf_data (
     asset_id BLOB NOT NULL,
     position BIGINT NOT NULL,
     capk BLOB NOT NULL,                -- 32-byte compressed Decaf point
-    cnk_commitment BLOB NOT NULL,      -- 32-byte Fq
+    rnk_dh_pk BLOB NOT NULL,           -- 32-byte compressed Decaf point
+    rnk_commitment BLOB NOT NULL,      -- 32-byte Fq
     status INTEGER NOT NULL,
     freeze_generation BIGINT NOT NULL,
     frozen_since_height BIGINT NOT NULL,
