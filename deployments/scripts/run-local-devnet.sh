@@ -19,6 +19,7 @@ if [[ -n "$compliance_genesis_input_file" ]]; then
         exit 1
     fi
     compliance_genesis_args+=(
+        --preserve-chain-id
         --compliance-genesis-input-file "$compliance_genesis_input_file"
     )
 fi
