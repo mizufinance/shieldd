@@ -12,8 +12,9 @@ use shieldd_sdk_proto::execution_client::v1::{
     ComplianceUserLeafRequest, ComplianceUserLeafResponse, DeliverTxRequest, DeliverTxResponse,
     DepositRequest, DepositResponse, EndBlockRequest, EndBlockResponse, ExportGenesisRequest,
     ExportGenesisResponse, GetCommittedStateRequest, GetCommittedStateResponse, InitGenesisRequest,
-    InitGenesisResponse, KeyValueRequest, KeyValueResponse, RollbackRequest, RollbackResponse,
-    SeizeNoteRequest, SeizeNoteResponse,
+    InitGenesisResponse, KeyValueRequest, KeyValueResponse, NullifierWindowRequest,
+    NullifierWindowResponse, RollbackRequest, RollbackResponse, SeizeNoteRequest,
+    SeizeNoteResponse,
 };
 use tokio::sync::RwLock;
 use tonic::{Request, Response, Status};
@@ -216,6 +217,27 @@ impl ExecutionClientService for GrpcExecutionClient {
             .map_err(status)
     }
 
+    async fn nullifier_window(
+        &self,
+        request: Request<NullifierWindowRequest>,
+    ) -> std::result::Result<Response<NullifierWindowResponse>, Status> {
+        let request = request
+            .into_inner()
+            .request
+            .ok_or_else(|| Status::invalid_argument("missing nullifier window request"))?;
+        self.service
+            .read()
+            .await
+            .nullifier_window(request)
+            .await
+            .map(|response| {
+                Response::new(NullifierWindowResponse {
+                    response: Some(response),
+                })
+            })
+            .map_err(status)
+    }
+
     async fn app_parameters(
         &self,
         request: Request<AppParametersRequest>,
@@ -399,6 +421,7 @@ mod tests {
             ComplianceBatchMerkleProofsRequest as ComponentComplianceBatchMerkleProofsRequest,
             ComplianceBatchQuery, ComplianceUserLeafRequest as ComponentComplianceUserLeafRequest,
         },
+        sct::v1::NullifierWindowRequest as ComponentNullifierWindowRequest,
         shielded_pool::v1::AssetMetadataByIdRequest as ComponentAssetMetadataByIdRequest,
     };
     use std::ops::Deref as _;
@@ -488,6 +511,24 @@ mod tests {
         .app_parameters
         .expect("app parameters response contains parameters");
         assert_eq!(parameters.chain_id, "shieldd-grpc-test");
+
+        let nullifier_window = ExecutionClientService::nullifier_window(
+            &client,
+            Request::new(NullifierWindowRequest {
+                request: Some(ComponentNullifierWindowRequest {}),
+            }),
+        )
+        .await?
+        .into_inner()
+        .response
+        .expect("execution response contains nullifier window response")
+        .window
+        .expect("initialized state contains a nullifier window");
+        assert_eq!(
+            nullifier_window.protocol_version,
+            shieldd_sdk_sct::nullifier_generation::PROTOCOL_VERSION
+        );
+        assert_eq!(nullifier_window.current_generation, 0);
 
         let metadata = ExecutionClientService::asset_metadata_by_id(
             &client,

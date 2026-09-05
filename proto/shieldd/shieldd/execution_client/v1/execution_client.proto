@@ -47,6 +47,8 @@ service ExecutionClientService {
   // ArchivedNullifierProof returns a retired-generation witness for an old note.
   rpc ArchivedNullifierProof(ArchivedNullifierProofRequest)
       returns (ArchivedNullifierProofResponse) {}
+  // NullifierWindow returns the committed nullifier-generation planning window.
+  rpc NullifierWindow(NullifierWindowRequest) returns (NullifierWindowResponse) {}
   // AppParameters returns the committed Shieldd application parameters.
   rpc AppParameters(AppParametersRequest) returns (AppParametersResponse) {}
   // AssetMetadataById returns metadata for one Shieldd asset identifier.
@@ -74,6 +76,14 @@ message ArchivedNullifierProofRequest {
 // ArchivedNullifierProofResponse carries the component result across the host-chain boundary.
 message ArchivedNullifierProofResponse {
   shieldd.core.component.sct.v1.ArchivedNullifierProofResponse response = 1;
+}
+
+message NullifierWindowRequest {
+  shieldd.core.component.sct.v1.NullifierWindowRequest request = 1;
+}
+
+message NullifierWindowResponse {
+  shieldd.core.component.sct.v1.NullifierWindowResponse response = 1;
 }
 
 message AppParametersRequest {
