@@ -48,6 +48,7 @@ use shieldd_sdk_proto::{
         EventAttribute as ProtoEventAttribute, ExportGenesisRequest, ExportGenesisResponse,
         GetCommittedStateRequest, GetCommittedStateResponse, HostWithdrawal as ProtoHostWithdrawal,
         InitGenesisRequest, InitGenesisResponse, RollbackRequest, RollbackResponse,
+        SeizeNoteRequest, SeizeNoteResponse,
     },
 };
 use shieldd_sdk_sct::{
@@ -278,6 +279,27 @@ impl ExecutionService {
             .await
             .map_err(ServiceError::invalid_argument)?;
         Ok(response.response)
+    }
+
+    pub async fn seize_note(
+        &mut self,
+        request: SeizeNoteRequest,
+    ) -> std::result::Result<SeizeNoteResponse, ServiceError> {
+        let execution = self.execution.as_mut().ok_or_else(ServiceError::closed)?;
+        let result = execution
+            .seize_note(request)
+            .await
+            .map_err(ServiceError::invalid_argument)?;
+        Ok(SeizeNoteResponse {
+            source: Some(result.source),
+            replayed: result.replayed,
+            withdrawal: Some(encode_withdrawal(result.withdrawal)),
+            current_status:
+                shieldd_sdk_proto::core::component::compliance::v1::UserAssetStatus::from(
+                    result.current_status,
+                ) as i32,
+            freeze_generation: result.freeze_generation,
+        })
     }
 
     pub async fn check_tx(
@@ -641,23 +663,24 @@ fn deliver_tx_response(response: HostTxResponse) -> Result<DeliverTxResponse> {
 }
 
 fn encode_withdrawals(withdrawals: Vec<HostWithdrawal>) -> Vec<ProtoHostWithdrawal> {
-    withdrawals
-        .into_iter()
-        .map(|withdrawal| ProtoHostWithdrawal {
-            coin: Some(Coin {
-                denom: withdrawal.denom,
-                amount: withdrawal.amount.to_string(),
-            }),
-            destination: Some(match withdrawal.destination {
-                HostWithdrawalDestination::Transfer(transfer) => {
-                    ProtoDestination::Transfer(transfer.into())
-                }
-                HostWithdrawalDestination::Execution(execution) => {
-                    ProtoDestination::Execution(execution.into())
-                }
-            }),
-        })
-        .collect()
+    withdrawals.into_iter().map(encode_withdrawal).collect()
+}
+
+fn encode_withdrawal(withdrawal: HostWithdrawal) -> ProtoHostWithdrawal {
+    ProtoHostWithdrawal {
+        coin: Some(Coin {
+            denom: withdrawal.denom,
+            amount: withdrawal.amount.to_string(),
+        }),
+        destination: Some(match withdrawal.destination {
+            HostWithdrawalDestination::Transfer(transfer) => {
+                ProtoDestination::Transfer(transfer.into())
+            }
+            HostWithdrawalDestination::Execution(execution) => {
+                ProtoDestination::Execution(execution.into())
+            }
+        }),
+    }
 }
 
 fn encode_events(events: Vec<abci::Event>) -> Result<Vec<ProtoEvent>> {

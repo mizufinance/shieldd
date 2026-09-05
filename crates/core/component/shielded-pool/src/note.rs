@@ -2,7 +2,7 @@ use std::convert::{TryFrom, TryInto};
 
 use crate::genesis::Allocation;
 use blake2b_simd;
-use decaf377::Fq;
+use decaf377::{Element, Fq};
 use decaf377_ka as ka;
 use once_cell::sync::Lazy;
 use rand::{CryptoRng, Rng};
@@ -23,10 +23,10 @@ pub use shieldd_sdk_tct::StateCommitment;
 use shieldd_sdk_asset::{asset, balance, Value, ValueView};
 use shieldd_sdk_num::Amount;
 
-use crate::{NotePayload, Rseed};
+use crate::{NotePayload, RecoveryCapsule, RecoveryCommitment, Rseed};
 
-pub const NOTE_LEN_BYTES: usize = 128;
-pub const NOTE_CIPHERTEXT_BYTES: usize = 144;
+pub const NOTE_LEN_BYTES: usize = 160;
+pub const NOTE_CIPHERTEXT_BYTES: usize = 176;
 
 /// A plaintext Shieldd note.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -44,6 +44,8 @@ pub struct Note {
     /// with a valid transmission key (the `ka::Public` does not validate
     /// the curve point until it is used, since validation is not free).
     transmission_key_s: Fq,
+    /// Commitment to the public recovery capsule for this exact note.
+    recovery_commitment: RecoveryCommitment,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -52,6 +54,7 @@ pub struct NoteView {
     pub value: ValueView,
     pub rseed: Rseed,
     pub address: AddressView,
+    pub recovery_commitment: RecoveryCommitment,
 }
 
 impl NoteView {
@@ -74,7 +77,7 @@ impl TryFrom<NoteView> for Note {
     fn try_from(view: NoteView) -> Result<Self, Self::Error> {
         let value = view.value.value();
         let address = view.address.address();
-        Note::from_parts(address, value, view.rseed)
+        Note::from_parts(address, value, view.rseed, view.recovery_commitment)
     }
 }
 
@@ -85,7 +88,7 @@ pub struct NoteCiphertext(pub [u8; NOTE_CIPHERTEXT_BYTES]);
 
 /// The domain separator used to generate note commitments.
 pub(crate) static NOTECOMMIT_DOMAIN_SEP: Lazy<Fq> = Lazy::new(|| {
-    Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(b"shieldd.notecommit.v2").as_bytes())
+    Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(b"shieldd.notecommit").as_bytes())
 });
 
 #[derive(thiserror::Error, Debug)]
@@ -142,25 +145,46 @@ impl Note {
                     .id(),
             },
             Rseed([0u8; 32]),
+            RecoveryCommitment::unavailable(),
         )
         .map_err(Into::into)
     }
 
-    pub fn from_parts(address: Address, value: Value, rseed: Rseed) -> Result<Self, Error> {
+    pub fn from_parts(
+        address: Address,
+        value: Value,
+        rseed: Rseed,
+        recovery_commitment: RecoveryCommitment,
+    ) -> Result<Self, Error> {
         Ok(Note {
             value,
             rseed,
             address: address.clone(),
             transmission_key_s: Fq::from_bytes_checked(&address.transmission_key().0)
                 .map_err(|_| Error::InvalidTransmissionKey)?,
+            recovery_commitment,
         })
     }
 
-    pub fn payload(&self) -> NotePayload {
+    pub fn from_parts_with_recovery(
+        address: Address,
+        value: Value,
+        rseed: Rseed,
+        capk: Element,
+    ) -> anyhow::Result<(Self, RecoveryCapsule)> {
+        let (capsule, _) =
+            RecoveryCapsule::encrypt(value.amount, rseed.derive_note_blinding(), capk, rseed)?;
+        let note = Self::from_parts(address, value, rseed, capsule.commitment())?;
+        Ok((note, capsule))
+    }
+
+    pub fn payload(&self, recovery_capsule: RecoveryCapsule) -> NotePayload {
+        debug_assert_eq!(self.recovery_commitment, recovery_capsule.commitment());
         NotePayload {
             note_commitment: self.commit(),
             ephemeral_key: self.ephemeral_public_key(),
             encrypted_note: self.encrypt(),
+            recovery_capsule: Some(recovery_capsule),
         }
     }
 
@@ -168,8 +192,13 @@ impl Note {
     /// random blinding factor.
     pub fn generate(rng: &mut (impl Rng + CryptoRng), address: &Address, value: Value) -> Self {
         let rseed = Rseed::generate(rng);
-        Note::from_parts(address.clone(), value, rseed)
-            .expect("transmission key in address is always valid")
+        Note::from_parts(
+            address.clone(),
+            value,
+            rseed,
+            RecoveryCommitment::unavailable(),
+        )
+        .expect("transmission key in address is always valid")
     }
 
     pub fn address(&self) -> Address {
@@ -219,6 +248,10 @@ impl Note {
 
     pub fn rseed(&self) -> Rseed {
         self.rseed
+    }
+
+    pub fn recovery_commitment(&self) -> RecoveryCommitment {
+        self.recovery_commitment
     }
 
     /// Encrypt a note, returning its ciphertext.
@@ -344,6 +377,7 @@ impl Note {
             self.value,
             self.diversified_generator(),
             self.transmission_key_s,
+            self.recovery_commitment,
         )
     }
 
@@ -358,8 +392,9 @@ pub fn commitment(
     value: Value,
     diversified_generator: decaf377::Element,
     transmission_key_s: Fq,
+    recovery_commitment: RecoveryCommitment,
 ) -> StateCommitment {
-    let commit = poseidon377::hash_5(
+    let commit = poseidon377::hash_6(
         &NOTECOMMIT_DOMAIN_SEP,
         (
             note_blinding,
@@ -367,6 +402,7 @@ pub fn commitment(
             value.asset_id.0,
             diversified_generator.vartime_compress_to_field(),
             transmission_key_s,
+            recovery_commitment.0,
         ),
     );
 
@@ -378,10 +414,11 @@ pub fn commitment_from_address(
     address: Address,
     value: Value,
     note_blinding: Fq,
+    recovery_commitment: RecoveryCommitment,
 ) -> Result<StateCommitment, Error> {
     let transmission_key_s = Fq::from_bytes_checked(&address.transmission_key().0)
         .map_err(|_| Error::InvalidTransmissionKey)?;
-    let commit = poseidon377::hash_5(
+    let commit = poseidon377::hash_6(
         &NOTECOMMIT_DOMAIN_SEP,
         (
             note_blinding,
@@ -389,6 +426,7 @@ pub fn commitment_from_address(
             value.asset_id.0,
             address.diversified_generator().vartime_compress_to_field(),
             transmission_key_s,
+            recovery_commitment.0,
         ),
     );
 
@@ -417,8 +455,21 @@ impl TryFrom<pb::Note> for Note {
             .ok_or_else(|| anyhow::anyhow!("missing value"))?
             .try_into()?;
         let rseed = Rseed(msg.rseed.as_slice().try_into()?);
+        let recovery_commitment_bytes: [u8; 32] = msg
+            .recovery_commitment
+            .try_into()
+            .map_err(|_| anyhow::anyhow!("recovery commitment must be 32 bytes"))?;
+        let recovery_commitment = RecoveryCommitment(
+            Fq::from_bytes_checked(&recovery_commitment_bytes)
+                .map_err(|_| anyhow::anyhow!("invalid recovery commitment"))?,
+        );
 
-        Ok(Note::from_parts(address, value, rseed)?)
+        Ok(Note::from_parts(
+            address,
+            value,
+            rseed,
+            recovery_commitment,
+        )?)
     }
 }
 
@@ -428,6 +479,7 @@ impl From<Note> for pb::Note {
             address: Some(msg.address().into()),
             value: Some(msg.value().into()),
             rseed: msg.rseed.to_bytes().to_vec(),
+            recovery_commitment: msg.recovery_commitment.0.to_bytes().to_vec(),
         }
     }
 }
@@ -438,6 +490,7 @@ impl From<NoteView> for pb::NoteView {
             address: Some(msg.address.into()),
             value: Some(msg.value.into()),
             rseed: msg.rseed.to_bytes().to_vec(),
+            recovery_commitment: msg.recovery_commitment.0.to_bytes().to_vec(),
         }
     }
 }
@@ -454,11 +507,17 @@ impl TryFrom<pb::NoteView> for NoteView {
             .ok_or_else(|| anyhow::anyhow!("missing value"))?
             .try_into()?;
         let rseed = Rseed(msg.rseed.as_slice().try_into()?);
+        let recovery_commitment_bytes: [u8; 32] = msg.recovery_commitment.as_slice().try_into()?;
+        let recovery_commitment = RecoveryCommitment(
+            Fq::from_bytes_checked(&recovery_commitment_bytes)
+                .map_err(|_| anyhow::anyhow!("invalid recovery commitment"))?,
+        );
 
         Ok(NoteView {
             address,
             value,
             rseed,
+            recovery_commitment,
         })
     }
 }
@@ -470,6 +529,7 @@ impl From<&Note> for [u8; NOTE_LEN_BYTES] {
         bytes[48..64].copy_from_slice(&note.value.amount.to_le_bytes());
         bytes[64..96].copy_from_slice(&note.value.asset_id.0.to_bytes());
         bytes[96..128].copy_from_slice(&note.rseed.to_bytes());
+        bytes[128..160].copy_from_slice(&note.recovery_commitment.0.to_bytes());
         bytes
     }
 }
@@ -487,6 +547,7 @@ impl From<&Note> for Vec<u8> {
         bytes.extend_from_slice(&note.value.amount.to_le_bytes());
         bytes.extend_from_slice(&note.value.asset_id.0.to_bytes());
         bytes.extend_from_slice(&note.rseed.to_bytes());
+        bytes.extend_from_slice(&note.recovery_commitment.0.to_bytes());
         bytes
     }
 }
@@ -508,6 +569,9 @@ impl TryFrom<&[u8]> for Note {
         let rseed_bytes: [u8; 32] = bytes[96..128]
             .try_into()
             .map_err(|_| Error::NoteDeserializationError)?;
+        let recovery_commitment_bytes: [u8; 32] = bytes[128..160]
+            .try_into()
+            .map_err(|_| Error::NoteDeserializationError)?;
 
         Note::from_parts(
             bytes[0..48]
@@ -521,6 +585,10 @@ impl TryFrom<&[u8]> for Note {
                 ),
             },
             Rseed(rseed_bytes),
+            RecoveryCommitment(
+                Fq::from_bytes_checked(&recovery_commitment_bytes)
+                    .map_err(|_| Error::NoteDeserializationError)?,
+            ),
         )
     }
 }

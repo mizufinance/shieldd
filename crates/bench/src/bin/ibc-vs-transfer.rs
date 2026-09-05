@@ -230,7 +230,7 @@ async fn run_inner_transfer(args: &Args, txs: &[Vec<u8>]) -> Result<ScenarioRepo
         let prepare_request = prepare_request(txs);
         let prepare_start = Instant::now();
         let (prepared, prepare_profile, sidecar) = proposer
-            .prepare_proposal_v2_profiled(prepare_request, None, true)
+            .prepare_proposal_profiled(prepare_request, None, true)
             .await;
         let prepare_wall_ms = elapsed_ms(prepare_start);
         ensure_prepare_preserved_user_txs(txs, &prepared)?;
@@ -245,7 +245,7 @@ async fn run_inner_transfer(args: &Args, txs: &[Vec<u8>]) -> Result<ScenarioRepo
         let mut validator = App::new(storage.latest_snapshot());
         let process_start = Instant::now();
         let (process_verdict, process_profile) = validator
-            .process_proposal_v2_profiled(process_request, None, Some(&sidecar), true)
+            .process_proposal_profiled(process_request, None, Some(&sidecar), true)
             .await;
         let process_wall_ms = elapsed_ms(process_start);
         anyhow::ensure!(

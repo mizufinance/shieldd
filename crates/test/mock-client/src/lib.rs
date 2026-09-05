@@ -2,7 +2,9 @@ use anyhow::Error;
 use cnidarium::StateRead;
 use rand_core::OsRng;
 use shieldd_sdk_compact_block::{component::StateReadExt as _, CompactBlock, StatePayload};
-use shieldd_sdk_compliance::{ComplianceLeaf, ComplianceRegistryRead, MerklePath};
+use shieldd_sdk_compliance::{
+    effective_nullifier_key, ComplianceLeaf, ComplianceRegistryRead, MerklePath,
+};
 use shieldd_sdk_keys::{keys::SpendKey, FullViewingKey};
 use shieldd_sdk_sct::{
     component::{clock::EpochRead, tree::SctRead},
@@ -63,13 +65,16 @@ impl MockClient {
         Ok(self)
     }
 
-    pub async fn sync_to_latest<R: StateRead>(&mut self, state: R) -> anyhow::Result<()> {
+    pub async fn sync_to_latest<R: StateRead + Send + Sync>(
+        &mut self,
+        state: R,
+    ) -> anyhow::Result<()> {
         let height = state.get_block_height().await?;
         self.sync_to(height, state).await?;
         Ok(())
     }
 
-    pub async fn sync_to<R: StateRead>(
+    pub async fn sync_to<R: StateRead + Send + Sync>(
         &mut self,
         target_height: u64,
         state: R,
@@ -80,7 +85,7 @@ impl MockClient {
                 .compact_block(height)
                 .await?
                 .ok_or_else(|| anyhow::anyhow!("missing compact block for height {}", height))?;
-            self.scan_block(compact_block.try_into()?)?;
+            self.scan_block(compact_block.try_into()?, &state).await?;
             let (latest_height, root) = self.latest_height_and_sct_root();
             anyhow::ensure!(latest_height == height, "latest height should be updated");
             let expected_root = state
@@ -98,7 +103,11 @@ impl MockClient {
         Ok(())
     }
 
-    pub fn scan_block(&mut self, block: CompactBlock) -> anyhow::Result<()> {
+    pub async fn scan_block<R: StateRead + Send + Sync>(
+        &mut self,
+        block: CompactBlock,
+        state: &R,
+    ) -> anyhow::Result<()> {
         use shieldd_sdk_tct::Witness::*;
 
         if self.latest_height.wrapping_add(1) != block.height {
@@ -115,9 +124,33 @@ impl MockClient {
                     match payload.trial_decrypt(&self.fvk) {
                         Some(note) => {
                             self.sct.insert(Keep, payload.note_commitment)?;
-                            let nullifier = self
-                                .nullifier(payload.note_commitment)
+                            let position = self
+                                .position(payload.note_commitment)
                                 .expect("newly inserted note should be present in sct");
+                            let nk = match state.get_asset_policy(note.asset_id()).await? {
+                                Some(policy) => {
+                                    let leaf = state
+                                        .get_user_leaf(&note.address(), note.asset_id())
+                                        .await?
+                                        .ok_or_else(|| {
+                                            anyhow::anyhow!(
+                                                "regulated note is missing its compliance leaf"
+                                            )
+                                        })?;
+                                    effective_nullifier_key(
+                                        *self.fvk.nullifier_key(),
+                                        self.fvk.incoming(),
+                                        &note.address(),
+                                        note.asset_id(),
+                                        policy.ring.ring_pk,
+                                        leaf.rnk_dh_pk,
+                                        true,
+                                    )?
+                                }
+                                None => *self.fvk.nullifier_key(),
+                            };
+                            let nullifier =
+                                Nullifier::derive(&nk, position, &payload.note_commitment);
                             self.notes.insert(payload.note_commitment, note.clone());
                             self.nullifiers.insert(payload.note_commitment, nullifier);
                         }
@@ -125,6 +158,13 @@ impl MockClient {
                             self.sct.insert(Forget, payload.note_commitment)?;
                         }
                     }
+                }
+                StatePayload::VolumeAccumulator { payload, .. } => {
+                    let witness = match payload.trial_decrypt(self.fvk.outgoing()) {
+                        Some((_, true)) => Keep,
+                        _ => Forget,
+                    };
+                    self.sct.insert(witness, payload.commitment)?;
                 }
                 StatePayload::RolledUp { commitment, .. } => {
                     if self.notes.contains_key(&commitment) {
@@ -175,17 +215,6 @@ impl MockClient {
 
     pub fn position(&self, commitment: note::StateCommitment) -> Option<shieldd_sdk_tct::Position> {
         self.sct.witness(commitment).map(|proof| proof.position())
-    }
-
-    pub fn nullifier(&self, commitment: note::StateCommitment) -> Option<Nullifier> {
-        let position = self.position(commitment);
-
-        if position.is_none() {
-            return None;
-        }
-        let nk = self.fvk.nullifier_key();
-
-        Some(Nullifier::derive(&nk, position.unwrap(), &commitment))
     }
 
     pub fn witness_commitment(
@@ -566,7 +595,7 @@ mod tests {
     use shieldd_sdk_asset::{asset, Value};
     use shieldd_sdk_keys::keys::{Bip44Path, SeedPhrase, SpendKey};
     use shieldd_sdk_shielded_pool::{
-        Note, Rseed, ShieldedInputPlan, ShieldedOutputPlan, TransferPlan,
+        Note, RecoveryCommitment, Rseed, ShieldedInputPlan, ShieldedOutputPlan, TransferPlan,
     };
     use shieldd_sdk_tct::Witness;
     use shieldd_sdk_transaction::{ActionPlan, FeeFundingPlan, TransactionPlan};
@@ -587,6 +616,7 @@ mod tests {
                 asset_id: asset::Id(Fq::from(1u64)),
             },
             Rseed::generate(&mut OsRng),
+            RecoveryCommitment::unavailable(),
         )
         .expect("build note");
         let commitment = note.commit();
@@ -647,6 +677,7 @@ mod tests {
                 asset_id: asset::Id(Fq::from(1u64)),
             },
             Rseed::generate(&mut OsRng),
+            RecoveryCommitment::unavailable(),
         )
         .expect("build note");
         let commitment = note.commit();

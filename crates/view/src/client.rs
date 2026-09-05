@@ -297,7 +297,7 @@ pub trait ViewClient {
         asset_id: asset::Id,
     ) -> Pin<Box<dyn Future<Output = Result<Option<bool>>> + Send + 'static>>;
 
-    /// Query the compliance registry for an asset's policy (threshold and DK_pub).
+    /// Query the compliance registry for an asset's policy (daily_volume_limit and DK_pub).
     ///
     /// Returns the full ComplianceAssetStatusResponse which includes policy data if present.
     fn compliance_asset_policy(

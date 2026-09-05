@@ -13,7 +13,8 @@ use shieldd_sdk_proto::execution_client::v1::{
     DepositRequest, DepositResponse, EndBlockRequest, EndBlockResponse, ExportGenesisRequest,
     ExportGenesisResponse, GetCommittedStateRequest, GetCommittedStateResponse, InitGenesisRequest,
     InitGenesisResponse, KeyValueRequest, KeyValueResponse, NullifierWindowRequest,
-    NullifierWindowResponse, RollbackRequest, RollbackResponse,
+    NullifierWindowResponse, RollbackRequest, RollbackResponse, SeizeNoteRequest,
+    SeizeNoteResponse,
 };
 use tokio::sync::RwLock;
 use tonic::{Request, Response, Status};
@@ -86,6 +87,19 @@ impl ExecutionClientService for GrpcExecutionClient {
             .write()
             .await
             .apply_compliance_action(request.into_inner())
+            .await
+            .map(Response::new)
+            .map_err(status)
+    }
+
+    async fn seize_note(
+        &self,
+        request: Request<SeizeNoteRequest>,
+    ) -> std::result::Result<Response<SeizeNoteResponse>, Status> {
+        self.service
+            .write()
+            .await
+            .seize_note(request.into_inner())
             .await
             .map(Response::new)
             .map_err(status)
