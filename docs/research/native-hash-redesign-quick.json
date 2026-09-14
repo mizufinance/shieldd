@@ -1,0 +1,284 @@
+{
+  "schema": "shieldd.native_hash_redesign_account.v1",
+  "field_modulus": "52435875175126190479447740508185965837690552500527637822603658699938581184513",
+  "gcd_cube_exponent": 3,
+  "gcd_fifth_exponent": 1,
+  "current_rows": 191516,
+  "current_columns": 191501,
+  "current_domain": 196608,
+  "fft_domain": 262144,
+  "hash_calls": 184,
+  "hash_rows": 82248,
+  "hash_columns": 82248,
+  "hash_fraction": 0.4294575910106727,
+  "arities": [
+    {
+      "arity": 1,
+      "calls": 3,
+      "rows": 948,
+      "columns": 948
+    },
+    {
+      "arity": 2,
+      "calls": 31,
+      "rows": 9828,
+      "columns": 9828
+    },
+    {
+      "arity": 3,
+      "calls": 9,
+      "rows": 3668,
+      "columns": 3668
+    },
+    {
+      "arity": 4,
+      "calls": 8,
+      "rows": 3296,
+      "columns": 3296
+    },
+    {
+      "arity": 5,
+      "calls": 122,
+      "rows": 50272,
+      "columns": 50272
+    },
+    {
+      "arity": 6,
+      "calls": 1,
+      "rows": 836,
+      "columns": 836
+    },
+    {
+      "arity": 7,
+      "calls": 2,
+      "rows": 1672,
+      "columns": 1672
+    },
+    {
+      "arity": 8,
+      "calls": 4,
+      "rows": 3344,
+      "columns": 3344
+    },
+    {
+      "arity": 9,
+      "calls": 1,
+      "rows": 836,
+      "columns": 836
+    },
+    {
+      "arity": 11,
+      "calls": 2,
+      "rows": 2512,
+      "columns": 2512
+    },
+    {
+      "arity": 60,
+      "calls": 1,
+      "rows": 5036,
+      "columns": 5036
+    }
+  ],
+  "projections": [
+    {
+      "width": 4,
+      "rate": 3,
+      "rounds": 14,
+      "cells": [
+        {
+          "arity": 1,
+          "calls": 3,
+          "permutations_per_call": 1,
+          "projected_rows_per_call": 168
+        },
+        {
+          "arity": 2,
+          "calls": 31,
+          "permutations_per_call": 1,
+          "projected_rows_per_call": 168
+        },
+        {
+          "arity": 3,
+          "calls": 9,
+          "permutations_per_call": 1,
+          "projected_rows_per_call": 168
+        },
+        {
+          "arity": 4,
+          "calls": 8,
+          "permutations_per_call": 2,
+          "projected_rows_per_call": 336
+        },
+        {
+          "arity": 5,
+          "calls": 122,
+          "permutations_per_call": 2,
+          "projected_rows_per_call": 336
+        },
+        {
+          "arity": 6,
+          "calls": 1,
+          "permutations_per_call": 2,
+          "projected_rows_per_call": 336
+        },
+        {
+          "arity": 7,
+          "calls": 2,
+          "permutations_per_call": 3,
+          "projected_rows_per_call": 504
+        },
+        {
+          "arity": 8,
+          "calls": 4,
+          "permutations_per_call": 3,
+          "projected_rows_per_call": 504
+        },
+        {
+          "arity": 9,
+          "calls": 1,
+          "permutations_per_call": 3,
+          "projected_rows_per_call": 504
+        },
+        {
+          "arity": 11,
+          "calls": 2,
+          "permutations_per_call": 4,
+          "projected_rows_per_call": 672
+        },
+        {
+          "arity": 60,
+          "calls": 1,
+          "permutations_per_call": 20,
+          "projected_rows_per_call": 3360
+        }
+      ],
+      "projected_hash_rows": 59472,
+      "projected_row_saving": 22776,
+      "projected_total_rows": 168740
+    },
+    {
+      "width": 6,
+      "rate": 5,
+      "rounds": 12,
+      "cells": [
+        {
+          "arity": 1,
+          "calls": 3,
+          "permutations_per_call": 1,
+          "projected_rows_per_call": 216
+        },
+        {
+          "arity": 2,
+          "calls": 31,
+          "permutations_per_call": 1,
+          "projected_rows_per_call": 216
+        },
+        {
+          "arity": 3,
+          "calls": 9,
+          "permutations_per_call": 1,
+          "projected_rows_per_call": 216
+        },
+        {
+          "arity": 4,
+          "calls": 8,
+          "permutations_per_call": 1,
+          "projected_rows_per_call": 216
+        },
+        {
+          "arity": 5,
+          "calls": 122,
+          "permutations_per_call": 1,
+          "projected_rows_per_call": 216
+        },
+        {
+          "arity": 6,
+          "calls": 1,
+          "permutations_per_call": 2,
+          "projected_rows_per_call": 432
+        },
+        {
+          "arity": 7,
+          "calls": 2,
+          "permutations_per_call": 2,
+          "projected_rows_per_call": 432
+        },
+        {
+          "arity": 8,
+          "calls": 4,
+          "permutations_per_call": 2,
+          "projected_rows_per_call": 432
+        },
+        {
+          "arity": 9,
+          "calls": 1,
+          "permutations_per_call": 2,
+          "projected_rows_per_call": 432
+        },
+        {
+          "arity": 11,
+          "calls": 2,
+          "permutations_per_call": 3,
+          "projected_rows_per_call": 648
+        },
+        {
+          "arity": 60,
+          "calls": 1,
+          "permutations_per_call": 12,
+          "projected_rows_per_call": 2592
+        }
+      ],
+      "projected_hash_rows": 44712,
+      "projected_row_saving": 37536,
+      "projected_total_rows": 153980
+    }
+  ],
+  "thresholds": [
+    {
+      "retained_domain": 163840,
+      "required_row_saving": 27676,
+      "required_fraction_of_hash_rows": 0.33649450442563955,
+      "implemented_domain_family": false
+    },
+    {
+      "retained_domain": 131072,
+      "required_row_saving": 60444,
+      "required_fraction_of_hash_rows": 0.7348993288590604,
+      "implemented_domain_family": true
+    }
+  ],
+  "b_reference": {
+    "square_rows": 224778,
+    "retained_domain": 229376,
+    "next_single_coset_domain": 196608,
+    "required_row_saving": 28170,
+    "hash_contribution_measured_here": false
+  },
+  "source_hashes": {
+    "tools/proving-experiment/cache/reuse-comparator/reuse.json": "d430ada19ae033241b34484de4ae4601e711d426d1b441486ed670ef7ed7ae98",
+    "tools/proving-experiment/candidates/native-prepared-key381/params/poseidon381-wide.json": "aaeb2e43f8d55fe25ed76ca45fad28832a5752c943b6c47f024a3fc66c5b739e",
+    "tools/proving-experiment/candidates/native-prepared-key381/params/poseidon381.json": "b329be713656c761cdf4bcb106fcb12c10ef3864b2643124fbdd6779cc5b4e38",
+    "tools/proving-experiment/candidates/native-prepared-key381/src/compliance.rs": "51c2be28033ea1218088894e5a72bcb5e1a21d072669d97cbf81f77efe0bbd45",
+    "tools/proving-experiment/candidates/native-prepared-key381/src/encryption.rs": "8352fd64bd057eaca5645583b172c004ea38578172924ae34ecb9feca3e7c1b8",
+    "tools/proving-experiment/candidates/native-prepared-key381/src/group.rs": "d1e48b41dbfce213f1904e2afdd46273bf73981e69fc50623b274306937d3ad8",
+    "tools/proving-experiment/candidates/native-prepared-key381/src/hash.rs": "c9db0ca02abcfa76125df0914e543f14d58477745348139d1df7c77189e95974",
+    "tools/proving-experiment/candidates/native-prepared-key381/src/lib.rs": "59955a57ea73048224b14915f80611c257dbb6c6f7370e4505ee3d4a8189cadc",
+    "tools/proving-experiment/candidates/native-prepared-key381/src/map.rs": "e53ca3e0fa7f909dd52bb9e4d8f17a99763e565617c717c3f8871a48bf38388b",
+    "tools/proving-experiment/candidates/native-prepared-key381/src/recovery.rs": "de272f8106509d8455f6301e2c8fb3c3abcff36fbdfeb15670482d8f631032fb",
+    "tools/proving-experiment/candidates/native-prepared-key381/src/scalar.rs": "4ef5601b479c9888d46ef4040aa0e583186a72ad0a31039029e1edd654b132d5",
+    "tools/proving-experiment/candidates/native-prepared-key381/src/transfer.rs": "660efaaa61eaae2bfbc31182a58171d7b32124f2d37ecb584d66c65c55a4572f",
+    "tools/proving-experiment/candidates/native-subset/params/poseidon381-wide.json": "aaeb2e43f8d55fe25ed76ca45fad28832a5752c943b6c47f024a3fc66c5b739e",
+    "tools/proving-experiment/candidates/native-subset/params/poseidon381.json": "b329be713656c761cdf4bcb106fcb12c10ef3864b2643124fbdd6779cc5b4e38",
+    "tools/proving-experiment/candidates/native-subset/src/compliance.rs": "51c2be28033ea1218088894e5a72bcb5e1a21d072669d97cbf81f77efe0bbd45",
+    "tools/proving-experiment/candidates/native-subset/src/encryption.rs": "8352fd64bd057eaca5645583b172c004ea38578172924ae34ecb9feca3e7c1b8",
+    "tools/proving-experiment/candidates/native-subset/src/group.rs": "d1e48b41dbfce213f1904e2afdd46273bf73981e69fc50623b274306937d3ad8",
+    "tools/proving-experiment/candidates/native-subset/src/lib.rs": "59955a57ea73048224b14915f80611c257dbb6c6f7370e4505ee3d4a8189cadc",
+    "tools/proving-experiment/candidates/native-subset/src/map.rs": "e53ca3e0fa7f909dd52bb9e4d8f17a99763e565617c717c3f8871a48bf38388b",
+    "tools/proving-experiment/candidates/native-subset/src/recovery.rs": "de272f8106509d8455f6301e2c8fb3c3abcff36fbdfeb15670482d8f631032fb",
+    "tools/proving-experiment/candidates/native-subset/src/scalar.rs": "4ef5601b479c9888d46ef4040aa0e583186a72ad0a31039029e1edd654b132d5",
+    "tools/proving-experiment/candidates/native-subset/src/transfer.rs": "660efaaa61eaae2bfbc31182a58171d7b32124f2d37ecb584d66c65c55a4572f",
+    "tools/proving-experiment/candidates/reuse-screen/src/hash.rs": "3020e0eadaaaf009fa88773d25af6571e4e6ba41e6d8cb83840e5e0f16d60323",
+    "tools/proving-experiment/hash_redesign_account.py": "e47f4e80fb0d1fc606fd62425297328d7d1908fb78c683a8175177afb33d60b9"
+  },
+  "limits": "Existing exact inventory carried forward after hash code/call-site and parameter identity review. No new circuit compile or performance measurement. Anemoi projections assume direct six-square-row Flystel constraints, alpha5, listed full rounds, and indicated rate; exclude constant folding, final padding, extra outlining/nonzeros, hint witness time and security parameter reassessment. No instantiated width6 parameters or proving-speed claim."
+}

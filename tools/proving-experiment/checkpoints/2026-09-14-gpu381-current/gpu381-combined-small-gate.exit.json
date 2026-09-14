@@ -1,0 +1,9 @@
+{
+  "time_ns": 1789389652803667000,
+  "argv": [
+    "tools/proving-experiment/cache/gpu381-combined-gate-source/gate",
+    "tools/proving-experiment/cache/gpu381-combined-small-gate"
+  ],
+  "code": 0,
+  "failure": null
+}

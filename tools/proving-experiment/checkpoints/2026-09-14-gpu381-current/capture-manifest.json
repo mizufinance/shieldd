@@ -1,0 +1,75 @@
+{
+  "schema": "shieldd.native_current_combined_operands.v1",
+  "curve": "bls12_381",
+  "workers": 2,
+  "source": {
+    "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/native-gpu381-capture-source/identity.json",
+    "sha256": "14c1becc79c44017f511e84c76c9cd8b3f19a9e99dd8c07b6da0e453a0ba5ba1"
+  },
+  "key": {
+    "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/c-prepared-key381-conversion/native.prepared.pk",
+    "sha256": "e16f65551b74cd1d14e231adc9df17f441c06942c2d1fc0516cad2d4f56e40d5"
+  },
+  "witness": {
+    "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/native-tuned-witnesses/transfer.witness",
+    "sha256": "e3a2b0a26fa79f3acc5262df51e637ddd597b982212aac69f570ab707dbd1be8"
+  },
+  "proof": {
+    "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/native-gpu381-current-capture/capture.proof",
+    "sha256": "cede88f22827c72bdffdf391ab7f48991dc365c1c4adfa81e90dda8bff1eb38c"
+  },
+  "relation_digest": "722fba7093a6188bba83708f0abe409a39cf34fa4451b95594e82781b68f3783",
+  "capture_wall_ns": 2464270250,
+  "gates": {
+    "verified_capture_proof": true,
+    "verified_combined_proof": true,
+    "paired_proof_equal": true,
+    "changed_statement_rejected": true,
+    "truncated_proof_rejected": true,
+    "invalid_witness_rejected": true
+  },
+  "operations": [
+    {
+      "name": "commitment",
+      "count": 393216,
+      "parts": [
+        196605,
+        196611
+      ],
+      "identity_bases": 5107,
+      "bases": {
+        "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/native-gpu381-current-capture/commitment.bases",
+        "sha256": "c4472a76fa047b74d6f01a119767b67133b1bcd570bacd16ea4cabf411a0cfad"
+      },
+      "scalars": {
+        "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/native-gpu381-current-capture/commitment.scalars",
+        "sha256": "1bb06dba454f3fd23cadf4ebda8ef5f4b93989bd8ee4c3630cec7069d420893c"
+      },
+      "expected": {
+        "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/native-gpu381-current-capture/commitment.expected",
+        "sha256": "d56740d6a257d262bc9ad828e8c363093fb6c70f1f6f6c6ef90371687d8cbffd"
+      }
+    },
+    {
+      "name": "opening",
+      "count": 589827,
+      "parts": [
+        196609,
+        393218
+      ],
+      "identity_bases": 0,
+      "bases": {
+        "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/native-gpu381-current-capture/opening.bases",
+        "sha256": "159c7ff0f943e5a7a90d66e65bed9085e12feaf3ae1d21a0573eedb3815b6725"
+      },
+      "scalars": {
+        "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/native-gpu381-current-capture/opening.scalars",
+        "sha256": "51f4c823f1a8b73cae9d495f645481a3adc8758ee834578ed2230465a186b1a2"
+      },
+      "expected": {
+        "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/native-gpu381-current-capture/opening.expected",
+        "sha256": "64c39953259e7439def9359ab19dfccf4d29368f7d81e3b1a1f4336f26cb98bb"
+      }
+    }
+  ]
+}

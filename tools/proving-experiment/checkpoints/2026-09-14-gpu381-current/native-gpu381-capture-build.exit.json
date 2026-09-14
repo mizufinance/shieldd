@@ -1,0 +1,16 @@
+{
+  "time_ns": 1789389247343777000,
+  "argv": [
+    "cargo",
+    "+1.95.0",
+    "build",
+    "--release",
+    "--offline",
+    "--manifest-path",
+    "tools/proving-experiment/candidates/native-gpu381-capture/Cargo.toml",
+    "-j",
+    "2"
+  ],
+  "code": 0,
+  "failure": null
+}

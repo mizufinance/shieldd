@@ -1,6 +1,6 @@
 # Transfer proving experiment status
 
-**The latest bounded desktop proving round is complete. The broader optimization campaign remains active.**
+**Desktop optimization stopped at the user’s request on14September2026. The execution heartbeat is paused. Next scope: a quick physical Samsung S20 benchmark after developer/USB access is enabled. No phone build or measurement has started.**
 
 The [matched comparator report](../../docs/research/transfer-proving-comparator-selected.md) compares the isolated development implementations before the FFT follow-up below on M4Pro with two workers.
 
@@ -19,11 +19,19 @@ Sources, raw evidence, plots and exact test records are preserved in `checkpoint
 
 
 
+## Final current GPU and quick hash assessment
+
+[Current combined GPU result](../../docs/research/gpu381-current-combined.md): all36outputs match, CPU1.785922708s versusGPU1.645831334s summed requests. Optimistic fullAPI substitution6.64%before integration overhead, with751MBpersistentGPU bases; close without fullGPU integration under narrowed priority. A fresh current capture proof verifies and paired combined proof bytes match. Two identity-decoder tests and32GPUreuse gates pass. Initial failed initialization is preserved. No heavy job remains.
+
+[Quick C hash accounting](../../docs/research/native-hash-redesign-quick.md):184calls/82248rows. Anemoi width6/rate5 structural projection44712hashrows and153980total rows, with substantial parameter/domain/witness-cost obligations; no demonstrated20%APIwin. Poseidon2 offers linear-layer improvements without automatic square-row savings. No hashcompile/setup/proof ran. No further optimization or finaldesktopABC session will run after the user's stop request.
+
+Retained phone candidates: A comparator/subsetGroth16377, B comparator/subsetownedPari377, C comparator3/4nativePari381 with prepared/parallelFFT and checked prepared-key storage. GPU is not selected. Physicalphone performance remains unknown; coordinate developeraccess, Androidharness and bounded build plan before compilation.
+
 ## Completed persistent GPU component screen
 
 [The prepared GPU comparison](../../docs/research/gpu381-prepared-screen.md) passes the component gate: native0.982135333s versusGPU0.866840500s, 11.74%less time. All18historical opening outputs match. Thirty-two changing-scalar cases on eight reused base sets match CPU and fresh public GPU arithmetic; wrong counts/noncanonical scalars reject. ScopedWASM release check passes. GPUpreparation0.619600542s, persistent402654720B; warm native/GPU processRSS295124992/1185431552B, zero swap/competition.
 
-**Next:** capture selected C's current combined witness+quotient and A+R operations, validate the real proof, and test those exact operations with renewed allocation bounds (A+R589827terms exceeds the historical adapter cap). A component win requires six full-proof/API gates and matched complete proving measurements before selection. No new full proof or phone measurement yet. Public-path and prepared-path sessions remain independent; do not pool them or project their percentages directly onto proving time.
+The current combined-operation follow-up is complete above and GPU is closed under the narrowed threshold. No full GPU proof or phone measurement ran. Public-path and prepared-path sessions remain independent; do not pool them or project their percentages directly onto proving time.
 
 ## Completed public GPU MSM screen
 
@@ -35,7 +43,7 @@ Public GPU bases are reserialized/uploaded each call. The prepared-base follow-u
 
 [The real-opening comparison](../../docs/research/wasm-msm377-screen.md) rejects the safe Wasm path for native desktop acceleration: gnark0.826505s versusWasm2.959737s (3.581×time) on one historical verified524290-point377opening_r. Six independent gnark edge cases pass; all18actualMSM outputs match. Onegate+3warmups+5measured calls perbackend, scalar conversion/transport and output checks included.5GiBvirtualreservation, combinedprocess-tree peak2.898GiB, zero swap/competition. Fullbase admission and Wasm preparation are separately charged. Source/runtime/dependencies and compact evidence `checkpoints/2026-09-14-wasm-msm377` preserved. No freshproof, phone or production release suite ran.
 
-This rejects a native acceleration candidate, not browser-only delivery against a browser baseline. Upstream variable-time behavior remains a limitation. The distinct BLS12-381 WebGPU/Metal source at a8ff121e6b5a089997fbce367eceb0ca826da898 exposes a complete G1MSM API and persistent Groth16-key buffers; inspect bounded allocation and adapter/device feasibility next. Currentnativeblst andGPU nam-blst must remain in separate binaries to avoid mixing implementations. The completed public GPU screen is recorded above; persistent buffers remain pending.
+This rejects a native acceleration candidate, not browser-only delivery against a browser baseline. Upstream variable-time behavior remains a limitation. The distinct BLS12-381 WebGPU/Metal source at a8ff121e6b5a089997fbce367eceb0ca826da898 exposes a complete G1MSM API and persistent Groth16-key buffers; inspect bounded allocation and adapter/device feasibility next. Currentnativeblst andGPU nam-blst must remain in separate binaries to avoid mixing implementations. The public and persistent GPU screens are complete above; the current combined-operation gate is next.
 
 ## Completed six-limb ARM64 square screen
 

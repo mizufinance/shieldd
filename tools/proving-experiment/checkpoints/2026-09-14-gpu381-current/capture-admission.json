@@ -1,0 +1,13 @@
+{
+  "schema": "shieldd.native_capture_dependency_admission.v1",
+  "added_packages": [
+    [
+      "shieldd-native-gpu381-capture",
+      "0.1.0",
+      null
+    ]
+  ],
+  "pruned_entries": 79,
+  "selected_dependency_versions_preserved": true,
+  "initial_attempt": "Source freezer initially required all versions of shared package names, incorrectly rejecting pruned unused dev dependency versions. No source snapshot or proof process was created; following launch found no executable. Corrected check requires every retained existing dependency identity to match. Empty initial guard logs retained."
+}

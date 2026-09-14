@@ -1,0 +1,26 @@
+warning: commonware-macros-impl@2026.7.0: stability cfg not set; set RUSTFLAGS="--cfg commonware_stability_X" (ALPHA/BETA/GAMMA/DELTA/EPSILON) to enforce stability gating
+   Compiling commonware-math v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-prepared-key381/math)
+   Compiling commonware-cryptography v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-prepared-key381/cryptography)
+   Compiling shieldd-native381-combined v0.1.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/native381-combined)
+    Finished `release` profile [optimized] target(s) in 5.77s
+     Running unittests src/main.rs (tools/proving-experiment/native/target/release/deps/shieldd_native381_combined-bc0dbaccbc4ae71b)
+
+running 2 tests
+test tests::rejects_noncanonical_identity_base ... ok
+test tests::accepts_canonical_identity_base ... FAILED
+
+failures:
+
+---- tests::accepts_canonical_identity_base stdout ----
+
+thread 'tests::accepts_canonical_identity_base' (19069735) panicked at src/main.rs:33:108:
+called `Result::unwrap()` on an `Err` value: Validation Error: Context(G1), Message(Infinity)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tests::accepts_canonical_identity_base
+
+test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--bin shieldd-native381-combined`

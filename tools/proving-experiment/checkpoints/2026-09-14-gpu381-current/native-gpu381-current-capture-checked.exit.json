@@ -1,0 +1,12 @@
+{
+  "time_ns": 1789389385168368000,
+  "argv": [
+    "tools/proving-experiment/cache/native-gpu381-capture-source/capture",
+    "tools/proving-experiment/cache/native-gpu381-current-capture",
+    "tools/proving-experiment/cache/c-prepared-key381-conversion/native.prepared.pk",
+    "tools/proving-experiment/cache/native-tuned-witnesses/transfer.witness",
+    "tools/proving-experiment/cache/native-gpu381-capture-source/identity.json"
+  ],
+  "code": 0,
+  "failure": null
+}

@@ -1,0 +1,20 @@
+[package]
+name = "shieldd-native-gpu381-capture"
+version = "0.1.0"
+edition = "2024"
+publish = false
+[workspace]
+[dependencies]
+anyhow = "1"
+commonware-codec = { path = "../../cache/commonware-prepared-key381/codec" }
+commonware-cryptography = { path = "../../cache/commonware-prepared-key381/cryptography" }
+commonware-parallel = { path = "../../cache/commonware-prepared-key381/parallel" }
+hex = "0.4"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+commonware-math = { path = "../../cache/commonware-prepared-key381/math" }
+shieldd-native-prepared-key381-experiment = { path = "../native-prepared-key381" }
+rand = "=0.10.2"
+[profile.release]
+debug = false

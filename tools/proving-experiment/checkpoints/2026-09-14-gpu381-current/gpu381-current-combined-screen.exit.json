@@ -1,0 +1,10 @@
+{
+  "time_ns": 1789389703171865000,
+  "argv": [
+    "python3",
+    "tools/proving-experiment/gpu381_combined_screen.py",
+    "tools/proving-experiment/cache/gpu381-current-combined-screen"
+  ],
+  "code": 1,
+  "failure": null
+}

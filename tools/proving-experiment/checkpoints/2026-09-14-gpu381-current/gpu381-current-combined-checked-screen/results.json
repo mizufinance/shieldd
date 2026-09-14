@@ -1,0 +1,115 @@
+{
+  "schema": "shieldd.gpu381_current_combined_comparison.v1",
+  "rows": [
+    {
+      "backend": "native",
+      "operation": "commitment",
+      "points": 393216,
+      "values_s": [
+        0.687551042,
+        0.693930458,
+        0.689990708,
+        0.701339583,
+        0.692099125
+      ],
+      "median_s": 0.692099125,
+      "peak_process_rss_bytes": 299499520,
+      "kernel_values_s": [
+        0.637073333,
+        0.644494083,
+        0.64695875,
+        0.648196458,
+        0.646391
+      ]
+    },
+    {
+      "backend": "native",
+      "operation": "opening",
+      "points": 589827,
+      "values_s": [
+        1.077566209,
+        1.09199225,
+        1.0793655,
+        1.09938325,
+        1.09422625
+      ],
+      "median_s": 1.09199225,
+      "peak_process_rss_bytes": 299499520,
+      "kernel_values_s": [
+        1.016509583,
+        1.020744417,
+        1.017498583,
+        1.030954916,
+        1.032919833
+      ]
+    },
+    {
+      "backend": "gpu",
+      "operation": "commitment",
+      "points": 393216,
+      "values_s": [
+        0.676307458,
+        0.673535709,
+        0.694588416,
+        0.683066,
+        0.681967625
+      ],
+      "median_s": 0.681967625,
+      "peak_process_rss_bytes": 1546993664,
+      "kernel_values_s": [
+        0.648443958,
+        0.645758625,
+        0.66523475,
+        0.65436525,
+        0.652781583
+      ]
+    },
+    {
+      "backend": "gpu",
+      "operation": "opening",
+      "points": 589827,
+      "values_s": [
+        0.950723417,
+        0.972295625,
+        0.943286792,
+        0.965807417,
+        0.979739542
+      ],
+      "median_s": 0.965807417,
+      "peak_process_rss_bytes": 1648623616,
+      "kernel_values_s": [
+        0.906343875,
+        0.92160025,
+        0.899814042,
+        0.919228625,
+        0.93598575
+      ]
+    }
+  ],
+  "combined_requests": [
+    {
+      "backend": "native",
+      "values_s": [
+        1.765117251,
+        1.785922708,
+        1.769356208,
+        1.800722833,
+        1.786325375
+      ],
+      "median_s": 1.785922708
+    },
+    {
+      "backend": "gpu",
+      "values_s": [
+        1.627030875,
+        1.645831334,
+        1.637875208,
+        1.648873417,
+        1.661707167
+      ],
+      "median_s": 1.645831334
+    }
+  ],
+  "exact_outputs": 36,
+  "limits": "Current native Transfer verified proof operands; two resident prepared operation tables per backend, separate regular/nam blst executables. Checked scalar input/hashing/decoding, finite mapping, sorting/upload/readback, checked output and IPC are inside each request. Report sums of the two measured requests in each block; not complete proving latency. All initialization and both resident GPU buffers separately visible. No phone measurement."
+}

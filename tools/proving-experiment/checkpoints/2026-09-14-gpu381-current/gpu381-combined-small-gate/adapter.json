@@ -1,0 +1,8 @@
+{
+  "name": "Apple M4 Pro",
+  "backend": "Metal",
+  "vendor": 0,
+  "device": 0,
+  "max_storage_buffer_binding_size": 4294967292,
+  "max_buffer_size": 28991029248
+}

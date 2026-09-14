@@ -1,6 +1,6 @@
 # Transfer proving optimization campaign
 
-Status: authorized and active, 13 September 2026.
+Status: stopped at the user’s request,14September2026. Completed evidence is retained; the execution heartbeat is paused. Next scope is a physical Samsung S20 benchmark after access/setup, without further desktop optimization.
 Branch: `codex/zkpari-proving-optimization`.
 
 ## Objective and ownership

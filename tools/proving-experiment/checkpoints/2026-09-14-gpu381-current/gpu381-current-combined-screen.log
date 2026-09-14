@@ -1,0 +1,13 @@
+Error: Validation Error: Context(G1), Message(Infinity)
+Traceback (most recent call last):
+  File "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/gpu381_combined_screen.py", line 101, in <module>
+    if __name__=='__main__':main()
+                            ~~~~^^
+  File "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/gpu381_combined_screen.py", line 69, in main
+    ready=worker.read();require(ready['stage']=='ready' and ready['backend']==backend,'worker readiness')
+  File "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/gpu381_combined_screen.py", line 35, in read
+    require(line.endswith(b'\n'),'worker failed or response oversized')
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/api_gate.py", line 77, in require
+    raise RuntimeError(message)
+RuntimeError: worker failed or response oversized
