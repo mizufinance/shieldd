@@ -1,0 +1,41 @@
+{
+  "schema": "shieldd.phone_complete.v1",
+  "backend": "A",
+  "mode": "gate",
+  "config_sha256": "b0e1adf4e7c076b22ad6df78cfbe4d93a4c54c788a548001601acad862367930",
+  "samples": {
+    "path": "/data/local/tmp/shieldd-phone-20260914/runs/A-02/gate/samples.jsonl",
+    "sha256": "50189c64e14c404e38ea4472e49c73b8b76eea1eddd88d974194e1e2e435cb5e"
+  },
+  "resources": {
+    "path": "/data/local/tmp/shieldd-phone-20260914/runs/A-02/gate/resources.jsonl",
+    "sha256": "57b3fa7c63918a3736f0a877cd9cc653ac2e4eb56e291303d437c1a66a2c5635"
+  },
+  "proofs": [
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/runs/A-02/gate/gate-transfer-00.proof",
+      "sha256": "4af462e16307aef1dcb5a3e3fc8694c1b88415b703fd9e15c9f8d949e69e4411"
+    },
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/runs/A-02/gate/gate-transfer_unregulated-01.proof",
+      "sha256": "a25e741ae90b38f6676a28667ec7f5e80bead4bc963c9fa755be88dab8beaaa5"
+    },
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/runs/A-02/gate/gate-transfer_flagged-02.proof",
+      "sha256": "d36b21f3795dd215f60e7419249b4875691733811f2e6eec14d284c67755dd41"
+    },
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/runs/A-02/gate/gate-transfer_accumulating-03.proof",
+      "sha256": "31f7a6aa5d2c52219c675a353599c673a70df1ea683feef0c584f592fe999429"
+    },
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/runs/A-02/gate/gate-transfer_over_limit_disclosure-04.proof",
+      "sha256": "d1545573c889b1eb2a7bd4f3f8de54c307e4707e1d8524fef1899ec3963e842c"
+    },
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/runs/A-02/gate/gate-transfer_accumulator_continuation-05.proof",
+      "sha256": "2673bc0a9e14b0c8b241a51bc60b60b3b438a7006332c58f6f7d458593596645"
+    }
+  ],
+  "invalid_witness_rejected": true
+}

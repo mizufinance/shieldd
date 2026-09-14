@@ -1,0 +1,93 @@
+{
+  "schema": "shieldd.phone_checkpoint.v1",
+  "status": "partial",
+  "phone_timings": "diagnostic_screen_interruption",
+  "sources": [
+    {
+      "path": "tools/proving-experiment/phone/README.md",
+      "sha256": "a1b74a83d11a7878b6f50655ed904cc60cb59a17be1832479de564b530e6a1b3"
+    },
+    {
+      "path": "tools/proving-experiment/phone/build.py",
+      "sha256": "5f9380517f6ee7cf4f7d2bcaeefe20931bebe6745a38906262a1be4b25a01108"
+    },
+    {
+      "path": "tools/proving-experiment/phone/clockprobe/main.go",
+      "sha256": "552da982c3a89d8c1ab02aa84da379e24a54f8eb24aa67714cd7f7034218e98d"
+    },
+    {
+      "path": "tools/proving-experiment/phone/go.mod",
+      "sha256": "ef188dfbdfe0bfa5afd9410d1f97f176e15351ada1823f8810c566199b193cb3"
+    },
+    {
+      "path": "tools/proving-experiment/phone/main.go",
+      "sha256": "cb8abccfd3daf84db275244b12af6e62451c91e3492a3cbdf2500a45d7c51bf2"
+    },
+    {
+      "path": "tools/proving-experiment/phone/main_test.go",
+      "sha256": "e7968b223eae71f8c55ebdc54f88654341adfb6da704417b633fe725cf39af45"
+    },
+    {
+      "path": "tools/proving-experiment/phone/run.py",
+      "sha256": "ec6d086f5a9785317a6edfa21edc7d07a542bd45b14cc89a4e5b596deb42d6a5"
+    },
+    {
+      "path": "tools/proving-experiment/phone/setup_toolchain.py",
+      "sha256": "20a988d6b97761e720c86e365433f8969166c479bb8678f7657a1aa67e73f31e"
+    },
+    {
+      "path": "tools/proving-experiment/phone/test_run.py",
+      "sha256": "867aebc37d6167f470dc9dece904eda9428c652f2f7187b2a4a29a02daabf966"
+    }
+  ],
+  "files": [
+    {
+      "file": "A-gate-samples.jsonl",
+      "sha256": "50189c64e14c404e38ea4472e49c73b8b76eea1eddd88d974194e1e2e435cb5e"
+    },
+    {
+      "file": "A-gate-resources.jsonl",
+      "sha256": "57b3fa7c63918a3736f0a877cd9cc653ac2e4eb56e291303d437c1a66a2c5635"
+    },
+    {
+      "file": "A-gate-initialization.json",
+      "sha256": "28e238f4d32934ee4f19cccda0965ed2f2174c6a4393a90ce581cc2963a77475"
+    },
+    {
+      "file": "A-gate-complete.json",
+      "sha256": "e044d84dad25c727e4b38cbf7d9ca0aea9fb18179a72b00f9f4794321e953646"
+    },
+    {
+      "file": "A-measure-samples.jsonl",
+      "sha256": "0e6d29b10856bfdf31e59e8930e997f2702fd25bc9280d6de05f7ff8d0030f83"
+    },
+    {
+      "file": "A-measure-resources.jsonl",
+      "sha256": "d3a816aeb22027d0520d0d77cdde365d84e0454548ca1dca44df82d2a4637f69"
+    },
+    {
+      "file": "A-measure-initialization.json",
+      "sha256": "41fa989cd2cbccbeffd366d0be7a47474726769a0b0dd9fc976ebbb5c19a7963"
+    },
+    {
+      "file": "A-measure-complete.json",
+      "sha256": "19beb7717cf3974bd4ca940928c8d6b09a2180c87e5ecd769f2f3bdd1228c77c"
+    },
+    {
+      "file": "phone-clock-probe-01.json",
+      "sha256": "53b7c2a79d5194d7675e9cb66fa84b58d074ce383b45f20a4a77ce9c313c3da2"
+    },
+    {
+      "file": "A-status.json",
+      "sha256": "9c31328ac93db381457151939a8936814ad82904a4cbb2f3747fa2fd6fa522d2"
+    },
+    {
+      "file": "C-status.json",
+      "sha256": "70fb26bd127df97670557d42a2e2846cd01533ef55628d6de8d4ceb19b753fbb"
+    },
+    {
+      "file": "B-status.json",
+      "sha256": "4937d6cc95e860cc1689eaf904b857928e59fb51c26d06377b72492394fe1204"
+    }
+  ]
+}

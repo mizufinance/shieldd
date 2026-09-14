@@ -1,0 +1,49 @@
+{
+  "schema": "shieldd.phone_complete.v1",
+  "backend": "A",
+  "mode": "measure",
+  "config_sha256": "b0e1adf4e7c076b22ad6df78cfbe4d93a4c54c788a548001601acad862367930",
+  "samples": {
+    "path": "/data/local/tmp/shieldd-phone-20260914/runs/A-02/measure/samples.jsonl",
+    "sha256": "0e6d29b10856bfdf31e59e8930e997f2702fd25bc9280d6de05f7ff8d0030f83"
+  },
+  "resources": {
+    "path": "/data/local/tmp/shieldd-phone-20260914/runs/A-02/measure/resources.jsonl",
+    "sha256": "d3a816aeb22027d0520d0d77cdde365d84e0454548ca1dca44df82d2a4637f69"
+  },
+  "proofs": [
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/runs/A-02/measure/first-transfer-00.proof",
+      "sha256": "da93c6c234d64e3e294b240312da6d5d8d4f579f70a2a2d4941660eca7db6a03"
+    },
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/runs/A-02/measure/warmup-transfer-00.proof",
+      "sha256": "b230d4b0ace59e0fe7765f364356df91a4d45eb30509f00ce0900c94e17b13f7"
+    },
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/runs/A-02/measure/warmup-transfer-01.proof",
+      "sha256": "25822dcc6c82ef34a337e5f448f55f6dff3c23dff3509876943fb30ff2e07445"
+    },
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/runs/A-02/measure/warm-transfer-00.proof",
+      "sha256": "cdc678c6de47c4c05e291db06aea036e36d19fea3eb56c26c2ea60500cbcc69a"
+    },
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/runs/A-02/measure/warm-transfer-01.proof",
+      "sha256": "7a19ddc46d15a483b3c83e2f313b060ffe733c59b450fd0387c2b675665521c9"
+    },
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/runs/A-02/measure/warm-transfer-02.proof",
+      "sha256": "4eea881f01309d44a76711f6077a6e95aaeb722978f277c05010c541886cff78"
+    },
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/runs/A-02/measure/warm-transfer-03.proof",
+      "sha256": "a3057af04851b5ae1fcecb34cb044bcfae0a49c26e1620eece8e2e2be75b26b6"
+    },
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/runs/A-02/measure/warm-transfer-04.proof",
+      "sha256": "200b52a0fcc6fc0e1ea3402f7a00505b3a27ac4624ebc594180e76ae95bc5fb7"
+    }
+  ],
+  "invalid_witness_rejected": false
+}

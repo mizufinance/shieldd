@@ -1,0 +1,11 @@
+{
+  "schema": "shieldd.phone_run.v1",
+  "backend": "B",
+  "config_sha256": "983f39736b25b7386d007b7b60797fb628686016c3c25ffb967e792fbcf2319d",
+  "device_clock_excludes_adb": true,
+  "available_bytes": 2108051456,
+  "required_start_bytes": 3758096384,
+  "status": "skipped_preflight",
+  "reason": "Conservative desktop-RSS-plus-headroom policy; no Android prover was started. This is not an observed Android OOM.",
+  "original_status_sha256": "186a811cfa9a15f7d321d15cacad7cd8db44fadc4e6645e62ea036c50c82216a"
+}

@@ -1,0 +1,9 @@
+{
+  "schema": "shieldd.proving_experiment.gnark_worker.v1",
+  "op": "ready",
+  "payload_bytes": 0,
+  "circuit_sha256": "94a894fdd2ae5cc993d7e96a4fb3e1c0461745be6da73d1d11acbc6443717d79",
+  "wires": 141728,
+  "compile_ns": 10663927704,
+  "key_load_ns": 105625587356
+}

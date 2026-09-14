@@ -1,0 +1,15 @@
+{
+  "schema": "shieldd.phone_run.v1",
+  "backend": "A",
+  "config_sha256": "b0e1adf4e7c076b22ad6df78cfbe4d93a4c54c788a548001601acad862367930",
+  "device_clock_excludes_adb": true,
+  "available_bytes": 1862279168,
+  "required_start_bytes": 1825361100,
+  "gate_host_transport_wall_ns": 391440056333,
+  "gate_exit_code": 0,
+  "measure_host_transport_wall_ns": 486604817042,
+  "measure_exit_code": 0,
+  "status": "complete",
+  "timing_quality": "diagnostic: user-confirmed screen closure; not a clean timing baseline",
+  "original_status_sha256": "3cb8b1ede6111d5192aa2477f4f995daac301d368c23c3ad736a33e306cf968b"
+}
