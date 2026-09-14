@@ -1,0 +1,22 @@
+{
+  "schema": "shieldd.proving_experiment.delivery.v1",
+  "files": {
+    "README.md": "282d03de54396a9f6cbe485690c9879174148b212573cb66c4d90e26eb3e22e3",
+    "b-subset-actual-build.exit.json": "2377b1e88a12faec869ddfa0a2d8f7ffcf18061fd0cc8f8dca98bb1e68744fb8",
+    "b-subset-actual-build.log": "41fd7ad1068e637b08def14855325691eb5ca5b7e158112df2bc97e334194148",
+    "b-subset-actual-build.resources.jsonl": "fd76234355e2abad6d61e77864e6da7ba7d282e36e9676e7ef141d422b0eec47",
+    "b-subset-actual-run.exit.json": "2c9f435a6a2d08c1b389864e5362ccaf5827f21272142b2ff47e8e09aeea0d3a",
+    "b-subset-actual-run.log": "29489c3ee32b8aa6bb3ee3f19949280cac093a56da128eb40a71d9c519436bd2",
+    "b-subset-actual-run.resources.jsonl": "af877c6d0a26d1d47034449a7040a43d6a25d48b95afdc59e9cdd54ec8b355c8",
+    "b-subset-actual-tests.exit.json": "a6e6ef6ab6fac8cc7413590412f60daf240e557bc77230664e3815e6f40143dd",
+    "b-subset-actual-tests.log": "a803a77b311946de24233e0f1de7b7e1341ddcf6d0286e962c7136bfd28195bf",
+    "b-subset-actual-tests.resources.jsonl": "760a4accaf50cea0ad870c5016cb668d49fa70f4c46d351a3f6d69ccaa5a8cb7",
+    "b-subset-actual.json": "9d1051fe5bdd1b125fde6196ae927d8f29d0a4d3e4751dda643ad64733938d43",
+    "identity.json": "a7b118071bfefaa616d5437a3a464679f9adaa93cd5364beb09c45274be006e1",
+    "source.tar.gz": "48b256dbc8510ab71669053c30cc153e96cd07e9b95b33dfd2f85454c183a09a"
+  },
+  "report": {
+    "path": "docs/research/pari-subset-polynomial-screen.md",
+    "sha256": "5d920d2853cf5425c3f435e6fd0ebc5cada8771ba6ad86848bb5d98579285301"
+  }
+}

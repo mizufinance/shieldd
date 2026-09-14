@@ -1,0 +1,28 @@
+   Compiling shieldd-proving-experiment v0.1.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment)
+warning: struct `Circuit` is never constructed
+   --> examples/../src/bridge.rs:171:12
+    |
+171 | pub struct Circuit {
+    |            ^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` on by default
+
+warning: function `validate_converted` is never used
+   --> examples/../src/bridge.rs:240:8
+    |
+240 | pub fn validate_converted(circuit: Circuit) -> Result<usize> {
+    |        ^^^^^^^^^^^^^^^^^^
+
+warning: `shieldd-proving-experiment` (example "subset_cost" test) generated 2 warnings
+    Finished `release` profile [optimized] target(s) in 3.11s
+     Running unittests examples/subset_cost.rs (tools/proving-experiment/target/release/examples/subset_cost-064d0336eff61b26)
+
+running 5 tests
+test bridge::tests::expression_rejects_bad_mapping ... ok
+test bridge::tests::checked_scalar_rejects_modulus_and_trailing_bytes ... ok
+test lowering::tests::square_affine_linear_and_general_preserve_rejection ... ok
+test subset::tests::malformed_domains_and_row_counts_reject ... ok
+test subset::tests::subset_interpolation_lagrange_and_quotient_cover_retained_and_excluded_roots ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+

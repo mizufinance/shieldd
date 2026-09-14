@@ -1,0 +1,10 @@
+{
+  "time_ns": 1789363137455354000,
+  "argv": [
+    "tools/proving-experiment/cache/b-subset-actual-source/subset_cost",
+    "tools/proving-experiment/cache/selected-dh-compile",
+    "tools/proving-experiment/cache/b-subset-actual.json"
+  ],
+  "code": 0,
+  "failure": null
+}

@@ -1,0 +1,984 @@
+{
+  "schema": "shieldd.proving_experiment.subset_actual_cost.v1",
+  "rows": 226578,
+  "witness_wires": 214084,
+  "fft_size": 262144,
+  "preparation": [
+    {
+      "retained": 262144,
+      "domain_ns": 38667,
+      "public_ns": 41955167,
+      "public_bytes": 16777216
+    },
+    {
+      "retained": 229376,
+      "domain_ns": 10458,
+      "public_ns": 51419792,
+      "public_bytes": 14680064
+    }
+  ],
+  "samples": [
+    {
+      "scenario": "transfer",
+      "retained": 262144,
+      "block": 0,
+      "warmup": true,
+      "check_interpolation_ns": 57216583,
+      "quotient_mask_ns": 91149875,
+      "opening_ns": 62314083,
+      "total_ns": 210680708
+    },
+    {
+      "scenario": "transfer",
+      "retained": 229376,
+      "block": 0,
+      "warmup": true,
+      "check_interpolation_ns": 69131125,
+      "quotient_mask_ns": 90535792,
+      "opening_ns": 70547166,
+      "total_ns": 230214125
+    },
+    {
+      "scenario": "transfer",
+      "retained": 229376,
+      "block": 1,
+      "warmup": true,
+      "check_interpolation_ns": 69157625,
+      "quotient_mask_ns": 90854250,
+      "opening_ns": 67585458,
+      "total_ns": 227597458
+    },
+    {
+      "scenario": "transfer",
+      "retained": 262144,
+      "block": 1,
+      "warmup": true,
+      "check_interpolation_ns": 58203459,
+      "quotient_mask_ns": 91392292,
+      "opening_ns": 57852750,
+      "total_ns": 207448625
+    },
+    {
+      "scenario": "transfer",
+      "retained": 262144,
+      "block": 2,
+      "warmup": true,
+      "check_interpolation_ns": 57362542,
+      "quotient_mask_ns": 91127291,
+      "opening_ns": 63690584,
+      "total_ns": 212180459
+    },
+    {
+      "scenario": "transfer",
+      "retained": 229376,
+      "block": 2,
+      "warmup": true,
+      "check_interpolation_ns": 68268750,
+      "quotient_mask_ns": 91235458,
+      "opening_ns": 68958292,
+      "total_ns": 228462625
+    },
+    {
+      "scenario": "transfer",
+      "retained": 229376,
+      "block": 3,
+      "warmup": false,
+      "check_interpolation_ns": 68386083,
+      "quotient_mask_ns": 93625500,
+      "opening_ns": 67713000,
+      "total_ns": 229724625
+    },
+    {
+      "scenario": "transfer",
+      "retained": 262144,
+      "block": 3,
+      "warmup": false,
+      "check_interpolation_ns": 57571958,
+      "quotient_mask_ns": 92574583,
+      "opening_ns": 58808958,
+      "total_ns": 208955667
+    },
+    {
+      "scenario": "transfer",
+      "retained": 262144,
+      "block": 4,
+      "warmup": false,
+      "check_interpolation_ns": 57592917,
+      "quotient_mask_ns": 90881917,
+      "opening_ns": 64363666,
+      "total_ns": 212838750
+    },
+    {
+      "scenario": "transfer",
+      "retained": 229376,
+      "block": 4,
+      "warmup": false,
+      "check_interpolation_ns": 68433458,
+      "quotient_mask_ns": 90848166,
+      "opening_ns": 69169708,
+      "total_ns": 228451458
+    },
+    {
+      "scenario": "transfer",
+      "retained": 229376,
+      "block": 5,
+      "warmup": false,
+      "check_interpolation_ns": 69164042,
+      "quotient_mask_ns": 90844208,
+      "opening_ns": 69414833,
+      "total_ns": 229423417
+    },
+    {
+      "scenario": "transfer",
+      "retained": 262144,
+      "block": 5,
+      "warmup": false,
+      "check_interpolation_ns": 60711500,
+      "quotient_mask_ns": 90455958,
+      "opening_ns": 57874791,
+      "total_ns": 209042333
+    },
+    {
+      "scenario": "transfer",
+      "retained": 262144,
+      "block": 6,
+      "warmup": false,
+      "check_interpolation_ns": 57365541,
+      "quotient_mask_ns": 90469667,
+      "opening_ns": 62549000,
+      "total_ns": 210384291
+    },
+    {
+      "scenario": "transfer",
+      "retained": 229376,
+      "block": 6,
+      "warmup": false,
+      "check_interpolation_ns": 69374042,
+      "quotient_mask_ns": 91189834,
+      "opening_ns": 69315584,
+      "total_ns": 229879542
+    },
+    {
+      "scenario": "transfer",
+      "retained": 229376,
+      "block": 7,
+      "warmup": false,
+      "check_interpolation_ns": 69709042,
+      "quotient_mask_ns": 92005750,
+      "opening_ns": 68240459,
+      "total_ns": 229955334
+    },
+    {
+      "scenario": "transfer",
+      "retained": 262144,
+      "block": 7,
+      "warmup": false,
+      "check_interpolation_ns": 57734208,
+      "quotient_mask_ns": 91508125,
+      "opening_ns": 59398625,
+      "total_ns": 208641000
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "retained": 262144,
+      "block": 0,
+      "warmup": true,
+      "check_interpolation_ns": 58721833,
+      "quotient_mask_ns": 91580750,
+      "opening_ns": 57829584,
+      "total_ns": 208132292
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "retained": 229376,
+      "block": 0,
+      "warmup": true,
+      "check_interpolation_ns": 68947084,
+      "quotient_mask_ns": 91707667,
+      "opening_ns": 74547083,
+      "total_ns": 235201959
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "retained": 229376,
+      "block": 1,
+      "warmup": true,
+      "check_interpolation_ns": 77812167,
+      "quotient_mask_ns": 99081333,
+      "opening_ns": 69984500,
+      "total_ns": 246878167
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "retained": 262144,
+      "block": 1,
+      "warmup": true,
+      "check_interpolation_ns": 58971167,
+      "quotient_mask_ns": 93896250,
+      "opening_ns": 61386583,
+      "total_ns": 214254167
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "retained": 262144,
+      "block": 2,
+      "warmup": true,
+      "check_interpolation_ns": 57848250,
+      "quotient_mask_ns": 91640541,
+      "opening_ns": 58445208,
+      "total_ns": 207934083
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "retained": 229376,
+      "block": 2,
+      "warmup": true,
+      "check_interpolation_ns": 68316291,
+      "quotient_mask_ns": 90886375,
+      "opening_ns": 69007125,
+      "total_ns": 228209958
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "retained": 229376,
+      "block": 3,
+      "warmup": false,
+      "check_interpolation_ns": 70019083,
+      "quotient_mask_ns": 93310208,
+      "opening_ns": 69360333,
+      "total_ns": 232689708
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "retained": 262144,
+      "block": 3,
+      "warmup": false,
+      "check_interpolation_ns": 60992042,
+      "quotient_mask_ns": 91908458,
+      "opening_ns": 58694958,
+      "total_ns": 211595584
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "retained": 262144,
+      "block": 4,
+      "warmup": false,
+      "check_interpolation_ns": 61464584,
+      "quotient_mask_ns": 91774292,
+      "opening_ns": 57921250,
+      "total_ns": 211160250
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "retained": 229376,
+      "block": 4,
+      "warmup": false,
+      "check_interpolation_ns": 68806250,
+      "quotient_mask_ns": 90011792,
+      "opening_ns": 69195916,
+      "total_ns": 228014083
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "retained": 229376,
+      "block": 5,
+      "warmup": false,
+      "check_interpolation_ns": 69068542,
+      "quotient_mask_ns": 93371000,
+      "opening_ns": 71685541,
+      "total_ns": 234125167
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "retained": 262144,
+      "block": 5,
+      "warmup": false,
+      "check_interpolation_ns": 58311792,
+      "quotient_mask_ns": 91696167,
+      "opening_ns": 59286791,
+      "total_ns": 209294792
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "retained": 262144,
+      "block": 6,
+      "warmup": false,
+      "check_interpolation_ns": 57942834,
+      "quotient_mask_ns": 90889834,
+      "opening_ns": 60051875,
+      "total_ns": 208884709
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "retained": 229376,
+      "block": 6,
+      "warmup": false,
+      "check_interpolation_ns": 68755959,
+      "quotient_mask_ns": 91425958,
+      "opening_ns": 68902125,
+      "total_ns": 229084250
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "retained": 229376,
+      "block": 7,
+      "warmup": false,
+      "check_interpolation_ns": 69701417,
+      "quotient_mask_ns": 93300416,
+      "opening_ns": 69284250,
+      "total_ns": 232286250
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "retained": 262144,
+      "block": 7,
+      "warmup": false,
+      "check_interpolation_ns": 57652584,
+      "quotient_mask_ns": 91664125,
+      "opening_ns": 62133000,
+      "total_ns": 211449792
+    },
+    {
+      "scenario": "transfer_flagged",
+      "retained": 262144,
+      "block": 0,
+      "warmup": true,
+      "check_interpolation_ns": 60734875,
+      "quotient_mask_ns": 93181500,
+      "opening_ns": 59932000,
+      "total_ns": 213848500
+    },
+    {
+      "scenario": "transfer_flagged",
+      "retained": 229376,
+      "block": 0,
+      "warmup": true,
+      "check_interpolation_ns": 69001625,
+      "quotient_mask_ns": 92014084,
+      "opening_ns": 70908500,
+      "total_ns": 231924375
+    },
+    {
+      "scenario": "transfer_flagged",
+      "retained": 229376,
+      "block": 1,
+      "warmup": true,
+      "check_interpolation_ns": 69402125,
+      "quotient_mask_ns": 91350375,
+      "opening_ns": 69071417,
+      "total_ns": 229824000
+    },
+    {
+      "scenario": "transfer_flagged",
+      "retained": 262144,
+      "block": 1,
+      "warmup": true,
+      "check_interpolation_ns": 58201541,
+      "quotient_mask_ns": 94709625,
+      "opening_ns": 61120167,
+      "total_ns": 214031416
+    },
+    {
+      "scenario": "transfer_flagged",
+      "retained": 262144,
+      "block": 2,
+      "warmup": true,
+      "check_interpolation_ns": 58060250,
+      "quotient_mask_ns": 91188292,
+      "opening_ns": 59298125,
+      "total_ns": 208546791
+    },
+    {
+      "scenario": "transfer_flagged",
+      "retained": 229376,
+      "block": 2,
+      "warmup": true,
+      "check_interpolation_ns": 72056166,
+      "quotient_mask_ns": 91174125,
+      "opening_ns": 69839166,
+      "total_ns": 233069666
+    },
+    {
+      "scenario": "transfer_flagged",
+      "retained": 229376,
+      "block": 3,
+      "warmup": false,
+      "check_interpolation_ns": 68829959,
+      "quotient_mask_ns": 90906334,
+      "opening_ns": 69447167,
+      "total_ns": 229183584
+    },
+    {
+      "scenario": "transfer_flagged",
+      "retained": 262144,
+      "block": 3,
+      "warmup": false,
+      "check_interpolation_ns": 57882000,
+      "quotient_mask_ns": 92236417,
+      "opening_ns": 59666416,
+      "total_ns": 209785041
+    },
+    {
+      "scenario": "transfer_flagged",
+      "retained": 262144,
+      "block": 4,
+      "warmup": false,
+      "check_interpolation_ns": 57711125,
+      "quotient_mask_ns": 91219959,
+      "opening_ns": 59639834,
+      "total_ns": 208571000
+    },
+    {
+      "scenario": "transfer_flagged",
+      "retained": 229376,
+      "block": 4,
+      "warmup": false,
+      "check_interpolation_ns": 69305042,
+      "quotient_mask_ns": 92612958,
+      "opening_ns": 71043250,
+      "total_ns": 232961292
+    },
+    {
+      "scenario": "transfer_flagged",
+      "retained": 229376,
+      "block": 5,
+      "warmup": false,
+      "check_interpolation_ns": 69444125,
+      "quotient_mask_ns": 91782333,
+      "opening_ns": 68680708,
+      "total_ns": 229907250
+    },
+    {
+      "scenario": "transfer_flagged",
+      "retained": 262144,
+      "block": 5,
+      "warmup": false,
+      "check_interpolation_ns": 58290958,
+      "quotient_mask_ns": 92511292,
+      "opening_ns": 59650291,
+      "total_ns": 210452791
+    },
+    {
+      "scenario": "transfer_flagged",
+      "retained": 262144,
+      "block": 6,
+      "warmup": false,
+      "check_interpolation_ns": 58006625,
+      "quotient_mask_ns": 90170834,
+      "opening_ns": 63147166,
+      "total_ns": 211324667
+    },
+    {
+      "scenario": "transfer_flagged",
+      "retained": 229376,
+      "block": 6,
+      "warmup": false,
+      "check_interpolation_ns": 70284625,
+      "quotient_mask_ns": 91959875,
+      "opening_ns": 71285209,
+      "total_ns": 233529791
+    },
+    {
+      "scenario": "transfer_flagged",
+      "retained": 229376,
+      "block": 7,
+      "warmup": false,
+      "check_interpolation_ns": 70329709,
+      "quotient_mask_ns": 93530875,
+      "opening_ns": 68736542,
+      "total_ns": 232597209
+    },
+    {
+      "scenario": "transfer_flagged",
+      "retained": 262144,
+      "block": 7,
+      "warmup": false,
+      "check_interpolation_ns": 57486250,
+      "quotient_mask_ns": 91259666,
+      "opening_ns": 58944459,
+      "total_ns": 207690375
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "retained": 262144,
+      "block": 0,
+      "warmup": true,
+      "check_interpolation_ns": 58102500,
+      "quotient_mask_ns": 92422708,
+      "opening_ns": 58998792,
+      "total_ns": 209524250
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "retained": 229376,
+      "block": 0,
+      "warmup": true,
+      "check_interpolation_ns": 68590334,
+      "quotient_mask_ns": 91931125,
+      "opening_ns": 77624709,
+      "total_ns": 238146250
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "retained": 229376,
+      "block": 1,
+      "warmup": true,
+      "check_interpolation_ns": 70571916,
+      "quotient_mask_ns": 93027500,
+      "opening_ns": 71171459,
+      "total_ns": 234770916
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "retained": 262144,
+      "block": 1,
+      "warmup": true,
+      "check_interpolation_ns": 58366041,
+      "quotient_mask_ns": 92601708,
+      "opening_ns": 59388917,
+      "total_ns": 210356708
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "retained": 262144,
+      "block": 2,
+      "warmup": true,
+      "check_interpolation_ns": 57923833,
+      "quotient_mask_ns": 101553791,
+      "opening_ns": 60433375,
+      "total_ns": 219911125
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "retained": 229376,
+      "block": 2,
+      "warmup": true,
+      "check_interpolation_ns": 69108666,
+      "quotient_mask_ns": 92214250,
+      "opening_ns": 74530125,
+      "total_ns": 235853250
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "retained": 229376,
+      "block": 3,
+      "warmup": false,
+      "check_interpolation_ns": 69775333,
+      "quotient_mask_ns": 94720291,
+      "opening_ns": 70902917,
+      "total_ns": 235398708
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "retained": 262144,
+      "block": 3,
+      "warmup": false,
+      "check_interpolation_ns": 58680667,
+      "quotient_mask_ns": 91841917,
+      "opening_ns": 59130583,
+      "total_ns": 209653208
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "retained": 262144,
+      "block": 4,
+      "warmup": false,
+      "check_interpolation_ns": 57821625,
+      "quotient_mask_ns": 91458458,
+      "opening_ns": 59413542,
+      "total_ns": 208693834
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "retained": 229376,
+      "block": 4,
+      "warmup": false,
+      "check_interpolation_ns": 67779292,
+      "quotient_mask_ns": 94233166,
+      "opening_ns": 74073250,
+      "total_ns": 236085917
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "retained": 229376,
+      "block": 5,
+      "warmup": false,
+      "check_interpolation_ns": 68411084,
+      "quotient_mask_ns": 92700541,
+      "opening_ns": 69525083,
+      "total_ns": 230636792
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "retained": 262144,
+      "block": 5,
+      "warmup": false,
+      "check_interpolation_ns": 61735083,
+      "quotient_mask_ns": 91857958,
+      "opening_ns": 59581958,
+      "total_ns": 213175125
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "retained": 262144,
+      "block": 6,
+      "warmup": false,
+      "check_interpolation_ns": 57680958,
+      "quotient_mask_ns": 90875208,
+      "opening_ns": 59040542,
+      "total_ns": 207596875
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "retained": 229376,
+      "block": 6,
+      "warmup": false,
+      "check_interpolation_ns": 68943542,
+      "quotient_mask_ns": 91068375,
+      "opening_ns": 74358083,
+      "total_ns": 234370042
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "retained": 229376,
+      "block": 7,
+      "warmup": false,
+      "check_interpolation_ns": 68482458,
+      "quotient_mask_ns": 91558208,
+      "opening_ns": 69610334,
+      "total_ns": 229651042
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "retained": 262144,
+      "block": 7,
+      "warmup": false,
+      "check_interpolation_ns": 58457333,
+      "quotient_mask_ns": 94993500,
+      "opening_ns": 61831375,
+      "total_ns": 215282417
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "retained": 262144,
+      "block": 0,
+      "warmup": true,
+      "check_interpolation_ns": 59771958,
+      "quotient_mask_ns": 91790541,
+      "opening_ns": 60311750,
+      "total_ns": 211874375
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "retained": 229376,
+      "block": 0,
+      "warmup": true,
+      "check_interpolation_ns": 69608917,
+      "quotient_mask_ns": 93073625,
+      "opening_ns": 70212042,
+      "total_ns": 232894708
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "retained": 229376,
+      "block": 1,
+      "warmup": true,
+      "check_interpolation_ns": 68594541,
+      "quotient_mask_ns": 91940459,
+      "opening_ns": 72199417,
+      "total_ns": 232734500
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "retained": 262144,
+      "block": 1,
+      "warmup": true,
+      "check_interpolation_ns": 60105042,
+      "quotient_mask_ns": 93962333,
+      "opening_ns": 60219291,
+      "total_ns": 214286917
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "retained": 262144,
+      "block": 2,
+      "warmup": true,
+      "check_interpolation_ns": 58181542,
+      "quotient_mask_ns": 91391084,
+      "opening_ns": 60095500,
+      "total_ns": 209668208
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "retained": 229376,
+      "block": 2,
+      "warmup": true,
+      "check_interpolation_ns": 69908208,
+      "quotient_mask_ns": 92719417,
+      "opening_ns": 70221375,
+      "total_ns": 232849000
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "retained": 229376,
+      "block": 3,
+      "warmup": false,
+      "check_interpolation_ns": 69694625,
+      "quotient_mask_ns": 93050708,
+      "opening_ns": 73589208,
+      "total_ns": 236334625
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "retained": 262144,
+      "block": 3,
+      "warmup": false,
+      "check_interpolation_ns": 57954459,
+      "quotient_mask_ns": 100571500,
+      "opening_ns": 65068292,
+      "total_ns": 223594292
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "retained": 262144,
+      "block": 4,
+      "warmup": false,
+      "check_interpolation_ns": 58764917,
+      "quotient_mask_ns": 91588000,
+      "opening_ns": 59222125,
+      "total_ns": 209575167
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "retained": 229376,
+      "block": 4,
+      "warmup": false,
+      "check_interpolation_ns": 69558417,
+      "quotient_mask_ns": 94377958,
+      "opening_ns": 74296000,
+      "total_ns": 238232500
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "retained": 229376,
+      "block": 5,
+      "warmup": false,
+      "check_interpolation_ns": 68349458,
+      "quotient_mask_ns": 91988375,
+      "opening_ns": 70405708,
+      "total_ns": 230743791
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "retained": 262144,
+      "block": 5,
+      "warmup": false,
+      "check_interpolation_ns": 58583458,
+      "quotient_mask_ns": 93695833,
+      "opening_ns": 61165667,
+      "total_ns": 213445042
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "retained": 262144,
+      "block": 6,
+      "warmup": false,
+      "check_interpolation_ns": 58386375,
+      "quotient_mask_ns": 95832083,
+      "opening_ns": 63035458,
+      "total_ns": 217254083
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "retained": 229376,
+      "block": 6,
+      "warmup": false,
+      "check_interpolation_ns": 71162042,
+      "quotient_mask_ns": 91487500,
+      "opening_ns": 69961500,
+      "total_ns": 232611250
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "retained": 229376,
+      "block": 7,
+      "warmup": false,
+      "check_interpolation_ns": 68985459,
+      "quotient_mask_ns": 90782208,
+      "opening_ns": 73434250,
+      "total_ns": 233202125
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "retained": 262144,
+      "block": 7,
+      "warmup": false,
+      "check_interpolation_ns": 58732417,
+      "quotient_mask_ns": 91398208,
+      "opening_ns": 60597250,
+      "total_ns": 210728125
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "retained": 262144,
+      "block": 0,
+      "warmup": true,
+      "check_interpolation_ns": 62410083,
+      "quotient_mask_ns": 94563333,
+      "opening_ns": 60955666,
+      "total_ns": 217929208
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "retained": 229376,
+      "block": 0,
+      "warmup": true,
+      "check_interpolation_ns": 70661834,
+      "quotient_mask_ns": 92608792,
+      "opening_ns": 69975542,
+      "total_ns": 233246375
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "retained": 229376,
+      "block": 1,
+      "warmup": true,
+      "check_interpolation_ns": 69111333,
+      "quotient_mask_ns": 91363834,
+      "opening_ns": 70431833,
+      "total_ns": 230907042
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "retained": 262144,
+      "block": 1,
+      "warmup": true,
+      "check_interpolation_ns": 58682292,
+      "quotient_mask_ns": 92685583,
+      "opening_ns": 60279583,
+      "total_ns": 211647625
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "retained": 262144,
+      "block": 2,
+      "warmup": true,
+      "check_interpolation_ns": 58850125,
+      "quotient_mask_ns": 93524166,
+      "opening_ns": 62304458,
+      "total_ns": 214678833
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "retained": 229376,
+      "block": 2,
+      "warmup": true,
+      "check_interpolation_ns": 70149417,
+      "quotient_mask_ns": 92400959,
+      "opening_ns": 72179041,
+      "total_ns": 234729542
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "retained": 229376,
+      "block": 3,
+      "warmup": false,
+      "check_interpolation_ns": 69839542,
+      "quotient_mask_ns": 91034292,
+      "opening_ns": 70344791,
+      "total_ns": 231218875
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "retained": 262144,
+      "block": 3,
+      "warmup": false,
+      "check_interpolation_ns": 60647834,
+      "quotient_mask_ns": 94016709,
+      "opening_ns": 60417041,
+      "total_ns": 215081667
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "retained": 262144,
+      "block": 4,
+      "warmup": false,
+      "check_interpolation_ns": 58018958,
+      "quotient_mask_ns": 93455583,
+      "opening_ns": 61420625,
+      "total_ns": 212895333
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "retained": 229376,
+      "block": 4,
+      "warmup": false,
+      "check_interpolation_ns": 70220583,
+      "quotient_mask_ns": 95091584,
+      "opening_ns": 70385291,
+      "total_ns": 235697625
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "retained": 229376,
+      "block": 5,
+      "warmup": false,
+      "check_interpolation_ns": 69764125,
+      "quotient_mask_ns": 92823917,
+      "opening_ns": 72519166,
+      "total_ns": 235107375
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "retained": 262144,
+      "block": 5,
+      "warmup": false,
+      "check_interpolation_ns": 60244542,
+      "quotient_mask_ns": 93565958,
+      "opening_ns": 60575375,
+      "total_ns": 214385959
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "retained": 262144,
+      "block": 6,
+      "warmup": false,
+      "check_interpolation_ns": 58098000,
+      "quotient_mask_ns": 94082708,
+      "opening_ns": 61083416,
+      "total_ns": 213264250
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "retained": 229376,
+      "block": 6,
+      "warmup": false,
+      "check_interpolation_ns": 69493125,
+      "quotient_mask_ns": 92347167,
+      "opening_ns": 72510667,
+      "total_ns": 234351209
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "retained": 229376,
+      "block": 7,
+      "warmup": false,
+      "check_interpolation_ns": 73030875,
+      "quotient_mask_ns": 91771208,
+      "opening_ns": 69850583,
+      "total_ns": 234652750
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "retained": 262144,
+      "block": 7,
+      "warmup": false,
+      "check_interpolation_ns": 56936958,
+      "quotient_mask_ns": 91746250,
+      "opening_ns": 59629750,
+      "total_ns": 208313041
+    }
+  ],
+  "all_coefficient_gates_passed": true,
+  "limits": "All six real solved Transfer assignments and complete outlined square rows. Current coset-N/public-prepared subgroup control versus one excluded coset (indices1mod8). Includes checked interpolation, complete masks and both opening polynomials; no MSM, key, proof, verifier, bridge or full API result. Domain/public preparation separate. Three warmups and five balanced samples per scenario. Fixed nonzero diagnostic masks/challenge, not proof randomness. No synthetic2N quotient in timing; 2N oracle is correctness-only."
+}

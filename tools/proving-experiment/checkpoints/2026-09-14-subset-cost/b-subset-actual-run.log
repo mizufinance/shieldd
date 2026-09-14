@@ -1,0 +1,6 @@
+transfer: full coefficient identities, row/padding negatives and samples passed
+transfer_unregulated: full coefficient identities, row/padding negatives and samples passed
+transfer_flagged: full coefficient identities, row/padding negatives and samples passed
+transfer_accumulating: full coefficient identities, row/padding negatives and samples passed
+transfer_over_limit_disclosure: full coefficient identities, row/padding negatives and samples passed
+transfer_accumulator_continuation: full coefficient identities, row/padding negatives and samples passed

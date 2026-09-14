@@ -1,0 +1,38 @@
+   Compiling shieldd-proving-experiment v0.1.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment)
+warning: struct `Circuit` is never constructed
+   --> examples/../src/bridge.rs:171:12
+    |
+171 | pub struct Circuit {
+    |            ^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` on by default
+
+warning: function `validate_converted` is never used
+   --> examples/../src/bridge.rs:240:8
+    |
+240 | pub fn validate_converted(circuit: Circuit) -> Result<usize> {
+    |        ^^^^^^^^^^^^^^^^^^
+
+warning: methods `body_rows` and `validate` are never used
+   --> examples/../src/lowering.rs:139:12
+    |
+68  | impl Lowered {
+    | ------------ methods in this implementation
+...
+139 |     pub fn body_rows(&self) -> usize {
+    |            ^^^^^^^^^
+...
+153 |     pub fn validate(&self, original: &[Fr]) -> Result<()> {
+    |            ^^^^^^^^
+
+warning: method `lagrange` is never used
+   --> examples/../src/subset.rs:158:12
+    |
+21  | impl Domain {
+    | ----------- method in this implementation
+...
+158 |     pub fn lagrange(&self, ordinal: usize, point: Fr) -> Result<Fr> {
+    |            ^^^^^^^^
+
+warning: `shieldd-proving-experiment` (example "subset_cost") generated 4 warnings
+    Finished `release` profile [optimized] target(s) in 3.77s
