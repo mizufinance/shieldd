@@ -1,0 +1,61 @@
+   Compiling shieldd-subset-pari377 v0.1.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/subset-pari377)
+warning: unused import: `G2Projective`
+ --> src/protocol.rs:7:70
+  |
+7 | use ark_bls12_377::{Bls12_377, Fr, G1Affine, G1Projective, G2Affine, G2Projective};
+  |                                                                      ^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `AdditiveGroup`
+  --> src/main.rs:12:14
+   |
+12 | use ark_ff::{AdditiveGroup, Field};
+   |              ^^^^^^^^^^^^^
+
+warning: struct `Circuit` is never constructed
+   --> src/bridge.rs:171:12
+    |
+171 | pub struct Circuit {
+    |            ^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` on by default
+
+warning: function `validate_converted` is never used
+   --> src/bridge.rs:240:8
+    |
+240 | pub fn validate_converted(circuit: Circuit) -> Result<usize> {
+    |        ^^^^^^^^^^^^^^^^^^
+
+warning: methods `descriptor` and `fft_size` are never used
+  --> src/domain.rs:53:12
+   |
+43 | impl Domain {
+   | ----------- methods in this implementation
+...
+53 |     pub fn descriptor(&self) -> Descriptor {
+   |            ^^^^^^^^^^
+...
+59 |     pub fn fft_size(&self) -> usize {
+   |            ^^^^^^^^
+
+warning: `shieldd-subset-pari377` (bin "shieldd-subset-pari377" test) generated 5 warnings (run `cargo fix --bin "shieldd-subset-pari377" --tests` to apply 2 suggestions)
+    Finished `release` profile [optimized] target(s) in 9.01s
+     Running unittests src/main.rs (tools/proving-experiment/target/release/deps/shieldd_subset_pari377-03e16358fa9f59a2)
+
+running 12 tests
+test bridge::tests::expression_rejects_bad_mapping ... ok
+test bridge::tests::checked_scalar_rejects_modulus_and_trailing_bytes ... ok
+test domain::tests::malformed_domains_and_row_counts_reject ... ok
+test frontend::transport::tests::rejects_wrong_schema_unknown_fields_large_and_partial_frames ... ok
+test lowering::tests::square_affine_linear_and_general_preserve_rejection ... ok
+test protocol::tests::checked_coset_boundary_rejects_low_degree_invalid_relations ... ok
+test domain::tests::subset_interpolation_lagrange_and_quotient_cover_retained_and_excluded_roots ... ok
+test protocol::tests::subset_proves_and_binds_domain_key_rows_and_encodings ... ok
+test protocol::tests::every_new_key_query_and_mask_slot_rejects_torsion ... ok
+test subgroup::tests::rejects_noncanonical_fields_flags_identity_truncation_and_trailing ... ok
+test worker::tests::bounded_headers_reject_truncation_and_unknown_fields ... ok
+test subgroup::tests::full_order_mixed_torsion_and_compressed_codec_parity ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+

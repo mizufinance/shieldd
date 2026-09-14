@@ -1,0 +1,12 @@
+{
+  "time_ns": 1789364217039747000,
+  "argv": [
+    "tools/proving-experiment/cache/b-subset-protocol-source/gate",
+    "setup",
+    "tools/proving-experiment/cache/selected-dh-compile",
+    "tools/proving-experiment/cache/selected-dh-b-gate/lowered.vk",
+    "tools/proving-experiment/cache/b-subset-keys"
+  ],
+  "code": 0,
+  "failure": null
+}

@@ -1,0 +1,44 @@
+{
+  "schema": "shieldd.subset_proving.report.v1",
+  "rows": [
+    {
+      "candidate": "candidate",
+      "warm_values_s": [
+        2.190199166,
+        2.18093275,
+        2.186757708,
+        2.201346917,
+        2.18318775
+      ],
+      "median_s": 2.186757708,
+      "first_s": 53.121948,
+      "peak_rss_bytes": 2364604416,
+      "proof_bytes": 168
+    },
+    {
+      "candidate": "control",
+      "warm_values_s": [
+        2.305969792,
+        2.309731667,
+        2.303385708,
+        2.325167166,
+        2.306158
+      ],
+      "median_s": 2.306158,
+      "first_s": 59.591334292,
+      "peak_rss_bytes": 2470445056,
+      "proof_bytes": 168
+    }
+  ],
+  "warm_reduction_percent": 5.177454970561424,
+  "warm_pair_differences_s": [
+    0.11577062599999977,
+    0.12879891699999968,
+    0.11662799999999995,
+    0.123820249,
+    0.12297024999999984
+  ],
+  "guard_peak_tree_rss_bytes": 5293244416,
+  "minimum_available_bytes": 18442321920,
+  "all_18_proof_hashes_match": true
+}

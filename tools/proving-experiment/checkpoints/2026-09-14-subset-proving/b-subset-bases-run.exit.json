@@ -1,0 +1,11 @@
+{
+  "time_ns": 1789364974277493000,
+  "argv": [
+    "tools/proving-experiment/cache/b-subset-protocol-source/worker",
+    "bases",
+    "tools/proving-experiment/cache/b-subset-keys/subset.pk",
+    "tools/proving-experiment/cache/b-subset-bases"
+  ],
+  "code": 0,
+  "failure": null
+}

@@ -1,0 +1,68 @@
+[
+  {
+    "schema": "shieldd.subset_pari377.gate.v1",
+    "scenario": "transfer",
+    "prove_ns": 2889161792,
+    "proof_bytes": 128,
+    "verified": true,
+    "wrong_statement_rejected": true,
+    "wrong_key_rejected": true,
+    "malformed_rejected": true,
+    "constrained_witness_rejected": true
+  },
+  {
+    "schema": "shieldd.subset_pari377.gate.v1",
+    "scenario": "transfer_unregulated",
+    "prove_ns": 2894825625,
+    "proof_bytes": 128,
+    "verified": true,
+    "wrong_statement_rejected": true,
+    "wrong_key_rejected": true,
+    "malformed_rejected": true,
+    "constrained_witness_rejected": true
+  },
+  {
+    "schema": "shieldd.subset_pari377.gate.v1",
+    "scenario": "transfer_flagged",
+    "prove_ns": 2899268459,
+    "proof_bytes": 128,
+    "verified": true,
+    "wrong_statement_rejected": true,
+    "wrong_key_rejected": true,
+    "malformed_rejected": true,
+    "constrained_witness_rejected": true
+  },
+  {
+    "schema": "shieldd.subset_pari377.gate.v1",
+    "scenario": "transfer_accumulating",
+    "prove_ns": 2901269792,
+    "proof_bytes": 128,
+    "verified": true,
+    "wrong_statement_rejected": true,
+    "wrong_key_rejected": true,
+    "malformed_rejected": true,
+    "constrained_witness_rejected": true
+  },
+  {
+    "schema": "shieldd.subset_pari377.gate.v1",
+    "scenario": "transfer_over_limit_disclosure",
+    "prove_ns": 2907763709,
+    "proof_bytes": 128,
+    "verified": true,
+    "wrong_statement_rejected": true,
+    "wrong_key_rejected": true,
+    "malformed_rejected": true,
+    "constrained_witness_rejected": true
+  },
+  {
+    "schema": "shieldd.subset_pari377.gate.v1",
+    "scenario": "transfer_accumulator_continuation",
+    "prove_ns": 2920016333,
+    "proof_bytes": 128,
+    "verified": true,
+    "wrong_statement_rejected": true,
+    "wrong_key_rejected": true,
+    "malformed_rejected": true,
+    "constrained_witness_rejected": true
+  }
+]

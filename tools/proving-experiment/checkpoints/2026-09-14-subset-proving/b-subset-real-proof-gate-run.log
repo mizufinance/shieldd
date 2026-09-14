@@ -1,0 +1,6 @@
+transfer: fresh subset proof and negative gate passed
+transfer_unregulated: fresh subset proof and negative gate passed
+transfer_flagged: fresh subset proof and negative gate passed
+transfer_accumulating: fresh subset proof and negative gate passed
+transfer_over_limit_disclosure: fresh subset proof and negative gate passed
+transfer_accumulator_continuation: fresh subset proof and negative gate passed

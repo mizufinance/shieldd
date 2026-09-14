@@ -1,0 +1,9 @@
+{
+  "schema": "shieldd.subset_desktop.v1",
+  "hashes": {
+    "identity.json": "e12e41ae35f54546b3e8a2de77eb15884754631e095b181d8054ac5117ab1b71",
+    "memory.jsonl": "19a1dcade7e51a6cf11059f586b93c44244b9caa651ebdd913b8d6ecbff266c3",
+    "results.json": "5ed3e9179942952a9d5f0789df5c6f65914fa3e7b7fc2454341b4a86dad296c5",
+    "samples.jsonl": "ea04f0aaac5cb8c5ef6269bcb278f162e6cc74cae422ea7e8d9a18fecb7bef41"
+  }
+}

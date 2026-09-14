@@ -1,0 +1,220 @@
+{
+  "schema": "shieldd.subset_proving.artifacts.v1",
+  "files": [
+    {
+      "path": "tools/proving-experiment/cache/b-subset-api-gate/complete.json",
+      "bytes": 416,
+      "sha256": "daa1fe0634f5bf06db4723bd81a67bcfb9fdca565dca35bb1be7082241eba264"
+    },
+    {
+      "path": "tools/proving-experiment/cache/b-subset-api-gate/identity.json",
+      "bytes": 6861,
+      "sha256": "e12e41ae35f54546b3e8a2de77eb15884754631e095b181d8054ac5117ab1b71"
+    },
+    {
+      "path": "tools/proving-experiment/cache/b-subset-api-gate/memory.jsonl",
+      "bytes": 49210,
+      "sha256": "19a1dcade7e51a6cf11059f586b93c44244b9caa651ebdd913b8d6ecbff266c3"
+    },
+    {
+      "path": "tools/proving-experiment/cache/b-subset-api-gate/proofs/transfer.bin",
+      "bytes": 168,
+      "sha256": "b596529c30074c734d4ec54fc31d833c87c28b849ae25cc1e175f7237eff20b1"
+    },
+    {
+      "path": "tools/proving-experiment/cache/b-subset-api-gate/proofs/transfer_accumulating.bin",
+      "bytes": 168,
+      "sha256": "b0c93cf89d14cad97c7139c92c86c24dd990c457c201aceb3e4efcc6c744c138"
+    },
+    {
+      "path": "tools/proving-experiment/cache/b-subset-api-gate/proofs/transfer_accumulator_continuation.bin",
+      "bytes": 168,
+      "sha256": "fa34ab266d6a586dad220b806576be6081ceb769e8d00f7c4e864c4ed3f7d6cb"
+    },
+    {
+      "path": "tools/proving-experiment/cache/b-subset-api-gate/proofs/transfer_flagged.bin",
+      "bytes": 168,
+      "sha256": "93923dd9daa50f520987a7a8c68f85584ed628010f3764ceccacbd92c02c4ab6"
+    },
+    {
+      "path": "tools/proving-experiment/cache/b-subset-api-gate/proofs/transfer_over_limit_disclosure.bin",
+      "bytes": 168,
+      "sha256": "9aa475cc8d0c382e820ad7bf90762274f002f057574a9d201fc00ee267180ca2"
+    },
+    {
+      "path": "tools/proving-experiment/cache/b-subset-api-gate/proofs/transfer_unregulated.bin",
+      "bytes": 168,
+      "sha256": "806fb2a8b6b7d3c8d26e321b649f258310acd271c6c2d7a0c58a71fc9993b4fd"
+    },
+    {
+      "path": "tools/proving-experiment/cache/b-subset-api-gate/results.json",
+      "bytes": 115,
+      "sha256": "5ed3e9179942952a9d5f0789df5c6f65914fa3e7b7fc2454341b4a86dad296c5"
+    },
+    {
+      "path": "tools/proving-experiment/cache/b-subset-api-gate/samples.jsonl",
+      "bytes": 6547,
+      "sha256": "ea04f0aaac5cb8c5ef6269bcb278f162e6cc74cae422ea7e8d9a18fecb7bef41"
+    },
+    {
+      "path": "tools/proving-experiment/cache/b-subset-desktop/complete.json",
+      "bytes": 416,
+      "sha256": "ff3f533435683387f26eaff291cc6a0fb144ac01899c8bb7b059423a07176649"
+    },
+    {
+      "path": "tools/proving-experiment/cache/b-subset-desktop/identity.json",
+      "bytes": 8630,
+      "sha256": "246146a29691b7535764e98015878dff1dee63a683c68fc16adb1b2717397c28"
+    },
+    {
+      "path": "tools/proving-experiment/cache/b-subset-desktop/memory.jsonl",
+      "bytes": 186768,
+      "sha256": "495c960632c1e4fac69767f4f1b70443f01b8487118084acab81b928369ff478"
+    },
+    {
+      "path": "tools/proving-experiment/cache/b-subset-desktop/proofs/first-candidate.bin",
+      "bytes": 168,
+      "sha256": "617aba940c46def9bf4716527fedc2bbe43db4a59204c785acd45fc549abcf91"
+    },
+    {
+      "path": "tools/proving-experiment/cache/b-subset-desktop/proofs/first-control.bin",
+      "bytes": 168,
+      "sha256": "430b031bd50bff8bb77becdfdcfb6e2cac6772b4367f3ba2affe68c05241b537"
+    },
+    {
+      "path": "tools/proving-experiment/cache/b-subset-desktop/proofs/warm-3-candidate.bin",
+      "bytes": 168,
+      "sha256": "74c5243839844db6456ced8a1e3612a892b317fa395f76a980255a67af3f5bb5"
+    },
+    {
+      "path": "tools/proving-experiment/cache/b-subset-desktop/proofs/warm-3-control.bin",
+      "bytes": 168,
+      "sha256": "de0a09a99969dd3edebd61e8e1fbde3e4d906c138068dc8aee5dd1a68d4d6624"
+    },
+    {
+      "path": "tools/proving-experiment/cache/b-subset-desktop/proofs/warm-4-candidate.bin",
+      "bytes": 168,
+      "sha256": "3e7bc2444d6c756aee46e9b35465b2ffe0d7d6e702a9b3d5ed5c1e8a37e72eac"
+    },
+    {
+      "path": "tools/proving-experiment/cache/b-subset-desktop/proofs/warm-4-control.bin",
+      "bytes": 168,
+      "sha256": "6216755aa67ed70a19e390b81c641187c4921a0e63fb8089a1aa00d5d5a321b7"
+    },
+    {
+      "path": "tools/proving-experiment/cache/b-subset-desktop/proofs/warm-5-candidate.bin",
+      "bytes": 168,
+      "sha256": "e63a7654f78f60dbed43aaafe457ed1fd74257d50da8e7c0bd821c3f97c49976"
+    },
+    {
+      "path": "tools/proving-experiment/cache/b-subset-desktop/proofs/warm-5-control.bin",
+      "bytes": 168,
+      "sha256": "eed54a4cae4fc7236141dfa5aeebb882eb7e0a18f285ed516a07d5f9df7f13d3"
+    },
+    {
+      "path": "tools/proving-experiment/cache/b-subset-desktop/proofs/warm-6-candidate.bin",
+      "bytes": 168,
+      "sha256": "0c0cb687a28d120b47c00d58f70fb5b37b6cb9c4fc47a2f351921b017978b994"
+    },
+    {
+      "path": "tools/proving-experiment/cache/b-subset-desktop/proofs/warm-6-control.bin",
+      "bytes": 168,
+      "sha256": "7bbec73308a30c926b5957a95dadcab628a38903ef2fb3a882a1c05039cdd479"
+    },
+    {
+      "path": "tools/proving-experiment/cache/b-subset-desktop/proofs/warm-7-candidate.bin",
+      "bytes": 168,
+      "sha256": "2731bbd5000d190820b69cf05bac18d9491eacee57d3a45659cf147622dc1b89"
+    },
+    {
+      "path": "tools/proving-experiment/cache/b-subset-desktop/proofs/warm-7-control.bin",
+      "bytes": 168,
+      "sha256": "216bebd536359425f48f8a26878bc8b1dd1bf29edabb58422cf374047ef5bbe5"
+    },
+    {
+      "path": "tools/proving-experiment/cache/b-subset-desktop/proofs/warmup-0-candidate.bin",
+      "bytes": 168,
+      "sha256": "31af9e0f781c0d830b46a597df3a18028725d629137706f6b9f262162a982658"
+    },
+    {
+      "path": "tools/proving-experiment/cache/b-subset-desktop/proofs/warmup-0-control.bin",
+      "bytes": 168,
+      "sha256": "2ce84fe19a3bc96d12c6433c8d5a92c37b833a335f2961a55aa99bb0449981a8"
+    },
+    {
+      "path": "tools/proving-experiment/cache/b-subset-desktop/proofs/warmup-1-candidate.bin",
+      "bytes": 168,
+      "sha256": "bb436eb8f382ba7687ff2579f6acc3ef3b5f236510a3c77a798e1eb137e6d86e"
+    },
+    {
+      "path": "tools/proving-experiment/cache/b-subset-desktop/proofs/warmup-1-control.bin",
+      "bytes": 168,
+      "sha256": "bb8d73692f7b3fa5a68561cc309cb101ddb566446bb14e56988b0b880f643209"
+    },
+    {
+      "path": "tools/proving-experiment/cache/b-subset-desktop/proofs/warmup-2-candidate.bin",
+      "bytes": 168,
+      "sha256": "0076f0b144dda5143968746906babb574a4221016376bca66173bec343f86557"
+    },
+    {
+      "path": "tools/proving-experiment/cache/b-subset-desktop/proofs/warmup-2-control.bin",
+      "bytes": 168,
+      "sha256": "d9aef271651ba97ac1946312b87036bd16bf3293cdcb0ec6396bbb217b16c0d6"
+    },
+    {
+      "path": "tools/proving-experiment/cache/b-subset-desktop/results.json",
+      "bytes": 720,
+      "sha256": "c65af8398c46d67b2b065bec1f475b8d56f97430a00dcc426bf6df219fdbbcf4"
+    },
+    {
+      "path": "tools/proving-experiment/cache/b-subset-desktop/samples.jsonl",
+      "bytes": 21098,
+      "sha256": "dbebf23a0e85580136ccdbe5357caf25e732147025905f7fc562849011f8a845"
+    },
+    {
+      "path": "tools/proving-experiment/cache/b-subset-keys/subset.pk",
+      "bytes": 54317136,
+      "sha256": "ab53470bcd934f51dfc597e387be15bfbe9a7fd3daac83f71ae84992dae2c6f0"
+    },
+    {
+      "path": "tools/proving-experiment/cache/b-subset-real-proof-gate/complete.json",
+      "bytes": 33,
+      "sha256": "9e269ccda9ffb90da629c2954b3e77cc143fd95615998953f352a5eefe096316"
+    },
+    {
+      "path": "tools/proving-experiment/cache/b-subset-real-proof-gate/gate.json",
+      "bytes": 1894,
+      "sha256": "a537126890e8fb597fa99158e2f6de98457afbc29df401fa8bb6441bc71ab72b"
+    },
+    {
+      "path": "tools/proving-experiment/cache/b-subset-real-proof-gate/transfer.proof",
+      "bytes": 128,
+      "sha256": "6d0c1c63cb46fe72e84582fc64b3404d74b1ede4abbb7876018eaed94a44ae15"
+    },
+    {
+      "path": "tools/proving-experiment/cache/b-subset-real-proof-gate/transfer_accumulating.proof",
+      "bytes": 128,
+      "sha256": "9f1f227bd851a2229f96a443452139c6d03bc26a53387d4c1ccffeffa3c64057"
+    },
+    {
+      "path": "tools/proving-experiment/cache/b-subset-real-proof-gate/transfer_accumulator_continuation.proof",
+      "bytes": 128,
+      "sha256": "43350b5ba16d402122154f3cbbe34ece08c3d96620fc50f4f6d6909548bf758c"
+    },
+    {
+      "path": "tools/proving-experiment/cache/b-subset-real-proof-gate/transfer_flagged.proof",
+      "bytes": 128,
+      "sha256": "2e606879aba25d89e10f817ba65f40b5602cdc610f4524278096dfbe99885e95"
+    },
+    {
+      "path": "tools/proving-experiment/cache/b-subset-real-proof-gate/transfer_over_limit_disclosure.proof",
+      "bytes": 128,
+      "sha256": "b0db05c1aef3f44a76d5f6321cab47972f7b13d0f31ca4c065ac18a03e317e7c"
+    },
+    {
+      "path": "tools/proving-experiment/cache/b-subset-real-proof-gate/transfer_unregulated.proof",
+      "bytes": 128,
+      "sha256": "2446ff3538ab50e16eabafe6ec6d2b395ec01ab79213e551749f192f22cf0c9d"
+    }
+  ]
+}

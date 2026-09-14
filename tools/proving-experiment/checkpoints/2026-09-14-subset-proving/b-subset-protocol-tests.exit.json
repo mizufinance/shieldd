@@ -1,0 +1,19 @@
+{
+  "time_ns": 1789363965411084000,
+  "argv": [
+    "cargo",
+    "+1.89.0",
+    "test",
+    "--release",
+    "--locked",
+    "--offline",
+    "--manifest-path",
+    "tools/proving-experiment/candidates/subset-pari377/Cargo.toml",
+    "--target-dir",
+    "tools/proving-experiment/target",
+    "--",
+    "--test-threads=2"
+  ],
+  "code": 101,
+  "failure": null
+}

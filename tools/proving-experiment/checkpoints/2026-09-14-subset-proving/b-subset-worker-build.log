@@ -1,0 +1,73 @@
+   Compiling shieldd-subset-pari377 v0.1.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/subset-pari377)
+warning: unused import: `G2Projective`
+ --> src/protocol.rs:7:70
+  |
+7 | use ark_bls12_377::{Bls12_377, Fr, G1Affine, G1Projective, G2Affine, G2Projective};
+  |                                                                      ^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `Field`
+ --> src/subgroup.rs:5:28
+  |
+5 | use ark_ff::{AdditiveGroup,Field,MontFp,Zero};
+  |                            ^^^^^
+
+warning: unused import: `AdditiveGroup`
+  --> src/main.rs:12:14
+   |
+12 | use ark_ff::{AdditiveGroup, Field};
+   |              ^^^^^^^^^^^^^
+
+warning: unused import: `Zero`
+ --> src/subgroup.rs:5:41
+  |
+5 | use ark_ff::{AdditiveGroup,Field,MontFp,Zero};
+  |                                         ^^^^
+
+warning: struct `Circuit` is never constructed
+   --> src/bridge.rs:171:12
+    |
+171 | pub struct Circuit {
+    |            ^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` on by default
+
+warning: function `validate_converted` is never used
+   --> src/bridge.rs:240:8
+    |
+240 | pub fn validate_converted(circuit: Circuit) -> Result<usize> {
+    |        ^^^^^^^^^^^^^^^^^^
+
+warning: methods `descriptor`, `fft_size`, and `quotient_oracle` are never used
+   --> src/domain.rs:53:12
+    |
+43  | impl Domain {
+    | ----------- methods in this implementation
+...
+53  |     pub fn descriptor(&self) -> Descriptor {
+    |            ^^^^^^^^^^
+...
+59  |     pub fn fft_size(&self) -> usize {
+    |            ^^^^^^^^
+...
+245 |     pub fn quotient_oracle(&self, a: &[Fr], b: &[Fr]) -> Result<Vec<Fr>> {
+    |            ^^^^^^^^^^^^^^^
+
+warning: method `body_rows` is never used
+   --> src/lowering.rs:139:12
+    |
+68  | impl Lowered {
+    | ------------ method in this implementation
+...
+139 |     pub fn body_rows(&self) -> usize {
+    |            ^^^^^^^^^
+
+warning: constant `SCHEMA` is never used
+  --> src/worker.rs:18:7
+   |
+18 | const SCHEMA: &str = "shieldd.proving_experiment.worker.v1";
+   |       ^^^^^^
+
+warning: `shieldd-subset-pari377` (bin "shieldd-subset-pari377") generated 9 warnings (run `cargo fix --bin "shieldd-subset-pari377"` to apply 3 suggestions)
+    Finished `release` profile [optimized] target(s) in 10.32s

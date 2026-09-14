@@ -24,11 +24,17 @@ All selected workers passed six full API scenarios and altered/truncated/trailin
 
 The [matched C lifetime diagnostic](../../docs/research/native-pari-lifetimes.md) reduces warm peak RSS from3.425 to1.278 GiB while median warm time remains2.75 s. The old A/B/C matrix above is immutable. Six normal-worker Transfer/negative gates, all16 diagnostic proofs and42 release unit tests pass. No allocation instrumentation is enabled in the timing comparison. Converter last-use reclamation preserves the exact relation and existing key; earlier request cleanup is included in full API wall time.
 
+## Completed B subset domain follow-up
+
+The [complete subset377 worker](../../docs/research/pari-subset-proving.md) passes twelve release tests, six real solved-assignment proof gates and six logical-witness full-API gates. Its fresh setup, distinct key codec and transcript bind M229376/N262144; complete real/padding row checks precede coset quotient construction. Statement outlining, masks, canonical decoding and deterministic subgroup checks remain enforced.
+
+Matched two-worker diagnostic: 3 warmups + 5 warm samples and one fresh-process first proof per variant; 18 unique proofs all verify. Warm median 2.306158→2.186758 s (5.18% improvement), first observation59.591334→53.121948 s, warmRSS2.301→2.202 GiB, package168B unchanged. Zero swap/competition, guard exit0. Sources/raw evidence: `checkpoints/2026-09-14-subset-proving`; exact run `cache/b-subset-desktop`. Retain the candidate. This is a targeted B result, not a new matched A/B/C matrix.
+
 ## Next bounded work
 
-The [B377 real-assignment polynomial screen](../../docs/research/pari-subset-polynomial-screen.md) passed: M229376/N262144, all six coefficient gates and five release tests. Complete polynomial work adds20–25 ms including sparse masks and openings;131072 fewer Q/A/R bases may justify it, but this is not a full-proof result. Proceed to a distinct experimental descriptor/key codec and complete setup/prover/verifier path. Preserve the checked loader, statement outlining and combined MSM; reject weak candidates with evidence. The cost screen clears the plausibility gate; require all real-proof/domain/key/statement/encoding negatives before full-API comparison. A fair corresponding gnark Groth16 domain control remains necessary before claiming an intrinsic advantage; no Arkworks Groth16 substitution.
+Implement/evaluate the fair corresponding gnark Groth16 subset control using the same selected-DH circuit, starting with M196608/N262144. Its setup Lagrange weights, vanishing query and actual coset-N quotient must change consistently; wire-indexed A/B/K queries do not automatically shrink. Preserve gnark's proof path and checked verifier; no Arkworks substitution. A single justified domain and short full-API diagnostic suffice; no grid or corpus restart. Evaluate native C applicability after this control, then select final A/B/C winners for one compact session.
 
-Structured subset domains passed full-size synthetic polynomial identities and cost probes, but are not integrated proof systems. Their extra polynomial work must be weighed against shorter commitments, with fair Groth16 applicability. The synthetic Groth16 product kernel is not current gnark's coset-N implementation. Continue according to the [authorized campaign](../../docs/research/zkpari-optimization-campaign.md); do not treat component probes or unavailable phones as campaign completion.
+Continue according to the [authorized campaign](../../docs/research/zkpari-optimization-campaign.md). Component screens and unavailable phones do not complete the campaign.
 
 Physical iPhone/Android measurements remain unavailable from the recorded device check. Desktop ARM is not phone evidence. Actual devices and build/signing access remain prerequisites.
 
