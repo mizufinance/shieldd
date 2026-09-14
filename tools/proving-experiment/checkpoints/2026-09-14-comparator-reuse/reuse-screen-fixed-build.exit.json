@@ -1,0 +1,14 @@
+{
+  "time_ns": 1789375692197079000,
+  "argv": [
+    "cargo",
+    "+1.95.0",
+    "build",
+    "--locked",
+    "--release",
+    "--manifest-path",
+    "tools/proving-experiment/candidates/reuse-screen/Cargo.toml"
+  ],
+  "code": 0,
+  "failure": null
+}

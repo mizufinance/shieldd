@@ -1,0 +1,14 @@
+{
+  "schema": "shieldd.reuse_comparator_complete.v1",
+  "files": {
+    "comparator.json": "98d54d0878854c309dda204b0d861caea1d4a1ffe76793fffd6aa52b87c9e2ed",
+    "control.json": "92f04e18c6ad6f86bb8c7fa9e18296e72229cdf145e17e3966e600e3f078e145",
+    "full": "33fb83a5a6fb05eed75f7ef71c148f4872b17b7c9f40f10816291ce3010afeb4",
+    "gadget": "7cfd3f455f9e5d2d0afe4020c1f0a84c38504e65d39a4fa382172e7d627d01ea",
+    "gadget.json": "20c6adbe853e670d101dfcd3432276abccdf026fea8166ce6d97a866050d6591",
+    "identity.json": "d663c09babb006feb23737b39e0d53e2cc1978443b6cf57940e0fe663fcb0673",
+    "reuse": "dc59449972f9b687f87607aa8051aa8a86b02d349da51e57884f965170289c04",
+    "reuse.json": "d430ada19ae033241b34484de4ae4601e711d426d1b441486ed670ef7ed7ae98",
+    "source.tar.gz": "6b46c97f6cf52fe3ab60b2617f3299f71e216c6fc73dfd38dcf2552e7f1418d1"
+  }
+}

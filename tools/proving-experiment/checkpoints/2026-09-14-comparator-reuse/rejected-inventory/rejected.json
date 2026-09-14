@@ -1,0 +1,4 @@
+{
+  "schema": "shieldd.rejected_inventory.v1",
+  "reason": "Native Scalar Debug redacts values; initial hash identity classification aliases distinct constants. Original relation and six assignment checks passed, but duplicate hash counts are invalid. See reuse-native-identity-repro.log; no resulting circuit optimization was made."
+}

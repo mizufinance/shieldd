@@ -1,0 +1,2498 @@
+{
+  "schema": "shieldd.native_exact_reuse_inventory.v1",
+  "field": "BLS12-381.Fr",
+  "parameter_hash": "6042f606efca175b8926e8c5f8bd150214f4f99746f27f610327b8dffa699e70",
+  "relation": "80915f4d2181d1a6ff31c9d17b5855f665946b466fd66e9e7f10660c213a17d5",
+  "rows": 220009,
+  "columns": 220029,
+  "retained_domain": 229376,
+  "fft_domain": 262144,
+  "events": [
+    {
+      "kind": {
+        "Hash": {
+          "domain": 23,
+          "arity": 4
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 24,
+          "arity": 6
+        }
+      },
+      "duplicate_of": null,
+      "rows": 836,
+      "columns": 836
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 25,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 416,
+      "columns": 416
+    },
+    {
+      "kind": {
+        "Bits": {
+          "width": 32
+        }
+      },
+      "duplicate_of": null,
+      "rows": 33,
+      "columns": 32
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 2,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 2,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 2,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 2,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 2,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 2,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 2,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 2,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 2,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 2,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 2,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 2,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 2,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 2,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 2,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 2,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 19,
+          "arity": 11
+        }
+      },
+      "duplicate_of": null,
+      "rows": 1256,
+      "columns": 1256
+    },
+    {
+      "kind": {
+        "Bits": {
+          "width": 32
+        }
+      },
+      "duplicate_of": null,
+      "rows": 33,
+      "columns": 32
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 3,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 3,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 3,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 3,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 3,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 3,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 3,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 3,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 3,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 3,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 3,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 3,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 3,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 3,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 3,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 3,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Bits": {
+          "width": 131
+        }
+      },
+      "duplicate_of": null,
+      "rows": 132,
+      "columns": 131
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 19,
+          "arity": 11
+        }
+      },
+      "duplicate_of": null,
+      "rows": 1256,
+      "columns": 1256
+    },
+    {
+      "kind": {
+        "Bits": {
+          "width": 32
+        }
+      },
+      "duplicate_of": null,
+      "rows": 33,
+      "columns": 32
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 3,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 3,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 3,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 3,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 3,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 3,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 3,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 3,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 3,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 3,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 3,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 3,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 3,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 3,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 3,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 3,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Bits": {
+          "width": 131
+        }
+      },
+      "duplicate_of": null,
+      "rows": 132,
+      "columns": 131
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 16,
+          "arity": 3
+        }
+      },
+      "duplicate_of": null,
+      "rows": 408,
+      "columns": 408
+    },
+    {
+      "kind": {
+        "Bits": {
+          "width": 4
+        }
+      },
+      "duplicate_of": null,
+      "rows": 5,
+      "columns": 4
+    },
+    {
+      "kind": {
+        "Bits": {
+          "width": 252
+        }
+      },
+      "duplicate_of": null,
+      "rows": 253,
+      "columns": 252
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 17,
+          "arity": 9
+        }
+      },
+      "duplicate_of": null,
+      "rows": 836,
+      "columns": 836
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 18,
+          "arity": 1
+        }
+      },
+      "duplicate_of": null,
+      "rows": 316,
+      "columns": 316
+    },
+    {
+      "kind": {
+        "Bits": {
+          "width": 128
+        }
+      },
+      "duplicate_of": null,
+      "rows": 129,
+      "columns": 128
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 15,
+          "arity": 8
+        }
+      },
+      "duplicate_of": null,
+      "rows": 836,
+      "columns": 836
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 7,
+          "arity": 3
+        }
+      },
+      "duplicate_of": null,
+      "rows": 408,
+      "columns": 408
+    },
+    {
+      "kind": {
+        "Bits": {
+          "width": 48
+        }
+      },
+      "duplicate_of": null,
+      "rows": 49,
+      "columns": 48
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Bits": {
+          "width": 252
+        }
+      },
+      "duplicate_of": null,
+      "rows": 253,
+      "columns": 252
+    },
+    {
+      "kind": {
+        "Bits": {
+          "width": 48
+        }
+      },
+      "duplicate_of": 66,
+      "rows": 49,
+      "columns": 48
+    },
+    {
+      "kind": {
+        "Bits": {
+          "width": 48
+        }
+      },
+      "duplicate_of": null,
+      "rows": 49,
+      "columns": 48
+    },
+    {
+      "kind": {
+        "Bits": {
+          "width": 128
+        }
+      },
+      "duplicate_of": null,
+      "rows": 129,
+      "columns": 128
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 15,
+          "arity": 8
+        }
+      },
+      "duplicate_of": null,
+      "rows": 836,
+      "columns": 836
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 7,
+          "arity": 3
+        }
+      },
+      "duplicate_of": null,
+      "rows": 408,
+      "columns": 408
+    },
+    {
+      "kind": {
+        "Bits": {
+          "width": 48
+        }
+      },
+      "duplicate_of": null,
+      "rows": 49,
+      "columns": 48
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Bits": {
+          "width": 252
+        }
+      },
+      "duplicate_of": null,
+      "rows": 253,
+      "columns": 252
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 22,
+          "arity": 3
+        }
+      },
+      "duplicate_of": null,
+      "rows": 404,
+      "columns": 404
+    },
+    {
+      "kind": {
+        "Bits": {
+          "width": 48
+        }
+      },
+      "duplicate_of": 97,
+      "rows": 49,
+      "columns": 48
+    },
+    {
+      "kind": {
+        "Bits": {
+          "width": 48
+        }
+      },
+      "duplicate_of": 93,
+      "rows": 49,
+      "columns": 48
+    },
+    {
+      "kind": {
+        "Bits": {
+          "width": 128
+        }
+      },
+      "duplicate_of": null,
+      "rows": 129,
+      "columns": 128
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 15,
+          "arity": 8
+        }
+      },
+      "duplicate_of": null,
+      "rows": 836,
+      "columns": 836
+    },
+    {
+      "kind": {
+        "Bits": {
+          "width": 252
+        }
+      },
+      "duplicate_of": null,
+      "rows": 253,
+      "columns": 252
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 11,
+          "arity": 2
+        }
+      },
+      "duplicate_of": null,
+      "rows": 320,
+      "columns": 320
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 21,
+          "arity": 4
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 10,
+          "arity": 2
+        }
+      },
+      "duplicate_of": null,
+      "rows": 316,
+      "columns": 316
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 10,
+          "arity": 2
+        }
+      },
+      "duplicate_of": 131,
+      "rows": 316,
+      "columns": 316
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 20,
+          "arity": 7
+        }
+      },
+      "duplicate_of": null,
+      "rows": 836,
+      "columns": 836
+    },
+    {
+      "kind": {
+        "Bits": {
+          "width": 128
+        }
+      },
+      "duplicate_of": null,
+      "rows": 129,
+      "columns": 128
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 15,
+          "arity": 8
+        }
+      },
+      "duplicate_of": null,
+      "rows": 836,
+      "columns": 836
+    },
+    {
+      "kind": {
+        "Bits": {
+          "width": 252
+        }
+      },
+      "duplicate_of": null,
+      "rows": 253,
+      "columns": 252
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 11,
+          "arity": 2
+        }
+      },
+      "duplicate_of": null,
+      "rows": 320,
+      "columns": 320
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 21,
+          "arity": 4
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 10,
+          "arity": 2
+        }
+      },
+      "duplicate_of": null,
+      "rows": 316,
+      "columns": 316
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 10,
+          "arity": 2
+        }
+      },
+      "duplicate_of": 139,
+      "rows": 316,
+      "columns": 316
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 20,
+          "arity": 7
+        }
+      },
+      "duplicate_of": null,
+      "rows": 836,
+      "columns": 836
+    },
+    {
+      "kind": {
+        "Bits": {
+          "width": 64
+        }
+      },
+      "duplicate_of": null,
+      "rows": 65,
+      "columns": 64
+    },
+    {
+      "kind": {
+        "Bits": {
+          "width": 48
+        }
+      },
+      "duplicate_of": null,
+      "rows": 49,
+      "columns": 48
+    },
+    {
+      "kind": {
+        "Bits": {
+          "width": 17
+        }
+      },
+      "duplicate_of": null,
+      "rows": 18,
+      "columns": 17
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 4,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 416,
+      "columns": 416
+    },
+    {
+      "kind": {
+        "Bits": {
+          "width": 128
+        }
+      },
+      "duplicate_of": null,
+      "rows": 129,
+      "columns": 128
+    },
+    {
+      "kind": {
+        "Bits": {
+          "width": 128
+        }
+      },
+      "duplicate_of": null,
+      "rows": 129,
+      "columns": 128
+    },
+    {
+      "kind": {
+        "Bits": {
+          "width": 128
+        }
+      },
+      "duplicate_of": null,
+      "rows": 129,
+      "columns": 128
+    },
+    {
+      "kind": {
+        "Bits": {
+          "width": 128
+        }
+      },
+      "duplicate_of": null,
+      "rows": 129,
+      "columns": 128
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 5,
+          "arity": 4
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Bits": {
+          "width": 48
+        }
+      },
+      "duplicate_of": null,
+      "rows": 49,
+      "columns": 48
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 1,
+          "arity": 5
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 6,
+          "arity": 3
+        }
+      },
+      "duplicate_of": null,
+      "rows": 408,
+      "columns": 408
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 7,
+          "arity": 3
+        }
+      },
+      "duplicate_of": null,
+      "rows": 408,
+      "columns": 408
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 5,
+          "arity": 4
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 9,
+          "arity": 3
+        }
+      },
+      "duplicate_of": null,
+      "rows": 408,
+      "columns": 408
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 8,
+          "arity": 3
+        }
+      },
+      "duplicate_of": null,
+      "rows": 408,
+      "columns": 408
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 14,
+          "arity": 2
+        }
+      },
+      "duplicate_of": null,
+      "rows": 316,
+      "columns": 316
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 14,
+          "arity": 2
+        }
+      },
+      "duplicate_of": 181,
+      "rows": 316,
+      "columns": 316
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 14,
+          "arity": 2
+        }
+      },
+      "duplicate_of": 181,
+      "rows": 316,
+      "columns": 316
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 14,
+          "arity": 2
+        }
+      },
+      "duplicate_of": 181,
+      "rows": 316,
+      "columns": 316
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 14,
+          "arity": 2
+        }
+      },
+      "duplicate_of": 181,
+      "rows": 316,
+      "columns": 316
+    },
+    {
+      "kind": {
+        "Bits": {
+          "width": 252
+        }
+      },
+      "duplicate_of": null,
+      "rows": 253,
+      "columns": 252
+    },
+    {
+      "kind": {
+        "Bits": {
+          "width": 252
+        }
+      },
+      "duplicate_of": null,
+      "rows": 253,
+      "columns": 252
+    },
+    {
+      "kind": {
+        "Bits": {
+          "width": 252
+        }
+      },
+      "duplicate_of": null,
+      "rows": 253,
+      "columns": 252
+    },
+    {
+      "kind": {
+        "Bits": {
+          "width": 252
+        }
+      },
+      "duplicate_of": null,
+      "rows": 253,
+      "columns": 252
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 12,
+          "arity": 4
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 10,
+          "arity": 2
+        }
+      },
+      "duplicate_of": null,
+      "rows": 316,
+      "columns": 316
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 10,
+          "arity": 2
+        }
+      },
+      "duplicate_of": 191,
+      "rows": 316,
+      "columns": 316
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 10,
+          "arity": 2
+        }
+      },
+      "duplicate_of": 191,
+      "rows": 316,
+      "columns": 316
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 10,
+          "arity": 2
+        }
+      },
+      "duplicate_of": 191,
+      "rows": 316,
+      "columns": 316
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 11,
+          "arity": 2
+        }
+      },
+      "duplicate_of": null,
+      "rows": 320,
+      "columns": 320
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 13,
+          "arity": 4
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 10,
+          "arity": 2
+        }
+      },
+      "duplicate_of": null,
+      "rows": 316,
+      "columns": 316
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 11,
+          "arity": 2
+        }
+      },
+      "duplicate_of": null,
+      "rows": 320,
+      "columns": 320
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 13,
+          "arity": 4
+        }
+      },
+      "duplicate_of": null,
+      "rows": 412,
+      "columns": 412
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 10,
+          "arity": 2
+        }
+      },
+      "duplicate_of": null,
+      "rows": 316,
+      "columns": 316
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 11,
+          "arity": 2
+        }
+      },
+      "duplicate_of": null,
+      "rows": 320,
+      "columns": 320
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 10,
+          "arity": 2
+        }
+      },
+      "duplicate_of": null,
+      "rows": 316,
+      "columns": 316
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 10,
+          "arity": 2
+        }
+      },
+      "duplicate_of": 202,
+      "rows": 316,
+      "columns": 316
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 10,
+          "arity": 2
+        }
+      },
+      "duplicate_of": 202,
+      "rows": 316,
+      "columns": 316
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 11,
+          "arity": 2
+        }
+      },
+      "duplicate_of": null,
+      "rows": 320,
+      "columns": 320
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 10,
+          "arity": 2
+        }
+      },
+      "duplicate_of": null,
+      "rows": 316,
+      "columns": 316
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 10,
+          "arity": 2
+        }
+      },
+      "duplicate_of": 206,
+      "rows": 316,
+      "columns": 316
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 10,
+          "arity": 2
+        }
+      },
+      "duplicate_of": 206,
+      "rows": 316,
+      "columns": 316
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 33,
+          "arity": 3
+        }
+      },
+      "duplicate_of": null,
+      "rows": 408,
+      "columns": 408
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 30,
+          "arity": 2
+        }
+      },
+      "duplicate_of": null,
+      "rows": 320,
+      "columns": 320
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 30,
+          "arity": 2
+        }
+      },
+      "duplicate_of": null,
+      "rows": 320,
+      "columns": 320
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 32,
+          "arity": 1
+        }
+      },
+      "duplicate_of": null,
+      "rows": 316,
+      "columns": 316
+    },
+    {
+      "kind": {
+        "Bits": {
+          "width": 32
+        }
+      },
+      "duplicate_of": null,
+      "rows": 33,
+      "columns": 32
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 31,
+          "arity": 2
+        }
+      },
+      "duplicate_of": null,
+      "rows": 316,
+      "columns": 316
+    },
+    {
+      "kind": {
+        "Bits": {
+          "width": 32
+        }
+      },
+      "duplicate_of": null,
+      "rows": 33,
+      "columns": 32
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 31,
+          "arity": 2
+        }
+      },
+      "duplicate_of": 214,
+      "rows": 316,
+      "columns": 316
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 26,
+          "arity": 1
+        }
+      },
+      "duplicate_of": null,
+      "rows": 316,
+      "columns": 316
+    },
+    {
+      "kind": {
+        "Bits": {
+          "width": 128
+        }
+      },
+      "duplicate_of": 63,
+      "rows": 129,
+      "columns": 128
+    },
+    {
+      "kind": {
+        "Bits": {
+          "width": 128
+        }
+      },
+      "duplicate_of": 94,
+      "rows": 129,
+      "columns": 128
+    },
+    {
+      "kind": {
+        "Bits": {
+          "width": 129
+        }
+      },
+      "duplicate_of": null,
+      "rows": 130,
+      "columns": 129
+    },
+    {
+      "kind": {
+        "Bits": {
+          "width": 128
+        }
+      },
+      "duplicate_of": 126,
+      "rows": 129,
+      "columns": 128
+    },
+    {
+      "kind": {
+        "Bits": {
+          "width": 128
+        }
+      },
+      "duplicate_of": 134,
+      "rows": 129,
+      "columns": 128
+    },
+    {
+      "kind": {
+        "Bits": {
+          "width": 129
+        }
+      },
+      "duplicate_of": null,
+      "rows": 130,
+      "columns": 129
+    },
+    {
+      "kind": {
+        "Bits": {
+          "width": 252
+        }
+      },
+      "duplicate_of": null,
+      "rows": 253,
+      "columns": 252
+    },
+    {
+      "kind": {
+        "Hash": {
+          "domain": 34,
+          "arity": 60
+        }
+      },
+      "duplicate_of": null,
+      "rows": 5036,
+      "columns": 5036
+    }
+  ],
+  "facts": [
+    {
+      "scenario": "transfer",
+      "source_witness_sha256": "5ffcfcba748488c17f3f210c0b39df9acf55cd633937ab03d85b826a02377ed7",
+      "witness_sha256": "e3a2b0a26fa79f3acc5262df51e637ddd597b982212aac69f570ab707dbd1be8",
+      "claimed_statement": "2c3bb0b999afe36570c12184d153b24481d09788e538942763a09feb98fee345"
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "source_witness_sha256": "29ee09b01b37f6babf077598592d59543d1cfbff04bb32c6aeeca556376a6d0e",
+      "witness_sha256": "8cdeb0aeb3d9600543b348bdaf098dc468cee1eef7f3e2c58daaebffac8a14d6",
+      "claimed_statement": "38097dabdcaae1f0722cd836cfae6c3dfd2bd38241d8c47db3cd388fe53af236"
+    },
+    {
+      "scenario": "transfer_flagged",
+      "source_witness_sha256": "b9ff36f425883506d9072b839ba985148b42439ac5a6662037098d1620c13444",
+      "witness_sha256": "717f6aae02a71c9580684ea9e9596d71138438659465b6f1fabbc6e0e0d52db6",
+      "claimed_statement": "3c19bb923108ba9ad0b65b46098a4ef9db8aff918bde9b02ab21793d0b3918fd"
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "source_witness_sha256": "772c73cec6983592d4735b82d9cabbd6285bcc7a829b315b42accb64fea701be",
+      "witness_sha256": "a07c8dfc78ffbe794422a52bf59c4f760063cd50d3ab734e160c9801d1f0d2dd",
+      "claimed_statement": "65ca3f8d0d7f9136f5b0f4bf46c7dcde07cf89f84633f95acd870df2ef2a13db"
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "source_witness_sha256": "f79dafffe411ae9d2f39e094527dfd1934d3f14951fc937daba01365ea063206",
+      "witness_sha256": "552e03d7caff95b1209fbe041236b41d83036871189cb052dccfd805860fb3e3",
+      "claimed_statement": "3a7350304ce482fb30dc478ebbcf4156e63a3060571f10cbaf6b6f8b57187730"
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "source_witness_sha256": "79a9440928f4b83f08e1b30e8630573e393164dd69035f7d11a5a7a4b5c17dae",
+      "witness_sha256": "a2f21b188678576fba9abcb17e2b9f68208622608e956cfc1a6b455ea5e83c2c",
+      "claimed_statement": "5128d5d1a7eb5ca5585c047e80f1f1d572f0b7e4ab41309bc34e586b9eb929af"
+    }
+  ],
+  "all_original_converted_valid": true,
+  "invalid_witness_rejected": true,
+  "altered_statement_rejected": true,
+  "limits": "Exact same node identities only, with context/field/parameters/domain/input order and decomposition width. Debug identity keys are scoped to one build and not exported. Independently reconstructed equal expressions are not recognized. Range spans exclude outer canonical/upper-bound predicates, which must remain if bits are shared. This inventory changes no circuit and establishes no proving speedup."
+}

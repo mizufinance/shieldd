@@ -1,0 +1,18 @@
+{
+  "time_ns": 1789375450182427000,
+  "argv": [
+    "cargo",
+    "+1.95.0",
+    "test",
+    "--locked",
+    "--release",
+    "--manifest-path",
+    "tools/proving-experiment/candidates/reuse-screen/Cargo.toml",
+    "--lib",
+    "native_zero_and_one_are_distinct_despite_redacted_debug",
+    "--",
+    "--test-threads=2"
+  ],
+  "code": 101,
+  "failure": null
+}

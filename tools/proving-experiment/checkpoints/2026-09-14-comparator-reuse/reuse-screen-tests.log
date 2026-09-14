@@ -1,0 +1,44 @@
+    Updating crates.io index
+     Locking 185 packages to latest Rust 1.95 compatible versions
+      Adding generic-array v0.14.7 (available: v0.14.9)
+warning: commonware-macros-impl@2026.7.0: stability cfg not set; set RUSTFLAGS="--cfg commonware_stability_X" (ALPHA/BETA/GAMMA/DELTA/EPSILON) to enforce stability gating
+   Compiling elliptic-curve v0.14.1
+   Compiling rfc6979 v0.6.0
+   Compiling commonware-utils v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-subset381/utils)
+   Compiling primeorder v0.14.0
+   Compiling ecdsa v0.17.0
+   Compiling commonware-math v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-subset381/math)
+   Compiling p256 v0.14.0
+   Compiling commonware-cryptography v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-subset381/cryptography)
+   Compiling shieldd-native-subset-experiment v0.1.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/native-subset)
+warning: unused import: `commonware_math::algebra::Additive`
+  --> /Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/native-subset/src/balance.rs:13:5
+   |
+13 | use commonware_math::algebra::Additive;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `Ring`
+  --> /Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/native-subset/src/encryption.rs:12:42
+   |
+12 | use commonware_math::algebra::{Additive, Ring};
+   |                                          ^^^^
+
+warning: unused import: `Ring`
+  --> /Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/native-subset/src/recovery.rs:12:42
+   |
+12 | use commonware_math::algebra::{Additive, Ring};
+   |                                          ^^^^
+
+warning: `shieldd-native-subset-experiment` (lib) generated 3 warnings (run `cargo fix --lib -p shieldd-native-subset-experiment` to apply 3 suggestions)
+   Compiling shieldd-native-reuse-screen v0.1.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/reuse-screen)
+    Finished `release` profile [optimized] target(s) in 12.82s
+     Running unittests src/lib.rs (tools/proving-experiment/native/target/release/deps/shieldd_native_reuse_screen-ace0abd69b509f7c)
+
+running 2 tests
+test tests::exact_identity_keeps_domains_order_width_and_expression_identity ... ok
+test tests::separate_contexts_and_inventory_sessions_do_not_alias ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

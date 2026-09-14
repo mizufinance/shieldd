@@ -1,0 +1,30 @@
+[package]
+name = "shieldd-native-comparator-screen"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.95"
+publish = false
+
+[workspace]
+
+[dependencies]
+native = { package = "shieldd-native-subset-experiment", path = "../native-subset" }
+commonware-cryptography = { path = "../../cache/commonware-subset381/cryptography", features = ["std", "bls12381"] }
+commonware-math = { path = "../../cache/commonware-subset381/math" }
+commonware-codec = { path = "../../cache/commonware-subset381/codec" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+anyhow = "1"
+hex = "0.4"
+sha2 = "=0.11.0"
+
+[profile.release]
+debug = 0
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(feature, values("cost_trace", "allocation_trace"))'] }
+
+[[bin]]
+name = "comparator-transfer-screen"
+path = "src/bin/full.rs"
+test = false

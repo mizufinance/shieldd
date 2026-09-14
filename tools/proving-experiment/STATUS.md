@@ -66,7 +66,7 @@ Exact run `cache/b-owned-desktop`; evidence `checkpoints/2026-09-14-owned-admiss
 
 ## Next bounded work
 
-Continue with an exact structural reuse screen for repeated hash, square and bit work, preserving the existing hash domains, parameters and semantics. Count the actual complete relation and validate all six assignments before any new setup. Keep the hinted gadget as a possible combined component; its independent gain does not yet justify keys. A/B application still requires an exact Decaf-representative argument.
+Continue the fair strict-comparator compile/solve and actual square-lowering gate for A/B, and the C M196608/N262144 domain/polynomial gate. The completed native comparator reduces the circuit enough to justify this smaller retained domain. Include the hinted gadget as a possible combined candidate after its count/solve gate. Keep every source/key/descriptor distinct and preserve the old workers.
 
 ## Completed corrected hinted-scalar screen
 
@@ -78,7 +78,7 @@ Seven release gadget/dynamic tests pass. All six existing native witness/stateme
 
 - Completed preparation/ownership: C lifetime cleanup; B checked compressed/uncompressed loading and private owned-child admission. Further changes require a distinct measured mechanism; do not repeat this grid.
 - Completed C circuit screen: corrected hinted scalar multiplication saves2.90%rows, domains unchanged; retain component without new keys. A/B exact Decaf-representative applicability remains pending; do not substitute prime-subgroup coordinates silently.
-- Pending source/compile screens: global square/bit reuse and reviewed exact-arity Anemoi/Jive, especially C. No reduced-round hash shortcut or unmeasured claim.
+- Completed exact-index reuse screen:184hash calls/0exact repeats,42decompositions/7repeats (663rows); no cross-component cache refactor justified. This is not a global equivalent-expression result. Native comparator now191516rows/191501columns (12.95%row reduction), with all-six original/converted/negative gates passing. A/B comparator and C3/4domain gates are next. Broader square reuse and reviewed exact-arity hash alternatives remain distinct possibilities, without reduced-round shortcuts.
 - Pending arithmetic feasibility: selected-path ARM64 squaring, safe SIMD/WASM MSM, bounded tables or one justified compiler setting. GPU requires a distinct curve-correct feasibility case. No broad profile grid.
 - Closed/low priority on recorded evidence: EdMSM, prior GLV/windows, gnark381 hybrid and dense-scalar partition variants unless a new mechanism changes their cost case. Separate protocol/PQ/remote-proving alternatives cannot inherit this network comparison.
 
@@ -87,3 +87,7 @@ Continue according to the [authorized campaign](../../docs/research/zkpari-optim
 Physical iPhone/Android measurements remain unavailable from the recorded device check. Desktop ARM is not phone evidence. Actual devices and build/signing access remain prerequisites.
 
 The older `tools/zkpari-spike` campaign and `complete-shieldd-proof-spike` automation stay stopped/paused. Its two 4,096-proof corpora and completed one-worker results are preserved. Do not resume that excluded verification campaign. Formal work stays in shieldd-security.
+
+## Completed inclusive-comparator and exact-reuse screen
+
+[Report](../../docs/research/native-comparator-reuse-screen.md): C220009→191516rows and220029→191501columns; M229376 currently retained, but M196608 fits. Polynomial LSB-first inclusive comparator keeps input predicates and final BoolVar assertion. Two release tests check1048small/boundary/wrong-answer cases; six full Transfer original/converted identities and invalid-witness/statement negatives pass,18prepared solves pervariant. Standard checked-solve median214.078→190.925ms; no full proving claim. Guard0/swap0/no competition. Exact reuse:184hashes/0repeats,42decompositions/7repeats663rows. Initial redacted-native-scalar diagnostic aliases were reproduced, rejected and corrected before any optimization; four identity tests pass. Sources/raw results `cache/reuse-comparator`, checkpoint `2026-09-14-comparator-reuse`. Continue A/B strict-comparator gate and C3/4domain/polynomial gate before setup.

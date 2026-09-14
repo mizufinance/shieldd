@@ -1,0 +1,16 @@
+{
+  "time_ns": 1789375331981073000,
+  "argv": [
+    "cargo",
+    "+1.95.0",
+    "test",
+    "--release",
+    "--manifest-path",
+    "tools/proving-experiment/candidates/range-comparator/Cargo.toml",
+    "--lib",
+    "--",
+    "--test-threads=2"
+  ],
+  "code": 0,
+  "failure": null
+}

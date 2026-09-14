@@ -1,0 +1,104 @@
+{
+  "schema": "shieldd.comparator_reuse_report.v1",
+  "decision": "proceed_to_domain_and_fair_ab_gates",
+  "rows": [
+    220009,
+    191516
+  ],
+  "columns": [
+    220029,
+    191501
+  ],
+  "current_retained_domain": 229376,
+  "fft_domain": 262144,
+  "fits_next_retained_domain": 196608,
+  "scenarios": [
+    {
+      "scenario": "transfer",
+      "control": {
+        "construction_ns": 46.60925,
+        "mapping_ns": 118.386833,
+        "complete_checked_ns": 214.078042
+      },
+      "comparator": {
+        "construction_ns": 44.676667,
+        "mapping_ns": 111.41675,
+        "complete_checked_ns": 190.925167
+      }
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "control": {
+        "construction_ns": 47.032584,
+        "mapping_ns": 118.209417,
+        "complete_checked_ns": 214.435208
+      },
+      "comparator": {
+        "construction_ns": 46.131458,
+        "mapping_ns": 113.194041,
+        "complete_checked_ns": 195.678666
+      }
+    },
+    {
+      "scenario": "transfer_flagged",
+      "control": {
+        "construction_ns": 46.797208,
+        "mapping_ns": 118.918875,
+        "complete_checked_ns": 214.459417
+      },
+      "comparator": {
+        "construction_ns": 46.018917,
+        "mapping_ns": 112.75925,
+        "complete_checked_ns": 194.255959
+      }
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "control": {
+        "construction_ns": 47.673,
+        "mapping_ns": 118.544333,
+        "complete_checked_ns": 215.19875
+      },
+      "comparator": {
+        "construction_ns": 45.854667,
+        "mapping_ns": 118.894333,
+        "complete_checked_ns": 200.962125
+      }
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "control": {
+        "construction_ns": 47.305167,
+        "mapping_ns": 119.94775,
+        "complete_checked_ns": 216.136458
+      },
+      "comparator": {
+        "construction_ns": 45.921167,
+        "mapping_ns": 114.383833,
+        "complete_checked_ns": 196.326375
+      }
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "control": {
+        "construction_ns": 46.915166,
+        "mapping_ns": 119.455958,
+        "complete_checked_ns": 214.888625
+      },
+      "comparator": {
+        "construction_ns": 45.658833,
+        "mapping_ns": 112.585,
+        "complete_checked_ns": 194.435958
+      }
+    }
+  ],
+  "reuse": {
+    "hash_calls": 184,
+    "exact_repeated_hashes": 0,
+    "decomposition_calls": 42,
+    "repeated_decompositions": 7,
+    "repeated_decomposition_rows": 663,
+    "unclassified_events": 0
+  },
+  "completion_sha256": "619f5ecec7d2468a6fa3356b3be5621d1eb60218e873ff4250efa2fb1ca4867d"
+}

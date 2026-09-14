@@ -1,0 +1,86 @@
+{
+  "schema": "shieldd.native_comparator_cost.v1",
+  "costs": [
+    {
+      "candidate": false,
+      "width": 128,
+      "constant_bound": false,
+      "gadget_rows": 1788,
+      "total_rows": 2048,
+      "columns": 2048,
+      "original_valid": true,
+      "converted_valid": true
+    },
+    {
+      "candidate": true,
+      "width": 128,
+      "constant_bound": false,
+      "gadget_rows": 511,
+      "total_rows": 771,
+      "columns": 770,
+      "original_valid": true,
+      "converted_valid": true
+    },
+    {
+      "candidate": false,
+      "width": 128,
+      "constant_bound": true,
+      "gadget_rows": 764,
+      "total_rows": 895,
+      "columns": 895,
+      "original_valid": true,
+      "converted_valid": true
+    },
+    {
+      "candidate": true,
+      "width": 128,
+      "constant_bound": true,
+      "gadget_rows": 1,
+      "total_rows": 132,
+      "columns": 131,
+      "original_valid": true,
+      "converted_valid": true
+    },
+    {
+      "candidate": false,
+      "width": 252,
+      "constant_bound": false,
+      "gadget_rows": 3524,
+      "total_rows": 4032,
+      "columns": 4032,
+      "original_valid": true,
+      "converted_valid": true
+    },
+    {
+      "candidate": true,
+      "width": 252,
+      "constant_bound": false,
+      "gadget_rows": 1007,
+      "total_rows": 1515,
+      "columns": 1514,
+      "original_valid": true,
+      "converted_valid": true
+    },
+    {
+      "candidate": false,
+      "width": 252,
+      "constant_bound": true,
+      "gadget_rows": 1236,
+      "total_rows": 1491,
+      "columns": 1491,
+      "original_valid": true,
+      "converted_valid": true
+    },
+    {
+      "candidate": true,
+      "width": 252,
+      "constant_bound": true,
+      "gadget_rows": 503,
+      "total_rows": 758,
+      "columns": 757,
+      "original_valid": true,
+      "converted_valid": true
+    }
+  ],
+  "limits": "Complete inclusive-comparator constraints, unchanged bit/range input checks. No full Transfer or proving measurement."
+}

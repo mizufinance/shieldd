@@ -1,0 +1,10 @@
+{
+  "time_ns": 1789375780000346000,
+  "argv": [
+    "python3",
+    "tools/proving-experiment/reuse_comparator_screen.py",
+    "tools/proving-experiment/cache/reuse-comparator"
+  ],
+  "code": 0,
+  "failure": null
+}
