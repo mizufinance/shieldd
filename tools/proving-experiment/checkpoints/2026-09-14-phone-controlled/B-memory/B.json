@@ -1,0 +1,109 @@
+{
+  "schema": "shieldd.phone_config.v2",
+  "backend": "B",
+  "worker_schema": "shieldd.proving_experiment.selected_b.v1",
+  "command": [
+    "/data/local/tmp/shieldd-phone-20260914/v2/bin/B-memory",
+    "serve",
+    "/data/local/tmp/shieldd-phone-20260914/relation",
+    "/data/local/tmp/shieldd-phone-20260914/keys/B/subset.pk",
+    "/data/local/tmp/shieldd-phone-20260914/bin/A",
+    "/data/local/tmp/shieldd-phone-20260914/keys/A",
+    "/data/local/tmp/shieldd-phone-20260914/bin/private"
+  ],
+  "artifacts": [
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/v2/bin/supervisor",
+      "sha256": "a47d97c2345548bdf87a39431c85e8f39b1f54ae58d0dc53ff267c5b916ff890"
+    },
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/v2/bin/B-memory",
+      "sha256": "4847969da507d5e52abeb7d0f3e8c25bfad59a0d973e5ba4a222be216a839eea"
+    },
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/relation/metadata.json",
+      "sha256": "cb8253eaeb0803ac0274b284e7b76324c3299a79a4ced2724cdf2c3bb1d80402"
+    },
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/relation/transfer.r1cs",
+      "sha256": "94a894fdd2ae5cc993d7e96a4fb3e1c0461745be6da73d1d11acbc6443717d79"
+    },
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/keys/B/subset.pk",
+      "sha256": "f7e8771a8c1bd9a4ef426b41febb79763d1736d1eb1973fe8e576dad74bf3534"
+    },
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/keys/A/circuit_metadata.json",
+      "sha256": "4d5553ada81c59941602e7f51a161e4d897d5978cb5e13f7eab8b5b5f16e5208"
+    },
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/keys/A/setup_provenance.json",
+      "sha256": "1b77c1ba3361dbf37d0dcac7111c607faf66d8b13b204076b7ae589f4c7d9092"
+    },
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/bin/A",
+      "sha256": "7681c5657a78fff229799de5d7440d309f1759fafac6601a4950b1c496533886"
+    },
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/bin/private",
+      "sha256": "51be5931519915de4dfb07e5558b6f3982b7952c82a46c80d300f96446d25fab"
+    }
+  ],
+  "scenarios": [
+    {
+      "name": "transfer",
+      "witness": {
+        "path": "/data/local/tmp/shieldd-phone-20260914/witnesses/B/transfer.bin",
+        "sha256": "5ffcfcba748488c17f3f210c0b39df9acf55cd633937ab03d85b826a02377ed7"
+      },
+      "statement": "bc0045cc0ba2bb73ab7a15bbf0c0c94a85730a3c1598f54179d5f5252b3ed409"
+    },
+    {
+      "name": "transfer_unregulated",
+      "witness": {
+        "path": "/data/local/tmp/shieldd-phone-20260914/witnesses/B/transfer_unregulated.bin",
+        "sha256": "29ee09b01b37f6babf077598592d59543d1cfbff04bb32c6aeeca556376a6d0e"
+      },
+      "statement": "fdd36fe855d0878be62a65003a0c2848c3112eec988d7460676ef3830970b200"
+    },
+    {
+      "name": "transfer_flagged",
+      "witness": {
+        "path": "/data/local/tmp/shieldd-phone-20260914/witnesses/B/transfer_flagged.bin",
+        "sha256": "b9ff36f425883506d9072b839ba985148b42439ac5a6662037098d1620c13444"
+      },
+      "statement": "717a2c959e20ccb21aa55f2d6725438a1f2fa7448542ee36ddef80a24d734c0d"
+    },
+    {
+      "name": "transfer_accumulating",
+      "witness": {
+        "path": "/data/local/tmp/shieldd-phone-20260914/witnesses/B/transfer_accumulating.bin",
+        "sha256": "772c73cec6983592d4735b82d9cabbd6285bcc7a829b315b42accb64fea701be"
+      },
+      "statement": "3462c939c799bf4c3e3594d3b048a4e26ee3d482e837aa2cc11ce0579b7c2700"
+    },
+    {
+      "name": "transfer_over_limit_disclosure",
+      "witness": {
+        "path": "/data/local/tmp/shieldd-phone-20260914/witnesses/B/transfer_over_limit_disclosure.bin",
+        "sha256": "f79dafffe411ae9d2f39e094527dfd1934d3f14951fc937daba01365ea063206"
+      },
+      "statement": "abcc5288c6da1090c0319627d064faa8180789cfc351b1f950feb414af7d0711"
+    },
+    {
+      "name": "transfer_accumulator_continuation",
+      "witness": {
+        "path": "/data/local/tmp/shieldd-phone-20260914/witnesses/B/transfer_accumulator_continuation.bin",
+        "sha256": "79a9440928f4b83f08e1b30e8630573e393164dd69035f7d11a5a7a4b5c17dae"
+      },
+      "statement": "8483d72bbfcddaf3ca7b082ee038981fa8fb95db8305b77096cb519bb007ad04"
+    }
+  ],
+  "invalid": {
+    "path": "/data/local/tmp/shieldd-phone-20260914/witnesses/B/invalid.bin",
+    "sha256": "3025a3988023a2ae09885c8ab38e1dff55ceb54cf86ab6e10567d7e5ebac52f9"
+  },
+  "minimum_start_bytes": 1879048192,
+  "minimum_available_bytes": 536870912,
+  "guard_policy": "stage-aware-v2"
+}

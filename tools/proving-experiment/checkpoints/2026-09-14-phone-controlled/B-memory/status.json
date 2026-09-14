@@ -1,0 +1,24 @@
+{
+  "schema": "shieldd.phone_memory_run.v2",
+  "variant": "B lifetime candidate",
+  "stages": [
+    {
+      "mode": "gate",
+      "status": "complete",
+      "available_bytes": 1898659840,
+      "host_wall_ns": 120424886583
+    },
+    {
+      "mode": "measure",
+      "status": "complete",
+      "available_bytes": 2353414144,
+      "host_wall_ns": 135605551625
+    }
+  ],
+  "preflight_power": {
+    "wakefulness": "Awake",
+    "screen_timeout_ms": "120000"
+  },
+  "restored_timeout_ms": "120000",
+  "timeout_restore_verified": true
+}

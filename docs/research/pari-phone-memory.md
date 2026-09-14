@@ -1,5 +1,7 @@
 # One Pari memory-lifetime experiment
 
+The completed [controlled phone screen](phone-proving-controlled.md) measures this variant at 8.180 s warm median and 1,055.7 MiB sampled peak worker RSS. The admission discussion below records the earlier conservative desktop-based estimate.
+
 **The measured saving does not establish phone fit.** A fresh desktop worker
 peaked at2.174GiB RSS during proving and1.644GiB during initialization. The earlier
 retained B screen observed2.397GiB warm peak RSS. These are separate screens,

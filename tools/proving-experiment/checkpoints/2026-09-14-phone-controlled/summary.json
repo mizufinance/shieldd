@@ -33,9 +33,23 @@
       "minimum_available_bytes": 1547792384,
       "encoded_bytes": 218,
       "all_positive_rss_complete": true
+    },
+    "B-memory": {
+      "warm_seconds": [
+        8.107603956,
+        8.180331403,
+        8.340216142,
+        8.945197392,
+        7.523049059
+      ],
+      "median_seconds": 8.180331403,
+      "first_use_seconds": 77.844862782,
+      "sampled_peak_tree_rss_bytes": 1106948096,
+      "minimum_available_bytes": 1392480256,
+      "encoded_bytes": 168,
+      "variant": "lifetime candidate"
     }
   },
-  "B_memory": "not measured; screen asleep at preflight",
   "files": [
     {
       "path": "A.json",
@@ -140,6 +154,70 @@
     {
       "path": "phone-v2-build.exit.json",
       "sha256": "ee2bf90b710343d2288d142b6657a03300e8590ce74914eb0af52af05ead4c8d"
+    },
+    {
+      "path": "B-memory/gate-stdout.jsonl",
+      "sha256": "052e0e8f4bcb6b0db2011c7a5b82c9125d277ba584274c9930a46a0bd80a12fa"
+    },
+    {
+      "path": "B-memory/run_phone_b_memory.py",
+      "sha256": "8252f02b36aa50ef681fab84496ab917039a30df12e69791b4c90f832b6607c0"
+    },
+    {
+      "path": "B-memory/measure-stdout.jsonl",
+      "sha256": "d178703d53b90f32804b32e4a6d46ff7614a67df2e6b6d344bc2a90ad7216934"
+    },
+    {
+      "path": "B-memory/binary.json",
+      "sha256": "10d278fafaececf8e2e7ffcb85288ae532cc6e5e5fbf110a6c07de4ffce23c49"
+    },
+    {
+      "path": "B-memory/status.json",
+      "sha256": "7879c55806ed201f91b3f44dff3e631776adfc5206e8e4f2ac6541157e3b3691"
+    },
+    {
+      "path": "B-memory/B.json",
+      "sha256": "9c9a9f883baa65339d67a09e59b56482519254294da5e14cebf61dcd54ea94ea"
+    },
+    {
+      "path": "B-memory/gate/complete.json",
+      "sha256": "ae214b1cd01832195b1a937ffc84203082a8b2e9fc462cca4aa1aaab8477f800"
+    },
+    {
+      "path": "B-memory/gate/samples.jsonl",
+      "sha256": "052e0e8f4bcb6b0db2011c7a5b82c9125d277ba584274c9930a46a0bd80a12fa"
+    },
+    {
+      "path": "B-memory/gate/initialization.json",
+      "sha256": "a58ee3d2bcf61518f3c4b319ed67d810183ef3f6cccfde4c1e8a94ba8f453ebc"
+    },
+    {
+      "path": "B-memory/gate/process.json",
+      "sha256": "3815b5f204e70ccd8d28fecdb8869e50cc16f74cf23520f06921766761f4e229"
+    },
+    {
+      "path": "B-memory/gate/resources.jsonl",
+      "sha256": "f2c1e1a5c633e52621a636a8105183cacd510b4de561b899dead50d0f8199d0c"
+    },
+    {
+      "path": "B-memory/measure/complete.json",
+      "sha256": "5b8ddf0eb405bc8c6f851e6002373a8499a17cfaa75dab8f314da740abd0def1"
+    },
+    {
+      "path": "B-memory/measure/samples.jsonl",
+      "sha256": "d178703d53b90f32804b32e4a6d46ff7614a67df2e6b6d344bc2a90ad7216934"
+    },
+    {
+      "path": "B-memory/measure/initialization.json",
+      "sha256": "05c4701a983b1f57cd9b9304d12f7f434f75ecfbabb1b62812656a36fe3e51cd"
+    },
+    {
+      "path": "B-memory/measure/process.json",
+      "sha256": "b9fc1db0bbeb361822dbb473f199ba7247d6a727c39c7fddcdb4fbeed902f070"
+    },
+    {
+      "path": "B-memory/measure/resources.jsonl",
+      "sha256": "a9f509524c1d01d5d5fab2544a9ee29eda85f923a0f1837f5a8920de1ec2d13d"
     }
   ]
 }

@@ -1,0 +1,25 @@
+{
+  "schema": "shieldd.proving_experiment.selected_b.v1",
+  "op": "ready",
+  "payload_bytes": 0,
+  "error": null,
+  "statement": null,
+  "verified": false,
+  "initialization": {
+    "prover": {
+      "go_compile_ns": 9445939215,
+      "relation_preparation_ns": 5204504998,
+      "key_file_read_ns": 55762708,
+      "key_checked_decode_ns": 51094709876,
+      "key_association_ns": 1461624895,
+      "total_ns": 67426375495,
+      "released_original_storage_bytes": 252061568,
+      "released_compilation_storage_bytes": 306023952
+    },
+    "arithmetic_preparation_ns": 1804178958,
+    "go_initialization_ns": 1289817187,
+    "resident_base_bytes": 108460032,
+    "total_ns": 69230586276
+  },
+  "request": null
+}

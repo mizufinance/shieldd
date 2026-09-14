@@ -1,0 +1,49 @@
+{
+  "schema": "shieldd.phone_complete.v1",
+  "backend": "B",
+  "mode": "measure",
+  "config_sha256": "9c9a9f883baa65339d67a09e59b56482519254294da5e14cebf61dcd54ea94ea",
+  "samples": {
+    "path": "/data/local/tmp/shieldd-phone-20260914/v2/runs/B-memory/measure/samples.jsonl",
+    "sha256": "d178703d53b90f32804b32e4a6d46ff7614a67df2e6b6d344bc2a90ad7216934"
+  },
+  "resources": {
+    "path": "/data/local/tmp/shieldd-phone-20260914/v2/runs/B-memory/measure/resources.jsonl",
+    "sha256": "a9f509524c1d01d5d5fab2544a9ee29eda85f923a0f1837f5a8920de1ec2d13d"
+  },
+  "proofs": [
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/v2/runs/B-memory/measure/first-transfer-00.proof",
+      "sha256": "9c27333d20098ffadba1bc7b31d412638bdebf58947299a0dfc56a3b0bd29d93"
+    },
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/v2/runs/B-memory/measure/warmup-transfer-00.proof",
+      "sha256": "853f63dd2ae642d876691c011a10c12d01725a64bfbf61c2b5673f0465b1ebd3"
+    },
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/v2/runs/B-memory/measure/warmup-transfer-01.proof",
+      "sha256": "94bb95e699a2a9c02f5877ff6e8d0779ccd0284a71d75f2feca9ad1cd8911f53"
+    },
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/v2/runs/B-memory/measure/warm-transfer-00.proof",
+      "sha256": "a37a7663749b2dcaa5085a5a8622283b5a414449e7f67ece2190e2f189d62c96"
+    },
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/v2/runs/B-memory/measure/warm-transfer-01.proof",
+      "sha256": "f63c59e1c8ba19b0743543a588a15b4a4c31e803acd2981fe802d809c88b031f"
+    },
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/v2/runs/B-memory/measure/warm-transfer-02.proof",
+      "sha256": "85d37a242e0bc79fdb0940bd46ca6d5ca966d64480b5f28c947877358516f6e8"
+    },
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/v2/runs/B-memory/measure/warm-transfer-03.proof",
+      "sha256": "935e0b18e896759e403a618c2bd6af5b69fa38daca87766f6f8afdc7388c0c37"
+    },
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/v2/runs/B-memory/measure/warm-transfer-04.proof",
+      "sha256": "afc025253f6031cdfac7edb4b11fb122df9c4bfd9f976cdc5ff59981c7aec9f1"
+    }
+  ],
+  "invalid_witness_rejected": false
+}

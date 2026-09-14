@@ -1,0 +1,41 @@
+{
+  "schema": "shieldd.phone_complete.v1",
+  "backend": "B",
+  "mode": "gate",
+  "config_sha256": "9c9a9f883baa65339d67a09e59b56482519254294da5e14cebf61dcd54ea94ea",
+  "samples": {
+    "path": "/data/local/tmp/shieldd-phone-20260914/v2/runs/B-memory/gate/samples.jsonl",
+    "sha256": "052e0e8f4bcb6b0db2011c7a5b82c9125d277ba584274c9930a46a0bd80a12fa"
+  },
+  "resources": {
+    "path": "/data/local/tmp/shieldd-phone-20260914/v2/runs/B-memory/gate/resources.jsonl",
+    "sha256": "f2c1e1a5c633e52621a636a8105183cacd510b4de561b899dead50d0f8199d0c"
+  },
+  "proofs": [
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/v2/runs/B-memory/gate/gate-transfer-00.proof",
+      "sha256": "dbe0cdd5ae47c554b2ba78998f1d603c394a953a1999f9b261c509d529c66634"
+    },
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/v2/runs/B-memory/gate/gate-transfer_unregulated-01.proof",
+      "sha256": "4daf837c2670ab4de6bda2810cf329813c32141689dec2a95c4a7ed58f5f4b7b"
+    },
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/v2/runs/B-memory/gate/gate-transfer_flagged-02.proof",
+      "sha256": "4a108cd8cb06ace5dcd850efdaa3521b01f5a767e2ab9fe0e4f19c1d04cd7f1a"
+    },
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/v2/runs/B-memory/gate/gate-transfer_accumulating-03.proof",
+      "sha256": "c4f2e572976f9fdcc22161ea9f4c4b56149d44dcded0c4a012e85c8eb078b8c2"
+    },
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/v2/runs/B-memory/gate/gate-transfer_over_limit_disclosure-04.proof",
+      "sha256": "6f23772e2c7249227fd8c6d1db327ca1469428eb816d8b640dcad4c22c62e79c"
+    },
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/v2/runs/B-memory/gate/gate-transfer_accumulator_continuation-05.proof",
+      "sha256": "88deca03744d4a1de549b82da68a5dc2913351648fe30bc7afe073b1db343c82"
+    }
+  ],
+  "invalid_witness_rejected": true
+}

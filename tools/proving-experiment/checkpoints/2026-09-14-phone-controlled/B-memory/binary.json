@@ -1,0 +1,8 @@
+{
+  "schema": "shieldd.phone_memory_binary.v1",
+  "target": "android",
+  "binary_sha256": "4847969da507d5e52abeb7d0f3e8c25bfad59a0d973e5ba4a222be216a839eea",
+  "sources_sha256": "07610a9c84a9e5929d4fda662b999fca0264804b9e35fe2a0aa749cfb2901306",
+  "rust": "1.89.0",
+  "cargo_lock_sha256": "71b42e69737a57fba9c12d46e10f192096ba499a5bc41c57ea03cb108cad7542"
+}
