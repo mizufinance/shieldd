@@ -1,0 +1,11 @@
+{
+  "time_ns": 1789381310985248000,
+  "argv": [
+    "tools/proving-experiment/cache/c-prepared-ntt-source/proof_gate",
+    "tools/proving-experiment/cache/c-comparator34-full-gate/keys/native.pk",
+    "tools/proving-experiment/cache/native-tuned-witnesses",
+    "tools/proving-experiment/cache/c-prepared-ntt-proof-gate"
+  ],
+  "code": 0,
+  "failure": null
+}

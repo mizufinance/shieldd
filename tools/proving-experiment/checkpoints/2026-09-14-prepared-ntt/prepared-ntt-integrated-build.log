@@ -1,0 +1,30 @@
+   Compiling commonware-macros-impl v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-prepared-ntt/macros/impl)
+   Compiling commonware-codec-macros v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-prepared-ntt/codec/macros)
+warning: commonware-macros-impl@2026.7.0: stability cfg not set; set RUSTFLAGS="--cfg commonware_stability_X" (ALPHA/BETA/GAMMA/DELTA/EPSILON) to enforce stability gating
+   Compiling commonware-macros v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-prepared-ntt/macros)
+   Compiling commonware-formatting v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-prepared-ntt/formatting)
+   Compiling commonware-codec v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-prepared-ntt/codec)
+   Compiling commonware-parallel v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-prepared-ntt/parallel)
+   Compiling commonware-utils v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-prepared-ntt/utils)
+   Compiling commonware-math v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-prepared-ntt/math)
+   Compiling commonware-cryptography v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-prepared-ntt/cryptography)
+error[E0433]: cannot find module or crate `commonware_cryptography` in this scope
+ --> /Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-prepared-ntt/cryptography/src/zk/pari/prepared_ntt.rs:4:5
+  |
+4 | use commonware_cryptography::bls12381::primitives::group::Scalar;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^ use of unresolved module or unlinked crate `commonware_cryptography`
+  |
+  = help: if you wanted to use a crate named `commonware_cryptography`, use `cargo add commonware_cryptography` to add it to your `Cargo.toml`
+
+error: unused imports: `Additive` and `Ring`
+ --> /Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-prepared-ntt/cryptography/src/zk/pari/prepared_ntt.rs:6:15
+  |
+6 |     algebra::{Additive, Field, FieldNTT, Ring},
+  |               ^^^^^^^^                   ^^^^
+  |
+  = note: `-D unused-imports` implied by `-D warnings`
+  = help: to override `-D warnings` add `#[allow(unused_imports)]`
+
+For more information about this error, try `rustc --explain E0433`.
+error: could not compile `commonware-cryptography` (lib) due to 2 previous errors
+warning: build failed, waiting for other jobs to finish...

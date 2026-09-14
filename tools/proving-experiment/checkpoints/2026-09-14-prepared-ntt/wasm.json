@@ -1,0 +1,23 @@
+{
+  "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/native/target/wasm32-unknown-unknown/release/commonware_cryptography.wasm",
+  "sha256": "84e62d4b0062f50e94671584d5425bb390aa7fb776c05179d1fb38ae5d9c8310",
+  "bytes": 36201,
+  "guard": {
+    "time_ns": 1789381498303078000,
+    "argv": [
+      "cargo",
+      "+1.95.0",
+      "rustc",
+      "--locked",
+      "--target",
+      "wasm32-unknown-unknown",
+      "--release",
+      "--manifest-path",
+      "tools/proving-experiment/cache/commonware-prepared-ntt/cryptography/Cargo.toml",
+      "--crate-type",
+      "cdylib"
+    ],
+    "code": 0,
+    "failure": null
+  }
+}

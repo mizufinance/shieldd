@@ -1,0 +1,38 @@
+     Locking 185 packages to latest Rust 1.95 compatible versions
+      Adding generic-array v0.14.7 (available: v0.14.9)
+warning: commonware-macros-impl@2026.7.0: stability cfg not set; set RUSTFLAGS="--cfg commonware_stability_X" (ALPHA/BETA/GAMMA/DELTA/EPSILON) to enforce stability gating
+   Compiling commonware-utils v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-subset34/utils)
+   Compiling commonware-math v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-subset34/math)
+   Compiling commonware-cryptography v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-subset34/cryptography)
+   Compiling shieldd-native-comparator34-experiment v0.1.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/native-comparator34)
+warning: unused import: `commonware_math::algebra::Additive`
+  --> /Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/native-comparator34/src/balance.rs:13:5
+   |
+13 | use commonware_math::algebra::Additive;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `Ring`
+  --> /Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/native-comparator34/src/encryption.rs:12:42
+   |
+12 | use commonware_math::algebra::{Additive, Ring};
+   |                                          ^^^^
+
+warning: unused import: `Ring`
+  --> /Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/native-comparator34/src/recovery.rs:12:42
+   |
+12 | use commonware_math::algebra::{Additive, Ring};
+   |                                          ^^^^
+
+warning: `shieldd-native-comparator34-experiment` (lib) generated 3 warnings (run `cargo fix --lib -p shieldd-native-comparator34-experiment` to apply 3 suggestions)
+   Compiling shieldd-prepared-ntt-screen v0.1.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/prepared-ntt)
+    Finished `release` profile [optimized] target(s) in 9.92s
+     Running unittests src/lib.rs (tools/proving-experiment/native/target/release/deps/shieldd_prepared_ntt_screen-53b36d827a3a2b50)
+
+running 2 tests
+test tests::descriptor_lengths_and_table_footprint_are_bounded ... ok
+test tests::exact_forward_inverse_and_padding_match_reference ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+

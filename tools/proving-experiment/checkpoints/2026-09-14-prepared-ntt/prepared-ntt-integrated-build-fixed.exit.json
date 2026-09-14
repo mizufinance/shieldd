@@ -1,0 +1,20 @@
+{
+  "time_ns": 1789381123140480000,
+  "argv": [
+    "cargo",
+    "+1.95.0",
+    "build",
+    "--locked",
+    "--release",
+    "--manifest-path",
+    "tools/proving-experiment/candidates/native-prepared-ntt/Cargo.toml",
+    "--example",
+    "prepared_msm_full",
+    "--example",
+    "polynomial_gate",
+    "--example",
+    "subset_cost"
+  ],
+  "code": 0,
+  "failure": null
+}

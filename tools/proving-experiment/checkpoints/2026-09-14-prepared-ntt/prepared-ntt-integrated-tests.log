@@ -1,0 +1,14 @@
+cargo nextest run $@
+warning: commonware-macros-impl@2026.7.0: stability cfg not set; set RUSTFLAGS="--cfg commonware_stability_X" (ALPHA/BETA/GAMMA/DELTA/EPSILON) to enforce stability gating
+   Compiling commonware-cryptography v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-prepared-ntt/cryptography)
+    Finished `release` profile [optimized] target(s) in 26.64s
+────────────
+ Nextest run ID 996c1a75-a058-4820-8100-73fe4b9d74b3 with nextest profile: default
+    Starting 5 tests across 1 binary (729 tests skipped)
+        PASS [   0.007s] (1/5) commonware-cryptography zk::pari::domain::tests::domain_descriptor_and_buffer_bounds_reject_old_domain
+        PASS [   0.013s] (2/5) commonware-cryptography zk::pari::domain::tests::retained_roots_interpolation_masks_division_and_removed_root_poles
+        PASS [   0.006s] (3/5) commonware-cryptography zk::pari::prepared_ntt::tests::descriptor_lengths_and_table_footprint_are_bounded
+        PASS [   0.007s] (4/5) commonware-cryptography zk::pari::prepared_ntt::tests::exact_subset_interpolation_matches_reference
+        PASS [   0.011s] (5/5) commonware-cryptography zk::pari::prepared_ntt::tests::exact_forward_inverse_and_padding_match_reference
+────────────
+     Summary [   0.024s] 5 tests run: 5 passed, 729 skipped

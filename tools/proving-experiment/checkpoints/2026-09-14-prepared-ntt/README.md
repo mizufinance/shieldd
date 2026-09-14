@@ -1,0 +1,5 @@
+# Same-key native FFT preparation evidence
+
+The bounded comparison contains 18 fresh verified timing proofs (three warmups, five warm and one first per variant). Six paired-randomness reference/prepared proof equalities, six actual polynomial gates and six persistent API correctness cases precede timing. Seeded proofs are correctness evidence only. Five focused Commonware tests and the WebAssembly cryptography build pass. The initial integrated build had a crate-relative import error, corrected before any gates or timing.
+
+`source-identity.json` binds the exact full source snapshot and cached executable hashes; `compiled-source.tar.gz` preserves that source except non-build Commonware documentation media. The complete original archive and executables remain in `cache/c-prepared-ntt-source`, with the existing comparator3/4 keys reused unchanged. The kernel screen is a separate checkpoint. Production code/artifacts are unchanged; no phone, validator-throughput or production release-gated conclusion is claimed.

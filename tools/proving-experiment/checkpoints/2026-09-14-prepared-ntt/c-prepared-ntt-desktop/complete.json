@@ -1,0 +1,27 @@
+{
+  "schema": "shieldd.native_prepared_ntt_desktop.v1",
+  "hashes": {
+    "identity.json": "e3e1103f2c1d0ae8cd92b3db88ce4827174b50659ecd859888ed2365efbec64d",
+    "memory.jsonl": "637eec8e1ebfad96330010326daa41e83d73836bf0665dbc0dd50b0853ecc11b",
+    "proofs/first-candidate.bin": "bde2722240357e465afb5dccdcc848026fc6ca59ed85b0ffa9b473721875b14c",
+    "proofs/first-control.bin": "0126024282bc329bf923cdcc5511265bbc06ec2e0a7f47e859318d2f158c3727",
+    "proofs/warm-3-candidate.bin": "8ff0087bfe9aa38223e3586c75bdebe6f0df2d0fb039af7dfd11ad1581cb8794",
+    "proofs/warm-3-control.bin": "329a5e4f32a7454298a9b523ef347805a10e3db1778951d3445462216e1a42f4",
+    "proofs/warm-4-candidate.bin": "b5e850b0c2b8d233e1294f9a39dc06d32c1a2e50407713c259d633147da39500",
+    "proofs/warm-4-control.bin": "09ca568b1b7890c3004e381a7de4a6bfd2100eadc2849f84aa487cd3f78be9dd",
+    "proofs/warm-5-candidate.bin": "f83b6dd5e855cb6d5db83421a1ac535d3ae357771ad49ce528a008f2b9175b5c",
+    "proofs/warm-5-control.bin": "a40da78539c45bd60fe12e92590f4af121390a228c243174b85042db19eca063",
+    "proofs/warm-6-candidate.bin": "8675183f0f0e0c32e33203e9f4ab3e39ad566872d9ef721e2e8546a01bec7589",
+    "proofs/warm-6-control.bin": "b362809d14dcc74e2c28f5215a0ea8196d692e8e70ac3b1fbca0d9f0205f34c5",
+    "proofs/warm-7-candidate.bin": "5f8810e00450f3841378cc69c8a28200d4977596ce62071cbbfe3e9f583d10d4",
+    "proofs/warm-7-control.bin": "60e96d28e5f22e18dec01322c9755177973da7821ccbda05afc24613b1206626",
+    "proofs/warmup-0-candidate.bin": "2ba6a23f191ceda37974724eee2f4a374a9f6736d813319dc7e0b8811ca61e18",
+    "proofs/warmup-0-control.bin": "32fbb093dc1c0cb84074749ea29c139c7877673bdc159303d7e7ef6145d66b11",
+    "proofs/warmup-1-candidate.bin": "c776dec68d0de4e1d311f40d1c45276809378f1e01aa5c8742ab980d62e269d9",
+    "proofs/warmup-1-control.bin": "162ed9a4bf83a32c64c5683659ba1355d05427654de2d0d6b2e806a98bc17f3a",
+    "proofs/warmup-2-candidate.bin": "0ab454f61c284148a44adb76efab7ed686cc395c3f8dfac204ce91f8584f4dee",
+    "proofs/warmup-2-control.bin": "75f11c387da63dc3bbd80a7c3b7409c3d5958ba41da70ae7db299211b73fa7d5",
+    "results.json": "97127198abeec0af0ac9ed7454560e2d1ab8d2e2f9ff31da91ac6aa923a3c096",
+    "samples.jsonl": "8df9fa9d511e46eacc9cbb2c3ef776126804270ca6a7a06aaa915fffa493b141"
+  }
+}

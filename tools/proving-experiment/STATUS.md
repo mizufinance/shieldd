@@ -2,7 +2,7 @@
 
 **The latest bounded desktop proving round is complete. The broader optimization campaign remains active.**
 
-The [matched comparator report](../../docs/research/transfer-proving-comparator-selected.md) compares the latest isolated development implementations on M4Pro with two workers.
+The [matched comparator report](../../docs/research/transfer-proving-comparator-selected.md) compares the isolated development implementations before the FFT follow-up below on M4Pro with two workers.
 
 | Candidate | Warm median | First proof | Warm peak RSS |
 | --- | ---: | ---: | ---: |
@@ -15,6 +15,13 @@ Three warmups, five measured warm requests and one fresh-process first proof per
 A/B share154224 original R1CS rows; B has224778 converted rows and M229376/N262144. C has191516rows/191501columns and M196608/N262144. B includes the selected owned-admission improvement. All six A/B and C API scenarios and negative gates pass. B has19focused Rust tests including real-child integration; C has45native tests plus4Commonware domain/batch tests. The native WebAssembly build passes. Production release-gated prover suites and formal certification were not run.
 
 Sources, raw evidence, plots and exact test records are preserved in `checkpoints/2026-09-14-comparator-selected`, with earlier C details in `checkpoints/2026-09-14-comparator34`. Earlier measurements below remain separate. The original SnarkPack/verification campaign remains stopped. Continue only worthwhile bounded source/compile screens; user preference is quick optimization benchmarks, not100-point grids.
+
+
+## Completed prover-owned FFT follow-up
+
+The [same-key native FFT comparison](../../docs/research/native-prepared-ntt-proving.md) reduces C warm full-API proving2.324596→2.236445s (3.79%). Three warmups+five warm+one first per variant; all18fresh timing proofs verify. First observations19.869731→19.483095s; warmRSS1.167→1.109GiB, package218B unchanged. These samples are separate from the A/B/C table above.
+
+The prover owns8MiB of immutable FFT constants reused by subset interpolation and coset quotient transforms. Relation, keys, masks, verifier and generic multi-column NTT are unchanged. Five focused Commonware release tests, six actual polynomial gates, six seeded full-proof equalities, six persistent API gates and WASM build pass. Guard exits0, zero swap/competition. Exact run `cache/c-prepared-ntt-desktop`; compact evidence `checkpoints/2026-09-14-prepared-ntt`. Full snapshots remain cached; compact archives exclude only non-build Commonware documentation media. Retain this arithmetic candidate. The broader campaign remains active; no additional large measurement grid or original verification campaign was started.
 
 ## Completed native lifetime follow-up
 

@@ -1,0 +1,6 @@
+transfer: identical full proofs and negative checks passed
+transfer_unregulated: identical full proofs and negative checks passed
+transfer_flagged: identical full proofs and negative checks passed
+transfer_accumulating: identical full proofs and negative checks passed
+transfer_over_limit_disclosure: identical full proofs and negative checks passed
+transfer_accumulator_continuation: identical full proofs and negative checks passed

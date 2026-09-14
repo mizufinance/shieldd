@@ -1,0 +1,18 @@
+{
+  "hashes": {
+    "README.md": "5aeb19fc1e4dfda31eb89db6c9245c4b6c522b98961546fd9d1f6431153fec66",
+    "compiled-source.tar.gz": "2dbf0ffc96d29d7296b45fc201b6d96083d31dc5c9dfc85a9d58958d93562e29",
+    "full-evidence-hashes.json": "be5857d0fb877d7bda329795d0a533d24f527053baf72757b8b91aeffebc2219",
+    "identity.json": "ea818d9d293b4583214381450839ec34302bcaba64458ed77f8139a0944e989f",
+    "prepared-ntt-cost-fixed-hash.exit.json": "febebc7e0d6e150aec9a23da1a4bd352458d5306e0a0949064c7b386bbe3070f",
+    "prepared-ntt-cost-fixed-hash.log": "99cfe985f4a7a39b4227b7c2d7c07542b38edebe521c417ed777f93e9a68905c",
+    "prepared-ntt-cost-fixed-hash.resources.jsonl": "e7ea6330667e9d99cef26a25942cfcd89c3c78193843b3509a5286fe4233c19a",
+    "prepared-ntt-cost.exit.json": "23eb22fb2231a0fb8c124d69807898b42cb882017c0dc07087b9a89d27396e7c",
+    "prepared-ntt-cost.json": "216d7a5b4d1b307c1c2eeff323cae6f7f89a71e827e5b7b0d781539a28b87721",
+    "prepared-ntt-cost.log": "367150209689b754023fa8664d274ded291e5eb832832b8e515b55d81c082d50",
+    "prepared-ntt-cost.resources.jsonl": "a1b36d445f2499f32e2e316f5a18780bb367032febb2008bbdd8ab2b03a26112",
+    "prepared-ntt-tests.exit.json": "4fad355e8987c4c42ab5370ade02a9502d9c0e3372ed9c9d9034ac771a4ccc49",
+    "prepared-ntt-tests.log": "421d6c8c5cd8b198d8a9789c9a120e7e3278a2817b880aa296f98cff5cc2e765",
+    "prepared-ntt-tests.resources.jsonl": "991638d98e08ca0dd77229db218c8012c8ec0b75c490f2db4409b8fa764e9f73"
+  }
+}

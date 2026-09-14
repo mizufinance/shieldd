@@ -1,0 +1,269 @@
+{
+  "schema": "shieldd.prepared_ntt_screen.v1",
+  "relation": "722fba7093a6188bba83708f0abe409a39cf34fa4451b95594e82781b68f3783",
+  "witness_sha256": "e3a2b0a26fa79f3acc5262df51e637ddd597b982212aac69f570ab707dbd1be8",
+  "polynomial_sha256": "b2f915e6369ee1e67033ec3331b4f7a64d8898ff13678cdf9a8c6af8476c06b2",
+  "coefficients": 196609,
+  "fft": 262144,
+  "table_bytes": 8388608,
+  "preparation_ns": 3450667,
+  "samples": [
+    {
+      "operation": "forward",
+      "method": "reference",
+      "block": 0,
+      "warmup": true,
+      "ns": 57640583,
+      "exact_output": true
+    },
+    {
+      "operation": "forward",
+      "method": "prepared",
+      "block": 0,
+      "warmup": true,
+      "ns": 35142000,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "reference",
+      "block": 0,
+      "warmup": true,
+      "ns": 63093125,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "prepared",
+      "block": 0,
+      "warmup": true,
+      "ns": 51749416,
+      "exact_output": true
+    },
+    {
+      "operation": "forward",
+      "method": "prepared",
+      "block": 1,
+      "warmup": true,
+      "ns": 34994416,
+      "exact_output": true
+    },
+    {
+      "operation": "forward",
+      "method": "reference",
+      "block": 1,
+      "warmup": true,
+      "ns": 57304792,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "prepared",
+      "block": 1,
+      "warmup": true,
+      "ns": 51632167,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "reference",
+      "block": 1,
+      "warmup": true,
+      "ns": 65115500,
+      "exact_output": true
+    },
+    {
+      "operation": "forward",
+      "method": "reference",
+      "block": 2,
+      "warmup": true,
+      "ns": 57605667,
+      "exact_output": true
+    },
+    {
+      "operation": "forward",
+      "method": "prepared",
+      "block": 2,
+      "warmup": true,
+      "ns": 35885375,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "reference",
+      "block": 2,
+      "warmup": true,
+      "ns": 63907333,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "prepared",
+      "block": 2,
+      "warmup": true,
+      "ns": 51719958,
+      "exact_output": true
+    },
+    {
+      "operation": "forward",
+      "method": "prepared",
+      "block": 3,
+      "warmup": false,
+      "ns": 35412167,
+      "exact_output": true
+    },
+    {
+      "operation": "forward",
+      "method": "reference",
+      "block": 3,
+      "warmup": false,
+      "ns": 57812833,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "prepared",
+      "block": 3,
+      "warmup": false,
+      "ns": 52062542,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "reference",
+      "block": 3,
+      "warmup": false,
+      "ns": 63321667,
+      "exact_output": true
+    },
+    {
+      "operation": "forward",
+      "method": "reference",
+      "block": 4,
+      "warmup": false,
+      "ns": 57254791,
+      "exact_output": true
+    },
+    {
+      "operation": "forward",
+      "method": "prepared",
+      "block": 4,
+      "warmup": false,
+      "ns": 36581250,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "reference",
+      "block": 4,
+      "warmup": false,
+      "ns": 72332167,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "prepared",
+      "block": 4,
+      "warmup": false,
+      "ns": 54787583,
+      "exact_output": true
+    },
+    {
+      "operation": "forward",
+      "method": "prepared",
+      "block": 5,
+      "warmup": false,
+      "ns": 37295000,
+      "exact_output": true
+    },
+    {
+      "operation": "forward",
+      "method": "reference",
+      "block": 5,
+      "warmup": false,
+      "ns": 58409959,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "prepared",
+      "block": 5,
+      "warmup": false,
+      "ns": 52743416,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "reference",
+      "block": 5,
+      "warmup": false,
+      "ns": 64354416,
+      "exact_output": true
+    },
+    {
+      "operation": "forward",
+      "method": "reference",
+      "block": 6,
+      "warmup": false,
+      "ns": 57701084,
+      "exact_output": true
+    },
+    {
+      "operation": "forward",
+      "method": "prepared",
+      "block": 6,
+      "warmup": false,
+      "ns": 35163375,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "reference",
+      "block": 6,
+      "warmup": false,
+      "ns": 64972166,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "prepared",
+      "block": 6,
+      "warmup": false,
+      "ns": 52212250,
+      "exact_output": true
+    },
+    {
+      "operation": "forward",
+      "method": "prepared",
+      "block": 7,
+      "warmup": false,
+      "ns": 35623625,
+      "exact_output": true
+    },
+    {
+      "operation": "forward",
+      "method": "reference",
+      "block": 7,
+      "warmup": false,
+      "ns": 57489250,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "prepared",
+      "block": 7,
+      "warmup": false,
+      "ns": 51472125,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "reference",
+      "block": 7,
+      "warmup": false,
+      "ns": 64758708,
+      "exact_output": true
+    }
+  ],
+  "limits": "Single-column forward/inverse FFT on an actual validated Transfer opening polynomial; no keys or proof generation. Preparation and eight-MiB tables are separate. Three warmups and five samples per method/operation, alternating order; each clock includes allocation/copy/transform, with equality checks and output cleanup outside. Existing multi-column NTT and verifier paths are untouched. No full-API speedup or phone claim."
+}

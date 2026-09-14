@@ -1,0 +1,11 @@
+{
+  "time_ns": 1789381399452560000,
+  "argv": [
+    "python3",
+    "tools/proving-experiment/prepared_ntt_desktop.py",
+    "gate",
+    "tools/proving-experiment/cache/c-prepared-ntt-api-gate"
+  ],
+  "code": 0,
+  "failure": null
+}
