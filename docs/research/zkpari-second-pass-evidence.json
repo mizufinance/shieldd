@@ -1,0 +1,160 @@
+{
+  "scope": "Algebra checks at size 64 in both actual scalar fields, and aggregate inventory of previously captured synthetic proof operands. No production proof, speed measurement, or security proof.",
+  "source_sha256": "23d71fbdf825b591931d8d0297b4f4876600e1f007d06a7a3275763079a4cf22",
+  "domain_checks": [
+    {
+      "field": "BLS12-377-Fr",
+      "full_size": 64,
+      "retained_size": 60,
+      "cases": 8,
+      "interpolation": true,
+      "masked_quotient": true,
+      "tampered_relation_rejected": true
+    },
+    {
+      "field": "BLS12-377-Fr",
+      "full_size": 64,
+      "retained_size": 56,
+      "cases": 8,
+      "interpolation": true,
+      "masked_quotient": true,
+      "tampered_relation_rejected": true
+    },
+    {
+      "field": "BLS12-377-Fr",
+      "full_size": 64,
+      "retained_size": 48,
+      "cases": 8,
+      "interpolation": true,
+      "masked_quotient": true,
+      "tampered_relation_rejected": true
+    },
+    {
+      "field": "BLS12-381-Fr",
+      "full_size": 64,
+      "retained_size": 60,
+      "cases": 8,
+      "interpolation": true,
+      "masked_quotient": true,
+      "tampered_relation_rejected": true
+    },
+    {
+      "field": "BLS12-381-Fr",
+      "full_size": 64,
+      "retained_size": 56,
+      "cases": 8,
+      "interpolation": true,
+      "masked_quotient": true,
+      "tampered_relation_rejected": true
+    },
+    {
+      "field": "BLS12-381-Fr",
+      "full_size": 64,
+      "retained_size": 48,
+      "cases": 8,
+      "interpolation": true,
+      "masked_quotient": true,
+      "tampered_relation_rejected": true
+    }
+  ],
+  "B_scalar_inventory": {
+    "manifest_sha256": "7f0d5c97d7c4270b5e57024de49c5182808f1ad3ad1bd92a1fada2dd3361e671",
+    "operations": [
+      {
+        "operation": "witness",
+        "count": 229132,
+        "counts": {
+          "zero": 40935,
+          "one": 29414,
+          "minus_one": 18,
+          "other_signed_u16": 230,
+          "other_signed_u64": 8,
+          "other_signed_u128": 1,
+          "large": 158526
+        }
+      },
+      {
+        "operation": "masks",
+        "count": 2,
+        "counts": {
+          "zero": 0,
+          "one": 0,
+          "minus_one": 0,
+          "other_signed_u16": 0,
+          "other_signed_u64": 0,
+          "other_signed_u128": 0,
+          "large": 2
+        }
+      },
+      {
+        "operation": "quotient",
+        "count": 262147,
+        "counts": {
+          "zero": 0,
+          "one": 0,
+          "minus_one": 0,
+          "other_signed_u16": 0,
+          "other_signed_u64": 0,
+          "other_signed_u128": 0,
+          "large": 262147
+        }
+      },
+      {
+        "operation": "opening_a",
+        "count": 262145,
+        "counts": {
+          "zero": 0,
+          "one": 0,
+          "minus_one": 0,
+          "other_signed_u16": 0,
+          "other_signed_u64": 0,
+          "other_signed_u128": 0,
+          "large": 262145
+        }
+      },
+      {
+        "operation": "opening_r",
+        "count": 524290,
+        "counts": {
+          "zero": 0,
+          "one": 0,
+          "minus_one": 0,
+          "other_signed_u16": 0,
+          "other_signed_u64": 0,
+          "other_signed_u128": 0,
+          "large": 524290
+        }
+      }
+    ]
+  },
+  "domain_sizes": [
+    {
+      "size": 245760,
+      "reduction_fraction": 0.0625,
+      "B_fits_current": true,
+      "C_fits_current": true,
+      "C_fits_affine_projection": true
+    },
+    {
+      "size": 229376,
+      "reduction_fraction": 0.125,
+      "B_fits_current": false,
+      "C_fits_current": false,
+      "C_fits_affine_projection": true
+    },
+    {
+      "size": 212992,
+      "reduction_fraction": 0.1875,
+      "B_fits_current": false,
+      "C_fits_current": false,
+      "C_fits_affine_projection": false
+    },
+    {
+      "size": 196608,
+      "reduction_fraction": 0.25,
+      "B_fits_current": false,
+      "C_fits_current": false,
+      "C_fits_affine_projection": false
+    }
+  ]
+}

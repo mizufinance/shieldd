@@ -1,0 +1,12 @@
+{
+  "time_ns": 1789355998755810000,
+  "argv": [
+    "tools/proving-experiment/target/release/examples/edmsm",
+    "tools/proving-experiment/cache/gnark-msm-operands",
+    "tools/proving-experiment/cache/msmworker-combined",
+    "tools/proving-experiment/cache/msmworker-edwards",
+    "tools/proving-experiment/cache/edmsm-comparison"
+  ],
+  "code": 0,
+  "failure": null
+}

@@ -1,0 +1,52 @@
+    Finished `bench` profile [optimized] target(s) in 0.04s
+     Running benches/circuits.rs (target/release/deps/circuits-ea691f6547e71d3c)
+╔══════════════════════════════════════════════════════════════════════╗
+║  3b. ZK-Pari payment circuits — BLS12-381                            ║
+║      private transfer: R_send, R_recv, and operation-hiding R_op     ║
+║      position nullifiers + sparse Merkle tree; Pedersen vs Poseidon  ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+Threads: single-threaded.
+Hashes:   one collision-resistant hash for Merkle nodes and commitments,
+          instantiated as Pedersen/Jubjub (8-bit byte windows) or Poseidon
+          (width 3, alpha 5, 8 + 57 rounds). No PRF anywhere.
+Private transfer: nullifier = receipt position (pid); the receiver marks
+          it claimed in a sparse Merkle tree over the 48-bit position
+          space, verified in-circuit (SMT.VerifyInsert: 2 x 48 node
+          hashes); the tree root lives inside the account commitment.
+          Receipt-tree opening fixed at depth 40 and bound to the
+          witnessed position.
+R_op:     one circuit for both operations; a witness bit selects the
+          branch, so sends and receives are indistinguishable on the
+          wire and cost the same to prove.
+
+End-to-end private transfer [pedersen] (receipts d40, nullifier SMT d48): Alice sends 300 to Bob
+Constraint trace requires `ConstraintLayer`
+Constraint trace requires `ConstraintLayer`
+  send + receive verified, ledger stores one commitment per account,
+  tampering, wrong-position, receive-replay, and double-claim rejected
+
+End-to-end private transfer [poseidon] (receipts d40, nullifier SMT d48): Alice sends 300 to Bob
+Constraint trace requires `ConstraintLayer`
+Constraint trace requires `ConstraintLayer`
+  send + receive verified, ledger stores one commitment per account,
+  tampering, wrong-position, receive-replay, and double-claim rejected
+
+  R_send pedersen          keygen ... prove x5 ... verify ... done
+  R_recv pedersen          keygen ... prove x5 ... verify ... done
+  R_op pedersen            keygen ... prove x5 ... verify ... done
+  R_send poseidon          keygen ... prove x5 ... verify ... done
+  R_recv poseidon          keygen ... prove x5 ... verify ... done
+  R_op poseidon            keygen ... prove x5 ... verify ... done
+
+  circuit                  │    r1cs │    sr1cs │   domain │ |x| │ keygen ms │ prove ms │ verify us │ proof B
+  ─────────────────────────┼─────────┼──────────┼──────────┼─────┼───────────┼──────────┼───────────┼────────
+  R_send pedersen          │   16109 │    32227 │    32768 │   5 │    1208.3 │    936.7 │     827.0 │    128
+  R_recv pedersen          │  449007 │   898023 │  1048576 │   5 │   32545.4 │  22612.0 │     776.1 │    128
+  R_op pedersen            │  457356 │   914723 │  1048576 │   6 │   31273.8 │  23452.1 │     784.1 │    128
+  R_send poseidon          │    1647 │     3303 │     4096 │   5 │     179.1 │    143.5 │     880.0 │    128
+  R_recv poseidon          │   34569 │    69147 │   131072 │   5 │    4166.4 │   3194.2 │     793.8 │    128
+  R_op poseidon            │   35546 │    71103 │   131072 │   6 │    4240.1 │   3257.3 │     880.9 │    128
+
+  Receipt tree depth 40; nullifier SMT depth 48. |x| counts the leading constant 1. Proofs are 2 G1 + 1 F.
+

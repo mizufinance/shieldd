@@ -1,0 +1,8 @@
+/target
+*.bin
+Cargo.lock
+.DS_Store
+*.pdf
+*.wasm
+*.r1cs
+*.json

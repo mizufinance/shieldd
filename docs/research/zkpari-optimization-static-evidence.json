@@ -1,0 +1,113 @@
+{
+  "kind": "static_analysis_only_no_new_benchmark",
+  "evidence_date": "2026-09-13",
+  "files": [
+    {
+      "path": "tools/proving-experiment/cache/native-tuned-inventory.json",
+      "sha256": "0cf792b17cff98fac85e2cc6e590f1c7ebcc514a860a26edaeb39ebc9942898e"
+    },
+    {
+      "path": "tools/proving-experiment/cache/gnark-combined-full/analysis.json",
+      "sha256": "01222b3bdd4b16186909627cbb1b758cc8e9a4d3f3000064aeea3c40a477ec50"
+    },
+    {
+      "path": "tools/proving-experiment/native/src/group.rs",
+      "sha256": "11a6721ea367fbb96e7890eaef30f937803b936ee85e8dafaf50c2420369a808"
+    },
+    {
+      "path": "tools/proving-experiment/cache/commonware/cryptography/src/zk/circuit.rs",
+      "sha256": "37cc02df044760b31207551f7663e5fdf5d502fa988be0aaa74d80196ad7b1f4"
+    },
+    {
+      "path": "tools/proving-experiment/cache/commonware/cryptography/src/bls12381/primitives/group.rs",
+      "sha256": "dafee3e8845a86e9862770681ff60ceefa201c1557695e15578738dad63bd720"
+    },
+    {
+      "path": "tools/gnark/internal/compliance/scalar_mul.go",
+      "sha256": "004f0b6f807d3e52fa64288100444d51e7647a44dbdf5348dc0582e9bbee4a7e"
+    },
+    {
+      "path": "tools/gnark/go.mod",
+      "sha256": "4c7f6f922688f7c4c4e23897dec4ecb2cef323fc2e9a7781344300be2155566c"
+    }
+  ],
+  "fields": {
+    "bls12_377": {
+      "modulus_decimal": "8444461749428370424248824938781546531375899335154063827935233455917409239041",
+      "partial_factors_of_modulus_minus_one": {
+        "2": 47,
+        "3": 1,
+        "5": 1,
+        "7": 1,
+        "13": 1
+      },
+      "remaining_cofactor_decimal": "43957149842200409913267208445570617330773445580192132314007",
+      "domain_divisibility": {
+        "131072": true,
+        "196608": true,
+        "229376": true,
+        "245760": true,
+        "233472": false,
+        "262144": true
+      }
+    },
+    "bls12_381": {
+      "modulus_decimal": "52435875175126190479447740508185965837690552500527637822603658699938581184513",
+      "partial_factors_of_modulus_minus_one": {
+        "2": 32,
+        "3": 1,
+        "11": 1,
+        "19": 1
+      },
+      "remaining_cofactor_decimal": "19471576662804776359815796820940719366974686198370126374082088261",
+      "domain_divisibility": {
+        "131072": true,
+        "196608": true,
+        "229376": false,
+        "245760": false,
+        "233472": true,
+        "262144": true
+      }
+    }
+  },
+  "c": {
+    "rows": 232683,
+    "columns": 232703,
+    "hash_rows": 82248,
+    "scalar_rows": 88509,
+    "residual_rows": 61014,
+    "rows_with_all_hashes_removed": 150435,
+    "rows_with_all_scalar_multiplications_removed": 144174,
+    "rows_with_both_halved": 147304.5,
+    "removals_for_domain": {
+      "131072": {
+        "rows": 101611,
+        "columns": 101631
+      },
+      "196608": {
+        "rows": 36075,
+        "columns": 36095
+      }
+    }
+  },
+  "b": {
+    "rows": 241626,
+    "row_removals_for_domain": {
+      "131072": 110554,
+      "196608": 45018,
+      "229376": 12250,
+      "245760": 0
+    },
+    "historical_A_vs_latest_B_is_cross_session": true,
+    "fraction_of_latest_B_time_to_remove_to_match_historical_A": 0.23669990199219104
+  },
+  "illustrative_fixed_base_table": {
+    "n": 786432,
+    "digits": 16,
+    "multipliers": 3,
+    "affine_point_bytes": 96,
+    "bytes": 3623878656,
+    "gib": 3.375,
+    "not_a_selected_configuration": true
+  }
+}

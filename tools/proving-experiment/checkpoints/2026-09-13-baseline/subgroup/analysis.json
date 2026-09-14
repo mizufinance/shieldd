@@ -1,0 +1,64 @@
+{
+  "schema": "shieldd.proving_experiment.subgroup_analysis.v1",
+  "complete": {
+    "schema": "shieldd.proving_experiment.subgroup_complete.v1",
+    "samples": {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/subgroup-comparison/samples.jsonl",
+      "sha256": "259e42f750c11f5583d6128c57c7c79fe8565797179e64d65350ace6c7ee7333"
+    },
+    "checked_points_per_sample": 4096,
+    "validations": 81920
+  },
+  "sample_points": 4096,
+  "identities": 0,
+  "boundary_cases": 198,
+  "sample": {
+    "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/subgroup-comparison/points.bin",
+    "sha256": "b4299a4aeb98d49aa951699417f22f3d7dfae84a91a9c533fa0e5da8ea1161b5"
+  },
+  "measurements": {
+    "membership": {
+      "ark_full_order": {
+        "values_s": [
+          0.149626,
+          0.163826667,
+          0.148972083
+        ],
+        "median_s": 0.149626
+      },
+      "deterministic_seed": {
+        "values_s": [
+          0.060438334,
+          0.060077042,
+          0.056976375
+        ],
+        "median_s": 0.060077042
+      },
+      "speedup": 2.4905686934453266
+    },
+    "checked_decode": {
+      "ark_full_order": {
+        "values_s": [
+          0.1468035,
+          0.148373125,
+          0.148456292
+        ],
+        "median_s": 0.148373125
+      },
+      "deterministic_seed": {
+        "values_s": [
+          0.05873925,
+          0.06072575,
+          0.061983166
+        ],
+        "median_s": 0.06072575
+      },
+      "speedup": 2.443331288621384
+    }
+  },
+  "peak_process_tree_rss_bytes": 224346112,
+  "maximum_swap_bytes": 0,
+  "competing_heavy_pids": [],
+  "disposition": "Promising deterministic startup-only candidate. Retain for a narrowly reviewed full checked-key-loader experiment; no production or selected-loader change and no full-key/first-proof speedup claim from this subset.",
+  "limits": "Deterministic gnark377 beta and unreduced short seed chains, compared with Arkworks0.6 full-order reference. Equal4096 public bases evenly sampled from four actual key slices. Two warmups and three balanced measured pairs for membership and canonical point decoding+membership. Not a full-key loader, full startup, proving, probabilistic batching or phone measurement; current key/statement association and checked source artifacts remain unchanged."
+}

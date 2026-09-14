@@ -1,0 +1,8 @@
+This directory contains an experimental modification of:
+https://github.com/guruvamsi-policharla/zk-pari
+Upstream revision: a8266aac58314214552a214fead1c0258f8de418
+
+The upstream Cargo manifest declares MIT/Apache-2.0 licensing. The Apache-2.0
+license text is included in LICENSE-APACHE. Upstream authors retain ownership
+of their contributions. Local experiment changes and source provenance are
+recorded in tools/proving-experiment/source-pins.json and the source checkpoints.

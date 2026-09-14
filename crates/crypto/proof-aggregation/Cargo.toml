@@ -42,6 +42,8 @@ serde = { workspace = true, features = ["derive"] }
 sha2 = { workspace = true }
 
 [dev-dependencies]
+libc = "0.2"
+serde_json = { workspace = true }
 ark-r1cs-std = { workspace = true }
 ark-relations = { workspace = true }
 ark-snark = { workspace = true }

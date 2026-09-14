@@ -1,0 +1,35 @@
+    Finished `bench` profile [optimized] target(s) in 0.03s
+     Running benches/batch_verify.rs (target/release/deps/batch_verify-eabe63dd01786b61)
+╔══════════════════════════════════════════════════════════════════════╗
+║  2. ZK-Pari batch vs individual verification — BLS12-381             ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+Threads: single-threaded.
+Circuit fixed at 2^12 SR1CS constraints (batch cost does not depend on it).
+Pool built with the HVZK simulator: statistically indistinguishable
+from real proofs, so verification cost is identical by construction.
+
+keygen ... simulating 65536 ... timing ... done
+
+Per-proof cost of individual verification (3 pairings): 711.6 us
+
+2a. Amortised batch cost per proof: us (speedup vs individual)
+          N │    wall ms │     us/proof │  speedup
+  ──────────┼────────────┼──────────────┼─────────
+          1 │        0.7 │       696.38 │     1.0x
+        256 │        7.5 │        29.35 │    24.2x
+       4096 │       63.9 │        15.59 │    45.6x
+      65536 │      734.5 │        11.21 │    63.5x
+
+2b. Where the time goes at N=65536 (ms)
+  Phases are re-executed against the public API — the library carries no
+  instrumentation — and their total is checked against `batch_verify`.
+  challenge │ lagrange │ instance │   T~ MSM │   U~ MSM │   V~ MSM │ pairing │    sum │ measured
+  ──────────┼──────────┼──────────┼──────────┼──────────┼──────────┼─────────┼────────┼─────────
+       33.8 │     21.4 │      2.2 │    169.8 │    170.3 │    331.1 │    0.58 │  729.2 │    734.5
+
+  T~/U~ are the same MSM over T and U; V~ is the same again but with
+  full-width scalars (rho_k * zeta^(k) rather than the 128-bit rho_k).
+  The final pairing product is a fixed per-batch cost, which is what
+  amortises away.
+

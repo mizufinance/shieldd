@@ -1,0 +1,79 @@
+{
+  "schema": "shieldd.proving_experiment.edmsm_frozen.v1",
+  "sources": [
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/examples/edmsm.rs",
+      "sha256": "39c7c8e48b67e7f17c9116584d841df624fb70be2f8828ab271d6497d3c8e1f9"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/examples/gnark_msm.rs",
+      "sha256": "8bf138719e7b31e9cce31d8e916a75c8cf8119681192d43b626cc15cbb54009c"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/Cargo.toml",
+      "sha256": "0ac3df8c029d776cfabd8ffb86f0d72b446a5b05a74e795794e50a758b4ef235"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/Cargo.lock",
+      "sha256": "5843e15a1ef2b15c8efd0bbad805b7a9031b754c0951f901dc4ebc6a27c4fd72"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/edmsm/edwards/adapter.go",
+      "sha256": "7276c903d347bc578929338a4ca3088fbe513cd6db8b287963c19d64dc3a3d38"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/edmsm/edwards/adapter_test.go",
+      "sha256": "7ae1e61bc07545839d854537029ddd2626686d611de92f1d4c74edaf7af405af"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/edmsm/edwards/multiexp.go",
+      "sha256": "b7e5e9d304feb54af2a6f7bf9d164a9087d0bf829e9130d234e09f047639ca13"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/edmsm/edwards/points.go",
+      "sha256": "483ea77aba1af1e78061679e8480569085b77a135aee00d984d80ae6d89f84d1"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/edmsm/go.mod",
+      "sha256": "5acf7c8f5b1d8530e0f4c3da2022f2e39194f1d408c7b47ae078a5ec3943f6fc"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/edmsm/go.sum",
+      "sha256": "93fed06e3b50eda2fd15b31bce7ea377e26b610b3f8e24386e442f62eec6fda6"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/edmsm/main.go",
+      "sha256": "541311bd47b78da366981b129165ba8db31d41fbf60d999b7badd7def8f663d6"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/edmsm/main_test.go",
+      "sha256": "932039845d2b26bfbfb3796b757621b7cc70b951bc8f4944aafc5b768305a0ad"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/edmsm/upstream.json",
+      "sha256": "987f2b15b016bf9b71bb07b2118979d4cba646248fff83c095c8b3517c9e9fae"
+    }
+  ],
+  "archive": {
+    "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/edmsm-source/source.tar.gz",
+    "sha256": "9461abd64513cb80f20c92305729d2aa7293eaa64ad0428f1ecfa9158433d194"
+  },
+  "binaries": [
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/edmsm-source/baseline",
+      "sha256": "aa1e3eb79d7f4454f88be9c9171015a0c8be6f65a7c8d2cb2a8a6a0792a6148f"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/edmsm-source/edwards",
+      "sha256": "4eacee1f42e45b1451478fd07043bd7b7120b40b75efa37b922adbfbf9b9d869"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/edmsm-source/controller",
+      "sha256": "4461b3cbb2b2c6ca417fb75756682a05488c3a778d71ba1180b00a99796305d8"
+    }
+  ],
+  "go_metadata": {
+    "baseline": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/edmsm-source/baseline: go1.25.7\n\tpath\tgithub.com/mizufinance/shieldd/tools/gnark/cmd/msmworker\n\tmod\tgithub.com/mizufinance/shieldd/tools/gnark\t(devel)\t\n\tdep\tgithub.com/bits-and-blooms/bitset\tv1.24.4\th1:95H15Og1clikBrKr/DuzMXkQzECs1M6hhoGXLwLQOZE=\n\tdep\tgithub.com/consensys/gnark-crypto\tv0.20.1\th1:PXDUBvk8AzhvWowHLWBEAfUQcV1/aZgWIqD6eMpXmDg=\n\tdep\tgolang.org/x/sys\tv0.41.0\th1:Ivj+2Cp/ylzLiEU89QhWblYnOE9zerudt9Ftecq2C6k=\n\tbuild\t-buildmode=exe\n\tbuild\t-compiler=gc\n\tbuild\tCGO_ENABLED=1\n\tbuild\tCGO_CFLAGS=\n\tbuild\tCGO_CPPFLAGS=\n\tbuild\tCGO_CXXFLAGS=\n\tbuild\tCGO_LDFLAGS=\n\tbuild\tGOARCH=arm64\n\tbuild\tGOOS=darwin\n\tbuild\tGOARM64=v8.0\n\tbuild\tvcs=git\n\tbuild\tvcs.revision=b3de9fecebbaa8d44f5f582e3fae16287970300e\n\tbuild\tvcs.time=2026-09-11T14:19:58Z\n\tbuild\tvcs.modified=true\n",
+    "edwards": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/edmsm-source/edwards: go1.25.7\n\tpath\tshieldd.local/edmsm\n\tmod\tshieldd.local/edmsm\t(devel)\t\n\tdep\tgithub.com/bits-and-blooms/bitset\tv1.24.4\th1:95H15Og1clikBrKr/DuzMXkQzECs1M6hhoGXLwLQOZE=\n\tdep\tgithub.com/consensys/gnark-crypto\tv0.20.1\th1:PXDUBvk8AzhvWowHLWBEAfUQcV1/aZgWIqD6eMpXmDg=\n\tdep\tgolang.org/x/sys\tv0.41.0\th1:Ivj+2Cp/ylzLiEU89QhWblYnOE9zerudt9Ftecq2C6k=\n\tbuild\t-buildmode=exe\n\tbuild\t-compiler=gc\n\tbuild\tCGO_ENABLED=1\n\tbuild\tCGO_CFLAGS=\n\tbuild\tCGO_CPPFLAGS=\n\tbuild\tCGO_CXXFLAGS=\n\tbuild\tCGO_LDFLAGS=\n\tbuild\tGOARCH=arm64\n\tbuild\tGOOS=darwin\n\tbuild\tGOARM64=v8.0\n\tbuild\tvcs=git\n\tbuild\tvcs.revision=b3de9fecebbaa8d44f5f582e3fae16287970300e\n\tbuild\tvcs.time=2026-09-11T14:19:58Z\n\tbuild\tvcs.modified=true\n"
+  }
+}

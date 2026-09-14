@@ -1,0 +1,10 @@
+{
+  "time_ns": 1789353908669956000,
+  "argv": [
+    "python3",
+    "tools/proving-experiment/selected_desktop.py",
+    "tools/proving-experiment/cache/desktop-selected"
+  ],
+  "code": 0,
+  "failure": null
+}

@@ -1,0 +1,83 @@
+{
+  "schema": "shieldd.proving_experiment.edmsm_analysis.v1",
+  "complete": {
+    "schema": "shieldd.proving_experiment.edmsm_complete.v1",
+    "samples": {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/edmsm-comparison/samples.jsonl",
+      "sha256": "c8220a3f3e29129c52a1096b18bf5df8972d64cebebed088f959c396c4a5ac38"
+    },
+    "arithmetic_calls_verified": 20
+  },
+  "groups": {
+    "commitment": {
+      "gnark_selected": {
+        "values_s": [
+          0.75233325,
+          0.745043584,
+          0.734026208
+        ],
+        "median_s": 0.745043584,
+        "median_go_msm_s": 0.731083958,
+        "maximum_msm_allocated_bytes": 159663744
+      },
+      "edwards": {
+        "values_s": [
+          0.72487125,
+          0.70440375,
+          0.729071583
+        ],
+        "median_s": 0.72487125,
+        "median_go_msm_s": 0.711752042,
+        "maximum_msm_allocated_bytes": 116403928
+      }
+    },
+    "opening": {
+      "gnark_selected": {
+        "values_s": [
+          1.281249541,
+          1.288226208,
+          1.278561167
+        ],
+        "median_s": 1.281249541,
+        "median_go_msm_s": 1.258234083,
+        "maximum_msm_allocated_bytes": 169100000
+      },
+      "edwards": {
+        "values_s": [
+          1.271493792,
+          1.228405375,
+          1.206121792
+        ],
+        "median_s": 1.228405375,
+        "median_go_msm_s": 1.20790525,
+        "maximum_msm_allocated_bytes": 125853608
+      }
+    }
+  },
+  "summed_group_medians_s": {
+    "gnark_selected": 2.026293125,
+    "edwards": 1.953276625
+  },
+  "sum_saving_s": 0.07301650000000004,
+  "arithmetic_time_reduction": 0.03603451993156224,
+  "projected_selected_B_api_reduction": 0.029483420328788472,
+  "preparation": {
+    "schema": "shieldd.proving_experiment.edmsm_preparation.v1",
+    "checked_base_load_ns": 18197784792,
+    "checked_edwards_preparation_ns": 18547373917,
+    "resident_base_bytes": 183990816,
+    "workers": 2
+  },
+  "initialization": {
+    "baseline_s": 17.874698125,
+    "edwards_s": 36.745500375,
+    "baseline_resident_bytes": 122660736,
+    "edwards_resident_bytes": 183990816
+  },
+  "peak_process_tree_rss_bytes": 1201455104,
+  "minimum_available_bytes": 18090917888,
+  "maximum_swap_bytes": 0,
+  "competing_heavy_pids": [],
+  "disposition": "Reject for the selected B implementation: small arithmetic-only saving, 50% larger resident bases and an extra checked mapping pass. No full-proof win established; no further window sweep.",
+  "limits": "Verified Transfer operands; two resident workers, one active MSM at a time; two warmups and three balanced measured pairs per combined group. Rust scalar encoding, IPC, Go canonical decoding and checked result conversion are inside each boundary. Initial subgroup/base loading and Edwards preparation are separate. Same current field arithmetic and Go1.25.7. No window sweep, full proof, phone or old-reference speedup claim."
+}

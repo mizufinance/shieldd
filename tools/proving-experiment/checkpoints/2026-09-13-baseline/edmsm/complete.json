@@ -1,0 +1,8 @@
+{
+  "schema": "shieldd.proving_experiment.edmsm_complete.v1",
+  "samples": {
+    "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/edmsm-comparison/samples.jsonl",
+    "sha256": "c8220a3f3e29129c52a1096b18bf5df8972d64cebebed088f959c396c4a5ac38"
+  },
+  "arithmetic_calls_verified": 20
+}

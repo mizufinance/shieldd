@@ -1,0 +1,28 @@
+{
+  "schema": "shieldd.proving_experiment.sources.v1",
+  "zkpari": {
+    "url": "https://github.com/guruvamsi-policharla/zk-pari",
+    "revision": "a8266aac58314214552a214fead1c0258f8de418",
+    "license_as_declared_upstream": "MIT/Apache-2.0",
+    "local_source": "vendor/zkpari"
+  },
+  "commonware": {
+    "url": "https://github.com/commonwarexyz/monorepo",
+    "revision": "1a56762927a8ad3300e0594886c28c59d9801769",
+    "pull_request": 4523,
+    "status_at_resolution": "open draft",
+    "patch": {
+      "path": "native/patches/commonware-polynomial-migration.patch",
+      "sha256": "7c5c987e9854ac35ad2dadc482a4e31b0f3c26e17906daa0011e2e0aff7fa03d",
+      "purpose": "Complete the pinned draft's incomplete switch to Commonware ntt::Domain and poly::Poly; retain masks and quotient rejection."
+    }
+  },
+  "native_poseidon": {
+    "artifact": "native/params/poseidon381.json",
+    "sha256": "b329be713656c761cdf4bcb106fcb12c10ef3864b2643124fbdd6779cc5b4e38",
+    "generator": "native/examples/export_poseidon.rs",
+    "arkworks_reference_version": "0.6.0",
+    "recipe": "BLS12-381 Fr, width 3, alpha 5, full 8, partial 57, skip 0",
+    "status": "native and circuit vector agreement checked; full reference matrix-security checks pending"
+  }
+}

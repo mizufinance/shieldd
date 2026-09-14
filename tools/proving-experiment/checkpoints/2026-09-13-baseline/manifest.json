@@ -1,0 +1,162 @@
+{
+  "schema": "shieldd.proving_experiment.git_checkpoint.v1",
+  "base_commit": "b3de9fecebbaa8d44f5f582e3fae16287970300e",
+  "files": [
+    {
+      "source": "tools/proving-experiment/cache/desktop-selected/samples.jsonl",
+      "saved": "desktop-selected/samples.jsonl",
+      "sha256": "dca0b9deef3bc8047ca48f74ad7f1756473a1ba3282f3e7c6415d79242e4614e",
+      "bytes": 22251
+    },
+    {
+      "source": "tools/proving-experiment/cache/desktop-selected/identity.json",
+      "saved": "desktop-selected/identity.json",
+      "sha256": "c15f7c87c66799435d48522634d15caec773bc214552c761880d759e488193b2",
+      "bytes": 25699
+    },
+    {
+      "source": "tools/proving-experiment/cache/desktop-selected/complete.json",
+      "saved": "desktop-selected/complete.json",
+      "sha256": "934dcd4ecebccc9253e813205d4a94b97591f75de92ba901fc2d5f54bac3a2ab",
+      "bytes": 333
+    },
+    {
+      "source": "tools/proving-experiment/cache/desktop-selected/results.json",
+      "saved": "desktop-selected/results.json",
+      "sha256": "0fb6cb24bde28be85090d022e4b8c3d61e56329aed3a0cf6db288350f9f95949",
+      "bytes": 1106
+    },
+    {
+      "source": "tools/proving-experiment/cache/desktop-selected/analysis.json",
+      "saved": "desktop-selected/analysis.json",
+      "sha256": "821bd41c1cc422405389b535252d728bbf38d2a099291e2a981db53c345a827c",
+      "bytes": 5247
+    },
+    {
+      "source": "tools/proving-experiment/cache/desktop-selected/delivery-checkpoint.json",
+      "saved": "desktop-selected/delivery-checkpoint.json",
+      "sha256": "87bb9ce767252d5cd4f357f7a43019eb919be3f8776f199a56c7bf35f32e5ae6",
+      "bytes": 4136
+    },
+    {
+      "source": "tools/proving-experiment/cache/desktop-selected/environment.jsonl",
+      "saved": "desktop-selected/environment.jsonl",
+      "sha256": "c33de211953bdccbb7e58ba88bd991c51760b06071d6c54a5bb13593c5a57dc7",
+      "bytes": 987
+    },
+    {
+      "source": "tools/proving-experiment/cache/desktop-selected/reporting-source.py",
+      "saved": "desktop-selected/reporting-source.py",
+      "sha256": "865b953423bfa1e35d3bafb46feade47853bc5e17ad16b79a29eacfb412ae1b1",
+      "bytes": 14509
+    },
+    {
+      "source": "tools/proving-experiment/cache/desktop-selected-source/manifest.json",
+      "saved": "desktop-selected/source-manifest.json",
+      "sha256": "3b6da5cd5da125149adeb5c3ad118b5e16333ef62c3d4a85c9f8fc24c19e8b56",
+      "bytes": 46437
+    },
+    {
+      "source": "tools/proving-experiment/cache/desktop-selected-source/source.tar.gz",
+      "saved": "desktop-selected/source.tar.gz",
+      "sha256": "a66074594cbbec2da3da82ea1bd50406308b4a8035d4511321f930c64ae6fb6d",
+      "bytes": 423176
+    },
+    {
+      "source": "tools/proving-experiment/cache/desktop-selected-run.exit.json",
+      "saved": "desktop-selected/exit.json",
+      "sha256": "0821ce2596d4fa9d62ac180d412ef40e63727aa64e1d85e119c15381804b8918",
+      "bytes": 207
+    },
+    {
+      "source": "tools/proving-experiment/cache/desktop-selected-run.resources.jsonl",
+      "saved": "desktop-selected/resources.jsonl",
+      "sha256": "434ec2d5efe24909ed1f2bd23837c6fd7663630a5497038585c786538d6abd2b",
+      "bytes": 40121
+    },
+    {
+      "source": "tools/proving-experiment/cache/edmsm-comparison/samples.jsonl",
+      "saved": "edmsm/samples.jsonl",
+      "sha256": "c8220a3f3e29129c52a1096b18bf5df8972d64cebebed088f959c396c4a5ac38",
+      "bytes": 17567
+    },
+    {
+      "source": "tools/proving-experiment/cache/edmsm-comparison/complete.json",
+      "saved": "edmsm/complete.json",
+      "sha256": "3ab110987e0bea868194d44d882f0732fdd154459c0775e827aa4acd0cbdab36",
+      "bytes": 318
+    },
+    {
+      "source": "tools/proving-experiment/cache/edmsm-comparison/analysis.json",
+      "saved": "edmsm/analysis.json",
+      "sha256": "7a7e4166ab65111081a1b1f1814c74e4be48a57f8d248a459729ef6bdcced23c",
+      "bytes": 2943
+    },
+    {
+      "source": "tools/proving-experiment/cache/edmsm-source/manifest.json",
+      "saved": "edmsm/source-manifest.json",
+      "sha256": "b44009f8d7253641b415d53001f076798d0f1026729682ea7c8c2448889ade37",
+      "bytes": 5347
+    },
+    {
+      "source": "tools/proving-experiment/cache/edmsm-source/source.tar.gz",
+      "saved": "edmsm/source.tar.gz",
+      "sha256": "9461abd64513cb80f20c92305729d2aa7293eaa64ad0428f1ecfa9158433d194",
+      "bytes": 33971
+    },
+    {
+      "source": "tools/proving-experiment/cache/edmsm-run.exit.json",
+      "saved": "edmsm/exit.json",
+      "sha256": "170c39a4d83ef76f9d11a2accb6010433ab27bc423cb6c4f6efce8d0dbaf9c25",
+      "bytes": 372
+    },
+    {
+      "source": "tools/proving-experiment/cache/edmsm-run.resources.jsonl",
+      "saved": "edmsm/resources.jsonl",
+      "sha256": "683c78e2db52c46a1594b037d06e51568d653508d31c78794b2a21a68c37c0cf",
+      "bytes": 15786
+    },
+    {
+      "source": "tools/proving-experiment/cache/subgroup-comparison/samples.jsonl",
+      "saved": "subgroup/samples.jsonl",
+      "sha256": "259e42f750c11f5583d6128c57c7c79fe8565797179e64d65350ace6c7ee7333",
+      "bytes": 33586
+    },
+    {
+      "source": "tools/proving-experiment/cache/subgroup-comparison/complete.json",
+      "saved": "subgroup/complete.json",
+      "sha256": "68cf0e9581553f6db09e481cd92475cad94e7c1963994c5403a1a572daec5910",
+      "bytes": 350
+    },
+    {
+      "source": "tools/proving-experiment/cache/subgroup-comparison/analysis.json",
+      "saved": "subgroup/analysis.json",
+      "sha256": "651b82f30b7248bc7062637f659ab9f6c9f0f06a9bd8e08bc00cbde108d58dcc",
+      "bytes": 2360
+    },
+    {
+      "source": "tools/proving-experiment/cache/subgroup-source/manifest.json",
+      "saved": "subgroup/source-manifest.json",
+      "sha256": "d92213a4992a3de630c30b5e7dc10ee4e79687df464d629aeb99360f161f75d8",
+      "bytes": 2638
+    },
+    {
+      "source": "tools/proving-experiment/cache/subgroup-source/source.tar.gz",
+      "saved": "subgroup/source.tar.gz",
+      "sha256": "7702be65bce5fb5dc121220e9b9972f62d548c5c266c539c3d3a9794afaba97e",
+      "bytes": 37934
+    },
+    {
+      "source": "tools/proving-experiment/cache/subgroup-run.exit.json",
+      "saved": "subgroup/exit.json",
+      "sha256": "58bdafc2e111350e4e2ab7b7f1ee792ae29c7b69088ecf77f7248a7826978f76",
+      "bytes": 265
+    },
+    {
+      "source": "tools/proving-experiment/cache/subgroup-run.resources.jsonl",
+      "saved": "subgroup/resources.jsonl",
+      "sha256": "d17e9b1b332e36c440601356f3b2cc710f511273b03ea3b69ecb3b4f3ae789f9",
+      "bytes": 647
+    }
+  ]
+}

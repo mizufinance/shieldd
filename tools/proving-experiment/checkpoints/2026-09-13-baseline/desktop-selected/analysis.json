@@ -1,0 +1,183 @@
+{
+  "schema": "shieldd.proving_experiment.selected_desktop_analysis.v1",
+  "results": {
+    "schema": "shieldd.proving_experiment.desktop_results.v1",
+    "rows": [
+      {
+        "candidate": "A",
+        "warm_values_s": [
+          1.844835458,
+          1.846041458,
+          1.845549125,
+          1.847978125,
+          1.841665667
+        ],
+        "warm_median_s": 1.845549125,
+        "warm_min_s": 1.841665667,
+        "warm_max_s": 1.847978125,
+        "first_s": 23.09905925
+      },
+      {
+        "candidate": "B",
+        "warm_values_s": [
+          2.4896015,
+          2.478330084,
+          2.469753166,
+          2.472839417,
+          2.476527458
+        ],
+        "warm_median_s": 2.476527458,
+        "warm_min_s": 2.469753166,
+        "warm_max_s": 2.4896015,
+        "first_s": 89.805215083
+      },
+      {
+        "candidate": "C",
+        "warm_values_s": [
+          3.013852375,
+          3.02986825,
+          3.028955958,
+          3.019869583,
+          3.032001708
+        ],
+        "warm_median_s": 3.028955958,
+        "warm_min_s": 3.013852375,
+        "warm_max_s": 3.032001708,
+        "first_s": 26.319305708
+      }
+    ],
+    "ratios": {
+      "A/B": 0.7452165002403942,
+      "A/C": 0.6093020666495937,
+      "B/C": 0.8176175198120857
+    }
+  },
+  "footprints": [
+    {
+      "candidate": "A",
+      "first_peak_rss_bytes": 497352704,
+      "warm_peak_rss_bytes": 655048704,
+      "encoded_request_bytes": 16204,
+      "encoded_proof_package_bytes": 436,
+      "proving_key_bytes": 41816649
+    },
+    {
+      "candidate": "B",
+      "first_peak_rss_bytes": 2361589760,
+      "warm_peak_rss_bytes": 2547761152,
+      "encoded_request_bytes": 16204,
+      "encoded_proof_package_bytes": 168,
+      "proving_key_bytes": 61331116
+    },
+    {
+      "candidate": "C",
+      "first_peak_rss_bytes": 3028910080,
+      "warm_peak_rss_bytes": 2853765120,
+      "encoded_request_bytes": 16297,
+      "encoded_proof_package_bytes": 218,
+      "proving_key_bytes": 66686335
+    }
+  ],
+  "phases": [
+    {
+      "candidate": "A",
+      "warm_median_ns": {
+        "witness_ns": 13006917,
+        "prove_ns": 1832446208,
+        "encode_ns": 6417,
+        "request_ns": 1845380542
+      },
+      "first_initialization": {
+        "schema": "shieldd.proving_experiment.gnark_worker.v1",
+        "op": "ready",
+        "payload_bytes": 0,
+        "error": null,
+        "statement": null,
+        "verified": false,
+        "circuit_sha256": "9c7f003980d783133db6b82e4e30fd3444d1fe37bf80fd3da4c6a227d0046ff7",
+        "wires": 150904,
+        "compile_ns": 2025343625,
+        "key_load_ns": 19247601792,
+        "witness_ns": null,
+        "solve_ns": null,
+        "prove_ns": null,
+        "encode_ns": null,
+        "request_ns": null,
+        "initialization": null,
+        "request": null
+      }
+    },
+    {
+      "candidate": "B",
+      "warm_median_ns": {
+        "go_roundtrip_ns": 72285584,
+        "checked_mapping_ns": 38791500,
+        "prove_ns": 2367526208,
+        "encoding_ns": 2541,
+        "cleanup_ns": 538708,
+        "request_ns": 2476280458
+      },
+      "first_initialization": {
+        "prover": {
+          "go_compile_ns": 2051823250,
+          "relation_preparation_ns": 2475701000,
+          "key_file_read_ns": 8599000,
+          "key_checked_decode_ns": 63251453583,
+          "key_association_ns": 591690125,
+          "total_ns": 68382437542
+        },
+        "arithmetic_preparation_ns": 18934078791,
+        "go_initialization_ns": 18352214083,
+        "resident_base_bytes": 122660736,
+        "total_ns": 87316538708
+      }
+    },
+    {
+      "candidate": "C",
+      "warm_median_ns": {
+        "checked_witness_decode_ns": 42208,
+        "construction_solving_ns": 39962542,
+        "assignment_mapping_ns": 130937708,
+        "claim_ns": 110417,
+        "prove_ns": 2849134250,
+        "encoding_ns": 11041,
+        "cleanup_ns": 8742084,
+        "total_ns": 3028741042
+      },
+      "first_initialization": {
+        "prover": {
+          "relation_preparation_ns": 2478542333,
+          "key_file_read_ns": 15347625,
+          "key_decode_ns": 20266846958,
+          "key_canonical_roundtrip_ns": 200938292,
+          "key_checked_decode_ns": 20467785083,
+          "total_ns": 22965617125
+        },
+        "arithmetic_preparation_ns": 342739292,
+        "resident_base_bytes": 133253360,
+        "total_ns": 23308803583
+      }
+    }
+  ],
+  "resources": {
+    "peak_all_resident_workers_rss_bytes": 6519160832,
+    "minimum_reclaimable_memory_bytes": 18296274944,
+    "maximum_swap_bytes": 0,
+    "competing_heavy_workloads": false
+  },
+  "conditions": {
+    "machine": "Apple M4 Pro",
+    "ram_bytes": 51539607552,
+    "platform": "macOS-15.7.7-arm64-arm-64bit-Mach-O",
+    "workers": 2,
+    "power": "AC, battery100%; observed during run",
+    "thermal": "pmset reported no recorded thermal/performance warning during run",
+    "physical_phones": "No adb device attached; Apple developer path is CommandLineTools, not full Xcode. No physical phone measured."
+  },
+  "additional_encoded_arithmetic_base_bytes": {
+    "A": 0,
+    "B": 123938452,
+    "C": 0
+  },
+  "reporting_source_sha256": "865b953423bfa1e35d3bafb46feade47853bc5e17ad16b79a29eacfb412ae1b1"
+}

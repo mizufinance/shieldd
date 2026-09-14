@@ -1,0 +1,9 @@
+{
+  "schema": "shieldd.proving_experiment.subgroup_complete.v1",
+  "samples": {
+    "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/subgroup-comparison/samples.jsonl",
+    "sha256": "259e42f750c11f5583d6128c57c7c79fe8565797179e64d65350ace6c7ee7333"
+  },
+  "checked_points_per_sample": 4096,
+  "validations": 81920
+}

@@ -1,0 +1,36 @@
+[package]
+name = "shieldd-native-proving-experiment"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.95"
+publish = false
+
+[workspace]
+
+[features]
+cost_trace = []
+
+[[example]]
+name = "transfer_components"
+required-features = ["cost_trace"]
+
+[dependencies]
+commonware-cryptography = { path = "../cache/commonware/cryptography", features = ["std", "bls12381"] }
+commonware-math = { path = "../cache/commonware/math" }
+commonware-codec = { path = "../cache/commonware/codec" }
+commonware-parallel = { path = "../cache/commonware/parallel" }
+rand = "=0.10.2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+anyhow = "1"
+hex = "0.4"
+
+[dev-dependencies]
+ark-bls12-381 = "=0.6.0"
+ark-ed-on-bls12-381 = "=0.6.0"
+ark-ff = "=0.6.0"
+ark-ec = "=0.6.0"
+ark-crypto-primitives = { version = "=0.6.0", features = ["sponge"] }
+
+[profile.release]
+debug = 0

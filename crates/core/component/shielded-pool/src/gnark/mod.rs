@@ -63,6 +63,19 @@ mod soundness_fixture_tests {
         NoteReshapeFamilyId, ShieldedWithdrawalFamilyId,
     };
 
+    #[test]
+    #[ignore = "development spike witness export; requires SHIELDD_SPIKE_WITNESS_OUT"]
+    fn export_spike_over_limit_disclosure() {
+        let path = PathBuf::from(std::env::var("SHIELDD_SPIKE_WITNESS_OUT")
+            .expect("SHIELDD_SPIKE_WITNESS_OUT must name an untracked cache file"));
+        let parent = path.parent().expect("output parent").canonicalize().expect("existing cache directory");
+        assert!(!parent.starts_with(fixture_dir().canonicalize().unwrap()), "do not overwrite bundled fixtures");
+        let mut rng = rand::rngs::StdRng::seed_from_u64(0x5350_494b_455f_4f4c);
+        let (public, private) = proof_test_helpers::build_transfer_flagged_hidden_arity_roundtrip_inputs_with_rng(&mut rng);
+        let bytes = encode_transfer_witness(&public, &private).expect("encode valid disclosure witness");
+        std::fs::write(path, bytes).expect("write spike witness");
+    }
+
     fn fixture_dir() -> PathBuf {
         PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("../../../../tools/gnark/internal/testfixtures/vectors")

@@ -1,0 +1,8 @@
+{
+  "identity_sha256": "c15f7c87c66799435d48522634d15caec773bc214552c761880d759e488193b2",
+  "samples_sha256": "dca0b9deef3bc8047ca48f74ad7f1756473a1ba3282f3e7c6415d79242e4614e",
+  "results_sha256": "0fb6cb24bde28be85090d022e4b8c3d61e56329aed3a0cf6db288350f9f95949",
+  "measured_proofs": 18,
+  "warmups": 6,
+  "all_verified": true
+}

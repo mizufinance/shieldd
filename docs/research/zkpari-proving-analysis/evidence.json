@@ -1,0 +1,141 @@
+{
+  "cache": "/Users/antoinecyr/Documents/Source/shieldd/tools/zkpari-spike/cache/99228210a891ffa23aeb",
+  "relation_sha256": "9c7f003980d783133db6b82e4e30fd3444d1fe37bf80fd3da4c6a227d0046ff7",
+  "samples_sha256": "430a3709f1db32c210aca9e056936c777e828709812365962bc00ba100de6742",
+  "sample_records": 1642,
+  "classification": {
+    "affine_proportional": 23809,
+    "general_product": 78226,
+    "exact_square": 58181,
+    "linear": 3180
+  },
+  "original_constraints": 163396,
+  "proposed_sr1cs_body_rows": 241622,
+  "proposed_rows_with_three_boundary_rows": 241625,
+  "proposed_radix2_domain": 262144,
+  "scenario_assignments_checked": [
+    "transfer",
+    "transfer_accumulating",
+    "transfer_accumulator_continuation",
+    "transfer_flagged",
+    "transfer_over_limit_disclosure",
+    "transfer_unregulated"
+  ],
+  "row_assignment_checks": 980376,
+  "small_field_identity_checks": 13310,
+  "limits": "Static arithmetic checks only; no new SR1CS key, compiler, or proof was produced.",
+  "warm_transfer_seconds": {
+    "groth16": {
+      "n": 30,
+      "request_wall": 3.3152802705,
+      "phases": {
+        "go": {
+          "witness_ns": 0.012284854,
+          "prove_ns": 3.3009171875,
+          "encode_ns": 7.9375e-06
+        },
+        "rust": {
+          "encoding_ns": 0.00110025
+        }
+      }
+    },
+    "zkpari": {
+      "n": 30,
+      "request_wall": 13.2583092295,
+      "phases": {
+        "go": {
+          "witness_ns": 0.012202708,
+          "solve_ns": 0.069277,
+          "encode_ns": 0.0060836875
+        },
+        "rust": {
+          "bridge_ns": 2.157580625,
+          "prove_ns": 10.978429854,
+          "encoding_ns": 4.8955e-06
+        }
+      }
+    }
+  },
+  "poa_batch_seconds": {
+    "64": {
+      "groth16": {
+        "n": 30,
+        "aggregation_checked_ns": 0.415825146,
+        "batch_checked_ns": 0.052010229,
+        "combined_ns": 0.4677265205,
+        "proof_bytes": 0,
+        "aggregate_bytes": 31329,
+        "statement_bytes": 2048
+      },
+      "zkpari": {
+        "n": 30,
+        "aggregation_checked_ns": 0.0,
+        "batch_checked_ns": 0.015595125,
+        "combined_ns": 0.0,
+        "proof_bytes": 8192,
+        "aggregate_bytes": 0,
+        "statement_bytes": 2048
+      }
+    },
+    "256": {
+      "groth16": {
+        "n": 30,
+        "aggregation_checked_ns": 1.5427149165,
+        "batch_checked_ns": 0.0590426875,
+        "combined_ns": 1.601514687,
+        "proof_bytes": 0,
+        "aggregate_bytes": 40801,
+        "statement_bytes": 8192
+      },
+      "zkpari": {
+        "n": 30,
+        "aggregation_checked_ns": 0.0,
+        "batch_checked_ns": 0.055367542,
+        "combined_ns": 0.0,
+        "proof_bytes": 32768,
+        "aggregate_bytes": 0,
+        "statement_bytes": 8192
+      }
+    },
+    "1024": {
+      "groth16": {
+        "n": 30,
+        "aggregation_checked_ns": 6.006806917,
+        "batch_checked_ns": 0.066328479,
+        "combined_ns": 6.0733139165,
+        "proof_bytes": 0,
+        "aggregate_bytes": 50273,
+        "statement_bytes": 32768
+      },
+      "zkpari": {
+        "n": 30,
+        "aggregation_checked_ns": 0.0,
+        "batch_checked_ns": 0.2097779375,
+        "combined_ns": 0.0,
+        "proof_bytes": 131072,
+        "aggregate_bytes": 0,
+        "statement_bytes": 32768
+      }
+    },
+    "4096": {
+      "groth16": {
+        "n": 30,
+        "aggregation_checked_ns": 24.2721638125,
+        "batch_checked_ns": 0.076749521,
+        "combined_ns": 24.350346021,
+        "proof_bytes": 0,
+        "aggregate_bytes": 59745,
+        "statement_bytes": 131072
+      },
+      "zkpari": {
+        "n": 30,
+        "aggregation_checked_ns": 0.0,
+        "batch_checked_ns": 0.8427765,
+        "combined_ns": 0.0,
+        "proof_bytes": 524288,
+        "aggregate_bytes": 0,
+        "statement_bytes": 131072
+      }
+    }
+  }
+}

@@ -1,0 +1,30 @@
+    Finished `bench` profile [optimized] target(s) in 0.09s
+     Running benches/throughput.rs (target/release/deps/throughput-8a29a5af81b1a6e0)
+╔══════════════════════════════════════════════════════════════════════╗
+║  4. ZK-Pari sharded batch-verification throughput — BLS12-381        ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+Sharded: T OS threads, each batch-verifying its own 80000-proof
+         chunk in a single-threaded rayon pool; nothing is shared.
+Weak scaling: 80000 proofs per thread.
+Sampling: median of 3 passes per cell.
+
+keygen ... simulating 1440000 claims ... done in 21.7s
+baseline (1 thread) ... done
+threads = 4 ... done
+threads = 8 ... done
+threads = 16 ... done
+threads = 18 ... done
+
+  baseline (1 thread): 924.5 ms, 11.56 us/proof, 86532 proofs/s
+
+  threads │  wall ms │ us/proof │ proofs/s │   eff │ payments/s
+  ────────┼──────────┼──────────┼──────────┼───────┼───────────
+        4 │   1016.8 │     3.18 │   314710 │ 0.91x │     157355
+        8 │   1189.9 │     1.86 │   537862 │ 0.78x │     268931
+       16 │   1318.7 │     1.03 │   970676 │ 0.70x │     485338
+       18 │   1414.6 │     0.98 │  1017948 │ 0.65x │     508974
+
+  eff = measured throughput / (baseline x T).
+  One payment = one R_send proof + one R_recv proof.
+

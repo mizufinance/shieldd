@@ -1,0 +1,49 @@
+{
+  "schema": "shieldd.proving_experiment.subgroup_source.v1",
+  "sources": [
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/examples/subgroup.rs",
+      "sha256": "65105c93200dacc7010677ecfd28d65eff7f9effd49912b4c58f103ad82be469"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/examples/gnark_msm.rs",
+      "sha256": "8bf138719e7b31e9cce31d8e916a75c8cf8119681192d43b626cc15cbb54009c"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/Cargo.toml",
+      "sha256": "0ac3df8c029d776cfabd8ffb86f0d72b446a5b05a74e795794e50a758b4ef235"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/Cargo.lock",
+      "sha256": "5843e15a1ef2b15c8efd0bbad805b7a9031b754c0951f901dc4ebc6a27c4fd72"
+    },
+    {
+      "path": "/Users/antoinecyr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ark-bls12-377-0.6.0/src/curves/g1.rs",
+      "sha256": "2933c4c36345cfd2529e26956e5e8e393b6662d4b879d2ceb809b45af8b800b9"
+    },
+    {
+      "path": "/Users/antoinecyr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ark-ec-0.6.0/src/models/short_weierstrass/mod.rs",
+      "sha256": "975f3c9b4b041f23cdaa12144f4c61e8559a5b52def9244afc9956694a4c42b9"
+    },
+    {
+      "path": "/Users/antoinecyr/go/pkg/mod/github.com/consensys/gnark-crypto@v0.20.1/ecc/bls12-377/g1.go",
+      "sha256": "f39b0ec5b6d47947be883692264eb14df399de3837cdb80419957a84d5c22625"
+    },
+    {
+      "path": "/Users/antoinecyr/go/pkg/mod/github.com/consensys/gnark-crypto@v0.20.1/ecc/bls12-377/bls12-377.go",
+      "sha256": "779498ce57827eaf3139dbaf46aae21d4f93b4fe4f15335f446a7b025ae9b744"
+    }
+  ],
+  "archive": {
+    "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/subgroup-source/source.tar.gz",
+    "sha256": "7702be65bce5fb5dc121220e9b9972f62d548c5c266c539c3d3a9794afaba97e"
+  },
+  "binary": {
+    "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/subgroup-source/subgroup",
+    "sha256": "7c3fba9e3b2df3189801373ccd6d6e6afb895d87256f6a0227cc0dc7b13cde2d"
+  },
+  "criterion": "P = -[x^2] phi(P), exact gnark0.20.1 beta and unreduced short addition chains. Validate curve and canonical encoding. Never use scalar-reducing projective mul for the full-order reference.",
+  "seed": 9586122913090633729,
+  "gnark_beta": "80949648264912719408558363140637477264845294720710499478137287262712535938301461879813459410945",
+  "scope": "4096 actual public bases; no changed full-key loader or proof. No randomized subgroup batching."
+}

@@ -1,0 +1,967 @@
+diff --git a/cryptography/src/bls12381/primitives/group.rs b/cryptography/src/bls12381/primitives/group.rs
+index 8017ff3..98656e1 100644
+--- a/cryptography/src/bls12381/primitives/group.rs
++++ b/cryptography/src/bls12381/primitives/group.rs
+@@ -1248,6 +1248,77 @@ impl G1 {
+     }
+ }
+ 
++/// Checked G1 bases prepared once for ordinary or combined development MSMs.
++pub struct PreparedG1Msm {
++    affine: Vec<blst_p1_affine>,
++    indices: Vec<usize>,
++    segments: Vec<usize>,
++}
++impl PreparedG1Msm {
++    /// Inputs are checked group elements; identities stay implicit in the index map.
++    pub fn new(segments: &[&[G1]]) -> Self {
++        let mut pointers = Vec::new();
++        let mut indices = Vec::new();
++        for (i, point) in segments.iter().flat_map(|s| s.iter()).enumerate() {
++            if *point != G1::zero() {
++                indices.push(i);
++                pointers.push(&point.0 as *const blst_p1);
++            }
++        }
++        let mut affine = vec![blst_p1_affine::default(); pointers.len()];
++        if !pointers.is_empty() {
++            // SAFETY: pointers refer to live checked points, and output has exactly n entries.
++            unsafe { blst_p1s_to_affine(affine.as_mut_ptr(), pointers.as_ptr(), pointers.len()) };
++        }
++        Self {
++            affine,
++            indices,
++            segments: segments.iter().map(|s| s.len()).collect(),
++        }
++    }
++    pub fn resident_bytes(&self) -> usize {
++        self.affine.len() * core::mem::size_of::<blst_p1_affine>()
++            + (self.indices.len() + self.segments.len()) * core::mem::size_of::<usize>()
++    }
++    /// Short coefficient prefixes are zero-padded; bases never move or get copied per call.
++    pub fn msm(&self, scalars: &[&[Scalar]], strategy: &impl Strategy) -> Result<G1, &'static str> {
++        if scalars.len() != self.segments.len()
++            || scalars
++                .iter()
++                .zip(&self.segments)
++                .any(|(s, n)| s.len() > *n)
++        {
++            return Err("prepared MSM segment length mismatch");
++        }
++        if self.affine.is_empty() {
++            return Ok(G1::zero());
++        }
++        let mut bytes = Vec::with_capacity(32 * self.affine.len());
++        let mut selected = 0;
++        let mut offset = 0;
++        for (values, count) in scalars.iter().zip(&self.segments) {
++            while selected < self.indices.len() && self.indices[selected] < offset + count {
++                let index = self.indices[selected] - offset;
++                if let Some(value) = values.get(index) {
++                    bytes.extend_from_slice(&value.as_blst_scalar().b);
++                } else {
++                    bytes.extend_from_slice(&[0u8; 32]);
++                }
++                selected += 1;
++            }
++            offset += count;
++        }
++        debug_assert_eq!(bytes.len(), 32 * self.affine.len());
++        let manual = strategy.manual();
++        let workers = manual.parallelism();
++        Ok(if workers < 2 || self.affine.len() < MIN_PARALLEL_POINTS {
++            G1::msm_sequential(&self.affine, &bytes, SCALAR_BITS)
++        } else {
++            G1::msm_parallel(&self.affine, &bytes, SCALAR_BITS, workers, &manual)
++        })
++    }
++}
++
+ impl Write for G1 {
+     fn write(&self, buf: &mut impl BufMut) {
+         let slice = self.as_slice();
+diff --git a/cryptography/src/zk/circuit.rs b/cryptography/src/zk/circuit.rs
+index 42fdb82..0cfb511 100644
+--- a/cryptography/src/zk/circuit.rs
++++ b/cryptography/src/zk/circuit.rs
+@@ -236,6 +236,14 @@ struct ContextInner<F> {
+     circuit: Mutex<Circuit<F>>,
+ }
+ 
++/// Read-only positions for development cost attribution.
++#[derive(Clone, Copy, Debug)]
++pub struct CircuitPosition {
++    pub witnesses: usize,
++    pub nodes: usize,
++    pub assertions: usize,
++}
++
+ /// A handle for recording operations into a circuit being built.
+ ///
+ /// A context is passed to the closure given to [`build`] or
+@@ -257,6 +265,16 @@ impl<F> Clone for Context<'_, F> {
+ impl<F> Copy for Context<'_, F> {}
+ 
+ impl<'ctx, F> Context<'ctx, F> {
++    /// Snapshot allocation positions without changing the relation.
++    pub fn diagnostic_position(self) -> CircuitPosition {
++        let c = self.inner.circuit.lock();
++        CircuitPosition {
++            witnesses: c.witnesses as usize,
++            nodes: c.nodes.len(),
++            assertions: c.assertions.len(),
++        }
++    }
++
+     fn allocate_constant(self, combine: impl Fn(&[F]) -> F) -> CircuitIdx {
+         let mut circuit = self.inner.circuit.lock();
+         let combined = combine(&circuit.constants);
+@@ -453,6 +471,25 @@ impl<'ctx, F> Var<'ctx, F> {
+         }
+     }
+ 
++    /// Read-only context position when this value belongs to a circuit.
++    pub fn diagnostic_position(&self) -> Option<CircuitPosition> {
++        match &self.inner {
++            VarInner::Native(_) => None,
++            VarInner::Circuit { ctx, .. } => Some(ctx.diagnostic_position()),
++        }
++    }
++    /// Whether this value is represented by a literal constant.
++    pub fn diagnostic_is_constant(&self) -> bool {
++        matches!(
++            &self.inner,
++            VarInner::Native(_)
++                | VarInner::Circuit {
++                    idx: CircuitIdx::Constant(_),
++                    ..
++                }
++        )
++    }
++
+     fn circuit_idx(&self) -> CircuitIdx {
+         match self.inner {
+             VarInner::Circuit { idx, .. } => idx,
+diff --git a/cryptography/src/zk/pari/circuit.rs b/cryptography/src/zk/pari/circuit.rs
+index 0a501d9..0669d8c 100644
+--- a/cryptography/src/zk/pari/circuit.rs
++++ b/cryptography/src/zk/pari/circuit.rs
+@@ -5,7 +5,7 @@ use crate::{
+     zk::circuit::{Circuit, CircuitIdx, CircuitNode, ValuedCircuit},
+ };
+ use commonware_codec::Encode;
+-use commonware_math::algebra::{Additive, FieldNTT, Ring};
++use commonware_math::algebra::{Additive, Field, FieldNTT, Ring};
+ use std::collections::{BTreeMap, BTreeSet};
+ use thiserror::Error;
+ 
+@@ -129,6 +129,7 @@ pub(super) struct SparseRow {
+ /// Rows are stored sparsely; every row past `rows.len()` up to the padded
+ /// domain size is implicitly zero and trivially satisfied.
+ pub struct Relation {
++    source_digest: [u8; 32],
+     size: usize,
+     public_inputs: usize,
+     committed_start: usize,
+@@ -138,7 +139,36 @@ pub struct Relation {
+     value_sources: Vec<ValueSource>,
+ }
+ 
++/// Development-only compiler inventory; these counts do not alter emitted rows.
++#[derive(Clone, Debug, Default)]
++pub struct CompilerInventory {
++    pub node_rows: Vec<usize>,
++    pub node_columns: Vec<usize>,
++    pub witnesses: usize,
++    pub additions: usize,
++    pub constant_products: usize,
++    pub fused_squares: usize,
++    pub materialized_squares: usize,
++    pub general_products: usize,
++    pub affine_general_products: usize,
++    pub assertions: usize,
++    pub input_links: usize,
++}
++
+ impl Relation {
++    /// Compile with structural attribution, separately from timed prover paths.
++    pub fn compile_diagnostic(
++        circuit: &Circuit<Scalar>,
++        layout: &InputLayout,
++    ) -> Result<(Self, CompilerInventory), super::Error> {
++        let mut compiler = Compiler::new(circuit, layout)?;
++        compiler.compile_nodes::<true>()?;
++        compiler.compile_assertions()?;
++        compiler.link_inputs()?;
++        let inventory = compiler.inventory.clone();
++        Ok((compiler.finish()?, inventory))
++    }
++
+     /// Compile a generic arithmetic circuit into a canonical square relation.
+     pub fn compile(circuit: &Circuit<Scalar>, layout: &InputLayout) -> Result<Self, super::Error> {
+         compile(circuit, layout).map_err(Into::into)
+@@ -166,6 +196,29 @@ impl Relation {
+         })
+     }
+ 
++    /// Map fresh values after checking the exact source circuit and layout fingerprint.
++    pub fn witness_prepared(
++        &self,
++        valued: &ValuedCircuit<Scalar>,
++        layout: &InputLayout,
++        openings: Vec<super::Opening>,
++    ) -> Result<super::Witness, super::Error> {
++        if openings.len() != self.blocks.len() {
++            return Err(super::Error::OpeningCount {
++                expected: self.blocks.len(),
++                actual: openings.len(),
++            });
++        }
++        validate_valued_shape(valued)?;
++        if source_digest(&valued.circuit, layout)? != self.source_digest {
++            return Err(Error::RelationMismatch.into());
++        }
++        Ok(super::Witness {
++            assignment: gather_values(valued, self)?,
++            openings,
++        })
++    }
++
+     /// Size of the padded radix-2 constraint domain, which also equals the
+     /// number of assignment variables.
+     pub const fn domain_size(&self) -> usize {
+@@ -205,9 +258,26 @@ impl Relation {
+         &self.digest
+     }
+ 
++    /// Development-only validation of every converted row before proving.
++    pub fn check_witness(&self, witness: &super::Witness) -> bool {
++        self.is_satisfied(&witness.assignment)
++    }
++
++    /// Number of explicit square constraints, excluding all-zero padding rows.
++    pub fn constraint_count(&self) -> usize {
++        self.rows.len()
++    }
++
++    /// Assignment columns before domain padding, including the constant column.
++    pub fn variable_count(&self) -> usize {
++        self.value_sources
++            .iter()
++            .take_while(|source| !matches!(source, ValueSource::Zero))
++            .count()
++    }
++
+     /// Check an assignment against every row. Padding rows past the stored
+     /// rows are all-zero and satisfied by construction.
+-    #[cfg(test)]
+     pub(super) fn is_satisfied(&self, assignment: &Assignment) -> bool {
+         if assignment.relation_digest != self.digest || assignment.values.len() != self.size {
+             return false;
+@@ -335,6 +405,25 @@ impl LinearCombination {
+         Self { terms }
+     }
+ 
++    fn affine_related(&self, other: &Self) -> bool {
++        let mut a = self.terms.iter().filter(|(index, _)| **index != 0);
++        let mut b = other.terms.iter().filter(|(index, _)| **index != 0);
++        let (Some((i, x)), Some((j, y))) = (a.next(), b.next()) else {
++            return false;
++        };
++        if i != j {
++            return false;
++        }
++        let ratio = y.clone() * &x.inv();
++        loop {
++            match (a.next(), b.next()) {
++                (None, None) => return true,
++                (Some((i, x)), Some((j, y))) if i == j && x.clone() * &ratio == *y => (),
++                _ => return false,
++            }
++        }
++    }
++
+     /// Return the constant value if this combination has no non-constant term.
+     ///
+     /// Only column 0 (the fixed one) carries a constant, so a combination is
+@@ -362,6 +451,7 @@ enum ValueSource {
+ }
+ 
+ struct Compiler<'a> {
++    inventory: CompilerInventory,
+     circuit: &'a Circuit<Scalar>,
+     layout: &'a InputLayout,
+     witness_columns: Vec<usize>,
+@@ -438,6 +528,12 @@ impl<'a> Compiler<'a> {
+         let fusable = fusable_nodes(circuit, layout);
+ 
+         Ok(Self {
++            inventory: CompilerInventory {
++                witnesses,
++                assertions: circuit.assertions.len(),
++                input_links: layout.public.len() + layout.committed_len(),
++                ..CompilerInventory::default()
++            },
+             circuit,
+             layout,
+             witness_columns,
+@@ -452,20 +548,45 @@ impl<'a> Compiler<'a> {
+     }
+ 
+     fn compile(mut self) -> Result<Relation, Error> {
+-        self.compile_nodes()?;
++        self.compile_nodes::<false>()?;
+         self.compile_assertions()?;
+         self.link_inputs()?;
+         self.finish()
+     }
+ 
+-    fn compile_nodes(&mut self) -> Result<(), Error> {
++    fn compile_nodes<const PROFILE: bool>(&mut self) -> Result<(), Error> {
+         for (node_index, node) in self.circuit.nodes.iter().enumerate() {
++            let rows_before = self.rows.len();
++            let columns_before = self.next_column;
+             let (left_index, right_index) = match *node {
+                 CircuitNode::Add(left, right) | CircuitNode::Mul(left, right) => (left, right),
+             };
+             let left = self.expression(left_index)?;
+             let right = self.expression(right_index)?;
+ 
++            if PROFILE {
++                match node {
++                    CircuitNode::Add(_, _) => self.inventory.additions += 1,
++                    CircuitNode::Mul(_, _)
++                        if left.as_constant().is_some() || right.as_constant().is_some() =>
++                    {
++                        self.inventory.constant_products += 1
++                    }
++                    CircuitNode::Mul(_, _) if left == right && self.fusable[node_index] => {
++                        self.inventory.fused_squares += 1
++                    }
++                    CircuitNode::Mul(_, _) if left == right => {
++                        self.inventory.materialized_squares += 1
++                    }
++                    CircuitNode::Mul(_, _) => {
++                        self.inventory.general_products += 1;
++                        if left.affine_related(&right) {
++                            self.inventory.affine_general_products += 1;
++                        }
++                    }
++                }
++            }
++
+             let expression = match node {
+                 CircuitNode::Add(_, _) => left.add(&right),
+                 CircuitNode::Mul(_, _) => {
+@@ -486,6 +607,12 @@ impl<'a> Compiler<'a> {
+                 }
+             };
+             self.node_expressions.push(expression);
++            if PROFILE {
++                self.inventory.node_rows.push(self.rows.len() - rows_before);
++                self.inventory
++                    .node_columns
++                    .push(self.next_column - columns_before);
++            }
+         }
+         Ok(())
+     }
+@@ -643,6 +770,7 @@ impl<'a> Compiler<'a> {
+ 
+         let digest = relation_digest(size, &rows, self.layout)?;
+         Ok(Relation {
++            source_digest: source_digest(self.circuit, self.layout)?,
+             size,
+             public_inputs: self.layout.public.len(),
+             committed_start: self.committed_start,
+@@ -665,6 +793,23 @@ pub(super) fn compile_valued(
+     layout: &InputLayout,
+     expected: &Relation,
+ ) -> Result<Assignment, Error> {
++    validate_valued_shape(valued)?;
++
++    let compiled = compile(&valued.circuit, layout)?;
++    if compiled.size != expected.size
++        || compiled.public_inputs != expected.public_inputs
++        || compiled.committed_start != expected.committed_start
++        || compiled.blocks != expected.blocks
++        || compiled.rows != expected.rows
++        || compiled.digest != expected.digest
++    {
++        return Err(Error::RelationMismatch);
++    }
++
++    gather_values(valued, &compiled)
++}
++
++fn validate_valued_shape(valued: &ValuedCircuit<Scalar>) -> Result<(), Error> {
+     let expected_witnesses =
+         usize::try_from(valued.circuit.witnesses).map_err(|_| Error::SizeOverflow)?;
+     if valued.witnesses.len() != expected_witnesses {
+@@ -682,17 +827,10 @@ pub(super) fn compile_valued(
+         });
+     }
+ 
+-    let compiled = compile(&valued.circuit, layout)?;
+-    if compiled.size != expected.size
+-        || compiled.public_inputs != expected.public_inputs
+-        || compiled.committed_start != expected.committed_start
+-        || compiled.blocks != expected.blocks
+-        || compiled.rows != expected.rows
+-        || compiled.digest != expected.digest
+-    {
+-        return Err(Error::RelationMismatch);
+-    }
++    Ok(())
++}
+ 
++fn gather_values(valued: &ValuedCircuit<Scalar>, compiled: &Relation) -> Result<Assignment, Error> {
+     let mut values: Vec<Scalar> = Vec::new();
+     values
+         .try_reserve_exact(compiled.size)
+@@ -714,7 +852,7 @@ pub(super) fn compile_valued(
+         values,
+         public_inputs: compiled.public_inputs,
+         committed_start: compiled.committed_start,
+-        blocks: compiled.blocks,
++        blocks: compiled.blocks.clone(),
+         relation_digest: compiled.digest,
+     })
+ }
+@@ -838,6 +976,35 @@ fn to_sparse(combination: &LinearCombination) -> Result<Vec<(u32, Scalar)>, Erro
+     Ok(entries)
+ }
+ 
++fn source_digest(circuit: &Circuit<Scalar>, layout: &InputLayout) -> Result<[u8; 32], Error> {
++    let mut h = blake3::Hasher::new();
++    h.update(b"SHIELDD_NATIVE_EXPERIMENT_SOURCE_CIRCUIT_V1");
++    h.update(&circuit.witnesses.to_be_bytes());
++    hash_usize(&mut h, circuit.constants.len())?;
++    for c in &circuit.constants {
++        h.update(&c.encode());
++    }
++    hash_usize(&mut h, circuit.nodes.len())?;
++    for node in &circuit.nodes {
++        let (tag, a, b) = match *node {
++            CircuitNode::Add(a, b) => (0u8, a, b),
++            CircuitNode::Mul(a, b) => (1u8, a, b),
++        };
++        h.update(&[tag]);
++        hash_indices(&mut h, &[a, b])?;
++    }
++    hash_usize(&mut h, circuit.assertions.len())?;
++    for &(a, b) in &circuit.assertions {
++        hash_indices(&mut h, &[a, b])?;
++    }
++    hash_indices(&mut h, &layout.public)?;
++    hash_usize(&mut h, layout.blocks.len())?;
++    for block in &layout.blocks {
++        hash_indices(&mut h, block)?;
++    }
++    Ok(*h.finalize().as_bytes())
++}
++
+ fn relation_digest(
+     size: usize,
+     rows: &[SparseRow],
+diff --git a/cryptography/src/zk/pari/mod.rs b/cryptography/src/zk/pari/mod.rs
+index 2568008..7b13c34 100644
+--- a/cryptography/src/zk/pari/mod.rs
++++ b/cryptography/src/zk/pari/mod.rs
+@@ -20,13 +20,13 @@ use crate::bls12381::primitives::group::{Scalar, ScalarReadCfg};
+ pub use circuit::{InputLayout, Relation};
+ use commonware_codec::{Encode, Read};
+ use commonware_math::{algebra::Additive, ntt};
+-pub use prover::{prove, prove_prebound};
++pub use prover::{ProverTimings, QuotientMethod, masked_quotient, prove, prove_prebound, prove_profiled, prove_with_msm};
+ use rand_core::CryptoRng;
+ pub use setup::{setup, setup_with_trapdoor};
+ pub use simulator::{simulate, simulate_prebound};
+ use thiserror::Error;
+ pub use types::{
+-    Claim, CommitmentKey, Opening, Proof, ProvingKey, Trapdoor, VerifyingKey, Witness,
++    ProverBases, Claim, CommitmentKey, Opening, Proof, ProvingKey, Trapdoor, VerifyingKey, Witness,
+ };
+ pub use verifier::{
+     BatchEntry, CommitmentTerm, batch_verify, batch_verify_prebound, verify, verify_prebound,
+diff --git a/cryptography/src/zk/pari/prover.rs b/cryptography/src/zk/pari/prover.rs
+index 738642a..370faa7 100644
+--- a/cryptography/src/zk/pari/prover.rs
++++ b/cryptography/src/zk/pari/prover.rs
+@@ -1,17 +1,115 @@
+ use super::{
+-    Claim, Error, Proof, ProvingKey, Relation, Witness,
+-    circuit::dot,
+-    poly::{Domain, Polynomial},
+-    sample_scalar, transcript_challenge, transcript_challenge_prebound,
++    Claim, Error, Proof, ProvingKey, Relation, Witness, circuit::dot, sample_scalar,
++    transcript_challenge, transcript_challenge_prebound,
+ };
+ use crate::{
+     bls12381::primitives::group::{G1, Scalar},
+     transcript::Transcript,
+ };
+-use commonware_math::algebra::{Additive, Multiplicative, Space};
++use commonware_math::{
++    algebra::{Additive, Multiplicative, Space},
++    ntt::Domain,
++    poly::Poly,
++};
++type Polynomial = Poly<Scalar>;
+ use commonware_parallel::Strategy;
+ use rand_core::CryptoRng;
+ 
++/// Non-overlapping development diagnostics; final samples use ordinary `prove`.
++#[derive(Default, Clone, Debug)]
++pub struct ProverTimings {
++    pub input_validation_ns: u128,
++    pub relation_evaluation_ns: u128,
++    pub interpolation_ns: u128,
++    pub masking_ns: u128,
++    pub quotient_ns: u128,
++    pub commitment_msm_ns: u128,
++    pub opening_polynomials_ns: u128,
++    pub opening_msm_ns: u128,
++}
++
++#[derive(Clone, Copy)]
++pub enum QuotientMethod {
++    Generic,
++    Square,
++}
++
++/// Compute ((a + mask_a Z)^2 - (b + mask_b Z)) / Z, rejecting a nonzero remainder.
++pub fn masked_quotient(
++    a: &Polynomial,
++    b: &Polynomial,
++    mask_a: &Polynomial,
++    mask_b: &Polynomial,
++    size: usize,
++) -> Result<Polynomial, Error> {
++    if a.coefficients().len() > size
++        || b.coefficients().len() > size
++        || mask_a.coefficients().len() != 2
++        || mask_b.coefficients().len() != 1
++    {
++        return Err(Error::RelationMismatch);
++    }
++    let length = a
++        .coefficients()
++        .len()
++        .checked_mul(2)
++        .and_then(|n| n.checked_sub(1))
++        .ok_or(Error::TooLarge)?;
++    let domain = Domain::new(length)?;
++    let mut evaluations = domain.evaluate(a.coefficients())?;
++    for value in &mut evaluations {
++        value.square();
++    }
++    let mut coefficients = domain.interpolate(&evaluations)?;
++    coefficients.truncate(length);
++    let square = Polynomial::from_coefficients(coefficients).ok_or(Error::TooLarge)?;
++    let (base, remainder) = (square - b).divide_by_vanishing(size)?;
++    if remainder != Polynomial::zero() {
++        return Err(Error::Unsatisfied);
++    }
++    let [constant, linear] = mask_a.coefficients() else {
++        return Err(Error::RelationMismatch);
++    };
++    let mut cross = vec![Scalar::zero(); a.coefficients().len() + 1];
++    for (i, value) in a.coefficients().iter().enumerate() {
++        cross[i] += &(value.clone() * &(constant.clone() + constant));
++        cross[i + 1] += &(value.clone() * &(linear.clone() + linear));
++    }
++    let cross = Polynomial::from_coefficients(cross).ok_or(Error::TooLarge)?;
++    let mask_square = mask_a.multiply(mask_a)?.mul_vanishing(size)?;
++    let mut quotient = base + &cross + &mask_square - mask_b;
++    quotient.trim();
++    Ok(quotient)
++}
++
++/// Runs the same prover with separately reported diagnostic stage timers.
++pub fn prove_profiled(
++    rng: &mut impl CryptoRng,
++    transcript: &mut Transcript,
++    proving_key: &ProvingKey,
++    relation: &Relation,
++    claim: &Claim,
++    witness: &Witness,
++    strategy: &impl Strategy,
++    quotient_method: QuotientMethod,
++) -> Result<(Proof, ProverTimings), Error> {
++    let mut timings = ProverTimings::default();
++    let proof = prove_inner(
++        rng,
++        transcript,
++        proving_key,
++        relation,
++        claim,
++        witness,
++        strategy,
++        true,
++        quotient_method,
++        Some(&mut timings),
++        &mut |points, scalars| Ok(G1::msm(points, scalars, strategy)),
++    )?;
++    Ok((proof, timings))
++}
++
+ /// Create a zero-knowledge proof for a claim and compiled witness.
+ pub fn prove(
+     rng: &mut impl CryptoRng,
+@@ -31,6 +129,9 @@ pub fn prove(
+         witness,
+         strategy,
+         true,
++        QuotientMethod::Square,
++        None,
++        &mut |points, scalars| Ok(G1::msm(points, scalars, strategy)),
+     )
+ }
+ 
+@@ -64,6 +165,35 @@ pub fn prove_prebound(
+         witness,
+         strategy,
+         false,
++        QuotientMethod::Square,
++        None,
++        &mut |points, scalars| Ok(G1::msm(points, scalars, strategy)),
++    )
++}
++
++/// Ordinary proving with a development-only group-arithmetic boundary.
++pub fn prove_with_msm(
++    rng: &mut impl CryptoRng,
++    transcript: &mut Transcript,
++    proving_key: &ProvingKey,
++    relation: &Relation,
++    claim: &Claim,
++    witness: &Witness,
++    strategy: &impl Strategy,
++    msm: &mut dyn FnMut(&[G1], &[Scalar]) -> Result<G1, Error>,
++) -> Result<Proof, Error> {
++    prove_inner(
++        rng,
++        transcript,
++        proving_key,
++        relation,
++        claim,
++        witness,
++        strategy,
++        true,
++        QuotientMethod::Square,
++        None,
++        msm,
+     )
+ }
+ 
+@@ -77,9 +207,23 @@ fn prove_inner(
+     witness: &Witness,
+     strategy: &impl Strategy,
+     bind_claim: bool,
++    quotient_method: QuotientMethod,
++    mut timings: Option<&mut ProverTimings>,
++    msm: &mut dyn FnMut(&[G1], &[Scalar]) -> Result<G1, Error>,
+ ) -> Result<Proof, Error> {
++    let mut clock = timings.as_ref().map(|_| std::time::Instant::now());
++    macro_rules! stage {
++        ($field:ident) => {
++            if let (Some(timings), Some(clock)) = (timings.as_mut(), clock.as_mut()) {
++                timings.$field = clock.elapsed().as_nanos();
++                *clock = std::time::Instant::now();
++            }
++        };
++    }
++
+     validate_inputs(proving_key, relation, claim, witness, strategy)?;
+ 
++    stage!(input_validation_ns);
+     let assignment = witness.assignment();
+     let values = assignment.values();
+     let domain = Domain::new(relation.size())?;
+@@ -87,30 +231,42 @@ fn prove_inner(
+     let public = assignment.public_assignment();
+     let (x_a_evaluations, x_b_evaluations) = evaluate_public(relation, public);
+ 
+-    let z_a = domain.interpolate(&z_a_evaluations)?;
+-    let z_b = domain.interpolate(&z_b_evaluations)?;
+-    let x_a = domain.interpolate(&x_a_evaluations)?;
+-    let x_b = domain.interpolate(&x_b_evaluations)?;
++    stage!(relation_evaluation_ns);
++    let z_a = Polynomial::interpolate(&domain, &z_a_evaluations)?;
++    let z_b = Polynomial::interpolate(&domain, &z_b_evaluations)?;
++    let x_a = Polynomial::interpolate(&domain, &x_a_evaluations)?;
++    let x_b = Polynomial::interpolate(&domain, &x_b_evaluations)?;
+ 
++    stage!(interpolation_ns);
+     let eta_1 = sample_scalar(rng);
+     let eta_2 = sample_scalar(rng);
+-    let a_mask = Polynomial::from_coefficients(vec![eta_1.clone(), eta_2.clone()])?;
++    let a_mask =
++        Polynomial::from_coefficients(vec![eta_1.clone(), eta_2.clone()]).ok_or(Error::TooLarge)?;
+     // Every block's opening randomness contributes to the B-side mask, since
+     // each block commitment carries its own rho * Z_H(tau) term.
+     let openings_sum = witness
+         .openings()
+         .iter()
+         .fold(Scalar::zero(), |sum, opening| sum + opening.scalar());
+-    let b_mask = Polynomial::from_coefficients(vec![openings_sum])?;
+-    let z_a_masked = z_a.mask_vanishing(&a_mask, &domain)?;
+-    let z_b_masked = z_b.mask_vanishing(&b_mask, &domain)?;
++    let b_mask = Polynomial::from_coefficients(vec![openings_sum]).ok_or(Error::TooLarge)?;
++    let z_a_masked = z_a.mask_vanishing(&a_mask, domain.size())?;
++    let z_b_masked = z_b.mask_vanishing(&b_mask, domain.size())?;
+ 
+-    let numerator = z_a_masked.mul(&z_a_masked)?.sub(&z_b_masked)?;
+-    let (quotient, remainder) = numerator.divide_by_vanishing(&domain)?;
+-    if !remainder.is_zero() {
+-        return Err(Error::Unsatisfied);
+-    }
++    stage!(masking_ns);
++    let quotient = match quotient_method {
++        QuotientMethod::Generic => {
++            let numerator = z_a_masked.multiply(&z_a_masked)? - &z_b_masked;
++            let (mut quotient, remainder) = numerator.divide_by_vanishing(domain.size())?;
++            quotient.trim();
++            if remainder != Polynomial::zero() {
++                return Err(Error::Unsatisfied);
++            }
++            quotient
++        }
++        QuotientMethod::Square => masked_quotient(&z_a, &z_b, &a_mask, &b_mask, domain.size())?,
++    };
+ 
++    stage!(quotient_ns);
+     let committed_end = relation
+         .committed_start()
+         .checked_add(relation.committed_inputs())
+@@ -121,46 +277,48 @@ fn prove_inner(
+     {
+         return Err(Error::RelationMismatch);
+     }
+-    let t = G1::msm(&proving_key.sigma_witness, ordinary_values, strategy)
+-        + &G1::msm(
++    let t = msm(&proving_key.sigma_witness, ordinary_values)?
++        + &msm(
+             &[
+                 proving_key.sigma_mask_constant,
+                 proving_key.sigma_mask_linear,
+             ],
+             &[eta_1, eta_2],
+-            strategy,
+-        )
+-        + &G1::msm(
++        )?
++        + &msm(
+             &proving_key.sigma_quotient[..quotient.coefficients().len()],
+             quotient.coefficients(),
+-            strategy,
+-        );
++        )?;
+     if t == G1::zero() {
+         return Err(Error::IdentityPoint { kind: "proof T" });
+     }
+ 
++    stage!(commitment_msm_ns);
+     let challenge = if bind_claim {
+         transcript_challenge(transcript, &domain, &proving_key.verifying_key, claim, &t)
+     } else {
+         transcript_challenge_prebound(transcript, &domain, &proving_key.verifying_key, &t)
+     };
+-    let mut z_a_at_challenge = z_a_masked.evaluate_at(&challenge);
+-    let v_a = z_a_at_challenge.clone() - &x_a.evaluate_at(&challenge);
++    let mut z_a_at_challenge = z_a_masked.eval(&challenge);
++    let v_a = z_a_at_challenge.clone() - &x_a.eval(&challenge);
+     z_a_at_challenge.square();
+-    let v_r = z_a_at_challenge - &x_b.evaluate_at(&challenge);
++    let v_r = z_a_at_challenge - &x_b.eval(&challenge);
+ 
+     let a_opening_numerator = z_a_masked
+-        .sub(&x_a)?
+-        .sub(&Polynomial::from_coefficients(vec![v_a.clone()])?)?;
+-    let (a_opening, a_remainder) = a_opening_numerator.divide_by_linear(&challenge)?;
++        - &x_a
++        - &Polynomial::from_coefficients(vec![v_a.clone()]).ok_or(Error::TooLarge)?;
++    let (mut a_opening, a_remainder) = a_opening_numerator.divide_by_linear(&challenge);
++    a_opening.trim();
+     if a_remainder != Scalar::zero() {
+         return Err(Error::InconsistentOpening);
+     }
+ 
+-    let vanishing_quotient = quotient.mul_vanishing(&domain)?;
+-    let r_polynomial = z_b_masked.sub(&x_b)?.add(&vanishing_quotient)?;
+-    let r_opening_numerator = r_polynomial.sub(&Polynomial::from_coefficients(vec![v_r])?)?;
+-    let (r_opening, r_remainder) = r_opening_numerator.divide_by_linear(&challenge)?;
++    let vanishing_quotient = quotient.mul_vanishing(domain.size())?;
++    let r_polynomial = z_b_masked - &x_b + &vanishing_quotient;
++    let r_opening_numerator =
++        r_polynomial - &Polynomial::from_coefficients(vec![v_r]).ok_or(Error::TooLarge)?;
++    let (mut r_opening, r_remainder) = r_opening_numerator.divide_by_linear(&challenge);
++    r_opening.trim();
+     if r_remainder != Scalar::zero() {
+         return Err(Error::InconsistentOpening);
+     }
+@@ -170,19 +328,19 @@ fn prove_inner(
+     {
+         return Err(Error::RelationMismatch);
+     }
+-    let u = G1::msm(
++    stage!(opening_polynomials_ns);
++    let u = msm(
+         &proving_key.sigma_a[..a_opening.coefficients().len()],
+         a_opening.coefficients(),
+-        strategy,
+-    ) + &G1::msm(
++    )? + &msm(
+         &proving_key.sigma_r[..r_opening.coefficients().len()],
+         r_opening.coefficients(),
+-        strategy,
+-    );
++    )?;
+     if u == G1::zero() {
+         return Err(Error::IdentityPoint { kind: "proof U" });
+     }
+ 
++    stage!(opening_msm_ns);
+     Ok(Proof { t, u, v_a })
+ }
+ 
+diff --git a/cryptography/src/zk/pari/setup.rs b/cryptography/src/zk/pari/setup.rs
+index 7074b97..bbc2e23 100644
+--- a/cryptography/src/zk/pari/setup.rs
++++ b/cryptography/src/zk/pari/setup.rs
+@@ -10,6 +10,7 @@ use commonware_codec::Encode;
+ use commonware_math::algebra::{Additive, CryptoGroup, Field, Random, Ring};
+ use commonware_parallel::Strategy;
+ use rand_core::CryptoRng;
++use commonware_math::ntt::Domain;
+ use std::collections::BTreeSet;
+ 
+ /// Generate relation-specific Pari proving and verification keys.
+diff --git a/cryptography/src/zk/pari/simulator.rs b/cryptography/src/zk/pari/simulator.rs
+index b7f463f..e66fec7 100644
+--- a/cryptography/src/zk/pari/simulator.rs
++++ b/cryptography/src/zk/pari/simulator.rs
+@@ -17,6 +17,7 @@ use crate::{
+ };
+ use commonware_math::algebra::{Additive, CryptoGroup, Field, Multiplicative};
+ use rand_core::CryptoRng;
++use commonware_math::ntt::Domain;
+ 
+ /// Simulate an accepting proof for `claim` using the setup trapdoor.
+ ///
+diff --git a/cryptography/src/zk/pari/types.rs b/cryptography/src/zk/pari/types.rs
+index 536d59e..2451ddc 100644
+--- a/cryptography/src/zk/pari/types.rs
++++ b/cryptography/src/zk/pari/types.rs
+@@ -3,7 +3,7 @@ use crate::bls12381::primitives::group::{G1, G2, Scalar, ScalarReadCfg};
+ use bytes::{Buf, BufMut};
+ use commonware_codec::{Encode, EncodeSize, RangeCfg, Read, ReadExt, Write};
+ use commonware_math::algebra::{Additive, Space};
+-use commonware_parallel::Strategy;
++use commonware_parallel::{Sequential, Strategy};
+ use rand_core::CryptoRng;
+ use std::collections::BTreeMap;
+ 
+@@ -510,7 +510,22 @@ pub struct ProvingKey {
+     pub(crate) verifying_key: VerifyingKey,
+ }
+ 
++/// Borrowed checked prover bases for development-only arithmetic preparation.
++pub struct ProverBases<'a> {
++    pub witness: &'a [G1],
++    pub masks: [G1; 2],
++    pub quotient: &'a [G1],
++    pub opening_a: &'a [G1],
++    pub opening_r: &'a [G1],
++}
++
+ impl ProvingKey {
++    pub fn msm_bases(&self) -> ProverBases<'_> {
++        ProverBases { witness: &self.sigma_witness,
++            masks: [self.sigma_mask_constant, self.sigma_mask_linear],
++            quotient: &self.sigma_quotient, opening_a: &self.sigma_a, opening_r: &self.sigma_r }
++    }
++
+     /// Return the per-block keys for creating claims that this proving key
+     /// can prove.
+     pub fn commitment_keys(&self) -> &[CommitmentKey] {
+@@ -569,12 +584,61 @@ impl EncodeSize for ProvingKey {
+     }
+ }
+ 
++fn read_points(
++    buf: &mut impl Buf,
++    bounds: &RangeCfg<usize>,
++    strategy: &impl Strategy,
++) -> Result<Vec<G1>, commonware_codec::Error> {
++    let count = usize::read_cfg(buf, bounds)?;
++    let length = count
++        .checked_mul(48)
++        .filter(|&length| length <= buf.remaining())
++        .ok_or(commonware_codec::Error::Invalid(
++            "ProvingKey",
++            "truncated point vector",
++        ))?;
++    let bytes = buf.copy_to_bytes(length);
++    strategy.try_map_collect_vec(bytes.chunks_exact(48), |mut point| G1::read(&mut point))
++}
++
++fn read_point_entries(
++    buf: &mut impl Buf,
++    bounds: &RangeCfg<usize>,
++    strategy: &impl Strategy,
++) -> Result<Vec<(u32, G1)>, commonware_codec::Error> {
++    let count = usize::read_cfg(buf, bounds)?;
++    if count > buf.remaining() / 49 {
++        return Err(commonware_codec::Error::Invalid(
++            "ProvingKey",
++            "truncated witness entries",
++        ));
++    }
++    let mut entries = Vec::with_capacity(count);
++    for _ in 0..count {
++        entries.push((u32::read(buf)?, <[u8; 48]>::read(buf)?));
++    }
++    strategy.try_map_collect_vec(entries, |(index, bytes)| {
++        Ok((index, G1::read(&mut bytes.as_slice())?))
++    })
++}
++
+ impl Read for ProvingKey {
+     /// Bounds on the number of ordinary public inputs and committed-input
+     /// blocks of the embedded key.
+     type Cfg = (RangeCfg<usize>, RangeCfg<usize>);
+ 
+     fn read_cfg(buf: &mut impl Buf, cfg: &Self::Cfg) -> Result<Self, commonware_codec::Error> {
++        Self::read_with_strategy(buf, cfg, &Sequential)
++    }
++}
++
++impl ProvingKey {
++    /// Decode every point with the ordinary subgroup/identity checks, using bounded parallelism.
++    pub fn read_with_strategy(
++        buf: &mut impl Buf,
++        cfg: &(RangeCfg<usize>, RangeCfg<usize>),
++        strategy: &impl Strategy,
++    ) -> Result<Self, commonware_codec::Error> {
+         let invalid =
+             |message: &'static str| commonware_codec::Error::Invalid("ProvingKey", message);
+ 
+@@ -619,12 +683,12 @@ impl Read for ProvingKey {
+             .and_then(|len| len.checked_add(2))
+             .ok_or_else(|| invalid("domain size overflow"))?;
+ 
+-        let entries = Vec::<(u32, G1)>::read_cfg(buf, &(RangeCfg::new(0..=witness_len), ((), ())))?;
++        let entries = read_point_entries(buf, &RangeCfg::new(0..=witness_len), strategy)?;
+         let sigma_mask_constant = G1::read(buf)?;
+         let sigma_mask_linear = G1::read(buf)?;
+-        let sigma_quotient = Vec::<G1>::read_cfg(buf, &(RangeCfg::exact(quotient_len), ()))?;
+-        let sigma_a = Vec::<G1>::read_cfg(buf, &(RangeCfg::exact(domain_size + 1), ()))?;
+-        let sigma_r = Vec::<G1>::read_cfg(buf, &(RangeCfg::exact(opening_len), ()))?;
++        let sigma_quotient = read_points(buf, &RangeCfg::exact(quotient_len), strategy)?;
++        let sigma_a = read_points(buf, &RangeCfg::exact(domain_size + 1), strategy)?;
++        let sigma_r = read_points(buf, &RangeCfg::exact(opening_len), strategy)?;
+ 
+         // Materialize the witness basis only after every buffer-backed field
+         // has been read, so a short input cannot force a large allocation.

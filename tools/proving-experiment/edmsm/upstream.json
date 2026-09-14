@@ -1,0 +1,28 @@
+{
+  "schema": "shieldd.proving_experiment.edmsm_source.v1",
+  "repository": "https://github.com/gbotrel/zprize-mobile-harness",
+  "revision": "6ae651b7b1664b81e7dac19c4a038eb014e93237",
+  "files": [
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/edmsm-harness/msm/bls12-377/g1.go",
+      "sha256": "66b074ee7be80c2f20bc12a9b958ba086d0b657e7a5704b9ecbd03667833b963"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/edmsm-harness/msm/bls12-377/multiexp.go",
+      "sha256": "7ac582efd08395876889dab658ab177ecacf4c49ee1aeb08e0a1b98821cc0d36"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/edmsm-harness/msm/bls12-377/bls12-377.go",
+      "sha256": "82c8b2df06b482573e2770bf882a031be30d0ab226b3ffbcfc8585a42071566c"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/edmsm-harness/msm/bls12-377/fp/element_mul_arm64.go",
+      "sha256": "9f6e3de8fa3381be1004016c149433c8b20b9bfe165563e63b28b33dec1fc8ca"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/edmsm-harness/msm/bls12-377/fp/element_ops_arm64.s",
+      "sha256": "a0a378d684db7d4ca15a58b8f8509c8d31deb27b9bbb5b0523584d7e1d8a919a"
+    }
+  ],
+  "adaptation": "Only Edwards bucket formulas and signed-window MSM use current gnark0.20.1 fp/fr operations. Fixed two-worker execution, checked subgroup and rational-map boundaries. No old field kernels or historical benchmark ratios."
+}
