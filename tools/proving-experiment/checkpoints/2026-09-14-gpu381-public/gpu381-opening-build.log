@@ -1,0 +1,9 @@
+    Updating crates.io index
+     Locking 196 packages to latest Rust 1.95.0 compatible versions
+      Adding ff v0.13.1 (available: v0.14.0)
+      Adding generic-array v0.14.7 (available: v0.14.9)
+      Adding group v0.13.0 (available: v0.14.0)
+      Adding sha2 v0.10.9 (available: v0.11.0)
+      Adding wgpu v28.0.0 (available: v30.0.1)
+   Compiling shieldd-gpu381-opening v0.1.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/gpu381-opening)
+    Finished `release` profile [optimized] target(s) in 3.57s

@@ -19,11 +19,17 @@ Sources, raw evidence, plots and exact test records are preserved in `checkpoint
 
 
 
+## Completed public GPU MSM screen
+
+[The real-opening comparison](../../docs/research/gpu381-public-screen.md) records native0.971646459s versusGPU1.508607000s, 1.553×time. All18historical524290-point outputs match; eight small oracle gates pass after finite-base filtering, with the original identity failure preserved. Both workers reject noncanonical scalars and wrong counts. Three warmups/five warm calls each, checked request/IPC included; zero swap/competition. Sampled native/GPU processRSS298631168/1577992192B is distinct from GPU allocation telemetry. No full proof or phone measurement ran.
+
+Public GPU bases are reserialized/uploaded each call. One distinct prepared-base follow-up can reuse the existing persistent buffer and signed-index path before closing this candidate. Production paths and selected A/B/C remain unchanged.
+
 ## Completed safe WebAssembly MSM screen
 
 [The real-opening comparison](../../docs/research/wasm-msm377-screen.md) rejects the safe Wasm path for native desktop acceleration: gnark0.826505s versusWasm2.959737s (3.581×time) on one historical verified524290-point377opening_r. Six independent gnark edge cases pass; all18actualMSM outputs match. Onegate+3warmups+5measured calls perbackend, scalar conversion/transport and output checks included.5GiBvirtualreservation, combinedprocess-tree peak2.898GiB, zero swap/competition. Fullbase admission and Wasm preparation are separately charged. Source/runtime/dependencies and compact evidence `checkpoints/2026-09-14-wasm-msm377` preserved. No freshproof, phone or production release suite ran.
 
-This rejects a native acceleration candidate, not browser-only delivery against a browser baseline. Upstream variable-time behavior remains a limitation. The distinct BLS12-381 WebGPU/Metal source at a8ff121e6b5a089997fbce367eceb0ca826da898 exposes a complete G1MSM API and persistent Groth16-key buffers; inspect bounded allocation and adapter/device feasibility next. Currentnativeblst andGPU nam-blst must remain in separate binaries to avoid mixing implementations. No GPU benchmark has run yet.
+This rejects a native acceleration candidate, not browser-only delivery against a browser baseline. Upstream variable-time behavior remains a limitation. The distinct BLS12-381 WebGPU/Metal source at a8ff121e6b5a089997fbce367eceb0ca826da898 exposes a complete G1MSM API and persistent Groth16-key buffers; inspect bounded allocation and adapter/device feasibility next. Currentnativeblst andGPU nam-blst must remain in separate binaries to avoid mixing implementations. The completed public GPU screen is recorded above; persistent buffers remain pending.
 
 ## Completed six-limb ARM64 square screen
 

@@ -1,0 +1,4 @@
+zero_scalars: exact CPU/GPU G1 result
+duplicates: exact CPU/GPU G1 result
+inverse_cancellation: exact CPU/GPU G1 result
+Error: Failed to deserialize G1 point from GPU (x_limb0=0x7de)

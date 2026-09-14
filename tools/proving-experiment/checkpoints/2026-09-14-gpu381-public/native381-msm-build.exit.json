@@ -1,0 +1,13 @@
+{
+  "time_ns": 1789387910670012000,
+  "argv": [
+    "cargo",
+    "+1.95.0",
+    "build",
+    "--release",
+    "--manifest-path",
+    "tools/proving-experiment/candidates/native381-msm/Cargo.toml"
+  ],
+  "code": 0,
+  "failure": null
+}

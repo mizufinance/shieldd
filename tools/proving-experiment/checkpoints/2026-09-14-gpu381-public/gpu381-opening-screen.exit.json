@@ -1,0 +1,10 @@
+{
+  "time_ns": 1789388098231860000,
+  "argv": [
+    "python3",
+    "tools/proving-experiment/gpu381_screen.py",
+    "tools/proving-experiment/cache/gpu381-opening-screen"
+  ],
+  "code": 0,
+  "failure": null
+}

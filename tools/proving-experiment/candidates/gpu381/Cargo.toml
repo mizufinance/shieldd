@@ -1,0 +1,23 @@
+[package]
+name = "shieldd-gpu381-spike"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+anyhow = "1"
+blstrs = { package = "nam-blstrs", version = "=0.7.1-nam.0" }
+ff = "0.13"
+futures = "0.3"
+group = "0.13"
+hex = "0.4"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+webgpu-groth16 = { path = "../../cache/webgpu-groth16-source" }
+wgpu = "=28.0.0"
+
+[profile.release]
+debug = false

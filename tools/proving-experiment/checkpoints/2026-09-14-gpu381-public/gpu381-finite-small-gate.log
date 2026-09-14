@@ -1,0 +1,8 @@
+zero_scalars: exact CPU/GPU G1 result
+duplicates: exact CPU/GPU G1 result
+inverse_cancellation: exact CPU/GPU G1 result
+identity_points: exact CPU/GPU G1 result
+scalar_boundaries: exact CPU/GPU G1 result
+odd_count: exact CPU/GPU G1 result
+identities_only: exact CPU/GPU G1 result
+empty: exact CPU/GPU G1 result

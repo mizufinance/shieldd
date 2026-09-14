@@ -1,0 +1,47 @@
+{
+  "schema": "shieldd.gpu381_arithmetic_comparison.v1",
+  "operation": "opening_r",
+  "points": 524290,
+  "rows": [
+    {
+      "backend": "native",
+      "values_s": [
+        0.971646459,
+        0.968968583,
+        0.976080916,
+        0.976108459,
+        0.963950708
+      ],
+      "median_s": 0.971646459,
+      "peak_process_rss_bytes": 298631168,
+      "kernel_values_s": [
+        0.912648667,
+        0.913826417,
+        0.917363583,
+        0.920311791,
+        0.906050625
+      ]
+    },
+    {
+      "backend": "gpu",
+      "values_s": [
+        1.495337833,
+        1.508607,
+        1.516869166,
+        1.508513667,
+        1.508941708
+      ],
+      "median_s": 1.508607,
+      "peak_process_rss_bytes": 1577992192,
+      "kernel_values_s": [
+        1.457113792,
+        1.470603834,
+        1.473215667,
+        1.469798,
+        1.464847209
+      ]
+    }
+  ],
+  "exact_outputs": 18,
+  "limits": "Historical native Transfer operation, current Commonware PreparedG1Msm and separate unmodified GPU library with finite-base filtering. Each persistent request includes checked scalar-file reads/hashing/decoding, arithmetic, output checking/encoding and IPC. Initialization separate. GPU path includes current per-call serialization/GLV sorting/upload/readback; no persistent GPU bases yet. No complete proof or phone measurement."
+}

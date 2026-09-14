@@ -1,0 +1,36 @@
+{
+  "schema": "shieldd.gpu381_small_gate.v1",
+  "adapter_selection_probe": {
+    "name": "Apple M4 Pro",
+    "backend": "Metal",
+    "vendor": 0,
+    "device": 0,
+    "max_storage_buffer_binding_size": 4294967292,
+    "max_buffer_size": 28991029248
+  },
+  "initialization_ns": 8064365541,
+  "gates": [
+    {
+      "name": "zero_scalars",
+      "points": 4,
+      "gpu_wall_ns": 17250,
+      "expected": "c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+      "exact": true
+    },
+    {
+      "name": "duplicates",
+      "points": 4,
+      "gpu_wall_ns": 31992584,
+      "expected": "af81da25ecf1c84b577fefbedd61077a81dc43b00304015b2b596ab67f00e41c86bb00ebd0f90d4b125eb0539891aeed",
+      "exact": true
+    },
+    {
+      "name": "inverse_cancellation",
+      "points": 4,
+      "gpu_wall_ns": 1752625,
+      "expected": "c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+      "exact": true
+    }
+  ],
+  "limits": "Unmodified curve-correct WebGPU public API, including per-call base serialization, sorting, upload, dispatch/readback and final folding. Adapter probe uses the same instance/request options as the library context; the library does not expose its internal adapter info. Tiny deterministic G1 cases vs independent CPU group arithmetic; no Transfer throughput, regular blst baseline, full proof or phone measurement."
+}

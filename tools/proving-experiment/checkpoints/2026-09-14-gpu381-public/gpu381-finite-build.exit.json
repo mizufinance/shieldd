@@ -1,0 +1,14 @@
+{
+  "time_ns": 1789387493549812000,
+  "argv": [
+    "cargo",
+    "+1.95.0",
+    "build",
+    "--locked",
+    "--release",
+    "--manifest-path",
+    "tools/proving-experiment/candidates/gpu381/Cargo.toml"
+  ],
+  "code": 0,
+  "failure": null
+}
