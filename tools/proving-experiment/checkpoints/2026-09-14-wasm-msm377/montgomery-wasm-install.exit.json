@@ -1,0 +1,15 @@
+{
+  "time_ns": 1789386380402764000,
+  "argv": [
+    "npm",
+    "ci",
+    "--prefix",
+    "tools/proving-experiment/cache/montgomery-wasm-source",
+    "--ignore-scripts",
+    "--omit=dev",
+    "--no-audit",
+    "--no-fund"
+  ],
+  "code": 0,
+  "failure": null
+}

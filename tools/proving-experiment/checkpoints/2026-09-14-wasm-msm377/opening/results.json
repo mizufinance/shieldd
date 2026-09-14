@@ -1,0 +1,453 @@
+{
+  "schema": "shieldd.wasm_msm377_screen.v1",
+  "runtime": "v26.3.0",
+  "workers": 2,
+  "operation": "opening_r",
+  "points": 524290,
+  "manifest_sha256": "017c5966ab8992a4832e6da3503120b707d6bac67ac8d95c7ce5061e5f59c3fc",
+  "script_sha256": "c9621f16d7be51f6c274c1525bd5c76dba9a4d184ea62aab02b1b1b314ad344c",
+  "samples": [
+    {
+      "method": "wasm",
+      "block": -1,
+      "warmup": true,
+      "wall_ns": "3082986583",
+      "output_sha256": "dfa63f24670a1dcbabb3481b9fbc39a7f100f2f6c6814393a4504369da5a06f8",
+      "exact": true,
+      "process_memory": {
+        "rss": 2361311232,
+        "heapTotal": 78004224,
+        "heapUsed": 9084632,
+        "external": 24979764,
+        "arrayBuffers": 98522420
+      }
+    },
+    {
+      "method": "gnark",
+      "block": -1,
+      "warmup": true,
+      "wall_ns": "816817208",
+      "output_sha256": "dfa63f24670a1dcbabb3481b9fbc39a7f100f2f6c6814393a4504369da5a06f8",
+      "exact": true,
+      "process_memory": {
+        "rss": 2327019520,
+        "heapTotal": 78004224,
+        "heapUsed": 10160464,
+        "external": 24980274,
+        "arrayBuffers": 98522930
+      },
+      "worker": {
+        "msm_allocated_bytes": 160717648,
+        "peak_rss_bytes": 350535680,
+        "schema": "shieldd.proving_experiment.gnark_msm_worker.v1",
+        "op": "msm",
+        "name": "opening_r",
+        "payload_bytes": 97,
+        "error": "",
+        "workers": 2,
+        "initialization_ns": 0,
+        "resident_base_bytes": 0,
+        "payload_read_ns": 5587958,
+        "scalar_decode_ns": 6280042,
+        "msm_ns": 802722208,
+        "encoding_ns": 5625,
+        "worker_ns": 809044875,
+        "heap_alloc_bytes": 168905608,
+        "heap_sys_bytes": 347865088
+      }
+    },
+    {
+      "method": "gnark",
+      "block": 0,
+      "warmup": true,
+      "wall_ns": "808975500",
+      "output_sha256": "dfa63f24670a1dcbabb3481b9fbc39a7f100f2f6c6814393a4504369da5a06f8",
+      "exact": true,
+      "process_memory": {
+        "rss": 2327019520,
+        "heapTotal": 78004224,
+        "heapUsed": 11140456,
+        "external": 24980784,
+        "arrayBuffers": 98523440
+      },
+      "worker": {
+        "msm_allocated_bytes": 160714128,
+        "peak_rss_bytes": 350879744,
+        "schema": "shieldd.proving_experiment.gnark_msm_worker.v1",
+        "op": "msm",
+        "name": "opening_r",
+        "payload_bytes": 97,
+        "error": "",
+        "workers": 2,
+        "initialization_ns": 0,
+        "resident_base_bytes": 0,
+        "payload_read_ns": 3165000,
+        "scalar_decode_ns": 6293500,
+        "msm_ns": 798179750,
+        "encoding_ns": 5542,
+        "worker_ns": 804535542,
+        "heap_alloc_bytes": 225532024,
+        "heap_sys_bytes": 347799552
+      }
+    },
+    {
+      "method": "wasm",
+      "block": 0,
+      "warmup": true,
+      "wall_ns": "2939941708",
+      "output_sha256": "dfa63f24670a1dcbabb3481b9fbc39a7f100f2f6c6814393a4504369da5a06f8",
+      "exact": true,
+      "process_memory": {
+        "rss": 2399928320,
+        "heapTotal": 77479936,
+        "heapUsed": 9206384,
+        "external": 23135709,
+        "arrayBuffers": 96679370
+      }
+    },
+    {
+      "method": "wasm",
+      "block": 1,
+      "warmup": true,
+      "wall_ns": "2975473458",
+      "output_sha256": "dfa63f24670a1dcbabb3481b9fbc39a7f100f2f6c6814393a4504369da5a06f8",
+      "exact": true,
+      "process_memory": {
+        "rss": 2506457088,
+        "heapTotal": 78004224,
+        "heapUsed": 9242024,
+        "external": 23134474,
+        "arrayBuffers": 96679370
+      }
+    },
+    {
+      "method": "gnark",
+      "block": 1,
+      "warmup": true,
+      "wall_ns": "812501542",
+      "output_sha256": "dfa63f24670a1dcbabb3481b9fbc39a7f100f2f6c6814393a4504369da5a06f8",
+      "exact": true,
+      "process_memory": {
+        "rss": 2485485568,
+        "heapTotal": 78004224,
+        "heapUsed": 10358128,
+        "external": 23134984,
+        "arrayBuffers": 96679880
+      },
+      "worker": {
+        "msm_allocated_bytes": 160710848,
+        "peak_rss_bytes": 350896128,
+        "schema": "shieldd.proving_experiment.gnark_msm_worker.v1",
+        "op": "msm",
+        "name": "opening_r",
+        "payload_bytes": 97,
+        "error": "",
+        "workers": 2,
+        "initialization_ns": 0,
+        "resident_base_bytes": 0,
+        "payload_read_ns": 3161292,
+        "scalar_decode_ns": 7009875,
+        "msm_ns": 800916541,
+        "encoding_ns": 5833,
+        "worker_ns": 807988458,
+        "heap_alloc_bytes": 263280744,
+        "heap_sys_bytes": 347734016
+      }
+    },
+    {
+      "method": "gnark",
+      "block": 2,
+      "warmup": true,
+      "wall_ns": "815332583",
+      "output_sha256": "dfa63f24670a1dcbabb3481b9fbc39a7f100f2f6c6814393a4504369da5a06f8",
+      "exact": true,
+      "process_memory": {
+        "rss": 2485485568,
+        "heapTotal": 78004224,
+        "heapUsed": 11333536,
+        "external": 23135494,
+        "arrayBuffers": 96680390
+      },
+      "worker": {
+        "msm_allocated_bytes": 160710944,
+        "peak_rss_bytes": 350896128,
+        "schema": "shieldd.proving_experiment.gnark_msm_worker.v1",
+        "op": "msm",
+        "name": "opening_r",
+        "payload_bytes": 97,
+        "error": "",
+        "workers": 2,
+        "initialization_ns": 0,
+        "resident_base_bytes": 0,
+        "payload_read_ns": 2802875,
+        "scalar_decode_ns": 6892583,
+        "msm_ns": 804412750,
+        "encoding_ns": 6041,
+        "worker_ns": 811353291,
+        "heap_alloc_bytes": 157111648,
+        "heap_sys_bytes": 347865088
+      }
+    },
+    {
+      "method": "wasm",
+      "block": 2,
+      "warmup": true,
+      "wall_ns": "2971934708",
+      "output_sha256": "dfa63f24670a1dcbabb3481b9fbc39a7f100f2f6c6814393a4504369da5a06f8",
+      "exact": true,
+      "process_memory": {
+        "rss": 2590064640,
+        "heapTotal": 77479936,
+        "heapUsed": 9390096,
+        "external": 23134474,
+        "arrayBuffers": 96679370
+      }
+    },
+    {
+      "method": "wasm",
+      "block": 3,
+      "warmup": false,
+      "wall_ns": "2925206417",
+      "output_sha256": "dfa63f24670a1dcbabb3481b9fbc39a7f100f2f6c6814393a4504369da5a06f8",
+      "exact": true,
+      "process_memory": {
+        "rss": 2613395456,
+        "heapTotal": 77479936,
+        "heapUsed": 9384792,
+        "external": 23134474,
+        "arrayBuffers": 96679370
+      }
+    },
+    {
+      "method": "gnark",
+      "block": 3,
+      "warmup": false,
+      "wall_ns": "818937125",
+      "output_sha256": "dfa63f24670a1dcbabb3481b9fbc39a7f100f2f6c6814393a4504369da5a06f8",
+      "exact": true,
+      "process_memory": {
+        "rss": 2565095424,
+        "heapTotal": 77479936,
+        "heapUsed": 10478432,
+        "external": 23134984,
+        "arrayBuffers": 96679880
+      },
+      "worker": {
+        "msm_allocated_bytes": 160710848,
+        "peak_rss_bytes": 350896128,
+        "schema": "shieldd.proving_experiment.gnark_msm_worker.v1",
+        "op": "msm",
+        "name": "opening_r",
+        "payload_bytes": 97,
+        "error": "",
+        "workers": 2,
+        "initialization_ns": 0,
+        "resident_base_bytes": 0,
+        "payload_read_ns": 2869292,
+        "scalar_decode_ns": 6932542,
+        "msm_ns": 807607875,
+        "encoding_ns": 6417,
+        "worker_ns": 814590459,
+        "heap_alloc_bytes": 187783368,
+        "heap_sys_bytes": 347799552
+      }
+    },
+    {
+      "method": "gnark",
+      "block": 4,
+      "warmup": false,
+      "wall_ns": "814049708",
+      "output_sha256": "dfa63f24670a1dcbabb3481b9fbc39a7f100f2f6c6814393a4504369da5a06f8",
+      "exact": true,
+      "process_memory": {
+        "rss": 2565095424,
+        "heapTotal": 77479936,
+        "heapUsed": 11429680,
+        "external": 23135494,
+        "arrayBuffers": 96680390
+      },
+      "worker": {
+        "msm_allocated_bytes": 160715072,
+        "peak_rss_bytes": 351027200,
+        "schema": "shieldd.proving_experiment.gnark_msm_worker.v1",
+        "op": "msm",
+        "name": "opening_r",
+        "payload_bytes": 97,
+        "error": "",
+        "workers": 2,
+        "initialization_ns": 0,
+        "resident_base_bytes": 0,
+        "payload_read_ns": 2412917,
+        "scalar_decode_ns": 6255208,
+        "msm_ns": 804068250,
+        "encoding_ns": 5958,
+        "worker_ns": 810372458,
+        "heap_alloc_bytes": 251488328,
+        "heap_sys_bytes": 347668480
+      }
+    },
+    {
+      "method": "wasm",
+      "block": 4,
+      "warmup": false,
+      "wall_ns": "2959737292",
+      "output_sha256": "dfa63f24670a1dcbabb3481b9fbc39a7f100f2f6c6814393a4504369da5a06f8",
+      "exact": true,
+      "process_memory": {
+        "rss": 2645229568,
+        "heapTotal": 78004224,
+        "heapUsed": 9411944,
+        "external": 23134474,
+        "arrayBuffers": 96679370
+      }
+    },
+    {
+      "method": "wasm",
+      "block": 5,
+      "warmup": false,
+      "wall_ns": "2932653166",
+      "output_sha256": "dfa63f24670a1dcbabb3481b9fbc39a7f100f2f6c6814393a4504369da5a06f8",
+      "exact": true,
+      "process_memory": {
+        "rss": 2650587136,
+        "heapTotal": 77479936,
+        "heapUsed": 9391016,
+        "external": 23134474,
+        "arrayBuffers": 96679370
+      }
+    },
+    {
+      "method": "gnark",
+      "block": 5,
+      "warmup": false,
+      "wall_ns": "826504833",
+      "output_sha256": "dfa63f24670a1dcbabb3481b9fbc39a7f100f2f6c6814393a4504369da5a06f8",
+      "exact": true,
+      "process_memory": {
+        "rss": 2602565632,
+        "heapTotal": 77479936,
+        "heapUsed": 10439304,
+        "external": 23134984,
+        "arrayBuffers": 96679880
+      },
+      "worker": {
+        "msm_allocated_bytes": 160710848,
+        "peak_rss_bytes": 351076352,
+        "schema": "shieldd.proving_experiment.gnark_msm_worker.v1",
+        "op": "msm",
+        "name": "opening_r",
+        "payload_bytes": 97,
+        "error": "",
+        "workers": 2,
+        "initialization_ns": 0,
+        "resident_base_bytes": 0,
+        "payload_read_ns": 2763667,
+        "scalar_decode_ns": 7135333,
+        "msm_ns": 815047667,
+        "encoding_ns": 6333,
+        "worker_ns": 822233791,
+        "heap_alloc_bytes": 157115616,
+        "heap_sys_bytes": 347799552
+      }
+    },
+    {
+      "method": "gnark",
+      "block": 6,
+      "warmup": false,
+      "wall_ns": "874165125",
+      "output_sha256": "dfa63f24670a1dcbabb3481b9fbc39a7f100f2f6c6814393a4504369da5a06f8",
+      "exact": true,
+      "process_memory": {
+        "rss": 2602565632,
+        "heapTotal": 77479936,
+        "heapUsed": 11398288,
+        "external": 23135494,
+        "arrayBuffers": 96680390
+      },
+      "worker": {
+        "msm_allocated_bytes": 160710848,
+        "peak_rss_bytes": 351076352,
+        "schema": "shieldd.proving_experiment.gnark_msm_worker.v1",
+        "op": "msm",
+        "name": "opening_r",
+        "payload_bytes": 97,
+        "error": "",
+        "workers": 2,
+        "initialization_ns": 0,
+        "resident_base_bytes": 0,
+        "payload_read_ns": 2660666,
+        "scalar_decode_ns": 6278250,
+        "msm_ns": 863665875,
+        "encoding_ns": 6042,
+        "worker_ns": 869994917,
+        "heap_alloc_bytes": 206661704,
+        "heap_sys_bytes": 347799552
+      }
+    },
+    {
+      "method": "wasm",
+      "block": 6,
+      "warmup": false,
+      "wall_ns": "3006934292",
+      "output_sha256": "dfa63f24670a1dcbabb3481b9fbc39a7f100f2f6c6814393a4504369da5a06f8",
+      "exact": true,
+      "process_memory": {
+        "rss": 2662580224,
+        "heapTotal": 78004224,
+        "heapUsed": 9431160,
+        "external": 23134474,
+        "arrayBuffers": 96679370
+      }
+    },
+    {
+      "method": "wasm",
+      "block": 7,
+      "warmup": false,
+      "wall_ns": "2987749708",
+      "output_sha256": "dfa63f24670a1dcbabb3481b9fbc39a7f100f2f6c6814393a4504369da5a06f8",
+      "exact": true,
+      "process_memory": {
+        "rss": 2667003904,
+        "heapTotal": 78004224,
+        "heapUsed": 9494544,
+        "external": 23134474,
+        "arrayBuffers": 96679370
+      }
+    },
+    {
+      "method": "gnark",
+      "block": 7,
+      "warmup": false,
+      "wall_ns": "829894250",
+      "output_sha256": "dfa63f24670a1dcbabb3481b9fbc39a7f100f2f6c6814393a4504369da5a06f8",
+      "exact": true,
+      "process_memory": {
+        "rss": 2618458112,
+        "heapTotal": 78004224,
+        "heapUsed": 10585312,
+        "external": 23134984,
+        "arrayBuffers": 96679880
+      },
+      "worker": {
+        "msm_allocated_bytes": 160713728,
+        "peak_rss_bytes": 351092736,
+        "schema": "shieldd.proving_experiment.gnark_msm_worker.v1",
+        "op": "msm",
+        "name": "opening_r",
+        "payload_bytes": 97,
+        "error": "",
+        "workers": 2,
+        "initialization_ns": 0,
+        "resident_base_bytes": 0,
+        "payload_read_ns": 3182250,
+        "scalar_decode_ns": 6534458,
+        "msm_ns": 818633625,
+        "encoding_ns": 5417,
+        "worker_ns": 825221167,
+        "heap_alloc_bytes": 263287688,
+        "heap_sys_bytes": 347668480
+      }
+    }
+  ],
+  "limits": "One real opening_r from an earlier verified selected-DH Transfer proof, not the latest comparator/subset relation. Same immutable canonical byte inputs and checked outputs for both workers. Native IPC/checked scalar decode and Wasm scalar validation/endian conversion/copy/import/safe MSM/output normalization+encoding are inside clocks. Full base validation is performed once by the hash-pinned gnark helper before Wasm import and recorded separately. No complete proof, phone or protocol claim."
+}

@@ -1,0 +1,9 @@
+{
+  "repository": "https://github.com/mitschabaude/montgomery",
+  "revision": "5f6ee4ae03b67f493a714842627866221ce19383",
+  "lock_sha256": "fead9be0529e24fd0be62712b5d866aaba2e7fbb621f308c9a0c331028f8c1e7",
+  "node": "v26.3.0",
+  "safe_entry": "Parallel.msm (useSafeAdditions defaults true)",
+  "memory": "4GiB field and1GiB scalar reserved by upstream, not equivalent to resident RSS",
+  "timing_policy": "Upstream explicitly does not provide constant-time execution. This local development component retains this limitation; no adoption conclusion."
+}

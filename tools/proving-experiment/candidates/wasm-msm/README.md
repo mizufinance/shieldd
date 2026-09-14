@@ -1,0 +1,3 @@
+# Safe WebAssembly MSM screen
+
+Development-only BLS12-377 safe batched-affine MSM from the pinned montgomery repository. Independent gnark fixtures cover six edge-case families. Shared input allocations are reserved on every worker before writing; unsafe/random-fast paths are excluded. The actual screen uses one historical verified Transfer opening, with canonical scalar conversion/copy/import and result checks inside clocks. Base admission is delegated to the hash-pinned existing gnark helper before import; checked base loading and Wasm preparation remain separately visible. This is an arithmetic screen, not complete proving or phone evidence.

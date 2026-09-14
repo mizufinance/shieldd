@@ -1,0 +1,15 @@
+{
+  "time_ns": 1789386885318003000,
+  "argv": [
+    "node",
+    "--v8-pool-size=1",
+    "--max-old-space-size=1536",
+    "tools/proving-experiment/candidates/wasm-msm/screen.ts",
+    "tools/proving-experiment/cache/montgomery-wasm-source",
+    "tools/proving-experiment/cache/selected-dh-operands",
+    "tools/proving-experiment/cache/msmworker-combined",
+    "tools/proving-experiment/cache/wasm-msm377-opening"
+  ],
+  "code": 0,
+  "failure": null
+}

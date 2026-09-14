@@ -1,0 +1,907 @@
+{
+  "schema": "shieldd.wasm_msm377_source.v1",
+  "revision": "5f6ee4ae03b67f493a714842627866221ce19383",
+  "files": [
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/wasm-msm/README.md",
+      "sha256": "328ad1db45dbf7ea0350856944b82f4468c6056bb0c70b4705414583447d9301"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/wasm-msm/fixture-generator/go.mod",
+      "sha256": "fcf5f04c094a66a915822b538e0d0f52bd20e8f208917cfc43b2e7f9192462bb"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/wasm-msm/fixture-generator/go.sum",
+      "sha256": "93fed06e3b50eda2fd15b31bce7ea377e26b610b3f8e24386e442f62eec6fda6"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/wasm-msm/fixture-generator/main.go",
+      "sha256": "9a280b08905ce5fe6c940bdad7588c6b502794d4d972528018d655eb79725d3f"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/wasm-msm/gate.ts",
+      "sha256": "9f27fd962422d21830089f06be56583b1f1602818f1b7bb0eb9d406f6e9a10c0"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/wasm-msm/screen.ts",
+      "sha256": "c9621f16d7be51f6c274c1525bd5c76dba9a4d184ea62aab02b1b1b314ad344c"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/wasm-msm/upstream.json",
+      "sha256": "5947679f20315fd492876ddb83996e05a71eb73e184542c187a29b4a2d85fa01"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/51x5/arith.ts",
+      "sha256": "559c12b9bd67a6a160e8caceda7607e0f2e756482aeb7083ea3b8d0d31cc0955"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/51x5/common.ts",
+      "sha256": "fed49b4b55c01fe4d7673878b40e21751598e72999ea1e30d8b2d38cf69b2fb3"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/51x5/debug.ts",
+      "sha256": "3787aa4eef3feb9d4e8fe43a2ac722280d764b5920951f324cb93df345a5fc57"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/51x5/field-base.ts",
+      "sha256": "1b8bc4efc0d2700ec6861dd9b732deac315c84b333f9962737f687d58508fbfd"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/51x5/field-single.test.ts",
+      "sha256": "0366a49bc3ef757542a0a65f9bd3d7cee8d5f0a9531135bce56f723e58dfe422"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/51x5/field-single.ts",
+      "sha256": "4d98310135c701c6d047b12c9e10552e7444d93b85d6bd184e3ae9dd3b98d28c"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/51x5/field.ts",
+      "sha256": "2da032588e160dc27ddabb0207e2fe1eff0bb23ce5d47f74e4954562362a7b17"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/51x5/float.test.ts",
+      "sha256": "d5f19953d9c66d63063c37af52da7fa0ad4eb309d4f7077ec60060484809b912"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/51x5/fma-js.test.ts",
+      "sha256": "890bc8ca85931d2b43d6773258ddcecfbec630d476aeedd4298ea9180aaf0bcf"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/51x5/fma-js.ts",
+      "sha256": "2ef2de684c12955bf8facea7ddaf2573aa44d1b666d098681c2388b8419e0122"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/51x5/fma.test.ts",
+      "sha256": "500a4195b1e13fe73984edcf59b51235ad6b0002165e6d907be464e371455273"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/51x5/fma.ts",
+      "sha256": "9a8be5e49e6c25013e8e2cb44152ddd42260ffba394897e501f5238777f9b276"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/bigint/README.md",
+      "sha256": "4295d768e76696981592a964fdef5b94633d7e68464898793a524a18cc2d4222"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/bigint/affine-weierstrass.ts",
+      "sha256": "822d90aa63dd6c97e12538622df92018d0d9cac7a6e9711f5ccc5ea97e2e7848"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/bigint/curves.test.ts",
+      "sha256": "d94ff68596054a917ffa4c683eafd909ef47c7ce85052f14d8aae82328dae446"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/bigint/field-random.ts",
+      "sha256": "ac219eb1d68fe2b6e4a396503e5b17af7647d557773f5139117eeda289f110a6"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/bigint/field-util.ts",
+      "sha256": "30e26348b6ff085db53b01548e76809c21232335e546cb4515a0d9febe61865c"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/bigint/field.test.ts",
+      "sha256": "bb25d686ee7969f277e7b98108b56a4299d2d85763dbd6b08feae3b8ff68f6b5"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/bigint/field.ts",
+      "sha256": "b6c1c2471c8409fea2d0ca5fb399d79e65fa48a7354b0c073ae60f176dc6d54e"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/bigint/msm.test.ts",
+      "sha256": "7a144dc08c86118c90b090f49fb58471385be79e29cae07c4aed9adcb55be334"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/bigint/msm.ts",
+      "sha256": "a9826fea4c41d75337ab537646d8657f0d81788ef4fe8ce1191bb0ab67c98b68"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/bigint/projective-weierstrass.ts",
+      "sha256": "08e319d8499c69aeeeb6f4cb4ec75208f3abf05005450318e06db277096c0401"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/bigint/twisted-edwards.ts",
+      "sha256": "c1d2f186b837ac1dca95f187b3684b96fff2dc37db142528b8866b04cb6d430b"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/concrete/README.md",
+      "sha256": "36d91fc954506cc8fb6cf91ec55656b7a3166f0b7086a492ee6bd66cf9ec8114"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/concrete/bls12-377.params.ts",
+      "sha256": "d0ea2efa2eb8b98a2d67b3ebf8a355064e83425846b77fcbeb36c0721096cab8"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/concrete/bls12-377.ts",
+      "sha256": "8b16be13802ca1541b7f80d8c878da7922bd2de32ccb2fa7f130f60c8addfe08"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/concrete/bls12-381.params.ts",
+      "sha256": "6755d5feee561bc693bcddfa3b7a6467915eefa87e9a39cb386d657fe169f34a"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/concrete/bls12-381.ts",
+      "sha256": "00b46b53e0c0053ca9a26c815dd4016354de8bef827380508fd9c8539420c6bb"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/concrete/bn254.params.ts",
+      "sha256": "6e6cc7f3af5aaaf3e8d3cc2eceaaab6ca16111b00bfc277edfebf23b59098f32"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/concrete/ed-on-bls12-377.params.ts",
+      "sha256": "40e0ed0d2f4a04f39165d5ad83a0590cc7a0a7e2209c5ea4546a46ae6cbc0c7c"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/concrete/ed-on-bls12-377.ts",
+      "sha256": "ca71d67c2acf6bc819ef89a17533c2a94ffe3945276c90e103c50e97df62d94a"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/concrete/ed25519.params.ts",
+      "sha256": "ea3ebd9cfa403e1109c663771dafaf9679a011884a7997615ecc6930f7c64f6e"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/concrete/example-fields.ts",
+      "sha256": "609bdacaa7e00e7ba6ddcf82f5fcde39521673b1ad6ee742fa9dfd53dfd24294"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/concrete/pasta.params.ts",
+      "sha256": "42b0f809e27e6666ef4c95231e24ec7dfc9c2c021098a2d21cd36e2b175fb487"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/concrete/pasta.ts",
+      "sha256": "9380d0092b1972cc5c948aa953bce2b608210446cd8c7541a93493ad8ed9eec5"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/concrete/secp256k1.params.ts",
+      "sha256": "7cd80fc761c1755ffd838f99c1d402598321c9f92e0cd95f92427e23bf2e3323"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/curve-affine.ts",
+      "sha256": "34eec5388aded77072bc654dabfa617513c712e1847dcaaee2a96f98deef142f"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/curve-projective.test.ts",
+      "sha256": "4c970aed9a77ecc39bc4b579a94a9a9ff5a970fb94968993768b0a7b6059f36b"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/curve-projective.ts",
+      "sha256": "e212445808eba4c4ad2cf29b7eaffd5fbb8f1ac98f772d341362a07d4e4af1e3"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/curve-random.ts",
+      "sha256": "13031dfcca8dd6f5587c5e9bd31414def548fcbf82317c7ac445257c36ca8367"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/curve-twisted-edwards.test.ts",
+      "sha256": "81a20807d9e89ac9f2f7418e9cedcbaeaf20b0a0022697d4ca505f6dfc4b94c6"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/curve-twisted-edwards.ts",
+      "sha256": "cf6c61b26efe8d1ae4d2da4e1d728b1d822375d19cbc51d1ef5a1e4167432620"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/field-msm.ts",
+      "sha256": "5b8ba9c0fca48d73ff8aa806d29dfa47a202b4dccef816c1413361e70352ed2d"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/field-sqrt.ts",
+      "sha256": "8cd60b2a81089b84e821b2db260a4327535eb890fd73ed811b725cc261d03656"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/field.test.ts",
+      "sha256": "185647ee896738d06f193bee9046cc9ee5cb44770479dd36c49c36f8bf2d33b5"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/glv/glv-test.ts",
+      "sha256": "d7d18e8c0b7717eee935e2fac4c2f2b322ab6901e035afa7e2b8bb64ff32c293"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/glv/glv.ts",
+      "sha256": "ba45303dc98c59f2fdc4cadf3ac99d06a09df2912722bd816ed8e302e9095b44"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/index.ts",
+      "sha256": "7aff0a9a1d8ad55ba7c71b2b8412a713c49e4e0dd315fcadea9d306b73a1c3b0"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/inverse/faster-inverse-wasm.ts",
+      "sha256": "f9f37ac98e34ebe10ed2a9462ca811fcf169b4b301b1d52d666b9f00d5ed8849"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/inverse/faster-inverse.ts",
+      "sha256": "fc986ca004dd5a1a7c85713d30d929a0ce70abb0319d937e8515b5983f745cfe"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/msm-basic.ts",
+      "sha256": "63d42957f8c4ae3942a64aae27fed5239509b3e9730421e3a36ff583152b8881"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/msm-batched-affine-single-thread.ts",
+      "sha256": "15bd92a641e869ccac324dfd6ed179ee28c999d289f9001db92e4280276bd830"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/msm-batched-affine.ts",
+      "sha256": "dfb537eb640c1bfa1c686ee57b2a4f987c6e4e5cc43185bd7ee7d209d1d8e3d7"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/msm-common.ts",
+      "sha256": "b4136bf11a7dda344d2605f071419392f9119cede2623638d801c8303d8625d3"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/msm.test.ts",
+      "sha256": "4706109d40a4d59f87466790850b3ce1aad44bc6f6e2b9edb07992bc6e09bc21"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/parallel.ts",
+      "sha256": "464d1fce59e6d1954c17fe5e1a74c3bad5030ba9512528fb5c1b2192bd7186ba"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/scalar-glv.ts",
+      "sha256": "d4d08b8cd58f95c8a37d4902e2784e7680a6fc4a998393a5cbcdba2a8c74e69d"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/scalar-simple.ts",
+      "sha256": "1286ed166125959efaf6e9f80d69c60537987ccbe850a9184a770c58ebb0a97f"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/testing/equivalent-wasm.ts",
+      "sha256": "edb51a50bbc5f32e469c958590c7ac12f13d4af89f6b78aa1e790ba80e7aed1d"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/testing/equivalent.ts",
+      "sha256": "8479cfc60ff8042d34d7e9e5f243e6ca2786a429f223c2cbc7741cd05d41941d"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/testing/nested.ts",
+      "sha256": "ec694d98ed1f2c8a9e1e27b10d85b119bcdcdd682480ca2d6d5019094ef1db34"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/testing/property.ts",
+      "sha256": "848b722aa7cd7fbd3c787e9074839f9be43eb6049da7f10400bffbcb369c80f0"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/testing/random.ts",
+      "sha256": "1e8efe7365ba5fdda8b272898911f7503892e6efc3a24fd976e702bb964c3df2"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/testing/tictoc.ts",
+      "sha256": "b4449ff5610e45c5c289f07dc990d7995234cb30c63ab110ba96fe9777de1042"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/threads/global-pool.ts",
+      "sha256": "92b52bb5c6b47ec86667360dedf8fb0ae2731dba3bbc24920f10e5ff7fb2c7ca"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/threads/simple-worker.ts",
+      "sha256": "b9d0a6ff135c2cb16eb5cb4eb34c0408addef0c37c384851093812c970138d17"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/threads/test-main.ts",
+      "sha256": "aad19ac098a9fc510270321f28dce8d54133a0f10ff1f57e7a2c484b59ab9685"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/threads/test.ts",
+      "sha256": "427c022a93ec3fcb8fd89444e1d547be93144043b8b9700a4c2dfa37250bb134"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/threads/threads.ts",
+      "sha256": "55aef791783423ba7f554e3976acc20b88e7d1e9fc2fb66c7a5a1255a4efdd12"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/threads/worker.node.ts",
+      "sha256": "3539636ef83588a7a83acf5963ff0ad29ffc4a58c1ab260eee27c0391f9ccad3"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/threads/worker.web.ts",
+      "sha256": "91b99a540fd7c0ac3a804ec5cbb73804b24db3573a03baa01f15c568f6368caf"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/types.ts",
+      "sha256": "7f2454bb5be117f4e34e16e056e0b560500a8fc0af57a8fb7c93c9320a03effe"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/util.ts",
+      "sha256": "15221efeb0fdb93893abab88063d22eac121549af2eb70d160c62b891dd4fde6"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/wasm/barrett.ts",
+      "sha256": "e51bcb1f8d9c828a993d5d452a89aba4e045571aa24a52455963f6d1f828b356"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/wasm/curve.ts",
+      "sha256": "c6591c123c4a746cfeb5bfa204bf42a5c6c675caa048fbe7f57cebf8e71dfbec"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/wasm/exp.ts",
+      "sha256": "ebd2dfe051c8036ad39014e0451a1b32e8bcbe84d41a7fb1bd8d5a7ecbd24c27"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/wasm/experiments/multiply-schoolbook-simd.ts",
+      "sha256": "8749c2428e8f760962c8a50598918367fc200aa81d302d3fbf5d538d3e02d4e1"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/wasm/field-arithmetic.ts",
+      "sha256": "e1318024822bf4c6745bb894a2577c372c3604987a2acf41b21aea58469a6636"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/wasm/field-helpers.ts",
+      "sha256": "dc53acf4c5bff92e63610add88e0747c1257b6b8b8c00740d8cc787ec7f171bf"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/wasm/glv.ts",
+      "sha256": "52812c122bff8b988f2b46a6584ea6873ba0180219d3c3669f6d41125e951ab9"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/wasm/inverse.ts",
+      "sha256": "576c2c24f63be5d9232c191636eb17e71f36bf153582382a15bf419d174f8c54"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/wasm/memory-helpers.ts",
+      "sha256": "b89b66cd979c968ce548fb30aa0d8c0313de2d12a89e0167efe33568090a9a12"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/wasm/multiply-montgomery.ts",
+      "sha256": "3fb241f2e66a8dba996faa63ed4c48127b5ad658c0ed63693cf370183b9e4279"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/wasm/multiply-schoolbook.ts",
+      "sha256": "fd3b49b2f2b3139507ba27f88ea7e5a78c26c85bbc5721c37765044326c1ff10"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/wasm/symbol-dispose-polyfill.ts",
+      "sha256": "6af989b409a7aaac2b8c00f2d028cb49b930186ce441dd0526fd7392fa4a1042"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/wasm/wasm-util.ts",
+      "sha256": "b5399d5c6f397cec44db1352203ac51cc398ec67aac6a03e25cf669a75f8988d"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/src/wasm/wat-helpers.ts",
+      "sha256": "5987c401c28d0e1e08e99912cd8f7900c2ef1748f57a32908ba0638fc5f78cbc"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/.package-lock.json",
+      "sha256": "3f092a81928d3fd0608cc98c8b541c4e5ce422556aab8139df4176a36c2a4199"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/ieee754/LICENSE",
+      "sha256": "18d45466ba3253deae04667e267a91ea8de8548f18c1125264d1c9db28194cc1"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/ieee754/README.md",
+      "sha256": "27827383727dcc6bb9f6f591e4b9204e35b6389bfba60df7a400371dac23b3ed"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/ieee754/index.d.ts",
+      "sha256": "1eb4db5f83679b3b6f8683611c93938948aa2d5d5e3988755f9e3a289388b75e"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/ieee754/index.js",
+      "sha256": "fe3e2b20c1ebb57c3b390c8f685ad1e04e6f493517fa7e432f4351bb77a1a4d0"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/ieee754/package.json",
+      "sha256": "a8004b9c8dffe2e1b01a058ecf968a5d50beabcabc43cc98c655184ba6afc050"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/LICENSE.md",
+      "sha256": "558bf55d170d7014d941ad87003b1ee0c4bdb69edb2b59a0702a2a05eaab86e8"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/README.md",
+      "sha256": "7afc30e578b2a62b492eceef5506d71468a93186626b272a88ae9c37f6c4d83a"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/binable.d.ts",
+      "sha256": "23d5fd48461a6e620f75622f0907adc7914d6284dffaa5922c7d86a1dbb1f665"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/binable.js",
+      "sha256": "33af46495a29852010124f281d8dd8769116c2890c7bb6c757b7aac455969d85"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/binable.js.map",
+      "sha256": "f2ee4e21f06373dad33293f2034c5d01df865b7d0df0b22a1f8a8541963e9432"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/dependency.d.ts",
+      "sha256": "7d7e7372da59d8f414fc8e1350a9103108ad60a1f9f11248fe1647ef33f85e3e"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/dependency.js",
+      "sha256": "097ebee8890ed2ce253f9566d2c704f4be7a25619697efc9ec651003613b647c"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/dependency.js.map",
+      "sha256": "fa2ff4c461c428e891e0ca369205133e1580f834ec9cc1e959bd47e665c73f6e"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/export.d.ts",
+      "sha256": "140a7c80131ebdd4dc1ed4752f7e467ca1f334ae74174d2ca7bc55fcc62758a2"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/export.js",
+      "sha256": "35cfd5268b01fc46b1b59ed41221e7671ced0e7caab0b85a0e234ca1bc32d2aa"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/export.js.map",
+      "sha256": "c1f71d1ecad17234e836c1c50d4aece7ec580891c0891181cb94c8384ef5c75a"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/func-types.d.ts",
+      "sha256": "80621a0f661038e4e2ff5c802979e56dac509eb3c0765592e4e82959d64ad9a6"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/func-types.js",
+      "sha256": "e424f8ce94b034a3be520561caeef2db328444bbe59b3ac0490d741ebf3a6976"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/func-types.js.map",
+      "sha256": "a2290d85b51a92f98f110ca066349b92e51cb4bec5f252c427ab0743260fc340"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/func.d.ts",
+      "sha256": "fbc1fef86f88fd745e3ee72728d45ebe4a8ad4b67007c1b61ded2ef9bfcd0f11"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/func.js",
+      "sha256": "98e42401f89d58bf3b89c8f05e2ae096541739b5edf1073049fae64725205bd8"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/func.js.map",
+      "sha256": "5787e45711d8ec2b38b4e9bb6392f1b5a25f875aabd08b8f7f6a7658e4f03d76"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/immediate.d.ts",
+      "sha256": "439dd4ce7bb8472b9984e9584421be5af2190711760858d9f85debe2b479fcee"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/immediate.js",
+      "sha256": "11f1df8dceafb95fc7225228671a5d83f11983062eb76b869d53eb1b23badd69"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/immediate.js.map",
+      "sha256": "183a4d3d19f7b1a7c3b505e292031f04b5042b4d8cf960e9bff085036cb152e8"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/immediate.unit-test.d.ts",
+      "sha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/immediate.unit-test.js",
+      "sha256": "b0d289dc6f145d982110c769f654cdc5e779945ad1039f94f52cee50fb712bff"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/immediate.unit-test.js.map",
+      "sha256": "e8b7b530b8757702c4dea5fc8adf6904e2e0eb89394ca2294c27ad67a7c24fe3"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/index.d.ts",
+      "sha256": "35ad5ef4e9fcc622590994a9757bbf949a51fdbb132178464f225d22b1adaad4"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/index.js",
+      "sha256": "e68114ca876e53da05228f028669a775f7701c774ece2502e93b9f37bbbb4841"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/index.js.map",
+      "sha256": "1d4b6e87568b1561ce16bd57841a0d63bac5232c30f383d4bc7755c4ee4b11f1"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/instruction/atomic.d.ts",
+      "sha256": "43df7018125fa44dedda9a64a79002cd83a8ffe45020cc277fbff62d311a3314"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/instruction/atomic.js",
+      "sha256": "b93950e50bbac65ce50bcf8a7d5b1f5bd2fceb0c44417704d715394a088c9147"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/instruction/atomic.js.map",
+      "sha256": "b23cb87a0d97cdb7cdd9eda4160ba02b7fcfaacdbbbb4d27352ade8ed1d2c7b3"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/instruction/base.d.ts",
+      "sha256": "9ce34e348b7c7f9b2e61af298d6fa14126fefa80d5f8582e34c476c1f95f35b5"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/instruction/base.js",
+      "sha256": "4f2fb0da49fc2f81294ea6ac93c44a4083fea5bc8148c2106df49464c0727318"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/instruction/base.js.map",
+      "sha256": "3c6b590097ccb2ca51082563189f351c812995199b34d86f68a0e0e40709c442"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/instruction/binable.d.ts",
+      "sha256": "df2e6c3eee7a1e18935a40f9272cccc5442ac9aa7f40504a1759a2299175b17a"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/instruction/binable.js",
+      "sha256": "18abbe825e6cf86c3159f03722a47e95b762705493aba70bf08b580fadf6979d"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/instruction/binable.js.map",
+      "sha256": "0c5dd1e926b2d24fe6a1b1a246515447322588c824bae45eda1a799f992dfe33"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/instruction/const.d.ts",
+      "sha256": "32c3f4023145c7a7950fa43bd524648160446e6a6b40ae53eca76ce3c3d47282"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/instruction/const.js",
+      "sha256": "88cd4e2bce1d419d142fe3665a45f63b869f25590cd17b5f4ec6b611b0cb81f5"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/instruction/const.js.map",
+      "sha256": "ecf8c9e230c3357d2f74d1e83a0c07ddb979dddd094f2ce500c3e5cc630adfad"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/instruction/control.d.ts",
+      "sha256": "59259491e220e08c675c9c99350a13b460f44476daf7d6c1137a59efab6ce471"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/instruction/control.js",
+      "sha256": "76545ecfc48ea330144832dc472611d8b99cc2d288e5014a74ddda5eed15af94"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/instruction/control.js.map",
+      "sha256": "1ccc51c381957f4411b0a426842dc1cbcf4d110e11d17ca9c7a77c67d69e7fd0"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/instruction/memory.d.ts",
+      "sha256": "153efc48b25f032c32d7c090c2b0a8d6be9427aedbc86562e42edafb011cb6b1"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/instruction/memory.js",
+      "sha256": "1b2079379d06f196ebed7352c1f06d66cd2fde2bbe8a7778df858f722951c844"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/instruction/memory.js.map",
+      "sha256": "ce7a1d14633fa18f4ad33a84d6113f9a1fc6cabd86f584f7177fd50ef6b3a229"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/instruction/numeric.d.ts",
+      "sha256": "f75b8fb77f78c15962ebc9952893a20b674fa69922416f72ab875a68f43cb98a"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/instruction/numeric.js",
+      "sha256": "cd229c6a4ed1f057d444930ef3e5399a4039e7ec44eed208f2c1f06e17ba295f"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/instruction/numeric.js.map",
+      "sha256": "e064542761f407159edbd4985ffef3efce2e32423d4cefb858f0f45edf7638b0"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/instruction/opcodes.d.ts",
+      "sha256": "0781c3c6a2a922746aeaf3bad2aa3d0421b6ded211a215ef6efd7ee66e2a46dd"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/instruction/opcodes.js",
+      "sha256": "16a1225efc5241c6e873beced2356f5f2c854440eb27a04d61950cdd69fdf186"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/instruction/opcodes.js.map",
+      "sha256": "6f48d4d0bcbadb7243811f9272a7a1a342c4b5589ea59482d4ba32875ed9a8cd"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/instruction/stack-args.d.ts",
+      "sha256": "255e3cc846118896d9da9984a05ba9ef56d2d806f6f9e36a52c9cda667d0c422"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/instruction/stack-args.js",
+      "sha256": "03715e7796124154d7fc6dd3a4fcd6901461e4bda45b402bdaae9c26d9b347d2"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/instruction/stack-args.js.map",
+      "sha256": "394ab96515823a0c270a0b29cba38b1d03a04e5be04870869c16751da2a53895"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/instruction/variable-get.d.ts",
+      "sha256": "76471e78ec055c4f840b1757eb44f3f4f7bb79c373801f84077576882c16492d"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/instruction/variable-get.js",
+      "sha256": "24af138ed86c9119880dd53a54f84de33b10ccac2907b735104764c2d6e4dae2"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/instruction/variable-get.js.map",
+      "sha256": "379647a862112dce1d2b0797291e13c40c7bea2da155dbb7001ef33027a99ddf"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/instruction/variable.d.ts",
+      "sha256": "ac8ee1b3ef9652f1f3fffe86214bb384174bc702d7298fb8f1541b7480377d2e"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/instruction/variable.js",
+      "sha256": "4a99129798e3b5c3de101129dfa4eda5cdb51750d6ee9d4a6b529e9b1133a691"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/instruction/variable.js.map",
+      "sha256": "f4c1c9aa6094cde5c56222f165a8251d567cf37480677b56ec7e0007904f99a7"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/instruction/vector.d.ts",
+      "sha256": "ff5034dae35d3fd3593b56e24005209976beaafb828a8e58eca1b913b13b6c6e"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/instruction/vector.js",
+      "sha256": "c2d76cc7ae8ea50750a50434c31126f8dc46f7dafcd68c15653a1105dfde23bf"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/instruction/vector.js.map",
+      "sha256": "09af24a40e40be64d74ffe7bbfdf4663e4f5879e841823207774b3fbdaea5758"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/local-context.d.ts",
+      "sha256": "5d12ebc749c7c2e095dcf4caa35ed1061c1c6a08f50a832008d2e17a4809675c"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/local-context.js",
+      "sha256": "546429746aa7d64762619def9e8341c1fb5431a5d1f08046b2b115cc550940f3"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/local-context.js.map",
+      "sha256": "740f547b164d4e0091b68bd4141ced30cf00dd772a6ccca7bb380de974407f15"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/memory-binable.d.ts",
+      "sha256": "9b7f4dcadf3ff2ebefec3472e7fc3bdc6bc14422e2ee9ecd775ec6b9f0fd0892"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/memory-binable.js",
+      "sha256": "1e19155dde90ee73e6748b01fbf742334399d87403f848ea60ea07ab8e471370"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/memory-binable.js.map",
+      "sha256": "3a680fb6efeb9a1d7f99207bd5663a7f47d8e6369772a5d0df4ee7b79fa57243"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/memory.d.ts",
+      "sha256": "1c135d7875106405af6550cbc5eb96ae1d19ddb5a0b2df0b604c0d37d1d5d952"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/memory.js",
+      "sha256": "0afd40ea16c7c07943bd07964ef316fcc06689b4518c29d5d9d79d5b45f7568b"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/memory.js.map",
+      "sha256": "231508c60c8ecf5b9b3aeb4f18ebbee03812f5318ab6f4472a7a5fe74ec84af6"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/module-binable.d.ts",
+      "sha256": "e09868ede365b8908af21e62e430679a5c7ada9dd5225ac3910662db7852ad21"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/module-binable.js",
+      "sha256": "9b3b551e194c3ad6a5b6543d1be8b6277159a4d96ead2d86e18ef8dbc8babbe4"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/module-binable.js.map",
+      "sha256": "5dd37a31736aa6b8b6b530792a01588f8c397d196b17f8969ea916c0bde9a947"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/module.d.ts",
+      "sha256": "2e6aa775958e8f4077b4741e52df1fb5d147582796a7ae20874820d6df9e87c9"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/module.js",
+      "sha256": "21a3d490d7e1f70adce14049ffc5bd8d1e2bcb838fdb4e0e6da2ad8dc1fb8e5d"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/module.js.map",
+      "sha256": "4cfdfe8726d448cbd008cc4e6ddaf34ffdc1f820c2882ff479e9bd36a03929b1"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/tsconfig.tsbuildinfo",
+      "sha256": "2b4350cfc8b638396d60257f48c2f6aedb6afa9066e973c71f082eb20362abdc"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/types.d.ts",
+      "sha256": "b9aa22d621a54e54dfe3a5c11a1cac8a386877661596c149d7aa0d7c2cfef973"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/types.js",
+      "sha256": "610e6711277d2a5cd5d50e8531d6833001973fc64676671fbf36d3a87c40f308"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/types.js.map",
+      "sha256": "0445563c15ed724089f571004bac90bf97732553c27d3497d769f39adbf42347"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/util-node.d.ts",
+      "sha256": "fd0c9b6c412026bbe3342c4f1faab7f34f7b82c49c82f4941953e6cf8217af33"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/util-node.js",
+      "sha256": "552bd59580a38fa0230e59c8a670abf5a57928143ed868a61469a228adda8e48"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/util-node.js.map",
+      "sha256": "2a5bc5b2946a5902d8a288ea77eb1bb6c38e9bd09e21d40a6a3532e98fd85807"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/util.d.ts",
+      "sha256": "f0dbbcc9bcaf0009ab07a95946c66f6b1bb19690c412206c6a0b2d1ba52c8695"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/util.js",
+      "sha256": "c51925f0cd2f97f4fce73300419cebc0d9d5147074b21c2c0862edd3299fc3fe"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/build/util.js.map",
+      "sha256": "6ad8e5020eebbab25a2e334c9e5a9b635be736a17e9599800301ef38001a32ef"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/package.json",
+      "sha256": "ccaedc7612c44c857f8eee96fb8db2bf9558a82149f016dc4e968cda2322d001"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/src/binable.ts",
+      "sha256": "2bd93d369da4664d0b601e1b664a537bb0a99ad1598f57474333ca30ac7dd61f"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/src/dependency.ts",
+      "sha256": "54b83abb44d235370cccd7c7be893be07add0c020b0be04a4e489bf020db947c"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/src/export.ts",
+      "sha256": "9a219c7dc750f45f35fc56a0f0f43fae09c26bafae0a0f50921689673af9de8a"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/src/func-types.ts",
+      "sha256": "e4f2a18eec3d85bbaa65ce9bafff1ed3c927b3feb3e6aeac2588cbeb30d6d362"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/src/func.ts",
+      "sha256": "7fcbe5784b57ba1347cd498f2c058ee0036795aa830097f49d92f0b96d22fe42"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/src/immediate.ts",
+      "sha256": "2e86b549fc818728aee61f1dc36c79ed1668b1348455998fca856de95e8030f4"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/src/immediate.unit-test.ts",
+      "sha256": "247e4fd282f0bba19b221b27a460358f40fcd6f74f559f28df99fbf735b5f364"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/src/index.ts",
+      "sha256": "bfe1466744f87b154d529ee4dcef7f980a75d49cdd8d0fa0270626f986f49d17"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/src/instruction/atomic.ts",
+      "sha256": "a669c045c16ffb210618175661fca32626825b517c2f33dd96851ea0c296429f"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/src/instruction/base.ts",
+      "sha256": "e4ff82042764a532012be2bc7bd0f80bbe249e65c7900c455dabdf59fcf7a8a2"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/src/instruction/binable.ts",
+      "sha256": "660fe2fef44e17e6a752856b5d61bf11eacd4044081741df507fdc2d611a87f1"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/src/instruction/const.ts",
+      "sha256": "c3c9304dae0bc7d33ecbe17bfd4cdc4848079d1cdb8026b50bc4da48868a492d"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/src/instruction/control.ts",
+      "sha256": "828da8b5aa5caf3f519e601f6e9e4578e6a8cd75d2b1f6dc86486aaec16fad82"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/src/instruction/memory.ts",
+      "sha256": "971281ab4ea2160357fb2affbc5410f9ba5bab18b0063af9420c0ee475a5aabb"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/src/instruction/numeric.ts",
+      "sha256": "f732072dbd8fcc4bcc317891b5cfe22e4c82d53e146932c07db63882a46597b1"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/src/instruction/opcodes.ts",
+      "sha256": "5ab6cb88406a30f23b5ed5d71ec3ae721c63a36a04403fa7bcf73e9d49de8c57"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/src/instruction/stack-args.ts",
+      "sha256": "75ab80b55caa2e9e6fae74254be8b84dde65cef27d084c6963b64dcea3942c66"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/src/instruction/variable-get.ts",
+      "sha256": "ff87bd7841d99011dda088789c7bcc7d0fc67e05e8595a46402ca4e202228141"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/src/instruction/variable.ts",
+      "sha256": "a163153e86b7077df63a26607e89368020d8d7f04387e04891cc000145bda8e6"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/src/instruction/vector.ts",
+      "sha256": "218f337d8305594fe956bc11a9a44ab5b297b45a848898c25df0fd56254fc4e2"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/src/local-context.ts",
+      "sha256": "aee0d3ae80164436ee7dcf431afcfed64a08da1de1c10a9023edf36dd573be55"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/src/memory-binable.ts",
+      "sha256": "3d43e9e2312045d523f72af4ff10ec477890cbc76e887d2266cccf8041a668be"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/src/memory.ts",
+      "sha256": "b4217130773a1fc5b2a1bfbdc6456210348d3cc3273e029794439380b7f7f410"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/src/module-binable.ts",
+      "sha256": "8449b65bc6d6d448cc6e8c6294940f75c67e1112f6c1907af0bc094324c178e0"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/src/module.ts",
+      "sha256": "1b7365583452390d0f9802ef5d7bd0899dd276c2e066c88a7f63521d4cd10d25"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/src/types.ts",
+      "sha256": "28035f639fe38160d4e882bfdb0fc51447f23d016ee6ee3745fbc60c2943fe4f"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/src/util-node.ts",
+      "sha256": "13d2bc0cca5b0d33249e7d6b7fcc264c33327de081693f7fc4335f18f364de41"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/node_modules/wasmati/src/util.ts",
+      "sha256": "55da260417da846d9e037eb615aa3539b66a3cdc85398e8e9f33f383264a6568"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/package.json",
+      "sha256": "c07be26befc3c8a08d3d681820a240e554968b87d966e28f954c29ba9426a7e6"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/package-lock.json",
+      "sha256": "fead9be0529e24fd0be62712b5d866aaba2e7fbb621f308c9a0c331028f8c1e7"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/NOTICE",
+      "sha256": "99521850209ac1b6a8474952268a3c2dbd81248fb2a562435859d35451efa24e"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/LICENSE",
+      "sha256": "122686c559146c3946e4ebd3f828a3e6d87ed41b6664772899ff0264b6f28475"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/montgomery-wasm-source/README.md",
+      "sha256": "eaf29f19cc9df18962165784943e3579aaa5064501b51050ba65a25686898190"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/wasm-msm377-fixtures.json",
+      "sha256": "dc8e3d648711a59d9f4bd053b0ef6aed2501eb4ac1a732996d9a96b0130b395b"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/wasm-msm377-safe-gate-shared.json",
+      "sha256": "698731788b517f199dcd5ebc443c311871c5b551e2d42b332dc7ea9cce217ce7"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/msmworker-combined",
+      "sha256": "aa1e3eb79d7f4454f88be9c9171015a0c8be6f65a7c8d2cb2a8a6a0792a6148f"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/guard.py",
+      "sha256": "62345292b754f6a40da22fb68fc46a233f530d64685467cbc2d290c570c2f706"
+    }
+  ],
+  "archive_sha256": "3153064da071c3883674fd70d5769a3041bb6b2833e6de4ed83afbeb0c895d69"
+}

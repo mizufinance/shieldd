@@ -19,6 +19,12 @@ Sources, raw evidence, plots and exact test records are preserved in `checkpoint
 
 
 
+## Completed safe WebAssembly MSM screen
+
+[The real-opening comparison](../../docs/research/wasm-msm377-screen.md) rejects the safe Wasm path for native desktop acceleration: gnark0.826505s versusWasm2.959737s (3.581×time) on one historical verified524290-point377opening_r. Six independent gnark edge cases pass; all18actualMSM outputs match. Onegate+3warmups+5measured calls perbackend, scalar conversion/transport and output checks included.5GiBvirtualreservation, combinedprocess-tree peak2.898GiB, zero swap/competition. Fullbase admission and Wasm preparation are separately charged. Source/runtime/dependencies and compact evidence `checkpoints/2026-09-14-wasm-msm377` preserved. No freshproof, phone or production release suite ran.
+
+This rejects a native acceleration candidate, not browser-only delivery against a browser baseline. Upstream variable-time behavior remains a limitation. The distinct BLS12-381 WebGPU/Metal source at a8ff121e6b5a089997fbce367eceb0ca826da898 exposes a complete G1MSM API and persistent Groth16-key buffers; inspect bounded allocation and adapter/device feasibility next. Currentnativeblst andGPU nam-blst must remain in separate binaries to avoid mixing implementations. No GPU benchmark has run yet.
+
 ## Completed six-limb ARM64 square screen
 
 [The bounded primitive comparison](../../docs/research/arm64-square377-screen.md) rejects the adapted dedicated Go square: current gnark ARM64 assembly 15.224742ns→dedicated 17.288137ns, 13.55% slower. Two focused tests cover5231canonical cases with big-integer/assembly/alias checks and64-step chains. All16timed outputs match,3warmups+5samples each with256passes. Source, initial test compile failure, corrected tests and guard records are in `checkpoints/2026-09-14-square377`. No MSM/prover integration, real proof or production release suite ran; selected A/B/C remain unchanged.

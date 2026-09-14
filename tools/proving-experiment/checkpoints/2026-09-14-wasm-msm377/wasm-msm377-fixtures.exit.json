@@ -1,0 +1,15 @@
+{
+  "time_ns": 1789386505199065000,
+  "argv": [
+    "go",
+    "run",
+    "-C",
+    "tools/proving-experiment/candidates/wasm-msm/fixture-generator",
+    "-p",
+    "2",
+    ".",
+    "../../../cache/wasm-msm377-fixtures.json"
+  ],
+  "code": 0,
+  "failure": null
+}

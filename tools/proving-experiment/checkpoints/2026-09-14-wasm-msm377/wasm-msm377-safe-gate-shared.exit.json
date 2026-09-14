@@ -1,0 +1,14 @@
+{
+  "time_ns": 1789386577075827000,
+  "argv": [
+    "node",
+    "--v8-pool-size=1",
+    "--max-old-space-size=1536",
+    "tools/proving-experiment/candidates/wasm-msm/gate.ts",
+    "tools/proving-experiment/cache/montgomery-wasm-source",
+    "tools/proving-experiment/cache/wasm-msm377-fixtures.json",
+    "tools/proving-experiment/cache/wasm-msm377-safe-gate-shared.json"
+  ],
+  "code": 0,
+  "failure": null
+}

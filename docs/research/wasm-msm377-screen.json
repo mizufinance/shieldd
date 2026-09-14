@@ -1,0 +1,72 @@
+{
+  "schema": "shieldd.wasm_msm377_analysis.v1",
+  "rows": [
+    {
+      "method": "gnark",
+      "warm_s": [
+        0.818937125,
+        0.814049708,
+        0.826504833,
+        0.874165125,
+        0.82989425
+      ],
+      "median_s": 0.826504833
+    },
+    {
+      "method": "wasm",
+      "warm_s": [
+        2.925206417,
+        2.959737292,
+        2.932653166,
+        3.006934292,
+        2.987749708
+      ],
+      "median_s": 2.959737292
+    }
+  ],
+  "wasm_over_gnark": 3.581028414869535,
+  "actual_msm_outputs": 18,
+  "points": 524290,
+  "source_revision": "5f6ee4ae03b67f493a714842627866221ce19383",
+  "wasm_preparation": {
+    "stage": "wasm_preparation",
+    "compilation_and_workers_ns": "165300834",
+    "points_conversion_ns": "57571458",
+    "field_reserved_bytes": 4294967296,
+    "scalar_reserved_bytes": 1073741824,
+    "points": 524290,
+    "process_memory": {
+      "rss": 471924736,
+      "heapTotal": 15089664,
+      "heapUsed": 8481304,
+      "external": 74014912,
+      "arrayBuffers": 67898044
+    }
+  },
+  "shared_checked_base_admission": {
+    "stage": "checked_base_loading",
+    "wall_ns": "17023173417",
+    "header": {
+      "msm_allocated_bytes": 0,
+      "peak_rss_bytes": 0,
+      "schema": "shieldd.proving_experiment.gnark_msm_worker.v1",
+      "op": "ready",
+      "name": "",
+      "payload_bytes": 0,
+      "error": "",
+      "workers": 2,
+      "initialization_ns": 17009183667,
+      "resident_base_bytes": 121216128,
+      "payload_read_ns": 0,
+      "scalar_decode_ns": 0,
+      "msm_ns": 0,
+      "encoding_ns": 0,
+      "worker_ns": 0,
+      "heap_alloc_bytes": 0,
+      "heap_sys_bytes": 0
+    }
+  },
+  "peak_combined_tree_rss_bytes": 3111714816,
+  "peak_wasm_host_observed_rss_bytes": 2667003904,
+  "decision": "Reject as a native desktop acceleration candidate. Browser-only delivery needs its own applicable baseline; no full-proof or phone claim."
+}
