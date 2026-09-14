@@ -1,0 +1,11 @@
+{
+  "schema": "shieldd.native_subset34.upstream.v1",
+  "base": "commonware-subset381",
+  "baseline_files": {
+    "cryptography/src/zk/pari/domain.rs": "479b0d9b6020b0341197509a1f1c4f4905b9bf7122ac626eb170c19dec27e569",
+    "cryptography/src/zk/pari/prover.rs": "9a209f66da636c52fed2862e979416a83f2abb447025dcc8accec8afbbd1b70d",
+    "cryptography/src/zk/pari/circuit.rs": "e7a38df0fa84d0da9df59397f1b832128acee27594ff3707493e2b19e51f33c0",
+    "cryptography/src/zk/pari/types.rs": "6e3ac211a9837485c8417c040cd606ac963a2e2cd946c930144685434d6afecd",
+    "cryptography/src/zk/pari/mod.rs": "83f853fbd469bf8601a02f936e71775f48fa98e7edc50f6e5007aa5f73a0397b"
+  }
+}

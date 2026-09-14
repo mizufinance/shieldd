@@ -1,0 +1,10 @@
+cargo nextest run $@
+warning: commonware-macros-impl@2026.7.0: stability cfg not set; set RUSTFLAGS="--cfg commonware_stability_X" (ALPHA/BETA/GAMMA/DELTA/EPSILON) to enforce stability gating
+   Compiling shieldd-native-comparator34-experiment v0.1.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/native-comparator34)
+    Finished `release` profile [optimized] target(s) in 6.15s
+────────────
+ Nextest run ID e110d211-940b-49b9-9d99-2a5099c98e6a with nextest profile: default
+    Starting 1 test across 1 binary (44 tests skipped)
+        PASS [   0.012s] (1/1) shieldd-native-comparator34-experiment key_tests::checked_key_decoders_reject_seven_eighths_and_invalid_domain_descriptors
+────────────
+     Summary [   0.016s] 1 test run: 1 passed, 44 skipped

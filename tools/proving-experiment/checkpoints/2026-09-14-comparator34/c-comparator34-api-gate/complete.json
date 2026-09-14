@@ -1,0 +1,9 @@
+{
+  "schema": "shieldd.native_comparator34_desktop.v1",
+  "hashes": {
+    "identity.json": "3d0bcc8cf1a79e472797187d34cbea96c29e9d357b4d75d15185e5f0a301bea3",
+    "memory.jsonl": "f90b5c656a149274a4fad1c01a8735514ac0d9891fe424f21cf0baecece3890c",
+    "results.json": "b06e547cf8d5367cbb2cdfe3064326b9f7fd990b220e3b758231f795141e5f2f",
+    "samples.jsonl": "7aef8b7d45d6b882d9507e7ed09ea2ad1bb0c4e577c469faef35cce9df33a37d"
+  }
+}

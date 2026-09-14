@@ -1,0 +1,67 @@
+warning: commonware-macros-impl@2026.7.0: stability cfg not set; set RUSTFLAGS="--cfg commonware_stability_X" (ALPHA/BETA/GAMMA/DELTA/EPSILON) to enforce stability gating
+   Compiling commonware-cryptography v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-subset34/cryptography)
+   Compiling shieldd-native-comparator34-experiment v0.1.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/native-comparator34)
+    Finished `release` profile [optimized] target(s) in 10.63s
+     Running unittests src/lib.rs (tools/proving-experiment/native/target/release/deps/shieldd_native_comparator34_experiment-0eefcee8877df851)
+
+running 44 tests
+test balance::tests::full_integer_net_balance_and_blinding_match_native_without_field_wrap ... ok
+test authorization::tests::ownership_and_regulated_key_bind_all_inputs_in_both_branches ... ok
+test compliance::tests::authenticated_leaf_and_active_lifecycle_reject_mutations_without_erasing_generation ... ok
+test encoding::tests::encrypted_address_words_match_exact_native_bytes ... ok
+test encoding::tests::modulus_representative_cannot_encode_zero ... ok
+test encryption::tests::all_tiers_decrypt_for_the_selected_party_and_detection_always_for_issuer ... ok
+test encryption::tests::ciphertexts_bind_amount_asset_flag_and_ordered_addresses ... ok
+test encryption::tests::every_published_field_nonce_and_ephemeral_is_constrained_in_both_branches ... ok
+test balance::tests::real_pari_proof_binds_native_generator_map_and_committed_balance_blinding ... ok
+test group::tests::fixed_windows_match_variable_and_independent_group_boundaries ... ok
+test group::tests::native_generator_and_cofactor_subgroup_circuit_agree ... ok
+test group::tests::torsion_and_identity_are_rejected_at_ownership_boundary ... ok
+test hash::tests::matrix_has_no_singular_minor ... ok
+test hash::tests::native_and_circuit_match_pinned_arkworks_vectors ... ok
+test hash::tests::wrong_hash_and_cross_domain_are_rejected ... ok
+test interop_tests::jubjub_multiplication_and_reduction_match_arkworks ... ok
+test key_tests::parallel_key_codec_matches_checked_codec_and_rejects_invalid_points ... ok
+test map::tests::native_and_circuit_match_arkworks_elligator_including_zero_and_full_field ... ok
+test map::tests::quadratic_choice_and_domain_separated_generator_bindings_are_not_optional ... ok
+test note::tests::optional_dummy_preserves_the_existing_gated_relation_and_fixed_slot ... ok
+test note::tests::output_notes_bind_recovery_and_only_change_can_be_zero ... ok
+test note::tests::real_spends_bind_note_path_nullifier_authorization_and_history_boundary ... ok
+test prepared_tests::compiler_lifetimes_preserve_fanout_selected_nodes_and_deferred_squares ... ok
+test prepared_tests::prepared_mapping_binds_constants_operations_indices_and_layout ... ok
+test prepared_tests::prepared_polynomials_bind_relation_and_preserve_masked_proof_bytes ... ok
+test proof_tests::native_pari_proves_ranges_and_rejects_invalid_relation ... ok
+test quotient_tests::unmasked_square_quotient_matches_generic_masked_polynomial_and_rejects_remainder ... FAILED
+test range::tests::full_u128_and_u129_sum_are_preserved ... ok
+test range::tests::limit_boundary_is_inclusive ... ok
+test recovery::tests::capsule_binds_every_word_and_private_value_for_zero_and_full_u128_amounts ... ok
+test registry::tests::membership_and_canonical_gap_bind_every_authenticated_leaf_fact ... ok
+test routing::tests::both_permutations_and_precision_boundaries_match_native_tags ... ok
+test routing::tests::tags_parameters_nonce_and_sender_relevance_are_bound ... ok
+test scalar::tests::subgroup_reduction_preserves_canonical_integer_equation ... ok
+test subset_tests::domain_descriptor_and_buffer_bounds_reject_old_domain ... ok
+test subset_tests::retained_roots_interpolation_masks_division_and_removed_root_poles ... ok
+test transfer::tests::all_six_native_transfers_satisfy_one_complete_relation ... ok
+test transfer::tests::cross_component_mutations_fail_even_with_a_recomputed_statement ... ok
+test tree::tests::all_quaternary_slots_and_high_position_bits_are_bound ... ok
+test volume::tests::limit_overflow_timestamp_and_predecessor_mutations_are_rejected ... ok
+test volume::tests::origin_continuation_disclosure_and_fee_constraints_are_preserved ... ok
+test volume::tests::real_pari_proof_covers_full_depth_accumulator_relation ... ok
+test encryption::tests::native_pari_proves_all_four_tiers_and_binds_claim_and_commitment ... ok
+test witness_codec::tests::complete_witness_roundtrip_and_malformed_inputs ... ok
+
+failures:
+
+---- quotient_tests::unmasked_square_quotient_matches_generic_masked_polynomial_and_rejects_remainder stdout ----
+
+thread 'quotient_tests::unmasked_square_quotient_matches_generic_masked_polynomial_and_rejects_remainder' (18014370) panicked at src/quotient_tests.rs:12:47:
+called `Result::unwrap()` on an `Err` value: RelationMismatch
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    quotient_tests::unmasked_square_quotient_matches_generic_masked_polynomial_and_rejects_remainder
+
+test result: FAILED. 43 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 45.12s
+
+error: test failed, to rerun pass `--lib`

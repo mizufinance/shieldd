@@ -1,0 +1,10 @@
+warning: commonware-macros-impl@2026.7.0: stability cfg not set; set RUSTFLAGS="--cfg commonware_stability_X" (ALPHA/BETA/GAMMA/DELTA/EPSILON) to enforce stability gating
+   Compiling shieldd-native-comparator34-experiment v0.1.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/native-comparator34)
+    Finished `release` profile [optimized] target(s) in 6.18s
+     Running unittests src/lib.rs (tools/proving-experiment/native/target/release/deps/shieldd_native_comparator34_experiment-0eefcee8877df851)
+
+running 1 test
+test quotient_tests::unmasked_square_quotient_matches_generic_masked_polynomial_and_rejects_remainder ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 43 filtered out; finished in 0.00s
+

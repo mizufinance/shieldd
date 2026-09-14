@@ -398,3 +398,7 @@ Retain polynomial comparator for a smaller-domain full proving gate. LSB-first s
 ## Completed BLS12-377 comparator screen
 
 The [strict-comparison screen](../../docs/research/comparator377-screen.md) passes two focused Go tests, all six original/lowered/converted assignment gates and all18 wire-mutation gates. Original rows155122→154224; converted rows226578→224778. No new setup or proof measurement yet. Apply this improvement fairly to both selected A and B. The separate native comparator3/4-domain candidate is undergoing polynomial and key-boundary gates; the broader campaign remains active.
+
+## Completed native comparator3/4 proving screen
+
+The [bounded complete API screen](../../docs/research/native-comparator34-proving.md) improves C2.582560042→2.311950125s (10.4784%), with warmRSS16.53%lower and proving key13.99%smaller. Five balanced warm samples and three warmups per variant; all16new proofs verify. Three earlier first-proof observations were preserved and reverified, explicitly separate from the warm invocation.45focused release tests, six polynomial gates, six fresh-key proof gates and six fullAPI gates pass. WASMcheck remains pending. Fair A/B comparator sources are prepared; A is building fresh development keys. The broader campaign remains active. User preference: quick bounded screens, no100-point measurement grids.

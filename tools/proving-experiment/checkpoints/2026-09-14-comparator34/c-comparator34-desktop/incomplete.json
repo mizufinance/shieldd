@@ -1,0 +1,8 @@
+{
+  "schema": "shieldd.intentional_benchmark_stop.v1",
+  "complete": false,
+  "reason": "sample-budget correction: user prefers quick optimization screens",
+  "resource_failure": false,
+  "completed_first_proofs": 3,
+  "executing_runner_sha256": "99a8553b84fffbb6a52d4feab196dd280d991914c07a952f0b34792783ccde0a"
+}

@@ -1,0 +1,10 @@
+{
+  "time_ns": 1789377909351990000,
+  "argv": [
+    "python3",
+    "tools/proving-experiment/comparator34_quick.py",
+    "tools/proving-experiment/cache/c-comparator34-quick"
+  ],
+  "code": 0,
+  "failure": null
+}

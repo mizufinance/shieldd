@@ -1,0 +1,31 @@
+warning: commonware-macros-impl@2026.7.0: stability cfg not set; set RUSTFLAGS="--cfg commonware_stability_X" (ALPHA/BETA/GAMMA/DELTA/EPSILON) to enforce stability gating
+   Compiling shieldd-native-comparator34-experiment v0.1.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/native-comparator34)
+warning: unused import: `commonware_math::algebra::Additive`
+  --> src/balance.rs:13:5
+   |
+13 | use commonware_math::algebra::Additive;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `Ring`
+  --> src/encryption.rs:12:42
+   |
+12 | use commonware_math::algebra::{Additive, Ring};
+   |                                          ^^^^
+
+warning: unused import: `Ring`
+  --> src/recovery.rs:12:42
+   |
+12 | use commonware_math::algebra::{Additive, Ring};
+   |                                          ^^^^
+
+warning: `shieldd-native-comparator34-experiment` (lib) generated 3 warnings (run `cargo fix --lib -p shieldd-native-comparator34-experiment` to apply 3 suggestions)
+    Finished `release` profile [optimized] target(s) in 4.57s
+     Running `tools/proving-experiment/native/target/release/examples/subset_cost tools/proving-experiment/cache/native-tuned-witnesses tools/proving-experiment/cache/comparator34-polynomial.json`
+transfer: original/converted, complete masked quotient and public-column gates passed
+transfer_unregulated: original/converted, complete masked quotient and public-column gates passed
+transfer_flagged: original/converted, complete masked quotient and public-column gates passed
+transfer_accumulating: original/converted, complete masked quotient and public-column gates passed
+transfer_over_limit_disclosure: original/converted, complete masked quotient and public-column gates passed
+transfer_accumulator_continuation: original/converted, complete masked quotient and public-column gates passed

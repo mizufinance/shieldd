@@ -1,0 +1,28 @@
+{
+  "schema": "shieldd.comparator34_quick.v1",
+  "hashes": {
+    "identity.json": "4f7ccd82f2eb51ef2257b181a6d5182cb148e40632bef8e5d6e745cb321ea2a9",
+    "memory.jsonl": "d44e7f353870271d170d8f56c7114d0e1d9cd82d0c6e5850d5853ceb9582dc5b",
+    "proofs/first-0-candidate.bin": "543b96fb7cd9ec88d6c919b19ad95c6027a37f102ad168a9757643e67a4b323d",
+    "proofs/first-0-control.bin": "09d59c77096e4ffd548c9ba646a06d6f84c61482a13b2d83594e7b111c911305",
+    "proofs/first-1-control.bin": "aa508fab8b0c1d495f83f2f1c8a0f4c514e357fd0fa1fb2d093ef053a068a4d3",
+    "proofs/warm-3-candidate.bin": "e60ab2d39116ebeb210a5b464a6273def99e8ca860125c589b44711b0ac21a78",
+    "proofs/warm-3-control.bin": "f9559763d136115ae6f3c486c37c1262be2648130be16df66f869a223660eed9",
+    "proofs/warm-4-candidate.bin": "b05878ab9d6b2f87d3d8a2118bfbcf4a578c41cdfed1e30ad9d1e188bd8fbe41",
+    "proofs/warm-4-control.bin": "fcfb587ca81602ce4529fc2701a32945fb51b420937266a433042e8a3fb6796b",
+    "proofs/warm-5-candidate.bin": "dcf98238b28c4e0d0c85d4024d5632e6f9e7707012345ac431d9d1ef77539f54",
+    "proofs/warm-5-control.bin": "e9840e71bfef3f17f550555dd2d4d1d03f98186cf4e21bd56439420bee82e886",
+    "proofs/warm-6-candidate.bin": "6e4f83d8ae7257571d28dedf0b88ce17ea99d346accd11ed8243cdd1225eb6f5",
+    "proofs/warm-6-control.bin": "247c0d272397c103a3eaf87f52e7f7999fbfa8960553541912cc5b40ba3e0c7b",
+    "proofs/warm-7-candidate.bin": "8f122dbf37ebe2516ccbc0640386a5916bee04f47bf3eb92962cd91a7feb8a88",
+    "proofs/warm-7-control.bin": "4ffb1604c48f03474b7cea9eba5af1e9c908893f0d46239bd7ac435db1b9ce0c",
+    "proofs/warmup-0-candidate.bin": "25353e9d18d0bc625ab05a60efabf6dabcf6820b793c667497bb086e2bd8d476",
+    "proofs/warmup-0-control.bin": "7902dc4e423eb5b536823384d70ea436e0794c723c474cdb631374c8217af84d",
+    "proofs/warmup-1-candidate.bin": "aedd56539e0f3c6d1b53c9090dadc1dd4ce051db03f5d1b0e6ba20e09d1e2064",
+    "proofs/warmup-1-control.bin": "831df384564370de202047006051c368da350bffa7e37c95520b17b273cd901a",
+    "proofs/warmup-2-candidate.bin": "dfe526a94176be897319376b78861ec5450b8a5d7c16f36f0a220624b9d4a7b9",
+    "proofs/warmup-2-control.bin": "587d9ab28eb6929f2e72d1671dcfe713caa0085a5388af2eda166d47663d709b",
+    "results.json": "da03ac18a3628597f02017b79ecace198f5db7d3faba8bb1ff8b865ff6e711bf",
+    "samples.jsonl": "db54ea34ad9fdc8c57f915b9101f0e963c81fc37e354342b6ffe0b40d8cbdd26"
+  }
+}

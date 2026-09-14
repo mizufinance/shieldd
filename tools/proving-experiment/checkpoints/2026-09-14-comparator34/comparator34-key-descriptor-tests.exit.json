@@ -1,0 +1,20 @@
+{
+  "time_ns": 1789377458162181000,
+  "argv": [
+    "just",
+    "--justfile",
+    "tools/proving-experiment/cache/commonware-subset34/justfile",
+    "test",
+    "--locked",
+    "--release",
+    "--manifest-path",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/native-comparator34/Cargo.toml",
+    "--lib",
+    "-j",
+    "2",
+    "-E",
+    "test(checked_key_decoders_reject)"
+  ],
+  "code": 0,
+  "failure": null
+}

@@ -1,0 +1,19 @@
+{
+  "time_ns": 1789377378826822000,
+  "argv": [
+    "cargo",
+    "+1.95.0",
+    "run",
+    "--locked",
+    "--release",
+    "--manifest-path",
+    "tools/proving-experiment/candidates/native-comparator34/Cargo.toml",
+    "--example",
+    "subset_cost",
+    "--",
+    "tools/proving-experiment/cache/native-tuned-witnesses",
+    "tools/proving-experiment/cache/comparator34-polynomial.json"
+  ],
+  "code": 0,
+  "failure": null
+}

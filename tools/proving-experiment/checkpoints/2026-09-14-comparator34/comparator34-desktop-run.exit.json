@@ -1,0 +1,11 @@
+{
+  "time_ns": 1789377746867549000,
+  "argv": [
+    "python3",
+    "tools/proving-experiment/comparator34_desktop.py",
+    "measure",
+    "tools/proving-experiment/cache/c-comparator34-desktop"
+  ],
+  "code": -15,
+  "failure": "received signal 15"
+}

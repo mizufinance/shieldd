@@ -1,0 +1,48 @@
+{
+  "schema": "shieldd.comparator34_quick.v1",
+  "rows": [
+    {
+      "candidate": "candidate",
+      "warm_values_s": [
+        2.311713583,
+        2.306335625,
+        2.311950125,
+        2.320960666,
+        2.319977042
+      ],
+      "median_s": 2.311950125,
+      "first_values_s": [
+        19.586018875
+      ],
+      "warm_peak_rss_bytes": 1184514048,
+      "proof_bytes": 218
+    },
+    {
+      "candidate": "control",
+      "warm_values_s": [
+        2.577984708,
+        2.5513585,
+        2.582560042,
+        2.587675167,
+        2.584033166
+      ],
+      "median_s": 2.582560042,
+      "first_values_s": [
+        22.894163833,
+        23.011948625
+      ],
+      "warm_peak_rss_bytes": 1419051008,
+      "proof_bytes": 218
+    }
+  ],
+  "warm_run_proofs": 16,
+  "preserved_first_proofs": 3,
+  "distinct_proofs": 19,
+  "all_verified": true,
+  "limits": "Startup observations precede an intentional sample-budget stop. Warm observations are a separate invocation with the same checked sources, artifacts and environment. No cold-tail or uninterrupted-session claim.",
+  "warm_latency_reduction_percent": 10.478359170710029,
+  "key_bytes": {
+    "control": 60078047,
+    "candidate": 51671551
+  }
+}
