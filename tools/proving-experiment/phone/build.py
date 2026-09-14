@@ -20,7 +20,7 @@ def digest(path):
         return hashlib.file_digest(source, 'sha256').hexdigest()
 
 def main():
-    if len(sys.argv) != 2 or sys.argv[1] not in ('A', 'B', 'C', 'private', 'supervisor', 'clockprobe'):
+    if len(sys.argv) != 2 or sys.argv[1] not in ('A', 'B', 'C', 'private', 'supervisor', 'supervisor-v2', 'clockprobe'):
         raise SystemExit('build.py A|B|C|private|supervisor|clockprobe (inside guard.py)')
     name = sys.argv[1]
     OUT.mkdir(exist_ok=True)
@@ -41,10 +41,10 @@ def main():
     # Desktop-specific CPU flags must not leak into portable Android artifacts.
     for key in ('RUSTFLAGS', 'CFLAGS', 'CXXFLAGS'):
         env.pop(key, None)
-    if name in ('A', 'private', 'supervisor', 'clockprobe'):
+    if name in ('A', 'private', 'supervisor', 'supervisor-v2', 'clockprobe'):
         directory = {'A': CACHE/'a-comparator377-source/worker',
                      'private': SPIKE/'candidates/owned-admission377/go',
-                     'supervisor': HERE, 'clockprobe': HERE}[name]
+                     'supervisor': HERE, 'supervisor-v2': HERE, 'clockprobe': HERE}[name]
         command = ['go', 'build', '-p', '2', '-trimpath', '-o', str(OUT/name),
                    './cmd/provingexperiment' if name == 'A' else './clockprobe' if name == 'clockprobe' else '.']
         lock = directory/'go.sum'

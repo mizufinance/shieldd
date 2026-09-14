@@ -1,0 +1,145 @@
+{
+  "schema": "shieldd.phone_summary.v2",
+  "device": "SM-G781W / SM8250 / Android 13 / API 33",
+  "workers": 2,
+  "primary_metric": "complete key-loaded proving request",
+  "results": {
+    "A": {
+      "warm_seconds": [
+        5.234927654,
+        5.798633227,
+        5.248147238,
+        5.708203435,
+        5.74695156
+      ],
+      "median_seconds": 5.708203435,
+      "first_use_seconds": 69.224492473,
+      "sampled_peak_tree_rss_bytes": 642449408,
+      "minimum_available_bytes": 1659678720,
+      "encoded_bytes": 436,
+      "all_positive_rss_complete": true
+    },
+    "C": {
+      "warm_seconds": [
+        8.484369997,
+        8.467535621,
+        8.746657236,
+        8.522206351,
+        8.435239215
+      ],
+      "median_seconds": 8.484369997,
+      "first_use_seconds": 53.402898782,
+      "sampled_peak_tree_rss_bytes": 573054976,
+      "minimum_available_bytes": 1547792384,
+      "encoded_bytes": 218,
+      "all_positive_rss_complete": true
+    }
+  },
+  "B_memory": "not measured; screen asleep at preflight",
+  "files": [
+    {
+      "path": "A.json",
+      "sha256": "6769a06f5020be13054aeffe9cd40dfdeaeb40c47a4e44e7290fd73ecbd0969d"
+    },
+    {
+      "path": "resource-probe.json",
+      "sha256": "41b4bea329b0effabc83c0f3676ea955a8bcdd7851e127ecfda847723e835782"
+    },
+    {
+      "path": "bundle.json",
+      "sha256": "129df08e092c1d417c6096a0e7dd0824870946edce3c68ea64c13f7a4b4d9075"
+    },
+    {
+      "path": "C.json",
+      "sha256": "c86cac979188603b66b3038a8131b6247a7988f0bcdb375d5ea4e7b63b8dc483"
+    },
+    {
+      "path": "status.json",
+      "sha256": "ecef745d07005047e5b5eb3acf1dbba8d0f6ede9f7170368b49b9b173fcf433f"
+    },
+    {
+      "path": "A/measure-stdout.jsonl",
+      "sha256": "97d26bb4c4971a3f7426ae0542651ed33595f4f96ec3298e4e9d641887e4ded7"
+    },
+    {
+      "path": "C/gate-stdout.jsonl",
+      "sha256": "216fd31488c57bd1984b830b0308b1a6febe9059963a569e630f8367633e4126"
+    },
+    {
+      "path": "C/measure-stdout.jsonl",
+      "sha256": "dcb8e69d8deaa9e625927c034df7835086421fd5ae0df52b1ef3512fa51ecbfd"
+    },
+    {
+      "path": "C/gate/complete.json",
+      "sha256": "de22d29896e2777f778628f907a81801c0bf58b047d7ec7dc6a4352dc0af7042"
+    },
+    {
+      "path": "C/gate/samples.jsonl",
+      "sha256": "216fd31488c57bd1984b830b0308b1a6febe9059963a569e630f8367633e4126"
+    },
+    {
+      "path": "C/gate/initialization.json",
+      "sha256": "68fed687f8f7f8d8e2d8d20ab377633a9ea514a7ae4bbd08a64315ccd999cb7f"
+    },
+    {
+      "path": "C/gate/process.json",
+      "sha256": "ada0b27eb1f193a50904838afc9fd8aef3122ceaecb8d1d52e5347cb76afcdfc"
+    },
+    {
+      "path": "C/gate/resources.jsonl",
+      "sha256": "e80d699894fa44ede75719068c52dd50e0c4d709b7bb1ae7437763a1a0ada723"
+    },
+    {
+      "path": "C/measure/complete.json",
+      "sha256": "48b532a64d0beb3dfd8b390a5952b43a2ff6426b6e7824084c6301b6c8ac23b0"
+    },
+    {
+      "path": "C/measure/samples.jsonl",
+      "sha256": "dcb8e69d8deaa9e625927c034df7835086421fd5ae0df52b1ef3512fa51ecbfd"
+    },
+    {
+      "path": "C/measure/initialization.json",
+      "sha256": "4d7224758441a5ea2f8c7c03e6f1bc9dc15370d0bed65990cb2f9a181cf2ad57"
+    },
+    {
+      "path": "C/measure/process.json",
+      "sha256": "a38b78af512a188383d056cf6902e96bff1f88885c2cf6d3f1c0d3733d93e209"
+    },
+    {
+      "path": "C/measure/resources.jsonl",
+      "sha256": "223fcdb4c38f45b38ea6f061a3196f87ba4b66aecdab8304f8146fc490cc9fd2"
+    },
+    {
+      "path": "A/measure/complete.json",
+      "sha256": "e2f66231de268af801da3c683cf4bc50e1f7f408005fcde49701a885a5e205af"
+    },
+    {
+      "path": "A/measure/samples.jsonl",
+      "sha256": "97d26bb4c4971a3f7426ae0542651ed33595f4f96ec3298e4e9d641887e4ded7"
+    },
+    {
+      "path": "A/measure/initialization.json",
+      "sha256": "7338b938666dec2954a7b61745f753fb18d13ef1d538cfad150b2c67a7ed00a5"
+    },
+    {
+      "path": "A/measure/process.json",
+      "sha256": "3423b0bd82b3dfcc234755d5bf340dde97046ad1f893ca5de7ca4758352ba35e"
+    },
+    {
+      "path": "A/measure/resources.jsonl",
+      "sha256": "1c886384cb78bcea1b0045bdaa17545bd88df67fb92e2c1e7b238c0bda58cbd5"
+    },
+    {
+      "path": "phone-v2-tests.log",
+      "sha256": "58e27c823f1a80f3234f1bb9928ee514f93cf26c5180e60d6fbf55432a0b785d"
+    },
+    {
+      "path": "phone-v2-tests.exit.json",
+      "sha256": "8d604ebc9191f82418e6133aa791ae1fc423132730f207ebf1096f47b1af30f8"
+    },
+    {
+      "path": "phone-v2-build.exit.json",
+      "sha256": "ee2bf90b710343d2288d142b6657a03300e8590ce74914eb0af52af05ead4c8d"
+    }
+  ]
+}

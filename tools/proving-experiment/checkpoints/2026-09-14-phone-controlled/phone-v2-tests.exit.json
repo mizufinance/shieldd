@@ -1,0 +1,17 @@
+{
+  "time_ns": 1789398138667874000,
+  "argv": [
+    "env",
+    "GOTOOLCHAIN=go1.25.7",
+    "go",
+    "test",
+    "-C",
+    "tools/proving-experiment/phone",
+    "-p",
+    "2",
+    "-count=1",
+    "./..."
+  ],
+  "code": 0,
+  "failure": null
+}

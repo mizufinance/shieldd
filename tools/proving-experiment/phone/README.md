@@ -24,12 +24,14 @@ process startup and checked initialization. Artifact hashing happens beforehand 
 can warm the OS file cache; these are not cold-storage measurements. ADB transport
 duration is recorded separately. Verification occurs outside proving clocks.
 
-Memory admission conservatively requires desktop RSS plus approximately1GiB of
-headroom (A1.7GiB/C2.2GiB/B3.5GiB). Recheck before each backend. A skipped admission
-is a policy outcome, not an observed Android OOM or proof failure. The supervisor
-stops its process group below1GiB MemAvailable or at severe thermal status.
-RSS covers the worker process tree, including B's solver and arithmetic children,
-and excludes the supervisor. Missing RSS/thermal readings remain explicitly unknown.
+The v2 supervisor uses stage-aware admission and a 512 MiB runtime reserve.
+`run_controlled.py` runs A/C with 1,152/1,408 MiB admission, verifies reusable
+A gate inputs, and restores the authorized temporary screen timeout with readback.
+Admission thresholds permit a controlled attempt; they do not guarantee a fit.
+A skipped admission is a policy outcome, not an observed Android OOM.
+Memory-floor checks run every 250 ms independently of slower RSS/thermal probes.
+Android ps supplies KiB RSS for process-group and descendant membership, with
+missing observations marked incomplete. Severe thermal status stops own workers.
 No user applications are closed and no personal phone files are accessed.
 
 All raw samples, proofs, resource records and failures stay in ignored cache paths.

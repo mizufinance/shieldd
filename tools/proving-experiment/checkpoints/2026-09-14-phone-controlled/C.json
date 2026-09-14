@@ -1,0 +1,82 @@
+{
+  "schema": "shieldd.phone_config.v2",
+  "backend": "C",
+  "worker_schema": "shieldd.proving_experiment.selected_c.v1",
+  "command": [
+    "/data/local/tmp/shieldd-phone-20260914/bin/C",
+    "serve",
+    "/data/local/tmp/shieldd-phone-20260914/keys/C/native.prepared.pk",
+    "/data/local/tmp/shieldd-phone-20260914/witnesses/C/transfer.bin"
+  ],
+  "artifacts": [
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/v2/bin/supervisor",
+      "sha256": "a47d97c2345548bdf87a39431c85e8f39b1f54ae58d0dc53ff267c5b916ff890"
+    },
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/bin/C",
+      "sha256": "d3786dcde19278c7d825e596a53169bd308123d8827fa6b2a650c683e05e375f"
+    },
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/keys/C/native.prepared.pk",
+      "sha256": "e16f65551b74cd1d14e231adc9df17f441c06942c2d1fc0516cad2d4f56e40d5"
+    }
+  ],
+  "scenarios": [
+    {
+      "name": "transfer",
+      "witness": {
+        "path": "/data/local/tmp/shieldd-phone-20260914/witnesses/C/transfer.bin",
+        "sha256": "e3a2b0a26fa79f3acc5262df51e637ddd597b982212aac69f570ab707dbd1be8"
+      },
+      "statement": "2c3bb0b999afe36570c12184d153b24481d09788e538942763a09feb98fee345"
+    },
+    {
+      "name": "transfer_unregulated",
+      "witness": {
+        "path": "/data/local/tmp/shieldd-phone-20260914/witnesses/C/transfer_unregulated.bin",
+        "sha256": "8cdeb0aeb3d9600543b348bdaf098dc468cee1eef7f3e2c58daaebffac8a14d6"
+      },
+      "statement": "38097dabdcaae1f0722cd836cfae6c3dfd2bd38241d8c47db3cd388fe53af236"
+    },
+    {
+      "name": "transfer_flagged",
+      "witness": {
+        "path": "/data/local/tmp/shieldd-phone-20260914/witnesses/C/transfer_flagged.bin",
+        "sha256": "717f6aae02a71c9580684ea9e9596d71138438659465b6f1fabbc6e0e0d52db6"
+      },
+      "statement": "3c19bb923108ba9ad0b65b46098a4ef9db8aff918bde9b02ab21793d0b3918fd"
+    },
+    {
+      "name": "transfer_accumulating",
+      "witness": {
+        "path": "/data/local/tmp/shieldd-phone-20260914/witnesses/C/transfer_accumulating.bin",
+        "sha256": "a07c8dfc78ffbe794422a52bf59c4f760063cd50d3ab734e160c9801d1f0d2dd"
+      },
+      "statement": "65ca3f8d0d7f9136f5b0f4bf46c7dcde07cf89f84633f95acd870df2ef2a13db"
+    },
+    {
+      "name": "transfer_over_limit_disclosure",
+      "witness": {
+        "path": "/data/local/tmp/shieldd-phone-20260914/witnesses/C/transfer_over_limit_disclosure.bin",
+        "sha256": "552e03d7caff95b1209fbe041236b41d83036871189cb052dccfd805860fb3e3"
+      },
+      "statement": "3a7350304ce482fb30dc478ebbcf4156e63a3060571f10cbaf6b6f8b57187730"
+    },
+    {
+      "name": "transfer_accumulator_continuation",
+      "witness": {
+        "path": "/data/local/tmp/shieldd-phone-20260914/witnesses/C/transfer_accumulator_continuation.bin",
+        "sha256": "a2f21b188678576fba9abcb17e2b9f68208622608e956cfc1a6b455ea5e83c2c"
+      },
+      "statement": "5128d5d1a7eb5ca5585c047e80f1f1d572f0b7e4ab41309bc34e586b9eb929af"
+    }
+  ],
+  "invalid": {
+    "path": "/data/local/tmp/shieldd-phone-20260914/witnesses/C/invalid.bin",
+    "sha256": "f034b6e19b5b793d46be12fec34e7640a335451bbe6b0267cb3f4ff9a9221bf3"
+  },
+  "minimum_start_bytes": 1476395008,
+  "minimum_available_bytes": 536870912,
+  "guard_policy": "stage-aware-v2"
+}

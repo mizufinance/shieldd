@@ -41,6 +41,8 @@ type Config struct {
 	Invalid               Artifact   `json:"invalid"`
 	MinimumStartBytes     uint64     `json:"minimum_start_bytes"`
 	MinimumAvailableBytes uint64     `json:"minimum_available_bytes"`
+	GuardPolicy           string     `json:"guard_policy,omitempty"`
+	ReuseGateConfig       *Artifact  `json:"reuse_gate_config,omitempty"`
 }
 type Header struct {
 	Schema       string `json:"schema"`
@@ -62,6 +64,8 @@ type Resource struct {
 	RSSComplete    bool   `json:"rss_complete"`
 	PIDs           []int  `json:"pids"`
 	ThermalStatus  *int   `json:"thermal_status"`
+	SensorTimeNS   int64  `json:"sensor_time_ns"`
+	SensorBodyNS   int64  `json:"sensor_body_ns"`
 }
 type Sample struct {
 	Schema       string          `json:"schema"`
@@ -231,42 +235,6 @@ func available() (uint64, error) {
 	}
 	return n, nil
 }
-func tree(pid int, seen map[int]bool) (uint64, bool, []int) {
-	if seen[pid] {
-		return 0, true, nil
-	}
-	seen[pid] = true
-	b, e := os.ReadFile(fmt.Sprintf("/proc/%d/status", pid))
-	if e != nil {
-		return 0, false, []int{pid}
-	}
-	fields := memoryFields(b)
-	rss, ok := fields["VmRSS"]
-	pids := []int{pid}
-	tasks, e := os.ReadDir(fmt.Sprintf("/proc/%d/task", pid))
-	if e != nil {
-		return rss, false, pids
-	}
-	for _, task := range tasks {
-		children, e := os.ReadFile(fmt.Sprintf("/proc/%d/task/%s/children", pid, task.Name()))
-		if e != nil {
-			ok = false
-			continue
-		}
-		for _, v := range strings.Fields(string(children)) {
-			n, e := strconv.Atoi(v)
-			if e != nil {
-				ok = false
-				continue
-			}
-			r, complete, ps := tree(n, seen)
-			rss += r
-			ok = ok && complete
-			pids = append(pids, ps...)
-		}
-	}
-	return rss, ok, pids
-}
 func thermal(ctx context.Context) *int {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
@@ -291,10 +259,15 @@ func monitor(ctx context.Context, c Config, pid int, path string) error {
 	}
 	defer f.Close()
 	enc := json.NewEncoder(f)
-	ticker := time.NewTicker(time.Second)
+	ticker := time.NewTicker(250 * time.Millisecond)
 	defer ticker.Stop()
-	var status *int
-	iteration := 0
+	sensorCtx, stopSensors := context.WithCancel(ctx)
+	defer stopSensors()
+	updates := make(chan Resource, 1)
+	done := make(chan struct{})
+	go func() { defer close(done); sensorLoop(sensorCtx, pid, c.Backend, updates) }()
+	defer func() { stopSensors(); <-done }()
+	latest := Resource{}
 	for {
 		select {
 		case <-ctx.Done():
@@ -305,20 +278,24 @@ func monitor(ctx context.Context, c Config, pid int, path string) error {
 		if e != nil {
 			return e
 		}
-		if n < c.MinimumAvailableBytes {
-			_ = enc.Encode(Resource{TimeNS: time.Now().UnixNano(), AvailableBytes: n, ThermalStatus: status})
-			return fmt.Errorf("memory pressure: %d available bytes below %d", n, c.MinimumAvailableBytes)
+		select {
+		case latest = <-updates:
+		default:
 		}
-		rss, complete, pids := tree(pid, map[int]bool{})
-		if iteration%5 == 0 {
-			status = thermal(ctx)
+		row := latest
+		row.TimeNS = time.Now().UnixNano()
+		row.AvailableBytes = n
+		if row.TimeNS-row.SensorTimeNS > 3_000_000_000 {
+			row.RSSComplete = false
 		}
-		iteration++
-		if e = enc.Encode(Resource{time.Now().UnixNano(), n, rss, complete, pids, status}); e != nil {
+		if e = enc.Encode(row); e != nil {
 			return e
 		}
-		if status != nil && *status >= 3 {
-			return fmt.Errorf("severe thermal status %d", *status)
+		if e = checkFloor(n, c.MinimumAvailableBytes); e != nil {
+			return e
+		}
+		if row.ThermalStatus != nil && *row.ThermalStatus >= 3 {
+			return fmt.Errorf("severe thermal status %d", *row.ThermalStatus)
 		}
 		select {
 		case <-ctx.Done():
@@ -360,7 +337,7 @@ func run(configPath, mode, out string) (err error) {
 	if e = decoder.Decode(&c); e != nil {
 		return e
 	}
-	if c.Schema != "shieldd.phone_config.v1" || len(c.Command) == 0 || len(c.Scenarios) != 6 || c.MinimumAvailableBytes < 1024*1024*1024 {
+	if c.Schema != "shieldd.phone_config.v2" || len(c.Command) == 0 || len(c.Scenarios) != 6 || c.GuardPolicy != "stage-aware-v2" || c.MinimumAvailableBytes < 512*1024*1024 || c.MinimumStartBytes < c.MinimumAvailableBytes {
 		return errors.New("config contract")
 	}
 	if mode != "gate" && mode != "measure" {
@@ -389,6 +366,13 @@ func run(configPath, mode, out string) (err error) {
 	if e != nil {
 		return e
 	}
+	self, e := os.Executable()
+	if e != nil {
+		return e
+	}
+	if len(c.Artifacts) == 0 || c.Artifacts[0].Path != self {
+		return errors.New("supervisor artifact differs from running executable")
+	}
 	for _, a := range c.Artifacts {
 		id, e := identify(a.Path)
 		if e != nil {
@@ -409,8 +393,24 @@ func run(configPath, mode, out string) (err error) {
 		if e = json.Unmarshal(data, &gate); e != nil {
 			return e
 		}
-		if gate.Schema != "shieldd.phone_complete.v1" || gate.Mode != "gate" || gate.ConfigSHA256 != hash(raw) || !gate.InvalidWitnessRejected || len(gate.Proofs) != 6 {
+		if gate.Schema != "shieldd.phone_complete.v1" || gate.Mode != "gate" || !gate.InvalidWitnessRejected || len(gate.Proofs) != 6 {
 			return errors.New("matching gate required")
+		}
+		if gate.ConfigSHA256 != hash(raw) {
+			if c.ReuseGateConfig == nil || c.ReuseGateConfig.SHA256 != gate.ConfigSHA256 {
+				return errors.New("gate config binding mismatch")
+			}
+			previous, e := checked(*c.ReuseGateConfig)
+			if e != nil {
+				return e
+			}
+			var old Config
+			if e = json.Unmarshal(previous, &old); e != nil {
+				return e
+			}
+			if e = sameProofInputs(old, c); e != nil {
+				return e
+			}
 		}
 		for _, a := range append(gate.Proofs, gate.Samples, gate.Resources) {
 			id, e := identify(a.Path)
@@ -441,6 +441,12 @@ func run(configPath, mode, out string) (err error) {
 	}
 	if n < c.MinimumStartBytes {
 		return fmt.Errorf("preflight requires %d available bytes; found %d", c.MinimumStartBytes, n)
+	}
+	if e = writeJSON(filepath.Join(out, "process.json"), struct {
+		SupervisorPID int    `json:"supervisor_pid"`
+		ConfigSHA256  string `json:"config_sha256"`
+	}{os.Getpid(), hash(raw)}); e != nil {
+		return e
 	}
 	f, e := os.OpenFile(filepath.Join(out, "samples.jsonl"), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
 	if e != nil {
@@ -612,6 +618,13 @@ func run(configPath, mode, out string) (err error) {
 	return writeJSON(filepath.Join(out, "complete.json"), Completion{"shieldd.phone_complete.v1", c.Backend, mode, hash(raw), samples, resources, proofs, invalidRejected})
 }
 func main() {
+	if len(os.Args) == 3 && os.Args[1] == "resource-probe" {
+		if e := resourceProbe(os.Args[2]); e != nil {
+			fmt.Fprintln(os.Stderr, e)
+			os.Exit(1)
+		}
+		return
+	}
 	if len(os.Args) != 4 {
 		fmt.Fprintln(os.Stderr, "phone-supervisor CONFIG gate|measure NEW_OUTPUT")
 		os.Exit(2)

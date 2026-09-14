@@ -1,0 +1,44 @@
+{
+  "schema": "shieldd.phone_controlled_bundle.v2",
+  "supervisor_sha256": "a47d97c2345548bdf87a39431c85e8f39b1f54ae58d0dc53ff267c5b916ff890",
+  "configs": [
+    {
+      "backend": "A",
+      "sha256": "6769a06f5020be13054aeffe9cd40dfdeaeb40c47a4e44e7290fd73ecbd0969d"
+    },
+    {
+      "backend": "C",
+      "sha256": "c86cac979188603b66b3038a8131b6247a7988f0bcdb375d5ea4e7b63b8dc483"
+    }
+  ],
+  "sources": [
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/phone/main.go",
+      "sha256": "29a10fe02eaec6d1018e81e5c72de86a08774970b4fa9f49f959c7aba7c3cc4e"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/phone/main_test.go",
+      "sha256": "e7968b223eae71f8c55ebdc54f88654341adfb6da704417b633fe725cf39af45"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/phone/resources.go",
+      "sha256": "a16076c497d810ea02d35e77b1c4796261ad7a9c02b83a01354fd6d3bfabf5fc"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/phone/resources_test.go",
+      "sha256": "9135329cf26a9b607becbdcdc4e0303ce3790572fdc58e0f8b30c6b7df9289f8"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/phone/go.mod",
+      "sha256": "ef188dfbdfe0bfa5afd9410d1f97f176e15351ada1823f8810c566199b193cb3"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/phone/run_controlled.py",
+      "sha256": "be1776b15d7122014b6d866b0186fc1d2be7e1a23267939f9a51dff1f27c14e3"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/phone/build.py",
+      "sha256": "f72e944006ec859ecf62695b081e50b0b2835982708d14e598763dbf35941383"
+    }
+  ]
+}

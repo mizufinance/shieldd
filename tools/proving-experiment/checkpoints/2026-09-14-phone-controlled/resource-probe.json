@@ -1,0 +1,18 @@
+{
+  "schema": "shieldd.android_resource_probe.v2",
+  "resource": {
+    "time_ns": 0,
+    "available_bytes": 0,
+    "tree_rss_bytes": 5885952,
+    "rss_complete": true,
+    "pids": [
+      10854,
+      10856
+    ],
+    "thermal_status": null,
+    "sensor_time_ns": 0,
+    "sensor_body_ns": 0
+  },
+  "proc_root_rss_bytes": 2818048,
+  "ps_root_rss_bytes": 2818048
+}

@@ -1,0 +1,22 @@
+{
+  "schema": "shieldd.proving_experiment.selected_c.v1",
+  "op": "ready",
+  "payload_bytes": 0,
+  "error": null,
+  "statement": null,
+  "verified": false,
+  "initialization": {
+    "prover": {
+      "relation_preparation_ns": 4361326613,
+      "key_file_read_ns": 49650833,
+      "key_decode_ns": 38055208736,
+      "key_canonical_roundtrip_ns": 413122499,
+      "key_checked_decode_ns": 38468330819,
+      "total_ns": 42887658994
+    },
+    "arithmetic_preparation_ns": 968047083,
+    "resident_base_bytes": 101705376,
+    "total_ns": 43855915972
+  },
+  "request": null
+}

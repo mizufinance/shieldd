@@ -1,5 +1,7 @@
 # Physical phone proving checkpoint
 
+The [controlled A/C phone comparison](phone-proving-controlled.md) contains the usable warm results. This checkpoint preserves the earlier diagnostic attempt.
+
 The first physical-phone correctness gate passed for the retained Groth16 candidate.
 **Clean phone proving latency is still pending.** Screen closure was confirmed during
 the first run, and the phone's two-minute timeout subsequently put it into Dozing.

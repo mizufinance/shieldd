@@ -1,0 +1,49 @@
+{
+  "schema": "shieldd.phone_complete.v1",
+  "backend": "A",
+  "mode": "measure",
+  "config_sha256": "6769a06f5020be13054aeffe9cd40dfdeaeb40c47a4e44e7290fd73ecbd0969d",
+  "samples": {
+    "path": "/data/local/tmp/shieldd-phone-20260914/runs/A-02/measure-awake-v2/samples.jsonl",
+    "sha256": "97d26bb4c4971a3f7426ae0542651ed33595f4f96ec3298e4e9d641887e4ded7"
+  },
+  "resources": {
+    "path": "/data/local/tmp/shieldd-phone-20260914/runs/A-02/measure-awake-v2/resources.jsonl",
+    "sha256": "1c886384cb78bcea1b0045bdaa17545bd88df67fb92e2c1e7b238c0bda58cbd5"
+  },
+  "proofs": [
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/runs/A-02/measure-awake-v2/first-transfer-00.proof",
+      "sha256": "394daf67ce7b54943e938898bc0fd69a44f6ce3850cd7ce3f0b5fbbb77fa3533"
+    },
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/runs/A-02/measure-awake-v2/warmup-transfer-00.proof",
+      "sha256": "1b7a387d296bd7059d0329c31e74ba86a040428036a7b6eab52cc46756b628ec"
+    },
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/runs/A-02/measure-awake-v2/warmup-transfer-01.proof",
+      "sha256": "3f09b5b298d39ad8a52948ef4cdfe4902af8bd501f3f5ab7d0c75e2b8dc5856e"
+    },
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/runs/A-02/measure-awake-v2/warm-transfer-00.proof",
+      "sha256": "faf5187e1fe423055e42d7ed8dc178296b05798df17e76b3b902884d245fd670"
+    },
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/runs/A-02/measure-awake-v2/warm-transfer-01.proof",
+      "sha256": "79b9e3431835cbb65cf8ebee0dd0e04de472598f0b77dd81e50cd4bd7a67bd46"
+    },
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/runs/A-02/measure-awake-v2/warm-transfer-02.proof",
+      "sha256": "6717da771f6519372eb0760c8309e77f963fda4d0f4537aab2bc20413988bd48"
+    },
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/runs/A-02/measure-awake-v2/warm-transfer-03.proof",
+      "sha256": "ad11bee6f5561df1cc615a866bf856f2200264730c4411860b1d3d1ae4a1b28a"
+    },
+    {
+      "path": "/data/local/tmp/shieldd-phone-20260914/runs/A-02/measure-awake-v2/warm-transfer-04.proof",
+      "sha256": "7d7ea7802ae5d7fd1b3aa3c81b40b7dc9b2f5996888b4caa84d11f8ca4f51a92"
+    }
+  ],
+  "invalid_witness_rejected": false
+}
