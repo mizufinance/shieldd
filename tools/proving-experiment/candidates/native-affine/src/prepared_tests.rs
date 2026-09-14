@@ -6,6 +6,51 @@ use commonware_cryptography::{
     },
 };
 
+#[test]
+fn compiler_lifetimes_preserve_fanout_selected_nodes_and_deferred_squares() {
+    use commonware_codec::Encode;
+    use commonware_cryptography::transcript::{Transcript, Version};
+    use commonware_parallel::Sequential;
+    use rand::{SeedableRng, rngs::StdRng};
+    fn circuit<'a>(ctx: Context<'a, Scalar>, value: u64) -> Vec<Var<'a, Scalar>> {
+        let x = Var::witness(ctx, |_| Scalar::from(value));
+        let y = Var::witness(ctx, |_| Scalar::from(4));
+        let fanout = x + &y;
+        let selected = fanout.clone() + &fanout;
+        let square = fanout.clone() * &fanout;
+        square.assert_eq(&Var::native(Scalar::from(49)));
+        let _unused = fanout.clone() + &Var::native(Scalar::from(123));
+        let committed = fanout * &y;
+        selected.assert_eq(&Var::native(Scalar::from(14)));
+        vec![selected, committed]
+    }
+    let (c, selected) = build(|ctx| circuit(ctx, 3));
+    let layout = pari::InputLayout::new(vec![selected[0]], vec![vec![selected[1]]]).unwrap();
+    let relation = pari::Relation::compile(&c, &layout).unwrap();
+    let mut rng = rand::rng();
+    let (pk, vk) = pari::setup(&relation, &mut rng, &Sequential).unwrap();
+    let (v, _) = build_with_values(|ctx| circuit(ctx, 3));
+    let openings = vec![pari::Opening::random(&mut rng)];
+    let checked = relation.witness(&v, &layout, openings.clone()).unwrap();
+    let prepared = relation.witness_prepared(&v, &layout, openings).unwrap();
+    assert!(relation.check_witness(&checked) && relation.check_witness(&prepared));
+    let claim = checked.claim(pk.commitment_keys(), &Sequential).unwrap();
+    assert_eq!(claim, prepared.claim(pk.commitment_keys(), &Sequential).unwrap());
+    assert_eq!(claim.public_inputs, vec![Scalar::from(14)]);
+    let transcript = || Transcript::new(b"compiler-lifetime-test", Version::V1);
+    let mut left = StdRng::from_seed([29; 32]);
+    let mut right = StdRng::from_seed([29; 32]);
+    let a = pari::prove(&mut left, &mut transcript(), &pk, &relation, &claim, &checked, &Sequential).unwrap();
+    let b = pari::prove(&mut right, &mut transcript(), &pk, &relation, &claim, &prepared, &Sequential).unwrap();
+    assert_eq!(a.encode(), b.encode());
+    assert!(pari::verify(&mut transcript(), &vk, &claim, &a));
+    let (invalid, _) = build_with_values(|ctx| circuit(ctx, 5));
+    let invalid = relation.witness_prepared(&invalid, &layout, vec![pari::Opening::random(&mut rng)]).unwrap();
+    assert!(!relation.check_witness(&invalid));
+    let claim = invalid.claim(pk.commitment_keys(), &Sequential).unwrap();
+    assert!(pari::prove(&mut rng, &mut transcript(), &pk, &relation, &claim, &invalid, &Sequential).is_err());
+}
+
 fn relation<'a>(
     ctx: Context<'a, Scalar>,
     constant: u64,

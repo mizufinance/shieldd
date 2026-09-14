@@ -143,7 +143,7 @@ index 42fdb82..0cfb511 100644
          match self.inner {
              VarInner::Circuit { idx, .. } => idx,
 diff --git a/cryptography/src/zk/pari/circuit.rs b/cryptography/src/zk/pari/circuit.rs
-index 0a501d9..0669d8c 100644
+index 0a501d9..15c379a 100644
 --- a/cryptography/src/zk/pari/circuit.rs
 +++ b/cryptography/src/zk/pari/circuit.rs
 @@ -5,7 +5,7 @@ use crate::{
@@ -284,7 +284,7 @@ index 0a501d9..0669d8c 100644
      /// Return the constant value if this combination has no non-constant term.
      ///
      /// Only column 0 (the fixed one) carries a constant, so a combination is
-@@ -362,6 +451,7 @@ enum ValueSource {
+@@ -362,10 +451,12 @@ enum ValueSource {
  }
  
  struct Compiler<'a> {
@@ -292,7 +292,12 @@ index 0a501d9..0669d8c 100644
      circuit: &'a Circuit<Scalar>,
      layout: &'a InputLayout,
      witness_columns: Vec<usize>,
-@@ -438,6 +528,12 @@ impl<'a> Compiler<'a> {
+     node_expressions: Vec<LinearCombination>,
++    last_node_use: Vec<usize>,
+     rows: Vec<Row>,
+     value_sources: Vec<ValueSource>,
+     next_column: usize,
+@@ -438,10 +529,17 @@ impl<'a> Compiler<'a> {
          let fusable = fusable_nodes(circuit, layout);
  
          Ok(Self {
@@ -305,7 +310,12 @@ index 0a501d9..0669d8c 100644
              circuit,
              layout,
              witness_columns,
-@@ -452,20 +548,45 @@ impl<'a> Compiler<'a> {
+             node_expressions,
++            last_node_use: last_node_uses(circuit, layout),
+             rows,
+             value_sources,
+             next_column,
+@@ -452,20 +550,45 @@ impl<'a> Compiler<'a> {
      }
  
      fn compile(mut self) -> Result<Relation, Error> {
@@ -353,10 +363,16 @@ index 0a501d9..0669d8c 100644
              let expression = match node {
                  CircuitNode::Add(_, _) => left.add(&right),
                  CircuitNode::Mul(_, _) => {
-@@ -486,6 +607,12 @@ impl<'a> Compiler<'a> {
+@@ -486,6 +609,18 @@ impl<'a> Compiler<'a> {
                  }
              };
              self.node_expressions.push(expression);
++            let node = |index| match index { CircuitIdx::Node(i) => Some(i as usize), _ => None };
++            for index in [node(left_index), node(right_index), Some(node_index)].into_iter().flatten() {
++                if self.last_node_use[index] == node_index {
++                    self.node_expressions[index] = LinearCombination::zero();
++                }
++            }
 +            if PROFILE {
 +                self.inventory.node_rows.push(self.rows.len() - rows_before);
 +                self.inventory
@@ -366,7 +382,25 @@ index 0a501d9..0669d8c 100644
          }
          Ok(())
      }
-@@ -643,6 +770,7 @@ impl<'a> Compiler<'a> {
+@@ -626,6 +761,8 @@ impl<'a> Compiler<'a> {
+             });
+         }
+ 
++        drop(std::mem::take(&mut self.node_expressions));
++        self.square_nodes.clear();
+         self.value_sources
+             .try_reserve_exact(size - self.value_sources.len())
+             .map_err(|_| Error::AllocationFailed)?;
+@@ -634,7 +771,7 @@ impl<'a> Compiler<'a> {
+         let mut rows = Vec::new();
+         rows.try_reserve_exact(self.rows.len())
+             .map_err(|_| Error::AllocationFailed)?;
+-        for row in &self.rows {
++        for row in self.rows {
+             rows.push(SparseRow {
+                 squared: to_sparse(&row.squared)?,
+                 linear: to_sparse(&row.linear)?,
+@@ -643,6 +780,7 @@ impl<'a> Compiler<'a> {
  
          let digest = relation_digest(size, &rows, self.layout)?;
          Ok(Relation {
@@ -374,7 +408,7 @@ index 0a501d9..0669d8c 100644
              size,
              public_inputs: self.layout.public.len(),
              committed_start: self.committed_start,
-@@ -665,6 +793,23 @@ pub(super) fn compile_valued(
+@@ -665,6 +803,23 @@ pub(super) fn compile_valued(
      layout: &InputLayout,
      expected: &Relation,
  ) -> Result<Assignment, Error> {
@@ -398,7 +432,7 @@ index 0a501d9..0669d8c 100644
      let expected_witnesses =
          usize::try_from(valued.circuit.witnesses).map_err(|_| Error::SizeOverflow)?;
      if valued.witnesses.len() != expected_witnesses {
-@@ -682,17 +827,10 @@ pub(super) fn compile_valued(
+@@ -682,17 +837,10 @@ pub(super) fn compile_valued(
          });
      }
  
@@ -419,7 +453,7 @@ index 0a501d9..0669d8c 100644
      let mut values: Vec<Scalar> = Vec::new();
      values
          .try_reserve_exact(compiled.size)
-@@ -714,7 +852,7 @@ pub(super) fn compile_valued(
+@@ -714,7 +862,7 @@ pub(super) fn compile_valued(
          values,
          public_inputs: compiled.public_inputs,
          committed_start: compiled.committed_start,
@@ -428,7 +462,33 @@ index 0a501d9..0669d8c 100644
          relation_digest: compiled.digest,
      })
  }
-@@ -838,6 +976,35 @@ fn to_sparse(combination: &LinearCombination) -> Result<Vec<(u32, Scalar)>, Erro
+@@ -723,6 +871,25 @@ pub(super) fn compile_valued(
+ ///
+ /// Such a node can be fused into that assertion, since no other constraint
+ /// needs its value materialized in its own column.
++// Assertion and selected-input expressions survive until those later compiler phases.
++fn last_node_uses(circuit: &Circuit<Scalar>, layout: &InputLayout) -> Vec<usize> {
++    let mut last: Vec<usize> = (0..circuit.nodes.len()).collect();
++    for (consumer, operation) in circuit.nodes.iter().enumerate() {
++        let (left, right) = match *operation {
++            CircuitNode::Add(left, right) | CircuitNode::Mul(left, right) => (left, right),
++        };
++        for input in [left, right] {
++            if let CircuitIdx::Node(index) = input { last[index as usize] = consumer; }
++        }
++    }
++    for &index in layout.public.iter().chain(layout.committed())
++        .chain(circuit.assertions.iter().flat_map(|(left, right)| [left, right]))
++    {
++        if let CircuitIdx::Node(index) = index { last[index as usize] = usize::MAX; }
++    }
++    last
++}
++
+ fn fusable_nodes(circuit: &Circuit<Scalar>, layout: &InputLayout) -> Vec<bool> {
+     let mut assertion_uses = vec![0u32; circuit.nodes.len()];
+     let mut other_uses = vec![0u32; circuit.nodes.len()];
+@@ -838,6 +1005,35 @@ fn to_sparse(combination: &LinearCombination) -> Result<Vec<(u32, Scalar)>, Erro
      Ok(entries)
  }
  

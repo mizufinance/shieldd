@@ -1,0 +1,31 @@
+{
+  "mode": "measure",
+  "rows": [
+    {
+      "candidate": "candidate",
+      "warm_values_s": [
+        2.745935,
+        2.759740042,
+        2.760534042,
+        2.748394458,
+        2.741330875
+      ],
+      "median_s": 2.748394458,
+      "peak_rss_bytes": 1372569600
+    },
+    {
+      "candidate": "control",
+      "warm_values_s": [
+        2.75214475,
+        2.750461291,
+        2.747999625,
+        2.767579916,
+        2.760168875
+      ],
+      "median_s": 2.75214475,
+      "peak_rss_bytes": 3677323264
+    }
+  ],
+  "all_verified": true,
+  "proofs": 16
+}

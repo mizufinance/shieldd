@@ -9,6 +9,7 @@ publish = false
 
 [features]
 cost_trace = []
+allocation_trace = []
 
 [dependencies]
 commonware-cryptography = { path = "../../cache/commonware/cryptography", features = ["std", "bls12381"] }

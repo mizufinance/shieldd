@@ -1,0 +1,10 @@
+{"time_ns": 1789362015741860000, "swap_bytes": 0, "available_bytes": 20405059584, "disk_free_bytes": 32949219328, "supervisor_pid": 40629, "child_pid": 40635, "tree_rss_bytes": 28803072, "competing_heavy_pids": []}
+{"time_ns": 1789362016784085000, "swap_bytes": 0, "available_bytes": 20030849024, "disk_free_bytes": 32956424192, "supervisor_pid": 40629, "child_pid": 40635, "tree_rss_bytes": 433979392, "competing_heavy_pids": []}
+{"time_ns": 1789362017825792000, "swap_bytes": 0, "available_bytes": 19849723904, "disk_free_bytes": 32959537152, "supervisor_pid": 40629, "child_pid": 40635, "tree_rss_bytes": 800440320, "competing_heavy_pids": []}
+{"time_ns": 1789362018869879000, "swap_bytes": 0, "available_bytes": 19745980416, "disk_free_bytes": 32960655360, "supervisor_pid": 40629, "child_pid": 40635, "tree_rss_bytes": 841121792, "competing_heavy_pids": []}
+{"time_ns": 1789362019910871000, "swap_bytes": 0, "available_bytes": 19681378304, "disk_free_bytes": 32960466944, "supervisor_pid": 40629, "child_pid": 40635, "tree_rss_bytes": 764067840, "competing_heavy_pids": []}
+{"time_ns": 1789362020945111000, "swap_bytes": 0, "available_bytes": 19612155904, "disk_free_bytes": 32964431872, "supervisor_pid": 40629, "child_pid": 40635, "tree_rss_bytes": 710164480, "competing_heavy_pids": []}
+{"time_ns": 1789362021980119000, "swap_bytes": 0, "available_bytes": 19660341248, "disk_free_bytes": 32963510272, "supervisor_pid": 40629, "child_pid": 40635, "tree_rss_bytes": 694632448, "competing_heavy_pids": []}
+{"time_ns": 1789362023017083000, "swap_bytes": 0, "available_bytes": 19942735872, "disk_free_bytes": 32956801024, "supervisor_pid": 40629, "child_pid": 40635, "tree_rss_bytes": 345653248, "competing_heavy_pids": []}
+{"time_ns": 1789362024061614000, "swap_bytes": 0, "available_bytes": 19994476544, "disk_free_bytes": 32954707968, "supervisor_pid": 40629, "child_pid": 40635, "tree_rss_bytes": 288145408, "competing_heavy_pids": []}
+{"time_ns": 1789362025103739000, "swap_bytes": 0, "available_bytes": 19991707648, "disk_free_bytes": 32954179584, "supervisor_pid": 40629, "child_pid": 40635, "tree_rss_bytes": 276807680, "competing_heavy_pids": []}

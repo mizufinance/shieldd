@@ -1,0 +1,12 @@
+{
+  "time_ns": 1789361998290001000,
+  "argv": [
+    "python3",
+    "tools/proving-experiment/lifetime_cost.py",
+    "trace",
+    "tools/proving-experiment/cache/c-lifetime-early-trace",
+    "tools/proving-experiment/cache/c-lifetime-source/early-trace"
+  ],
+  "code": 0,
+  "failure": null
+}

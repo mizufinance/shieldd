@@ -1,4 +1,6 @@
 //! Development-only native Transfer relation and primitive correctness checks.
+#[cfg(feature = "allocation_trace")]
+mod allocation;
 pub mod api;
 pub mod authorization;
 pub mod balance;

@@ -1,0 +1,13 @@
+{
+  "time_ns": 1789362531187429000,
+  "argv": [
+    "python3",
+    "tools/proving-experiment/lifetime_cost.py",
+    "measure",
+    "tools/proving-experiment/cache/c-lifetime-measure",
+    "tools/proving-experiment/cache/c-lifetime-source/final",
+    "tools/proving-experiment/cache/optimized-circuit-source/C-polynomial"
+  ],
+  "code": 0,
+  "failure": null
+}

@@ -1,0 +1,10 @@
+{
+  "schema": "shieldd.native_lifetime.v1",
+  "hashes": {
+    "candidate-allocation.jsonl": "4a64dab1ff4d3a9d7c3e31b2898092c5c37b91aeb448e3e6f5f49b2c1c32f334",
+    "identity.json": "a3ec882515c3927626cb8be2544e87dbb39e21625c4585f484d1fe340c5b7c8c",
+    "memory.jsonl": "e8531fdcca9d9a6cb039dee5dc700380e821bfa707188f20232d149c769bcfc8",
+    "results.json": "826207a7bb4f9dccbcc0cbdd56537f61efeef581491cdfada4896e72983d59aa",
+    "samples.jsonl": "fbf13fa199bc900b5014272b1eab3b5d9262a9498d6b051750e53c1152a67ab0"
+  }
+}

@@ -1,0 +1,16 @@
+{"schema":"shieldd.native_allocation.v1","stage":"initialize_start","live_bytes":17235,"interval_peak_bytes":17235}
+{"schema":"shieldd.native_allocation.v1","stage":"compiled","live_bytes":76075939,"interval_peak_bytes":76108058}
+{"schema":"shieldd.native_allocation.v1","stage":"relation_ready","live_bytes":274278747,"interval_peak_bytes":3020067108}
+{"schema":"shieldd.native_allocation.v1","stage":"polynomials_ready","live_bytes":316222011,"interval_peak_bytes":324611307}
+{"schema":"shieldd.native_allocation.v1","stage":"key_decoded","live_bytes":580337602,"interval_peak_bytes":700290002}
+{"schema":"shieldd.native_allocation.v1","stage":"initialize_cleaned","live_bytes":437946339,"interval_peak_bytes":646707105}
+{"schema":"shieldd.native_allocation.v1","stage":"request_start","live_bytes":572366992,"interval_peak_bytes":580713194}
+{"schema":"shieldd.native_allocation.v1","stage":"valued_ready","live_bytes":716546192,"interval_peak_bytes":716578327}
+{"schema":"shieldd.native_allocation.v1","stage":"witness_ready","live_bytes":724934840,"interval_peak_bytes":724934840}
+{"schema":"shieldd.native_allocation.v1","stage":"proof_ready","live_bytes":724935016,"interval_peak_bytes":905293864}
+{"schema":"shieldd.native_allocation.v1","stage":"request_cleaned","live_bytes":572367386,"interval_peak_bytes":724935362}
+{"schema":"shieldd.native_allocation.v1","stage":"request_start","live_bytes":572366992,"interval_peak_bytes":581542412}
+{"schema":"shieldd.native_allocation.v1","stage":"valued_ready","live_bytes":716546192,"interval_peak_bytes":716578327}
+{"schema":"shieldd.native_allocation.v1","stage":"witness_ready","live_bytes":724934840,"interval_peak_bytes":724934840}
+{"schema":"shieldd.native_allocation.v1","stage":"proof_ready","live_bytes":724935016,"interval_peak_bytes":905293864}
+{"schema":"shieldd.native_allocation.v1","stage":"request_cleaned","live_bytes":572367386,"interval_peak_bytes":724935362}

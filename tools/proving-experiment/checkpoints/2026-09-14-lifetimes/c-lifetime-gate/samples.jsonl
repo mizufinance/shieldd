@@ -1,0 +1,8 @@
+{"stage":"initialization","candidate":"candidate","wall_ns":22220418292,"response":{"schema":"shieldd.proving_experiment.selected_c.v1","op":"ready","payload_bytes":0,"error":null,"statement":null,"verified":false,"initialization":{"prover":{"relation_preparation_ns":1962271666,"key_file_read_ns":5538417,"key_decode_ns":19553568041,"key_canonical_roundtrip_ns":193872709,"key_checked_decode_ns":19747440833,"total_ns":21715902000},"arithmetic_preparation_ns":339345458,"resident_base_bytes":131935264,"total_ns":22055294167},"request":null}}
+{"stage":"gate","scenario":"transfer","proof_sha256":"77168b44b7214d8ef74be5c929da86271fc118630f310816ea1d4562bca4a7f3","verified":true,"negatives_rejected":true}
+{"stage":"gate","scenario":"transfer_unregulated","proof_sha256":"36cc27b4382ed9ea6315485a5cf414db409a2c2ceb48f41ff2455b147e1c90ff","verified":true,"negatives_rejected":true}
+{"stage":"gate","scenario":"transfer_flagged","proof_sha256":"b5f46bb389fecd9f4159398a8addcc5172c611fcfd1c93fdb6b9cc0658811df8","verified":true,"negatives_rejected":true}
+{"stage":"gate","scenario":"transfer_accumulating","proof_sha256":"a2ccbac79e82d6934d1f2620f12aaccaf3c53ea3783b140773629b961720fa13","verified":true,"negatives_rejected":true}
+{"stage":"gate","scenario":"transfer_over_limit_disclosure","proof_sha256":"87f3160e5eb810941ac26ef621b43a061465931a087d87924ebb7a4ccd44563e","verified":true,"negatives_rejected":true}
+{"stage":"gate","scenario":"transfer_accumulator_continuation","proof_sha256":"035ee6a048ac331e8c5530ab182f310ade0785cbfa15919de9f40257f2582ae9","verified":true,"negatives_rejected":true}
+{"stage":"invalid_witness","rejected":true}
