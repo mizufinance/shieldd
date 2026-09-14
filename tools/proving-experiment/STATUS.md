@@ -42,9 +42,15 @@ The [native subset worker](../../docs/research/native-subset-proving.md) retains
 
 All44native release tests, three focused prepared/domain-audit tests, six actual polynomial/oracle gates, six fresh real-proof/negative gates and six logical-witness full-API gates pass. Matched 3warmups+5warm+1first per variant:18unique verified proofs; median2.758030→2.585017s (6.27%), first24.990656→22.364764s, warmRSS1.528→1.442GiB; package218B unchanged. Encoded key66,369,503→60,078,047B; padded zero witness slots were already implicit, so encoded savings are131072Q/A/R points, not163840points. Guards exit0, swap0, no competition. RetainC. Exact run `cache/c-subset-desktop`; compact evidence `checkpoints/2026-09-14-native-subset`.
 
+## Completed selected subset A/B/C round
+
+The [latest matched report](../../docs/research/transfer-proving-subset-selected.md) uses only the retained subset workers: A warm1.716633s, first20.545929s, warmRSS0.560GiB; B2.204663s,52.882439s,2.238GiB; C2.575632s,22.951463s,1.344GiB. Packages436/168/218B. Two warmups+five warm+one first per candidate, all24unique proofs verified. Full API gate identities are revalidated, guardexit0, swap0, no competing heavy jobs. Exact run `cache/desktop-subset-selected`; compact evidence `checkpoints/2026-09-14-subset-selected`.
+
+Groth16 remains the fastest prover: Pari377 takes1.2843× its warm time and nativePari381 takes1.5004×. This completes the circuit, checked-loading, lifetime, polynomial and first single-coset domain round; it does not exhaust the broader campaign. Earlier sessions above remain immutable historical measurements, not pooled results.
+
 ## Next bounded work
 
-Run one compact matched selected A/B/C session using the retained subset workers and current keys: A `cache/a-subset-full-source/bin/provingexperiment`, B `cache/b-subset-protocol-source/worker`, C `cache/c-subset-full-source/worker`. Preserve all earlier pair sessions and frozen controls. Two warmups + five warm proofs and one fresh-process first proof per candidate; one two-worker profile. Save its source-bound report/evidence and push. This completes the circuit, checked-loading, lifetime, polynomial and first single-coset domain round; it does not exhaust the broader campaign.
+Investigate B's checked preparation/ownership costs using this measured first-use breakdown: Rust checked key decoding29.292s, Go arithmetic initialization15.918s, other startup about5.5s. Inspect where duplicate point validation/storage can safely be removed while preserving complete canonical/curve/subgroup checks and key/source binding. Require adversarial loader/transport gates and full logical-witness API validation before selecting a replacement. Preserve the selected A/B/C session and frozen binaries/keys.
 
 ## Explicit remaining campaign states
 

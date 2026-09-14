@@ -1,0 +1,49 @@
+{
+  "schema": "shieldd.subset_selected_desktop.v1",
+  "rows": [
+    {
+      "candidate": "A",
+      "warm_values_s": [
+        1.718626917,
+        1.716632625,
+        1.715640792,
+        1.714001166,
+        1.718843542
+      ],
+      "median_s": 1.716632625,
+      "first_s": 20.545928625,
+      "peak_rss_bytes": 601243648,
+      "proof_bytes": 436
+    },
+    {
+      "candidate": "B",
+      "warm_values_s": [
+        2.212380875,
+        2.211023,
+        2.196887375,
+        2.204663042,
+        2.199675375
+      ],
+      "median_s": 2.204663042,
+      "first_s": 52.882439125,
+      "peak_rss_bytes": 2402959360,
+      "proof_bytes": 168
+    },
+    {
+      "candidate": "C",
+      "warm_values_s": [
+        2.581329459,
+        2.587196167,
+        2.575632167,
+        2.570796584,
+        2.572550958
+      ],
+      "median_s": 2.575632167,
+      "first_s": 22.95146275,
+      "peak_rss_bytes": 1442906112,
+      "proof_bytes": 218
+    }
+  ],
+  "proofs": 24,
+  "all_verified": true
+}

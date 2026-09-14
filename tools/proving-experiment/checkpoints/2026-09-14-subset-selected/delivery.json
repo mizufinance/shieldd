@@ -1,0 +1,22 @@
+{
+  "schema": "shieldd.proving_experiment.delivery.v1",
+  "files": {
+    "README.md": "da2abb9c2120682e4ca520422cc2e8a2a90afa766969d900c03c18322b122824",
+    "complete.json": "12a1f3c201aa9fb646b3929e81e6a9b6d9546de77c261ac8ac6877909b20bae0",
+    "controller-source.tar.gz": "298588641fa89b277645dff082cf778188e16edf5ff768f391c922605edd41f3",
+    "guard.exit.json": "4b2f53796ffe4f7387c936ab6624fff095bdf0233e29d49887d7984b57dda45e",
+    "guard.log": "bc14b3e377ecf67fa5664e62e2d29e7b7578bc08d9510d8e12acda651d1f5784",
+    "guard.resources.jsonl": "70c0f5930bb4a7264b2b3da441c00b7750af04ab0df71c16051ca16af6aba349",
+    "identity.json": "16de74614edfef47e08df0e4ab416617763046209e89abcdd19460e55bff80cb",
+    "memory.jsonl": "ab04e85c646b88a28e4c6c1ee4bdc9de8246b044a472c30f4add356e6be318cf",
+    "proof-hashes.json": "2f89d3771fa72e3ba3520ce872f9e155afd656a37628ba592a00fadedb9d30d9",
+    "results.json": "0d4dc2de41dde4d26aea223fb2dd091ee24e657d7cac2abaff01ef60bdbe7514",
+    "samples.jsonl": "637d71647aeaf30f9b84b0ea50da7e05e4e08de64e5a0dc9a527f2e59c6926a6"
+  },
+  "reports": {
+    "docs/research/transfer-proving-subset-selected.json": "fdc9dcafd77d20db5f728fa052cd68050203e42383998bf026174b7d5586c0cd",
+    "docs/research/transfer-proving-subset-selected.md": "34237099b9ba8e6e3a68a5413b41e21f61af6ebc11d8de1cd9a4ad8958816da8",
+    "docs/research/transfer-proving-subset-selected.png": "7d0743341e76e549220501f0fd5c30c3ce1a9e372a0919c6c4f83765375d90d0",
+    "docs/research/transfer-proving-subset-selected.svg": "71373491a7f449460a2eb8a9567908c92dd6824b424a215a8a79d162207fb50b"
+  }
+}
