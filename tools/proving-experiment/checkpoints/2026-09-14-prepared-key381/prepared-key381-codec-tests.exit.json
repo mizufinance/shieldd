@@ -1,0 +1,19 @@
+{
+  "time_ns": 1789384434001870000,
+  "argv": [
+    "just",
+    "--justfile",
+    "tools/proving-experiment/cache/commonware-prepared-key381/justfile",
+    "test",
+    "--locked",
+    "--release",
+    "-p",
+    "commonware-cryptography",
+    "-j",
+    "2",
+    "-E",
+    "test(/zk::pari::tests::prepared_key_storage_/)|test(/zk::pari::tests::decoded_proving_key_proves_and_verifies/)|test(/zk::pari::tests::identity_commitments_prove_and_verify/)|test(/zk::pari::tests::claim_keys_and_proof_codec_roundtrip_with_bounded_decode/)"
+  ],
+  "code": 0,
+  "failure": null
+}

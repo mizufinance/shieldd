@@ -1,0 +1,10 @@
+{
+  "time_ns": 1789384853824781000,
+  "argv": [
+    "tools/proving-experiment/cache/c-prepared-key381-source/convert",
+    "tools/proving-experiment/cache/c-comparator34-full-gate/keys/native.pk",
+    "tools/proving-experiment/cache/c-prepared-key381-conversion"
+  ],
+  "code": 0,
+  "failure": null
+}

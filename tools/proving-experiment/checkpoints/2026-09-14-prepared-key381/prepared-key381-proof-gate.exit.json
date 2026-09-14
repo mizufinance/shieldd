@@ -1,0 +1,11 @@
+{
+  "time_ns": 1789385438744122000,
+  "argv": [
+    "tools/proving-experiment/cache/c-prepared-key381-source/proof_gate",
+    "tools/proving-experiment/cache/c-prepared-key381-conversion/native.prepared.pk",
+    "tools/proving-experiment/cache/native-tuned-witnesses",
+    "tools/proving-experiment/cache/c-prepared-key381-proof-gate"
+  ],
+  "code": 0,
+  "failure": null
+}

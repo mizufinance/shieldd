@@ -1,0 +1,11 @@
+warning: commonware-macros-impl@2026.7.0: stability cfg not set; set RUSTFLAGS="--cfg commonware_stability_X" (ALPHA/BETA/GAMMA/DELTA/EPSILON) to enforce stability gating
+   Compiling shieldd-prepared-points381-screen v0.1.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/prepared-points381)
+    Finished `release` profile [optimized] target(s) in 0.29s
+     Running unittests src/lib.rs (tools/proving-experiment/native/target/release/deps/shieldd_prepared_points381_screen-04f1316655d1cf21)
+
+running 2 tests
+test tests::identity_off_curve_and_on_curve_torsion_reject ... ok
+test tests::same_checked_points_and_projective_output_size ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

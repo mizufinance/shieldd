@@ -1,0 +1,42 @@
+     Locking 184 packages to latest Rust 1.95 compatible versions
+      Adding generic-array v0.14.7 (available: v0.14.9)
+warning: commonware-macros-impl@2026.7.0: stability cfg not set; set RUSTFLAGS="--cfg commonware_stability_X" (ALPHA/BETA/GAMMA/DELTA/EPSILON) to enforce stability gating
+   Compiling rand v0.10.2
+   Compiling blst v0.3.17
+   Compiling commonware-utils v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-parallel-ntt/utils)
+   Compiling commonware-math v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-parallel-ntt/math)
+   Compiling commonware-cryptography v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-parallel-ntt/cryptography)
+   Compiling shieldd-prepared-points381-screen v0.1.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/prepared-points381)
+warning: unused import: `Read`
+ --> src/lib.rs:5:32
+  |
+5 | use commonware_codec::{Encode, Read};
+  |                                ^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+error[E0599]: no function or associated item named `read` found for struct `commonware_cryptography::bls12381::primitives::group::G1` in the current scope
+    --> src/lib.rs:11:21
+     |
+  11 |     let point = G1::read(&mut input)?;
+     |                     ^^^^ function or associated item not found in `commonware_cryptography::bls12381::primitives::group::G1`
+     |
+note: if you're trying to build a new `commonware_cryptography::bls12381::primitives::group::G1`, consider using `commonware_cryptography::bls12381::primitives::group::G1::read_maybe_identity` which returns `Result<commonware_cryptography::bls12381::primitives::group::G1, commonware_codec::Error>`
+    --> /Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-parallel-ntt/cryptography/src/bls12381/primitives/group.rs:1337:5
+     |
+1337 |     pub fn read_maybe_identity(buf: &mut impl Buf) -> Result<Self, Error> {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     = help: items from traits can only be used if the trait is in scope
+help: there is an associated function `read_cfg` with a similar name
+    --> /Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-parallel-ntt/codec/src/codec.rs:216:5
+     |
+ 216 |     fn read_cfg(buf: &mut impl Buf, cfg: &Self::Cfg) -> Result<Self, Error>;
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: trait `ReadExt` which provides `read` is implemented but not in scope; perhaps you want to import it
+     |
+   3 + use commonware_codec::ReadExt;
+     |
+
+For more information about this error, try `rustc --explain E0599`.
+warning: `shieldd-prepared-points381-screen` (lib test) generated 1 warning
+error: could not compile `shieldd-prepared-points381-screen` (lib test) due to 1 previous error; 1 warning emitted

@@ -1,0 +1,14 @@
+cargo nextest run $@
+warning: commonware-macros-impl@2026.7.0: stability cfg not set; set RUSTFLAGS="--cfg commonware_stability_X" (ALPHA/BETA/GAMMA/DELTA/EPSILON) to enforce stability gating
+   Compiling commonware-cryptography v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-prepared-key381/cryptography)
+    Finished `release` profile [optimized] target(s) in 27.62s
+────────────
+ Nextest run ID 618dcfcf-edc8-4e4a-bfbb-3ea7f7caab0b with nextest profile: default
+    Starting 5 tests across 1 binary (732 tests skipped)
+        PASS [   0.019s] (1/5) commonware-cryptography zk::pari::tests::claim_keys_and_proof_codec_roundtrip_with_bounded_decode
+        PASS [   0.022s] (2/5) commonware-cryptography zk::pari::tests::decoded_proving_key_proves_and_verifies
+        PASS [   0.012s] (3/5) commonware-cryptography zk::pari::tests::identity_commitments_prove_and_verify
+        PASS [   0.012s] (4/5) commonware-cryptography zk::pari::tests::prepared_key_storage_preserves_complete_key_and_encodings
+        PASS [   0.021s] (5/5) commonware-cryptography zk::pari::tests::prepared_key_storage_rejects_malformed_queries_and_dimensions
+────────────
+     Summary [   0.053s] 5 tests run: 5 passed, 732 skipped

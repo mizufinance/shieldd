@@ -19,13 +19,21 @@ Sources, raw evidence, plots and exact test records are preserved in `checkpoint
 
 
 
+## Completed native prepared-key storage
+
+The [full-API storage comparison](../../docs/research/native-prepared-key381.md) records first proof 19.498153834→15.382318917s (21.11% lower in single observations), warm median 2.088150209→2.103833792s (0.75% slower), and warm peak RSS 1211662336→1165770752B. Three warmups, five warm requests and one first proof per representation; all18 unique proofs verify under both workers. The stored proving key grows 51,671,551→98,612,487B; the218B API proof package stays unchanged.
+
+Only four nonidentity query roles use checked96B storage. Full decoded-key and original canonical-byte equality, eight actual-scale malformed-key cases, two component tests, five Commonware release tests, six seeded proof equalities, six fullAPI valid/negative gates and scopedWASM all pass. Existing polynomial gates are reused because arithmetic is unchanged. Offline conversion/validation totals33.085567708s before final file writes, separately charged. Guards0, zero swap/competition. Exact run `cache/c-prepared-key381-desktop`;90-file compact evidence `checkpoints/2026-09-14-prepared-key381`.
+
+Retain the development storage option for faster initialization when its extra46.94MB is acceptable. No warm-time gain, phone measurement, production release-gated suite or formal certification is claimed. The broader campaign remains active. Next bounded avenue is the previously identified dedicated ARM64 field-squaring feasibility screen; inspect the selected primitive and actual cost before implementing or running a full proof. Do not repeat completed FFT/key grids or restart the stopped verification campaign.
+
 ## Completed bounded parallel FFT
 
 The [parallel FFT full-API comparison](../../docs/research/native-parallel-ntt-proving.md) reduces C2.191940291→2.110349417s warm (3.72%) against the frozen fused-inverse control. Threewarmups+fivewarm+onefirst pervariant;18uniqueverifiedproofs. First observations19.540296709→19.440820834s; warmRSS1207238656→1221246976B (13.36MiBhigher),same218Bpackage/key. These are separate paired samples, not a newA/B/Cmatrix.
 
 The existing provingStrategy supplies two disjoint tasks perFFTstage, including the finalsingleblock; joinreturn is thebarrier. No extra pool. Threekerneltests/32exactoutputs, sixCommonwaretests, sixactualpolynomialgates, sixseededfullproofequalities, sixAPIgates andWASMpass. Guards0,swap0,nocompetition. Raw `cache/c-parallel-ntt-desktop`; compact `checkpoints/2026-09-14-parallel-ntt`. Retaincandidate.
 
-Next boundedlead: native checkedkeydecode accounts for about15.2s of17.3s readiness. Probe96Bchecked storage on1024actualnonidentityquerypoints stratified across witness/quotient/openingA/openingR, preserving canonical/curve/subgroup checks and projective output construction. Its scope excludes VK/commitment identitypermittedroles. A material componentgain must pass actualfullkeyread and APIgates before any startupclaim; extra storage/conversion must becharged. Originalverificationcampaign staysstopped.
+The checked native key-storage follow-up is complete above; its startup/storage tradeoff is measured separately from this arithmetic comparison. Original verification campaign stays stopped.
 
 ## Completed fused inverse normalization
 

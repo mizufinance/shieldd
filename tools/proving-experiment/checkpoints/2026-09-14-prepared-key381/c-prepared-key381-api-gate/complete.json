@@ -1,0 +1,15 @@
+{
+  "schema": "shieldd.native_prepared_key381_desktop.v1",
+  "hashes": {
+    "identity.json": "c01cbdf22f284ad161852307009deb53ed262cc4846e2694b24980f92706467b",
+    "memory.jsonl": "76eea7a3e94fcfe410b444d0d6400ef1a9e70de44deea949b77ddf8887eed51b",
+    "proofs/transfer.bin": "6caa21e47d1028e20f096a60e404dd178ebbfab4813aefb9e34038101999db81",
+    "proofs/transfer_accumulating.bin": "74856198c2cb7e99d667b4fbbbdb0c04668fdef286226958881b2699835da44a",
+    "proofs/transfer_accumulator_continuation.bin": "4ca343f68131a1723760c6bc809152e4d69eb536e8d9094ed5bb6efe56647aa9",
+    "proofs/transfer_flagged.bin": "fd81ba02c71b3655e9ea998fa4204aea9ec0c3426a7bb4ff06c40551a36b4254",
+    "proofs/transfer_over_limit_disclosure.bin": "6343b9a0470770cb51125fe0c76407a91a8304ef78206ef1d13465cf8b90e88a",
+    "proofs/transfer_unregulated.bin": "92c31774eadf0467ad74bbfa2ffcab3ba8d578d7e8dba58ab16a5edbb5365ad8",
+    "results.json": "2c373f66deb4b41055c65cefbb6ae684edc346330e77e436538afbf92a3b31e7",
+    "samples.jsonl": "49b8fd38b1084c9dec34483b0ae814d9150dd3926d7c9803cfbf9453b87c46e1"
+  }
+}

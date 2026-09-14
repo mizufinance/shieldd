@@ -1,0 +1,27 @@
+{
+  "schema": "shieldd.native_prepared_key381_desktop.v1",
+  "hashes": {
+    "identity.json": "83d039467950cf19c49c7a7e3d371a9d4c455695d5417c07c3bcf0bb3ed8d0df",
+    "memory.jsonl": "99d7b0b3d82800b1a1addc9555fc2b3dc85b25ce6535911dcf6c676e466ed38f",
+    "proofs/first-candidate.bin": "12df82218eca4ffbd4029fe3673c296207ad577dd685752bb459fc7acd0dc7a5",
+    "proofs/first-control.bin": "35738c1a5e6e9819cbea5eea45ea8950568ecfc217d449321b84b68f59ea5d5e",
+    "proofs/warm-3-candidate.bin": "aac9a0bfbd32487f8b3d37bf3f6b3a4fd3024b3508fa12cdafbdf738da13b9ed",
+    "proofs/warm-3-control.bin": "bf2fc583f11565ebdfb6c30bb8ca97b682d944ec795934d5efde1301a65dc620",
+    "proofs/warm-4-candidate.bin": "ec7c601e5e287bdbda820243b9c15e830476e137f0ba9a828fe404d382b38763",
+    "proofs/warm-4-control.bin": "cf86a18f8ceb67a9f0fa1305e3298d4ae76df82ac5c61cca2b1ed5272178630e",
+    "proofs/warm-5-candidate.bin": "e357d058319281d1dcc6071be8e7f31951ccfe88856c1c2ed7477b7438003d69",
+    "proofs/warm-5-control.bin": "83a85ca897fa21ddd72d0735fe3f00b6d586e8c4e100f2ef0612199eefdc044f",
+    "proofs/warm-6-candidate.bin": "235a50c210e58fcd97a16be94c2fa70cf3b51049f453d1628706606daccfb6e1",
+    "proofs/warm-6-control.bin": "f99e3f5c279cff9e46e867b190a4b531c7553f16ee2df8cc7e2bfdd21ad8f4a4",
+    "proofs/warm-7-candidate.bin": "667dd0969c76c3847960f5665fdc212af47425b7e3fbc250b8b8c4ea1d28b75d",
+    "proofs/warm-7-control.bin": "b544aeffae89822f13768c4727c8b8f3ad889fd0b3dd1256170af5aa6968dcc4",
+    "proofs/warmup-0-candidate.bin": "3268dba3c8569b5376275b554cba312023ef71eb1dd69af727f0b5009655c781",
+    "proofs/warmup-0-control.bin": "1a44a641a0cf104fd1761fc59b9994d3e0ed5930b784d10447e11bd7eccb071b",
+    "proofs/warmup-1-candidate.bin": "7c1d34141911be51b1cec51888fc97e0a389c2a46e5e82d204fd9dcf1b994704",
+    "proofs/warmup-1-control.bin": "4dc4376b1806d2d6bb5c0e9a731828abf719a6815cbbe0e8e71d0112841de87a",
+    "proofs/warmup-2-candidate.bin": "986b01e3748183f3593186c07d60e58adb4a496514012e65cf74dde17d6c3a5c",
+    "proofs/warmup-2-control.bin": "415d6c3640133aa2484ebd05b0320940f6a127480152d8e0811f819074656801",
+    "results.json": "6a8ab76eb608741e6f125d9c3e5c7f3d757c96bd8ab15d73dd4eb38929cc7bd7",
+    "samples.jsonl": "24a8502974d330fbd61d958a85b428a5c3633283a7cc612ca395c17d334c6d1a"
+  }
+}

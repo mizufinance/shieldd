@@ -1,0 +1,4 @@
+warning: commonware-macros-impl@2026.7.0: stability cfg not set; set RUSTFLAGS="--cfg commonware_stability_X" (ALPHA/BETA/GAMMA/DELTA/EPSILON) to enforce stability gating
+   Compiling shieldd-prepared-points381-screen v0.1.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/prepared-points381)
+    Finished `release` profile [optimized] target(s) in 1.37s
+     Running `tools/proving-experiment/native/target/release/shieldd-prepared-points381-screen tools/proving-experiment/cache/c-comparator34-full-gate/keys/native.pk tools/proving-experiment/cache/prepared-points381-cost.json`

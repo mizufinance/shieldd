@@ -1,0 +1,11 @@
+{
+  "time_ns": 1789385602507258000,
+  "argv": [
+    "python3",
+    "tools/proving-experiment/prepared_key381_desktop.py",
+    "measure",
+    "tools/proving-experiment/cache/c-prepared-key381-desktop"
+  ],
+  "code": 0,
+  "failure": null
+}

@@ -1,0 +1,17 @@
+{
+  "time_ns": 1789383793271721000,
+  "argv": [
+    "cargo",
+    "+1.95.0",
+    "run",
+    "--locked",
+    "--release",
+    "--manifest-path",
+    "tools/proving-experiment/candidates/prepared-points381/Cargo.toml",
+    "--",
+    "tools/proving-experiment/cache/c-comparator34-full-gate/keys/native.pk",
+    "tools/proving-experiment/cache/prepared-points381-cost.json"
+  ],
+  "code": 0,
+  "failure": null
+}

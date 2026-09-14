@@ -1,0 +1,252 @@
+--- a/cryptography/src/zk/pari/tests.rs
++++ b/cryptography/src/zk/pari/tests.rs
+@@ -785,3 +785,67 @@
+         .is_err()
+     );
+ }
++
++#[test]
++fn prepared_key_storage_preserves_complete_key_and_encodings() {
++    let p = parameters();
++    let key = &p.proving_key;
++    let bytes = key.encode_prepared();
++    let cfg = (RangeCfg::exact(key.verifying_key().public_input_count()), RangeCfg::exact(key.commitment_keys().len()));
++    let mut input = bytes.as_slice();
++    let decoded = ProvingKey::read_prepared_with_strategy(&mut input, &cfg, &Sequential).unwrap();
++    assert!(input.is_empty());
++    assert_eq!(&decoded, key);
++    assert_eq!(decoded.encode(), key.encode());
++    assert_eq!(decoded.encode_prepared(), bytes);
++    let parallel = commonware_parallel::Rayon::new(std::num::NonZeroUsize::new(2).unwrap()).unwrap();
++    let decoded = ProvingKey::read_prepared_with_strategy(&mut bytes.as_slice(), &cfg, &parallel).unwrap();
++    assert_eq!(&decoded, key);
++    assert_eq!(decoded.verifying_key().encode(), key.verifying_key().encode());
++    assert_eq!(decoded.commitment_keys(), key.commitment_keys());
++    assert!(ProvingKey::read_prepared_with_strategy(&mut key.encode().as_ref(), &cfg, &Sequential).is_err());
++    assert!(ProvingKey::read_with_strategy(&mut bytes.as_slice(), &cfg, &Sequential).is_err());
++}
++
++#[test]
++fn prepared_key_storage_rejects_malformed_queries_and_dimensions() {
++    use commonware_codec::EncodeSize;
++    let key = &parameters().proving_key;
++    let bytes = key.encode_prepared();
++    let cfg = (RangeCfg::exact(key.verifying_key().public_input_count()), RangeCfg::exact(key.commitment_keys().len()));
++    let reject = |bad: &[u8]| {
++        let mut input = bad;
++        let accepted = ProvingKey::read_prepared_with_strategy(&mut input, &cfg, &Sequential)
++            .is_ok_and(|k| input.is_empty() && k.encode_prepared() == bad);
++        assert!(!accepted);
++    };
++    for len in [0, 7, 8, bytes.len()/2, bytes.len()-1] { reject(&bytes[..len]); }
++    reject(&[bytes.as_slice(), &[0]].concat());
++    let mut marker = bytes.clone(); marker[0] ^= 1; reject(&marker);
++    let mut relation = bytes.clone(); relation[8] ^= 1; reject(&relation);
++    let mut domain = bytes.clone(); domain.splice(72..72+key.verifying_key.domain_size.encode_size(), 1u32.encode().iter().copied()); reject(&domain);
++    let query_size = |count: usize| count.encode_size() + count*96;
++    let count_at = bytes.len() - query_size(key.sigma_quotient.len()) - query_size(key.sigma_a.len()) - query_size(key.sigma_r.len());
++    let point_at = count_at + key.sigma_quotient.len().encode_size();
++    let mut count = bytes.clone(); count[count_at] = 0xff; reject(&count);
++    let mut infinity = [0;96]; infinity[0] = 0x40;
++    let mut off_curve = [0;96]; off_curve[95] = 3;
++    let mut torsion = [0;96]; torsion[95] = 2;
++    let outside_group = (1u8..=64).find_map(|x| {
++        let mut compact = [0;48]; compact[0]=0x80; compact[47]=x;
++        blst::min_pk::PublicKey::deserialize(&compact).ok().filter(|p| p.validate().is_err())
++    }).unwrap().serialize();
++    for point in [infinity, off_curve, torsion, outside_group] {
++        let mut bad=bytes.clone(); bad[point_at..point_at+96].copy_from_slice(&point); reject(&bad);
++    }
++    for flag in [0x20,0x40,0x80] {
++        let mut bad=bytes.clone(); bad[point_at] |= flag; reject(&bad);
++    }
++    let mut field=bytes.clone(); field[point_at..point_at+48].fill(0xff); field[point_at]=0x1f; reject(&field);
++    let indices=key.sigma_witness.iter().enumerate().filter(|(_,p)| **p!=G1::zero()).map(|(i,_)|i as u32).collect::<Vec<_>>();
++    assert!(indices.len()>=2);
++    let index_at=8+key.verifying_key.encode_size()+key.commitment_keys.encode_size()+indices.len().encode_size();
++    let second=index_at+indices[0].encode_size()+96;
++    let mut duplicate=bytes.clone(); duplicate.splice(second..second+indices[1].encode_size(),indices[0].encode().iter().copied()); reject(&duplicate);
++    let mut overflow=bytes.clone(); overflow.splice(index_at..index_at+indices[0].encode_size(),u32::MAX.encode().iter().copied()); reject(&overflow);
++}
+--- a/cryptography/src/zk/pari/types.rs
++++ b/cryptography/src/zk/pari/types.rs
+@@ -550,20 +550,68 @@
+     }
+ }
+ 
+-impl Write for ProvingKey {
+-    fn write(&self, buf: &mut impl BufMut) {
++const PREPARED_KEY_MAGIC: [u8; 8] = *b"SHNPK961";
++
++#[derive(Clone, Copy)]
++enum QueryEncoding { Compressed, Prepared }
++impl QueryEncoding {
++    fn width(self) -> usize { match self { Self::Compressed => 48, Self::Prepared => 96 } }
++    fn write(self, point: &G1, buf: &mut impl BufMut) {
++        match self {
++            Self::Compressed => point.write(buf),
++            Self::Prepared => {
++                let point = blst::min_pk::PublicKey::from(point.as_blst_p1_affine());
++                buf.put_slice(&point.serialize());
++            }
++        }
++    }
++    fn read(self, mut bytes: &[u8]) -> Result<G1, commonware_codec::Error> {
++        if bytes.len() != self.width() { return Err(commonware_codec::Error::Invalid("ProvingKey", "wrong query point length")); }
++        match self {
++            Self::Compressed => G1::read(&mut bytes),
++            Self::Prepared => {
++                let invalid = || commonware_codec::Error::Invalid("ProvingKey", "invalid prepared query point");
++                let point = blst::min_pk::PublicKey::deserialize(bytes).map_err(|_| invalid())?;
++                if point.serialize().as_slice() != bytes { return Err(invalid()); }
++                point.validate().map_err(|_| invalid())?;
++                let checked = blst::min_pk::AggregatePublicKey::from_public_key(&point);
++                Ok(G1::from_blst_p1(checked.into()))
++            }
++        }
++    }
++    fn write_points(self, points: &[G1], buf: &mut impl BufMut) {
++        points.len().write(buf);
++        for point in points { self.write(point, buf); }
++    }
++}
++
++impl ProvingKey {
++    /// Encode development storage with uncompressed nonidentity query points.
++    pub fn encode_prepared(&self) -> Vec<u8> {
++        let mut bytes = Vec::new();
++        PREPARED_KEY_MAGIC.write(&mut bytes);
++        self.write_with_queries(&mut bytes, QueryEncoding::Prepared);
++        bytes
++    }
++    fn write_with_queries(&self, buf: &mut impl BufMut, encoding: QueryEncoding) {
+         self.verifying_key.write(buf);
+         self.commitment_keys.write(buf);
+         self.witness_entries().count().write(buf);
+         for (index, point) in self.witness_entries() {
+             index.write(buf);
+-            point.write(buf);
++            encoding.write(point, buf);
+         }
+         self.sigma_mask_constant.write(buf);
+         self.sigma_mask_linear.write(buf);
+-        self.sigma_quotient.write(buf);
+-        self.sigma_a.write(buf);
+-        self.sigma_r.write(buf);
++        encoding.write_points(&self.sigma_quotient, buf);
++        encoding.write_points(&self.sigma_a, buf);
++        encoding.write_points(&self.sigma_r, buf);
++    }
++}
++
++impl Write for ProvingKey {
++    fn write(&self, buf: &mut impl BufMut) {
++        self.write_with_queries(buf, QueryEncoding::Compressed);
+     }
+ }
+ 
+@@ -585,41 +633,37 @@
+ }
+ 
+ fn read_points(
+-    buf: &mut impl Buf,
+-    bounds: &RangeCfg<usize>,
+-    strategy: &impl Strategy,
++    buf: &mut impl Buf, bounds: &RangeCfg<usize>, strategy: &impl Strategy,
++    encoding: QueryEncoding,
+ ) -> Result<Vec<G1>, commonware_codec::Error> {
+     let count = usize::read_cfg(buf, bounds)?;
+-    let length = count
+-        .checked_mul(48)
+-        .filter(|&length| length <= buf.remaining())
+-        .ok_or(commonware_codec::Error::Invalid(
+-            "ProvingKey",
+-            "truncated point vector",
+-        ))?;
++    let length = count.checked_mul(encoding.width()).filter(|&length| length <= buf.remaining())
++        .ok_or(commonware_codec::Error::Invalid("ProvingKey", "truncated point vector"))?;
+     let bytes = buf.copy_to_bytes(length);
+-    strategy.try_map_collect_vec(bytes.chunks_exact(48), |mut point| G1::read(&mut point))
+-}
+-
+-fn read_point_entries(
+-    buf: &mut impl Buf,
+-    bounds: &RangeCfg<usize>,
+-    strategy: &impl Strategy,
++    strategy.try_map_collect_vec(bytes.chunks_exact(encoding.width()), |point| encoding.read(point))
++}
++
++fn read_entries<const WIDTH: usize>(
++    buf: &mut impl Buf, bounds: &RangeCfg<usize>, strategy: &impl Strategy,
++    encoding: QueryEncoding,
+ ) -> Result<Vec<(u32, G1)>, commonware_codec::Error> {
+     let count = usize::read_cfg(buf, bounds)?;
+-    if count > buf.remaining() / 49 {
+-        return Err(commonware_codec::Error::Invalid(
+-            "ProvingKey",
+-            "truncated witness entries",
+-        ));
++    if count > buf.remaining() / (WIDTH + 1) {
++        return Err(commonware_codec::Error::Invalid("ProvingKey", "truncated witness entries"));
+     }
+     let mut entries = Vec::with_capacity(count);
+-    for _ in 0..count {
+-        entries.push((u32::read(buf)?, <[u8; 48]>::read(buf)?));
+-    }
+-    strategy.try_map_collect_vec(entries, |(index, bytes)| {
+-        Ok((index, G1::read(&mut bytes.as_slice())?))
+-    })
++    for _ in 0..count { entries.push((u32::read(buf)?, <[u8; WIDTH]>::read(buf)?)); }
++    strategy.try_map_collect_vec(entries, |(index, bytes)| Ok((index, encoding.read(&bytes)?)))
++}
++
++fn read_point_entries(
++    buf: &mut impl Buf, bounds: &RangeCfg<usize>, strategy: &impl Strategy,
++    encoding: QueryEncoding,
++) -> Result<Vec<(u32, G1)>, commonware_codec::Error> {
++    match encoding {
++        QueryEncoding::Compressed => read_entries::<48>(buf, bounds, strategy, encoding),
++        QueryEncoding::Prepared => read_entries::<96>(buf, bounds, strategy, encoding),
++    }
+ }
+ 
+ impl Read for ProvingKey {
+@@ -638,6 +682,21 @@
+         buf: &mut impl Buf,
+         cfg: &(RangeCfg<usize>, RangeCfg<usize>),
+         strategy: &impl Strategy,
++    ) -> Result<Self, commonware_codec::Error> {
++        Self::read_with_queries(buf, cfg, strategy, QueryEncoding::Compressed)
++    }
++    /// Decode prepared storage while preserving every ordinary key and point check.
++    pub fn read_prepared_with_strategy(
++        buf: &mut impl Buf, cfg: &(RangeCfg<usize>, RangeCfg<usize>), strategy: &impl Strategy,
++    ) -> Result<Self, commonware_codec::Error> {
++        if <[u8; 8]>::read(buf)? != PREPARED_KEY_MAGIC {
++            return Err(commonware_codec::Error::Invalid("ProvingKey", "wrong prepared storage marker"));
++        }
++        Self::read_with_queries(buf, cfg, strategy, QueryEncoding::Prepared)
++    }
++    fn read_with_queries(
++        buf: &mut impl Buf, cfg: &(RangeCfg<usize>, RangeCfg<usize>), strategy: &impl Strategy,
++        encoding: QueryEncoding,
+     ) -> Result<Self, commonware_codec::Error> {
+         let invalid =
+             |message: &'static str| commonware_codec::Error::Invalid("ProvingKey", message);
+@@ -683,12 +742,12 @@
+             .and_then(|len| len.checked_add(2))
+             .ok_or_else(|| invalid("domain size overflow"))?;
+ 
+-        let entries = read_point_entries(buf, &RangeCfg::new(0..=witness_len), strategy)?;
++        let entries = read_point_entries(buf, &RangeCfg::new(0..=witness_len), strategy, encoding)?;
+         let sigma_mask_constant = G1::read(buf)?;
+         let sigma_mask_linear = G1::read(buf)?;
+-        let sigma_quotient = read_points(buf, &RangeCfg::exact(quotient_len), strategy)?;
+-        let sigma_a = read_points(buf, &RangeCfg::exact(domain_size + 1), strategy)?;
+-        let sigma_r = read_points(buf, &RangeCfg::exact(opening_len), strategy)?;
++        let sigma_quotient = read_points(buf, &RangeCfg::exact(quotient_len), strategy, encoding)?;
++        let sigma_a = read_points(buf, &RangeCfg::exact(domain_size + 1), strategy, encoding)?;
++        let sigma_r = read_points(buf, &RangeCfg::exact(opening_len), strategy, encoding)?;
+ 
+         // Materialize the witness basis only after every buffer-backed field
+         // has been read, so a short input cannot force a large allocation.

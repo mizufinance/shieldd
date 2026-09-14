@@ -1,0 +1,42 @@
+{
+  "schema": "shieldd.native_prepared_key381_desktop.v1",
+  "mode": "measure",
+  "rows": [
+    {
+      "candidate": "candidate",
+      "warm_values_s": [
+        2.110148292,
+        2.09773725,
+        2.103833792,
+        2.110699417,
+        2.101655625
+      ],
+      "median_s": 2.103833792,
+      "first_values_s": [
+        15.382318917
+      ],
+      "first_median_s": 15.382318917,
+      "peak_rss_bytes": 1165770752,
+      "proof_bytes": 218
+    },
+    {
+      "candidate": "control",
+      "warm_values_s": [
+        2.086951125,
+        2.0816155,
+        2.108481125,
+        2.092992208,
+        2.088150209
+      ],
+      "median_s": 2.088150209,
+      "first_values_s": [
+        19.498153834
+      ],
+      "first_median_s": 19.498153834,
+      "peak_rss_bytes": 1211662336,
+      "proof_bytes": 218
+    }
+  ],
+  "proofs": 18,
+  "all_verified": true
+}

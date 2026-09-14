@@ -1,0 +1,99 @@
+{
+  "measurement": {
+    "schema": "shieldd.native_prepared_key381_desktop.v1",
+    "mode": "measure",
+    "rows": [
+      {
+        "candidate": "candidate",
+        "warm_values_s": [
+          2.110148292,
+          2.09773725,
+          2.103833792,
+          2.110699417,
+          2.101655625
+        ],
+        "median_s": 2.103833792,
+        "first_values_s": [
+          15.382318917
+        ],
+        "first_median_s": 15.382318917,
+        "peak_rss_bytes": 1165770752,
+        "proof_bytes": 218
+      },
+      {
+        "candidate": "control",
+        "warm_values_s": [
+          2.086951125,
+          2.0816155,
+          2.108481125,
+          2.092992208,
+          2.088150209
+        ],
+        "median_s": 2.088150209,
+        "first_values_s": [
+          19.498153834
+        ],
+        "first_median_s": 19.498153834,
+        "peak_rss_bytes": 1211662336,
+        "proof_bytes": 218
+      }
+    ],
+    "proofs": 18,
+    "all_verified": true
+  },
+  "conversion": {
+    "schema": "shieldd.native_prepared_key381_conversion.v1",
+    "source_key_sha256": "1e11ac4e5ee43d719aeb8814dc27d2545266e5af4dcf37f5eae5d39f8e48fa0d",
+    "prepared_key_sha256": "e16f65551b74cd1d14e231adc9df17f441c06942c2d1fc0516cad2d4f56e40d5",
+    "source_bytes": 51671551,
+    "prepared_bytes": 98612487,
+    "expanded_query_points": 977936,
+    "source_checked_loading_ns": 14639158458,
+    "prepared_encoding_ns": 106423125,
+    "prepared_checked_loading_ns": 11240833125,
+    "all_validation_ns": 7047286917,
+    "total_ns": 33085567708,
+    "complete_key_equal": true,
+    "original_canonical_bytes_equal": true,
+    "relation_digest": "722fba7093a6188bba83708f0abe409a39cf34fa4451b95594e82781b68f3783",
+    "verifying_key_sha256": "ae426ec83c319aa82ea35499534f022f554726e15b5ae5ae2bedd18a67771049",
+    "rejections": [
+      {
+        "case": "old_format",
+        "rejected": true
+      },
+      {
+        "case": "short_header",
+        "rejected": true
+      },
+      {
+        "case": "truncated_final_vector",
+        "rejected": true
+      },
+      {
+        "case": "wrong_marker",
+        "rejected": true
+      },
+      {
+        "case": "wrong_relation_binding",
+        "rejected": true
+      },
+      {
+        "case": "noncanonical_query",
+        "rejected": true
+      },
+      {
+        "case": "identity_query",
+        "rejected": true
+      },
+      {
+        "case": "outside_subgroup_query",
+        "rejected": true
+      }
+    ],
+    "limits": "Offline conversion/validation of the existing complete Transfer key, including exact full decoded-key and original canonical-byte equality. Only four nonidentity query-vector roles expand; VK/commitment keys/masks retain original codecs. All curve/subgroup/canonical checks remain. No new setup, full API timing or phone claim."
+  },
+  "cross_verified_proofs": 18,
+  "first_observation_reduction_percent": 21.108844211819655,
+  "warm_median_change_percent": 0.7510754222758154
+}
