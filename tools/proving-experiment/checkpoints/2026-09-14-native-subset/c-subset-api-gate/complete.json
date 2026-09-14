@@ -1,0 +1,9 @@
+{
+  "schema": "shieldd.native_subset_desktop.v1",
+  "hashes": {
+    "identity.json": "f1087a396e58007da7428993f13492dc414b9bb6f971ef581b2befb340f1b070",
+    "memory.jsonl": "69b120e058cd27420885fa9fb238a027473e22a91b58226810ff8d71c4b96ef8",
+    "results.json": "9542dd065717c9665557315e72623c847450b574ce682469adc2b20c2a8ab899",
+    "samples.jsonl": "42ed2803c0519572269fd29415c146367253a205cf4e92d6395589603cd5c714"
+  }
+}

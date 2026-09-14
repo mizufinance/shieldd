@@ -1,0 +1,35 @@
+   Compiling commonware-macros-impl v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-subset381/macros/impl)
+   Compiling commonware-codec-macros v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-subset381/codec/macros)
+warning: commonware-macros-impl@2026.7.0: stability cfg not set; set RUSTFLAGS="--cfg commonware_stability_X" (ALPHA/BETA/GAMMA/DELTA/EPSILON) to enforce stability gating
+   Compiling commonware-macros v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-subset381/macros)
+   Compiling commonware-codec v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-subset381/codec)
+   Compiling commonware-formatting v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-subset381/formatting)
+   Compiling commonware-parallel v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-subset381/parallel)
+   Compiling commonware-utils v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-subset381/utils)
+   Compiling commonware-math v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-subset381/math)
+   Compiling commonware-cryptography v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-subset381/cryptography)
+error: unused import: `Multiplicative`
+ --> /Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-subset381/cryptography/src/zk/pari/domain.rs:3:50
+  |
+3 | use commonware_math::{algebra::{Additive, Field, Multiplicative, Ring}, ntt::Domain as FftDomain, poly::Poly};
+  |                                                  ^^^^^^^^^^^^^^
+  |
+  = note: `-D unused-imports` implied by `-D warnings`
+  = help: to override `-D warnings` add `#[allow(unused_imports)]`
+
+error[E0282]: type annotations needed for `Domain<_>`
+  --> /Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-subset381/cryptography/src/zk/pari/domain.rs:26:13
+   |
+26 |         let fft=FftDomain::new(n)?;
+   |             ^^^
+27 |         let excluded=fft.generator().exp(&[removed as u64]);
+   |                      --------------- type must be known at this point
+   |
+help: consider giving `fft` an explicit type, where the placeholders `_` are specified
+   |
+26 |         let fft: Domain<F>=FftDomain::new(n)?;
+   |                +++++++++++
+
+For more information about this error, try `rustc --explain E0282`.
+error: could not compile `commonware-cryptography` (lib) due to 2 previous errors
+warning: build failed, waiting for other jobs to finish...

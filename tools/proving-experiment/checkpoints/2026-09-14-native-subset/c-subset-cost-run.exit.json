@@ -1,0 +1,10 @@
+{
+  "time_ns": 1789368112352659000,
+  "argv": [
+    "tools/proving-experiment/cache/c-subset-cost-source/subset_cost",
+    "tools/proving-experiment/cache/native-tuned-witnesses",
+    "tools/proving-experiment/cache/c-subset-cost.json"
+  ],
+  "code": 0,
+  "failure": null
+}

@@ -36,11 +36,25 @@ The [complete gnark subset control](../../docs/research/groth16-subset-proving.m
 
 Matched two-worker diagnostic: 3 warmups + 5 warm samples and one first proof per variant; 18 unique proofs all verify. Median 1.793246→1.722219 s (3.96%), first22.572976→20.809473 s, warmRSS0.672→0.597 GiB; package436B unchanged. Proving key40,732,773→37,587,069B. Guard exits0, zero swap/competition. Retain A subset. Exact run `cache/a-subset-desktop`; sources/raw evidence `checkpoints/2026-09-14-gnark-subset`. No mixed-session A/B/C table or phone claim.
 
+## Completed native Pari381 subset follow-up
+
+The [native subset worker](../../docs/research/native-subset-proving.md) retains the affine circuit and lifetime changes. It consistently uses M229376 for relation/assignment capacity and N262144 for FFTs; all220009rows/220029real columns fit. Rehashing the unchanged rows/layout under the old domain/namespace reproduces the frozen relation digest. Setup, both masks/public columns, openings, key lengths and new domain/transcript namespaces agree.
+
+All44native release tests, three focused prepared/domain-audit tests, six actual polynomial/oracle gates, six fresh real-proof/negative gates and six logical-witness full-API gates pass. Matched 3warmups+5warm+1first per variant:18unique verified proofs; median2.758030→2.585017s (6.27%), first24.990656→22.364764s, warmRSS1.528→1.442GiB; package218B unchanged. Encoded key66,369,503→60,078,047B; padded zero witness slots were already implicit, so encoded savings are131072Q/A/R points, not163840points. Guards exit0, swap0, no competition. RetainC. Exact run `cache/c-subset-desktop`; compact evidence `checkpoints/2026-09-14-native-subset`.
+
 ## Next bounded work
 
-Evaluate the corresponding native Pari381 subset domain, carrying the selected affine circuit and lifetime changes. Start with M229376/N262144. Its row/assignment sizing, block commitment keys/digests, both public columns and B-side mask must remain consistent. Keep the existing native worker and commonware checkout immutable; use a separate source copy and uniquely named candidate package. Gate actual coefficient/domain/statement/mask semantics before fresh setup and full API measurements. Do not extrapolate the B arithmetic result across fields or replace C's full affine relation with a toy.
+Run one compact matched selected A/B/C session using the retained subset workers and current keys: A `cache/a-subset-full-source/bin/provingexperiment`, B `cache/b-subset-protocol-source/worker`, C `cache/c-subset-full-source/worker`. Preserve all earlier pair sessions and frozen controls. Two warmups + five warm proofs and one fresh-process first proof per candidate; one two-worker profile. Save its source-bound report/evidence and push. This completes the circuit, checked-loading, lifetime, polynomial and first single-coset domain round; it does not exhaust the broader campaign.
 
-After worthwhile C work is selected or rejected on measured evidence, run one compact matched final A/B/C session with both retained A/B subset improvements and the selected C lifetime worker. Continue according to the [authorized campaign](../../docs/research/zkpari-optimization-campaign.md). Missing phones and passing component probes do not complete feasible desktop work. The older verification/SnarkPack campaign remains stopped.
+## Explicit remaining campaign states
+
+- Next bounded preparation/ownership pass: B's remaining checked first-use cost and duplicate Rust/Go key/base storage; preserve source/artifact binding, canonicality and full subgroup checks. C lifetime work is complete.
+- Pending circuit branch: corrected hinted scalar multiplication with subgroup/output binding, bounded congruence and zero/Decaf handling, first as a complete gadget and full Transfer count/solve gate. Give A applicable improvements before new keys.
+- Pending source/compile screens: global square/bit reuse and reviewed exact-arity Anemoi/Jive, especially C. No reduced-round hash shortcut or unmeasured claim.
+- Pending arithmetic feasibility: selected-path ARM64 squaring, safe SIMD/WASM MSM, bounded tables or one justified compiler setting. GPU requires a distinct curve-correct feasibility case. No broad profile grid.
+- Closed/low priority on recorded evidence: EdMSM, prior GLV/windows, gnark381 hybrid and dense-scalar partition variants unless a new mechanism changes their cost case. Separate protocol/PQ/remote-proving alternatives cannot inherit this network comparison.
+
+Continue according to the [authorized campaign](../../docs/research/zkpari-optimization-campaign.md). Phones remain pending actual device/build access; feasible desktop work continues. The older verification/SnarkPack campaign remains stopped.
 
 Physical iPhone/Android measurements remain unavailable from the recorded device check. Desktop ARM is not phone evidence. Actual devices and build/signing access remain prerequisites.
 

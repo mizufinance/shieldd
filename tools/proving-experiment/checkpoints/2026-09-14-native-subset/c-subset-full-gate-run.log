@@ -1,0 +1,8 @@
+native Transfer: setup 220009 square rows, 220029 variables, domain 229376
+transfer: full native proof and rejection checks passed
+transfer_unregulated: full native proof and rejection checks passed
+transfer_flagged: full native proof and rejection checks passed
+transfer_accumulating: full native proof and rejection checks passed
+transfer_over_limit_disclosure: full native proof and rejection checks passed
+transfer_accumulator_continuation: full native proof and rejection checks passed
+native Transfer gate complete; kernel diagnostics are not full API measurements

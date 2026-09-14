@@ -1,0 +1,9 @@
+{
+  "time_ns": 1789368442633861000,
+  "argv": [
+    "tools/proving-experiment/cache/c-subset-full-source/gate",
+    "tools/proving-experiment/cache/c-subset-full-gate"
+  ],
+  "code": 0,
+  "failure": null
+}

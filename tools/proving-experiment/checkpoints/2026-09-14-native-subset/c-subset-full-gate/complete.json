@@ -1,0 +1,94 @@
+{
+  "identity_sha256": "2b8877333c7d56114fb2e5d6cf94be726198e7f9b27a51a368c35c2dafca97fe",
+  "artifacts": [
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/c-subset-full-gate/keys/native.pk",
+      "sha256": "bf13c76fa4b4efe11c9db023cd63139aa45d1b9010aaa4fb51f13f6482ade0dc"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/c-subset-full-gate/keys/native.vk",
+      "sha256": "59a5f21b5c6c3a339145a741415644f4948bf6a01d09f67cf3d4f65384993286"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/c-subset-full-gate/keys/record.json",
+      "sha256": "f4ca5ba3997cd5f42679f3ebc61ceb4187bc98c1e300c5301be4aa9bd0d857ca"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/c-subset-full-gate/keys/setup_ns.json",
+      "sha256": "392fcc72c59b4c39cbc15cbfe71592aeb72152b624a3735112d5f1c635ed41b3"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/c-subset-full-gate/transfer/claim.bin",
+      "sha256": "748b89d5297c9d86e0f1835d06d2d629583fda613713f331ae245817b7d8f75f"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/c-subset-full-gate/transfer/proof.bin",
+      "sha256": "dfb92746e2723b14379c70c851929d8c8d2ef53f2644cccc4a5b6e544373b172"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/c-subset-full-gate/transfer/record.json",
+      "sha256": "abd1d57abbb2e072771726634f2179c3e2bdd33a6bc2da60ef70977af02906c4"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/c-subset-full-gate/transfer_accumulating/claim.bin",
+      "sha256": "ca64d730efc95724dc46027dc227801e3077497f999e5c8e60008a77f26d40b6"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/c-subset-full-gate/transfer_accumulating/proof.bin",
+      "sha256": "34bc8de98374da59e3d1518268965a3085d9bad073fafadc0d536cf5fe028ee8"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/c-subset-full-gate/transfer_accumulating/record.json",
+      "sha256": "d8cbdebf6d3853f5a7e263835a99a10b27954eaeb21b08008dea9ea1fdd1209e"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/c-subset-full-gate/transfer_accumulator_continuation/claim.bin",
+      "sha256": "95f3981bfb74f0df61628ba359fa799524e1bde5f49744e1c72a26d6ad8e63c8"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/c-subset-full-gate/transfer_accumulator_continuation/proof.bin",
+      "sha256": "ebbe52ecf0524ff192ec017240134fa37ed21e5109a19d947256ab0ec00bab83"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/c-subset-full-gate/transfer_accumulator_continuation/record.json",
+      "sha256": "8170922f465ab2a4a4d36146bffeaf77cb4880d4811758ea7f2e34e0574ab737"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/c-subset-full-gate/transfer_flagged/claim.bin",
+      "sha256": "72520f589bddd814a006c0e8e4c1e25be14af9a4e1323245e801d2e704e511aa"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/c-subset-full-gate/transfer_flagged/proof.bin",
+      "sha256": "6c66d3954d631427ec89d6c40f560be5b9997b8d10311223e7dec98925f143ce"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/c-subset-full-gate/transfer_flagged/record.json",
+      "sha256": "d160c5a8bd32c7a7a30de91e3fda35ab876cdb295cacd2d2297346c1a3bf8b85"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/c-subset-full-gate/transfer_over_limit_disclosure/claim.bin",
+      "sha256": "3ed45a00d8cb5d35022285cb097002c83d13df95cd184c95d892ce3612a0d0ff"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/c-subset-full-gate/transfer_over_limit_disclosure/proof.bin",
+      "sha256": "98614ee490859d76798dbbe6bb494c2f49802c91558280b1b72a28d9f2bb93cb"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/c-subset-full-gate/transfer_over_limit_disclosure/record.json",
+      "sha256": "0f562e9e65f98a23d3aaee6d83107ffd051c11757d7084becdeb02e0651b2c32"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/c-subset-full-gate/transfer_unregulated/claim.bin",
+      "sha256": "09dd5144e444d6411ecd3cd4064c3e7bceb4ab2b41d182d803e22e4ee179e599"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/c-subset-full-gate/transfer_unregulated/proof.bin",
+      "sha256": "7b97290aa3788b7bef501150f15674da347a652740f26ac1904bdf90367cdfce"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/c-subset-full-gate/transfer_unregulated/record.json",
+      "sha256": "080c6ee399904a00e133ffcbb17129c0770905a436c070b2382277268d97dc89"
+    }
+  ],
+  "invalid_witness_rejected": true
+}

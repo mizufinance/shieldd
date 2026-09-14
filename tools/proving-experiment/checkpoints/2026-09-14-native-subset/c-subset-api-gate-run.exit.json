@@ -1,0 +1,11 @@
+{
+  "time_ns": 1789368516269478000,
+  "argv": [
+    "python3",
+    "tools/proving-experiment/native_subset_desktop.py",
+    "gate",
+    "tools/proving-experiment/cache/c-subset-api-gate"
+  ],
+  "code": 0,
+  "failure": null
+}

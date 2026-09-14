@@ -1,0 +1,632 @@
+--- a/cryptography/src/zk/pari/circuit.rs
++++ b/cryptography/src/zk/pari/circuit.rs
+@@ -9,7 +9,7 @@
+ use std::collections::{BTreeMap, BTreeSet};
+ use thiserror::Error;
+ 
+-const DIGEST_NAMESPACE: &[u8] = b"_COMMONWARE_CRYPTOGRAPHY_ZK_PARI_RELATION_DIGEST";
++const DIGEST_NAMESPACE: &[u8] = b"_SHIELDD_NATIVE_SUBSET_PARI_RELATION_DIGEST_V1";
+ 
+ /// Errors produced while compiling a generic circuit for PARI.
+ #[derive(Debug, Error, PartialEq, Eq)]
+@@ -219,7 +219,7 @@
+         })
+     }
+ 
+-    /// Size of the padded radix-2 constraint domain, which also equals the
++    /// Size of the retained constraint domain, which also equals the
+     /// number of assignment variables.
+     pub const fn domain_size(&self) -> usize {
+         self.size
+@@ -261,6 +261,11 @@
+     /// Development-only validation of every converted row before proving.
+     pub fn check_witness(&self, witness: &super::Witness) -> bool {
+         self.is_satisfied(&witness.assignment)
++    }
++
++    /// Compare unchanged sparse rows/layout against the previous full-FFT relation digest.
++    pub fn reference_digest(&self, layout: &InputLayout) -> Result<[u8;32],super::Error> {
++        Ok(relation_digest_namespace(self.size.next_power_of_two(),&self.rows,layout,b"_COMMONWARE_CRYPTOGRAPHY_ZK_PARI_RELATION_DIGEST")?)
+     }
+ 
+     /// Number of explicit square constraints, excluding all-zero padding rows.
+@@ -750,10 +755,8 @@
+ 
+     fn finish(mut self) -> Result<Relation, Error> {
+         let required = self.next_column.max(self.rows.len()).max(1);
+-        let size = required
+-            .checked_next_power_of_two()
+-            .ok_or(Error::SizeOverflow)?;
+-        let log_size = size.ilog2();
++        let size = super::SubsetDomain::capacity_size(required).ok_or(Error::SizeOverflow)?;
++        let log_size = size.next_power_of_two().ilog2();
+         if log_size > u32::from(Scalar::MAX_LG_ROOT_ORDER) {
+             return Err(Error::DomainTooLarge {
+                 log_size,
+@@ -1039,8 +1042,11 @@
+     rows: &[SparseRow],
+     layout: &InputLayout,
+ ) -> Result<[u8; 32], Error> {
++    relation_digest_namespace(size,rows,layout,DIGEST_NAMESPACE)
++}
++fn relation_digest_namespace(size:usize,rows:&[SparseRow],layout:&InputLayout,namespace:&[u8])->Result<[u8;32],Error>{
+     let mut hasher = blake3::Hasher::new();
+-    hasher.update(DIGEST_NAMESPACE);
++    hasher.update(namespace);
+     hash_usize(&mut hasher, size)?;
+     hash_usize(&mut hasher, rows.len())?;
+     hash_indices(&mut hasher, &layout.public)?;
+--- /dev/null
++++ b/cryptography/src/zk/pari/domain.rs
+@@ -0,0 +1,139 @@
++use super::Error;
++use crate::bls12381::primitives::group::Scalar;
++use commonware_math::{algebra::{Additive, Field, Ring}, ntt::Domain as FftDomain, poly::Poly};
++type Polynomial = Poly<Scalar>;
++
++/// Canonical retained roots: all FFT roots except indices 1 modulo 8.
++pub struct SubsetDomain {
++    fft: FftDomain<Scalar>,
++    retained: usize,
++    removed: usize,
++    excluded: Scalar,
++}
++impl SubsetDomain {
++    pub fn valid_size(m: usize) -> bool {
++        let Some(n)=m.checked_next_power_of_two() else {return false};
++        n>=8 && n<=1<<20 && m==n-n/8
++    }
++    pub fn capacity_size(required: usize) -> Option<usize> {
++        let n=required.checked_mul(8)?.checked_add(6)?.checked_div(7)?.max(8).checked_next_power_of_two()?;
++        let m=n-n/8;
++        Self::valid_size(m).then_some(m)
++    }
++    pub fn new(m: usize) -> Result<Self,Error> {
++        if !Self::valid_size(m) {return Err(Error::RelationMismatch)}
++        let n=m.next_power_of_two();let removed=n/8;
++        let fft=FftDomain::<Scalar>::new(n)?;
++        let excluded=fft.generator().exp(&[removed as u64]);
++        Ok(Self{fft,retained:m,removed,excluded})
++    }
++    pub const fn size(&self)->usize {self.retained}
++    pub fn fft_size(&self)->usize {self.fft.size()}
++    pub fn fft(&self)->&FftDomain<Scalar> {&self.fft}
++    fn root_index(&self,index:usize)->usize {8*(index/7)+if index%7==0 {0}else{index%7+1}}
++    pub fn element(&self,index:usize)->Result<Scalar,Error> {
++        if index>=self.retained{return Err(Error::RelationMismatch)}
++        Ok(self.fft.element(self.root_index(index))?)
++    }
++    pub fn evaluate_vanishing(&self,point:&Scalar)->Scalar {
++        let t=point.exp(&[self.removed as u64]);
++        let (mut result,mut power)=(Scalar::zero(),Scalar::one());
++        for _ in 0..8 {result=result*&t+&power;power*= &self.excluded;}
++        result
++    }
++    pub fn lagrange_basis(&self,point:&Scalar)->Vec<Scalar> {
++        self.lagrange_basis_at(point,&(0..self.retained as u32).collect::<Vec<_>>()).expect("canonical domain indices")
++    }
++    pub fn lagrange_basis_at(&self,point:&Scalar,indices:&[u32])->Result<Vec<Scalar>,Error> {
++        if indices.iter().any(|i|*i as usize>=self.retained){return Err(Error::RelationMismatch)}
++        let vanishing=self.evaluate_vanishing(point);
++        let roots=indices.iter().map(|i|self.element(*i as usize)).collect::<Result<Vec<_>,_>>()?;
++        if vanishing==Scalar::zero(){return Ok(roots.iter().map(|h|if h==point{Scalar::one()}else{Scalar::zero()}).collect())}
++        let mut products=Vec::with_capacity(roots.len());let mut product=Scalar::one();
++        for h in &roots {products.push(product.clone());product*= &(point.clone()-h);}
++        if product==Scalar::zero(){return Err(Error::RelationMismatch)}
++        let mut inverse=product.inv();let mut denominators=vec![Scalar::zero();roots.len()];
++        for i in (0..roots.len()).rev(){denominators[i]=inverse.clone()*&products[i];inverse*= &(point.clone()-&roots[i]);}
++        let scale=vanishing*&Scalar::from_limbs([self.fft_size() as u64,0,0,0]).inv();
++        Ok(roots.iter().zip(denominators).map(|(h,inverse)| {
++            let z=h.exp(&[self.removed as u64])-&self.excluded;
++            scale.clone()*h*&z*&inverse
++        }).collect())
++    }
++    pub fn interpolate(&self,values:&[Scalar])->Result<Vec<Scalar>,Error> {
++        if values.len()>self.retained{return Err(Error::RelationMismatch)}
++        let mut weighted=vec![Scalar::zero();self.fft_size()];
++        let mut weights=Vec::with_capacity(8);let mut power=Scalar::one();
++        for _ in 0..8{weights.push(power.clone()-&self.excluded);power*= &self.excluded;}
++        for (i,v) in values.iter().enumerate(){let j=self.root_index(i);weighted[j]=v.clone()*&weights[j%8];}
++        let mut coefficients=self.fft.interpolate(&weighted)?;
++        let mut result=vec![Scalar::zero();self.retained];
++        for i in (self.removed..self.fft_size()).rev(){
++            result[i-self.removed]=coefficients[i].clone();
++            let term=coefficients[i].clone()*&self.excluded;
++            coefficients[i-self.removed]+= &term;
++        }
++        if coefficients[..self.removed].iter().any(|c|*c!=Scalar::zero()){return Err(Error::Unsatisfied)}
++        Ok(result)
++    }
++    pub fn polynomial(&self,values:&[Scalar])->Result<Polynomial,Error> {
++        Polynomial::from_coefficients(self.interpolate(values)?).ok_or(Error::TooLarge)
++    }
++    pub fn multiply_vanishing(&self,poly:&Polynomial)->Result<Polynomial,Error> {
++        let mut result=vec![Scalar::zero();poly.coefficients().len().checked_add(self.retained).ok_or(Error::TooLarge)?];
++        let mut weights=vec![Scalar::one();8];
++        for i in (0..7).rev(){weights[i]=weights[i+1].clone()*&self.excluded;}
++        for (j,weight) in weights.iter().enumerate(){for (i,c) in poly.coefficients().iter().enumerate(){result[i+j*self.removed]+= &(c.clone()*weight);}}
++        Polynomial::from_coefficients(result).ok_or(Error::TooLarge)
++    }
++    pub fn mask(&self,poly:&Polynomial,mask:&Polynomial)->Result<Polynomial,Error> {Ok(poly.clone()+&self.multiply_vanishing(mask)?)}
++    pub fn divide(&self,poly:&Polynomial)->Result<(Polynomial,Polynomial),Error> {
++        let mut remainder=poly.coefficients().to_vec();
++        let mut quotient=vec![Scalar::zero();remainder.len().saturating_sub(self.retained).max(1)];
++        let mut weights=vec![Scalar::one();8];
++        for i in (0..7).rev(){weights[i]=weights[i+1].clone()*&self.excluded;}
++        for degree in (self.retained..remainder.len()).rev(){
++            let coefficient=remainder[degree].clone();quotient[degree-self.retained]=coefficient.clone();
++            for (j,weight) in weights.iter().enumerate(){remainder[degree-self.retained+j*self.removed]-= &(coefficient.clone()*weight);}
++        }
++        remainder.truncate(self.retained.min(remainder.len()).max(1));
++        let mut q=Polynomial::from_coefficients(quotient).ok_or(Error::TooLarge)?;
++        let mut r=Polynomial::from_coefficients(remainder).ok_or(Error::TooLarge)?;q.trim();r.trim();Ok((q,r))
++    }
++    pub fn coset_inverse(&self,shift:&Scalar)->Result<Vec<Scalar>,Error> {
++        let zh=self.fft.evaluate_vanishing(shift);if zh==Scalar::zero(){return Err(Error::RelationMismatch)}
++        let factor=zh.inv();let gs=shift.exp(&[self.removed as u64]);
++        let mut root=Scalar::one();let mut result=Vec::with_capacity(8);
++        for _ in 0..8{result.push((gs.clone()*&root-&self.excluded)*&factor);root*= &self.excluded;}
++        Ok(result)
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    #[test]
++    fn subset_roots_interpolation_division_and_poles(){
++        for n in [8,16,32,128] {
++            let d=SubsetDomain::new(n-n/8).unwrap();let m=d.size();
++            let values=(0..m).map(|i|Scalar::from_limbs([i as u64+11,0,0,0])).collect::<Vec<_>>();
++            let a=d.polynomial(&values).unwrap();
++            let full=d.fft.evaluate(a.coefficients()).unwrap();
++            for (i,v) in values.iter().enumerate(){assert_eq!(&full[d.root_index(i)],v);}
++            let product=d.multiply_vanishing(&a).unwrap();let(q,r)=d.divide(&product).unwrap();let mut expected=a.clone();expected.trim();assert_eq!(q,expected);assert_eq!(r,Polynomial::zero());
++            for index in 0..n {
++                let point=d.fft.element(index).unwrap();let weights=d.lagrange_basis(&point);
++                let value=values.iter().zip(weights).fold(Scalar::zero(),|sum,(v,w)|sum+&(v.clone()*&w));
++                assert_eq!(value,a.eval(&point));
++                assert_eq!(d.evaluate_vanishing(&point)==Scalar::zero(),index%8!=1);
++            }
++        }
++    }
++    #[test]
++    fn subset_descriptor_bounds(){
++        for m in [0,1,6,8,15,229375,262144,1<<21]{assert!(SubsetDomain::new(m).is_err());}
++        assert_eq!(SubsetDomain::capacity_size(220029),Some(229376));
++        assert_eq!(SubsetDomain::capacity_size(usize::MAX),None);
++        let d=SubsetDomain::new(7).unwrap();assert!(d.interpolate(&vec![Scalar::zero();8]).is_err());assert!(d.lagrange_basis_at(&Scalar::one(),&[7]).is_err());
++    }
++}
+--- a/cryptography/src/zk/pari/mod.rs
++++ b/cryptography/src/zk/pari/mod.rs
+@@ -6,6 +6,8 @@
+ //! be reused with another relation or setup.
+ 
+ mod circuit;
++mod domain;
++pub use domain::SubsetDomain;
+ #[cfg(any(test, feature = "fuzz"))]
+ commonware_macros::stability_mod!(ALPHA, pub mod fuzz);
+ mod prover;
+@@ -33,7 +35,7 @@
+ };
+ use zeroize::Zeroizing;
+ 
+-const TRANSCRIPT_MARKER: &[u8] = b"_COMMONWARE_CRYPTOGRAPHY_ZK_PARI_PROOF_V1";
++const TRANSCRIPT_MARKER: &[u8] = b"_SHIELDD_NATIVE_SUBSET_PARI_PROOF_V1";
+ 
+ /// Errors returned while constructing or proving a Pari relation.
+ #[derive(Debug, Error)]
+@@ -97,7 +99,7 @@
+ /// binds the challenge to the full verification context.
+ fn transcript_challenge_prebound(
+     transcript: &mut crate::transcript::Transcript,
+-    domain: &ntt::Domain<Scalar>,
++    domain: &SubsetDomain,
+     verifying_key: &VerifyingKey,
+     t: &crate::bls12381::primitives::group::G1,
+ ) -> Scalar {
+@@ -116,7 +118,7 @@
+ 
+ fn transcript_challenge(
+     transcript: &mut crate::transcript::Transcript,
+-    domain: &ntt::Domain<Scalar>,
++    domain: &SubsetDomain,
+     verifying_key: &VerifyingKey,
+     claim: &Claim,
+     t: &crate::bls12381::primitives::group::G1,
+@@ -124,3 +126,5 @@
+     transcript.commit(claim.encode());
+     transcript_challenge_prebound(transcript, domain, verifying_key, t)
+ }
++
++pub use prover::{PolynomialScreen,ScreenOutput};
+--- a/cryptography/src/zk/pari/prover.rs
++++ b/cryptography/src/zk/pari/prover.rs
+@@ -1,3 +1,4 @@
++use super::SubsetDomain as Domain;
+ use super::{
+     Claim, Error, Proof, ProvingKey, Relation, Witness, circuit::dot, sample_scalar,
+     transcript_challenge, transcript_challenge_prebound,
+@@ -8,7 +9,7 @@
+ };
+ use commonware_math::{
+     algebra::{Additive, Field, FieldNTT, Ring, Multiplicative, Space},
+-    ntt::Domain,
++    ntt::Domain as FftDomain,
+     poly::Poly,
+ };
+ type Polynomial = Poly<Scalar>;
+@@ -55,7 +56,7 @@
+         .checked_mul(2)
+         .and_then(|n| n.checked_sub(1))
+         .ok_or(Error::TooLarge)?;
+-    let domain = Domain::new(length)?;
++    let domain = FftDomain::new(length)?;
+     let mut evaluations = domain.evaluate(a.coefficients())?;
+     for value in &mut evaluations {
+         value.square();
+@@ -63,7 +64,7 @@
+     let mut coefficients = domain.interpolate(&evaluations)?;
+     coefficients.truncate(length);
+     let square = Polynomial::from_coefficients(coefficients).ok_or(Error::TooLarge)?;
+-    let (base, remainder) = (square - b).divide_by_vanishing(size)?;
++    let (base, remainder) = Domain::new(size)?.divide(&(square - b))?;
+     if remainder != Polynomial::zero() {
+         return Err(Error::Unsatisfied);
+     }
+@@ -79,7 +80,7 @@
+         cross[i + 1] += &(value.clone() * &(linear.clone() + linear));
+     }
+     let cross = Polynomial::from_coefficients(cross).ok_or(Error::TooLarge)?;
+-    let mask_square = mask_a.multiply(mask_a)?.mul_vanishing(size)?;
++    let mask_square = Domain::new(size)?.multiply_vanishing(&mask_a.multiply(mask_a)?)?;
+     let mut quotient = base + &cross + &mask_square - mask_b;
+     quotient.trim();
+     Ok(quotient)
+@@ -243,11 +244,11 @@
+     let public_evaluations = if prepared.is_none(){Some(evaluate_public(relation,public))}else{None};
+ 
+     stage!(relation_evaluation_ns);
+-    let z_a = Polynomial::interpolate(&domain, &z_a_evaluations)?;
+-    let z_b = Polynomial::interpolate(&domain, &z_b_evaluations)?;
++    let z_a = domain.polynomial(&z_a_evaluations)?;
++    let z_b = domain.polynomial(&z_b_evaluations)?;
+     let (x_a,x_b) = if let Some(prepared)=prepared {prepared.public(relation,public)?}else{
+         let(a,b)=public_evaluations.expect("unprepared evaluations");
+-        (Polynomial::interpolate(&domain,&a)?,Polynomial::interpolate(&domain,&b)?)
++        (domain.polynomial(&a)?,domain.polynomial(&b)?)
+     };
+ 
+     stage!(interpolation_ns);
+@@ -262,14 +263,14 @@
+         .iter()
+         .fold(Scalar::zero(), |sum, opening| sum + opening.scalar());
+     let b_mask = Polynomial::from_coefficients(vec![openings_sum]).ok_or(Error::TooLarge)?;
+-    let z_a_masked = z_a.mask_vanishing(&a_mask, domain.size())?;
+-    let z_b_masked = z_b.mask_vanishing(&b_mask, domain.size())?;
++    let z_a_masked = domain.mask(&z_a,&a_mask)?;
++    let z_b_masked = domain.mask(&z_b,&b_mask)?;
+ 
+     stage!(masking_ns);
+     let quotient = match quotient_method {
+         QuotientMethod::Generic => {
+             let numerator = z_a_masked.multiply(&z_a_masked)? - &z_b_masked;
+-            let (mut quotient, remainder) = numerator.divide_by_vanishing(domain.size())?;
++            let (mut quotient, remainder) = domain.divide(&numerator)?;
+             quotient.trim();
+             if remainder != Polynomial::zero() {
+                 return Err(Error::Unsatisfied);
+@@ -328,7 +329,7 @@
+         return Err(Error::InconsistentOpening);
+     }
+ 
+-    let vanishing_quotient = quotient.mul_vanishing(domain.size())?;
++    let vanishing_quotient = domain.multiply_vanishing(&quotient)?;
+     let r_polynomial = z_b_masked - &x_b + &vanishing_quotient;
+     let r_opening_numerator =
+         r_polynomial - &Polynomial::from_coefficients(vec![v_r]).ok_or(Error::TooLarge)?;
+@@ -436,16 +437,80 @@
+ /// Public-column and coset preparation bound to one checked relation.
+ pub struct PreparedPolynomials {
+     digest: [u8;32],
+-    domain: Domain<Scalar>,
++    domain: Domain,
++    a: Vec<Polynomial>,
++    b: Vec<Polynomial>,
++    powers: Vec<Scalar>,
++    inverse_powers: Vec<Scalar>,
++    vanishing_inverse: Vec<Scalar>,
++}
++impl PreparedPolynomials {
++    pub fn new(relation: &Relation) -> Result<Self,Error> {
++        let domain=Domain::new(relation.size())?;
++        let width=relation.public_inputs()+1;
++        let mut a=vec![vec![Scalar::zero();domain.size()];width];
++        let mut b=a.clone();
++        for (i,row) in relation.rows().iter().enumerate() {
++            for (column,c) in &row.squared { if (*column as usize)<width {a[*column as usize][i]+=c;} }
++            for (column,c) in &row.linear { if (*column as usize)<width {b[*column as usize][i]+=c;} }
++        }
++        let interpolate=|values:Vec<Vec<Scalar>>|->Result<Vec<Polynomial>,Error>{
++            values.iter().map(|column| {
++                if column.iter().all(|v|*v==Scalar::zero()){return Ok(Polynomial::zero());}
++                Ok(domain.polynomial(column)?)
++            }).collect()
++        };
++        let a=interpolate(a)?;let b=interpolate(b)?;
++        let shift=Scalar::coset_shift();let inverse=shift.inv();
++        let vanishing_inverse=domain.coset_inverse(&shift)?;
++        let mut powers=Vec::with_capacity(domain.fft_size());let mut inverse_powers=Vec::with_capacity(domain.fft_size());
++        let(mut p,mut q)=(Scalar::one(),Scalar::one());
++        for _ in 0..domain.fft_size(){powers.push(p.clone());inverse_powers.push(q.clone());p*=&shift;q*=&inverse;}
++        Ok(Self{digest:*relation.digest(),domain,a,b,powers,inverse_powers,vanishing_inverse})
++    }
++    fn public(&self,relation:&Relation,values:&[Scalar])->Result<(Polynomial,Polynomial),Error>{
++        if self.digest!=*relation.digest() || self.domain.size()!=relation.size() || values.len()!=self.a.len(){return Err(Error::RelationMismatch);}
++        let combine=|columns:&[Polynomial]|->Result<Polynomial,Error>{
++            let mut coefficients=vec![Scalar::zero();self.domain.size()];
++            for (column,value) in columns.iter().zip(values){for (out,c) in coefficients.iter_mut().zip(column.coefficients()){*out+=&(c.clone()*value);}}
++            let mut polynomial=Polynomial::from_coefficients(coefficients).ok_or(Error::TooLarge)?;polynomial.trim();Ok(polynomial)
++        };
++        Ok((combine(&self.a)?,combine(&self.b)?))
++    }
++    fn quotient(&self,a:&Polynomial,b:&Polynomial)->Result<Polynomial,Error>{
++        if a.coefficients().len()>self.domain.size() || b.coefficients().len()>self.domain.size(){return Err(Error::RelationMismatch);}
++        let shifted=|polynomial:&Polynomial| polynomial.coefficients().iter().zip(&self.powers).map(|(c,p)|c.clone()*p).collect::<Vec<_>>();
++        let mut evaluated=self.domain.fft().evaluate(&shifted(a))?;let other=self.domain.fft().evaluate(&shifted(b))?;
++        for (i,(x,y)) in evaluated.iter_mut().zip(other).enumerate(){x.square();*x-= &y;*x*=&self.vanishing_inverse[i%8];}
++        let mut coefficients=self.domain.fft().interpolate(&evaluated)?;
++        for (c,p) in coefficients.iter_mut().zip(&self.inverse_powers){*c*=p;}
++        if coefficients[self.domain.size()-1..].iter().any(|c|*c!=Scalar::zero()){return Err(Error::Unsatisfied);}
++        coefficients.truncate(self.domain.size()-1);
++        Polynomial::from_coefficients(coefficients).ok_or(Error::TooLarge)
++    }
++}
++
++/// Ordinary statement binding with relation-bound public polynomials and checked coset division.
++pub fn prove_with_prepared_msm(
++    rng:&mut impl CryptoRng, transcript:&mut Transcript, proving_key:&ProvingKey,
++    relation:&Relation, claim:&Claim, witness:&Witness, strategy:&impl Strategy,
++    prepared:&PreparedPolynomials, msm:&mut dyn FnMut(&[G1],&[Scalar])->Result<G1,Error>,
++)->Result<Proof,Error>{
++    prove_inner(rng,transcript,proving_key,relation,claim,witness,strategy,true,QuotientMethod::Square,Some(prepared),None,msm)
++}
++
++pub struct ReferencePolynomials {
++    digest: [u8;32],
++    domain: FftDomain<Scalar>,
+     a: Vec<Polynomial>,
+     b: Vec<Polynomial>,
+     powers: Vec<Scalar>,
+     inverse_powers: Vec<Scalar>,
+     vanishing_inverse: Scalar,
+ }
+-impl PreparedPolynomials {
++impl ReferencePolynomials {
+     pub fn new(relation: &Relation) -> Result<Self,Error> {
+-        let domain=Domain::new(relation.size())?;
++        let domain=FftDomain::new(relation.size().next_power_of_two())?;
+         let width=relation.public_inputs()+1;
+         let mut a=vec![vec![Scalar::zero();domain.size()];width];
+         let mut b=a.clone();
+@@ -469,7 +534,7 @@
+         Ok(Self{digest:*relation.digest(),domain,a,b,powers,inverse_powers,vanishing_inverse:vanishing.inv()})
+     }
+     fn public(&self,relation:&Relation,values:&[Scalar])->Result<(Polynomial,Polynomial),Error>{
+-        if self.digest!=*relation.digest() || self.domain.size()!=relation.size() || values.len()!=self.a.len(){return Err(Error::RelationMismatch);}
++        if self.digest!=*relation.digest() || self.domain.size()!=relation.size().next_power_of_two() || values.len()!=self.a.len(){return Err(Error::RelationMismatch);}
+         let combine=|columns:&[Polynomial]|->Result<Polynomial,Error>{
+             let mut coefficients=vec![Scalar::zero();self.domain.size()];
+             for (column,value) in columns.iter().zip(values){for (out,c) in coefficients.iter_mut().zip(column.coefficients()){*out+=&(c.clone()*value);}}
+@@ -488,11 +553,93 @@
+     }
+ }
+ 
+-/// Ordinary statement binding with relation-bound public polynomials and checked coset division.
+-pub fn prove_with_prepared_msm(
+-    rng:&mut impl CryptoRng, transcript:&mut Transcript, proving_key:&ProvingKey,
+-    relation:&Relation, claim:&Claim, witness:&Witness, strategy:&impl Strategy,
+-    prepared:&PreparedPolynomials, msm:&mut dyn FnMut(&[G1],&[Scalar])->Result<G1,Error>,
+-)->Result<Proof,Error>{
+-    prove_inner(rng,transcript,proving_key,relation,claim,witness,strategy,true,QuotientMethod::Square,Some(prepared),None,msm)
+-}
++
++fn expand_reference_masks(base:Polynomial,a:&Polynomial,mask_a:&Polynomial,mask_b:&Polynomial,size:usize)->Result<Polynomial,Error>{
++    let [constant, linear] = mask_a.coefficients() else {
++        return Err(Error::RelationMismatch);
++    };
++    let mut cross = vec![Scalar::zero(); a.coefficients().len() + 1];
++    for (i, value) in a.coefficients().iter().enumerate() {
++        cross[i] += &(value.clone() * &(constant.clone() + constant));
++        cross[i + 1] += &(value.clone() * &(linear.clone() + linear));
++    }
++    let cross = Polynomial::from_coefficients(cross).ok_or(Error::TooLarge)?;
++    let mask_square = mask_a.multiply(mask_a)?.mul_vanishing(size)?;
++    let mut quotient = base + &cross + &mask_square - mask_b;
++    quotient.trim();
++    Ok(quotient)
++}
++
++pub struct PolynomialScreen {
++    subset: PreparedPolynomials,
++    reference: ReferencePolynomials,
++    pub subset_preparation_ns: u128,
++    pub reference_preparation_ns: u128,
++}
++pub struct ScreenOutput {
++    pub quotient: Polynomial,
++    pub a_opening: Polynomial,
++    pub r_opening: Polynomial,
++    a_masked: Polynomial,
++    b_masked: Polynomial,
++}
++impl PolynomialScreen {
++    pub fn new(relation:&Relation)->Result<Self,Error>{
++        let start=std::time::Instant::now();let subset=PreparedPolynomials::new(relation)?;let subset_preparation_ns=start.elapsed().as_nanos();
++        let start=std::time::Instant::now();let reference=ReferencePolynomials::new(relation)?;let reference_preparation_ns=start.elapsed().as_nanos();
++        Ok(Self{subset,reference,subset_preparation_ns,reference_preparation_ns})
++    }
++    pub fn work(&self,relation:&Relation,witness:&Witness,subset:bool,eta:[Scalar;2],challenge:&Scalar)->Result<ScreenOutput,Error>{
++        if witness.assignment().relation_digest()!=relation.digest(){return Err(Error::RelationMismatch)}
++        let values=witness.assignment().values();
++        if values.len()!=relation.size(){return Err(Error::RelationMismatch)}
++        let n=if subset{relation.size()}else{relation.size().next_power_of_two()};
++        let mut ae=vec![Scalar::zero();n];let mut be=ae.clone();
++        for (i,row) in relation.rows().iter().enumerate(){ae[i]=dot(&row.squared,values);be[i]=dot(&row.linear,values);}
++        if ae.iter().zip(&be).any(|(a,b)|a.clone()*a!=*b){return Err(Error::Unsatisfied)}
++        let public=witness.assignment().public_assignment();
++        let (a,b,xa,xb)=if subset{
++            let d=&self.subset.domain;let (xa,xb)=self.subset.public(relation,public)?;
++            (d.polynomial(&ae)?,d.polynomial(&be)?,xa,xb)
++        }else{
++            let d=&self.reference.domain;let (xa,xb)=self.reference.public(relation,public)?;
++            (Polynomial::interpolate(d,&ae)?,Polynomial::interpolate(d,&be)?,xa,xb)
++        };
++        let am=Polynomial::from_coefficients(eta.to_vec()).ok_or(Error::TooLarge)?;
++        let bm=Polynomial::from_coefficients(vec![witness.openings().iter().fold(Scalar::zero(),|sum,o|sum+o.scalar())]).ok_or(Error::TooLarge)?;
++        let (a_masked,b_masked,quotient)=if subset{
++            let d=&self.subset.domain;
++            (d.mask(&a,&am)?,d.mask(&b,&bm)?,expand_masks(self.subset.quotient(&a,&b)?,&a,&am,&bm,n)?)
++        }else{
++            (a.mask_vanishing(&am,n)?,b.mask_vanishing(&bm,n)?,expand_reference_masks(self.reference.quotient(&a,&b)?,&a,&am,&bm,n)?)
++        };
++        let mut av=a_masked.eval(challenge);let va=av.clone()-&xa.eval(challenge);av.square();let vr=av-&xb.eval(challenge);
++        let an=a_masked.clone()-&xa-&Polynomial::from_coefficients(vec![va]).ok_or(Error::TooLarge)?;
++        let (mut a_opening,ar)=an.divide_by_linear(challenge);a_opening.trim();if ar!=Scalar::zero(){return Err(Error::InconsistentOpening)}
++        let qz=if subset{self.subset.domain.multiply_vanishing(&quotient)?}else{quotient.mul_vanishing(n)?};
++        let rn=b_masked.clone()-&xb+&qz-&Polynomial::from_coefficients(vec![vr]).ok_or(Error::TooLarge)?;
++        let (mut r_opening,rr)=rn.divide_by_linear(challenge);r_opening.trim();if rr!=Scalar::zero(){return Err(Error::InconsistentOpening)}
++        Ok(ScreenOutput{quotient,a_opening,r_opening,a_masked,b_masked})
++    }
++    pub fn validate(&self,relation:&Relation,witness:&Witness,eta:[Scalar;2],challenge:&Scalar)->Result<(),Error>{
++        if !relation.check_witness(witness){return Err(Error::Unsatisfied)}
++        for subset in [false,true]{
++            let result=self.work(relation,witness,subset,eta.clone(),challenge)?;
++            let product=result.a_masked.multiply(&result.a_masked)?-&result.b_masked;
++            let (mut q,r)=if subset{self.subset.domain.divide(&product)?}else{product.divide_by_vanishing(self.reference.domain.size())?};
++            q.trim();if r!=Polynomial::zero() || q!=result.quotient{return Err(Error::Unsatisfied)}
++            let (mut a,mut b)=evaluate_public(relation,witness.assignment().public_assignment());
++            let (expected_a,expected_b,xa,xb)=if subset{
++                let (xa,xb)=self.subset.public(relation,witness.assignment().public_assignment())?;
++                (self.subset.domain.polynomial(&a)?,self.subset.domain.polynomial(&b)?,xa,xb)
++            }else{
++                let d=&self.reference.domain;a.resize(d.size(),Scalar::zero());b.resize(d.size(),Scalar::zero());
++                let (xa,xb)=self.reference.public(relation,witness.assignment().public_assignment())?;
++                (Polynomial::interpolate(d,&a)?,Polynomial::interpolate(d,&b)?,xa,xb)
++            };
++            let normalize=|mut p:Polynomial|{p.trim();p};
++            if normalize(expected_a)!=normalize(xa) || normalize(expected_b)!=normalize(xb){return Err(Error::RelationMismatch)}
++        }
++        Ok(())
++    }
++}
+--- a/cryptography/src/zk/pari/setup.rs
++++ b/cryptography/src/zk/pari/setup.rs
+@@ -10,7 +10,7 @@
+ use commonware_math::algebra::{Additive, CryptoGroup, Field, Random, Ring};
+ use commonware_parallel::Strategy;
+ use rand_core::CryptoRng;
+-use commonware_math::ntt::Domain;
++use super::SubsetDomain as Domain;
+ use std::collections::BTreeSet;
+ 
+ /// Generate relation-specific Pari proving and verification keys.
+--- a/cryptography/src/zk/pari/simulator.rs
++++ b/cryptography/src/zk/pari/simulator.rs
+@@ -17,7 +17,7 @@
+ };
+ use commonware_math::algebra::{Additive, CryptoGroup, Field, Multiplicative};
+ use rand_core::CryptoRng;
+-use commonware_math::ntt::Domain;
++use super::SubsetDomain as Domain;
+ 
+ /// Simulate an accepting proof for `claim` using the setup trapdoor.
+ ///
+--- a/cryptography/src/zk/pari/types.rs
++++ b/cryptography/src/zk/pari/types.rs
+@@ -8,9 +8,9 @@
+ use std::collections::BTreeMap;
+ 
+ const COMMITMENT_KEY_DIGEST_NAMESPACE: &[u8] =
+-    b"_COMMONWARE_CRYPTOGRAPHY_ZK_PARI_COMMITMENT_KEY_DIGEST";
++    b"_SHIELDD_NATIVE_SUBSET_PARI_COMMITMENT_KEY_DIGEST_V1";
+ const VERIFYING_KEY_DIGEST_NAMESPACE: &[u8] =
+-    b"_COMMONWARE_CRYPTOGRAPHY_ZK_PARI_VERIFYING_KEY_DIGEST";
++    b"_SHIELDD_NATIVE_SUBSET_PARI_VERIFYING_KEY_DIGEST_V1";
+ 
+ /// Randomness opening a native Pari committed-input commitment.
+ #[derive(Clone, Debug, PartialEq, Eq)]
+@@ -442,8 +442,8 @@
+         let relation_digest = <[u8; 32]>::read(buf)?;
+         let commitment_key_digest = <[u8; 32]>::read(buf)?;
+         let domain_size = u32::read(buf)?;
+-        if !domain_size.is_power_of_two() {
+-            return Err(invalid("domain size must be a power of two"));
++        if !super::SubsetDomain::valid_size(domain_size as usize) {
++            return Err(invalid("invalid canonical subset domain"));
+         }
+         let public_inputs = u32::read(buf)?;
+         if !publics_cfg.contains(&(public_inputs as usize)) {
+@@ -806,3 +806,12 @@
+         }
+     }
+ }
++
++impl VerifyingKey {
++    /// Development-only alternate-domain key for proving transcript/domain rejection.
++    pub fn domain_audit_key(&self)->Result<Self,Error> {
++        let mut key=self.clone();key.domain_size=key.domain_size.checked_mul(2).ok_or(Error::TooLarge)?;
++        if !super::SubsetDomain::valid_size(key.domain_size as usize){return Err(Error::TooLarge)}
++        Ok(key.finalize())
++    }
++}
+--- a/cryptography/src/zk/pari/verifier.rs
++++ b/cryptography/src/zk/pari/verifier.rs
+@@ -1,3 +1,4 @@
++use super::SubsetDomain as Domain;
+ use super::{
+     Claim, Proof, VerifyingKey, transcript_challenge, transcript_challenge_prebound,
+ };
+@@ -8,7 +9,7 @@
+ use commonware_codec::Encode;
+ use commonware_math::{
+     algebra::{Additive, CryptoGroup, Multiplicative, Ring, Space},
+-    ntt::Domain,
++    
+ };
+ use commonware_parallel::Strategy;
+ use rand_core::CryptoRng;
+@@ -276,10 +277,9 @@
+     G1::multi_pairing_check(&points, &generators, &final_term, &G2::generator())
+ }
+ 
+-fn verification_domain(verifying_key: &VerifyingKey) -> Result<Domain<Scalar>, ()> {
+-    // Domain::new rounds up to a power of two, so reject sizes it would
+-    // silently alter.
+-    if !verifying_key.domain_size.is_power_of_two() {
++fn verification_domain(verifying_key: &VerifyingKey) -> Result<Domain, ()> {
++    // The retained size canonically binds the FFT size and excluded coset.
++    if !Domain::valid_size(verifying_key.domain_size as usize) {
+         return Err(());
+     }
+     Domain::new(verifying_key.domain_size as usize).map_err(|_| ())
+@@ -290,7 +290,7 @@
+ pub(super) fn evaluate_public_columns(
+     verifying_key: &VerifyingKey,
+     public_inputs: &[Scalar],
+-    domain: &Domain<Scalar>,
++    domain: &Domain,
+     point: &Scalar,
+ ) -> Option<(Scalar, Scalar)> {
+     let mut values = Vec::with_capacity(1 + public_inputs.len());
+@@ -329,7 +329,7 @@
+ fn public_evaluation(
+     verifying_key: &VerifyingKey,
+     public_inputs: &[Scalar],
+-    domain: &Domain<Scalar>,
++    domain: &Domain,
+     challenge: &Scalar,
+     v_a: &Scalar,
+ ) -> Option<Scalar> {

@@ -1,0 +1,5 @@
+{
+  "excluded": true,
+  "kind": "archive assembly only",
+  "reason": "Initial assembly mixed relative paths in the baseline identity with an absolute source root. No executable sources, binaries, keys or timing controller changed. Archive writes were deferred during measurement; normalize source paths via resolve before relative_to. All pre-setup sources and all proof/measurement identities were checked before finalization."
+}

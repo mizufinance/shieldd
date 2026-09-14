@@ -1,0 +1,687 @@
+{
+  "schema": "shieldd.native_subset.polynomial_screen.v1",
+  "relation": "80915f4d2181d1a6ff31c9d17b5855f665946b466fd66e9e7f10660c213a17d5",
+  "reference_relation": "398dd216bcbb0af317026700461f292426e2b46949035772e0c05466c779fedd",
+  "rows": 220009,
+  "columns": 220029,
+  "retained": 229376,
+  "fft": 262144,
+  "subset_preparation_ns": 224132250,
+  "reference_preparation_ns": 200073625,
+  "gates": 6,
+  "samples": [
+    {
+      "scenario": "transfer",
+      "variant": "reference",
+      "block": 0,
+      "measured": false,
+      "ns": 416377417
+    },
+    {
+      "scenario": "transfer",
+      "variant": "subset",
+      "block": 0,
+      "measured": false,
+      "ns": 441008000
+    },
+    {
+      "scenario": "transfer",
+      "variant": "subset",
+      "block": 1,
+      "measured": false,
+      "ns": 441917958
+    },
+    {
+      "scenario": "transfer",
+      "variant": "reference",
+      "block": 1,
+      "measured": false,
+      "ns": 419005959
+    },
+    {
+      "scenario": "transfer",
+      "variant": "reference",
+      "block": 2,
+      "measured": false,
+      "ns": 417213834
+    },
+    {
+      "scenario": "transfer",
+      "variant": "subset",
+      "block": 2,
+      "measured": false,
+      "ns": 439261125
+    },
+    {
+      "scenario": "transfer",
+      "variant": "subset",
+      "block": 3,
+      "measured": true,
+      "ns": 441730375
+    },
+    {
+      "scenario": "transfer",
+      "variant": "reference",
+      "block": 3,
+      "measured": true,
+      "ns": 422405334
+    },
+    {
+      "scenario": "transfer",
+      "variant": "reference",
+      "block": 4,
+      "measured": true,
+      "ns": 417239875
+    },
+    {
+      "scenario": "transfer",
+      "variant": "subset",
+      "block": 4,
+      "measured": true,
+      "ns": 440911042
+    },
+    {
+      "scenario": "transfer",
+      "variant": "subset",
+      "block": 5,
+      "measured": true,
+      "ns": 441020042
+    },
+    {
+      "scenario": "transfer",
+      "variant": "reference",
+      "block": 5,
+      "measured": true,
+      "ns": 419968792
+    },
+    {
+      "scenario": "transfer",
+      "variant": "reference",
+      "block": 6,
+      "measured": true,
+      "ns": 417388875
+    },
+    {
+      "scenario": "transfer",
+      "variant": "subset",
+      "block": 6,
+      "measured": true,
+      "ns": 435887750
+    },
+    {
+      "scenario": "transfer",
+      "variant": "subset",
+      "block": 7,
+      "measured": true,
+      "ns": 438848042
+    },
+    {
+      "scenario": "transfer",
+      "variant": "reference",
+      "block": 7,
+      "measured": true,
+      "ns": 423289458
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "variant": "reference",
+      "block": 0,
+      "measured": false,
+      "ns": 415019750
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "variant": "subset",
+      "block": 0,
+      "measured": false,
+      "ns": 443334458
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "variant": "subset",
+      "block": 1,
+      "measured": false,
+      "ns": 440909958
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "variant": "reference",
+      "block": 1,
+      "measured": false,
+      "ns": 422652917
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "variant": "reference",
+      "block": 2,
+      "measured": false,
+      "ns": 426067958
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "variant": "subset",
+      "block": 2,
+      "measured": false,
+      "ns": 442237542
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "variant": "subset",
+      "block": 3,
+      "measured": true,
+      "ns": 445561375
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "variant": "reference",
+      "block": 3,
+      "measured": true,
+      "ns": 421667375
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "variant": "reference",
+      "block": 4,
+      "measured": true,
+      "ns": 425158208
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "variant": "subset",
+      "block": 4,
+      "measured": true,
+      "ns": 440357084
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "variant": "subset",
+      "block": 5,
+      "measured": true,
+      "ns": 444288083
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "variant": "reference",
+      "block": 5,
+      "measured": true,
+      "ns": 421716166
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "variant": "reference",
+      "block": 6,
+      "measured": true,
+      "ns": 419276459
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "variant": "subset",
+      "block": 6,
+      "measured": true,
+      "ns": 445475542
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "variant": "subset",
+      "block": 7,
+      "measured": true,
+      "ns": 438109208
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "variant": "reference",
+      "block": 7,
+      "measured": true,
+      "ns": 423171042
+    },
+    {
+      "scenario": "transfer_flagged",
+      "variant": "reference",
+      "block": 0,
+      "measured": false,
+      "ns": 426597375
+    },
+    {
+      "scenario": "transfer_flagged",
+      "variant": "subset",
+      "block": 0,
+      "measured": false,
+      "ns": 443527292
+    },
+    {
+      "scenario": "transfer_flagged",
+      "variant": "subset",
+      "block": 1,
+      "measured": false,
+      "ns": 443573250
+    },
+    {
+      "scenario": "transfer_flagged",
+      "variant": "reference",
+      "block": 1,
+      "measured": false,
+      "ns": 424897084
+    },
+    {
+      "scenario": "transfer_flagged",
+      "variant": "reference",
+      "block": 2,
+      "measured": false,
+      "ns": 425853458
+    },
+    {
+      "scenario": "transfer_flagged",
+      "variant": "subset",
+      "block": 2,
+      "measured": false,
+      "ns": 448184584
+    },
+    {
+      "scenario": "transfer_flagged",
+      "variant": "subset",
+      "block": 3,
+      "measured": true,
+      "ns": 450624667
+    },
+    {
+      "scenario": "transfer_flagged",
+      "variant": "reference",
+      "block": 3,
+      "measured": true,
+      "ns": 421133833
+    },
+    {
+      "scenario": "transfer_flagged",
+      "variant": "reference",
+      "block": 4,
+      "measured": true,
+      "ns": 427040875
+    },
+    {
+      "scenario": "transfer_flagged",
+      "variant": "subset",
+      "block": 4,
+      "measured": true,
+      "ns": 454204125
+    },
+    {
+      "scenario": "transfer_flagged",
+      "variant": "subset",
+      "block": 5,
+      "measured": true,
+      "ns": 450915375
+    },
+    {
+      "scenario": "transfer_flagged",
+      "variant": "reference",
+      "block": 5,
+      "measured": true,
+      "ns": 428957083
+    },
+    {
+      "scenario": "transfer_flagged",
+      "variant": "reference",
+      "block": 6,
+      "measured": true,
+      "ns": 419355958
+    },
+    {
+      "scenario": "transfer_flagged",
+      "variant": "subset",
+      "block": 6,
+      "measured": true,
+      "ns": 441865792
+    },
+    {
+      "scenario": "transfer_flagged",
+      "variant": "subset",
+      "block": 7,
+      "measured": true,
+      "ns": 444097041
+    },
+    {
+      "scenario": "transfer_flagged",
+      "variant": "reference",
+      "block": 7,
+      "measured": true,
+      "ns": 420885625
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "variant": "reference",
+      "block": 0,
+      "measured": false,
+      "ns": 432463708
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "variant": "subset",
+      "block": 0,
+      "measured": false,
+      "ns": 448021958
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "variant": "subset",
+      "block": 1,
+      "measured": false,
+      "ns": 442207125
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "variant": "reference",
+      "block": 1,
+      "measured": false,
+      "ns": 427871667
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "variant": "reference",
+      "block": 2,
+      "measured": false,
+      "ns": 425942583
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "variant": "subset",
+      "block": 2,
+      "measured": false,
+      "ns": 445188417
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "variant": "subset",
+      "block": 3,
+      "measured": true,
+      "ns": 454319333
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "variant": "reference",
+      "block": 3,
+      "measured": true,
+      "ns": 430825958
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "variant": "reference",
+      "block": 4,
+      "measured": true,
+      "ns": 423979958
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "variant": "subset",
+      "block": 4,
+      "measured": true,
+      "ns": 447024666
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "variant": "subset",
+      "block": 5,
+      "measured": true,
+      "ns": 449156625
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "variant": "reference",
+      "block": 5,
+      "measured": true,
+      "ns": 419164084
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "variant": "reference",
+      "block": 6,
+      "measured": true,
+      "ns": 426388916
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "variant": "subset",
+      "block": 6,
+      "measured": true,
+      "ns": 444708166
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "variant": "subset",
+      "block": 7,
+      "measured": true,
+      "ns": 444702625
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "variant": "reference",
+      "block": 7,
+      "measured": true,
+      "ns": 424108042
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "variant": "reference",
+      "block": 0,
+      "measured": false,
+      "ns": 425255708
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "variant": "subset",
+      "block": 0,
+      "measured": false,
+      "ns": 448592583
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "variant": "subset",
+      "block": 1,
+      "measured": false,
+      "ns": 448039000
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "variant": "reference",
+      "block": 1,
+      "measured": false,
+      "ns": 428283333
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "variant": "reference",
+      "block": 2,
+      "measured": false,
+      "ns": 424134417
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "variant": "subset",
+      "block": 2,
+      "measured": false,
+      "ns": 445461833
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "variant": "subset",
+      "block": 3,
+      "measured": true,
+      "ns": 454417417
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "variant": "reference",
+      "block": 3,
+      "measured": true,
+      "ns": 424967542
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "variant": "reference",
+      "block": 4,
+      "measured": true,
+      "ns": 432466833
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "variant": "subset",
+      "block": 4,
+      "measured": true,
+      "ns": 449635292
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "variant": "subset",
+      "block": 5,
+      "measured": true,
+      "ns": 453702292
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "variant": "reference",
+      "block": 5,
+      "measured": true,
+      "ns": 428710250
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "variant": "reference",
+      "block": 6,
+      "measured": true,
+      "ns": 435316167
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "variant": "subset",
+      "block": 6,
+      "measured": true,
+      "ns": 447433584
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "variant": "subset",
+      "block": 7,
+      "measured": true,
+      "ns": 454538542
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "variant": "reference",
+      "block": 7,
+      "measured": true,
+      "ns": 426137208
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "variant": "reference",
+      "block": 0,
+      "measured": false,
+      "ns": 432418042
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "variant": "subset",
+      "block": 0,
+      "measured": false,
+      "ns": 455211667
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "variant": "subset",
+      "block": 1,
+      "measured": false,
+      "ns": 457019833
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "variant": "reference",
+      "block": 1,
+      "measured": false,
+      "ns": 451835500
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "variant": "reference",
+      "block": 2,
+      "measured": false,
+      "ns": 430929291
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "variant": "subset",
+      "block": 2,
+      "measured": false,
+      "ns": 454236916
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "variant": "subset",
+      "block": 3,
+      "measured": true,
+      "ns": 446247167
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "variant": "reference",
+      "block": 3,
+      "measured": true,
+      "ns": 424434375
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "variant": "reference",
+      "block": 4,
+      "measured": true,
+      "ns": 422866084
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "variant": "subset",
+      "block": 4,
+      "measured": true,
+      "ns": 445783917
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "variant": "subset",
+      "block": 5,
+      "measured": true,
+      "ns": 444190458
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "variant": "reference",
+      "block": 5,
+      "measured": true,
+      "ns": 427423750
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "variant": "reference",
+      "block": 6,
+      "measured": true,
+      "ns": 423703333
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "variant": "subset",
+      "block": 6,
+      "measured": true,
+      "ns": 447956500
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "variant": "subset",
+      "block": 7,
+      "measured": true,
+      "ns": 444632250
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "variant": "reference",
+      "block": 7,
+      "measured": true,
+      "ns": 428214250
+    }
+  ],
+  "limits": "Actual six affine Transfer assignments. Polynomial stage only: row evaluation/checks, prepared public combination, interpolation, coset quotient, complete A/B masks and both openings. Reference is the existing full-FFT prepared algorithm on identical unpadded rows/columns. Three warmups and five measured pairs; independent masked product/division and public-column oracle outside timing. No subset key/proof/full API claim."
+}

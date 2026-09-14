@@ -1,0 +1,7 @@
+# Native Pari381 subset checkpoint
+
+See [the report](../../../../docs/research/native-subset-proving.md). Retain the candidate at a matched6.27% warm improvement. All44native release tests, three focused prepared/domain-audit tests, six actual coefficient/public-column gates, six real Transfer proof/negative gates, six full-API gates and eighteen unique diagnostic proofs pass. No production release-gated suite, formal certification or phone measurement is claimed.
+
+The cost and full source archives preserve separate stages. Every compiled Rust source, lock and binary matches the full/pre-setup-identity.json snapshot. Full/identity.json additionally binds the finalized replay recipe, upstream metadata and source archive. The initial generator remains available as full/initial-prepare_subset.py. Public documentation/provenance was finalized after measurement; no executable code changed. The final delta applies forward to the exact lifetime baseline and reverses against the measured source.
+
+The first build's scalar-type inference and unused-import errors are retained with the corrected named44-test run. An archive-only relative/absolute-path failure is recorded separately; archive work was deferred during timing and normalized afterward. No incomplete check is counted as a pass. Generated keys, witnesses, binaries and proofs remain in the cache; artifact-hashes.json binds the retained key/proof evidence.
