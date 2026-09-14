@@ -1,0 +1,17 @@
+{
+  "time_ns": 1789376263289283000,
+  "argv": [
+    "go",
+    "-C",
+    "tools/proving-experiment/candidates/comparator377",
+    "test",
+    "-p",
+    "2",
+    "./internal/compliance",
+    "-run",
+    "^TestStrictComparatorScreen",
+    "-count=1"
+  ],
+  "code": 0,
+  "failure": null
+}

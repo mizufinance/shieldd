@@ -1,0 +1,16 @@
+{
+  "peak_rss_bytes": 339886080,
+  "error": "constraint #93894 is not satisfied: 1 \u22c5 1 != 0",
+  "metadata": null,
+  "scenario": "",
+  "witness_sha256": "",
+  "assignment": "",
+  "statement": "",
+  "proof": "",
+  "compile_ns": 0,
+  "key_load_ns": 0,
+  "witness_ns": 0,
+  "solve_ns": 0,
+  "prove_ns": 0,
+  "encode_ns": 0
+}

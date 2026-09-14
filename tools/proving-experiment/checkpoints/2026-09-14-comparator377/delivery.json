@@ -1,0 +1,26 @@
+{
+  "schema": "shieldd.comparator377_checkpoint.v1",
+  "files": {
+    "README.md": "8441d2250af27d1828aff5db9d182200dc4b47e509aa3c1aa6d71164779fa418",
+    "comparator377-build.exit.json": "f31ae3280a0ab3e41359934375d812ce2d4bc47b6cff71e69ff646c6b4248c4c",
+    "comparator377-build.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "comparator377-build.resources.jsonl": "51574b228fe5b1ce0d9b3c78465ef4213ddd8b53044c0e5ae0633ef346ce4091",
+    "comparator377-compile-run.exit.json": "a292eb03ba61a8ccdcffafc80da487859ac86ce67bdecd5418b2149ff6094b90",
+    "comparator377-compile-run.log": "1ead12a8d81722a280e47695bc510f35c87962fa3f97a9f51e378e98895fa0a7",
+    "comparator377-compile-run.resources.jsonl": "af00e1a5c658bda02ed0eb4657cd13d51776ae3f44080e3ef44716d047955895",
+    "comparator377-lowering.exit.json": "b8147b0fbd37a024307aea2715dfe88d7cdf1085d5c7ce69287fc1da2025f05d",
+    "comparator377-lowering.log": "8b1ccf0ab46a5814d28123851956ea1223144d37b27c99d2bba74580daef4cbe",
+    "comparator377-lowering.resources.jsonl": "109666a729a822d514459589431f9f78234101d521fd046e7970a09384d85738",
+    "comparator377-tests.exit.json": "f9fbab0588a7cd5def9770bce0fd636fea628ac70c95eb76bc203e3f6c0cd764",
+    "comparator377-tests.log": "d27d10d6ae9c6caf24b224a7e9d45fa46f8b9cfdd9ea19df8fd230d89aeced77",
+    "comparator377-tests.resources.jsonl": "e2857d2984b36d1b11b5620bace11560ec36f55a6c8856c733cadf17867a9554",
+    "identity.json": "ad40f3e807e546577a1f17a105f931a780f7551f0613b7886ab9a13cedf181dd",
+    "initialization.json": "beb5b9aa5f769e8ae91970af2303a106b47e2dcf1e75fea739e3cf9bbd24ca76",
+    "invalid.json": "1f2c6a48fa7105800c63e7dd84e56f5bd4e25c42f3f022b08519bae314e20262",
+    "lowering.json": "123d018967694db277c7d01876ee555fa21fe2e7fd080f467d1f678c5a4eab5e",
+    "metadata.json": "cb8253eaeb0803ac0274b284e7b76324c3299a79a4ced2724cdf2c3bb1d80402",
+    "solve-responses.json": "b936a253f7d25da5999d27219921e088c421ec86adb2d7a153c03290b62e0b37",
+    "solved-complete.json": "d873589425d997c4c98df61a09946b75b28927e88d5bacf94903d11245707af3",
+    "source.tar.gz": "d9c8a0b9df9c2d98ce11d8261d4ac675f04676282e07d7fa00628afcb446b065"
+  }
+}

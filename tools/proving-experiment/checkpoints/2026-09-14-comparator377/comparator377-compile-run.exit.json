@@ -1,0 +1,10 @@
+{
+  "time_ns": 1789376449166661000,
+  "argv": [
+    "python3",
+    "tools/proving-experiment/comparator377_compile.py",
+    "tools/proving-experiment/cache/comparator377-compile"
+  ],
+  "code": 0,
+  "failure": null
+}

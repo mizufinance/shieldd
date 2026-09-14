@@ -394,3 +394,7 @@ Retain the isolated native component, defer standalone setup. Full primary techn
 ## 2026-09-14 — inclusive comparator and exact reuse
 
 Retain polynomial comparator for a smaller-domain full proving gate. LSB-first state t+le*(x+y−2t), x=1−a/y=b/t=xy, starts1 forinclusive and retains finalBoolassert/inputpredicates. FullC220009→191516rows,220029→191501columns;191516nowfitsM196608. ExistingM229376screen passes all6original/converted identities/negatives and36prepared solves. Two release tests cover1048cases; standardcheckedsolve214.078→190.925ms, no provingclaim. Correctedidentity inventory184hashes/0repeats,42decompositions/7repeats663rows. RedactedScalarDebug alias bug reproduced andfixedbeforeusingcounts; fourtests pass, initialcounts rejected. No cache refactor for663rows alone. `checkpoints/2026-09-14-comparator-reuse`, report/rawcached. Nextsamealgebra strictinitial0 in A/B custom comparators; C3/4domain root/vanishing/mask/FS/key/assignment gates beforefreshsetup. Broadercampaignactive; no new phone/productionrelease/formalclaim.
+
+## Completed BLS12-377 comparator screen
+
+The [strict-comparison screen](../../docs/research/comparator377-screen.md) passes two focused Go tests, all six original/lowered/converted assignment gates and all18 wire-mutation gates. Original rows155122→154224; converted rows226578→224778. No new setup or proof measurement yet. Apply this improvement fairly to both selected A and B. The separate native comparator3/4-domain candidate is undergoing polynomial and key-boundary gates; the broader campaign remains active.

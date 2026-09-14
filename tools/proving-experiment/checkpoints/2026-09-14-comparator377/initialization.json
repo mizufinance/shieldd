@@ -1,0 +1,24 @@
+{
+  "peak_rss_bytes": 253394944,
+  "error": "",
+  "metadata": {
+    "schema": "shieldd.proof_spike.assignment.v1",
+    "modulus": "8444461749428370424248824938781546531375899335154063827935233455917409239041",
+    "constraints": 154224,
+    "public": 2,
+    "secret": 518,
+    "internal": 141208,
+    "circuit_sha256": "94a894fdd2ae5cc993d7e96a4fb3e1c0461745be6da73d1d11acbc6443717d79"
+  },
+  "scenario": "",
+  "witness_sha256": "",
+  "assignment": "",
+  "statement": "",
+  "proof": "",
+  "compile_ns": 422477500,
+  "key_load_ns": 0,
+  "witness_ns": 0,
+  "solve_ns": 0,
+  "prove_ns": 0,
+  "encode_ns": 0
+}

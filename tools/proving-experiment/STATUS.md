@@ -91,3 +91,7 @@ The older `tools/zkpari-spike` campaign and `complete-shieldd-proof-spike` autom
 ## Completed inclusive-comparator and exact-reuse screen
 
 [Report](../../docs/research/native-comparator-reuse-screen.md): C220009→191516rows and220029→191501columns; M229376 currently retained, but M196608 fits. Polynomial LSB-first inclusive comparator keeps input predicates and final BoolVar assertion. Two release tests check1048small/boundary/wrong-answer cases; six full Transfer original/converted identities and invalid-witness/statement negatives pass,18prepared solves pervariant. Standard checked-solve median214.078→190.925ms; no full proving claim. Guard0/swap0/no competition. Exact reuse:184hashes/0repeats,42decompositions/7repeats663rows. Initial redacted-native-scalar diagnostic aliases were reproduced, rejected and corrected before any optimization; four identity tests pass. Sources/raw results `cache/reuse-comparator`, checkpoint `2026-09-14-comparator-reuse`. Continue A/B strict-comparator gate and C3/4domain/polynomial gate before setup.
+
+## Completed BLS12-377 comparator screen
+
+The [strict-comparison screen](../../docs/research/comparator377-screen.md) passes two focused Go tests, all six original/lowered/converted assignment gates and all18 wire-mutation gates. Original rows155122→154224; converted rows226578→224778. No new setup or proof measurement yet. Apply this improvement fairly to both selected A and B. The separate native comparator3/4-domain candidate is undergoing polynomial and key-boundary gates; the broader campaign remains active.

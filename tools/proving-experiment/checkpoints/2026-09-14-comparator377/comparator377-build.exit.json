@@ -1,0 +1,16 @@
+{
+  "time_ns": 1789376378065066000,
+  "argv": [
+    "go",
+    "-C",
+    "tools/proving-experiment/candidates/comparator377",
+    "build",
+    "-p",
+    "2",
+    "-o",
+    "../../cache/comparator377-proofspike",
+    "./cmd/proofspike"
+  ],
+  "code": 0,
+  "failure": null
+}

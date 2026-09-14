@@ -1,0 +1,24 @@
+   Compiling shieldd-proving-experiment v0.1.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment)
+warning: struct `Circuit` is never constructed
+   --> examples/../src/bridge.rs:171:12
+    |
+171 | pub struct Circuit {
+    |            ^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` on by default
+
+warning: function `validate_converted` is never used
+   --> examples/../src/bridge.rs:240:8
+    |
+240 | pub fn validate_converted(circuit: Circuit) -> Result<usize> {
+    |        ^^^^^^^^^^^^^^^^^^
+
+warning: `shieldd-proving-experiment` (example "comparator_compile") generated 2 warnings
+    Finished `release` profile [optimized] target(s) in 2.83s
+     Running `tools/proving-experiment/target/release/examples/comparator_compile tools/proving-experiment/cache/comparator377-compile`
+transfer: original/converted/mapping and negatives passed
+transfer_unregulated: original/converted/mapping and negatives passed
+transfer_flagged: original/converted/mapping and negatives passed
+transfer_accumulating: original/converted/mapping and negatives passed
+transfer_over_limit_disclosure: original/converted/mapping and negatives passed
+transfer_accumulator_continuation: original/converted/mapping and negatives passed

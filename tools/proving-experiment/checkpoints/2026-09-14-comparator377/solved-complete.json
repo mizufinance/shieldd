@@ -1,0 +1,19 @@
+{
+  "schema": "shieldd.comparator377_solved.v1",
+  "files": {
+    "identity.json": "ad40f3e807e546577a1f17a105f931a780f7551f0613b7886ab9a13cedf181dd",
+    "initialization.json": "beb5b9aa5f769e8ae91970af2303a106b47e2dcf1e75fea739e3cf9bbd24ca76",
+    "invalid.json": "1f2c6a48fa7105800c63e7dd84e56f5bd4e25c42f3f022b08519bae314e20262",
+    "metadata.json": "cb8253eaeb0803ac0274b284e7b76324c3299a79a4ced2724cdf2c3bb1d80402",
+    "source.tar.gz": "d9c8a0b9df9c2d98ce11d8261d4ac675f04676282e07d7fa00628afcb446b065",
+    "transfer.json": "11a5e031faca6000e1ae260bd164969b9657fa21701363437046c5c8e8ddb16a",
+    "transfer.r1cs": "94a894fdd2ae5cc993d7e96a4fb3e1c0461745be6da73d1d11acbc6443717d79",
+    "transfer_accumulating.json": "ed118100b489c2387ae863f435ba4deaabfe454e901d0cb67b3ee41789f19f32",
+    "transfer_accumulator_continuation.json": "76928c3e00acd7f80fe74e7ee036a630a52837c36bbf0ec49d0256c269343934",
+    "transfer_flagged.json": "c772731eceef20ee05e8f249a8bbeb31a0b0d25ce1ea66a1b9111a2661fc754c",
+    "transfer_over_limit_disclosure.json": "86e7ae5445e8290aae3b6e0f2ecc942400e6a94987eaa3d4f28fb29579a66f76",
+    "transfer_unregulated.json": "aa1f80a3556cfcf855c8f41a85efee37b86549da16c0c4ea7d4205aa5dd707cd",
+    "worker": "e3be5267397545b707a0bf658aa597db4b72ef04768d2c50051baa0671de3cc1",
+    "worker.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}
