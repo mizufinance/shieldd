@@ -1,0 +1,5 @@
+# shieldd.local/square377 [shieldd.local/square377.test]
+./square_test.go:12:30: q0 * qInvNeg (constant 91893752504881257682351033800651177983 of type uint64) overflows uint64
+FAIL	shieldd.local/square377 [build failed]
+?   	shieldd.local/square377/cmd/screen	[no test files]
+FAIL

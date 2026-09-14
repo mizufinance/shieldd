@@ -1,0 +1,8 @@
+=== RUN   TestCanonicalOracleAndAliasing
+    square_test.go:40: 5231 canonical cases: independent big-integer oracle, current assembly, aliasing, input preservation
+--- PASS: TestCanonicalOracleAndAliasing (0.01s)
+=== RUN   TestRepeatedInPlace
+--- PASS: TestRepeatedInPlace (0.02s)
+PASS
+ok  	shieldd.local/square377	0.182s
+?   	shieldd.local/square377/cmd/screen	[no test files]

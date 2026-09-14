@@ -19,13 +19,19 @@ Sources, raw evidence, plots and exact test records are preserved in `checkpoint
 
 
 
+## Completed six-limb ARM64 square screen
+
+[The bounded primitive comparison](../../docs/research/arm64-square377-screen.md) rejects the adapted dedicated Go square: current gnark ARM64 assembly 15.224742ns→dedicated 17.288137ns, 13.55% slower. Two focused tests cover5231canonical cases with big-integer/assembly/alias checks and64-step chains. All16timed outputs match,3warmups+5samples each with256passes. Source, initial test compile failure, corrected tests and guard records are in `checkpoints/2026-09-14-square377`. No MSM/prover integration, real proof or production release suite ran; selected A/B/C remain unchanged.
+
+This closes the available old dedicated Go kernel, not every possible handwritten assembly. BothA/B would need a fair shared arithmetic update if a future candidate wins. Four-limb scalar arithmetic and Cblst are separate. Next distinct avenue is a bounded source/feasibility review of safe SIMD/WASM or curve-correct localGPU MSM, charging preparation and transfer; no large sweep or original verifier campaign.
+
 ## Completed native prepared-key storage
 
 The [full-API storage comparison](../../docs/research/native-prepared-key381.md) records first proof 19.498153834→15.382318917s (21.11% lower in single observations), warm median 2.088150209→2.103833792s (0.75% slower), and warm peak RSS 1211662336→1165770752B. Three warmups, five warm requests and one first proof per representation; all18 unique proofs verify under both workers. The stored proving key grows 51,671,551→98,612,487B; the218B API proof package stays unchanged.
 
 Only four nonidentity query roles use checked96B storage. Full decoded-key and original canonical-byte equality, eight actual-scale malformed-key cases, two component tests, five Commonware release tests, six seeded proof equalities, six fullAPI valid/negative gates and scopedWASM all pass. Existing polynomial gates are reused because arithmetic is unchanged. Offline conversion/validation totals33.085567708s before final file writes, separately charged. Guards0, zero swap/competition. Exact run `cache/c-prepared-key381-desktop`;90-file compact evidence `checkpoints/2026-09-14-prepared-key381`.
 
-Retain the development storage option for faster initialization when its extra46.94MB is acceptable. No warm-time gain, phone measurement, production release-gated suite or formal certification is claimed. The broader campaign remains active. Next bounded avenue is the previously identified dedicated ARM64 field-squaring feasibility screen; inspect the selected primitive and actual cost before implementing or running a full proof. Do not repeat completed FFT/key grids or restart the stopped verification campaign.
+Retain the development storage option for faster initialization when its extra46.94MB is acceptable. No warm-time gain, phone measurement, production release-gated suite or formal certification is claimed. The broader campaign remains active. The subsequent dedicated squaring screen is recorded above. Do not repeat completed FFT/key grids or restart the stopped verification campaign.
 
 ## Completed bounded parallel FFT
 

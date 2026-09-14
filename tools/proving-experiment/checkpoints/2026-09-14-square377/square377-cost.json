@@ -1,0 +1,156 @@
+{
+  "schema": "shieldd.square377_primitive.v1",
+  "architecture": "arm64",
+  "go_version": "go1.25.7",
+  "gomaxprocs": 2,
+  "corpus_sha256": "f789e41150511a373229220d7ba441ef52c09b86c87a4fae7fb8ddddbc285aaf",
+  "inputs": 5231,
+  "passes": 256,
+  "samples": [
+    {
+      "block": 0,
+      "method": "reference",
+      "warmup": true,
+      "nanoseconds": 24427250,
+      "operations": 1339136,
+      "output_sha256": "2468558854b73bf94f3dbd52c823a69516336c9f638b19ac8dd693bbdd130384",
+      "exact_output": true
+    },
+    {
+      "block": 0,
+      "method": "dedicated",
+      "warmup": true,
+      "nanoseconds": 24544542,
+      "operations": 1339136,
+      "output_sha256": "2468558854b73bf94f3dbd52c823a69516336c9f638b19ac8dd693bbdd130384",
+      "exact_output": true
+    },
+    {
+      "block": 1,
+      "method": "dedicated",
+      "warmup": true,
+      "nanoseconds": 23224208,
+      "operations": 1339136,
+      "output_sha256": "2468558854b73bf94f3dbd52c823a69516336c9f638b19ac8dd693bbdd130384",
+      "exact_output": true
+    },
+    {
+      "block": 1,
+      "method": "reference",
+      "warmup": true,
+      "nanoseconds": 20563166,
+      "operations": 1339136,
+      "output_sha256": "2468558854b73bf94f3dbd52c823a69516336c9f638b19ac8dd693bbdd130384",
+      "exact_output": true
+    },
+    {
+      "block": 2,
+      "method": "reference",
+      "warmup": true,
+      "nanoseconds": 20427166,
+      "operations": 1339136,
+      "output_sha256": "2468558854b73bf94f3dbd52c823a69516336c9f638b19ac8dd693bbdd130384",
+      "exact_output": true
+    },
+    {
+      "block": 2,
+      "method": "dedicated",
+      "warmup": true,
+      "nanoseconds": 23325625,
+      "operations": 1339136,
+      "output_sha256": "2468558854b73bf94f3dbd52c823a69516336c9f638b19ac8dd693bbdd130384",
+      "exact_output": true
+    },
+    {
+      "block": 3,
+      "method": "dedicated",
+      "warmup": false,
+      "nanoseconds": 23332125,
+      "operations": 1339136,
+      "output_sha256": "2468558854b73bf94f3dbd52c823a69516336c9f638b19ac8dd693bbdd130384",
+      "exact_output": true
+    },
+    {
+      "block": 3,
+      "method": "reference",
+      "warmup": false,
+      "nanoseconds": 20476792,
+      "operations": 1339136,
+      "output_sha256": "2468558854b73bf94f3dbd52c823a69516336c9f638b19ac8dd693bbdd130384",
+      "exact_output": true
+    },
+    {
+      "block": 4,
+      "method": "reference",
+      "warmup": false,
+      "nanoseconds": 20387000,
+      "operations": 1339136,
+      "output_sha256": "2468558854b73bf94f3dbd52c823a69516336c9f638b19ac8dd693bbdd130384",
+      "exact_output": true
+    },
+    {
+      "block": 4,
+      "method": "dedicated",
+      "warmup": false,
+      "nanoseconds": 22957750,
+      "operations": 1339136,
+      "output_sha256": "2468558854b73bf94f3dbd52c823a69516336c9f638b19ac8dd693bbdd130384",
+      "exact_output": true
+    },
+    {
+      "block": 5,
+      "method": "dedicated",
+      "warmup": false,
+      "nanoseconds": 23151166,
+      "operations": 1339136,
+      "output_sha256": "2468558854b73bf94f3dbd52c823a69516336c9f638b19ac8dd693bbdd130384",
+      "exact_output": true
+    },
+    {
+      "block": 5,
+      "method": "reference",
+      "warmup": false,
+      "nanoseconds": 20334375,
+      "operations": 1339136,
+      "output_sha256": "2468558854b73bf94f3dbd52c823a69516336c9f638b19ac8dd693bbdd130384",
+      "exact_output": true
+    },
+    {
+      "block": 6,
+      "method": "reference",
+      "warmup": false,
+      "nanoseconds": 20388000,
+      "operations": 1339136,
+      "output_sha256": "2468558854b73bf94f3dbd52c823a69516336c9f638b19ac8dd693bbdd130384",
+      "exact_output": true
+    },
+    {
+      "block": 6,
+      "method": "dedicated",
+      "warmup": false,
+      "nanoseconds": 23096667,
+      "operations": 1339136,
+      "output_sha256": "2468558854b73bf94f3dbd52c823a69516336c9f638b19ac8dd693bbdd130384",
+      "exact_output": true
+    },
+    {
+      "block": 7,
+      "method": "dedicated",
+      "warmup": false,
+      "nanoseconds": 23239250,
+      "operations": 1339136,
+      "output_sha256": "2468558854b73bf94f3dbd52c823a69516336c9f638b19ac8dd693bbdd130384",
+      "exact_output": true
+    },
+    {
+      "block": 7,
+      "method": "reference",
+      "warmup": false,
+      "nanoseconds": 20546542,
+      "operations": 1339136,
+      "output_sha256": "2468558854b73bf94f3dbd52c823a69516336c9f638b19ac8dd693bbdd130384",
+      "exact_output": true
+    }
+  ],
+  "limits": "Six-limb BLS12-377 base-field primitive, synthetic canonical boundary/random corpus. Each method uses identical indirect-call loops with 256 dependent in-place passes. Cloning, equality, hashing and disposal outside clocks. Three warmups/five measurements; no MSM, complete proving, scalar-field, phone or protocol speed claim."
+}

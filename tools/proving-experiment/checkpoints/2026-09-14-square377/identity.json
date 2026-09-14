@@ -1,0 +1,18 @@
+{
+  "schema": "shieldd.square377_frozen_source.v1",
+  "files": {
+    "tools/proving-experiment/candidates/square377/LICENSE-Apache": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+    "tools/proving-experiment/candidates/square377/README.md": "401361d2769c3da624bb4c40dd29205ee033768cdc70fcb387c32f265b434e77",
+    "tools/proving-experiment/candidates/square377/cmd/screen/main.go": "56e19ff4d0146d7afaa9003d2c8b0f269e327941970015b1141eb3128bb34ca5",
+    "tools/proving-experiment/candidates/square377/go.mod": "14595ad7795676116919afd6c1a8c7a03ed02098ef5ca9ca88014402bb06a3d2",
+    "tools/proving-experiment/candidates/square377/go.sum": "93fed06e3b50eda2fd15b31bce7ea377e26b610b3f8e24386e442f62eec6fda6",
+    "tools/proving-experiment/candidates/square377/inputs.go": "6cbaae45aff3d4d43e05386a536a53429331fce707542fb987a60ddf1a558ba4",
+    "tools/proving-experiment/candidates/square377/square.go": "9be67c9bfa83a955f9644b968ec4757b365800f918f1ded961b1b3d2b8a4a608",
+    "tools/proving-experiment/candidates/square377/square_test.go": "935472b7594edf228cc4de6aca5ee8d15caffc21342e8af0f7f8b798c1053612",
+    "tools/proving-experiment/candidates/square377/upstream.json": "6bea4f3f391861f9c019a0b03391ef7edd8ab16d042674ed2aa289f8bb3ee617"
+  },
+  "binaries": {
+    "worker": "fcbe0fa650244fb508a13e9c21f2e3f545002d72b493f400a9c09e0d55c260f4",
+    "source.tar.gz": "6f440bc0bbab6bfbfe13711dc6f220759e66870f6ab07f485851934fcfa216b3"
+  }
+}

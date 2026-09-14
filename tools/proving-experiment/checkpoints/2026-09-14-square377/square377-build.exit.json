@@ -1,0 +1,17 @@
+{
+  "time_ns": 1789386052152245000,
+  "argv": [
+    "go",
+    "build",
+    "-C",
+    "tools/proving-experiment/candidates/square377",
+    "-p",
+    "2",
+    "-trimpath",
+    "-o",
+    "../../cache/square377-source/worker",
+    "./cmd/screen"
+  ],
+  "code": 0,
+  "failure": null
+}

@@ -1,0 +1,16 @@
+{
+  "time_ns": 1789386025782095000,
+  "argv": [
+    "go",
+    "test",
+    "-C",
+    "tools/proving-experiment/candidates/square377",
+    "-p",
+    "2",
+    "-count=1",
+    "-v",
+    "./..."
+  ],
+  "code": 0,
+  "failure": null
+}

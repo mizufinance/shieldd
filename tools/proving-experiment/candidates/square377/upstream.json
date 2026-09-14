@@ -1,0 +1,36 @@
+{
+  "schema": "shieldd.square377_sources.v1",
+  "upstream_revision": "6ae651b7b1664b81e7dac19c4a038eb014e93237",
+  "current_gnark_crypto": "v0.20.1",
+  "files": [
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/edmsm-harness/msm/bls12-377/fp/element_mul_arm64.go",
+      "sha256": "9f6e3de8fa3381be1004016c149433c8b20b9bfe165563e63b28b33dec1fc8ca"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/edmsm-harness/msm/bls12-377/fp/element.go",
+      "sha256": "9fb69188b8bd7dbb8c8a11076ec09d6c945a24b0079c030f6481764027c170d2"
+    },
+    {
+      "path": "/Users/antoinecyr/go/pkg/mod/github.com/consensys/gnark-crypto@v0.20.1/ecc/bls12-377/fp/element_arm64.go",
+      "sha256": "23f1624c6eab07de444029921afdd74446f5cb0cfd78e093667a65993bdb0638"
+    },
+    {
+      "path": "/Users/antoinecyr/go/pkg/mod/github.com/consensys/gnark-crypto@v0.20.1/ecc/bls12-377/fp/element_arm64.s",
+      "sha256": "d4615df3e3c87640f722e6cacb61976951b3af9c43005aebaddb62cf9c29bfca"
+    },
+    {
+      "path": "/Users/antoinecyr/go/pkg/mod/github.com/consensys/gnark-crypto@v0.20.1/field/asm/element_6w/element_6w_arm64.s",
+      "sha256": "8ced71ea3fa612ed96c22d9711e6a5656ace7faeddc4455f734a6b457d4813a8"
+    },
+    {
+      "path": "/Users/antoinecyr/go/pkg/mod/github.com/consensys/gnark-crypto@v0.20.1/ecc/bls12-377/g1.go",
+      "sha256": "f39b0ec5b6d47947be883692264eb14df399de3837cdb80419957a84d5c22625"
+    },
+    {
+      "path": "/Users/antoinecyr/go/pkg/mod/github.com/consensys/gnark-crypto@v0.20.1/ecc/bls12-377/fr/element_arm64.go",
+      "sha256": "0f1d067d3ac267db91b254e8243c43991469d66608b1ccae39f4ea799ba01122"
+    }
+  ],
+  "adaptation": "Dedicated six-limb square body only, same modulus/Montgomery reduction; external fp.Element function and unconditional subtract/select final canonical reduction. Current assembly multiplication unchanged. No module cache edit or scalar-field replacement."
+}

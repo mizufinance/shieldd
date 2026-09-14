@@ -1,0 +1,26 @@
+{
+  "schema": "shieldd.square377_checkpoint.v1",
+  "hashes": {
+    "README.md": "2a3c517949b699e1d607ac946fff70c4f50ae3c2a6c00d166fb0f6c29b851a6f",
+    "guard.py": "62345292b754f6a40da22fb68fc46a233f530d64685467cbc2d290c570c2f706",
+    "identity.json": "a313ea0b8d428682d151c3213da27315f5ee81951f043a671ba6028b579a3883",
+    "source.tar.gz": "6f440bc0bbab6bfbfe13711dc6f220759e66870f6ab07f485851934fcfa216b3",
+    "square377-analysis.json": "2d1f496e49ba87754d617b8e85d2cf9a5ace4ea38e421ad7901093a6b521b5de",
+    "square377-build-256.exit.json": "1cd4daf5781613040bf0e6f75a865644b16c7e81397c4c91bbfcdeabaf9cfa32",
+    "square377-build-256.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "square377-build-256.resources.jsonl": "bedbc21973da612d021e8472cacce3d39360bf76b0a084f01d87f3691dc77d1b",
+    "square377-build.exit.json": "58b32656e149b11b39c8cc6a6169855ccf768d6b2fda6bddd1f3253117ea8457",
+    "square377-build.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "square377-build.resources.jsonl": "1069ba4cbaaaf039c45e3f1ca144fd9f0b22fbd0254fc9f728dbd3c826ff2ca6",
+    "square377-cost.exit.json": "778bfef581acf74ab4bc9e313291081921c500b5af010a867a33e923363ffa2a",
+    "square377-cost.json": "d5e4f7f75b4fddca99714348d38c23632f8349109e8a6b0feeb5ca198fd8225c",
+    "square377-cost.log": "d5e4f7f75b4fddca99714348d38c23632f8349109e8a6b0feeb5ca198fd8225c",
+    "square377-cost.resources.jsonl": "27938f5e2d7e23ac96c3352df54a07be5cbbe36e3d90742634f4e529cb344cb4",
+    "square377-tests-runtime-word.exit.json": "ec48e12ebabbf3574823c034acd0f7333705fca3dddbbc2b066e40d9bf6f8c4c",
+    "square377-tests-runtime-word.log": "4e8b83553733da52d04af9fa6d81878bd734e7da2676224f5e9d93f032e56ea6",
+    "square377-tests-runtime-word.resources.jsonl": "ae289bccfeae0c77f3cedaa33b875029312005a83d1111f9dd43a7dee1f67039",
+    "square377-tests.exit.json": "88782345feed48ea109acadcaabf69664f44793cba0bd6e9c357e1952b5fe8a4",
+    "square377-tests.log": "a1194815fe4a29d075c2908b97666d615e2da389c9c711304ca331bdec2b71e6",
+    "square377-tests.resources.jsonl": "59270d8daf0a5e9454da9cdc4b3f2fdf5311dbbdcad228998fd62c354b2c76ef"
+  }
+}

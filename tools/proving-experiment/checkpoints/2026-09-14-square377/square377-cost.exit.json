@@ -1,0 +1,9 @@
+{
+  "time_ns": 1789386093030698000,
+  "argv": [
+    "tools/proving-experiment/cache/square377-source/worker",
+    "tools/proving-experiment/cache/square377-cost.json"
+  ],
+  "code": 0,
+  "failure": null
+}
