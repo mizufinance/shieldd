@@ -1,0 +1,232 @@
+{
+  "schema": "shieldd.native_prepared_ntt.proof_gate.v1",
+  "initialization": {
+    "relation_preparation_ns": 1670569583,
+    "key_file_read_ns": 9209209,
+    "key_decode_ns": 14750884875,
+    "key_canonical_roundtrip_ns": 142184292,
+    "key_checked_decode_ns": 14893069042,
+    "total_ns": 16573490875
+  },
+  "samples": [
+    {
+      "scenario": "transfer",
+      "phase": "gate",
+      "block": 0,
+      "method": "current",
+      "wall_ns": 2970414125,
+      "timings": {
+        "checked_witness_decode_ns": 37417,
+        "construction_solving_ns": 47071666,
+        "assignment_mapping_ns": 123462125,
+        "claim_ns": 109375,
+        "prove_ns": 2799129500,
+        "encoding_ns": 9500,
+        "cleanup_ns": 593750,
+        "total_ns": 2970413542
+      },
+      "verified": true
+    },
+    {
+      "scenario": "transfer",
+      "phase": "gate",
+      "block": 0,
+      "method": "prepared_coset",
+      "wall_ns": 2627987917,
+      "timings": {
+        "checked_witness_decode_ns": 44334,
+        "construction_solving_ns": 46981417,
+        "assignment_mapping_ns": 126827709,
+        "claim_ns": 108875,
+        "prove_ns": 2453654459,
+        "encoding_ns": 17542,
+        "cleanup_ns": 353000,
+        "total_ns": 2627987667
+      },
+      "verified": true
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "phase": "gate",
+      "block": 0,
+      "method": "current",
+      "wall_ns": 2983773834,
+      "timings": {
+        "checked_witness_decode_ns": 31500,
+        "construction_solving_ns": 45633583,
+        "assignment_mapping_ns": 128449833,
+        "claim_ns": 109042,
+        "prove_ns": 2809180375,
+        "encoding_ns": 11084,
+        "cleanup_ns": 357625,
+        "total_ns": 2983773333
+      },
+      "verified": true
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "phase": "gate",
+      "block": 0,
+      "method": "prepared_coset",
+      "wall_ns": 2632202208,
+      "timings": {
+        "checked_witness_decode_ns": 31375,
+        "construction_solving_ns": 48236125,
+        "assignment_mapping_ns": 127585000,
+        "claim_ns": 109167,
+        "prove_ns": 2455899625,
+        "encoding_ns": 11042,
+        "cleanup_ns": 329000,
+        "total_ns": 2632201917
+      },
+      "verified": true
+    },
+    {
+      "scenario": "transfer_flagged",
+      "phase": "gate",
+      "block": 0,
+      "method": "current",
+      "wall_ns": 2983698292,
+      "timings": {
+        "checked_witness_decode_ns": 31167,
+        "construction_solving_ns": 46098791,
+        "assignment_mapping_ns": 124873167,
+        "claim_ns": 109416,
+        "prove_ns": 2811947250,
+        "encoding_ns": 10959,
+        "cleanup_ns": 627000,
+        "total_ns": 2983697958
+      },
+      "verified": true
+    },
+    {
+      "scenario": "transfer_flagged",
+      "phase": "gate",
+      "block": 0,
+      "method": "prepared_coset",
+      "wall_ns": 2635387459,
+      "timings": {
+        "checked_witness_decode_ns": 30875,
+        "construction_solving_ns": 47210833,
+        "assignment_mapping_ns": 128932125,
+        "claim_ns": 108625,
+        "prove_ns": 2458753500,
+        "encoding_ns": 10250,
+        "cleanup_ns": 340583,
+        "total_ns": 2635387042
+      },
+      "verified": true
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "phase": "gate",
+      "block": 0,
+      "method": "current",
+      "wall_ns": 3027843916,
+      "timings": {
+        "checked_witness_decode_ns": 36917,
+        "construction_solving_ns": 46605500,
+        "assignment_mapping_ns": 127816958,
+        "claim_ns": 110208,
+        "prove_ns": 2852855583,
+        "encoding_ns": 9917,
+        "cleanup_ns": 407958,
+        "total_ns": 3027843250
+      },
+      "verified": true
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "phase": "gate",
+      "block": 0,
+      "method": "prepared_coset",
+      "wall_ns": 2656316625,
+      "timings": {
+        "checked_witness_decode_ns": 37250,
+        "construction_solving_ns": 54789083,
+        "assignment_mapping_ns": 128338709,
+        "claim_ns": 110667,
+        "prove_ns": 2472680083,
+        "encoding_ns": 12042,
+        "cleanup_ns": 347667,
+        "total_ns": 2656315958
+      },
+      "verified": true
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "phase": "gate",
+      "block": 0,
+      "method": "current",
+      "wall_ns": 3012575916,
+      "timings": {
+        "checked_witness_decode_ns": 30791,
+        "construction_solving_ns": 47210917,
+        "assignment_mapping_ns": 129944083,
+        "claim_ns": 107875,
+        "prove_ns": 2834991458,
+        "encoding_ns": 9375,
+        "cleanup_ns": 280708,
+        "total_ns": 3012575583
+      },
+      "verified": true
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "phase": "gate",
+      "block": 0,
+      "method": "prepared_coset",
+      "wall_ns": 2655128666,
+      "timings": {
+        "checked_witness_decode_ns": 31166,
+        "construction_solving_ns": 47583750,
+        "assignment_mapping_ns": 129051458,
+        "claim_ns": 108333,
+        "prove_ns": 2478078625,
+        "encoding_ns": 10792,
+        "cleanup_ns": 263875,
+        "total_ns": 2655128291
+      },
+      "verified": true
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "phase": "gate",
+      "block": 0,
+      "method": "current",
+      "wall_ns": 2999541125,
+      "timings": {
+        "checked_witness_decode_ns": 31792,
+        "construction_solving_ns": 46627833,
+        "assignment_mapping_ns": 127319250,
+        "claim_ns": 108833,
+        "prove_ns": 2825156458,
+        "encoding_ns": 9500,
+        "cleanup_ns": 286750,
+        "total_ns": 2999540667
+      },
+      "verified": true
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "phase": "gate",
+      "block": 0,
+      "method": "prepared_coset",
+      "wall_ns": 2660365125,
+      "timings": {
+        "checked_witness_decode_ns": 31292,
+        "construction_solving_ns": 49565875,
+        "assignment_mapping_ns": 130436583,
+        "claim_ns": 108417,
+        "prove_ns": 2479851459,
+        "encoding_ns": 9250,
+        "cleanup_ns": 361584,
+        "total_ns": 2660364708
+      },
+      "verified": true
+    }
+  ],
+  "paired_proof_equality": 6,
+  "invalid_witness_rejected": true,
+  "limits": "Same checked key and full affine circuit; current and optimized polynomial paths share ordinary G1 MSM. Complete witness API includes solving and mapping; reference path retains diagnostic stage clocks. Six paired-randomness proof equalities are correctness checks, not corpus entries or performance samples. The reference keeps the original unprepared transforms and quotient."
+}

@@ -1,0 +1,6 @@
+transfer: original/converted, complete masked quotient and public-column gates passed
+transfer_unregulated: original/converted, complete masked quotient and public-column gates passed
+transfer_flagged: original/converted, complete masked quotient and public-column gates passed
+transfer_accumulating: original/converted, complete masked quotient and public-column gates passed
+transfer_over_limit_disclosure: original/converted, complete masked quotient and public-column gates passed
+transfer_accumulator_continuation: original/converted, complete masked quotient and public-column gates passed

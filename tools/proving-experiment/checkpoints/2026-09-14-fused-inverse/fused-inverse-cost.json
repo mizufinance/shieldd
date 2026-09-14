@@ -1,0 +1,141 @@
+{
+  "schema": "shieldd.fused_inverse_screen.v1",
+  "relation": "722fba7093a6188bba83708f0abe409a39cf34fa4451b95594e82781b68f3783",
+  "witness_sha256": "e3a2b0a26fa79f3acc5262df51e637ddd597b982212aac69f570ab707dbd1be8",
+  "polynomial_sha256": "b2f915e6369ee1e67033ec3331b4f7a64d8898ff13678cdf9a8c6af8476c06b2",
+  "coefficients": 196609,
+  "fft": 262144,
+  "table_bytes": 8388608,
+  "preparation_ns": 3722084,
+  "samples": [
+    {
+      "operation": "inverse",
+      "method": "reference",
+      "block": 0,
+      "warmup": true,
+      "ns": 52545250,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "prepared",
+      "block": 0,
+      "warmup": true,
+      "ns": 39031750,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "prepared",
+      "block": 1,
+      "warmup": true,
+      "ns": 39204500,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "reference",
+      "block": 1,
+      "warmup": true,
+      "ns": 53027083,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "reference",
+      "block": 2,
+      "warmup": true,
+      "ns": 52473792,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "prepared",
+      "block": 2,
+      "warmup": true,
+      "ns": 39349625,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "prepared",
+      "block": 3,
+      "warmup": false,
+      "ns": 39338292,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "reference",
+      "block": 3,
+      "warmup": false,
+      "ns": 52508209,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "reference",
+      "block": 4,
+      "warmup": false,
+      "ns": 52535375,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "prepared",
+      "block": 4,
+      "warmup": false,
+      "ns": 38941209,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "prepared",
+      "block": 5,
+      "warmup": false,
+      "ns": 39667667,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "reference",
+      "block": 5,
+      "warmup": false,
+      "ns": 51983875,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "reference",
+      "block": 6,
+      "warmup": false,
+      "ns": 52192583,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "prepared",
+      "block": 6,
+      "warmup": false,
+      "ns": 38905667,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "prepared",
+      "block": 7,
+      "warmup": false,
+      "ns": 39021458,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "reference",
+      "block": 7,
+      "warmup": false,
+      "ns": 52282541,
+      "exact_output": true
+    }
+  ],
+  "limits": "Single-column inverse FFT with cached powers in both methods; candidate applies one inverse-N normalization after all butterflies on an actual validated Transfer opening polynomial; no keys or proof generation. Preparation and eight-MiB tables plus one inverse-size scalar are separate. Three warmups and five samples per method/operation, alternating order; each clock includes allocation/copy/transform, with equality checks and output cleanup outside. Existing multi-column NTT and verifier paths are untouched. No full-API speedup or phone claim."
+}

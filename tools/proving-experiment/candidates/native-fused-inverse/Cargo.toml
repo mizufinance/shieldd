@@ -1,0 +1,33 @@
+[package]
+name = "shieldd-native-fused-inverse-experiment"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.95"
+publish = false
+
+[workspace]
+
+[features]
+cost_trace = []
+allocation_trace = []
+
+[dependencies]
+commonware-cryptography = { path = "../../cache/commonware-fused-inverse/cryptography", features = ["std", "bls12381"] }
+commonware-math = { path = "../../cache/commonware-fused-inverse/math" }
+commonware-codec = { path = "../../cache/commonware-fused-inverse/codec" }
+commonware-parallel = { path = "../../cache/commonware-fused-inverse/parallel" }
+rand = "=0.10.2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+anyhow = "1"
+hex = "0.4"
+
+[dev-dependencies]
+ark-bls12-381 = "=0.6.0"
+ark-ed-on-bls12-381 = "=0.6.0"
+ark-ff = "=0.6.0"
+ark-ec = "=0.6.0"
+ark-crypto-primitives = { version = "=0.6.0", features = ["sponge"] }
+
+[profile.release]
+debug = 0

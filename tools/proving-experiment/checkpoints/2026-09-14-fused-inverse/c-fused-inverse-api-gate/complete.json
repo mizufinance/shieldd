@@ -1,0 +1,15 @@
+{
+  "schema": "shieldd.native_fused_inverse_desktop.v1",
+  "hashes": {
+    "identity.json": "441d388278adf47bfeb0dc084a3706b90bd8046cb956e0e36e5ca134a4a9f168",
+    "memory.jsonl": "33ee9a014cfbbcc8be07856251fa260676656f8249b8d4b5a84fb1fdcb87f239",
+    "proofs/transfer.bin": "3ecda6209c54dbe7b2bed44595ff80f7e57665c0d422ce83806f194e68991d6a",
+    "proofs/transfer_accumulating.bin": "9a80f4d61289924c0f0b376f1c3a78bd60ab6fe6ba8c62d9fb71916ebf173412",
+    "proofs/transfer_accumulator_continuation.bin": "35d44d0e05072b98ceeba5e076b585388e2d07d5ae0c946c56dbcaba01a27969",
+    "proofs/transfer_flagged.bin": "deb3b7970f41b6ccdf5f33a39a88ee7b3078d795b4e7e23ef05efa9ffa415fcc",
+    "proofs/transfer_over_limit_disclosure.bin": "bf77f6f823bc8848651168f6a33ece6c0b2d777f776497dd2d7f91747ce5d132",
+    "proofs/transfer_unregulated.bin": "b9fdf9fcabe2944372d27a6f1e2bcf659d7418a3eb5c66cc991d9345b1a15e36",
+    "results.json": "e9714fd7b3eebb33f029cbb0602ec7869c957e60816f9de4456425d459409e53",
+    "samples.jsonl": "abd3e5cb19306ad1b9c0b89b58b97a3fb765a9136a7dd57a77a0de98dee5d8ff"
+  }
+}

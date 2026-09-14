@@ -1,0 +1,14 @@
+{
+  "schema": "shieldd.native_subset.polynomial_screen.v1",
+  "relation": "722fba7093a6188bba83708f0abe409a39cf34fa4451b95594e82781b68f3783",
+  "reference_relation": "0587033ff175b99edd7901fa245377af5cded1dffb96c24eeabe2851994b5eed",
+  "rows": 191516,
+  "columns": 191501,
+  "retained": 196608,
+  "fft": 262144,
+  "subset_preparation_ns": 140596834,
+  "reference_preparation_ns": 204097834,
+  "gates": 6,
+  "samples": [],
+  "limits": "Actual six affine Transfer assignments. Polynomial stage only: row evaluation/checks, prepared public combination, interpolation, coset quotient, complete A/B masks and both openings. Reference is the existing full-FFT prepared algorithm on identical unpadded rows/columns. No timing samples; independent masked product/division and public-column oracle outside timing. No subset key/proof/full API claim."
+}

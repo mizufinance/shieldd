@@ -1,0 +1,122 @@
+--- a/cryptography/src/zk/pari/domain.rs
++++ b/cryptography/src/zk/pari/domain.rs
+@@ -124,10 +124,10 @@
+             .collect())
+     }
+     pub fn interpolate(&self, values: &[Scalar]) -> Result<Vec<Scalar>, Error> {
+-        self.interpolate_with(values, |weighted| Ok(self.fft.interpolate(weighted)?))
++        self.interpolate_with(values, &Scalar::one(), |weighted| Ok(self.fft.interpolate(weighted)?))
+     }
+     pub(super) fn interpolate_with(
+-        &self, values: &[Scalar],
++        &self, values: &[Scalar], inverse_scale: &Scalar,
+         inverse: impl FnOnce(&[Scalar]) -> Result<Vec<Scalar>, Error>,
+     ) -> Result<Vec<Scalar>, Error> {
+         if values.len() > self.retained {
+@@ -137,7 +137,7 @@
+         let mut weights = Vec::with_capacity(4);
+         let mut power = Scalar::one();
+         for _ in 0..4 {
+-            weights.push(power.clone() - &self.excluded);
++            weights.push((power.clone() - &self.excluded) * inverse_scale);
+             power *= &self.excluded;
+         }
+         for (i, v) in values.iter().enumerate() {
+--- a/cryptography/src/zk/pari/prepared_ntt.rs
++++ b/cryptography/src/zk/pari/prepared_ntt.rs
+@@ -3,12 +3,13 @@
+ type Result<T> = std::result::Result<T, Error>;
+ use crate::bls12381::primitives::group::Scalar;
+ use commonware_math::{
+-    algebra::{Additive, Field, FieldNTT, Ring},
++    algebra::{Additive, Field, Ring},
+     ntt::Domain,
+ };
+ 
+ pub(super) struct PreparedTransform {
+     size: usize,
++    inverse_size: Scalar,
+     forward: Vec<Scalar>,
+     inverse: Vec<Scalar>,
+ }
+@@ -28,6 +29,7 @@
+         };
+         Ok(Self {
+             size,
++            inverse_size: Scalar::from(size as u64).inv(),
+             forward: powers(domain.generator().clone()),
+             inverse: powers(domain.generator().inv()),
+         })
+@@ -56,7 +58,15 @@
+         }
+         Ok(values)
+     }
++    pub fn inverse_size(&self) -> &Scalar { &self.inverse_size }
++    #[cfg(test)]
+     pub fn interpolate(&self, evaluations: &[Scalar]) -> Result<Vec<Scalar>> {
++        let mut values = self.interpolate_unscaled(evaluations)?;
++        for value in &mut values { *value *= &self.inverse_size; }
++        Ok(values)
++    }
++    /// Returns N times the normalized inverse; callers must apply exactly one inverse-N factor.
++    pub fn interpolate_unscaled(&self, evaluations: &[Scalar]) -> Result<Vec<Scalar>> {
+         if evaluations.len() != self.size { return Err(Error::RelationMismatch); }
+         let mut values = evaluations.to_vec();
+         for stage in (0..self.size.ilog2()).rev() {
+@@ -67,8 +77,8 @@
+                 for (j, (a, b)) in left.iter_mut().zip(right).enumerate() {
+                     let left = a.clone();
+                     let right = b.clone();
+-                    *a = (left.clone() + &right).div_2();
+-                    *b = ((left - &right) * &self.inverse[j * stride]).div_2();
++                    *a = left.clone() + &right;
++                    *b = (left - &right) * &self.inverse[j * stride];
+                 }
+             }
+         }
+@@ -139,9 +149,9 @@
+             let plan = PreparedTransform::new(size).unwrap();
+             for len in [0, 1, domain.size() / 2, domain.size()] {
+                 let values = (0..len).map(|_| Scalar::random(&mut rng)).collect::<Vec<_>>();
+-                assert_eq!(domain.interpolate(&values).unwrap(), domain.interpolate_with(&values, |v| plan.interpolate(v)).unwrap());
++                assert_eq!(domain.interpolate(&values).unwrap(), domain.interpolate_with(&values, plan.inverse_size(), |v| plan.interpolate_unscaled(v)).unwrap());
+             }
+-            assert!(domain.interpolate_with(&vec![Scalar::zero(); domain.size()+1], |v| plan.interpolate(v)).is_err());
++            assert!(domain.interpolate_with(&vec![Scalar::zero(); domain.size()+1], plan.inverse_size(), |v| plan.interpolate_unscaled(v)).is_err());
+         }
+     }
+     #[test]
+--- a/cryptography/src/zk/pari/prover.rs
++++ b/cryptography/src/zk/pari/prover.rs
+@@ -463,19 +463,19 @@
+         let interpolate=|values:Vec<Vec<Scalar>>|->Result<Vec<Polynomial>,Error>{
+             values.iter().map(|column| {
+                 if column.iter().all(|v|*v==Scalar::zero()){return Ok(Polynomial::zero());}
+-                Polynomial::from_coefficients(domain.interpolate_with(column, |values| fft.interpolate(values))?).ok_or(Error::TooLarge)
++                Polynomial::from_coefficients(domain.interpolate_with(column, fft.inverse_size(), |values| fft.interpolate_unscaled(values))?).ok_or(Error::TooLarge)
+             }).collect()
+         };
+         let a=interpolate(a)?;let b=interpolate(b)?;
+         let shift=Scalar::coset_shift();let inverse=shift.inv();
+         let vanishing_inverse=domain.coset_inverse(&shift)?;
+         let mut powers=Vec::with_capacity(domain.fft_size());let mut inverse_powers=Vec::with_capacity(domain.fft_size());
+-        let(mut p,mut q)=(Scalar::one(),Scalar::one());
++        let(mut p,mut q)=(Scalar::one(),fft.inverse_size().clone());
+         for _ in 0..domain.fft_size(){powers.push(p.clone());inverse_powers.push(q.clone());p*=&shift;q*=&inverse;}
+         Ok(Self{digest:*relation.digest(),fft,domain,a,b,powers,inverse_powers,vanishing_inverse})
+     }
+     fn polynomial(&self, values: &[Scalar]) -> Result<Polynomial, Error> {
+-        Polynomial::from_coefficients(self.domain.interpolate_with(values, |weighted| self.fft.interpolate(weighted))?).ok_or(Error::TooLarge)
++        Polynomial::from_coefficients(self.domain.interpolate_with(values, self.fft.inverse_size(), |weighted| self.fft.interpolate_unscaled(weighted))?).ok_or(Error::TooLarge)
+     }
+     fn public(&self,relation:&Relation,values:&[Scalar])->Result<(Polynomial,Polynomial),Error>{
+         if self.digest!=*relation.digest() || self.domain.size()!=relation.size() || values.len()!=self.a.len(){return Err(Error::RelationMismatch);}
+@@ -491,7 +491,7 @@
+         let shifted=|polynomial:&Polynomial| polynomial.coefficients().iter().zip(&self.powers).map(|(c,p)|c.clone()*p).collect::<Vec<_>>();
+         let mut evaluated=self.fft.evaluate(&shifted(a))?;let other=self.fft.evaluate(&shifted(b))?;
+         for (i,(x,y)) in evaluated.iter_mut().zip(other).enumerate(){x.square();*x-= &y;*x*=&self.vanishing_inverse[i%self.vanishing_inverse.len()];}
+-        let mut coefficients=self.fft.interpolate(&evaluated)?;
++        let mut coefficients=self.fft.interpolate_unscaled(&evaluated)?;
+         for (c,p) in coefficients.iter_mut().zip(&self.inverse_powers){*c*=p;}
+         if coefficients[self.domain.size()-1..].iter().any(|c|*c!=Scalar::zero()){return Err(Error::Unsatisfied);}
+         coefficients.truncate(self.domain.size()-1);

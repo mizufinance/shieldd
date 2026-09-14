@@ -1,0 +1,27 @@
+{
+  "schema": "shieldd.native_fused_inverse_desktop.v1",
+  "hashes": {
+    "identity.json": "8a349b63126434669260046a1d8893199e2ec114192689f5225f7c6ae35f4f9e",
+    "memory.jsonl": "7783ee8c53af859ee50a87f4845c1dfde56d31e4e5112604efcc60b04547c02b",
+    "proofs/first-candidate.bin": "0cff2c4a981f4528c8ab301410d07792a932fab85a9d55a4ba5b664c61e2e87a",
+    "proofs/first-control.bin": "f11152ed9c10744ee3a221dff8a9ba2d052c3103e54e0cc7845a88217b85454b",
+    "proofs/warm-3-candidate.bin": "658bd50764daa441bf65fcdc933a0abdb0b78229c8ceb03474d1d5e246e1dbf9",
+    "proofs/warm-3-control.bin": "c168eb4b67e0859e67d5e23d7edbaa4f33ddfba28c56f4caf0ea8ed56f78d3ae",
+    "proofs/warm-4-candidate.bin": "6e36e01e5cd8ddcd104235c451f36edd868dce80f6b75fd7021005f0eeff5fa0",
+    "proofs/warm-4-control.bin": "0adfd9ee85c1a8e4c16ca221d5fc6dcb5df051c52c72dab12a99ae4ea68bd6fe",
+    "proofs/warm-5-candidate.bin": "8f4ccffe6f6172276b606f9ffa77f0a1ace11f7e4ac09cdeb1d054e291b59840",
+    "proofs/warm-5-control.bin": "12f906a13ad64efb5a9719287bc78aaf1625b641b738edb69fe890b409d078e7",
+    "proofs/warm-6-candidate.bin": "506d46b98bd8a1b6f067b8280e4735b62c005c91892593e5be413a334a64c5f8",
+    "proofs/warm-6-control.bin": "f91eb33a68724bfaeabe2ffe2e2d2cd2f05e1c2fe4c41f9cb3f253608775e1a6",
+    "proofs/warm-7-candidate.bin": "663c283bafdb19e91ea89ae07b16026a26552d61b463cf6d263d1393c4812d64",
+    "proofs/warm-7-control.bin": "16b4c1a57552dccf4f87b79fdeb81c8c074ec0b4f527aca9a145d7a4edf65479",
+    "proofs/warmup-0-candidate.bin": "2eff9d54d72a2e1145feded445748980ac74f0d946211679d18f9233cea1f7ea",
+    "proofs/warmup-0-control.bin": "d621883ea3647d9ffe9ecc3efb618fef6a30b2bc0cd6fa85d3040f78eb0f48e4",
+    "proofs/warmup-1-candidate.bin": "9d3f480e7809e5e8098e972113bdfc00d3d3d3a867b31ba94e0d9fe683ac57f0",
+    "proofs/warmup-1-control.bin": "abfe8bbd3c79f5ecf58d1798bc8b44f88d42f814003553ec7d4cc91d05110a39",
+    "proofs/warmup-2-candidate.bin": "e48b34120a7838c4fd9200ca460cf300e633a772dfbe2085b75da809f900525f",
+    "proofs/warmup-2-control.bin": "c6a5e3e025be59493d92b17790a87371fa401b02767298751e2bc094308b5b32",
+    "results.json": "bffe2f9dba42a405bcf745f35215d9ec5ea03179be4dfd15cb3e9adacbb8b4c2",
+    "samples.jsonl": "53e73924a920dca9f4b95ddbe10419eb497bd77541884ce20f13a352aa83735e"
+  }
+}

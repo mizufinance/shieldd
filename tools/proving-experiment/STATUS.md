@@ -17,6 +17,13 @@ A/B share154224 original R1CS rows; B has224778 converted rows and M229376/N2621
 Sources, raw evidence, plots and exact test records are preserved in `checkpoints/2026-09-14-comparator-selected`, with earlier C details in `checkpoints/2026-09-14-comparator34`. Earlier measurements below remain separate. The original SnarkPack/verification campaign remains stopped. Continue only worthwhile bounded source/compile screens; user preference is quick optimization benchmarks, not100-point grids.
 
 
+
+## Completed fused inverse normalization
+
+The [same-key normalization follow-up](../../docs/research/native-fused-inverse-proving.md) reduces C warm full-API proving2.235034375→2.184525083s (2.26%) relative to the frozen prepared-FFT control. Threewarmups+fivewarm+onefirst each; all18unique timing proofs verify. First observations19.776624333→19.514102667s; warmRSS1190985728→1112784896B; same218Bpackage and existingkey. No A/B/C samples are pooled.
+
+The inverse transform omits per-butterfly halves; subset weights and prepared inverse coset powers carry exactly one inverse-N factor. Two kerneltests/all16outputequalities, five Commonware tests, six polynomialgates, six seeded fullproofequalities, six APIgates and WASMbuild pass. Guard exits0,swap0,no competition. Raw `cache/c-fused-inverse-desktop`; compact `checkpoints/2026-09-14-fused-inverse`. Retain candidate. Next bounded avenue is independent FFT butterfly work using the existing two-worker execution strategy; check actual-size kernel equality/cost before changing the prover, and add no hidden pool or worker budget.
+
 ## Completed prover-owned FFT follow-up
 
 The [same-key native FFT comparison](../../docs/research/native-prepared-ntt-proving.md) reduces C warm full-API proving2.324596→2.236445s (3.79%). Three warmups+five warm+one first per variant; all18fresh timing proofs verify. First observations19.869731→19.483095s; warmRSS1.167→1.109GiB, package218B unchanged. These samples are separate from the A/B/C table above.

@@ -1,0 +1,23 @@
+[package]
+name = "shieldd-fused-inverse-screen"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.95"
+publish = false
+
+[workspace]
+
+[dependencies]
+reference = { package = "shieldd-prepared-ntt-screen", path = "../prepared-ntt" }
+commonware-cryptography = { path = "../../cache/commonware-subset34/cryptography", features = ["std", "bls12381"] }
+commonware-math = { path = "../../cache/commonware-subset34/math" }
+commonware-codec = { path = "../../cache/commonware-subset34/codec" }
+native = { package = "shieldd-native-comparator34-experiment", path = "../native-comparator34" }
+anyhow = "1"
+rand = "=0.10.2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+hex = "0.4"
+
+[profile.release]
+debug = 0

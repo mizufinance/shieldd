@@ -1,0 +1,11 @@
+{
+  "time_ns": 1789382119364395000,
+  "argv": [
+    "python3",
+    "tools/proving-experiment/fused_inverse_desktop.py",
+    "gate",
+    "tools/proving-experiment/cache/c-fused-inverse-api-gate"
+  ],
+  "code": 0,
+  "failure": null
+}

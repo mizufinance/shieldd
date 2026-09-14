@@ -1,0 +1,11 @@
+{
+  "time_ns": 1789382069140256000,
+  "argv": [
+    "tools/proving-experiment/cache/c-fused-inverse-source/proof_gate",
+    "tools/proving-experiment/cache/c-comparator34-full-gate/keys/native.pk",
+    "tools/proving-experiment/cache/native-tuned-witnesses",
+    "tools/proving-experiment/cache/c-fused-inverse-proof-gate"
+  ],
+  "code": 0,
+  "failure": null
+}

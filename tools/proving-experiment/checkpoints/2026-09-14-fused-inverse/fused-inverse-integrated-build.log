@@ -1,0 +1,33 @@
+   Compiling commonware-macros-impl v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-fused-inverse/macros/impl)
+   Compiling commonware-codec-macros v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-fused-inverse/codec/macros)
+warning: commonware-macros-impl@2026.7.0: stability cfg not set; set RUSTFLAGS="--cfg commonware_stability_X" (ALPHA/BETA/GAMMA/DELTA/EPSILON) to enforce stability gating
+   Compiling commonware-macros v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-fused-inverse/macros)
+   Compiling commonware-codec v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-fused-inverse/codec)
+   Compiling commonware-formatting v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-fused-inverse/formatting)
+   Compiling commonware-parallel v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-fused-inverse/parallel)
+   Compiling commonware-utils v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-fused-inverse/utils)
+   Compiling commonware-math v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-fused-inverse/math)
+   Compiling commonware-cryptography v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-fused-inverse/cryptography)
+   Compiling shieldd-native-fused-inverse-experiment v0.1.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/native-fused-inverse)
+warning: unused import: `commonware_math::algebra::Additive`
+  --> src/balance.rs:13:5
+   |
+13 | use commonware_math::algebra::Additive;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `Ring`
+  --> src/encryption.rs:12:42
+   |
+12 | use commonware_math::algebra::{Additive, Ring};
+   |                                          ^^^^
+
+warning: unused import: `Ring`
+  --> src/recovery.rs:12:42
+   |
+12 | use commonware_math::algebra::{Additive, Ring};
+   |                                          ^^^^
+
+warning: `shieldd-native-fused-inverse-experiment` (lib) generated 3 warnings (run `cargo fix --lib -p shieldd-native-fused-inverse-experiment` to apply 3 suggestions)
+    Finished `release` profile [optimized] target(s) in 12.93s

@@ -1,0 +1,13 @@
+{
+  "schema": "shieldd.fused_inverse_kernel_identity.v1",
+  "files": {
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/fused-inverse/src/lib.rs": "8f5c4821f965f372fa9a68332a43292668b72eb6a4f4bcb986a3ee7003b6fb5b",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/fused-inverse/src/main.rs": "aecd158dfe0ef89a20332b43c4f66b7df323b24cf4ad18ce06cfcde5e854cefb",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/fused-inverse/Cargo.toml": "f96c4aa34e73afe16a0352faece4eb750cb982bd4a09167f38b8aaa72c18e9dd",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/fused-inverse/Cargo.lock": "295f8ab4fff0725d19599cbc5a1644ccc7c95e1cbaccd17061cdce536f0b25c1",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/prepared-ntt/src/lib.rs": "9d0c65f6c73aff497712951c14a6dc6cd952716c6526ffc5ca788e7d5cae7105",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/prepared-ntt/Cargo.lock": "7d08bb43345ead330f5a12152d6e735c0d2bed138e8fd61b5530757e08a0c486",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/native/target/release/shieldd-fused-inverse-screen": "d91578baff32fe024b203a14198447ccb09c22f9f0d8ff967d19f5bd51fe7b2d",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/native-tuned-witnesses/transfer.witness": "e3a2b0a26fa79f3acc5262df51e637ddd597b982212aac69f570ab707dbd1be8"
+  }
+}

@@ -1,0 +1,7 @@
+transfer: full API and domain/statement/encoding gates passed
+transfer_unregulated: full API and domain/statement/encoding gates passed
+transfer_flagged: full API and domain/statement/encoding gates passed
+transfer_accumulating: full API and domain/statement/encoding gates passed
+transfer_over_limit_disclosure: full API and domain/statement/encoding gates passed
+transfer_accumulator_continuation: full API and domain/statement/encoding gates passed
+{"schema": "shieldd.native_fused_inverse_desktop.v1", "mode": "gate", "rows": [], "proofs": 6, "all_verified": true}

@@ -1,0 +1,10 @@
+{
+  "time_ns": 1789381986755362000,
+  "argv": [
+    "tools/proving-experiment/cache/c-fused-inverse-source/polynomial_gate",
+    "tools/proving-experiment/cache/native-tuned-witnesses",
+    "tools/proving-experiment/cache/c-fused-inverse-polynomial.json"
+  ],
+  "code": 0,
+  "failure": null
+}

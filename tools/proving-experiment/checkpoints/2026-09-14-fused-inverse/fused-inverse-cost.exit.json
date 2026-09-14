@@ -1,0 +1,17 @@
+{
+  "time_ns": 1789381800447955000,
+  "argv": [
+    "cargo",
+    "+1.95.0",
+    "run",
+    "--locked",
+    "--release",
+    "--manifest-path",
+    "tools/proving-experiment/candidates/fused-inverse/Cargo.toml",
+    "--",
+    "tools/proving-experiment/cache/native-tuned-witnesses/transfer.witness",
+    "tools/proving-experiment/cache/fused-inverse-cost.json"
+  ],
+  "code": 0,
+  "failure": null
+}
