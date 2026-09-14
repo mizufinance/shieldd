@@ -1,0 +1,10 @@
+{
+  "schema": "shieldd.prepared_key_desktop.v1",
+  "hashes": {
+    "first-memory.jsonl": "ce10f5427d542fb0ced4dff09d111e2b37f7fec28a785807229d00aed5b0cf47",
+    "identity.json": "2cdedf2f6d890141084a4226658fdac1f99f31c9228d98e64d0e98a102a62e91",
+    "memory.jsonl": "f5bffb6cbc1f6145daa072a644291c7b384c455d3aea0114f09fbdb7a79c2d7c",
+    "results.json": "e03566a79000c0efb53e0ccb93955a35c18221a08d421f768810749bc5594553",
+    "samples.jsonl": "f514360f206aefbeee17245e23d915e5b2972d3060b7324a24ba4aa7c0fadf5b"
+  }
+}

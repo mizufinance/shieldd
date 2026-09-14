@@ -1,0 +1,5 @@
+control: first-use observation 2 verified
+candidate: first-use observation 2 verified
+candidate: first-use observation 3 verified
+control: first-use observation 3 verified
+{"schema": "shieldd.prepared_key_desktop.v1", "mode": "measure", "rows": [{"candidate": "candidate", "warm_values_s": [2.207490125, 2.187074666, 2.197950875, 2.189083584, 2.183568708], "median_s": 2.189083584, "first_values_s": [40.584886542, 40.953186875, 40.921308041], "first_s": 40.921308041, "peak_rss_bytes": 2481225728, "proof_bytes": 168}, {"candidate": "control", "warm_values_s": [2.20076025, 2.19585825, 2.197302375, 2.192703542, 2.193152583], "median_s": 2.19585825, "first_values_s": [54.142733583, 53.868925333, 53.919481916], "first_s": 53.919481916, "peak_rss_bytes": 2456928256, "proof_bytes": 168}], "proofs": 22, "all_verified": true}

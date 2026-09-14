@@ -1,0 +1,11 @@
+{
+  "time_ns": 1789369852388781000,
+  "argv": [
+    "tools/proving-experiment/cache/b-prepared-key-source/worker",
+    "prepare-key",
+    "tools/proving-experiment/cache/b-subset-keys/subset.pk",
+    "tools/proving-experiment/cache/b-prepared-key.pk"
+  ],
+  "code": 0,
+  "failure": null
+}

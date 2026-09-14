@@ -1,0 +1,11 @@
+{
+  "time_ns": 1789369986765302000,
+  "argv": [
+    "python3",
+    "tools/proving-experiment/prepared_key_desktop.py",
+    "gate",
+    "tools/proving-experiment/cache/b-prepared-key-api-gate"
+  ],
+  "code": 0,
+  "failure": null
+}

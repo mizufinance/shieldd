@@ -1,0 +1,51 @@
+{
+  "schema": "shieldd.proving_experiment.msm_operands.v1",
+  "boundary": "Same checked subset key points in canonical uncompressed key storage; original resident bases reused after full hash and point association checks.",
+  "workers": 2,
+  "key": {
+    "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/b-prepared-key.pk",
+    "sha256": "52e31d1b09d7fbb3da898ef998a00a6facd1b9d23fa065e7497414c4838a2b0d"
+  },
+  "operations": [
+    {
+      "name": "witness",
+      "count": 214084,
+      "bases": {
+        "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/b-subset-bases/witness.bases",
+        "sha256": "0161f9aea14929115b2591d087571d43941598426e8ae8c5ad676e0f2a2e0133"
+      }
+    },
+    {
+      "name": "masks",
+      "count": 2,
+      "bases": {
+        "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/b-subset-bases/masks.bases",
+        "sha256": "268d13305388d99f5eca026569a5f88ba05f7e7d0cde251fe27b5d2dfd1c4e64"
+      }
+    },
+    {
+      "name": "quotient",
+      "count": 229379,
+      "bases": {
+        "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/b-subset-bases/quotient.bases",
+        "sha256": "47f7647b8fa9f037636eb583c66317086eca7cc58f84c854068fa78ea6964dac"
+      }
+    },
+    {
+      "name": "opening_a",
+      "count": 229377,
+      "bases": {
+        "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/b-subset-bases/opening_a.bases",
+        "sha256": "10c266b2b4852b0fd17f2e72d1c2cd53fd292266154c4f1c8dca3c0329880a4f"
+      }
+    },
+    {
+      "name": "opening_r",
+      "count": 458754,
+      "bases": {
+        "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/b-subset-bases/opening_r.bases",
+        "sha256": "789e0862fe063f162d3747331d1b321498a9acb704dc470e873cc92de8c8d522"
+      }
+    }
+  ]
+}

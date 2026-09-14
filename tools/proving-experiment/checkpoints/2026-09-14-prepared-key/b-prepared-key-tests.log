@@ -1,0 +1,24 @@
+   Compiling shieldd-prepared-key-pari377 v0.1.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/prepared-key-pari377)
+warning: unused import: `G2Projective`
+ --> src/protocol.rs:7:70
+  |
+7 | use ark_bls12_377::{Bls12_377, Fr, G1Affine, G1Projective, G2Affine, G2Projective};
+  |                                                                      ^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `AdditiveGroup`
+  --> src/main.rs:13:14
+   |
+13 | use ark_ff::{AdditiveGroup, Field};
+   |              ^^^^^^^^^^^^^
+
+error[E0616]: field `domain` of struct `protocol::VerifyingKey` is private
+  --> src/source_key.rs:26:27
+   |
+26 |     let m = verifying_key.domain.size();
+   |                           ^^^^^^ private field
+
+For more information about this error, try `rustc --explain E0616`.
+warning: `shieldd-prepared-key-pari377` (bin "shieldd-prepared-key-pari377" test) generated 2 warnings
+error: could not compile `shieldd-prepared-key-pari377` (bin "shieldd-prepared-key-pari377" test) due to 1 previous error; 2 warnings emitted

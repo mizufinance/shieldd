@@ -1,0 +1,23 @@
+{
+  "schema": "shieldd.prepared_key_source.v1",
+  "files": {
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/prepared-key-pari377/Cargo.toml": "68f377faa07c815ac138f9cca7e0f0de502ac7238bcc5d146ab5813b22e5773e",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/prepared-key-pari377/Cargo.lock": "1b28f54b1c1e5dbfd76926b703ec39dcd324282fc12160222bbb38fe9be864d3",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/prepared-key-pari377/README.md": "434bc8a5fac957c1aad1556846e86818146c4e371a65b0ec5e03b6896fb404c8",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/prepared-key-pari377/src/frontend.rs": "0b67757f28d83baa3c63f06933481ca20588a2741aeeb4ec7c86e58305cddb23",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/prepared-key-pari377/src/bridge.rs": "2f44f22c14fb494186ee5b7a61589eacf78bf269309cc044635134d8b93a392e",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/prepared-key-pari377/src/lowering.rs": "b619c5c678b6cd7eacef07fb79fca2588a8f86d2fc68ca04aa8670782251a9a9",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/prepared-key-pari377/src/protocol.rs": "fc0a0d9bc3dc6bed3dd9ec6217aab27083fe9646466c8a24ebbd70c955260f83",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/prepared-key-pari377/src/subgroup.rs": "03482d17f9ed76365eab4e8cc152d17dd29025a99682180a60460420184d04d3",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/prepared-key-pari377/src/domain.rs": "0817694903bf2a6a1ecd66d8f76f417deef2c94e5931296144980005a14f5a7c",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/prepared-key-pari377/src/arithmetic.rs": "7f68163d9cbbfbafc513bdf5fd1077bed37ceb5d2f1200e9ebb9fb268d40393b",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/prepared-key-pari377/src/worker.rs": "5576bb4319515d2243595edf1909636e829bdb53bec97d2da82d91ab335a0e28",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/prepared-key-pari377/src/main.rs": "1467cd43f9202485921d8431a7a8046acd488ff7c983e431c4dd730ffc03809c",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/prepared-key-pari377/src/source_key.rs": "31903f6849fdadeb54050fe4e08b174bb5de480517a1b35dfe8b869772e7e04a",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/prepared_key_desktop.py": "d0c00a626a1366a6dbd10869d4a5ac3ea27cacf07048ea654c7ddc6f85a620a9",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/transport.rs": "553465d41db34e2290ba152660cfc78c82c7a1930ea0203843e7079e9b91ee9e",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/b-prepared-key-source/worker": "073fa19683af5afdf9dd7a037890fbc599143b436d5fb3a7a9acb9d2a5b066eb",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/b-prepared-key-source/source.tar.gz": "da7b8bfb2e7e0f9d96b4612b1e76d99187d197a1344f6ce73fc7655440735a56",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/checkpoints/2026-09-14-subset-proving/delivery.json": "0dca6ecbab7217abd4833e88f3a3fe1dc6fb01d7ca53dc0547204ed40258f39e"
+  }
+}

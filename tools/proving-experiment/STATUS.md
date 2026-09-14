@@ -48,9 +48,17 @@ The [latest matched report](../../docs/research/transfer-proving-subset-selected
 
 Groth16 remains the fastest prover: Pari377 takes1.2843× its warm time and nativePari381 takes1.5004×. This completes the circuit, checked-loading, lifetime, polynomial and first single-coset domain round; it does not exhaust the broader campaign. Earlier sessions above remain immutable historical measurements, not pooled results.
 
+## Completed prepared-key storage follow-up
+
+The [prepared-key report](../../docs/research/pari-prepared-key.md) retains the same B subset key points, protocol, verifying key and proof package with canonical uncompressed G1 key storage. Every Rust and Go curve/subgroup/canonical check remains. Offline import proves equality of every key point. Thirteen release tests and six complete API gates pass.
+
+Matched diagnostic: three first proofs per variant, plus three warmups and five warm proofs. All22unique proofs verify; the18paired-session proofs cross-verify under the other representation. First medians53.919482→40.921308s (24.11% reduction); warm2.195858→2.189084s, effectively unchanged. WarmRSS2.288→2.311GiB; key54,317,136→108,633,744B. One-time checked source import28.889625s, encoding0.070493s, checked output decode/equality16.627513s, with write/hash work separate. Guardexit0, no swap/competition. Exact run `cache/b-prepared-key-desktop`; evidence `checkpoints/2026-09-14-prepared-key`.
+
+Retain the prepared storage option for development: binary `cache/b-prepared-key-source/worker`, key `cache/b-prepared-key.pk`, manifest `cache/b-prepared-key-bases`, original shared base files and Go solver/arithmetic. The final selected A/B/C round remains immutable; no new matrix is inferred or pooled.
+
 ## Next bounded work
 
-Investigate B's checked preparation/ownership costs using this measured first-use breakdown: Rust checked key decoding29.292s, Go arithmetic initialization15.918s, other startup about5.5s. Inspect where duplicate point validation/storage can safely be removed while preserving complete canonical/curve/subgroup checks and key/source binding. Require adversarial loader/transport gates and full logical-witness API validation before selecting a replacement. Preserve the selected A/B/C session and frozen binaries/keys.
+B still spends about16s checking the same resident G1 bases again in Go and retains the corresponding Rust query vectors. Any single-owner validation/storage design must preserve a checked admission state: complete canonical/curve/subgroup validation of every point, exact key/source binding, query lengths and trusted IPC completion before accepting requests. Do not replace these with a manifest-only trust shortcut. First establish the boundary and memory benefit, then run adversarial loader/transport and full-API gates before measuring a new candidate. This ownership branch and the remaining circuit/arithmetic branches below are still open; the broader campaign is not concluded.
 
 ## Explicit remaining campaign states
 

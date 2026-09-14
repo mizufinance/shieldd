@@ -1,0 +1,153 @@
+{
+  "schema": "shieldd.prepared_key_desktop.v1",
+  "mode": "measure",
+  "rows": [
+    {
+      "candidate": "candidate",
+      "warm_values_s": [
+        2.207490125,
+        2.187074666,
+        2.197950875,
+        2.189083584,
+        2.183568708
+      ],
+      "median_s": 2.189083584,
+      "first_values_s": [
+        40.584886542,
+        40.953186875,
+        40.921308041
+      ],
+      "first_s": 40.921308041,
+      "peak_rss_bytes": 2481225728,
+      "proof_bytes": 168
+    },
+    {
+      "candidate": "control",
+      "warm_values_s": [
+        2.20076025,
+        2.19585825,
+        2.197302375,
+        2.192703542,
+        2.193152583
+      ],
+      "median_s": 2.19585825,
+      "first_values_s": [
+        54.142733583,
+        53.868925333,
+        53.919481916
+      ],
+      "first_s": 53.919481916,
+      "peak_rss_bytes": 2456928256,
+      "proof_bytes": 168
+    }
+  ],
+  "proofs": 22,
+  "all_verified": true,
+  "first_peak_rss_bytes": {
+    "candidate": 2356346880,
+    "control": 2248835072
+  },
+  "first_median_reduction_percent": 24.10663718032301,
+  "import": {
+    "all_key_points_equal": true,
+    "checked_import_ns": 28889625375,
+    "encoding_ns": 70493167,
+    "prepared_bytes": 108633744,
+    "prepared_checked_decode_ns": 16627512625,
+    "prepared_sha256": "52e31d1b09d7fbb3da898ef998a00a6facd1b9d23fa065e7497414c4838a2b0d",
+    "schema": "shieldd.prepared_key_pari377.import.v1",
+    "source_bytes": 54317136,
+    "source_sha256": "ab53470bcd934f51dfc597e387be15bfbe9a7fd3daac83f71ae84992dae2c6f0"
+  },
+  "startup_components": {
+    "candidate": [
+      {
+        "prover": {
+          "go_compile_ns": 1986551958,
+          "relation_preparation_ns": 2291893750,
+          "key_file_read_ns": 9433916,
+          "key_checked_decode_ns": 16805267792,
+          "key_association_ns": 618084458,
+          "total_ns": 21714949333
+        },
+        "arithmetic_preparation_ns": 16667834959,
+        "go_initialization_ns": 16067092000,
+        "resident_base_bytes": 108633216,
+        "total_ns": 38382784916
+      },
+      {
+        "prover": {
+          "go_compile_ns": 2024693250,
+          "relation_preparation_ns": 2322899791,
+          "key_file_read_ns": 25328708,
+          "key_checked_decode_ns": 17033419958,
+          "key_association_ns": 620069208,
+          "total_ns": 22030504125
+        },
+        "arithmetic_preparation_ns": 16737639000,
+        "go_initialization_ns": 16130882000,
+        "resident_base_bytes": 108633216,
+        "total_ns": 38768144000
+      },
+      {
+        "prover": {
+          "go_compile_ns": 2046818417,
+          "relation_preparation_ns": 2336848667,
+          "key_file_read_ns": 9014333,
+          "key_checked_decode_ns": 16994225625,
+          "key_association_ns": 617607416,
+          "total_ns": 22008882250
+        },
+        "arithmetic_preparation_ns": 16725573250,
+        "go_initialization_ns": 16130111833,
+        "resident_base_bytes": 108633216,
+        "total_ns": 38734458917
+      }
+    ],
+    "control": [
+      {
+        "prover": {
+          "go_compile_ns": 2040758958,
+          "relation_preparation_ns": 2381362209,
+          "key_file_read_ns": 10199833,
+          "key_checked_decode_ns": 30171968666,
+          "key_association_ns": 638149708,
+          "total_ns": 35245715416
+        },
+        "arithmetic_preparation_ns": 16687505458,
+        "go_initialization_ns": 16163727541,
+        "resident_base_bytes": 108633216,
+        "total_ns": 51933224333
+      },
+      {
+        "prover": {
+          "go_compile_ns": 2057500834,
+          "relation_preparation_ns": 2352679666,
+          "key_file_read_ns": 9561167,
+          "key_checked_decode_ns": 29990747792,
+          "key_association_ns": 635847583,
+          "total_ns": 35054181959
+        },
+        "arithmetic_preparation_ns": 16622257042,
+        "go_initialization_ns": 16100396417,
+        "resident_base_bytes": 108633216,
+        "total_ns": 51676444042
+      },
+      {
+        "prover": {
+          "go_compile_ns": 2045027917,
+          "relation_preparation_ns": 2373131083,
+          "key_file_read_ns": 7434625,
+          "key_checked_decode_ns": 30010757083,
+          "key_association_ns": 628222500,
+          "total_ns": 35068870250
+        },
+        "arithmetic_preparation_ns": 16648280875,
+        "go_initialization_ns": 16142702542,
+        "resident_base_bytes": 108633216,
+        "total_ns": 51717154625
+      }
+    ]
+  },
+  "guard_peak_tree_rss_bytes": 5393940480
+}

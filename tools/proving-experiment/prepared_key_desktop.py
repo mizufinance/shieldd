@@ -1,0 +1,138 @@
+"""Checked full-API uncompressed-key diagnostic against the frozen subset377 worker."""
+from contextlib import ExitStack
+from dataclasses import dataclass, asdict
+from pathlib import Path
+import json, os, statistics, subprocess, sys, time
+from api_gate import CACHE, ROOT, SPIKE, digest, record, require
+from selected_workers import SelectedWorker
+from selected_gate import fixtures
+from desktop import Monitor, checked_sample
+
+@dataclass(frozen=True)
+class Variant:
+    name: str
+    binary: Path
+    key: Path
+    bases: Path
+
+VARIANTS = (
+    Variant('candidate', CACHE/'b-prepared-key-source/worker', CACHE/'b-prepared-key.pk', CACHE/'b-prepared-key-bases'),
+    Variant('control', CACHE/'b-subset-protocol-source/worker', CACHE/'b-subset-keys/subset.pk', CACHE/'b-subset-bases'),
+)
+RELATION = CACHE/'selected-dh-compile'
+SOLVER = CACHE/'optimized-circuit-source/A'
+ARTIFACTS = CACHE/'selected-dh-a-keys'
+MSM = CACHE/'msmworker-combined'
+
+class SubsetWorker(SelectedWorker):
+    def __init__(self, variant, on_start):
+        self.backend = 'B'
+        self.schema = 'shieldd.proving_experiment.selected_b.v1'
+        args = [variant.binary,'serve',RELATION,variant.key,SOLVER,ARTIFACTS,variant.bases,MSM]
+        self.process = subprocess.Popen([str(p) for p in args],stdin=subprocess.PIPE,stdout=subprocess.PIPE)
+        try:
+            on_start(self.process.pid)
+            self.ready = self.read()
+            require(self.ready.header.op=='ready' and not self.ready.header.error,'worker initialization failed')
+        except BaseException:
+            self.close()
+            raise
+
+def identities(variants, scenarios):
+    paths = [Path(__file__), SPIKE/'desktop.py', SPIKE/'selected_workers.py', SPIKE/'api_gate.py', SPIKE/'guard.py', SOLVER, MSM, RELATION/'metadata.json', RELATION/'transfer.r1cs']
+    paths += [p for p in (SPIKE/'candidates/prepared-key-pari377').rglob('*') if p.is_file()]
+    paths += [f.path for f in scenarios] + [ROOT/'tools/gnark/internal/testfixtures/vectors/transfer_accumulator_over_limit_witness.bin']
+    paths += [p for p in ARTIFACTS.iterdir() if p.is_file()]
+    for variant in variants:
+        manifest=variant.bases/'manifest.json'
+        paths += [variant.binary,variant.key,manifest]
+        paths += [Path(o['bases']['path']) for o in json.loads(manifest.read_text())['operations']]
+    return [{'path':str(p),'sha256':digest(p.read_bytes())} for p in sorted(set(paths))]
+
+def validate_gate():
+    out=CACHE/'b-prepared-key-api-gate'
+    complete=json.loads((out/'complete.json').read_text())
+    for name,h in complete['hashes'].items():require(digest((out/name).read_bytes())==h,'gate evidence changed')
+    identity=json.loads((out/'identity.json').read_text())
+    require(identity['files']==identities(VARIANTS[:1],fixtures('B')),'gate sources or artifacts changed')
+    rows=[json.loads(line) for line in (out/'samples.jsonl').read_text().splitlines()]
+    gates=[r for r in rows if r.get('stage')=='gate']
+    require(len(gates)==6 and all(r['verified'] and r['negatives_rejected'] and r['wrong_domain_rejected'] for r in gates),'incomplete subset gates')
+    for r in gates:require(digest((out/'proofs'/f"{r['scenario']}.bin").read_bytes())==r['proof_sha256'],'gate proof changed')
+    require(any(r.get('stage')=='invalid_witness' and r['rejected'] for r in rows),'missing invalid witness gate')
+
+def main():
+    require(len(sys.argv)==3 and sys.argv[1] in ('gate','measure'),'usage: prepared_key_desktop.py gate|measure NEW_OUTPUT')
+    mode=sys.argv[1];out=Path(sys.argv[2]).resolve()
+    require(out.is_relative_to(CACHE) and not out.exists(),'new experiment cache required')
+    require(all(os.environ.get(k)=='2' for k in ('CARGO_BUILD_JOBS','RAYON_NUM_THREADS','GOMAXPROCS')),'two workers required')
+    variants=VARIANTS[:1] if mode=='gate' else VARIANTS
+    if mode=='measure':validate_gate()
+    out.mkdir();(out/'proofs').mkdir();scenarios=fixtures('B')
+    identity={'schema':'shieldd.prepared_key_desktop.v1','mode':mode,'workers':2,'files':identities(variants,scenarios)}
+    (out/'identity.json').write_text(json.dumps(identity,indent=2)+'\n')
+    samples=[];hashes=set();workers={}
+    standard=next(f for f in scenarios if f.scenario=='transfer')
+    with ExitStack() as stack,(out/'samples.jsonl').open('x') as log,Monitor(out/'memory.jsonl') as monitor:
+        for variant in variants:
+            monitor.phase=f'first/{variant.name}';start=time.perf_counter_ns()
+            worker=SubsetWorker(variant,lambda pid:monitor.roots.__setitem__(variant.name,pid))
+            ready_ns=time.perf_counter_ns()-start
+            stack.callback(worker.close);workers[variant.name]=worker
+            record(log,{'stage':'initialization','candidate':variant.name,'wall_ns':ready_ns,'response':asdict(worker.ready.header)})
+            if mode=='measure':samples.append(checked_sample(worker,variant.name,standard.path.read_bytes(),standard.statement,f'first/{variant.name}',True,monitor,out,log,hashes,start,ready_ns))
+        if mode=='gate':
+            worker=workers['candidate']
+            for f in scenarios:
+                payload=f.path.read_bytes();require(digest(payload)==f.sha256,'changed witness')
+                proof=worker.call('prove',payload);require(not proof.header.error and proof.payload and proof.header.statement==f.statement,f'proving gate failed: {proof.header.error}')
+                verified=worker.call('verify',proof.payload,f.statement);require(not verified.header.error and verified.header.verified,'valid proof rejected')
+                other=worker.call('verify_wrong_domain',proof.payload,f.statement);require(not other.header.error and not other.header.verified,'wrong domain accepted or audit failed')
+                bad=bytearray(proof.payload);bad[50]^=1
+                for value,statement in [(proof.payload[:-1],f.statement),(proof.payload+b'\0',f.statement),(bytes(bad),f.statement),(proof.payload,'00'*32)]:
+                    result=worker.call('verify',value,statement);require(result.header.error or not result.header.verified,'negative proof accepted')
+                h=digest(proof.payload);require(h not in hashes,'duplicate gate proof');hashes.add(h)
+                (out/'proofs'/f'{f.scenario}.bin').write_bytes(proof.payload)
+                record(log,{'stage':'gate','scenario':f.scenario,'proof_sha256':h,'verified':True,'negatives_rejected':True,'wrong_domain_rejected':True,'response':asdict(proof.header)})
+                print(f'{f.scenario}: full API and domain/statement/encoding gates passed',flush=True)
+            invalid=worker.call('prove',(ROOT/'tools/gnark/internal/testfixtures/vectors/transfer_accumulator_over_limit_witness.bin').read_bytes())
+            require(invalid.header.error and not invalid.payload,'invalid witness accepted');record(log,{'stage':'invalid_witness','rejected':True})
+        else:
+            for i in range(8):
+                for label in (list(workers) if i%2==0 else list(reversed(workers))):
+                    samples.append(checked_sample(workers[label],label,standard.path.read_bytes(),standard.statement,f'{"warmup" if i<3 else "warm"}/{i}/{label}',i>=3,monitor,out,log,hashes))
+            for sample in samples:
+                other='control' if sample.candidate=='candidate' else 'candidate'
+                proof=(out/'proofs'/f"{sample.sample_id.replace('/', '-')}.bin").read_bytes()
+                checked=workers[other].call('verify',proof,standard.statement)
+                require(not checked.header.error and checked.header.verified,'same-key cross verification failed')
+            record(log,{'stage':'cross_verification','proofs':len(samples),'all_verified':True})
+    require(all(w.process.returncode==0 for w in workers.values()),'worker failed at shutdown')
+    if mode=='measure':
+        with (out/'samples.jsonl').open('a') as log,Monitor(out/'first-memory.jsonl') as monitor:
+            for repeat,order in enumerate((tuple(reversed(variants)),variants),1):
+                for variant in order:
+                    sample_id=f'first/{repeat}/{variant.name}';monitor.phase=sample_id;start=time.perf_counter_ns()
+                    worker=SubsetWorker(variant,lambda pid:monitor.roots.__setitem__(variant.name,pid))
+                    ready_ns=time.perf_counter_ns()-start
+                    try:
+                        record(log,{'stage':'initialization','candidate':variant.name,'repeat':repeat,'wall_ns':ready_ns,'response':asdict(worker.ready.header)})
+                        samples.append(checked_sample(worker,variant.name,standard.path.read_bytes(),standard.statement,sample_id,True,monitor,out,log,hashes,start,ready_ns))
+                    finally:worker.close()
+                    require(worker.process.returncode==0,'first-use worker shutdown failed')
+                    monitor.roots.pop(variant.name)
+                    print(f'{variant.name}: first-use observation {repeat+1} verified',flush=True)
+
+    rows=[]
+    for variant in variants:
+        warm=[s for s in samples if s.candidate==variant.name and s.kind=='warm']
+        first=[s for s in samples if s.candidate==variant.name and s.kind=='first']
+        if warm:
+            require(len(warm)==5 and len(first)==3,'incomplete matched cell')
+            rows.append({'candidate':variant.name,'warm_values_s':[s.wall_ns/1e9 for s in warm],'median_s':statistics.median(s.wall_ns for s in warm)/1e9,'first_values_s':[s.wall_ns/1e9 for s in first],'first_s':statistics.median(s.wall_ns for s in first)/1e9,'peak_rss_bytes':max(s.peak_candidate_rss_bytes for s in warm),'proof_bytes':first[0].proof_bytes})
+    result={'schema':identity['schema'],'mode':mode,'rows':rows,'proofs':len(hashes),'all_verified':True}
+    (out/'results.json').write_text(json.dumps(result,indent=2)+'\n')
+    (out/'complete.json').write_text(json.dumps({'schema':identity['schema'],'hashes':{p.name:digest(p.read_bytes()) for p in sorted(out.iterdir()) if p.is_file()}},indent=2)+'\n')
+    print(json.dumps(result),flush=True)
+
+if __name__=='__main__':main()
