@@ -2,10 +2,7 @@ use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_proto::{shieldd::core::component::compact_block::v1 as pb, DomainType};
 use shieldd_sdk_shielded_pool::{discovery, NotePayload};
-use shieldd_sdk_tct::builder::{block, epoch};
 use shieldd_sdk_txhash::TransactionId;
-
-use crate::CompactBlock;
 
 /// One public tag attached to an action. Slot roles are deliberately absent.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -109,70 +106,6 @@ pub struct PendingRoutingAction {
     pub action_index: u32,
     pub tags: Vec<discovery::RoutingTag>,
     pub note_payloads: Vec<NotePayload>,
-}
-
-/// Public routing records and roots for one block.
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(try_from = "pb::RoutingBlock", into = "pb::RoutingBlock")]
-pub struct RoutingBlock {
-    pub height: u64,
-    pub block_root: block::Root,
-    pub epoch_root: Option<epoch::Root>,
-    pub records: Vec<RoutingRecord>,
-    pub parameters: Option<discovery::Parameters>,
-}
-
-impl From<CompactBlock> for RoutingBlock {
-    fn from(block: CompactBlock) -> Self {
-        Self {
-            height: block.height,
-            block_root: block.block_root,
-            epoch_root: block.epoch_root,
-            records: block.routing_records,
-            parameters: block.discovery_parameters,
-        }
-    }
-}
-
-impl DomainType for RoutingBlock {
-    type Proto = pb::RoutingBlock;
-}
-
-impl From<RoutingBlock> for pb::RoutingBlock {
-    fn from(block: RoutingBlock) -> Self {
-        Self {
-            height: block.height,
-            block_root: (!block.block_root.is_empty_finalized()).then(|| block.block_root.into()),
-            epoch_root: block.epoch_root.map(Into::into),
-            records: block.records.into_iter().map(Into::into).collect(),
-            discovery_parameters: block.parameters.map(Into::into),
-        }
-    }
-}
-
-impl TryFrom<pb::RoutingBlock> for RoutingBlock {
-    type Error = anyhow::Error;
-
-    fn try_from(block: pb::RoutingBlock) -> Result<Self> {
-        Ok(Self {
-            height: block.height,
-            block_root: block
-                .block_root
-                .map(TryInto::try_into)
-                .transpose()?
-                .unwrap_or_else(|| block::Finalized::default().root()),
-            epoch_root: block.epoch_root.map(TryInto::try_into).transpose()?,
-            records: block
-                .records
-                .into_iter()
-                .map(TryInto::try_into)
-                .collect::<Result<_>>()?,
-            parameters: block
-                .discovery_parameters
-                .map(TryInto::try_into)
-                .transpose()?,
-        })
-    }
 }
 
 #[cfg(test)]

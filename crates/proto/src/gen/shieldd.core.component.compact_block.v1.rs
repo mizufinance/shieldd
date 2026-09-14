@@ -229,35 +229,6 @@ impl ::prost::Name for CompactBlockResponse {
         "/shieldd.core.component.compact_block.v1.CompactBlockResponse".into()
     }
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct RoutingBlock {
-    #[prost(uint64, tag = "1")]
-    pub height: u64,
-    #[prost(message, optional, tag = "2")]
-    pub block_root: ::core::option::Option<
-        super::super::super::super::crypto::tct::v1::MerkleRoot,
-    >,
-    #[prost(message, optional, tag = "3")]
-    pub epoch_root: ::core::option::Option<
-        super::super::super::super::crypto::tct::v1::MerkleRoot,
-    >,
-    #[prost(message, repeated, tag = "4")]
-    pub records: ::prost::alloc::vec::Vec<RoutingRecord>,
-    #[prost(message, optional, tag = "5")]
-    pub discovery_parameters: ::core::option::Option<
-        super::super::shielded_pool::v1::DiscoveryParameters,
-    >,
-}
-impl ::prost::Name for RoutingBlock {
-    const NAME: &'static str = "RoutingBlock";
-    const PACKAGE: &'static str = "shieldd.core.component.compact_block.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.compact_block.v1.RoutingBlock".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.compact_block.v1.RoutingBlock".into()
-    }
-}
 /// One public tag attached to an action. Slot roles are deliberately absent.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RoutingRecord {
@@ -306,77 +277,5 @@ impl ::prost::Name for RoutingActionPayloads {
     }
     fn type_url() -> ::prost::alloc::string::String {
         "/shieldd.core.component.compact_block.v1.RoutingActionPayloads".into()
-    }
-}
-#[derive(Clone, Copy, PartialEq, ::prost::Message)]
-pub struct RoutingBlockRangeRequest {
-    #[prost(uint64, tag = "1")]
-    pub start_height: u64,
-    #[prost(uint64, tag = "2")]
-    pub end_height: u64,
-}
-impl ::prost::Name for RoutingBlockRangeRequest {
-    const NAME: &'static str = "RoutingBlockRangeRequest";
-    const PACKAGE: &'static str = "shieldd.core.component.compact_block.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.compact_block.v1.RoutingBlockRangeRequest".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.compact_block.v1.RoutingBlockRangeRequest".into()
-    }
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct RoutingBlockRangeResponse {
-    #[prost(message, optional, tag = "1")]
-    pub routing_block: ::core::option::Option<RoutingBlock>,
-}
-impl ::prost::Name for RoutingBlockRangeResponse {
-    const NAME: &'static str = "RoutingBlockRangeResponse";
-    const PACKAGE: &'static str = "shieldd.core.component.compact_block.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.compact_block.v1.RoutingBlockRangeResponse".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.compact_block.v1.RoutingBlockRangeResponse".into()
-    }
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct RoutingCandidatesRequest {
-    #[prost(uint64, tag = "1")]
-    pub start_height: u64,
-    #[prost(uint64, tag = "2")]
-    pub end_height: u64,
-    #[prost(message, repeated, tag = "3")]
-    pub selectors: ::prost::alloc::vec::Vec<
-        super::super::shielded_pool::v1::RoutingSelector,
-    >,
-}
-impl ::prost::Name for RoutingCandidatesRequest {
-    const NAME: &'static str = "RoutingCandidatesRequest";
-    const PACKAGE: &'static str = "shieldd.core.component.compact_block.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.compact_block.v1.RoutingCandidatesRequest".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.compact_block.v1.RoutingCandidatesRequest".into()
-    }
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct RoutingCandidatesResponse {
-    #[prost(message, optional, tag = "1")]
-    pub record: ::core::option::Option<RoutingRecord>,
-    #[prost(message, repeated, tag = "2")]
-    pub note_payloads: ::prost::alloc::vec::Vec<
-        super::super::shielded_pool::v1::NotePayload,
-    >,
-}
-impl ::prost::Name for RoutingCandidatesResponse {
-    const NAME: &'static str = "RoutingCandidatesResponse";
-    const PACKAGE: &'static str = "shieldd.core.component.compact_block.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.compact_block.v1.RoutingCandidatesResponse".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.compact_block.v1.RoutingCandidatesResponse".into()
     }
 }

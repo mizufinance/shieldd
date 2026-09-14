@@ -32,9 +32,9 @@ RoutingRecord {
 }
 ```
 
-They do not label sender or receiver roles. A match returns the encrypted note
-payloads for that action, which the wallet trial-decrypts. A full compact-block
-scan is always a valid recovery path.
+They do not label sender or receiver roles. Compact blocks carry encrypted note
+payloads for each action. The view scanner trial-decrypts note payloads locally
+from full compact blocks.
 
 ## Wallet state and recovery
 
@@ -47,17 +47,10 @@ metadata is unavailable.
 
 ## Remote privacy modes
 
-- **Local full node:** selector matching is local and discloses no search to an
-  external provider.
-- **Remote full compact blocks:** the client downloads the whole range. This has
-  the highest bandwidth cost but reveals no selector or matched position.
-- **Remote filtered query:** the provider learns the selectors, height ranges,
-  timing, grouping, network identity, and the action positions returned.
-
-Downloading tags and subsequently requesting only matching actions is still a
-filtered query: the provider can map the requested positions back to tags. The
-base API does not claim PIR, padding, decoys, or anonymity. Private remote
-recovery requires downloading the full range or adding one of those mechanisms.
+- **Local full node:** full compact-block scanning runs locally and discloses no
+  search to an external provider.
+- **Remote full compact blocks:** the client downloads the whole range without
+  disclosing selectors or matched positions.
 
 ## Issuer audit routing
 
