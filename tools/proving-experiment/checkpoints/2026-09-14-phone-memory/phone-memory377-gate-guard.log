@@ -1,0 +1,6 @@
+transfer: exact seeded proof and full-API negatives passed
+transfer_unregulated: exact seeded proof and full-API negatives passed
+transfer_flagged: exact seeded proof and full-API negatives passed
+transfer_accumulating: exact seeded proof and full-API negatives passed
+transfer_over_limit_disclosure: exact seeded proof and full-API negatives passed
+transfer_accumulator_continuation: exact seeded proof and full-API negatives passed

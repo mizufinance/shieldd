@@ -1,0 +1,110 @@
+   Compiling shieldd-phone-memory377 v0.1.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/phone-memory377)
+warning: unused import: `G2Projective`
+ --> src/../../../candidates/prepared-key-pari377/src/protocol.rs:7:70
+  |
+7 | use ark_bls12_377::{Bls12_377, Fr, G1Affine, G1Projective, G2Affine, G2Projective};
+  |                                                                      ^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `Fr`
+ --> src/equivalence.rs:5:21
+  |
+5 | use ark_bls12_377::{Fr,G1Projective};
+  |                     ^^
+
+warning: unused import: `G2Projective`
+ --> src/protocol.rs:7:70
+  |
+7 | use ark_bls12_377::{Bls12_377, Fr, G1Affine, G1Projective, G2Affine, G2Projective};
+  |                                                                      ^^^^^^^^^^^^
+
+warning: unused import: `AdditiveGroup`
+  --> src/main.rs:14:14
+   |
+14 | use ark_ff::{AdditiveGroup, Field};
+   |              ^^^^^^^^^^^^^
+
+warning: method `proving_key` is never used
+   --> src/../../../candidates/prepared-key-pari377/src/protocol.rs:287:12
+    |
+246 | impl PreparedProver {
+    | ------------------- method in this implementation
+...
+287 |     pub fn proving_key(&self) -> &ProvingKey {
+    |            ^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` on by default
+
+warning: function `verify_other_domain` is never used
+   --> src/../../../candidates/prepared-key-pari377/src/protocol.rs:427:8
+    |
+427 | pub fn verify_other_domain(
+    |        ^^^^^^^^^^^^^^^^^^^
+
+warning: struct `Circuit` is never constructed
+   --> src/bridge.rs:171:12
+    |
+171 | pub struct Circuit {
+    |            ^^^^^^^
+
+warning: function `validate_converted` is never used
+   --> src/bridge.rs:240:8
+    |
+240 | pub fn validate_converted(circuit: Circuit) -> Result<usize> {
+    |        ^^^^^^^^^^^^^^^^^^
+
+warning: method `descriptor` is never used
+  --> src/domain.rs:53:12
+   |
+43 | impl Domain {
+   | ----------- method in this implementation
+...
+53 |     pub fn descriptor(&self) -> Descriptor {
+   |            ^^^^^^^^^^
+
+warning: method `name` is never used
+   --> src/protocol.rs:247:19
+    |
+244 | impl Query {
+    | ---------- method in this implementation
+...
+247 |     pub(crate) fn name(self)->&'static str {match self {Self::Witness=>"witness",Self::Masks=>"masks",Self::Quotient=>"quotient",Self::Op...
+    |                   ^^^^
+
+warning: method `proving_key` is never used
+   --> src/protocol.rs:354:12
+    |
+273 | impl PreparedProver {
+    | ------------------- method in this implementation
+...
+354 |     pub fn proving_key(&self) -> &ProvingKey {
+    |            ^^^^^^^^^^^
+
+warning: `shieldd-phone-memory377` (bin "shieldd-phone-memory377" test) generated 11 warnings (run `cargo fix --bin "shieldd-phone-memory377" --tests` to apply 4 suggestions)
+    Finished `release` profile [optimized] target(s) in 11.04s
+     Running unittests src/main.rs (tools/proving-experiment/native/target/release/deps/shieldd_phone_memory377-e56c67a4ff7f9279)
+
+running 19 tests
+test bridge::tests::checked_scalar_rejects_modulus_and_trailing_bytes ... ok
+test bridge::tests::expression_rejects_bad_mapping ... ok
+test domain::tests::malformed_domains_and_row_counts_reject ... ok
+test domain::tests::subset_interpolation_lagrange_and_quotient_cover_retained_and_excluded_roots ... ok
+test equivalence::reference::tests::checked_coset_boundary_rejects_low_degree_invalid_relations ... ok
+test equivalence::reference::tests::every_new_key_query_and_mask_slot_rejects_torsion ... ok
+test equivalence::reference::tests::subset_proves_and_binds_domain_key_rows_and_encodings ... ok
+test frontend::tests::actual_child_admission_exact_proof_and_poisoned_failure ... ignored, requires the separately built private Go child
+test frontend::transport::tests::rejects_wrong_schema_unknown_fields_large_and_partial_frames ... ok
+test lowering::tests::square_affine_linear_and_general_preserve_rejection ... ok
+test protocol::tests::admission_requires_checked_immutable_key_and_exact_matrix_association ... ok
+test protocol::tests::checked_coset_boundary_rejects_low_degree_invalid_relations ... ok
+test protocol::tests::every_new_key_query_and_mask_slot_rejects_torsion ... ok
+test protocol::tests::subset_proves_and_binds_domain_key_rows_and_encodings ... ok
+test subgroup::raw_tests::uncompressed_canonical_flags_identity_lengths_and_fields ... ok
+test subgroup::tests::full_order_mixed_torsion_and_compressed_codec_parity ... ok
+test subgroup::tests::rejects_noncanonical_fields_flags_identity_truncation_and_trailing ... ok
+test worker::tests::bounded_headers_reject_truncation_and_unknown_fields ... ok
+test arithmetic::tests::child_failure_wrong_ack_and_foreign_receipt_never_admit ... ok
+
+test result: ok. 18 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.31s
+

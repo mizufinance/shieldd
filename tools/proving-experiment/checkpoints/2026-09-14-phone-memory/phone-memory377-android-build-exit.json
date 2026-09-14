@@ -1,0 +1,10 @@
+{
+  "time_ns": 1789397233481280000,
+  "argv": [
+    "python3",
+    "tools/proving-experiment/phone/memory.py",
+    "build-android"
+  ],
+  "code": 0,
+  "failure": null
+}

@@ -1,0 +1,254 @@
+[
+  {
+    "scenario": "transfer",
+    "diagnostic_request_ns": 2225039250,
+    "proof_sha256": "b6214ff54e144fc588eef56bad48ad23066dd1d90c89102e74b56d33fa1ab83a",
+    "verified": true,
+    "response": {
+      "schema": "shieldd.proving_experiment.selected_b.v1",
+      "op": "prove",
+      "payload_bytes": 168,
+      "error": null,
+      "statement": "bc0045cc0ba2bb73ab7a15bbf0c0c94a85730a3c1598f54179d5f5252b3ed409",
+      "verified": false,
+      "initialization": null,
+      "request": {
+        "go_roundtrip_ns": 72535542,
+        "checked_mapping_ns": 35418542,
+        "prove_ns": 2116351917,
+        "encoding_ns": 2166,
+        "cleanup_ns": 504042,
+        "request_ns": 2224812334,
+        "go": {
+          "schema": "shieldd.proving_experiment.gnark_worker.v1",
+          "op": "solve",
+          "payload_bytes": 4535296,
+          "error": "",
+          "statement": "bc0045cc0ba2bb73ab7a15bbf0c0c94a85730a3c1598f54179d5f5252b3ed409",
+          "verified": false,
+          "circuit_sha256": "",
+          "wires": 0,
+          "compile_ns": 0,
+          "key_load_ns": 0,
+          "witness_ns": 12573958,
+          "solve_ns": 55514666,
+          "prove_ns": 0,
+          "encode_ns": 3192459,
+          "request_ns": 71281667,
+          "initialization": null,
+          "request": null
+        }
+      }
+    }
+  },
+  {
+    "scenario": "transfer_unregulated",
+    "diagnostic_request_ns": 2211808000,
+    "proof_sha256": "e026c2a8aade690d9b226d9f5efab251a967cff53594f53bf2bc7d8a88ba75b7",
+    "verified": true,
+    "response": {
+      "schema": "shieldd.proving_experiment.selected_b.v1",
+      "op": "prove",
+      "payload_bytes": 168,
+      "error": null,
+      "statement": "fdd36fe855d0878be62a65003a0c2848c3112eec988d7460676ef3830970b200",
+      "verified": false,
+      "initialization": null,
+      "request": {
+        "go_roundtrip_ns": 68935000,
+        "checked_mapping_ns": 36109750,
+        "prove_ns": 2105923208,
+        "encoding_ns": 4250,
+        "cleanup_ns": 679708,
+        "request_ns": 2211652084,
+        "go": {
+          "schema": "shieldd.proving_experiment.gnark_worker.v1",
+          "op": "solve",
+          "payload_bytes": 4535296,
+          "error": "",
+          "statement": "fdd36fe855d0878be62a65003a0c2848c3112eec988d7460676ef3830970b200",
+          "verified": false,
+          "circuit_sha256": "",
+          "wires": 0,
+          "compile_ns": 0,
+          "key_load_ns": 0,
+          "witness_ns": 12796833,
+          "solve_ns": 51774500,
+          "prove_ns": 0,
+          "encode_ns": 3280750,
+          "request_ns": 67852500,
+          "initialization": null,
+          "request": null
+        }
+      }
+    }
+  },
+  {
+    "scenario": "transfer_flagged",
+    "diagnostic_request_ns": 2213638667,
+    "proof_sha256": "9741cf298b04e840c16f01e6e06fb39f279678b337263992f46bd27aa66c101c",
+    "verified": true,
+    "response": {
+      "schema": "shieldd.proving_experiment.selected_b.v1",
+      "op": "prove",
+      "payload_bytes": 168,
+      "error": null,
+      "statement": "717a2c959e20ccb21aa55f2d6725438a1f2fa7448542ee36ddef80a24d734c0d",
+      "verified": false,
+      "initialization": null,
+      "request": {
+        "go_roundtrip_ns": 71012000,
+        "checked_mapping_ns": 42923708,
+        "prove_ns": 2098820375,
+        "encoding_ns": 4292,
+        "cleanup_ns": 725208,
+        "request_ns": 2213486250,
+        "go": {
+          "schema": "shieldd.proving_experiment.gnark_worker.v1",
+          "op": "solve",
+          "payload_bytes": 4535296,
+          "error": "",
+          "statement": "717a2c959e20ccb21aa55f2d6725438a1f2fa7448542ee36ddef80a24d734c0d",
+          "verified": false,
+          "circuit_sha256": "",
+          "wires": 0,
+          "compile_ns": 0,
+          "key_load_ns": 0,
+          "witness_ns": 13594542,
+          "solve_ns": 53370041,
+          "prove_ns": 0,
+          "encode_ns": 3121167,
+          "request_ns": 70086417,
+          "initialization": null,
+          "request": null
+        }
+      }
+    }
+  },
+  {
+    "scenario": "transfer_accumulating",
+    "diagnostic_request_ns": 2192960750,
+    "proof_sha256": "43c853cea5add4e1970a80fff6c3a255638ec8fc0828d00aedf31ffcc38f02bf",
+    "verified": true,
+    "response": {
+      "schema": "shieldd.proving_experiment.selected_b.v1",
+      "op": "prove",
+      "payload_bytes": 168,
+      "error": null,
+      "statement": "3462c939c799bf4c3e3594d3b048a4e26ee3d482e837aa2cc11ce0579b7c2700",
+      "verified": false,
+      "initialization": null,
+      "request": {
+        "go_roundtrip_ns": 69871292,
+        "checked_mapping_ns": 34343458,
+        "prove_ns": 2088059291,
+        "encoding_ns": 1917,
+        "cleanup_ns": 521250,
+        "request_ns": 2192797584,
+        "go": {
+          "schema": "shieldd.proving_experiment.gnark_worker.v1",
+          "op": "solve",
+          "payload_bytes": 4535296,
+          "error": "",
+          "statement": "3462c939c799bf4c3e3594d3b048a4e26ee3d482e837aa2cc11ce0579b7c2700",
+          "verified": false,
+          "circuit_sha256": "",
+          "wires": 0,
+          "compile_ns": 0,
+          "key_load_ns": 0,
+          "witness_ns": 13051125,
+          "solve_ns": 52757791,
+          "prove_ns": 0,
+          "encode_ns": 3200416,
+          "request_ns": 69009833,
+          "initialization": null,
+          "request": null
+        }
+      }
+    }
+  },
+  {
+    "scenario": "transfer_over_limit_disclosure",
+    "diagnostic_request_ns": 2205100584,
+    "proof_sha256": "35fd1ddbedae72cec5b75a7792d802fc61db52e2435287a10cf024a3ecf8f37c",
+    "verified": true,
+    "response": {
+      "schema": "shieldd.proving_experiment.selected_b.v1",
+      "op": "prove",
+      "payload_bytes": 168,
+      "error": null,
+      "statement": "abcc5288c6da1090c0319627d064faa8180789cfc351b1f950feb414af7d0711",
+      "verified": false,
+      "initialization": null,
+      "request": {
+        "go_roundtrip_ns": 67705958,
+        "checked_mapping_ns": 36754666,
+        "prove_ns": 2099491583,
+        "encoding_ns": 2917,
+        "cleanup_ns": 947916,
+        "request_ns": 2204903583,
+        "go": {
+          "schema": "shieldd.proving_experiment.gnark_worker.v1",
+          "op": "solve",
+          "payload_bytes": 4535296,
+          "error": "",
+          "statement": "abcc5288c6da1090c0319627d064faa8180789cfc351b1f950feb414af7d0711",
+          "verified": false,
+          "circuit_sha256": "",
+          "wires": 0,
+          "compile_ns": 0,
+          "key_load_ns": 0,
+          "witness_ns": 12416208,
+          "solve_ns": 51122125,
+          "prove_ns": 0,
+          "encode_ns": 3187208,
+          "request_ns": 66726041,
+          "initialization": null,
+          "request": null
+        }
+      }
+    }
+  },
+  {
+    "scenario": "transfer_accumulator_continuation",
+    "diagnostic_request_ns": 2198040458,
+    "proof_sha256": "1276cbdc80850975a9176b8f64dbc75ececcf7929b105ff701e9b14ceff3cfdb",
+    "verified": true,
+    "response": {
+      "schema": "shieldd.proving_experiment.selected_b.v1",
+      "op": "prove",
+      "payload_bytes": 168,
+      "error": null,
+      "statement": "8483d72bbfcddaf3ca7b082ee038981fa8fb95db8305b77096cb519bb007ad04",
+      "verified": false,
+      "initialization": null,
+      "request": {
+        "go_roundtrip_ns": 69006709,
+        "checked_mapping_ns": 33941125,
+        "prove_ns": 2094404833,
+        "encoding_ns": 2375,
+        "cleanup_ns": 527042,
+        "request_ns": 2197882459,
+        "go": {
+          "schema": "shieldd.proving_experiment.gnark_worker.v1",
+          "op": "solve",
+          "payload_bytes": 4535296,
+          "error": "",
+          "statement": "8483d72bbfcddaf3ca7b082ee038981fa8fb95db8305b77096cb519bb007ad04",
+          "verified": false,
+          "circuit_sha256": "",
+          "wires": 0,
+          "compile_ns": 0,
+          "key_load_ns": 0,
+          "witness_ns": 13456542,
+          "solve_ns": 51568666,
+          "prove_ns": 0,
+          "encode_ns": 3063500,
+          "request_ns": 68089292,
+          "initialization": null,
+          "request": null
+        }
+      }
+    }
+  }
+]

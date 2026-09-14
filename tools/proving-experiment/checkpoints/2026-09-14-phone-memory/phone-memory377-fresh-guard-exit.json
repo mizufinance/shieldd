@@ -1,0 +1,9 @@
+{
+  "time_ns": 1789397151050758000,
+  "argv": [
+    "python3",
+    "tools/proving-experiment/phone/memory_screen.py"
+  ],
+  "code": 0,
+  "failure": null
+}

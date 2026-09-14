@@ -1,0 +1,10 @@
+{
+  "time_ns": 1789396861721120000,
+  "argv": [
+    "python3",
+    "tools/proving-experiment/phone/memory.py",
+    "owned-test"
+  ],
+  "code": 0,
+  "failure": null
+}

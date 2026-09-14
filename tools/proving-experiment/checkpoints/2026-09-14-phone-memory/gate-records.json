@@ -1,0 +1,50 @@
+[
+  {
+    "scenario": "transfer",
+    "proof_sha256": "70bf9d84401d79efef4654b248540612f8676b4d126a0eac44677bf7fc614dfa",
+    "same_key_seeded_proof_equal": true,
+    "verified": true,
+    "negatives_rejected": true,
+    "diagnostic_request_ns": 2192414000
+  },
+  {
+    "scenario": "transfer_unregulated",
+    "proof_sha256": "50cec0a790cf23ae650746fb66f4c8e9f90e61404d11f901c94b4f9428502e18",
+    "same_key_seeded_proof_equal": true,
+    "verified": true,
+    "negatives_rejected": true,
+    "diagnostic_request_ns": 2175711375
+  },
+  {
+    "scenario": "transfer_flagged",
+    "proof_sha256": "8e7b9805499f43883f85c3ee03866c87cb053771088c84e5f7baea838f91d489",
+    "same_key_seeded_proof_equal": true,
+    "verified": true,
+    "negatives_rejected": true,
+    "diagnostic_request_ns": 2169560583
+  },
+  {
+    "scenario": "transfer_accumulating",
+    "proof_sha256": "bb18e8b8c541dee300083793f8c255c146cd4fd585bf3454a974d052f8ed1b79",
+    "same_key_seeded_proof_equal": true,
+    "verified": true,
+    "negatives_rejected": true,
+    "diagnostic_request_ns": 2173033250
+  },
+  {
+    "scenario": "transfer_over_limit_disclosure",
+    "proof_sha256": "fb417925c2c9381f0544eba5c0e08a54d3f49920f27efd17fc1045555f77cc1c",
+    "same_key_seeded_proof_equal": true,
+    "verified": true,
+    "negatives_rejected": true,
+    "diagnostic_request_ns": 2178621791
+  },
+  {
+    "scenario": "transfer_accumulator_continuation",
+    "proof_sha256": "957dd8bc28118d1499e7e8d56bb14c919503dfecc473c114462abf80bf453402",
+    "same_key_seeded_proof_equal": true,
+    "verified": true,
+    "negatives_rejected": true,
+    "diagnostic_request_ns": 2187939166
+  }
+]

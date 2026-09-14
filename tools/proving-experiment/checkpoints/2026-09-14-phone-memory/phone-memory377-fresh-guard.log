@@ -1,0 +1,6 @@
+transfer: fresh-worker proof verified
+transfer_unregulated: fresh-worker proof verified
+transfer_flagged: fresh-worker proof verified
+transfer_accumulating: fresh-worker proof verified
+transfer_over_limit_disclosure: fresh-worker proof verified
+transfer_accumulator_continuation: fresh-worker proof verified

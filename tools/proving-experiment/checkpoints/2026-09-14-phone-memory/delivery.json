@@ -1,0 +1,100 @@
+{
+  "schema": "shieldd.phone_memory_checkpoint.v1",
+  "status": "desktop_validation_complete_phone_pending",
+  "sources": [
+    {
+      "path": "tools/proving-experiment/phone/memory.py",
+      "sha256": "36e701a5073a45bf545bffc2d60ead059515f260aebf58f91b861d30176104b7"
+    },
+    {
+      "path": "tools/proving-experiment/phone/memory.patch",
+      "sha256": "ad6204ee8333fe6ff524617f5852272790cf58023ba8d850bb3a57c7d57e216a"
+    },
+    {
+      "path": "tools/proving-experiment/phone/memory_screen.py",
+      "sha256": "32cfddea7150cc71537e12ee00cd0acb9be5958aba4a0edddef91fd83c9b4529"
+    }
+  ],
+  "files": [
+    {
+      "file": "gate-complete.json",
+      "sha256": "e4817183b1281fbc3aab9f749c2402eae575adbf0afede234eefc8bea1a22165"
+    },
+    {
+      "file": "gate-records.json",
+      "sha256": "9c8187d60f3e6a3eba06545844bcaa5e140ce3ab49d9ebae21af80dedc07d26c"
+    },
+    {
+      "file": "fresh-complete.json",
+      "sha256": "b3cf568c61fdd382b0a3dba2f48eb1baa5a3678fdf6213be64bed5ee19c2628d"
+    },
+    {
+      "file": "fresh-records.json",
+      "sha256": "6aa43c19227dcce0f900ec64be8d62bf9e9f478c2a7505db80d3e54909cdcfc9"
+    },
+    {
+      "file": "fresh-memory.jsonl",
+      "sha256": "1ba78d3fa245959458f31e2d6ba187c4a84465230380084ebdd44fd186316296"
+    },
+    {
+      "file": "sources.json",
+      "sha256": "07610a9c84a9e5929d4fda662b999fca0264804b9e35fe2a0aa749cfb2901306"
+    },
+    {
+      "file": "desktop.json",
+      "sha256": "8caee9e3b2da76a4edf0addbb898104aae8bda90de1227b2f80d5af504b50883"
+    },
+    {
+      "file": "android.json",
+      "sha256": "10d278fafaececf8e2e7ffcb85288ae532cc6e5e5fbf110a6c07de4ffce23c49"
+    },
+    {
+      "file": "phone-memory377-build-exit.json",
+      "sha256": "acda537bc3ad2dc145b846d1be75177253bc308f87024cc0088f5c1b2fdb0a26"
+    },
+    {
+      "file": "phone-memory377-build.log",
+      "sha256": "bbd361b2bb523f992076f9e843f8f936803f8278600b14eb2f847d7d0f298f87"
+    },
+    {
+      "file": "phone-memory377-tests-exit.json",
+      "sha256": "a9964d7c0ba0a2e0105dc2bab64f5b66d5560bc2cd47337ce4ba5ed42047c7e5"
+    },
+    {
+      "file": "phone-memory377-tests.log",
+      "sha256": "c53e29941fcc2da8f73d24dc7f19456a1d12c1af7ed3c20a3471f7d059347f61"
+    },
+    {
+      "file": "phone-memory377-owned-test-exit.json",
+      "sha256": "41cb206eddd7c16f0dc8a2d7955d13ca1a2bbd3e4dec9471b90ea248b1fc69a8"
+    },
+    {
+      "file": "phone-memory377-owned-test.log",
+      "sha256": "c05d2b72d08eb9d55e4003ae0543990e34f06132ac550608385761ba2f21f5f8"
+    },
+    {
+      "file": "phone-memory377-gate-guard-exit.json",
+      "sha256": "165664ce38e83987e4d47e07526b4d6fdf42167953016e9cf2276b3a8b97ce83"
+    },
+    {
+      "file": "phone-memory377-gate-guard.log",
+      "sha256": "dc6855bedc29bb3f688a99f56a1f235352421bbedb54937216e2dacec518a11f"
+    },
+    {
+      "file": "phone-memory377-fresh-guard-exit.json",
+      "sha256": "67bc2fd7828541cb0f53412289aeb4d3961e7b9b6ec89b1a95360f2106a91387"
+    },
+    {
+      "file": "phone-memory377-fresh-guard.log",
+      "sha256": "373037c6967c4edbbcf8dcec30719ddfa6721c96d1f06665f3420fa91ee434dd"
+    },
+    {
+      "file": "phone-memory377-android-build-exit.json",
+      "sha256": "d4302a54581fdc1a39fcd3ace457393a4a5f29a9200061a430bc20c97e32c859"
+    },
+    {
+      "file": "phone-memory377-android-build.log",
+      "sha256": "564f124979632453c8f99fa77d578f6c38767c9406a032b9f1995a234384e5a0"
+    }
+  ]
+}

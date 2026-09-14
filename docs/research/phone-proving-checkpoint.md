@@ -49,5 +49,6 @@ prover suites and formal certification were not run in this phone screen.
 
 The next clean run requires the screen to remain awake through initialization and
 measurement. Valid correctness evidence can be reused with identical artifacts.
-The separately authorized single B memory-lifetime experiment remains pending;
-no lower-memory performance result has been measured.
+The separately authorized [single B memory-lifetime experiment](pari-phone-memory.md)
+passed its proof checks but still requires more headroom than the last phone
+preflight provided. It has no Android proving result yet.

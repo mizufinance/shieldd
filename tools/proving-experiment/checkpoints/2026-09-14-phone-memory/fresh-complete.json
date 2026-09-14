@@ -1,0 +1,14 @@
+{
+  "schema": "shieldd.phone_memory_screen.v1",
+  "fresh_worker": true,
+  "initialization_ns": 22278406209,
+  "fresh_proofs": 6,
+  "all_verified": true,
+  "sampled_peak_rss_bytes": 2334375936,
+  "sampled_initialization_peak_rss_bytes": 1765228544,
+  "sampled_proof_peak_rss_bytes": 2334375936,
+  "memory_sample_interval_s": 0.1,
+  "memory_sha256": "1ba78d3fa245959458f31e2d6ba187c4a84465230380084ebdd44fd186316296",
+  "records_sha256": "6aa43c19227dcce0f900ec64be8d62bf9e9f478c2a7505db80d3e54909cdcfc9",
+  "identity_sha256": "ab06166fe3fbdadc07272b35f4958b4e5ddc7bbbfd4d0300e703ba142a7256e7"
+}

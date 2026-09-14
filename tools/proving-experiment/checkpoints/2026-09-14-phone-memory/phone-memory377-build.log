@@ -1,0 +1,193 @@
+   Compiling libc v0.2.189
+   Compiling cfg-if v1.0.4
+   Compiling zerocopy v0.8.57
+   Compiling crossbeam-utils v0.8.23
+   Compiling crossbeam-epoch v0.9.21
+   Compiling generic-array v0.14.7
+   Compiling getrandom v0.2.17
+   Compiling typenum v1.20.1
+   Compiling crossbeam-deque v0.8.8
+   Compiling num-traits v0.2.19
+   Compiling rand_core v0.6.4
+   Compiling rayon-core v1.13.0
+   Compiling ppv-lite86 v0.2.21
+   Compiling once_cell v1.21.4
+   Compiling either v1.18.0
+   Compiling rand_chacha v0.3.1
+   Compiling block-buffer v0.10.4
+   Compiling crypto-common v0.1.7
+   Compiling digest v0.10.7
+   Compiling rayon v1.12.0
+   Compiling num-integer v0.1.47
+   Compiling rand v0.8.8
+   Compiling zeroize v1.9.0
+   Compiling ark-std v0.6.0
+   Compiling num-bigint v0.4.8
+   Compiling allocator-api2 v0.2.21
+   Compiling hashbrown v0.17.1
+   Compiling ahash v0.8.12
+   Compiling ark-serialize v0.6.0
+   Compiling ark-ff v0.6.0
+   Compiling tracing-core v0.1.36
+   Compiling ark-poly v0.6.0
+   Compiling cpufeatures v0.2.17
+   Compiling lazy_static v1.5.0
+   Compiling log v0.4.34
+   Compiling serde_core v1.0.229
+   Compiling tracing-log v0.2.0
+   Compiling sharded-slab v0.1.7
+   Compiling itertools v0.14.0
+   Compiling thread_local v1.1.10
+   Compiling smallvec v1.16.1
+   Compiling nu-ansi-term v0.50.3
+   Compiling pin-project-lite v0.2.17
+   Compiling equivalent v1.0.2
+   Compiling zmij v1.0.23
+   Compiling indexmap v2.14.2
+   Compiling tracing v0.1.44
+   Compiling ark-ec v0.6.0
+   Compiling tracing-subscriber v0.3.23
+   Compiling keccak v0.1.6
+   Compiling byteorder v1.5.0
+   Compiling foldhash v0.1.5
+   Compiling merlin v3.0.0
+   Compiling ark-relations v0.6.0
+   Compiling anyhow v1.0.104
+   Compiling serde_json v1.0.151
+   Compiling serde v1.0.229
+   Compiling memchr v2.8.3
+   Compiling itoa v1.0.18
+   Compiling zkpari v0.1.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/vendor/zkpari)
+   Compiling ark-bls12-377 v0.6.0
+   Compiling sha2 v0.10.9
+   Compiling hex v0.4.3
+   Compiling shieldd-phone-memory377 v0.1.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/phone-memory377)
+warning: unused import: `G2Projective`
+ --> src/../../../candidates/prepared-key-pari377/src/protocol.rs:7:70
+  |
+7 | use ark_bls12_377::{Bls12_377, Fr, G1Affine, G1Projective, G2Affine, G2Projective};
+  |                                                                      ^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `Fr`
+ --> src/equivalence.rs:5:21
+  |
+5 | use ark_bls12_377::{Fr,G1Projective};
+  |                     ^^
+
+warning: unused import: `G2Projective`
+ --> src/protocol.rs:7:70
+  |
+7 | use ark_bls12_377::{Bls12_377, Fr, G1Affine, G1Projective, G2Affine, G2Projective};
+  |                                                                      ^^^^^^^^^^^^
+
+warning: unused import: `Field`
+ --> src/subgroup.rs:5:28
+  |
+5 | use ark_ff::{AdditiveGroup,Field,MontFp,Zero};
+  |                            ^^^^^
+
+warning: unused import: `AdditiveGroup`
+  --> src/main.rs:14:14
+   |
+14 | use ark_ff::{AdditiveGroup, Field};
+   |              ^^^^^^^^^^^^^
+
+warning: unused import: `Zero`
+ --> src/subgroup.rs:5:41
+  |
+5 | use ark_ff::{AdditiveGroup,Field,MontFp,Zero};
+  |                                         ^^^^
+
+warning: function `nonzero` is never used
+   --> src/../../../candidates/prepared-key-pari377/src/protocol.rs:150:4
+    |
+150 | fn nonzero(rng: &mut impl RngCore) -> Fr {
+    |    ^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` on by default
+
+warning: function `setup` is never used
+   --> src/../../../candidates/prepared-key-pari377/src/protocol.rs:159:8
+    |
+159 | pub fn setup(
+    |        ^^^^^
+
+warning: methods `proving_key` and `prove` are never used
+   --> src/../../../candidates/prepared-key-pari377/src/protocol.rs:287:12
+    |
+246 | impl PreparedProver {
+    | ------------------- methods in this implementation
+...
+287 |     pub fn proving_key(&self) -> &ProvingKey {
+    |            ^^^^^^^^^^^
+...
+290 |     pub fn prove(
+    |            ^^^^^
+
+warning: function `verify_other_domain` is never used
+   --> src/../../../candidates/prepared-key-pari377/src/protocol.rs:427:8
+    |
+427 | pub fn verify_other_domain(
+    |        ^^^^^^^^^^^^^^^^^^^
+
+warning: struct `Circuit` is never constructed
+   --> src/bridge.rs:171:12
+    |
+171 | pub struct Circuit {
+    |            ^^^^^^^
+
+warning: function `validate_converted` is never used
+   --> src/bridge.rs:240:8
+    |
+240 | pub fn validate_converted(circuit: Circuit) -> Result<usize> {
+    |        ^^^^^^^^^^^^^^^^^^
+
+warning: methods `descriptor` and `quotient_oracle` are never used
+   --> src/domain.rs:53:12
+    |
+43  | impl Domain {
+    | ----------- methods in this implementation
+...
+53  |     pub fn descriptor(&self) -> Descriptor {
+    |            ^^^^^^^^^^
+...
+245 |     pub fn quotient_oracle(&self, a: &[Fr], b: &[Fr]) -> Result<Vec<Fr>> {
+    |            ^^^^^^^^^^^^^^^
+
+warning: method `body_rows` is never used
+   --> src/lowering.rs:160:12
+    |
+89  | impl Lowered {
+    | ------------ method in this implementation
+...
+160 |     pub fn body_rows(&self) -> usize {
+    |            ^^^^^^^^^
+
+warning: method `name` is never used
+   --> src/protocol.rs:247:19
+    |
+244 | impl Query {
+    | ---------- method in this implementation
+...
+247 |     pub(crate) fn name(self)->&'static str {match self {Self::Witness=>"witness",Self::Masks=>"masks",Self::Quotient=>"quotient",Self::Op...
+    |                   ^^^^
+
+warning: method `proving_key` is never used
+   --> src/protocol.rs:354:12
+    |
+273 | impl PreparedProver {
+    | ------------------- method in this implementation
+...
+354 |     pub fn proving_key(&self) -> &ProvingKey {
+    |            ^^^^^^^^^^^
+
+warning: constant `SCHEMA` is never used
+  --> src/worker.rs:18:7
+   |
+18 | const SCHEMA: &str = "shieldd.proving_experiment.worker.v1";
+   |       ^^^^^^
+
+warning: `shieldd-phone-memory377` (bin "shieldd-phone-memory377") generated 17 warnings (run `cargo fix --bin "shieldd-phone-memory377"` to apply 5 suggestions)
+    Finished `release` profile [optimized] target(s) in 24.22s

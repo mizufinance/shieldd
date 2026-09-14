@@ -1,0 +1,276 @@
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -1,5 +1,5 @@
+ [package]
+-name = "shieldd-owned-comparator377"
++name = "shieldd-phone-memory377"
+ version = "0.1.0"
+ edition = "2021"
+ publish = false
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -946,7 +946,7 @@
+ ]
+ 
+ [[package]]
+-name = "shieldd-owned-comparator377"
++name = "shieldd-phone-memory377"
+ version = "0.1.0"
+ dependencies = [
+  "anyhow",
+--- a/src/equivalence.rs
++++ b/src/equivalence.rs
+@@ -1,5 +1,5 @@
+ //! Actual-key seeded proof and combined-MSM oracle; ordinary serving uses OsRng.
+-#[path="../../prepared-key-pari377/src/protocol.rs"] mod reference;
++#[path="../../../candidates/prepared-key-pari377/src/protocol.rs"] mod reference;
+ use crate::{arithmetic,bridge,compile,encode,frontend,protocol,Solved};
+ use anyhow::{ensure,Result};
+ use ark_bls12_377::{Fr,G1Projective};
+--- a/src/lowering.rs
++++ b/src/lowering.rs
+@@ -32,6 +32,27 @@
+     rows: Vec<SquareRow>,
+     derived: Vec<Expression>,
+     pub counts: Counts,
++}
++
++/// Retains only the expressions needed after the checked matrices are constructed.
++pub(crate) struct WitnessMap {
++    original_wires: usize,
++    derived: Vec<Expression>,
++}
++
++fn mapped_witness(original_wires: usize, derived: &[Expression], original: &[Fr]) -> Result<Vec<Fr>> {
++    ensure!(original.len() == original_wires && original.first() == Some(&Fr::ONE), "original wire shape or constant mismatch");
++    let mut values = original.to_vec();
++    values.extend(derived.iter().map(|e| evaluate(e, original).square()));
++    // Arkworks outlines the constant and public statement after witness allocation.
++    values.extend_from_slice(&original[..2]);
++    Ok(values)
++}
++
++impl WitnessMap {
++    pub(crate) fn witness(&self, original: &[Fr]) -> Result<Vec<Fr>> {
++        mapped_witness(self.original_wires, &self.derived, original)
++    }
+ }
+ 
+ fn normalize(terms: impl IntoIterator<Item = (Fr, usize)>) -> Expression {
+@@ -140,15 +161,14 @@
+         self.rows.len()
+     }
+     pub fn witness(&self, original: &[Fr]) -> Result<Vec<Fr>> {
+-        ensure!(
+-            original.len() == self.original_wires && original[0] == Fr::ONE,
+-            "original wire shape or constant mismatch"
+-        );
+-        let mut values = original.to_vec();
+-        values.extend(self.derived.iter().map(|e| evaluate(e, original).square()));
+-        // Arkworks outlines the constant and public statement after our witness allocation.
+-        values.extend_from_slice(&original[..2]);
+-        Ok(values)
++        mapped_witness(self.original_wires, &self.derived, original)
++    }
++    pub(crate) fn compilation_storage_bytes(&self) -> usize {
++        self.rows.capacity() * std::mem::size_of::<SquareRow>()
++            + self.rows.iter().map(|row| (row.squared.capacity() + row.linear.capacity()) * std::mem::size_of::<(Fr, usize)>()).sum::<usize>()
++    }
++    pub(crate) fn into_witness_map(self) -> WitnessMap {
++        WitnessMap { original_wires: self.original_wires, derived: self.derived }
+     }
+     pub fn validate(&self, original: &[Fr]) -> Result<()> {
+         let values = self.witness(original)?;
+@@ -270,5 +290,12 @@
+             assert!(r.validate(&bad).is_err());
+             assert!(l.validate(&bad).is_err());
+         }
+-    }
+-}
++        let expected = l.witness(&values).unwrap();
++        assert!(l.compilation_storage_bytes() > 0);
++        let mapping = l.into_witness_map();
++        assert_eq!(mapping.witness(&values).unwrap(), expected);
++        assert!(mapping.witness(&values[..values.len()-1]).is_err());
++        let mut bad = values.clone(); bad[0] = Fr::ZERO;
++        assert!(mapping.witness(&bad).is_err());
++    }
++}
+--- a/src/worker.rs
++++ b/src/worker.rs
+@@ -56,6 +56,8 @@
+     key_checked_decode_ns: u128,
+     key_association_ns: u128,
+     total_ns: u128,
++    released_original_storage_bytes: usize,
++    released_compilation_storage_bytes: usize,
+ }
+ #[derive(Serialize)]
+ pub(crate) struct Timings {
+@@ -148,7 +150,7 @@
+ }
+ pub(crate) struct Worker {
+     go: GoWorker,
+-    lowered: Arc<lowering::Lowered>,
++    mapping: lowering::WitnessMap,
+     pub(crate) prover: PreparedProver,
+     wires: usize,
+ }
+@@ -160,16 +162,14 @@
+         artifacts: &Path,
+     ) -> Result<(Self, Initialization)> {
+         let total = Instant::now();
+-        let (go, ready) = GoWorker::start(go_binary, artifacts)?;
+         let start = Instant::now();
+         let original = crate::relation(old)?;
+-        ensure!(
+-            ready.circuit_sha256 == original.metadata.circuit_sha256
+-                && ready.wires == original.metadata.wires(),
+-            "Go/Rust circuit identity mismatch"
+-        );
+-        let wires = ready.wires;
++        let circuit_sha256 = original.metadata.circuit_sha256.clone();
++        let wires = original.metadata.wires();
++        let released_original_storage_bytes = original.rows.capacity() * std::mem::size_of::<bridge::Row>()
++            + original.rows.iter().map(|r| (r.a.capacity()+r.b.capacity()+r.c.capacity()) * std::mem::size_of::<bridge::Term>()).sum::<usize>();
+         let lowered = Arc::new(lowering::Lowered::compile(&original));
++        drop(original);
+         let cs = ZkPari::<Bls12_377>::circuit_to_keygen_cs(lowering::Circuit {
+             relation: lowered.clone(),
+             original: None,
+@@ -177,7 +177,8 @@
+         let matrices =
+             cs.to_matrices().context("missing square matrices")?[SR1CS_PREDICATE_LABEL].clone();
+         drop(cs);
+-        drop(original);
++        let lowered = Arc::try_unwrap(lowered).map_err(|_| anyhow::anyhow!("compilation still retains lowered relation"))?;
++        let released_compilation_storage_bytes = lowered.compilation_storage_bytes();
+         let relation_preparation_ns = start.elapsed().as_nanos();
+         let start = Instant::now();
+         let bytes = fs::read(key)?;
+@@ -189,6 +190,9 @@
+         let start = Instant::now();
+         let prover = PreparedProver::from_checked(key, matrices)?;
+         let key_association_ns = start.elapsed().as_nanos();
++        let mapping = lowered.into_witness_map();
++        let (go, ready) = GoWorker::start(go_binary, artifacts)?;
++        ensure!(ready.circuit_sha256 == circuit_sha256 && ready.wires == wires, "Go/Rust circuit identity mismatch");
+         let initialization = Initialization {
+             go_compile_ns: ready.compile_ns,
+             relation_preparation_ns,
+@@ -196,11 +200,13 @@
+             key_checked_decode_ns,
+             key_association_ns,
+             total_ns: total.elapsed().as_nanos(),
++            released_original_storage_bytes,
++            released_compilation_storage_bytes,
+         };
+         Ok((
+             Self {
+                 go,
+-                lowered,
++                mapping,
+                 prover,
+                 wires,
+             },
+@@ -225,7 +231,7 @@
+             values.len() == self.wires && values[0] == Fr::ONE && values[1] == statement,
+             "assignment/public mapping mismatch"
+         );
+-        let witnesses = self.lowered.witness(&values)?;
++        let witnesses = self.mapping.witness(&values)?;
+         let checked_mapping_ns = start.elapsed().as_nanos();
+         let start = Instant::now();
+         let proof = prove(&self.prover, &values[..2], &witnesses)?;
+--- a/src/main.rs
++++ b/src/main.rs
+@@ -100,6 +100,7 @@
+ }
+ fn main() -> Result<()> {
+     let args: Vec<_> = std::env::args().collect();
++    if args.get(1).is_some_and(|s| s == "lifetime-gate") {return lifetime_gate::run(&args[2..]);}
+     if args.get(1).is_some_and(|s| s == "owned-equivalence") {return equivalence::run(&args);}
+     if args.get(1).is_some_and(|s| s == "prepare-key") {
+         ensure!(args.len()==4,"usage: prepare-key COMPRESSED_SOURCE NEW_OUTPUT");
+@@ -258,3 +259,5 @@
+     )?;
+     Ok(())
+ }
++
++mod lifetime_gate;
+--- /dev/null
++++ b/src/lifetime_gate.rs
+@@ -0,0 +1,73 @@
++//! Same-key proof equality across the full logical-witness API after lifetime trimming.
++use crate::{arithmetic, bridge, frontend, lowering, worker};
++use anyhow::{ensure, Result};
++use ark_bls12_377::Fr;
++use ark_std::rand::{rngs::StdRng, SeedableRng};
++use serde::{Deserialize, Serialize};
++use std::{fs, path::{Path, PathBuf}, time::{Instant, SystemTime, UNIX_EPOCH}};
++
++#[derive(Deserialize)]
++#[serde(deny_unknown_fields)]
++struct Artifact {path: PathBuf, sha256: String}
++#[derive(Deserialize)]
++#[serde(deny_unknown_fields)]
++struct Fact {scenario: String, witness: Artifact, statement: String}
++#[derive(Deserialize)]
++#[serde(deny_unknown_fields)]
++struct Manifest {schema: String, facts: Vec<Fact>, invalid: Artifact}
++#[derive(Serialize)]
++struct Record {scenario: String, proof_sha256: String, same_key_seeded_proof_equal: bool, verified: bool, negatives_rejected: bool, diagnostic_request_ns: u128}
++#[derive(Serialize)]
++struct Complete {schema: &'static str, phase_start_unix_ns: u128, initialization_end_unix_ns: u128, initialization: worker::Initialization, released_compilation_storage_bytes: usize, checked_original_and_lowered_assignments: usize, exact_released_mapping_assignments: usize, invalid_witness_rejected: bool, seeded_reference_proofs_not_benchmark_samples: bool, records: Vec<Record>}
++fn checked(a: &Artifact) -> Result<Vec<u8>> {let b=fs::read(&a.path)?;ensure!(arithmetic::sha(&b)==a.sha256,"fixture changed");Ok(b)}
++fn now() -> u128 {SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos()}
++
++pub(crate) fn run(args: &[String]) -> Result<()> {
++    ensure!(args.len()==8,"lifetime-gate RELATION KEY SOLVER ARTIFACTS PRIVATE_CHILD MANIFEST REFERENCE NEW_OUTPUT");
++    let dir=Path::new(&args[0]);let out=Path::new(&args[7]);ensure!(!out.exists(),"preserve gate evidence");
++    let manifest: Manifest=serde_json::from_slice(&fs::read(&args[5])?)?;
++    let names=["transfer","transfer_unregulated","transfer_flagged","transfer_accumulating","transfer_over_limit_disclosure","transfer_accumulator_continuation"];
++    ensure!(manifest.schema=="shieldd.phone_memory_fixtures.v1" && manifest.facts.iter().map(|f|f.scenario.as_str()).eq(names),"six ordered fixtures");
++    let released_compilation_storage_bytes={
++        let original=crate::relation(dir)?;let lowered=lowering::Lowered::compile(&original);
++        let mut originals=Vec::<Vec<Fr>>::new();let mut expected=Vec::new();
++        for name in names {
++            let solved:crate::Solved=serde_json::from_slice(&fs::read(dir.join(format!("{name}.json")))?)?;
++            let values=bridge::assignment(&solved.assignment,&original,&solved.statement)?;
++            lowered.validate(&values)?;
++            expected.push(lowered.witness(&values)?);originals.push(values);
++        }
++        let released=lowered.compilation_storage_bytes();ensure!(released>0,"no compilation storage released");
++        let mapping=lowered.into_witness_map();
++        for (values,expected) in originals.iter().zip(expected) {ensure!(mapping.witness(values)?==expected,"released mapping differs");}
++        released
++    };
++    let phase_start_unix_ns=now();
++    let (mut api,initialization)=worker::Worker::new(dir,Path::new(&args[1]),Path::new(&args[2]),Path::new(&args[3]))?;
++    let (mut foreign,_)=frontend::Foreign::start(&mut api.prover,Path::new(&args[4]))?;
++    let initialization_end_unix_ns=now();fs::create_dir(out)?;
++    let mut records=Vec::new();
++    for (i,fact) in manifest.facts.iter().enumerate() {
++        let input=checked(&fact.witness)?;let mut rng=StdRng::seed_from_u64(7119+i as u64);
++        let start=Instant::now();
++        let (bytes,statement,_)=api.prove_using(&input,|prover,public,witness|foreign.prove(prover,public,witness,&mut rng))?;
++        let diagnostic_request_ns=start.elapsed().as_nanos();
++        ensure!(statement==fact.statement && bytes.len()==168 && api.verify(&bytes,&statement)?,"full logical API proof");
++        let expected=fs::read(Path::new(&args[6]).join(format!("{}.proof",fact.scenario)))?;
++        ensure!(bytes[40..]==expected,"same-key seeded proof changed");
++        ensure!(!api.verify_other_domain(&bytes,&statement)?,"wrong domain accepted");
++        let mut changed=bytes.clone();changed[90]^=1;
++        let mut trailing=bytes.clone();trailing.push(0);
++        for value in [bytes[..bytes.len()-1].to_vec(),changed,trailing] {ensure!(!api.verify(&value,&statement).unwrap_or(false),"malformed proof accepted");}
++        ensure!(!api.verify(&bytes,&"00".repeat(32)).unwrap_or(false),"changed statement accepted");
++        let record=Record{scenario:fact.scenario.clone(),proof_sha256:arithmetic::sha(&bytes),same_key_seeded_proof_equal:true,verified:true,negatives_rejected:true,diagnostic_request_ns};
++        fs::write(out.join(format!("{}.proof",fact.scenario)),&bytes)?;records.push(record);
++        fs::write(out.join("records.json"),serde_json::to_vec_pretty(&records)?)?;
++        println!("{}: exact seeded proof and full-API negatives passed",fact.scenario);
++    }
++    let invalid=checked(&manifest.invalid)?;let mut rng=StdRng::seed_from_u64(123);
++    ensure!(api.prove_using(&invalid,|prover,public,witness|foreign.prove(prover,public,witness,&mut rng)).is_err(),"invalid witness proved");
++    foreign.close()?;drop(api);
++    fs::write(out.join("complete.json"),serde_json::to_vec_pretty(&Complete{schema:"shieldd.phone_memory_gate.v1",phase_start_unix_ns,initialization_end_unix_ns,initialization,released_compilation_storage_bytes,checked_original_and_lowered_assignments:6,exact_released_mapping_assignments:6,invalid_witness_rejected:true,seeded_reference_proofs_not_benchmark_samples:true,records})?)?;
++    Ok(())
++}
