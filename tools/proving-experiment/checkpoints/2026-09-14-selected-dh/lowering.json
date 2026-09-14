@@ -1,0 +1,66 @@
+{
+  "schema": "shieldd.proving_experiment.selected_dh_lowering.v1",
+  "original_constraints": 155122,
+  "original_wires": 142630,
+  "lowered_body_rows": 226574,
+  "converted_rows": 226578,
+  "domain": 262144,
+  "preparation_ns": 657606917,
+  "counts": {
+    "exact_square": 56681,
+    "affine_product": 23809,
+    "linear": 3180,
+    "general_product": 71452
+  },
+  "gates": [
+    {
+      "scenario": "transfer",
+      "validation_ns": 1843967250,
+      "witness_wires": 214084,
+      "wrong_constant_rejected": true,
+      "wrong_statement_rejected": true,
+      "wrong_witness_rejected": true
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "validation_ns": 1802085708,
+      "witness_wires": 214084,
+      "wrong_constant_rejected": true,
+      "wrong_statement_rejected": true,
+      "wrong_witness_rejected": true
+    },
+    {
+      "scenario": "transfer_flagged",
+      "validation_ns": 1835747959,
+      "witness_wires": 214084,
+      "wrong_constant_rejected": true,
+      "wrong_statement_rejected": true,
+      "wrong_witness_rejected": true
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "validation_ns": 1789366583,
+      "witness_wires": 214084,
+      "wrong_constant_rejected": true,
+      "wrong_statement_rejected": true,
+      "wrong_witness_rejected": true
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "validation_ns": 1780052167,
+      "witness_wires": 214084,
+      "wrong_constant_rejected": true,
+      "wrong_statement_rejected": true,
+      "wrong_witness_rejected": true
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "validation_ns": 1761223417,
+      "witness_wires": 214084,
+      "wrong_constant_rejected": true,
+      "wrong_statement_rejected": true,
+      "wrong_witness_rejected": true
+    }
+  ],
+  "limits": "Compile/solve relation evidence only; no key generation, proof or full-API speed claim."
+}

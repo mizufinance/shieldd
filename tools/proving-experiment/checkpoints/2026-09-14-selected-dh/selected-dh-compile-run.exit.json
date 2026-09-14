@@ -1,0 +1,9 @@
+{
+  "time_ns": 1789358319169420000,
+  "argv": [
+    "python3",
+    "tools/proving-experiment/candidates/selected-dh/compile_gate.py"
+  ],
+  "code": 0,
+  "failure": null
+}

@@ -1,0 +1,16 @@
+{
+  "time_ns": 1789358293196828000,
+  "argv": [
+    "go",
+    "-C",
+    "tools/proving-experiment/candidates/selected-dh",
+    "build",
+    "-p",
+    "2",
+    "-o",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/selected-dh-go",
+    "./cmd/proofspike"
+  ],
+  "code": 0,
+  "failure": null
+}

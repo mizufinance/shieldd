@@ -1,0 +1,17 @@
+   Compiling shieldd-proving-experiment v0.1.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment)
+warning: struct `Circuit` is never constructed
+   --> examples/../src/bridge.rs:171:12
+    |
+171 | pub struct Circuit {
+    |            ^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` on by default
+
+warning: function `validate_converted` is never used
+   --> examples/../src/bridge.rs:240:8
+    |
+240 | pub fn validate_converted(circuit: Circuit) -> Result<usize> {
+    |        ^^^^^^^^^^^^^^^^^^
+
+warning: `shieldd-proving-experiment` (example "selected_dh_compile") generated 2 warnings
+    Finished `release` profile [optimized] target(s) in 2.59s

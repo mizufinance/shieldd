@@ -1,6 +1,6 @@
 # Transfer proving experiment status
 
-**Selected desktop baseline and bounded second-pass probes complete. Further implementation candidates are identified; physical-phone access remains pending.**
+**Optimization campaign active. Selected desktop baseline is frozen; new circuit and startup candidates are being implemented and measured. Physical-phone access remains pending.**
 
 [Current measured report and plots](../../docs/research/transfer-proving-selected.md) use the single matched `cache/desktop-selected` session. The earlier `desktop-final` checkpoint and report remain unchanged; do not pool their samples.
 
@@ -43,3 +43,7 @@ Do not pool the new diagnostics with the completed desktop baseline or rerun its
 Physical iPhone/Android measurements remain unavailable: `adb devices -l` lists no device and `xcode-select -p` selects CommandLineTools rather than full Xcode. Preserve all selected binaries for device testing when actual hardware and build/signing access become available. Desktop ARM is not phone evidence. Stay quiet while that prerequisite is unchanged.
 
 The older `tools/zkpari-spike` campaign and `complete-shieldd-proof-spike` automation remain stopped/paused. Its two 4,096-proof corpora and completed one-worker results are preserved. Do not resume the excluded verification campaign.
+
+## Active campaign
+
+The [authorized campaign](../../docs/research/zkpari-optimization-campaign.md) now carries worthwhile candidates through full API measurements. The isolated `candidates/selected-dh` module changes only three eligible Transfer DH tiers; sender-core issuer detection remains unconditional. Exact coordinate/encoding parity passed 24 boundary combinations and rejected invalid flag/EPK cases. Full Transfer compile/solve and actual Square-R1CS lowering are next. These checks are not new proving results.

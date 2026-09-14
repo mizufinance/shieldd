@@ -1,0 +1,17 @@
+{
+  "time_ns": 1789358237809402000,
+  "argv": [
+    "go",
+    "-C",
+    "tools/proving-experiment/candidates/selected-dh",
+    "test",
+    "-p",
+    "2",
+    "./internal/compliance",
+    "-run",
+    "^TestSelectedSharedExactCoordinates$",
+    "-count=1"
+  ],
+  "code": 0,
+  "failure": null
+}

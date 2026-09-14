@@ -1,0 +1,14 @@
+{
+  "peak_rss_bytes": 254296064,
+  "metadata": {
+    "schema": "shieldd.proof_spike.assignment.v1",
+    "modulus": "8444461749428370424248824938781546531375899335154063827935233455917409239041",
+    "constraints": 155122,
+    "public": 2,
+    "secret": 518,
+    "internal": 142110,
+    "circuit_sha256": "cc0dc2091c86777dfd21128b974d1a51f959ce0599211d90a022e5c3d9e27bde"
+  },
+  "compile_ns": 434474667,
+  "request_wall_ns": 1402573584
+}

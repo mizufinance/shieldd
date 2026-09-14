@@ -1,0 +1,17 @@
+{
+  "time_ns": 1789358483343777000,
+  "argv": [
+    "go",
+    "-C",
+    "tools/proving-experiment/candidates/selected-dh",
+    "test",
+    "-p",
+    "2",
+    "./internal/circuits",
+    "-run",
+    "^(TestTransferCircuitRejectsComplianceTierMutations|TestTransferCircuitRejectsEveryDetectionCiphertextMutation|TestTransferCircuitRejectsEveryTierEPKSubstitution|TestTransferCircuitRejectsNonceRootAndEveryTierScalarMutation|TestTransferCircuitBindsUnregulatedCiphertextAndCanonicalPolicy)$",
+    "-count=1"
+  ],
+  "code": 0,
+  "failure": null
+}

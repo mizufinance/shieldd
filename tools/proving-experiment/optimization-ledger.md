@@ -324,3 +324,7 @@ No selected implementation changed; next deterministic subgroup-check startup pr
 
 198boundary cases and81,920sample validations pass. No full-key, first-proof or warm-proving claim.
 See `subgroup-startup-probe.md` and `cache/subgroup-comparison/analysis.json`.
+
+## 2026-09-14: full selected-key Transfer gate
+
+Isolated `candidates/selected-dh` removes 8,274 original R1CS rows in three eligible tiers, leaving 155,122 rows. Sender-core issuer detection remains unconditional. Actual B lowering:226,574 body/226,578 converted rows;214,084 mapped witness wires;262,144 FFT domain. All six complete assignments pass original/converted/mapping gates and constant/statement/constrained-witness negatives. Existing tier/EPK/scalar/detection mutations pass; nine malformed ACK/DK cases reject across regulated/unregulated/flagged scenarios. Paired compiled helper accepts24 coordinate/encoding-equivalence cases and rejects bad flag/EPK. No new setup/proof yet; this is not a proving speedup. One Rust build failed on a Vec-field API typo, corrected and rerun successfully; both logs preserved. Compact source-bound evidence: `checkpoints/2026-09-14-selected-dh`. Production release-gated suites not run.

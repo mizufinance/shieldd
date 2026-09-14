@@ -1,0 +1,17 @@
+{
+  "time_ns": 1789358622484505000,
+  "argv": [
+    "go",
+    "-C",
+    "tools/proving-experiment/candidates/selected-dh",
+    "test",
+    "-p",
+    "2",
+    "./internal/circuits",
+    "-run",
+    "^TestSelectedDHUnselectedKeysRemainChecked$",
+    "-count=1"
+  ],
+  "code": 0,
+  "failure": null
+}

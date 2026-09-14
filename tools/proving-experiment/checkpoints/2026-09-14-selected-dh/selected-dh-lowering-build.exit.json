@@ -1,0 +1,18 @@
+{
+  "time_ns": 1789358378713451000,
+  "argv": [
+    "cargo",
+    "+1.89.0",
+    "build",
+    "--manifest-path",
+    "tools/proving-experiment/Cargo.toml",
+    "--release",
+    "--locked",
+    "--example",
+    "selected_dh_compile",
+    "-j",
+    "2"
+  ],
+  "code": 101,
+  "failure": null
+}

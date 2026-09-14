@@ -1,0 +1,6 @@
+transfer: original/converted/mapping and negatives passed
+transfer_unregulated: original/converted/mapping and negatives passed
+transfer_flagged: original/converted/mapping and negatives passed
+transfer_accumulating: original/converted/mapping and negatives passed
+transfer_over_limit_disclosure: original/converted/mapping and negatives passed
+transfer_accumulator_continuation: original/converted/mapping and negatives passed

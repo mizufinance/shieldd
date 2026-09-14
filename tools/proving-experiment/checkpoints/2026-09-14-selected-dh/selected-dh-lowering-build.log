@@ -1,0 +1,9 @@
+   Compiling shieldd-proving-experiment v0.1.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment)
+error[E0609]: no field `num_constraints` on type `Vec<Vec<Vec<(Fp<MontBackend<FrConfig, 4>, 4>, usize)>>>`
+  --> examples/selected_dh_compile.rs:29:20
+   |
+29 |  let rows=matrices.num_constraints;
+   |                    ^^^^^^^^^^^^^^^ unknown field
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `shieldd-proving-experiment` (example "selected_dh_compile") due to 1 previous error

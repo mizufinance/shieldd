@@ -1,0 +1,9 @@
+{
+  "time_ns": 1789358427704862000,
+  "argv": [
+    "tools/proving-experiment/target/release/examples/selected_dh_compile",
+    "tools/proving-experiment/cache/selected-dh-compile"
+  ],
+  "code": 0,
+  "failure": null
+}
