@@ -1,0 +1,70 @@
+--- a/src/prover.rs
++++ b/src/prover.rs
+@@ -27,7 +27,7 @@
+ pub use self::h_poly::compute_h_poly;
+ use self::h_poly::{read_h_poly_result, submit_h_poly};
+ use self::msm::{MsmBases, enqueue_msm, readback_msms};
+-pub use self::msm::{gpu_msm_batch, gpu_msm_g1};
++pub use self::msm::{PreparedG1Msm, gpu_msm_batch, gpu_msm_g1};
+ pub use self::prepared_key::{PreparedProvingKey, prepare_proving_key};
+ use crate::bellman;
+ use crate::bucket::{
+--- a/src/prover/msm.rs
++++ b/src/prover/msm.rs
+@@ -528,3 +528,56 @@
+ 
+     Ok((a, b1, l, h, b2))
+ }
++
++/// Development-only BLS12-381 MSM with fixed finite bases on one GPU context.
++pub struct PreparedG1Msm<'gpu> {
++    gpu: &'gpu GpuContext<blstrs::Bls12>,
++    buffer: Option<wgpu::Buffer>,
++    original_count: usize,
++    indices: Option<Vec<usize>>,
++    resident_bytes: u64,
++}
++
++impl<'gpu> PreparedG1Msm<'gpu> {
++    /// Caller supplies checked subgroup points. Identity contributions are omitted.
++    pub async fn new(gpu: &'gpu GpuContext<blstrs::Bls12>, bases: &[blstrs::G1Affine]) -> Result<Self> {
++        use group::prime::PrimeCurveAffine;
++        use std::borrow::Cow;
++        type G = blstrs::Bls12;
++        anyhow::ensure!(bases.len() <= 524290, "development MSM count bound");
++        let indices: Vec<usize> = bases.iter().enumerate().filter(|(_, p)| !bool::from(p.is_identity())).map(|(i, _)| i).collect();
++        let finite = if indices.len() == bases.len() { Cow::Borrowed(bases) } else { Cow::Owned(indices.iter().map(|&i| bases[i]).collect::<Vec<_>>()) };
++        let resident_bytes = (2 * finite.len() * G::G1_GPU_BYTES) as u64;
++        let limits = gpu.device.limits();
++        anyhow::ensure!(resident_bytes <= u64::from(limits.max_storage_buffer_binding_size) && resident_bytes <= limits.max_buffer_size, "prepared bases exceed device limits");
++        let buffer = if finite.is_empty() { None } else {
++            let bytes = serialize_g1_bases::<G>(&finite);
++            let phi = serialize_g1_phi_bases::<G>(&finite);
++            let combined = super::prepared_key::interleave_glv_bases(&bytes, &phi, G::G1_GPU_BYTES);
++            drop(bytes); drop(phi);
++            let buffer = gpu.create_storage_buffer("prepared_single_g1", &combined);
++            drop(combined);
++            gpu.convert_to_montgomery(&buffer, false);
++            // The queued read completes only after conversion, on native and WebGPU.
++            gpu.read_buffer(&buffer, 4).await?;
++            Some(buffer)
++        };
++        Ok(Self { gpu, buffer, original_count: bases.len(), indices: (indices.len() != bases.len()).then_some(indices), resident_bytes })
++    }
++
++    pub fn resident_bytes(&self) -> u64 { self.resident_bytes }
++
++    /// Reuses immutable P/phi(P); scalar signs live only in per-request indices.
++    pub async fn msm(&self, scalars: &[blstrs::Scalar]) -> Result<blstrs::G1Projective> {
++        use std::borrow::Cow;
++        type G = blstrs::Bls12;
++        anyhow::ensure!(scalars.len() == self.original_count, "MSM scalar count mismatch");
++        let Some(buffer) = &self.buffer else { return Ok(G::g1_identity()); };
++        let scalars = match &self.indices { None => Cow::Borrowed(scalars), Some(indices) => Cow::Owned(indices.iter().map(|&i| scalars[i]).collect::<Vec<_>>()) };
++        let c = optimal_glv_c::<G>(scalars.len());
++        let bd = crate::bucket::compute_glv_bucket_data::<G>(&scalars, c);
++        let Some(job) = enqueue_msm::<G>(self.gpu, "prepared_single_g1", MsmBases::Persistent(buffer), bd, false)? else { return Ok(G::g1_identity()); };
++        let bytes = self.gpu.read_buffer(&job.sums_buf, u64::from(job.num_windows) * G::G1_GPU_BYTES as u64).await?;
++        fold_window_sums_g1::<G>(&bytes, job.num_windows, job.bucket_width)
++    }
++}

@@ -1,0 +1,3 @@
+   Compiling webgpu-groth16 v0.2.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/webgpu-prepared381)
+   Compiling shieldd-gpu381-prepared v0.1.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/gpu381-prepared)
+    Finished `release` profile [optimized] target(s) in 3.19s

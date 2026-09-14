@@ -1,0 +1,89 @@
+{
+  "schema": "shieldd.gpu381_prepared_comparison.v1",
+  "operation": "opening_r",
+  "points": 524290,
+  "rows": [
+    {
+      "backend": "native",
+      "values_s": [
+        0.987047375,
+        0.974456584,
+        0.9819675,
+        0.982135333,
+        1.001047083
+      ],
+      "median_s": 0.982135333,
+      "peak_process_rss_bytes": 295124992,
+      "kernel_values_s": [
+        0.916974334,
+        0.920223209,
+        0.924220541,
+        0.925860792,
+        0.9311515
+      ]
+    },
+    {
+      "backend": "gpu",
+      "values_s": [
+        0.838341,
+        0.8668405,
+        0.875893917,
+        0.88410725,
+        0.850310333
+      ],
+      "median_s": 0.8668405,
+      "peak_process_rss_bytes": 1185431552,
+      "kernel_values_s": [
+        0.79552425,
+        0.83046925,
+        0.830323958,
+        0.846835666,
+        0.800118542
+      ]
+    }
+  ],
+  "exact_outputs": 18,
+  "limits": "Historical native Transfer operation, current Commonware PreparedG1Msm and separate GPU library with isolated persistent-base entry point. Each persistent request includes checked scalar-file reads/hashing/decoding, arithmetic, output checking/encoding and IPC. Initialization separate. GPU path reuses immutable interleaved finite bases, with one-time checked admission, serialization, upload and completion before readiness; each call includes scalar sorting/index-sign assembly/upload/dispatch/readback. Persistent bytes separate. No complete proof or phone measurement.",
+  "gpu_over_native_time": 0.8826079979753666,
+  "reduction_percent": 11.73920020246334,
+  "max_tree_rss_bytes": 1583448064,
+  "max_swap_bytes": 0,
+  "initialization": [
+    {
+      "stage": "initialization",
+      "backend": "native",
+      "wall_ns": 15623266458,
+      "worker": {
+        "stage": "ready",
+        "backend": "native",
+        "initialization_ns": 15494225166,
+        "prepared_ns": 137109167,
+        "resident_bases_bytes": 54526168,
+        "points": 524290
+      }
+    },
+    {
+      "stage": "initialization",
+      "backend": "gpu",
+      "wall_ns": 18124554083,
+      "worker": {
+        "stage": "ready",
+        "backend": "gpu",
+        "initialization_ns": 17979927166,
+        "gpu_initialization_ns": 1959135041,
+        "prepared_ns": 619600542,
+        "persistent_gpu_bytes": 402654720,
+        "points": 524290,
+        "preflight": {
+          "glv_base_bytes": 402654720,
+          "index_bytes": 46137520,
+          "logical_bucket_bytes": 17301504,
+          "sub_bucket_bytes": 86507904,
+          "conservative_working_bytes": 2659456848,
+          "device_binding_limit": 4294967292,
+          "device_buffer_limit": 28991029248
+        }
+      }
+    }
+  ]
+}

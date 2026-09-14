@@ -19,11 +19,17 @@ Sources, raw evidence, plots and exact test records are preserved in `checkpoint
 
 
 
+## Completed persistent GPU component screen
+
+[The prepared GPU comparison](../../docs/research/gpu381-prepared-screen.md) passes the component gate: native0.982135333s versusGPU0.866840500s, 11.74%less time. All18historical opening outputs match. Thirty-two changing-scalar cases on eight reused base sets match CPU and fresh public GPU arithmetic; wrong counts/noncanonical scalars reject. ScopedWASM release check passes. GPUpreparation0.619600542s, persistent402654720B; warm native/GPU processRSS295124992/1185431552B, zero swap/competition.
+
+**Next:** capture selected C's current combined witness+quotient and A+R operations, validate the real proof, and test those exact operations with renewed allocation bounds (A+R589827terms exceeds the historical adapter cap). A component win requires six full-proof/API gates and matched complete proving measurements before selection. No new full proof or phone measurement yet. Public-path and prepared-path sessions remain independent; do not pool them or project their percentages directly onto proving time.
+
 ## Completed public GPU MSM screen
 
 [The real-opening comparison](../../docs/research/gpu381-public-screen.md) records native0.971646459s versusGPU1.508607000s, 1.553×time. All18historical524290-point outputs match; eight small oracle gates pass after finite-base filtering, with the original identity failure preserved. Both workers reject noncanonical scalars and wrong counts. Three warmups/five warm calls each, checked request/IPC included; zero swap/competition. Sampled native/GPU processRSS298631168/1577992192B is distinct from GPU allocation telemetry. No full proof or phone measurement ran.
 
-Public GPU bases are reserialized/uploaded each call. One distinct prepared-base follow-up can reuse the existing persistent buffer and signed-index path before closing this candidate. Production paths and selected A/B/C remain unchanged.
+Public GPU bases are reserialized/uploaded each call. The prepared-base follow-up above now passes its historical component gate. Production paths and selected A/B/C remain unchanged.
 
 ## Completed safe WebAssembly MSM screen
 

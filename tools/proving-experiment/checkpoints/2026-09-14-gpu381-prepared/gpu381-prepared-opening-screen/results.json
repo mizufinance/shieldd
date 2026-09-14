@@ -1,0 +1,47 @@
+{
+  "schema": "shieldd.gpu381_prepared_comparison.v1",
+  "operation": "opening_r",
+  "points": 524290,
+  "rows": [
+    {
+      "backend": "native",
+      "values_s": [
+        0.987047375,
+        0.974456584,
+        0.9819675,
+        0.982135333,
+        1.001047083
+      ],
+      "median_s": 0.982135333,
+      "peak_process_rss_bytes": 295124992,
+      "kernel_values_s": [
+        0.916974334,
+        0.920223209,
+        0.924220541,
+        0.925860792,
+        0.9311515
+      ]
+    },
+    {
+      "backend": "gpu",
+      "values_s": [
+        0.838341,
+        0.8668405,
+        0.875893917,
+        0.88410725,
+        0.850310333
+      ],
+      "median_s": 0.8668405,
+      "peak_process_rss_bytes": 1185431552,
+      "kernel_values_s": [
+        0.79552425,
+        0.83046925,
+        0.830323958,
+        0.846835666,
+        0.800118542
+      ]
+    }
+  ],
+  "exact_outputs": 18,
+  "limits": "Historical native Transfer operation, current Commonware PreparedG1Msm and separate GPU library with isolated persistent-base entry point. Each persistent request includes checked scalar-file reads/hashing/decoding, arithmetic, output checking/encoding and IPC. Initialization separate. GPU path reuses immutable interleaved finite bases, with one-time checked admission, serialization, upload and completion before readiness; each call includes scalar sorting/index-sign assembly/upload/dispatch/readback. Persistent bytes separate. No complete proof or phone measurement."
+}

@@ -1,0 +1,21 @@
+{
+  "time_ns": 1789388710752404000,
+  "argv": [
+    "cargo",
+    "+1.95.0",
+    "check",
+    "--release",
+    "--locked",
+    "--target",
+    "wasm32-unknown-unknown",
+    "--lib",
+    "--manifest-path",
+    "tools/proving-experiment/candidates/gpu381-prepared/Cargo.toml",
+    "-p",
+    "webgpu-groth16",
+    "-j",
+    "2"
+  ],
+  "code": 0,
+  "failure": null
+}

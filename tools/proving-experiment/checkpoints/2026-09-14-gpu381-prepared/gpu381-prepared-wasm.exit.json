@@ -1,0 +1,19 @@
+{
+  "time_ns": 1789388678148303000,
+  "argv": [
+    "cargo",
+    "+1.95.0",
+    "check",
+    "--release",
+    "--locked",
+    "--target",
+    "wasm32-unknown-unknown",
+    "--lib",
+    "--manifest-path",
+    "tools/proving-experiment/cache/webgpu-prepared381/Cargo.toml",
+    "-j",
+    "2"
+  ],
+  "code": 101,
+  "failure": null
+}

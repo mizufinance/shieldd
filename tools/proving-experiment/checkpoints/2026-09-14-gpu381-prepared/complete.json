@@ -1,0 +1,32 @@
+{
+  "hashes": {
+    "README.md": "9185e2439c4416da463b054e3cbe0cddcb7e6b8f8418051c1266a778bc48b8ba",
+    "gpu381-prepared-build.exit.json": "d505955e99fef18731a872001310aee06a11ce967ff02ba4e5b9b4d191b441a8",
+    "gpu381-prepared-build.log": "05387a7a671447211c92601a70a4820dcf088baf6b28dfe1d85f024947ba415c",
+    "gpu381-prepared-build.resources.jsonl": "b39ed754c3cee4a7a52f38f50e63574d5f1c63cbac3aec02dc0afe12885b9cbf",
+    "gpu381-prepared-gate-source/identity.json": "86542fe7e8671fa85e4a9979df643cc4d65b5a8e873f3e56ecd864bb4951c626",
+    "gpu381-prepared-gate-source/source.tar.gz": "9ea87fbec763d45474ce9162e0f92ef60e35e9bbae21f639d8eded5fac3edc0b",
+    "gpu381-prepared-opening-screen/complete.json": "98d15414cc7d647f5bc4e7e857ea82bc58c501ef9fa923f823be38841359b89b",
+    "gpu381-prepared-opening-screen/identity.json": "66518508dfde7a0e2a269800ae039340ff2d838170250828c497c2d7ca112434",
+    "gpu381-prepared-opening-screen/memory.jsonl": "6750c7475212bea1ff4a2f604f351b0adbe2c3f633cb9aec5ece79e7371525e6",
+    "gpu381-prepared-opening-screen/results.json": "32fcb2a120705313761f480af2fe5e5f75c4832e77a7b9b3186873e8ca4c27b9",
+    "gpu381-prepared-opening-screen/samples.jsonl": "beeda2b805ffc8c4f9051781a01fcafcd20dc87ad84bb82f57ea05d1eae6eb3f",
+    "gpu381-prepared-opening-screen.exit.json": "7bebc72438f9c9bce3bde2374a00bb94baffb82e8e8f3fd2012ac32858d543a3",
+    "gpu381-prepared-opening-screen.log": "8b4c2ae4f60fbb9bb488973f8222227fab0ba270420443f0bf5d2c7c465195c2",
+    "gpu381-prepared-opening-screen.resources.jsonl": "5b94b577f06df10b06bef410a43c78cadba5d8989c23139ded73f7a6260bebfe",
+    "gpu381-prepared-opening-source/identity.json": "66518508dfde7a0e2a269800ae039340ff2d838170250828c497c2d7ca112434",
+    "gpu381-prepared-opening-source/source.tar.gz": "6133670c75d8061ae58fa66aea0ca33f18095c4fa3dbb4129775078b9c321c0d",
+    "gpu381-prepared-small-gate/adapter.json": "f40273404af41754e7633d1413da56e4d2eae670db5c64500496bc83aaf3a36b",
+    "gpu381-prepared-small-gate/complete.json": "b527725b695ec37ee67674ff0bb4b3692bb359b9658163787f21c52264deb4d9",
+    "gpu381-prepared-small-gate/progress.json": "b527725b695ec37ee67674ff0bb4b3692bb359b9658163787f21c52264deb4d9",
+    "gpu381-prepared-small-gate.exit.json": "fa8ddae26e8aa342555e635e18e9b79edd7f0ab2ba9d6580f936fc6136db434a",
+    "gpu381-prepared-small-gate.log": "7a4c3a6bf17495c84f764b4232c4169f8b1b7794b622b78b755a5ba2f45cb206",
+    "gpu381-prepared-small-gate.resources.jsonl": "c3afc87dddbfbe8ae1aece9edb024aea723b17411dfc323cc436a8cf524ef85e",
+    "gpu381-prepared-wasm-scoped.exit.json": "f53aa6333f82d22956a2268816f64d9d9b7af2f1802fbaae3085e1ce633f3190",
+    "gpu381-prepared-wasm-scoped.log": "cbd94a8aa8f99d146164b754169df645bd7cff7a5c36c60f8f04db5273300b64",
+    "gpu381-prepared-wasm-scoped.resources.jsonl": "4dc0cc9e910aad467a1d084dbad52249df96abef462c2a30c1d1e910a3ecbd51",
+    "gpu381-prepared-wasm.exit.json": "9d5f7cca124aaeea973f596b234faac8817dac7f6bc365111bb4b089a2817d92",
+    "gpu381-prepared-wasm.log": "dfdf7c4e6980d61d0c9d6b0111b455f34ea4f14163c71d860bab26cc6b814669",
+    "gpu381-prepared-wasm.resources.jsonl": "601a753a892bf3d1b2d585d94602c63ba81bd0ad11216f80cc3462f48e24993f"
+  }
+}
