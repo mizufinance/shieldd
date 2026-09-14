@@ -1,0 +1,28 @@
+05:28:21 INF compiling circuit
+05:28:21 INF parsed circuit inputs nbPublic=1 nbSecret=518
+05:28:21 INF building constraint builder nbConstraints=154224
+05:28:47 DBG constraint system solver done nbConstraints=154224 took=50.479458
+05:28:48 DBG constraint system solver done nbConstraints=154224 took=50.84125
+05:28:49 DBG prover done acceleration=none backend=groth16 curve=bls12_377 nbConstraints=154224 took=1584.779917
+05:28:49 DBG verifier done backend=groth16 curve=bls12_377 took=0.919208
+05:28:49 DBG constraint system solver done nbConstraints=154224 took=54.604708
+05:28:49 DBG constraint system solver done nbConstraints=154224 took=65.880458
+05:28:51 DBG prover done acceleration=none backend=groth16 curve=bls12_377 nbConstraints=154224 took=1581.105375
+05:28:51 DBG verifier done backend=groth16 curve=bls12_377 took=0.924416
+05:28:51 DBG constraint system solver done nbConstraints=154224 took=54.614
+05:28:51 DBG constraint system solver done nbConstraints=154224 took=50.518583
+05:28:53 DBG prover done acceleration=none backend=groth16 curve=bls12_377 nbConstraints=154224 took=1586.00625
+05:28:53 DBG verifier done backend=groth16 curve=bls12_377 took=0.956
+05:28:53 DBG constraint system solver done nbConstraints=154224 took=50.865541
+05:28:53 DBG constraint system solver done nbConstraints=154224 took=50.476416
+05:28:54 DBG prover done acceleration=none backend=groth16 curve=bls12_377 nbConstraints=154224 took=1596.943834
+05:28:54 DBG verifier done backend=groth16 curve=bls12_377 took=0.980292
+05:28:54 DBG constraint system solver done nbConstraints=154224 took=50.558667
+05:28:54 DBG constraint system solver done nbConstraints=154224 took=51.043375
+05:28:56 DBG prover done acceleration=none backend=groth16 curve=bls12_377 nbConstraints=154224 took=1596.090125
+05:28:56 DBG verifier done backend=groth16 curve=bls12_377 took=0.957875
+05:28:56 DBG constraint system solver done nbConstraints=154224 took=51.466083
+05:28:56 DBG constraint system solver done nbConstraints=154224 took=52.786959
+05:28:58 DBG prover done acceleration=none backend=groth16 curve=bls12_377 nbConstraints=154224 took=1594.978917
+05:28:58 DBG verifier done backend=groth16 curve=bls12_377 took=0.928542
+wrote /Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/a-comparator377-keys/transfer (mode fresh_setup, compile 444.55ms, setup 24442.14ms, generation self-tests 6, pk 37457537 bytes, vk 540 bytes)

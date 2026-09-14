@@ -1,0 +1,77 @@
+{
+  "schema": "shieldd.proving_experiment.lowered_gate.v1",
+  "original_constraints": 154224,
+  "body_constraints": 224774,
+  "outlined_constraints": 224778,
+  "domain": 262144,
+  "counts": {
+    "exact_square": 56681,
+    "affine_product": 23813,
+    "linear": 3180,
+    "general_product": 70550
+  },
+  "offline_keygen_ns": 4936514458,
+  "gates": [
+    {
+      "scenario": "transfer",
+      "original_and_lowered": true,
+      "assignment_mapping": true,
+      "valid_proof": true,
+      "wrong_statement_rejected": true,
+      "invalid_assignment_rejected": true,
+      "diagnostic_presolved_prove_ns": 3114485542,
+      "proof_bytes": 128
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "original_and_lowered": true,
+      "assignment_mapping": true,
+      "valid_proof": true,
+      "wrong_statement_rejected": true,
+      "invalid_assignment_rejected": true,
+      "diagnostic_presolved_prove_ns": 3100542958,
+      "proof_bytes": 128
+    },
+    {
+      "scenario": "transfer_flagged",
+      "original_and_lowered": true,
+      "assignment_mapping": true,
+      "valid_proof": true,
+      "wrong_statement_rejected": true,
+      "invalid_assignment_rejected": true,
+      "diagnostic_presolved_prove_ns": 3105430458,
+      "proof_bytes": 128
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "original_and_lowered": true,
+      "assignment_mapping": true,
+      "valid_proof": true,
+      "wrong_statement_rejected": true,
+      "invalid_assignment_rejected": true,
+      "diagnostic_presolved_prove_ns": 3117045666,
+      "proof_bytes": 128
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "original_and_lowered": true,
+      "assignment_mapping": true,
+      "valid_proof": true,
+      "wrong_statement_rejected": true,
+      "invalid_assignment_rejected": true,
+      "diagnostic_presolved_prove_ns": 3134368250,
+      "proof_bytes": 128
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "original_and_lowered": true,
+      "assignment_mapping": true,
+      "valid_proof": true,
+      "wrong_statement_rejected": true,
+      "invalid_assignment_rejected": true,
+      "diagnostic_presolved_prove_ns": 3149944583,
+      "proof_bytes": 128
+    }
+  ],
+  "limits": "Correctness and pre-solved kernel diagnostics only. No full API timing, current-key checkpoint, final sample matrix, native Commonware Transfer, or phone measurements."
+}

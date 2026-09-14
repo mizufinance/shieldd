@@ -1,0 +1,10 @@
+{
+  "schema": "shieldd.native_comparator34.compatibility.v1",
+  "rust_toolchain": "1.95.0",
+  "wasm_target": "wasm32-unknown-unknown",
+  "wasm_build_passed": true,
+  "scoped_commonware_tests_passed": 4,
+  "initial_test_invocation": "No tests selected because the just recipe expands unquoted positional arguments and split the spaced filter. A single whitespace-free filter selected and passed all four requested cases. This was an invocation error, not a cryptographic test failure.",
+  "wasm_bytes": 36201,
+  "wasm_sha256": "84e62d4b0062f50e94671584d5425bb390aa7fb776c05179d1fb38ae5d9c8310"
+}

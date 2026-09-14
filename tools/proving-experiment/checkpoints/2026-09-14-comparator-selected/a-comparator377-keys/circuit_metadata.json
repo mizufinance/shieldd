@@ -1,0 +1,15 @@
+{
+  "schema": "shieldd.gnark.circuit_metadata",
+  "curve": "bls12-377",
+  "circuit": "transfer",
+  "proving_key_size_bytes": 37457537,
+  "verifying_key_size_bytes": 540,
+  "nb_constraints": 154224,
+  "nb_public_variables": 2,
+  "nb_secret_variables": 518,
+  "sr1cs_sha256_hex": "94a894fdd2ae5cc993d7e96a4fb3e1c0461745be6da73d1d11acbc6443717d79",
+  "setup_provenance_sha256_hex": "1b77c1ba3361dbf37d0dcac7111c607faf66d8b13b204076b7ae589f4c7d9092",
+  "proving_key_sha256_hex": "e5319712392039f3710238a5615b6a62ba2a6e7957c1848cc2ee607af8dcc506",
+  "verifying_key_binary_sha256_hex": "5490bcdeac53bb581880d1555bdd7cb6313066d5427724dbe2069bcb62ed51a4",
+  "verifying_key_json_sha256_hex": "38fc409a4ec0e7f8978f31c10c406a79ff77f816d1e6d09cf14341c831186232"
+}

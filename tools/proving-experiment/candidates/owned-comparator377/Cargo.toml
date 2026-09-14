@@ -1,0 +1,29 @@
+[package]
+name = "shieldd-owned-comparator377"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[dependencies]
+anyhow = "1"
+ark-bls12-377 = "=0.6.0"
+ark-ec = "=0.6.0"
+ark-ff = "=0.6.0"
+ark-poly = "=0.6.0"
+ark-relations = "=0.6.0"
+ark-serialize = "=0.6.0"
+ark-std = "=0.6.0"
+hex = "0.4"
+libc = "0.2"
+rand = "0.8"
+rayon = "1"
+num-bigint = "0.4"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+zkpari = { path = "../../vendor/zkpari" }
+
+[profile.release]
+debug = 0

@@ -1,0 +1,16 @@
+{
+  "time_ns": 1789378317137913000,
+  "argv": [
+    "cargo",
+    "+1.89.0",
+    "test",
+    "--locked",
+    "--release",
+    "--manifest-path",
+    "tools/proving-experiment/candidates/owned-comparator377/Cargo.toml",
+    "--",
+    "--test-threads=2"
+  ],
+  "code": 0,
+  "failure": null
+}

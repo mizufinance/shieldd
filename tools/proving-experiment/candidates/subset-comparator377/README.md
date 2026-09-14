@@ -1,0 +1,3 @@
+# Fair subset Groth16 comparator control
+
+Development-only preparation of the frozen subset Groth16 worker with the same two strict comparison helpers as the checked BLS12-377 comparator relation. `prepare.py` verifies every baseline source file before creating `cache/a-comparator377-source`. Gnark subset setup/proving, checked key descriptor, solver and verifier remain identical to the selected A control. Only the helper implementations and their tests change. Fresh development setup must bind circuit hash `94a894fdd2ae5cc993d7e96a4fb3e1c0461745be6da73d1d11acbc6443717d79` before six-scenario API gates and measurements. This preparation alone makes no proving claim.

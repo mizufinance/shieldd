@@ -1,0 +1,9 @@
+{
+  "time_ns": 1789378138627939000,
+  "argv": [
+    "python3",
+    "tools/proving-experiment/comparator377_setup.py"
+  ],
+  "code": 0,
+  "failure": null
+}

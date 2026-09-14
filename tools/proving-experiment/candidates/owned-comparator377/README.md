@@ -1,0 +1,3 @@
+# Owned-admission ZK-Pari comparator control
+
+Development-only selected owned-admission backend with the checked strict-comparator Transfer relation. The exact original circuit hash and counts are updated to154224 original rows,224778 converted rows and212280 witness wires. The M229376/N262144 domain, checked prepared-key codec, private arithmetic child, proof format, masks and verification protocol are unchanged. Separate keys must be generated and bound to the new matrices. The baseline files are hashed in `upstream.json`; only the main relation checks and package identity differ. Reuse of the unchanged private child requires six new-key exact proof/MSM equivalence and full witness-API gates before measurement.

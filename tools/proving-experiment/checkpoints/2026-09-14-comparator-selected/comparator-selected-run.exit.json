@@ -1,0 +1,11 @@
+{
+  "time_ns": 1789379066656891000,
+  "argv": [
+    "python3",
+    "tools/proving-experiment/comparator_selected.py",
+    "measure",
+    "tools/proving-experiment/cache/comparator-selected-desktop"
+  ],
+  "code": 0,
+  "failure": null
+}

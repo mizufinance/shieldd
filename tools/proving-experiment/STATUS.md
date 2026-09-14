@@ -1,24 +1,20 @@
 # Transfer proving experiment status
 
-**The circuit, checked-loader and same-key polynomial round is complete. The broader optimization campaign remains active.**
+**The latest bounded desktop proving round is complete. The broader optimization campaign remains active.**
 
-The [latest matched proving report](../../docs/research/transfer-proving-subset-selected.md) has A1.716633s/B2.204663s/C2.575632s warm. The subsequent [owned-admission diagnostic](../../docs/research/pari-owned-admission.md) improves B startup separately. The table below preserves the earlier `cache/desktop-optimized` session; do not pool sessions.
+The [matched comparator report](../../docs/research/transfer-proving-comparator-selected.md) compares the latest isolated development implementations on M4Pro with two workers.
 
 | Candidate | Warm median | First proof | Warm peak RSS |
-|---|---:|---:|---:|
-| Improved Groth16 | 1.7924 s | 22.1028 s | 0.650 GiB |
-| Improved ZK-Pari377 | 2.3268 s | 59.2497 s | 2.272 GiB |
-| Native affine Pari381 | 2.7550 s | 25.8318 s | 3.617 GiB |
+| --- | ---: | ---: | ---: |
+| A: subset Groth16/BLS12-377 | 1.709826s | 20.710457s | 0.598GiB |
+| B: subset ZK-Pari377, owned arithmetic | 2.214584s | 24.732464s | 2.397GiB |
+| C: native Pari381, comparator3/4 | 2.319087s | 19.898102s | 1.133GiB |
 
-M4 Pro, two workers, standard regulated Transfer, three warmups and five measured warm proofs plus one fresh-process first proof per candidate. All 18 measured proofs and nine warmups verify with unique proof bytes. The guard exits zero without swap or competing heavy jobs. Fresh process does not mean a flushed OS page cache. No p95, confidence interval, phone, validator throughput or payment TPS claim follows.
+Three warmups, five measured warm requests and one fresh-process first proof per candidate; all27 timing proofs are unique and verified. The complete API includes witness decoding, solving, mapping, foreign boundaries, proving and encoding. First-process measurements do not flush OS page cache. No p95, phone acceptability, validator-throughput or payment-TPS claim follows.
 
-## Completed gates
+A/B share154224 original R1CS rows; B has224778 converted rows and M229376/N262144. C has191516rows/191501columns and M196608/N262144. B includes the selected owned-admission improvement. All six A/B and C API scenarios and negative gates pass. B has19focused Rust tests including real-child integration; C has45native tests plus4Commonware domain/batch tests. The native WebAssembly build passes. Production release-gated prover suites and formal certification were not run.
 
-A/B share the selected-before-DH circuit: 155,122 original R1CS rows; B has 226,578 converted rows and domain 262,144. Three eligible audit tiers select authenticated keys before DH; sender-core issuer detection remains unconditional. C's full affine circuit has 220,009 rows and 220,029 columns, domain 262,144. Separate development keys remain in the cache.
-
-B integrates deterministic checked G1 decoding, prepared public columns and checked coset quotient computation with combined gnark377 arithmetic. C combines its full affine relation, prepared public columns/coset powers and prepared blst arithmetic. The original-domain relation checks, masks, public statements, key association and canonical decoding remain checked.
-
-All selected workers passed six full API scenarios and altered/truncated/trailing proof, changed statement and invalid-witness negatives. Complete original/converted assignment checks, DH parity and malformed-key gates passed. C passed 41 release unit tests; B passed 11 release bin tests and 11 example tests. Selected Go worker tests passed. The native Cargo identity collision was reproduced and rejected; corrected controls use unique package identities, circuit digests and executable hashes. Production release-gated prover suites and formal certification were not run.
+Sources, raw evidence, plots and exact test records are preserved in `checkpoints/2026-09-14-comparator-selected`, with earlier C details in `checkpoints/2026-09-14-comparator34`. Earlier measurements below remain separate. The original SnarkPack/verification campaign remains stopped. Continue only worthwhile bounded source/compile screens; user preference is quick optimization benchmarks, not100-point grids.
 
 ## Completed native lifetime follow-up
 

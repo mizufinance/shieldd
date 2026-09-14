@@ -1,0 +1,18 @@
+{
+  "time_ns": 1789378580186610000,
+  "argv": [
+    "cargo",
+    "+1.89.0",
+    "test",
+    "--locked",
+    "--release",
+    "--manifest-path",
+    "tools/proving-experiment/candidates/owned-comparator377/Cargo.toml",
+    "actual_child_admission_exact_proof_and_poisoned_failure",
+    "--",
+    "--ignored",
+    "--test-threads=2"
+  ],
+  "code": 0,
+  "failure": null
+}

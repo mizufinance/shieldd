@@ -1,0 +1,212 @@
+{
+  "schema": "shieldd.comparator_selected.v1",
+  "mode": "gate",
+  "workers": 2,
+  "warmups": 3,
+  "warm_samples": 5,
+  "first_samples": 1,
+  "platform": "macOS-15.7.7-arm64-arm-64bit-Mach-O",
+  "cpu": "Apple M4 Pro",
+  "files": [
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/gnark/internal/testfixtures/vectors/transfer_accumulating_witness.bin",
+      "sha256": "772c73cec6983592d4735b82d9cabbd6285bcc7a829b315b42accb64fea701be"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/gnark/internal/testfixtures/vectors/transfer_accumulator_continuation_witness.bin",
+      "sha256": "79a9440928f4b83f08e1b30e8630573e393164dd69035f7d11a5a7a4b5c17dae"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/gnark/internal/testfixtures/vectors/transfer_accumulator_over_limit_witness.bin",
+      "sha256": "3025a3988023a2ae09885c8ab38e1dff55ceb54cf86ab6e10567d7e5ebac52f9"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/gnark/internal/testfixtures/vectors/transfer_flagged_witness.bin",
+      "sha256": "b9ff36f425883506d9072b839ba985148b42439ac5a6662037098d1620c13444"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/gnark/internal/testfixtures/vectors/transfer_unregulated_witness.bin",
+      "sha256": "29ee09b01b37f6babf077598592d59543d1cfbff04bb32c6aeeca556376a6d0e"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/gnark/internal/testfixtures/vectors/transfer_witness.bin",
+      "sha256": "5ffcfcba748488c17f3f210c0b39df9acf55cd633937ab03d85b826a02377ed7"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/api_gate.py",
+      "sha256": "76e719518efd60cc4139c629b80484acff4923a15b2ff363ef86cbcdbf133bee"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/a-comparator377-keys/circuit_metadata.json",
+      "sha256": "4d5553ada81c59941602e7f51a161e4d897d5978cb5e13f7eab8b5b5f16e5208"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/a-comparator377-keys/complete.json",
+      "sha256": "d2feb6e8256f59724a4df744046c720a3b72df0f4bf820135b96b802f96577c7"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/a-comparator377-keys/proving_key.bin",
+      "sha256": "e5319712392039f3710238a5615b6a62ba2a6e7957c1848cc2ee607af8dcc506"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/a-comparator377-keys/setup_measurement.json",
+      "sha256": "1a6cd0f96daa7405ea66d1143be3b36ff07355dd3f332e9a0fe8fc4c21557258"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/a-comparator377-keys/setup_provenance.json",
+      "sha256": "1b77c1ba3361dbf37d0dcac7111c607faf66d8b13b204076b7ae589f4c7d9092"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/a-comparator377-keys/transfer.sr1cs",
+      "sha256": "94a894fdd2ae5cc993d7e96a4fb3e1c0461745be6da73d1d11acbc6443717d79"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/a-comparator377-keys/verifying_key.bin",
+      "sha256": "5490bcdeac53bb581880d1555bdd7cb6313066d5427724dbe2069bcb62ed51a4"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/a-comparator377-keys/verifying_key.json",
+      "sha256": "38fc409a4ec0e7f8978f31c10c406a79ff77f816d1e6d09cf14341c831186232"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/a-comparator377-source/bin/provingexperiment",
+      "sha256": "44d7063d3921a8b7a5ebe431d394ece939149b0c01b0a822004ad3cb58489ead"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/a-comparator377-source/identity.json",
+      "sha256": "91a23a5c3b62e278a06bfd939856caf817636c9c07c4db227c2a69fd3407d11d"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/a-subset-full-source/bin/provingexperiment",
+      "sha256": "48e89b209e255dbc39d1debfdf2605b429e555b61dd929801557361defe2360f"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/a-subset-keys/circuit_metadata.json",
+      "sha256": "ec0aaa9668e80c41a00b97fa8ff05c98fb81f4a42a449ceb5193e5f4ed5397bf"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/a-subset-keys/proving_key.bin",
+      "sha256": "d798e8126352e5d5486dbb33e466f2ea85277b5ed9b4e867e0da2104a7a47f98"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/a-subset-keys/setup_measurement.json",
+      "sha256": "3e651a24232f427b835d252fa0b9f31a5df8aaf6198f6e531c61bdbc5ab2cac6"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/a-subset-keys/setup_provenance.json",
+      "sha256": "f889726bd0512a43be4f429186eb44ba815c8b9f87b5c9d539d9de664e1e663e"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/a-subset-keys/transfer.sr1cs",
+      "sha256": "cc0dc2091c86777dfd21128b974d1a51f959ce0599211d90a022e5c3d9e27bde"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/a-subset-keys/verifying_key.bin",
+      "sha256": "961327d5c8d9f7bd56865454f377adc37b87a026f78984fdcf439842fbf623c7"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/a-subset-keys/verifying_key.json",
+      "sha256": "44e77a43c1f6c36cdadb6fdacbc4fee49c148ff75eb0c25bd1e916efffad0613"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/b-comparator377-keys/subset.pk",
+      "sha256": "f7e8771a8c1bd9a4ef426b41febb79763d1736d1eb1973fe8e576dad74bf3534"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/b-comparator377-source/identity.json",
+      "sha256": "359c71d07ea4146fece6c7367f50eb1f0d2053bd8c3afb74b7dbd8824542f3fe"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/b-comparator377-source/worker",
+      "sha256": "8bfe5fd88b7f2a754c82bf127dda4e97729268d9a5fd074135c037cede31b75a"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/b-owned-private-child",
+      "sha256": "81f7284aa66b274a4df22d9ec8538206232d97d700c0461167972fd3fd376aa0"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/c-comparator34-full-gate/keys/native.pk",
+      "sha256": "1e11ac4e5ee43d719aeb8814dc27d2545266e5af4dcf37f5eae5d39f8e48fa0d"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/c-comparator34-source/identity.json",
+      "sha256": "216edb6c020515ef5623cc6f518a9052d4f2f05af2651c554d078ffff4587887"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/c-comparator34-source/worker",
+      "sha256": "1e8cd6e77b08b5f755d3e2d74ae30dab541c5667262eb112be740320e1ee5765"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/comparator377-compile/metadata.json",
+      "sha256": "cb8253eaeb0803ac0274b284e7b76324c3299a79a4ced2724cdf2c3bb1d80402"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/comparator377-compile/transfer.r1cs",
+      "sha256": "94a894fdd2ae5cc993d7e96a4fb3e1c0461745be6da73d1d11acbc6443717d79"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/native-tuned-witnesses/invalid.witness",
+      "sha256": "f034b6e19b5b793d46be12fec34e7640a335451bbe6b0267cb3f4ff9a9221bf3"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/native-tuned-witnesses/manifest.json",
+      "sha256": "5a12bc00f9ad9e3b1ef17570b69ef517782919fb79ddeacc125b8fc00f1ca7c4"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/native-tuned-witnesses/transfer.witness",
+      "sha256": "e3a2b0a26fa79f3acc5262df51e637ddd597b982212aac69f570ab707dbd1be8"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/native-tuned-witnesses/transfer_accumulating.witness",
+      "sha256": "a07c8dfc78ffbe794422a52bf59c4f760063cd50d3ab734e160c9801d1f0d2dd"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/native-tuned-witnesses/transfer_accumulator_continuation.witness",
+      "sha256": "a2f21b188678576fba9abcb17e2b9f68208622608e956cfc1a6b455ea5e83c2c"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/native-tuned-witnesses/transfer_flagged.witness",
+      "sha256": "717f6aae02a71c9580684ea9e9596d71138438659465b6f1fabbc6e0e0d52db6"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/native-tuned-witnesses/transfer_over_limit_disclosure.witness",
+      "sha256": "552e03d7caff95b1209fbe041236b41d83036871189cb052dccfd805860fb3e3"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/native-tuned-witnesses/transfer_unregulated.witness",
+      "sha256": "8cdeb0aeb3d9600543b348bdaf098dc468cee1eef7f3e2c58daaebffac8a14d6"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/comparator34_desktop.py",
+      "sha256": "99a8553b84fffbb6a52d4feab196dd280d991914c07a952f0b34792783ccde0a"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/comparator_selected.py",
+      "sha256": "28b0e2f84cc03fb45e3e74ba290174c2310ec036233020443f3d7036fa9dbb24"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/desktop.py",
+      "sha256": "9dbe703264a5d655daf80f9b5471681768db919490d5d1c5955d0e4a5a6d8eef"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/gnark_subset_desktop.py",
+      "sha256": "d8fd73c098c29df9d9e8a5b875678fa7e2cc8ba356c40eebee28c34d6154351c"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/guard.py",
+      "sha256": "62345292b754f6a40da22fb68fc46a233f530d64685467cbc2d290c570c2f706"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/selected_gate.py",
+      "sha256": "9a5d94c5c02a42a55d9521b94670270b90d425f622b1e5828de0c418fb829f06"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/selected_workers.py",
+      "sha256": "bad3b19089acf34c8d40ceabe110811ad531210b67b175e82fd64f85d5d01d16"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/zkpari-spike/cache/99228210a891ffa23aeb/over_limit_disclosure.bin",
+      "sha256": "f79dafffe411ae9d2f39e094527dfd1934d3f14951fc937daba01365ea063206"
+    }
+  ]
+}

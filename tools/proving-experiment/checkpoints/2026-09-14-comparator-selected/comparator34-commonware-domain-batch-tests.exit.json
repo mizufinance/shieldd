@@ -1,0 +1,19 @@
+{
+  "time_ns": 1789379430698754000,
+  "argv": [
+    "just",
+    "--justfile",
+    "tools/proving-experiment/cache/commonware-subset34/justfile",
+    "test",
+    "--locked",
+    "--release",
+    "-p",
+    "commonware-cryptography",
+    "-j",
+    "2",
+    "-E",
+    "test(zk::pari::domain::) | test(zk::pari::tests::deterministic_batch_verification_accepts_valid_and_rejects_invalid_entries) | test(zk::pari::tests::batch_prebound_folds_commitment_terms)"
+  ],
+  "code": 4,
+  "failure": null
+}

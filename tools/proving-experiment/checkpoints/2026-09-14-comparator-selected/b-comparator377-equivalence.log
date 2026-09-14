@@ -1,0 +1,12 @@
+transfer: frozen reference proof/MSMs verified
+transfer_unregulated: frozen reference proof/MSMs verified
+transfer_flagged: frozen reference proof/MSMs verified
+transfer_accumulating: frozen reference proof/MSMs verified
+transfer_over_limit_disclosure: frozen reference proof/MSMs verified
+transfer_accumulator_continuation: frozen reference proof/MSMs verified
+transfer: exact owned proof and three MSM outputs match
+transfer_unregulated: exact owned proof and three MSM outputs match
+transfer_flagged: exact owned proof and three MSM outputs match
+transfer_accumulating: exact owned proof and three MSM outputs match
+transfer_over_limit_disclosure: exact owned proof and three MSM outputs match
+transfer_accumulator_continuation: exact owned proof and three MSM outputs match

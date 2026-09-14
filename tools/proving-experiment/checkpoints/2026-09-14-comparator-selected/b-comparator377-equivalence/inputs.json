@@ -1,0 +1,10 @@
+{
+  "schema": "shieldd.comparator377.equivalence_inputs.v1",
+  "files": {
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/b-comparator377-source/worker": "8bfe5fd88b7f2a754c82bf127dda4e97729268d9a5fd074135c037cede31b75a",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/b-comparator377-keys/subset.pk": "f7e8771a8c1bd9a4ef426b41febb79763d1736d1eb1973fe8e576dad74bf3534",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/b-owned-private-child": "81f7284aa66b274a4df22d9ec8538206232d97d700c0461167972fd3fd376aa0",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/comparator377-compile/metadata.json": "cb8253eaeb0803ac0274b284e7b76324c3299a79a4ced2724cdf2c3bb1d80402",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/comparator377-compile/transfer.r1cs": "94a894fdd2ae5cc993d7e96a4fb3e1c0461745be6da73d1d11acbc6443717d79"
+  }
+}

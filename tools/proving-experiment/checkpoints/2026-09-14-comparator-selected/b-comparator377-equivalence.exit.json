@@ -1,0 +1,13 @@
+{
+  "time_ns": 1789378770254581000,
+  "argv": [
+    "tools/proving-experiment/cache/b-comparator377-source/worker",
+    "owned-equivalence",
+    "tools/proving-experiment/cache/comparator377-compile",
+    "tools/proving-experiment/cache/b-comparator377-keys/subset.pk",
+    "tools/proving-experiment/cache/b-owned-private-child",
+    "tools/proving-experiment/cache/b-comparator377-equivalence"
+  ],
+  "code": 0,
+  "failure": null
+}

@@ -1,0 +1,12 @@
+cargo nextest run $@
+warning: commonware-macros-impl@2026.7.0: stability cfg not set; set RUSTFLAGS="--cfg commonware_stability_X" (ALPHA/BETA/GAMMA/DELTA/EPSILON) to enforce stability gating
+    Finished `release` profile [optimized] target(s) in 0.13s
+────────────
+ Nextest run ID 487845dd-d1c5-4687-b7c0-c7e017125c2b with nextest profile: default
+    Starting 4 tests across 1 binary (727 tests skipped)
+        PASS [   0.006s] (1/4) commonware-cryptography zk::pari::domain::tests::domain_descriptor_and_buffer_bounds_reject_old_domain
+        PASS [   0.011s] (2/4) commonware-cryptography zk::pari::domain::tests::retained_roots_interpolation_masks_division_and_removed_root_poles
+        PASS [   0.015s] (3/4) commonware-cryptography zk::pari::tests::batch_prebound_folds_commitment_terms
+        PASS [   0.018s] (4/4) commonware-cryptography zk::pari::tests::deterministic_batch_verification_accepts_valid_and_rejects_invalid_entries
+────────────
+     Summary [   0.029s] 4 tests run: 4 passed, 727 skipped

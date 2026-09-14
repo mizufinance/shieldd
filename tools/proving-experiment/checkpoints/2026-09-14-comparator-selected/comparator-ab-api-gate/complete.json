@@ -1,0 +1,21 @@
+{
+  "schema": "shieldd.comparator_selected.v1",
+  "hashes": {
+    "identity.json": "9247ebfb2a6f907eb8db93e985a915380e2e09bf51847afe3572858009353b42",
+    "memory.jsonl": "fcb89ac6c1d21347a282425d91896d6b135ac5a1110777bf53b8c056002e5ad1",
+    "proofs/A-transfer.bin": "ad7294bd2a72cf3361d65760178829f120ea355a5899fc0c3a968d645c9b7e61",
+    "proofs/A-transfer_accumulating.bin": "50d82c59e6dd7679dd5d914251735a6e56a26332e50eab01fea93ecd80094681",
+    "proofs/A-transfer_accumulator_continuation.bin": "872a951cbcd9aaca2fc5e5755ff19a8bd5c1454bbf217fa3a2adfd410dfb3f08",
+    "proofs/A-transfer_flagged.bin": "e27d4473eb83cd2541d6db14926a8ffaaefd42e4d7707c59e512931eb3df58df",
+    "proofs/A-transfer_over_limit_disclosure.bin": "aebf7bbd174f0df5376789388e75cca763d837f1bad9757bc56fadeca2deb27f",
+    "proofs/A-transfer_unregulated.bin": "25e95b7a41c446f0e89f18a308081d7784c858cbb4aef4455c8ecbfbaa9b7f9c",
+    "proofs/B-transfer.bin": "f510e46408b7d1be283af71b1d6eaef112bd6dff5932e23518f97c4ad6ff3d7e",
+    "proofs/B-transfer_accumulating.bin": "b3bd86e9c7df2d81bc97ec7a2c9619eec29d1a2f8f115b5d49260a471760ffb1",
+    "proofs/B-transfer_accumulator_continuation.bin": "e5cc9f629e0c43aa71bd144a215c1eccc11a3741899dd51607cb78c5773a8e0a",
+    "proofs/B-transfer_flagged.bin": "382d0234cfa1086e6d3feac9e00b43c8c895a5fa8348851ce8b858c58f49d0bb",
+    "proofs/B-transfer_over_limit_disclosure.bin": "328d2ab16264c3df5e5390f93081f0687d4d7fa7e4a1128cfabed52263da1923",
+    "proofs/B-transfer_unregulated.bin": "252f41b319f1e082ddf9aad306f73f4c14bbcdd3e27806320640adf433067c36",
+    "results.json": "56c513dfca162bf336af4e42ff9cc786680acfb65841fa8246b7966502a37f14",
+    "samples.jsonl": "788a6d911adf46e5524c447dae0d34371c2aa812a2a51ea57066c38f92a8d027"
+  }
+}

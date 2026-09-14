@@ -1,0 +1,11 @@
+{
+  "schema": "shieldd.subset_pari377.setup.v1",
+  "compile_ns": 2240461042,
+  "setup_ns": 4291972500,
+  "key_bytes": 108460560,
+  "original_rows": 154224,
+  "outlined_rows": 224778,
+  "witnesses": 212280,
+  "fft": 262144,
+  "retained": 229376
+}

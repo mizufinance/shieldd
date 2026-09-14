@@ -1,0 +1,17 @@
+{
+  "time_ns": 1789377944128459000,
+  "argv": [
+    "go",
+    "-C",
+    "tools/proving-experiment/cache/a-comparator377-source/worker",
+    "build",
+    "-p",
+    "2",
+    "-o",
+    "../bin/",
+    "./cmd/gnarkctl",
+    "./cmd/provingexperiment"
+  ],
+  "code": 0,
+  "failure": null
+}

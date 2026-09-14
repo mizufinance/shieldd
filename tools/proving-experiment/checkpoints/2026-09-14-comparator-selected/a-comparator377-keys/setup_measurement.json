@@ -1,0 +1,5 @@
+{
+  "schema": "shieldd.proving_experiment.groth16_setup.v1",
+  "compile_ns": 444562000,
+  "setup_ns": 24442138792
+}

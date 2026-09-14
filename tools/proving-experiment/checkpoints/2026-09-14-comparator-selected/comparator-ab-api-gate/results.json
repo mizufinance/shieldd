@@ -1,0 +1,7 @@
+{
+  "schema": "shieldd.comparator_selected.v1",
+  "mode": "gate",
+  "rows": [],
+  "distinct_proofs": 12,
+  "all_verified": true
+}

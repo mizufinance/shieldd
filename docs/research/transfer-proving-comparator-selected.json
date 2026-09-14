@@ -1,0 +1,60 @@
+{
+  "schema": "shieldd.comparator_selected.v1",
+  "mode": "measure",
+  "rows": [
+    {
+      "candidate": "A",
+      "warm_values_s": [
+        1.709825833,
+        1.704360042,
+        1.720587875,
+        1.708963916,
+        1.718540875
+      ],
+      "median_s": 1.709825833,
+      "first_s": 20.710457125,
+      "warm_peak_rss_bytes": 642072576,
+      "proof_bytes": 436
+    },
+    {
+      "candidate": "B",
+      "warm_values_s": [
+        2.215919958,
+        2.208189125,
+        2.224690333,
+        2.214584167,
+        2.207889625
+      ],
+      "median_s": 2.214584167,
+      "first_s": 24.732463875,
+      "warm_peak_rss_bytes": 2573484032,
+      "proof_bytes": 168
+    },
+    {
+      "candidate": "C",
+      "warm_values_s": [
+        2.322002917,
+        2.318900709,
+        2.318415292,
+        2.319087166,
+        2.321152875
+      ],
+      "median_s": 2.319087166,
+      "first_s": 19.898101625,
+      "warm_peak_rss_bytes": 1216004096,
+      "proof_bytes": 218
+    }
+  ],
+  "distinct_proofs": 27,
+  "all_verified": true,
+  "proving_regression_vs_A_percent": {
+    "A": 0.0,
+    "B": 29.521038006214283,
+    "C": 35.63294700788393
+  },
+  "key_bytes": {
+    "A": 37457537,
+    "B": 108460560,
+    "C": 51671551
+  }
+}

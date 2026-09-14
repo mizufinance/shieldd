@@ -1,0 +1,12 @@
+{
+  "time_ns": 1789378652585971000,
+  "argv": [
+    "tools/proving-experiment/cache/b-comparator377-source/worker",
+    "gate",
+    "tools/proving-experiment/cache/comparator377-compile",
+    "tools/proving-experiment/cache/b-comparator377-keys/subset.pk",
+    "tools/proving-experiment/cache/b-comparator377-protocol-gate"
+  ],
+  "code": 0,
+  "failure": null
+}

@@ -1,0 +1,11 @@
+# Matched comparator A/B/C desktop checkpoint
+
+The completed quick round has27unique verified timing proofs: three warmups, five measured warm requests and one fresh-process first proof per candidate. M4Pro/two workers; complete witness API and rotating backend order. Warm medians: A1.709825833s, B2.214584167s, C2.319087166s. First observations: A20.710457125s, B24.732463875s, C19.898101625s. Five samples and one first proof do not establish tail latency or physical-phone performance.
+
+A is the selected subset Groth16 implementation with the strict-comparator relation. B uses that same relation with the selected subset/prepared-key/owned-admission implementation. C is the native comparator3/4-domain candidate from the preceding checkpoint. The complete matrix compares these implementations, without attributing all changes to a comparator or pooling earlier runs.
+
+Included: matched samples/proofs/memory, all12A/B fullAPI proof gates, Bsix protocol proof gates, Bsix seeded exact proof/MSM equivalence records, A/B setup metadata, frozen A/B source archives and job logs. B's separately generated canonical reference key validated the new exact matrix index and all six proof/mapping cases. Large keys, complete solved assignments and executables remain cached and hash-bound. Csource and full-gate artifacts remain in the preceding comparator34 checkpoint.
+
+A's six generation self-tests pass. Two Go comparator tests and the worker-frame test pass. B's18ordinary Rust tests and the separately invoked real-child integration test pass. C's45native release tests and the additional four Commonware domain/batch tests pass; WebAssembly cryptography build passes. The first additional Commonware invocation selected no tests due to argument splitting; its corrected invocation passes the four requested tests. Production release-gated prover suites and formal certification were not run.
+
+The stopped original SnarkPack/verification campaign and its4096-proof corpora remain intact. This round concerns desktop proving. Physical-phone acceptability and production adoption remain follow-up decisions. The broader optimization campaign remains active; subsequent screens should remain bounded and preserve this evidence.

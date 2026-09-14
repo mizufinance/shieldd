@@ -1,0 +1,32 @@
+warning: unused import: `Field`
+ --> src/subgroup.rs:5:28
+  |
+5 | use ark_ff::{AdditiveGroup,Field,MontFp,Zero};
+  |                            ^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `Zero`
+ --> src/subgroup.rs:5:41
+  |
+5 | use ark_ff::{AdditiveGroup,Field,MontFp,Zero};
+  |                                         ^^^^
+
+warning: function `validate_converted` is never used
+   --> src/bridge.rs:240:8
+    |
+240 | pub fn validate_converted(circuit: Circuit) -> Result<usize> {
+    |        ^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` on by default
+
+warning: `shieldd-proving-experiment` (bin "shieldd-proving-experiment") generated 3 warnings (run `cargo fix --bin "shieldd-proving-experiment"` to apply 1 suggestion)
+    Finished `release` profile [optimized] target(s) in 0.16s
+     Running `tools/proving-experiment/target/release/shieldd-proving-experiment lowered-gate tools/proving-experiment/cache/comparator377-compile tools/proving-experiment/cache/b-comparator377-reference`
+compiled: 154224 original, 224774 body, 224778 outlined constraints
+transfer: proof and rejection gates passed
+transfer_unregulated: proof and rejection gates passed
+transfer_flagged: proof and rejection gates passed
+transfer_accumulating: proof and rejection gates passed
+transfer_over_limit_disclosure: proof and rejection gates passed
+transfer_accumulator_continuation: proof and rejection gates passed

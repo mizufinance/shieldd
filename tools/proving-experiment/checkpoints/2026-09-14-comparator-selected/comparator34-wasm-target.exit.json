@@ -1,0 +1,13 @@
+{
+  "time_ns": 1789379142960715000,
+  "argv": [
+    "rustup",
+    "target",
+    "add",
+    "wasm32-unknown-unknown",
+    "--toolchain",
+    "1.95.0"
+  ],
+  "code": 0,
+  "failure": null
+}

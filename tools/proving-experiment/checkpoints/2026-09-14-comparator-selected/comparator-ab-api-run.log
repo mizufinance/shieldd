@@ -1,0 +1,13 @@
+A/transfer: checked full API gate passed
+A/transfer_unregulated: checked full API gate passed
+A/transfer_flagged: checked full API gate passed
+A/transfer_accumulating: checked full API gate passed
+A/transfer_over_limit_disclosure: checked full API gate passed
+A/transfer_accumulator_continuation: checked full API gate passed
+B/transfer: checked full API gate passed
+B/transfer_unregulated: checked full API gate passed
+B/transfer_flagged: checked full API gate passed
+B/transfer_accumulating: checked full API gate passed
+B/transfer_over_limit_disclosure: checked full API gate passed
+B/transfer_accumulator_continuation: checked full API gate passed
+{"schema": "shieldd.comparator_selected.v1", "mode": "gate", "rows": [], "distinct_proofs": 12, "all_verified": true}

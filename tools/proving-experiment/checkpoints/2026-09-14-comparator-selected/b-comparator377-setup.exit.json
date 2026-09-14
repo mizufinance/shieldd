@@ -1,0 +1,19 @@
+{
+  "time_ns": 1789378486105976000,
+  "argv": [
+    "cargo",
+    "+1.89.0",
+    "run",
+    "--locked",
+    "--release",
+    "--manifest-path",
+    "tools/proving-experiment/candidates/owned-comparator377/Cargo.toml",
+    "--",
+    "setup",
+    "tools/proving-experiment/cache/comparator377-compile",
+    "tools/proving-experiment/cache/b-comparator377-reference/lowered.vk",
+    "tools/proving-experiment/cache/b-comparator377-keys"
+  ],
+  "code": 0,
+  "failure": null
+}
