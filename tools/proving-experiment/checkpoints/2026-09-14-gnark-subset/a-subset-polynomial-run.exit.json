@@ -1,0 +1,11 @@
+{
+  "time_ns": 1789366230053882000,
+  "argv": [
+    "tools/proving-experiment/cache/a-subset-polynomial-source/subsetcost",
+    "tools/proving-experiment/cache/a-subset-polynomial-source/fixtures.json",
+    "tools/proving-experiment/cache/selected-dh-a-keys/proving_key.bin",
+    "tools/proving-experiment/cache/a-subset-polynomial.json"
+  ],
+  "code": 0,
+  "failure": null
+}

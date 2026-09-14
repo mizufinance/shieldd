@@ -1,0 +1,10 @@
+{
+  "time_ns": 1789366717166839000,
+  "argv": [
+    "sh",
+    "-c",
+    "cd tools/proving-experiment/cache/a-subset-full-source/worker && go test -mod=readonly -p 2 ./cmd/provingexperiment -parallel=2 -count=1 -v"
+  ],
+  "code": 0,
+  "failure": null
+}

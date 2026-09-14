@@ -1,0 +1,10 @@
+{
+  "time_ns": 1789366139739466000,
+  "argv": [
+    "sh",
+    "-c",
+    "cd tools/proving-experiment/cache/a-subset-polynomial-source/worker && go test -mod=readonly -p 2 github.com/consensys/gnark/backend/groth16/bls12-377 -run TestSubsetExperiment -count=1 -parallel=2 -v"
+  ],
+  "code": 0,
+  "failure": null
+}

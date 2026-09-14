@@ -1,0 +1,15 @@
+{
+  "schema": "shieldd.gnark_subset.runtime.v1",
+  "files": {
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/a-subset-polynomial-source/subsetcost": "213c3bd816e9cc029d700e03346397ec56c008771739eacbaece0854cf828171",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/a-subset-polynomial-source/fixtures.json": "6aa9e8e1fe702b31b63fd82e0144ecee26a30a0475ca20b1ab9f606e52c4c041",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/a-subset-polynomial-source/identity.json": "1bc8591af6d87400970a10897730d8de06b90292e86570cd7023834df2dc7b6e",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/selected-dh-a-keys/proving_key.bin": "9e153db6f016af84a39e4e92bc8fdcbb38a5a5449fe09c5fae599d6cc9f5a6f4",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/gnark/internal/testfixtures/vectors/transfer_witness.bin": "5ffcfcba748488c17f3f210c0b39df9acf55cd633937ab03d85b826a02377ed7",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/gnark/internal/testfixtures/vectors/transfer_unregulated_witness.bin": "29ee09b01b37f6babf077598592d59543d1cfbff04bb32c6aeeca556376a6d0e",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/gnark/internal/testfixtures/vectors/transfer_flagged_witness.bin": "b9ff36f425883506d9072b839ba985148b42439ac5a6662037098d1620c13444",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/gnark/internal/testfixtures/vectors/transfer_accumulating_witness.bin": "772c73cec6983592d4735b82d9cabbd6285bcc7a829b315b42accb64fea701be",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/zkpari-spike/cache/99228210a891ffa23aeb/over_limit_disclosure.bin": "f79dafffe411ae9d2f39e094527dfd1934d3f14951fc937daba01365ea063206",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/gnark/internal/testfixtures/vectors/transfer_accumulator_continuation_witness.bin": "79a9440928f4b83f08e1b30e8630573e393164dd69035f7d11a5a7a4b5c17dae"
+  }
+}

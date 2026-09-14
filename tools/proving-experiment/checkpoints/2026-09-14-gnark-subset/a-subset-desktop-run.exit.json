@@ -1,0 +1,11 @@
+{
+  "time_ns": 1789366883872582000,
+  "argv": [
+    "python3",
+    "tools/proving-experiment/gnark_subset_desktop.py",
+    "measure",
+    "tools/proving-experiment/cache/a-subset-desktop"
+  ],
+  "code": 0,
+  "failure": null
+}

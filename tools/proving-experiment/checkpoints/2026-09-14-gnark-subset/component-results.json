@@ -1,0 +1,940 @@
+{
+  "schema": "shieldd.gnark_subset.cost.v1",
+  "circuit_sha256": "cc0dc2091c86777dfd21128b974d1a51f959ce0599211d90a022e5c3d9e27bde",
+  "key_sha256": "9e153db6f016af84a39e4e92bc8fdcbb38a5a5449fe09c5fae599d6cc9f5a6f4",
+  "fixtures": [
+    {
+      "scenario": "transfer",
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/gnark/internal/testfixtures/vectors/transfer_witness.bin",
+      "sha256": "5ffcfcba748488c17f3f210c0b39df9acf55cd633937ab03d85b826a02377ed7"
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/gnark/internal/testfixtures/vectors/transfer_unregulated_witness.bin",
+      "sha256": "29ee09b01b37f6babf077598592d59543d1cfbff04bb32c6aeeca556376a6d0e"
+    },
+    {
+      "scenario": "transfer_flagged",
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/gnark/internal/testfixtures/vectors/transfer_flagged_witness.bin",
+      "sha256": "b9ff36f425883506d9072b839ba985148b42439ac5a6662037098d1620c13444"
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/gnark/internal/testfixtures/vectors/transfer_accumulating_witness.bin",
+      "sha256": "772c73cec6983592d4735b82d9cabbd6285bcc7a829b315b42accb64fea701be"
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/zkpari-spike/cache/99228210a891ffa23aeb/over_limit_disclosure.bin",
+      "sha256": "f79dafffe411ae9d2f39e094527dfd1934d3f14951fc937daba01365ea063206"
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/gnark/internal/testfixtures/vectors/transfer_accumulator_continuation_witness.bin",
+      "sha256": "79a9440928f4b83f08e1b30e8630573e393164dd69035f7d11a5a7a4b5c17dae"
+    }
+  ],
+  "rows": 155122,
+  "fft": 262144,
+  "retained": 196608,
+  "gates": 6,
+  "samples": [
+    {
+      "scenario": "transfer",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 0,
+      "measured": false,
+      "ns": 119760500
+    },
+    {
+      "scenario": "transfer",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 0,
+      "measured": false,
+      "ns": 140239750
+    },
+    {
+      "scenario": "transfer",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 1,
+      "measured": false,
+      "ns": 138765875
+    },
+    {
+      "scenario": "transfer",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 1,
+      "measured": false,
+      "ns": 116328916
+    },
+    {
+      "scenario": "transfer",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 2,
+      "measured": false,
+      "ns": 116544166
+    },
+    {
+      "scenario": "transfer",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 2,
+      "measured": false,
+      "ns": 137957167
+    },
+    {
+      "scenario": "transfer",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 3,
+      "measured": true,
+      "ns": 133908875
+    },
+    {
+      "scenario": "transfer",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 3,
+      "measured": true,
+      "ns": 115679709
+    },
+    {
+      "scenario": "transfer",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 4,
+      "measured": true,
+      "ns": 116547334
+    },
+    {
+      "scenario": "transfer",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 4,
+      "measured": true,
+      "ns": 137950042
+    },
+    {
+      "scenario": "transfer",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 5,
+      "measured": true,
+      "ns": 139814167
+    },
+    {
+      "scenario": "transfer",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 5,
+      "measured": true,
+      "ns": 116755292
+    },
+    {
+      "scenario": "transfer",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 6,
+      "measured": true,
+      "ns": 114966792
+    },
+    {
+      "scenario": "transfer",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 6,
+      "measured": true,
+      "ns": 138151500
+    },
+    {
+      "scenario": "transfer",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 7,
+      "measured": true,
+      "ns": 134653334
+    },
+    {
+      "scenario": "transfer",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 7,
+      "measured": true,
+      "ns": 114900708
+    },
+    {
+      "scenario": "transfer",
+      "stage": "z_query_msm",
+      "variant": "baseline",
+      "iteration": 0,
+      "measured": false,
+      "ns": 454616708
+    },
+    {
+      "scenario": "transfer",
+      "stage": "z_query_msm",
+      "variant": "subset_count_projection",
+      "iteration": 0,
+      "measured": false,
+      "ns": 344193125
+    },
+    {
+      "scenario": "transfer",
+      "stage": "z_query_msm",
+      "variant": "subset_count_projection",
+      "iteration": 1,
+      "measured": false,
+      "ns": 342663917
+    },
+    {
+      "scenario": "transfer",
+      "stage": "z_query_msm",
+      "variant": "baseline",
+      "iteration": 1,
+      "measured": false,
+      "ns": 432566250
+    },
+    {
+      "scenario": "transfer",
+      "stage": "z_query_msm",
+      "variant": "baseline",
+      "iteration": 2,
+      "measured": false,
+      "ns": 431115000
+    },
+    {
+      "scenario": "transfer",
+      "stage": "z_query_msm",
+      "variant": "subset_count_projection",
+      "iteration": 2,
+      "measured": false,
+      "ns": 343709250
+    },
+    {
+      "scenario": "transfer",
+      "stage": "z_query_msm",
+      "variant": "subset_count_projection",
+      "iteration": 3,
+      "measured": true,
+      "ns": 347372208
+    },
+    {
+      "scenario": "transfer",
+      "stage": "z_query_msm",
+      "variant": "baseline",
+      "iteration": 3,
+      "measured": true,
+      "ns": 433796042
+    },
+    {
+      "scenario": "transfer",
+      "stage": "z_query_msm",
+      "variant": "baseline",
+      "iteration": 4,
+      "measured": true,
+      "ns": 441499875
+    },
+    {
+      "scenario": "transfer",
+      "stage": "z_query_msm",
+      "variant": "subset_count_projection",
+      "iteration": 4,
+      "measured": true,
+      "ns": 341803958
+    },
+    {
+      "scenario": "transfer",
+      "stage": "z_query_msm",
+      "variant": "subset_count_projection",
+      "iteration": 5,
+      "measured": true,
+      "ns": 344451375
+    },
+    {
+      "scenario": "transfer",
+      "stage": "z_query_msm",
+      "variant": "baseline",
+      "iteration": 5,
+      "measured": true,
+      "ns": 436823458
+    },
+    {
+      "scenario": "transfer",
+      "stage": "z_query_msm",
+      "variant": "baseline",
+      "iteration": 6,
+      "measured": true,
+      "ns": 430607167
+    },
+    {
+      "scenario": "transfer",
+      "stage": "z_query_msm",
+      "variant": "subset_count_projection",
+      "iteration": 6,
+      "measured": true,
+      "ns": 349009125
+    },
+    {
+      "scenario": "transfer",
+      "stage": "z_query_msm",
+      "variant": "subset_count_projection",
+      "iteration": 7,
+      "measured": true,
+      "ns": 341791666
+    },
+    {
+      "scenario": "transfer",
+      "stage": "z_query_msm",
+      "variant": "baseline",
+      "iteration": 7,
+      "measured": true,
+      "ns": 428832833
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 0,
+      "measured": false,
+      "ns": 118275708
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 0,
+      "measured": false,
+      "ns": 138174792
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 1,
+      "measured": false,
+      "ns": 136738166
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 1,
+      "measured": false,
+      "ns": 116045417
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 2,
+      "measured": false,
+      "ns": 116907084
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 2,
+      "measured": false,
+      "ns": 140360125
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 3,
+      "measured": true,
+      "ns": 140645375
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 3,
+      "measured": true,
+      "ns": 116765083
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 4,
+      "measured": true,
+      "ns": 115474167
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 4,
+      "measured": true,
+      "ns": 141324875
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 5,
+      "measured": true,
+      "ns": 131272667
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 5,
+      "measured": true,
+      "ns": 114225250
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 6,
+      "measured": true,
+      "ns": 113904917
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 6,
+      "measured": true,
+      "ns": 138792791
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 7,
+      "measured": true,
+      "ns": 143109791
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 7,
+      "measured": true,
+      "ns": 119400375
+    },
+    {
+      "scenario": "transfer_flagged",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 0,
+      "measured": false,
+      "ns": 111365042
+    },
+    {
+      "scenario": "transfer_flagged",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 0,
+      "measured": false,
+      "ns": 136494875
+    },
+    {
+      "scenario": "transfer_flagged",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 1,
+      "measured": false,
+      "ns": 138090416
+    },
+    {
+      "scenario": "transfer_flagged",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 1,
+      "measured": false,
+      "ns": 123041542
+    },
+    {
+      "scenario": "transfer_flagged",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 2,
+      "measured": false,
+      "ns": 118182750
+    },
+    {
+      "scenario": "transfer_flagged",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 2,
+      "measured": false,
+      "ns": 138292375
+    },
+    {
+      "scenario": "transfer_flagged",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 3,
+      "measured": true,
+      "ns": 137135416
+    },
+    {
+      "scenario": "transfer_flagged",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 3,
+      "measured": true,
+      "ns": 116212750
+    },
+    {
+      "scenario": "transfer_flagged",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 4,
+      "measured": true,
+      "ns": 116023000
+    },
+    {
+      "scenario": "transfer_flagged",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 4,
+      "measured": true,
+      "ns": 138631708
+    },
+    {
+      "scenario": "transfer_flagged",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 5,
+      "measured": true,
+      "ns": 138372541
+    },
+    {
+      "scenario": "transfer_flagged",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 5,
+      "measured": true,
+      "ns": 124344083
+    },
+    {
+      "scenario": "transfer_flagged",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 6,
+      "measured": true,
+      "ns": 115244500
+    },
+    {
+      "scenario": "transfer_flagged",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 6,
+      "measured": true,
+      "ns": 130856667
+    },
+    {
+      "scenario": "transfer_flagged",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 7,
+      "measured": true,
+      "ns": 137335250
+    },
+    {
+      "scenario": "transfer_flagged",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 7,
+      "measured": true,
+      "ns": 119302334
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 0,
+      "measured": false,
+      "ns": 114787958
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 0,
+      "measured": false,
+      "ns": 141414834
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 1,
+      "measured": false,
+      "ns": 137633084
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 1,
+      "measured": false,
+      "ns": 118085333
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 2,
+      "measured": false,
+      "ns": 117776375
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 2,
+      "measured": false,
+      "ns": 143014583
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 3,
+      "measured": true,
+      "ns": 138474833
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 3,
+      "measured": true,
+      "ns": 120014417
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 4,
+      "measured": true,
+      "ns": 117702584
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 4,
+      "measured": true,
+      "ns": 141800042
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 5,
+      "measured": true,
+      "ns": 137425917
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 5,
+      "measured": true,
+      "ns": 114849375
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 6,
+      "measured": true,
+      "ns": 120863750
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 6,
+      "measured": true,
+      "ns": 130510166
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 7,
+      "measured": true,
+      "ns": 137799125
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 7,
+      "measured": true,
+      "ns": 116744708
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 0,
+      "measured": false,
+      "ns": 113171167
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 0,
+      "measured": false,
+      "ns": 140046916
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 1,
+      "measured": false,
+      "ns": 142173459
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 1,
+      "measured": false,
+      "ns": 117783833
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 2,
+      "measured": false,
+      "ns": 115215917
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 2,
+      "measured": false,
+      "ns": 135740792
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 3,
+      "measured": true,
+      "ns": 143361583
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 3,
+      "measured": true,
+      "ns": 119082625
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 4,
+      "measured": true,
+      "ns": 115349042
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 4,
+      "measured": true,
+      "ns": 142335792
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 5,
+      "measured": true,
+      "ns": 140864666
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 5,
+      "measured": true,
+      "ns": 117049708
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 6,
+      "measured": true,
+      "ns": 116800375
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 6,
+      "measured": true,
+      "ns": 138129875
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 7,
+      "measured": true,
+      "ns": 140324166
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 7,
+      "measured": true,
+      "ns": 118433584
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 0,
+      "measured": false,
+      "ns": 116429542
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 0,
+      "measured": false,
+      "ns": 139386750
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 1,
+      "measured": false,
+      "ns": 139163250
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 1,
+      "measured": false,
+      "ns": 119658458
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 2,
+      "measured": false,
+      "ns": 119647584
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 2,
+      "measured": false,
+      "ns": 138421334
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 3,
+      "measured": true,
+      "ns": 138289042
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 3,
+      "measured": true,
+      "ns": 118492500
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 4,
+      "measured": true,
+      "ns": 113619292
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 4,
+      "measured": true,
+      "ns": 138675833
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 5,
+      "measured": true,
+      "ns": 138845417
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 5,
+      "measured": true,
+      "ns": 117514000
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 6,
+      "measured": true,
+      "ns": 119278584
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 6,
+      "measured": true,
+      "ns": 135177000
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "stage": "polynomial",
+      "variant": "subset",
+      "iteration": 7,
+      "measured": true,
+      "ns": 139459667
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "stage": "polynomial",
+      "variant": "baseline",
+      "iteration": 7,
+      "measured": true,
+      "ns": 115252792
+    }
+  ],
+  "msm_boundary": "Existing baseline Z query and actual baseline H scalars; filtered bit-reversed degrees\u003cM-1 approximate the shorter query cost only. These are not subset setup points, a subset proof or a full API result."
+}

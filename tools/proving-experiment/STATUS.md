@@ -30,11 +30,17 @@ The [complete subset377 worker](../../docs/research/pari-subset-proving.md) pass
 
 Matched two-worker diagnostic: 3 warmups + 5 warm samples and one fresh-process first proof per variant; 18 unique proofs all verify. Warm median 2.306158→2.186758 s (5.18% improvement), first observation59.591334→53.121948 s, warmRSS2.301→2.202 GiB, package168B unchanged. Zero swap/competition, guard exit0. Sources/raw evidence: `checkpoints/2026-09-14-subset-proving`; exact run `cache/b-subset-desktop`. Retain the candidate. This is a targeted B result, not a new matched A/B/C matrix.
 
+## Completed fair Groth16 subset follow-up
+
+The [complete gnark subset control](../../docs/research/groth16-subset-proving.md) uses M196608/N262144 with unchanged selected-DH circuit, solver, randomizers, MSM scheduling and standard Groth16 verifier/proof encoding. Fresh development setup and checked key descriptor bind regenerated subset Lagrange and shorter Z queries. Four focused tests, three worker tests, six setup proof self-tests and six full-API positive/negative gates pass.
+
+Matched two-worker diagnostic: 3 warmups + 5 warm samples and one first proof per variant; 18 unique proofs all verify. Median 1.793246→1.722219 s (3.96%), first22.572976→20.809473 s, warmRSS0.672→0.597 GiB; package436B unchanged. Proving key40,732,773→37,587,069B. Guard exits0, zero swap/competition. Retain A subset. Exact run `cache/a-subset-desktop`; sources/raw evidence `checkpoints/2026-09-14-gnark-subset`. No mixed-session A/B/C table or phone claim.
+
 ## Next bounded work
 
-Implement/evaluate the fair corresponding gnark Groth16 subset control using the same selected-DH circuit, starting with M196608/N262144. Its setup Lagrange weights, vanishing query and actual coset-N quotient must change consistently; wire-indexed A/B/K queries do not automatically shrink. Preserve gnark's proof path and checked verifier; no Arkworks substitution. A single justified domain and short full-API diagnostic suffice; no grid or corpus restart. Evaluate native C applicability after this control, then select final A/B/C winners for one compact session.
+Evaluate the corresponding native Pari381 subset domain, carrying the selected affine circuit and lifetime changes. Start with M229376/N262144. Its row/assignment sizing, block commitment keys/digests, both public columns and B-side mask must remain consistent. Keep the existing native worker and commonware checkout immutable; use a separate source copy and uniquely named candidate package. Gate actual coefficient/domain/statement/mask semantics before fresh setup and full API measurements. Do not extrapolate the B arithmetic result across fields or replace C's full affine relation with a toy.
 
-Continue according to the [authorized campaign](../../docs/research/zkpari-optimization-campaign.md). Component screens and unavailable phones do not complete the campaign.
+After worthwhile C work is selected or rejected on measured evidence, run one compact matched final A/B/C session with both retained A/B subset improvements and the selected C lifetime worker. Continue according to the [authorized campaign](../../docs/research/zkpari-optimization-campaign.md). Missing phones and passing component probes do not complete feasible desktop work. The older verification/SnarkPack campaign remains stopped.
 
 Physical iPhone/Android measurements remain unavailable from the recorded device check. Desktop ARM is not phone evidence. Actual devices and build/signing access remain prerequisites.
 

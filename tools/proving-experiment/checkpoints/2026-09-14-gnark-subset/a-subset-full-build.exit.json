@@ -1,0 +1,10 @@
+{
+  "time_ns": 1789366598455344000,
+  "argv": [
+    "sh",
+    "-c",
+    "cd tools/proving-experiment/cache/a-subset-full-source/worker && go build -mod=readonly -p 2 -o ../bin/ ./cmd/gnarkctl ./cmd/provingexperiment"
+  ],
+  "code": 0,
+  "failure": null
+}

@@ -1,0 +1,6 @@
+=== RUN   TestSubsetExperimentIdentities
+--- PASS: TestSubsetExperimentIdentities (0.00s)
+=== RUN   TestSubsetExperimentBoundaries
+--- PASS: TestSubsetExperimentBoundaries (0.00s)
+PASS
+ok  	github.com/consensys/gnark/backend/groth16/bls12-377	0.169s

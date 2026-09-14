@@ -1,0 +1,9 @@
+{
+  "schema": "shieldd.gnark_subset_desktop.v1",
+  "hashes": {
+    "identity.json": "6d37317f931333bc2d495daf1698d14849de1119e8dcabd003847bd12dc04d90",
+    "memory.jsonl": "dd21f85a5f6ed4fe269e19df1ca14a29cd5d4f15f8259d802136030a485cafb0",
+    "results.json": "201186138deb953e4845ae236d21979d7211244d811202ae13d3db43244ac0e5",
+    "samples.jsonl": "11ebb18970ee3f46c2f4ccc55f835fa5101137e766bd3faf2a79d443adb1ce8b"
+  }
+}

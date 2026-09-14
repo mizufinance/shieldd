@@ -1,0 +1,4 @@
+{
+  "excluded": true,
+  "reason": "Preparation inherited read-only module directories and failed before installing candidate sources. Test invocation therefore had no matching tests. No correctness or timing evidence."
+}

@@ -1,0 +1,8 @@
+=== RUN   TestFactsUseCheckedWitnessDecoder
+--- PASS: TestFactsUseCheckedWitnessDecoder (0.02s)
+=== RUN   TestWorkerFramesRejectMalformedAndOversizedInputs
+--- PASS: TestWorkerFramesRejectMalformedAndOversizedInputs (0.00s)
+=== RUN   TestPackedProofRejectsNoncanonicalCoordinatesBeforeVerification
+--- PASS: TestPackedProofRejectsNoncanonicalCoordinatesBeforeVerification (0.00s)
+PASS
+ok  	github.com/mizufinance/shieldd/tools/gnark/cmd/provingexperiment	0.203s

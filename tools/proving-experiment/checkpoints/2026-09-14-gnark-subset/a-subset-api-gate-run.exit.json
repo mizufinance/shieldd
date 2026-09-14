@@ -1,0 +1,11 @@
+{
+  "time_ns": 1789366779680786000,
+  "argv": [
+    "python3",
+    "tools/proving-experiment/gnark_subset_desktop.py",
+    "gate",
+    "tools/proving-experiment/cache/a-subset-api-gate"
+  ],
+  "code": 0,
+  "failure": null
+}

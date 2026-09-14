@@ -1,0 +1,44 @@
+{
+  "schema": "shieldd.gnark.setup_provenance",
+  "curve": "bls12-377",
+  "circuit": "transfer",
+  "mode": "fresh_setup",
+  "sr1cs_sha256_hex": "cc0dc2091c86777dfd21128b974d1a51f959ce0599211d90a022e5c3d9e27bde",
+  "proving_key_sha256_hex": "d798e8126352e5d5486dbb33e466f2ea85277b5ed9b4e867e0da2104a7a47f98",
+  "verifying_key_binary_sha256_hex": "961327d5c8d9f7bd56865454f377adc37b87a026f78984fdcf439842fbf623c7",
+  "verifying_key_json_sha256_hex": "44e77a43c1f6c36cdadb6fdacbc4fee49c148ff75eb0c25bd1e916efffad0613",
+  "generation_self_tests": [
+    {
+      "proof_case": "transfer",
+      "witness_sha256_hex": "5ffcfcba748488c17f3f210c0b39df9acf55cd633937ab03d85b826a02377ed7",
+      "proved_and_verified_in_process": true
+    },
+    {
+      "proof_case": "transfer_unregulated",
+      "witness_sha256_hex": "29ee09b01b37f6babf077598592d59543d1cfbff04bb32c6aeeca556376a6d0e",
+      "proved_and_verified_in_process": true
+    },
+    {
+      "proof_case": "transfer_flagged",
+      "witness_sha256_hex": "b9ff36f425883506d9072b839ba985148b42439ac5a6662037098d1620c13444",
+      "proved_and_verified_in_process": true
+    },
+    {
+      "proof_case": "transfer_accumulating",
+      "witness_sha256_hex": "772c73cec6983592d4735b82d9cabbd6285bcc7a829b315b42accb64fea701be",
+      "proved_and_verified_in_process": true
+    },
+    {
+      "proof_case": "transfer_over_limit_disclosure",
+      "witness_sha256_hex": "f79dafffe411ae9d2f39e094527dfd1934d3f14951fc937daba01365ea063206",
+      "proved_and_verified_in_process": true
+    },
+    {
+      "proof_case": "transfer_accumulator_continuation",
+      "witness_sha256_hex": "79a9440928f4b83f08e1b30e8630573e393164dd69035f7d11a5a7a4b5c17dae",
+      "proved_and_verified_in_process": true
+    }
+  ],
+  "setup_transcript": "not_recorded",
+  "toxic_waste_erasure": "not_mechanically_verified"
+}

@@ -1,0 +1,32 @@
+[
+  {
+    "scenario": "transfer",
+    "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/gnark/internal/testfixtures/vectors/transfer_witness.bin",
+    "sha256": "5ffcfcba748488c17f3f210c0b39df9acf55cd633937ab03d85b826a02377ed7"
+  },
+  {
+    "scenario": "transfer_unregulated",
+    "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/gnark/internal/testfixtures/vectors/transfer_unregulated_witness.bin",
+    "sha256": "29ee09b01b37f6babf077598592d59543d1cfbff04bb32c6aeeca556376a6d0e"
+  },
+  {
+    "scenario": "transfer_flagged",
+    "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/gnark/internal/testfixtures/vectors/transfer_flagged_witness.bin",
+    "sha256": "b9ff36f425883506d9072b839ba985148b42439ac5a6662037098d1620c13444"
+  },
+  {
+    "scenario": "transfer_accumulating",
+    "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/gnark/internal/testfixtures/vectors/transfer_accumulating_witness.bin",
+    "sha256": "772c73cec6983592d4735b82d9cabbd6285bcc7a829b315b42accb64fea701be"
+  },
+  {
+    "scenario": "transfer_over_limit_disclosure",
+    "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/zkpari-spike/cache/99228210a891ffa23aeb/over_limit_disclosure.bin",
+    "sha256": "f79dafffe411ae9d2f39e094527dfd1934d3f14951fc937daba01365ea063206"
+  },
+  {
+    "scenario": "transfer_accumulator_continuation",
+    "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/gnark/internal/testfixtures/vectors/transfer_accumulator_continuation_witness.bin",
+    "sha256": "79a9440928f4b83f08e1b30e8630573e393164dd69035f7d11a5a7a4b5c17dae"
+  }
+]

@@ -1,0 +1,7 @@
+transfer: full API and key/statement/encoding gates passed
+transfer_unregulated: full API and key/statement/encoding gates passed
+transfer_flagged: full API and key/statement/encoding gates passed
+transfer_accumulating: full API and key/statement/encoding gates passed
+transfer_over_limit_disclosure: full API and key/statement/encoding gates passed
+transfer_accumulator_continuation: full API and key/statement/encoding gates passed
+{"schema": "shieldd.gnark_subset_desktop.v1", "mode": "gate", "rows": [], "proofs": 6, "all_verified": true}

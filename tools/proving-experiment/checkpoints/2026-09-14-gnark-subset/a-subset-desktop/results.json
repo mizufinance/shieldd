@@ -1,0 +1,36 @@
+{
+  "schema": "shieldd.gnark_subset_desktop.v1",
+  "mode": "measure",
+  "rows": [
+    {
+      "candidate": "candidate",
+      "warm_values_s": [
+        1.720823458,
+        1.722218625,
+        1.708653208,
+        1.72745325,
+        1.722232417
+      ],
+      "median_s": 1.722218625,
+      "first_s": 20.809473208,
+      "peak_rss_bytes": 640532480,
+      "proof_bytes": 436
+    },
+    {
+      "candidate": "control",
+      "warm_values_s": [
+        1.78067025,
+        1.810689959,
+        1.793245584,
+        1.794727,
+        1.788421083
+      ],
+      "median_s": 1.793245584,
+      "first_s": 22.572976084,
+      "peak_rss_bytes": 721141760,
+      "proof_bytes": 436
+    }
+  ],
+  "proofs": 18,
+  "all_verified": true
+}

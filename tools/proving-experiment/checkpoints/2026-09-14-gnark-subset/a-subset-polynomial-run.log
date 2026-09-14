@@ -1,0 +1,6 @@
+transfer: exact quotient and boundary gates passed
+transfer_unregulated: exact quotient and boundary gates passed
+transfer_flagged: exact quotient and boundary gates passed
+transfer_accumulating: exact quotient and boundary gates passed
+transfer_over_limit_disclosure: exact quotient and boundary gates passed
+transfer_accumulator_continuation: exact quotient and boundary gates passed

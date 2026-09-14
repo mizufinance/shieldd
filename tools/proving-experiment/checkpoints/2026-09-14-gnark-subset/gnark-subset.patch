@@ -1,0 +1,202 @@
+--- a/backend/groth16/bls12-377/setup.go
++++ b/backend/groth16/bls12-377/setup.go
+@@ -25,6 +25,8 @@
+ type ProvingKey struct {
+ 	// domain
+ 	Domain fft.Domain
++ SubsetRemoved uint64
++ subset *SubsetExperiment
+ 
+ 	// [α]₁, [β]₁, [δ]₁
+ 	// [A(t)]₁, [B(t)]₁, [Kpk(t)]₁, [Z(t)]₁
+@@ -98,7 +100,8 @@
+ 	nbPrivateWires := r1cs.GetNbSecretVariables() + r1cs.NbInternalVariables - nbPrivateCommittedWires - len(commitmentInfo)
+ 
+ 	// Setting group for fft
+-	domain := fft.NewDomain(uint64(r1cs.GetNbConstraints()))
++	domain := fft.NewDomain(max(8,uint64((4*r1cs.GetNbConstraints()+2)/3)))
++ pk.SubsetRemoved=domain.Cardinality/4
+ 
+ 	// samples toxic waste
+ 	toxicWaste, err := sampleToxicWaste()
+@@ -106,7 +109,9 @@
+ 		return err
+ 	}
+ 
+-	// Setup coeffs to compute pk.G1.A, pk.G1.B, pk.G1.K
++	// Avoid every FFT root, including the excluded coset, when sampling setup.
++ for {var power fr.Element;power.Exp(toxicWaste.t,new(big.Int).SetUint64(domain.Cardinality));if !power.IsOne() && !toxicWaste.t.IsZero(){break};if _,err:=toxicWaste.t.SetRandom();err!=nil{return err}}
++ // Setup coeffs to compute pk.G1.A, pk.G1.B, pk.G1.K
+ 	A, B, C := setupABC(r1cs, domain, toxicWaste)
+ 
+ 	// To fill in the Proving and Verifying keys, we need to perform a lot of ecc scalar multiplication (with generator)
+@@ -178,18 +183,7 @@
+ 	}
+ 
+ 	// Z part of the proving key (scalars)
+-	Z := make([]fr.Element, domain.Cardinality)
+-	one := fr.One()
+-	var zdt fr.Element
+-
+-	zdt.Exp(toxicWaste.t, new(big.Int).SetUint64(domain.Cardinality)).
+-		Sub(&zdt, &one).
+-		Mul(&zdt, &toxicWaste.deltaInv) // sets Zdt to Zdt/delta
+-
+-	for i := 0; i < int(domain.Cardinality); i++ {
+-		Z[i] = zdt
+-		zdt.Mul(&zdt, &toxicWaste.t)
+-	}
++	Z := subsetQueries(domain,toxicWaste.t,toxicWaste.deltaInv)
+ 
+ 	// mark points at infinity and filter them
+ 	pk.InfinityA = make([]bool, len(A))
+@@ -244,11 +238,8 @@
+ 	pk.G1.B = g1PointsAff[offset : offset+len(B)]
+ 	offset += len(B)
+ 
+-	bitReverse(g1PointsAff[offset : offset+int(domain.Cardinality)])
+-	sizeZ := int(domain.Cardinality) - 1 // deg(H)=deg(A*B-C/X^n-1)=(n-1)+(n-1)-n=n-2
+-	pk.G1.Z = g1PointsAff[offset : offset+sizeZ]
+-
+-	offset += int(domain.Cardinality)
++	pk.G1.Z = g1PointsAff[offset : offset+len(Z)]
++	offset += len(Z)
+ 
+ 	vk.G1.K = g1PointsAff[offset : offset+nbPublicWires]
+ 	offset += nbPublicWires
+@@ -326,6 +317,7 @@
+ 
+ 	// set domain
+ 	pk.Domain = *domain
++ if err:=pk.prepareSubset();err!=nil{return err}
+ 
+ 	return nil
+ }
+@@ -351,29 +343,8 @@
+ 	B = make([]fr.Element, nbWires)
+ 	C = make([]fr.Element, nbWires)
+ 
+-	one := fr.One()
+-
+-	// first we compute [t-w^i] and its inverse
+-	var w fr.Element
+-	w.Set(&domain.Generator)
+-	wi := fr.One()
+-	t := make([]fr.Element, r1cs.GetNbConstraints()+1)
+-	for i := 0; i < len(t); i++ {
+-		t[i].Sub(&toxicWaste.t, &wi)
+-		wi.Mul(&wi, &w) // TODO this is already pre computed in fft.Domain
+-	}
+-	tInv := fr.BatchInvert(t)
+-
+-	// evaluation of the i-th lagrange polynomial at t
++	weights:=subsetLagranges(domain,toxicWaste.t,r1cs.GetNbConstraints())
+ 	var L fr.Element
+-
+-	// L = 1/n*(t^n-1)/(t-1), Li+1 = w*Li*(t-w^i)/(t-w^(i+1))
+-
+-	// Setting L0
+-	L.Exp(toxicWaste.t, new(big.Int).SetUint64(uint64(domain.Cardinality))).
+-		Sub(&L, &one)
+-	L.Mul(&L, &tInv[0]).
+-		Mul(&L, &domain.CardinalityInv)
+ 
+ 	accumulate := func(res *fr.Element, t constraint.Term, value *fr.Element) {
+ 		cID := t.CoeffID()
+@@ -405,6 +376,7 @@
+ 	j := 0
+ 	it := r1cs.GetR1CIterator()
+ 	for c := it.Next(); c != nil; c = it.Next() {
++ L=weights[j]
+ 		for _, t := range c.L {
+ 			accumulate(&A[t.WireID()], t, &L)
+ 		}
+@@ -415,10 +387,6 @@
+ 			accumulate(&C[t.WireID()], t, &L)
+ 		}
+ 
+-		// Li+1 = w*Li*(t-w^i)/(t-w^(i+1))
+-		L.Mul(&L, &w)
+-		L.Mul(&L, &t[j])
+-		L.Mul(&L, &tInv[j+1])
+ 
+ 		j++
+ 	}
+--- a/backend/groth16/bls12-377/prove.go
++++ b/backend/groth16/bls12-377/prove.go
+@@ -50,7 +50,8 @@
+ 
+ // Prove generates the proof of knowledge of a r1cs with full witness (secret + public part).
+ func Prove(r1cs *cs.R1CS, pk *ProvingKey, fullWitness witness.Witness, opts ...backend.ProverOption) (*Proof, error) {
+-	opt, err := backend.NewProverConfig(opts...)
++	if pk.subset==nil || pk.SubsetRemoved!=pk.Domain.Cardinality/4 || pk.subset.n!=int(pk.Domain.Cardinality) || len(pk.G1.Z)!=pk.subset.m-1 || r1cs.GetNbConstraints()>pk.subset.m {return nil,fmt.Errorf("invalid subset proving key")}
++ opt, err := backend.NewProverConfig(opts...)
+ 	if err != nil {
+ 		return nil, fmt.Errorf("new prover config: %w", err)
+ 	}
+@@ -130,13 +131,14 @@
+ 
+ 	// H (witness reduction / FFT part)
+ 	var h []fr.Element
+-	chHDone := make(chan struct{}, 1)
++	chHDone := make(chan error, 1)
+ 	go func() {
+-		h = computeH(solution.A, solution.B, solution.C, &pk.Domain)
++		var polynomialError error
++ h,polynomialError = pk.subset.Polynomial(solution.A, solution.B, solution.C)
+ 		solution.A = nil
+ 		solution.B = nil
+ 		solution.C = nil
+-		chHDone <- struct{}{}
++		chHDone <- polynomialError
+ 	}()
+ 
+ 	// we need to copy and filter the wireValues for each multi exp
+@@ -222,7 +224,7 @@
+ 
+ 		var krs, krs2, p1 curve.G1Jac
+ 		chKrs2Done := make(chan error, 1)
+-		sizeH := int(pk.Domain.Cardinality - 1) // comes from the fact the deg(H)=(n-1)+(n-1)-n=n-2
++		sizeH := len(pk.G1.Z)
+ 		go func() {
+ 			_, err := krs2.MultiExp(pk.G1.Z, h[:sizeH], ecc.MultiExpConfig{NbTasks: n / 2})
+ 			chKrs2Done <- err
+@@ -294,7 +296,7 @@
+ 	}
+ 
+ 	// wait for FFT to end, as it uses all our CPUs
+-	<-chHDone
++	if err:= <-chHDone;err!=nil{return nil,err}
+ 
+ 	// schedule our proof part computations
+ 	go computeKRS()
+--- a/backend/groth16/bls12-377/marshal.go
++++ b/backend/groth16/bls12-377/marshal.go
+@@ -240,7 +240,7 @@
+ }
+ 
+ func (pk *ProvingKey) writeTo(w io.Writer, raw bool) (int64, error) {
+-	n, err := pk.Domain.WriteTo(w)
++	n, err := pk.writeSubsetDomain(w)
+ 	if err != nil {
+ 		return n, err
+ 	}
+@@ -313,7 +313,7 @@
+ }
+ 
+ func (pk *ProvingKey) readFrom(r io.Reader, decOptions ...func(*curve.Decoder)) (int64, error) {
+-	n, err := pk.Domain.ReadFrom(r)
++	n, err := pk.readSubsetDomain(r)
+ 	if err != nil {
+ 		return n, fmt.Errorf("read domain: %w", err)
+ 	}
+@@ -369,7 +369,8 @@
+ 		return n + dec.BytesRead(), fmt.Errorf("invalid number of commitment keys. Expected %d got %d", nbCommitments, len(pk.CommitmentKeys))
+ 	}
+ 
+-	return n + dec.BytesRead(), nil
++	if err:=pk.prepareSubset();err!=nil{return n+dec.BytesRead(),err}
++ return n + dec.BytesRead(), nil
+ }
+ 
+ // WriteDump behaves like WriteRawTo, excepts, the slices of points are "dumped" using gnark-crypto/utils/unsafe

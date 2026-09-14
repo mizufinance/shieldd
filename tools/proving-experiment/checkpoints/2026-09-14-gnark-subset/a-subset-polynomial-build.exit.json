@@ -1,0 +1,10 @@
+{
+  "time_ns": 1789366172872247000,
+  "argv": [
+    "sh",
+    "-c",
+    "cd tools/proving-experiment/cache/a-subset-polynomial-source/worker && go build -mod=readonly -p 2 -o ../subsetcost ./cmd/subsetcost"
+  ],
+  "code": 0,
+  "failure": null
+}

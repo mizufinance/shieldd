@@ -1,0 +1,225 @@
+{
+  "schema": "shieldd.gnark_subset.artifacts.v1",
+  "files": [
+    {
+      "path": "tools/proving-experiment/cache/a-subset-api-gate/complete.json",
+      "bytes": 422,
+      "sha256": "c1023b2e6315f8d0a22e3fe32f1b1100e7e3a802a241a4c83e56306af9a64b10"
+    },
+    {
+      "path": "tools/proving-experiment/cache/a-subset-api-gate/identity.json",
+      "bytes": 6466,
+      "sha256": "6d37317f931333bc2d495daf1698d14849de1119e8dcabd003847bd12dc04d90"
+    },
+    {
+      "path": "tools/proving-experiment/cache/a-subset-api-gate/memory.jsonl",
+      "bytes": 60812,
+      "sha256": "dd21f85a5f6ed4fe269e19df1ca14a29cd5d4f15f8259d802136030a485cafb0"
+    },
+    {
+      "path": "tools/proving-experiment/cache/a-subset-api-gate/proofs/transfer.bin",
+      "bytes": 436,
+      "sha256": "a3adcec4dba6b5f26f572325fe9ab5b5657d4f917c424536c56c4d4638748709"
+    },
+    {
+      "path": "tools/proving-experiment/cache/a-subset-api-gate/proofs/transfer_accumulating.bin",
+      "bytes": 436,
+      "sha256": "3a86e3d0d544fc23b3f137a84460dcbdffc3e8a86cdf78050bacac7b16c908b4"
+    },
+    {
+      "path": "tools/proving-experiment/cache/a-subset-api-gate/proofs/transfer_accumulator_continuation.bin",
+      "bytes": 436,
+      "sha256": "16cdeb6621294e7dc2e79d8a9970723ba28f38ca03329ab2b526a129374c6ef6"
+    },
+    {
+      "path": "tools/proving-experiment/cache/a-subset-api-gate/proofs/transfer_flagged.bin",
+      "bytes": 436,
+      "sha256": "86f4876b170e24dba70b49867991ee42b8d731aff75558c311fe51a03c155feb"
+    },
+    {
+      "path": "tools/proving-experiment/cache/a-subset-api-gate/proofs/transfer_over_limit_disclosure.bin",
+      "bytes": 436,
+      "sha256": "993d3c97310cf173cb4a9689494277f0a7ea15672b6abb87bc431a07ee9acd29"
+    },
+    {
+      "path": "tools/proving-experiment/cache/a-subset-api-gate/proofs/transfer_unregulated.bin",
+      "bytes": 436,
+      "sha256": "6a2dcd33e2dff695b5925031fec71f742f8490b5902f1c57b70eba4b59478f06"
+    },
+    {
+      "path": "tools/proving-experiment/cache/a-subset-api-gate/results.json",
+      "bytes": 121,
+      "sha256": "201186138deb953e4845ae236d21979d7211244d811202ae13d3db43244ac0e5"
+    },
+    {
+      "path": "tools/proving-experiment/cache/a-subset-api-gate/samples.jsonl",
+      "bytes": 4748,
+      "sha256": "11ebb18970ee3f46c2f4ccc55f835fa5101137e766bd3faf2a79d443adb1ce8b"
+    },
+    {
+      "path": "tools/proving-experiment/cache/a-subset-desktop/complete.json",
+      "bytes": 422,
+      "sha256": "5023f010badf616e8bbc361b617aef054b1b27baebec16a2eeb6e4bdbf2539ef"
+    },
+    {
+      "path": "tools/proving-experiment/cache/a-subset-desktop/identity.json",
+      "bytes": 6469,
+      "sha256": "07b0d05c20f52c242605c72f6088dc7c6c067cf176a877a19a8e238f86bf8840"
+    },
+    {
+      "path": "tools/proving-experiment/cache/a-subset-desktop/memory.jsonl",
+      "bytes": 93074,
+      "sha256": "80d9b651f185f04ef80b7838d8dc2fb20621351e2c8a3c36c9a37a1df24c37bb"
+    },
+    {
+      "path": "tools/proving-experiment/cache/a-subset-desktop/proofs/first-candidate.bin",
+      "bytes": 436,
+      "sha256": "882a84c591c372fa63442edb87629b6b41dd8c9e390c1b3a0f6db2806f3895e6"
+    },
+    {
+      "path": "tools/proving-experiment/cache/a-subset-desktop/proofs/first-control.bin",
+      "bytes": 436,
+      "sha256": "cd003ee4876bce3e4ee61b4630f9417deb7892d6596fc27460f35dbcc797632c"
+    },
+    {
+      "path": "tools/proving-experiment/cache/a-subset-desktop/proofs/warm-3-candidate.bin",
+      "bytes": 436,
+      "sha256": "4e19451060843ab21fb1a50412db241da7c9bfe628876162de91cead8faad9dd"
+    },
+    {
+      "path": "tools/proving-experiment/cache/a-subset-desktop/proofs/warm-3-control.bin",
+      "bytes": 436,
+      "sha256": "c8c5dffe99f712938226d4f41e3f4699f8ee7c11e0b3881132e2b23b7bf4e781"
+    },
+    {
+      "path": "tools/proving-experiment/cache/a-subset-desktop/proofs/warm-4-candidate.bin",
+      "bytes": 436,
+      "sha256": "bc6c938a89dee31babf24366a788fc597669cf172290a21f14b7ec4ba9a27803"
+    },
+    {
+      "path": "tools/proving-experiment/cache/a-subset-desktop/proofs/warm-4-control.bin",
+      "bytes": 436,
+      "sha256": "335643c22e339c9439af41d1b8e8fe254463613e5fac2e1d7cab42e532deb245"
+    },
+    {
+      "path": "tools/proving-experiment/cache/a-subset-desktop/proofs/warm-5-candidate.bin",
+      "bytes": 436,
+      "sha256": "fe00239235c8b43296ad0b333006c381fddb8585381902503a67d697b4a0002d"
+    },
+    {
+      "path": "tools/proving-experiment/cache/a-subset-desktop/proofs/warm-5-control.bin",
+      "bytes": 436,
+      "sha256": "4aa412ecaeefe092ada873475e3e7388e77a059e90881e2c70a7d4e45e696369"
+    },
+    {
+      "path": "tools/proving-experiment/cache/a-subset-desktop/proofs/warm-6-candidate.bin",
+      "bytes": 436,
+      "sha256": "bebcac193adfc8599b43b5c4bf46181d0a4ed9020cc76440143c07b2540ae9f4"
+    },
+    {
+      "path": "tools/proving-experiment/cache/a-subset-desktop/proofs/warm-6-control.bin",
+      "bytes": 436,
+      "sha256": "4d826692954c8496905154171b8b5c9a658fe971731f313a8c00a9db81830fc6"
+    },
+    {
+      "path": "tools/proving-experiment/cache/a-subset-desktop/proofs/warm-7-candidate.bin",
+      "bytes": 436,
+      "sha256": "2754c79dd6042004c35bfb3688a09de6e0d463035219389a34314f3854c525f9"
+    },
+    {
+      "path": "tools/proving-experiment/cache/a-subset-desktop/proofs/warm-7-control.bin",
+      "bytes": 436,
+      "sha256": "ec68c37d550d1e9c3054c66f75666e99d366d3c1293a52c4e3f3a31ab165d719"
+    },
+    {
+      "path": "tools/proving-experiment/cache/a-subset-desktop/proofs/warmup-0-candidate.bin",
+      "bytes": 436,
+      "sha256": "35a0e063514498fcdb351c12ad3654343fb74708bb4893ccd9cd8d55108fb964"
+    },
+    {
+      "path": "tools/proving-experiment/cache/a-subset-desktop/proofs/warmup-0-control.bin",
+      "bytes": 436,
+      "sha256": "fe601e10b990d554f0f19cd89a6f5c84c0507ee560f2f8da31ca926d91bdf691"
+    },
+    {
+      "path": "tools/proving-experiment/cache/a-subset-desktop/proofs/warmup-1-candidate.bin",
+      "bytes": 436,
+      "sha256": "1cb197be98c0023792fe2681f24f0b959072942deb7db83c93c7e5d4ef37d25f"
+    },
+    {
+      "path": "tools/proving-experiment/cache/a-subset-desktop/proofs/warmup-1-control.bin",
+      "bytes": 436,
+      "sha256": "7c779e6fb13baa66238ac1a5b74aafa8ec48e970b31b3dc48dcb092bcb505390"
+    },
+    {
+      "path": "tools/proving-experiment/cache/a-subset-desktop/proofs/warmup-2-candidate.bin",
+      "bytes": 436,
+      "sha256": "28d1c455e09ebc820eee2936d96c7be3d2fc9feacb37811d20e5f3e2754fbef5"
+    },
+    {
+      "path": "tools/proving-experiment/cache/a-subset-desktop/proofs/warmup-2-control.bin",
+      "bytes": 436,
+      "sha256": "46a6a5832c80e05ae1ba7b4bf518686dfa6a1b33beada7c515df8d558019863d"
+    },
+    {
+      "path": "tools/proving-experiment/cache/a-subset-desktop/results.json",
+      "bytes": 730,
+      "sha256": "1ce1d665aaef50bbc5f5ef569c1cfe5b8195a1a59d24e31a1f7213871e119f70"
+    },
+    {
+      "path": "tools/proving-experiment/cache/a-subset-desktop/samples.jsonl",
+      "bytes": 14361,
+      "sha256": "d29f41c00c4dc26a973238a95c2a6a115a60871ac68ed60ca9aa64ea737cc4c5"
+    },
+    {
+      "path": "tools/proving-experiment/cache/a-subset-full-source/bin/gnarkctl",
+      "bytes": 13821762,
+      "sha256": "3110bccdbce4f6f04bdd92ecc53aa9915465fe10d07495c3c7d439758da677bb"
+    },
+    {
+      "path": "tools/proving-experiment/cache/a-subset-full-source/bin/provingexperiment",
+      "bytes": 12764146,
+      "sha256": "48e89b209e255dbc39d1debfdf2605b429e555b61dd929801557361defe2360f"
+    },
+    {
+      "path": "tools/proving-experiment/cache/a-subset-keys/circuit_metadata.json",
+      "bytes": 752,
+      "sha256": "ec0aaa9668e80c41a00b97fa8ff05c98fb81f4a42a449ceb5193e5f4ed5397bf"
+    },
+    {
+      "path": "tools/proving-experiment/cache/a-subset-keys/proving_key.bin",
+      "bytes": 37587069,
+      "sha256": "d798e8126352e5d5486dbb33e466f2ea85277b5ed9b4e867e0da2104a7a47f98"
+    },
+    {
+      "path": "tools/proving-experiment/cache/a-subset-keys/setup_measurement.json",
+      "bytes": 116,
+      "sha256": "3e651a24232f427b835d252fa0b9f31a5df8aaf6198f6e531c61bdbc5ab2cac6"
+    },
+    {
+      "path": "tools/proving-experiment/cache/a-subset-keys/setup_provenance.json",
+      "bytes": 1838,
+      "sha256": "f889726bd0512a43be4f429186eb44ba815c8b9f87b5c9d539d9de664e1e663e"
+    },
+    {
+      "path": "tools/proving-experiment/cache/a-subset-keys/transfer.sr1cs",
+      "bytes": 213879941,
+      "sha256": "cc0dc2091c86777dfd21128b974d1a51f959ce0599211d90a022e5c3d9e27bde"
+    },
+    {
+      "path": "tools/proving-experiment/cache/a-subset-keys/verifying_key.bin",
+      "bytes": 540,
+      "sha256": "961327d5c8d9f7bd56865454f377adc37b87a026f78984fdcf439842fbf623c7"
+    },
+    {
+      "path": "tools/proving-experiment/cache/a-subset-keys/verifying_key.json",
+      "bytes": 2556,
+      "sha256": "44e77a43c1f6c36cdadb6fdacbc4fee49c148ff75eb0c25bd1e916efffad0613"
+    },
+    {
+      "path": "tools/proving-experiment/cache/a-subset-polynomial-source/subsetcost",
+      "bytes": 10014146,
+      "sha256": "213c3bd816e9cc029d700e03346397ec56c008771739eacbaece0854cf828171"
+    }
+  ]
+}
