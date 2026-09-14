@@ -1,0 +1,290 @@
+   Compiling digest v0.11.3
+warning: commonware-macros-impl@2026.7.0: stability cfg not set; set RUSTFLAGS="--cfg commonware_stability_X" (ALPHA/BETA/GAMMA/DELTA/EPSILON) to enforce stability gating
+   Compiling hmac v0.13.0
+   Compiling elliptic-curve v0.14.1
+   Compiling rfc6979 v0.6.0
+   Compiling signature v3.0.0
+   Compiling curve25519-dalek v5.0.0
+   Compiling primeorder v0.14.0
+   Compiling ecdsa v0.17.0
+   Compiling sha2 v0.11.0
+   Compiling p256 v0.14.0
+   Compiling x25519-dalek v3.0.0
+   Compiling commonware-cryptography v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware-subset381/cryptography)
+   Compiling shieldd-native-subset-experiment v0.1.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/native-subset)
+warning: unused import: `commonware_math::algebra::Additive`
+  --> /Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/native-subset/src/balance.rs:13:5
+   |
+13 | use commonware_math::algebra::Additive;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `Ring`
+  --> /Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/native-subset/src/encryption.rs:12:42
+   |
+12 | use commonware_math::algebra::{Additive, Ring};
+   |                                          ^^^^
+
+warning: unused import: `Ring`
+  --> /Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/native-subset/src/recovery.rs:12:42
+   |
+12 | use commonware_math::algebra::{Additive, Ring};
+   |                                          ^^^^
+
+   Compiling shieldd-hinted-jubjub-screen v0.1.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/hinted-jubjub)
+warning: `shieldd-native-subset-experiment` (lib) generated 3 warnings (run `cargo fix --lib -p shieldd-native-subset-experiment` to apply 3 suggestions)
+error[E0433]: cannot find module or crate `rand` in this scope
+  --> src/bin/../../../native-subset/src/fixtures.rs:18:5
+   |
+18 | use rand::{SeedableRng, rngs::StdRng};
+   |     ^^^^ use of unresolved module or unlinked crate `rand`
+   |
+   = help: if you wanted to use a crate named `rand`, use `cargo add rand` to add it to your `Cargo.toml`
+
+error[E0432]: unresolved import `rand`
+  --> src/bin/../../../native-subset/src/fixtures.rs:18:5
+   |
+18 | use rand::{SeedableRng, rngs::StdRng};
+   |     ^^^^ use of unresolved module or unlinked crate `rand`
+   |
+   = help: if you wanted to use a crate named `rand`, use `cargo add rand` to add it to your `Cargo.toml`
+
+warning: unused import: `commonware_math::algebra::Additive`
+  --> src/bin/../../../native-subset/src/balance.rs:13:5
+   |
+13 | use commonware_math::algebra::Additive;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unexpected `cfg` condition value: `cost_trace`
+   --> src/bin/../../../native-subset/src/hash.rs:144:15
+    |
+144 |         #[cfg(feature = "cost_trace")]
+    |               ^^^^^^^^^^^^^^^^^^^^^^ help: remove the condition
+    |
+    = note: no expected values for `feature`
+    = help: consider adding `cost_trace` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: `#[warn(unexpected_cfgs)]` on by default
+
+warning: unexpected `cfg` condition value: `cost_trace`
+   --> src/bin/../../../native-subset/src/hash.rs:147:15
+    |
+147 |         #[cfg(feature = "cost_trace")]
+    |               ^^^^^^^^^^^^^^^^^^^^^^ help: remove the condition
+    |
+    = note: no expected values for `feature`
+    = help: consider adding `cost_trace` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `cost_trace`
+   --> src/bin/../../../native-subset/src/transfer.rs:215:11
+    |
+215 |     #[cfg(feature = "cost_trace")]
+    |           ^^^^^^^^^^^^^^^^^^^^^^ help: remove the condition
+    |
+    = note: no expected values for `feature`
+    = help: consider adding `cost_trace` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `cost_trace`
+   --> src/bin/../../../native-subset/src/transfer.rs:219:19
+    |
+219 |             #[cfg(feature = "cost_trace")]
+    |                   ^^^^^^^^^^^^^^^^^^^^^^ help: remove the condition
+...
+233 |     mark!("shared");
+    |     --------------- in this macro invocation
+    |
+    = note: no expected values for `feature`
+    = help: consider adding `cost_trace` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the macro `mark` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `cost_trace`
+   --> src/bin/../../../native-subset/src/transfer.rs:219:19
+    |
+219 |             #[cfg(feature = "cost_trace")]
+    |                   ^^^^^^^^^^^^^^^^^^^^^^ help: remove the condition
+...
+235 |     mark!("registry");
+    |     ----------------- in this macro invocation
+    |
+    = note: no expected values for `feature`
+    = help: consider adding `cost_trace` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the macro `mark` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `cost_trace`
+   --> src/bin/../../../native-subset/src/transfer.rs:219:19
+    |
+219 |             #[cfg(feature = "cost_trace")]
+    |                   ^^^^^^^^^^^^^^^^^^^^^^ help: remove the condition
+...
+251 |     mark!("registry_selection");
+    |     --------------------------- in this macro invocation
+    |
+    = note: no expected values for `feature`
+    = help: consider adding `cost_trace` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the macro `mark` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `cost_trace`
+   --> src/bin/../../../native-subset/src/transfer.rs:219:19
+    |
+219 |             #[cfg(feature = "cost_trace")]
+    |                   ^^^^^^^^^^^^^^^^^^^^^^ help: remove the condition
+...
+260 |     mark!("sender_compliance");
+    |     -------------------------- in this macro invocation
+    |
+    = note: no expected values for `feature`
+    = help: consider adding `cost_trace` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the macro `mark` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `cost_trace`
+   --> src/bin/../../../native-subset/src/transfer.rs:219:19
+    |
+219 |             #[cfg(feature = "cost_trace")]
+    |                   ^^^^^^^^^^^^^^^^^^^^^^ help: remove the condition
+...
+269 |     mark!("receiver_compliance");
+    |     ---------------------------- in this macro invocation
+    |
+    = note: no expected values for `feature`
+    = help: consider adding `cost_trace` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the macro `mark` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `cost_trace`
+   --> src/bin/../../../native-subset/src/transfer.rs:219:19
+    |
+219 |             #[cfg(feature = "cost_trace")]
+    |                   ^^^^^^^^^^^^^^^^^^^^^^ help: remove the condition
+...
+283 |     mark!("authorization");
+    |     ---------------------- in this macro invocation
+    |
+    = note: no expected values for `feature`
+    = help: consider adding `cost_trace` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the macro `mark` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `cost_trace`
+   --> src/bin/../../../native-subset/src/transfer.rs:219:19
+    |
+219 |             #[cfg(feature = "cost_trace")]
+    |                   ^^^^^^^^^^^^^^^^^^^^^^ help: remove the condition
+...
+296 |     mark!("spends");
+    |     --------------- in this macro invocation
+    |
+    = note: no expected values for `feature`
+    = help: consider adding `cost_trace` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the macro `mark` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `cost_trace`
+   --> src/bin/../../../native-subset/src/transfer.rs:219:19
+    |
+219 |             #[cfg(feature = "cost_trace")]
+    |                   ^^^^^^^^^^^^^^^^^^^^^^ help: remove the condition
+...
+317 |     mark!("outputs");
+    |     ---------------- in this macro invocation
+    |
+    = note: no expected values for `feature`
+    = help: consider adding `cost_trace` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the macro `mark` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `cost_trace`
+   --> src/bin/../../../native-subset/src/transfer.rs:219:19
+    |
+219 |             #[cfg(feature = "cost_trace")]
+    |                   ^^^^^^^^^^^^^^^^^^^^^^ help: remove the condition
+...
+344 |     mark!("volume");
+    |     --------------- in this macro invocation
+    |
+    = note: no expected values for `feature`
+    = help: consider adding `cost_trace` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the macro `mark` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `cost_trace`
+   --> src/bin/../../../native-subset/src/transfer.rs:219:19
+    |
+219 |             #[cfg(feature = "cost_trace")]
+    |                   ^^^^^^^^^^^^^^^^^^^^^^ help: remove the condition
+...
+362 |     mark!("encryption");
+    |     ------------------- in this macro invocation
+    |
+    = note: no expected values for `feature`
+    = help: consider adding `cost_trace` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the macro `mark` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `cost_trace`
+   --> src/bin/../../../native-subset/src/transfer.rs:219:19
+    |
+219 |             #[cfg(feature = "cost_trace")]
+    |                   ^^^^^^^^^^^^^^^^^^^^^^ help: remove the condition
+...
+373 |     mark!("routing");
+    |     ---------------- in this macro invocation
+    |
+    = note: no expected values for `feature`
+    = help: consider adding `cost_trace` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the macro `mark` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `cost_trace`
+   --> src/bin/../../../native-subset/src/transfer.rs:219:19
+    |
+219 |             #[cfg(feature = "cost_trace")]
+    |                   ^^^^^^^^^^^^^^^^^^^^^^ help: remove the condition
+...
+383 |     mark!("balance");
+    |     ---------------- in this macro invocation
+    |
+    = note: no expected values for `feature`
+    = help: consider adding `cost_trace` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the macro `mark` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `cost_trace`
+   --> src/bin/../../../native-subset/src/transfer.rs:219:19
+    |
+219 |             #[cfg(feature = "cost_trace")]
+    |                   ^^^^^^^^^^^^^^^^^^^^^^ help: remove the condition
+...
+414 |     mark!("statement");
+    |     ------------------ in this macro invocation
+    |
+    = note: no expected values for `feature`
+    = help: consider adding `cost_trace` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the macro `mark` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unused import: `Ring`
+  --> src/bin/../transfer/encryption.rs:12:42
+   |
+12 | use commonware_math::algebra::{Additive, Ring};
+   |                                          ^^^^
+
+warning: unused import: `Ring`
+  --> src/bin/../transfer/recovery.rs:12:42
+   |
+12 | use commonware_math::algebra::{Additive, Ring};
+   |                                          ^^^^
+
+Some errors have detailed explanations: E0432, E0433.
+For more information about an error, try `rustc --explain E0432`.
+warning: `shieldd-hinted-jubjub-screen` (bin "hinted-transfer-screen") generated 19 warnings
+error: could not compile `shieldd-hinted-jubjub-screen` (bin "hinted-transfer-screen") due to 2 previous errors; 19 warnings emitted
+warning: build failed, waiting for other jobs to finish...

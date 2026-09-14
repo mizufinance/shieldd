@@ -1,0 +1,45 @@
+warning: commonware-macros-impl@2026.7.0: stability cfg not set; set RUSTFLAGS="--cfg commonware_stability_X" (ALPHA/BETA/GAMMA/DELTA/EPSILON) to enforce stability gating
+warning: unused import: `commonware_math::algebra::Additive`
+  --> /Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/native-subset/src/balance.rs:13:5
+   |
+13 | use commonware_math::algebra::Additive;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `Ring`
+  --> /Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/native-subset/src/encryption.rs:12:42
+   |
+12 | use commonware_math::algebra::{Additive, Ring};
+   |                                          ^^^^
+
+warning: unused import: `Ring`
+  --> /Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/native-subset/src/recovery.rs:12:42
+   |
+12 | use commonware_math::algebra::{Additive, Ring};
+   |                                          ^^^^
+
+warning: `shieldd-native-subset-experiment` (lib) generated 3 warnings (run `cargo fix --lib -p shieldd-native-subset-experiment` to apply 3 suggestions)
+   Compiling shieldd-hinted-jubjub-screen v0.1.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/hinted-jubjub)
+warning: unused import: `commonware_math::algebra::Additive`
+  --> src/bin/../../../native-subset/src/balance.rs:13:5
+   |
+13 | use commonware_math::algebra::Additive;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `Ring`
+  --> src/bin/../transfer/encryption.rs:12:42
+   |
+12 | use commonware_math::algebra::{Additive, Ring};
+   |                                          ^^^^
+
+warning: unused import: `Ring`
+  --> src/bin/../transfer/recovery.rs:12:42
+   |
+12 | use commonware_math::algebra::{Additive, Ring};
+   |                                          ^^^^
+
+warning: `shieldd-hinted-jubjub-screen` (bin "hinted-transfer-screen") generated 3 warnings (run `cargo fix --bin "hinted-transfer-screen" -p shieldd-hinted-jubjub-screen` to apply 3 suggestions)
+    Finished `release` profile [optimized] target(s) in 2.64s

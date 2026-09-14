@@ -2,7 +2,7 @@
 
 **The circuit, checked-loader and same-key polynomial round is complete. The broader optimization campaign remains active.**
 
-The [latest measured report](../../docs/research/transfer-proving-optimized.md) and [compact checkpoint](checkpoints/2026-09-14-optimized/README.md) preserve the matched `cache/desktop-optimized` session. The prior `desktop-selected` and `desktop-final` sessions remain immutable; do not pool their samples.
+The [latest matched proving report](../../docs/research/transfer-proving-subset-selected.md) has A1.716633s/B2.204663s/C2.575632s warm. The subsequent [owned-admission diagnostic](../../docs/research/pari-owned-admission.md) improves B startup separately. The table below preserves the earlier `cache/desktop-optimized` session; do not pool sessions.
 
 | Candidate | Warm median | First proof | Warm peak RSS |
 |---|---:|---:|---:|
@@ -66,12 +66,18 @@ Exact run `cache/b-owned-desktop`; evidence `checkpoints/2026-09-14-owned-admiss
 
 ## Next bounded work
 
-Continue the corrected hinted-scalar circuit screen. Read the complete primary technique and cofactor correction, trace Decaf/Jubjub input/output representatives, and bound scalar congruence and zero cases before writing a gadget. Compare a complete corrected gadget and original/lowered Transfer count/solve cost before any new setup. Give A applicable circuit changes. The cofactor correction landing page is verified; the web PDF fetch failed and full-text access remains to resolve. Do not turn that access issue into a performance or correctness conclusion.
+Continue with an exact structural reuse screen for repeated hash, square and bit work, preserving the existing hash domains, parameters and semantics. Count the actual complete relation and validate all six assignments before any new setup. Keep the hinted gadget as a possible combined component; its independent gain does not yet justify keys. A/B application still requires an exact Decaf-representative argument.
+
+## Completed corrected hinted-scalar screen
+
+The [native hinted-scalar screen](../../docs/research/native-hinted-scalar-screen.md) and [algebra/call-site argument](../../docs/research/native-hinted-scalar-design.md) retain full cofactor8 output binding, bounded integer congruence and zero cases. Both primary papers were read in full; source PDF hashes are saved. The complete signed joint gadget has4827rows versus5537. Nine actual Transfer sites give213619rows/213576columns versus220009/220029; M229376/N262144 stays unchanged.
+
+Seven release gadget/dynamic tests pass. All six existing native witness/statement identities pass original and converted checks with both unprepared and actual prepared mapping. Each run has18solves per variant plus invalid-witness and changed-statement rejection. Prepared standard checked-solve medians220.441→216.562ms; other scenarios vary, with construction/mapping broadly unchanged. This is a count/solve diagnostic, not a proving speedup. Guards exit0/swap0/no competition. No new setup, proof or production release-gated suite ran. Retain as a component and defer keys until a stronger combined circuit/domain cost case. Exact runs `cache/hinted-scalar-full` and `cache/hinted-scalar-prepared`; evidence `checkpoints/2026-09-14-hinted-scalar`.
 
 ## Explicit remaining campaign states
 
 - Completed preparation/ownership: C lifetime cleanup; B checked compressed/uncompressed loading and private owned-child admission. Further changes require a distinct measured mechanism; do not repeat this grid.
-- Pending circuit branch: corrected hinted scalar multiplication with subgroup/output binding, bounded congruence and zero/Decaf handling, first as a complete gadget and full Transfer count/solve gate. Give A applicable improvements before new keys.
+- Completed C circuit screen: corrected hinted scalar multiplication saves2.90%rows, domains unchanged; retain component without new keys. A/B exact Decaf-representative applicability remains pending; do not substitute prime-subgroup coordinates silently.
 - Pending source/compile screens: global square/bit reuse and reviewed exact-arity Anemoi/Jive, especially C. No reduced-round hash shortcut or unmeasured claim.
 - Pending arithmetic feasibility: selected-path ARM64 squaring, safe SIMD/WASM MSM, bounded tables or one justified compiler setting. GPU requires a distinct curve-correct feasibility case. No broad profile grid.
 - Closed/low priority on recorded evidence: EdMSM, prior GLV/windows, gnark381 hybrid and dense-scalar partition variants unless a new mechanism changes their cost case. Separate protocol/PQ/remote-proving alternatives cannot inherit this network comparison.

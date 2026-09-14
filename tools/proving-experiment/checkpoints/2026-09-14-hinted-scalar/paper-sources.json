@@ -1,0 +1,14 @@
+[
+  {
+    "url": "https://eprint.iacr.org/2026/1776.pdf",
+    "file": "cofactor-correction.pdf",
+    "sha256": "0f02a361a469ccf7c37af6fe53986cbb4b7f645598c36ae39b232b819d4670a7",
+    "pages": 13
+  },
+  {
+    "url": "https://eprint.iacr.org/2025/933.pdf",
+    "file": "hinted-technique.pdf",
+    "sha256": "b6edaddbb360b7baf5e67e2f159e481ca875d042c40076fddcf235d7ef2e27da",
+    "pages": 21
+  }
+]

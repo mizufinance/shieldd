@@ -1,0 +1,16 @@
+{
+  "time_ns": 1789373638819306000,
+  "argv": [
+    "cargo",
+    "+1.95.0",
+    "run",
+    "--locked",
+    "--release",
+    "--manifest-path",
+    "tools/proving-experiment/candidates/hinted-jubjub/Cargo.toml",
+    "--",
+    "tools/proving-experiment/cache/hinted-jubjub-signed-cost.json"
+  ],
+  "code": 0,
+  "failure": null
+}

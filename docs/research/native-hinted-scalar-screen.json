@@ -1,0 +1,173 @@
+{
+  "schema": "shieldd.hinted_scalar_report.v1",
+  "decision": "retain_component_defer_setup",
+  "gadget_rows": [
+    5537,
+    4827
+  ],
+  "transfer_rows": [
+    220009,
+    213619
+  ],
+  "transfer_columns": [
+    220029,
+    213576
+  ],
+  "retained_domain": 229376,
+  "fft_domain": 262144,
+  "control": [
+    {
+      "scenario": "transfer",
+      "construction_ms": 48.169458,
+      "mapping_ms": 121.237917,
+      "checked_ms": 220.4415,
+      "checked_values_ms": [
+        220.4415,
+        212.754792,
+        221.976292
+      ]
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "construction_ms": 48.658542,
+      "mapping_ms": 118.796542,
+      "checked_ms": 215.1315,
+      "checked_values_ms": [
+        215.1315,
+        212.278375,
+        216.536625
+      ]
+    },
+    {
+      "scenario": "transfer_flagged",
+      "construction_ms": 48.45525,
+      "mapping_ms": 118.731667,
+      "checked_ms": 215.074458,
+      "checked_values_ms": [
+        214.118042,
+        215.074458,
+        216.341458
+      ]
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "construction_ms": 49.517291,
+      "mapping_ms": 118.187833,
+      "checked_ms": 213.578917,
+      "checked_values_ms": [
+        213.146667,
+        213.578917,
+        216.051333
+      ]
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "construction_ms": 46.596792,
+      "mapping_ms": 117.636209,
+      "checked_ms": 211.550458,
+      "checked_values_ms": [
+        219.049666,
+        209.682875,
+        211.550458
+      ]
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "construction_ms": 46.791292,
+      "mapping_ms": 120.216875,
+      "checked_ms": 216.800417,
+      "checked_values_ms": [
+        217.822333,
+        216.800417,
+        216.189458
+      ]
+    }
+  ],
+  "hinted": [
+    {
+      "scenario": "transfer",
+      "construction_ms": 48.036208,
+      "mapping_ms": 119.202917,
+      "checked_ms": 216.56175,
+      "checked_values_ms": [
+        214.601958,
+        216.56175,
+        221.30075
+      ]
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "construction_ms": 48.886958,
+      "mapping_ms": 119.314625,
+      "checked_ms": 216.75375,
+      "checked_values_ms": [
+        216.75375,
+        215.120791,
+        223.126333
+      ]
+    },
+    {
+      "scenario": "transfer_flagged",
+      "construction_ms": 48.933334,
+      "mapping_ms": 118.459167,
+      "checked_ms": 215.035834,
+      "checked_values_ms": [
+        212.4715,
+        215.035834,
+        219.116666
+      ]
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "construction_ms": 50.040542,
+      "mapping_ms": 118.897542,
+      "checked_ms": 217.474625,
+      "checked_values_ms": [
+        213.759125,
+        218.531792,
+        217.474625
+      ]
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "construction_ms": 48.609833,
+      "mapping_ms": 119.832375,
+      "checked_ms": 217.85225,
+      "checked_values_ms": [
+        218.103,
+        217.85225,
+        214.694875
+      ]
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "construction_ms": 47.720084,
+      "mapping_ms": 120.38125,
+      "checked_ms": 217.869084,
+      "checked_values_ms": [
+        212.457333,
+        225.170584,
+        217.869084
+      ]
+    }
+  ],
+  "guards": [
+    {
+      "name": "hinted-jubjub-dynamic-tests",
+      "peak_rss_bytes": 118423552
+    },
+    {
+      "name": "hinted-scalar-full-run",
+      "peak_rss_bytes": 1256259584
+    },
+    {
+      "name": "hinted-scalar-prepared-run",
+      "peak_rss_bytes": 882737152
+    }
+  ],
+  "evidence": {
+    "cache/hinted-scalar-prepared/complete.json": "b5d47696bbf8681acc6b009103507a91aee76f5f38a21c68099cba935fe0e170",
+    "cache/hinted-scalar-full/complete.json": "4ede5a07458400dfa9b84fd241e98e40b0140e09d744fc27c8e7b989cc5da588",
+    "cache/hinted-scalar-prepared/identity.json": "8a25d3f23bf48cfbd336e5f588f90554a26f2c82759283297723866e39360842"
+  }
+}

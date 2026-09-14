@@ -1,0 +1,31 @@
+{
+  "schema": "shieldd.hinted_jubjub_screen.v1",
+  "hint_ns": 438334,
+  "costs": [
+    {
+      "hinted": false,
+      "original_valid": true,
+      "converted_valid": true,
+      "gadget_rows": 5537,
+      "total_rows": 7100,
+      "columns": 7101,
+      "domain": 7168,
+      "construction_ns": 2245875,
+      "compile_ns": 22049125,
+      "assignment_ns": 19613000
+    },
+    {
+      "hinted": true,
+      "original_valid": true,
+      "converted_valid": true,
+      "gadget_rows": 4827,
+      "total_rows": 6390,
+      "columns": 6384,
+      "domain": 7168,
+      "construction_ns": 1295375,
+      "compile_ns": 18782125,
+      "assignment_ns": 18400333
+    }
+  ],
+  "limits": "Complete gadget counts with shared canonical scalar/input-subgroup boundary and equal output binding. Single observations of construction/compile/assignment; host hint generation separate. No full Transfer integration, setup or proving measurement."
+}

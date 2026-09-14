@@ -1,0 +1,16 @@
+{
+  "time_ns": 1789374258858737000,
+  "argv": [
+    "cargo",
+    "+1.95.0",
+    "build",
+    "--locked",
+    "--release",
+    "--manifest-path",
+    "tools/proving-experiment/candidates/hinted-jubjub/Cargo.toml",
+    "--bin",
+    "hinted-transfer-screen"
+  ],
+  "code": 0,
+  "failure": null
+}

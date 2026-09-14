@@ -1,0 +1,10 @@
+{
+  "time_ns": 1789374176801402000,
+  "argv": [
+    "python3",
+    "tools/proving-experiment/hinted_scalar_screen.py",
+    "tools/proving-experiment/cache/hinted-scalar-full"
+  ],
+  "code": 0,
+  "failure": null
+}

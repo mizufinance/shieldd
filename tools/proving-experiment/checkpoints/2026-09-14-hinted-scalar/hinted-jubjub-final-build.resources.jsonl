@@ -1,0 +1,3 @@
+{"time_ns": 1789374017696708000, "swap_bytes": 0, "available_bytes": 17188913152, "disk_free_bytes": 29054025728, "supervisor_pid": 77059, "child_pid": 77063, "tree_rss_bytes": 29245440, "competing_heavy_pids": []}
+{"time_ns": 1789374018740952000, "swap_bytes": 0, "available_bytes": 17074880512, "disk_free_bytes": 29054029824, "supervisor_pid": 77059, "child_pid": 77063, "tree_rss_bytes": 311525376, "competing_heavy_pids": []}
+{"time_ns": 1789374019785582000, "swap_bytes": 0, "available_bytes": 17029562368, "disk_free_bytes": 29053128704, "supervisor_pid": 77059, "child_pid": 77063, "tree_rss_bytes": 267403264, "competing_heavy_pids": []}

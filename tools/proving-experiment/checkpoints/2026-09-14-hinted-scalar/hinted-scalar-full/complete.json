@@ -1,0 +1,12 @@
+{
+  "schema": "shieldd.hinted_scalar_screen.complete.v1",
+  "files": {
+    "control.json": "df6539a59dfd986401895e0f0bed614da24bf556bf325ad22f3a9a1db3ad627d",
+    "full": "9a54b6158389ad3f25e267a42d7d01a80b43c53d57b0c45f317d567693eebd9d",
+    "gadget": "78863e447f6f1b98718ad7ce8ac37ec89aae65f3a883b7b523bfa973df68de52",
+    "gadget.json": "e494b5c8fc0a018dd33d4647c9e5feaa681275c923e190e4862932f3516c91e1",
+    "hinted.json": "8b2f9542d39466c28128496aede4fc3152cf8d8655166ed23d4f94873067a8a5",
+    "identity.json": "bafab79f50fc1c32f8c7a632600d037df21280332e5323c96399cb5b816bd5e4",
+    "source.tar.gz": "9d187bd21d2c070c472f733c98ea387e517bae91068c06f5d8a59f1072bfa976"
+  }
+}
