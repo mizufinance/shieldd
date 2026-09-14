@@ -1,0 +1,20 @@
+{
+  "schema": "shieldd.native_batch_comparison.v1",
+  "C_checked_seconds": 302.935331334,
+  "C_proofs_per_second_per_worker": 13.521037582387422,
+  "C_amortized_ms": 73.95882112646484,
+  "historic_Pari377_checked_seconds": 0.8427765,
+  "C_over_historic_Pari377": 359.44919125533283,
+  "historic_SnarkPack_checked_aggregation_seconds": 24.2721638125,
+  "historic_SnarkPack_checked_verifier_seconds": 0.076749521,
+  "committee_three": {
+    "A_G_plus_3Vs": 24.5024123755,
+    "C_3Vc": 908.805994002,
+    "C_over_A": 37.09047011675946
+  },
+  "committee_four": {
+    "A_G_plus_4Vs": 24.5791618965,
+    "C_4Vc": 1211.741325336,
+    "C_over_A": 49.29953797605069
+  }
+}

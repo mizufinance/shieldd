@@ -1,0 +1,58 @@
+[
+  {
+    "path": "tools/proving-experiment/cache/phone-controlled-v2/C/gate/gate-transfer-00.proof",
+    "sha256": "f749fe21b502e3efab14d14af424b05d99be6e4b63c74bf645a05ad306541f3d"
+  },
+  {
+    "path": "tools/proving-experiment/cache/phone-controlled-v2/C/gate/gate-transfer_unregulated-01.proof",
+    "sha256": "615c38425ef39a9fa29d344f927504bee386be359a34a1e95841d735c81bcc58"
+  },
+  {
+    "path": "tools/proving-experiment/cache/phone-controlled-v2/C/gate/gate-transfer_flagged-02.proof",
+    "sha256": "e1648b40d474a1c26be85f0f0fcc150c4e62df2e11cb1f637b7e04f37e834caa"
+  },
+  {
+    "path": "tools/proving-experiment/cache/phone-controlled-v2/C/gate/gate-transfer_accumulating-03.proof",
+    "sha256": "8db8448245c5c77452197fbe04c2eb4e32cc3a30d278d94a96d462e4f811ceb7"
+  },
+  {
+    "path": "tools/proving-experiment/cache/phone-controlled-v2/C/gate/gate-transfer_over_limit_disclosure-04.proof",
+    "sha256": "066917a8f0a45deb46c3a303354da1c7d3192a6680173c4b229b1f35ba0b8e02"
+  },
+  {
+    "path": "tools/proving-experiment/cache/phone-controlled-v2/C/gate/gate-transfer_accumulator_continuation-05.proof",
+    "sha256": "baa3359480432cd86780e0066b60402b895080b9d44821f9e56946d687948f84"
+  },
+  {
+    "path": "tools/proving-experiment/cache/phone-controlled-v2/C/measure/first-transfer-00.proof",
+    "sha256": "b7795cc3d205a60a77b190b10106335f2370ada1875b6a63759b5e34c1ef38c2"
+  },
+  {
+    "path": "tools/proving-experiment/cache/phone-controlled-v2/C/measure/warmup-transfer-00.proof",
+    "sha256": "1eeaf94fd82dec6fc2b3c422a151ba6db39abbebfaa2396fb5bc86ae2d5f6e65"
+  },
+  {
+    "path": "tools/proving-experiment/cache/phone-controlled-v2/C/measure/warmup-transfer-01.proof",
+    "sha256": "c096cd79d928739fef60f350d5031a6d4fd8ec92ad958d16caab3927130f0afa"
+  },
+  {
+    "path": "tools/proving-experiment/cache/phone-controlled-v2/C/measure/warm-transfer-00.proof",
+    "sha256": "241557f1dd7d07b44df557367501f22c3e07b4bf793d905b5b098a8456d4b973"
+  },
+  {
+    "path": "tools/proving-experiment/cache/phone-controlled-v2/C/measure/warm-transfer-01.proof",
+    "sha256": "d01ae38705965c9de82705bdc2380c24cf199c7f7739ccfd97c0063f5838476a"
+  },
+  {
+    "path": "tools/proving-experiment/cache/phone-controlled-v2/C/measure/warm-transfer-02.proof",
+    "sha256": "370ae470427c7edc418446a229f3ae88926e2d0b9093406083c8a5e661055497"
+  },
+  {
+    "path": "tools/proving-experiment/cache/phone-controlled-v2/C/measure/warm-transfer-03.proof",
+    "sha256": "b913d66f39db52b3243be02dbdd56ac200621e9d8ed1fb2b2f9c0af8b262b004"
+  },
+  {
+    "path": "tools/proving-experiment/cache/phone-controlled-v2/C/measure/warm-transfer-04.proof",
+    "sha256": "ddb88ec735725654cce4bc1137136b24e4f688af0373264da8768a50f74128cb"
+  }
+]

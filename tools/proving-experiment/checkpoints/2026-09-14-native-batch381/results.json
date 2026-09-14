@@ -1,0 +1,48 @@
+{
+  "schema": "shieldd.native_batch_screen381.v1",
+  "verifier_key_sha256": "ae426ec83c319aa82ea35499534f022f554726e15b5ae5ae2bedd18a67771049",
+  "corpus_sha256": "b2717f8ef54f48337040761ee79860bff7e3bbb0e1c93fd1fceeb67bbf7a0f13",
+  "key_initialization_ns": 32545000,
+  "unique_proofs": 14,
+  "unique_statements": 6,
+  "unique_scenarios": 6,
+  "batch_count": 4096,
+  "encoded_package_bytes": 892928,
+  "external_statement_bytes": 131072,
+  "checks": [
+    {
+      "case": "all_unique_proofs_individually_verified",
+      "passed": true
+    },
+    {
+      "case": "one_truncated_package_in_4096",
+      "passed": true
+    },
+    {
+      "case": "one_noncanonical_trailing_package_in_4096",
+      "passed": true
+    },
+    {
+      "case": "one_altered_external_statement_in_4096",
+      "passed": true
+    },
+    {
+      "case": "one_canonical_but_invalid_proof_in_two",
+      "passed": true
+    }
+  ],
+  "samples": [
+    {
+      "stage": "single_observation",
+      "index": 0,
+      "real_count": 4096,
+      "preparation_ns": 385840000,
+      "verify_ns": 302549491250,
+      "checked_ns": 302935331334,
+      "accepted": true
+    }
+  ],
+  "strategy": "Sequential; RAYON_NUM_THREADS=1",
+  "randomness": "Upstream verifier-owned unpredictable 128-bit coefficients from rand::rng(), freshly sampled per batch invocation",
+  "limits": "One bounded observation, no completed full-size warmup or percentile estimate. Preliminary verifier-only desktop screen: 14 real cached proof packages cyclically repeated to 4096, no deduplication. All entries are decoded and checked each invocation. Repeated input/cache/locality/MSM bias remains; not an independent 4096-proof corpus, executable block, payment TPS or phone result. File I/O and key initialization excluded from batch request, hex decoding/canonical/subgroup checks, transcript construction/preflight/randomness and crypto included."
+}

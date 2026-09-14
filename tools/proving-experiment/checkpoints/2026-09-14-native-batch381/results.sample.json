@@ -1,0 +1,9 @@
+{
+  "stage": "single_observation",
+  "index": 0,
+  "real_count": 4096,
+  "preparation_ns": 385840000,
+  "verify_ns": 302549491250,
+  "checked_ns": 302935331334,
+  "accepted": true
+}

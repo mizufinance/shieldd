@@ -1,0 +1,10 @@
+{
+  "time_ns": 1789403320020098000,
+  "argv": [
+    "python3",
+    "-c",
+    "import subprocess; subprocess.run([\"tools/proving-experiment/native/target/release/examples/batch_screen\", \"tools/proving-experiment/cache/c-comparator34-full-gate/keys/native.vk\", \"tools/proving-experiment/cache/native-batch381-screen/corpus.json\", \"tools/proving-experiment/cache/native-batch381-screen/results.json\"], check=True, timeout=540)"
+  ],
+  "code": 0,
+  "failure": null
+}

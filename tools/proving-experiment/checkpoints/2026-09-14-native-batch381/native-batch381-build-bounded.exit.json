@@ -1,0 +1,20 @@
+{
+  "time_ns": 1789403002125373000,
+  "argv": [
+    "cargo",
+    "+1.95.0",
+    "build",
+    "--release",
+    "--locked",
+    "--manifest-path",
+    "tools/proving-experiment/candidates/native-prepared-key381/Cargo.toml",
+    "--target-dir",
+    "tools/proving-experiment/native/target",
+    "--example",
+    "batch_screen",
+    "-j",
+    "2"
+  ],
+  "code": 0,
+  "failure": null
+}

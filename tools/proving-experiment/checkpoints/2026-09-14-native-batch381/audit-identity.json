@@ -1,0 +1,41 @@
+{
+  "schema": "shieldd.native_integration_audit.v1",
+  "upstream_revision": "1a56762927a8ad3300e0594886c28c59d9801769",
+  "files": [
+    {
+      "path": "cryptography/src/zk/pari/circuit.rs",
+      "upstream_sha256": "3d47ced8a7e5b8d275e176b757b7961a61f4f670da3c3acc6af80dd3da569304",
+      "local_sha256": "e771a4d102305361e94531babfd7ad1719c1d956d5c81b6f4e1274898f1a9da7"
+    },
+    {
+      "path": "cryptography/src/zk/pari/verifier.rs",
+      "upstream_sha256": "25558811ab3f19525f12138ee73e7d0df2227aa562e09650eb4ec963922c36a9",
+      "local_sha256": "0b1eca4db2c05c30400b19e162a8154ebebc35d6aa13c79cc74e81c81dbe2da5"
+    },
+    {
+      "path": "cryptography/src/zk/pari/setup.rs",
+      "upstream_sha256": "158d881524599ddccc427e902a0df56b6bc524f71d61767e50c1af173c0495a6",
+      "local_sha256": "4c35aca11841c015232cce5541943437d82872e525382b06866f0b07aa62a082"
+    },
+    {
+      "path": "cryptography/src/zk/pari/types.rs",
+      "upstream_sha256": "6658902ff561ed0b17c1cea79a37977ad3b4e67bbe82ae466efa55543eca9182",
+      "local_sha256": "4e4a87ce1d85ab85ab2c13df7c52886c7288a912d80769170e1148df5581db76"
+    },
+    {
+      "path": "privacy/src/zkpari/range.rs",
+      "upstream_sha256": "6c762e4a8668bc5c5a4df73afdd5a3a402b304f1288871b274647e1fc51a2c7b",
+      "local_sha256": "6c762e4a8668bc5c5a4df73afdd5a3a402b304f1288871b274647e1fc51a2c7b"
+    },
+    {
+      "path": "privacy/src/zkpari/payments.rs",
+      "upstream_sha256": "94a5befed7c49f9380f4daf04f7a59e880056fd30795d36a3d10899efeccf9dc",
+      "local_sha256": "94a5befed7c49f9380f4daf04f7a59e880056fd30795d36a3d10899efeccf9dc"
+    },
+    {
+      "path": "privacy/examples/payments_bench.rs",
+      "upstream_sha256": "c13e774b646397a8b2475466fce49c88f9fa290f317b94069285de07dd2ab3d8",
+      "local_sha256": "c13e774b646397a8b2475466fce49c88f9fa290f317b94069285de07dd2ab3d8"
+    }
+  ]
+}

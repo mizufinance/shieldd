@@ -1,0 +1,34 @@
+warning: commonware-macros-impl@2026.7.0: stability cfg not set; set RUSTFLAGS="--cfg commonware_stability_X" (ALPHA/BETA/GAMMA/DELTA/EPSILON) to enforce stability gating
+warning: unused import: `commonware_math::algebra::Additive`
+  --> src/balance.rs:13:5
+   |
+13 | use commonware_math::algebra::Additive;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `Ring`
+  --> src/encryption.rs:12:42
+   |
+12 | use commonware_math::algebra::{Additive, Ring};
+   |                                          ^^^^
+
+warning: unused import: `Ring`
+  --> src/recovery.rs:12:42
+   |
+12 | use commonware_math::algebra::{Additive, Ring};
+   |                                          ^^^^
+
+warning: `shieldd-native-prepared-key381-experiment` (lib) generated 3 warnings (run `cargo fix --lib -p shieldd-native-prepared-key381-experiment` to apply 3 suggestions)
+   Compiling shieldd-native-prepared-key381-experiment v0.1.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/native-prepared-key381)
+error[E0502]: cannot borrow `bad` as immutable because it is also borrowed as mutable
+  --> examples/batch_screen.rs:61:56
+   |
+61 |     let mut bad=batch.clone();bad[2048].proof.truncate(bad[2048].proof.len()-2);
+   |                               ---             -------- ^^^ immutable borrow occurs here
+   |                               |               |
+   |                               |               mutable borrow later used by call
+   |                               mutable borrow occurs here
+
+For more information about this error, try `rustc --explain E0502`.
+error: could not compile `shieldd-native-prepared-key381-experiment` (example "batch_screen") due to 1 previous error
