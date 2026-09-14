@@ -1,0 +1,13 @@
+{
+  "time_ns": 1789371787728295000,
+  "argv": [
+    "tools/proving-experiment/cache/b-owned-source/worker",
+    "owned-equivalence",
+    "tools/proving-experiment/cache/selected-dh-compile",
+    "tools/proving-experiment/cache/b-prepared-key.pk",
+    "tools/proving-experiment/cache/b-owned-private-child",
+    "tools/proving-experiment/cache/b-owned-equivalence"
+  ],
+  "code": 0,
+  "failure": null
+}

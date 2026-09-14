@@ -1,0 +1,11 @@
+{
+  "time_ns": 1789372222650177000,
+  "argv": [
+    "python3",
+    "tools/proving-experiment/owned_desktop.py",
+    "measure",
+    "tools/proving-experiment/cache/b-owned-desktop"
+  ],
+  "code": 0,
+  "failure": null
+}

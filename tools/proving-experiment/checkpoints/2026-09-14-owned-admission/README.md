@@ -1,0 +1,7 @@
+# Owned Pari377 arithmetic admission
+
+Retained isolated desktop candidate with complete Rust key/subgroup validation, exact matrix association, private typed child bootstrap and streamed query ownership. The existing general Go loader is unchanged. Runtime uses `cache/b-owned-source/worker`, the unchanged `cache/b-prepared-key.pk`, and `cache/b-owned-private-child`; no resident-base files or manifest are needed by this candidate.
+
+All18 Rust tests, six private Go tests, three general-loader tests and the explicitly run actual-child integration pass. Six real seeded proofs and all mask/combined MSM outputs match the frozen protocol. Six full API positive/negative gates and22 unique benchmark proofs pass;18 paired-session proofs cross-verify under the control. First medians40.877331→24.917131s, warm2.204110→2.236299s (1.46% slower), warmRSS2.473→2.312GiB. Guardexit0/swap0/no competition.
+
+This checkpoint retains source/lock/key/binary identities, source archive, typed gate/equality/timing records, proof hashes and resource logs. Generated binaries, keys and proof bytes remain in the ignored cache. The source archive includes the frozen prepared-key protocol used as the exact proof oracle; its other dependencies are bound through prior checkpoints. See [the report](../../../../docs/research/pari-owned-admission.md) and [the boundary design](../../../../docs/research/pari-owned-admission-design.md). The broader campaign remains active; this is neither a phone backend nor production certification.

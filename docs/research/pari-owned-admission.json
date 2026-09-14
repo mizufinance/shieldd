@@ -1,0 +1,147 @@
+{
+  "schema": "shieldd.owned_desktop.v1",
+  "mode": "measure",
+  "rows": [
+    {
+      "candidate": "candidate",
+      "warm_values_s": [
+        2.241789667,
+        2.227030208,
+        2.23629925,
+        2.23864525,
+        2.219655542
+      ],
+      "median_s": 2.23629925,
+      "first_values_s": [
+        24.218132,
+        24.934972375,
+        24.9171305
+      ],
+      "first_s": 24.9171305,
+      "peak_rss_bytes": 2482667520,
+      "proof_bytes": 168
+    },
+    {
+      "candidate": "control",
+      "warm_values_s": [
+        2.199279417,
+        2.220694375,
+        2.204109792,
+        2.206103,
+        2.19899525
+      ],
+      "median_s": 2.204109792,
+      "first_values_s": [
+        40.734269708,
+        40.989158583,
+        40.877331417
+      ],
+      "first_s": 40.877331417,
+      "peak_rss_bytes": 2654961664,
+      "proof_bytes": 168
+    }
+  ],
+  "proofs": 22,
+  "all_verified": true,
+  "first_median_reduction_percent": 39.04413611100479,
+  "warm_median_increase_percent": 1.4604289730409281,
+  "warm_rss_reduction_percent": 6.489515322809569,
+  "first_peak_rss_bytes": {
+    "candidate": 2220212224,
+    "control": 2443608064
+  },
+  "startup_components": {
+    "candidate": [
+      {
+        "prover": {
+          "go_compile_ns": 1947254625,
+          "relation_preparation_ns": 2256967375,
+          "key_file_read_ns": 8956125,
+          "key_checked_decode_ns": 16642011917,
+          "key_association_ns": 639773167,
+          "total_ns": 21498746666
+        },
+        "arithmetic_preparation_ns": 534929750,
+        "go_initialization_ns": 275269917,
+        "resident_base_bytes": 108633216,
+        "total_ns": 22033677708
+      },
+      {
+        "prover": {
+          "go_compile_ns": 2025362708,
+          "relation_preparation_ns": 2368885542,
+          "key_file_read_ns": 9151416,
+          "key_checked_decode_ns": 17168870792,
+          "key_association_ns": 623616833,
+          "total_ns": 22199115833
+        },
+        "arithmetic_preparation_ns": 526759541,
+        "go_initialization_ns": 280363875,
+        "resident_base_bytes": 108633216,
+        "total_ns": 22725876625
+      },
+      {
+        "prover": {
+          "go_compile_ns": 2031001875,
+          "relation_preparation_ns": 2379304042,
+          "key_file_read_ns": 9261041,
+          "key_checked_decode_ns": 17125385792,
+          "key_association_ns": 626587791,
+          "total_ns": 22175281750
+        },
+        "arithmetic_preparation_ns": 517696667,
+        "go_initialization_ns": 277607750,
+        "resident_base_bytes": 108633216,
+        "total_ns": 22692979292
+      }
+    ],
+    "control": [
+      {
+        "prover": {
+          "go_compile_ns": 1983303416,
+          "relation_preparation_ns": 2355054708,
+          "key_file_read_ns": 26260916,
+          "key_checked_decode_ns": 16750947208,
+          "key_association_ns": 639088833,
+          "total_ns": 21760961583
+        },
+        "arithmetic_preparation_ns": 16738212958,
+        "go_initialization_ns": 16111634833,
+        "resident_base_bytes": 108633216,
+        "total_ns": 38499175333
+      },
+      {
+        "prover": {
+          "go_compile_ns": 2043701625,
+          "relation_preparation_ns": 2356542541,
+          "key_file_read_ns": 25912458,
+          "key_checked_decode_ns": 17017657458,
+          "key_association_ns": 615512542,
+          "total_ns": 22065928000
+        },
+        "arithmetic_preparation_ns": 16724121459,
+        "go_initialization_ns": 16114229375,
+        "resident_base_bytes": 108633216,
+        "total_ns": 38790050250
+      },
+      {
+        "prover": {
+          "go_compile_ns": 2020679000,
+          "relation_preparation_ns": 2340877917,
+          "key_file_read_ns": 8983792,
+          "key_checked_decode_ns": 16962452542,
+          "key_association_ns": 627376708,
+          "total_ns": 21964304375
+        },
+        "arithmetic_preparation_ns": 16722551583,
+        "go_initialization_ns": 16120882875,
+        "resident_base_bytes": 108633216,
+        "total_ns": 38686857000
+      }
+    ]
+  },
+  "encoded_key_bytes": 108633744,
+  "control_base_file_bytes": 109764812,
+  "control_manifest_bytes": 1933,
+  "guard_peak_tree_rss_bytes": 5629394944
+}

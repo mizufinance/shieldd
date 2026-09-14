@@ -1,0 +1,16 @@
+{
+  "time_ns": 1789371503025849000,
+  "argv": [
+    "go",
+    "-C",
+    "tools/proving-experiment/candidates/owned-admission377/go",
+    "build",
+    "-p",
+    "2",
+    "-o",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/b-owned-private-child",
+    "."
+  ],
+  "code": 0,
+  "failure": null
+}

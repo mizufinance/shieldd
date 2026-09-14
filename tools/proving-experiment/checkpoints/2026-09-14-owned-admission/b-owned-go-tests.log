@@ -1,0 +1,14 @@
+=== RUN   TestOwnedBootstrapAndCombinedMSM
+--- PASS: TestOwnedBootstrapAndCombinedMSM (0.00s)
+=== RUN   TestBootstrapRejectsMetadataOrderLengthsAndTruncation
+--- PASS: TestBootstrapRejectsMetadataOrderLengthsAndTruncation (0.00s)
+=== RUN   TestBootstrapPointCanonicalityAndOrderedDigest
+--- PASS: TestBootstrapPointCanonicalityAndOrderedDigest (0.00s)
+=== RUN   TestBoundedFrames
+--- PASS: TestBoundedFrames (0.00s)
+=== RUN   TestPrivateChildHasNoCallerFileMode
+--- PASS: TestPrivateChildHasNoCallerFileMode (0.00s)
+=== RUN   TestFinishAndFrameBindingsReject
+--- PASS: TestFinishAndFrameBindingsReject (0.00s)
+PASS
+ok  	github.com/mizufinance/shieldd/experiments/owned-admission377	0.148s

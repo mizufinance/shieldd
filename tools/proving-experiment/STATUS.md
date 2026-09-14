@@ -56,13 +56,21 @@ Matched diagnostic: three first proofs per variant, plus three warmups and five 
 
 Retain the prepared storage option for development: binary `cache/b-prepared-key-source/worker`, key `cache/b-prepared-key.pk`, manifest `cache/b-prepared-key-bases`, original shared base files and Go solver/arithmetic. The final selected A/B/C round remains immutable; no new matrix is inferred or pooled.
 
+## Completed owned arithmetic admission
+
+The [owned-admission report](../../docs/research/pari-owned-admission.md) retains complete Rust key/subgroup and matrix association checks, then privately streams immutable validated query points into its own child. A separate bootstrap pipe must end at EOF before a nonce/key/domain/query-bound receipt allows proving; commands use an inherited Unix socket. Partial transfer and failed commands cannot be reused. Rust frees query vectors and still fully checks returned MSM points. The general Go file loader is unchanged.
+
+All18Rust tests, six private Go tests, three general-loader tests and the explicitly run actual-child failure integration pass. Six real seeded proof bytes plus mask/WQ/AR MSM outputs exactly match the frozen protocol. Six full API gates and22fresh benchmark proofs pass;18paired-session proofs cross-verify. First medians40.877331→24.917131s (39.04% lower), warm2.204110→2.236299s (1.46% slower), warmRSS2.473→2.312GiB (6.49% lower). Required encoded key stays108,633,744B and package168B; candidate needs no109,764,812B resident-base files or their manifest. Guardexit0/swap0/no competition. Retain the desktop startup/storage tradeoff; keep the measured warm regression visible.
+
+Exact run `cache/b-owned-desktop`; evidence `checkpoints/2026-09-14-owned-admission`. Selected owned runtime: `cache/b-owned-source/worker`, existing `cache/b-prepared-key.pk`, private `cache/b-owned-private-child`, same old Go solver/artifacts. Earlier prepared-key and matched A/B/C matrices remain immutable.
+
 ## Next bounded work
 
-B still spends about16s checking the same resident G1 bases again in Go and retains the corresponding Rust query vectors. Any single-owner validation/storage design must preserve a checked admission state: complete canonical/curve/subgroup validation of every point, exact key/source binding, query lengths and trusted IPC completion before accepting requests. Do not replace these with a manifest-only trust shortcut. First establish the boundary and memory benefit, then run adversarial loader/transport and full-API gates before measuring a new candidate. This ownership branch and the remaining circuit/arithmetic branches below are still open; the broader campaign is not concluded.
+Continue the corrected hinted-scalar circuit screen. Read the complete primary technique and cofactor correction, trace Decaf/Jubjub input/output representatives, and bound scalar congruence and zero cases before writing a gadget. Compare a complete corrected gadget and original/lowered Transfer count/solve cost before any new setup. Give A applicable circuit changes. The cofactor correction landing page is verified; the web PDF fetch failed and full-text access remains to resolve. Do not turn that access issue into a performance or correctness conclusion.
 
 ## Explicit remaining campaign states
 
-- Next bounded preparation/ownership pass: B's remaining checked first-use cost and duplicate Rust/Go key/base storage; preserve source/artifact binding, canonicality and full subgroup checks. C lifetime work is complete.
+- Completed preparation/ownership: C lifetime cleanup; B checked compressed/uncompressed loading and private owned-child admission. Further changes require a distinct measured mechanism; do not repeat this grid.
 - Pending circuit branch: corrected hinted scalar multiplication with subgroup/output binding, bounded congruence and zero/Decaf handling, first as a complete gadget and full Transfer count/solve gate. Give A applicable improvements before new keys.
 - Pending source/compile screens: global square/bit reuse and reviewed exact-arity Anemoi/Jive, especially C. No reduced-round hash shortcut or unmeasured claim.
 - Pending arithmetic feasibility: selected-path ARM64 squaring, safe SIMD/WASM MSM, bounded tables or one justified compiler setting. GPU requires a distinct curve-correct feasibility case. No broad profile grid.

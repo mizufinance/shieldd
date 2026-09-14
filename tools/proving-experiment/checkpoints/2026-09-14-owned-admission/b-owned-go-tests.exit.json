@@ -1,0 +1,16 @@
+{
+  "time_ns": 1789371467129509000,
+  "argv": [
+    "go",
+    "-C",
+    "tools/proving-experiment/candidates/owned-admission377/go",
+    "test",
+    "-p",
+    "2",
+    "-count=1",
+    "-v",
+    "./..."
+  ],
+  "code": 0,
+  "failure": null
+}

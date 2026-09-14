@@ -1,0 +1,9 @@
+{
+  "schema": "shieldd.owned_desktop.v1",
+  "hashes": {
+    "identity.json": "188208c3d8f8612dc665a51e69981cc4b8ae295570cec6319d9fb5d29285fdc2",
+    "memory.jsonl": "959280f3dfcc0a6f98be6d9a29896cc9cf3f399e1b793e427476771fcb3fd8ad",
+    "results.json": "02fa4b60793503e6a1c9975407051861279c5184c8e2a3e11504ffd8425a1cd6",
+    "samples.jsonl": "f8bba4b485400e689c23ee37cb376f088c98e845e390068267ee8be5b7ccb877"
+  }
+}

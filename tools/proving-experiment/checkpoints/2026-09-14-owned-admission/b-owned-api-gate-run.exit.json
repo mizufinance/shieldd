@@ -1,0 +1,11 @@
+{
+  "time_ns": 1789371872003913000,
+  "argv": [
+    "python3",
+    "tools/proving-experiment/owned_desktop.py",
+    "gate",
+    "tools/proving-experiment/cache/b-owned-api-gate"
+  ],
+  "code": 0,
+  "failure": null
+}

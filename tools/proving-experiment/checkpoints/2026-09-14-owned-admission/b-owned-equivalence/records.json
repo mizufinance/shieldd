@@ -1,0 +1,50 @@
+[
+  {
+    "exact_mask_and_combined_msms_equal": true,
+    "exact_seeded_proof_equal": true,
+    "proof_bytes": 128,
+    "proof_sha256": "4ea5fd02cf2c62bc4f7da0a04df1fb924fa9c6961ca0341fa50ed5afb774af7b",
+    "scenario": "transfer",
+    "verified": true
+  },
+  {
+    "exact_mask_and_combined_msms_equal": true,
+    "exact_seeded_proof_equal": true,
+    "proof_bytes": 128,
+    "proof_sha256": "a88dbebd82fd34d58465b7189cdf9541056e86f6e359537f5960d3b1d9f04b86",
+    "scenario": "transfer_unregulated",
+    "verified": true
+  },
+  {
+    "exact_mask_and_combined_msms_equal": true,
+    "exact_seeded_proof_equal": true,
+    "proof_bytes": 128,
+    "proof_sha256": "083992f84efa3dc207af8c75b05861e1c2b63c48fb5ed53765f296bfba97ed84",
+    "scenario": "transfer_flagged",
+    "verified": true
+  },
+  {
+    "exact_mask_and_combined_msms_equal": true,
+    "exact_seeded_proof_equal": true,
+    "proof_bytes": 128,
+    "proof_sha256": "5df760edfa3e7cef71fc773aa79f6e726156a346222383a018bc29ef69f2f6c2",
+    "scenario": "transfer_accumulating",
+    "verified": true
+  },
+  {
+    "exact_mask_and_combined_msms_equal": true,
+    "exact_seeded_proof_equal": true,
+    "proof_bytes": 128,
+    "proof_sha256": "715c56d6ac4983f2a2efbc6d84a9e950462dd7c920c8b10d5be93545c45fabfb",
+    "scenario": "transfer_over_limit_disclosure",
+    "verified": true
+  },
+  {
+    "exact_mask_and_combined_msms_equal": true,
+    "exact_seeded_proof_equal": true,
+    "proof_bytes": 128,
+    "proof_sha256": "ca2ba07ea674af9d8b333bba9d8d13d39224aad8669e7c0b4e604d086cc188be",
+    "scenario": "transfer_accumulator_continuation",
+    "verified": true
+  }
+]

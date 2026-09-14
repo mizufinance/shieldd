@@ -1,0 +1,17 @@
+{
+  "time_ns": 1789371598186147000,
+  "argv": [
+    "cargo",
+    "+1.89.0",
+    "test",
+    "--release",
+    "--manifest-path",
+    "tools/proving-experiment/candidates/owned-admission377/Cargo.toml",
+    "--target-dir",
+    "tools/proving-experiment/target",
+    "--",
+    "--test-threads=2"
+  ],
+  "code": 0,
+  "failure": null
+}

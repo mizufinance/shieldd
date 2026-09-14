@@ -1,0 +1,8 @@
+=== RUN   TestCanonicalBridgeAndActualMSM
+--- PASS: TestCanonicalBridgeAndActualMSM (0.00s)
+=== RUN   TestBoundedFrames
+--- PASS: TestBoundedFrames (0.00s)
+=== RUN   TestResidentCombinedViewsShareCheckedBases
+--- PASS: TestResidentCombinedViewsShareCheckedBases (0.00s)
+PASS
+ok  	github.com/mizufinance/shieldd/tools/gnark/cmd/msmworker	0.146s

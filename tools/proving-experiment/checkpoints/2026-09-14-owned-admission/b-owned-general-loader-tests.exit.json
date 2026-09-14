@@ -1,0 +1,16 @@
+{
+  "time_ns": 1789371479066033000,
+  "argv": [
+    "go",
+    "-C",
+    "tools/gnark",
+    "test",
+    "-p",
+    "2",
+    "-count=1",
+    "-v",
+    "./cmd/msmworker"
+  ],
+  "code": 0,
+  "failure": null
+}
