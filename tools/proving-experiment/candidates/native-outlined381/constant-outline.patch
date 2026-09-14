@@ -1,0 +1,165 @@
+--- a/cryptography/src/zk/pari/circuit.rs
++++ b/cryptography/src/zk/pari/circuit.rs
+@@ -8,6 +8,10 @@
+ use commonware_math::algebra::{Additive, Field, FieldNTT, Ring};
+ use std::collections::{BTreeMap, BTreeSet};
+ use thiserror::Error;
++
++#[path = "outline_audit.rs"]
++mod outline_audit;
++pub use outline_audit::OutlineAudit;
+ 
+ const DIGEST_NAMESPACE: &[u8] = b"_COMMONWARE_CRYPTOGRAPHY_SHIELDD_PARI_SUBSET34_RELATION_DIGEST_V1";
+ 
+@@ -166,6 +170,7 @@
+         compiler.compile_assertions()?;
+         compiler.link_inputs()?;
+         let inventory = compiler.inventory.clone();
++        compiler.outline_constant()?;
+         Ok((compiler.finish()?, inventory))
+     }
+ 
+@@ -558,6 +563,7 @@
+         self.compile_nodes::<false>()?;
+         self.compile_assertions()?;
+         self.link_inputs()?;
++        self.outline_constant()?;
+         self.finish()
+     }
+ 
+@@ -753,6 +759,24 @@
+         Ok(column)
+     }
+ 
++    // Run after all folding/fusion/input links; those passes identify constants by column zero.
++    fn outline_constant(&mut self) -> Result<(), Error> {
++        let copy = self.allocate(ValueSource::One)?;
++        for row in &mut self.rows {
++            for side in [&mut row.squared, &mut row.linear] {
++                if let Some(coefficient) = side.terms.remove(&0) {
++                    side.insert(copy, coefficient);
++                }
++            }
++        }
++        self.rows.push(Row {
++            squared: LinearCombination::coordinate(0)
++                .sub(&LinearCombination::coordinate(copy)),
++            linear: LinearCombination::zero(),
++        });
++        Ok(())
++    }
++
+     fn finish(mut self) -> Result<Relation, Error> {
+         let required = self.next_column.max(self.rows.len()).max(1);
+         let size = super::SubsetDomain::capacity_size(required).ok_or(Error::SizeOverflow)?;
+--- a/cryptography/src/zk/pari/mod.rs
++++ b/cryptography/src/zk/pari/mod.rs
+@@ -20,7 +20,7 @@
+ mod verifier;
+ 
+ use crate::bls12381::primitives::group::{Scalar, ScalarReadCfg};
+-pub use circuit::{InputLayout, Relation};
++pub use circuit::{InputLayout, OutlineAudit, Relation};
+ use commonware_codec::{Encode, Read};
+ use commonware_math::{algebra::Additive, ntt};
+ pub use prover::{PreparedPolynomials, prove_with_prepared_msm, ProverTimings, QuotientMethod, masked_quotient, prove, prove_prebound, prove_profiled, prove_with_msm};
+--- /dev/null
++++ b/cryptography/src/zk/pari/outline_audit.rs
+@@ -0,0 +1,97 @@
++//! Development checks for the exact constant-copy transformation.
++use super::*;
++
++/// Checked structural and assignment equivalence for one concrete circuit.
++#[derive(Debug)]
++pub struct OutlineAudit {
++    pub original_digest: [u8; 32],
++    pub outlined_digest: [u8; 32],
++    pub original_rows: usize,
++    pub outlined_rows: usize,
++    pub original_columns: usize,
++    pub outlined_columns: usize,
++    pub domain: usize,
++    pub public_rows: usize,
++}
++
++impl Relation {
++    /// Validate exact row rewriting, assignment extension/projection, and copy binding.
++    pub fn audit_constant_outline(
++        &self,
++        valued: &ValuedCircuit<Scalar>,
++        layout: &InputLayout,
++    ) -> Result<OutlineAudit, super::super::Error> {
++        let require = |condition: bool| -> Result<(), Error> {
++            if condition { Ok(()) } else { Err(Error::RelationMismatch) }
++        };
++        let mut compiler = Compiler::new(&valued.circuit, layout)?;
++        compiler.compile_nodes::<false>()?;
++        compiler.compile_assertions()?;
++        compiler.link_inputs()?;
++        let original = compiler.finish()?;
++        let copy = original.variable_count();
++        require(self.variable_count() == copy + 1 && self.rows.len() == original.rows.len() + 1)?;
++        require(self.size >= original.size && self.source_digest == original.source_digest)?;
++        require(self.public_inputs == original.public_inputs
++            && self.committed_start == original.committed_start && self.blocks == original.blocks)?;
++        require(copy >= self.committed_start + self.committed_inputs())?;
++        for (before, after) in original.rows.iter().zip(&self.rows) {
++            let rewrite = |side: &[(u32, Scalar)]| {
++                let mut result = side.iter().map(|(column, value)|
++                    (if *column == 0 { copy as u32 } else { *column }, value.clone())
++                ).collect::<Vec<_>>();
++                result.sort_by_key(|(column, _)| *column);
++                result
++            };
++            require(rewrite(&before.squared) == after.squared && rewrite(&before.linear) == after.linear)?;
++        }
++        let final_row = self.rows.last().ok_or(Error::RelationMismatch)?;
++        require(final_row.squared == vec![(0, Scalar::one()), (copy as u32, -Scalar::one())]
++            && final_row.linear.is_empty())?;
++        // The row rewrite plus this equality proves equivalence for every assignment with copy=1.
++        let before = gather_values(valued, &original)?;
++        let after = gather_values(valued, self)?;
++        require(before.values[0] == Scalar::one() && after.values[copy] == Scalar::one())?;
++        let mut extension = before.clone();
++        extension.values.resize(self.size, Scalar::zero());
++        extension.values[copy] = Scalar::one();
++        extension.relation_digest = self.digest;
++        require(extension.values == after.values)?;
++        let mut projection = after.clone();
++        projection.values[copy] = Scalar::zero();
++        projection.values.truncate(original.size);
++        projection.relation_digest = original.digest;
++        require(projection.values == before.values)?;
++        require(original.is_satisfied(&before) && self.is_satisfied(&after)
++            && self.is_satisfied(&extension) && original.is_satisfied(&projection))?;
++        let mut wrong_copy = after.clone();
++        wrong_copy.values[copy] = Scalar::from(2u64);
++        require(!self.is_satisfied(&wrong_copy))?;
++        // Exercise a changed constrained input in both directions, including unsatisfied vectors.
++        let mut changed_before = before.clone();
++        let mut changed_after = after.clone();
++        let selected = if self.public_inputs > 0 { 1 } else { self.committed_start };
++        changed_before.values[selected] += &Scalar::one();
++        changed_after.values[selected] += &Scalar::one();
++        require(!original.is_satisfied(&changed_before) && !self.is_satisfied(&changed_after))?;
++        let mut touched = BTreeSet::new();
++        for (index, row) in self.rows.iter().enumerate() {
++            for (column, _) in &row.squared {
++                if *column as usize <= self.public_inputs { touched.insert(index); }
++            }
++            require(row.linear.iter().all(|(column, _)| *column as usize > self.public_inputs))?;
++        }
++        require(touched.len() == self.public_inputs + 1)?;
++        for column in self.committed_start..self.committed_start + self.committed_inputs() {
++            let occurrences = self.rows.iter().flat_map(|row| row.squared.iter())
++                .filter(|(c, _)| *c as usize == column).collect::<Vec<_>>();
++            require(occurrences.len() == 1 && occurrences[0].1 == Scalar::one())?;
++            require(self.rows.iter().all(|row| row.linear.iter().all(|(c, _)| *c as usize != column)))?;
++        }
++        require(self.digest != original.digest)?;
++        Ok(OutlineAudit { original_digest: original.digest, outlined_digest: self.digest,
++            original_rows: original.rows.len(), outlined_rows: self.rows.len(),
++            original_columns: copy, outlined_columns: self.variable_count(),
++            domain: self.size, public_rows: touched.len() })
++    }
++}

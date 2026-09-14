@@ -1,0 +1,12 @@
+{
+  "time_ns": 1789404714114081000,
+  "argv": [
+    "tools/proving-experiment/native/target/release/examples/outlined_batch",
+    "tools/proving-experiment/cache/native-outlined-keys/native.vk",
+    "tools/proving-experiment/cache/native-outlined-batch/corpus.json",
+    "tools/proving-experiment/cache/native-outlined-batch/results4096.json",
+    "4096"
+  ],
+  "code": 0,
+  "failure": null
+}

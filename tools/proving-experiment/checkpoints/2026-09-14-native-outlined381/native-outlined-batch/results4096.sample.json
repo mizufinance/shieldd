@@ -1,0 +1,9 @@
+{
+  "stage": "measured",
+  "index": 4,
+  "real_count": 4096,
+  "preparation_ns": 377733584,
+  "verify_ns": 89681792,
+  "checked_ns": 467415459,
+  "accepted": true
+}

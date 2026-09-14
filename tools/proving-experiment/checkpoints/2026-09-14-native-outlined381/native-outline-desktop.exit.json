@@ -1,0 +1,11 @@
+{
+  "time_ns": 1789404806188113000,
+  "argv": [
+    "python3",
+    "tools/proving-experiment/candidates/native-outlined381/desktop.py",
+    "measure",
+    "tools/proving-experiment/cache/native-outlined-desktop"
+  ],
+  "code": 0,
+  "failure": null
+}

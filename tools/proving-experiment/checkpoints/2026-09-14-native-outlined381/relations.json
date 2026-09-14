@@ -1,0 +1,80 @@
+[
+  {
+    "scenario": "transfer",
+    "witness_sha256": "e3a2b0a26fa79f3acc5262df51e637ddd597b982212aac69f570ab707dbd1be8",
+    "original_digest": "722fba7093a6188bba83708f0abe409a39cf34fa4451b95594e82781b68f3783",
+    "outlined_digest": "9bd35f891a0d80a594aceaec90fa659704c41ac38d8e896edf0df0ef9d3651b2",
+    "original_rows": 191516,
+    "outlined_rows": 191517,
+    "original_columns": 191501,
+    "outlined_columns": 191502,
+    "domain": 196608,
+    "public_rows": 2,
+    "exact_rewrite_and_assignment_checks": true
+  },
+  {
+    "scenario": "transfer_unregulated",
+    "witness_sha256": "8cdeb0aeb3d9600543b348bdaf098dc468cee1eef7f3e2c58daaebffac8a14d6",
+    "original_digest": "722fba7093a6188bba83708f0abe409a39cf34fa4451b95594e82781b68f3783",
+    "outlined_digest": "9bd35f891a0d80a594aceaec90fa659704c41ac38d8e896edf0df0ef9d3651b2",
+    "original_rows": 191516,
+    "outlined_rows": 191517,
+    "original_columns": 191501,
+    "outlined_columns": 191502,
+    "domain": 196608,
+    "public_rows": 2,
+    "exact_rewrite_and_assignment_checks": true
+  },
+  {
+    "scenario": "transfer_flagged",
+    "witness_sha256": "717f6aae02a71c9580684ea9e9596d71138438659465b6f1fabbc6e0e0d52db6",
+    "original_digest": "722fba7093a6188bba83708f0abe409a39cf34fa4451b95594e82781b68f3783",
+    "outlined_digest": "9bd35f891a0d80a594aceaec90fa659704c41ac38d8e896edf0df0ef9d3651b2",
+    "original_rows": 191516,
+    "outlined_rows": 191517,
+    "original_columns": 191501,
+    "outlined_columns": 191502,
+    "domain": 196608,
+    "public_rows": 2,
+    "exact_rewrite_and_assignment_checks": true
+  },
+  {
+    "scenario": "transfer_accumulating",
+    "witness_sha256": "a07c8dfc78ffbe794422a52bf59c4f760063cd50d3ab734e160c9801d1f0d2dd",
+    "original_digest": "722fba7093a6188bba83708f0abe409a39cf34fa4451b95594e82781b68f3783",
+    "outlined_digest": "9bd35f891a0d80a594aceaec90fa659704c41ac38d8e896edf0df0ef9d3651b2",
+    "original_rows": 191516,
+    "outlined_rows": 191517,
+    "original_columns": 191501,
+    "outlined_columns": 191502,
+    "domain": 196608,
+    "public_rows": 2,
+    "exact_rewrite_and_assignment_checks": true
+  },
+  {
+    "scenario": "transfer_over_limit_disclosure",
+    "witness_sha256": "552e03d7caff95b1209fbe041236b41d83036871189cb052dccfd805860fb3e3",
+    "original_digest": "722fba7093a6188bba83708f0abe409a39cf34fa4451b95594e82781b68f3783",
+    "outlined_digest": "9bd35f891a0d80a594aceaec90fa659704c41ac38d8e896edf0df0ef9d3651b2",
+    "original_rows": 191516,
+    "outlined_rows": 191517,
+    "original_columns": 191501,
+    "outlined_columns": 191502,
+    "domain": 196608,
+    "public_rows": 2,
+    "exact_rewrite_and_assignment_checks": true
+  },
+  {
+    "scenario": "transfer_accumulator_continuation",
+    "witness_sha256": "a2f21b188678576fba9abcb17e2b9f68208622608e956cfc1a6b455ea5e83c2c",
+    "original_digest": "722fba7093a6188bba83708f0abe409a39cf34fa4451b95594e82781b68f3783",
+    "outlined_digest": "9bd35f891a0d80a594aceaec90fa659704c41ac38d8e896edf0df0ef9d3651b2",
+    "original_rows": 191516,
+    "outlined_rows": 191517,
+    "original_columns": 191501,
+    "outlined_columns": 191502,
+    "domain": 196608,
+    "public_rows": 2,
+    "exact_rewrite_and_assignment_checks": true
+  }
+]

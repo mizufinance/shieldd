@@ -1,0 +1,22 @@
+{
+  "time_ns": 1789404267625811000,
+  "argv": [
+    "cargo",
+    "+1.95.0",
+    "build",
+    "--release",
+    "--offline",
+    "--manifest-path",
+    "tools/proving-experiment/candidates/native-outlined381/Cargo.toml",
+    "--target-dir",
+    "tools/proving-experiment/native/target",
+    "--example",
+    "outline_gate",
+    "--example",
+    "outlined_worker",
+    "-j",
+    "2"
+  ],
+  "code": 0,
+  "failure": null
+}

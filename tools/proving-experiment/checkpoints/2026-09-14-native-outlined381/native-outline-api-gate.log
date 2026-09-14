@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/native-outlined381/desktop.py", line 93, in <module>
+    if __name__=='__main__':main()
+                            ~~~~^^
+  File "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/native-outlined381/desktop.py", line 62, in main
+    worker=stack.enter_context(Process(v,lambda pid,name=v.name:monitor.roots.__setitem__(name,pid)))
+  File "/opt/homebrew/Cellar/python@3.14/3.14.5/Frameworks/Python.framework/Versions/3.14/lib/python3.14/contextlib.py", line 528, in enter_context
+    raise TypeError(f"'{cls.__module__}.{cls.__qualname__}' object does "
+                    f"not support the context manager protocol") from None
+TypeError: '__main__.Process' object does not support the context manager protocol

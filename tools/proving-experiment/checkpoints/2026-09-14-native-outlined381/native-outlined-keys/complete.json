@@ -1,0 +1,11 @@
+{
+  "schema": "shieldd.native_outline_setup.v1",
+  "relation": "9bd35f891a0d80a594aceaec90fa659704c41ac38d8e896edf0df0ef9d3651b2",
+  "setup_ns": 22229478334,
+  "prepared_encode_ns": 1781619583,
+  "checked_decode_ns": 11937301625,
+  "key_sha256": "e488e49f73b95e4ef4290c460c4e2b77c42cda4870f7c2c7c924f99fea4f6f46",
+  "vk_sha256": "46a94bd01626bd5ae8531186f4c0113d96c1366cb14e5ef078e496821a1f0aa7",
+  "key_bytes": 94648733,
+  "vk_bytes": 539
+}

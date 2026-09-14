@@ -1,5 +1,7 @@
 # Native C integration audit
 
+The [completed constant-outlining correction](native-pari381-constant-outlining.md) supersedes this diagnostic for the corrected candidate. This document preserves the investigated artifact and rationale.
+
 **The five-minute batch result is a real measurement of our current integration,
 not evidence that native Pari or BLS12-381 is intrinsically slow.** The experiment
 combined the pinned Commonware draft's generic compiler with Shieldd's large

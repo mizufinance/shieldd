@@ -1,0 +1,11 @@
+{
+  "time_ns": 1789404304230680000,
+  "argv": [
+    "tools/proving-experiment/native/target/release/examples/outline_gate",
+    "relations",
+    "tools/proving-experiment/cache/native-tuned-witnesses",
+    "tools/proving-experiment/cache/native-outlined-relations.json"
+  ],
+  "code": 0,
+  "failure": null
+}

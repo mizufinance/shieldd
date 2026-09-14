@@ -1,0 +1,19 @@
+{
+  "schema": "shieldd.native_outline_comparison.v1",
+  "C_checked_seconds": 0.473144709,
+  "C_proofs_per_second_per_worker": 8656.970947972706,
+  "historic_Pari377_checked_seconds": 0.8427765,
+  "historic_Pari377_over_C": 1.7812235537436816,
+  "historic_G_seconds": 24.2721638125,
+  "historic_Vs_seconds": 0.076749521,
+  "committee_three": {
+    "A_G_plus_3Vs": 24.5024123755,
+    "C_3Vc": 1.419434127,
+    "A_over_C": 17.262098965653514
+  },
+  "committee_four": {
+    "A_G_plus_4Vs": 24.5791618965,
+    "C_4Vc": 1.892578836,
+    "A_over_C": 12.98712710348622
+  }
+}

@@ -1,0 +1,118 @@
+{
+  "schema": "shieldd.native_outline_desktop.v1",
+  "mode": "measure",
+  "gate": [],
+  "fresh_unique_proofs": 18,
+  "rows": [
+    {
+      "candidate": "control",
+      "warm_seconds": [
+        2.139877666,
+        2.141703625,
+        2.165657333,
+        2.14557425,
+        2.18107375
+      ],
+      "median_seconds": 2.14557425,
+      "first_seconds": 15.938545916
+    },
+    {
+      "candidate": "outlined",
+      "warm_seconds": [
+        2.129335417,
+        2.148040125,
+        2.128788458,
+        2.133920375,
+        2.141071125
+      ],
+      "median_seconds": 2.133920375,
+      "first_seconds": 16.174074375
+    }
+  ],
+  "files": [
+    {
+      "path": "memory.jsonl",
+      "sha256": "8543f55f1d9a58da78c9d4f77f02c82e4bdf062d196edfd4a808b7aa1cbd2dd2"
+    },
+    {
+      "path": "identity.json",
+      "sha256": "5bed75ad0faaa693067e3b584fe90d76cb56a3f62f9de9f15ea620663cbd447a"
+    },
+    {
+      "path": "samples.jsonl",
+      "sha256": "d974a146f0af9029a706e2655d453a50b602a9bc5c2087bd3d53c3430a023307"
+    },
+    {
+      "path": "proofs/warm-outlined-4.bin",
+      "sha256": "8bb75a6717bd3ab307cef1ba135691d6038e690d424e36e390eede7d3ac52abc"
+    },
+    {
+      "path": "proofs/warm-outlined-0.bin",
+      "sha256": "aec4d153649130cfcd9d60263090f9af39eb54edd2e3c1bd4e14caa3e4109193"
+    },
+    {
+      "path": "proofs/warm-outlined-1.bin",
+      "sha256": "c76899a9c34a63f35d5694fa597cdabb9baa68faea2a033d9ccf2e02e4a493af"
+    },
+    {
+      "path": "proofs/warm-outlined-3.bin",
+      "sha256": "797f305ab8227c4a2c1856540ee4512606ef8405f57b96c70110d033745b9c80"
+    },
+    {
+      "path": "proofs/first-outlined.bin",
+      "sha256": "01320d1c9454bd895b87b30b16a43b83f47892f8b4ef78f7178ef6bd8775894b"
+    },
+    {
+      "path": "proofs/warm-outlined-2.bin",
+      "sha256": "dbc9b2c3f0f5e96c131103b385aa6ee2f5e716ea47fca3ebceb0350cfc460bc9"
+    },
+    {
+      "path": "proofs/first-control.bin",
+      "sha256": "77c26a0846ada76d07d1cff977319f787280432a295a3a5207b22de50f022e5d"
+    },
+    {
+      "path": "proofs/warm-control-3.bin",
+      "sha256": "e67d2318f78fe99cc0979170f8cb421a9cc8d3e4071c96f8d5185f885080758a"
+    },
+    {
+      "path": "proofs/warmup-control-2.bin",
+      "sha256": "54db63dd0d818e76542a671fc78dbfa7a3299a955dd70b9f62d773d662586f1d"
+    },
+    {
+      "path": "proofs/warmup-outlined-2.bin",
+      "sha256": "d8ca22ce815edc0cd0274396ea95b509eed74609bb27782b45e1fc046d3c9320"
+    },
+    {
+      "path": "proofs/warm-control-2.bin",
+      "sha256": "ef90b8cac7788ca6d2c3b9c664efc995d50bb7f90b2cd718376789f16632890d"
+    },
+    {
+      "path": "proofs/warm-control-0.bin",
+      "sha256": "10cc9c1403d6be539e8e06ded34285353f8c68110a18d1aa3517334089e2de71"
+    },
+    {
+      "path": "proofs/warmup-outlined-0.bin",
+      "sha256": "d4c4ea9b43ea38d5fd4fb5828304a5ce857aeb331ff8cd2a2bec5cfdf77dd372"
+    },
+    {
+      "path": "proofs/warmup-control-0.bin",
+      "sha256": "1fcc2635dcebcd5f2e54ca1ab4b8fe28b8f7e6f3859dbe61e4e6e66fd1ec9e3d"
+    },
+    {
+      "path": "proofs/warmup-control-1.bin",
+      "sha256": "1bba3ca8fd81d757cf072c8ab5cf17bc7d73d7f6f3f5c86c8abe4bc26d3bd959"
+    },
+    {
+      "path": "proofs/warmup-outlined-1.bin",
+      "sha256": "8351696016904bd683ded262fc2ba0cd90a5e7746a1e0b40bc3f5fc2dc742b0e"
+    },
+    {
+      "path": "proofs/warm-control-1.bin",
+      "sha256": "80cdb9fdc0c21da14ab9ac11a8c54ce62f4f8a6dbf56426c1696072333b07c36"
+    },
+    {
+      "path": "proofs/warm-control-4.bin",
+      "sha256": "56029b9136b840678b3962e2c2f945d5d917cdf4dc77e25d5e7230032061faa7"
+    }
+  ]
+}

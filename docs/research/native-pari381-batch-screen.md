@@ -1,5 +1,7 @@
 # Native Pari381 checked batch verifier screen
 
+The [completed constant-outlining correction](native-pari381-constant-outlining.md) supersedes this diagnostic for the corrected candidate. This document preserves the investigated artifact and rationale.
+
 **This diagnoses our current C integration, not native Pari or BLS12-381 in
 general.** The earlier Pari377 estimate cannot be reused for this artifact. One accepted 4,096-entry batch took **302.935 seconds** on one desktop
 worker, or **13.52 proofs/second**. This is a preliminary repeated-proof screen,

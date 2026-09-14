@@ -1,0 +1,130 @@
+{
+  "schema": "shieldd.native_outline_desktop.v1",
+  "mode": "gate",
+  "gate": [
+    {
+      "scenario": "transfer",
+      "witness_sha256": "e3a2b0a26fa79f3acc5262df51e637ddd597b982212aac69f570ab707dbd1be8",
+      "statement": "2c3bb0b999afe36570c12184d153b24481d09788e538942763a09feb98fee345",
+      "proof_sha256": "eb3540ea597f99a2814f4679d96feed15d25713bc0e8cf3bd802cf12862cce5d",
+      "verified": true,
+      "rejected": [
+        "wrong_statement",
+        "truncated",
+        "trailing",
+        "wrong_domain",
+        "altered_proof"
+      ]
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "witness_sha256": "8cdeb0aeb3d9600543b348bdaf098dc468cee1eef7f3e2c58daaebffac8a14d6",
+      "statement": "38097dabdcaae1f0722cd836cfae6c3dfd2bd38241d8c47db3cd388fe53af236",
+      "proof_sha256": "2b3d769a098eed8e3050a23123ea4bda90c0991bb51e970bb93cf2ef4d246ae9",
+      "verified": true,
+      "rejected": [
+        "wrong_statement",
+        "truncated",
+        "trailing",
+        "wrong_domain",
+        "altered_proof"
+      ]
+    },
+    {
+      "scenario": "transfer_flagged",
+      "witness_sha256": "717f6aae02a71c9580684ea9e9596d71138438659465b6f1fabbc6e0e0d52db6",
+      "statement": "3c19bb923108ba9ad0b65b46098a4ef9db8aff918bde9b02ab21793d0b3918fd",
+      "proof_sha256": "c522704bf2e27f03bca5f2fd07fce43bc93ae1225d538cd2ae615e96a90d1d71",
+      "verified": true,
+      "rejected": [
+        "wrong_statement",
+        "truncated",
+        "trailing",
+        "wrong_domain",
+        "altered_proof"
+      ]
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "witness_sha256": "a07c8dfc78ffbe794422a52bf59c4f760063cd50d3ab734e160c9801d1f0d2dd",
+      "statement": "65ca3f8d0d7f9136f5b0f4bf46c7dcde07cf89f84633f95acd870df2ef2a13db",
+      "proof_sha256": "1cf50f7de14cca1bc4b736bd97812b6ea5cfc58ed441359d7793ade6f0646fe8",
+      "verified": true,
+      "rejected": [
+        "wrong_statement",
+        "truncated",
+        "trailing",
+        "wrong_domain",
+        "altered_proof"
+      ]
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "witness_sha256": "552e03d7caff95b1209fbe041236b41d83036871189cb052dccfd805860fb3e3",
+      "statement": "3a7350304ce482fb30dc478ebbcf4156e63a3060571f10cbaf6b6f8b57187730",
+      "proof_sha256": "19ba473d50dd935e88d3fdb1e036369f0ba7fb20cc0adc3bd92690f9193f7d78",
+      "verified": true,
+      "rejected": [
+        "wrong_statement",
+        "truncated",
+        "trailing",
+        "wrong_domain",
+        "altered_proof"
+      ]
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "witness_sha256": "a2f21b188678576fba9abcb17e2b9f68208622608e956cfc1a6b455ea5e83c2c",
+      "statement": "5128d5d1a7eb5ca5585c047e80f1f1d572f0b7e4ab41309bc34e586b9eb929af",
+      "proof_sha256": "eb6be9c8589e087dd593f185c136f35ec13133c9bb3881bddd163e14a453a99d",
+      "verified": true,
+      "rejected": [
+        "wrong_statement",
+        "truncated",
+        "trailing",
+        "wrong_domain",
+        "altered_proof"
+      ]
+    }
+  ],
+  "fresh_unique_proofs": 6,
+  "rows": [],
+  "files": [
+    {
+      "path": "memory.jsonl",
+      "sha256": "0d6a8b5c59b18034c9e8de281af64f16d3f67a6945755d8ef50b7a0344b65995"
+    },
+    {
+      "path": "identity.json",
+      "sha256": "5bed75ad0faaa693067e3b584fe90d76cb56a3f62f9de9f15ea620663cbd447a"
+    },
+    {
+      "path": "samples.jsonl",
+      "sha256": "60ab08a9f683ec9a50a6276585fff4fb6dbedfceeab05c39bb27ac855ad7d683"
+    },
+    {
+      "path": "proofs/transfer_accumulating.bin",
+      "sha256": "1cf50f7de14cca1bc4b736bd97812b6ea5cfc58ed441359d7793ade6f0646fe8"
+    },
+    {
+      "path": "proofs/transfer.bin",
+      "sha256": "eb3540ea597f99a2814f4679d96feed15d25713bc0e8cf3bd802cf12862cce5d"
+    },
+    {
+      "path": "proofs/transfer_over_limit_disclosure.bin",
+      "sha256": "19ba473d50dd935e88d3fdb1e036369f0ba7fb20cc0adc3bd92690f9193f7d78"
+    },
+    {
+      "path": "proofs/transfer_accumulator_continuation.bin",
+      "sha256": "eb6be9c8589e087dd593f185c136f35ec13133c9bb3881bddd163e14a453a99d"
+    },
+    {
+      "path": "proofs/transfer_flagged.bin",
+      "sha256": "c522704bf2e27f03bca5f2fd07fce43bc93ae1225d538cd2ae615e96a90d1d71"
+    },
+    {
+      "path": "proofs/transfer_unregulated.bin",
+      "sha256": "2b3d769a098eed8e3050a23123ea4bda90c0991bb51e970bb93cf2ef4d246ae9"
+    }
+  ]
+}

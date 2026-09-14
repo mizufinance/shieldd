@@ -1,0 +1,11 @@
+{
+  "time_ns": 1789404584521275000,
+  "argv": [
+    "python3",
+    "tools/proving-experiment/candidates/native-outlined381/desktop.py",
+    "gate",
+    "tools/proving-experiment/cache/native-outlined-api-gate"
+  ],
+  "code": 1,
+  "failure": null
+}

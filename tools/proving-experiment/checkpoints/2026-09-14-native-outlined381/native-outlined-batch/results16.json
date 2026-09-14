@@ -1,0 +1,93 @@
+{
+  "schema": "shieldd.native_outlined_batch381.v1",
+  "verifier_key_sha256": "46a94bd01626bd5ae8531186f4c0113d96c1366cb14e5ef078e496821a1f0aa7",
+  "corpus_sha256": "e43fbd43b40c5b2405d48a0faa815de5cb98df666ceaa7eddc2fdd0d75ea6446",
+  "key_initialization_ns": 416042,
+  "unique_proofs": 6,
+  "unique_statements": 6,
+  "unique_scenarios": 6,
+  "batch_count": 16,
+  "encoded_package_bytes": 3488,
+  "external_statement_bytes": 512,
+  "checks": [
+    {
+      "case": "all_unique_proofs_individually_verified",
+      "passed": true
+    },
+    {
+      "case": "one_truncated_package_in_batch",
+      "passed": true
+    },
+    {
+      "case": "one_noncanonical_trailing_package_in_batch",
+      "passed": true
+    },
+    {
+      "case": "one_altered_external_statement_in_batch",
+      "passed": true
+    },
+    {
+      "case": "one_canonical_but_invalid_proof_in_batch",
+      "passed": true
+    }
+  ],
+  "samples": [
+    {
+      "stage": "warmup",
+      "index": 0,
+      "real_count": 16,
+      "preparation_ns": 1847042,
+      "verify_ns": 2299208,
+      "checked_ns": 4146334,
+      "accepted": true
+    },
+    {
+      "stage": "measured",
+      "index": 0,
+      "real_count": 16,
+      "preparation_ns": 1827542,
+      "verify_ns": 2225291,
+      "checked_ns": 4052875,
+      "accepted": true
+    },
+    {
+      "stage": "measured",
+      "index": 1,
+      "real_count": 16,
+      "preparation_ns": 1762417,
+      "verify_ns": 2182083,
+      "checked_ns": 3944542,
+      "accepted": true
+    },
+    {
+      "stage": "measured",
+      "index": 2,
+      "real_count": 16,
+      "preparation_ns": 1712333,
+      "verify_ns": 2117500,
+      "checked_ns": 3829833,
+      "accepted": true
+    },
+    {
+      "stage": "measured",
+      "index": 3,
+      "real_count": 16,
+      "preparation_ns": 1722834,
+      "verify_ns": 2020542,
+      "checked_ns": 3743459,
+      "accepted": true
+    },
+    {
+      "stage": "measured",
+      "index": 4,
+      "real_count": 16,
+      "preparation_ns": 1670250,
+      "verify_ns": 2017208,
+      "checked_ns": 3687500,
+      "accepted": true
+    }
+  ],
+  "strategy": "Sequential; RAYON_NUM_THREADS=1",
+  "randomness": "Upstream verifier-owned unpredictable 128-bit coefficients from rand::rng(), freshly sampled per batch invocation",
+  "limits": "One warmup and five measurements; no tail-percentile claim. Preliminary verifier-only desktop screen: six fresh real gated proof packages cyclically repeated to the reported count, no deduplication. All entries are decoded and checked each invocation. Repeated input/cache/locality/MSM bias remains; not an independent 4096-proof corpus, executable block, payment TPS or phone result. File I/O and key initialization excluded from batch request, hex decoding/canonical/subgroup checks, transcript construction/preflight/randomness and crypto included."
+}
