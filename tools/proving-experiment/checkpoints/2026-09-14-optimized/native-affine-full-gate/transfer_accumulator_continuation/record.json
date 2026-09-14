@@ -1,0 +1,18 @@
+{
+  "stage": "scenario",
+  "scenario": "transfer_accumulator_continuation",
+  "source_witness_sha256": "79a9440928f4b83f08e1b30e8630573e393164dd69035f7d11a5a7a4b5c17dae",
+  "reused": false,
+  "original_constraints": true,
+  "converted_constraints": true,
+  "verified": true,
+  "wrong_statement_rejected": true,
+  "wrong_commitment_rejected": true,
+  "wrong_key_rejected": true,
+  "malformed_proofs_rejected": true,
+  "proof_bytes": 128,
+  "claim_bytes": 82,
+  "proof_sha256": "b7135e56bca6d2c48029cf7d7797944ed1ea20a8ceb7970d83a8288579b8943c",
+  "claim_sha256": "ca311004f98aa6eec69cd45fd435e198b81dbb40314cc60cc7b8f1c73808175e",
+  "diagnostic_presolved_prove_ns": 3347003917
+}

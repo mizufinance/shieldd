@@ -1,0 +1,5 @@
+{
+  "status": "invalid_control",
+  "reason": "Same-name local Cargo packages shared target fingerprints; the purported extended binary was identical to affine. No relative speed claim permitted.",
+  "binary_sha256": "7868c0c351f1116c8b6cc51fceca61288e32eb1ca43b737e2bd4d9449e18c76c"
+}

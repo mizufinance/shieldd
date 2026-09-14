@@ -1,0 +1,9 @@
+{
+  "schema": "shieldd.proving_experiment.campaign_gate.v1",
+  "backend": "C",
+  "identity_sha256": "1713b5330a66e4598a9b86e0e6505ce552e30fb069c7fe48646bf7687a8d1a9a",
+  "samples_sha256": "e550bb4fe5e20c8445191ecdb22e82d408009694af1d4341bd9b43add412198f",
+  "proofs": 6,
+  "all_verified": true,
+  "all_negative_cases_rejected": true
+}

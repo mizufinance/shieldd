@@ -1,0 +1,87 @@
+warning: commonware-macros-impl@2026.7.0: stability cfg not set; set RUSTFLAGS="--cfg commonware_stability_X" (ALPHA/BETA/GAMMA/DELTA/EPSILON) to enforce stability gating
+   Compiling commonware-cryptography v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware/cryptography)
+   Compiling shieldd-native-affine-experiment v0.1.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/native-affine)
+warning: unused import: `commonware_math::algebra::Additive`
+  --> src/balance.rs:13:5
+   |
+13 | use commonware_math::algebra::Additive;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `Ring`
+  --> src/encryption.rs:12:42
+   |
+12 | use commonware_math::algebra::{Additive, Ring};
+   |                                          ^^^^
+
+warning: unused import: `Ring`
+  --> src/recovery.rs:12:42
+   |
+12 | use commonware_math::algebra::{Additive, Ring};
+   |                                          ^^^^
+
+warning: `shieldd-native-affine-experiment` (lib) generated 3 warnings (run `cargo fix --lib -p shieldd-native-affine-experiment` to apply 3 suggestions)
+warning: unused import: `Additive`
+ --> examples/polynomial_gate.rs:4:32
+  |
+4 | use commonware_math::algebra::{Additive,Ring};
+  |                                ^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+error[E0599]: no function or associated item named `msm` found for struct `G1` in the current scope
+    --> examples/polynomial_gate.rs:19:231
+     |
+  19 | ..._msm(&payload,&mut rng,&mut|b,s|Ok(G1::msm(b,s,&strategy)))?};let wall_ns=start.elapsed().as_nanos();
+     |                                           ^^^ function or associated item not found in `G1`
+     |
+note: if you're trying to build a new `G1`, consider using `G1::read_maybe_identity` which returns `Result<G1, commonware_codec::error::Error>`
+    --> /Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware/cryptography/src/bls12381/primitives/group.rs:1337:5
+     |
+1337 |     pub fn read_maybe_identity(buf: &mut impl Buf) -> Result<Self, Error> {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     = help: items from traits can only be used if the trait is in scope
+help: trait `Space` which provides `msm` is implemented but not in scope; perhaps you want to import it
+     |
+   2 + use commonware_math::algebra::Space;
+     |
+
+error[E0599]: no function or associated item named `msm` found for struct `G1` in the current scope
+    --> examples/polynomial_gate.rs:26:120
+     |
+  26 | ...(&bad,&mut rand::rng(),&mut|b,s|Ok(G1::msm(b,s,&strategy))).is_err(),"invalid witness accepted");report.invalid_witness_rejecte...
+     |                                           ^^^ function or associated item not found in `G1`
+     |
+note: if you're trying to build a new `G1`, consider using `G1::read_maybe_identity` which returns `Result<G1, commonware_codec::error::Error>`
+    --> /Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware/cryptography/src/bls12381/primitives/group.rs:1337:5
+     |
+1337 |     pub fn read_maybe_identity(buf: &mut impl Buf) -> Result<Self, Error> {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     = help: items from traits can only be used if the trait is in scope
+help: trait `Space` which provides `msm` is implemented but not in scope; perhaps you want to import it
+     |
+   2 + use commonware_math::algebra::Space;
+     |
+
+error[E0599]: no function or associated item named `msm` found for struct `G1` in the current scope
+    --> examples/polynomial_gate.rs:28:220
+     |
+  28 | ...msm(&standard,&mut rng,&mut|b,s|Ok(G1::msm(b,s,&strategy)))?};let wall_ns=start.elapsed().as_nanos();ensure!(prover.verify(&out...
+     |                                           ^^^ function or associated item not found in `G1`
+     |
+note: if you're trying to build a new `G1`, consider using `G1::read_maybe_identity` which returns `Result<G1, commonware_codec::error::Error>`
+    --> /Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/commonware/cryptography/src/bls12381/primitives/group.rs:1337:5
+     |
+1337 |     pub fn read_maybe_identity(buf: &mut impl Buf) -> Result<Self, Error> {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     = help: items from traits can only be used if the trait is in scope
+help: trait `Space` which provides `msm` is implemented but not in scope; perhaps you want to import it
+     |
+   2 + use commonware_math::algebra::Space;
+     |
+
+For more information about this error, try `rustc --explain E0599`.
+warning: `shieldd-native-affine-experiment` (example "polynomial_gate") generated 1 warning
+error: could not compile `shieldd-native-affine-experiment` (example "polynomial_gate") due to 3 previous errors; 1 warning emitted
+warning: build failed, waiting for other jobs to finish...

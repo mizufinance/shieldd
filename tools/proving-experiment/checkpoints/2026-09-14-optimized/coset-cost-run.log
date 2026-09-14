@@ -1,0 +1,6 @@
+transfer: exact polynomial parity, all boundary negatives and samples passed
+transfer_unregulated: exact polynomial parity, all boundary negatives and samples passed
+transfer_flagged: exact polynomial parity, all boundary negatives and samples passed
+transfer_accumulating: exact polynomial parity, all boundary negatives and samples passed
+transfer_over_limit_disclosure: exact polynomial parity, all boundary negatives and samples passed
+transfer_accumulator_continuation: exact polynomial parity, all boundary negatives and samples passed

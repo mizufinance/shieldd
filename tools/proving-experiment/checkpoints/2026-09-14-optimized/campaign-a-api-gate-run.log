@@ -1,0 +1,6 @@
+A/transfer: complete API and negatives passed
+A/transfer_unregulated: complete API and negatives passed
+A/transfer_flagged: complete API and negatives passed
+A/transfer_accumulating: complete API and negatives passed
+A/transfer_over_limit_disclosure: complete API and negatives passed
+A/transfer_accumulator_continuation: complete API and negatives passed

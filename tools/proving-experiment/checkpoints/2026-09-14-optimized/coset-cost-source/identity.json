@@ -1,0 +1,16 @@
+{
+  "tools/proving-experiment/examples/coset_cost.rs": "891e3ff1c5dba1efd9ba4ac6018c7e2b361a0c6518638304582098fae76a7f63",
+  "tools/proving-experiment/src/bridge.rs": "2f44f22c14fb494186ee5b7a61589eacf78bf269309cc044635134d8b93a392e",
+  "tools/proving-experiment/src/lowering.rs": "b619c5c678b6cd7eacef07fb79fca2588a8f86d2fc68ca04aa8670782251a9a9",
+  "tools/proving-experiment/Cargo.lock": "5843e15a1ef2b15c8efd0bbad805b7a9031b754c0951f901dc4ebc6a27c4fd72",
+  "tools/proving-experiment/cache/selected-dh-compile/metadata.json": "5dff87bb6d6b85915b513cd09d7a4278bcda298e68b4e6da0339f01d334b3e85",
+  "tools/proving-experiment/cache/selected-dh-compile/transfer.r1cs": "cc0dc2091c86777dfd21128b974d1a51f959ce0599211d90a022e5c3d9e27bde",
+  "tools/proving-experiment/target/release/examples/coset_cost": "bfda586a11a088b45eb728cda6b6f93b8451f355e286a02cde7bc66589209362",
+  "tools/proving-experiment/cache/coset-cost.json": "56a2e149bdb35bfd9724c153b22d616d7d3ae76d76e9f8ade979cf22353e4bbf",
+  "tools/proving-experiment/cache/selected-dh-compile/transfer.json": "b5c0dada8c224cffe7012e8697dde52b96d0a9ce32a0128cf2a662ea808401b3",
+  "tools/proving-experiment/cache/selected-dh-compile/transfer_unregulated.json": "056f04ba110c6f911a7e3001315f46c29e576eb6b929661bfd15795eddb6f7a9",
+  "tools/proving-experiment/cache/selected-dh-compile/transfer_flagged.json": "497ff1cc8090f5fd83570845d0c6d7764d5f9ec7d21a53e9481ff518fecd4321",
+  "tools/proving-experiment/cache/selected-dh-compile/transfer_accumulating.json": "734131e6389067f5c6811274e1a3ecff850aad062d043d4f9e3dfae6d4f2e41e",
+  "tools/proving-experiment/cache/selected-dh-compile/transfer_over_limit_disclosure.json": "9ab9a3d06ba48f5f64a9f01c0a45ee2d678c936dd0343770f2225adc6c2f4407",
+  "tools/proving-experiment/cache/selected-dh-compile/transfer_accumulator_continuation.json": "a5b983c5bd819ecb35c3da4d18ab629c1854cf3731542183fbee3754f7dd0f7d"
+}

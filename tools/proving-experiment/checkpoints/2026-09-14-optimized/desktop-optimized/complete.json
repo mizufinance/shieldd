@@ -1,0 +1,11 @@
+{
+  "schema": "shieldd.proving_experiment.campaign_desktop.v1",
+  "all_verified": true,
+  "measured_proofs": 18,
+  "warmups": 9,
+  "hashes": {
+    "identity.json": "8e76bded861d9ea88e4ee74cbf0d7bfe90f88c39e5998ea0e15ceb65f0619205",
+    "samples.jsonl": "7b66c9b74ca37c4d5f18cd4faf03ef349ce0043963e041e3fe33dc89b8b9dd1f",
+    "results.json": "73af9584be059d72a9326d76d49d2a8b691f73f72333e792133b390758ead855"
+  }
+}

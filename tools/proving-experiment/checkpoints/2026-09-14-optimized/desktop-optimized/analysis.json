@@ -1,0 +1,162 @@
+{
+  "schema": "shieldd.proving_experiment.campaign_analysis.v1",
+  "rows": [
+    {
+      "candidate": "A",
+      "warm_values_s": [
+        1.78953775,
+        1.801364708,
+        1.792406834,
+        1.798635583,
+        1.791370458
+      ],
+      "warm_median_s": 1.792406834,
+      "first_s": 22.102808833,
+      "warm_peak_rss_bytes": 697745408,
+      "first_peak_rss_bytes": 483966976,
+      "proof_bytes": 436,
+      "proving_key_bytes": 40732773,
+      "historical_warm_reduction_fraction": 0.02879483958466844
+    },
+    {
+      "candidate": "B",
+      "warm_values_s": [
+        2.326819375,
+        2.333356292,
+        2.324142417,
+        2.3135915,
+        2.333802417
+      ],
+      "warm_median_s": 2.326819375,
+      "first_s": 59.249721584,
+      "warm_peak_rss_bytes": 2440019968,
+      "first_peak_rss_bytes": 2307325952,
+      "proof_bytes": 168,
+      "proving_key_bytes": 60608812,
+      "historical_warm_reduction_fraction": 0.06045080684100379
+    },
+    {
+      "candidate": "C",
+      "warm_values_s": [
+        2.752751958,
+        2.759546166,
+        2.754955875,
+        2.761302958,
+        2.749354875
+      ],
+      "warm_median_s": 2.754955875,
+      "first_s": 25.831813,
+      "warm_peak_rss_bytes": 3883663360,
+      "first_peak_rss_bytes": 3624878080,
+      "proof_bytes": 218,
+      "proving_key_bytes": 66369503,
+      "historical_warm_reduction_fraction": 0.09046024002967701
+    }
+  ],
+  "phases": [
+    {
+      "candidate": "A",
+      "median_ns": {
+        "witness_ns": 12653125,
+        "prove_ns": 1779416459,
+        "encode_ns": 6417,
+        "request_ns": 1792220750
+      },
+      "initialization": {
+        "schema": "shieldd.proving_experiment.gnark_worker.v1",
+        "op": "ready",
+        "payload_bytes": 0,
+        "error": null,
+        "statement": null,
+        "verified": false,
+        "circuit_sha256": "cc0dc2091c86777dfd21128b974d1a51f959ce0599211d90a022e5c3d9e27bde",
+        "wires": 142630,
+        "compile_ns": 1976086792,
+        "key_load_ns": 18351540042,
+        "witness_ns": null,
+        "solve_ns": null,
+        "prove_ns": null,
+        "encode_ns": null,
+        "request_ns": null,
+        "initialization": null,
+        "request": null
+      }
+    },
+    {
+      "candidate": "B",
+      "median_ns": {
+        "go_roundtrip_ns": 68716084,
+        "checked_mapping_ns": 35693083,
+        "prove_ns": 2219935542,
+        "encoding_ns": 2292,
+        "cleanup_ns": 496083,
+        "request_ns": 2326603083
+      },
+      "initialization": {
+        "schema": "shieldd.proving_experiment.selected_b.v1",
+        "op": "ready",
+        "payload_bytes": 0,
+        "error": null,
+        "statement": null,
+        "verified": false,
+        "initialization": {
+          "prover": {
+            "go_compile_ns": 2006875375,
+            "relation_preparation_ns": 2305189959,
+            "key_file_read_ns": 7641792,
+            "key_checked_decode_ns": 33270835125,
+            "key_association_ns": 618100416,
+            "total_ns": 38212228333
+          },
+          "arithmetic_preparation_ns": 18687361625,
+          "go_initialization_ns": 18108245333,
+          "resident_base_bytes": 121216128,
+          "total_ns": 56899595917
+        },
+        "request": null
+      }
+    },
+    {
+      "candidate": "C",
+      "median_ns": {
+        "checked_witness_decode_ns": 43000,
+        "construction_solving_ns": 50149958,
+        "assignment_mapping_ns": 126708042,
+        "claim_ns": 110166,
+        "prove_ns": 2567695375,
+        "encoding_ns": 10042,
+        "cleanup_ns": 6994583,
+        "total_ns": 2754586208
+      },
+      "initialization": {
+        "schema": "shieldd.proving_experiment.selected_c.v1",
+        "op": "ready",
+        "payload_bytes": 0,
+        "error": null,
+        "statement": null,
+        "verified": false,
+        "initialization": {
+          "prover": {
+            "relation_preparation_ns": 2513531834,
+            "key_file_read_ns": 25012209,
+            "key_decode_ns": 19960419750,
+            "key_canonical_roundtrip_ns": 203918792,
+            "key_checked_decode_ns": 20164338584,
+            "total_ns": 22707197334
+          },
+          "arithmetic_preparation_ns": 343955166,
+          "resident_base_bytes": 131935264,
+          "total_ns": 23051186958
+        },
+        "request": null
+      }
+    }
+  ],
+  "resources": {
+    "peak_all_workers_rss_bytes": 7483490304,
+    "min_available_bytes": 18614206464,
+    "max_swap_bytes": 0,
+    "competing_heavy_jobs": false
+  },
+  "reporting_source_sha256": "2556ddde68280c4c09dff7009b9cf3db6c461b3099f04c8cac1cc6af478a774f"
+}

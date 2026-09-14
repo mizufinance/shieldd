@@ -1,0 +1,37 @@
+    Updating crates.io index
+     Locking 118 packages to latest compatible versions
+      Adding generic-array v0.14.7 (available: v0.14.9)
+      Adding rand v0.8.8 (available: v0.10.2)
+ Downloading crates ...
+  Downloaded tinyvec v1.13.3
+   Compiling libc v0.2.189
+   Compiling syn v2.0.119
+   Compiling getrandom v0.2.17
+   Compiling rand_core v0.6.4
+   Compiling rand_chacha v0.3.1
+   Compiling rand v0.8.8
+   Compiling crypto-common v0.1.7
+   Compiling digest v0.10.7
+   Compiling ark-serialize-derive v0.6.0
+   Compiling ark-std v0.6.0
+   Compiling ark-serialize v0.6.0
+   Compiling ark-ff-macros v0.6.0
+   Compiling educe v0.6.0
+   Compiling ark-ff-asm v0.6.0
+   Compiling once_cell v1.21.4
+   Compiling zeroize v1.9.0
+   Compiling ahash v0.8.12
+   Compiling ark-ff v0.6.0
+   Compiling ark-poly v0.6.0
+   Compiling ark-ec v0.6.0
+   Compiling ark-bls12-381 v0.6.0
+   Compiling ark-bls12-377 v0.6.0
+   Compiling shieldd-domain-subset-cost v0.1.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/domain-subset)
+    Finished `release` profile [optimized] target(s) in 9.49s
+     Running unittests src/main.rs (tools/proving-experiment/target/release/deps/shieldd_domain_subset_cost-a303e7d833bc1656)
+
+running 1 test
+test tests::small_domain_identities_and_mutation_rejection ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

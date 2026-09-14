@@ -1,0 +1,11 @@
+   Compiling shieldd-domain-subset-cost v0.1.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/domain-subset)
+warning: unused import: `Field`
+ --> src/main.rs:3:23
+  |
+3 | use ark_ff::{FftField,Field};
+  |                       ^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: `shieldd-domain-subset-cost` (bin "shieldd-domain-subset-cost") generated 1 warning
+    Finished `release` profile [optimized] target(s) in 2.09s

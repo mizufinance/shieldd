@@ -1,0 +1,10 @@
+{
+  "time_ns": 1789361108174214000,
+  "argv": [
+    "python3",
+    "tools/proving-experiment/campaign_desktop.py",
+    "tools/proving-experiment/cache/desktop-optimized"
+  ],
+  "code": 0,
+  "failure": null
+}

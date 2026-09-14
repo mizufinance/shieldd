@@ -1,0 +1,51 @@
+{
+  "schema": "shieldd.proving_experiment.campaign_desktop.v1",
+  "rows": [
+    {
+      "candidate": "A",
+      "warm_values_s": [
+        1.78953775,
+        1.801364708,
+        1.792406834,
+        1.798635583,
+        1.791370458
+      ],
+      "warm_median_s": 1.792406834,
+      "first_s": 22.102808833,
+      "warm_peak_rss_bytes": 697745408,
+      "first_peak_rss_bytes": 483966976,
+      "proof_bytes": 436
+    },
+    {
+      "candidate": "B",
+      "warm_values_s": [
+        2.326819375,
+        2.333356292,
+        2.324142417,
+        2.3135915,
+        2.333802417
+      ],
+      "warm_median_s": 2.326819375,
+      "first_s": 59.249721584,
+      "warm_peak_rss_bytes": 2440019968,
+      "first_peak_rss_bytes": 2307325952,
+      "proof_bytes": 168
+    },
+    {
+      "candidate": "C",
+      "warm_values_s": [
+        2.752751958,
+        2.759546166,
+        2.754955875,
+        2.761302958,
+        2.749354875
+      ],
+      "warm_median_s": 2.754955875,
+      "first_s": 25.831813,
+      "warm_peak_rss_bytes": 3883663360,
+      "first_peak_rss_bytes": 3624878080,
+      "proof_bytes": 218
+    }
+  ],
+  "limits": "Updated Groth16 control and B use the identical selected-DH Transfer. C uses full native affine Transfer. Complete APIs, checked preparation, fresh randomness, one fresh-process first proof plus five warm samples each. Three warmups. No tail, phone, network TPS, validator comparison, or exhausted-domain-research claim."
+}

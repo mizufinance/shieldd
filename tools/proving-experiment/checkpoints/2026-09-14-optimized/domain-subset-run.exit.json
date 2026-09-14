@@ -1,0 +1,9 @@
+{
+  "time_ns": 1789359180559132000,
+  "argv": [
+    "tools/proving-experiment/target/release/shieldd-domain-subset-cost",
+    "tools/proving-experiment/cache/domain-subset-cost.json"
+  ],
+  "code": 0,
+  "failure": null
+}

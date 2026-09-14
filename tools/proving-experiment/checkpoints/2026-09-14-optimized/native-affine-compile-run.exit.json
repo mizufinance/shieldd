@@ -1,0 +1,10 @@
+{
+  "time_ns": 1789358609870132000,
+  "argv": [
+    "tools/proving-experiment/cache/native-affine-compile",
+    "tools/proving-experiment/cache/native-tuned-witnesses",
+    "tools/proving-experiment/cache/native-affine-compile.json"
+  ],
+  "code": 0,
+  "failure": null
+}

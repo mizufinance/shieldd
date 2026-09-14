@@ -1,0 +1,11 @@
+{
+  "time_ns": 1789360710034788000,
+  "argv": [
+    "python3",
+    "tools/proving-experiment/campaign_gate.py",
+    "B",
+    "tools/proving-experiment/cache/campaign-b-api-gate"
+  ],
+  "code": 0,
+  "failure": null
+}

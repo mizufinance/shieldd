@@ -4,7 +4,7 @@ use crate::data_structures::{Proof, ProvingKey};
 use crate::utils::compute_chall;
 use crate::ZkPari;
 use ark_ec::{pairing::Pairing, VariableBaseMSM};
-use ark_ff::{AdditiveGroup, Field, Zero};
+use ark_ff::{AdditiveGroup, FftField, Field, Zero};
 use ark_poly::{
     univariate::DensePolynomial, DenseUVPolynomial, EvaluationDomain, Evaluations, Polynomial,
     Radix2EvaluationDomain,
@@ -27,9 +27,8 @@ impl<E: Pairing> ZkPari<E> {
     /// Produce a proof for `circuit` under `pk`.
     ///
     /// Returns [`SynthesisError::Unsatisfiable`] if the witnessed assignment
-    /// does not satisfy the constraints (detected via a nonzero remainder in
-    /// the vanishing-polynomial division, so unsatisfiable inputs cannot
-    /// silently yield garbage proofs in release builds).
+    /// does not satisfy the constraints, checked on every original-domain row
+    /// before coset interpolation in release builds as well.
     pub fn prove<C: ConstraintSynthesizer<E::ScalarField>, R: RngCore>(
         circuit: C,
         pk: &ProvingKey<E>,
@@ -72,6 +71,7 @@ impl<E: Pairing> ZkPari<E> {
             instance_assignment,
             witness_assignment,
             num_constraints,
+            None,
             rng,
             None,
             &mut E::G1::msm_unchecked,
@@ -86,6 +86,7 @@ impl<E: Pairing> ZkPari<E> {
         instance_assignment: &[E::ScalarField],
         witness_assignment: &[E::ScalarField],
         num_constraints: usize,
+        public_polynomials: Option<&[Vec<E::ScalarField>]>,
         rng: &mut R,
         mut profile: Option<&mut crate::ProvingProfile>,
         msm: &mut impl FnMut(&[E::G1Affine], &[E::ScalarField]) -> E::G1,
@@ -132,9 +133,25 @@ impl<E: Pairing> ZkPari<E> {
 
         //////////////////////// Interpolating polynomials ///////////////////////
         let timer_interp = start_timer!(|| "Interpolating z_a, z_b, w_a polynomials");
+        // A coset interpolant exists even for invalid assignments; check every original row first.
+        if z_a.iter().zip(&z_b).any(|(a, b)| a.square() != *b) {
+            return Err(SynthesisError::Unsatisfiable);
+        }
         let z_a_hat = Evaluations::from_vec_and_domain(z_a, domain).interpolate();
         let z_b_hat = Evaluations::from_vec_and_domain(z_b, domain).interpolate();
-        let w_a_hat = Evaluations::from_vec_and_domain(w_a, domain).interpolate();
+        let w_a_hat = if let Some(columns) = public_polynomials {
+            if columns.len() != instance_assignment.len() || columns.iter().any(|c| c.len() != domain_size) {
+                return Err(SynthesisError::Unsatisfiable);
+            }
+            let mut coefficients = z_a_hat.coeffs.clone();
+            coefficients.resize(domain_size, E::ScalarField::ZERO);
+            for (column, value) in columns.iter().zip(instance_assignment) {
+                for (coefficient, public) in coefficients.iter_mut().zip(column) { *coefficient -= *public * value; }
+            }
+            DensePolynomial::from_coefficients_vec(coefficients)
+        } else {
+            Evaluations::from_vec_and_domain(w_a, domain).interpolate()
+        };
         end_timer!(timer_interp);
         phase!(interpolation_ns);
 
@@ -155,15 +172,15 @@ impl<E: Pairing> ZkPari<E> {
         // This keeps every FFT at size <= 2m (squaring degree m+1 would round
         // the multiplication domain up to 4m).
         let timer_quotient = start_timer!(|| "Computing the quotient polynomial");
-        let (q_orig, remainder) = (&z_a_hat * &z_a_hat - &z_b_hat).divide_by_vanishing_poly(domain);
-        // A nonzero remainder means the assignment does not satisfy the
-        // constraints. Rejecting here (in every build) is what keeps release
-        // builds from emitting proofs that can never verify.
-        if !remainder.is_zero() {
-            end_timer!(timer_quotient);
-            end_timer!(timer_p);
-            return Err(SynthesisError::Unsatisfiable);
-        }
+        let shift = E::ScalarField::GENERATOR;
+        let coset = domain.get_coset(shift).ok_or(SynthesisError::Unsatisfiable)?;
+        let inverse = (shift.pow([domain_size as u64]) - E::ScalarField::ONE)
+            .inverse().ok_or(SynthesisError::Unsatisfiable)?;
+        let mut q_values = coset.fft(&z_a_hat.coeffs);
+        let b_values = coset.fft(&z_b_hat.coeffs);
+        for (a, b) in q_values.iter_mut().zip(b_values) { *a = (a.square() - b) * inverse; }
+        coset.ifft_in_place(&mut q_values);
+        let q_orig = DensePolynomial::from_coefficients_vec(q_values);
 
         let mut q_coeffs = q_orig.coeffs;
         q_coeffs.resize(domain_size + 3, E::ScalarField::zero());

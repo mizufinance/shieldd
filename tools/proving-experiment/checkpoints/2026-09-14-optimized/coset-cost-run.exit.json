@@ -1,0 +1,10 @@
+{
+  "time_ns": 1789359670186753000,
+  "argv": [
+    "tools/proving-experiment/target/release/examples/coset_cost",
+    "tools/proving-experiment/cache/selected-dh-compile",
+    "tools/proving-experiment/cache/coset-cost.json"
+  ],
+  "code": 0,
+  "failure": null
+}

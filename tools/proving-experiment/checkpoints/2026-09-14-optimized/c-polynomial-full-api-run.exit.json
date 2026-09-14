@@ -1,0 +1,11 @@
+{
+  "time_ns": 1789360304759845000,
+  "argv": [
+    "tools/proving-experiment/cache/optimized-circuit-source/C-polynomial-gate",
+    "tools/proving-experiment/cache/native-affine-full-gate/keys/native.pk",
+    "tools/proving-experiment/cache/native-tuned-witnesses",
+    "tools/proving-experiment/cache/native-affine-polynomial-gate"
+  ],
+  "code": 0,
+  "failure": null
+}

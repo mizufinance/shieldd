@@ -1,0 +1,10 @@
+{
+  "time_ns": 1789359319205369000,
+  "argv": [
+    "tools/proving-experiment/cache/optimized-circuit-source/C-compile",
+    "tools/proving-experiment/cache/native-tuned-witnesses",
+    "tools/proving-experiment/cache/native-affine-compile-fixed.json"
+  ],
+  "code": 0,
+  "failure": null
+}

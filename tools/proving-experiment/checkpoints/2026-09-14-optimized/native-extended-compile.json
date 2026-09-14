@@ -1,0 +1,432 @@
+{
+  "schema": "shieldd.native_experiment.full_compile_cost.v1",
+  "relation": "398dd216bcbb0af317026700461f292426e2b46949035772e0c05466c779fedd",
+  "rows": 220009,
+  "columns": 220029,
+  "domain": 262144,
+  "compilation_ns": 2136563583,
+  "samples": [
+    {
+      "scenario": "transfer",
+      "sample": 0,
+      "warmup": true,
+      "checked_decode_ns": 37625,
+      "construction_solving_ns": 46439459,
+      "assignment_mapping_ns": 120682292,
+      "original_satisfied": true,
+      "converted_satisfied": true
+    },
+    {
+      "scenario": "transfer",
+      "sample": 1,
+      "warmup": true,
+      "checked_decode_ns": 40000,
+      "construction_solving_ns": 47027542,
+      "assignment_mapping_ns": 122052292,
+      "original_satisfied": true,
+      "converted_satisfied": true
+    },
+    {
+      "scenario": "transfer",
+      "sample": 2,
+      "warmup": false,
+      "checked_decode_ns": 54375,
+      "construction_solving_ns": 47065583,
+      "assignment_mapping_ns": 121789708,
+      "original_satisfied": true,
+      "converted_satisfied": true
+    },
+    {
+      "scenario": "transfer",
+      "sample": 3,
+      "warmup": false,
+      "checked_decode_ns": 39917,
+      "construction_solving_ns": 47448375,
+      "assignment_mapping_ns": 123747917,
+      "original_satisfied": true,
+      "converted_satisfied": true
+    },
+    {
+      "scenario": "transfer",
+      "sample": 4,
+      "warmup": false,
+      "checked_decode_ns": 37791,
+      "construction_solving_ns": 48614375,
+      "assignment_mapping_ns": 121006583,
+      "original_satisfied": true,
+      "converted_satisfied": true
+    },
+    {
+      "scenario": "transfer",
+      "sample": 5,
+      "warmup": false,
+      "checked_decode_ns": 39875,
+      "construction_solving_ns": 46044208,
+      "assignment_mapping_ns": 122792584,
+      "original_satisfied": true,
+      "converted_satisfied": true
+    },
+    {
+      "scenario": "transfer",
+      "sample": 6,
+      "warmup": false,
+      "checked_decode_ns": 41000,
+      "construction_solving_ns": 48562167,
+      "assignment_mapping_ns": 121219250,
+      "original_satisfied": true,
+      "converted_satisfied": true
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "sample": 0,
+      "warmup": true,
+      "checked_decode_ns": 37333,
+      "construction_solving_ns": 47041500,
+      "assignment_mapping_ns": 121721875,
+      "original_satisfied": true,
+      "converted_satisfied": true
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "sample": 1,
+      "warmup": true,
+      "checked_decode_ns": 65166,
+      "construction_solving_ns": 47822083,
+      "assignment_mapping_ns": 119626750,
+      "original_satisfied": true,
+      "converted_satisfied": true
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "sample": 2,
+      "warmup": false,
+      "checked_decode_ns": 44500,
+      "construction_solving_ns": 49703000,
+      "assignment_mapping_ns": 123732208,
+      "original_satisfied": true,
+      "converted_satisfied": true
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "sample": 3,
+      "warmup": false,
+      "checked_decode_ns": 39417,
+      "construction_solving_ns": 48795291,
+      "assignment_mapping_ns": 122403708,
+      "original_satisfied": true,
+      "converted_satisfied": true
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "sample": 4,
+      "warmup": false,
+      "checked_decode_ns": 38583,
+      "construction_solving_ns": 46657833,
+      "assignment_mapping_ns": 122517916,
+      "original_satisfied": true,
+      "converted_satisfied": true
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "sample": 5,
+      "warmup": false,
+      "checked_decode_ns": 39375,
+      "construction_solving_ns": 48451167,
+      "assignment_mapping_ns": 123427916,
+      "original_satisfied": true,
+      "converted_satisfied": true
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "sample": 6,
+      "warmup": false,
+      "checked_decode_ns": 40666,
+      "construction_solving_ns": 51857125,
+      "assignment_mapping_ns": 128404375,
+      "original_satisfied": true,
+      "converted_satisfied": true
+    },
+    {
+      "scenario": "transfer_flagged",
+      "sample": 0,
+      "warmup": true,
+      "checked_decode_ns": 38250,
+      "construction_solving_ns": 49103333,
+      "assignment_mapping_ns": 125380792,
+      "original_satisfied": true,
+      "converted_satisfied": true
+    },
+    {
+      "scenario": "transfer_flagged",
+      "sample": 1,
+      "warmup": true,
+      "checked_decode_ns": 39875,
+      "construction_solving_ns": 48140167,
+      "assignment_mapping_ns": 120234875,
+      "original_satisfied": true,
+      "converted_satisfied": true
+    },
+    {
+      "scenario": "transfer_flagged",
+      "sample": 2,
+      "warmup": false,
+      "checked_decode_ns": 40208,
+      "construction_solving_ns": 49907667,
+      "assignment_mapping_ns": 122768875,
+      "original_satisfied": true,
+      "converted_satisfied": true
+    },
+    {
+      "scenario": "transfer_flagged",
+      "sample": 3,
+      "warmup": false,
+      "checked_decode_ns": 40416,
+      "construction_solving_ns": 47100375,
+      "assignment_mapping_ns": 121706292,
+      "original_satisfied": true,
+      "converted_satisfied": true
+    },
+    {
+      "scenario": "transfer_flagged",
+      "sample": 4,
+      "warmup": false,
+      "checked_decode_ns": 39666,
+      "construction_solving_ns": 47214959,
+      "assignment_mapping_ns": 122831334,
+      "original_satisfied": true,
+      "converted_satisfied": true
+    },
+    {
+      "scenario": "transfer_flagged",
+      "sample": 5,
+      "warmup": false,
+      "checked_decode_ns": 40125,
+      "construction_solving_ns": 47734000,
+      "assignment_mapping_ns": 122147583,
+      "original_satisfied": true,
+      "converted_satisfied": true
+    },
+    {
+      "scenario": "transfer_flagged",
+      "sample": 6,
+      "warmup": false,
+      "checked_decode_ns": 38792,
+      "construction_solving_ns": 47429000,
+      "assignment_mapping_ns": 121174750,
+      "original_satisfied": true,
+      "converted_satisfied": true
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "sample": 0,
+      "warmup": true,
+      "checked_decode_ns": 36458,
+      "construction_solving_ns": 47845500,
+      "assignment_mapping_ns": 122544916,
+      "original_satisfied": true,
+      "converted_satisfied": true
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "sample": 1,
+      "warmup": true,
+      "checked_decode_ns": 38291,
+      "construction_solving_ns": 47483167,
+      "assignment_mapping_ns": 121557917,
+      "original_satisfied": true,
+      "converted_satisfied": true
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "sample": 2,
+      "warmup": false,
+      "checked_decode_ns": 39500,
+      "construction_solving_ns": 48677875,
+      "assignment_mapping_ns": 130514417,
+      "original_satisfied": true,
+      "converted_satisfied": true
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "sample": 3,
+      "warmup": false,
+      "checked_decode_ns": 40333,
+      "construction_solving_ns": 49755916,
+      "assignment_mapping_ns": 124076500,
+      "original_satisfied": true,
+      "converted_satisfied": true
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "sample": 4,
+      "warmup": false,
+      "checked_decode_ns": 40083,
+      "construction_solving_ns": 48123375,
+      "assignment_mapping_ns": 122343083,
+      "original_satisfied": true,
+      "converted_satisfied": true
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "sample": 5,
+      "warmup": false,
+      "checked_decode_ns": 38666,
+      "construction_solving_ns": 48592334,
+      "assignment_mapping_ns": 119877167,
+      "original_satisfied": true,
+      "converted_satisfied": true
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "sample": 6,
+      "warmup": false,
+      "checked_decode_ns": 38583,
+      "construction_solving_ns": 48850000,
+      "assignment_mapping_ns": 122589042,
+      "original_satisfied": true,
+      "converted_satisfied": true
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "sample": 0,
+      "warmup": true,
+      "checked_decode_ns": 49334,
+      "construction_solving_ns": 48307500,
+      "assignment_mapping_ns": 122681083,
+      "original_satisfied": true,
+      "converted_satisfied": true
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "sample": 1,
+      "warmup": true,
+      "checked_decode_ns": 40625,
+      "construction_solving_ns": 47471542,
+      "assignment_mapping_ns": 122386250,
+      "original_satisfied": true,
+      "converted_satisfied": true
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "sample": 2,
+      "warmup": false,
+      "checked_decode_ns": 41375,
+      "construction_solving_ns": 48762583,
+      "assignment_mapping_ns": 124035917,
+      "original_satisfied": true,
+      "converted_satisfied": true
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "sample": 3,
+      "warmup": false,
+      "checked_decode_ns": 40458,
+      "construction_solving_ns": 50257250,
+      "assignment_mapping_ns": 122012333,
+      "original_satisfied": true,
+      "converted_satisfied": true
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "sample": 4,
+      "warmup": false,
+      "checked_decode_ns": 38792,
+      "construction_solving_ns": 48932416,
+      "assignment_mapping_ns": 121805542,
+      "original_satisfied": true,
+      "converted_satisfied": true
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "sample": 5,
+      "warmup": false,
+      "checked_decode_ns": 39625,
+      "construction_solving_ns": 48307584,
+      "assignment_mapping_ns": 122731542,
+      "original_satisfied": true,
+      "converted_satisfied": true
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "sample": 6,
+      "warmup": false,
+      "checked_decode_ns": 38875,
+      "construction_solving_ns": 48782500,
+      "assignment_mapping_ns": 120750000,
+      "original_satisfied": true,
+      "converted_satisfied": true
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "sample": 0,
+      "warmup": true,
+      "checked_decode_ns": 43583,
+      "construction_solving_ns": 52223708,
+      "assignment_mapping_ns": 121995334,
+      "original_satisfied": true,
+      "converted_satisfied": true
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "sample": 1,
+      "warmup": true,
+      "checked_decode_ns": 42084,
+      "construction_solving_ns": 48100125,
+      "assignment_mapping_ns": 125853792,
+      "original_satisfied": true,
+      "converted_satisfied": true
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "sample": 2,
+      "warmup": false,
+      "checked_decode_ns": 69666,
+      "construction_solving_ns": 49592125,
+      "assignment_mapping_ns": 122678375,
+      "original_satisfied": true,
+      "converted_satisfied": true
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "sample": 3,
+      "warmup": false,
+      "checked_decode_ns": 39459,
+      "construction_solving_ns": 49687250,
+      "assignment_mapping_ns": 122687584,
+      "original_satisfied": true,
+      "converted_satisfied": true
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "sample": 4,
+      "warmup": false,
+      "checked_decode_ns": 38416,
+      "construction_solving_ns": 49445417,
+      "assignment_mapping_ns": 123064750,
+      "original_satisfied": true,
+      "converted_satisfied": true
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "sample": 5,
+      "warmup": false,
+      "checked_decode_ns": 40000,
+      "construction_solving_ns": 49299334,
+      "assignment_mapping_ns": 122965417,
+      "original_satisfied": true,
+      "converted_satisfied": true
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "sample": 6,
+      "warmup": false,
+      "checked_decode_ns": 39625,
+      "construction_solving_ns": 52576166,
+      "assignment_mapping_ns": 122686375,
+      "original_satisfied": true,
+      "converted_satisfied": true
+    }
+  ],
+  "negatives_rejected": 3,
+  "limits": "Full compile/solve and checked witness preparation only; no key or proof. Five measured warm samples per scenario are diagnostic."
+}

@@ -1,0 +1,881 @@
+{
+  "schema": "shieldd.proving_experiment.coset_cost.v1",
+  "rows": 226578,
+  "domain": 262144,
+  "public_column_entries": [
+    1,
+    1
+  ],
+  "public_b_entries": 0,
+  "public_preparation_ns": 47505125,
+  "public_storage_bytes": 16777216,
+  "coset_preparation_ns": 5000,
+  "samples": [
+    {
+      "scenario": "transfer",
+      "block": 0,
+      "warmup": true,
+      "method": "current",
+      "interpolation_ns": 73386541,
+      "quotient_ns": 160183375,
+      "total_ns": 233569958
+    },
+    {
+      "scenario": "transfer",
+      "block": 0,
+      "warmup": true,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 57903750,
+      "quotient_ns": 83486917,
+      "total_ns": 141390708
+    },
+    {
+      "scenario": "transfer",
+      "block": 1,
+      "warmup": true,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 59931875,
+      "quotient_ns": 83563875,
+      "total_ns": 143495792
+    },
+    {
+      "scenario": "transfer",
+      "block": 1,
+      "warmup": true,
+      "method": "current",
+      "interpolation_ns": 73418875,
+      "quotient_ns": 157520166,
+      "total_ns": 230939125
+    },
+    {
+      "scenario": "transfer",
+      "block": 2,
+      "warmup": true,
+      "method": "current",
+      "interpolation_ns": 72830917,
+      "quotient_ns": 158088709,
+      "total_ns": 230919750
+    },
+    {
+      "scenario": "transfer",
+      "block": 2,
+      "warmup": true,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 57751083,
+      "quotient_ns": 83632666,
+      "total_ns": 141383958
+    },
+    {
+      "scenario": "transfer",
+      "block": 3,
+      "warmup": false,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 59664333,
+      "quotient_ns": 85920750,
+      "total_ns": 145585166
+    },
+    {
+      "scenario": "transfer",
+      "block": 3,
+      "warmup": false,
+      "method": "current",
+      "interpolation_ns": 73689458,
+      "quotient_ns": 158502833,
+      "total_ns": 232192333
+    },
+    {
+      "scenario": "transfer",
+      "block": 4,
+      "warmup": false,
+      "method": "current",
+      "interpolation_ns": 73563958,
+      "quotient_ns": 162161958,
+      "total_ns": 235726000
+    },
+    {
+      "scenario": "transfer",
+      "block": 4,
+      "warmup": false,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 57352041,
+      "quotient_ns": 83763042,
+      "total_ns": 141115166
+    },
+    {
+      "scenario": "transfer",
+      "block": 5,
+      "warmup": false,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 59729292,
+      "quotient_ns": 85948208,
+      "total_ns": 145677709
+    },
+    {
+      "scenario": "transfer",
+      "block": 5,
+      "warmup": false,
+      "method": "current",
+      "interpolation_ns": 73244709,
+      "quotient_ns": 159964833,
+      "total_ns": 233209709
+    },
+    {
+      "scenario": "transfer",
+      "block": 6,
+      "warmup": false,
+      "method": "current",
+      "interpolation_ns": 74562500,
+      "quotient_ns": 158679125,
+      "total_ns": 233241750
+    },
+    {
+      "scenario": "transfer",
+      "block": 6,
+      "warmup": false,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 58861083,
+      "quotient_ns": 84344041,
+      "total_ns": 143205208
+    },
+    {
+      "scenario": "transfer",
+      "block": 7,
+      "warmup": false,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 60375833,
+      "quotient_ns": 84629833,
+      "total_ns": 145005750
+    },
+    {
+      "scenario": "transfer",
+      "block": 7,
+      "warmup": false,
+      "method": "current",
+      "interpolation_ns": 74937208,
+      "quotient_ns": 160619833,
+      "total_ns": 235557125
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "block": 0,
+      "warmup": true,
+      "method": "current",
+      "interpolation_ns": 74573084,
+      "quotient_ns": 157416792,
+      "total_ns": 231989917
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "block": 0,
+      "warmup": true,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 59036041,
+      "quotient_ns": 84097542,
+      "total_ns": 143133666
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "block": 1,
+      "warmup": true,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 58759458,
+      "quotient_ns": 83234041,
+      "total_ns": 141993666
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "block": 1,
+      "warmup": true,
+      "method": "current",
+      "interpolation_ns": 73782875,
+      "quotient_ns": 162450458,
+      "total_ns": 236233375
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "block": 2,
+      "warmup": true,
+      "method": "current",
+      "interpolation_ns": 77299292,
+      "quotient_ns": 158231125,
+      "total_ns": 235530500
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "block": 2,
+      "warmup": true,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 59131333,
+      "quotient_ns": 83392833,
+      "total_ns": 142524291
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "block": 3,
+      "warmup": false,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 59038458,
+      "quotient_ns": 83244375,
+      "total_ns": 142282875
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "block": 3,
+      "warmup": false,
+      "method": "current",
+      "interpolation_ns": 73844416,
+      "quotient_ns": 159507042,
+      "total_ns": 233351541
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "block": 4,
+      "warmup": false,
+      "method": "current",
+      "interpolation_ns": 73696750,
+      "quotient_ns": 161560000,
+      "total_ns": 235256791
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "block": 4,
+      "warmup": false,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 59642334,
+      "quotient_ns": 87030584,
+      "total_ns": 146673000
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "block": 5,
+      "warmup": false,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 58247542,
+      "quotient_ns": 83036542,
+      "total_ns": 141284250
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "block": 5,
+      "warmup": false,
+      "method": "current",
+      "interpolation_ns": 73488750,
+      "quotient_ns": 159629958,
+      "total_ns": 233118792
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "block": 6,
+      "warmup": false,
+      "method": "current",
+      "interpolation_ns": 76130125,
+      "quotient_ns": 169683125,
+      "total_ns": 245813333
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "block": 6,
+      "warmup": false,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 58535416,
+      "quotient_ns": 83631667,
+      "total_ns": 142167333
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "block": 7,
+      "warmup": false,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 58130667,
+      "quotient_ns": 84287500,
+      "total_ns": 142418459
+    },
+    {
+      "scenario": "transfer_unregulated",
+      "block": 7,
+      "warmup": false,
+      "method": "current",
+      "interpolation_ns": 76574500,
+      "quotient_ns": 159368917,
+      "total_ns": 235943542
+    },
+    {
+      "scenario": "transfer_flagged",
+      "block": 0,
+      "warmup": true,
+      "method": "current",
+      "interpolation_ns": 74359334,
+      "quotient_ns": 163041125,
+      "total_ns": 237400542
+    },
+    {
+      "scenario": "transfer_flagged",
+      "block": 0,
+      "warmup": true,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 61085583,
+      "quotient_ns": 86927916,
+      "total_ns": 148013583
+    },
+    {
+      "scenario": "transfer_flagged",
+      "block": 1,
+      "warmup": true,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 59126334,
+      "quotient_ns": 84023708,
+      "total_ns": 143150209
+    },
+    {
+      "scenario": "transfer_flagged",
+      "block": 1,
+      "warmup": true,
+      "method": "current",
+      "interpolation_ns": 72294000,
+      "quotient_ns": 156450416,
+      "total_ns": 228744458
+    },
+    {
+      "scenario": "transfer_flagged",
+      "block": 2,
+      "warmup": true,
+      "method": "current",
+      "interpolation_ns": 73593375,
+      "quotient_ns": 162587208,
+      "total_ns": 236180667
+    },
+    {
+      "scenario": "transfer_flagged",
+      "block": 2,
+      "warmup": true,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 58373916,
+      "quotient_ns": 84059417,
+      "total_ns": 142433500
+    },
+    {
+      "scenario": "transfer_flagged",
+      "block": 3,
+      "warmup": false,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 58111209,
+      "quotient_ns": 83906542,
+      "total_ns": 142017917
+    },
+    {
+      "scenario": "transfer_flagged",
+      "block": 3,
+      "warmup": false,
+      "method": "current",
+      "interpolation_ns": 73397417,
+      "quotient_ns": 159388542,
+      "total_ns": 232786042
+    },
+    {
+      "scenario": "transfer_flagged",
+      "block": 4,
+      "warmup": false,
+      "method": "current",
+      "interpolation_ns": 73331916,
+      "quotient_ns": 160012375,
+      "total_ns": 233344375
+    },
+    {
+      "scenario": "transfer_flagged",
+      "block": 4,
+      "warmup": false,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 59880458,
+      "quotient_ns": 84881042,
+      "total_ns": 144761708
+    },
+    {
+      "scenario": "transfer_flagged",
+      "block": 5,
+      "warmup": false,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 60333084,
+      "quotient_ns": 92283459,
+      "total_ns": 152616792
+    },
+    {
+      "scenario": "transfer_flagged",
+      "block": 5,
+      "warmup": false,
+      "method": "current",
+      "interpolation_ns": 73787750,
+      "quotient_ns": 158039292,
+      "total_ns": 231827125
+    },
+    {
+      "scenario": "transfer_flagged",
+      "block": 6,
+      "warmup": false,
+      "method": "current",
+      "interpolation_ns": 74212083,
+      "quotient_ns": 163741791,
+      "total_ns": 237953958
+    },
+    {
+      "scenario": "transfer_flagged",
+      "block": 6,
+      "warmup": false,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 58389708,
+      "quotient_ns": 90175583,
+      "total_ns": 148565375
+    },
+    {
+      "scenario": "transfer_flagged",
+      "block": 7,
+      "warmup": false,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 64509209,
+      "quotient_ns": 85576709,
+      "total_ns": 150086000
+    },
+    {
+      "scenario": "transfer_flagged",
+      "block": 7,
+      "warmup": false,
+      "method": "current",
+      "interpolation_ns": 74847375,
+      "quotient_ns": 158264792,
+      "total_ns": 233112250
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "block": 0,
+      "warmup": true,
+      "method": "current",
+      "interpolation_ns": 74478209,
+      "quotient_ns": 159776209,
+      "total_ns": 234254500
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "block": 0,
+      "warmup": true,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 61057958,
+      "quotient_ns": 84483000,
+      "total_ns": 145541042
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "block": 1,
+      "warmup": true,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 60453333,
+      "quotient_ns": 84670667,
+      "total_ns": 145124042
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "block": 1,
+      "warmup": true,
+      "method": "current",
+      "interpolation_ns": 75305125,
+      "quotient_ns": 166057208,
+      "total_ns": 241362417
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "block": 2,
+      "warmup": true,
+      "method": "current",
+      "interpolation_ns": 74721083,
+      "quotient_ns": 167438875,
+      "total_ns": 242160000
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "block": 2,
+      "warmup": true,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 58024792,
+      "quotient_ns": 84004500,
+      "total_ns": 142029417
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "block": 3,
+      "warmup": false,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 59871417,
+      "quotient_ns": 83898041,
+      "total_ns": 143769542
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "block": 3,
+      "warmup": false,
+      "method": "current",
+      "interpolation_ns": 73815791,
+      "quotient_ns": 161400667,
+      "total_ns": 235216583
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "block": 4,
+      "warmup": false,
+      "method": "current",
+      "interpolation_ns": 73950000,
+      "quotient_ns": 160548584,
+      "total_ns": 234498708
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "block": 4,
+      "warmup": false,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 59055833,
+      "quotient_ns": 82620584,
+      "total_ns": 141676458
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "block": 5,
+      "warmup": false,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 63907750,
+      "quotient_ns": 83997667,
+      "total_ns": 147905459
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "block": 5,
+      "warmup": false,
+      "method": "current",
+      "interpolation_ns": 74392083,
+      "quotient_ns": 158709000,
+      "total_ns": 233101166
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "block": 6,
+      "warmup": false,
+      "method": "current",
+      "interpolation_ns": 73445250,
+      "quotient_ns": 158708917,
+      "total_ns": 232154208
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "block": 6,
+      "warmup": false,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 58730833,
+      "quotient_ns": 87616500,
+      "total_ns": 146347375
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "block": 7,
+      "warmup": false,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 59953041,
+      "quotient_ns": 83977167,
+      "total_ns": 143930291
+    },
+    {
+      "scenario": "transfer_accumulating",
+      "block": 7,
+      "warmup": false,
+      "method": "current",
+      "interpolation_ns": 89693958,
+      "quotient_ns": 163773167,
+      "total_ns": 253467208
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "block": 0,
+      "warmup": true,
+      "method": "current",
+      "interpolation_ns": 74393084,
+      "quotient_ns": 158233125,
+      "total_ns": 232626375
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "block": 0,
+      "warmup": true,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 59515375,
+      "quotient_ns": 85539125,
+      "total_ns": 145054625
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "block": 1,
+      "warmup": true,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 60229041,
+      "quotient_ns": 86434208,
+      "total_ns": 146663416
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "block": 1,
+      "warmup": true,
+      "method": "current",
+      "interpolation_ns": 74819500,
+      "quotient_ns": 162122750,
+      "total_ns": 236942334
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "block": 2,
+      "warmup": true,
+      "method": "current",
+      "interpolation_ns": 74949208,
+      "quotient_ns": 160154042,
+      "total_ns": 235103250
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "block": 2,
+      "warmup": true,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 60219667,
+      "quotient_ns": 86723584,
+      "total_ns": 146943417
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "block": 3,
+      "warmup": false,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 60016375,
+      "quotient_ns": 84452000,
+      "total_ns": 144468459
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "block": 3,
+      "warmup": false,
+      "method": "current",
+      "interpolation_ns": 75256833,
+      "quotient_ns": 163406583,
+      "total_ns": 238663500
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "block": 4,
+      "warmup": false,
+      "method": "current",
+      "interpolation_ns": 75206792,
+      "quotient_ns": 159792084,
+      "total_ns": 234998917
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "block": 4,
+      "warmup": false,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 59006917,
+      "quotient_ns": 84562708,
+      "total_ns": 143569667
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "block": 5,
+      "warmup": false,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 59910333,
+      "quotient_ns": 84075417,
+      "total_ns": 143985792
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "block": 5,
+      "warmup": false,
+      "method": "current",
+      "interpolation_ns": 75556083,
+      "quotient_ns": 161419500,
+      "total_ns": 236975583
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "block": 6,
+      "warmup": false,
+      "method": "current",
+      "interpolation_ns": 74592583,
+      "quotient_ns": 161567583,
+      "total_ns": 236160208
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "block": 6,
+      "warmup": false,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 60403250,
+      "quotient_ns": 85326750,
+      "total_ns": 145730208
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "block": 7,
+      "warmup": false,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 58984750,
+      "quotient_ns": 86131125,
+      "total_ns": 145115875
+    },
+    {
+      "scenario": "transfer_over_limit_disclosure",
+      "block": 7,
+      "warmup": false,
+      "method": "current",
+      "interpolation_ns": 75477000,
+      "quotient_ns": 158140292,
+      "total_ns": 233617542
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "block": 0,
+      "warmup": true,
+      "method": "current",
+      "interpolation_ns": 73970917,
+      "quotient_ns": 159390250,
+      "total_ns": 233361250
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "block": 0,
+      "warmup": true,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 58170250,
+      "quotient_ns": 82790416,
+      "total_ns": 140960875
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "block": 1,
+      "warmup": true,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 58100875,
+      "quotient_ns": 84578375,
+      "total_ns": 142679500
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "block": 1,
+      "warmup": true,
+      "method": "current",
+      "interpolation_ns": 74394750,
+      "quotient_ns": 157796958,
+      "total_ns": 232191750
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "block": 2,
+      "warmup": true,
+      "method": "current",
+      "interpolation_ns": 73511916,
+      "quotient_ns": 161931208,
+      "total_ns": 235443208
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "block": 2,
+      "warmup": true,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 62245292,
+      "quotient_ns": 84348250,
+      "total_ns": 146593625
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "block": 3,
+      "warmup": false,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 63940958,
+      "quotient_ns": 91780792,
+      "total_ns": 155722000
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "block": 3,
+      "warmup": false,
+      "method": "current",
+      "interpolation_ns": 74200375,
+      "quotient_ns": 158715292,
+      "total_ns": 232915792
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "block": 4,
+      "warmup": false,
+      "method": "current",
+      "interpolation_ns": 74554291,
+      "quotient_ns": 159937958,
+      "total_ns": 234492375
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "block": 4,
+      "warmup": false,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 58742458,
+      "quotient_ns": 83980084,
+      "total_ns": 142722625
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "block": 5,
+      "warmup": false,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 64017000,
+      "quotient_ns": 86136958,
+      "total_ns": 150154042
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "block": 5,
+      "warmup": false,
+      "method": "current",
+      "interpolation_ns": 74533250,
+      "quotient_ns": 160008875,
+      "total_ns": 234542292
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "block": 6,
+      "warmup": false,
+      "method": "current",
+      "interpolation_ns": 76072583,
+      "quotient_ns": 163163125,
+      "total_ns": 239235792
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "block": 6,
+      "warmup": false,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 59247417,
+      "quotient_ns": 84881667,
+      "total_ns": 144129125
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "block": 7,
+      "warmup": false,
+      "method": "public_prepared_coset",
+      "interpolation_ns": 60002958,
+      "quotient_ns": 85659750,
+      "total_ns": 145662791
+    },
+    {
+      "scenario": "transfer_accumulator_continuation",
+      "block": 7,
+      "warmup": false,
+      "method": "current",
+      "interpolation_ns": 74691791,
+      "quotient_ns": 160485208,
+      "total_ns": 235177083
+    }
+  ],
+  "invalid_evaluations_rejected": true,
+  "limits": "Actual full Transfer assignments and exact coefficient parity for old/optimized interpolation and quotient paths. Includes O(N) on-domain satisfaction check for coset method; no key, proof, or complete API result. Three warmups plus five measured balanced blocks per scenario. Prepared public columns bind this complete checked relation."
+}

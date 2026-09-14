@@ -1,0 +1,29 @@
+   Compiling zkpari v0.1.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/vendor/zkpari)
+   Compiling shieldd-proving-experiment v0.1.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment)
+warning: function `validate_converted` is never used
+   --> src/bridge.rs:240:8
+    |
+240 | pub fn validate_converted(circuit: Circuit) -> Result<usize> {
+    |        ^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` on by default
+
+warning: `shieldd-proving-experiment` (bin "shieldd-proving-experiment" test) generated 1 warning
+    Finished `release` profile [optimized] target(s) in 9.87s
+     Running unittests src/main.rs (tools/proving-experiment/target/release/deps/shieldd_proving_experiment-cdadb6832af14fa6)
+
+running 11 tests
+test bridge::tests::checked_scalar_rejects_modulus_and_trailing_bytes ... ok
+test bridge::tests::expression_rejects_bad_mapping ... ok
+test keys::subgroup::tests::full_order_mixed_torsion_and_compressed_codec_parity ... ok
+test keys::subgroup::tests::rejects_noncanonical_fields_flags_identity_truncation_and_trailing ... ok
+test keys::tests::complete_key_codec_checks_all_slices_masks_and_framing ... ok
+test keys::tests::parallel_points_preserve_checked_decoding_and_reject_bad_encodings ... ok
+test lowering::tests::square_affine_linear_and_general_preserve_rejection ... ok
+test msm::tests::decomposition_and_signed_carries_cover_boundaries ... ok
+test msm::tests::dense_and_glv_match_independent_group_multiplication ... ok
+test prepared_tests::prepared_key_binding_shapes_and_randomized_proofs ... ok
+test worker::tests::bounded_headers_reject_truncation_and_unknown_fields ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.57s
+

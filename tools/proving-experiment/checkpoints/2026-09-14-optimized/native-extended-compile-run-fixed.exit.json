@@ -1,0 +1,10 @@
+{
+  "time_ns": 1789358835130125000,
+  "argv": [
+    "tools/proving-experiment/cache/native-extended-compile-fixed",
+    "tools/proving-experiment/cache/native-tuned-witnesses",
+    "tools/proving-experiment/cache/native-extended-compile-fixed.json"
+  ],
+  "code": 0,
+  "failure": null
+}

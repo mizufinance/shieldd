@@ -1,0 +1,17 @@
+{
+  "time_ns": 1789359050845728000,
+  "argv": [
+    "cargo",
+    "+1.89.0",
+    "test",
+    "--manifest-path",
+    "tools/proving-experiment/candidates/domain-subset/Cargo.toml",
+    "--release",
+    "-j",
+    "2",
+    "--",
+    "--test-threads=1"
+  ],
+  "code": 0,
+  "failure": null
+}

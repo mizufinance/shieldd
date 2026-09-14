@@ -1,0 +1,138 @@
+   Compiling shieldd-proving-experiment v0.1.0 (/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment)
+warning: constant `CLASSES` is never used
+  --> examples/gnark_msm.rs:28:7
+   |
+28 | const CLASSES: [&str; 5] = ["witness", "masks", "quotient", "opening_a", "opening_r"];
+   |       ^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+
+warning: function `encode` is never used
+  --> examples/gnark_msm.rs:29:4
+   |
+29 | fn encode<T: CanonicalSerialize>(value: &T) -> Result<Vec<u8>> {
+   |    ^^^^^^
+
+warning: fields `assignment` and `statement` are never read
+   --> examples/gnark_msm.rs:128:5
+    |
+127 | struct Solved {
+    |        ------ fields in this struct
+128 |     assignment: String,
+    |     ^^^^^^^^^^
+129 |     statement: String,
+    |     ^^^^^^^^^
+
+warning: struct `Captured` is never constructed
+   --> examples/gnark_msm.rs:131:8
+    |
+131 | struct Captured {
+    |        ^^^^^^^^
+
+warning: function `export` is never used
+   --> examples/gnark_msm.rs:137:4
+    |
+137 | fn export(old: &Path, key: &Path, out: &Path) -> Result<()> {
+    |    ^^^^^^
+
+warning: struct `Resident` is never constructed
+   --> examples/gnark_msm.rs:345:8
+    |
+345 | struct Resident {
+    |        ^^^^^^^^
+
+warning: struct `Header` is never constructed
+   --> examples/gnark_msm.rs:352:8
+    |
+352 | struct Header {
+    |        ^^^^^^
+
+warning: struct `Sample` is never constructed
+   --> examples/gnark_msm.rs:367:8
+    |
+367 | struct Sample {
+    |        ^^^^^^
+
+warning: function `measure` is never used
+   --> examples/gnark_msm.rs:390:4
+    |
+390 | fn measure(dir: &Path, binary: &Path, out: &Path) -> Result<()> {
+    |    ^^^^^^^
+
+warning: function `main` is never used
+   --> examples/gnark_msm.rs:496:4
+    |
+496 | fn main() -> Result<()> {
+    |    ^^^^
+
+warning: struct `Circuit` is never constructed
+   --> examples/../src/bridge.rs:171:12
+    |
+171 | pub struct Circuit {
+    |            ^^^^^^^
+
+warning: function `assignment` is never used
+   --> examples/../src/bridge.rs:222:8
+    |
+222 | pub fn assignment(hex_values: &str, relation: &Relation, statement: &str) -> Result<Vec<Fr>> {
+    |        ^^^^^^^^^^
+
+warning: function `validate_converted` is never used
+   --> examples/../src/bridge.rs:240:8
+    |
+240 | pub fn validate_converted(circuit: Circuit) -> Result<usize> {
+    |        ^^^^^^^^^^^^^^^^^^
+
+warning: function `profile` is never used
+  --> examples/../src/keys.rs:43:8
+   |
+43 | pub fn profile(path: &Path, out: &Path) -> Result<()> {
+   |        ^^^^^^^
+
+warning: struct `Response` is never constructed
+  --> examples/../src/worker.rs:71:8
+   |
+71 | struct Response {
+   |        ^^^^^^^^
+
+warning: associated function `new` is never used
+  --> examples/../src/worker.rs:82:8
+   |
+81 | impl Response {
+   | ------------- associated function in this implementation
+82 |     fn new(op: &str) -> Self {
+   |        ^^^
+
+warning: method `prove` is never used
+   --> examples/../src/worker.rs:235:8
+    |
+180 | impl Worker {
+    | ----------- method in this implementation
+...
+235 |     fn prove(&mut self, payload: &[u8]) -> Result<(Vec<u8>, String, Timings)> {
+    |        ^^^^^
+
+warning: function `serve` is never used
+   --> examples/../src/worker.rs:303:8
+    |
+303 | pub fn serve(old: &Path, key: &Path, go_binary: &Path, artifacts: &Path) -> Result<()> {
+    |        ^^^^^
+
+warning: `shieldd-proving-experiment` (example "gnark_msm_full" test) generated 18 warnings
+    Finished `release` profile [optimized] target(s) in 2.68s
+     Running unittests examples/gnark_msm_full.rs (tools/proving-experiment/target/release/examples/gnark_msm_full-1005f65b67f79d61)
+
+running 10 tests
+test arithmetic::bridge::tests::checked_scalar_rejects_modulus_and_trailing_bytes ... ok
+test arithmetic::bridge::tests::expression_rejects_bad_mapping ... ok
+test arithmetic::keys::subgroup::tests::full_order_mixed_torsion_and_compressed_codec_parity ... ok
+test arithmetic::keys::subgroup::tests::rejects_noncanonical_fields_flags_identity_truncation_and_trailing ... ok
+test arithmetic::keys::tests::parallel_points_preserve_checked_decoding_and_reject_bad_encodings ... ok
+test arithmetic::lowering::tests::square_affine_linear_and_general_preserve_rejection ... ok
+test arithmetic::tests::canonical_point_and_scalar_bridge_handles_identity_and_rejects_modulus_torsion ... ok
+test tests::key_slice_binding_rejects_other_addresses_and_oversized_prefixes ... ok
+test transport::tests::rejects_wrong_schema_unknown_fields_large_and_partial_frames ... ok
+test worker::tests::bounded_headers_reject_truncation_and_unknown_fields ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+

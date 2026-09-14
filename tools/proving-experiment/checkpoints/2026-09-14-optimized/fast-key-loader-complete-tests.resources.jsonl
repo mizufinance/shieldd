@@ -1,0 +1,4 @@
+{"time_ns": 1789359388411379000, "swap_bytes": 0, "available_bytes": 20567834624, "disk_free_bytes": 34230366208, "supervisor_pid": 31684, "child_pid": 31689, "tree_rss_bytes": 28491776, "competing_heavy_pids": []}
+{"time_ns": 1789359389447809000, "swap_bytes": 0, "available_bytes": 20361314304, "disk_free_bytes": 34230382592, "supervisor_pid": 31684, "child_pid": 31689, "tree_rss_bytes": 347586560, "competing_heavy_pids": []}
+{"time_ns": 1789359390483721000, "swap_bytes": 0, "available_bytes": 20322140160, "disk_free_bytes": 34230095872, "supervisor_pid": 31684, "child_pid": 31689, "tree_rss_bytes": 298172416, "competing_heavy_pids": []}
+{"time_ns": 1789359391522376000, "swap_bytes": 0, "available_bytes": 20564869120, "disk_free_bytes": 34230247424, "supervisor_pid": 31684, "child_pid": 31689, "tree_rss_bytes": 66387968, "competing_heavy_pids": []}

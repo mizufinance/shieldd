@@ -1,0 +1,10 @@
+{
+  "stage": "keys",
+  "generated": true,
+  "setup_ns": 29530328458,
+  "checked_load_ns": 37931231291,
+  "pk_bytes": 66369503,
+  "vk_bytes": 4595977,
+  "pk_sha256": "cf386f4cc313d59637a8f937c446df0f2c265a5b8f98214ca780a169136bd8f3",
+  "vk_sha256": "dc18424cc97a887af655228595e2b116222d4f295c9324de0afab2e9ca9e6547"
+}

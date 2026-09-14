@@ -1,0 +1,15 @@
+{
+  "time_ns": 1789361207288686000,
+  "argv": [
+    "go",
+    "-C",
+    "tools/proving-experiment/candidates/selected-dh",
+    "test",
+    "-p",
+    "2",
+    "./cmd/provingexperiment",
+    "-count=1"
+  ],
+  "code": 0,
+  "failure": null
+}

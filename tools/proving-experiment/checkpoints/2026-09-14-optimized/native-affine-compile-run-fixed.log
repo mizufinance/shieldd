@@ -1,0 +1,6 @@
+transfer: full original/converted relation and witness samples passed
+transfer_unregulated: full original/converted relation and witness samples passed
+transfer_flagged: full original/converted relation and witness samples passed
+transfer_accumulating: full original/converted relation and witness samples passed
+transfer_over_limit_disclosure: full original/converted relation and witness samples passed
+transfer_accumulator_continuation: full original/converted relation and witness samples passed

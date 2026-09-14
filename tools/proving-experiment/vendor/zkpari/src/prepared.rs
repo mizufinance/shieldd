@@ -1,6 +1,6 @@
 use crate::{circuit::assert_instance_outlining_complete, Proof, ProvingKey, ZkPari};
 use ark_ec::{pairing::Pairing, VariableBaseMSM};
-use ark_ff::Field;
+use ark_ff::{AdditiveGroup, Field};
 use ark_poly::EvaluationDomain;
 use ark_relations::gr1cs::{Matrix, SynthesisError};
 use ark_std::rand::RngCore;
@@ -20,6 +20,7 @@ pub struct ProvingProfile {
 pub struct PreparedProver<E: Pairing> {
     key: ProvingKey<E>,
     matrices: Vec<Matrix<E::ScalarField>>,
+    public_polynomials: Vec<Vec<E::ScalarField>>,
 }
 
 impl<E: Pairing> PreparedProver<E> {
@@ -54,7 +55,14 @@ impl<E: Pairing> PreparedProver<E> {
         }
         // The matrix digest matches the checked key; also enforce the verifier's shape invariant.
         assert_instance_outlining_complete(&matrices, instances, n);
-        Ok(Self { key, matrices })
+        let mut public_polynomials = vec![vec![E::ScalarField::ZERO; m]; instances];
+        for (row, entries) in matrices[0].iter().enumerate() {
+            for (coefficient, column) in entries {
+                if *column < instances { public_polynomials[*column][row] += coefficient; }
+            }
+        }
+        for column in &mut public_polynomials { key.verifying_key.domain.ifft_in_place(column); }
+        Ok(Self { key, matrices, public_polynomials })
     }
 
     pub fn verifying_key(&self) -> &crate::VerifyingKey<E> {
@@ -66,7 +74,7 @@ impl<E: Pairing> PreparedProver<E> {
         &self.key
     }
 
-    /// The quotient remainder rejects unsatisfied assignments in release builds too.
+    /// On-domain constraint evaluation rejects unsatisfied assignments in release builds.
     pub fn prove<R: RngCore>(
         &self,
         instances: &[E::ScalarField],
@@ -132,6 +140,7 @@ impl<E: Pairing> PreparedProver<E> {
             instances,
             witnesses,
             index.num_constraints,
+            Some(&self.public_polynomials),
             rng,
             profile,
             msm,

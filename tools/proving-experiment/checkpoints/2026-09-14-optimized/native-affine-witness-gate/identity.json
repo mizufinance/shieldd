@@ -1,0 +1,83 @@
+{
+  "schema": "shieldd.proving_experiment.native_affine_witness_gate.v1",
+  "variants": [
+    {
+      "role": "extended",
+      "package": "shieldd-native-proving-experiment",
+      "executable": "tools/proving-experiment/cache/native-extended-compile-fixed",
+      "sha256": "6912a6b7482501dbebc917f4b4e54247e4bd42f763a7aacaefe77bb2be8c42f2",
+      "report": "tools/proving-experiment/cache/native-extended-compile-fixed.json",
+      "rows": 232683,
+      "relation": "c266ae6a5ab86caa5d6eb417e0870bcfb34c05f27b15715f36d6011d87126851",
+      "report_sha256": "e78cc5a13246d9c87e2149a3653281a8ecad08e15c6c495d95718dbb0c6a49a2"
+    },
+    {
+      "role": "affine",
+      "package": "shieldd-native-affine-experiment",
+      "executable": "tools/proving-experiment/cache/optimized-circuit-source/C-compile",
+      "sha256": "3b4d0f768a3604dbc71ffe8797b927631d68de3efbaa52f9ec1e5d1022247d12",
+      "report": "tools/proving-experiment/cache/native-affine-compile-fixed.json",
+      "rows": 220009,
+      "relation": "398dd216bcbb0af317026700461f292426e2b46949035772e0c05466c779fedd",
+      "report_sha256": "a383495d802d415873d35a4b5e08a22bb72055ba7c8fe5a579a1e5379b225a3d"
+    }
+  ],
+  "sources": {
+    "tools/proving-experiment/candidates/native-affine/Cargo.lock": "073137ef70aff85c3d90b78d5384e45aa5c8403b970d95e23edc3bfc4fe6ad46",
+    "tools/proving-experiment/candidates/native-affine/Cargo.toml": "a3d618eec0f9ddb1f03743f45447756259bcedbdf885ade0e2d7b1d41bd1a223",
+    "tools/proving-experiment/candidates/native-affine/examples/full_compile_cost.rs": "7219fc5d1eb54224801cd45b8a52099560cfe25ccfab6c35413cd74847e08c01",
+    "tools/proving-experiment/candidates/native-affine/examples/prepared_msm_full.rs": "6a4bba87d5c42965c9d20bdbbfb3383246a36e6032ab7e902df73cfdb1ea766f",
+    "tools/proving-experiment/candidates/native-affine/examples/transfer_gate.rs": "36de40e631a793ee9b827042df46dd472a5519a056cad20c81f1b40b54d4c99b",
+    "tools/proving-experiment/candidates/native-affine/params/poseidon381-wide.json": "aaeb2e43f8d55fe25ed76ca45fad28832a5752c943b6c47f024a3fc66c5b739e",
+    "tools/proving-experiment/candidates/native-affine/params/poseidon381.json": "b329be713656c761cdf4bcb106fcb12c10ef3864b2643124fbdd6779cc5b4e38",
+    "tools/proving-experiment/candidates/native-affine/patches/commonware-polynomial-migration.patch": "0af302635483bfe1f4de2e8391fecb6dd06a0f245107f0d41539c1e47dd25db7",
+    "tools/proving-experiment/candidates/native-affine/src/api.rs": "013da2cc9b1deb636734b352dd0ff8e02c3414a283ae7ef972b3cc83b77b3e43",
+    "tools/proving-experiment/candidates/native-affine/src/authorization.rs": "56ba030c6c920a2faec9a29a1e7d3178c3a5626411076888d46f564e1a616c22",
+    "tools/proving-experiment/candidates/native-affine/src/balance.rs": "4e977038e6271133b39bed7eab8781bac863d913339314cce816aafb04af6e87",
+    "tools/proving-experiment/candidates/native-affine/src/compliance.rs": "51c2be28033ea1218088894e5a72bcb5e1a21d072669d97cbf81f77efe0bbd45",
+    "tools/proving-experiment/candidates/native-affine/src/diagnostics.rs": "a6b3f9a35600fbf062ba90a8282f91da58452aa77402d47b46ecfab08fc3bb62",
+    "tools/proving-experiment/candidates/native-affine/src/encoding.rs": "b711bc4c6bffa12a5ea3265c4b9a604b86e998df4b397757402859b1e6c64c5f",
+    "tools/proving-experiment/candidates/native-affine/src/encryption/tests.rs": "8509ff1a9c8aee05045e86d1817726dc34d7fdbf80d1598a23724bcc4fe75040",
+    "tools/proving-experiment/candidates/native-affine/src/encryption.rs": "8352fd64bd057eaca5645583b172c004ea38578172924ae34ecb9feca3e7c1b8",
+    "tools/proving-experiment/candidates/native-affine/src/fixtures.rs": "a4f1bd80d0bb5d48e45a176238f0d10fca4e5f0bc6e0e690713225240dd460d4",
+    "tools/proving-experiment/candidates/native-affine/src/group.rs": "d1e48b41dbfce213f1904e2afdd46273bf73981e69fc50623b274306937d3ad8",
+    "tools/proving-experiment/candidates/native-affine/src/hash.rs": "c9db0ca02abcfa76125df0914e543f14d58477745348139d1df7c77189e95974",
+    "tools/proving-experiment/candidates/native-affine/src/interop_tests.rs": "5f5d037cb36ca53f7a1f0be4cd4b930598c64fdd5150ad3ad5f22e0ebd8b1b4d",
+    "tools/proving-experiment/candidates/native-affine/src/key_tests.rs": "4594fe4639ce4f722183a1fed434361c084e92e68d1c6546e9c7dbb485413ba2",
+    "tools/proving-experiment/candidates/native-affine/src/lib.rs": "168c04b312ca1a9fd483c688c21e874c550d80b536346e0c56b78ff195041021",
+    "tools/proving-experiment/candidates/native-affine/src/map/tests.rs": "ecd825a4e6a8c3c59748f9fd11927f04b28d66ac14837175ab19aa927f610abb",
+    "tools/proving-experiment/candidates/native-affine/src/map.rs": "e53ca3e0fa7f909dd52bb9e4d8f17a99763e565617c717c3f8871a48bf38388b",
+    "tools/proving-experiment/candidates/native-affine/src/note/tests.rs": "dd062c05622a59e7698de2bc7cabb3f7b7a1b5f7ec11fa93cb6ddb0d87845738",
+    "tools/proving-experiment/candidates/native-affine/src/note.rs": "18d3cb2c14e56b148e0a8a8f99045fcd5ff34ead16c7ccf2d66cd2ffed10288e",
+    "tools/proving-experiment/candidates/native-affine/src/prepared_tests.rs": "5d6e921e990a14ba6a76abe52e963af809711c489d14efb338a3e25f617e544d",
+    "tools/proving-experiment/candidates/native-affine/src/quotient_tests.rs": "b98e707ade2c1c96d061a71e0926bc79651ab50adc2761ee67d1a68e2b91917c",
+    "tools/proving-experiment/candidates/native-affine/src/range.rs": "8bbe03bac8c59ea296d87c353c8b5c8e74fa3a035cc877a51f19d56c2224c265",
+    "tools/proving-experiment/candidates/native-affine/src/recovery.rs": "de272f8106509d8455f6301e2c8fb3c3abcff36fbdfeb15670482d8f631032fb",
+    "tools/proving-experiment/candidates/native-affine/src/registry.rs": "5b2a867e5e9cf13f8959a72a811808776af82d682702e423e9158c91ac7f5dd8",
+    "tools/proving-experiment/candidates/native-affine/src/routing.rs": "99b65ea69327e9e6de7613b5963ffee85558448e8fa83d5526273308b5a52969",
+    "tools/proving-experiment/candidates/native-affine/src/scalar.rs": "4ef5601b479c9888d46ef4040aa0e583186a72ad0a31039029e1edd654b132d5",
+    "tools/proving-experiment/candidates/native-affine/src/transfer/tests.rs": "bdc2c98c15d18f2a4e5e2897ece19ce7fde587cdd23410b1d5171a1b22b67f01",
+    "tools/proving-experiment/candidates/native-affine/src/transfer.rs": "660efaaa61eaae2bfbc31182a58171d7b32124f2d37ecb584d66c65c55a4572f",
+    "tools/proving-experiment/candidates/native-affine/src/tree.rs": "724b3fb0779bc5efd2634886ee86b05c7870754017a266ff5a68b501e28e125c",
+    "tools/proving-experiment/candidates/native-affine/src/volume.rs": "fd1797babcaf501c4cf67d8780e6e4a6577e5d2c98d2be6c931a1bb2c0af3531",
+    "tools/proving-experiment/candidates/native-affine/src/witness_codec.rs": "fa60bacd5e1a506bd2c0b2f90189fd7fcaa7560384a6643757845721c92cbf77",
+    "tools/proving-experiment/candidates/native-affine/upstream.json": "944946ab6baa7446b67472443c787dec7af1cee6fe6718944a874eba6d4c5277",
+    "tools/proving-experiment/native/Cargo.lock": "ee1899ee03d60e78fdcb1d98c73011f167feefce5ea7a517858ae0c70e4bb2c2",
+    "tools/proving-experiment/native/Cargo.toml": "4d1b40b390f6c638d7fdb349d7f6d382436a4e1ae6b5418fd3c8b9e6afc8b2a2",
+    "tools/proving-experiment/native/examples/full_compile_cost.rs": "adb0fe65b905d0b3ba05587d9457433a9cc975c74ed362a7575f786eafb407ab",
+    "tools/proving-experiment/native/src/group.rs": "11a6721ea367fbb96e7890eaef30f937803b936ee85e8dafaf50c2420369a808",
+    "tools/proving-experiment/native/src/lib.rs": "168c04b312ca1a9fd483c688c21e874c550d80b536346e0c56b78ff195041021",
+    "tools/proving-experiment/native_cost_identity.py": "a2f3c4974f8fbad1d59bc53ca7a220a291695bbcf252f222cb8c02b56304e738",
+    "tools/proving-experiment/test_native_cost_identity.py": "bf6455d409c195bdc04141879b9a34244c30d074b75b77cdb586d1f82a6fb76c"
+  },
+  "excluded_reports": [
+    "native-affine-compile.json",
+    "native-extended-compile.json"
+  ],
+  "tests": [
+    "four group/subgroup tests",
+    "one independent Arkworks interoperability test",
+    "one recorded build-collision regression test"
+  ],
+  "limits": "Full relation and warm witness cost only. No setup/proving results; invalid old comparison excluded."
+}

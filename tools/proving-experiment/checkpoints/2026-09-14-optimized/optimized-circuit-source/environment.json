@@ -1,0 +1,7 @@
+{
+  "time_ns": 1789360666902744000,
+  "hardware": "Apple M4 Pro",
+  "ram_bytes": 51539607552,
+  "power": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=22020195)\t100%; charged; 0:00 remaining present: true\n",
+  "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded\n"
+}
