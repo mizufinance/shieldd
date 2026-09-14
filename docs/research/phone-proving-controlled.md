@@ -1,9 +1,11 @@
 # Controlled phone proving comparison
 
 On the physical Samsung SM-G781W (SM8250, Android 13/API 33, about 5.50 GiB RAM),
-optimized Groth16/BLS12-377 took **5.71 s** and native Pari/BLS12-381 took **8.48 s**
-per complete key-loaded standard Transfer request. Pari was **48.6% slower**,
-with lower sampled worker memory in this screen.
+optimized Groth16/BLS12-377 took **5.71 s**, the Pari/BLS12-377 lifetime variant
+took **8.18 s**, and native Pari/BLS12-381 took **8.48 s** per complete key-loaded
+standard Transfer request. The Pari variants were **43.3% and 48.6% slower** than
+Groth16. Native Pari had the lowest sampled worker memory; the small B/C timing
+difference is inconclusive with five samples.
 
 | Backend | Warm median | Five-sample range | Sampled peak worker-tree RSS |
 | --- | ---: | ---: | ---: |
