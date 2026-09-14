@@ -1,0 +1,11 @@
+{
+  "time_ns": 1789383112750898000,
+  "argv": [
+    "python3",
+    "tools/proving-experiment/parallel_ntt_desktop.py",
+    "gate",
+    "tools/proving-experiment/cache/c-parallel-ntt-api-gate"
+  ],
+  "code": 0,
+  "failure": null
+}

@@ -1,0 +1,138 @@
+{
+  "schema": "shieldd.native_parallel_ntt_desktop.v1",
+  "mode": "gate",
+  "workers": 2,
+  "warmups": 3,
+  "warm_samples": 5,
+  "fresh_process_samples": 1,
+  "files": [
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/api_gate.py",
+      "sha256": "76e719518efd60cc4139c629b80484acff4923a15b2ff363ef86cbcdbf133bee"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/c-comparator34-full-gate/keys/native.pk",
+      "sha256": "1e11ac4e5ee43d719aeb8814dc27d2545266e5af4dcf37f5eae5d39f8e48fa0d"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/c-parallel-ntt-polynomial.json",
+      "sha256": "738500185bd0e0d7d6674fea47f6a1f74363f9302e28c2ce40b75b5613f8bcab"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/c-parallel-ntt-proof-gate/complete.json",
+      "sha256": "5184e5895b5c67ab051127aecee715429c38fbfffd1425e005ef0ecdddef4824"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/c-parallel-ntt-proof-gate/transfer-current.proof",
+      "sha256": "0fae24c82257712b3bca4a2d555ede36097873f87fbe831a64c8e54dfa799086"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/c-parallel-ntt-proof-gate/transfer-prepared_coset.proof",
+      "sha256": "0fae24c82257712b3bca4a2d555ede36097873f87fbe831a64c8e54dfa799086"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/c-parallel-ntt-proof-gate/transfer_accumulating-current.proof",
+      "sha256": "032fc63b50f18ad3ef0952fbf07dfb1f45b1a49136b0fabbfde2212ab1ace2b9"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/c-parallel-ntt-proof-gate/transfer_accumulating-prepared_coset.proof",
+      "sha256": "032fc63b50f18ad3ef0952fbf07dfb1f45b1a49136b0fabbfde2212ab1ace2b9"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/c-parallel-ntt-proof-gate/transfer_accumulator_continuation-current.proof",
+      "sha256": "16c63544891d6956eb00f6881f9b2b3ea493cdc640f8e0be85d16c1c90e05742"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/c-parallel-ntt-proof-gate/transfer_accumulator_continuation-prepared_coset.proof",
+      "sha256": "16c63544891d6956eb00f6881f9b2b3ea493cdc640f8e0be85d16c1c90e05742"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/c-parallel-ntt-proof-gate/transfer_flagged-current.proof",
+      "sha256": "0c2f1727a0cd4fb00bbe583b601ccfaa604318dbef66a50efc0de515b26eec1a"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/c-parallel-ntt-proof-gate/transfer_flagged-prepared_coset.proof",
+      "sha256": "0c2f1727a0cd4fb00bbe583b601ccfaa604318dbef66a50efc0de515b26eec1a"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/c-parallel-ntt-proof-gate/transfer_over_limit_disclosure-current.proof",
+      "sha256": "d2ecf46d96578168c0b293e6cd05038dfc4e4501ec2200aa62d6436bd649465b"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/c-parallel-ntt-proof-gate/transfer_over_limit_disclosure-prepared_coset.proof",
+      "sha256": "d2ecf46d96578168c0b293e6cd05038dfc4e4501ec2200aa62d6436bd649465b"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/c-parallel-ntt-proof-gate/transfer_unregulated-current.proof",
+      "sha256": "62bec9f7b2ee8a34ecce8068ee8c2fa3cf23e5602df89aeb35ca6247257968f5"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/c-parallel-ntt-proof-gate/transfer_unregulated-prepared_coset.proof",
+      "sha256": "62bec9f7b2ee8a34ecce8068ee8c2fa3cf23e5602df89aeb35ca6247257968f5"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/c-parallel-ntt-source/identity.json",
+      "sha256": "5864615c1e797480d376577b1fb486826b1d3e4e0ec4a1eb787b33af14e1b655"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/c-parallel-ntt-source/source.tar.gz",
+      "sha256": "905db135e1902ac3794f9d50dcd34b309c22fe4b592ab8c4c2608a3f5c80bfac"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/c-parallel-ntt-source/worker",
+      "sha256": "edddce4525bb00f2e12dc424a23b515624d09f271c5a8e9b52b21db2d5c9cd4b"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/native-tuned-witnesses/invalid.witness",
+      "sha256": "f034b6e19b5b793d46be12fec34e7640a335451bbe6b0267cb3f4ff9a9221bf3"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/native-tuned-witnesses/manifest.json",
+      "sha256": "5a12bc00f9ad9e3b1ef17570b69ef517782919fb79ddeacc125b8fc00f1ca7c4"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/native-tuned-witnesses/transfer.witness",
+      "sha256": "e3a2b0a26fa79f3acc5262df51e637ddd597b982212aac69f570ab707dbd1be8"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/native-tuned-witnesses/transfer_accumulating.witness",
+      "sha256": "a07c8dfc78ffbe794422a52bf59c4f760063cd50d3ab734e160c9801d1f0d2dd"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/native-tuned-witnesses/transfer_accumulator_continuation.witness",
+      "sha256": "a2f21b188678576fba9abcb17e2b9f68208622608e956cfc1a6b455ea5e83c2c"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/native-tuned-witnesses/transfer_flagged.witness",
+      "sha256": "717f6aae02a71c9580684ea9e9596d71138438659465b6f1fabbc6e0e0d52db6"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/native-tuned-witnesses/transfer_over_limit_disclosure.witness",
+      "sha256": "552e03d7caff95b1209fbe041236b41d83036871189cb052dccfd805860fb3e3"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/native-tuned-witnesses/transfer_unregulated.witness",
+      "sha256": "8cdeb0aeb3d9600543b348bdaf098dc468cee1eef7f3e2c58daaebffac8a14d6"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/desktop.py",
+      "sha256": "9dbe703264a5d655daf80f9b5471681768db919490d5d1c5955d0e4a5a6d8eef"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/guard.py",
+      "sha256": "62345292b754f6a40da22fb68fc46a233f530d64685467cbc2d290c570c2f706"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/parallel_ntt_desktop.py",
+      "sha256": "44b2af6c0be2ac0d925b11fb1183ee1befe5dfadfe9b0baf82d7833b0470b3c4"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/selected_gate.py",
+      "sha256": "9a5d94c5c02a42a55d9521b94670270b90d425f622b1e5828de0c418fb829f06"
+    },
+    {
+      "path": "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/selected_workers.py",
+      "sha256": "bad3b19089acf34c8d40ceabe110811ad531210b67b175e82fd64f85d5d01d16"
+    }
+  ]
+}

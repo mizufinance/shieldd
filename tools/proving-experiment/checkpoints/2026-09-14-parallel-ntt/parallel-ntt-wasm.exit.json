@@ -1,0 +1,18 @@
+{
+  "time_ns": 1789383267253735000,
+  "argv": [
+    "cargo",
+    "+1.95.0",
+    "rustc",
+    "--locked",
+    "--target",
+    "wasm32-unknown-unknown",
+    "--release",
+    "--manifest-path",
+    "tools/proving-experiment/cache/commonware-parallel-ntt/cryptography/Cargo.toml",
+    "--crate-type",
+    "cdylib"
+  ],
+  "code": 0,
+  "failure": null
+}

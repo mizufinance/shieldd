@@ -1,0 +1,17 @@
+{
+  "time_ns": 1789382500507121000,
+  "argv": [
+    "cargo",
+    "+1.95.0",
+    "test",
+    "--offline",
+    "--release",
+    "--manifest-path",
+    "tools/proving-experiment/candidates/parallel-ntt/Cargo.toml",
+    "--lib",
+    "--",
+    "--test-threads=1"
+  ],
+  "code": 0,
+  "failure": null
+}

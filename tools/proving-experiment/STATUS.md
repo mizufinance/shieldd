@@ -18,6 +18,15 @@ Sources, raw evidence, plots and exact test records are preserved in `checkpoint
 
 
 
+
+## Completed bounded parallel FFT
+
+The [parallel FFT full-API comparison](../../docs/research/native-parallel-ntt-proving.md) reduces C2.191940291→2.110349417s warm (3.72%) against the frozen fused-inverse control. Threewarmups+fivewarm+onefirst pervariant;18uniqueverifiedproofs. First observations19.540296709→19.440820834s; warmRSS1207238656→1221246976B (13.36MiBhigher),same218Bpackage/key. These are separate paired samples, not a newA/B/Cmatrix.
+
+The existing provingStrategy supplies two disjoint tasks perFFTstage, including the finalsingleblock; joinreturn is thebarrier. No extra pool. Threekerneltests/32exactoutputs, sixCommonwaretests, sixactualpolynomialgates, sixseededfullproofequalities, sixAPIgates andWASMpass. Guards0,swap0,nocompetition. Raw `cache/c-parallel-ntt-desktop`; compact `checkpoints/2026-09-14-parallel-ntt`. Retaincandidate.
+
+Next boundedlead: native checkedkeydecode accounts for about15.2s of17.3s readiness. Probe96Bchecked storage on1024actualnonidentityquerypoints stratified across witness/quotient/openingA/openingR, preserving canonical/curve/subgroup checks and projective output construction. Its scope excludes VK/commitment identitypermittedroles. A material componentgain must pass actualfullkeyread and APIgates before any startupclaim; extra storage/conversion must becharged. Originalverificationcampaign staysstopped.
+
 ## Completed fused inverse normalization
 
 The [same-key normalization follow-up](../../docs/research/native-fused-inverse-proving.md) reduces C warm full-API proving2.235034375→2.184525083s (2.26%) relative to the frozen prepared-FFT control. Threewarmups+fivewarm+onefirst each; all18unique timing proofs verify. First observations19.776624333→19.514102667s; warmRSS1190985728→1112784896B; same218Bpackage and existingkey. No A/B/C samples are pooled.

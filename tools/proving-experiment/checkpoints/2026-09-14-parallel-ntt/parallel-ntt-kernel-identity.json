@@ -1,0 +1,13 @@
+{
+  "schema": "shieldd.parallel_ntt_kernel_identity.v1",
+  "files": {
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/parallel-ntt/src/lib.rs": "2f88f1e444844d2a616cf84d48e0388b6ef7c74beb6638592bc0bbe6bb7029d6",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/parallel-ntt/src/main.rs": "5cb727224845e4b074b81ff9c82c57f75f21aa07976a8dceca8bcb1313948105",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/parallel-ntt/Cargo.toml": "25f88919252c1b3235de0311c15c2f22b87393d032e888241f55102e1bbcb422",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/parallel-ntt/Cargo.lock": "371f7ba21628dc739fc0f7bd88d8ed3a365cffd9e3be43304bfa3264562f2c7d",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/fused-inverse/src/lib.rs": "8f5c4821f965f372fa9a68332a43292668b72eb6a4f4bcb986a3ee7003b6fb5b",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/candidates/fused-inverse/Cargo.lock": "295f8ab4fff0725d19599cbc5a1644ccc7c95e1cbaccd17061cdce536f0b25c1",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/native/target/release/shieldd-parallel-ntt-screen": "9e2a9edda9b3f8ff1c0c39d4b7b72fc6a2f8b648f5ccd5bc312ebf6f22b0268f",
+    "/Users/antoinecyr/Documents/Source/shieldd/tools/proving-experiment/cache/native-tuned-witnesses/transfer.witness": "e3a2b0a26fa79f3acc5262df51e637ddd597b982212aac69f570ab707dbd1be8"
+  }
+}

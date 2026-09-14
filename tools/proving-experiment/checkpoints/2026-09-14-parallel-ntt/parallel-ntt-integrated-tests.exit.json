@@ -1,0 +1,19 @@
+{
+  "time_ns": 1789382769914126000,
+  "argv": [
+    "just",
+    "--justfile",
+    "tools/proving-experiment/cache/commonware-parallel-ntt/justfile",
+    "test",
+    "--locked",
+    "--release",
+    "-p",
+    "commonware-cryptography",
+    "-j",
+    "1",
+    "-E",
+    "test(/zk::pari::prepared_ntt::/)|test(/zk::pari::domain::/)"
+  ],
+  "code": 0,
+  "failure": null
+}

@@ -1,0 +1,15 @@
+{
+  "schema": "shieldd.native_parallel_ntt_desktop.v1",
+  "hashes": {
+    "identity.json": "184c8024541df9d8c8abaaffe63cbb3bffab6e5861b4a34a4d0ef173b9679009",
+    "memory.jsonl": "9cd3cf9ce0b10a90c0ff2edeae2961e9ad8dbe31f3ef807e3efcb74f563aea10",
+    "proofs/transfer.bin": "44885db5e639cd755c68509ede90d2744b46696ca6fb0ab3feed4b092ec5530e",
+    "proofs/transfer_accumulating.bin": "34cb1a7d1633c0d5b239ba5d31188316c5f85eb206fbba7826a041dbce5b09ac",
+    "proofs/transfer_accumulator_continuation.bin": "5bfc3ff9f7551679b09c4a1266ee06f6ca50b61d0ff74c41eba346fd02adedea",
+    "proofs/transfer_flagged.bin": "bd8535ea4112bea98a6ef4f5acc9f7a50ffae4f86e75960ebcf2c2b6b252da23",
+    "proofs/transfer_over_limit_disclosure.bin": "71022d06dc8d03f35eab2844951a97e5d81852bf0d5a2524d5637469200c4cbf",
+    "proofs/transfer_unregulated.bin": "0c510aa673ccac96630f1bfa84039d5d04d489b258970d9d1b35e086ecc809b6",
+    "results.json": "d0b86677003490fabaaefc0d6b8d20e5c852a33538032ab22eabf927b8dd05ce",
+    "samples.jsonl": "e5fc61643f8b1ae9cb0f94745328aa0c86b89b217d7c0b4cfe8046f458f97d13"
+  }
+}

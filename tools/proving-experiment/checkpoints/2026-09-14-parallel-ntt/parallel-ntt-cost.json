@@ -1,0 +1,270 @@
+{
+  "schema": "shieldd.parallel_ntt_screen.v1",
+  "relation": "722fba7093a6188bba83708f0abe409a39cf34fa4451b95594e82781b68f3783",
+  "witness_sha256": "e3a2b0a26fa79f3acc5262df51e637ddd597b982212aac69f570ab707dbd1be8",
+  "polynomial_sha256": "b2f915e6369ee1e67033ec3331b4f7a64d8898ff13678cdf9a8c6af8476c06b2",
+  "coefficients": 196609,
+  "fft": 262144,
+  "table_bytes": 8388608,
+  "preparation_ns": 3366333,
+  "execution_preparation_ns": 85042,
+  "samples": [
+    {
+      "operation": "forward",
+      "method": "reference",
+      "block": 0,
+      "warmup": true,
+      "ns": 36176333,
+      "exact_output": true
+    },
+    {
+      "operation": "forward",
+      "method": "prepared",
+      "block": 0,
+      "warmup": true,
+      "ns": 20145875,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "reference",
+      "block": 0,
+      "warmup": true,
+      "ns": 38701250,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "prepared",
+      "block": 0,
+      "warmup": true,
+      "ns": 23067959,
+      "exact_output": true
+    },
+    {
+      "operation": "forward",
+      "method": "prepared",
+      "block": 1,
+      "warmup": true,
+      "ns": 22864041,
+      "exact_output": true
+    },
+    {
+      "operation": "forward",
+      "method": "reference",
+      "block": 1,
+      "warmup": true,
+      "ns": 36784042,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "prepared",
+      "block": 1,
+      "warmup": true,
+      "ns": 22513583,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "reference",
+      "block": 1,
+      "warmup": true,
+      "ns": 39179375,
+      "exact_output": true
+    },
+    {
+      "operation": "forward",
+      "method": "reference",
+      "block": 2,
+      "warmup": true,
+      "ns": 35970500,
+      "exact_output": true
+    },
+    {
+      "operation": "forward",
+      "method": "prepared",
+      "block": 2,
+      "warmup": true,
+      "ns": 20346375,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "reference",
+      "block": 2,
+      "warmup": true,
+      "ns": 39159208,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "prepared",
+      "block": 2,
+      "warmup": true,
+      "ns": 22366083,
+      "exact_output": true
+    },
+    {
+      "operation": "forward",
+      "method": "prepared",
+      "block": 3,
+      "warmup": false,
+      "ns": 20142500,
+      "exact_output": true
+    },
+    {
+      "operation": "forward",
+      "method": "reference",
+      "block": 3,
+      "warmup": false,
+      "ns": 36184459,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "prepared",
+      "block": 3,
+      "warmup": false,
+      "ns": 22683708,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "reference",
+      "block": 3,
+      "warmup": false,
+      "ns": 39078417,
+      "exact_output": true
+    },
+    {
+      "operation": "forward",
+      "method": "reference",
+      "block": 4,
+      "warmup": false,
+      "ns": 35743417,
+      "exact_output": true
+    },
+    {
+      "operation": "forward",
+      "method": "prepared",
+      "block": 4,
+      "warmup": false,
+      "ns": 20032167,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "reference",
+      "block": 4,
+      "warmup": false,
+      "ns": 39264750,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "prepared",
+      "block": 4,
+      "warmup": false,
+      "ns": 22609209,
+      "exact_output": true
+    },
+    {
+      "operation": "forward",
+      "method": "prepared",
+      "block": 5,
+      "warmup": false,
+      "ns": 20092084,
+      "exact_output": true
+    },
+    {
+      "operation": "forward",
+      "method": "reference",
+      "block": 5,
+      "warmup": false,
+      "ns": 35731292,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "prepared",
+      "block": 5,
+      "warmup": false,
+      "ns": 22422417,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "reference",
+      "block": 5,
+      "warmup": false,
+      "ns": 39565250,
+      "exact_output": true
+    },
+    {
+      "operation": "forward",
+      "method": "reference",
+      "block": 6,
+      "warmup": false,
+      "ns": 35619750,
+      "exact_output": true
+    },
+    {
+      "operation": "forward",
+      "method": "prepared",
+      "block": 6,
+      "warmup": false,
+      "ns": 20052292,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "reference",
+      "block": 6,
+      "warmup": false,
+      "ns": 38933791,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "prepared",
+      "block": 6,
+      "warmup": false,
+      "ns": 22337375,
+      "exact_output": true
+    },
+    {
+      "operation": "forward",
+      "method": "prepared",
+      "block": 7,
+      "warmup": false,
+      "ns": 20280167,
+      "exact_output": true
+    },
+    {
+      "operation": "forward",
+      "method": "reference",
+      "block": 7,
+      "warmup": false,
+      "ns": 36644625,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "prepared",
+      "block": 7,
+      "warmup": false,
+      "ns": 23263666,
+      "exact_output": true
+    },
+    {
+      "operation": "inverse",
+      "method": "reference",
+      "block": 7,
+      "warmup": false,
+      "ns": 40522375,
+      "exact_output": true
+    }
+  ],
+  "limits": "Single-column forward/inverse FFT with cached powers and end normalization in both methods; candidate splits each stage into two disjoint tasks using the supplied two-worker strategy, including the final single-block stage; bit reversal and normalization remain serial. The explicit screen pool preparation is separate, and transforms never create a pool on an actual validated Transfer opening polynomial; no keys or proof generation. Preparation and eight-MiB tables plus one inverse-size scalar are separate. Three warmups and five samples per method/operation, alternating order; each clock includes allocation/copy/transform, with equality checks and output cleanup outside. Existing multi-column NTT and verifier paths are untouched. No full-API speedup or phone claim."
+}

@@ -1,0 +1,10 @@
+{
+  "time_ns": 1789382856066180000,
+  "argv": [
+    "tools/proving-experiment/cache/c-parallel-ntt-source/polynomial_gate",
+    "tools/proving-experiment/cache/native-tuned-witnesses",
+    "tools/proving-experiment/cache/c-parallel-ntt-polynomial.json"
+  ],
+  "code": 0,
+  "failure": null
+}

@@ -1,0 +1,17 @@
+{
+  "time_ns": 1789382542383234000,
+  "argv": [
+    "cargo",
+    "+1.95.0",
+    "run",
+    "--locked",
+    "--release",
+    "--manifest-path",
+    "tools/proving-experiment/candidates/parallel-ntt/Cargo.toml",
+    "--",
+    "tools/proving-experiment/cache/native-tuned-witnesses/transfer.witness",
+    "tools/proving-experiment/cache/parallel-ntt-cost.json"
+  ],
+  "code": 0,
+  "failure": null
+}
