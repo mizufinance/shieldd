@@ -1,4 +1,3 @@
-use crate::gnark::typed::AuditKeysBinary;
 use anyhow::{anyhow, Context, Result};
 use decaf377::{Encoding, Fq};
 
@@ -58,7 +57,6 @@ pub struct TransferReceiverOutputWitness {
     pub recipient_rnk_dh_pk_affine: PointAffineBytes,
     pub recipient_rnk_commitment: [u8; 32],
     pub recipient_status: [u8; 32],
-    pub recipient_audit_keys: AuditKeysBinary,
     pub recipient_diversified_generator_affine: PointAffineBytes,
     pub recipient_transmission_key_affine: PointAffineBytes,
 }
@@ -101,6 +99,7 @@ pub struct TransferComplianceCiphertextWitness {
 pub struct TransferTierRandomizersWitness {
     pub core: [u8; 32],
     pub ext: [u8; 32],
+    pub checking: [u8; 32],
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -130,12 +129,11 @@ pub struct TransferWitness {
     pub sender_rnk_dh_pk_affine: PointAffineBytes,
     pub sender_rnk_commitment: [u8; 32],
     pub sender_status: [u8; 32],
-    pub sender_audit_keys: AuditKeysBinary,
     pub transfer_nonce_root: [u8; 32],
     pub detection_ciphertext: Vec<[u8; 32]>,
     pub sender_core_key_confirmation: [u8; 32],
     pub output_core_key_confirmation: [u8; 32],
-    pub master_wrappings: [[u8; 32]; 3],
+    pub ownership: [PointAffineBytes; 4],
     pub ring_id_hash: [u8; 32],
     pub policy_id_hash: [u8; 32],
     pub resource_hash: [u8; 32],
@@ -316,9 +314,6 @@ impl TransferWitness {
             recipient_rnk_dh_pk_affine,
             recipient_rnk_commitment,
             recipient_status: receiver_status,
-            recipient_audit_keys: AuditKeysBinary::from_keys(
-                &receiver_private.recipient_leaf.audit_keys,
-            )?,
             recipient_diversified_generator_affine: point_affine_bytes(
                 *receiver_private
                     .recipient_leaf
@@ -422,7 +417,6 @@ impl TransferWitness {
             sender_rnk_dh_pk_affine,
             sender_rnk_commitment,
             sender_status,
-            sender_audit_keys: AuditKeysBinary::from_keys(&private.sender_leaf.audit_keys)?,
             transfer_nonce_root: private.compliance.transfer_nonce_root.to_bytes(),
             detection_ciphertext: public
                 .compliance
@@ -432,7 +426,12 @@ impl TransferWitness {
                 .collect(),
             sender_core_key_confirmation: public.compliance.sender_core_key_confirmation.to_bytes(),
             output_core_key_confirmation: public.compliance.output_core_key_confirmation.to_bytes(),
-            master_wrappings: public.compliance.master_wrappings.map(|v| v.to_bytes()),
+            ownership: [
+                point_affine_bytes(public.compliance.ownership[0].r)?,
+                point_affine_bytes(public.compliance.ownership[0].c)?,
+                point_affine_bytes(public.compliance.ownership[1].r)?,
+                point_affine_bytes(public.compliance.ownership[1].c)?,
+            ],
             ring_id_hash: public.compliance.metadata.ring_id_hash_bytes,
             policy_id_hash: public.compliance.metadata.policy_id_hash_bytes,
             resource_hash: public.compliance.metadata.resource_hash_bytes,
@@ -451,10 +450,12 @@ impl TransferWitness {
             sender_randomizers: TransferTierRandomizersWitness {
                 core: private.compliance.sender.core.to_bytes(),
                 ext: private.compliance.sender.ext.to_bytes(),
+                checking: private.compliance.sender.checking.to_bytes(),
             },
             output_randomizers: TransferTierRandomizersWitness {
                 core: private.compliance.output.core.to_bytes(),
                 ext: private.compliance.output.ext.to_bytes(),
+                checking: private.compliance.output.checking.to_bytes(),
             },
             required_spend,
             optional_spend,

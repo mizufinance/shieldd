@@ -120,7 +120,6 @@ pub async fn setup_proof_storage(
             decaf377::Element::GENERATOR,
             rnk_dh_pk,
             rnk,
-            shieldd_sdk_compliance::AuditKeys::test_keys(),
         )?;
         Ok(GenesisUserRegistration {
             capability_certificate: OrbisCapabilityCertificate::sign_for_test(

@@ -57,7 +57,6 @@ type TransferOptionalSpendCircuitFields struct {
 }
 
 type TransferUserCircuitFields struct {
-	AuditKeys     AuditKeysInputs
 	DivGen        Point2D
 	Transmission  Point2D
 	Capk          Point2D
@@ -226,7 +225,7 @@ func (c *TransferCircuit) Define(api frontend.API) error {
 	}
 
 	c.traceWiring("statement.assemble", "shape=transfer2x2", "fields=transfer_statement_fields")
-	fields, err := c.buildTransferStatementFields(balanceCommitmentFq, &statementData)
+	fields, err := c.buildTransferStatementFields(api, balanceCommitmentFq, &statementData)
 	if err != nil {
 		return err
 	}
@@ -782,7 +781,6 @@ func (c *TransferCircuit) verifySharedTransferContext(api frontend.API) (transfe
 		gnarkte.Point{X: c.Sender.RnkDhPk.X, Y: c.Sender.RnkDhPk.Y},
 		c.Sender.RnkCommitment,
 		c.Sender.Status,
-		c.Sender.AuditKeys,
 	)
 	if err != nil {
 		return transferSharedContext{}, err
@@ -1429,7 +1427,6 @@ func (c *TransferCircuit) verifyTransferReceiverOutput(
 		gnarkte.Point{X: output.Recipient.RnkDhPk.X, Y: output.Recipient.RnkDhPk.Y},
 		output.Recipient.RnkCommitment,
 		output.Recipient.Status,
-		output.Recipient.AuditKeys,
 	)
 	if err != nil {
 		return err
@@ -1605,7 +1602,7 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 	senderCoreIssuer, senderCoreUser, senderCoreSelected, _, err := DeriveSharedSecretsSpend(
 		api,
 		c.Compliance.SenderRCore,
-		c.Sender.AuditKeys.Amount,
+		SelectPoint(api, c.IsRegulated, c.Asset.Leaf.AuditKeys.Amount, shared.effectiveRingPK),
 		shared.effectiveDKPub,
 		isFlagged,
 		senderCoreEPK,
@@ -1617,10 +1614,10 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 	c.bindSemantic("sender_core.shared.user", senderCoreUser.X, senderCoreUser.Y)
 	c.bindSemantic("sender_core.shared.selected", senderCoreSelected.X, senderCoreSelected.Y)
 	c.traceWiring("decaf.shared_secret", "tier=sender_ext", "esk=compliance.sender_r_ext", "audit_key=sender.audit_keys.receiver", "dk_pub=effective.dk_pub", "flag=is_flagged", "epk=compliance.sender_ext.epk", "issuer=sender_ext.shared.issuer", "user=sender_ext.shared.user", "selected=sender_ext.shared.selected")
-	senderExtIssuer, senderExtUser, senderExtSelected, senderExtBits, err := DeriveSharedSecretsSpend(
+	senderExtIssuer, senderExtUser, senderExtSelected, _, err := DeriveSharedSecretsSpend(
 		api,
 		c.Compliance.SenderRExt,
-		c.Sender.AuditKeys.Receiver,
+		SelectPoint(api, c.IsRegulated, c.Asset.Leaf.AuditKeys.Receiver, shared.effectiveRingPK),
 		shared.effectiveDKPub,
 		isFlagged,
 		senderExtEPK,
@@ -1632,10 +1629,10 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 	c.bindSemantic("sender_ext.shared.user", senderExtUser.X, senderExtUser.Y)
 	c.bindSemantic("sender_ext.shared.selected", senderExtSelected.X, senderExtSelected.Y)
 	c.traceWiring("decaf.shared_secret", "tier=output_core", "esk=compliance.output_r_core", "audit_key=receiver.audit_keys.amount", "dk_pub=effective.dk_pub", "flag=is_flagged", "epk=compliance.output_core.epk", "issuer=output_core.shared.issuer", "user=output_core.shared.user", "selected=output_core.shared.selected")
-	outputCoreIssuer, outputCoreUser, outputCoreSelected, outputCoreBits, err := DeriveSharedSecretsSpend(
+	outputCoreIssuer, outputCoreUser, outputCoreSelected, _, err := DeriveSharedSecretsSpend(
 		api,
 		c.Compliance.OutputRCore,
-		c.ReceiverOutput.Recipient.AuditKeys.Amount,
+		SelectPoint(api, c.IsRegulated, c.Asset.Leaf.AuditKeys.Amount, shared.effectiveRingPK),
 		shared.effectiveDKPub,
 		isFlagged,
 		outputCoreEPK,
@@ -1647,10 +1644,10 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 	c.bindSemantic("output_core.shared.user", outputCoreUser.X, outputCoreUser.Y)
 	c.bindSemantic("output_core.shared.selected", outputCoreSelected.X, outputCoreSelected.Y)
 	c.traceWiring("decaf.shared_secret", "tier=output_ext", "esk=compliance.output_r_ext", "audit_key=receiver.audit_keys.sender", "dk_pub=effective.dk_pub", "flag=is_flagged", "epk=compliance.output_ext.epk", "issuer=output_ext.shared.issuer", "user=output_ext.shared.user", "selected=output_ext.shared.selected")
-	outputExtIssuer, outputExtUser, outputExtSelected, outputExtBits, err := DeriveSharedSecretsSpend(
+	outputExtIssuer, outputExtUser, outputExtSelected, _, err := DeriveSharedSecretsSpend(
 		api,
 		c.Compliance.OutputRExt,
-		c.ReceiverOutput.Recipient.AuditKeys.Sender,
+		SelectPoint(api, c.IsRegulated, c.Asset.Leaf.AuditKeys.Sender, shared.effectiveRingPK),
 		shared.effectiveDKPub,
 		isFlagged,
 		outputExtEPK,
@@ -1689,7 +1686,7 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 		return err
 	}
 	c.traceWiring("gadget.poseidon_encryption.address", "tier=sender_ext", "ss=sender_ext.shared.selected", "c2=compliance.sender_ext.c2", "div_gen_fq=receiver.div_gen_fq", "transmission_fq=receiver.transmission_fq", "out=compliance.sender_ext.ciphertext")
-	receiverSeed, err := VerifyPoseidonEncryptionTransferAddress(
+	_, err = VerifyPoseidonEncryptionTransferAddress(
 		api,
 		senderExtSelected,
 		c.Compliance.SenderExt.C2,
@@ -1701,7 +1698,7 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 		return err
 	}
 	c.traceWiring("gadget.poseidon_encryption.amount", "tier=output_core", "ss=output_core.shared.selected", "c2=compliance.output_core.c2", "epk_fq=compliance.output_core.epk_fq", "salt=salt3", "key_confirmation=compliance.output_core.key_confirmation", "amount=receiver.amount", "out=compliance.output_core.ciphertext")
-	amountSeed, err := VerifyPoseidonEncryptionTransferAmount(
+	_, err = VerifyPoseidonEncryptionTransferAmount(
 		api,
 		outputCoreSelected,
 		c.Compliance.OutputCore.C2,
@@ -1715,7 +1712,7 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 		return err
 	}
 	c.traceWiring("gadget.poseidon_encryption.address", "tier=output_ext", "ss=output_ext.shared.selected", "c2=compliance.output_ext.c2", "div_gen_fq=sender.div_gen_fq", "transmission_fq=sender.transmission_fq", "out=compliance.output_ext.ciphertext")
-	senderSeed, err := VerifyPoseidonEncryptionTransferAddress(
+	_, err = VerifyPoseidonEncryptionTransferAddress(
 		api,
 		outputExtSelected,
 		c.Compliance.OutputExt.C2,
@@ -1727,31 +1724,12 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 		return err
 	}
 
-	for _, keys := range []AuditKeysInputs{c.Sender.AuditKeys, c.ReceiverOutput.Recipient.AuditKeys} {
-		AssertEqualIf(api, keys.Epoch, 0, api.Sub(1, c.IsRegulated))
-		for _, key := range []gnarkte.Point{keys.Amount, keys.Sender, keys.Receiver} {
-			AssertEqualIf(api, key.X, shared.effectiveRingPK.X, api.Sub(1, c.IsRegulated))
-			AssertEqualIf(api, key.Y, shared.effectiveRingPK.Y, api.Sub(1, c.IsRegulated))
-		}
+	checking := SelectPoint(api, c.IsRegulated, c.Asset.Leaf.AuditKeys.Checking, shared.effectiveRingPK)
+	if err := VerifyOwnership(api, shared.senderDivGenFq, shared.senderTransmissionFq, checking, c.Compliance.SenderChecking, c.Compliance.Ownership[0], c.Compliance.Ownership[1]); err != nil {
+		return err
 	}
-	AssertEqualIf(api, c.Sender.AuditKeys.Epoch, c.Asset.Leaf.AuditKeys.Epoch, c.IsRegulated)
-	AssertEqualIf(api, c.ReceiverOutput.Recipient.AuditKeys.Epoch, c.Asset.Leaf.AuditKeys.Epoch, c.IsRegulated)
-	generalKeys := []gnarkte.Point{c.Asset.Leaf.AuditKeys.Amount, c.Asset.Leaf.AuditKeys.Sender, c.Asset.Leaf.AuditKeys.Receiver}
-	for i, selected := range []struct {
-		bits   []frontend.Variable
-		issuer gnarkte.Point
-		seed   frontend.Variable
-		epk    frontend.Variable
-	}{
-		{outputCoreBits, outputCoreIssuer, amountSeed, statementData.outputCoreEPKFq},
-		{outputExtBits, outputExtIssuer, senderSeed, statementData.outputExtEPKFq},
-		{senderExtBits, senderExtIssuer, receiverSeed, statementData.senderExtEPKFq},
-	} {
-		if err := VerifyTransferMasterWrapping(api, selected.bits, SelectPoint(api, c.IsRegulated, generalKeys[i], shared.effectiveRingPK),
-			selected.issuer, isFlagged, selected.seed, selected.epk, i,
-			c.Compliance.MasterWrappings[i]); err != nil {
-			return err
-		}
+	if err := VerifyOwnership(api, statementData.receiverDivGenFq, statementData.receiverTransmissionFq, checking, c.Compliance.OutputChecking, c.Compliance.Ownership[2], c.Compliance.Ownership[3]); err != nil {
+		return err
 	}
 
 	metadata := c.Compliance.Metadata
@@ -1819,6 +1797,7 @@ func (c *TransferCircuit) computeTransferBalanceCommitmentFq(
 }
 
 func (c *TransferCircuit) buildTransferStatementFields(
+	api frontend.API,
 	balanceCommitmentFq frontend.Variable,
 	statementData *transferStatementData,
 ) ([]frontend.Variable, error) {
@@ -1851,14 +1830,20 @@ func (c *TransferCircuit) buildTransferStatementFields(
 	appendExtTier(statementData.senderExtEPKFq, c.Compliance.SenderExt)
 	appendCoreTier(statementData.outputCoreEPKFq, c.Compliance.OutputCore)
 	appendExtTier(statementData.outputExtEPKFq, c.Compliance.OutputExt)
+	var ownership [4]frontend.Variable
+	for i, point := range c.Compliance.Ownership {
+		value, err := decafgnark.CompressToField(api, point)
+		if err != nil {
+			return nil, err
+		}
+		ownership[i] = value
+	}
 	fields = append(fields, c.TargetTimestamp)
 	fields = append(
 		fields,
 		c.Compliance.SenderCore.KeyConfirmation,
 		c.Compliance.OutputCore.KeyConfirmation,
-		c.Compliance.MasterWrappings[0],
-		c.Compliance.MasterWrappings[1],
-		c.Compliance.MasterWrappings[2],
+		ownership[0], ownership[1], ownership[2], ownership[3],
 		c.Compliance.Metadata.AuditEpoch,
 		c.Compliance.Metadata.RingIDHash,
 		c.Compliance.Metadata.PolicyIDHash,

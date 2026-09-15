@@ -1,10 +1,10 @@
-//! Registered LaKey public keys, separate from note recovery capabilities.
+//! Independent ring encryption keys, separate from ring identity and signing keys.
 use anyhow::{ensure, Result};
 use decaf377::{Element, Fq};
 use once_cell::sync::Lazy;
 
 static DOMAIN: Lazy<Fq> = Lazy::new(|| {
-    Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(b"shieldd.audit.keys.v1").as_bytes())
+    Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(b"shieldd.audit.keys.v2").as_bytes())
 });
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -14,11 +14,12 @@ pub struct AuditKeys {
     pub amount: Element,
     pub sender: Element,
     pub receiver: Element,
+    pub checking: Element,
 }
 
 impl AuditKeys {
     pub fn validate(&self) -> Result<()> {
-        for point in [self.amount, self.sender, self.receiver] {
+        for point in [self.amount, self.sender, self.receiver, self.checking] {
             ensure!(!point.is_identity(), "identity audit key");
         }
         Ok(())
@@ -30,7 +31,7 @@ impl AuditKeys {
             self.epoch > 0,
             "registered audit keys require a nonzero epoch"
         );
-        let points = [self.amount, self.sender, self.receiver];
+        let points = [self.amount, self.sender, self.receiver, self.checking];
         for (i, point) in points.iter().enumerate() {
             ensure!(
                 *point != *crate::UNREGULATED_SINK_RING_PK,
@@ -50,32 +51,37 @@ impl AuditKeys {
             amount: Element::GENERATOR * decaf377::Fr::from(201u64),
             sender: Element::GENERATOR * decaf377::Fr::from(202u64),
             receiver: Element::GENERATOR * decaf377::Fr::from(203u64),
+            checking: Element::GENERATOR * decaf377::Fr::from(204u64),
         }
     }
 
     pub fn commitment(&self) -> Fq {
-        poseidon377::hash_4(
+        poseidon377::hash_5(
             &DOMAIN,
             (
                 Fq::from(self.epoch),
                 self.amount.vartime_compress_to_field(),
                 self.sender.vartime_compress_to_field(),
                 self.receiver.vartime_compress_to_field(),
+                self.checking.vartime_compress_to_field(),
             ),
         )
     }
 
-    pub fn to_bytes(&self) -> [u8; 104] {
-        let mut bytes = [0; 104];
+    pub fn to_bytes(&self) -> [u8; 136] {
+        let mut bytes = [0; 136];
         bytes[..8].copy_from_slice(&self.epoch.to_le_bytes());
-        for (i, point) in [self.amount, self.sender, self.receiver].iter().enumerate() {
+        for (i, point) in [self.amount, self.sender, self.receiver, self.checking]
+            .iter()
+            .enumerate()
+        {
             bytes[8 + i * 32..40 + i * 32].copy_from_slice(&point.vartime_compress().0);
         }
         bytes
     }
 
     pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
-        ensure!(bytes.len() == 104, "invalid audit key bundle length");
+        ensure!(bytes.len() == 136, "invalid audit key bundle length");
         let point = |offset: usize| -> Result<Element> {
             let encoded: [u8; 32] = bytes[offset..offset + 32].try_into()?;
             let point = decaf377::Encoding(encoded)
@@ -92,6 +98,7 @@ impl AuditKeys {
             amount: point(8)?,
             sender: point(40)?,
             receiver: point(72)?,
+            checking: point(104)?,
         };
         keys.validate()?;
         Ok(keys)
@@ -104,6 +111,7 @@ impl AuditKeys {
             amount: sink,
             sender: sink,
             receiver: sink,
+            checking: sink,
         }
     }
 }
@@ -115,18 +123,19 @@ mod tests {
     fn key_bundle_binds_epoch_and_every_key() {
         let keys = AuditKeys::unregulated();
         assert_eq!(AuditKeys::from_bytes(&keys.to_bytes()).unwrap(), keys);
-        for offset in [0, 8, 40, 72] {
+        for offset in [0, 8, 40, 72, 104] {
             let mut changed = keys.clone();
             match offset {
                 0 => changed.epoch += 1,
                 8 => changed.amount += Element::GENERATOR,
                 40 => changed.sender += Element::GENERATOR,
-                _ => changed.receiver += Element::GENERATOR,
+                72 => changed.receiver += Element::GENERATOR,
+                _ => changed.checking += Element::GENERATOR,
             }
             assert_ne!(changed.commitment(), keys.commitment());
         }
-        assert!(AuditKeys::from_bytes(&[0; 104]).is_err());
-        assert!(AuditKeys::from_bytes(&[0; 103]).is_err());
+        assert!(AuditKeys::from_bytes(&[0; 136]).is_err());
+        assert!(AuditKeys::from_bytes(&[0; 135]).is_err());
     }
 }
 

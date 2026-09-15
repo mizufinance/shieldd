@@ -18,6 +18,7 @@ pub struct AuditKeysBinary {
     pub amount: PointAffineBytes,
     pub sender: PointAffineBytes,
     pub receiver: PointAffineBytes,
+    pub checking: PointAffineBytes,
 }
 
 impl AuditKeysBinary {
@@ -27,11 +28,12 @@ impl AuditKeysBinary {
             amount: point_affine_bytes(keys.amount)?,
             sender: point_affine_bytes(keys.sender)?,
             receiver: point_affine_bytes(keys.receiver)?,
+            checking: point_affine_bytes(keys.checking)?,
         })
     }
     pub(crate) fn encode(&self, buf: &mut Vec<u8>) {
         put_bytes(buf, &self.epoch.to_le_bytes());
-        for point in [&self.amount, &self.sender, &self.receiver] {
+        for point in [&self.amount, &self.sender, &self.receiver, &self.checking] {
             encode_point_affine(buf, point);
         }
     }
@@ -41,6 +43,7 @@ impl AuditKeysBinary {
             amount: cursor.read_point_affine()?,
             sender: cursor.read_point_affine()?,
             receiver: cursor.read_point_affine()?,
+            checking: cursor.read_point_affine()?,
         })
     }
 }

@@ -1,4 +1,3 @@
-use crate::gnark::typed::AuditKeysBinary;
 use anyhow::{anyhow, bail, Result};
 use decaf377::{Encoding, Fq};
 
@@ -78,7 +77,6 @@ pub struct NoteReshapeWitness {
     pub sender_rnk_dh_pk_affine: PointAffineBytes,
     pub sender_rnk_commitment: [u8; 32],
     pub sender_status: [u8; 32],
-    pub sender_audit_keys: AuditKeysBinary,
     pub shared: NoteReshapeSharedNoteContextWitness,
     pub spends: Vec<NoteReshapeSpendWitness>,
     pub outputs: Vec<NoteReshapeOutputWitness>,
@@ -230,7 +228,6 @@ impl NoteReshapeWitness {
             sender_rnk_dh_pk_affine,
             sender_rnk_commitment,
             sender_status,
-            sender_audit_keys: AuditKeysBinary::from_keys(&private.sender_leaf.audit_keys)?,
             shared,
             spends,
             outputs,

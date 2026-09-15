@@ -523,7 +523,7 @@ dependencies = [
 [[package]]
 name = "authn"
 version = "0.0.1"
-source = "git+https://github.com/sourcenetwork/orbis-rs?rev=1249ba8bf14c05a4b8086f239623ce98206076ea#1249ba8bf14c05a4b8086f239623ce98206076ea"
+source = "git+https://github.com/sourcenetwork/orbis-rs?rev=0a0f935a85cc60e87561a9c7364fa80fdb3332df#0a0f935a85cc60e87561a9c7364fa80fdb3332df"
 dependencies = [
  "base64 0.22.1",
  "did-key",
@@ -1387,7 +1387,7 @@ dependencies = [
 [[package]]
 name = "common"
 version = "0.0.1"
-source = "git+https://github.com/sourcenetwork/orbis-rs?rev=1249ba8bf14c05a4b8086f239623ce98206076ea#1249ba8bf14c05a4b8086f239623ce98206076ea"
+source = "git+https://github.com/sourcenetwork/orbis-rs?rev=0a0f935a85cc60e87561a9c7364fa80fdb3332df#0a0f935a85cc60e87561a9c7364fa80fdb3332df"
 dependencies = [
  "async-trait",
  "backoff",
@@ -1403,7 +1403,6 @@ dependencies = [
  "reqwest 0.12.9",
  "serde",
  "serde_json",
- "tempfile",
  "tendermint",
  "tendermint-rpc",
  "thiserror 1.0.69",
@@ -4286,7 +4285,6 @@ dependencies = [
  "serde",
  "serde_json",
  "shieldd-orbis-client",
- "shieldd-sdk-keys",
  "tokio",
 ]
 
@@ -5002,7 +5000,7 @@ dependencies = [
 [[package]]
 name = "proto"
 version = "0.0.1"
-source = "git+https://github.com/sourcenetwork/orbis-rs?rev=1249ba8bf14c05a4b8086f239623ce98206076ea#1249ba8bf14c05a4b8086f239623ce98206076ea"
+source = "git+https://github.com/sourcenetwork/orbis-rs?rev=0a0f935a85cc60e87561a9c7364fa80fdb3332df#0a0f935a85cc60e87561a9c7364fa80fdb3332df"
 dependencies = [
  "prost 0.14.3",
  "tonic 0.14.5",

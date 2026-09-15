@@ -45,7 +45,6 @@ type ShieldedWithdrawalChangeCircuitFields struct {
 }
 
 type ShieldedWithdrawalSenderCircuitFields struct {
-	AuditKeys     AuditKeysInputs
 	DivGen        Point2D
 	Capk          Point2D
 	RnkDhPk       Point2D
@@ -519,7 +518,6 @@ func (c *ShieldedWithdrawalCircuit) verifySharedContext(
 		gnarkte.Point{X: c.Sender.RnkDhPk.X, Y: c.Sender.RnkDhPk.Y},
 		c.Sender.RnkCommitment,
 		c.Sender.Status,
-		c.Sender.AuditKeys,
 	)
 	if err != nil {
 		return shieldedWithdrawalSharedContext{}, err

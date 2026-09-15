@@ -26,7 +26,6 @@ pub struct IndexedLeafData {
 /// Full compliance user leaf data kept for addresses in sync scope.
 #[derive(Debug, Clone)]
 pub struct UserLeafData {
-    pub audit_keys: shieldd_sdk_compliance::AuditKeys,
     pub position: u64,
     pub capk: [u8; 32],
     pub rnk_dh_pk: [u8; 32],
@@ -514,7 +513,6 @@ impl ComplianceTreeStore<'_, '_> {
         capk: &[u8],
         rnk_dh_pk: &[u8],
         rnk_commitment: &[u8],
-        audit_keys: &shieldd_sdk_compliance::AuditKeys,
         status: shieldd_sdk_compliance::UserAssetStatus,
         freeze_generation: u64,
         frozen_since_height: u64,
@@ -528,8 +526,8 @@ impl ComplianceTreeStore<'_, '_> {
         self.0
             .prepare_cached(
                 "INSERT OR REPLACE INTO compliance_user_leaf_data \
-                 (address, asset_id, position, capk, rnk_dh_pk, rnk_commitment, status, freeze_generation, frozen_since_height, commitment, audit_keys) \
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+                 (address, asset_id, position, capk, rnk_dh_pk, rnk_commitment, status, freeze_generation, frozen_since_height, commitment) \
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
             )
             .context("failed to prepare leaf data insert")?
             .execute((
@@ -544,7 +542,6 @@ impl ComplianceTreeStore<'_, '_> {
                 &freeze_generation,
                 &frozen_since_height,
                 &commitment,
-                &audit_keys.to_bytes().to_vec(),
             ))
             .context("failed to insert leaf data")?;
 
@@ -571,7 +568,7 @@ impl ComplianceTreeStore<'_, '_> {
         let mut stmt = self
             .0
             .prepare_cached(
-                "SELECT position, capk, rnk_dh_pk, rnk_commitment, status, freeze_generation, frozen_since_height, commitment, audit_keys \
+                "SELECT position, capk, rnk_dh_pk, rnk_commitment, status, freeze_generation, frozen_since_height, commitment \
                  FROM compliance_user_leaf_data \
                  WHERE address = ?1 AND asset_id = ?2",
             )
@@ -587,7 +584,6 @@ impl ComplianceTreeStore<'_, '_> {
                 let freeze_generation: i64 = row.get("freeze_generation")?;
                 let frozen_since_height: i64 = row.get("frozen_since_height")?;
                 let commitment: Vec<u8> = row.get("commitment")?;
-                let audit_keys: Vec<u8> = row.get("audit_keys")?;
                 Ok((
                     position,
                     capk,
@@ -597,7 +593,6 @@ impl ComplianceTreeStore<'_, '_> {
                     freeze_generation,
                     frozen_since_height,
                     commitment,
-                    audit_keys,
                 ))
             })
             .optional()
@@ -613,7 +608,6 @@ impl ComplianceTreeStore<'_, '_> {
                 freeze_generation,
                 frozen_since_height,
                 commitment,
-                audit_keys,
             )) => {
                 let capk: [u8; 32] = capk.try_into().map_err(|v: Vec<u8>| {
                     anyhow::anyhow!("leaf data capk must be 32 bytes, got {}", v.len())
@@ -635,7 +629,6 @@ impl ComplianceTreeStore<'_, '_> {
                     )
                 })?;
                 Ok(Some(UserLeafData {
-                    audit_keys: shieldd_sdk_compliance::AuditKeys::from_bytes(&audit_keys)?,
                     position: position as u64,
                     capk,
                     rnk_dh_pk,
@@ -786,7 +779,7 @@ mod tests {
             policy_id_hash: [13u8; 32],
             permission_hash: [14u8; 32],
             resource_hash: [15u8; 32],
-            audit_keys: shieldd_sdk_compliance::AuditKeys::unregulated(),
+            audit_keys: shieldd_sdk_compliance::AuditKeys::test_keys(),
         };
         store.add_asset_leaf(0, leaf).unwrap();
         let retrieved = store.get_asset_leaf(0).unwrap().unwrap();
@@ -830,7 +823,6 @@ mod tests {
                 &[10u8; 32],
                 &[11u8; 32],
                 &[12u8; 32],
-                &shieldd_sdk_compliance::AuditKeys::unregulated(),
                 shieldd_sdk_compliance::UserAssetStatus::Frozen,
                 4,
                 120,

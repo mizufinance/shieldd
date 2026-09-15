@@ -3,34 +3,34 @@
   "curve": "bls12-377",
   "circuit": "transfer",
   "mode": "fresh_setup",
-  "sr1cs_sha256_hex": "d0dd929bc8998200044bd20d39cf39a3051e42d1f27020c536c9cd5221cf457d",
-  "proving_key_sha256_hex": "f0accac4ad003ba92204a3597f3ee3d63f1a027e71c5d78f8093065863b4f253",
-  "verifying_key_binary_sha256_hex": "a4387476bba943da084b8db7826866e7cc4a1368e7cf94ea9c32a0a46d740c28",
-  "verifying_key_json_sha256_hex": "950948f2118de4204a4a8f13b81dc3b887dc5658c8b27bb7a965b9cfa154b26a",
+  "sr1cs_sha256_hex": "aeb1093a4d913d4da7f208ad3687d8fcb5f433451a191d942a80e491e33f1720",
+  "proving_key_sha256_hex": "1d021c039cd0693ecb83fcff30efc3ba33e655f180d9ea723695d1aa2233c2b9",
+  "verifying_key_binary_sha256_hex": "9ea36fbb0553182f5efdd8a37b22bd33ce6b26d53ef8b49e275a0c6d01db7769",
+  "verifying_key_json_sha256_hex": "98a6f82ba8a91bd6e466867c30a45429640459a7a75c0e63aa8c6842c52820c1",
   "generation_self_tests": [
     {
       "proof_case": "regulated_disclosed",
-      "witness_sha256_hex": "f5bce3627fa756daffce5fe23e5f8e44101395114775e3f50912b1134464bc5a",
+      "witness_sha256_hex": "a2f6aaff9c84f2165f6a7ba06b9508ba265b8116c610469eaea10ad9e5b0196c",
       "proved_and_verified_in_process": true
     },
     {
       "proof_case": "regulated_disclosed_hidden",
-      "witness_sha256_hex": "839e2238610c645f9bda9e9c888f37a2ebcc2e522b252fc4498927c39c90a61f",
+      "witness_sha256_hex": "2d938afc146fdb5b93cdf4526df2e0ea4eff3d12d3ce4e3c4e0df7a3156c92df",
       "proved_and_verified_in_process": true
     },
     {
       "proof_case": "unregulated_hidden",
-      "witness_sha256_hex": "bf5d2e8da5765d8d15a952aa4b592bbbcc09e9299f9063ac660e4abf0ffd0495",
+      "witness_sha256_hex": "80b09d1889136030ba9f8d8155f93f7686054a4e5148ffdd26858d10b967dfb1",
       "proved_and_verified_in_process": true
     },
     {
       "proof_case": "accumulator_origin",
-      "witness_sha256_hex": "2ee318f2f34c0ceae62f982e0dffd5dd6b25454bfbd8e9910425dc0dab1f7d30",
+      "witness_sha256_hex": "86717b752be733fe42cf55697689a6c4646e37498822b1a8661157fd6b0516c6",
       "proved_and_verified_in_process": true
     },
     {
       "proof_case": "accumulator_continuation",
-      "witness_sha256_hex": "60aa443789ee41572a665e5295b88e22a654159c2088ac106d72a15dcc7c2838",
+      "witness_sha256_hex": "b808f7925408263cdac1862a58bef2f822234ab6f3028d6df4bba777ed1d6d07",
       "proved_and_verified_in_process": true
     }
   ],

@@ -8,26 +8,25 @@ See `flow.md` for the end-to-end lifecycle.
 Only the receiver `TransferOutputBody` carries compliance bytes. Transfer
 inputs and the change output must not carry compliance data.
 
-General audits select amount (output CORE), sender (output EXT), or receiver
-(sender EXT). Each master wrapping reuses that payload's encryption key and EPK.
-Its mask is Poseidon377 hash_3 under `shieldd.transfer.master_wrapping.v1`, with
-inputs `(position, Compress(shared), Compress(EPK))`; positions are 0, 1, and 2.
-The shared point uses the registered general-scope LaKey key for that field in
-ordinary transactions and the issuer DK for flagged transactions. All three fields are always present and
-constrained by the Transfer proof. Named-person audits use independently registered person/field LaKey keys. Address results are components, not full canonical address strings.
+General audits select amount (output core), sender (output extension), or
+receiver (sender extension). Named-person audits select a role and field; PET
+must authorize that specific selection before any payload share is released.
+Flagged payloads use the issuer key. Ownership ciphertexts use the independent
+checking key; no current command implements a distributed PET. See
+[disclosure](../disclosure.md) for the capability map and upstream gaps.
 
 ```text
-TransferComplianceCiphertext: 800 bytes
-  0..128    four compressed EPKs
-             sender_core, sender_ext, output_core, output_ext
+TransferComplianceCiphertext: 832 bytes
+  0..128    four compressed payload EPKs: sender_core, sender_ext, output_core, output_ext
   128..256  four canonical Fq c2 values in the same order
-  256..352  three master wrappings: amount, sender, receiver
-  352..416  sender-core and output-core key confirmations
-  416..544  four-Fq detection ciphertext
-  544..576  sender_core ciphertext: one Fq
-  576..672  sender_ext ciphertext: three Fq
-  672..704  output_core ciphertext: one Fq
-  704..800  output_ext ciphertext: three Fq
+  256..320  sender ownership R, C (canonical Decaf points)
+  320..384  receiver ownership R, C
+  384..448  sender-core and output-core key confirmations
+  448..576  four-Fq detection ciphertext
+  576..608  sender_core ciphertext: one Fq
+  608..704  sender_ext ciphertext: three Fq
+  704..736  output_core ciphertext: one Fq
+  736..832  output_ext ciphertext: three Fq
 
 TransferComplianceMetadata: 272 bytes
   0..32     ring_id_hash Fq

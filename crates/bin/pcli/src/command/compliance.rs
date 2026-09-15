@@ -85,9 +85,6 @@ pub enum ComplianceCmd {
         /// Orbis ring public key for the registered asset.
         #[clap(long)]
         ring_pk_hex: String,
-        /// Registered person audit key bundle, hex encoded.
-        #[clap(long)]
-        audit_keys_hex: String,
         /// Orbis ring public key evaluated on the address diversified generator.
         #[clap(long)]
         rnk_dh_pk_hex: String,
@@ -251,7 +248,6 @@ impl ComplianceCmd {
                 address,
                 policy_id,
                 ring_pk_hex,
-                audit_keys_hex,
                 rnk_dh_pk_hex,
                 rnk_commitment_hex,
                 registration_authority_sk_hex,
@@ -267,7 +263,6 @@ impl ComplianceCmd {
                     ring_pk,
                     rnk_dh_pk,
                     rnk_commitment,
-                    shieldd_sdk_compliance::AuditKeys::from_bytes(&hex::decode(audit_keys_hex)?)?,
                 )?;
                 let mut nonce = vec![0u8; 16];
                 rand_core::RngCore::fill_bytes(&mut rand_core::OsRng, &mut nonce);

@@ -1,7 +1,7 @@
 # Voluntary transaction disclosure
 
 Disclosure is an off-chain wallet operation. It never reserves notes or modifies
-payment proofs, commitments, consensus, or spendable balances. Compliance collection through ACP/Orbis uses a separate encrypted-evidence path.
+payment proofs, commitments, consensus, or spendable balances. PET-gated compliance collection is unavailable; local evidence review is separate.
 
 | Evidence | What the recipient obtains |
 | --- | --- |
@@ -84,23 +84,56 @@ kills its process group. A package is published atomically only after verificati
 existing files are never overwritten. Import stores the original verified receipt
 without adding spendable notes.
 
-`audit-ciphertext` resolves a canonical compliance tier from committed node data
-without opening a wallet. Its selection contains `version: 2`, `chain_id`, an
-ordinary Transfer `reference`, and `access`. General access is
-`{"mode":"general","value":"amount"}`, with `sender` and `receiver` as the other
-values. Named-person access is `{"mode":"named_person","tier":"sender_core",
-"address":"..."}`; tiers are `sender_core`, `sender_ext`, `output_core`, and
-`output_ext`. The reference uses receiver output index zero. The result contains
-the accepted ciphertext, metadata, selected ephemeral key, wrapping, and canonical
-LaKey identity (chain, ring, epoch, person/general scope, field). It is not a portable inclusion proof or an
-authorization to perform PRE. `--transactions` optionally supplies indexed bytes;
-they must match the canonical accepted transaction exactly. Missing Shinzo data
-can fall back to the chosen node.
+## PET-ready audit selection
 
-`audit-registration` reconstructs certificate statements from signed registration
-grants and chosen-node policy. `audit-decode` takes a selected shared point only
-after independent Orbis verification; it does not itself authenticate PRE.
-Auditor decryption remains local.
+`audit-ciphertext` resolves an ordinary Transfer from the chosen node using
+selection version 3. General scope selects `amount`, `sender` or `receiver`.
+Named-person scope selects an explicit tier and canonical address. The result
+contains accepted ciphertext bytes, policy metadata, the selected payload EPK/C2,
+the ring key reference, the selected ownership ciphertext and the requested
+fingerprint. It does not claim an ownership match, authorization or PET success.
+Indexed candidate bytes, when supplied, must exactly match accepted node bytes.
+
+`audit-decode` decodes a locally supplied shared point. It does not verify PRE,
+PET or authorization. Voluntary and issuer verification remain separate supported
+local operations. Issuer evidence retains its additional amount/detection
+capability; flagged payload fields remain issuer-only.
+
+The asset ring authenticates independent amount, sender-address,
+receiver-address and ownership-checking keys plus an epoch. User leaves contain
+ordinary capability/nullifier registration, not per-person encryption keys.
+The fingerprint is `EncodeToCurve(Poseidon377_hash_2(domain, generator,
+transmission_key))`, with domain `shieldd.audit.ownership.v1` hashed using the
+existing Blake2b-to-Fq convention. Each party gets full ElGamal R/C points with
+independent fresh nonzero randomness. Role is bound by proof position and audit
+selection. Unregulated proofs select sink keys.
+
+| Tier | Owner checked | Payload key |
+| --- | --- | --- |
+| sender_core | Sender | Amount |
+| sender_ext | Sender | Receiver address |
+| output_core | Receiver | Amount |
+| output_ext | Receiver | Sender address |
+
+Live distributed PET, authenticated multi-family provisioning and direct
+participant deposits are unavailable in the inspected upstream baseline. No
+ordinary command simulates collection or falls back to generic PRE. Development
+keys are synthetic. Bankd's local client stores exact evidence bytes and separate
+reader-signed manual endorsements directly in Defra; endorsements are explicitly
+shared and bound to an exact version. The complete upstream capability and
+trusted-tester restrictions register is maintained in
+[Bankd GAPS.md](https://github.com/mizufinance/bankd/blob/codex/disclosure-integration/infra/disclosure-audit/GAPS.md).
+
+The integrated development Transfer circuit has 185,155 constraints. Its compliance
+ciphertext is 832 bytes: the two checking ciphertexts add 128 bytes, with a net
+32-byte increase after deleting the replaced fields. These are integrated
+measurements, not the earlier isolated-probe estimates. The proved regulated
+2×2 Transfer action protobuf measured 3,200 bytes; the complete host test
+transaction measured 7,105 bytes. Transaction size varies with its contents.
+
+Prototype state must be reset after the format change: start a new development
+chain/scanner, and run `pcli view reset` for the wallet. There is no migration or
+legacy audit-selection path. Production proof setup approval is still required.
 
 ## Spending-authority control
 

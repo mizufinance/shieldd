@@ -1,4 +1,3 @@
-use crate::gnark::typed::AuditKeysBinary;
 use anyhow::{bail, Context, Result};
 
 use crate::{
@@ -17,7 +16,7 @@ use crate::{
     ShieldedWithdrawalFamilyId,
 };
 
-const SHIELDED_WITHDRAWAL_WITNESS_MAGIC: &[u8; 4] = b"PIW2";
+const SHIELDED_WITHDRAWAL_WITNESS_MAGIC: &[u8; 4] = b"PIW3";
 
 impl ShieldedWithdrawalWitness {
     pub fn encode(&self) -> Result<Vec<u8>> {
@@ -63,7 +62,6 @@ impl ShieldedWithdrawalWitness {
         encode_point_affine(&mut buf, &self.sender_rnk_dh_pk_affine);
         put_bytes(&mut buf, &self.sender_rnk_commitment);
         put_bytes(&mut buf, &self.sender_status);
-        self.sender_audit_keys.encode(&mut buf);
         put_bytes(&mut buf, &self.withdrawal_seed);
         put_bytes(&mut buf, &self.withdrawal_randomizer);
         encode_required_spend(&mut buf, &self.required_spend)?;
@@ -151,7 +149,6 @@ impl ShieldedWithdrawalWitness {
             sender_rnk_dh_pk_affine: cursor.read_point_affine()?,
             sender_rnk_commitment: cursor.read_fixed::<32>()?,
             sender_status: cursor.read_fixed::<32>()?,
-            sender_audit_keys: AuditKeysBinary::decode(&mut cursor)?,
             withdrawal_seed: cursor.read_fixed::<32>()?,
             withdrawal_randomizer: cursor.read_fr()?,
             required_spend: decode_required_spend(&mut cursor)?,

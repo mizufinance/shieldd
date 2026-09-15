@@ -1,4 +1,3 @@
-use crate::gnark::typed::AuditKeysBinary;
 use anyhow::{bail, Context, Result};
 
 use crate::{
@@ -19,7 +18,7 @@ use crate::{
     transfer::TRANSFER_PROOF_LABEL,
 };
 
-const TRANSFER_WITNESS_MAGIC: &[u8; 4] = b"PTW2";
+const TRANSFER_WITNESS_MAGIC: &[u8; 4] = b"PTW3";
 
 impl TransferWitness {
     pub fn encode(&self) -> Result<Vec<u8>> {
@@ -52,13 +51,12 @@ impl TransferWitness {
         encode_point_affine(&mut buf, &self.sender_rnk_dh_pk_affine);
         put_bytes(&mut buf, &self.sender_rnk_commitment);
         put_bytes(&mut buf, &self.sender_status);
-        self.sender_audit_keys.encode(&mut buf);
         put_bytes(&mut buf, &self.transfer_nonce_root);
         encode_vec_32(&mut buf, &self.detection_ciphertext)?;
         put_bytes(&mut buf, &self.sender_core_key_confirmation);
         put_bytes(&mut buf, &self.output_core_key_confirmation);
-        for wrapping in &self.master_wrappings {
-            put_bytes(&mut buf, wrapping);
+        for point in &self.ownership {
+            encode_point_affine(&mut buf, point);
         }
         put_bytes(&mut buf, &self.ring_id_hash);
         put_bytes(&mut buf, &self.policy_id_hash);
@@ -133,15 +131,15 @@ impl TransferWitness {
             sender_rnk_dh_pk_affine: cursor.read_point_affine()?,
             sender_rnk_commitment: cursor.read_fixed::<32>()?,
             sender_status: cursor.read_fixed::<32>()?,
-            sender_audit_keys: AuditKeysBinary::decode(&mut cursor)?,
             transfer_nonce_root: cursor.read_fixed::<32>()?,
             detection_ciphertext: cursor.read_vec_32()?,
             sender_core_key_confirmation: cursor.read_fixed::<32>()?,
             output_core_key_confirmation: cursor.read_fixed::<32>()?,
-            master_wrappings: [
-                cursor.read_fixed::<32>()?,
-                cursor.read_fixed::<32>()?,
-                cursor.read_fixed::<32>()?,
+            ownership: [
+                cursor.read_point_affine()?,
+                cursor.read_point_affine()?,
+                cursor.read_point_affine()?,
+                cursor.read_point_affine()?,
             ],
             ring_id_hash: cursor.read_fixed::<32>()?,
             policy_id_hash: cursor.read_fixed::<32>()?,
@@ -240,12 +238,14 @@ fn decode_compliance_tier(
 fn encode_randomizers(buf: &mut Vec<u8>, randomizers: &TransferTierRandomizersWitness) {
     put_bytes(buf, &randomizers.core);
     put_bytes(buf, &randomizers.ext);
+    put_bytes(buf, &randomizers.checking);
 }
 
 fn decode_randomizers(cursor: &mut BinaryCursor<'_>) -> Result<TransferTierRandomizersWitness> {
     Ok(TransferTierRandomizersWitness {
         core: cursor.read_fr()?,
         ext: cursor.read_fr()?,
+        checking: cursor.read_fr()?,
     })
 }
 
@@ -321,7 +321,6 @@ fn encode_receiver_output(buf: &mut Vec<u8>, output: &TransferReceiverOutputWitn
     encode_point_affine(buf, &output.recipient_rnk_dh_pk_affine);
     put_bytes(buf, &output.recipient_rnk_commitment);
     put_bytes(buf, &output.recipient_status);
-    output.recipient_audit_keys.encode(buf);
     encode_point_affine(buf, &output.recipient_diversified_generator_affine);
     encode_point_affine(buf, &output.recipient_transmission_key_affine);
     Ok(())
@@ -340,7 +339,6 @@ fn decode_receiver_output(cursor: &mut BinaryCursor<'_>) -> Result<TransferRecei
         recipient_rnk_dh_pk_affine: cursor.read_point_affine()?,
         recipient_rnk_commitment: cursor.read_fixed::<32>()?,
         recipient_status: cursor.read_fixed::<32>()?,
-        recipient_audit_keys: AuditKeysBinary::decode(cursor)?,
         recipient_diversified_generator_affine: cursor.read_point_affine()?,
         recipient_transmission_key_affine: cursor.read_point_affine()?,
     })

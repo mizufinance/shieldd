@@ -50,7 +50,7 @@ pub use structs::{
     KEY_BYTES,
 };
 
-pub mod master_wrapping;
+pub mod audit_field;
 pub mod transfer;
 pub use transfer::{
     derive_transfer_salt, encrypt_transfer, TransferComplianceCiphertext,
@@ -415,7 +415,6 @@ mod tests {
             ring_pk,
             sender_address.diversified_generator() * decaf377::Fr::from(999u64),
             Fq::from(1u64),
-            AuditKeys::test_keys(),
         )
         .unwrap();
         let receiver_leaf = ComplianceLeaf::registered_from_rnk(
@@ -424,7 +423,6 @@ mod tests {
             ring_pk,
             receiver_address.diversified_generator() * decaf377::Fr::from(999u64),
             Fq::from(2u64),
-            AuditKeys::test_keys(),
         )
         .unwrap();
 
@@ -453,8 +451,6 @@ mod tests {
 
         let ciphertext = encrypt_transfer(
             &mut OsRng,
-            &crate::AuditKeys::test_keys(),
-            &crate::AuditKeys::test_keys(),
             &crate::AuditKeys::test_keys(),
             &issuer_dk_pub,
             &receiver_address,
@@ -494,7 +490,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_end_to_end_detection_and_decryption() {
-        use crate::crypto::derive_compliance_scalar;
         use crate::issuer_keys::DetectionKey;
         use crate::transfer::encrypt_transfer;
         use rand_core::OsRng;
@@ -516,8 +511,6 @@ mod tests {
 
         let ciphertext = encrypt_transfer(
             &mut OsRng,
-            &crate::AuditKeys::test_keys(),
-            &crate::AuditKeys::test_keys(),
             &crate::AuditKeys::test_keys(),
             &issuer_dk_pub,
             &receiver_address,
@@ -625,3 +618,5 @@ mod tests {
 
 pub mod audit_keys;
 pub use audit_keys::AuditKeys;
+
+pub mod ownership;

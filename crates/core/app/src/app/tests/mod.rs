@@ -559,7 +559,6 @@ async fn regulated_genesis_note_transfers_through_host_and_compact_block() -> Re
             decaf377::Element::GENERATOR,
             rnk_dh_pk,
             rnk,
-            shieldd_sdk_compliance::AuditKeys::test_keys(),
         )
     };
     let genesis_leaf = make_leaf(test_keys::ADDRESS_0.deref().clone())?;
@@ -723,6 +722,10 @@ async fn regulated_genesis_note_transfers_through_host_and_compact_block() -> Re
         .complete_intent(intent, storage.latest_snapshot())
         .await?;
     let tx_bytes = client.witness_auth_build(&plan).await?.encode_to_vec();
+    eprintln!(
+        "PET-ready regulated host transaction: {} bytes",
+        tx_bytes.len()
+    );
 
     let cache = StatelessCache::new();
     let mut mempool_app = App::new(storage.latest_snapshot());

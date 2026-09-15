@@ -4,6 +4,8 @@ use rand_core::{CryptoRng, RngCore};
 use shieldd_sdk_asset::Value;
 use shieldd_sdk_keys::Address;
 
+use crate::ownership::OwnershipCiphertext;
+
 use crate::{
     crypto::{
         compliance_stream_block, encrypt_tier_bytes, transfer_key_confirmation,
@@ -22,7 +24,8 @@ pub const TRANSFER_CIPHERTEXT_FQS: usize = TRANSFER_DETECTION_FQS
     + TRANSFER_CORE_CIPHERTEXT_FQS
     + TRANSFER_EXT_CIPHERTEXT_FQS;
 pub const TRANSFER_WIRE_BYTES: usize = EPK_BYTES * 4
-    + C2_BYTES * 7
+    + C2_BYTES * 4
+    + 128
     + FQ_BYTES * 2
     + DETECTION_TAG_BYTES
     + FQ_BYTES * TRANSFER_CORE_CIPHERTEXT_FQS
@@ -40,7 +43,7 @@ pub struct TransferComplianceCiphertext {
     pub sender_ext_c2: Fq,
     pub output_core_c2: Fq,
     pub output_ext_c2: Fq,
-    pub master_wrappings: [Fq; 3],
+    pub ownership: [OwnershipCiphertext; 2],
     pub sender_core_key_confirmation: Fq,
     pub output_core_key_confirmation: Fq,
     pub detection_tag: [u8; DETECTION_TAG_BYTES],
@@ -60,7 +63,7 @@ pub struct TransferCompliancePublicInputs {
     pub sender_ext_c2: Fq,
     pub output_core_c2: Fq,
     pub output_ext_c2: Fq,
-    pub master_wrappings: [Fq; 3],
+    pub ownership: [OwnershipCiphertext; 2],
     pub sender_core_key_confirmation: Fq,
     pub output_core_key_confirmation: Fq,
     pub detection_ciphertext: [Fq; TRANSFER_DETECTION_FQS],
@@ -80,6 +83,7 @@ pub struct TierSecretMaterial {
 pub struct PartyTierMaterial {
     pub core: TierSecretMaterial,
     pub ext: TierSecretMaterial,
+    pub checking_randomness: Fr,
 }
 
 #[derive(Clone, Debug)]
@@ -109,8 +113,8 @@ impl TransferComplianceCiphertext {
         bytes.extend_from_slice(&self.sender_ext_c2.to_bytes());
         bytes.extend_from_slice(&self.output_core_c2.to_bytes());
         bytes.extend_from_slice(&self.output_ext_c2.to_bytes());
-        for wrapping in self.master_wrappings {
-            bytes.extend_from_slice(&wrapping.to_bytes());
+        for ownership in self.ownership {
+            bytes.extend_from_slice(&ownership.to_bytes());
         }
         bytes.extend_from_slice(&self.sender_core_key_confirmation.to_bytes());
         bytes.extend_from_slice(&self.output_core_key_confirmation.to_bytes());
@@ -171,11 +175,11 @@ impl TransferComplianceCiphertext {
         let sender_ext_c2 = read_fq(&mut offset)?;
         let output_core_c2 = read_fq(&mut offset)?;
         let output_ext_c2 = read_fq(&mut offset)?;
-        let master_wrappings = [
-            read_fq(&mut offset)?,
-            read_fq(&mut offset)?,
-            read_fq(&mut offset)?,
+        let ownership = [
+            OwnershipCiphertext::from_bytes(&bytes[offset..offset + 64])?,
+            OwnershipCiphertext::from_bytes(&bytes[offset + 64..offset + 128])?,
         ];
+        offset += 128;
         let sender_core_key_confirmation = read_fq(&mut offset)?;
         let output_core_key_confirmation = read_fq(&mut offset)?;
 
@@ -224,7 +228,7 @@ impl TransferComplianceCiphertext {
             sender_ext_c2,
             output_core_c2,
             output_ext_c2,
-            master_wrappings,
+            ownership,
             sender_core_key_confirmation,
             output_core_key_confirmation,
             detection_tag,
@@ -255,7 +259,7 @@ impl TransferComplianceCiphertext {
             sender_ext_c2: self.sender_ext_c2,
             output_core_c2: self.output_core_c2,
             output_ext_c2: self.output_ext_c2,
-            master_wrappings: self.master_wrappings,
+            ownership: self.ownership,
             sender_core_key_confirmation: self.sender_core_key_confirmation,
             output_core_key_confirmation: self.output_core_key_confirmation,
             detection_ciphertext: decode_fqs(&self.detection_tag),
@@ -281,8 +285,6 @@ pub fn derive_transfer_salt(root: Fr, label: &[u8]) -> Fq {
 pub fn encrypt_transfer(
     mut rng: impl RngCore + CryptoRng,
     general_keys: &crate::AuditKeys,
-    sender_keys: &crate::AuditKeys,
-    receiver_keys: &crate::AuditKeys,
     dk_pub: &Element,
     receiver_address: &Address,
     sender_address: &Address,
@@ -293,13 +295,8 @@ pub fn encrypt_transfer(
     output_core_salt: Fq,
 ) -> Result<TransferEncryptionResult> {
     general_keys.validate()?;
-    sender_keys.validate()?;
-    receiver_keys.validate()?;
-    anyhow::ensure!(
-        general_keys.epoch == sender_keys.epoch && general_keys.epoch == receiver_keys.epoch,
-        "audit key epoch mismatch"
-    );
     let sender = PartyTierMaterial {
+        checking_randomness: sample_nonzero_scalar(&mut rng),
         core: TierSecretMaterial {
             seed: Fq::rand(&mut rng),
             r: sample_nonzero_scalar(&mut rng),
@@ -310,6 +307,7 @@ pub fn encrypt_transfer(
         },
     };
     let output = PartyTierMaterial {
+        checking_randomness: sample_nonzero_scalar(&mut rng),
         core: TierSecretMaterial {
             seed: Fq::rand(&mut rng),
             r: sample_nonzero_scalar(&mut rng),
@@ -328,57 +326,40 @@ pub fn encrypt_transfer(
     let sender_core_shared = if is_flagged {
         *dk_pub * sender.core.r
     } else {
-        sender_keys.amount * sender.core.r
+        general_keys.amount * sender.core.r
     };
     let sender_ext_shared = if is_flagged {
         *dk_pub * sender.ext.r
     } else {
-        sender_keys.receiver * sender.ext.r
+        general_keys.receiver * sender.ext.r
     };
     let output_core_shared = if is_flagged {
         *dk_pub * output.core.r
     } else {
-        receiver_keys.amount * output.core.r
+        general_keys.amount * output.core.r
     };
     let output_ext_shared = if is_flagged {
         *dk_pub * output.ext.r
     } else {
-        receiver_keys.sender * output.ext.r
+        general_keys.sender * output.ext.r
     };
 
     let sender_core_c2 = sender.core.seed + sender_core_shared.vartime_compress_to_field();
     let sender_ext_c2 = sender.ext.seed + sender_ext_shared.vartime_compress_to_field();
     let output_core_c2 = output.core.seed + output_core_shared.vartime_compress_to_field();
     let output_ext_c2 = output.ext.seed + output_ext_shared.vartime_compress_to_field();
-    let master_wrappings = [
-        (
-            crate::master_wrapping::MasterSelection::Amount,
-            &output.core,
-            output_core_epk,
-        ),
-        (
-            crate::master_wrapping::MasterSelection::Sender,
-            &output.ext,
-            output_ext_epk,
-        ),
-        (
-            crate::master_wrapping::MasterSelection::Receiver,
-            &sender.ext,
-            sender_ext_epk,
-        ),
-    ]
-    .map(|(selection, material, epk)| {
-        let recipient = if is_flagged {
-            *dk_pub
-        } else {
-            match selection {
-                crate::master_wrapping::MasterSelection::Amount => general_keys.amount,
-                crate::master_wrapping::MasterSelection::Sender => general_keys.sender,
-                crate::master_wrapping::MasterSelection::Receiver => general_keys.receiver,
-            }
-        };
-        material.seed + selection.mask(&(recipient * material.r), &epk)
-    });
+    let ownership = [
+        OwnershipCiphertext::encrypt(
+            sender_address,
+            general_keys.checking,
+            sender.checking_randomness,
+        )?,
+        OwnershipCiphertext::encrypt(
+            receiver_address,
+            general_keys.checking,
+            output.checking_randomness,
+        )?,
+    ];
     let sender_core_key_confirmation = transfer_key_confirmation(
         sender.core.seed,
         sender_core_epk.vartime_compress_to_field(),
@@ -435,7 +416,7 @@ pub fn encrypt_transfer(
             sender_ext_c2,
             output_core_c2,
             output_ext_c2,
-            master_wrappings,
+            ownership,
             sender_core_key_confirmation,
             output_core_key_confirmation,
             detection_tag,
@@ -519,7 +500,10 @@ mod tests {
             sender_ext_c2: Fq::from(0u64),
             output_core_c2: Fq::from(0u64),
             output_ext_c2: Fq::from(0u64),
-            master_wrappings: [Fq::from(0u64); 3],
+            ownership: [OwnershipCiphertext {
+                r: Element::GENERATOR,
+                c: Element::GENERATOR,
+            }; 2],
             sender_core_key_confirmation: Fq::from(0u64),
             output_core_key_confirmation: Fq::from(0u64),
             detection_tag: [0; DETECTION_TAG_BYTES],
@@ -553,13 +537,13 @@ mod tests {
         let mut ciphertext = canonical_ciphertext();
         ciphertext.sender_core_key_confirmation = Fq::from(41u64);
         ciphertext.output_core_key_confirmation = Fq::from(42u64);
-        ciphertext.master_wrappings = [Fq::from(43u64), Fq::from(44u64), Fq::from(45u64)];
+        ciphertext.ownership[0].c += Element::GENERATOR;
 
         let encoded = ciphertext.to_bytes();
         assert_eq!(encoded.len(), TRANSFER_WIRE_BYTES);
         let decoded = TransferComplianceCiphertext::from_bytes(&encoded).unwrap();
         assert_eq!(decoded.sender_core_key_confirmation, Fq::from(41u64));
         assert_eq!(decoded.output_core_key_confirmation, Fq::from(42u64));
-        assert_eq!(decoded.master_wrappings, ciphertext.master_wrappings);
+        assert_eq!(decoded.ownership, ciphertext.ownership);
     }
 }

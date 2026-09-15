@@ -1,6 +1,4 @@
 //! Selected-payment disclosure claims; wallet, node and prover effects live at the edge.
-mod registration;
-pub use registration::*;
 mod audit;
 mod claims;
 mod transaction;

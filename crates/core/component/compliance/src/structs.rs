@@ -220,7 +220,6 @@ pub struct ComplianceLeaf {
     pub asset_id: asset::Id,
     /// Ordinary-Orbis address capability for this asset's ring.
     pub capk: decaf377::Element,
-    pub audit_keys: AuditKeys,
     /// Orbis ring public key evaluated on this address's diversified generator.
     pub rnk_dh_pk: decaf377::Element,
     /// Commitment to the regulated nullifier key derivable by the wallet and daily_volume_limit Orbis.
@@ -293,7 +292,6 @@ impl ComplianceLeaf {
         ring_pk: decaf377::Element,
         rnk_dh_pk: decaf377::Element,
         rnk_commitment: Fq,
-        audit_keys: AuditKeys,
     ) -> anyhow::Result<Self> {
         anyhow::ensure!(
             ring_pk != decaf377::Element::IDENTITY,
@@ -304,7 +302,6 @@ impl ComplianceLeaf {
             "rnk commitment must be nonzero"
         );
         anyhow::ensure!(!rnk_dh_pk.is_identity(), "rnk_dh_pk must be nonidentity");
-        audit_keys.validate_registered()?;
         let d = crate::derive_compliance_scalar(&address);
         let capk = ring_pk * decaf377::Fr::from_le_bytes_mod_order(&d.to_bytes());
         anyhow::ensure!(
@@ -315,7 +312,6 @@ impl ComplianceLeaf {
             address,
             asset_id,
             capk,
-            audit_keys,
             rnk_dh_pk,
             rnk_commitment,
             status: UserAssetStatus::Active,
@@ -331,7 +327,6 @@ impl ComplianceLeaf {
         ring_pk: decaf377::Element,
         rnk_dh_pk: decaf377::Element,
         rnk: Fq,
-        audit_keys: AuditKeys,
     ) -> anyhow::Result<Self> {
         anyhow::ensure!(
             rnk != Fq::from(0u64),
@@ -343,7 +338,6 @@ impl ComplianceLeaf {
             ring_pk,
             rnk_dh_pk,
             compliance_nullifier_key_commitment(rnk),
-            audit_keys,
         )
     }
 
@@ -355,7 +349,6 @@ impl ComplianceLeaf {
             decaf377::Element::GENERATOR,
             decaf377::Element::GENERATOR,
             Fq::from(1u64),
-            AuditKeys::test_keys(),
         )
         .expect("fixed test compliance keys are valid")
     }
@@ -376,7 +369,6 @@ impl ComplianceLeaf {
             address,
             asset_id,
             capk,
-            audit_keys: AuditKeys::unregulated(),
             rnk_dh_pk: *crate::UNREGULATED_SINK_RING_PK,
             rnk_commitment: compliance_nullifier_key_commitment(synthetic_rnk),
             status: UserAssetStatus::Active,
@@ -449,7 +441,6 @@ impl ComplianceLeaf {
     }
 
     pub fn validate(&self) -> anyhow::Result<()> {
-        self.audit_keys.validate()?;
         anyhow::ensure!(
             self.capk != decaf377::Element::IDENTITY,
             "capk must be nonidentity"
@@ -467,7 +458,6 @@ impl ComplianceLeaf {
 
     pub fn validate_registration(&self, ring_pk: decaf377::Element) -> anyhow::Result<()> {
         self.validate()?;
-        self.audit_keys.validate_registered()?;
         anyhow::ensure!(
             ring_pk != decaf377::Element::IDENTITY,
             "ring_pk must be nonidentity"
@@ -504,10 +494,7 @@ impl ComplianceLeaf {
             ),
         );
 
-        StateCommitment(poseidon377::hash_2(
-            &COMPLIANCE_LEAF_DOMAIN_SEP,
-            (commit, self.audit_keys.commitment()),
-        ))
+        StateCommitment(commit)
     }
 
     /// Export to JSON for off-chain sharing.
@@ -563,7 +550,6 @@ impl TryFrom<pb::ComplianceLeaf> for ComplianceLeaf {
                 .ok_or_else(|| anyhow::anyhow!("missing asset_id"))?
                 .try_into()?,
             capk,
-            audit_keys: AuditKeys::from_bytes(&value.audit_keys)?,
             rnk_dh_pk,
             rnk_commitment,
             status: value.status.try_into()?,
@@ -581,7 +567,6 @@ impl From<ComplianceLeaf> for pb::ComplianceLeaf {
             address: Some(value.address.into()),
             asset_id: Some(value.asset_id.into()),
             capk: value.capk.vartime_compress().0.to_vec(),
-            audit_keys: value.audit_keys.to_bytes().to_vec(),
             rnk_dh_pk: value.rnk_dh_pk.vartime_compress().0.to_vec(),
             rnk_commitment: value.rnk_commitment.to_bytes().to_vec(),
             status: pb::UserAssetStatus::from(value.status) as i32,
@@ -778,7 +763,7 @@ pub struct AssetPolicy {
     pub seizure_authority_vk: Option<VerificationKey<SpendAuth>>,
 }
 
-const ASSET_POLICY_STORAGE_MAGIC: &[u8; 4] = b"ASP2";
+const ASSET_POLICY_STORAGE_MAGIC: &[u8; 4] = b"ASP3";
 
 impl AssetPolicy {
     /// Create a new asset policy.
@@ -856,6 +841,13 @@ impl AssetPolicy {
     pub fn validate_regulated(&self) -> anyhow::Result<()> {
         self.ring.audit_keys.validate_registered()?;
         self.validate_crypto_keys()?;
+        let keys = &self.ring.audit_keys;
+        for key in [keys.amount, keys.sender, keys.receiver, keys.checking] {
+            anyhow::ensure!(
+                key != self.ring.ring_pk && key != self.params.dk_pub,
+                "audit encryption keys must be separate from issuer and ring identity keys"
+            );
+        }
         for (name, value) in [
             ("ring_id", self.ring.ring_id.as_str()),
             ("policy_id", self.ring.policy_id.as_str()),
@@ -1001,7 +993,7 @@ impl AssetPolicy {
 
     /// Deserialize from bytes.
     pub fn from_bytes(bytes: &[u8]) -> anyhow::Result<Self> {
-        if bytes.len() < ASSET_POLICY_STORAGE_MAGIC.len() + 184 {
+        if bytes.len() < ASSET_POLICY_STORAGE_MAGIC.len() + 216 {
             anyhow::bail!(
                 "invalid AssetPolicy length: expected asset-policy header and body, got {}",
                 bytes.len()
@@ -1025,8 +1017,8 @@ impl AssetPolicy {
             .vartime_decompress()
             .map_err(|_| anyhow::anyhow!("invalid ring_pk encoding"))?;
 
-        let audit_keys = AuditKeys::from_bytes(&bytes[offset..offset + 104])?;
-        offset += 104;
+        let audit_keys = AuditKeys::from_bytes(&bytes[offset..offset + 136])?;
+        offset += 136;
 
         fn read_string(bytes: &[u8], offset: &mut usize, field: &str) -> anyhow::Result<String> {
             if *offset + 2 > bytes.len() {
@@ -1813,7 +1805,6 @@ impl OrbisCapabilityCertificate {
         message.extend_from_slice(&leaf.address.diversified_generator().vartime_compress().0);
         message.extend_from_slice(&leaf.rnk_dh_pk.vartime_compress().0);
         message.extend_from_slice(&leaf.rnk_commitment.to_bytes());
-        message.extend_from_slice(&leaf.audit_keys.to_bytes());
         Ok(message)
     }
 
@@ -2166,15 +2157,8 @@ mod tests {
         let rnk =
             derive_regulated_nullifier_key(fvk.incoming(), &address, asset_id, ring_pk, rnk_dh_pk)
                 .unwrap();
-        let leaf = ComplianceLeaf::registered_from_rnk(
-            address,
-            asset_id,
-            ring_pk,
-            rnk_dh_pk,
-            rnk,
-            crate::AuditKeys::test_keys(),
-        )
-        .unwrap();
+        let leaf = ComplianceLeaf::registered_from_rnk(address, asset_id, ring_pk, rnk_dh_pk, rnk)
+            .unwrap();
         let policy = AssetPolicy::new(
             Element::GENERATOR,
             u128::MAX,
@@ -2439,7 +2423,6 @@ mod tests {
     fn test_compliance_leaf_proto_rejects_missing_capk() {
         let mut rng = rand::thread_rng();
         let proto = pb::ComplianceLeaf {
-            audit_keys: crate::AuditKeys::test_keys().to_bytes().to_vec(),
             address: Some(Address::dummy(&mut rng).into()),
             asset_id: Some(asset::Id(decaf377::Fq::from(999u64)).into()),
             capk: vec![],
@@ -2463,7 +2446,6 @@ mod tests {
         let mut rng = rand::thread_rng();
         let address = Address::dummy(&mut rng);
         let proto = pb::ComplianceLeaf {
-            audit_keys: crate::AuditKeys::test_keys().to_bytes().to_vec(),
             address: Some(address.into()),
             asset_id: Some(asset::Id(decaf377::Fq::from(999u64)).into()),
             capk: decaf377::Element::GENERATOR.vartime_compress().0.to_vec(),
@@ -2523,6 +2505,27 @@ mod tests {
         assert_eq!(policy.ring.policy_id, recovered.ring.policy_id);
         assert_eq!(policy.ring.permission, recovered.ring.permission);
         assert_eq!(policy.ring.resource, recovered.ring.resource);
+    }
+
+    #[test]
+    fn regulated_policy_rejects_issuer_or_ring_encryption_key_reuse() {
+        let baseline = AssetPolicy::for_test(
+            Element::GENERATOR * Fr::from(37u64),
+            100,
+            Element::GENERATOR * Fr::from(29u64),
+        );
+        for reused in [baseline.params.dk_pub, baseline.ring.ring_pk] {
+            for field in 0..4 {
+                let mut policy = baseline.clone();
+                match field {
+                    0 => policy.ring.audit_keys.amount = reused,
+                    1 => policy.ring.audit_keys.sender = reused,
+                    2 => policy.ring.audit_keys.receiver = reused,
+                    _ => policy.ring.audit_keys.checking = reused,
+                }
+                assert!(policy.validate_regulated().is_err());
+            }
+        }
     }
 
     #[test]

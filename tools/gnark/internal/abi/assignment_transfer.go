@@ -123,7 +123,6 @@ func newTransferSharedAssignmentParts(
 		RnkDhPk:       point2DString(witness.SenderRnkDhPkAffine),
 		RnkCommitment: fqString(witness.SenderRnkCommitment),
 		Status:        fqString(witness.SenderStatus),
-		AuditKeys:     auditKeysInputs(witness.SenderAuditKeys),
 		Path:          senderPath,
 		Position:      witness.SenderCompliancePosition,
 	}
@@ -213,7 +212,7 @@ func newTransferComplianceFields(
 		TransferNonceRoot: fqString(witness.TransferNonceRoot),
 		Metadata: circuits.TransferComplianceMetadataFields{
 			RingIDHash:      fqString(witness.Metadata.RingIDHash),
- AuditEpoch: fqString(witness.Metadata.AuditEpoch),
+			AuditEpoch:      fqString(witness.Metadata.AuditEpoch),
 			PolicyIDHash:    fqString(witness.Metadata.PolicyIDHash),
 			ResourceHash:    fqString(witness.Metadata.ResourceHash),
 			PermissionHash:  fqString(witness.Metadata.PermissionHash),
@@ -223,17 +222,19 @@ func newTransferComplianceFields(
 			OutputCoreSalt:  fqString(witness.Metadata.OutputCoreSalt),
 			OutputExtSalt:   fqString(witness.Metadata.OutputExtSalt),
 		},
-		SenderRCore: fqString(witness.SenderRCore),
-		SenderRExt:  fqString(witness.SenderRExt),
-		OutputRCore: fqString(witness.OutputRCore),
-		OutputRExt:  fqString(witness.OutputRExt),
-		SenderCore:  senderCore,
-		SenderExt:   senderExt,
-		OutputCore:  outputCore,
-		OutputExt:   outputExt,
+		SenderChecking: fqString(witness.SenderChecking),
+		OutputChecking: fqString(witness.OutputChecking),
+		SenderRCore:    fqString(witness.SenderRCore),
+		SenderRExt:     fqString(witness.SenderRExt),
+		OutputRCore:    fqString(witness.OutputRCore),
+		OutputRExt:     fqString(witness.OutputRExt),
+		SenderCore:     senderCore,
+		SenderExt:      senderExt,
+		OutputCore:     outputCore,
+		OutputExt:      outputExt,
 	}
-	for i := range witness.MasterWrappings {
-		fields.MasterWrappings[i] = fqString(witness.MasterWrappings[i])
+	for i := range witness.Ownership {
+		fields.Ownership[i] = circuits.PointAffineToNative(pointAffineBinaryToStrings(witness.Ownership[i]))
 	}
 	for i := range witness.DetectionCiphertext {
 		fields.DetectionCiphertext[i] = fqString(witness.DetectionCiphertext[i])
@@ -359,7 +360,6 @@ func newTransferReceiverOutputCircuitFields(
 			RnkDhPk:       point2DString(witness.RecipientRnkDhPkAffine),
 			RnkCommitment: fqString(witness.RecipientRnkCommitment),
 			Status:        fqString(witness.RecipientStatus),
-			AuditKeys:     auditKeysInputs(witness.RecipientAuditKeys),
 			Path:          recipientPath,
 			Position:      witness.RecipientCompliancePosition,
 		},

@@ -556,7 +556,6 @@ mod tests {
             decaf377::Element::GENERATOR,
             address.diversified_generator().clone(),
             Fq::from(1u64),
-            crate::AuditKeys::test_keys(),
         )
         .expect("fixed genesis compliance keys are valid");
 

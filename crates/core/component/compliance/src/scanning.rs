@@ -195,8 +195,6 @@ mod tests {
         let ciphertext = encrypt_transfer(
             &mut OsRng,
             &crate::AuditKeys::test_keys(),
-            &crate::AuditKeys::test_keys(),
-            &crate::AuditKeys::test_keys(),
             &dk_pub,
             &receiver_address,
             &sender_address,
@@ -242,8 +240,6 @@ mod tests {
         let output_core_salt = decaf377::Fq::from(3u64);
         let ciphertext = encrypt_transfer(
             &mut OsRng,
-            &crate::AuditKeys::test_keys(),
-            &crate::AuditKeys::test_keys(),
             &crate::AuditKeys::test_keys(),
             &dk_pub,
             &receiver_address,

@@ -22,14 +22,8 @@ pub enum DisclosureCmd {
         #[clap(long)]
         transactions: Option<Utf8PathBuf>,
     },
-    /// Decode a chosen-node ciphertext using a shared point already verified through Orbis.
+    /// Decode a chosen-node ciphertext using a supplied shared point; this does not verify PET or PRE.
     AuditDecode {
-        request: Utf8PathBuf,
-        #[clap(long)]
-        node: String,
-    },
-    /// Reconstruct certificate bytes from a registration grant and chosen-node policy.
-    AuditRegistration {
         request: Utf8PathBuf,
         #[clap(long)]
         node: String,
@@ -512,23 +506,6 @@ impl DisclosureCmd {
                     }
                 }
             }
-            Self::AuditRegistration { request, node } => {
-                let request: sdk::AuditRegistrationRequest =
-                    serde_json::from_slice(&read_bounded(request, sdk::MAX_DOCUMENT_BYTES)?)?;
-                let (chain, _) = accepted_blocks(node, BTreeSet::new()).await?;
-                let policy = match &request.registration {
-                    sdk::AuditRegistration::Person { action } => {
-                        Some(asset_policy(node, action.leaf.asset_id).await?)
-                    }
-                    sdk::AuditRegistration::General { .. } => None,
-                };
-                let now = std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)?
-                    .as_secs();
-                let statement =
-                    sdk::prepare_audit_registration(&request, &chain, now, policy.as_ref())?;
-                println!("{}", serde_json::to_string(&statement)?);
-            }
             Self::AuditDecode { request, node } => {
                 #[derive(serde::Deserialize)]
                 #[serde(deny_unknown_fields)]
@@ -560,10 +537,9 @@ impl DisclosureCmd {
                 let selection: sdk::AuditSelection = report_rejection((|| {
                     let selection: sdk::AuditSelection = serde_json::from_slice(&bytes)?;
                     ensure!(
-                        selection.version == 2 && selection.reference.height > 0,
+                        selection.version == 3 && selection.reference.height > 0,
                         "invalid audit selection"
                     );
-                    selection.access.key_scope()?;
                     Ok(selection)
                 })())?;
                 let (chain, blocks) =
@@ -603,7 +579,7 @@ impl DisclosureCmd {
             }
             Self::Capabilities => println!(
                 "{}",
-                serde_json::json!({"protocol":1,"package_version":sdk::VERSION,"audit_ciphertext_version":2,"audit_registration_version":1,"issuer_disclosure_version":1,"circuit":sdk::CIRCUIT_ID,"development_artifacts":cfg!(all(feature="development-disclosure-artifacts",debug_assertions))})
+                serde_json::json!({"protocol":1,"package_version":sdk::VERSION,"audit_ciphertext_version":3,"live_pet":false,"protected_delivery":false,"issuer_disclosure_version":1,"circuit":sdk::CIRCUIT_ID,"development_artifacts":cfg!(all(feature="development-disclosure-artifacts",debug_assertions))})
             ),
             Self::Inspect { package } => {
                 let package = sdk::decode_package(&read_bounded(package, sdk::MAX_PACKAGE_BYTES)?)?;

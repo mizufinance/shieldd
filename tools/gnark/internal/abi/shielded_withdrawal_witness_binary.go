@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	shieldedWithdrawalWitnessMagic          = "PIW2"
+	shieldedWithdrawalWitnessMagic          = "PIW3"
 	maxShieldedWithdrawalInputs             = 2
 	minShieldedWithdrawalRequiredSpendBytes = 32*4 + 8 + 4 + 32 + 64 + 1
 	minShieldedWithdrawalOptionalSpendBytes = minShieldedWithdrawalRequiredSpendBytes + 1 + 32
@@ -81,7 +81,6 @@ type ShieldedWithdrawalWitnessBinary struct {
 	SenderRnkDhPkAffine      PointAffineBinary
 	SenderRnkCommitment      [32]byte
 	SenderStatus             [32]byte
-	SenderAuditKeys          AuditKeysBinary
 	WithdrawalSeed           [32]byte
 	WithdrawalRandomizer     [32]byte
 
@@ -249,9 +248,7 @@ func DecodeShieldedWithdrawalWitness(payload []byte) (*ShieldedWithdrawalWitness
 	if out.SenderStatus, err = read32(reader); err != nil {
 		return nil, family, err
 	}
-	if out.SenderAuditKeys, err = readAuditKeys(reader); err != nil {
-		return nil, family, err
-	}
+
 	if out.WithdrawalSeed, err = read32(reader); err != nil {
 		return nil, family, err
 	}

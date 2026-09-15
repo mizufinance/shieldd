@@ -51,7 +51,7 @@ pub struct IssuerRequest {
 
 pub fn validate_issuer_request(request: &IssuerRequest) -> Result<()> {
     ensure!(
-        request.version == 1 && request.selection.version == 2,
+        request.version == 1 && request.selection.version == 3,
         "unsupported issuer request version"
     );
     ensure!(
@@ -255,10 +255,7 @@ fn verify_fields(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        ActionRef, AuditKeyField, AuditKeyIdentity, AuditKeyScope, AuditPolicy, MasterSelection,
-        OutputRef,
-    };
+    use crate::{ActionRef, AuditField, AuditKeyField, AuditPolicy, OutputRef, RingAuditKeyRef};
     use decaf377::Fq;
     use shieldd_sdk_compliance::{
         transfer::encrypt_transfer, AuditKeys, TransferComplianceMetadata,
@@ -267,7 +264,7 @@ mod tests {
 
     fn fixture(
         flagged: bool,
-        selection: MasterSelection,
+        selection: AuditField,
     ) -> (AcceptedAuditCiphertext, asset::Id, DetectionKey) {
         let sender = SpendKey::try_from(SpendKeyBytes([7; 32]))
             .unwrap()
@@ -282,6 +279,7 @@ mod tests {
             amount: Element::GENERATOR * Fr::from(n),
             sender: Element::GENERATOR * Fr::from(n + 1),
             receiver: Element::GENERATOR * Fr::from(n + 2),
+            checking: Element::GENERATOR * Fr::from(n + 3),
         };
         let asset = asset::Id(Fq::from(42u64));
         let key = DetectionKey::new(Fr::from(37u64));
@@ -300,8 +298,6 @@ mod tests {
         let encrypted = encrypt_transfer(
             rand_core::OsRng,
             &keys(101u64),
-            &keys(104),
-            &keys(107),
             &key.public_key(),
             &receiver,
             &sender,
@@ -321,7 +317,7 @@ mod tests {
             .unwrap();
         let accepted = AcceptedAuditCiphertext {
             selection: AuditSelection {
-                version: 2,
+                version: 3,
                 chain_id: "chain".into(),
                 reference: OutputRef {
                     transaction_id: "ab".repeat(32),
@@ -338,17 +334,17 @@ mod tests {
                 },
             },
             epk: tier.epk.vartime_compress().0,
-            wrapping: encrypted.ciphertext.master_wrappings[selection as usize].to_bytes(),
+            wrapping: tier.c2.to_bytes(),
             ciphertext: encrypted.ciphertext.to_bytes().to_vec(),
             metadata,
-            identity: AuditKeyIdentity {
+            identity: RingAuditKeyRef {
                 chain: "chain".into(),
                 ring: "ring".into(),
                 epoch: 1,
-                scope: AuditKeyScope::General,
                 field: AuditKeyField::Amount,
             },
-            object_id: "fixture".into(),
+            ownership_ciphertext: encrypted.ciphertext.ownership[0].to_bytes().to_vec(),
+            expected_fingerprint: None,
         };
         (accepted, asset, key)
     }
@@ -366,7 +362,7 @@ mod tests {
 
     #[test]
     fn selected_issuer_fields_require_detection_and_both_dleq_proofs() {
-        for selection in MasterSelection::ALL {
+        for selection in AuditField::ALL {
             let (accepted, asset, key) = fixture(true, selection);
             let package = prepare_issuer_disclosure(
                 rand_core::OsRng,
@@ -377,7 +373,7 @@ mod tests {
             .unwrap();
             let facts = verify_fields(&package, &accepted, asset, key.public_key()).unwrap();
             assert!(facts.flagged && facts.grants_amount_and_detection_access);
-            if selection == MasterSelection::Amount {
+            if selection == AuditField::Amount {
                 assert_eq!(
                     facts.value,
                     DecodedAuditValue::Amount {
@@ -434,7 +430,7 @@ mod tests {
             )
             .is_err());
         }
-        let (accepted, asset, key) = fixture(false, MasterSelection::Amount);
+        let (accepted, asset, key) = fixture(false, AuditField::Amount);
         assert!(prepare_issuer_disclosure(
             rand_core::OsRng,
             &accepted,

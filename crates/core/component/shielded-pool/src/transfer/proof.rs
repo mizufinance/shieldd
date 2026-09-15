@@ -39,7 +39,7 @@ pub struct TransferComplianceCiphertextPublic {
 
 #[derive(Clone, Debug)]
 pub struct TransferCompliancePublic {
-    pub master_wrappings: [Fq; 3],
+    pub ownership: [shieldd_sdk_compliance::ownership::OwnershipCiphertext; 2],
     pub detection_ciphertext: Vec<Fq>,
     pub metadata: TransferComplianceMetadata,
     pub sender_core_key_confirmation: Fq,
@@ -122,6 +122,7 @@ pub struct TransferChangeOutputPrivate {
 pub struct TransferTierRandomizers {
     pub core: Fr,
     pub ext: Fr,
+    pub checking: Fr,
 }
 
 #[derive(Clone, Debug)]
@@ -932,6 +933,13 @@ mod tests {
         let _guard = proof_runtime();
 
         let (transfer, proving_public, context) = build_transfer_action_and_public(true);
+        use prost::Message;
+        let encoded: shieldd_sdk_proto::core::component::shielded_pool::v1::Transfer =
+            transfer.clone().into();
+        eprintln!(
+            "PET-ready regulated 2x2 Transfer protobuf: {} bytes",
+            encoded.encoded_len()
+        );
         let extracted_public =
             transfer_extract_public(&transfer, &context).expect("extract transfer public");
 

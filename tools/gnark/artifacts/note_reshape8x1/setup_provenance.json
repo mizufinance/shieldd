@@ -3,14 +3,14 @@
   "curve": "bls12-377",
   "circuit": "note_reshape8x1",
   "mode": "fresh_setup",
-  "sr1cs_sha256_hex": "6d26a74417c5ae690d638a42ae8aac0c4f1c76682e801fdd19746ba9323b6ddc",
-  "proving_key_sha256_hex": "9eec4e24db9f806004d51420ff3724ed8654f9c4652af8e979c8f758a9feda31",
-  "verifying_key_binary_sha256_hex": "2d63209bd9e6da6ff03ab349db8904e36e1b1f21aac8a390d154e6ab100fdf77",
-  "verifying_key_json_sha256_hex": "c25ece22cbf9e2f4dfb7db522749a3cb76c0157e9d496b3d52319f1ffa985b56",
+  "sr1cs_sha256_hex": "5d746dccaf8fdd17321fa9565d40460c6185b00a07339c1787f6bd5609606adf",
+  "proving_key_sha256_hex": "31537423a18845d2154dac2dc1eecdf1ffaa1cbc87ab8550c4c5a34828658a02",
+  "verifying_key_binary_sha256_hex": "4b8167ee82cd527cba60f5d4eddcea74868525e9b8540b8139db5d98196bd755",
+  "verifying_key_json_sha256_hex": "021633281fafeee95d720cc8d4f357a96dc5b5d96dcf20dc6597ffc6f2e72337",
   "generation_self_tests": [
     {
       "proof_case": "regulated_merge",
-      "witness_sha256_hex": "e3033fa275f0c67f5bd6cf0b434bb830602e4e3213ad664627ef5c98799ba030",
+      "witness_sha256_hex": "5974292daf8a809b4591de46975b0d5fb1d9c4fa3005954cac43526985a74529",
       "proved_and_verified_in_process": true
     }
   ],

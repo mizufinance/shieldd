@@ -61,7 +61,7 @@ nullifier, and value constraints are tracked in
 
 - Four fixed tiers exist in structural order: sender core, sender extension,
   output core, output extension.
-- Every tier constrains `EPK = r*G`, the selected ACK/DK shared secret,
+- Every tier constrains `EPK = r*G`, the selected ring field-key/DK shared secret,
   `c2 = seed + compress(shared_secret)`, and every Poseidon stream word.
 - These equations are unconditional in both regulated and unregulated branches.
 - Each tier uses an independent witness randomizer and EPK.
@@ -78,13 +78,25 @@ nullifier, and value constraints are tracked in
 - Mutation coverage: randomizer, EPK coordinates, c2, seed, plaintext, and every
   ciphertext word for each tier.
 
+### Ownership checking ciphertexts
+
+- Each role binds the canonical actual address generator and transmission key to
+  `EncodeToCurve(Poseidon377_hash_2(domain, generator, transmission_key))`.
+- Full ElGamal R/C points use independent nonzero checking randomizers and the
+  committed checking key. Unregulated transfers select the fixed sink key.
+- All four compressed points enter the public statement. The role is structural;
+  identical addresses intentionally have identical fingerprints across roles.
+- Coverage includes Rust/Go/gnark parity, valid ciphertexts for the wrong owner,
+  role substitution between distinct addresses, changed public points and zero scalars.
+- PET execution and authorization enforcement are unavailable upstream.
+
 ### Factored Metadata
 
-- One metadata record binds exactly nine facts: four selected policy hashes,
-  `target_timestamp`, and four tier salts. It publishes no subject derivation.
+- One metadata record binds ten facts: four selected policy hashes,
+  `target_timestamp`, `audit_epoch`, and four tier salts. It publishes no subject derivation.
 - The four salts are structural tier domains in the fixed tier order.
-- The serialized record is exactly 264 bytes: eight canonical Fq encodings plus
-  one little-endian u64.
+- The serialized record is exactly 272 bytes: eight canonical Fq encodings plus
+  two little-endian u64 values.
 - Metadata timestamp equals the existing transfer target timestamp; it is not a
   second statement field.
 - Mutation coverage: every metadata field, noncanonical Fq bytes, zero
@@ -92,7 +104,8 @@ nullifier, and value constraints are tracked in
 
 ### Public Statement
 
-- Rust and Go reconstruct the same 53-field preimage.
+- Rust and Go reconstruct the same 58-field preimage for the 2×2 family (48 base fields,
+  three per input and two per output).
 - The statement hash uses the canonical transfer domain.
 - The preimage binds the consensus recent-position floor and one
   `history_required` bit per spend.
@@ -121,7 +134,7 @@ nullifier, and value constraints are tracked in
 
 ### Wire Shape
 
-- Only the receiver output may carry the 800-byte ciphertext and 264-byte
+- Only the receiver output may carry the 832-byte ciphertext and 272-byte
   metadata.
 - Inputs and the change output carry neither.
 - Point and Fq decoders reject noncanonical values and wrong lengths.

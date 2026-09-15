@@ -77,8 +77,6 @@ pub(crate) fn build_transfer_compliance(
     let encryption = encrypt_transfer(
         &mut rng,
         &general_keys,
-        &sender_leaf.audit_keys,
-        &receiver_leaf.audit_keys,
         &dk_pub,
         &receiver_note.address(),
         &sender_leaf.address,
@@ -130,10 +128,12 @@ pub(crate) fn build_transfer_compliance(
         sender: TransferTierRandomizers {
             core: encryption.sender.core.r,
             ext: encryption.sender.ext.r,
+            checking: encryption.sender.checking_randomness,
         },
         output: TransferTierRandomizers {
             core: encryption.output.core.r,
             ext: encryption.output.ext.r,
+            checking: encryption.output.checking_randomness,
         },
     };
 
@@ -219,7 +219,7 @@ pub(crate) fn transfer_compliance_public_from_parts(
         sender_ext_c2,
         output_core_c2,
         output_ext_c2,
-        master_wrappings,
+        ownership,
         sender_core_key_confirmation,
         output_core_key_confirmation,
         detection_ciphertext,
@@ -232,7 +232,7 @@ pub(crate) fn transfer_compliance_public_from_parts(
     Ok(TransferCompliancePublic {
         detection_ciphertext: detection_ciphertext.to_vec(),
         metadata: metadata.clone(),
-        master_wrappings,
+        ownership,
         sender_core_key_confirmation,
         output_core_key_confirmation,
         sender_core: TransferComplianceCiphertextPublic {

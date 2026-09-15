@@ -4,13 +4,13 @@ use shieldd_sdk_compliance::{TransferComplianceCiphertext, TransferComplianceMet
 use shieldd_sdk_transaction::Action;
 
 use crate::{AcceptedBlock, ActionRef, OutputRef};
-pub use shieldd_sdk_compliance::master_wrapping::MasterSelection;
+pub use shieldd_sdk_compliance::audit_field::AuditField;
 pub use shieldd_sdk_compliance::transfer_audit::TransferTier;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "mode", rename_all = "snake_case", deny_unknown_fields)]
 pub enum AuditAccess {
-    General { value: MasterSelection },
+    General { value: AuditField },
     NamedPerson { tier: TransferTier, address: String },
 }
 
@@ -22,30 +22,16 @@ impl AuditAccess {
         }
     }
 
-    pub fn key_scope(&self) -> Result<AuditKeyScope> {
-        match self {
-            Self::General { .. } => Ok(AuditKeyScope::General),
-            Self::NamedPerson { address, .. } => {
-                let address: shieldd_sdk_keys::Address = address
-                    .parse()
-                    .context("invalid named-person audit address")?;
-                Ok(AuditKeyScope::Person {
-                    identity: address.to_vec(),
-                })
-            }
-        }
-    }
-
     pub fn key_field(&self) -> AuditKeyField {
         match self {
             Self::General {
-                value: MasterSelection::Amount,
+                value: AuditField::Amount,
             } => AuditKeyField::Amount,
             Self::General {
-                value: MasterSelection::Sender,
+                value: AuditField::Sender,
             } => AuditKeyField::Sender,
             Self::General {
-                value: MasterSelection::Receiver,
+                value: AuditField::Receiver,
             } => AuditKeyField::Receiver,
             Self::NamedPerson {
                 tier: TransferTier::SenderCore | TransferTier::OutputCore,
@@ -63,22 +49,14 @@ impl AuditAccess {
     }
 }
 
-/// Public LaKey identity passed to Orbis; the PRF is evaluated only by its MPC nodes.
+/// Key family selected from authenticated ring state.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct AuditKeyIdentity {
+pub struct RingAuditKeyRef {
     pub chain: String,
     pub ring: String,
     pub epoch: u64,
-    pub scope: AuditKeyScope,
     pub field: AuditKeyField,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
-pub enum AuditKeyScope {
-    General,
-    Person { identity: Vec<u8> },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -116,8 +94,9 @@ pub struct AcceptedAuditCiphertext {
     pub metadata: TransferComplianceMetadata,
     pub epk: [u8; 32],
     pub wrapping: [u8; 32],
-    pub identity: AuditKeyIdentity,
-    pub object_id: String,
+    pub identity: RingAuditKeyRef,
+    pub ownership_ciphertext: Vec<u8>,
+    pub expected_fingerprint: Option<[u8; 32]>,
 }
 
 /// Indexed bytes must exactly match a canonical transaction accepted by the chosen node.
@@ -155,7 +134,7 @@ pub fn accepted_audit_ciphertext(
     block: &AcceptedBlock,
 ) -> Result<AcceptedAuditCiphertext> {
     ensure!(
-        selection.version == 2,
+        selection.version == 3,
         "unsupported audit selection version"
     );
     ensure!(
@@ -221,43 +200,33 @@ pub fn accepted_audit_ciphertext(
         metadata.audit_epoch != 0,
         "unregulated transaction has no Orbis audit keys"
     );
-    let identity = AuditKeyIdentity {
+    let identity = RingAuditKeyRef {
         chain: selection.chain_id.clone(),
         ring: policy.ring_id.clone(),
         epoch: metadata.audit_epoch,
-        scope: selection.access.key_scope()?,
         field: selection.access.key_field(),
     };
     let tier = selection.access.tier().select(&ct, &metadata)?;
     let epk = tier.epk.vartime_compress().0;
-    let wrapping = match &selection.access {
-        AuditAccess::General { value } => ct.master_wrappings[*value as usize],
-        AuditAccess::NamedPerson { .. } => tier.c2,
-    }
-    .to_bytes();
-    let scope = match &selection.access {
-        AuditAccess::General { value } => format!("general:{}", *value as u8),
-        AuditAccess::NamedPerson { tier, .. } => {
-            let tier = match tier {
-                TransferTier::SenderCore => "sender_core",
-                TransferTier::SenderExt => "sender_ext",
-                TransferTier::OutputCore => "output_core",
-                TransferTier::OutputExt => "output_ext",
-            };
-            format!(
-                "named:{tier}:{}",
-                match &identity.scope {
-                    AuditKeyScope::Person { identity } => hex::encode(identity),
-                    AuditKeyScope::General => unreachable!("named access has person scope"),
-                }
+    let wrapping = tier.c2.to_bytes();
+    let owner_index = match selection.access.tier() {
+        TransferTier::SenderCore | TransferTier::SenderExt => 0,
+        TransferTier::OutputCore | TransferTier::OutputExt => 1,
+    };
+    let ownership_ciphertext = ct.ownership[owner_index].to_bytes().to_vec();
+    let expected_fingerprint = match &selection.access {
+        AuditAccess::General { .. } => None,
+        AuditAccess::NamedPerson { address, .. } => {
+            let owner = address
+                .parse()
+                .context("invalid named-person audit address")?;
+            Some(
+                shieldd_sdk_compliance::ownership::fingerprint(&owner)
+                    .vartime_compress()
+                    .0,
             )
         }
     };
-    let object_id = format!(
-        "shieldd:{}:{}:{action}:0:{scope}",
-        hex::encode(selection.chain_id.as_bytes()),
-        tx.id()
-    );
     Ok(AcceptedAuditCiphertext {
         selection,
         ciphertext: output.compliance_ciphertext.clone(),
@@ -265,7 +234,8 @@ pub fn accepted_audit_ciphertext(
         epk,
         wrapping,
         identity,
-        object_id,
+        ownership_ciphertext,
+        expected_fingerprint,
     })
 }
 
@@ -281,7 +251,7 @@ pub enum DecodedAuditValue {
     },
 }
 
-/// Decodes using an already verified PRE shared point; decoding does not verify PRE evidence.
+/// Decode a supplied point locally; this does not establish PET, PRE validity or authorization.
 pub fn decode_audit_ciphertext(
     accepted: &AcceptedAuditCiphertext,
     shared_point: [u8; 32],
@@ -291,12 +261,12 @@ pub fn decode_audit_ciphertext(
         .vartime_decompress()
         .map_err(|_| anyhow::anyhow!("invalid audit shared point"))?;
     let ct = TransferComplianceCiphertext::from_bytes(&accepted.ciphertext)?;
-    let value = match &accepted.selection.access {
-        AuditAccess::General { value } => value.decrypt(&ct, &accepted.metadata, &shared)?,
-        AuditAccess::NamedPerson { tier, .. } => {
-            tier.select(&ct, &accepted.metadata)?.decrypt(&shared)?
-        }
-    };
+    let value = accepted
+        .selection
+        .access
+        .tier()
+        .select(&ct, &accepted.metadata)?
+        .decrypt(&shared)?;
     Ok(match value {
         TransferAuditData::Amount(amount) => DecodedAuditValue::Amount {
             base_units: amount.to_string(),
@@ -315,7 +285,7 @@ mod tests {
     #[test]
     fn rejects_wrong_chain_height_version_and_missing_acceptance() {
         let selection = AuditSelection {
-            version: 2,
+            version: 3,
             chain_id: "chain".to_owned(),
             reference: OutputRef {
                 transaction_id: "00".repeat(32),
@@ -324,7 +294,7 @@ mod tests {
                 output: 0,
             },
             access: AuditAccess::General {
-                value: MasterSelection::Amount,
+                value: AuditField::Amount,
             },
             policy: AuditPolicy {
                 ring_id: "ring".into(),
@@ -366,7 +336,7 @@ mod tests {
         let tx = shieldd_sdk_transaction::Transaction::default();
         let raw: Vec<u8> = (&tx).into();
         let mut selection = AuditSelection {
-            version: 2,
+            version: 3,
             chain_id: "chain".into(),
             reference: OutputRef {
                 transaction_id: tx.id().to_string(),
@@ -375,7 +345,7 @@ mod tests {
                 output: 0,
             },
             access: AuditAccess::General {
-                value: MasterSelection::Amount,
+                value: AuditField::Amount,
             },
             policy: AuditPolicy {
                 ring_id: "ring".into(),

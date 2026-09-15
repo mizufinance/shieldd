@@ -27,6 +27,7 @@ type AuditKeysBinary struct {
 	Amount   PointAffineBinary
 	Sender   PointAffineBinary
 	Receiver PointAffineBinary
+	Checking PointAffineBinary
 }
 
 type IndexedLeafBinary struct {
@@ -270,6 +271,9 @@ func readAuditKeys(r io.Reader) (AuditKeysBinary, error) {
 		return out, err
 	}
 	if out.Receiver, err = readPointAffine(r); err != nil {
+		return out, err
+	}
+	if out.Checking, err = readPointAffine(r); err != nil {
 		return out, err
 	}
 	return out, nil

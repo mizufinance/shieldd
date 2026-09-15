@@ -116,6 +116,7 @@ impl SqliteScannerStore {
 
     fn initialize_schema(conn: &Connection) -> Result<()> {
         let schema_sql = r#"
+            -- PET-ready Transfer ciphertext format 3
             CREATE TABLE IF NOT EXISTS scanner_schema (
                 id INTEGER PRIMARY KEY CHECK (id = 1),
                 identity TEXT NOT NULL
@@ -1018,7 +1019,10 @@ mod tests {
                     output_ext_epk: decaf377::Element::GENERATOR,
                     sender_core_c2: decaf377::Fq::from(1u64),
                     sender_ext_c2: decaf377::Fq::from(2u64),
-                    master_wrappings: [decaf377::Fq::from(0u64); 3],
+                    ownership: [crate::ownership::OwnershipCiphertext {
+                        r: decaf377::Element::GENERATOR,
+                        c: decaf377::Element::GENERATOR,
+                    }; 2],
                     output_core_c2: decaf377::Fq::from(3u64),
                     output_ext_c2: decaf377::Fq::from(4u64),
                     sender_core_key_confirmation: decaf377::Fq::from(5u64),

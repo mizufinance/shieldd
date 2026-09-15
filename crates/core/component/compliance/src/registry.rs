@@ -136,10 +136,6 @@ impl GenesisUserAdmission {
             .capability_certificate
             .verify(&registration.leaf, policy, chain_id)?;
         anyhow::ensure!(
-            registration.leaf.audit_keys.epoch == policy.ring.audit_keys.epoch,
-            "genesis user audit key epoch does not match asset policy"
-        );
-        anyhow::ensure!(
             registration.leaf.status == UserAssetStatus::Active,
             "genesis compliance users must start active"
         );

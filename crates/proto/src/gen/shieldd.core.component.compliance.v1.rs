@@ -59,9 +59,6 @@ pub struct ComplianceLeaf {
     /// Block height at which the current freeze generation began. Zero unless frozen or seized.
     #[prost(uint64, tag = "8")]
     pub frozen_since_height: u64,
-    /// Canonical epoch and three registered LaKey audit public keys.
-    #[prost(bytes = "vec", tag = "9")]
-    pub audit_keys: ::prost::alloc::vec::Vec<u8>,
 }
 impl ::prost::Name for ComplianceLeaf {
     const NAME: &'static str = "ComplianceLeaf";

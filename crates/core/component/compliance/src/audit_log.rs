@@ -1178,8 +1178,6 @@ mod tests {
         let encrypted = encrypt_transfer(
             &mut OsRng,
             &crate::AuditKeys::test_keys(),
-            &crate::AuditKeys::test_keys(),
-            &crate::AuditKeys::test_keys(),
             &decaf377::Element::GENERATOR,
             &receiver,
             &sender,

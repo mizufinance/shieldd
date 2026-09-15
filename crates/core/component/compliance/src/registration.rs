@@ -28,10 +28,6 @@ pub fn validate_user_grant(
     );
     action.leaf.validate_registration(policy.ring.ring_pk)?;
     anyhow::ensure!(
-        action.leaf.audit_keys.epoch == policy.ring.audit_keys.epoch,
-        "user audit key epoch does not match asset policy"
-    );
-    anyhow::ensure!(
         action.leaf.status == UserAssetStatus::Active,
         "user registrations must start active"
     );

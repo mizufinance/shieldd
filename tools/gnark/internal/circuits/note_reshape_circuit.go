@@ -30,7 +30,6 @@ type NoteReshapeSharedNoteContextCircuitFields struct {
 }
 
 type NoteReshapeSenderCircuitFields struct {
-	AuditKeys     AuditKeysInputs
 	Capk          Point2D
 	RnkDhPk       Point2D
 	RnkCommitment frontend.Variable
@@ -243,7 +242,6 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 		gnarkte.Point{X: c.Sender.RnkDhPk.X, Y: c.Sender.RnkDhPk.Y},
 		c.Sender.RnkCommitment,
 		c.Sender.Status,
-		c.Sender.AuditKeys,
 	)
 	if err != nil {
 		return err

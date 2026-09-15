@@ -68,7 +68,6 @@ struct RingInput {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct UserRegistrationInput {
-    audit_keys_hex: String,
     address: Address,
     rnk_dh_pk_hex: String,
     rnk_commitment_hex: String,
@@ -427,7 +426,6 @@ fn register_user_action(
         ring_pk,
         rnk_dh_pk,
         rnk_commitment,
-        shieldd_sdk_compliance::AuditKeys::from_bytes(&hex::decode(&registration.audit_keys_hex)?)?,
     )?;
     let capability_certificate = OrbisCapabilityCertificate::decode(
         hex::decode(&registration.capability_certificate_hex)

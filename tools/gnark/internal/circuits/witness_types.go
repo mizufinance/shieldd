@@ -2,6 +2,7 @@ package circuits
 
 import (
 	"github.com/consensys/gnark/frontend"
+	gnarkte "github.com/consensys/gnark/std/algebra/native/twistededwards"
 	"github.com/mizufinance/shieldd/tools/gnark/internal/compliance"
 )
 
@@ -51,7 +52,7 @@ type AssetTreeFields struct {
 }
 
 type TransferComplianceMetadataFields struct {
- AuditEpoch frontend.Variable
+	AuditEpoch      frontend.Variable
 	RingIDHash      frontend.Variable
 	PolicyIDHash    frontend.Variable
 	ResourceHash    frontend.Variable
@@ -77,7 +78,9 @@ type TransferComplianceExtFields struct {
 }
 
 type TransferComplianceFields struct {
-	MasterWrappings     [3]frontend.Variable
+	Ownership           [4]gnarkte.Point
+	SenderChecking      frontend.Variable
+	OutputChecking      frontend.Variable
 	TransferNonceRoot   frontend.Variable
 	DetectionCiphertext [compliance.TransferDetectionFQCount]frontend.Variable
 	Metadata            TransferComplianceMetadataFields

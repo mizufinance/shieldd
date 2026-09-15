@@ -309,7 +309,6 @@ pub mod proof_test_helpers {
                     ring_pk,
                     rnk_dh_pk,
                     rnk,
-                    shieldd_sdk_compliance::AuditKeys::test_keys(),
                 )
                 .expect("test compliance registration is valid")
             } else {
@@ -687,7 +686,6 @@ pub mod proof_test_helpers {
                 base.ring_pk,
                 recipient_address.diversified_generator().clone(),
                 Fq::from(2u64),
-                shieldd_sdk_compliance::AuditKeys::test_keys(),
             )
             .expect("test recipient compliance registration is valid")
         } else {

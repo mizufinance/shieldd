@@ -162,5 +162,6 @@ func auditKeysInputs(keys AuditKeysBinary) compliance.AuditKeysInputs {
 		Amount:   circuits.PointAffineToNative(pointAffineBinaryToStrings(keys.Amount)),
 		Sender:   circuits.PointAffineToNative(pointAffineBinaryToStrings(keys.Sender)),
 		Receiver: circuits.PointAffineToNative(pointAffineBinaryToStrings(keys.Receiver)),
+		Checking: circuits.PointAffineToNative(pointAffineBinaryToStrings(keys.Checking)),
 	}
 }

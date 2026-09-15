@@ -157,8 +157,6 @@ mod tests {
         encrypt_transfer(
             &mut OsRng,
             &crate::AuditKeys::test_keys(),
-            &crate::AuditKeys::test_keys(),
-            &crate::AuditKeys::test_keys(),
             dk_pub,
             receiver_address,
             sender_address,

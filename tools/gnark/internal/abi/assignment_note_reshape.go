@@ -62,7 +62,6 @@ func NewNoteReshapeCircuitAssignmentFromWitness(payload []byte) (*circuits.NoteR
 		RnkDhPk:       point2DString(witness.SenderRnkDhPkAffine),
 		RnkCommitment: fqString(witness.SenderRnkCommitment),
 		Status:        fqString(witness.SenderStatus),
-		AuditKeys:     auditKeysInputs(witness.SenderAuditKeys),
 		Path:          senderPath,
 		Position:      witness.SenderCompliancePosition,
 	}

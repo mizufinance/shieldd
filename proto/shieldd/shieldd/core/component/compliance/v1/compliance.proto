@@ -36,8 +36,7 @@ message ComplianceLeaf {
   uint64 freeze_generation = 7;
   // Block height at which the current freeze generation began. Zero unless frozen or seized.
   uint64 frozen_since_height = 8;
-  // Canonical epoch and three registered LaKey audit public keys.
-  bytes audit_keys = 9;
+  reserved 9;
 }
 
 // Per-address authorization state for one regulated asset.
