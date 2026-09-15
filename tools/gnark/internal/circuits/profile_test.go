@@ -37,7 +37,6 @@ func (c *noteCommitmentProfileCircuit) Define(api frontend.API) error {
 }
 
 type complianceLeafProfileCircuit struct {
-	AuditKeys     compliance.AuditKeysInputs
 	DivGenX       frontend.Variable
 	DivGenY       frontend.Variable
 	TransX        frontend.Variable
@@ -60,7 +59,6 @@ func (c *complianceLeafProfileCircuit) Define(api frontend.API) error {
 		gnarkte.Point{X: c.RnkDhPkX, Y: c.RnkDhPkY},
 		c.RnkCommitment,
 		1,
-		c.AuditKeys,
 	)
 	return err
 }

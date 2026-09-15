@@ -255,7 +255,7 @@ fn verify_fields(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{ActionRef, AuditField, AuditKeyField, AuditPolicy, OutputRef, RingAuditKeyRef};
+    use crate::{ActionRef, AuditField, AuditPolicy, OutputRef, RingAuditKeyRef};
     use decaf377::Fq;
     use shieldd_sdk_compliance::{
         transfer::encrypt_transfer, AuditKeys, TransferComplianceMetadata,
@@ -341,7 +341,7 @@ mod tests {
                 chain: "chain".into(),
                 ring: "ring".into(),
                 epoch: 1,
-                field: AuditKeyField::Amount,
+                field: AuditField::Amount,
             },
             ownership_ciphertext: encrypted.ciphertext.ownership[0].to_bytes().to_vec(),
             expected_fingerprint: None,

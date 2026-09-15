@@ -160,16 +160,6 @@ async fn machine(
 }
 
 async fn run_disclosure(prove: bool) -> Result<()> {
-    if std::env::var_os("BANKD_DISCLOSURE_TEST_BIN").is_some() {
-        for name in ["BANKD_AUDIT_CLI", "DEFRA_TEST_BIN", "VERA_TEST_FIXTURE"] {
-            let path = std::env::var(name)
-                .with_context(|| format!("{name} required for Bankd workflow"))?;
-            ensure!(
-                std::path::Path::new(&path).is_file(),
-                "{name} does not name an existing file"
-            );
-        }
-    }
     if prove {
         for name in ["SHIELDD_DISCLOSURE_ARTIFACTS", "SHIELDD_DISCLOSURE_BACKEND"] {
             let path =
@@ -526,18 +516,6 @@ async fn run_disclosure(prove: bool) -> Result<()> {
     );
     if let Ok(path) = std::env::var("SHIELDD_DISCLOSURE_TEST_RECEIPT") {
         std::fs::write(path, bytes)?;
-    }
-    if let Ok(helper) = std::env::var("BANKD_DISCLOSURE_TEST_BIN") {
-        let transaction_path = sender.join("accepted-transaction.bin");
-        std::fs::write(&transaction_path, tx.encode_to_vec())?;
-        let status = tokio::process::Command::new(helper)
-            .args(["-test.run", "^TestAcceptedDisclosureWorkflow$", "-test.v"])
-            .env("BANKD_TEST_DISCLOSURE", proof_path.as_str())
-            .env("BANKD_TEST_NODE", &endpoint)
-            .env("BANKD_TEST_TRANSACTION", transaction_path.as_str())
-            .status()
-            .await?;
-        ensure!(status.success(), "Bankd audit workflow failed");
     }
     let _ = shutdown.send(());
     server.await??;

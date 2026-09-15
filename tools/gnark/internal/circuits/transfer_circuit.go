@@ -1598,7 +1598,7 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 		c.bindSemantic(fmt.Sprintf("salt%d", i), salts[i])
 	}
 
-	c.traceWiring("decaf.shared_secret", "tier=sender_core", "esk=compliance.sender_r_core", "audit_key=sender.audit_keys.amount", "dk_pub=effective.dk_pub", "flag=is_flagged", "epk=compliance.sender_core.epk", "issuer=sender_core.shared.issuer", "user=sender_core.shared.user", "selected=sender_core.shared.selected")
+	c.traceWiring("decaf.shared_secret", "tier=sender_core", "esk=compliance.sender_r_core", "audit_key=select(is_regulated,asset.audit_keys.amount,effective.ring_pk)", "dk_pub=effective.dk_pub", "flag=is_flagged", "epk=compliance.sender_core.epk", "issuer=sender_core.shared.issuer", "user=sender_core.shared.user", "selected=sender_core.shared.selected")
 	senderCoreIssuer, senderCoreUser, senderCoreSelected, _, err := DeriveSharedSecretsSpend(
 		api,
 		c.Compliance.SenderRCore,
@@ -1613,7 +1613,7 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 	c.bindSemantic("sender_core.shared.issuer", senderCoreIssuer.X, senderCoreIssuer.Y)
 	c.bindSemantic("sender_core.shared.user", senderCoreUser.X, senderCoreUser.Y)
 	c.bindSemantic("sender_core.shared.selected", senderCoreSelected.X, senderCoreSelected.Y)
-	c.traceWiring("decaf.shared_secret", "tier=sender_ext", "esk=compliance.sender_r_ext", "audit_key=sender.audit_keys.receiver", "dk_pub=effective.dk_pub", "flag=is_flagged", "epk=compliance.sender_ext.epk", "issuer=sender_ext.shared.issuer", "user=sender_ext.shared.user", "selected=sender_ext.shared.selected")
+	c.traceWiring("decaf.shared_secret", "tier=sender_ext", "esk=compliance.sender_r_ext", "audit_key=select(is_regulated,asset.audit_keys.receiver,effective.ring_pk)", "dk_pub=effective.dk_pub", "flag=is_flagged", "epk=compliance.sender_ext.epk", "issuer=sender_ext.shared.issuer", "user=sender_ext.shared.user", "selected=sender_ext.shared.selected")
 	senderExtIssuer, senderExtUser, senderExtSelected, _, err := DeriveSharedSecretsSpend(
 		api,
 		c.Compliance.SenderRExt,
@@ -1628,7 +1628,7 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 	c.bindSemantic("sender_ext.shared.issuer", senderExtIssuer.X, senderExtIssuer.Y)
 	c.bindSemantic("sender_ext.shared.user", senderExtUser.X, senderExtUser.Y)
 	c.bindSemantic("sender_ext.shared.selected", senderExtSelected.X, senderExtSelected.Y)
-	c.traceWiring("decaf.shared_secret", "tier=output_core", "esk=compliance.output_r_core", "audit_key=receiver.audit_keys.amount", "dk_pub=effective.dk_pub", "flag=is_flagged", "epk=compliance.output_core.epk", "issuer=output_core.shared.issuer", "user=output_core.shared.user", "selected=output_core.shared.selected")
+	c.traceWiring("decaf.shared_secret", "tier=output_core", "esk=compliance.output_r_core", "audit_key=select(is_regulated,asset.audit_keys.amount,effective.ring_pk)", "dk_pub=effective.dk_pub", "flag=is_flagged", "epk=compliance.output_core.epk", "issuer=output_core.shared.issuer", "user=output_core.shared.user", "selected=output_core.shared.selected")
 	outputCoreIssuer, outputCoreUser, outputCoreSelected, _, err := DeriveSharedSecretsSpend(
 		api,
 		c.Compliance.OutputRCore,
@@ -1643,7 +1643,7 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 	c.bindSemantic("output_core.shared.issuer", outputCoreIssuer.X, outputCoreIssuer.Y)
 	c.bindSemantic("output_core.shared.user", outputCoreUser.X, outputCoreUser.Y)
 	c.bindSemantic("output_core.shared.selected", outputCoreSelected.X, outputCoreSelected.Y)
-	c.traceWiring("decaf.shared_secret", "tier=output_ext", "esk=compliance.output_r_ext", "audit_key=receiver.audit_keys.sender", "dk_pub=effective.dk_pub", "flag=is_flagged", "epk=compliance.output_ext.epk", "issuer=output_ext.shared.issuer", "user=output_ext.shared.user", "selected=output_ext.shared.selected")
+	c.traceWiring("decaf.shared_secret", "tier=output_ext", "esk=compliance.output_r_ext", "audit_key=select(is_regulated,asset.audit_keys.sender,effective.ring_pk)", "dk_pub=effective.dk_pub", "flag=is_flagged", "epk=compliance.output_ext.epk", "issuer=output_ext.shared.issuer", "user=output_ext.shared.user", "selected=output_ext.shared.selected")
 	outputExtIssuer, outputExtUser, outputExtSelected, _, err := DeriveSharedSecretsSpend(
 		api,
 		c.Compliance.OutputRExt,

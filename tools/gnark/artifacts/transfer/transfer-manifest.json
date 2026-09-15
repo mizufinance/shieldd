@@ -12072,7 +12072,7 @@
       "args": [
         "tier=sender_core",
         "esk=compliance.sender_r_core",
-        "audit_key=sender.audit_keys.amount",
+        "audit_key=select(is_regulated,asset.audit_keys.amount,effective.ring_pk)",
         "dk_pub=effective.dk_pub",
         "flag=is_flagged",
         "epk=compliance.sender_core.epk",
@@ -12090,7 +12090,7 @@
       "args": [
         "tier=sender_ext",
         "esk=compliance.sender_r_ext",
-        "audit_key=sender.audit_keys.receiver",
+        "audit_key=select(is_regulated,asset.audit_keys.receiver,effective.ring_pk)",
         "dk_pub=effective.dk_pub",
         "flag=is_flagged",
         "epk=compliance.sender_ext.epk",
@@ -12108,7 +12108,7 @@
       "args": [
         "tier=output_core",
         "esk=compliance.output_r_core",
-        "audit_key=receiver.audit_keys.amount",
+        "audit_key=select(is_regulated,asset.audit_keys.amount,effective.ring_pk)",
         "dk_pub=effective.dk_pub",
         "flag=is_flagged",
         "epk=compliance.output_core.epk",
@@ -12126,7 +12126,7 @@
       "args": [
         "tier=output_ext",
         "esk=compliance.output_r_ext",
-        "audit_key=receiver.audit_keys.sender",
+        "audit_key=select(is_regulated,asset.audit_keys.sender,effective.ring_pk)",
         "dk_pub=effective.dk_pub",
         "flag=is_flagged",
         "epk=compliance.output_ext.epk",

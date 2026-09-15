@@ -22,29 +22,14 @@ impl AuditAccess {
         }
     }
 
-    pub fn key_field(&self) -> AuditKeyField {
+    pub fn key_field(&self) -> AuditField {
         match self {
-            Self::General {
-                value: AuditField::Amount,
-            } => AuditKeyField::Amount,
-            Self::General {
-                value: AuditField::Sender,
-            } => AuditKeyField::Sender,
-            Self::General {
-                value: AuditField::Receiver,
-            } => AuditKeyField::Receiver,
-            Self::NamedPerson {
-                tier: TransferTier::SenderCore | TransferTier::OutputCore,
-                ..
-            } => AuditKeyField::Amount,
-            Self::NamedPerson {
-                tier: TransferTier::SenderExt,
-                ..
-            } => AuditKeyField::Receiver,
-            Self::NamedPerson {
-                tier: TransferTier::OutputExt,
-                ..
-            } => AuditKeyField::Sender,
+            Self::General { value } => *value,
+            Self::NamedPerson { tier, .. } => match tier {
+                TransferTier::SenderCore | TransferTier::OutputCore => AuditField::Amount,
+                TransferTier::SenderExt => AuditField::Receiver,
+                TransferTier::OutputExt => AuditField::Sender,
+            },
         }
     }
 }
@@ -56,15 +41,7 @@ pub struct RingAuditKeyRef {
     pub chain: String,
     pub ring: String,
     pub epoch: u64,
-    pub field: AuditKeyField,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum AuditKeyField {
-    Amount,
-    Sender,
-    Receiver,
+    pub field: AuditField,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

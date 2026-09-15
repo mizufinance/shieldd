@@ -192,14 +192,13 @@ and `SHIELDD_GNARK_TRANSFER_ARTIFACT_DIR` to `tools/gnark/artifacts/transfer`.
 The latter test uses `SHIELDD_PCLI_BIN` pointing to an explicitly enabled debug
 prover: release builds correctly reject development disclosure keys.
 
-For the combined private audit workflow, build Bankd's disclosure test binary with
-`go test -p 1 -tags auditdevelopment -c -o /tmp/bankd-disclosure-workflow ./supervisor/disclosure`,
-and its CLI with `go build -p 1 -tags auditdevelopment -o /tmp/bankd-disclosure-audit ./cmd/disclosure-audit`.
-Set `BANKD_DISCLOSURE_TEST_BIN` and `BANKD_AUDIT_CLI` to those binaries, and supply
-`DEFRA_TEST_BIN` plus `VERA_TEST_FIXTURE`. The release app test
-passes its real accepted transaction and running query endpoint to that test.
-The fixture creates separate private/index databases and uses real Vera grants.
-It does not upgrade or write to existing Shinzo deployments.
+For the direct evidence and endorsement workflow, use Bankd's isolated fixture:
+`DISCLOSURE_DEFRA_BIN=/absolute/path/to/pinned/defradb GOMAXPROCS=2 go test -p 2
+./supervisor/disclosure ./cmd/disclosure-audit -count=1 -v` from the Bankd repository.
+See [the fixture instructions](https://github.com/mizufinance/bankd/blob/codex/disclosure-integration/infra/disclosure-audit/README.md).
+It uses synthetic evidence, native document access control and disabled node access
+control. Connected clients retain administrative API access; this is trusted-tester
+storage verification, not live PET or protected collection verification.
 
 Measured on native macOS ARM64 with one worker and development setup artifacts:
 
