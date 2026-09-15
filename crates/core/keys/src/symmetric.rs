@@ -22,8 +22,6 @@ pub enum PayloadKind {
     MemoKey,
     /// Memo is transaction-scoped.
     Memo,
-    /// Swap is action-scoped.
-    Swap,
     /// Daily undisclosed-volume accumulator state is transfer-scoped.
     VolumeAccumulator,
 }
@@ -33,7 +31,6 @@ impl PayloadKind {
         match self {
             Self::Note => [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             Self::MemoKey => [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            Self::Swap => [2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             Self::Memo => [3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             Self::VolumeAccumulator => [4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         }
@@ -42,7 +39,7 @@ impl PayloadKind {
 
 /// Represents a symmetric `ChaCha20Poly1305` key.
 ///
-/// Used for encrypting and decrypting notes, swaps, memos, and memo keys.
+/// Used for notes, memos, memo keys, and volume accumulator state.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct PayloadKey(Key);
 
@@ -94,21 +91,6 @@ impl PayloadKey {
             .map_err(|_| anyhow::anyhow!("decryption error"))
     }
 
-    /// Use Blake2b-256 to derive an encryption key from the OVK and public fields for swaps.
-    pub fn derive_swap(ovk: &OutgoingViewingKey, cm: StateCommitment) -> Self {
-        let cm_bytes: [u8; 32] = cm.into();
-
-        let mut kdf_params = blake2b_simd::Params::new();
-        kdf_params.personal(b"Shieldd_Payswap");
-        kdf_params.hash_length(32);
-        let mut kdf = kdf_params.to_state();
-        kdf.update(&ovk.to_bytes());
-        kdf.update(&cm_bytes);
-
-        let key = kdf.finalize();
-        Self(*Key::from_slice(key.as_bytes()))
-    }
-
     /// Derives the key for an outgoing daily-volume accumulator payload.
     pub fn derive_volume_accumulator(ovk: &OutgoingViewingKey, cm: StateCommitment) -> Self {
         let cm_bytes: [u8; 32] = cm.into();
@@ -128,29 +110,6 @@ impl PayloadKey {
 
     pub fn decrypt_volume_accumulator(&self, ciphertext: Vec<u8>) -> Result<Vec<u8>> {
         self.decrypt(ciphertext, PayloadKind::VolumeAccumulator)
-    }
-
-    /// Encrypt a swap using the `PayloadKey`.
-    pub fn encrypt_swap(&self, plaintext: Vec<u8>) -> Vec<u8> {
-        let cipher = ChaCha20Poly1305::new(&self.0);
-        let nonce_bytes = PayloadKind::Swap.nonce();
-        let nonce = Nonce::from_slice(&nonce_bytes);
-
-        cipher
-            .encrypt(nonce, plaintext.as_ref())
-            .expect("encryption succeeded")
-    }
-
-    /// Decrypt a swap using the `PayloadKey`.
-    pub fn decrypt_swap(&self, ciphertext: Vec<u8>) -> Result<Vec<u8>> {
-        let cipher = ChaCha20Poly1305::new(&self.0);
-
-        let nonce_bytes = PayloadKind::Swap.nonce();
-        let nonce = Nonce::from_slice(&nonce_bytes);
-
-        cipher
-            .decrypt(nonce, ciphertext.as_ref())
-            .map_err(|_| anyhow::anyhow!("decryption error"))
     }
 }
 
