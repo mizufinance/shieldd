@@ -13,10 +13,7 @@ pub use audit_log::{AuditLogRead, AuditLogWrite};
 
 pub mod issuer_keys;
 pub use event::{EventAssetRegistered, EventUserAssetStatusChanged, EventUserRegistered};
-pub use issuer_keys::{
-    DetectionKey, DetectionKeyPublic, MasterComplianceKey, MasterComplianceKeyPublic,
-    DETECTION_TIER_BYTES,
-};
+pub use issuer_keys::{DetectionKey, DetectionKeyPublic, DETECTION_TIER_BYTES};
 
 pub mod structs;
 pub use structs::{
