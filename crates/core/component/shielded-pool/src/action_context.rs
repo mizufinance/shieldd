@@ -163,7 +163,7 @@ impl TryFrom<pb::TransferContext> for TransferContext {
                 .context("missing TransferContext.recipient")?
                 .try_into()?,
             timestamp: value.timestamp,
-            nonce: crate::compliance_helpers::parse_tx_blinding_nonce(&value.nonce)?,
+            nonce: parse_nonce(&value.nonce)?,
         })
     }
 }
@@ -192,7 +192,7 @@ impl TryFrom<pb::NoteReshapeContext> for NoteReshapeContext {
                 .witness
                 .context("missing NoteReshapeContext.witness")?
                 .try_into()?,
-            nonce: crate::compliance_helpers::parse_tx_blinding_nonce(&value.nonce)?,
+            nonce: parse_nonce(&value.nonce)?,
         })
     }
 }
@@ -224,7 +224,7 @@ impl TryFrom<pb::WithdrawalContext> for WithdrawalContext {
                 .context("missing WithdrawalContext.witness")?
                 .try_into()?,
             timestamp: value.timestamp,
-            nonce: crate::compliance_helpers::parse_tx_blinding_nonce(&value.nonce)?,
+            nonce: parse_nonce(&value.nonce)?,
         })
     }
 }
@@ -350,4 +350,39 @@ fn auth_path(path: &MerklePath, position: u64) -> Result<Vec<[StateCommitment; 3
             Ok(siblings)
         })
         .collect()
+}
+
+fn parse_nonce(bytes: &[u8]) -> Result<Fr> {
+    let arr: [u8; 32] = bytes
+        .try_into()
+        .map_err(|_| anyhow::anyhow!("invalid tx_blinding_nonce length"))?;
+    Fr::from_bytes_checked(&arr).map_err(|_| anyhow::anyhow!("invalid tx_blinding_nonce bytes"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn fr_modulus_bytes() -> [u8; 32] {
+        let mut modulus = (-Fr::from(1u64)).to_bytes();
+        for byte in &mut modulus {
+            let (next, carry) = byte.overflowing_add(1);
+            *byte = next;
+            if !carry {
+                break;
+            }
+        }
+        modulus
+    }
+
+    #[test]
+    fn transaction_blinding_nonce_is_required_and_canonical() {
+        assert_eq!(
+            parse_nonce(&Fr::from(7u64).to_bytes()).expect("canonical nonce"),
+            Fr::from(7u64)
+        );
+        for bytes in [&[][..], &[0u8; 31], &fr_modulus_bytes()] {
+            parse_nonce(bytes).expect_err("missing, short, or non-canonical nonce must fail");
+        }
+    }
 }

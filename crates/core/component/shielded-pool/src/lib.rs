@@ -55,8 +55,6 @@ pub mod transfer;
 pub mod backref;
 pub use backref::{Backref, EncryptedBackref};
 
-pub mod compliance_helpers;
-
 pub mod proof_error;
 pub use proof_error::{ProofError, ProofResult};
 
