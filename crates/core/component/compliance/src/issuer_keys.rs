@@ -193,38 +193,6 @@ impl DetectionKey {
     }
 }
 
-/// Detection Key Public (Point).
-///
-/// The public component of the detection key, stored in the asset leaf.
-/// This is what senders encrypt the detection tier to.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct DetectionKeyPublic(pub Element);
-
-impl DetectionKeyPublic {
-    pub fn new(point: Element) -> Self {
-        Self(point)
-    }
-
-    pub fn from_dk(dk: &DetectionKey) -> Self {
-        Self(dk.public_key())
-    }
-
-    pub fn inner(&self) -> &Element {
-        &self.0
-    }
-
-    pub fn to_bytes(&self) -> [u8; 32] {
-        self.0.vartime_compress().0
-    }
-
-    pub fn from_bytes(bytes: [u8; 32]) -> anyhow::Result<Self> {
-        let point = decaf377::Encoding(bytes)
-            .vartime_decompress()
-            .map_err(|_| anyhow::anyhow!("invalid detection key public bytes"))?;
-        Ok(Self(point))
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -300,17 +268,6 @@ mod tests {
         assert!(!detection_flag_from_fq(detection_flag_plaintext(false)).unwrap());
         assert!(detection_flag_from_fq(detection_flag_plaintext(true)).unwrap());
         assert!(detection_flag_from_fq(Fq::from(2u64)).is_err());
-    }
-
-    #[test]
-    fn test_detection_key_public_roundtrip() {
-        let dk = DetectionKey::demo();
-        let dk_pub = DetectionKeyPublic::from_dk(&dk);
-
-        let bytes = dk_pub.to_bytes();
-        let recovered = DetectionKeyPublic::from_bytes(bytes).unwrap();
-
-        assert_eq!(dk_pub, recovered);
     }
 
     #[test]
