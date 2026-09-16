@@ -111,7 +111,8 @@ type InterBlockState = Arc<StateDelta<Snapshot>>;
 pub const MAX_BLOCK_TXS_PAYLOAD_BYTES: usize = 1024 * 1024;
 
 /// The maximum size of a single individual transaction (96KB).
-pub const MAX_TRANSACTION_SIZE_BYTES: usize = 96 * 1024;
+pub const MAX_TRANSACTION_SIZE_BYTES: usize =
+    shieldd_sdk_proto::core::app::v1::MAX_TRANSACTION_BYTES;
 
 /// The maximum number of transactions in one proposal candidate set.
 pub const MAX_BLOCK_TX_COUNT: usize = 4_096;
@@ -3693,6 +3694,33 @@ pub trait StateReadExt: StateRead {
             sct_params,
             shielded_pool_params,
         })
+    }
+
+    /// Selects from the committed execution log, never from submitted or indexed candidates.
+    async fn committed_transaction(
+        &self,
+        block_height: u64,
+        transaction_id: [u8; 32],
+    ) -> Result<shieldd_sdk_proto::core::app::v1::CommittedTransactionResponse> {
+        let block = self.transactions_by_height(block_height).await?;
+        let mut selected = None;
+        for transaction in block.transactions {
+            let tx: Transaction = transaction.clone().try_into()?;
+            if tx.id().as_ref() == transaction_id {
+                anyhow::ensure!(
+                    transaction.encoded_len() <= MAX_TRANSACTION_SIZE_BYTES,
+                    "committed transaction exceeds supported query size"
+                );
+                selected = Some(transaction);
+                break;
+            }
+        }
+        Ok(
+            shieldd_sdk_proto::core::app::v1::CommittedTransactionResponse {
+                block_height,
+                transaction: selected,
+            },
+        )
     }
 
     async fn transactions_by_height(

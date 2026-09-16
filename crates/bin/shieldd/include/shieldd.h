@@ -98,8 +98,8 @@ enum shieldd_method {
    * NullifierWindowRequest/Response
    */
   SHIELDD_METHOD_QUERY_NULLIFIER_WINDOW = 1000007,
-  /* Committed TransactionsByHeightRequest/Response. */
-  SHIELDD_METHOD_QUERY_TRANSACTIONS_BY_HEIGHT = 1000008,
+  /* CommittedTransactionRequest/Response (at most 96 KiB + 16 bytes). */
+  SHIELDD_METHOD_QUERY_COMMITTED_TRANSACTION = 1000008,
 };
 
 uint32_t shieldd_abi_version(void);

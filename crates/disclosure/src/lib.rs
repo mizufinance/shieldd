@@ -11,5 +11,7 @@ pub use types::*;
 mod proof;
 #[cfg(feature = "proof")]
 pub use proof::*;
+mod evidence;
+pub use evidence::*;
 mod issuer;
 pub use issuer::*;

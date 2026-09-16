@@ -359,11 +359,11 @@ impl ExecutionService {
         })
     }
 
-    /// Returns only the transaction log of a committed block.
-    pub async fn transactions_by_height(
+    /// Returns at most one bounded transaction from a committed block.
+    pub async fn committed_transaction(
         &self,
-        request: proto_app::TransactionsByHeightRequest,
-    ) -> std::result::Result<proto_app::TransactionsByHeightResponse, ServiceError> {
+        request: proto_app::CommittedTransactionRequest,
+    ) -> std::result::Result<proto_app::CommittedTransactionResponse, ServiceError> {
         let storage = self.storage.as_ref().ok_or_else(ServiceError::closed)?;
         if storage.latest_version() == u64::MAX {
             return Err(ServiceError::failed_precondition(anyhow::anyhow!(
@@ -380,8 +380,11 @@ impl ExecutionService {
                 "requested block is not committed"
             )));
         }
+        let transaction_id = request.transaction_id.try_into().map_err(|_| {
+            ServiceError::invalid_argument(anyhow::anyhow!("transaction ID must be 32 bytes"))
+        })?;
         snapshot
-            .transactions_by_height(request.block_height)
+            .committed_transaction(request.block_height, transaction_id)
             .await
             .map_err(ServiceError::internal)
     }

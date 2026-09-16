@@ -2440,3 +2440,50 @@ fn fallback_prefix_drops_tail_after_exact_bundle_miss() {
 
     assert_eq!(fallback_prefix_len, 2);
 }
+
+#[tokio::test]
+async fn committed_transaction_query_is_bounded_for_large_logs() -> Result<()> {
+    use prost::Message as _;
+    use shieldd_sdk_proto::core::app::v1::{
+        TransactionsByHeightResponse, MAX_COMMITTED_TRANSACTION_RESPONSE_BYTES,
+    };
+    // Synthetic stored log exercises selection/framing, not proof or host admission.
+    let storage = TempStorage::new().await?;
+    let mut state = StateDelta::new(storage.latest_snapshot());
+    let mut tx = Transaction::default();
+    tx.transaction_body.transaction_parameters.chain_id =
+        "x".repeat(super::MAX_TRANSACTION_SIZE_BYTES - 1024);
+    let padding = super::MAX_TRANSACTION_SIZE_BYTES - tx.encode_to_vec().len();
+    tx.transaction_body
+        .transaction_parameters
+        .chain_id
+        .push_str(&"x".repeat(padding));
+    assert_eq!(tx.encode_to_vec().len(), super::MAX_TRANSACTION_SIZE_BYTES);
+    let id: [u8; 32] = tx.id().as_ref().try_into()?;
+    let encoded: shieldd_sdk_proto::core::transaction::v1::Transaction = tx.into();
+    for target in [4 * 1024 * 1024, 22_020_096] {
+        let log = TransactionsByHeightResponse {
+            block_height: 7,
+            transactions: vec![encoded.clone(); target / encoded.encoded_len() + 1],
+        };
+        assert!(log.encoded_len() > target);
+        state.nonverifiable_put_raw(
+            super::state_key::block_data::transactions_by_height(7).into(),
+            log.encode_to_vec(),
+        );
+        let response = state.committed_transaction(7, id).await?;
+        assert_eq!(response.transaction.as_ref(), Some(&encoded));
+        assert!(response.encoded_len() <= MAX_COMMITTED_TRANSACTION_RESPONSE_BYTES);
+        assert!(state
+            .committed_transaction(7, [0; 32])
+            .await?
+            .transaction
+            .is_none());
+        assert!(state
+            .committed_transaction(8, id)
+            .await?
+            .transaction
+            .is_none());
+    }
+    Ok(())
+}

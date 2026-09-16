@@ -39,16 +39,35 @@ impl tonic::server::UnaryService<pb::AppParametersRequest> for Parameters {
     }
 }
 struct Transactions(pb::TransactionsByHeightResponse);
-impl tonic::server::UnaryService<pb::TransactionsByHeightRequest> for Transactions {
-    type Response = pb::TransactionsByHeightResponse;
+impl tonic::server::UnaryService<pb::CommittedTransactionRequest> for Transactions {
+    type Response = pb::CommittedTransactionResponse;
     type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
-    fn call(&mut self, request: tonic::Request<pb::TransactionsByHeightRequest>) -> Self::Future {
+    fn call(&mut self, request: tonic::Request<pb::CommittedTransactionRequest>) -> Self::Future {
         let response = self.0.clone();
         Box::pin(async move {
-            if request.into_inner().block_height != response.block_height {
+            let input = request.into_inner();
+            if input.block_height != response.block_height {
                 return Err(tonic::Status::not_found("block unavailable"));
             }
-            Ok(tonic::Response::new(response))
+            let id: [u8; 32] = input
+                .transaction_id
+                .try_into()
+                .map_err(|_| tonic::Status::invalid_argument("transaction ID must be 32 bytes"))?;
+            let mut selected = None;
+            for transaction in response.transactions {
+                let tx: shieldd_sdk_transaction::Transaction = transaction
+                    .clone()
+                    .try_into()
+                    .map_err(|e: anyhow::Error| tonic::Status::internal(e.to_string()))?;
+                if tx.id().as_ref() == id {
+                    selected = Some(transaction);
+                    break;
+                }
+            }
+            Ok(tonic::Response::new(pb::CommittedTransactionResponse {
+                block_height: response.block_height,
+                transaction: selected,
+            }))
         })
     }
 }
@@ -75,7 +94,7 @@ where
                         .unary(Parameters(data.parameters), request)
                         .await
                 }
-                "/mizufinance.shieldd.v1.Query/TransactionsByHeight" => {
+                "/mizufinance.shieldd.v1.Query/CommittedTransaction" => {
                     tonic::server::Grpc::new(tonic::codec::ProstCodec::default())
                         .unary(Transactions(data.block), request)
                         .await

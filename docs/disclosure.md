@@ -41,7 +41,7 @@ The SDK provides `prepare`, `inspect`, `verify`, `prove`, `export_openings`, and
 outside commitment evaluation. `inspect` describes unverified claims.
 
 `verify` checks cryptography only. `confirm_acceptance` additionally compares
-selected public data with the chosen node's committed `TransactionsByHeight`
+selected public data with the chosen node's committed `CommittedTransaction`
 records and chain identity. A cryptographically valid disclosure without that
 check is not fully verified. `verify_candidates` checks encrypted transaction
 bytes obtained from Shinzo without treating indexer records as execution evidence.
@@ -55,7 +55,9 @@ statement, method, circuit identity and acceptance result in one response.
 local verifier could not run reliably. Only `verified` establishes both checks.
 The SDK exposes `VerificationUnavailable` for local artifact/backend failures.
 
-Bankd exposes `mizufinance.shieldd.v1.Query/TransactionsByHeight` through the
+The query selects one canonical transaction ID at its accepted height. Responses are bounded to 96 KiB of transaction data plus 16 bytes of framing, independently of the block size. An absent transaction differs from an unavailable query.
+
+Bankd exposes `mizufinance.shieldd.v1.Query/CommittedTransaction` through the
 embedded Shieldd adapter. An indexed success code, database CID, or indexer
 signature alone does not authenticate successful Shieldd execution.
 
@@ -238,3 +240,19 @@ Evidence also grants asset/flag/salt detection access and amount decryption acce
 because detection reuses sender CORE's ephemeral key. This capability is reported
 in the preview and verified result. Address output contains components, never an
 asserted canonical address. Issuer predicate proofs are not supported.
+
+## Browser primitives
+
+The `shieldd-sdk-disclosure` default feature set provides request preparation,
+openings/payload-key export, inspection and local verification. `proof` enables
+the native Groth16 verifier; `prover` additionally enables proving. Without that
+backend, Groth16 verification returns `VerificationUnavailable`.
+
+The WASM API keeps witnesses local and does not change wallet balances or note
+reservations. Payload-key previews report transaction-wide memo access. Node
+acceptance must be checked using independently fetched committed transactions.
+Browser spending-control signatures and browser ZK proving are not implemented.
+
+Issuer verification currently relies on immutable registered asset policies.
+Historical key epochs and execution-order lookup are required before adding
+issuer-key rotation.

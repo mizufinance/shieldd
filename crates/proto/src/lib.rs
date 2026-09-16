@@ -42,6 +42,11 @@ pub mod shieldd {
         /// Top-level structures for the Shieldd application.
         pub mod app {
             pub mod v1 {
+                /// Maximum canonical transaction bytes accepted by the normal execution host.
+                pub const MAX_TRANSACTION_BYTES: usize = 96 * 1024;
+                /// Transaction field tag/length (4 bytes), height (11 bytes), one spare byte.
+                pub const MAX_COMMITTED_TRANSACTION_RESPONSE_BYTES: usize =
+                    MAX_TRANSACTION_BYTES + 16;
                 include!("gen/shieldd.core.app.v1.rs");
                 include!("gen/shieldd.core.app.v1.serde.rs");
             }

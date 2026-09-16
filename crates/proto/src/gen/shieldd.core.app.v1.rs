@@ -38,6 +38,43 @@ impl ::prost::Name for TransactionsByHeightResponse {
         "/shieldd.core.app.v1.TransactionsByHeightResponse".into()
     }
 }
+/// Looks up one accepted transaction, bounded to 96 KiB plus protobuf framing.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CommittedTransactionRequest {
+    #[prost(uint64, tag = "1")]
+    pub block_height: u64,
+    /// Canonical transaction ID: exactly 32 bytes.
+    #[prost(bytes = "vec", tag = "2")]
+    pub transaction_id: ::prost::alloc::vec::Vec<u8>,
+}
+impl ::prost::Name for CommittedTransactionRequest {
+    const NAME: &'static str = "CommittedTransactionRequest";
+    const PACKAGE: &'static str = "shieldd.core.app.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.app.v1.CommittedTransactionRequest".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.app.v1.CommittedTransactionRequest".into()
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CommittedTransactionResponse {
+    /// Absent when the transaction is not in the requested committed block.
+    #[prost(message, optional, tag = "1")]
+    pub transaction: ::core::option::Option<super::super::transaction::v1::Transaction>,
+    #[prost(uint64, tag = "2")]
+    pub block_height: u64,
+}
+impl ::prost::Name for CommittedTransactionResponse {
+    const NAME: &'static str = "CommittedTransactionResponse";
+    const PACKAGE: &'static str = "shieldd.core.app.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.app.v1.CommittedTransactionResponse".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.app.v1.CommittedTransactionResponse".into()
+    }
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AppParameters {
     /// The chain identifier.

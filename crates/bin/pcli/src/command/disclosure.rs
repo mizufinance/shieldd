@@ -197,15 +197,15 @@ fn check_expected(
 
 async fn accepted_blocks(
     node: &str,
-    heights: BTreeSet<u64>,
+    references: BTreeSet<(u64, String)>,
 ) -> Result<(String, Vec<sdk::AcceptedBlock>)> {
     let channel = tonic::transport::Endpoint::from_shared(node.to_owned())?
         .connect_timeout(std::time::Duration::from_secs(10))
         .timeout(std::time::Duration::from_secs(30))
         .connect()
         .await?;
-    let mut client =
-        tonic::client::Grpc::new(channel).max_decoding_message_size(sdk::MAX_PACKAGE_BYTES);
+    let mut client = tonic::client::Grpc::new(channel)
+        .max_decoding_message_size(pb::MAX_COMMITTED_TRANSACTION_RESPONSE_BYTES);
     client.ready().await?;
     let response: tonic::Response<pb::AppParametersResponse> = client
         .unary(
@@ -221,16 +221,23 @@ async fn accepted_blocks(
         .app_parameters
         .context("node omitted chain parameters")?
         .chain_id;
-    let mut blocks = Vec::new();
-    for height in heights {
+    let mut grouped =
+        std::collections::BTreeMap::<u64, Vec<shieldd_sdk_transaction::Transaction>>::new();
+    for (height, transaction_id) in references {
+        let id = hex::decode(&transaction_id)?;
+        ensure!(
+            id.len() == 32 && hex::encode(&id) == transaction_id,
+            "invalid canonical transaction ID"
+        );
         client.ready().await?;
-        let response: tonic::Response<pb::TransactionsByHeightResponse> = client
+        let response: tonic::Response<pb::CommittedTransactionResponse> = client
             .unary(
-                tonic::Request::new(pb::TransactionsByHeightRequest {
+                tonic::Request::new(pb::CommittedTransactionRequest {
                     block_height: height,
+                    transaction_id: id,
                 }),
                 tonic::codegen::http::uri::PathAndQuery::from_static(
-                    "/mizufinance.shieldd.v1.Query/TransactionsByHeight",
+                    "/mizufinance.shieldd.v1.Query/CommittedTransaction",
                 ),
                 tonic::codec::ProstCodec::default(),
             )
@@ -240,15 +247,23 @@ async fn accepted_blocks(
             response.block_height == height,
             "node returned wrong height"
         );
-        blocks.push(sdk::AcceptedBlock {
-            height,
-            transactions: response
-                .transactions
-                .into_iter()
-                .map(TryInto::try_into)
-                .collect::<Result<Vec<_>>>()?,
-        });
+        let transactions = grouped.entry(height).or_default();
+        if let Some(transaction) = response.transaction {
+            let transaction: shieldd_sdk_transaction::Transaction = transaction.try_into()?;
+            ensure!(
+                transaction.id().to_string() == transaction_id,
+                "node returned wrong transaction"
+            );
+            transactions.push(transaction);
+        }
     }
+    let blocks = grouped
+        .into_iter()
+        .map(|(height, transactions)| sdk::AcceptedBlock {
+            height,
+            transactions,
+        })
+        .collect();
     Ok((chain_id, blocks))
 }
 
@@ -370,7 +385,7 @@ async fn acceptance(package: &sdk::DisclosurePackage, node: &str) -> Result<sdk:
         .request
         .outputs
         .iter()
-        .map(|c| c.reference.height)
+        .map(|c| (c.reference.height, c.reference.transaction_id.clone()))
         .collect();
     let (chain_id, blocks) = accepted_blocks(node, heights).await?;
     sdk::confirm_acceptance(&package.statement, &chain_id, &blocks)
@@ -453,7 +468,7 @@ impl DisclosureCmd {
                     let asset: shieldd_sdk_asset::asset::Id = request.request.asset.parse()?;
                     let policy = asset_policy(node, asset).await?;
                     ensure!(key.public_key() == policy.params.dk_pub, "issuer key does not match registered asset");
-                    let (chain, blocks) = accepted_blocks(node, [request.request.selection.reference.height].into_iter().collect()).await?;
+                    let (chain, blocks) = accepted_blocks(node, [(request.request.selection.reference.height, request.request.selection.reference.transaction_id.clone())].into_iter().collect()).await?;
                     let block = blocks.first().context("accepted block unavailable")?;
                     let accepted = sdk::accepted_audit_ciphertext(request.request.selection.clone(), &chain, block)?;
                     eprintln!("Issuer evidence shares the selected value plus asset, flagged status, detection salt, and amount decryption access.");
@@ -487,9 +502,12 @@ impl DisclosureCmd {
                 let policy = asset_policy(node, asset).await?;
                 let (chain, blocks) = accepted_blocks(
                     node,
-                    [package.request.selection.reference.height]
-                        .into_iter()
-                        .collect(),
+                    [(
+                        package.request.selection.reference.height,
+                        package.request.selection.reference.transaction_id.clone(),
+                    )]
+                    .into_iter()
+                    .collect(),
                 )
                 .await?;
                 match sdk::verify_issuer_disclosure(
@@ -517,7 +535,12 @@ impl DisclosureCmd {
                     serde_json::from_slice(&read_bounded(request, sdk::MAX_DOCUMENT_BYTES)?)?;
                 let (chain, blocks) = accepted_blocks(
                     node,
-                    [request.selection.reference.height].into_iter().collect(),
+                    [(
+                        request.selection.reference.height,
+                        request.selection.reference.transaction_id.clone(),
+                    )]
+                    .into_iter()
+                    .collect(),
                 )
                 .await?;
                 let accepted = sdk::accepted_audit_ciphertext(
@@ -542,9 +565,16 @@ impl DisclosureCmd {
                     );
                     Ok(selection)
                 })())?;
-                let (chain, blocks) =
-                    accepted_blocks(node, [selection.reference.height].into_iter().collect())
-                        .await?;
+                let (chain, blocks) = accepted_blocks(
+                    node,
+                    [(
+                        selection.reference.height,
+                        selection.reference.transaction_id.clone(),
+                    )]
+                    .into_iter()
+                    .collect(),
+                )
+                .await?;
                 if let Some(path) = transactions {
                     use base64::Engine;
                     let encoded: Vec<String> =

@@ -154,7 +154,6 @@ fn totals_can_span_transactions_but_reject_duplicates() {
     assert_eq!(t.amount.as_deref(), Some("84"));
     assert_eq!(t.predicate_result, Some(false));
 }
-#[cfg(feature = "proof")]
 #[test]
 fn full_openings_and_payload_exports() {
     let mut w = fixture();

@@ -66,10 +66,10 @@ where
                         }
                     }
                 ),
-                "/mizufinance.shieldd.v1.Query/TransactionsByHeight" => respond!(
-                    pb::TransactionsByHeightRequest,
-                    pb::TransactionsByHeightResponse,
-                    move |input: pb::TransactionsByHeightRequest| {
+                "/mizufinance.shieldd.v1.Query/CommittedTransaction" => respond!(
+                    pb::CommittedTransactionRequest,
+                    pb::CommittedTransactionResponse,
+                    move |input: pb::CommittedTransactionRequest| {
                         let state = snapshot.clone();
                         async move {
                             let last = state
@@ -80,7 +80,14 @@ where
                                 return Err(tonic::Status::not_found("uncommitted block"));
                             }
                             state
-                                .transactions_by_height(input.block_height)
+                                .committed_transaction(
+                                    input.block_height,
+                                    input.transaction_id.try_into().map_err(|_| {
+                                        tonic::Status::invalid_argument(
+                                            "transaction ID must be 32 bytes",
+                                        )
+                                    })?,
+                                )
                                 .await
                                 .map_err(|e| tonic::Status::internal(e.to_string()))
                         }

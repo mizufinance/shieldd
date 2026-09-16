@@ -82,13 +82,16 @@ async fn execution_deliver_tx_rejects_invalid_transaction() -> Result<()> {
     client.end_block(EndBlockRequest { height: 1 }).await?;
     client.commit(CommitRequest {}).await?;
     let accepted = client
-        .transactions_by_height(
-            shieldd_sdk_proto::core::app::v1::TransactionsByHeightRequest { block_height: 1 },
+        .committed_transaction(
+            shieldd_sdk_proto::core::app::v1::CommittedTransactionRequest {
+                block_height: 1,
+                transaction_id: vec![0; 32],
+            },
         )
         .await?;
     assert_eq!(accepted.block_height, 1);
     assert!(
-        accepted.transactions.is_empty(),
+        accepted.transaction.is_none(),
         "failed transaction entered accepted log"
     );
     Ok(())
@@ -270,13 +273,30 @@ async fn key_value_proves_membership_and_absence_at_committed_root() -> Result<(
 async fn transactions_query_rejects_uncommitted_height() -> Result<()> {
     let (_storage, client) = initialized_client().await?;
     let error = client
-        .transactions_by_height(
-            shieldd_sdk_proto::core::app::v1::TransactionsByHeightRequest {
+        .committed_transaction(
+            shieldd_sdk_proto::core::app::v1::CommittedTransactionRequest {
                 block_height: u64::MAX,
+                transaction_id: vec![0; 32],
             },
         )
         .await
         .expect_err("future block must not be accepted");
     assert_eq!(error.kind(), crate::ErrorKind::FailedPrecondition);
+    Ok(())
+}
+
+#[tokio::test]
+async fn committed_transaction_query_rejects_invalid_ids() -> Result<()> {
+    let (_storage, client) = initialized_client().await?;
+    for length in [0, 31, 33] {
+        let error = client
+            .committed_transaction(proto_app::CommittedTransactionRequest {
+                block_height: 0,
+                transaction_id: vec![0; length],
+            })
+            .await
+            .expect_err("invalid ID accepted");
+        assert_eq!(error.kind(), ErrorKind::InvalidArgument);
+    }
     Ok(())
 }
