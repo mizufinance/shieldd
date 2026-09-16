@@ -54,6 +54,8 @@ strip = "none"
 
 [profile.ci]
 inherits = "release"
+# Optimized tests with unapproved development circuit keys; never a release artifact.
+debug-assertions = true
 codegen-units = 16
 
 [workspace.package]

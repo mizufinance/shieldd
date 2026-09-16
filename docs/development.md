@@ -28,7 +28,9 @@ binary and JSON verification-key SHA-256 digests, and an approval reference.
 The current development setups are unapproved; release builds intentionally fail.
 Do not populate approval entries merely to make a build pass.
 
-Debug builds can exercise real proving with development keys. Production ceremony
+Debug builds and the optimized `ci` profile can exercise real proving with
+development keys. The `ci` profile retains debug assertions and records that
+provenance; ordinary CI uses it without weakening the release approval gate. Production ceremony
 approval and release checks remain required before deployment.
 
 ## Real proof tests

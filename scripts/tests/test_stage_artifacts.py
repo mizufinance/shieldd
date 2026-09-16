@@ -39,6 +39,33 @@ class StagedArtifactsTests(unittest.TestCase):
                 stage.build("provers", destination, "a" * 40, "test-target")
             self.assertEqual({p.name for p in (destination / "lib/gnark").iterdir()}, current)
 
+    def test_ci_profile_keeps_development_assertions(self):
+        import tomllib
+        config = tomllib.loads((stage.ROOT / "Cargo.toml").read_text())
+        self.assertIs(config["profile"]["ci"].get("debug-assertions"), True)
+
+    def test_development_artifacts_cannot_be_verified_as_production(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            files = {}
+            for name in ("lib/libshieldd.a", "include/shieldd.h"):
+                path = root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(name.encode())
+                files[name] = stage.digest(path)
+            record = {"profile": "ci", "debug_assertions": True,
+                      "proof_parameters": {"approved": False, "debug_assertions": True}}
+            manifest = {"source_revision": "a" * 40, "target": "test-target",
+                        "groups": ["native"], "files": files, "provenance": {"native": record}}
+            (root / "manifest.json").write_text(json.dumps(manifest))
+            stage.verify(root, "a" * 40, profile="ci")
+            with self.assertRaisesRegex(ValueError, "profile mismatch"):
+                stage.verify(root, "a" * 40)
+            record["profile"] = "release"
+            (root / "manifest.json").write_text(json.dumps(manifest))
+            with self.assertRaisesRegex(ValueError, "production requires"):
+                stage.verify(root, "a" * 40)
+
     def test_revision_platform_integrity_and_required_outputs(self):
         for case in ["valid", "revision", "platform", "corrupt", "unlisted", "missing"]:
             with self.subTest(case=case), tempfile.TemporaryDirectory() as directory:

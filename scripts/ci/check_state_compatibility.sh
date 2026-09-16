@@ -26,7 +26,7 @@ COPY
 for location in source bankd/components/shieldd; do
     source_dir="$work/$location"
     result_name="$(basename "$location")"
-    (cd "$source_dir" && cargo run --locked --release -p shieldd --example state_compatibility -- "$work/db-$result_name" "$work/result-$result_name")
+    (cd "$source_dir" && cargo run --locked --profile ci -p shieldd --example state_compatibility -- "$work/db-$result_name" "$work/result-$result_name")
 done
 cmp "$work/result-source" "$work/result-shieldd"
 echo 'Current-version reopen, checkpoint, history, replay and next-root parity passed at both source locations.'

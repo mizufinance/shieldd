@@ -21,7 +21,7 @@ check:
     just tooling-test
     just snarkpack-invariants
     # check, failing on warnings
-    RUSTFLAGS="-D warnings" cargo check --release --all-targets --all-features --target-dir=target/check
+    RUSTFLAGS="-D warnings" cargo check --profile ci --all-targets --all-features --target-dir=target/check
     # fmt dry-run, failing on any suggestions
     cargo fmt --all -- --check
 
@@ -139,8 +139,8 @@ ci-test:
     if command -v cargo-nextest >/dev/null 2>&1; then \
       SHIELDD_ARTIFACT_ROOT="$PWD/target/shieldd" cargo nextest run --cargo-profile ci --no-fail-fast -j 2; \
     else \
-      echo "warning: cargo-nextest not found; falling back to 'cargo test --release --no-fail-fast'"; \
-      SHIELDD_ARTIFACT_ROOT="$PWD/target/shieldd" cargo test --release --no-fail-fast -- --test-threads=2; \
+      echo "warning: cargo-nextest not found; falling back to 'cargo test --profile ci --no-fail-fast'"; \
+      SHIELDD_ARTIFACT_ROOT="$PWD/target/shieldd" cargo test --profile ci --no-fail-fast -- --test-threads=2; \
     fi
 
 # CI wrapper for `go-check`.
@@ -166,8 +166,8 @@ ci-preflight:
     elif command -v cargo-hack >/dev/null 2>&1; then \
       ./deployments/scripts/check-crate-feature-sets; \
     else \
-      echo "warning: nix and cargo-hack not found; falling back to 'cargo check --workspace --all-targets --all-features --release'"; \
-      cargo check --workspace --all-targets --all-features --release; \
+      echo "warning: nix and cargo-hack not found; falling back to 'cargo check --workspace --all-targets --all-features --profile ci'"; \
+      cargo check --workspace --all-targets --all-features --profile ci; \
     fi
     if command -v nix >/dev/null 2>&1; then \
       nix develop .#ci --command ./deployments/scripts/check-wasm-compat.sh; \
