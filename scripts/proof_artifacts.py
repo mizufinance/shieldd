@@ -27,9 +27,9 @@ FAMILIES = (
 POINTER_VERSION = "https://git-lfs.github.com/spec/v1"
 CACHE_IDENTITY_SCHEMA = "shieldd.proof-artifact-cache"
 BUNDLE_BYTE_BUDGETS = {
-    "runtime": 145_000_000,
-    "constraints": 825_000_000,
-    "full": 970_000_000,
+    "runtime": 150_000_000,
+    "constraints": 860_000_000,
+    "full": 1_010_000_000,
 }
 
 

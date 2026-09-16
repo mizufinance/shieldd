@@ -16,7 +16,7 @@ use crate::{
     ShieldedWithdrawalFamilyId,
 };
 
-const SHIELDED_WITHDRAWAL_WITNESS_MAGIC: &[u8; 4] = b"PIWG";
+const SHIELDED_WITHDRAWAL_WITNESS_MAGIC: &[u8; 4] = b"PIW3";
 
 impl ShieldedWithdrawalWitness {
     pub fn encode(&self) -> Result<Vec<u8>> {

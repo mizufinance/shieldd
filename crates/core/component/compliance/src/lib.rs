@@ -1,4 +1,5 @@
 pub mod enrichment;
+pub mod registration;
 pub use enrichment::{AssetProofData, BatchComplianceData, ComplianceQuery, UserProofData};
 
 pub mod event;
@@ -49,6 +50,7 @@ pub use structs::{
     KEY_BYTES,
 };
 
+pub mod audit_field;
 pub mod transfer;
 pub use transfer::{
     derive_transfer_salt, encrypt_transfer, TransferComplianceCiphertext,
@@ -159,16 +161,8 @@ pub use scanner::{
 };
 
 pub mod decode_object;
+pub mod transfer_audit;
 pub use decode_object::{TransferComplianceMetadata, TRANSFER_COMPLIANCE_METADATA_BYTES};
-
-#[cfg(feature = "poc-orbis")]
-pub mod poc_orbis_audit;
-#[cfg(feature = "poc-orbis")]
-pub use poc_orbis_audit::{
-    build_poc_orbis_audit_package, decrypt_reencrypted_seed, parse_element,
-    validate_decrypted_seed, PocOrbisAccess, PocOrbisAuditBundle, PocOrbisAuditPackage,
-    PocOrbisSecretEnvelope, PocOrbisStoredAuditPackage, PocOrbisTier, PocOrbisTierBundle,
-};
 
 /// Create valid IMT non-membership proof for an unregulated asset.
 ///
@@ -454,13 +448,10 @@ mod tests {
 
         let sender_auth_path = state.get_user_auth_path(sender_position).await.unwrap();
         let receiver_auth_path = state.get_user_auth_path(receiver_position).await.unwrap();
-        let sender_ack = sender_leaf.capk;
-        let receiver_ack = receiver_leaf.capk;
 
         let ciphertext = encrypt_transfer(
             &mut OsRng,
-            &sender_ack,
-            &receiver_ack,
+            &crate::AuditKeys::test_keys(),
             &issuer_dk_pub,
             &receiver_address,
             &sender_address,
@@ -499,7 +490,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_end_to_end_detection_and_decryption() {
-        use crate::crypto::derive_compliance_scalar;
         use crate::issuer_keys::DetectionKey;
         use crate::transfer::encrypt_transfer;
         use rand_core::OsRng;
@@ -514,25 +504,14 @@ mod tests {
 
         let issuer_dk = DetectionKey::demo();
         let issuer_dk_pub = issuer_dk.public_key();
-        let ring_pk = decaf377::Element::GENERATOR * decaf377::Fr::rand(&mut OsRng);
         let sender_address = test_helpers::make_address(1);
         let receiver_address = test_helpers::make_address(2);
         let asset_id = asset::Id(decaf377::Fq::from(999999u64));
         let amount = Amount::from(1_000_000u128);
 
-        let sender_ack = ring_pk
-            * decaf377::Fr::from_le_bytes_mod_order(
-                &derive_compliance_scalar(&sender_address).to_bytes(),
-            );
-        let receiver_ack = ring_pk
-            * decaf377::Fr::from_le_bytes_mod_order(
-                &derive_compliance_scalar(&receiver_address).to_bytes(),
-            );
-
         let ciphertext = encrypt_transfer(
             &mut OsRng,
-            &sender_ack,
-            &receiver_ack,
+            &crate::AuditKeys::test_keys(),
             &issuer_dk_pub,
             &receiver_address,
             &sender_address,
@@ -549,6 +528,7 @@ mod tests {
             "policy",
             "resource",
             "permission",
+            1,
             1,
             Fq::from(8u64),
             Fq::from(10u64),
@@ -635,3 +615,8 @@ mod tests {
         );
     }
 }
+
+pub mod audit_keys;
+pub use audit_keys::AuditKeys;
+
+pub mod ownership;

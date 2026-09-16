@@ -531,6 +531,7 @@ async fn regulated_genesis_note_transfers_through_host_and_compact_block() -> Re
     let regulated_denom = "wregulated_usd";
     let regulated_asset_id = asset::REGISTRY.parse_unit(regulated_denom).id();
     let native_asset = NativeAssetRegistration {
+        audit_keys: Some(shieldd_sdk_compliance::AuditKeys::test_keys()),
         asset_id: regulated_asset_id,
         is_regulated: true,
         dk_pub: Some(decaf377::Element::GENERATOR.vartime_compress().0),
@@ -721,6 +722,10 @@ async fn regulated_genesis_note_transfers_through_host_and_compact_block() -> Re
         .complete_intent(intent, storage.latest_snapshot())
         .await?;
     let tx_bytes = client.witness_auth_build(&plan).await?.encode_to_vec();
+    eprintln!(
+        "PET-ready regulated host transaction: {} bytes",
+        tx_bytes.len()
+    );
 
     let cache = StatelessCache::new();
     let mut mempool_app = App::new(storage.latest_snapshot());

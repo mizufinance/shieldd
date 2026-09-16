@@ -3,29 +3,29 @@
   "curve": "bls12-377",
   "circuit": "shielded_withdrawal",
   "mode": "fresh_setup",
-  "sr1cs_sha256_hex": "956394ffedcddacbce44673e83896d9d921523e098293a66d6eccff203dff3c2",
-  "proving_key_sha256_hex": "f8d896c217f6967302a111622097b1ca81b9470a393747f94e65c278752e995d",
-  "verifying_key_binary_sha256_hex": "09ec8bf1d524189c7c800dbc2de1f1d8d1d1d0288db9ef291edca9d7e368b157",
-  "verifying_key_json_sha256_hex": "3499d4a750dd278b7faecf7aef7def72dbc34efbf3caf2c20fa24e31ee97199f",
+  "sr1cs_sha256_hex": "0331bfab807db3b7e90f915d935e5b048593f340eb581694e8a82b98381bef4c",
+  "proving_key_sha256_hex": "3796cb428bcf7f2317f78b8b5a454e3cafd15e8f04958344f2711ac1ab49250a",
+  "verifying_key_binary_sha256_hex": "59bf02be2771da5f8079051565445a59801adba40387e48c6ea6d6e0616120f4",
+  "verifying_key_json_sha256_hex": "36845ce95b1c7c66240863107d37fd0de206d12c173252a41a764300973f8962",
   "generation_self_tests": [
     {
       "proof_case": "regulated_disclosed",
-      "witness_sha256_hex": "36e2afbc720a945f23882d2859bf4e4663e8f4b44d3c4c310f42244999ee9fea",
+      "witness_sha256_hex": "05c3140448ce71ff0575b99beb2f57f6427bde6d06456cd0f708ee132dc18931",
       "proved_and_verified_in_process": true
     },
     {
       "proof_case": "unregulated_hidden",
-      "witness_sha256_hex": "b991757a437dcd32a5ef37ce6a6def59ed9f372918c854f5405a637a2ce7a8d8",
+      "witness_sha256_hex": "e276b95364fbe62e61caa4ad3a1b45a7a2a764f68032aedcabba9dad1ed9a025",
       "proved_and_verified_in_process": true
     },
     {
       "proof_case": "accumulator_origin",
-      "witness_sha256_hex": "0dbd621144dd9b76d7f858282ecf2503e28b2c7aad280264a6a2a398bfe98cd0",
+      "witness_sha256_hex": "3e40a623b55052e02efdfad65c40d00dd5a56492350fd43d31ba410388139898",
       "proved_and_verified_in_process": true
     },
     {
       "proof_case": "accumulator_continuation",
-      "witness_sha256_hex": "fe6e5719296a47dde12ae644a0bd28f9d4ac4b274e8a0a7aa05e40d904f2e644",
+      "witness_sha256_hex": "4d53a605e26c277241aa342d2cfd8ce9349fac98d49a31398480b744f0f5e0b7",
       "proved_and_verified_in_process": true
     }
   ],

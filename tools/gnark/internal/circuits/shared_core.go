@@ -157,7 +157,7 @@ func ComplianceLeafCommitmentFromCompressed(
 		return nil, err
 	}
 
-	return Poseidon377Hash7(
+	base, err := Poseidon377Hash7(
 		api,
 		MustBigInt(vectors.Poseidon377.ComplianceLeafDomain),
 		[7]frontend.Variable{
@@ -170,6 +170,11 @@ func ComplianceLeafCommitmentFromCompressed(
 			status,
 		},
 	)
+	if err != nil {
+		return nil, err
+	}
+	return base, nil
+
 }
 
 // AssertActiveComplianceLifecycle constrains the packed lifecycle value.

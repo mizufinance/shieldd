@@ -325,11 +325,21 @@ func ReconstructedTransferStatementFieldsFromWitness(
 		}
 	}
 
+	var ownership [4][32]byte
+	for i, point := range witness.Ownership {
+		value, err := pointAffineToField(point)
+		if err != nil {
+			return nil, err
+		}
+		ownership[i] = value
+	}
 	fields = append(fields, witness.TargetTimestamp)
 	fields = append(
 		fields,
 		witness.SenderCoreKeyConfirmation,
 		witness.OutputCoreKeyConfirmation,
+		ownership[0], ownership[1], ownership[2], ownership[3],
+		witness.Metadata.AuditEpoch,
 		witness.Metadata.RingIDHash,
 		witness.Metadata.PolicyIDHash,
 		witness.Metadata.ResourceHash,

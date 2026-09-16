@@ -376,6 +376,7 @@ func (c *ShieldedWithdrawalCircuit) verifySharedContext(
 	shared := shieldedWithdrawalSharedContext{
 		ak: gnarkte.Point{X: c.Auth.AK.X, Y: c.Auth.AK.Y},
 		indexedLeaf: IndexedLeafInputs{
+			AuditKeys:        c.Asset.Leaf.AuditKeys,
 			Value:            c.Asset.Leaf.Value,
 			NextIndex:        c.Asset.Leaf.NextIndex,
 			NextValue:        c.Asset.Leaf.NextValue,
@@ -621,7 +622,7 @@ func (c *ShieldedWithdrawalCircuit) verifyWithdrawalComplianceCiphertext(
 		"user=compliance.shared.user",
 		"selected=compliance.shared.selected",
 	)
-	issuerShared, userShared, sharedSecret, err := DeriveSharedSecretsSpend(
+	issuerShared, userShared, sharedSecret, _, err := DeriveSharedSecretsSpend(
 		api,
 		c.Compliance.Randomizer,
 		shared.senderACK,
@@ -685,7 +686,7 @@ func (c *ShieldedWithdrawalCircuit) verifyWithdrawalComplianceCiphertext(
 		"transmission_fq=sender.transmission_fq",
 		"out=compliance.encrypted_sender_address",
 	)
-	if err := VerifyPoseidonEncryptionTransferAddress(
+	if _, err := VerifyPoseidonEncryptionTransferAddress(
 		api,
 		sharedSecret,
 		c.Compliance.C2,

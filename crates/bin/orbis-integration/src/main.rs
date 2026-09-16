@@ -1,32 +1,23 @@
 use std::{
-    env,
-    ffi::OsStr,
-    fs,
-    io::Write,
+    env, fs,
     net::TcpStream,
     path::{Path, PathBuf},
-    process::{Command, Stdio},
     thread,
     time::Duration,
 };
 
 use anyhow::{anyhow, bail, Context, Result};
 use clap::{Parser, Subcommand};
-use command::{collect_args, command_output, format_captured_output, render_args};
 use demo_auth::dkg_signer;
 use demo_config::{
     node_dial_host, vera_client, OrbisEndpoints, NODE1_DIAL_HOST, NODE2_DIAL_HOST, NODE3_DIAL_HOST,
     ORBIS_PERMISSION, ORBIS_POLICY_MARSHAL_TYPE_YAML, ORBIS_POLICY_YAML, ORBIS_RESOURCE,
     ORBIS_RING_POLICY_RESOURCE,
 };
-use demo_state::{
-    now_string, read_json, write_json, AuditDemoState, RingState, StatusDocument, UserState,
-};
+use demo_state::RingState;
 use orbis_common::blockchain::{orbis::WhitelistTarget, VeraClient};
-use serde::Deserialize;
 use shieldd_orbis_client::{NodeInfo, OrbisClient};
 
-mod command;
 mod demo_auth;
 mod demo_config;
 mod demo_state;
@@ -49,17 +40,6 @@ enum CommandKind {
         #[clap(long)]
         output_json: PathBuf,
     },
-    /// Initialize the bankD Orbis legal-audit demo against a running local stack.
-    AuditDemo {
-        #[clap(subcommand)]
-        command: AuditDemoCommand,
-    },
-}
-
-#[derive(Subcommand, Debug)]
-enum AuditDemoCommand {
-    /// Initialize deterministic demo identities and an Orbis/Vera ring only.
-    PocSetup,
 }
 
 #[derive(Debug)]
@@ -76,14 +56,6 @@ async fn main() -> Result<()> {
             let repo = RepoPaths::discover()?;
             let endpoints = repo.orbis_endpoints()?;
             setup_ring(&output_json, &endpoints).await
-        }
-        CommandKind::AuditDemo { command } => {
-            let repo = RepoPaths::discover()?;
-            let endpoints = repo.orbis_endpoints()?;
-            let demo = AuditDemo::from_env(endpoints)?;
-            match command {
-                AuditDemoCommand::PocSetup => demo.poc_setup().await,
-            }
         }
     }
 }
@@ -356,183 +328,6 @@ fn docker_peer_id(info: &NodeInfo, dial_host: &str) -> Result<String> {
         .rsplit_once(':')
         .ok_or_else(|| anyhow!("missing port in p2p address: {}", info.p2p_address))?;
     Ok(format!("{peer_id}@{dial_host}:{port}"))
-}
-
-#[derive(Debug, Clone)]
-struct AuditDemo {
-    root: PathBuf,
-    demo_dir: PathBuf,
-    demo_dir_rel: String,
-    status_file: PathBuf,
-    state_file: PathBuf,
-    orbis_endpoints: OrbisEndpoints,
-}
-
-impl AuditDemo {
-    const ALICE_PHRASE: &'static str = "wealth flavor believe regret funny network recall kiss grape useless pepper cram hint member few certain unveil rather brick bargain curious require crowd raise";
-    const CHARLIE_PHRASE: &'static str = "comfort ten front cycle churn burger oak absent rice ice urge result art couple benefit cabbage frequent obscure hurry trick segment cool job debate";
-
-    async fn poc_setup(&self) -> Result<()> {
-        self.init_state_file()?;
-        self.write_status(
-            "running",
-            "poc-setup",
-            "Initializing demo identities and Orbis/Vera ring",
-        )?;
-        for (name, slug, phrase) in [
-            ("Alice", "alice", Some(Self::ALICE_PHRASE)),
-            ("Bob", "bob", None),
-            ("Charlie", "charlie", Some(Self::CHARLIE_PHRASE)),
-        ] {
-            self.init_wallet(slug, phrase)?;
-            let address = self.address_for(slug, 0)?;
-            let mut user = UserState::new(name, slug, self.wallet_home_rel(slug), address)?;
-            if slug == "charlie" {
-                user.add_address(1, self.address_for(slug, 1)?)?;
-            }
-            self.update_state(|state| {
-                state.users.retain(|user| user.slug != slug);
-                state.users.push(user);
-            })?;
-        }
-        let ring_file = self.demo_dir.join("ring.json");
-        setup_ring(&ring_file, &self.orbis_endpoints).await?;
-        let ring = self.read_json::<RingState>(&ring_file)?;
-        self.update_state(|state| {
-            state.ring = Some(ring);
-            state.setup.initialized = true;
-            state.setup.updated_at = Some(now_string());
-        })?;
-        self.write_status(
-            "complete",
-            "poc-setup",
-            "Demo identities and Orbis/Vera ring ready",
-        )
-    }
-
-    fn from_env(orbis_endpoints: OrbisEndpoints) -> Result<Self> {
-        let root = env::current_dir().context("failed to resolve current directory")?;
-        let demo_dir_rel =
-            env::var("DEMO_DIR").unwrap_or_else(|_| ".localnet/audit-demo".to_string());
-        let demo_dir = root.join(&demo_dir_rel);
-        fs::create_dir_all(demo_dir.join("wallets"))
-            .with_context(|| format!("failed to create {}", demo_dir.display()))?;
-        Ok(Self {
-            status_file: demo_dir.join("status.json"),
-            state_file: demo_dir.join("state.json"),
-            root,
-            demo_dir,
-            demo_dir_rel,
-            orbis_endpoints,
-        })
-    }
-
-    fn init_wallet(&self, slug: &str, phrase: Option<&str>) -> Result<()> {
-        let home = self.wallet_home_abs(slug);
-        fs::create_dir_all(&home)?;
-        if home.join("config.toml").exists() {
-            return Ok(());
-        }
-        let mut child = self
-            .pcli_command(slug)
-            .args(["init", "soft-kms"])
-            .arg(if phrase.is_some() {
-                "import-phrase"
-            } else {
-                "generate"
-            })
-            .stdin(Stdio::piped())
-            .spawn()
-            .context("failed to start pcli wallet init")?;
-        if let Some(mut stdin) = child.stdin.take() {
-            stdin.write_all(phrase.unwrap_or("").as_bytes())?;
-            stdin.write_all(b"\n")?;
-        }
-        let status = child
-            .wait()
-            .context("failed to wait for pcli wallet init")?;
-        if status.success() {
-            Ok(())
-        } else {
-            bail!("pcli wallet init failed with status {status}")
-        }
-    }
-
-    fn address_for(&self, slug: &str, index: u64) -> Result<String> {
-        let output = self.capture_pcli(slug, ["view", "address", &index.to_string()])?;
-        Ok(output
-            .lines()
-            .last()
-            .unwrap_or(output.trim())
-            .trim()
-            .to_string())
-    }
-
-    fn write_status(&self, state: &str, step: &str, message: &str) -> Result<()> {
-        write_json(
-            &self.status_file,
-            &StatusDocument::new(state, step, message),
-        )
-    }
-
-    fn init_state_file(&self) -> Result<()> {
-        if self.state_file.exists() {
-            return Ok(());
-        }
-        write_json(&self.state_file, &AuditDemoState::new())
-    }
-
-    fn state(&self) -> Result<AuditDemoState> {
-        self.read_json(&self.state_file)
-    }
-
-    fn update_state<F>(&self, mutate: F) -> Result<()>
-    where
-        F: FnOnce(&mut AuditDemoState),
-    {
-        let mut state = self.state()?;
-        mutate(&mut state);
-        write_json(&self.state_file, &state)
-    }
-
-    fn wallet_home_rel(&self, slug: &str) -> String {
-        format!("{}/wallets/{slug}", self.demo_dir_rel)
-    }
-
-    fn wallet_home_abs(&self, slug: &str) -> PathBuf {
-        self.root.join(self.wallet_home_rel(slug))
-    }
-
-    fn pcli_command(&self, slug: &str) -> Command {
-        let mut command = Command::new("pcli");
-        command
-            .current_dir(&self.root)
-            .env("HOME", "/home/shieldd")
-            .env("SHIELDD_PCLI_HOME", self.wallet_home_abs(slug));
-        command
-    }
-
-    fn capture_pcli<I, S>(&self, slug: &str, args: I) -> Result<String>
-    where
-        I: IntoIterator<Item = S>,
-        S: AsRef<OsStr>,
-    {
-        let args = collect_args(args);
-        eprintln!("orbis-integration audit-demo: pcli {}", render_args(&args));
-        let output = command_output(self.pcli_command(slug).args(args))?;
-        if !output.status.success() {
-            bail!(
-                "pcli command failed with status {}:\n{}",
-                output.status,
-                format_captured_output(&output)
-            );
-        }
-        Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
-    }
-
-    fn read_json<T: for<'de> Deserialize<'de>>(&self, path: impl AsRef<Path>) -> Result<T> {
-        read_json(path.as_ref())
-    }
 }
 
 impl RepoPaths {

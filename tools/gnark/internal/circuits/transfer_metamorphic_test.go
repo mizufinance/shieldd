@@ -19,6 +19,7 @@ import (
 )
 
 type transferMutation struct {
+	fixture                string
 	name                   string
 	preserveStaleStatement bool
 	mutate                 func(
@@ -32,7 +33,12 @@ func loadTransferAssignment(
 	t *testing.T,
 ) (*abi.TransferWitnessBinary, *circuits.TransferCircuit) {
 	t.Helper()
-	fixtureBytes := testfixtures.LoadTransferWitness("transfer")
+	return loadTransferFixture(t, "transfer")
+}
+
+func loadTransferFixture(t *testing.T, fixture string) (*abi.TransferWitnessBinary, *circuits.TransferCircuit) {
+	t.Helper()
+	fixtureBytes := testfixtures.LoadTransferWitness(fixture)
 	witness, _, err := abi.DecodeTransferWitness(fixtureBytes)
 	if err != nil {
 		t.Fatalf("decode transfer witness fixture binary: %v", err)
@@ -120,7 +126,11 @@ func TestRegulatedTransferRejectsFrozenSenderAndRecipient(t *testing.T) {
 
 func assertTransferMutationRejected(t *testing.T, mutation transferMutation) {
 	t.Helper()
-	witness, assignment := loadTransferAssignment(t)
+	fixture := mutation.fixture
+	if fixture == "" {
+		fixture = "transfer"
+	}
+	witness, assignment := loadTransferFixture(t, fixture)
 	mutation.mutate(t, witness, assignment)
 	if !mutation.preserveStaleStatement {
 		setTransferStatementHash(t, witness, assignment)
@@ -1215,6 +1225,22 @@ func TestTransferCircuitRejectsComplianceTierMutations(t *testing.T) {
 	}
 }
 
+func TestTransferCircuitRejectsOwnershipMutations(t *testing.T) {
+	for position := 0; position < 4; position++ {
+		for _, stale := range []bool{false, true} {
+			t.Run(fmt.Sprintf("value_%d_stale_%t", position, stale), func(t *testing.T) {
+				assertTransferMutationRejected(t, transferMutation{
+					name: "ownership ciphertext", preserveStaleStatement: stale,
+					mutate: func(t *testing.T, w *abi.TransferWitnessBinary, c *circuits.TransferCircuit) {
+						w.Ownership[position] = w.SenderCore.EPKAffine
+						c.Compliance.Ownership[position] = gnarkte.Point{X: c.Compliance.SenderCore.Epk.X, Y: c.Compliance.SenderCore.Epk.Y}
+					},
+				})
+			})
+		}
+	}
+}
+
 func TestTransferCircuitRejectsEveryDetectionCiphertextMutation(t *testing.T) {
 	for ciphertextIndex := 0; ciphertextIndex < compliance.TransferDetectionFQCount; ciphertextIndex++ {
 		ciphertextIndex := ciphertextIndex
@@ -1661,5 +1687,75 @@ func transferMetadataMutations() []transferMutation {
 			c.Compliance.Metadata.OutputExtSalt =
 				primitives.LittleEndianBytesToBigInt(w.Metadata.OutputExtSalt[:]).String()
 		}},
+	}
+}
+
+func TestTransferCircuitRejectsAuditKeySubstitution(t *testing.T) {
+	for _, owner := range []string{"ring"} {
+		for _, field := range []string{"amount", "sender", "receiver", "checking", "epoch"} {
+			t.Run(owner+"/"+field, func(t *testing.T) {
+				_, c := loadTransferAssignment(t)
+				keys := &c.Asset.Leaf.AuditKeys
+				switch field {
+				case "amount":
+					keys.Amount = keys.Sender
+				case "sender":
+					keys.Sender = keys.Receiver
+				case "receiver":
+					keys.Receiver = keys.Amount
+				case "checking":
+					keys.Checking = keys.Amount
+				case "epoch":
+					keys.Epoch = 2
+				}
+				if err := test.IsSolved(circuits.NewTransferCircuit(), c, ecc.BLS12_377.ScalarField()); err == nil {
+					t.Fatal("accepted substituted registered audit key")
+				}
+			})
+		}
+	}
+	for _, stale := range []bool{false, true} {
+		t.Run(fmt.Sprintf("public_epoch/stale_%t", stale), func(t *testing.T) {
+			assertTransferMutationRejected(t, transferMutation{
+				preserveStaleStatement: stale,
+				mutate: func(t *testing.T, w *abi.TransferWitnessBinary, c *circuits.TransferCircuit) {
+					w.Metadata.AuditEpoch = addFieldElementBytes(t, w.Metadata.AuditEpoch, big.NewInt(1))
+					c.Compliance.Metadata.AuditEpoch = primitives.LittleEndianBytesToBigInt(w.Metadata.AuditEpoch[:]).String()
+				},
+			})
+		})
+	}
+}
+
+func TestTransferCircuitRejectsValidOwnershipForWrongRole(t *testing.T) {
+	for _, stale := range []bool{false, true} {
+		for _, kind := range []string{"wrong_sender", "swap_roles", "zero_sender", "zero_receiver"} {
+			t.Run(fmt.Sprintf("%s/stale_%t", kind, stale), func(t *testing.T) {
+				assertTransferMutationRejected(t, transferMutation{
+					fixture:                "transfer_flagged",
+					preserveStaleStatement: stale,
+					mutate: func(t *testing.T, w *abi.TransferWitnessBinary, c *circuits.TransferCircuit) {
+						switch kind {
+						case "wrong_sender":
+							w.Ownership[0], w.Ownership[1] = w.Ownership[2], w.Ownership[3]
+							c.Compliance.Ownership[0], c.Compliance.Ownership[1] = c.Compliance.Ownership[2], c.Compliance.Ownership[3]
+							w.SenderChecking = w.OutputChecking
+							c.Compliance.SenderChecking = c.Compliance.OutputChecking
+						case "swap_roles":
+							w.Ownership[0], w.Ownership[1], w.Ownership[2], w.Ownership[3] = w.Ownership[2], w.Ownership[3], w.Ownership[0], w.Ownership[1]
+							c.Compliance.Ownership[0], c.Compliance.Ownership[1], c.Compliance.Ownership[2], c.Compliance.Ownership[3] = c.Compliance.Ownership[2], c.Compliance.Ownership[3], c.Compliance.Ownership[0], c.Compliance.Ownership[1]
+							w.SenderChecking, w.OutputChecking = w.OutputChecking, w.SenderChecking
+							c.Compliance.SenderChecking, c.Compliance.OutputChecking = c.Compliance.OutputChecking, c.Compliance.SenderChecking
+						case "zero_sender":
+							w.SenderChecking = [32]byte{}
+							c.Compliance.SenderChecking = 0
+						case "zero_receiver":
+							w.OutputChecking = [32]byte{}
+							c.Compliance.OutputChecking = 0
+						}
+					},
+				})
+			})
+		}
 	}
 }

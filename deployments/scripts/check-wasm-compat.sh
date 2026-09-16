@@ -19,7 +19,7 @@ packages=(
 
 for p in "${packages[@]}" ; do
     echo "Checking package for wasm compat: $p ..."
-    if ! cargo check --release --target wasm32-unknown-unknown --no-default-features --package "$p" ; then
+    if ! cargo check --profile ci --target wasm32-unknown-unknown --no-default-features --package "$p" ; then
         >&2 echo "ERROR: package appears not to be wasm-compatible: '$p'"
         exit 1
     fi

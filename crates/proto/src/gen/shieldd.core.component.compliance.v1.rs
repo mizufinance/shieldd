@@ -119,6 +119,10 @@ pub struct MsgRegisterAsset {
     pub seizure_authority_vk: ::core::option::Option<
         super::super::super::super::crypto::decaf377_rdsa::v1::SpendVerificationKey,
     >,
+    #[prost(bytes = "vec", tag = "16")]
+    pub audit_keys: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag = "17")]
+    pub audit_certificate: ::core::option::Option<OrbisCapabilityCertificate>,
 }
 impl ::prost::Name for MsgRegisterAsset {
     const NAME: &'static str = "MsgRegisterAsset";
@@ -165,6 +169,8 @@ pub struct AssetRegistrationGrantBody {
     pub seizure_authority_vk: ::core::option::Option<
         super::super::super::super::crypto::decaf377_rdsa::v1::SpendVerificationKey,
     >,
+    #[prost(bytes = "vec", tag = "15")]
+    pub audit_keys: ::prost::alloc::vec::Vec<u8>,
 }
 impl ::prost::Name for AssetRegistrationGrantBody {
     const NAME: &'static str = "AssetRegistrationGrantBody";
@@ -663,6 +669,8 @@ pub struct IndexedLeafData {
     pub permission_hash: ::prost::alloc::vec::Vec<u8>,
     #[prost(bytes = "vec", tag = "11")]
     pub resource_hash: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "13")]
+    pub audit_keys: ::prost::alloc::vec::Vec<u8>,
 }
 impl ::prost::Name for IndexedLeafData {
     const NAME: &'static str = "IndexedLeafData";
@@ -705,6 +713,8 @@ pub struct AssetPolicy {
     pub seizure_authority_vk: ::core::option::Option<
         super::super::super::super::crypto::decaf377_rdsa::v1::SpendVerificationKey,
     >,
+    #[prost(bytes = "vec", tag = "12")]
+    pub audit_keys: ::prost::alloc::vec::Vec<u8>,
 }
 impl ::prost::Name for AssetPolicy {
     const NAME: &'static str = "AssetPolicy";
@@ -786,6 +796,8 @@ pub struct NativeAssetRegistration {
     pub permission: ::prost::alloc::string::String,
     #[prost(string, tag = "10")]
     pub resource: ::prost::alloc::string::String,
+    #[prost(bytes = "vec", tag = "11")]
+    pub audit_keys: ::prost::alloc::vec::Vec<u8>,
 }
 impl ::prost::Name for NativeAssetRegistration {
     const NAME: &'static str = "NativeAssetRegistration";

@@ -15,15 +15,15 @@ if ! hash cargo-hack >/dev/null 2>&1 ; then
     exit 1
 fi
 
-cargo hack check --workspace --all-targets --all-features --release
+cargo hack check --workspace --all-targets --all-features --profile ci
 
 # Check boundaries without workspace feature unification.
-cargo check --release -p shieldd --lib
-cargo check --release -p shieldd-sdk-view --no-default-features
-cargo check --release -p shieldd-sdk-view --no-default-features --features rpc
-cargo check --release -p shieldd-sdk-compliance --no-default-features --features scanner
-cargo check --release -p shieldd-sdk-transaction --no-default-features --features prover
-cargo check --release -p orbis-audit
+cargo check --profile ci -p shieldd --lib
+cargo check --profile ci -p shieldd-sdk-view --no-default-features
+cargo check --profile ci -p shieldd-sdk-view --no-default-features --features rpc
+cargo check --profile ci -p shieldd-sdk-compliance --no-default-features --features scanner
+cargo check --profile ci -p shieldd-sdk-transaction --no-default-features --features prover
+cargo check --profile ci -p orbis-audit
 dependency_tree="$(cargo tree -p shieldd --edges normal --prefix none)"
 if grep -q '^libloading ' <<< "$dependency_tree"; then
     echo 'ERROR: validator enables native prover loading' >&2

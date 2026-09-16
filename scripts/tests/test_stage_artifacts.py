@@ -22,19 +22,49 @@ class StagedArtifactsTests(unittest.TestCase):
                        ("transfer", "note_reshape", "shielded_withdrawal")}
             for name in current | {"libshieldd_gnark_retired.dylib"}:
                 (libraries / name).write_bytes(name.encode())
+            (out / "proof_artifact_provenance.json").write_text(json.dumps({"approved": True, "debug_assertions": False}))
             events = [{"reason": "build-script-executed",
-                       "package_id": "shieldd-sdk-proof-params", "out_dir": str(out)}]
+                       "package_id": "shieldd-sdk-proof-params", "out_dir": str(out)},
+                      {"reason": "compiler-artifact", "target": {"name": "shieldd_sdk_proof_params"},
+                       "profile": {"debug_assertions": False}}]
             for name in stage.GROUPS["provers"]:
                 binary = root / name
                 binary.write_bytes(name.encode())
                 events.append({"reason": "compiler-artifact", "target": {"name": name},
-                               "executable": str(binary)})
+                               "executable": str(binary), "profile": {"debug_assertions": False}})
             process = Mock(stdout=[json.dumps(event) for event in events])
             process.wait.return_value = 0
             destination = root / "stage"
             with patch.object(stage.subprocess, "Popen", return_value=process):
                 stage.build("provers", destination, "a" * 40, "test-target")
             self.assertEqual({p.name for p in (destination / "lib/gnark").iterdir()}, current)
+
+    def test_ci_profile_keeps_development_assertions(self):
+        import tomllib
+        config = tomllib.loads((stage.ROOT / "Cargo.toml").read_text())
+        self.assertIs(config["profile"]["ci"].get("debug-assertions"), True)
+
+    def test_development_artifacts_cannot_be_verified_as_production(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            files = {}
+            for name in ("lib/libshieldd.a", "include/shieldd.h"):
+                path = root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(name.encode())
+                files[name] = stage.digest(path)
+            record = {"profile": "ci", "debug_assertions": True,
+                      "proof_parameters": {"approved": False, "debug_assertions": True}}
+            manifest = {"source_revision": "a" * 40, "target": "test-target",
+                        "groups": ["native"], "files": files, "provenance": {"native": record}}
+            (root / "manifest.json").write_text(json.dumps(manifest))
+            stage.verify(root, "a" * 40, profile="ci")
+            with self.assertRaisesRegex(ValueError, "profile mismatch"):
+                stage.verify(root, "a" * 40)
+            record["profile"] = "release"
+            (root / "manifest.json").write_text(json.dumps(manifest))
+            with self.assertRaisesRegex(ValueError, "production requires"):
+                stage.verify(root, "a" * 40)
 
     def test_revision_platform_integrity_and_required_outputs(self):
         for case in ["valid", "revision", "platform", "corrupt", "unlisted", "missing"]:
@@ -46,7 +76,7 @@ class StagedArtifactsTests(unittest.TestCase):
                     path.parent.mkdir(parents=True, exist_ok=True)
                     path.write_bytes(name.encode())
                     files[name] = stage.digest(path)
-                manifest = {"source_revision": "a" * 40, "target": "test-target", "groups": ["native"], "files": files}
+                manifest = {"source_revision": "a" * 40, "target": "test-target", "groups": ["native"], "files": files, "provenance": {"native": {"profile": "release", "debug_assertions": False, "proof_parameters": {"approved": True, "debug_assertions": False}}}}
                 revision, target = "a" * 40, "test-target"
                 if case == "revision": revision = "b" * 40
                 if case == "platform": target = "other-target"
