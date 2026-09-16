@@ -8,6 +8,7 @@ cd "${repo_root}"
 packages=(
     shieldd-sdk-asset
     shieldd-sdk-compact-block
+    shieldd-sdk-disclosure
     shieldd-sdk-fee
     shieldd-sdk-keys
     shieldd-sdk-sct

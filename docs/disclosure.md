@@ -256,3 +256,13 @@ Browser spending-control signatures and browser ZK proving are not implemented.
 Issuer verification currently relies on immutable registered asset policies.
 Historical key epochs and execution-order lookup are required before adding
 issuer-key rotation.
+## Cross-client fixtures
+
+`crates/disclosure/tests/handoff.rs` generates the canonical handoff vectors in
+`tools/gnark/internal/compliance/handoff_vectors.json`; Rust and Go check the same
+sender/receiver, self-transfer, alternate-owner, field and epoch bindings. The
+fixture uses synthetic acceptance and local checking keys, not distributed PET.
+Changed policy, chain, height, output and unregulated selections are rejected.
+`accepted_fixture` exports openings, payload keys and true/false development
+proofs for independently fetched live transactions; acceptance still requires
+verification against the chosen node.

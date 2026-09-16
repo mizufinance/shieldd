@@ -4,9 +4,13 @@ use decaf377::{Element, Fr};
 use decaf377_rdsa::{SigningKey, SpendAuth, VerificationKey};
 use rand_core::{OsRng, RngCore};
 use shieldd_sdk_compliance::{
-    derive_regulated_nullifier_key, registration::policy_from_asset_grant, AssetRegistrationGrant,
+    derive_regulated_nullifier_key,
+    registration::policy_from_asset_grant,
+    structs::{
+        AssetRegistrationGrant, OrbisCapabilityCertificate, UserRegistrationGrant,
+        UserRegistrationGrantBody,
+    },
     AuditKeys, ComplianceLeaf, DetectionKey, MsgRegisterAsset, MsgRegisterUser,
-    OrbisCapabilityCertificate, UserRegistrationGrant, UserRegistrationGrantBody,
 };
 use shieldd_sdk_keys::keys::{Bip44Path, SeedPhrase, SpendKey};
 use shieldd_sdk_proto::core::component::compliance::v1 as pb;

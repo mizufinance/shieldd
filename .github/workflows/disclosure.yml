@@ -1,0 +1,65 @@
+name: Disclosure integration artifacts
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/disclosure-integration]
+permissions:
+  contents: read
+concurrency:
+  group: disclosure-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  CARGO_BUILD_JOBS: 2
+  RAYON_NUM_THREADS: 2
+  GOMAXPROCS: 2
+  CARGO_INCREMENTAL: 0
+jobs:
+  development:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-nix-rust
+        with:
+          free-disk: 'true'
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: tools/gnark/go.mod
+          cache-dependency-path: tools/gnark/go.sum
+      - uses: ./.github/actions/prepare-proof-artifacts
+        with:
+          bundle: full
+      - name: Verify pure evidence, handoff and bounded accepted queries
+        run: |
+          nix develop .#ci --command cargo test --locked -p shieldd-sdk-disclosure -- --test-threads=2
+          nix develop .#ci --command cargo test --locked -p shieldd-sdk-app --lib committed_transaction -- --test-threads=2
+          nix develop .#ci --command cargo test --locked -p shieldd --lib committed_transaction -- --test-threads=2
+          cd tools/gnark
+          go test -p 2 ./internal/compliance -run 'TestCanonicalHandoffRustGoParity|TestOwnershipRustNativeAndGnarkParity' -count=1
+      - name: Build development native library and provers
+        run: |
+          nix develop .#ci --command python3 scripts/stage_artifacts.py native --profile ci
+          nix develop .#ci --command python3 scripts/stage_artifacts.py provers --profile ci
+          nix develop .#ci --command cargo build --locked --profile ci -p pcli --features disclosure-prover,development-disclosure-artifacts
+          nix develop .#ci --command cargo build --locked --profile ci -p shieldd-sdk-app-tests --example registration_fixture
+          nix develop .#ci --command cargo build --locked --profile ci -p shieldd-sdk-disclosure --example accepted_fixture --features prover,development-artifacts
+          cd tools/gnark
+          go build -p 2 -o ../../target/shieldd/bin/disclosure ./cmd/disclosure
+          go build -p 2 -o ../../target/shieldd/bin/proverdaemon ./cmd/proverdaemon
+      - name: Generate real development disclosure proofs
+        run: |
+          export SHIELDD_DISCLOSURE_BACKEND="$PWD/target/shieldd/bin/disclosure"
+          export SHIELDD_DISCLOSURE_ARTIFACTS="$RUNNER_TEMP/disclosure-keys"
+          "$SHIELDD_DISCLOSURE_BACKEND" setup-development "$SHIELDD_DISCLOSURE_ARTIFACTS"
+          nix develop .#ci --command cargo test --locked --profile ci -p shieldd-sdk-disclosure --features prover,development-artifacts --test claims real_proofs -- --ignored --test-threads=1
+          cp -a "$SHIELDD_DISCLOSURE_ARTIFACTS" target/shieldd/disclosure-keys
+      - name: Package development integration executables
+        run: |
+          cp target/ci/pcli target/ci/examples/registration_fixture target/ci/examples/accepted_fixture target/shieldd/bin/
+          git rev-parse HEAD > target/shieldd/source-revision.txt
+          tar -czf disclosure-native-development.tar.gz -C target shieldd
+      - uses: actions/upload-artifact@v4
+        with:
+          name: disclosure-native-development
+          path: disclosure-native-development.tar.gz
+          retention-days: 7

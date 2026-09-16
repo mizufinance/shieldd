@@ -32,4 +32,12 @@ shieldd-sdk-proto = { workspace = true }
 poseidon377 = { workspace = true }
 
 [dev-dependencies]
+ark-groth16 = { workspace = true }
+ark-serialize = { workspace = true }
 rand = { workspace = true }
+shieldd-sdk-tct = { workspace = true }
+shieldd-sdk-sct = { workspace = true, default-features = false }
+
+[[example]]
+name = "accepted_fixture"
+required-features = ["prover", "development-artifacts"]

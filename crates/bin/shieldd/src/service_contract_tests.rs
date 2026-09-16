@@ -8,6 +8,7 @@ use shieldd_sdk_app::{
 use shieldd_sdk_asset::asset;
 use shieldd_sdk_keys::test_keys::ADDRESS_0;
 use shieldd_sdk_proto::cnidarium::v1::KeyValueRequest as ComponentKeyValueRequest;
+use shieldd_sdk_proto::core::app::v1 as proto_app;
 use shieldd_sdk_proto::core::app::v1::AppParametersRequest as ComponentAppParametersRequest;
 use shieldd_sdk_proto::core::component::{
     compact_block::v1::CompactBlockRangeRequest as ComponentCompactBlockRangeRequest,

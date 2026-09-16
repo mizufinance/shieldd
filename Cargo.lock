@@ -6371,6 +6371,8 @@ name = "shieldd-sdk-disclosure"
 version = "2.1.0"
 dependencies = [
  "anyhow",
+ "ark-groth16",
+ "ark-serialize",
  "base64 0.21.7",
  "decaf377",
  "decaf377-ka",
@@ -6387,7 +6389,9 @@ dependencies = [
  "shieldd-sdk-compliance",
  "shieldd-sdk-keys",
  "shieldd-sdk-proto",
+ "shieldd-sdk-sct",
  "shieldd-sdk-shielded-pool",
+ "shieldd-sdk-tct",
  "shieldd-sdk-transaction",
 ]
 
