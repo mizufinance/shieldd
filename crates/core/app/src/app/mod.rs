@@ -1135,14 +1135,6 @@ impl App {
         Ok(verified)
     }
 
-    /// Runs Groth16 batch verification across multiple pre-extracted artifacts in one call.
-    /// Amortizes the MSM cost across all proofs in the slice.
-    #[cfg(any(test, feature = "benchmark-helpers"))]
-    pub async fn batch_verify_artifacts_for_bench(artifacts: &[Arc<TxArtifact>]) -> Result<()> {
-        Self::verify_tx_artifacts_for_stage("bench_batch", artifacts).await?;
-        Ok(())
-    }
-
     async fn independently_verify_proof_families(
         proof_items: BTreeMap<ProofFamilyId, Vec<BatchItem>>,
     ) -> Result<BTreeMap<ProofFamilyId, VecDeque<VerifiedBatchItem>>> {
