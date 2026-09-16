@@ -13,7 +13,6 @@ mod note_manager;
 mod note_record;
 mod storage;
 mod sync;
-mod transaction_info;
 mod worker;
 
 pub use crate::client_compliance::{
@@ -32,7 +31,6 @@ pub use crate::note_record::SpendableNoteRecord;
 pub use crate::storage::{
     ConfirmedVolumeAccumulator, Storage, VolumeAccumulatorRecovery, VolumeAccumulatorReservation,
 };
-pub use crate::transaction_info::TransactionInfo;
 
 pub mod planning_intent;
 
