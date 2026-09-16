@@ -318,61 +318,6 @@ impl ComplianceTreeStore<'_, '_> {
         Ok(())
     }
 
-    /// Get an asset tree internal hash.
-    pub fn get_asset_hash(
-        &mut self,
-        position: u64,
-        height: u8,
-    ) -> anyhow::Result<Option<StateCommitment>> {
-        let position = position_to_i64(position)?;
-
-        let mut stmt = self
-            .0
-            .prepare_cached(
-                "SELECT hash FROM compliance_asset_hashes WHERE position = ?1 AND height = ?2",
-            )
-            .context("failed to prepare asset hash query")?;
-
-        let bytes = stmt
-            .query_row::<Vec<u8>, _, _>((&position, &height), |row| row.get("hash"))
-            .optional()
-            .context("failed to query asset hash")?;
-
-        bytes
-            .map(|bytes| {
-                <[u8; 32]>::try_from(bytes)
-                    .map_err(|b: Vec<u8>| {
-                        anyhow::anyhow!(
-                            "asset tree hash must be 32 bytes, got {} (database may be corrupted)",
-                            b.len()
-                        )
-                    })
-                    .and_then(|array| StateCommitment::try_from(array).map_err(Into::into))
-            })
-            .transpose()
-    }
-
-    /// Add an asset tree internal hash.
-    pub fn add_asset_hash(
-        &mut self,
-        position: u64,
-        height: u8,
-        hash: StateCommitment,
-    ) -> anyhow::Result<()> {
-        let position = position_to_i64(position)?;
-        let hash = <[u8; 32]>::from(hash).to_vec();
-
-        self.0
-            .prepare_cached(
-                "INSERT INTO compliance_asset_hashes (position, height, hash) VALUES (?1, ?2, ?3) ON CONFLICT DO NOTHING",
-            )
-            .context("failed to prepare asset hash insert")?
-            .execute((&position, &height, &hash))
-            .context("failed to insert asset hash")?;
-
-        Ok(())
-    }
-
     // ========== Anchor Operations ==========
 
     /// Get compliance anchors at a specific height.

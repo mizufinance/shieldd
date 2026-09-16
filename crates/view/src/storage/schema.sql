@@ -199,14 +199,6 @@ CREATE TABLE compliance_asset_leaves (
     resource_hash BLOB NOT NULL    -- 32 bytes Fq
 );
 
--- Internal hashes for asset tree auth paths
-CREATE TABLE compliance_asset_hashes (
-    position BIGINT NOT NULL,
-    height TINYINT NOT NULL,
-    hash BLOB NOT NULL,
-    PRIMARY KEY (position, height)
-);
-
 -- Compliance tree anchors per block
 CREATE TABLE compliance_anchors (
     height BIGINT PRIMARY KEY,
