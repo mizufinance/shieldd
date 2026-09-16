@@ -175,14 +175,6 @@ CREATE TABLE compliance_user_positions (
     commitment BLOB NOT NULL
 );
 
--- Internal hashes for user tree auth paths
-CREATE TABLE compliance_user_hashes (
-    position BIGINT NOT NULL,
-    height TINYINT NOT NULL,
-    hash BLOB NOT NULL,
-    PRIMARY KEY (position, height)
-);
-
 -- Asset tree (IMT) indexed leaves (full policy for correct tree reconstruction)
 CREATE TABLE compliance_asset_leaves (
     position BIGINT PRIMARY KEY,

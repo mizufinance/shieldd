@@ -119,61 +119,6 @@ impl ComplianceTreeStore<'_, '_> {
         Ok(())
     }
 
-    /// Get a user tree internal hash.
-    pub fn get_user_hash(
-        &mut self,
-        position: u64,
-        height: u8,
-    ) -> anyhow::Result<Option<StateCommitment>> {
-        let position = position_to_i64(position)?;
-
-        let mut stmt = self
-            .0
-            .prepare_cached(
-                "SELECT hash FROM compliance_user_hashes WHERE position = ?1 AND height = ?2",
-            )
-            .context("failed to prepare user hash query")?;
-
-        let bytes = stmt
-            .query_row::<Vec<u8>, _, _>((&position, &height), |row| row.get("hash"))
-            .optional()
-            .context("failed to query user hash")?;
-
-        bytes
-            .map(|bytes| {
-                <[u8; 32]>::try_from(bytes)
-                    .map_err(|b: Vec<u8>| {
-                        anyhow::anyhow!(
-                            "user tree hash must be 32 bytes, got {} (database may be corrupted)",
-                            b.len()
-                        )
-                    })
-                    .and_then(|array| StateCommitment::try_from(array).map_err(Into::into))
-            })
-            .transpose()
-    }
-
-    /// Add a user tree internal hash.
-    pub fn add_user_hash(
-        &mut self,
-        position: u64,
-        height: u8,
-        hash: StateCommitment,
-    ) -> anyhow::Result<()> {
-        let position = position_to_i64(position)?;
-        let hash = <[u8; 32]>::from(hash).to_vec();
-
-        self.0
-            .prepare_cached(
-                "INSERT INTO compliance_user_hashes (position, height, hash) VALUES (?1, ?2, ?3) ON CONFLICT DO NOTHING",
-            )
-            .context("failed to prepare user hash insert")?
-            .execute((&position, &height, &hash))
-            .context("failed to insert user hash")?;
-
-        Ok(())
-    }
-
     // ========== Asset Tree (IMT) Operations ==========
 
     /// Get an asset tree indexed leaf.
@@ -699,12 +644,6 @@ mod tests {
         store.add_user_position(0, commitment).unwrap();
         let retrieved = store.get_user_position(0).unwrap().unwrap();
         assert_eq!(<[u8; 32]>::from(retrieved), [1u8; 32]);
-
-        // Test user hash operations
-        let hash = StateCommitment::try_from([2u8; 32]).unwrap();
-        store.add_user_hash(0, 1, hash).unwrap();
-        let retrieved = store.get_user_hash(0, 1).unwrap().unwrap();
-        assert_eq!(<[u8; 32]>::from(retrieved), [2u8; 32]);
 
         // Test asset leaf operations
         let leaf = IndexedLeafData {

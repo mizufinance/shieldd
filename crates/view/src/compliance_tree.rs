@@ -77,12 +77,6 @@ impl ComplianceUserTree {
             tree.update(pos, commitment)?;
         }
 
-        // Load internal hashes (optimization to avoid recomputation)
-        // The QuadTree will compute hashes on demand, but loading them
-        // speeds up initial path queries
-        // Note: For simplicity, we rely on the tree to recompute hashes
-        // from the commitments. This is correct but could be optimized.
-
         Ok(Self {
             inner: tree,
             position,
@@ -428,7 +422,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn user_tree_insert_and_witness() {
+    fn user_tree_insert_persist_and_witness() {
+        use r2d2_sqlite::rusqlite::Connection;
+
         let mut tree = ComplianceUserTree::new();
 
         // Insert some commitments
@@ -445,6 +441,34 @@ mod tests {
         // Witness should work
         let _path = tree.witness(0).unwrap();
         let _path = tree.witness(1).unwrap();
+
+        let mut db = Connection::open_in_memory().unwrap();
+        db.execute_batch(include_str!("storage/schema.sql"))
+            .unwrap();
+        let plan = tree.persistence_plan().unwrap();
+        {
+            let mut tx = db.transaction().unwrap();
+            let mut store = ComplianceTreeStore(&mut tx);
+            for write in plan.leaves {
+                store
+                    .add_user_position(write.position, write.commitment)
+                    .unwrap();
+            }
+            store.set_user_tree_position(plan.next_position).unwrap();
+            tx.commit().unwrap();
+        }
+
+        let mut tx = db.transaction().unwrap();
+        let reloaded = ComplianceUserTree::from_store(&mut ComplianceTreeStore(&mut tx)).unwrap();
+        assert_eq!(reloaded.position(), tree.position());
+        assert_eq!(reloaded.root(), tree.root());
+        for position in [pos1, pos2] {
+            assert_eq!(reloaded.commitment(position), tree.commitment(position));
+            assert_eq!(
+                reloaded.witness(position).unwrap(),
+                tree.witness(position).unwrap()
+            );
+        }
     }
 
     #[test]
