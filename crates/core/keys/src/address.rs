@@ -24,9 +24,6 @@ pub const TRANSPARENT_ADDRESS_BECH32_PREFIX: &str = "tshieldd";
 /// The length of an [`Address`] in bytes.
 pub const ADDRESS_LEN_BYTES: usize = 48;
 
-/// Number of bits in the address short form divided by the number of bits per Bech32m character
-pub const ADDRESS_NUM_CHARS_SHORT_FORM: usize = 24;
-
 /// A valid payment address.
 #[derive(Clone, Eq, Serialize, Deserialize)]
 #[serde(try_from = "pb::Address", into = "pb::Address")]
@@ -193,16 +190,6 @@ impl Address {
                 return addr;
             }
         }
-    }
-
-    /// Short form suitable for displaying in a UI.
-    pub fn display_short_form(&self) -> String {
-        let full_address = format!("{self}");
-        // Fixed prefix is `shielddv2t` plus the Bech32m separator `1`.
-        let fixed_prefix = format!("{}{}", bech32str::address::BECH32_PREFIX, '1');
-        let num_chars_to_display = fixed_prefix.len() + ADDRESS_NUM_CHARS_SHORT_FORM;
-
-        format!("{}…", &full_address[0..num_chars_to_display])
     }
 
     /// Generate a Noble forwarding address.
