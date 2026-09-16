@@ -31,9 +31,9 @@ jobs:
           bundle: full
       - name: Verify pure evidence, handoff and bounded accepted queries
         run: |
-          nix develop .#ci --command cargo test --locked -p shieldd-sdk-disclosure -- --test-threads=2
-          nix develop .#ci --command cargo test --locked -p shieldd-sdk-app --lib committed_transaction -- --test-threads=2
-          nix develop .#ci --command cargo test --locked -p shieldd --lib committed_transaction -- --test-threads=2
+          nix develop .#ci --command cargo test --locked --profile ci -p shieldd-sdk-disclosure -- --test-threads=2
+          nix develop .#ci --command cargo test --locked --profile ci -p shieldd-sdk-app --lib committed_transaction -- --test-threads=2
+          nix develop .#ci --command cargo test --locked --profile ci -p shieldd --lib committed_transaction -- --test-threads=2
           cd tools/gnark
           go test -p 2 ./internal/compliance -run 'TestCanonicalHandoffRustGoParity|TestOwnershipRustNativeAndGnarkParity' -count=1
       - name: Build development native library and provers
