@@ -74,6 +74,17 @@ impl IncomingViewingKey {
         self.ivk.diversified_public(diversified_generator)
     }
 
+    /// The raw ivk scalar.
+    ///
+    /// Deriving an ivk needs Poseidon377, so it can only happen in here, but
+    /// decrypting an output note with one is plain ECDH, and tools outside the
+    /// wallet do that: `tools/shieldd-note-reader` in bankd takes exactly these
+    /// bytes. Handing them out hands out the ability to read every note
+    /// addressed to this key, so treat the result as secret.
+    pub fn to_bytes(&self) -> [u8; 32] {
+        self.ivk.to_bytes()
+    }
+
     /// Returns the index used to create the given diversifier (if it was
     /// created using this incoming viewing key)
     pub fn index_for_diversifier(&self, diversifier: &Diversifier) -> AddressIndex {
