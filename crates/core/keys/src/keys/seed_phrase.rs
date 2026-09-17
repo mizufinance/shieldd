@@ -79,13 +79,6 @@ impl SeedPhrase {
         Self::from_randomness(&randomness)
     }
 
-    /// Randomly generates a 12 word BIP39 [`SeedPhrase`].
-    pub fn short_generate<R: RngCore + CryptoRng>(mut rng: R) -> Self {
-        let mut randomness = [0u8; NUM_ENTROPY_BITS_SHORT / NUM_BITS_PER_BYTE];
-        rng.fill_bytes(&mut randomness);
-        Self::from_randomness(&randomness)
-    }
-
     /// Given bytes of randomness, generate a [`SeedPhrase`].
     pub fn from_randomness(randomness: &[u8]) -> Self {
         // We infer if the seed phrase will be a valid length based on the number of
