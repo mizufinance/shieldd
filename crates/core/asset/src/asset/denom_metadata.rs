@@ -344,10 +344,6 @@ impl Metadata {
         self.inner.base_denom.starts_with(prefix)
     }
 
-    pub fn default_for(denom: &Denom) -> Option<Metadata> {
-        REGISTRY.parse_denom(&denom.denom)
-    }
-
     /// Returns the IBC transfer path and base denom
     /// if this is an IBC transferred asset, `None` otherwise.
     ///
