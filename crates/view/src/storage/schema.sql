@@ -161,12 +161,6 @@ CREATE INDEX spendable_notes_idx ON spendable_notes (
     height_spent       -- null if unspent, so spent/unspent is first
 );
 
-CREATE TABLE epochs (
-    epoch_index BIGINT PRIMARY KEY,
-    root BLOB,
-    start_height BIGINT
-);
-
 -- ========== Compliance Trees (Local Sync) ==========
 
 -- User compliance tree positions and commitments

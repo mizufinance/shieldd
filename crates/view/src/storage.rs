@@ -29,7 +29,7 @@ use shieldd_sdk_sct::{nullifier_generation::NullifierWindow, CommitmentSource, N
 use shieldd_sdk_shielded_pool::{
     discovery, note, Note, Rseed, VolumeAccumulatorPayload, VolumeAccumulatorState,
 };
-use shieldd_sdk_tct::{self as tct, builder::epoch::Root};
+use shieldd_sdk_tct as tct;
 use shieldd_sdk_transaction::Transaction;
 use tct::StateCommitment;
 
@@ -84,16 +84,10 @@ pub(crate) struct ComplianceAssetPolicyUpdate {
     pub policy: AssetPolicy,
 }
 
-pub(crate) struct CompletedEpoch {
-    pub index: u64,
-    pub root: Root,
-}
-
 #[derive(Default)]
 pub(crate) struct WalletBlockMetadata {
     pub timestamp: u64,
     pub assets: Vec<Metadata>,
-    pub epoch: Option<CompletedEpoch>,
     pub counterparties: BTreeSet<Address>,
 }
 
@@ -1052,7 +1046,7 @@ impl Storage {
         // Connect to the database (or create it)
         let pool = Self::connect(storage_path)?;
 
-        let out = spawn_blocking(move || {
+        spawn_blocking(move || {
             // In one database transaction, populate everything
             let mut conn = pool.get()?;
             let tx = conn.transaction()?;
@@ -1091,11 +1085,7 @@ impl Storage {
 
             anyhow::Ok(Storage { pool })
         })
-        .await??;
-
-        out.update_epoch(0, None, Some(0)).await?;
-
-        Ok(out)
+        .await?
     }
 
     /// Query for account balance by address
@@ -2040,14 +2030,6 @@ impl Storage {
                 dbtx.execute("INSERT OR REPLACE INTO assets (asset_id, denom, metadata) VALUES (?1, ?2, ?3)",
                     (asset.id().to_bytes().to_vec(), asset.base_denom().denom, serde_json::to_string(&asset)?))?;
             }
-            if let Some(epoch) = metadata.epoch {
-                dbtx.execute("INSERT INTO epochs(epoch_index, root) VALUES (?1, ?2)
-                    ON CONFLICT(epoch_index) DO UPDATE SET root = excluded.root",
-                    (epoch.index, epoch.root.encode_to_vec()))?;
-                dbtx.execute("INSERT INTO epochs(epoch_index, start_height) VALUES (?1, ?2)
-                    ON CONFLICT(epoch_index) DO UPDATE SET start_height = excluded.start_height",
-                    (epoch.index.checked_add(1).context("epoch overflow")?, filtered_block.height.checked_add(1).context("height overflow")?))?;
-            }
             for address in metadata.counterparties {
                 compliance::ComplianceTreeStore(&mut dbtx).add_counterparty(&address.to_vec(), filtered_block.height)?;
             }
@@ -2071,63 +2053,6 @@ impl Storage {
             .await??;
 
         Ok(())
-    }
-
-    /// Update information about an epoch.
-    pub async fn update_epoch(
-        &self,
-        epoch: u64,
-        root: Option<Root>,
-        start_height: Option<u64>,
-    ) -> anyhow::Result<()> {
-        let pool = self.pool.clone();
-
-        spawn_blocking(move || {
-            pool.get()?
-                .execute(
-                    r#"
-                    INSERT INTO epochs(epoch_index, root, start_height)
-                    VALUES (?1, ?2, ?3)
-                    ON CONFLICT(epoch_index)
-                    DO UPDATE SET
-                        root = COALESCE(?2, root),
-                        start_height = COALESCE(?3, start_height)
-                    "#,
-                    (epoch, root.map(|x| x.encode_to_vec()), start_height),
-                )
-                .map_err(anyhow::Error::from)
-        })
-        .await??;
-
-        Ok(())
-    }
-
-    /// Fetch information about the current epoch.
-    ///
-    /// This will return the root of the epoch, if present,
-    /// and the start height of the epoch, if present.
-    pub async fn get_epoch(&self, epoch: u64) -> anyhow::Result<(Option<Root>, Option<u64>)> {
-        let pool = self.pool.clone();
-
-        spawn_blocking(move || {
-            pool.get()?
-                .query_row_and_then(
-                    r#"
-                    SELECT root, start_height
-                    FROM epochs
-                    WHERE epoch_index = ?1
-                    "#,
-                    (epoch,),
-                    |row| {
-                        let root_raw: Option<Vec<u8>> = row.get("root")?;
-                        let start_height: Option<u64> = row.get("start_height")?;
-                        let root = root_raw.map(|x| Root::decode(x.as_slice())).transpose()?;
-                        anyhow::Ok((root, start_height))
-                    },
-                )
-                .map_err(anyhow::Error::from)
-        })
-        .await?
     }
 
     /// Load the compliance user tree from storage.
