@@ -301,3 +301,21 @@ async fn committed_transaction_query_rejects_invalid_ids() -> Result<()> {
     }
     Ok(())
 }
+
+#[tokio::test]
+async fn transactions_by_height_reads_committed_blocks_only() -> Result<()> {
+    let (_storage, client) = initialized_client().await?;
+    let response = client
+        .transactions_by_height(proto_app::TransactionsByHeightRequest { block_height: 0 })
+        .await?;
+    assert_eq!(response.block_height, 0);
+    assert!(response.transactions.is_empty());
+    let error = client
+        .transactions_by_height(proto_app::TransactionsByHeightRequest {
+            block_height: u64::MAX,
+        })
+        .await
+        .expect_err("uncommitted block must not be returned");
+    assert_eq!(error.kind(), ErrorKind::FailedPrecondition);
+    Ok(())
+}
