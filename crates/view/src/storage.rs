@@ -12,10 +12,7 @@ use r2d2_sqlite::{
     SqliteConnectionManager,
 };
 use sha2::{Digest, Sha256};
-use tokio::{
-    sync::broadcast::{self, error::RecvError},
-    task::spawn_blocking,
-};
+use tokio::task::spawn_blocking;
 
 use sct::TreeStore;
 use shieldd_sdk_app::params::AppParameters;
@@ -688,8 +685,6 @@ static SCHEMA_HASH: Lazy<String> =
 #[derive(Clone)]
 pub struct Storage {
     pool: r2d2::Pool<SqliteConnectionManager>,
-
-    scanned_notes_tx: tokio::sync::broadcast::Sender<SpendableNoteRecord>,
 }
 
 impl Storage {
@@ -1013,7 +1008,6 @@ impl Storage {
     pub async fn load(path: impl AsRef<Utf8Path>) -> anyhow::Result<Self> {
         let storage = Self {
             pool: Self::connect(Some(path))?,
-            scanned_notes_tx: broadcast::channel(128).0,
         };
 
         spawn_blocking(move || {
@@ -1095,10 +1089,7 @@ impl Storage {
             tx.commit()?;
             drop(conn);
 
-            anyhow::Ok(Storage {
-                pool,
-                scanned_notes_tx: broadcast::channel(128).0,
-            })
+            anyhow::Ok(Storage { pool })
         })
         .await??;
 
@@ -1179,83 +1170,6 @@ impl Storage {
             Ok(entries)
         })
         .await?
-    }
-
-    /// Query for a note by its note commitment, optionally waiting until the note is detected.
-    pub async fn note_by_commitment(
-        &self,
-        note_commitment: tct::StateCommitment,
-        await_detection: bool,
-    ) -> anyhow::Result<SpendableNoteRecord> {
-        // Start subscribing now, before querying for whether we already
-        // have the record, so that we can't miss it if we race a write.
-        let mut rx = self.scanned_notes_tx.subscribe();
-
-        let pool = self.pool.clone();
-
-        if let Some(record) = spawn_blocking(move || {
-            // Check if we already have the record
-            pool.get()?
-                .prepare(&format!(
-                    "SELECT
-                        notes.note_commitment,
-                        spendable_notes.height_created,
-                        notes.address,
-                        notes.amount,
-                        notes.asset_id,
-                        notes.rseed,
-                        notes.recovery_commitment,
-                        spendable_notes.address_index,
-                        spendable_notes.source,
-                        spendable_notes.height_spent,
-                        spendable_notes.nullifier,
-                        spendable_notes.position,
-                        tx.return_address
-                    FROM notes
-                    JOIN spendable_notes ON notes.note_commitment = spendable_notes.note_commitment
-                    LEFT JOIN tx ON spendable_notes.tx_hash = tx.tx_hash
-                    WHERE notes.note_commitment = x'{}'",
-                    hex::encode(note_commitment.0.to_bytes())
-                ))?
-                .query_and_then((), |record| record.try_into())?
-                .next()
-                .transpose()
-        })
-        .await??
-        {
-            return Ok(record);
-        }
-
-        if !await_detection {
-            anyhow::bail!("Note commitment {} not found", note_commitment);
-        }
-
-        // Otherwise, wait for newly detected notes and check whether they're
-        // the requested one.
-
-        loop {
-            match rx.recv().await {
-                Ok(record) => {
-                    if record.note_commitment == note_commitment {
-                        return Ok(record);
-                    }
-                }
-
-                Err(e) => match e {
-                    RecvError::Closed => {
-                        anyhow::bail!(
-                            "Receiver error during note detection: closed (no more active senders)"
-                        );
-                    }
-                    RecvError::Lagged(count) => {
-                        anyhow::bail!(
-                            "Receiver error during note detection: lagged (by {:?} messages)",
-                            count
-                        );
-                    }
-                },
-            };
-        }
     }
 
     /// The last block height we've scanned to, if any.
@@ -1575,88 +1489,6 @@ impl Storage {
         .await?
     }
 
-    // Query for a note by its note commitment, optionally waiting until the note is detected.
-    pub async fn note_by_nullifier(
-        &self,
-        nullifier: Nullifier,
-        await_detection: bool,
-    ) -> anyhow::Result<SpendableNoteRecord> {
-        // Start subscribing now, before querying for whether we already
-        // have the record, so that we can't miss it if we race a write.
-        let mut rx = self.scanned_notes_tx.subscribe();
-
-        // Clone the pool handle so that the returned future is 'static
-        let pool = self.pool.clone();
-
-        let nullifier_bytes = nullifier.to_bytes().to_vec();
-
-        if let Some(record) = spawn_blocking(move || {
-            let record = pool
-                .get()?
-                .prepare(&format!(
-                    "SELECT
-                        notes.note_commitment,
-                        spendable_notes.height_created,
-                        notes.address,
-                        notes.amount,
-                        notes.asset_id,
-                        notes.rseed,
-                        notes.recovery_commitment,
-                        spendable_notes.address_index,
-                        spendable_notes.source,
-                        spendable_notes.height_spent,
-                        spendable_notes.nullifier,
-                        spendable_notes.position,
-                        tx.return_address
-                    FROM notes
-                    JOIN spendable_notes ON notes.note_commitment = spendable_notes.note_commitment
-                    LEFT JOIN tx ON spendable_notes.tx_hash = tx.tx_hash
-                    WHERE hex(spendable_notes.nullifier) = \"{}\"",
-                    hex::encode_upper(nullifier_bytes)
-                ))?
-                .query_and_then((), |row| SpendableNoteRecord::try_from(row))?
-                .next()
-                .transpose()?;
-
-            anyhow::Ok(record)
-        })
-        .await??
-        {
-            return Ok(record);
-        }
-
-        if !await_detection {
-            anyhow::bail!("Note commitment for nullifier {:?} not found", nullifier);
-        }
-
-        // Otherwise, wait for newly detected notes and check whether they're
-        // the requested one.
-
-        loop {
-            match rx.recv().await {
-                Ok(record) => {
-                    if record.nullifier == nullifier {
-                        return Ok(record);
-                    }
-                }
-
-                Err(e) => match e {
-                    RecvError::Closed => {
-                        anyhow::bail!(
-                            "Receiver error during note detection: closed (no more active senders)"
-                        );
-                    }
-                    RecvError::Lagged(count) => {
-                        anyhow::bail!(
-                            "Receiver error during note detection: lagged (by {:?} messages)",
-                            count
-                        );
-                    }
-                },
-            };
-        }
-    }
-
     pub async fn asset_by_id(&self, id: &Id) -> anyhow::Result<Option<Metadata>> {
         let id = id.to_bytes().to_vec();
 
@@ -1951,7 +1783,6 @@ impl Storage {
         }
 
         let pool = self.pool.clone();
-        let scanned_notes_tx = self.scanned_notes_tx.clone();
 
         let fvk = self.full_viewing_key().await?;
 
@@ -2234,16 +2065,6 @@ impl Storage {
             // If there is a panic or error past this point, the database will be left in out of
             // sync with the in-memory copy of the SCT, which means that it will become corrupted as
             // synchronization continues.
-
-            // Broadcast all committed note records to channel
-            // Done following tx.commit() to avoid notifying of a new SpendableNoteRecord before it is actually committed to the database
-
-            for note_record in filtered_block.new_notes.values() {
-                // This will fail to be broadcast if there is no active receiver (such as on initial
-                // sync) The error is ignored, as this isn't a problem, because if there is no
-                // active receiver there is nothing to do
-                let _ = scanned_notes_tx.send(note_record.clone());
-            }
 
             anyhow::Ok(new_sct)
         })
