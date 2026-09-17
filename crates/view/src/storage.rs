@@ -1574,34 +1574,6 @@ impl Storage {
         .await?
     }
 
-    /// Returns a tuple of (block height, transaction hash) for all transactions in a given range of block heights.
-    pub async fn transaction_hashes(
-        &self,
-        start_height: Option<u64>,
-        end_height: Option<u64>,
-    ) -> anyhow::Result<Vec<(u64, Vec<u8>)>> {
-        let starting_block = start_height.unwrap_or(0) as i64;
-        let ending_block = end_height.unwrap_or(self.last_sync_height().await?.unwrap_or(0)) as i64;
-
-        let pool = self.pool.clone();
-
-        spawn_blocking(move || {
-            pool.get()?
-                .prepare_cached(
-                    "SELECT block_height, tx_hash
-                    FROM tx
-                    WHERE block_height BETWEEN ?1 AND ?2",
-                )?
-                .query_and_then([starting_block, ending_block], |row| {
-                    let block_height: u64 = row.get("block_height")?;
-                    let tx_hash: Vec<u8> = row.get("tx_hash")?;
-                    anyhow::Ok((block_height, tx_hash))
-                })?
-                .collect()
-        })
-        .await?
-    }
-
     /// Returns a tuple of (block height, transaction hash, transaction) for all transactions in a given range of block heights.
     pub async fn transactions(
         &self,
