@@ -129,29 +129,8 @@ pub use audit_records::{
     AuditSubjectCandidate, AuditSubjectRegistration, AuditSubjectRole,
 };
 
-#[cfg(feature = "scanner")]
-pub mod audit;
-#[cfg(feature = "scanner")]
-pub use audit::{
-    decrypt_flagged_rows, export_detected_refs, export_ledger_rows, export_ledger_rows_json,
-    export_scan_json, mark_row_audited, record_address_alias, record_evidence_failure,
-    scanner_health_json, validate_and_save_evidence_object,
-};
-
 mod tx_id;
 pub use tx_id::scanner_transaction_id_from_proto;
-
-// Scanner requires tokio and rusqlite for async storage
-#[cfg(feature = "scanner")]
-pub mod scanner;
-#[cfg(feature = "scanner")]
-pub use scanner::{
-    extract_compliance_ciphertexts, AuditLedgerRow, AuditRowKey, BlockIdentityProvider,
-    CandidateEvidence, ComplianceScreener, DetectionEvent, ExtractedComplianceCiphertext,
-    InvalidCiphertext, IssuerComplianceWorker, OutputOutcome, ScannedBlock, ScannedOutput,
-    ScannerSource, ScannerStore, ScreeningResult, SqliteScannerStore, WorkerHandle,
-    MAX_INVALID_CIPHERTEXTS_PER_BLOCK,
-};
 
 pub mod decode_object;
 pub use decode_object::{TransferComplianceMetadata, TRANSFER_COMPLIANCE_METADATA_BYTES};
@@ -231,8 +210,7 @@ pub mod test_helpers {
     }
 }
 
-// Integration tests require cnidarium, tokio, and scanner
-#[cfg(all(test, feature = "scanner"))]
+#[cfg(all(test, feature = "component"))]
 mod tests {
     use super::*;
     use crate::registry::ComplianceRegistryComponentWrite as _;
@@ -500,13 +478,6 @@ mod tests {
         use rand_core::OsRng;
         use shieldd_sdk_asset::Value;
         use shieldd_sdk_num::Amount;
-        use shieldd_sdk_proto::core::component::shielded_pool::v1::{
-            Transfer, TransferBody, TransferOutputBody,
-        };
-        use shieldd_sdk_proto::core::transaction::v1::{
-            action::Action, Action as ActionProto, Transaction as ProtoTransaction, TransactionBody,
-        };
-
         let issuer_dk = DetectionKey::demo();
         let issuer_dk_pub = issuer_dk.public_key();
         let ring_pk = decaf377::Element::GENERATOR * decaf377::Fr::rand(&mut OsRng);
@@ -551,72 +522,27 @@ mod tests {
             Fq::from(11u64),
         );
 
-        let tx = ProtoTransaction {
-            body: Some(TransactionBody {
-                actions: vec![ActionProto {
-                    action: Some(Action::Transfer(Transfer {
-                        body: Some(TransferBody {
-                            routing: Some(
-                                shieldd_sdk_proto::core::component::shielded_pool::v1::TransferRouting {
-                                    tags: vec![
-                                        shieldd_sdk_proto::core::component::shielded_pool::v1::RoutingTag { value: 11 },
-                                        shieldd_sdk_proto::core::component::shielded_pool::v1::RoutingTag { value: 22 },
-                                    ],
-                                },
-                            ),
-                            outputs: vec![TransferOutputBody {
-                                compliance_ciphertext: ciphertext.to_bytes(),
-                                compliance_metadata: metadata.to_bytes().unwrap(),
-                                ..Default::default()
-                            }],
-                            ..Default::default()
-                        }),
-                        ..Default::default()
-                    })),
-                }],
-                ..Default::default()
-            }),
-            ..Default::default()
-        };
-
-        let tx_ref = scanner::TxRef {
-            block: scanner::BlockRef {
-                height: 100,
-                block_hash: [1u8; 32],
-                parent_hash: [0u8; 32],
-                block_time_unix: None,
-            },
-            tx_index: 0,
-            tx_hash: scanner_transaction_id_from_proto(&tx),
-        };
-        let extracted = scanner::extract_compliance_ciphertexts(&tx_ref, &tx);
-        let screener = scanner::ComplianceScreener::new(issuer_dk.clone(), asset_id);
-        let mut detected_ciphertexts = Vec::new();
-        for extracted in extracted {
-            if let scanner::ScreeningResult::Detected(d) = screener.screen(extracted) {
-                detected_ciphertexts.push(d.ciphertext);
-            }
-        }
-        assert_eq!(detected_ciphertexts.len(), 1);
+        let (detected_asset, is_flagged, salt) = issuer_dk
+            .try_decrypt_detection(
+                &ciphertext.sender_core_epk,
+                &ciphertext.detection_tag,
+                &asset_id,
+            )
+            .unwrap();
+        assert_eq!(detected_asset, asset_id);
+        assert!(is_flagged);
+        assert_eq!(salt, Fq::from(7u64));
 
         let wrong_dk = DetectionKey::from_seed(&[99u8; 32]);
-        let wrong_screener = scanner::ComplianceScreener::new(wrong_dk, asset_id);
-        let wrong_detected = scanner::extract_compliance_ciphertexts(&tx_ref, &tx)
-            .into_iter()
-            .filter(|extracted| {
-                matches!(
-                    wrong_screener.screen(extracted.clone()),
-                    scanner::ScreeningResult::Detected(_)
-                )
-            })
-            .count();
-        assert_eq!(wrong_detected, 0);
+        assert!(wrong_dk
+            .try_decrypt_detection(
+                &ciphertext.sender_core_epk,
+                &ciphertext.detection_tag,
+                &asset_id
+            )
+            .is_err());
 
-        let scanner::types::ComplianceCiphertext::Transfer(ciphertext) = &detected_ciphertexts[0]
-        else {
-            panic!("transfer action must yield transfer compliance ciphertext");
-        };
-        let decrypted = decrypt_full_flagged(issuer_dk.inner(), ciphertext, &metadata, asset_id)
+        let decrypted = decrypt_full_flagged(issuer_dk.inner(), &ciphertext, &metadata, asset_id)
             .unwrap()
             .expect("flagged transfer should decrypt");
         assert_eq!(decrypted.amount, amount);

@@ -180,55 +180,28 @@ contains status, freeze generation, and frozen-since height. Asset ID zero is
 reserved for the indexed-tree sentinel and cannot be registered or used as a
 Transfer or Withdrawal action asset.
 
-## Scanner Types And Tables
+## Evidence
 
-```rust
-BlockRef { height, block_hash, parent_hash, block_time_unix }
-TxRef { block, tx_index, tx_hash }
-ActionRef { tx, action_index }
-OutputRef { action, output_index }
-ExtractedComplianceCiphertext { output_ref, routing_tags, raw_bytes, metadata_bytes }
-```
+`BlockRef`, `TxRef`, `ActionRef`, and `OutputRef` identify the canonical block,
+transaction, action, and output. `ComplianceEvidenceObject` contains the output
+reference, asset/flag/detection facts, transfer ciphertext, metadata, and SHA-256
+payload hash.
 
-| Table | Purpose |
-| --- | --- |
-| `scanner_blocks` | canonical block identity and scan status |
-| `scanner_ciphertexts` | accepted ciphertext and metadata bytes |
-| `scanner_detections` | DK-detected private outputs and audit status |
-| `scanner_invalid_ciphertexts` | bounded malformed rows |
-| `scanner_invalid_ciphertext_summaries` | overflow counts |
-| `scanner_sync` | replay cursor |
-| `compliance_evidence_objects` | canonical evidence bytes |
-| `audit_rows` | normalized audit projection |
-| `audit_decryption_failures` | bounded decryption failures |
-| `audit_evidence_failures` | bounded evidence failures |
+`validate_audit_evidence` validates the canonical payload hash and metadata
+through `ComplianceEvidenceObject::validate_payload_hash`. Callers supply the
+accepted output context and own persistence and audit completion.
 
-## Scanner evidence
-
-`ComplianceEvidenceObject` contains:
-
-```text
-transfer object type
-OutputRef and block identity
-asset id, flag, detection salt
-TransferComplianceCiphertext
-TransferComplianceMetadata
-SHA-256 payload hash
-```
-
-It deliberately excludes release material, DH shared points, and standalone DLEQ
-proofs. `validate_and_save_evidence_object` verifies the payload hash, metadata
-shape, accepted ciphertext/metadata byte equality, and persisted detection
-facts before advancing the row to `evidence_valid`.
+The object excludes release material, DH shared points, and standalone DLEQ
+proofs.
 
 ## Audit Boundary
 
 Flagged transfers can be completed by issuer-DK decryption after evidence
-validation. Scanner evidence never publishes seed-opening material. The
+validation. Evidence objects exclude seed-opening material. The
 privileged note-seizure host call uses a capsule-specific point and DLEQ proof;
 see [`enforcement-and-seizure.md`](enforcement-and-seizure.md).
 
-Transfer statements, user transactions, and scanner evidence do not contain
+Transfer statements, user transactions, and evidence objects do not contain
 capsule-release material.
 
 ## Circuit Implementation Boundary
@@ -248,7 +221,7 @@ circuits under `tools/gnark/`. No second circuit architecture is supported.
 - Channel whitelist enforcement is first-hop only.
 - Cross-tier randomizer/EPK independence is mandatory.
 - Metadata belongs only to the receiver output.
-- Capsule-release material must remain outside user transactions and scanner evidence.
+- Capsule-release material must remain outside user transactions and evidence objects.
 
 ## Source Map
 
@@ -260,6 +233,5 @@ circuits under `tools/gnark/`. No second circuit architecture is supported.
 | Transfer circuit | `tools/gnark/internal/circuits/transfer_circuit.go` |
 | Witness ABI | `tools/gnark/internal/abi/transfer_witness_binary.go` |
 | Rust statement builder | `crates/core/component/shielded-pool/src/public_input_hash.rs` |
-| Scanner | `crates/core/component/compliance/src/scanner/` |
-| Evidence and audit | `crates/core/component/compliance/src/evidence.rs`, `audit.rs` |
+| Evidence and audit | `crates/core/component/compliance/src/evidence.rs`, `audit_validation.rs` |
 | Formal verification | [`shieldd-security`](https://github.com/mizufinance/shieldd-security) |

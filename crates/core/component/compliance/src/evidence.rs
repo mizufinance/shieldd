@@ -76,7 +76,7 @@ pub struct WithdrawalEvidencePublicData {
     pub destination: String,
 }
 
-/// Canonical scanner evidence for one accepted compliance-bearing action record.
+/// Canonical evidence for one accepted compliance-bearing action record.
 #[derive(Clone, Debug)]
 pub struct ComplianceEvidenceObject {
     pub object_type: EvidenceObjectType,

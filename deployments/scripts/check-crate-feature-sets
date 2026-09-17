@@ -21,7 +21,7 @@ cargo hack check --workspace --all-targets --all-features --release
 cargo check --release -p shieldd --lib
 cargo check --release -p shieldd-sdk-view --no-default-features
 cargo check --release -p shieldd-sdk-view --no-default-features --features rpc
-cargo check --release -p shieldd-sdk-compliance --no-default-features --features scanner
+cargo check --release -p shieldd-sdk-compliance --no-default-features
 cargo check --release -p shieldd-sdk-transaction --no-default-features --features prover
 cargo check --release -p orbis-audit
 dependency_tree="$(cargo tree -p shieldd --edges normal --prefix none)"
