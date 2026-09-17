@@ -17,10 +17,6 @@ pub struct Cache {
 }
 
 impl Cache {
-    pub fn get_by_id(&self, id: Id) -> Option<Metadata> {
-        self.cache.get(&id).cloned()
-    }
-
     pub fn get_unit(&self, raw_denom: &str) -> Option<Unit> {
         self.units.get(raw_denom).cloned()
     }
