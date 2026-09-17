@@ -690,7 +690,6 @@ pub struct Storage {
     pool: r2d2::Pool<SqliteConnectionManager>,
 
     scanned_notes_tx: tokio::sync::broadcast::Sender<SpendableNoteRecord>,
-    scanned_nullifiers_tx: tokio::sync::broadcast::Sender<Nullifier>,
 }
 
 impl Storage {
@@ -1015,7 +1014,6 @@ impl Storage {
         let storage = Self {
             pool: Self::connect(Some(path))?,
             scanned_notes_tx: broadcast::channel(128).0,
-            scanned_nullifiers_tx: broadcast::channel(512).0,
         };
 
         spawn_blocking(move || {
@@ -1100,7 +1098,6 @@ impl Storage {
             anyhow::Ok(Storage {
                 pool,
                 scanned_notes_tx: broadcast::channel(128).0,
-                scanned_nullifiers_tx: broadcast::channel(512).0,
             })
         })
         .await??;
@@ -1258,59 +1255,6 @@ impl Storage {
                     }
                 },
             };
-        }
-    }
-
-    /// Query for a nullifier's status, optionally waiting until the nullifier is detected.
-    pub async fn nullifier_status(
-        &self,
-        nullifier: Nullifier,
-        await_detection: bool,
-    ) -> anyhow::Result<bool> {
-        // Start subscribing now, before querying for whether we already have the nullifier, so we
-        // can't miss it if we race a write.
-        let mut rx = self.scanned_nullifiers_tx.subscribe();
-
-        // Clone the pool handle so that the returned future is 'static
-        let pool = self.pool.clone();
-
-        let nullifier_bytes = nullifier.0.to_bytes().to_vec();
-
-        // Check if we already have the nullifier in the set of spent notes
-        if let Some(height_spent) = spawn_blocking(move || {
-            pool.get()?
-                .prepare_cached("SELECT height_spent FROM spendable_notes WHERE nullifier = ?1")?
-                .query_and_then([nullifier_bytes], |row| {
-                    let height_spent: Option<u64> = row.get("height_spent")?;
-                    anyhow::Ok(height_spent)
-                })?
-                .next()
-                .transpose()
-        })
-        .await??
-        {
-            let spent = height_spent.is_some();
-
-            // If we're awaiting detection and the nullifier isn't yet spent, don't return just yet
-            if !await_detection || spent {
-                return Ok(spent);
-            }
-        }
-
-        // After checking the database, if we didn't find it, return `false` unless we are to
-        // await detection
-        if !await_detection {
-            return Ok(false);
-        }
-
-        // Otherwise, wait for newly detected nullifiers and check whether they're the requested
-        // one.
-        loop {
-            let new_nullifier = rx.recv().await.context("change subscriber failed")?;
-
-            if new_nullifier == nullifier {
-                return Ok(true);
-            }
         }
     }
 
@@ -2008,7 +1952,6 @@ impl Storage {
 
         let pool = self.pool.clone();
         let scanned_notes_tx = self.scanned_notes_tx.clone();
-        let scanned_nullifiers_tx = self.scanned_nullifiers_tx.clone();
 
         let fvk = self.full_viewing_key().await?;
 
@@ -2300,13 +2243,6 @@ impl Storage {
                 // sync) The error is ignored, as this isn't a problem, because if there is no
                 // active receiver there is nothing to do
                 let _ = scanned_notes_tx.send(note_record.clone());
-            }
-
-            for nullifier in filtered_block.spent_nullifiers.iter() {
-                // This will fail to be broadcast if there is no active receiver (such as on initial
-                // sync) The error is ignored, as this isn't a problem, because if there is no
-                // active receiver there is nothing to do
-                let _ = scanned_nullifiers_tx.send(*nullifier);
             }
 
             anyhow::Ok(new_sct)
