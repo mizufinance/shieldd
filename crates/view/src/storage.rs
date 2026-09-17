@@ -2193,30 +2193,6 @@ impl Storage {
         store.add_anchor(plan.height, plan.user_root, plan.asset_root)
     }
 
-    /// Record a counterparty address for tracking.
-    pub async fn record_counterparty(
-        &self,
-        address: &shieldd_sdk_keys::Address,
-        height: u64,
-    ) -> anyhow::Result<()> {
-        let pool = self.pool.clone();
-        let address_bytes = address.to_vec();
-
-        spawn_blocking(move || {
-            let mut conn = pool.get()?;
-            let mut tx = conn.transaction()?;
-            {
-                let mut store = compliance::ComplianceTreeStore(&mut tx);
-                store.add_counterparty(&address_bytes, height)?;
-            }
-            tx.commit()?;
-            Ok::<(), anyhow::Error>(())
-        })
-        .await??;
-
-        Ok(())
-    }
-
     /// Check if an address is in the compliance sync scope (own or counterparty).
     pub async fn is_address_in_compliance_scope(
         &self,
