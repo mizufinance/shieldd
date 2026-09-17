@@ -970,30 +970,6 @@ impl Storage {
         .await?
     }
 
-    /// If the database at `storage_path` exists, [`Self::load`] it, otherwise, [`Self::initialize`] it.
-    #[tracing::instrument(
-        skip_all,
-        fields(
-            path = ?storage_path.as_ref().map(|p| p.as_ref().as_str()),
-        )
-    )]
-    pub async fn load_or_initialize(
-        storage_path: Option<impl AsRef<Utf8Path>>,
-        fvk: &FullViewingKey,
-        params: AppParameters,
-    ) -> anyhow::Result<Self> {
-        if let Some(path) = storage_path.as_ref().map(AsRef::as_ref) {
-            if path.exists() {
-                tracing::debug!(?path, "database exists");
-                return Self::load(path).await;
-            } else {
-                tracing::debug!(?path, "database does not exist");
-            }
-        };
-
-        Self::initialize(storage_path, fvk.clone(), params).await
-    }
-
     fn connect(
         path: Option<impl AsRef<Utf8Path>>,
     ) -> anyhow::Result<r2d2::Pool<SqliteConnectionManager>> {
