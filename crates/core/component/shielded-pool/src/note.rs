@@ -1,6 +1,5 @@
 use std::convert::{TryFrom, TryInto};
 
-use crate::genesis::Allocation;
 use blake2b_simd;
 use decaf377::{Element, Fq};
 use decaf377_ka as ka;
@@ -125,26 +124,6 @@ impl Note {
         } else {
             false
         }
-    }
-
-    /// Obtain a note corresponding to this allocation.
-    ///
-    /// Note: to ensure determinism, this uses a zero rseed when
-    /// creating the note.
-    pub fn from_allocation(allocation: Allocation) -> anyhow::Result<Note> {
-        Note::from_parts(
-            allocation.address,
-            Value {
-                amount: allocation.raw_amount,
-                asset_id: asset::REGISTRY
-                    .parse_denom(&allocation.raw_denom)
-                    .ok_or_else(|| anyhow::anyhow!("invalid denomination"))?
-                    .id(),
-            },
-            Rseed([0u8; 32]),
-            RecoveryCommitment::unavailable(),
-        )
-        .map_err(Into::into)
     }
 
     pub fn from_parts(

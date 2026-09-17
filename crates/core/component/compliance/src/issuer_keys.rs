@@ -1,11 +1,4 @@
-//! Issuer Compliance Key Hierarchy
-//!
-//! This module implements the issuer-side key hierarchy for per-asset compliance.
-//!
-//! - `MCK`: Master Compliance Key (Orbis secret, per-issuer, for future signature verification)
-//! - `DK`: Detection Key (per-asset, generated and held by the issuer for scanning and decryption)
-//!
-//! DK is standalone (not derived from MCK or any Orbis key). The issuer registers dk_pub on-chain.
+//! Issuer-held detection keys for per-asset scanning and flagged decryption.
 
 use decaf377::{Element, Fq, Fr};
 use once_cell::sync::Lazy;
@@ -36,71 +29,8 @@ pub(crate) fn detection_flag_from_fq(value: Fq) -> anyhow::Result<bool> {
     Ok(value == Fq::from(1u64))
 }
 
-/// Master Compliance Key (Orbis Secret).
-///
-/// Per-issuer master secret key held by Orbis. Used for:
-/// - Future signature verification of policy updates
-/// - Deriving asset-specific keys (if needed)
-///
-/// Note: MCK is NOT currently used for detection. Detection uses DK directly.
-/// MCK_pub is stored in the asset leaf for future signature verification.
-/// The issuer never sees MCK - only Orbis holds this secret.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct MasterComplianceKey(pub Fr);
-
-impl MasterComplianceKey {
-    pub fn new(scalar: Fr) -> Self {
-        Self(scalar)
-    }
-
-    /// Generate a deterministic demo MCK for testing.
-    #[cfg(any(test, feature = "test-helpers"))]
-    pub fn demo() -> Self {
-        Self::new(Fr::from(99999u64))
-    }
-
-    /// Derive MCK from a seed (for deterministic testing).
-    #[cfg(any(test, feature = "test-helpers"))]
-    pub fn from_seed(seed: &[u8; 32]) -> Self {
-        let personal = b"shieldd_mck_der";
-        let hash = blake2b_simd::Params::new()
-            .hash_length(64)
-            .personal(personal)
-            .hash(seed);
-        let scalar = Fr::from_le_bytes_mod_order(hash.as_bytes());
-        Self::new(scalar)
-    }
-
-    /// Derive the public key (MCK_pub = MCK * G).
-    ///
-    /// This is stored in the asset leaf for future signature verification.
-    pub fn public_key(&self) -> Element {
-        Element::GENERATOR * self.0
-    }
-
-    /// Access the inner scalar (use with caution - this is secret material).
-    pub fn inner(&self) -> &Fr {
-        &self.0
-    }
-
-    pub fn to_bytes(&self) -> [u8; 32] {
-        self.0.to_bytes()
-    }
-
-    pub fn from_bytes(bytes: &[u8; 32]) -> Self {
-        let scalar = Fr::from_le_bytes_mod_order(bytes);
-        Self::new(scalar)
-    }
-}
-
-/// Detection Key (Per-Asset Secret, Held by Issuer).
-///
-/// Per-asset secret key generated and held by the issuer. Used for:
-/// - Scanning: Decrypting the detection tier to identify transfers of this asset
-/// - Flagged decryption: Decrypting core+extension data for flagged transactions
-///
-/// **Important**: DK is standalone (not derived from MCK or any Orbis key).
-/// The issuer registers dk_pub on-chain; the private scalar never leaves the issuer.
+/// Per-asset secret for detection and flagged decryption, generated and held by the issuer.
+/// The issuer registers its public point on-chain; the private scalar stays with the issuer.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct DetectionKey(pub Fr);
 
@@ -263,88 +193,10 @@ impl DetectionKey {
     }
 }
 
-/// Detection Key Public (Point).
-///
-/// The public component of the detection key, stored in the asset leaf.
-/// This is what senders encrypt the detection tier to.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct DetectionKeyPublic(pub Element);
-
-impl DetectionKeyPublic {
-    pub fn new(point: Element) -> Self {
-        Self(point)
-    }
-
-    pub fn from_dk(dk: &DetectionKey) -> Self {
-        Self(dk.public_key())
-    }
-
-    pub fn inner(&self) -> &Element {
-        &self.0
-    }
-
-    pub fn to_bytes(&self) -> [u8; 32] {
-        self.0.vartime_compress().0
-    }
-
-    pub fn from_bytes(bytes: [u8; 32]) -> anyhow::Result<Self> {
-        let point = decaf377::Encoding(bytes)
-            .vartime_decompress()
-            .map_err(|_| anyhow::anyhow!("invalid detection key public bytes"))?;
-        Ok(Self(point))
-    }
-}
-
-/// Master Compliance Key Public (Point).
-///
-/// The public component of the master compliance key, stored in the asset leaf.
-/// Used for future signature verification of policy updates.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct MasterComplianceKeyPublic(pub Element);
-
-impl MasterComplianceKeyPublic {
-    pub fn new(point: Element) -> Self {
-        Self(point)
-    }
-
-    pub fn from_mck(mck: &MasterComplianceKey) -> Self {
-        Self(mck.public_key())
-    }
-
-    pub fn inner(&self) -> &Element {
-        &self.0
-    }
-
-    pub fn to_bytes(&self) -> [u8; 32] {
-        self.0.vartime_compress().0
-    }
-
-    pub fn from_bytes(bytes: [u8; 32]) -> anyhow::Result<Self> {
-        let point = decaf377::Encoding(bytes)
-            .vartime_decompress()
-            .map_err(|_| anyhow::anyhow!("invalid master compliance key public bytes"))?;
-        Ok(Self(point))
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use rand_core::OsRng;
-
-    #[test]
-    fn test_mck_basic() {
-        let mck = MasterComplianceKey::demo();
-        let mck_pub = mck.public_key();
-
-        // Verify public key is derived correctly
-        assert_eq!(mck_pub, Element::GENERATOR * mck.0);
-
-        // Round-trip through bytes
-        let bytes = mck.to_bytes();
-        let recovered = MasterComplianceKey::from_bytes(&bytes);
-        assert_eq!(mck, recovered);
-    }
 
     #[test]
     fn test_dk_basic() {
@@ -416,36 +268,6 @@ mod tests {
         assert!(!detection_flag_from_fq(detection_flag_plaintext(false)).unwrap());
         assert!(detection_flag_from_fq(detection_flag_plaintext(true)).unwrap());
         assert!(detection_flag_from_fq(Fq::from(2u64)).is_err());
-    }
-
-    #[test]
-    fn test_detection_key_public_roundtrip() {
-        let dk = DetectionKey::demo();
-        let dk_pub = DetectionKeyPublic::from_dk(&dk);
-
-        let bytes = dk_pub.to_bytes();
-        let recovered = DetectionKeyPublic::from_bytes(bytes).unwrap();
-
-        assert_eq!(dk_pub, recovered);
-    }
-
-    #[test]
-    fn test_mck_public_roundtrip() {
-        let mck = MasterComplianceKey::demo();
-        let mck_pub = MasterComplianceKeyPublic::from_mck(&mck);
-
-        let bytes = mck_pub.to_bytes();
-        let recovered = MasterComplianceKeyPublic::from_bytes(bytes).unwrap();
-
-        assert_eq!(mck_pub, recovered);
-    }
-
-    #[test]
-    fn test_mck_and_dk_are_independent() {
-        let mck = MasterComplianceKey::demo();
-        let dk = DetectionKey::demo();
-        assert_ne!(mck.0, dk.0);
-        assert_ne!(mck.public_key(), dk.public_key());
     }
 
     #[test]

@@ -55,8 +55,6 @@ pub mod transfer;
 pub mod backref;
 pub use backref::{Backref, EncryptedBackref};
 
-pub mod compliance_helpers;
-
 pub mod proof_error;
 pub use proof_error::{ProofError, ProofResult};
 
@@ -91,8 +89,6 @@ pub use transfer::{
     TRANSFER_PROOF_LABEL, TRANSFER_STATEMENT_FIELD_COUNT,
 };
 
-#[cfg(feature = "benchmark-helpers")]
-pub mod benchmark_helpers;
 #[cfg(any(test, feature = "benchmark-helpers"))]
 pub mod test_proof_helpers;
 

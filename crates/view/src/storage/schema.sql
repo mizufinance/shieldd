@@ -161,26 +161,12 @@ CREATE INDEX spendable_notes_idx ON spendable_notes (
     height_spent       -- null if unspent, so spent/unspent is first
 );
 
-CREATE TABLE epochs (
-    epoch_index BIGINT PRIMARY KEY,
-    root BLOB,
-    start_height BIGINT
-);
-
 -- ========== Compliance Trees (Local Sync) ==========
 
 -- User compliance tree positions and commitments
 CREATE TABLE compliance_user_positions (
     position BIGINT PRIMARY KEY,
     commitment BLOB NOT NULL
-);
-
--- Internal hashes for user tree auth paths
-CREATE TABLE compliance_user_hashes (
-    position BIGINT NOT NULL,
-    height TINYINT NOT NULL,
-    hash BLOB NOT NULL,
-    PRIMARY KEY (position, height)
 );
 
 -- Asset tree (IMT) indexed leaves (full policy for correct tree reconstruction)
@@ -197,14 +183,6 @@ CREATE TABLE compliance_asset_leaves (
     policy_id_hash BLOB NOT NULL,  -- 32 bytes Fq
     permission_hash BLOB NOT NULL, -- 32 bytes Fq
     resource_hash BLOB NOT NULL    -- 32 bytes Fq
-);
-
--- Internal hashes for asset tree auth paths
-CREATE TABLE compliance_asset_hashes (
-    position BIGINT NOT NULL,
-    height TINYINT NOT NULL,
-    hash BLOB NOT NULL,
-    PRIMARY KEY (position, height)
 );
 
 -- Compliance tree anchors per block

@@ -12,11 +12,9 @@ publish = false
 anyhow = { workspace = true }
 ark-serialize = { workspace = true }
 cnidarium = { workspace = true, features = ["migration"], default-features = true }
-csv = "1"
 decaf377 = { workspace = true }
 decaf377-rdsa = { workspace = true }
 hex = { workspace = true }
-once_cell = { workspace = true }
 shieldd-sdk-app = { workspace = true, features = ["benchmark-helpers"], default-features = true }
 shieldd-sdk-asset = { workspace = true, default-features = true }
 shieldd-sdk-compliance = { workspace = true, default-features = false, features = ["test-helpers"] }
@@ -34,6 +32,3 @@ sha2 = { workspace = true }
 tendermint = { workspace = true }
 tokio = { workspace = true, features = ["sync", "rt-multi-thread", "macros", "time"] }
 zstd = "0.13"
-
-[dev-dependencies]
-tempfile = { workspace = true }

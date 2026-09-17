@@ -127,26 +127,12 @@ nullifier, and value constraints are tracked in
 - Point and Fq decoders reject noncanonical values and wrong lengths.
 - The wire contains no capsule-release evidence, shared point, or DLEQ proof.
 
-## Scanner And Evidence Checks
-
-### Output Identity
+## Evidence Checks
 
 - `BlockRef`, `TxRef`, `ActionRef`, and `OutputRef` are the canonical keys.
 - `tx_hash` is the transaction crate's `TransactionId`.
-- Reorg rollback uses stored block and parent hashes.
-
-### Persisted Bytes
-
-- `scanner_ciphertexts` stores the exact accepted ciphertext and optional
-  metadata bytes.
-- `validate_and_save_evidence_object` requires both to match evidence exactly.
-- Detection asset, flag, salt, and reserved-zero facts must match the persisted
-  detection row.
-- Failures are persisted with bounded attacker-controlled reason text.
-
-### Audit Completion
-
-- Audit completion requires `evidence_valid`.
-- Flagged rows may complete through issuer-DK tier decryption.
-- No scanner capsule-release import workflow is exposed. Unflagged ACK-tier audit therefore
-  remains incomplete even when transaction evidence is valid.
+- `validate_audit_evidence` checks the evidence object's canonical payload hash
+  and metadata. Callers bind the object to the accepted output context.
+- `AuditStatus::try_advance` requires validated evidence before audit completion.
+- Flagged transfer tiers support issuer-DK decryption.
+- Capsule-release material is excluded from evidence objects.

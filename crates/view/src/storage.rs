@@ -12,10 +12,7 @@ use r2d2_sqlite::{
     SqliteConnectionManager,
 };
 use sha2::{Digest, Sha256};
-use tokio::{
-    sync::broadcast::{self, error::RecvError},
-    task::spawn_blocking,
-};
+use tokio::task::spawn_blocking;
 
 use sct::TreeStore;
 use shieldd_sdk_app::params::AppParameters;
@@ -32,7 +29,7 @@ use shieldd_sdk_sct::{nullifier_generation::NullifierWindow, CommitmentSource, N
 use shieldd_sdk_shielded_pool::{
     discovery, note, Note, Rseed, VolumeAccumulatorPayload, VolumeAccumulatorState,
 };
-use shieldd_sdk_tct::{self as tct, builder::epoch::Root};
+use shieldd_sdk_tct as tct;
 use shieldd_sdk_transaction::Transaction;
 use tct::StateCommitment;
 
@@ -87,16 +84,10 @@ pub(crate) struct ComplianceAssetPolicyUpdate {
     pub policy: AssetPolicy,
 }
 
-pub(crate) struct CompletedEpoch {
-    pub index: u64,
-    pub root: Root,
-}
-
 #[derive(Default)]
 pub(crate) struct WalletBlockMetadata {
     pub timestamp: u64,
     pub assets: Vec<Metadata>,
-    pub epoch: Option<CompletedEpoch>,
     pub counterparties: BTreeSet<Address>,
 }
 
@@ -688,9 +679,6 @@ static SCHEMA_HASH: Lazy<String> =
 #[derive(Clone)]
 pub struct Storage {
     pool: r2d2::Pool<SqliteConnectionManager>,
-
-    scanned_notes_tx: tokio::sync::broadcast::Sender<SpendableNoteRecord>,
-    scanned_nullifiers_tx: tokio::sync::broadcast::Sender<Nullifier>,
 }
 
 impl Storage {
@@ -970,30 +958,6 @@ impl Storage {
         .await?
     }
 
-    /// If the database at `storage_path` exists, [`Self::load`] it, otherwise, [`Self::initialize`] it.
-    #[tracing::instrument(
-        skip_all,
-        fields(
-            path = ?storage_path.as_ref().map(|p| p.as_ref().as_str()),
-        )
-    )]
-    pub async fn load_or_initialize(
-        storage_path: Option<impl AsRef<Utf8Path>>,
-        fvk: &FullViewingKey,
-        params: AppParameters,
-    ) -> anyhow::Result<Self> {
-        if let Some(path) = storage_path.as_ref().map(AsRef::as_ref) {
-            if path.exists() {
-                tracing::debug!(?path, "database exists");
-                return Self::load(path).await;
-            } else {
-                tracing::debug!(?path, "database does not exist");
-            }
-        };
-
-        Self::initialize(storage_path, fvk.clone(), params).await
-    }
-
     fn connect(
         path: Option<impl AsRef<Utf8Path>>,
     ) -> anyhow::Result<r2d2::Pool<SqliteConnectionManager>> {
@@ -1038,8 +1002,6 @@ impl Storage {
     pub async fn load(path: impl AsRef<Utf8Path>) -> anyhow::Result<Self> {
         let storage = Self {
             pool: Self::connect(Some(path))?,
-            scanned_notes_tx: broadcast::channel(128).0,
-            scanned_nullifiers_tx: broadcast::channel(512).0,
         };
 
         spawn_blocking(move || {
@@ -1084,7 +1046,7 @@ impl Storage {
         // Connect to the database (or create it)
         let pool = Self::connect(storage_path)?;
 
-        let out = spawn_blocking(move || {
+        spawn_blocking(move || {
             // In one database transaction, populate everything
             let mut conn = pool.get()?;
             let tx = conn.transaction()?;
@@ -1121,47 +1083,9 @@ impl Storage {
             tx.commit()?;
             drop(conn);
 
-            anyhow::Ok(Storage {
-                pool,
-                scanned_notes_tx: broadcast::channel(128).0,
-                scanned_nullifiers_tx: broadcast::channel(512).0,
-            })
+            anyhow::Ok(Storage { pool })
         })
-        .await??;
-
-        out.update_epoch(0, None, Some(0)).await?;
-
-        Ok(out)
-    }
-
-    /// Loads asset metadata from a JSON file and use to update the database.
-    pub async fn load_asset_metadata(
-        &self,
-        registry_path: impl AsRef<Utf8Path>,
-    ) -> anyhow::Result<()> {
-        tracing::debug!(registry_path = ?registry_path.as_ref(), "loading asset metadata");
-        let registry_path = registry_path.as_ref();
-        // Parse into a serde_json::Value first so we can get the bits we care about
-        let mut registry_json: serde_json::Value = serde_json::from_str(
-            std::fs::read_to_string(registry_path)
-                .context("failed to read file")?
-                .as_str(),
-        )
-        .context("failed to parse JSON")?;
-
-        let registry: BTreeMap<String, Metadata> = serde_json::value::from_value(
-            registry_json
-                .get_mut("assetById")
-                .ok_or_else(|| anyhow::anyhow!("missing assetById"))?
-                .take(),
-        )
-        .context("could not parse asset registry")?;
-
-        for metadata in registry.into_values() {
-            self.record_asset(metadata).await?;
-        }
-
-        Ok(())
+        .await?
     }
 
     /// Query for account balance by address
@@ -1236,136 +1160,6 @@ impl Storage {
             Ok(entries)
         })
         .await?
-    }
-
-    /// Query for a note by its note commitment, optionally waiting until the note is detected.
-    pub async fn note_by_commitment(
-        &self,
-        note_commitment: tct::StateCommitment,
-        await_detection: bool,
-    ) -> anyhow::Result<SpendableNoteRecord> {
-        // Start subscribing now, before querying for whether we already
-        // have the record, so that we can't miss it if we race a write.
-        let mut rx = self.scanned_notes_tx.subscribe();
-
-        let pool = self.pool.clone();
-
-        if let Some(record) = spawn_blocking(move || {
-            // Check if we already have the record
-            pool.get()?
-                .prepare(&format!(
-                    "SELECT
-                        notes.note_commitment,
-                        spendable_notes.height_created,
-                        notes.address,
-                        notes.amount,
-                        notes.asset_id,
-                        notes.rseed,
-                        notes.recovery_commitment,
-                        spendable_notes.address_index,
-                        spendable_notes.source,
-                        spendable_notes.height_spent,
-                        spendable_notes.nullifier,
-                        spendable_notes.position,
-                        tx.return_address
-                    FROM notes
-                    JOIN spendable_notes ON notes.note_commitment = spendable_notes.note_commitment
-                    LEFT JOIN tx ON spendable_notes.tx_hash = tx.tx_hash
-                    WHERE notes.note_commitment = x'{}'",
-                    hex::encode(note_commitment.0.to_bytes())
-                ))?
-                .query_and_then((), |record| record.try_into())?
-                .next()
-                .transpose()
-        })
-        .await??
-        {
-            return Ok(record);
-        }
-
-        if !await_detection {
-            anyhow::bail!("Note commitment {} not found", note_commitment);
-        }
-
-        // Otherwise, wait for newly detected notes and check whether they're
-        // the requested one.
-
-        loop {
-            match rx.recv().await {
-                Ok(record) => {
-                    if record.note_commitment == note_commitment {
-                        return Ok(record);
-                    }
-                }
-
-                Err(e) => match e {
-                    RecvError::Closed => {
-                        anyhow::bail!(
-                            "Receiver error during note detection: closed (no more active senders)"
-                        );
-                    }
-                    RecvError::Lagged(count) => {
-                        anyhow::bail!(
-                            "Receiver error during note detection: lagged (by {:?} messages)",
-                            count
-                        );
-                    }
-                },
-            };
-        }
-    }
-
-    /// Query for a nullifier's status, optionally waiting until the nullifier is detected.
-    pub async fn nullifier_status(
-        &self,
-        nullifier: Nullifier,
-        await_detection: bool,
-    ) -> anyhow::Result<bool> {
-        // Start subscribing now, before querying for whether we already have the nullifier, so we
-        // can't miss it if we race a write.
-        let mut rx = self.scanned_nullifiers_tx.subscribe();
-
-        // Clone the pool handle so that the returned future is 'static
-        let pool = self.pool.clone();
-
-        let nullifier_bytes = nullifier.0.to_bytes().to_vec();
-
-        // Check if we already have the nullifier in the set of spent notes
-        if let Some(height_spent) = spawn_blocking(move || {
-            pool.get()?
-                .prepare_cached("SELECT height_spent FROM spendable_notes WHERE nullifier = ?1")?
-                .query_and_then([nullifier_bytes], |row| {
-                    let height_spent: Option<u64> = row.get("height_spent")?;
-                    anyhow::Ok(height_spent)
-                })?
-                .next()
-                .transpose()
-        })
-        .await??
-        {
-            let spent = height_spent.is_some();
-
-            // If we're awaiting detection and the nullifier isn't yet spent, don't return just yet
-            if !await_detection || spent {
-                return Ok(spent);
-            }
-        }
-
-        // After checking the database, if we didn't find it, return `false` unless we are to
-        // await detection
-        if !await_detection {
-            return Ok(false);
-        }
-
-        // Otherwise, wait for newly detected nullifiers and check whether they're the requested
-        // one.
-        loop {
-            let new_nullifier = rx.recv().await.context("change subscriber failed")?;
-
-            if new_nullifier == nullifier {
-                return Ok(true);
-            }
-        }
     }
 
     /// The last block height we've scanned to, if any.
@@ -1628,34 +1422,6 @@ impl Storage {
         .await?
     }
 
-    /// Returns a tuple of (block height, transaction hash) for all transactions in a given range of block heights.
-    pub async fn transaction_hashes(
-        &self,
-        start_height: Option<u64>,
-        end_height: Option<u64>,
-    ) -> anyhow::Result<Vec<(u64, Vec<u8>)>> {
-        let starting_block = start_height.unwrap_or(0) as i64;
-        let ending_block = end_height.unwrap_or(self.last_sync_height().await?.unwrap_or(0)) as i64;
-
-        let pool = self.pool.clone();
-
-        spawn_blocking(move || {
-            pool.get()?
-                .prepare_cached(
-                    "SELECT block_height, tx_hash
-                    FROM tx
-                    WHERE block_height BETWEEN ?1 AND ?2",
-                )?
-                .query_and_then([starting_block, ending_block], |row| {
-                    let block_height: u64 = row.get("block_height")?;
-                    let tx_hash: Vec<u8> = row.get("tx_hash")?;
-                    anyhow::Ok((block_height, tx_hash))
-                })?
-                .collect()
-        })
-        .await?
-    }
-
     /// Returns a tuple of (block height, transaction hash, transaction) for all transactions in a given range of block heights.
     pub async fn transactions(
         &self,
@@ -1684,115 +1450,6 @@ impl Storage {
                 .collect()
         })
         .await?
-    }
-
-    pub async fn transaction_by_hash(
-        &self,
-        tx_hash: &[u8],
-    ) -> anyhow::Result<Option<(u64, Transaction)>> {
-        let pool = self.pool.clone();
-        let tx_hash = tx_hash.to_vec();
-
-        spawn_blocking(move || {
-            if let Some((block_height, tx_bytes)) = pool
-                .get()?
-                .prepare_cached("SELECT block_height, tx_bytes FROM tx WHERE tx_hash = ?1")?
-                .query_row([tx_hash], |row| {
-                    let block_height: u64 = row.get("block_height")?;
-                    let tx_bytes: Vec<u8> = row.get("tx_bytes")?;
-                    Ok((block_height, tx_bytes))
-                })
-                .optional()?
-            {
-                let tx = Transaction::decode(tx_bytes.as_slice())?;
-                Ok(Some((block_height, tx)))
-            } else {
-                Ok(None)
-            }
-        })
-        .await?
-    }
-
-    // Query for a note by its note commitment, optionally waiting until the note is detected.
-    pub async fn note_by_nullifier(
-        &self,
-        nullifier: Nullifier,
-        await_detection: bool,
-    ) -> anyhow::Result<SpendableNoteRecord> {
-        // Start subscribing now, before querying for whether we already
-        // have the record, so that we can't miss it if we race a write.
-        let mut rx = self.scanned_notes_tx.subscribe();
-
-        // Clone the pool handle so that the returned future is 'static
-        let pool = self.pool.clone();
-
-        let nullifier_bytes = nullifier.to_bytes().to_vec();
-
-        if let Some(record) = spawn_blocking(move || {
-            let record = pool
-                .get()?
-                .prepare(&format!(
-                    "SELECT
-                        notes.note_commitment,
-                        spendable_notes.height_created,
-                        notes.address,
-                        notes.amount,
-                        notes.asset_id,
-                        notes.rseed,
-                        notes.recovery_commitment,
-                        spendable_notes.address_index,
-                        spendable_notes.source,
-                        spendable_notes.height_spent,
-                        spendable_notes.nullifier,
-                        spendable_notes.position,
-                        tx.return_address
-                    FROM notes
-                    JOIN spendable_notes ON notes.note_commitment = spendable_notes.note_commitment
-                    LEFT JOIN tx ON spendable_notes.tx_hash = tx.tx_hash
-                    WHERE hex(spendable_notes.nullifier) = \"{}\"",
-                    hex::encode_upper(nullifier_bytes)
-                ))?
-                .query_and_then((), |row| SpendableNoteRecord::try_from(row))?
-                .next()
-                .transpose()?;
-
-            anyhow::Ok(record)
-        })
-        .await??
-        {
-            return Ok(record);
-        }
-
-        if !await_detection {
-            anyhow::bail!("Note commitment for nullifier {:?} not found", nullifier);
-        }
-
-        // Otherwise, wait for newly detected notes and check whether they're
-        // the requested one.
-
-        loop {
-            match rx.recv().await {
-                Ok(record) => {
-                    if record.nullifier == nullifier {
-                        return Ok(record);
-                    }
-                }
-
-                Err(e) => match e {
-                    RecvError::Closed => {
-                        anyhow::bail!(
-                            "Receiver error during note detection: closed (no more active senders)"
-                        );
-                    }
-                    RecvError::Lagged(count) => {
-                        anyhow::bail!(
-                            "Receiver error during note detection: lagged (by {:?} messages)",
-                            count
-                        );
-                    }
-                },
-            };
-        }
     }
 
     pub async fn asset_by_id(&self, id: &Id) -> anyhow::Result<Option<Metadata>> {
@@ -1923,29 +1580,6 @@ impl Storage {
             anyhow::Ok(output)
         })
         .await?
-    }
-
-    #[tracing::instrument(skip(self))]
-    pub async fn record_asset(&self, asset: Metadata) -> anyhow::Result<()> {
-        tracing::debug!(?asset);
-
-        let asset_id = asset.id().to_bytes().to_vec();
-        let denom = asset.base_denom().denom;
-        let metadata_json = serde_json::to_string(&asset)?;
-
-        let pool = self.pool.clone();
-
-        spawn_blocking(move || {
-            pool.get()?
-                .execute(
-                    "INSERT OR REPLACE INTO assets (asset_id, denom, metadata) VALUES (?1, ?2, ?3)",
-                    (asset_id, denom, metadata_json),
-                )
-                .map_err(anyhow::Error::from)
-        })
-        .await??;
-
-        Ok(())
     }
 
     fn record_note_inner(
@@ -2112,8 +1746,6 @@ impl Storage {
         }
 
         let pool = self.pool.clone();
-        let scanned_notes_tx = self.scanned_notes_tx.clone();
-        let scanned_nullifiers_tx = self.scanned_nullifiers_tx.clone();
 
         let fvk = self.full_viewing_key().await?;
 
@@ -2371,14 +2003,6 @@ impl Storage {
                 dbtx.execute("INSERT OR REPLACE INTO assets (asset_id, denom, metadata) VALUES (?1, ?2, ?3)",
                     (asset.id().to_bytes().to_vec(), asset.base_denom().denom, serde_json::to_string(&asset)?))?;
             }
-            if let Some(epoch) = metadata.epoch {
-                dbtx.execute("INSERT INTO epochs(epoch_index, root) VALUES (?1, ?2)
-                    ON CONFLICT(epoch_index) DO UPDATE SET root = excluded.root",
-                    (epoch.index, epoch.root.encode_to_vec()))?;
-                dbtx.execute("INSERT INTO epochs(epoch_index, start_height) VALUES (?1, ?2)
-                    ON CONFLICT(epoch_index) DO UPDATE SET start_height = excluded.start_height",
-                    (epoch.index.checked_add(1).context("epoch overflow")?, filtered_block.height.checked_add(1).context("height overflow")?))?;
-            }
             for address in metadata.counterparties {
                 compliance::ComplianceTreeStore(&mut dbtx).add_counterparty(&address.to_vec(), filtered_block.height)?;
             }
@@ -2397,85 +2021,11 @@ impl Storage {
             // sync with the in-memory copy of the SCT, which means that it will become corrupted as
             // synchronization continues.
 
-            // Broadcast all committed note records to channel
-            // Done following tx.commit() to avoid notifying of a new SpendableNoteRecord before it is actually committed to the database
-
-            for note_record in filtered_block.new_notes.values() {
-                // This will fail to be broadcast if there is no active receiver (such as on initial
-                // sync) The error is ignored, as this isn't a problem, because if there is no
-                // active receiver there is nothing to do
-                let _ = scanned_notes_tx.send(note_record.clone());
-            }
-
-            for nullifier in filtered_block.spent_nullifiers.iter() {
-                // This will fail to be broadcast if there is no active receiver (such as on initial
-                // sync) The error is ignored, as this isn't a problem, because if there is no
-                // active receiver there is nothing to do
-                let _ = scanned_nullifiers_tx.send(*nullifier);
-            }
-
             anyhow::Ok(new_sct)
         })
             .await??;
 
         Ok(())
-    }
-
-    /// Update information about an epoch.
-    pub async fn update_epoch(
-        &self,
-        epoch: u64,
-        root: Option<Root>,
-        start_height: Option<u64>,
-    ) -> anyhow::Result<()> {
-        let pool = self.pool.clone();
-
-        spawn_blocking(move || {
-            pool.get()?
-                .execute(
-                    r#"
-                    INSERT INTO epochs(epoch_index, root, start_height)
-                    VALUES (?1, ?2, ?3)
-                    ON CONFLICT(epoch_index)
-                    DO UPDATE SET
-                        root = COALESCE(?2, root),
-                        start_height = COALESCE(?3, start_height)
-                    "#,
-                    (epoch, root.map(|x| x.encode_to_vec()), start_height),
-                )
-                .map_err(anyhow::Error::from)
-        })
-        .await??;
-
-        Ok(())
-    }
-
-    /// Fetch information about the current epoch.
-    ///
-    /// This will return the root of the epoch, if present,
-    /// and the start height of the epoch, if present.
-    pub async fn get_epoch(&self, epoch: u64) -> anyhow::Result<(Option<Root>, Option<u64>)> {
-        let pool = self.pool.clone();
-
-        spawn_blocking(move || {
-            pool.get()?
-                .query_row_and_then(
-                    r#"
-                    SELECT root, start_height
-                    FROM epochs
-                    WHERE epoch_index = ?1
-                    "#,
-                    (epoch,),
-                    |row| {
-                        let root_raw: Option<Vec<u8>> = row.get("root")?;
-                        let start_height: Option<u64> = row.get("start_height")?;
-                        let root = root_raw.map(|x| Root::decode(x.as_slice())).transpose()?;
-                        anyhow::Ok((root, start_height))
-                    },
-                )
-                .map_err(anyhow::Error::from)
-        })
-        .await?
     }
 
     /// Load the compliance user tree from storage.
@@ -2539,30 +2089,6 @@ impl Storage {
             store.add_asset_policy(&update.asset_id.to_bytes(), &update.policy.to_bytes()?)?;
         }
         store.add_anchor(plan.height, plan.user_root, plan.asset_root)
-    }
-
-    /// Record a counterparty address for tracking.
-    pub async fn record_counterparty(
-        &self,
-        address: &shieldd_sdk_keys::Address,
-        height: u64,
-    ) -> anyhow::Result<()> {
-        let pool = self.pool.clone();
-        let address_bytes = address.to_vec();
-
-        spawn_blocking(move || {
-            let mut conn = pool.get()?;
-            let mut tx = conn.transaction()?;
-            {
-                let mut store = compliance::ComplianceTreeStore(&mut tx);
-                store.add_counterparty(&address_bytes, height)?;
-            }
-            tx.commit()?;
-            Ok::<(), anyhow::Error>(())
-        })
-        .await??;
-
-        Ok(())
     }
 
     /// Check if an address is in the compliance sync scope (own or counterparty).
