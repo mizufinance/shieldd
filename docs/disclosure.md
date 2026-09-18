@@ -86,6 +86,34 @@ kills its process group. A package is published atomically only after verificati
 existing files are never overwritten. Import stores the original verified receipt
 without adding spendable notes.
 
+## Target Orbis/Defra flow
+
+This is the target named-person audit flow. Live PET and direct share delivery
+are not implemented; the Orbis demo below remains separate.
+
+- Register KYC, approved address, and public keys in Defra.
+- Register the approved address and keys in Shieldd.
+- Encrypt transaction tiers and PET-ready ownership ciphertexts, with a ZK proof binding them to the transaction.
+- Store ciphertexts on-chain; Defra can keep pointers to Shinzo/Mizu.
+- Auditor requests access through ACP.
+- Auditor sends ciphertexts or references and authorization to Orbis.
+- Orbis checks authorization and performs PET for the requested person.
+- After a match, Orbis nodes produce verifiable PRE shares for the authorized fields.
+- Orbis nodes send the shares to the approved Defra nodes.
+- Auditor retrieves and verifies the shares, combines them, and decrypts.
+- Auditor optionally attests that the evidence was retrieved and verified.
+
+Before sending the Orbis request, create a result document referencing the
+transaction and request, without a decrypted result. Each share is a separate
+document linked to it and bound to the same request. The auditor needs enough
+valid shares from distinct Orbis participants, then may store the decrypted result
+under its own access policy. An attestation is not proof of durable replication.
+
+Use regular Defra collections with explicit read permissions and replication.
+Gather shares through collection replication or fetch known share document IDs;
+[filtered P2P discovery](https://github.com/sourcenetwork/defradb/issues/4032)
+would simplify finding them. Branchable collection history is not required.
+
 ## PET-ready audit selection
 
 `audit-ciphertext` resolves an ordinary Transfer from the chosen node using
