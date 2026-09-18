@@ -133,11 +133,13 @@ ci-check:
       just check; \
     fi
 
-# CI wrapper for `test`.
+# Proof-acceptance tests share expensive fixtures within one process.
 ci-test:
-    python3 scripts/stage_artifacts.py provers --profile ci
+    time python3 scripts/stage_artifacts.py provers --profile ci
     if command -v cargo-nextest >/dev/null 2>&1; then \
-      SHIELDD_ARTIFACT_ROOT="$PWD/target/shieldd" cargo nextest run --cargo-profile ci --no-fail-fast -j 2; \
+      SHIELDD_ARTIFACT_ROOT="$PWD/target/shieldd" time cargo nextest run --cargo-profile ci --no-run -j 2 && \
+      SHIELDD_ARTIFACT_ROOT="$PWD/target/shieldd" time cargo nextest run --cargo-profile ci --no-fail-fast -j 2 -E 'not test(app::tests::proof_acceptance_tests::)' && \
+      SHIELDD_ARTIFACT_ROOT="$PWD/target/shieldd" time cargo test --locked --profile ci -p shieldd-sdk-app --lib app::tests::proof_acceptance_tests:: -- --test-threads=1; \
     else \
       echo "warning: cargo-nextest not found; falling back to 'cargo test --profile ci --no-fail-fast'"; \
       SHIELDD_ARTIFACT_ROOT="$PWD/target/shieldd" cargo test --profile ci --no-fail-fast -- --test-threads=2; \
