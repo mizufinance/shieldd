@@ -12,8 +12,8 @@ concurrency:
 jobs:
   contract:
     name: Orbis/Vera Contract
-    runs-on: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 'blacksmith-16vcpu-ubuntu-2404' || 'ubuntu-24.04' }}
-    timeout-minutes: 45
+    runs-on: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 'blacksmith-8vcpu-ubuntu-2404' || 'ubuntu-24.04' }}
+    timeout-minutes: 60
     steps:
       - name: Checkout Shieldd
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
